@@ -502,14 +502,22 @@ public class ClassFileTransformer {
     return setAccessFlags(method, MethodAccessFlags::setBridge);
   }
 
+  public ClassFileTransformer setPrivate(Constructor<?> constructor) {
+    return setAccessFlags(constructor, ClassFileTransformer::setPrivate);
+  }
+
   public ClassFileTransformer setPrivate(Field field) {
-    return setAccessFlags(
-        field,
-        accessFlags -> {
-          accessFlags.setPrivate();
-          accessFlags.unsetProtected();
-          accessFlags.unsetPublic();
-        });
+    return setAccessFlags(field, ClassFileTransformer::setPrivate);
+  }
+
+  public ClassFileTransformer setPrivate(Method method) {
+    return setAccessFlags(method, ClassFileTransformer::setPrivate);
+  }
+
+  private static void setPrivate(AccessFlags<?> accessFlags) {
+    accessFlags.unsetPublic();
+    accessFlags.unsetProtected();
+    accessFlags.setPrivate();
   }
 
   public ClassFileTransformer setPublic(Method method) {
@@ -519,16 +527,6 @@ public class ClassFileTransformer {
           accessFlags.unsetPrivate();
           accessFlags.unsetProtected();
           accessFlags.setPublic();
-        });
-  }
-
-  public ClassFileTransformer setPrivate(Method method) {
-    return setAccessFlags(
-        method,
-        accessFlags -> {
-          accessFlags.unsetPublic();
-          accessFlags.unsetProtected();
-          accessFlags.setPrivate();
         });
   }
 

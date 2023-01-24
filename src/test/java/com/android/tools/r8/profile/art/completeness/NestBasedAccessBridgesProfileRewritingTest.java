@@ -18,6 +18,7 @@ import com.android.tools.r8.TestRuntime.CfVm;
 import com.android.tools.r8.profile.art.completeness.NestBasedAccessBridgesProfileRewritingTest.Main.NestMember;
 import com.android.tools.r8.profile.art.model.ExternalArtProfile;
 import com.android.tools.r8.profile.art.utils.ArtProfileInspector;
+import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.synthesis.SyntheticItemsTestUtils;
 import com.android.tools.r8.utils.MethodReferenceUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
@@ -59,6 +60,7 @@ public class NestBasedAccessBridgesProfileRewritingTest extends TestBase {
         .addProgramClassFileData(getProgramClassFileData())
         .addKeepMainRule(Main.class)
         .addArtProfileForRewriting(getArtProfile())
+        .addOptionsModification(options -> options.callSiteOptimizationOptions().setEnabled(false))
         .enableInliningAnnotations()
         .setMinApi(parameters.getApiLevel())
         .compile()
@@ -72,6 +74,7 @@ public class NestBasedAccessBridgesProfileRewritingTest extends TestBase {
         transformer(Main.class).setNest(Main.class, NestMember.class).transform(),
         transformer(NestMember.class)
             .setNest(Main.class, NestMember.class)
+            .setPrivate(NestMember.class.getDeclaredConstructor())
             .setPrivate(NestMember.class.getDeclaredField("instanceField"))
             .setPrivate(NestMember.class.getDeclaredField("staticField"))
             .setPrivate(NestMember.class.getDeclaredMethod("instanceMethod"))
@@ -89,6 +92,14 @@ public class NestBasedAccessBridgesProfileRewritingTest extends TestBase {
       throws Exception {
     ClassSubject nestMemberClassSubject = inspector.clazz(NestMember.class);
     assertThat(nestMemberClassSubject, isPresent());
+
+    ClassSubject syntheticConstructorArgumentClassSubject =
+        inspector.clazz(
+            SyntheticItemsTestUtils.syntheticNestConstructorArgumentClass(
+                Reference.classFromClass(NestMember.class)));
+    assertThat(
+        syntheticConstructorArgumentClassSubject,
+        notIf(isPresent(), parameters.canUseNestBasedAccesses()));
 
     MethodSubject syntheticNestInstanceFieldGetterMethodSubject =
         nestMemberClassSubject.uniqueMethodWithOriginalName(
@@ -144,7 +155,8 @@ public class NestBasedAccessBridgesProfileRewritingTest extends TestBase {
         syntheticNestStaticMethodAccessorMethodSubject,
         notIf(isPresent(), parameters.canUseNestBasedAccesses()));
 
-    // TODO(b/265729283): Should contain the nest bridge methods.
+    // TODO(b/265729283): Should contain the nest bridge methods and the synthesized constructor
+    //  argument class.
     profileInspector
         .assertContainsMethodRule(MethodReferenceUtils.mainMethod(Main.class))
         .assertContainsNoOtherRules();
@@ -166,6 +178,8 @@ public class NestBasedAccessBridgesProfileRewritingTest extends TestBase {
 
       /*private*/ int instanceField;
       /*private*/ static int staticField;
+
+      /*private*/ NestMember() {}
 
       @NeverInline
       /*private*/ int instanceMethod() {

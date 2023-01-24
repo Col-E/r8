@@ -146,6 +146,13 @@ public class SyntheticItemsTestUtils {
         originalMethod.getMethodDescriptor());
   }
 
+  public static ClassReference syntheticNestConstructorArgumentClass(
+      ClassReference classReference) {
+    return Reference.classFromDescriptor(
+        SyntheticNaming.createDescriptor(
+            "", naming.INIT_TYPE_ARGUMENT, classReference.getBinaryName(), ""));
+  }
+
   public static MethodReference syntheticNestInstanceFieldGetter(Field field) {
     FieldReference fieldReference = Reference.fieldFromField(field);
     return Reference.method(

@@ -16,7 +16,6 @@ import com.android.tools.r8.SingleTestRunResult;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
-import com.android.tools.r8.apimodel.ApiModelingTestHelper;
 import com.android.tools.r8.profile.art.model.ExternalArtProfile;
 import com.android.tools.r8.profile.art.utils.ArtProfileInspector;
 import com.android.tools.r8.synthesis.SyntheticItemsTestUtils;
@@ -79,8 +78,6 @@ public class ApiOutlineProfileRewritingTest extends TestBase {
         .addKeepMainRule(Main.class)
         .addArtProfileForRewriting(getArtProfile())
         .apply(setMockApiLevelForClass(LibraryClass.class, classApiLevel))
-        .apply(ApiModelingTestHelper::enableApiCallerIdentification)
-        .apply(ApiModelingTestHelper::enableOutliningOfMethods)
         .setMinApi(parameters.getApiLevel())
         .compile()
         .inspectResidualArtProfile(this::inspect)
@@ -104,7 +101,7 @@ public class ApiOutlineProfileRewritingTest extends TestBase {
         .hasConstClassOutlinedFromUntil(
             Main.class.getMethod("main", String[].class), classApiLevel);
 
-    // Check outline was added to ART profile.
+    // Check outline was added to program.
     ClassSubject apiOutlineClassSubject =
         inspector.clazz(SyntheticItemsTestUtils.syntheticApiOutlineClass(Main.class, 0));
     assertThat(apiOutlineClassSubject, notIf(isPresent(), isLibraryClassAlwaysPresent()));
