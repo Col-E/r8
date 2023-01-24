@@ -79,7 +79,7 @@ public class ArtProfileCollisionAfterClassMergingRewritingTest extends TestBase 
         .build();
   }
 
-  public ExternalArtProfile getExpectedResidualArtProfile(CodeInspector inspector) {
+  private void inspect(ArtProfileInspector profileInspector, CodeInspector inspector) {
     ClassSubject barClassSubject = inspector.clazz(Bar.class);
     assertThat(barClassSubject, isPresentAndRenamed());
 
@@ -89,24 +89,13 @@ public class ArtProfileCollisionAfterClassMergingRewritingTest extends TestBase 
     MethodSubject worldMethodSubject = barClassSubject.uniqueMethodWithOriginalName("world");
     assertThat(worldMethodSubject, isPresentAndRenamed());
 
-    return ExternalArtProfile.builder()
-        .addRules(
-            ExternalArtProfileClassRule.builder().setClassReference(mainClassReference).build(),
-            ExternalArtProfileMethodRule.builder().setMethodReference(mainMethodReference).build(),
-            ExternalArtProfileClassRule.builder()
-                .setClassReference(barClassSubject.getFinalReference())
-                .build(),
-            ExternalArtProfileMethodRule.builder()
-                .setMethodReference(helloMethodSubject.getFinalReference())
-                .build(),
-            ExternalArtProfileMethodRule.builder()
-                .setMethodReference(worldMethodSubject.getFinalReference())
-                .build())
-        .build();
-  }
-
-  private void inspect(ArtProfileInspector profileInspector, CodeInspector inspector) {
-    profileInspector.assertEqualTo(getExpectedResidualArtProfile(inspector));
+    profileInspector
+        .assertContainsClassRules(mainClassReference, barClassSubject.getFinalReference())
+        .assertContainsMethodRules(
+            mainMethodReference,
+            helloMethodSubject.getFinalReference(),
+            worldMethodSubject.getFinalReference())
+        .assertContainsNoOtherRules();
   }
 
   static class Main {
