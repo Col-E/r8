@@ -36,16 +36,16 @@ public abstract class PgRule {
     return (StringBuilder builder, KeepClassReference classReference) -> {
       assert classReference.isBindingReference()
           || classReference.asClassNamePattern().equals(classNamePattern);
-      KeepRuleExtractor.printClassName(builder, classNamePattern);
+      RulePrintingUtils.printClassName(builder, classNamePattern);
     };
   }
 
   void printKeepOptions(StringBuilder builder) {
-    KeepRuleExtractor.printKeepOptions(builder, options);
+    RulePrintingUtils.printKeepOptions(builder, options);
   }
 
   public void printRule(StringBuilder builder) {
-    KeepRuleExtractor.printHeader(builder, metaInfo);
+    RulePrintingUtils.printHeader(builder, metaInfo);
     printCondition(builder);
     printConsequence(builder);
   }
@@ -129,7 +129,7 @@ public abstract class PgRule {
 
     @Override
     String getConsequenceKeepType() {
-      return "-keep";
+      return RulePrintingUtils.KEEP;
     }
 
     @Override
@@ -139,7 +139,7 @@ public abstract class PgRule {
 
     @Override
     void printTargetHolder(StringBuilder builder) {
-      KeepRuleExtractor.printClassHeader(
+      RulePrintingUtils.printClassHeader(
           builder, holderPattern, classReferencePrinter(holderNamePattern));
     }
 
@@ -181,22 +181,22 @@ public abstract class PgRule {
 
     @Override
     void printConditionHolder(StringBuilder builder) {
-      KeepRuleExtractor.printClassHeader(builder, classCondition, this::printClassName);
+      RulePrintingUtils.printClassHeader(builder, classCondition, this::printClassName);
     }
 
     @Override
     void printConditionMember(StringBuilder builder, String member) {
       KeepMemberPattern memberPattern = memberPatterns.get(member);
-      KeepRuleExtractor.printMemberClause(builder, memberPattern);
+      RulePrintingUtils.printMemberClause(builder, memberPattern);
     }
 
     @Override
     void printTargetHolder(StringBuilder builder) {
-      KeepRuleExtractor.printClassHeader(builder, classTarget, this::printClassName);
+      RulePrintingUtils.printClassHeader(builder, classTarget, this::printClassName);
     }
 
     void printClassName(StringBuilder builder, KeepClassReference clazz) {
-      KeepRuleExtractor.printClassName(builder, clazz.asClassNamePattern());
+      RulePrintingUtils.printClassName(builder, clazz.asClassNamePattern());
     }
   }
 
@@ -224,7 +224,7 @@ public abstract class PgRule {
 
     @Override
     String getConsequenceKeepType() {
-      return "-keep";
+      return RulePrintingUtils.KEEP;
     }
 
     @Override
@@ -269,7 +269,9 @@ public abstract class PgRule {
 
     @Override
     String getConsequenceKeepType() {
-      return classAndMembers ? "-keepclasseswithmembers" : "-keepclassmembers";
+      return classAndMembers
+          ? RulePrintingUtils.KEEP_CLASSES_WITH_MEMBERS
+          : RulePrintingUtils.KEEP_CLASS_MEMBERS;
     }
 
     @Override
@@ -280,7 +282,7 @@ public abstract class PgRule {
     @Override
     void printTargetMember(StringBuilder builder, String member) {
       KeepMemberPattern memberPattern = memberPatterns.get(member);
-      KeepRuleExtractor.printMemberClause(builder, memberPattern);
+      RulePrintingUtils.printMemberClause(builder, memberPattern);
     }
   }
 
@@ -319,7 +321,7 @@ public abstract class PgRule {
 
     @Override
     void printConditionHolder(StringBuilder b) {
-      KeepRuleExtractor.printClassHeader(
+      RulePrintingUtils.printClassHeader(
           b,
           holderPattern,
           (builder, classReference) -> {
@@ -339,12 +341,12 @@ public abstract class PgRule {
     void printConditionMember(StringBuilder builder, String member) {
       // TODO(b/248408342): Support back-ref to member instances too.
       KeepMemberPattern memberPattern = memberPatterns.get(member);
-      KeepRuleExtractor.printMemberClause(builder, memberPattern);
+      RulePrintingUtils.printMemberClause(builder, memberPattern);
     }
 
     @Override
     void printTargetHolder(StringBuilder builder) {
-      KeepRuleExtractor.printClassHeader(
+      RulePrintingUtils.printClassHeader(
           builder,
           holderPattern,
           (b, reference) -> {
@@ -407,7 +409,7 @@ public abstract class PgRule {
 
     @Override
     String getConsequenceKeepType() {
-      return "-keep";
+      return RulePrintingUtils.KEEP;
     }
 
     @Override
@@ -466,7 +468,9 @@ public abstract class PgRule {
 
     @Override
     String getConsequenceKeepType() {
-      return classAndMembers ? "-keepclasseswithmembers" : "-keepclassmembers";
+      return classAndMembers
+          ? RulePrintingUtils.KEEP_CLASSES_WITH_MEMBERS
+          : RulePrintingUtils.KEEP_CLASS_MEMBERS;
     }
 
     @Override
@@ -479,7 +483,7 @@ public abstract class PgRule {
       if (hasCondition()) {
         super.printTargetHolder(builder);
       } else {
-        KeepRuleExtractor.printClassHeader(
+        RulePrintingUtils.printClassHeader(
             builder, holderPattern, classReferencePrinter(holderNamePattern));
       }
     }
@@ -488,7 +492,7 @@ public abstract class PgRule {
     void printTargetMember(StringBuilder builder, String member) {
       // TODO(b/248408342): Support back-ref to member instances too.
       KeepMemberPattern memberPattern = memberPatterns.get(member);
-      KeepRuleExtractor.printMemberClause(builder, memberPattern);
+      RulePrintingUtils.printMemberClause(builder, memberPattern);
     }
   }
 }

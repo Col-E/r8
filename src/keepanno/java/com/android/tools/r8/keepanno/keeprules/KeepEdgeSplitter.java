@@ -29,11 +29,28 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Consumer;
 
 /** Split a keep edge into multiple PG rules that over-approximate it. */
 public class KeepEdgeSplitter {
 
-  public static Collection<PgRule> split(KeepEdge edge) {
+  private final Consumer<String> ruleConsumer;
+
+  public KeepEdgeSplitter(Consumer<String> ruleConsumer) {
+    this.ruleConsumer = ruleConsumer;
+  }
+
+  public void extract(KeepEdge edge) {
+    Collection<PgRule> rules = split(edge);
+    StringBuilder builder = new StringBuilder();
+    for (PgRule rule : rules) {
+      rule.printRule(builder);
+      builder.append("\n");
+    }
+    ruleConsumer.accept(builder.toString());
+  }
+
+  private static Collection<PgRule> split(KeepEdge edge) {
     return doSplit(KeepEdgeNormalizer.normalize(edge));
   }
 

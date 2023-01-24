@@ -1,10 +1,9 @@
-// Copyright (c) 2022, the R8 project authors. Please see the AUTHORS file
+// Copyright (c) 2023, the R8 project authors. Please see the AUTHORS file
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.keepanno.keeprules;
 
 import com.android.tools.r8.keepanno.ast.KeepClassReference;
-import com.android.tools.r8.keepanno.ast.KeepEdge;
 import com.android.tools.r8.keepanno.ast.KeepEdgeException;
 import com.android.tools.r8.keepanno.ast.KeepEdgeMetaInfo;
 import com.android.tools.r8.keepanno.ast.KeepExtendsPattern;
@@ -25,29 +24,15 @@ import com.android.tools.r8.keepanno.ast.KeepQualifiedClassNamePattern;
 import com.android.tools.r8.keepanno.ast.KeepTypePattern;
 import com.android.tools.r8.keepanno.ast.KeepUnqualfiedClassNamePattern;
 import com.android.tools.r8.keepanno.utils.Unimplemented;
-import java.util.Collection;
 import java.util.function.BiConsumer;
-import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
-/** Extract out a sequence of Proguard keep rules that give a conservative over-approximation. */
-public class KeepRuleExtractor {
+public abstract class RulePrintingUtils {
 
-  private final Consumer<String> ruleConsumer;
-
-  public KeepRuleExtractor(Consumer<String> ruleConsumer) {
-    this.ruleConsumer = ruleConsumer;
-  }
-
-  public void extract(KeepEdge edge) {
-    Collection<PgRule> rules = KeepEdgeSplitter.split(edge);
-    StringBuilder builder = new StringBuilder();
-    for (PgRule rule : rules) {
-      rule.printRule(builder);
-      builder.append("\n");
-    }
-    ruleConsumer.accept(builder.toString());
-  }
+  public static final String IF = "-if";
+  public static final String KEEP = "-keep";
+  public static final String KEEP_CLASS_MEMBERS = "-keepclassmembers";
+  public static final String KEEP_CLASSES_WITH_MEMBERS = "-keepclasseswithmembers";
 
   public static void printHeader(StringBuilder builder, KeepEdgeMetaInfo metaInfo) {
     if (metaInfo.hasContext()) {
@@ -157,7 +142,7 @@ public class KeepRuleExtractor {
         .append('(')
         .append(
             parametersPattern.asList().stream()
-                .map(KeepRuleExtractor::getTypePatternString)
+                .map(RulePrintingUtils::getTypePatternString)
                 .collect(Collectors.joining(", ")))
         .append(')');
   }
