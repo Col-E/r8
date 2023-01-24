@@ -459,23 +459,6 @@ public class GenerateLintFiles {
       return this;
     }
 
-    StringBuilderWithIndent appendLineStart(String lineStart) {
-      builder.append(indent);
-      builder.append(lineStart);
-      return this;
-    }
-
-    StringBuilderWithIndent append(String string) {
-      builder.append(string);
-      return this;
-    }
-
-    StringBuilderWithIndent appendLineEnd(String lineEnd) {
-      builder.append(lineEnd);
-      builder.append(NL);
-      return this;
-    }
-
     StringBuilderWithIndent appendLine(String line) {
       builder.append(indent);
       builder.append(line);
@@ -685,21 +668,8 @@ public class GenerateLintFiles {
       indent(indent);
     }
 
-    HTMLBuilder appendTdPackage(String s) {
-      appendLineStart("<td><code><em>" + s + "</em></code><br>");
-      if (s.startsWith("java.time")) {
-        append("<a href=\"#java-time-customizations\">See customizations</a><br");
-      } else if (s.startsWith("java.nio")) {
-        append("<a href=\"#java-nio-customizations\">See customizations</a><br");
-      }
-      return this;
-    }
-
-    HTMLBuilder appendTdClassName(String s) {
-      appendLineEnd(
-          "<code><br><br><div style=\"font-size:small;font-weight:bold;\">&nbsp;"
-              + s
-              + "</div></code><br><br></td>");
+    HTMLBuilder appendTdCode(String s) {
+      appendLine("<td><code>" + s + "</code></td>");
       return this;
     }
 
@@ -709,7 +679,7 @@ public class GenerateLintFiles {
     }
 
     HTMLBuilder appendLiCode(String s) {
-      appendLine("<li class=\"java8_table\"><code>" + s + "</code></li>");
+      appendLine("<li><code>" + s + "</code></li>");
       return this;
     }
 
@@ -745,14 +715,10 @@ public class GenerateLintFiles {
       HTMLBuilder builder = new HTMLBuilder();
       builder.start("tr");
       if (packageName.length() > 0) {
-        builder.appendTdPackage(packageName);
+        builder.appendTdCode(packageName);
       }
-      builder.appendTdClassName(typeInPackage(className));
-      builder
-          .start("td")
-          .start(
-              "ul style=\"list-style-position:inside; list-style-type: none !important;"
-                  + " margin-left:0px;padding-left:0px !important;\"");
+      builder.appendTdCode(typeInPackage(className));
+      builder.start("td").start("ul");
       if (!fields.isEmpty()) {
         assert newClass; // Currently no fields are added to existing classes.
         for (DexEncodedField field : fields) {
