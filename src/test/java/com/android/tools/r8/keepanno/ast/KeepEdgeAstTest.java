@@ -47,8 +47,7 @@ public class KeepEdgeAstTest extends TestBase {
                     .addTarget(KeepTarget.builder().setItemPattern(KeepItemPattern.any()).build())
                     .build())
             .build();
-    assertEquals(
-        StringUtils.unixLines("-keep class *", "-keepclassmembers class * { *; }"), extract(edge));
+    assertEquals(StringUtils.unixLines("-keep class * { *; }"), extract(edge));
   }
 
   @Test
@@ -70,11 +69,7 @@ public class KeepEdgeAstTest extends TestBase {
     String allows = String.join(",allow", options);
     // The "any" item will be split in two rules, one for the targeted types and one for the
     // targeted members.
-    assertEquals(
-        StringUtils.unixLines(
-            "-keep,allow" + allows + " class *",
-            "-keepclassmembers,allow" + allows + " class * { *; }"),
-        extract(edge));
+    assertEquals(StringUtils.unixLines("-keep,allow" + allows + " class * { *; }"), extract(edge));
   }
 
   @Test
@@ -93,9 +88,7 @@ public class KeepEdgeAstTest extends TestBase {
             .build();
     // Allow is just the ordered list of options.
     assertEquals(
-        StringUtils.unixLines(
-            "-keep,allowshrinking,allowobfuscation class *",
-            "-keepclassmembers,allowshrinking,allowobfuscation class * { *; }"),
+        StringUtils.unixLines("-keep,allowshrinking,allowobfuscation class * { *; }"),
         extract(edge));
   }
 
@@ -104,7 +97,8 @@ public class KeepEdgeAstTest extends TestBase {
     KeepTarget target = target(classItem(CLASS));
     KeepConsequences consequences = KeepConsequences.builder().addTarget(target).build();
     KeepEdge edge = KeepEdge.builder().setConsequences(consequences).build();
-    assertEquals(StringUtils.unixLines("-keep class " + CLASS), extract(edge));
+    assertEquals(
+        StringUtils.unixLines("-keep class " + CLASS + " { void finalize(); }"), extract(edge));
   }
 
   @Test
@@ -140,7 +134,9 @@ public class KeepEdgeAstTest extends TestBase {
             .setConsequences(KeepConsequences.builder().addTarget(target(classItem(CLASS))).build())
             .build();
     assertEquals(
-        StringUtils.unixLines("-if class " + CLASS + " -keep class " + CLASS), extract(edge));
+        StringUtils.unixLines(
+            "-if class " + CLASS + " -keep class " + CLASS + " { void finalize(); }"),
+        extract(edge));
   }
 
   @Test
@@ -163,8 +159,7 @@ public class KeepEdgeAstTest extends TestBase {
             .build();
     assertEquals(
         StringUtils.unixLines(
-            "-if class " + CLASS + " -keep class " + CLASS,
-            "-keepclassmembers class " + CLASS + " { void <init>(); }"),
+            "-if class " + CLASS + " -keep class " + CLASS + " { void <init>(); }"),
         extract(edge));
   }
 

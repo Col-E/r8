@@ -84,8 +84,7 @@ public class KeepFooIfBarSameClassTest extends TestBase {
     assertThat(inspector.clazz(B.class), isPresent());
     assertThat(inspector.clazz(B.class).uniqueMethodWithOriginalName("foo"), isAbsent());
     assertThat(inspector.clazz(B.class).uniqueMethodWithOriginalName("bar"), isAbsent());
-    // TODO(b/248408342): R8 full is keeping the default constructor. Avoid that.
-    assertThat(inspector.clazz(B.class).uniqueInstanceInitializer(), isPresent());
+    assertThat(inspector.clazz(B.class).uniqueInstanceInitializer(), isAbsent());
   }
 
   @KeepEdge(consequences = {@KeepTarget(classConstant = A.class)})

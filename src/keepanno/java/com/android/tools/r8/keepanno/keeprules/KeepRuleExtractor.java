@@ -16,11 +16,10 @@ import com.android.tools.r8.keepanno.ast.KeepMethodPattern;
 import com.android.tools.r8.keepanno.ast.KeepOptions;
 import com.android.tools.r8.keepanno.ast.KeepQualifiedClassNamePattern;
 import com.android.tools.r8.keepanno.ast.KeepTarget;
-import com.android.tools.r8.keepanno.keeprules.PgRule.PgConditionalClassRule;
-import com.android.tools.r8.keepanno.keeprules.PgRule.PgConditionalMemberRule;
-import com.android.tools.r8.keepanno.keeprules.PgRule.PgDependentClassRule;
+import com.android.tools.r8.keepanno.keeprules.PgRule.PgConditionalRule;
 import com.android.tools.r8.keepanno.keeprules.PgRule.PgDependentMembersRule;
-import com.android.tools.r8.keepanno.keeprules.PgRule.PgUnconditionalClassRule;
+import com.android.tools.r8.keepanno.keeprules.PgRule.PgUnconditionalRule;
+import com.android.tools.r8.keepanno.keeprules.PgRule.TargetKeepKind;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -205,29 +204,31 @@ public class KeepRuleExtractor {
   }
 
   @FunctionalInterface
-  private interface OnKeepMembers {
+  private interface OnTargetCallback {
     void accept(
         Map<String, KeepMemberPattern> memberPatterns,
-        List<String> targets,
-        boolean classAndMembers);
+        List<String> memberTargets,
+        TargetKeepKind keepKind);
   }
 
   private static void computeTargets(
       Set<String> targets,
       KeepBindings bindings,
       Map<String, KeepMemberPattern> memberPatterns,
-      Runnable onKeepClass,
-      OnKeepMembers onKeepMembers) {
-    List<String> targetMembers = new ArrayList<>();
+      OnTargetCallback callback) {
     boolean keepClassTarget = false;
+    List<String> disjunctiveTargetMembers = new ArrayList<>();
+    List<String> classConjunctiveTargetMembers = new ArrayList<>();
+
     for (String targetReference : targets) {
       KeepItemPattern item = bindings.get(targetReference).getItem();
       if (bindings.isAny(item)) {
-        // If the target is "any item" then it contains any other target pattern so just emit the
-        // single "any item" targets: class and members both.
-        onKeepClass.run();
+        // If the target is "any item" then it contains any other target pattern.
         memberPatterns.put(targetReference, item.getMemberPattern());
-        onKeepMembers.accept(memberPatterns, Collections.singletonList(targetReference), false);
+        callback.accept(
+            memberPatterns,
+            Collections.singletonList(targetReference),
+            TargetKeepKind.CLASS_OR_MEMBERS);
         return;
       }
       if (item.isClassItemPattern()) {
@@ -236,18 +237,38 @@ public class KeepRuleExtractor {
         memberPatterns.putIfAbsent(targetReference, item.getMemberPattern());
         if (item.isClassAndMemberPattern()) {
           // If a target is a "class and member" target then it must be added as a separate rule.
-          onKeepMembers.accept(memberPatterns, Collections.singletonList(targetReference), true);
+          classConjunctiveTargetMembers.add(targetReference);
         } else {
           assert item.isMemberItemPattern();
-          targetMembers.add(targetReference);
+          disjunctiveTargetMembers.add(targetReference);
         }
       }
     }
+
+    // The class is targeted, so that part of a class-and-member conjunction is satisfied.
+    // The conjunctive members can thus be moved to the disjunctive set.
     if (keepClassTarget) {
-      onKeepClass.run();
+      disjunctiveTargetMembers.addAll(classConjunctiveTargetMembers);
+      classConjunctiveTargetMembers.clear();
     }
-    if (!targetMembers.isEmpty()) {
-      onKeepMembers.accept(memberPatterns, targetMembers, false);
+
+    if (!disjunctiveTargetMembers.isEmpty()) {
+      TargetKeepKind keepKind =
+          keepClassTarget ? TargetKeepKind.CLASS_OR_MEMBERS : TargetKeepKind.JUST_MEMBERS;
+      callback.accept(memberPatterns, disjunctiveTargetMembers, keepKind);
+    } else if (keepClassTarget) {
+      callback.accept(
+          Collections.emptyMap(), Collections.emptyList(), TargetKeepKind.CLASS_OR_MEMBERS);
+    }
+
+    if (!classConjunctiveTargetMembers.isEmpty()) {
+      assert !keepClassTarget;
+      for (String targetReference : classConjunctiveTargetMembers) {
+        callback.accept(
+            memberPatterns,
+            Collections.singletonList(targetReference),
+            TargetKeepKind.CLASS_AND_MEMBERS);
+      }
     }
   }
 
@@ -262,20 +283,23 @@ public class KeepRuleExtractor {
         targets,
         bindings,
         new HashMap<>(),
-        () -> {
-          rules.add(new PgUnconditionalClassRule(metaInfo, options, holder));
-        },
-        (memberPatterns, targetMembers, classAndMembers) -> {
-          // Members are still dependent on the class, so they go to the implicitly dependent rule.
-          rules.add(
-              new PgDependentMembersRule(
-                  metaInfo,
-                  holder,
-                  options,
-                  memberPatterns,
-                  Collections.emptyList(),
-                  targetMembers,
-                  classAndMembers));
+        (memberPatterns, targetMembers, targetKeepKind) -> {
+          if (targetKeepKind.equals(TargetKeepKind.JUST_MEMBERS)) {
+            // Members dependent on the class, so they go to the implicitly dependent rule.
+            rules.add(
+                new PgDependentMembersRule(
+                    metaInfo,
+                    holder,
+                    options,
+                    memberPatterns,
+                    Collections.emptyList(),
+                    targetMembers,
+                    targetKeepKind));
+          } else {
+            rules.add(
+                new PgUnconditionalRule(
+                    metaInfo, holder, options, memberPatterns, targetMembers, targetKeepKind));
+          }
         });
   }
 
@@ -288,26 +312,15 @@ public class KeepRuleExtractor {
       KeepOptions options,
       Set<String> conditions,
       Set<String> targets) {
-
     Map<String, KeepMemberPattern> memberPatterns = new HashMap<>();
     List<String> conditionMembers = computeConditions(conditions, bindings, memberPatterns);
-
     computeTargets(
         targets,
         bindings,
         memberPatterns,
-        () ->
+        (ignore, targetMembers, targetKeepKind) ->
             rules.add(
-                new PgConditionalClassRule(
-                    metaInfo,
-                    options,
-                    conditionHolder,
-                    targetHolder,
-                    memberPatterns,
-                    conditionMembers)),
-        (ignore, targetMembers, classAndMembers) ->
-            rules.add(
-                new PgConditionalMemberRule(
+                new PgConditionalRule(
                     metaInfo,
                     options,
                     conditionHolder,
@@ -315,37 +328,9 @@ public class KeepRuleExtractor {
                     memberPatterns,
                     conditionMembers,
                     targetMembers,
-                    classAndMembers)));
+                    targetKeepKind)));
   }
 
-  // For a conditional and dependent edge (e.g., the condition and target both reference holder X),
-  // we can assume the general form of:
-  //
-  //   { X, memberConds } -> { X, memberTargets }
-  //
-  // First, we assume that if memberConds=={} then X is in the conditions, otherwise the conditions
-  // are empty (i.e. always true) and this is not a dependent edge.
-  //
-  // Without change in meaning we can always assume X in conditions as it either was and if not then
-  // the condition on a member implicitly entails a condition on the holder.
-  //
-  // Next we can split any such edge into two edges:
-  //
-  //   { X, memberConds } -> { X }
-  //   { X, memberConds } -> { memberTargets }
-  //
-  // The first edge, if present, gives rise to the rule:
-  //
-  //   -if class X { memberConds } -keep class <1>
-  //
-  // The second rule only pertains to keeping member targets and those targets are kept as a
-  // -keepclassmembers such that they are still conditional on the holder being referenced/live.
-  // If the only precondition is the holder, then it can omitted, thus we generate:
-  // If memberConds={}:
-  //   -keepclassmembers class X { memberTargets }
-  // else:
-  //   -if class X { memberConds } -keepclassmembers X { memberTargets }
-  //
   private static void createDependentRules(
       List<PgRule> rules,
       Holder holder,
@@ -360,12 +345,8 @@ public class KeepRuleExtractor {
         targets,
         bindings,
         memberPatterns,
-        () ->
-            rules.add(
-                new PgDependentClassRule(
-                    metaInfo, holder, options, memberPatterns, conditionMembers)),
-        (ignore, targetMembers, classAndMembers) -> {
-          List<String> typedTargets = new ArrayList<>(targetMembers.size());
+        (ignore, targetMembers, targetKeepKind) -> {
+          List<String> nonAllMemberTargets = new ArrayList<>(targetMembers.size());
           for (String targetMember : targetMembers) {
             KeepMemberPattern memberPattern = memberPatterns.get(targetMember);
             if (memberPattern.isAllMembers() && conditionMembers.contains(targetMember)) {
@@ -382,7 +363,7 @@ public class KeepRuleExtractor {
                       copyWithMethod,
                       conditionMembers,
                       Collections.singletonList(targetMember),
-                      classAndMembers));
+                      targetKeepKind));
               HashMap<String, KeepMemberPattern> copyWithField = new HashMap<>(memberPatterns);
               copyWithField.put(targetMember, KeepFieldPattern.allFields());
               rules.add(
@@ -393,22 +374,23 @@ public class KeepRuleExtractor {
                       copyWithField,
                       conditionMembers,
                       Collections.singletonList(targetMember),
-                      classAndMembers));
+                      targetKeepKind));
             } else {
-              typedTargets.add(targetMember);
+              nonAllMemberTargets.add(targetMember);
             }
           }
-          if (!typedTargets.isEmpty()) {
-            rules.add(
-                new PgDependentMembersRule(
-                    metaInfo,
-                    holder,
-                    options,
-                    memberPatterns,
-                    conditionMembers,
-                    typedTargets,
-                    classAndMembers));
+          if (targetKeepKind.equals(TargetKeepKind.JUST_MEMBERS) && nonAllMemberTargets.isEmpty()) {
+            return;
           }
+          rules.add(
+              new PgDependentMembersRule(
+                  metaInfo,
+                  holder,
+                  options,
+                  memberPatterns,
+                  conditionMembers,
+                  nonAllMemberTargets,
+                  targetKeepKind));
         });
   }
 

@@ -15,13 +15,34 @@ import com.android.tools.r8.keepanno.ast.KeepOptions;
 import com.android.tools.r8.keepanno.ast.KeepQualifiedClassNamePattern;
 import com.android.tools.r8.keepanno.keeprules.KeepRuleExtractor.Holder;
 import com.android.tools.r8.keepanno.keeprules.RulePrinter.BackReferencePrinter;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.BiConsumer;
 
 public abstract class PgRule {
+  public enum TargetKeepKind {
+    JUST_MEMBERS(RulePrintingUtils.KEEP_CLASS_MEMBERS),
+    CLASS_OR_MEMBERS(RulePrintingUtils.KEEP),
+    CLASS_AND_MEMBERS(RulePrintingUtils.KEEP_CLASSES_WITH_MEMBERS);
+
+    private final String ruleKind;
+
+    TargetKeepKind(String ruleKind) {
+      this.ruleKind = ruleKind;
+    }
+
+    String getKeepRuleKind() {
+      return ruleKind;
+    }
+  }
+
+  private static void printNonEmptyMembersPatternAsDefaultInitWorkaround(StringBuilder builder) {
+    // If no members is given, compat R8 and legacy full mode will implicitly keep <init>().
+    // Add a keep of finalize which is a library method that would be kept in any case.
+    builder.append(" { void finalize(); }");
+  }
+
   private final KeepEdgeMetaInfo metaInfo;
   private final KeepOptions options;
 
@@ -112,63 +133,97 @@ public abstract class PgRule {
   abstract void printTargetMember(StringBuilder builder, String member);
 
   /**
-   * Representation of an unconditional rule to keep a class.
+   * Representation of an unconditional rule to keep a class and methods.
    *
    * <pre>
-   *   -keep class <holder>
+   *   -keep[classeswithmembers] class <holder> [{ <members> }]
    * </pre>
    *
    * and with no dependencies / back-references.
    */
-  static class PgUnconditionalClassRule extends PgRule {
-    final KeepQualifiedClassNamePattern holderNamePattern;
-    final KeepItemPattern holderPattern;
+  static class PgUnconditionalRule extends PgRule {
+    private final KeepQualifiedClassNamePattern holderNamePattern;
+    private final KeepItemPattern holderPattern;
+    private final TargetKeepKind targetKeepKind;
+    private final List<String> targetMembers;
+    private final Map<String, KeepMemberPattern> memberPatterns;
 
-    public PgUnconditionalClassRule(KeepEdgeMetaInfo metaInfo, KeepOptions options, Holder holder) {
+    public PgUnconditionalRule(
+        KeepEdgeMetaInfo metaInfo,
+        Holder holder,
+        KeepOptions options,
+        Map<String, KeepMemberPattern> memberPatterns,
+        List<String> targetMembers,
+        TargetKeepKind targetKeepKind) {
       super(metaInfo, options);
+      assert !targetKeepKind.equals(TargetKeepKind.JUST_MEMBERS);
       this.holderNamePattern = holder.namePattern;
       this.holderPattern = holder.itemPattern;
+      this.targetKeepKind = targetKeepKind;
+      this.memberPatterns = memberPatterns;
+      this.targetMembers = targetMembers;
     }
 
     @Override
     String getConsequenceKeepType() {
-      return RulePrintingUtils.KEEP;
+      return targetKeepKind.getKeepRuleKind();
     }
 
     @Override
     List<String> getTargetMembers() {
-      return Collections.emptyList();
+      return targetMembers;
     }
 
     @Override
     void printTargetHolder(StringBuilder builder) {
       printClassHeader(builder, holderPattern, classReferencePrinter(holderNamePattern));
+      if (getTargetMembers().isEmpty()) {
+        printNonEmptyMembersPatternAsDefaultInitWorkaround(builder);
+      }
     }
 
     @Override
     void printTargetMember(StringBuilder builder, String memberReference) {
-      throw new KeepEdgeException("Unreachable");
+      KeepMemberPattern memberPattern = memberPatterns.get(memberReference);
+      printMemberClause(memberPattern, RulePrinter.withoutBackReferences(builder));
     }
   }
 
-  abstract static class PgConditionalRuleBase extends PgRule {
+  /**
+   * Representation of conditional rules but without dependencies between condition and target.
+   *
+   * <pre>
+   *   -if class <class-condition> [{ <member-conditions> }]
+   *   -keepX class <class-target> [{ <member-targets> }]
+   * </pre>
+   *
+   * and with no dependencies / back-references.
+   */
+  static class PgConditionalRule extends PgRule {
+
     final KeepItemPattern classCondition;
     final KeepItemPattern classTarget;
     final Map<String, KeepMemberPattern> memberPatterns;
     final List<String> memberConditions;
+    private final List<String> memberTargets;
+    private final TargetKeepKind keepKind;
 
-    public PgConditionalRuleBase(
+    public PgConditionalRule(
         KeepEdgeMetaInfo metaInfo,
         KeepOptions options,
         Holder classCondition,
         Holder classTarget,
         Map<String, KeepMemberPattern> memberPatterns,
-        List<String> memberConditions) {
+        List<String> memberConditions,
+        List<String> memberTargets,
+        TargetKeepKind keepKind) {
       super(metaInfo, options);
       this.classCondition = classCondition.itemPattern;
       this.classTarget = classTarget.itemPattern;
       this.memberPatterns = memberPatterns;
       this.memberConditions = memberConditions;
+      this.memberTargets = memberTargets;
+      this.keepKind = keepKind;
     }
 
     @Override
@@ -195,86 +250,14 @@ public abstract class PgRule {
     @Override
     void printTargetHolder(StringBuilder builder) {
       printClassHeader(builder, classTarget, this::printClassName);
-    }
-
-    void printClassName(StringBuilder builder, KeepClassReference clazz) {
-      RulePrintingUtils.printClassName(
-          clazz.asClassNamePattern(), RulePrinter.withoutBackReferences(builder));
-    }
-  }
-
-  /**
-   * Representation of conditional rules but without dependencies between condition and target.
-   *
-   * <pre>
-   *   -if class <class-condition> { <member-conditions> }
-   *   -keep class <class-target>
-   * </pre>
-   *
-   * and with no dependencies / back-references.
-   */
-  static class PgConditionalClassRule extends PgConditionalRuleBase {
-
-    public PgConditionalClassRule(
-        KeepEdgeMetaInfo metaInfo,
-        KeepOptions options,
-        Holder classCondition,
-        Holder classTarget,
-        Map<String, KeepMemberPattern> memberPatterns,
-        List<String> memberConditions) {
-      super(metaInfo, options, classCondition, classTarget, memberPatterns, memberConditions);
+      if (getTargetMembers().isEmpty()) {
+        PgRule.printNonEmptyMembersPatternAsDefaultInitWorkaround(builder);
+      }
     }
 
     @Override
     String getConsequenceKeepType() {
-      return RulePrintingUtils.KEEP;
-    }
-
-    @Override
-    List<String> getTargetMembers() {
-      return Collections.emptyList();
-    }
-
-    @Override
-    void printTargetMember(StringBuilder builder, String member) {
-      throw new KeepEdgeException("Unreachable");
-    }
-  }
-
-  /**
-   * Representation of conditional rules but without dependencies between condition and target.
-   *
-   * <pre>
-   *   -if class <class-condition> { <member-conditions> }
-   *   -keepclassmembers class <class-target> { <member-targets> }
-   * </pre>
-   *
-   * and with no dependencies / back-references.
-   */
-  static class PgConditionalMemberRule extends PgConditionalRuleBase {
-
-    private final List<String> memberTargets;
-    private final boolean classAndMembers;
-
-    public PgConditionalMemberRule(
-        KeepEdgeMetaInfo metaInfo,
-        KeepOptions options,
-        Holder classCondition,
-        Holder classTarget,
-        Map<String, KeepMemberPattern> memberPatterns,
-        List<String> memberConditions,
-        List<String> memberTargets,
-        boolean classAndMembers) {
-      super(metaInfo, options, classCondition, classTarget, memberPatterns, memberConditions);
-      this.memberTargets = memberTargets;
-      this.classAndMembers = classAndMembers;
-    }
-
-    @Override
-    String getConsequenceKeepType() {
-      return classAndMembers
-          ? RulePrintingUtils.KEEP_CLASSES_WITH_MEMBERS
-          : RulePrintingUtils.KEEP_CLASS_MEMBERS;
+      return keepKind.getKeepRuleKind();
     }
 
     @Override
@@ -287,36 +270,83 @@ public abstract class PgRule {
       KeepMemberPattern memberPattern = memberPatterns.get(member);
       printMemberClause(memberPattern, RulePrinter.withoutBackReferences(builder));
     }
+
+    private void printClassName(StringBuilder builder, KeepClassReference clazz) {
+      RulePrintingUtils.printClassName(
+          clazz.asClassNamePattern(), RulePrinter.withoutBackReferences(builder));
+    }
   }
 
-  abstract static class PgDependentRuleBase extends PgRule {
+  /**
+   * Representation of a conditional rule that is match/instance dependent.
+   *
+   * <pre>
+   *   -if class <class-pattern> [{ <member-condition>* }]
+   *   -keepX class <class-backref> [{ <member-target | member-backref>* }]
+   * </pre>
+   *
+   * or if the only condition is the class itself and targeting members, just:
+   *
+   * <pre>
+   *   -keepclassmembers <class-pattern> { <member-target> }
+   * </pre>
+   */
+  static class PgDependentMembersRule extends PgRule {
 
-    final KeepQualifiedClassNamePattern holderNamePattern;
-    final KeepItemPattern holderPattern;
-    final Map<String, KeepMemberPattern> memberPatterns;
-    final List<String> memberConditions;
+    private final KeepQualifiedClassNamePattern holderNamePattern;
+    private final KeepItemPattern holderPattern;
+    private final Map<String, KeepMemberPattern> memberPatterns;
+    private final List<String> memberConditions;
+    private final List<String> memberTargets;
+    private final TargetKeepKind keepKind;
 
-    public PgDependentRuleBase(
+    private int nextBackReferenceNumber = 1;
+    private String holderBackReferencePattern = null;
+    private Map<String, String> membersBackReferencePatterns = new HashMap<>();
+
+    public PgDependentMembersRule(
         KeepEdgeMetaInfo metaInfo,
         Holder holder,
         KeepOptions options,
         Map<String, KeepMemberPattern> memberPatterns,
-        List<String> memberConditions) {
+        List<String> memberConditions,
+        List<String> memberTargets,
+        TargetKeepKind keepKind) {
       super(metaInfo, options);
       this.holderNamePattern = holder.namePattern;
       this.holderPattern = holder.itemPattern;
       this.memberPatterns = memberPatterns;
       this.memberConditions = memberConditions;
+      this.memberTargets = memberTargets;
+      this.keepKind = keepKind;
     }
 
-    int nextBackReferenceNumber = 1;
+    private int getNextBackReferenceNumber() {
+      return nextBackReferenceNumber++;
+    }
 
-    String holderBackReferencePattern;
-    Map<String, String> membersBackReferencePatterns = new HashMap<>();
+    @Override
+    boolean hasCondition() {
+      // We can avoid an if-rule if the condition is simply the class and the target is just
+      // members.
+      boolean canUseDependentRule =
+          memberConditions.isEmpty() && keepKind == TargetKeepKind.JUST_MEMBERS;
+      return !canUseDependentRule;
+    }
+
+    @Override
+    String getConsequenceKeepType() {
+      return keepKind.getKeepRuleKind();
+    }
 
     @Override
     List<String> getConditionMembers() {
       return memberConditions;
+    }
+
+    @Override
+    List<String> getTargetMembers() {
+      return memberTargets;
     }
 
     @Override
@@ -326,7 +356,7 @@ public abstract class PgRule {
           holderPattern,
           (builder, classReference) -> {
             BackReferencePrinter printer =
-                RulePrinter.withBackReferences(b, () -> nextBackReferenceNumber++);
+                RulePrinter.withBackReferences(b, this::getNextBackReferenceNumber);
             RulePrintingUtils.printClassName(holderNamePattern, printer);
             holderBackReferencePattern = printer.getBackReference();
           });
@@ -336,7 +366,7 @@ public abstract class PgRule {
     void printConditionMember(StringBuilder builder, String member) {
       KeepMemberPattern memberPattern = memberPatterns.get(member);
       BackReferencePrinter printer =
-          RulePrinter.withBackReferences(builder, () -> nextBackReferenceNumber++);
+          RulePrinter.withBackReferences(builder, this::getNextBackReferenceNumber);
       printMemberClause(memberPattern, printer);
       membersBackReferencePatterns.put(member, printer.getBackReference());
     }
@@ -349,107 +379,16 @@ public abstract class PgRule {
           (b, reference) -> {
             assert reference.isBindingReference()
                 || reference.asClassNamePattern().equals(holderNamePattern);
-            b.append(holderBackReferencePattern);
+            if (hasCondition()) {
+              b.append(holderBackReferencePattern);
+            } else {
+              assert holderBackReferencePattern == null;
+              RulePrintingUtils.printClassName(
+                  holderNamePattern, RulePrinter.withoutBackReferences(builder));
+            }
           });
-    }
-  }
-
-  /**
-   * Representation of a conditional class rule that is match/instance dependent.
-   *
-   * <pre>
-   *   -if class <class-pattern> { <member-condition>* }
-   *   -keep class <class-backref>
-   * </pre>
-   */
-  static class PgDependentClassRule extends PgDependentRuleBase {
-
-    public PgDependentClassRule(
-        KeepEdgeMetaInfo metaInfo,
-        Holder holder,
-        KeepOptions options,
-        Map<String, KeepMemberPattern> memberPatterns,
-        List<String> memberConditions) {
-      super(metaInfo, holder, options, memberPatterns, memberConditions);
-    }
-
-    @Override
-    String getConsequenceKeepType() {
-      return RulePrintingUtils.KEEP;
-    }
-
-    @Override
-    boolean hasCondition() {
-      return true;
-    }
-
-    @Override
-    List<String> getTargetMembers() {
-      return Collections.emptyList();
-    }
-
-    @Override
-    void printTargetMember(StringBuilder builder, String member) {
-      throw new KeepEdgeException("Unreachable");
-    }
-  }
-
-  /**
-   * Representation of a conditional member rule that is match/instance dependent.
-   *
-   * <pre>
-   *   -if class <class-pattern> { <member-condition>* }
-   *   -keepclassmembers class <class-backref> { <member-target | member-backref>* }
-   * </pre>
-   *
-   * or if the only condition is the class itself, just:
-   *
-   * <pre>
-   *   -keepclassmembers <class-pattern> { <member-target> }
-   * </pre>
-   */
-  static class PgDependentMembersRule extends PgDependentRuleBase {
-
-    final List<String> memberTargets;
-    final boolean classAndMembers;
-
-    public PgDependentMembersRule(
-        KeepEdgeMetaInfo metaInfo,
-        Holder holder,
-        KeepOptions options,
-        Map<String, KeepMemberPattern> memberPatterns,
-        List<String> memberConditions,
-        List<String> memberTargets,
-        boolean classAndMembers) {
-      super(metaInfo, holder, options, memberPatterns, memberConditions);
-      assert !memberTargets.isEmpty();
-      this.memberTargets = memberTargets;
-      this.classAndMembers = classAndMembers;
-    }
-
-    @Override
-    boolean hasCondition() {
-      return !memberConditions.isEmpty() && !classAndMembers;
-    }
-
-    @Override
-    String getConsequenceKeepType() {
-      return classAndMembers
-          ? RulePrintingUtils.KEEP_CLASSES_WITH_MEMBERS
-          : RulePrintingUtils.KEEP_CLASS_MEMBERS;
-    }
-
-    @Override
-    List<String> getTargetMembers() {
-      return memberTargets;
-    }
-
-    @Override
-    void printTargetHolder(StringBuilder builder) {
-      if (hasCondition()) {
-        super.printTargetHolder(builder);
-      } else {
-        printClassHeader(builder, holderPattern, classReferencePrinter(holderNamePattern));
+      if (getTargetMembers().isEmpty()) {
+        PgRule.printNonEmptyMembersPatternAsDefaultInitWorkaround(builder);
       }
     }
 
@@ -466,5 +405,4 @@ public abstract class PgRule {
       printMemberClause(memberPattern, RulePrinter.withoutBackReferences(builder));
     }
   }
-
 }
