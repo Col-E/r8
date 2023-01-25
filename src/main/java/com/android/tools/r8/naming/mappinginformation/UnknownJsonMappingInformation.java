@@ -4,7 +4,6 @@
 
 package com.android.tools.r8.naming.mappinginformation;
 
-import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.naming.MappingComposeException;
 import com.android.tools.r8.naming.mappinginformation.MappingInformation.PositionalMappingInformation;
 import com.google.gson.JsonObject;
@@ -31,7 +30,7 @@ public class UnknownJsonMappingInformation extends PositionalMappingInformation 
 
   @Override
   public String serialize() {
-    throw new Unreachable("We should not at this point serialize unknown information");
+    return payload;
   }
 
   @Override

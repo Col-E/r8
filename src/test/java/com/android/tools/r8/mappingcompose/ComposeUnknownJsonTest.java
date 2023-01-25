@@ -4,12 +4,12 @@
 
 package com.android.tools.r8.mappingcompose;
 
-import static org.junit.Assert.assertThrows;
+import static com.android.tools.r8.mappingcompose.ComposeTestHelpers.doubleToSingleQuote;
+import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
-import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.naming.ClassNameMapper;
 import com.android.tools.r8.naming.MappingComposer;
 import com.android.tools.r8.utils.StringUtils;
@@ -41,12 +41,20 @@ public class ComposeUnknownJsonTest extends TestBase {
           "# { id: 'some.third.unknown.identifier', bar: 'message3' }",
           "a -> b:",
           "# { id: 'some.fourth.unknown.identifier', baz: 'message4' }");
+  private static final String mappingResult =
+      StringUtils.unixLines(
+          "# { id: 'some.unknown.identifier', settings: 'message1' }",
+          "# { id: 'some.third.unknown.identifier', bar: 'message3' }",
+          "# {'id':'com.android.tools.r8.mapping','version':'2.2'}",
+          "com.foo -> b:",
+          "# {'id':'some.other.unknown.identifier','foo':'message2'}",
+          "# {'id':'some.fourth.unknown.identifier','baz':'message4'}");
 
   @Test
   public void testCompose() throws Exception {
     ClassNameMapper mappingForFoo = ClassNameMapper.mapperFromStringWithPreamble(mappingFoo);
     ClassNameMapper mappingForBar = ClassNameMapper.mapperFromStringWithPreamble(mappingBar);
-    // TODO(b/241763080): We should not throw when composing mapping information.
-    assertThrows(Unreachable.class, () -> MappingComposer.compose(mappingForFoo, mappingForBar));
+    String composed = MappingComposer.compose(mappingForFoo, mappingForBar);
+    assertEquals(mappingResult, doubleToSingleQuote(composed));
   }
 }
