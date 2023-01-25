@@ -1800,8 +1800,8 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
   }
 
   public static class MappingComposeOptions {
-    // TODO(b/241763080): Remove when enabled.
     public boolean enableExperimentalMappingComposition = false;
+
     // TODO(b/247136434): Disable for internal builds.
     public boolean allowNonExistingOriginalRanges = true;
     public Consumer<ClassNameMapper> generatedClassNameMapperConsumer = null;

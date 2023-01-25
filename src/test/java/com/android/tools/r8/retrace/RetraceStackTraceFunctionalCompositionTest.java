@@ -193,8 +193,6 @@ public class RetraceStackTraceFunctionalCompositionTest extends TestBase {
             .setMappingSupplier(
                 ProguardMappingSupplier.builder()
                     .setProguardMapProducer(ProguardMapProducer.fromPath(mappingFile))
-                    // TODO(b/241763080): Remove when stable.
-                    .setAllowExperimental(true)
                     .build())
             .build());
     return retracedLines;
@@ -246,8 +244,6 @@ public class RetraceStackTraceFunctionalCompositionTest extends TestBase {
         .addProgramFiles(r8Input)
         .addLibraryProvider(JdkClassFileProvider.fromSystemJdk())
         .addKeepRuleFiles(MAIN_KEEP)
-        // TODO(b/241763080): Remove when stable version is default.
-        .enableExperimentalMapFileVersion()
         .allowUnusedProguardConfigurationRules()
         .addDontObfuscate()
         .compile()
@@ -264,10 +260,10 @@ public class RetraceStackTraceFunctionalCompositionTest extends TestBase {
         .setMode(CompilationMode.RELEASE)
         .addProgramFiles(r8Input)
         .addLibraryProvider(JdkClassFileProvider.fromSystemJdk())
-        .enableExperimentalMapFileVersion()
-        // TODO(b/241763080): Enable CF PC test mapping for this compilation.
         .addOptionsModification(
-            options -> options.mappingComposeOptions().enableExperimentalMappingComposition = true)
+            options -> {
+              assertTrue(options.mappingComposeOptions().enableExperimentalMappingComposition);
+            })
         .apply(
             b ->
                 b.getBuilder()

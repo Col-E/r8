@@ -53,7 +53,8 @@ public class LineNumberOptimizer {
     if (appView.options().mappingComposeOptions().generatedClassNameMapperConsumer != null) {
       appView.options().mappingComposeOptions().generatedClassNameMapperConsumer.accept(mapper);
     }
-    if (appView.options().mappingComposeOptions().enableExperimentalMappingComposition) {
+    if (appView.options().mappingComposeOptions().enableExperimentalMappingComposition
+        && appView.appInfo().app().getProguardMap() != null) {
       timing.begin("Proguard map composition");
       try {
         mapper =

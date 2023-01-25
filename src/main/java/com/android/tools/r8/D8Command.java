@@ -29,6 +29,7 @@ import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.InternalOptions.DesugarState;
 import com.android.tools.r8.utils.InternalOptions.HorizontalClassMergerOptions;
 import com.android.tools.r8.utils.InternalOptions.LineNumberOptimization;
+import com.android.tools.r8.utils.InternalOptions.MappingComposeOptions;
 import com.android.tools.r8.utils.ProgramClassCollection;
 import com.android.tools.r8.utils.Reporter;
 import com.android.tools.r8.utils.StringDiagnostic;
@@ -636,7 +637,8 @@ public final class D8Command extends BaseCompilerCommand {
         !internal.debug && proguardMapConsumer != null
             ? LineNumberOptimization.ON
             : LineNumberOptimization.OFF;
-
+    MappingComposeOptions mappingComposeOptions = internal.mappingComposeOptions();
+    mappingComposeOptions.enableExperimentalMappingComposition = true;
     // Assert and fixup defaults.
     assert !internal.isShrinking();
     assert !internal.isMinifying();
