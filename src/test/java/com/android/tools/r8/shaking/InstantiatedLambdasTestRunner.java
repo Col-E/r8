@@ -64,26 +64,10 @@ public class InstantiatedLambdasTestRunner extends TestBase {
   }
 
   @Test
-  public void testProguardAggressive() throws Exception {
-    assumeTrue(parameters.isCfRuntime());
-    buildAndRunProguard("pg-aggressive.jar", true);
-  }
-
-  @Test
   public void testR8() throws Exception {
-    testR8(false);
-  }
-
-  @Test
-  public void testR8Aggressive() throws Exception {
-    testR8(true);
-  }
-
-  private void testR8(boolean aggressive) throws Exception {
     testForR8(parameters.getBackend())
         .addProgramFiles(inputJar)
         .addKeepMainRule(CLASS)
-        .applyIf(aggressive, builder -> builder.addKeepRules("-overloadaggressively"))
         .debug()
         .setMinApi(parameters.getApiLevel())
         .compile()

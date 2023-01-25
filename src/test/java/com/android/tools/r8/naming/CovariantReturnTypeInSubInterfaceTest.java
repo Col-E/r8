@@ -6,7 +6,6 @@ package com.android.tools.r8.naming;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresentAndRenamed;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotEquals;
 
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
@@ -77,23 +76,21 @@ public class CovariantReturnTypeInSubInterfaceTest extends TestBase {
     this.parameters = parameters;
   }
 
-  private void test(boolean overloadAggressively) throws Exception {
+  private void test() throws Exception {
     testForR8(parameters.getBackend())
         .addInnerClasses(CovariantReturnTypeInSubInterfaceTest.class)
         .setMinApi(parameters.getApiLevel())
         .addKeepMainRule(TestMain.class)
         .addKeepRules(
             "-keep,allowobfuscation class **.*$Super* { <methods>; }",
-            "-keep,allowobfuscation class **.*$Sub* { <methods>; }",
-            overloadAggressively ? "-overloadaggressively" : "# Not overload aggressively")
+            "-keep,allowobfuscation class **.*$Sub* { <methods>; }")
         .addOptionsModification(
             internalOptions -> internalOptions.inlinerOptions().enableInlining = false)
         .run(parameters.getRuntime(), TestMain.class)
-        .inspect(inspector -> inspect(inspector, overloadAggressively));
+        .inspect(inspector -> inspect(inspector));
   }
 
-  private void inspect(CodeInspector inspector, boolean overloadAggressively)
-      throws NoSuchMethodException {
+  private void inspect(CodeInspector inspector) throws NoSuchMethodException {
     ClassSubject superInterface = inspector.clazz(SuperInterface.class);
     assertThat(superInterface, isPresentAndRenamed());
     MethodSubject foo1 = superInterface.uniqueMethodWithOriginalName("foo");
@@ -102,21 +99,11 @@ public class CovariantReturnTypeInSubInterfaceTest extends TestBase {
     assertThat(subInterface, isPresentAndRenamed());
     MethodSubject foo2 = subInterface.method(SubInterface.class.getDeclaredMethod("foo"));
     assertThat(foo2, isPresentAndRenamed());
-    if (overloadAggressively && parameters.isDexRuntime()) {
-      assertNotEquals(foo1.getFinalName(), foo2.getFinalName());
-    } else {
-      assertEquals(foo1.getFinalName(), foo2.getFinalName());
-    }
+    assertEquals(foo1.getFinalName(), foo2.getFinalName());
   }
 
   @Test
   public void test_notAggressively() throws Exception {
-    test(false);
+    test();
   }
-
-  @Test
-  public void test_aggressively() throws Exception {
-    test(true);
-  }
-
 }

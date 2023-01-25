@@ -185,7 +185,6 @@ public abstract class TreeShakingTest extends TestBase {
                     ToolHelper.getAppBuilder(b.getBuilder())
                         .addProgramFiles(Paths.get(programFile)))
             .enableProguardTestOptions()
-            .applyIf(minify.isAggressive(), b -> b.addKeepRules("-overloadaggressively"))
             .minification(minify.isMinify())
             .setMinApi(parameters.getApiLevel())
             .addKeepRuleFiles(ListUtils.map(keepRulesFiles, Paths::get))

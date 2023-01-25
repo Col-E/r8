@@ -66,7 +66,6 @@ public class ProguardConfiguration {
     private final ProguardPathFilter.Builder keepDirectories =
         ProguardPathFilter.builder().disable();
     private boolean forceProguardCompatibility = false;
-    private boolean overloadAggressively;
     private boolean configurationDebugging = false;
     private boolean dontUseMixedCaseClassnames = false;
     private boolean protoShrinking = false;
@@ -225,10 +224,6 @@ public class ProguardConfiguration {
       this.packageObfuscationDictionary = packageObfuscationDictionary;
     }
 
-    boolean isOverloadAggressively() {
-      return overloadAggressively;
-    }
-
     public void setKeepParameterNames(boolean keepParameterNames, Origin optionOrigin,
         Position optionPosition) {
       assert optionOrigin != null || !keepParameterNames;
@@ -272,10 +267,6 @@ public class ProguardConfiguration {
 
     public void setForceProguardCompatibility(boolean forceProguardCompatibility) {
       this.forceProguardCompatibility = forceProguardCompatibility;
-    }
-
-    public void setOverloadAggressively(boolean overloadAggressively) {
-      this.overloadAggressively = overloadAggressively;
     }
 
     public void setConfigurationDebugging(boolean configurationDebugging) {
@@ -341,7 +332,6 @@ public class ProguardConfiguration {
               rules,
               printSeeds,
               seedFile,
-              overloadAggressively,
               DictionaryReader.readAllNames(obfuscationDictionary, reporter),
               DictionaryReader.readAllNames(classObfuscationDictionary, reporter),
               DictionaryReader.readAllNames(packageObfuscationDictionary, reporter),
@@ -401,7 +391,6 @@ public class ProguardConfiguration {
   protected final ImmutableList<ProguardConfigurationRule> rules;
   private final boolean printSeeds;
   private final Path seedFile;
-  private final boolean overloadAggressively;
   private final ImmutableList<String> obfuscationDictionary;
   private final ImmutableList<String> classObfuscationDictionary;
   private final ImmutableList<String> packageObfuscationDictionary;
@@ -443,7 +432,6 @@ public class ProguardConfiguration {
       Set<ProguardConfigurationRule> rules,
       boolean printSeeds,
       Path seedFile,
-      boolean overloadAggressively,
       ImmutableList<String> obfuscationDictionary,
       ImmutableList<String> classObfuscationDictionary,
       ImmutableList<String> packageObfuscationDictionary,
@@ -483,7 +471,6 @@ public class ProguardConfiguration {
     this.rules = ImmutableList.copyOf(rules);
     this.printSeeds = printSeeds;
     this.seedFile = seedFile;
-    this.overloadAggressively = overloadAggressively;
     this.obfuscationDictionary = obfuscationDictionary;
     this.classObfuscationDictionary = classObfuscationDictionary;
     this.packageObfuscationDictionary = packageObfuscationDictionary;
@@ -616,7 +603,7 @@ public class ProguardConfiguration {
   }
 
   public boolean isOverloadAggressively() {
-    return overloadAggressively;
+    return false;
   }
 
   public List<String> getObfuscationDictionary() {

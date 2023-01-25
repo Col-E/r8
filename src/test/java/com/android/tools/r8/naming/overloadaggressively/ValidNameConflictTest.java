@@ -165,34 +165,6 @@ public class ValidNameConflictTest extends JasminTestBase {
     assertEquals(javaOutput.stdout, output.stdout);
   }
 
-  @Test
-  public void remainFieldNameConflict_overloadaggressively() throws Exception {
-    JasminBuilder builder = buildFieldNameConflictClassFile();
-    ProcessResult javaOutput = runOnJavaNoVerifyRaw(builder, CLASS_NAME);
-    assertEquals(0, javaOutput.exitCode);
-
-    List<String> pgConfigs = ImmutableList.of(
-        keepMainProguardConfiguration(CLASS_NAME),
-        "-overloadaggressively",
-        "-dontshrink");
-    AndroidApp app = compileWithR8(builder, pgConfigs, null, backend);
-
-    CodeInspector codeInspector = new CodeInspector(app);
-    ClassSubject clazz = codeInspector.clazz(CLASS_NAME);
-    assertTrue(clazz.isPresent());
-    FieldSubject f1 = clazz.field("java.lang.String", REPEATED_NAME);
-    assertTrue(f1.isPresent());
-    assertTrue(f1.isRenamed());
-    FieldSubject f2 = clazz.field("java.lang.Object", REPEATED_NAME);
-    assertTrue(f2.isPresent());
-    assertTrue(f2.isRenamed());
-    assertEquals(f1.getFinalName(), f2.getFinalName());
-
-    ProcessResult output = runRaw(app, CLASS_NAME);
-    assertEquals(0, output.exitCode);
-    assertEquals(javaOutput.stdout, output.stdout);
-  }
-
   private JasminBuilder buildMethodNameConflictClassFile() {
     JasminBuilder builder = new JasminBuilder();
     ClassBuilder classBuilder = builder.addClass(ANOTHER_CLASS);
@@ -276,37 +248,6 @@ public class ValidNameConflictTest extends JasminTestBase {
         new HashSet<>(StringUtils.splitLines(output.stdout)));
   }
 
-  @Test
-  public void remainMethodNameConflict_overloadaggressively() throws Exception {
-    JasminBuilder builder = buildMethodNameConflictClassFile();
-    ProcessResult javaOutput = runOnJavaNoVerifyRaw(builder, CLASS_NAME);
-    assertEquals(0, javaOutput.exitCode);
-
-    List<String> pgConfigs = ImmutableList.of(
-        keepMainProguardConfiguration(CLASS_NAME),
-        "-overloadaggressively",
-        "-dontshrink");
-    AndroidApp app = compileWithR8(builder, pgConfigs, null, backend);
-
-    CodeInspector codeInspector = new CodeInspector(app);
-    ClassSubject clazz = codeInspector.clazz(ANOTHER_CLASS);
-    assertTrue(clazz.isPresent());
-    MethodSubject m1 = clazz.method("java.lang.String", REPEATED_NAME, ImmutableList.of());
-    assertTrue(m1.isPresent());
-    assertTrue(m1.isRenamed());
-    MethodSubject m2 = clazz.method("java.lang.Object", REPEATED_NAME, ImmutableList.of());
-    assertTrue(m2.isPresent());
-    assertTrue(m2.isRenamed());
-    if (backend == Backend.DEX) {
-      assertNotEquals(m1.getFinalName(), m2.getFinalName());
-    } else {
-      assertEquals(m1.getFinalName(), m2.getFinalName());
-    }
-
-    ProcessResult output = runRaw(app, CLASS_NAME);
-    assertEquals(0, output.exitCode);
-    assertEquals(javaOutput.stdout, output.stdout);
-  }
 
   private JasminBuilder buildMethodNameConflictInHierarchy() {
     JasminBuilder builder = new JasminBuilder();
@@ -436,58 +377,5 @@ public class ValidNameConflictTest extends JasminTestBase {
     assertEquals(
         new HashSet<>(StringUtils.splitLines(javaOutput.stdout)),
         new HashSet<>(StringUtils.splitLines(output.stdout)));
-  }
-
-  @Test
-  public void remainMethodNameConflictInHierarchy_overloadaggressively() throws Exception {
-    JasminBuilder builder = buildMethodNameConflictInHierarchy();
-    ProcessResult javaOutput = runOnJavaNoVerifyRaw(builder, CLASS_NAME);
-    assertEquals(0, javaOutput.exitCode);
-
-    List<String> pgConfigs =
-        ImmutableList.of(
-            keepMainProguardConfiguration(CLASS_NAME),
-            "-overloadaggressively",
-            "-dontoptimize",
-            "-dontshrink");
-    AndroidApp app = compileWithR8(builder, pgConfigs, null, backend);
-
-    CodeInspector codeInspector = new CodeInspector(app);
-
-    ClassSubject sup = codeInspector.clazz(SUPER_CLASS);
-    assertTrue(sup.isPresent());
-    MethodSubject m1 = sup.method("java.lang.String", REPEATED_NAME, ImmutableList.of());
-    assertTrue(m1.isPresent());
-    assertTrue(m1.isRenamed());
-    MethodSubject m2 = sup.method("java.lang.Object", REPEATED_NAME, ImmutableList.of());
-    assertTrue(m2.isPresent());
-    assertTrue(m2.isRenamed());
-    if (backend == Backend.DEX) {
-      assertNotEquals(m1.getFinalName(), m2.getFinalName());
-    } else {
-      assertEquals(m1.getFinalName(), m2.getFinalName());
-    }
-
-    ClassSubject sub = codeInspector.clazz(ANOTHER_CLASS);
-    assertTrue(sub.isPresent());
-    MethodSubject subM1 = sub.method("java.lang.String", REPEATED_NAME, ImmutableList.of());
-    assertTrue(subM1.isPresent());
-    assertTrue(subM1.isRenamed());
-    MethodSubject subM2 = sub.method("java.lang.Object", REPEATED_NAME, ImmutableList.of());
-    assertTrue(subM2.isPresent());
-    assertTrue(subM2.isRenamed());
-    if (backend == Backend.DEX) {
-      assertNotEquals(subM1.getFinalName(), subM2.getFinalName());
-    } else {
-      assertEquals(subM1.getFinalName(), subM2.getFinalName());
-    }
-
-    // No matter what, overloading methods should be renamed to the same name.
-    assertEquals(m1.getFinalName(), subM1.getFinalName());
-    assertEquals(m2.getFinalName(), subM2.getFinalName());
-
-    ProcessResult output = runRaw(app, CLASS_NAME);
-    assertEquals(0, output.exitCode);
-    assertEquals(javaOutput.stdout, output.stdout);
   }
 }

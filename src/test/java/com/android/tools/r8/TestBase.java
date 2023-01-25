@@ -1593,19 +1593,14 @@ public class TestBase {
 
   public enum MinifyMode {
     NONE,
-    JAVA,
-    AGGRESSIVE;
+    JAVA;
 
     public boolean isMinify() {
       return this != NONE;
     }
 
-    public boolean isAggressive() {
-      return this == AGGRESSIVE;
-    }
-
     public static MinifyMode[] withoutNone() {
-      return new MinifyMode[] {JAVA, AGGRESSIVE};
+      return new MinifyMode[] {JAVA};
     }
   }
 

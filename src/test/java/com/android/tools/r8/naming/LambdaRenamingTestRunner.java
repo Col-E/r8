@@ -64,26 +64,11 @@ public class LambdaRenamingTestRunner extends TestBase {
   @Test
   public void testProguard() throws Exception {
     assumeTrue(parameters.isCfRuntime());
-    buildAndRunProguard("pg.jar", false);
-  }
-
-  @Test
-  public void testProguardAggressive() throws Exception {
-    assumeTrue(parameters.isCfRuntime());
-    buildAndRunProguard("pg-aggressive.jar", true);
+    buildAndRunProguard("pg.jar");
   }
 
   @Test
   public void testR8() throws Exception {
-    testR8(false);
-  }
-
-  @Test
-  public void testR8Aggressive() throws Exception {
-    testR8(true);
-  }
-
-  private void testR8(boolean aggressive) throws Exception {
     testForR8(parameters.getBackend())
         .addProgramFiles(inputJar)
         .addKeepMainRule(CLASS)
@@ -94,7 +79,6 @@ public class LambdaRenamingTestRunner extends TestBase {
             "-keep interface " + CLASS.getCanonicalName() + "$ReservedNameIntegerInterface2 {",
             "  public java.lang.Integer reservedMethod2();",
             "}")
-        .applyIf(aggressive, builder -> builder.addKeepRules("-overloadaggressively"))
         .debug()
         .setMinApi(parameters.getApiLevel())
         .compile()
@@ -107,8 +91,8 @@ public class LambdaRenamingTestRunner extends TestBase {
                 compileResult.runDex2Oat(parameters.getRuntime()).assertNoVerificationErrors());
   }
 
-  private void buildAndRunProguard(String outName, boolean aggressive) throws Exception {
-    Path pgConfig = writeProguardRules(aggressive);
+  private void buildAndRunProguard(String outName) throws Exception {
+    Path pgConfig = writeProguardRules();
     Path outPg = temp.getRoot().toPath().resolve(outName);
     ProcessResult proguardResult =
         ToolHelper.runProguard6Raw(
@@ -125,7 +109,7 @@ public class LambdaRenamingTestRunner extends TestBase {
     assertNotEquals(0, runPg.exitCode);
   }
 
-  private Path writeProguardRules(boolean aggressive) throws IOException {
+  private Path writeProguardRules() throws IOException {
     Path pgConfig = temp.getRoot().toPath().resolve("keep.txt");
     FileUtils.writeTextFile(
         pgConfig,
@@ -137,8 +121,7 @@ public class LambdaRenamingTestRunner extends TestBase {
         "}",
         "-keep interface " + CLASS.getCanonicalName() + "$ReservedNameIntegerInterface2 {",
         "  public java.lang.Integer reservedMethod2();",
-        "}",
-        aggressive ? "-overloadaggressively" : "# Not overloading aggressively");
+        "}");
     return pgConfig;
   }
 }

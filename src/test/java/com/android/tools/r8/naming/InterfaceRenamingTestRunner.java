@@ -36,11 +36,6 @@ public class InterfaceRenamingTestRunner extends TestBase {
   }
 
   @Test
-  public void testCfMinifyAggressive() throws Exception {
-    testCf(MinifyMode.AGGRESSIVE);
-  }
-
-  @Test
   public void testDexNoMinify() throws Exception {
     testDex(MinifyMode.NONE);
   }
@@ -48,11 +43,6 @@ public class InterfaceRenamingTestRunner extends TestBase {
   @Test
   public void testDexMinify() throws Exception {
     testDex(MinifyMode.JAVA);
-  }
-
-  @Test
-  public void testDexMinifyAggressive() throws Exception {
-    testDex(MinifyMode.AGGRESSIVE);
   }
 
   private void testCf(MinifyMode minify) throws Exception {
@@ -89,7 +79,6 @@ public class InterfaceRenamingTestRunner extends TestBase {
                 R8Command.builder(),
                 pgConfig -> {
                   pgConfig.setPrintMapping(true);
-                  pgConfig.setOverloadAggressively(minify == MinifyMode.AGGRESSIVE);
                   if (!minify.isMinify()) {
                     pgConfig.disableObfuscation();
                   }

@@ -73,7 +73,7 @@ public class ProguardConfigurationParser {
           "dontskipnonpubliclibraryclasses",
           "dontskipnonpubliclibraryclassmembers",
           "invokebasemethod",
-          // TODO(b/62524562): we may support this later.
+          "overloadaggressively",
           "mergeinterfacesaggressively",
           "android",
           "allowruntypeandignoreoptimizationpasses",
@@ -401,8 +401,6 @@ public class ProguardConfigurationParser {
             }
           }
         }
-      } else if (acceptString("overloadaggressively")) {
-        configurationBuilder.setOverloadAggressively(true);
       } else if (acceptString("allowaccessmodification")) {
         configurationBuilder.setAllowAccessModification(true);
       } else if (acceptString("printconfiguration")) {

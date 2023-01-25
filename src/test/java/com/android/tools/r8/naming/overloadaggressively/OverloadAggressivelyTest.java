@@ -120,11 +120,6 @@ public class OverloadAggressivelyTest extends TestBase {
   }
 
   @Test
-  public void testFieldUpdater_aggressively() throws Exception {
-    fieldUpdater(true);
-  }
-
-  @Test
   public void testFieldUpdater_not_aggressively() throws Exception {
     fieldUpdater(false);
   }
@@ -163,11 +158,6 @@ public class OverloadAggressivelyTest extends TestBase {
       // ART may dump its own debugging info through stderr.
       // assertEquals(javaOutput.stderr.trim(), artOutput.stderr.trim());
     }
-  }
-
-  @Test
-  public void testFieldResolution_aggressively() throws Exception {
-    fieldResolution(true);
   }
 
   @Test
@@ -216,12 +206,6 @@ public class OverloadAggressivelyTest extends TestBase {
     assertEquals(overloadaggressively, m1.getReference().name == m3.getReference().name);
     // TODO(b/72858955): ditto
     assertEquals(overloadaggressively, m2.getReference().name == m3.getReference().name);
-  }
-
-  @Test
-  public void testMethodResolution_aggressively() throws Exception {
-    assumeTrue(parameters.isCfRuntime());
-    methodResolution(true);
   }
 
   @Test
