@@ -1238,40 +1238,7 @@ public class AndroidApp {
      * Build final AndroidApp.
      */
     public AndroidApp build() {
-      if (!programResources.isEmpty() || !dataResources.isEmpty()) {
-        // If there are individual program resources move them to a dedicated provider.
-        final List<ProgramResource> finalProgramResources = ImmutableList.copyOf(programResources);
-        final List<DataResource> finalDataResources = ImmutableList.copyOf(dataResources);
-        programResourceProviders.add(
-            new ProgramResourceProvider() {
-              @Override
-              public Collection<ProgramResource> getProgramResources() {
-                return finalProgramResources;
-              }
-
-              @Override
-              public DataResourceProvider getDataResourceProvider() {
-                if (!finalDataResources.isEmpty()) {
-                  return new DataResourceProvider() {
-                    @Override
-                    public void accept(Visitor visitor) {
-                      for (DataResource dataResource : finalDataResources) {
-                        if (dataResource instanceof DataEntryResource) {
-                          visitor.visit((DataEntryResource) dataResource);
-                        } else {
-                          assert dataResource instanceof DataDirectoryResource;
-                          visitor.visit((DataDirectoryResource) dataResource);
-                        }
-                      }
-                    }
-                  };
-                }
-                return null;
-              }
-            });
-        programResources.clear();
-        dataResources.clear();
-      }
+      ensureAllResourcesAreInProviders();
       return new AndroidApp(
           ImmutableList.copyOf(programResourceProviders),
           ImmutableMap.copyOf(programResourcesMainDescriptor),
@@ -1282,6 +1249,43 @@ public class AndroidApp {
           proguardMapInputData,
           mainDexListResources,
           mainDexListClasses);
+    }
+
+    private void ensureAllResourcesAreInProviders() {
+      if (programResources.isEmpty() && dataResources.isEmpty()) {
+        return;
+      }
+      final List<ProgramResource> finalProgramResources = ImmutableList.copyOf(programResources);
+      final List<DataResource> finalDataResources = ImmutableList.copyOf(dataResources);
+      programResourceProviders.add(
+          new ProgramResourceProvider() {
+            @Override
+            public Collection<ProgramResource> getProgramResources() {
+              return finalProgramResources;
+            }
+
+            @Override
+            public DataResourceProvider getDataResourceProvider() {
+              if (!finalDataResources.isEmpty()) {
+                return new DataResourceProvider() {
+                  @Override
+                  public void accept(Visitor visitor) {
+                    for (DataResource dataResource : finalDataResources) {
+                      if (dataResource instanceof DataEntryResource) {
+                        visitor.visit((DataEntryResource) dataResource);
+                      } else {
+                        assert dataResource instanceof DataDirectoryResource;
+                        visitor.visit((DataDirectoryResource) dataResource);
+                      }
+                    }
+                  }
+                };
+              }
+              return null;
+            }
+          });
+      programResources.clear();
+      dataResources.clear();
     }
 
     public Builder addProgramFile(Path file) {
@@ -1343,6 +1347,7 @@ public class AndroidApp {
     }
 
     public List<ProgramResourceProvider> getProgramResourceProviders() {
+      ensureAllResourcesAreInProviders();
       return programResourceProviders;
     }
   }
