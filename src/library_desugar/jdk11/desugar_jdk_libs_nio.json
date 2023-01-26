@@ -16,7 +16,8 @@
       "api_level_below_or_equal": 10000,
       "api_level_greater_or_equal": 26,
       "rewrite_prefix": {
-        "java.time.DesugarLocalDate": "j$.time.DesugarLocalDate"
+        "java.time.DesugarLocalDate": "j$.time.DesugarLocalDate",
+        "java.nio.file.DesugarFiles": "j$.nio.file.DesugarFiles"
       },
       "retarget_static_field": {
         "java.time.LocalDate java.time.LocalDate#EPOCH": "java.time.LocalDate java.time.DesugarLocalDate#EPOCH"
@@ -25,7 +26,11 @@
         "java.util.stream.Stream java.time.LocalDate#datesUntil(java.time.LocalDate)": "java.time.DesugarLocalDate",
         "java.util.stream.Stream java.time.LocalDate#datesUntil(java.time.LocalDate, java.time.Period)": "java.time.DesugarLocalDate",
         "java.time.LocalDate java.time.LocalDate#ofInstant(java.time.Instant, java.time.ZoneId)": "java.time.DesugarLocalDate",
-        "long java.time.LocalDate#toEpochSecond(java.time.LocalTime, java.time.ZoneOffset)": "java.time.DesugarLocalDate"
+        "long java.time.LocalDate#toEpochSecond(java.time.LocalTime, java.time.ZoneOffset)": "java.time.DesugarLocalDate",
+        "java.lang.String java.nio.file.Files#readString(java.nio.file.Path)": "java.nio.file.DesugarFiles",
+        "java.lang.String java.nio.file.Files#readString(java.nio.file.Path, java.nio.charset.Charset)": "java.nio.file.DesugarFiles",
+        "java.nio.file.Path java.nio.file.Files#writeString(java.nio.file.Path, java.lang.CharSequence, java.nio.file.OpenOption[])": "java.nio.file.DesugarFiles",
+        "java.nio.file.Path java.nio.file.Files#writeString(java.nio.file.Path, java.lang.CharSequence, java.nio.charset.Charset, java.nio.file.OpenOption[])": "java.nio.file.DesugarFiles"
       },
       "amend_library_field": [
         "public static java.time.LocalDate java.time.LocalDate#EPOCH"
@@ -34,7 +39,11 @@
         "public java.util.stream.Stream java.time.LocalDate#datesUntil(java.time.LocalDate)",
         "public java.util.stream.Stream java.time.LocalDate#datesUntil(java.time.LocalDate, java.time.Period)",
         "public static java.time.LocalDate java.time.LocalDate#ofInstant(java.time.Instant, java.time.ZoneId)",
-        "public long java.time.LocalDate#toEpochSecond(java.time.LocalTime, java.time.ZoneOffset)"
+        "public long java.time.LocalDate#toEpochSecond(java.time.LocalTime, java.time.ZoneOffset)",
+        "public static java.lang.String java.nio.file.Files#readString(java.nio.file.Path)",
+        "public static java.lang.String java.nio.file.Files#readString(java.nio.file.Path, java.nio.charset.Charset)",
+        "public static java.nio.file.Path java.nio.file.Files#writeString(java.nio.file.Path, java.lang.CharSequence, java.nio.file.OpenOption[])",
+        "public static java.nio.file.Path java.nio.file.Files#writeString(java.nio.file.Path, java.lang.CharSequence, java.nio.charset.Charset, java.nio.file.OpenOption[])"
       ]
     },
     {
@@ -488,6 +497,16 @@
     }
   ],
   "library_flags": [
+    {
+      "api_level_below_or_equal": 10000,
+      "api_level_greater_or_equal": 26,
+      "rewrite_prefix": {
+        "sun.nio.cs.UTF_8": "j$.sun.nio.cs.UTF_8"
+      },
+      "retarget_static_field": {
+        "sun.nio.cs.UTF_8 sun.nio.cs.UTF_8#INSTANCE": "java.nio.charset.Charset java.nio.charset.StandardCharsets#UTF_8"
+      }
+    },
     {
       "api_level_below_or_equal": 32,
       "rewrite_prefix": {
