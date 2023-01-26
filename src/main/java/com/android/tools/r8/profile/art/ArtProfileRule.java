@@ -4,15 +4,24 @@
 
 package com.android.tools.r8.profile.art;
 
+import com.android.tools.r8.graph.DexReference;
+import com.android.tools.r8.utils.ThrowingConsumer;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
-import java.util.function.Consumer;
 
-public abstract class ArtProfileRule {
+public abstract class ArtProfileRule implements Comparable<ArtProfileRule> {
 
-  public abstract void accept(
-      Consumer<ArtProfileClassRule> classRuleConsumer,
-      Consumer<ArtProfileMethodRule> methodRuleConsumer);
+  public abstract <E1 extends Exception, E2 extends Exception> void accept(
+      ThrowingConsumer<ArtProfileClassRule, E1> classRuleConsumer,
+      ThrowingConsumer<ArtProfileMethodRule, E2> methodRuleConsumer)
+      throws E1, E2;
+
+  @Override
+  public final int compareTo(ArtProfileRule rule) {
+    return getReference().compareTo(rule.getReference());
+  }
+
+  public abstract DexReference getReference();
 
   public boolean isClassRule() {
     return false;

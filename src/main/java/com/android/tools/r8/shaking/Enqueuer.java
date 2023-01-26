@@ -126,6 +126,7 @@ import com.android.tools.r8.logging.Log;
 import com.android.tools.r8.naming.identifiernamestring.IdentifierNameStringLookupResult;
 import com.android.tools.r8.naming.identifiernamestring.IdentifierNameStringTypeLookupResult;
 import com.android.tools.r8.position.Position;
+import com.android.tools.r8.profile.art.rewriting.ArtProfileCollectionAdditions;
 import com.android.tools.r8.shaking.AnnotationMatchResult.MatchedAnnotation;
 import com.android.tools.r8.shaking.DelayedRootSetActionItem.InterfaceMethodSyntheticBridgeAction;
 import com.android.tools.r8.shaking.EnqueuerEvent.ClassEnqueuerEvent;
@@ -469,6 +470,8 @@ public class Enqueuer {
 
   private final Thread mainThreadForTesting = Thread.currentThread();
 
+  private final ArtProfileCollectionAdditions artProfileCollectionAdditions;
+
   Enqueuer(
       AppView<? extends AppInfoWithClassHierarchy> appView,
       ExecutorService executorService,
@@ -479,6 +482,7 @@ public class Enqueuer {
     InternalOptions options = appView.options();
     this.appInfo = appView.appInfo();
     this.appView = appView.withClassHierarchy();
+    this.artProfileCollectionAdditions = ArtProfileCollectionAdditions.create(appView);
     this.deferredTracing = EnqueuerDeferredTracing.create(appView, this, mode);
     this.executorService = executorService;
     this.subtypingInfo = subtypingInfo;
@@ -3673,6 +3677,7 @@ public class Enqueuer {
     }
     timing.begin("Create result");
     EnqueuerResult result = createEnqueuerResult(appInfo, timing);
+    artProfileCollectionAdditions.commit(appView);
     timing.end();
     return result;
   }
@@ -4086,6 +4091,7 @@ public class Enqueuer {
     CfInstructionDesugaringEventConsumer eventConsumer =
         CfInstructionDesugaringEventConsumer.createForR8(
             appView,
+            artProfileCollectionAdditions,
             lambdaCallback,
             this::recordConstantDynamicSynthesizingContext,
             this::recordTwrCloseResourceMethodSynthesizingContext,

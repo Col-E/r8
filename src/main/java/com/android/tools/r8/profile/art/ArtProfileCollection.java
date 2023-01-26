@@ -30,7 +30,8 @@ public abstract class ArtProfileCollection {
     for (ArtProfileForRewriting artProfileForRewriting :
         options.getArtProfileOptions().getArtProfilesForRewriting()) {
       ArtProfileProvider artProfileProvider = artProfileForRewriting.getArtProfileProvider();
-      ArtProfile.Builder artProfileBuilder = ArtProfile.builder(artProfileProvider, options);
+      ArtProfile.Builder artProfileBuilder =
+          ArtProfile.builderForInitialArtProfile(artProfileProvider, options);
       artProfileForRewriting.getArtProfileProvider().getArtProfile(artProfileBuilder);
       artProfiles.add(artProfileBuilder.build());
     }
@@ -44,6 +45,10 @@ public abstract class ArtProfileCollection {
   public static PassthroughArtProfileCollection passthrough() {
     return PassthroughArtProfileCollection.getInstance();
   }
+
+  public abstract boolean isNonEmpty();
+
+  public abstract NonEmptyArtProfileCollection asNonEmpty();
 
   public abstract ArtProfileCollection rewrittenWithLens(GraphLens lens);
 

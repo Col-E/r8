@@ -15,12 +15,28 @@ import java.util.Collection;
 import java.util.Iterator;
 import java.util.function.Function;
 
-public class NonEmptyArtProfileCollection extends ArtProfileCollection {
+public class NonEmptyArtProfileCollection extends ArtProfileCollection
+    implements Iterable<ArtProfile> {
 
   private final Collection<ArtProfile> artProfiles;
 
-  NonEmptyArtProfileCollection(Collection<ArtProfile> artProfiles) {
+  public NonEmptyArtProfileCollection(Collection<ArtProfile> artProfiles) {
     this.artProfiles = artProfiles;
+  }
+
+  @Override
+  public boolean isNonEmpty() {
+    return true;
+  }
+
+  @Override
+  public NonEmptyArtProfileCollection asNonEmpty() {
+    return this;
+  }
+
+  @Override
+  public Iterator<ArtProfile> iterator() {
+    return artProfiles.iterator();
   }
 
   @Override

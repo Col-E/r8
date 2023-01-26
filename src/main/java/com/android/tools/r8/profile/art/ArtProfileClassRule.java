@@ -5,12 +5,13 @@
 package com.android.tools.r8.profile.art;
 
 import com.android.tools.r8.graph.DexItemFactory;
+import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.references.ClassReference;
 import com.android.tools.r8.references.Reference;
+import com.android.tools.r8.utils.ThrowingConsumer;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
-import java.util.function.Consumer;
 
 public class ArtProfileClassRule extends ArtProfileRule {
 
@@ -29,9 +30,10 @@ public class ArtProfileClassRule extends ArtProfileRule {
   }
 
   @Override
-  public void accept(
-      Consumer<ArtProfileClassRule> classRuleConsumer,
-      Consumer<ArtProfileMethodRule> methodRuleConsumer) {
+  public <E1 extends Exception, E2 extends Exception> void accept(
+      ThrowingConsumer<ArtProfileClassRule, E1> classRuleConsumer,
+      ThrowingConsumer<ArtProfileMethodRule, E2> methodRuleConsumer)
+      throws E1 {
     classRuleConsumer.accept(this);
   }
 
@@ -41,6 +43,11 @@ public class ArtProfileClassRule extends ArtProfileRule {
 
   public ArtProfileClassRuleInfo getClassRuleInfo() {
     return ArtProfileClassRuleInfoImpl.empty();
+  }
+
+  @Override
+  public DexReference getReference() {
+    return getType();
   }
 
   public DexType getType() {

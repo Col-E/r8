@@ -109,10 +109,14 @@ public class ApiOutlineProfileRewritingTest extends TestBase {
     MethodSubject apiOutlineMethodSubject = apiOutlineClassSubject.uniqueMethod();
     assertThat(apiOutlineMethodSubject, notIf(isPresent(), isLibraryClassAlwaysPresent()));
 
-    // TODO(b/265729283): When outlining the residual profile should include the outline method and
-    //  its holder.
+    // Verify the residual profile contains the outline method and its holder when present.
     profileInspector
         .assertContainsMethodRule(MethodReferenceUtils.mainMethod(Main.class))
+        .applyIf(
+            !isLibraryClassAlwaysPresent(),
+            i ->
+                i.assertContainsClassRule(apiOutlineClassSubject)
+                    .assertContainsMethodRule(apiOutlineMethodSubject))
         .assertContainsNoOtherRules();
   }
 

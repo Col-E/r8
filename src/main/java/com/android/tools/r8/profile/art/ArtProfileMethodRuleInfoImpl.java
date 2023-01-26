@@ -140,6 +140,11 @@ public class ArtProfileMethodRuleInfoImpl implements ArtProfileMethodRuleInfo {
       return this;
     }
 
+    public Builder joinFlags(ArtProfileMethodRuleInfoImpl methodRuleInfo) {
+      flags |= methodRuleInfo.flags;
+      return this;
+    }
+
     public ArtProfileMethodRuleInfoImpl build() {
       return new ArtProfileMethodRuleInfoImpl(flags);
     }

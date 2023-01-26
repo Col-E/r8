@@ -30,6 +30,13 @@ public class ArtProfileInspector {
     this.artProfile = artProfile;
   }
 
+  public ArtProfileInspector applyIf(boolean condition, Consumer<ArtProfileInspector> fn) {
+    if (condition) {
+      fn.accept(this);
+    }
+    return this;
+  }
+
   public ArtProfileInspector assertEmpty() {
     assertEquals(0, artProfile.size());
     return this;

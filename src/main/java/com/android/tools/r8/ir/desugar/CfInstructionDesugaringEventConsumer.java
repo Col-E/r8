@@ -29,6 +29,7 @@ import com.android.tools.r8.ir.desugar.nest.NestBasedAccessDesugaringEventConsum
 import com.android.tools.r8.ir.desugar.records.RecordDesugaringEventConsumer.RecordInstructionDesugaringEventConsumer;
 import com.android.tools.r8.ir.desugar.twr.TwrCloseResourceDesugaringEventConsumer;
 import com.android.tools.r8.ir.desugar.varhandle.VarHandleDesugaringEventConsumer;
+import com.android.tools.r8.profile.art.rewriting.ArtProfileCollectionAdditions;
 import com.android.tools.r8.profile.art.rewriting.ArtProfileRewritingCfInstructionDesugaringEventConsumer;
 import com.android.tools.r8.shaking.Enqueuer.SyntheticAdditions;
 import com.android.tools.r8.shaking.KeepMethodInfo.Joiner;
@@ -71,11 +72,16 @@ public abstract class CfInstructionDesugaringEventConsumer
     CfInstructionDesugaringEventConsumer eventConsumer =
         new D8CfInstructionDesugaringEventConsumer(
             appView, classConverterResultBuilder, methodProcessor);
-    return ArtProfileRewritingCfInstructionDesugaringEventConsumer.attachIfNeeded(eventConsumer);
+    // TODO(b/265729283): Also include synthetics in the baseline profile in D8.
+    ArtProfileCollectionAdditions artProfileCollectionAdditions =
+        ArtProfileCollectionAdditions.nop();
+    return ArtProfileRewritingCfInstructionDesugaringEventConsumer.attach(
+        artProfileCollectionAdditions, eventConsumer);
   }
 
   public static CfInstructionDesugaringEventConsumer createForR8(
       AppView<? extends AppInfoWithClassHierarchy> appView,
+      ArtProfileCollectionAdditions artProfileCollectionAdditions,
       BiConsumer<LambdaClass, ProgramMethod> lambdaClassConsumer,
       BiConsumer<ConstantDynamicClass, ProgramMethod> constantDynamicClassConsumer,
       BiConsumer<ProgramMethod, ProgramMethod> twrCloseResourceMethodConsumer,
@@ -89,7 +95,8 @@ public abstract class CfInstructionDesugaringEventConsumer
             twrCloseResourceMethodConsumer,
             additions,
             companionMethodConsumer);
-    return ArtProfileRewritingCfInstructionDesugaringEventConsumer.attachIfNeeded(eventConsumer);
+    return ArtProfileRewritingCfInstructionDesugaringEventConsumer.attach(
+        artProfileCollectionAdditions, eventConsumer);
   }
 
   public abstract List<ProgramMethod> finalizeDesugaring();

@@ -8,6 +8,7 @@ import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.references.MethodReference;
 import com.android.tools.r8.utils.MethodReferenceUtils;
+import com.android.tools.r8.utils.ThrowingConsumer;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.util.function.Consumer;
@@ -31,9 +32,10 @@ public class ArtProfileMethodRule extends ArtProfileRule {
   }
 
   @Override
-  public void accept(
-      Consumer<ArtProfileClassRule> classRuleConsumer,
-      Consumer<ArtProfileMethodRule> methodRuleConsumer) {
+  public <E1 extends Exception, E2 extends Exception> void accept(
+      ThrowingConsumer<ArtProfileClassRule, E1> classRuleConsumer,
+      ThrowingConsumer<ArtProfileMethodRule, E2> methodRuleConsumer)
+      throws E2 {
     methodRuleConsumer.accept(this);
   }
 
@@ -45,8 +47,13 @@ public class ArtProfileMethodRule extends ArtProfileRule {
     return method.asMethodReference();
   }
 
-  public ArtProfileMethodRuleInfo getMethodRuleInfo() {
+  public ArtProfileMethodRuleInfoImpl getMethodRuleInfo() {
     return info;
+  }
+
+  @Override
+  public DexMethod getReference() {
+    return getMethod();
   }
 
   @Override

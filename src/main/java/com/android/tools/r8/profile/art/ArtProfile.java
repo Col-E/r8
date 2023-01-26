@@ -17,13 +17,12 @@ import com.android.tools.r8.graph.PrunedItems;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.Reporter;
-import com.google.common.collect.ImmutableList;
+import com.android.tools.r8.utils.ThrowingConsumer;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.io.UncheckedIOException;
-import java.util.ArrayList;
+import java.util.Collection;
 import java.util.LinkedHashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
@@ -31,14 +30,51 @@ import java.util.function.Function;
 
 public class ArtProfile {
 
-  private final List<ArtProfileRule> rules;
+  private final Map<DexReference, ArtProfileRule> rules;
 
-  ArtProfile(List<ArtProfileRule> rules) {
+  ArtProfile(Map<DexReference, ArtProfileRule> rules) {
     this.rules = rules;
   }
 
-  public static Builder builder(ArtProfileProvider artProfileProvider, InternalOptions options) {
+  public static Builder builder() {
+    return new Builder();
+  }
+
+  public static Builder builderForInitialArtProfile(
+      ArtProfileProvider artProfileProvider, InternalOptions options) {
     return new Builder(artProfileProvider, options);
+  }
+
+  public boolean containsClassRule(DexType type) {
+    return rules.containsKey(type);
+  }
+
+  public boolean containsMethodRule(DexMethod method) {
+    return rules.containsKey(method);
+  }
+
+  public <E extends Exception> void forEachRule(ThrowingConsumer<ArtProfileRule, E> ruleConsumer)
+      throws E {
+    for (ArtProfileRule rule : rules.values()) {
+      ruleConsumer.accept(rule);
+    }
+  }
+
+  public <E1 extends Exception, E2 extends Exception> void forEachRule(
+      ThrowingConsumer<ArtProfileClassRule, E1> classRuleConsumer,
+      ThrowingConsumer<ArtProfileMethodRule, E2> methodRuleConsumer)
+      throws E1, E2 {
+    for (ArtProfileRule rule : rules.values()) {
+      rule.accept(classRuleConsumer, methodRuleConsumer);
+    }
+  }
+
+  public ArtProfileClassRule getClassRule(DexType type) {
+    return (ArtProfileClassRule) rules.get(type);
+  }
+
+  public ArtProfileMethodRule getMethodRule(DexMethod method) {
+    return (ArtProfileMethodRule) rules.get(method);
   }
 
   public ArtProfile rewrittenWithLens(GraphLens lens) {
@@ -88,37 +124,32 @@ public class ArtProfile {
       BiConsumer<ArtProfileMethodRule, Function<DexMethod, ArtProfileMethodRule.Builder>>
           methodTransformation) {
     Map<DexReference, ArtProfileRule.Builder> ruleBuilders = new LinkedHashMap<>();
-    for (ArtProfileRule rule : rules) {
-      if (rule.isClassRule()) {
+    forEachRule(
         // Supply a factory method for creating a builder. If the current rule should be included in
         // the rewritten profile, the caller should call the provided builder factory method to
         // create a class rule builder. If two rules are mapped to the same reference, the same rule
         // builder is reused so that the two rules are merged into a single rule (with their flags
         // merged).
-        classTransformation.accept(
-            rule.asClassRule(),
-            newType ->
-                ruleBuilders
-                    .computeIfAbsent(
-                        newType, ignoreKey(() -> ArtProfileClassRule.builder().setType(newType)))
-                    .asClassRuleBuilder());
-      } else {
+        classRule ->
+            classTransformation.accept(
+                classRule,
+                newType ->
+                    ruleBuilders
+                        .computeIfAbsent(
+                            newType,
+                            ignoreKey(() -> ArtProfileClassRule.builder().setType(newType)))
+                        .asClassRuleBuilder()),
         // As above.
-        assert rule.isMethodRule();
-        methodTransformation.accept(
-            rule.asMethodRule(),
-            newMethod ->
-                ruleBuilders
-                    .computeIfAbsent(
-                        newMethod,
-                        ignoreKey(() -> ArtProfileMethodRule.builder().setMethod(newMethod)))
-                    .asMethodRuleBuilder());
-      }
-    }
-    ImmutableList.Builder<ArtProfileRule> newRules =
-        ImmutableList.builderWithExpectedSize(ruleBuilders.size());
-    ruleBuilders.values().forEach(ruleBuilder -> newRules.add(ruleBuilder.build()));
-    return new ArtProfile(newRules.build());
+        methodRule ->
+            methodTransformation.accept(
+                methodRule,
+                newMethod ->
+                    ruleBuilders
+                        .computeIfAbsent(
+                            newMethod,
+                            ignoreKey(() -> ArtProfileMethodRule.builder().setMethod(newMethod)))
+                        .asMethodRuleBuilder()));
+    return builder().addRuleBuilders(ruleBuilders.values()).build();
   }
 
   public void supplyConsumer(ArtProfileConsumer consumer, Reporter reporter) {
@@ -140,10 +171,11 @@ public class ArtProfile {
       try (OutputStreamWriter outputStreamWriter =
           new OutputStreamWriter(
               textOutputStream.getOutputStream(), textOutputStream.getCharset())) {
-        for (ArtProfileRule rule : rules) {
-          rule.writeHumanReadableRuleString(outputStreamWriter);
-          outputStreamWriter.write('\n');
-        }
+        forEachRule(
+            rule -> {
+              rule.writeHumanReadableRuleString(outputStreamWriter);
+              outputStreamWriter.write('\n');
+            });
       }
     } catch (IOException e) {
       throw new UncheckedIOException(e);
@@ -151,15 +183,13 @@ public class ArtProfile {
   }
 
   private void supplyRuleConsumer(ArtProfileRuleConsumer ruleConsumer) {
-    for (ArtProfileRule rule : rules) {
-      rule.accept(
-          classRule ->
-              ruleConsumer.acceptClassRule(
-                  classRule.getClassReference(), classRule.getClassRuleInfo()),
-          methodRule ->
-              ruleConsumer.acceptMethodRule(
-                  methodRule.getMethodReference(), methodRule.getMethodRuleInfo()));
-    }
+    forEachRule(
+        classRule ->
+            ruleConsumer.acceptClassRule(
+                classRule.getClassReference(), classRule.getClassRuleInfo()),
+        methodRule ->
+            ruleConsumer.acceptMethodRule(
+                methodRule.getMethodReference(), methodRule.getMethodRuleInfo()));
   }
 
   public static class Builder implements ArtProfileBuilder {
@@ -167,34 +197,57 @@ public class ArtProfile {
     private final ArtProfileProvider artProfileProvider;
     private final DexItemFactory dexItemFactory;
     private Reporter reporter;
-    private final List<ArtProfileRule> rules = new ArrayList<>();
+    private final Map<DexReference, ArtProfileRule> rules = new LinkedHashMap<>();
 
+    Builder() {
+      this.artProfileProvider = null;
+      this.dexItemFactory = null;
+      this.reporter = null;
+    }
+
+    // Constructor for building the initial ART profile. The input is based on the Reference API, so
+    // access to the DexItemFactory is needed for conversion into the internal DexReference.
+    // Moreover, access to the Reporter is needed for diagnostics reporting.
     Builder(ArtProfileProvider artProfileProvider, InternalOptions options) {
       this.artProfileProvider = artProfileProvider;
       this.dexItemFactory = options.dexItemFactory();
       this.reporter = options.reporter;
     }
 
+    public Builder addRule(ArtProfileRule rule) {
+      assert !rules.containsKey(rule.getReference());
+      rule.accept(
+          classRule -> rules.put(classRule.getType(), classRule),
+          methodRule -> rules.put(methodRule.getMethod(), methodRule));
+      return this;
+    }
+
+    public Builder addRules(Collection<ArtProfileRule> rules) {
+      rules.forEach(this::addRule);
+      return this;
+    }
+
+    public Builder addRuleBuilders(Collection<ArtProfileRule.Builder> ruleBuilders) {
+      ruleBuilders.forEach(ruleBuilder -> addRule(ruleBuilder.build()));
+      return this;
+    }
+
     @Override
-    public ArtProfileBuilder addClassRule(
-        Consumer<ArtProfileClassRuleBuilder> classRuleBuilderConsumer) {
+    public Builder addClassRule(Consumer<ArtProfileClassRuleBuilder> classRuleBuilderConsumer) {
       ArtProfileClassRule.Builder classRuleBuilder = ArtProfileClassRule.builder(dexItemFactory);
       classRuleBuilderConsumer.accept(classRuleBuilder);
-      rules.add(classRuleBuilder.build());
-      return this;
+      return addRule(classRuleBuilder.build());
     }
 
     @Override
-    public ArtProfileBuilder addMethodRule(
-        Consumer<ArtProfileMethodRuleBuilder> methodRuleBuilderConsumer) {
+    public Builder addMethodRule(Consumer<ArtProfileMethodRuleBuilder> methodRuleBuilderConsumer) {
       ArtProfileMethodRule.Builder methodRuleBuilder = ArtProfileMethodRule.builder(dexItemFactory);
       methodRuleBuilderConsumer.accept(methodRuleBuilder);
-      rules.add(methodRuleBuilder.build());
-      return this;
+      return addRule(methodRuleBuilder.build());
     }
 
     @Override
-    public ArtProfileBuilder addHumanReadableArtProfile(
+    public Builder addHumanReadableArtProfile(
         TextInputStream textInputStream,
         Consumer<HumanReadableArtProfileParserBuilder> parserBuilderConsumer) {
       HumanReadableArtProfileParser.Builder parserBuilder =

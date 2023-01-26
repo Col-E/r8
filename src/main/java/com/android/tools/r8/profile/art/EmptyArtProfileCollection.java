@@ -21,6 +21,16 @@ public class EmptyArtProfileCollection extends ArtProfileCollection {
   }
 
   @Override
+  public boolean isNonEmpty() {
+    return false;
+  }
+
+  @Override
+  public NonEmptyArtProfileCollection asNonEmpty() {
+    return null;
+  }
+
+  @Override
   public ArtProfileCollection rewrittenWithLens(GraphLens lens) {
     return this;
   }

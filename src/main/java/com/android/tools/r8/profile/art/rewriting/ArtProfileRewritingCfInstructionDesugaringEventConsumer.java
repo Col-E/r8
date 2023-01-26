@@ -17,17 +17,24 @@ import java.util.List;
 public class ArtProfileRewritingCfInstructionDesugaringEventConsumer
     extends CfInstructionDesugaringEventConsumer {
 
+  private final ConcreteArtProfileCollectionAdditions additionsCollection;
   private final CfInstructionDesugaringEventConsumer parent;
 
-  public ArtProfileRewritingCfInstructionDesugaringEventConsumer(
+  private ArtProfileRewritingCfInstructionDesugaringEventConsumer(
+      ConcreteArtProfileCollectionAdditions additionsCollection,
       CfInstructionDesugaringEventConsumer parent) {
+    this.additionsCollection = additionsCollection;
     this.parent = parent;
   }
 
-  public static CfInstructionDesugaringEventConsumer attachIfNeeded(
+  public static CfInstructionDesugaringEventConsumer attach(
+      ArtProfileCollectionAdditions artProfileCollectionAdditions,
       CfInstructionDesugaringEventConsumer eventConsumer) {
-    // TODO(b/265729283): Attach this wrapper when there is a baseline profile that needs rewriting.
-    return eventConsumer;
+    if (artProfileCollectionAdditions.isNop()) {
+      return eventConsumer;
+    }
+    return new ArtProfileRewritingCfInstructionDesugaringEventConsumer(
+        artProfileCollectionAdditions.asConcrete(), eventConsumer);
   }
 
   @Override
@@ -123,6 +130,7 @@ public class ArtProfileRewritingCfInstructionDesugaringEventConsumer
 
   @Override
   public void acceptOutlinedMethod(ProgramMethod outlinedMethod, ProgramMethod context) {
+    additionsCollection.addMethodRuleIfContextIsInProfile(outlinedMethod, context);
     parent.acceptOutlinedMethod(outlinedMethod, context);
   }
 
