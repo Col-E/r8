@@ -7,6 +7,7 @@ package com.android.tools.r8.profile.art.rewriting;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.ProgramDefinition;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.profile.art.ArtProfile;
 import com.android.tools.r8.profile.art.ArtProfileClassRule;
@@ -31,7 +32,36 @@ class ArtProfileAdditions {
     this.artProfile = artProfile;
   }
 
-  void addClassRule(DexProgramClass clazz) {
+  void addRulesIfContextIsInProfile(ProgramMethod context, ProgramDefinition... definitions) {
+    ArtProfileMethodRule contextMethodRule = artProfile.getMethodRule(context.getReference());
+    if (contextMethodRule != null) {
+      for (ProgramDefinition definition : definitions) {
+        addRuleFromContext(definition, contextMethodRule, MethodRuleAdditionConfig.getDefault());
+      }
+    }
+  }
+
+  // Specialization of the above method to avoid redundant varargs array creation.
+  void addRulesIfContextIsInProfile(ProgramMethod context, ProgramDefinition definition) {
+    ArtProfileMethodRule contextMethodRule = artProfile.getMethodRule(context.getReference());
+    if (contextMethodRule != null) {
+      addRuleFromContext(definition, contextMethodRule, MethodRuleAdditionConfig.getDefault());
+    }
+  }
+
+  private void addRuleFromContext(
+      ProgramDefinition definition,
+      ArtProfileMethodRule contextMethodRule,
+      MethodRuleAdditionConfig config) {
+    if (definition.isProgramClass()) {
+      addClassRule(definition.asProgramClass());
+    } else {
+      assert definition.isProgramMethod();
+      addMethodRuleFromContext(definition.asProgramMethod(), contextMethodRule, config);
+    }
+  }
+
+  private void addClassRule(DexProgramClass clazz) {
     if (artProfile.containsClassRule(clazz.getType())) {
       return;
     }
@@ -41,26 +71,10 @@ class ArtProfileAdditions {
         clazz.getType(), type -> ArtProfileClassRule.builder().setType(type));
   }
 
-  boolean addMethodRuleIfContextIsInProfile(ProgramMethod method, ProgramMethod context) {
-    return addMethodRuleIfContextIsInProfile(
-        method, context, MethodRuleAdditionConfig.getDefault());
-  }
-
-  /**
-   * Adds the given {@param method} to the ART profile if {@param context} is live (i.e., present in
-   * the baseline profile).
-   *
-   * @return true if {@param context} is live.
-   */
-  boolean addMethodRuleIfContextIsInProfile(
-      ProgramMethod method, ProgramMethod context, MethodRuleAdditionConfig config) {
-    assert !artProfile.containsMethodRule(method.getReference());
-
-    ArtProfileMethodRule contextMethodRule = artProfile.getMethodRule(context.getReference());
-    if (contextMethodRule == null) {
-      return false;
-    }
-
+  private void addMethodRuleFromContext(
+      ProgramMethod method,
+      ArtProfileMethodRule contextMethodRule,
+      MethodRuleAdditionConfig config) {
     // Create profile rule for method.
     ArtProfileMethodRule.Builder methodRuleBuilder =
         methodRuleAdditions.computeIfAbsent(
@@ -71,7 +85,6 @@ class ArtProfileAdditions {
     methodRuleBuilder.acceptMethodRuleInfoBuilder(
         methodRuleInfoBuilder ->
             config.configureMethodRuleInfo(methodRuleInfoBuilder, contextMethodRule));
-    return true;
   }
 
   ArtProfile createNewArtProfile() {

@@ -67,15 +67,18 @@ public class BackportProfileRewritingTest extends TestBase {
         inspector.clazz(SyntheticItemsTestUtils.syntheticBackportClass(Main.class, 0));
     assertThat(backportClassSubject, onlyIf(isBackportingObjectsNonNull(), isPresent()));
 
-    profileInspector.assertContainsMethodRules(MethodReferenceUtils.mainMethod(Main.class));
+    MethodSubject backportMethodSubject = backportClassSubject.uniqueMethod();
+    assertThat(backportMethodSubject, onlyIf(isBackportingObjectsNonNull(), isPresent()));
 
-    // TODO(b/265729283): Should include the backported method and its holder.
-    if (isBackportingObjectsNonNull()) {
-      MethodSubject backportMethodSubject = backportClassSubject.uniqueMethod();
-      assertThat(backportMethodSubject, isPresent());
-    }
-
-    profileInspector.assertContainsNoOtherRules();
+    // Verify residual profile contains the backported method and its holder.
+    profileInspector
+        .assertContainsMethodRules(MethodReferenceUtils.mainMethod(Main.class))
+        .applyIf(
+            isBackportingObjectsNonNull(),
+            i ->
+                i.assertContainsClassRule(backportClassSubject)
+                    .assertContainsMethodRule(backportMethodSubject))
+        .assertContainsNoOtherRules();
   }
 
   public static class Main {

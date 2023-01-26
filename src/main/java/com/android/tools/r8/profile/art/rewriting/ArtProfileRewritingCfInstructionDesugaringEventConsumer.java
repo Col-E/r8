@@ -49,6 +49,8 @@ public class ArtProfileRewritingCfInstructionDesugaringEventConsumer
 
   @Override
   public void acceptBackportedMethod(ProgramMethod backportedMethod, ProgramMethod context) {
+    additionsCollection.addRulesIfContextIsInProfile(
+        context, backportedMethod, backportedMethod.getHolder());
     parent.acceptBackportedMethod(backportedMethod, context);
   }
 
@@ -130,7 +132,8 @@ public class ArtProfileRewritingCfInstructionDesugaringEventConsumer
 
   @Override
   public void acceptOutlinedMethod(ProgramMethod outlinedMethod, ProgramMethod context) {
-    additionsCollection.addMethodRuleIfContextIsInProfile(outlinedMethod, context);
+    additionsCollection.addRulesIfContextIsInProfile(
+        context, outlinedMethod, outlinedMethod.getHolder());
     parent.acceptOutlinedMethod(outlinedMethod, context);
   }
 
