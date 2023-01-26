@@ -342,6 +342,7 @@ def cloudDependencies = [
                 "2016-12-19/art"
         ],
         "third_party": [
+                "aapt2",
                 "android_cts_baseline",
                 "android_jar/libcore_latest",
                 "android_jar/lib-v14",
