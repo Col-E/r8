@@ -10,6 +10,7 @@ import static kotlinx.metadata.jvm.KotlinClassMetadata.Companion;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexDefinitionSupplier;
+import com.android.tools.r8.utils.Box;
 import com.android.tools.r8.utils.Pair;
 import kotlin.Metadata;
 import kotlinx.metadata.KmLambda;
@@ -80,10 +81,11 @@ public class KotlinSyntheticClassInfo implements KotlinClassLevelInfo {
       return Pair.create(
           Companion.writeSyntheticClass(getCompatibleKotlinInfo(), 0).getAnnotationData(), false);
     }
-    KmLambda kmLambda = new KmLambda();
-    boolean rewritten = lambda.rewrite(() -> kmLambda, clazz, appView);
+    Box<KmLambda> newLambda = new Box<>();
+    boolean rewritten = lambda.rewrite(newLambda::set, clazz, appView);
+    assert newLambda.isSet();
     return Pair.create(
-        Companion.writeLambda(kmLambda, getCompatibleKotlinInfo(), 0).getAnnotationData(),
+        Companion.writeLambda(newLambda.get(), getCompatibleKotlinInfo(), 0).getAnnotationData(),
         rewritten);
   }
 

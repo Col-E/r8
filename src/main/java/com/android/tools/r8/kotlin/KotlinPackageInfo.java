@@ -18,7 +18,6 @@ import java.util.Map;
 import java.util.function.Consumer;
 import kotlinx.metadata.KmPackage;
 import kotlinx.metadata.jvm.JvmExtensionsKt;
-import kotlinx.metadata.jvm.JvmPackageExtensionVisitor;
 
 // Holds information about a KmPackage object.
 public class KotlinPackageInfo implements EnqueuerMetadataTraceable {
@@ -77,18 +76,16 @@ public class KotlinPackageInfo implements EnqueuerMetadataTraceable {
     KotlinMetadataMembersTracker rewrittenReferences = new KotlinMetadataMembersTracker(appView);
     boolean rewritten =
         containerInfo.rewrite(
-            kmPackage::visitFunction,
-            kmPackage::visitProperty,
-            kmPackage::visitTypeAlias,
+            kmPackage.getFunctions()::add,
+            kmPackage.getProperties()::add,
+            kmPackage.getTypeAliases()::add,
             clazz,
             appView,
             rewrittenReferences);
-    JvmPackageExtensionVisitor extensionVisitor =
-        (JvmPackageExtensionVisitor) kmPackage.visitExtensions(JvmPackageExtensionVisitor.TYPE);
     rewritten |=
-        localDelegatedProperties.rewrite(extensionVisitor::visitLocalDelegatedProperty, appView);
-    extensionVisitor.visitModuleName(moduleName);
-    extensionVisitor.visitEnd();
+        localDelegatedProperties.rewrite(
+            JvmExtensionsKt.getLocalDelegatedProperties(kmPackage)::add, appView);
+    JvmExtensionsKt.setModuleName(kmPackage, moduleName);
     return rewritten || !originalMembersWithKotlinInfo.isEqual(rewrittenReferences, appView);
   }
 
