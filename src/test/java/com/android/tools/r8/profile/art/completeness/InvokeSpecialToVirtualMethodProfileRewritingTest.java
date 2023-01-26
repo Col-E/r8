@@ -98,19 +98,19 @@ public class InvokeSpecialToVirtualMethodProfileRewritingTest extends TestBase {
     MethodSubject mMethodSubject = mainClassSubject.uniqueMethodWithOriginalName("m");
     assertThat(mMethodSubject, isPresent());
 
-    if (parameters.isDexRuntime()) {
-      MethodSubject mMovedMethodSubject =
-          mainClassSubject.method(
-              SyntheticItemsTestUtils.syntheticInvokeSpecialMethod(
-                  Main.class.getDeclaredMethod("m")));
-      assertThat(mMovedMethodSubject, isPresent());
+    MethodSubject mMovedMethodSubject =
+        mainClassSubject.method(
+            SyntheticItemsTestUtils.syntheticInvokeSpecialMethod(
+                Main.class.getDeclaredMethod("m")));
+    assertThat(mMovedMethodSubject, isPresent());
       assertNotEquals(
           mMethodSubject.getProgramMethod().getName(),
           mMovedMethodSubject.getProgramMethod().getName());
-    }
 
-    // TODO(b/265729283): Should also contain the synthetic method above when compiling to dex.
-    profileInspector.assertContainsMethodRule(mMethodSubject).assertContainsNoOtherRules();
+    // Verify residual profile contains private synthetic method when present.
+    profileInspector
+        .assertContainsMethodRules(mMethodSubject, mMovedMethodSubject)
+        .assertContainsNoOtherRules();
   }
 
   public static class Main {

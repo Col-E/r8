@@ -101,6 +101,8 @@ public class ArtProfileRewritingCfInstructionDesugaringEventConsumer
 
   @Override
   public void acceptInvokeSpecialBridgeInfo(InvokeSpecialBridgeInfo info) {
+    additionsCollection.addRulesIfContextIsInProfile(
+        info.getVirtualMethod(), info.getNewDirectMethod());
     parent.acceptInvokeSpecialBridgeInfo(info);
   }
 
