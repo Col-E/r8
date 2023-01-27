@@ -29,11 +29,9 @@ def checkout(temp):
 def parse_options():
   result = argparse.ArgumentParser(description='Release Smali')
   result.add_argument('--archive-hash',
-                      required=True,
                       metavar=('<main hash>'),
                       help='The hash to use for archiving a smali build')
   result.add_argument('--version',
-                      required=True,
                       metavar=('<version>'),
                       help='The version of smali to archive.')
   result.add_argument('--dry-run', '--dry_run',
@@ -59,8 +57,9 @@ def Main():
       + 'Use --dry-run to test locally')
   if options.checkout and not options.dry_run:
     raise Exception('Using local checkout is only allowed with --dry-run')
-  if not options.checkout and (not options.archive_hash or not options.version):
-    raise Exception('Both --archive-hash and --version are required')
+  if not options.checkout:
+    if not options.archive_hash or not options.version:
+      raise Exception('Both --archive-hash and --version are required')
 
   if utils.is_bot() and not utils.IsWindows():
     set_rlimit_to_max()
@@ -75,8 +74,8 @@ def Main():
 
     checkout_dir = options.checkout if options.checkout else checkout(temp)
     with utils.ChangedWorkingDirectory(checkout_dir):
-      assert options.archive_hash
-      subprocess.check_call(['git', 'checkout', options.archive_hash])
+      if options.archive_hash:
+        subprocess.check_call(['git', 'checkout', options.archive_hash])
 
       # Find version from `build.gradle`.
       for line in open(os.path.join('build.gradle'), 'r'):
@@ -85,17 +84,19 @@ def Main():
         if result:
           break
       version = '%s.%s.%s' % (result.group(1), result.group(2), result.group(3))
-      if version != options.version:
-        raise Exception(
-            'Commit % has version %s, expected version %s'
-            % (options.archive_hash, version, options.version))
+      if options.version and version != options.version:
+        message = 'version %s, expected version %s' % (version, options.version)
+        if (options.checkout):
+          raise Exception('Checkout %s has %s' % (options.checkout, message))
+        else:
+          raise Exception('Commit % has %s' % (options.archive_hash, message))
       print('Building version: %s' % version)
 
       # Build release to local Maven repository.
       m2 = os.path.join(temp, 'm2')
       os.mkdir(m2)
       subprocess.check_call(
-          ['./gradlew', '-Dmaven.repo.local=%s' % m2  , 'release', 'publishToMavenLocal'])
+          ['./gradlew', '-Dmaven.repo.local=%s' % m2  , 'release', 'test', 'publishToMavenLocal'])
       base = os.path.join('com', 'android', 'tools', 'smali')
 
       # Check that the local maven repository only has the single version directory in
