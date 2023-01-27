@@ -146,6 +146,12 @@ public class DesugaredLibraryContentTest extends DesugaredLibraryTestBase {
             build, options, ThreadUtils.getExecutorService(1));
     Map<DexMethod, Object> failures = new IdentityHashMap<>();
     for (FoundClassSubject clazz : inspector.allClasses()) {
+      if (clazz.toString().startsWith("j$.sun.nio.cs.UTF_8")
+          && parameters.getApiLevel().isGreaterThanOrEqualTo(AndroidApiLevel.O)) {
+        // At high API level, the class UTF_8 is there just for resolution, the field access is
+        // retargeted and the code is unused so it's ok if it does not resolve.
+        continue;
+      }
       for (FoundMethodSubject method : clazz.allMethods()) {
         if (method.hasCode()) {
           for (InstructionSubject instruction : method.instructions(InstructionSubject::isInvoke)) {
