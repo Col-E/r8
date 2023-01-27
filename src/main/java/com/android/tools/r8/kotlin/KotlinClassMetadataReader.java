@@ -23,7 +23,6 @@ import java.util.Map;
 import java.util.function.Consumer;
 import kotlin.Metadata;
 import kotlinx.metadata.InconsistentKotlinMetadataException;
-import kotlinx.metadata.jvm.KotlinClassHeader;
 import kotlinx.metadata.jvm.KotlinClassMetadata;
 import kotlinx.metadata.jvm.KotlinClassMetadata.FileFacade;
 import kotlinx.metadata.jvm.KotlinClassMetadata.MultiFileClassFacade;
@@ -122,8 +121,8 @@ public final class KotlinClassMetadataReader {
     Integer xi = extraInt == null ? null : (Integer) extraInt.value.getBoxedValue();
 
     try {
-      KotlinClassHeader header = new KotlinClassHeader(k, mv, d1, d2, xs, pn, xi);
-      return KotlinClassMetadata.read(header);
+      return KotlinClassMetadata.read(
+          new KotlinMetadataAnnotationWrapper(k, mv, d1, d2, xs, pn, xi));
     } catch (ClassCastException | InconsistentKotlinMetadataException | MetadataError e) {
       throw new KotlinMetadataException(e);
     }
