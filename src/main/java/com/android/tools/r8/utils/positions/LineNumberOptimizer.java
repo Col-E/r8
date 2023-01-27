@@ -20,10 +20,13 @@ import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.naming.ClassNameMapper;
+import com.android.tools.r8.naming.MapVersion;
 import com.android.tools.r8.naming.MappingComposeException;
 import com.android.tools.r8.naming.MappingComposer;
 import com.android.tools.r8.naming.ProguardMapSupplier;
 import com.android.tools.r8.naming.ProguardMapSupplier.ProguardMapId;
+import com.android.tools.r8.naming.mappinginformation.MapVersionMappingInformation;
+import com.android.tools.r8.naming.mappinginformation.ResidualSignatureMappingInformation;
 import com.android.tools.r8.shaking.KeepInfoCollection;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.CfLineToMethodMapper;
@@ -44,6 +47,15 @@ public class LineNumberOptimizer {
       OriginalSourceFiles originalSourceFiles,
       DebugRepresentationPredicate representation) {
     assert appView.options().proguardMapConsumer != null;
+    if (shouldEmitOriginalMappingFile(appView)) {
+      appView.options().reporter.warning(new NotSupportedMapVersionForMappingComposeDiagnostic());
+      timing.begin("Write proguard map");
+      ProguardMapId proguardMapId =
+          ProguardMapSupplier.create(appView.appInfo().app().getProguardMap(), appView.options())
+              .writeProguardMap();
+      timing.end();
+      return proguardMapId;
+    }
     // When line number optimization is turned off the identity mapping for line numbers is
     // used. We still run the line number optimizer to collect line numbers and inline frame
     // information for the mapping file.
@@ -70,6 +82,21 @@ public class LineNumberOptimizer {
     ProguardMapId mapId = ProguardMapSupplier.create(mapper, appView.options()).writeProguardMap();
     timing.end();
     return mapId;
+  }
+
+  private static boolean shouldEmitOriginalMappingFile(AppView<?> appView) {
+    if (!appView.options().mappingComposeOptions().enableExperimentalMappingComposition
+        || appView.appInfo().app().getProguardMap() == null) {
+      return false;
+    }
+    MapVersionMappingInformation mapVersionInfo =
+        appView.appInfo().app().getProguardMap().getFirstMapVersionInformation();
+    if (mapVersionInfo == null) {
+      return true;
+    }
+    MapVersion newMapVersion = mapVersionInfo.getMapVersion();
+    return !ResidualSignatureMappingInformation.isSupported(newMapVersion)
+        || newMapVersion.isUnknown();
   }
 
   public static ClassNameMapper run(
