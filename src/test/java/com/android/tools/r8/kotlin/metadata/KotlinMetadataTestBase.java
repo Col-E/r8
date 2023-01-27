@@ -15,7 +15,6 @@ import static org.junit.Assert.assertNull;
 import com.android.tools.r8.KotlinTestBase;
 import com.android.tools.r8.KotlinTestParameters;
 import com.android.tools.r8.TestCompileResult;
-import com.android.tools.r8.kotlin.KotlinMetadataAnnotationWrapper;
 import com.android.tools.r8.kotlin.KotlinMetadataWriter;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.IntBox;
@@ -32,8 +31,8 @@ import java.util.Map;
 import java.util.function.BiConsumer;
 import java.util.stream.Collectors;
 import junit.framework.TestCase;
+import kotlinx.metadata.jvm.KotlinClassHeader;
 import kotlinx.metadata.jvm.KotlinClassMetadata;
-import org.junit.Assert;
 
 public abstract class KotlinMetadataTestBase extends KotlinTestBase {
 
@@ -55,7 +54,7 @@ public abstract class KotlinMetadataTestBase extends KotlinTestBase {
   static final String KT_FUNCTION1 = "Lkotlin/Function1;";
   static final String KT_COMPARABLE = "Lkotlin/Comparable;";
 
-  public void assertEqualMetadataWithStringPoolValidation(
+  public void assertEqualMetadata(
       CodeInspector originalInspector,
       CodeInspector rewrittenInspector,
       BiConsumer<Integer, Integer> addedStringsInspector) {
@@ -74,11 +73,9 @@ public abstract class KotlinMetadataTestBase extends KotlinTestBase {
         continue;
       }
       assertNotNull(rewrittenMetadata);
-      KotlinMetadataAnnotationWrapper originalHeader =
-          KotlinMetadataAnnotationWrapper.wrap(originalMetadata);
-      KotlinMetadataAnnotationWrapper rewrittenHeader =
-          KotlinMetadataAnnotationWrapper.wrap(rewrittenMetadata);
-      TestCase.assertEquals(originalHeader.kind(), rewrittenHeader.kind());
+      KotlinClassHeader originalHeader = originalMetadata.getHeader();
+      KotlinClassHeader rewrittenHeader = rewrittenMetadata.getHeader();
+      TestCase.assertEquals(originalHeader.getKind(), rewrittenHeader.getKind());
 
       // We cannot assert equality of the data since it may be ordered differently. However, we
       // will check for the changes to the string pool and then validate the same parsing
@@ -90,8 +87,8 @@ public abstract class KotlinMetadataTestBase extends KotlinTestBase {
                   .computeIfAbsent(
                       method.getFinalSignature().toDescriptor(), ignoreArgument(ArrayList::new))
                   .add(method.getFinalName()));
-      HashSet<String> originalStrings = new HashSet<>(Arrays.asList(originalHeader.data2()));
-      HashSet<String> rewrittenStrings = new HashSet<>(Arrays.asList(rewrittenHeader.data2()));
+      HashSet<String> originalStrings = new HashSet<>(Arrays.asList(originalHeader.getData2()));
+      HashSet<String> rewrittenStrings = new HashSet<>(Arrays.asList(rewrittenHeader.getData2()));
       rewrittenStrings.forEach(
           rewrittenString -> {
             if (originalStrings.contains(rewrittenString)) {
@@ -111,64 +108,13 @@ public abstract class KotlinMetadataTestBase extends KotlinTestBase {
             }
             addedNonInitStrings.increment();
           });
-      assertEquals(originalHeader.packageName(), rewrittenHeader.packageName());
+      assertEquals(originalHeader.getPackageName(), rewrittenHeader.getPackageName());
 
       String expected = KotlinMetadataWriter.kotlinMetadataToString("", originalMetadata);
       String actual = KotlinMetadataWriter.kotlinMetadataToString("", rewrittenMetadata);
       assertEquals(expected, actual);
     }
     addedStringsInspector.accept(addedStrings.get(), addedNonInitStrings.get());
-  }
-
-  public void assertEqualDeserializedMetadata(
-      CodeInspector inspector, CodeInspector otherInspector) {
-    for (FoundClassSubject clazzSubject : otherInspector.allClasses()) {
-      ClassSubject r8Clazz = inspector.clazz(clazzSubject.getOriginalName());
-      assertThat(r8Clazz, isPresent());
-      KotlinClassMetadata originalMetadata = clazzSubject.getKotlinClassMetadata();
-      KotlinClassMetadata rewrittenMetadata = r8Clazz.getKotlinClassMetadata();
-      if (originalMetadata == null) {
-        assertNull(rewrittenMetadata);
-        continue;
-      }
-      assertNotNull(rewrittenMetadata);
-      KotlinMetadataAnnotationWrapper originalHeader =
-          KotlinMetadataAnnotationWrapper.wrap(originalMetadata);
-      KotlinMetadataAnnotationWrapper rewrittenHeader =
-          KotlinMetadataAnnotationWrapper.wrap(rewrittenMetadata);
-      TestCase.assertEquals(originalHeader.kind(), rewrittenHeader.kind());
-      TestCase.assertEquals(originalHeader.packageName(), rewrittenHeader.packageName());
-      // We cannot assert equality of the data since it may be ordered differently. We use the
-      // KotlinMetadataWriter to deserialize the metadata and assert those are equal.
-      String expected = KotlinMetadataWriter.kotlinMetadataToString("", originalMetadata);
-      String actual = KotlinMetadataWriter.kotlinMetadataToString("", rewrittenMetadata);
-      TestCase.assertEquals(expected, actual);
-    }
-  }
-
-  public void assertEqualMetadata(CodeInspector inspector, CodeInspector otherInspector) {
-    for (FoundClassSubject clazzSubject : otherInspector.allClasses()) {
-      ClassSubject r8Clazz = inspector.clazz(clazzSubject.getOriginalName());
-      assertThat(r8Clazz, isPresent());
-      KotlinClassMetadata originalMetadata = clazzSubject.getKotlinClassMetadata();
-      KotlinClassMetadata rewrittenMetadata = r8Clazz.getKotlinClassMetadata();
-      if (originalMetadata == null) {
-        assertNull(rewrittenMetadata);
-        continue;
-      }
-      TestCase.assertNotNull(rewrittenMetadata);
-      KotlinMetadataAnnotationWrapper originalHeader =
-          KotlinMetadataAnnotationWrapper.wrap(originalMetadata);
-      KotlinMetadataAnnotationWrapper rewrittenHeader =
-          KotlinMetadataAnnotationWrapper.wrap(rewrittenMetadata);
-      TestCase.assertEquals(originalHeader.kind(), rewrittenHeader.kind());
-      TestCase.assertEquals(originalHeader.packageName(), rewrittenHeader.packageName());
-      Assert.assertArrayEquals(originalHeader.data1(), rewrittenHeader.data1());
-      Assert.assertArrayEquals(originalHeader.data2(), rewrittenHeader.data2());
-      String expected = KotlinMetadataWriter.kotlinMetadataToString("", originalMetadata);
-      String actual = KotlinMetadataWriter.kotlinMetadataToString("", rewrittenMetadata);
-      TestCase.assertEquals(expected, actual);
-    }
   }
 
   public static void verifyExpectedWarningsFromKotlinReflectAndStdLib(

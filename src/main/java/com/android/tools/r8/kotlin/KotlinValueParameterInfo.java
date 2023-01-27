@@ -4,9 +4,6 @@
 
 package com.android.tools.r8.kotlin;
 
-import static com.android.tools.r8.kotlin.KotlinMetadataUtils.consume;
-import static com.android.tools.r8.kotlin.KotlinMetadataUtils.rewriteIfNotNull;
-
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexDefinitionSupplier;
 import com.android.tools.r8.graph.DexItemFactory;
@@ -14,9 +11,9 @@ import com.android.tools.r8.shaking.EnqueuerMetadataTraceable;
 import com.android.tools.r8.utils.Reporter;
 import com.google.common.collect.ImmutableList;
 import java.util.List;
-import java.util.function.Consumer;
 import kotlinx.metadata.KmType;
 import kotlinx.metadata.KmValueParameter;
+import kotlinx.metadata.KmValueParameterVisitor;
 import kotlinx.metadata.internal.metadata.deserialization.Flags;
 
 // Provides access to Kotlin information about value parameter.
@@ -68,15 +65,14 @@ class KotlinValueParameterInfo implements EnqueuerMetadataTraceable {
     return builder.build();
   }
 
-  boolean rewrite(Consumer<KmValueParameter> consumer, AppView<?> appView) {
-    KmValueParameter kmValueParameter = consume(new KmValueParameter(flags, name), consumer);
-    boolean rewritten = type.rewrite(kmValueParameter::setType, appView);
-    rewritten |=
-        rewriteIfNotNull(
-            appView,
-            varargElementType,
-            kmValueParameter::setVarargElementType,
-            KotlinTypeInfo::rewrite);
+  boolean rewrite(
+      KmVisitorProviders.KmValueParameterVisitorProvider visitorProvider, AppView<?> appView) {
+    KmValueParameterVisitor kmValueParameterVisitor = visitorProvider.get(flags, name);
+    boolean rewritten = type.rewrite(kmValueParameterVisitor::visitType, appView);
+    if (varargElementType != null) {
+      rewritten |=
+          varargElementType.rewrite(kmValueParameterVisitor::visitVarargElementType, appView);
+    }
     return rewritten;
   }
 

@@ -70,10 +70,6 @@ public class KotlinJvmMethodSignatureInfo implements EnqueuerMetadataTraceable {
     return new KotlinJvmMethodSignatureInfo(name, returnType, parameters.build());
   }
 
-  boolean rewriteNoBacking(Consumer<JvmMethodSignature> consumer, AppView<?> appView) {
-    return rewrite(consumer, null, appView);
-  }
-
   boolean rewrite(
       Consumer<JvmMethodSignature> consumer, DexEncodedMethod method, AppView<?> appView) {
     if (invalidDescriptor != null) {

@@ -4,8 +4,6 @@
 
 package com.android.tools.r8.kotlin;
 
-import static com.android.tools.r8.kotlin.KotlinMetadataUtils.consume;
-import static com.android.tools.r8.kotlin.KotlinMetadataUtils.rewriteList;
 import static com.android.tools.r8.utils.FunctionUtils.forEachApply;
 
 import com.android.tools.r8.graph.AppView;
@@ -15,8 +13,8 @@ import com.android.tools.r8.shaking.EnqueuerMetadataTraceable;
 import com.android.tools.r8.utils.Reporter;
 import com.google.common.collect.ImmutableList;
 import java.util.List;
-import java.util.function.Consumer;
 import kotlinx.metadata.KmContract;
+import kotlinx.metadata.KmContractVisitor;
 import kotlinx.metadata.KmEffect;
 
 public class KotlinContractInfo implements EnqueuerMetadataTraceable {
@@ -50,11 +48,17 @@ public class KotlinContractInfo implements EnqueuerMetadataTraceable {
     forEachApply(effects, effect -> effect::trace, definitionSupplier);
   }
 
-  boolean rewrite(Consumer<KmContract> consumer, AppView<?> appView) {
+  boolean rewrite(
+      KmVisitorProviders.KmContractVisitorProvider visitorProvider, AppView<?> appView) {
     if (this == NO_EFFECT) {
       return false;
     }
-    KmContract kmContract = consume(new KmContract(), consumer);
-    return rewriteList(appView, effects, kmContract.getEffects(), KotlinEffectInfo::rewrite);
+    boolean rewritten = false;
+    KmContractVisitor kmContractVisitor = visitorProvider.get();
+    for (KotlinEffectInfo effect : effects) {
+      rewritten |= effect.rewrite(kmContractVisitor::visitEffect, appView);
+    }
+    kmContractVisitor.visitEnd();
+    return rewritten;
   }
 }

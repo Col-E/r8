@@ -5,7 +5,6 @@
 package com.android.tools.r8.kotlin;
 
 import static com.android.tools.r8.kotlin.KotlinMetadataUtils.isValidMethodDescriptor;
-import static com.android.tools.r8.kotlin.KotlinMetadataUtils.rewriteList;
 import static com.android.tools.r8.kotlin.KotlinMetadataUtils.toDefaultJvmMethodSignature;
 import static com.android.tools.r8.utils.FunctionUtils.forEachApply;
 
@@ -180,15 +179,17 @@ public class KotlinDeclarationContainerInfo implements EnqueuerMetadataTraceable
   }
 
   boolean rewrite(
-      Consumer<KmFunction> functionConsumer,
-      Consumer<KmProperty> propertyConsumer,
-      Consumer<KmTypeAlias> typeAliasConsumer,
+      KmVisitorProviders.KmFunctionVisitorProvider functionProvider,
+      KmVisitorProviders.KmPropertyVisitorProvider propertyProvider,
+      KmVisitorProviders.KmTypeAliasVisitorProvider typeAliasProvider,
       DexClass clazz,
       AppView<?> appView,
       KotlinMetadataMembersTracker rewrittenMembersWithKotlinInfo) {
     // Type aliases only have a representation here, so we can generate them directly.
-    boolean rewritten =
-        rewriteList(appView, typeAliases, typeAliasConsumer, KotlinTypeAliasInfo::rewrite);
+    boolean rewritten = false;
+    for (KotlinTypeAliasInfo typeAlias : typeAliases) {
+      rewritten |= typeAlias.rewrite(typeAliasProvider, appView);
+    }
     // For properties, we need to combine potentially a field, setter and getter.
     Map<KotlinPropertyInfo, KotlinPropertyGroup> properties = new LinkedHashMap<>();
     for (DexEncodedField field : clazz.fields()) {
@@ -202,7 +203,7 @@ public class KotlinDeclarationContainerInfo implements EnqueuerMetadataTraceable
     }
     for (DexEncodedMethod method : clazz.methods()) {
       if (method.getKotlinInfo().isFunction()) {
-        rewritten |= method.getKotlinInfo().asFunction().rewrite(functionConsumer, method, appView);
+        rewritten |= method.getKotlinInfo().asFunction().rewrite(functionProvider, method, appView);
         rewrittenMembersWithKotlinInfo.add(method.getReference());
         continue;
       }
@@ -224,25 +225,19 @@ public class KotlinDeclarationContainerInfo implements EnqueuerMetadataTraceable
       KotlinPropertyGroup kotlinPropertyGroup = properties.get(kotlinPropertyInfo);
       rewritten |=
           kotlinPropertyInfo.rewrite(
-              propertyConsumer,
+              propertyProvider,
               kotlinPropertyGroup.backingField,
               kotlinPropertyGroup.getter,
               kotlinPropertyGroup.setter,
               appView);
     }
     // Add all not backed functions and properties.
-    rewritten |=
-        rewriteList(
-            appView,
-            functionsWithNoBacking,
-            functionConsumer,
-            KotlinFunctionInfo::rewriteNoBacking);
-    rewritten |=
-        rewriteList(
-            appView,
-            propertiesWithNoBacking,
-            propertyConsumer,
-            KotlinPropertyInfo::rewriteNoBacking);
+    for (KotlinFunctionInfo notBackedFunction : functionsWithNoBacking) {
+      rewritten |= notBackedFunction.rewrite(functionProvider, null, appView);
+    }
+    for (KotlinPropertyInfo notBackedProperty : propertiesWithNoBacking) {
+      rewritten |= notBackedProperty.rewrite(propertyProvider, null, null, null, appView);
+    }
     return rewritten;
   }
 

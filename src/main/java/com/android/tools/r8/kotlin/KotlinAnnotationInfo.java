@@ -14,7 +14,6 @@ import com.google.common.collect.ImmutableList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.function.Consumer;
 import kotlinx.metadata.KmAnnotation;
 import kotlinx.metadata.KmAnnotationArgument;
 
@@ -50,7 +49,8 @@ public class KotlinAnnotationInfo implements EnqueuerMetadataTraceable {
     return builder.build();
   }
 
-  boolean rewrite(Consumer<KmAnnotation> annotationConsumer, AppView<?> appView) {
+  boolean rewrite(
+      KmVisitorProviders.KmAnnotationVisitorProvider visitorProvider, AppView<?> appView) {
     BooleanBox rewritten = new BooleanBox(false);
     rewritten.or(
         annotationType.toRenamedDescriptorOrDefault(
@@ -72,7 +72,7 @@ public class KotlinAnnotationInfo implements EnqueuerMetadataTraceable {
                                 }
                               },
                               appView)));
-              annotationConsumer.accept(new KmAnnotation(classifier, rewrittenArguments));
+              visitorProvider.get(new KmAnnotation(classifier, rewrittenArguments));
             },
             appView,
             null));

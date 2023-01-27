@@ -44,8 +44,8 @@ ext {
     mockitoVersion = '2.10.0'
     // The kotlin version is only here to specify the kotlin language level,
     // all kotlin compilations are done in tests.
-    kotlinVersion = '1.8.0'
-    kotlinExtMetadataJVMVersion = '0.6.0'
+    kotlinVersion = '1.6.0'
+    kotlinExtMetadataJVMVersion = '0.5.0'
     smaliVersion = '2.2b4'
     errorproneVersion = '2.3.2'
     testngVersion = '6.10'
@@ -285,7 +285,7 @@ dependencies {
     main17Implementation group: 'org.ow2.asm', name: 'asm-tree', version: asmVersion
     main17Implementation group: 'org.ow2.asm', name: 'asm-analysis', version: asmVersion
     main17Implementation group: 'org.ow2.asm', name: 'asm-util', version: asmVersion
-
+    
     examplesTestNGRunnerCompile group: 'org.testng', name: 'testng', version: testngVersion
 
     testCompile sourceSets.examples.output

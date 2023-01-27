@@ -4,9 +4,6 @@
 
 package com.android.tools.r8.kotlin;
 
-import static com.android.tools.r8.kotlin.KotlinMetadataUtils.consume;
-import static com.android.tools.r8.kotlin.KotlinMetadataUtils.rewriteIfNotNull;
-import static com.android.tools.r8.kotlin.KotlinMetadataUtils.rewriteList;
 import static com.android.tools.r8.utils.FunctionUtils.forEachApply;
 
 import com.android.tools.r8.graph.AppView;
@@ -18,10 +15,11 @@ import com.android.tools.r8.shaking.EnqueuerMetadataTraceable;
 import com.android.tools.r8.utils.Reporter;
 import com.google.common.collect.ImmutableList;
 import java.util.List;
-import java.util.function.Consumer;
 import kotlinx.metadata.KmType;
 import kotlinx.metadata.KmTypeProjection;
+import kotlinx.metadata.KmTypeVisitor;
 import kotlinx.metadata.jvm.JvmExtensionsKt;
+import kotlinx.metadata.jvm.JvmTypeExtensionVisitor;
 
 // Provides access to Kotlin information about a kotlin type.
 public class KotlinTypeInfo implements EnqueuerMetadataTraceable {
@@ -84,28 +82,34 @@ public class KotlinTypeInfo implements EnqueuerMetadataTraceable {
     return arguments.build();
   }
 
-  boolean rewrite(Consumer<KmType> consumer, AppView<?> appView) {
+  boolean rewrite(KmVisitorProviders.KmTypeVisitorProvider visitorProvider, AppView<?> appView) {
     // TODO(b/154348683): Check for correct flags
-    KmType kmType = consume(new KmType(flags), consumer);
-    boolean rewritten = classifier.rewrite(kmType, appView);
+    KmTypeVisitor kmTypeVisitor = visitorProvider.get(flags);
+    boolean rewritten = classifier.rewrite(kmTypeVisitor, appView);
+    if (abbreviatedType != null) {
+      rewritten |= abbreviatedType.rewrite(kmTypeVisitor::visitAbbreviatedType, appView);
+    }
+    if (outerType != null) {
+      rewritten |= outerType.rewrite(kmTypeVisitor::visitOuterType, appView);
+    }
+    for (KotlinTypeProjectionInfo argument : arguments) {
+      rewritten |=
+          argument.rewrite(
+              kmTypeVisitor::visitArgument, kmTypeVisitor::visitStarProjection, appView);
+    }
     rewritten |=
-        rewriteIfNotNull(
-            appView, abbreviatedType, kmType::setAbbreviatedType, KotlinTypeInfo::rewrite);
-    rewritten |=
-        rewriteIfNotNull(appView, outerType, kmType::setOuterType, KotlinTypeInfo::rewrite);
-    rewritten |=
-        rewriteList(appView, arguments, kmType.getArguments(), KotlinTypeProjectionInfo::rewrite);
-    rewritten |= flexibleTypeUpperBound.rewrite(kmType::setFlexibleTypeUpperBound, appView);
+        flexibleTypeUpperBound.rewrite(kmTypeVisitor::visitFlexibleTypeUpperBound, appView);
     if (annotations.isEmpty() && !isRaw) {
       return rewritten;
     }
-    rewritten |=
-        rewriteList(
-            appView,
-            annotations,
-            JvmExtensionsKt.getAnnotations(kmType),
-            KotlinAnnotationInfo::rewrite);
-    JvmExtensionsKt.setRaw(kmType, isRaw);
+    JvmTypeExtensionVisitor extensionVisitor =
+        (JvmTypeExtensionVisitor) kmTypeVisitor.visitExtensions(JvmTypeExtensionVisitor.TYPE);
+    if (extensionVisitor != null) {
+      for (KotlinAnnotationInfo annotation : annotations) {
+        rewritten |= annotation.rewrite(extensionVisitor::visitAnnotation, appView);
+      }
+      extensionVisitor.visit(isRaw);
+    }
     return rewritten;
   }
 

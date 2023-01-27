@@ -56,7 +56,7 @@ public class MetadataRewritePassThroughTest extends KotlinMetadataTestBase {
         .assertAllWarningMessagesMatch(equalTo("Resource 'META-INF/MANIFEST.MF' already exists."))
         .inspect(
             inspector ->
-                assertEqualMetadataWithStringPoolValidation(
+                assertEqualMetadata(
                     new CodeInspector(kotlinc.getKotlinStdlibJar()),
                     inspector,
                     (addedStrings, addedNonInitStrings) -> {
@@ -74,7 +74,7 @@ public class MetadataRewritePassThroughTest extends KotlinMetadataTestBase {
         .compile()
         .inspect(
             inspector ->
-                assertEqualMetadataWithStringPoolValidation(
+                assertEqualMetadata(
                     new CodeInspector(kotlinc.getKotlinStdlibJar()),
                     inspector,
                     (addedStrings, addedNonInitStrings) -> {

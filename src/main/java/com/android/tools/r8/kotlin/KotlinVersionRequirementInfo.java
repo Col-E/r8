@@ -6,17 +6,20 @@ package com.android.tools.r8.kotlin;
 
 import com.google.common.collect.ImmutableList;
 import java.util.List;
-import java.util.function.Consumer;
+import kotlinx.metadata.KmVersion;
 import kotlinx.metadata.KmVersionRequirement;
+import kotlinx.metadata.KmVersionRequirementLevel;
+import kotlinx.metadata.KmVersionRequirementVersionKind;
+import kotlinx.metadata.KmVersionRequirementVisitor;
 
 class KotlinVersionRequirementInfo {
 
   private static final KotlinVersionRequirementInfo NO_VERSION_REQUIREMENTS =
       new KotlinVersionRequirementInfo(ImmutableList.of());
 
-  private final List<KmVersionRequirement> versionRequirements;
+  private final List<KotlinVersionRequirementPoint> versionRequirements;
 
-  private KotlinVersionRequirementInfo(List<KmVersionRequirement> versionRequirements) {
+  private KotlinVersionRequirementInfo(List<KotlinVersionRequirementPoint> versionRequirements) {
     this.versionRequirements = versionRequirements;
   }
 
@@ -24,14 +27,57 @@ class KotlinVersionRequirementInfo {
     if (kmVersionRequirements.isEmpty()) {
       return NO_VERSION_REQUIREMENTS;
     }
-    return new KotlinVersionRequirementInfo(ImmutableList.copyOf(kmVersionRequirements));
+    ImmutableList.Builder<KotlinVersionRequirementPoint> builder = ImmutableList.builder();
+    for (KmVersionRequirement kmVersionRequirement : kmVersionRequirements) {
+      builder.add(KotlinVersionRequirementPoint.create(kmVersionRequirement));
+    }
+    return new KotlinVersionRequirementInfo(builder.build());
   }
 
-  boolean rewrite(Consumer<List<KmVersionRequirement>> consumer) {
+  boolean rewrite(KmVisitorProviders.KmVersionRequirementVisitorProvider visitorProvider) {
     if (this == NO_VERSION_REQUIREMENTS) {
       return false;
     }
-    consumer.accept(versionRequirements);
+    for (KotlinVersionRequirementPoint versionRequirement : versionRequirements) {
+      versionRequirement.rewrite(visitorProvider.get());
+    }
     return false;
+  }
+
+  private static class KotlinVersionRequirementPoint {
+
+    private final Integer errorCode;
+    private final KmVersionRequirementVersionKind kind;
+    private final KmVersionRequirementLevel level;
+    private final String message;
+    private final KmVersion version;
+
+    private KotlinVersionRequirementPoint(
+        KmVersionRequirementVersionKind kind,
+        KmVersionRequirementLevel level,
+        Integer errorCode,
+        String message,
+        KmVersion version) {
+      this.errorCode = errorCode;
+      this.kind = kind;
+      this.level = level;
+      this.message = message;
+      this.version = version;
+    }
+
+    private static KotlinVersionRequirementPoint create(KmVersionRequirement kmVersionRequirement) {
+      return new KotlinVersionRequirementPoint(
+          kmVersionRequirement.kind,
+          kmVersionRequirement.level,
+          kmVersionRequirement.getErrorCode(),
+          kmVersionRequirement.getMessage(),
+          kmVersionRequirement.version);
+    }
+
+    private void rewrite(KmVersionRequirementVisitor visitor) {
+      visitor.visit(kind, level, errorCode, message);
+      visitor.visitVersion(version.getMajor(), version.getMinor(), version.getPatch());
+      visitor.visitEnd();
+    }
   }
 }

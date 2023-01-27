@@ -4,8 +4,6 @@
 
 package com.android.tools.r8.kotlin;
 
-import static com.android.tools.r8.kotlin.KotlinMetadataUtils.consume;
-import static com.android.tools.r8.kotlin.KotlinMetadataUtils.rewriteList;
 import static com.android.tools.r8.utils.FunctionUtils.forEachApply;
 
 import com.android.tools.r8.graph.AppView;
@@ -14,8 +12,8 @@ import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.shaking.EnqueuerMetadataTraceable;
 import com.android.tools.r8.utils.Reporter;
 import java.util.List;
-import java.util.function.Consumer;
 import kotlinx.metadata.KmTypeAlias;
+import kotlinx.metadata.KmTypeAliasVisitor;
 
 // Holds information about KmTypeAlias
 public class KotlinTypeAliasInfo implements EnqueuerMetadataTraceable {
@@ -59,20 +57,18 @@ public class KotlinTypeAliasInfo implements EnqueuerMetadataTraceable {
         KotlinVersionRequirementInfo.create(alias.getVersionRequirements()));
   }
 
-  boolean rewrite(Consumer<KmTypeAlias> consumer, AppView<?> appView) {
-    KmTypeAlias kmTypeAlias = consume(new KmTypeAlias(flags, name), consumer);
-    boolean rewritten = underlyingType.rewrite(kmTypeAlias::setUnderlyingType, appView);
-    rewritten |= expandedType.rewrite(kmTypeAlias::setExpandedType, appView);
-    rewritten |=
-        rewriteList(
-            appView,
-            typeParameters,
-            kmTypeAlias.getTypeParameters(),
-            KotlinTypeParameterInfo::rewrite);
-    rewritten |=
-        rewriteList(
-            appView, annotations, kmTypeAlias.getAnnotations(), KotlinAnnotationInfo::rewrite);
-    rewritten |= versionRequirements.rewrite(kmTypeAlias.getVersionRequirements()::addAll);
+  boolean rewrite(
+      KmVisitorProviders.KmTypeAliasVisitorProvider visitorProvider, AppView<?> appView) {
+    KmTypeAliasVisitor kmTypeAliasVisitor = visitorProvider.get(flags, name);
+    boolean rewritten = underlyingType.rewrite(kmTypeAliasVisitor::visitUnderlyingType, appView);
+    rewritten |= expandedType.rewrite(kmTypeAliasVisitor::visitExpandedType, appView);
+    for (KotlinTypeParameterInfo typeParameter : typeParameters) {
+      rewritten |= typeParameter.rewrite(kmTypeAliasVisitor::visitTypeParameter, appView);
+    }
+    for (KotlinAnnotationInfo annotation : annotations) {
+      rewritten |= annotation.rewrite(kmTypeAliasVisitor::visitAnnotation, appView);
+    }
+    rewritten |= versionRequirements.rewrite(kmTypeAliasVisitor::visitVersionRequirement);
     return rewritten;
   }
 

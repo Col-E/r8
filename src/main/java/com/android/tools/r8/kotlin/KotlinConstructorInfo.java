@@ -4,7 +4,6 @@
 
 package com.android.tools.r8.kotlin;
 
-import static com.android.tools.r8.kotlin.KotlinMetadataUtils.rewriteList;
 import static com.android.tools.r8.utils.FunctionUtils.forEachApply;
 
 import com.android.tools.r8.graph.AppView;
@@ -68,13 +67,10 @@ public class KotlinConstructorInfo implements KotlinMethodLevelInfo {
               method,
               appView);
     }
-    rewritten |=
-        rewriteList(
-            appView,
-            valueParameters,
-            kmConstructor.getValueParameters(),
-            KotlinValueParameterInfo::rewrite);
-    rewritten |= versionRequirements.rewrite(kmConstructor.getVersionRequirements()::addAll);
+    for (KotlinValueParameterInfo valueParameterInfo : valueParameters) {
+      rewritten |= valueParameterInfo.rewrite(kmConstructor::visitValueParameter, appView);
+    }
+    rewritten |= versionRequirements.rewrite(kmConstructor::visitVersionRequirement);
     kmClass.getConstructors().add(kmConstructor);
     return rewritten;
   }

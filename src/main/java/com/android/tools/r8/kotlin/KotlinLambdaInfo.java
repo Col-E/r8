@@ -4,7 +4,6 @@
 
 package com.android.tools.r8.kotlin;
 
-import static com.android.tools.r8.kotlin.KotlinMetadataUtils.consume;
 import static com.android.tools.r8.kotlin.KotlinMetadataUtils.toJvmMethodSignature;
 
 import com.android.tools.r8.graph.AppView;
@@ -14,7 +13,6 @@ import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.shaking.EnqueuerMetadataTraceable;
 import com.android.tools.r8.utils.Reporter;
-import java.util.function.Consumer;
 import kotlinx.metadata.KmLambda;
 import kotlinx.metadata.jvm.JvmExtensionsKt;
 import kotlinx.metadata.jvm.JvmMethodSignature;
@@ -58,10 +56,12 @@ public class KotlinLambdaInfo implements EnqueuerMetadataTraceable {
     return new KotlinLambdaInfo(kotlinFunctionInfo, false);
   }
 
-  boolean rewrite(Consumer<KmLambda> consumer, DexClass clazz, AppView<?> appView) {
-    KmLambda kmLambda = consume(new KmLambda(), consumer);
+  boolean rewrite(
+      KmVisitorProviders.KmLambdaVisitorProvider visitorProvider,
+      DexClass clazz,
+      AppView<?> appView) {
     if (!hasBacking) {
-      function.rewrite(kmLambda::setFunction, null, appView);
+      function.rewrite(visitorProvider.get()::visitFunction, null, appView);
       return true;
     }
     DexEncodedMethod backing = null;
@@ -71,7 +71,7 @@ public class KotlinLambdaInfo implements EnqueuerMetadataTraceable {
         break;
       }
     }
-    return function.rewrite(kmLambda::setFunction, backing, appView);
+    return function.rewrite(visitorProvider.get()::visitFunction, backing, appView);
   }
 
   @Override
