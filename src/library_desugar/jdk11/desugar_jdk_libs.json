@@ -9,7 +9,9 @@
       "api_level_below_or_equal": 10000,
       "api_level_greater_or_equal": 26,
       "rewrite_prefix": {
-        "java.time.DesugarLocalDate": "j$.time.DesugarLocalDate"
+        "java.time.DesugarLocalDate": "j$.time.DesugarLocalDate",
+        "java.time.DesugarClock": "j$.time.DesugarClock",
+        "java.time.DesugarOffsetTime": "j$.time.DesugarOffsetTime"
       },
       "retarget_static_field": {
         "java.time.LocalDate java.time.LocalDate#EPOCH": "java.time.LocalDate java.time.DesugarLocalDate#EPOCH"
@@ -18,7 +20,9 @@
         "java.util.stream.Stream java.time.LocalDate#datesUntil(java.time.LocalDate)": "java.time.DesugarLocalDate",
         "java.util.stream.Stream java.time.LocalDate#datesUntil(java.time.LocalDate, java.time.Period)": "java.time.DesugarLocalDate",
         "java.time.LocalDate java.time.LocalDate#ofInstant(java.time.Instant, java.time.ZoneId)": "java.time.DesugarLocalDate",
-        "long java.time.LocalDate#toEpochSecond(java.time.LocalTime, java.time.ZoneOffset)": "java.time.DesugarLocalDate"
+        "long java.time.LocalDate#toEpochSecond(java.time.LocalTime, java.time.ZoneOffset)": "java.time.DesugarLocalDate",
+        "java.time.Clock java.time.Clock#tickMillis(java.time.ZoneId)": "java.time.DesugarClock",
+        "long java.time.OffsetTime#toEpochSecond(java.time.LocalDate)": "java.time.DesugarOffsetTime"
       },
       "amend_library_field": [
         "public static java.time.LocalDate java.time.LocalDate#EPOCH"
@@ -27,7 +31,9 @@
         "public java.util.stream.Stream java.time.LocalDate#datesUntil(java.time.LocalDate)",
         "public java.util.stream.Stream java.time.LocalDate#datesUntil(java.time.LocalDate, java.time.Period)",
         "public static java.time.LocalDate java.time.LocalDate#ofInstant(java.time.Instant, java.time.ZoneId)",
-        "public long java.time.LocalDate#toEpochSecond(java.time.LocalTime, java.time.ZoneOffset)"
+        "public long java.time.LocalDate#toEpochSecond(java.time.LocalTime, java.time.ZoneOffset)",
+        "public static java.time.Clock java.time.Clock#tickMillis(java.time.ZoneId)",
+        "public long java.time.OffsetTime#toEpochSecond(java.time.LocalDate)"
       ]
     },
     {
