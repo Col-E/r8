@@ -28,6 +28,7 @@ import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.origin.ArchiveEntryOrigin;
 import com.android.tools.r8.origin.Origin;
+import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.ZipUtils.ZipBuilder;
@@ -84,16 +85,26 @@ public class LibraryProvidedProguardRulesTest extends TestBase {
     }
   }
 
+  enum ProviderType {
+    API,
+    INJARS
+  }
+
   @Parameter(0)
   public TestParameters parameters;
 
   @Parameter(1)
   public LibraryType libraryType;
 
-  @Parameters(name = "{0} AAR: {1}")
+  @Parameter(2)
+  public ProviderType providerType;
+
+  @Parameters(name = "{0}, AAR: {1}, {2}")
   public static List<Object[]> data() {
     return buildParameters(
-        getTestParameters().withAllRuntimesAndApiLevels().build(), LibraryType.values());
+        getTestParameters().withDefaultRuntimes().withApiLevel(AndroidApiLevel.B).build(),
+        LibraryType.values(),
+        ProviderType.values());
   }
 
   private Path buildLibrary(List<String> rules) throws Exception {
@@ -121,8 +132,10 @@ public class LibraryProvidedProguardRulesTest extends TestBase {
   }
 
   private CodeInspector runTest(List<String> rules) throws Exception {
+    Path library = buildLibrary(rules);
     return testForR8(parameters.getBackend())
-        .addProgramFiles(buildLibrary(rules))
+        .applyIf(providerType == ProviderType.API, b -> b.addProgramFiles(library))
+        .applyIf(providerType == ProviderType.INJARS, b -> b.addKeepRules("-injars " + library))
         .setMinApi(parameters.getApiLevel())
         .compile()
         .inspector();

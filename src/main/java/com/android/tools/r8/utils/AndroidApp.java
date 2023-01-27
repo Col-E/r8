@@ -992,20 +992,25 @@ public class AndroidApp {
       return this;
     }
 
+    public ArchiveResourceProvider createAndAddProvider(FilteredClassPath archive) {
+      if (isArchive(archive.getPath())) {
+        ArchiveResourceProvider archiveResourceProvider =
+            new ArchiveResourceProvider(archive, ignoreDexInArchive);
+        addProgramResourceProvider(archiveResourceProvider);
+        return archiveResourceProvider;
+      }
+      reporter.error(
+          new StringDiagnostic(
+              "Unexpected input type. Only archive types are supported, e.g., .jar, .zip, etc.",
+              archive.getOrigin(),
+              archive.getPosition()));
+      return null;
+    }
+
     /** Add filtered archives of program resources. */
     public Builder addFilteredProgramArchives(Collection<FilteredClassPath> filteredArchives) {
       for (FilteredClassPath archive : filteredArchives) {
-        if (isArchive(archive.getPath())) {
-          ArchiveResourceProvider archiveResourceProvider =
-              new ArchiveResourceProvider(archive, ignoreDexInArchive);
-          addProgramResourceProvider(archiveResourceProvider);
-        } else {
-          reporter.error(
-              new StringDiagnostic(
-                  "Unexpected input type. Only archive types are supported, e.g., .jar, .zip, etc.",
-                  archive.getOrigin(),
-                  archive.getPosition()));
-        }
+        createAndAddProvider(archive);
       }
       return this;
     }

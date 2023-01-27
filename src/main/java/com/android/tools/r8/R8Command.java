@@ -19,6 +19,7 @@ import com.android.tools.r8.naming.SourceFileRewriter;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.origin.PathOrigin;
 import com.android.tools.r8.profile.art.ArtProfileForRewriting;
+import com.android.tools.r8.shaking.FilteredClassPath;
 import com.android.tools.r8.shaking.ProguardConfiguration;
 import com.android.tools.r8.shaking.ProguardConfigurationParser;
 import com.android.tools.r8.shaking.ProguardConfigurationParserOptions;
@@ -30,6 +31,7 @@ import com.android.tools.r8.shaking.ProguardConfigurationSourceStrings;
 import com.android.tools.r8.startup.StartupProfileProvider;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AndroidApp;
+import com.android.tools.r8.utils.ArchiveResourceProvider;
 import com.android.tools.r8.utils.AssertionConfigurationWithDefault;
 import com.android.tools.r8.utils.DumpInputFlags;
 import com.android.tools.r8.utils.ExceptionDiagnostic;
@@ -40,18 +42,21 @@ import com.android.tools.r8.utils.InternalOptions.HorizontalClassMergerOptions;
 import com.android.tools.r8.utils.InternalOptions.LineNumberOptimization;
 import com.android.tools.r8.utils.ProgramClassCollection;
 import com.android.tools.r8.utils.Reporter;
+import com.android.tools.r8.utils.SetUtils;
 import com.android.tools.r8.utils.StringDiagnostic;
 import com.android.tools.r8.utils.ThreadUtils;
 import com.google.common.collect.ImmutableList;
 import java.io.InputStream;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Deque;
 import java.util.List;
-import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.function.BiPredicate;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -556,47 +561,6 @@ public final class R8Command extends BaseCompilerCommand {
       ProguardConfiguration.Builder configurationBuilder = parser.getConfigurationBuilder();
       configurationBuilder.setForceProguardCompatibility(forceProguardCompatibility);
 
-      if (proguardConfigurationConsumerForTesting != null) {
-        proguardConfigurationConsumerForTesting.accept(configurationBuilder);
-      }
-
-      // Process Proguard configurations supplied through data resources in the input.
-      DataResourceProvider.Visitor embeddedProguardConfigurationVisitor =
-          new DataResourceProvider.Visitor() {
-            @Override
-            public void visit(DataDirectoryResource directory) {
-              // Don't do anything.
-            }
-
-            @Override
-            public void visit(DataEntryResource resource) {
-              if (resource.getName().startsWith("META-INF/proguard/")) {
-                try (InputStream in = resource.getByteStream()) {
-                  ProguardConfigurationSource source =
-                      new ProguardConfigurationSourceBytes(in, resource.getOrigin());
-                  parser.parse(source);
-                } catch (ResourceException e) {
-                  reporter.error(new StringDiagnostic("Failed to open input: " + e.getMessage(),
-                      resource.getOrigin()));
-                } catch (Exception e) {
-                  reporter.error(new ExceptionDiagnostic(e, resource.getOrigin()));
-                }
-              }
-            }
-          };
-
-      getAppBuilder().getProgramResourceProviders().stream()
-          .map(ProgramResourceProvider::getDataResourceProvider)
-          .filter(Objects::nonNull)
-          .forEach(
-              dataResourceProvider -> {
-                try {
-                  dataResourceProvider.accept(embeddedProguardConfigurationVisitor);
-                } catch (ResourceException e) {
-                  reporter.error(new ExceptionDiagnostic(e));
-                }
-              });
-
       if (getMode() == CompilationMode.DEBUG) {
         disableMinification = true;
         configurationBuilder.disableOptimization();
@@ -610,10 +574,12 @@ public final class R8Command extends BaseCompilerCommand {
         configurationBuilder.disableObfuscation();
       }
 
+      if (proguardConfigurationConsumerForTesting != null) {
+        proguardConfigurationConsumerForTesting.accept(configurationBuilder);
+      }
+      amendWithRulesAndProvidersForInjarsAndMetaInf(reporter, parser);
       ProguardConfiguration configuration = configurationBuilder.build();
-      getAppBuilder()
-          .addFilteredProgramArchives(configuration.getInjars())
-          .addFilteredLibraryArchives(configuration.getLibraryjars());
+      getAppBuilder().addFilteredLibraryArchives(configuration.getLibraryjars());
 
       assert getProgramConsumer() != null;
 
@@ -671,6 +637,64 @@ public final class R8Command extends BaseCompilerCommand {
         inputDependencyGraphConsumer.finished();
       }
       return command;
+    }
+
+    private void amendWithRulesAndProvidersForInjarsAndMetaInf(
+        Reporter reporter, ProguardConfigurationParser parser) {
+
+      // Process Proguard configurations supplied through data resources in the input.
+      DataResourceProvider.Visitor embeddedProguardConfigurationVisitor =
+          new DataResourceProvider.Visitor() {
+            @Override
+            public void visit(DataDirectoryResource directory) {
+              // Don't do anything.
+            }
+
+            @Override
+            public void visit(DataEntryResource resource) {
+              if (resource.getName().startsWith("META-INF/proguard/")) {
+                try (InputStream in = resource.getByteStream()) {
+                  ProguardConfigurationSource source =
+                      new ProguardConfigurationSourceBytes(in, resource.getOrigin());
+                  parser.parse(source);
+                } catch (ResourceException e) {
+                  reporter.error(
+                      new StringDiagnostic(
+                          "Failed to open input: " + e.getMessage(), resource.getOrigin()));
+                } catch (Exception e) {
+                  reporter.error(new ExceptionDiagnostic(e, resource.getOrigin()));
+                }
+              }
+            }
+          };
+
+      // Since -injars can itself reference archives with rules and that in turn have -injars the
+      // completion of amending rules and providers must run in a fixed point. The fixed point is
+      // reached once the injars set is stable.
+      Set<FilteredClassPath> seenInjars = SetUtils.newIdentityHashSet();
+      Deque<ProgramResourceProvider> providers =
+          new ArrayDeque<>(getAppBuilder().getProgramResourceProviders());
+      while (true) {
+        for (FilteredClassPath injar : parser.getConfigurationBuilder().getInjars()) {
+          if (seenInjars.add(injar)) {
+            ArchiveResourceProvider provider = getAppBuilder().createAndAddProvider(injar);
+            providers.add(provider);
+          }
+        }
+        if (providers.isEmpty()) {
+          return;
+        }
+        while (!providers.isEmpty()) {
+          DataResourceProvider dataResourceProvider = providers.pop().getDataResourceProvider();
+          if (dataResourceProvider != null) {
+            try {
+              dataResourceProvider.accept(embeddedProguardConfigurationVisitor);
+            } catch (ResourceException e) {
+              reporter.error(new ExceptionDiagnostic(e));
+            }
+          }
+        }
+      }
     }
 
     // Internal for-testing method to add post-processors of the proguard configuration.

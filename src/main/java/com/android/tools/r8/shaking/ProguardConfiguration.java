@@ -76,6 +76,10 @@ public class ProguardConfiguration {
       this.reporter = reporter;
     }
 
+    public List<FilteredClassPath> getInjars() {
+      return injars;
+    }
+
     public void addParsedConfiguration(String source) {
       parsedConfiguration.add(source);
     }
