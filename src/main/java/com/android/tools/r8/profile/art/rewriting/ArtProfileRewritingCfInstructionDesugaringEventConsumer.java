@@ -178,6 +178,7 @@ public class ArtProfileRewritingCfInstructionDesugaringEventConsumer
 
   @Override
   public void acceptTwrCloseResourceMethod(ProgramMethod closeMethod, ProgramMethod context) {
+    additionsCollection.addRulesIfContextIsInProfile(context, closeMethod, closeMethod.getHolder());
     parent.acceptTwrCloseResourceMethod(closeMethod, context);
   }
 

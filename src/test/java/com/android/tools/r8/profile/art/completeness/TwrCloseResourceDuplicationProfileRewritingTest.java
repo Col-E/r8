@@ -141,7 +141,6 @@ public class TwrCloseResourceDuplicationProfileRewritingTest
         otherSyntheticTwrCloseResourceClassSubject, notIf(isPresent(), hasTwrCloseResourceSupport));
 
     // Verify that the residual profile contains all of the above.
-    // TODO(b/265729283): Profile should include the twr syntehtic methods.
     profileInspector
         .assertContainsMethodRules(
             fooMethodSubject,
@@ -152,10 +151,15 @@ public class TwrCloseResourceDuplicationProfileRewritingTest
             !hasTwrCloseResourceSupport,
             i ->
                 i.assertContainsClassRules(
-                        syntheticApiOutlineClassSubject, syntheticBackportClassSubject)
+                        syntheticApiOutlineClassSubject,
+                        syntheticBackportClassSubject,
+                        syntheticTwrCloseResourceClassSubject,
+                        otherSyntheticTwrCloseResourceClassSubject)
                     .assertContainsMethodRules(
                         syntheticApiOutlineClassSubject.uniqueMethod(),
-                        syntheticBackportClassSubject.uniqueMethod()))
+                        syntheticBackportClassSubject.uniqueMethod(),
+                        syntheticTwrCloseResourceClassSubject.uniqueMethod(),
+                        otherSyntheticTwrCloseResourceClassSubject.uniqueMethod()))
         .assertContainsNoOtherRules();
   }
 }
