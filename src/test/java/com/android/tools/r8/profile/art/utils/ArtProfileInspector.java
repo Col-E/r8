@@ -53,13 +53,20 @@ public class ArtProfileInspector {
     return this;
   }
 
+  public ArtProfileInspector assertContainsClassRules(ClassReference... classReferences) {
+    for (ClassReference classReference : classReferences) {
+      assertContainsClassRule(classReference);
+    }
+    return this;
+  }
+
   public ArtProfileInspector assertContainsClassRule(ClassSubject classSubject) {
     return assertContainsClassRule(classSubject.getFinalReference());
   }
 
-  public ArtProfileInspector assertContainsClassRules(ClassReference... classReferences) {
-    for (ClassReference classReference : classReferences) {
-      assertContainsClassRule(classReference);
+  public ArtProfileInspector assertContainsClassRules(ClassSubject... classSubjects) {
+    for (ClassSubject classSubject : classSubjects) {
+      assertContainsClassRule(classSubject);
     }
     return this;
   }

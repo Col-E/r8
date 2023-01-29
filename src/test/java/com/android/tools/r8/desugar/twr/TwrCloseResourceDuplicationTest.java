@@ -28,22 +28,24 @@ import java.util.stream.Collectors;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameter;
+import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
 public class TwrCloseResourceDuplicationTest extends TestBase {
 
   private static final String PKG = "twrcloseresourceduplication";
   private static final String EXAMPLE = "examplesJava9/" + PKG;
-  private final JavaExampleClassProxy MAIN =
+  protected static final JavaExampleClassProxy MAIN =
       new JavaExampleClassProxy(EXAMPLE, PKG + "/TwrCloseResourceDuplication");
-  private final JavaExampleClassProxy FOO =
+  protected static final JavaExampleClassProxy FOO =
       new JavaExampleClassProxy(EXAMPLE, PKG + "/TwrCloseResourceDuplication$Foo");
-  private final JavaExampleClassProxy BAR =
+  protected static final JavaExampleClassProxy BAR =
       new JavaExampleClassProxy(EXAMPLE, PKG + "/TwrCloseResourceDuplication$Bar");
 
   static final int INPUT_CLASSES = 3;
 
-  static final String EXPECTED =
+  protected static final String EXPECTED =
       StringUtils.lines(
           "foo opened 1",
           "foo post close 1",
@@ -56,9 +58,10 @@ public class TwrCloseResourceDuplicationTest extends TestBase {
           "bar caught from 2: RuntimeException",
           "bar post close 2");
 
-  private final TestParameters parameters;
+  @Parameter(0)
+  public TestParameters parameters;
 
-  @Parameterized.Parameters(name = "{0}")
+  @Parameters(name = "{0}")
   public static TestParametersCollection data() {
     return getTestParameters()
         .withCfRuntimesStartingFromIncluding(CfVm.JDK9)
@@ -67,11 +70,7 @@ public class TwrCloseResourceDuplicationTest extends TestBase {
         .build();
   }
 
-  public TwrCloseResourceDuplicationTest(TestParameters parameters) {
-    this.parameters = parameters;
-  }
-
-  private String getZipFile() throws IOException {
+  protected String getZipFile() throws IOException {
     return ZipUtils.ZipBuilder.builder(temp.newFile("file.zip").toPath())
         // DEX VMs from 4.4 up-to 9.0 including, will fail if no entry is added.
         .addBytes("entry", new byte[1])
@@ -79,7 +78,7 @@ public class TwrCloseResourceDuplicationTest extends TestBase {
         .toString();
   }
 
-  private List<Path> getProgramInputs() throws Exception {
+  protected static List<Path> getProgramInputs() {
     return ImmutableList.of(JavaExampleClassProxy.examplesJar(EXAMPLE));
   }
 
