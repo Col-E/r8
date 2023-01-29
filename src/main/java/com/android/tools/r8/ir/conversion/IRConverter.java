@@ -471,7 +471,9 @@ public class IRConverter {
         DesugaredLibraryAPIConverter::generateTrackingWarnings);
   }
 
-  public void prepareDesugaringForD8(ExecutorService executorService) throws ExecutionException {
+  public void prepareDesugaringForD8(
+      CfInstructionDesugaringEventConsumer desugaringEventConsumer, ExecutorService executorService)
+      throws ExecutionException {
     // Prepare desugaring by collecting all the synthetic methods required on program classes.
     ProgramAdditions programAdditions = new ProgramAdditions();
     ThreadUtils.processItems(
@@ -479,7 +481,8 @@ public class IRConverter {
         clazz -> {
           clazz.forEachProgramMethodMatching(
               method -> method.hasCode() && method.getCode().isCfCode(),
-              method -> instructionDesugaring.prepare(method, programAdditions));
+              method ->
+                  instructionDesugaring.prepare(method, desugaringEventConsumer, programAdditions));
         },
         executorService);
     programAdditions.apply(executorService);

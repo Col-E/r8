@@ -4,14 +4,25 @@
 
 package com.android.tools.r8.ir.desugar.nest;
 
+import com.android.tools.r8.graph.DexClassAndMethod;
+import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.ProgramField;
 import com.android.tools.r8.graph.ProgramMethod;
 
 public interface NestBasedAccessDesugaringEventConsumer {
 
-  void acceptNestFieldGetBridge(ProgramField target, ProgramMethod bridge);
+  void acceptNestConstructorBridge(
+      ProgramMethod target,
+      ProgramMethod bridge,
+      DexProgramClass argumentClass,
+      DexClassAndMethod context);
 
-  void acceptNestFieldPutBridge(ProgramField target, ProgramMethod bridge);
+  void acceptNestFieldGetBridge(
+      ProgramField target, ProgramMethod bridge, DexClassAndMethod context);
 
-  void acceptNestMethodBridge(ProgramMethod target, ProgramMethod bridge);
+  void acceptNestFieldPutBridge(
+      ProgramField target, ProgramMethod bridge, DexClassAndMethod context);
+
+  void acceptNestMethodBridge(
+      ProgramMethod target, ProgramMethod bridge, DexClassAndMethod context);
 }

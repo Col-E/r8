@@ -4108,7 +4108,7 @@ public class Enqueuer {
     ProgramAdditions programAdditions = new ProgramAdditions();
     ThreadUtils.processItems(
         pendingCodeDesugaring,
-        method -> desugaring.prepare(method, programAdditions),
+        method -> desugaring.prepare(method, eventConsumer, programAdditions),
         executorService);
     programAdditions.apply(executorService);
 

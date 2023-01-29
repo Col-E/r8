@@ -14,6 +14,7 @@ import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.DexClasspathClass;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexMethod;
+import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ProgramField;
 import com.android.tools.r8.graph.ProgramMethod;
@@ -94,17 +95,29 @@ public class D8NestBasedAccessDesugaring extends NestBasedAccessDesugaring {
         new NestBasedAccessDesugaringEventConsumer() {
 
           @Override
-          public void acceptNestFieldGetBridge(ProgramField target, ProgramMethod bridge) {
+          public void acceptNestConstructorBridge(
+              ProgramMethod target,
+              ProgramMethod bridge,
+              DexProgramClass argumentClass,
+              DexClassAndMethod context) {
             methodProcessor.scheduleDesugaredMethodForProcessing(bridge);
           }
 
           @Override
-          public void acceptNestFieldPutBridge(ProgramField target, ProgramMethod bridge) {
+          public void acceptNestFieldGetBridge(
+              ProgramField target, ProgramMethod bridge, DexClassAndMethod context) {
             methodProcessor.scheduleDesugaredMethodForProcessing(bridge);
           }
 
           @Override
-          public void acceptNestMethodBridge(ProgramMethod target, ProgramMethod bridge) {
+          public void acceptNestFieldPutBridge(
+              ProgramField target, ProgramMethod bridge, DexClassAndMethod context) {
+            methodProcessor.scheduleDesugaredMethodForProcessing(bridge);
+          }
+
+          @Override
+          public void acceptNestMethodBridge(
+              ProgramMethod target, ProgramMethod bridge, DexClassAndMethod context) {
             methodProcessor.scheduleDesugaredMethodForProcessing(bridge);
           }
         };
@@ -132,68 +145,151 @@ public class D8NestBasedAccessDesugaring extends NestBasedAccessDesugaring {
       this.eventConsumer = eventConsumer;
     }
 
-    private void registerFieldAccess(DexField reference, boolean isGet) {
+    private void registerFieldAccessFromClasspath(DexField reference, boolean isGet) {
       DexClassAndField field =
           reference.lookupMemberOnClass(appView.definitionForHolder(reference));
       if (field != null && needsDesugaring(field, getContext())) {
-        ensureFieldAccessBridge(field, isGet, eventConsumer);
+        ensureFieldAccessBridgeFromClasspathAccess(field, isGet, eventConsumer);
       }
     }
 
-    private void registerInvoke(DexMethod reference) {
+    private void ensureFieldAccessBridgeFromClasspathAccess(
+        DexClassAndField field,
+        boolean isGet,
+        NestBasedAccessDesugaringEventConsumer eventConsumer) {
+      if (field.isProgramField()) {
+        ensureFieldAccessBridgeFromClasspathAccess(field.asProgramField(), isGet, eventConsumer);
+      } else if (field.isClasspathField()) {
+        // Intentionally empty.
+      } else {
+        assert field.isLibraryField();
+        throw reportIncompleteNest(field.asLibraryField());
+      }
+    }
+
+    private void ensureFieldAccessBridgeFromClasspathAccess(
+        ProgramField field, boolean isGet, NestBasedAccessDesugaringEventConsumer eventConsumer) {
+      DexMethod bridgeReference = getFieldAccessBridgeReference(field, isGet);
+      synchronized (field.getHolder().getMethodCollection()) {
+        if (field.getHolder().lookupMethod(bridgeReference) == null) {
+          ProgramMethod bridge =
+              AccessBridgeFactory.createFieldAccessorBridge(bridgeReference, field, isGet);
+          bridge.getHolder().addDirectMethod(bridge.getDefinition());
+          if (isGet) {
+            eventConsumer.acceptNestFieldGetBridge(field, bridge, getContext());
+          } else {
+            eventConsumer.acceptNestFieldPutBridge(field, bridge, getContext());
+          }
+        }
+      }
+    }
+
+    private void registerInvokeFromClasspath(DexMethod reference) {
       if (!reference.getHolderType().isClassType()) {
         return;
       }
       DexClassAndMethod method =
           reference.lookupMemberOnClass(appView.definitionForHolder(reference));
       if (method != null && needsDesugaring(method, getContext())) {
-        ensureMethodBridge(method, eventConsumer);
+        ensureConstructorOrMethodBridgeFromClasspathAccess(method, eventConsumer);
+      }
+    }
+
+    // This is only used for generating bridge methods for class path references.
+    private void ensureConstructorOrMethodBridgeFromClasspathAccess(
+        DexClassAndMethod method, NestBasedAccessDesugaringEventConsumer eventConsumer) {
+      if (method.isProgramMethod()) {
+        if (method.getDefinition().isInstanceInitializer()) {
+          ensureConstructorBridgeFromClasspathAccess(method.asProgramMethod(), eventConsumer);
+        } else {
+          ensureMethodBridgeFromClasspathAccess(method.asProgramMethod(), eventConsumer);
+        }
+      } else if (method.isClasspathMethod()) {
+        if (method.getDefinition().isInstanceInitializer()) {
+          ensureConstructorArgumentClass(method);
+        }
+      } else {
+        assert method.isLibraryMethod();
+        throw reportIncompleteNest(method.asLibraryMethod());
+      }
+    }
+
+    private void ensureConstructorBridgeFromClasspathAccess(
+        ProgramMethod method, NestBasedAccessDesugaringEventConsumer eventConsumer) {
+      assert method.getDefinition().isInstanceInitializer();
+      DexProgramClass constructorArgumentClass =
+          ensureConstructorArgumentClass(method).asProgramClass();
+      DexMethod bridgeReference = getConstructorBridgeReference(method, constructorArgumentClass);
+      synchronized (method.getHolder().getMethodCollection()) {
+        if (method.getHolder().lookupMethod(bridgeReference) == null) {
+          ProgramMethod bridge =
+              AccessBridgeFactory.createInitializerAccessorBridge(
+                  bridgeReference, method, dexItemFactory);
+          bridge.getHolder().addDirectMethod(bridge.getDefinition());
+          eventConsumer.acceptNestConstructorBridge(
+              method, bridge, constructorArgumentClass, getContext());
+        }
+      }
+    }
+
+    private void ensureMethodBridgeFromClasspathAccess(
+        ProgramMethod method, NestBasedAccessDesugaringEventConsumer eventConsumer) {
+      assert !method.getDefinition().isInstanceInitializer();
+      DexMethod bridgeReference = getMethodBridgeReference(method);
+      synchronized (method.getHolder().getMethodCollection()) {
+        if (method.getHolder().lookupMethod(bridgeReference) == null) {
+          ProgramMethod bridge =
+              AccessBridgeFactory.createMethodAccessorBridge(
+                  bridgeReference, method, dexItemFactory);
+          bridge.getHolder().addDirectMethod(bridge.getDefinition());
+          eventConsumer.acceptNestMethodBridge(method, bridge, getContext());
+        }
       }
     }
 
     @Override
     public void registerInvokeDirect(DexMethod method) {
-      registerInvoke(method);
+      registerInvokeFromClasspath(method);
     }
 
     @Override
     public void registerInvokeInterface(DexMethod method) {
-      registerInvoke(method);
+      registerInvokeFromClasspath(method);
     }
 
     @Override
     public void registerInvokeStatic(DexMethod method) {
-      registerInvoke(method);
+      registerInvokeFromClasspath(method);
     }
 
     @Override
     public void registerInvokeSuper(DexMethod method) {
-      registerInvoke(method);
+      registerInvokeFromClasspath(method);
     }
 
     @Override
     public void registerInvokeVirtual(DexMethod method) {
-      registerInvoke(method);
+      registerInvokeFromClasspath(method);
     }
 
     @Override
     public void registerInstanceFieldWrite(DexField field) {
-      registerFieldAccess(field, false);
+      registerFieldAccessFromClasspath(field, false);
     }
 
     @Override
     public void registerInstanceFieldRead(DexField field) {
-      registerFieldAccess(field, true);
+      registerFieldAccessFromClasspath(field, true);
     }
 
     @Override
     public void registerStaticFieldRead(DexField field) {
-      registerFieldAccess(field, true);
+      registerFieldAccessFromClasspath(field, true);
     }
 
     @Override
     public void registerStaticFieldWrite(DexField field) {
-      registerFieldAccess(field, false);
+      registerFieldAccessFromClasspath(field, false);
     }
 
     @Override

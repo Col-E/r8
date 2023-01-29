@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.profile.art.rewriting;
 
+import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.DexClasspathClass;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.ProgramField;
@@ -118,18 +119,39 @@ public class ArtProfileRewritingCfInstructionDesugaringEventConsumer
   }
 
   @Override
-  public void acceptNestFieldGetBridge(ProgramField target, ProgramMethod bridge) {
-    parent.acceptNestFieldGetBridge(target, bridge);
+  public void acceptNestConstructorBridge(
+      ProgramMethod target,
+      ProgramMethod bridge,
+      DexProgramClass argumentClass,
+      DexClassAndMethod context) {
+    assert context.isProgramMethod();
+    additionsCollection.addRulesIfContextIsInProfile(
+        context.asProgramMethod(), argumentClass, bridge);
+    parent.acceptNestConstructorBridge(target, bridge, argumentClass, context);
   }
 
   @Override
-  public void acceptNestFieldPutBridge(ProgramField target, ProgramMethod bridge) {
-    parent.acceptNestFieldPutBridge(target, bridge);
+  public void acceptNestFieldGetBridge(
+      ProgramField target, ProgramMethod bridge, DexClassAndMethod context) {
+    assert context.isProgramMethod();
+    additionsCollection.addRulesIfContextIsInProfile(context.asProgramMethod(), bridge);
+    parent.acceptNestFieldGetBridge(target, bridge, context);
   }
 
   @Override
-  public void acceptNestMethodBridge(ProgramMethod target, ProgramMethod bridge) {
-    parent.acceptNestMethodBridge(target, bridge);
+  public void acceptNestFieldPutBridge(
+      ProgramField target, ProgramMethod bridge, DexClassAndMethod context) {
+    assert context.isProgramMethod();
+    additionsCollection.addRulesIfContextIsInProfile(context.asProgramMethod(), bridge);
+    parent.acceptNestFieldPutBridge(target, bridge, context);
+  }
+
+  @Override
+  public void acceptNestMethodBridge(
+      ProgramMethod target, ProgramMethod bridge, DexClassAndMethod context) {
+    assert context.isProgramMethod();
+    additionsCollection.addRulesIfContextIsInProfile(context.asProgramMethod(), bridge);
+    parent.acceptNestMethodBridge(target, bridge, context);
   }
 
   @Override

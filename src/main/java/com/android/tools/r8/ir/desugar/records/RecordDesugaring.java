@@ -96,7 +96,10 @@ public class RecordDesugaring
   }
 
   @Override
-  public void prepare(ProgramMethod method, ProgramAdditions programAdditions) {
+  public void prepare(
+      ProgramMethod method,
+      CfInstructionDesugaringEventConsumer eventConsumer,
+      ProgramAdditions programAdditions) {
     CfCode cfCode = method.getDefinition().getCode().asCfCode();
     for (CfInstruction instruction : cfCode.getInstructions()) {
       if (instruction.isInvokeDynamic() && needsDesugaring(instruction, method)) {
@@ -253,7 +256,7 @@ public class RecordDesugaring
     DexProgramClass clazz = recordInvokeDynamic.getRecordClass();
     DexMethod method = equalsRecordMethod(clazz.type);
     assert clazz.lookupProgramMethod(method) == null;
-    programAdditions.accept(
+    programAdditions.ensureMethod(
         method, () -> synthesizeEqualsRecordMethod(clazz, getFieldsAsObjects, method));
     return method;
   }
@@ -263,7 +266,7 @@ public class RecordDesugaring
     DexProgramClass clazz = recordInvokeDynamic.getRecordClass();
     DexMethod method = getFieldsAsObjectsMethod(clazz.type);
     assert clazz.lookupProgramMethod(method) == null;
-    programAdditions.accept(
+    programAdditions.ensureMethod(
         method,
         () -> synthesizeGetFieldsAsObjectsMethod(clazz, recordInvokeDynamic.getFields(), method));
     return method;

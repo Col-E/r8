@@ -44,7 +44,10 @@ public abstract class CfInstructionDesugaringCollection {
     return EmptyCfInstructionDesugaringCollection.getInstance();
   }
 
-  public abstract void prepare(ProgramMethod method, ProgramAdditions programAdditions);
+  public abstract void prepare(
+      ProgramMethod method,
+      CfInstructionDesugaringEventConsumer eventConsumer,
+      ProgramAdditions programAdditions);
 
   public abstract void scan(
       ProgramMethod method, CfInstructionDesugaringEventConsumer eventConsumer);

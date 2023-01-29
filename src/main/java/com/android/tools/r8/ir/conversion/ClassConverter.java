@@ -125,7 +125,11 @@ public abstract class ClassConverter {
               .build();
     }
 
-    converter.prepareDesugaringForD8(executorService);
+    CfInstructionDesugaringEventConsumer instructionDesugaringEventConsumerForPrepareStep =
+        CfInstructionDesugaringEventConsumer.createForD8(appView, resultBuilder, methodProcessor);
+    converter.prepareDesugaringForD8(
+        instructionDesugaringEventConsumerForPrepareStep, executorService);
+    assert instructionDesugaringEventConsumerForPrepareStep.verifyNothingToFinalize();
 
     // When adding nest members to the wave we must do so deterministically.
     Deque<List<DexProgramClass>> nestProcessingWaves = getDeterministicNestWaves(classes);
@@ -144,19 +148,22 @@ public abstract class ClassConverter {
         methodProcessor.addScheduled(clazz);
       }
 
-      CfInstructionDesugaringEventConsumer instructionDesugaringEventConsumer =
+      CfInstructionDesugaringEventConsumer instructionDesugaringEventConsumerForWave =
           CfInstructionDesugaringEventConsumer.createForD8(appView, resultBuilder, methodProcessor);
 
       // Process the wave and wait for all IR processing to complete.
       methodProcessor.newWave();
       checkWaveDeterminism(wave);
       ThreadUtils.processItems(
-          wave, clazz -> convertClass(clazz, instructionDesugaringEventConsumer), executorService);
+          wave,
+          clazz -> convertClass(clazz, instructionDesugaringEventConsumerForWave),
+          executorService);
       methodProcessor.awaitMethodProcessing();
 
       // Finalize the desugaring of the processed classes. This may require processing (and
       // reprocessing) of some methods.
-      List<ProgramMethod> needsProcessing = instructionDesugaringEventConsumer.finalizeDesugaring();
+      List<ProgramMethod> needsProcessing =
+          instructionDesugaringEventConsumerForWave.finalizeDesugaring();
       if (!needsProcessing.isEmpty()) {
         // Create a new processor context to ensure unique method processing contexts.
         methodProcessor.newWave();
@@ -170,16 +177,16 @@ public abstract class ClassConverter {
               if (definition.isProcessed()) {
                 definition.markNotProcessed();
               }
-              methodProcessor.processMethod(method, instructionDesugaringEventConsumer);
+              methodProcessor.processMethod(method, instructionDesugaringEventConsumerForWave);
               if (interfaceProcessor != null) {
-                interfaceProcessor.processMethod(method, instructionDesugaringEventConsumer);
+                interfaceProcessor.processMethod(method, instructionDesugaringEventConsumerForWave);
               }
             },
             executorService);
 
         // Verify there is nothing to finalize once method processing finishes.
         methodProcessor.awaitMethodProcessing();
-        assert instructionDesugaringEventConsumer.verifyNothingToFinalize();
+        assert instructionDesugaringEventConsumerForWave.verifyNothingToFinalize();
       }
 
       if (!nestProcessingWaves.isEmpty()) {

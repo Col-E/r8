@@ -93,6 +93,12 @@ public class NestBasedAccessBridgesProfileRewritingTest extends TestBase {
     ClassSubject nestMemberClassSubject = inspector.clazz(NestMember.class);
     assertThat(nestMemberClassSubject, isPresent());
 
+    MethodSubject instanceInitializerWithSyntheticArgumentSubject =
+        nestMemberClassSubject.uniqueInstanceInitializer();
+    assertThat(
+        instanceInitializerWithSyntheticArgumentSubject,
+        notIf(isPresent(), parameters.canUseNestBasedAccesses()));
+
     ClassSubject syntheticConstructorArgumentClassSubject =
         inspector.clazz(
             SyntheticItemsTestUtils.syntheticNestConstructorArgumentClass(
@@ -155,10 +161,22 @@ public class NestBasedAccessBridgesProfileRewritingTest extends TestBase {
         syntheticNestStaticMethodAccessorMethodSubject,
         notIf(isPresent(), parameters.canUseNestBasedAccesses()));
 
-    // TODO(b/265729283): Should contain the nest bridge methods and the synthesized constructor
-    //  argument class.
+    // Verify the residual profile contains the synthetic nest based access bridges and the
+    // synthetic constructor argument class.
     profileInspector
         .assertContainsMethodRule(MethodReferenceUtils.mainMethod(Main.class))
+        .applyIf(
+            !parameters.canUseNestBasedAccesses(),
+            i ->
+                i.assertContainsMethodRules(
+                        instanceInitializerWithSyntheticArgumentSubject,
+                        syntheticNestInstanceFieldGetterMethodSubject,
+                        syntheticNestInstanceFieldSetterMethodSubject,
+                        syntheticNestInstanceMethodAccessorMethodSubject,
+                        syntheticNestStaticFieldGetterMethodSubject,
+                        syntheticNestStaticFieldSetterMethodSubject,
+                        syntheticNestStaticMethodAccessorMethodSubject)
+                    .assertContainsClassRule(syntheticConstructorArgumentClassSubject))
         .assertContainsNoOtherRules();
   }
 

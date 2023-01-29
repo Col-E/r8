@@ -30,7 +30,10 @@ public class EmptyCfInstructionDesugaringCollection extends CfInstructionDesugar
   }
 
   @Override
-  public void prepare(ProgramMethod method, ProgramAdditions additionalProgramMethods) {
+  public void prepare(
+      ProgramMethod method,
+      CfInstructionDesugaringEventConsumer eventConsumer,
+      ProgramAdditions additionalProgramMethods) {
     // Intentionally empty.
   }
 

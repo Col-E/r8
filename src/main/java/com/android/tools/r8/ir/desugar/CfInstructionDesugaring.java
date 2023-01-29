@@ -26,7 +26,10 @@ public interface CfInstructionDesugaring {
    * synthetic items can be added and the instruction stream can be altered, but program methods
    * cannot be added.
    */
-  default void prepare(ProgramMethod method, ProgramAdditions programAdditions) {
+  default void prepare(
+      ProgramMethod method,
+      CfInstructionDesugaringEventConsumer eventConsumer,
+      ProgramAdditions programAdditions) {
     // Default prepare is to do nothing.
   }
 

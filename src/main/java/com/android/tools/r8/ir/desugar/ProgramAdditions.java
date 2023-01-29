@@ -5,48 +5,47 @@
 package com.android.tools.r8.ir.desugar;
 
 import com.android.tools.r8.graph.DexEncodedMethod;
-import com.android.tools.r8.graph.DexMember;
+import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
-import com.android.tools.r8.graph.DexReference;
+import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.utils.ThreadUtils;
-import com.google.common.collect.Sets;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
-import java.util.function.BiConsumer;
 import java.util.function.Supplier;
 
-public class ProgramAdditions implements BiConsumer<DexMember<?, ?>, Supplier<ProgramMethod>> {
-  private final Set<DexReference> added = Sets.newConcurrentHashSet();
-  private final Map<DexProgramClass, List<DexEncodedMethod>> additions = new ConcurrentHashMap<>();
+public class ProgramAdditions {
 
-  @Override
-  public synchronized void accept(
-      DexMember<?, ?> reference, Supplier<ProgramMethod> programMethodSupplier) {
-    if (added.add(reference)) {
-      ProgramMethod method = programMethodSupplier.get();
-      List<DexEncodedMethod> methods =
-          additions.computeIfAbsent(method.getHolder(), k -> new ArrayList<>());
-      synchronized (methods) {
-        assert !methods.contains(method.getDefinition());
-        assert method.getHolder().lookupProgramMethod(method.getReference()) == null;
-        methods.add(method.getDefinition());
-      }
-    }
+  private final Map<DexType, Map<DexMethod, ProgramMethod>> additions = new ConcurrentHashMap<>();
+
+  public ProgramMethod ensureMethod(
+      DexMethod methodReference, Supplier<ProgramMethod> programMethodSupplier) {
+    Map<DexMethod, ProgramMethod> classAdditions =
+        additions.computeIfAbsent(
+            methodReference.getHolderType(), key -> new ConcurrentHashMap<>());
+    return classAdditions.computeIfAbsent(
+        methodReference,
+        key -> {
+          ProgramMethod method = programMethodSupplier.get();
+          assert method.getHolder().lookupProgramMethod(method.getReference()) == null;
+          return method;
+        });
   }
 
   public void apply(ExecutorService executorService) throws ExecutionException {
     ThreadUtils.processMap(
         additions,
-        (clazz, methods) -> {
-          methods.sort(Comparator.comparing(DexEncodedMethod::getReference));
-          clazz.getMethodCollection().addDirectMethods(methods);
+        (holderType, methodMap) -> {
+          DexProgramClass holder = methodMap.values().iterator().next().getHolder();
+          List<DexEncodedMethod> newDirectMethods = new ArrayList<>();
+          methodMap.values().forEach(method -> newDirectMethods.add(method.getDefinition()));
+          newDirectMethods.sort(Comparator.comparing(DexEncodedMethod::getReference));
+          holder.getMethodCollection().addDirectMethods(newDirectMethods);
         },
         executorService);
   }
