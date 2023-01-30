@@ -692,7 +692,9 @@ public final class R8Command extends BaseCompilerCommand {
         for (FilteredClassPath injar : parser.getConfigurationBuilder().getInjars()) {
           if (seenInjars.add(injar)) {
             ArchiveResourceProvider provider = getAppBuilder().createAndAddProvider(injar);
-            providers.add(provider);
+            if (provider != null) {
+              providers.add(provider);
+            }
           }
         }
         if (providers.isEmpty()) {
