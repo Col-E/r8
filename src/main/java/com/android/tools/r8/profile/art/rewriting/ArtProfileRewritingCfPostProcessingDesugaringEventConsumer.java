@@ -86,7 +86,8 @@ public class ArtProfileRewritingCfPostProcessingDesugaringEventConsumer
   @Override
   public void acceptInterfaceMethodDesugaringForwardingMethod(
       ProgramMethod method, DexClassAndMethod baseMethod) {
-    additionsCollection.addRulesIfContextIsInProfile(baseMethod, method);
+    additionsCollection.applyIfContextIsInProfile(
+        baseMethod, additionsBuilder -> additionsBuilder.addRule(method));
     parent.acceptInterfaceMethodDesugaringForwardingMethod(method, baseMethod);
   }
 

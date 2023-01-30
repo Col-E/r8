@@ -126,6 +126,10 @@ public final class LambdaClass {
     return clazz;
   }
 
+  public Target getTarget() {
+    return target;
+  }
+
   public DexType getType() {
     return type;
   }
@@ -564,6 +568,14 @@ public final class LambdaClass {
       }
     }
 
+    public DexMethod getCallTarget() {
+      return callTarget;
+    }
+
+    public DexMethod getImplementationMethod() {
+      return callTarget;
+    }
+
     boolean isInterface() {
       return isInterface;
     }
@@ -693,6 +705,11 @@ public final class LambdaClass {
       assert modified.getDefinition().isNonPrivateVirtualMethod();
       return modified;
     }
+
+    @Override
+    public DexMethod getImplementationMethod() {
+      return implMethod;
+    }
   }
 
   static final class InvalidLambdaImplTarget extends Target {
@@ -780,6 +797,11 @@ public final class LambdaClass {
       assert modified.getDefinition().isNonPrivateVirtualMethod();
       return modified;
     }
+
+    @Override
+    public DexMethod getImplementationMethod() {
+      return implMethod;
+    }
   }
 
   // Used for instance/static methods or constructors accessed via
@@ -853,6 +875,11 @@ public final class LambdaClass {
       accessorClass.addDirectMethod(accessorMethod.getDefinition());
       needsProcessingConsumer.accept(accessorMethod);
       return accessorMethod;
+    }
+
+    @Override
+    public DexMethod getImplementationMethod() {
+      return implMethod;
     }
   }
 }

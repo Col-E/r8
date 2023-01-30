@@ -207,6 +207,11 @@ public class DexInstructionSubject implements InstructionSubject {
   }
 
   @Override
+  public boolean isInvokeMethod() {
+    return isInvoke();
+  }
+
+  @Override
   public boolean isInvokeVirtual() {
     return instruction instanceof DexInvokeVirtual || instruction instanceof DexInvokeVirtualRange;
   }

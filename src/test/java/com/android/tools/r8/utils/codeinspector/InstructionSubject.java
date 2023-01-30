@@ -41,6 +41,8 @@ public interface InstructionSubject {
 
   boolean isInvoke();
 
+  boolean isInvokeMethod();
+
   boolean isInvokeVirtual();
 
   boolean isInvokeInterface();

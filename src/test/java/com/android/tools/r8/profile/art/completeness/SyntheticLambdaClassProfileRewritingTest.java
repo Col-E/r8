@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.profile.art.completeness;
 
+import static com.android.tools.r8.utils.codeinspector.CodeMatchers.invokesMethod;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static com.android.tools.r8.utils.codeinspector.Matchers.onlyIf;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -17,6 +18,7 @@ import com.android.tools.r8.synthesis.SyntheticItemsTestUtils;
 import com.android.tools.r8.utils.MethodReferenceUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
+import com.android.tools.r8.utils.codeinspector.FoundMethodSubject;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import java.util.Collections;
 import java.util.List;
@@ -31,7 +33,7 @@ public class SyntheticLambdaClassProfileRewritingTest extends TestBase {
 
   private enum ArtProfileInputOutput {
     MAIN_METHOD,
-    LAMBDA_BRIDGE_METHOD;
+    IMPLEMENTATION_METHOD;
 
     public ExternalArtProfile getArtProfile() {
       switch (this) {
@@ -41,7 +43,7 @@ public class SyntheticLambdaClassProfileRewritingTest extends TestBase {
           return ExternalArtProfile.builder()
               .addMethodRule(MethodReferenceUtils.mainMethod(Main.class))
               .build();
-        case LAMBDA_BRIDGE_METHOD:
+        case IMPLEMENTATION_METHOD:
           // Profile containing the two lambda implementation methods, Main.lambda$main${0,1}.
           // Should be rewritten to include the two lambda accessibility bridge methods.
           return ExternalArtProfile.builder()
@@ -71,21 +73,51 @@ public class SyntheticLambdaClassProfileRewritingTest extends TestBase {
       MethodSubject mainMethodSubject = mainClassSubject.mainMethod();
       assertThat(mainMethodSubject, isPresent());
 
-      MethodSubject lambdaImplementationMethod0 =
+      // Check the presence of the first lambda implementation method and the synthesized accessor.
+      MethodSubject lambdaImplementationMethod =
           mainClassSubject.uniqueMethodWithOriginalName("lambda$main$0");
-      assertThat(lambdaImplementationMethod0, isPresent());
+      assertThat(lambdaImplementationMethod, isPresent());
 
-      MethodSubject lambdaImplementationMethod1 =
+      MethodSubject lambdaAccessibilityBridgeMethod =
+          mainClassSubject.uniqueMethodThatMatches(
+              invokesMethod(lambdaImplementationMethod)::matches);
+      assertThat(lambdaAccessibilityBridgeMethod, onlyIf(parameters.isDexRuntime(), isPresent()));
+
+      // Check the presence of the second lambda implementation method and the synthesized accessor.
+      MethodSubject otherLambdaImplementationMethod =
           mainClassSubject.uniqueMethodWithOriginalName("lambda$main$1");
-      assertThat(lambdaImplementationMethod1, isPresent());
+      assertThat(otherLambdaImplementationMethod, isPresent());
 
-      // Verify that two lambdas were synthesized when compiling to dex.
+      MethodSubject otherLambdaAccessibilityBridgeMethod =
+          mainClassSubject.uniqueMethodThatMatches(
+              invokesMethod(otherLambdaImplementationMethod)::matches);
       assertThat(
-          inspector.clazz(SyntheticItemsTestUtils.syntheticLambdaClass(Main.class, 0)),
-          onlyIf(parameters.isDexRuntime(), isPresent()));
-      assertThat(
-          inspector.clazz(SyntheticItemsTestUtils.syntheticLambdaClass(Main.class, 1)),
-          onlyIf(parameters.isDexRuntime(), isPresent()));
+          otherLambdaAccessibilityBridgeMethod, onlyIf(parameters.isDexRuntime(), isPresent()));
+
+      // Check the presence of the first lambda class and its methods.
+      ClassSubject lambdaClassSubject =
+          inspector.clazz(SyntheticItemsTestUtils.syntheticLambdaClass(Main.class, 0));
+      assertThat(lambdaClassSubject, onlyIf(parameters.isDexRuntime(), isPresent()));
+
+      MethodSubject lambdaInitializerSubject = lambdaClassSubject.uniqueInstanceInitializer();
+      assertThat(lambdaInitializerSubject, onlyIf(parameters.isDexRuntime(), isPresent()));
+
+      MethodSubject lambdaMainMethodSubject =
+          lambdaClassSubject.uniqueMethodThatMatches(FoundMethodSubject::isVirtual);
+      assertThat(lambdaMainMethodSubject, onlyIf(parameters.isDexRuntime(), isPresent()));
+
+      // Check the presence of the second lambda class and its methods.
+      ClassSubject otherLambdaClassSubject =
+          inspector.clazz(SyntheticItemsTestUtils.syntheticLambdaClass(Main.class, 1));
+      assertThat(otherLambdaClassSubject, onlyIf(parameters.isDexRuntime(), isPresent()));
+
+      MethodSubject otherLambdaInitializerSubject =
+          otherLambdaClassSubject.uniqueInstanceInitializer();
+      assertThat(otherLambdaInitializerSubject, onlyIf(parameters.isDexRuntime(), isPresent()));
+
+      MethodSubject otherLambdaMainMethodSubject =
+          otherLambdaClassSubject.uniqueMethodThatMatches(FoundMethodSubject::isVirtual);
+      assertThat(otherLambdaMainMethodSubject, onlyIf(parameters.isDexRuntime(), isPresent()));
 
       if (parameters.isCfRuntime()) {
         switch (this) {
@@ -94,9 +126,10 @@ public class SyntheticLambdaClassProfileRewritingTest extends TestBase {
                 .assertContainsMethodRule(mainMethodSubject)
                 .assertContainsNoOtherRules();
             break;
-          case LAMBDA_BRIDGE_METHOD:
+          case IMPLEMENTATION_METHOD:
             profileInspector
-                .assertContainsMethodRules(lambdaImplementationMethod0, lambdaImplementationMethod1)
+                .assertContainsMethodRules(
+                    lambdaImplementationMethod, otherLambdaImplementationMethod)
                 .assertContainsNoOtherRules();
             break;
           default:
@@ -106,19 +139,26 @@ public class SyntheticLambdaClassProfileRewritingTest extends TestBase {
         assert parameters.isDexRuntime();
         switch (this) {
           case MAIN_METHOD:
-            // TODO(b/265729283): Since Main.main() is in the art profile, so should the two
-            //  synthetic lambdas be along with their initializers. Since Main.lambda$main$*() is
-            //  not in the art profile, the interface method implementation does not need to be
-            //  included in the profile.
+            // Since Main.main() is in the art profile, so should the two synthetic lambdas be along
+            // with their initializers. Since Main.lambda$main$*() is not in the art profile, the
+            // interface method implementation does not need to be included in the profile.
             profileInspector
-                .assertContainsMethodRule(mainMethodSubject)
+                .assertContainsClassRules(lambdaClassSubject, otherLambdaClassSubject)
+                .assertContainsMethodRules(
+                    mainMethodSubject, lambdaInitializerSubject, otherLambdaInitializerSubject)
                 .assertContainsNoOtherRules();
             break;
-          case LAMBDA_BRIDGE_METHOD:
-            // TODO(b/265729283): Since Main.lambda$main$*() is in the art profile, so should the
-            //  two accessibility bridges be.
+          case IMPLEMENTATION_METHOD:
+            // Since Main.lambda$main$*() is in the art profile, so should the two accessibility
+            // bridges be along with the main virtual methods of the lambda classes.
             profileInspector
-                .assertContainsMethodRules(lambdaImplementationMethod0, lambdaImplementationMethod1)
+                .assertContainsMethodRules(
+                    lambdaImplementationMethod,
+                    lambdaAccessibilityBridgeMethod,
+                    lambdaMainMethodSubject,
+                    otherLambdaImplementationMethod,
+                    otherLambdaAccessibilityBridgeMethod,
+                    otherLambdaMainMethodSubject)
                 .assertContainsNoOtherRules();
             break;
           default:

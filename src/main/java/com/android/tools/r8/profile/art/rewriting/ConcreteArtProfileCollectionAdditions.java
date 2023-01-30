@@ -6,13 +6,15 @@ package com.android.tools.r8.profile.art.rewriting;
 
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClassAndMethod;
-import com.android.tools.r8.graph.ProgramDefinition;
+import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.profile.art.ArtProfile;
 import com.android.tools.r8.profile.art.ArtProfileCollection;
 import com.android.tools.r8.profile.art.NonEmptyArtProfileCollection;
+import com.android.tools.r8.profile.art.rewriting.ArtProfileAdditions.ArtProfileAdditionsBuilder;
 import com.google.common.collect.Iterables;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Consumer;
 
 public class ConcreteArtProfileCollectionAdditions extends ArtProfileCollectionAdditions {
 
@@ -25,16 +27,15 @@ public class ConcreteArtProfileCollectionAdditions extends ArtProfileCollectionA
     assert !additionsCollection.isEmpty();
   }
 
-  void addRulesIfContextIsInProfile(DexClassAndMethod context, ProgramDefinition... definitions) {
-    for (ArtProfileAdditions artProfileAdditions : additionsCollection) {
-      artProfileAdditions.addRulesIfContextIsInProfile(context, definitions);
-    }
+  void applyIfContextIsInProfile(
+      DexClassAndMethod context, Consumer<ArtProfileAdditionsBuilder> builderConsumer) {
+    applyIfContextIsInProfile(context.getReference(), builderConsumer);
   }
 
-  // Specialization of the above method to avoid redundant varargs array creation.
-  void addRulesIfContextIsInProfile(DexClassAndMethod context, ProgramDefinition definition) {
+  void applyIfContextIsInProfile(
+      DexMethod context, Consumer<ArtProfileAdditionsBuilder> builderConsumer) {
     for (ArtProfileAdditions artProfileAdditions : additionsCollection) {
-      artProfileAdditions.addRulesIfContextIsInProfile(context, definition);
+      artProfileAdditions.applyIfContextIsInProfile(context, builderConsumer);
     }
   }
 

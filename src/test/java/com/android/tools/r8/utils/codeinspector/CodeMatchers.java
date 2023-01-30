@@ -267,7 +267,7 @@ public class CodeMatchers {
 
   public static Predicate<InstructionSubject> isInvokeWithTarget(MethodReference target) {
     return instruction ->
-        instruction.isInvoke() && instruction.getMethod().asMethodReference().equals(target);
+        instruction.isInvokeMethod() && instruction.getMethod().asMethodReference().equals(target);
   }
 
   public static Predicate<InstructionSubject> isInvokeWithTarget(MethodSubject target) {

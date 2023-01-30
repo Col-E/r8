@@ -114,6 +114,11 @@ public class CfInstructionSubject implements InstructionSubject {
   }
 
   @Override
+  public boolean isInvokeMethod() {
+    return instruction instanceof CfInvoke;
+  }
+
+  @Override
   public boolean isInvokeVirtual() {
     return instruction instanceof CfInvoke
         && ((CfInvoke) instruction).getOpcode() == Opcodes.INVOKEVIRTUAL;
@@ -133,7 +138,7 @@ public class CfInstructionSubject implements InstructionSubject {
 
   @Override
   public DexMethod getMethod() {
-    assert isInvoke();
+    assert isInvokeMethod();
     return ((CfInvoke) instruction).getMethod();
   }
 

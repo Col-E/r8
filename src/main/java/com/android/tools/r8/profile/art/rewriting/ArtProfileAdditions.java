@@ -4,12 +4,10 @@
 
 package com.android.tools.r8.profile.art.rewriting;
 
-import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.DexMethod;
-import com.android.tools.r8.graph.DexProgramClass;
+import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ProgramDefinition;
-import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.profile.art.ArtProfile;
 import com.android.tools.r8.profile.art.ArtProfileClassRule;
 import com.android.tools.r8.profile.art.ArtProfileMethodRule;
@@ -18,9 +16,17 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Consumer;
 
 /** Mutable extension of an existing ArtProfile. */
 class ArtProfileAdditions {
+
+  public interface ArtProfileAdditionsBuilder {
+
+    ArtProfileAdditionsBuilder addRule(ProgramDefinition definition);
+
+    ArtProfileAdditionsBuilder addRule(DexReference reference);
+  }
 
   private final ArtProfile artProfile;
 
@@ -33,54 +39,55 @@ class ArtProfileAdditions {
     this.artProfile = artProfile;
   }
 
-  void addRulesIfContextIsInProfile(DexClassAndMethod context, ProgramDefinition... definitions) {
-    ArtProfileMethodRule contextMethodRule = artProfile.getMethodRule(context.getReference());
+  void applyIfContextIsInProfile(
+      DexMethod context, Consumer<ArtProfileAdditionsBuilder> builderConsumer) {
+    ArtProfileMethodRule contextMethodRule = artProfile.getMethodRule(context);
     if (contextMethodRule != null) {
-      for (ProgramDefinition definition : definitions) {
-        addRuleFromContext(definition, contextMethodRule, MethodRuleAdditionConfig.getDefault());
-      }
-    }
-  }
+      builderConsumer.accept(
+          new ArtProfileAdditionsBuilder() {
 
-  // Specialization of the above method to avoid redundant varargs array creation.
-  void addRulesIfContextIsInProfile(DexClassAndMethod context, ProgramDefinition definition) {
-    ArtProfileMethodRule contextMethodRule = artProfile.getMethodRule(context.getReference());
-    if (contextMethodRule != null) {
-      addRuleFromContext(definition, contextMethodRule, MethodRuleAdditionConfig.getDefault());
+            @Override
+            public ArtProfileAdditionsBuilder addRule(ProgramDefinition definition) {
+              return addRule(definition.getReference());
+            }
+
+            @Override
+            public ArtProfileAdditionsBuilder addRule(DexReference reference) {
+              addRuleFromContext(
+                  reference, contextMethodRule, MethodRuleAdditionConfig.getDefault());
+              return this;
+            }
+          });
     }
   }
 
   private void addRuleFromContext(
-      ProgramDefinition definition,
+      DexReference reference,
       ArtProfileMethodRule contextMethodRule,
       MethodRuleAdditionConfig config) {
-    if (definition.isProgramClass()) {
-      addClassRule(definition.asProgramClass());
+    if (reference.isDexType()) {
+      addClassRule(reference.asDexType());
     } else {
-      assert definition.isProgramMethod();
-      addMethodRuleFromContext(definition.asProgramMethod(), contextMethodRule, config);
+      assert reference.isDexMethod();
+      addMethodRuleFromContext(reference.asDexMethod(), contextMethodRule, config);
     }
   }
 
-  private void addClassRule(DexProgramClass clazz) {
-    if (artProfile.containsClassRule(clazz.getType())) {
+  private void addClassRule(DexType type) {
+    if (artProfile.containsClassRule(type)) {
       return;
     }
 
     // Create profile rule for class.
-    classRuleAdditions.computeIfAbsent(
-        clazz.getType(), type -> ArtProfileClassRule.builder().setType(type));
+    classRuleAdditions.computeIfAbsent(type, key -> ArtProfileClassRule.builder().setType(key));
   }
 
   private void addMethodRuleFromContext(
-      ProgramMethod method,
-      ArtProfileMethodRule contextMethodRule,
-      MethodRuleAdditionConfig config) {
+      DexMethod method, ArtProfileMethodRule contextMethodRule, MethodRuleAdditionConfig config) {
     // Create profile rule for method.
     ArtProfileMethodRule.Builder methodRuleBuilder =
         methodRuleAdditions.computeIfAbsent(
-            method.getReference(),
-            methodReference -> ArtProfileMethodRule.builder().setMethod(method.getReference()));
+            method, methodReference -> ArtProfileMethodRule.builder().setMethod(method));
 
     // Setup the rule.
     synchronized (methodRuleBuilder) {
