@@ -28,6 +28,19 @@ def run(args):
       if (args.desugar_jdk_libs_revision):
         subprocess.check_call(
             ['git', '-C', checkout_dir, 'checkout', args.desugar_jdk_libs_revision])
+    print("Hack to workaround b/256723819")
+    os.remove(
+      join(
+        checkout_dir,
+        "jdk11",
+        "src",
+        "java.base",
+        "share",
+        "classes",
+        "java",
+        "time",
+        "format",
+        "DesugarDateTimeFormatterBuilder.java"))
     print("Building desugared library")
     bazel = os.path.join(utils.BAZEL_TOOL, 'lib', 'bazel', 'bin', 'bazel')
     with utils.ChangedWorkingDirectory(checkout_dir):

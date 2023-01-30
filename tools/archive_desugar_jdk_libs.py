@@ -171,6 +171,20 @@ def BuildDesugaredLibrary(checkout_dir, variant, version = None):
     raise Exception('Variant ' + variant + ' is not supported')
   if variant != 'jdk8' and variant != 'jdk11_legacy' and version is None:
     raise Exception('Variant ' + variant + ' require version for undesugaring')
+  if variant != 'jdk8':
+    # Hack to workaround b/256723819.
+    os.remove(
+      join(
+        checkout_dir,
+        "jdk11",
+        "src",
+        "java.base",
+        "share",
+        "classes",
+        "java",
+        "time",
+        "format",
+        "DesugarDateTimeFormatterBuilder.java"))
   with utils.ChangedWorkingDirectory(checkout_dir):
     with utils.TempDir() as androidHomeTemp:
       setUpFakeAndroidHome(androidHomeTemp)
