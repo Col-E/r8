@@ -11,10 +11,18 @@ import static org.junit.Assert.fail;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
+import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.keepanno.annotations.KeepOption;
 import com.android.tools.r8.keepanno.annotations.KeepTarget;
 import com.android.tools.r8.keepanno.annotations.UsesReflection;
+import com.android.tools.r8.keepanno.asm.KeepEdgeReader;
+import com.android.tools.r8.keepanno.ast.KeepEdge;
 import com.android.tools.r8.keepanno.ast.KeepEdgeException;
+import com.android.tools.r8.keepanno.keeprules.KeepRuleExtractor;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
 import org.hamcrest.Matcher;
 import org.junit.Test;
 import org.junit.function.ThrowingRunnable;
@@ -33,21 +41,30 @@ public class KeepInvalidTargetTest extends TestBase {
     parameters.assertNoneRuntime();
   }
 
+  private static List<String> extractRuleForClass(Class<?> clazz) throws IOException {
+    Set<KeepEdge> keepEdges = KeepEdgeReader.readKeepEdges(ToolHelper.getClassAsBytes(clazz));
+    List<String> rules = new ArrayList<>();
+    KeepRuleExtractor extractor = new KeepRuleExtractor(rules::add);
+    keepEdges.forEach(extractor::extract);
+    return rules;
+  }
+
   private void assertThrowsWith(ThrowingRunnable fn, Matcher<String> matcher) {
     try {
       fn.run();
-      fail("Expected run to fail");
     } catch (KeepEdgeException e) {
       assertThat(e.getMessage(), matcher);
+      return;
     } catch (Throwable e) {
-      fail("Expected run to fail with KeepEdgeException");
+      fail("Expected run to fail with KeepEdgeException, but failed with: " + e);
     }
+    fail("Expected run to fail");
   }
 
   @Test
   public void testInvalidClassDecl() throws Exception {
     assertThrowsWith(
-        () -> KeepEdgeAnnotationsTest.getKeepRulesForClass(MultipleClassDeclarations.class),
+        () -> extractRuleForClass(MultipleClassDeclarations.class),
         allOf(
             containsString("Multiple declarations"),
             containsString("className"),
@@ -65,7 +82,7 @@ public class KeepInvalidTargetTest extends TestBase {
   @Test
   public void testInvalidExtendsDecl() throws Exception {
     assertThrowsWith(
-        () -> KeepEdgeAnnotationsTest.getKeepRulesForClass(MultipleExtendsDeclarations.class),
+        () -> extractRuleForClass(MultipleExtendsDeclarations.class),
         allOf(
             containsString("Multiple declarations"),
             containsString("extendsClassName"),
@@ -86,7 +103,7 @@ public class KeepInvalidTargetTest extends TestBase {
   @Test
   public void testInvalidMemberDecl() throws Exception {
     assertThrowsWith(
-        () -> KeepEdgeAnnotationsTest.getKeepRulesForClass(MultipleMemberDeclarations.class),
+        () -> extractRuleForClass(MultipleMemberDeclarations.class),
         allOf(containsString("field"), containsString("method")));
   }
 
@@ -101,7 +118,7 @@ public class KeepInvalidTargetTest extends TestBase {
   @Test
   public void testInvalidOptionsDecl() throws Exception {
     assertThrowsWith(
-        () -> KeepEdgeAnnotationsTest.getKeepRulesForClass(MultipleOptionDeclarations.class),
+        () -> extractRuleForClass(MultipleOptionDeclarations.class),
         allOf(containsString("options"), containsString("allow"), containsString("disallow")));
   }
 

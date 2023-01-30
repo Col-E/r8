@@ -15,6 +15,9 @@ import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.inspector.Inspector;
 import com.android.tools.r8.inspector.internal.InspectorImpl;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibrarySpecification;
+import com.android.tools.r8.keepanno.asm.KeepEdgeReader;
+import com.android.tools.r8.keepanno.ast.KeepEdge;
+import com.android.tools.r8.keepanno.keeprules.KeepRuleExtractor;
 import com.android.tools.r8.naming.SourceFileRewriter;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.origin.PathOrigin;
@@ -53,6 +56,7 @@ import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Deque;
 import java.util.List;
 import java.util.Optional;
@@ -122,6 +126,7 @@ public final class R8Command extends BaseCompilerCommand {
     private final List<FeatureSplit> featureSplits = new ArrayList<>();
     private String synthesizedClassPrefix = "";
     private boolean enableMissingLibraryApiModeling = false;
+    private boolean enableExperimentalKeepAnnotations = false;
 
     private final ProguardConfigurationParserOptions.Builder parserOptionsBuilder =
         ProguardConfigurationParserOptions.builder().readEnvironment();
@@ -447,6 +452,12 @@ public final class R8Command extends BaseCompilerCommand {
       return self();
     }
 
+    @Deprecated
+    public Builder setEnableExperimentalKeepAnnotations(boolean enable) {
+      this.enableExperimentalKeepAnnotations = enable;
+      return self();
+    }
+
     @Override
     protected InternalProgramOutputPathConsumer createProgramOutputConsumer(
         Path path,
@@ -578,6 +589,9 @@ public final class R8Command extends BaseCompilerCommand {
         proguardConfigurationConsumerForTesting.accept(configurationBuilder);
       }
       amendWithRulesAndProvidersForInjarsAndMetaInf(reporter, parser);
+      // Extract out rules for keep annotations and amend the configuration.
+      // TODO(b/248408342): Remove this and parse annotations as part of R8 root-set & enqueuer.
+      extractKeepAnnotationRules(parser);
       ProguardConfiguration configuration = configurationBuilder.build();
       getAppBuilder().addFilteredLibraryArchives(configuration.getLibraryjars());
 
@@ -694,6 +708,32 @@ public final class R8Command extends BaseCompilerCommand {
             }
           }
         }
+      }
+    }
+
+    private void extractKeepAnnotationRules(ProguardConfigurationParser parser) {
+      if (!enableExperimentalKeepAnnotations) {
+        return;
+      }
+      try {
+        for (ProgramResourceProvider provider : getAppBuilder().getProgramResourceProviders()) {
+          for (ProgramResource resource : provider.getProgramResources()) {
+            if (resource.getKind() == Kind.CF) {
+              Set<KeepEdge> edges = KeepEdgeReader.readKeepEdges(resource.getBytes());
+              KeepRuleExtractor extractor =
+                  new KeepRuleExtractor(
+                      rule -> {
+                        ProguardConfigurationSourceStrings source =
+                            new ProguardConfigurationSourceStrings(
+                                Collections.singletonList(rule), null, resource.getOrigin());
+                        parser.parse(source);
+                      });
+              edges.forEach(extractor::extract);
+            }
+          }
+        }
+      } catch (ResourceException e) {
+        throw getAppBuilder().getReporter().fatalError(new ExceptionDiagnostic(e));
       }
     }
 

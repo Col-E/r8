@@ -29,11 +29,66 @@ import org.objectweb.asm.Type;
 
 public class KeepEdgeWriter implements Opcodes {
 
+  /** Annotation visitor interface to allow usage from tests without type conflicts in r8lib. */
+  public interface AnnotationVisitorInterface {
+    int version();
+
+    void visit(String name, Object value);
+
+    void visitEnum(String name, String descriptor, String value);
+
+    AnnotationVisitorInterface visitAnnotation(String name, String descriptor);
+
+    AnnotationVisitorInterface visitArray(String name);
+
+    void visitEnd();
+  }
+
+  private static AnnotationVisitor wrap(AnnotationVisitorInterface visitor) {
+    if (visitor == null) {
+      return null;
+    }
+    return new AnnotationVisitor(visitor.version()) {
+
+      @Override
+      public void visit(String name, Object value) {
+        visitor.visit(name, value);
+      }
+
+      @Override
+      public void visitEnum(String name, String descriptor, String value) {
+        visitor.visitEnum(name, descriptor, value);
+      }
+
+      @Override
+      public AnnotationVisitor visitAnnotation(String name, String descriptor) {
+        AnnotationVisitorInterface v = visitor.visitAnnotation(name, descriptor);
+        return v == visitor ? this : wrap(v);
+      }
+
+      @Override
+      public AnnotationVisitor visitArray(String name) {
+        AnnotationVisitorInterface v = visitor.visitArray(name);
+        return v == visitor ? this : wrap(v);
+      }
+
+      @Override
+      public void visitEnd() {
+        visitor.visitEnd();
+      }
+    };
+  }
+
   public static void writeEdge(KeepEdge edge, ClassVisitor visitor) {
-    writeEdge(edge, visitor::visitAnnotation);
+    writeEdgeInternal(edge, visitor::visitAnnotation);
   }
 
   public static void writeEdge(
+      KeepEdge edge, BiFunction<String, Boolean, AnnotationVisitorInterface> getVisitor) {
+    writeEdgeInternal(edge, (descriptor, visible) -> wrap(getVisitor.apply(descriptor, visible)));
+  }
+
+  public static void writeEdgeInternal(
       KeepEdge edge, BiFunction<String, Boolean, AnnotationVisitor> getVisitor) {
     new KeepEdgeWriter().writeEdge(edge, getVisitor.apply(Edge.DESCRIPTOR, false));
   }

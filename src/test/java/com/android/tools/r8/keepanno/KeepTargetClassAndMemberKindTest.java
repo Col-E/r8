@@ -17,7 +17,6 @@ import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.google.common.collect.ImmutableList;
-import java.util.ArrayList;
 import java.util.List;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -49,13 +48,9 @@ public class KeepTargetClassAndMemberKindTest extends TestBase {
 
   @Test
   public void testWithRuleExtraction() throws Exception {
-    List<String> rules = getExtractedKeepRules();
-    for (String rule : rules) {
-      System.out.println(rule);
-    }
     testForR8(parameters.getBackend())
-        .addProgramClassFileData(getInputClassesWithoutAnnotations())
-        .addKeepRules(rules)
+        .enableExperimentalKeepAnnotations()
+        .addProgramClasses(getInputClasses())
         .addKeepMainRule(TestClass.class)
         .setMinApi(parameters.getApiLevel())
         .allowUnusedProguardConfigurationRules()
@@ -66,19 +61,6 @@ public class KeepTargetClassAndMemberKindTest extends TestBase {
 
   public List<Class<?>> getInputClasses() {
     return ImmutableList.of(TestClass.class, A.class, B.class, C.class);
-  }
-
-  public List<byte[]> getInputClassesWithoutAnnotations() throws Exception {
-    return KeepEdgeAnnotationsTest.getInputClassesWithoutKeepAnnotations(getInputClasses());
-  }
-
-  public List<String> getExtractedKeepRules() throws Exception {
-    List<Class<?>> classes = getInputClasses();
-    List<String> rules = new ArrayList<>();
-    for (Class<?> clazz : classes) {
-      rules.addAll(KeepEdgeAnnotationsTest.getKeepRulesForClass(clazz));
-    }
-    return rules;
   }
 
   private void checkOutput(CodeInspector inspector) {

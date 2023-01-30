@@ -18,8 +18,8 @@ import com.android.tools.r8.keepanno.annotations.KeepConstants;
 import com.android.tools.r8.keepanno.annotations.KeepConstants.Edge;
 import com.android.tools.r8.keepanno.asm.KeepEdgeReader;
 import com.android.tools.r8.keepanno.asm.KeepEdgeWriter;
+import com.android.tools.r8.keepanno.asm.KeepEdgeWriter.AnnotationVisitorInterface;
 import com.android.tools.r8.keepanno.ast.KeepEdge;
-import com.android.tools.r8.keepanno.keeprules.KeepRuleExtractor;
 import com.android.tools.r8.keepanno.processor.KeepEdgeProcessor;
 import com.android.tools.r8.keepanno.testsource.KeepClassAndDefaultConstructorSource;
 import com.android.tools.r8.keepanno.testsource.KeepDependentFieldSource;
@@ -42,10 +42,13 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.objectweb.asm.AnnotationVisitor;
 
+@Ignore("b/248408342: These test break on r8lib builds because of src&test using ASM classes.")
 @RunWith(Parameterized.class)
 public class KeepEdgeAnnotationsTest extends TestBase {
 
@@ -64,7 +67,7 @@ public class KeepEdgeAnnotationsTest extends TestBase {
     }
   }
 
-  private static final Path KEEP_ANNO_PATH =
+  public static final Path KEEP_ANNO_PATH =
       Paths.get(ToolHelper.BUILD_DIR, "classes", "java", "keepanno");
 
   private static List<Class<?>> getTestClasses() {
@@ -150,6 +153,46 @@ public class KeepEdgeAnnotationsTest extends TestBase {
     return transformed;
   }
 
+  /** Wrapper to bridge ASM visitors when using the r8lib compiled version of the keepanno lib. */
+  private AnnotationVisitorInterface wrap(AnnotationVisitor visitor) {
+    if (visitor == null) {
+      return null;
+    }
+    return new AnnotationVisitorInterface() {
+      @Override
+      public int version() {
+        return KeepEdgeReader.ASM_VERSION;
+      }
+
+      @Override
+      public void visit(String name, Object value) {
+        visitor.visit(name, value);
+      }
+
+      @Override
+      public void visitEnum(String name, String descriptor, String value) {
+        visitor.visitEnum(name, descriptor, value);
+      }
+
+      @Override
+      public AnnotationVisitorInterface visitAnnotation(String name, String descriptor) {
+        AnnotationVisitor v = visitor.visitAnnotation(name, descriptor);
+        return v == visitor ? this : wrap(v);
+      }
+
+      @Override
+      public AnnotationVisitorInterface visitArray(String name) {
+        AnnotationVisitor v = visitor.visitArray(name);
+        return v == visitor ? this : wrap(v);
+      }
+
+      @Override
+      public void visitEnd() {
+        visitor.visitEnd();
+      }
+    };
+  }
+
   @Test
   public void testAsmReader() throws Exception {
     assumeTrue(parameters.isCfRuntime());
@@ -169,7 +212,8 @@ public class KeepEdgeAnnotationsTest extends TestBase {
                   @Override
                   public void visitEnd() {
                     for (KeepEdge edge : expectedEdges) {
-                      KeepEdgeWriter.writeEdge(edge, super::visitAnnotation);
+                      KeepEdgeWriter.writeEdge(
+                          edge, (desc, visible) -> wrap(super.visitAnnotation(desc, visible)));
                     }
                     super.visitEnd();
                   }
@@ -190,23 +234,13 @@ public class KeepEdgeAnnotationsTest extends TestBase {
 
   @Test
   public void testExtractAndRun() throws Exception {
-    List<String> rules = getKeepRulesForClass(source);
     testForR8(parameters.getBackend())
-        .addClasspathFiles(KEEP_ANNO_PATH)
+        .enableExperimentalKeepAnnotations()
         .addProgramClassesAndInnerClasses(source)
-        .addKeepRules(rules)
         .addKeepMainRule(source)
         .setMinApi(parameters.getApiLevel())
         .run(parameters.getRuntime(), source)
         .assertSuccessWithOutput(getExpected());
-  }
-
-  public static List<String> getKeepRulesForClass(Class<?> clazz) throws IOException {
-    Set<KeepEdge> keepEdges = KeepEdgeReader.readKeepEdges(ToolHelper.getClassAsBytes(clazz));
-    List<String> rules = new ArrayList<>();
-    KeepRuleExtractor extractor = new KeepRuleExtractor(rules::add);
-    keepEdges.forEach(extractor::extract);
-    return rules;
   }
 
   private void checkSynthesizedKeepEdgeClass(CodeInspector inspector, Path data)

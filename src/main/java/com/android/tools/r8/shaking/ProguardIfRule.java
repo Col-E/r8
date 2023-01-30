@@ -48,7 +48,9 @@ public class ProguardIfRule extends ProguardKeepRuleBase {
   }
 
   public void addInlinableFieldMatchingPrecondition(DexField field) {
-    inlinableFieldsInPrecondition.put(field, field);
+    if (inlinableFieldsInPrecondition != null) {
+      inlinableFieldsInPrecondition.put(field, field);
+    }
   }
 
   public Set<DexField> getAndClearInlinableFieldsMatchingPrecondition() {

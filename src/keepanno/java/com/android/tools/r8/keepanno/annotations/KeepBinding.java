@@ -3,6 +3,11 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.keepanno.annotations;
 
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
+
 /**
  * A binding of a keep item.
  *
@@ -12,6 +17,8 @@ package com.android.tools.r8.keepanno.annotations;
  *
  * <p>See KeepTarget for documentation on specifying an item pattern.
  */
+@Target(ElementType.ANNOTATION_TYPE)
+@Retention(RetentionPolicy.CLASS)
 public @interface KeepBinding {
 
   /** Name with which other bindings, conditions or targets can reference the bound item pattern. */

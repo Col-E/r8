@@ -18,7 +18,6 @@ import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.google.common.collect.ImmutableList;
-import java.util.ArrayList;
 import java.util.List;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -50,10 +49,9 @@ public class KeepBindingTest extends TestBase {
 
   @Test
   public void testWithRuleExtraction() throws Exception {
-    List<String> rules = getExtractedKeepRules();
     testForR8(parameters.getBackend())
-        .addProgramClassFileData(getInputClassesWithoutAnnotations())
-        .addKeepRules(rules)
+        .enableExperimentalKeepAnnotations()
+        .addProgramClasses(getInputClasses())
         .addKeepClassRules(A.class, B.class)
         .addKeepMainRule(TestClass.class)
         .setMinApi(parameters.getApiLevel())
@@ -64,10 +62,9 @@ public class KeepBindingTest extends TestBase {
 
   @Test
   public void testWithRuleExtractionAndNoKeepOnClass() throws Exception {
-    List<String> rules = getExtractedKeepRules();
     testForR8(parameters.getBackend())
-        .addProgramClassFileData(getInputClassesWithoutAnnotations())
-        .addKeepRules(rules)
+        .enableExperimentalKeepAnnotations()
+        .addProgramClasses(getInputClasses())
         .addKeepMainRule(TestClass.class)
         .setMinApi(parameters.getApiLevel())
         .run(parameters.getRuntime(), TestClass.class)
@@ -77,19 +74,6 @@ public class KeepBindingTest extends TestBase {
 
   public List<Class<?>> getInputClasses() {
     return ImmutableList.of(TestClass.class, A.class, B.class, C.class);
-  }
-
-  public List<byte[]> getInputClassesWithoutAnnotations() throws Exception {
-    return KeepEdgeAnnotationsTest.getInputClassesWithoutKeepAnnotations(getInputClasses());
-  }
-
-  public List<String> getExtractedKeepRules() throws Exception {
-    List<Class<?>> classes = getInputClasses();
-    List<String> rules = new ArrayList<>();
-    for (Class<?> clazz : classes) {
-      rules.addAll(KeepEdgeAnnotationsTest.getKeepRulesForClass(clazz));
-    }
-    return rules;
   }
 
   private void checkOutput(CodeInspector inspector, boolean expectB) {

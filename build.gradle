@@ -67,7 +67,7 @@ if (project.hasProperty('with_code_coverage')) {
 sourceSets {
     main {
         java {
-            srcDirs = ['src/main/java']
+            srcDirs = ['src/main/java', 'src/keepanno/java']
         }
         resources {
             srcDirs "third_party/api_database/api_database"
@@ -75,7 +75,7 @@ sourceSets {
     }
     main11 {
         java {
-            srcDirs = ['src/main/java']
+            srcDirs = ['src/main/java', 'src/keepanno/java']
         }
         resources {
             srcDirs "third_party/api_database/api_database"
@@ -83,7 +83,7 @@ sourceSets {
     }
     main17 {
         java {
-            srcDirs = ['src/main/java']
+            srcDirs = ['src/main/java', 'src/keepanno/java']
         }
         resources {
             srcDirs "third_party/api_database/api_database"
@@ -213,7 +213,7 @@ sourceSets {
 idea {
     sourceSets.all { SourceSet sources ->
         module {
-            if (sources.name == "main" || sources.name == "keepanno") {
+            if (sources.name == "main") {
                 sourceDirs += sources.java.srcDirs
                 outputDir sources.output.classesDirs[0]
             } else {
@@ -320,8 +320,6 @@ dependencies {
 
     keepannoCompile group: 'org.ow2.asm', name: 'asm', version: asmVersion
     keepannoCompile "com.google.guava:guava:$guavaVersion"
-    testCompile sourceSets.keepanno.output
-    testRuntime sourceSets.keepanno.output
 }
 
 def r8LibPath = "$buildDir/libs/r8lib.jar"
@@ -1106,7 +1104,6 @@ task buildLibraryDesugarConversions(type: CustomConversionAsmRewriterTask, depen
 task testJarSources(type: Jar, dependsOn: [testClasses, buildLibraryDesugarConversions]) {
     archiveFileName = "r8testsbase.jar"
     from sourceSets.test.output
-    from sourceSets.keepanno.output
     // We only want to include tests that use R8 when generating keep rules for applymapping.
     include "com/android/tools/r8/**"
     include "android/**"
@@ -2247,6 +2244,7 @@ def numberOfTestTimesToPrint = 100
 
 test { task ->
 
+    dependsOn sourceSets.keepanno.output
     dependsOn buildLibraryDesugarConversions
     dependsOn getJarsFromSupportLibs
     // R8.jar is required for running bootstrap tests.

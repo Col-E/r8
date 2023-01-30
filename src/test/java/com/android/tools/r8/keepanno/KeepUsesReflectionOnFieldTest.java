@@ -7,7 +7,6 @@ import static com.android.tools.r8.utils.codeinspector.Matchers.isAbsent;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
@@ -19,7 +18,6 @@ import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.google.common.collect.ImmutableList;
 import java.lang.reflect.Field;
-import java.util.ArrayList;
 import java.util.List;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -51,15 +49,18 @@ public class KeepUsesReflectionOnFieldTest extends TestBase {
 
   @Test
   public void testWithRuleExtraction() throws Exception {
-    List<String> rules = getExtractedKeepRules();
-    assertEquals(1, rules.size());
-    assertThat(rules.get(0), containsString("context: " + descriptor(A.class) + "foo()V"));
-    assertThat(rules.get(0), containsString("description: Keep the\\nstring-valued fields"));
     testForR8(parameters.getBackend())
-        .addProgramClassFileData(getInputClassesWithoutAnnotations())
-        .addKeepRules(rules)
+        .enableExperimentalKeepAnnotations()
+        .addProgramClasses(getInputClasses())
         .addKeepMainRule(TestClass.class)
         .setMinApi(parameters.getApiLevel())
+        .compile()
+        .apply(
+            c -> {
+              String rules = c.getProguardConfiguration().getParsedConfiguration();
+              assertThat(rules, containsString("context: " + descriptor(A.class) + "foo()V"));
+              assertThat(rules, containsString("description: Keep the\\nstring-valued fields"));
+            })
         .run(parameters.getRuntime(), TestClass.class)
         .assertSuccessWithOutput(EXPECTED)
         .inspect(this::checkOutput);
@@ -67,19 +68,6 @@ public class KeepUsesReflectionOnFieldTest extends TestBase {
 
   public List<Class<?>> getInputClasses() {
     return ImmutableList.of(TestClass.class, A.class);
-  }
-
-  public List<byte[]> getInputClassesWithoutAnnotations() throws Exception {
-    return KeepEdgeAnnotationsTest.getInputClassesWithoutKeepAnnotations(getInputClasses());
-  }
-
-  public List<String> getExtractedKeepRules() throws Exception {
-    List<Class<?>> classes = getInputClasses();
-    List<String> rules = new ArrayList<>();
-    for (Class<?> clazz : classes) {
-      rules.addAll(KeepEdgeAnnotationsTest.getKeepRulesForClass(clazz));
-    }
-    return rules;
   }
 
   private void checkOutput(CodeInspector inspector) {

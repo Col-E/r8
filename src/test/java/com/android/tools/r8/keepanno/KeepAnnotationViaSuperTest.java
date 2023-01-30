@@ -22,7 +22,6 @@ import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
-import java.util.ArrayList;
 import java.util.List;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -54,11 +53,9 @@ public class KeepAnnotationViaSuperTest extends TestBase {
 
   @Test
   public void testWithRuleExtraction() throws Exception {
-    List<String> rules = getExtractedKeepRules();
-    System.out.println(rules);
     testForR8(parameters.getBackend())
-        .addProgramClassFileData(getInputClassesWithoutKeepAnnotations())
-        .addKeepRules(rules)
+        .enableExperimentalKeepAnnotations()
+        .addProgramClasses(getInputClasses())
         .addKeepMainRule(TestClass.class)
         .addKeepRuntimeVisibleAnnotations()
         .setMinApi(parameters.getApiLevel())
@@ -76,19 +73,6 @@ public class KeepAnnotationViaSuperTest extends TestBase {
         SubC.class,
         Anno.class,
         UnusedAnno.class);
-  }
-
-  public List<byte[]> getInputClassesWithoutKeepAnnotations() throws Exception {
-    return KeepEdgeAnnotationsTest.getInputClassesWithoutKeepAnnotations(getInputClasses());
-  }
-
-  public List<String> getExtractedKeepRules() throws Exception {
-    List<Class<?>> classes = getInputClasses();
-    List<String> rules = new ArrayList<>();
-    for (Class<?> clazz : classes) {
-      rules.addAll(KeepEdgeAnnotationsTest.getKeepRulesForClass(clazz));
-    }
-    return rules;
   }
 
   private void checkOutput(CodeInspector inspector) {

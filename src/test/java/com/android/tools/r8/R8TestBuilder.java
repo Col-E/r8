@@ -14,6 +14,7 @@ import com.android.tools.r8.dexsplitter.SplitterTestBase.RunInterface;
 import com.android.tools.r8.dexsplitter.SplitterTestBase.SplitRunner;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.experimental.graphinfo.GraphConsumer;
+import com.android.tools.r8.keepanno.KeepEdgeAnnotationsTest;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.profile.art.ArtProfileConsumer;
 import com.android.tools.r8.profile.art.ArtProfileProvider;
@@ -710,6 +711,13 @@ public abstract class R8TestBuilder<T extends R8TestBuilder<T>>
 
   public T enableExperimentalWhyAreYouNotInlining() {
     builder.setEnableExperimentalWhyAreYouNotInlining();
+    return self();
+  }
+
+  public T enableExperimentalKeepAnnotations() throws IOException {
+    builder.addClasspathResourceProvider(
+        DirectoryClassFileProvider.fromDirectory(KeepEdgeAnnotationsTest.KEEP_ANNO_PATH));
+    builder.setEnableExperimentalKeepAnnotations(true);
     return self();
   }
 

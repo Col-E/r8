@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.keepanno.annotations;
 
+
 /**
  * Utility class for referencing the various keep annotations and their structure.
  *

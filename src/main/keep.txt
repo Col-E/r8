@@ -51,3 +51,7 @@
 }
 # Test in this class is using the class name to fing the original .java file.
 -keep class com.android.tools.r8.ir.desugar.varhandle.VarHandleDesugaringMethods
+
+# Keep everything in the annotations package of keepanno.
+# These are public API as they denote the supported annotations to be interpreted by R8.
+-keep class com.android.tools.r8.keepanno.annotations.** { *; }
