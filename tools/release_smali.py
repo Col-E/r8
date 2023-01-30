@@ -7,6 +7,7 @@ import argparse
 import sys
 
 import gmaven
+import utils
 
 ARCHIVE_BUCKET = 'r8-releases'
 REPO = 'https://github.com/google/smali'
@@ -26,6 +27,7 @@ def parse_options():
 
 def Main():
   options = parse_options()
+  utils.check_gcert()
   gfile = ('/bigstore/r8-releases/smali/%s/smali-maven-release-%s.zip'
        % (options.version, options.version))
   release_id = gmaven.publisher_stage([gfile], options.dry_run)
