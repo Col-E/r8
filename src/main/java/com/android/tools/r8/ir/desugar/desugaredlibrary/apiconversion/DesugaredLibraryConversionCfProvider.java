@@ -18,6 +18,7 @@ import com.android.tools.r8.cf.code.CfNewArray;
 import com.android.tools.r8.cf.code.CfReturn;
 import com.android.tools.r8.cf.code.CfStackInstruction;
 import com.android.tools.r8.cf.code.CfStackInstruction.Opcode;
+import com.android.tools.r8.cf.code.CfStore;
 import com.android.tools.r8.contexts.CompilationContext.MainThreadContext;
 import com.android.tools.r8.contexts.CompilationContext.MethodProcessingContext;
 import com.android.tools.r8.contexts.CompilationContext.UniqueContext;
@@ -36,6 +37,7 @@ import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.code.MemberType;
 import com.android.tools.r8.ir.code.ValueType;
 import com.android.tools.r8.ir.desugar.CfInstructionDesugaringEventConsumer;
+import com.android.tools.r8.ir.desugar.FreshLocalProvider;
 import com.android.tools.r8.ir.desugar.LocalStackAllocator;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.apiconversion.DesugaredLibraryWrapperSynthesizerEventConsumer.DesugaredLibraryAPICallbackSynthesizorEventConsumer;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.apiconversion.DesugaredLibraryWrapperSynthesizerEventConsumer.DesugaredLibraryAPIConverterEventConsumer;
@@ -265,6 +267,7 @@ public class DesugaredLibraryConversionCfProvider {
   public Collection<CfInstruction> generateInlinedAPIConversion(
       CfInvoke invoke,
       MethodProcessingContext methodProcessingContext,
+      FreshLocalProvider freshLocalProvider,
       LocalStackAllocator localStackAllocator,
       CfInstructionDesugaringEventConsumer eventConsumer,
       ProgramMethod context) {
@@ -285,26 +288,34 @@ public class DesugaredLibraryConversionCfProvider {
             context,
             methodProcessingContext::createUniqueContext);
 
-    // If only the last 2 parameters require conversion, we do everything inlined.
-    // If other parameters require conversion, we outline the parameter conversion but keep the API
-    // call inlined.
-    // The returned value is always converted inlined.
-    boolean requireOutlinedParameterConversion = false;
-    for (int i = 0; i < parameterConversions.length - 2; i++) {
-      requireOutlinedParameterConversion |= parameterConversions[i] != null;
-    }
-
+    int parameterSize = invokedMethod.getParameters().size();
     ArrayList<CfInstruction> cfInstructions = new ArrayList<>();
-    if (requireOutlinedParameterConversion) {
-      addOutlineParameterConversionInstructions(
-          parameterConversions,
-          cfInstructions,
-          methodProcessingContext,
-          invokedMethod,
-          localStackAllocator,
-          eventConsumer);
-    } else {
-      addInlineParameterConversionInstructions(parameterConversions, cfInstructions);
+    if (parameterSize != 0) {
+      // If only the last 2 parameters require conversion, we do everything inlined.
+      // If other parameters require conversion, we outline the parameter conversion but keep the
+      // API
+      // call inlined. The returned value is always converted inlined.
+      boolean requireOutlinedParameterConversion = false;
+      for (int i = 0; i < parameterConversions.length - 2; i++) {
+        requireOutlinedParameterConversion |= parameterConversions[i] != null;
+      }
+      // We cannot use the swap instruction if the last parameter is wide.
+      requireOutlinedParameterConversion |=
+          invokedMethod.getParameters().get(parameterSize - 1).isWideType();
+
+      if (requireOutlinedParameterConversion) {
+        addOutlineParameterConversionInstructions(
+            parameterConversions,
+            cfInstructions,
+            methodProcessingContext,
+            invokedMethod,
+            freshLocalProvider,
+            localStackAllocator,
+            eventConsumer);
+      } else {
+        addInlineParameterConversionInstructions(
+            parameterConversions, cfInstructions, invokedMethod);
+      }
     }
 
     DexMethod convertedMethod =
@@ -325,6 +336,7 @@ public class DesugaredLibraryConversionCfProvider {
       ArrayList<CfInstruction> cfInstructions,
       MethodProcessingContext methodProcessingContext,
       DexMethod invokedMethod,
+      FreshLocalProvider freshLocalProvider,
       LocalStackAllocator localStackAllocator,
       CfInstructionDesugaringEventConsumer eventConsumer) {
     localStackAllocator.allocateLocalStack(4);
@@ -353,8 +365,10 @@ public class DesugaredLibraryConversionCfProvider {
     eventConsumer.acceptAPIConversion(parameterConversion);
     cfInstructions.add(
         new CfInvoke(Opcodes.INVOKESTATIC, parameterConversion.getReference(), false));
+    int arrayLocal = freshLocalProvider.getFreshLocal(ValueType.OBJECT.requiredRegisters());
+    cfInstructions.add(new CfStore(ValueType.OBJECT, arrayLocal));
     for (int i = 0; i < parameterConversions.length; i++) {
-      cfInstructions.add(new CfStackInstruction(Opcode.Dup));
+      cfInstructions.add(new CfLoad(ValueType.OBJECT, arrayLocal));
       cfInstructions.add(new CfConstNumber(i, ValueType.INT));
       DexType parameterType =
           parameterConversions[i] != null
@@ -368,9 +382,7 @@ public class DesugaredLibraryConversionCfProvider {
       } else {
         cfInstructions.add(new CfCheckCast(parameterType));
       }
-      cfInstructions.add(new CfStackInstruction(Opcode.Swap));
     }
-    cfInstructions.add(new CfStackInstruction(Opcode.Pop));
   }
 
   private CfCode computeParameterConversionCfCode(
@@ -399,15 +411,13 @@ public class DesugaredLibraryConversionCfProvider {
       stackIndex++;
     }
     cfInstructions.add(new CfReturn(ValueType.OBJECT));
-    return new CfCode(
-        holder,
-        invokedMethod.getParameters().size() + 4,
-        invokedMethod.getParameters().size(),
-        cfInstructions);
+    return new CfCode(holder, stackIndex + 4, stackIndex, cfInstructions);
   }
 
   private void addInlineParameterConversionInstructions(
-      DexMethod[] parameterConversions, ArrayList<CfInstruction> cfInstructions) {
+      DexMethod[] parameterConversions,
+      ArrayList<CfInstruction> cfInstructions,
+      DexMethod invokedMethod) {
     if (parameterConversions.length > 0
         && parameterConversions[parameterConversions.length - 1] != null) {
       cfInstructions.add(
@@ -416,6 +426,10 @@ public class DesugaredLibraryConversionCfProvider {
     }
     if (parameterConversions.length > 1
         && parameterConversions[parameterConversions.length - 2] != null) {
+      assert !invokedMethod
+          .getParameters()
+          .get(invokedMethod.getParameters().size() - 1)
+          .isWideType();
       cfInstructions.add(new CfStackInstruction(Opcode.Swap));
       cfInstructions.add(
           new CfInvoke(

@@ -88,6 +88,7 @@ public class DesugaredLibraryAPIConverter implements CfInstructionDesugaring {
       return rewriteLibraryInvoke(
           instruction.asInvoke(),
           methodProcessingContext,
+          freshLocalProvider,
           localStackAllocator,
           eventConsumer,
           context);
@@ -237,6 +238,7 @@ public class DesugaredLibraryAPIConverter implements CfInstructionDesugaring {
   private Collection<CfInstruction> rewriteLibraryInvoke(
       CfInvoke invoke,
       MethodProcessingContext methodProcessingContext,
+      FreshLocalProvider freshLocalProvider,
       LocalStackAllocator localStackAllocator,
       CfInstructionDesugaringEventConsumer eventConsumer,
       ProgramMethod context) {
@@ -257,7 +259,12 @@ public class DesugaredLibraryAPIConverter implements CfInstructionDesugaring {
     return wrapperSynthesizor
         .getConversionCfProvider()
         .generateInlinedAPIConversion(
-            invoke, methodProcessingContext, localStackAllocator, eventConsumer, context);
+            invoke,
+            methodProcessingContext,
+            freshLocalProvider,
+            localStackAllocator,
+            eventConsumer,
+            context);
   }
 
   // If the option is set, we try to outline API conversions as much as possible to reduce the
@@ -265,6 +272,9 @@ public class DesugaredLibraryAPIConverter implements CfInstructionDesugaring {
   // of soft verification failures. We cannot outline API conversions through super invokes, to
   // instance initializers and to non public methods.
   private boolean shouldOutlineAPIConversion(CfInvoke invoke, ProgramMethod context) {
+    if (appView.options().testing.forceInlineAPIConversions) {
+      return false;
+    }
     if (invoke.isInvokeSuper(context.getHolderType())) {
       return false;
     }
