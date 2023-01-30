@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.ir.desugar.itf;
 
+import static com.android.tools.r8.ir.desugar.itf.InterfaceMethodDesugaringEventConsumer.emptyInterfaceMethodDesugaringEventConsumer;
 
 import com.android.tools.r8.cf.CfVersion;
 import com.android.tools.r8.cf.code.CfInitClass;
@@ -35,11 +36,11 @@ import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.graph.MethodResolutionResult;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.ThrowNullCode;
-import com.android.tools.r8.ir.desugar.CfInstructionDesugaringEventConsumer;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.machinespecification.DerivedMethod;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.machinespecification.EmulatedDispatchMethodDescriptor;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.machinespecification.EmulatedInterfaceDescriptor;
 import com.android.tools.r8.ir.desugar.itf.EmulatedInterfaceSynthesizerEventConsumer.ClasspathEmulatedInterfaceSynthesizerEventConsumer;
+import com.android.tools.r8.ir.desugar.itf.EmulatedInterfaceSynthesizerEventConsumer.L8ProgramEmulatedInterfaceSynthesizerEventConsumer;
 import com.android.tools.r8.synthesis.SyntheticClassBuilder;
 import com.android.tools.r8.synthesis.SyntheticItems.SyntheticKindSelector;
 import com.android.tools.r8.synthesis.SyntheticMethodBuilder;
@@ -62,7 +63,7 @@ public class InterfaceDesugaringSyntheticHelper {
   // Use InterfaceDesugaringForTesting for public accesses in tests.
   static final String COMPANION_CLASS_NAME_SUFFIX = "$-CC";
   static final String DEFAULT_METHOD_PREFIX = "$default$";
-  static final String PRIVATE_METHOD_PREFIX = "$private$";
+  public static final String PRIVATE_METHOD_PREFIX = "$private$";
 
   private final AppView<?> appView;
   private final Predicate<DexType> shouldIgnoreFromReportsPredicate;
@@ -274,7 +275,35 @@ public class InterfaceDesugaringSyntheticHelper {
     return descriptor == null ? null : descriptor.getForwardingMethod();
   }
 
-  DexMethod ensureEmulatedInterfaceForwardingMethod(DerivedMethod method) {
+  /**
+   * In the {@link ClassProcessor}, we only conditionally add the synthesized methods to the program
+   * in {@link ClassProcessor#resolveForwardingMethods}. Therefore, we do not report the synthesis
+   * to the given {@param eventConsumer} at this point, as this would lead to over-reporting.
+   */
+  // TODO(b/267144253): Avoid over-synthesizing in the ClassProcessor. Then we should be able to
+  //  always report the synthesized method to the InterfaceProcessingDesugaringEventConsumer at this
+  //  point.
+  DexMethod ensureEmulatedInterfaceForwardingMethod(
+      DerivedMethod method, InterfaceProcessingDesugaringEventConsumer eventConsumer) {
+    return ensureEmulatedInterfaceForwardingMethod(
+        method, emptyInterfaceMethodDesugaringEventConsumer());
+  }
+
+  /**
+   * Forwarding methods synthesized by the {@link ProgramEmulatedInterfaceSynthesizer} are currently
+   * not reported to the {@link L8ProgramEmulatedInterfaceSynthesizerEventConsumer}, since we
+   * already report the entire synthetic class after all of its methods have been created to the
+   * event consumer in {@link
+   * ProgramEmulatedInterfaceSynthesizer#synthesizeProgramEmulatedInterface}.
+   */
+  DexMethod ensureEmulatedInterfaceForwardingMethod(
+      DerivedMethod method, L8ProgramEmulatedInterfaceSynthesizerEventConsumer eventConsumer) {
+    return ensureEmulatedInterfaceForwardingMethod(
+        method, emptyInterfaceMethodDesugaringEventConsumer());
+  }
+
+  DexMethod ensureEmulatedInterfaceForwardingMethod(
+      DerivedMethod method, InterfaceMethodDesugaringBaseEventConsumer eventConsumer) {
     if (method.getHolderKind(appView) == null) {
       return method.getMethod();
     }
@@ -284,7 +313,7 @@ public class InterfaceDesugaringSyntheticHelper {
             .appInfoForDesugaring()
             .resolveMethodLegacy(method.getMethod(), true)
             .getResolutionPair();
-    return ensureDefaultAsMethodOfCompanionClassStub(resolvedMethod).getReference();
+    return ensureDefaultAsMethodOfCompanionClassStub(resolvedMethod, eventConsumer).getReference();
   }
 
   DexClassAndMethod ensureEmulatedInterfaceDispatchMethod(
@@ -331,9 +360,25 @@ public class InterfaceDesugaringSyntheticHelper {
                     .setCode(ignore -> ThrowNullCode.get()));
   }
 
-  DexClassAndMethod ensureDefaultAsMethodOfCompanionClassStub(DexClassAndMethod method) {
+  /**
+   * In the {@link ClassProcessor}, we only conditionally add the synthesized methods to the program
+   * in {@link ClassProcessor#resolveForwardingMethods}. Therefore, we do not report the synthesis
+   * to the given {@param eventConsumer} at this point, as this would lead to over-reporting.
+   */
+  // TODO(b/267144253): Avoid over-synthesizing in the ClassProcessor. Then we should be able to
+  //  always report the synthesized method to the InterfaceProcessingDesugaringEventConsumer at this
+  //  point.
+  DexClassAndMethod ensureDefaultAsMethodOfCompanionClassStub(
+      DexClassAndMethod method, InterfaceProcessingDesugaringEventConsumer eventConsumer) {
+    return ensureDefaultAsMethodOfCompanionClassStub(
+        method, emptyInterfaceMethodDesugaringEventConsumer());
+  }
+
+  DexClassAndMethod ensureDefaultAsMethodOfCompanionClassStub(
+      DexClassAndMethod method, InterfaceMethodDesugaringBaseEventConsumer eventConsumer) {
     if (method.isProgramMethod()) {
-      return ensureDefaultAsMethodOfProgramCompanionClassStub(method.asProgramMethod());
+      return ensureDefaultAsMethodOfProgramCompanionClassStub(
+          method.asProgramMethod(), eventConsumer);
     }
     ClasspathOrLibraryClass context = method.getHolder().asClasspathOrLibraryClass();
     DexMethod companionMethodReference =
@@ -342,7 +387,7 @@ public class InterfaceDesugaringSyntheticHelper {
   }
 
   DexClassAndMethod ensureStaticAsMethodOfCompanionClassStub(
-      DexClassAndMethod method, CfInstructionDesugaringEventConsumer eventConsumer) {
+      DexClassAndMethod method, InterfaceMethodDesugaringBaseEventConsumer eventConsumer) {
     if (method.isProgramMethod()) {
       return ensureStaticAsMethodOfProgramCompanionClassStub(
           method.asProgramMethod(), eventConsumer);
@@ -353,7 +398,8 @@ public class InterfaceDesugaringSyntheticHelper {
     }
   }
 
-  ProgramMethod ensureDefaultAsMethodOfProgramCompanionClassStub(ProgramMethod method) {
+  ProgramMethod ensureDefaultAsMethodOfProgramCompanionClassStub(
+      ProgramMethod method, InterfaceMethodDesugaringBaseEventConsumer eventConsumer) {
     DexEncodedMethod virtual = method.getDefinition();
     DexMethod companionMethod =
         defaultAsMethodOfCompanionClass(method.getReference(), appView.dexItemFactory());
@@ -378,10 +424,11 @@ public class InterfaceDesugaringSyntheticHelper {
                   virtual.getParameterAnnotations().withFakeThisParameter())
               .setCode(ignored -> InvalidCode.getInstance());
         },
-        ignored -> {});
+        companion -> eventConsumer.acceptDefaultAsCompanionMethod(method, companion));
   }
 
-  ProgramMethod ensurePrivateAsMethodOfProgramCompanionClassStub(ProgramMethod method) {
+  ProgramMethod ensurePrivateAsMethodOfProgramCompanionClassStub(
+      ProgramMethod method, InterfaceMethodDesugaringBaseEventConsumer eventConsumer) {
     DexMethod companionMethod =
         privateAsMethodOfCompanionClass(method.getReference(), appView.dexItemFactory());
     DexEncodedMethod definition = method.getDefinition();
@@ -405,7 +452,7 @@ public class InterfaceDesugaringSyntheticHelper {
               .setParameterAnnotationsList(definition.getParameterAnnotations())
               .setCode(ignored -> InvalidCode.getInstance());
         },
-        ignored -> {});
+        companion -> eventConsumer.acceptPrivateAsCompanionMethod(method, companion));
   }
 
   // Represent a static interface method as a method of companion class.
@@ -490,7 +537,7 @@ public class InterfaceDesugaringSyntheticHelper {
               .disableAndroidApiLevelCheck()
               .setCode(ignored -> InvalidCode.getInstance());
         },
-        companion -> eventConsumer.acceptCompanionMethod(method, companion));
+        companion -> eventConsumer.acceptStaticAsCompanionMethod(method, companion));
   }
 
   public ProgramMethod ensureMethodOfProgramCompanionClassStub(
@@ -504,9 +551,9 @@ public class InterfaceDesugaringSyntheticHelper {
       return ensureStaticAsMethodOfProgramCompanionClassStub(method, eventConsumer);
     }
     if (definition.isPrivate()) {
-      return ensurePrivateAsMethodOfProgramCompanionClassStub(method);
+      return ensurePrivateAsMethodOfProgramCompanionClassStub(method, eventConsumer);
     }
-    return ensureDefaultAsMethodOfProgramCompanionClassStub(method);
+    return ensureDefaultAsMethodOfProgramCompanionClassStub(method, eventConsumer);
   }
 
   private void ensureCompanionClassInitializesInterface(

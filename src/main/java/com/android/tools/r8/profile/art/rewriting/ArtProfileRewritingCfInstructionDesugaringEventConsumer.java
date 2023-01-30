@@ -71,11 +71,6 @@ public class ArtProfileRewritingCfInstructionDesugaringEventConsumer
   }
 
   @Override
-  public void acceptCompanionMethod(ProgramMethod method, ProgramMethod companionMethod) {
-    parent.acceptCompanionMethod(method, companionMethod);
-  }
-
-  @Override
   public void acceptConstantDynamicClass(ConstantDynamicClass lambdaClass, ProgramMethod context) {
     parent.acceptConstantDynamicClass(lambdaClass, context);
   }
@@ -83,6 +78,11 @@ public class ArtProfileRewritingCfInstructionDesugaringEventConsumer
   @Override
   public void acceptCovariantRetargetMethod(ProgramMethod method) {
     parent.acceptCovariantRetargetMethod(method);
+  }
+
+  @Override
+  public void acceptDefaultAsCompanionMethod(ProgramMethod method, ProgramMethod companionMethod) {
+    parent.acceptDefaultAsCompanionMethod(method, companionMethod);
   }
 
   @Override
@@ -162,6 +162,13 @@ public class ArtProfileRewritingCfInstructionDesugaringEventConsumer
   }
 
   @Override
+  public void acceptPrivateAsCompanionMethod(ProgramMethod method, ProgramMethod companionMethod) {
+    additionsCollection.addRulesIfContextIsInProfile(
+        method, companionMethod, companionMethod.getHolder());
+    parent.acceptPrivateAsCompanionMethod(method, companionMethod);
+  }
+
+  @Override
   public void acceptRecordClass(DexProgramClass recordClass) {
     parent.acceptRecordClass(recordClass);
   }
@@ -169,6 +176,13 @@ public class ArtProfileRewritingCfInstructionDesugaringEventConsumer
   @Override
   public void acceptRecordMethod(ProgramMethod method) {
     parent.acceptRecordMethod(method);
+  }
+
+  @Override
+  public void acceptStaticAsCompanionMethod(ProgramMethod method, ProgramMethod companionMethod) {
+    additionsCollection.addRulesIfContextIsInProfile(
+        method, companionMethod, companionMethod.getHolder());
+    parent.acceptStaticAsCompanionMethod(method, companionMethod);
   }
 
   @Override

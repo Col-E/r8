@@ -40,11 +40,11 @@ public final class ProgramEmulatedInterfaceSynthesizer implements CfClassSynthes
     helper = new InterfaceDesugaringSyntheticHelper(appView);
   }
 
-  DexProgramClass synthesizeProgramEmulatedInterface(
+  private void synthesizeProgramEmulatedInterface(
       DexProgramClass emulatedInterface,
       EmulatedInterfaceDescriptor emulatedInterfaceDescriptor,
       L8ProgramEmulatedInterfaceSynthesizerEventConsumer eventConsumer) {
-    return appView
+    appView
         .getSyntheticItems()
         .ensureFixedClass(
             kinds -> kinds.EMULATED_INTERFACE_CLASS,
@@ -52,14 +52,15 @@ public final class ProgramEmulatedInterfaceSynthesizer implements CfClassSynthes
             appView,
             builder ->
                 synthesizeEmulateInterfaceMethods(
-                    emulatedInterface, emulatedInterfaceDescriptor, builder),
+                    emulatedInterface, emulatedInterfaceDescriptor, builder, eventConsumer),
             eventConsumer::acceptProgramEmulatedInterface);
   }
 
   private void synthesizeEmulateInterfaceMethods(
       DexProgramClass emulatedInterface,
       EmulatedInterfaceDescriptor emulatedInterfaceDescriptor,
-      SyntheticProgramClassBuilder builder) {
+      SyntheticProgramClassBuilder builder,
+      L8ProgramEmulatedInterfaceSynthesizerEventConsumer eventConsumer) {
     emulatedInterface.forEachProgramVirtualMethodMatching(
         m -> emulatedInterfaceDescriptor.getEmulatedMethods().containsKey(m.getReference()),
         method ->
@@ -69,22 +70,26 @@ public final class ProgramEmulatedInterfaceSynthesizer implements CfClassSynthes
                         method,
                         emulatedInterfaceDescriptor.getEmulatedMethods().get(method.getReference()),
                         builder.getType(),
-                        methodBuilder)));
+                        methodBuilder,
+                        eventConsumer)));
   }
 
   private void synthesizeEmulatedInterfaceMethod(
       ProgramMethod method,
       EmulatedDispatchMethodDescriptor descriptor,
       DexType dispatchType,
-      SyntheticMethodBuilder methodBuilder) {
+      SyntheticMethodBuilder methodBuilder,
+      L8ProgramEmulatedInterfaceSynthesizerEventConsumer eventConsumer) {
     assert !method.getDefinition().isStatic();
     DexMethod emulatedMethod =
         helper.emulatedInterfaceDispatchMethod(
             descriptor.getEmulatedDispatchMethod(), dispatchType);
     DexMethod itfMethod = helper.emulatedInterfaceInterfaceMethod(descriptor.getInterfaceMethod());
     DexMethod companionMethod =
-        helper.ensureEmulatedInterfaceForwardingMethod(descriptor.getForwardingMethod());
-    LinkedHashMap<DexType, DexMethod> extraDispatchCases = resolveDispatchCases(descriptor);
+        helper.ensureEmulatedInterfaceForwardingMethod(
+            descriptor.getForwardingMethod(), eventConsumer);
+    LinkedHashMap<DexType, DexMethod> extraDispatchCases =
+        resolveDispatchCases(descriptor, eventConsumer);
     methodBuilder
         .setName(emulatedMethod.getName())
         .setProto(emulatedMethod.getProto())
@@ -101,14 +106,16 @@ public final class ProgramEmulatedInterfaceSynthesizer implements CfClassSynthes
   }
 
   private LinkedHashMap<DexType, DexMethod> resolveDispatchCases(
-      EmulatedDispatchMethodDescriptor descriptor) {
+      EmulatedDispatchMethodDescriptor descriptor,
+      L8ProgramEmulatedInterfaceSynthesizerEventConsumer eventConsumer) {
     LinkedHashMap<DexType, DexMethod> extraDispatchCases = new LinkedHashMap<>();
     descriptor
         .getDispatchCases()
         .forEach(
             (type, derivedMethod) ->
                 extraDispatchCases.put(
-                    type, helper.ensureEmulatedInterfaceForwardingMethod(derivedMethod)));
+                    type,
+                    helper.ensureEmulatedInterfaceForwardingMethod(derivedMethod, eventConsumer)));
     return extraDispatchCases;
   }
 

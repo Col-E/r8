@@ -1584,13 +1584,27 @@ public class RootSetUtils {
             interfaceDesugaringSyntheticHelper.ensureMethodOfProgramCompanionClassStub(
                 method,
                 new InterfaceMethodDesugaringBaseEventConsumer() {
+
                   @Override
                   public void acceptCompanionClassClinit(ProgramMethod method) {
                     // No processing of synthesized CC.<clinit>. They will be picked up by tracing.
                   }
 
                   @Override
-                  public void acceptCompanionMethod(ProgramMethod method, ProgramMethod companion) {
+                  public void acceptDefaultAsCompanionMethod(
+                      ProgramMethod method, ProgramMethod companionMethod) {
+                    // The move will be included in the pending-inverse map below.
+                  }
+
+                  @Override
+                  public void acceptPrivateAsCompanionMethod(
+                      ProgramMethod method, ProgramMethod companion) {
+                    // The move will be included in the pending-inverse map below.
+                  }
+
+                  @Override
+                  public void acceptStaticAsCompanionMethod(
+                      ProgramMethod method, ProgramMethod companion) {
                     // The move will be included in the pending-inverse map below.
                   }
                 });

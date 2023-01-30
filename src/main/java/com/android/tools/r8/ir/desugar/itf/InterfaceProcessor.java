@@ -90,21 +90,22 @@ public final class InterfaceProcessor {
       return;
     }
     if (desugaringMode == EMULATED_INTERFACE_ONLY) {
-      processEmulatedInterfaceOnly(method);
+      processEmulatedInterfaceOnly(method, eventConsumer);
       return;
     }
     if (method.getDefinition().belongsToDirectPool()) {
       processDirectInterfaceMethod(method, eventConsumer);
     } else {
       assert method.getDefinition().belongsToVirtualPool();
-      processVirtualInterfaceMethod(method);
+      processVirtualInterfaceMethod(method, eventConsumer);
       if (!interfaceMethodRemovalChangesApi(method)) {
         getPostProcessingInterfaceInfo(method.getHolder()).setHasBridgesToRemove();
       }
     }
   }
 
-  private void processEmulatedInterfaceOnly(ProgramMethod method) {
+  private void processEmulatedInterfaceOnly(
+      ProgramMethod method, InterfaceMethodDesugaringBaseEventConsumer eventConsumer) {
     if (!appView.options().isDesugaredLibraryCompilation()) {
       return;
     }
@@ -115,7 +116,7 @@ public final class InterfaceProcessor {
       EmulatedDispatchMethodDescriptor emulatedDispatchDescriptor =
           helper.getEmulatedDispatchDescriptor(method.getHolder(), method);
       if (emulatedDispatchDescriptor != null) {
-        processVirtualInterfaceMethod(method);
+        processVirtualInterfaceMethod(method, eventConsumer);
         if (!interfaceMethodRemovalChangesApi(method)) {
           getPostProcessingInterfaceInfo(method.getHolder()).setHasBridgesToRemove();
         }
@@ -150,10 +151,12 @@ public final class InterfaceProcessor {
             newMethodCallback);
   }
 
-  private void processVirtualInterfaceMethod(ProgramMethod method) {
+  private void processVirtualInterfaceMethod(
+      ProgramMethod method, InterfaceMethodDesugaringBaseEventConsumer eventConsumer) {
     if (helper.isCompatibleDefaultMethod(method.getDefinition())) {
       // Create a new method in a companion class to represent default method implementation.
-      ProgramMethod companion = helper.ensureDefaultAsMethodOfProgramCompanionClassStub(method);
+      ProgramMethod companion =
+          helper.ensureDefaultAsMethodOfProgramCompanionClassStub(method, eventConsumer);
       finalizeMoveToCompanionMethod(method, companion);
     }
   }

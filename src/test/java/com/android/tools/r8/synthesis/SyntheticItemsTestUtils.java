@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.synthesis;
 
+import static com.android.tools.r8.ir.desugar.itf.InterfaceDesugaringSyntheticHelper.PRIVATE_METHOD_PREFIX;
 import static com.android.tools.r8.ir.desugar.nest.NestBasedAccessDesugaring.NEST_ACCESS_FIELD_GET_NAME_PREFIX;
 import static com.android.tools.r8.ir.desugar.nest.NestBasedAccessDesugaring.NEST_ACCESS_FIELD_PUT_NAME_PREFIX;
 import static com.android.tools.r8.ir.desugar.nest.NestBasedAccessDesugaring.NEST_ACCESS_METHOD_NAME_PREFIX;
@@ -202,6 +203,16 @@ public class SyntheticItemsTestUtils {
     return Reference.methodFromDescriptor(
         originalMethod.getHolderClass(),
         NEST_ACCESS_STATIC_METHOD_NAME_PREFIX + method.getName(),
+        originalMethod.getMethodDescriptor());
+  }
+
+  public static MethodReference syntheticPrivateInterfaceMethodAsCompanionMethod(Method method) {
+    MethodReference originalMethod = Reference.methodFromMethod(method);
+    ClassReference companionClassReference =
+        syntheticCompanionClass(originalMethod.getHolderClass());
+    return Reference.methodFromDescriptor(
+        companionClassReference,
+        PRIVATE_METHOD_PREFIX + method.getName(),
         originalMethod.getMethodDescriptor());
   }
 

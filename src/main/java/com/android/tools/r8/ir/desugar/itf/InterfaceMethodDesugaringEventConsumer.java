@@ -9,7 +9,46 @@ import com.android.tools.r8.graph.ProgramMethod;
 public interface InterfaceMethodDesugaringEventConsumer
     extends InterfaceMethodDesugaringBaseEventConsumer {
 
-  void acceptThrowMethod(ProgramMethod method, ProgramMethod context);
-
   void acceptInvokeStaticInterfaceOutliningMethod(ProgramMethod method, ProgramMethod context);
+
+  static EmptyInterfaceMethodDesugaringEventConsumer emptyInterfaceMethodDesugaringEventConsumer() {
+    return EmptyInterfaceMethodDesugaringEventConsumer.INSTANCE;
+  }
+
+  class EmptyInterfaceMethodDesugaringEventConsumer
+      implements InterfaceMethodDesugaringEventConsumer {
+
+    static EmptyInterfaceMethodDesugaringEventConsumer INSTANCE =
+        new EmptyInterfaceMethodDesugaringEventConsumer();
+
+    private EmptyInterfaceMethodDesugaringEventConsumer() {}
+
+    @Override
+    public void acceptCompanionClassClinit(ProgramMethod method) {
+      // Intentionally empty.
+    }
+
+    @Override
+    public void acceptDefaultAsCompanionMethod(
+        ProgramMethod method, ProgramMethod companionMethod) {
+      // Intentionally empty.
+    }
+
+    @Override
+    public void acceptInvokeStaticInterfaceOutliningMethod(
+        ProgramMethod method, ProgramMethod context) {
+      // Intentionally empty.
+    }
+
+    @Override
+    public void acceptPrivateAsCompanionMethod(
+        ProgramMethod method, ProgramMethod companionMethod) {
+      // Intentionally empty.
+    }
+
+    @Override
+    public void acceptStaticAsCompanionMethod(ProgramMethod method, ProgramMethod companionMethod) {
+      // Intentionally empty.
+    }
+  }
 }

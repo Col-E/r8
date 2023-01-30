@@ -415,7 +415,8 @@ final class ClassProcessor {
           new ReportingContext(
               clazz,
               clazz,
-              (context, missing) -> eventConsumer.warnMissingInterface(context, missing, helper)));
+              (context, missing) -> eventConsumer.warnMissingInterface(context, missing, helper)),
+          eventConsumer);
     }
   }
 
@@ -501,10 +502,14 @@ final class ClassProcessor {
 
   // The computation of a class information and the insertions of forwarding methods.
   private ClassInfo computeClassInfo(
-      DexClass clazz, ClassInfo superInfo, SignaturesInfo signatureInfo) {
+      DexClass clazz,
+      ClassInfo superInfo,
+      SignaturesInfo signatureInfo,
+      InterfaceProcessingDesugaringEventConsumer eventConsumer) {
     ImmutableList.Builder<DexClassAndMethod> additionalForwards = ImmutableList.builder();
     // First we deal with non-emulated interface desugaring.
-    resolveForwardingMethods(clazz, superInfo, signatureInfo.signatures, additionalForwards);
+    resolveForwardingMethods(
+        clazz, superInfo, signatureInfo.signatures, additionalForwards, eventConsumer);
     // Second we deal with emulated interface, if one method has override in the current class,
     // we resolve them, else we propagate the emulated interface info down.
     if (shouldResolveForwardingMethodsForEmulatedInterfaces(
@@ -513,7 +518,8 @@ final class ClassProcessor {
           clazz,
           superInfo,
           signatureInfo.emulatedInterfaceSignaturesToForward(),
-          additionalForwards);
+          additionalForwards,
+          eventConsumer);
       duplicateEmulatedInterfaces(clazz, signatureInfo.emulatedInterfaceInfo.emulatedInterfaces);
       return ClassInfo.create(superInfo, additionalForwards.build(), EmulatedInterfaceInfo.EMPTY);
     }
@@ -709,7 +715,8 @@ final class ClassProcessor {
       DexClass clazz,
       ClassInfo superInfo,
       MethodSignatures signatures,
-      Builder<DexClassAndMethod> additionalForwards) {
+      Builder<DexClassAndMethod> additionalForwards,
+      InterfaceProcessingDesugaringEventConsumer eventConsumer) {
     if (clazz.isProgramClass() && appView.isAlreadyLibraryDesugared(clazz.asProgramClass())) {
       return;
     }
@@ -722,14 +729,18 @@ final class ClassProcessor {
               additionalForwards.add(target);
               addForwardingMethod(target, forward, clazz);
             }
-          });
+          },
+          eventConsumer);
     }
   }
 
   // Looks up a method signature from the point of 'clazz', if it can dispatch to a default method
   // the 'addForward' call-back is called with the target of the forward.
   private void resolveForwardForSignature(
-      DexClass clazz, DexMethod method, BiConsumer<DexClassAndMethod, DexMethod> addForward) {
+      DexClass clazz,
+      DexMethod method,
+      BiConsumer<DexClassAndMethod, DexMethod> addForward,
+      InterfaceProcessingDesugaringEventConsumer eventConsumer) {
     AppInfoWithClassHierarchy appInfo = appView.appInfoForDesugaring();
     MethodResolutionResult resolutionResult = appInfo.resolveMethodOnLegacy(clazz, method);
     if (resolutionResult.isFailedResolution()
@@ -799,7 +810,9 @@ final class ClassProcessor {
     if (virtualDispatchTarget.isDefaultMethod()) {
       addForward.accept(
           virtualDispatchTarget,
-          helper.ensureDefaultAsMethodOfCompanionClassStub(virtualDispatchTarget).getReference());
+          helper
+              .ensureDefaultAsMethodOfCompanionClassStub(virtualDispatchTarget, eventConsumer)
+              .getReference());
       return;
     }
 
@@ -808,7 +821,7 @@ final class ClassProcessor {
             virtualDispatchTarget.getHolder(), virtualDispatchTarget);
     if (forwardingMethod != null) {
       DexMethod concreteForwardingMethod =
-          helper.ensureEmulatedInterfaceForwardingMethod(forwardingMethod);
+          helper.ensureEmulatedInterfaceForwardingMethod(forwardingMethod, eventConsumer);
       addForward.accept(virtualDispatchTarget, concreteForwardingMethod);
     }
   }
@@ -936,24 +949,34 @@ final class ClassProcessor {
     }
   }
 
-  private ClassInfo visitClassInfo(DexType type, ReportingContext context) {
+  private ClassInfo visitClassInfo(
+      DexType type,
+      ReportingContext context,
+      InterfaceProcessingDesugaringEventConsumer eventConsumer) {
     DexClass clazz = definitionOrNull(type, context);
-    return clazz == null ? ClassInfo.EMPTY : visitClassInfo(clazz, context);
+    return clazz == null ? ClassInfo.EMPTY : visitClassInfo(clazz, context, eventConsumer);
   }
 
-  private ClassInfo visitClassInfo(DexClass clazz, ReportingContext context) {
+  private ClassInfo visitClassInfo(
+      DexClass clazz,
+      ReportingContext context,
+      InterfaceProcessingDesugaringEventConsumer eventConsumer) {
     assert !clazz.isInterface();
     if (clazz.isLibraryClass()) {
       return ClassInfo.EMPTY;
     }
-    return reentrantComputeIfAbsent(classInfo, clazz, key -> visitClassInfoRaw(key, context));
+    return reentrantComputeIfAbsent(
+        classInfo, clazz, key -> visitClassInfoRaw(key, context, eventConsumer));
   }
 
-  private ClassInfo visitClassInfoRaw(DexClass clazz, ReportingContext context) {
+  private ClassInfo visitClassInfoRaw(
+      DexClass clazz,
+      ReportingContext context,
+      InterfaceProcessingDesugaringEventConsumer eventConsumer) {
     // We compute both library and class information, but one of them is empty, since a class is
     // a library class or is not, but cannot be both.
     ReportingContext thisContext = context.forClass(clazz);
-    ClassInfo superInfo = visitClassInfo(clazz.superType, thisContext);
+    ClassInfo superInfo = visitClassInfo(clazz.superType, thisContext, eventConsumer);
     SignaturesInfo signatures = visitLibraryClassInfo(clazz.superType);
     // The class may inherit emulated interface info from its program superclass if the latter
     // did not require to resolve the forwarding methods for emualted interfaces.
@@ -962,7 +985,7 @@ final class ClassProcessor {
     for (DexType iface : clazz.interfaces.values) {
       signatures = signatures.merge(visitInterfaceInfo(iface, thisContext));
     }
-    return computeClassInfo(clazz, superInfo, signatures);
+    return computeClassInfo(clazz, superInfo, signatures, eventConsumer);
   }
 
   private SignaturesInfo visitLibraryClassInfo(DexType type) {

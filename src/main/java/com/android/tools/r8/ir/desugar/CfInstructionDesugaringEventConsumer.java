@@ -126,7 +126,19 @@ public abstract class CfInstructionDesugaringEventConsumer
     }
 
     @Override
-    public void acceptCompanionMethod(ProgramMethod method, ProgramMethod companionMethod) {
+    public void acceptDefaultAsCompanionMethod(
+        ProgramMethod method, ProgramMethod companionMethod) {
+      // Intentionally empty. Methods are moved when processing the interface definition.
+    }
+
+    @Override
+    public void acceptPrivateAsCompanionMethod(
+        ProgramMethod method, ProgramMethod companionMethod) {
+      // Intentionally empty. Methods are moved when processing the interface definition.
+    }
+
+    @Override
+    public void acceptStaticAsCompanionMethod(ProgramMethod method, ProgramMethod companionMethod) {
       // Intentionally empty. Methods are moved when processing the interface definition.
     }
 
@@ -376,7 +388,19 @@ public abstract class CfInstructionDesugaringEventConsumer
     }
 
     @Override
-    public void acceptCompanionMethod(ProgramMethod method, ProgramMethod companionMethod) {
+    public void acceptDefaultAsCompanionMethod(
+        ProgramMethod method, ProgramMethod companionMethod) {
+      onCompanionMethodCallback.accept(method, companionMethod);
+    }
+
+    @Override
+    public void acceptPrivateAsCompanionMethod(
+        ProgramMethod method, ProgramMethod companionMethod) {
+      onCompanionMethodCallback.accept(method, companionMethod);
+    }
+
+    @Override
+    public void acceptStaticAsCompanionMethod(ProgramMethod method, ProgramMethod companionMethod) {
       onCompanionMethodCallback.accept(method, companionMethod);
     }
 

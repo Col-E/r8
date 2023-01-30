@@ -596,13 +596,13 @@ public final class InterfaceMethodRewriter implements CfInstructionDesugaring {
                 // This can be a private instance method call. Note that the referenced
                 // method is expected to be in the current class since it is private, but desugaring
                 // may move some methods or their code into other classes.
-                DexClassAndMethod companionMethodDefinition = null;
+                DexClassAndMethod companionMethodDefinition;
                 DexMethod companionMethod;
                 if (directTarget.getDefinition().isPrivateMethod()) {
                   if (directTarget.isProgramMethod()) {
                     companionMethodDefinition =
                         helper.ensurePrivateAsMethodOfProgramCompanionClassStub(
-                            directTarget.asProgramMethod());
+                            directTarget.asProgramMethod(), eventConsumer);
                     companionMethod = companionMethodDefinition.getReference();
                   } else {
                     // TODO(b/200938617): Why does this not create a stub on the class path?
@@ -610,11 +610,8 @@ public final class InterfaceMethodRewriter implements CfInstructionDesugaring {
                   }
                 } else {
                   companionMethodDefinition =
-                      helper.ensureDefaultAsMethodOfCompanionClassStub(directTarget);
+                      helper.ensureDefaultAsMethodOfCompanionClassStub(directTarget, eventConsumer);
                   companionMethod = companionMethodDefinition.getReference();
-                }
-                if (companionMethodDefinition != null) {
-                  acceptCompanionMethod(directTarget, companionMethodDefinition, eventConsumer);
                 }
                 return getInvokeStaticInstructions(companionMethod);
               })
@@ -637,8 +634,8 @@ public final class InterfaceMethodRewriter implements CfInstructionDesugaring {
                     dexItemFactory) -> {
                   // This is a invoke-direct call to a virtual method.
                   DexClassAndMethod companionMethod =
-                      helper.ensureDefaultAsMethodOfCompanionClassStub(virtualTarget);
-                  acceptCompanionMethod(virtualTarget, companionMethod, eventConsumer);
+                      helper.ensureDefaultAsMethodOfCompanionClassStub(
+                          virtualTarget, eventConsumer);
                   return getInvokeStaticInstructions(companionMethod.getReference());
                 })
             .build();
@@ -707,16 +704,6 @@ public final class InterfaceMethodRewriter implements CfInstructionDesugaring {
     }
   }
 
-  private void acceptCompanionMethod(
-      DexClassAndMethod method,
-      DexClassAndMethod companion,
-      InterfaceMethodDesugaringEventConsumer eventConsumer) {
-    assert method.isProgramMethod() == companion.isProgramMethod();
-    if (method.isProgramMethod()) {
-      eventConsumer.acceptCompanionMethod(method.asProgramMethod(), companion.asProgramMethod());
-    }
-  }
-
   private DesugarDescription rewriteInvokeSuper(CfInvoke invoke, ProgramMethod context) {
     DexMethod invokedMethod = invoke.getMethod();
     DexClass clazz = appView.definitionFor(invokedMethod.holder, context);
@@ -766,10 +753,8 @@ public final class InterfaceMethodRewriter implements CfInstructionDesugaring {
                   if (method.isProgramMethod()) {
                     ProgramMethod companionMethodDefinition =
                         helper.ensurePrivateAsMethodOfProgramCompanionClassStub(
-                            method.asProgramMethod());
+                            method.asProgramMethod(), eventConsumer);
                     companionMethod = companionMethodDefinition.getReference();
-                    eventConsumer.acceptCompanionMethod(
-                        method.asProgramMethod(), companionMethodDefinition);
                   } else {
                     companionMethod = helper.privateAsMethodOfCompanionClass(method);
                   }
@@ -793,8 +778,7 @@ public final class InterfaceMethodRewriter implements CfInstructionDesugaring {
                       amendDefaultMethod(context12.getHolder(), invokedMethod);
                   assert method.getReference() == amendedMethod;
                   DexClassAndMethod companionMethod =
-                      helper.ensureDefaultAsMethodOfCompanionClassStub(method);
-                  acceptCompanionMethod(method, companionMethod, eventConsumer);
+                      helper.ensureDefaultAsMethodOfCompanionClassStub(method, eventConsumer);
                   return getInvokeStaticInstructions(companionMethod.getReference());
                 })
             .build();
@@ -847,8 +831,8 @@ public final class InterfaceMethodRewriter implements CfInstructionDesugaring {
                       methodProcessingContext,
                       dexItemFactory) -> {
                     DexClassAndMethod companionTarget =
-                        helper.ensureDefaultAsMethodOfCompanionClassStub(superTarget);
-                    acceptCompanionMethod(superTarget, companionTarget, eventConsumer);
+                        helper.ensureDefaultAsMethodOfCompanionClassStub(
+                            superTarget, eventConsumer);
                     return getInvokeStaticInstructions(companionTarget.getReference());
                   })
               .build();
@@ -873,7 +857,8 @@ public final class InterfaceMethodRewriter implements CfInstructionDesugaring {
                 methodProcessingContext,
                 dexItemFactory) ->
                 getInvokeStaticInstructions(
-                    helper.ensureEmulatedInterfaceForwardingMethod(forwardingMethod)))
+                    helper.ensureEmulatedInterfaceForwardingMethod(
+                        forwardingMethod, eventConsumer)))
         .build();
   }
 

@@ -6,8 +6,10 @@ package com.android.tools.r8.profile.art.completeness;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assume.assumeTrue;
 
-import com.android.tools.r8.NeverInline;
+import com.android.tools.r8.NoVerticalClassMerging;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
@@ -15,6 +17,7 @@ import com.android.tools.r8.profile.art.model.ExternalArtProfile;
 import com.android.tools.r8.profile.art.utils.ArtProfileInspector;
 import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.synthesis.SyntheticItemsTestUtils;
+import com.android.tools.r8.utils.InternalOptions.InlinerOptions;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
@@ -23,9 +26,10 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameter;
 import org.junit.runners.Parameterized.Parameters;
+import org.objectweb.asm.Opcodes;
 
 @RunWith(Parameterized.class)
-public class MovedStaticInterfaceMethodProfileRewritingTest extends TestBase {
+public class MovedPrivateInterfaceMethodProfileRewritingTest extends TestBase {
 
   @Parameter(0)
   public TestParameters parameters;
@@ -36,17 +40,41 @@ public class MovedStaticInterfaceMethodProfileRewritingTest extends TestBase {
   }
 
   @Test
+  public void testJvm() throws Exception {
+    assumeTrue(parameters.isCfRuntime());
+    testForJvm()
+        .addProgramClasses(Main.class, A.class)
+        .addProgramClassFileData(getTransformedInterface())
+        .run(parameters.getRuntime(), Main.class)
+        .assertSuccessWithOutputLines("Hello, world!");
+  }
+
+  @Test
   public void testR8() throws Exception {
     testForR8(parameters.getBackend())
-        .addInnerClasses(getClass())
+        .addProgramClasses(Main.class, A.class)
+        .addProgramClassFileData(getTransformedInterface())
         .addKeepMainRule(Main.class)
         .addArtProfileForRewriting(getArtProfile())
-        .enableInliningAnnotations()
+        .addOptionsModification(InlinerOptions::disableInlining)
+        .enableNoVerticalClassMergingAnnotations()
         .setMinApi(parameters.getApiLevel())
         .compile()
         .inspectResidualArtProfile(this::inspect)
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines("Hello, world!");
+  }
+
+  private byte[] getTransformedInterface() throws Exception {
+    return transformer(I.class)
+        .setPrivate(I.class.getDeclaredMethod("m"))
+        .transformMethodInsnInMethod(
+            "bridge",
+            (opcode, owner, name, descriptor, isInterface, visitor) -> {
+              assertEquals(Opcodes.INVOKEINTERFACE, opcode);
+              visitor.visitMethodInsn(Opcodes.INVOKESPECIAL, owner, name, descriptor, isInterface);
+            })
+        .transform();
   }
 
   private ExternalArtProfile getArtProfile() throws Exception {
@@ -55,29 +83,33 @@ public class MovedStaticInterfaceMethodProfileRewritingTest extends TestBase {
         .build();
   }
 
-  private void inspect(ArtProfileInspector profileInspector, CodeInspector inspector) {
+  private void inspect(ArtProfileInspector profileInspector, CodeInspector inspector)
+      throws Exception {
     if (parameters.canUseDefaultAndStaticInterfaceMethods()) {
       ClassSubject iClassSubject = inspector.clazz(I.class);
       assertThat(iClassSubject, isPresent());
 
-      MethodSubject staticInterfaceMethodSubject = iClassSubject.uniqueMethodWithOriginalName("m");
-      assertThat(staticInterfaceMethodSubject, isPresent());
+      MethodSubject privateInterfaceMethodSubject = iClassSubject.uniqueMethodWithOriginalName("m");
+      assertThat(privateInterfaceMethodSubject, isPresent());
 
       profileInspector
-          .assertContainsMethodRule(staticInterfaceMethodSubject)
+          .assertContainsMethodRule(privateInterfaceMethodSubject)
           .assertContainsNoOtherRules();
     } else {
       ClassSubject companionClassSubject =
           inspector.clazz(SyntheticItemsTestUtils.syntheticCompanionClass(I.class));
       assertThat(companionClassSubject, isPresent());
 
-      MethodSubject staticInterfaceMethodSubject =
-          companionClassSubject.uniqueMethodWithOriginalName("m");
-      assertThat(staticInterfaceMethodSubject, isPresent());
+      MethodSubject privateInterfaceMethodSubject =
+          companionClassSubject.uniqueMethodWithOriginalName(
+              SyntheticItemsTestUtils.syntheticPrivateInterfaceMethodAsCompanionMethod(
+                      I.class.getDeclaredMethod("m"))
+                  .getMethodName());
+      assertThat(privateInterfaceMethodSubject, isPresent());
 
       profileInspector
           .assertContainsClassRule(companionClassSubject)
-          .assertContainsMethodRule(staticInterfaceMethodSubject)
+          .assertContainsMethodRule(privateInterfaceMethodSubject)
           .assertContainsNoOtherRules();
     }
   }
@@ -85,15 +117,21 @@ public class MovedStaticInterfaceMethodProfileRewritingTest extends TestBase {
   static class Main {
 
     public static void main(String[] args) {
-      I.m();
+      new A().bridge();
     }
   }
 
+  @NoVerticalClassMerging
   interface I {
 
-    @NeverInline
-    static void m() {
+    default void bridge() {
+      m(); // invoke-special
+    }
+
+    /*private*/ default void m() {
       System.out.println("Hello, world!");
     }
   }
+
+  static class A implements I {}
 }

@@ -9,5 +9,9 @@ public interface InterfaceMethodDesugaringBaseEventConsumer {
 
   void acceptCompanionClassClinit(ProgramMethod method);
 
-  void acceptCompanionMethod(ProgramMethod method, ProgramMethod companionMethod);
+  void acceptDefaultAsCompanionMethod(ProgramMethod method, ProgramMethod companionMethod);
+
+  void acceptPrivateAsCompanionMethod(ProgramMethod method, ProgramMethod companionMethod);
+
+  void acceptStaticAsCompanionMethod(ProgramMethod method, ProgramMethod companionMethod);
 }
