@@ -4,6 +4,7 @@
 package com.android.tools.r8.ir.desugar;
 
 import com.android.tools.r8.graph.DexClass;
+import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.DexClasspathClass;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
@@ -13,6 +14,8 @@ import com.android.tools.r8.ir.desugar.desugaredlibrary.apiconversion.DesugaredL
 import com.android.tools.r8.ir.desugar.desugaredlibrary.retargeter.DesugaredLibraryRetargeterSynthesizerEventConsumer.DesugaredLibraryRetargeterPostProcessingEventConsumer;
 import com.android.tools.r8.ir.desugar.itf.InterfaceDesugaringSyntheticHelper;
 import com.android.tools.r8.ir.desugar.itf.InterfaceProcessingDesugaringEventConsumer;
+import com.android.tools.r8.profile.art.rewriting.ArtProfileCollectionAdditions;
+import com.android.tools.r8.profile.art.rewriting.ArtProfileRewritingCfPostProcessingDesugaringEventConsumer;
 import com.android.tools.r8.shaking.Enqueuer.SyntheticAdditions;
 import com.android.tools.r8.utils.collections.ProgramMethodSet;
 import java.util.concurrent.ExecutionException;
@@ -33,11 +36,15 @@ public abstract class CfPostProcessingDesugaringEventConsumer
     return new D8CfPostProcessingDesugaringEventConsumer(methodProcessor, instructionDesugaring);
   }
 
-  public static R8PostProcessingDesugaringEventConsumer createForR8(
+  public static CfPostProcessingDesugaringEventConsumer createForR8(
       SyntheticAdditions additions,
+      ArtProfileCollectionAdditions artProfileCollectionAdditions,
       CfInstructionDesugaringCollection desugaring,
       BiConsumer<DexProgramClass, DexType> missingClassConsumer) {
-    return new R8PostProcessingDesugaringEventConsumer(additions, desugaring, missingClassConsumer);
+    CfPostProcessingDesugaringEventConsumer eventConsumer =
+        new R8PostProcessingDesugaringEventConsumer(additions, desugaring, missingClassConsumer);
+    return ArtProfileRewritingCfPostProcessingDesugaringEventConsumer.attach(
+        artProfileCollectionAdditions, eventConsumer);
   }
 
   public abstract void finalizeDesugaring() throws ExecutionException;
@@ -92,7 +99,18 @@ public abstract class CfPostProcessingDesugaringEventConsumer
     }
 
     @Override
-    public void acceptForwardingMethod(ProgramMethod method) {
+    public void acceptDesugaredLibraryRetargeterForwardingMethod(ProgramMethod method) {
+      addMethodToReprocess(method);
+    }
+
+    @Override
+    public void acceptInterfaceMethodDesugaringForwardingMethod(
+        ProgramMethod method, DexClassAndMethod baseMethod) {
+      addMethodToReprocess(method);
+    }
+
+    @Override
+    public void acceptThrowingMethod(ProgramMethod method, DexType errorType) {
       addMethodToReprocess(method);
     }
 
@@ -180,7 +198,18 @@ public abstract class CfPostProcessingDesugaringEventConsumer
     }
 
     @Override
-    public void acceptForwardingMethod(ProgramMethod method) {
+    public void acceptDesugaredLibraryRetargeterForwardingMethod(ProgramMethod method) {
+      additions.addLiveMethod(method);
+    }
+
+    @Override
+    public void acceptInterfaceMethodDesugaringForwardingMethod(
+        ProgramMethod method, DexClassAndMethod baseMethod) {
+      additions.addLiveMethod(method);
+    }
+
+    @Override
+    public void acceptThrowingMethod(ProgramMethod method, DexType errorType) {
       additions.addLiveMethod(method);
     }
 

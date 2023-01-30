@@ -113,7 +113,6 @@ import com.android.tools.r8.ir.desugar.CfInstructionDesugaringCollection;
 import com.android.tools.r8.ir.desugar.CfInstructionDesugaringEventConsumer;
 import com.android.tools.r8.ir.desugar.CfPostProcessingDesugaringCollection;
 import com.android.tools.r8.ir.desugar.CfPostProcessingDesugaringEventConsumer;
-import com.android.tools.r8.ir.desugar.CfPostProcessingDesugaringEventConsumer.R8PostProcessingDesugaringEventConsumer;
 import com.android.tools.r8.ir.desugar.LambdaClass;
 import com.android.tools.r8.ir.desugar.LambdaDescriptor;
 import com.android.tools.r8.ir.desugar.ProgramAdditions;
@@ -4562,9 +4561,10 @@ public class Enqueuer {
 
     assert workList.isEmpty();
 
-    R8PostProcessingDesugaringEventConsumer eventConsumer =
+    CfPostProcessingDesugaringEventConsumer eventConsumer =
         CfPostProcessingDesugaringEventConsumer.createForR8(
             syntheticAdditions,
+            artProfileCollectionAdditions,
             desugaring,
             (context, missing) ->
                 missingClassesBuilder.addNewMissingClassWithDesugarDiagnostic(

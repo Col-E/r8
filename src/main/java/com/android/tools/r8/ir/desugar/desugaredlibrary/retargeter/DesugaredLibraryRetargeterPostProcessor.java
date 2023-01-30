@@ -5,6 +5,7 @@ package com.android.tools.r8.ir.desugar.desugaredlibrary.retargeter;
 
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
+import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexLibraryClass;
 import com.android.tools.r8.graph.DexMethod;
@@ -136,7 +137,8 @@ public class DesugaredLibraryRetargeterPostProcessor implements CfPostProcessing
       if (clazz.lookupVirtualMethod(method) == null) {
         DexEncodedMethod newMethod = createForwardingMethod(itfMethod, descriptor, clazz);
         clazz.addVirtualMethod(newMethod);
-        eventConsumer.acceptForwardingMethod(new ProgramMethod(clazz, newMethod));
+        eventConsumer.acceptDesugaredLibraryRetargeterForwardingMethod(
+            new ProgramMethod(clazz, newMethod));
       }
     }
   }
@@ -148,8 +150,8 @@ public class DesugaredLibraryRetargeterPostProcessor implements CfPostProcessing
     // In desugared library, emulated interface methods can be overridden by retarget lib members.
     DexMethod forwardMethod = syntheticHelper.forwardingMethod(descriptor);
     assert forwardMethod != null && forwardMethod != target;
-    DexEncodedMethod resolvedMethod =
-        appView.appInfoForDesugaring().resolveMethodLegacy(target, true).getResolvedMethod();
+    DexClassAndMethod resolvedMethod =
+        appView.appInfoForDesugaring().resolveMethodLegacy(target, true).getResolutionPair();
     assert resolvedMethod != null;
     DexEncodedMethod desugaringForwardingMethod =
         DexEncodedMethod.createDesugaringForwardingMethod(

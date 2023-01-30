@@ -54,7 +54,7 @@ public class InterfaceMethodProcessorFacade implements CfPostProcessingDesugarin
         Iterables.filter(programClasses, (DexProgramClass clazz) -> shouldProcess(clazz, flavour)),
         clazz -> classProcessor.process(clazz, eventConsumer),
         executorService);
-    classProcessor.finalizeProcessing(eventConsumer);
+    classProcessor.finalizeProcessing(eventConsumer, executorService);
     interfaceProcessor.finalizeProcessing();
   }
 

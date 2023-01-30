@@ -1224,12 +1224,11 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
   }
 
   public static DexEncodedMethod createDesugaringForwardingMethod(
-      DexEncodedMethod target, DexClass clazz, DexMethod forwardMethod, DexItemFactory factory) {
-    DexMethod method = target.getReference();
+      DexClassAndMethod target, DexClass clazz, DexMethod forwardMethod, DexItemFactory factory) {
     assert forwardMethod != null;
     // New method will have the same name, proto, and also all the flags of the
     // default method, including bridge flag.
-    DexMethod newMethod = factory.createMethod(clazz.type, method.proto, method.name);
+    DexMethod newMethod = target.getReference().withHolder(clazz, factory);
     MethodAccessFlags newFlags = target.getAccessFlags().copy();
     // Some debuggers (like IntelliJ) automatically skip synthetic methods on single step.
     newFlags.setSynthetic();
@@ -1246,8 +1245,8 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
                 .setNonStaticSource(newMethod)
                 .setStaticTarget(forwardMethod, isInterfaceMethodReference)
                 .build())
-        .setApiLevelForDefinition(target.getApiLevelForDefinition())
-        .setApiLevelForCode(target.getApiLevelForCode())
+        .setApiLevelForDefinition(target.getDefinition().getApiLevelForDefinition())
+        .setApiLevelForCode(target.getDefinition().getApiLevelForCode())
         .build();
   }
 

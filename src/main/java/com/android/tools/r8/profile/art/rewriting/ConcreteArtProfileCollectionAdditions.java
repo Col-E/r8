@@ -5,8 +5,8 @@
 package com.android.tools.r8.profile.art.rewriting;
 
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.ProgramDefinition;
-import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.profile.art.ArtProfile;
 import com.android.tools.r8.profile.art.ArtProfileCollection;
 import com.android.tools.r8.profile.art.NonEmptyArtProfileCollection;
@@ -25,14 +25,14 @@ public class ConcreteArtProfileCollectionAdditions extends ArtProfileCollectionA
     assert !additionsCollection.isEmpty();
   }
 
-  void addRulesIfContextIsInProfile(ProgramMethod context, ProgramDefinition... definitions) {
+  void addRulesIfContextIsInProfile(DexClassAndMethod context, ProgramDefinition... definitions) {
     for (ArtProfileAdditions artProfileAdditions : additionsCollection) {
       artProfileAdditions.addRulesIfContextIsInProfile(context, definitions);
     }
   }
 
   // Specialization of the above method to avoid redundant varargs array creation.
-  void addRulesIfContextIsInProfile(ProgramMethod context, ProgramDefinition definition) {
+  void addRulesIfContextIsInProfile(DexClassAndMethod context, ProgramDefinition definition) {
     for (ArtProfileAdditions artProfileAdditions : additionsCollection) {
       artProfileAdditions.addRulesIfContextIsInProfile(context, definition);
     }

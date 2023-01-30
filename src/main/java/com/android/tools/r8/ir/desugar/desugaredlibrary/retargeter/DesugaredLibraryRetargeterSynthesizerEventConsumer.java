@@ -25,6 +25,6 @@ public interface DesugaredLibraryRetargeterSynthesizerEventConsumer {
       extends DesugaredLibraryRetargeterInstructionEventConsumer {
     void acceptInterfaceInjection(DexProgramClass clazz, DexClass newInterface);
 
-    void acceptForwardingMethod(ProgramMethod method);
+    void acceptDesugaredLibraryRetargeterForwardingMethod(ProgramMethod method);
   }
 }

@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.ir.desugar.itf;
 
+import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.DexClasspathClass;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
@@ -11,10 +12,13 @@ import com.android.tools.r8.graph.ProgramMethod;
 
 public interface InterfaceProcessingDesugaringEventConsumer {
 
-  void acceptForwardingMethod(ProgramMethod method);
+  void acceptInterfaceMethodDesugaringForwardingMethod(
+      ProgramMethod method, DexClassAndMethod baseMethod);
 
   void acceptEmulatedInterfaceMarkerInterface(
       DexProgramClass clazz, DexClasspathClass newInterface);
+
+  void acceptThrowingMethod(ProgramMethod method, DexType errorType);
 
   void warnMissingInterface(
       DexProgramClass context, DexType missing, InterfaceDesugaringSyntheticHelper helper);

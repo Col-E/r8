@@ -18,6 +18,7 @@ import com.android.tools.r8.graph.CfCode;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexClassAndMember;
 import com.android.tools.r8.graph.DexClassAndMethod;
+import com.android.tools.r8.graph.DexEncodedMember;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexLibraryClass;
@@ -39,8 +40,8 @@ import com.android.tools.r8.utils.ConsumerUtils;
 import com.android.tools.r8.utils.IterableUtils;
 import com.android.tools.r8.utils.MethodSignatureEquivalence;
 import com.android.tools.r8.utils.OptionalBool;
+import com.android.tools.r8.utils.ThreadUtils;
 import com.android.tools.r8.utils.WorkList;
-import com.android.tools.r8.utils.collections.ProgramMethodSet;
 import com.google.common.base.Equivalence.Wrapper;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableList.Builder;
@@ -55,6 +56,8 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
@@ -70,6 +73,74 @@ import org.objectweb.asm.Opcodes;
  * The traversal is lazy, starting from the unordered set of program classes.
  */
 final class ClassProcessor {
+
+  private abstract static class SyntheticMethodInfo {
+
+    private final ProgramMethod method;
+
+    SyntheticMethodInfo(ProgramMethod method) {
+      this.method = method;
+    }
+
+    ProgramMethod getMethod() {
+      return method;
+    }
+
+    boolean isForwardingMethodInfo() {
+      return false;
+    }
+
+    SyntheticForwardingMethodInfo asForwardingMethodInfo() {
+      return null;
+    }
+
+    SyntheticThrowingMethodInfo asThrowingMethodInfo() {
+      return null;
+    }
+  }
+
+  private static class SyntheticForwardingMethodInfo extends SyntheticMethodInfo {
+
+    private final DexClassAndMethod baseMethod;
+
+    SyntheticForwardingMethodInfo(ProgramMethod method, DexClassAndMethod baseMethod) {
+      super(method);
+      this.baseMethod = baseMethod;
+    }
+
+    DexClassAndMethod getBaseMethod() {
+      return baseMethod;
+    }
+
+    @Override
+    boolean isForwardingMethodInfo() {
+      return true;
+    }
+
+    @Override
+    SyntheticForwardingMethodInfo asForwardingMethodInfo() {
+      return this;
+    }
+  }
+
+  private static class SyntheticThrowingMethodInfo extends SyntheticMethodInfo {
+
+    private final DexType errorType;
+
+    SyntheticThrowingMethodInfo(ProgramMethod method, DexType errorType) {
+      super(method);
+      this.errorType = errorType;
+    }
+
+    DexType getErrorType() {
+      return errorType;
+    }
+
+    @Override
+    SyntheticThrowingMethodInfo asThrowingMethodInfo() {
+      return this;
+    }
+  }
 
   // Collection for method signatures that may cause forwarding methods to be created.
   private static class MethodSignatures {
@@ -370,7 +441,7 @@ final class ClassProcessor {
   private final Map<DexClass, SignaturesInfo> interfaceInfo = new ConcurrentHashMap<>();
 
   // Mapping from actual program classes to the synthesized forwarding methods to be created.
-  private final Map<DexProgramClass, ProgramMethodSet> newSyntheticMethods =
+  private final Map<DexProgramClass, Map<DexMethod, SyntheticMethodInfo>> newSyntheticMethods =
       new ConcurrentHashMap<>();
 
   // Mapping from actual program classes to the extra interfaces needed for emulated dispatch.
@@ -422,16 +493,30 @@ final class ClassProcessor {
 
   // We introduce forwarding methods only once all desugaring has been performed to avoid
   // confusing the look-up with inserted forwarding methods.
-  public void finalizeProcessing(InterfaceProcessingDesugaringEventConsumer eventConsumer) {
-    newSyntheticMethods.forEach(
-        (clazz, newForwardingMethods) -> {
-          List<ProgramMethod> sorted = new ArrayList<>(newForwardingMethods.toCollection());
-          sorted.sort(Comparator.comparing(ProgramMethod::getReference));
-          for (ProgramMethod method : sorted) {
-            clazz.addVirtualMethod(method.getDefinition());
-            eventConsumer.acceptForwardingMethod(method);
+  public void finalizeProcessing(
+      InterfaceProcessingDesugaringEventConsumer eventConsumer, ExecutorService executorService)
+      throws ExecutionException {
+    ThreadUtils.processMap(
+        newSyntheticMethods,
+        (clazz, infos) -> {
+          List<DexEncodedMethod> sortedDefinitions = new ArrayList<>(infos.size());
+          for (SyntheticMethodInfo info : infos.values()) {
+            sortedDefinitions.add(info.getMethod().getDefinition());
           }
-        });
+          sortedDefinitions.sort(Comparator.comparing(DexEncodedMember::getReference));
+          clazz.addVirtualMethods(sortedDefinitions);
+          for (DexEncodedMethod definition : sortedDefinitions) {
+            SyntheticMethodInfo info = infos.get(definition.getReference());
+            if (info.isForwardingMethodInfo()) {
+              eventConsumer.acceptInterfaceMethodDesugaringForwardingMethod(
+                  info.getMethod(), info.asForwardingMethodInfo().getBaseMethod());
+            } else {
+              eventConsumer.acceptThrowingMethod(
+                  info.getMethod(), info.asThrowingMethodInfo().getErrorType());
+            }
+          }
+        },
+        executorService);
     newExtraInterfaceSignatures.forEach(
         (clazz, extraInterfaceSignatures) -> {
           if (!extraInterfaceSignatures.isEmpty()) {
@@ -826,11 +911,20 @@ final class ClassProcessor {
     }
   }
 
-  // Construction of actual forwarding methods.
-  private void addSyntheticMethod(DexProgramClass clazz, DexEncodedMethod method) {
-    newSyntheticMethods
-        .computeIfAbsent(clazz, key -> ProgramMethodSet.create())
-        .createAndAdd(clazz, method);
+  private void addSyntheticForwardingMethod(ProgramMethod method, DexClassAndMethod baseMethod) {
+    SyntheticMethodInfo existingMethodInfo =
+        newSyntheticMethods
+            .computeIfAbsent(method.getHolder(), key -> new ConcurrentHashMap<>())
+            .put(method.getReference(), new SyntheticForwardingMethodInfo(method, baseMethod));
+    assert existingMethodInfo == null;
+  }
+
+  private void addSyntheticThrowingMethod(ProgramMethod method, DexType errorType) {
+    SyntheticMethodInfo existingMethodInfo =
+        newSyntheticMethods
+            .computeIfAbsent(method.getHolder(), key -> new ConcurrentHashMap<>())
+            .put(method.getReference(), new SyntheticThrowingMethodInfo(method, errorType));
+    assert existingMethodInfo == null;
   }
 
   private void addICCEThrowingMethod(DexMethod method, DexClass clazz) {
@@ -859,7 +953,7 @@ final class ClassProcessor {
                 createExceptionThrowingCfCode(newMethod, accessFlags, errorType, dexItemFactory))
             .disableAndroidApiLevelCheck()
             .build();
-    addSyntheticMethod(clazz.asProgramClass(), newEncodedMethod);
+    addSyntheticThrowingMethod(newEncodedMethod.asProgramMethod(clazz.asProgramClass()), errorType);
   }
 
   private static CfCode createExceptionThrowingCfCode(
@@ -907,12 +1001,12 @@ final class ClassProcessor {
     // In desugared library, emulated interface methods can be overridden by retarget lib members.
     DexEncodedMethod desugaringForwardingMethod =
         DexEncodedMethod.createDesugaringForwardingMethod(
-            target.getDefinition(), clazz, forwardMethod, dexItemFactory);
-    if (!target.isProgramDefinition()
-        || target.getDefinition().isLibraryMethodOverride().isTrue()) {
+            target, clazz, forwardMethod, dexItemFactory);
+    if (!target.isProgramMethod() || target.getDefinition().isLibraryMethodOverride().isTrue()) {
       desugaringForwardingMethod.setLibraryMethodOverride(OptionalBool.TRUE);
     }
-    addSyntheticMethod(clazz.asProgramClass(), desugaringForwardingMethod);
+    addSyntheticForwardingMethod(
+        desugaringForwardingMethod.asProgramMethod(clazz.asProgramClass()), target);
   }
 
   // Topological order traversal and its helpers.

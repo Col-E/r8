@@ -73,6 +73,9 @@ public class DefaultInterfaceMethodProfileRewritingTest extends TestBase {
       ClassSubject aClassSubject = inspector.clazz(A.class);
       assertThat(aClassSubject, isPresent());
 
+      ClassSubject bClassSubject = inspector.clazz(B.class);
+      assertThat(bClassSubject, isPresent());
+
       ClassSubject companionClassSubject =
           inspector.clazz(SyntheticItemsTestUtils.syntheticCompanionClass(I.class));
       assertThat(companionClassSubject, isPresent());
@@ -80,15 +83,24 @@ public class DefaultInterfaceMethodProfileRewritingTest extends TestBase {
       MethodSubject interfaceMethodSubject = iClassSubject.uniqueMethodWithOriginalName("m");
       assertThat(interfaceMethodSubject, isPresent());
 
-      MethodSubject implementationMethodSubject =
+      MethodSubject aForwardingMethodSubject =
           aClassSubject.method(interfaceMethodSubject.getFinalReference());
-      assertThat(implementationMethodSubject, isPresent());
+      assertThat(aForwardingMethodSubject, isPresent());
+
+      MethodSubject bForwardingMethodSubject =
+          bClassSubject.method(interfaceMethodSubject.getFinalReference());
+      assertThat(bForwardingMethodSubject, isPresent());
 
       MethodSubject movedMethodSubject = companionClassSubject.uniqueMethod();
       assertThat(movedMethodSubject, isPresent());
 
-      // TODO(b/265729283): Should also include the two methods from desugaring.
-      profileInspector.assertContainsMethodRule(interfaceMethodSubject);
+      profileInspector
+          .assertContainsClassRule(companionClassSubject)
+          .assertContainsMethodRules(
+              interfaceMethodSubject,
+              aForwardingMethodSubject,
+              bForwardingMethodSubject,
+              movedMethodSubject);
     }
 
     profileInspector.assertContainsNoOtherRules();

@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.profile.art.rewriting;
 
+import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
@@ -32,7 +33,7 @@ class ArtProfileAdditions {
     this.artProfile = artProfile;
   }
 
-  void addRulesIfContextIsInProfile(ProgramMethod context, ProgramDefinition... definitions) {
+  void addRulesIfContextIsInProfile(DexClassAndMethod context, ProgramDefinition... definitions) {
     ArtProfileMethodRule contextMethodRule = artProfile.getMethodRule(context.getReference());
     if (contextMethodRule != null) {
       for (ProgramDefinition definition : definitions) {
@@ -42,7 +43,7 @@ class ArtProfileAdditions {
   }
 
   // Specialization of the above method to avoid redundant varargs array creation.
-  void addRulesIfContextIsInProfile(ProgramMethod context, ProgramDefinition definition) {
+  void addRulesIfContextIsInProfile(DexClassAndMethod context, ProgramDefinition definition) {
     ArtProfileMethodRule contextMethodRule = artProfile.getMethodRule(context.getReference());
     if (contextMethodRule != null) {
       addRuleFromContext(definition, contextMethodRule, MethodRuleAdditionConfig.getDefault());
@@ -82,9 +83,11 @@ class ArtProfileAdditions {
             methodReference -> ArtProfileMethodRule.builder().setMethod(method.getReference()));
 
     // Setup the rule.
-    methodRuleBuilder.acceptMethodRuleInfoBuilder(
-        methodRuleInfoBuilder ->
-            config.configureMethodRuleInfo(methodRuleInfoBuilder, contextMethodRule));
+    synchronized (methodRuleBuilder) {
+      methodRuleBuilder.acceptMethodRuleInfoBuilder(
+          methodRuleInfoBuilder ->
+              config.configureMethodRuleInfo(methodRuleInfoBuilder, contextMethodRule));
+    }
   }
 
   ArtProfile createNewArtProfile() {

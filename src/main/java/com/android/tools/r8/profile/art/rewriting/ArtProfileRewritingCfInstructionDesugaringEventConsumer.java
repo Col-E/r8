@@ -82,6 +82,8 @@ public class ArtProfileRewritingCfInstructionDesugaringEventConsumer
 
   @Override
   public void acceptDefaultAsCompanionMethod(ProgramMethod method, ProgramMethod companionMethod) {
+    additionsCollection.addRulesIfContextIsInProfile(
+        method, companionMethod, companionMethod.getHolder());
     parent.acceptDefaultAsCompanionMethod(method, companionMethod);
   }
 
