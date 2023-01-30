@@ -296,10 +296,8 @@ public class PolicyScheduler {
         new NoDifferentApiReferenceLevel(appView),
         new NoIndirectRuntimeTypeChecks(appView, runtimeTypeCheckInfo),
         new NoWeakerAccessPrivileges(appView, immediateSubtypingInfo),
-        new PreventClassMethodAndDefaultMethodCollisions(appView, immediateSubtypingInfo));
-    if (appView.options().canHaveIssueWithInlinedMonitors()) {
-      builder.add(new NotTwoInitsWithMonitors());
-    }
+        new PreventClassMethodAndDefaultMethodCollisions(appView, immediateSubtypingInfo),
+        new NotTwoInitsWithMonitors(appView));
   }
 
   private static void addMultiClassPoliciesForMergingNonSyntheticClasses(

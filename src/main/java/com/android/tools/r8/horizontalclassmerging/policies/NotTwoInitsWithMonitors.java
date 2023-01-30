@@ -4,11 +4,18 @@
 
 package com.android.tools.r8.horizontalclassmerging.policies;
 
+import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.ProgramMethod;
 
 public class NotTwoInitsWithMonitors extends AtMostOneClassThatMatchesPolicy {
+
+  private final AppView<?> appView;
+
+  public NotTwoInitsWithMonitors(AppView<?> appView) {
+    this.appView = appView;
+  }
 
   @Override
   public boolean atMostOneOf(DexProgramClass clazz) {
@@ -24,5 +31,10 @@ public class NotTwoInitsWithMonitors extends AtMostOneClassThatMatchesPolicy {
   @Override
   public String getName() {
     return "NotTwoInitsWithMonitors";
+  }
+
+  @Override
+  public boolean shouldSkipPolicy() {
+    return !appView.options().canHaveIssueWithInlinedMonitors();
   }
 }
