@@ -65,6 +65,7 @@ public class BufferCovariantReturnTypeTest extends TestBase {
 
   @Test
   public void testR8() throws Exception {
+    parameters.assumeR8TestParameters();
     testForR8(parameters.getBackend())
         .addProgramFiles(JAR)
         .addKeepMainRule("buffercovariantreturntype.BufferCovariantReturnTypeMain")

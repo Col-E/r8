@@ -76,6 +76,7 @@ public class UpwardsInterfacePropagationToLibraryOrClasspathMethodTest extends T
 
   @Test
   public void testR8() throws Exception {
+    parameters.assumeR8TestParameters();
     testForR8(parameters.getBackend())
         .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.S))
         .apply(

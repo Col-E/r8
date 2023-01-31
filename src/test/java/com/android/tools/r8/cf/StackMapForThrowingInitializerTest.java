@@ -56,6 +56,7 @@ public class StackMapForThrowingInitializerTest extends TestBase {
 
   @Test
   public void testR8() throws Exception {
+    parameters.assumeR8TestParameters();
     testForR8(parameters.getBackend())
         .addProgramClassFileData(StackMapForThrowingInitializerTest$MainDump.dump())
         .addKeepClassAndMembersRules(Main.class)

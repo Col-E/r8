@@ -48,6 +48,7 @@ public class VirtualInvokePrivateTest extends TestBase implements Opcodes {
 
   @Test
   public void testR8() throws Exception {
+    parameters.assumeR8TestParameters();
     testForR8(parameters.getBackend())
         .addProgramClassFileData(transformInvokeSpecialToInvokeVirtual())
         .addKeepMainRule(TestRunner.class)

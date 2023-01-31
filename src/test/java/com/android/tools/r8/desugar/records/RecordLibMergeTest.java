@@ -43,6 +43,7 @@ public class RecordLibMergeTest extends TestBase {
 
   @Test
   public void testR8Merge() throws Exception {
+    parameters.assumeR8TestParameters();
     Path lib =
         testForR8(Backend.CF)
             .addProgramClassFileData(PROGRAM_DATA_LIB)

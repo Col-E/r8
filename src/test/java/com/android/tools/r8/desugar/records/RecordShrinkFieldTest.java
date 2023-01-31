@@ -62,6 +62,7 @@ public class RecordShrinkFieldTest extends TestBase {
 
   @Test
   public void testR8() throws Exception {
+    parameters.assumeR8TestParameters();
     testForR8(parameters.getBackend())
         .addProgramClassFileData(PROGRAM_DATA)
         .setMinApi(parameters.getApiLevel())
@@ -76,6 +77,7 @@ public class RecordShrinkFieldTest extends TestBase {
 
   @Test
   public void testR8CfThenDex() throws Exception {
+    parameters.assumeR8TestParameters();
     Path desugared =
         testForR8(Backend.CF)
             .addProgramClassFileData(PROGRAM_DATA)

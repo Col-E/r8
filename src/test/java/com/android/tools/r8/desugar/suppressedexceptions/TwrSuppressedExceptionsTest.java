@@ -4,7 +4,6 @@
 package com.android.tools.r8.desugar.suppressedexceptions;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.DesugarTestConfiguration;
 import com.android.tools.r8.TestBase;
@@ -13,7 +12,6 @@ import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.TestRuntime.CfVm;
 import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.examples.JavaExampleClassProxy;
-import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.IntBox;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
@@ -26,6 +24,8 @@ import java.util.stream.Collectors;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameter;
+import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
 public class TwrSuppressedExceptionsTest extends TestBase {
@@ -34,19 +34,16 @@ public class TwrSuppressedExceptionsTest extends TestBase {
   private static final String EXAMPLE = "examplesJava9/" + PKG;
   private final JavaExampleClassProxy MAIN = new JavaExampleClassProxy(EXAMPLE, PKG + ".TestClass");
 
-  private final TestParameters parameters;
+  @Parameter(0)
+  public TestParameters parameters;
 
-  @Parameterized.Parameters(name = "{0}")
+  @Parameters(name = "{0}")
   public static TestParametersCollection data() {
     return getTestParameters()
         .withCfRuntimesStartingFromIncluding(CfVm.JDK9)
         .withDexRuntimes()
         .withAllApiLevelsAlsoForCf()
         .build();
-  }
-
-  public TwrSuppressedExceptionsTest(TestParameters parameters) {
-    this.parameters = parameters;
   }
 
   public boolean runtimeHasSuppressedExceptionsSupport() {
@@ -58,14 +55,16 @@ public class TwrSuppressedExceptionsTest extends TestBase {
         || parameters.getDexRuntimeVersion().isNewerThanOrEqual(Version.V4_0_4);
   }
 
-  public boolean apiLevelHasSuppressedExceptionsSupport() {
-    return parameters
-        .getApiLevel()
-        .isGreaterThanOrEqualTo(apiLevelWithSuppressedExceptionsSupport());
+  public boolean apiLevelHasSuppressedExceptionsSupport(boolean isDesugaring) {
+    return !isDesugaring
+        || parameters
+            .getApiLevel()
+            .isGreaterThanOrEqualTo(apiLevelWithSuppressedExceptionsSupport());
   }
 
-  public boolean apiLevelHasTwrCloseResourceSupport() {
-    return parameters.getApiLevel().isGreaterThanOrEqualTo(apiLevelWithTwrCloseResourceSupport());
+  public boolean apiLevelHasTwrCloseResourceSupport(boolean isDesugaring) {
+    return !isDesugaring
+        || parameters.getApiLevel().isGreaterThanOrEqualTo(apiLevelWithTwrCloseResourceSupport());
   }
 
   public List<Path> getProgramInputs() {
@@ -86,8 +85,8 @@ public class TwrSuppressedExceptionsTest extends TestBase {
               hasInvokesTo(
                   clazz.uniqueMethodWithOriginalName("bar"),
                   "$closeResource",
-                  apiLevelHasTwrCloseResourceSupport() ? 4 : 0);
-              if (apiLevelHasSuppressedExceptionsSupport()) {
+                  apiLevelHasTwrCloseResourceSupport(true) ? 4 : 0);
+              if (apiLevelHasSuppressedExceptionsSupport(true)) {
                 hasInvokesTo(clazz.mainMethod(), "getSuppressed", 1);
               } else {
                 inspector.forAllClasses(
@@ -110,9 +109,7 @@ public class TwrSuppressedExceptionsTest extends TestBase {
 
   @Test
   public void testR8() throws Exception {
-    assumeTrue(
-        "R8 does not desugar CF so only run the high API variant.",
-        parameters.isDexRuntime() || parameters.getApiLevel().isGreaterThan(AndroidApiLevel.B));
+    parameters.assumeR8TestParameters();
     testForR8(parameters.getBackend())
         .addProgramFiles(getProgramInputs())
         .setMinApi(parameters.getApiLevel())
@@ -120,7 +117,7 @@ public class TwrSuppressedExceptionsTest extends TestBase {
         // TODO(b/214250388): Don't warn about AutoClosable in synthesized code.
         .apply(
             b -> {
-              if (!parameters.isCfRuntime() && !apiLevelHasTwrCloseResourceSupport()) {
+              if (!apiLevelHasTwrCloseResourceSupport(parameters.isDexRuntime())) {
                 b.addDontWarn(AutoCloseable.class);
               }
             })
@@ -138,7 +135,7 @@ public class TwrSuppressedExceptionsTest extends TestBase {
                             gets.increment(getInvokesTo(m, "getSuppressed").size());
                             adds.increment(getInvokesTo(m, "addSuppressed").size());
                           }));
-              if (apiLevelHasSuppressedExceptionsSupport()) {
+              if (apiLevelHasSuppressedExceptionsSupport(parameters.isDexRuntime())) {
                 hasInvokesTo(inspector.clazz(MAIN.typeName()).mainMethod(), "getSuppressed", 1);
                 assertEquals(1, gets.get());
                 assertEquals(1, adds.get());

@@ -4,7 +4,6 @@
 
 package com.android.tools.r8.desugar.records;
 
-import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.R8FullTestBuilder;
 import com.android.tools.r8.TestBase;
@@ -67,7 +66,7 @@ public class EmptyRecordAnnotationTest extends TestBase {
 
   @Test
   public void testR8() throws Exception {
-    assumeTrue(parameters.isDexRuntime() || isDefaultCfParameters());
+    parameters.assumeR8TestParameters();
     R8FullTestBuilder builder =
         testForR8(parameters.getBackend())
             .addProgramClassFileData(PROGRAM_DATA)

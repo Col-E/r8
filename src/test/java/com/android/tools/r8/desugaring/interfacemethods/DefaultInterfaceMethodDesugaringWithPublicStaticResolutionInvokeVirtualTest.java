@@ -88,6 +88,7 @@ public class DefaultInterfaceMethodDesugaringWithPublicStaticResolutionInvokeVir
 
   @Test
   public void testR8() throws Exception {
+    parameters.assumeR8TestParameters();
     checkResult(
         testForR8(parameters.getBackend())
             .addProgramClasses(getProgramClasses())

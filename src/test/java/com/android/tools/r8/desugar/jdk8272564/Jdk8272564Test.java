@@ -152,7 +152,7 @@ public class Jdk8272564Test extends TestBase {
 
   @Test
   public void testR8() throws Exception {
-    assumeTrue(parameters.isDexRuntime() || isDefaultCfParameters());
+    parameters.assumeR8TestParameters();
     // The R8 lens code rewriter rewrites to the code prior to fixing JDK-8272564.
     testForR8(parameters.getBackend())
         .addProgramFiles(Jdk8272564.jar())

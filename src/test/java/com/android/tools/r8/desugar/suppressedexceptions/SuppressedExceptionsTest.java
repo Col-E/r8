@@ -6,32 +6,29 @@ package com.android.tools.r8.desugar.suppressedexceptions;
 import static com.android.tools.r8.desugar.suppressedexceptions.TwrSuppressedExceptionsTest.getInvokesTo;
 import static com.android.tools.r8.desugar.suppressedexceptions.TwrSuppressedExceptionsTest.hasInvokesTo;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.DesugarTestConfiguration;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.ToolHelper.DexVm.Version;
-import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.IntBox;
 import com.android.tools.r8.utils.StringUtils;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameter;
+import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
 public class SuppressedExceptionsTest extends TestBase {
 
-  private final TestParameters parameters;
+  @Parameter(0)
+  public TestParameters parameters;
 
-  @Parameterized.Parameters(name = "{0}")
+  @Parameters(name = "{0}")
   public static TestParametersCollection data() {
     return getTestParameters().withAllRuntimes().withAllApiLevelsAlsoForCf().build();
-  }
-
-  public SuppressedExceptionsTest(TestParameters parameters) {
-    this.parameters = parameters;
   }
 
   public boolean runtimeHasSuppressedExceptionsSupport() {
@@ -43,10 +40,11 @@ public class SuppressedExceptionsTest extends TestBase {
         || parameters.getDexRuntimeVersion().isNewerThanOrEqual(Version.V4_0_4);
   }
 
-  public boolean apiLevelHasSuppressedExceptionsSupport() {
-    return parameters
-        .getApiLevel()
-        .isGreaterThanOrEqualTo(apiLevelWithSuppressedExceptionsSupport());
+  public boolean apiLevelHasSuppressedExceptionsSupport(boolean isDesugaring) {
+    return !isDesugaring
+        || parameters
+            .getApiLevel()
+            .isGreaterThanOrEqualTo(apiLevelWithSuppressedExceptionsSupport());
   }
 
   @Test
@@ -62,7 +60,7 @@ public class SuppressedExceptionsTest extends TestBase {
                 hasInvokesTo(
                     inspector.clazz(TestClass.class).uniqueMethodWithOriginalName("main"),
                     "getSuppressed",
-                    apiLevelHasSuppressedExceptionsSupport() ? 1 : 0))
+                    apiLevelHasSuppressedExceptionsSupport(true) ? 1 : 0))
         .inspectIf(
             DesugarTestConfiguration::isNotDesugared,
             inspector ->
@@ -74,9 +72,7 @@ public class SuppressedExceptionsTest extends TestBase {
 
   @Test
   public void testR8() throws Exception {
-    assumeTrue(
-        "R8 does not desugar CF so only run the high API variant.",
-        parameters.isDexRuntime() || parameters.getApiLevel().isGreaterThan(AndroidApiLevel.B));
+    parameters.assumeR8TestParameters();
     testForR8(parameters.getBackend())
         .addInnerClasses(SuppressedExceptionsTest.class)
         .setMinApi(parameters.getApiLevel())
@@ -89,7 +85,7 @@ public class SuppressedExceptionsTest extends TestBase {
               hasInvokesTo(
                   inspector.clazz(TestClass.class).uniqueMethodWithOriginalName("main"),
                   "getSuppressed",
-                  apiLevelHasSuppressedExceptionsSupport() ? 1 : 0);
+                  apiLevelHasSuppressedExceptionsSupport(parameters.isDexRuntime()) ? 1 : 0);
               IntBox gets = new IntBox(0);
               IntBox adds = new IntBox(0);
               inspector.forAllClasses(
@@ -99,7 +95,7 @@ public class SuppressedExceptionsTest extends TestBase {
                             gets.increment(getInvokesTo(m, "getSuppressed").size());
                             adds.increment(getInvokesTo(m, "addSuppressed").size());
                           }));
-              if (apiLevelHasSuppressedExceptionsSupport()) {
+              if (apiLevelHasSuppressedExceptionsSupport(parameters.isDexRuntime())) {
                 assertEquals(1, gets.get());
                 assertEquals(1, adds.get());
               } else {

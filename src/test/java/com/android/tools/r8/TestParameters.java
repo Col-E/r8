@@ -4,6 +4,7 @@
 package com.android.tools.r8;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assume.assumeTrue;
 
@@ -165,9 +166,23 @@ public class TestParameters {
     assertEquals(NoneRuntime.getInstance(), runtime);
   }
 
-  public void assumeR8TestParameters() {
+  public TestParameters assumeCfRuntime() {
+    assumeTrue(isCfRuntime());
+    return this;
+  }
+
+  public TestParameters assumeDexRuntime() {
+    assumeTrue(isDexRuntime());
+    return this;
+  }
+
+  public TestParameters assumeR8TestParameters() {
+    assertFalse(
+        "No need to use assumeR8TestParameters() when not using api levels for CF",
+        isCfRuntime() && apiLevel == null);
     assertTrue(apiLevel != null || representativeApiLevelForRuntime);
     assumeTrue(isDexRuntime() || representativeApiLevelForRuntime);
+    return this;
   }
 
   public DexVm.Version getDexRuntimeVersion() {

@@ -70,6 +70,7 @@ public class RetraceLambdaTest extends TestBase {
 
   @Test
   public void testEverythingInlined() throws Exception {
+    parameters.assumeR8TestParameters();
     testForR8(parameters.getBackend())
         .addInnerClasses(getClass())
         .addKeepMainRule(Main.class)
@@ -94,6 +95,7 @@ public class RetraceLambdaTest extends TestBase {
     assumeTrue(
         "Skip R8/CF for min-api > 1 (R8/CF does not desugar)",
         parameters.isDexRuntime() || parameters.getApiLevel().isEqualTo(AndroidApiLevel.B));
+    parameters.assumeR8TestParameters();
     testForR8(parameters.getBackend())
         .addInnerClasses(getClass())
         .addKeepMainRule(Main.class)

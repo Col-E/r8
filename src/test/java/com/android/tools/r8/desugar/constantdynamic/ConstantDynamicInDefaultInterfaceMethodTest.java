@@ -75,7 +75,6 @@ public class ConstantDynamicInDefaultInterfaceMethodTest extends TestBase {
   @Test
   public void testR8() throws Exception {
     parameters.assumeR8TestParameters();
-
     testForR8(parameters.getBackend())
         .addProgramClasses(MAIN_CLASS)
         .addProgramClassFileData(getTransformedClasses())

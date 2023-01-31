@@ -121,6 +121,7 @@ public class VirtualOverrideOfPrivateStaticMethodTest extends TestBase {
 
   @Test
   public void testR8() throws ExecutionException, CompilationFailedException, IOException {
+    parameters.assumeR8TestParameters();
     testForR8(parameters.getBackend())
         .addProgramClasses(CLASSES)
         .addKeepMainRule(Main.class)

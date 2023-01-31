@@ -16,16 +16,14 @@ import java.util.List;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameter;
 import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
 public class NestClassMergingTest extends TestBase {
 
-  public NestClassMergingTest(TestParameters parameters) {
-    this.parameters = parameters;
-  }
-
-  private final TestParameters parameters;
+  @Parameter(0)
+  public TestParameters parameters;
 
   private final String NEST_MAIN_CLASS = PACKAGE_NAME + "NestHostInlining";
   private final String NEST_SUBCLASS_MAIN_CLASS = PACKAGE_NAME + "NestHostInliningSubclasses";
@@ -44,7 +42,6 @@ public class NestClassMergingTest extends TestBase {
   public static TestParametersCollection data() {
     return getTestParameters()
         .withCfRuntimesStartingFromIncluding(CfVm.JDK11)
-        .withAllApiLevelsAlsoForCf()
         .build();
   }
 

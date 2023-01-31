@@ -58,6 +58,7 @@ public class ThreadLocalBackportTest extends DesugaredLibraryTestBase {
 
   @Test
   public void testR8() throws Exception {
+    parameters.assumeR8TestParameters();
     testForR8(parameters.getBackend())
         .addLibraryFiles(
             parameters.isCfRuntime()

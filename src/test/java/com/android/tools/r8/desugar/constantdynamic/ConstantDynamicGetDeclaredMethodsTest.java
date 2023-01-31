@@ -8,6 +8,7 @@ import static org.junit.Assume.assumeTrue;
 import com.android.tools.r8.DesugarTestConfiguration;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.TestRuntime.CfVm;
 import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.cf.CfVersion;
@@ -16,7 +17,6 @@ import com.android.tools.r8.utils.StringUtils;
 import java.io.IOException;
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Method;
-import java.util.List;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -29,9 +29,8 @@ public class ConstantDynamicGetDeclaredMethodsTest extends TestBase {
   @Parameter() public TestParameters parameters;
 
   @Parameters(name = "{0}")
-  public static List<Object[]> data() {
-    return buildParameters(
-        getTestParameters().withAllRuntimes().withAllApiLevelsAlsoForCf().build());
+  public static TestParametersCollection data() {
+    return getTestParameters().withAllRuntimes().withAllApiLevelsAlsoForCf().build();
   }
 
   private static final String EXPECTED_OUTPUT_WITH_METHOD_HANDLES =

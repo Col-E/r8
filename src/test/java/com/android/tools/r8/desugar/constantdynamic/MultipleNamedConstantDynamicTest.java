@@ -75,9 +75,7 @@ public class MultipleNamedConstantDynamicTest extends TestBase {
 
   @Test
   public void testR8() throws Exception {
-    assumeTrue(
-        parameters.getRuntime().isDex() || parameters.getApiLevel().isEqualTo(AndroidApiLevel.B));
-
+    parameters.assumeR8TestParameters();
     testForR8(parameters.getBackend())
         .addProgramClassFileData(getTransformedClasses())
         .setMinApi(parameters.getApiLevel())

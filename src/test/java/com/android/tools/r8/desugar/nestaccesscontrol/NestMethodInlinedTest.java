@@ -52,6 +52,7 @@ public class NestMethodInlinedTest extends TestBase {
 
   @Test
   public void testPvtMethodCallInlined() throws Exception {
+    parameters.assumeR8TestParameters();
     List<Path> toCompile = classesMatching("NestPvtMethodCallInlined");
     testForR8(parameters.getBackend())
         .addKeepMainRule(getMainClass("pvtCallInlined"))

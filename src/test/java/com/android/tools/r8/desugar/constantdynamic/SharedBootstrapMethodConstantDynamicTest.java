@@ -141,7 +141,7 @@ public class SharedBootstrapMethodConstantDynamicTest extends TestBase {
 
   @Test
   public void testR8Cf() {
-    assumeTrue(parameters.isCfRuntime() && parameters.getApiLevel().isEqualTo(AndroidApiLevel.B));
+    parameters.assumeCfRuntime().assumeR8TestParameters();
     assertThrows(
         CompilationFailedException.class,
         () ->
@@ -159,7 +159,7 @@ public class SharedBootstrapMethodConstantDynamicTest extends TestBase {
 
   @Test
   public void testR8Dex() throws Exception {
-    assumeTrue(parameters.isDexRuntime());
+    parameters.assumeDexRuntime();
     testForR8(parameters.getBackend())
         .addProgramClassFileData(getTransformedClasses())
         .addLibraryFiles(ToolHelper.getMostRecentAndroidJar())

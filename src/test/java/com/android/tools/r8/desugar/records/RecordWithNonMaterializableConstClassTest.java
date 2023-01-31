@@ -4,14 +4,18 @@
 
 package com.android.tools.r8.desugar.records;
 
+import com.android.tools.r8.R8FullTestBuilder;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.TestParametersCollection;
+import com.android.tools.r8.TestRuntime.CfVm;
 import com.android.tools.r8.utils.StringUtils;
 import java.nio.file.Path;
-import java.util.List;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameter;
+import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
 public class RecordWithNonMaterializableConstClassTest extends TestBase {
@@ -29,17 +33,16 @@ public class RecordWithNonMaterializableConstClassTest extends TestBase {
       String.format(EXPECTED_RESULT_FORMAT, "MyRecordWithConstClass", "theClass");
   private static final String EXPECTED_RESULT_R8 = String.format(EXPECTED_RESULT_FORMAT, "a", "a");
 
-  private final TestParameters parameters;
+  @Parameter(0)
+  public TestParameters parameters;
 
-  public RecordWithNonMaterializableConstClassTest(TestParameters parameters) {
-    this.parameters = parameters;
-  }
-
-  @Parameterized.Parameters(name = "{0}")
-  public static List<Object[]> data() {
-    // TODO(b/174431251): This should be replaced with .withCfRuntimes(start = jdk17).
-    return buildParameters(
-        getTestParameters().withDexRuntimes().withAllApiLevelsAlsoForCf().build());
+  @Parameters(name = "{0}")
+  public static TestParametersCollection data() {
+    return getTestParameters()
+        .withCfRuntimesStartingFromIncluding(CfVm.JDK17)
+        .withDexRuntimes()
+        .withAllApiLevelsAlsoForCf()
+        .build();
   }
 
   @Test
@@ -62,36 +65,42 @@ public class RecordWithNonMaterializableConstClassTest extends TestBase {
 
   @Test
   public void testR8() throws Exception {
+    parameters.assumeR8TestParameters();
     testForR8(parameters.getBackend())
         .addProgramClassFileData(PROGRAM_DATA)
         .addProgramClassFileData(EXTRA_DATA)
-        .setMinApi(parameters.getApiLevel())
-        .addKeepMainRule(MAIN_TYPE)
-        .addKeepRules("-keep class " + PRIVATE_CLASS_NAME)
+        .apply(this::configureR8)
         .compile()
         .run(parameters.getRuntime(), MAIN_TYPE)
         .assertSuccessWithOutput(EXPECTED_RESULT_R8);
   }
 
   @Test
-  public void testR8CfThenDex() throws Exception {
+  public void testR8CfThenRecompile() throws Exception {
+    parameters.assumeR8TestParameters();
     Path desugared =
         testForR8(Backend.CF)
             .addProgramClassFileData(PROGRAM_DATA)
             .addProgramClassFileData(EXTRA_DATA)
-            .setMinApi(parameters.getApiLevel())
-            .addKeepMainRule(MAIN_TYPE)
-            .addKeepRules("-keep class " + PRIVATE_CLASS_NAME)
             .addLibraryFiles(RecordTestUtils.getJdk15LibraryFiles(temp))
+            .apply(this::configureR8)
             .compile()
             .writeToZip();
     testForR8(parameters.getBackend())
         .addProgramFiles(desugared)
-        .setMinApi(parameters.getApiLevel())
-        .addKeepMainRule(MAIN_TYPE)
-        .addKeepRules("-keep class " + PRIVATE_CLASS_NAME)
+        .apply(this::configureR8)
         .compile()
         .run(parameters.getRuntime(), MAIN_TYPE)
         .assertSuccessWithOutput(EXPECTED_RESULT_R8);
+  }
+
+  private void configureR8(R8FullTestBuilder testBuilder) {
+    testBuilder
+        .addKeepMainRule(MAIN_TYPE)
+        .addKeepRules("-keep class " + PRIVATE_CLASS_NAME)
+        .setMinApi(parameters.getApiLevel())
+        .applyIf(
+            parameters.isCfRuntime(),
+            b -> b.addLibraryFiles(RecordTestUtils.getJdk15LibraryFiles(temp)));
   }
 }

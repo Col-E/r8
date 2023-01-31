@@ -71,6 +71,7 @@ public class ApiOutlineProfileRewritingTest extends TestBase {
 
   @Test
   public void testR8() throws Exception {
+    parameters.assumeR8TestParameters();
     testForR8(parameters.getBackend())
         .addProgramClasses(Main.class)
         .addLibraryClasses(LibraryClass.class)

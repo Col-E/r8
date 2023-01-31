@@ -49,6 +49,7 @@ public class RetraceInlineeWithNullCheckFollowingImplicitReceiverNullCheckTest e
 
   @Test
   public void testR8() throws Exception {
+    parameters.assumeR8TestParameters();
     testForR8(parameters.getBackend())
         .addInnerClasses(getClass())
         .addKeepMainRule(Caller.class)

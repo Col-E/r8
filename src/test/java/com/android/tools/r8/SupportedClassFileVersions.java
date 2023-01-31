@@ -45,6 +45,7 @@ public class SupportedClassFileVersions extends TestBase implements Opcodes {
 
   @Test
   public void testR8() throws Exception {
+    parameters.assumeR8TestParameters();
     testForR8(parameters.getBackend())
         .addProgramClassFileData(dump(version))
         .addKeepMainRule("Test")

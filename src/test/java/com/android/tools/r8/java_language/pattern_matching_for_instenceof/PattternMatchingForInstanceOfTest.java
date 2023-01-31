@@ -56,6 +56,7 @@ public class PattternMatchingForInstanceOfTest extends TestBase {
 
   @Test
   public void testR8() throws Exception {
+    parameters.assumeR8TestParameters();
     R8TestBuilder<?> builder =
         testForR8(parameters.getBackend())
             .addProgramFiles(JAR)

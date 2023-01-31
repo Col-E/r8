@@ -73,6 +73,7 @@ public abstract class AssertionConfigurationAssertionHandlerTestBase extends Tes
 
   @Test
   public void testR8() throws Exception {
+    parameters.assumeR8TestParameters();
     testForR8(parameters.getBackend())
         .addProgramClasses(getAssertionHandlerClasses())
         .addProgramClasses(getTestClasses())

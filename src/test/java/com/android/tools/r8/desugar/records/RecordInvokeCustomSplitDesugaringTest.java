@@ -67,6 +67,7 @@ public class RecordInvokeCustomSplitDesugaringTest extends TestBase {
 
   @Test
   public void testR8() throws Exception {
+    parameters.assumeR8TestParameters();
     Path desugared =
         testForD8(Backend.CF)
             .addProgramClassFileData(PROGRAM_DATA)

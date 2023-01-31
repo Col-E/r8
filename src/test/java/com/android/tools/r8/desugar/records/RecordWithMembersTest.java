@@ -58,6 +58,7 @@ public class RecordWithMembersTest extends TestBase {
 
   @Test
   public void testR8() throws Exception {
+    parameters.assumeR8TestParameters();
     R8FullTestBuilder builder =
         testForR8(parameters.getBackend())
             .addProgramClassFileData(PROGRAM_DATA)

@@ -65,6 +65,7 @@ public class EmptyRecordTest extends TestBase {
 
   @Test
   public void testR8() throws Exception {
+    parameters.assumeR8TestParameters();
     testForR8(parameters.getBackend())
         .addProgramClassFileData(PROGRAM_DATA)
         .addKeepMainRule(MAIN_TYPE)

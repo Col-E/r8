@@ -137,6 +137,7 @@ public class NestAttributesInDexTest extends NestAttributesInDexTestBase {
 
   @Test
   public void testR8NoKeep() throws Exception {
+    parameters.assumeR8TestParameters();
     assumeTrue(parameters.isDexRuntime() || isRuntimeWithNestSupport(parameters.asCfRuntime()));
     testForR8(parameters.getBackend())
         .addProgramClassFileData(getTransformedClasses())
@@ -155,6 +156,7 @@ public class NestAttributesInDexTest extends NestAttributesInDexTestBase {
 
   @Test
   public void testR8KeepHost() throws Exception {
+    parameters.assumeR8TestParameters();
     assumeTrue(parameters.isDexRuntime() || isRuntimeWithNestSupport(parameters.asCfRuntime()));
     testForR8(parameters.getBackend())
         .addProgramClassFileData(getTransformedClasses())
@@ -175,6 +177,7 @@ public class NestAttributesInDexTest extends NestAttributesInDexTestBase {
 
   @Test
   public void testR8KeepMembers() throws Exception {
+    parameters.assumeR8TestParameters();
     assumeTrue(parameters.isDexRuntime() || isRuntimeWithNestSupport(parameters.asCfRuntime()));
     testForR8(parameters.getBackend())
         .addProgramClassFileData(getTransformedClasses())
@@ -195,6 +198,7 @@ public class NestAttributesInDexTest extends NestAttributesInDexTestBase {
 
   @Test
   public void testR8KeepBoth() throws Exception {
+    parameters.assumeR8TestParameters();
     assumeTrue(parameters.isDexRuntime() || isRuntimeWithNestSupport(parameters.asCfRuntime()));
     testForR8(parameters.getBackend())
         .addProgramClassFileData(getTransformedClasses())

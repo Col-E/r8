@@ -4,19 +4,18 @@
 package com.android.tools.r8.desugar;
 
 import static com.android.tools.r8.ir.desugar.itf.InterfaceDesugaringForTesting.getCompanionClassNameSuffix;
-import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.DesugarTestConfiguration;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
-import com.android.tools.r8.utils.AndroidApiLevel;
 import com.google.common.collect.ImmutableList;
 import java.util.List;
 import java.util.concurrent.Callable;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
 public class DesugarInnerClassesInInterfaces extends TestBase {
@@ -32,7 +31,7 @@ public class DesugarInnerClassesInInterfaces extends TestBase {
           WithLocalInner.class.getName() + getCompanionClassNameSuffix(),
           "true");
 
-  @Parameterized.Parameters(name = "{0}")
+  @Parameters(name = "{0}")
   public static TestParametersCollection data() {
     return getTestParameters().withAllRuntimes().withAllApiLevelsAlsoForCf().build();
   }
@@ -64,7 +63,7 @@ public class DesugarInnerClassesInInterfaces extends TestBase {
 
   @Test
   public void testR8Compat() throws Exception {
-    assumeTrue(parameters.isDexRuntime() || parameters.getApiLevel() == AndroidApiLevel.B);
+    parameters.assumeR8TestParameters();
     testForR8Compat(parameters.getBackend())
         .addInnerClasses(DesugarInnerClassesInInterfaces.class)
         .setMinApi(parameters.getApiLevel())
@@ -81,7 +80,7 @@ public class DesugarInnerClassesInInterfaces extends TestBase {
 
   @Test
   public void testR8Full() throws Exception {
-    assumeTrue(parameters.isDexRuntime() || parameters.getApiLevel() == AndroidApiLevel.B);
+    parameters.assumeR8TestParameters();
     testForR8(parameters.getBackend())
         .addInnerClasses(DesugarInnerClassesInInterfaces.class)
         .setMinApi(parameters.getApiLevel())

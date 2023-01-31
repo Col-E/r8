@@ -101,6 +101,7 @@ public class LambdaEqualityTest extends TestBase {
 
   @Test
   public void testR8() throws Exception {
+    parameters.assumeR8TestParameters();
     testForR8(parameters.getBackend())
         .addInnerClasses(LambdaEqualityTest.class)
         .setMinApi(parameters.getApiLevel())

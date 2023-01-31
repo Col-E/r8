@@ -101,6 +101,7 @@ public class LambdaMethodsWithModifiedAccessTest extends TestBase {
   //     || (implHandle.type.isInvokeDirect() && isPublicizedInstanceMethod(target));
   @Test(expected = CompilationFailedException.class)
   public void testR8() throws Exception {
+    parameters.assumeR8TestParameters();
     testForR8(parameters.getBackend())
         .addProgramClasses(TestClass.class)
         .addProgramClassFileData(getTransformedLambdaTest())

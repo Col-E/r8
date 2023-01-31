@@ -85,6 +85,7 @@ public class InvokeSuperInDefaultMethodResolvingToLibraryTest extends TestBase {
 
   @Test
   public void testR8() throws Exception {
+    parameters.assumeR8TestParameters();
     testForR8(parameters.getBackend())
         .addInnerClasses(getClass())
         .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.T))
@@ -104,6 +105,7 @@ public class InvokeSuperInDefaultMethodResolvingToLibraryTest extends TestBase {
 
   @Test
   public void testR8WithApiLevelCheck() throws Exception {
+    parameters.assumeR8TestParameters();
     testForR8(parameters.getBackend())
         .addInnerClasses(getClass())
         .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.T))

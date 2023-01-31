@@ -40,6 +40,7 @@ public class AndroidJarSv2Test extends TestBase {
 
   @Test
   public void testR8() throws Exception {
+    parameters.assumeR8TestParameters();
     testForR8(parameters.getBackend())
         .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.Sv2))
         .addInnerClasses(getClass())

@@ -43,6 +43,7 @@ public class VerticalClassMergerIndirectReflectiveNameTest extends TestBase {
 
   @Test
   public void testR8() throws Exception {
+    parameters.assumeR8TestParameters();
     testForR8(parameters.getBackend())
         .addProgramClasses(Main.class, A.class, B.class)
         .addKeepMainRule(Main.class)

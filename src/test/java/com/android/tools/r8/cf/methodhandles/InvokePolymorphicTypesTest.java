@@ -4,14 +4,12 @@
 package com.android.tools.r8.cf.methodhandles;
 
 import static org.hamcrest.CoreMatchers.containsString;
-import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.references.Reference;
-import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.StringUtils;
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
@@ -78,7 +76,7 @@ public class InvokePolymorphicTypesTest extends TestBase {
 
   @Test
   public void testR8() throws Exception {
-    assumeTrue(parameters.isDexRuntime() || parameters.getApiLevel().equals(AndroidApiLevel.B));
+    parameters.assumeR8TestParameters();
     boolean hasCompileSupport =
         parameters.isCfRuntime()
             || parameters

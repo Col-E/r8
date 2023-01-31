@@ -7,7 +7,6 @@ package com.android.tools.r8.desugar.staticinterfacemethod;
 import static com.android.tools.r8.desugar.staticinterfacemethod.InvokeStaticInterfaceNestedTest.Library.foo;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.DesugarTestConfiguration;
@@ -18,7 +17,6 @@ import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.TestRunResult;
 import com.android.tools.r8.TestRuntime.CfVm;
 import com.android.tools.r8.ToolHelper.DexVm.Version;
-import com.android.tools.r8.utils.AndroidApiLevel;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -84,8 +82,8 @@ public class InvokeStaticInterfaceNestedTest extends TestBase {
 
   @Test
   public void testR8() throws Exception {
-    assumeTrue(parameters.isDexRuntime() || parameters.getApiLevel() == AndroidApiLevel.B);
-    final R8FullTestBuilder testBuilder =
+    parameters.assumeR8TestParameters();
+    R8FullTestBuilder testBuilder =
         testForR8(parameters.getBackend())
             .addProgramClassFileData(
                 rewriteToUseNonInterfaceMethodReference(Main.class, "main"),

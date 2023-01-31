@@ -64,6 +64,7 @@ public class NestLambdaJava17Test extends TestBase {
 
   @Test
   public void testR8() throws Exception {
+    parameters.assumeR8TestParameters();
     testForR8(parameters.getBackend())
         .addProgramFiles(JDK17_JAR)
         .applyIf(

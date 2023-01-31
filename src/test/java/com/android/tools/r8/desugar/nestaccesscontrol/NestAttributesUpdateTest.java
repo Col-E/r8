@@ -27,16 +27,14 @@ import com.android.tools.r8.utils.codeinspector.FoundClassSubject;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameter;
 import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
 public class NestAttributesUpdateTest extends TestBase {
 
-  public NestAttributesUpdateTest(TestParameters parameters) {
-    this.parameters = parameters;
-  }
-
-  private final TestParameters parameters;
+  @Parameter(0)
+  public TestParameters parameters;
 
   private final String MERGING_OUTER_CLASS = "BasicNestHostClassMerging";
   private final String PRUNING_OUTER_CLASS = "BasicNestHostTreePruning";
@@ -47,7 +45,6 @@ public class NestAttributesUpdateTest extends TestBase {
   public static TestParametersCollection data() {
     return getTestParameters()
         .withCfRuntimesStartingFromIncluding(CfVm.JDK11)
-        .withAllApiLevelsAlsoForCf()
         .build();
   }
 

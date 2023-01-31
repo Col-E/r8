@@ -71,6 +71,7 @@ public class AssertionConfigurationAssertionHandlerMissingClassTest extends Test
 
   @Test
   public void testR8() throws Exception {
+    parameters.assumeR8TestParameters();
     testForR8(parameters.getBackend())
         .addProgramClasses(MAIN_CLASS)
         .addKeepMainRule(MAIN_CLASS)

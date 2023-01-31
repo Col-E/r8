@@ -25,6 +25,8 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameter;
+import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
 public class DesugarLambdaWithAnonymousClass extends TestBase {
@@ -38,16 +40,13 @@ public class DesugarLambdaWithAnonymousClass extends TestBase {
               + " lambda$test$0$com-android-tools-r8-desugar-DesugarLambdaWithAnonymousClass$TestClass",
           "Hello from inside lambda$testStatic$1");
 
-  @Parameterized.Parameters(name = "{0}")
+  @Parameters(name = "{0}")
   public static TestParametersCollection data() {
     return getTestParameters().withAllRuntimes().withAllApiLevelsAlsoForCf().build();
   }
 
-  private final TestParameters parameters;
-
-  public DesugarLambdaWithAnonymousClass(TestParameters parameters) {
-    this.parameters = parameters;
-  }
+  @Parameter(0)
+  public TestParameters parameters;
 
   static class Counter {
     private int count = 0;
@@ -112,6 +111,7 @@ public class DesugarLambdaWithAnonymousClass extends TestBase {
 
   @Test
   public void testR8() throws Exception {
+    parameters.assumeR8TestParameters();
     try {
       testForR8(parameters.getBackend())
           .addInnerClasses(DesugarLambdaWithAnonymousClass.class)

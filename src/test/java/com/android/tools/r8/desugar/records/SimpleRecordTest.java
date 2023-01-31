@@ -10,15 +10,17 @@ import com.android.tools.r8.GlobalSyntheticsConsumer;
 import com.android.tools.r8.R8FullTestBuilder;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.TestRuntime.CfVm;
 import com.android.tools.r8.synthesis.globals.GlobalSyntheticsTestingConsumer;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.StringUtils;
 import java.nio.file.Path;
-import java.util.List;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameter;
+import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
 public class SimpleRecordTest extends TestBase {
@@ -29,22 +31,15 @@ public class SimpleRecordTest extends TestBase {
   private static final String EXPECTED_RESULT =
       StringUtils.lines("Jane Doe", "42", "Jane Doe", "42");
 
-  private final TestParameters parameters;
+  @Parameter(0)
+  public TestParameters parameters;
 
-  public SimpleRecordTest(TestParameters parameters) {
-    this.parameters = parameters;
+  @Parameters(name = "{0}")
+  public static TestParametersCollection data() {
+    return getTestParameters().withAllRuntimes().withAllApiLevelsAlsoForCf().build();
   }
 
-  @Parameterized.Parameters(name = "{0}")
-  public static List<Object[]> data() {
-    return buildParameters(
-        getTestParameters()
-            .withAllRuntimes()
-            .withAllApiLevelsAlsoForCf()
-            .build());
-  }
-
-  private boolean isCfWithNativeRecordSupport() {
+  private boolean isCfRuntimeWithNativeRecordSupport() {
     return parameters.isCfRuntime()
         && parameters.asCfRuntime().isNewerThanOrEqual(CfVm.JDK14)
         && parameters.getApiLevel().equals(AndroidApiLevel.B);
@@ -52,7 +47,7 @@ public class SimpleRecordTest extends TestBase {
 
   @Test
   public void testReference() throws Exception {
-    assumeTrue(isCfWithNativeRecordSupport());
+    assumeTrue(isCfRuntimeWithNativeRecordSupport());
     testForJvm()
         .addProgramClassFileData(PROGRAM_DATA)
         .run(parameters.getRuntime(), MAIN_TYPE)
@@ -122,7 +117,8 @@ public class SimpleRecordTest extends TestBase {
 
   @Test
   public void testR8() throws Exception {
-    assumeTrue(parameters.isDexRuntime() || isCfWithNativeRecordSupport());
+    parameters.assumeR8TestParameters();
+    assumeTrue(parameters.isDexRuntime() || isCfRuntimeWithNativeRecordSupport());
     R8FullTestBuilder builder =
         testForR8(parameters.getBackend())
             .addProgramClassFileData(PROGRAM_DATA)
@@ -148,7 +144,8 @@ public class SimpleRecordTest extends TestBase {
 
   @Test
   public void testR8NoMinification() throws Exception {
-    assumeTrue(parameters.isDexRuntime() || isCfWithNativeRecordSupport());
+    parameters.assumeR8TestParameters();
+    assumeTrue(parameters.isDexRuntime() || isCfRuntimeWithNativeRecordSupport());
     R8FullTestBuilder builder =
         testForR8(parameters.getBackend())
             .addProgramClassFileData(PROGRAM_DATA)

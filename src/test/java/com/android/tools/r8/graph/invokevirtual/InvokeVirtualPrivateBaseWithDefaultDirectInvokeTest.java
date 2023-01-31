@@ -56,7 +56,7 @@ public class InvokeVirtualPrivateBaseWithDefaultDirectInvokeTest extends TestBas
 
   @Test
   public void testR8() throws Exception {
-    assumeTrue(parameters.isDexRuntime() || isDefaultCfParameters());
+    parameters.assumeR8TestParameters();
     testForR8(parameters.getBackend())
         .addInnerClasses(getClass())
         .addKeepMainRule(Main.class)
