@@ -86,6 +86,21 @@ public class BackportPlatformTest extends TestBase {
         .compileWithExpectedDiagnostics(this::checkDiagnostics);
   }
 
+  @Test
+  public void testPlatformDefinitionD8() throws Exception {
+    testForD8(parameters.getBackend())
+        .apply(b -> b.getBuilder().setAndroidPlatformBuild(true))
+        .addOptionsModification(o -> o.disableBackportsWithErrorDiagnostics = true)
+        .addProgramClasses(CLASSES)
+        .addProgramClassFileData(
+            transformer(BooleanDefinition.class)
+                .setClassDescriptor("Ljava/lang/Boolean;")
+                .transform())
+        .setMinApi(parameters.getApiLevel())
+        .run(parameters.getRuntime(), TestClass.class)
+        .assertSuccessWithOutput(EXPECTED);
+  }
+
   private void checkDiagnostics(TestDiagnosticMessages diagnostics) {
     diagnostics
         .assertAllErrorsMatch(
@@ -95,6 +110,14 @@ public class BackportPlatformTest extends TestBase {
                     containsString("int java.lang.Boolean.compare(boolean, boolean)")),
                 diagnosticPosition(PositionMatcher.positionMethodName("testBooleanCompare"))))
         .assertOnlyErrors();
+  }
+
+  // Implementation of java.lang.Boolean.compare to test no error is triggered for
+  // compilation units "defining" the backport method.
+  public static class BooleanDefinition {
+    public int compare(boolean a, boolean b) {
+      return (a ? 1 : 0) - (b ? 1 : 0);
+    }
   }
 
   static class User {

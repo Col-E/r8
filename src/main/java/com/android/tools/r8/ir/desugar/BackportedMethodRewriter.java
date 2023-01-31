@@ -168,11 +168,19 @@ public final class BackportedMethodRewriter implements CfInstructionDesugaring {
     }
     if (provider != null && appView.options().disableBackports) {
       if (appView.options().disableBackportsWithErrorDiagnostics) {
-        appView
-            .reporter()
-            .error(
-                new BackportDiagnostic(
-                    provider.method, context.getOrigin(), MethodPosition.create(context)));
+        // If the provided backport is defined on a holder that is part of the program compilation
+        // unit, assume that the compilation is the defining instance and no backport is needed.
+        DexClass clazz =
+            appView
+                .contextIndependentDefinitionForWithResolutionResult(provider.method.holder)
+                .toSingleClassWithProgramOverLibrary();
+        if (!clazz.isProgramDefinition()) {
+          appView
+              .reporter()
+              .error(
+                  new BackportDiagnostic(
+                      provider.method, context.getOrigin(), MethodPosition.create(context)));
+        }
       }
       return null;
     }
