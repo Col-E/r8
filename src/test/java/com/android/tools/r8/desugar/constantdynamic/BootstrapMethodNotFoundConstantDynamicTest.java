@@ -71,7 +71,7 @@ public class BootstrapMethodNotFoundConstantDynamicTest extends TestBase {
 
   @Test
   public void testR8() throws Exception {
-    assumeTrue(parameters.isDexRuntime() || parameters.getApiLevel().isEqualTo(AndroidApiLevel.B));
+    parameters.assumeR8TestParameters();
 
     testForR8(parameters.getBackend())
         .addProgramClassFileData(getTransformedClasses())

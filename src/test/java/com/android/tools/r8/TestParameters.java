@@ -5,6 +5,7 @@ package com.android.tools.r8;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.TestBase.Backend;
 import com.android.tools.r8.TestRuntime.CfRuntime;
@@ -20,15 +21,22 @@ public class TestParameters {
 
   private final TestRuntime runtime;
   private final AndroidApiLevel apiLevel;
+  private final boolean representativeApiLevelForRuntime;
 
   public TestParameters(TestRuntime runtime) {
     this(runtime, null);
   }
 
   public TestParameters(TestRuntime runtime, AndroidApiLevel apiLevel) {
+    this(runtime, apiLevel, true);
+  }
+
+  public TestParameters(
+      TestRuntime runtime, AndroidApiLevel apiLevel, boolean representativeApiLevelForRuntime) {
     assert runtime != null;
     this.runtime = runtime;
     this.apiLevel = apiLevel;
+    this.representativeApiLevelForRuntime = representativeApiLevelForRuntime;
   }
 
   public static TestParametersBuilder builder() {
@@ -155,6 +163,11 @@ public class TestParameters {
 
   public void assertNoneRuntime() {
     assertEquals(NoneRuntime.getInstance(), runtime);
+  }
+
+  public void assumeR8TestParameters() {
+    assertTrue(apiLevel != null || representativeApiLevelForRuntime);
+    assumeTrue(isDexRuntime() || representativeApiLevelForRuntime);
   }
 
   public DexVm.Version getDexRuntimeVersion() {

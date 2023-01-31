@@ -9,6 +9,7 @@ import com.android.tools.r8.TestRuntime.DexRuntime;
 import com.android.tools.r8.TestRuntime.NoneRuntime;
 import com.android.tools.r8.ToolHelper.DexVm;
 import com.android.tools.r8.utils.AndroidApiLevel;
+import com.android.tools.r8.utils.BooleanBox;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
@@ -312,7 +313,15 @@ public class TestParametersBuilder {
               set.add(explicitApiLevel);
             }
           }
-          return set.stream().map(api -> new TestParameters(runtime, api));
+          BooleanBox representativeApiLevelForRuntime = new BooleanBox(true);
+          return set.stream()
+              .map(
+                  api -> {
+                    TestParameters parameters =
+                        new TestParameters(runtime, api, representativeApiLevelForRuntime.get());
+                    representativeApiLevelForRuntime.unset();
+                    return parameters;
+                  });
         }
       }
     }
