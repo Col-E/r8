@@ -793,11 +793,12 @@ public abstract class EnqueuerWorklist {
 
     @Override
     void enqueue(EnqueuerAction action) {
-      throw attemptToEnqueue();
+      throw attemptToEnqueue("EnqueuerAction " + action);
     }
 
-    private Unreachable attemptToEnqueue() {
-      throw new Unreachable("Attempt to enqueue an action in a non pushable enqueuer work list.");
+    private Unreachable attemptToEnqueue(String msg) {
+      throw new Unreachable(
+          "Attempt to enqueue an action in a non pushable enqueuer work list (" + msg + ")");
     }
 
     @Override
@@ -809,20 +810,18 @@ public abstract class EnqueuerWorklist {
     @Override
     void enqueueMarkReachableDirectAction(
         DexMethod method, ProgramDefinition context, KeepReason reason) {
-      throw attemptToEnqueue();
+      throw attemptToEnqueue("MarkReachableDirectAction " + method + " from " + context);
     }
 
     @Override
     void enqueueMarkReachableSuperAction(DexMethod method, ProgramMethod from) {
-
-      throw attemptToEnqueue();
+      throw attemptToEnqueue("MarkReachableSuperAction " + method + " from " + from);
     }
 
     @Override
     public void enqueueMarkFieldAsReachableAction(
         ProgramField field, ProgramDefinition context, KeepReason reason) {
-
-      throw attemptToEnqueue();
+      throw attemptToEnqueue("MarkFieldAsReachableAction " + field + " from " + context);
     }
 
     @Override
@@ -831,20 +830,17 @@ public abstract class EnqueuerWorklist {
         ProgramMethod context,
         InstantiationReason instantiationReason,
         KeepReason keepReason) {
-
-      throw attemptToEnqueue();
+      throw attemptToEnqueue("MarkInstantiatedAction " + clazz + " from " + context);
     }
 
     @Override
     void enqueueMarkAnnotationInstantiatedAction(DexProgramClass clazz, KeepReasonWitness reason) {
-
-      throw attemptToEnqueue();
+      throw attemptToEnqueue("MarkAnnotationInstantiatedAction " + clazz);
     }
 
     @Override
     void enqueueMarkInterfaceInstantiatedAction(DexProgramClass clazz, KeepReasonWitness reason) {
-
-      throw attemptToEnqueue();
+      throw attemptToEnqueue("MarkInterfaceInstantiatedAction " + clazz);
     }
 
     @Override
@@ -853,82 +849,79 @@ public abstract class EnqueuerWorklist {
       if (!enqueuer.addLiveMethod(method, reason)) {
         return false;
       }
-      throw attemptToEnqueue();
+      throw attemptToEnqueue("MarkMethodLiveAction " + method + " from " + context);
     }
 
     @Override
     void enqueueMarkMethodKeptAction(ProgramMethod method, KeepReason reason) {
-
-      throw attemptToEnqueue();
+      throw attemptToEnqueue("MarkMethodKeptAction " + method);
     }
 
     @Override
     void enqueueMarkFieldKeptAction(ProgramField field, KeepReasonWitness witness) {
-
-      throw attemptToEnqueue();
+      throw attemptToEnqueue("MarkFieldKeptAction " + field);
     }
 
     @Override
     void enqueueTraceAnnotationAction(
         ProgramDefinition annotatedItem, DexAnnotation annotation, AnnotatedKind annotatedKind) {
-      throw attemptToEnqueue();
+      throw attemptToEnqueue("TraceAnnotationAction " + annotation + " from " + annotatedItem);
     }
 
     @Override
     public void enqueueTraceCodeAction(ProgramMethod method) {
-
-      throw attemptToEnqueue();
+      throw attemptToEnqueue("TraceCodeAction " + method);
     }
 
     @Override
     public void enqueueTraceConstClassAction(
         DexType type, ProgramMethod context, boolean ignoreCompatRules) {
-      throw attemptToEnqueue();
+      throw attemptToEnqueue("TraceConstClassAction " + type + " from " + context);
     }
 
     @Override
     public void enqueueTraceDirectAndIndirectClassInitializers(DexProgramClass clazz) {
-      throw attemptToEnqueue();
+      throw attemptToEnqueue("TraceDirectAndIndirectClassInitializers " + clazz);
     }
 
     @Override
     public void enqueueTraceInvokeDirectAction(DexMethod invokedMethod, ProgramMethod context) {
-      throw attemptToEnqueue();
+      throw attemptToEnqueue("TraceInvokeDirectAction " + invokedMethod + " from " + context);
     }
 
     @Override
     public void enqueueTraceInvokeStaticAction(DexMethod invokedMethod, ProgramMethod context) {
-      throw attemptToEnqueue();
+      throw attemptToEnqueue("TraceInvokeStaticAction " + invokedMethod + " from " + context);
     }
 
     @Override
     public void enqueueTraceNewInstanceAction(DexType type, ProgramMethod context) {
-      throw attemptToEnqueue();
+      throw attemptToEnqueue("TraceNewInstanceAction " + type + " from " + context);
     }
 
     @Override
     public void enqueueTraceReflectiveFieldAccessAction(ProgramField field, ProgramMethod context) {
-      throw attemptToEnqueue();
+      throw attemptToEnqueue("TraceReflectiveFieldAccessAction " + field + " from " + context);
     }
 
     @Override
     public void enqueueTraceReflectiveFieldReadAction(ProgramField field, ProgramMethod context) {
-      throw attemptToEnqueue();
+      throw attemptToEnqueue("TraceReflectiveFieldReadAction " + field + " from " + context);
     }
 
     @Override
     public void enqueueTraceReflectiveFieldWriteAction(ProgramField field, ProgramMethod context) {
-      throw attemptToEnqueue();
+      throw attemptToEnqueue("TraceReflectiveFieldWriteAction " + field + " from " + context);
     }
 
     @Override
     public void enqueueTraceStaticFieldRead(DexField field, ProgramMethod context) {
-      throw attemptToEnqueue();
+      throw attemptToEnqueue("TraceStaticFieldRead " + field + " from " + context);
     }
 
     @Override
     public void enqueueTraceTypeReferenceAction(DexProgramClass clazz, KeepReason reason) {
-      throw attemptToEnqueue();
+      throw attemptToEnqueue("TraceTypeReferenceAction " + clazz);
     }
   }
 }
