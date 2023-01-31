@@ -4,16 +4,14 @@
 
 package com.android.tools.r8.experimental.startup;
 
+import static com.android.tools.r8.utils.ConsumerUtils.emptyConsumer;
+
 import com.android.tools.r8.experimental.startup.profile.StartupItem;
 import com.android.tools.r8.experimental.startup.profile.StartupProfile;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.origin.PathOrigin;
 import com.android.tools.r8.profile.art.ArtProfileBuilderUtils.SyntheticToSyntheticContextGeneralization;
-import com.android.tools.r8.profile.art.ArtProfileClassRuleInfo;
-import com.android.tools.r8.profile.art.ArtProfileMethodRuleInfo;
-import com.android.tools.r8.profile.art.ArtProfileRulePredicate;
-import com.android.tools.r8.references.ClassReference;
-import com.android.tools.r8.references.MethodReference;
+import com.android.tools.r8.profile.art.HumanReadableArtProfileParserBuilder;
 import com.android.tools.r8.startup.StartupProfileBuilder;
 import com.android.tools.r8.startup.StartupProfileProvider;
 import com.android.tools.r8.startup.diagnostic.MissingStartupProfileItemsDiagnostic;
@@ -22,33 +20,23 @@ import com.android.tools.r8.utils.UTF8TextInputStream;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.file.Path;
+import java.util.function.Consumer;
 
 public class StartupProfileProviderUtils {
 
   public static StartupProfileProvider createFromHumanReadableArtProfile(Path path) {
+    return createFromHumanReadableArtProfile(path, emptyConsumer());
+  }
+
+  public static StartupProfileProvider createFromHumanReadableArtProfile(
+      Path path, Consumer<HumanReadableArtProfileParserBuilder> parserBuilderConsumer) {
     return new StartupProfileProvider() {
 
       @Override
       public void getStartupProfile(StartupProfileBuilder startupProfileBuilder) {
         try {
           startupProfileBuilder.addHumanReadableArtProfile(
-              new UTF8TextInputStream(path),
-              profileParserBuilder ->
-                  profileParserBuilder.setRulePredicate(
-                      new ArtProfileRulePredicate() {
-                        @Override
-                        public boolean testClassRule(
-                            ClassReference classReference, ArtProfileClassRuleInfo classRuleInfo) {
-                          return false;
-                        }
-
-                        @Override
-                        public boolean testMethodRule(
-                            MethodReference methodReference,
-                            ArtProfileMethodRuleInfo methodRuleInfo) {
-                          return methodRuleInfo.isStartup();
-                        }
-                      }));
+              new UTF8TextInputStream(path), parserBuilderConsumer);
         } catch (IOException e) {
           throw new UncheckedIOException(e);
         }

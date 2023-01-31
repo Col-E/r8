@@ -5,6 +5,7 @@ package com.android.tools.r8;
 
 import static com.android.tools.r8.ParseFlagInfoImpl.flag1;
 
+import com.android.tools.r8.experimental.startup.StartupProfileProviderUtils;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.origin.PathOrigin;
 import com.android.tools.r8.utils.ExceptionDiagnostic;
@@ -24,6 +25,8 @@ import java.util.Set;
 
 public class D8CommandParser extends BaseCompilerCommandParser<D8Command, D8Command.Builder> {
 
+  static final String STARTUP_PROFILE_FLAG = "--startup-profile";
+
   private static final Set<String> OPTIONS_WITH_PARAMETER =
       ImmutableSet.of(
           "--output",
@@ -37,7 +40,8 @@ public class D8CommandParser extends BaseCompilerCommandParser<D8Command, D8Comm
           "--main-dex-list-output",
           "--desugared-lib",
           "--desugared-lib-pg-conf-output",
-          THREAD_COUNT_FLAG);
+          THREAD_COUNT_FLAG,
+          STARTUP_PROFILE_FLAG);
 
   public static List<ParseFlagInfo> getFlags() {
     return ImmutableList.<ParseFlagInfo>builder()
@@ -79,6 +83,7 @@ public class D8CommandParser extends BaseCompilerCommandParser<D8Command, D8Comm
         .add(ParseFlagInfoImpl.getThreadCount())
         .add(ParseFlagInfoImpl.getMapDiagnostics())
         .add(ParseFlagInfoImpl.getAndroidPlatformBuild())
+        .add(ParseFlagInfoImpl.getStartupProfile())
         .add(ParseFlagInfoImpl.getVersion("d8"))
         .add(ParseFlagInfoImpl.getHelp())
         .build();
@@ -305,6 +310,10 @@ public class D8CommandParser extends BaseCompilerCommandParser<D8Command, D8Comm
         builder.setDesugaredLibraryKeepRuleConsumer(consumer);
       } else if (arg.equals("--android-platform-build")) {
         builder.setAndroidPlatformBuild(true);
+      } else if (arg.equals(STARTUP_PROFILE_FLAG)) {
+        Path startupProfilePath = Paths.get(nextArg);
+        builder.addStartupProfileProviders(
+            StartupProfileProviderUtils.createFromHumanReadableArtProfile(startupProfilePath));
       } else if (arg.startsWith("--")) {
         if (tryParseAssertionArgument(builder, arg, origin)) {
           continue;

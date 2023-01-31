@@ -21,9 +21,15 @@ import com.android.tools.r8.D8CommandParser.OrderedClassFileResourceProvider;
 import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.dex.Marker;
 import com.android.tools.r8.dex.Marker.Tool;
+import com.android.tools.r8.experimental.startup.profile.StartupItem;
+import com.android.tools.r8.experimental.startup.profile.StartupMethod;
+import com.android.tools.r8.experimental.startup.profile.StartupProfile;
 import com.android.tools.r8.origin.EmbeddedOrigin;
 import com.android.tools.r8.origin.Origin;
+import com.android.tools.r8.profile.art.ArtProfileBuilderUtils.SyntheticToSyntheticContextGeneralization;
 import com.android.tools.r8.references.Reference;
+import com.android.tools.r8.startup.StartupProfileProvider;
+import com.android.tools.r8.startup.diagnostic.MissingStartupProfileItemsDiagnostic;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.FileUtils;
@@ -771,6 +777,60 @@ public class D8CommandTest extends CommandTestBase<D8Command> {
   public void androidPlatformBuildFlag() throws Exception {
     assertFalse(parse().getAndroidPlatformBuild());
     assertTrue(parse("--android-platform-build").getAndroidPlatformBuild());
+  }
+
+  @Test
+  public void startupProfileFlagAbsentTest() throws Exception {
+    assertTrue(parse().getStartupProfileProviders().isEmpty());
+  }
+
+  @Test
+  public void startupProfileFlagPresentTest() throws Exception {
+    // Create a simple profile.
+    Path profile = temp.newFile("profile.txt").toPath();
+    String profileRule = "Lfoo/bar/Baz;->qux()V";
+    FileUtils.writeTextFile(profile, profileRule);
+
+    // Pass the profile on the command line.
+    List<StartupProfileProvider> startupProfileProviders =
+        parse("--startup-profile", profile.toString()).getStartupProfileProviders();
+    assertEquals(1, startupProfileProviders.size());
+
+    // Construct the internal profile representation using the provider.
+    InternalOptions options = new InternalOptions();
+    MissingStartupProfileItemsDiagnostic.Builder missingStartupProfileItemsDiagnosticBuilder =
+        MissingStartupProfileItemsDiagnostic.Builder.nop();
+    StartupProfileProvider startupProfileProvider = startupProfileProviders.get(0);
+    SyntheticToSyntheticContextGeneralization syntheticToSyntheticContextGeneralization =
+        SyntheticToSyntheticContextGeneralization.createForD8();
+    StartupProfile.Builder startupProfileBuilder =
+        StartupProfile.builder(
+            options,
+            missingStartupProfileItemsDiagnosticBuilder,
+            startupProfileProvider,
+            syntheticToSyntheticContextGeneralization);
+    startupProfileProvider.getStartupProfile(startupProfileBuilder);
+
+    // Verify we found the same rule.
+    StartupProfile startupProfile = startupProfileBuilder.build();
+    Collection<StartupItem> startupItems = startupProfile.getStartupItems();
+    assertEquals(1, startupItems.size());
+    StartupItem startupItem = startupItems.iterator().next();
+    assertTrue(startupItem.isStartupMethod());
+    StartupMethod startupMethod = startupItem.asStartupMethod();
+    assertEquals(profileRule, startupMethod.getReference().toSmaliString());
+  }
+
+  @Test
+  public void startupProfileFlagMissingParameterTest() {
+    String expectedErrorContains = "Missing parameter for --startup-profile.";
+    try {
+      DiagnosticsChecker.checkErrorsContains(
+          expectedErrorContains, handler -> parse(handler, "--startup-profile"));
+      fail("Expected failure");
+    } catch (CompilationFailedException e) {
+      // Expected.
+    }
   }
 
   @Override

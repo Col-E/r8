@@ -6,6 +6,7 @@ package com.android.tools.r8;
 import static com.android.tools.r8.BaseCompilerCommandParser.MAP_DIAGNOSTICS;
 import static com.android.tools.r8.BaseCompilerCommandParser.MIN_API_FLAG;
 import static com.android.tools.r8.BaseCompilerCommandParser.THREAD_COUNT_FLAG;
+import static com.android.tools.r8.D8CommandParser.STARTUP_PROFILE_FLAG;
 
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.google.common.collect.ImmutableList;
@@ -161,6 +162,10 @@ public class ParseFlagInfoImpl implements ParseFlagInfo {
         "--android-platform-build",
         "Compile as a platform build where the runtime/bootclasspath",
         "is assumed to be the version specified by --min-api.");
+  }
+
+  public static ParseFlagInfoImpl getStartupProfile() {
+    return flag1(STARTUP_PROFILE_FLAG, "<file>", "Startup profile <file> to use for dex layout.");
   }
 
   public static ParseFlagInfoImpl flag0(String flag, String... help) {
