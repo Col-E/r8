@@ -167,4 +167,9 @@ public class D8TestBuilder
     builder.addStartupProfileProviders(startupProfileProviders);
     return self();
   }
+
+  public D8TestBuilder noHorizontalClassMergingOfSynthetics() {
+    return addOptionsModification(
+        options -> options.horizontalClassMergerOptions().disableSyntheticMerging());
+  }
 }

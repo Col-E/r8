@@ -38,7 +38,7 @@ public class InvokeSpecialToVirtualMethodProfileRewritingTest extends TestBase {
 
   @Parameters(name = "{0}")
   public static TestParametersCollection data() {
-    return getTestParameters().withAllRuntimesAndApiLevels().build();
+    return getTestParameters().withAllRuntimes().withAllApiLevelsAlsoForCf().build();
   }
 
   @Test
@@ -51,7 +51,20 @@ public class InvokeSpecialToVirtualMethodProfileRewritingTest extends TestBase {
   }
 
   @Test
+  public void testD8() throws Exception {
+    testForD8(parameters.getBackend())
+        .addProgramClassFileData(getTransformedMain())
+        .addArtProfileForRewriting(getArtProfile())
+        .setMinApi(parameters.getApiLevel())
+        .compile()
+        .inspectResidualArtProfile(this::inspect)
+        .run(parameters.getRuntime(), Main.class)
+        .assertSuccessWithOutputLines("Hello, world!", "Hello, world!");
+  }
+
+  @Test
   public void testR8() throws Exception {
+    parameters.assumeR8TestParameters();
     testForR8(parameters.getBackend())
         .addProgramClassFileData(getTransformedMain())
         .addKeepMainRule(Main.class)

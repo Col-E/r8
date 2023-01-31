@@ -323,7 +323,7 @@ public class SyntheticFinalization {
         computePotentialEquivalences(
             definitions,
             intermediate,
-            appView.dexItemFactory(),
+            appView.options(),
             appView.graphLens(),
             classToFeatureSplitMap,
             synthetics);
@@ -839,12 +839,17 @@ public class SyntheticFinalization {
       Collection<List<T>> computePotentialEquivalences(
           Map<DexType, T> definitions,
           boolean intermediate,
-          DexItemFactory factory,
+          InternalOptions options,
           GraphLens graphLens,
           ClassToFeatureSplitMap classToFeatureSplitMap,
           SyntheticItems syntheticItems) {
     if (definitions.isEmpty()) {
       return Collections.emptyList();
+    }
+    if (!options.testing.enableSyntheticSharing) {
+      Collection<List<T>> result = new ArrayList<>(definitions.size());
+      definitions.values().forEach(definition -> result.add(ImmutableList.of(definition)));
+      return result;
     }
     // Map all synthetic types to the java 'void' type. This is not an actual valid type, so it
     // cannot collide with any valid java type providing a good hashing key for the synthetics.
@@ -862,7 +867,7 @@ public class SyntheticFinalization {
                 syntheticTypes.add(graphLens.getOriginalType(t));
               });
     }
-    RepresentativeMap map = t -> syntheticTypes.contains(t) ? factory.voidType : t;
+    RepresentativeMap map = t -> syntheticTypes.contains(t) ? options.dexItemFactory().voidType : t;
     Map<HashCode, List<T>> equivalences = new HashMap<>(definitions.size());
     for (T definition : definitions.values()) {
       HashCode hash =
