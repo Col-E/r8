@@ -700,10 +700,7 @@ public final class D8Command extends BaseCompilerCommand {
 
     internal.configureAndroidPlatformBuild(getAndroidPlatformBuild());
 
-    internal
-        .getArtProfileOptions()
-        .setArtProfilesForRewriting(getArtProfilesForRewriting())
-        .setPassthrough(true);
+    internal.getArtProfileOptions().setArtProfilesForRewriting(getArtProfilesForRewriting());
     if (!getStartupProfileProviders().isEmpty()) {
       internal.getStartupOptions().setStartupProfileProviders(getStartupProfileProviders());
     }

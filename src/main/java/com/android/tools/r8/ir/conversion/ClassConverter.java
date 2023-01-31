@@ -13,6 +13,7 @@ import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.desugar.CfClassSynthesizerDesugaringEventConsumer;
 import com.android.tools.r8.ir.desugar.CfInstructionDesugaringEventConsumer;
 import com.android.tools.r8.ir.desugar.itf.InterfaceProcessor;
+import com.android.tools.r8.profile.art.rewriting.ArtProfileCollectionAdditions;
 import com.android.tools.r8.utils.MapUtils;
 import com.android.tools.r8.utils.ThreadUtils;
 import com.android.tools.r8.utils.collections.ImmutableDeque;
@@ -33,6 +34,7 @@ import java.util.concurrent.ExecutorService;
 public abstract class ClassConverter {
 
   protected final AppView<?> appView;
+  private final ArtProfileCollectionAdditions artProfileCollectionAdditions;
   private final IRConverter converter;
   private final D8MethodProcessor methodProcessor;
   private final InterfaceProcessor interfaceProcessor;
@@ -43,6 +45,7 @@ public abstract class ClassConverter {
       D8MethodProcessor methodProcessor,
       InterfaceProcessor interfaceProcessor) {
     this.appView = appView;
+    this.artProfileCollectionAdditions = ArtProfileCollectionAdditions.create(appView);
     this.converter = converter;
     this.methodProcessor = methodProcessor;
     this.interfaceProcessor = interfaceProcessor;
@@ -63,6 +66,7 @@ public abstract class ClassConverter {
       throws ExecutionException {
     ClassConverterResult.Builder resultBuilder = ClassConverterResult.builder();
     internalConvertClasses(resultBuilder, executorService);
+    artProfileCollectionAdditions.commit(appView);
     notifyAllClassesConverted();
     return resultBuilder.build();
   }
@@ -126,7 +130,8 @@ public abstract class ClassConverter {
     }
 
     CfInstructionDesugaringEventConsumer instructionDesugaringEventConsumerForPrepareStep =
-        CfInstructionDesugaringEventConsumer.createForD8(appView, resultBuilder, methodProcessor);
+        CfInstructionDesugaringEventConsumer.createForD8(
+            appView, artProfileCollectionAdditions, resultBuilder, methodProcessor);
     converter.prepareDesugaringForD8(
         instructionDesugaringEventConsumerForPrepareStep, executorService);
     assert instructionDesugaringEventConsumerForPrepareStep.verifyNothingToFinalize();
@@ -149,7 +154,8 @@ public abstract class ClassConverter {
       }
 
       CfInstructionDesugaringEventConsumer instructionDesugaringEventConsumerForWave =
-          CfInstructionDesugaringEventConsumer.createForD8(appView, resultBuilder, methodProcessor);
+          CfInstructionDesugaringEventConsumer.createForD8(
+              appView, artProfileCollectionAdditions, resultBuilder, methodProcessor);
 
       // Process the wave and wait for all IR processing to complete.
       methodProcessor.newWave();

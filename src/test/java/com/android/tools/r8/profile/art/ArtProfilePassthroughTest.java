@@ -62,7 +62,6 @@ public class ArtProfilePassthroughTest extends TestBase {
         .compile();
 
     // Verify that the profile input was processed.
-    assertEquals(ProviderStatus.DONE, artProfileProvider.providerStatus);
     assertTrue(residualArtProfileConsumer.finished);
     assertEquals(
         Lists.newArrayList(mainClassReference, mainMethodReference),
@@ -102,25 +101,19 @@ public class ArtProfilePassthroughTest extends TestBase {
 
     @Override
     public ArtProfileRuleConsumer getRuleConsumer() {
-      // The compiler should not request to get the profile from the provider before getting the
+      // The compiler should have fully requested the profile from the provider before getting the
       // consumer.
-      assertTrue(artProfileProvider.providerStatus == ProviderStatus.PENDING);
+      assertEquals(ProviderStatus.DONE, artProfileProvider.providerStatus);
       return new ArtProfileRuleConsumer() {
         @Override
         public void acceptClassRule(
             ClassReference classReference, ArtProfileClassRuleInfo classRuleInfo) {
-          // The consumer should only be receiving callbacks while the profile is being
-          // provided.
-          assertTrue(artProfileProvider.providerStatus == ProviderStatus.ACTIVE);
           references.add(classReference);
         }
 
         @Override
         public void acceptMethodRule(
             MethodReference methodReference, ArtProfileMethodRuleInfo methodRuleInfo) {
-          // The consumer should only be receiving callbacks while the profile is being
-          // provided.
-          assertTrue(artProfileProvider.providerStatus == ProviderStatus.ACTIVE);
           references.add(methodReference);
         }
       };
@@ -128,8 +121,6 @@ public class ArtProfilePassthroughTest extends TestBase {
 
     @Override
     public void finished(DiagnosticsHandler handler) {
-      // The profile should be fully provided when all data is given to the consumer.
-      assertTrue(artProfileProvider.providerStatus == ProviderStatus.DONE);
       finished = true;
     }
   }

@@ -7,6 +7,7 @@ package com.android.tools.r8.profile.art.completeness;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static com.android.tools.r8.utils.codeinspector.Matchers.onlyIf;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.Assume.assumeFalse;
 
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
@@ -35,11 +36,25 @@ public class BackportProfileRewritingTest extends TestBase {
 
   @Parameters(name = "{0}")
   public static TestParametersCollection data() {
-    return getTestParameters().withAllRuntimesAndApiLevels().build();
+    return getTestParameters().withAllRuntimesAndApiLevels().withAllApiLevelsAlsoForCf().build();
+  }
+
+  @Test
+  public void testD8() throws Exception {
+    testForD8(parameters.getBackend())
+        .addInnerClasses(getClass())
+        .addArtProfileForRewriting(getArtProfile())
+        .setMinApi(parameters.getApiLevel())
+        .compile()
+        .inspectResidualArtProfile(this::inspectD8)
+        .run(parameters.getRuntime(), Main.class)
+        .assertSuccessWithOutputLines("true");
   }
 
   @Test
   public void testR8() throws Exception {
+    assumeFalse(
+        parameters.isCfRuntime() && parameters.getApiLevel().isGreaterThan(AndroidApiLevel.B));
     testForR8(parameters.getBackend())
         .addInnerClasses(getClass())
         .addKeepMainRule(Main.class)
@@ -47,7 +62,7 @@ public class BackportProfileRewritingTest extends TestBase {
         .addOptionsModification(InlinerOptions::disableInlining)
         .setMinApi(parameters.getApiLevel())
         .compile()
-        .inspectResidualArtProfile(this::inspect)
+        .inspectResidualArtProfile(this::inspectR8)
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines("true");
   }
@@ -58,23 +73,34 @@ public class BackportProfileRewritingTest extends TestBase {
         .build();
   }
 
-  private boolean isBackportingObjectsNonNull() {
-    return parameters.isDexRuntime() && parameters.getApiLevel().isLessThan(AndroidApiLevel.N);
+  private boolean isBackportingObjectsNonNull(boolean isDesugaring) {
+    return isDesugaring && parameters.getApiLevel().isLessThan(AndroidApiLevel.N);
   }
 
-  private void inspect(ArtProfileInspector profileInspector, CodeInspector inspector) {
+  private void inspectD8(ArtProfileInspector profileInspector, CodeInspector inspector) {
+    inspect(profileInspector, inspector, isBackportingObjectsNonNull(true));
+  }
+
+  private void inspectR8(ArtProfileInspector profileInspector, CodeInspector inspector) {
+    inspect(profileInspector, inspector, isBackportingObjectsNonNull(parameters.isDexRuntime()));
+  }
+
+  private void inspect(
+      ArtProfileInspector profileInspector,
+      CodeInspector inspector,
+      boolean isBackportingObjectsNonNull) {
     ClassSubject backportClassSubject =
         inspector.clazz(SyntheticItemsTestUtils.syntheticBackportClass(Main.class, 0));
-    assertThat(backportClassSubject, onlyIf(isBackportingObjectsNonNull(), isPresent()));
+    assertThat(backportClassSubject, onlyIf(isBackportingObjectsNonNull, isPresent()));
 
     MethodSubject backportMethodSubject = backportClassSubject.uniqueMethod();
-    assertThat(backportMethodSubject, onlyIf(isBackportingObjectsNonNull(), isPresent()));
+    assertThat(backportMethodSubject, onlyIf(isBackportingObjectsNonNull, isPresent()));
 
     // Verify residual profile contains the backported method and its holder.
     profileInspector
         .assertContainsMethodRules(MethodReferenceUtils.mainMethod(Main.class))
         .applyIf(
-            isBackportingObjectsNonNull(),
+            isBackportingObjectsNonNull,
             i ->
                 i.assertContainsClassRule(backportClassSubject)
                     .assertContainsMethodRule(backportMethodSubject))

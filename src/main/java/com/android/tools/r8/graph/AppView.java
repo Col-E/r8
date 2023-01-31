@@ -940,6 +940,17 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
         });
   }
 
+  public void rewriteWithD8Lens(NonIdentityGraphLens lens) {
+    rewriteWithD8Lens(lens, withoutClassHierarchy());
+  }
+
+  private static void rewriteWithD8Lens(NonIdentityGraphLens lens, AppView<AppInfo> appView) {
+    boolean changed = appView.setGraphLens(lens);
+    assert changed;
+
+    appView.setArtProfileCollection(appView.getArtProfileCollection().rewrittenWithLens(lens));
+  }
+
   public void setAlreadyLibraryDesugared(Set<DexType> alreadyLibraryDesugared) {
     assert this.alreadyLibraryDesugared == null;
     this.alreadyLibraryDesugared = alreadyLibraryDesugared;

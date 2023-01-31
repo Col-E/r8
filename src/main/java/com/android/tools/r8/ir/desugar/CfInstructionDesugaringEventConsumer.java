@@ -68,14 +68,12 @@ public abstract class CfInstructionDesugaringEventConsumer
 
   public static CfInstructionDesugaringEventConsumer createForD8(
       AppView<?> appView,
+      ArtProfileCollectionAdditions artProfileCollectionAdditions,
       ClassConverterResult.Builder classConverterResultBuilder,
       D8MethodProcessor methodProcessor) {
     CfInstructionDesugaringEventConsumer eventConsumer =
         new D8CfInstructionDesugaringEventConsumer(
             appView, classConverterResultBuilder, methodProcessor);
-    // TODO(b/265729283): Also include synthetics in the baseline profile in D8.
-    ArtProfileCollectionAdditions artProfileCollectionAdditions =
-        ArtProfileCollectionAdditions.nop();
     return ArtProfileRewritingCfInstructionDesugaringEventConsumer.attach(
         artProfileCollectionAdditions, eventConsumer);
   }

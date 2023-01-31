@@ -183,7 +183,7 @@ public class SyntheticFinalization {
                       .appInfo()
                       .getMainDexInfo()
                       .rewrittenWithLens(appView.getSyntheticItems(), result.lens)));
-      appView.setGraphLens(result.lens);
+      appView.rewriteWithD8Lens(result.lens);
     }
     appView.pruneItems(result.prunedItems, executorService);
   }

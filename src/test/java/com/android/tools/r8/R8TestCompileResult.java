@@ -25,7 +25,6 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Set;
-import java.util.concurrent.ExecutionException;
 import java.util.function.Consumer;
 
 public class R8TestCompileResult extends TestCompileResult<R8TestCompileResult, R8TestRunResult> {
@@ -132,7 +131,7 @@ public class R8TestCompileResult extends TestCompileResult<R8TestCompileResult, 
   }
 
   public <E extends Throwable> R8TestCompileResult inspectResidualArtProfile(
-      ThrowingConsumer<ArtProfileInspector, E> consumer) throws E, IOException, ExecutionException {
+      ThrowingConsumer<ArtProfileInspector, E> consumer) throws E, IOException {
     return inspectResidualArtProfile(
         (rewrittenArtProfile, inspector) -> consumer.accept(rewrittenArtProfile));
   }

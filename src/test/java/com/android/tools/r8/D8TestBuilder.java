@@ -96,7 +96,8 @@ public class D8TestBuilder
         getMinApiLevel(),
         getOutputMode(),
         libraryDesugaringTestConfiguration,
-        getMapContent());
+        getMapContent(),
+        residualArtProfiles);
   }
 
   private String getMapContent() {
