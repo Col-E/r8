@@ -10,7 +10,6 @@ import com.android.tools.r8.androidapi.ApiReferenceStubber;
 import com.android.tools.r8.dex.ApplicationReader;
 import com.android.tools.r8.dex.ApplicationWriter;
 import com.android.tools.r8.dex.Marker;
-import com.android.tools.r8.dex.Marker.Tool;
 import com.android.tools.r8.experimental.startup.instrumentation.StartupInstrumentation;
 import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppServices;
@@ -275,7 +274,7 @@ public final class D8 {
       boolean hasClassResources = appView.appInfo().app().getFlags().hasReadProgramClassFromCf();
       boolean hasDexResources = appView.appInfo().app().getFlags().hasReadProgramClassFromDex();
 
-      Marker marker = hasClassResources ? options.getMarker(Tool.D8) : null;
+      Marker marker = hasClassResources ? options.getMarker() : null;
 
       timing.time(
           "Run inspections",

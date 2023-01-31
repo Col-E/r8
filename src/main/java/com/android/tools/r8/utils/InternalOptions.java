@@ -252,6 +252,11 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
     protoShrinking.enableEnumLiteProtoShrinking = true;
   }
 
+  public InternalOptions withModifications(Consumer<InternalOptions> consumer) {
+    consumer.accept(this);
+    return this;
+  }
+
   void disableAllOptimizations() {
     disableGlobalOptimizations();
     enableNameReflectionOptimization = false;
@@ -432,6 +437,8 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
   // Contain the contents of the build properties file from the compiler command.
   public DumpOptions dumpOptions;
 
+  public Tool tool = null;
+
   // Hidden marker for classes.dex
   private boolean hasMarker = false;
   private Marker marker;
@@ -441,7 +448,8 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
     this.marker = marker;
   }
 
-  public Marker getMarker(Tool tool) {
+  public Marker getMarker() {
+    assert tool != null;
     if (hasMarker) {
       return marker;
     }

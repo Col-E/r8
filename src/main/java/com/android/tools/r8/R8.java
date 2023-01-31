@@ -11,7 +11,6 @@ import com.android.tools.r8.desugar.desugaredlibrary.DesugaredLibraryKeepRuleGen
 import com.android.tools.r8.dex.ApplicationReader;
 import com.android.tools.r8.dex.ApplicationWriter;
 import com.android.tools.r8.dex.Marker;
-import com.android.tools.r8.dex.Marker.Tool;
 import com.android.tools.r8.errors.CheckDiscardDiagnostic;
 import com.android.tools.r8.experimental.graphinfo.GraphConsumer;
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
@@ -208,7 +207,7 @@ public class R8 {
     InternalOptions options = appView.options();
     InspectorImpl.runInspections(options.outputInspections, appView.appInfo().classes());
     try {
-      Marker marker = options.getMarker(Tool.R8);
+      Marker marker = options.getMarker();
       assert marker != null;
       if (options.isGeneratingClassFiles()) {
         new CfApplicationWriter(appView, marker).write(options.getClassFileConsumer(), inputApp);

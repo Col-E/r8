@@ -91,7 +91,7 @@ public class IrInjectionTestBase extends SmaliTestBase {
     private AndroidApp writeDex() {
       try {
         InternalOptions options = appView.options();
-        ToolHelper.writeApplication(appView, options);
+        ToolHelper.writeApplication(appView);
         options.signalFinishedToConsumers();
         return consumers.build();
       } catch (ExecutionException e) {

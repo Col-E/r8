@@ -154,7 +154,7 @@ public class ProguardMapMarkerTest extends TestBase {
       String key = comment.substring(0, colonIndex).trim();
       String value = comment.substring(colonIndex + 1).trim();
       if (key.equals(ProguardMapSupplier.MARKER_KEY_COMPILER)) {
-        assertEquals(ProguardMapSupplier.MARKER_VALUE_COMPILER, value);
+        assertEquals("R8", value);
       } else if (key.equals(ProguardMapSupplier.MARKER_KEY_COMPILER_VERSION)) {
         assertEquals(Version.LABEL, value);
       } else if (key.equals(ProguardMapSupplier.MARKER_KEY_MIN_API)) {

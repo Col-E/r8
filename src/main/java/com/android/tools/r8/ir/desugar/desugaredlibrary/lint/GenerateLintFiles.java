@@ -80,7 +80,8 @@ public class GenerateLintFiles {
 
   private final DexItemFactory factory = new DexItemFactory();
   private final Reporter reporter = new Reporter();
-  private final InternalOptions options = new InternalOptions(factory, reporter);
+  private final InternalOptions options =
+      new InternalOptions(factory, reporter).withModifications(options -> options.tool = Tool.L8);
 
   private final MachineDesugaredLibrarySpecification desugaredLibrarySpecification;
   private final Collection<Path> desugaredLibraryImplementation;
@@ -380,7 +381,7 @@ public class GenerateLintFiles {
         AppView.createForD8(
             AppInfo.createInitialAppInfo(
                 builder.build(), GlobalSyntheticsStrategy.forNonSynthesizing()));
-    CfApplicationWriter writer = new CfApplicationWriter(appView, options.getMarker(Tool.L8));
+    CfApplicationWriter writer = new CfApplicationWriter(appView, options.getMarker());
     ClassFileConsumer consumer =
         new ClassFileConsumer.ArchiveConsumer(
             lintFile(compilationApiLevel, minApiLevel, FileUtils.JAR_EXTENSION));

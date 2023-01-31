@@ -17,6 +17,7 @@ import com.android.tools.r8.ToolHelper.DexVm.Kind;
 import com.android.tools.r8.benchmarks.BenchmarkResults;
 import com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification.CustomConversionVersion;
 import com.android.tools.r8.dex.ApplicationReader;
+import com.android.tools.r8.dex.Marker.Tool;
 import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppView;
@@ -2330,8 +2331,8 @@ public class ToolHelper {
     return builder;
   }
 
-  public static void writeApplication(AppView<?> appView, InternalOptions options)
-      throws ExecutionException {
+  public static void writeApplication(AppView<?> appView) throws ExecutionException {
+    appView.options().tool = Tool.R8;
     R8.writeApplication(appView, null, Executors.newSingleThreadExecutor());
   }
 

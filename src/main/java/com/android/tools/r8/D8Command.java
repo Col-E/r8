@@ -709,6 +709,7 @@ public final class D8Command extends BaseCompilerCommand {
         ProgramClassCollection.wrappedConflictResolver(
             getClassConflictResolver(), internal.reporter);
 
+    internal.tool = Tool.D8;
     internal.setDumpInputFlags(getDumpInputFlags());
     internal.dumpOptions = dumpOptions();
 

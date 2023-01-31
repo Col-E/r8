@@ -105,6 +105,7 @@ public class L8 {
             options.enableStringSwitchConversion = false;
             assert !options.enableVarHandleDesugaring;
             options.enableVarHandleDesugaring = true;
+            options.tool = Tool.L8;
 
             desugar(app, options, executorService);
 
@@ -149,8 +150,7 @@ public class L8 {
               appView));
       new GenericSignatureRewriter(appView).run(appView.appInfo().classes(), executor);
 
-      new CfApplicationWriter(appView, options.getMarker(Tool.L8))
-          .write(options.getClassFileConsumer());
+      new CfApplicationWriter(appView, options.getMarker()).write(options.getClassFileConsumer());
       options.printWarnings();
     } catch (ExecutionException e) {
       throw unwrapExecutionException(e);

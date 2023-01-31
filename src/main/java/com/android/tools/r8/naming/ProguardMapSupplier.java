@@ -8,6 +8,7 @@ import com.android.tools.r8.MapIdEnvironment;
 import com.android.tools.r8.MapIdProvider;
 import com.android.tools.r8.StringConsumer;
 import com.android.tools.r8.Version;
+import com.android.tools.r8.dex.Marker.Tool;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.utils.ChainableStringConsumer;
 import com.android.tools.r8.utils.ExceptionUtils;
@@ -22,7 +23,6 @@ import java.nio.charset.StandardCharsets;
 public class ProguardMapSupplier {
 
   public static final String MARKER_KEY_COMPILER = "compiler";
-  public static final String MARKER_VALUE_COMPILER = "R8";
   public static final String MARKER_KEY_COMPILER_VERSION = "compiler_version";
   public static final String MARKER_KEY_COMPILER_HASH = "compiler_hash";
   public static final String MARKER_KEY_MIN_API = "min_api";
@@ -59,8 +59,9 @@ public class ProguardMapSupplier {
   private final StringConsumer consumer;
   private final InternalOptions options;
   private final Reporter reporter;
+  private final Tool compiler;
 
-  private ProguardMapSupplier(ClassNameMapper classNameMapper, InternalOptions options) {
+  private ProguardMapSupplier(ClassNameMapper classNameMapper, Tool tool, InternalOptions options) {
     assert classNameMapper != null;
     this.classNameMapper = classNameMapper.sorted();
     // TODO(b/217111432): Validate Proguard using ProguardMapChecker without building the entire
@@ -68,11 +69,13 @@ public class ProguardMapSupplier {
     this.consumer = options.proguardMapConsumer;
     this.options = options;
     this.reporter = options.reporter;
+    this.compiler = tool;
   }
 
   public static ProguardMapSupplier create(
       ClassNameMapper classNameMapper, InternalOptions options) {
-    return new ProguardMapSupplier(classNameMapper, options);
+    assert options.tool != null;
+    return new ProguardMapSupplier(classNameMapper, options.tool, options);
   }
 
   public ProguardMapId writeProguardMap() {
@@ -99,7 +102,7 @@ public class ProguardMapSupplier {
         "# "
             + MARKER_KEY_COMPILER
             + ": "
-            + MARKER_VALUE_COMPILER
+            + compiler.name()
             + "\n"
             + "# "
             + MARKER_KEY_COMPILER_VERSION
