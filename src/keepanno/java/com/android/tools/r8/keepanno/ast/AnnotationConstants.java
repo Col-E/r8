@@ -1,16 +1,22 @@
-// Copyright (c) 2022, the R8 project authors. Please see the AUTHORS file
+// Copyright (c) 2023, the R8 project authors. Please see the AUTHORS file
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
-package com.android.tools.r8.keepanno.annotations;
+package com.android.tools.r8.keepanno.ast;
 
+import com.android.tools.r8.keepanno.annotations.KeepBinding;
+import com.android.tools.r8.keepanno.annotations.KeepCondition;
+import com.android.tools.r8.keepanno.annotations.KeepEdge;
+import com.android.tools.r8.keepanno.annotations.KeepItemKind;
+import com.android.tools.r8.keepanno.annotations.KeepOption;
+import com.android.tools.r8.keepanno.annotations.KeepTarget;
 
 /**
  * Utility class for referencing the various keep annotations and their structure.
  *
- * <p>Use of these references avoids poluting the Java namespace with imports of the java
+ * <p>Use of these references avoids polluting the Java namespace with imports of the java
  * annotations which overlap in name with the actual semantic AST types.
  */
-public final class KeepConstants {
+public final class AnnotationConstants {
 
   public static String getDescriptor(Class<?> clazz) {
     return "L" + clazz.getTypeName().replace('.', '/') + ";";

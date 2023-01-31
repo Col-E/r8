@@ -14,11 +14,11 @@ import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.ToolHelper;
-import com.android.tools.r8.keepanno.annotations.KeepConstants;
-import com.android.tools.r8.keepanno.annotations.KeepConstants.Edge;
 import com.android.tools.r8.keepanno.asm.KeepEdgeReader;
 import com.android.tools.r8.keepanno.asm.KeepEdgeWriter;
 import com.android.tools.r8.keepanno.asm.KeepEdgeWriter.AnnotationVisitorInterface;
+import com.android.tools.r8.keepanno.ast.AnnotationConstants;
+import com.android.tools.r8.keepanno.ast.AnnotationConstants.Edge;
 import com.android.tools.r8.keepanno.ast.KeepEdge;
 import com.android.tools.r8.keepanno.processor.KeepEdgeProcessor;
 import com.android.tools.r8.keepanno.testsource.KeepClassAndDefaultConstructorSource;
@@ -148,7 +148,7 @@ public class KeepEdgeAnnotationsTest extends TestBase {
     List<byte[]> transformed = new ArrayList<>(classes.size());
     for (Class<?> clazz : classes) {
       transformed.add(
-          transformer(clazz).removeAnnotations(KeepConstants::isKeepAnnotation).transform());
+          transformer(clazz).removeAnnotations(AnnotationConstants::isKeepAnnotation).transform());
     }
     return transformed;
   }

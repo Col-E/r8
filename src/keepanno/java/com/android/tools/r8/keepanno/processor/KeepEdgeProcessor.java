@@ -7,11 +7,11 @@ import static org.objectweb.asm.Opcodes.ACC_FINAL;
 import static org.objectweb.asm.Opcodes.ACC_PUBLIC;
 import static org.objectweb.asm.Opcodes.ACC_SUPER;
 
-import com.android.tools.r8.keepanno.annotations.KeepConstants;
-import com.android.tools.r8.keepanno.annotations.KeepConstants.Edge;
-import com.android.tools.r8.keepanno.annotations.KeepConstants.Item;
 import com.android.tools.r8.keepanno.asm.KeepEdgeReader;
 import com.android.tools.r8.keepanno.asm.KeepEdgeWriter;
+import com.android.tools.r8.keepanno.ast.AnnotationConstants;
+import com.android.tools.r8.keepanno.ast.AnnotationConstants.Edge;
+import com.android.tools.r8.keepanno.ast.AnnotationConstants.Item;
 import com.android.tools.r8.keepanno.ast.KeepCondition;
 import com.android.tools.r8.keepanno.ast.KeepConsequences;
 import com.android.tools.r8.keepanno.ast.KeepEdge;
@@ -89,7 +89,7 @@ public class KeepEdgeProcessor extends AbstractProcessor {
   }
 
   private static byte[] writeEdges(List<KeepEdge> edges, String classTypeName) {
-    String classBinaryName = KeepConstants.getBinaryNameFromClassTypeName(classTypeName);
+    String classBinaryName = AnnotationConstants.getBinaryNameFromClassTypeName(classTypeName);
     ClassWriter classWriter = new ClassWriter(0);
     classWriter.visit(
         KeepEdgeReader.ASM_VERSION,
@@ -107,7 +107,7 @@ public class KeepEdgeProcessor extends AbstractProcessor {
   }
 
   private KeepEdge processKeepEdge(Element element, RoundEnvironment roundEnv) {
-    AnnotationMirror mirror = getAnnotationMirror(element, KeepConstants.Edge.CLASS);
+    AnnotationMirror mirror = getAnnotationMirror(element, AnnotationConstants.Edge.CLASS);
     if (mirror == null) {
       return null;
     }

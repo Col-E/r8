@@ -3,14 +3,14 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.keepanno.asm;
 
-import com.android.tools.r8.keepanno.annotations.KeepConstants;
-import com.android.tools.r8.keepanno.annotations.KeepConstants.Binding;
-import com.android.tools.r8.keepanno.annotations.KeepConstants.Condition;
-import com.android.tools.r8.keepanno.annotations.KeepConstants.Edge;
-import com.android.tools.r8.keepanno.annotations.KeepConstants.Item;
-import com.android.tools.r8.keepanno.annotations.KeepConstants.Kind;
-import com.android.tools.r8.keepanno.annotations.KeepConstants.Option;
-import com.android.tools.r8.keepanno.annotations.KeepConstants.Target;
+import com.android.tools.r8.keepanno.ast.AnnotationConstants;
+import com.android.tools.r8.keepanno.ast.AnnotationConstants.Binding;
+import com.android.tools.r8.keepanno.ast.AnnotationConstants.Condition;
+import com.android.tools.r8.keepanno.ast.AnnotationConstants.Edge;
+import com.android.tools.r8.keepanno.ast.AnnotationConstants.Item;
+import com.android.tools.r8.keepanno.ast.AnnotationConstants.Kind;
+import com.android.tools.r8.keepanno.ast.AnnotationConstants.Option;
+import com.android.tools.r8.keepanno.ast.AnnotationConstants.Target;
 import com.android.tools.r8.keepanno.ast.KeepBindings;
 import com.android.tools.r8.keepanno.ast.KeepClassReference;
 import com.android.tools.r8.keepanno.ast.KeepCondition;
@@ -96,7 +96,7 @@ public class KeepEdgeReader implements Opcodes {
       if (descriptor.equals(Edge.DESCRIPTOR)) {
         return new KeepEdgeVisitor(parent, this::setContext);
       }
-      if (descriptor.equals(KeepConstants.UsesReflection.DESCRIPTOR)) {
+      if (descriptor.equals(AnnotationConstants.UsesReflection.DESCRIPTOR)) {
         KeepItemPattern classItem =
             KeepItemPattern.builder()
                 .setClassPattern(KeepQualifiedClassNamePattern.exact(className))
@@ -170,7 +170,7 @@ public class KeepEdgeReader implements Opcodes {
       if (descriptor.equals(Edge.DESCRIPTOR)) {
         return new KeepEdgeVisitor(parent, this::setContext);
       }
-      if (descriptor.equals(KeepConstants.UsesReflection.DESCRIPTOR)) {
+      if (descriptor.equals(AnnotationConstants.UsesReflection.DESCRIPTOR)) {
         return new UsesReflectionVisitor(parent, this::setContext, createItemContext());
       }
       return null;
@@ -224,7 +224,7 @@ public class KeepEdgeReader implements Opcodes {
       if (descriptor.equals(Edge.DESCRIPTOR)) {
         return new KeepEdgeVisitor(parent, this::setContext);
       }
-      if (descriptor.equals(KeepConstants.UsesReflection.DESCRIPTOR)) {
+      if (descriptor.equals(AnnotationConstants.UsesReflection.DESCRIPTOR)) {
         return new UsesReflectionVisitor(parent, this::setContext, createItemContext());
       }
       return null;
@@ -328,10 +328,10 @@ public class KeepEdgeReader implements Opcodes {
 
     @Override
     public AnnotationVisitor visitArray(String name) {
-      if (name.equals(KeepConstants.UsesReflection.value)) {
+      if (name.equals(AnnotationConstants.UsesReflection.value)) {
         return new KeepConsequencesVisitor(builder::setConsequences);
       }
-      if (name.equals(KeepConstants.UsesReflection.additionalPreconditions)) {
+      if (name.equals(AnnotationConstants.UsesReflection.additionalPreconditions)) {
         return new KeepPreconditionsVisitor(
             additionalPreconditions -> {
               additionalPreconditions.forEach(preconditions::addCondition);
@@ -360,7 +360,7 @@ public class KeepEdgeReader implements Opcodes {
 
     @Override
     public AnnotationVisitor visitAnnotation(String name, String descriptor) {
-      if (descriptor.equals(KeepConstants.Binding.DESCRIPTOR)) {
+      if (descriptor.equals(AnnotationConstants.Binding.DESCRIPTOR)) {
         return new KeepBindingVisitor(builder);
       }
       return super.visitAnnotation(name, descriptor);
@@ -718,7 +718,7 @@ public class KeepEdgeReader implements Opcodes {
 
     @Override
     public void visitEnum(String name, String descriptor, String value) {
-      if (!descriptor.equals(KeepConstants.Kind.DESCRIPTOR)) {
+      if (!descriptor.equals(AnnotationConstants.Kind.DESCRIPTOR)) {
         super.visitEnum(name, descriptor, value);
       }
       switch (value) {
@@ -879,11 +879,11 @@ public class KeepEdgeReader implements Opcodes {
 
     @Override
     AnnotationVisitor parseArray(String name, Consumer<KeepOptions> setValue) {
-      if (name.equals(KeepConstants.Target.disallow)) {
+      if (name.equals(AnnotationConstants.Target.disallow)) {
         return new KeepOptionsVisitor(
             options -> setValue.accept(KeepOptions.disallowBuilder().addAll(options).build()));
       }
-      if (name.equals(KeepConstants.Target.allow)) {
+      if (name.equals(AnnotationConstants.Target.allow)) {
         return new KeepOptionsVisitor(
             options -> setValue.accept(KeepOptions.allowBuilder().addAll(options).build()));
       }
@@ -934,7 +934,7 @@ public class KeepEdgeReader implements Opcodes {
 
     @Override
     public void visitEnum(String ignore, String descriptor, String value) {
-      if (!descriptor.equals(KeepConstants.Option.DESCRIPTOR)) {
+      if (!descriptor.equals(AnnotationConstants.Option.DESCRIPTOR)) {
         super.visitEnum(ignore, descriptor, value);
       }
       KeepOption option;

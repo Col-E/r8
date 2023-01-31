@@ -3,11 +3,11 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.keepanno.asm;
 
-import com.android.tools.r8.keepanno.annotations.KeepConstants;
-import com.android.tools.r8.keepanno.annotations.KeepConstants.Condition;
-import com.android.tools.r8.keepanno.annotations.KeepConstants.Edge;
-import com.android.tools.r8.keepanno.annotations.KeepConstants.Item;
-import com.android.tools.r8.keepanno.annotations.KeepConstants.Target;
+import com.android.tools.r8.keepanno.ast.AnnotationConstants;
+import com.android.tools.r8.keepanno.ast.AnnotationConstants.Condition;
+import com.android.tools.r8.keepanno.ast.AnnotationConstants.Edge;
+import com.android.tools.r8.keepanno.ast.AnnotationConstants.Item;
+import com.android.tools.r8.keepanno.ast.AnnotationConstants.Target;
 import com.android.tools.r8.keepanno.ast.KeepClassReference;
 import com.android.tools.r8.keepanno.ast.KeepConsequences;
 import com.android.tools.r8.keepanno.ast.KeepEdge;
@@ -151,7 +151,7 @@ public class KeepEdgeWriter implements Opcodes {
     KeepQualifiedClassNamePattern namePattern = classReference.asClassNamePattern();
     if (namePattern.isExact()) {
       Type typeConstant = Type.getType(namePattern.getExactDescriptor());
-      itemVisitor.visit(KeepConstants.Item.classConstant, typeConstant);
+      itemVisitor.visit(AnnotationConstants.Item.classConstant, typeConstant);
     } else {
       throw new Unimplemented();
     }
