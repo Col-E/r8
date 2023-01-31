@@ -4,7 +4,9 @@
 
 package com.android.tools.r8.desugar.desugaredlibrary;
 
+import static com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification.JDK11;
 import static com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification.JDK11_MINIMAL;
+import static com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification.JDK11_PATH;
 import static com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification.JDK8;
 import static com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification.getJdk8AndAll3Jdk11;
 import static org.junit.Assert.assertEquals;
@@ -109,6 +111,9 @@ public class LintFilesTest extends DesugaredLibraryTestBase {
         minApiLevel == AndroidApiLevel.B,
         supportsMethodButNotAllMethodsInClass(
             "java/util/stream/IntStream#allMatch(Ljava/util/function/IntPredicate;)Z"));
+
+    assertEquals(
+        libraryDesugaringSpecification != JDK8, supportsAllMethodsOf("java/util/concurrent/Flow"));
 
     // Checks specific methods are supported or not in JDK8, all is supported in JDK11.
     if (libraryDesugaringSpecification == JDK8) {
@@ -225,5 +230,8 @@ public class LintFilesTest extends DesugaredLibraryTestBase {
     // check that the doc generation ran without error and looks sane.
     assertEquals("<tr>", html.get(0));
     assertEquals("</tr>", html.get(html.size() - 2));
+    if (libraryDesugaringSpecification == JDK11 || libraryDesugaringSpecification == JDK11_PATH) {
+      assertEquals(7, html.stream().filter(s -> s.contains("Flow")).count());
+    }
   }
 }

@@ -78,6 +78,9 @@ public class GenerateLintFiles {
 
   private static final String ANDROID_JAR_PATTERN = "third_party/android_jar/lib-v%d/android.jar";
 
+  // If we increment this api level, we need to verify everything works correctly.
+  private static final AndroidApiLevel MAX_TESTED_ANDROID_API_LEVEL = AndroidApiLevel.T;
+
   private final DexItemFactory factory = new DexItemFactory();
   private final Reporter reporter = new Reporter();
   private final InternalOptions options =
@@ -412,7 +415,7 @@ public class GenerateLintFiles {
 
   private void run() throws Exception {
     // Run over all the API levels that the desugared library can be compiled with.
-    for (int apiLevel = AndroidApiLevel.T.getLevel();
+    for (int apiLevel = MAX_TESTED_ANDROID_API_LEVEL.getLevel();
         apiLevel >= desugaredLibrarySpecification.getRequiredCompilationApiLevel().getLevel();
         apiLevel--) {
       System.out.println("Generating lint files for compile API " + apiLevel);
@@ -842,7 +845,8 @@ public class GenerateLintFiles {
   private void generateDesugaredLibraryApisDocumetation() throws Exception {
     PrintStream ps = new PrintStream(Files.newOutputStream(outputDirectory.resolve("apis.html")));
     // Full classes added.
-    SupportedMethods supportedMethods = collectSupportedMethods(AndroidApiLevel.Q, x -> true);
+    SupportedMethods supportedMethods =
+        collectSupportedMethods(MAX_TESTED_ANDROID_API_LEVEL, x -> true);
     supportedMethods.classesWithAllMethodsSupported.stream()
         .sorted(Comparator.comparing(clazz -> clazz.type.toSourceString()))
         .forEach(clazz -> generateClassHTML(ps, clazz, true, field -> true, method -> true));
