@@ -43,7 +43,7 @@ public class DefaultInterfaceMethodProfileRewritingTest extends TestBase {
         .addArtProfileForRewriting(getArtProfile())
         .setMinApi(parameters.getApiLevel())
         .compile()
-        .inspectResidualArtProfile(this::inspect)
+        .inspectResidualArtProfile(this::inspectD8)
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines("Hello, world!");
   }
@@ -59,7 +59,7 @@ public class DefaultInterfaceMethodProfileRewritingTest extends TestBase {
         .enableNoHorizontalClassMergingAnnotations()
         .setMinApi(parameters.getApiLevel())
         .compile()
-        .inspectResidualArtProfile(this::inspect)
+        .inspectResidualArtProfile(this::inspectR8)
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines("Hello, world!");
   }
@@ -70,8 +70,25 @@ public class DefaultInterfaceMethodProfileRewritingTest extends TestBase {
         .build();
   }
 
-  private void inspect(ArtProfileInspector profileInspector, CodeInspector inspector) {
-    if (parameters.canUseDefaultAndStaticInterfaceMethodsWhenDesugaring()) {
+  private void inspectD8(ArtProfileInspector profileInspector, CodeInspector inspector) {
+    inspect(
+        profileInspector,
+        inspector,
+        parameters.canUseDefaultAndStaticInterfaceMethodsWhenDesugaring());
+  }
+
+  private void inspectR8(ArtProfileInspector profileInspector, CodeInspector inspector) {
+    inspect(
+        profileInspector,
+        inspector,
+        parameters.isCfRuntime() || parameters.canUseDefaultAndStaticInterfaceMethods());
+  }
+
+  private void inspect(
+      ArtProfileInspector profileInspector,
+      CodeInspector inspector,
+      boolean canUseDefaultAndStaticInterfaceMethods) {
+    if (canUseDefaultAndStaticInterfaceMethods) {
       ClassSubject iClassSubject = inspector.clazz(I.class);
       assertThat(iClassSubject, isPresent());
 
