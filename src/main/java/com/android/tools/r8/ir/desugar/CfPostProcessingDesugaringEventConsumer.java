@@ -31,9 +31,14 @@ public abstract class CfPostProcessingDesugaringEventConsumer
         InterfaceProcessingDesugaringEventConsumer,
         DesugaredLibraryAPICallbackSynthesizorEventConsumer {
 
-  public static D8CfPostProcessingDesugaringEventConsumer createForD8(
-      D8MethodProcessor methodProcessor, CfInstructionDesugaringCollection instructionDesugaring) {
-    return new D8CfPostProcessingDesugaringEventConsumer(methodProcessor, instructionDesugaring);
+  public static CfPostProcessingDesugaringEventConsumer createForD8(
+      ArtProfileCollectionAdditions artProfileCollectionAdditions,
+      D8MethodProcessor methodProcessor,
+      CfInstructionDesugaringCollection instructionDesugaring) {
+    CfPostProcessingDesugaringEventConsumer eventConsumer =
+        new D8CfPostProcessingDesugaringEventConsumer(methodProcessor, instructionDesugaring);
+    return ArtProfileRewritingCfPostProcessingDesugaringEventConsumer.attach(
+        artProfileCollectionAdditions, eventConsumer);
   }
 
   public static CfPostProcessingDesugaringEventConsumer createForR8(

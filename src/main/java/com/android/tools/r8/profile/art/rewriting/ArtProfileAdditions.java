@@ -8,13 +8,16 @@ import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ProgramDefinition;
+import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.profile.art.ArtProfile;
 import com.android.tools.r8.profile.art.ArtProfileClassRule;
 import com.android.tools.r8.profile.art.ArtProfileMethodRule;
 import com.android.tools.r8.profile.art.ArtProfileRule;
+import com.google.common.collect.Sets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
 
@@ -26,6 +29,9 @@ class ArtProfileAdditions {
     ArtProfileAdditionsBuilder addRule(ProgramDefinition definition);
 
     ArtProfileAdditionsBuilder addRule(DexReference reference);
+
+    ArtProfileAdditionsBuilder removeMovedMethodRule(
+        ProgramMethod oldMethod, ProgramMethod newMethod);
   }
 
   private final ArtProfile artProfile;
@@ -34,6 +40,7 @@ class ArtProfileAdditions {
       new ConcurrentHashMap<>();
   private final Map<DexMethod, ArtProfileMethodRule.Builder> methodRuleAdditions =
       new ConcurrentHashMap<>();
+  private final Set<DexMethod> methodRuleRemovals = Sets.newConcurrentHashSet();
 
   ArtProfileAdditions(ArtProfile artProfile) {
     this.artProfile = artProfile;
@@ -55,6 +62,13 @@ class ArtProfileAdditions {
             public ArtProfileAdditionsBuilder addRule(DexReference reference) {
               addRuleFromContext(
                   reference, contextMethodRule, MethodRuleAdditionConfig.getDefault());
+              return this;
+            }
+
+            @Override
+            public ArtProfileAdditionsBuilder removeMovedMethodRule(
+                ProgramMethod oldMethod, ProgramMethod newMethod) {
+              ArtProfileAdditions.this.removeMovedMethodRule(oldMethod, newMethod);
               return this;
             }
           });
@@ -97,14 +111,27 @@ class ArtProfileAdditions {
     }
   }
 
+  void removeMovedMethodRule(ProgramMethod oldMethod, ProgramMethod newMethod) {
+    assert artProfile.containsMethodRule(oldMethod.getReference());
+    assert methodRuleAdditions.containsKey(newMethod.getReference());
+    methodRuleRemovals.add(oldMethod.getReference());
+  }
+
   ArtProfile createNewArtProfile() {
     if (!hasAdditions()) {
+      assert !hasRemovals();
       return artProfile;
     }
 
     // Add existing rules to new profile.
     ArtProfile.Builder artProfileBuilder = ArtProfile.builder();
-    artProfile.forEachRule(artProfileBuilder::addRule);
+    artProfile.forEachRule(
+        artProfileBuilder::addRule,
+        methodRule -> {
+          if (!methodRuleRemovals.contains(methodRule.getMethod())) {
+            artProfileBuilder.addRule(methodRule);
+          }
+        });
 
     // Sort and add additions to new profile. Sorting is needed since the additions to this
     // collection may be concurrent.
@@ -124,5 +151,9 @@ class ArtProfileAdditions {
 
   boolean hasAdditions() {
     return !classRuleAdditions.isEmpty() || !methodRuleAdditions.isEmpty();
+  }
+
+  private boolean hasRemovals() {
+    return !methodRuleRemovals.isEmpty();
   }
 }

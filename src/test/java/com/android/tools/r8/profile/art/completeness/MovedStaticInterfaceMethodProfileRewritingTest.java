@@ -32,11 +32,24 @@ public class MovedStaticInterfaceMethodProfileRewritingTest extends TestBase {
 
   @Parameters(name = "{0}")
   public static TestParametersCollection data() {
-    return getTestParameters().withAllRuntimesAndApiLevels().build();
+    return getTestParameters().withAllRuntimes().withAllApiLevelsAlsoForCf().build();
+  }
+
+  @Test
+  public void testD8() throws Exception {
+    testForD8(parameters.getBackend())
+        .addInnerClasses(getClass())
+        .addArtProfileForRewriting(getArtProfile())
+        .setMinApi(parameters.getApiLevel())
+        .compile()
+        .inspectResidualArtProfile(this::inspectD8)
+        .run(parameters.getRuntime(), Main.class)
+        .assertSuccessWithOutputLines("Hello, world!");
   }
 
   @Test
   public void testR8() throws Exception {
+    parameters.assumeR8TestParameters();
     testForR8(parameters.getBackend())
         .addInnerClasses(getClass())
         .addKeepMainRule(Main.class)
@@ -44,7 +57,7 @@ public class MovedStaticInterfaceMethodProfileRewritingTest extends TestBase {
         .enableInliningAnnotations()
         .setMinApi(parameters.getApiLevel())
         .compile()
-        .inspectResidualArtProfile(this::inspect)
+        .inspectResidualArtProfile(this::inspectR8)
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines("Hello, world!");
   }
@@ -55,8 +68,28 @@ public class MovedStaticInterfaceMethodProfileRewritingTest extends TestBase {
         .build();
   }
 
-  private void inspect(ArtProfileInspector profileInspector, CodeInspector inspector) {
-    if (parameters.canUseDefaultAndStaticInterfaceMethods()) {
+  private void inspectD8(ArtProfileInspector profileInspector, CodeInspector inspector)
+      throws Exception {
+    inspect(
+        profileInspector,
+        inspector,
+        parameters.canUseDefaultAndStaticInterfaceMethodsWhenDesugaring());
+  }
+
+  private void inspectR8(ArtProfileInspector profileInspector, CodeInspector inspector)
+      throws Exception {
+    inspect(
+        profileInspector,
+        inspector,
+        parameters.isCfRuntime() || parameters.canUseDefaultAndStaticInterfaceMethods());
+  }
+
+  private void inspect(
+      ArtProfileInspector profileInspector,
+      CodeInspector inspector,
+      boolean canUseDefaultAndStaticInterfaceMethods)
+      throws Exception {
+    if (canUseDefaultAndStaticInterfaceMethods) {
       ClassSubject iClassSubject = inspector.clazz(I.class);
       assertThat(iClassSubject, isPresent());
 

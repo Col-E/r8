@@ -7,7 +7,6 @@ package com.android.tools.r8.profile.art.completeness;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static com.android.tools.r8.utils.codeinspector.Matchers.onlyIf;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.Assume.assumeFalse;
 
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
@@ -36,7 +35,7 @@ public class BackportProfileRewritingTest extends TestBase {
 
   @Parameters(name = "{0}")
   public static TestParametersCollection data() {
-    return getTestParameters().withAllRuntimesAndApiLevels().withAllApiLevelsAlsoForCf().build();
+    return getTestParameters().withAllRuntimes().withAllApiLevelsAlsoForCf().build();
   }
 
   @Test
@@ -53,8 +52,7 @@ public class BackportProfileRewritingTest extends TestBase {
 
   @Test
   public void testR8() throws Exception {
-    assumeFalse(
-        parameters.isCfRuntime() && parameters.getApiLevel().isGreaterThan(AndroidApiLevel.B));
+    parameters.assumeR8TestParameters();
     testForR8(parameters.getBackend())
         .addInnerClasses(getClass())
         .addKeepMainRule(Main.class)

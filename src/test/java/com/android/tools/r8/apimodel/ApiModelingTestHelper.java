@@ -24,6 +24,7 @@ import com.android.tools.r8.references.MethodReference;
 import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.synthesis.SyntheticItemsTestUtils;
 import com.android.tools.r8.utils.AndroidApiLevel;
+import com.android.tools.r8.utils.ThrowingConsumer;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.CodeMatchers;
 import com.android.tools.r8.utils.codeinspector.FoundClassSubject;
@@ -252,6 +253,19 @@ public abstract class ApiModelingTestHelper {
       this.inspector = inspector;
       this.parameters = parameters;
       this.classOfInterest = classOfInterest;
+    }
+
+    public <E1 extends Exception, E2 extends Exception> ApiModelingClassVerificationHelper applyIf(
+        boolean condition,
+        ThrowingConsumer<ApiModelingClassVerificationHelper, E1> thenConsumer,
+        ThrowingConsumer<ApiModelingClassVerificationHelper, E2> elseConsumer)
+        throws E1, E2 {
+      if (condition) {
+        thenConsumer.accept(this);
+      } else {
+        elseConsumer.accept(this);
+      }
+      return this;
     }
 
     public void stubbedUntil(AndroidApiLevel finalApiLevel) {

@@ -204,7 +204,10 @@ public class ArtProfileRewritingCfInstructionDesugaringEventConsumer
     additionsCollection.applyIfContextIsInProfile(
         method,
         additionsBuilder ->
-            additionsBuilder.addRule(companionMethod).addRule(companionMethod.getHolder()));
+            additionsBuilder
+                .addRule(companionMethod)
+                .addRule(companionMethod.getHolder())
+                .removeMovedMethodRule(method, companionMethod));
     parent.acceptPrivateAsCompanionMethod(method, companionMethod);
   }
 
@@ -223,7 +226,10 @@ public class ArtProfileRewritingCfInstructionDesugaringEventConsumer
     additionsCollection.applyIfContextIsInProfile(
         method,
         additionsBuilder ->
-            additionsBuilder.addRule(companionMethod).addRule(companionMethod.getHolder()));
+            additionsBuilder
+                .addRule(companionMethod)
+                .addRule(companionMethod.getHolder())
+                .removeMovedMethodRule(method, companionMethod));
     parent.acceptStaticAsCompanionMethod(method, companionMethod);
   }
 

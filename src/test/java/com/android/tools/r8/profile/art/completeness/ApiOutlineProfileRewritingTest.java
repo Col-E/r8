@@ -49,9 +49,8 @@ public class ApiOutlineProfileRewritingTest extends TestBase {
         : parameters.getRuntime().maxSupportedApiLevel();
   }
 
-  public boolean isLibraryClassAlwaysPresent() {
-    return parameters.isCfRuntime()
-        || parameters.getApiLevel().isGreaterThanOrEqualTo(classApiLevel);
+  public boolean isLibraryClassAlwaysPresent(boolean isDesugaring) {
+    return !isDesugaring || parameters.getApiLevel().isGreaterThanOrEqualTo(classApiLevel);
   }
 
   public boolean isLibraryClassPresentInCurrentRuntime() {
@@ -70,6 +69,24 @@ public class ApiOutlineProfileRewritingTest extends TestBase {
   }
 
   @Test
+  public void testD8() throws Exception {
+    testForD8(parameters.getBackend())
+        .addProgramClasses(Main.class)
+        .addLibraryClasses(LibraryClass.class)
+        .addDefaultRuntimeLibrary(parameters)
+        .addArtProfileForRewriting(getArtProfile())
+        .apply(setMockApiLevelForClass(LibraryClass.class, classApiLevel))
+        .setMinApi(parameters.getApiLevel())
+        .compile()
+        .inspectResidualArtProfile(this::inspectD8)
+        .applyIf(
+            isLibraryClassPresentInCurrentRuntime(),
+            testBuilder -> testBuilder.addBootClasspathClasses(LibraryClass.class))
+        .run(parameters.getRuntime(), Main.class)
+        .apply(this::inspectRunResult);
+  }
+
+  @Test
   public void testR8() throws Exception {
     parameters.assumeR8TestParameters();
     testForR8(parameters.getBackend())
@@ -81,7 +98,7 @@ public class ApiOutlineProfileRewritingTest extends TestBase {
         .apply(setMockApiLevelForClass(LibraryClass.class, classApiLevel))
         .setMinApi(parameters.getApiLevel())
         .compile()
-        .inspectResidualArtProfile(this::inspect)
+        .inspectResidualArtProfile(this::inspectR8)
         .applyIf(
             isLibraryClassPresentInCurrentRuntime(),
             testBuilder -> testBuilder.addBootClasspathClasses(LibraryClass.class))
@@ -95,26 +112,43 @@ public class ApiOutlineProfileRewritingTest extends TestBase {
         .build();
   }
 
-  private void inspect(ArtProfileInspector profileInspector, CodeInspector inspector)
+  private void inspectD8(ArtProfileInspector profileInspector, CodeInspector inspector)
+      throws Exception {
+    inspect(profileInspector, inspector, isLibraryClassAlwaysPresent(true));
+  }
+
+  private void inspectR8(ArtProfileInspector profileInspector, CodeInspector inspector)
+      throws Exception {
+    inspect(profileInspector, inspector, isLibraryClassAlwaysPresent(parameters.isDexRuntime()));
+  }
+
+  private void inspect(
+      ArtProfileInspector profileInspector,
+      CodeInspector inspector,
+      boolean isLibraryClassAlwaysPresent)
       throws Exception {
     // Verify that outlining happened.
     verifyThat(inspector, parameters, LibraryClass.class)
-        .hasConstClassOutlinedFromUntil(
-            Main.class.getMethod("main", String[].class), classApiLevel);
+        .applyIf(
+            isLibraryClassAlwaysPresent,
+            verifier ->
+                verifier.hasNotConstClassOutlinedFrom(Main.class.getMethod("main", String[].class)),
+            verifier ->
+                verifier.hasConstClassOutlinedFrom(Main.class.getMethod("main", String[].class)));
 
     // Check outline was added to program.
     ClassSubject apiOutlineClassSubject =
         inspector.clazz(SyntheticItemsTestUtils.syntheticApiOutlineClass(Main.class, 0));
-    assertThat(apiOutlineClassSubject, notIf(isPresent(), isLibraryClassAlwaysPresent()));
+    assertThat(apiOutlineClassSubject, notIf(isPresent(), isLibraryClassAlwaysPresent));
 
     MethodSubject apiOutlineMethodSubject = apiOutlineClassSubject.uniqueMethod();
-    assertThat(apiOutlineMethodSubject, notIf(isPresent(), isLibraryClassAlwaysPresent()));
+    assertThat(apiOutlineMethodSubject, notIf(isPresent(), isLibraryClassAlwaysPresent));
 
     // Verify the residual profile contains the outline method and its holder when present.
     profileInspector
         .assertContainsMethodRule(MethodReferenceUtils.mainMethod(Main.class))
         .applyIf(
-            !isLibraryClassAlwaysPresent(),
+            !isLibraryClassAlwaysPresent,
             i ->
                 i.assertContainsClassRule(apiOutlineClassSubject)
                     .assertContainsMethodRule(apiOutlineMethodSubject))

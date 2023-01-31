@@ -38,7 +38,6 @@ import com.android.tools.r8.ir.desugar.CfInstructionDesugaringCollection;
 import com.android.tools.r8.ir.desugar.CfInstructionDesugaringEventConsumer;
 import com.android.tools.r8.ir.desugar.CfPostProcessingDesugaringCollection;
 import com.android.tools.r8.ir.desugar.CfPostProcessingDesugaringEventConsumer;
-import com.android.tools.r8.ir.desugar.CfPostProcessingDesugaringEventConsumer.D8CfPostProcessingDesugaringEventConsumer;
 import com.android.tools.r8.ir.desugar.CovariantReturnTypeAnnotationTransformer;
 import com.android.tools.r8.ir.desugar.ProgramAdditions;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.apiconversion.DesugaredLibraryAPIConverter;
@@ -91,6 +90,7 @@ import com.android.tools.r8.naming.IdentifierNameStringMarker;
 import com.android.tools.r8.optimize.argumentpropagation.ArgumentPropagator;
 import com.android.tools.r8.optimize.argumentpropagation.ArgumentPropagatorIROptimizer;
 import com.android.tools.r8.position.MethodPosition;
+import com.android.tools.r8.profile.art.rewriting.ArtProfileCollectionAdditions;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.KeepMethodInfo;
 import com.android.tools.r8.shaking.LibraryMethodOverrideAnalysis;
@@ -435,8 +435,11 @@ public class IRConverter {
       InterfaceProcessor interfaceProcessor,
       ExecutorService executorService)
       throws ExecutionException {
-    D8CfPostProcessingDesugaringEventConsumer eventConsumer =
-        CfPostProcessingDesugaringEventConsumer.createForD8(methodProcessor, instructionDesugaring);
+    ArtProfileCollectionAdditions artProfileCollectionAdditions =
+        ArtProfileCollectionAdditions.create(appView);
+    CfPostProcessingDesugaringEventConsumer eventConsumer =
+        CfPostProcessingDesugaringEventConsumer.createForD8(
+            artProfileCollectionAdditions, methodProcessor, instructionDesugaring);
     methodProcessor.newWave();
     InterfaceMethodProcessorFacade interfaceDesugaring =
         instructionDesugaring.getInterfaceMethodPostProcessingDesugaringD8(
@@ -446,6 +449,7 @@ public class IRConverter {
             appView.appInfo().classes(), m -> true, eventConsumer, executorService);
     methodProcessor.awaitMethodProcessing();
     eventConsumer.finalizeDesugaring();
+    artProfileCollectionAdditions.commit(appView);
   }
 
   private void convertClasses(
