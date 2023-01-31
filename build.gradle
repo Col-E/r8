@@ -202,6 +202,7 @@ sourceSets {
     keepanno {
         java {
             srcDirs = ['src/keepanno/java']
+            include 'com/android/tools/r8/keepanno/annotations/*.java'
         }
     }
 }
@@ -1227,6 +1228,11 @@ task R8RetraceNoDeps {
 task sourceJar(type: Jar, dependsOn: classes) {
     classifier = 'src'
     from sourceSets.main.allSource
+}
+
+task keepAnnoJar(type: Jar) {
+    archiveFileName = "keepanno-annotations.jar"
+    from sourceSets.keepanno.output
 }
 
 artifacts {
