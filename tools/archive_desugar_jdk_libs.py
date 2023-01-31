@@ -174,7 +174,7 @@ def BuildDesugaredLibrary(checkout_dir, variant, version = None):
   if variant != 'jdk8':
     # Hack to workaround b/256723819.
     os.remove(
-      join(
+      os.path.join(
         checkout_dir,
         "jdk11",
         "src",
