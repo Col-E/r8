@@ -825,6 +825,7 @@ public class ProguardMapReader implements AutoCloseable {
     }
 
     ParseException(String msg, boolean eol) {
+      super(msg);
       lineNo = ProguardMapReader.this.lineNo;
       lineOffset = ProguardMapReader.this.lineOffset;
       this.eol = eol;
