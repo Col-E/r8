@@ -6,7 +6,7 @@ package com.android.tools.r8.profile.art.completeness;
 
 import static com.android.tools.r8.utils.codeinspector.CodeMatchers.invokesMethod;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
-import static com.android.tools.r8.utils.codeinspector.Matchers.onlyIf;
+import static com.android.tools.r8.utils.codeinspector.Matchers.notIf;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.android.tools.r8.TestBase;
@@ -66,7 +66,10 @@ public class SyntheticLambdaClassProfileRewritingTest extends TestBase {
     }
 
     public void inspect(
-        ArtProfileInspector profileInspector, CodeInspector inspector, TestParameters parameters) {
+        ArtProfileInspector profileInspector,
+        CodeInspector inspector,
+        boolean canUseLambdas,
+        boolean canAccessModifyLambdaImplementationMethods) {
       ClassSubject mainClassSubject = inspector.clazz(Main.class);
       assertThat(mainClassSubject, isPresent());
 
@@ -81,7 +84,9 @@ public class SyntheticLambdaClassProfileRewritingTest extends TestBase {
       MethodSubject lambdaAccessibilityBridgeMethod =
           mainClassSubject.uniqueMethodThatMatches(
               invokesMethod(lambdaImplementationMethod)::matches);
-      assertThat(lambdaAccessibilityBridgeMethod, onlyIf(parameters.isDexRuntime(), isPresent()));
+      assertThat(
+          lambdaAccessibilityBridgeMethod,
+          notIf(isPresent(), canUseLambdas || canAccessModifyLambdaImplementationMethods));
 
       // Check the presence of the second lambda implementation method and the synthesized accessor.
       MethodSubject otherLambdaImplementationMethod =
@@ -92,34 +97,35 @@ public class SyntheticLambdaClassProfileRewritingTest extends TestBase {
           mainClassSubject.uniqueMethodThatMatches(
               invokesMethod(otherLambdaImplementationMethod)::matches);
       assertThat(
-          otherLambdaAccessibilityBridgeMethod, onlyIf(parameters.isDexRuntime(), isPresent()));
+          otherLambdaAccessibilityBridgeMethod,
+          notIf(isPresent(), canUseLambdas || canAccessModifyLambdaImplementationMethods));
 
       // Check the presence of the first lambda class and its methods.
       ClassSubject lambdaClassSubject =
           inspector.clazz(SyntheticItemsTestUtils.syntheticLambdaClass(Main.class, 0));
-      assertThat(lambdaClassSubject, onlyIf(parameters.isDexRuntime(), isPresent()));
+      assertThat(lambdaClassSubject, notIf(isPresent(), canUseLambdas));
 
       MethodSubject lambdaInitializerSubject = lambdaClassSubject.uniqueInstanceInitializer();
-      assertThat(lambdaInitializerSubject, onlyIf(parameters.isDexRuntime(), isPresent()));
+      assertThat(lambdaInitializerSubject, notIf(isPresent(), canUseLambdas));
 
       MethodSubject lambdaMainMethodSubject =
           lambdaClassSubject.uniqueMethodThatMatches(FoundMethodSubject::isVirtual);
-      assertThat(lambdaMainMethodSubject, onlyIf(parameters.isDexRuntime(), isPresent()));
+      assertThat(lambdaMainMethodSubject, notIf(isPresent(), canUseLambdas));
 
       // Check the presence of the second lambda class and its methods.
       ClassSubject otherLambdaClassSubject =
           inspector.clazz(SyntheticItemsTestUtils.syntheticLambdaClass(Main.class, 1));
-      assertThat(otherLambdaClassSubject, onlyIf(parameters.isDexRuntime(), isPresent()));
+      assertThat(otherLambdaClassSubject, notIf(isPresent(), canUseLambdas));
 
       MethodSubject otherLambdaInitializerSubject =
           otherLambdaClassSubject.uniqueInstanceInitializer();
-      assertThat(otherLambdaInitializerSubject, onlyIf(parameters.isDexRuntime(), isPresent()));
+      assertThat(otherLambdaInitializerSubject, notIf(isPresent(), canUseLambdas));
 
       MethodSubject otherLambdaMainMethodSubject =
           otherLambdaClassSubject.uniqueMethodThatMatches(FoundMethodSubject::isVirtual);
-      assertThat(otherLambdaMainMethodSubject, onlyIf(parameters.isDexRuntime(), isPresent()));
+      assertThat(otherLambdaMainMethodSubject, notIf(isPresent(), canUseLambdas));
 
-      if (parameters.isCfRuntime()) {
+      if (canUseLambdas) {
         switch (this) {
           case MAIN_METHOD:
             profileInspector
@@ -136,7 +142,6 @@ public class SyntheticLambdaClassProfileRewritingTest extends TestBase {
             throw new RuntimeException();
         }
       } else {
-        assert parameters.isDexRuntime();
         switch (this) {
           case MAIN_METHOD:
             // Since Main.main() is in the art profile, so should the two synthetic lambdas be along
@@ -154,11 +159,14 @@ public class SyntheticLambdaClassProfileRewritingTest extends TestBase {
             profileInspector
                 .assertContainsMethodRules(
                     lambdaImplementationMethod,
-                    lambdaAccessibilityBridgeMethod,
                     lambdaMainMethodSubject,
                     otherLambdaImplementationMethod,
-                    otherLambdaAccessibilityBridgeMethod,
                     otherLambdaMainMethodSubject)
+                .applyIf(
+                    !canAccessModifyLambdaImplementationMethods,
+                    i ->
+                        i.assertContainsMethodRules(
+                            lambdaAccessibilityBridgeMethod, otherLambdaAccessibilityBridgeMethod))
                 .assertContainsNoOtherRules();
             break;
           default:
@@ -177,11 +185,26 @@ public class SyntheticLambdaClassProfileRewritingTest extends TestBase {
   @Parameters(name = "{1}, {0}")
   public static List<Object[]> data() {
     return buildParameters(
-        ArtProfileInputOutput.values(), getTestParameters().withAllRuntimesAndApiLevels().build());
+        ArtProfileInputOutput.values(),
+        getTestParameters().withAllRuntimes().withAllApiLevelsAlsoForCf().build());
   }
 
   @Test
-  public void test() throws Exception {
+  public void testD8() throws Exception {
+    testForD8(parameters.getBackend())
+        .addInnerClasses(getClass())
+        .addArtProfileForRewriting(artProfileInputOutput.getArtProfile())
+        .noHorizontalClassMergingOfSynthetics()
+        .setMinApi(parameters.getApiLevel())
+        .compile()
+        .inspectResidualArtProfile(this::inspectD8)
+        .run(parameters.getRuntime(), Main.class)
+        .assertSuccessWithOutputLines("Hello, world!");
+  }
+
+  @Test
+  public void testR8() throws Exception {
+    parameters.assumeR8TestParameters();
     testForR8(parameters.getBackend())
         .addInnerClasses(getClass())
         .addKeepMainRule(Main.class)
@@ -192,11 +215,17 @@ public class SyntheticLambdaClassProfileRewritingTest extends TestBase {
         .noHorizontalClassMergingOfSynthetics()
         .setMinApi(parameters.getApiLevel())
         .compile()
-        .inspectResidualArtProfile(
-            (profileInspector, inspector) ->
-                artProfileInputOutput.inspect(profileInspector, inspector, parameters))
+        .inspectResidualArtProfile(this::inspectR8)
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines("Hello, world!");
+  }
+
+  private void inspectD8(ArtProfileInspector profileInspector, CodeInspector inspector) {
+    artProfileInputOutput.inspect(profileInspector, inspector, false, true);
+  }
+
+  private void inspectR8(ArtProfileInspector profileInspector, CodeInspector inspector) {
+    artProfileInputOutput.inspect(profileInspector, inspector, parameters.isCfRuntime(), false);
   }
 
   static class Main {
