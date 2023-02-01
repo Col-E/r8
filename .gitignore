@@ -30,7 +30,7 @@ tests/2016-12-19/art.tar.gz
 tests/2017-10-04/art
 tests/2017-10-04/art.tar.gz
 third_party/aapt2/
-third_party/aap2.tar.gz
+third_party/aapt2.tar.gz
 third_party/api_database/api_database
 third_party/api_database/api_database.tar.gz
 third_party/api-outlining/simple-app-dump
