@@ -22,7 +22,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
 
 /** Mutable extension of an existing ArtProfile. */
-class ArtProfileAdditions {
+public class ArtProfileAdditions {
 
   public interface ArtProfileAdditionsBuilder {
 

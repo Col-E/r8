@@ -32,7 +32,8 @@ public class ConcreteArtProfileCollectionAdditions extends ArtProfileCollectionA
     applyIfContextIsInProfile(context.getReference(), builderConsumer);
   }
 
-  void applyIfContextIsInProfile(
+  @Override
+  public void applyIfContextIsInProfile(
       DexMethod context, Consumer<ArtProfileAdditionsBuilder> builderConsumer) {
     for (ArtProfileAdditions artProfileAdditions : additionsCollection) {
       artProfileAdditions.applyIfContextIsInProfile(context, builderConsumer);

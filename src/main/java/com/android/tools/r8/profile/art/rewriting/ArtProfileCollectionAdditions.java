@@ -5,7 +5,10 @@
 package com.android.tools.r8.profile.art.rewriting;
 
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.profile.art.ArtProfileCollection;
+import com.android.tools.r8.profile.art.rewriting.ArtProfileAdditions.ArtProfileAdditionsBuilder;
+import java.util.function.Consumer;
 
 /**
  * Interface for adding (synthetic) items to an existing ArtProfileCollection.
@@ -30,9 +33,12 @@ public abstract class ArtProfileCollectionAdditions {
     return NopArtProfileCollectionAdditions.getInstance();
   }
 
+  public abstract void applyIfContextIsInProfile(
+      DexMethod context, Consumer<ArtProfileAdditionsBuilder> builderConsumer);
+
   public abstract void commit(AppView<?> appView);
 
-  boolean isNop() {
+  public boolean isNop() {
     return false;
   }
 

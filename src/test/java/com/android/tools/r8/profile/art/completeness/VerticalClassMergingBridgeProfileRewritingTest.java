@@ -43,7 +43,7 @@ public class VerticalClassMergingBridgeProfileRewritingTest extends TestBase {
         .addArtProfileForRewriting(getArtProfile())
         .addOptionsModification(InlinerOptions::setOnlyForceInlining)
         .addOptionsModification(
-            options -> options.callSiteOptimizationOptions().setEnableMethodStaticizing(false))
+            options -> options.callSiteOptimizationOptions().disableOptimization())
         .addVerticallyMergedClassesInspector(
             inspector -> inspector.assertMergedIntoSubtype(A.class))
         .setMinApi(parameters.getApiLevel())
@@ -55,7 +55,7 @@ public class VerticalClassMergingBridgeProfileRewritingTest extends TestBase {
 
   private ExternalArtProfile getArtProfile() throws Exception {
     return ExternalArtProfile.builder()
-        .addMethodRule(Reference.methodFromMethod(A.class.getDeclaredMethod("m")))
+        .addMethodRule(Reference.methodFromMethod(A.class.getDeclaredMethod("m", A.class)))
         .build();
   }
 
@@ -71,20 +71,21 @@ public class VerticalClassMergingBridgeProfileRewritingTest extends TestBase {
         bClassSubject.uniqueMethodThatMatches(FoundMethodSubject::isVirtual);
     assertThat(syntheticBridgeMethodSubject, isPresent());
 
-    // TODO(b/265729283): Should also contain the synthetic bridge method above.
-    profileInspector.assertContainsMethodRule(movedMethodSubject).assertContainsNoOtherRules();
+    profileInspector
+        .assertContainsMethodRules(movedMethodSubject, syntheticBridgeMethodSubject)
+        .assertContainsNoOtherRules();
   }
 
   static class Main {
 
     public static void main(String[] args) {
-      new B().m();
+      new B().m(null);
     }
   }
 
   static class A {
 
-    public void m() {
+    public void m(A a) {
       System.out.println("Hello, world!");
     }
   }

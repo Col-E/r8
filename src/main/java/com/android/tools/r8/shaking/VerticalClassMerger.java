@@ -74,6 +74,7 @@ import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackSimple;
 import com.android.tools.r8.ir.synthetic.AbstractSynthesizedCode;
 import com.android.tools.r8.ir.synthetic.ForwardMethodSourceCode;
 import com.android.tools.r8.logging.Log;
+import com.android.tools.r8.profile.art.rewriting.ArtProfileCollectionAdditions;
 import com.android.tools.r8.utils.Box;
 import com.android.tools.r8.utils.CollectionUtils;
 import com.android.tools.r8.utils.FieldSignatureEquivalence;
@@ -731,6 +732,18 @@ public class VerticalClassMerger {
 
     assert lens != null;
     assert verifyGraphLens(lens);
+
+    // Include bridges in art profiles.
+    ArtProfileCollectionAdditions artProfileCollectionAdditions =
+        ArtProfileCollectionAdditions.create(appView);
+    if (!artProfileCollectionAdditions.isNop()) {
+      for (SynthesizedBridgeCode synthesizedBridge : synthesizedBridges) {
+        artProfileCollectionAdditions.applyIfContextIsInProfile(
+            synthesizedBridge.originalMethod,
+            additionsBuilder -> additionsBuilder.addRule(synthesizedBridge.method));
+      }
+    }
+    artProfileCollectionAdditions.commit(appView);
 
     // Rewrite collections using the lens.
     appView.rewriteWithLens(lens);
