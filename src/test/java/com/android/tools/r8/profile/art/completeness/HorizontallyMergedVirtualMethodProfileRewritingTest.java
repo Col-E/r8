@@ -6,6 +6,7 @@ package com.android.tools.r8.profile.art.completeness;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
@@ -35,11 +36,11 @@ public class HorizontallyMergedVirtualMethodProfileRewritingTest extends TestBas
       switch (this) {
         case A_METHOD:
           return ExternalArtProfile.builder()
-              .addMethodRule(Reference.methodFromMethod(A.class.getDeclaredMethod("m")))
+              .addMethodRule(Reference.methodFromMethod(A.class.getDeclaredMethod("m", B.class)))
               .build();
         case B_METHOD:
           return ExternalArtProfile.builder()
-              .addMethodRule(Reference.methodFromMethod(B.class.getDeclaredMethod("m")))
+              .addMethodRule(Reference.methodFromMethod(B.class.getDeclaredMethod("m", B.class)))
               .build();
         default:
           throw new RuntimeException();
@@ -64,9 +65,11 @@ public class HorizontallyMergedVirtualMethodProfileRewritingTest extends TestBas
       MethodSubject syntheticBridgeMethodSubject =
           aClassSubject.uniqueMethodThatMatches(FoundMethodSubject::isVirtual);
       assertThat(syntheticBridgeMethodSubject, isPresent());
+      assertEquals(aClassSubject.asTypeSubject(), syntheticBridgeMethodSubject.getParameter(0));
 
-      // TODO(b/265729283): Should contain the synthetic bridge method from above.
-      profileInspector.assertContainsMethodRule(movedMethodSubject).assertContainsNoOtherRules();
+      profileInspector
+          .assertContainsMethodRules(movedMethodSubject, syntheticBridgeMethodSubject)
+          .assertContainsNoOtherRules();
     }
   }
 
@@ -92,7 +95,7 @@ public class HorizontallyMergedVirtualMethodProfileRewritingTest extends TestBas
             inspector -> inspector.assertMergedInto(B.class, A.class).assertNoOtherClassesMerged())
         .addOptionsModification(InlinerOptions::setOnlyForceInlining)
         .addOptionsModification(
-            options -> options.callSiteOptimizationOptions().setEnableMethodStaticizing(false))
+            options -> options.callSiteOptimizationOptions().disableOptimization())
         .setMinApi(parameters.getApiLevel())
         .compile()
         .inspectResidualArtProfile(artProfileInputOutput::inspect)
@@ -103,21 +106,21 @@ public class HorizontallyMergedVirtualMethodProfileRewritingTest extends TestBas
   static class Main {
 
     public static void main(String[] args) {
-      new A().m();
-      new B().m();
+      new A().m(null);
+      new B().m(null);
     }
   }
 
   static class A {
 
-    public void m() {
+    public void m(B b) {
       System.out.print("Hello");
     }
   }
 
   static class B {
 
-    public void m() {
+    public void m(B b) {
       System.out.println(", world!");
     }
   }

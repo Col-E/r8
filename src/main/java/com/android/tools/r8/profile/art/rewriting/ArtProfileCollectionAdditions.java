@@ -9,6 +9,7 @@ import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.profile.art.ArtProfileCollection;
 import com.android.tools.r8.profile.art.rewriting.ArtProfileAdditions.ArtProfileAdditionsBuilder;
 import java.util.function.Consumer;
+import java.util.function.Function;
 
 /**
  * Interface for adding (synthetic) items to an existing ArtProfileCollection.
@@ -45,4 +46,10 @@ public abstract class ArtProfileCollectionAdditions {
   ConcreteArtProfileCollectionAdditions asConcrete() {
     return null;
   }
+
+  public abstract ArtProfileCollectionAdditions rewriteMethodReferences(
+      Function<DexMethod, DexMethod> methodFn);
+
+  public abstract ArtProfileCollectionAdditions setArtProfileCollection(
+      ArtProfileCollection artProfileCollection);
 }

@@ -13,14 +13,21 @@ import com.android.tools.r8.profile.art.NonEmptyArtProfileCollection;
 import com.android.tools.r8.profile.art.rewriting.ArtProfileAdditions.ArtProfileAdditionsBuilder;
 import com.google.common.collect.Iterables;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 import java.util.function.Consumer;
+import java.util.function.Function;
 
 public class ConcreteArtProfileCollectionAdditions extends ArtProfileCollectionAdditions {
 
-  private final List<ArtProfileAdditions> additionsCollection = new ArrayList<>();
+  private final List<ArtProfileAdditions> additionsCollection;
+
+  private ConcreteArtProfileCollectionAdditions(List<ArtProfileAdditions> additionsCollection) {
+    this.additionsCollection = additionsCollection;
+  }
 
   ConcreteArtProfileCollectionAdditions(NonEmptyArtProfileCollection artProfileCollection) {
+    additionsCollection = new ArrayList<>();
     for (ArtProfile artProfile : artProfileCollection) {
       additionsCollection.add(new ArtProfileAdditions(artProfile));
     }
@@ -63,5 +70,27 @@ public class ConcreteArtProfileCollectionAdditions extends ArtProfileCollectionA
 
   private boolean hasAdditions() {
     return Iterables.any(additionsCollection, ArtProfileAdditions::hasAdditions);
+  }
+
+  @Override
+  public ConcreteArtProfileCollectionAdditions rewriteMethodReferences(
+      Function<DexMethod, DexMethod> methodFn) {
+    List<ArtProfileAdditions> rewrittenAdditionsCollection =
+        new ArrayList<>(additionsCollection.size());
+    for (ArtProfileAdditions additions : additionsCollection) {
+      rewrittenAdditionsCollection.add(additions.rewriteMethodReferences(methodFn));
+    }
+    return new ConcreteArtProfileCollectionAdditions(rewrittenAdditionsCollection);
+  }
+
+  @Override
+  public ConcreteArtProfileCollectionAdditions setArtProfileCollection(
+      ArtProfileCollection artProfileCollection) {
+    assert artProfileCollection.isNonEmpty();
+    Iterator<ArtProfile> artProfileIterator = artProfileCollection.asNonEmpty().iterator();
+    for (ArtProfileAdditions additions : additionsCollection) {
+      additions.setArtProfile(artProfileIterator.next());
+    }
+    return this;
   }
 }

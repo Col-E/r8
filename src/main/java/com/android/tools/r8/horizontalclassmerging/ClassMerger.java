@@ -29,6 +29,7 @@ import com.android.tools.r8.horizontalclassmerging.code.SyntheticInitializerConv
 import com.android.tools.r8.ir.analysis.value.NumberFromIntervalValue;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedback;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackSimple;
+import com.android.tools.r8.profile.art.rewriting.ArtProfileCollectionAdditions;
 import com.android.tools.r8.utils.SetUtils;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
@@ -196,19 +197,22 @@ public class ClassMerger {
   }
 
   void mergeMethods(
+      ArtProfileCollectionAdditions artProfileCollectionAdditions,
       SyntheticArgumentClass syntheticArgumentClass,
       SyntheticInitializerConverter.Builder syntheticInitializerConverterBuilder,
       Consumer<VirtuallyMergedMethodsKeepInfo> virtuallyMergedMethodsKeepInfoConsumer) {
-    mergeVirtualMethods(virtuallyMergedMethodsKeepInfoConsumer);
+    mergeVirtualMethods(artProfileCollectionAdditions, virtuallyMergedMethodsKeepInfoConsumer);
     mergeDirectMethods(syntheticArgumentClass, syntheticInitializerConverterBuilder);
     classMethodsBuilder.setClassMethods(group.getTarget());
   }
 
   void mergeVirtualMethods(
+      ArtProfileCollectionAdditions artProfileCollectionAdditions,
       Consumer<VirtuallyMergedMethodsKeepInfo> virtuallyMergedMethodsKeepInfoConsumer) {
     virtualMethodMergers.forEach(
         merger ->
             merger.merge(
+                artProfileCollectionAdditions,
                 classMethodsBuilder,
                 lensBuilder,
                 classIdentifiers,
@@ -327,6 +331,7 @@ public class ClassMerger {
   }
 
   public void mergeGroup(
+      ArtProfileCollectionAdditions artProfileCollectionAdditions,
       PrunedItems.Builder prunedItemsBuilder,
       SyntheticArgumentClass syntheticArgumentClass,
       SyntheticInitializerConverter.Builder syntheticInitializerConverterBuilder,
@@ -337,6 +342,7 @@ public class ClassMerger {
     mergeInterfaces();
     mergeFields(prunedItemsBuilder);
     mergeMethods(
+        artProfileCollectionAdditions,
         syntheticArgumentClass,
         syntheticInitializerConverterBuilder,
         virtuallyMergedMethodsKeepInfoConsumer);

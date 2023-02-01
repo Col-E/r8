@@ -20,6 +20,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
+import java.util.function.Function;
 
 /** Mutable extension of an existing ArtProfile. */
 public class ArtProfileAdditions {
@@ -34,7 +35,7 @@ public class ArtProfileAdditions {
         ProgramMethod oldMethod, ProgramMethod newMethod);
   }
 
-  private final ArtProfile artProfile;
+  private ArtProfile artProfile;
 
   private final Map<DexType, ArtProfileClassRule.Builder> classRuleAdditions =
       new ConcurrentHashMap<>();
@@ -155,5 +156,24 @@ public class ArtProfileAdditions {
 
   private boolean hasRemovals() {
     return !methodRuleRemovals.isEmpty();
+  }
+
+  ArtProfileAdditions rewriteMethodReferences(Function<DexMethod, DexMethod> methodFn) {
+    ArtProfileAdditions rewrittenAdditions = new ArtProfileAdditions(artProfile);
+    assert classRuleAdditions.isEmpty();
+    assert methodRuleRemovals.isEmpty();
+    methodRuleAdditions.forEach(
+        (method, methodRuleBuilder) -> {
+          DexMethod newMethod = methodFn.apply(method);
+          ArtProfileMethodRule.Builder existingMethodRuleBuilder =
+              rewrittenAdditions.methodRuleAdditions.put(
+                  newMethod, methodRuleBuilder.setMethod(newMethod));
+          assert existingMethodRuleBuilder == null;
+        });
+    return rewrittenAdditions;
+  }
+
+  void setArtProfile(ArtProfile artProfile) {
+    this.artProfile = artProfile;
   }
 }

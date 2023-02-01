@@ -44,6 +44,11 @@ public class HorizontalClassMergerGraphLens extends NestedGraphLens {
     this.mergedClasses = mergedClasses;
   }
 
+  DexMethod getNextMethodToInvoke(DexMethod method) {
+    DexMethod nextMethod = methodMap.apply(method);
+    return nextMethod != null ? nextMethod : method;
+  }
+
   @Override
   public boolean isHorizontalClassMergerGraphLens() {
     return true;

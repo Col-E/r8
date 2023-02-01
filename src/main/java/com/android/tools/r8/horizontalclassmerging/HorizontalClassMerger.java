@@ -17,6 +17,7 @@ import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.PrunedItems;
 import com.android.tools.r8.horizontalclassmerging.code.SyntheticInitializerConverter;
 import com.android.tools.r8.ir.code.Invoke.Type;
+import com.android.tools.r8.profile.art.rewriting.ArtProfileCollectionAdditions;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.FieldAccessInfoCollectionModifier;
 import com.android.tools.r8.shaking.KeepInfoCollection;
@@ -122,6 +123,8 @@ public class HorizontalClassMerger {
 
     // Merge the classes.
     List<ClassMerger> classMergers = initializeClassMergers(codeProvider, lensBuilder, groups);
+    ArtProfileCollectionAdditions artProfileCollectionAdditions =
+        ArtProfileCollectionAdditions.create(appView);
     SyntheticArgumentClass syntheticArgumentClass =
         mode.isInitial()
             ? new SyntheticArgumentClass.Builder(appView.withLiveness()).build(groups)
@@ -132,6 +135,7 @@ public class HorizontalClassMerger {
     PrunedItems prunedItems =
         applyClassMergers(
             classMergers,
+            artProfileCollectionAdditions,
             syntheticArgumentClass,
             syntheticInitializerConverterBuilder,
             virtuallyMergedMethodsKeepInfos::add);
@@ -148,6 +152,9 @@ public class HorizontalClassMerger {
 
     HorizontalClassMergerGraphLens horizontalClassMergerGraphLens =
         createLens(mergedClasses, lensBuilder, mode, syntheticArgumentClass);
+    artProfileCollectionAdditions =
+        artProfileCollectionAdditions.rewriteMethodReferences(
+            horizontalClassMergerGraphLens::getNextMethodToInvoke);
 
     assert verifyNoCyclesInInterfaceHierarchies(appView, groups);
 
@@ -178,6 +185,11 @@ public class HorizontalClassMerger {
       appView.setGraphLens(horizontalClassMergerGraphLens);
     }
     codeProvider.setGraphLens(horizontalClassMergerGraphLens);
+
+    // Amend art profile collection.
+    artProfileCollectionAdditions
+        .setArtProfileCollection(appView.getArtProfileCollection())
+        .commit(appView);
 
     // Record where the synthesized $r8$classId fields are read and written.
     if (mode.isInitial()) {
@@ -352,12 +364,14 @@ public class HorizontalClassMerger {
   /** Merges all class groups using {@link ClassMerger}. */
   private PrunedItems applyClassMergers(
       Collection<ClassMerger> classMergers,
+      ArtProfileCollectionAdditions artProfileCollectionAdditions,
       SyntheticArgumentClass syntheticArgumentClass,
       SyntheticInitializerConverter.Builder syntheticInitializerConverterBuilder,
       Consumer<VirtuallyMergedMethodsKeepInfo> virtuallyMergedMethodsKeepInfoConsumer) {
     PrunedItems.Builder prunedItemsBuilder = PrunedItems.builder().setPrunedApp(appView.app());
     for (ClassMerger merger : classMergers) {
       merger.mergeGroup(
+          artProfileCollectionAdditions,
           prunedItemsBuilder,
           syntheticArgumentClass,
           syntheticInitializerConverterBuilder,
