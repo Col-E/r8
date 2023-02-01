@@ -25,6 +25,7 @@ import com.android.tools.r8.dex.code.DexMoveResultWide;
 import com.android.tools.r8.dex.code.DexNewArray;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexItem;
@@ -107,6 +108,16 @@ public abstract class Invoke extends Instruction {
       DexMethod originalContext =
           graphLens.getOriginalMethodSignature(context.getReference(), codeLens);
       if (invokedMethod.getHolderType() != originalContext.getHolderType()) {
+        if (appView.options().isGeneratingDex()
+            && appView.options().canUseNestBasedAccess()
+            && context.getHolder().isInANest()) {
+          DexClass holderType = appView.definitionFor(invokedMethod.getHolderType());
+          if (holderType != null
+              && holderType.isInANest()
+              && holderType.isInSameNest(context.getHolder())) {
+            return Type.DIRECT;
+          }
+        }
         return Type.SUPER;
       }
 
