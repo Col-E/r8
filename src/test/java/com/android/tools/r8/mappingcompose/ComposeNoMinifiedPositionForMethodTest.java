@@ -4,15 +4,13 @@
 
 package com.android.tools.r8.mappingcompose;
 
-import static org.hamcrest.CoreMatchers.containsString;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.Assert.assertThrows;
+import static com.android.tools.r8.mappingcompose.ComposeTestHelpers.doubleToSingleQuote;
+import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.naming.ClassNameMapper;
-import com.android.tools.r8.naming.MappingComposeException;
 import com.android.tools.r8.naming.MappingComposer;
 import com.android.tools.r8.utils.StringUtils;
 import org.junit.Test;
@@ -45,18 +43,17 @@ public class ComposeNoMinifiedPositionForMethodTest extends TestBase {
           "# {'id':'com.android.tools.r8.mapping','version':'2.2'}",
           "a -> b:",
           "    1:2:void x():5:5 -> z");
+  private static final String mappingResult =
+      StringUtils.unixLines(
+          "# {'id':'com.android.tools.r8.mapping','version':'2.2'}",
+          "com.foo -> b:",
+          "    1:2:void m1():0:0 -> z");
 
   @Test
   public void testCompose() throws Exception {
     ClassNameMapper mappingForFoo = ClassNameMapper.mapperFromString(mappingFoo);
     ClassNameMapper mappingForBar = ClassNameMapper.mapperFromString(mappingBar);
-    MappingComposeException mappingComposeException =
-        assertThrows(
-            MappingComposeException.class,
-            () -> MappingComposer.compose(mappingForFoo, mappingForBar));
-    // TODO(b/267289876): Do not fail composition.
-    assertThat(
-        mappingComposeException.getMessage(),
-        containsString("Unexpected missing original position"));
+    String composed = MappingComposer.compose(mappingForFoo, mappingForBar);
+    assertEquals(mappingResult, doubleToSingleQuote(composed));
   }
 }

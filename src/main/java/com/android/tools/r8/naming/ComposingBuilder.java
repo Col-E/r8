@@ -52,6 +52,8 @@ import java.util.function.Consumer;
 
 public class ComposingBuilder {
 
+  private static final Range EMPTY_RANGE = new Range(0, 0);
+
   private MapVersionMappingInformation currentMapVersion = null;
 
   /**
@@ -817,9 +819,14 @@ public class ComposingBuilder {
       if (existingMappedRanges == null) {
         // If we cannot lookup the original position because it has been removed we compose with
         // the existing method signature.
-        if (newRange.originalRange.isPreamble()) {
+        if (newRange.originalRange.isPreamble()
+            || (existingRanges.size() == 1 && lastExistingRange.minifiedRange == null)) {
           return Collections.singletonList(
-              new MappedRange(null, lastExistingRange.signature, null, newRange.renamedName));
+              new MappedRange(
+                  newRange.minifiedRange,
+                  lastExistingRange.signature,
+                  EMPTY_RANGE,
+                  newRange.renamedName));
         } else if (newRange.originalRange.from == 0) {
           // Similar to the trick below we create a synthetic range to map the preamble to.
           Pair<Integer, MappedRange> emptyRange =
