@@ -825,7 +825,10 @@ public class ComposingBuilder {
               new MappedRange(
                   newRange.minifiedRange,
                   lastExistingRange.signature,
-                  EMPTY_RANGE,
+                  lastExistingRange.originalRange != null
+                          && lastExistingRange.originalRange.span() == 1
+                      ? lastExistingRange.originalRange
+                      : EMPTY_RANGE,
                   newRange.renamedName));
         } else if (newRange.originalRange.from == 0) {
           // Similar to the trick below we create a synthetic range to map the preamble to.
