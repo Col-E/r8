@@ -283,7 +283,7 @@ public class ApplicationReader {
                     ClassNameMapper.mapperFromString(
                         content,
                         options.reporter,
-                        false,
+                        options.mappingComposeOptions().allowEmptyMappedRanges,
                         options.testing.enableExperimentalMapFileVersion,
                         false));
               } catch (IOException | ResourceException e) {
