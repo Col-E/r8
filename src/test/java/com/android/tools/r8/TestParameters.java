@@ -88,6 +88,12 @@ public class TestParameters {
     return isCfRuntime() && getRuntime().asCf().isNewerThanOrEqual(CfVm.JDK11);
   }
 
+  public boolean canUseNestBasedAccessesWhenDesugaring() {
+    assert isCfRuntime() || isDexRuntime();
+    assert apiLevel != null;
+    return false;
+  }
+
   // Convenience predicates.
   public boolean isDexRuntime() {
     return runtime.isDex();
