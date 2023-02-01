@@ -39,6 +39,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class ClassNameMapper implements ProguardMap {
 
@@ -218,7 +219,7 @@ public class ClassNameMapper implements ProguardMap {
 
   private final ImmutableMap<String, ClassNamingForNameMapper> classNameMappings;
   private BiMapContainer<String, String> nameMapping;
-  private final Map<Signature, Signature> signatureMap = new HashMap<>();
+  private final Map<Signature, Signature> signatureMap = new ConcurrentHashMap<>();
   private final LinkedHashSet<MapVersionMappingInformation> mapVersions;
   private final Map<String, String> originalSourceFiles;
   private final List<String> preamble;
