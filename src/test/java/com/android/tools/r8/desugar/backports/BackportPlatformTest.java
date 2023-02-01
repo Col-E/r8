@@ -8,6 +8,7 @@ import static com.android.tools.r8.DiagnosticsMatcher.diagnosticPosition;
 import static com.android.tools.r8.DiagnosticsMatcher.diagnosticType;
 import static org.hamcrest.CoreMatchers.allOf;
 import static org.hamcrest.CoreMatchers.containsString;
+import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.PositionMatcher;
@@ -97,6 +98,19 @@ public class BackportPlatformTest extends TestBase {
                 .setClassDescriptor("Ljava/lang/Boolean;")
                 .transform())
         .setMinApi(parameters.getApiLevel())
+        .run(parameters.getRuntime(), TestClass.class)
+        .assertSuccessWithOutput(EXPECTED);
+  }
+
+  @Test
+  public void testPlatformLevelD8() throws Exception {
+    assertEquals(AndroidApiLevel.J, parameters.getApiLevel());
+    testForD8(parameters.getBackend())
+        // Setting platform API will disable any error checking.
+        .setMinApi(AndroidApiLevel.ANDROID_PLATFORM)
+        .apply(b -> b.getBuilder().setAndroidPlatformBuild(true))
+        .addOptionsModification(o -> o.disableBackportsWithErrorDiagnostics = true)
+        .addProgramClasses(CLASSES)
         .run(parameters.getRuntime(), TestClass.class)
         .assertSuccessWithOutput(EXPECTED);
   }

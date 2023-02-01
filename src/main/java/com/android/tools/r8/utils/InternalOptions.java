@@ -2386,7 +2386,7 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
   }
 
   public boolean enableBackportedMethodRewriting() {
-    return desugarState.isOn();
+    return desugarState.isOn() && minApiLevel.isLessThan(AndroidApiLevel.ANDROID_PLATFORM);
   }
 
   public boolean enableTryWithResourcesDesugaring() {
