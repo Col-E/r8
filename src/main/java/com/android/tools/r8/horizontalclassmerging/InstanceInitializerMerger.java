@@ -24,6 +24,7 @@ import com.android.tools.r8.horizontalclassmerging.code.SyntheticInitializerConv
 import com.android.tools.r8.ir.conversion.ExtraConstantIntParameter;
 import com.android.tools.r8.ir.conversion.ExtraParameter;
 import com.android.tools.r8.ir.conversion.ExtraUnusedNullParameter;
+import com.android.tools.r8.profile.art.rewriting.ArtProfileCollectionAdditions;
 import com.android.tools.r8.utils.ArrayUtils;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.ListUtils;
@@ -296,6 +297,7 @@ public class InstanceInitializerMerger {
 
   /** Synthesize a new method which selects the constructor based on a parameter type. */
   void merge(
+      ArtProfileCollectionAdditions artProfileCollectionAdditions,
       ClassMethodsBuilder classMethodsBuilder,
       SyntheticArgumentClass syntheticArgumentClass,
       SyntheticInitializerConverter.Builder syntheticInitializerConverterBuilder) {
@@ -336,6 +338,11 @@ public class InstanceInitializerMerger {
         lensBuilder.mapMethod(movedInstanceInitializer, movedInstanceInitializer);
         lensBuilder.recordNewMethodSignature(
             instanceInitializer.getReference(), movedInstanceInitializer);
+
+        // Amend the art profile collection.
+        artProfileCollectionAdditions.applyIfContextIsInProfile(
+            instanceInitializer.getReference(),
+            additionsBuilder -> additionsBuilder.addRule(representative));
       }
     }
 

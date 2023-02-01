@@ -6,6 +6,7 @@ package com.android.tools.r8.profile.art.completeness;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.TestBase;
@@ -35,11 +36,11 @@ public class HorizontallyMergedConstructorMethodProfileRewritingTest extends Tes
       switch (this) {
         case A_CONSTRUCTOR:
           return ExternalArtProfile.builder()
-              .addMethodRule(Reference.methodFromMethod(A.class.getDeclaredConstructor()))
+              .addMethodRule(Reference.methodFromMethod(A.class.getDeclaredConstructor(B.class)))
               .build();
         case B_CONSTRUCTOR:
           return ExternalArtProfile.builder()
-              .addMethodRule(Reference.methodFromMethod(B.class.getDeclaredConstructor()))
+              .addMethodRule(Reference.methodFromMethod(B.class.getDeclaredConstructor(B.class)))
               .build();
         default:
           throw new RuntimeException();
@@ -52,9 +53,13 @@ public class HorizontallyMergedConstructorMethodProfileRewritingTest extends Tes
 
       MethodSubject syntheticConstructorSubject = aClassSubject.uniqueMethod();
       assertThat(syntheticConstructorSubject, isPresent());
+      assertEquals(2, syntheticConstructorSubject.getParameters().size());
+      assertEquals(aClassSubject.asTypeSubject(), syntheticConstructorSubject.getParameter(0));
+      assertEquals("int", syntheticConstructorSubject.getParameter(1).getTypeName());
 
-      // TODO(b/265729283): Should contain the constructor.
-      profileInspector.assertEmpty();
+      profileInspector
+          .assertContainsMethodRule(syntheticConstructorSubject)
+          .assertContainsNoOtherRules();
     }
   }
 
@@ -79,6 +84,8 @@ public class HorizontallyMergedConstructorMethodProfileRewritingTest extends Tes
         .addHorizontallyMergedClassesInspector(
             inspector -> inspector.assertMergedInto(B.class, A.class).assertNoOtherClassesMerged())
         .addOptionsModification(InlinerOptions::setOnlyForceInlining)
+        .addOptionsModification(
+            options -> options.callSiteOptimizationOptions().disableOptimization())
         .enableNeverClassInliningAnnotations()
         .setMinApi(parameters.getApiLevel())
         .compile()
@@ -90,15 +97,15 @@ public class HorizontallyMergedConstructorMethodProfileRewritingTest extends Tes
   static class Main {
 
     public static void main(String[] args) {
-      new A();
-      new B();
+      new A(null);
+      new B(null);
     }
   }
 
   @NeverClassInline
   static class A {
 
-    public A() {
+    public A(B b) {
       System.out.print("Hello");
     }
   }
@@ -106,7 +113,7 @@ public class HorizontallyMergedConstructorMethodProfileRewritingTest extends Tes
   @NeverClassInline
   static class B {
 
-    public B() {
+    public B(B b) {
       System.out.println(", world!");
     }
   }

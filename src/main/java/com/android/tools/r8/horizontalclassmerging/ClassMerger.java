@@ -107,9 +107,13 @@ public class ClassMerger {
   }
 
   void mergeDirectMethods(
+      ArtProfileCollectionAdditions artProfileCollectionAdditions,
       SyntheticArgumentClass syntheticArgumentClass,
       SyntheticInitializerConverter.Builder syntheticInitializerConverterBuilder) {
-    mergeInstanceInitializers(syntheticArgumentClass, syntheticInitializerConverterBuilder);
+    mergeInstanceInitializers(
+        artProfileCollectionAdditions,
+        syntheticArgumentClass,
+        syntheticInitializerConverterBuilder);
     mergeStaticClassInitializers(syntheticInitializerConverterBuilder);
     group.forEach(this::mergeDirectMethods);
   }
@@ -188,12 +192,16 @@ public class ClassMerger {
   }
 
   void mergeInstanceInitializers(
+      ArtProfileCollectionAdditions artProfileCollectionAdditions,
       SyntheticArgumentClass syntheticArgumentClass,
       SyntheticInitializerConverter.Builder syntheticInitializerConverterBuilder) {
     instanceInitializerMergers.forEach(
         merger ->
             merger.merge(
-                classMethodsBuilder, syntheticArgumentClass, syntheticInitializerConverterBuilder));
+                artProfileCollectionAdditions,
+                classMethodsBuilder,
+                syntheticArgumentClass,
+                syntheticInitializerConverterBuilder));
   }
 
   void mergeMethods(
@@ -202,7 +210,10 @@ public class ClassMerger {
       SyntheticInitializerConverter.Builder syntheticInitializerConverterBuilder,
       Consumer<VirtuallyMergedMethodsKeepInfo> virtuallyMergedMethodsKeepInfoConsumer) {
     mergeVirtualMethods(artProfileCollectionAdditions, virtuallyMergedMethodsKeepInfoConsumer);
-    mergeDirectMethods(syntheticArgumentClass, syntheticInitializerConverterBuilder);
+    mergeDirectMethods(
+        artProfileCollectionAdditions,
+        syntheticArgumentClass,
+        syntheticInitializerConverterBuilder);
     classMethodsBuilder.setClassMethods(group.getTarget());
   }
 
