@@ -43,6 +43,7 @@ import java.nio.file.Paths;
 import java.util.Collections;
 import java.util.List;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -197,6 +198,7 @@ public class Jdk11ConcurrentLinkedQueueTests extends DesugaredLibraryTestBase {
   }
 
   @Test
+  @Ignore("b/267483394")
   public void testWhiteBox() throws Exception {
     runTest(ImmutableList.of("WhiteBox"));
   }

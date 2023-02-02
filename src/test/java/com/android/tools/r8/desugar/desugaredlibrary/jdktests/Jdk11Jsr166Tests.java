@@ -39,6 +39,7 @@ import java.nio.file.Paths;
 import java.util.List;
 import java.util.stream.Collectors;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -229,6 +230,7 @@ public class Jdk11Jsr166Tests extends DesugaredLibraryTestBase {
   }
 
   @Test
+  @Ignore("b/267483394")
   public void test() throws Exception {
     runTest(
         ImmutableList.of(

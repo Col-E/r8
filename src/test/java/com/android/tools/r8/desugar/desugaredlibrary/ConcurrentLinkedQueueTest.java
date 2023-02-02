@@ -27,6 +27,7 @@ import com.google.common.collect.ImmutableList;
 import java.util.List;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -128,6 +129,7 @@ public class ConcurrentLinkedQueueTest extends DesugaredLibraryTestBase {
   }
 
   @Test
+  @Ignore("b/267483394")
   public void test() throws Exception {
     testForDesugaredLibrary(parameters, libraryDesugaringSpecification, compilationSpecification)
         .addInnerClasses(getClass())

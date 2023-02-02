@@ -1,16 +1,10 @@
 {
-  "identifier": "com.tools.android:desugar_jdk_libs_configuration_minimal:2.0.1",
+  "identifier": "com.tools.android:desugar_jdk_libs_configuration_minimal:2.0.2",
   "configuration_format_version": 100,
   "required_compilation_api_level": 24,
   "synthesized_library_classes_package_prefix": "j$.",
   "support_all_callbacks_from_library": false,
   "common_flags": [
-    {
-      "api_level_below_or_equal": 32,
-      "rewrite_prefix": {
-        "java.util.concurrent.ConcurrentLinkedQueue": "j$.util.concurrent.ConcurrentLinkedQueue"
-      }
-    },
     {
       "api_level_below_or_equal": 23,
       "rewrite_prefix": {
@@ -25,14 +19,9 @@
   "program_flags": [],
   "library_flags": [
     {
-      "api_level_below_or_equal": 32,
-      "rewrite_prefix": {
-        "java.util.concurrent.Helpers": "j$.util.concurrent.Helpers"
-      }
-    },
-    {
       "api_level_below_or_equal": 23,
       "rewrite_prefix": {
+        "java.util.concurrent.Helpers": "j$.util.concurrent.Helpers",
         "sun.misc.Desugar": "j$.sun.misc.Desugar"
       },
       "rewrite_derived_prefix": {
@@ -48,9 +37,6 @@
     "-keepclassmembers class j$.util.concurrent.ConcurrentHashMap { int sizeCtl; int transferIndex; long baseCount; int cellsBusy; }",
     "-keepclassmembers class j$.util.concurrent.ConcurrentHashMap$CounterCell { long value; }",
     "-keepclassmembers enum * { public static **[] values(); public static ** valueOf(java.lang.String); }",
-    "-keepclassmembers class j$.util.concurrent.ConcurrentLinkedQueue { j$.util.concurrent.ConcurrentLinkedQueue$Node head; j$.util.concurrent.ConcurrentLinkedQueue$Node tail; }",
-    "-keep,allowshrinking class j$.util.concurrent.ConcurrentLinkedQueue$Node",
-    "-keepclassmembers class j$.util.concurrent.ConcurrentLinkedQueue$Node { j$.util.concurrent.ConcurrentLinkedQueue$Node next; java.lang.Object item; }",
     "-keeppackagenames java.**",
     "-keeppackagenames j$.**",
     "-keepattributes Signature",
