@@ -111,7 +111,9 @@ public abstract class ResidualSignatureMappingInformation extends ReferentialMap
     public static ResidualMethodSignatureMappingInformation deserialize(String signature) {
       String[] argumentTypeDescriptors = DescriptorUtils.getArgumentTypeDescriptors(signature);
       String returnTypeDescriptor = DescriptorUtils.getReturnTypeDescriptor(signature);
-      boolean isValid = DescriptorUtils.isDescriptor(returnTypeDescriptor);
+      boolean isValid =
+          DescriptorUtils.isDescriptor(returnTypeDescriptor)
+              || DescriptorUtils.isVoidDescriptor(returnTypeDescriptor);
       for (String argumentTypeDescriptor : argumentTypeDescriptors) {
         isValid &= DescriptorUtils.isDescriptor(argumentTypeDescriptor);
       }
