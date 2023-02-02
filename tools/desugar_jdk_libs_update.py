@@ -3,14 +3,23 @@
 # for details. All rights reserved. Use of this source code is governed by a
 # BSD-style license that can be found in the LICENSE file.
 
+from datetime import datetime
 import argparse
 import os
 from os.path import join
+import re
 import shutil
 import subprocess
 import sys
 
 import utils
+
+def sed(pattern, replace, path):
+  with open(path, "r") as sources:
+    lines = sources.readlines()
+  with open(path, "w") as sources:
+    for line in lines:
+      sources.write(re.sub(pattern, replace, line))
 
 def GetGitHash(checkout_dir):
   return subprocess.check_output(
@@ -76,6 +85,12 @@ def run(args):
     desugar_jdk_libs_hash = os.path.join(dest_dir, 'desugar_jdk_libs_hash')
     with open(desugar_jdk_libs_hash, 'w') as desugar_jdk_libs_hash_writer:
       desugar_jdk_libs_hash_writer.write(GetGitHash(checkout_dir))
+    sed('^Version: [0-9a-f]{40}$',
+        'Version: %s' % GetGitHash(checkout_dir),
+        join(dest_dir, 'README.google'))
+    sed('^Date: .*$',
+        'Date: %s' % datetime.today().strftime('%Y-%m-%d'),
+        join(dest_dir, 'README.google'))
 
   print('Now run')
   print('  (cd %s; upload_to_google_storage.py -a --bucket r8-deps %s)'
