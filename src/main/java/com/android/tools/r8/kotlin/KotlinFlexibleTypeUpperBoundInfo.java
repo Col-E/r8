@@ -9,6 +9,7 @@ import com.android.tools.r8.graph.DexDefinitionSupplier;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.shaking.EnqueuerMetadataTraceable;
 import com.android.tools.r8.utils.Reporter;
+import java.util.function.Consumer;
 import kotlinx.metadata.KmFlexibleTypeUpperBound;
 
 public class KotlinFlexibleTypeUpperBoundInfo implements EnqueuerMetadataTraceable {
@@ -37,8 +38,7 @@ public class KotlinFlexibleTypeUpperBoundInfo implements EnqueuerMetadataTraceab
         KotlinTypeInfo.create(flexibleTypeUpperBound.getType(), factory, reporter));
   }
 
-  boolean rewrite(
-      KmVisitorProviders.KmFlexibleUpperBoundVisitorProvider visitorProvider, AppView<?> appView) {
+  boolean rewrite(Consumer<KmFlexibleTypeUpperBound> consumer, AppView<?> appView) {
     if (this == NO_FLEXIBLE_UPPER_BOUND) {
       // Nothing to do.
       return false;
@@ -47,7 +47,9 @@ public class KotlinFlexibleTypeUpperBoundInfo implements EnqueuerMetadataTraceab
       assert false;
       return false;
     }
-    return kotlinTypeInfo.rewrite(flags -> visitorProvider.get(flags, typeFlexibilityId), appView);
+    return kotlinTypeInfo.rewrite(
+        kmType -> consumer.accept(new KmFlexibleTypeUpperBound(kmType, typeFlexibilityId)),
+        appView);
   }
 
   @Override

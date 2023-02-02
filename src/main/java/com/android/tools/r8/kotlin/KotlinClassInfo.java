@@ -4,9 +4,12 @@
 
 package com.android.tools.r8.kotlin;
 
+import static com.android.tools.r8.kotlin.KotlinMetadataUtils.getCompatibleKotlinInfo;
+import static com.android.tools.r8.kotlin.KotlinMetadataUtils.rewriteList;
 import static com.android.tools.r8.kotlin.KotlinMetadataUtils.toJvmFieldSignature;
 import static com.android.tools.r8.kotlin.KotlinMetadataUtils.toJvmMethodSignature;
 import static com.android.tools.r8.utils.FunctionUtils.forEachApply;
+import static kotlinx.metadata.jvm.KotlinClassMetadata.Companion;
 
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
@@ -17,6 +20,7 @@ import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.utils.Box;
 import com.android.tools.r8.utils.DescriptorUtils;
+import com.android.tools.r8.utils.ListUtils;
 import com.android.tools.r8.utils.Pair;
 import com.android.tools.r8.utils.Reporter;
 import com.google.common.collect.ImmutableList;
@@ -26,13 +30,12 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
+import kotlin.Metadata;
 import kotlinx.metadata.KmClass;
 import kotlinx.metadata.KmConstructor;
 import kotlinx.metadata.KmType;
-import kotlinx.metadata.jvm.JvmClassExtensionVisitor;
 import kotlinx.metadata.jvm.JvmExtensionsKt;
 import kotlinx.metadata.jvm.JvmMethodSignature;
-import kotlinx.metadata.jvm.KotlinClassHeader;
 import kotlinx.metadata.jvm.KotlinClassMetadata;
 
 public class KotlinClassInfo implements KotlinClassLevelInfo {
@@ -57,6 +60,8 @@ public class KotlinClassInfo implements KotlinClassLevelInfo {
   private final KotlinTypeInfo inlineClassUnderlyingType;
   private final int jvmFlags;
   private final String companionObjectName;
+  // Collection of context receiver types
+  private final List<KotlinTypeInfo> contextReceiverTypes;
 
   // List of tracked assignments of kotlin metadata.
   private final KotlinMetadataMembersTracker originalMembersWithKotlinInfo;
@@ -82,7 +87,8 @@ public class KotlinClassInfo implements KotlinClassLevelInfo {
       KotlinTypeInfo inlineClassUnderlyingType,
       KotlinMetadataMembersTracker originalMembersWithKotlinInfo,
       int jvmFlags,
-      String companionObjectName) {
+      String companionObjectName,
+      List<KotlinTypeInfo> contextReceiverTypes) {
     this.flags = flags;
     this.name = name;
     this.nameCanBeSynthesizedFromClassOrAnonymousObjectOrigin =
@@ -105,6 +111,7 @@ public class KotlinClassInfo implements KotlinClassLevelInfo {
     this.originalMembersWithKotlinInfo = originalMembersWithKotlinInfo;
     this.jvmFlags = jvmFlags;
     this.companionObjectName = companionObjectName;
+    this.contextReceiverTypes = contextReceiverTypes;
   }
 
   public static KotlinClassInfo create(
@@ -188,7 +195,10 @@ public class KotlinClassInfo implements KotlinClassLevelInfo {
         KotlinTypeInfo.create(kmClass.getInlineClassUnderlyingType(), factory, reporter),
         originalMembersWithKotlinInfo,
         JvmExtensionsKt.getJvmFlags(kmClass),
-        setCompanionObject(kmClass, hostClass, reporter));
+        setCompanionObject(kmClass, hostClass, reporter),
+        ListUtils.map(
+            kmClass.getContextReceiverTypes(),
+            contextRecieverType -> KotlinTypeInfo.create(contextRecieverType, factory, reporter)));
   }
 
   private static KotlinTypeReference getAnonymousObjectOrigin(
@@ -279,7 +289,7 @@ public class KotlinClassInfo implements KotlinClassLevelInfo {
   }
 
   @Override
-  public Pair<KotlinClassHeader, Boolean> rewrite(DexClass clazz, AppView<?> appView) {
+  public Pair<Metadata, Boolean> rewrite(DexClass clazz, AppView<?> appView) {
     KmClass kmClass = new KmClass();
     // TODO(b/154348683): Set flags.
     kmClass.setFlags(flags);
@@ -356,27 +366,29 @@ public class KotlinClassInfo implements KotlinClassLevelInfo {
     // Rewrite functions, type-aliases and type-parameters.
     rewritten |=
         declarationContainerInfo.rewrite(
-            kmClass::visitFunction,
-            kmClass::visitProperty,
-            kmClass::visitTypeAlias,
+            kmClass.getFunctions()::add,
+            kmClass.getProperties()::add,
+            kmClass.getTypeAliases()::add,
             clazz,
             appView,
             rewrittenReferences);
     // Rewrite type parameters.
-    for (KotlinTypeParameterInfo typeParameter : typeParameters) {
-      rewritten |= typeParameter.rewrite(kmClass::visitTypeParameter, appView);
-    }
+    rewritten |=
+        rewriteList(
+            appView, typeParameters, kmClass.getTypeParameters(), KotlinTypeParameterInfo::rewrite);
     // Rewrite super types.
+    List<KmType> rewrittenSuperTypes = kmClass.getSupertypes();
     for (KotlinTypeInfo superType : superTypes) {
       // Ensure the rewritten super type is not this type.
       if (clazz.getType() != superType.rewriteType(appView.graphLens())) {
-        rewritten |= superType.rewrite(kmClass::visitSupertype, appView);
+        rewritten |= superType.rewrite(rewrittenSuperTypes::add, appView);
       } else {
         rewritten = true;
       }
     }
     // Rewrite nested classes.
-    for (KotlinTypeReference nestedClass : nestedClasses) {
+    List<String> rewrittenNestedClasses = kmClass.getNestedClasses();
+    for (KotlinTypeReference nestedClass : this.nestedClasses) {
       Box<String> nestedDescriptorBox = new Box<>();
       boolean nestedClassRewritten =
           nestedClass.toRenamedBinaryNameOrDefault(nestedDescriptorBox::set, appView, null);
@@ -386,20 +398,21 @@ public class KotlinClassInfo implements KotlinClassLevelInfo {
           // is the name we should record.
           String nestedDescriptor = nestedDescriptorBox.get();
           int innerClassIndex = nestedDescriptor.lastIndexOf(DescriptorUtils.INNER_CLASS_SEPARATOR);
-          kmClass.visitNestedClass(nestedDescriptor.substring(innerClassIndex + 1));
+          rewrittenNestedClasses.add(nestedDescriptor.substring(innerClassIndex + 1));
         } else {
-          kmClass.visitNestedClass(nestedClass.getOriginalName());
+          rewrittenNestedClasses.add(nestedClass.getOriginalName());
         }
       }
       rewritten |= nestedClassRewritten;
     }
-    // Rewrite sealed sub classes.
+    // Rewrite sealed sub-classes.
+    List<String> rewrittenSealedClasses = kmClass.getSealedSubclasses();
     for (KotlinTypeReference sealedSubClass : sealedSubClasses) {
       rewritten |=
           sealedSubClass.toRenamedBinaryNameOrDefault(
               sealedName -> {
                 if (sealedName != null) {
-                  kmClass.visitSealedSubclass(
+                  rewrittenSealedClasses.add(
                       sealedName.replace(
                           DescriptorUtils.INNER_CLASS_SEPARATOR,
                           DescriptorUtils.JAVA_PACKAGE_SEPARATOR));
@@ -408,34 +421,36 @@ public class KotlinClassInfo implements KotlinClassLevelInfo {
               appView,
               null);
     }
-    rewritten |= versionRequirements.rewrite(kmClass::visitVersionRequirement);
+    rewritten |= versionRequirements.rewrite(kmClass.getVersionRequirements()::addAll);
     if (inlineClassUnderlyingPropertyName != null && inlineClassUnderlyingType != null) {
       kmClass.setInlineClassUnderlyingPropertyName(inlineClassUnderlyingPropertyName);
       rewritten |=
-          inlineClassUnderlyingType.rewrite(kmClass::visitInlineClassUnderlyingType, appView);
+          inlineClassUnderlyingType.rewrite(kmClass::setInlineClassUnderlyingType, appView);
     }
-    JvmClassExtensionVisitor extensionVisitor =
-        (JvmClassExtensionVisitor) kmClass.visitExtensions(JvmClassExtensionVisitor.TYPE);
-    extensionVisitor.visitJvmFlags(jvmFlags);
-    extensionVisitor.visitModuleName(moduleName);
+    rewritten |=
+        rewriteList(
+            appView,
+            contextReceiverTypes,
+            kmClass.getContextReceiverTypes(),
+            KotlinTypeInfo::rewrite);
+    JvmExtensionsKt.setJvmFlags(kmClass, jvmFlags);
+    JvmExtensionsKt.setModuleName(kmClass, moduleName);
     if (anonymousObjectOrigin != null) {
       rewritten |=
           anonymousObjectOrigin.toRenamedBinaryNameOrDefault(
               renamedAnon -> {
                 if (renamedAnon != null) {
-                  extensionVisitor.visitAnonymousObjectOriginName(renamedAnon);
+                  JvmExtensionsKt.setAnonymousObjectOriginName(kmClass, renamedAnon);
                 }
               },
               appView,
               null);
     }
     rewritten |=
-        localDelegatedProperties.rewrite(extensionVisitor::visitLocalDelegatedProperty, appView);
-    extensionVisitor.visitEnd();
-    KotlinClassMetadata.Class.Writer writer = new KotlinClassMetadata.Class.Writer();
-    kmClass.accept(writer);
+        localDelegatedProperties.rewrite(
+            JvmExtensionsKt.getLocalDelegatedProperties(kmClass)::add, appView);
     return Pair.create(
-        writer.write().getHeader(),
+        Companion.writeClass(kmClass, getCompatibleKotlinInfo(), 0).getAnnotationData(),
         rewritten || !originalMembersWithKotlinInfo.isEqual(rewrittenReferences, appView));
   }
 
@@ -457,6 +472,7 @@ public class KotlinClassInfo implements KotlinClassLevelInfo {
     forEachApply(superTypes, type -> type::trace, definitionSupplier);
     forEachApply(sealedSubClasses, sealedClass -> sealedClass::trace, definitionSupplier);
     forEachApply(nestedClasses, nested -> nested::trace, definitionSupplier);
+    forEachApply(contextReceiverTypes, nested -> nested::trace, definitionSupplier);
     localDelegatedProperties.trace(definitionSupplier);
     // TODO(b/154347404): trace enum entries.
     if (anonymousObjectOrigin != null) {

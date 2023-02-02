@@ -4,6 +4,9 @@
 
 package com.android.tools.r8.kotlin;
 
+import static com.android.tools.r8.kotlin.KotlinMetadataUtils.consume;
+import static com.android.tools.r8.kotlin.KotlinMetadataUtils.rewriteIfNotNull;
+import static com.android.tools.r8.kotlin.KotlinMetadataUtils.rewriteList;
 import static com.android.tools.r8.utils.FunctionUtils.forEachApply;
 
 import com.android.tools.r8.graph.AppView;
@@ -11,15 +14,12 @@ import com.android.tools.r8.graph.DexDefinitionSupplier;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexItemFactory;
-import com.android.tools.r8.utils.Box;
+import com.android.tools.r8.utils.ListUtils;
 import com.android.tools.r8.utils.Reporter;
 import java.util.List;
+import java.util.function.Consumer;
 import kotlinx.metadata.KmProperty;
-import kotlinx.metadata.KmPropertyVisitor;
 import kotlinx.metadata.jvm.JvmExtensionsKt;
-import kotlinx.metadata.jvm.JvmFieldSignature;
-import kotlinx.metadata.jvm.JvmMethodSignature;
-import kotlinx.metadata.jvm.JvmPropertyExtensionVisitor;
 
 // Holds information about KmProperty
 public class KotlinPropertyInfo implements KotlinFieldLevelInfo, KotlinMethodLevelInfo {
@@ -58,6 +58,8 @@ public class KotlinPropertyInfo implements KotlinFieldLevelInfo, KotlinMethodLev
   private final KotlinJvmMethodSignatureInfo syntheticMethodForAnnotations;
 
   private final KotlinJvmMethodSignatureInfo syntheticMethodForDelegate;
+  // Collection of context receiver types
+  private final List<KotlinTypeInfo> contextReceiverTypes;
 
   private KotlinPropertyInfo(
       int flags,
@@ -74,7 +76,8 @@ public class KotlinPropertyInfo implements KotlinFieldLevelInfo, KotlinMethodLev
       KotlinJvmMethodSignatureInfo getterSignature,
       KotlinJvmMethodSignatureInfo setterSignature,
       KotlinJvmMethodSignatureInfo syntheticMethodForAnnotations,
-      KotlinJvmMethodSignatureInfo syntheticMethodForDelegate) {
+      KotlinJvmMethodSignatureInfo syntheticMethodForDelegate,
+      List<KotlinTypeInfo> contextReceiverTypes) {
     this.flags = flags;
     this.getterFlags = getterFlags;
     this.setterFlags = setterFlags;
@@ -90,6 +93,7 @@ public class KotlinPropertyInfo implements KotlinFieldLevelInfo, KotlinMethodLev
     this.setterSignature = setterSignature;
     this.syntheticMethodForAnnotations = syntheticMethodForAnnotations;
     this.syntheticMethodForDelegate = syntheticMethodForDelegate;
+    this.contextReceiverTypes = contextReceiverTypes;
   }
 
   public static KotlinPropertyInfo create(
@@ -113,7 +117,10 @@ public class KotlinPropertyInfo implements KotlinFieldLevelInfo, KotlinMethodLev
         KotlinJvmMethodSignatureInfo.create(
             JvmExtensionsKt.getSyntheticMethodForAnnotations(kmProperty), factory),
         KotlinJvmMethodSignatureInfo.create(
-            JvmExtensionsKt.getSyntheticMethodForDelegate(kmProperty), factory));
+            JvmExtensionsKt.getSyntheticMethodForDelegate(kmProperty), factory),
+        ListUtils.map(
+            kmProperty.getContextReceiverTypes(),
+            contextRecieverType -> KotlinTypeInfo.create(contextRecieverType, factory, reporter)));
   }
 
   @Override
@@ -138,60 +145,81 @@ public class KotlinPropertyInfo implements KotlinFieldLevelInfo, KotlinMethodLev
     return setterSignature;
   }
 
+  boolean rewriteNoBacking(Consumer<KmProperty> consumer, AppView<?> appView) {
+    return rewrite(consumer, null, null, null, appView);
+  }
+
   boolean rewrite(
-      KmVisitorProviders.KmPropertyVisitorProvider visitorProvider,
+      Consumer<KmProperty> consumer,
       DexEncodedField field,
       DexEncodedMethod getter,
       DexEncodedMethod setter,
       AppView<?> appView) {
     // TODO(b/154348683): Flags again.
-    KmPropertyVisitor kmProperty = visitorProvider.get(flags, name, getterFlags, setterFlags);
+    KmProperty kmProperty =
+        consume(new KmProperty(flags, name, getterFlags, setterFlags), consumer);
     // TODO(b/154348149): ReturnType could have been merged to a subtype.
-    boolean rewritten = false;
-    if (returnType != null) {
-      rewritten = returnType.rewrite(kmProperty::visitReturnType, appView);
+    boolean rewritten =
+        rewriteIfNotNull(appView, returnType, kmProperty::setReturnType, KotlinTypeInfo::rewrite);
+    rewritten |=
+        rewriteIfNotNull(
+            appView,
+            receiverParameterType,
+            kmProperty::setReceiverParameterType,
+            KotlinTypeInfo::rewrite);
+    rewritten |=
+        rewriteIfNotNull(
+            appView,
+            setterParameter,
+            kmProperty::setSetterParameter,
+            KotlinValueParameterInfo::rewrite);
+    rewritten |=
+        rewriteList(
+            appView,
+            typeParameters,
+            kmProperty.getTypeParameters(),
+            KotlinTypeParameterInfo::rewrite);
+    rewritten |=
+        rewriteList(
+            appView,
+            contextReceiverTypes,
+            kmProperty.getContextReceiverTypes(),
+            KotlinTypeInfo::rewrite);
+    rewritten |= versionRequirements.rewrite(kmProperty.getVersionRequirements()::addAll);
+    if (fieldSignature != null) {
+      rewritten |=
+          fieldSignature.rewrite(
+              newSignature -> JvmExtensionsKt.setFieldSignature(kmProperty, newSignature),
+              field,
+              appView);
     }
-    if (receiverParameterType != null) {
-      rewritten |= receiverParameterType.rewrite(kmProperty::visitReceiverParameterType, appView);
+    if (getterSignature != null) {
+      rewritten |=
+          getterSignature.rewrite(
+              newSignature -> JvmExtensionsKt.setGetterSignature(kmProperty, newSignature),
+              getter,
+              appView);
     }
-    if (setterParameter != null) {
-      rewritten |= setterParameter.rewrite(kmProperty::visitSetterParameter, appView);
+    if (setterSignature != null) {
+      rewritten |=
+          setterSignature.rewrite(
+              newSignature -> JvmExtensionsKt.setSetterSignature(kmProperty, newSignature),
+              setter,
+              appView);
     }
-    for (KotlinTypeParameterInfo typeParameter : typeParameters) {
-      rewritten |= typeParameter.rewrite(kmProperty::visitTypeParameter, appView);
-    }
-    rewritten |= versionRequirements.rewrite(kmProperty::visitVersionRequirement);
-    JvmPropertyExtensionVisitor extensionVisitor =
-        (JvmPropertyExtensionVisitor) kmProperty.visitExtensions(JvmPropertyExtensionVisitor.TYPE);
-    if (extensionVisitor != null) {
-      Box<JvmFieldSignature> rewrittenFieldSignature = new Box<>();
-      if (fieldSignature != null) {
-        rewritten |= fieldSignature.rewrite(rewrittenFieldSignature::set, field, appView);
-      }
-      Box<JvmMethodSignature> rewrittenGetterSignature = new Box<>();
-      if (getterSignature != null) {
-        rewritten |= getterSignature.rewrite(rewrittenGetterSignature::set, getter, appView);
-      }
-      Box<JvmMethodSignature> rewrittenSetterSignature = new Box<>();
-      if (setterSignature != null) {
-        rewritten |= setterSignature.rewrite(rewrittenSetterSignature::set, setter, appView);
-      }
-      extensionVisitor.visit(
-          jvmFlags,
-          rewrittenFieldSignature.get(),
-          rewrittenGetterSignature.get(),
-          rewrittenSetterSignature.get());
-      if (syntheticMethodForAnnotations != null) {
-        rewritten |=
-            syntheticMethodForAnnotations.rewrite(
-                extensionVisitor::visitSyntheticMethodForAnnotations, null, appView);
-      }
-      if (syntheticMethodForDelegate != null) {
-        rewritten |=
-            syntheticMethodForDelegate.rewrite(
-                extensionVisitor::visitSyntheticMethodForDelegate, null, appView);
-      }
-    }
+    JvmExtensionsKt.setJvmFlags(kmProperty, jvmFlags);
+    rewritten |=
+        rewriteIfNotNull(
+            appView,
+            syntheticMethodForAnnotations,
+            newMethod -> JvmExtensionsKt.setSyntheticMethodForAnnotations(kmProperty, newMethod),
+            KotlinJvmMethodSignatureInfo::rewriteNoBacking);
+    rewritten |=
+        rewriteIfNotNull(
+            appView,
+            syntheticMethodForDelegate,
+            newMethod -> JvmExtensionsKt.setSyntheticMethodForDelegate(kmProperty, newMethod),
+            KotlinJvmMethodSignatureInfo::rewriteNoBacking);
     return rewritten;
   }
 
@@ -207,6 +235,7 @@ public class KotlinPropertyInfo implements KotlinFieldLevelInfo, KotlinMethodLev
       setterParameter.trace(definitionSupplier);
     }
     forEachApply(typeParameters, param -> param::trace, definitionSupplier);
+    forEachApply(contextReceiverTypes, type -> type::trace, definitionSupplier);
     if (fieldSignature != null) {
       fieldSignature.trace(definitionSupplier);
     }

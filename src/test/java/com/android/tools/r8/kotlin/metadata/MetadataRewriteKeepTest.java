@@ -10,10 +10,12 @@ import static org.junit.Assert.assertNull;
 
 import com.android.tools.r8.KotlinTestParameters;
 import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.kotlin.KotlinMetadataAnnotationWrapper;
 import com.android.tools.r8.shaking.ProguardKeepAttributes;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.FoundClassSubject;
 import java.util.Collection;
+import kotlinx.metadata.jvm.KotlinClassMetadata;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -68,8 +70,9 @@ public class MetadataRewriteKeepTest extends KotlinMetadataTestBase {
       if (clazz.getFinalName().startsWith("kotlin.io")
           || clazz.getFinalName().equals("kotlin.Metadata")
           || clazz.getFinalName().equals("kotlin.jvm.JvmName")) {
-        assertNotNull(clazz.getKotlinClassMetadata());
-        assertNotNull(clazz.getKotlinClassMetadata().getHeader().getData2());
+        KotlinClassMetadata kotlinClassMetadata = clazz.getKotlinClassMetadata();
+        assertNotNull(kotlinClassMetadata);
+        assertNotNull(KotlinMetadataAnnotationWrapper.wrap(kotlinClassMetadata).data2());
       } else {
         assertNull(clazz.getKotlinClassMetadata());
       }

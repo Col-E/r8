@@ -29,7 +29,7 @@ public class SanityCheck extends TestBase {
 
   private static final String SRV_PREFIX = "META-INF/services/";
   private static final String METADATA_EXTENSION =
-      "com.android.tools.r8.jetbrains.kotlinx.metadata.impl.extensions.MetadataExtensions";
+      "com.android.tools.r8.jetbrains.kotlinx.metadata.internal.extensions.MetadataExtensions";
   private static final String EXT_IN_SRV = SRV_PREFIX + METADATA_EXTENSION;
 
     private void checkJarContent(

@@ -9,6 +9,7 @@ import com.android.tools.r8.graph.DexDefinitionSupplier;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.shaking.EnqueuerMetadataTraceable;
 import com.android.tools.r8.utils.Reporter;
+import java.util.function.Consumer;
 import kotlinx.metadata.KmTypeProjection;
 import kotlinx.metadata.KmVariance;
 
@@ -34,15 +35,13 @@ public class KotlinTypeProjectionInfo implements EnqueuerMetadataTraceable {
     return variance == null && typeInfo == null;
   }
 
-  boolean rewrite(
-      KmVisitorProviders.KmTypeProjectionVisitorProvider visitorProvider,
-      KmVisitorProviders.KmTypeStarProjectionVisitorProvider starProjectionProvider,
-      AppView<?> appView) {
+  boolean rewrite(Consumer<KmTypeProjection> consumer, AppView<?> appView) {
     if (isStarProjection()) {
-      starProjectionProvider.get();
+      consumer.accept(KmTypeProjection.STAR);
       return false;
     } else {
-      return typeInfo.rewrite(flags -> visitorProvider.get(flags, variance), appView);
+      return typeInfo.rewrite(
+          kmType -> consumer.accept(new KmTypeProjection(variance, kmType)), appView);
     }
   }
 

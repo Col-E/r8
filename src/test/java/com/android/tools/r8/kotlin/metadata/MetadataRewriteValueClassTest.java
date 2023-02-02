@@ -9,7 +9,6 @@ import static com.android.tools.r8.KotlinCompilerTool.KotlinTargetVersion.JAVA_8
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.StringContains.containsString;
-import static org.junit.Assert.assertNull;
 
 import com.android.tools.r8.KotlinCompilerTool.KotlinCompilerVersion;
 import com.android.tools.r8.KotlinTestParameters;
@@ -20,13 +19,9 @@ import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
-import com.android.tools.r8.utils.codeinspector.FoundClassSubject;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Collection;
-import junit.framework.TestCase;
-import kotlinx.metadata.jvm.KotlinClassHeader;
-import kotlinx.metadata.jvm.KotlinClassMetadata;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -112,31 +107,13 @@ public class MetadataRewriteValueClassTest extends KotlinMetadataTestBase {
   }
 
   private void inspect(CodeInspector inspector) throws IOException {
-    CodeInspector stdLibInspector =
-        new CodeInspector(kotlincLibJar.getForConfiguration(kotlinc, targetVersion));
-    for (FoundClassSubject clazzSubject : stdLibInspector.allClasses()) {
-      ClassSubject r8Clazz = inspector.clazz(clazzSubject.getOriginalName());
-      assertThat(r8Clazz, isPresent());
-      KotlinClassMetadata originalMetadata = clazzSubject.getKotlinClassMetadata();
-      KotlinClassMetadata rewrittenMetadata = r8Clazz.getKotlinClassMetadata();
-      if (originalMetadata == null) {
-        assertNull(rewrittenMetadata);
-        continue;
-      }
-      TestCase.assertNotNull(rewrittenMetadata);
-      KotlinClassHeader originalHeader = originalMetadata.getHeader();
-      KotlinClassHeader rewrittenHeader = rewrittenMetadata.getHeader();
-      TestCase.assertEquals(originalHeader.getKind(), rewrittenHeader.getKind());
-      TestCase.assertEquals(originalHeader.getPackageName(), rewrittenHeader.getPackageName());
-      // We cannot assert equality of the data since it may be ordered differently. Instead we use
-      // the KotlinMetadataWriter.
-      String expected = KotlinMetadataWriter.kotlinMetadataToString("", originalMetadata);
-      String actual = KotlinMetadataWriter.kotlinMetadataToString("", rewrittenMetadata);
-      TestCase.assertEquals(expected, actual);
-      if (r8Clazz.getFinalName().equals(PKG_LIB + ".Name")) {
-        assertThat(actual, containsString("inlineClassUnderlyingPropertyName"));
-        assertThat(actual, containsString("inlineClassUnderlyingType"));
-      }
-    }
+    assertEqualDeserializedMetadata(
+        inspector, new CodeInspector(kotlincLibJar.getForConfiguration(kotlinc, targetVersion)));
+    ClassSubject r8Clazz = inspector.clazz(PKG_LIB + ".Name");
+    assertThat(r8Clazz, isPresent());
+    String actual =
+        KotlinMetadataWriter.kotlinMetadataToString("", r8Clazz.getKotlinClassMetadata());
+    assertThat(actual, containsString("inlineClassUnderlyingPropertyName"));
+    assertThat(actual, containsString("inlineClassUnderlyingType"));
   }
 }

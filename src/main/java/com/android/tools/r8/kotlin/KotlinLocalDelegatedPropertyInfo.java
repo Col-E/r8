@@ -4,16 +4,17 @@
 
 package com.android.tools.r8.kotlin;
 
+import static com.android.tools.r8.kotlin.KotlinMetadataUtils.rewriteList;
 import static com.android.tools.r8.utils.FunctionUtils.forEachApply;
 
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexDefinitionSupplier;
 import com.android.tools.r8.graph.DexItemFactory;
-import com.android.tools.r8.kotlin.KmVisitorProviders.KmPropertyVisitorProvider;
 import com.android.tools.r8.shaking.EnqueuerMetadataTraceable;
 import com.android.tools.r8.utils.Reporter;
 import com.google.common.collect.ImmutableList;
 import java.util.List;
+import java.util.function.Consumer;
 import kotlinx.metadata.KmProperty;
 
 public class KotlinLocalDelegatedPropertyInfo implements EnqueuerMetadataTraceable {
@@ -51,11 +52,7 @@ public class KotlinLocalDelegatedPropertyInfo implements EnqueuerMetadataTraceab
     forEachApply(propertyInfos, prop -> prop::trace, definitionSupplier);
   }
 
-  boolean rewrite(KmPropertyVisitorProvider visitorProvider, AppView<?> appView) {
-    boolean rewritten = false;
-    for (KotlinPropertyInfo propertyInfo : propertyInfos) {
-      rewritten |= propertyInfo.rewrite(visitorProvider, null, null, null, appView);
-    }
-    return rewritten;
+  boolean rewrite(Consumer<KmProperty> consumer, AppView<?> appView) {
+    return rewriteList(appView, propertyInfos, consumer, KotlinPropertyInfo::rewriteNoBacking);
   }
 }

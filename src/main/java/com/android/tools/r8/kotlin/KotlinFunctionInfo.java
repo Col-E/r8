@@ -4,18 +4,21 @@
 
 package com.android.tools.r8.kotlin;
 
+import static com.android.tools.r8.kotlin.KotlinMetadataUtils.consume;
+import static com.android.tools.r8.kotlin.KotlinMetadataUtils.rewriteIfNotNull;
+import static com.android.tools.r8.kotlin.KotlinMetadataUtils.rewriteList;
 import static com.android.tools.r8.utils.FunctionUtils.forEachApply;
 
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexDefinitionSupplier;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexItemFactory;
+import com.android.tools.r8.utils.ListUtils;
 import com.android.tools.r8.utils.Reporter;
 import java.util.List;
+import java.util.function.Consumer;
 import kotlinx.metadata.KmFunction;
-import kotlinx.metadata.KmFunctionVisitor;
 import kotlinx.metadata.jvm.JvmExtensionsKt;
-import kotlinx.metadata.jvm.JvmFunctionExtensionVisitor;
 
 // Holds information about KmFunction
 public final class KotlinFunctionInfo implements KotlinMethodLevelInfo {
@@ -41,6 +44,8 @@ public final class KotlinFunctionInfo implements KotlinMethodLevelInfo {
   private final KotlinContractInfo contract;
   // A value describing if any of the parameters are crossinline.
   private final boolean crossInlineParameter;
+  // Collection of context receiver types
+  private final List<KotlinTypeInfo> contextReceiverTypes;
 
   private KotlinFunctionInfo(
       int flags,
@@ -53,7 +58,8 @@ public final class KotlinFunctionInfo implements KotlinMethodLevelInfo {
       KotlinTypeReference lambdaClassOrigin,
       KotlinVersionRequirementInfo versionRequirements,
       KotlinContractInfo contract,
-      boolean crossInlineParameter) {
+      boolean crossInlineParameter,
+      List<KotlinTypeInfo> contextReceiverTypes) {
     this.flags = flags;
     this.name = name;
     this.returnType = returnType;
@@ -65,6 +71,7 @@ public final class KotlinFunctionInfo implements KotlinMethodLevelInfo {
     this.versionRequirements = versionRequirements;
     this.contract = contract;
     this.crossInlineParameter = crossInlineParameter;
+    this.contextReceiverTypes = contextReceiverTypes;
   }
 
   public boolean hasCrossInlineParameter() {
@@ -98,7 +105,10 @@ public final class KotlinFunctionInfo implements KotlinMethodLevelInfo {
         getlambdaClassOrigin(kmFunction, factory),
         KotlinVersionRequirementInfo.create(kmFunction.getVersionRequirements()),
         KotlinContractInfo.create(kmFunction.getContract(), factory, reporter),
-        isCrossInline);
+        isCrossInline,
+        ListUtils.map(
+            kmFunction.getContextReceiverTypes(),
+            contextRecieverType -> KotlinTypeInfo.create(contextRecieverType, factory, reporter)));
   }
 
   private static KotlinTypeReference getlambdaClassOrigin(
@@ -115,10 +125,11 @@ public final class KotlinFunctionInfo implements KotlinMethodLevelInfo {
     return name;
   }
 
-  boolean rewrite(
-      KmVisitorProviders.KmFunctionVisitorProvider visitorProvider,
-      DexEncodedMethod method,
-      AppView<?> appView) {
+  boolean rewriteNoBacking(Consumer<KmFunction> consumer, AppView<?> appView) {
+    return rewrite(consumer, null, appView);
+  }
+
+  boolean rewrite(Consumer<KmFunction> consumer, DexEncodedMethod method, AppView<?> appView) {
     // TODO(b/154348683): Check method for flags to pass in.
     boolean rewritten = false;
     String finalName = name;
@@ -132,36 +143,51 @@ public final class KotlinFunctionInfo implements KotlinMethodLevelInfo {
         finalName = rewrittenName;
       }
     }
-    KmFunctionVisitor kmFunction = visitorProvider.get(flags, finalName);
+    KmFunction kmFunction = consume(new KmFunction(flags, finalName), consumer);
     // TODO(b/154348149): ReturnType could have been merged to a subtype.
-    rewritten |= returnType.rewrite(kmFunction::visitReturnType, appView);
-    for (KotlinValueParameterInfo valueParameterInfo : valueParameters) {
-      rewritten |= valueParameterInfo.rewrite(kmFunction::visitValueParameter, appView);
+    rewritten |= returnType.rewrite(kmFunction::setReturnType, appView);
+    rewritten |=
+        rewriteList(
+            appView,
+            valueParameters,
+            kmFunction.getValueParameters(),
+            KotlinValueParameterInfo::rewrite);
+    rewritten |=
+        rewriteList(
+            appView,
+            typeParameters,
+            kmFunction.getTypeParameters(),
+            KotlinTypeParameterInfo::rewrite);
+    rewritten |=
+        rewriteList(
+            appView,
+            contextReceiverTypes,
+            kmFunction.getContextReceiverTypes(),
+            KotlinTypeInfo::rewrite);
+    rewritten |=
+        rewriteIfNotNull(
+            appView,
+            receiverParameterType,
+            kmFunction::setReceiverParameterType,
+            KotlinTypeInfo::rewrite);
+    rewritten |= versionRequirements.rewrite(kmFunction.getVersionRequirements()::addAll);
+    if (signature != null) {
+      rewritten |=
+          signature.rewrite(
+              signature -> JvmExtensionsKt.setSignature(kmFunction, signature), method, appView);
     }
-    for (KotlinTypeParameterInfo typeParameterInfo : typeParameters) {
-      rewritten |= typeParameterInfo.rewrite(kmFunction::visitTypeParameter, appView);
-    }
-    if (receiverParameterType != null) {
-      rewritten |= receiverParameterType.rewrite(kmFunction::visitReceiverParameterType, appView);
-    }
-    rewritten |= versionRequirements.rewrite(kmFunction::visitVersionRequirement);
-    JvmFunctionExtensionVisitor extensionVisitor =
-        (JvmFunctionExtensionVisitor) kmFunction.visitExtensions(JvmFunctionExtensionVisitor.TYPE);
-    if (signature != null && extensionVisitor != null) {
-      rewritten |= signature.rewrite(extensionVisitor::visit, method, appView);
-    }
-    if (lambdaClassOrigin != null && extensionVisitor != null) {
+    if (lambdaClassOrigin != null) {
       rewritten |=
           lambdaClassOrigin.toRenamedBinaryNameOrDefault(
               lambdaClassOriginName -> {
                 if (lambdaClassOriginName != null) {
-                  extensionVisitor.visitLambdaClassOriginName(lambdaClassOriginName);
+                  JvmExtensionsKt.setLambdaClassOriginName(kmFunction, lambdaClassOriginName);
                 }
               },
               appView,
               null);
     }
-    rewritten |= contract.rewrite(kmFunction::visitContract, appView);
+    rewritten |= contract.rewrite(kmFunction::setContract, appView);
     return rewritten;
   }
 
@@ -187,6 +213,7 @@ public final class KotlinFunctionInfo implements KotlinMethodLevelInfo {
       receiverParameterType.trace(definitionSupplier);
     }
     forEachApply(typeParameters, param -> param::trace, definitionSupplier);
+    forEachApply(contextReceiverTypes, type -> type::trace, definitionSupplier);
     if (signature != null) {
       signature.trace(definitionSupplier);
     }

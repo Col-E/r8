@@ -4,19 +4,20 @@
 
 package com.android.tools.r8.kotlin;
 
+import static com.android.tools.r8.kotlin.KotlinMetadataUtils.consume;
+import static com.android.tools.r8.kotlin.KotlinMetadataUtils.rewriteList;
 import static com.android.tools.r8.utils.FunctionUtils.forEachApply;
 
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexDefinitionSupplier;
 import com.android.tools.r8.graph.DexItemFactory;
-import com.android.tools.r8.kotlin.KmVisitorProviders.KmEffectVisitorProvider;
 import com.android.tools.r8.shaking.EnqueuerMetadataTraceable;
 import com.android.tools.r8.utils.Reporter;
 import java.util.List;
+import java.util.function.Consumer;
 import kotlinx.metadata.KmEffect;
 import kotlinx.metadata.KmEffectInvocationKind;
 import kotlinx.metadata.KmEffectType;
-import kotlinx.metadata.KmEffectVisitor;
 
 public class KotlinEffectInfo implements EnqueuerMetadataTraceable {
 
@@ -50,14 +51,15 @@ public class KotlinEffectInfo implements EnqueuerMetadataTraceable {
     conclusion.trace(definitionSupplier);
   }
 
-  boolean rewrite(KmEffectVisitorProvider visitorProvider, AppView<?> appView) {
-    KmEffectVisitor kmEffectVisitor = visitorProvider.get(type, invocationKind);
-    boolean rewritten =
-        conclusion.rewrite(kmEffectVisitor::visitConclusionOfConditionalEffect, appView);
-    for (KotlinEffectExpressionInfo constructorArgument : constructorArguments) {
-      rewritten |= constructorArgument.rewrite(kmEffectVisitor::visitConstructorArgument, appView);
-    }
-    kmEffectVisitor.visitEnd();
+  boolean rewrite(Consumer<KmEffect> consumer, AppView<?> appView) {
+    KmEffect kmEffect = consume(new KmEffect(type, invocationKind), consumer);
+    boolean rewritten = conclusion.rewrite(kmEffect::setConclusion, appView);
+    rewritten |=
+        rewriteList(
+            appView,
+            constructorArguments,
+            kmEffect.getConstructorArguments(),
+            KotlinEffectExpressionInfo::rewrite);
     return rewritten;
   }
 }

@@ -4,19 +4,21 @@
 
 package com.android.tools.r8.kotlin;
 
+import static com.android.tools.r8.kotlin.KotlinMetadataUtils.consume;
+import static com.android.tools.r8.kotlin.KotlinMetadataUtils.rewriteIfNotNull;
+import static com.android.tools.r8.kotlin.KotlinMetadataUtils.rewriteList;
 import static com.android.tools.r8.utils.FunctionUtils.forEachApply;
 
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexDefinitionSupplier;
 import com.android.tools.r8.graph.DexItemFactory;
-import com.android.tools.r8.kotlin.KmVisitorProviders.KmEffectExpressionVisitorProvider;
 import com.android.tools.r8.shaking.EnqueuerMetadataTraceable;
 import com.android.tools.r8.utils.Reporter;
 import com.google.common.collect.ImmutableList;
 import java.util.List;
+import java.util.function.Consumer;
 import kotlinx.metadata.KmConstantValue;
 import kotlinx.metadata.KmEffectExpression;
-import kotlinx.metadata.KmEffectExpressionVisitor;
 
 public class KotlinEffectExpressionInfo implements EnqueuerMetadataTraceable {
 
@@ -84,26 +86,31 @@ public class KotlinEffectExpressionInfo implements EnqueuerMetadataTraceable {
     forEachApply(orArguments, arg -> arg::trace, definitionSupplier);
   }
 
-  boolean rewrite(KmEffectExpressionVisitorProvider provider, AppView<?> appView) {
+  boolean rewrite(Consumer<KmEffectExpression> consumer, AppView<?> appView) {
     if (this == NO_EXPRESSION) {
       return false;
     }
-    KmEffectExpressionVisitor visitor = provider.get();
-    visitor.visit(flags, parameterIndex);
+    KmEffectExpression effectExpression = consume(new KmEffectExpression(), consumer);
+    effectExpression.setFlags(flags);
+    effectExpression.setParameterIndex(parameterIndex);
     if (constantValue != null) {
-      visitor.visitConstantValue(constantValue.getValue());
+      effectExpression.setConstantValue(constantValue);
     }
-    boolean rewritten = false;
-    if (isInstanceType != null) {
-      rewritten |= isInstanceType.rewrite(visitor::visitIsInstanceType, appView);
-    }
-    for (KotlinEffectExpressionInfo andArgument : andArguments) {
-      rewritten |= andArgument.rewrite(visitor::visitAndArgument, appView);
-    }
-    for (KotlinEffectExpressionInfo orArgument : orArguments) {
-      rewritten |= orArgument.rewrite(visitor::visitAndArgument, appView);
-    }
-    visitor.visitEnd();
+    boolean rewritten =
+        rewriteIfNotNull(
+            appView, isInstanceType, effectExpression::setInstanceType, KotlinTypeInfo::rewrite);
+    rewritten |=
+        rewriteList(
+            appView,
+            andArguments,
+            effectExpression.getAndArguments(),
+            KotlinEffectExpressionInfo::rewrite);
+    rewritten |=
+        rewriteList(
+            appView,
+            orArguments,
+            effectExpression.getOrArguments(),
+            KotlinEffectExpressionInfo::rewrite);
     return rewritten;
   }
 }

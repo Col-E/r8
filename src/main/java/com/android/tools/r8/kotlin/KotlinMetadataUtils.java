@@ -20,7 +20,11 @@ import com.android.tools.r8.shaking.ProguardKeepRule;
 import com.android.tools.r8.shaking.ProguardKeepRuleType;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.Pair;
+import com.android.tools.r8.utils.TriFunction;
 import com.google.common.base.Strings;
+import java.util.List;
+import java.util.function.Consumer;
+import kotlin.Metadata;
 import kotlinx.metadata.KmExtensionType;
 import kotlinx.metadata.KmProperty;
 import kotlinx.metadata.KmPropertyExtensionVisitor;
@@ -28,7 +32,7 @@ import kotlinx.metadata.KmPropertyVisitor;
 import kotlinx.metadata.jvm.JvmFieldSignature;
 import kotlinx.metadata.jvm.JvmMethodSignature;
 import kotlinx.metadata.jvm.JvmPropertyExtensionVisitor;
-import kotlinx.metadata.jvm.KotlinClassHeader;
+import kotlinx.metadata.jvm.KotlinClassMetadata;
 
 public class KotlinMetadataUtils {
 
@@ -50,7 +54,7 @@ public class KotlinMetadataUtils {
     }
 
     @Override
-    public Pair<KotlinClassHeader, Boolean> rewrite(DexClass clazz, AppView<?> appView) {
+    public Pair<Metadata, Boolean> rewrite(DexClass clazz, AppView<?> appView) {
       throw new Unreachable("Should never be called");
     }
 
@@ -231,5 +235,43 @@ public class KotlinMetadataUtils {
       return "." + DescriptorUtils.getBinaryNameFromDescriptor(descriptor);
     }
     return DescriptorUtils.descriptorToKotlinClassifier(descriptor);
+  }
+
+  static int[] getCompatibleKotlinInfo() {
+    return KotlinClassMetadata.COMPATIBLE_METADATA_VERSION;
+  }
+
+  static <TKm> TKm consume(TKm tKm, Consumer<TKm> consumer) {
+    consumer.accept(tKm);
+    return tKm;
+  }
+
+  static <TInfo, TKm> boolean rewriteIfNotNull(
+      AppView<?> appView,
+      TInfo info,
+      Consumer<TKm> newTConsumer,
+      TriFunction<TInfo, Consumer<TKm>, AppView<?>, Boolean> rewrite) {
+    return info != null ? rewrite.apply(info, newTConsumer, appView) : false;
+  }
+
+  static <TInfo, TKm> boolean rewriteList(
+      AppView<?> appView,
+      List<TInfo> ts,
+      List<TKm> newTs,
+      TriFunction<TInfo, Consumer<TKm>, AppView<?>, Boolean> rewrite) {
+    assert newTs.isEmpty();
+    return rewriteList(appView, ts, newTs::add, rewrite);
+  }
+
+  static <TInfo, TKm> boolean rewriteList(
+      AppView<?> appView,
+      List<TInfo> ts,
+      Consumer<TKm> newTConsumer,
+      TriFunction<TInfo, Consumer<TKm>, AppView<?>, Boolean> rewrite) {
+    boolean rewritten = false;
+    for (TInfo t : ts) {
+      rewritten |= rewrite.apply(t, newTConsumer, appView);
+    }
+    return rewritten;
   }
 }

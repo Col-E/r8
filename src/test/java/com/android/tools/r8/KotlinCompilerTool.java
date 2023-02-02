@@ -5,6 +5,7 @@ package com.android.tools.r8;
 
 import static com.android.tools.r8.KotlinCompilerTool.KotlinCompilerVersion.MAX_SUPPORTED_VERSION;
 import static com.android.tools.r8.ToolHelper.isWindows;
+import static com.google.common.io.Files.getNameWithoutExtension;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
@@ -223,6 +224,10 @@ public class KotlinCompilerTool {
     return this;
   }
 
+  public KotlinCompilerTool enableExperimentalContextReceivers() {
+    return addArguments("-Xcontext-receivers");
+  }
+
   public KotlinCompilerTool addSourceFiles(Path... files) {
     return addSourceFiles(Arrays.asList(files));
   }
@@ -268,7 +273,8 @@ public class KotlinCompilerTool {
                   try {
                     // The Kotlin compiler does not require particular naming of files except for
                     // the extension, so just create a file called source.kt in a new directory.
-                    Path fileNamedKt = temp.newFolder().toPath().resolve("source.kt");
+                    String newFileName = getNameWithoutExtension(fileNotNamedKt.toString()) + ".kt";
+                    Path fileNamedKt = temp.newFolder().toPath().resolve(newFileName);
                     Files.copy(fileNotNamedKt, fileNamedKt);
                     return fileNamedKt;
                   } catch (IOException e) {

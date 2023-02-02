@@ -4,6 +4,8 @@
 
 package com.android.tools.r8.kotlin;
 
+import static com.android.tools.r8.kotlin.KotlinMetadataUtils.consume;
+import static com.android.tools.r8.kotlin.KotlinMetadataUtils.rewriteList;
 import static com.android.tools.r8.utils.FunctionUtils.forEachApply;
 
 import com.android.tools.r8.graph.AppView;
@@ -13,12 +15,11 @@ import com.android.tools.r8.shaking.EnqueuerMetadataTraceable;
 import com.android.tools.r8.utils.Reporter;
 import com.google.common.collect.ImmutableList;
 import java.util.List;
+import java.util.function.Consumer;
 import kotlinx.metadata.KmType;
 import kotlinx.metadata.KmTypeParameter;
-import kotlinx.metadata.KmTypeParameterVisitor;
 import kotlinx.metadata.KmVariance;
 import kotlinx.metadata.jvm.JvmExtensionsKt;
-import kotlinx.metadata.jvm.JvmTypeParameterExtensionVisitor;
 
 // Provides access to Kotlin information about a type-parameter.
 public class KotlinTypeParameterInfo implements EnqueuerMetadataTraceable {
@@ -83,24 +84,21 @@ public class KotlinTypeParameterInfo implements EnqueuerMetadataTraceable {
     return builder.build();
   }
 
-  boolean rewrite(
-      KmVisitorProviders.KmTypeParameterVisitorProvider visitorProvider, AppView<?> appView) {
-    KmTypeParameterVisitor kmTypeParameterVisitor = visitorProvider.get(flags, name, id, variance);
-    boolean rewritten = false;
-    for (KotlinTypeInfo originalUpperBound : originalUpperBounds) {
-      rewritten |= originalUpperBound.rewrite(kmTypeParameterVisitor::visitUpperBound, appView);
-    }
-    if (annotations.isEmpty()) {
-      return rewritten;
-    }
-    JvmTypeParameterExtensionVisitor extensionVisitor =
-        (JvmTypeParameterExtensionVisitor)
-            kmTypeParameterVisitor.visitExtensions(JvmTypeParameterExtensionVisitor.TYPE);
-    if (extensionVisitor != null) {
-      for (KotlinAnnotationInfo annotation : annotations) {
-        rewritten |= annotation.rewrite(extensionVisitor::visitAnnotation, appView);
-      }
-    }
+  boolean rewrite(Consumer<KmTypeParameter> consumer, AppView<?> appView) {
+    KmTypeParameter kmTypeParameter =
+        consume(new KmTypeParameter(flags, name, id, variance), consumer);
+    boolean rewritten =
+        rewriteList(
+            appView,
+            originalUpperBounds,
+            kmTypeParameter.getUpperBounds(),
+            KotlinTypeInfo::rewrite);
+    rewritten |=
+        rewriteList(
+            appView,
+            annotations,
+            JvmExtensionsKt.getAnnotations(kmTypeParameter),
+            KotlinAnnotationInfo::rewrite);
     return rewritten;
   }
 

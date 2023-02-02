@@ -4,14 +4,17 @@
 
 package com.android.tools.r8.kotlin;
 
+import static com.android.tools.r8.kotlin.KotlinMetadataUtils.getCompatibleKotlinInfo;
+import static kotlinx.metadata.jvm.KotlinClassMetadata.Companion;
+
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexDefinitionSupplier;
+import com.android.tools.r8.utils.Box;
 import com.android.tools.r8.utils.Pair;
+import kotlin.Metadata;
 import kotlinx.metadata.KmLambda;
-import kotlinx.metadata.jvm.KotlinClassHeader;
 import kotlinx.metadata.jvm.KotlinClassMetadata.SyntheticClass;
-import kotlinx.metadata.jvm.KotlinClassMetadata.SyntheticClass.Writer;
 
 // Holds information about a Metadata.SyntheticClass object.
 public class KotlinSyntheticClassInfo implements KotlinClassLevelInfo {
@@ -73,15 +76,17 @@ public class KotlinSyntheticClassInfo implements KotlinClassLevelInfo {
   }
 
   @Override
-  public Pair<KotlinClassHeader, Boolean> rewrite(DexClass clazz, AppView<?> appView) {
-    Writer writer = new Writer();
-    boolean rewritten = false;
-    if (lambda != null) {
-      KmLambda kmLambda = new KmLambda();
-      rewritten = lambda.rewrite(() -> kmLambda, clazz, appView);
-      kmLambda.accept(writer);
+  public Pair<Metadata, Boolean> rewrite(DexClass clazz, AppView<?> appView) {
+    if (lambda == null) {
+      return Pair.create(
+          Companion.writeSyntheticClass(getCompatibleKotlinInfo(), 0).getAnnotationData(), false);
     }
-    return Pair.create(writer.write().getHeader(), rewritten);
+    Box<KmLambda> newLambda = new Box<>();
+    boolean rewritten = lambda.rewrite(newLambda::set, clazz, appView);
+    assert newLambda.isSet();
+    return Pair.create(
+        Companion.writeLambda(newLambda.get(), getCompatibleKotlinInfo(), 0).getAnnotationData(),
+        rewritten);
   }
 
   @Override
