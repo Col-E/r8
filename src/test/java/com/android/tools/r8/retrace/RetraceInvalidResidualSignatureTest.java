@@ -4,12 +4,14 @@
 
 package com.android.tools.r8.retrace;
 
-import static org.junit.Assert.assertThrows;
+import static org.hamcrest.CoreMatchers.containsString;
 
-import com.android.tools.r8.DiagnosticsHandler;
+import com.android.tools.r8.DiagnosticsMatcher;
 import com.android.tools.r8.TestBase;
+import com.android.tools.r8.TestDiagnosticMessagesImpl;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
+import com.android.tools.r8.naming.mappinginformation.MappingInformationDiagnostics;
 import com.android.tools.r8.references.ClassReference;
 import com.android.tools.r8.references.Reference;
 import java.util.Collections;
@@ -44,22 +46,44 @@ public class RetraceInvalidResidualSignatureTest extends TestBase {
           + "  # { id:'com.android.tools.r8.residualsignature',signature:'()Ljava/lang/Object;' }\n"
           + "  int method1() -> a\n"
           + "  # { id:'com.android.tools.r8.residualsignature',signature:'I' }\n"
-          + "  int method2() -> b\n"
+          + "  1:2:int method2():3:4 -> a\n"
+          + "  # { id:'com.android.tools.r8.residualsignature',signature:'Z' }\n"
+          + "  int method3() -> b\n"
           + "  # { id:'com.android.tools.r8.residualsignature',signature:'VOLAPYK' }\n";
 
   @Test
   public void testInvalidResidualMapping() {
-    // TODO(b/267413327): Fail more gracefully than just throwing.
-    assertThrows(
-        AssertionError.class,
-        () ->
-            Retracer.createDefault(
-                    ProguardMapProducer.fromString(mapping), new DiagnosticsHandler() {})
-                .retraceMethod(
-                    Reference.method(
-                        someClassRenamed,
-                        "method1",
-                        Collections.emptyList(),
-                        Reference.primitiveFromDescriptor("I"))));
+    TestDiagnosticMessagesImpl diagnosticsHandler = new TestDiagnosticMessagesImpl();
+    Retracer.createDefault(ProguardMapProducer.fromString(mapping), diagnosticsHandler)
+        .retraceMethod(
+            Reference.method(
+                someClassRenamed,
+                "method1",
+                Collections.emptyList(),
+                Reference.primitiveFromDescriptor("I")));
+    diagnosticsHandler.assertOnlyWarnings();
+    diagnosticsHandler.assertAllWarningsMatch(
+        DiagnosticsMatcher.diagnosticType(MappingInformationDiagnostics.class));
+    diagnosticsHandler.assertWarningsMatch(
+        DiagnosticsMatcher.diagnosticMessage(containsString(getMessage("java.lang.Object a()"))),
+        DiagnosticsMatcher.diagnosticMessage(
+            containsString(
+                getMessage(
+                    "{\"id\":\"com.android.tools.r8.residualsignature\",\"signature\":\"I\"}"))),
+        DiagnosticsMatcher.diagnosticMessage(
+            containsString(
+                getMessage(
+                    "{\"id\":\"com.android.tools.r8.residualsignature\",\"signature\":\"Z\"}"))),
+        DiagnosticsMatcher.diagnosticMessage(
+            containsString(
+                "The residual signature mapping '# {"
+                    + " id:'com.android.tools.r8.residualsignature',signature:'VOLAPYK' }' is"
+                    + " invalid")));
+  }
+
+  private String getMessage(String variable) {
+    return "The residual signature mapping '"
+        + variable
+        + "' is not of the same type as the member it describes.";
   }
 }

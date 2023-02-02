@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.utils.positions;
 
+import static com.android.tools.r8.naming.mappinginformation.ResidualSignatureMappingInformation.ResidualFieldSignatureMappingInformation.fromDexField;
 import static com.android.tools.r8.utils.positions.PositionUtils.mustHaveResidualDebugInfo;
 
 import com.android.tools.r8.errors.Unreachable;
@@ -184,9 +185,7 @@ public class MappedPositionToClassNameMapperBuilder {
               MemberNaming memberNaming = new MemberNaming(originalSignature, residualSignature);
               if (ResidualSignatureMappingInformation.isSupported(mapFileVersion)
                   && !originalSignature.type.equals(residualSignature.type)) {
-                memberNaming.addMappingInformation(
-                    ResidualMethodSignatureMappingInformation.fromDexField(residualField),
-                    Unreachable::raise);
+                memberNaming.addMappingInformation(fromDexField(residualField), Unreachable::raise);
               }
               if (dexEncodedField.isD8R8Synthesized()) {
                 memberNaming.addMappingInformation(

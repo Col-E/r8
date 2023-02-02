@@ -99,4 +99,21 @@ public class MappingInformationDiagnostics implements Diagnostic {
         "The mapping '" + one + "' is not allowed in combination with '" + other + "'",
         new TextPosition(1, lineNumber, TextPosition.UNKNOWN_COLUMN));
   }
+
+  public static MappingInformationDiagnostics invalidResidualSignature(
+      String info, int lineNumber) {
+    return new MappingInformationDiagnostics(
+        "The residual signature mapping '" + info + "' is invalid'",
+        new TextPosition(1, lineNumber, TextPosition.UNKNOWN_COLUMN));
+  }
+
+  public static MappingInformationDiagnostics invalidResidualSignatureType(
+      String info, int lineNumber) {
+    return new MappingInformationDiagnostics(
+        "The residual signature mapping '"
+            + info
+            + "' is not of the same type as the "
+            + "member it describes.'",
+        new TextPosition(1, lineNumber, TextPosition.UNKNOWN_COLUMN));
+  }
 }

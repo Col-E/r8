@@ -63,6 +63,8 @@ public abstract class ResidualSignatureMappingInformation extends ReferentialMap
     }
   }
 
+  public abstract boolean isValid();
+
   @Override
   public boolean isResidualSignatureMappingInformation() {
     return true;
@@ -75,6 +77,9 @@ public abstract class ResidualSignatureMappingInformation extends ReferentialMap
 
   public static class ResidualMethodSignatureMappingInformation
       extends ResidualSignatureMappingInformation {
+
+    private static final ResidualMethodSignatureMappingInformation INVALID_METHOD_SIGNATURE =
+        new ResidualMethodSignatureMappingInformation(new String[0], "LINVALID;");
 
     private final String returnType;
     private final String[] parameters;
@@ -93,20 +98,27 @@ public abstract class ResidualSignatureMappingInformation extends ReferentialMap
           parameters, method.getReturnType().toDescriptorString());
     }
 
-    public static ResidualFieldSignatureMappingInformation fromDexField(DexField residualField) {
-      return new ResidualFieldSignatureMappingInformation(
-          residualField.getType().toDescriptorString());
-    }
-
     @Override
     protected String serializeInternal() {
       return StringUtils.join("", Arrays.asList(parameters), BraceType.PARENS) + returnType;
     }
 
+    @Override
+    public boolean isValid() {
+      return this != INVALID_METHOD_SIGNATURE;
+    }
+
     public static ResidualMethodSignatureMappingInformation deserialize(String signature) {
-      return new ResidualMethodSignatureMappingInformation(
-          DescriptorUtils.getArgumentTypeDescriptors(signature),
-          DescriptorUtils.getReturnTypeDescriptor(signature));
+      String[] argumentTypeDescriptors = DescriptorUtils.getArgumentTypeDescriptors(signature);
+      String returnTypeDescriptor = DescriptorUtils.getReturnTypeDescriptor(signature);
+      boolean isValid = DescriptorUtils.isDescriptor(returnTypeDescriptor);
+      for (String argumentTypeDescriptor : argumentTypeDescriptors) {
+        isValid &= DescriptorUtils.isDescriptor(argumentTypeDescriptor);
+      }
+      return isValid
+          ? new ResidualMethodSignatureMappingInformation(
+              argumentTypeDescriptors, returnTypeDescriptor)
+          : INVALID_METHOD_SIGNATURE;
     }
 
     public String getReturnType() {
@@ -148,6 +160,9 @@ public abstract class ResidualSignatureMappingInformation extends ReferentialMap
   public static class ResidualFieldSignatureMappingInformation
       extends ResidualSignatureMappingInformation {
 
+    private static final ResidualFieldSignatureMappingInformation INVALID_FIELD_SIGNATURE =
+        new ResidualFieldSignatureMappingInformation("LINVALID;");
+
     private final String type;
 
     private ResidualFieldSignatureMappingInformation(String type) {
@@ -168,8 +183,15 @@ public abstract class ResidualSignatureMappingInformation extends ReferentialMap
       return type;
     }
 
+    @Override
+    public boolean isValid() {
+      return this != INVALID_FIELD_SIGNATURE;
+    }
+
     public static ResidualFieldSignatureMappingInformation deserialize(String signature) {
-      return new ResidualFieldSignatureMappingInformation(signature);
+      return DescriptorUtils.isDescriptor(signature)
+          ? new ResidualFieldSignatureMappingInformation(signature)
+          : INVALID_FIELD_SIGNATURE;
     }
 
     @Override

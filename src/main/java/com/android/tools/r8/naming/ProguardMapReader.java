@@ -389,11 +389,26 @@ public class ProguardMapReader implements AutoCloseable {
                             MappingInformationDiagnostics.notAllowedCombination(
                                 info, conflictingInfo, lineNo)));
                 if (info.isResidualSignatureMappingInformation()) {
+                  ResidualSignatureMappingInformation mappingInfo =
+                      info.asResidualSignatureMappingInformation();
+                  if (!mappingInfo.isValid()) {
+                    diagnosticsHandler.warning(
+                        MappingInformationDiagnostics.invalidResidualSignature(
+                            line.trim(), lineNo));
+                    return;
+                  }
                   Signature residualSignature =
                       getResidualSignatureFromMappingInformation(
                           info.asResidualSignatureMappingInformation(), currentRenamedNameFinal);
                   currentResidualSignature.set(residualSignature);
                   if (currentRange != null) {
+                    if (!mappingInfo.isResidualMethodSignatureMappingInformation()) {
+                      diagnosticsHandler.warning(
+                          MappingInformationDiagnostics.invalidResidualSignatureType(
+                              info.serialize(), lineNo));
+                      currentResidualSignature.clear();
+                      return;
+                    }
                     currentRange.setResidualSignatureInternal(
                         residualSignature.asMethodSignature());
                   }
@@ -575,7 +590,14 @@ public class ProguardMapReader implements AutoCloseable {
   private Signature getResidualSignatureForMemberNaming(
       Box<Signature> residualSignature, Signature originalSignature, String renamedName) {
     if (residualSignature.isSet()) {
-      return residualSignature.get();
+      if (residualSignature.get().getClass() != originalSignature.getClass()) {
+        diagnosticsHandler.warning(
+            MappingInformationDiagnostics.invalidResidualSignatureType(
+                residualSignature.get().toString(), lineNo));
+
+      } else {
+        return residualSignature.get();
+      }
     }
     Signature signature = originalSignature.asRenamed(renamedName);
     signature = signatureCache.computeIfAbsent(signature, Function.identity());
