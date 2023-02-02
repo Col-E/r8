@@ -170,6 +170,8 @@ public class LazyCfCode extends Code {
       } catch (JsrEncountered e1) {
         throw new Unreachable(e1);
       }
+    } catch (Exception e) {
+      throw new CompilationError("Could not parse code", e, origin);
     }
     assert verifyNoReparseContext(context.owner);
   }
