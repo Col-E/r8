@@ -590,7 +590,7 @@ public class ProguardMapReader implements AutoCloseable {
   private Signature getResidualSignatureForMemberNaming(
       Box<Signature> residualSignature, Signature originalSignature, String renamedName) {
     if (residualSignature.isSet()) {
-      if (residualSignature.get().getClass() != originalSignature.getClass()) {
+      if (residualSignature.get().kind() != originalSignature.kind()) {
         diagnosticsHandler.warning(
             MappingInformationDiagnostics.invalidResidualSignatureType(
                 residualSignature.get().toString(), lineNo));
