@@ -267,8 +267,6 @@ public class RecordProfileRewritingTest extends TestBase {
     assertThat(
         toStringMethodSubject, ifThen(!canUseRecords, invokesMethod(toStringHelperMethodSubject)));
 
-    // TODO(b/265729283): Should include all the synthetics from above when there is no native
-    //  support.
     profileInspector
         .assertContainsClassRule(personRecordClassSubject)
         .assertContainsMethodRules(
@@ -284,6 +282,19 @@ public class RecordProfileRewritingTest extends TestBase {
             i ->
                 i.assertContainsMethodRules(
                     nameNestAccessorMethodSubject, ageNestAccessorMethodSubject))
+        .applyIf(
+            !canUseRecords,
+            i ->
+                i.assertContainsClassRules(
+                        recordTagClassSubject,
+                        hashCodeHelperClassSubject,
+                        toStringHelperClassSubject)
+                    .assertContainsMethodRules(
+                        recordTagInstanceInitializerSubject,
+                        equalsHelperMethodSubject,
+                        getFieldsAsObjectsMethodSubject,
+                        hashCodeHelperMethodSubject,
+                        toStringHelperMethodSubject))
         .assertContainsNoOtherRules();
   }
 }

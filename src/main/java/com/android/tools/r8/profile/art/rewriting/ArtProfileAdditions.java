@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.profile.art.rewriting;
 
+import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexType;
@@ -47,6 +48,12 @@ public class ArtProfileAdditions {
     this.artProfile = artProfile;
   }
 
+  void applyIfContextIsInProfile(DexType context, Consumer<ArtProfileAdditions> fn) {
+    if (artProfile.containsClassRule(context)) {
+      fn.accept(this);
+    }
+  }
+
   void applyIfContextIsInProfile(
       DexMethod context, Consumer<ArtProfileAdditionsBuilder> builderConsumer) {
     ArtProfileMethodRule contextMethodRule = artProfile.getMethodRule(context);
@@ -88,7 +95,11 @@ public class ArtProfileAdditions {
     }
   }
 
-  private void addClassRule(DexType type) {
+  public void addClassRule(DexClass clazz) {
+    addClassRule(clazz.getType());
+  }
+
+  public void addClassRule(DexType type) {
     if (artProfile.containsClassRule(type)) {
       return;
     }

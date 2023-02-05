@@ -217,8 +217,37 @@ public class ArtProfileRewritingCfInstructionDesugaringEventConsumer
   }
 
   @Override
-  public void acceptRecordMethod(ProgramMethod method) {
-    parent.acceptRecordMethod(method);
+  public void acceptRecordClassContext(DexProgramClass recordTagClass, ProgramMethod context) {
+    parent.acceptRecordClassContext(recordTagClass, context);
+  }
+
+  @Override
+  public void acceptRecordEqualsHelperMethod(ProgramMethod method, ProgramMethod context) {
+    additionsCollection.applyIfContextIsInProfile(
+        context, additionsBuilder -> additionsBuilder.addRule(method));
+    parent.acceptRecordEqualsHelperMethod(method, context);
+  }
+
+  @Override
+  public void acceptRecordGetFieldsAsObjectsHelperMethod(
+      ProgramMethod method, ProgramMethod context) {
+    additionsCollection.applyIfContextIsInProfile(
+        context, additionsBuilder -> additionsBuilder.addRule(method));
+    parent.acceptRecordGetFieldsAsObjectsHelperMethod(method, context);
+  }
+
+  @Override
+  public void acceptRecordHashCodeHelperMethod(ProgramMethod method, ProgramMethod context) {
+    additionsCollection.applyIfContextIsInProfile(
+        context, additionsBuilder -> additionsBuilder.addRule(method).addRule(method.getHolder()));
+    parent.acceptRecordHashCodeHelperMethod(method, context);
+  }
+
+  @Override
+  public void acceptRecordToStringHelperMethod(ProgramMethod method, ProgramMethod context) {
+    additionsCollection.applyIfContextIsInProfile(
+        context, additionsBuilder -> additionsBuilder.addRule(method).addRule(method.getHolder()));
+    parent.acceptRecordToStringHelperMethod(method, context);
   }
 
   @Override

@@ -9,56 +9,81 @@ import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.apiconversion.DesugaredLibraryWrapperSynthesizerEventConsumer.DesugaredLibraryL8ProgramWrapperSynthesizerEventConsumer;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.retargeter.DesugaredLibraryRetargeterSynthesizerEventConsumer.DesugaredLibraryRetargeterL8SynthesizerEventConsumer;
 import com.android.tools.r8.ir.desugar.itf.EmulatedInterfaceSynthesizerEventConsumer.L8ProgramEmulatedInterfaceSynthesizerEventConsumer;
-import com.android.tools.r8.ir.desugar.records.RecordDesugaringEventConsumer;
+import com.android.tools.r8.ir.desugar.records.RecordDesugaringEventConsumer.RecordClassSynthesizerDesugaringEventConsumer;
 import com.android.tools.r8.ir.desugar.varhandle.VarHandleDesugaringEventConsumer;
+import com.android.tools.r8.profile.art.rewriting.ArtProfileCollectionAdditions;
+import com.android.tools.r8.profile.art.rewriting.ArtProfileRewritingCfClassSynthesizerDesugaringEventConsumer;
 import com.google.common.collect.Sets;
 import java.util.Set;
 
-public class CfClassSynthesizerDesugaringEventConsumer
+public abstract class CfClassSynthesizerDesugaringEventConsumer
     implements L8ProgramEmulatedInterfaceSynthesizerEventConsumer,
         DesugaredLibraryL8ProgramWrapperSynthesizerEventConsumer,
         DesugaredLibraryRetargeterL8SynthesizerEventConsumer,
-        RecordDesugaringEventConsumer,
+        RecordClassSynthesizerDesugaringEventConsumer,
         VarHandleDesugaringEventConsumer {
 
-  private Set<DexProgramClass> synthesizedClasses = Sets.newConcurrentHashSet();
+  protected CfClassSynthesizerDesugaringEventConsumer() {}
 
-  @Override
-  public void acceptProgramEmulatedInterface(DexProgramClass clazz) {
-    synthesizedClasses.add(clazz);
+  public static CfClassSynthesizerDesugaringEventConsumer create(
+      ArtProfileCollectionAdditions artProfileCollectionAdditions) {
+    CfClassSynthesizerDesugaringEventConsumer eventConsumer =
+        new D8R8CfClassSynthesizerDesugaringEventConsumer();
+    return ArtProfileRewritingCfClassSynthesizerDesugaringEventConsumer.attach(
+        artProfileCollectionAdditions, eventConsumer);
   }
 
-  @Override
-  public void acceptWrapperProgramClass(DexProgramClass clazz) {
-    synthesizedClasses.add(clazz);
-  }
+  public abstract Set<DexProgramClass> getSynthesizedClasses();
 
-  @Override
-  public void acceptEnumConversionProgramClass(DexProgramClass clazz) {
-    synthesizedClasses.add(clazz);
-  }
+  private static class D8R8CfClassSynthesizerDesugaringEventConsumer
+      extends CfClassSynthesizerDesugaringEventConsumer {
 
-  @Override
-  public void acceptDesugaredLibraryRetargeterDispatchProgramClass(DexProgramClass clazz) {
-    synthesizedClasses.add(clazz);
-  }
+    private final Set<DexProgramClass> synthesizedClasses = Sets.newConcurrentHashSet();
 
-  @Override
-  public void acceptRecordClass(DexProgramClass clazz) {
-    synthesizedClasses.add(clazz);
-  }
+    @Override
+    public void acceptProgramEmulatedInterface(DexProgramClass clazz) {
+      synthesizedClasses.add(clazz);
+    }
 
-  @Override
-  public void acceptVarHandleDesugaringClass(DexProgramClass clazz) {
-    synthesizedClasses.add(clazz);
-  }
+    @Override
+    public void acceptWrapperProgramClass(DexProgramClass clazz) {
+      synthesizedClasses.add(clazz);
+    }
 
-  public Set<DexProgramClass> getSynthesizedClasses() {
-    return synthesizedClasses;
-  }
+    @Override
+    public void acceptEnumConversionProgramClass(DexProgramClass clazz) {
+      synthesizedClasses.add(clazz);
+    }
 
-  @Override
-  public void acceptCollectionConversion(ProgramMethod arrayConversion) {
-    synthesizedClasses.add(arrayConversion.getHolder());
+    @Override
+    public void acceptDesugaredLibraryRetargeterDispatchProgramClass(DexProgramClass clazz) {
+      synthesizedClasses.add(clazz);
+    }
+
+    @Override
+    public void acceptRecordClass(DexProgramClass recordTagClass) {
+      synthesizedClasses.add(recordTagClass);
+    }
+
+    @Override
+    public void acceptRecordClassContext(
+        DexProgramClass recordTagClass, DexProgramClass recordClass) {
+      // Intentionally empty.
+    }
+
+    @Override
+    public void acceptVarHandleDesugaringClass(DexProgramClass clazz) {
+      synthesizedClasses.add(clazz);
+    }
+
+    @Override
+    public Set<DexProgramClass> getSynthesizedClasses() {
+      return synthesizedClasses;
+    }
+
+    @Override
+    public void acceptCollectionConversion(ProgramMethod arrayConversion) {
+      synthesizedClasses.add(arrayConversion.getHolder());
+    }
   }
 }

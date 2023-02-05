@@ -8,10 +8,23 @@ import com.android.tools.r8.graph.ProgramMethod;
 
 public interface RecordDesugaringEventConsumer {
 
-  void acceptRecordClass(DexProgramClass recordClass);
+  void acceptRecordClass(DexProgramClass recordTagClass);
+
+  interface RecordClassSynthesizerDesugaringEventConsumer extends RecordDesugaringEventConsumer {
+
+    void acceptRecordClassContext(DexProgramClass recordTagClass, DexProgramClass recordClass);
+  }
 
   interface RecordInstructionDesugaringEventConsumer extends RecordDesugaringEventConsumer {
 
-    void acceptRecordMethod(ProgramMethod method);
+    void acceptRecordClassContext(DexProgramClass recordTagClass, ProgramMethod context);
+
+    void acceptRecordEqualsHelperMethod(ProgramMethod method, ProgramMethod context);
+
+    void acceptRecordGetFieldsAsObjectsHelperMethod(ProgramMethod method, ProgramMethod context);
+
+    void acceptRecordHashCodeHelperMethod(ProgramMethod method, ProgramMethod context);
+
+    void acceptRecordToStringHelperMethod(ProgramMethod method, ProgramMethod context);
   }
 }

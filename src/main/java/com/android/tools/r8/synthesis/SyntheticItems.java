@@ -91,7 +91,7 @@ public class SyntheticItems implements SyntheticDefinitionsProvider {
           new ContextsForGlobalSyntheticsInSingleOutputMode() {
             @Override
             public void addGlobalContexts(
-                DexType globalType, Collection<ProgramDefinition> contexts) {
+                DexType globalType, Collection<? extends ProgramDefinition> contexts) {
               throw new Unreachable("Unexpected attempt to add globals to non-desugaring build.");
             }
           };
@@ -114,7 +114,7 @@ public class SyntheticItems implements SyntheticDefinitionsProvider {
 
     void forEach(BiConsumer<DexType, Set<DexType>> fn);
 
-    void addGlobalContexts(DexType globalType, Collection<ProgramDefinition> contexts);
+    void addGlobalContexts(DexType globalType, Collection<? extends ProgramDefinition> contexts);
   }
 
   private static class ContextsForGlobalSyntheticsInSingleOutputMode
@@ -131,7 +131,8 @@ public class SyntheticItems implements SyntheticDefinitionsProvider {
     }
 
     @Override
-    public void addGlobalContexts(DexType globalType, Collection<ProgramDefinition> contexts) {
+    public void addGlobalContexts(
+        DexType globalType, Collection<? extends ProgramDefinition> contexts) {
       // contexts are ignored in single output modes.
     }
   }
@@ -152,7 +153,8 @@ public class SyntheticItems implements SyntheticDefinitionsProvider {
     }
 
     @Override
-    public void addGlobalContexts(DexType globalType, Collection<ProgramDefinition> contexts) {
+    public void addGlobalContexts(
+        DexType globalType, Collection<? extends ProgramDefinition> contexts) {
       Set<DexType> contextReferences =
           globalContexts.computeIfAbsent(globalType, k -> ConcurrentHashMap.newKeySet());
       contexts.forEach(definition -> contextReferences.add(definition.getContextType()));
@@ -976,7 +978,7 @@ public class SyntheticItems implements SyntheticDefinitionsProvider {
       Supplier<MissingGlobalSyntheticsConsumerDiagnostic> diagnosticSupplier,
       SyntheticKindSelector kindSelector,
       DexType globalType,
-      Collection<ProgramDefinition> contexts,
+      Collection<? extends ProgramDefinition> contexts,
       AppView<?> appView,
       Consumer<SyntheticProgramClassBuilder> fn,
       Consumer<DexProgramClass> onCreationConsumer) {
@@ -1033,7 +1035,8 @@ public class SyntheticItems implements SyntheticDefinitionsProvider {
     pending.definitions.put(definition.getHolder().getType(), definition);
   }
 
-  private void addGlobalContexts(DexType globalType, Collection<ProgramDefinition> contexts) {
+  private void addGlobalContexts(
+      DexType globalType, Collection<? extends ProgramDefinition> contexts) {
     globalContexts.addGlobalContexts(globalType, contexts);
   }
 

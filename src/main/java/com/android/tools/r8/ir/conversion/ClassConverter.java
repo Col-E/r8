@@ -117,9 +117,8 @@ public abstract class ClassConverter {
       ClassConverterResult.Builder resultBuilder, ExecutorService executorService)
       throws ExecutionException {
     Collection<DexProgramClass> classes = appView.appInfo().classes();
-
     CfClassSynthesizerDesugaringEventConsumer classSynthesizerEventConsumer =
-        new CfClassSynthesizerDesugaringEventConsumer();
+        CfClassSynthesizerDesugaringEventConsumer.create(artProfileCollectionAdditions);
     converter.classSynthesisDesugaring(executorService, classSynthesizerEventConsumer);
     if (!classSynthesizerEventConsumer.getSynthesizedClasses().isEmpty()) {
       classes =

@@ -173,7 +173,23 @@ public abstract class CfInstructionDesugaringEventConsumer
     }
 
     @Override
-    public void acceptRecordMethod(ProgramMethod method) {
+    public void acceptRecordEqualsHelperMethod(ProgramMethod method, ProgramMethod context) {
+      // Intentionally empty. Added to the program using ProgramAdditions.
+    }
+
+    @Override
+    public void acceptRecordGetFieldsAsObjectsHelperMethod(
+        ProgramMethod method, ProgramMethod context) {
+      // Intentionally empty. Added to the program using ProgramAdditions.
+    }
+
+    @Override
+    public void acceptRecordHashCodeHelperMethod(ProgramMethod method, ProgramMethod context) {
+      methodProcessor.scheduleDesugaredMethodForProcessing(method);
+    }
+
+    @Override
+    public void acceptRecordToStringHelperMethod(ProgramMethod method, ProgramMethod context) {
       methodProcessor.scheduleDesugaredMethodForProcessing(method);
     }
 
@@ -188,6 +204,11 @@ public abstract class CfInstructionDesugaringEventConsumer
     @Override
     public void acceptRecordClass(DexProgramClass recordClass) {
       methodProcessor.scheduleDesugaredMethodsForProcessing(recordClass.programMethods());
+    }
+
+    @Override
+    public void acceptRecordClassContext(DexProgramClass recordTagClass, ProgramMethod context) {
+      // Intentionally empty.
     }
 
     @Override
@@ -423,6 +444,11 @@ public abstract class CfInstructionDesugaringEventConsumer
     }
 
     @Override
+    public void acceptRecordClassContext(DexProgramClass recordTagClass, ProgramMethod context) {
+      // Intentionally empty.
+    }
+
+    @Override
     public void acceptVarHandleDesugaringClass(DexProgramClass clazz) {
       // Intentionally empty. The class will be hit by tracing if required.
     }
@@ -433,7 +459,23 @@ public abstract class CfInstructionDesugaringEventConsumer
     }
 
     @Override
-    public void acceptRecordMethod(ProgramMethod method) {
+    public void acceptRecordEqualsHelperMethod(ProgramMethod method, ProgramMethod context) {
+      // Intentionally empty. The method will be hit by tracing if required.
+    }
+
+    @Override
+    public void acceptRecordGetFieldsAsObjectsHelperMethod(
+        ProgramMethod method, ProgramMethod context) {
+      // Intentionally empty. The method will be hit by tracing if required.
+    }
+
+    @Override
+    public void acceptRecordHashCodeHelperMethod(ProgramMethod method, ProgramMethod context) {
+      // Intentionally empty. The method will be hit by tracing if required.
+    }
+
+    @Override
+    public void acceptRecordToStringHelperMethod(ProgramMethod method, ProgramMethod context) {
       // Intentionally empty. The method will be hit by tracing if required.
     }
 
