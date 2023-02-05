@@ -17,6 +17,7 @@ import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.references.TypeReference;
 import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Iterator;
@@ -72,6 +73,11 @@ public class MethodReferenceUtils {
 
   public static MethodReference instanceConstructor(ClassReference type) {
     return Reference.method(type, "<init>", Collections.emptyList(), null);
+  }
+
+  public static MethodReference instanceConstructor(
+      ClassReference type, TypeReference... formalTypes) {
+    return Reference.method(type, "<init>", Arrays.asList(formalTypes), null);
   }
 
   public static int compare(MethodReference methodReference, ClassReference other) {

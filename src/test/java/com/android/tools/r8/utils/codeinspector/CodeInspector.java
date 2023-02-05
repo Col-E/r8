@@ -3,6 +3,8 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.utils.codeinspector;
 
+import static com.android.tools.r8.utils.ConsumerUtils.emptyConsumer;
+
 import com.android.tools.r8.DexIndexedConsumer;
 import com.android.tools.r8.StringResource;
 import com.android.tools.r8.TestDiagnosticMessagesImpl;
@@ -159,10 +161,15 @@ public class CodeInspector {
   }
 
   public CodeInspector(AndroidApp app, String proguardMapContent) throws IOException {
+    this(app, proguardMapContent, emptyConsumer());
+  }
+
+  public CodeInspector(
+      AndroidApp app, String proguardMapContent, Consumer<InternalOptions> optionsConsumer)
+      throws IOException {
     this(
-        new ApplicationReader(app, runOptionsConsumer(null), Timing.empty())
-            .read(
-                StringResource.fromString(proguardMapContent, Origin.unknown())));
+        new ApplicationReader(app, runOptionsConsumer(optionsConsumer), Timing.empty())
+            .read(StringResource.fromString(proguardMapContent, Origin.unknown())));
   }
 
   public CodeInspector(DexApplication application) {

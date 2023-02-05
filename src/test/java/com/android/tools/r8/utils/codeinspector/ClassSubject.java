@@ -187,6 +187,8 @@ public abstract class ClassSubject extends ClassOrMemberSubject {
   @Override
   public abstract ClassAccessFlags getAccessFlags();
 
+  public abstract TypeSubject getSuperType();
+
   public abstract boolean isInterface();
 
   public abstract boolean isAbstract();

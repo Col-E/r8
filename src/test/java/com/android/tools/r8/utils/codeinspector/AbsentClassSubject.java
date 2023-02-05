@@ -130,6 +130,11 @@ public class AbsentClassSubject extends ClassSubject {
   }
 
   @Override
+  public TypeSubject getSuperType() {
+    throw new Unreachable("Absent class has no super type");
+  }
+
+  @Override
   public boolean isInterface() {
     throw new Unreachable("Cannot determine if an absent class is an interface");
   }

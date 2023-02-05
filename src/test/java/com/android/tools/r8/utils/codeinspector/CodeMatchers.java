@@ -4,6 +4,9 @@
 
 package com.android.tools.r8.utils.codeinspector;
 
+import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
+import static org.hamcrest.MatcherAssert.assertThat;
+
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.references.ClassReference;
 import com.android.tools.r8.references.FieldReference;
@@ -12,6 +15,7 @@ import com.android.tools.r8.utils.MethodReferenceUtils;
 import java.util.Arrays;
 import java.util.List;
 import java.util.function.Predicate;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import org.hamcrest.Description;
 import org.hamcrest.Matcher;
@@ -179,14 +183,21 @@ public class CodeMatchers {
   }
 
   public static Matcher<MethodSubject> invokesMethod(MethodSubject targetSubject) {
-    if (!targetSubject.isPresent()) {
-      throw new IllegalArgumentException();
-    }
-    return invokesMethod(targetSubject.getFinalReference());
+    return invokesMethod(
+        () -> {
+          assertThat(targetSubject, isPresent());
+          return targetSubject.getFinalReference();
+        });
   }
 
   public static Matcher<MethodSubject> invokesMethod(MethodReference targetReference) {
+    return invokesMethod(() -> targetReference);
+  }
+
+  public static Matcher<MethodSubject> invokesMethod(
+      Supplier<MethodReference> targetReferenceSupplier) {
     return new TypeSafeMatcher<MethodSubject>() {
+
       @Override
       protected boolean matchesSafely(MethodSubject subject) {
         if (!subject.isPresent()) {
@@ -195,11 +206,13 @@ public class CodeMatchers {
         if (!subject.getMethod().hasCode()) {
           return false;
         }
+        MethodReference targetReference = targetReferenceSupplier.get();
         return subject.streamInstructions().anyMatch(isInvokeWithTarget(targetReference));
       }
 
       @Override
       public void describeTo(Description description) {
+        MethodReference targetReference = targetReferenceSupplier.get();
         description.appendText(
             "invokes method `" + MethodReferenceUtils.toSourceString(targetReference) + "`");
       }

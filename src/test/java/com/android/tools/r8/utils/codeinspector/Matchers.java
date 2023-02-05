@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.utils.codeinspector;
 
+import static org.hamcrest.CoreMatchers.anything;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -844,6 +845,14 @@ public class Matchers {
     public String toString() {
       return getClassName() + "." + getMethodName() + "(" + filename + ":" + originalPosition + ")";
     }
+  }
+
+  @SuppressWarnings("unchecked")
+  public static <T> Matcher<T> ifThen(boolean condition, Matcher<T> matcher) {
+    if (condition) {
+      return matcher;
+    }
+    return (Matcher<T>) anything();
   }
 
   public static <T> Matcher<T> onlyIf(boolean condition, Matcher<T> matcher) {

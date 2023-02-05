@@ -16,6 +16,7 @@ import com.android.tools.r8.shaking.ProguardConfiguration;
 import com.android.tools.r8.shaking.ProguardConfigurationRule;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.FileUtils;
+import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.ThrowingBiConsumer;
 import com.android.tools.r8.utils.ThrowingConsumer;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
@@ -98,7 +99,12 @@ public class R8TestCompileResult extends TestCompileResult<R8TestCompileResult, 
 
   @Override
   public CodeInspector inspector() throws IOException {
-    return new CodeInspector(app, proguardMap);
+    return inspector(null);
+  }
+
+  public CodeInspector inspector(Consumer<InternalOptions> debugOptionsConsumer)
+      throws IOException {
+    return new CodeInspector(app, proguardMap, debugOptionsConsumer);
   }
 
   private CodeInspector featureInspector(Path feature) throws IOException {

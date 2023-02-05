@@ -388,6 +388,11 @@ public class FoundClassSubject extends ClassSubject {
   }
 
   @Override
+  public TypeSubject getSuperType() {
+    return new TypeSubject(codeInspector, dexClass.getSuperType());
+  }
+
+  @Override
   public String getOriginalName() {
     if (getNaming() != null) {
       return getNaming().originalName;

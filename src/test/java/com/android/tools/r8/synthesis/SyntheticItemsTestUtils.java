@@ -13,6 +13,7 @@ import static com.android.tools.r8.ir.desugar.nest.NestBasedAccessDesugaring.NES
 import static com.android.tools.r8.synthesis.SyntheticNaming.EXTERNAL_SYNTHETIC_CLASS_SEPARATOR;
 import static org.hamcrest.CoreMatchers.containsString;
 
+import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.ir.desugar.invokespecial.InvokeSpecialToSelfDesugaring;
 import com.android.tools.r8.ir.desugar.itf.InterfaceDesugaringForTesting;
 import com.android.tools.r8.references.ClassReference;
@@ -130,6 +131,14 @@ public class SyntheticItemsTestUtils {
     return syntheticClass(classReference, naming.BACKPORT_WITH_FORWARDING, id);
   }
 
+  public static ClassReference syntheticRecordTagClass() {
+    return Reference.classFromDescriptor(DexItemFactory.recordTagDescriptorString);
+  }
+
+  public static ClassReference syntheticRecordHelperClass(ClassReference reference, int id) {
+    return syntheticClass(reference, naming.RECORD_HELPER, id);
+  }
+
   public static ClassReference syntheticTwrCloseResourceClass(Class<?> clazz, int id) {
     return syntheticClass(clazz, naming.TWR_CLOSE_RESOURCE, id);
   }
@@ -155,10 +164,13 @@ public class SyntheticItemsTestUtils {
   }
 
   public static MethodReference syntheticNestInstanceFieldGetter(Field field) {
-    FieldReference fieldReference = Reference.fieldFromField(field);
+    return syntheticNestInstanceFieldGetter(Reference.fieldFromField(field));
+  }
+
+  public static MethodReference syntheticNestInstanceFieldGetter(FieldReference fieldReference) {
     return Reference.method(
         fieldReference.getHolderClass(),
-        NEST_ACCESS_FIELD_GET_NAME_PREFIX + field.getName(),
+        NEST_ACCESS_FIELD_GET_NAME_PREFIX + fieldReference.getFieldName(),
         Collections.emptyList(),
         fieldReference.getFieldType());
   }

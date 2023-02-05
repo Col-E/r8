@@ -94,6 +94,17 @@ public class TestParameters {
     return false;
   }
 
+  public boolean canUseRecords() {
+    assert isCfRuntime() || isDexRuntime();
+    return isCfRuntime() && asCfRuntime().isNewerThanOrEqual(CfVm.JDK14);
+  }
+
+  public boolean canUseRecordsWhenDesugaring() {
+    assert isCfRuntime() || isDexRuntime();
+    assert apiLevel != null;
+    return false;
+  }
+
   // Convenience predicates.
   public boolean isDexRuntime() {
     return runtime.isDex();
@@ -179,6 +190,15 @@ public class TestParameters {
 
   public TestParameters assumeDexRuntime() {
     assumeTrue(isDexRuntime());
+    return this;
+  }
+
+  public TestParameters assumeJvmTestParameters() {
+    assertFalse(
+        "No need to use assumeR8TestParameters() when not using api levels for CF",
+        apiLevel == null);
+    assumeCfRuntime();
+    assumeTrue(representativeApiLevelForRuntime);
     return this;
   }
 
