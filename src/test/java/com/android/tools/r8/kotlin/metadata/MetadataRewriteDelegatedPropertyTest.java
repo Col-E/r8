@@ -122,19 +122,24 @@ public class MetadataRewriteDelegatedPropertyTest extends KotlinMetadataTestBase
             .addProgramFiles(libJars.getForConfiguration(kotlinc, targetVersion))
             .compile()
             .writeToZip();
+    Path outputPath = temp.newFolder().toPath();
     ProcessResult compileResult =
         kotlinc(parameters.getRuntime().asCf(), kotlinc, targetVersion)
             .addClasspathFiles(outputJar)
             .addSourceFiles(
                 getKotlinFileInTest(DescriptorUtils.getBinaryNameFromJavaType(PKG_APP), "main"))
-            .setOutputPath(temp.newFolder().toPath())
+            .setOutputPath(outputPath)
             .compileRaw();
-    Assert.assertEquals(1, compileResult.exitCode);
     if (kotlinParameters.isNewerThan(KOTLINC_1_8_0)) {
-      assertThat(
-          compileResult.stderr,
-          containsString("the feature \"references to synthetic java properties\""));
+      testForJvm()
+          .addRunClasspathFiles(
+              kotlinc.getKotlinStdlibJar(), kotlinc.getKotlinReflectJar(), outputJar)
+          .addClasspath(outputPath)
+          .run(parameters.getRuntime(), PKG_APP + ".MainKt")
+          .assertSuccessWithOutputLines(
+              "foobar", "property oldName (Kotlin reflection is not available)");
     } else {
+      Assert.assertEquals(1, compileResult.exitCode);
       assertThat(
           compileResult.stderr,
           containsString(

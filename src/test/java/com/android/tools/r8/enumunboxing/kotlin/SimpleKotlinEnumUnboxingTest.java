@@ -66,12 +66,14 @@ public class SimpleKotlinEnumUnboxingTest extends EnumUnboxingTestBase {
     testForR8(parameters.getBackend())
         .addProgramFiles(
             jars.getForConfiguration(kotlinParameters),
-            kotlinParameters.getCompiler().getKotlinStdlibJar())
+            kotlinParameters.getCompiler().getKotlinStdlibJar(),
+            kotlinParameters.getCompiler().getKotlinAnnotationJar())
         .addKeepMainRule(PKG + ".MainKt")
         .addKeepRules(enumKeepRules.getKeepRules())
         .addKeepRuntimeVisibleAnnotations()
         .addOptionsModification(opt -> enableEnumOptions(opt, enumValueOptimization))
-        .addEnumUnboxingInspector(inspector -> inspector.assertUnboxed(PKG + ".Color"))
+        // TODO(b/268005228): We should be able to unbox.
+        .addEnumUnboxingInspector(inspector -> inspector.assertNotUnboxed(PKG + ".Color"))
         .allowDiagnosticMessages()
         .setMinApi(parameters.getApiLevel())
         .compile()

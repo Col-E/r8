@@ -61,6 +61,10 @@ public class KotlinEnumSwitchTest extends KotlinTestBase {
             })
         .setMinApi(parameters.getApiLevel())
         .addDontObfuscate()
+        // This will probably start failing when the CL
+        // https://github.com/JetBrains/kotlin/commit/79f6d4b590573e6adccd7e8899d3b15ddb42d185
+        // is propagated to the build for kotlin-reflect.
+        .applyIf(parameters.isDexRuntime(), b -> b.addDontWarn("java.lang.ClassValue"))
         .allowDiagnosticWarningMessages()
         .compile()
         .assertAllWarningMessagesMatch(equalTo("Resource 'META-INF/MANIFEST.MF' already exists."))
