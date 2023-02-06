@@ -807,15 +807,7 @@ final class ClassProcessor {
     }
     for (Wrapper<DexMethod> wrapper : signatures.signatures) {
       resolveForwardForSignature(
-          clazz,
-          wrapper.get(),
-          (target, forward) -> {
-            if (isLiveMethod(target) && !superInfo.isTargetedByForwards(target)) {
-              additionalForwards.add(target);
-              addForwardingMethod(target, forward, clazz);
-            }
-          },
-          eventConsumer);
+          clazz, superInfo, additionalForwards, wrapper.get(), eventConsumer);
     }
   }
 
@@ -823,8 +815,9 @@ final class ClassProcessor {
   // the 'addForward' call-back is called with the target of the forward.
   private void resolveForwardForSignature(
       DexClass clazz,
+      ClassInfo superInfo,
+      Builder<DexClassAndMethod> additionalForwards,
       DexMethod method,
-      BiConsumer<DexClassAndMethod, DexMethod> addForward,
       InterfaceProcessingDesugaringEventConsumer eventConsumer) {
     AppInfoWithClassHierarchy appInfo = appView.appInfoForDesugaring();
     MethodResolutionResult resolutionResult = appInfo.resolveMethodOnLegacy(clazz, method);
@@ -891,23 +884,30 @@ final class ClassProcessor {
     DexClassAndMethod virtualDispatchTarget = lookupMethodTarget.getTarget();
     assert virtualDispatchTarget != null;
 
-    // If resolution targets a default interface method, forward it.
-    if (virtualDispatchTarget.isDefaultMethod()) {
-      addForward.accept(
-          virtualDispatchTarget,
-          helper
-              .ensureDefaultAsMethodOfCompanionClassStub(virtualDispatchTarget, eventConsumer)
-              .getReference());
+    if (!isLiveMethod(virtualDispatchTarget)
+        || superInfo.isTargetedByForwards(virtualDispatchTarget)) {
       return;
     }
 
-    DerivedMethod forwardingMethod =
-        helper.computeEmulatedInterfaceForwardingMethod(
-            virtualDispatchTarget.getHolder(), virtualDispatchTarget);
-    if (forwardingMethod != null) {
-      DexMethod concreteForwardingMethod =
-          helper.ensureEmulatedInterfaceForwardingMethod(forwardingMethod, eventConsumer);
-      addForward.accept(virtualDispatchTarget, concreteForwardingMethod);
+    // If resolution targets a default interface method, forward it.
+    DexMethod forward = null;
+    if (virtualDispatchTarget.isDefaultMethod()) {
+      forward =
+          helper
+              .ensureDefaultAsMethodOfCompanionClassStub(virtualDispatchTarget, eventConsumer)
+              .getReference();
+    } else {
+      DerivedMethod forwardingMethod =
+          helper.computeEmulatedInterfaceForwardingMethod(
+              virtualDispatchTarget.getHolder(), virtualDispatchTarget);
+      if (forwardingMethod != null) {
+        forward = helper.ensureEmulatedInterfaceForwardingMethod(forwardingMethod, eventConsumer);
+      }
+    }
+
+    if (forward != null) {
+      additionalForwards.add(virtualDispatchTarget);
+      addForwardingMethod(virtualDispatchTarget, forward, clazz);
     }
   }
 
