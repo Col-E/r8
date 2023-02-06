@@ -26,6 +26,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
+import java.util.function.Predicate;
 
 public class DesugaredLibraryAPICallbackSynthesizer implements CfPostProcessingDesugaring {
 
@@ -35,9 +36,13 @@ public class DesugaredLibraryAPICallbackSynthesizer implements CfPostProcessingD
   private final DesugaredLibraryWrapperSynthesizer wrapperSynthesizor;
   private final Set<DexMethod> trackedCallBackAPIs;
 
-  public DesugaredLibraryAPICallbackSynthesizer(AppView<?> appView) {
+  private final Predicate<ProgramMethod> isLiveMethod;
+
+  public DesugaredLibraryAPICallbackSynthesizer(
+      AppView<?> appView, Predicate<ProgramMethod> isLiveMethod) {
     this.appView = appView;
     this.factory = appView.dexItemFactory();
+    this.isLiveMethod = isLiveMethod;
     this.wrapperSynthesizor = new DesugaredLibraryWrapperSynthesizer(appView);
     if (appView.options().testing.trackDesugaredAPIConversions) {
       trackedCallBackAPIs = Sets.newConcurrentHashSet();
@@ -61,7 +66,8 @@ public class DesugaredLibraryAPICallbackSynthesizer implements CfPostProcessingD
         // We note that methods requiring callbacks are library overrides, therefore, they should
         // always be live in R8.
         for (ProgramMethod virtualProgramMethod : clazz.virtualProgramMethods()) {
-          if (shouldRegisterCallback(virtualProgramMethod)) {
+          if (isLiveMethod.test(virtualProgramMethod)
+              && shouldRegisterCallback(virtualProgramMethod)) {
             if (trackedCallBackAPIs != null) {
               trackedCallBackAPIs.add(virtualProgramMethod.getReference());
             }

@@ -445,9 +445,8 @@ public class IRConverter {
     InterfaceMethodProcessorFacade interfaceDesugaring =
         instructionDesugaring.getInterfaceMethodPostProcessingDesugaringD8(
             ExcludeDexResources, interfaceProcessor);
-    CfPostProcessingDesugaringCollection.create(appView, interfaceDesugaring)
-        .postProcessingDesugaring(
-            appView.appInfo().classes(), m -> true, eventConsumer, executorService);
+    CfPostProcessingDesugaringCollection.create(appView, interfaceDesugaring, m -> true)
+        .postProcessingDesugaring(appView.appInfo().classes(), eventConsumer, executorService);
     methodProcessor.awaitMethodProcessing();
     eventConsumer.finalizeDesugaring();
     artProfileCollectionAdditions.commit(appView);

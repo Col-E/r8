@@ -21,10 +21,12 @@ import java.util.function.Predicate;
 public abstract class CfPostProcessingDesugaringCollection {
 
   public static CfPostProcessingDesugaringCollection create(
-      AppView<?> appView, InterfaceMethodProcessorFacade interfaceMethodProcessorFacade) {
+      AppView<?> appView,
+      InterfaceMethodProcessorFacade interfaceMethodProcessorFacade,
+      Predicate<ProgramMethod> isLiveMethod) {
     if (appView.options().desugarState.isOn()) {
       return NonEmptyCfPostProcessingDesugaringCollection.create(
-          appView, interfaceMethodProcessorFacade);
+          appView, interfaceMethodProcessorFacade, isLiveMethod);
     }
     return empty();
   }
@@ -35,7 +37,6 @@ public abstract class CfPostProcessingDesugaringCollection {
 
   public abstract void postProcessingDesugaring(
       Collection<DexProgramClass> programClasses,
-      Predicate<ProgramMethod> isLiveMethod,
       CfPostProcessingDesugaringEventConsumer eventConsumer,
       ExecutorService executorService)
       throws ExecutionException;
@@ -51,7 +52,9 @@ public abstract class CfPostProcessingDesugaringCollection {
     }
 
     public static CfPostProcessingDesugaringCollection create(
-        AppView<?> appView, InterfaceMethodProcessorFacade interfaceMethodProcessorFacade) {
+        AppView<?> appView,
+        InterfaceMethodProcessorFacade interfaceMethodProcessorFacade,
+        Predicate<ProgramMethod> isLiveMethod) {
       ArrayList<CfPostProcessingDesugaring> desugarings = new ArrayList<>();
       if (appView.options().machineDesugaredLibrarySpecification.hasRetargeting()
           && !appView.options().isDesugaredLibraryCompilation()) {
@@ -62,7 +65,7 @@ public abstract class CfPostProcessingDesugaringCollection {
       }
       DesugaredLibraryAPICallbackSynthesizer apiCallbackSynthesizor =
           appView.typeRewriter.isRewriting()
-              ? new DesugaredLibraryAPICallbackSynthesizer(appView)
+              ? new DesugaredLibraryAPICallbackSynthesizer(appView, isLiveMethod)
               : null;
       // At this point the desugaredLibraryAPIConverter is required to be last to generate
       // call-backs on the forwarding methods.
@@ -87,7 +90,6 @@ public abstract class CfPostProcessingDesugaringCollection {
     @Override
     public void postProcessingDesugaring(
         Collection<DexProgramClass> programClasses,
-        Predicate<ProgramMethod> isLiveMethod,
         CfPostProcessingDesugaringEventConsumer eventConsumer,
         ExecutorService executorService)
         throws ExecutionException {
@@ -112,7 +114,6 @@ public abstract class CfPostProcessingDesugaringCollection {
     @Override
     public void postProcessingDesugaring(
         Collection<DexProgramClass> programClasses,
-        Predicate<ProgramMethod> isLiveMethod,
         CfPostProcessingDesugaringEventConsumer eventConsumer,
         ExecutorService executorService)
         throws ExecutionException {
