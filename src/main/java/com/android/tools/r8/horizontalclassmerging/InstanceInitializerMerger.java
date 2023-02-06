@@ -27,6 +27,7 @@ import com.android.tools.r8.ir.conversion.ExtraUnusedNullParameter;
 import com.android.tools.r8.profile.art.rewriting.ArtProfileCollectionAdditions;
 import com.android.tools.r8.utils.ArrayUtils;
 import com.android.tools.r8.utils.BooleanUtils;
+import com.android.tools.r8.utils.Box;
 import com.android.tools.r8.utils.ListUtils;
 import com.android.tools.r8.utils.SetUtils;
 import com.android.tools.r8.utils.structural.Ordered;
@@ -312,11 +313,23 @@ public class InstanceInitializerMerger {
     DexMethod newMethodReferenceTemplate = getNewMethodReference(representative, needsClassId);
     assert mode.isInitial() || classMethodsBuilder.isFresh(newMethodReferenceTemplate);
 
+    Box<Set<DexType>> usedSyntheticArgumentClasses = new Box<>();
     DexMethod newMethodReference =
         dexItemFactory.createInstanceInitializerWithFreshProto(
             newMethodReferenceTemplate,
             mode.isInitial() ? syntheticArgumentClass.getArgumentClasses() : ImmutableList.of(),
-            classMethodsBuilder::isFresh);
+            classMethodsBuilder::isFresh,
+            usedSyntheticArgumentClasses::set);
+
+    // Amend the art profile collection.
+    if (usedSyntheticArgumentClasses.isSet()) {
+      for (ProgramMethod instanceInitializer : instanceInitializers) {
+        artProfileCollectionAdditions.applyIfContextIsInProfile(
+            instanceInitializer.getReference(),
+            additionsBuilder ->
+                usedSyntheticArgumentClasses.get().forEach(additionsBuilder::addRule));
+      }
+    }
 
     // Compute the extra unused null parameters.
     List<ExtraUnusedNullParameter> extraUnusedNullParameters =

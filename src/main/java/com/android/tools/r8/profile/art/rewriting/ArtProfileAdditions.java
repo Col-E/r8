@@ -171,8 +171,8 @@ public class ArtProfileAdditions {
 
   ArtProfileAdditions rewriteMethodReferences(Function<DexMethod, DexMethod> methodFn) {
     ArtProfileAdditions rewrittenAdditions = new ArtProfileAdditions(artProfile);
-    assert classRuleAdditions.isEmpty();
     assert methodRuleRemovals.isEmpty();
+    rewrittenAdditions.classRuleAdditions.putAll(classRuleAdditions);
     methodRuleAdditions.forEach(
         (method, methodRuleBuilder) -> {
           DexMethod newMethod = methodFn.apply(method);

@@ -331,7 +331,7 @@ public class VirtualMethodMerger {
       for (ProgramMethod oldMethod : methods) {
         artProfileCollectionAdditions.applyIfContextIsInProfile(
             oldMethod.getReference(),
-            additionsBuilder -> additionsBuilder.addRule(newMethodReference));
+            additionsBuilder -> additionsBuilder.addRule(representativeMethod.getReference()));
       }
     }
 

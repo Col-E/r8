@@ -6,6 +6,7 @@ package com.android.tools.r8.graph;
 import static com.android.tools.r8.horizontalclassmerging.ClassMerger.CLASS_ID_FIELD_NAME;
 import static com.android.tools.r8.ir.analysis.type.ClassTypeElement.computeLeastUpperBoundOfInterfaces;
 import static com.android.tools.r8.ir.desugar.LambdaClass.LAMBDA_INSTANCE_FIELD_NAME;
+import static com.android.tools.r8.utils.ConsumerUtils.emptyConsumer;
 
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.dex.Marker;
@@ -35,17 +36,17 @@ import com.android.tools.r8.references.FieldReference;
 import com.android.tools.r8.references.MethodReference;
 import com.android.tools.r8.synthesis.SyntheticNaming;
 import com.android.tools.r8.utils.ArrayUtils;
+import com.android.tools.r8.utils.DequeUtils;
 import com.android.tools.r8.utils.DescriptorUtils;
-import com.android.tools.r8.utils.IterableUtils;
 import com.android.tools.r8.utils.LRUCacheTable;
 import com.android.tools.r8.utils.ListUtils;
+import com.android.tools.r8.utils.SetUtils;
 import com.google.common.base.Strings;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceArrayMap;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceMap;
@@ -53,20 +54,20 @@ import it.unimi.dsi.fastutil.ints.Int2ReferenceOpenHashMap;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
+import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.IdentityHashMap;
-import java.util.Iterator;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Queue;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 public class DexItemFactory {
@@ -2640,12 +2641,21 @@ public class DexItemFactory {
   }
 
   public DexMethod createInstanceInitializerWithFreshProto(
-      DexMethod method, List<DexType> extraTypes, Predicate<DexMethod> isFresh) {
+      DexMethod method, List<Supplier<DexType>> extraTypes, Predicate<DexMethod> isFresh) {
+    return createInstanceInitializerWithFreshProto(method, extraTypes, isFresh, emptyConsumer());
+  }
+
+  public DexMethod createInstanceInitializerWithFreshProto(
+      DexMethod method,
+      List<Supplier<DexType>> extraTypes,
+      Predicate<DexMethod> isFresh,
+      Consumer<Set<DexType>> usedExtraTypesConsumer) {
     assert method.isInstanceInitializer(this);
     return createInstanceInitializerWithFreshProto(
         method.proto,
         extraTypes,
-        proto -> Optional.of(method.withProto(proto, this)).filter(isFresh));
+        proto -> Optional.of(method.withProto(proto, this)).filter(isFresh),
+        usedExtraTypesConsumer);
   }
 
   public DexMethod createInstanceInitializerWithFreshProto(
@@ -2653,31 +2663,64 @@ public class DexItemFactory {
     assert method.isInstanceInitializer(this);
     return createInstanceInitializerWithFreshProto(
         method.proto,
-        ImmutableList.of(extraType),
-        proto -> Optional.of(method.withProto(proto, this)).filter(isFresh));
+        ImmutableList.of(() -> extraType),
+        proto -> Optional.of(method.withProto(proto, this)).filter(isFresh),
+        emptyConsumer());
+  }
+
+  private class FreshInstanceInitializerCandidate {
+
+    DexProto protoWithoutExtraType;
+    Supplier<DexType> extraTypeSupplier;
+    Set<DexType> usedExtraTypes;
+
+    FreshInstanceInitializerCandidate(
+        DexProto protoWithoutExtraType,
+        Supplier<DexType> extraTypeSupplier,
+        Set<DexType> usedExtraTypes) {
+      this.protoWithoutExtraType = protoWithoutExtraType;
+      this.extraTypeSupplier = extraTypeSupplier;
+      this.usedExtraTypes = SetUtils.newIdentityHashSet(usedExtraTypes);
+    }
+
+    DexProto createProto() {
+      DexType extraType = extraTypeSupplier.get();
+      usedExtraTypes.add(extraType);
+      return appendTypeToProto(protoWithoutExtraType, extraType);
+    }
   }
 
   private DexMethod createInstanceInitializerWithFreshProto(
-      DexProto proto, List<DexType> extraTypes, Function<DexProto, Optional<DexMethod>> isFresh) {
-    Queue<Iterable<DexProto>> tryProtos = new LinkedList<>();
-    Iterator<DexProto> current = IterableUtils.singleton(proto).iterator();
-
+      DexProto proto,
+      List<Supplier<DexType>> extraTypes,
+      Function<DexProto, Optional<DexMethod>> isFresh,
+      Consumer<Set<DexType>> usedExtraTypesConsumer) {
+    Optional<DexMethod> resultWithNoExtraTypes = isFresh.apply(proto);
+    if (resultWithNoExtraTypes.isPresent()) {
+      return resultWithNoExtraTypes.get();
+    }
+    assert !extraTypes.isEmpty();
+    Deque<FreshInstanceInitializerCandidate> worklist =
+        DequeUtils.newArrayDeque(
+            new FreshInstanceInitializerCandidate(
+                proto, extraTypes.iterator().next(), Collections.emptySet()));
     int count = 0;
     while (true) {
       assert count++ < 100;
-      if (!current.hasNext()) {
-        assert !tryProtos.isEmpty();
-        current = tryProtos.remove().iterator();
-        assert current.hasNext();
-      }
-      DexProto tryProto = current.next();
+      assert !worklist.isEmpty();
+      FreshInstanceInitializerCandidate candidate = worklist.removeFirst();
+      DexProto tryProto = candidate.createProto();
       Optional<DexMethod> object = isFresh.apply(tryProto);
       if (object.isPresent()) {
+        assert !candidate.usedExtraTypes.isEmpty();
+        usedExtraTypesConsumer.accept(candidate.usedExtraTypes);
         return object.get();
       }
-      assert !extraTypes.isEmpty();
-      tryProtos.add(
-          Iterables.transform(extraTypes, extraType -> appendTypeToProto(tryProto, extraType)));
+      for (Supplier<DexType> extraTypeSupplier : extraTypes) {
+        worklist.addLast(
+            new FreshInstanceInitializerCandidate(
+                tryProto, extraTypeSupplier, candidate.usedExtraTypes));
+      }
     }
   }
 
