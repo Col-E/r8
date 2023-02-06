@@ -576,7 +576,11 @@ public final class LambdaClass {
       return callTarget;
     }
 
-    boolean isInterface() {
+    public Type getInvokeType() {
+      return invokeType;
+    }
+
+    public boolean isInterface() {
       return isInterface;
     }
   }

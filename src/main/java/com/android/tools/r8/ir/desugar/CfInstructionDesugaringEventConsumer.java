@@ -75,7 +75,7 @@ public abstract class CfInstructionDesugaringEventConsumer
         new D8CfInstructionDesugaringEventConsumer(
             appView, classConverterResultBuilder, methodProcessor);
     return ArtProfileRewritingCfInstructionDesugaringEventConsumer.attach(
-        artProfileCollectionAdditions, eventConsumer);
+        appView, artProfileCollectionAdditions, eventConsumer);
   }
 
   public static CfInstructionDesugaringEventConsumer createForR8(
@@ -95,7 +95,7 @@ public abstract class CfInstructionDesugaringEventConsumer
             additions,
             companionMethodConsumer);
     return ArtProfileRewritingCfInstructionDesugaringEventConsumer.attach(
-        artProfileCollectionAdditions, eventConsumer);
+        appView, artProfileCollectionAdditions, eventConsumer);
   }
 
   public abstract List<ProgramMethod> finalizeDesugaring();

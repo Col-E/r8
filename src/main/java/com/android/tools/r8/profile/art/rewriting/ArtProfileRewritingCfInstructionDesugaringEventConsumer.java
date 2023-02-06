@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.profile.art.rewriting;
 
+import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.DexClasspathClass;
 import com.android.tools.r8.graph.DexProgramClass;
@@ -11,6 +12,7 @@ import com.android.tools.r8.graph.ProgramField;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.desugar.CfInstructionDesugaringEventConsumer;
 import com.android.tools.r8.ir.desugar.LambdaClass;
+import com.android.tools.r8.ir.desugar.LambdaClass.Target;
 import com.android.tools.r8.ir.desugar.constantdynamic.ConstantDynamicClass;
 import com.android.tools.r8.ir.desugar.invokespecial.InvokeSpecialBridgeInfo;
 import java.util.List;
@@ -18,24 +20,28 @@ import java.util.List;
 public class ArtProfileRewritingCfInstructionDesugaringEventConsumer
     extends CfInstructionDesugaringEventConsumer {
 
+  private final AppView<?> appView;
   private final ConcreteArtProfileCollectionAdditions additionsCollection;
   private final CfInstructionDesugaringEventConsumer parent;
 
   private ArtProfileRewritingCfInstructionDesugaringEventConsumer(
+      AppView<?> appView,
       ConcreteArtProfileCollectionAdditions additionsCollection,
       CfInstructionDesugaringEventConsumer parent) {
+    this.appView = appView;
     this.additionsCollection = additionsCollection;
     this.parent = parent;
   }
 
   public static CfInstructionDesugaringEventConsumer attach(
+      AppView<?> appView,
       ArtProfileCollectionAdditions artProfileCollectionAdditions,
       CfInstructionDesugaringEventConsumer eventConsumer) {
     if (artProfileCollectionAdditions.isNop()) {
       return eventConsumer;
     }
     return new ArtProfileRewritingCfInstructionDesugaringEventConsumer(
-        artProfileCollectionAdditions.asConcrete(), eventConsumer);
+        appView, artProfileCollectionAdditions.asConcrete(), eventConsumer);
   }
 
   @Override
@@ -123,7 +129,7 @@ public class ArtProfileRewritingCfInstructionDesugaringEventConsumer
   @Override
   public void acceptLambdaClass(LambdaClass lambdaClass, ProgramMethod context) {
     addLambdaClassAndInstanceInitializersIfSynthesizingContextIsInProfile(lambdaClass, context);
-    addLambdaVirtualMethodsIfLambdaImplementationIsInProfile(lambdaClass);
+    addLambdaVirtualMethodsIfLambdaImplementationIsInProfile(lambdaClass, context);
     parent.acceptLambdaClass(lambdaClass, context);
   }
 
@@ -141,18 +147,58 @@ public class ArtProfileRewritingCfInstructionDesugaringEventConsumer
         });
   }
 
-  private void addLambdaVirtualMethodsIfLambdaImplementationIsInProfile(LambdaClass lambdaClass) {
-    additionsCollection.applyIfContextIsInProfile(
-        lambdaClass.getTarget().getImplementationMethod(),
-        additionsBuilder -> {
-          lambdaClass
-              .getLambdaProgramClass()
-              .forEachProgramVirtualMethod(additionsBuilder::addRule);
-          if (lambdaClass.getTarget().getCallTarget()
-              != lambdaClass.getTarget().getImplementationMethod()) {
-            additionsBuilder.addRule(lambdaClass.getTarget().getCallTarget());
-          }
-        });
+  private void addLambdaVirtualMethodsIfLambdaImplementationIsInProfile(
+      LambdaClass lambdaClass, ProgramMethod context) {
+    if (shouldConservativelyAddLambdaVirtualMethodsIfLambdaInstantiated(lambdaClass, context)) {
+      additionsCollection.applyIfContextIsInProfile(
+          context,
+          additionsBuilder ->
+              lambdaClass
+                  .getLambdaProgramClass()
+                  .forEachProgramVirtualMethod(additionsBuilder::addRule));
+    } else {
+      Target target = lambdaClass.getTarget();
+      additionsCollection.applyIfContextIsInProfile(
+          target.getImplementationMethod(),
+          additionsBuilder -> {
+            lambdaClass
+                .getLambdaProgramClass()
+                .forEachProgramVirtualMethod(additionsBuilder::addRule);
+            if (target.getCallTarget() != target.getImplementationMethod()) {
+              additionsBuilder.addRule(target.getCallTarget());
+            }
+          });
+    }
+  }
+
+  private boolean shouldConservativelyAddLambdaVirtualMethodsIfLambdaInstantiated(
+      LambdaClass lambdaClass, ProgramMethod context) {
+    Target target = lambdaClass.getTarget();
+    if (target.getInvokeType().isInterface() || target.getInvokeType().isVirtual()) {
+      return true;
+    }
+    if (target.getImplementationMethod().getHolderType() == context.getHolderType()) {
+      // Direct call to the same class. Only add virtual methods if the callee is in the profile.
+      return false;
+    }
+    if (appView.hasClassHierarchy()) {
+      DexClassAndMethod resolutionResult =
+          appView
+              .appInfoWithClassHierarchy()
+              .resolveMethod(target.getImplementationMethod(), target.isInterface())
+              .getResolutionPair();
+      if (resolutionResult == null || resolutionResult.isProgramMethod()) {
+        // Direct call to other method in the app. Only add virtual methods if the callee is in the
+        // profile.
+        return false;
+      }
+      // The profile does not contain non-program items. Conservatively treat the call target as
+      // being executed.
+      return true;
+    } else {
+      // Should not lookup definitions outside the current context.
+      return true;
+    }
   }
 
   @Override
