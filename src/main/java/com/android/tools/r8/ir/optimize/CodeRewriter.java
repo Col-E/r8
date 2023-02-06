@@ -1496,7 +1496,7 @@ public class CodeRewriter {
       // Replace the check-cast instruction by throwClassCastExceptionIfNotNull().
       UtilityMethodForCodeOptimizations throwClassCastExceptionIfNotNullMethod =
           UtilityMethodsForCodeOptimizations.synthesizeThrowClassCastExceptionIfNotNullMethod(
-              appView, methodProcessingContext);
+              appView, methodProcessor.getEventConsumer(), methodProcessingContext);
       throwClassCastExceptionIfNotNullMethod.optimize(methodProcessor);
       InvokeStatic replacement =
           InvokeStatic.builder()

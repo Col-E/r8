@@ -4,10 +4,10 @@
 package com.android.tools.r8.ir.desugar.constantdynamic;
 
 import com.android.tools.r8.graph.ProgramMethod;
+import com.android.tools.r8.ir.optimize.UtilityMethodsForCodeOptimizationsEventConsumer;
 
-public interface ConstantDynamicDesugaringEventConsumer {
+public interface ConstantDynamicDesugaringEventConsumer
+    extends UtilityMethodsForCodeOptimizationsEventConsumer {
 
   void acceptConstantDynamicClass(ConstantDynamicClass lambdaClass, ProgramMethod context);
-
-  void acceptThrowMethod(ProgramMethod method, ProgramMethod context);
 }

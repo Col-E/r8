@@ -26,6 +26,7 @@ import java.util.concurrent.Future;
 public class D8MethodProcessor extends MethodProcessor {
 
   private final IRConverter converter;
+  private final MethodProcessorEventConsumer eventConsumer;
   private final ExecutorService executorService;
   private final Set<DexType> scheduled = Sets.newIdentityHashSet();
 
@@ -41,8 +42,12 @@ public class D8MethodProcessor extends MethodProcessor {
 
   private ProcessorContext processorContext;
 
-  public D8MethodProcessor(IRConverter converter, ExecutorService executorService) {
+  public D8MethodProcessor(
+      IRConverter converter,
+      MethodProcessorEventConsumer eventConsumer,
+      ExecutorService executorService) {
     this.converter = converter;
+    this.eventConsumer = eventConsumer;
     this.executorService = executorService;
     this.processorContext = converter.appView.createProcessorContext();
   }
@@ -59,6 +64,11 @@ public class D8MethodProcessor extends MethodProcessor {
   @Override
   public MethodProcessingContext createMethodProcessingContext(ProgramMethod method) {
     return processorContext.createMethodProcessingContext(method);
+  }
+
+  @Override
+  public MethodProcessorEventConsumer getEventConsumer() {
+    return eventConsumer;
   }
 
   @Override

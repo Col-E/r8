@@ -266,7 +266,41 @@ public abstract class CfInstructionDesugaringEventConsumer
     }
 
     @Override
-    public void acceptThrowMethod(ProgramMethod method, ProgramMethod context) {
+    public void acceptUtilityToStringIfNotNullMethod(ProgramMethod method, ProgramMethod context) {
+      acceptUtilityMethod(method, context);
+    }
+
+    @Override
+    public void acceptUtilityThrowClassCastExceptionIfNotNullMethod(
+        ProgramMethod method, ProgramMethod context) {
+      acceptUtilityMethod(method, context);
+    }
+
+    @Override
+    public void acceptUtilityThrowIllegalAccessErrorMethod(
+        ProgramMethod method, ProgramMethod context) {
+      acceptUtilityMethod(method, context);
+    }
+
+    @Override
+    public void acceptUtilityThrowIncompatibleClassChangeErrorMethod(
+        ProgramMethod method, ProgramMethod context) {
+      acceptUtilityMethod(method, context);
+    }
+
+    @Override
+    public void acceptUtilityThrowNoSuchMethodErrorMethod(
+        ProgramMethod method, ProgramMethod context) {
+      acceptUtilityMethod(method, context);
+    }
+
+    @Override
+    public void acceptUtilityThrowRuntimeExceptionWithMessageMethod(
+        ProgramMethod method, ProgramMethod context) {
+      acceptUtilityMethod(method, context);
+    }
+
+    private void acceptUtilityMethod(ProgramMethod method, ProgramMethod context) {
       methodProcessor.scheduleDesugaredMethodForProcessing(method);
     }
 
@@ -485,7 +519,41 @@ public abstract class CfInstructionDesugaringEventConsumer
     }
 
     @Override
-    public void acceptThrowMethod(ProgramMethod method, ProgramMethod context) {
+    public void acceptUtilityToStringIfNotNullMethod(ProgramMethod method, ProgramMethod context) {
+      acceptUtilityMethod(method, context);
+    }
+
+    @Override
+    public void acceptUtilityThrowClassCastExceptionIfNotNullMethod(
+        ProgramMethod method, ProgramMethod context) {
+      acceptUtilityMethod(method, context);
+    }
+
+    @Override
+    public void acceptUtilityThrowIllegalAccessErrorMethod(
+        ProgramMethod method, ProgramMethod context) {
+      acceptUtilityMethod(method, context);
+    }
+
+    @Override
+    public void acceptUtilityThrowIncompatibleClassChangeErrorMethod(
+        ProgramMethod method, ProgramMethod context) {
+      acceptUtilityMethod(method, context);
+    }
+
+    @Override
+    public void acceptUtilityThrowNoSuchMethodErrorMethod(
+        ProgramMethod method, ProgramMethod context) {
+      acceptUtilityMethod(method, context);
+    }
+
+    @Override
+    public void acceptUtilityThrowRuntimeExceptionWithMessageMethod(
+        ProgramMethod method, ProgramMethod context) {
+      acceptUtilityMethod(method, context);
+    }
+
+    private void acceptUtilityMethod(ProgramMethod method, ProgramMethod context) {
       // Intentionally empty. The method will be hit by tracing if required.
     }
 

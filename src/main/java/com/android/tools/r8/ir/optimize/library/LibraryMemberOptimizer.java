@@ -154,9 +154,7 @@ public class LibraryMemberOptimizer implements CodeOptimization {
 
         LibraryMethodModelCollection.State optimizationState =
             optimizationStates.computeIfAbsent(
-                optimizer,
-                libraryMethodModelCollection ->
-                    libraryMethodModelCollection.createInitialState(methodProcessor));
+                optimizer, LibraryMethodModelCollection::createInitialState);
         optimizer.optimize(
             code,
             blockIterator,
@@ -166,6 +164,7 @@ public class LibraryMemberOptimizer implements CodeOptimization {
             affectedValues,
             blocksToRemove,
             optimizationState,
+            methodProcessor,
             methodProcessingContext);
       }
     }

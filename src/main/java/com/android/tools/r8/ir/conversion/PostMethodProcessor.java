@@ -36,11 +36,16 @@ import java.util.concurrent.ExecutorService;
 
 public class PostMethodProcessor extends MethodProcessorWithWave {
 
+  private final MethodProcessorEventConsumer eventConsumer;
   private final ProcessorContext processorContext;
   private final Deque<ProgramMethodSet> waves;
   private final ProgramMethodSet processed = ProgramMethodSet.create();
 
-  private PostMethodProcessor(AppView<AppInfoWithLiveness> appView, CallGraph callGraph) {
+  private PostMethodProcessor(
+      AppView<AppInfoWithLiveness> appView,
+      CallGraph callGraph,
+      MethodProcessorEventConsumer eventConsumer) {
+    this.eventConsumer = eventConsumer;
     this.processorContext = appView.createProcessorContext();
     this.waves = createWaves(callGraph);
   }
@@ -48,6 +53,11 @@ public class PostMethodProcessor extends MethodProcessorWithWave {
   @Override
   public MethodProcessingContext createMethodProcessingContext(ProgramMethod method) {
     return processorContext.createMethodProcessingContext(method);
+  }
+
+  @Override
+  public MethodProcessorEventConsumer getEventConsumer() {
+    return eventConsumer;
   }
 
   @Override
@@ -120,7 +130,10 @@ public class PostMethodProcessor extends MethodProcessorWithWave {
     }
 
     PostMethodProcessor build(
-        AppView<AppInfoWithLiveness> appView, ExecutorService executorService, Timing timing)
+        AppView<AppInfoWithLiveness> appView,
+        MethodProcessorEventConsumer eventConsumer,
+        ExecutorService executorService,
+        Timing timing)
         throws ExecutionException {
       Set<DexMethod> reprocessMethods = appView.appInfo().getReprocessMethods();
       if (!reprocessMethods.isEmpty()) {
@@ -142,7 +155,7 @@ public class PostMethodProcessor extends MethodProcessorWithWave {
       ProgramMethodSet methodsToReprocess = methodsToReprocessBuilder.build(appView);
       CallGraph callGraph =
           new PartialCallGraphBuilder(appView, methodsToReprocess).build(executorService, timing);
-      return new PostMethodProcessor(appView, callGraph);
+      return new PostMethodProcessor(appView, callGraph, eventConsumer);
     }
 
     public void dump(DeterminismChecker determinismChecker) throws IOException {

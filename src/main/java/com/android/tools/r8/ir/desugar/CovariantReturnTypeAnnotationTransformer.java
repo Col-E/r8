@@ -23,6 +23,7 @@ import com.android.tools.r8.graph.DexValue.DexValueType;
 import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.conversion.IRConverter;
+import com.android.tools.r8.ir.conversion.MethodProcessorEventConsumer;
 import com.android.tools.r8.ir.synthetic.ForwardMethodBuilder;
 import com.google.common.base.Predicates;
 import java.util.HashSet;
@@ -51,7 +52,9 @@ import java.util.Set;
 // several CovariantReturnType annotations. In this case, a new method is synthesized for each of
 // the contained CovariantReturnType annotations.
 public final class CovariantReturnTypeAnnotationTransformer {
+
   private final IRConverter converter;
+  private final MethodProcessorEventConsumer eventConsumer = MethodProcessorEventConsumer.empty();
   private final DexItemFactory factory;
 
   public CovariantReturnTypeAnnotationTransformer(IRConverter converter, DexItemFactory factory) {
@@ -180,7 +183,7 @@ public final class CovariantReturnTypeAnnotationTransformer {
             .build();
     // Optimize to generate DexCode instead of CfCode.
     ProgramMethod programMethod = new ProgramMethod(methodHolder, newVirtualMethod);
-    converter.optimizeSynthesizedMethod(programMethod);
+    converter.optimizeSynthesizedMethod(programMethod, eventConsumer);
     return newVirtualMethod;
   }
 

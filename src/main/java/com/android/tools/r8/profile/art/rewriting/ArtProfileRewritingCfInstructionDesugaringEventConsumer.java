@@ -309,16 +309,46 @@ public class ArtProfileRewritingCfInstructionDesugaringEventConsumer
   }
 
   @Override
-  public void acceptThrowMethod(ProgramMethod method, ProgramMethod context) {
-    parent.acceptThrowMethod(method, context);
-  }
-
-  @Override
   public void acceptTwrCloseResourceMethod(ProgramMethod closeMethod, ProgramMethod context) {
     additionsCollection.applyIfContextIsInProfile(
         context,
         additionsBuilder -> additionsBuilder.addRule(closeMethod).addRule(closeMethod.getHolder()));
     parent.acceptTwrCloseResourceMethod(closeMethod, context);
+  }
+
+  @Override
+  public void acceptUtilityToStringIfNotNullMethod(ProgramMethod method, ProgramMethod context) {
+    parent.acceptUtilityToStringIfNotNullMethod(method, context);
+  }
+
+  @Override
+  public void acceptUtilityThrowClassCastExceptionIfNotNullMethod(
+      ProgramMethod method, ProgramMethod context) {
+    parent.acceptUtilityThrowClassCastExceptionIfNotNullMethod(method, context);
+  }
+
+  @Override
+  public void acceptUtilityThrowIllegalAccessErrorMethod(
+      ProgramMethod method, ProgramMethod context) {
+    parent.acceptUtilityThrowIllegalAccessErrorMethod(method, context);
+  }
+
+  @Override
+  public void acceptUtilityThrowIncompatibleClassChangeErrorMethod(
+      ProgramMethod method, ProgramMethod context) {
+    parent.acceptUtilityThrowIncompatibleClassChangeErrorMethod(method, context);
+  }
+
+  @Override
+  public void acceptUtilityThrowNoSuchMethodErrorMethod(
+      ProgramMethod method, ProgramMethod context) {
+    parent.acceptUtilityThrowNoSuchMethodErrorMethod(method, context);
+  }
+
+  @Override
+  public void acceptUtilityThrowRuntimeExceptionWithMessageMethod(
+      ProgramMethod method, ProgramMethod context) {
+    parent.acceptUtilityThrowRuntimeExceptionWithMessageMethod(method, context);
   }
 
   @Override

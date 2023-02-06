@@ -162,9 +162,8 @@ public class AlwaysThrowingInstructionDesugaring implements CfInstructionDesugar
     //   pop exception result
     //   [push fake result for <method>]
     UtilityMethodForCodeOptimizations throwMethod =
-        methodSynthesizerConsumer.synthesizeMethod(appView, methodProcessingContext);
+        methodSynthesizerConsumer.synthesizeMethod(appView, eventConsumer, methodProcessingContext);
     ProgramMethod throwProgramMethod = throwMethod.uncheckedGetMethod();
-    eventConsumer.acceptThrowMethod(throwProgramMethod, context);
 
     ArrayList<CfInstruction> replacement = new ArrayList<>();
     DexTypeList parameters = invoke.getMethod().getParameters();

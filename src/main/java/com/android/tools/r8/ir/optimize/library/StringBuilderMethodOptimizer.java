@@ -58,8 +58,8 @@ public class StringBuilderMethodOptimizer implements LibraryMethodModelCollectio
   }
 
   @Override
-  public State createInitialState(MethodProcessor methodProcessor) {
-    return new State(methodProcessor);
+  public State createInitialState() {
+    return new State();
   }
 
   @Override
@@ -77,6 +77,7 @@ public class StringBuilderMethodOptimizer implements LibraryMethodModelCollectio
       Set<Value> affectedValues,
       Set<BasicBlock> blocksToRemove,
       State state,
+      MethodProcessor methodProcessor,
       MethodProcessingContext methodProcessingContext) {
     if (invoke.isInvokeMethodWithReceiver()) {
       InvokeMethodWithReceiver invokeWithReceiver = invoke.asInvokeMethodWithReceiver();
@@ -86,6 +87,7 @@ public class StringBuilderMethodOptimizer implements LibraryMethodModelCollectio
             invokeWithReceiver,
             singleTarget,
             state,
+            methodProcessor,
             methodProcessingContext);
       } else if (singleTarget.getReference() == dexItemFactory.stringBuilderMethods.toString) {
         optimizeToString(instructionIterator, invokeWithReceiver);
@@ -98,6 +100,7 @@ public class StringBuilderMethodOptimizer implements LibraryMethodModelCollectio
       InvokeMethodWithReceiver invoke,
       DexClassAndMethod singleTarget,
       State state,
+      MethodProcessor methodProcessor,
       MethodProcessingContext methodProcessingContext) {
     boolean isStringBuilderUnused = state.isUnusedBuilder(invoke.getReceiver());
     if (invoke.hasOutValue() && (options.isGeneratingDex() || isStringBuilderUnused)) {
@@ -107,7 +110,7 @@ public class StringBuilderMethodOptimizer implements LibraryMethodModelCollectio
     }
     if (isStringBuilderUnused) {
       optimizeAppendOnUnusedStringBuilder(
-          instructionIterator, invoke, singleTarget, state, methodProcessingContext);
+          instructionIterator, invoke, singleTarget, methodProcessor, methodProcessingContext);
     }
   }
 
@@ -115,7 +118,7 @@ public class StringBuilderMethodOptimizer implements LibraryMethodModelCollectio
       InstructionListIterator instructionIterator,
       InvokeMethodWithReceiver invoke,
       DexClassAndMethod singleTarget,
-      State state,
+      MethodProcessor methodProcessor,
       MethodProcessingContext methodProcessingContext) {
     assert !invoke.hasOutValue();
     DexMethod appendMethod = singleTarget.getReference();
@@ -144,8 +147,8 @@ public class StringBuilderMethodOptimizer implements LibraryMethodModelCollectio
         // Replace the instruction by toStringIfNotNull().
         UtilityMethodForCodeOptimizations toStringIfNotNullMethod =
             UtilityMethodsForCodeOptimizations.synthesizeToStringIfNotNullMethod(
-                appView, methodProcessingContext);
-        toStringIfNotNullMethod.optimize(state.methodProcessor);
+                appView, methodProcessor.getEventConsumer(), methodProcessingContext);
+        toStringIfNotNullMethod.optimize(methodProcessor);
         InvokeStatic replacement =
             InvokeStatic.builder()
                 .setMethod(toStringIfNotNullMethod.getMethod())
@@ -168,13 +171,7 @@ public class StringBuilderMethodOptimizer implements LibraryMethodModelCollectio
 
   class State implements LibraryMethodModelCollection.State {
 
-    final MethodProcessor methodProcessor;
-
     final Reference2BooleanMap<Value> unusedBuilders = new Reference2BooleanOpenHashMap<>();
-
-    State(MethodProcessor methodProcessor) {
-      this.methodProcessor = methodProcessor;
-    }
 
     boolean isUnusedBuilder(Value value) {
       if (!unusedBuilders.containsKey(value)) {

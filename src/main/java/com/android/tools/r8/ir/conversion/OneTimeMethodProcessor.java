@@ -18,39 +18,59 @@ import java.util.concurrent.ExecutorService;
  */
 public class OneTimeMethodProcessor extends MethodProcessorWithWave {
 
+  private final MethodProcessorEventConsumer eventConsumer;
   private final ProcessorContext processorContext;
 
-  private OneTimeMethodProcessor(ProcessorContext processorContext, ProgramMethodSet wave) {
+  private OneTimeMethodProcessor(
+      MethodProcessorEventConsumer eventConsumer,
+      ProcessorContext processorContext,
+      ProgramMethodSet wave) {
+    this.eventConsumer = eventConsumer;
     this.processorContext = processorContext;
     this.wave = wave;
   }
 
-  public static Builder builder(ProcessorContext processorContext) {
-    return new Builder(processorContext);
-  }
-
-  public static OneTimeMethodProcessor create(ProgramMethod methodToProcess, AppView<?> appView) {
-    return create(ProgramMethodSet.create(methodToProcess), appView);
+  public static Builder builder(
+      MethodProcessorEventConsumer eventConsumer, ProcessorContext processorContext) {
+    return new Builder(eventConsumer, processorContext);
   }
 
   public static OneTimeMethodProcessor create(
-      ProgramMethod methodToProcess, ProcessorContext processorContext) {
-    return create(ProgramMethodSet.create(methodToProcess), processorContext);
+      ProgramMethod methodToProcess,
+      MethodProcessorEventConsumer eventConsumer,
+      AppView<?> appView) {
+    return create(ProgramMethodSet.create(methodToProcess), eventConsumer, appView);
   }
 
   public static OneTimeMethodProcessor create(
-      ProgramMethodSet methodsToProcess, AppView<?> appView) {
-    return create(methodsToProcess, appView.createProcessorContext());
+      ProgramMethod methodToProcess,
+      MethodProcessorEventConsumer eventConsumer,
+      ProcessorContext processorContext) {
+    return create(ProgramMethodSet.create(methodToProcess), eventConsumer, processorContext);
   }
 
   public static OneTimeMethodProcessor create(
-      ProgramMethodSet methodsToProcess, ProcessorContext processorContext) {
-    return new OneTimeMethodProcessor(processorContext, methodsToProcess);
+      ProgramMethodSet methodsToProcess,
+      MethodProcessorEventConsumer eventConsumer,
+      AppView<?> appView) {
+    return create(methodsToProcess, eventConsumer, appView.createProcessorContext());
+  }
+
+  public static OneTimeMethodProcessor create(
+      ProgramMethodSet methodsToProcess,
+      MethodProcessorEventConsumer eventConsumer,
+      ProcessorContext processorContext) {
+    return new OneTimeMethodProcessor(eventConsumer, processorContext, methodsToProcess);
   }
 
   @Override
   public MethodProcessingContext createMethodProcessingContext(ProgramMethod method) {
     return processorContext.createMethodProcessingContext(method);
+  }
+
+  @Override
+  public MethodProcessorEventConsumer getEventConsumer() {
+    return eventConsumer;
   }
 
   @Override
@@ -86,9 +106,12 @@ public class OneTimeMethodProcessor extends MethodProcessorWithWave {
   public static class Builder {
 
     private final ProgramMethodSet methodsToProcess = ProgramMethodSet.create();
+
+    private final MethodProcessorEventConsumer eventConsumer;
     private final ProcessorContext processorContext;
 
-    Builder(ProcessorContext processorContext) {
+    Builder(MethodProcessorEventConsumer eventConsumer, ProcessorContext processorContext) {
+      this.eventConsumer = eventConsumer;
       this.processorContext = processorContext;
     }
 
@@ -98,7 +121,7 @@ public class OneTimeMethodProcessor extends MethodProcessorWithWave {
     }
 
     public OneTimeMethodProcessor build() {
-      return create(methodsToProcess, processorContext);
+      return create(methodsToProcess, eventConsumer, processorContext);
     }
   }
 }

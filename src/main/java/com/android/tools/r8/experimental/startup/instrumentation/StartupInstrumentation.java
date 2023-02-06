@@ -34,6 +34,7 @@ import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.conversion.IRConverter;
 import com.android.tools.r8.ir.conversion.IRToDexFinalizer;
 import com.android.tools.r8.ir.conversion.MethodConversionOptions.MutableMethodConversionOptions;
+import com.android.tools.r8.ir.conversion.MethodProcessorEventConsumer;
 import com.android.tools.r8.startup.generated.InstrumentationServerFactory;
 import com.android.tools.r8.startup.generated.InstrumentationServerImplFactory;
 import com.android.tools.r8.utils.DescriptorUtils;
@@ -97,7 +98,8 @@ public class StartupInstrumentation {
     }
 
     List<DexProgramClass> extraProgramClasses = createStartupRuntimeLibraryClasses();
-    converter.processClassesConcurrently(extraProgramClasses, executorService);
+    MethodProcessorEventConsumer eventConsumer = MethodProcessorEventConsumer.empty();
+    converter.processClassesConcurrently(extraProgramClasses, eventConsumer, executorService);
 
     DexApplication newApplication =
         appView.app().builder().addProgramClasses(extraProgramClasses).build();

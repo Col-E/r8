@@ -8,6 +8,7 @@ import static com.android.tools.r8.utils.StringUtils.LINE_SEPARATOR;
 import com.android.tools.r8.ClassFileConsumer;
 import com.android.tools.r8.contexts.CompilationContext;
 import com.android.tools.r8.ir.conversion.IRConverter;
+import com.android.tools.r8.ir.conversion.MethodProcessorEventConsumer;
 import com.android.tools.r8.ir.conversion.OneTimeMethodProcessor;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackIgnore;
 import com.android.tools.r8.kotlin.Kotlin;
@@ -176,8 +177,10 @@ public class AssemblyWriter extends DexByteCodeWriter {
   private void writeIR(ProgramMethod method, PrintStream ps) {
     CfgPrinter printer = new CfgPrinter();
     IRConverter converter = new IRConverter(appInfo, timing, printer);
+    MethodProcessorEventConsumer eventConsumer = MethodProcessorEventConsumer.empty();
     OneTimeMethodProcessor methodProcessor =
-        OneTimeMethodProcessor.create(method, compilationContext.createProcessorContext());
+        OneTimeMethodProcessor.create(
+            method, eventConsumer, compilationContext.createProcessorContext());
     methodProcessor.forEachWaveWithExtension(
         (ignore, methodProcessingContext) ->
             converter.processDesugaredMethod(

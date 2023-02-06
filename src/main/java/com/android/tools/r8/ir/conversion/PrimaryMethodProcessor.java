@@ -43,28 +43,39 @@ public class PrimaryMethodProcessor extends MethodProcessorWithWave {
 
   private final AppView<?> appView;
   private final CallSiteInformation callSiteInformation;
+  private final MethodProcessorEventConsumer eventConsumer;
   private final Deque<ProgramMethodSet> waves;
 
   private ProcessorContext processorContext;
 
-  private PrimaryMethodProcessor(AppView<AppInfoWithLiveness> appView, CallGraph callGraph) {
+  private PrimaryMethodProcessor(
+      AppView<AppInfoWithLiveness> appView,
+      CallGraph callGraph,
+      MethodProcessorEventConsumer eventConsumer) {
     this.appView = appView;
     this.callSiteInformation = callGraph.createCallSiteInformation(appView);
+    this.eventConsumer = eventConsumer;
     this.waves = createWaves(appView, callGraph);
   }
 
   static PrimaryMethodProcessor create(
       AppView<AppInfoWithLiveness> appView,
+      MethodProcessorEventConsumer eventConsumer,
       ExecutorService executorService,
       Timing timing)
       throws ExecutionException {
     CallGraph callGraph = CallGraph.builder(appView).build(executorService, timing);
-    return new PrimaryMethodProcessor(appView, callGraph);
+    return new PrimaryMethodProcessor(appView, callGraph, eventConsumer);
   }
 
   @Override
   public MethodProcessingContext createMethodProcessingContext(ProgramMethod method) {
     return processorContext.createMethodProcessingContext(method);
+  }
+
+  @Override
+  public MethodProcessorEventConsumer getEventConsumer() {
+    return eventConsumer;
   }
 
   @Override

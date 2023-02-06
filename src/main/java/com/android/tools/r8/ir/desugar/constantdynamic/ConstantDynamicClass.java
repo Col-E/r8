@@ -76,8 +76,6 @@ public class ConstantDynamicClass {
   public static final String CONST_FIELD_NAME = "CONST";
 
   private final AppView<?> appView;
-  private final ConstantDynamicInstructionDesugaring desugaring;
-  private final ProgramMethod context;
   public final ConstantDynamicReference reference;
   public final DexField initializedValueField;
   public final DexField constantValueField;
@@ -93,13 +91,10 @@ public class ConstantDynamicClass {
   public ConstantDynamicClass(
       SyntheticProgramClassBuilder builder,
       AppView<?> appView,
-      ConstantDynamicInstructionDesugaring desugaring,
       ProgramMethod context,
       CfConstDynamic constantDynamic) {
     DexItemFactory factory = appView.dexItemFactory();
     this.appView = appView;
-    this.desugaring = desugaring;
-    this.context = context;
     this.reference = constantDynamic.getReference();
     this.constantValueField =
         factory.createField(
@@ -190,19 +185,16 @@ public class ConstantDynamicClass {
             ? UtilityMethodsForCodeOptimizations::synthesizeThrowNoSuchMethodErrorMethod
             : UtilityMethodsForCodeOptimizations::synthesizeThrowIncompatibleClassChangeErrorMethod,
         eventConsumer,
-        context,
         methodProcessingContext);
   }
 
   private Collection<CfInstruction> desugarToThrow(
       MethodSynthesizerConsumer methodSynthesizerConsumer,
       ConstantDynamicDesugaringEventConsumer eventConsumer,
-      ProgramMethod context,
       MethodProcessingContext methodProcessingContext) {
     UtilityMethodForCodeOptimizations throwMethod =
-        methodSynthesizerConsumer.synthesizeMethod(appView, methodProcessingContext);
+        methodSynthesizerConsumer.synthesizeMethod(appView, eventConsumer, methodProcessingContext);
     ProgramMethod throwProgramMethod = throwMethod.uncheckedGetMethod();
-    eventConsumer.acceptThrowMethod(throwProgramMethod, context);
     return ImmutableList.of(new CfInvoke(INVOKESTATIC, throwProgramMethod.getReference(), false));
   }
 

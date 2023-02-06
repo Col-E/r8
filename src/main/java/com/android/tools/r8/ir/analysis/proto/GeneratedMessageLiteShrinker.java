@@ -39,6 +39,7 @@ import com.android.tools.r8.ir.code.NewArrayEmpty;
 import com.android.tools.r8.ir.code.NewInstance;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.conversion.IRConverter;
+import com.android.tools.r8.ir.conversion.MethodProcessorEventConsumer;
 import com.android.tools.r8.ir.conversion.OneTimeMethodProcessor;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackIgnore;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
@@ -224,7 +225,9 @@ public class GeneratedMessageLiteShrinker {
       throws ExecutionException {
     timing.begin("[Proto] Post optimize dynamic methods");
     ProgramMethodSet wave = ProgramMethodSet.create(this::forEachDynamicMethod);
-    OneTimeMethodProcessor methodProcessor = OneTimeMethodProcessor.create(wave, appView);
+    MethodProcessorEventConsumer eventConsumer = MethodProcessorEventConsumer.empty();
+    OneTimeMethodProcessor methodProcessor =
+        OneTimeMethodProcessor.create(wave, eventConsumer, appView);
     methodProcessor.forEachWaveWithExtension(
         (method, methodProcessingContext) ->
             converter.processDesugaredMethod(

@@ -87,12 +87,11 @@ public class UnrepresentableInDexInstructionRemover implements CfInstructionDesu
     void invokeThrowingStub(
         MethodProcessingContext methodProcessingContext,
         CfInstructionDesugaringEventConsumer eventConsumer,
-        ProgramMethod context,
         ImmutableList.Builder<CfInstruction> builder) {
       UtilityMethodForCodeOptimizations throwUtility =
-          synthesizeThrowRuntimeExceptionWithMessageMethod(appView, methodProcessingContext);
+          synthesizeThrowRuntimeExceptionWithMessageMethod(
+              appView, eventConsumer, methodProcessingContext);
       ProgramMethod throwMethod = throwUtility.uncheckedGetMethod();
-      eventConsumer.acceptThrowMethod(throwMethod, context);
       builder.add(
           createMessageString(),
           new CfInvoke(Opcodes.INVOKESTATIC, throwMethod.getReference(), false),
@@ -173,7 +172,7 @@ public class UnrepresentableInDexInstructionRemover implements CfInstructionDesu
                 DexCallSite callSite = invokeDynamic.getCallSite();
                 pop(callSite.getMethodProto(), replacement);
                 localStackAllocator.allocateLocalStack(1);
-                invokeThrowingStub(methodProcessingContext, eventConsumer, context, replacement);
+                invokeThrowingStub(methodProcessingContext, eventConsumer, replacement);
                 pushReturnValue(callSite.getMethodProto().getReturnType(), replacement);
                 return replacement.build();
               })
@@ -224,7 +223,7 @@ public class UnrepresentableInDexInstructionRemover implements CfInstructionDesu
                   pop(dexItemFactory.objectType, replacement);
                 }
                 localStackAllocator.allocateLocalStack(1);
-                invokeThrowingStub(methodProcessingContext, eventConsumer, context, replacement);
+                invokeThrowingStub(methodProcessingContext, eventConsumer, replacement);
                 pushReturnValue(invoke.getMethod().getReturnType(), replacement);
                 return replacement.build();
               })
@@ -264,7 +263,7 @@ public class UnrepresentableInDexInstructionRemover implements CfInstructionDesu
                   dexItemFactory) -> {
                 report(context);
                 Builder<CfInstruction> replacement = ImmutableList.builder();
-                invokeThrowingStub(methodProcessingContext, eventConsumer, context, replacement);
+                invokeThrowingStub(methodProcessingContext, eventConsumer, replacement);
                 return replacement.add(new CfConstNull()).build();
               })
           .build();
@@ -303,7 +302,7 @@ public class UnrepresentableInDexInstructionRemover implements CfInstructionDesu
                   dexItemFactory) -> {
                 report(context);
                 Builder<CfInstruction> replacement = ImmutableList.builder();
-                invokeThrowingStub(methodProcessingContext, eventConsumer, context, replacement);
+                invokeThrowingStub(methodProcessingContext, eventConsumer, replacement);
                 return replacement.add(new CfConstNull()).build();
               })
           .build();
@@ -343,7 +342,7 @@ public class UnrepresentableInDexInstructionRemover implements CfInstructionDesu
                   dexItemFactory) -> {
                 report(context);
                 Builder<CfInstruction> replacement = ImmutableList.builder();
-                invokeThrowingStub(methodProcessingContext, eventConsumer, context, replacement);
+                invokeThrowingStub(methodProcessingContext, eventConsumer, replacement);
                 return pushReturnValue(constDynamic.getType(), replacement).build();
               })
           .build();

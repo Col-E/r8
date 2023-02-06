@@ -39,6 +39,7 @@ import com.android.tools.r8.ir.code.StaticPut;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.conversion.ExtraUnusedNullParameter;
 import com.android.tools.r8.ir.conversion.IRConverter;
+import com.android.tools.r8.ir.conversion.MethodProcessorEventConsumer;
 import com.android.tools.r8.ir.conversion.OneTimeMethodProcessor;
 import com.android.tools.r8.ir.optimize.enums.EnumDataMap.EnumData;
 import com.android.tools.r8.ir.optimize.enums.classification.CheckNotNullEnumUnboxerMethodClassification;
@@ -148,8 +149,9 @@ class EnumUnboxingTreeFixer {
       IRConverter converter, ExecutorService executorService) throws ExecutionException {
     BiMap<DexMethod, DexMethod> checkNotNullToCheckNotZeroMapping = HashBiMap.create();
     ProcessorContext processorContext = appView.createProcessorContext();
+    MethodProcessorEventConsumer eventConsumer = MethodProcessorEventConsumer.empty();
     OneTimeMethodProcessor.Builder methodProcessorBuilder =
-        OneTimeMethodProcessor.builder(processorContext);
+        OneTimeMethodProcessor.builder(eventConsumer, processorContext);
 
     // Only duplicate checkNotNull() methods that are required for enum unboxing.
     checkNotNullMethods.removeIf(

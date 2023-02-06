@@ -9,6 +9,7 @@ import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.conversion.IRConverter;
+import com.android.tools.r8.ir.conversion.MethodProcessorEventConsumer;
 import com.android.tools.r8.ir.conversion.OneTimeMethodProcessor;
 import com.android.tools.r8.ir.optimize.enums.EnumDataMap.EnumData;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackSimple;
@@ -95,8 +96,9 @@ public class EnumUnboxingUtilityClasses {
       fieldAccessInfoCollectionModifierBuilder.build().modify(appView);
 
       // Create and process the utility methods.
+      MethodProcessorEventConsumer eventConsumer = MethodProcessorEventConsumer.empty();
       OneTimeMethodProcessor.Builder methodProcessorBuilder =
-          OneTimeMethodProcessor.builder(appView.createProcessorContext());
+          OneTimeMethodProcessor.builder(eventConsumer, appView.createProcessorContext());
       utilityClasses.forEach(
           utilityClass -> {
             utilityClass.ensureMethods(appView);

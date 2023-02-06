@@ -22,6 +22,7 @@ import com.android.tools.r8.ir.code.IRCodeUtils;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.StaticPut;
 import com.android.tools.r8.ir.conversion.IRConverter;
+import com.android.tools.r8.ir.conversion.MethodProcessorEventConsumer;
 import com.android.tools.r8.ir.conversion.OneTimeMethodProcessor;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackIgnore;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
@@ -168,7 +169,9 @@ public class GeneratedExtensionRegistryShrinker {
     timing.begin("[Proto] Post optimize generated extension registry");
     ProgramMethodSet wave =
         ProgramMethodSet.create(this::forEachMethodThatRequiresPostOptimization);
-    OneTimeMethodProcessor methodProcessor = OneTimeMethodProcessor.create(wave, appView);
+    MethodProcessorEventConsumer eventConsumer = MethodProcessorEventConsumer.empty();
+    OneTimeMethodProcessor methodProcessor =
+        OneTimeMethodProcessor.create(wave, eventConsumer, appView);
     methodProcessor.forEachWaveWithExtension(
         (method, methodProcessingContext) ->
             converter.processDesugaredMethod(

@@ -23,6 +23,8 @@ public abstract class MethodProcessor {
 
   public abstract MethodProcessingContext createMethodProcessingContext(ProgramMethod method);
 
+  public abstract MethodProcessorEventConsumer getEventConsumer();
+
   public abstract boolean isProcessedConcurrently(ProgramMethod method);
 
   public abstract boolean shouldApplyCodeRewritings(ProgramMethod method);

@@ -27,6 +27,7 @@ import com.android.tools.r8.graph.DirectMappedDexApplication;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.bytecodemetadata.BytecodeMetadataProvider;
 import com.android.tools.r8.ir.code.IRCode;
+import com.android.tools.r8.ir.conversion.MethodProcessorEventConsumer;
 import com.android.tools.r8.ir.conversion.MethodProcessorWithWave;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackIgnore;
 import com.android.tools.r8.origin.Origin;
@@ -216,6 +217,11 @@ public class FieldBitAccessInfoTest extends TestBase {
 
     @Override
     public MethodProcessingContext createMethodProcessingContext(ProgramMethod method) {
+      throw new Unreachable();
+    }
+
+    @Override
+    public MethodProcessorEventConsumer getEventConsumer() {
       throw new Unreachable();
     }
 

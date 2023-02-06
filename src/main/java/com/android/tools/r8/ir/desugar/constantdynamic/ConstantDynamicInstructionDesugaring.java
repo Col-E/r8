@@ -203,9 +203,7 @@ public class ConstantDynamicInstructionDesugaring implements CfInstructionDesuga
                 methodProcessingContext.createUniqueContext(),
                 appView,
                 builder ->
-                    box.set(
-                        new ConstantDynamicClass(
-                            builder, appView, this, context, constantDynamic)));
+                    box.set(new ConstantDynamicClass(builder, appView, context, constantDynamic)));
     // Immediately set the actual program class on the constant dynamic.
     ConstantDynamicClass constantDynamicClass = box.get();
     constantDynamicClass.setClass(clazz);

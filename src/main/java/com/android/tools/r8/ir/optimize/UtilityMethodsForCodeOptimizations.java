@@ -23,11 +23,15 @@ public class UtilityMethodsForCodeOptimizations {
   public interface MethodSynthesizerConsumer {
 
     UtilityMethodForCodeOptimizations synthesizeMethod(
-        AppView<?> appView, MethodProcessingContext methodProcessingContext);
+        AppView<?> appView,
+        UtilityMethodsForCodeOptimizationsEventConsumer eventConsumer,
+        MethodProcessingContext methodProcessingContext);
   }
 
   public static UtilityMethodForCodeOptimizations synthesizeToStringIfNotNullMethod(
-      AppView<?> appView, MethodProcessingContext methodProcessingContext) {
+      AppView<?> appView,
+      UtilityMethodsForCodeOptimizationsEventConsumer eventConsumer,
+      MethodProcessingContext methodProcessingContext) {
     DexItemFactory dexItemFactory = appView.dexItemFactory();
     DexProto proto = dexItemFactory.createProto(dexItemFactory.voidType, dexItemFactory.objectType);
     SyntheticItems syntheticItems = appView.getSyntheticItems();
@@ -44,6 +48,8 @@ public class UtilityMethodsForCodeOptimizations {
                     .setApiLevelForCode(appView.computedMinApiLevel())
                     .setCode(method -> getToStringIfNotNullCodeTemplate(method, dexItemFactory))
                     .setProto(proto));
+    eventConsumer.acceptUtilityToStringIfNotNullMethod(
+        syntheticMethod, methodProcessingContext.getMethodContext());
     return new UtilityMethodForCodeOptimizations(syntheticMethod);
   }
 
@@ -54,7 +60,9 @@ public class UtilityMethodsForCodeOptimizations {
   }
 
   public static UtilityMethodForCodeOptimizations synthesizeThrowClassCastExceptionIfNotNullMethod(
-      AppView<?> appView, MethodProcessingContext methodProcessingContext) {
+      AppView<?> appView,
+      UtilityMethodsForCodeOptimizationsEventConsumer eventConsumer,
+      MethodProcessingContext methodProcessingContext) {
     DexItemFactory dexItemFactory = appView.dexItemFactory();
     DexProto proto = dexItemFactory.createProto(dexItemFactory.voidType, dexItemFactory.objectType);
     SyntheticItems syntheticItems = appView.getSyntheticItems();
@@ -74,6 +82,8 @@ public class UtilityMethodsForCodeOptimizations {
                         method ->
                             getThrowClassCastExceptionIfNotNullCodeTemplate(method, dexItemFactory))
                     .setProto(proto));
+    eventConsumer.acceptUtilityThrowClassCastExceptionIfNotNullMethod(
+        syntheticMethod, methodProcessingContext.getMethodContext());
     return new UtilityMethodForCodeOptimizations(syntheticMethod);
   }
 
@@ -85,7 +95,9 @@ public class UtilityMethodsForCodeOptimizations {
   }
 
   public static UtilityMethodForCodeOptimizations synthesizeThrowIllegalAccessErrorMethod(
-      AppView<?> appView, MethodProcessingContext methodProcessingContext) {
+      AppView<?> appView,
+      UtilityMethodsForCodeOptimizationsEventConsumer eventConsumer,
+      MethodProcessingContext methodProcessingContext) {
     DexItemFactory dexItemFactory = appView.dexItemFactory();
     DexProto proto = dexItemFactory.createProto(dexItemFactory.illegalAccessErrorType);
     SyntheticItems syntheticItems = appView.getSyntheticItems();
@@ -103,6 +115,8 @@ public class UtilityMethodsForCodeOptimizations {
                     .setCode(
                         method -> getThrowIllegalAccessErrorCodeTemplate(method, dexItemFactory))
                     .setProto(proto));
+    eventConsumer.acceptUtilityThrowIllegalAccessErrorMethod(
+        syntheticMethod, methodProcessingContext.getMethodContext());
     return new UtilityMethodForCodeOptimizations(syntheticMethod);
   }
 
@@ -114,7 +128,9 @@ public class UtilityMethodsForCodeOptimizations {
   }
 
   public static UtilityMethodForCodeOptimizations synthesizeThrowIncompatibleClassChangeErrorMethod(
-      AppView<?> appView, MethodProcessingContext methodProcessingContext) {
+      AppView<?> appView,
+      UtilityMethodsForCodeOptimizationsEventConsumer eventConsumer,
+      MethodProcessingContext methodProcessingContext) {
     DexItemFactory dexItemFactory = appView.dexItemFactory();
     DexProto proto = dexItemFactory.createProto(dexItemFactory.icceType);
     SyntheticItems syntheticItems = appView.getSyntheticItems();
@@ -134,6 +150,8 @@ public class UtilityMethodsForCodeOptimizations {
                             getThrowIncompatibleClassChangeErrorCodeTemplate(
                                 method, dexItemFactory))
                     .setProto(proto));
+    eventConsumer.acceptUtilityThrowIncompatibleClassChangeErrorMethod(
+        syntheticMethod, methodProcessingContext.getMethodContext());
     return new UtilityMethodForCodeOptimizations(syntheticMethod);
   }
 
@@ -145,7 +163,9 @@ public class UtilityMethodsForCodeOptimizations {
   }
 
   public static UtilityMethodForCodeOptimizations synthesizeThrowNoSuchMethodErrorMethod(
-      AppView<?> appView, MethodProcessingContext methodProcessingContext) {
+      AppView<?> appView,
+      UtilityMethodsForCodeOptimizationsEventConsumer eventConsumer,
+      MethodProcessingContext methodProcessingContext) {
     DexItemFactory dexItemFactory = appView.dexItemFactory();
     DexProto proto = dexItemFactory.createProto(dexItemFactory.noSuchMethodErrorType);
     SyntheticItems syntheticItems = appView.getSyntheticItems();
@@ -163,6 +183,8 @@ public class UtilityMethodsForCodeOptimizations {
                     .setCode(
                         method -> getThrowNoSuchMethodErrorCodeTemplate(method, dexItemFactory))
                     .setProto(proto));
+    eventConsumer.acceptUtilityThrowNoSuchMethodErrorMethod(
+        syntheticMethod, methodProcessingContext.getMethodContext());
     return new UtilityMethodForCodeOptimizations(syntheticMethod);
   }
 
@@ -174,7 +196,9 @@ public class UtilityMethodsForCodeOptimizations {
   }
 
   public static UtilityMethodForCodeOptimizations synthesizeThrowRuntimeExceptionWithMessageMethod(
-      AppView<?> appView, MethodProcessingContext methodProcessingContext) {
+      AppView<?> appView,
+      UtilityMethodsForCodeOptimizationsEventConsumer eventConsumer,
+      MethodProcessingContext methodProcessingContext) {
     DexItemFactory dexItemFactory = appView.dexItemFactory();
     DexProto proto =
         dexItemFactory.createProto(dexItemFactory.runtimeExceptionType, dexItemFactory.stringType);
@@ -194,6 +218,8 @@ public class UtilityMethodsForCodeOptimizations {
                         method ->
                             getThrowRuntimeExceptionWithMessageCodeTemplate(method, dexItemFactory))
                     .setProto(proto));
+    eventConsumer.acceptUtilityThrowRuntimeExceptionWithMessageMethod(
+        syntheticMethod, methodProcessingContext.getMethodContext());
     return new UtilityMethodForCodeOptimizations(syntheticMethod);
   }
 

@@ -20,7 +20,7 @@ import java.util.Set;
 /** Used to model the behavior of library methods for optimization purposes. */
 public interface LibraryMethodModelCollection<T extends State> {
 
-  default T createInitialState(MethodProcessor methodProcessor) {
+  default T createInitialState() {
     return null;
   }
 
@@ -43,6 +43,7 @@ public interface LibraryMethodModelCollection<T extends State> {
       Set<Value> affectedValues,
       Set<BasicBlock> blocksToRemove,
       T state,
+      MethodProcessor methodProcessor,
       MethodProcessingContext methodProcessingContext);
 
   @SuppressWarnings("unchecked")
@@ -55,6 +56,7 @@ public interface LibraryMethodModelCollection<T extends State> {
       Set<Value> affectedValues,
       Set<BasicBlock> blocksToRemove,
       Object state,
+      MethodProcessor methodProcessor,
       MethodProcessingContext methodProcessingContext) {
     optimize(
         code,
@@ -65,6 +67,7 @@ public interface LibraryMethodModelCollection<T extends State> {
         affectedValues,
         blocksToRemove,
         (T) state,
+        methodProcessor,
         methodProcessingContext);
   }
 

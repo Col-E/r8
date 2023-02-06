@@ -60,6 +60,7 @@ import com.android.tools.r8.ir.code.ValueTypeConstraint;
 import com.android.tools.r8.ir.conversion.IRBuilder;
 import com.android.tools.r8.ir.conversion.IRConverter;
 import com.android.tools.r8.ir.conversion.MethodConversionOptions.MutableMethodConversionOptions;
+import com.android.tools.r8.ir.conversion.MethodProcessorEventConsumer;
 import com.android.tools.r8.ir.conversion.SourceCode;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackDelayed;
@@ -1356,7 +1357,8 @@ public class OutlinerImpl extends Outliner {
           },
           executorService);
       List<ProgramMethod> outlineMethods = buildOutlineMethods();
-      converter.optimizeSynthesizedMethods(outlineMethods, executorService);
+      MethodProcessorEventConsumer eventConsumer = MethodProcessorEventConsumer.empty();
+      converter.optimizeSynthesizedMethods(outlineMethods, eventConsumer, executorService);
       feedback.updateVisibleOptimizationInfo();
       forEachSelectedOutliningMethod(
           converter,

@@ -20,7 +20,7 @@ public abstract class StatelessLibraryMethodModelCollection
     implements LibraryMethodModelCollection<State> {
 
   @Override
-  public final State createInitialState(MethodProcessor methodProcessor) {
+  public final State createInitialState() {
     return null;
   }
 
@@ -43,6 +43,7 @@ public abstract class StatelessLibraryMethodModelCollection
       Set<Value> affectedValues,
       Set<BasicBlock> blocksToRemove,
       State state,
+      MethodProcessor methodProcessor,
       MethodProcessingContext methodProcessingContext) {
     assert state == null;
     optimize(

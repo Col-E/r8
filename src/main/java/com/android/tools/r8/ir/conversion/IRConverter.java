@@ -359,7 +359,8 @@ public class IRConverter {
     LambdaDeserializationMethodRemover.run(appView);
     workaroundAbstractMethodOnNonAbstractClassVerificationBug(executor);
     DexApplication application = appView.appInfo().app();
-    D8MethodProcessor methodProcessor = new D8MethodProcessor(this, executor);
+    MethodProcessorEventConsumer eventConsumer = MethodProcessorEventConsumer.empty();
+    D8MethodProcessor methodProcessor = new D8MethodProcessor(this, eventConsumer, executor);
     InterfaceProcessor interfaceProcessor = InterfaceProcessor.create(appView);
 
     timing.begin("IR conversion");
@@ -709,8 +710,10 @@ public class IRConverter {
         new PostMethodProcessor.Builder(graphLensForPrimaryOptimizationPass);
     {
       timing.begin("Build primary method processor");
+      MethodProcessorEventConsumer eventConsumer = MethodProcessorEventConsumer.empty();
       PrimaryMethodProcessor primaryMethodProcessor =
-          PrimaryMethodProcessor.create(appView.withLiveness(), executorService, timing);
+          PrimaryMethodProcessor.create(
+              appView.withLiveness(), eventConsumer, executorService, timing);
       timing.end();
       timing.begin("IR conversion phase 1");
       assert appView.graphLens() == graphLensForPrimaryOptimizationPass;
@@ -774,29 +777,33 @@ public class IRConverter {
 
     outliner.rewriteWithLens();
 
-    timing.begin("IR conversion phase 2");
-    timing.begin("Build post method processor");
-    PostMethodProcessor postMethodProcessor =
-        postMethodProcessorBuilder.build(appView, executorService, timing);
-    timing.end();
-    if (postMethodProcessor != null) {
-      assert !options.debug;
-      assert appView.graphLens() == graphLensForSecondaryOptimizationPass;
-      timing.begin("Process code");
-      postMethodProcessor.forEachMethod(
-          (method, methodProcessingContext) ->
-              processDesugaredMethod(
-                  method, feedback, postMethodProcessor, methodProcessingContext),
-          feedback,
-          executorService,
-          timing);
+    {
+      timing.begin("IR conversion phase 2");
+      PostMethodProcessor postMethodProcessor =
+          timing.time(
+              "Build post method processor",
+              () -> {
+                MethodProcessorEventConsumer eventConsumer = MethodProcessorEventConsumer.empty();
+                return postMethodProcessorBuilder.build(
+                    appView, eventConsumer, executorService, timing);
+              });
+      if (postMethodProcessor != null) {
+        assert !options.debug;
+        assert appView.graphLens() == graphLensForSecondaryOptimizationPass;
+        timing.begin("Process code");
+        postMethodProcessor.forEachMethod(
+            (method, methodProcessingContext) ->
+                processDesugaredMethod(
+                    method, feedback, postMethodProcessor, methodProcessingContext),
+            feedback,
+            executorService,
+            timing);
+        timing.end();
+        timing.time("Update visible optimization info", feedback::updateVisibleOptimizationInfo);
+        assert appView.graphLens() == graphLensForSecondaryOptimizationPass;
+      }
       timing.end();
-      timing.begin("Update visible optimization info");
-      feedback.updateVisibleOptimizationInfo();
-      timing.end();
-      assert appView.graphLens() == graphLensForSecondaryOptimizationPass;
     }
-    timing.end();
 
     enumUnboxer.unsetRewriter();
 
@@ -958,18 +965,21 @@ public class IRConverter {
   }
 
   public void optimizeSynthesizedMethods(
-      List<ProgramMethod> programMethods, ExecutorService executorService)
+      List<ProgramMethod> programMethods,
+      MethodProcessorEventConsumer eventConsumer,
+      ExecutorService executorService)
       throws ExecutionException {
     // Process the generated class, but don't apply any outlining.
     ProgramMethodSet methods = ProgramMethodSet.create(programMethods::forEach);
-    processMethodsConcurrently(methods, executorService);
+    processMethodsConcurrently(methods, eventConsumer, executorService);
   }
 
-  public void optimizeSynthesizedMethod(ProgramMethod synthesizedMethod) {
+  public void optimizeSynthesizedMethod(
+      ProgramMethod synthesizedMethod, MethodProcessorEventConsumer eventConsumer) {
     if (!synthesizedMethod.getDefinition().isProcessed()) {
       // Process the generated method, but don't apply any outlining.
       OneTimeMethodProcessor methodProcessor =
-          OneTimeMethodProcessor.create(synthesizedMethod, appView);
+          OneTimeMethodProcessor.create(synthesizedMethod, eventConsumer, appView);
       methodProcessor.forEachWaveWithExtension(
           (method, methodProcessingContext) ->
               processDesugaredMethod(
@@ -978,19 +988,25 @@ public class IRConverter {
   }
 
   public void processClassesConcurrently(
-      Collection<DexProgramClass> classes, ExecutorService executorService)
+      Collection<DexProgramClass> classes,
+      MethodProcessorEventConsumer eventConsumer,
+      ExecutorService executorService)
       throws ExecutionException {
     ProgramMethodSet wave = ProgramMethodSet.create();
     for (DexProgramClass clazz : classes) {
       clazz.forEachProgramMethod(wave::add);
     }
-    processMethodsConcurrently(wave, executorService);
+    processMethodsConcurrently(wave, eventConsumer, executorService);
   }
 
-  public void processMethodsConcurrently(ProgramMethodSet wave, ExecutorService executorService)
+  public void processMethodsConcurrently(
+      ProgramMethodSet wave,
+      MethodProcessorEventConsumer eventConsumer,
+      ExecutorService executorService)
       throws ExecutionException {
     if (!wave.isEmpty()) {
-      OneTimeMethodProcessor methodProcessor = OneTimeMethodProcessor.create(wave, appView);
+      OneTimeMethodProcessor methodProcessor =
+          OneTimeMethodProcessor.create(wave, eventConsumer, appView);
       methodProcessor.forEachWaveWithExtension(
           (method, methodProcessingContext) ->
               processDesugaredMethod(
