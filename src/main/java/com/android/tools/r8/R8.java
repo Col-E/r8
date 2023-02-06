@@ -71,6 +71,7 @@ import com.android.tools.r8.optimize.bridgehoisting.BridgeHoisting;
 import com.android.tools.r8.optimize.interfaces.analysis.CfOpenClosedInterfacesAnalysis;
 import com.android.tools.r8.optimize.proto.ProtoNormalizer;
 import com.android.tools.r8.origin.CommandLineOrigin;
+import com.android.tools.r8.profile.art.ArtProfileCompletenessChecker;
 import com.android.tools.r8.profile.art.rewriting.ArtProfileCollectionAdditions;
 import com.android.tools.r8.repackaging.Repackaging;
 import com.android.tools.r8.repackaging.RepackagingLens;
@@ -279,6 +280,8 @@ public class R8 {
         SyntheticItems.collectSyntheticInputs(appView);
       }
 
+      assert ArtProfileCompletenessChecker.verify(appView);
+
       // Check for potentially having pass-through of Cf-code for kotlin libraries.
       options.enableCfByteCodePassThrough =
           options.isGeneratingClassFiles() && KotlinMetadataUtils.mayProcessKotlinMetadata(appView);
@@ -374,6 +377,7 @@ public class R8 {
         assert appView.rootSet().verifyKeptMethodsAreTargetedAndLive(appViewWithLiveness);
         assert appView.rootSet().verifyKeptTypesAreLive(appViewWithLiveness);
         assert appView.rootSet().verifyKeptItemsAreKept(appView);
+        assert ArtProfileCompletenessChecker.verify(appView);
         appView.rootSet().checkAllRulesAreUsed(options);
 
         if (options.apiModelingOptions().reportUnknownApiReferences) {
@@ -482,6 +486,8 @@ public class R8 {
           classMergingEnqueuerExtensionBuilder.build(appView.graphLens());
       classMergingEnqueuerExtensionBuilder = null;
 
+      assert ArtProfileCompletenessChecker.verify(appView);
+
       if (!isKotlinLibraryCompilationWithInlinePassThrough
           && options.getProguardConfiguration().isOptimizing()) {
         if (options.enableVerticalClassMerging) {
@@ -501,6 +507,8 @@ public class R8 {
           appView.setVerticallyMergedClasses(VerticallyMergedClasses.empty());
         }
         assert appView.verticallyMergedClasses() != null;
+
+        assert ArtProfileCompletenessChecker.verify(appView);
 
         HorizontalClassMerger.createForInitialClassMerging(appViewWithLiveness)
             .runIfNecessary(executorService, timing, runtimeTypeCheckInfo);
@@ -524,6 +532,8 @@ public class R8 {
       // TODO: we should avoid removing liveness.
       Set<DexType> prunedTypes = appView.withLiveness().appInfo().getPrunedTypes();
 
+      assert ArtProfileCompletenessChecker.verify(appView);
+
       timing.begin("Create IR");
       CfgPrinter printer = options.printCfg ? new CfgPrinter() : null;
       try {
@@ -534,6 +544,8 @@ public class R8 {
       } finally {
         timing.end();
       }
+
+      assert ArtProfileCompletenessChecker.verify(appView);
 
       // Clear the reference type lattice element cache to reduce memory pressure.
       appView.dexItemFactory().clearTypeElementsCache();

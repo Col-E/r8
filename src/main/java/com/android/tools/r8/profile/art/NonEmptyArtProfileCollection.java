@@ -10,17 +10,19 @@ import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.PrunedItems;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.utils.InternalOptions;
-import com.google.common.collect.ImmutableList;
+import com.android.tools.r8.utils.ListUtils;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
+import java.util.List;
 import java.util.function.Function;
 
 public class NonEmptyArtProfileCollection extends ArtProfileCollection
     implements Iterable<ArtProfile> {
 
-  private final Collection<ArtProfile> artProfiles;
+  private final List<ArtProfile> artProfiles;
 
-  public NonEmptyArtProfileCollection(Collection<ArtProfile> artProfiles) {
+  public NonEmptyArtProfileCollection(List<ArtProfile> artProfiles) {
     this.artProfiles = artProfiles;
   }
 
@@ -32,6 +34,10 @@ public class NonEmptyArtProfileCollection extends ArtProfileCollection
   @Override
   public NonEmptyArtProfileCollection asNonEmpty() {
     return this;
+  }
+
+  public ArtProfile getLast() {
+    return ListUtils.last(artProfiles);
   }
 
   @Override
@@ -53,6 +59,14 @@ public class NonEmptyArtProfileCollection extends ArtProfileCollection
 
   @Override
   public void supplyConsumers(AppView<?> appView) {
+    if (appView.options().getArtProfileOptions().isCompletenessCheckForTestingEnabled()) {
+      assert ArtProfileCompletenessChecker.verify(appView);
+      ListUtils.removeLast(artProfiles);
+      if (artProfiles.isEmpty()) {
+        appView.setArtProfileCollection(ArtProfileCollection.empty());
+        return;
+      }
+    }
     NonEmptyArtProfileCollection collection =
         appView.getNamingLens().isIdentityLens()
             ? this
@@ -75,11 +89,10 @@ public class NonEmptyArtProfileCollection extends ArtProfileCollection
   }
 
   private NonEmptyArtProfileCollection map(Function<ArtProfile, ArtProfile> fn) {
-    ImmutableList.Builder<ArtProfile> newArtProfiles =
-        ImmutableList.builderWithExpectedSize(artProfiles.size());
+    List<ArtProfile> newArtProfiles = new ArrayList<>(artProfiles.size());
     for (ArtProfile artProfile : artProfiles) {
       newArtProfiles.add(fn.apply(artProfile));
     }
-    return new NonEmptyArtProfileCollection(newArtProfiles.build());
+    return new NonEmptyArtProfileCollection(newArtProfiles);
   }
 }

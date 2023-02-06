@@ -17,6 +17,7 @@ import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.PrunedItems;
 import com.android.tools.r8.horizontalclassmerging.code.SyntheticInitializerConverter;
 import com.android.tools.r8.ir.code.Invoke.Type;
+import com.android.tools.r8.profile.art.ArtProfileCompletenessChecker;
 import com.android.tools.r8.profile.art.rewriting.ArtProfileCollectionAdditions;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.FieldAccessInfoCollectionModifier;
@@ -90,6 +91,8 @@ public class HorizontalClassMerger {
               ? IRCodeProvider.create(appView.withClassHierarchy())
               : IRCodeProvider.createThrowing();
       run(runtimeTypeCheckInfo, codeProvider, executorService, timing);
+
+      assert ArtProfileCompletenessChecker.verify(appView);
 
       // Clear type elements cache after IR building.
       appView.dexItemFactory().clearTypeElementsCache();

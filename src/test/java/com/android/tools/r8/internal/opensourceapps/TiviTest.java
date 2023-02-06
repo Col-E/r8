@@ -48,6 +48,17 @@ public class TiviTest extends TestBase {
   public void testR8() throws Exception {
     testForR8(Backend.DEX)
         .addProgramFiles(outDirectory.resolve("program.jar"))
+        .addOptionsModification(options -> options.enableEnumUnboxing = false)
+        .addOptionsModification(options -> options.outline.enabled = false)
+        .addOptionsModification(
+            options -> options.apiModelingOptions().enableOutliningOfMethods = false)
+        .addOptionsModification(
+            options -> options.apiModelingOptions().enableStubbingOfClasses = false)
+        .addOptionsModification(options -> options.callSiteOptimizationOptions().setEnabled(false))
+        .addOptionsModification(
+            options -> options.testing.enableUtilityMethodsForCodeOptimizations = false)
+        .addOptionsModification(
+            options -> options.getArtProfileOptions().setEnableCompletenessCheckForTesting(true))
         .apply(this::configure)
         .compile();
   }

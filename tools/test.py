@@ -78,6 +78,10 @@ def ParseOptions():
   result.add_option('--all-tests', '--all_tests',
       help='Run tests in all configurations.',
       default=False, action='store_true')
+  result.add_option('--art-profile-rewriting-completeness-check',
+       '--art_profile_rewriting_completeness_check',
+      help='Enable completeness check for ART profile rewriting.',
+      default=False, action='store_true')
   result.add_option('--slow-tests', '--slow_tests',
       help='Also run slow tests.',
       default=False, action='store_true')
@@ -287,6 +291,8 @@ def Main():
     gradle_args.append('-Ponly_internal')
   if options.all_tests:
     gradle_args.append('-Pall_tests')
+  if options.art_profile_rewriting_completeness_check:
+    gradle_args.append('-Part_profile_rewriting_completeness_check=1')
   if options.slow_tests:
     gradle_args.append('-Pslow_tests=1')
   if options.tool:

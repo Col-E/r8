@@ -4,13 +4,17 @@
 
 package com.android.tools.r8.profile.art;
 
+import static com.android.tools.r8.utils.SystemPropertyUtils.parseSystemPropertyOrDefault;
+
 import java.util.Collection;
 import java.util.Collections;
 
 public class ArtProfileOptions {
 
   private Collection<ArtProfileForRewriting> artProfilesForRewriting = Collections.emptyList();
-  private boolean passthrough;
+  private boolean enableCompletenessCheckForTesting =
+      parseSystemPropertyOrDefault(
+          "com.android.tools.r8.artprofilerewritingcompletenesscheck", false);
 
   public ArtProfileOptions() {}
 
@@ -18,17 +22,18 @@ public class ArtProfileOptions {
     return artProfilesForRewriting;
   }
 
+  public boolean isCompletenessCheckForTestingEnabled() {
+    return enableCompletenessCheckForTesting;
+  }
+
   public ArtProfileOptions setArtProfilesForRewriting(Collection<ArtProfileForRewriting> inputs) {
     this.artProfilesForRewriting = inputs;
     return this;
   }
 
-  public boolean isPassthrough() {
-    return passthrough;
-  }
-
-  public ArtProfileOptions setPassthrough(boolean passthrough) {
-    this.passthrough = passthrough;
+  public ArtProfileOptions setEnableCompletenessCheckForTesting(
+      boolean enableCompletenessCheckForTesting) {
+    this.enableCompletenessCheckForTesting = enableCompletenessCheckForTesting;
     return this;
   }
 }

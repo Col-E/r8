@@ -2298,6 +2298,12 @@ test { task ->
         systemProperty 'runtimes', project.property('runtimes')
     }
 
+    if (project.hasProperty('art_profile_rewriting_completeness_check')) {
+        String key = 'com.android.tools.r8.artprofilerewritingcompletenesscheck'
+        String value = project.property('art_profile_rewriting_completeness_check')
+        systemProperty key, value
+    }
+
     if (project.hasProperty('slow_tests')) {
         systemProperty 'slow_tests', project.property('slow_tests')
     }

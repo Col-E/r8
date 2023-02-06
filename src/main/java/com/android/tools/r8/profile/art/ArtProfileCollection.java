@@ -4,11 +4,14 @@
 
 package com.android.tools.r8.profile.art;
 
+import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexItemFactory;
+import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.PrunedItems;
 import com.android.tools.r8.naming.NamingLens;
+import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -16,17 +19,15 @@ import java.util.List;
 
 public abstract class ArtProfileCollection {
 
-  public static ArtProfileCollection createInitialArtProfileCollection(InternalOptions options) {
+  public static ArtProfileCollection createInitialArtProfileCollection(
+      AppInfo appInfo, InternalOptions options) {
     ArtProfileOptions artProfileOptions = options.getArtProfileOptions();
     Collection<ArtProfileForRewriting> artProfilesForRewriting =
         artProfileOptions.getArtProfilesForRewriting();
-    if (artProfilesForRewriting.isEmpty()) {
-      return empty();
-    }
-    if (artProfileOptions.isPassthrough()) {
-      return passthrough();
-    }
-    List<ArtProfile> artProfiles = new ArrayList<>(artProfilesForRewriting.size());
+    List<ArtProfile> artProfiles =
+        new ArrayList<>(
+            artProfilesForRewriting.size()
+                + BooleanUtils.intValue(artProfileOptions.isCompletenessCheckForTestingEnabled()));
     for (ArtProfileForRewriting artProfileForRewriting :
         options.getArtProfileOptions().getArtProfilesForRewriting()) {
       ArtProfileProvider artProfileProvider = artProfileForRewriting.getArtProfileProvider();
@@ -35,15 +36,29 @@ public abstract class ArtProfileCollection {
       artProfileForRewriting.getArtProfileProvider().getArtProfile(artProfileBuilder);
       artProfiles.add(artProfileBuilder.build());
     }
+    if (artProfileOptions.isCompletenessCheckForTestingEnabled()) {
+      artProfiles.add(createCompleteArtProfile(appInfo));
+    }
+    if (artProfiles.isEmpty()) {
+      return empty();
+    }
     return new NonEmptyArtProfileCollection(artProfiles);
+  }
+
+  private static ArtProfile createCompleteArtProfile(AppInfo appInfo) {
+    ArtProfile.Builder artProfileBuilder = ArtProfile.builder();
+    for (DexProgramClass clazz : appInfo.classesWithDeterministicOrder()) {
+      artProfileBuilder.addRule(ArtProfileClassRule.builder().setType(clazz.getType()).build());
+      clazz.forEachMethod(
+          method ->
+              artProfileBuilder.addRule(
+                  ArtProfileMethodRule.builder().setMethod(method.getReference()).build()));
+    }
+    return artProfileBuilder.build();
   }
 
   public static EmptyArtProfileCollection empty() {
     return EmptyArtProfileCollection.getInstance();
-  }
-
-  public static PassthroughArtProfileCollection passthrough() {
-    return PassthroughArtProfileCollection.getInstance();
   }
 
   public abstract boolean isNonEmpty();

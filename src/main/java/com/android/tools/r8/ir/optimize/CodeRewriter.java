@@ -1484,7 +1484,8 @@ public class CodeRewriter {
     // type.
     if (castType.isClassType()
         && castType.isAlwaysNull(appViewWithLiveness)
-        && !outValue.hasDebugUsers()) {
+        && !outValue.hasDebugUsers()
+        && options.testing.enableUtilityMethodsForCodeOptimizations) {
       // Replace all usages of the out-value by null.
       it.previous();
       Value nullValue = it.insertConstNullInstruction(code, options);

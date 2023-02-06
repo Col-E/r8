@@ -199,7 +199,7 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
   public static <T extends AppInfo> AppView<T> createForD8(T appInfo) {
     return new AppView<>(
         appInfo,
-        ArtProfileCollection.createInitialArtProfileCollection(appInfo.options()),
+        ArtProfileCollection.createInitialArtProfileCollection(appInfo, appInfo.options()),
         WholeProgramOptimizations.OFF,
         defaultTypeRewriter(appInfo));
   }
@@ -216,7 +216,7 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
       T appInfo, TypeRewriter mapper, Timing timing) {
     return new AppView<>(
         appInfo,
-        ArtProfileCollection.createInitialArtProfileCollection(appInfo.options()),
+        ArtProfileCollection.createInitialArtProfileCollection(appInfo, appInfo.options()),
         WholeProgramOptimizations.OFF,
         mapper,
         timing);
@@ -240,7 +240,7 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
             startupOrder);
     return new AppView<>(
         appInfo,
-        ArtProfileCollection.createInitialArtProfileCollection(application.options),
+        ArtProfileCollection.createInitialArtProfileCollection(appInfo, appInfo.options()),
         WholeProgramOptimizations.ON,
         defaultTypeRewriter(appInfo));
   }
@@ -248,7 +248,7 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
   public static <T extends AppInfo> AppView<T> createForL8(T appInfo, TypeRewriter mapper) {
     return new AppView<>(
         appInfo,
-        ArtProfileCollection.createInitialArtProfileCollection(appInfo.options()),
+        ArtProfileCollection.createInitialArtProfileCollection(appInfo, appInfo.options()),
         WholeProgramOptimizations.OFF,
         mapper);
   }
