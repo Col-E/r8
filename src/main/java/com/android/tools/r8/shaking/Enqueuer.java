@@ -3946,6 +3946,10 @@ public class Enqueuer {
       assert old == null || old == clazz;
     }
 
+    public Set<DexMethod> getNewlyLiveMethods() {
+      return liveMethods.keySet();
+    }
+
     public void addLiveMethod(ProgramMethod method) {
       DexMethod signature = method.getDefinition().getReference();
       ProgramMethod old = liveMethods.put(signature, method);

@@ -59,6 +59,7 @@ public class DesugaredLibraryAPICallbackSynthesizer implements CfPostProcessingD
       ExecutorService executorService) {
     ProcessorContext processorContext = appView.createProcessorContext();
     MainThreadContext mainThreadContext = processorContext.createMainThreadContext();
+    Set<DexMethod> newlyLiveMethods = eventConsumer.getNewlyLiveMethods();
     assert noPendingWrappersOrConversions();
     for (DexProgramClass clazz : programClasses) {
       if (!appView.isAlreadyLibraryDesugared(clazz)) {
@@ -66,8 +67,17 @@ public class DesugaredLibraryAPICallbackSynthesizer implements CfPostProcessingD
         // We note that methods requiring callbacks are library overrides, therefore, they should
         // always be live in R8.
         for (ProgramMethod virtualProgramMethod : clazz.virtualProgramMethods()) {
-          if (isLiveMethod.test(virtualProgramMethod)
-              && shouldRegisterCallback(virtualProgramMethod)) {
+          if (shouldRegisterCallback(virtualProgramMethod)) {
+            if (!isLiveMethod(virtualProgramMethod, newlyLiveMethods)) {
+              assert false;
+              appView
+                  .reporter()
+                  .warning(
+                      "The api callback synthesizer from desugared library is not able to generate"
+                          + " a call-back for "
+                          + virtualProgramMethod.getReference().toSourceString());
+              continue;
+            }
             if (trackedCallBackAPIs != null) {
               trackedCallBackAPIs.add(virtualProgramMethod.getReference());
             }
@@ -86,6 +96,12 @@ public class DesugaredLibraryAPICallbackSynthesizer implements CfPostProcessingD
     }
     assert noPendingWrappersOrConversions();
     generateTrackingWarnings();
+  }
+
+  private boolean isLiveMethod(
+      ProgramMethod virtualProgramMethod, Set<DexMethod> newlyLiveMethods) {
+    return isLiveMethod.test(virtualProgramMethod)
+        || newlyLiveMethods.contains(virtualProgramMethod.getReference());
   }
 
   private boolean noPendingWrappersOrConversions() {

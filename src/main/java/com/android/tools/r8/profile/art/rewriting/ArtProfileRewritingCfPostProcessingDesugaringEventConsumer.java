@@ -7,11 +7,13 @@ package com.android.tools.r8.profile.art.rewriting;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.DexClasspathClass;
+import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.desugar.CfPostProcessingDesugaringEventConsumer;
 import com.android.tools.r8.ir.desugar.itf.InterfaceDesugaringSyntheticHelper;
+import java.util.Set;
 import java.util.concurrent.ExecutionException;
 
 public class ArtProfileRewritingCfPostProcessingDesugaringEventConsumer
@@ -99,6 +101,11 @@ public class ArtProfileRewritingCfPostProcessingDesugaringEventConsumer
   @Override
   public void acceptWrapperClasspathClass(DexClasspathClass clazz) {
     parent.acceptWrapperClasspathClass(clazz);
+  }
+
+  @Override
+  public Set<DexMethod> getNewlyLiveMethods() {
+    return parent.getNewlyLiveMethods();
   }
 
   @Override
