@@ -662,15 +662,6 @@ public class BasicBlock {
     return !phis.isEmpty();
   }
 
-  public boolean hasDeadPhi(AppView<?> appView, IRCode code) {
-    for (Phi phi : phis) {
-      if (phi.isDead(appView, code)) {
-        return true;
-      }
-    }
-    return false;
-  }
-
   public List<Phi> getPhis() {
     return phis;
   }
