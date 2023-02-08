@@ -6,8 +6,10 @@ package com.android.tools.r8.ir.code;
 
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.ir.optimize.DeadCodeRemover.DeadInstructionResult;
+import com.android.tools.r8.utils.WorkList;
 import com.google.common.collect.Iterables;
-import com.google.common.collect.Sets;
+import java.util.LinkedHashSet;
+import java.util.Objects;
 import java.util.Set;
 
 public class ValueIsDeadAnalysis {
@@ -25,50 +27,51 @@ public class ValueIsDeadAnalysis {
     if (value.isUnused()) {
       return true;
     }
-    return isDead(value, Sets.newIdentityHashSet());
+    WorkList<Value> worklist = WorkList.newIdentityWorkList(value);
+    Value notDeadWitness = findNotDeadWitness(worklist);
+    boolean isDead = Objects.isNull(notDeadWitness);
+    return isDead;
   }
 
   public boolean hasDeadPhi(BasicBlock block) {
     return Iterables.any(block.getPhis(), this::isDead);
   }
 
-  private boolean isDead(Value value, Set<Value> active) {
-    // Give up when the dependent set of values reach a given threshold (otherwise this fails with
-    // a StackOverflowError on Art003_omnibus_opcodesTest).
-    if (active.size() > 100) {
-      return false;
-    }
+  private Value findNotDeadWitness(WorkList<Value> worklist) {
+    while (worklist.hasNext()) {
+      Value value = worklist.next();
 
-    // If the value has debug users we cannot eliminate it since it represents a value in a local
-    // variable that should be visible in the debugger.
-    if (value.hasDebugUsers()) {
-      return false;
-    }
-    // This is a candidate for a dead value. Guard against looping by adding it to the set of
-    // currently active values.
-    active.add(value);
-    for (Instruction instruction : value.uniqueUsers()) {
-      DeadInstructionResult result = instruction.canBeDeadCode(appView, code);
-      if (result.isNotDead()) {
-        return false;
+      // Give up when the dependent set of values reach a given threshold (otherwise this fails with
+      // a StackOverflowError on Art003_omnibus_opcodesTest).
+      // TODO(b/267990059): Remove this bail-out when the analysis is linear in the size of the code
+      //  object.
+      if (worklist.getSeenSet().size() > 100) {
+        return value;
       }
-      if (result.isMaybeDead()) {
-        for (Value valueRequiredToBeDead : result.getValuesRequiredToBeDead()) {
-          if (!active.contains(valueRequiredToBeDead) && !isDead(valueRequiredToBeDead, active)) {
-            return false;
-          }
+
+      // If the value has debug users we cannot eliminate it since it represents a value in a local
+      // variable that should be visible in the debugger.
+      if (value.hasDebugUsers()) {
+        return value;
+      }
+
+      Set<Value> valuesRequiredToBeDead = new LinkedHashSet<>(value.uniquePhiUsers());
+      for (Instruction instruction : value.uniqueUsers()) {
+        DeadInstructionResult result = instruction.canBeDeadCode(appView, code);
+        if (result.isNotDead()) {
+          return value;
+        }
+        if (result.isMaybeDead()) {
+          result.getValuesRequiredToBeDead().forEach(valuesRequiredToBeDead::add);
+        }
+        if (instruction.hasOutValue()) {
+          valuesRequiredToBeDead.add(instruction.outValue());
         }
       }
-      Value outValue = instruction.outValue();
-      if (outValue != null && !active.contains(outValue) && !isDead(outValue, active)) {
-        return false;
-      }
+
+      // Continue the analysis of the dependents.
+      worklist.addIfNotSeen(valuesRequiredToBeDead);
     }
-    for (Phi phi : value.uniquePhiUsers()) {
-      if (!active.contains(phi) && !isDead(phi, active)) {
-        return false;
-      }
-    }
-    return true;
+    return null;
   }
 }
