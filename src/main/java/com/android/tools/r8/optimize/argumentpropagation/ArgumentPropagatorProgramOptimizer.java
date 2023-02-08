@@ -36,6 +36,7 @@ import com.android.tools.r8.ir.optimize.info.CallSiteOptimizationInfo;
 import com.android.tools.r8.ir.optimize.info.ConcreteCallSiteOptimizationInfo;
 import com.android.tools.r8.optimize.argumentpropagation.ArgumentPropagatorGraphLens.Builder;
 import com.android.tools.r8.optimize.argumentpropagation.utils.ParameterRemovalUtils;
+import com.android.tools.r8.profile.art.rewriting.ArtProfileCollectionAdditions;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.KeepFieldInfo;
 import com.android.tools.r8.shaking.KeepMethodInfo;
@@ -193,18 +194,23 @@ public class ArgumentPropagatorProgramOptimizer {
       Timing timing)
       throws ExecutionException {
     timing.begin("Optimize components");
+    ArtProfileCollectionAdditions artProfileCollectionAdditions =
+        ArtProfileCollectionAdditions.create(appView);
+    ArgumentPropagatorSyntheticEventConsumer eventConsumer =
+        ArgumentPropagatorSyntheticEventConsumer.create(artProfileCollectionAdditions);
     ProcessorContext processorContext = appView.createProcessorContext();
     Collection<Builder> partialGraphLensBuilders =
         ThreadUtils.processItemsWithResults(
             stronglyConnectedProgramComponents,
             classes ->
-                new StronglyConnectedComponentOptimizer(processorContext)
+                new StronglyConnectedComponentOptimizer(eventConsumer, processorContext)
                     .optimize(
                         classes,
                         interfaceDispatchOutsideProgram.getOrDefault(
                             classes, DexMethodSignatureSet.empty()),
                         affectedClassConsumer),
             executorService);
+    artProfileCollectionAdditions.commit(appView);
     timing.end();
 
     // Merge all the partial, disjoint graph lens builders into a single graph lens.
@@ -267,9 +273,12 @@ public class ArgumentPropagatorProgramOptimizer {
     private final Map<DexMethodSignature, Pair<AllowedPrototypeChanges, DexMethodSignature>>
         occupiedMethodSignatures = new HashMap<>();
 
+    private final ArgumentPropagatorSyntheticEventConsumer eventConsumer;
     private final ProcessorContext processorContext;
 
-    public StronglyConnectedComponentOptimizer(ProcessorContext processorContext) {
+    public StronglyConnectedComponentOptimizer(
+        ArgumentPropagatorSyntheticEventConsumer eventConsumer, ProcessorContext processorContext) {
+      this.eventConsumer = eventConsumer;
       this.processorContext = processorContext;
     }
 
@@ -876,16 +885,17 @@ public class ArgumentPropagatorProgramOptimizer {
           }
         }
       }
-      DexType extraArgumentType =
+      DexProgramClass extraArgumentClass =
           appView
               .getSyntheticItems()
               .createClass(
                   kinds -> kinds.NON_FIXED_INIT_TYPE_ARGUMENT,
                   processorContext.createMethodProcessingContext(method).createUniqueContext(),
-                  appView)
-              .getType();
+                  appView);
+      eventConsumer.acceptInitializerArgumentClass(extraArgumentClass, method);
       RewrittenPrototypeDescription finalPrototypeChanges =
-          prototypeChanges.withExtraParameters(new ExtraUnusedNullParameter(extraArgumentType));
+          prototypeChanges.withExtraParameters(
+              new ExtraUnusedNullParameter(extraArgumentClass.getType()));
       boolean added =
           instanceInitializerSignatures.add(
               finalPrototypeChanges.rewriteMethod(method, dexItemFactory));

@@ -43,7 +43,7 @@ public abstract class ArtProfileCollectionAdditions {
     return false;
   }
 
-  ConcreteArtProfileCollectionAdditions asConcrete() {
+  public ConcreteArtProfileCollectionAdditions asConcrete() {
     return null;
   }
 

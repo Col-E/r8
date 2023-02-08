@@ -52,7 +52,6 @@ public class TiviTest extends TestBase {
         .addOptionsModification(options -> options.outline.enabled = false)
         .addOptionsModification(
             options -> options.apiModelingOptions().enableStubbingOfClasses = false)
-        .addOptionsModification(options -> options.callSiteOptimizationOptions().setEnabled(false))
         .addOptionsModification(
             options -> options.getArtProfileOptions().setEnableCompletenessCheckForTesting(true))
         .apply(this::configure)
