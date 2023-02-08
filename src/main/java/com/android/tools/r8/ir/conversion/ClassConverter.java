@@ -34,7 +34,6 @@ import java.util.concurrent.ExecutorService;
 public abstract class ClassConverter {
 
   protected final AppView<?> appView;
-  private final ArtProfileCollectionAdditions artProfileCollectionAdditions;
   private final PrimaryD8L8IRConverter converter;
   private final D8MethodProcessor methodProcessor;
   private final InterfaceProcessor interfaceProcessor;
@@ -45,7 +44,6 @@ public abstract class ClassConverter {
       D8MethodProcessor methodProcessor,
       InterfaceProcessor interfaceProcessor) {
     this.appView = appView;
-    this.artProfileCollectionAdditions = ArtProfileCollectionAdditions.create(appView);
     this.converter = converter;
     this.methodProcessor = methodProcessor;
     this.interfaceProcessor = interfaceProcessor;
@@ -66,7 +64,6 @@ public abstract class ClassConverter {
       throws ExecutionException {
     ClassConverterResult.Builder resultBuilder = ClassConverterResult.builder();
     internalConvertClasses(resultBuilder, executorService);
-    artProfileCollectionAdditions.commit(appView);
     notifyAllClassesConverted();
     return resultBuilder.build();
   }
@@ -117,6 +114,8 @@ public abstract class ClassConverter {
       ClassConverterResult.Builder resultBuilder, ExecutorService executorService)
       throws ExecutionException {
     Collection<DexProgramClass> classes = appView.appInfo().classes();
+    ArtProfileCollectionAdditions artProfileCollectionAdditions =
+        methodProcessor.getArtProfileCollectionAdditions();
     CfClassSynthesizerDesugaringEventConsumer classSynthesizerEventConsumer =
         CfClassSynthesizerDesugaringEventConsumer.create(artProfileCollectionAdditions);
     converter.classSynthesisDesugaring(executorService, classSynthesizerEventConsumer);

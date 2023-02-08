@@ -13,6 +13,7 @@ import com.android.tools.r8.ir.conversion.callgraph.CallSiteInformation;
 import com.android.tools.r8.ir.desugar.CfInstructionDesugaringEventConsumer;
 import com.android.tools.r8.ir.desugar.CfInstructionDesugaringEventConsumer.D8CfInstructionDesugaringEventConsumer;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackIgnore;
+import com.android.tools.r8.profile.art.rewriting.ArtProfileCollectionAdditions;
 import com.android.tools.r8.utils.ThreadUtils;
 import com.google.common.collect.Sets;
 import java.util.ArrayList;
@@ -25,6 +26,7 @@ import java.util.concurrent.Future;
 
 public class D8MethodProcessor extends MethodProcessor {
 
+  private final ArtProfileCollectionAdditions artProfileCollectionAdditions;
   private final PrimaryD8L8IRConverter converter;
   private final MethodProcessorEventConsumer eventConsumer;
   private final ExecutorService executorService;
@@ -43,11 +45,12 @@ public class D8MethodProcessor extends MethodProcessor {
   private ProcessorContext processorContext;
 
   public D8MethodProcessor(
+      ArtProfileCollectionAdditions artProfileCollectionAdditions,
       PrimaryD8L8IRConverter converter,
-      MethodProcessorEventConsumer eventConsumer,
       ExecutorService executorService) {
+    this.artProfileCollectionAdditions = artProfileCollectionAdditions;
     this.converter = converter;
-    this.eventConsumer = eventConsumer;
+    this.eventConsumer = MethodProcessorEventConsumer.create(artProfileCollectionAdditions);
     this.executorService = executorService;
     this.processorContext = converter.appView.createProcessorContext();
   }
@@ -64,6 +67,10 @@ public class D8MethodProcessor extends MethodProcessor {
   @Override
   public MethodProcessingContext createMethodProcessingContext(ProgramMethod method) {
     return processorContext.createMethodProcessingContext(method);
+  }
+
+  public ArtProfileCollectionAdditions getArtProfileCollectionAdditions() {
+    return artProfileCollectionAdditions;
   }
 
   @Override

@@ -6,9 +6,17 @@ package com.android.tools.r8.ir.conversion;
 
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.optimize.UtilityMethodsForCodeOptimizationsEventConsumer;
+import com.android.tools.r8.profile.art.rewriting.ArtProfileCollectionAdditions;
+import com.android.tools.r8.profile.art.rewriting.ArtProfileRewritingMethodProcessorEventConsumer;
 
 public abstract class MethodProcessorEventConsumer
     implements UtilityMethodsForCodeOptimizationsEventConsumer {
+
+  public static MethodProcessorEventConsumer create(
+      ArtProfileCollectionAdditions artProfileCollectionAdditions) {
+    return ArtProfileRewritingMethodProcessorEventConsumer.attach(
+        artProfileCollectionAdditions, empty());
+  }
 
   public static MethodProcessorEventConsumer empty() {
     return EmptyMethodProcessorEventConsumer.getInstance();

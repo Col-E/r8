@@ -16,6 +16,7 @@ import com.android.tools.r8.ir.analysis.fieldaccess.TrivialFieldAccessReprocesso
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackDelayed;
 import com.android.tools.r8.logging.Log;
 import com.android.tools.r8.optimize.argumentpropagation.ArgumentPropagator;
+import com.android.tools.r8.profile.art.rewriting.ArtProfileCollectionAdditions;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.CfgPrinter;
 import com.android.tools.r8.utils.Timing;
@@ -81,7 +82,10 @@ public class PrimaryR8IRConverter extends IRConverter {
         new PostMethodProcessor.Builder(graphLensForPrimaryOptimizationPass);
     {
       timing.begin("Build primary method processor");
-      MethodProcessorEventConsumer eventConsumer = MethodProcessorEventConsumer.empty();
+      ArtProfileCollectionAdditions artProfileCollectionAdditions =
+          ArtProfileCollectionAdditions.create(appView);
+      MethodProcessorEventConsumer eventConsumer =
+          MethodProcessorEventConsumer.create(artProfileCollectionAdditions);
       PrimaryMethodProcessor primaryMethodProcessor =
           PrimaryMethodProcessor.create(
               appView.withLiveness(), eventConsumer, executorService, timing);
@@ -97,6 +101,7 @@ public class PrimaryR8IRConverter extends IRConverter {
           timing,
           executorService);
       lastWaveDone(postMethodProcessorBuilder, executorService);
+      timing.time("Commit profile additions", () -> artProfileCollectionAdditions.commit(appView));
       assert appView.graphLens() == graphLensForPrimaryOptimizationPass;
       timing.end();
     }
@@ -150,11 +155,14 @@ public class PrimaryR8IRConverter extends IRConverter {
 
     {
       timing.begin("IR conversion phase 2");
+      ArtProfileCollectionAdditions artProfileCollectionAdditions =
+          ArtProfileCollectionAdditions.create(appView);
       PostMethodProcessor postMethodProcessor =
           timing.time(
               "Build post method processor",
               () -> {
-                MethodProcessorEventConsumer eventConsumer = MethodProcessorEventConsumer.empty();
+                MethodProcessorEventConsumer eventConsumer =
+                    MethodProcessorEventConsumer.create(artProfileCollectionAdditions);
                 return postMethodProcessorBuilder.build(
                     appView, eventConsumer, executorService, timing);
               });
@@ -171,6 +179,8 @@ public class PrimaryR8IRConverter extends IRConverter {
             timing);
         timing.end();
         timing.time("Update visible optimization info", feedback::updateVisibleOptimizationInfo);
+        timing.time(
+            "Commit profile additions", () -> artProfileCollectionAdditions.commit(appView));
         assert appView.graphLens() == graphLensForSecondaryOptimizationPass;
       }
       timing.end();

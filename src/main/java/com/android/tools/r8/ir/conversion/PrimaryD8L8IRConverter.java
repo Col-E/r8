@@ -55,8 +55,10 @@ public class PrimaryD8L8IRConverter extends IRConverter {
     LambdaDeserializationMethodRemover.run(appView);
     workaroundAbstractMethodOnNonAbstractClassVerificationBug(executorService);
     DexApplication application = appView.appInfo().app();
-    MethodProcessorEventConsumer eventConsumer = MethodProcessorEventConsumer.empty();
-    D8MethodProcessor methodProcessor = new D8MethodProcessor(this, eventConsumer, executorService);
+    ArtProfileCollectionAdditions artProfileCollectionAdditions =
+        ArtProfileCollectionAdditions.create(appView);
+    D8MethodProcessor methodProcessor =
+        new D8MethodProcessor(artProfileCollectionAdditions, this, executorService);
     InterfaceProcessor interfaceProcessor = InterfaceProcessor.create(appView);
 
     timing.begin("IR conversion");
@@ -98,6 +100,8 @@ public class PrimaryD8L8IRConverter extends IRConverter {
         new AppInfo(
             appView.appInfo().getSyntheticItems().commit(application),
             appView.appInfo().getMainDexInfo()));
+
+    artProfileCollectionAdditions.commit(appView);
 
     printCfg();
   }
@@ -302,11 +306,11 @@ public class PrimaryD8L8IRConverter extends IRConverter {
       InterfaceProcessor interfaceProcessor,
       ExecutorService executorService)
       throws ExecutionException {
-    ArtProfileCollectionAdditions artProfileCollectionAdditions =
-        ArtProfileCollectionAdditions.create(appView);
     CfPostProcessingDesugaringEventConsumer eventConsumer =
         CfPostProcessingDesugaringEventConsumer.createForD8(
-            artProfileCollectionAdditions, methodProcessor, instructionDesugaring);
+            methodProcessor.getArtProfileCollectionAdditions(),
+            methodProcessor,
+            instructionDesugaring);
     methodProcessor.newWave();
     InterfaceMethodProcessorFacade interfaceDesugaring =
         instructionDesugaring.getInterfaceMethodPostProcessingDesugaringD8(
@@ -315,7 +319,6 @@ public class PrimaryD8L8IRConverter extends IRConverter {
         .postProcessingDesugaring(appView.appInfo().classes(), eventConsumer, executorService);
     methodProcessor.awaitMethodProcessing();
     eventConsumer.finalizeDesugaring();
-    artProfileCollectionAdditions.commit(appView);
   }
 
   void prepareDesugaring(

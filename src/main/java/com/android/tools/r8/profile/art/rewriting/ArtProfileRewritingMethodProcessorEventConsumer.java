@@ -1,0 +1,78 @@
+// Copyright (c) 2023, the R8 project authors. Please see the AUTHORS file
+// for details. All rights reserved. Use of this source code is governed by a
+// BSD-style license that can be found in the LICENSE file.
+
+package com.android.tools.r8.profile.art.rewriting;
+
+import com.android.tools.r8.graph.ProgramMethod;
+import com.android.tools.r8.ir.conversion.MethodProcessorEventConsumer;
+
+public class ArtProfileRewritingMethodProcessorEventConsumer extends MethodProcessorEventConsumer {
+
+  private final ConcreteArtProfileCollectionAdditions additionsCollection;
+  private final MethodProcessorEventConsumer parent;
+
+  private ArtProfileRewritingMethodProcessorEventConsumer(
+      ConcreteArtProfileCollectionAdditions additionsCollection,
+      MethodProcessorEventConsumer parent) {
+    this.additionsCollection = additionsCollection;
+    this.parent = parent;
+  }
+
+  public static MethodProcessorEventConsumer attach(
+      ArtProfileCollectionAdditions artProfileCollectionAdditions,
+      MethodProcessorEventConsumer eventConsumer) {
+    if (artProfileCollectionAdditions.isNop()) {
+      return eventConsumer;
+    }
+    return new ArtProfileRewritingMethodProcessorEventConsumer(
+        artProfileCollectionAdditions.asConcrete(), eventConsumer);
+  }
+
+  @Override
+  public void acceptUtilityToStringIfNotNullMethod(ProgramMethod method, ProgramMethod context) {
+    additionsCollection.applyIfContextIsInProfile(
+        context, additionsBuilder -> additionsBuilder.addRule(method).addRule(method.getHolder()));
+    parent.acceptUtilityToStringIfNotNullMethod(method, context);
+  }
+
+  @Override
+  public void acceptUtilityThrowClassCastExceptionIfNotNullMethod(
+      ProgramMethod method, ProgramMethod context) {
+    additionsCollection.applyIfContextIsInProfile(
+        context, additionsBuilder -> additionsBuilder.addRule(method).addRule(method.getHolder()));
+    parent.acceptUtilityThrowClassCastExceptionIfNotNullMethod(method, context);
+  }
+
+  @Override
+  public void acceptUtilityThrowIllegalAccessErrorMethod(
+      ProgramMethod method, ProgramMethod context) {
+    additionsCollection.applyIfContextIsInProfile(
+        context, additionsBuilder -> additionsBuilder.addRule(method).addRule(method.getHolder()));
+    parent.acceptUtilityThrowIllegalAccessErrorMethod(method, context);
+  }
+
+  @Override
+  public void acceptUtilityThrowIncompatibleClassChangeErrorMethod(
+      ProgramMethod method, ProgramMethod context) {
+    additionsCollection.applyIfContextIsInProfile(
+        context, additionsBuilder -> additionsBuilder.addRule(method).addRule(method.getHolder()));
+    parent.acceptUtilityThrowIncompatibleClassChangeErrorMethod(method, context);
+  }
+
+  @Override
+  public void acceptUtilityThrowNoSuchMethodErrorMethod(
+      ProgramMethod method, ProgramMethod context) {
+    additionsCollection.applyIfContextIsInProfile(
+        context, additionsBuilder -> additionsBuilder.addRule(method).addRule(method.getHolder()));
+    parent.acceptUtilityThrowNoSuchMethodErrorMethod(method, context);
+  }
+
+  @Override
+  public void acceptUtilityThrowRuntimeExceptionWithMessageMethod(
+      ProgramMethod method, ProgramMethod context) {
+    additionsCollection.applyIfContextIsInProfile(
+        context, additionsBuilder -> additionsBuilder.addRule(method).addRule(method.getHolder()));
+    parent.acceptUtilityThrowRuntimeExceptionWithMessageMethod(method, context);
+  }
+}
