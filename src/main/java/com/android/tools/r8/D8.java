@@ -23,7 +23,7 @@ import com.android.tools.r8.graph.analysis.ClassInitializerAssertionEnablingAnal
 import com.android.tools.r8.horizontalclassmerging.HorizontalClassMerger;
 import com.android.tools.r8.inspector.internal.InspectorImpl;
 import com.android.tools.r8.ir.analysis.value.AbstractValueFactory;
-import com.android.tools.r8.ir.conversion.IRConverter;
+import com.android.tools.r8.ir.conversion.PrimaryD8L8IRConverter;
 import com.android.tools.r8.ir.desugar.TypeRewriter;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibraryAmender;
 import com.android.tools.r8.ir.optimize.AssertionsRewriter;
@@ -50,10 +50,7 @@ import com.android.tools.r8.utils.StringDiagnostic;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.ThreadUtils;
 import com.android.tools.r8.utils.Timing;
-import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.OutputStreamWriter;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -246,19 +243,8 @@ public final class D8 {
         appView.setAppServices(AppServices.builder(appView).build());
       }
       timing.end();
-      new IRConverter(appView, timing, printer).convert(appView, executor);
+      new PrimaryD8L8IRConverter(appView, timing).convert(appView, executor);
       timing.begin("Post conversion");
-      if (options.printCfg) {
-        if (options.printCfgFile == null || options.printCfgFile.isEmpty()) {
-          System.out.print(printer.toString());
-        } else {
-          try (OutputStreamWriter writer =
-              new OutputStreamWriter(
-                  new FileOutputStream(options.printCfgFile), StandardCharsets.UTF_8)) {
-            writer.write(printer.toString());
-          }
-        }
-      }
 
       // Close any internal archive providers now the application is fully processed.
       inputApp.closeInternalArchiveProviders();
@@ -450,26 +436,6 @@ public final class D8 {
     return finalDexApp.build();
   }
 
-  static void optimize(
-      AppView<AppInfo> appView, InternalOptions options, Timing timing, ExecutorService executor)
-      throws IOException, ExecutionException {
-    final CfgPrinter printer = options.printCfg ? new CfgPrinter() : null;
-
-    new IRConverter(appView, timing, printer).convert(appView, executor);
-
-    if (options.printCfg) {
-      if (options.printCfgFile == null || options.printCfgFile.isEmpty()) {
-        System.out.print(printer.toString());
-      } else {
-        try (OutputStreamWriter writer =
-            new OutputStreamWriter(
-                new FileOutputStream(options.printCfgFile), StandardCharsets.UTF_8)) {
-          writer.write(printer.toString());
-        }
-      }
-    }
-  }
-
   static class ConvertedCfFiles implements DexIndexedConsumer, ProgramResourceProvider {
 
     private final List<ProgramResource> resources = new ArrayList<>();
@@ -484,7 +450,7 @@ public final class D8 {
     }
 
     @Override
-    public Collection<ProgramResource> getProgramResources() throws ResourceException {
+    public Collection<ProgramResource> getProgramResources() {
       return resources;
     }
 

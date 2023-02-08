@@ -11,7 +11,7 @@ import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.LazyLoadedDexApplication;
-import com.android.tools.r8.ir.conversion.IRConverter;
+import com.android.tools.r8.ir.conversion.PrimaryD8L8IRConverter;
 import com.android.tools.r8.ir.desugar.TypeRewriter;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibraryAmender;
 import com.android.tools.r8.jar.CfApplicationWriter;
@@ -140,7 +140,7 @@ public class L8 {
         AnnotationRemover.clearAnnotations(appView);
       }
 
-      new IRConverter(appView, timing).convert(appView, executor);
+      new PrimaryD8L8IRConverter(appView, timing).convert(appView, executor);
 
       SyntheticFinalization.finalize(appView, timing, executor);
 

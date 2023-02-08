@@ -25,7 +25,7 @@ import java.util.concurrent.Future;
 
 public class D8MethodProcessor extends MethodProcessor {
 
-  private final IRConverter converter;
+  private final PrimaryD8L8IRConverter converter;
   private final MethodProcessorEventConsumer eventConsumer;
   private final ExecutorService executorService;
   private final Set<DexType> scheduled = Sets.newIdentityHashSet();
@@ -43,7 +43,7 @@ public class D8MethodProcessor extends MethodProcessor {
   private ProcessorContext processorContext;
 
   public D8MethodProcessor(
-      IRConverter converter,
+      PrimaryD8L8IRConverter converter,
       MethodProcessorEventConsumer eventConsumer,
       ExecutorService executorService) {
     this.converter = converter;
@@ -126,9 +126,8 @@ public class D8MethodProcessor extends MethodProcessor {
             executorService));
   }
 
-  public D8MethodProcessor scheduleDesugaredMethodsForProcessing(Iterable<ProgramMethod> methods) {
+  public void scheduleDesugaredMethodsForProcessing(Iterable<ProgramMethod> methods) {
     methods.forEach(this::scheduleDesugaredMethodForProcessing);
-    return this;
   }
 
   @Override
