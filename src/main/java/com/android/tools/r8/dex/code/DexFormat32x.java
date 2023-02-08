@@ -45,6 +45,7 @@ abstract class DexFormat32x extends DexBase3Format {
       ShortBuffer dest,
       ProgramMethod context,
       GraphLens graphLens,
+      GraphLens codeLens,
       ObjectToOffsetMapping mapping,
       LensCodeRewriterUtils rewriter) {
     writeFirst(0, dest);

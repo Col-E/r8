@@ -34,6 +34,7 @@ abstract class DexFormat20t extends DexBase2Format {
       ShortBuffer dest,
       ProgramMethod context,
       GraphLens graphLens,
+      GraphLens codeLens,
       ObjectToOffsetMapping mapping,
       LensCodeRewriterUtils rewriter) {
     writeFirst(0, dest);

@@ -76,6 +76,7 @@ public class DexConstMethodType extends DexFormat21c<DexProto> {
       ShortBuffer dest,
       ProgramMethod context,
       GraphLens graphLens,
+      GraphLens codeLens,
       ObjectToOffsetMapping mapping,
       LensCodeRewriterUtils rewriter) {
     DexProto rewritten = rewriter.rewriteProto(getMethodType());

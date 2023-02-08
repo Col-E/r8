@@ -65,6 +65,7 @@ public class DexNewInstance extends DexFormat21c<DexType> {
       ShortBuffer dest,
       ProgramMethod context,
       GraphLens graphLens,
+      GraphLens codeLens,
       ObjectToOffsetMapping mapping,
       LensCodeRewriterUtils rewriter) {
     DexType rewritten = graphLens.lookupType(getType());

@@ -371,13 +371,14 @@ public class DefaultInstanceInitializerCode extends Code
       ShortBuffer shortBuffer,
       ProgramMethod context,
       GraphLens graphLens,
+      GraphLens codeLens,
       LensCodeRewriterUtils lensCodeRewriter,
       ObjectToOffsetMapping mapping) {
     DexMethod parentConstructor = getParentConstructor(context, mapping.dexItemFactory());
     MethodLookupResult lookupResult = graphLens.lookupInvokeDirect(parentConstructor, context);
     new DexInvokeDirect(1, lookupResult.getReference(), 0, 0, 0, 0, 0)
-        .write(shortBuffer, context, graphLens, mapping, lensCodeRewriter);
-    new DexReturnVoid().write(shortBuffer, context, graphLens, mapping, lensCodeRewriter);
+        .write(shortBuffer, context, graphLens, codeLens, mapping, lensCodeRewriter);
+    new DexReturnVoid().write(shortBuffer, context, graphLens, codeLens, mapping, lensCodeRewriter);
   }
 
   @Override

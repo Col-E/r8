@@ -135,7 +135,7 @@ public class NestedGraphLens extends NonIdentityGraphLens {
     if (this == codeLens) {
       return originalField;
     }
-    DexField renamedField = getPrevious().getRenamedFieldSignature(originalField);
+    DexField renamedField = getPrevious().getRenamedFieldSignature(originalField, codeLens);
     return internalGetNextFieldSignature(renamedField);
   }
 

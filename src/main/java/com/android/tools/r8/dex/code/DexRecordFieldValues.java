@@ -117,6 +117,7 @@ public class DexRecordFieldValues extends DexInstruction {
       ShortBuffer dest,
       ProgramMethod context,
       GraphLens graphLens,
+      GraphLens codeLens,
       ObjectToOffsetMapping mapping,
       LensCodeRewriterUtils rewriter) {
     throw new Unreachable(

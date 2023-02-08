@@ -38,9 +38,10 @@ abstract class DexSgetOrSput extends DexFormat21c<DexField> {
       ShortBuffer dest,
       ProgramMethod context,
       GraphLens graphLens,
+      GraphLens codeLens,
       ObjectToOffsetMapping mapping,
       LensCodeRewriterUtils rewriter) {
-    DexField rewritten = graphLens.lookupField(getField());
+    DexField rewritten = graphLens.lookupField(getField(), codeLens);
     writeFirst(AA, dest);
     write16BitReference(rewritten, dest, mapping);
   }

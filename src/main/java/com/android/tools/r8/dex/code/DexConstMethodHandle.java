@@ -78,6 +78,7 @@ public class DexConstMethodHandle extends DexFormat21c<DexMethodHandle> {
       ShortBuffer dest,
       ProgramMethod context,
       GraphLens graphLens,
+      GraphLens codeLens,
       ObjectToOffsetMapping mapping,
       LensCodeRewriterUtils rewriter) {
     DexMethodHandle rewritten =

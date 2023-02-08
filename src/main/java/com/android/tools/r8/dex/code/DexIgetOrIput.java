@@ -42,9 +42,10 @@ public abstract class DexIgetOrIput extends DexFormat22c<DexField> {
       ShortBuffer dest,
       ProgramMethod context,
       GraphLens graphLens,
+      GraphLens codeLens,
       ObjectToOffsetMapping mapping,
       LensCodeRewriterUtils rewriter) {
-    DexField lookup = graphLens.lookupField(getField());
+    DexField lookup = graphLens.lookupField(getField(), codeLens);
     writeFirst(B, A, dest);
     write16BitReference(lookup, dest, mapping);
   }

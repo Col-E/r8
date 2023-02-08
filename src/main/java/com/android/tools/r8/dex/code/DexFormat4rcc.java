@@ -57,6 +57,7 @@ public abstract class DexFormat4rcc extends DexBase4Format {
       ShortBuffer dest,
       ProgramMethod context,
       GraphLens graphLens,
+      GraphLens codeLens,
       ObjectToOffsetMapping mapping,
       LensCodeRewriterUtils rewriter) {
     // The method is one of java.lang.MethodHandle.invoke/invokeExact.

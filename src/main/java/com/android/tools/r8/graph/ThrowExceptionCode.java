@@ -211,19 +211,21 @@ public class ThrowExceptionCode extends Code implements DexWritableCode {
       ShortBuffer shortBuffer,
       ProgramMethod context,
       GraphLens graphLens,
+      GraphLens codeLens,
       LensCodeRewriterUtils lensCodeRewriter,
       ObjectToOffsetMapping mapping) {
     int register = 0;
     int notUsed = 0;
     int argumentCount = 1;
     new DexNewInstance(register, exceptionType)
-        .write(shortBuffer, context, graphLens, mapping, lensCodeRewriter);
+        .write(shortBuffer, context, graphLens, codeLens, mapping, lensCodeRewriter);
     DexMethod instanceInitializer =
         lensCodeRewriter.dexItemFactory().createInstanceInitializer(exceptionType);
     new DexInvokeDirect(
             argumentCount, instanceInitializer, register, notUsed, notUsed, notUsed, notUsed)
-        .write(shortBuffer, context, graphLens, mapping, lensCodeRewriter);
-    new DexThrow(register).write(shortBuffer, context, graphLens, mapping, lensCodeRewriter);
+        .write(shortBuffer, context, graphLens, codeLens, mapping, lensCodeRewriter);
+    new DexThrow(register)
+        .write(shortBuffer, context, graphLens, codeLens, mapping, lensCodeRewriter);
   }
 
   @Override

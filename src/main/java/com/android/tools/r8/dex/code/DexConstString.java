@@ -89,6 +89,7 @@ public class DexConstString extends DexFormat21c<DexString> {
       ShortBuffer dest,
       ProgramMethod context,
       GraphLens graphLens,
+      GraphLens codeLens,
       ObjectToOffsetMapping mapping,
       LensCodeRewriterUtils rewriter) {
     int index = BBBB.getOffset(mapping);

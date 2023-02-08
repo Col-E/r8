@@ -6,7 +6,9 @@ package com.android.tools.r8.horizontalclassmerging.code;
 
 import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.Code;
 import com.android.tools.r8.graph.DexProgramClass;
+import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.horizontalclassmerging.HorizontalClassMerger.Mode;
 import com.android.tools.r8.horizontalclassmerging.IRCodeProvider;
@@ -78,10 +80,18 @@ public class SyntheticInitializerConverter {
     assert appView.options().isGeneratingDex();
     assert mode.isFinal();
     clazz.forEachProgramInstanceInitializerMatching(
-        method -> !method.getCode().isDexCode(),
+        method -> method.getCode().isCfCode(),
         method -> {
+          GraphLens codeLens = method.getDefinition().getCode().getCodeLens(appView);
+          assert codeLens != appView.codeLens();
+
+          // Convert to dex.
           processMethod(method, converter);
-          assert method.getDefinition().getCode().isDexCode();
+
+          // Recover code lens.
+          Code code = method.getDefinition().getCode();
+          assert code.isDexCode();
+          method.setCode(code.asDexCode().withCodeLens(codeLens), appView);
         });
   }
 

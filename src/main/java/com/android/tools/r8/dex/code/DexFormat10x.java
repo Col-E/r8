@@ -27,6 +27,7 @@ abstract class DexFormat10x extends DexBase1Format {
       ShortBuffer dest,
       ProgramMethod context,
       GraphLens graphLens,
+      GraphLens codeLens,
       ObjectToOffsetMapping mapping,
       LensCodeRewriterUtils rewriter) {
     writeFirst(0, dest);

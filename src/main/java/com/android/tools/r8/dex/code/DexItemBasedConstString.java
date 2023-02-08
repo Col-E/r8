@@ -101,6 +101,7 @@ public class DexItemBasedConstString extends DexFormat21c<DexReference> {
       ShortBuffer dest,
       ProgramMethod context,
       GraphLens graphLens,
+      GraphLens codeLens,
       ObjectToOffsetMapping mapping,
       LensCodeRewriterUtils rewriter) {
     throw new Unreachable(

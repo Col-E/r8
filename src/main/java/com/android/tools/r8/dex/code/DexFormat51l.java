@@ -43,6 +43,7 @@ abstract class DexFormat51l extends DexBase5Format {
       ShortBuffer dest,
       ProgramMethod context,
       GraphLens graphLens,
+      GraphLens codeLens,
       ObjectToOffsetMapping mapping,
       LensCodeRewriterUtils rewriter) {
     writeFirst(AA, dest);

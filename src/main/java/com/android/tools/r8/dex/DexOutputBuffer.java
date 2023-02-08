@@ -5,6 +5,7 @@ package com.android.tools.r8.dex;
 
 import com.android.tools.r8.ByteBufferProvider;
 import com.android.tools.r8.errors.CompilationError;
+import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexWritableCode;
 import com.android.tools.r8.graph.ObjectToOffsetMapping;
 import com.android.tools.r8.graph.ProgramMethod;
@@ -92,6 +93,7 @@ public class DexOutputBuffer {
   }
 
   public void putInstructions(
+      AppView<?> appView,
       DexWritableCode code,
       ProgramMethod context,
       ObjectToOffsetMapping mapping,
@@ -101,7 +103,12 @@ public class DexOutputBuffer {
     assert byteBuffer.position() % 2 == 0;
     ShortBuffer shortBuffer = byteBuffer.asShortBuffer();
     code.writeDex(
-        shortBuffer, context, mapping.getGraphLens(), mapping.getLensCodeRewriter(), mapping);
+        shortBuffer,
+        context,
+        mapping.getGraphLens(),
+        code.getCodeLens(appView),
+        mapping.getLensCodeRewriter(),
+        mapping);
     code.writeKeepRulesForDesugaredLibrary(desugaredLibraryCodeToKeep);
     byteBuffer.position(byteBuffer.position() + shortBuffer.position() * Short.BYTES);
   }

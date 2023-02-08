@@ -79,6 +79,7 @@ public class DexInvokeCustomRange extends DexFormat3rc<DexCallSite> {
       ShortBuffer dest,
       ProgramMethod context,
       GraphLens graphLens,
+      GraphLens codeLens,
       ObjectToOffsetMapping mapping,
       LensCodeRewriterUtils rewriter) {
     DexCallSite rewritten = rewriter.rewriteCallSite(getCallSite(), context);

@@ -56,6 +56,7 @@ public class DexFillArrayDataPayload extends DexNop {
       ShortBuffer dest,
       ProgramMethod context,
       GraphLens graphLens,
+      GraphLens codeLens,
       ObjectToOffsetMapping mapping,
       LensCodeRewriterUtils rewriter) {
     writeFirst(3, dest); // Pseudo-opcode = 0x0300

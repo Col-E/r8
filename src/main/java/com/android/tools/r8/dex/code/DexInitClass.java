@@ -118,6 +118,7 @@ public class DexInitClass extends DexBase2Format {
       ShortBuffer buffer,
       ProgramMethod context,
       GraphLens graphLens,
+      GraphLens codeLens,
       ObjectToOffsetMapping mapping,
       LensCodeRewriterUtils rewriter) {
     // We intentionally apply the graph lens first, and then the init class lens, using the fact

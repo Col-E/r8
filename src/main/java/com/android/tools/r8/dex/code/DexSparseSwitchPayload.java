@@ -56,6 +56,7 @@ public class DexSparseSwitchPayload extends DexSwitchPayload {
       ShortBuffer dest,
       ProgramMethod context,
       GraphLens graphLens,
+      GraphLens codeLens,
       ObjectToOffsetMapping mapping,
       LensCodeRewriterUtils rewriter) {
     writeFirst(2, dest); // Pseudo-opcode = 0x0200

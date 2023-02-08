@@ -50,6 +50,7 @@ public abstract class DexInvokeMethodRange extends DexFormat3rc<DexMethod> {
       ShortBuffer dest,
       ProgramMethod context,
       GraphLens graphLens,
+      GraphLens codeLens,
       ObjectToOffsetMapping mapping,
       LensCodeRewriterUtils rewriter) {
     MethodLookupResult lookup =

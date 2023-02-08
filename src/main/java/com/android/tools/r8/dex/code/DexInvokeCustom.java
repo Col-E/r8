@@ -79,6 +79,7 @@ public class DexInvokeCustom extends DexFormat35c<DexCallSite> {
       ShortBuffer dest,
       ProgramMethod context,
       GraphLens graphLens,
+      GraphLens codeLens,
       ObjectToOffsetMapping mapping,
       LensCodeRewriterUtils rewriter) {
     writeFirst(A, G, dest);

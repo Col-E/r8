@@ -547,7 +547,7 @@ public class FileWriter {
     int insnSizeOffset = dest.position();
     dest.forward(4);
     // Write instruction stream.
-    dest.putInstructions(code, method, mapping, desugaredLibraryCodeToKeep);
+    dest.putInstructions(appView, code, method, mapping, desugaredLibraryCodeToKeep);
     // Compute size and do the backward/forward dance to write the size at the beginning.
     int insnSize = dest.position() - insnSizeOffset - 4;
     dest.rewind(insnSize + 4);

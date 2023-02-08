@@ -72,6 +72,7 @@ public class DexFilledNewArray extends DexFormat35c<DexType> {
       ShortBuffer dest,
       ProgramMethod context,
       GraphLens graphLens,
+      GraphLens codeLens,
       ObjectToOffsetMapping mapping,
       LensCodeRewriterUtils rewriter) {
     DexType rewritten = graphLens.lookupType(getType());

@@ -90,6 +90,20 @@ public class DexCode extends Code implements DexWritableCode, StructuralItem<Dex
         .withItemArray(c -> c.instructions);
   }
 
+  private DexCode(DexCode code) {
+    this(
+        code.registerSize,
+        code.incomingRegisterSize,
+        code.outgoingRegisterSize,
+        code.instructions,
+        code.tries,
+        code.handlers,
+        code.debugInfo,
+        code.metadata);
+    this.debugInfoForWriting = code.debugInfoForWriting;
+    this.highestSortingString = code.highestSortingString;
+  }
+
   public DexCode(int registerSize, int insSize, int outsSize, DexInstruction[] instructions) {
     this(
         registerSize,
@@ -142,6 +156,16 @@ public class DexCode extends Code implements DexWritableCode, StructuralItem<Dex
     assert instructions != null;
     assert verifySetPositionFramesFollowedByDefaultEvent(debugInfo);
     hashCode();  // Cache the hash code eagerly.
+  }
+
+  public DexCode withCodeLens(GraphLens codeLens) {
+    return new DexCode(this) {
+
+      @Override
+      public GraphLens getCodeLens(AppView<?> appView) {
+        return codeLens;
+      }
+    };
   }
 
   @Override
@@ -803,10 +827,11 @@ public class DexCode extends Code implements DexWritableCode, StructuralItem<Dex
       ShortBuffer shortBuffer,
       ProgramMethod context,
       GraphLens graphLens,
+      GraphLens codeLens,
       LensCodeRewriterUtils lensCodeRewriter,
       ObjectToOffsetMapping mapping) {
     for (DexInstruction instruction : instructions) {
-      instruction.write(shortBuffer, context, graphLens, mapping, lensCodeRewriter);
+      instruction.write(shortBuffer, context, graphLens, codeLens, mapping, lensCodeRewriter);
     }
   }
 

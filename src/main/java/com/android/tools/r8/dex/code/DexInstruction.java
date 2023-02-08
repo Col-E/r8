@@ -393,6 +393,7 @@ public abstract class DexInstruction implements CfOrDexInstruction, StructuralIt
       ShortBuffer buffer,
       ProgramMethod context,
       GraphLens graphLens,
+      GraphLens codeLens,
       ObjectToOffsetMapping mapping,
       LensCodeRewriterUtils rewriter);
 

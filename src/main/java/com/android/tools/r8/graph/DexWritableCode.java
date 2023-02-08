@@ -63,6 +63,8 @@ public interface DexWritableCode {
 
   void writeKeepRulesForDesugaredLibrary(CodeToKeep codeToKeep);
 
+  GraphLens getCodeLens(AppView<?> appView);
+
   DexDebugInfoForWriting getDebugInfoForWriting();
 
   DexWritableCodeKind getDexWritableCodeKind();
@@ -99,6 +101,7 @@ public interface DexWritableCode {
       ShortBuffer shortBuffer,
       ProgramMethod context,
       GraphLens graphLens,
+      GraphLens codeLens,
       LensCodeRewriterUtils lensCodeRewriter,
       ObjectToOffsetMapping mapping);
 }

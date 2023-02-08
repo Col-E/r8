@@ -248,11 +248,14 @@ public class ThrowNullCode extends Code implements CfWritableCode, DexWritableCo
       ShortBuffer shortBuffer,
       ProgramMethod context,
       GraphLens graphLens,
+      GraphLens codeLens,
       LensCodeRewriterUtils lensCodeRewriter,
       ObjectToOffsetMapping mapping) {
     int register = 0;
-    new DexConst4(register, 0).write(shortBuffer, context, graphLens, mapping, lensCodeRewriter);
-    new DexThrow(register).write(shortBuffer, context, graphLens, mapping, lensCodeRewriter);
+    new DexConst4(register, 0)
+        .write(shortBuffer, context, graphLens, codeLens, mapping, lensCodeRewriter);
+    new DexThrow(register)
+        .write(shortBuffer, context, graphLens, codeLens, mapping, lensCodeRewriter);
   }
 
   @Override

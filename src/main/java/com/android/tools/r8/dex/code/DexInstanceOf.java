@@ -88,6 +88,7 @@ public class DexInstanceOf extends DexFormat22c<DexType> {
       ShortBuffer dest,
       ProgramMethod context,
       GraphLens graphLens,
+      GraphLens codeLens,
       ObjectToOffsetMapping mapping,
       LensCodeRewriterUtils rewriter) {
     DexType lookup = graphLens.lookupType(getType());
