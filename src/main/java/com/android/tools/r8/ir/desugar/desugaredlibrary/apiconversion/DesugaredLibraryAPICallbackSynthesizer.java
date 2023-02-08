@@ -69,13 +69,7 @@ public class DesugaredLibraryAPICallbackSynthesizer implements CfPostProcessingD
         for (ProgramMethod virtualProgramMethod : clazz.virtualProgramMethods()) {
           if (shouldRegisterCallback(virtualProgramMethod)) {
             if (!isLiveMethod(virtualProgramMethod, newlyLiveMethods)) {
-              assert false;
-              appView
-                  .reporter()
-                  .warning(
-                      "The api callback synthesizer from desugared library is not able to generate"
-                          + " a call-back for "
-                          + virtualProgramMethod.getReference().toSourceString());
+              // This happens for live non instantiated types, library overrides are not live there.
               continue;
             }
             if (trackedCallBackAPIs != null) {
