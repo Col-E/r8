@@ -30,6 +30,13 @@ public class ArtProfileRewritingMethodProcessorEventConsumer extends MethodProce
   }
 
   @Override
+  public void acceptInstanceInitializerOutline(ProgramMethod method, ProgramMethod context) {
+    additionsCollection.applyIfContextIsInProfile(
+        context, additionsBuilder -> additionsBuilder.addRule(method).addRule(method.getHolder()));
+    parent.acceptInstanceInitializerOutline(method, context);
+  }
+
+  @Override
   public void acceptUtilityToStringIfNotNullMethod(ProgramMethod method, ProgramMethod context) {
     additionsCollection.applyIfContextIsInProfile(
         context, additionsBuilder -> additionsBuilder.addRule(method).addRule(method.getHolder()));

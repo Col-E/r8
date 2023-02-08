@@ -39,11 +39,11 @@ import com.android.tools.r8.ir.optimize.DynamicTypeOptimization;
 import com.android.tools.r8.ir.optimize.IdempotentFunctionCallCanonicalizer;
 import com.android.tools.r8.ir.optimize.Inliner;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
-import com.android.tools.r8.ir.optimize.InstanceInitializerOutliner;
 import com.android.tools.r8.ir.optimize.NaturalIntLoopRemover;
 import com.android.tools.r8.ir.optimize.RedundantFieldLoadAndStoreElimination;
 import com.android.tools.r8.ir.optimize.ReflectionOptimizer;
 import com.android.tools.r8.ir.optimize.ServiceLoaderRewriter;
+import com.android.tools.r8.ir.optimize.api.InstanceInitializerOutliner;
 import com.android.tools.r8.ir.optimize.classinliner.ClassInliner;
 import com.android.tools.r8.ir.optimize.enums.EnumUnboxer;
 import com.android.tools.r8.ir.optimize.enums.EnumValueOptimizer;
@@ -659,7 +659,7 @@ public class IRConverter {
 
     if (instanceInitializerOutliner != null) {
       instanceInitializerOutliner.rewriteInstanceInitializers(
-          code, context, methodProcessingContext);
+          code, context, methodProcessor, methodProcessingContext);
       assert code.verifyTypes(appView);
     }
 

@@ -1,8 +1,8 @@
-// Copyright (c) 2022, the R8 project authors. Please see the AUTHORS file
+// Copyright (c) 2023, the R8 project authors. Please see the AUTHORS file
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
-package com.android.tools.r8.ir.optimize;
+package com.android.tools.r8.ir.optimize.api;
 
 import com.android.tools.r8.androidapi.ComputedApiLevel;
 import com.android.tools.r8.contexts.CompilationContext.MethodProcessingContext;
@@ -25,6 +25,7 @@ import com.android.tools.r8.ir.code.InvokeDirect;
 import com.android.tools.r8.ir.code.InvokeStatic;
 import com.android.tools.r8.ir.code.NewInstance;
 import com.android.tools.r8.ir.code.Value;
+import com.android.tools.r8.ir.conversion.MethodProcessor;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedback;
 import com.android.tools.r8.ir.synthetic.ForwardMethodBuilder;
 import com.android.tools.r8.ir.synthetic.NewInstanceSourceCode;
@@ -58,7 +59,10 @@ public class InstanceInitializerOutliner {
   }
 
   public void rewriteInstanceInitializers(
-      IRCode code, ProgramMethod context, MethodProcessingContext methodProcessingContext) {
+      IRCode code,
+      ProgramMethod context,
+      MethodProcessor methodProcessor,
+      MethodProcessingContext methodProcessingContext) {
     // Do not outline from already synthesized methods.
     if (context.getDefinition().isD8R8Synthesized()) {
       return;
@@ -96,7 +100,10 @@ public class InstanceInitializerOutliner {
       }
       DexEncodedMethod synthesizedInstanceInitializer =
           createSynthesizedInstanceInitializer(
-              invokeDirect.getInvokedMethod(), apiReferenceLevel, methodProcessingContext);
+              invokeDirect.getInvokedMethod(),
+              apiReferenceLevel,
+              methodProcessor,
+              methodProcessingContext);
       List<Value> arguments = instruction.inValues();
       InvokeStatic outlinedMethodInvoke =
           InvokeStatic.builder()
@@ -134,7 +141,7 @@ public class InstanceInitializerOutliner {
       assert classApiLevel.isKnownApiLevel();
       DexEncodedMethod synthesizedNewInstance =
           createSynthesizedNewInstance(
-              newInstance.getType(), classApiLevel, methodProcessingContext);
+              newInstance.getType(), classApiLevel, methodProcessor, methodProcessingContext);
       InvokeStatic outlinedStaticInit =
           InvokeStatic.builder()
               .setMethod(synthesizedNewInstance.getReference())
@@ -174,6 +181,7 @@ public class InstanceInitializerOutliner {
   private DexEncodedMethod createSynthesizedNewInstance(
       DexType targetType,
       ComputedApiLevel computedApiLevel,
+      MethodProcessor methodProcessor,
       MethodProcessingContext methodProcessingContext) {
     DexProto proto = appView.dexItemFactory().createProto(factory.voidType);
     ProgramMethod method =
@@ -193,6 +201,9 @@ public class InstanceInitializerOutliner {
                             m ->
                                 NewInstanceSourceCode.create(appView, m.getHolderType(), targetType)
                                     .generateCfCode()));
+    methodProcessor
+        .getEventConsumer()
+        .acceptInstanceInitializerOutline(method, methodProcessingContext.getMethodContext());
     synchronized (synthesizedMethods) {
       synthesizedMethods.add(method);
     }
@@ -202,6 +213,7 @@ public class InstanceInitializerOutliner {
   private DexEncodedMethod createSynthesizedInstanceInitializer(
       DexMethod targetMethod,
       ComputedApiLevel computedApiLevel,
+      MethodProcessor methodProcessor,
       MethodProcessingContext methodProcessingContext) {
     DexProto proto =
         appView
@@ -226,7 +238,9 @@ public class InstanceInitializerOutliner {
                                     .setConstructorTargetWithNewInstance(targetMethod)
                                     .setStaticSource(m)
                                     .build()));
-
+    methodProcessor
+        .getEventConsumer()
+        .acceptInstanceInitializerOutline(method, methodProcessingContext.getMethodContext());
     synchronized (synthesizedMethods) {
       synthesizedMethods.add(method);
       ClassTypeElement exactType =
