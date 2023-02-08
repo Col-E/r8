@@ -36,11 +36,20 @@ public class MoveLoadUpPeephole implements BasicBlockPeephole {
   private int stackHeight = 0;
   private Instruction insertPosition = null;
 
+  // Set a threshold for the number of loads associated with a stored value that we attempt to move
+  // up. For big arrays with straight control flow moving loads up will have bad performance due
+  // to using an iterator to move up and down.
+  private static final int LOAD_USER_THRESHOLD = 20;
+
   private final Point firstLoad =
       new Point(
           (i) -> {
             if (PeepholeHelper.withoutLocalInfo(Instruction::isLoad).test(i)) {
-              local = i.asLoad().src();
+              Load load = i.asLoad();
+              if (load.getFirstOperand().numberOfAllUsers() > LOAD_USER_THRESHOLD) {
+                return false;
+              }
+              local = load.src();
               return true;
             }
             return false;
