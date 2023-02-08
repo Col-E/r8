@@ -9,7 +9,6 @@ import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.conversion.IRConverter;
-import com.android.tools.r8.ir.optimize.OutlinerImpl;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackDelayed;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.Timing;

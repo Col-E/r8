@@ -49,7 +49,6 @@ public class TiviTest extends TestBase {
     testForR8(Backend.DEX)
         .addProgramFiles(outDirectory.resolve("program.jar"))
         .addOptionsModification(options -> options.enableEnumUnboxing = false)
-        .addOptionsModification(options -> options.outline.enabled = false)
         .addOptionsModification(
             options -> options.apiModelingOptions().enableStubbingOfClasses = false)
         .addOptionsModification(

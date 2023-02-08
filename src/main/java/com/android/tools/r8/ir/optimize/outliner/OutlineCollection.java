@@ -11,7 +11,7 @@ import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.ProgramMethod;
-import com.android.tools.r8.ir.optimize.OutlinerImpl.Outline;
+import com.android.tools.r8.ir.optimize.outliner.OutlinerImpl.Outline;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.ListUtils;
 import com.android.tools.r8.utils.collections.ProgramMethodSet;

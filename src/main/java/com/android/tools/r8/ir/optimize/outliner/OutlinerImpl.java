@@ -1,8 +1,8 @@
-// Copyright (c) 2016, the R8 project authors. Please see the AUTHORS file
+// Copyright (c) 2023, the R8 project authors. Please see the AUTHORS file
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
-package com.android.tools.r8.ir.optimize;
+package com.android.tools.r8.ir.optimize.outliner;
 
 import static com.android.tools.r8.ir.analysis.type.Nullability.definitelyNotNull;
 import static com.android.tools.r8.ir.analysis.type.Nullability.maybeNull;
@@ -62,12 +62,13 @@ import com.android.tools.r8.ir.conversion.IRConverter;
 import com.android.tools.r8.ir.conversion.MethodConversionOptions.MutableMethodConversionOptions;
 import com.android.tools.r8.ir.conversion.MethodProcessorEventConsumer;
 import com.android.tools.r8.ir.conversion.SourceCode;
+import com.android.tools.r8.ir.optimize.CodeRewriter;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
+import com.android.tools.r8.ir.optimize.InliningConstraints;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackDelayed;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackIgnore;
-import com.android.tools.r8.ir.optimize.outliner.OutlineCollection;
-import com.android.tools.r8.ir.optimize.outliner.Outliner;
 import com.android.tools.r8.origin.Origin;
+import com.android.tools.r8.profile.art.rewriting.ArtProfileCollectionAdditions;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.InternalOptions.OutlineOptions;
@@ -132,7 +133,7 @@ public class OutlinerImpl extends Outliner {
   /** Result of third step (see {@link OutlinerImpl#buildOutlineMethods()}. */
   private final Map<Outline, DexMethod> generatedOutlines = new HashMap<>();
 
-  static final int MAX_IN_SIZE = 5;  // Avoid using ranged calls for outlined code.
+  static final int MAX_IN_SIZE = 5; // Avoid using ranged calls for outlined code.
 
   private final AppView<AppInfoWithLiveness> appView;
   private final DexItemFactory dexItemFactory;
@@ -224,17 +225,14 @@ public class OutlinerImpl extends Outliner {
 
     private final NumericType numericType;
 
-    private BinOpOutlineInstruction(
-        OutlineInstructionType type,
-        NumericType numericType) {
+    private BinOpOutlineInstruction(OutlineInstructionType type, NumericType numericType) {
       super(type);
       this.numericType = numericType;
     }
 
     static BinOpOutlineInstruction fromInstruction(Binop instruction) {
       return new BinOpOutlineInstruction(
-          OutlineInstructionType.fromInstruction(instruction),
-          instruction.getNumericType());
+          OutlineInstructionType.fromInstruction(instruction), instruction.getNumericType());
     }
 
     @Override
@@ -407,11 +405,7 @@ public class OutlinerImpl extends Outliner {
     private final boolean hasReceiver;
 
     private InvokeOutlineInstruction(
-        DexMethod method,
-        Type type,
-        boolean hasOutValue,
-        ValueType[] inputTypes,
-        DexProto proto) {
+        DexMethod method, Type type, boolean hasOutValue, ValueType[] inputTypes, DexProto proto) {
       super(OutlineInstructionType.INVOKE);
       hasReceiver = inputTypes.length != method.proto.parameters.values.length;
       assert !hasReceiver || inputTypes[0].isObject();
@@ -569,7 +563,7 @@ public class OutlinerImpl extends Outliner {
     final List<DexType> argumentTypes;
     final List<Integer> argumentMap;
     final List<OutlineInstruction> templateInstructions = new ArrayList<>();
-    final public DexType returnType;
+    public final DexType returnType;
 
     private DexProto proto;
 
@@ -766,7 +760,7 @@ public class OutlinerImpl extends Outliner {
   // This is the superclass for both collection candidates and actually replacing code.
   // TODO(sgjesse): Collect more information in the candidate collection and reuse that for
   // replacing.
-  abstract private class OutlineSpotter {
+  private abstract class OutlineSpotter {
 
     final ProgramMethod method;
     final IRCode irCode;
@@ -956,7 +950,7 @@ public class OutlinerImpl extends Outliner {
     }
 
     private DexType argumentTypeFromInvoke(InvokeMethod invoke, int index) {
-      boolean withReceiver =  invoke.isInvokeMethodWithReceiver() || invoke.isInvokePolymorphic();
+      boolean withReceiver = invoke.isInvokeMethodWithReceiver() || invoke.isInvokePolymorphic();
       if (withReceiver && index == 0) {
         return invoke.getInvokedMethod().holder;
       }
@@ -1356,7 +1350,12 @@ public class OutlinerImpl extends Outliner {
             identifyOutlineSites(code);
           },
           executorService);
-      List<ProgramMethod> outlineMethods = buildOutlineMethods();
+      ArtProfileCollectionAdditions artProfileCollectionAdditions =
+          ArtProfileCollectionAdditions.create(appView);
+      List<ProgramMethod> outlineMethods =
+          buildOutlineMethods(
+              OutlineOptimizationEventConsumer.create(artProfileCollectionAdditions));
+      artProfileCollectionAdditions.commit(appView);
       MethodProcessorEventConsumer eventConsumer = MethodProcessorEventConsumer.empty();
       converter.optimizeSynthesizedMethods(outlineMethods, eventConsumer, executorService);
       feedback.updateVisibleOptimizationInfo();
@@ -1505,7 +1504,7 @@ public class OutlinerImpl extends Outliner {
     return result;
   }
 
-  public List<ProgramMethod> buildOutlineMethods() {
+  public List<ProgramMethod> buildOutlineMethods(OutlineOptimizationEventConsumer eventConsumer) {
     ProcessorContext outlineProcessorContext = appView.createProcessorContext();
     Map<DexMethod, MethodProcessingContext> methodProcessingContexts = new IdentityHashMap<>();
     List<ProgramMethod> outlineMethods = new ArrayList<>();
@@ -1546,6 +1545,7 @@ public class OutlinerImpl extends Outliner {
                           representative.getDefinition().getClassFileVersion());
                     }
                   });
+      eventConsumer.acceptOutlineMethod(outlineMethod, sites);
       generatedOutlines.put(outline, outlineMethod.getReference());
       outlineMethods.add(outlineMethod);
     }
@@ -1662,12 +1662,10 @@ public class OutlinerImpl extends Outliner {
     }
 
     @Override
-    public void setUp() {
-    }
+    public void setUp() {}
 
     @Override
-    public void clear() {
-    }
+    public void clear() {}
 
     @Override
     public void buildPrelude(IRBuilder builder) {
@@ -1717,14 +1715,14 @@ public class OutlinerImpl extends Outliner {
     }
 
     @Override
-    public void resolveAndBuildSwitch(int value, int fallthroughOffset, int payloadOffset,
-        IRBuilder builder) {
+    public void resolveAndBuildSwitch(
+        int value, int fallthroughOffset, int payloadOffset, IRBuilder builder) {
       throw new Unreachable("Unexpected call to resolveAndBuildSwitch");
     }
 
     @Override
-    public void resolveAndBuildNewArrayFilledData(int arrayRef, int payloadOffset,
-        IRBuilder builder) {
+    public void resolveAndBuildNewArrayFilledData(
+        int arrayRef, int payloadOffset, IRBuilder builder) {
       throw new Unreachable("Unexpected call to resolveAndBuildNewArrayFilledData");
     }
 
