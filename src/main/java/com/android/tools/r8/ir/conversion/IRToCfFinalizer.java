@@ -22,6 +22,11 @@ public class IRToCfFinalizer extends IRFinalizer<CfCode> {
   public CfCode finalizeCode(
       IRCode code, BytecodeMetadataProvider bytecodeMetadataProvider, Timing timing) {
     ProgramMethod method = code.context();
-    return new CfBuilder(appView, method, code, bytecodeMetadataProvider).build(deadCodeRemover);
+    timing.begin("Finalize CF code");
+    CfCode build =
+        new CfBuilder(appView, method, code, bytecodeMetadataProvider)
+            .build(deadCodeRemover, timing);
+    timing.end();
+    return build;
   }
 }

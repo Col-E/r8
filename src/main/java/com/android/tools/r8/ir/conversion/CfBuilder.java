@@ -57,6 +57,7 @@ import com.android.tools.r8.ir.optimize.DeadCodeRemover;
 import com.android.tools.r8.ir.optimize.PeepholeOptimizer;
 import com.android.tools.r8.ir.optimize.PhiOptimizations;
 import com.android.tools.r8.ir.optimize.peepholes.BasicBlockMuncher;
+import com.android.tools.r8.utils.Timing;
 import com.android.tools.r8.utils.WorkList;
 import com.google.common.collect.Sets;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceMap;
@@ -143,17 +144,22 @@ public class CfBuilder {
     this.bytecodeMetadataBuilder = BytecodeMetadata.builder(bytecodeMetadataProvider);
   }
 
-  public CfCode build(DeadCodeRemover deadCodeRemover) {
-    code.traceBlocks();
-    computeInitializers();
+  public CfCode build(DeadCodeRemover deadCodeRemover, Timing timing) {
+    timing.time("Trace blocks", code::traceBlocks);
+    timing.time("Compute Initializers", () -> computeInitializers());
+    timing.begin("Compute verification types");
     TypeVerificationHelper typeVerificationHelper = new TypeVerificationHelper(appView, code);
     typeVerificationHelper.computeVerificationTypes();
+    timing.end();
     assert deadCodeRemover.verifyNoDeadCode(code);
-    rewriteNots();
+    timing.time("Rewrite nots", this::rewriteNots);
+    timing.begin("Insert loads and stores");
     LoadStoreHelper loadStoreHelper = new LoadStoreHelper(appView, code, typeVerificationHelper);
     loadStoreHelper.insertLoadsAndStores();
+    timing.end();
     // Run optimizations on phis and basic blocks in a fixpoint.
     if (appView.options().enableLoadStoreOptimization) {
+      timing.begin("Load store optimizations (BasicBlockMunching)");
       PhiOptimizations phiOptimizations = new PhiOptimizations();
       boolean reachedFixpoint = false;
       phiOptimizations.optimize(code);
@@ -161,23 +167,33 @@ public class CfBuilder {
         BasicBlockMuncher.optimize(code, appView.options());
         reachedFixpoint = !phiOptimizations.optimize(code);
       }
+      timing.end();
     }
     assert code.isConsistentSSA(appView);
     // Insert reads for uninitialized read blocks to ensure correct stack maps.
+    timing.begin("Insert uninitialized local reads");
     Set<UninitializedThisLocalRead> uninitializedThisLocalReads =
         insertUninitializedThisLocalReads();
+    timing.end();
+    timing.begin("Register allocation");
     registerAllocator = new CfRegisterAllocator(appView, code, typeVerificationHelper);
     registerAllocator.allocateRegisters();
+    timing.end();
     // Remove any uninitializedThisLocalRead now that the register allocation will preserve this
     // for instance initializers.
+    timing.begin("Remove uninitialized local reads");
     if (!uninitializedThisLocalReads.isEmpty()) {
       for (UninitializedThisLocalRead uninitializedThisLocalRead : uninitializedThisLocalReads) {
         uninitializedThisLocalRead.getBlock().removeInstruction(uninitializedThisLocalRead);
       }
     }
+    timing.end();
 
+    timing.begin("Insert phi moves");
     loadStoreHelper.insertPhiMoves(registerAllocator);
+    timing.end();
 
+    timing.begin("BasicBlock peephole optimizations");
     if (code.getConversionOptions().isPeepholeOptimizationsEnabled()) {
       for (int i = 0; i < PEEPHOLE_OPTIMIZATION_PASSES; i++) {
         CodeRewriter.collapseTrivialGotos(appView, code);
@@ -186,12 +202,17 @@ public class CfBuilder {
             code, registerAllocator, SUFFIX_SHARING_OVERHEAD);
       }
     }
+    timing.end();
 
-    rewriteIincPatterns();
+    timing.time("Rewrite Iinc patterns", this::rewriteIincPatterns);
 
     CodeRewriter.collapseTrivialGotos(appView, code);
+    timing.begin("Remove redundant debug positions");
     DexBuilder.removeRedundantDebugPositions(code);
+    timing.end();
+    timing.begin("Build CF Code");
     CfCode code = buildCfCode();
+    timing.end();
     assert verifyInvokeInterface(code, appView);
     assert code.getOrComputeStackMapStatus(method, appView, appView.graphLens())
         .isValidOrNotPresent();
