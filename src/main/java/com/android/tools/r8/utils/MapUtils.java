@@ -61,6 +61,11 @@ public class MapUtils {
     map.entrySet().removeIf(entry -> predicate.test(entry.getKey(), entry.getValue()));
   }
 
+  public static <K, V> V removeOrDefault(Map<K, V> map, K key, V defaultValue) {
+    V value = map.remove(key);
+    return value != null ? value : defaultValue;
+  }
+
   public static String toString(Map<?, ?> map) {
     return StringUtils.join(
         ",", map.entrySet(), entry -> entry.getKey() + ":" + entry.getValue(), BraceType.TUBORG);

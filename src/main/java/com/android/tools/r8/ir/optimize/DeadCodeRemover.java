@@ -22,9 +22,9 @@ import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.code.ValueIsDeadAnalysis;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.Box;
+import com.android.tools.r8.utils.IterableUtils;
 import com.android.tools.r8.utils.Timing;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Iterators;
 import java.util.ArrayDeque;
 import java.util.Collection;
 import java.util.Deque;
@@ -299,19 +299,10 @@ public class DeadCodeRemover {
         }
 
         @Override
-        public boolean isDeadIfInValueIsDead() {
-          return true;
-        }
-
-        @Override
         public Iterable<Value> getValuesRequiredToBeDead() {
-          return () -> Iterators.singletonIterator(inValueRequiredToBeDead);
+          return IterableUtils.singleton(inValueRequiredToBeDead);
         }
       };
-    }
-
-    public boolean isDeadIfInValueIsDead() {
-      return false;
     }
 
     public boolean isDeadIfOutValueIsDead() {

@@ -23,6 +23,7 @@ import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
 import com.android.tools.r8.ir.conversion.MethodConversionOptions;
 import com.android.tools.r8.ir.conversion.TypeConstraintResolver;
+import com.android.tools.r8.ir.optimize.DeadCodeRemover.DeadInstructionResult;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.InliningConstraints;
 import com.android.tools.r8.ir.regalloc.RegisterAllocator;
@@ -117,8 +118,7 @@ public class ArrayPut extends ArrayAccess {
   }
 
   @Override
-  public boolean instructionMayHaveSideEffects(
-      AppView<?> appView, ProgramMethod context, SideEffectAssumption assumption) {
+  public boolean instructionInstanceCanThrow(AppView<?> appView, ProgramMethod context) {
     // In debug mode, ArrayPut has a side-effect on the locals.
     if (appView.options().debug) {
       return true;
@@ -158,26 +158,21 @@ public class ArrayPut extends ArrayAccess {
     if (!valueType.lessThanOrEqualUpToNullability(memberType, appView)) {
       return true;
     }
-
-    if (array.hasPhiUsers()) {
-      // The array could be used indirectly.
-      return true;
-    }
-
-    // Check that all usages of the array are array stores.
-    for (Instruction user : array.aliasedUsers()) {
-      if (user.isAssume()) {
-        if (user.outValue().hasPhiUsers()) {
-          return true;
-        }
-        continue;
-      }
-      if (!user.isArrayPut() || user.asArrayPut().array().getAliasedValue() != array) {
-        return true;
-      }
-    }
-
     return false;
+  }
+
+  @Override
+  public boolean instructionMayHaveSideEffects(
+      AppView<?> appView, ProgramMethod context, SideEffectAssumption assumption) {
+    // This modifies the array (or throws).
+    return true;
+  }
+
+  @Override
+  public DeadInstructionResult canBeDeadCode(AppView<?> appView, IRCode code) {
+    return instructionInstanceCanThrow(appView, code.context())
+        ? DeadInstructionResult.notDead()
+        : DeadInstructionResult.deadIfInValueIsDead(array());
   }
 
   @Override
