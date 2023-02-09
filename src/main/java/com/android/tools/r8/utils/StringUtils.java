@@ -404,4 +404,12 @@ public class StringUtils {
     }
     return stringToCapitalize.substring(0, 1).toUpperCase() + stringToCapitalize.substring(1);
   }
+
+  public static int indexOf(String s, char ch1, char ch2) {
+    int i1 = s.indexOf(ch1);
+    int i2 = s.indexOf(ch2);
+    if (i1 == -1) return i2;
+    if (i2 == -1) return i1;
+    return Math.min(i1, i2);
+  }
 }

@@ -45,8 +45,10 @@ import com.android.tools.r8.utils.InternalOptions.HorizontalClassMergerOptions;
 import com.android.tools.r8.utils.InternalOptions.LineNumberOptimization;
 import com.android.tools.r8.utils.ProgramClassCollection;
 import com.android.tools.r8.utils.Reporter;
+import com.android.tools.r8.utils.SemanticVersion;
 import com.android.tools.r8.utils.SetUtils;
 import com.android.tools.r8.utils.StringDiagnostic;
+import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.ThreadUtils;
 import com.google.common.collect.ImmutableList;
 import java.io.InputStream;
@@ -127,6 +129,7 @@ public final class R8Command extends BaseCompilerCommand {
     private String synthesizedClassPrefix = "";
     private boolean enableMissingLibraryApiModeling = false;
     private boolean enableExperimentalKeepAnnotations = false;
+    private SemanticVersion fakeCompilerVersion = null;
 
     private final ProguardConfigurationParserOptions.Builder parserOptionsBuilder =
         ProguardConfigurationParserOptions.builder().readEnvironment();
@@ -171,6 +174,11 @@ public final class R8Command extends BaseCompilerCommand {
 
     Builder setSynthesizedClassesPrefix(String prefix) {
       synthesizedClassPrefix = prefix;
+      return self();
+    }
+
+    Builder setFakeCompilerVersion(SemanticVersion version) {
+      fakeCompilerVersion = version;
       return self();
     }
 
@@ -588,7 +596,10 @@ public final class R8Command extends BaseCompilerCommand {
       if (proguardConfigurationConsumerForTesting != null) {
         proguardConfigurationConsumerForTesting.accept(configurationBuilder);
       }
+
+      // Add embedded keep rules.
       amendWithRulesAndProvidersForInjarsAndMetaInf(reporter, parser);
+
       // Extract out rules for keep annotations and amend the configuration.
       // TODO(b/248408342): Remove this and parse annotations as part of R8 root-set & enqueuer.
       extractKeepAnnotationRules(parser);
@@ -645,7 +656,8 @@ public final class R8Command extends BaseCompilerCommand {
               getAndroidPlatformBuild(),
               getArtProfilesForRewriting(),
               getStartupProfileProviders(),
-              getClassConflictResolver());
+              getClassConflictResolver(),
+              fakeCompilerVersion);
 
       if (inputDependencyGraphConsumer != null) {
         inputDependencyGraphConsumer.finished();
@@ -656,31 +668,21 @@ public final class R8Command extends BaseCompilerCommand {
     private void amendWithRulesAndProvidersForInjarsAndMetaInf(
         Reporter reporter, ProguardConfigurationParser parser) {
 
-      // Process Proguard configurations supplied through data resources in the input.
-      DataResourceProvider.Visitor embeddedProguardConfigurationVisitor =
-          new DataResourceProvider.Visitor() {
-            @Override
-            public void visit(DataDirectoryResource directory) {
-              // Don't do anything.
-            }
-
-            @Override
-            public void visit(DataEntryResource resource) {
-              if (resource.getName().startsWith("META-INF/proguard/")) {
-                try (InputStream in = resource.getByteStream()) {
-                  ProguardConfigurationSource source =
-                      new ProguardConfigurationSourceBytes(in, resource.getOrigin());
-                  parser.parse(source);
-                } catch (ResourceException e) {
-                  reporter.error(
-                      new StringDiagnostic(
-                          "Failed to open input: " + e.getMessage(), resource.getOrigin()));
-                } catch (Exception e) {
-                  reporter.error(new ExceptionDiagnostic(e, resource.getOrigin()));
-                }
-              }
-            }
-          };
+      SemanticVersion compilerVersion =
+          fakeCompilerVersion == null
+              ? SemanticVersion.create(
+                  Version.getMajorVersion(), Version.getMinorVersion(), Version.getPatchVersion())
+              : fakeCompilerVersion;
+      String warningIfR8VersionUsed = null;
+      if (compilerVersion.getMajor() < 0) {
+        compilerVersion = SemanticVersion.parse(Version.ACTIVE_DEV_VERSION);
+        warningIfR8VersionUsed =
+            "Running R8 version "
+                + Version.getVersionString()
+                + " which cannot be represented as a semantic version. Using version "
+                + compilerVersion
+                + " for selecting Proguard configurations embedded under META-INF/";
+      }
 
       // Since -injars can itself reference archives with rules and that in turn have -injars the
       // completion of amending rules and providers must run in a fixed point. The fixed point is
@@ -704,7 +706,13 @@ public final class R8Command extends BaseCompilerCommand {
           DataResourceProvider dataResourceProvider = providers.pop().getDataResourceProvider();
           if (dataResourceProvider != null) {
             try {
+              ExtractEmbeddedRules embeddedProguardConfigurationVisitor =
+                  new ExtractEmbeddedRules(compilerVersion, reporter);
               dataResourceProvider.accept(embeddedProguardConfigurationVisitor);
+              embeddedProguardConfigurationVisitor.parseRelevantRules(parser);
+              if (hasDesugaredLibraryConfiguration()) {
+                reporter.warning(warningIfR8VersionUsed);
+              }
             } catch (ResourceException e) {
               reporter.error(new ExceptionDiagnostic(e));
             }
@@ -828,6 +836,7 @@ public final class R8Command extends BaseCompilerCommand {
   private final FeatureSplitConfiguration featureSplitConfiguration;
   private final String synthesizedClassPrefix;
   private final boolean enableMissingLibraryApiModeling;
+  private final SemanticVersion fakeCompilerVersion;
 
   /** Get a new {@link R8Command.Builder}. */
   public static Builder builder() {
@@ -920,7 +929,8 @@ public final class R8Command extends BaseCompilerCommand {
       boolean isAndroidPlatformBuild,
       List<ArtProfileForRewriting> artProfilesForRewriting,
       List<StartupProfileProvider> startupProfileProviders,
-      ClassConflictResolver classConflictResolver) {
+      ClassConflictResolver classConflictResolver,
+      SemanticVersion fakeCompilerVersion) {
     super(
         inputApp,
         mode,
@@ -963,6 +973,7 @@ public final class R8Command extends BaseCompilerCommand {
     this.featureSplitConfiguration = featureSplitConfiguration;
     this.synthesizedClassPrefix = synthesizedClassPrefix;
     this.enableMissingLibraryApiModeling = enableMissingLibraryApiModeling;
+    this.fakeCompilerVersion = fakeCompilerVersion;
   }
 
   private R8Command(boolean printHelp, boolean printVersion) {
@@ -986,6 +997,7 @@ public final class R8Command extends BaseCompilerCommand {
     featureSplitConfiguration = null;
     synthesizedClassPrefix = null;
     enableMissingLibraryApiModeling = false;
+    fakeCompilerVersion = null;
   }
 
   public DexItemFactory getDexItemFactory() {
@@ -1203,5 +1215,122 @@ public final class R8Command extends BaseCompilerCommand {
         .setDesugaredLibraryConfiguration(desugaredLibrarySpecification)
         .setEnableMissingLibraryApiModeling(enableMissingLibraryApiModeling)
         .build();
+  }
+
+  private static class ExtractEmbeddedRules implements DataResourceProvider.Visitor {
+
+    private final SemanticVersion compilerVersion;
+    private final Reporter reporter;
+    private final List<ProguardConfigurationSource> proguardSources = new ArrayList<>();
+    private final List<ProguardConfigurationSource> r8Sources = new ArrayList<>();
+
+    public ExtractEmbeddedRules(SemanticVersion compilerVersion, Reporter reporter) {
+      this.compilerVersion = compilerVersion;
+      this.reporter = reporter;
+    }
+
+    @Override
+    public void visit(DataDirectoryResource directory) {
+      // Don't do anything.
+    }
+
+    @Override
+    public void visit(DataEntryResource resource) {
+      if (relevantProguardResource(resource)) {
+        assert !relevantR8Resource(resource);
+        readProguardConfigurationSource(resource, proguardSources::add);
+      } else if (relevantR8Resource(resource)) {
+        assert !relevantProguardResource(resource);
+        readProguardConfigurationSource(resource, r8Sources::add);
+      }
+    }
+
+    private void readProguardConfigurationSource(
+        DataEntryResource resource, Consumer<ProguardConfigurationSource> consumer) {
+      try (InputStream in = resource.getByteStream()) {
+        consumer.accept(new ProguardConfigurationSourceBytes(in, resource.getOrigin()));
+      } catch (ResourceException e) {
+        reporter.error(
+            new StringDiagnostic("Failed to open input: " + e.getMessage(), resource.getOrigin()));
+      } catch (Exception e) {
+        reporter.error(new ExceptionDiagnostic(e, resource.getOrigin()));
+      }
+    }
+
+    private boolean relevantProguardResource(DataEntryResource resource) {
+      // Configurations in META-INF/com.android.tools/proguard/ are ignored.
+      final String proguardPrefix = "META-INF/proguard";
+      if (!resource.getName().startsWith(proguardPrefix)) {
+        return false;
+      }
+      String withoutPrefix = resource.getName().substring(proguardPrefix.length());
+      return withoutPrefix.startsWith("/");
+    }
+
+    private boolean relevantR8Resource(DataEntryResource resource) {
+      final String r8Prefix = "META-INF/com.android.tools/r8";
+      if (!resource.getName().startsWith(r8Prefix)) {
+        return false;
+      }
+      String withoutPrefix = resource.getName().substring(r8Prefix.length());
+      if (withoutPrefix.startsWith("/")) {
+        // Everything under META-INF/com.android.tools/r8/ is included (not version specific).
+        return true;
+      }
+      // Expect one of the following patterns:
+      //   com.android.tools/r8-min-1.5.0/
+      //   com.android.tools/r8-max-1.5.99/
+      //   com.android.tools/r8-min-1.5.0-max-1.5.99/
+      final String minPrefix = "-min-";
+      final String maxPrefix = "-max-";
+      if (!withoutPrefix.startsWith(minPrefix) && !withoutPrefix.startsWith(maxPrefix)) {
+        return false;
+      }
+
+      SemanticVersion from = SemanticVersion.min();
+      SemanticVersion to = SemanticVersion.max();
+
+      if (withoutPrefix.startsWith(minPrefix)) {
+        withoutPrefix = withoutPrefix.substring(minPrefix.length());
+        int versionEnd = StringUtils.indexOf(withoutPrefix, '-', '/');
+        if (versionEnd == -1) {
+          return false;
+        }
+        try {
+          from = SemanticVersion.parse(withoutPrefix.substring(0, versionEnd));
+        } catch (IllegalArgumentException e) {
+          return false;
+        }
+        withoutPrefix = withoutPrefix.substring(versionEnd);
+      }
+      if (withoutPrefix.startsWith(maxPrefix)) {
+        withoutPrefix = withoutPrefix.substring(maxPrefix.length());
+        int versionEnd = withoutPrefix.indexOf('/');
+        if (versionEnd == -1) {
+          return false;
+        }
+        try {
+          to = SemanticVersion.parse(withoutPrefix.substring(0, versionEnd));
+        } catch (IllegalArgumentException e) {
+          return false;
+        }
+      }
+      return compilerVersion.isNewerOrEqual(from) && to.isNewerOrEqual(compilerVersion);
+    }
+
+    private void parse(
+        List<ProguardConfigurationSource> sources, ProguardConfigurationParser parser) {
+      for (ProguardConfigurationSource source : sources) {
+        try {
+          parser.parse(source);
+        } catch (Exception e) {
+          reporter.error(new ExceptionDiagnostic(e, source.getOrigin()));
+        }
+      }
+    }
+
+    void parseRelevantRules(ProguardConfigurationParser parser) {
+      parse(!r8Sources.isEmpty() ? r8Sources : proguardSources, parser);
+    }
   }
 }
