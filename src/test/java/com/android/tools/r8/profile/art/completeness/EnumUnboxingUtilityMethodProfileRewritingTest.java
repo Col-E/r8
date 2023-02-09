@@ -88,18 +88,25 @@ public class EnumUnboxingUtilityMethodProfileRewritingTest extends TestBase {
             SyntheticItemsTestUtils.syntheticEnumUnboxingSharedUtilityClass(MyEnum.class));
     assertThat(enumUnboxingSharedUtilityClassSubject, isPresent());
     assertThat(enumUnboxingSharedUtilityClassSubject.clinit(), isPresent());
-    assertThat(
-        enumUnboxingSharedUtilityClassSubject.uniqueMethodWithOriginalName("ordinal"), isPresent());
-    assertThat(
-        enumUnboxingSharedUtilityClassSubject.uniqueMethodWithOriginalName("values"), isPresent());
 
-    // TODO(b/265729283): Should also include the above methods from enum unboxing.
+    MethodSubject sharedOrdinalMethodSubject =
+        enumUnboxingSharedUtilityClassSubject.uniqueMethodWithOriginalName("ordinal");
+    assertThat(sharedOrdinalMethodSubject, isPresent());
+
+    MethodSubject sharedValuesMethodSubject =
+        enumUnboxingSharedUtilityClassSubject.uniqueMethodWithOriginalName("values");
+    assertThat(sharedValuesMethodSubject, isPresent());
+
     profileInspector
+        .assertContainsClassRule(enumUnboxingSharedUtilityClassSubject)
         .assertContainsMethodRules(
             mainClassSubject.mainMethod(),
             localGreetMethodSubject,
             localOtherMethodSubject,
-            localValuesMethodSubject)
+            localValuesMethodSubject,
+            enumUnboxingSharedUtilityClassSubject.clinit(),
+            sharedOrdinalMethodSubject,
+            sharedValuesMethodSubject)
         .assertContainsNoOtherRules();
   }
 
