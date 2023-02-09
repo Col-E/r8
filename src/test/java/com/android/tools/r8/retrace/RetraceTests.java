@@ -50,6 +50,7 @@ import com.android.tools.r8.retrace.stacktraces.InlineWithLineNumbersStackTrace;
 import com.android.tools.r8.retrace.stacktraces.InvalidStackTrace;
 import com.android.tools.r8.retrace.stacktraces.MapVersionWarningStackTrace;
 import com.android.tools.r8.retrace.stacktraces.MemberFieldOverlapStackTrace;
+import com.android.tools.r8.retrace.stacktraces.MovedSynthetizedInfoStackTraceTest;
 import com.android.tools.r8.retrace.stacktraces.MultipleDotsInFileNameStackTrace;
 import com.android.tools.r8.retrace.stacktraces.MultipleLinesNoLineNumberStackTrace;
 import com.android.tools.r8.retrace.stacktraces.MultipleMapVersionsWarningStackTrace;
@@ -258,6 +259,11 @@ public class RetraceTests extends TestBase {
   @Test
   public void testInlineNoLineWithBaseEntryNumberAssumeNoInlineStackTrace() throws Exception {
     runRetraceTest(new InlineNoLineWithBaseEntryNumberAssumeNoInlineStackTrace());
+  }
+
+  @Test
+  public void testMovedSynthetizedInfoStackTraceTest() throws Exception {
+    runRetraceTest(new MovedSynthetizedInfoStackTraceTest());
   }
 
   @Test
