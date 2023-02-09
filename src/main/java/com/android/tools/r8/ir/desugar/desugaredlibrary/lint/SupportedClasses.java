@@ -5,35 +5,129 @@
 package com.android.tools.r8.ir.desugar.desugaredlibrary.lint;
 
 import com.android.tools.r8.graph.DexClass;
-import com.android.tools.r8.graph.DexEncodedMember;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSortedMap;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.BiConsumer;
+import java.util.function.Consumer;
 
-public class SupportedMethodsWithAnnotations {
+public class SupportedClasses {
+  private final Map<DexType, SupportedClass> supportedClasses;
 
-  public final Map<DexClass, List<DexEncodedMethod>> supportedMethods;
-  public final Map<DexMethod, MethodAnnotation> annotatedMethods;
-  // A fully supported class has no annotated methods, and all the methods from the latest
-  // android.jar are supported.
-  public final Map<DexType, ClassAnnotation> annotatedClasses;
+  public void forEachClass(Consumer<SupportedClass> consumer) {
+    supportedClasses.values().forEach(consumer);
+  }
 
-  SupportedMethodsWithAnnotations(
-      Map<DexClass, List<DexEncodedMethod>> supportedMethods,
-      Map<DexMethod, MethodAnnotation> annotatedMethods,
-      Map<DexType, ClassAnnotation> annotatedClasses) {
-    this.supportedMethods = supportedMethods;
-    this.annotatedMethods = annotatedMethods;
-    this.annotatedClasses = annotatedClasses;
+  SupportedClasses(Map<DexType, SupportedClass> supportedClasses) {
+    this.supportedClasses = supportedClasses;
+  }
+
+  public static class SupportedClass {
+
+    private final DexClass clazz;
+    private final ClassAnnotation classAnnotation;
+    private final List<DexEncodedMethod> supportedMethods;
+    private final Map<DexMethod, MethodAnnotation> methodAnnotations;
+
+    private SupportedClass(
+        DexClass clazz,
+        ClassAnnotation classAnnotation,
+        List<DexEncodedMethod> supportedMethods,
+        Map<DexMethod, MethodAnnotation> methodAnnotations) {
+      this.clazz = clazz;
+      this.classAnnotation = classAnnotation;
+      this.supportedMethods = supportedMethods;
+      this.methodAnnotations = methodAnnotations;
+    }
+
+    public DexType getType() {
+      return clazz.type;
+    }
+
+    public DexClass getClazz() {
+      return clazz;
+    }
+
+    public ClassAnnotation getClassAnnotation() {
+      return classAnnotation;
+    }
+
+    public List<DexEncodedMethod> getSupportedMethods() {
+      return supportedMethods;
+    }
+
+    public void forEachMethodAndAnnotation(
+        BiConsumer<DexEncodedMethod, MethodAnnotation> biConsumer) {
+      for (DexEncodedMethod supportedMethod : supportedMethods) {
+        biConsumer.accept(supportedMethod, getMethodAnnotation(supportedMethod.getReference()));
+      }
+    }
+
+    public MethodAnnotation getMethodAnnotation(DexMethod method) {
+      return methodAnnotations.get(method);
+    }
+
+    static Builder builder(DexClass clazz) {
+      return new Builder(clazz);
+    }
+
+    private static class Builder {
+
+      private final DexClass clazz;
+      private ClassAnnotation classAnnotation;
+      private final List<DexEncodedMethod> supportedMethods = new ArrayList<>();
+      private final Map<DexMethod, MethodAnnotation> methodAnnotations = new HashMap<>();
+
+      private Builder(DexClass clazz) {
+        this.clazz = clazz;
+      }
+
+      void forEachMethods(BiConsumer<DexClass, List<DexEncodedMethod>> biConsumer) {
+        biConsumer.accept(clazz, supportedMethods);
+      }
+
+      void forEachMethod(BiConsumer<DexClass, DexEncodedMethod> biConsumer) {
+        for (DexEncodedMethod dexEncodedMethod : supportedMethods) {
+          biConsumer.accept(clazz, dexEncodedMethod);
+        }
+      }
+
+      void addSupportedMethod(DexEncodedMethod method) {
+        assert method.getHolderType() == clazz.type;
+        supportedMethods.add(method);
+      }
+
+      void annotateClass(ClassAnnotation annotation) {
+        assert annotation != null;
+        assert classAnnotation == null;
+        classAnnotation = annotation;
+      }
+
+      void annotateMethod(DexMethod method, MethodAnnotation annotation) {
+        assert method.getHolderType() == clazz.type;
+        MethodAnnotation prev =
+            methodAnnotations.getOrDefault(method, MethodAnnotation.getDefault());
+        methodAnnotations.put(method, annotation.combine(prev));
+      }
+
+      MethodAnnotation getMethodAnnotation(DexMethod method) {
+        return methodAnnotations.get(method);
+      }
+
+      SupportedClass build() {
+        supportedMethods.sort(Comparator.comparing(DexEncodedMethod::getReference));
+        return new SupportedClass(
+            clazz, classAnnotation, ImmutableList.copyOf(supportedMethods), methodAnnotations);
+      }
+    }
   }
 
   static Builder builder() {
@@ -42,58 +136,81 @@ public class SupportedMethodsWithAnnotations {
 
   static class Builder {
 
-    Map<DexClass, List<DexEncodedMethod>> supportedMethods = new IdentityHashMap<>();
-    Map<DexMethod, MethodAnnotation> annotatedMethods = new IdentityHashMap<>();
-    Map<DexType, ClassAnnotation> annotatedClasses = new IdentityHashMap<>();
+    Map<DexType, SupportedClass.Builder> supportedClassBuilders = new IdentityHashMap<>();
 
     void forEachClassAndMethods(BiConsumer<DexClass, List<DexEncodedMethod>> biConsumer) {
-      supportedMethods.forEach(biConsumer);
+      supportedClassBuilders
+          .values()
+          .forEach(classBuilder -> classBuilder.forEachMethods(biConsumer));
     }
 
     void forEachClassAndMethod(BiConsumer<DexClass, DexEncodedMethod> biConsumer) {
-      supportedMethods.forEach(
-          (clazz, methods) -> {
-            for (DexEncodedMethod method : methods) {
-              biConsumer.accept(clazz, method);
-            }
-          });
+      supportedClassBuilders
+          .values()
+          .forEach(classBuilder -> classBuilder.forEachMethod(biConsumer));
     }
 
     void addSupportedMethod(DexClass holder, DexEncodedMethod method) {
-      List<DexEncodedMethod> methods =
-          supportedMethods.computeIfAbsent(holder, f -> new ArrayList<>());
-      methods.add(method);
+      SupportedClass.Builder classBuilder =
+          supportedClassBuilders.computeIfAbsent(
+              holder.type, clazz -> SupportedClass.builder(holder));
+      classBuilder.addSupportedMethod(method);
     }
 
     void annotateClass(DexType type, ClassAnnotation annotation) {
-      annotatedClasses.put(type, annotation);
+      SupportedClass.Builder classBuilder = supportedClassBuilders.get(type);
+      assert classBuilder != null;
+      classBuilder.annotateClass(annotation);
     }
 
     void annotateMethod(DexMethod method, MethodAnnotation annotation) {
-      MethodAnnotation prev = annotatedMethods.getOrDefault(method, MethodAnnotation.getDefault());
-      annotatedMethods.put(method, annotation.combine(prev));
+      SupportedClass.Builder classBuilder = supportedClassBuilders.get(method.getHolderType());
+      assert classBuilder != null;
+      classBuilder.annotateMethod(method, annotation);
     }
 
-    SupportedMethodsWithAnnotations build() {
-      supportedMethods.forEach(
-          (k, v) -> v.sort(Comparator.comparing(DexEncodedMember::getReference)));
-      return new SupportedMethodsWithAnnotations(
-          ImmutableSortedMap.copyOf(supportedMethods, Comparator.comparing(DexClass::getType)),
-          ImmutableMap.copyOf(annotatedMethods),
-          ImmutableMap.copyOf(annotatedClasses));
+    void annotateMethodIfPresent(DexMethod method, MethodAnnotation annotation) {
+      SupportedClass.Builder classBuilder = supportedClassBuilders.get(method.getHolderType());
+      if (classBuilder == null) {
+        return;
+      }
+      annotateMethod(method, annotation);
+    }
+
+    MethodAnnotation getMethodAnnotation(DexMethod method) {
+      SupportedClass.Builder classBuilder = supportedClassBuilders.get(method.getHolderType());
+      assert classBuilder != null;
+      return classBuilder.getMethodAnnotation(method);
+    }
+
+    SupportedClasses build() {
+      Map<DexType, SupportedClass> map = new IdentityHashMap<>();
+      supportedClassBuilders.forEach(
+          (type, classBuilder) -> {
+            map.put(type, classBuilder.build());
+          });
+      return new SupportedClasses(ImmutableSortedMap.copyOf(map));
     }
   }
 
   static class ClassAnnotation {
 
-    final boolean fullySupported;
+    private final boolean fullySupported;
     // Methods in latest android.jar but unsupported.
-    final List<DexMethod> unsupportedMethods;
+    private final List<DexMethod> unsupportedMethods;
 
     public ClassAnnotation(boolean fullySupported, List<DexMethod> unsupportedMethods) {
       this.fullySupported = fullySupported;
       unsupportedMethods.sort(Comparator.naturalOrder());
       this.unsupportedMethods = ImmutableList.copyOf(unsupportedMethods);
+    }
+
+    public boolean isFullySupported() {
+      return fullySupported;
+    }
+
+    public List<DexMethod> getUnsupportedMethods() {
+      return unsupportedMethods;
     }
   }
 

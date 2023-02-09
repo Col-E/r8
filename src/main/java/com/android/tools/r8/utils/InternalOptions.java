@@ -1012,6 +1012,11 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
   // If non-null, configuration must be passed to the consumer.
   public StringConsumer configurationConsumer = null;
 
+  public void resetDesugaredLibrarySpecificationForTesting() {
+    loadMachineDesugaredLibrarySpecification = null;
+    machineDesugaredLibrarySpecification = MachineDesugaredLibrarySpecification.empty();
+  }
+
   public void setDesugaredLibrarySpecification(DesugaredLibrarySpecification specification) {
     if (specification.isEmpty()) {
       return;

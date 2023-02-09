@@ -27,8 +27,8 @@ import com.android.tools.r8.ir.desugar.BackportedMethodRewriter;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibraryAmender;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibrarySpecification;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibrarySpecificationParser;
-import com.android.tools.r8.ir.desugar.desugaredlibrary.lint.SupportedMethodsWithAnnotations.ClassAnnotation;
-import com.android.tools.r8.ir.desugar.desugaredlibrary.lint.SupportedMethodsWithAnnotations.MethodAnnotation;
+import com.android.tools.r8.ir.desugar.desugaredlibrary.lint.SupportedClasses.ClassAnnotation;
+import com.android.tools.r8.ir.desugar.desugaredlibrary.lint.SupportedClasses.MethodAnnotation;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.machinespecification.MachineDesugaredLibrarySpecification;
 import com.android.tools.r8.shaking.MainDexInfo;
 import com.android.tools.r8.synthesis.SyntheticItems.GlobalSyntheticsStrategy;
@@ -57,9 +57,9 @@ public class SupportedMethodsGenerator {
     this.options = options;
   }
 
-  public SupportedMethodsWithAnnotations run(
-      Collection<Path> desugaredLibraryImplementation, Path specification) throws IOException {
-    SupportedMethodsWithAnnotations.Builder builder = SupportedMethodsWithAnnotations.builder();
+  public SupportedClasses run(Collection<Path> desugaredLibraryImplementation, Path specification)
+      throws IOException {
+    SupportedClasses.Builder builder = SupportedClasses.builder();
     // First analyze everything which is supported when desugaring for api 1.
     collectSupportedMethodsInB(desugaredLibraryImplementation, specification, builder);
     // Second annotate all apis which are partially and/or fully supported.
@@ -77,7 +77,7 @@ public class SupportedMethodsGenerator {
   }
 
   private void annotateClasses(
-      SupportedMethodsWithAnnotations.Builder builder, DirectMappedDexApplication appForMax) {
+      SupportedClasses.Builder builder, DirectMappedDexApplication appForMax) {
 
     builder.forEachClassAndMethods(
         (clazz, methods) -> {
@@ -94,9 +94,8 @@ public class SupportedMethodsGenerator {
               missing.add(method.getReference());
               fullySupported = false;
             }
-            if (builder.annotatedMethods.containsKey(method.getReference())
-                && builder.annotatedMethods.get(method.getReference())
-                    != MethodAnnotation.getCovariantReturnSupported()) {
+            MethodAnnotation methodAnnotation = builder.getMethodAnnotation(method.getReference());
+            if (methodAnnotation != null && !methodAnnotation.isCovariantReturnSupported()) {
               fullySupported = false;
             }
           }
@@ -105,7 +104,7 @@ public class SupportedMethodsGenerator {
   }
 
   private void annotatePartialDesugaringMethods(
-      SupportedMethodsWithAnnotations.Builder builder, Path specification) throws IOException {
+      SupportedClasses.Builder builder, Path specification) throws IOException {
     for (int api = AndroidApiLevel.K.getLevel();
         api <= MAX_TESTED_ANDROID_API_LEVEL.getLevel();
         api++) {
@@ -129,6 +128,7 @@ public class SupportedMethodsGenerator {
           getMachineSpecification(androidApiLevel, specification);
 
       options.setMinApiLevel(androidApiLevel);
+      options.resetDesugaredLibrarySpecificationForTesting();
       options.setDesugaredLibrarySpecification(machineSpecification);
       List<DexMethod> backports =
           BackportedMethodRewriter.generateListOfBackportedMethods(
@@ -166,14 +166,14 @@ public class SupportedMethodsGenerator {
     }
   }
 
-  private void annotateParallelMethods(SupportedMethodsWithAnnotations.Builder builder) {
+  private void annotateParallelMethods(SupportedClasses.Builder builder) {
     for (DexMethod parallelMethod : getParallelMethods()) {
-      builder.annotateMethod(parallelMethod, MethodAnnotation.getParallelStreamMethod());
+      builder.annotateMethodIfPresent(parallelMethod, MethodAnnotation.getParallelStreamMethod());
     }
   }
 
   private void annotateMethodsNotOnLatestAndroidJar(
-      DirectMappedDexApplication appForMax, SupportedMethodsWithAnnotations.Builder builder) {
+      DirectMappedDexApplication appForMax, SupportedClasses.Builder builder) {
     builder.forEachClassAndMethod(
         (clazz, method) -> {
           DexClass dexClass = appForMax.definitionFor(clazz.type);
@@ -196,7 +196,7 @@ public class SupportedMethodsGenerator {
   private void collectSupportedMethodsInB(
       Collection<Path> desugaredLibraryImplementation,
       Path specification,
-      SupportedMethodsWithAnnotations.Builder builder)
+      SupportedClasses.Builder builder)
       throws IOException {
 
     AndroidApp implementation =
@@ -215,6 +215,7 @@ public class SupportedMethodsGenerator {
         getMachineSpecification(AndroidApiLevel.B, specification);
 
     options.setMinApiLevel(AndroidApiLevel.B);
+    options.resetDesugaredLibrarySpecificationForTesting();
     options.setDesugaredLibrarySpecification(machineSpecification);
     List<DexMethod> backports =
         BackportedMethodRewriter.generateListOfBackportedMethods(
@@ -288,7 +289,7 @@ public class SupportedMethodsGenerator {
   private void addBackports(
       DexProgramClass clazz,
       List<DexMethod> backports,
-      SupportedMethodsWithAnnotations.Builder builder,
+      SupportedClasses.Builder builder,
       DirectMappedDexApplication amendedAppForMax) {
     for (DexMethod backport : backports) {
       if (clazz.type == backport.getHolderType()) {

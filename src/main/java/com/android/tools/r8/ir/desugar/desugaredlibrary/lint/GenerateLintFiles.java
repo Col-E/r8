@@ -5,10 +5,15 @@
 package com.android.tools.r8.ir.desugar.desugaredlibrary.lint;
 
 import com.android.tools.r8.ClassFileConsumer;
+import com.android.tools.r8.CompilationMode;
+import com.android.tools.r8.Version;
 import com.android.tools.r8.cf.CfVersion;
 import com.android.tools.r8.cf.code.CfConstNull;
 import com.android.tools.r8.cf.code.CfInstruction;
 import com.android.tools.r8.cf.code.CfThrow;
+import com.android.tools.r8.dex.Marker;
+import com.android.tools.r8.dex.Marker.Backend;
+import com.android.tools.r8.dex.Marker.Tool;
 import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.CfCode;
@@ -24,7 +29,7 @@ import com.android.tools.r8.graph.GenericSignature.ClassSignature;
 import com.android.tools.r8.graph.GenericSignature.MethodTypeSignature;
 import com.android.tools.r8.graph.LazyLoadedDexApplication;
 import com.android.tools.r8.graph.MethodCollection.MethodCollectionFactory;
-import com.android.tools.r8.ir.desugar.desugaredlibrary.lint.SupportedMethodsWithAnnotations.MethodAnnotation;
+import com.android.tools.r8.ir.desugar.desugaredlibrary.lint.SupportedClasses.MethodAnnotation;
 import com.android.tools.r8.jar.CfApplicationWriter;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.synthesis.SyntheticItems.GlobalSyntheticsStrategy;
@@ -150,37 +155,38 @@ public class GenerateLintFiles extends AbstractGenerateFiles {
   private void writeLintFiles(
       AndroidApiLevel compilationApiLevel,
       AndroidApiLevel minApiLevel,
-      SupportedMethodsWithAnnotations supportedMethods)
+      SupportedClasses supportedClasses)
       throws Exception {
     // Build a plain text file with the desugared APIs.
     List<String> desugaredApisSignatures = new ArrayList<>();
 
     LazyLoadedDexApplication.Builder builder = DexApplication.builder(options, Timing.empty());
-    supportedMethods.supportedMethods.forEach(
-        (clazz, methods) -> {
+    supportedClasses.forEachClass(
+        (supportedClass) -> {
           String classBinaryName =
-              DescriptorUtils.getClassBinaryNameFromDescriptor(clazz.type.descriptor.toString());
-          if (!supportedMethods.annotatedClasses.get(clazz.type).fullySupported) {
-            for (DexEncodedMethod method : methods) {
-              if (method.isInstanceInitializer() || method.isClassInitializer()) {
-                // No new constructors are added.
-                continue;
-              }
-              MethodAnnotation methodAnnotation =
-                  supportedMethods.annotatedMethods.get(method.getReference());
-              if (shouldAddMethodToLint(methodAnnotation, minApiLevel)) {
-                desugaredApisSignatures.add(
-                    classBinaryName
-                        + '#'
-                        + method.getReference().name
-                        + method.getReference().proto.toDescriptorString());
-              }
-            }
+              DescriptorUtils.getClassBinaryNameFromDescriptor(
+                  supportedClass.getType().descriptor.toString());
+          if (!supportedClass.getClassAnnotation().isFullySupported()) {
+            supportedClass.forEachMethodAndAnnotation(
+                (method, methodAnnotation) -> {
+                  if (method.isInstanceInitializer() || method.isClassInitializer()) {
+                    // No new constructors are added.
+                    return;
+                  }
+                  if (shouldAddMethodToLint(methodAnnotation, minApiLevel)) {
+                    desugaredApisSignatures.add(
+                        classBinaryName
+                            + '#'
+                            + method.getReference().name
+                            + method.getReference().proto.toDescriptorString());
+                  }
+                });
           } else {
             desugaredApisSignatures.add(classBinaryName);
           }
 
-          addMethodsToHeaderJar(builder, clazz, methods);
+          addMethodsToHeaderJar(
+              builder, supportedClass.getClazz(), supportedClass.getSupportedMethods());
         });
 
     // Write a plain text file with the desugared APIs.
@@ -193,7 +199,12 @@ public class GenerateLintFiles extends AbstractGenerateFiles {
         AppView.createForD8(
             AppInfo.createInitialAppInfo(
                 builder.build(), GlobalSyntheticsStrategy.forNonSynthesizing()));
-    CfApplicationWriter writer = new CfApplicationWriter(appView, options.getMarker());
+    Marker marker =
+        new Marker(Tool.D8)
+            .setVersion(Version.LABEL)
+            .setCompilationMode(CompilationMode.DEBUG)
+            .setBackend(Backend.CF);
+    CfApplicationWriter writer = new CfApplicationWriter(appView, marker);
     ClassFileConsumer consumer =
         new ClassFileConsumer.ArchiveConsumer(
             lintFile(compilationApiLevel, minApiLevel, FileUtils.JAR_EXTENSION));
@@ -221,7 +232,7 @@ public class GenerateLintFiles extends AbstractGenerateFiles {
   private void generateLintFiles(
       AndroidApiLevel compilationApiLevel,
       AndroidApiLevel minApiLevel,
-      SupportedMethodsWithAnnotations supportedMethods)
+      SupportedClasses supportedMethods)
       throws Exception {
     System.out.print("  - generating for min API:");
     System.out.print(" " + minApiLevel);
@@ -232,7 +243,7 @@ public class GenerateLintFiles extends AbstractGenerateFiles {
   public AndroidApiLevel run() throws Exception {
     AndroidApiLevel compilationLevel =
         desugaredLibrarySpecification.getRequiredCompilationApiLevel();
-    SupportedMethodsWithAnnotations supportedMethods =
+    SupportedClasses supportedMethods =
         new SupportedMethodsGenerator(options)
             .run(desugaredLibraryImplementation, desugaredLibrarySpecificationPath);
     System.out.println("Generating lint files for compile API " + compilationLevel);

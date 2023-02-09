@@ -13,8 +13,8 @@ import static org.junit.Assert.assertEquals;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification;
 import com.android.tools.r8.graph.DexMethod;
+import com.android.tools.r8.ir.desugar.desugaredlibrary.lint.SupportedClasses;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.lint.SupportedMethodsGenerator;
-import com.android.tools.r8.ir.desugar.desugaredlibrary.lint.SupportedMethodsWithAnnotations;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.InternalOptions;
 import com.google.common.collect.ImmutableList;
@@ -118,21 +118,23 @@ public class PartialDesugaringTest extends DesugaredLibraryTestBase {
 
   @Test
   public void test() throws Exception {
-    SupportedMethodsWithAnnotations supportedMethods =
+    SupportedClasses supportedClasses =
         new SupportedMethodsGenerator(new InternalOptions())
             .run(librarySpecification.getDesugarJdkLibs(), librarySpecification.getSpecification());
 
     for (AndroidApiLevel api : getRelevantApiLevels()) {
       Set<DexMethod> localFailures = Sets.newIdentityHashSet();
-      supportedMethods.annotatedMethods.forEach(
-          (method, annotation) -> {
-            if (annotation.isUnsupportedInMinApiRange()) {
-              if (api.getLevel() >= annotation.getMinRange()
-                  && api.getLevel() <= annotation.getMaxRange()) {
-                localFailures.add(method);
-              }
-            }
-          });
+      supportedClasses.forEachClass(
+          supportedClass ->
+              supportedClass.forEachMethodAndAnnotation(
+                  (method, annotation) -> {
+                    if (annotation != null && annotation.isUnsupportedInMinApiRange()) {
+                      if (api.getLevel() >= annotation.getMinRange()
+                          && api.getLevel() <= annotation.getMaxRange()) {
+                        localFailures.add(method.getReference());
+                      }
+                    }
+                  }));
       Set<String> expectedFailures = getExpectedFailures(api);
       Set<String> apiFailuresString =
           localFailures.stream().map(DexMethod::toString).collect(Collectors.toSet());

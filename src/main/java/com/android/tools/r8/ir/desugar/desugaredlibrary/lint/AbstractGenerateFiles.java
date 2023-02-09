@@ -8,7 +8,6 @@ import com.android.tools.r8.StringResource;
 import com.android.tools.r8.dex.ApplicationReader;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexItemFactory;
-import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibrarySpecification;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibrarySpecificationParser;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.machinespecification.MachineDesugaredLibrarySpecification;
@@ -20,13 +19,11 @@ import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.ThreadUtils;
 import com.android.tools.r8.utils.Timing;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Sets;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Collection;
-import java.util.Set;
 import java.util.concurrent.ExecutorService;
 
 public abstract class AbstractGenerateFiles {
@@ -44,7 +41,6 @@ public abstract class AbstractGenerateFiles {
   final Path desugaredLibrarySpecificationPath;
   final Collection<Path> desugaredLibraryImplementation;
   final Path outputDirectory;
-  final Set<DexMethod> parallelMethods = Sets.newIdentityHashSet();
 
   public AbstractGenerateFiles(
       String desugarConfigurationPath, String desugarImplementationPath, String outputDirectory)

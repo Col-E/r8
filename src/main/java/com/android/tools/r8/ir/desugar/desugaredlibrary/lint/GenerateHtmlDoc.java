@@ -9,13 +9,13 @@ import com.android.tools.r8.graph.ClassAccessFlags;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
-import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.FieldAccessFlags;
 import com.android.tools.r8.graph.MethodAccessFlags;
-import com.android.tools.r8.ir.desugar.desugaredlibrary.lint.SupportedMethodsWithAnnotations.ClassAnnotation;
-import com.android.tools.r8.ir.desugar.desugaredlibrary.lint.SupportedMethodsWithAnnotations.MethodAnnotation;
+import com.android.tools.r8.ir.desugar.desugaredlibrary.lint.SupportedClasses.ClassAnnotation;
+import com.android.tools.r8.ir.desugar.desugaredlibrary.lint.SupportedClasses.MethodAnnotation;
+import com.android.tools.r8.ir.desugar.desugaredlibrary.lint.SupportedClasses.SupportedClass;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import java.io.PrintStream;
 import java.nio.file.Files;
@@ -467,7 +467,7 @@ public class GenerateHtmlDoc extends AbstractGenerateFiles {
       }
       builder.end("ul").end("td");
       StringBuilder commentBuilder = new StringBuilder();
-      if (classAnnotation.fullySupported) {
+      if (classAnnotation.isFullySupported()) {
         commentBuilder.append("Fully implemented class.").append(HTML_SPLIT);
       }
       if (parallelStreamMethod) {
@@ -496,10 +496,10 @@ public class GenerateHtmlDoc extends AbstractGenerateFiles {
             .append(" Also supported with covariant return type.")
             .append(HTML_SPLIT);
       }
-      if (!classAnnotation.unsupportedMethods.isEmpty()) {
+      if (!classAnnotation.getUnsupportedMethods().isEmpty()) {
         commentBuilder
             .append("Some methods (")
-            .append(classAnnotation.unsupportedMethods.size())
+            .append(classAnnotation.getUnsupportedMethods().size())
             .append(") present in Android ")
             .append(MAX_TESTED_ANDROID_API_LEVEL)
             .append(" are not supported.");
@@ -510,25 +510,22 @@ public class GenerateHtmlDoc extends AbstractGenerateFiles {
     }
   }
 
-  private void generateClassHTML(
-      PrintStream ps,
-      DexClass clazz,
-      List<DexEncodedMethod> methods,
-      ClassAnnotation classAnnotation,
-      Map<DexMethod, MethodAnnotation> methodAnnotationMap) {
-    SourceBuilder<HTMLSourceBuilder> builder = new HTMLSourceBuilder(clazz, classAnnotation);
+  private void generateClassHTML(PrintStream ps, SupportedClass supportedClass) {
+    DexClass clazz = supportedClass.getClazz();
+    SourceBuilder<HTMLSourceBuilder> builder =
+        new HTMLSourceBuilder(clazz, supportedClass.getClassAnnotation());
     // We need to extend to support fields.
     StreamSupport.stream(clazz.fields().spliterator(), false)
         .filter(field -> field.accessFlags.isPublic() || field.accessFlags.isProtected())
         .sorted(Comparator.comparing(DexEncodedField::toSourceString))
         .forEach(builder::addField);
-    methods.stream()
-        .filter(
-            method ->
-                (method.accessFlags.isPublic() || method.accessFlags.isProtected())
-                    && !method.accessFlags.isBridge())
-        .sorted(Comparator.comparing(DexEncodedMethod::toSourceString))
-        .forEach(m -> builder.addMethod(m, methodAnnotationMap.get(m.getReference())));
+    supportedClass.forEachMethodAndAnnotation(
+        (method, methodAnnotation) -> {
+          if ((method.accessFlags.isPublic() || method.accessFlags.isProtected())
+              && !method.accessFlags.isBridge()) {
+            builder.addMethod(method, methodAnnotation);
+          }
+        });
     ps.println(builder);
   }
 
@@ -536,20 +533,12 @@ public class GenerateHtmlDoc extends AbstractGenerateFiles {
   AndroidApiLevel run() throws Exception {
     PrintStream ps = new PrintStream(Files.newOutputStream(outputDirectory.resolve("apis.html")));
 
-    SupportedMethodsWithAnnotations supportedMethods =
+    SupportedClasses supportedClasses =
         new SupportedMethodsGenerator(options)
             .run(desugaredLibraryImplementation, desugaredLibrarySpecificationPath);
 
     // Full classes added.
-    supportedMethods.supportedMethods.forEach(
-        (clazz, methods) -> {
-          generateClassHTML(
-              ps,
-              clazz,
-              methods,
-              supportedMethods.annotatedClasses.get(clazz.type),
-              supportedMethods.annotatedMethods);
-        });
+    supportedClasses.forEachClass(supportedClass -> generateClassHTML(ps, supportedClass));
     return MAX_TESTED_ANDROID_API_LEVEL;
   }
 
