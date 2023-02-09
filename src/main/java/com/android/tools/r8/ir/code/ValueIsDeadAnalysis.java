@@ -8,12 +8,14 @@ import static com.android.tools.r8.utils.MapUtils.ignoreKey;
 
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.ir.optimize.DeadCodeRemover.DeadInstructionResult;
+import com.android.tools.r8.utils.BooleanBox;
 import com.android.tools.r8.utils.MapUtils;
 import com.android.tools.r8.utils.WorkList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 import java.util.Collections;
 import java.util.IdentityHashMap;
+import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Objects;
@@ -60,11 +62,17 @@ public class ValueIsDeadAnalysis {
     //    (as it is necessarily a leaf), and repeatedly mark direct and indirect predecessors of `u`
     //    that have now become leaves as being dead in the analysis cache.
     WorkList<Value> worklist = WorkList.newIdentityWorkList(value);
-    Value notDeadWitness = findNotDeadWitness(worklist);
+    BooleanBox foundCycle = new BooleanBox();
+    Value notDeadWitness = findNotDeadWitness(worklist, foundCycle);
     boolean isDead = Objects.isNull(notDeadWitness);
     if (isDead) {
-      for (Value deadValue : worklist.getSeenSet()) {
-        recordValueIsDead(deadValue);
+      if (foundCycle.isTrue()) {
+        for (Value deadValue : worklist.getSeenSet()) {
+          recordValueIsDead(deadValue);
+        }
+      } else {
+        assert worklist.getSeenSet().stream()
+            .allMatch(deadValue -> analysisCache.get(deadValue) == ValueIsDeadResult.DEAD);
       }
     }
     return isDead;
@@ -74,7 +82,7 @@ public class ValueIsDeadAnalysis {
     return Iterables.any(block.getPhis(), this::isDead);
   }
 
-  private Value findNotDeadWitness(WorkList<Value> worklist) {
+  private Value findNotDeadWitness(WorkList<Value> worklist, BooleanBox foundCycle) {
     DependenceGraph dependenceGraph = new DependenceGraph();
     while (worklist.hasNext()) {
       Value value = worklist.next();
@@ -118,11 +126,17 @@ public class ValueIsDeadAnalysis {
         }
       }
 
-      // No need to record that the deadness of a values relies on its own removal, nor known to be
-      // dead values.
-      valuesRequiredToBeDead.remove(value);
-      valuesRequiredToBeDead.removeIf(
-          valueRequiredToBeDead -> analysisCache.get(value) == ValueIsDeadResult.DEAD);
+      Iterator<Value> valuesRequiredToBeDeadIterator = valuesRequiredToBeDead.iterator();
+      while (valuesRequiredToBeDeadIterator.hasNext()) {
+        Value valueRequiredToBeDead = valuesRequiredToBeDeadIterator.next();
+        if (hasProvenThatValueIsNotDead(valueRequiredToBeDead)) {
+          recordValueAndDependentsAreNotDead(value, dependenceGraph);
+          return value;
+        }
+        if (!needsToProveThatValueIsDead(value, valueRequiredToBeDead)) {
+          valuesRequiredToBeDeadIterator.remove();
+        }
+      }
 
       if (valuesRequiredToBeDead.isEmpty()) {
         // We have now proven that this value is dead.
@@ -131,6 +145,7 @@ public class ValueIsDeadAnalysis {
         // Record the current value as a dependent of each value required to be dead.
         for (Value valueRequiredToBeDead : valuesRequiredToBeDead) {
           dependenceGraph.addDependenceEdge(value, valueRequiredToBeDead);
+          foundCycle.or(worklist.isSeen(valueRequiredToBeDead));
         }
 
         // Continue the analysis of the dependents.
@@ -138,6 +153,16 @@ public class ValueIsDeadAnalysis {
       }
     }
     return null;
+  }
+
+  private boolean hasProvenThatValueIsNotDead(Value valueRequiredToBeDead) {
+    return analysisCache.get(valueRequiredToBeDead) == ValueIsDeadResult.NOT_DEAD;
+  }
+
+  private boolean needsToProveThatValueIsDead(Value value, Value valueRequiredToBeDead) {
+    // No need to record that the deadness of a values relies on its own removal.
+    assert !hasProvenThatValueIsNotDead(valueRequiredToBeDead);
+    return valueRequiredToBeDead != value && !analysisCache.containsKey(valueRequiredToBeDead);
   }
 
   private void recordValueIsDeadAndPropagateToDependents(
@@ -161,7 +186,7 @@ public class ValueIsDeadAnalysis {
 
   private void recordValueIsDead(Value value) {
     ValueIsDeadResult existingResult = analysisCache.put(value, ValueIsDeadResult.DEAD);
-    assert existingResult == null || existingResult == ValueIsDeadResult.DEAD;
+    assert existingResult == null || existingResult.isDead();
   }
 
   private void recordValueAndDependentsAreNotDead(Value value, DependenceGraph dependenceGraph) {

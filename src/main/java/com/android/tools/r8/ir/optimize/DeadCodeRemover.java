@@ -53,9 +53,9 @@ public class DeadCodeRemover {
     // We may encounter unneeded catch handlers after each iteration, e.g., if a dead instruction
     // is the only throwing instruction in a block. Removing unneeded catch handlers can lead to
     // more dead instructions.
-    ValueIsDeadAnalysis valueIsDeadAnalysis = new ValueIsDeadAnalysis(appView, code);
     Deque<BasicBlock> worklist = new ArrayDeque<>();
     do {
+      ValueIsDeadAnalysis valueIsDeadAnalysis = new ValueIsDeadAnalysis(appView, code);
       worklist.addAll(code.topologicallySortedBlocks());
       while (!worklist.isEmpty()) {
         BasicBlock block = worklist.removeLast();
