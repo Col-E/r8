@@ -7,11 +7,13 @@ package com.android.tools.r8.ir.conversion;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.optimize.UtilityMethodsForCodeOptimizationsEventConsumer;
 import com.android.tools.r8.ir.optimize.api.InstanceInitializerOutlinerEventConsumer;
+import com.android.tools.r8.ir.optimize.enums.EnumUnboxerMethodProcessorEventConsumer;
 import com.android.tools.r8.profile.art.rewriting.ArtProfileCollectionAdditions;
 import com.android.tools.r8.profile.art.rewriting.ArtProfileRewritingMethodProcessorEventConsumer;
 
 public abstract class MethodProcessorEventConsumer
-    implements InstanceInitializerOutlinerEventConsumer,
+    implements EnumUnboxerMethodProcessorEventConsumer,
+        InstanceInitializerOutlinerEventConsumer,
         UtilityMethodsForCodeOptimizationsEventConsumer {
 
   public static MethodProcessorEventConsumer create(
@@ -33,6 +35,23 @@ public abstract class MethodProcessorEventConsumer
 
     static EmptyMethodProcessorEventConsumer getInstance() {
       return INSTANCE;
+    }
+
+    @Override
+    public void acceptEnumUnboxerCheckNotZeroContext(ProgramMethod method, ProgramMethod context) {
+      // Intentionally empty.
+    }
+
+    @Override
+    public void acceptEnumUnboxerLocalUtilityClassMethodContext(
+        ProgramMethod method, ProgramMethod context) {
+      // Intentionally empty.
+    }
+
+    @Override
+    public void acceptEnumUnboxerSharedUtilityClassMethodContext(
+        ProgramMethod method, ProgramMethod context) {
+      // Intentionally empty.
     }
 
     @Override

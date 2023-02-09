@@ -30,6 +30,33 @@ public class ArtProfileRewritingMethodProcessorEventConsumer extends MethodProce
   }
 
   @Override
+  public void acceptEnumUnboxerCheckNotZeroContext(ProgramMethod method, ProgramMethod context) {
+    additionsCollection.applyIfContextIsInProfile(
+        context, additionsBuilder -> additionsBuilder.addRule(method));
+    parent.acceptEnumUnboxerCheckNotZeroContext(method, context);
+  }
+
+  @Override
+  public void acceptEnumUnboxerLocalUtilityClassMethodContext(
+      ProgramMethod method, ProgramMethod context) {
+    additionsCollection.applyIfContextIsInProfile(
+        context, additionsBuilder -> additionsBuilder.addRule(method).addRule(method.getHolder()));
+    parent.acceptEnumUnboxerLocalUtilityClassMethodContext(method, context);
+  }
+
+  @Override
+  public void acceptEnumUnboxerSharedUtilityClassMethodContext(
+      ProgramMethod method, ProgramMethod context) {
+    additionsCollection.applyIfContextIsInProfile(
+        context,
+        additionsBuilder -> {
+          additionsBuilder.addRule(method).addRule(method.getHolder());
+          method.getHolder().acceptProgramClassInitializer(additionsBuilder::addRule);
+        });
+    parent.acceptEnumUnboxerSharedUtilityClassMethodContext(method, context);
+  }
+
+  @Override
   public void acceptInstanceInitializerOutline(ProgramMethod method, ProgramMethod context) {
     additionsCollection.applyIfContextIsInProfile(
         context, additionsBuilder -> additionsBuilder.addRule(method).addRule(method.getHolder()));

@@ -75,7 +75,16 @@ public class SharedEnumUnboxingUtilityClass extends EnumUnboxingUtilityClass {
     ensureOrdinalMethod(appView);
   }
 
-  public ProgramMethod ensureCheckNotZeroMethod(AppView<AppInfoWithLiveness> appView) {
+  public ProgramMethod ensureCheckNotZeroMethod(
+      AppView<AppInfoWithLiveness> appView,
+      ProgramMethod context,
+      EnumUnboxerMethodProcessorEventConsumer eventConsumer) {
+    ProgramMethod method = ensureCheckNotZeroMethod(appView);
+    eventConsumer.acceptEnumUnboxerSharedUtilityClassMethodContext(method, context);
+    return method;
+  }
+
+  private ProgramMethod ensureCheckNotZeroMethod(AppView<AppInfoWithLiveness> appView) {
     DexItemFactory dexItemFactory = appView.dexItemFactory();
     return internalEnsureMethod(
         appView,
@@ -84,7 +93,16 @@ public class SharedEnumUnboxingUtilityClass extends EnumUnboxingUtilityClass {
         method -> EnumUnboxingCfMethods.EnumUnboxingMethods_zeroCheck(dexItemFactory, method));
   }
 
-  public ProgramMethod ensureCheckNotZeroWithMessageMethod(AppView<AppInfoWithLiveness> appView) {
+  public ProgramMethod ensureCheckNotZeroWithMessageMethod(
+      AppView<AppInfoWithLiveness> appView,
+      ProgramMethod context,
+      EnumUnboxerMethodProcessorEventConsumer eventConsumer) {
+    ProgramMethod method = ensureCheckNotZeroWithMessageMethod(appView);
+    eventConsumer.acceptEnumUnboxerSharedUtilityClassMethodContext(method, context);
+    return method;
+  }
+
+  private ProgramMethod ensureCheckNotZeroWithMessageMethod(AppView<AppInfoWithLiveness> appView) {
     DexItemFactory dexItemFactory = appView.dexItemFactory();
     return internalEnsureMethod(
         appView,
@@ -95,7 +113,16 @@ public class SharedEnumUnboxingUtilityClass extends EnumUnboxingUtilityClass {
             EnumUnboxingCfMethods.EnumUnboxingMethods_zeroCheckMessage(dexItemFactory, method));
   }
 
-  public ProgramMethod ensureCompareToMethod(AppView<AppInfoWithLiveness> appView) {
+  public ProgramMethod ensureCompareToMethod(
+      AppView<AppInfoWithLiveness> appView,
+      ProgramMethod context,
+      EnumUnboxerMethodProcessorEventConsumer eventConsumer) {
+    ProgramMethod method = ensureCompareToMethod(appView);
+    eventConsumer.acceptEnumUnboxerSharedUtilityClassMethodContext(method, context);
+    return method;
+  }
+
+  private ProgramMethod ensureCompareToMethod(AppView<AppInfoWithLiveness> appView) {
     DexItemFactory dexItemFactory = appView.dexItemFactory();
     return internalEnsureMethod(
         appView,
@@ -105,7 +132,16 @@ public class SharedEnumUnboxingUtilityClass extends EnumUnboxingUtilityClass {
         method -> EnumUnboxingCfMethods.EnumUnboxingMethods_compareTo(dexItemFactory, method));
   }
 
-  public ProgramMethod ensureEqualsMethod(AppView<AppInfoWithLiveness> appView) {
+  public ProgramMethod ensureEqualsMethod(
+      AppView<AppInfoWithLiveness> appView,
+      ProgramMethod context,
+      EnumUnboxerMethodProcessorEventConsumer eventConsumer) {
+    ProgramMethod method = ensureEqualsMethod(appView);
+    eventConsumer.acceptEnumUnboxerSharedUtilityClassMethodContext(method, context);
+    return method;
+  }
+
+  private ProgramMethod ensureEqualsMethod(AppView<AppInfoWithLiveness> appView) {
     DexItemFactory dexItemFactory = appView.dexItemFactory();
     return internalEnsureMethod(
         appView,
@@ -115,7 +151,16 @@ public class SharedEnumUnboxingUtilityClass extends EnumUnboxingUtilityClass {
         method -> EnumUnboxingCfMethods.EnumUnboxingMethods_equals(dexItemFactory, method));
   }
 
-  public ProgramMethod ensureOrdinalMethod(AppView<AppInfoWithLiveness> appView) {
+  public ProgramMethod ensureOrdinalMethod(
+      AppView<AppInfoWithLiveness> appView,
+      ProgramMethod context,
+      EnumUnboxerMethodProcessorEventConsumer eventConsumer) {
+    ProgramMethod method = ensureOrdinalMethod(appView);
+    eventConsumer.acceptEnumUnboxerSharedUtilityClassMethodContext(method, context);
+    return method;
+  }
+
+  private ProgramMethod ensureOrdinalMethod(AppView<AppInfoWithLiveness> appView) {
     DexItemFactory dexItemFactory = appView.dexItemFactory();
     return internalEnsureMethod(
         appView,
@@ -156,7 +201,9 @@ public class SharedEnumUnboxingUtilityClass extends EnumUnboxingUtilityClass {
     return sharedUtilityClass;
   }
 
-  public ProgramMethod getValuesMethod() {
+  public ProgramMethod getValuesMethod(
+      ProgramMethod context, EnumUnboxerMethodProcessorEventConsumer eventConsumer) {
+    eventConsumer.acceptEnumUnboxerSharedUtilityClassMethodContext(valuesMethod, context);
     return valuesMethod;
   }
 

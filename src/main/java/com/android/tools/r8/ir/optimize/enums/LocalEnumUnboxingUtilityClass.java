@@ -59,7 +59,16 @@ public class LocalEnumUnboxingUtilityClass extends EnumUnboxingUtilityClass {
 
   public ProgramMethod ensureGetInstanceFieldMethod(
       AppView<AppInfoWithLiveness> appView,
-      DexField field) {
+      DexField field,
+      ProgramMethod context,
+      EnumUnboxerMethodProcessorEventConsumer eventConsumer) {
+    ProgramMethod method = ensureGetInstanceFieldMethod(appView, field);
+    eventConsumer.acceptEnumUnboxerLocalUtilityClassMethodContext(method, context);
+    return method;
+  }
+
+  private ProgramMethod ensureGetInstanceFieldMethod(
+      AppView<AppInfoWithLiveness> appView, DexField field) {
     DexItemFactory dexItemFactory = appView.dexItemFactory();
     String fieldName = field.getName().toString();
     DexString methodName;
@@ -82,7 +91,16 @@ public class LocalEnumUnboxingUtilityClass extends EnumUnboxingUtilityClass {
                 .generateCfCode());
   }
 
-  public ProgramMethod ensureStringValueOfMethod(AppView<AppInfoWithLiveness> appView) {
+  public ProgramMethod ensureStringValueOfMethod(
+      AppView<AppInfoWithLiveness> appView,
+      ProgramMethod context,
+      EnumUnboxerMethodProcessorEventConsumer eventConsumer) {
+    ProgramMethod method = ensureStringValueOfMethod(appView);
+    eventConsumer.acceptEnumUnboxerLocalUtilityClassMethodContext(method, context);
+    return method;
+  }
+
+  private ProgramMethod ensureStringValueOfMethod(AppView<AppInfoWithLiveness> appView) {
     DexItemFactory dexItemFactory = appView.dexItemFactory();
     AbstractValue defaultValue =
         appView.abstractValueFactory().createSingleStringValue(dexItemFactory.createString("null"));
@@ -96,7 +114,16 @@ public class LocalEnumUnboxingUtilityClass extends EnumUnboxingUtilityClass {
                 .generateCfCode());
   }
 
-  public ProgramMethod ensureValueOfMethod(AppView<AppInfoWithLiveness> appView) {
+  public ProgramMethod ensureValueOfMethod(
+      AppView<AppInfoWithLiveness> appView,
+      ProgramMethod context,
+      EnumUnboxerMethodProcessorEventConsumer eventConsumer) {
+    ProgramMethod method = ensureValueOfMethod(appView);
+    eventConsumer.acceptEnumUnboxerLocalUtilityClassMethodContext(method, context);
+    return method;
+  }
+
+  private ProgramMethod ensureValueOfMethod(AppView<AppInfoWithLiveness> appView) {
     DexItemFactory dexItemFactory = appView.dexItemFactory();
     return internalEnsureMethod(
         appView,

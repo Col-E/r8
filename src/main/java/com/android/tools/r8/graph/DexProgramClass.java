@@ -339,6 +339,12 @@ public class DexProgramClass extends DexClass
     return toProgramMethodOrNull(getClassInitializer());
   }
 
+  public void acceptProgramClassInitializer(Consumer<ProgramMethod> consumer) {
+    if (hasClassInitializer()) {
+      consumer.accept(getProgramClassInitializer());
+    }
+  }
+
   public ProgramMethod getProgramDefaultInitializer() {
     return getProgramInitializer(DexType.EMPTY_ARRAY);
   }
