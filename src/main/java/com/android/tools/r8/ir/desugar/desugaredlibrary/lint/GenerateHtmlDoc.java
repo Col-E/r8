@@ -532,6 +532,7 @@ public class GenerateHtmlDoc extends AbstractGenerateFiles {
     ps.println(builder);
   }
 
+  @Override
   AndroidApiLevel run() throws Exception {
     PrintStream ps = new PrintStream(Files.newOutputStream(outputDirectory.resolve("apis.html")));
 

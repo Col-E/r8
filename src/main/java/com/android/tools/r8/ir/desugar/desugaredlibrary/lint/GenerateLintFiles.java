@@ -228,6 +228,7 @@ public class GenerateLintFiles extends AbstractGenerateFiles {
     writeLintFiles(compilationApiLevel, minApiLevel, supportedMethods);
   }
 
+  @Override
   public AndroidApiLevel run() throws Exception {
     AndroidApiLevel compilationLevel =
         desugaredLibrarySpecification.getRequiredCompilationApiLevel();
