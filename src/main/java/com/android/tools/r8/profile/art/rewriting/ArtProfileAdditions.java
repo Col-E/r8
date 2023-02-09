@@ -5,6 +5,7 @@
 package com.android.tools.r8.profile.art.rewriting;
 
 import com.android.tools.r8.graph.DexClass;
+import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexType;
@@ -13,6 +14,7 @@ import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.profile.art.ArtProfile;
 import com.android.tools.r8.profile.art.ArtProfileClassRule;
 import com.android.tools.r8.profile.art.ArtProfileMethodRule;
+import com.android.tools.r8.profile.art.ArtProfileMethodRuleInfoImpl;
 import com.android.tools.r8.profile.art.ArtProfileRule;
 import com.google.common.collect.Sets;
 import java.util.ArrayList;
@@ -95,8 +97,9 @@ public class ArtProfileAdditions {
     }
   }
 
-  public void addClassRule(DexClass clazz) {
+  public ArtProfileAdditions addClassRule(DexClass clazz) {
     addClassRule(clazz.getType());
+    return this;
   }
 
   public void addClassRule(DexType type) {
@@ -110,6 +113,21 @@ public class ArtProfileAdditions {
 
   private void addMethodRuleFromContext(
       DexMethod method, ArtProfileMethodRule contextMethodRule, MethodRuleAdditionConfig config) {
+    addMethodRule(
+        method,
+        methodRuleInfoBuilder ->
+            config.configureMethodRuleInfo(methodRuleInfoBuilder, contextMethodRule));
+  }
+
+  public ArtProfileAdditions addMethodRule(
+      DexClassAndMethod method,
+      Consumer<ArtProfileMethodRuleInfoImpl.Builder> methodRuleInfoBuilderConsumer) {
+    return addMethodRule(method.getReference(), methodRuleInfoBuilderConsumer);
+  }
+
+  public ArtProfileAdditions addMethodRule(
+      DexMethod method,
+      Consumer<ArtProfileMethodRuleInfoImpl.Builder> methodRuleInfoBuilderConsumer) {
     // Create profile rule for method.
     ArtProfileMethodRule.Builder methodRuleBuilder =
         methodRuleAdditions.computeIfAbsent(
@@ -117,10 +135,10 @@ public class ArtProfileAdditions {
 
     // Setup the rule.
     synchronized (methodRuleBuilder) {
-      methodRuleBuilder.acceptMethodRuleInfoBuilder(
-          methodRuleInfoBuilder ->
-              config.configureMethodRuleInfo(methodRuleInfoBuilder, contextMethodRule));
+      methodRuleBuilder.acceptMethodRuleInfoBuilder(methodRuleInfoBuilderConsumer);
     }
+
+    return this;
   }
 
   void removeMovedMethodRule(ProgramMethod oldMethod, ProgramMethod newMethod) {

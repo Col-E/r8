@@ -20,7 +20,6 @@ import com.android.tools.r8.graph.DexLibraryClass;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.MethodAccessFlags;
-import com.android.tools.r8.graph.ProgramDefinition;
 import com.android.tools.r8.graph.ThrowExceptionCode;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.synthesis.CommittedItems;
@@ -42,50 +41,52 @@ import java.util.concurrent.ExecutorService;
 public class ApiReferenceStubber {
 
   private final AppView<?> appView;
-  private final Map<DexLibraryClass, Set<ProgramDefinition>> referencingContexts =
+  private final Map<DexLibraryClass, Set<DexProgramClass>> referencingContexts =
       new ConcurrentHashMap<>();
   private final Set<DexLibraryClass> libraryClassesToMock = Sets.newConcurrentHashSet();
   private final Set<DexType> seenTypes = Sets.newConcurrentHashSet();
   private final AndroidApiLevelCompute apiLevelCompute;
+  private final ApiReferenceStubberEventConsumer eventConsumer;
 
   public ApiReferenceStubber(AppView<?> appView) {
     this.appView = appView;
-    apiLevelCompute = appView.apiLevelCompute();
+    this.apiLevelCompute = appView.apiLevelCompute();
+    this.eventConsumer = ApiReferenceStubberEventConsumer.create(appView);
   }
 
   public void run(ExecutorService executorService) throws ExecutionException {
-    if (appView.options().isGeneratingClassFiles()
-        || !appView.options().apiModelingOptions().enableStubbingOfClasses) {
-      return;
+    if (appView.options().isGeneratingDex()
+        && appView.options().apiModelingOptions().enableStubbingOfClasses) {
+      ThreadUtils.processItems(appView.appInfo().classes(), this::processClass, executorService);
     }
-    ThreadUtils.processItems(appView.appInfo().classes(), this::processClass, executorService);
-    if (libraryClassesToMock.isEmpty()) {
-      return;
+    if (!libraryClassesToMock.isEmpty()) {
+      libraryClassesToMock.forEach(
+          clazz ->
+              mockMissingLibraryClass(
+                  clazz,
+                  ThrowExceptionCode.create(appView.dexItemFactory().noClassDefFoundErrorType),
+                  eventConsumer));
+      // Commit the synthetic items.
+      CommittedItems committedItems = appView.getSyntheticItems().commit(appView.appInfo().app());
+      if (appView.hasLiveness()) {
+        AppView<AppInfoWithLiveness> appInfoWithLivenessAppView = appView.withLiveness();
+        appInfoWithLivenessAppView.setAppInfo(
+            appInfoWithLivenessAppView.appInfo().rebuildWithLiveness(committedItems));
+      } else if (appView.hasClassHierarchy()) {
+        appView
+            .withClassHierarchy()
+            .setAppInfo(
+                appView.appInfo().withClassHierarchy().rebuildWithClassHierarchy(committedItems));
+      } else {
+        appView
+            .withoutClassHierarchy()
+            .setAppInfo(
+                new AppInfo(
+                    appView.appInfo().getSyntheticItems().commit(appView.app()),
+                    appView.appInfo().getMainDexInfo()));
+      }
     }
-    libraryClassesToMock.forEach(
-        clazz ->
-            mockMissingLibraryClass(
-                clazz,
-                ThrowExceptionCode.create(appView.dexItemFactory().noClassDefFoundErrorType)));
-    // Commit the synthetic items.
-    CommittedItems committedItems = appView.getSyntheticItems().commit(appView.appInfo().app());
-    if (appView.hasLiveness()) {
-      AppView<AppInfoWithLiveness> appInfoWithLivenessAppView = appView.withLiveness();
-      appInfoWithLivenessAppView.setAppInfo(
-          appInfoWithLivenessAppView.appInfo().rebuildWithLiveness(committedItems));
-    } else if (appView.hasClassHierarchy()) {
-      appView
-          .withClassHierarchy()
-          .setAppInfo(
-              appView.appInfo().withClassHierarchy().rebuildWithClassHierarchy(committedItems));
-    } else {
-      appView
-          .withoutClassHierarchy()
-          .setAppInfo(
-              new AppInfo(
-                  appView.appInfo().getSyntheticItems().commit(appView.app()),
-                  appView.appInfo().getMainDexInfo()));
-    }
+    eventConsumer.finished(appView);
   }
 
   public void processClass(DexProgramClass clazz) {
@@ -142,7 +143,8 @@ public class ApiReferenceStubber {
 
   private void mockMissingLibraryClass(
       DexLibraryClass libraryClass,
-      ThrowExceptionCode throwExceptionCode) {
+      ThrowExceptionCode throwExceptionCode,
+      ApiReferenceStubberEventConsumer eventConsumer) {
     DexItemFactory factory = appView.dexItemFactory();
     // Do not stub the anything starting with java (including the object type).
     if (libraryClass.getType() == appView.dexItemFactory().objectType
@@ -159,38 +161,44 @@ public class ApiReferenceStubber {
         .isSupported(libraryClass.getType())) {
       return;
     }
-    Set<ProgramDefinition> contexts = referencingContexts.get(libraryClass);
+    Set<DexProgramClass> contexts = referencingContexts.get(libraryClass);
     if (contexts == null) {
       throw new Unreachable("Attempt to create a global synthetic with no contexts");
     }
-    appView
-        .appInfo()
-        .getSyntheticItems()
-        .ensureGlobalClass(
-            () -> new MissingGlobalSyntheticsConsumerDiagnostic("API stubbing"),
-            kinds -> kinds.API_MODEL_STUB,
-            libraryClass.getType(),
-            contexts,
-            appView,
-            classBuilder -> {
-              classBuilder
-                  .setSuperType(libraryClass.getSuperType())
-                  .setInterfaces(Arrays.asList(libraryClass.getInterfaces().values))
-                  // Add throwing static initializer
-                  .addMethod(
-                      methodBuilder ->
-                          methodBuilder
-                              .setName(factory.classConstructorMethodName)
-                              .setProto(factory.createProto(factory.voidType))
-                              .setAccessFlags(MethodAccessFlags.createForClassInitializer())
-                              .setCode(method -> throwExceptionCode));
-              if (libraryClass.isInterface()) {
-                classBuilder.setInterface();
-              }
-              if (!libraryClass.isFinal()) {
-                classBuilder.unsetFinal();
-              }
-            },
-            ignored -> {});
+    DexProgramClass mockClass =
+        appView
+            .appInfo()
+            .getSyntheticItems()
+            .ensureGlobalClass(
+                () -> new MissingGlobalSyntheticsConsumerDiagnostic("API stubbing"),
+                kinds -> kinds.API_MODEL_STUB,
+                libraryClass.getType(),
+                contexts,
+                appView,
+                classBuilder -> {
+                  classBuilder
+                      .setSuperType(libraryClass.getSuperType())
+                      .setInterfaces(Arrays.asList(libraryClass.getInterfaces().values))
+                      // Add throwing static initializer
+                      .addMethod(
+                          methodBuilder ->
+                              methodBuilder
+                                  .setName(factory.classConstructorMethodName)
+                                  .setProto(factory.createProto(factory.voidType))
+                                  .setAccessFlags(MethodAccessFlags.createForClassInitializer())
+                                  .setCode(method -> throwExceptionCode));
+                  if (libraryClass.isInterface()) {
+                    classBuilder.setInterface();
+                  }
+                  if (!libraryClass.isFinal()) {
+                    classBuilder.unsetFinal();
+                  }
+                },
+                clazz -> eventConsumer.acceptMockedLibraryClass(clazz, libraryClass));
+    if (!eventConsumer.isEmpty()) {
+      for (DexProgramClass context : contexts) {
+        eventConsumer.acceptMockedLibraryClassContext(mockClass, libraryClass, context);
+      }
+    }
   }
 }

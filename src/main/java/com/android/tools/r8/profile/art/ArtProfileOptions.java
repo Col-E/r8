@@ -26,6 +26,13 @@ public class ArtProfileOptions {
     return enableCompletenessCheckForTesting;
   }
 
+  public boolean isIncludingApiReferenceStubs() {
+    // We only include API reference stubs in the residual ART profiles for completeness testing.
+    // This is because the API reference stubs should never be used at runtime except for
+    // verification, meaning there should be no need to AOT them.
+    return enableCompletenessCheckForTesting;
+  }
+
   public ArtProfileOptions setArtProfilesForRewriting(Collection<ArtProfileForRewriting> inputs) {
     this.artProfilesForRewriting = inputs;
     return this;

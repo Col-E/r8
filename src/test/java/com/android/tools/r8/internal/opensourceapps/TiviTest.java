@@ -50,8 +50,6 @@ public class TiviTest extends TestBase {
         .addProgramFiles(outDirectory.resolve("program.jar"))
         .addOptionsModification(options -> options.enableEnumUnboxing = false)
         .addOptionsModification(
-            options -> options.apiModelingOptions().enableStubbingOfClasses = false)
-        .addOptionsModification(
             options -> options.getArtProfileOptions().setEnableCompletenessCheckForTesting(true))
         .apply(this::configure)
         .compile();
