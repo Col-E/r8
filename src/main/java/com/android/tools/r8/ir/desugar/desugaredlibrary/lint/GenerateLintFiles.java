@@ -24,6 +24,7 @@ import com.android.tools.r8.graph.GenericSignature.ClassSignature;
 import com.android.tools.r8.graph.GenericSignature.MethodTypeSignature;
 import com.android.tools.r8.graph.LazyLoadedDexApplication;
 import com.android.tools.r8.graph.MethodCollection.MethodCollectionFactory;
+import com.android.tools.r8.ir.desugar.desugaredlibrary.lint.SupportedMethodsWithAnnotations.MethodAnnotation;
 import com.android.tools.r8.jar.CfApplicationWriter;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.synthesis.SyntheticItems.GlobalSyntheticsStrategy;
@@ -42,8 +43,6 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Set;
-import java.util.function.BiPredicate;
-import java.util.function.Predicate;
 
 public class GenerateLintFiles extends AbstractGenerateFiles {
 
@@ -151,7 +150,7 @@ public class GenerateLintFiles extends AbstractGenerateFiles {
   private void writeLintFiles(
       AndroidApiLevel compilationApiLevel,
       AndroidApiLevel minApiLevel,
-      SupportedMethods supportedMethods)
+      SupportedMethodsWithAnnotations supportedMethods)
       throws Exception {
     // Build a plain text file with the desugared APIs.
     List<String> desugaredApisSignatures = new ArrayList<>();
@@ -161,17 +160,21 @@ public class GenerateLintFiles extends AbstractGenerateFiles {
         (clazz, methods) -> {
           String classBinaryName =
               DescriptorUtils.getClassBinaryNameFromDescriptor(clazz.type.descriptor.toString());
-          if (!supportedMethods.classesWithAllMethodsSupported.contains(clazz)) {
+          if (!supportedMethods.annotatedClasses.get(clazz.type).fullySupported) {
             for (DexEncodedMethod method : methods) {
               if (method.isInstanceInitializer() || method.isClassInitializer()) {
                 // No new constructors are added.
                 continue;
               }
-              desugaredApisSignatures.add(
-                  classBinaryName
-                      + '#'
-                      + method.getReference().name
-                      + method.getReference().proto.toDescriptorString());
+              MethodAnnotation methodAnnotation =
+                  supportedMethods.annotatedMethods.get(method.getReference());
+              if (shouldAddMethodToLint(methodAnnotation, minApiLevel)) {
+                desugaredApisSignatures.add(
+                    classBinaryName
+                        + '#'
+                        + method.getReference().name
+                        + method.getReference().proto.toDescriptorString());
+              }
             }
           } else {
             desugaredApisSignatures.add(classBinaryName);
@@ -198,49 +201,43 @@ public class GenerateLintFiles extends AbstractGenerateFiles {
     consumer.finished(options.reporter);
   }
 
+  private boolean shouldAddMethodToLint(
+      MethodAnnotation methodAnnotation, AndroidApiLevel minApiLevel) {
+    if (methodAnnotation == null) {
+      return true;
+    }
+    if (methodAnnotation.unsupportedInMinApiRange) {
+      // Do not lint method which are unavailable with some min apis.
+      return false;
+    }
+    if (methodAnnotation.parallelStreamMethod) {
+      return minApiLevel == AndroidApiLevel.L;
+    }
+    assert methodAnnotation.missingFromLatestAndroidJar;
+    // We add missing methods from the latest jar, javac will add the squikles.
+    return true;
+  }
+
   private void generateLintFiles(
       AndroidApiLevel compilationApiLevel,
-      Predicate<AndroidApiLevel> generateForThisMinApiLevel,
-      BiPredicate<AndroidApiLevel, DexEncodedMethod> supportedForMinApiLevel)
+      AndroidApiLevel minApiLevel,
+      SupportedMethodsWithAnnotations supportedMethods)
       throws Exception {
     System.out.print("  - generating for min API:");
-    for (AndroidApiLevel minApiLevel : AndroidApiLevel.values()) {
-      if (!generateForThisMinApiLevel.test(minApiLevel)) {
-        continue;
-      }
-
-      System.out.print(" " + minApiLevel);
-
-      SupportedMethods supportedMethods =
-          collectSupportedMethods(
-              compilationApiLevel, (method -> supportedForMinApiLevel.test(minApiLevel, method)));
-      writeLintFiles(compilationApiLevel, minApiLevel, supportedMethods);
-    }
-    System.out.println();
+    System.out.print(" " + minApiLevel);
+    writeLintFiles(compilationApiLevel, minApiLevel, supportedMethods);
   }
 
-  void run() throws Exception {
-    // Run over all the API levels that the desugared library can be compiled with.
-    for (int apiLevel = MAX_TESTED_ANDROID_API_LEVEL.getLevel();
-        apiLevel >= desugaredLibrarySpecification.getRequiredCompilationApiLevel().getLevel();
-        apiLevel--) {
-      System.out.println("Generating lint files for compile API " + apiLevel);
-      run(apiLevel);
-    }
-  }
-
-  public void run(int apiLevel) throws Exception {
-    generateLintFiles(
-        AndroidApiLevel.getAndroidApiLevel(apiLevel),
-        minApiLevel -> minApiLevel == AndroidApiLevel.L || minApiLevel == AndroidApiLevel.B,
-        (minApiLevel, method) -> {
-          assert minApiLevel == AndroidApiLevel.L || minApiLevel == AndroidApiLevel.B;
-          if (minApiLevel == AndroidApiLevel.L) {
-            return true;
-          }
-          assert minApiLevel == AndroidApiLevel.B;
-          return !parallelMethods.contains(method.getReference());
-        });
+  public AndroidApiLevel run() throws Exception {
+    AndroidApiLevel compilationLevel =
+        desugaredLibrarySpecification.getRequiredCompilationApiLevel();
+    SupportedMethodsWithAnnotations supportedMethods =
+        new SupportedMethodsGenerator(options)
+            .run(desugaredLibraryImplementation, desugaredLibrarySpecificationPath);
+    System.out.println("Generating lint files for compile API " + compilationLevel);
+    generateLintFiles(compilationLevel, AndroidApiLevel.B, supportedMethods);
+    generateLintFiles(compilationLevel, AndroidApiLevel.L, supportedMethods);
+    return compilationLevel;
   }
 
   public static void main(String[] args) throws Exception {

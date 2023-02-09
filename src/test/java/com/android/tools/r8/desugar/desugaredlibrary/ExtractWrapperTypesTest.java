@@ -498,10 +498,10 @@ public class ExtractWrapperTypesTest extends DesugaredLibraryTestBase {
             libraryDesugaringSpecification.getSpecification(),
             libraryDesugaringSpecification.getDesugarJdkLibs(),
             out);
-    desugaredApi.run(targetApi.getLevel());
+    AndroidApiLevel compileApi = desugaredApi.run();
     return new CodeInspector(
-        out.resolve("compile_api_level_" + targetApi.getLevel())
-            .resolve("desugared_apis_" + targetApi.getLevel() + "_" + minApi.getLevel() + ".jar"));
+        out.resolve("compile_api_level_" + compileApi.getLevel())
+            .resolve("desugared_apis_" + compileApi.getLevel() + "_" + minApi.getLevel() + ".jar"));
   }
 
   private boolean addType(

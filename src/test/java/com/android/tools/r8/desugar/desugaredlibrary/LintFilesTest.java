@@ -5,10 +5,10 @@
 package com.android.tools.r8.desugar.desugaredlibrary;
 
 import static com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification.JDK11;
+import static com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification.JDK11_LEGACY;
 import static com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification.JDK11_MINIMAL;
 import static com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification.JDK11_PATH;
 import static com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification.JDK8;
-import static com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification.getJdk8AndAll3Jdk11;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
@@ -20,11 +20,13 @@ import com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpeci
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibrarySpecification;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibrarySpecificationParser;
+import com.android.tools.r8.ir.desugar.desugaredlibrary.lint.GenerateHtmlDoc;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.lint.GenerateLintFiles;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.Reporter;
+import com.google.common.collect.ImmutableList;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -42,9 +44,11 @@ public class LintFilesTest extends DesugaredLibraryTestBase {
 
   private List<String> lintContents;
 
-  @Parameters(name = "{0}, spec: {1}")
+  @Parameters(name = "{1}")
   public static List<Object[]> data() {
-    return buildParameters(getTestParameters().withNoneRuntime().build(), getJdk8AndAll3Jdk11());
+    return buildParameters(
+        getTestParameters().withNoneRuntime().build(),
+        ImmutableList.of(JDK8, JDK11_MINIMAL, JDK11, JDK11_PATH, JDK11_LEGACY));
   }
 
   public LintFilesTest(
@@ -82,35 +86,18 @@ public class LintFilesTest extends DesugaredLibraryTestBase {
     assertTrue(supportsAllMethodsOf("java/util/Optional"));
     assertTrue(supportsAllMethodsOf("java/util/OptionalInt"));
 
-    // No parallel* methods pre L, and all stream methods supported from L.
+    // No parallel* methods pre L, Stream are never fully supported due to takeWhile/dropWhile.
     assertEquals(
         minApiLevel == AndroidApiLevel.L,
         supportsMethodButNotAllMethodsInClass(
             "java/util/Collection#parallelStream()Ljava/util/stream/Stream;"));
     assertEquals(
-        minApiLevel == AndroidApiLevel.L, supportsAllMethodsOf("java/util/stream/DoubleStream"));
-    assertFalse(
+        minApiLevel == AndroidApiLevel.L,
         supportsMethodButNotAllMethodsInClass(
             "java/util/stream/DoubleStream#parallel()Ljava/util/stream/DoubleStream;"));
-    assertFalse(
-        supportsMethodButNotAllMethodsInClass(
-            "java/util/stream/DoubleStream#parallel()Ljava/util/stream/BaseStream;"));
-    assertEquals(
-        minApiLevel == AndroidApiLevel.B,
+    assertTrue(
         supportsMethodButNotAllMethodsInClass(
             "java/util/stream/DoubleStream#allMatch(Ljava/util/function/DoublePredicate;)Z"));
-    assertEquals(
-        minApiLevel == AndroidApiLevel.L, lintContents.contains("java/util/stream/IntStream"));
-    assertFalse(
-        supportsMethodButNotAllMethodsInClass(
-            "java/util/stream/IntStream#parallel()Ljava/util/stream/IntStream;"));
-    assertFalse(
-        supportsMethodButNotAllMethodsInClass(
-            "java/util/stream/IntStream#parallel()Ljava/util/stream/BaseStream;"));
-    assertEquals(
-        minApiLevel == AndroidApiLevel.B,
-        supportsMethodButNotAllMethodsInClass(
-            "java/util/stream/IntStream#allMatch(Ljava/util/function/IntPredicate;)Z"));
 
     assertEquals(
         libraryDesugaringSpecification != JDK8, supportsAllMethodsOf("java/util/concurrent/Flow"));
@@ -138,7 +125,7 @@ public class LintFilesTest extends DesugaredLibraryTestBase {
 
     // Maintain type.
     assertEquals(
-        libraryDesugaringSpecification != JDK8,
+        libraryDesugaringSpecification != JDK8 && libraryDesugaringSpecification != JDK11_LEGACY,
         supportsAllMethodsOf("java/io/UncheckedIOException"));
 
     // Retarget method.
@@ -166,7 +153,7 @@ public class LintFilesTest extends DesugaredLibraryTestBase {
   }
 
   @Test
-  public void testFileContent() throws Exception {
+  public void testLint() throws Exception {
     Path directory = temp.newFolder().toPath();
     Path jdkLibJar =
         libraryDesugaringSpecification == JDK8
@@ -187,38 +174,36 @@ public class LintFilesTest extends DesugaredLibraryTestBase {
             false,
             AndroidApiLevel.B.getLevel());
 
-    for (AndroidApiLevel apiLevel : AndroidApiLevel.values()) {
-      if (apiLevel.isGreaterThan(AndroidApiLevel.T)) {
-        continue;
-      }
-      Path compileApiLevelDirectory = directory.resolve("compile_api_level_" + apiLevel.getLevel());
-      if (apiLevel.getLevel()
-          < desugaredLibrarySpecification.getRequiredCompilationApiLevel().getLevel()) {
-        System.out.println("!Checking " + compileApiLevelDirectory);
-        continue;
-      }
-      assertTrue(Files.exists(compileApiLevelDirectory));
-      for (AndroidApiLevel minApiLevel : AndroidApiLevel.values()) {
-        String desugaredApisBaseName =
-            "desugared_apis_" + apiLevel.getLevel() + "_" + minApiLevel.getLevel();
-        if (minApiLevel == AndroidApiLevel.L || minApiLevel == AndroidApiLevel.B) {
-          assertTrue(
-              Files.exists(compileApiLevelDirectory.resolve(desugaredApisBaseName + ".txt")));
-          assertTrue(
-              Files.exists(compileApiLevelDirectory.resolve(desugaredApisBaseName + ".jar")));
-          checkFileContent(
-              minApiLevel, compileApiLevelDirectory.resolve(desugaredApisBaseName + ".txt"));
-        } else {
-          assertFalse(
-              Files.exists(compileApiLevelDirectory.resolve(desugaredApisBaseName + ".txt")));
-          assertFalse(
-              Files.exists(compileApiLevelDirectory.resolve(desugaredApisBaseName + ".jar")));
-        }
+    AndroidApiLevel requiredCompilationApiLevel =
+        desugaredLibrarySpecification.getRequiredCompilationApiLevel();
+    Path compileApiLevelDirectory =
+        directory.resolve("compile_api_level_" + requiredCompilationApiLevel.getLevel());
+
+    assertTrue(Files.exists(compileApiLevelDirectory));
+    for (AndroidApiLevel minApiLevel : AndroidApiLevel.values()) {
+      String desugaredApisBaseName =
+          "desugared_apis_" + requiredCompilationApiLevel.getLevel() + "_" + minApiLevel.getLevel();
+      if (minApiLevel == AndroidApiLevel.L || minApiLevel == AndroidApiLevel.B) {
+        assertTrue(Files.exists(compileApiLevelDirectory.resolve(desugaredApisBaseName + ".txt")));
+        assertTrue(Files.exists(compileApiLevelDirectory.resolve(desugaredApisBaseName + ".jar")));
+        checkFileContent(
+            minApiLevel, compileApiLevelDirectory.resolve(desugaredApisBaseName + ".txt"));
+      } else {
+        assertFalse(Files.exists(compileApiLevelDirectory.resolve(desugaredApisBaseName + ".txt")));
+        assertFalse(Files.exists(compileApiLevelDirectory.resolve(desugaredApisBaseName + ".jar")));
       }
     }
+  }
+
+  @Test
+  public void testHTML() throws Exception {
+    Path jdkLibJar =
+        libraryDesugaringSpecification == JDK8
+            ? ToolHelper.DESUGARED_JDK_8_LIB_JAR
+            : LibraryDesugaringSpecification.getTempLibraryJDK11Undesugar();
 
     Path directory2 = temp.newFolder().toPath();
-    GenerateLintFiles.main(
+    GenerateHtmlDoc.main(
         new String[] {
           "--generate-api-docs",
           libraryDesugaringSpecification.getSpecification().toString(),
@@ -231,7 +216,7 @@ public class LintFilesTest extends DesugaredLibraryTestBase {
     assertEquals("<tr>", html.get(0));
     assertEquals("</tr>", html.get(html.size() - 2));
     if (libraryDesugaringSpecification == JDK11 || libraryDesugaringSpecification == JDK11_PATH) {
-      assertEquals(7, html.stream().filter(s -> s.contains("Flow")).count());
+      assertEquals(6, html.stream().filter(s -> s.contains("Flow")).count());
     }
   }
 }

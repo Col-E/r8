@@ -14,16 +14,26 @@ import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.FieldAccessFlags;
 import com.android.tools.r8.graph.MethodAccessFlags;
+import com.android.tools.r8.ir.desugar.desugaredlibrary.lint.SupportedMethodsWithAnnotations.ClassAnnotation;
+import com.android.tools.r8.ir.desugar.desugaredlibrary.lint.SupportedMethodsWithAnnotations.MethodAnnotation;
+import com.android.tools.r8.utils.AndroidApiLevel;
 import java.io.PrintStream;
 import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
-import java.util.Set;
-import java.util.function.Predicate;
+import java.util.Map;
+import java.util.TreeMap;
 import java.util.stream.StreamSupport;
 
 public class GenerateHtmlDoc extends AbstractGenerateFiles {
+
+  private static final String HTML_SPLIT = "<br>&nbsp;";
+  private static final int MAX_LINE_CHARACTERS = 53;
+  private static final String SUP_1 = "<sup>1</sup>";
+  private static final String SUP_2 = "<sup>2</sup>";
+  private static final String SUP_3 = "<sup>3</sup>";
+  private static final String SUP_4 = "<sup>4</sup>";
 
   public GenerateHtmlDoc(
       String desugarConfigurationPath, String desugarImplementationPath, String outputDirectory)
@@ -82,17 +92,17 @@ public class GenerateHtmlDoc extends AbstractGenerateFiles {
   private abstract static class SourceBuilder<B extends GenerateHtmlDoc.SourceBuilder> {
 
     protected final DexClass clazz;
-    protected final boolean newClass;
     protected List<DexEncodedField> fields = new ArrayList<>();
-    protected List<DexEncodedMethod> constructors = new ArrayList<>();
-    protected List<DexEncodedMethod> methods = new ArrayList<>();
+    protected Map<DexEncodedMethod, MethodAnnotation> constructors =
+        new TreeMap<>(Comparator.comparing(DexEncodedMethod::getReference));
+    protected Map<DexEncodedMethod, MethodAnnotation> methods =
+        new TreeMap<>(Comparator.comparing(DexEncodedMethod::getReference));
 
     String className;
     String packageName;
 
-    private SourceBuilder(DexClass clazz, boolean newClass) {
+    private SourceBuilder(DexClass clazz) {
       this.clazz = clazz;
-      this.newClass = newClass;
       this.className = clazz.type.toSourceString();
       int index = this.className.lastIndexOf('.');
       this.packageName = index > 0 ? this.className.substring(0, index) : "";
@@ -105,30 +115,48 @@ public class GenerateHtmlDoc extends AbstractGenerateFiles {
       return self();
     }
 
-    private B addMethod(DexEncodedMethod method) {
+    private B addMethod(DexEncodedMethod method, MethodAnnotation methodAnnotation) {
       assert !method.isClassInitializer();
       if (method.isInitializer()) {
-        constructors.add(method);
+        constructors.put(method, methodAnnotation);
       } else {
-        methods.add(method);
+        methods.put(method, methodAnnotation);
       }
       return self();
+    }
+
+    // If we are in a.b.c, then anything starting with a.b should not be fully qualified.
+    protected String typeInPackageRecursive(String typeName, String packageName) {
+      String rewritten = typeInPackage(typeName, packageName);
+      if (rewritten != null) {
+        return rewritten;
+      }
+      String[] split = packageName.split("\\.");
+      if (split.length > 2) {
+        String prevPackage =
+            packageName.substring(0, packageName.length() - split[split.length - 1].length() - 1);
+        return typeInPackage(typeName, prevPackage);
+      }
+      return null;
     }
 
     protected String typeInPackage(String typeName, String packageName) {
       if (typeName.startsWith(packageName)
           && typeName.length() > packageName.length()
-          && typeName.charAt(packageName.length()) == '.'
-          && typeName.indexOf('.', packageName.length() + 1) == -1) {
-        return typeName.substring(packageName.length() + 1);
+          && typeName.charAt(packageName.length()) == '.') {
+        int last = typeName.lastIndexOf('.') + 1;
+        return typeName.substring(last);
       }
       return null;
     }
 
     protected String typeInPackage(String typeName) {
-      String result = typeInPackage(typeName, packageName);
+      String result = typeInPackageRecursive(typeName, packageName);
       if (result == null) {
         result = typeInPackage(typeName, "java.lang");
+      }
+      if (result == null) {
+        result = typeInPackage(typeName, "java.util.function");
       }
       if (result == null) {
         result = typeName;
@@ -271,7 +299,8 @@ public class GenerateHtmlDoc extends AbstractGenerateFiles {
     }
 
     HTMLBuilder appendTdPackage(String s) {
-      appendLineStart("<td><code><em>" + s + "</em></code><br>");
+      String finalString = format(s, 4);
+      appendLineStart("<td><code><em>" + finalString + "</em></code><br>");
       if (s.startsWith("java.time")) {
         append("<a href=\"#java-time-customizations\">See customizations</a><br");
       } else if (s.startsWith("java.nio")) {
@@ -280,10 +309,25 @@ public class GenerateHtmlDoc extends AbstractGenerateFiles {
       return this;
     }
 
+    private String format(String s, int i) {
+      String[] regexpSplit = s.split("\\.");
+      if (regexpSplit.length < i) {
+        return s;
+      }
+      int splitIndex = 0;
+      int mid = i / 2;
+      for (int j = 0; j < mid; j++) {
+        splitIndex += regexpSplit[j].length();
+      }
+      splitIndex += mid;
+      return s.substring(0, splitIndex) + HTML_SPLIT + s.substring(splitIndex);
+    }
+
     HTMLBuilder appendTdClassName(String s) {
+      String finalString = format(s, 2);
       appendLineEnd(
           "<code><br><br><div style=\"font-size:small;font-weight:bold;\">&nbsp;"
-              + s
+              + finalString
               + "</div></code><br><br></td>");
       return this;
     }
@@ -296,6 +340,29 @@ public class GenerateHtmlDoc extends AbstractGenerateFiles {
     HTMLBuilder appendLiCode(String s) {
       appendLine("<li class=\"java8_table\"><code>" + s + "</code></li>");
       return this;
+    }
+
+    HTMLBuilder appendMethodLiCode(String s) {
+      if (s.length() < MAX_LINE_CHARACTERS || s.contains("()")) {
+        return appendLiCode(s);
+      }
+      StringBuilder sb = new StringBuilder();
+      String[] split = s.split("\\(");
+      sb.append(split[0]).append('(').append(HTML_SPLIT);
+      if (split[1].length() < MAX_LINE_CHARACTERS - 2) {
+        sb.append(split[1]);
+        return appendLiCode(sb.toString());
+      }
+      String[] secondSplit = split[1].split(",");
+      sb.append("&nbsp;");
+      for (int i = 0; i < secondSplit.length; i++) {
+        sb.append(secondSplit[i]);
+        if (i != secondSplit.length - 1) {
+          sb.append(',');
+          sb.append(HTML_SPLIT);
+        }
+      }
+      return appendLiCode(sb.toString());
     }
 
     HTMLBuilder start(String tag) {
@@ -313,16 +380,44 @@ public class GenerateHtmlDoc extends AbstractGenerateFiles {
 
   public static class HTMLSourceBuilder extends SourceBuilder<HTMLSourceBuilder> {
 
-    private final Set<DexMethod> parallelMethods;
+    private final ClassAnnotation classAnnotation;
+    private boolean parallelStreamMethod = false;
+    private boolean missingFromLatestAndroidJar = false;
+    private boolean unsupportedInMinApiRange = false;
+    private boolean covariantReturnSupported = false;
 
-    public HTMLSourceBuilder(DexClass clazz, boolean newClass, Set<DexMethod> parallelMethods) {
-      super(clazz, newClass);
-      this.parallelMethods = parallelMethods;
+    public HTMLSourceBuilder(DexClass clazz, ClassAnnotation classAnnotation) {
+      super(clazz);
+      this.classAnnotation = classAnnotation;
     }
 
     @Override
     public HTMLSourceBuilder self() {
       return this;
+    }
+
+    private String getTextAnnotations(MethodAnnotation annotation) {
+      if (annotation == null) {
+        return "";
+      }
+      StringBuilder stringBuilder = new StringBuilder();
+      if (annotation.parallelStreamMethod) {
+        stringBuilder.append(SUP_1);
+        parallelStreamMethod = true;
+      }
+      if (annotation.missingFromLatestAndroidJar) {
+        stringBuilder.append(SUP_2);
+        missingFromLatestAndroidJar = true;
+      }
+      if (annotation.unsupportedInMinApiRange) {
+        stringBuilder.append(SUP_3);
+        unsupportedInMinApiRange = true;
+      }
+      if (annotation.covariantReturnSupported) {
+        stringBuilder.append(SUP_4);
+        covariantReturnSupported = true;
+      }
+      return stringBuilder.toString();
     }
 
     @Override
@@ -339,7 +434,6 @@ public class GenerateHtmlDoc extends AbstractGenerateFiles {
               "ul style=\"list-style-position:inside; list-style-type: none !important;"
                   + " margin-left:0px;padding-left:0px !important;\"");
       if (!fields.isEmpty()) {
-        assert newClass; // Currently no fields are added to existing classes.
         for (DexEncodedField field : fields) {
           builder.appendLiCode(
               accessFlags(field.accessFlags)
@@ -350,49 +444,65 @@ public class GenerateHtmlDoc extends AbstractGenerateFiles {
         }
       }
       if (!constructors.isEmpty()) {
-        for (DexEncodedMethod constructor : constructors) {
-          builder.appendLiCode(
+        for (DexEncodedMethod constructor : constructors.keySet()) {
+          builder.appendMethodLiCode(
               accessFlags(constructor.accessFlags)
                   + " "
                   + typeInPackage(className)
-                  + arguments(constructor));
+                  + arguments(constructor)
+                  + getTextAnnotations(constructors.get(constructor)));
         }
       }
-      List<String> parallelM = new ArrayList<>();
       if (!methods.isEmpty()) {
-        for (DexEncodedMethod method : methods) {
-          builder.appendLiCode(
+        for (DexEncodedMethod method : methods.keySet()) {
+          builder.appendMethodLiCode(
               accessFlags(method.accessFlags)
                   + " "
                   + typeInPackage(method.getReference().proto.returnType)
                   + " "
                   + method.getReference().name
-                  + arguments(method));
-          if (parallelMethods.contains(method.getReference())) {
-            parallelM.add(method.getReference().name.toString());
-          }
+                  + arguments(method)
+                  + getTextAnnotations(methods.get(method)));
         }
       }
       builder.end("ul").end("td");
       StringBuilder commentBuilder = new StringBuilder();
-      if (newClass) {
-        commentBuilder.append("Fully implemented class.");
-      } else {
-        commentBuilder.append("Additional methods on existing class.");
+      if (classAnnotation.fullySupported) {
+        commentBuilder.append("Fully implemented class.").append(HTML_SPLIT);
       }
-      if (!parallelM.isEmpty()) {
-        commentBuilder.append(newClass ? "" : "<br>");
-        if (parallelM.size() == 1) {
-          commentBuilder
-              .append("The method <code>")
-              .append(parallelM.get(0))
-              .append("</code> is only supported from API level 21.");
-        } else {
-          commentBuilder.append("The following methods are only supported from API level 21:<br>");
-          for (int i = 0; i < parallelM.size(); i++) {
-            commentBuilder.append("<code>").append(parallelM.get(i)).append("</code><br>");
-          }
-        }
+      if (parallelStreamMethod) {
+        commentBuilder
+            .append(SUP_1)
+            .append("Supported only on devices which API level is 21 or higher.")
+            .append(HTML_SPLIT);
+      }
+      if (missingFromLatestAndroidJar) {
+        commentBuilder
+            .append(SUP_2)
+            .append("Not present in Android ")
+            .append(MAX_TESTED_ANDROID_API_LEVEL)
+            .append(" (May not resolve at compilation).")
+            .append(HTML_SPLIT);
+      }
+      if (unsupportedInMinApiRange) {
+        commentBuilder
+            .append(SUP_3)
+            .append(" Not supported at all minSDK levels.")
+            .append(HTML_SPLIT);
+      }
+      if (covariantReturnSupported) {
+        commentBuilder
+            .append(SUP_4)
+            .append(" Also supported with covariant return type.")
+            .append(HTML_SPLIT);
+      }
+      if (!classAnnotation.unsupportedMethods.isEmpty()) {
+        commentBuilder
+            .append("Some methods (")
+            .append(classAnnotation.unsupportedMethods.size())
+            .append(") present in Android ")
+            .append(MAX_TESTED_ANDROID_API_LEVEL)
+            .append(" are not supported.");
       }
       builder.appendTdP(commentBuilder.toString());
       builder.end("tr");
@@ -403,47 +513,43 @@ public class GenerateHtmlDoc extends AbstractGenerateFiles {
   private void generateClassHTML(
       PrintStream ps,
       DexClass clazz,
-      boolean newClass,
-      Predicate<DexEncodedField> fieldsFilter,
-      Predicate<DexEncodedMethod> methodsFilter) {
-    SourceBuilder builder = new HTMLSourceBuilder(clazz, newClass, parallelMethods);
+      List<DexEncodedMethod> methods,
+      ClassAnnotation classAnnotation,
+      Map<DexMethod, MethodAnnotation> methodAnnotationMap) {
+    SourceBuilder<HTMLSourceBuilder> builder = new HTMLSourceBuilder(clazz, classAnnotation);
+    // We need to extend to support fields.
     StreamSupport.stream(clazz.fields().spliterator(), false)
-        .filter(fieldsFilter)
         .filter(field -> field.accessFlags.isPublic() || field.accessFlags.isProtected())
         .sorted(Comparator.comparing(DexEncodedField::toSourceString))
         .forEach(builder::addField);
-    StreamSupport.stream(clazz.methods().spliterator(), false)
-        .filter(methodsFilter)
+    methods.stream()
         .filter(
             method ->
                 (method.accessFlags.isPublic() || method.accessFlags.isProtected())
                     && !method.accessFlags.isBridge())
         .sorted(Comparator.comparing(DexEncodedMethod::toSourceString))
-        .forEach(builder::addMethod);
+        .forEach(m -> builder.addMethod(m, methodAnnotationMap.get(m.getReference())));
     ps.println(builder);
   }
 
-  void run() throws Exception {
+  AndroidApiLevel run() throws Exception {
     PrintStream ps = new PrintStream(Files.newOutputStream(outputDirectory.resolve("apis.html")));
-    // Full classes added.
-    SupportedMethods supportedMethods =
-        collectSupportedMethods(MAX_TESTED_ANDROID_API_LEVEL, x -> true);
-    supportedMethods.classesWithAllMethodsSupported.stream()
-        .sorted(Comparator.comparing(clazz -> clazz.type.toSourceString()))
-        .forEach(clazz -> generateClassHTML(ps, clazz, true, field -> true, method -> true));
 
-    // Methods added to existing classes.
-    supportedMethods.supportedMethods.keySet().stream()
-        .filter(clazz -> !supportedMethods.classesWithAllMethodsSupported.contains(clazz))
-        .sorted(Comparator.comparing(clazz -> clazz.type.toSourceString()))
-        .forEach(
-            clazz ->
-                generateClassHTML(
-                    ps,
-                    clazz,
-                    false,
-                    field -> false,
-                    method -> supportedMethods.supportedMethods.get(clazz).contains(method)));
+    SupportedMethodsWithAnnotations supportedMethods =
+        new SupportedMethodsGenerator(options)
+            .run(desugaredLibraryImplementation, desugaredLibrarySpecificationPath);
+
+    // Full classes added.
+    supportedMethods.supportedMethods.forEach(
+        (clazz, methods) -> {
+          generateClassHTML(
+              ps,
+              clazz,
+              methods,
+              supportedMethods.annotatedClasses.get(clazz.type),
+              supportedMethods.annotatedMethods);
+        });
+    return MAX_TESTED_ANDROID_API_LEVEL;
   }
 
   public static void main(String[] args) throws Exception {
