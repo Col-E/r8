@@ -51,7 +51,7 @@ public class CompilerSynthesizedMappingInformation extends ReferentialMappingInf
 
   @Override
   public boolean allowOther(MappingInformation information) {
-    return true;
+    return !information.isCompilerSynthesizedMappingInformation();
   }
 
   @Override

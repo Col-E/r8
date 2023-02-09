@@ -20,6 +20,8 @@ public interface ClassNaming {
 
     public abstract Builder addMemberEntry(MemberNaming entry);
 
+    public abstract MemberNaming lookupMemberEntry(Signature signature);
+
     public abstract ClassNaming build();
 
     /** This is an optional method, may be implemented as no-op */

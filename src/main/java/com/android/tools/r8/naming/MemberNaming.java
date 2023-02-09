@@ -21,6 +21,7 @@ import com.android.tools.r8.references.MethodReference;
 import com.android.tools.r8.references.TypeReference;
 import com.android.tools.r8.utils.ArrayUtils;
 import com.android.tools.r8.utils.CollectionUtils;
+import com.android.tools.r8.utils.ConsumerUtils;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.StringUtils;
 import com.google.common.collect.Iterables;
@@ -142,11 +143,11 @@ public class MemberNaming implements MappingWithResidualInfo {
         additionalMappingInformation, info, onProhibitedAddition);
   }
 
-  void addAllMappingInformationInternal(List<ReferentialMappingInformation> otherInfo) {
-    if (additionalMappingInformation == EMPTY_MAPPING_INFORMATION) {
-      additionalMappingInformation = new ArrayList<>();
+  public void addAllMappingInformation(List<ReferentialMappingInformation> infos) {
+    Consumer<MappingInformation> emptyConsumer = ConsumerUtils.emptyConsumer();
+    for (ReferentialMappingInformation mappingInformation : infos) {
+      addMappingInformation(mappingInformation, emptyConsumer);
     }
-    additionalMappingInformation.addAll(otherInfo);
   }
 
   public boolean isCompilerSynthesized() {

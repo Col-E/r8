@@ -76,6 +76,13 @@ public class ClassNamingForNameMapper implements ClassNaming {
     }
 
     @Override
+    public MemberNaming lookupMemberEntry(Signature signature) {
+      return signature.isFieldSignature()
+          ? fieldMembers.get(signature.asFieldSignature())
+          : methodMembers.get(signature.asMethodSignature());
+    }
+
+    @Override
     public ClassNamingForNameMapper build() {
       Map<String, MappedRangesOfName> map;
 
@@ -350,11 +357,11 @@ public class ClassNamingForNameMapper implements ClassNaming {
   @Override
   public MemberNaming lookup(Signature renamedSignature) {
     if (renamedSignature.kind() == SignatureKind.METHOD) {
-      assert renamedSignature instanceof MethodSignature;
+      assert renamedSignature.isMethodSignature();
       return methodMembers.get(renamedSignature);
     } else {
       assert renamedSignature.kind() == SignatureKind.FIELD;
-      assert renamedSignature instanceof FieldSignature;
+      assert renamedSignature.isFieldSignature();
       return fieldMembers.get(renamedSignature);
     }
   }

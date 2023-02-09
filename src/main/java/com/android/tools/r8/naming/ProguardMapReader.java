@@ -538,14 +538,15 @@ public class ProguardMapReader implements AutoCloseable {
         || lastAddedNaming == null
         || !lastAddedNaming.getRenamedName().equals(renamedName)
         || !lastAddedNaming.getOriginalSignature().equals(originalSignature)) {
-      MemberNaming newMemberNaming =
-          new MemberNaming(
-              originalSignature,
-              getResidualSignatureForMemberNaming(
-                  residualSignature, originalSignature, renamedName),
-              new LinePosition(lineNumber));
+      Signature lookupKey =
+          getResidualSignatureForMemberNaming(residualSignature, originalSignature, renamedName);
+      MemberNaming newMemberNaming = classNamingBuilder.lookupMemberEntry(lookupKey);
+      if (newMemberNaming == null) {
+        newMemberNaming =
+            new MemberNaming(originalSignature, lookupKey, new LinePosition(lineNumber));
+      }
       if (additionalMappingInformation.isSet()) {
-        newMemberNaming.addAllMappingInformationInternal(additionalMappingInformation.get());
+        newMemberNaming.addAllMappingInformation(additionalMappingInformation.get());
       }
       classNamingBuilder.addMemberEntry(newMemberNaming);
       residualSignature.clear();
@@ -553,7 +554,7 @@ public class ProguardMapReader implements AutoCloseable {
       return newMemberNaming;
     }
     if (additionalMappingInformation.isSet()) {
-      lastAddedNaming.addAllMappingInformationInternal(additionalMappingInformation.get());
+      lastAddedNaming.addAllMappingInformation(additionalMappingInformation.get());
       additionalMappingInformation.clear();
     }
     residualSignature.clear();

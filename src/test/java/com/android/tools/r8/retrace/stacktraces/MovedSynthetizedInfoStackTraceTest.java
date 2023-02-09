@@ -37,9 +37,7 @@ public class MovedSynthetizedInfoStackTraceTest implements StackTraceForTest {
   public List<String> retracedStackTrace() {
     return Arrays.asList(
         "java.lang.RuntimeException: foobar",
-        "\tat com.android.tools.r8.BaseCommand$Builder.inlinee(BaseCommand.java:206)",
-        // TODO(b/268312420): Should be removed.
-        "\tat com.android.tools.r8.BaseCommand$Builder.inlinee$synthetic(BaseCommand.java:0)");
+        "\tat com.android.tools.r8.BaseCommand$Builder.inlinee(BaseCommand.java:206)");
   }
 
   @Override
@@ -47,10 +45,7 @@ public class MovedSynthetizedInfoStackTraceTest implements StackTraceForTest {
     return Arrays.asList(
         "java.lang.RuntimeException: foobar",
         "\tat com.android.tools.r8.BaseCommand$Builder.void"
-            + " inlinee(java.util.Collection)(BaseCommand.java:206)",
-        // TODO(b/268312420): Should be removed.
-        "\tat com.android.tools.r8.BaseCommand$Builder.void"
-            + " inlinee$synthetic(java.util.Collection)(BaseCommand.java:0)");
+            + " inlinee(java.util.Collection)(BaseCommand.java:206)");
   }
 
   @Override

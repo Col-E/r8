@@ -80,6 +80,11 @@ public class ClassNamingForMapApplier implements ClassNaming {
     }
 
     @Override
+    public MemberNaming lookupMemberEntry(Signature signature) {
+      return null;
+    }
+
+    @Override
     public ClassNamingForMapApplier build() {
       return new ClassNamingForMapApplier(
           renamedName, originalName, position, qualifiedMethodMembers, methodMembers, fieldMembers);
