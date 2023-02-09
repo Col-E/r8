@@ -5,58 +5,33 @@
 package com.android.tools.r8.ir.desugar.desugaredlibrary.lint;
 
 import com.android.tools.r8.ClassFileConsumer;
-import com.android.tools.r8.StringResource;
 import com.android.tools.r8.cf.CfVersion;
 import com.android.tools.r8.cf.code.CfConstNull;
 import com.android.tools.r8.cf.code.CfInstruction;
 import com.android.tools.r8.cf.code.CfThrow;
-import com.android.tools.r8.dex.ApplicationReader;
-import com.android.tools.r8.dex.Marker.Tool;
 import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.CfCode;
-import com.android.tools.r8.graph.CfCode.LocalVariableInfo;
-import com.android.tools.r8.graph.ClassAccessFlags;
 import com.android.tools.r8.graph.DexAnnotationSet;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
-import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexProgramClass.ChecksumSupplier;
-import com.android.tools.r8.graph.DexProto;
-import com.android.tools.r8.graph.DexType;
-import com.android.tools.r8.graph.DirectMappedDexApplication;
-import com.android.tools.r8.graph.FieldAccessFlags;
 import com.android.tools.r8.graph.GenericSignature.ClassSignature;
 import com.android.tools.r8.graph.GenericSignature.MethodTypeSignature;
 import com.android.tools.r8.graph.LazyLoadedDexApplication;
-import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.graph.MethodCollection.MethodCollectionFactory;
-import com.android.tools.r8.graph.ProgramMethod;
-import com.android.tools.r8.ir.desugar.BackportedMethodRewriter;
-import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibrarySpecification;
-import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibrarySpecificationParser;
-import com.android.tools.r8.ir.desugar.desugaredlibrary.machinespecification.MachineDesugaredLibrarySpecification;
 import com.android.tools.r8.jar.CfApplicationWriter;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.synthesis.SyntheticItems.GlobalSyntheticsStrategy;
 import com.android.tools.r8.utils.AndroidApiLevel;
-import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.FileUtils;
-import com.android.tools.r8.utils.InternalOptions;
-import com.android.tools.r8.utils.Reporter;
-import com.android.tools.r8.utils.StringUtils;
-import com.android.tools.r8.utils.ThreadUtils;
 import com.android.tools.r8.utils.Timing;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Sets;
 import java.io.File;
-import java.io.IOException;
-import java.io.PrintStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -65,32 +40,12 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.ExecutorService;
 import java.util.function.BiPredicate;
 import java.util.function.Predicate;
-import java.util.stream.StreamSupport;
 
-public class GenerateLintFiles {
-
-  private static final String ANDROID_JAR_PATTERN = "third_party/android_jar/lib-v%d/android.jar";
-
-  // If we increment this api level, we need to verify everything works correctly.
-  private static final AndroidApiLevel MAX_TESTED_ANDROID_API_LEVEL = AndroidApiLevel.T;
-
-  private final DexItemFactory factory = new DexItemFactory();
-  private final Reporter reporter = new Reporter();
-  private final InternalOptions options =
-      new InternalOptions(factory, reporter).withModifications(options -> options.tool = Tool.L8);
-
-  private final MachineDesugaredLibrarySpecification desugaredLibrarySpecification;
-  private final Collection<Path> desugaredLibraryImplementation;
-  private final Path outputDirectory;
-
-  private final Set<DexMethod> parallelMethods = Sets.newIdentityHashSet();
+public class GenerateLintFiles extends AbstractGenerateFiles {
 
   public static GenerateLintFiles createForTesting(
       Path specification, Set<Path> implementation, Path outputDirectory) throws Exception {
@@ -100,69 +55,15 @@ public class GenerateLintFiles {
   public GenerateLintFiles(
       String desugarConfigurationPath, String desugarImplementationPath, String outputDirectory)
       throws Exception {
-    this(
-        Paths.get(desugarConfigurationPath),
-        ImmutableList.of(Paths.get(desugarImplementationPath)),
-        Paths.get(outputDirectory));
+    super(desugarConfigurationPath, desugarImplementationPath, outputDirectory);
   }
 
-  private GenerateLintFiles(
+  public GenerateLintFiles(
       Path desugarConfigurationPath,
       Collection<Path> desugarImplementationPath,
       Path outputDirectory)
       throws Exception {
-    DesugaredLibrarySpecification specification =
-        readDesugaredLibraryConfiguration(desugarConfigurationPath);
-    Path androidJarPath = getAndroidJarPath(specification.getRequiredCompilationApiLevel());
-    DexApplication app = createApp(androidJarPath, options);
-    this.desugaredLibrarySpecification = specification.toMachineSpecification(app, Timing.empty());
-
-    this.desugaredLibraryImplementation = desugarImplementationPath;
-    this.outputDirectory = outputDirectory;
-    if (!Files.isDirectory(this.outputDirectory)) {
-      throw new Exception("Output directory " + outputDirectory + " is not a directory");
-    }
-
-    DexType streamType = factory.createType(factory.createString("Ljava/util/stream/Stream;"));
-    DexMethod parallelMethod =
-        factory.createMethod(
-            factory.collectionType,
-            factory.createProto(streamType),
-            factory.createString("parallelStream"));
-    parallelMethods.add(parallelMethod);
-    DexType baseStreamType =
-        factory.createType(factory.createString("Ljava/util/stream/BaseStream;"));
-    for (String typePrefix : new String[] {"Base", "Double", "Int", "Long"}) {
-      streamType =
-          factory.createType(factory.createString("Ljava/util/stream/" + typePrefix + "Stream;"));
-      parallelMethod =
-          factory.createMethod(
-              streamType, factory.createProto(streamType), factory.createString("parallel"));
-      parallelMethods.add(parallelMethod);
-      // Also filter out the generated bridges for the covariant return type.
-      parallelMethod =
-          factory.createMethod(
-              streamType, factory.createProto(baseStreamType), factory.createString("parallel"));
-      parallelMethods.add(parallelMethod);
-    }
-  }
-
-  private static Path getAndroidJarPath(AndroidApiLevel apiLevel) {
-    String jar =
-        apiLevel == AndroidApiLevel.MASTER
-            ? "third_party/android_jar/lib-master/android.jar"
-            : String.format(ANDROID_JAR_PATTERN, apiLevel.getLevel());
-    return Paths.get(jar);
-  }
-
-  private DesugaredLibrarySpecification readDesugaredLibraryConfiguration(
-      Path desugarConfigurationPath) {
-    return DesugaredLibrarySpecificationParser.parseDesugaredLibrarySpecification(
-        StringResource.fromFile(desugarConfigurationPath),
-        factory,
-        reporter,
-        false,
-        AndroidApiLevel.B.getLevel());
+    super(desugarConfigurationPath, desugarImplementationPath, outputDirectory);
   }
 
   private CfCode buildEmptyThrowingCfCode(DexMethod method) {
@@ -228,101 +129,6 @@ public class GenerateLintFiles {
             false,
             checksumSupplier);
     builder.addProgramClass(programClass);
-  }
-
-  public static class SupportedMethods {
-
-    public final Set<DexClass> classesWithAllMethodsSupported;
-    public final Map<DexClass, List<DexEncodedMethod>> supportedMethods;
-
-    public SupportedMethods(
-        Set<DexClass> classesWithAllMethodsSupported,
-        Map<DexClass, List<DexEncodedMethod>> supportedMethods) {
-      this.classesWithAllMethodsSupported = classesWithAllMethodsSupported;
-      this.supportedMethods = supportedMethods;
-    }
-  }
-
-  private SupportedMethods collectSupportedMethods(
-      AndroidApiLevel compilationApiLevel, Predicate<DexEncodedMethod> supported) throws Exception {
-
-    // Read the android.jar for the compilation API level. Read it as program instead of library
-    // to get the local information for parameter names.
-    AndroidApp library =
-        AndroidApp.builder().addProgramFiles(getAndroidJarPath(compilationApiLevel)).build();
-    DirectMappedDexApplication dexApplication =
-        new ApplicationReader(library, options, Timing.empty()).read().toDirect();
-
-    AndroidApp implementation =
-        AndroidApp.builder().addProgramFiles(desugaredLibraryImplementation).build();
-    DirectMappedDexApplication implementationApplication =
-        new ApplicationReader(implementation, options, Timing.empty()).read().toDirect();
-
-    options.setDesugaredLibrarySpecification(desugaredLibrarySpecification);
-    List<DexMethod> backports =
-        BackportedMethodRewriter.generateListOfBackportedMethods(
-            implementation, options, ThreadUtils.getExecutorService(1));
-
-    // Collect all the methods that the library desugar configuration adds support for.
-    Set<DexClass> classesWithAllMethodsSupported = Sets.newIdentityHashSet();
-    Map<DexClass, List<DexEncodedMethod>> supportedMethods = new LinkedHashMap<>();
-    for (DexProgramClass clazz : dexApplication.classes()) {
-      if (clazz.accessFlags.isPublic() && desugaredLibrarySpecification.isSupported(clazz.type)) {
-        DexProgramClass implementationClass =
-            implementationApplication.programDefinitionFor(clazz.getType());
-        if (implementationClass == null) {
-          throw new Exception("Implementation class not found for " + clazz.toSourceString());
-        }
-        boolean allMethodsAdded = true;
-        for (DexEncodedMethod method : clazz.methods()) {
-          if (!method.isPublic()) {
-            continue;
-          }
-          ProgramMethod implementationMethod =
-              implementationClass.lookupProgramMethod(method.getReference());
-          // Don't include methods which are not implemented by the desugared library.
-          if (supported.test(method)
-              && (implementationMethod != null || backports.contains(method.getReference()))) {
-            supportedMethods.computeIfAbsent(clazz, k -> new ArrayList<>()).add(method);
-          } else {
-            allMethodsAdded = false;
-          }
-        }
-        if (allMethodsAdded) {
-          classesWithAllMethodsSupported.add(clazz);
-        }
-      }
-
-      // All emulated interfaces static and default methods are supported.
-      if (desugaredLibrarySpecification.getEmulatedInterfaces().containsKey(clazz.type)) {
-        assert clazz.isInterface();
-        for (DexEncodedMethod method : clazz.methods()) {
-          if (!method.isDefaultMethod() && !method.isStatic()) {
-            continue;
-          }
-          if (supported.test(method)) {
-            supportedMethods.computeIfAbsent(clazz, k -> new ArrayList<>()).add(method);
-          }
-        }
-      }
-    }
-
-    // All retargeted methods are supported.
-    desugaredLibrarySpecification.forEachRetargetMethod(
-        method -> {
-          DexClass clazz = dexApplication.contextIndependentDefinitionFor(method.getHolderType());
-          assert clazz != null;
-          DexEncodedMethod encodedMethod = clazz.lookupMethod(method);
-          if (encodedMethod == null) {
-            // Some methods are registered but present higher in the hierarchy, ignore them.
-            return;
-          }
-          if (supported.test(encodedMethod)) {
-            supportedMethods.computeIfAbsent(clazz, k -> new ArrayList<>()).add(encodedMethod);
-          }
-        });
-
-    return new SupportedMethods(classesWithAllMethodsSupported, supportedMethods);
   }
 
   private String lintBaseFileName(
@@ -413,7 +219,7 @@ public class GenerateLintFiles {
     System.out.println();
   }
 
-  private void run() throws Exception {
+  void run() throws Exception {
     // Run over all the API levels that the desugared library can be compiled with.
     for (int apiLevel = MAX_TESTED_ANDROID_API_LEVEL.getLevel();
         apiLevel >= desugaredLibrarySpecification.getRequiredCompilationApiLevel().getLevel();
@@ -437,447 +243,7 @@ public class GenerateLintFiles {
         });
   }
 
-  private static DexApplication createApp(Path androidLib, InternalOptions options)
-      throws IOException {
-    AndroidApp.Builder builder = AndroidApp.builder();
-    AndroidApp inputApp = builder.addLibraryFiles(androidLib).build();
-    ApplicationReader applicationReader = new ApplicationReader(inputApp, options, Timing.empty());
-    ExecutorService executorService = ThreadUtils.getExecutorService(options);
-    assert !options.ignoreJavaLibraryOverride;
-    options.ignoreJavaLibraryOverride = true;
-    DexApplication app = applicationReader.read(executorService);
-    options.ignoreJavaLibraryOverride = false;
-    return app;
-  }
-
-  private static class StringBuilderWithIndent {
-
-    String NL = System.lineSeparator();
-    StringBuilder builder = new StringBuilder();
-    String indent = "";
-
-    StringBuilderWithIndent() {}
-
-    StringBuilderWithIndent indent(String indent) {
-      this.indent = indent;
-      return this;
-    }
-
-    StringBuilderWithIndent appendLineStart(String lineStart) {
-      builder.append(indent);
-      builder.append(lineStart);
-      return this;
-    }
-
-    StringBuilderWithIndent append(String string) {
-      builder.append(string);
-      return this;
-    }
-
-    StringBuilderWithIndent appendLineEnd(String lineEnd) {
-      builder.append(lineEnd);
-      builder.append(NL);
-      return this;
-    }
-
-    StringBuilderWithIndent appendLine(String line) {
-      builder.append(indent);
-      builder.append(line);
-      builder.append(NL);
-      return this;
-    }
-
-    StringBuilderWithIndent emptyLine() {
-      builder.append(NL);
-      return this;
-    }
-
-    @Override
-    public String toString() {
-      return builder.toString();
-    }
-  }
-
-  private abstract static class SourceBuilder<B extends SourceBuilder> {
-
-    protected final DexClass clazz;
-    protected final boolean newClass;
-    protected List<DexEncodedField> fields = new ArrayList<>();
-    protected List<DexEncodedMethod> constructors = new ArrayList<>();
-    protected List<DexEncodedMethod> methods = new ArrayList<>();
-
-    String className;
-    String packageName;
-
-    private SourceBuilder(DexClass clazz, boolean newClass) {
-      this.clazz = clazz;
-      this.newClass = newClass;
-      this.className = clazz.type.toSourceString();
-      int index = this.className.lastIndexOf('.');
-      this.packageName = index > 0 ? this.className.substring(0, index) : "";
-    }
-
-    public abstract B self();
-
-    private B addField(DexEncodedField field) {
-      fields.add(field);
-      return self();
-    }
-
-    private B addMethod(DexEncodedMethod method) {
-      assert !method.isClassInitializer();
-      if (method.isInitializer()) {
-        constructors.add(method);
-      } else {
-        methods.add(method);
-      }
-      return self();
-    }
-
-    protected String typeInPackage(String typeName, String packageName) {
-      if (typeName.startsWith(packageName)
-          && typeName.length() > packageName.length()
-          && typeName.charAt(packageName.length()) == '.'
-          && typeName.indexOf('.', packageName.length() + 1) == -1) {
-        return typeName.substring(packageName.length() + 1);
-      }
-      return null;
-    }
-
-    protected String typeInPackage(String typeName) {
-      String result = typeInPackage(typeName, packageName);
-      if (result == null) {
-        result = typeInPackage(typeName, "java.lang");
-      }
-      if (result == null) {
-        result = typeName;
-      }
-      return result.replace('$', '.');
-    }
-
-    protected String typeInPackage(DexType type) {
-      if (type.isPrimitiveType()) {
-        return type.toSourceString();
-      }
-      return typeInPackage(type.toSourceString());
-    }
-
-    protected String accessFlags(ClassAccessFlags accessFlags) {
-      List<String> flags = new ArrayList<>();
-      if (accessFlags.isPublic()) {
-        flags.add("public");
-      }
-      if (accessFlags.isProtected()) {
-        flags.add("protected");
-      }
-      if (accessFlags.isPrivate()) {
-        assert false;
-        flags.add("private");
-      }
-      if (accessFlags.isPackagePrivate()) {
-        assert false;
-        flags.add("/* package */");
-      }
-      if (accessFlags.isAbstract() && !accessFlags.isInterface()) {
-        flags.add("abstract");
-      }
-      if (accessFlags.isStatic()) {
-        flags.add("static");
-      }
-      if (accessFlags.isFinal()) {
-        flags.add("final");
-      }
-      return String.join(" ", flags);
-    }
-
-    protected String accessFlags(FieldAccessFlags accessFlags) {
-      List<String> flags = new ArrayList<>();
-      if (accessFlags.isPublic()) {
-        flags.add("public");
-      }
-      if (accessFlags.isProtected()) {
-        flags.add("protected");
-      }
-      if (accessFlags.isPrivate()) {
-        assert false;
-        flags.add("private");
-      }
-      if (accessFlags.isPackagePrivate()) {
-        assert false;
-        flags.add("/* package */");
-      }
-      if (accessFlags.isStatic()) {
-        flags.add("static");
-      }
-      if (accessFlags.isFinal()) {
-        flags.add("final");
-      }
-      return String.join(" ", flags);
-    }
-
-    protected String accessFlags(MethodAccessFlags accessFlags) {
-      List<String> flags = new ArrayList<>();
-      if (accessFlags.isPublic()) {
-        flags.add("public");
-      }
-      if (accessFlags.isProtected()) {
-        flags.add("protected");
-      }
-      if (accessFlags.isPrivate()) {
-        assert false;
-        flags.add("private");
-      }
-      if (accessFlags.isPackagePrivate()) {
-        assert false;
-        flags.add("/* package */");
-      }
-      if (accessFlags.isAbstract()) {
-        flags.add("abstract");
-      }
-      if (accessFlags.isStatic()) {
-        flags.add("static");
-      }
-      if (accessFlags.isFinal()) {
-        flags.add("final");
-      }
-      return String.join(" ", flags);
-    }
-
-    public String arguments(DexEncodedMethod method) {
-      DexProto proto = method.getReference().proto;
-      StringBuilder argsBuilder = new StringBuilder();
-      boolean firstArg = true;
-      int argIndex = method.isVirtualMethod() || method.accessFlags.isConstructor() ? 1 : 0;
-      int argNumber = 0;
-      argsBuilder.append("(");
-      for (DexType type : proto.parameters.values) {
-        if (!firstArg) {
-          argsBuilder.append(", ");
-        }
-        if (method.hasCode()) {
-          String name = "p" + argNumber;
-          for (LocalVariableInfo localVariable : method.getCode().asCfCode().getLocalVariables()) {
-            if (localVariable.getIndex() == argIndex) {
-              assert !localVariable.getLocal().name.toString().equals("this");
-              name = localVariable.getLocal().name.toString();
-            }
-          }
-          argsBuilder.append(typeInPackage(type)).append(" ").append(name);
-        } else {
-          argsBuilder.append(typeInPackage(type)).append(" p").append(argNumber);
-        }
-        firstArg = false;
-        argIndex += type.isWideType() ? 2 : 1;
-        argNumber++;
-      }
-      argsBuilder.append(")");
-      return argsBuilder.toString();
-    }
-  }
-
-  private static class HTMLBuilder extends StringBuilderWithIndent {
-
-    private String indent = "";
-
-    private void increaseIndent() {
-      indent += "  ";
-      indent(indent);
-    }
-
-    private void decreaseIndent() {
-      indent = indent.substring(0, indent.length() - 2);
-      indent(indent);
-    }
-
-    HTMLBuilder appendTdPackage(String s) {
-      appendLineStart("<td><code><em>" + s + "</em></code><br>");
-      if (s.startsWith("java.time")) {
-        append("<a href=\"#java-time-customizations\">See customizations</a><br");
-      } else if (s.startsWith("java.nio")) {
-        append("<a href=\"#java-nio-customizations\">See customizations</a><br");
-      }
-      return this;
-    }
-
-    HTMLBuilder appendTdClassName(String s) {
-      appendLineEnd(
-          "<code><br><br><div style=\"font-size:small;font-weight:bold;\">&nbsp;"
-              + s
-              + "</div></code><br><br></td>");
-      return this;
-    }
-
-    HTMLBuilder appendTdP(String s) {
-      appendLine("<td><p>" + s + "</p></td>");
-      return this;
-    }
-
-    HTMLBuilder appendLiCode(String s) {
-      appendLine("<li class=\"java8_table\"><code>" + s + "</code></li>");
-      return this;
-    }
-
-    HTMLBuilder start(String tag) {
-      appendLine("<" + tag + ">");
-      increaseIndent();
-      return this;
-    }
-
-    HTMLBuilder end(String tag) {
-      decreaseIndent();
-      appendLine("</" + tag + ">");
-      return this;
-    }
-  }
-
-  public static class HTMLSourceBuilder extends SourceBuilder<HTMLSourceBuilder> {
-
-    private final Set<DexMethod> parallelMethods;
-
-    public HTMLSourceBuilder(DexClass clazz, boolean newClass, Set<DexMethod> parallelMethods) {
-      super(clazz, newClass);
-      this.parallelMethods = parallelMethods;
-    }
-
-    @Override
-    public HTMLSourceBuilder self() {
-      return this;
-    }
-
-    @Override
-    public String toString() {
-      HTMLBuilder builder = new HTMLBuilder();
-      builder.start("tr");
-      if (packageName.length() > 0) {
-        builder.appendTdPackage(packageName);
-      }
-      builder.appendTdClassName(typeInPackage(className));
-      builder
-          .start("td")
-          .start(
-              "ul style=\"list-style-position:inside; list-style-type: none !important;"
-                  + " margin-left:0px;padding-left:0px !important;\"");
-      if (!fields.isEmpty()) {
-        assert newClass; // Currently no fields are added to existing classes.
-        for (DexEncodedField field : fields) {
-          builder.appendLiCode(
-              accessFlags(field.accessFlags)
-                  + " "
-                  + typeInPackage(field.getReference().type)
-                  + " "
-                  + field.getReference().name);
-        }
-      }
-      if (!constructors.isEmpty()) {
-        for (DexEncodedMethod constructor : constructors) {
-          builder.appendLiCode(
-              accessFlags(constructor.accessFlags)
-                  + " "
-                  + typeInPackage(className)
-                  + arguments(constructor));
-        }
-      }
-      List<String> parallelM = new ArrayList<>();
-      if (!methods.isEmpty()) {
-        for (DexEncodedMethod method : methods) {
-          builder.appendLiCode(
-              accessFlags(method.accessFlags)
-                  + " "
-                  + typeInPackage(method.getReference().proto.returnType)
-                  + " "
-                  + method.getReference().name
-                  + arguments(method));
-          if (parallelMethods.contains(method.getReference())) {
-            parallelM.add(method.getReference().name.toString());
-          }
-        }
-      }
-      builder.end("ul").end("td");
-      StringBuilder commentBuilder = new StringBuilder();
-      if (newClass) {
-        commentBuilder.append("Fully implemented class.");
-      } else {
-        commentBuilder.append("Additional methods on existing class.");
-      }
-      if (!parallelM.isEmpty()) {
-        commentBuilder.append(newClass ? "" : "<br>");
-        if (parallelM.size() == 1) {
-          commentBuilder
-              .append("The method <code>")
-              .append(parallelM.get(0))
-              .append("</code> is only supported from API level 21.");
-        } else {
-          commentBuilder.append("The following methods are only supported from API level 21:<br>");
-          for (int i = 0; i < parallelM.size(); i++) {
-            commentBuilder.append("<code>").append(parallelM.get(i)).append("</code><br>");
-          }
-        }
-      }
-      builder.appendTdP(commentBuilder.toString());
-      builder.end("tr");
-      return builder.toString();
-    }
-  }
-
-  private void generateClassHTML(
-      PrintStream ps,
-      DexClass clazz,
-      boolean newClass,
-      Predicate<DexEncodedField> fieldsFilter,
-      Predicate<DexEncodedMethod> methodsFilter) {
-    SourceBuilder builder = new HTMLSourceBuilder(clazz, newClass, parallelMethods);
-    StreamSupport.stream(clazz.fields().spliterator(), false)
-        .filter(fieldsFilter)
-        .filter(field -> field.accessFlags.isPublic() || field.accessFlags.isProtected())
-        .sorted(Comparator.comparing(DexEncodedField::toSourceString))
-        .forEach(builder::addField);
-    StreamSupport.stream(clazz.methods().spliterator(), false)
-        .filter(methodsFilter)
-        .filter(
-            method ->
-                (method.accessFlags.isPublic() || method.accessFlags.isProtected())
-                    && !method.accessFlags.isBridge())
-        .sorted(Comparator.comparing(DexEncodedMethod::toSourceString))
-        .forEach(builder::addMethod);
-    ps.println(builder);
-  }
-
-  private void generateDesugaredLibraryApisDocumetation() throws Exception {
-    PrintStream ps = new PrintStream(Files.newOutputStream(outputDirectory.resolve("apis.html")));
-    // Full classes added.
-    SupportedMethods supportedMethods =
-        collectSupportedMethods(MAX_TESTED_ANDROID_API_LEVEL, x -> true);
-    supportedMethods.classesWithAllMethodsSupported.stream()
-        .sorted(Comparator.comparing(clazz -> clazz.type.toSourceString()))
-        .forEach(clazz -> generateClassHTML(ps, clazz, true, field -> true, method -> true));
-
-    // Methods added to existing classes.
-    supportedMethods.supportedMethods.keySet().stream()
-        .filter(clazz -> !supportedMethods.classesWithAllMethodsSupported.contains(clazz))
-        .sorted(Comparator.comparing(clazz -> clazz.type.toSourceString()))
-        .forEach(
-            clazz ->
-                generateClassHTML(
-                    ps,
-                    clazz,
-                    false,
-                    field -> false,
-                    method -> supportedMethods.supportedMethods.get(clazz).contains(method)));
-  }
-
   public static void main(String[] args) throws Exception {
-    if (args.length == 3) {
-      new GenerateLintFiles(args[0], args[1], args[2]).run();
-      return;
-    }
-    if (args.length == 4 && args[0].equals("--generate-api-docs")) {
-      new GenerateLintFiles(args[1], args[2], args[3]).generateDesugaredLibraryApisDocumetation();
-      return;
-    }
-    throw new RuntimeException(
-        StringUtils.joinLines(
-            "Invalid invocation.",
-            "Usage: GenerateLineFiles [--generate-api-docs] "
-                + "<desugar configuration> <desugar implementation> <output directory>"));
+    AbstractGenerateFiles.main(args);
   }
 }
