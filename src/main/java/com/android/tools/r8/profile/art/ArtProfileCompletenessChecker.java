@@ -4,39 +4,56 @@
 
 package com.android.tools.r8.profile.art;
 
+import static com.android.tools.r8.profile.art.ArtProfileCompletenessChecker.CompletenessExceptions.ALLOW_MISSING_ENUM_UNBOXING_UTILITY_METHODS;
+
 import com.android.tools.r8.graph.AppView;
-import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexReference;
+import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.ProgramDefinition;
+import com.android.tools.r8.graph.ProgramMethod;
+import com.android.tools.r8.synthesis.SyntheticItems;
 import com.android.tools.r8.utils.StringUtils;
+import com.google.common.collect.Sets;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 
 public class ArtProfileCompletenessChecker {
 
-  public static boolean verify(AppView<?> appView) {
+  public enum CompletenessExceptions {
+    ALLOW_MISSING_ENUM_UNBOXING_UTILITY_METHODS
+  }
+
+  public static boolean verify(
+      AppView<?> appView, CompletenessExceptions... completenessExceptions) {
     if (appView.options().getArtProfileOptions().isCompletenessCheckForTestingEnabled()) {
       ArtProfile completeArtProfile = appView.getArtProfileCollection().asNonEmpty().getLast();
-      assert verifyProfileIsComplete(appView, completeArtProfile);
+      assert verifyProfileIsComplete(
+          appView, completeArtProfile, Sets.newHashSet(completenessExceptions));
     }
     return true;
   }
 
-  private static boolean verifyProfileIsComplete(AppView<?> appView, ArtProfile artProfile) {
+  private static boolean verifyProfileIsComplete(
+      AppView<?> appView,
+      ArtProfile artProfile,
+      Set<CompletenessExceptions> completenessExceptions) {
     assert !appView.getSyntheticItems().hasPendingSyntheticClasses();
     List<DexReference> missing = new ArrayList<>();
     for (DexProgramClass clazz : appView.appInfo().classesWithDeterministicOrder()) {
       if (appView.horizontallyMergedClasses().hasBeenMergedIntoDifferentType(clazz.getType())
           || (appView.hasVerticallyMergedClasses()
-              && appView.verticallyMergedClasses().hasBeenMergedIntoSubtype(clazz.getType()))) {
+              && appView.verticallyMergedClasses().hasBeenMergedIntoSubtype(clazz.getType()))
+          || appView.unboxedEnums().isUnboxedEnum(clazz)) {
         continue;
       }
       if (!artProfile.containsClassRule(clazz.getType())) {
-        missing.add(clazz.getType());
+        recordMissingDefinition(appView, clazz, completenessExceptions, missing);
       }
-      for (DexEncodedMethod method : clazz.methods()) {
+      for (ProgramMethod method : clazz.programMethods()) {
         if (!artProfile.containsMethodRule(method.getReference())) {
-          missing.add(method.getReference());
+          recordMissingDefinition(appView, method, completenessExceptions, missing);
         }
       }
     }
@@ -46,5 +63,27 @@ public class ArtProfileCompletenessChecker {
       assert false : message;
     }
     return true;
+  }
+
+  private static void recordMissingDefinition(
+      AppView<?> appView,
+      ProgramDefinition definition,
+      Set<CompletenessExceptions> completenessExceptions,
+      List<DexReference> missing) {
+    if (completenessExceptions.contains(ALLOW_MISSING_ENUM_UNBOXING_UTILITY_METHODS)) {
+      DexType contextType = definition.getContextType();
+      SyntheticItems syntheticItems = appView.getSyntheticItems();
+      if (syntheticItems.isSynthetic(contextType)) {
+        if (syntheticItems.isSyntheticOfKind(
+                contextType, naming -> naming.ENUM_UNBOXING_CHECK_NOT_ZERO_METHOD)
+            || syntheticItems.isSyntheticOfKind(
+                contextType, naming -> naming.ENUM_UNBOXING_LOCAL_UTILITY_CLASS)
+            || syntheticItems.isSyntheticOfKind(
+                contextType, naming -> naming.ENUM_UNBOXING_SHARED_UTILITY_CLASS)) {
+          return;
+        }
+      }
+    }
+    missing.add(definition.getReference());
   }
 }

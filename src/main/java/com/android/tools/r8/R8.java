@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8;
 
+import static com.android.tools.r8.profile.art.ArtProfileCompletenessChecker.CompletenessExceptions.ALLOW_MISSING_ENUM_UNBOXING_UTILITY_METHODS;
 import static com.android.tools.r8.utils.AssertionUtils.forTesting;
 import static com.android.tools.r8.utils.ExceptionUtils.unwrapExecutionException;
 
@@ -533,7 +534,8 @@ public class R8 {
       new PrimaryR8IRConverter(appViewWithLiveness, timing)
           .optimize(appViewWithLiveness, executorService);
 
-      assert ArtProfileCompletenessChecker.verify(appView);
+      assert ArtProfileCompletenessChecker.verify(
+          appView, ALLOW_MISSING_ENUM_UNBOXING_UTILITY_METHODS);
 
       // Clear the reference type lattice element cache to reduce memory pressure.
       appView.dexItemFactory().clearTypeElementsCache();
