@@ -776,4 +776,31 @@ public class StackTrace {
       StackTrace stackTrace, StackTraceLine lineToIgnoreLineNumberFor) {
     return new StackTraceIgnoreSpecificLineNumberMatcher(stackTrace, lineToIgnoreLineNumberFor);
   }
+
+  public static Matcher<StackTrace> containsLine(
+      StackTraceLine expected, StackTraceEquivalence equivalence) {
+    return new TypeSafeMatcher<StackTrace>() {
+
+      private final Equivalence<StackTrace.StackTraceLine> lineEquivalence =
+          equivalence.getLineEquivalence();
+
+      @Override
+      public boolean matchesSafely(StackTrace stackTrace) {
+        for (StackTraceLine actual : stackTrace.getStackTraceLines()) {
+          if (lineEquivalence.equivalent(actual, expected)) {
+            return true;
+          }
+        }
+        return false;
+      }
+
+      @Override
+      public void describeTo(Description description) {
+        description
+            .appendText("stacktrace did not match")
+            .appendText(System.lineSeparator())
+            .appendText(expected.toString());
+      }
+    };
+  }
 }
