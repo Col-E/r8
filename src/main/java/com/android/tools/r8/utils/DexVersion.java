@@ -42,6 +42,7 @@ public enum DexVersion implements Ordered<DexVersion> {
         // version.
       case ANDROID_PLATFORM:
       case MASTER:
+      case U:
       case T:
       case Sv2:
       case S:
