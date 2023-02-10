@@ -5,11 +5,7 @@ package com.android.tools.r8.utils;
 
 import java.util.Objects;
 
-public class SemanticVersion implements Comparable<SemanticVersion> {
-
-  private static SemanticVersion MIN = SemanticVersion.create(0, 0, 0);
-  private static SemanticVersion MAX =
-      SemanticVersion.create(Integer.MAX_VALUE, Integer.MAX_VALUE, Integer.MAX_VALUE);
+public class SemanticVersion {
 
   public static SemanticVersion parse(String version) {
     int majorEnd = version.indexOf('.');
@@ -65,14 +61,6 @@ public class SemanticVersion implements Comparable<SemanticVersion> {
     return new SemanticVersion(major, minor, patch, prerelease);
   }
 
-  public static SemanticVersion min() {
-    return MIN;
-  }
-
-  public static SemanticVersion max() {
-    return MAX;
-  }
-
   public int getMajor() {
     return major;
   }
@@ -115,13 +103,5 @@ public class SemanticVersion implements Comparable<SemanticVersion> {
   @Override
   public String toString() {
     return "" + major + "." + minor + "." + patch + (prerelease != null ? "-" + prerelease : "");
-  }
-
-  @Override
-  public int compareTo(SemanticVersion other) {
-    if (equals(other)) {
-      return 0;
-    }
-    return isNewerOrEqual(other) ? -1 : 1;
   }
 }

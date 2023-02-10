@@ -38,7 +38,6 @@ import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.Pair;
-import com.android.tools.r8.utils.SemanticVersion;
 import java.io.IOException;
 import java.lang.annotation.Annotation;
 import java.nio.file.Path;
@@ -818,11 +817,6 @@ public abstract class R8TestBuilder<T extends R8TestBuilder<T>>
 
   public T addStartupProfileProviders(Collection<StartupProfileProvider> startupProfileProviders) {
     builder.addStartupProfileProviders(startupProfileProviders);
-    return self();
-  }
-
-  public T setFakeCompilerVersion(SemanticVersion version) {
-    getBuilder().setFakeCompilerVersion(version);
     return self();
   }
 }

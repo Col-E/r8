@@ -9,16 +9,9 @@ import com.android.tools.r8.utils.VersionProperties;
 /** Version of the D8/R8 library. */
 public final class Version {
 
-  private static final String MAIN_LABEL = "main";
-
   // This field is accessed from release scripts using simple pattern matching.
   // Therefore, changing this field could break our release scripts.
   public static final String LABEL = "main";
-
-  // The prefix of the active dev version line being worked on from this branch. This is used in the
-  // few cases where the compiler makes decisions based in the compiler version and where version
-  // 'main' cannot be used.
-  public static final String ACTIVE_DEV_VERSION = "8.1.0";
 
   private Version() {
   }
@@ -38,7 +31,7 @@ public final class Version {
   }
 
   static int getMajorVersion(String label) {
-    if (label.equals(MAIN_LABEL)) {
+    if (label.equals("main")) {
       return -1;
     }
     int start = 0;
@@ -56,7 +49,7 @@ public final class Version {
   }
 
   static int getMinorVersion(String label) {
-    if (label.equals(MAIN_LABEL)) {
+    if (label.equals("main")) {
       return -1;
     }
     int start = label.indexOf('.') + 1;
@@ -74,7 +67,7 @@ public final class Version {
   }
 
   static int getPatchVersion(String label) {
-    if (label.equals(MAIN_LABEL)) {
+    if (label.equals("main")) {
       return -1;
     }
     int skip = label.indexOf('.') + 1;
@@ -94,7 +87,7 @@ public final class Version {
   }
 
   static String getPreReleaseString(String label) {
-    if (label.equals(MAIN_LABEL)) {
+    if (label.equals("main")) {
       return null;
     }
     int start = label.indexOf('-') + 1;
@@ -114,10 +107,6 @@ public final class Version {
   }
 
   static boolean isDevelopmentVersion(String label, boolean isEngineering) {
-    return label.equals(MAIN_LABEL) || label.endsWith("-dev") || isEngineering;
-  }
-
-  public static boolean isMainVersion() {
-    return LABEL.equals(MAIN_LABEL);
+    return label.equals("main") || label.endsWith("-dev") || isEngineering;
   }
 }
