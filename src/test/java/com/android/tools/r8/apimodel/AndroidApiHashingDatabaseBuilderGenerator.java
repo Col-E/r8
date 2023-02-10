@@ -143,6 +143,7 @@ public class AndroidApiHashingDatabaseBuilderGenerator extends TestBase {
       Map<DexReference, AndroidApiLevel> referenceMap,
       Path androidJar) {
     Map<DexType, String> missingMemberInformation = new IdentityHashMap<>();
+    DexItemFactory factory = appView.dexItemFactory();
     for (DexLibraryClass clazz : appView.app().asDirect().libraryClasses()) {
       ParsedApiClass parsedApiClass = lookupMap.get(clazz.getClassReference());
       if (parsedApiClass == null) {
@@ -168,7 +169,7 @@ public class AndroidApiHashingDatabaseBuilderGenerator extends TestBase {
           method -> {
             if (method.getAccessFlags().isPublic()
                 && referenceMap.get(method.getReference()) == null
-                && !appView.dexItemFactory().objectMembers.isObjectMember(method.getReference())) {
+                && !factory.objectMembers.isObjectMember(method.getReference())) {
               classBuilder.append("  ").append(method).append(" is missing\n");
             }
           });
@@ -177,22 +178,30 @@ public class AndroidApiHashingDatabaseBuilderGenerator extends TestBase {
       }
     }
 
+    Set<DexType> expectedMissingMembers = new HashSet<>();
     // api-versions.xml do not encode all members of StringBuffers and StringBuilders, check that we
     // only have missing definitions for those two classes.
-    assert missingMemberInformation.size() == 7;
-    assert missingMemberInformation.containsKey(appView.dexItemFactory().stringBufferType);
-    assert missingMemberInformation.containsKey(appView.dexItemFactory().stringBuilderType);
+    expectedMissingMembers.add(factory.stringBufferType);
+    expectedMissingMembers.add(factory.stringBuilderType);
     // TODO(b/231126636): api-versions.xml has missing definitions for the below classes.
-    assert missingMemberInformation.containsKey(
-        appView.dexItemFactory().createType("Ljava/util/concurrent/ConcurrentHashMap$KeySetView;"));
-    assert missingMemberInformation.containsKey(
-        appView.dexItemFactory().createType("Ljava/time/chrono/ThaiBuddhistDate;"));
-    assert missingMemberInformation.containsKey(
-        appView.dexItemFactory().createType("Ljava/time/chrono/HijrahDate;"));
-    assert missingMemberInformation.containsKey(
-        appView.dexItemFactory().createType("Ljava/time/chrono/JapaneseDate;"));
-    assert missingMemberInformation.containsKey(
-        appView.dexItemFactory().createType("Ljava/time/chrono/MinguoDate;"));
+    expectedMissingMembers.add(
+        factory.createType("Ljava/util/concurrent/ConcurrentHashMap$KeySetView;"));
+    expectedMissingMembers.add(factory.createType("Ljava/time/chrono/ThaiBuddhistDate;"));
+    expectedMissingMembers.add(factory.createType("Ljava/time/chrono/HijrahDate;"));
+    expectedMissingMembers.add(factory.createType("Ljava/time/chrono/JapaneseDate;"));
+    expectedMissingMembers.add(factory.createType("Ljava/time/chrono/MinguoDate;"));
+    expectedMissingMembers.add(factory.createType("Landroid/nfc/tech/NfcV;"));
+    expectedMissingMembers.add(factory.createType("Landroid/nfc/tech/IsoDep;"));
+    expectedMissingMembers.add(factory.createType("Landroid/nfc/tech/MifareUltralight;"));
+    expectedMissingMembers.add(factory.createType("Landroid/nfc/tech/MifareClassic;"));
+    expectedMissingMembers.add(factory.createType("Landroid/nfc/tech/NdefFormatable;"));
+    expectedMissingMembers.add(factory.createType("Landroid/nfc/tech/NfcA;"));
+    expectedMissingMembers.add(factory.createType("Landroid/nfc/tech/NfcBarcode;"));
+    expectedMissingMembers.add(factory.createType("Landroid/nfc/tech/NfcF;"));
+    expectedMissingMembers.add(factory.createType("Landroid/nfc/tech/NfcB;"));
+    expectedMissingMembers.add(factory.createType("Landroid/nfc/tech/Ndef;"));
+    expectedMissingMembers.add(factory.createType("Landroid/webkit/CookieSyncManager;"));
+    assertEquals(expectedMissingMembers, missingMemberInformation.keySet());
     return true;
   }
 

@@ -43,13 +43,16 @@ public enum AndroidApiLevel implements Ordered<AndroidApiLevel> {
   S(31),
   Sv2(32),
   T(33),
-  MASTER(34), // API level for master is tentative.
+  U(34),
+  MASTER(35), // API level for master is tentative.
   ANDROID_PLATFORM(10000);
 
   // When updating LATEST and a new version goes stable, add a new api-versions.xml to third_party
   // and update the version and generated jar in AndroidApiDatabaseBuilderGeneratorTest.
-  // TODO(b/204738868): Update API database for Sv2 / T when they are ready.
   public static final AndroidApiLevel LATEST = T;
+
+  // TODO(b/268601605): When adding U to the test matrix, set this to LATEST.
+  public static final AndroidApiLevel API_DATABASE_LEVEL = U;
 
   private final int level;
 
@@ -174,6 +177,8 @@ public enum AndroidApiLevel implements Ordered<AndroidApiLevel> {
       case 33:
         return T;
       case 34:
+        return U;
+      case 35:
         return MASTER;
       case 10000:
         return ANDROID_PLATFORM;

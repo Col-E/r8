@@ -19,6 +19,7 @@ import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.references.MethodReference;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.IntBox;
 import com.android.tools.r8.utils.InternalOptions;
@@ -46,7 +47,7 @@ public class AndroidApiHashingDatabaseBuilderGeneratorTest extends TestBase {
           .resolve("new_api_database.ser");
 
   // Update the API_LEVEL below to have the database generated for a new api level.
-  private static final AndroidApiLevel API_LEVEL = AndroidApiLevel.LATEST;
+  private static final AndroidApiLevel API_LEVEL = AndroidApiLevel.API_DATABASE_LEVEL;
 
   @Parameters(name = "{0}")
   public static TestParametersCollection data() {
@@ -94,18 +95,16 @@ public class AndroidApiHashingDatabaseBuilderGeneratorTest extends TestBase {
     parsedApiClasses.forEach(
         apiClass -> {
           apiClass.visitFieldReferences(
-              ((apiLevel, fieldReferences) -> {
-                fieldReferences.forEach(field -> numberOfFields.increment());
-              }));
+              ((apiLevel, fieldReferences) ->
+                  fieldReferences.forEach(field -> numberOfFields.increment())));
           apiClass.visitMethodReferences(
-              ((apiLevel, methodReferences) -> {
-                methodReferences.forEach(field -> numberOfMethods.increment());
-              }));
+              ((AndroidApiLevel apiLevel, List<MethodReference> methodReferences) ->
+                  methodReferences.forEach(field -> numberOfMethods.increment())));
         });
     // These numbers will change when updating api-versions.xml
-    assertEquals(5272, parsedApiClasses.size());
-    assertEquals(27868, numberOfFields.get());
-    assertEquals(42268, numberOfMethods.get());
+    assertEquals(5635, parsedApiClasses.size());
+    assertEquals(29017, numberOfFields.get());
+    assertEquals(44107, numberOfMethods.get());
   }
 
   @Test

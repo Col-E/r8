@@ -19,9 +19,11 @@ import com.android.tools.r8.utils.codeinspector.FieldSubject;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.TreeMap;
 import java.util.function.BiConsumer;
 import javax.xml.parsers.DocumentBuilderFactory;
@@ -48,11 +50,20 @@ public class AndroidApiVersionsXmlParser {
     return parsedApiClass;
   }
 
+  private Set<String> getDeletedTypesMissingRemovedAttribute() {
+    Set<String> removedTypeNames = new HashSet<>();
+    if (maxApiLevel.isGreaterThanOrEqualTo(AndroidApiLevel.U)) {
+      removedTypeNames.add("com.android.internal.util.Predicate");
+    }
+    return removedTypeNames;
+  }
+
   private void readApiVersionsXmlFile() throws Exception {
     CodeInspector inspector = new CodeInspector(ToolHelper.getAndroidJar(maxApiLevel));
     DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
     Document document = factory.newDocumentBuilder().parse(apiVersionsXml);
     NodeList classes = document.getElementsByTagName("class");
+    Set<String> exemptionList = getDeletedTypesMissingRemovedAttribute();
     for (int i = 0; i < classes.getLength(); i++) {
       Node node = classes.item(i);
       assert node.getNodeType() == Node.ELEMENT_NODE;
@@ -61,9 +72,10 @@ public class AndroidApiVersionsXmlParser {
       ClassSubject clazz = inspector.clazz(type);
       if (!clazz.isPresent()) {
         if (!clazz.getOriginalName().startsWith("android.test")
-            && !clazz.getOriginalName().startsWith("junit")) {
-          assert hasRemoved(node);
-          assert getRemoved(node).isLessThanOrEqualTo(maxApiLevel);
+            && !clazz.getOriginalName().startsWith("junit")
+            && node.getAttributes().getNamedItem("module") == null) {
+          assert exemptionList.contains(type) || hasRemoved(node);
+          assert exemptionList.contains(type) || getRemoved(node).isLessThanOrEqualTo(maxApiLevel);
         }
         continue;
       }
