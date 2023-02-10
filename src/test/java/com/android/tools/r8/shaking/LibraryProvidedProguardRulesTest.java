@@ -24,7 +24,6 @@ import com.android.tools.r8.ProgramResource;
 import com.android.tools.r8.ProgramResource.Kind;
 import com.android.tools.r8.ProgramResourceProvider;
 import com.android.tools.r8.ResourceException;
-import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.origin.ArchiveEntryOrigin;
 import com.android.tools.r8.origin.Origin;
@@ -47,7 +46,7 @@ import org.junit.runners.Parameterized.Parameter;
 import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
-public class LibraryProvidedProguardRulesTest extends TestBase {
+public class LibraryProvidedProguardRulesTest extends LibraryProvidedProguardRulesTestBase {
 
   static class A {
     private static String buildClassName(String className) {
@@ -65,30 +64,6 @@ public class LibraryProvidedProguardRulesTest extends TestBase {
   }
 
   static class B {}
-
-  enum LibraryType {
-    JAR_WITH_RULES,
-    AAR_WITH_RULES,
-    AAR_WITH_RULES_ONLY_IN_JAR,
-    AAR_WITH_RULES_BOTH_IN_JAR_AND_IN_AAR;
-
-    boolean isAar() {
-      return this != JAR_WITH_RULES;
-    }
-
-    boolean hasRulesInJar() {
-      return this != AAR_WITH_RULES;
-    }
-
-    boolean hasRulesInAar() {
-      return this == AAR_WITH_RULES || this == AAR_WITH_RULES_BOTH_IN_JAR_AND_IN_AAR;
-    }
-  }
-
-  enum ProviderType {
-    API,
-    INJARS
-  }
 
   @Parameter(0)
   public TestParameters parameters;
