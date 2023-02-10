@@ -360,6 +360,7 @@ def cloudDependencies = [
                 "android_jar/lib-v31",
                 "android_jar/lib-v32",
                 "android_jar/lib-v33",
+                "android_jar/lib-v34",
                 "android_jar/lib-master",
                 "api_database/api_database",
                 "api-outlining/simple-app-dump",
