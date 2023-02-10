@@ -210,9 +210,13 @@ public class MappedPositionToClassNameMapperBuilder {
 
       OneShotCollectionConsumer<MappingInformation> methodSpecificMappingInformation =
           OneShotCollectionConsumer.wrap(new ArrayList<>());
-      if (method.getDefinition().isD8R8Synthesized()
-          || (!mappedPositions.isEmpty()
-              && mappedPositions.get(0).getPosition().isD8R8Synthesized())) {
+      // We only do global synthetic classes when using names from the library. For such classes it
+      // is important that we do not filter out stack frames since they could appear from concrete
+      // classes in the library. Additionally, this is one place where it is helpful for developers
+      // to also get reported synthesized frames since stubbing can change control-flow and
+      // exceptions.
+      if (isD8R8Synthesized(method, mappedPositions)
+          && !appView.getSyntheticItems().isGlobalSyntheticClass(method.getHolder())) {
         methodSpecificMappingInformation.add(CompilerSynthesizedMappingInformation.getInstance());
       }
 
@@ -367,6 +371,12 @@ public class MappedPositionToClassNameMapperBuilder {
         i = j;
       }
       return this;
+    }
+
+    private boolean isD8R8Synthesized(ProgramMethod method, List<MappedPosition> mappedPositions) {
+      return method.getDefinition().isD8R8Synthesized()
+          || (!mappedPositions.isEmpty()
+              && mappedPositions.get(0).getPosition().isD8R8Synthesized());
     }
 
     private MethodReference computeMappedMethod(DexMethod current, AppView<?> appView) {

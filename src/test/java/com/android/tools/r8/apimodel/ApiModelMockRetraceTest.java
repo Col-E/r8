@@ -7,7 +7,6 @@ package com.android.tools.r8.apimodel;
 import static com.android.tools.r8.apimodel.ApiModelingTestHelper.setMockApiLevelForClass;
 import static com.android.tools.r8.apimodel.ApiModelingTestHelper.verifyThat;
 import static com.android.tools.r8.naming.retrace.StackTrace.containsLine;
-import static com.android.tools.r8.utils.codeinspector.Matchers.notIf;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.android.tools.r8.SingleTestRunResult;
@@ -90,14 +89,8 @@ public class ApiModelMockRetraceTest extends TestBase {
                       .assertFailureWithErrorThatThrows(ExceptionInInitializerError.class)
                       .assertFailureWithErrorThatThrows(ArithmeticException.class),
               result -> result.assertFailureWithErrorThatThrows(NoClassDefFoundError.class))
-          // TODO(b/268464983): The stack trace should always contain the line.
           .inspectStackTrace(
-              stackTrace ->
-                  assertThat(
-                      stackTrace,
-                      notIf(
-                          containsLine(clinitFrame, equivalence),
-                          parameters.getApiLevel().isLessThan(mockLevel))));
+              stackTrace -> assertThat(stackTrace, containsLine(clinitFrame, equivalence)));
     }
   }
 
