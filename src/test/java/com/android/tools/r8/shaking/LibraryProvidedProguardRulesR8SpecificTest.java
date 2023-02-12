@@ -47,27 +47,27 @@ public class LibraryProvidedProguardRulesR8SpecificTest
   }
 
   private static final String EXPECTED_A =
-      StringUtils.unixLines(
+      StringUtils.lines(
           "-keep class A1 {", "  <init>();", "}", "-keep class A2 {", "  <init>();", "}");
 
   private static final String EXPECTED_B =
-      StringUtils.unixLines(
+      StringUtils.lines(
           "-keep class B1 {", "  <init>();", "}", "-keep class B2 {", "  <init>();", "}");
 
   private static final String EXPECTED_C =
-      StringUtils.unixLines(
+      StringUtils.lines(
           "-keep class C1 {", "  <init>();", "}", "-keep class C2 {", "  <init>();", "}");
 
   private static final String EXPECTED_D =
-      StringUtils.unixLines(
+      StringUtils.lines(
           "-keep class D1 {", "  <init>();", "}", "-keep class D2 {", "  <init>();", "}");
 
   private static final String EXPECTED_E =
-      StringUtils.unixLines(
+      StringUtils.lines(
           "-keep class E1 {", "  <init>();", "}", "-keep class E2 {", "  <init>();", "}");
 
   private static final String EXPECTED_X =
-      StringUtils.unixLines(
+      StringUtils.lines(
           "-keep class X1 {", "  <init>();", "}", "-keep class X2 {", "  <init>();", "}");
 
   private Path buildLibrary() throws Exception {
@@ -152,22 +152,21 @@ public class LibraryProvidedProguardRulesR8SpecificTest
   @Test
   public void runTestVersion3() throws Exception {
     runTest(
-        SemanticVersion.create(3, 0, 0),
-        StringUtils.unixLines(EXPECTED_A.trim(), EXPECTED_C.trim()));
+        SemanticVersion.create(3, 0, 0), StringUtils.lines(EXPECTED_A.trim(), EXPECTED_C.trim()));
   }
 
   @Test
   public void runTestVersion4() throws Exception {
     runTest(
         SemanticVersion.create(4, 0, 0),
-        StringUtils.unixLines(EXPECTED_A.trim(), EXPECTED_B.trim(), EXPECTED_C.trim()));
+        StringUtils.lines(EXPECTED_A.trim(), EXPECTED_B.trim(), EXPECTED_C.trim()));
   }
 
   @Test
   public void runTestVersion5() throws Exception {
     runTest(
         SemanticVersion.create(5, 0, 0),
-        StringUtils.unixLines(
+        StringUtils.lines(
             EXPECTED_A.trim(), EXPECTED_B.trim(), EXPECTED_C.trim(), EXPECTED_D.trim()));
   }
 
@@ -175,7 +174,7 @@ public class LibraryProvidedProguardRulesR8SpecificTest
   public void runTestVersion8() throws Exception {
     runTest(
         SemanticVersion.create(8, 0, 0),
-        StringUtils.unixLines(
+        StringUtils.lines(
             EXPECTED_A.trim(), EXPECTED_B.trim(), EXPECTED_C.trim(), EXPECTED_D.trim()));
   }
 
@@ -183,28 +182,26 @@ public class LibraryProvidedProguardRulesR8SpecificTest
   public void runTestVersion8_1() throws Exception {
     runTest(
         SemanticVersion.create(8, 1, 0),
-        StringUtils.unixLines(EXPECTED_A.trim(), EXPECTED_B.trim(), EXPECTED_C.trim()));
+        StringUtils.lines(EXPECTED_A.trim(), EXPECTED_B.trim(), EXPECTED_C.trim()));
   }
 
   @Test
   public void runTestVersion8_2() throws Exception {
     runTest(
-        SemanticVersion.create(8, 2, 0),
-        StringUtils.unixLines(EXPECTED_A.trim(), EXPECTED_B.trim()));
+        SemanticVersion.create(8, 2, 0), StringUtils.lines(EXPECTED_A.trim(), EXPECTED_B.trim()));
   }
 
   @Test
   public void runTestVersion10() throws Exception {
     runTest(
-        SemanticVersion.create(10, 0, 0),
-        StringUtils.unixLines(EXPECTED_A.trim(), EXPECTED_B.trim()));
+        SemanticVersion.create(10, 0, 0), StringUtils.lines(EXPECTED_A.trim(), EXPECTED_B.trim()));
   }
 
   @Test
   public void runTestVersion10_5() throws Exception {
     runTest(
         SemanticVersion.create(10, 5, 0),
-        StringUtils.unixLines(EXPECTED_A.trim(), EXPECTED_B.trim(), EXPECTED_E.trim()));
+        StringUtils.lines(EXPECTED_A.trim(), EXPECTED_B.trim(), EXPECTED_E.trim()));
   }
 
   @Test
@@ -235,7 +232,7 @@ public class LibraryProvidedProguardRulesR8SpecificTest
         .inspectProguardConfiguration(
             configuration ->
                 assertEquals(
-                    StringUtils.unixLines(EXPECTED_A.trim(), EXPECTED_B.trim(), EXPECTED_C.trim()),
+                    StringUtils.lines(EXPECTED_A.trim(), EXPECTED_B.trim(), EXPECTED_C.trim()),
                     configuration.toString()));
   }
 

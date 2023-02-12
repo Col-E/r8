@@ -10,6 +10,7 @@ import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.position.Position;
 import com.android.tools.r8.utils.InternalOptions.PackageObfuscationMode;
 import com.android.tools.r8.utils.Reporter;
+import com.android.tools.r8.utils.StringUtils;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Sets;
 import java.nio.file.Path;
@@ -671,11 +672,11 @@ public class ProguardConfiguration {
     StringBuilder builder = new StringBuilder();
     if (!keepAttributes.isEmpty()) {
       keepAttributes.append(builder);
-      builder.append('\n');
+      builder.append(StringUtils.LINE_SEPARATOR);
     }
     for (ProguardConfigurationRule rule : rules) {
       rule.append(builder);
-      builder.append('\n');
+      builder.append(StringUtils.LINE_SEPARATOR);
     }
     return builder.toString();
   }
