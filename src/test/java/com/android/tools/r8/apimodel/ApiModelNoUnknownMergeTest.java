@@ -13,6 +13,7 @@ import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.references.ClassReference;
 import com.android.tools.r8.references.Reference;
+import com.android.tools.r8.utils.codeinspector.HorizontallyMergedClassesInspector;
 import java.util.HashSet;
 import java.util.Set;
 import org.junit.Test;
@@ -57,9 +58,7 @@ public class ApiModelNoUnknownMergeTest extends TestBase {
                   };
             })
         .addHorizontallyMergedClassesInspector(
-            inspector ->
-                inspector.assertClassesMerged(
-                    LibraryClassFooCaller.class, LibraryClassBarCaller.class))
+            HorizontallyMergedClassesInspector::assertNoClassesMerged)
         .compile()
         .addBootClasspathClasses(LibraryClass.class)
         .run(parameters.getRuntime(), Main.class)

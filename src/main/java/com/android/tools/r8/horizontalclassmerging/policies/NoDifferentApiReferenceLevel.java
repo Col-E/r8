@@ -38,6 +38,11 @@ public class NoDifferentApiReferenceLevel extends MultiClassSameReferencePolicy<
   @Override
   public ComputedApiLevel getMergeKey(DexProgramClass clazz) {
     assert enableApiCallerIdentification;
-    return getApiReferenceLevelForMerging(appView, apiLevelCompute, clazz);
+    ComputedApiLevel apiReferenceLevelForMerging =
+        getApiReferenceLevelForMerging(appView, apiLevelCompute, clazz);
+    if (apiReferenceLevelForMerging.isUnknownApiLevel()) {
+      return ineligibleForClassMerging();
+    }
+    return apiReferenceLevelForMerging;
   }
 }
