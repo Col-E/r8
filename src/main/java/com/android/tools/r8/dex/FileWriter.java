@@ -795,6 +795,12 @@ public class FileWriter {
 
   private byte[] dexVersionBytes() {
     if (options.testing.dexContainerExperiment) {
+      return DexVersion.V41.getBytes();
+    }
+    // TODO(b/269089718): Remove this testing option and always emit DEX version 040 if DEX contains
+    //  identifiers with whitespace.
+    if (options.testing.dexVersion40FromApiLevel30
+        && options.getMinApiLevel().isGreaterThanOrEqualTo(AndroidApiLevel.R)) {
       return DexVersion.V40.getBytes();
     }
     return options.testing.forceDexVersionBytes != null

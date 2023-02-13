@@ -13,7 +13,8 @@ public enum DexVersion implements Ordered<DexVersion> {
   V37(37, new byte[] {'0', '3', '7'}),
   V38(38, new byte[] {'0', '3', '8'}),
   V39(39, new byte[] {'0', '3', '9'}),
-  V40(40, new byte[] {'0', '4', '0'});
+  V40(40, new byte[] {'0', '4', '0'}),
+  V41(41, new byte[] {'0', '4', '1'});
 
   private final int dexVersion;
 
@@ -47,6 +48,8 @@ public enum DexVersion implements Ordered<DexVersion> {
       case Sv2:
       case S:
       case R:
+        // Dex version should have been V40 starting from API level 30, see b/269089718.
+        // return DexVersion.V40;
       case Q:
       case P:
         return DexVersion.V39;
@@ -97,6 +100,8 @@ public enum DexVersion implements Ordered<DexVersion> {
         return Optional.of(V39);
       case 40:
         return Optional.of(V40);
+      case 41:
+        return Optional.of(V41);
       default:
         return Optional.empty();
     }

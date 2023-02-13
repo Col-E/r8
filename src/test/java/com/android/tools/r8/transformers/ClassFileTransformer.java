@@ -39,6 +39,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import org.objectweb.asm.AnnotationVisitor;
 import org.objectweb.asm.ClassReader;
@@ -610,11 +611,15 @@ public class ClassFileTransformer {
     }
 
     static MethodPredicate onName(String name) {
-      return (access, otherName, descriptor, signature, exceptions) -> name.equals(otherName);
+      return onName(name::equals);
+    }
+
+    static MethodPredicate onName(Predicate<String> predicate) {
+      return (access, otherName, descriptor, signature, exceptions) -> predicate.test(otherName);
     }
 
     static MethodPredicate onNames(Collection<String> names) {
-      return (access, otherName, descriptor, signature, exceptions) -> names.contains(otherName);
+      return onName(names::contains);
     }
 
     static MethodPredicate onNames(String... names) {
@@ -758,13 +763,19 @@ public class ClassFileTransformer {
   }
 
   public ClassFileTransformer renameMethod(MethodPredicate predicate, String newName) {
+    return renameMethod(predicate, name -> newName);
+  }
+
+  public ClassFileTransformer renameMethod(
+      MethodPredicate predicate, Function<String, String> newName) {
     return addClassTransformer(
         new ClassTransformer() {
           @Override
           public MethodVisitor visitMethod(
               int access, String name, String descriptor, String signature, String[] exceptions) {
             if (predicate.test(access, name, descriptor, signature, exceptions)) {
-              return super.visitMethod(access, newName, descriptor, signature, exceptions);
+              return super.visitMethod(
+                  access, newName.apply(name), descriptor, signature, exceptions);
             }
             return super.visitMethod(access, name, descriptor, signature, exceptions);
           }
