@@ -205,9 +205,12 @@ public class MethodResolution {
                     && !superClass.isLibraryClass()) {
                   return;
                 }
-                builder.addResolutionResult(
+                MethodResolutionResult superTypeResult =
                     resolveMethodOnClassStep2(
-                        superClass, methodProto, methodName, initialResolutionHolder));
+                        superClass, methodProto, methodName, initialResolutionHolder);
+                if (superTypeResult != null) {
+                  builder.addResolutionResult(superTypeResult);
+                }
               });
       return builder.buildOrIfEmpty(null, clazz.superType);
     }
