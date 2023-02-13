@@ -18,7 +18,7 @@ public class VerifySingleClassPolicyAlwaysSatisfied extends SingleClassPolicy {
 
   @Override
   public boolean canMerge(DexProgramClass program) {
-    assert policy.canMerge(program) : "Verification of single class policies failed";
+    assert policy.canMerge(program);
     return true;
   }
 

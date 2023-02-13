@@ -481,11 +481,6 @@ public abstract class TestCompilerBuilder<
     return super.addLibraryProvider(provider);
   }
 
-  public T setUseDefaultRuntimeLibrary(boolean useDefaultRuntimeLibrary) {
-    this.useDefaultRuntimeLibrary = useDefaultRuntimeLibrary;
-    return self();
-  }
-
   @Override
   public T allowStdoutMessages() {
     allowStdoutMessages = true;

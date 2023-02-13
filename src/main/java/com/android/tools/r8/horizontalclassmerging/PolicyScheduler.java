@@ -10,7 +10,6 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.ImmediateProgramSubtypingInfo;
 import com.android.tools.r8.horizontalclassmerging.HorizontalClassMerger.Mode;
 import com.android.tools.r8.horizontalclassmerging.policies.AllInstantiatedOrUninstantiated;
-import com.android.tools.r8.horizontalclassmerging.policies.AllMethodsAssignedApiLevel;
 import com.android.tools.r8.horizontalclassmerging.policies.CheckAbstractClasses;
 import com.android.tools.r8.horizontalclassmerging.policies.CheckSyntheticClasses;
 import com.android.tools.r8.horizontalclassmerging.policies.ComputeApiLevelOfSyntheticClass;
@@ -211,8 +210,7 @@ public class PolicyScheduler {
             new NoInnerClasses(),
             new NoInstanceFieldAnnotations(),
             new NoKotlinMetadata(),
-            new NoNativeMethods(),
-            new AllMethodsAssignedApiLevel());
+            new NoNativeMethods());
     policies.stream().map(VerifySingleClassPolicyAlwaysSatisfied::new).forEach(builder::add);
     return true;
   }
