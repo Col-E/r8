@@ -5,7 +5,6 @@
 package com.android.tools.r8.classmerging.horizontal;
 
 import static com.android.tools.r8.naming.retrace.StackTrace.isSame;
-import static com.android.tools.r8.utils.codeinspector.Matchers.isAbsent;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.MatcherAssert.assertThat;
 
@@ -14,6 +13,7 @@ import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestRuntime.CfRuntime;
 import com.android.tools.r8.naming.retrace.StackTrace;
+import com.android.tools.r8.utils.codeinspector.HorizontallyMergedClassesInspector;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -47,12 +47,12 @@ public class MergedVirtualMethodStackTraceTest extends HorizontalClassMergingTes
         .enableNeverClassInliningAnnotations()
         .setMinApi(parameters.getApiLevel())
         .addHorizontallyMergedClassesInspector(
-            inspector -> inspector.assertMergedInto(Program.B.class, Program.A.class))
+            HorizontallyMergedClassesInspector::assertNoClassesMerged)
         .run(parameters.getRuntime(), Program.Main.class)
         .inspectStackTrace(
             (stackTrace, codeInspector) -> {
               assertThat(codeInspector.clazz(Program.A.class), isPresent());
-              assertThat(codeInspector.clazz(Program.B.class), isAbsent());
+              assertThat(codeInspector.clazz(Program.B.class), isPresent());
               assertThat(stackTrace, isSame(expectedStackTrace));
             });
   }
