@@ -5,12 +5,14 @@
 package com.android.tools.r8.profile.art.rewriting;
 
 import com.android.tools.r8.graph.AppView;
-import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.DexMethod;
+import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.profile.art.ArtProfile;
 import com.android.tools.r8.profile.art.ArtProfileCollection;
+import com.android.tools.r8.profile.art.ArtProfileMethodRuleInfoImpl;
 import com.android.tools.r8.profile.art.NonEmptyArtProfileCollection;
 import com.android.tools.r8.profile.art.rewriting.ArtProfileAdditions.ArtProfileAdditionsBuilder;
 import com.google.common.collect.Iterables;
@@ -36,8 +38,37 @@ public class ConcreteArtProfileCollectionAdditions extends ArtProfileCollectionA
     assert !additionsCollection.isEmpty();
   }
 
+  public void addMethodIfContextIsInProfile(ProgramMethod method, ProgramMethod context) {
+    applyIfContextIsInProfile(context, additionsBuilder -> additionsBuilder.addRule(method));
+  }
+
+  public void addMethodIfContextIsInProfile(
+      ProgramMethod method,
+      DexClassAndMethod context,
+      Consumer<ArtProfileMethodRuleInfoImpl.Builder> methodRuleInfoBuilderConsumer) {
+    if (context.isProgramMethod()) {
+      applyIfContextIsInProfile(
+          context.asProgramMethod(), additionsBuilder -> additionsBuilder.addRule(method));
+    } else {
+      apply(
+          artProfileAdditions ->
+              artProfileAdditions.addMethodRule(method, methodRuleInfoBuilderConsumer));
+    }
+  }
+
+  public void addMethodAndHolderIfContextIsInProfile(ProgramMethod method, ProgramMethod context) {
+    applyIfContextIsInProfile(
+        context, additionsBuilder -> additionsBuilder.addRule(method).addRule(method.getHolder()));
+  }
+
+  void apply(Consumer<ArtProfileAdditions> additionsConsumer) {
+    for (ArtProfileAdditions artProfileAdditions : additionsCollection) {
+      additionsConsumer.accept(artProfileAdditions);
+    }
+  }
+
   void applyIfContextIsInProfile(
-      DexClass context, Consumer<ArtProfileAdditions> additionsConsumer) {
+      DexProgramClass context, Consumer<ArtProfileAdditions> additionsConsumer) {
     applyIfContextIsInProfile(context.getType(), additionsConsumer);
   }
 
@@ -48,7 +79,7 @@ public class ConcreteArtProfileCollectionAdditions extends ArtProfileCollectionA
   }
 
   public void applyIfContextIsInProfile(
-      DexClassAndMethod context, Consumer<ArtProfileAdditionsBuilder> builderConsumer) {
+      ProgramMethod context, Consumer<ArtProfileAdditionsBuilder> builderConsumer) {
     applyIfContextIsInProfile(context.getReference(), builderConsumer);
   }
 

@@ -5,6 +5,7 @@
 package com.android.tools.r8.ir.conversion;
 
 import com.android.tools.r8.graph.ProgramMethod;
+import com.android.tools.r8.ir.optimize.ServiceLoaderRewriterEventConsumer;
 import com.android.tools.r8.ir.optimize.UtilityMethodsForCodeOptimizationsEventConsumer;
 import com.android.tools.r8.ir.optimize.api.InstanceInitializerOutlinerEventConsumer;
 import com.android.tools.r8.ir.optimize.enums.EnumUnboxerMethodProcessorEventConsumer;
@@ -14,6 +15,7 @@ import com.android.tools.r8.profile.art.rewriting.ArtProfileRewritingMethodProce
 public abstract class MethodProcessorEventConsumer
     implements EnumUnboxerMethodProcessorEventConsumer,
         InstanceInitializerOutlinerEventConsumer,
+        ServiceLoaderRewriterEventConsumer,
         UtilityMethodsForCodeOptimizationsEventConsumer {
 
   public static MethodProcessorEventConsumer create(
@@ -56,6 +58,11 @@ public abstract class MethodProcessorEventConsumer
 
     @Override
     public void acceptInstanceInitializerOutline(ProgramMethod method, ProgramMethod context) {
+      // Intentionally empty.
+    }
+
+    @Override
+    public void acceptServiceLoaderLoadUtilityMethod(ProgramMethod method, ProgramMethod context) {
       // Intentionally empty.
     }
 

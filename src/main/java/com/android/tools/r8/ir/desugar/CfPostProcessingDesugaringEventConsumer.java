@@ -143,8 +143,9 @@ public abstract class CfPostProcessingDesugaringEventConsumer
     }
 
     @Override
-    public void acceptAPIConversionCallback(ProgramMethod method) {
-      addMethodToReprocess(method);
+    public void acceptAPIConversionCallback(
+        ProgramMethod callbackMethod, ProgramMethod convertedMethod) {
+      addMethodToReprocess(callbackMethod);
     }
 
     @Override
@@ -241,9 +242,10 @@ public abstract class CfPostProcessingDesugaringEventConsumer
     }
 
     @Override
-    public void acceptAPIConversionCallback(ProgramMethod method) {
-      assert !desugaring.needsDesugaring(method);
-      additions.addLiveMethod(method);
+    public void acceptAPIConversionCallback(
+        ProgramMethod callbackMethod, ProgramMethod convertedMethod) {
+      assert !desugaring.needsDesugaring(callbackMethod);
+      additions.addLiveMethod(callbackMethod);
     }
 
     @Override

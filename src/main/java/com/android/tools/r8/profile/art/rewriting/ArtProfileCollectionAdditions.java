@@ -6,6 +6,7 @@ package com.android.tools.r8.profile.art.rewriting;
 
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexMethod;
+import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.profile.art.ArtProfileCollection;
 import com.android.tools.r8.profile.art.rewriting.ArtProfileAdditions.ArtProfileAdditionsBuilder;
 import java.util.function.Consumer;
@@ -33,6 +34,8 @@ public abstract class ArtProfileCollectionAdditions {
   public static NopArtProfileCollectionAdditions nop() {
     return NopArtProfileCollectionAdditions.getInstance();
   }
+
+  public abstract void addMethodIfContextIsInProfile(ProgramMethod method, ProgramMethod context);
 
   public abstract void applyIfContextIsInProfile(
       DexMethod context, Consumer<ArtProfileAdditionsBuilder> builderConsumer);

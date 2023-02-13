@@ -6,6 +6,7 @@ package com.android.tools.r8.profile.art;
 
 import static com.android.tools.r8.utils.SystemPropertyUtils.parseSystemPropertyOrDefault;
 
+import com.android.tools.r8.utils.InternalOptions;
 import java.util.Collection;
 import java.util.Collections;
 
@@ -16,14 +17,18 @@ public class ArtProfileOptions {
       parseSystemPropertyOrDefault(
           "com.android.tools.r8.artprofilerewritingcompletenesscheck", false);
 
-  public ArtProfileOptions() {}
+  private final InternalOptions options;
+
+  public ArtProfileOptions(InternalOptions options) {
+    this.options = options;
+  }
 
   public Collection<ArtProfileForRewriting> getArtProfilesForRewriting() {
     return artProfilesForRewriting;
   }
 
   public boolean isCompletenessCheckForTestingEnabled() {
-    return enableCompletenessCheckForTesting;
+    return enableCompletenessCheckForTesting && !options.isDesugaredLibraryCompilation();
   }
 
   public boolean isIncludingApiReferenceStubs() {

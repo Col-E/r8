@@ -4010,7 +4010,7 @@ public class Enqueuer {
     // registered first and no dependencies may exist among them.
     SyntheticAdditions additions = new SyntheticAdditions(appView.createProcessorContext());
     desugar(additions);
-    synthesizeInterfaceMethodBridges(additions);
+    synthesizeInterfaceMethodBridges();
     if (additions.isEmpty()) {
       return;
     }
@@ -4164,11 +4164,13 @@ public class Enqueuer {
     }
   }
 
-  private void synthesizeInterfaceMethodBridges(SyntheticAdditions additions) {
-    for (ProgramMethod bridge : syntheticInterfaceMethodBridges.values()) {
+  private void synthesizeInterfaceMethodBridges() {
+    for (InterfaceMethodSyntheticBridgeAction action : syntheticInterfaceMethodBridges.values()) {
+      ProgramMethod bridge = action.getMethodToKeep();
       DexProgramClass holder = bridge.getHolder();
       DexEncodedMethod method = bridge.getDefinition();
       holder.addVirtualMethod(method);
+      artProfileCollectionAdditions.addMethodIfContextIsInProfile(bridge, action.getSingleTarget());
     }
     syntheticInterfaceMethodBridges.clear();
   }
@@ -4643,8 +4645,8 @@ public class Enqueuer {
     return builder.buildConsequentRootSet();
   }
 
-  private final Map<DexMethod, ProgramMethod> syntheticInterfaceMethodBridges =
-      new LinkedHashMap<>();
+  private final Map<DexMethod, InterfaceMethodSyntheticBridgeAction>
+      syntheticInterfaceMethodBridges = new LinkedHashMap<>();
 
   private void identifySyntheticInterfaceMethodBridges(
       InterfaceMethodSyntheticBridgeAction action) {
@@ -4656,8 +4658,7 @@ public class Enqueuer {
     if (methodToKeep != singleTarget
         && !syntheticInterfaceMethodBridges.containsKey(
             methodToKeep.getDefinition().getReference())) {
-      syntheticInterfaceMethodBridges.put(
-          methodToKeep.getDefinition().getReference(), methodToKeep);
+      syntheticInterfaceMethodBridges.put(methodToKeep.getDefinition().getReference(), action);
     }
   }
 

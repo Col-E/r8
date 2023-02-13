@@ -39,6 +39,6 @@ public interface DesugaredLibraryWrapperSynthesizerEventConsumer {
   interface DesugaredLibraryAPICallbackSynthesizorEventConsumer
       extends DesugaredLibraryClasspathWrapperSynthesizeEventConsumer {
 
-    void acceptAPIConversionCallback(ProgramMethod method);
+    void acceptAPIConversionCallback(ProgramMethod callbackMethod, ProgramMethod convertedMethod);
   }
 }

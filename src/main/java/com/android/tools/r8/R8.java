@@ -473,7 +473,7 @@ public class R8 {
       // should therefore be run after the publicizer.
       new NestReducer(appViewWithLiveness).run(executorService, timing);
 
-      appView.setGraphLens(new MemberRebindingAnalysis(appViewWithLiveness).run(executorService));
+      new MemberRebindingAnalysis(appViewWithLiveness).run(executorService);
       appView.appInfo().withLiveness().getFieldAccessInfoCollection().restrictToProgram(appView);
 
       boolean isKotlinLibraryCompilationWithInlinePassThrough =

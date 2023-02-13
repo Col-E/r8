@@ -64,6 +64,12 @@ public class ArtProfileRewritingMethodProcessorEventConsumer extends MethodProce
   }
 
   @Override
+  public void acceptServiceLoaderLoadUtilityMethod(ProgramMethod method, ProgramMethod context) {
+    additionsCollection.addMethodAndHolderIfContextIsInProfile(method, context);
+    parent.acceptServiceLoaderLoadUtilityMethod(method, context);
+  }
+
+  @Override
   public void acceptUtilityToStringIfNotNullMethod(ProgramMethod method, ProgramMethod context) {
     additionsCollection.applyIfContextIsInProfile(
         context, additionsBuilder -> additionsBuilder.addRule(method).addRule(method.getHolder()));

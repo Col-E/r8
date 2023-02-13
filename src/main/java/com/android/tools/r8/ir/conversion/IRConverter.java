@@ -633,7 +633,7 @@ public class IRConverter {
     if (serviceLoaderRewriter != null) {
       assert appView.appInfo().hasLiveness();
       timing.begin("Rewrite service loaders");
-      serviceLoaderRewriter.rewrite(code, methodProcessingContext);
+      serviceLoaderRewriter.rewrite(code, methodProcessor, methodProcessingContext);
       timing.end();
     }
 

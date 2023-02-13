@@ -50,6 +50,7 @@ public class MemberRebindingAnalysis {
 
   private final AndroidApiLevelCompute androidApiLevelCompute;
   private final AppView<AppInfoWithLiveness> appView;
+  private final MemberRebindingEventConsumer eventConsumer;
   private final InternalOptions options;
 
   private final MemberRebindingLens.Builder lensBuilder;
@@ -58,6 +59,7 @@ public class MemberRebindingAnalysis {
     assert appView.graphLens().isContextFreeForMethods();
     this.androidApiLevelCompute = appView.apiLevelCompute();
     this.appView = appView;
+    this.eventConsumer = MemberRebindingEventConsumer.create(appView);
     this.options = appView.options();
     this.lensBuilder = MemberRebindingLens.builder(appView);
   }
@@ -383,6 +385,8 @@ public class MemberRebindingAnalysis {
                             target.isLibraryMethod(), OptionalBool.TRUE);
                       });
               bridgeHolder.addMethod(bridgeMethodDefinition);
+              eventConsumer.acceptMemberRebindingBridgeMethod(
+                  bridgeMethodDefinition.asProgramMethod(bridgeHolder), target);
             }
             assert resolver.apply(method).getResolvedMethod().getReference() == bridgeMethod;
           }
@@ -507,12 +511,14 @@ public class MemberRebindingAnalysis {
     fieldAccessInfoCollection.forEach(lensBuilder::recordNonReboundFieldAccesses);
   }
 
-  public MemberRebindingLens run(ExecutorService executorService) throws ExecutionException {
+  public void run(ExecutorService executorService) throws ExecutionException {
     AppInfoWithLiveness appInfo = appView.appInfo();
     computeMethodRebinding(appInfo.getMethodAccessInfoCollection());
     recordNonReboundFieldAccesses(executorService);
     appInfo.getFieldAccessInfoCollection().flattenAccessContexts();
-    return lensBuilder.build();
+    MemberRebindingLens memberRebindingLens = lensBuilder.build();
+    appView.setGraphLens(memberRebindingLens);
+    eventConsumer.finished(appView, memberRebindingLens);
   }
 
   private boolean verifyFieldAccessCollectionContainsAllNonReboundFieldReferences(

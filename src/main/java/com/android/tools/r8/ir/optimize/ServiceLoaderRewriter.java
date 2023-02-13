@@ -22,6 +22,7 @@ import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.ir.code.InvokeStatic;
 import com.android.tools.r8.ir.code.InvokeVirtual;
 import com.android.tools.r8.ir.code.Value;
+import com.android.tools.r8.ir.conversion.MethodProcessor;
 import com.android.tools.r8.ir.desugar.ServiceLoaderSourceCode;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.BooleanBox;
@@ -75,7 +76,10 @@ public class ServiceLoaderRewriter {
     return serviceLoadMethods;
   }
 
-  public void rewrite(IRCode code, MethodProcessingContext methodProcessingContext) {
+  public void rewrite(
+      IRCode code,
+      MethodProcessor methodProcessor,
+      MethodProcessingContext methodProcessingContext) {
     DexItemFactory factory = appView.dexItemFactory();
     InstructionListIterator instructionIterator = code.instructionListIterator();
     // Create a map from service type to loader methods local to this context since two
@@ -175,7 +179,8 @@ public class ServiceLoaderRewriter {
               constClass.getValue(),
               service -> {
                 DexEncodedMethod addedMethod =
-                    createSynthesizedMethod(service, classes, methodProcessingContext);
+                    createSynthesizedMethod(
+                        service, classes, methodProcessor, methodProcessingContext);
                 if (appView.options().isGeneratingClassFiles()) {
                   addedMethod.upgradeClassFileVersion(
                       code.context().getDefinition().getClassFileVersion());
@@ -191,6 +196,7 @@ public class ServiceLoaderRewriter {
   private DexEncodedMethod createSynthesizedMethod(
       DexType serviceType,
       List<DexClass> classes,
+      MethodProcessor methodProcessor,
       MethodProcessingContext methodProcessingContext) {
     DexProto proto = appView.dexItemFactory().createProto(appView.dexItemFactory().iteratorType);
     ProgramMethod method =
@@ -215,6 +221,9 @@ public class ServiceLoaderRewriter {
     synchronized (serviceLoadMethods) {
       serviceLoadMethods.add(method);
     }
+    methodProcessor
+        .getEventConsumer()
+        .acceptServiceLoaderLoadUtilityMethod(method, methodProcessingContext.getMethodContext());
     return method.getDefinition();
   }
 

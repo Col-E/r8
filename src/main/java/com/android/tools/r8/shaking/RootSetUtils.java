@@ -50,7 +50,6 @@ import com.android.tools.r8.ir.analysis.proto.GeneratedMessageLiteBuilderShrinke
 import com.android.tools.r8.ir.analysis.type.DynamicType;
 import com.android.tools.r8.ir.analysis.value.AbstractValue;
 import com.android.tools.r8.ir.desugar.itf.InterfaceDesugaringSyntheticHelper;
-import com.android.tools.r8.ir.desugar.itf.InterfaceMethodDesugaringBaseEventConsumer;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackSimple;
 import com.android.tools.r8.ir.optimize.membervaluepropagation.assume.AssumeInfo;
 import com.android.tools.r8.logging.Log;
@@ -113,6 +112,7 @@ public class RootSetUtils {
 
     private final AppView<? extends AppInfoWithClassHierarchy> appView;
     private AssumeInfoCollection.Builder assumeInfoCollectionBuilder;
+    private final RootSetBuilderEventConsumer eventConsumer;
     private final SubtypingInfo subtypingInfo;
     private final DirectMappedDexApplication application;
     private final Iterable<? extends ProguardConfigurationRule> rules;
@@ -159,6 +159,7 @@ public class RootSetUtils {
         SubtypingInfo subtypingInfo,
         Iterable<? extends ProguardConfigurationRule> rules) {
       this.appView = appView;
+      this.eventConsumer = RootSetBuilderEventConsumer.create(appView);
       this.subtypingInfo = subtypingInfo;
       this.application = appView.appInfo().app().asDirect();
       this.rules = rules;
@@ -385,27 +386,30 @@ public class RootSetUtils {
             alwaysInline,
             bypassClinitforInlining);
       }
-      return new RootSet(
-          dependentMinimumKeepInfo,
-          ImmutableList.copyOf(reasonAsked.values()),
-          alwaysInline,
-          neverInlineDueToSingleCaller,
-          bypassClinitforInlining,
-          whyAreYouNotInlining,
-          reprocess,
-          neverReprocess,
-          alwaysClassInline,
-          neverClassInline,
-          noUnusedInterfaceRemoval,
-          noVerticalClassMerging,
-          noHorizontalClassMerging,
-          neverPropagateValue,
-          mayHaveSideEffects,
-          dependentKeepClassCompatRule,
-          identifierNameStrings,
-          ifRules,
-          Lists.newArrayList(delayedRootSetActionItems),
-          pendingMethodMoveInverse);
+      RootSet rootSet =
+          new RootSet(
+              dependentMinimumKeepInfo,
+              ImmutableList.copyOf(reasonAsked.values()),
+              alwaysInline,
+              neverInlineDueToSingleCaller,
+              bypassClinitforInlining,
+              whyAreYouNotInlining,
+              reprocess,
+              neverReprocess,
+              alwaysClassInline,
+              neverClassInline,
+              noUnusedInterfaceRemoval,
+              noVerticalClassMerging,
+              noHorizontalClassMerging,
+              neverPropagateValue,
+              mayHaveSideEffects,
+              dependentKeepClassCompatRule,
+              identifierNameStrings,
+              ifRules,
+              Lists.newArrayList(delayedRootSetActionItems),
+              pendingMethodMoveInverse);
+      eventConsumer.finished(appView, rootSet);
+      return rootSet;
     }
 
     private void propagateAssumeRules(DexClass clazz) {
@@ -1582,32 +1586,7 @@ public class RootSetUtils {
         ProgramMethod method = item.asMethod();
         ProgramMethod companion =
             interfaceDesugaringSyntheticHelper.ensureMethodOfProgramCompanionClassStub(
-                method,
-                new InterfaceMethodDesugaringBaseEventConsumer() {
-
-                  @Override
-                  public void acceptCompanionClassClinit(ProgramMethod method) {
-                    // No processing of synthesized CC.<clinit>. They will be picked up by tracing.
-                  }
-
-                  @Override
-                  public void acceptDefaultAsCompanionMethod(
-                      ProgramMethod method, ProgramMethod companionMethod) {
-                    // The move will be included in the pending-inverse map below.
-                  }
-
-                  @Override
-                  public void acceptPrivateAsCompanionMethod(
-                      ProgramMethod method, ProgramMethod companion) {
-                    // The move will be included in the pending-inverse map below.
-                  }
-
-                  @Override
-                  public void acceptStaticAsCompanionMethod(
-                      ProgramMethod method, ProgramMethod companion) {
-                    // The move will be included in the pending-inverse map below.
-                  }
-                });
+                method, eventConsumer);
         // Add the method to the inverse map as tracing will now directly target the CC method.
         pendingMethodMoveInverse.put(companion, method);
         // Only shrinking and optimization are transferred for interface companion methods.

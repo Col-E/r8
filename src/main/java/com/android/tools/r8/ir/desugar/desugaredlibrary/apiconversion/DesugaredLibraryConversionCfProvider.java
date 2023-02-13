@@ -213,9 +213,9 @@ public class DesugaredLibraryConversionCfProvider {
     if (method.getDefinition().isLibraryMethodOverride().isTrue()) {
       newMethod.setLibraryMethodOverride(OptionalBool.TRUE);
     }
-    ProgramMethod callback = new ProgramMethod(clazz, newMethod);
+    ProgramMethod callback = newMethod.asProgramMethod(clazz);
     assert eventConsumer != null;
-    eventConsumer.acceptAPIConversionCallback(callback);
+    eventConsumer.acceptAPIConversionCallback(callback, method);
     return callback;
   }
 

@@ -839,7 +839,7 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
   private final ApiModelTestingOptions apiModelTestingOptions = new ApiModelTestingOptions();
   private final DesugarSpecificOptions desugarSpecificOptions = new DesugarSpecificOptions();
   private final MappingComposeOptions mappingComposeOptions = new MappingComposeOptions();
-  private final ArtProfileOptions artProfileOptions = new ArtProfileOptions();
+  private final ArtProfileOptions artProfileOptions = new ArtProfileOptions(this);
   private final StartupOptions startupOptions = new StartupOptions();
   private final StartupInstrumentationOptions startupInstrumentationOptions =
       new StartupInstrumentationOptions();

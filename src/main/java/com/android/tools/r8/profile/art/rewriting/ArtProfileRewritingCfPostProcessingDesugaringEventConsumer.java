@@ -4,6 +4,8 @@
 
 package com.android.tools.r8.profile.art.rewriting;
 
+import static com.android.tools.r8.utils.ConsumerUtils.emptyConsumer;
+
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.DexClasspathClass;
@@ -40,8 +42,10 @@ public class ArtProfileRewritingCfPostProcessingDesugaringEventConsumer
   }
 
   @Override
-  public void acceptAPIConversionCallback(ProgramMethod method) {
-    parent.acceptAPIConversionCallback(method);
+  public void acceptAPIConversionCallback(
+      ProgramMethod callbackMethod, ProgramMethod convertedMethod) {
+    additionsCollection.addMethodIfContextIsInProfile(callbackMethod, convertedMethod);
+    parent.acceptAPIConversionCallback(callbackMethod, convertedMethod);
   }
 
   @Override
@@ -88,8 +92,7 @@ public class ArtProfileRewritingCfPostProcessingDesugaringEventConsumer
   @Override
   public void acceptInterfaceMethodDesugaringForwardingMethod(
       ProgramMethod method, DexClassAndMethod baseMethod) {
-    additionsCollection.applyIfContextIsInProfile(
-        baseMethod, additionsBuilder -> additionsBuilder.addRule(method));
+    additionsCollection.addMethodIfContextIsInProfile(method, baseMethod, emptyConsumer());
     parent.acceptInterfaceMethodDesugaringForwardingMethod(method, baseMethod);
   }
 
