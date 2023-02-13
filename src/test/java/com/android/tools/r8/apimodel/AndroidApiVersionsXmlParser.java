@@ -54,6 +54,7 @@ public class AndroidApiVersionsXmlParser {
     Set<String> removedTypeNames = new HashSet<>();
     if (maxApiLevel.isGreaterThanOrEqualTo(AndroidApiLevel.U)) {
       removedTypeNames.add("com.android.internal.util.Predicate");
+      removedTypeNames.add("android.adservices.AdServicesVersion");
     }
     return removedTypeNames;
   }
@@ -72,10 +73,12 @@ public class AndroidApiVersionsXmlParser {
       ClassSubject clazz = inspector.clazz(type);
       if (!clazz.isPresent()) {
         if (!clazz.getOriginalName().startsWith("android.test")
-            && !clazz.getOriginalName().startsWith("junit")
-            && node.getAttributes().getNamedItem("module") == null) {
+            && !clazz.getOriginalName().startsWith("junit")) {
           assert exemptionList.contains(type) || hasRemoved(node);
           assert exemptionList.contains(type) || getRemoved(node).isLessThanOrEqualTo(maxApiLevel);
+          if (!hasRemoved(node)) {
+            exemptionList.remove(type);
+          }
         }
         continue;
       }
@@ -110,6 +113,7 @@ public class AndroidApiVersionsXmlParser {
         }
       }
     }
+    assert exemptionList.isEmpty();
   }
 
   private boolean isMethod(Node node) {
