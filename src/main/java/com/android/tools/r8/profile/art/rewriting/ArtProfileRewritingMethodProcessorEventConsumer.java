@@ -4,8 +4,10 @@
 
 package com.android.tools.r8.profile.art.rewriting;
 
+import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.conversion.MethodProcessorEventConsumer;
+import com.android.tools.r8.shaking.AppInfoWithLiveness;
 
 public class ArtProfileRewritingMethodProcessorEventConsumer extends MethodProcessorEventConsumer {
 
@@ -17,6 +19,17 @@ public class ArtProfileRewritingMethodProcessorEventConsumer extends MethodProce
       MethodProcessorEventConsumer parent) {
     this.additionsCollection = additionsCollection;
     this.parent = parent;
+  }
+
+  public static MethodProcessorEventConsumer attach(
+      AppView<?> appView, MethodProcessorEventConsumer eventConsumer) {
+    ArtProfileCollectionAdditions additionsCollection =
+        ArtProfileCollectionAdditions.create(appView);
+    if (additionsCollection.isNop()) {
+      return eventConsumer;
+    }
+    return new ArtProfileRewritingMethodProcessorEventConsumer(
+        additionsCollection.asConcrete(), eventConsumer);
   }
 
   public static MethodProcessorEventConsumer attach(
@@ -114,5 +127,11 @@ public class ArtProfileRewritingMethodProcessorEventConsumer extends MethodProce
     additionsCollection.applyIfContextIsInProfile(
         context, additionsBuilder -> additionsBuilder.addRule(method).addRule(method.getHolder()));
     parent.acceptUtilityThrowRuntimeExceptionWithMessageMethod(method, context);
+  }
+
+  @Override
+  public void finished(AppView<AppInfoWithLiveness> appView) {
+    additionsCollection.commit(appView);
+    parent.finished(appView);
   }
 }

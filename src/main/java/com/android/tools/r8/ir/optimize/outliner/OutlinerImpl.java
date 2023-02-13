@@ -68,7 +68,6 @@ import com.android.tools.r8.ir.optimize.InliningConstraints;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackDelayed;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackIgnore;
 import com.android.tools.r8.origin.Origin;
-import com.android.tools.r8.profile.art.rewriting.ArtProfileCollectionAdditions;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.InternalOptions.OutlineOptions;
@@ -1342,6 +1341,8 @@ public class OutlinerImpl extends Outliner {
     timing.begin("IR conversion phase 3");
     ProgramMethodSet methodsSelectedForOutlining = selectMethodsForOutlining();
     if (!methodsSelectedForOutlining.isEmpty()) {
+      OutlineOptimizationEventConsumer eventConsumer =
+          OutlineOptimizationEventConsumer.create(appView);
       forEachSelectedOutliningMethod(
           converter,
           methodsSelectedForOutlining,
@@ -1350,14 +1351,11 @@ public class OutlinerImpl extends Outliner {
             identifyOutlineSites(code);
           },
           executorService);
-      ArtProfileCollectionAdditions artProfileCollectionAdditions =
-          ArtProfileCollectionAdditions.create(appView);
-      List<ProgramMethod> outlineMethods =
-          buildOutlineMethods(
-              OutlineOptimizationEventConsumer.create(artProfileCollectionAdditions));
-      artProfileCollectionAdditions.commit(appView);
-      MethodProcessorEventConsumer eventConsumer = MethodProcessorEventConsumer.empty();
-      converter.optimizeSynthesizedMethods(outlineMethods, eventConsumer, executorService);
+      List<ProgramMethod> outlineMethods = buildOutlineMethods(eventConsumer);
+      MethodProcessorEventConsumer methodProcessorEventConsumer =
+          MethodProcessorEventConsumer.empty();
+      converter.optimizeSynthesizedMethods(
+          outlineMethods, methodProcessorEventConsumer, executorService);
       feedback.updateVisibleOptimizationInfo();
       forEachSelectedOutliningMethod(
           converter,
@@ -1374,6 +1372,7 @@ public class OutlinerImpl extends Outliner {
       feedback.updateVisibleOptimizationInfo();
       assert checkAllOutlineSitesFoundAgain();
       outlineMethods.forEach(m -> m.getDefinition().markNotProcessed());
+      eventConsumer.finished(appView);
     }
     timing.end();
   }

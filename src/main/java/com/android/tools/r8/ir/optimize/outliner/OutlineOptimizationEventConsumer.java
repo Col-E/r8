@@ -4,32 +4,20 @@
 
 package com.android.tools.r8.ir.optimize.outliner;
 
+import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.ProgramMethod;
-import com.android.tools.r8.profile.art.rewriting.ArtProfileCollectionAdditions;
-import com.android.tools.r8.profile.art.rewriting.ConcreteArtProfileCollectionAdditions;
+import com.android.tools.r8.profile.art.rewriting.ArtProfileRewritingOutlineOptimizationEventConsumer;
+import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import java.util.Collection;
 
 public interface OutlineOptimizationEventConsumer {
 
   void acceptOutlineMethod(ProgramMethod method, Collection<ProgramMethod> contexts);
 
-  static OutlineOptimizationEventConsumer create(
-      ArtProfileCollectionAdditions collectionAdditions) {
-    if (collectionAdditions.isNop()) {
-      return empty();
-    }
-    return create(collectionAdditions.asConcrete());
-  }
+  void finished(AppView<AppInfoWithLiveness> appView);
 
-  static OutlineOptimizationEventConsumer create(
-      ConcreteArtProfileCollectionAdditions collectionAdditions) {
-    return (method, contexts) -> {
-      for (ProgramMethod context : contexts) {
-        collectionAdditions.applyIfContextIsInProfile(
-            context,
-            additionsBuilder -> additionsBuilder.addRule(method).addRule(method.getHolder()));
-      }
-    };
+  static OutlineOptimizationEventConsumer create(AppView<AppInfoWithLiveness> appView) {
+    return ArtProfileRewritingOutlineOptimizationEventConsumer.attach(appView, empty());
   }
 
   static EmptyOutlineOptimizationEventConsumer empty() {
@@ -49,6 +37,11 @@ public interface OutlineOptimizationEventConsumer {
 
     @Override
     public void acceptOutlineMethod(ProgramMethod method, Collection<ProgramMethod> contexts) {
+      // Intentionally empty.
+    }
+
+    @Override
+    public void finished(AppView<AppInfoWithLiveness> appView) {
       // Intentionally empty.
     }
   }

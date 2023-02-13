@@ -36,7 +36,6 @@ import com.android.tools.r8.ir.optimize.info.CallSiteOptimizationInfo;
 import com.android.tools.r8.ir.optimize.info.ConcreteCallSiteOptimizationInfo;
 import com.android.tools.r8.optimize.argumentpropagation.ArgumentPropagatorGraphLens.Builder;
 import com.android.tools.r8.optimize.argumentpropagation.utils.ParameterRemovalUtils;
-import com.android.tools.r8.profile.art.rewriting.ArtProfileCollectionAdditions;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.KeepFieldInfo;
 import com.android.tools.r8.shaking.KeepMethodInfo;
@@ -194,10 +193,8 @@ public class ArgumentPropagatorProgramOptimizer {
       Timing timing)
       throws ExecutionException {
     timing.begin("Optimize components");
-    ArtProfileCollectionAdditions artProfileCollectionAdditions =
-        ArtProfileCollectionAdditions.create(appView);
     ArgumentPropagatorSyntheticEventConsumer eventConsumer =
-        ArgumentPropagatorSyntheticEventConsumer.create(artProfileCollectionAdditions);
+        ArgumentPropagatorSyntheticEventConsumer.create(appView);
     ProcessorContext processorContext = appView.createProcessorContext();
     Collection<Builder> partialGraphLensBuilders =
         ThreadUtils.processItemsWithResults(
@@ -210,7 +207,7 @@ public class ArgumentPropagatorProgramOptimizer {
                             classes, DexMethodSignatureSet.empty()),
                         affectedClassConsumer),
             executorService);
-    artProfileCollectionAdditions.commit(appView);
+    eventConsumer.finished(appView);
     timing.end();
 
     // Merge all the partial, disjoint graph lens builders into a single graph lens.

@@ -50,7 +50,7 @@ public class D8MethodProcessor extends MethodProcessor {
       ExecutorService executorService) {
     this.artProfileCollectionAdditions = artProfileCollectionAdditions;
     this.converter = converter;
-    this.eventConsumer = MethodProcessorEventConsumer.create(artProfileCollectionAdditions);
+    this.eventConsumer = MethodProcessorEventConsumer.createForD8(artProfileCollectionAdditions);
     this.executorService = executorService;
     this.processorContext = converter.appView.createProcessorContext();
   }

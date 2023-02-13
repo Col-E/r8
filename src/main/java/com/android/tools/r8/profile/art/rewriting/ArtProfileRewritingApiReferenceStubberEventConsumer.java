@@ -24,11 +24,17 @@ public class ArtProfileRewritingApiReferenceStubberEventConsumer
     this.parent = parent;
   }
 
-  public static ArtProfileRewritingApiReferenceStubberEventConsumer attach(
-      ConcreteArtProfileCollectionAdditions collectionAdditions,
-      ApiReferenceStubberEventConsumer eventConsumer) {
-    return new ArtProfileRewritingApiReferenceStubberEventConsumer(
-        collectionAdditions, eventConsumer);
+  public static ApiReferenceStubberEventConsumer attach(
+      AppView<?> appView, ApiReferenceStubberEventConsumer eventConsumer) {
+    if (appView.options().getArtProfileOptions().isIncludingApiReferenceStubs()) {
+      ArtProfileCollectionAdditions artProfileCollectionAdditions =
+          ArtProfileCollectionAdditions.create(appView);
+      if (!artProfileCollectionAdditions.isNop()) {
+        return new ArtProfileRewritingApiReferenceStubberEventConsumer(
+            artProfileCollectionAdditions.asConcrete(), eventConsumer);
+      }
+    }
+    return eventConsumer;
   }
 
   @Override

@@ -4,28 +4,20 @@
 
 package com.android.tools.r8.optimize.argumentpropagation;
 
+import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.ProgramMethod;
-import com.android.tools.r8.profile.art.rewriting.ArtProfileCollectionAdditions;
-import com.android.tools.r8.profile.art.rewriting.ConcreteArtProfileCollectionAdditions;
+import com.android.tools.r8.profile.art.rewriting.ArtProfileRewritingArgumentPropagatorSyntheticEventConsumer;
+import com.android.tools.r8.shaking.AppInfoWithLiveness;
 
 public interface ArgumentPropagatorSyntheticEventConsumer {
 
   void acceptInitializerArgumentClass(DexProgramClass clazz, ProgramMethod context);
 
-  static ArgumentPropagatorSyntheticEventConsumer create(
-      ArtProfileCollectionAdditions collectionAdditions) {
-    if (collectionAdditions.isNop()) {
-      return empty();
-    }
-    return create(collectionAdditions.asConcrete());
-  }
+  void finished(AppView<AppInfoWithLiveness> appView);
 
-  static ArgumentPropagatorSyntheticEventConsumer create(
-      ConcreteArtProfileCollectionAdditions collectionAdditions) {
-    return (clazz, context) ->
-        collectionAdditions.applyIfContextIsInProfile(
-            context, additionsBuilder -> additionsBuilder.addRule(clazz));
+  static ArgumentPropagatorSyntheticEventConsumer create(AppView<AppInfoWithLiveness> appView) {
+    return ArtProfileRewritingArgumentPropagatorSyntheticEventConsumer.attach(appView, empty());
   }
 
   static ArgumentPropagatorSyntheticEventConsumer empty() {
@@ -46,6 +38,11 @@ public interface ArgumentPropagatorSyntheticEventConsumer {
 
     @Override
     public void acceptInitializerArgumentClass(DexProgramClass clazz, ProgramMethod context) {
+      // Intentionally empty.
+    }
+
+    @Override
+    public void finished(AppView<AppInfoWithLiveness> appView) {
       // Intentionally empty.
     }
   }
