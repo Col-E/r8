@@ -572,7 +572,7 @@ public class SyntheticFinalization {
       DexProgramClass externalSyntheticClass,
       AppView<?> appView) {
     if (shouldAnnotateSynthetics(appView.options())) {
-      SyntheticMarker.addMarkerToClass(externalSyntheticClass, kind, appView.options());
+      SyntheticMarker.addMarkerToClass(externalSyntheticClass, kind, appView);
     }
   }
 

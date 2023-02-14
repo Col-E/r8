@@ -1909,18 +1909,6 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
     public void disableStubbingOfClasses() {
       enableStubbingOfClasses = false;
     }
-
-    private boolean isThrowable(AppView<?> appView, DexLibraryClass libraryClass) {
-      DexClass current = libraryClass;
-      while (current.getSuperType() != null) {
-        DexType superType = current.getSuperType();
-        if (superType == appView.dexItemFactory().throwableType) {
-          return true;
-        }
-        current = appView.definitionFor(current.getSuperType());
-      }
-      return false;
-    }
   }
 
   public static class ProtoShrinkingOptions {

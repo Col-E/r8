@@ -6,14 +6,15 @@ package com.android.tools.r8.synthesis;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.ClassAccessFlags;
 import com.android.tools.r8.graph.DexAnnotation;
+import com.android.tools.r8.graph.DexAnnotation.SynthesizedAnnotationClassInfo;
 import com.android.tools.r8.graph.DexAnnotationSet;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.synthesis.SyntheticNaming.SyntheticKind;
+import com.android.tools.r8.utils.AndroidApiLevelUtils;
 import com.android.tools.r8.utils.DescriptorUtils;
-import com.android.tools.r8.utils.InternalOptions;
 import java.nio.charset.StandardCharsets;
 import org.objectweb.asm.Attribute;
 import org.objectweb.asm.ByteVector;
@@ -108,14 +109,18 @@ public class SyntheticMarker {
   }
 
   public static void addMarkerToClass(
-      DexProgramClass clazz, SyntheticKind kind, InternalOptions options) {
+      DexProgramClass clazz, SyntheticKind kind, AppView<?> appView) {
     // TODO(b/158159959): Consider moving this to the dex writer similar to the CF case.
-    assert !options.isGeneratingClassFiles();
+    assert !appView.options().isGeneratingClassFiles();
     clazz.setAnnotations(
         clazz
             .annotations()
             .getWithAddedOrReplaced(
-                DexAnnotation.createAnnotationSynthesizedClass(kind, options.itemFactory)));
+                DexAnnotation.createAnnotationSynthesizedClass(
+                    kind,
+                    appView.options().itemFactory,
+                    AndroidApiLevelUtils.getApiReferenceLevelForMerging(
+                        appView.apiLevelCompute(), clazz))));
   }
 
   public static SyntheticMarker stripMarkerFromClass(DexProgramClass clazz, AppView<?> appView) {
@@ -134,7 +139,10 @@ public class SyntheticMarker {
     SyntheticMarker marker = internalStripMarkerFromClass(clazz, appView);
     assert marker != NO_MARKER
         || !DexAnnotation.hasSynthesizedClassAnnotation(
-            clazz.annotations(), appView.dexItemFactory(), appView.getSyntheticItems());
+            clazz.annotations(),
+            appView.dexItemFactory(),
+            appView.getSyntheticItems(),
+            appView.apiLevelCompute());
     return marker;
   }
 
@@ -146,13 +154,17 @@ public class SyntheticMarker {
     if (isDefinitelyNotSyntheticProgramClass(clazz)) {
       return NO_MARKER;
     }
-    SyntheticKind kind =
+    SynthesizedAnnotationClassInfo synthesizedInfo =
         DexAnnotation.getSynthesizedClassAnnotationInfo(
-            clazz.annotations(), appView.dexItemFactory(), appView.getSyntheticItems());
-    if (kind == null) {
+            clazz.annotations(),
+            appView.dexItemFactory(),
+            appView.getSyntheticItems(),
+            appView.apiLevelCompute());
+    if (synthesizedInfo == null) {
       return NO_MARKER;
     }
     assert clazz.annotations().size() == 1;
+    SyntheticKind kind = synthesizedInfo.getSyntheticKind();
     if (kind.isSingleSyntheticMethod()) {
       if (!clazz.interfaces.isEmpty()) {
         return NO_MARKER;
@@ -164,6 +176,7 @@ public class SyntheticMarker {
       }
     }
     clazz.setAnnotations(DexAnnotationSet.empty());
+    clazz.forEachMethod(method -> method.setApiLevelForCode(synthesizedInfo.getComputedApiLevel()));
     DexType context = getSyntheticContextType(clazz.type, kind, appView.dexItemFactory());
     return new SyntheticMarker(
         kind, SynthesizingContext.fromSyntheticInputClass(clazz, context, appView));

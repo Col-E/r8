@@ -68,7 +68,7 @@ public class SyntheticMarkerDexTest extends TestBase {
             DexAnnotation[] annotations = clazz.getDexProgramClass().annotations().annotations;
             assertEquals(1, annotations.length);
             DexEncodedAnnotation annotation = annotations[0].annotation;
-            assertEquals(2, annotation.elements.length);
+            assertEquals(3, annotation.elements.length);
             assertEquals(
                 "com.android.tools.r8.annotations.SynthesizedClassV2",
                 annotation.type.toSourceString());

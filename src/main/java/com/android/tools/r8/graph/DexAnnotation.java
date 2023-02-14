@@ -3,6 +3,8 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.graph;
 
+import com.android.tools.r8.androidapi.AndroidApiLevelCompute;
+import com.android.tools.r8.androidapi.ComputedApiLevel;
 import com.android.tools.r8.dex.IndexedItemCollection;
 import com.android.tools.r8.dex.MixedSectionCollection;
 import com.android.tools.r8.graph.DexValue.DexValueAnnotation;
@@ -15,6 +17,7 @@ import com.android.tools.r8.graph.DexValue.DexValueType;
 import com.android.tools.r8.ir.desugar.CovariantReturnTypeAnnotationTransformer;
 import com.android.tools.r8.synthesis.SyntheticItems;
 import com.android.tools.r8.synthesis.SyntheticNaming.SyntheticKind;
+import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.Pair;
 import com.android.tools.r8.utils.structural.StructuralItem;
@@ -55,6 +58,9 @@ public class DexAnnotation extends DexItem implements StructuralItem<DexAnnotati
   public static final int VISIBILITY_SYSTEM = 0x02;
   public final int visibility;
   public final DexEncodedAnnotation annotation;
+
+  private static final int UNKNOWN_API_LEVEL = -1;
+  private static final int NOT_SET_API_LEVEL = -2;
 
   private static void specify(StructuralSpecification<DexAnnotation, ?> spec) {
     spec.withItem(a -> a.annotation).withInt(a -> a.visibility);
@@ -469,26 +475,37 @@ public class DexAnnotation extends DexItem implements StructuralItem<DexAnnotati
   }
 
   public static DexAnnotation createAnnotationSynthesizedClass(
-      SyntheticKind kind, DexItemFactory dexItemFactory) {
+      SyntheticKind kind, DexItemFactory dexItemFactory, ComputedApiLevel computedApiLevel) {
     DexString versionHash =
         dexItemFactory.createString(dexItemFactory.getSyntheticNaming().getVersionHash());
     DexAnnotationElement kindElement =
         new DexAnnotationElement(dexItemFactory.kindString, DexValueInt.create(kind.getId()));
     DexAnnotationElement versionHashElement =
         new DexAnnotationElement(dexItemFactory.versionHashString, new DexValueString(versionHash));
-    DexAnnotationElement[] elements = new DexAnnotationElement[] {kindElement, versionHashElement};
+    int apiLevel = getApiLevelForSerialization(computedApiLevel);
+    DexAnnotationElement apiLevelElement =
+        new DexAnnotationElement(dexItemFactory.apiLevelString, DexValueInt.create(apiLevel));
+    DexAnnotationElement[] elements =
+        new DexAnnotationElement[] {apiLevelElement, kindElement, versionHashElement};
     return new DexAnnotation(
         VISIBILITY_BUILD,
         new DexEncodedAnnotation(dexItemFactory.annotationSynthesizedClass, elements));
   }
 
   public static boolean hasSynthesizedClassAnnotation(
-      DexAnnotationSet annotations, DexItemFactory factory, SyntheticItems synthetics) {
-    return getSynthesizedClassAnnotationInfo(annotations, factory, synthetics) != null;
+      DexAnnotationSet annotations,
+      DexItemFactory factory,
+      SyntheticItems synthetics,
+      AndroidApiLevelCompute apiLevelCompute) {
+    return getSynthesizedClassAnnotationInfo(annotations, factory, synthetics, apiLevelCompute)
+        != null;
   }
 
-  public static SyntheticKind getSynthesizedClassAnnotationInfo(
-      DexAnnotationSet annotations, DexItemFactory factory, SyntheticItems synthetics) {
+  public static SynthesizedAnnotationClassInfo getSynthesizedClassAnnotationInfo(
+      DexAnnotationSet annotations,
+      DexItemFactory factory,
+      SyntheticItems synthetics,
+      AndroidApiLevelCompute apiLevelCompute) {
     if (annotations.size() != 1) {
       return null;
     }
@@ -497,12 +514,13 @@ public class DexAnnotation extends DexItem implements StructuralItem<DexAnnotati
       return null;
     }
     int length = annotation.annotation.elements.length;
-    if (length != 2) {
+    if (length != 3) {
       return null;
     }
     assert factory.kindString.isLessThan(factory.versionHashString);
-    DexAnnotationElement kindElement = annotation.annotation.elements[0];
-    DexAnnotationElement versionHashElement = annotation.annotation.elements[1];
+    DexAnnotationElement apiLevelElement = annotation.annotation.elements[0];
+    DexAnnotationElement kindElement = annotation.annotation.elements[1];
+    DexAnnotationElement versionHashElement = annotation.annotation.elements[2];
     if (kindElement.name != factory.kindString) {
       return null;
     }
@@ -515,14 +533,43 @@ public class DexAnnotation extends DexItem implements StructuralItem<DexAnnotati
     if (!versionHashElement.value.isDexValueString()) {
       return null;
     }
+    if (apiLevelElement.name != factory.apiLevelString || !apiLevelElement.value.isDexValueInt()) {
+      return null;
+    }
     String currentVersionHash = synthetics.getNaming().getVersionHash();
     String syntheticVersionHash = versionHashElement.value.asDexValueString().getValue().toString();
     if (!currentVersionHash.equals(syntheticVersionHash)) {
       return null;
     }
-    SyntheticKind kind =
+    int apiLevelValue = apiLevelElement.value.asDexValueInt().getValue();
+    ComputedApiLevel computedApiLevel = getSerializedApiLevel(apiLevelCompute, apiLevelValue);
+    SyntheticKind syntheticKind =
         synthetics.getNaming().fromId(kindElement.value.asDexValueInt().getValue());
-    return kind;
+    assert syntheticKind != synthetics.getNaming().API_MODEL_OUTLINE
+        || computedApiLevel.isKnownApiLevel();
+    return SynthesizedAnnotationClassInfo.create(syntheticKind, computedApiLevel);
+  }
+
+  private static int getApiLevelForSerialization(ComputedApiLevel computedApiLevel) {
+    if (computedApiLevel.isNotSetApiLevel()) {
+      return NOT_SET_API_LEVEL;
+    } else if (computedApiLevel.isUnknownApiLevel()) {
+      return UNKNOWN_API_LEVEL;
+    } else {
+      assert computedApiLevel.isKnownApiLevel();
+      return computedApiLevel.asKnownApiLevel().getApiLevel().getLevel();
+    }
+  }
+
+  private static ComputedApiLevel getSerializedApiLevel(
+      AndroidApiLevelCompute apiLevelCompute, int apiLevelValue) {
+    if (apiLevelValue == NOT_SET_API_LEVEL) {
+      return ComputedApiLevel.notSet();
+    } else if (apiLevelValue == UNKNOWN_API_LEVEL) {
+      return ComputedApiLevel.unknown();
+    } else {
+      return apiLevelCompute.of(AndroidApiLevel.getAndroidApiLevel(apiLevelValue));
+    }
   }
 
   public DexAnnotation rewrite(Function<DexEncodedAnnotation, DexEncodedAnnotation> rewriter) {
@@ -534,5 +581,30 @@ public class DexAnnotation extends DexItem implements StructuralItem<DexAnnotati
       return null;
     }
     return new DexAnnotation(visibility, rewritten);
+  }
+
+  public static class SynthesizedAnnotationClassInfo {
+
+    private final SyntheticKind syntheticKind;
+    private final ComputedApiLevel computedApiLevel;
+
+    private SynthesizedAnnotationClassInfo(
+        SyntheticKind syntheticKind, ComputedApiLevel computedApiLevel) {
+      this.syntheticKind = syntheticKind;
+      this.computedApiLevel = computedApiLevel;
+    }
+
+    private static SynthesizedAnnotationClassInfo create(
+        SyntheticKind syntheticKind, ComputedApiLevel computedApiLevel) {
+      return new SynthesizedAnnotationClassInfo(syntheticKind, computedApiLevel);
+    }
+
+    public SyntheticKind getSyntheticKind() {
+      return syntheticKind;
+    }
+
+    public ComputedApiLevel getComputedApiLevel() {
+      return computedApiLevel;
+    }
   }
 }

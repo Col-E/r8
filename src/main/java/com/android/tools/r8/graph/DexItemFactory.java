@@ -356,6 +356,7 @@ public class DexItemFactory {
   public final DexString valueString = createString("value");
   public final DexString kindString = createString("kind");
   public final DexString versionHashString = createString("versionHash");
+  public final DexString apiLevelString = createString("apiLevel");
 
   // Prefix for runtime affecting yet potential class-retained annotations.
   public final DexString dalvikAnnotationOptimizationPrefix =

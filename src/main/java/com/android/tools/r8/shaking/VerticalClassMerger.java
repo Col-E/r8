@@ -537,9 +537,9 @@ public class VerticalClassMerger {
     // somewhat expensive.
     if (appView.options().apiModelingOptions().isApiCallerIdentificationEnabled()) {
       ComputedApiLevel sourceApiLevel =
-          getApiReferenceLevelForMerging(appView, apiLevelCompute, sourceClass);
+          getApiReferenceLevelForMerging(apiLevelCompute, sourceClass);
       ComputedApiLevel targetApiLevel =
-          getApiReferenceLevelForMerging(appView, apiLevelCompute, targetClass);
+          getApiReferenceLevelForMerging(apiLevelCompute, targetClass);
       if (!sourceApiLevel.equals(targetApiLevel)) {
         if (Log.ENABLED) {
           AbortReason.API_REFERENCE_LEVEL.printLogMessageForClass(sourceClass);

@@ -65,20 +65,24 @@ public class AndroidApiLevelUtils {
   }
 
   public static ComputedApiLevel getApiReferenceLevelForMerging(
-      AppView<?> appView, AndroidApiLevelCompute apiLevelCompute, DexProgramClass clazz) {
+      AndroidApiLevelCompute apiLevelCompute, DexProgramClass clazz) {
     // The api level of a class is the max level of it's members, super class and interfaces.
     return getMembersApiReferenceLevelForMerging(
         clazz, apiLevelCompute.computeApiLevelForDefinition(clazz.allImmediateSupertypes()));
   }
 
-  private static ComputedApiLevel getMembersApiReferenceLevelForMerging(
+  public static ComputedApiLevel getMembersApiReferenceLevelForMerging(
       DexProgramClass clazz, ComputedApiLevel memberLevel) {
     // Based on b/138781768#comment57 there is almost no penalty for having an unknown reference
     // as long as we are not invoking or accessing a field on it. Therefore we can disregard static
     // types of fields and only consider method code api levels.
     for (DexEncodedMethod method : clazz.methods()) {
       if (method.hasCode()) {
-        memberLevel = memberLevel.max(method.getApiLevelForCode());
+        ComputedApiLevel apiLevelForCode = method.getApiLevelForCode();
+        if (apiLevelForCode.isNotSetApiLevel()) {
+          return ComputedApiLevel.notSet();
+        }
+        memberLevel = memberLevel.max(apiLevelForCode);
       }
       if (memberLevel.isUnknownApiLevel()) {
         return memberLevel;

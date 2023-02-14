@@ -7,17 +7,13 @@ package com.android.tools.r8.apimodel;
 import static com.android.tools.r8.apimodel.ApiModelingTestHelper.setMockApiLevelForClass;
 import static com.android.tools.r8.apimodel.ApiModelingTestHelper.setMockApiLevelForMethod;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
-import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assume.assumeFalse;
 import static org.junit.Assume.assumeTrue;
 
-import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.CompilationMode;
 import com.android.tools.r8.D8TestCompileResult;
 import com.android.tools.r8.SingleTestRunResult;
@@ -127,22 +123,13 @@ public class ApiModelD8GradleSetupTest extends TestBase {
   }
 
   @Test
-  public void testD8ReleaseForApiLevelWithOutlining() {
+  public void testD8ReleaseForApiLevelWithOutlining() throws Exception {
     assumeTrue(parameters.isDexRuntime());
     assumeTrue(willHorizontallyMergeOutlines());
-    // TODO(b/268596049): Ensure that we can obtain the api level for outlines.
-    CompilationFailedException compilationFailedException =
-        assertThrows(
-            CompilationFailedException.class,
-            () ->
-                testD8(
-                    CompilationMode.RELEASE,
-                    this::inspectNumberOfClassesFromOutput,
-                    // We can pass any inspector since horizontal merging fails.
-                    classesInspector -> {}));
-    Throwable cause = compilationFailedException.getCause();
-    assertNotNull(cause);
-    assertThat(cause.getMessage(), containsString("Verification of single class policies failed"));
+    testD8(
+        CompilationMode.RELEASE,
+        this::inspectNumberOfClassesFromOutput,
+        HorizontallyMergedClassesInspector::assertNoClassesMerged);
   }
 
   @Test

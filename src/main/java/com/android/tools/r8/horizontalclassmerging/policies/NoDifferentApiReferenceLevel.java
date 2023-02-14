@@ -5,6 +5,7 @@
 package com.android.tools.r8.horizontalclassmerging.policies;
 
 import static com.android.tools.r8.utils.AndroidApiLevelUtils.getApiReferenceLevelForMerging;
+import static com.android.tools.r8.utils.AndroidApiLevelUtils.getMembersApiReferenceLevelForMerging;
 
 import com.android.tools.r8.androidapi.AndroidApiLevelCompute;
 import com.android.tools.r8.androidapi.ComputedApiLevel;
@@ -15,14 +16,16 @@ import com.android.tools.r8.horizontalclassmerging.MultiClassSameReferencePolicy
 public class NoDifferentApiReferenceLevel extends MultiClassSameReferencePolicy<ComputedApiLevel> {
 
   private final AndroidApiLevelCompute apiLevelCompute;
-  private final AppView<?> appView;
   private final boolean enableApiCallerIdentification;
+  private final boolean enableWholeProgramOptimization;
+  private final ComputedApiLevel minApiLevel;
 
   public NoDifferentApiReferenceLevel(AppView<?> appView) {
-    this.appView = appView;
     apiLevelCompute = appView.apiLevelCompute();
     enableApiCallerIdentification =
         appView.options().apiModelingOptions().isApiCallerIdentificationEnabled();
+    enableWholeProgramOptimization = appView.enableWholeProgramOptimizations();
+    minApiLevel = appView.computedMinApiLevel();
   }
 
   @Override
@@ -39,7 +42,9 @@ public class NoDifferentApiReferenceLevel extends MultiClassSameReferencePolicy<
   public ComputedApiLevel getMergeKey(DexProgramClass clazz) {
     assert enableApiCallerIdentification;
     ComputedApiLevel apiReferenceLevelForMerging =
-        getApiReferenceLevelForMerging(appView, apiLevelCompute, clazz);
+        enableWholeProgramOptimization
+            ? getApiReferenceLevelForMerging(apiLevelCompute, clazz)
+            : getMembersApiReferenceLevelForMerging(clazz, minApiLevel);
     if (apiReferenceLevelForMerging.isUnknownApiLevel()) {
       return ineligibleForClassMerging();
     }

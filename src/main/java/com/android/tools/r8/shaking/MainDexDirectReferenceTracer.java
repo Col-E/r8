@@ -6,6 +6,7 @@ package com.android.tools.r8.shaking;
 
 import static com.android.tools.r8.graph.DexProgramClass.asProgramClassOrNull;
 
+import com.android.tools.r8.androidapi.AndroidApiLevelCompute;
 import com.android.tools.r8.dex.IndexedItemCollection;
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
@@ -14,6 +15,7 @@ import com.android.tools.r8.graph.DexAnnotationSet;
 import com.android.tools.r8.graph.DexCallSite;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexField;
+import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexMethodHandle;
 import com.android.tools.r8.graph.DexProgramClass;
@@ -22,6 +24,7 @@ import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.UseRegistry;
+import com.android.tools.r8.synthesis.SyntheticItems;
 import com.android.tools.r8.utils.Box;
 import java.util.Set;
 import java.util.function.Consumer;
@@ -41,6 +44,9 @@ public class MainDexDirectReferenceTracer {
   }
 
   public void run(Set<DexType> roots) {
+    SyntheticItems syntheticItems = appView.getSyntheticItems();
+    DexItemFactory factory = appView.dexItemFactory();
+    AndroidApiLevelCompute apiLevelCompute = appView.apiLevelCompute();
     for (DexType type : roots) {
       DexProgramClass clazz = asProgramClassOrNull(appView.definitionFor(type));
       // Should only happen for library classes, which are filtered out.
@@ -48,7 +54,7 @@ public class MainDexDirectReferenceTracer {
       consumer.accept(type);
       // Super and interfaces are live, no need to add them.
       if (!DexAnnotation.hasSynthesizedClassAnnotation(
-          clazz.annotations(), appView.dexItemFactory(), appView.getSyntheticItems())) {
+          clazz.annotations(), factory, syntheticItems, apiLevelCompute)) {
         traceAnnotationsDirectDependencies(clazz.annotations());
       }
       clazz.forEachField(field -> consumer.accept(field.getReference().type));
