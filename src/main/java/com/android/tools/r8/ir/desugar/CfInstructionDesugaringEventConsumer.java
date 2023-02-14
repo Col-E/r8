@@ -72,11 +72,14 @@ public abstract class CfInstructionDesugaringEventConsumer
       ArtProfileCollectionAdditions artProfileCollectionAdditions,
       ClassConverterResult.Builder classConverterResultBuilder,
       D8MethodProcessor methodProcessor) {
-    CfInstructionDesugaringEventConsumer eventConsumer =
+    D8CfInstructionDesugaringEventConsumer eventConsumer =
         new D8CfInstructionDesugaringEventConsumer(
             appView, classConverterResultBuilder, methodProcessor);
-    return ArtProfileRewritingCfInstructionDesugaringEventConsumer.attach(
-        appView, artProfileCollectionAdditions, eventConsumer);
+    CfInstructionDesugaringEventConsumer outermostEventConsumer =
+        ArtProfileRewritingCfInstructionDesugaringEventConsumer.attach(
+            appView, artProfileCollectionAdditions, eventConsumer);
+    eventConsumer.setOutermostEventConsumer(outermostEventConsumer);
+    return outermostEventConsumer;
   }
 
   public static CfInstructionDesugaringEventConsumer createForR8(
@@ -115,6 +118,8 @@ public abstract class CfInstructionDesugaringEventConsumer
     private final List<LambdaClass> synthesizedLambdaClasses = new ArrayList<>();
     private final List<ConstantDynamicClass> synthesizedConstantDynamicClasses = new ArrayList<>();
 
+    private CfInstructionDesugaringEventConsumer outermostEventConsumer = this;
+
     private D8CfInstructionDesugaringEventConsumer(
         AppView<?> appView,
         ClassConverterResult.Builder classConverterResultBuilder,
@@ -122,6 +127,11 @@ public abstract class CfInstructionDesugaringEventConsumer
       this.appView = appView;
       this.classConverterResultBuilder = classConverterResultBuilder;
       this.methodProcessor = methodProcessor;
+    }
+
+    public void setOutermostEventConsumer(
+        CfInstructionDesugaringEventConsumer outermostEventConsumer) {
+      this.outermostEventConsumer = outermostEventConsumer;
     }
 
     @Override
@@ -153,24 +163,26 @@ public abstract class CfInstructionDesugaringEventConsumer
 
     @Override
     public void acceptCollectionConversion(ProgramMethod arrayConversion) {
-      methodProcessor.scheduleMethodForProcessing(arrayConversion, this);
+      methodProcessor.scheduleMethodForProcessing(arrayConversion, outermostEventConsumer);
     }
 
     @Override
     public void acceptCovariantRetargetMethod(ProgramMethod method) {
-      methodProcessor.scheduleMethodForProcessing(method, this);
+      methodProcessor.scheduleMethodForProcessing(method, outermostEventConsumer);
     }
 
     @Override
     public void acceptBackportedMethod(ProgramMethod backportedMethod, ProgramMethod context) {
-      methodProcessor.scheduleMethodForProcessing(backportedMethod, this);
+      methodProcessor.scheduleMethodForProcessing(backportedMethod, outermostEventConsumer);
     }
 
     @Override
     public void acceptBackportedClass(DexProgramClass backportedClass, ProgramMethod context) {
       backportedClass
           .programMethods()
-          .forEach(method -> methodProcessor.scheduleMethodForProcessing(method, this));
+          .forEach(
+              method ->
+                  methodProcessor.scheduleMethodForProcessing(method, outermostEventConsumer));
     }
 
     @Override
@@ -216,7 +228,9 @@ public abstract class CfInstructionDesugaringEventConsumer
     public void acceptVarHandleDesugaringClass(DexProgramClass clazz) {
       clazz
           .programMethods()
-          .forEach(method -> methodProcessor.scheduleMethodForProcessing(method, this));
+          .forEach(
+              method ->
+                  methodProcessor.scheduleMethodForProcessing(method, outermostEventConsumer));
     }
 
     @Override
@@ -269,7 +283,7 @@ public abstract class CfInstructionDesugaringEventConsumer
 
     @Override
     public void acceptTwrCloseResourceMethod(ProgramMethod closeMethod, ProgramMethod context) {
-      methodProcessor.scheduleMethodForProcessing(closeMethod, this);
+      methodProcessor.scheduleMethodForProcessing(closeMethod, outermostEventConsumer);
     }
 
     @Override

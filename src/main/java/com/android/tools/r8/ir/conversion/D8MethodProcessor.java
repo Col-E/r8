@@ -11,7 +11,6 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.conversion.callgraph.CallSiteInformation;
 import com.android.tools.r8.ir.desugar.CfInstructionDesugaringEventConsumer;
-import com.android.tools.r8.ir.desugar.CfInstructionDesugaringEventConsumer.D8CfInstructionDesugaringEventConsumer;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackIgnore;
 import com.android.tools.r8.profile.art.rewriting.ArtProfileCollectionAdditions;
 import com.android.tools.r8.utils.ThreadUtils;
@@ -90,7 +89,7 @@ public class D8MethodProcessor extends MethodProcessor {
   }
 
   public void scheduleMethodForProcessing(
-      ProgramMethod method, D8CfInstructionDesugaringEventConsumer eventConsumer) {
+      ProgramMethod method, CfInstructionDesugaringEventConsumer eventConsumer) {
     // TODO(b/179755192): By building up waves of methods in the class converter, we can avoid the
     //  following check and always process the method asynchronously.
     if (!scheduled.contains(method.getHolderType())
