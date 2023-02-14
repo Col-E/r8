@@ -163,7 +163,7 @@ public class R8 {
     if (options.printMemory) {
       System.gc();
     }
-    timing = Timing.create("R8", options);
+    timing = Timing.create("R8 " + Version.LABEL, options);
   }
 
   /**
