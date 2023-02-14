@@ -38,6 +38,7 @@ public class ConcreteArtProfileCollectionAdditions extends ArtProfileCollectionA
     assert !additionsCollection.isEmpty();
   }
 
+  @Override
   public void addMethodIfContextIsInProfile(ProgramMethod method, ProgramMethod context) {
     applyIfContextIsInProfile(context, additionsBuilder -> additionsBuilder.addRule(method));
   }
