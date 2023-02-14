@@ -38,6 +38,11 @@ public class ArtProfileOptions {
     return enableCompletenessCheckForTesting;
   }
 
+  public boolean isIncludingConstantDynamicClass() {
+    // Similar to isIncludingVarHandleClasses().
+    return enableCompletenessCheckForTesting;
+  }
+
   public boolean isIncludingVarHandleClasses() {
     // We only include var handle classes in the residual ART profiles for completeness testing,
     // since the classes synthesized by var handle desugaring are fairly large and may not be that

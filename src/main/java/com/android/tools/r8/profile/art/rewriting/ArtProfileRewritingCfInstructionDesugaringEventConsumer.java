@@ -10,6 +10,7 @@ import static com.android.tools.r8.utils.ConsumerUtils.emptyConsumer;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.DexClasspathClass;
+import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.ProgramDefinition;
 import com.android.tools.r8.graph.ProgramField;
@@ -80,8 +81,30 @@ public class ArtProfileRewritingCfInstructionDesugaringEventConsumer
   }
 
   @Override
-  public void acceptConstantDynamicClass(ConstantDynamicClass lambdaClass, ProgramMethod context) {
-    parent.acceptConstantDynamicClass(lambdaClass, context);
+  public void acceptConstantDynamicClass(
+      ConstantDynamicClass constantDynamicClass, ProgramMethod context) {
+    if (appView.options().getArtProfileOptions().isIncludingConstantDynamicClass()) {
+      additionsCollection.applyIfContextIsInProfile(
+          context,
+          additionsBuilder -> {
+            DexProgramClass clazz = constantDynamicClass.getConstantDynamicProgramClass();
+            additionsBuilder.addRule(clazz);
+            clazz.forEachProgramMethod(additionsBuilder::addRule);
+          });
+    }
+    parent.acceptConstantDynamicClass(constantDynamicClass, context);
+  }
+
+  @Override
+  public void acceptConstantDynamicRewrittenBootstrapMethod(
+      ProgramMethod bootstrapMethod, DexMethod oldSignature) {
+    additionsCollection.applyIfContextIsInProfile(
+        oldSignature,
+        additionsBuilder ->
+            additionsBuilder
+                .addRule(bootstrapMethod)
+                .removeMovedMethodRule(oldSignature, bootstrapMethod));
+    parent.acceptConstantDynamicRewrittenBootstrapMethod(bootstrapMethod, oldSignature);
   }
 
   @Override

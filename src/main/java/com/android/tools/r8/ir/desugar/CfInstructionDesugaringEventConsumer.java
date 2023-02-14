@@ -8,6 +8,7 @@ import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.DexClasspathClass;
+import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.ProgramDefinition;
@@ -255,6 +256,12 @@ public abstract class CfInstructionDesugaringEventConsumer
     }
 
     @Override
+    public void acceptConstantDynamicRewrittenBootstrapMethod(
+        ProgramMethod bootstrapMethod, DexMethod oldSignature) {
+      // Intentionally empty.
+    }
+
+    @Override
     public void acceptNestConstructorBridge(
         ProgramMethod target,
         ProgramMethod bridge,
@@ -406,7 +413,7 @@ public abstract class CfInstructionDesugaringEventConsumer
 
     private void finalizeConstantDynamicDesugaring(Consumer<ProgramMethod> needsProcessing) {
       for (ConstantDynamicClass constantDynamicClass : synthesizedConstantDynamicClasses) {
-        constantDynamicClass.rewriteBootstrapMethodSignatureIfNeeded();
+        constantDynamicClass.rewriteBootstrapMethodSignatureIfNeeded(outermostEventConsumer);
         constantDynamicClass.getConstantDynamicProgramClass().forEachProgramMethod(needsProcessing);
       }
       synthesizedConstantDynamicClasses.clear();
@@ -647,6 +654,12 @@ public abstract class CfInstructionDesugaringEventConsumer
       // TODO(b/180091213): Remove the recording of the synthesizing context when this is accessible
       //  from synthetic items.
       constantDynamicClassConsumer.accept(constantDynamicClass, context);
+    }
+
+    @Override
+    public void acceptConstantDynamicRewrittenBootstrapMethod(
+        ProgramMethod bootstrapMethod, DexMethod oldSignature) {
+      // Intentionally empty.
     }
 
     @Override

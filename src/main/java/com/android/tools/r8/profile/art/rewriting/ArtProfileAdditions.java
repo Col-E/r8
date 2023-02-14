@@ -53,8 +53,12 @@ public class ArtProfileAdditions {
 
     ArtProfileAdditionsBuilder addMethodRule(DexMethod method);
 
-    ArtProfileAdditionsBuilder removeMovedMethodRule(
-        ProgramMethod oldMethod, ProgramMethod newMethod);
+    default ArtProfileAdditionsBuilder removeMovedMethodRule(
+        ProgramMethod oldMethod, ProgramMethod newMethod) {
+      return removeMovedMethodRule(oldMethod.getReference(), newMethod);
+    }
+
+    ArtProfileAdditionsBuilder removeMovedMethodRule(DexMethod oldMethod, ProgramMethod newMethod);
   }
 
   private ArtProfile artProfile;
@@ -102,7 +106,7 @@ public class ArtProfileAdditions {
 
             @Override
             public ArtProfileAdditionsBuilder removeMovedMethodRule(
-                ProgramMethod oldMethod, ProgramMethod newMethod) {
+                DexMethod oldMethod, ProgramMethod newMethod) {
               ArtProfileAdditions.this.removeMovedMethodRule(oldMethod, newMethod);
               return this;
             }
@@ -126,7 +130,7 @@ public class ArtProfileAdditions {
 
             @Override
             public ArtProfileAdditionsBuilder removeMovedMethodRule(
-                ProgramMethod oldMethod, ProgramMethod newMethod) {
+                DexMethod oldMethod, ProgramMethod newMethod) {
               ArtProfileAdditions.this.removeMovedMethodRule(oldMethod, newMethod);
               return this;
             }
@@ -176,10 +180,10 @@ public class ArtProfileAdditions {
     return this;
   }
 
-  void removeMovedMethodRule(ProgramMethod oldMethod, ProgramMethod newMethod) {
-    assert artProfile.containsMethodRule(oldMethod.getReference());
+  void removeMovedMethodRule(DexMethod oldMethod, ProgramMethod newMethod) {
+    assert artProfile.containsMethodRule(oldMethod) || methodRuleAdditions.containsKey(oldMethod);
     assert methodRuleAdditions.containsKey(newMethod.getReference());
-    methodRuleRemovals.add(oldMethod.getReference());
+    methodRuleRemovals.add(oldMethod);
   }
 
   ArtProfile createNewArtProfile() {

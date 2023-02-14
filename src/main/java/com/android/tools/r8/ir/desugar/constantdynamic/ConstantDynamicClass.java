@@ -355,13 +355,14 @@ public class ConstantDynamicClass {
     this.clazz = clazz;
   }
 
-  public void rewriteBootstrapMethodSignatureIfNeeded() {
+  public void rewriteBootstrapMethodSignatureIfNeeded(
+      ConstantDynamicDesugaringEventConsumer eventConsumer) {
     if (!shouldRewriteBootstrapMethodSignature() || behaviour != CACHE_CONSTANT) {
       return;
     }
     DexProgramClass bootstrapMethodHolder =
         appView.definitionFor(bootstrapMethodReference.getHolderType()).asProgramClass();
-    DexEncodedMethod replacement =
+    DexEncodedMethod finalDefinition =
         bootstrapMethodHolder
             .getMethodCollection()
             .replaceDirectMethod(
@@ -385,18 +386,22 @@ public class ConstantDynamicClass {
                   newMethod.copyMetadata(appView, encodedMethod);
                   return newMethod;
                 });
-    if (replacement != null) {
+    ProgramMethod finalMethod;
+    if (finalDefinition != null) {
       // Since we've copied the code object from an existing method, the code should already be
       // processed, and thus we don't need to schedule it for processing in D8.
-      assert !appView.options().isGeneratingClassFiles() || replacement.getCode().isCfCode();
-      assert !appView.options().isGeneratingDex() || replacement.getCode().isDexCode();
+      assert !appView.options().isGeneratingClassFiles() || finalDefinition.getCode().isCfCode();
+      assert !appView.options().isGeneratingDex() || finalDefinition.getCode().isDexCode();
+      finalMethod = finalDefinition.asProgramMethod(bootstrapMethodHolder);
+      eventConsumer.acceptConstantDynamicRewrittenBootstrapMethod(
+          finalMethod, bootstrapMethodReference);
+    } else {
+      finalMethod = bootstrapMethodHolder.lookupProgramMethod(finalBootstrapMethodReference);
     }
     // The method might already have been moved by another dynamic constant targeting it.
     // If so, it must be defined on the holder.
-    ProgramMethod modified =
-        bootstrapMethodHolder.lookupProgramMethod(finalBootstrapMethodReference);
-    assert modified != null;
-    assert modified.getDefinition().isPublicMethod();
+    assert finalMethod != null;
+    assert finalMethod.getDefinition().isPublicMethod();
   }
 
   private DexType mapLookupTypeToObject(DexType type) {
