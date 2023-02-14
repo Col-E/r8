@@ -17,7 +17,7 @@ public final class KeepFieldPattern extends KeepMemberPattern {
 
   public static class Builder {
 
-    private KeepFieldAccessPattern accessPattern = KeepFieldAccessPattern.any();
+    private KeepFieldAccessPattern accessPattern = KeepFieldAccessPattern.anyFieldAccess();
     private KeepFieldNamePattern namePattern = KeepFieldNamePattern.any();
     private KeepFieldTypePattern typePattern = KeepFieldTypePattern.any();
 
@@ -72,6 +72,7 @@ public final class KeepFieldPattern extends KeepMemberPattern {
     return accessPattern.isAny() && namePattern.isAny() && typePattern.isAny();
   }
 
+  @Override
   public KeepFieldAccessPattern getAccessPattern() {
     return accessPattern;
   }

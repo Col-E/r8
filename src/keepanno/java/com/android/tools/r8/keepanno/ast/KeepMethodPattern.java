@@ -12,13 +12,13 @@ public final class KeepMethodPattern extends KeepMemberPattern {
     return new Builder();
   }
 
-  public static KeepMemberPattern allMethods() {
+  public static KeepMethodPattern allMethods() {
     return builder().build();
   }
 
   public static class Builder {
 
-    private KeepMethodAccessPattern accessPattern = KeepMethodAccessPattern.any();
+    private KeepMethodAccessPattern accessPattern = KeepMethodAccessPattern.anyMethodAccess();
     private KeepMethodNamePattern namePattern = KeepMethodNamePattern.any();
     private KeepMethodReturnTypePattern returnTypePattern = KeepMethodReturnTypePattern.any();
     private KeepMethodParametersPattern parametersPattern = KeepMethodParametersPattern.any();
@@ -100,6 +100,7 @@ public final class KeepMethodPattern extends KeepMemberPattern {
         && parametersPattern.isAny();
   }
 
+  @Override
   public KeepMethodAccessPattern getAccessPattern() {
     return accessPattern;
   }

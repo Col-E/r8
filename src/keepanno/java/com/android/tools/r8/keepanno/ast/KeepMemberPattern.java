@@ -13,6 +13,61 @@ public abstract class KeepMemberPattern {
     return All.getInstance();
   }
 
+  public static Builder memberBuilder() {
+    return new Builder();
+  }
+
+  public static class Builder {
+    private KeepMemberAccessPattern accessPattern = KeepMemberAccessPattern.anyMemberAccess();
+
+    public Builder setAccessPattern(KeepMemberAccessPattern accessPattern) {
+      this.accessPattern = accessPattern;
+      return this;
+    }
+
+    public KeepMemberPattern build() {
+      if (accessPattern.isAny()) {
+        return allMembers();
+      }
+      return new Some(accessPattern);
+    }
+  }
+
+  private static class Some extends KeepMemberPattern {
+    private final KeepMemberAccessPattern accessPattern;
+
+    public Some(KeepMemberAccessPattern accessPattern) {
+      this.accessPattern = accessPattern;
+    }
+
+    @Override
+    public KeepMemberAccessPattern getAccessPattern() {
+      return accessPattern;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+      if (this == o) {
+        return true;
+      }
+      if (o == null || getClass() != o.getClass()) {
+        return false;
+      }
+      Some some = (Some) o;
+      return accessPattern.equals(some.accessPattern);
+    }
+
+    @Override
+    public int hashCode() {
+      return accessPattern.hashCode();
+    }
+
+    @Override
+    public String toString() {
+      return "Member{" + "access=" + accessPattern + '}';
+    }
+  }
+
   private static class All extends KeepMemberPattern {
 
     private static final All INSTANCE = new All();
@@ -24,6 +79,11 @@ public abstract class KeepMemberPattern {
     @Override
     public boolean isAllMembers() {
       return true;
+    }
+
+    @Override
+    public KeepMemberAccessPattern getAccessPattern() {
+      return KeepMemberAccessPattern.anyMemberAccess();
     }
 
     @Override
@@ -81,6 +141,10 @@ public abstract class KeepMemberPattern {
     return false;
   }
 
+  public final boolean isGeneralMember() {
+    return !isNone() && !isMethod() && !isField();
+  }
+
   public final boolean isMethod() {
     return asMethod() != null;
   }
@@ -95,5 +159,9 @@ public abstract class KeepMemberPattern {
 
   public KeepFieldPattern asField() {
     return null;
+  }
+
+  public KeepMemberAccessPattern getAccessPattern() {
+    throw new KeepEdgeException("Invalid access to member access pattern");
   }
 }

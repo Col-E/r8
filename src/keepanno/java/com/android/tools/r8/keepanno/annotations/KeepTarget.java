@@ -100,6 +100,21 @@ public @interface KeepTarget {
   String memberFromBinding() default "";
 
   /**
+   * Define the member pattern by matching on access flags.
+   *
+   * <p>Mutually exclusive with all field and method patterns as use restricts the match to both
+   * types of members.
+   */
+  MemberAccessFlags[] memberAccess() default {};
+
+  /**
+   * Define the method pattern by matching on access flags.
+   *
+   * <p>Mutually exclusive with any field properties.
+   */
+  MethodAccessFlags[] methodAccess() default {};
+
+  /**
    * Define the method-name pattern by an exact method name.
    *
    * <p>Mutually exclusive with any field properties.
@@ -125,6 +140,13 @@ public @interface KeepTarget {
    * <p>If none and other properties define this as a method the default matches any parameters.
    */
   String[] methodParameters() default {""};
+
+  /**
+   * Define the field pattern by matching on field access flags.
+   *
+   * <p>Mutually exclusive with any method properties.
+   */
+  FieldAccessFlags[] fieldAccess() default {};
 
   /**
    * Define the field-name pattern by an exact field name.

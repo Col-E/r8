@@ -3,12 +3,16 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.keepanno.asm;
 
+import com.android.tools.r8.keepanno.ast.AccessVisibility;
 import com.android.tools.r8.keepanno.ast.AnnotationConstants;
 import com.android.tools.r8.keepanno.ast.AnnotationConstants.Binding;
 import com.android.tools.r8.keepanno.ast.AnnotationConstants.Condition;
 import com.android.tools.r8.keepanno.ast.AnnotationConstants.Edge;
+import com.android.tools.r8.keepanno.ast.AnnotationConstants.FieldAccess;
 import com.android.tools.r8.keepanno.ast.AnnotationConstants.Item;
 import com.android.tools.r8.keepanno.ast.AnnotationConstants.Kind;
+import com.android.tools.r8.keepanno.ast.AnnotationConstants.MemberAccess;
+import com.android.tools.r8.keepanno.ast.AnnotationConstants.MethodAccess;
 import com.android.tools.r8.keepanno.ast.AnnotationConstants.Option;
 import com.android.tools.r8.keepanno.ast.AnnotationConstants.Target;
 import com.android.tools.r8.keepanno.ast.KeepBindings;
@@ -19,13 +23,16 @@ import com.android.tools.r8.keepanno.ast.KeepEdge;
 import com.android.tools.r8.keepanno.ast.KeepEdgeException;
 import com.android.tools.r8.keepanno.ast.KeepEdgeMetaInfo;
 import com.android.tools.r8.keepanno.ast.KeepExtendsPattern;
+import com.android.tools.r8.keepanno.ast.KeepFieldAccessPattern;
 import com.android.tools.r8.keepanno.ast.KeepFieldNamePattern;
 import com.android.tools.r8.keepanno.ast.KeepFieldPattern;
 import com.android.tools.r8.keepanno.ast.KeepFieldTypePattern;
 import com.android.tools.r8.keepanno.ast.KeepItemKind;
 import com.android.tools.r8.keepanno.ast.KeepItemPattern;
 import com.android.tools.r8.keepanno.ast.KeepItemReference;
+import com.android.tools.r8.keepanno.ast.KeepMemberAccessPattern;
 import com.android.tools.r8.keepanno.ast.KeepMemberPattern;
+import com.android.tools.r8.keepanno.ast.KeepMethodAccessPattern;
 import com.android.tools.r8.keepanno.ast.KeepMethodNamePattern;
 import com.android.tools.r8.keepanno.ast.KeepMethodParametersPattern;
 import com.android.tools.r8.keepanno.ast.KeepMethodPattern;
@@ -42,6 +49,7 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.function.BiPredicate;
 import java.util.function.Consumer;
 import org.objectweb.asm.AnnotationVisitor;
 import org.objectweb.asm.ClassReader;
@@ -552,6 +560,7 @@ public class KeepEdgeReader implements Opcodes {
 
   private static class MethodDeclaration extends Declaration<KeepMethodPattern> {
 
+    private KeepMethodAccessPattern.Builder accessBuilder = null;
     private KeepMethodPattern.Builder builder = null;
 
     private KeepMethodPattern.Builder getBuilder() {
@@ -568,6 +577,9 @@ public class KeepEdgeReader implements Opcodes {
 
     @Override
     KeepMethodPattern getValue() {
+      if (accessBuilder != null) {
+        getBuilder().setAccessPattern(accessBuilder.build());
+      }
       return builder != null ? builder.build() : null;
     }
 
@@ -593,6 +605,10 @@ public class KeepEdgeReader implements Opcodes {
 
     @Override
     AnnotationVisitor tryParseArray(String name, Consumer<KeepMethodPattern> ignored) {
+      if (name.equals(Item.methodAccess)) {
+        accessBuilder = KeepMethodAccessPattern.builder();
+        return new MethodAccessVisitor(accessBuilder);
+      }
       if (name.equals(Item.methodParameters)) {
         return new StringArrayVisitor(
             params -> {
@@ -613,6 +629,7 @@ public class KeepEdgeReader implements Opcodes {
 
   private static class FieldDeclaration extends Declaration<KeepFieldPattern> {
 
+    private KeepFieldAccessPattern.Builder accessBuilder = null;
     private KeepFieldPattern.Builder builder = null;
 
     private KeepFieldPattern.Builder getBuilder() {
@@ -629,6 +646,9 @@ public class KeepEdgeReader implements Opcodes {
 
     @Override
     KeepFieldPattern getValue() {
+      if (accessBuilder != null) {
+        getBuilder().setAccessPattern(accessBuilder.build());
+      }
       return builder != null ? builder.build() : null;
     }
 
@@ -653,10 +673,20 @@ public class KeepEdgeReader implements Opcodes {
       }
       return false;
     }
+
+    @Override
+    AnnotationVisitor tryParseArray(String name, Consumer<KeepFieldPattern> onValue) {
+      if (name.equals(Item.fieldAccess)) {
+        accessBuilder = KeepFieldAccessPattern.builder();
+        return new FieldAccessVisitor(accessBuilder);
+      }
+      return super.tryParseArray(name, onValue);
+    }
   }
 
   private static class MemberDeclaration extends Declaration<KeepMemberPattern> {
 
+    private KeepMemberAccessPattern.Builder accessBuilder = null;
     private MethodDeclaration methodDeclaration = new MethodDeclaration();
     private FieldDeclaration fieldDeclaration = new FieldDeclaration();
 
@@ -669,6 +699,13 @@ public class KeepEdgeReader implements Opcodes {
     public KeepMemberPattern getValue() {
       KeepMethodPattern method = methodDeclaration.getValue();
       KeepFieldPattern field = fieldDeclaration.getValue();
+      if (accessBuilder != null) {
+        if (method != null || field != null) {
+          throw new KeepEdgeException(
+              "Cannot define common member access as well as field or method pattern");
+        }
+        return KeepMemberPattern.memberBuilder().setAccessPattern(accessBuilder.build()).build();
+      }
       if (method != null && field != null) {
         throw new KeepEdgeException("Cannot define both a field and a method pattern");
       }
@@ -688,6 +725,10 @@ public class KeepEdgeReader implements Opcodes {
 
     @Override
     AnnotationVisitor tryParseArray(String name, Consumer<KeepMemberPattern> ignored) {
+      if (name.equals(Item.memberAccess)) {
+        accessBuilder = KeepMemberAccessPattern.memberBuilder();
+        return new MemberAccessVisitor(accessBuilder);
+      }
       AnnotationVisitor visitor = methodDeclaration.tryParseArray(name, v -> {});
       if (visitor != null) {
         return visitor;
@@ -965,6 +1006,151 @@ public class KeepEdgeReader implements Opcodes {
     public void visitEnd() {
       parent.accept(options);
       super.visitEnd();
+    }
+  }
+
+  private static class MemberAccessVisitor extends AnnotationVisitorBase {
+
+    KeepMemberAccessPattern.BuilderBase<?, ?> builder;
+
+    public MemberAccessVisitor(KeepMemberAccessPattern.BuilderBase<?, ?> builder) {
+      this.builder = builder;
+    }
+
+    static boolean withNormalizedAccessFlag(String flag, BiPredicate<String, Boolean> fn) {
+      boolean allow = !flag.startsWith(MemberAccess.NEGATION_PREFIX);
+      return allow
+          ? fn.test(flag, true)
+          : fn.test(flag.substring(MemberAccess.NEGATION_PREFIX.length()), false);
+    }
+
+    @Override
+    public void visitEnum(String ignore, String descriptor, String value) {
+      if (!descriptor.equals(AnnotationConstants.MemberAccess.DESCRIPTOR)) {
+        super.visitEnum(ignore, descriptor, value);
+      }
+      boolean handled =
+          withNormalizedAccessFlag(
+              value,
+              (flag, allow) -> {
+                AccessVisibility visibility = getAccessVisibilityFromString(flag);
+                if (visibility != null) {
+                  builder.setAccessVisibility(visibility, allow);
+                  return true;
+                }
+                switch (flag) {
+                  case MemberAccess.STATIC:
+                    builder.setStatic(allow);
+                    return true;
+                  case MemberAccess.FINAL:
+                    builder.setFinal(allow);
+                    return true;
+                  case MemberAccess.SYNTHETIC:
+                    builder.setSynthetic(allow);
+                    return true;
+                  default:
+                    return false;
+                }
+              });
+      if (!handled) {
+        super.visitEnum(ignore, descriptor, value);
+      }
+    }
+
+    private AccessVisibility getAccessVisibilityFromString(String value) {
+      switch (value) {
+        case MemberAccess.PUBLIC:
+          return AccessVisibility.PUBLIC;
+        case MemberAccess.PROTECTED:
+          return AccessVisibility.PROTECTED;
+        case MemberAccess.PACKAGE_PRIVATE:
+          return AccessVisibility.PACKAGE_PRIVATE;
+        case MemberAccess.PRIVATE:
+          return AccessVisibility.PRIVATE;
+        default:
+          return null;
+      }
+    }
+  }
+
+  private static class MethodAccessVisitor extends MemberAccessVisitor {
+
+    KeepMethodAccessPattern.Builder builder;
+
+    public MethodAccessVisitor(KeepMethodAccessPattern.Builder builder) {
+      super(builder);
+      this.builder = builder;
+    }
+
+    @Override
+    public void visitEnum(String ignore, String descriptor, String value) {
+      if (!descriptor.equals(AnnotationConstants.MethodAccess.DESCRIPTOR)) {
+        super.visitEnum(ignore, descriptor, value);
+      }
+      boolean handled =
+          withNormalizedAccessFlag(
+              value,
+              (flag, allow) -> {
+                switch (flag) {
+                  case MethodAccess.SYNCHRONIZED:
+                    builder.setSynchronized(allow);
+                    return true;
+                  case MethodAccess.BRIDGE:
+                    builder.setBridge(allow);
+                    return true;
+                  case MethodAccess.NATIVE:
+                    builder.setNative(allow);
+                    return true;
+                  case MethodAccess.ABSTRACT:
+                    builder.setAbstract(allow);
+                    return true;
+                  case MethodAccess.STRICT_FP:
+                    builder.setStrictFp(allow);
+                    return true;
+                  default:
+                    return false;
+                }
+              });
+      if (!handled) {
+        // Continue visitation with the "member" descriptor to allow matching the common values.
+        super.visitEnum(ignore, MemberAccess.DESCRIPTOR, value);
+      }
+    }
+  }
+
+  private static class FieldAccessVisitor extends MemberAccessVisitor {
+
+    KeepFieldAccessPattern.Builder builder;
+
+    public FieldAccessVisitor(KeepFieldAccessPattern.Builder builder) {
+      super(builder);
+      this.builder = builder;
+    }
+
+    @Override
+    public void visitEnum(String ignore, String descriptor, String value) {
+      if (!descriptor.equals(AnnotationConstants.FieldAccess.DESCRIPTOR)) {
+        super.visitEnum(ignore, descriptor, value);
+      }
+      boolean handled =
+          withNormalizedAccessFlag(
+              value,
+              (flag, allow) -> {
+                switch (flag) {
+                  case FieldAccess.VOLATILE:
+                    builder.setVolatile(allow);
+                    return true;
+                  case FieldAccess.TRANSIENT:
+                    builder.setTransient(allow);
+                    return true;
+                  default:
+                    return false;
+                }
+              });
+      if (!handled) {
+        // Continue visitation with the "member" descriptor to allow matching the common values.
+        super.visitEnum(ignore, MemberAccess.DESCRIPTOR, value);
+      }
     }
   }
 }

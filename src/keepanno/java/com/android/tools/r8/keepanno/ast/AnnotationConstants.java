@@ -3,12 +3,15 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.keepanno.ast;
 
+import com.android.tools.r8.keepanno.annotations.FieldAccessFlags;
 import com.android.tools.r8.keepanno.annotations.KeepBinding;
 import com.android.tools.r8.keepanno.annotations.KeepCondition;
 import com.android.tools.r8.keepanno.annotations.KeepEdge;
 import com.android.tools.r8.keepanno.annotations.KeepItemKind;
 import com.android.tools.r8.keepanno.annotations.KeepOption;
 import com.android.tools.r8.keepanno.annotations.KeepTarget;
+import com.android.tools.r8.keepanno.annotations.MemberAccessFlags;
+import com.android.tools.r8.keepanno.annotations.MethodAccessFlags;
 
 /**
  * Utility class for referencing the various keep annotations and their structure.
@@ -65,10 +68,14 @@ public final class AnnotationConstants {
     public static final String extendsClassName = "extendsClassName";
     public static final String extendsClassConstant = "extendsClassConstant";
 
+    public static final String memberAccess = "memberAccess";
+
+    public static final String methodAccess = "methodAccess";
     public static final String methodName = "methodName";
     public static final String methodReturnType = "methodReturnType";
     public static final String methodParameters = "methodParameters";
 
+    public static final String fieldAccess = "fieldAccess";
     public static final String fieldName = "fieldName";
     public static final String fieldType = "fieldType";
 
@@ -128,5 +135,40 @@ public final class AnnotationConstants {
     public static final String OPTIMIZATION = "OPTIMIZATION";
     public static final String ACCESS_MODIFICATION = "ACCESS_MODIFICATION";
     public static final String ANNOTATION_REMOVAL = "ANNOTATION_REMOVAL";
+  }
+
+  public static final class MemberAccess {
+    public static final Class<MemberAccessFlags> CLASS = MemberAccessFlags.class;
+    public static final String DESCRIPTOR = getDescriptor(CLASS);
+
+    public static final String NEGATION_PREFIX = "NON_";
+
+    public static final String PUBLIC = "PUBLIC";
+    public static final String PROTECTED = "PROTECTED";
+    public static final String PACKAGE_PRIVATE = "PACKAGE_PRIVATE";
+    public static final String PRIVATE = "PRIVATE";
+
+    public static final String STATIC = "STATIC";
+    public static final String FINAL = "FINAL";
+    public static final String SYNTHETIC = "SYNTHETIC";
+  }
+
+  public static final class MethodAccess {
+    public static final Class<MethodAccessFlags> CLASS = MethodAccessFlags.class;
+    public static final String DESCRIPTOR = getDescriptor(CLASS);
+
+    public static final String SYNCHRONIZED = "SYNCHRONIZED";
+    public static final String BRIDGE = "BRIDGE";
+    public static final String NATIVE = "NATIVE";
+    public static final String ABSTRACT = "ABSTRACT";
+    public static final String STRICT_FP = "STRICT_FP";
+  }
+
+  public static final class FieldAccess {
+    public static final Class<FieldAccessFlags> CLASS = FieldAccessFlags.class;
+    public static final String DESCRIPTOR = getDescriptor(CLASS);
+
+    public static final String VOLATILE = "VOLATILE";
+    public static final String TRANSIENT = "TRANSIENT";
   }
 }

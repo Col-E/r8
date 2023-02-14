@@ -70,10 +70,19 @@ import java.util.Objects;
  *           METHOD_NAME_PATTERN
  *           METHOD_PARAMETERS_PATTERN
  *
- *   METHOD_ACCESS_PATTERN ::= any
+ *   FIELD_ACCESS_PATTERN ::= any | FIELD_ACCESS_FLAG* | (!FIELD_ACCESS_FLAG)*
+ *   FIELD_ACCESS_FLAG ::= MEMBER_ACCESS_FLAG | volatile | transient
+ *
+ *   METHOD_ACCESS_PATTERN ::= any | METHOD_ACCESS_FLAG* | (!METHOD_ACCESS_FLAG)*
  *   METHOD_NAME_PATTERN ::= any | exact method-name
  *   METHOD_RETURN_TYPE_PATTERN ::= void | TYPE_PATTERN
  *   METHOD_PARAMETERS_PATTERN ::= any | none | (TYPE_PATTERN+)
+ *   METHOD_ACCESS_FLAG
+ *     ::= MEMBER_ACCESS_FLAG
+ *       | synchronized | bridge | native | abstract | strict-fp
+ *
+ *   MEMBER_ACCESS_FLAG
+ *     ::= public | protected | package-private | private | static | final | synthetic
  * </pre>
  */
 public final class KeepEdge {

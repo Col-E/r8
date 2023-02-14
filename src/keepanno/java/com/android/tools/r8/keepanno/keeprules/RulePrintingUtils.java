@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.keepanno.keeprules;
 
+import com.android.tools.r8.keepanno.ast.AccessVisibility;
 import com.android.tools.r8.keepanno.ast.KeepClassReference;
 import com.android.tools.r8.keepanno.ast.KeepEdgeException;
 import com.android.tools.r8.keepanno.ast.KeepEdgeMetaInfo;
@@ -11,6 +12,7 @@ import com.android.tools.r8.keepanno.ast.KeepFieldAccessPattern;
 import com.android.tools.r8.keepanno.ast.KeepFieldNamePattern;
 import com.android.tools.r8.keepanno.ast.KeepFieldPattern;
 import com.android.tools.r8.keepanno.ast.KeepItemPattern;
+import com.android.tools.r8.keepanno.ast.KeepMemberAccessPattern;
 import com.android.tools.r8.keepanno.ast.KeepMemberPattern;
 import com.android.tools.r8.keepanno.ast.KeepMethodAccessPattern;
 import com.android.tools.r8.keepanno.ast.KeepMethodNamePattern;
@@ -23,8 +25,10 @@ import com.android.tools.r8.keepanno.ast.KeepPackagePattern;
 import com.android.tools.r8.keepanno.ast.KeepQualifiedClassNamePattern;
 import com.android.tools.r8.keepanno.ast.KeepTypePattern;
 import com.android.tools.r8.keepanno.ast.KeepUnqualfiedClassNamePattern;
+import com.android.tools.r8.keepanno.ast.ModifierPattern;
 import com.android.tools.r8.keepanno.utils.Unimplemented;
 import java.util.List;
+import java.util.Set;
 import java.util.function.BiConsumer;
 
 public abstract class RulePrintingUtils {
@@ -110,11 +114,15 @@ public abstract class RulePrintingUtils {
     if (member.isField()) {
       return printField(member.asField(), printer);
     }
-    throw new Unimplemented();
+    // The pattern is a restricted member pattern, e.g., it must apply to fields and methods
+    // without any specifics not common to both. For now that is just the access pattern.
+    assert !member.getAccessPattern().isAny();
+    printMemberAccess(printer, member.getAccessPattern());
+    return printer.appendWithoutBackReferenceAssert("*").append(";");
   }
 
   private static RulePrinter printField(KeepFieldPattern fieldPattern, RulePrinter builder) {
-    printFieldAccess(builder, " ", fieldPattern.getAccessPattern());
+    printFieldAccess(builder, fieldPattern.getAccessPattern());
     printType(builder, fieldPattern.getTypePattern().asType());
     builder.append(" ");
     printFieldName(builder, fieldPattern.getNamePattern());
@@ -122,7 +130,7 @@ public abstract class RulePrintingUtils {
   }
 
   private static RulePrinter printMethod(KeepMethodPattern methodPattern, RulePrinter builder) {
-    printMethodAccess(builder, " ", methodPattern.getAccessPattern());
+    printMethodAccess(builder, methodPattern.getAccessPattern());
     printReturnType(builder, methodPattern.getReturnTypePattern());
     builder.append(" ");
     printMethodName(builder, methodPattern.getNamePattern());
@@ -174,24 +182,69 @@ public abstract class RulePrintingUtils {
     return builder.append(descriptorToJavaType(typePattern.getDescriptor()));
   }
 
-  private static RulePrinter printMethodAccess(
-      RulePrinter builder, String indent, KeepMethodAccessPattern accessPattern) {
+  public static RulePrinter printMemberAccess(
+      RulePrinter printer, KeepMemberAccessPattern accessPattern) {
     if (accessPattern.isAny()) {
       // No text will match any access pattern.
       // Don't print the indent in this case.
-      return builder;
+      return printer;
     }
-    throw new Unimplemented();
+    printVisibilityModifiers(printer, accessPattern);
+    printModifier(printer, accessPattern.getStaticPattern(), "static");
+    printModifier(printer, accessPattern.getFinalPattern(), "final");
+    printModifier(printer, accessPattern.getSyntheticPattern(), "synthetic");
+    return printer;
   }
 
-  private static RulePrinter printFieldAccess(
-      RulePrinter builder, String indent, KeepFieldAccessPattern accessPattern) {
-    if (accessPattern.isAny()) {
-      // No text will match any access pattern.
-      // Don't print the indent in this case.
-      return builder;
+  public static void printVisibilityModifiers(
+      RulePrinter printer, KeepMemberAccessPattern accessPattern) {
+    if (accessPattern.isAnyVisibility()) {
+      return;
     }
-    throw new Unimplemented();
+    Set<AccessVisibility> allowed = accessPattern.getAllowedAccessVisibilities();
+    // Package private does not have an actual representation it must be matched by its absence.
+    // Thus, in the case of package-private the match is the negation of those not-present.
+    boolean negated = allowed.contains(AccessVisibility.PACKAGE_PRIVATE);
+    for (AccessVisibility visibility : AccessVisibility.values()) {
+      if (!visibility.equals(AccessVisibility.PACKAGE_PRIVATE)) {
+        if (!negated == allowed.contains(visibility)) {
+          if (negated) {
+            printer.append("!");
+          }
+          printer.append(visibility.toSourceSyntax()).append(" ");
+        }
+      }
+    }
+  }
+
+  public static void printModifier(
+      RulePrinter printer, ModifierPattern modifierPattern, String syntax) {
+    if (modifierPattern.isAny()) {
+      return;
+    }
+    if (modifierPattern.isOnlyNegative()) {
+      printer.append("!");
+    }
+    printer.append(syntax).append(" ");
+  }
+
+  public static RulePrinter printMethodAccess(
+      RulePrinter printer, KeepMethodAccessPattern accessPattern) {
+    printMemberAccess(printer, accessPattern);
+    printModifier(printer, accessPattern.getSynchronizedPattern(), "synchronized");
+    printModifier(printer, accessPattern.getBridgePattern(), "bridge");
+    printModifier(printer, accessPattern.getNativePattern(), "native");
+    printModifier(printer, accessPattern.getAbstractPattern(), "abstract");
+    printModifier(printer, accessPattern.getStrictFpPattern(), "strictfp");
+    return printer;
+  }
+
+  public static RulePrinter printFieldAccess(
+      RulePrinter printer, KeepFieldAccessPattern accessPattern) {
+    printMemberAccess(printer, accessPattern);
+    RulePrintingUtils.printModifier(printer, accessPattern.getVolatilePattern(), "volatile");
+    RulePrintingUtils.printModifier(printer, accessPattern.getTransientPattern(), "transient");
+    return printer;
   }
 
   public static RulePrinter printClassName(
