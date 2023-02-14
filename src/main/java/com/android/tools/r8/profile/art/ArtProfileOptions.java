@@ -38,6 +38,13 @@ public class ArtProfileOptions {
     return enableCompletenessCheckForTesting;
   }
 
+  public boolean isIncludingVarHandleClasses() {
+    // We only include var handle classes in the residual ART profiles for completeness testing,
+    // since the classes synthesized by var handle desugaring are fairly large and may not be that
+    // important for runtime performance.
+    return enableCompletenessCheckForTesting;
+  }
+
   public ArtProfileOptions setArtProfilesForRewriting(Collection<ArtProfileForRewriting> inputs) {
     this.artProfilesForRewriting = inputs;
     return this;

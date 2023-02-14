@@ -4,32 +4,49 @@
 
 package com.android.tools.r8.profile.art.rewriting;
 
+import static com.android.tools.r8.profile.art.rewriting.ArtProfileRewritingVarHandleDesugaringEventConsumerUtils.handleVarHandleDesugaringClassContext;
+
+import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
+import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexProgramClass;
+import com.android.tools.r8.graph.ProgramDefinition;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.desugar.CfClassSynthesizerDesugaringEventConsumer;
+import com.android.tools.r8.profile.art.ArtProfileOptions;
 import java.util.Set;
 
 public class ArtProfileRewritingCfClassSynthesizerDesugaringEventConsumer
     extends CfClassSynthesizerDesugaringEventConsumer {
 
   private final ConcreteArtProfileCollectionAdditions additionsCollection;
+  private final ArtProfileOptions options;
   private final CfClassSynthesizerDesugaringEventConsumer parent;
 
   private ArtProfileRewritingCfClassSynthesizerDesugaringEventConsumer(
       ConcreteArtProfileCollectionAdditions additionsCollection,
+      ArtProfileOptions options,
       CfClassSynthesizerDesugaringEventConsumer parent) {
     this.additionsCollection = additionsCollection;
+    this.options = options;
     this.parent = parent;
   }
 
   public static CfClassSynthesizerDesugaringEventConsumer attach(
-      ArtProfileCollectionAdditions artProfileCollectionAdditions,
-      CfClassSynthesizerDesugaringEventConsumer eventConsumer) {
+      AppView<?> appView, CfClassSynthesizerDesugaringEventConsumer eventConsumer) {
+    return attach(appView, eventConsumer, ArtProfileCollectionAdditions.create(appView));
+  }
+
+  public static CfClassSynthesizerDesugaringEventConsumer attach(
+      AppView<?> appView,
+      CfClassSynthesizerDesugaringEventConsumer eventConsumer,
+      ArtProfileCollectionAdditions artProfileCollectionAdditions) {
     if (artProfileCollectionAdditions.isNop()) {
       return eventConsumer;
     }
     return new ArtProfileRewritingCfClassSynthesizerDesugaringEventConsumer(
-        artProfileCollectionAdditions.asConcrete(), eventConsumer);
+        artProfileCollectionAdditions.asConcrete(),
+        appView.options().getArtProfileOptions(),
+        eventConsumer);
   }
 
   @Override
@@ -79,8 +96,21 @@ public class ArtProfileRewritingCfClassSynthesizerDesugaringEventConsumer
   }
 
   @Override
-  public void acceptVarHandleDesugaringClass(DexProgramClass varHandleClass) {
-    parent.acceptVarHandleDesugaringClass(varHandleClass);
+  public void acceptVarHandleDesugaringClass(DexProgramClass clazz) {
+    parent.acceptVarHandleDesugaringClass(clazz);
+  }
+
+  @Override
+  public void acceptVarHandleDesugaringClassContext(
+      DexProgramClass clazz, ProgramDefinition context) {
+    handleVarHandleDesugaringClassContext(clazz, context, additionsCollection, options);
+    parent.acceptVarHandleDesugaringClassContext(clazz, context);
+  }
+
+  @Override
+  public void finished(AppView<? extends AppInfoWithClassHierarchy> appView) {
+    additionsCollection.commit(appView);
+    parent.finished(appView);
   }
 
   @Override

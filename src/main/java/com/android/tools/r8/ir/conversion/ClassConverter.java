@@ -117,7 +117,8 @@ public abstract class ClassConverter {
     ArtProfileCollectionAdditions artProfileCollectionAdditions =
         methodProcessor.getArtProfileCollectionAdditions();
     CfClassSynthesizerDesugaringEventConsumer classSynthesizerEventConsumer =
-        CfClassSynthesizerDesugaringEventConsumer.create(artProfileCollectionAdditions);
+        CfClassSynthesizerDesugaringEventConsumer.createForD8(
+            appView, artProfileCollectionAdditions);
     converter.classSynthesisDesugaring(executorService, classSynthesizerEventConsumer);
     if (!classSynthesizerEventConsumer.getSynthesizedClasses().isEmpty()) {
       classes =

@@ -73,7 +73,6 @@ import com.android.tools.r8.optimize.interfaces.analysis.CfOpenClosedInterfacesA
 import com.android.tools.r8.optimize.proto.ProtoNormalizer;
 import com.android.tools.r8.origin.CommandLineOrigin;
 import com.android.tools.r8.profile.art.ArtProfileCompletenessChecker;
-import com.android.tools.r8.profile.art.rewriting.ArtProfileCollectionAdditions;
 import com.android.tools.r8.repackaging.Repackaging;
 import com.android.tools.r8.repackaging.RepackagingLens;
 import com.android.tools.r8.shaking.AbstractMethodRemover;
@@ -303,13 +302,11 @@ public class R8 {
           appView.dexItemFactory());
 
       // Upfront desugaring generation: Generates new program classes to be added in the app.
-      ArtProfileCollectionAdditions artProfileCollectionAdditions =
-          ArtProfileCollectionAdditions.create(appView);
       CfClassSynthesizerDesugaringEventConsumer classSynthesizerEventConsumer =
-          CfClassSynthesizerDesugaringEventConsumer.create(artProfileCollectionAdditions);
+          CfClassSynthesizerDesugaringEventConsumer.createForR8(appView);
       CfClassSynthesizerDesugaringCollection.create(appView)
           .synthesizeClasses(executorService, classSynthesizerEventConsumer);
-      artProfileCollectionAdditions.commit(appView);
+      classSynthesizerEventConsumer.finished(appView);
       if (appView.getSyntheticItems().hasPendingSyntheticClasses()) {
         appView.setAppInfo(
             appView

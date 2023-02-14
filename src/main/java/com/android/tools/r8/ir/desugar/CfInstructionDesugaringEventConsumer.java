@@ -10,6 +10,7 @@ import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.DexClasspathClass;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexReference;
+import com.android.tools.r8.graph.ProgramDefinition;
 import com.android.tools.r8.graph.ProgramField;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.conversion.ClassConverterResult;
@@ -216,6 +217,12 @@ public abstract class CfInstructionDesugaringEventConsumer
       clazz
           .programMethods()
           .forEach(method -> methodProcessor.scheduleMethodForProcessing(method, this));
+    }
+
+    @Override
+    public void acceptVarHandleDesugaringClassContext(
+        DexProgramClass clazz, ProgramDefinition context) {
+      // Intentionally empty.
     }
 
     @Override
@@ -485,6 +492,12 @@ public abstract class CfInstructionDesugaringEventConsumer
     @Override
     public void acceptVarHandleDesugaringClass(DexProgramClass clazz) {
       // Intentionally empty. The class will be hit by tracing if required.
+    }
+
+    @Override
+    public void acceptVarHandleDesugaringClassContext(
+        DexProgramClass clazz, ProgramDefinition context) {
+      // Intentionally empty.
     }
 
     @Override

@@ -9,6 +9,7 @@ import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.ProgramDefinition;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.profile.art.ArtProfile;
 import com.android.tools.r8.profile.art.ArtProfileCollection;
@@ -65,6 +66,18 @@ public class ConcreteArtProfileCollectionAdditions extends ArtProfileCollectionA
   void apply(Consumer<ArtProfileAdditions> additionsConsumer) {
     for (ArtProfileAdditions artProfileAdditions : additionsCollection) {
       additionsConsumer.accept(artProfileAdditions);
+    }
+  }
+
+  void applyIfContextIsInProfile(
+      ProgramDefinition context,
+      Consumer<ArtProfileAdditions> additionsConsumer,
+      Consumer<ArtProfileAdditionsBuilder> additionsBuilderConsumer) {
+    if (context.isProgramClass()) {
+      applyIfContextIsInProfile(context.asProgramClass(), additionsConsumer);
+    } else {
+      assert context.isProgramMethod();
+      applyIfContextIsInProfile(context.asProgramMethod(), additionsBuilderConsumer);
     }
   }
 

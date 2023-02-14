@@ -4,8 +4,11 @@
 package com.android.tools.r8.ir.desugar.varhandle;
 
 import com.android.tools.r8.graph.DexProgramClass;
+import com.android.tools.r8.graph.ProgramDefinition;
 
 public interface VarHandleDesugaringEventConsumer {
 
-  void acceptVarHandleDesugaringClass(DexProgramClass varHandleClass);
+  void acceptVarHandleDesugaringClass(DexProgramClass clazz);
+
+  void acceptVarHandleDesugaringClassContext(DexProgramClass clazz, ProgramDefinition context);
 }

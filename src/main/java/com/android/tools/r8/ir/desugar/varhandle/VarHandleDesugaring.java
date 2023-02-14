@@ -22,6 +22,7 @@ import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
+import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
@@ -174,19 +175,24 @@ public class VarHandleDesugaring implements CfInstructionDesugaring, CfClassSynt
   }
 
   private void ensureMethodHandlesLookupClass(
-      VarHandleDesugaringEventConsumer eventConsumer, Collection<ProgramDefinition> contexts) {
-    appView
-        .getSyntheticItems()
-        .ensureGlobalClass(
-            () -> new MissingGlobalSyntheticsConsumerDiagnostic("VarHandle desugaring"),
-            kinds -> kinds.METHOD_HANDLES_LOOKUP,
-            factory.lookupType,
-            contexts,
-            appView,
-            builder ->
-                VarHandleDesugaringMethods.generateDesugarMethodHandlesLookupClass(
-                    builder, appView.dexItemFactory()),
-            eventConsumer::acceptVarHandleDesugaringClass);
+      VarHandleDesugaringEventConsumer eventConsumer,
+      Collection<? extends ProgramDefinition> contexts) {
+    DexProgramClass clazz =
+        appView
+            .getSyntheticItems()
+            .ensureGlobalClass(
+                () -> new MissingGlobalSyntheticsConsumerDiagnostic("VarHandle desugaring"),
+                kinds -> kinds.METHOD_HANDLES_LOOKUP,
+                factory.lookupType,
+                contexts,
+                appView,
+                builder ->
+                    VarHandleDesugaringMethods.generateDesugarMethodHandlesLookupClass(
+                        builder, appView.dexItemFactory()),
+                eventConsumer::acceptVarHandleDesugaringClass);
+    for (ProgramDefinition context : contexts) {
+      eventConsumer.acceptVarHandleDesugaringClassContext(clazz, context);
+    }
   }
 
   private void ensureMethodHandlesLookupClass(
@@ -195,19 +201,24 @@ public class VarHandleDesugaring implements CfInstructionDesugaring, CfClassSynt
   }
 
   private void ensureVarHandleClass(
-      VarHandleDesugaringEventConsumer eventConsumer, Collection<ProgramDefinition> contexts) {
-    appView
-        .getSyntheticItems()
-        .ensureGlobalClass(
-            () -> new MissingGlobalSyntheticsConsumerDiagnostic("VarHandle desugaring"),
-            kinds -> kinds.VAR_HANDLE,
-            factory.varHandleType,
-            contexts,
-            appView,
-            builder ->
-                VarHandleDesugaringMethods.generateDesugarVarHandleClass(
-                    builder, appView.dexItemFactory()),
-            eventConsumer::acceptVarHandleDesugaringClass);
+      VarHandleDesugaringEventConsumer eventConsumer,
+      Collection<? extends ProgramDefinition> contexts) {
+    DexProgramClass clazz =
+        appView
+            .getSyntheticItems()
+            .ensureGlobalClass(
+                () -> new MissingGlobalSyntheticsConsumerDiagnostic("VarHandle desugaring"),
+                kinds -> kinds.VAR_HANDLE,
+                factory.varHandleType,
+                contexts,
+                appView,
+                builder ->
+                    VarHandleDesugaringMethods.generateDesugarVarHandleClass(
+                        builder, appView.dexItemFactory()),
+                eventConsumer::acceptVarHandleDesugaringClass);
+    for (ProgramDefinition context : contexts) {
+      eventConsumer.acceptVarHandleDesugaringClassContext(clazz, context);
+    }
   }
 
   private void ensureVarHandleClass(
@@ -598,9 +609,9 @@ public class VarHandleDesugaring implements CfInstructionDesugaring, CfClassSynt
       DexApplicationReadFlags flags,
       Predicate<DexApplicationReadFlags> hasReadReferenceFromProgramClass,
       Function<DexApplicationReadFlags, Set<DexType>> getWitnesses,
-      Consumer<List<ProgramDefinition>> consumeProgramWitnesses) {
+      Consumer<? super List<DexProgramClass>> consumeProgramWitnesses) {
     if (hasReadReferenceFromProgramClass.test(flags)) {
-      List<ProgramDefinition> classes = new ArrayList<>();
+      List<DexProgramClass> classes = new ArrayList<>();
       for (DexType witness : getWitnesses.apply(flags)) {
         DexClass dexClass = appView.contextIndependentDefinitionFor(witness);
         assert dexClass != null;

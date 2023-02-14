@@ -4,7 +4,10 @@
 
 package com.android.tools.r8.ir.desugar;
 
+import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
+import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexProgramClass;
+import com.android.tools.r8.graph.ProgramDefinition;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.apiconversion.DesugaredLibraryWrapperSynthesizerEventConsumer.DesugaredLibraryL8ProgramWrapperSynthesizerEventConsumer;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.retargeter.DesugaredLibraryRetargeterSynthesizerEventConsumer.DesugaredLibraryRetargeterL8SynthesizerEventConsumer;
@@ -25,13 +28,23 @@ public abstract class CfClassSynthesizerDesugaringEventConsumer
 
   protected CfClassSynthesizerDesugaringEventConsumer() {}
 
-  public static CfClassSynthesizerDesugaringEventConsumer create(
-      ArtProfileCollectionAdditions artProfileCollectionAdditions) {
+  public static CfClassSynthesizerDesugaringEventConsumer createForD8(
+      AppView<?> appView, ArtProfileCollectionAdditions artProfileCollectionAdditions) {
     CfClassSynthesizerDesugaringEventConsumer eventConsumer =
         new D8R8CfClassSynthesizerDesugaringEventConsumer();
     return ArtProfileRewritingCfClassSynthesizerDesugaringEventConsumer.attach(
-        artProfileCollectionAdditions, eventConsumer);
+        appView, eventConsumer, artProfileCollectionAdditions);
   }
+
+  public static CfClassSynthesizerDesugaringEventConsumer createForR8(
+      AppView<? extends AppInfoWithClassHierarchy> appView) {
+    CfClassSynthesizerDesugaringEventConsumer eventConsumer =
+        new D8R8CfClassSynthesizerDesugaringEventConsumer();
+    return ArtProfileRewritingCfClassSynthesizerDesugaringEventConsumer.attach(
+        appView, eventConsumer);
+  }
+
+  public void finished(AppView<? extends AppInfoWithClassHierarchy> appView) {}
 
   public abstract Set<DexProgramClass> getSynthesizedClasses();
 
@@ -74,6 +87,12 @@ public abstract class CfClassSynthesizerDesugaringEventConsumer
     @Override
     public void acceptVarHandleDesugaringClass(DexProgramClass clazz) {
       synthesizedClasses.add(clazz);
+    }
+
+    @Override
+    public void acceptVarHandleDesugaringClassContext(
+        DexProgramClass clazz, ProgramDefinition context) {
+      // Intentionally empty.
     }
 
     @Override

@@ -4,12 +4,14 @@
 
 package com.android.tools.r8.profile.art.rewriting;
 
+import static com.android.tools.r8.profile.art.rewriting.ArtProfileRewritingVarHandleDesugaringEventConsumerUtils.handleVarHandleDesugaringClassContext;
 import static com.android.tools.r8.utils.ConsumerUtils.emptyConsumer;
 
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.DexClasspathClass;
 import com.android.tools.r8.graph.DexProgramClass;
+import com.android.tools.r8.graph.ProgramDefinition;
 import com.android.tools.r8.graph.ProgramField;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.desugar.CfInstructionDesugaringEventConsumer;
@@ -352,8 +354,16 @@ public class ArtProfileRewritingCfInstructionDesugaringEventConsumer
   }
 
   @Override
-  public void acceptVarHandleDesugaringClass(DexProgramClass varHandleClass) {
-    parent.acceptVarHandleDesugaringClass(varHandleClass);
+  public void acceptVarHandleDesugaringClass(DexProgramClass clazz) {
+    parent.acceptVarHandleDesugaringClass(clazz);
+  }
+
+  @Override
+  public void acceptVarHandleDesugaringClassContext(
+      DexProgramClass clazz, ProgramDefinition context) {
+    handleVarHandleDesugaringClassContext(
+        clazz, context, additionsCollection, appView.options().getArtProfileOptions());
+    parent.acceptVarHandleDesugaringClassContext(clazz, context);
   }
 
   @Override
