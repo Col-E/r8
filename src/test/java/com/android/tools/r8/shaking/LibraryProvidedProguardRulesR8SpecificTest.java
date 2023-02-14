@@ -226,13 +226,16 @@ public class LibraryProvidedProguardRulesR8SpecificTest
                         .filter(
                             allOf(
                                     diagnosticMessage(containsString("Running R8 version main")),
-                                    diagnosticMessage(containsString("Using version 8.1.0 for")))
+                                    diagnosticMessage(
+                                        containsString(
+                                            "Using an artificial version newer than any known"
+                                                + " version")))
                                 ::matches)
                         .count()))
         .inspectProguardConfiguration(
             configuration ->
                 assertEquals(
-                    StringUtils.lines(EXPECTED_A.trim(), EXPECTED_B.trim(), EXPECTED_C.trim()),
+                    StringUtils.lines(EXPECTED_A.trim(), EXPECTED_B.trim(), EXPECTED_E.trim()),
                     configuration.toString()));
   }
 

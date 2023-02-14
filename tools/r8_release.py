@@ -325,17 +325,6 @@ def sed(pattern, replace, path):
       sources.write(re.sub(pattern, replace, line))
 
 
-def replace_startswith(prefix, replacement, path):
-  with open(path, "r") as source:
-    lines = source.readlines()
-  with open(path, "w") as source:
-    for line in lines:
-      if line.startswith(prefix):
-        source.write(replacement)
-      else:
-        source.write(line)
-
-
 def download_file(version, file, dst):
   dir = 'raw' if len(version) != 40 else 'raw/main'
   urllib.request.urlretrieve(
@@ -859,12 +848,6 @@ def prepare_branch(args):
         sed("R8_DEV_BRANCH = '%s.%s" % (result.group(1), result.group(2)),
           "R8_DEV_BRANCH = '%s.%s" % (str(semver.major), str(semver.minor)),
           THIS_FILE_RELATIVE)
-
-        # Update main version file with the new dev branch.
-        replace_startswith(
-          '  public static final String ACTIVE_DEV_VERSION = ',
-          '  public static final String ACTIVE_DEV_VERSION = "' + branch_version + '.0"',
-          R8_VERSION_FILE)
 
         message = \
             'Prepare %s for branch %s' % (THIS_FILE_RELATIVE, branch_version)

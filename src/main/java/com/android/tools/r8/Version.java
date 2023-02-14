@@ -15,11 +15,6 @@ public final class Version {
   // Therefore, changing this field could break our release scripts.
   public static final String LABEL = "main";
 
-  // The prefix of the active dev version line being worked on from this branch. This is used in the
-  // few cases where the compiler makes decisions based in the compiler version and where version
-  // 'main' cannot be used.
-  public static final String ACTIVE_DEV_VERSION = "8.1.0";
-
   private Version() {
   }
 

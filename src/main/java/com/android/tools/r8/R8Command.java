@@ -700,15 +700,17 @@ public final class R8Command extends BaseCompilerCommand {
                               Version.getPatchVersion())
                           : fakeCompilerVersion;
                   if (compilerVersion.getMajor() < 0) {
-                    compilerVersion = SemanticVersion.parse(Version.ACTIVE_DEV_VERSION);
+                    compilerVersion =
+                        SemanticVersion.create(
+                            Integer.MAX_VALUE, Integer.MAX_VALUE, Integer.MAX_VALUE);
                     reporter.warning(
                         "Running R8 version "
                             + Version.getVersionString()
-                            + " which cannot be represented as a semantic version. Using"
-                            + " version "
-                            + compilerVersion
-                            + " for selecting Proguard configurations embedded under"
-                            + " META-INF/");
+                            + ", which cannot be represented as a semantic version. Using"
+                            + " an artificial version newer than any known version for selecting"
+                            + " Proguard configurations embedded under META-INF/. This means that"
+                            + " all rules with a '-max-' qualifier will be excluded and all rules"
+                            + " with a -min- qualifier will be included.");
                   }
                   return compilerVersion;
                 });
