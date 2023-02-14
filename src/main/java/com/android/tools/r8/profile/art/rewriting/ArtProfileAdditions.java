@@ -4,6 +4,9 @@
 
 package com.android.tools.r8.profile.art.rewriting;
 
+import static com.android.tools.r8.utils.ConsumerUtils.emptyConsumer;
+import static com.android.tools.r8.utils.MapUtils.ignoreKey;
+
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.DexMethod;
@@ -16,23 +19,39 @@ import com.android.tools.r8.profile.art.ArtProfileClassRule;
 import com.android.tools.r8.profile.art.ArtProfileMethodRule;
 import com.android.tools.r8.profile.art.ArtProfileMethodRuleInfoImpl;
 import com.android.tools.r8.profile.art.ArtProfileRule;
+import com.android.tools.r8.utils.WorkList;
 import com.google.common.collect.Sets;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
 /** Mutable extension of an existing ArtProfile. */
 public class ArtProfileAdditions {
 
   public interface ArtProfileAdditionsBuilder {
 
-    ArtProfileAdditionsBuilder addRule(ProgramDefinition definition);
+    default ArtProfileAdditionsBuilder addRule(ProgramDefinition definition) {
+      return addRule(definition.getReference());
+    }
 
-    ArtProfileAdditionsBuilder addRule(DexReference reference);
+    default ArtProfileAdditionsBuilder addRule(DexReference reference) {
+      if (reference.isDexType()) {
+        return addClassRule(reference.asDexType());
+      } else {
+        assert reference.isDexMethod();
+        return addMethodRule(reference.asDexMethod());
+      }
+    }
+
+    ArtProfileAdditionsBuilder addClassRule(DexType type);
+
+    ArtProfileAdditionsBuilder addMethodRule(DexMethod method);
 
     ArtProfileAdditionsBuilder removeMovedMethodRule(
         ProgramMethod oldMethod, ProgramMethod newMethod);
@@ -46,12 +65,15 @@ public class ArtProfileAdditions {
       new ConcurrentHashMap<>();
   private final Set<DexMethod> methodRuleRemovals = Sets.newConcurrentHashSet();
 
+  private final NestedMethodRuleAdditionsGraph nestedMethodRuleAdditionsGraph =
+      new NestedMethodRuleAdditionsGraph();
+
   ArtProfileAdditions(ArtProfile artProfile) {
     this.artProfile = artProfile;
   }
 
   void applyIfContextIsInProfile(DexType context, Consumer<ArtProfileAdditions> fn) {
-    if (artProfile.containsClassRule(context)) {
+    if (artProfile.containsClassRule(context) || classRuleAdditions.containsKey(context)) {
       fn.accept(this);
     }
   }
@@ -64,14 +86,17 @@ public class ArtProfileAdditions {
           new ArtProfileAdditionsBuilder() {
 
             @Override
-            public ArtProfileAdditionsBuilder addRule(ProgramDefinition definition) {
-              return addRule(definition.getReference());
+            public ArtProfileAdditionsBuilder addClassRule(DexType type) {
+              ArtProfileAdditions.this.addClassRule(type);
+              return this;
             }
 
             @Override
-            public ArtProfileAdditionsBuilder addRule(DexReference reference) {
-              addRuleFromContext(
-                  reference, contextMethodRule, MethodRuleAdditionConfig.getDefault());
+            public ArtProfileAdditionsBuilder addMethodRule(DexMethod method) {
+              ArtProfileAdditions.this.addMethodRuleFromContext(
+                  method,
+                  methodRuleInfoBuilder ->
+                      methodRuleInfoBuilder.joinFlags(contextMethodRule.getMethodRuleInfo()));
               return this;
             }
 
@@ -82,18 +107,30 @@ public class ArtProfileAdditions {
               return this;
             }
           });
-    }
-  }
+    } else if (methodRuleAdditions.containsKey(context)) {
+      builderConsumer.accept(
+          new ArtProfileAdditionsBuilder() {
 
-  private void addRuleFromContext(
-      DexReference reference,
-      ArtProfileMethodRule contextMethodRule,
-      MethodRuleAdditionConfig config) {
-    if (reference.isDexType()) {
-      addClassRule(reference.asDexType());
-    } else {
-      assert reference.isDexMethod();
-      addMethodRuleFromContext(reference.asDexMethod(), contextMethodRule, config);
+            @Override
+            public ArtProfileAdditionsBuilder addClassRule(DexType type) {
+              ArtProfileAdditions.this.addClassRule(type);
+              return this;
+            }
+
+            @Override
+            public ArtProfileAdditionsBuilder addMethodRule(DexMethod method) {
+              ArtProfileAdditions.this.addMethodRuleFromContext(method, emptyConsumer());
+              nestedMethodRuleAdditionsGraph.recordMethodRuleInfoFlagsLargerThan(method, context);
+              return this;
+            }
+
+            @Override
+            public ArtProfileAdditionsBuilder removeMovedMethodRule(
+                ProgramMethod oldMethod, ProgramMethod newMethod) {
+              ArtProfileAdditions.this.removeMovedMethodRule(oldMethod, newMethod);
+              return this;
+            }
+          });
     }
   }
 
@@ -112,11 +149,9 @@ public class ArtProfileAdditions {
   }
 
   private void addMethodRuleFromContext(
-      DexMethod method, ArtProfileMethodRule contextMethodRule, MethodRuleAdditionConfig config) {
-    addMethodRule(
-        method,
-        methodRuleInfoBuilder ->
-            config.configureMethodRuleInfo(methodRuleInfoBuilder, contextMethodRule));
+      DexMethod method,
+      Consumer<ArtProfileMethodRuleInfoImpl.Builder> methodRuleInfoBuilderConsumer) {
+    addMethodRule(method, methodRuleInfoBuilderConsumer);
   }
 
   public ArtProfileAdditions addMethodRule(
@@ -152,6 +187,8 @@ public class ArtProfileAdditions {
       assert !hasRemovals();
       return artProfile;
     }
+
+    nestedMethodRuleAdditionsGraph.propagateMethodRuleInfoFlags(methodRuleAdditions);
 
     // Add existing rules to new profile.
     ArtProfile.Builder artProfileBuilder = ArtProfile.builder();
@@ -204,5 +241,50 @@ public class ArtProfileAdditions {
 
   void setArtProfile(ArtProfile artProfile) {
     this.artProfile = artProfile;
+  }
+
+  private static class NestedMethodRuleAdditionsGraph {
+
+    private final Map<DexMethod, Set<DexMethod>> successors = new ConcurrentHashMap<>();
+    private final Map<DexMethod, Set<DexMethod>> predecessors = new ConcurrentHashMap<>();
+
+    void recordMethodRuleInfoFlagsLargerThan(DexMethod largerFlags, DexMethod smallerFlags) {
+      predecessors
+          .computeIfAbsent(largerFlags, ignoreKey(Sets::newConcurrentHashSet))
+          .add(smallerFlags);
+      successors
+          .computeIfAbsent(smallerFlags, ignoreKey(Sets::newConcurrentHashSet))
+          .add(largerFlags);
+    }
+
+    void propagateMethodRuleInfoFlags(
+        Map<DexMethod, ArtProfileMethodRule.Builder> methodRuleAdditions) {
+      List<DexMethod> leaves =
+          successors.keySet().stream()
+              .filter(method -> predecessors.getOrDefault(method, Collections.emptySet()).isEmpty())
+              .collect(Collectors.toList());
+      WorkList<DexMethod> worklist = WorkList.newIdentityWorkList(leaves);
+      while (worklist.hasNext()) {
+        DexMethod method = worklist.next();
+        ArtProfileMethodRule.Builder methodRuleBuilder = methodRuleAdditions.get(method);
+        for (DexMethod successor : successors.getOrDefault(method, Collections.emptySet())) {
+          methodRuleAdditions
+              .get(successor)
+              .acceptMethodRuleInfoBuilder(
+                  methodRuleInfoBuilder -> {
+                    int oldFlags = methodRuleInfoBuilder.getFlags();
+                    methodRuleInfoBuilder.joinFlags(methodRuleBuilder);
+                    // If this assertion fails, that means we have synthetics with multiple
+                    // synthesizing contexts, which are not guaranteed to be processed before the
+                    // synthetic itself. In that case this assertion should simply be removed.
+                    assert methodRuleInfoBuilder.getFlags() == oldFlags;
+                  });
+          // Note: no need to addIgnoringSeenSet() since the graph will not have cycles. Indeed, it
+          // should never be the case that a method m2(), which is synthesized from method context
+          // m1(), would itself be a synthesizing context for m1().
+          worklist.addIfNotSeen(successor);
+        }
+      }
+    }
   }
 }

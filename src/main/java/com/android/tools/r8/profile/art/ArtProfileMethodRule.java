@@ -113,6 +113,10 @@ public class ArtProfileMethodRule extends ArtProfileRule {
       this.dexItemFactory = dexItemFactory;
     }
 
+    ArtProfileMethodRuleInfoImpl.Builder getMethodRuleInfoBuilder() {
+      return methodRuleInfoBuilder;
+    }
+
     @Override
     public boolean isMethodRuleBuilder() {
       return true;

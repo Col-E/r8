@@ -25,6 +25,10 @@ public class ArtProfileMethodRuleInfoImpl implements ArtProfileMethodRuleInfo {
     return EMPTY;
   }
 
+  public int getFlags() {
+    return flags;
+  }
+
   public boolean isEmpty() {
     return flags == 0;
   }
@@ -97,6 +101,10 @@ public class ArtProfileMethodRuleInfoImpl implements ArtProfileMethodRuleInfo {
       return this;
     }
 
+    public int getFlags() {
+      return flags;
+    }
+
     public Builder merge(ArtProfileMethodRuleInfo methodRuleInfo) {
       if (methodRuleInfo.isHot()) {
         setIsHot();
@@ -141,7 +149,12 @@ public class ArtProfileMethodRuleInfoImpl implements ArtProfileMethodRuleInfo {
     }
 
     public Builder joinFlags(ArtProfileMethodRuleInfoImpl methodRuleInfo) {
-      flags |= methodRuleInfo.flags;
+      flags |= methodRuleInfo.getFlags();
+      return this;
+    }
+
+    public Builder joinFlags(ArtProfileMethodRule.Builder methodRuleBuilder) {
+      flags |= methodRuleBuilder.getMethodRuleInfoBuilder().getFlags();
       return this;
     }
 
