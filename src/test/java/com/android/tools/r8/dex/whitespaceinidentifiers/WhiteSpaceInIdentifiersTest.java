@@ -7,15 +7,21 @@ import static com.android.tools.r8.DiagnosticsMatcher.diagnosticException;
 import static com.android.tools.r8.DiagnosticsMatcher.diagnosticMessage;
 import static org.hamcrest.CoreMatchers.allOf;
 import static org.hamcrest.CoreMatchers.containsString;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.CompilationFailedException;
+import com.android.tools.r8.ProguardVersion;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestCompilerBuilder;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.naming.ProguardMapReader.ParseException;
+import com.android.tools.r8.naming.retrace.StackTrace;
+import com.android.tools.r8.naming.retrace.StackTrace.StackTraceLine;
 import com.android.tools.r8.transformers.ClassFileTransformer.MethodPredicate;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.DexVersion;
@@ -36,7 +42,7 @@ public class WhiteSpaceInIdentifiersTest extends TestBase {
 
   @Parameters(name = "{0}")
   public static List<Object[]> data() {
-    return buildParameters(getTestParameters().withDexRuntimesAndAllApiLevels().build());
+    return buildParameters(getTestParameters().withAllRuntimes().withAllApiLevels().build());
   }
 
   private static final String EXPECTED_OUTPUT =
@@ -44,12 +50,25 @@ public class WhiteSpaceInIdentifiersTest extends TestBase {
           "0x20", "0xa0", "0x1680", "0x2000", "0x2001", "0x2002", "0x2003", "0x2004", "0x2005",
           "0x2006", "0x2007", "0x2008", "0x2009", "0x200a", "0x202f", "0x205f", "0x3000");
 
-  public void test(TestCompilerBuilder<?, ?, ?, ?, ?> testBuilder) throws Exception {
+  private void assumeParametersWithSupportForWhitespaceInIdentifiers() {
+    assumeTrue(
+        parameters.isCfRuntime()
+            || (parameters.isDexRuntime()
+                && parameters.getApiLevel().isGreaterThanOrEqualTo(AndroidApiLevel.R)));
+  }
+
+  private void assumeDexRuntimeSupportingDexVersion039() {
+    assumeTrue(
+        parameters.isDexRuntime()
+            && parameters.getApiLevel().getDexVersion().isGreaterThanOrEqualTo(DexVersion.V39));
+  }
+
+  public void configure(TestCompilerBuilder<?, ?, ?, ?, ?> testBuilder) throws Exception {
     testBuilder
         .addProgramClassFileData(getTransformed())
-        .setMinApi(parameters.getApiLevel())
+        .applyIf(parameters.isDexRuntime(), b -> b.setMinApi(parameters.getApiLevel()))
         .applyIf(
-            parameters.getApiLevel().isLessThan(AndroidApiLevel.R),
+            parameters.isDexRuntime() && parameters.getApiLevel().isLessThan(AndroidApiLevel.R),
             b -> {
               try {
                 b.compileWithExpectedDiagnostics(
@@ -69,25 +88,69 @@ public class WhiteSpaceInIdentifiersTest extends TestBase {
 
   @Test
   public void testD8() throws Exception {
-    test(testForD8(parameters.getBackend()));
+    parameters.assumeDexRuntime();
+    configure(testForD8(parameters.getBackend()));
   }
 
   @Test
   public void testR8() throws Exception {
-    try {
-      test(testForR8(parameters.getBackend()).addKeepMainRule(TestClass.class));
-    } catch (RuntimeException e) {
-      // TODO(b/141287396): Proguard maps with spaces in identifiers are not supported. Running
-      //  on R8 always creates an inspector to find the name of the potentially renamed main class.
-      assertTrue(e.getCause() instanceof ExecutionException);
-      assertTrue(e.getCause().getCause() instanceof ParseException);
-    }
+    assumeParametersWithSupportForWhitespaceInIdentifiers();
+    Exception e =
+        assertThrows(
+            RuntimeException.class,
+            () -> configure(testForR8(parameters.getBackend()).addKeepMainRule(TestClass.class)));
+    // TODO(b/141287396): Proguard maps with spaces in identifiers are not supported. Running
+    //  on R8 always creates an inspector to find the name of the potentially renamed main class.
+    assertTrue(e.getCause() instanceof ExecutionException);
+    assertTrue(e.getCause().getCause() instanceof ParseException);
+  }
+
+  @Test
+  public void testR8Mapping() throws Exception {
+    assumeParametersWithSupportForWhitespaceInIdentifiers();
+    String map =
+        testForR8(parameters.getBackend())
+            .addProgramClassFileData(getTransformed())
+            .applyIf(parameters.isDexRuntime(), b -> b.setMinApi(parameters.getApiLevel()))
+            .addKeepMainRule(TestClass.class)
+            .compile()
+            .getProguardMap();
+    // R8 renames methods with white space, so they appear in the mapping file.
+    assertTrue(StringUtils.splitLines(map).size() > 40);
+  }
+
+  @Test
+  public void testProguard() throws Exception {
+    parameters.assumeCfRuntime();
+    configure(
+        testForProguard(ProguardVersion.V7_0_0)
+            .addKeepMainRule(TestClass.class)
+            .addDontWarn(TestClass.class.getTypeName()));
+  }
+
+  @Test
+  public void testProguardMapping() throws Exception {
+    parameters.assumeCfRuntime();
+    String map =
+        testForProguard(ProguardVersion.V7_0_0)
+            .addProgramClassFileData(getTransformed())
+            .addKeepMainRule(TestClass.class)
+            .addDontWarn(TestClass.class.getTypeName())
+            .compile()
+            .getProguardMap();
+    // Proguard leaves the methods with white space alone, so they don't need to appear in the
+    // mapping file.
+    assertEquals(
+        StringUtils.lines(
+            TestClass.class.getTypeName() + " -> " + TestClass.class.getTypeName() + ":",
+            "    void <init>() -> <init>",
+            "    void main(java.lang.String[]) -> main"),
+        map);
   }
 
   @Test
   public void testD8MergeWithSpaces() throws Exception {
-    assumeTrue(parameters.getApiLevel().getDexVersion().isGreaterThanOrEqualTo(DexVersion.V39));
-
+    assumeDexRuntimeSupportingDexVersion039();
     // Compile with API level 30 to allow white space in identifiers. This generates DEX
     // version 039.
     Path dex =
@@ -121,7 +184,7 @@ public class WhiteSpaceInIdentifiersTest extends TestBase {
 
   @Test
   public void testD8RunWithSpaces() throws Exception {
-    assumeTrue(parameters.getApiLevel().getDexVersion().isGreaterThanOrEqualTo(DexVersion.V39));
+    assumeDexRuntimeSupportingDexVersion039();
     testForD8(parameters.getBackend())
         .addProgramClassFileData(getTransformed())
         .setMinApi(AndroidApiLevel.R)
@@ -134,7 +197,7 @@ public class WhiteSpaceInIdentifiersTest extends TestBase {
 
   @Test
   public void testD8RunWithSpacesUsingDexV40() throws Exception {
-    assumeTrue(parameters.getApiLevel().getDexVersion().isGreaterThanOrEqualTo(DexVersion.V39));
+    assumeDexRuntimeSupportingDexVersion039();
     testForD8(parameters.getBackend())
         .addOptionsModification(options -> options.testing.dexVersion40FromApiLevel30 = true)
         .addProgramClassFileData(getTransformed())
@@ -146,6 +209,34 @@ public class WhiteSpaceInIdentifiersTest extends TestBase {
                 b.assertFailureWithErrorThatMatches(
                     allOf(containsString("Unrecognized version"), containsString("0 4 0"))),
             b -> b.assertSuccessWithOutput(EXPECTED_OUTPUT));
+  }
+
+  @Test
+  public void testJvmStackTrace() throws Exception {
+    parameters.assumeCfRuntime();
+    testForJvm()
+        .addProgramClassFileData(getTransformed())
+        .run(parameters.asCfRuntime(), TestClass.class, "")
+        .assertFailureWithErrorThatThrows(RuntimeException.class)
+        .inspectOriginalStackTrace(
+            stackTrace ->
+                assertThat(
+                    stackTrace,
+                    StackTrace.isSameExceptForLineNumbers(
+                        StackTrace.builder()
+                            .add(
+                                StackTraceLine.builder()
+                                    .setMethodName(" ")
+                                    .setClassName(TestClass.class.getTypeName())
+                                    .setFileName("WhiteSpaceInIdentifiersTest.java")
+                                    .build())
+                            .add(
+                                StackTraceLine.builder()
+                                    .setMethodName("main")
+                                    .setClassName(TestClass.class.getTypeName())
+                                    .setFileName("WhiteSpaceInIdentifiersTest.java")
+                                    .build())
+                            .build())));
   }
 
   private String rename(String name) {
@@ -172,8 +263,11 @@ public class WhiteSpaceInIdentifiersTest extends TestBase {
   // Supported on Art in https://android-review.git.corp.google.com/c/platform/art/+/1106719.
   static class TestClass {
 
-    private static void t20() {
+    private static void t20(boolean throwException) {
       System.out.println("0x20");
+      if (throwException) {
+        throw new RuntimeException();
+      }
     }
 
     private static void ta0() {
@@ -241,7 +335,7 @@ public class WhiteSpaceInIdentifiersTest extends TestBase {
     }
 
     public static void main(String[] args) {
-      t20();
+      t20(args.length > 0);
       ta0();
       t1680();
       t2000();
