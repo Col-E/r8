@@ -5,21 +5,38 @@
 package com.android.tools.r8.classmerging.horizontal;
 
 import static com.android.tools.r8.naming.retrace.StackTrace.isSame;
+import static com.android.tools.r8.utils.codeinspector.Matchers.isAbsent;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
+import static com.android.tools.r8.utils.codeinspector.Matchers.notIf;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.android.tools.r8.NeverClassInline;
-import com.android.tools.r8.NeverInline;
+import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestRuntime.CfRuntime;
 import com.android.tools.r8.naming.retrace.StackTrace;
-import com.android.tools.r8.utils.codeinspector.HorizontallyMergedClassesInspector;
+import com.android.tools.r8.utils.BooleanUtils;
+import com.android.tools.r8.utils.InternalOptions.InlinerOptions;
+import java.util.List;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameter;
 
-public class MergedVirtualMethodStackTraceTest extends HorizontalClassMergingTestBase {
-  public MergedVirtualMethodStackTraceTest(TestParameters parameters) {
-    super(parameters);
+@RunWith(Parameterized.class)
+public class MergedVirtualMethodStackTraceTest extends TestBase {
+
+  @Parameter(0)
+  public TestParameters parameters;
+
+  @Parameter(1)
+  public boolean forceInlineOnly;
+
+  @Parameterized.Parameters(name = "{0}, forceInlineOnly={1}")
+  public static List<Object[]> data() {
+    return buildParameters(
+        getTestParameters().withAllRuntimesAndApiLevels().build(), BooleanUtils.values());
   }
 
   public StackTrace expectedStackTrace;
@@ -30,7 +47,7 @@ public class MergedVirtualMethodStackTraceTest extends HorizontalClassMergingTes
     expectedStackTrace =
         testForJvm()
             .addTestClasspath()
-            .run(CfRuntime.getSystemRuntime(), Program.Main.class)
+            .run(CfRuntime.getSystemRuntime(), Main.class)
             .assertFailure()
             .map(StackTrace::extractFromJvm);
   }
@@ -38,63 +55,45 @@ public class MergedVirtualMethodStackTraceTest extends HorizontalClassMergingTes
   @Test
   public void testR8() throws Exception {
     testForR8(parameters.getBackend())
-        .addInnerClasses(Program.class)
-        .addKeepMainRule(Program.Main.class)
+        .addInnerClasses(getClass())
+        .addKeepMainRule(Main.class)
         .addKeepAttributeLineNumberTable()
         .addKeepAttributeSourceFile()
-        .addDontWarn(C.class)
-        .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
         .setMinApi(parameters.getApiLevel())
+        .applyIf(
+            forceInlineOnly, b -> b.addOptionsModification(InlinerOptions::setOnlyForceInlining))
         .addHorizontallyMergedClassesInspector(
-            HorizontallyMergedClassesInspector::assertNoClassesMerged)
-        .run(parameters.getRuntime(), Program.Main.class)
+            inspector -> inspector.assertMergedInto(B.class, A.class))
+        .run(parameters.getRuntime(), Main.class)
         .inspectStackTrace(
             (stackTrace, codeInspector) -> {
-              assertThat(codeInspector.clazz(Program.A.class), isPresent());
-              assertThat(codeInspector.clazz(Program.B.class), isPresent());
+              assertThat(
+                  codeInspector.clazz(A.class),
+                  notIf(isPresent(), !forceInlineOnly && !parameters.isDexRuntime()));
+              assertThat(codeInspector.clazz(B.class), isAbsent());
               assertThat(stackTrace, isSame(expectedStackTrace));
             });
   }
 
-  public static class C {
-    public static void foo() {
-      System.out.println("foo c");
+  @NeverClassInline
+  public static class A {
+    public void foo() {
+      System.out.println("foo a");
     }
   }
 
-  public static class Program {
-    @NeverClassInline
-    public static class A {
-      @NeverInline
-      public void foo() {
-        System.out.println("foo a");
-        try {
-          // Undefined reference, prevents inlining.
-          C.foo();
-        } catch (NoClassDefFoundError e) {
-        }
-      }
+  @NeverClassInline
+  public static class B {
+    public void foo() {
+      throw new RuntimeException();
     }
+  }
 
-    @NeverClassInline
-    public static class B {
-      @NeverInline
-      public void foo() {
-        try {
-          // Undefined reference, prevents inlining.
-          C.foo();
-        } catch (NoClassDefFoundError e) {
-        }
-        throw new RuntimeException();
-      }
-    }
-
-    public static class Main {
-      public static void main(String[] args) {
-        new A().foo();
-        new B().foo();
-      }
+  public static class Main {
+    public static void main(String[] args) {
+      new A().foo();
+      new B().foo();
     }
   }
 }
