@@ -4,7 +4,6 @@
 
 package com.android.tools.r8.ir.desugar;
 
-import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.profile.art.rewriting.ArtProfileCollectionAdditions;
 import com.android.tools.r8.profile.art.rewriting.ArtProfileRewritingCovariantReturnTypeAnnotationTransformerEventConsumer;
