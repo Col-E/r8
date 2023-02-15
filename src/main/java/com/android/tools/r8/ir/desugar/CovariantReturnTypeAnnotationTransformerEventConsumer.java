@@ -13,8 +13,6 @@ public interface CovariantReturnTypeAnnotationTransformerEventConsumer {
 
   void acceptCovariantReturnTypeBridgeMethod(ProgramMethod bridge, ProgramMethod target);
 
-  void finished(AppView<?> appView);
-
   static CovariantReturnTypeAnnotationTransformerEventConsumer create(
       ArtProfileCollectionAdditions artProfileCollectionAdditions) {
     if (artProfileCollectionAdditions.isNop()) {
@@ -42,11 +40,6 @@ public interface CovariantReturnTypeAnnotationTransformerEventConsumer {
 
     @Override
     public void acceptCovariantReturnTypeBridgeMethod(ProgramMethod bridge, ProgramMethod target) {
-      // Intentionally empty.
-    }
-
-    @Override
-    public void finished(AppView<?> appView) {
       // Intentionally empty.
     }
   }

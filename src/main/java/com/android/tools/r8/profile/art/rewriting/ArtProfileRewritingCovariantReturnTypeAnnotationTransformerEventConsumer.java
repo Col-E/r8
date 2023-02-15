@@ -36,10 +36,4 @@ public class ArtProfileRewritingCovariantReturnTypeAnnotationTransformerEventCon
     additionsCollection.addMethodIfContextIsInProfile(bridge, target);
     parent.acceptCovariantReturnTypeBridgeMethod(bridge, target);
   }
-
-  @Override
-  public void finished(AppView<?> appView) {
-    additionsCollection.commit(appView);
-    parent.finished(appView);
-  }
 }

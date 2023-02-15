@@ -88,7 +88,6 @@ public final class CovariantReturnTypeAnnotationTransformer {
       methodsWithCovariantReturnTypeAnnotation.clear();
       covariantReturnTypeMethods.clear();
     }
-    eventConsumer.finished(appView);
   }
 
   private void updateClass(
