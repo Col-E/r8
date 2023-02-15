@@ -5,7 +5,6 @@
 package com.android.tools.r8.profile.art.rewriting;
 
 import static com.android.tools.r8.profile.art.rewriting.ArtProfileRewritingVarHandleDesugaringEventConsumerUtils.handleVarHandleDesugaringClassContext;
-import static com.android.tools.r8.utils.ConsumerUtils.emptyConsumer;
 
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClassAndMethod;
@@ -20,6 +19,7 @@ import com.android.tools.r8.ir.desugar.LambdaClass;
 import com.android.tools.r8.ir.desugar.LambdaClass.Target;
 import com.android.tools.r8.ir.desugar.constantdynamic.ConstantDynamicClass;
 import com.android.tools.r8.ir.desugar.invokespecial.InvokeSpecialBridgeInfo;
+import com.android.tools.r8.ir.desugar.nest.NestBasedAccessDesugaringEventConsumer;
 import java.util.List;
 
 public class ArtProfileRewritingCfInstructionDesugaringEventConsumer
@@ -29,6 +29,8 @@ public class ArtProfileRewritingCfInstructionDesugaringEventConsumer
   private final ConcreteArtProfileCollectionAdditions additionsCollection;
   private final CfInstructionDesugaringEventConsumer parent;
 
+  private final NestBasedAccessDesugaringEventConsumer nestBasedAccessDesugaringEventConsumer;
+
   private ArtProfileRewritingCfInstructionDesugaringEventConsumer(
       AppView<?> appView,
       ConcreteArtProfileCollectionAdditions additionsCollection,
@@ -36,6 +38,9 @@ public class ArtProfileRewritingCfInstructionDesugaringEventConsumer
     this.appView = appView;
     this.additionsCollection = additionsCollection;
     this.parent = parent;
+    this.nestBasedAccessDesugaringEventConsumer =
+        ArtProfileRewritingNestBasedAccessDesugaringEventConsumer.attach(
+            additionsCollection, NestBasedAccessDesugaringEventConsumer.empty());
   }
 
   public static CfInstructionDesugaringEventConsumer attach(
@@ -231,36 +236,29 @@ public class ArtProfileRewritingCfInstructionDesugaringEventConsumer
       ProgramMethod bridge,
       DexProgramClass argumentClass,
       DexClassAndMethod context) {
-    if (context.isProgramMethod()) {
-      additionsCollection.applyIfContextIsInProfile(
-          context.asProgramMethod(),
-          additionsBuilder -> additionsBuilder.addRule(argumentClass).addRule(bridge));
-    } else {
-      additionsCollection.apply(
-          additions ->
-              additions.addClassRule(argumentClass).addMethodRule(bridge, emptyConsumer()));
-    }
+    nestBasedAccessDesugaringEventConsumer.acceptNestConstructorBridge(
+        target, bridge, argumentClass, context);
     parent.acceptNestConstructorBridge(target, bridge, argumentClass, context);
   }
 
   @Override
   public void acceptNestFieldGetBridge(
       ProgramField target, ProgramMethod bridge, DexClassAndMethod context) {
-    additionsCollection.addMethodIfContextIsInProfile(bridge, context, emptyConsumer());
+    nestBasedAccessDesugaringEventConsumer.acceptNestFieldGetBridge(target, bridge, context);
     parent.acceptNestFieldGetBridge(target, bridge, context);
   }
 
   @Override
   public void acceptNestFieldPutBridge(
       ProgramField target, ProgramMethod bridge, DexClassAndMethod context) {
-    additionsCollection.addMethodIfContextIsInProfile(bridge, context, emptyConsumer());
+    nestBasedAccessDesugaringEventConsumer.acceptNestFieldPutBridge(target, bridge, context);
     parent.acceptNestFieldPutBridge(target, bridge, context);
   }
 
   @Override
   public void acceptNestMethodBridge(
       ProgramMethod target, ProgramMethod bridge, DexClassAndMethod context) {
-    additionsCollection.addMethodIfContextIsInProfile(bridge, context, emptyConsumer());
+    nestBasedAccessDesugaringEventConsumer.acceptNestMethodBridge(target, bridge, context);
     parent.acceptNestMethodBridge(target, bridge, context);
   }
 

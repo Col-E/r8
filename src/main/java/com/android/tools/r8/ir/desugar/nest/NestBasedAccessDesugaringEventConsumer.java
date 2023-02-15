@@ -25,4 +25,48 @@ public interface NestBasedAccessDesugaringEventConsumer {
 
   void acceptNestMethodBridge(
       ProgramMethod target, ProgramMethod bridge, DexClassAndMethod context);
+
+  static EmptyNestBasedAccessDesugaringEventConsumer empty() {
+    return EmptyNestBasedAccessDesugaringEventConsumer.getInstance();
+  }
+
+  class EmptyNestBasedAccessDesugaringEventConsumer
+      implements NestBasedAccessDesugaringEventConsumer {
+
+    private static final EmptyNestBasedAccessDesugaringEventConsumer INSTANCE =
+        new EmptyNestBasedAccessDesugaringEventConsumer();
+
+    private EmptyNestBasedAccessDesugaringEventConsumer() {}
+
+    static EmptyNestBasedAccessDesugaringEventConsumer getInstance() {
+      return INSTANCE;
+    }
+
+    @Override
+    public void acceptNestConstructorBridge(
+        ProgramMethod target,
+        ProgramMethod bridge,
+        DexProgramClass argumentClass,
+        DexClassAndMethod context) {
+      // Intentionally empty.
+    }
+
+    @Override
+    public void acceptNestFieldGetBridge(
+        ProgramField target, ProgramMethod bridge, DexClassAndMethod context) {
+      // Intentionally empty.
+    }
+
+    @Override
+    public void acceptNestFieldPutBridge(
+        ProgramField target, ProgramMethod bridge, DexClassAndMethod context) {
+      // Intentionally empty.
+    }
+
+    @Override
+    public void acceptNestMethodBridge(
+        ProgramMethod target, ProgramMethod bridge, DexClassAndMethod context) {
+      // Intentionally empty.
+    }
+  }
 }

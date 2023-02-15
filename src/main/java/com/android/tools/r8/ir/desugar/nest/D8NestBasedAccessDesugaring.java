@@ -19,7 +19,8 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ProgramField;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.UseRegistry;
-import com.android.tools.r8.ir.conversion.MethodProcessor;
+import com.android.tools.r8.ir.conversion.D8MethodProcessor;
+import com.android.tools.r8.profile.art.rewriting.ArtProfileRewritingNestBasedAccessDesugaringEventConsumer;
 import com.android.tools.r8.utils.ThreadUtils;
 import com.google.common.collect.Iterables;
 import java.util.ArrayList;
@@ -81,7 +82,8 @@ public class D8NestBasedAccessDesugaring extends NestBasedAccessDesugaring {
   }
 
   public void synthesizeBridgesForNestBasedAccessesOnClasspath(
-      MethodProcessor methodProcessor, ExecutorService executorService) throws ExecutionException {
+      D8MethodProcessor methodProcessor, ExecutorService executorService)
+      throws ExecutionException {
     List<DexClasspathClass> classpathClassesInNests = new ArrayList<>();
     forEachNest(
         nest -> {
@@ -92,35 +94,37 @@ public class D8NestBasedAccessDesugaring extends NestBasedAccessDesugaring {
         });
 
     NestBasedAccessDesugaringEventConsumer eventConsumer =
-        new NestBasedAccessDesugaringEventConsumer() {
+        ArtProfileRewritingNestBasedAccessDesugaringEventConsumer.attach(
+            methodProcessor.getArtProfileCollectionAdditions(),
+            new NestBasedAccessDesugaringEventConsumer() {
 
-          @Override
-          public void acceptNestConstructorBridge(
-              ProgramMethod target,
-              ProgramMethod bridge,
-              DexProgramClass argumentClass,
-              DexClassAndMethod context) {
-            methodProcessor.scheduleDesugaredMethodForProcessing(bridge);
-          }
+              @Override
+              public void acceptNestConstructorBridge(
+                  ProgramMethod target,
+                  ProgramMethod bridge,
+                  DexProgramClass argumentClass,
+                  DexClassAndMethod context) {
+                methodProcessor.scheduleDesugaredMethodForProcessing(bridge);
+              }
 
-          @Override
-          public void acceptNestFieldGetBridge(
-              ProgramField target, ProgramMethod bridge, DexClassAndMethod context) {
-            methodProcessor.scheduleDesugaredMethodForProcessing(bridge);
-          }
+              @Override
+              public void acceptNestFieldGetBridge(
+                  ProgramField target, ProgramMethod bridge, DexClassAndMethod context) {
+                methodProcessor.scheduleDesugaredMethodForProcessing(bridge);
+              }
 
-          @Override
-          public void acceptNestFieldPutBridge(
-              ProgramField target, ProgramMethod bridge, DexClassAndMethod context) {
-            methodProcessor.scheduleDesugaredMethodForProcessing(bridge);
-          }
+              @Override
+              public void acceptNestFieldPutBridge(
+                  ProgramField target, ProgramMethod bridge, DexClassAndMethod context) {
+                methodProcessor.scheduleDesugaredMethodForProcessing(bridge);
+              }
 
-          @Override
-          public void acceptNestMethodBridge(
-              ProgramMethod target, ProgramMethod bridge, DexClassAndMethod context) {
-            methodProcessor.scheduleDesugaredMethodForProcessing(bridge);
-          }
-        };
+              @Override
+              public void acceptNestMethodBridge(
+                  ProgramMethod target, ProgramMethod bridge, DexClassAndMethod context) {
+                methodProcessor.scheduleDesugaredMethodForProcessing(bridge);
+              }
+            });
     ThreadUtils.processItems(
         classpathClassesInNests,
         clazz -> synthesizeBridgesForNestBasedAccessesOnClasspath(clazz, eventConsumer),

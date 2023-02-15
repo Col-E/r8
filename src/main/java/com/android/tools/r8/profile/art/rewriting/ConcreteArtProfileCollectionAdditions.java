@@ -27,6 +27,8 @@ public class ConcreteArtProfileCollectionAdditions extends ArtProfileCollectionA
 
   private final List<ArtProfileAdditions> additionsCollection;
 
+  private boolean committed = false;
+
   private ConcreteArtProfileCollectionAdditions(List<ArtProfileAdditions> additionsCollection) {
     this.additionsCollection = additionsCollection;
   }
@@ -112,9 +114,11 @@ public class ConcreteArtProfileCollectionAdditions extends ArtProfileCollectionA
 
   @Override
   public void commit(AppView<?> appView) {
+    assert !committed;
     if (hasAdditions()) {
       appView.setArtProfileCollection(createNewArtProfileCollection());
     }
+    committed = true;
   }
 
   private ArtProfileCollection createNewArtProfileCollection() {
