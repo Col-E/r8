@@ -765,7 +765,8 @@ public class IRConverter {
     timing.end();
     if (assertionErrorTwoArgsConstructorRewriter != null) {
       timing.begin("Rewrite AssertionError");
-      assertionErrorTwoArgsConstructorRewriter.rewrite(code, methodProcessingContext);
+      assertionErrorTwoArgsConstructorRewriter.rewrite(
+          code, methodProcessor, methodProcessingContext);
       timing.end();
     }
     timing.begin("Run CSE");

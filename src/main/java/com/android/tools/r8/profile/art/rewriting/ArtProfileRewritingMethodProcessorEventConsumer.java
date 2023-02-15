@@ -43,6 +43,12 @@ public class ArtProfileRewritingMethodProcessorEventConsumer extends MethodProce
   }
 
   @Override
+  public void acceptAssertionErrorCreateMethod(ProgramMethod method, ProgramMethod context) {
+    additionsCollection.addMethodAndHolderIfContextIsInProfile(method, context);
+    parent.acceptAssertionErrorCreateMethod(method, context);
+  }
+
+  @Override
   public void acceptEnumUnboxerCheckNotZeroContext(ProgramMethod method, ProgramMethod context) {
     additionsCollection.applyIfContextIsInProfile(
         context, additionsBuilder -> additionsBuilder.addRule(method));

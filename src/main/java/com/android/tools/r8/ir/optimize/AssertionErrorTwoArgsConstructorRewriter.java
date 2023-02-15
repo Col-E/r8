@@ -21,6 +21,7 @@ import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.ir.code.InvokeStatic;
 import com.android.tools.r8.ir.code.NewInstance;
 import com.android.tools.r8.ir.code.Value;
+import com.android.tools.r8.ir.conversion.MethodProcessor;
 import com.android.tools.r8.ir.desugar.backports.BackportedMethods;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedback;
 import com.android.tools.r8.utils.InternalOptions;
@@ -42,7 +43,10 @@ public class AssertionErrorTwoArgsConstructorRewriter {
     this.dexItemFactory = appView.dexItemFactory();
   }
 
-  public void rewrite(IRCode code, MethodProcessingContext methodProcessingContext) {
+  public void rewrite(
+      IRCode code,
+      MethodProcessor methodProcessor,
+      MethodProcessingContext methodProcessingContext) {
     if (options.canUseAssertionErrorTwoArgumentConstructor()) {
       return;
     }
@@ -66,7 +70,8 @@ public class AssertionErrorTwoArgsConstructorRewriter {
             }
             InvokeStatic invoke =
                 InvokeStatic.builder()
-                    .setMethod(createSynthetic(methodProcessingContext).getReference())
+                    .setMethod(
+                        createSynthetic(methodProcessor, methodProcessingContext).getReference())
                     .setFreshOutValue(
                         code, dexItemFactory.assertionErrorType.toTypeElement(appView))
                     .setPosition(current)
@@ -94,7 +99,8 @@ public class AssertionErrorTwoArgsConstructorRewriter {
     return synthesizedMethods;
   }
 
-  private ProgramMethod createSynthetic(MethodProcessingContext methodProcessingContext) {
+  private ProgramMethod createSynthetic(
+      MethodProcessor methodProcessor, MethodProcessingContext methodProcessingContext) {
     DexItemFactory factory = appView.dexItemFactory();
     DexProto proto =
         factory.createProto(factory.assertionErrorType, factory.stringType, factory.throwableType);
@@ -126,6 +132,9 @@ public class AssertionErrorTwoArgsConstructorRewriter {
                       .toTypeElement(appView, Nullability.definitelyNotNull())
                       .asClassType()));
     }
+    methodProcessor
+        .getEventConsumer()
+        .acceptAssertionErrorCreateMethod(method, methodProcessingContext.getMethodContext());
     return method;
   }
 }

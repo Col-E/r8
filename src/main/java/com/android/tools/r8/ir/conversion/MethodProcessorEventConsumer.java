@@ -7,6 +7,7 @@ package com.android.tools.r8.ir.conversion;
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.ProgramMethod;
+import com.android.tools.r8.ir.optimize.AssertionErrorTwoArgsConstructorRewriterEventConsumer;
 import com.android.tools.r8.ir.optimize.ServiceLoaderRewriterEventConsumer;
 import com.android.tools.r8.ir.optimize.UtilityMethodsForCodeOptimizationsEventConsumer;
 import com.android.tools.r8.ir.optimize.api.InstanceInitializerOutlinerEventConsumer;
@@ -16,7 +17,8 @@ import com.android.tools.r8.profile.art.rewriting.ArtProfileRewritingMethodProce
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 
 public abstract class MethodProcessorEventConsumer
-    implements EnumUnboxerMethodProcessorEventConsumer,
+    implements AssertionErrorTwoArgsConstructorRewriterEventConsumer,
+        EnumUnboxerMethodProcessorEventConsumer,
         InstanceInitializerOutlinerEventConsumer,
         ServiceLoaderRewriterEventConsumer,
         UtilityMethodsForCodeOptimizationsEventConsumer {
@@ -47,6 +49,11 @@ public abstract class MethodProcessorEventConsumer
 
     static EmptyMethodProcessorEventConsumer getInstance() {
       return INSTANCE;
+    }
+
+    @Override
+    public void acceptAssertionErrorCreateMethod(ProgramMethod method, ProgramMethod context) {
+      // Intentionally empty.
     }
 
     @Override
