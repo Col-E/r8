@@ -21,6 +21,7 @@ import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.DumpInputFlags;
 import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.InternalOptions.DesugarState;
+import com.android.tools.r8.utils.ProgramConsumerUtils;
 import com.android.tools.r8.utils.Reporter;
 import com.android.tools.r8.utils.ThreadUtils;
 import java.nio.file.Path;
@@ -147,6 +148,7 @@ public abstract class BaseCompilerCommand extends BaseCommand {
 
   void dumpBaseCommandOptions(DumpOptions.Builder builder) {
     builder
+        .setBackend(ProgramConsumerUtils.getBackend(programConsumer))
         .setCompilationMode(getMode())
         .setMinApi(getMinApiLevel())
         .setOptimizeMultidexForLinearAlloc(isOptimizeMultidexForLinearAlloc())

@@ -289,11 +289,8 @@ def determine_program_jar(args, dump):
   return dump.program_jar()
 
 def determine_class_file(args, build_properties):
-  if args.classfile:
-    return args.classfile
-  if 'classfile' in build_properties:
-    return True
-  return None
+  return args.classfile \
+      or build_properties.get('backend', 'dex').lower() == 'cf'
 
 def determine_android_platform_build(args, build_properties):
   if args.android_platform_build:

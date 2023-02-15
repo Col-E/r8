@@ -8,6 +8,7 @@ import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.DataResourceProvider.Visitor;
 import com.android.tools.r8.ProgramResource.Kind;
+import com.android.tools.r8.dex.Marker;
 import com.android.tools.r8.dex.Marker.Tool;
 import com.android.tools.r8.dump.DumpOptions;
 import com.android.tools.r8.origin.Origin;
@@ -42,7 +43,7 @@ public class AndroidAppDumpsTest extends TestBase {
   @Test
   public void test() throws Exception {
     InternalOptions options = new InternalOptions();
-    options.dumpOptions = DumpOptions.builder(Tool.D8).build();
+    options.dumpOptions = DumpOptions.builder(Tool.D8).setBackend(Marker.Backend.DEX).build();
 
     String dataResourceName = "my-resource.bin";
     byte[] dataResourceData = new byte[] {1, 2, 3};
