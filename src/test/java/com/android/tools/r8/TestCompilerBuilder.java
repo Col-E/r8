@@ -57,6 +57,7 @@ public abstract class TestCompilerBuilder<
         options.testing.allowUnnecessaryDontWarnWildcards = false;
         options.horizontalClassMergerOptions().enable();
         options.horizontalClassMergerOptions().setEnableInterfaceMerging();
+        options.getArtProfileOptions().setEnableCompletenessCheckForTesting(true);
         options
             .getCfCodeAnalysisOptions()
             .setAllowUnreachableCfBlocks(false)
