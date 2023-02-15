@@ -7,6 +7,7 @@ import com.android.tools.r8.keepanno.annotations.FieldAccessFlags;
 import com.android.tools.r8.keepanno.annotations.KeepBinding;
 import com.android.tools.r8.keepanno.annotations.KeepCondition;
 import com.android.tools.r8.keepanno.annotations.KeepEdge;
+import com.android.tools.r8.keepanno.annotations.KeepForApi;
 import com.android.tools.r8.keepanno.annotations.KeepItemKind;
 import com.android.tools.r8.keepanno.annotations.KeepOption;
 import com.android.tools.r8.keepanno.annotations.KeepTarget;
@@ -22,11 +23,15 @@ import com.android.tools.r8.keepanno.annotations.MethodAccessFlags;
 public final class AnnotationConstants {
 
   public static String getDescriptor(Class<?> clazz) {
-    return "L" + clazz.getTypeName().replace('.', '/') + ";";
+    return getDescriptorFromClassTypeName(clazz.getTypeName());
   }
 
   public static String getBinaryNameFromClassTypeName(String classTypeName) {
     return classTypeName.replace('.', '/');
+  }
+
+  public static String getDescriptorFromClassTypeName(String classTypeName) {
+    return "L" + getBinaryNameFromClassTypeName(classTypeName) + ";";
   }
 
   public static boolean isKeepAnnotation(String descriptor, boolean visible) {
@@ -46,6 +51,14 @@ public final class AnnotationConstants {
     public static final String bindings = "bindings";
     public static final String preconditions = "preconditions";
     public static final String consequences = "consequences";
+  }
+
+  public static final class ForApi {
+    public static final Class<KeepForApi> CLASS = KeepForApi.class;
+    public static final String DESCRIPTOR = getDescriptor(CLASS);
+    public static final String description = "description";
+    public static final String additionalTargets = "additionalTargets";
+    public static final String memberAccess = "memberAccess";
   }
 
   public static final class UsesReflection {
