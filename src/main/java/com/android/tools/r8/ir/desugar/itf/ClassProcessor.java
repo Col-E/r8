@@ -30,6 +30,8 @@ import com.android.tools.r8.graph.GenericSignature.ClassTypeSignature;
 import com.android.tools.r8.graph.LookupMethodTarget;
 import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.graph.MethodResolutionResult;
+import com.android.tools.r8.graph.MethodResolutionResult.FailedResolutionResult;
+import com.android.tools.r8.graph.MethodResolutionResult.NoSuchMethodResult;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.machinespecification.DerivedMethod;
 import com.android.tools.r8.ir.desugar.itf.InterfaceDesugaringSyntheticHelper.InterfaceMethodDesugaringMode;
@@ -126,14 +128,21 @@ final class ClassProcessor {
   private static class SyntheticThrowingMethodInfo extends SyntheticMethodInfo {
 
     private final DexType errorType;
+    private final FailedResolutionResult resolutionResult;
 
-    SyntheticThrowingMethodInfo(ProgramMethod method, DexType errorType) {
+    SyntheticThrowingMethodInfo(
+        ProgramMethod method, DexType errorType, FailedResolutionResult resolutionResult) {
       super(method);
       this.errorType = errorType;
+      this.resolutionResult = resolutionResult;
     }
 
     DexType getErrorType() {
       return errorType;
+    }
+
+    FailedResolutionResult getResolutionResult() {
+      return resolutionResult;
     }
 
     @Override
@@ -511,8 +520,11 @@ final class ClassProcessor {
               eventConsumer.acceptInterfaceMethodDesugaringForwardingMethod(
                   info.getMethod(), info.asForwardingMethodInfo().getBaseMethod());
             } else {
+              SyntheticThrowingMethodInfo throwingMethodInfo = info.asThrowingMethodInfo();
               eventConsumer.acceptThrowingMethod(
-                  info.getMethod(), info.asThrowingMethodInfo().getErrorType());
+                  info.getMethod(),
+                  throwingMethodInfo.getErrorType(),
+                  throwingMethodInfo.getResolutionResult());
             }
           }
         },
@@ -842,15 +854,15 @@ final class ClassProcessor {
       }
       if (resolutionResult.isFailedResolution()) {
         if (resolutionResult.isIncompatibleClassChangeErrorResult()) {
-          addICCEThrowingMethod(method, clazz);
+          addICCEThrowingMethod(method, clazz, resolutionResult.asFailedResolution());
           return;
         }
         if (resolutionResult.isNoSuchMethodErrorResult(clazz, appInfo)) {
-          addNoSuchMethodErrorThrowingMethod(method, clazz);
+          addNoSuchMethodErrorThrowingMethod(method, clazz, resolutionResult.asFailedResolution());
           return;
         }
         assert resolutionResult.isIllegalAccessErrorResult(clazz, appInfo);
-        addIllegalAccessErrorThrowingMethod(method, clazz);
+        addIllegalAccessErrorThrowingMethod(method, clazz, resolutionResult.asFailedResolution());
         return;
       }
     }
@@ -878,7 +890,8 @@ final class ClassProcessor {
                   + "). Please report this issue in the D8/R8 bug tracker at"
                   + " https://issuetracker.google.com/issues/237507594.");
       // To be able to resume compilation we add a NoSuchMethodErrorThrowingMethod.
-      addNoSuchMethodErrorThrowingMethod(method, clazz);
+      addNoSuchMethodErrorThrowingMethod(
+          method, clazz, NoSuchMethodResult.getEmptyNoSuchMethodResult());
       return;
     }
     DexClassAndMethod virtualDispatchTarget = lookupMethodTarget.getTarget();
@@ -919,27 +932,37 @@ final class ClassProcessor {
     assert existingMethodInfo == null;
   }
 
-  private void addSyntheticThrowingMethod(ProgramMethod method, DexType errorType) {
+  private void addSyntheticThrowingMethod(
+      ProgramMethod method, DexType errorType, FailedResolutionResult resolutionResult) {
     SyntheticMethodInfo existingMethodInfo =
         newSyntheticMethods
             .computeIfAbsent(method.getHolder(), key -> new ConcurrentHashMap<>())
-            .put(method.getReference(), new SyntheticThrowingMethodInfo(method, errorType));
+            .put(
+                method.getReference(),
+                new SyntheticThrowingMethodInfo(method, errorType, resolutionResult));
     assert existingMethodInfo == null;
   }
 
-  private void addICCEThrowingMethod(DexMethod method, DexClass clazz) {
-    addThrowingMethod(method, clazz, dexItemFactory.icceType);
+  private void addICCEThrowingMethod(
+      DexMethod method, DexClass clazz, FailedResolutionResult resolutionResult) {
+    addThrowingMethod(method, clazz, dexItemFactory.icceType, resolutionResult);
   }
 
-  private void addIllegalAccessErrorThrowingMethod(DexMethod method, DexClass clazz) {
-    addThrowingMethod(method, clazz, dexItemFactory.illegalAccessErrorType);
+  private void addIllegalAccessErrorThrowingMethod(
+      DexMethod method, DexClass clazz, FailedResolutionResult resolutionResult) {
+    addThrowingMethod(method, clazz, dexItemFactory.illegalAccessErrorType, resolutionResult);
   }
 
-  private void addNoSuchMethodErrorThrowingMethod(DexMethod method, DexClass clazz) {
-    addThrowingMethod(method, clazz, dexItemFactory.noSuchMethodErrorType);
+  private void addNoSuchMethodErrorThrowingMethod(
+      DexMethod method, DexClass clazz, FailedResolutionResult resolutionResult) {
+    addThrowingMethod(method, clazz, dexItemFactory.noSuchMethodErrorType, resolutionResult);
   }
 
-  private void addThrowingMethod(DexMethod method, DexClass clazz, DexType errorType) {
+  private void addThrowingMethod(
+      DexMethod method,
+      DexClass clazz,
+      DexType errorType,
+      FailedResolutionResult resolutionResult) {
     if (!clazz.isProgramClass()) {
       return;
     }
@@ -953,7 +976,8 @@ final class ClassProcessor {
                 createExceptionThrowingCfCode(newMethod, accessFlags, errorType, dexItemFactory))
             .disableAndroidApiLevelCheck()
             .build();
-    addSyntheticThrowingMethod(newEncodedMethod.asProgramMethod(clazz.asProgramClass()), errorType);
+    addSyntheticThrowingMethod(
+        newEncodedMethod.asProgramMethod(clazz.asProgramClass()), errorType, resolutionResult);
   }
 
   private static CfCode createExceptionThrowingCfCode(

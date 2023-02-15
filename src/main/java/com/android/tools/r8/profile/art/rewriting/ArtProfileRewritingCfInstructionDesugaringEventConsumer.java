@@ -55,12 +55,21 @@ public class ArtProfileRewritingCfInstructionDesugaringEventConsumer
   }
 
   @Override
-  public void acceptAPIConversion(ProgramMethod method) {
-    parent.acceptAPIConversion(method);
+  public void acceptAPIConversionOutline(ProgramMethod method, ProgramMethod context) {
+    additionsCollection.addMethodAndHolderIfContextIsInProfile(method, context);
+    parent.acceptAPIConversionOutline(method, context);
   }
 
   @Override
   public void acceptBackportedClass(DexProgramClass backportedClass, ProgramMethod context) {
+    if (appView.options().getArtProfileOptions().isIncludingBackportedClasses()) {
+      additionsCollection.applyIfContextIsInProfile(
+          context,
+          additionsBuilder -> {
+            additionsBuilder.addRule(backportedClass);
+            backportedClass.forEachProgramMethod(additionsBuilder::addRule);
+          });
+    }
     parent.acceptBackportedClass(backportedClass, context);
   }
 
@@ -76,8 +85,9 @@ public class ArtProfileRewritingCfInstructionDesugaringEventConsumer
   }
 
   @Override
-  public void acceptCollectionConversion(ProgramMethod arrayConversion) {
-    parent.acceptCollectionConversion(arrayConversion);
+  public void acceptCollectionConversion(ProgramMethod arrayConversion, ProgramMethod context) {
+    additionsCollection.addMethodAndHolderIfContextIsInProfile(arrayConversion, context);
+    parent.acceptCollectionConversion(arrayConversion, context);
   }
 
   @Override
@@ -113,13 +123,19 @@ public class ArtProfileRewritingCfInstructionDesugaringEventConsumer
   }
 
   @Override
-  public void acceptCovariantRetargetMethod(ProgramMethod method) {
-    parent.acceptCovariantRetargetMethod(method);
+  public void acceptCovariantRetargetMethod(ProgramMethod method, ProgramMethod context) {
+    additionsCollection.addMethodAndHolderIfContextIsInProfile(method, context);
+    parent.acceptCovariantRetargetMethod(method, context);
   }
 
   @Override
   public void acceptDefaultAsCompanionMethod(ProgramMethod method, ProgramMethod companionMethod) {
-    additionsCollection.addMethodAndHolderIfContextIsInProfile(companionMethod, method);
+    additionsCollection.applyIfContextIsInProfile(
+        method,
+        additionsBuilder -> {
+          additionsBuilder.addRule(companionMethod).addRule(companionMethod.getHolder());
+          companionMethod.getHolder().acceptProgramClassInitializer(additionsBuilder::addRule);
+        });
     parent.acceptDefaultAsCompanionMethod(method, companionMethod);
   }
 
@@ -148,6 +164,7 @@ public class ArtProfileRewritingCfInstructionDesugaringEventConsumer
   @Override
   public void acceptInvokeStaticInterfaceOutliningMethod(
       ProgramMethod method, ProgramMethod context) {
+    additionsCollection.addMethodAndHolderIfContextIsInProfile(method, context);
     parent.acceptInvokeStaticInterfaceOutliningMethod(method, context);
   }
 
@@ -169,6 +186,9 @@ public class ArtProfileRewritingCfInstructionDesugaringEventConsumer
             additionsBuilder.addRule(lambdaProgramClass.getProgramClassInitializer());
           }
           lambdaProgramClass.forEachProgramInstanceInitializer(additionsBuilder::addRule);
+          if (appView.options().testing.alwaysGenerateLambdaFactoryMethods) {
+            lambdaProgramClass.forEachProgramStaticMethod(additionsBuilder::addRule);
+          }
         });
   }
 
@@ -216,7 +236,7 @@ public class ArtProfileRewritingCfInstructionDesugaringEventConsumer
               .appInfoWithClassHierarchy()
               .resolveMethod(target.getImplementationMethod(), target.isInterface())
               .getResolutionPair();
-      if (resolutionResult == null || resolutionResult.isProgramMethod()) {
+      if (resolutionResult != null && resolutionResult.isProgramMethod()) {
         // Direct call to other method in the app. Only add virtual methods if the callee is in the
         // profile.
         return false;
@@ -272,11 +292,13 @@ public class ArtProfileRewritingCfInstructionDesugaringEventConsumer
   public void acceptPrivateAsCompanionMethod(ProgramMethod method, ProgramMethod companionMethod) {
     additionsCollection.applyIfContextIsInProfile(
         method,
-        additionsBuilder ->
-            additionsBuilder
-                .addRule(companionMethod)
-                .addRule(companionMethod.getHolder())
-                .removeMovedMethodRule(method, companionMethod));
+        additionsBuilder -> {
+          additionsBuilder
+              .addRule(companionMethod)
+              .addRule(companionMethod.getHolder())
+              .removeMovedMethodRule(method, companionMethod);
+          companionMethod.getHolder().acceptProgramClassInitializer(additionsBuilder::addRule);
+        });
     parent.acceptPrivateAsCompanionMethod(method, companionMethod);
   }
 
@@ -319,11 +341,13 @@ public class ArtProfileRewritingCfInstructionDesugaringEventConsumer
   public void acceptStaticAsCompanionMethod(ProgramMethod method, ProgramMethod companionMethod) {
     additionsCollection.applyIfContextIsInProfile(
         method,
-        additionsBuilder ->
-            additionsBuilder
-                .addRule(companionMethod)
-                .addRule(companionMethod.getHolder())
-                .removeMovedMethodRule(method, companionMethod));
+        additionsBuilder -> {
+          additionsBuilder
+              .addRule(companionMethod)
+              .addRule(companionMethod.getHolder())
+              .removeMovedMethodRule(method, companionMethod);
+          companionMethod.getHolder().acceptProgramClassInitializer(additionsBuilder::addRule);
+        });
     parent.acceptStaticAsCompanionMethod(method, companionMethod);
   }
 

@@ -197,6 +197,7 @@ public class DesugaredLibraryWrapperSynthesizer implements CfClassSynthesizerDes
       boolean destIsVivified,
       DexMethod apiGenericTypesConversion,
       DesugaredLibraryClasspathWrapperSynthesizeEventConsumer eventConsumer,
+      ProgramMethod context,
       Supplier<UniqueContext> contextSupplier) {
     if (apiGenericTypesConversion != null) {
       assert !type.isArrayType();
@@ -205,7 +206,8 @@ public class DesugaredLibraryWrapperSynthesizer implements CfClassSynthesizerDes
     DexType srcType = destIsVivified ? type : vivifiedTypeFor(type);
     DexType destType = destIsVivified ? vivifiedTypeFor(type) : type;
     if (type.isArrayType()) {
-      return ensureArrayConversionMethod(type, srcType, destType, eventConsumer, contextSupplier);
+      return ensureArrayConversionMethod(
+          type, srcType, destType, eventConsumer, context, contextSupplier);
     }
     DexMethod customConversion = getCustomConversion(type, srcType, destType);
     if (customConversion != null) {
@@ -231,6 +233,7 @@ public class DesugaredLibraryWrapperSynthesizer implements CfClassSynthesizerDes
       DexType srcType,
       DexType destType,
       DesugaredLibraryClasspathWrapperSynthesizeEventConsumer eventConsumer,
+      ProgramMethod context,
       Supplier<UniqueContext> contextSupplier) {
     DexMethod conversion =
         ensureConversionMethod(
@@ -238,9 +241,10 @@ public class DesugaredLibraryWrapperSynthesizer implements CfClassSynthesizerDes
             srcType == type,
             null,
             eventConsumer,
+            context,
             contextSupplier);
     return ensureArrayConversionMethod(
-        srcType, destType, eventConsumer, contextSupplier, conversion);
+        srcType, destType, eventConsumer, context, contextSupplier, conversion);
   }
 
   private DexMethod ensureArrayConversionMethodFromExistingBaseConversion(
@@ -248,6 +252,7 @@ public class DesugaredLibraryWrapperSynthesizer implements CfClassSynthesizerDes
       DexType srcType,
       DexType destType,
       DesugaredLibraryL8ProgramWrapperSynthesizerEventConsumer eventConsumer,
+      ProgramMethod context,
       Supplier<UniqueContext> contextSupplier) {
     DexMethod conversion =
         getExistingProgramConversionMethod(
@@ -255,15 +260,17 @@ public class DesugaredLibraryWrapperSynthesizer implements CfClassSynthesizerDes
             srcType == type,
             null,
             eventConsumer,
+            context,
             contextSupplier);
     return ensureArrayConversionMethod(
-        srcType, destType, eventConsumer, contextSupplier, conversion);
+        srcType, destType, eventConsumer, context, contextSupplier, conversion);
   }
 
   private DexMethod ensureArrayConversionMethod(
       DexType srcType,
       DexType destType,
       DesugaredLibraryWrapperSynthesizerEventConsumer eventConsumer,
+      ProgramMethod context,
       Supplier<UniqueContext> contextSupplier,
       DexMethod conversion) {
     ProgramMethod arrayConversion =
@@ -286,7 +293,7 @@ public class DesugaredLibraryWrapperSynthesizer implements CfClassSynthesizerDes
                                         destType,
                                         conversion)
                                     .generateCfCode()));
-    eventConsumer.acceptCollectionConversion(arrayConversion);
+    eventConsumer.acceptCollectionConversion(arrayConversion, context);
     return arrayConversion.getReference();
   }
 
@@ -295,6 +302,7 @@ public class DesugaredLibraryWrapperSynthesizer implements CfClassSynthesizerDes
       boolean destIsVivified,
       DexMethod apiGenericTypesConversion,
       DesugaredLibraryL8ProgramWrapperSynthesizerEventConsumer eventConsumer,
+      ProgramMethod context,
       Supplier<UniqueContext> contextSupplier) {
     if (apiGenericTypesConversion != null) {
       assert !type.isArrayType();
@@ -304,7 +312,7 @@ public class DesugaredLibraryWrapperSynthesizer implements CfClassSynthesizerDes
     DexType destType = destIsVivified ? vivifiedTypeFor(type) : type;
     if (type.isArrayType()) {
       return ensureArrayConversionMethodFromExistingBaseConversion(
-          type, srcType, destType, eventConsumer, contextSupplier);
+          type, srcType, destType, eventConsumer, context, contextSupplier);
     }
     DexMethod customConversion = getCustomConversion(type, srcType, destType);
     if (customConversion != null) {

@@ -9,6 +9,7 @@ import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.SubtypingInfo;
+import com.android.tools.r8.profile.art.rewriting.ArtProfileCollectionAdditions;
 import com.android.tools.r8.shaking.Enqueuer.Mode;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
@@ -17,9 +18,16 @@ public class EnqueuerFactory {
 
   public static Enqueuer createForInitialTreeShaking(
       AppView<? extends AppInfoWithClassHierarchy> appView,
+      ArtProfileCollectionAdditions artProfileCollectionAdditions,
       ExecutorService executorService,
       SubtypingInfo subtypingInfo) {
-    return new Enqueuer(appView, executorService, subtypingInfo, null, Mode.INITIAL_TREE_SHAKING);
+    return new Enqueuer(
+        appView,
+        artProfileCollectionAdditions,
+        executorService,
+        subtypingInfo,
+        null,
+        Mode.INITIAL_TREE_SHAKING);
   }
 
   public static Enqueuer createForFinalTreeShaking(
@@ -28,9 +36,16 @@ public class EnqueuerFactory {
       SubtypingInfo subtypingInfo,
       GraphConsumer keptGraphConsumer,
       Set<DexType> initialPrunedTypes) {
+    ArtProfileCollectionAdditions artProfileCollectionAdditions =
+        ArtProfileCollectionAdditions.create(appView);
     Enqueuer enqueuer =
         new Enqueuer(
-            appView, executorService, subtypingInfo, keptGraphConsumer, Mode.FINAL_TREE_SHAKING);
+            appView,
+            artProfileCollectionAdditions,
+            executorService,
+            subtypingInfo,
+            keptGraphConsumer,
+            Mode.FINAL_TREE_SHAKING);
     appView.withProtoShrinker(
         shrinker -> enqueuer.setInitialDeadProtoTypes(shrinker.getDeadProtoTypes()));
     enqueuer.setInitialPrunedTypes(initialPrunedTypes);
@@ -41,8 +56,15 @@ public class EnqueuerFactory {
       AppView<? extends AppInfoWithClassHierarchy> appView,
       ExecutorService executorService,
       SubtypingInfo subtypingInfo) {
+    ArtProfileCollectionAdditions artProfileCollectionAdditions =
+        ArtProfileCollectionAdditions.create(appView);
     return new Enqueuer(
-        appView, executorService, subtypingInfo, null, Mode.INITIAL_MAIN_DEX_TRACING);
+        appView,
+        artProfileCollectionAdditions,
+        executorService,
+        subtypingInfo,
+        null,
+        Mode.INITIAL_MAIN_DEX_TRACING);
   }
 
   public static Enqueuer createForFinalMainDexTracing(
@@ -50,8 +72,15 @@ public class EnqueuerFactory {
       ExecutorService executorService,
       SubtypingInfo subtypingInfo,
       GraphConsumer keptGraphConsumer) {
+    ArtProfileCollectionAdditions artProfileCollectionAdditions =
+        ArtProfileCollectionAdditions.create(appView);
     return new Enqueuer(
-        appView, executorService, subtypingInfo, keptGraphConsumer, Mode.FINAL_MAIN_DEX_TRACING);
+        appView,
+        artProfileCollectionAdditions,
+        executorService,
+        subtypingInfo,
+        keptGraphConsumer,
+        Mode.FINAL_MAIN_DEX_TRACING);
   }
 
   public static Enqueuer createForGenerateMainDexList(
@@ -59,8 +88,15 @@ public class EnqueuerFactory {
       ExecutorService executorService,
       SubtypingInfo subtypingInfo,
       GraphConsumer keptGraphConsumer) {
+    ArtProfileCollectionAdditions artProfileCollectionAdditions =
+        ArtProfileCollectionAdditions.create(appView);
     return new Enqueuer(
-        appView, executorService, subtypingInfo, keptGraphConsumer, Mode.GENERATE_MAIN_DEX_LIST);
+        appView,
+        artProfileCollectionAdditions,
+        executorService,
+        subtypingInfo,
+        keptGraphConsumer,
+        Mode.GENERATE_MAIN_DEX_LIST);
   }
 
   public static Enqueuer createForWhyAreYouKeeping(
@@ -68,7 +104,14 @@ public class EnqueuerFactory {
       ExecutorService executorService,
       SubtypingInfo subtypingInfo,
       GraphConsumer keptGraphConsumer) {
+    ArtProfileCollectionAdditions artProfileCollectionAdditions =
+        ArtProfileCollectionAdditions.create(appView);
     return new Enqueuer(
-        appView, executorService, subtypingInfo, keptGraphConsumer, Mode.WHY_ARE_YOU_KEEPING);
+        appView,
+        artProfileCollectionAdditions,
+        executorService,
+        subtypingInfo,
+        keptGraphConsumer,
+        Mode.WHY_ARE_YOU_KEEPING);
   }
 }

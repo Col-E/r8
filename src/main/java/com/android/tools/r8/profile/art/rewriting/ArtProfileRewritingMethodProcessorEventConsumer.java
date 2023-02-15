@@ -51,7 +51,7 @@ public class ArtProfileRewritingMethodProcessorEventConsumer extends MethodProce
   @Override
   public void acceptEnumUnboxerCheckNotZeroContext(ProgramMethod method, ProgramMethod context) {
     additionsCollection.applyIfContextIsInProfile(
-        context, additionsBuilder -> additionsBuilder.addRule(method));
+        context, additionsBuilder -> additionsBuilder.addRule(method).addRule(method.getHolder()));
     parent.acceptEnumUnboxerCheckNotZeroContext(method, context);
   }
 

@@ -436,7 +436,7 @@ public final class D8 {
     return finalDexApp.build();
   }
 
-  static class ConvertedCfFiles implements DexIndexedConsumer, ProgramResourceProvider {
+  public static class ConvertedCfFiles implements DexIndexedConsumer, ProgramResourceProvider {
 
     private final List<ProgramResource> resources = new ArrayList<>();
 

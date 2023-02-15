@@ -155,4 +155,10 @@ public class ConcreteArtProfileCollectionAdditions extends ArtProfileCollectionA
     }
     return this;
   }
+
+  @Override
+  public boolean verifyIsCommitted() {
+    assert committed;
+    return true;
+  }
 }

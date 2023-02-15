@@ -309,6 +309,7 @@ public class PrimaryD8L8IRConverter extends IRConverter {
       throws ExecutionException {
     CfPostProcessingDesugaringEventConsumer eventConsumer =
         CfPostProcessingDesugaringEventConsumer.createForD8(
+            appView,
             methodProcessor.getArtProfileCollectionAdditions(),
             methodProcessor,
             instructionDesugaring);

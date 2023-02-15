@@ -4,11 +4,8 @@
 
 package com.android.tools.r8.profile.art.rewriting;
 
-import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
-import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.shaking.RootSetBuilderEventConsumer;
-import com.android.tools.r8.shaking.RootSetUtils.RootSet;
 
 public class ArtProfileRewritingRootSetBuilderEventConsumer implements RootSetBuilderEventConsumer {
 
@@ -23,10 +20,8 @@ public class ArtProfileRewritingRootSetBuilderEventConsumer implements RootSetBu
   }
 
   public static RootSetBuilderEventConsumer attach(
-      AppView<? extends AppInfoWithClassHierarchy> appView,
+      ArtProfileCollectionAdditions additionsCollection,
       RootSetBuilderEventConsumer eventConsumer) {
-    ArtProfileCollectionAdditions additionsCollection =
-        ArtProfileCollectionAdditions.create(appView);
     if (additionsCollection.isNop()) {
       return eventConsumer;
     }
@@ -67,10 +62,5 @@ public class ArtProfileRewritingRootSetBuilderEventConsumer implements RootSetBu
                 .addRule(companionMethod.getHolder())
                 .removeMovedMethodRule(method, companionMethod));
     parent.acceptStaticAsCompanionMethod(method, companionMethod);
-  }
-
-  @Override
-  public void finished(AppView<? extends AppInfoWithClassHierarchy> appView, RootSet rootSet) {
-    additionsCollection.commit(appView);
   }
 }

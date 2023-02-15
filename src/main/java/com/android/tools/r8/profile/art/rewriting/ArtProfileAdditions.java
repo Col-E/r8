@@ -4,7 +4,6 @@
 
 package com.android.tools.r8.profile.art.rewriting;
 
-import static com.android.tools.r8.utils.ConsumerUtils.emptyConsumer;
 import static com.android.tools.r8.utils.MapUtils.ignoreKey;
 
 import com.android.tools.r8.graph.DexClass;
@@ -123,7 +122,10 @@ public class ArtProfileAdditions {
 
             @Override
             public ArtProfileAdditionsBuilder addMethodRule(DexMethod method) {
-              ArtProfileAdditions.this.addMethodRuleFromContext(method, emptyConsumer());
+              ArtProfileMethodRule.Builder contextRuleBuilder = methodRuleAdditions.get(context);
+              ArtProfileAdditions.this.addMethodRuleFromContext(
+                  method,
+                  methodRuleInfoBuilder -> methodRuleInfoBuilder.joinFlags(contextRuleBuilder));
               nestedMethodRuleAdditionsGraph.recordMethodRuleInfoFlagsLargerThan(method, context);
               return this;
             }
@@ -199,7 +201,20 @@ public class ArtProfileAdditions {
     artProfile.forEachRule(
         artProfileBuilder::addRule,
         methodRule -> {
-          if (!methodRuleRemovals.contains(methodRule.getMethod())) {
+          if (methodRuleRemovals.contains(methodRule.getMethod())) {
+            return;
+          }
+          ArtProfileMethodRule.Builder methodRuleBuilder =
+              methodRuleAdditions.remove(methodRule.getReference());
+          if (methodRuleBuilder != null) {
+            ArtProfileMethodRule newMethodRule =
+                methodRuleBuilder
+                    .acceptMethodRuleInfoBuilder(
+                        methodRuleInfoBuilder ->
+                            methodRuleInfoBuilder.joinFlags(methodRule.getMethodRuleInfo()))
+                    .build();
+            artProfileBuilder.addRule(newMethodRule);
+          } else {
             artProfileBuilder.addRule(methodRule);
           }
         });

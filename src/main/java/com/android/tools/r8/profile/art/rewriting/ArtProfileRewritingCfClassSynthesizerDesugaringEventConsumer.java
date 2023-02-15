@@ -50,8 +50,9 @@ public class ArtProfileRewritingCfClassSynthesizerDesugaringEventConsumer
   }
 
   @Override
-  public void acceptCollectionConversion(ProgramMethod arrayConversion) {
-    parent.acceptCollectionConversion(arrayConversion);
+  public void acceptCollectionConversion(ProgramMethod arrayConversion, ProgramMethod context) {
+    additionsCollection.addMethodAndHolderIfContextIsInProfile(arrayConversion, context);
+    parent.acceptCollectionConversion(arrayConversion, context);
   }
 
   @Override

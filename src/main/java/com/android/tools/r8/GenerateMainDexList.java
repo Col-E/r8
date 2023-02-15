@@ -15,6 +15,7 @@ import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.SubtypingInfo;
+import com.android.tools.r8.profile.art.rewriting.ArtProfileCollectionAdditions;
 import com.android.tools.r8.shaking.Enqueuer;
 import com.android.tools.r8.shaking.EnqueuerFactory;
 import com.android.tools.r8.shaking.MainDexInfo;
@@ -65,8 +66,12 @@ public class GenerateMainDexList {
 
     SubtypingInfo subtypingInfo = SubtypingInfo.create(appView);
 
+    ArtProfileCollectionAdditions artProfileCollectionAdditions =
+        ArtProfileCollectionAdditions.nop();
     MainDexRootSet mainDexRootSet =
-        MainDexRootSet.builder(appView, subtypingInfo, options.mainDexKeepRules).build(executor);
+        MainDexRootSet.builder(
+                appView, artProfileCollectionAdditions, subtypingInfo, options.mainDexKeepRules)
+            .build(executor);
     appView.setMainDexRootSet(mainDexRootSet);
 
     GraphConsumer graphConsumer = options.mainDexKeptGraphConsumer;

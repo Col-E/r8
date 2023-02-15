@@ -4,24 +4,22 @@
 
 package com.android.tools.r8.shaking;
 
-import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
-import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.desugar.itf.InterfaceMethodDesugaringBaseEventConsumer;
+import com.android.tools.r8.profile.art.rewriting.ArtProfileCollectionAdditions;
 import com.android.tools.r8.profile.art.rewriting.ArtProfileRewritingRootSetBuilderEventConsumer;
-import com.android.tools.r8.shaking.RootSetUtils.RootSet;
 
 public interface RootSetBuilderEventConsumer extends InterfaceMethodDesugaringBaseEventConsumer {
 
-  static RootSetBuilderEventConsumer create(AppView<? extends AppInfoWithClassHierarchy> appView) {
-    return ArtProfileRewritingRootSetBuilderEventConsumer.attach(appView, empty());
+  static RootSetBuilderEventConsumer create(
+      ArtProfileCollectionAdditions artProfileCollectionAdditions) {
+    return ArtProfileRewritingRootSetBuilderEventConsumer.attach(
+        artProfileCollectionAdditions, empty());
   }
 
   static EmptyRootSetBuilderEventConsumer empty() {
     return EmptyRootSetBuilderEventConsumer.getInstance();
   }
-
-  default void finished(AppView<? extends AppInfoWithClassHierarchy> appView, RootSet rootSet) {}
 
   class EmptyRootSetBuilderEventConsumer implements RootSetBuilderEventConsumer {
 

@@ -73,6 +73,7 @@ import com.android.tools.r8.optimize.interfaces.analysis.CfOpenClosedInterfacesA
 import com.android.tools.r8.optimize.proto.ProtoNormalizer;
 import com.android.tools.r8.origin.CommandLineOrigin;
 import com.android.tools.r8.profile.art.ArtProfileCompletenessChecker;
+import com.android.tools.r8.profile.art.rewriting.ArtProfileCollectionAdditions;
 import com.android.tools.r8.repackaging.Repackaging;
 import com.android.tools.r8.repackaging.RepackagingLens;
 import com.android.tools.r8.shaking.AbstractMethodRemover;
@@ -330,11 +331,14 @@ public class R8 {
                     options.itemFactory, options.getMinApiLevel()));
           }
         }
+        ArtProfileCollectionAdditions artProfileCollectionAdditions =
+            ArtProfileCollectionAdditions.create(appView);
         AssumeInfoCollection.Builder assumeInfoCollectionBuilder = AssumeInfoCollection.builder();
         SubtypingInfo subtypingInfo = SubtypingInfo.create(appView);
         appView.setRootSet(
             RootSet.builder(
                     appView,
+                    artProfileCollectionAdditions,
                     subtypingInfo,
                     Iterables.concat(
                         options.getProguardConfiguration().getRules(), synthesizedProguardRules))
@@ -348,7 +352,11 @@ public class R8 {
           assert appView.graphLens().isIdentityLens();
           // Find classes which may have code executed before secondary dex files installation.
           MainDexRootSet mainDexRootSet =
-              MainDexRootSet.builder(appView, subtypingInfo, options.mainDexKeepRules)
+              MainDexRootSet.builder(
+                      appView,
+                      artProfileCollectionAdditions,
+                      subtypingInfo,
+                      options.mainDexKeepRules)
                   .build(executorService);
           appView.setMainDexRootSet(mainDexRootSet);
           appView.appInfo().unsetObsolete();
@@ -363,6 +371,7 @@ public class R8 {
                 annotationRemoverBuilder,
                 executorService,
                 appView,
+                artProfileCollectionAdditions,
                 subtypingInfo,
                 classMergingEnqueuerExtensionBuilder);
         timing.end();
@@ -958,12 +967,14 @@ public class R8 {
       AnnotationRemover.Builder annotationRemoverBuilder,
       ExecutorService executorService,
       AppView<AppInfoWithClassHierarchy> appView,
+      ArtProfileCollectionAdditions artProfileCollectionAdditions,
       SubtypingInfo subtypingInfo,
       RuntimeTypeCheckInfo.Builder classMergingEnqueuerExtensionBuilder)
       throws ExecutionException {
     timing.begin("Set up enqueuer");
     Enqueuer enqueuer =
-        EnqueuerFactory.createForInitialTreeShaking(appView, executorService, subtypingInfo);
+        EnqueuerFactory.createForInitialTreeShaking(
+            appView, artProfileCollectionAdditions, executorService, subtypingInfo);
     enqueuer.setAnnotationRemoverBuilder(annotationRemoverBuilder);
     if (appView.options().enableInitializedClassesInInstanceMethodsAnalysis) {
       enqueuer.registerAnalysis(new InitializedClassesInInstanceMethodsAnalysis(appView));
@@ -983,6 +994,7 @@ public class R8 {
     timing.begin("Trace application");
     EnqueuerResult enqueuerResult =
         enqueuer.traceApplication(appView.rootSet(), executorService, timing);
+    assert artProfileCollectionAdditions.verifyIsCommitted();
     timing.end();
     timing.begin("Finalize enqueuer result");
     AppView<AppInfoWithLiveness> appViewWithLiveness =

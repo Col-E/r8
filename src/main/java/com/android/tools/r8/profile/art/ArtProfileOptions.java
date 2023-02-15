@@ -28,7 +28,10 @@ public class ArtProfileOptions {
   }
 
   public boolean isCompletenessCheckForTestingEnabled() {
-    return enableCompletenessCheckForTesting && !options.isDesugaredLibraryCompilation();
+    return enableCompletenessCheckForTesting
+        && !options.isDesugaredLibraryCompilation()
+        && !options.getStartupOptions().isStartupCompletenessCheckForTestingEnabled()
+        && !options.getStartupInstrumentationOptions().isStartupInstrumentationEnabled();
   }
 
   public boolean isIncludingApiReferenceStubs() {
@@ -38,8 +41,26 @@ public class ArtProfileOptions {
     return enableCompletenessCheckForTesting;
   }
 
+  public boolean isIncludingBackportedClasses() {
+    // Similar to isIncludingVarHandleClasses().
+    return enableCompletenessCheckForTesting;
+  }
+
   public boolean isIncludingConstantDynamicClass() {
     // Similar to isIncludingVarHandleClasses().
+    return enableCompletenessCheckForTesting;
+  }
+
+  public boolean isIncludingDesugaredLibraryRetargeterForwardingMethodsUnconditionally() {
+    // TODO(b/265729283): If we get as input the profile for the desugared library, maybe we can
+    //  tell if the method targeted by the forwarding method is in the profile, e.g.:
+    //  java.time.Instant java.util.DesugarDate.toInstant(java.util.Date).
+    return enableCompletenessCheckForTesting;
+  }
+
+  public boolean isIncludingThrowingMethods() {
+    // The throw methods we insert should generally be dead a runtime, so no need for them to be
+    // optimized.
     return enableCompletenessCheckForTesting;
   }
 

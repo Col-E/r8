@@ -8,6 +8,7 @@ import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexClasspathClass;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.ProgramMethod;
+import com.android.tools.r8.ir.desugar.desugaredlibrary.machinespecification.EmulatedDispatchMethodDescriptor;
 
 public interface DesugaredLibraryRetargeterSynthesizerEventConsumer {
 
@@ -18,13 +19,14 @@ public interface DesugaredLibraryRetargeterSynthesizerEventConsumer {
   interface DesugaredLibraryRetargeterInstructionEventConsumer {
     void acceptDesugaredLibraryRetargeterDispatchClasspathClass(DexClasspathClass clazz);
 
-    void acceptCovariantRetargetMethod(ProgramMethod method);
+    void acceptCovariantRetargetMethod(ProgramMethod method, ProgramMethod context);
   }
 
   interface DesugaredLibraryRetargeterPostProcessingEventConsumer
       extends DesugaredLibraryRetargeterInstructionEventConsumer {
     void acceptInterfaceInjection(DexProgramClass clazz, DexClass newInterface);
 
-    void acceptDesugaredLibraryRetargeterForwardingMethod(ProgramMethod method);
+    void acceptDesugaredLibraryRetargeterForwardingMethod(
+        ProgramMethod method, EmulatedDispatchMethodDescriptor descriptor);
   }
 }

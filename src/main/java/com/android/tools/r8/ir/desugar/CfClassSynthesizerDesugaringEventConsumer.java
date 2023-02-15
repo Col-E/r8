@@ -101,7 +101,7 @@ public abstract class CfClassSynthesizerDesugaringEventConsumer
     }
 
     @Override
-    public void acceptCollectionConversion(ProgramMethod arrayConversion) {
+    public void acceptCollectionConversion(ProgramMethod arrayConversion, ProgramMethod context) {
       synthesizedClasses.add(arrayConversion.getHolder());
     }
   }

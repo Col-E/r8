@@ -7,6 +7,7 @@ import static com.android.tools.r8.utils.positions.LineNumberOptimizer.runAndWri
 
 import com.android.tools.r8.ByteBufferProvider;
 import com.android.tools.r8.ByteDataView;
+import com.android.tools.r8.D8.ConvertedCfFiles;
 import com.android.tools.r8.DataDirectoryResource;
 import com.android.tools.r8.DataEntryResource;
 import com.android.tools.r8.DataResourceConsumer;
@@ -432,7 +433,9 @@ public class ApplicationWriter {
       // Fail if there are pending errors, e.g., the program consumers may have reported errors.
       options.reporter.failIfPendingErrors();
       // Supply info to all additional resource consumers.
-      supplyAdditionalConsumers(appView);
+      if (!(programConsumer instanceof ConvertedCfFiles)) {
+        supplyAdditionalConsumers(appView);
+      }
     } finally {
       timing.end();
     }

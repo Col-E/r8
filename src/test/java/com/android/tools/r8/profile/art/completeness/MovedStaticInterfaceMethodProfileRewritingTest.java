@@ -4,6 +4,8 @@
 
 package com.android.tools.r8.profile.art.completeness;
 
+import static com.android.tools.r8.synthesis.SyntheticItemsTestUtils.syntheticCompanionClass;
+import static com.android.tools.r8.synthesis.SyntheticItemsTestUtils.syntheticStaticInterfaceMethodAsCompanionMethod;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.MatcherAssert.assertThat;
 
@@ -14,7 +16,6 @@ import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.profile.art.model.ExternalArtProfile;
 import com.android.tools.r8.profile.art.utils.ArtProfileInspector;
 import com.android.tools.r8.references.Reference;
-import com.android.tools.r8.synthesis.SyntheticItemsTestUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
@@ -48,6 +49,20 @@ public class MovedStaticInterfaceMethodProfileRewritingTest extends TestBase {
   }
 
   @Test
+  public void testD8FromProfileAfterDesugaring() throws Exception {
+    testForD8(parameters.getBackend())
+        .addInnerClasses(getClass())
+        .addArtProfileForRewriting(
+            getArtProfileAfterDesugaring(
+                parameters.canUseDefaultAndStaticInterfaceMethodsWhenDesugaring()))
+        .setMinApi(parameters.getApiLevel())
+        .compile()
+        .inspectResidualArtProfile(this::inspectD8)
+        .run(parameters.getRuntime(), Main.class)
+        .assertSuccessWithOutputLines("Hello, world!");
+  }
+
+  @Test
   public void testR8() throws Exception {
     parameters.assumeR8TestParameters();
     testForR8(parameters.getBackend())
@@ -62,10 +77,40 @@ public class MovedStaticInterfaceMethodProfileRewritingTest extends TestBase {
         .assertSuccessWithOutputLines("Hello, world!");
   }
 
+  @Test
+  public void testR8FromProfileAfterDesugaring() throws Exception {
+    parameters.assumeR8TestParameters();
+    testForR8(parameters.getBackend())
+        .addInnerClasses(getClass())
+        .addKeepMainRule(Main.class)
+        .addArtProfileForRewriting(
+            getArtProfileAfterDesugaring(
+                parameters.isCfRuntime() || parameters.canUseDefaultAndStaticInterfaceMethods()))
+        .enableInliningAnnotations()
+        .setMinApi(parameters.getApiLevel())
+        .compile()
+        .inspectResidualArtProfile(this::inspectR8)
+        .run(parameters.getRuntime(), Main.class)
+        .assertSuccessWithOutputLines("Hello, world!");
+  }
+
   private ExternalArtProfile getArtProfile() throws Exception {
     return ExternalArtProfile.builder()
         .addMethodRule(Reference.methodFromMethod(I.class.getDeclaredMethod("m")))
         .build();
+  }
+
+  private ExternalArtProfile getArtProfileAfterDesugaring(
+      boolean canUseDefaultAndStaticInterfaceMethods) throws Exception {
+    if (canUseDefaultAndStaticInterfaceMethods) {
+      return getArtProfile();
+    } else {
+      return ExternalArtProfile.builder()
+          .addClassRule(syntheticCompanionClass(I.class))
+          .addMethodRule(
+              syntheticStaticInterfaceMethodAsCompanionMethod(I.class.getDeclaredMethod("m")))
+          .build();
+    }
   }
 
   private void inspectD8(ArtProfileInspector profileInspector, CodeInspector inspector)
@@ -100,8 +145,7 @@ public class MovedStaticInterfaceMethodProfileRewritingTest extends TestBase {
           .assertContainsMethodRule(staticInterfaceMethodSubject)
           .assertContainsNoOtherRules();
     } else {
-      ClassSubject companionClassSubject =
-          inspector.clazz(SyntheticItemsTestUtils.syntheticCompanionClass(I.class));
+      ClassSubject companionClassSubject = inspector.clazz(syntheticCompanionClass(I.class));
       assertThat(companionClassSubject, isPresent());
 
       MethodSubject staticInterfaceMethodSubject =

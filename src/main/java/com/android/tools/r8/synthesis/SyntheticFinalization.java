@@ -197,15 +197,7 @@ public class SyntheticFinalization {
     appView.setAppInfo(appView.appInfo().rebuildWithClassHierarchy(result.commit));
     appView.setAppInfo(appView.appInfo().rebuildWithMainDexInfo(result.mainDexInfo));
     if (result.lens != null) {
-      appView.setGraphLens(result.lens);
-      appView.setAppInfo(
-          appView
-              .appInfo()
-              .rebuildWithMainDexInfo(
-                  appView
-                      .appInfo()
-                      .getMainDexInfo()
-                      .rewrittenWithLens(appView.getSyntheticItems(), result.lens)));
+      appView.rewriteWithLens(result.lens);
     }
     appView.pruneItems(result.prunedItems, executorService);
   }

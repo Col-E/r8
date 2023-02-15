@@ -916,6 +916,15 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
             appView
                 .withLiveness()
                 .setAppInfo(appView.appInfoWithLiveness().rewrittenWithLens(application, lens));
+          } else {
+            assert appView.hasClassHierarchy();
+            AppView<AppInfoWithClassHierarchy> appViewWithClassHierarchy =
+                appView.withClassHierarchy();
+            AppInfoWithClassHierarchy appInfo = appViewWithClassHierarchy.appInfo();
+            MainDexInfo rewrittenMainDexInfo =
+                appInfo.getMainDexInfo().rewrittenWithLens(appView.getSyntheticItems(), lens);
+            appViewWithClassHierarchy.setAppInfo(
+                appInfo.rebuildWithMainDexInfo(rewrittenMainDexInfo));
           }
           appView.setAppServices(appView.appServices().rewrittenWithLens(lens));
           appView.setArtProfileCollection(

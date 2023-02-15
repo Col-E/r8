@@ -1213,6 +1213,10 @@ public abstract class MethodResolutionResult
       super(typesCausingError);
     }
 
+    public static NoSuchMethodResult getEmptyNoSuchMethodResult() {
+      return INSTANCE;
+    }
+
     @Override
     public boolean isNoSuchMethodErrorResult(DexClass context, AppInfoWithClassHierarchy appInfo) {
       return true;

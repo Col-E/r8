@@ -163,12 +163,12 @@ public abstract class CfInstructionDesugaringEventConsumer
     }
 
     @Override
-    public void acceptCollectionConversion(ProgramMethod arrayConversion) {
+    public void acceptCollectionConversion(ProgramMethod arrayConversion, ProgramMethod context) {
       methodProcessor.scheduleMethodForProcessing(arrayConversion, outermostEventConsumer);
     }
 
     @Override
-    public void acceptCovariantRetargetMethod(ProgramMethod method) {
+    public void acceptCovariantRetargetMethod(ProgramMethod method, ProgramMethod context) {
       methodProcessor.scheduleMethodForProcessing(method, outermostEventConsumer);
     }
 
@@ -354,7 +354,7 @@ public abstract class CfInstructionDesugaringEventConsumer
     }
 
     @Override
-    public void acceptAPIConversion(ProgramMethod method) {
+    public void acceptAPIConversionOutline(ProgramMethod method, ProgramMethod context) {
       methodProcessor.scheduleDesugaredMethodForProcessing(method);
     }
 
@@ -522,7 +522,7 @@ public abstract class CfInstructionDesugaringEventConsumer
     }
 
     @Override
-    public void acceptCollectionConversion(ProgramMethod arrayConversion) {
+    public void acceptCollectionConversion(ProgramMethod arrayConversion, ProgramMethod context) {
       // Intentionally empty. The method will be hit by tracing if required.
     }
 
@@ -548,7 +548,7 @@ public abstract class CfInstructionDesugaringEventConsumer
     }
 
     @Override
-    public void acceptCovariantRetargetMethod(ProgramMethod method) {
+    public void acceptCovariantRetargetMethod(ProgramMethod method, ProgramMethod context) {
       // Intentionally empty. The method will be hit by tracing if required.
     }
 
@@ -614,7 +614,7 @@ public abstract class CfInstructionDesugaringEventConsumer
     }
 
     @Override
-    public void acceptAPIConversion(ProgramMethod method) {
+    public void acceptAPIConversionOutline(ProgramMethod method, ProgramMethod context) {
       // Intentionally empty. The method will be hit by tracing if required.
     }
 

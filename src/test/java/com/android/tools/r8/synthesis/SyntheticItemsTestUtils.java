@@ -228,6 +228,14 @@ public class SyntheticItemsTestUtils {
         originalMethod.getMethodDescriptor());
   }
 
+  public static MethodReference syntheticStaticInterfaceMethodAsCompanionMethod(Method method) {
+    MethodReference originalMethod = Reference.methodFromMethod(method);
+    ClassReference companionClassReference =
+        syntheticCompanionClass(originalMethod.getHolderClass());
+    return Reference.methodFromDescriptor(
+        companionClassReference, method.getName(), originalMethod.getMethodDescriptor());
+  }
+
   public static ClassReference syntheticEnumUnboxingLocalUtilityClass(Class<?> clazz) {
     return Reference.classFromTypeName(
         clazz.getTypeName() + naming.ENUM_UNBOXING_LOCAL_UTILITY_CLASS.getDescriptor());

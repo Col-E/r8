@@ -3,15 +3,18 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.desugar;
 
+import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.DexClasspathClass;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.MethodResolutionResult.FailedResolutionResult;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.conversion.D8MethodProcessor;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.apiconversion.DesugaredLibraryWrapperSynthesizerEventConsumer.DesugaredLibraryAPICallbackSynthesizorEventConsumer;
+import com.android.tools.r8.ir.desugar.desugaredlibrary.machinespecification.EmulatedDispatchMethodDescriptor;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.retargeter.DesugaredLibraryRetargeterSynthesizerEventConsumer.DesugaredLibraryRetargeterPostProcessingEventConsumer;
 import com.android.tools.r8.ir.desugar.itf.InterfaceDesugaringSyntheticHelper;
 import com.android.tools.r8.ir.desugar.itf.InterfaceProcessingDesugaringEventConsumer;
@@ -35,16 +38,18 @@ public abstract class CfPostProcessingDesugaringEventConsumer
         DesugaredLibraryAPICallbackSynthesizorEventConsumer {
 
   public static CfPostProcessingDesugaringEventConsumer createForD8(
+      AppView<?> appView,
       ArtProfileCollectionAdditions artProfileCollectionAdditions,
       D8MethodProcessor methodProcessor,
       CfInstructionDesugaringCollection instructionDesugaring) {
     CfPostProcessingDesugaringEventConsumer eventConsumer =
         new D8CfPostProcessingDesugaringEventConsumer(methodProcessor, instructionDesugaring);
     return ArtProfileRewritingCfPostProcessingDesugaringEventConsumer.attach(
-        artProfileCollectionAdditions, eventConsumer);
+        appView, artProfileCollectionAdditions, eventConsumer);
   }
 
   public static CfPostProcessingDesugaringEventConsumer createForR8(
+      AppView<?> appView,
       SyntheticAdditions additions,
       ArtProfileCollectionAdditions artProfileCollectionAdditions,
       CfInstructionDesugaringCollection desugaring,
@@ -52,7 +57,7 @@ public abstract class CfPostProcessingDesugaringEventConsumer
     CfPostProcessingDesugaringEventConsumer eventConsumer =
         new R8PostProcessingDesugaringEventConsumer(additions, desugaring, missingClassConsumer);
     return ArtProfileRewritingCfPostProcessingDesugaringEventConsumer.attach(
-        artProfileCollectionAdditions, eventConsumer);
+        appView, artProfileCollectionAdditions, eventConsumer);
   }
 
   public abstract Set<DexMethod> getNewlyLiveMethods();
@@ -93,7 +98,7 @@ public abstract class CfPostProcessingDesugaringEventConsumer
     }
 
     @Override
-    public void acceptCovariantRetargetMethod(ProgramMethod method) {
+    public void acceptCovariantRetargetMethod(ProgramMethod method, ProgramMethod context) {
       addMethodToReprocess(method);
     }
 
@@ -109,7 +114,8 @@ public abstract class CfPostProcessingDesugaringEventConsumer
     }
 
     @Override
-    public void acceptDesugaredLibraryRetargeterForwardingMethod(ProgramMethod method) {
+    public void acceptDesugaredLibraryRetargeterForwardingMethod(
+        ProgramMethod method, EmulatedDispatchMethodDescriptor descriptor) {
       addMethodToReprocess(method);
     }
 
@@ -120,12 +126,13 @@ public abstract class CfPostProcessingDesugaringEventConsumer
     }
 
     @Override
-    public void acceptThrowingMethod(ProgramMethod method, DexType errorType) {
+    public void acceptThrowingMethod(
+        ProgramMethod method, DexType errorType, FailedResolutionResult resolutionResult) {
       addMethodToReprocess(method);
     }
 
     @Override
-    public void acceptCollectionConversion(ProgramMethod method) {
+    public void acceptCollectionConversion(ProgramMethod method, ProgramMethod context) {
       addMethodToReprocess(method);
     }
 
@@ -216,12 +223,13 @@ public abstract class CfPostProcessingDesugaringEventConsumer
     }
 
     @Override
-    public void acceptCovariantRetargetMethod(ProgramMethod method) {
+    public void acceptCovariantRetargetMethod(ProgramMethod method, ProgramMethod context) {
       additions.addLiveMethod(method);
     }
 
     @Override
-    public void acceptDesugaredLibraryRetargeterForwardingMethod(ProgramMethod method) {
+    public void acceptDesugaredLibraryRetargeterForwardingMethod(
+        ProgramMethod method, EmulatedDispatchMethodDescriptor descriptor) {
       additions.addLiveMethod(method);
     }
 
@@ -232,12 +240,13 @@ public abstract class CfPostProcessingDesugaringEventConsumer
     }
 
     @Override
-    public void acceptThrowingMethod(ProgramMethod method, DexType errorType) {
+    public void acceptThrowingMethod(
+        ProgramMethod method, DexType errorType, FailedResolutionResult resolutionResult) {
       additions.addLiveMethod(method);
     }
 
     @Override
-    public void acceptCollectionConversion(ProgramMethod method) {
+    public void acceptCollectionConversion(ProgramMethod method, ProgramMethod context) {
       additions.addLiveMethod(method);
     }
 

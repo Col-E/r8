@@ -138,7 +138,7 @@ public class DesugaredLibraryRetargeterPostProcessor implements CfPostProcessing
         DexEncodedMethod newMethod = createForwardingMethod(itfMethod, descriptor, clazz);
         clazz.addVirtualMethod(newMethod);
         eventConsumer.acceptDesugaredLibraryRetargeterForwardingMethod(
-            new ProgramMethod(clazz, newMethod));
+            new ProgramMethod(clazz, newMethod), descriptor);
       }
     }
   }

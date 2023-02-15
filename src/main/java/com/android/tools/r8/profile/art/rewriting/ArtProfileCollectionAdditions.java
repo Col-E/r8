@@ -55,4 +55,6 @@ public abstract class ArtProfileCollectionAdditions {
 
   public abstract ArtProfileCollectionAdditions setArtProfileCollection(
       ArtProfileCollection artProfileCollection);
+
+  public abstract boolean verifyIsCommitted();
 }

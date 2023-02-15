@@ -473,6 +473,7 @@ public class Enqueuer {
 
   Enqueuer(
       AppView<? extends AppInfoWithClassHierarchy> appView,
+      ArtProfileCollectionAdditions artProfileCollectionAdditions,
       ExecutorService executorService,
       SubtypingInfo subtypingInfo,
       GraphConsumer keptGraphConsumer,
@@ -481,7 +482,7 @@ public class Enqueuer {
     InternalOptions options = appView.options();
     this.appInfo = appView.appInfo();
     this.appView = appView.withClassHierarchy();
-    this.artProfileCollectionAdditions = ArtProfileCollectionAdditions.create(appView);
+    this.artProfileCollectionAdditions = artProfileCollectionAdditions;
     this.deferredTracing = EnqueuerDeferredTracing.create(appView, this, mode);
     this.executorService = executorService;
     this.subtypingInfo = subtypingInfo;
@@ -529,6 +530,10 @@ public class Enqueuer {
 
   private AppInfoWithClassHierarchy appInfo() {
     return appView.appInfo();
+  }
+
+  public ArtProfileCollectionAdditions getArtProfileCollectionAdditions() {
+    return artProfileCollectionAdditions;
   }
 
   public Mode getMode() {
@@ -4475,7 +4480,7 @@ public class Enqueuer {
             }
           }
           ConsequentRootSetBuilder consequentSetBuilder =
-              ConsequentRootSet.builder(appView, subtypingInfo, this);
+              ConsequentRootSet.builder(appView, this, subtypingInfo);
           IfRuleEvaluator ifRuleEvaluator =
               new IfRuleEvaluator(
                   appView,
@@ -4569,6 +4574,7 @@ public class Enqueuer {
 
     CfPostProcessingDesugaringEventConsumer eventConsumer =
         CfPostProcessingDesugaringEventConsumer.createForR8(
+            appView,
             syntheticAdditions,
             artProfileCollectionAdditions,
             desugaring,
@@ -4635,7 +4641,7 @@ public class Enqueuer {
   }
 
   private ConsequentRootSet computeDelayedInterfaceMethodSyntheticBridges() {
-    RootSetBuilder builder = RootSet.builder(appView, subtypingInfo);
+    RootSetBuilder builder = RootSet.builder(appView, this, subtypingInfo);
     for (DelayedRootSetActionItem delayedRootSetActionItem : rootSet.delayedRootSetActionItems) {
       if (delayedRootSetActionItem.isInterfaceMethodSyntheticBridgeAction()) {
         handleInterfaceMethodSyntheticBridgeAction(

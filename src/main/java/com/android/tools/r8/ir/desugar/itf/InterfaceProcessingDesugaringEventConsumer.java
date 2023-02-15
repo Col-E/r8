@@ -8,6 +8,7 @@ import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.DexClasspathClass;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.MethodResolutionResult.FailedResolutionResult;
 import com.android.tools.r8.graph.ProgramMethod;
 
 public interface InterfaceProcessingDesugaringEventConsumer {
@@ -18,7 +19,8 @@ public interface InterfaceProcessingDesugaringEventConsumer {
   void acceptEmulatedInterfaceMarkerInterface(
       DexProgramClass clazz, DexClasspathClass newInterface);
 
-  void acceptThrowingMethod(ProgramMethod method, DexType errorType);
+  void acceptThrowingMethod(
+      ProgramMethod method, DexType errorType, FailedResolutionResult resolutionResult);
 
   void warnMissingInterface(
       DexProgramClass context, DexType missing, InterfaceDesugaringSyntheticHelper helper);

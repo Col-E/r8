@@ -57,4 +57,10 @@ public class NopArtProfileCollectionAdditions extends ArtProfileCollectionAdditi
     // Intentionally empty.
     return this;
   }
+
+  @Override
+  public boolean verifyIsCommitted() {
+    // Nothing to commit.
+    return true;
+  }
 }

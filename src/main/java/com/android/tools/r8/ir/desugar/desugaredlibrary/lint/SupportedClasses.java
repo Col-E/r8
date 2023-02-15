@@ -11,6 +11,7 @@ import com.android.tools.r8.graph.DexType;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSortedMap;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.IdentityHashMap;
@@ -83,26 +84,26 @@ public class SupportedClasses {
 
       private final DexClass clazz;
       private ClassAnnotation classAnnotation;
-      private final List<DexEncodedMethod> supportedMethods = new ArrayList<>();
+      private final Map<DexMethod, DexEncodedMethod> supportedMethods = new IdentityHashMap<>();
       private final Map<DexMethod, MethodAnnotation> methodAnnotations = new HashMap<>();
 
       private Builder(DexClass clazz) {
         this.clazz = clazz;
       }
 
-      void forEachMethods(BiConsumer<DexClass, List<DexEncodedMethod>> biConsumer) {
-        biConsumer.accept(clazz, supportedMethods);
+      void forEachMethods(BiConsumer<DexClass, Collection<DexEncodedMethod>> biConsumer) {
+        biConsumer.accept(clazz, supportedMethods.values());
       }
 
       void forEachMethod(BiConsumer<DexClass, DexEncodedMethod> biConsumer) {
-        for (DexEncodedMethod dexEncodedMethod : supportedMethods) {
+        for (DexEncodedMethod dexEncodedMethod : supportedMethods.values()) {
           biConsumer.accept(clazz, dexEncodedMethod);
         }
       }
 
       void addSupportedMethod(DexEncodedMethod method) {
         assert method.getHolderType() == clazz.type;
-        supportedMethods.add(method);
+        supportedMethods.put(method.getReference(), method);
       }
 
       void annotateClass(ClassAnnotation annotation) {
@@ -123,9 +124,13 @@ public class SupportedClasses {
       }
 
       SupportedClass build() {
-        supportedMethods.sort(Comparator.comparing(DexEncodedMethod::getReference));
+        List<DexEncodedMethod> supportedMethodsSorted = new ArrayList<>(supportedMethods.values());
+        supportedMethodsSorted.sort(Comparator.comparing(DexEncodedMethod::getReference));
         return new SupportedClass(
-            clazz, classAnnotation, ImmutableList.copyOf(supportedMethods), methodAnnotations);
+            clazz,
+            classAnnotation,
+            ImmutableList.copyOf(supportedMethodsSorted),
+            methodAnnotations);
       }
     }
   }
@@ -138,7 +143,7 @@ public class SupportedClasses {
 
     Map<DexType, SupportedClass.Builder> supportedClassBuilders = new IdentityHashMap<>();
 
-    void forEachClassAndMethods(BiConsumer<DexClass, List<DexEncodedMethod>> biConsumer) {
+    void forEachClassAndMethods(BiConsumer<DexClass, Collection<DexEncodedMethod>> biConsumer) {
       supportedClassBuilders
           .values()
           .forEach(classBuilder -> classBuilder.forEachMethods(biConsumer));

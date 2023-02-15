@@ -260,7 +260,7 @@ public class DesugaredLibraryConversionCfProvider {
                                         parameterConversions,
                                         invoke.getOpcode())
                                     .generateCfCode()));
-    eventConsumer.acceptAPIConversion(outline);
+    eventConsumer.acceptAPIConversionOutline(outline, context);
     return outline;
   }
 
@@ -362,7 +362,8 @@ public class DesugaredLibraryConversionCfProvider {
                             methodSignature ->
                                 computeParameterConversionCfCode(
                                     methodSignature.holder, invokedMethod, parameterConversions)));
-    eventConsumer.acceptAPIConversion(parameterConversion);
+    eventConsumer.acceptAPIConversionOutline(
+        parameterConversion, methodProcessingContext.getMethodContext());
     cfInstructions.add(
         new CfInvoke(Opcodes.INVOKESTATIC, parameterConversion.getReference(), false));
     int arrayLocal = freshLocalProvider.getFreshLocal(ValueType.OBJECT.requiredRegisters());
@@ -461,6 +462,7 @@ public class DesugaredLibraryConversionCfProvider {
                 destIsVivified,
                 apiConversionCollection,
                 eventConsumer,
+                context,
                 contextSupplier),
         context);
   }
@@ -479,6 +481,7 @@ public class DesugaredLibraryConversionCfProvider {
                 destIsVivified,
                 apiConversionCollection,
                 eventConsumer,
+                context,
                 contextSupplier),
         context);
   }
@@ -507,7 +510,12 @@ public class DesugaredLibraryConversionCfProvider {
         wrapperSynthesizer,
         (argType, apiGenericTypesConversion) ->
             wrapperSynthesizer.ensureConversionMethod(
-                argType, destIsVivified, apiGenericTypesConversion, eventConsumer, contextSupplier),
+                argType,
+                destIsVivified,
+                apiGenericTypesConversion,
+                eventConsumer,
+                context,
+                contextSupplier),
         context);
   }
 
@@ -522,7 +530,12 @@ public class DesugaredLibraryConversionCfProvider {
         wrapperSynthesizer,
         (argType, apiGenericTypesConversion) ->
             wrapperSynthesizer.getExistingProgramConversionMethod(
-                argType, destIsVivified, apiGenericTypesConversion, eventConsumer, contextSupplier),
+                argType,
+                destIsVivified,
+                apiGenericTypesConversion,
+                eventConsumer,
+                context,
+                contextSupplier),
         context);
   }
 

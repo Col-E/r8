@@ -154,7 +154,12 @@ public class HorizontalClassMerger {
     appView.setHorizontallyMergedClasses(mergedClasses, mode);
 
     HorizontalClassMergerGraphLens horizontalClassMergerGraphLens =
-        createLens(mergedClasses, lensBuilder, mode, syntheticArgumentClass);
+        createLens(
+            mergedClasses,
+            lensBuilder,
+            mode,
+            artProfileCollectionAdditions,
+            syntheticArgumentClass);
     artProfileCollectionAdditions =
         artProfileCollectionAdditions.rewriteMethodReferences(
             horizontalClassMergerGraphLens::getNextMethodToInvoke);
@@ -185,7 +190,7 @@ public class HorizontalClassMerger {
                       .appInfo()
                       .getMainDexInfo()
                       .rewrittenWithLens(syntheticItems, horizontalClassMergerGraphLens)));
-      appView.setGraphLens(horizontalClassMergerGraphLens);
+      appView.rewriteWithD8Lens(horizontalClassMergerGraphLens);
     }
     codeProvider.setGraphLens(horizontalClassMergerGraphLens);
 
@@ -391,8 +396,15 @@ public class HorizontalClassMerger {
       HorizontallyMergedClasses mergedClasses,
       HorizontalClassMergerGraphLens.Builder lensBuilder,
       Mode mode,
+      ArtProfileCollectionAdditions artProfileCollectionAdditions,
       SyntheticArgumentClass syntheticArgumentClass) {
-    return new TreeFixer(appView, mergedClasses, lensBuilder, mode, syntheticArgumentClass)
+    return new TreeFixer(
+            appView,
+            mergedClasses,
+            lensBuilder,
+            mode,
+            artProfileCollectionAdditions,
+            syntheticArgumentClass)
         .fixupTypeReferences();
   }
 

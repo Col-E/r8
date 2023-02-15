@@ -99,7 +99,7 @@ public class HorizontalClassMergerGraphLens extends NestedGraphLens {
 
     private final MutableBidirectionalManyToOneRepresentativeMap<DexField, DexField>
         newFieldSignatures = BidirectionalManyToOneRepresentativeHashMap.newIdentityHashMap();
-    private final MutableBidirectionalManyToOneMap<DexMethod, DexMethod> methodMap =
+    final MutableBidirectionalManyToOneMap<DexMethod, DexMethod> methodMap =
         BidirectionalManyToOneHashMap.newIdentityHashMap();
     private final MutableBidirectionalManyToOneRepresentativeMap<DexMethod, DexMethod>
         newMethodSignatures = BidirectionalManyToOneRepresentativeHashMap.newIdentityHashMap();
