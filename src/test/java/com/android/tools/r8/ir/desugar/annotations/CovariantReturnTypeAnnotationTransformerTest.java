@@ -5,21 +5,30 @@
 package com.android.tools.r8.ir.desugar.annotations;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
-import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.AsmTestBase;
+import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.ToolHelper;
-import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
+import com.google.common.collect.ImmutableList;
+import java.nio.file.Path;
 import java.util.Collections;
+import java.util.List;
 import org.junit.Assert;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameter;
+import org.junit.runners.Parameterized.Parameters;
 
+@RunWith(Parameterized.class)
 public class CovariantReturnTypeAnnotationTransformerTest extends AsmTestBase {
+
   public static final String PACKAGE_NAME = "com/android/tools/r8/ir/desugar/annotations";
   public static final String CRT_BINARY_NAME = "dalvik/annotation/codegen/CovariantReturnType";
   public static final String CRTS_INNER_NAME = "CovariantReturnTypes";
@@ -28,10 +37,18 @@ public class CovariantReturnTypeAnnotationTransformerTest extends AsmTestBase {
   public static final String CRT_TYPE_NAME = CRT_BINARY_NAME.replace('/', '.');
   public static final String CRTS_TYPE_NAME = CRT_BINARY_NAME.replace('/', '.');
 
+  @Parameter(0)
+  public TestParameters parameters;
+
+  @Parameters(name = "{0}")
+  public static TestParametersCollection data() {
+    return getTestParameters().withDexRuntimesAndAllApiLevels().build();
+  }
+
   @Test
   public void testVersion1WithClient1And2() throws Exception {
-    AndroidApp input =
-        buildAndroidApp(
+    List<byte[]> input =
+        ImmutableList.of(
             ToolHelper.getClassAsBytes(Client.class),
             ToolHelper.getClassAsBytes(A.class),
             ToolHelper.getClassAsBytes(B.class),
@@ -46,8 +63,8 @@ public class CovariantReturnTypeAnnotationTransformerTest extends AsmTestBase {
 
   @Test
   public void testVersion1WithClient3() throws Exception {
-    AndroidApp input =
-        buildAndroidApp(
+    List<byte[]> input =
+        ImmutableList.of(
             com.android.tools.r8.ir.desugar.annotations.version3.ClientDump.dump(),
             ToolHelper.getClassAsBytes(A.class),
             ToolHelper.getClassAsBytes(B.class),
@@ -63,8 +80,8 @@ public class CovariantReturnTypeAnnotationTransformerTest extends AsmTestBase {
 
   @Test
   public void testVersion2WithClient1And2() throws Exception {
-    AndroidApp input =
-        buildAndroidApp(
+    List<byte[]> input =
+        ImmutableList.of(
             ToolHelper.getClassAsBytes(Client.class),
             ToolHelper.getClassAsBytes(A.class),
             com.android.tools.r8.ir.desugar.annotations.version2.BDump.dump(),
@@ -79,8 +96,8 @@ public class CovariantReturnTypeAnnotationTransformerTest extends AsmTestBase {
 
   @Test
   public void testVersion2WithClient3() throws Exception {
-    AndroidApp input =
-        buildAndroidApp(
+    List<byte[]> input =
+        ImmutableList.of(
             com.android.tools.r8.ir.desugar.annotations.version3.ClientDump.dump(),
             ToolHelper.getClassAsBytes(A.class),
             com.android.tools.r8.ir.desugar.annotations.version2.BDump.dump(),
@@ -100,8 +117,8 @@ public class CovariantReturnTypeAnnotationTransformerTest extends AsmTestBase {
 
   @Test
   public void testVersion3WithClient3() throws Exception {
-    AndroidApp input =
-        buildAndroidApp(
+    List<byte[]> input =
+        ImmutableList.of(
             com.android.tools.r8.ir.desugar.annotations.version3.ClientDump.dump(),
             ToolHelper.getClassAsBytes(A.class),
             com.android.tools.r8.ir.desugar.annotations.version3.BDump.dump(),
@@ -116,8 +133,8 @@ public class CovariantReturnTypeAnnotationTransformerTest extends AsmTestBase {
 
   @Test
   public void testVersion3WithClient1And2() throws Exception {
-    AndroidApp input =
-        buildAndroidApp(
+    List<byte[]> input =
+        ImmutableList.of(
             ToolHelper.getClassAsBytes(Client.class),
             ToolHelper.getClassAsBytes(A.class),
             com.android.tools.r8.ir.desugar.annotations.version3.BDump.dump(),
@@ -132,8 +149,8 @@ public class CovariantReturnTypeAnnotationTransformerTest extends AsmTestBase {
 
   @Test
   public void testRepeatedCompilation() throws Exception {
-    AndroidApp input =
-        buildAndroidApp(
+    List<byte[]> input =
+        ImmutableList.of(
             ToolHelper.getClassAsBytes(Client.class),
             ToolHelper.getClassAsBytes(A.class),
             com.android.tools.r8.ir.desugar.annotations.version2.BDump.dump(),
@@ -142,51 +159,73 @@ public class CovariantReturnTypeAnnotationTransformerTest extends AsmTestBase {
     // Version 2 contains annotations.
     checkPresenceOfCovariantAnnotations(input, true);
 
-    AndroidApp output =
-        compileWithD8(input, options -> options.processCovariantReturnTypeAnnotations = true);
-
-    // Compilation output does not contain annotations.
-    checkPresenceOfCovariantAnnotations(output, false);
+    Path output =
+        testForD8(parameters.getBackend())
+            .addProgramClassFileData(input)
+            .addOptionsModification(options -> options.processCovariantReturnTypeAnnotations = true)
+            .setMinApi(parameters.getApiLevel())
+            .compile()
+            // Compilation output does not contain annotations.
+            .inspect(inspector -> checkPresenceOfCovariantAnnotations(inspector, false))
+            .writeToZip();
 
     // Compilation will fail with a compilation error the second time if the implementation does
     // not remove the CovariantReturnType annotations properly during the first compilation.
-    compileWithD8(output, options -> options.processCovariantReturnTypeAnnotations = true);
+    testForD8(parameters.getBackend())
+        .addProgramFiles(output)
+        .addOptionsModification(options -> options.processCovariantReturnTypeAnnotations = true)
+        .setMinApi(parameters.getApiLevel())
+        .compile();
   }
 
   private void succeedsWithOption(
-      AndroidApp input, boolean option, boolean checkPresenceOfSyntheticMethods) throws Exception {
-    AndroidApp output =
-        compileWithD8(input, options -> options.processCovariantReturnTypeAnnotations = option);
-    String stdout = runOnArt(output, Client.class.getCanonicalName());
-    assertEquals(getExpectedOutput(), stdout);
-    checkPresenceOfCovariantAnnotations(output, false);
-    if (option && checkPresenceOfSyntheticMethods) {
-      checkPresenceOfSyntheticMethods(output);
-    }
-  }
-
-  private void failsWithOption(AndroidApp input, boolean option) throws Exception {
-    AndroidApp output =
-        compileWithD8(input, options -> options.processCovariantReturnTypeAnnotations = option);
-    checkPresenceOfCovariantAnnotations(output, false);
-    ToolHelper.ProcessResult result = runOnArtRaw(output, Client.class.getCanonicalName());
-    assertThat(result.stderr, containsString("java.lang.NoSuchMethodError"));
-  }
-
-  private void succeedsIndependentOfFlag(AndroidApp input, boolean checkPresenceOfSyntheticMethods)
+      List<byte[]> input, boolean option, boolean checkPresenceOfSyntheticMethods)
       throws Exception {
+    testForD8(parameters.getBackend())
+        .addProgramClassFileData(input)
+        .addOptionsModification(options -> options.processCovariantReturnTypeAnnotations = option)
+        .setMinApi(parameters.getApiLevel())
+        .compile()
+        .inspect(
+            inspector -> {
+              checkPresenceOfCovariantAnnotations(inspector, false);
+              if (option && checkPresenceOfSyntheticMethods) {
+                checkPresenceOfSyntheticMethods(inspector);
+              }
+            })
+        .run(parameters.getRuntime(), Client.class.getCanonicalName())
+        .assertSuccessWithOutput(getExpectedOutput());
+  }
+
+  private void failsWithOption(List<byte[]> input, boolean option) throws Exception {
+    testForD8(parameters.getBackend())
+        .addProgramClassFileData(input)
+        .addOptionsModification(options -> options.processCovariantReturnTypeAnnotations = option)
+        .setMinApi(parameters.getApiLevel())
+        .compile()
+        .inspect(inspector -> checkPresenceOfCovariantAnnotations(inspector, false))
+        .run(parameters.getRuntime(), Client.class.getCanonicalName())
+        .assertFailureWithErrorThatThrows(NoSuchMethodError.class);
+  }
+
+  private void succeedsIndependentOfFlag(
+      List<byte[]> input, boolean checkPresenceOfSyntheticMethods) throws Exception {
     succeedsWithOption(input, true, checkPresenceOfSyntheticMethods);
     succeedsWithOption(input, false, checkPresenceOfSyntheticMethods);
   }
 
-  private void failsIndependentOfFlag(AndroidApp input) throws Exception {
+  private void failsIndependentOfFlag(List<byte[]> input) throws Exception {
     failsWithOption(input, true);
     failsWithOption(input, false);
   }
 
-  private void checkPresenceOfCovariantAnnotations(AndroidApp app, boolean expected)
+  private void checkPresenceOfCovariantAnnotations(List<byte[]> input, boolean expected)
       throws Exception {
-    CodeInspector inspector = new CodeInspector(app);
+    CodeInspector inspector = new CodeInspector(buildAndroidApp(input));
+    checkPresenceOfCovariantAnnotations(inspector, expected);
+  }
+
+  private void checkPresenceOfCovariantAnnotations(CodeInspector inspector, boolean expected) {
     assertEquals(
         expected,
         inspector.allClasses().stream()
@@ -196,9 +235,7 @@ public class CovariantReturnTypeAnnotationTransformerTest extends AsmTestBase {
                         .anyMatch(method -> method.annotation(CRTS_TYPE_NAME).isPresent())));
   }
 
-  private void checkPresenceOfSyntheticMethods(AndroidApp output) throws Exception {
-    CodeInspector inspector = new CodeInspector(output);
-
+  private void checkPresenceOfSyntheticMethods(CodeInspector inspector) throws Exception {
     // Get classes A, B, and C.
     ClassSubject clazzA = inspector.clazz(A.class.getCanonicalName());
     assertThat(clazzA, isPresent());

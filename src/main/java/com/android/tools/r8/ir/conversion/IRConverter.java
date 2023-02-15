@@ -220,7 +220,7 @@ public class IRConverter {
             : CfInstructionDesugaringCollection.create(appView, appView.apiLevelCompute());
     this.covariantReturnTypeAnnotationTransformer =
         options.processCovariantReturnTypeAnnotations
-            ? new CovariantReturnTypeAnnotationTransformer(this, appView.dexItemFactory())
+            ? new CovariantReturnTypeAnnotationTransformer(appView, this)
             : null;
     if (appView.options().desugarState.isOn()
         && appView.options().apiModelingOptions().enableOutliningOfMethods) {

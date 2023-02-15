@@ -22,6 +22,7 @@ import com.android.tools.r8.ir.desugar.CfClassSynthesizerDesugaringEventConsumer
 import com.android.tools.r8.ir.desugar.CfInstructionDesugaringEventConsumer;
 import com.android.tools.r8.ir.desugar.CfPostProcessingDesugaringCollection;
 import com.android.tools.r8.ir.desugar.CfPostProcessingDesugaringEventConsumer;
+import com.android.tools.r8.ir.desugar.CovariantReturnTypeAnnotationTransformerEventConsumer;
 import com.android.tools.r8.ir.desugar.ProgramAdditions;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.apiconversion.DesugaredLibraryAPIConverter;
 import com.android.tools.r8.ir.desugar.itf.EmulatedInterfaceApplicationRewriter;
@@ -91,7 +92,7 @@ public class PrimaryD8L8IRConverter extends IRConverter {
       new L8InnerOuterAttributeEraser(appView).run();
     }
 
-    processCovariantReturnTypeAnnotations(builder);
+    processCovariantReturnTypeAnnotations(builder, artProfileCollectionAdditions);
 
     timing.end();
 
@@ -338,9 +339,13 @@ public class PrimaryD8L8IRConverter extends IRConverter {
     programAdditions.apply(executorService);
   }
 
-  private void processCovariantReturnTypeAnnotations(Builder<?> builder) {
+  private void processCovariantReturnTypeAnnotations(
+      Builder<?> builder, ArtProfileCollectionAdditions artProfileCollectionAdditions) {
     if (covariantReturnTypeAnnotationTransformer != null) {
-      covariantReturnTypeAnnotationTransformer.process(builder);
+      covariantReturnTypeAnnotationTransformer.process(
+          builder,
+          CovariantReturnTypeAnnotationTransformerEventConsumer.create(
+              artProfileCollectionAdditions));
     }
   }
 

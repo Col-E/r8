@@ -5,6 +5,7 @@
 package com.android.tools.r8.ir.desugar;
 
 import com.android.tools.r8.errors.CompilationError;
+import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexAnnotation;
 import com.android.tools.r8.graph.DexAnnotationElement;
 import com.android.tools.r8.graph.DexApplication;
@@ -53,23 +54,31 @@ import java.util.Set;
 // the contained CovariantReturnType annotations.
 public final class CovariantReturnTypeAnnotationTransformer {
 
+  private final AppView<?> appView;
   private final IRConverter converter;
-  private final MethodProcessorEventConsumer eventConsumer = MethodProcessorEventConsumer.empty();
+  private final MethodProcessorEventConsumer methodProcessorEventConsumer =
+      MethodProcessorEventConsumer.empty();
   private final DexItemFactory factory;
 
-  public CovariantReturnTypeAnnotationTransformer(IRConverter converter, DexItemFactory factory) {
+  public CovariantReturnTypeAnnotationTransformer(AppView<?> appView, IRConverter converter) {
+    this.appView = appView;
     this.converter = converter;
-    this.factory = factory;
+    this.factory = appView.dexItemFactory();
   }
 
-  public void process(DexApplication.Builder<?> builder) {
+  public void process(
+      DexApplication.Builder<?> builder,
+      CovariantReturnTypeAnnotationTransformerEventConsumer eventConsumer) {
     // List of methods that should be added to the next class.
     List<DexEncodedMethod> methodsWithCovariantReturnTypeAnnotation = new LinkedList<>();
     List<DexEncodedMethod> covariantReturnTypeMethods = new LinkedList<>();
     for (DexProgramClass clazz : builder.getProgramClasses()) {
       // Construct the methods that should be added to clazz.
       buildCovariantReturnTypeMethodsForClass(
-          clazz, methodsWithCovariantReturnTypeAnnotation, covariantReturnTypeMethods);
+          clazz,
+          methodsWithCovariantReturnTypeAnnotation,
+          covariantReturnTypeMethods,
+          eventConsumer);
       if (covariantReturnTypeMethods.isEmpty()) {
         continue;
       }
@@ -79,6 +88,7 @@ public final class CovariantReturnTypeAnnotationTransformer {
       methodsWithCovariantReturnTypeAnnotation.clear();
       covariantReturnTypeMethods.clear();
     }
+    eventConsumer.finished(appView);
   }
 
   private void updateClass(
@@ -111,12 +121,14 @@ public final class CovariantReturnTypeAnnotationTransformer {
   private void buildCovariantReturnTypeMethodsForClass(
       DexProgramClass clazz,
       List<DexEncodedMethod> methodsWithCovariantReturnTypeAnnotation,
-      List<DexEncodedMethod> covariantReturnTypeMethods) {
+      List<DexEncodedMethod> covariantReturnTypeMethods,
+      CovariantReturnTypeAnnotationTransformerEventConsumer eventConsumer) {
     clazz.forEachProgramVirtualMethod(
         method -> {
           if (methodHasCovariantReturnTypeAnnotation(method.getDefinition())) {
             methodsWithCovariantReturnTypeAnnotation.add(method.getDefinition());
-            buildCovariantReturnTypeMethodsForMethod(method, covariantReturnTypeMethods);
+            buildCovariantReturnTypeMethodsForMethod(
+                method, covariantReturnTypeMethods, eventConsumer);
           }
         });
   }
@@ -134,11 +146,13 @@ public final class CovariantReturnTypeAnnotationTransformer {
   // variantReturnTypes annotations on the given method. Adds the newly constructed, synthetic
   // methods to the list covariantReturnTypeMethods.
   private void buildCovariantReturnTypeMethodsForMethod(
-      ProgramMethod method, List<DexEncodedMethod> covariantReturnTypeMethods) {
+      ProgramMethod method,
+      List<DexEncodedMethod> covariantReturnTypeMethods,
+      CovariantReturnTypeAnnotationTransformerEventConsumer eventConsumer) {
     assert methodHasCovariantReturnTypeAnnotation(method.getDefinition());
     for (DexType covariantReturnType : getCovariantReturnTypes(method)) {
       DexEncodedMethod covariantReturnTypeMethod =
-          buildCovariantReturnTypeMethod(method, covariantReturnType);
+          buildCovariantReturnTypeMethod(method, covariantReturnType, eventConsumer);
       covariantReturnTypeMethods.add(covariantReturnTypeMethod);
     }
   }
@@ -149,7 +163,9 @@ public final class CovariantReturnTypeAnnotationTransformer {
   //
   // Note: any "synchronized" or "strictfp" modifier could be dropped safely.
   private DexEncodedMethod buildCovariantReturnTypeMethod(
-      ProgramMethod method, DexType covariantReturnType) {
+      ProgramMethod method,
+      DexType covariantReturnType,
+      CovariantReturnTypeAnnotationTransformerEventConsumer eventConsumer) {
     DexProgramClass methodHolder = method.getHolder();
     DexMethod methodReference = method.getReference();
     DexEncodedMethod methodDefinition = method.getDefinition();
@@ -183,7 +199,8 @@ public final class CovariantReturnTypeAnnotationTransformer {
             .build();
     // Optimize to generate DexCode instead of CfCode.
     ProgramMethod programMethod = new ProgramMethod(methodHolder, newVirtualMethod);
-    converter.optimizeSynthesizedMethod(programMethod, eventConsumer);
+    converter.optimizeSynthesizedMethod(programMethod, methodProcessorEventConsumer);
+    eventConsumer.acceptCovariantReturnTypeBridgeMethod(programMethod, method);
     return newVirtualMethod;
   }
 
