@@ -68,9 +68,7 @@ public class MergedVirtualMethodStackTraceTest extends TestBase {
         .run(parameters.getRuntime(), Main.class)
         .inspectStackTrace(
             (stackTrace, codeInspector) -> {
-              assertThat(
-                  codeInspector.clazz(A.class),
-                  notIf(isPresent(), !forceInlineOnly && !parameters.isDexRuntime()));
+              assertThat(codeInspector.clazz(A.class), notIf(isPresent(), !forceInlineOnly));
               assertThat(codeInspector.clazz(B.class), isAbsent());
               assertThat(stackTrace, isSame(expectedStackTrace));
             });
