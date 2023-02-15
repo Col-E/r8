@@ -25,12 +25,8 @@ def checkout(temp):
   subprocess.check_call(['git', 'clone', REPO, temp])
   return temp
 
-
 def parse_options():
   result = argparse.ArgumentParser(description='Release Smali')
-  result.add_argument('--archive-hash',
-                      metavar=('<main hash>'),
-                      help='The hash to use for archiving a smali build')
   result.add_argument('--version',
                       metavar=('<version>'),
                       help='The version of smali to archive.')
@@ -57,9 +53,8 @@ def Main():
       + 'Use --dry-run to test locally')
   if options.checkout and not options.dry_run:
     raise Exception('Using local checkout is only allowed with --dry-run')
-  if not options.checkout:
-    if not options.archive_hash or not options.version:
-      raise Exception('Both --archive-hash and --version are required')
+  if not options.checkout and not options.version:
+    raise Exception('Option --version is required (when not using local checkout)')
 
   if utils.is_bot() and not utils.IsWindows():
     set_rlimit_to_max()
@@ -74,8 +69,12 @@ def Main():
 
     checkout_dir = options.checkout if options.checkout else checkout(temp)
     with utils.ChangedWorkingDirectory(checkout_dir):
-      if options.archive_hash:
-        subprocess.check_call(['git', 'checkout', options.archive_hash])
+      if options.version:
+        output = subprocess.check_output(['git', 'tag', '-l', options.version])
+        if len(output) == 0:
+          raise Exception(
+            'Repository does not have a release tag for version %s' % options.version)
+        subprocess.check_call(['git', 'checkout', options.version])
 
       # Find version from `build.gradle`.
       for line in open(os.path.join('build.gradle'), 'r'):
@@ -89,7 +88,8 @@ def Main():
         if (options.checkout):
           raise Exception('Checkout %s has %s' % (options.checkout, message))
         else:
-          raise Exception('Commit % has %s' % (options.archive_hash, message))
+          raise Exception('Tag % has %s' % (options.version, message))
+
       print('Building version: %s' % version)
 
       # Build release to local Maven repository.
