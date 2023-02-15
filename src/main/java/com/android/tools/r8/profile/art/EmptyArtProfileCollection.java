@@ -31,7 +31,7 @@ public class EmptyArtProfileCollection extends ArtProfileCollection {
   }
 
   @Override
-  public ArtProfileCollection rewrittenWithLens(GraphLens lens) {
+  public ArtProfileCollection rewrittenWithLens(AppView<?> appView, GraphLens lens) {
     return this;
   }
 

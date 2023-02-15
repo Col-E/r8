@@ -8,16 +8,19 @@ import static com.android.tools.r8.utils.MapUtils.ignoreKey;
 
 import com.android.tools.r8.TextInputStream;
 import com.android.tools.r8.TextOutputStream;
+import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.PrunedItems;
+import com.android.tools.r8.ir.optimize.enums.EnumUnboxingLens;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.Reporter;
 import com.android.tools.r8.utils.ThrowingConsumer;
+import com.android.tools.r8.utils.TriConsumer;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.io.UncheckedIOException;
@@ -77,24 +80,60 @@ public class ArtProfile {
     return (ArtProfileMethodRule) rules.get(method);
   }
 
-  public ArtProfile rewrittenWithLens(GraphLens lens) {
+  public ArtProfile rewrittenWithLens(AppView<?> appView, GraphLens lens) {
+    if (lens.isEnumUnboxerLens()) {
+      return rewrittenWithLens(appView, lens.asEnumUnboxerLens());
+    }
     return transform(
-        (classRule, builderFactory) -> builderFactory.accept(lens.lookupType(classRule.getType())),
-        (methodRule, builderFactory) ->
-            builderFactory
+        (classRule, classRuleBuilderFactory) -> {
+          DexType newClassRule = lens.lookupType(classRule.getType());
+          assert newClassRule.isClassType();
+          classRuleBuilderFactory.accept(newClassRule);
+        },
+        (methodRule, classRuleBuilderFactory, methodRuleBuilderFactory) ->
+            methodRuleBuilderFactory
                 .apply(lens.getRenamedMethodSignature(methodRule.getMethod()))
                 .acceptMethodRuleInfoBuilder(
                     methodRuleInfoBuilder ->
                         methodRuleInfoBuilder.merge(methodRule.getMethodRuleInfo())));
   }
 
+  public ArtProfile rewrittenWithLens(AppView<?> appView, EnumUnboxingLens lens) {
+    return transform(
+        (classRule, classRuleBuilderFactory) -> {
+          DexType newClassRule = lens.lookupType(classRule.getType());
+          if (newClassRule.isClassType()) {
+            classRuleBuilderFactory.accept(newClassRule);
+          } else {
+            assert newClassRule.isIntType();
+          }
+        },
+        (methodRule, classRuleBuilderFactory, methodRuleBuilderFactory) -> {
+          DexMethod newMethod = lens.getRenamedMethodSignature(methodRule.getMethod());
+          // When moving non-synthetic methods from an enum class to its enum utility class we also
+          // add a rule for the utility class.
+          if (newMethod.getHolderType() != methodRule.getMethod().getHolderType()) {
+            assert appView
+                .getSyntheticItems()
+                .isSyntheticOfKind(
+                    newMethod.getHolderType(), naming -> naming.ENUM_UNBOXING_LOCAL_UTILITY_CLASS);
+            classRuleBuilderFactory.accept(newMethod.getHolderType());
+          }
+          methodRuleBuilderFactory
+              .apply(newMethod)
+              .acceptMethodRuleInfoBuilder(
+                  methodRuleInfoBuilder ->
+                      methodRuleInfoBuilder.merge(methodRule.getMethodRuleInfo()));
+        });
+  }
+
   public ArtProfile rewrittenWithLens(NamingLens lens, DexItemFactory dexItemFactory) {
     assert !lens.isIdentityLens();
     return transform(
-        (classRule, builderFactory) ->
-            builderFactory.accept(lens.lookupType(classRule.getType(), dexItemFactory)),
-        (methodRule, builderFactory) ->
-            builderFactory
+        (classRule, classRuleBuilderFactory) ->
+            classRuleBuilderFactory.accept(lens.lookupType(classRule.getType(), dexItemFactory)),
+        (methodRule, classRuleBuilderFactory, methodRuleBuilderFactory) ->
+            methodRuleBuilderFactory
                 .apply(lens.lookupMethod(methodRule.getMethod(), dexItemFactory))
                 .acceptMethodRuleInfoBuilder(
                     methodRuleInfoBuilder ->
@@ -103,14 +142,14 @@ public class ArtProfile {
 
   public ArtProfile withoutPrunedItems(PrunedItems prunedItems) {
     return transform(
-        (classRule, builderFactory) -> {
+        (classRule, classRuleBuilderFactory) -> {
           if (!prunedItems.isRemoved(classRule.getType())) {
-            builderFactory.accept(classRule.getType());
+            classRuleBuilderFactory.accept(classRule.getType());
           }
         },
-        (methodRule, builderFactory) -> {
+        (methodRule, classRuleBuilderFactory, methodRuleBuilderFactory) -> {
           if (!prunedItems.isRemoved(methodRule.getMethod())) {
-            builderFactory
+            methodRuleBuilderFactory
                 .apply(methodRule.getMethod())
                 .acceptMethodRuleInfoBuilder(
                     methodRuleInfoBuilder ->
@@ -121,34 +160,35 @@ public class ArtProfile {
 
   private ArtProfile transform(
       BiConsumer<ArtProfileClassRule, Consumer<DexType>> classTransformation,
-      BiConsumer<ArtProfileMethodRule, Function<DexMethod, ArtProfileMethodRule.Builder>>
+      TriConsumer<
+              ArtProfileMethodRule,
+              Consumer<DexType>,
+              Function<DexMethod, ArtProfileMethodRule.Builder>>
           methodTransformation) {
     Map<DexReference, ArtProfileRule.Builder> ruleBuilders = new LinkedHashMap<>();
+    Consumer<DexType> classRuleBuilderFactory =
+        newType ->
+            ruleBuilders
+                .computeIfAbsent(
+                    newType, ignoreKey(() -> ArtProfileClassRule.builder().setType(newType)))
+                .asClassRuleBuilder();
+    Function<DexMethod, ArtProfileMethodRule.Builder> methodRuleBuilderFactory =
+        newMethod ->
+            ruleBuilders
+                .computeIfAbsent(
+                    newMethod, ignoreKey(() -> ArtProfileMethodRule.builder().setMethod(newMethod)))
+                .asMethodRuleBuilder();
     forEachRule(
         // Supply a factory method for creating a builder. If the current rule should be included in
         // the rewritten profile, the caller should call the provided builder factory method to
         // create a class rule builder. If two rules are mapped to the same reference, the same rule
         // builder is reused so that the two rules are merged into a single rule (with their flags
         // merged).
-        classRule ->
-            classTransformation.accept(
-                classRule,
-                newType ->
-                    ruleBuilders
-                        .computeIfAbsent(
-                            newType,
-                            ignoreKey(() -> ArtProfileClassRule.builder().setType(newType)))
-                        .asClassRuleBuilder()),
+        classRule -> classTransformation.accept(classRule, classRuleBuilderFactory),
         // As above.
         methodRule ->
             methodTransformation.accept(
-                methodRule,
-                newMethod ->
-                    ruleBuilders
-                        .computeIfAbsent(
-                            newMethod,
-                            ignoreKey(() -> ArtProfileMethodRule.builder().setMethod(newMethod)))
-                        .asMethodRuleBuilder()));
+                methodRule, classRuleBuilderFactory, methodRuleBuilderFactory));
     return builder().addRuleBuilders(ruleBuilders.values()).build();
   }
 

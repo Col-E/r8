@@ -65,7 +65,7 @@ public abstract class ArtProfileCollection {
 
   public abstract NonEmptyArtProfileCollection asNonEmpty();
 
-  public abstract ArtProfileCollection rewrittenWithLens(GraphLens lens);
+  public abstract ArtProfileCollection rewrittenWithLens(AppView<?> appView, GraphLens lens);
 
   public abstract ArtProfileCollection rewrittenWithLens(
       NamingLens lens, DexItemFactory dexItemFactory);

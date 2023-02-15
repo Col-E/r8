@@ -9,6 +9,7 @@ import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.proto.RewrittenPrototypeDescription;
 import com.android.tools.r8.ir.code.Invoke.Type;
 import com.android.tools.r8.ir.conversion.LensCodeRewriterUtils;
+import com.android.tools.r8.ir.optimize.enums.EnumUnboxingLens;
 import com.android.tools.r8.optimize.MemberRebindingIdentityLens;
 import com.android.tools.r8.optimize.MemberRebindingLens;
 import com.android.tools.r8.shaking.KeepInfoCollection;
@@ -598,6 +599,10 @@ public abstract class GraphLens {
 
   public boolean isEnumUnboxerLens() {
     return false;
+  }
+
+  public EnumUnboxingLens asEnumUnboxerLens() {
+    return null;
   }
 
   public boolean isHorizontalClassMergerGraphLens() {

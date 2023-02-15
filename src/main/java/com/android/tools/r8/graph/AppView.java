@@ -919,7 +919,7 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
           }
           appView.setAppServices(appView.appServices().rewrittenWithLens(lens));
           appView.setArtProfileCollection(
-              appView.getArtProfileCollection().rewrittenWithLens(lens));
+              appView.getArtProfileCollection().rewrittenWithLens(appView, lens));
           appView.setAssumeInfoCollection(
               appView.getAssumeInfoCollection().rewrittenWithLens(appView, lens));
           if (appView.hasInitClassLens()) {
@@ -948,7 +948,8 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
     boolean changed = appView.setGraphLens(lens);
     assert changed;
 
-    appView.setArtProfileCollection(appView.getArtProfileCollection().rewrittenWithLens(lens));
+    appView.setArtProfileCollection(
+        appView.getArtProfileCollection().rewrittenWithLens(appView, lens));
   }
 
   public void setAlreadyLibraryDesugared(Set<DexType> alreadyLibraryDesugared) {

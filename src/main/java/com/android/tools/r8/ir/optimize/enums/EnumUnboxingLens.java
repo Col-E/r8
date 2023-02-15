@@ -34,7 +34,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-class EnumUnboxingLens extends NestedGraphLens {
+public class EnumUnboxingLens extends NestedGraphLens {
 
   private final AbstractValueFactory abstractValueFactory;
   private final Map<DexMethod, RewrittenPrototypeDescription> prototypeChangesPerMethod;
@@ -61,6 +61,11 @@ class EnumUnboxingLens extends NestedGraphLens {
   @Override
   public boolean isEnumUnboxerLens() {
     return true;
+  }
+
+  @Override
+  public EnumUnboxingLens asEnumUnboxerLens() {
+    return this;
   }
 
   @Override

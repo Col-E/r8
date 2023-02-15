@@ -46,8 +46,8 @@ public class NonEmptyArtProfileCollection extends ArtProfileCollection
   }
 
   @Override
-  public NonEmptyArtProfileCollection rewrittenWithLens(GraphLens lens) {
-    return map(artProfile -> artProfile.rewrittenWithLens(lens));
+  public NonEmptyArtProfileCollection rewrittenWithLens(AppView<?> appView, GraphLens lens) {
+    return map(artProfile -> artProfile.rewrittenWithLens(appView, lens));
   }
 
   @Override
