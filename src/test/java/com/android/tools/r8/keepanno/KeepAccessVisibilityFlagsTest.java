@@ -25,6 +25,7 @@ import com.google.common.collect.ImmutableSet;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import org.junit.Test;
@@ -44,11 +45,12 @@ public class KeepAccessVisibilityFlagsTest extends TestBase {
           "privateMethod",
           "protectedMethod",
           "publicMethod",
-          // Member targets.
+          // Member field targets.
           "packagePrivateField",
           "privateField",
-          "privateMethod",
-          "packagePrivateMethod");
+          // Member method targets.
+          "packagePrivateMethod",
+          "privateMethod");
 
   private final TestParameters parameters;
 
@@ -133,51 +135,48 @@ public class KeepAccessVisibilityFlagsTest extends TestBase {
   }
 
   abstract static class FieldRuleTarget {
-    // Fields are ordered by name and all are in the DEX instance pool.
-    String packagePrivateField = "package-private";
-    private String privateField = "private";
-    protected String protectedField = "protected";
     public String publicField = "public";
-    // Private methods are in direct pool and printed before virtuals.
-    private void privateMethod() {}
-    // The virtual methods are ordered by name.
-    void packagePrivateMethod() {}
+    protected String protectedField = "protected";
+    private String privateField = "private";
+    String packagePrivateField = "package-private";
+
+    public void publicMethod() {}
 
     protected void protectedMethod() {}
 
-    public void publicMethod() {}
+    private void privateMethod() {}
+
+    void packagePrivateMethod() {}
   }
 
   abstract static class MethodRuleTarget {
-    // Fields are ordered by name and all are in the DEX instance pool.
-    String packagePrivateField = "package-private";
-    private String privateField = "private";
-    protected String protectedField = "protected";
     public String publicField = "public";
-    // Private methods are in direct pool and printed before virtuals.
-    private void privateMethod() {}
-    // The virtual methods are ordered by name.
-    void packagePrivateMethod() {}
+    protected String protectedField = "protected";
+    private String privateField = "private";
+    String packagePrivateField = "package-private";
+
+    public void publicMethod() {}
 
     protected void protectedMethod() {}
 
-    public void publicMethod() {}
+    private void privateMethod() {}
+
+    void packagePrivateMethod() {}
   }
 
   abstract static class MemberRuleTarget {
-    // Fields are ordered by name and all are in the DEX instance pool.
-    String packagePrivateField = "package-private";
-    private String privateField = "private";
-    protected String protectedField = "protected";
     public String publicField = "public";
-    // Private methods are in direct pool and printed before virtuals.
-    private void privateMethod() {}
-    // The virtual methods are ordered by name.
-    void packagePrivateMethod() {}
+    protected String protectedField = "protected";
+    private String privateField = "private";
+    String packagePrivateField = "package-private";
+
+    public void publicMethod() {}
 
     protected void protectedMethod() {}
 
-    public void publicMethod() {}
+    private void privateMethod() {}
+
+    void packagePrivateMethod() {}
   }
 
   static class A {
@@ -198,31 +197,57 @@ public class KeepAccessVisibilityFlagsTest extends TestBase {
     })
     void foo() throws Exception {
       // Print all non-private fields.
-      for (Field field : FieldRuleTarget.class.getDeclaredFields()) {
-        int mod = field.getModifiers();
-        if (!Modifier.isPrivate(mod)) {
-          System.out.println(field.getName());
+      {
+        List<String> nonPrivateFields = new ArrayList<>();
+        for (Field field : FieldRuleTarget.class.getDeclaredFields()) {
+          int mod = field.getModifiers();
+          if (!Modifier.isPrivate(mod)) {
+            nonPrivateFields.add(field.getName());
+          }
         }
+        printSorted(nonPrivateFields);
       }
-      // Print all non-package-private fields.
-      for (Method method : MethodRuleTarget.class.getDeclaredMethods()) {
-        int mod = method.getModifiers();
-        if (Modifier.isPublic(mod) || Modifier.isProtected(mod) || Modifier.isPrivate(mod)) {
-          System.out.println(method.getName());
+      // Print all non-package-private methods.
+      {
+        List<String> nonPackagePrivateMethods = new ArrayList<>();
+        for (Method method : MethodRuleTarget.class.getDeclaredMethods()) {
+          int mod = method.getModifiers();
+          if (Modifier.isPublic(mod) || Modifier.isProtected(mod) || Modifier.isPrivate(mod)) {
+            nonPackagePrivateMethods.add(method.getName());
+          }
         }
+        printSorted(nonPackagePrivateMethods);
       }
       // Print all private and package-private members.
-      for (Field field : MemberRuleTarget.class.getDeclaredFields()) {
-        int mod = field.getModifiers();
-        if (!Modifier.isPublic(mod) && !Modifier.isProtected(mod)) {
-          System.out.println(field.getName());
+      {
+        List<String> privateOrPackagePrivateFields = new ArrayList<>();
+        for (Field field : MemberRuleTarget.class.getDeclaredFields()) {
+          int mod = field.getModifiers();
+          if (!Modifier.isPublic(mod) && !Modifier.isProtected(mod)) {
+            privateOrPackagePrivateFields.add(field.getName());
+          }
         }
+        printSorted(privateOrPackagePrivateFields);
       }
-      for (Method method : MemberRuleTarget.class.getDeclaredMethods()) {
-        int mod = method.getModifiers();
-        if (!Modifier.isPublic(mod) && !Modifier.isProtected(mod)) {
-          System.out.println(method.getName());
+      {
+        List<String> privateOrPackagePrivateMethods = new ArrayList<>();
+        for (Method method : MemberRuleTarget.class.getDeclaredMethods()) {
+          int mod = method.getModifiers();
+          if (!Modifier.isPublic(mod) && !Modifier.isProtected(mod)) {
+            privateOrPackagePrivateMethods.add(method.getName());
+          }
         }
+        printSorted(privateOrPackagePrivateMethods);
+      }
+    }
+
+    // The order of methods and fields is different on stock JDKs depending on linux or windows
+    // hosts. It is also different once compiled to DEX where the pools are split. Sort the
+    // names lexicographically to avoid differences in output.
+    private static void printSorted(List<String> strings) {
+      strings.sort(String::compareTo);
+      for (String string : strings) {
+        System.out.println(string);
       }
     }
   }

@@ -19,6 +19,7 @@ import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.google.common.collect.ImmutableList;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
+import java.util.ArrayList;
 import java.util.List;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -94,11 +95,16 @@ public class KeepMethodsEmptyAccessFlagsTest extends TestBase {
           })
     })
     void foo() throws Exception {
+      List<String> sorted = new ArrayList<>();
       for (Method method : Abs.class.getDeclaredMethods()) {
         int modifiers = method.getModifiers();
         if (Modifier.isPublic(modifiers) && Modifier.isAbstract(modifiers)) {
-          System.out.println(method.getName());
+          sorted.add(method.getName());
         }
+      }
+      sorted.sort(String::compareTo);
+      for (String string : sorted) {
+        System.out.println(string);
       }
     }
   }
