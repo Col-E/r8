@@ -139,7 +139,7 @@ public class SupportedClasses {
 
       void annotateClass(ClassAnnotation annotation) {
         assert annotation != null;
-        assert classAnnotation == null;
+        assert classAnnotation == null || annotation == classAnnotation;
         classAnnotation = annotation;
       }
 
@@ -181,6 +181,12 @@ public class SupportedClasses {
   static class Builder {
 
     Map<DexType, SupportedClass.Builder> supportedClassBuilders = new IdentityHashMap<>();
+
+    ClassAnnotation getClassAnnotation(DexType type) {
+      SupportedClass.Builder builder = supportedClassBuilders.get(type);
+      assert builder != null;
+      return builder.classAnnotation;
+    }
 
     void forEachClassAndMethods(BiConsumer<DexClass, Collection<DexEncodedMethod>> biConsumer) {
       supportedClassBuilders
@@ -258,14 +264,32 @@ public class SupportedClasses {
 
   static class ClassAnnotation {
 
+    private final boolean additionalMembersOnClass;
     private final boolean fullySupported;
     // Methods in latest android.jar but unsupported.
     private final List<DexMethod> unsupportedMethods;
 
     public ClassAnnotation(boolean fullySupported, List<DexMethod> unsupportedMethods) {
+      this.additionalMembersOnClass = false;
       this.fullySupported = fullySupported;
       unsupportedMethods.sort(Comparator.naturalOrder());
       this.unsupportedMethods = ImmutableList.copyOf(unsupportedMethods);
+    }
+
+    private ClassAnnotation() {
+      this.additionalMembersOnClass = true;
+      this.fullySupported = false;
+      this.unsupportedMethods = ImmutableList.of();
+    }
+
+    private static final ClassAnnotation ADDITIONNAL_MEMBERS_ON_CLASS = new ClassAnnotation();
+
+    public static ClassAnnotation getAdditionnalMembersOnClass() {
+      return ADDITIONNAL_MEMBERS_ON_CLASS;
+    }
+
+    public boolean isAdditionalMembersOnClass() {
+      return additionalMembersOnClass;
     }
 
     public boolean isFullySupported() {

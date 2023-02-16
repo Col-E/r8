@@ -29,6 +29,7 @@ import com.android.tools.r8.utils.Reporter;
 import com.google.common.collect.ImmutableList;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -217,6 +218,23 @@ public class LintFilesTest extends DesugaredLibraryTestBase {
     assertEquals("</tr>", html.get(html.size() - 2));
     if (libraryDesugaringSpecification == JDK11 || libraryDesugaringSpecification == JDK11_PATH) {
       assertEquals(6, html.stream().filter(s -> s.contains("Flow")).count());
+    }
+  }
+
+  public static void main(String[] args) throws Exception {
+    // Generate all html docs.
+    Path folder = Paths.get("html");
+    Files.createDirectories(folder);
+    ImmutableList<LibraryDesugaringSpecification> specs =
+        ImmutableList.of(JDK8, JDK11_MINIMAL, JDK11, JDK11_PATH, JDK11_LEGACY);
+    for (LibraryDesugaringSpecification spec : specs) {
+      Path jdkLibJar =
+          spec == JDK8
+              ? ToolHelper.DESUGARED_JDK_8_LIB_JAR
+              : LibraryDesugaringSpecification.getTempLibraryJDK11Undesugar();
+      new GenerateHtmlDoc(
+              spec.getSpecification().toString(), jdkLibJar.toString(), folder.toString())
+          .run(spec + ".html");
     }
   }
 }

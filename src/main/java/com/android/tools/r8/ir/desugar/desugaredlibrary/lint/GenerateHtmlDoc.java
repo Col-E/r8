@@ -484,16 +484,19 @@ public class GenerateHtmlDoc extends AbstractGenerateFiles {
       if (classAnnotation.isFullySupported()) {
         commentBuilder.append("Fully implemented class.").append(HTML_SPLIT);
       }
+      if (classAnnotation.isAdditionalMembersOnClass()) {
+        commentBuilder.append("Additional methods on existing class.").append(HTML_SPLIT);
+      }
       if (parallelStreamMethod) {
         commentBuilder
             .append(SUP_1)
-            .append("Supported only on devices which API level is 21 or higher.")
+            .append(" Supported only on devices which API level is 21 or higher.")
             .append(HTML_SPLIT);
       }
       if (missingFromLatestAndroidJar) {
         commentBuilder
             .append(SUP_2)
-            .append("Not present in Android ")
+            .append(" Not present in Android ")
             .append(MAX_TESTED_ANDROID_API_LEVEL)
             .append(" (May not resolve at compilation).")
             .append(HTML_SPLIT);
@@ -528,10 +531,7 @@ public class GenerateHtmlDoc extends AbstractGenerateFiles {
     DexClass clazz = supportedClass.getClazz();
     SourceBuilder<HTMLSourceBuilder> builder =
         new HTMLSourceBuilder(clazz, supportedClass.getClassAnnotation());
-    supportedClass.forEachFieldAndAnnotation(
-        (field, fieldAnnotation) -> {
-          builder.addField(field, fieldAnnotation);
-        });
+    supportedClass.forEachFieldAndAnnotation(builder::addField);
     supportedClass.forEachMethodAndAnnotation(
         (method, methodAnnotation) -> {
           if (!method.accessFlags.isBridge()) {
@@ -543,7 +543,12 @@ public class GenerateHtmlDoc extends AbstractGenerateFiles {
 
   @Override
   AndroidApiLevel run() throws Exception {
-    PrintStream ps = new PrintStream(Files.newOutputStream(outputDirectory.resolve("apis.html")));
+    return run("apis.html");
+  }
+
+  public AndroidApiLevel run(String outputFileName) throws Exception {
+    PrintStream ps =
+        new PrintStream(Files.newOutputStream(outputDirectory.resolve(outputFileName)));
 
     SupportedClasses supportedClasses =
         new SupportedClassesGenerator(options)

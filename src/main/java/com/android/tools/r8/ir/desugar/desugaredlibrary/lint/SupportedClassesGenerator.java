@@ -84,6 +84,10 @@ public class SupportedClassesGenerator {
 
     builder.forEachClassAndMethods(
         (clazz, methods) -> {
+          ClassAnnotation classAnnotation = builder.getClassAnnotation(clazz.type);
+          if (classAnnotation != null && classAnnotation.isAdditionalMembersOnClass()) {
+            return;
+          }
           DexClass maxClass = appForMax.definitionFor(clazz.type);
           List<DexMethod> missing = new ArrayList<>();
           boolean fullySupported = true;
@@ -97,6 +101,8 @@ public class SupportedClassesGenerator {
               missing.add(method.getReference());
               fullySupported = false;
             }
+          }
+          for (DexEncodedMethod method : clazz.methods()) {
             MethodAnnotation methodAnnotation = builder.getMethodAnnotation(method.getReference());
             if (methodAnnotation != null && !methodAnnotation.isCovariantReturnSupported()) {
               fullySupported = false;
@@ -271,6 +277,7 @@ public class SupportedClassesGenerator {
           builder.addSupportedMethod(clazz, method);
         }
         addBackports(clazz, backports, builder, amendedAppForMax);
+        builder.annotateClass(clazz.type, ClassAnnotation.getAdditionnalMembersOnClass());
       } else {
         // All methods in maintained or rewritten classes are supported.
         if ((clazz.accessFlags.isPublic() || clazz.accessFlags.isProtected())
@@ -301,6 +308,7 @@ public class SupportedClassesGenerator {
             DexEncodedMethod dexEncodedMethod = dexClass.lookupMethod(method);
             if (dexEncodedMethod != null) {
               builder.addSupportedMethod(dexClass, dexEncodedMethod);
+              builder.annotateClass(dexClass.type, ClassAnnotation.getAdditionnalMembersOnClass());
               return;
             }
           }
@@ -308,6 +316,7 @@ public class SupportedClassesGenerator {
           DexEncodedMethod dexEncodedMethod = dexClass.lookupMethod(method);
           assert dexEncodedMethod != null;
           builder.addSupportedMethod(dexClass, dexEncodedMethod);
+          builder.annotateClass(dexClass.type, ClassAnnotation.getAdditionnalMembersOnClass());
         });
 
     machineSpecification
@@ -319,6 +328,8 @@ public class SupportedClassesGenerator {
                 DexEncodedField dexEncodedField = dexClass.lookupField(field);
                 if (dexEncodedField != null) {
                   builder.addSupportedField(dexClass, dexEncodedField);
+                  builder.annotateClass(
+                      dexClass.type, ClassAnnotation.getAdditionnalMembersOnClass());
                   return;
                 }
               }
@@ -326,6 +337,7 @@ public class SupportedClassesGenerator {
               DexEncodedField dexEncodedField = dexClass.lookupField(field);
               assert dexEncodedField != null;
               builder.addSupportedField(dexClass, dexEncodedField);
+              builder.annotateClass(dexClass.type, ClassAnnotation.getAdditionnalMembersOnClass());
             });
   }
 
