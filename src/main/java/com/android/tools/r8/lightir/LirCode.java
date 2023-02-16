@@ -52,6 +52,8 @@ public class LirCode implements Iterable<LirInstructionView> {
     }
   }
 
+  private final LirSsaValueStrategy ssaValueStrategy;
+
   private final IRMetadata metadata;
 
   /** Constant pool of items. */
@@ -91,7 +93,8 @@ public class LirCode implements Iterable<LirInstructionView> {
       byte[] instructions,
       int instructionCount,
       TryCatchTable tryCatchTable,
-      DebugLocalInfoTable debugLocalInfoTable) {
+      DebugLocalInfoTable debugLocalInfoTable,
+      LirSsaValueStrategy ssaValueStrategy) {
     this.metadata = metadata;
     this.constants = constants;
     this.positionTable = positions;
@@ -100,6 +103,11 @@ public class LirCode implements Iterable<LirInstructionView> {
     this.instructionCount = instructionCount;
     this.tryCatchTable = tryCatchTable;
     this.debugLocalInfoTable = debugLocalInfoTable;
+    this.ssaValueStrategy = ssaValueStrategy;
+  }
+
+  public int decodeValueIndex(int encodedValueIndex, int currentValueIndex) {
+    return ssaValueStrategy.decodeValueIndex(encodedValueIndex, currentValueIndex);
   }
 
   public int getArgumentCount() {

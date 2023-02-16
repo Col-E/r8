@@ -65,6 +65,7 @@ public class LirBuilder<V, B> {
   private int argumentCount = 0;
   private int instructionCount = 0;
   private IRMetadata metadata = null;
+  private final LirSsaValueStrategy ssaValueStrategy = LirSsaValueStrategy.get();
 
   private Position currentPosition;
   private Position flushedPosition;
@@ -150,13 +151,13 @@ public class LirBuilder<V, B> {
 
   private int valueIndexSize(int valueIndex, int referencingInstructionIndex) {
     int referencingValueIndex = referencingInstructionIndex + argumentCount;
-    int encodedValueIndex = LirUtils.encodeValueIndex(valueIndex, referencingValueIndex);
+    int encodedValueIndex = ssaValueStrategy.encodeValueIndex(valueIndex, referencingValueIndex);
     return ByteUtils.intEncodingSize(encodedValueIndex);
   }
 
   private void writeValueIndex(int valueIndex, int referencingInstructionIndex) {
     int referencingValueIndex = referencingInstructionIndex + argumentCount;
-    int encodedValueIndex = LirUtils.encodeValueIndex(valueIndex, referencingValueIndex);
+    int encodedValueIndex = ssaValueStrategy.encodeValueIndex(valueIndex, referencingValueIndex);
     ByteUtils.writeEncodedInt(encodedValueIndex, writer::writeOperand);
   }
 
@@ -446,6 +447,7 @@ public class LirBuilder<V, B> {
         byteWriter.toByteArray(),
         instructionCount,
         new TryCatchTable(tryCatchRanges),
-        debugTable);
+        debugTable,
+        ssaValueStrategy);
   }
 }

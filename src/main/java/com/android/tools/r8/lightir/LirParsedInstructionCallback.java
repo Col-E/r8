@@ -41,7 +41,7 @@ public abstract class LirParsedInstructionCallback implements LirInstructionCall
   }
 
   private int getActualValueIndex(int relativeValueIndex) {
-    return LirUtils.decodeValueIndex(relativeValueIndex, getCurrentValueIndex());
+    return code.decodeValueIndex(relativeValueIndex, getCurrentValueIndex());
   }
 
   private int getNextValueOperand(LirInstructionView view) {
