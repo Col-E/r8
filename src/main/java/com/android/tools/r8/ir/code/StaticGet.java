@@ -32,7 +32,7 @@ import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.InliningConstraints;
-import com.android.tools.r8.lightir.LIRBuilder;
+import com.android.tools.r8.lightir.LirBuilder;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import java.util.Set;
 
@@ -300,7 +300,7 @@ public class StaticGet extends FieldInstruction implements FieldGet, StaticField
   }
 
   @Override
-  public void buildLIR(LIRBuilder<Value, BasicBlock> builder) {
+  public void buildLir(LirBuilder<Value, BasicBlock> builder) {
     builder.addStaticGet(getField());
   }
 }

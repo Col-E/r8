@@ -17,7 +17,7 @@ import com.android.tools.r8.dex.code.DexDivLong2Addr;
 import com.android.tools.r8.dex.code.DexInstruction;
 import com.android.tools.r8.ir.analysis.constant.Bottom;
 import com.android.tools.r8.ir.analysis.constant.LatticeElement;
-import com.android.tools.r8.lightir.LIRBuilder;
+import com.android.tools.r8.lightir.LirBuilder;
 import java.util.function.Function;
 
 public class Div extends ArithmeticBinop {
@@ -151,7 +151,7 @@ public class Div extends ArithmeticBinop {
   }
 
   @Override
-  public void buildLIR(LIRBuilder<Value, BasicBlock> builder) {
+  public void buildLir(LirBuilder<Value, BasicBlock> builder) {
     builder.addDiv(type, leftValue(), rightValue());
   }
 }

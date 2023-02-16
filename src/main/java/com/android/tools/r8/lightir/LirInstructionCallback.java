@@ -4,7 +4,7 @@
 package com.android.tools.r8.lightir;
 
 /** Convenience interface to accept a LIR instruction view. */
-public interface LIRInstructionCallback {
+public interface LirInstructionCallback {
 
-  void onInstructionView(LIRInstructionView view);
+  void onInstructionView(LirInstructionView view);
 }

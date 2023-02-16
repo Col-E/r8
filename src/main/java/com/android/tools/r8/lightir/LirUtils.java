@@ -3,9 +3,9 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.lightir;
 
-public class LIRUtils {
+public class LirUtils {
 
-  private LIRUtils() {}
+  private LirUtils() {}
 
   public static int encodeValueIndex(int absoluteValueIndex, int referencingValueContext) {
     return referencingValueContext - absoluteValueIndex;

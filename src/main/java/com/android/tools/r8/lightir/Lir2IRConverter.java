@@ -38,7 +38,7 @@ import com.android.tools.r8.ir.code.Return;
 import com.android.tools.r8.ir.code.StaticGet;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.conversion.MethodConversionOptions.MutableMethodConversionOptions;
-import com.android.tools.r8.lightir.LIRCode.PositionEntry;
+import com.android.tools.r8.lightir.LirCode.PositionEntry;
 import com.android.tools.r8.utils.ListUtils;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceMap;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceOpenHashMap;
@@ -48,11 +48,11 @@ import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 
-public class LIR2IRConverter {
+public class Lir2IRConverter {
 
-  private LIR2IRConverter() {}
+  private Lir2IRConverter() {}
 
-  public static IRCode translate(ProgramMethod method, LIRCode lirCode, AppView<?> appView) {
+  public static IRCode translate(ProgramMethod method, LirCode lirCode, AppView<?> appView) {
     Parser parser = new Parser(lirCode, method.getReference(), appView);
     parser.parseArguments(method);
     lirCode.forEach(view -> view.accept(parser));
@@ -63,12 +63,12 @@ public class LIR2IRConverter {
    * When building IR the structured LIR parser is used to obtain the decoded operand indexes. The
    * below parser subclass handles translation of indexes to SSA values.
    */
-  private static class Parser extends LIRParsedInstructionCallback {
+  private static class Parser extends LirParsedInstructionCallback {
 
     private static final int ENTRY_BLOCK_INDEX = -1;
 
     private final AppView<?> appView;
-    private final LIRCode code;
+    private final LirCode code;
     private final NumberGenerator valueNumberGenerator = new NumberGenerator();
     private final NumberGenerator basicBlockNumberGenerator = new NumberGenerator();
 
@@ -82,7 +82,7 @@ public class LIR2IRConverter {
     private PositionEntry nextPositionEntry = null;
     private int nextIndexInPositionsTable = 0;
 
-    public Parser(LIRCode code, DexMethod method, AppView<?> appView) {
+    public Parser(LirCode code, DexMethod method, AppView<?> appView) {
       super(code);
       assert code.getPositionTable().length > 0;
       assert code.getPositionTable()[0].fromInstructionIndex == 0;

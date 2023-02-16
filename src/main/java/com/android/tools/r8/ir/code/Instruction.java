@@ -35,7 +35,7 @@ import com.android.tools.r8.ir.optimize.DeadCodeRemover.DeadInstructionResult;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.InliningConstraints;
 import com.android.tools.r8.ir.regalloc.RegisterAllocator;
-import com.android.tools.r8.lightir.LIRBuilder;
+import com.android.tools.r8.lightir.LirBuilder;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.CfgPrinter;
 import com.android.tools.r8.utils.InternalOptions;
@@ -1563,7 +1563,7 @@ public abstract class Instruction
     return false;
   }
 
-  public void buildLIR(LIRBuilder<Value, BasicBlock> builder) {
+  public void buildLir(LirBuilder<Value, BasicBlock> builder) {
     throw new Unimplemented("Missing impl for " + getClass().getSimpleName());
   }
 

@@ -20,9 +20,9 @@ import com.android.tools.r8.ir.code.NumericType;
 import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.code.Position.SyntheticPosition;
 import com.android.tools.r8.ir.code.ValueType;
-import com.android.tools.r8.lightir.LIRCode.DebugLocalInfoTable;
-import com.android.tools.r8.lightir.LIRCode.PositionEntry;
-import com.android.tools.r8.lightir.LIRCode.TryCatchTable;
+import com.android.tools.r8.lightir.LirCode.DebugLocalInfoTable;
+import com.android.tools.r8.lightir.LirCode.PositionEntry;
+import com.android.tools.r8.lightir.LirCode.TryCatchTable;
 import com.android.tools.r8.utils.ListUtils;
 import com.google.common.collect.ImmutableList;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceMap;
@@ -43,7 +43,7 @@ import java.util.Set;
  * @param <B> Type of basic blocks. This is abstract to ensure that basic block internals are not
  *     used in building.
  */
-public class LIRBuilder<V, B> {
+public class LirBuilder<V, B> {
 
   // Abstraction for the only accessible properties of an SSA value.
   public interface ValueIndexGetter<V> {
@@ -57,7 +57,7 @@ public class LIRBuilder<V, B> {
 
   private final DexItemFactory factory;
   private final ByteArrayWriter byteWriter = new ByteArrayWriter();
-  private final LIRWriter writer = new LIRWriter(byteWriter);
+  private final LirWriter writer = new LirWriter(byteWriter);
   private final Reference2IntMap<DexItem> constants;
   private final ValueIndexGetter<V> valueIndexGetter;
   private final BlockIndexGetter<B> blockIndexGetter;
@@ -82,7 +82,7 @@ public class LIRBuilder<V, B> {
   private static final int MAX_VALUE_COUNT = 10;
   private int[] valueIndexBuffer = new int[MAX_VALUE_COUNT];
 
-  public LIRBuilder(
+  public LirBuilder(
       DexMethod method,
       ValueIndexGetter<V> valueIndexGetter,
       BlockIndexGetter<B> blockIndexGetter,
@@ -115,7 +115,7 @@ public class LIRBuilder<V, B> {
     tryCatchRanges.put(blockIndex, handlers);
   }
 
-  public LIRBuilder<V, B> setCurrentPosition(Position position) {
+  public LirBuilder<V, B> setCurrentPosition(Position position) {
     assert position != null;
     assert position != Position.none();
     currentPosition = position;
@@ -150,13 +150,13 @@ public class LIRBuilder<V, B> {
 
   private int valueIndexSize(int valueIndex, int referencingInstructionIndex) {
     int referencingValueIndex = referencingInstructionIndex + argumentCount;
-    int encodedValueIndex = LIRUtils.encodeValueIndex(valueIndex, referencingValueIndex);
+    int encodedValueIndex = LirUtils.encodeValueIndex(valueIndex, referencingValueIndex);
     return ByteUtils.intEncodingSize(encodedValueIndex);
   }
 
   private void writeValueIndex(int valueIndex, int referencingInstructionIndex) {
     int referencingValueIndex = referencingInstructionIndex + argumentCount;
-    int encodedValueIndex = LIRUtils.encodeValueIndex(valueIndex, referencingValueIndex);
+    int encodedValueIndex = LirUtils.encodeValueIndex(valueIndex, referencingValueIndex);
     ByteUtils.writeEncodedInt(encodedValueIndex, writer::writeOperand);
   }
 
@@ -172,18 +172,18 @@ public class LIRBuilder<V, B> {
     ByteUtils.writeEncodedInt(index, writer::writeOperand);
   }
 
-  public LIRBuilder<V, B> setMetadata(IRMetadata metadata) {
+  public LirBuilder<V, B> setMetadata(IRMetadata metadata) {
     this.metadata = metadata;
     return this;
   }
 
-  public LIRBuilder<V, B> setDebugValue(DebugLocalInfo debugInfo, int valueIndex) {
+  public LirBuilder<V, B> setDebugValue(DebugLocalInfo debugInfo, int valueIndex) {
     DebugLocalInfo old = debugLocals.put(valueIndex, debugInfo);
     assert old == null;
     return this;
   }
 
-  public LIRBuilder<V, B> setDebugLocalEnds(int instructionValueIndex, Set<V> endValues) {
+  public LirBuilder<V, B> setDebugLocalEnds(int instructionValueIndex, Set<V> endValues) {
     int size = endValues.size();
     int[] indices = new int[size];
     Iterator<V> iterator = endValues.iterator();
@@ -194,7 +194,7 @@ public class LIRBuilder<V, B> {
     return this;
   }
 
-  public LIRBuilder<V, B> addArgument(int index, boolean knownToBeBoolean) {
+  public LirBuilder<V, B> addArgument(int index, boolean knownToBeBoolean) {
     // Arguments are implicitly given by method descriptor and not an actual instruction.
     assert argumentCount == index;
     argumentCount++;
@@ -209,22 +209,22 @@ public class LIRBuilder<V, B> {
     return instructionCount++;
   }
 
-  private LIRBuilder<V, B> addNoOperandInstruction(int opcode) {
+  private LirBuilder<V, B> addNoOperandInstruction(int opcode) {
     advanceInstructionState();
     writer.writeOneByteInstruction(opcode);
     return this;
   }
 
-  private LIRBuilder<V, B> addOneItemInstruction(int opcode, DexItem item) {
+  private LirBuilder<V, B> addOneItemInstruction(int opcode, DexItem item) {
     return addInstructionTemplate(opcode, Collections.singletonList(item), Collections.emptyList());
   }
 
-  private LIRBuilder<V, B> addOneValueInstruction(int opcode, V value) {
+  private LirBuilder<V, B> addOneValueInstruction(int opcode, V value) {
     return addInstructionTemplate(
         opcode, Collections.emptyList(), Collections.singletonList(value));
   }
 
-  private LIRBuilder<V, B> addInstructionTemplate(int opcode, List<DexItem> items, List<V> values) {
+  private LirBuilder<V, B> addInstructionTemplate(int opcode, List<DexItem> items, List<V> values) {
     assert values.size() < MAX_VALUE_COUNT;
     int instructionIndex = advanceInstructionState();
     int operandSize = 0;
@@ -247,22 +247,22 @@ public class LIRBuilder<V, B> {
     return this;
   }
 
-  public LIRBuilder<V, B> addConstNull() {
-    return addNoOperandInstruction(LIROpcodes.ACONST_NULL);
+  public LirBuilder<V, B> addConstNull() {
+    return addNoOperandInstruction(LirOpcodes.ACONST_NULL);
   }
 
-  public LIRBuilder<V, B> addConstInt(int value) {
+  public LirBuilder<V, B> addConstInt(int value) {
     if (-1 <= value && value <= 5) {
-      addNoOperandInstruction(LIROpcodes.ICONST_0 + value);
+      addNoOperandInstruction(LirOpcodes.ICONST_0 + value);
     } else {
       advanceInstructionState();
-      writer.writeInstruction(LIROpcodes.ICONST, ByteUtils.intEncodingSize(value));
+      writer.writeInstruction(LirOpcodes.ICONST, ByteUtils.intEncodingSize(value));
       ByteUtils.writeEncodedInt(value, writer::writeOperand);
     }
     return this;
   }
 
-  public LIRBuilder<V, B> addConstNumber(ValueType type, long value) {
+  public LirBuilder<V, B> addConstNumber(ValueType type, long value) {
     switch (type) {
       case OBJECT:
         return addConstNull();
@@ -276,11 +276,11 @@ public class LIRBuilder<V, B> {
     }
   }
 
-  public LIRBuilder<V, B> addConstString(DexString string) {
-    return addOneItemInstruction(LIROpcodes.LDC, string);
+  public LirBuilder<V, B> addConstString(DexString string) {
+    return addOneItemInstruction(LirOpcodes.LDC, string);
   }
 
-  public LIRBuilder<V, B> addDiv(NumericType type, V leftValue, V rightValue) {
+  public LirBuilder<V, B> addDiv(NumericType type, V leftValue, V rightValue) {
     switch (type) {
       case BYTE:
       case CHAR:
@@ -288,7 +288,7 @@ public class LIRBuilder<V, B> {
       case INT:
         {
           return addInstructionTemplate(
-              LIROpcodes.IDIV, Collections.emptyList(), ImmutableList.of(leftValue, rightValue));
+              LirOpcodes.IDIV, Collections.emptyList(), ImmutableList.of(leftValue, rightValue));
         }
       case LONG:
       case FLOAT:
@@ -298,72 +298,72 @@ public class LIRBuilder<V, B> {
     }
   }
 
-  public LIRBuilder<V, B> addArrayLength(V array) {
-    return addOneValueInstruction(LIROpcodes.ARRAYLENGTH, array);
+  public LirBuilder<V, B> addArrayLength(V array) {
+    return addOneValueInstruction(LirOpcodes.ARRAYLENGTH, array);
   }
 
-  public LIRBuilder<V, B> addStaticGet(DexField field) {
-    return addOneItemInstruction(LIROpcodes.GETSTATIC, field);
+  public LirBuilder<V, B> addStaticGet(DexField field) {
+    return addOneItemInstruction(LirOpcodes.GETSTATIC, field);
   }
 
-  public LIRBuilder<V, B> addInvokeInstruction(int opcode, DexMethod method, List<V> arguments) {
+  public LirBuilder<V, B> addInvokeInstruction(int opcode, DexMethod method, List<V> arguments) {
     return addInstructionTemplate(opcode, Collections.singletonList(method), arguments);
   }
 
-  public LIRBuilder<V, B> addInvokeDirect(DexMethod method, List<V> arguments) {
-    return addInvokeInstruction(LIROpcodes.INVOKEDIRECT, method, arguments);
+  public LirBuilder<V, B> addInvokeDirect(DexMethod method, List<V> arguments) {
+    return addInvokeInstruction(LirOpcodes.INVOKEDIRECT, method, arguments);
   }
 
-  public LIRBuilder<V, B> addInvokeVirtual(DexMethod method, List<V> arguments) {
-    return addInvokeInstruction(LIROpcodes.INVOKEVIRTUAL, method, arguments);
+  public LirBuilder<V, B> addInvokeVirtual(DexMethod method, List<V> arguments) {
+    return addInvokeInstruction(LirOpcodes.INVOKEVIRTUAL, method, arguments);
   }
 
-  public LIRBuilder<V, B> addReturn(V value) {
+  public LirBuilder<V, B> addReturn(V value) {
     throw new Unimplemented();
   }
 
-  public LIRBuilder<V, B> addReturnVoid() {
-    return addNoOperandInstruction(LIROpcodes.RETURN);
+  public LirBuilder<V, B> addReturnVoid() {
+    return addNoOperandInstruction(LirOpcodes.RETURN);
   }
 
-  public LIRBuilder<V, B> addDebugPosition(Position position) {
+  public LirBuilder<V, B> addDebugPosition(Position position) {
     assert currentPosition == position;
-    return addNoOperandInstruction(LIROpcodes.DEBUGPOS);
+    return addNoOperandInstruction(LirOpcodes.DEBUGPOS);
   }
 
   public void addFallthrough() {
-    addNoOperandInstruction(LIROpcodes.FALLTHROUGH);
+    addNoOperandInstruction(LirOpcodes.FALLTHROUGH);
   }
 
-  public LIRBuilder<V, B> addGoto(B target) {
+  public LirBuilder<V, B> addGoto(B target) {
     int targetIndex = getBlockIndex(target);
     int operandSize = blockIndexSize(targetIndex);
     advanceInstructionState();
-    writer.writeInstruction(LIROpcodes.GOTO, operandSize);
+    writer.writeInstruction(LirOpcodes.GOTO, operandSize);
     writeBlockIndex(targetIndex);
     return this;
   }
 
-  public LIRBuilder<V, B> addIf(Type ifKind, ValueType valueType, V value, B trueTarget) {
+  public LirBuilder<V, B> addIf(Type ifKind, ValueType valueType, V value, B trueTarget) {
     int opcode;
     switch (ifKind) {
       case EQ:
-        opcode = valueType.isObject() ? LIROpcodes.IFNULL : LIROpcodes.IFEQ;
+        opcode = valueType.isObject() ? LirOpcodes.IFNULL : LirOpcodes.IFEQ;
         break;
       case GE:
-        opcode = LIROpcodes.IFGE;
+        opcode = LirOpcodes.IFGE;
         break;
       case GT:
-        opcode = LIROpcodes.IFGT;
+        opcode = LirOpcodes.IFGT;
         break;
       case LE:
-        opcode = LIROpcodes.IFLE;
+        opcode = LirOpcodes.IFLE;
         break;
       case LT:
-        opcode = LIROpcodes.IFLT;
+        opcode = LirOpcodes.IFLT;
         break;
       case NE:
-        opcode = valueType.isObject() ? LIROpcodes.IFNONNULL : LIROpcodes.IFNE;
+        opcode = valueType.isObject() ? LirOpcodes.IFNONNULL : LirOpcodes.IFNE;
         break;
       default:
         throw new Unreachable("Unexpected if kind: " + ifKind);
@@ -378,27 +378,27 @@ public class LIRBuilder<V, B> {
     return this;
   }
 
-  public LIRBuilder<V, B> addIfCmp(
+  public LirBuilder<V, B> addIfCmp(
       Type ifKind, ValueType valueType, List<V> inValues, B trueTarget) {
     int opcode;
     switch (ifKind) {
       case EQ:
-        opcode = valueType.isObject() ? LIROpcodes.IF_ACMPEQ : LIROpcodes.IF_ICMPEQ;
+        opcode = valueType.isObject() ? LirOpcodes.IF_ACMPEQ : LirOpcodes.IF_ICMPEQ;
         break;
       case GE:
-        opcode = LIROpcodes.IF_ICMPGE;
+        opcode = LirOpcodes.IF_ICMPGE;
         break;
       case GT:
-        opcode = LIROpcodes.IF_ICMPGT;
+        opcode = LirOpcodes.IF_ICMPGT;
         break;
       case LE:
-        opcode = LIROpcodes.IF_ICMPLE;
+        opcode = LirOpcodes.IF_ICMPLE;
         break;
       case LT:
-        opcode = LIROpcodes.IF_ICMPLT;
+        opcode = LirOpcodes.IF_ICMPLT;
         break;
       case NE:
-        opcode = valueType.isObject() ? LIROpcodes.IF_ACMPNE : LIROpcodes.IF_ICMPNE;
+        opcode = valueType.isObject() ? LirOpcodes.IF_ACMPNE : LirOpcodes.IF_ICMPNE;
         break;
       default:
         throw new Unreachable("Unexpected if kind " + ifKind);
@@ -418,27 +418,27 @@ public class LIRBuilder<V, B> {
     return this;
   }
 
-  public LIRBuilder<V, B> addMoveException(DexType exceptionType) {
-    return addOneItemInstruction(LIROpcodes.MOVEEXCEPTION, exceptionType);
+  public LirBuilder<V, B> addMoveException(DexType exceptionType) {
+    return addOneItemInstruction(LirOpcodes.MOVEEXCEPTION, exceptionType);
   }
 
-  public LIRBuilder<V, B> addPhi(TypeElement type, List<V> operands) {
+  public LirBuilder<V, B> addPhi(TypeElement type, List<V> operands) {
     DexType dexType = toDexType(type);
-    return addInstructionTemplate(LIROpcodes.PHI, Collections.singletonList(dexType), operands);
+    return addInstructionTemplate(LirOpcodes.PHI, Collections.singletonList(dexType), operands);
   }
 
-  public LIRBuilder<V, B> addDebugLocalWrite(V src) {
-    return addOneValueInstruction(LIROpcodes.DEBUGLOCALWRITE, src);
+  public LirBuilder<V, B> addDebugLocalWrite(V src) {
+    return addOneValueInstruction(LirOpcodes.DEBUGLOCALWRITE, src);
   }
 
-  public LIRCode build() {
+  public LirCode build() {
     assert metadata != null;
     int constantsCount = constants.size();
     DexItem[] constantTable = new DexItem[constantsCount];
     constants.forEach((item, index) -> constantTable[index] = item);
     DebugLocalInfoTable debugTable =
         debugLocals.isEmpty() ? null : new DebugLocalInfoTable(debugLocals, debugLocalEnds);
-    return new LIRCode(
+    return new LirCode(
         metadata,
         constantTable,
         positionTable.toArray(new PositionEntry[positionTable.size()]),

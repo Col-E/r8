@@ -15,7 +15,7 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
 @RunWith(Parameterized.class)
-public class LIRRoundtripTest extends DebugTestBase {
+public class LirRoundtripTest extends DebugTestBase {
 
   static class TestClass {
     public static void main(String[] args) {
@@ -36,7 +36,7 @@ public class LIRRoundtripTest extends DebugTestBase {
 
   private final TestParameters parameters;
 
-  public LIRRoundtripTest(TestParameters parameters) {
+  public LirRoundtripTest(TestParameters parameters) {
     this.parameters = parameters;
   }
 
@@ -58,7 +58,7 @@ public class LIRRoundtripTest extends DebugTestBase {
         .addOptionsModification(
             o -> {
               o.testing.forceIRForCfToCfDesugar = true;
-              o.testing.roundtripThroughLIR = true;
+              o.testing.roundtripThroughLir = true;
             })
         .run(parameters.getRuntime(), TestClass.class)
         .assertSuccessWithOutputLines("Hello, world!");
@@ -73,7 +73,7 @@ public class LIRRoundtripTest extends DebugTestBase {
         .addOptionsModification(
             o -> {
               o.testing.forceIRForCfToCfDesugar = true;
-              o.testing.roundtripThroughLIR = true;
+              o.testing.roundtripThroughLir = true;
             })
         .run(parameters.getRuntime(), TestClass.class)
         .assertSuccessWithOutputLines("Hello, world!")

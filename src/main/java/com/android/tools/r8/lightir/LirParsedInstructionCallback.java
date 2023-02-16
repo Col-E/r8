@@ -23,13 +23,13 @@ import it.unimi.dsi.fastutil.ints.IntList;
  * onInvokeVirtual will default dispatch to onInvokedMethodInstruction).
  *
  * <p>Due to the parsing of the individual instructions, this parser has a higher overhead than
- * using the basic {@code LIRInstructionView}.
+ * using the basic {@link LirInstructionView}.
  */
-public abstract class LIRParsedInstructionCallback implements LIRInstructionCallback {
+public abstract class LirParsedInstructionCallback implements LirInstructionCallback {
 
-  private final LIRCode code;
+  private final LirCode code;
 
-  public LIRParsedInstructionCallback(LIRCode code) {
+  public LirParsedInstructionCallback(LirCode code) {
     this.code = code;
   }
 
@@ -41,10 +41,10 @@ public abstract class LIRParsedInstructionCallback implements LIRInstructionCall
   }
 
   private int getActualValueIndex(int relativeValueIndex) {
-    return LIRUtils.decodeValueIndex(relativeValueIndex, getCurrentValueIndex());
+    return LirUtils.decodeValueIndex(relativeValueIndex, getCurrentValueIndex());
   }
 
-  private int getNextValueOperand(LIRInstructionView view) {
+  private int getNextValueOperand(LirInstructionView view) {
     return getActualValueIndex(view.getNextValueOperand());
   }
 
@@ -135,15 +135,15 @@ public abstract class LIRParsedInstructionCallback implements LIRInstructionCall
   }
 
   @Override
-  public void onInstructionView(LIRInstructionView view) {
+  public void onInstructionView(LirInstructionView view) {
     int opcode = view.getOpcode();
     switch (opcode) {
-      case LIROpcodes.ACONST_NULL:
+      case LirOpcodes.ACONST_NULL:
         {
           onConstNull();
           return;
         }
-      case LIROpcodes.LDC:
+      case LirOpcodes.LDC:
         {
           DexItem item = getConstantItem(view.getNextConstantOperand());
           if (item instanceof DexString) {
@@ -152,80 +152,80 @@ public abstract class LIRParsedInstructionCallback implements LIRInstructionCall
           }
           throw new Unimplemented();
         }
-      case LIROpcodes.ICONST_M1:
-      case LIROpcodes.ICONST_0:
-      case LIROpcodes.ICONST_1:
-      case LIROpcodes.ICONST_2:
-      case LIROpcodes.ICONST_3:
-      case LIROpcodes.ICONST_4:
-      case LIROpcodes.ICONST_5:
+      case LirOpcodes.ICONST_M1:
+      case LirOpcodes.ICONST_0:
+      case LirOpcodes.ICONST_1:
+      case LirOpcodes.ICONST_2:
+      case LirOpcodes.ICONST_3:
+      case LirOpcodes.ICONST_4:
+      case LirOpcodes.ICONST_5:
         {
-          int value = opcode - LIROpcodes.ICONST_0;
+          int value = opcode - LirOpcodes.ICONST_0;
           onConstInt(value);
           return;
         }
-      case LIROpcodes.ICONST:
+      case LirOpcodes.ICONST:
         {
           int value = view.getNextIntegerOperand();
           onConstInt(value);
           return;
         }
-      case LIROpcodes.IDIV:
+      case LirOpcodes.IDIV:
         {
           int leftValueIndex = getNextValueOperand(view);
           int rightValueIndex = getNextValueOperand(view);
           onDivInt(leftValueIndex, rightValueIndex);
           return;
         }
-      case LIROpcodes.IFNE:
+      case LirOpcodes.IFNE:
         {
           int blockIndex = view.getNextBlockOperand();
           int valueIndex = getNextValueOperand(view);
           onIf(If.Type.NE, blockIndex, valueIndex);
           return;
         }
-      case LIROpcodes.GOTO:
+      case LirOpcodes.GOTO:
         {
           int blockIndex = view.getNextBlockOperand();
           onGoto(blockIndex);
           return;
         }
-      case LIROpcodes.INVOKEDIRECT:
+      case LirOpcodes.INVOKEDIRECT:
         {
           DexMethod target = getInvokeInstructionTarget(view);
           IntList arguments = getInvokeInstructionArguments(view);
           onInvokeDirect(target, arguments);
           return;
         }
-      case LIROpcodes.INVOKEVIRTUAL:
+      case LirOpcodes.INVOKEVIRTUAL:
         {
           DexMethod target = getInvokeInstructionTarget(view);
           IntList arguments = getInvokeInstructionArguments(view);
           onInvokeVirtual(target, arguments);
           return;
         }
-      case LIROpcodes.GETSTATIC:
+      case LirOpcodes.GETSTATIC:
         {
           DexField field = (DexField) getConstantItem(view.getNextConstantOperand());
           onStaticGet(field);
           return;
         }
-      case LIROpcodes.RETURN:
+      case LirOpcodes.RETURN:
         {
           onReturnVoid();
           return;
         }
-      case LIROpcodes.ARRAYLENGTH:
+      case LirOpcodes.ARRAYLENGTH:
         {
           onArrayLength(getNextValueOperand(view));
           return;
         }
-      case LIROpcodes.DEBUGPOS:
+      case LirOpcodes.DEBUGPOS:
         {
           onDebugPosition();
           return;
         }
-      case LIROpcodes.PHI:
+      case LirOpcodes.PHI:
         {
           DexType type = (DexType) getConstantItem(view.getNextConstantOperand());
           IntList operands = new IntArrayList();
@@ -235,33 +235,33 @@ public abstract class LIRParsedInstructionCallback implements LIRInstructionCall
           onPhi(type, operands);
           return;
         }
-      case LIROpcodes.FALLTHROUGH:
+      case LirOpcodes.FALLTHROUGH:
         {
           onFallthrough();
           return;
         }
-      case LIROpcodes.MOVEEXCEPTION:
+      case LirOpcodes.MOVEEXCEPTION:
         {
           DexType type = (DexType) getConstantItem(view.getNextConstantOperand());
           onMoveException(type);
           return;
         }
-      case LIROpcodes.DEBUGLOCALWRITE:
+      case LirOpcodes.DEBUGLOCALWRITE:
         {
           int srcIndex = getNextValueOperand(view);
           onDebugLocalWrite(srcIndex);
           return;
         }
       default:
-        throw new Unimplemented("No dispatch for opcode " + LIROpcodes.toString(opcode));
+        throw new Unimplemented("No dispatch for opcode " + LirOpcodes.toString(opcode));
     }
   }
 
-  private DexMethod getInvokeInstructionTarget(LIRInstructionView view) {
+  private DexMethod getInvokeInstructionTarget(LirInstructionView view) {
     return (DexMethod) getConstantItem(view.getNextConstantOperand());
   }
 
-  private IntList getInvokeInstructionArguments(LIRInstructionView view) {
+  private IntList getInvokeInstructionArguments(LirInstructionView view) {
     IntList arguments = new IntArrayList();
     while (view.hasMoreOperands()) {
       arguments.add(getNextValueOperand(view));

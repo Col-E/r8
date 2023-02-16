@@ -12,7 +12,7 @@ import java.util.Iterator;
  * <p>This iterator is internally a zero-allocation parser with the "elements" as a view onto the
  * current state.
  */
-public class LIRIterator implements Iterator<LIRInstructionView>, LIRInstructionView {
+public class LirIterator implements Iterator<LirInstructionView>, LirInstructionView {
 
   private final ByteIterator iterator;
 
@@ -24,7 +24,7 @@ public class LIRIterator implements Iterator<LIRInstructionView>, LIRInstruction
   private int currentInstructionIndex = -1;
   private int currentOpcode = -1;
 
-  public LIRIterator(ByteIterator iterator) {
+  public LirIterator(ByteIterator iterator) {
     this.iterator = iterator;
   }
 
@@ -41,11 +41,11 @@ public class LIRIterator implements Iterator<LIRInstructionView>, LIRInstruction
   }
 
   @Override
-  public LIRInstructionView next() {
+  public LirInstructionView next() {
     skipRemainingOperands();
     ++currentInstructionIndex;
     currentOpcode = u1();
-    if (LIROpcodes.isOneByteInstruction(currentOpcode)) {
+    if (LirOpcodes.isOneByteInstruction(currentOpcode)) {
       endOfCurrentInstruction = currentByteIndex;
     } else {
       // Any instruction that is not a single byte has a two-byte header. The second byte is the
@@ -57,7 +57,7 @@ public class LIRIterator implements Iterator<LIRInstructionView>, LIRInstruction
   }
 
   @Override
-  public void accept(LIRInstructionCallback eventCallback) {
+  public void accept(LirInstructionCallback eventCallback) {
     eventCallback.onInstructionView(this);
   }
 

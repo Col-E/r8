@@ -10,11 +10,11 @@ import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.ir.code.CatchHandlers;
 import com.android.tools.r8.ir.code.IRMetadata;
 import com.android.tools.r8.ir.code.Position;
-import com.android.tools.r8.lightir.LIRBuilder.BlockIndexGetter;
-import com.android.tools.r8.lightir.LIRBuilder.ValueIndexGetter;
+import com.android.tools.r8.lightir.LirBuilder.BlockIndexGetter;
+import com.android.tools.r8.lightir.LirBuilder.ValueIndexGetter;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceMap;
 
-public class LIRCode implements Iterable<LIRInstructionView> {
+public class LirCode implements Iterable<LirInstructionView> {
 
   public static class PositionEntry {
     final int fromInstructionIndex;
@@ -74,16 +74,16 @@ public class LIRCode implements Iterable<LIRInstructionView> {
   /** Table of debug local information for each SSA value (if present). */
   private final DebugLocalInfoTable debugLocalInfoTable;
 
-  public static <V, B> LIRBuilder<V, B> builder(
+  public static <V, B> LirBuilder<V, B> builder(
       DexMethod method,
       ValueIndexGetter<V> valueIndexGetter,
       BlockIndexGetter<B> blockIndexGetter,
       DexItemFactory factory) {
-    return new LIRBuilder<V, B>(method, valueIndexGetter, blockIndexGetter, factory);
+    return new LirBuilder<V, B>(method, valueIndexGetter, blockIndexGetter, factory);
   }
 
-  // Should be constructed using LIRBuilder.
-  LIRCode(
+  /** Should be constructed using {@link LirBuilder}. */
+  LirCode(
       IRMetadata metadata,
       DexItem[] constants,
       PositionEntry[] positions,
@@ -145,12 +145,12 @@ public class LIRCode implements Iterable<LIRInstructionView> {
   }
 
   @Override
-  public LIRIterator iterator() {
-    return new LIRIterator(new ByteArrayIterator(instructions));
+  public LirIterator iterator() {
+    return new LirIterator(new ByteArrayIterator(instructions));
   }
 
   @Override
   public String toString() {
-    return new LIRPrinter(this).prettyPrint();
+    return new LirPrinter(this).prettyPrint();
   }
 }

@@ -12,7 +12,7 @@ import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionIterator;
 import com.android.tools.r8.ir.code.Phi;
 import com.android.tools.r8.ir.code.Value;
-import com.android.tools.r8.lightir.LIRBuilder.BlockIndexGetter;
+import com.android.tools.r8.lightir.LirBuilder.BlockIndexGetter;
 import com.android.tools.r8.utils.ListUtils;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.ints.IntList;
@@ -25,25 +25,25 @@ import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
 
-public class IR2LIRConverter {
+public class IR2LirConverter {
 
   private final DexItemFactory factory;
   private final IRCode irCode;
   private final Reference2IntMap<BasicBlock> blocks = new Reference2IntOpenHashMap<>();
   private final Reference2IntMap<Value> values = new Reference2IntOpenHashMap<>();
-  private final LIRBuilder<Value, BasicBlock> builder;
+  private final LirBuilder<Value, BasicBlock> builder;
 
-  private IR2LIRConverter(DexItemFactory factory, IRCode irCode) {
+  private IR2LirConverter(DexItemFactory factory, IRCode irCode) {
     this.factory = factory;
     this.irCode = irCode;
     this.builder =
-        new LIRBuilder<Value, BasicBlock>(
+        new LirBuilder<Value, BasicBlock>(
                 irCode.context().getReference(), values::getInt, blocks::getInt, factory)
             .setMetadata(irCode.metadata());
   }
 
-  public static LIRCode translate(IRCode irCode, DexItemFactory factory) {
-    return new IR2LIRConverter(factory, irCode).internalTranslate();
+  public static LirCode translate(IRCode irCode, DexItemFactory factory) {
+    return new IR2LirConverter(factory, irCode).internalTranslate();
   }
 
   private void recordBlock(BasicBlock block, int blockIndex) {
@@ -57,7 +57,7 @@ public class IR2LIRConverter {
     }
   }
 
-  private LIRCode internalTranslate() {
+  private LirCode internalTranslate() {
     irCode.traceBlocks();
     computeBlockAndValueTables();
     computeInstructions();
@@ -108,7 +108,7 @@ public class IR2LIRConverter {
             continue;
           }
         }
-        instruction.buildLIR(builder);
+        instruction.buildLir(builder);
         currentValueIndex++;
       }
       assert builder.verifyCurrentValueIndex(currentValueIndex);

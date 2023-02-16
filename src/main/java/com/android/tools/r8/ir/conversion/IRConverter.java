@@ -60,9 +60,9 @@ import com.android.tools.r8.ir.optimize.membervaluepropagation.R8MemberValueProp
 import com.android.tools.r8.ir.optimize.outliner.Outliner;
 import com.android.tools.r8.ir.optimize.string.StringBuilderAppendOptimizer;
 import com.android.tools.r8.ir.optimize.string.StringOptimizer;
-import com.android.tools.r8.lightir.IR2LIRConverter;
-import com.android.tools.r8.lightir.LIR2IRConverter;
-import com.android.tools.r8.lightir.LIRCode;
+import com.android.tools.r8.lightir.IR2LirConverter;
+import com.android.tools.r8.lightir.Lir2IRConverter;
+import com.android.tools.r8.lightir.LirCode;
 import com.android.tools.r8.logging.Log;
 import com.android.tools.r8.naming.IdentifierNameStringMarker;
 import com.android.tools.r8.optimize.argumentpropagation.ArgumentPropagatorIROptimizer;
@@ -1079,8 +1079,8 @@ public class IRConverter {
       OptimizationFeedback feedback,
       BytecodeMetadataProvider bytecodeMetadataProvider,
       Timing timing) {
-    if (options.testing.roundtripThroughLIR) {
-      code = roundtripThroughLIR(code, feedback, bytecodeMetadataProvider, timing);
+    if (options.testing.roundtripThroughLir) {
+      code = roundtripThroughLir(code, feedback, bytecodeMetadataProvider, timing);
     }
     if (options.isGeneratingClassFiles()) {
       timing.begin("IR->CF");
@@ -1095,16 +1095,16 @@ public class IRConverter {
     printMethod(code.context(), "After finalization");
   }
 
-  private IRCode roundtripThroughLIR(
+  private IRCode roundtripThroughLir(
       IRCode code,
       OptimizationFeedback feedback,
       BytecodeMetadataProvider bytecodeMetadataProvider,
       Timing timing) {
     timing.begin("IR->LIR");
-    LIRCode lirCode = IR2LIRConverter.translate(code, appView.dexItemFactory());
+    LirCode lirCode = IR2LirConverter.translate(code, appView.dexItemFactory());
     timing.end();
     timing.begin("LIR->IR");
-    IRCode irCode = LIR2IRConverter.translate(code.context(), lirCode, appView);
+    IRCode irCode = Lir2IRConverter.translate(code.context(), lirCode, appView);
     timing.end();
     return irCode;
   }

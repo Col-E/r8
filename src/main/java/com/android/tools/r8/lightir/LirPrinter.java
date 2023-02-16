@@ -13,19 +13,19 @@ import com.android.tools.r8.ir.code.NumericType;
 import com.android.tools.r8.utils.StringUtils;
 import it.unimi.dsi.fastutil.ints.IntList;
 
-public class LIRPrinter extends LIRParsedInstructionCallback {
+public class LirPrinter extends LirParsedInstructionCallback {
 
   private static final String SEPERATOR = "\n";
-  private final LIRCode code;
+  private final LirCode code;
   private final StringBuilder builder = new StringBuilder();
 
   private final int instructionIndexPadding;
   private final int instructionNamePadding;
 
   private int valueIndex = 0;
-  private LIRInstructionView view;
+  private LirInstructionView view;
 
-  public LIRPrinter(LIRCode code) {
+  public LirPrinter(LirCode code) {
     super(code);
     this.code = code;
     instructionIndexPadding =
@@ -33,8 +33,8 @@ public class LIRPrinter extends LIRParsedInstructionCallback {
             fmtInsnIndex(-code.getArgumentCount()).length(),
             fmtInsnIndex(code.getInstructionCount() - 1).length());
     int maxNameLength = 0;
-    for (LIRInstructionView view : code) {
-      maxNameLength = Math.max(maxNameLength, LIROpcodes.toString(view.getOpcode()).length());
+    for (LirInstructionView view : code) {
+      maxNameLength = Math.max(maxNameLength, LirOpcodes.toString(view.getOpcode()).length());
     }
     instructionNamePadding = maxNameLength;
   }
@@ -73,12 +73,12 @@ public class LIRPrinter extends LIRParsedInstructionCallback {
   }
 
   @Override
-  public void onInstructionView(LIRInstructionView view) {
+  public void onInstructionView(LirInstructionView view) {
     this.view = view;
     assert view.getInstructionIndex() == getCurrentInstructionIndex();
     int operandSizeInBytes = view.getRemainingOperandSizeInBytes();
     int instructionSizeInBytes = operandSizeInBytes == 0 ? 1 : 2 + operandSizeInBytes;
-    String opcode = LIROpcodes.toString(view.getOpcode());
+    String opcode = LirOpcodes.toString(view.getOpcode());
     addInstructionHeader(opcode, instructionSizeInBytes);
     super.onInstructionView(view);
     advanceToNextValueIndex();
@@ -101,7 +101,7 @@ public class LIRPrinter extends LIRParsedInstructionCallback {
   @Override
   public void onInstruction() {
     throw new Unimplemented(
-        "Printing of instruction missing: " + LIROpcodes.toString(view.getOpcode()));
+        "Printing of instruction missing: " + LirOpcodes.toString(view.getOpcode()));
   }
 
   private StringBuilder appendOutValue() {

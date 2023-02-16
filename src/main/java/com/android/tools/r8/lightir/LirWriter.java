@@ -7,19 +7,19 @@ package com.android.tools.r8.lightir;
  * Lowest level writer for constructing LIR encoded data.
  *
  * <p>This writer deals with just the instruction and operand encodings. For higher level structure,
- * such as the constant pool, see LIRBuilder.
+ * such as the constant pool, see {@link LirBuilder}.
  */
-public class LIRWriter {
+public class LirWriter {
 
   private final ByteWriter writer;
   private int pendingOperandBytes = 0;
 
-  public LIRWriter(ByteWriter writer) {
+  public LirWriter(ByteWriter writer) {
     this.writer = writer;
   }
 
   public void writeOneByteInstruction(int opcode) {
-    assert LIROpcodes.isOneByteInstruction(opcode);
+    assert LirOpcodes.isOneByteInstruction(opcode);
     assert pendingOperandBytes == 0;
     writer.put(ByteUtils.ensureU1(opcode));
   }

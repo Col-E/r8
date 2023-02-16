@@ -10,15 +10,15 @@ package com.android.tools.r8.lightir;
  * can change. The view callbacks allow interpreting the instruction at different levels of
  * abstraction depending on need.
  */
-public interface LIRInstructionView {
+public interface LirInstructionView {
 
   /** Convenience method to forward control to a callback. */
-  void accept(LIRInstructionCallback eventCallback);
+  void accept(LirInstructionCallback eventCallback);
 
   /** Get the instruction index. */
   int getInstructionIndex();
 
-  /** The opcode of the instruction (See {@code LIROpcodes} for values). */
+  /** The opcode of the instruction (See {@link LirOpcodes} for values). */
   int getOpcode();
 
   /** The remaining size of the instruction's payload. */

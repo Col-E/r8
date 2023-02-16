@@ -21,14 +21,14 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
 @RunWith(Parameterized.class)
-public class LIRBasicCallbackTest extends TestBase {
+public class LirBasicCallbackTest extends TestBase {
 
   @Parameterized.Parameters(name = "{0}")
   public static TestParametersCollection data() {
     return getTestParameters().withNoneRuntime().build();
   }
 
-  public LIRBasicCallbackTest(TestParameters parameters) {
+  public LirBasicCallbackTest(TestParameters parameters) {
     parameters.assertNoneRuntime();
   }
 
@@ -36,8 +36,8 @@ public class LIRBasicCallbackTest extends TestBase {
   public void test() throws Exception {
     DexItemFactory factory = new DexItemFactory();
     DexMethod method = factory.createMethod(Reference.methodFromDescriptor("LFoo;", "bar", "()V"));
-    LIRCode code =
-        LIRCode.builder(
+    LirCode code =
+        LirCode.builder(
                 method,
                 v -> {
                   throw new Unreachable();
@@ -51,16 +51,16 @@ public class LIRBasicCallbackTest extends TestBase {
             .addConstInt(42)
             .build();
 
-    LIRIterator it = code.iterator();
+    LirIterator it = code.iterator();
 
     // The iterator and the elements are the same object providing a view on the byte stream.
     assertTrue(it.hasNext());
-    LIRInstructionView next = it.next();
+    LirInstructionView next = it.next();
     assertSame(it, next);
 
     it.accept(
         insn -> {
-          assertEquals(LIROpcodes.ACONST_NULL, insn.getOpcode());
+          assertEquals(LirOpcodes.ACONST_NULL, insn.getOpcode());
           assertEquals(0, insn.getRemainingOperandSizeInBytes());
         });
 
@@ -68,21 +68,21 @@ public class LIRBasicCallbackTest extends TestBase {
     it.next();
     it.accept(
         insn -> {
-          assertEquals(LIROpcodes.ICONST, insn.getOpcode());
+          assertEquals(LirOpcodes.ICONST, insn.getOpcode());
           assertEquals(4, insn.getRemainingOperandSizeInBytes());
         });
     assertFalse(it.hasNext());
 
     // The iterator can also be use in a normal java for-each loop.
     // However, the item is not an actual item just a current view, so it can't be cached!
-    LIRInstructionView oldView = null;
-    for (LIRInstructionView view : code) {
+    LirInstructionView oldView = null;
+    for (LirInstructionView view : code) {
       if (oldView == null) {
         oldView = view;
-        view.accept(insn -> assertEquals(LIROpcodes.ACONST_NULL, insn.getOpcode()));
+        view.accept(insn -> assertEquals(LirOpcodes.ACONST_NULL, insn.getOpcode()));
       } else {
         assertSame(oldView, view);
-        view.accept(insn -> assertEquals(LIROpcodes.ICONST, insn.getOpcode()));
+        view.accept(insn -> assertEquals(LirOpcodes.ICONST, insn.getOpcode()));
       }
     }
   }

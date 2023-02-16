@@ -10,7 +10,7 @@ import com.android.tools.r8.errors.Unreachable;
  *
  * <p>The constants generally follow the bytecode values as defined by the classfile format.
  */
-public interface LIROpcodes {
+public interface LirOpcodes {
 
   static boolean isOneByteInstruction(int opcode) {
     assert opcode >= ACONST_NULL;

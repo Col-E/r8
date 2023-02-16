@@ -7,7 +7,7 @@ import com.android.tools.r8.cf.LoadStoreHelper;
 import com.android.tools.r8.cf.code.CfGoto;
 import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
-import com.android.tools.r8.lightir.LIRBuilder;
+import com.android.tools.r8.lightir.LirBuilder;
 import com.android.tools.r8.utils.CfgPrinter;
 import java.util.List;
 import java.util.ListIterator;
@@ -128,7 +128,7 @@ public class Goto extends JumpInstruction {
   }
 
   @Override
-  public void buildLIR(LIRBuilder<Value, BasicBlock> builder) {
+  public void buildLir(LirBuilder<Value, BasicBlock> builder) {
     builder.addGoto(getTarget());
   }
 
