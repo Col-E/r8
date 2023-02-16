@@ -19,6 +19,21 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
+/**
+ * Verifies that, if given an ART profile containing all program classes and methods in the input,
+ * then the residual ART profile also contains all classes and methods in the output.
+ *
+ * <p>If this check fails, either:
+ *
+ * <ul>
+ *   <li>The current change added new synthetics to the program that need to be added to each
+ *       profile that contains the synthesizing context, or
+ *   <li>The existing rewriting of ART profiles and inclusion of synthetics in incomplete.
+ * </ul>
+ *
+ * <p>In the latter case, create a tracking bug and suppress the assertion failure by setting {@link
+ * ArtProfileOptions#setEnableCompletenessCheckForTesting(boolean)} to false.
+ */
 public class ArtProfileCompletenessChecker {
 
   public enum CompletenessExceptions {

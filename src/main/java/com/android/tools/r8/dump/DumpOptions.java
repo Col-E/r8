@@ -22,6 +22,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.TreeMap;
 
 @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
 public class DumpOptions {
@@ -44,7 +45,7 @@ public class DumpOptions {
   private static final String TREE_SHAKING_KEY = "tree-shaking";
   private static final String MINIFICATION_KEY = "minification";
   private static final String FORCE_PROGUARD_COMPATIBILITY_KEY = "force-proguard-compatibility";
-  private static final String SYSTEM_PROPERTY_PREFIX = "system-property-";
+  public static final String SYSTEM_PROPERTY_PREFIX = "system-property-";
   private static final String ENABLE_MISSING_LIBRARY_API_MODELING =
       "enable-missing-library-api-modeling";
   private static final String ANDROID_PLATFORM_BUILD = "android-platform-build";
@@ -458,16 +459,22 @@ public class DumpOptions {
     }
 
     public Builder readCurrentSystemProperties() {
+      getCurrentSystemProperties().forEach(this::setSystemProperty);
+      return this;
+    }
+
+    public static Map<String, String> getCurrentSystemProperties() {
+      Map<String, String> systemProperties = new TreeMap<>();
       System.getProperties()
           .stringPropertyNames()
           .forEach(
               name -> {
                 if (name.startsWith("com.android.tools.r8.")) {
                   String value = System.getProperty(name);
-                  setSystemProperty(name, value);
+                  systemProperties.put(name, value);
                 }
               });
-      return this;
+      return systemProperties;
     }
 
     public DumpOptions build() {

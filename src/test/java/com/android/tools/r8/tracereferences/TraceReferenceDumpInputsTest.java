@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.tracereferences;
 
+import static com.android.tools.r8.dump.DumpOptions.SYSTEM_PROPERTY_PREFIX;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
@@ -12,6 +13,7 @@ import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.ToolHelper;
+import com.android.tools.r8.dump.DumpOptions;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.DumpInputFlags;
@@ -21,25 +23,27 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.stream.Collectors;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
 public class TraceReferenceDumpInputsTest extends TestBase {
 
-  private final TestParameters parameters;
-
-  @Parameterized.Parameters(name = "{0}")
+  @Parameters(name = "{0}")
   public static TestParametersCollection data() {
-    return getTestParameters().withSystemRuntime().build();
+    return getTestParameters().withNoneRuntime().build();
   }
 
   public TraceReferenceDumpInputsTest(TestParameters parameters) {
-    this.parameters = parameters;
+    parameters.assertNoneRuntime();
   }
 
   @Test
@@ -92,12 +96,20 @@ public class TraceReferenceDumpInputsTest extends TestBase {
 
   private void checkProperties(Path properties) throws IOException {
     List<String> lines = Files.readAllLines(properties);
-    assertEquals(4, lines.size());
+    Map<String, String> systemProperties = DumpOptions.Builder.getCurrentSystemProperties();
+    assertEquals(4 + systemProperties.size(), lines.size());
     assertEquals("tool=TraceReferences", lines.get(0));
     assertEquals(
         "trace_references_consumer=com.android.tools.r8.tracereferences.TraceReferencesKeepRules",
         lines.get(2));
     assertEquals("minification=true", lines.get(3));
+    Iterator<Entry<String, String>> systemPropertiesIterator =
+        systemProperties.entrySet().iterator();
+    for (int i = 4; i < lines.size(); i++) {
+      assertTrue(systemPropertiesIterator.hasNext());
+      Entry<String, String> entry = systemPropertiesIterator.next();
+      assertEquals(SYSTEM_PROPERTY_PREFIX + entry.getKey() + "=" + entry.getValue(), lines.get(i));
+    }
   }
 
   private void contains(Path unzipped, String jar, Class<?> clazz) throws IOException {

@@ -12,10 +12,12 @@ import java.util.Collections;
 
 public class ArtProfileOptions {
 
+  public static final String COMPLETENESS_PROPERTY_KEY =
+      "com.android.tools.r8.artprofilerewritingcompletenesscheck";
+
   private Collection<ArtProfileForRewriting> artProfilesForRewriting = Collections.emptyList();
   private boolean enableCompletenessCheckForTesting =
-      parseSystemPropertyOrDefault(
-          "com.android.tools.r8.artprofilerewritingcompletenesscheck", false);
+      parseSystemPropertyOrDefault(COMPLETENESS_PROPERTY_KEY, false);
 
   private final InternalOptions options;
 

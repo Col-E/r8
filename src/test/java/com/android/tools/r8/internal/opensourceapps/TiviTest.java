@@ -48,8 +48,6 @@ public class TiviTest extends TestBase {
   public void testR8() throws Exception {
     testForR8(Backend.DEX)
         .addProgramFiles(outDirectory.resolve("program.jar"))
-        .addOptionsModification(
-            options -> options.getArtProfileOptions().setEnableCompletenessCheckForTesting(true))
         .apply(this::configure)
         .compile();
   }
