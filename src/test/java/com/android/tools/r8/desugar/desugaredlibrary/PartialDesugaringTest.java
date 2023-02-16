@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.desugar.desugaredlibrary;
 
+import static com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification.JDK11;
 import static com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification.JDK11_MINIMAL;
 import static com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification.JDK11_PATH;
 import static com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification.JDK8;
@@ -12,9 +13,12 @@ import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification;
+import com.android.tools.r8.graph.DexField;
+import com.android.tools.r8.graph.DexMember;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.lint.SupportedClasses;
-import com.android.tools.r8.ir.desugar.desugaredlibrary.lint.SupportedMethodsGenerator;
+import com.android.tools.r8.ir.desugar.desugaredlibrary.lint.SupportedClasses.MemberAnnotation;
+import com.android.tools.r8.ir.desugar.desugaredlibrary.lint.SupportedClassesGenerator;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.InternalOptions;
 import com.google.common.collect.ImmutableList;
@@ -116,36 +120,66 @@ public class PartialDesugaringTest extends DesugaredLibraryTestBase {
               + " java.time.format.DateTimeFormatterBuilder.appendGenericZoneText(java.time.format.TextStyle,"
               + " java.util.Set)");
 
+  private static final Set<String> FAILURES_JAPANESE_ERA =
+      ImmutableSet.of("Field java.time.chrono.JapaneseEra java.time.chrono.JapaneseEra.REIWA");
+
   @Test
   public void test() throws Exception {
     SupportedClasses supportedClasses =
-        new SupportedMethodsGenerator(new InternalOptions())
+        new SupportedClassesGenerator(new InternalOptions())
             .run(librarySpecification.getDesugarJdkLibs(), librarySpecification.getSpecification());
 
     for (AndroidApiLevel api : getRelevantApiLevels()) {
-      Set<DexMethod> localFailures = Sets.newIdentityHashSet();
+
+      Set<DexMethod> localMethodFailures = Sets.newIdentityHashSet();
+      Set<DexField> localFieldFailures = Sets.newIdentityHashSet();
+
       supportedClasses.forEachClass(
-          supportedClass ->
-              supportedClass.forEachMethodAndAnnotation(
-                  (method, annotation) -> {
-                    if (annotation != null && annotation.isUnsupportedInMinApiRange()) {
-                      if (api.getLevel() >= annotation.getMinRange()
-                          && api.getLevel() <= annotation.getMaxRange()) {
-                        localFailures.add(method.getReference());
-                      }
-                    }
-                  }));
-      Set<String> expectedFailures = getExpectedFailures(api);
-      Set<String> apiFailuresString =
-          localFailures.stream().map(DexMethod::toString).collect(Collectors.toSet());
-      if (!expectedFailures.equals(apiFailuresString)) {
-        System.out.println("Failure for api " + api);
-        assertEquals(expectedFailures, apiFailuresString);
-      }
+          supportedClass -> {
+            supportedClass.forEachMethodAndAnnotation(
+                (method, annotation) -> {
+                  if (missingFromRange(api, annotation)) {
+                    localMethodFailures.add(method.getReference());
+                  }
+                });
+            supportedClass.forEachFieldAndAnnotation(
+                (field, annotation) -> {
+                  if (missingFromRange(api, annotation)) {
+                    localFieldFailures.add(field.getReference());
+                  }
+                });
+          });
+
+      assertStringEqualsAtApi(localFieldFailures, getExpectedFieldFailures(api), api);
+      assertStringEqualsAtApi(localMethodFailures, getExpectedMethodFailures(api), api);
     }
   }
 
-  private Set<String> getExpectedFailures(AndroidApiLevel api) {
+  private void assertStringEqualsAtApi(
+      Set<? extends DexMember<?, ?>> found, Set<String> expected, AndroidApiLevel api) {
+    Set<String> apiFailuresString =
+        found.stream().map(DexMember::toString).collect(Collectors.toSet());
+    assertEquals("Failure for api " + api, expected, apiFailuresString);
+  }
+
+  private boolean missingFromRange(AndroidApiLevel api, MemberAnnotation annotation) {
+    if (annotation != null && annotation.isUnsupportedInMinApiRange()) {
+      return api.getLevel() >= annotation.getMinRange()
+          && api.getLevel() <= annotation.getMaxRange();
+    }
+    return false;
+  }
+
+  private Set<String> getExpectedFieldFailures(AndroidApiLevel api) {
+    if (librarySpecification == JDK11 || librarySpecification == JDK11_PATH) {
+      if (api.isGreaterThanOrEqualTo(AndroidApiLevel.O) && api.isLessThan(AndroidApiLevel.R)) {
+        return FAILURES_JAPANESE_ERA;
+      }
+    }
+    return ImmutableSet.of();
+  }
+
+  private Set<String> getExpectedMethodFailures(AndroidApiLevel api) {
     Set<String> expectedFailures = new HashSet<>();
     boolean jdk11NonMinimal = librarySpecification != JDK8 && librarySpecification != JDK11_MINIMAL;
     if (jdk11NonMinimal && api.isGreaterThanOrEqualTo(AndroidApiLevel.N)) {

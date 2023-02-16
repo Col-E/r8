@@ -14,6 +14,7 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.FieldAccessFlags;
 import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.lint.SupportedClasses.ClassAnnotation;
+import com.android.tools.r8.ir.desugar.desugaredlibrary.lint.SupportedClasses.FieldAnnotation;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.lint.SupportedClasses.MethodAnnotation;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.lint.SupportedClasses.SupportedClass;
 import com.android.tools.r8.utils.AndroidApiLevel;
@@ -24,7 +25,6 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
-import java.util.stream.StreamSupport;
 
 public class GenerateHtmlDoc extends AbstractGenerateFiles {
 
@@ -92,7 +92,8 @@ public class GenerateHtmlDoc extends AbstractGenerateFiles {
   private abstract static class SourceBuilder<B extends GenerateHtmlDoc.SourceBuilder> {
 
     protected final DexClass clazz;
-    protected List<DexEncodedField> fields = new ArrayList<>();
+    protected Map<DexEncodedField, FieldAnnotation> fields =
+        new TreeMap<>(Comparator.comparing(DexEncodedField::getReference));
     protected Map<DexEncodedMethod, MethodAnnotation> constructors =
         new TreeMap<>(Comparator.comparing(DexEncodedMethod::getReference));
     protected Map<DexEncodedMethod, MethodAnnotation> methods =
@@ -110,8 +111,8 @@ public class GenerateHtmlDoc extends AbstractGenerateFiles {
 
     public abstract B self();
 
-    private B addField(DexEncodedField field) {
-      fields.add(field);
+    private B addField(DexEncodedField field, FieldAnnotation fieldAnnotation) {
+      fields.put(field, fieldAnnotation);
       return self();
     }
 
@@ -396,6 +397,18 @@ public class GenerateHtmlDoc extends AbstractGenerateFiles {
       return this;
     }
 
+    private String getTextAnnotations(FieldAnnotation annotation) {
+      if (annotation == null) {
+        return "";
+      }
+      StringBuilder stringBuilder = new StringBuilder();
+      if (annotation.unsupportedInMinApiRange) {
+        stringBuilder.append(SUP_3);
+        unsupportedInMinApiRange = true;
+      }
+      return stringBuilder.toString();
+    }
+
     private String getTextAnnotations(MethodAnnotation annotation) {
       if (annotation == null) {
         return "";
@@ -434,13 +447,14 @@ public class GenerateHtmlDoc extends AbstractGenerateFiles {
               "ul style=\"list-style-position:inside; list-style-type: none !important;"
                   + " margin-left:0px;padding-left:0px !important;\"");
       if (!fields.isEmpty()) {
-        for (DexEncodedField field : fields) {
+        for (DexEncodedField field : fields.keySet()) {
           builder.appendLiCode(
               accessFlags(field.accessFlags)
                   + " "
                   + typeInPackage(field.getReference().type)
                   + " "
-                  + field.getReference().name);
+                  + field.getReference().name
+                  + getTextAnnotations(fields.get(field)));
         }
       }
       if (!constructors.isEmpty()) {
@@ -514,15 +528,13 @@ public class GenerateHtmlDoc extends AbstractGenerateFiles {
     DexClass clazz = supportedClass.getClazz();
     SourceBuilder<HTMLSourceBuilder> builder =
         new HTMLSourceBuilder(clazz, supportedClass.getClassAnnotation());
-    // We need to extend to support fields.
-    StreamSupport.stream(clazz.fields().spliterator(), false)
-        .filter(field -> field.accessFlags.isPublic() || field.accessFlags.isProtected())
-        .sorted(Comparator.comparing(DexEncodedField::toSourceString))
-        .forEach(builder::addField);
+    supportedClass.forEachFieldAndAnnotation(
+        (field, fieldAnnotation) -> {
+          builder.addField(field, fieldAnnotation);
+        });
     supportedClass.forEachMethodAndAnnotation(
         (method, methodAnnotation) -> {
-          if ((method.accessFlags.isPublic() || method.accessFlags.isProtected())
-              && !method.accessFlags.isBridge()) {
+          if (!method.accessFlags.isBridge()) {
             builder.addMethod(method, methodAnnotation);
           }
         });
@@ -534,7 +546,7 @@ public class GenerateHtmlDoc extends AbstractGenerateFiles {
     PrintStream ps = new PrintStream(Files.newOutputStream(outputDirectory.resolve("apis.html")));
 
     SupportedClasses supportedClasses =
-        new SupportedMethodsGenerator(options)
+        new SupportedClassesGenerator(options)
             .run(desugaredLibraryImplementation, desugaredLibrarySpecificationPath);
 
     // Full classes added.

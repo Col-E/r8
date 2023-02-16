@@ -244,7 +244,7 @@ public class GenerateLintFiles extends AbstractGenerateFiles {
     AndroidApiLevel compilationLevel =
         desugaredLibrarySpecification.getRequiredCompilationApiLevel();
     SupportedClasses supportedMethods =
-        new SupportedMethodsGenerator(options)
+        new SupportedClassesGenerator(options)
             .run(desugaredLibraryImplementation, desugaredLibrarySpecificationPath);
     System.out.println("Generating lint files for compile API " + compilationLevel);
     generateLintFiles(compilationLevel, AndroidApiLevel.B, supportedMethods);

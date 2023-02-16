@@ -15,12 +15,14 @@ import com.android.tools.r8.features.ClassToFeatureSplitMap;
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexClass;
+import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DirectMappedDexApplication;
+import com.android.tools.r8.graph.FieldResolutionResult;
 import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.graph.MethodResolutionResult;
 import com.android.tools.r8.ir.desugar.BackportedMethodRewriter;
@@ -28,6 +30,7 @@ import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibraryAmender;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibrarySpecification;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibrarySpecificationParser;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.lint.SupportedClasses.ClassAnnotation;
+import com.android.tools.r8.ir.desugar.desugaredlibrary.lint.SupportedClasses.FieldAnnotation;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.lint.SupportedClasses.MethodAnnotation;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.machinespecification.MachineDesugaredLibrarySpecification;
 import com.android.tools.r8.shaking.MainDexInfo;
@@ -47,13 +50,13 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
 
-public class SupportedMethodsGenerator {
+public class SupportedClassesGenerator {
 
   private static final String ANDROID_JAR_PATTERN = "third_party/android_jar/lib-v%d/android.jar";
 
   private final InternalOptions options;
 
-  public SupportedMethodsGenerator(InternalOptions options) {
+  public SupportedClassesGenerator(InternalOptions options) {
     this.options = options;
   }
 
@@ -61,7 +64,7 @@ public class SupportedMethodsGenerator {
       throws IOException {
     SupportedClasses.Builder builder = SupportedClasses.builder();
     // First analyze everything which is supported when desugaring for api 1.
-    collectSupportedMethodsInB(desugaredLibraryImplementation, specification, builder);
+    collectSupportedMembersInB(desugaredLibraryImplementation, specification, builder);
     // Second annotate all apis which are partially and/or fully supported.
     AndroidApp library =
         AndroidApp.builder()
@@ -71,7 +74,7 @@ public class SupportedMethodsGenerator {
         new ApplicationReader(library, options, Timing.empty()).read().toDirect();
     annotateMethodsNotOnLatestAndroidJar(appForMax, builder);
     annotateParallelMethods(builder);
-    annotatePartialDesugaringMethods(builder, specification);
+    annotatePartialDesugaringMembers(builder, specification);
     annotateClasses(builder, appForMax);
     return builder.build();
   }
@@ -103,7 +106,7 @@ public class SupportedMethodsGenerator {
         });
   }
 
-  private void annotatePartialDesugaringMethods(
+  private void annotatePartialDesugaringMembers(
       SupportedClasses.Builder builder, Path specification) throws IOException {
     for (int api = AndroidApiLevel.K.getLevel();
         api <= MAX_TESTED_ANDROID_API_LEVEL.getLevel();
@@ -149,8 +152,7 @@ public class SupportedMethodsGenerator {
             if (machineSpecification.getEmulatedInterfaces().containsKey(dexMethod.getHolderType())
                 && encodedMethod.isStatic()) {
               // Static methods on emulated interfaces are always supported if the emulated
-              // interface is
-              // supported.
+              // interface is supported.
               return;
             }
             MethodResolutionResult methodResolutionResult =
@@ -161,6 +163,23 @@ public class SupportedMethodsGenerator {
                         .isInterface());
             if (methodResolutionResult.isFailedResolution()) {
               builder.annotateMethod(dexMethod, MethodAnnotation.createMissingInMinApi(finalApi));
+            }
+          });
+
+      builder.forEachClassAndField(
+          (clazz, encodedField) -> {
+            if (machineSpecification.isContextTypeMaintainedOrRewritten(
+                    encodedField.getHolderType())
+                || machineSpecification
+                    .getStaticFieldRetarget()
+                    .containsKey(encodedField.getReference())) {
+              return;
+            }
+            FieldResolutionResult fieldResolutionResult =
+                appInfo.resolveField(encodedField.getReference());
+            if (fieldResolutionResult.isFailedResolution()) {
+              builder.annotateField(
+                  encodedField.getReference(), FieldAnnotation.createMissingInMinApi(finalApi));
             }
           });
     }
@@ -193,7 +212,7 @@ public class SupportedMethodsGenerator {
     return Paths.get(jar);
   }
 
-  private void collectSupportedMethodsInB(
+  private void collectSupportedMembersInB(
       Collection<Path> desugaredLibraryImplementation,
       Path specification,
       SupportedClasses.Builder builder)
@@ -264,6 +283,12 @@ public class SupportedMethodsGenerator {
             builder.addSupportedMethod(clazz, method);
           }
           addBackports(clazz, backports, builder, amendedAppForMax);
+          for (DexEncodedField field : clazz.fields()) {
+            if (!field.isPublic() && !field.isProtected()) {
+              continue;
+            }
+            builder.addSupportedField(clazz, field);
+          }
         }
       }
     }
@@ -284,6 +309,24 @@ public class SupportedMethodsGenerator {
           assert dexEncodedMethod != null;
           builder.addSupportedMethod(dexClass, dexEncodedMethod);
         });
+
+    machineSpecification
+        .getStaticFieldRetarget()
+        .forEach(
+            (field, rewritten) -> {
+              DexClass dexClass = implementationApplication.definitionFor(field.getHolderType());
+              if (dexClass != null) {
+                DexEncodedField dexEncodedField = dexClass.lookupField(field);
+                if (dexEncodedField != null) {
+                  builder.addSupportedField(dexClass, dexEncodedField);
+                  return;
+                }
+              }
+              dexClass = amendedAppForMax.definitionFor(field.getHolderType());
+              DexEncodedField dexEncodedField = dexClass.lookupField(field);
+              assert dexEncodedField != null;
+              builder.addSupportedField(dexClass, dexEncodedField);
+            });
   }
 
   private void addBackports(
