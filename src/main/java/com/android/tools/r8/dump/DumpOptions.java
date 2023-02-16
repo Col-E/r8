@@ -312,7 +312,8 @@ public class DumpOptions {
   }
 
   public static class Builder {
-    private Backend backend;
+    // Initialize backend to DEX for backwards compatibility.
+    private Backend backend = Backend.DEX;
     private Tool tool;
     private CompilationMode compilationMode;
     private int minApi;
