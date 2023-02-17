@@ -6,7 +6,6 @@ package com.android.tools.r8.ir.desugar.desugaredlibrary.lint;
 
 import com.android.tools.r8.graph.CfCode.LocalVariableInfo;
 import com.android.tools.r8.graph.ClassAccessFlags;
-import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexProto;
@@ -91,7 +90,6 @@ public class GenerateHtmlDoc extends AbstractGenerateFiles {
 
   private abstract static class SourceBuilder<B extends GenerateHtmlDoc.SourceBuilder> {
 
-    protected final DexClass clazz;
     protected Map<DexEncodedField, FieldAnnotation> fields =
         new TreeMap<>(Comparator.comparing(DexEncodedField::getReference));
     protected Map<DexEncodedMethod, MethodAnnotation> constructors =
@@ -102,9 +100,8 @@ public class GenerateHtmlDoc extends AbstractGenerateFiles {
     String className;
     String packageName;
 
-    private SourceBuilder(DexClass clazz) {
-      this.clazz = clazz;
-      this.className = clazz.type.toSourceString();
+    private SourceBuilder(DexType classType) {
+      this.className = classType.toSourceString();
       int index = this.className.lastIndexOf('.');
       this.packageName = index > 0 ? this.className.substring(0, index) : "";
     }
@@ -387,8 +384,8 @@ public class GenerateHtmlDoc extends AbstractGenerateFiles {
     private boolean unsupportedInMinApiRange = false;
     private boolean covariantReturnSupported = false;
 
-    public HTMLSourceBuilder(DexClass clazz, ClassAnnotation classAnnotation) {
-      super(clazz);
+    public HTMLSourceBuilder(DexType classType, ClassAnnotation classAnnotation) {
+      super(classType);
       this.classAnnotation = classAnnotation;
     }
 
@@ -528,9 +525,9 @@ public class GenerateHtmlDoc extends AbstractGenerateFiles {
   }
 
   private void generateClassHTML(PrintStream ps, SupportedClass supportedClass) {
-    DexClass clazz = supportedClass.getClazz();
+    DexType classType = supportedClass.getType();
     SourceBuilder<HTMLSourceBuilder> builder =
-        new HTMLSourceBuilder(clazz, supportedClass.getClassAnnotation());
+        new HTMLSourceBuilder(classType, supportedClass.getClassAnnotation());
     supportedClass.forEachFieldAndAnnotation(builder::addField);
     supportedClass.forEachMethodAndAnnotation(
         (method, methodAnnotation) -> {

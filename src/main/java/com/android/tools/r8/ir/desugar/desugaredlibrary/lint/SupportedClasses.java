@@ -12,13 +12,13 @@ import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSortedMap;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.SortedMap;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
@@ -37,16 +37,19 @@ public class SupportedClasses {
 
     private final DexClass clazz;
     private final ClassAnnotation classAnnotation;
-    private final List<DexEncodedMethod> supportedMethods;
-    private final List<DexEncodedField> supportedFields;
+    // We need the encoded version to be able to access the flags and infer parameter names from
+    // the debug info. However, we analyze multiple applications and the encoded versions are not
+    // unique, but the keys are.
+    private final SortedMap<DexMethod, DexEncodedMethod> supportedMethods;
+    private final SortedMap<DexField, DexEncodedField> supportedFields;
     private final Map<DexMethod, MethodAnnotation> methodAnnotations;
     private final Map<DexField, FieldAnnotation> fieldAnnotations;
 
     private SupportedClass(
         DexClass clazz,
         ClassAnnotation classAnnotation,
-        List<DexEncodedMethod> supportedMethods,
-        List<DexEncodedField> supportedFields,
+        SortedMap<DexMethod, DexEncodedMethod> supportedMethods,
+        SortedMap<DexField, DexEncodedField> supportedFields,
         Map<DexMethod, MethodAnnotation> methodAnnotations,
         Map<DexField, FieldAnnotation> fieldAnnotations) {
       this.clazz = clazz;
@@ -69,13 +72,14 @@ public class SupportedClasses {
       return classAnnotation;
     }
 
-    public List<DexEncodedMethod> getSupportedMethods() {
-      return supportedMethods;
+    public Collection<DexEncodedMethod> getSupportedMethods() {
+      // Since the map is sorted, the values are sorted.
+      return supportedMethods.values();
     }
 
     public void forEachMethodAndAnnotation(
         BiConsumer<DexEncodedMethod, MethodAnnotation> biConsumer) {
-      for (DexEncodedMethod supportedMethod : supportedMethods) {
+      for (DexEncodedMethod supportedMethod : supportedMethods.values()) {
         biConsumer.accept(supportedMethod, getMethodAnnotation(supportedMethod.getReference()));
       }
     }
@@ -85,7 +89,7 @@ public class SupportedClasses {
     }
 
     public void forEachFieldAndAnnotation(BiConsumer<DexEncodedField, FieldAnnotation> biConsumer) {
-      for (DexEncodedField supportedField : supportedFields) {
+      for (DexEncodedField supportedField : supportedFields.values()) {
         biConsumer.accept(supportedField, getFieldAnnotation(supportedField.getReference()));
       }
     }
@@ -102,8 +106,8 @@ public class SupportedClasses {
 
       private final DexClass clazz;
       private ClassAnnotation classAnnotation;
-      private final List<DexEncodedMethod> supportedMethods = new ArrayList<>();
-      private final List<DexEncodedField> supportedFields = new ArrayList<>();
+      private final Map<DexMethod, DexEncodedMethod> supportedMethods = new IdentityHashMap<>();
+      private final Map<DexField, DexEncodedField> supportedFields = new IdentityHashMap<>();
       private final Map<DexMethod, MethodAnnotation> methodAnnotations = new HashMap<>();
       private final Map<DexField, FieldAnnotation> fieldAnnotations = new HashMap<>();
 
@@ -112,29 +116,29 @@ public class SupportedClasses {
       }
 
       void forEachMethods(BiConsumer<DexClass, Collection<DexEncodedMethod>> biConsumer) {
-        biConsumer.accept(clazz, supportedMethods);
+        biConsumer.accept(clazz, supportedMethods.values());
       }
 
       void forEachMethod(BiConsumer<DexClass, DexEncodedMethod> biConsumer) {
-        for (DexEncodedMethod dexEncodedMethod : supportedMethods) {
+        for (DexEncodedMethod dexEncodedMethod : supportedMethods.values()) {
           biConsumer.accept(clazz, dexEncodedMethod);
         }
       }
 
       void forEachField(BiConsumer<DexClass, DexEncodedField> biConsumer) {
-        for (DexEncodedField dexEncodedField : supportedFields) {
+        for (DexEncodedField dexEncodedField : supportedFields.values()) {
           biConsumer.accept(clazz, dexEncodedField);
         }
       }
 
       void addSupportedMethod(DexEncodedMethod method) {
         assert method.getHolderType() == clazz.type;
-        supportedMethods.add(method);
+        supportedMethods.put(method.getReference(), method);
       }
 
       void addSupportedField(DexEncodedField field) {
         assert field.getHolderType() == clazz.type;
-        supportedFields.add(field);
+        supportedFields.put(field.getReference(), field);
       }
 
       void annotateClass(ClassAnnotation annotation) {
@@ -161,13 +165,11 @@ public class SupportedClasses {
       }
 
       SupportedClass build() {
-        supportedMethods.sort(Comparator.comparing(DexEncodedMethod::getReference));
-        supportedFields.sort(Comparator.comparing(DexEncodedField::getReference));
         return new SupportedClass(
             clazz,
             classAnnotation,
-            ImmutableList.copyOf(supportedMethods),
-            ImmutableList.copyOf(supportedFields),
+            ImmutableSortedMap.copyOf(supportedMethods),
+            ImmutableSortedMap.copyOf(supportedFields),
             methodAnnotations,
             fieldAnnotations);
       }

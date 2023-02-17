@@ -76,7 +76,7 @@ public class GenerateLintFiles extends AbstractGenerateFiles {
   }
 
   private void addMethodsToHeaderJar(
-      DexApplication.Builder builder, DexClass clazz, List<DexEncodedMethod> methods) {
+      DexApplication.Builder builder, DexClass clazz, Collection<DexEncodedMethod> methods) {
     if (methods.size() == 0) {
       return;
     }
