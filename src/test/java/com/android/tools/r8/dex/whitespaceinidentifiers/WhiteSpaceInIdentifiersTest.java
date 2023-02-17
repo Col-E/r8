@@ -216,7 +216,7 @@ public class WhiteSpaceInIdentifiersTest extends TestBase {
     parameters.assumeCfRuntime();
     testForJvm()
         .addProgramClassFileData(getTransformed())
-        .run(parameters.asCfRuntime(), TestClass.class, "")
+        .run(parameters.asCfRuntime(), TestClass.class, "some-argument")
         .assertFailureWithErrorThatThrows(RuntimeException.class)
         .inspectOriginalStackTrace(
             stackTrace ->
