@@ -68,13 +68,17 @@ public class MetadataRewriteEnumTest extends KotlinMetadataTestBase {
   public void testKotlincFailsRenamed() throws Exception {
     R8TestCompileResult r8libResult =
         testForR8(parameters.getBackend())
-            .addProgramFiles(jarMap.getForConfiguration(kotlinc, targetVersion))
+            .addProgramFiles(
+                jarMap.getForConfiguration(kotlinc, targetVersion),
+                kotlinc.getKotlinAnnotationJar())
             .addClasspathFiles(kotlinc.getKotlinStdlibJar())
             .addKeepKotlinMetadata()
             .addKeepEnumsRule()
             .addKeepClassRules(DIRECTION_TYPE_NAME)
             .addKeepClassAndMembersRulesWithAllowObfuscation(DIRECTION_TYPE_NAME)
+            .allowDiagnosticWarningMessages()
             .compile()
+            .apply(KotlinMetadataTestBase::verifyExpectedWarningsFromKotlinReflectAndStdLib)
             .inspect(
                 inspector -> {
                   ClassSubject direction = inspector.clazz(DIRECTION_TYPE_NAME);
@@ -96,13 +100,17 @@ public class MetadataRewriteEnumTest extends KotlinMetadataTestBase {
   public void testR8() throws Exception {
     R8TestCompileResult r8libResult =
         testForR8(parameters.getBackend())
-            .addProgramFiles(jarMap.getForConfiguration(kotlinc, targetVersion))
+            .addProgramFiles(
+                jarMap.getForConfiguration(kotlinc, targetVersion),
+                kotlinc.getKotlinAnnotationJar())
             .addClasspathFiles(kotlinc.getKotlinStdlibJar())
             .addKeepKotlinMetadata()
             .addKeepEnumsRule()
             .addKeepClassRules(DIRECTION_TYPE_NAME)
             .addKeepClassAndMembersRulesWithAllowObfuscation(DIRECTION_TYPE_NAME)
+            .allowDiagnosticWarningMessages()
             .compile()
+            .apply(KotlinMetadataTestBase::verifyExpectedWarningsFromKotlinReflectAndStdLib)
             .inspect(
                 inspector -> {
                   ClassSubject direction = inspector.clazz(DIRECTION_TYPE_NAME);
