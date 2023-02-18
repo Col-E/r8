@@ -121,7 +121,7 @@ public class ReflectiveConstructionWithInlineClassTest extends KotlinTestBase {
         .run(parameters.getRuntime(), MAIN_CLASS)
         // TODO(b/269792580): Figure out why this is throwing an abstract method error.
         .assertFailureWithErrorThatThrows(
-            kotlinParameters.isKotlinDev()
+            kotlinParameters.isKotlinDev() && parameters.isCfRuntime()
                 ? AbstractMethodError.class
                 : IllegalArgumentException.class);
   }
@@ -136,7 +136,7 @@ public class ReflectiveConstructionWithInlineClassTest extends KotlinTestBase {
         .run(parameters.getRuntime(), MAIN_CLASS)
         // TODO(b/269792580): Figure out why this is throwing an abstract method error.
         .assertFailureWithErrorThatThrowsIf(
-            kotlinParameters.isKotlinDev(), AbstractMethodError.class)
+            kotlinParameters.isKotlinDev() && parameters.isCfRuntime(), AbstractMethodError.class)
         .assertSuccessWithOutputLinesIf(!kotlinParameters.isKotlinDev(), EXPECTED_OUTPUT);
   }
 }
