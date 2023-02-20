@@ -227,4 +227,18 @@ public final class MathMethods {
     }
     return result;
   }
+
+  public static int absExact(int a) {
+    if (a == Integer.MIN_VALUE) {
+      throw new ArithmeticException();
+    }
+    return Math.abs(a);
+  }
+
+  public static long absExactLong(long a) {
+    if (a == Long.MIN_VALUE) {
+      throw new ArithmeticException();
+    }
+    return Math.abs(a);
+  }
 }
