@@ -22,6 +22,12 @@ import java.util.SortedMap;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
+/**
+ * A SupportedClasses describes what classes desugared library supports. On top of the specification
+ * flags, supportedClasses describes in detail which member is supported and the edge cases. For
+ * example, it details if a member is not supported at a given min-api level, or if a supported
+ * member is absent from the latest android.jar.
+ */
 public class SupportedClasses {
   private final Map<DexType, SupportedClass> supportedClasses;
 

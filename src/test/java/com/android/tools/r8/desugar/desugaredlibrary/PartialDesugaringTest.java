@@ -62,23 +62,26 @@ public class PartialDesugaringTest extends DesugaredLibraryTestBase {
         AndroidApiLevel.Q,
         AndroidApiLevel.R,
         AndroidApiLevel.S,
-        AndroidApiLevel.T);
+        AndroidApiLevel.T,
+        AndroidApiLevel.U);
   }
 
   // TODO(b/268425188): Fix remaining failures.
   private static final Set<String> FAILURES_STREAM =
       ImmutableSet.of(
-          // The takeWhile/dropWhile methods are not yet present on android.jar.
+          "java.util.stream.Stream java.util.stream.Stream.takeWhile(java.util.function.Predicate)",
+          "java.util.stream.Stream"
+              + " java.util.stream.Stream.dropWhile(java.util.function.Predicate)");
+  private static final Set<String> FAILURES_NUMBER_STREAM =
+      ImmutableSet.of(
           "java.util.stream.IntStream"
               + " java.util.stream.IntStream.dropWhile(java.util.function.IntPredicate)",
-          "java.util.stream.Stream java.util.stream.Stream.takeWhile(java.util.function.Predicate)",
           "java.util.stream.LongStream"
               + " java.util.stream.LongStream.dropWhile(java.util.function.LongPredicate)",
           "java.util.stream.DoubleStream"
               + " java.util.stream.DoubleStream.takeWhile(java.util.function.DoublePredicate)",
           "java.util.stream.IntStream"
               + " java.util.stream.IntStream.takeWhile(java.util.function.IntPredicate)",
-          "java.util.stream.Stream java.util.stream.Stream.dropWhile(java.util.function.Predicate)",
           "java.util.stream.LongStream"
               + " java.util.stream.LongStream.takeWhile(java.util.function.LongPredicate)",
           "java.util.stream.DoubleStream"
@@ -183,8 +186,11 @@ public class PartialDesugaringTest extends DesugaredLibraryTestBase {
     Set<String> expectedFailures = new HashSet<>();
     boolean jdk11NonMinimal = librarySpecification != JDK8 && librarySpecification != JDK11_MINIMAL;
     if (jdk11NonMinimal && api.isGreaterThanOrEqualTo(AndroidApiLevel.N)) {
-      expectedFailures.addAll(FAILURES_STREAM);
-      expectedFailures.addAll(FAILURES_DOUBLE_SUMMARY_STATISTICS);
+      expectedFailures.addAll(FAILURES_NUMBER_STREAM);
+      if (api.isLessThan(AndroidApiLevel.U)) {
+        expectedFailures.addAll(FAILURES_STREAM);
+        expectedFailures.addAll(FAILURES_DOUBLE_SUMMARY_STATISTICS);
+      }
       if (api.isLessThan(AndroidApiLevel.T)) {
         expectedFailures.addAll(FAILURES_SUMMARY_STATISTICS);
       }
@@ -203,7 +209,9 @@ public class PartialDesugaringTest extends DesugaredLibraryTestBase {
       // Interestingly that was added somehow to JDK8 desugared library at some point...
       expectedFailures.addAll(FAILURES_TO_ARRAY);
     }
-    if (jdk11NonMinimal && api.isGreaterThanOrEqualTo(AndroidApiLevel.O)) {
+    if (jdk11NonMinimal
+        && api.isGreaterThanOrEqualTo(AndroidApiLevel.O)
+        && api.isLessThan(AndroidApiLevel.U)) {
       expectedFailures.addAll(FAILURES_CHRONOLOGY);
       expectedFailures.addAll(FAILURES_DATE_TIME_BUILDER);
     }

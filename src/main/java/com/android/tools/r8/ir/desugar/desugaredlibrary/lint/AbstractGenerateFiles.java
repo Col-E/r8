@@ -31,7 +31,7 @@ public abstract class AbstractGenerateFiles {
   private static final String ANDROID_JAR_PATTERN = "third_party/android_jar/lib-v%d/android.jar";
 
   // If we increment this api level, we need to verify everything works correctly.
-  static final AndroidApiLevel MAX_TESTED_ANDROID_API_LEVEL = AndroidApiLevel.T;
+  static final AndroidApiLevel MAX_TESTED_ANDROID_API_LEVEL = AndroidApiLevel.U;
 
   private final DexItemFactory factory = new DexItemFactory();
   private final Reporter reporter = new Reporter();
