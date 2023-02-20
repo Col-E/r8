@@ -9,6 +9,8 @@ import static com.android.tools.r8.ParseFlagInfoImpl.flag2;
 
 import com.android.tools.r8.StringConsumer.FileConsumer;
 import com.android.tools.r8.origin.Origin;
+import com.android.tools.r8.profile.art.ArtProfileConsumerUtils;
+import com.android.tools.r8.profile.art.ArtProfileProviderUtils;
 import com.android.tools.r8.utils.FlagFile;
 import com.android.tools.r8.utils.MapIdTemplateProvider;
 import com.android.tools.r8.utils.SourceFileTemplateProvider;
@@ -27,7 +29,7 @@ import java.util.Set;
 public class R8CommandParser extends BaseCompilerCommandParser<R8Command, R8Command.Builder> {
 
   // Note: this must be a super-set of OPTIONS_WITH_TWO_PARAMETERS.
-  private static final Set<String> OPTIONS_WITH_PARAMETER =
+  private static final Set<String> OPTIONS_WITH_ONE_PARAMETER =
       ImmutableSet.of(
           "--output",
           "--lib",
@@ -44,10 +46,12 @@ public class R8CommandParser extends BaseCompilerCommandParser<R8Command, R8Comm
           "--desugared-lib-pg-conf-output",
           "--map-id-template",
           "--source-file-template",
+          ART_PROFILE_FLAG,
           THREAD_COUNT_FLAG);
 
   // Note: this must be a subset of OPTIONS_WITH_ONE_PARAMETER.
-  private static final Set<String> OPTIONS_WITH_TWO_PARAMETERS = ImmutableSet.of("--feature");
+  private static final Set<String> OPTIONS_WITH_TWO_PARAMETERS =
+      ImmutableSet.of(ART_PROFILE_FLAG, "--feature");
 
   // Due to the family of flags (for assertions and diagnostics) we can't base the one/two args
   // on this setup of flags. Thus, the flag collection just encodes the descriptive content.
@@ -104,6 +108,7 @@ public class R8CommandParser extends BaseCompilerCommandParser<R8Command, R8Comm
                 "  %MAP_ID: map id (e.g., value of --map-id-template).",
                 "  %MAP_HASH: compiler generated mapping hash."))
         .add(ParseFlagInfoImpl.getAndroidPlatformBuild())
+        .add(ParseFlagInfoImpl.getArtProfile())
         .add(ParseFlagInfoImpl.getVersion("r8"))
         .add(ParseFlagInfoImpl.getHelp())
         .build();
@@ -178,7 +183,7 @@ public class R8CommandParser extends BaseCompilerCommandParser<R8Command, R8Comm
       String arg = expandedArgs[i].trim();
       String nextArg = null;
       String nextNextArg = null;
-      if (OPTIONS_WITH_PARAMETER.contains(arg)) {
+      if (OPTIONS_WITH_ONE_PARAMETER.contains(arg)) {
         if (++i < expandedArgs.length) {
           nextArg = expandedArgs[i];
         } else {
@@ -301,6 +306,12 @@ public class R8CommandParser extends BaseCompilerCommandParser<R8Command, R8Comm
             SourceFileTemplateProvider.create(nextArg, builder.getReporter()));
       } else if (arg.equals("--android-platform-build")) {
         builder.setAndroidPlatformBuild(true);
+      } else if (arg.equals(ART_PROFILE_FLAG)) {
+        Path artProfilePath = Paths.get(nextArg);
+        Path rewrittenArtProfilePath = Paths.get(nextNextArg);
+        builder.addArtProfileForRewriting(
+            ArtProfileProviderUtils.createFromHumanReadableArtProfile(artProfilePath),
+            ArtProfileConsumerUtils.create(rewrittenArtProfilePath));
       } else if (arg.startsWith("--")) {
         if (tryParseAssertionArgument(builder, arg, argsOrigin)) {
           continue;

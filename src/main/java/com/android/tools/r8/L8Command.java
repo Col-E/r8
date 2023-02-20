@@ -163,6 +163,11 @@ public final class L8Command extends BaseCompilerCommand {
   }
 
   @Override
+  List<ArtProfileForRewriting> getArtProfilesForRewriting() {
+    return getD8Command().getArtProfilesForRewriting();
+  }
+
+  @Override
   InternalOptions getInternalOptions() {
     InternalOptions internal = new InternalOptions(factory, getReporter());
     assert !internal.debug;

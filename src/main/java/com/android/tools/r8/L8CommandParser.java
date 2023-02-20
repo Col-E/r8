@@ -6,6 +6,8 @@ package com.android.tools.r8;
 
 import com.android.tools.r8.D8CommandParser.OrderedClassFileResourceProvider;
 import com.android.tools.r8.origin.Origin;
+import com.android.tools.r8.profile.art.ArtProfileConsumerUtils;
+import com.android.tools.r8.profile.art.ArtProfileProviderUtils;
 import com.android.tools.r8.utils.FlagFile;
 import com.android.tools.r8.utils.StringDiagnostic;
 import com.android.tools.r8.utils.StringUtils;
@@ -18,7 +20,7 @@ import java.util.Set;
 
 public class L8CommandParser extends BaseCompilerCommandParser<L8Command, L8Command.Builder> {
 
-  private static final Set<String> OPTIONS_WITH_PARAMETER =
+  private static final Set<String> OPTIONS_WITH_ONE_PARAMETER =
       ImmutableSet.of(
           "--output",
           "--lib",
@@ -26,7 +28,11 @@ public class L8CommandParser extends BaseCompilerCommandParser<L8Command, L8Comm
           "--desugared-lib",
           THREAD_COUNT_FLAG,
           "--pg-conf",
-          "--pg-map-output");
+          "--pg-map-output",
+          ART_PROFILE_FLAG);
+
+  // Note: this must be a subset of OPTIONS_WITH_ONE_PARAMETER.
+  private static final Set<String> OPTIONS_WITH_TWO_PARAMETERS = ImmutableSet.of(ART_PROFILE_FLAG);
 
   public static void main(String[] args) throws CompilationFailedException {
     L8Command command = parse(args, Origin.root()).build();
@@ -62,6 +68,7 @@ public class L8CommandParser extends BaseCompilerCommandParser<L8Command, L8Comm
         .addAll(ParseFlagInfoImpl.getAssertionsFlags())
         .add(ParseFlagInfoImpl.getThreadCount())
         .add(ParseFlagInfoImpl.getMapDiagnostics())
+        .add(ParseFlagInfoImpl.getArtProfile())
         .add(ParseFlagInfoImpl.getVersion("l8"))
         .add(ParseFlagInfoImpl.getHelp())
         .build();
@@ -105,13 +112,23 @@ public class L8CommandParser extends BaseCompilerCommandParser<L8Command, L8Comm
     for (int i = 0; i < expandedArgs.length; i++) {
       String arg = expandedArgs[i].trim();
       String nextArg = null;
-      if (OPTIONS_WITH_PARAMETER.contains(arg)) {
+      String nextNextArg = null;
+      if (OPTIONS_WITH_ONE_PARAMETER.contains(arg)) {
         if (++i < expandedArgs.length) {
           nextArg = expandedArgs[i];
         } else {
           builder.error(
               new StringDiagnostic("Missing parameter for " + expandedArgs[i - 1] + ".", origin));
           break;
+        }
+        if (OPTIONS_WITH_TWO_PARAMETERS.contains(arg)) {
+          if (++i < expandedArgs.length) {
+            nextNextArg = expandedArgs[i];
+          } else {
+            builder.error(
+                new StringDiagnostic("Missing parameter for " + expandedArgs[i - 2] + ".", origin));
+            break;
+          }
         }
       }
       if (arg.length() == 0) {
@@ -162,6 +179,12 @@ public class L8CommandParser extends BaseCompilerCommandParser<L8Command, L8Comm
         builder.addDesugaredLibraryConfiguration(StringResource.fromFile(Paths.get(nextArg)));
       } else if (arg.equals("--classfile")) {
         outputMode = OutputMode.ClassFile;
+      } else if (arg.equals(ART_PROFILE_FLAG)) {
+        Path artProfilePath = Paths.get(nextArg);
+        Path rewrittenArtProfilePath = Paths.get(nextNextArg);
+        builder.addArtProfileForRewriting(
+            ArtProfileProviderUtils.createFromHumanReadableArtProfile(artProfilePath),
+            ArtProfileConsumerUtils.create(rewrittenArtProfilePath));
       } else if (arg.equals(THREAD_COUNT_FLAG)) {
         parsePositiveIntArgument(
             builder::error, THREAD_COUNT_FLAG, nextArg, origin, builder::setThreadCount);

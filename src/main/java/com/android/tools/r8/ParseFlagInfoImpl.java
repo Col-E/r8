@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8;
 
+import static com.android.tools.r8.BaseCompilerCommandParser.ART_PROFILE_FLAG;
 import static com.android.tools.r8.BaseCompilerCommandParser.MAP_DIAGNOSTICS;
 import static com.android.tools.r8.BaseCompilerCommandParser.MIN_API_FLAG;
 import static com.android.tools.r8.BaseCompilerCommandParser.THREAD_COUNT_FLAG;
@@ -162,6 +163,14 @@ public class ParseFlagInfoImpl implements ParseFlagInfo {
         "--android-platform-build",
         "Compile as a platform build where the runtime/bootclasspath",
         "is assumed to be the version specified by --min-api.");
+  }
+
+  public static ParseFlagInfoImpl getArtProfile() {
+    return flag2(
+        ART_PROFILE_FLAG,
+        "<input>",
+        "<output>",
+        "Rewrite human readable ART profile read from <input> and write to <output>.");
   }
 
   public static ParseFlagInfoImpl getStartupProfile() {

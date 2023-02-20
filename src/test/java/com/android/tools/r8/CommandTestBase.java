@@ -5,13 +5,22 @@
 package com.android.tools.r8;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification;
+import com.android.tools.r8.profile.art.ArtProfile;
+import com.android.tools.r8.profile.art.ArtProfileConsumer;
+import com.android.tools.r8.profile.art.ArtProfileForRewriting;
+import com.android.tools.r8.profile.art.ArtProfileProvider;
+import com.android.tools.r8.utils.FileUtils;
+import com.android.tools.r8.utils.IntBox;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.Timing;
 import com.google.common.collect.ImmutableList;
 import java.io.IOException;
+import java.nio.file.Path;
+import java.util.List;
 import org.junit.Test;
 
 public abstract class CommandTestBase<C extends BaseCompilerCommand> extends TestBase {
@@ -283,6 +292,87 @@ public abstract class CommandTestBase<C extends BaseCompilerCommand> extends Tes
           command.getReporter().error(new TestDiagnostic());
           command.getReporter().warning(new TestDiagnostic());
         });
+  }
+
+  @Test
+  public void artProfileFlagAbsentTest() throws Exception {
+    assertTrue(parseWithRequiredArgs().getArtProfilesForRewriting().isEmpty());
+  }
+
+  @Test
+  public void artProfileFlagPresentTest() throws Exception {
+    // Create a simple profile.
+    Path profile = temp.newFile("profile.txt").toPath();
+    Path residualProfile = temp.newFile("profile-out.txt").toPath();
+    String profileRuleFlags = "HSP";
+    String profileRuleDescriptor = "Lfoo/bar/Baz;->qux()V";
+    FileUtils.writeTextFile(profile, profileRuleFlags + profileRuleDescriptor);
+
+    // Pass the profile on the command line.
+    List<ArtProfileForRewriting> artProfilesForRewriting =
+        parseWithRequiredArgs("--art-profile", profile.toString(), residualProfile.toString())
+            .getArtProfilesForRewriting();
+    assertEquals(1, artProfilesForRewriting.size());
+
+    // Extract inputs.
+    ArtProfileForRewriting artProfileForRewriting = artProfilesForRewriting.get(0);
+    ArtProfileProvider artProfileProvider = artProfileForRewriting.getArtProfileProvider();
+    ArtProfileConsumer residualArtProfileConsumer =
+        artProfileForRewriting.getResidualArtProfileConsumer();
+    InternalOptions options = new InternalOptions();
+
+    // Build provided ART profile.
+    ArtProfile.Builder artProfileBuilder =
+        ArtProfile.builderForInitialArtProfile(artProfileProvider, options);
+    artProfileProvider.getArtProfile(artProfileBuilder);
+    ArtProfile artProfile = artProfileBuilder.build();
+
+    // Verify we found the same rule.
+    assertEquals(1, artProfile.size());
+    IntBox count = new IntBox();
+    artProfile.forEachRule(
+        classRule -> fail(),
+        methodRule -> {
+          assertEquals(profileRuleDescriptor, methodRule.getMethod().toSmaliString());
+          assertTrue(methodRule.getMethodRuleInfo().isHot());
+          assertTrue(methodRule.getMethodRuleInfo().isStartup());
+          assertTrue(methodRule.getMethodRuleInfo().isPostStartup());
+          count.increment();
+        });
+    assertEquals(1, count.get());
+
+    // Supply the rule back to the consumer.
+    artProfile.supplyConsumer(residualArtProfileConsumer, options.reporter);
+    assertEquals(
+        ImmutableList.of(profileRuleFlags + profileRuleDescriptor),
+        FileUtils.readAllLines(residualProfile));
+  }
+
+  @Test
+  public void artProfileFlagMissingInputOutputParameterTest() {
+    String expectedErrorContains = "Missing parameter for --art-profile.";
+    try {
+      DiagnosticsChecker.checkErrorsContains(
+          expectedErrorContains, handler -> parseWithRequiredArgs(handler, "--art-profile"));
+      fail("Expected failure");
+    } catch (CompilationFailedException e) {
+      // Expected.
+    }
+  }
+
+  @Test
+  public void artProfileFlagMissingOutputParameterTest() throws Exception {
+    String expectedErrorContains = "Missing parameter for --art-profile.";
+    Path profile = temp.newFile("profile.txt").toPath();
+    FileUtils.writeTextFile(profile, "");
+    try {
+      DiagnosticsChecker.checkErrorsContains(
+          expectedErrorContains,
+          handler -> parseWithRequiredArgs(handler, "--art-profile", profile.toString()));
+      fail("Expected failure");
+    } catch (CompilationFailedException e) {
+      // Expected.
+    }
   }
 
   private String[] prepareArgs(String[] args) {

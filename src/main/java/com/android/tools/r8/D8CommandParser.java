@@ -8,6 +8,8 @@ import static com.android.tools.r8.ParseFlagInfoImpl.flag1;
 import com.android.tools.r8.experimental.startup.StartupProfileProviderUtils;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.origin.PathOrigin;
+import com.android.tools.r8.profile.art.ArtProfileConsumerUtils;
+import com.android.tools.r8.profile.art.ArtProfileProviderUtils;
 import com.android.tools.r8.utils.ExceptionDiagnostic;
 import com.android.tools.r8.utils.FlagFile;
 import com.android.tools.r8.utils.StringDiagnostic;
@@ -27,7 +29,7 @@ public class D8CommandParser extends BaseCompilerCommandParser<D8Command, D8Comm
 
   static final String STARTUP_PROFILE_FLAG = "--startup-profile";
 
-  private static final Set<String> OPTIONS_WITH_PARAMETER =
+  private static final Set<String> OPTIONS_WITH_ONE_PARAMETER =
       ImmutableSet.of(
           "--output",
           "--lib",
@@ -41,7 +43,11 @@ public class D8CommandParser extends BaseCompilerCommandParser<D8Command, D8Comm
           "--desugared-lib",
           "--desugared-lib-pg-conf-output",
           THREAD_COUNT_FLAG,
+          ART_PROFILE_FLAG,
           STARTUP_PROFILE_FLAG);
+
+  // Note: this must be a subset of OPTIONS_WITH_ONE_PARAMETER.
+  private static final Set<String> OPTIONS_WITH_TWO_PARAMETERS = ImmutableSet.of(ART_PROFILE_FLAG);
 
   public static List<ParseFlagInfo> getFlags() {
     return ImmutableList.<ParseFlagInfo>builder()
@@ -83,6 +89,7 @@ public class D8CommandParser extends BaseCompilerCommandParser<D8Command, D8Comm
         .add(ParseFlagInfoImpl.getThreadCount())
         .add(ParseFlagInfoImpl.getMapDiagnostics())
         .add(ParseFlagInfoImpl.getAndroidPlatformBuild())
+        .add(ParseFlagInfoImpl.getArtProfile())
         .add(ParseFlagInfoImpl.getStartupProfile())
         .add(ParseFlagInfoImpl.getVersion("d8"))
         .add(ParseFlagInfoImpl.getHelp())
@@ -211,13 +218,23 @@ public class D8CommandParser extends BaseCompilerCommandParser<D8Command, D8Comm
     for (int i = 0; i < expandedArgs.length; i++) {
       String arg = expandedArgs[i].trim();
       String nextArg = null;
-      if (OPTIONS_WITH_PARAMETER.contains(arg)) {
+      String nextNextArg = null;
+      if (OPTIONS_WITH_ONE_PARAMETER.contains(arg)) {
         if (++i < expandedArgs.length) {
           nextArg = expandedArgs[i];
         } else {
           builder.error(
               new StringDiagnostic("Missing parameter for " + expandedArgs[i - 1] + ".", origin));
           break;
+        }
+        if (OPTIONS_WITH_TWO_PARAMETERS.contains(arg)) {
+          if (++i < expandedArgs.length) {
+            nextNextArg = expandedArgs[i];
+          } else {
+            builder.error(
+                new StringDiagnostic("Missing parameter for " + expandedArgs[i - 2] + ".", origin));
+            break;
+          }
         }
       }
       if (arg.length() == 0) {
@@ -310,6 +327,12 @@ public class D8CommandParser extends BaseCompilerCommandParser<D8Command, D8Comm
         builder.setDesugaredLibraryKeepRuleConsumer(consumer);
       } else if (arg.equals("--android-platform-build")) {
         builder.setAndroidPlatformBuild(true);
+      } else if (arg.equals(ART_PROFILE_FLAG)) {
+        Path artProfilePath = Paths.get(nextArg);
+        Path rewrittenArtProfilePath = Paths.get(nextNextArg);
+        builder.addArtProfileForRewriting(
+            ArtProfileProviderUtils.createFromHumanReadableArtProfile(artProfilePath),
+            ArtProfileConsumerUtils.create(rewrittenArtProfilePath));
       } else if (arg.equals(STARTUP_PROFILE_FLAG)) {
         Path startupProfilePath = Paths.get(nextArg);
         builder.addStartupProfileProviders(

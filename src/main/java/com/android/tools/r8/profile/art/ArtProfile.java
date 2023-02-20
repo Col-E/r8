@@ -80,6 +80,10 @@ public class ArtProfile {
     return (ArtProfileMethodRule) rules.get(method);
   }
 
+  public int size() {
+    return rules.size();
+  }
+
   public ArtProfile rewrittenWithLens(AppView<?> appView, GraphLens lens) {
     if (lens.isEnumUnboxerLens()) {
       return rewrittenWithLens(appView, lens.asEnumUnboxerLens());
