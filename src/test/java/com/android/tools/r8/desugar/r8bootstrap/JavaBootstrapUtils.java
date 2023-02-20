@@ -19,7 +19,7 @@ public class JavaBootstrapUtils extends TestBase {
 
   static boolean exists(Path r8WithRelocatedDeps) {
     // This test runs only if the dependencies have been generated using:
-    // <code> tools/gradle.py r8WithRelocatedDeps17 r8WithRelocatedDeps11 </code>
+    // <code> tools/gradle.py r8WithRelocatedDeps17 </code>
     return Files.exists(r8WithRelocatedDeps);
   }
 
@@ -36,10 +36,7 @@ public class JavaBootstrapUtils extends TestBase {
         .applyIf(
             desugar,
             builder ->
-                builder.addOptionsModification(
-                    options -> {
-                      options.desugarState = DesugarState.ON;
-                    }))
+                builder.addOptionsModification(options -> options.desugarState = DesugarState.ON))
         .compile()
         .inspect(inspector -> assertNests(inspector, desugar))
         .writeToZip();

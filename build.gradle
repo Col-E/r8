@@ -73,14 +73,6 @@ sourceSets {
             srcDirs "third_party/api_database/api_database"
         }
     }
-    main11 {
-        java {
-            srcDirs = ['src/main/java', 'src/keepanno/java']
-        }
-        resources {
-            srcDirs "third_party/api_database/api_database"
-        }
-    }
     main17 {
         java {
             srcDirs = ['src/main/java', 'src/keepanno/java']
@@ -248,25 +240,6 @@ dependencies {
     implementation group: 'org.ow2.asm', name: 'asm-tree', version: asmVersion
     implementation group: 'org.ow2.asm', name: 'asm-analysis', version: asmVersion
     implementation group: 'org.ow2.asm', name: 'asm-util', version: asmVersion
-
-    main11Implementation "net.sf.jopt-simple:jopt-simple:$joptSimpleVersion"
-    main11Implementation "com.google.code.gson:gson:$gsonVersion"
-    // Include all of guava when compiling the code, but exclude annotations that we don't
-    // need from the packaging.
-    main11CompileOnly("com.google.guava:guava:$guavaVersion")
-    main11Implementation("com.google.guava:guava:$guavaVersion", {
-        exclude group: 'com.google.errorprone'
-        exclude group: 'com.google.code.findbugs'
-        exclude group: 'com.google.j2objc'
-        exclude group: 'org.codehaus.mojo'
-    })
-    main11Implementation group: 'it.unimi.dsi', name: 'fastutil', version: fastutilVersion
-    main11Implementation "org.jetbrains.kotlinx:kotlinx-metadata-jvm:$kotlinExtMetadataJVMVersion"
-    main11Implementation group: 'org.ow2.asm', name: 'asm', version: asmVersion
-    main11Implementation group: 'org.ow2.asm', name: 'asm-commons', version: asmVersion
-    main11Implementation group: 'org.ow2.asm', name: 'asm-tree', version: asmVersion
-    main11Implementation group: 'org.ow2.asm', name: 'asm-analysis', version: asmVersion
-    main11Implementation group: 'org.ow2.asm', name: 'asm-util', version: asmVersion
 
     main17Implementation "net.sf.jopt-simple:jopt-simple:$joptSimpleVersion"
     main17Implementation "com.google.code.gson:gson:$gsonVersion"
@@ -676,11 +649,6 @@ setJdkCompilationWithCompatibility(
         JavaVersion.VERSION_1_10,
         false)
 setJdkCompilationWithCompatibility(
-        sourceSets.main11.compileJavaTaskName,
-        'jdk-11',
-        JavaVersion.VERSION_11,
-        false)
-setJdkCompilationWithCompatibility(
         sourceSets.main17.compileJavaTaskName,
         'jdk-17',
         JavaVersion.VERSION_17,
@@ -833,11 +801,6 @@ task repackageSources(type: Jar) {
     archiveFileName = 'sources_main.jar'
 }
 
-task repackageSources11(type: Jar) {
-    from sourceSets.main11.output
-    archiveFileName = 'sources_main_11.jar'
-}
-
 task repackageSources17(type: Jar) {
     from sourceSets.main17.output
     archiveFileName = 'sources_main_17.jar'
@@ -919,20 +882,6 @@ task r8WithDeps {
     outputs.files r8Task.outputs.files
 }
 
-task r8WithDeps11 {
-    dependsOn repackageSources11
-    dependsOn repackageDeps
-    inputs.files ([repackageSources11.outputs, repackageDeps.outputs])
-    def r8Task = r8CreateTask(
-            'WithDeps11',
-            'r8_with_deps_11.jar',
-            repackageSources11.outputs.files + repackageDeps.outputs.files,
-            true,
-            true)
-    dependsOn r8Task
-    outputs.files r8Task.outputs.files
-}
-
 task r8WithDeps17 {
     dependsOn repackageSources17
     dependsOn repackageDeps
@@ -951,13 +900,6 @@ task r8WithRelocatedDeps {
     def output = "${buildDir}/libs/r8_with_relocated_deps.jar"
     dependsOn r8RelocateTask(r8WithDeps, output)
     inputs.files r8WithDeps.outputs.files
-    outputs.file output
-}
-
-task r8WithRelocatedDeps11 {
-    def output = "${buildDir}/libs/r8_with_relocated_deps_11.jar"
-    dependsOn r8RelocateTask(r8WithDeps11, output)
-    inputs.files r8WithDeps11.outputs.files
     outputs.file output
 }
 

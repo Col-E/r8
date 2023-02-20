@@ -47,8 +47,7 @@ public class JavaD8CompilationTest extends TestBase {
   public static List<Object[]> data() {
     return buildParameters(
         getTestParameters().withNoneRuntime().build(),
-        ImmutableList.of(
-            ToolHelper.R8_WITH_RELOCATED_DEPS_11_JAR, ToolHelper.R8_WITH_RELOCATED_DEPS_17_JAR));
+        ImmutableList.of(ToolHelper.R8_WITH_RELOCATED_DEPS_17_JAR));
   }
 
   private static void assertNoNests(CodeInspector inspector) {
