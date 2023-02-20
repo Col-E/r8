@@ -68,21 +68,25 @@ public class SyntheticNaming {
 
   // Method synthetics.
   public final SyntheticKind ENUM_UNBOXING_CHECK_NOT_ZERO_METHOD =
-      generator.forSingleMethod("CheckNotZero");
-  public final SyntheticKind RECORD_HELPER = generator.forSingleMethod("Record");
-  public final SyntheticKind BACKPORT = generator.forSingleMethod("Backport");
+      generator.forSingleMethodWithGlobalMerging("CheckNotZero");
+  public final SyntheticKind RECORD_HELPER = generator.forSingleMethodWithGlobalMerging("Record");
+  public final SyntheticKind BACKPORT = generator.forSingleMethodWithGlobalMerging("Backport");
   public final SyntheticKind BACKPORT_WITH_FORWARDING =
       generator.forSingleMethod("BackportWithForwarding");
   public final SyntheticKind STATIC_INTERFACE_CALL =
       generator.forSingleMethod("StaticInterfaceCall");
-  public final SyntheticKind TO_STRING_IF_NOT_NULL = generator.forSingleMethod("ToStringIfNotNull");
-  public final SyntheticKind THROW_CCE_IF_NOT_NULL = generator.forSingleMethod("ThrowCCEIfNotNull");
-  public final SyntheticKind THROW_IAE = generator.forSingleMethod("ThrowIAE");
-  public final SyntheticKind THROW_ICCE = generator.forSingleMethod("ThrowICCE");
-  public final SyntheticKind THROW_NSME = generator.forSingleMethod("ThrowNSME");
-  public final SyntheticKind THROW_RTE = generator.forSingleMethod("ThrowRTE");
-  public final SyntheticKind TWR_CLOSE_RESOURCE = generator.forSingleMethod("TwrCloseResource");
-  public final SyntheticKind SERVICE_LOADER = generator.forSingleMethod("ServiceLoad");
+  public final SyntheticKind TO_STRING_IF_NOT_NULL =
+      generator.forSingleMethodWithGlobalMerging("ToStringIfNotNull");
+  public final SyntheticKind THROW_CCE_IF_NOT_NULL =
+      generator.forSingleMethodWithGlobalMerging("ThrowCCEIfNotNull");
+  public final SyntheticKind THROW_IAE = generator.forSingleMethodWithGlobalMerging("ThrowIAE");
+  public final SyntheticKind THROW_ICCE = generator.forSingleMethodWithGlobalMerging("ThrowICCE");
+  public final SyntheticKind THROW_NSME = generator.forSingleMethodWithGlobalMerging("ThrowNSME");
+  public final SyntheticKind THROW_RTE = generator.forSingleMethodWithGlobalMerging("ThrowRTE");
+  public final SyntheticKind TWR_CLOSE_RESOURCE =
+      generator.forSingleMethodWithGlobalMerging("TwrCloseResource");
+  public final SyntheticKind SERVICE_LOADER =
+      generator.forSingleMethodWithGlobalMerging("ServiceLoad");
   public final SyntheticKind OUTLINE = generator.forSingleMethod("Outline");
   public final SyntheticKind COVARIANT_OUTLINE = generator.forSingleMethod("CovariantOutline");
   public final SyntheticKind API_CONVERSION = generator.forSingleMethod("APIConversion");
@@ -90,7 +94,10 @@ public class SyntheticNaming {
       generator.forSingleMethod("APIConversionParameters");
   public final SyntheticKind COLLECTION_CONVERSION =
       generator.forSingleMethod("$CollectionConversion");
-  public final SyntheticKind API_MODEL_OUTLINE = generator.forSingleMethod("ApiModelOutline");
+  public final SyntheticKind API_MODEL_OUTLINE =
+      generator.forSingleMethodWithGlobalMerging("ApiModelOutline");
+  public final SyntheticKind API_MODEL_OUTLINE_WITHOUT_GLOBAL_MERGING =
+      generator.forSingleMethod("ApiModelOutline");
 
   private final List<SyntheticKind> ALL_KINDS;
   private String lazyVersionHash = null;
@@ -144,7 +151,11 @@ public class SyntheticNaming {
     }
 
     SyntheticKind forSingleMethod(String descriptor) {
-      return register(new SyntheticMethodKind(getNextId(), descriptor));
+      return register(new SyntheticMethodKind(getNextId(), descriptor, false));
+    }
+
+    SyntheticKind forSingleMethodWithGlobalMerging(String descriptor) {
+      return register(new SyntheticMethodKind(getNextId(), descriptor, true));
     }
 
     // TODO(b/214901256): Remove once fixed.
@@ -217,6 +228,14 @@ public class SyntheticNaming {
       return descriptor;
     }
 
+    public boolean isSyntheticMethodKind() {
+      return false;
+    }
+
+    public SyntheticMethodKind asSyntheticMethodKind() {
+      return null;
+    }
+
     public abstract boolean isShareable();
 
     public abstract boolean isSingleSyntheticMethod();
@@ -236,10 +255,13 @@ public class SyntheticNaming {
     public abstract void internalHash(Hasher hasher);
   }
 
-  private static class SyntheticMethodKind extends SyntheticKind {
+  public static class SyntheticMethodKind extends SyntheticKind {
 
-    public SyntheticMethodKind(int id, String descriptor) {
+    private final boolean allowGlobalMerging;
+
+    public SyntheticMethodKind(int id, String descriptor, boolean allowGlobalMerging) {
       super(id, descriptor);
+      this.allowGlobalMerging = allowGlobalMerging;
     }
 
     @Override
@@ -266,6 +288,20 @@ public class SyntheticNaming {
     @Override
     public boolean isMayOverridesNonProgramType() {
       return false;
+    }
+
+    public boolean isAllowGlobalMerging() {
+      return allowGlobalMerging;
+    }
+
+    @Override
+    public boolean isSyntheticMethodKind() {
+      return true;
+    }
+
+    @Override
+    public SyntheticMethodKind asSyntheticMethodKind() {
+      return this;
     }
 
     @Override

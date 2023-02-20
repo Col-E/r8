@@ -9,23 +9,21 @@ import static com.android.tools.r8.utils.FunctionUtils.ignoreArgument;
 import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexProgramClass;
-import com.android.tools.r8.horizontalclassmerging.HorizontalClassMerger.Mode;
 import com.android.tools.r8.horizontalclassmerging.MergeGroup;
 import com.android.tools.r8.horizontalclassmerging.MultiClassPolicy;
 import com.android.tools.r8.synthesis.SyntheticItems;
+import com.google.common.collect.Iterables;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
-public class SamePackageForApiOutline extends MultiClassPolicy {
+public class SamePackageForNonGlobalMergeSynthetic extends MultiClassPolicy {
 
   private final AppView<AppInfo> appView;
-  private final Mode mode;
 
-  public SamePackageForApiOutline(AppView<AppInfo> appView, Mode mode) {
+  public SamePackageForNonGlobalMergeSynthetic(AppView<AppInfo> appView) {
     this.appView = appView;
-    this.mode = mode;
   }
 
   /** Sort unrestricted classes into restricted classes if they are in the same package. */
@@ -50,7 +48,12 @@ public class SamePackageForApiOutline extends MultiClassPolicy {
 
     // Sort all restricted classes into packages.
     for (DexProgramClass clazz : group) {
-      if (syntheticItems.isSyntheticOfKind(clazz.getType(), k -> k.API_MODEL_OUTLINE)) {
+      assert syntheticItems.isSynthetic(clazz.getType());
+      if (Iterables.any(
+          syntheticItems.getSyntheticKinds(clazz.getType()),
+          kind ->
+              !kind.isSyntheticMethodKind()
+                  || !kind.asSyntheticMethodKind().isAllowGlobalMerging())) {
         restrictedClasses
             .computeIfAbsent(
                 clazz.getType().getPackageDescriptor(), ignoreArgument(MergeGroup::new))

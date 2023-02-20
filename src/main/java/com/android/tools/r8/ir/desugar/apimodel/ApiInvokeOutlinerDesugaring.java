@@ -94,25 +94,8 @@ public class ApiInvokeOutlinerDesugaring implements CfInstructionDesugaring {
     if (context.getDefinition().isD8R8Synthesized()) {
       return appView.computedMinApiLevel();
     }
-    DexReference reference;
-    if (instruction.isInvoke()) {
-      CfInvoke cfInvoke = instruction.asInvoke();
-      if (cfInvoke.isInvokeSpecial()) {
-        return appView.computedMinApiLevel();
-      }
-      reference = cfInvoke.getMethod();
-    } else if (instruction.isFieldInstruction()) {
-      reference = instruction.asFieldInstruction().getField();
-    } else if (instruction.isCheckCast()) {
-      reference = instruction.asCheckCast().getType();
-    } else if (instruction.isInstanceOf()) {
-      reference = instruction.asInstanceOf().getType();
-    } else if (instruction.isConstClass()) {
-      reference = instruction.asConstClass().getType();
-    } else {
-      return appView.computedMinApiLevel();
-    }
-    if (!reference.getContextType().isClassType()) {
+    DexReference reference = getReferenceFromInstruction(instruction);
+    if (reference == null || !reference.getContextType().isClassType()) {
       return appView.computedMinApiLevel();
     }
     DexClass holder = appView.definitionFor(reference.getContextType());
@@ -155,6 +138,22 @@ public class ApiInvokeOutlinerDesugaring implements CfInstructionDesugaring {
       return definition != null && definition.isPublic()
           ? referenceApiLevel
           : appView.computedMinApiLevel();
+    }
+  }
+
+  private DexReference getReferenceFromInstruction(CfInstruction instruction) {
+    if (instruction.isFieldInstruction()) {
+      return instruction.asFieldInstruction().getField();
+    } else if (instruction.isCheckCast()) {
+      return instruction.asCheckCast().getType();
+    } else if (instruction.isInstanceOf()) {
+      return instruction.asInstanceOf().getType();
+    } else if (instruction.isConstClass()) {
+      return instruction.asConstClass().getType();
+    } else if (instruction.isInvoke() && !instruction.asInvoke().isInvokeSpecial()) {
+      return instruction.asInvoke().getMethod();
+    } else {
+      return null;
     }
   }
 
@@ -208,10 +207,20 @@ public class ApiInvokeOutlinerDesugaring implements CfInstructionDesugaring {
       ComputedApiLevel apiLevel,
       DexItemFactory factory,
       ProgramMethod programContext) {
+    DexReference reference = getReferenceFromInstruction(instruction);
+    assert reference != null;
+    DexClass holder = appView.definitionFor(reference.getContextType());
+    assert holder != null;
     return appView
         .getSyntheticItems()
         .createMethod(
-            kinds -> kinds.API_MODEL_OUTLINE,
+            kinds ->
+                // We've already checked that the definition the reference is targeting is public
+                // when computing the api-level for desugaring. We still have to ensure that the
+                // class cannot be merged globally if it is package private.
+                holder.isPublic()
+                    ? kinds.API_MODEL_OUTLINE
+                    : kinds.API_MODEL_OUTLINE_WITHOUT_GLOBAL_MERGING,
             context,
             appView,
             syntheticMethodBuilder -> {

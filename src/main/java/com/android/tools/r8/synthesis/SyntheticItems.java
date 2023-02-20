@@ -466,6 +466,16 @@ public class SyntheticItems implements SyntheticDefinitionsProvider {
     return pending.containsTypeOfKind(type, kind) || committed.containsTypeOfKind(type, kind);
   }
 
+  public Iterable<SyntheticKind> getSyntheticKinds(DexType type) {
+    Iterable<SyntheticKind> references =
+        IterableUtils.transform(committed.getItems(type), SyntheticReference::getKind);
+    SyntheticDefinition<?, ?, ?> definition = pending.definitions.get(type);
+    if (definition != null) {
+      references = Iterables.concat(references, IterableUtils.singleton(definition.getKind()));
+    }
+    return references;
+  }
+
   boolean isSyntheticInput(DexProgramClass clazz) {
     return committed.containsSyntheticInput(clazz.getType());
   }
