@@ -40,7 +40,6 @@ import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.ThreadUtils;
 import com.android.tools.r8.utils.Timing;
-import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import java.io.IOException;
 import java.nio.file.Path;
@@ -351,34 +350,20 @@ public class SupportedClassesGenerator {
       if (clazz.type == backport.getHolderType()) {
         DexClass maxClass = amendedAppForMax.definitionFor(clazz.type);
         DexEncodedMethod dexEncodedMethod = maxClass.lookupMethod(backport);
-        // Some backports are not in amendedAppForMax, such as Stream#ofNullable and recent ones
-        // introduced in U.
+        // There is a single backport not in amendedAppForMax, Stream#ofNullable.
+        assert dexEncodedMethod != null
+            || backport
+                .toString()
+                .equals(
+                    "java.util.stream.Stream java.util.stream.Stream.ofNullable(java.lang.Object)");
         if (dexEncodedMethod == null) {
-          ImmutableSet<DexType> allStaticPublicMethods =
-              ImmutableSet.of(
-                  options.dexItemFactory().mathType,
-                  options.dexItemFactory().strictMathType,
-                  options.dexItemFactory().objectsType);
-          if (backport
-                  .toString()
-                  .equals(
-                      "java.util.stream.Stream"
-                          + " java.util.stream.Stream.ofNullable(java.lang.Object)")
-              || allStaticPublicMethods.contains(backport.getHolderType())) {
-            dexEncodedMethod =
-                DexEncodedMethod.builder()
-                    .setMethod(backport)
-                    .setAccessFlags(
-                        MethodAccessFlags.fromSharedAccessFlags(
-                            Constants.ACC_PUBLIC | Constants.ACC_STATIC, false))
-                    .build();
-          } else {
-            throw new Error(
-                "Unexpected backport missing from Android "
-                    + MAX_TESTED_ANDROID_API_LEVEL
-                    + ": "
-                    + backport);
-          }
+          dexEncodedMethod =
+              DexEncodedMethod.builder()
+                  .setMethod(backport)
+                  .setAccessFlags(
+                      MethodAccessFlags.fromSharedAccessFlags(
+                          Constants.ACC_PUBLIC | Constants.ACC_STATIC, false))
+                  .build();
         }
         builder.addSupportedMethod(clazz, dexEncodedMethod);
       }
