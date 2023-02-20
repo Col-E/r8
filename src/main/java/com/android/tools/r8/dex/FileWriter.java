@@ -815,7 +815,7 @@ public class FileWriter {
     dest.putByte(Constants.DEX_FILE_MAGIC_SUFFIX);
     // Leave out checksum and signature for now.
     dest.moveTo(layout.headerOffset + Constants.FILE_SIZE_OFFSET);
-    dest.putInt(layout.getEndOfFile());
+    dest.putInt(layout.getEndOfFile() - layout.headerOffset);
     dest.putInt(Constants.TYPE_HEADER_ITEM_SIZE);
     dest.putInt(Constants.ENDIAN_CONSTANT);
     dest.putInt(0);
@@ -918,7 +918,7 @@ public class FileWriter {
     }
 
     public int size() {
-      return length == 0 ? 0 : 1;
+      return length == 0 && type != Constants.TYPE_STRING_DATA_ITEM ? 0 : 1;
     }
   }
 
@@ -1129,13 +1129,21 @@ public class FileWriter {
 
     public List<MapItem> generateMapInfo(FileWriter fileWriter) {
       return generateMapInfo(
-          fileWriter, fileWriter.mixedSectionOffsets.getStringData().size(), stringIdsOffset);
+          fileWriter,
+          0,
+          fileWriter.mixedSectionOffsets.getStringData().size(),
+          stringIdsOffset,
+          getStringDataOffsets());
     }
 
     public List<MapItem> generateMapInfo(
-        FileWriter fileWriter, int stringIdsSize, int stringIdsOffset) {
+        FileWriter fileWriter,
+        int headerOffset,
+        int stringIdsSize,
+        int stringIdsOffset,
+        int stringDataOffsets) {
       List<MapItem> mapItems = new ArrayList<>();
-      mapItems.add(new MapItem(Constants.TYPE_HEADER_ITEM, 0, 1));
+      mapItems.add(new MapItem(Constants.TYPE_HEADER_ITEM, headerOffset, 1));
       mapItems.add(
           new MapItem(
               Constants.TYPE_STRING_ID_ITEM,
@@ -1188,8 +1196,8 @@ public class FileWriter {
       mapItems.add(
           new MapItem(
               Constants.TYPE_STRING_DATA_ITEM,
-              getStringDataOffsets(),
-              getStringDataOffsets() == 0 ? 0 : stringIdsSize));
+              stringDataOffsets,
+              stringDataOffsets == 0 ? 0 : stringIdsSize));
       mapItems.add(
           new MapItem(
               Constants.TYPE_ANNOTATION_ITEM,

@@ -28,8 +28,10 @@ import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.maindexlist.MainDexListTests;
 import com.android.tools.r8.transformers.ClassTransformer;
 import com.android.tools.r8.utils.AndroidApiLevel;
+import com.android.tools.r8.utils.BitUtils;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.DexVersion;
+import com.android.tools.r8.utils.ListUtils;
 import com.android.tools.r8.utils.ZipUtils;
 import com.google.common.collect.ImmutableList;
 import com.google.common.io.ByteStreams;
@@ -160,10 +162,13 @@ public class DexContainerFormatBasicTest extends TestBase {
     IntList sections = new IntArrayList();
     int offset = 0;
     while (offset < buffer.capacity()) {
+      assertTrue(BitUtils.isAligned(4, offset));
       sections.add(offset);
       int dataSize = buffer.getInt(offset + DATA_SIZE_OFFSET);
       int dataOffset = buffer.getInt(offset + DATA_OFF_OFFSET);
+      int file_size = buffer.getInt(offset + FILE_SIZE_OFFSET);
       offset = dataOffset + dataSize;
+      assertEquals(file_size, offset - ListUtils.last(sections));
     }
     assertEquals(buffer.capacity(), offset);
 
@@ -229,9 +234,7 @@ public class DexContainerFormatBasicTest extends TestBase {
     int sectionSize = buffer.getInt(offset + FILE_SIZE_OFFSET);
     MessageDigest md = MessageDigest.getInstance("SHA-1");
     md.update(
-        buffer.asByteBuffer().array(),
-        offset + FILE_SIZE_OFFSET,
-        sectionSize - offset - FILE_SIZE_OFFSET);
+        buffer.asByteBuffer().array(), offset + FILE_SIZE_OFFSET, sectionSize - FILE_SIZE_OFFSET);
     byte[] expectedSignature = new byte[20];
     md.digest(expectedSignature, 0, 20);
     for (int i = 0; i < expectedSignature.length; i++) {
@@ -243,9 +246,7 @@ public class DexContainerFormatBasicTest extends TestBase {
     int sectionSize = buffer.getInt(offset + FILE_SIZE_OFFSET);
     Adler32 adler = new Adler32();
     adler.update(
-        buffer.asByteBuffer().array(),
-        offset + SIGNATURE_OFFSET,
-        sectionSize - offset - SIGNATURE_OFFSET);
+        buffer.asByteBuffer().array(), offset + SIGNATURE_OFFSET, sectionSize - SIGNATURE_OFFSET);
     assertEquals((int) adler.getValue(), buffer.getInt(offset + CHECKSUM_OFFSET));
   }
 

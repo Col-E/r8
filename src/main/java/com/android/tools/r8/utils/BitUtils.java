@@ -13,4 +13,9 @@ public class BitUtils {
   public static boolean isBitInMaskSet(int value, int mask) {
     return (value & mask) != 0;
   }
+
+  public static boolean isAligned(int alignment, int value) {
+    assert (alignment & (alignment - 1)) == 0; // Check alignment is power of 2.
+    return (value & (alignment - 1)) == 0;
+  }
 }

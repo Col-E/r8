@@ -15,6 +15,7 @@ import com.android.tools.r8.dex.FileWriter.MapItem;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.ObjectToOffsetMapping;
+import com.android.tools.r8.utils.BitUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.ListUtils;
 import com.android.tools.r8.utils.ThreadUtils;
@@ -146,6 +147,7 @@ class ApplicationWriterExperimental extends ApplicationWriter {
       }
 
       offset = section.getLayout().getEndOfFile();
+      assert BitUtils.isAligned(4, offset);
       sections.add(section);
       fileTiming.end();
       timings.add(fileTiming);
@@ -192,7 +194,32 @@ class ApplicationWriterExperimental extends ApplicationWriter {
         List<MapItem> mapItems =
             section
                 .getLayout()
-                .generateMapInfo(section.getFileWriter(), stringIdsSize, stringIdsOffset);
+                .generateMapInfo(
+                    section.getFileWriter(),
+                    section.getLayout().headerOffset,
+                    stringIdsSize,
+                    stringIdsOffset,
+                    lastSection.getLayout().getStringDataOffsets());
+        int originalSize = dexOutputBuffer.getInt();
+        int size = 0;
+        for (MapItem mapItem : mapItems) {
+          size += mapItem.write(dexOutputBuffer);
+        }
+        assert originalSize == size;
+        // Calculate signature and checksum after the map is written.
+        section.getFileWriter().writeSignature(section.getLayout(), dexOutputBuffer);
+        section.getFileWriter().writeChecksum(section.getLayout(), dexOutputBuffer);
+      } else {
+        dexOutputBuffer.moveTo(section.getLayout().getMapOffset());
+        List<MapItem> mapItems =
+            section
+                .getLayout()
+                .generateMapInfo(
+                    section.getFileWriter(),
+                    section.getLayout().headerOffset,
+                    stringIdsSize,
+                    stringIdsOffset,
+                    lastSection.getLayout().getStringDataOffsets());
         int originalSize = dexOutputBuffer.getInt();
         int size = 0;
         for (MapItem mapItem : mapItems) {
@@ -214,6 +241,7 @@ class ApplicationWriterExperimental extends ApplicationWriter {
       DexOutputBuffer outputBuffer,
       boolean last) {
     assert !virtualFile.isEmpty();
+    assert BitUtils.isAligned(4, offset);
     printItemUseInfo(virtualFile);
 
     timing.begin("Reindex for lazy strings");
