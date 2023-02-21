@@ -235,7 +235,13 @@ public class TestBase {
     return testForDX(temp);
   }
 
+  @Deprecated
   public JvmTestBuilder testForJvm() {
+    return testForJvm(temp);
+  }
+
+  public JvmTestBuilder testForJvm(TestParameters parameters) {
+    parameters.assertIsRepresentativeApiLevelForRuntime();
     return testForJvm(temp);
   }
 

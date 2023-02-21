@@ -68,7 +68,7 @@ public class RecordProfileRewritingTest extends TestBase {
   public void testReference() throws Exception {
     parameters.assumeJvmTestParameters();
     assumeTrue(parameters.canUseRecords());
-    testForJvm()
+    testForJvm(parameters)
         .addProgramClassFileData(PROGRAM_DATA)
         .run(parameters.getRuntime(), MAIN_REFERENCE.getTypeName())
         .assertSuccessWithOutput(EXPECTED_RESULT);
