@@ -9,12 +9,10 @@ import java.io.IOException;
 import java.io.UncheckedIOException;
 import javax.inject.Inject;
 import org.gradle.api.DefaultTask;
-import org.gradle.api.file.RegularFileProperty;
 import org.gradle.api.tasks.InputFile;
 import org.gradle.api.tasks.OutputDirectory;
 import org.gradle.api.tasks.TaskAction;
-import org.gradle.workers.WorkAction;
-import org.gradle.workers.WorkParameters;
+import org.gradle.workers.IsolationMode;
 import org.gradle.workers.WorkerExecutor;
 
 public class CustomConversionAsmRewriterTask extends DefaultTask {
@@ -49,31 +47,29 @@ public class CustomConversionAsmRewriterTask extends DefaultTask {
 
   @TaskAction
   void exec() {
-    workerExecutor
-        .noIsolation()
-        .submit(
-            Run.class,
-            parameters -> {
-              parameters.getRawJar().set(rawJar);
-              parameters.getOutputDirectory().set(outputDirectory);
-            });
+    workerExecutor.submit(
+        Run.class,
+        config -> {
+          config.setIsolationMode(IsolationMode.NONE);
+          config.params(rawJar, outputDirectory);
+        });
   }
 
-  public interface RunParameters extends WorkParameters {
-    RegularFileProperty getRawJar();
+  public static class Run implements Runnable {
 
-    RegularFileProperty getOutputDirectory();
-  }
+    private final File rawJar;
+    private final File outputDirectory;
 
-  public abstract static class Run implements WorkAction<RunParameters> {
+    @Inject
+    public Run(File rawJar, File outputDirectory) {
+      this.rawJar = rawJar;
+      this.outputDirectory = outputDirectory;
+    }
 
     @Override
-    public void execute() {
+    public void run() {
       try {
-        RunParameters parameters = getParameters();
-        CustomConversionAsmRewriter.generateJars(
-            parameters.getRawJar().getAsFile().get().toPath(),
-            parameters.getOutputDirectory().getAsFile().get().toPath());
+        CustomConversionAsmRewriter.generateJars(rawJar.toPath(), outputDirectory.toPath());
       } catch (IOException e) {
         throw new UncheckedIOException(e);
       }

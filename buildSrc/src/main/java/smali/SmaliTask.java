@@ -9,16 +9,14 @@ import java.io.File;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.util.List;
+import java.util.Set;
 import javax.inject.Inject;
 import org.gradle.api.DefaultTask;
 import org.gradle.api.file.FileTree;
-import org.gradle.api.file.RegularFileProperty;
-import org.gradle.api.provider.SetProperty;
 import org.gradle.api.tasks.InputFiles;
 import org.gradle.api.tasks.OutputFile;
 import org.gradle.api.tasks.TaskAction;
-import org.gradle.workers.WorkAction;
-import org.gradle.workers.WorkParameters;
+import org.gradle.workers.IsolationMode;
 import org.gradle.workers.WorkerExecutor;
 import org.jf.smali.Smali;
 import org.jf.smali.SmaliOptions;
@@ -55,33 +53,28 @@ public class SmaliTask extends DefaultTask {
 
   @TaskAction
   void exec() {
-    workerExecutor
-        .noIsolation()
-        .submit(
-            RunSmali.class,
-            parameters -> {
-              parameters.getSources().set(source.getFiles());
-              parameters.getDestination().set(destination);
-            });
+    workerExecutor.submit(RunSmali.class, config -> {
+      config.setIsolationMode(IsolationMode.NONE);
+      config.params(source.getFiles(), destination);
+    });
   }
 
-  public interface RunSmaliParameters extends WorkParameters {
+  public static class RunSmali implements Runnable {
+    private final Set<File> sources;
+    private final File destination;
 
-    SetProperty<File> getSources();
-
-    RegularFileProperty getDestination();
-  }
-
-  public abstract static class RunSmali implements WorkAction<RunSmaliParameters> {
+    @Inject
+    public RunSmali(Set<File> sources, File destination) {
+      this.sources = sources;
+      this.destination = destination;
+    }
 
     @Override
-    public void execute() {
+    public void run() {
       try {
-        RunSmaliParameters parameters = getParameters();
-        List<String> fileNames =
-            parameters.getSources().get().stream().map(File::toString).collect(toList());
+        List<String> fileNames = sources.stream().map(File::toString).collect(toList());
         SmaliOptions options = new SmaliOptions();
-        options.outputDexFile = parameters.getDestination().getAsFile().get().getCanonicalPath();
+        options.outputDexFile = destination.getCanonicalPath();
         Smali.assemble(options, fileNames);
       } catch (IOException e) {
         throw new UncheckedIOException(e);

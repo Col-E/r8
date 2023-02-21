@@ -9,21 +9,16 @@ import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 import javax.inject.Inject;
 import org.gradle.api.DefaultTask;
 import org.gradle.api.file.FileCollection;
-import org.gradle.api.file.RegularFileProperty;
-import org.gradle.api.provider.Property;
-import org.gradle.api.provider.SetProperty;
 import org.gradle.api.tasks.Input;
 import org.gradle.api.tasks.InputFile;
 import org.gradle.api.tasks.InputFiles;
 import org.gradle.api.tasks.OutputDirectory;
 import org.gradle.api.tasks.TaskAction;
-import org.gradle.process.JavaForkOptions;
-import org.gradle.workers.WorkAction;
-import org.gradle.workers.WorkParameters;
-import org.gradle.workers.WorkQueue;
+import org.gradle.workers.IsolationMode;
 import org.gradle.workers.WorkerExecutor;
 import utils.Utils;
 
@@ -80,51 +75,49 @@ public class DxTask extends DefaultTask {
 
   @TaskAction
   void exec() {
-    WorkQueue workQueue =
-        workerExecutor.processIsolation(
-            workerSpec -> {
-              JavaForkOptions forkOptions = workerSpec.getForkOptions();
-              if (!dxExecutable.isPresent()) {
-                setDxExecutable(
-                    forkOptions.getWorkingDir().toPath().resolve(Utils.dxExecutable()).toFile());
-              }
-            });
-    workQueue.submit(
+    workerExecutor.submit(
         RunDx.class,
-        parameters -> {
-          parameters.getSources().set(source.getFiles());
-          parameters.getDestination().set(destination);
-          parameters.getDxExecutable().set(dxExecutable.get());
-          parameters.getDebug().set(debug);
+        config -> {
+          File executable =
+              dxExecutable.isPresent()
+                  ? dxExecutable.get()
+                  : config
+                      .getForkOptions()
+                      .getWorkingDir()
+                      .toPath()
+                      .resolve(Utils.dxExecutable())
+                      .toFile();
+          config.setIsolationMode(IsolationMode.NONE);
+          config.params(source.getFiles(), destination, executable, debug);
         });
   }
 
-  public interface RunDxParameters extends WorkParameters {
+  public static class RunDx implements Runnable {
+    private final Set<File> sources;
+    private final File destination;
+    private final File dxExecutable;
+    private final boolean debug;
 
-    SetProperty<File> getSources();
-
-    RegularFileProperty getDestination();
-
-    RegularFileProperty getDxExecutable();
-
-    Property<Boolean> getDebug();
-  }
-
-  public abstract static class RunDx implements WorkAction<RunDxParameters> {
+    @Inject
+    public RunDx(Set<File> sources, File destination, File dxExecutable, boolean debug) {
+      this.sources = sources;
+      this.destination = destination;
+      this.dxExecutable = dxExecutable;
+      this.debug = debug;
+    }
 
     @Override
-    public void execute() {
-      RunDxParameters parameters = getParameters();
+    public void run() {
       try {
         List<String> command = new ArrayList<>();
-        command.add(parameters.getDxExecutable().getAsFile().get().getCanonicalPath());
+        command.add(dxExecutable.getCanonicalPath());
         command.add("--dex");
         command.add("--output");
-        command.add(parameters.getDestination().getAsFile().get().getCanonicalPath());
-        if (parameters.getDebug().get()) {
+        command.add(destination.getCanonicalPath());
+        if (debug) {
           command.add("--debug");
         }
-        for (File source : parameters.getSources().get()) {
+        for (File source : sources) {
           command.add(source.getCanonicalPath());
         }
 
