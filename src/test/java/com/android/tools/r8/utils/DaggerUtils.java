@@ -21,6 +21,8 @@ import java.util.stream.Collectors;
 public class DaggerUtils {
 
   private static final Path DAGGER_ROOT = Paths.get("third_party", "dagger", "2.41");
+
+  private static final String GUAVA = "guava-31.0.1-jre.jar";
   private static final List<Path> DAGGER_COMPILER =
       ImmutableList.of(
               "annotations-13.0.jar",
@@ -33,7 +35,7 @@ public class DaggerUtils {
               "error_prone_annotations-2.7.1.jar",
               "failureaccess-1.0.1.jar",
               "google-java-format-1.5.jar",
-              "guava-31.0.1-jre.jar",
+              GUAVA,
               "incap-0.2.jar",
               "j2objc-annotations-1.3.jar",
               "javac-shaded-9-dev-r4023-3.jar",
@@ -53,6 +55,10 @@ public class DaggerUtils {
       ImmutableList.of("dagger-2.41.jar", "javax.inject-1.jar").stream()
           .map(DAGGER_ROOT::resolve)
           .collect(ImmutableList.toImmutableList());
+
+  public static Path getGuavaFromDagger() {
+    return DAGGER_ROOT.resolve(GUAVA);
+  }
 
   public static List<Path> getDaggerRuntime() {
     return DAGGER_RUNTIME;

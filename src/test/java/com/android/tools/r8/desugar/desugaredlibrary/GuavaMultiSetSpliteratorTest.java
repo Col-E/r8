@@ -9,10 +9,10 @@ import static com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpec
 import static com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification.getJdk8Jdk11;
 
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification;
 import com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification;
 import com.android.tools.r8.utils.AndroidApiLevel;
+import com.android.tools.r8.utils.DaggerUtils;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMultiset;
 import com.google.common.collect.Multiset;
@@ -63,7 +63,7 @@ public class GuavaMultiSetSpliteratorTest extends DesugaredLibraryTestBase {
       Assume.assumeTrue(parameters.getApiLevel().isGreaterThanOrEqualTo(AndroidApiLevel.L));
     }
     testForDesugaredLibrary(parameters, libraryDesugaringSpecification, compilationSpecification)
-        .addProgramFiles(ToolHelper.DEPS)
+        .addProgramFiles(DaggerUtils.getGuavaFromDagger())
         .addInnerClasses(getClass())
         .addOptionsModification(opt -> opt.ignoreMissingClasses = true)
         .allowDiagnosticWarningMessages()
