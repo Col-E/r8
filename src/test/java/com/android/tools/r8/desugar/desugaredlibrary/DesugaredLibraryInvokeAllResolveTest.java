@@ -26,7 +26,6 @@ import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.Pair;
-import com.android.tools.r8.utils.ThreadUtils;
 import com.android.tools.r8.utils.Timing;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.FoundClassSubject;
@@ -129,8 +128,7 @@ public class DesugaredLibraryInvokeAllResolveTest extends DesugaredLibraryTestBa
                     finalApp, GlobalSyntheticsStrategy.forNonSynthesizing()))
             .appInfoForDesugaring();
     List<DexMethod> backports =
-        BackportedMethodRewriter.generateListOfBackportedMethods(
-            build, options, ThreadUtils.getExecutorService(1));
+        BackportedMethodRewriter.generateListOfBackportedMethods(libHolder, options);
     Map<DexMethod, Object> failures = new IdentityHashMap<>();
     for (FoundClassSubject clazz : inspector.allClasses()) {
       if (clazz.toString().startsWith("j$.sun.nio.cs.UTF_8")

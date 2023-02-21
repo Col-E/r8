@@ -82,7 +82,6 @@ public class SupportedClassesGenerator {
 
   private void annotateClasses(
       SupportedClasses.Builder builder, DirectMappedDexApplication appForMax) {
-
     builder.forEachClassAndMethods(
         (clazz, methods) -> {
           ClassAnnotation classAnnotation = builder.getClassAnnotation(clazz.type);
@@ -123,6 +122,11 @@ public class SupportedClassesGenerator {
         continue;
       }
       AndroidApiLevel androidApiLevel = AndroidApiLevel.getAndroidApiLevel(api);
+      MachineDesugaredLibrarySpecification machineSpecification =
+          getMachineSpecification(androidApiLevel, specification);
+      options.setMinApiLevel(androidApiLevel);
+      options.resetDesugaredLibrarySpecificationForTesting();
+      options.setDesugaredLibrarySpecification(machineSpecification);
       AndroidApp library =
           AndroidApp.builder().addProgramFiles(getAndroidJarPath(androidApiLevel)).build();
       DirectMappedDexApplication dexApplication =
@@ -134,15 +138,9 @@ public class SupportedClassesGenerator {
               MainDexInfo.none(),
               GlobalSyntheticsStrategy.forNonSynthesizing(),
               StartupOrder.empty());
-      MachineDesugaredLibrarySpecification machineSpecification =
-          getMachineSpecification(androidApiLevel, specification);
 
-      options.setMinApiLevel(androidApiLevel);
-      options.resetDesugaredLibrarySpecificationForTesting();
-      options.setDesugaredLibrarySpecification(machineSpecification);
       List<DexMethod> backports =
-          BackportedMethodRewriter.generateListOfBackportedMethods(
-              library, options, ThreadUtils.getExecutorService(1));
+          BackportedMethodRewriter.generateListOfBackportedMethods(dexApplication, options);
 
       int finalApi = api;
       builder.forEachClassAndMethod(
@@ -225,6 +223,13 @@ public class SupportedClassesGenerator {
       SupportedClasses.Builder builder)
       throws IOException {
 
+    MachineDesugaredLibrarySpecification machineSpecification =
+        getMachineSpecification(AndroidApiLevel.B, specification);
+
+    options.setMinApiLevel(AndroidApiLevel.B);
+    options.resetDesugaredLibrarySpecificationForTesting();
+    options.setDesugaredLibrarySpecification(machineSpecification);
+
     AndroidApp implementation =
         AndroidApp.builder().addProgramFiles(desugaredLibraryImplementation).build();
     DirectMappedDexApplication implementationApplication =
@@ -237,15 +242,8 @@ public class SupportedClassesGenerator {
     DirectMappedDexApplication amendedAppForMax =
         new ApplicationReader(library, options, Timing.empty()).read().toDirect();
 
-    MachineDesugaredLibrarySpecification machineSpecification =
-        getMachineSpecification(AndroidApiLevel.B, specification);
-
-    options.setMinApiLevel(AndroidApiLevel.B);
-    options.resetDesugaredLibrarySpecificationForTesting();
-    options.setDesugaredLibrarySpecification(machineSpecification);
     List<DexMethod> backports =
-        BackportedMethodRewriter.generateListOfBackportedMethods(
-            library, options, ThreadUtils.getExecutorService(1));
+        BackportedMethodRewriter.generateListOfBackportedMethods(amendedAppForMax, options);
 
     DesugaredLibraryAmender.run(
         machineSpecification.getAmendLibraryMethods(),

@@ -122,15 +122,23 @@ public final class BackportedMethodRewriter implements CfInstructionDesugaring {
 
   public static List<DexMethod> generateListOfBackportedMethods(
       AndroidApp androidApp, InternalOptions options, ExecutorService executor) throws IOException {
-    List<DexMethod> methods = new ArrayList<>();
-    AppInfo appInfo = null;
+    DexApplication app = null;
     if (androidApp != null) {
-      DexApplication app =
-          new ApplicationReader(androidApp, options, Timing.empty()).read(executor);
-      options.loadMachineDesugaredLibrarySpecification(Timing.empty(), app);
-      appInfo = AppInfo.createInitialAppInfo(app, GlobalSyntheticsStrategy.forNonSynthesizing());
+      app = new ApplicationReader(androidApp, options, Timing.empty()).read(executor);
     }
+    return generateListOfBackportedMethods(app, options);
+  }
+
+  public static List<DexMethod> generateListOfBackportedMethods(
+      DexApplication app, InternalOptions options) throws IOException {
+    List<DexMethod> methods = new ArrayList<>();
+    options.loadMachineDesugaredLibrarySpecification(Timing.empty(), app);
     TypeRewriter typeRewriter = options.getTypeRewriter();
+    AppInfo appInfo = null;
+    if (app != null) {
+      appInfo = AppInfo.createInitialAppInfo(app, GlobalSyntheticsStrategy.forNonSynthesizing());
+
+    }
     AppView<?> appView = AppView.createForD8(appInfo, typeRewriter, Timing.empty());
     BackportedMethodRewriter.RewritableMethods rewritableMethods =
         new BackportedMethodRewriter.RewritableMethods(appView);
