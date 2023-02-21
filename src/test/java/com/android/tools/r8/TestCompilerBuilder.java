@@ -370,6 +370,11 @@ public abstract class TestCompilerBuilder<
     return setMinApi(minApiLevel.getLevel());
   }
 
+  public T setMinApi(TestParameters parameters) {
+    parameters.configureApiLevel(this);
+    return self();
+  }
+
   public T setMinApi(int minApiLevel) {
     assert minApiLevel != -1;
     this.minApiLevel = minApiLevel;

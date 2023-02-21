@@ -57,9 +57,37 @@ public abstract class TestShrinkerBuilder<
     return true;
   }
 
+  // TODO(b/270021825): Look into if we can assert backend is DEX.
   @Override
   public T setMinApi(AndroidApiLevel minApiLevel) {
     return backend == Backend.DEX ? super.setMinApi(minApiLevel.getLevel()) : self();
+  }
+
+  @Override
+  public T setMinApi(TestParameters parameters) {
+    if (backend.isCf()) {
+      parameters.assertIsRepresentativeApiLevelForRuntime();
+      return self();
+    } else {
+      assert backend.isDex();
+      return super.setMinApi(parameters);
+    }
+  }
+
+  // TODO(b/270021825): Remove all uses of this.
+  @Deprecated
+  @Override
+  public T setMinApi(TestRuntime runtime) {
+    if (runtime.isDex()) {
+      setMinApi(runtime.asDex().getMinApiLevel());
+    }
+    return self();
+  }
+
+  // TODO(b/270021825): Look into if we can assert backend is DEX.
+  @Override
+  public T setMinApi(int minApiLevel) {
+    return super.setMinApi(minApiLevel);
   }
 
   @Override
