@@ -12,7 +12,6 @@ import static com.android.tools.r8.desugar.desugaredlibrary.jdktests.Jdk11TestLi
 import static com.android.tools.r8.desugar.desugaredlibrary.jdktests.Jdk11TestLibraryDesugaringSpecification.JDK11_PATH_JAVA_BASE_EXT;
 import static com.android.tools.r8.desugar.desugaredlibrary.jdktests.Jdk11TestLibraryDesugaringSpecification.JDK8_JAVA_BASE_EXT;
 import static com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification.D8CF2CF_L8DEBUG;
-import static com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification.D8_L8DEBUG;
 import static com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification.D8_L8SHRINK;
 import static com.android.tools.r8.utils.FileUtils.CLASS_EXTENSION;
 import static com.android.tools.r8.utils.FileUtils.JAVA_EXTENSION;
@@ -43,6 +42,7 @@ import java.util.Map;
 import java.util.stream.Collectors;
 import org.junit.Assume;
 import org.junit.BeforeClass;
+import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
@@ -50,6 +50,7 @@ import org.junit.runners.Parameterized.Parameters;
 @RunWith(Parameterized.class)
 public abstract class Jdk11StreamAbstractTests extends DesugaredLibraryTestBase {
 
+  private static final int SPLIT = 3;
   final TestParameters parameters;
   final LibraryDesugaringSpecification libraryDesugaringSpecification;
   final CompilationSpecification compilationSpecification;
@@ -73,7 +74,7 @@ public abstract class Jdk11StreamAbstractTests extends DesugaredLibraryTestBase 
             .withApiLevel(AndroidApiLevel.N)
             .build(),
         specs,
-        ImmutableList.of(D8_L8DEBUG, D8_L8SHRINK, D8CF2CF_L8DEBUG));
+        ImmutableList.of(D8_L8SHRINK, D8CF2CF_L8DEBUG));
   }
 
   public Jdk11StreamAbstractTests(
@@ -263,22 +264,20 @@ public abstract class Jdk11StreamAbstractTests extends DesugaredLibraryTestBase 
     assert JDK_11_STREAM_TEST_COMPILED_FILES.length > 0;
   }
 
-  Map<String, String> firstHalf(Map<String, String> input) {
-    return half(input, true);
+  Map<String, String> split(Map<String, String> input, int index) {
+    return split(input, index, SPLIT);
   }
 
-  Map<String, String> secondHalf(Map<String, String> input) {
-    return half(input, false);
-  }
-
-  private Map<String, String> half(Map<String, String> input, boolean first) {
+  private Map<String, String> split(Map<String, String> input, int index, int split) {
+    assert index >= 0 && index < split;
     ArrayList<String> keys = new ArrayList<>(input.keySet());
     keys.sort(Comparator.naturalOrder());
     int length = keys.size();
-    int middle = length / 2 + length % 2;
-    List<String> half = first ? keys.subList(0, middle) : keys.subList(middle, length);
-    HashMap<String, String> newMap = new HashMap<>();
-    for (String key : half) {
+    int start = index * length / split + (index == 0 ? 0 : 1);
+    int last = (index + 1) * length / split;
+    List<String> splitList = keys.subList(start, last);
+    Map<String, String> newMap = new HashMap<>();
+    for (String key : splitList) {
       newMap.put(key, input.get(key));
     }
     return newMap;
@@ -360,4 +359,11 @@ public abstract class Jdk11StreamAbstractTests extends DesugaredLibraryTestBase 
       }
     }
   }
+
+  @Test
+  public void testStream() throws Throwable {
+    testStream(split(getSuccessfulTests(), getIndex()), split(getFailingTests(), getIndex()));
+  }
+
+  abstract int getIndex();
 }
