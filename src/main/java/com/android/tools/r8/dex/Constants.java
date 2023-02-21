@@ -45,12 +45,14 @@ public class Constants {
   public static final int CLASS_DEFS_OFF_OFFSET = CLASS_DEFS_SIZE_OFFSET + 4;
   public static final int DATA_SIZE_OFFSET = CLASS_DEFS_OFF_OFFSET + 4;
   public static final int DATA_OFF_OFFSET = DATA_SIZE_OFFSET + 4;
+  public static final int HEADER_OFF_OFFSET = DATA_OFF_OFFSET + 4;
 
   public static final int ENDIAN_CONSTANT = 0x12345678;
   public static final int REVERSE_ENDIAN_CONSTANT = 0x78563412;
 
   public static final int TYPE_HEADER_ITEM = 0x0;
   public static final int TYPE_HEADER_ITEM_SIZE = 0x70;
+  public static final int TYPE_HEADER_ITEM_SIZE_V41 = 0x74;
   public static final int TYPE_STRING_ID_ITEM = 0x0001;
   public static final int TYPE_STRING_ID_ITEM_SIZE = 0x04;
   public static final int TYPE_TYPE_ID_ITEM = 0x0002;

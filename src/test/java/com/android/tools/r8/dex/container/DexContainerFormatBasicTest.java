@@ -8,6 +8,8 @@ import static com.android.tools.r8.dex.Constants.DATA_OFF_OFFSET;
 import static com.android.tools.r8.dex.Constants.DATA_SIZE_OFFSET;
 import static com.android.tools.r8.dex.Constants.DEX_MAGIC_SIZE;
 import static com.android.tools.r8.dex.Constants.FILE_SIZE_OFFSET;
+import static com.android.tools.r8.dex.Constants.HEADER_OFF_OFFSET;
+import static com.android.tools.r8.dex.Constants.HEADER_SIZE_OFFSET;
 import static com.android.tools.r8.dex.Constants.MAP_OFF_OFFSET;
 import static com.android.tools.r8.dex.Constants.SIGNATURE_OFFSET;
 import static com.android.tools.r8.dex.Constants.STRING_IDS_OFF_OFFSET;
@@ -31,7 +33,6 @@ import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.BitUtils;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.DexVersion;
-import com.android.tools.r8.utils.ListUtils;
 import com.android.tools.r8.utils.ZipUtils;
 import com.google.common.collect.ImmutableList;
 import com.google.common.io.ByteStreams;
@@ -167,8 +168,10 @@ public class DexContainerFormatBasicTest extends TestBase {
       int dataSize = buffer.getInt(offset + DATA_SIZE_OFFSET);
       int dataOffset = buffer.getInt(offset + DATA_OFF_OFFSET);
       int file_size = buffer.getInt(offset + FILE_SIZE_OFFSET);
-      offset = dataOffset + dataSize;
-      assertEquals(file_size, offset - ListUtils.last(sections));
+      if (!expectedVersion.isContainerDex()) {
+        assertEquals(file_size, dataOffset + dataSize);
+      }
+      offset += expectedVersion.isContainerDex() ? file_size : dataOffset + dataSize;
     }
     assertEquals(buffer.capacity(), offset);
 
@@ -207,8 +210,19 @@ public class DexContainerFormatBasicTest extends TestBase {
     buffer.get(magic);
     assertArrayEquals(magicBytes(expectedVersion), magic);
 
+    assertEquals(
+        expectedVersion.isContainerDex()
+            ? Constants.TYPE_HEADER_ITEM_SIZE_V41
+            : Constants.TYPE_HEADER_ITEM_SIZE,
+        buffer.getInt(offset + HEADER_SIZE_OFFSET));
     assertEquals(stringIdsSize, buffer.getInt(offset + STRING_IDS_SIZE_OFFSET));
     assertEquals(stringIdsOffset, buffer.getInt(offset + STRING_IDS_OFF_OFFSET));
+    if (expectedVersion.isContainerDex()) {
+      assertEquals(0, buffer.getInt(offset + DATA_SIZE_OFFSET));
+      assertEquals(0, buffer.getInt(offset + DATA_OFF_OFFSET));
+      // Additional header field from V41.
+      assertEquals(offset, buffer.getInt(offset + HEADER_OFF_OFFSET));
+    }
     assertEquals(stringIdsSize, getSizeFromMap(TYPE_STRING_ID_ITEM, buffer, offset));
     assertEquals(stringIdsOffset, getOffsetFromMap(TYPE_STRING_ID_ITEM, buffer, offset));
   }

@@ -3,26 +3,49 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.utils;
 
+import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.utils.structural.Ordered;
 import java.util.Optional;
 
 /** Android dex version */
 public enum DexVersion implements Ordered<DexVersion> {
-  V35(35, new byte[] {'0', '3', '5'}),
-  V37(37, new byte[] {'0', '3', '7'}),
-  V38(38, new byte[] {'0', '3', '8'}),
-  V39(39, new byte[] {'0', '3', '9'}),
-  V40(40, new byte[] {'0', '4', '0'}),
-  V41(41, new byte[] {'0', '4', '1'});
+  V35(35, new byte[] {'0', '3', '5'}, Layout.SINGLE_DEX),
+  V37(37, new byte[] {'0', '3', '7'}, Layout.SINGLE_DEX),
+  V38(38, new byte[] {'0', '3', '8'}, Layout.SINGLE_DEX),
+  V39(39, new byte[] {'0', '3', '9'}, Layout.SINGLE_DEX),
+  V40(40, new byte[] {'0', '4', '0'}, Layout.SINGLE_DEX),
+  V41(41, new byte[] {'0', '4', '1'}, Layout.CONTAINER_DEX);
+
+  public enum Layout {
+    SINGLE_DEX,
+    CONTAINER_DEX;
+
+    public boolean isContainer() {
+      return this == CONTAINER_DEX;
+    }
+
+    public int getHeaderSize() {
+      return isContainer() ? Constants.TYPE_HEADER_ITEM_SIZE_V41 : Constants.TYPE_HEADER_ITEM_SIZE;
+    }
+  }
 
   private final int dexVersion;
-
   private final byte[] dexVersionBytes;
+  private final Layout layout;
 
-  DexVersion(int dexVersion, byte[] dexVersionBytes) {
+  DexVersion(int dexVersion, byte[] dexVersionBytes, Layout layout) {
     this.dexVersion = dexVersion;
     this.dexVersionBytes = dexVersionBytes;
+    this.layout = layout;
+  }
+
+  public Layout getLayout() {
+    return layout;
+  }
+
+  public boolean isContainerDex() {
+    return getLayout() == Layout.CONTAINER_DEX;
   }
 
   public int getIntValue() {
