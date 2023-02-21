@@ -3,6 +3,8 @@
 # for details. All rights reserved. Use of this source code is governed by a
 # BSD-style license that can be found in the LICENSE file.
 
+import os
+import subprocess
 import zipfile
 
 def add_file_to_zip(file, destination, zip_file):
@@ -18,3 +20,8 @@ def extract_all_that_matches(zip_file, destination, predicate):
 def get_names_that_matches(zip_file, predicate):
   with zipfile.ZipFile(zip_file) as zip:
     return [name for name in zip.namelist() if predicate(name)]
+
+def remove_files_from_zip(files, zip_file):
+  assert os.path.exists(zip_file)
+  cmd = ['zip', '-d', zip_file] + files
+  subprocess.run(cmd)

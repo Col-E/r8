@@ -38,7 +38,8 @@ def parse_options():
   apk = args[0]
   return (options, apk)
 
-def add_baseline_profile_to_apk(apk, baseline_profile, tmp_dir):
+def add_baseline_profile_to_apk(
+    apk, baseline_profile, baseline_profile_metadata, tmp_dir):
   if baseline_profile is None:
     return apk
   ts = time.time_ns()
@@ -46,8 +47,13 @@ def add_baseline_profile_to_apk(apk, baseline_profile, tmp_dir):
   dest_apk_aligned = os.path.join(tmp_dir, 'app-aligned-%s.apk' % ts)
   dest_apk_signed = os.path.join(tmp_dir, 'app-signed-%s.apk' % ts)
   shutil.copy2(apk, dest_apk)
+  zip_utils.remove_files_from_zip(
+      ['assets/dexopt/baseline.prof', 'assets/dexopt/baseline.profm'], dest_apk)
   zip_utils.add_file_to_zip(
       baseline_profile, 'assets/dexopt/baseline.prof', dest_apk)
+  if baseline_profile_metadata is not None:
+    zip_utils.add_file_to_zip(
+        baseline_profile_metadata, 'assets/dexopt/baseline.profm', dest_apk)
   align(dest_apk, dest_apk_aligned)
   sign_with_apksigner(dest_apk_aligned, dest_apk_signed)
   return dest_apk_signed
@@ -62,6 +68,15 @@ def align(apk, aligned_apk):
 
 def default_keystore():
   return os.path.join(os.getenv('HOME'), '.android', 'app.keystore')
+
+def get_min_api(apk):
+  aapt = os.path.join(utils.getAndroidBuildTools(), 'aapt')
+  cmd = [aapt, 'dump', 'badging', apk]
+  stdout = subprocess.check_output(cmd).decode('utf-8').strip()
+  for line in stdout.splitlines():
+    if line.startswith('sdkVersion:\''):
+      return int(line[len('sdkVersion:\''): -1])
+  raise ValueError('Unexpected stdout: %s' % stdout)
 
 def sign(unsigned_apk, signed_apk, keystore, quiet=False, logging=True):
   utils.Print('Signing (ignore the warnings)', quiet=quiet)

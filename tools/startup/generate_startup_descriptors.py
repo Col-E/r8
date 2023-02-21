@@ -201,8 +201,12 @@ def add_r8_startup_descriptors(old_startup_descriptors, startup_descriptors_to_a
         merged_flags = flags.copy()
         other_flags = startup_descriptors_to_add[startup_descriptor]
         assert not other_flags['conditional_startup']
-        if other_flags['post_startup']:
-          merged_flags['post_startup'] = True
+        merged_flags['hot'] = \
+            merged_flags['hot'] or other_flags['hot']
+        merged_flags['startup'] = \
+            merged_flags['startup'] or other_flags['startup']
+        merged_flags['post_startup'] = \
+            merged_flags['post_startup'] or other_flags['post_startup']
         new_startup_descriptors[startup_descriptor] = merged_flags
       else:
         new_startup_descriptors[startup_descriptor] = flags.copy()
@@ -272,10 +276,12 @@ def write_tmp_startup_descriptors(startup_descriptors, iteration, options):
 
 def startup_descriptor_to_string(startup_descriptor, flags):
   result = ''
-  if flags['conditional_startup']:
-    pass # result += 'C'
+  if flags['hot']:
+    result += 'H'
+  if flags['startup']:
+    result += 'S'
   if flags['post_startup']:
-    pass # result += 'P'
+    result += 'P'
   result += startup_descriptor
   return result
 

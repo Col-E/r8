@@ -11,10 +11,13 @@ import sys
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import apk_masseur
+import apk_utils
 import extractmarker
 import toolhelper
 import utils
 import zip_utils
+
+LOWEST_SUPPORTED_MIN_API = 21 # Android L (native multi dex)
 
 def parse_options(argv):
   result = argparse.ArgumentParser(
@@ -63,32 +66,23 @@ def has_desugared_library_dex(options):
     return '~~L8' in marker
   return options.desugared_library == 'true'
 
-def get_min_api(apk):
-  aapt = os.path.join(utils.getAndroidBuildTools(), 'aapt')
-  cmd = [aapt, 'dump', 'badging', apk]
-  stdout = subprocess.check_output(cmd).decode('utf-8').strip()
-  for line in stdout.splitlines():
-    if line.startswith('sdkVersion:\''):
-      return int(line[len('sdkVersion:\''): -1])
-  raise ValueError('Unexpected stdout: %s' % stdout)
-
 def main(argv):
   (options, args) = parse_options(argv)
   with utils.TempDir() as temp:
     dex = os.path.join(temp, 'dex.zip')
     d8_args = [
-        '--min-api', str(get_min_api(options.apk)),
+        '--min-api',
+        str(max(apk_utils.get_min_api(options.apk), LOWEST_SUPPORTED_MIN_API)),
         '--output', dex,
+        '--startup-profile', options.profile,
         '--no-desugaring',
         '--release']
     dex_to_relayout, desugared_library_dex = get_dex_to_relayout(options, temp)
     d8_args.extend(dex_to_relayout)
-    extra_args = ['-Dcom.android.tools.r8.startup.profile=%s' % options.profile]
     toolhelper.run(
         'd8',
         d8_args,
         build=not options.no_build,
-        extra_args=extra_args,
         main='com.android.tools.r8.D8')
     if desugared_library_dex is not None:
       dex_files = [name for name in \

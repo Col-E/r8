@@ -66,7 +66,9 @@ def run_all(apk_or_apks, options, tmp_dir):
   print('Average result:')
   data_summary = compute_data_summary(data_total)
   print(data_summary)
-  write_data(options.out_dir, data_summary)
+  write_data_to_dir(options.out_dir, data_summary)
+  if options.out:
+    write_data_to_file(options.out, data_summary)
 
 def compute_data_summary(data_total):
   data_summary = {}
@@ -76,6 +78,8 @@ def compute_data_summary(data_total):
       continue
     data_summary['%s_avg' % key] = round(statistics.mean(value), 1)
     data_summary['%s_med' % key] = statistics.median(value)
+    data_summary['%s_min' % key] = min(value)
+    data_summary['%s_max' % key] = max(value)
   return data_summary
 
 def setup_for_run(apk_or_apks, out_dir, options):
@@ -96,7 +100,13 @@ def setup_for_run(apk_or_apks, out_dir, options):
     print('AOT compiling')
     if options.baseline_profile:
       adb_utils.clear_profile_data(options.app_id, options.device_id)
-      adb_utils.install_profile(options.app_id, options.device_id)
+      if options.baseline_profile_install == 'adb':
+        adb_utils.install_profile_using_adb(
+            options.app_id, options.baseline_profile, options.device_id)
+      else:
+        assert options.baseline_profile_install == 'profileinstaller'
+        adb_utils.install_profile_using_profileinstaller(
+            options.app_id, options.device_id)
     else:
       adb_utils.force_compilation(options.app_id, options.device_id)
 
@@ -181,7 +191,7 @@ def run(out_dir, options, tmp_dir):
   # Get minor and major page faults from app process.
   data = compute_data(
     launch_activity_result, logcat, perfetto_trace_path, options)
-  write_data(out_dir, data)
+  write_data_to_dir(out_dir, data)
   return data
 
 def wait_until_fully_drawn(logcat_process, options):
@@ -305,9 +315,12 @@ def compute_startup_data(
   # Return combined startup data.
   return startup_data | perfetto_startup_data
 
-def write_data(out_dir, data):
+def write_data_to_dir(out_dir, data):
   data_path = os.path.join(out_dir, 'data.txt')
-  with open(data_path, 'w') as f:
+  write_data_to_file(data_path, data)
+
+def write_data_to_file(out_file, data):
+  with open(out_file, 'w') as f:
     for key, value in data.items():
       f.write('%s=%s\n' % (key, str(value)))
 
@@ -319,10 +332,6 @@ def parse_options(argv):
                       required=True)
   result.add_argument('--aot',
                       help='Enable force compilation',
-                      default=False,
-                      action='store_true')
-  result.add_argument('--aot-profile',
-                      help='Enable force compilation using profiles',
                       default=False,
                       action='store_true')
   result.add_argument('--apk',
@@ -367,11 +376,21 @@ def parse_options(argv):
                       help='Disables perfetto trace generation',
                       action='store_true',
                       default=False)
+  result.add_argument('--out',
+                      help='File to store result in')
   result.add_argument('--out-dir',
                       help='Directory to store trace files in',
                       required=True)
   result.add_argument('--baseline-profile',
-                      help='Baseline profile to install')
+                      help='Baseline profile (.prof) in binary format')
+  result.add_argument('--baseline-profile-metadata',
+                      help='Baseline profile metadata (.profm) in binary '
+                           'format')
+  result.add_argument('--baseline-profile-install',
+                      help='Whether to install profile using adb or '
+                           'profileinstaller',
+                      choices=['adb', 'profileinstaller'],
+                      default='profileinstaller')
   result.add_argument('--startup-duration',
                       help='Duration in seconds before shutting down app',
                       default=15,
@@ -424,10 +443,14 @@ def main(argv):
   (options, args) = parse_options(argv)
   with utils.TempDir() as tmp_dir:
     apk_or_apks = { 'apk': options.apk, 'apks': options.apks }
-    if options.baseline_profile:
+    if options.baseline_profile \
+        and options.baseline_profile_install == 'profileinstaller':
       assert not options.apks, 'Unimplemented'
       apk_or_apks['apk'] = apk_utils.add_baseline_profile_to_apk(
-          options.apk, options.baseline_profile, tmp_dir)
+          options.apk,
+          options.baseline_profile,
+          options.baseline_profile_metadata,
+          tmp_dir)
     teardown_options = global_setup(options)
     run_all(apk_or_apks, options, tmp_dir)
     global_teardown(options, teardown_options)

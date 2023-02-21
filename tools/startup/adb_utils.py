@@ -281,7 +281,14 @@ def install_bundle(bundle, device_id=None):
     build_apks_from_bundle(bundle, apks)
     install_apks(apks, device_id)
 
-def install_profile(app_id, device_id=None):
+def install_profile_using_adb(app_id, host_profile_path, device_id=None):
+  device_profile_path = get_profile_path(app_id)
+  cmd = create_adb_cmd('push %s %s' % (host_profile_path, device_profile_path))
+  subprocess.check_call(cmd)
+  stop_app(app_id, device_id)
+  force_profile_compilation(app_id, device_id)
+
+def install_profile_using_profileinstaller(app_id, device_id=None):
   # This assumes that the profileinstaller library has been added to the app,
   # https://developer.android.com/jetpack/androidx/releases/profileinstaller.
   action = 'androidx.profileinstaller.action.INSTALL_PROFILE'

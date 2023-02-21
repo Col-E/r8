@@ -36,7 +36,9 @@ def parse_art_profile(lines):
       flag_name = flags_to_name.get(flag_abbreviation)
       flags[flag_name] = True
       line = line[1:]
-    assert line.startswith('L')
+    while line.startswith('['):
+      line = line[1:]
+    assert line.startswith('L'), line
     descriptor = line
     art_profile[descriptor] = flags
   return art_profile
@@ -49,8 +51,9 @@ def transform_art_profile_to_r8_startup_list(
         startup_descriptor) if generalize_synthetics else startup_descriptor
     r8_startup_list[transformed_startup_descriptor] = {
       'conditional_startup': False,
-      'post_startup': flags['post_startup'],
-      'startup': flags['startup']
+      'hot': flags['hot'],
+      'startup': flags['startup'],
+      'post_startup': flags['post_startup']
     }
   return r8_startup_list
 
