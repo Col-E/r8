@@ -4171,6 +4171,93 @@ public final class BackportedMethods {
         ImmutableList.of());
   }
 
+  public static CfCode MathMethods_absExact(DexItemFactory factory, DexMethod method) {
+    CfLabel label0 = new CfLabel();
+    CfLabel label1 = new CfLabel();
+    CfLabel label2 = new CfLabel();
+    CfLabel label3 = new CfLabel();
+    return new CfCode(
+        method.holder,
+        2,
+        1,
+        ImmutableList.of(
+            label0,
+            new CfLoad(ValueType.INT, 0),
+            new CfConstNumber(-2147483648, ValueType.INT),
+            new CfIfCmp(If.Type.NE, ValueType.INT, label2),
+            label1,
+            new CfNew(factory.createType("Ljava/lang/ArithmeticException;")),
+            new CfStackInstruction(CfStackInstruction.Opcode.Dup),
+            new CfInvoke(
+                183,
+                factory.createMethod(
+                    factory.createType("Ljava/lang/ArithmeticException;"),
+                    factory.createProto(factory.voidType),
+                    factory.createString("<init>")),
+                false),
+            new CfThrow(),
+            label2,
+            new CfFrame(
+                new Int2ObjectAVLTreeMap<>(new int[] {0}, new FrameType[] {FrameType.intType()})),
+            new CfLoad(ValueType.INT, 0),
+            new CfInvoke(
+                184,
+                factory.createMethod(
+                    factory.createType("Ljava/lang/Math;"),
+                    factory.createProto(factory.intType, factory.intType),
+                    factory.createString("abs")),
+                false),
+            new CfReturn(ValueType.INT),
+            label3),
+        ImmutableList.of(),
+        ImmutableList.of());
+  }
+
+  public static CfCode MathMethods_absExactLong(DexItemFactory factory, DexMethod method) {
+    CfLabel label0 = new CfLabel();
+    CfLabel label1 = new CfLabel();
+    CfLabel label2 = new CfLabel();
+    CfLabel label3 = new CfLabel();
+    return new CfCode(
+        method.holder,
+        4,
+        2,
+        ImmutableList.of(
+            label0,
+            new CfLoad(ValueType.LONG, 0),
+            new CfConstNumber(-9223372036854775808L, ValueType.LONG),
+            new CfCmp(Cmp.Bias.NONE, NumericType.LONG),
+            new CfIf(If.Type.NE, ValueType.INT, label2),
+            label1,
+            new CfNew(factory.createType("Ljava/lang/ArithmeticException;")),
+            new CfStackInstruction(CfStackInstruction.Opcode.Dup),
+            new CfInvoke(
+                183,
+                factory.createMethod(
+                    factory.createType("Ljava/lang/ArithmeticException;"),
+                    factory.createProto(factory.voidType),
+                    factory.createString("<init>")),
+                false),
+            new CfThrow(),
+            label2,
+            new CfFrame(
+                new Int2ObjectAVLTreeMap<>(
+                    new int[] {0, 1},
+                    new FrameType[] {FrameType.longType(), FrameType.longHighType()})),
+            new CfLoad(ValueType.LONG, 0),
+            new CfInvoke(
+                184,
+                factory.createMethod(
+                    factory.createType("Ljava/lang/Math;"),
+                    factory.createProto(factory.longType, factory.longType),
+                    factory.createString("abs")),
+                false),
+            new CfReturn(ValueType.LONG),
+            label3),
+        ImmutableList.of(),
+        ImmutableList.of());
+  }
+
   public static CfCode MathMethods_addExactInt(DexItemFactory factory, DexMethod method) {
     CfLabel label0 = new CfLabel();
     CfLabel label1 = new CfLabel();
@@ -5819,6 +5906,157 @@ public final class BackportedMethods {
         ImmutableList.of());
   }
 
+  public static CfCode ObjectsMethods_checkFromIndexSizeLong(
+      DexItemFactory factory, DexMethod method) {
+    CfLabel label0 = new CfLabel();
+    CfLabel label1 = new CfLabel();
+    CfLabel label2 = new CfLabel();
+    CfLabel label3 = new CfLabel();
+    return new CfCode(
+        method.holder,
+        6,
+        6,
+        ImmutableList.of(
+            label0,
+            new CfLoad(ValueType.LONG, 0),
+            new CfConstNumber(0, ValueType.LONG),
+            new CfCmp(Cmp.Bias.NONE, NumericType.LONG),
+            new CfIf(If.Type.LT, ValueType.INT, label1),
+            new CfLoad(ValueType.LONG, 2),
+            new CfConstNumber(0, ValueType.LONG),
+            new CfCmp(Cmp.Bias.NONE, NumericType.LONG),
+            new CfIf(If.Type.LT, ValueType.INT, label1),
+            new CfLoad(ValueType.LONG, 4),
+            new CfConstNumber(0, ValueType.LONG),
+            new CfCmp(Cmp.Bias.NONE, NumericType.LONG),
+            new CfIf(If.Type.LT, ValueType.INT, label1),
+            new CfLoad(ValueType.LONG, 0),
+            new CfLoad(ValueType.LONG, 4),
+            new CfLoad(ValueType.LONG, 2),
+            new CfArithmeticBinop(CfArithmeticBinop.Opcode.Sub, NumericType.LONG),
+            new CfCmp(Cmp.Bias.NONE, NumericType.LONG),
+            new CfIf(If.Type.LE, ValueType.INT, label2),
+            label1,
+            new CfFrame(
+                new Int2ObjectAVLTreeMap<>(
+                    new int[] {0, 1, 2, 3, 4, 5},
+                    new FrameType[] {
+                      FrameType.longType(),
+                      FrameType.longHighType(),
+                      FrameType.longType(),
+                      FrameType.longHighType(),
+                      FrameType.longType(),
+                      FrameType.longHighType()
+                    })),
+            new CfNew(factory.createType("Ljava/lang/IndexOutOfBoundsException;")),
+            new CfStackInstruction(CfStackInstruction.Opcode.Dup),
+            new CfNew(factory.stringBuilderType),
+            new CfStackInstruction(CfStackInstruction.Opcode.Dup),
+            new CfInvoke(
+                183,
+                factory.createMethod(
+                    factory.stringBuilderType,
+                    factory.createProto(factory.voidType),
+                    factory.createString("<init>")),
+                false),
+            new CfConstString(factory.createString("Range [")),
+            new CfInvoke(
+                182,
+                factory.createMethod(
+                    factory.stringBuilderType,
+                    factory.createProto(factory.stringBuilderType, factory.stringType),
+                    factory.createString("append")),
+                false),
+            new CfLoad(ValueType.LONG, 0),
+            new CfInvoke(
+                182,
+                factory.createMethod(
+                    factory.stringBuilderType,
+                    factory.createProto(factory.stringBuilderType, factory.longType),
+                    factory.createString("append")),
+                false),
+            new CfConstString(factory.createString(", ")),
+            new CfInvoke(
+                182,
+                factory.createMethod(
+                    factory.stringBuilderType,
+                    factory.createProto(factory.stringBuilderType, factory.stringType),
+                    factory.createString("append")),
+                false),
+            new CfLoad(ValueType.LONG, 0),
+            new CfInvoke(
+                182,
+                factory.createMethod(
+                    factory.stringBuilderType,
+                    factory.createProto(factory.stringBuilderType, factory.longType),
+                    factory.createString("append")),
+                false),
+            new CfConstString(factory.createString(" + ")),
+            new CfInvoke(
+                182,
+                factory.createMethod(
+                    factory.stringBuilderType,
+                    factory.createProto(factory.stringBuilderType, factory.stringType),
+                    factory.createString("append")),
+                false),
+            new CfLoad(ValueType.LONG, 2),
+            new CfInvoke(
+                182,
+                factory.createMethod(
+                    factory.stringBuilderType,
+                    factory.createProto(factory.stringBuilderType, factory.longType),
+                    factory.createString("append")),
+                false),
+            new CfConstString(factory.createString(") out of bounds for length ")),
+            new CfInvoke(
+                182,
+                factory.createMethod(
+                    factory.stringBuilderType,
+                    factory.createProto(factory.stringBuilderType, factory.stringType),
+                    factory.createString("append")),
+                false),
+            new CfLoad(ValueType.LONG, 4),
+            new CfInvoke(
+                182,
+                factory.createMethod(
+                    factory.stringBuilderType,
+                    factory.createProto(factory.stringBuilderType, factory.longType),
+                    factory.createString("append")),
+                false),
+            new CfInvoke(
+                182,
+                factory.createMethod(
+                    factory.stringBuilderType,
+                    factory.createProto(factory.stringType),
+                    factory.createString("toString")),
+                false),
+            new CfInvoke(
+                183,
+                factory.createMethod(
+                    factory.createType("Ljava/lang/IndexOutOfBoundsException;"),
+                    factory.createProto(factory.voidType, factory.stringType),
+                    factory.createString("<init>")),
+                false),
+            new CfThrow(),
+            label2,
+            new CfFrame(
+                new Int2ObjectAVLTreeMap<>(
+                    new int[] {0, 1, 2, 3, 4, 5},
+                    new FrameType[] {
+                      FrameType.longType(),
+                      FrameType.longHighType(),
+                      FrameType.longType(),
+                      FrameType.longHighType(),
+                      FrameType.longType(),
+                      FrameType.longHighType()
+                    })),
+            new CfLoad(ValueType.LONG, 0),
+            new CfReturn(ValueType.LONG),
+            label3),
+        ImmutableList.of(),
+        ImmutableList.of());
+  }
+
   public static CfCode ObjectsMethods_checkFromToIndex(DexItemFactory factory, DexMethod method) {
     CfLabel label0 = new CfLabel();
     CfLabel label1 = new CfLabel();
@@ -5933,6 +6171,135 @@ public final class BackportedMethods {
         ImmutableList.of());
   }
 
+  public static CfCode ObjectsMethods_checkFromToIndexLong(
+      DexItemFactory factory, DexMethod method) {
+    CfLabel label0 = new CfLabel();
+    CfLabel label1 = new CfLabel();
+    CfLabel label2 = new CfLabel();
+    CfLabel label3 = new CfLabel();
+    return new CfCode(
+        method.holder,
+        5,
+        6,
+        ImmutableList.of(
+            label0,
+            new CfLoad(ValueType.LONG, 0),
+            new CfConstNumber(0, ValueType.LONG),
+            new CfCmp(Cmp.Bias.NONE, NumericType.LONG),
+            new CfIf(If.Type.LT, ValueType.INT, label1),
+            new CfLoad(ValueType.LONG, 0),
+            new CfLoad(ValueType.LONG, 2),
+            new CfCmp(Cmp.Bias.NONE, NumericType.LONG),
+            new CfIf(If.Type.GT, ValueType.INT, label1),
+            new CfLoad(ValueType.LONG, 2),
+            new CfLoad(ValueType.LONG, 4),
+            new CfCmp(Cmp.Bias.NONE, NumericType.LONG),
+            new CfIf(If.Type.LE, ValueType.INT, label2),
+            label1,
+            new CfFrame(
+                new Int2ObjectAVLTreeMap<>(
+                    new int[] {0, 1, 2, 3, 4, 5},
+                    new FrameType[] {
+                      FrameType.longType(),
+                      FrameType.longHighType(),
+                      FrameType.longType(),
+                      FrameType.longHighType(),
+                      FrameType.longType(),
+                      FrameType.longHighType()
+                    })),
+            new CfNew(factory.createType("Ljava/lang/IndexOutOfBoundsException;")),
+            new CfStackInstruction(CfStackInstruction.Opcode.Dup),
+            new CfNew(factory.stringBuilderType),
+            new CfStackInstruction(CfStackInstruction.Opcode.Dup),
+            new CfInvoke(
+                183,
+                factory.createMethod(
+                    factory.stringBuilderType,
+                    factory.createProto(factory.voidType),
+                    factory.createString("<init>")),
+                false),
+            new CfConstString(factory.createString("Range [")),
+            new CfInvoke(
+                182,
+                factory.createMethod(
+                    factory.stringBuilderType,
+                    factory.createProto(factory.stringBuilderType, factory.stringType),
+                    factory.createString("append")),
+                false),
+            new CfLoad(ValueType.LONG, 0),
+            new CfInvoke(
+                182,
+                factory.createMethod(
+                    factory.stringBuilderType,
+                    factory.createProto(factory.stringBuilderType, factory.longType),
+                    factory.createString("append")),
+                false),
+            new CfConstString(factory.createString(", ")),
+            new CfInvoke(
+                182,
+                factory.createMethod(
+                    factory.stringBuilderType,
+                    factory.createProto(factory.stringBuilderType, factory.stringType),
+                    factory.createString("append")),
+                false),
+            new CfLoad(ValueType.LONG, 2),
+            new CfInvoke(
+                182,
+                factory.createMethod(
+                    factory.stringBuilderType,
+                    factory.createProto(factory.stringBuilderType, factory.longType),
+                    factory.createString("append")),
+                false),
+            new CfConstString(factory.createString(") out of bounds for length ")),
+            new CfInvoke(
+                182,
+                factory.createMethod(
+                    factory.stringBuilderType,
+                    factory.createProto(factory.stringBuilderType, factory.stringType),
+                    factory.createString("append")),
+                false),
+            new CfLoad(ValueType.LONG, 4),
+            new CfInvoke(
+                182,
+                factory.createMethod(
+                    factory.stringBuilderType,
+                    factory.createProto(factory.stringBuilderType, factory.longType),
+                    factory.createString("append")),
+                false),
+            new CfInvoke(
+                182,
+                factory.createMethod(
+                    factory.stringBuilderType,
+                    factory.createProto(factory.stringType),
+                    factory.createString("toString")),
+                false),
+            new CfInvoke(
+                183,
+                factory.createMethod(
+                    factory.createType("Ljava/lang/IndexOutOfBoundsException;"),
+                    factory.createProto(factory.voidType, factory.stringType),
+                    factory.createString("<init>")),
+                false),
+            new CfThrow(),
+            label2,
+            new CfFrame(
+                new Int2ObjectAVLTreeMap<>(
+                    new int[] {0, 1, 2, 3, 4, 5},
+                    new FrameType[] {
+                      FrameType.longType(),
+                      FrameType.longHighType(),
+                      FrameType.longType(),
+                      FrameType.longHighType(),
+                      FrameType.longType(),
+                      FrameType.longHighType()
+                    })),
+            new CfLoad(ValueType.LONG, 0),
+            new CfReturn(ValueType.LONG),
+            label3),
+        ImmutableList.of(),
+        ImmutableList.of());
+  }
+
   public static CfCode ObjectsMethods_checkIndex(DexItemFactory factory, DexMethod method) {
     CfLabel label0 = new CfLabel();
     CfLabel label1 = new CfLabel();
@@ -6017,6 +6384,110 @@ public final class BackportedMethods {
                     new int[] {0, 1}, new FrameType[] {FrameType.intType(), FrameType.intType()})),
             new CfLoad(ValueType.INT, 0),
             new CfReturn(ValueType.INT),
+            label3),
+        ImmutableList.of(),
+        ImmutableList.of());
+  }
+
+  public static CfCode ObjectsMethods_checkIndexLong(DexItemFactory factory, DexMethod method) {
+    CfLabel label0 = new CfLabel();
+    CfLabel label1 = new CfLabel();
+    CfLabel label2 = new CfLabel();
+    CfLabel label3 = new CfLabel();
+    return new CfCode(
+        method.holder,
+        5,
+        4,
+        ImmutableList.of(
+            label0,
+            new CfLoad(ValueType.LONG, 0),
+            new CfConstNumber(0, ValueType.LONG),
+            new CfCmp(Cmp.Bias.NONE, NumericType.LONG),
+            new CfIf(If.Type.LT, ValueType.INT, label1),
+            new CfLoad(ValueType.LONG, 0),
+            new CfLoad(ValueType.LONG, 2),
+            new CfCmp(Cmp.Bias.NONE, NumericType.LONG),
+            new CfIf(If.Type.LT, ValueType.INT, label2),
+            label1,
+            new CfFrame(
+                new Int2ObjectAVLTreeMap<>(
+                    new int[] {0, 1, 2, 3},
+                    new FrameType[] {
+                      FrameType.longType(),
+                      FrameType.longHighType(),
+                      FrameType.longType(),
+                      FrameType.longHighType()
+                    })),
+            new CfNew(factory.createType("Ljava/lang/IndexOutOfBoundsException;")),
+            new CfStackInstruction(CfStackInstruction.Opcode.Dup),
+            new CfNew(factory.stringBuilderType),
+            new CfStackInstruction(CfStackInstruction.Opcode.Dup),
+            new CfInvoke(
+                183,
+                factory.createMethod(
+                    factory.stringBuilderType,
+                    factory.createProto(factory.voidType),
+                    factory.createString("<init>")),
+                false),
+            new CfConstString(factory.createString("Index ")),
+            new CfInvoke(
+                182,
+                factory.createMethod(
+                    factory.stringBuilderType,
+                    factory.createProto(factory.stringBuilderType, factory.stringType),
+                    factory.createString("append")),
+                false),
+            new CfLoad(ValueType.LONG, 0),
+            new CfInvoke(
+                182,
+                factory.createMethod(
+                    factory.stringBuilderType,
+                    factory.createProto(factory.stringBuilderType, factory.longType),
+                    factory.createString("append")),
+                false),
+            new CfConstString(factory.createString(" out of bounds for length ")),
+            new CfInvoke(
+                182,
+                factory.createMethod(
+                    factory.stringBuilderType,
+                    factory.createProto(factory.stringBuilderType, factory.stringType),
+                    factory.createString("append")),
+                false),
+            new CfLoad(ValueType.LONG, 2),
+            new CfInvoke(
+                182,
+                factory.createMethod(
+                    factory.stringBuilderType,
+                    factory.createProto(factory.stringBuilderType, factory.longType),
+                    factory.createString("append")),
+                false),
+            new CfInvoke(
+                182,
+                factory.createMethod(
+                    factory.stringBuilderType,
+                    factory.createProto(factory.stringType),
+                    factory.createString("toString")),
+                false),
+            new CfInvoke(
+                183,
+                factory.createMethod(
+                    factory.createType("Ljava/lang/IndexOutOfBoundsException;"),
+                    factory.createProto(factory.voidType, factory.stringType),
+                    factory.createString("<init>")),
+                false),
+            new CfThrow(),
+            label2,
+            new CfFrame(
+                new Int2ObjectAVLTreeMap<>(
+                    new int[] {0, 1, 2, 3},
+                    new FrameType[] {
+                      FrameType.longType(),
+                      FrameType.longHighType(),
+                      FrameType.longType(),
+                      FrameType.longHighType()
+                    })),
+            new CfLoad(ValueType.LONG, 0),
+            new CfReturn(ValueType.LONG),
             label3),
         ImmutableList.of(),
         ImmutableList.of());

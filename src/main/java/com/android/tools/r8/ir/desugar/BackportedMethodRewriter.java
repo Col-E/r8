@@ -253,18 +253,18 @@ public final class BackportedMethodRewriter implements CfInstructionDesugaring {
         if (typeIsPresentWithoutBackportsFrom(factory.optionalType, AndroidApiLevel.T)) {
           initializeAndroidOptionalTMethodProviders(factory);
         }
+        if (typeIsPresentWithoutNeverIntroducedBackports(factory.predicateType)) {
+          initializeAndroidTPredicateMethodProviders(factory);
+        }
+      }
+      if (options.getMinApiLevel().isLessThan(AndroidApiLevel.U)) {
+        if (typeIsPresentWithoutNeverIntroducedBackports(factory.streamType)) {
+          initializeAndroidUStreamMethodProviders(factory);
+        }
+        initializeAndroidUMethodProviders(factory);
       }
 
-      // These are currently not implemented at any API level in Android.
-      if (typeIsPresentWithoutNeverIntroducedBackports(factory.streamType)) {
-        initializeStreamMethodProviders(factory);
-      }
-      if (typeIsPresentWithoutNeverIntroducedBackports(factory.predicateType)) {
-        initializePredicateMethodProviders(factory);
-      }
-      initializeJava9MethodProviders(factory);
-      initializeJava10MethodProviders(factory);
-      initializeJava11MethodProviders(factory);
+      initializeMethodProvidersUnimplementedOnAndroid(factory);
     }
 
     private Map<DexType, AndroidApiLevel> initializeTypeMinApi(DexItemFactory factory) {
@@ -803,9 +803,17 @@ public final class BackportedMethodRewriter implements CfInstructionDesugaring {
         addProvider(new MethodGenerator(method, BackportedMethods::MathMethods_toIntExact));
       }
 
-      // Math (APIs which are not mirrored by StrictMath)
-      type = factory.mathType;
+      initializeMathExactApis(factory, factory.mathType);
+    }
 
+    /**
+     * Math APIs which are mirrored by StrictMath in a later Android api level than the one they are
+     * introduced for Math.
+     */
+    private void initializeMathExactApis(DexItemFactory factory, DexType type) {
+      DexMethod method;
+      DexProto proto;
+      DexString name;
       // int Math.decrementExact(int)
       name = factory.createString("decrementExact");
       proto = factory.createProto(factory.intType, factory.intType);
@@ -1590,15 +1598,57 @@ public final class BackportedMethodRewriter implements CfInstructionDesugaring {
       }
     }
 
-    private void initializeJava9MethodProviders(DexItemFactory factory) {
-      // Nothing right now.
+    private void initializeAndroidUMethodProviders(DexItemFactory factory) {
+      DexType type;
+      DexString name;
+      DexProto proto;
+      DexMethod method;
+
+      // Objects
+      type = factory.objectsType;
+
+      // long Objects.checkIndex(long, long)
+      name = factory.createString("checkIndex");
+      proto = factory.createProto(factory.longType, factory.longType, factory.longType);
+      method = factory.createMethod(type, proto, name);
+      addProvider(new MethodGenerator(method, BackportedMethods::ObjectsMethods_checkIndexLong));
+
+      // long Objects.checkFromToIndex(long, long, long)
+      name = factory.createString("checkFromToIndex");
+      proto =
+          factory.createProto(
+              factory.longType, factory.longType, factory.longType, factory.longType);
+      method = factory.createMethod(type, proto, name);
+      addProvider(
+          new MethodGenerator(method, BackportedMethods::ObjectsMethods_checkFromToIndexLong));
+
+      // long Objects.checkFromIndexSize(long, long, long)
+      name = factory.createString("checkFromIndexSize");
+      proto =
+          factory.createProto(
+              factory.longType, factory.longType, factory.longType, factory.longType);
+      method = factory.createMethod(type, proto, name);
+      addProvider(
+          new MethodGenerator(method, BackportedMethods::ObjectsMethods_checkFromIndexSizeLong));
+
+      DexType[] mathTypes = {factory.mathType, factory.strictMathType};
+      for (DexType mathType : mathTypes) {
+        // int {StrictMath.Math}.absExact(int)
+        // long {StrictMath.Math}.absExact(long)
+        name = factory.createString("absExact");
+        proto = factory.createProto(factory.intType, factory.intType);
+        method = factory.createMethod(mathType, proto, name);
+        addProvider(new MethodGenerator(method, BackportedMethods::MathMethods_absExact));
+
+        proto = factory.createProto(factory.longType, factory.longType);
+        method = factory.createMethod(mathType, proto, name);
+        addProvider(new MethodGenerator(method, BackportedMethods::MathMethods_absExactLong));
+      }
+
+      initializeMathExactApis(factory, factory.strictMathType);
     }
 
-    private void initializeJava10MethodProviders(DexItemFactory factory) {
-      // Nothing right now.
-    }
-
-    private void initializeJava11MethodProviders(DexItemFactory factory) {
+    private void initializeMethodProvidersUnimplementedOnAndroid(DexItemFactory factory) {
       // Character
       DexType type = factory.boxedCharType;
 
@@ -1622,7 +1672,7 @@ public final class BackportedMethodRewriter implements CfInstructionDesugaring {
           new MethodGenerator(method, BackportedMethods::CharSequenceMethods_compare, "compare"));
     }
 
-    private void initializeStreamMethodProviders(DexItemFactory factory) {
+    private void initializeAndroidUStreamMethodProviders(DexItemFactory factory) {
       // Stream
       DexType streamType = factory.streamType;
 
@@ -1634,7 +1684,7 @@ public final class BackportedMethodRewriter implements CfInstructionDesugaring {
           new MethodGenerator(method, BackportedMethods::StreamMethods_ofNullable, "ofNullable"));
     }
 
-    private void initializePredicateMethodProviders(DexItemFactory factory) {
+    private void initializeAndroidTPredicateMethodProviders(DexItemFactory factory) {
       // Predicate
       DexType predicateType = factory.predicateType;
 
