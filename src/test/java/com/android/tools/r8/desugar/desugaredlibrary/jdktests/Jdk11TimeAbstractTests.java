@@ -33,6 +33,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 import org.junit.BeforeClass;
@@ -43,6 +44,7 @@ import org.junit.runners.Parameterized.Parameters;
 @RunWith(Parameterized.class)
 public abstract class Jdk11TimeAbstractTests extends DesugaredLibraryTestBase {
 
+  private static final int SPLIT = 2;
   private static final Path JDK_11_TCK_TEST_FILES_DIR =
       Paths.get(ToolHelper.JDK_11_TIME_TESTS_DIR).resolve("tck");
   private static final Path JDK_11_TIME_TEST_FILES_DIR =
@@ -211,7 +213,48 @@ public abstract class Jdk11TimeAbstractTests extends DesugaredLibraryTestBase {
         "test.java.time.chrono.TestUmmAlQuraChronology",
       };
 
-  void testTime(String[] toRun) throws Exception {
+  public String[] getFormatChronoSuccesses() {
+    List<String> allTests = new ArrayList<>();
+    Collections.addAll(allTests, FORMAT_CHRONO_SUCCESSES);
+    if (parameters.getDexRuntimeVersion().isOlderThan(Version.V12_0_0)) {
+      // Formatting issues starting from 12.
+      Collections.addAll(allTests, FORMAT_CHRONO_SUCCESSES_UP_TO_11);
+    }
+    return allTests.toArray(new String[0]);
+  }
+
+  public String[] getRawTemporalSuccesses() {
+    List<String> allTests = new ArrayList<>();
+    Collections.addAll(allTests, RAW_TEMPORAL_SUCCESSES);
+    if (parameters.getDexRuntimeVersion().isOlderThan(Version.V12_0_0)) {
+      // In 12 some ISO is supported that other versions do not support.
+      Collections.addAll(allTests, RAW_TEMPORAL_SUCCESSES_UP_TO_11);
+    }
+    // The bridge is always present with JDK11 due to partial desugaring between 26 and 33.
+    // On JDK8 the bridge is absent in between 26 and 33.
+    if (libraryDesugaringSpecification != JDK8
+        || !parameters.getApiLevel().betweenBothIncluded(AndroidApiLevel.O, AndroidApiLevel.Sv2)) {
+      Collections.addAll(allTests, RAW_TEMPORAL_SUCCESSES_IF_BRIDGE);
+    }
+    return allTests.toArray(new String[0]);
+  }
+
+  String[] split(String[] input, int index) {
+    return split(input, index, SPLIT);
+  }
+
+  private String[] split(String[] input, int index, int split) {
+    assert index >= 0 && index < split;
+    Arrays.sort(input);
+    int length = input.length;
+    int start = index * length / split + (index == 0 ? 0 : 1);
+    int last = (index + 1) * length / split;
+    return Arrays.copyOfRange(input, start, last);
+  }
+
+  void compileAndTestTime(String[] toRun) throws Exception {
+    // The compilation time is significantly higher than the test time, it is important to compile
+    // once and test multiple times on the same artifact for test performance.
     String verbosity = "2";
     DesugaredLibraryTestCompileResult<?> compileResult =
         testForDesugaredLibrary(
