@@ -16,9 +16,6 @@ import utils.Utils
 
 buildscript {
     repositories {
-        maven {
-            url 'https://storage.googleapis.com/r8-deps/maven_mirror/'
-        }
         mavenCentral()
         gradlePluginPortal()
         jcenter()
@@ -52,9 +49,6 @@ ext {
 }
 
 repositories {
-    maven {
-       url 'https://storage.googleapis.com/r8-deps/maven_mirror/'
-    }
     google()
     mavenCentral()
 }
