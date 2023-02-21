@@ -53,7 +53,7 @@ public class KeepUsesReflectionOnFieldTest extends TestBase {
         .enableExperimentalKeepAnnotations()
         .addProgramClasses(getInputClasses())
         .addKeepMainRule(TestClass.class)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .apply(
             c -> {

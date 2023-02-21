@@ -56,7 +56,7 @@ public class StringSwitchConversionFromIfTest extends TestBase {
         // TODO(b/135560746): Add support for treating the keys of a string-switch instruction as an
         //  identifier name string.
         .addDontObfuscate()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .inspect(
             inspector -> {

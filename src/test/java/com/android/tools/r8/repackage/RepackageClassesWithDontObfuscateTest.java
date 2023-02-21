@@ -36,7 +36,7 @@ public class RepackageClassesWithDontObfuscateTest extends RepackageTestBase {
   public void testR8() throws Exception {
     testForR8(parameters.getBackend())
         .addInnerClasses(getClass())
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addKeepMainRule(Main.class)
         .enableInliningAnnotations()
         .apply(this::configureRepackaging)

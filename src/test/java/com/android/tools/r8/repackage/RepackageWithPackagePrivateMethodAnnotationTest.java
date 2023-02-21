@@ -37,7 +37,7 @@ public class RepackageWithPackagePrivateMethodAnnotationTest extends RepackageTe
         .addKeepRuntimeVisibleAnnotations()
         .apply(this::configureRepackaging)
         .enableInliningAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .inspect(this::inspect)
         .run(parameters.getRuntime(), TestClass.class)

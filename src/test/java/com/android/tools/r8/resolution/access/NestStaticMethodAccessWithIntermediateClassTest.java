@@ -97,7 +97,7 @@ public class NestStaticMethodAccessWithIntermediateClassTest extends TestBase {
     testForR8(parameters.getBackend())
         .addProgramClasses(getClasses())
         .addProgramClassFileData(getTransformedClasses())
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addKeepMainRule(Main.class)
         .run(parameters.getRuntime(), Main.class)
         .apply(runResult -> checkExpectedResult(runResult, true));

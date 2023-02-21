@@ -45,7 +45,7 @@ public class GetClassBaseAndSubTest extends TestBase {
         .addDontObfuscate()
         .addInnerClasses(GetClassBaseAndSubTest.class)
         .addKeepMainRule(TestClass.class)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), TestClass.class)
         .assertSuccessWithOutput(EXPECTED)
         .inspect(

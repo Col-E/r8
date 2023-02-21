@@ -51,7 +51,7 @@ public class IfOnStaticFinalFieldTest extends TestBase {
         .addKeepRules(
             "-if class " + StaticNonFinalField.class.getTypeName() + " { int f; }",
             "-keep class " + B.class.getTypeName())
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .allowDiagnosticMessages()
         .compileWithExpectedDiagnostics(
             diagnostics ->
@@ -71,7 +71,7 @@ public class IfOnStaticFinalFieldTest extends TestBase {
         .addInnerClasses(getClass())
         .addKeepMainRule(TestClass.class)
         .addKeepRules("-if class * { int f; } -keep class " + B.class.getTypeName())
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .allowDiagnosticMessages()
         .compileWithExpectedDiagnostics(
             diagnostics ->

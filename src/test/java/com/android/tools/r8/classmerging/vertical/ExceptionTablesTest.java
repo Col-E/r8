@@ -41,7 +41,7 @@ public class ExceptionTablesTest extends VerticalClassMergerTestBase {
         .addInnerClasses(ExceptionTablesTest.class)
         .addKeepMainRule(TestClass.class)
         .addVerticallyMergedClassesInspector(this::inspectVerticallyMergedClasses)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .inspect(this::inspect)
         .run(parameters.getRuntime(), TestClass.class)

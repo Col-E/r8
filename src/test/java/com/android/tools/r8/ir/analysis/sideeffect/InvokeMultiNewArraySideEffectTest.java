@@ -39,7 +39,7 @@ public class InvokeMultiNewArraySideEffectTest extends TestBase {
         .addInnerClasses(InvokeMultiNewArraySideEffectTest.class)
         .addKeepMainRule(TestClass.class)
         .enableNoHorizontalClassMergingAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .inspect(
             inspector -> {

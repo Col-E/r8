@@ -41,7 +41,7 @@ public class OverloadsWithoutLineNumberTest extends TestBase {
                     .removeLineNumberTable(MethodPredicate.all())
                     .transform())
             .addKeepAttributeLineNumberTable()
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .addKeepRules(
                 "-keepclassmembers class " + typeName(ClassWithOverload.class) + " { *; }")
             .addKeepClassAndMembersRules(Main.class)

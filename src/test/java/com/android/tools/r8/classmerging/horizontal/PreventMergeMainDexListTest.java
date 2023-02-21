@@ -45,7 +45,7 @@ public class PreventMergeMainDexListTest extends HorizontalClassMergingTestBase 
         .addMainDexListClasses(A.class, Main.class)
         .addOptionsModification(options -> options.minimalMainDex = true)
         .enableNeverClassInliningAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .allowDiagnosticMessages()
         .compileWithExpectedDiagnostics(
             diagnostics ->

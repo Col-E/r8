@@ -52,7 +52,7 @@ public class StackTraceWithPcAndNoLineTableTestRunner extends TestBase {
         .addProgramClasses(getTestClass())
         .addKeepMainRule(getTestClass())
         .addKeepRules("-keep,allowshrinking,allowobfuscation class * { *; }")
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), getTestClass())
         .assertFailureWithErrorThatThrows(RuntimeException.class)
         .inspectStackTrace(

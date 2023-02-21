@@ -40,7 +40,7 @@ public class EnumAndIdentifierBasedStringInAnnotationTest extends RepackageTestB
         .addKeepClassAndMembersRules(MyAnnotation.class)
         .addKeepClassAndMembersRulesWithAllowObfuscation(Enum.class)
         .addKeepRules("-keepclassmembers,allowshrinking class ** { *; }")
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addKeepRuntimeVisibleAnnotations()
         .apply(this::configureRepackaging)
         .compile()

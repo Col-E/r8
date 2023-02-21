@@ -42,7 +42,7 @@ public class AssumeValuesMaterializeFieldReadTest extends TestBase {
             "  static java.lang.Object get() return " + Main.class.getTypeName() + ".field;",
             "}")
         .enableInliningAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .inspect(
             inspector -> {

@@ -44,7 +44,7 @@ public class EnumMissingFieldsUnboxingTest extends EnumUnboxingTestBase {
         .addEnumUnboxingInspector(inspector -> inspector.assertNotUnboxed(CompilationEnum.class))
         .enableNeverClassInliningAnnotations()
         .addOptionsModification(opt -> enableEnumOptions(opt, enumValueOptimization))
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .run(parameters.getRuntime(), TestClass.class)
         .assertFailureWithErrorThatMatches(containsString("NoSuchFieldError"))

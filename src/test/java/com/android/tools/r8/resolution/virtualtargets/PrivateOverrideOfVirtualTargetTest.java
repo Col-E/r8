@@ -89,7 +89,7 @@ public class PrivateOverrideOfVirtualTargetTest extends TestBase {
     testForR8(parameters.getBackend())
         .addProgramClasses(A.class, Main.class)
         .addProgramClassFileData(getBWithModifiedInvokes())
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addKeepMainRule(Main.class)
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines(EXPECTED);

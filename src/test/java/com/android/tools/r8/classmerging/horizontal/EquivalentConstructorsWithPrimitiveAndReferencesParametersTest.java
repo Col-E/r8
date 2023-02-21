@@ -47,7 +47,7 @@ public class EquivalentConstructorsWithPrimitiveAndReferencesParametersTest exte
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
         .enableUnusedArgumentAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .inspect(
             inspector -> {

@@ -48,7 +48,7 @@ public class VerticalClassMergingInFeatureSplitTest extends SplitterTestBase {
             .addLibraryFiles(parameters.getDefaultAndroidJarAbove(AndroidApiLevel.K))
             .enableInliningAnnotations()
             .enableNeverClassInliningAnnotations()
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .compile()
             .inspect(this::inspectBase, this::inspectFeature1, this::inspectFeature2);
 

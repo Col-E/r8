@@ -126,7 +126,7 @@ public class MemberResolutionTest extends TestBase {
             .enableMemberValuePropagationAnnotations()
             .enableNoVerticalClassMergingAnnotations()
             .addOptionsModification(options -> options.inlinerOptions().enableInlining = false)
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .run(parameters.getRuntime(), MemberResolutionTestMain.class)
             .assertSuccessWithOutput(expectedOutput)
             .inspector();

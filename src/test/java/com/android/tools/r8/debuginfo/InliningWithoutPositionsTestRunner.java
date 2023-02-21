@@ -76,7 +76,7 @@ public class InliningWithoutPositionsTestRunner extends TestBase {
   @Test
   public void testStackTrace() throws Exception {
     testForR8(parameters.getBackend())
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addProgramClassFileData(
             InliningWithoutPositionsTestSourceDump.dump(
                 mainPos, foo1Pos, barPos, foo2Pos, throwLocation))

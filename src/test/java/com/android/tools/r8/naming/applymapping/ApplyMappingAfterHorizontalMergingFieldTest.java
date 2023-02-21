@@ -93,7 +93,7 @@ public class ApplyMappingAfterHorizontalMergingFieldTest extends TestBase {
             .addProgramClasses(LIBRARY_CLASSES)
             .addOptionsModification(options -> options.enableRedundantFieldLoadElimination = false)
             .addKeepMainRule(LibraryMain.class)
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .compile();
 
     CodeInspector inspector = libraryResult.inspector();
@@ -110,7 +110,7 @@ public class ApplyMappingAfterHorizontalMergingFieldTest extends TestBase {
         .addLibraryClasses(LIBRARY_CLASSES)
         .addDefaultRuntimeLibrary(parameters)
         .addTestingAnnotationsAsLibraryClasses()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .addRunClasspathFiles(libraryResult.writeToZip())
         .run(parameters.getRuntime(), ProgramClass.class)

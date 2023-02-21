@@ -71,7 +71,7 @@ public class KeepEnclosingMethodForKeptMethodTest extends TestBase {
         .addKeepAttributeInnerClassesAndEnclosingMethod()
         .addKeepMainRule(KeptClass.class)
         .addKeepClassAndMembersRules(KeptClass.class)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), KeptClass.class);
   }
 

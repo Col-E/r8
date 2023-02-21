@@ -36,7 +36,7 @@ public class IllegalStaticGetCanonicalizationTest extends TestBase {
         .addOptionsModification(options -> options.enableRedundantFieldLoadElimination = false)
         .enableInliningAnnotations()
         .enableReprocessClassInitializerAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .run(parameters.getRuntime(), TestClass.class)
         .assertSuccessWithOutputLines("Hello!", "Hello!");

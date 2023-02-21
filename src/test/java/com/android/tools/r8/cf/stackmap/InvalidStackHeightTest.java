@@ -46,7 +46,7 @@ public class InvalidStackHeightTest extends TestBase {
     assumeTrue(parameters.isCfRuntime());
     testForD8(parameters.getBackend())
         .addProgramClassFileData(getMainWithChangedMaxStackHeight())
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compileWithExpectedDiagnostics(this::inspect);
   }
 
@@ -55,7 +55,7 @@ public class InvalidStackHeightTest extends TestBase {
     assumeTrue(parameters.isDexRuntime());
     testForD8(parameters.getBackend())
         .addProgramClassFileData(getMainWithChangedMaxStackHeight())
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compileWithExpectedDiagnostics(this::inspect)
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines(EXPECTED);
@@ -68,7 +68,7 @@ public class InvalidStackHeightTest extends TestBase {
         .addProgramClassFileData(getMainWithChangedMaxStackHeight())
         .enableInliningAnnotations()
         .addKeepMainRule(Main.class)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .allowDiagnosticWarningMessages()
         .compileWithExpectedDiagnostics(this::inspect)
         .run(parameters.getRuntime(), Main.class)

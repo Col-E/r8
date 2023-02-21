@@ -56,7 +56,7 @@ public class InvokeInterfaceWithRefinedReceiverTest extends TestBase {
               o.enableDevirtualization = false;
               o.testing.callSiteOptimizationInfoInspector = this::callSiteOptimizationInfoInspect;
             })
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), MAIN)
         .assertSuccessWithOutputLines("null", "C")
         .inspect(this::inspect);

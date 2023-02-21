@@ -58,7 +58,7 @@ public class HierarchyConstantDynamicTest extends TestBase {
 
     testForD8(parameters.getBackend())
         .addProgramClassFileData(getTransformedClasses())
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), MAIN_CLASS)
         .assertSuccessWithOutput(EXPECTED_OUTPUT);
   }
@@ -68,7 +68,7 @@ public class HierarchyConstantDynamicTest extends TestBase {
     parameters.assumeR8TestParameters();
     testForR8(parameters.getBackend())
         .addProgramClassFileData(getTransformedClasses())
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addKeepMainRule(MAIN_CLASS)
         // TODO(b/198142613): There should not be a warnings on class references which are
         //  desugared away.

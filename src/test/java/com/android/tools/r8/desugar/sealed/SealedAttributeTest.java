@@ -65,7 +65,7 @@ public class SealedAttributeTest extends TestBase {
     R8FullTestBuilder builder =
         testForR8(parameters.getBackend())
             .addProgramFiles(Sealed.jar())
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .addKeepMainRule(Sealed.Main.typeName());
     if (parameters.isCfRuntime()) {
       assertThrows(

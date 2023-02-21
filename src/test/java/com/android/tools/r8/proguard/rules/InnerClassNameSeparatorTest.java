@@ -52,7 +52,7 @@ public class InnerClassNameSeparatorTest extends TestBase {
                     + " {",
                 "  <init>(...);",
                 "}")
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .compile()
             .run(parameters.getRuntime(), InnerClassNameSeparatorTestClass.class);
     if (separator.equals("$")) {
@@ -80,7 +80,7 @@ public class InnerClassNameSeparatorTest extends TestBase {
                 + " {",
             "  <init>(...);",
             "}")
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .run(parameters.getRuntime(), InnerClassNameSeparatorTestClass.class);
   }

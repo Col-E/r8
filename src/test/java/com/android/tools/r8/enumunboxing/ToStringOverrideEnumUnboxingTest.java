@@ -42,7 +42,7 @@ public class ToStringOverrideEnumUnboxingTest extends EnumUnboxingTestBase {
         .addOptionsModification(opt -> enableEnumOptions(opt, enumValueOptimization))
         .addEnumUnboxingInspector(
             inspector -> inspector.assertNotUnboxed(EnumNameToString.MyEnum.class))
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .run(parameters.getRuntime(), success)
         .assertSuccess()

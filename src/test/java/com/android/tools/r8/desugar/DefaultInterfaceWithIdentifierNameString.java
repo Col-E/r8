@@ -69,7 +69,7 @@ public class DefaultInterfaceWithIdentifierNameString extends TestBase {
     testForR8(parameters.getBackend())
         .addInnerClasses(DefaultInterfaceWithIdentifierNameString.class)
         .addKeepMainRule(TestClass.class)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .enableInliningAnnotations()
         .enableNoVerticalClassMergingAnnotations()
         .enableNeverClassInliningAnnotations()

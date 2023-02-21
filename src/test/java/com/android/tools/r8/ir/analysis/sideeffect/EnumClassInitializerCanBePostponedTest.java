@@ -45,7 +45,7 @@ public class EnumClassInitializerCanBePostponedTest extends TestBase {
         .addKeepMainRule(TestClass.class)
         .addOptionsModification(options -> options.testing.enableSwitchToIfRewriting = false)
         .enableInliningAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .inspect(this::inspect)
         .run(parameters.getRuntime(), TestClass.class)

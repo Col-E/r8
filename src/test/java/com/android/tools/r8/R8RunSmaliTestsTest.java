@@ -225,7 +225,7 @@ public class R8RunSmaliTestsTest extends TestBase {
         .addKeepAllClassesRule()
         .addProgramDexFileData(Files.readAllBytes(originalDexFile))
         .addDontWarn(missingClasses.getOrDefault(directoryName, Collections.emptySet()))
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .run(parameters.getRuntime(), "Test")
         .applyIf(

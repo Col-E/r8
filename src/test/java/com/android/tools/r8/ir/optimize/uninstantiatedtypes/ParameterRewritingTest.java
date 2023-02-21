@@ -57,7 +57,7 @@ public class ParameterRewritingTest extends TestBase {
             .enableNoHorizontalClassMergingAnnotations()
             .addOptionsModification(options -> options.enableClassInlining = false)
             .addDontObfuscate()
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .run(parameters.getRuntime(), TestClass.class)
             .assertSuccessWithOutput(expected)
             .inspector();

@@ -89,7 +89,7 @@ public class LambdaMethodsWithModifiedAccessTest extends TestBase {
     testForD8(parameters.getBackend())
         .addProgramClasses(TestClass.class)
         .addProgramClassFileData(getTransformedLambdaTest())
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile();
   }
 
@@ -106,7 +106,7 @@ public class LambdaMethodsWithModifiedAccessTest extends TestBase {
         .addProgramClasses(TestClass.class)
         .addProgramClassFileData(getTransformedLambdaTest())
         .addKeepMainRule(TestClass.class)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile();
   }
 

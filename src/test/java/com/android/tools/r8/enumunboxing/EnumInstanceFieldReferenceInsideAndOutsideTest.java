@@ -51,7 +51,7 @@ public class EnumInstanceFieldReferenceInsideAndOutsideTest extends EnumUnboxing
         .addKeepRules(enumKeepRules.getKeepRules())
         .addOptionsModification(opt -> enableEnumOptions(opt, enumValueOptimization))
         .addNeverClassInliningAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addEnumUnboxingInspector(inspector -> inspector.assertNotUnboxed(MyEnum.class))
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines("42");

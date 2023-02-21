@@ -39,7 +39,7 @@ public class MutuallyRecursiveMethodsTest extends TestBase {
   public void testR8() throws Exception {
     testForR8(parameters.getBackend())
         .addInnerClasses(MutuallyRecursiveMethodsTest.class)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addKeepMainRule(TestClass.class)
         .run(parameters.getRuntime(), TestClass.class)
         .assertSuccessWithOutput(EXPECTED);

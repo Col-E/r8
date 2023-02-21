@@ -57,7 +57,7 @@ public class MinificationMixedCaseAndNumbersTest extends TestBase {
         .noTreeShaking()
         .addKeepRules(
             "-dontusemixedcaseclassnames", "-keeppackagenames com.android.tools.r8.naming")
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), Main.class)
         .inspect(
             inspector -> {

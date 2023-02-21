@@ -25,7 +25,7 @@ public class StaticAndVirtualMethodCollisionTest extends HorizontalClassMergingT
             inspector -> inspector.assertMergedInto(B.class, A.class))
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines("A.foo()", "A.bar()", "B.foo()", "B.bar()");
   }

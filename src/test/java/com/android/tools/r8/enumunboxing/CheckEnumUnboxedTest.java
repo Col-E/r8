@@ -40,7 +40,7 @@ public class CheckEnumUnboxedTest extends TestBase {
                 .addInnerClasses(getClass())
                 .addKeepMainRule(Main.class)
                 .enableCheckEnumUnboxedAnnotations()
-                .setMinApi(parameters.getApiLevel())
+                .setMinApi(parameters)
                 .compileWithExpectedDiagnostics(
                     diagnostics -> {
                       diagnostics.assertErrorsMatch(

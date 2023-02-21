@@ -94,7 +94,7 @@ public class RepackageFeatureWithSyntheticsTest extends RepackageTestBase {
             .addKeepAttributeInnerClassesAndEnclosingMethod()
             .apply(this::configureRepackaging)
             .enableNeverClassInliningAnnotations()
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .compile();
 
     // Each Foo class will give rise to a single lambda.

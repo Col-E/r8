@@ -37,7 +37,7 @@ public class SwitchMapCollectionWithoutStaticGetTest extends TestBase {
         .addProgramClasses(TestClass.class, MyEnum.class)
         .addProgramClassFileData(SwitchMapClassDump.dump())
         .addKeepMainRule(TestClass.class)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .run(parameters.getRuntime(), TestClass.class)
         .assertSuccessWithOutputLines("Hello world!");

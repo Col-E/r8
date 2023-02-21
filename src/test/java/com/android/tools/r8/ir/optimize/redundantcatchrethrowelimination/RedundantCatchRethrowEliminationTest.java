@@ -56,7 +56,7 @@ public class RedundantCatchRethrowEliminationTest extends TestBase {
     testForD8(parameters.getBackend())
         .addProgramClasses(Main.class, TrivialClosableContext.class, ClosableContext.class)
         .release()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutput(EXPECTED)
         .inspect(this::inspectD8);
@@ -68,7 +68,7 @@ public class RedundantCatchRethrowEliminationTest extends TestBase {
         .addProgramClasses(Main.class, TrivialClosableContext.class, ClosableContext.class)
         .addKeepMainRule(Main.class)
         .enableInliningAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutput(EXPECTED)
         .inspect(this::inspectR8);

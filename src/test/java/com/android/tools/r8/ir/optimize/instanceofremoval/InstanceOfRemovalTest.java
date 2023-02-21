@@ -159,7 +159,7 @@ public class InstanceOfRemovalTest extends TestBase {
             .addProgramClasses(A.class, B.class, TestClass.class)
             .addKeepMainRule(TestClass.class)
             .enableInliningAnnotations()
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .run(parameters.getRuntime(), TestClass.class)
             .assertSuccessWithOutput(expected)
             .inspector();

@@ -37,7 +37,7 @@ public class NonFinalOverrideOfFinalMethodTest extends HorizontalClassMergingTes
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
         .enableNoVerticalClassMergingAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addHorizontallyMergedClassesInspector(
             inspector -> inspector.assertMergedInto(B.class, A.class))
         .compile()

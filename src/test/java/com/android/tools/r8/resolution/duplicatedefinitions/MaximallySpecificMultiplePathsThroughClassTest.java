@@ -131,7 +131,7 @@ public class MaximallySpecificMultiplePathsThroughClassTest extends TestBase {
         .addProgramClassFileData(getAWithImplementsI(), getIProgram())
         .addDefaultRuntimeLibrary(parameters)
         .addLibraryFiles(libraryClasses)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addOptionsModification(options -> options.loadAllClassDefinitions = true)
         .compile()
         .addBootClasspathFiles(buildOnDexRuntime(parameters, libraryClasses))

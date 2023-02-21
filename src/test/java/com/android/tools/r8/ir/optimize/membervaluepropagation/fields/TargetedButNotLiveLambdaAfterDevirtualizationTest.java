@@ -32,7 +32,7 @@ public class TargetedButNotLiveLambdaAfterDevirtualizationTest extends TestBase 
         .addInnerClasses(getClass())
         .addKeepMainRule(Main.class)
         .enableInliningAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithEmptyOutput();

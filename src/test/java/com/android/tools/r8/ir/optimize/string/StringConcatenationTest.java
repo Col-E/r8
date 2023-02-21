@@ -199,7 +199,7 @@ public class StringConcatenationTest extends TestBase {
         testForD8()
             .debug()
             .addProgramClasses(MAIN)
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .run(parameters.getRuntime(), MAIN)
             .assertSuccessWithOutput(JAVA_OUTPUT),
         false,
@@ -213,7 +213,7 @@ public class StringConcatenationTest extends TestBase {
         testForD8()
             .release()
             .addProgramClasses(MAIN)
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .run(parameters.getRuntime(), MAIN)
             .assertSuccessWithOutput(JAVA_OUTPUT),
         false,
@@ -230,7 +230,7 @@ public class StringConcatenationTest extends TestBase {
             .enableInliningAnnotations()
             .addKeepMainRule(MAIN)
             .addDontObfuscate()
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .run(parameters.getRuntime(), MAIN)
             .assertSuccessWithOutput(JAVA_OUTPUT);
     test(result, true, true);

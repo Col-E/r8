@@ -68,7 +68,7 @@ public class OverlappingWidesOnStackTest extends TestBase implements Opcodes {
         () ->
             testForD8()
                 .addProgramClassFileData(getTransformedMain())
-                .setMinApi(parameters.getApiLevel())
+                .setMinApi(parameters)
                 .compile());
   }
 
@@ -79,7 +79,7 @@ public class OverlappingWidesOnStackTest extends TestBase implements Opcodes {
             testForR8(parameters.getBackend())
                 .addProgramClassFileData(getTransformedMain())
                 .addKeepMainRule(Main.class)
-                .setMinApi(parameters.getApiLevel())
+                .setMinApi(parameters)
                 .compile());
   }
 

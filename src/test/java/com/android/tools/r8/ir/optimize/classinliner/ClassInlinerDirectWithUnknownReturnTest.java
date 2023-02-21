@@ -38,7 +38,7 @@ public class ClassInlinerDirectWithUnknownReturnTest extends TestBase {
         .addInnerClasses(getClass())
         .addKeepMainRule(Main.class)
         .enableNeverSingleCallerInlineAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines("Hello World 0")
         .inspect(

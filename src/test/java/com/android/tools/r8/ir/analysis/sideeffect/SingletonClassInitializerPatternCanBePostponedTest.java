@@ -40,7 +40,7 @@ public class SingletonClassInitializerPatternCanBePostponedTest extends TestBase
         .addInnerClasses(SingletonClassInitializerPatternCanBePostponedTest.class)
         .addKeepMainRule(TestClass.class)
         .enableMemberValuePropagationAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .inspect(this::inspect)
         .run(parameters.getRuntime(), TestClass.class)

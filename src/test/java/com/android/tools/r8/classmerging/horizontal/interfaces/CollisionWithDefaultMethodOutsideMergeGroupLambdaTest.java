@@ -59,7 +59,7 @@ public class CollisionWithDefaultMethodOutsideMergeGroupLambdaTest extends TestB
         .enableNoMethodStaticizingAnnotations()
         .enableNoUnusedInterfaceRemovalAnnotations()
         .enableNoVerticalClassMergingAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .inspect(
             inspector -> {

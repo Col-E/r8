@@ -39,7 +39,7 @@ public class ProtoNormalizationWithoutSharingTest extends TestBase {
         .addKeepMainRule(Main.class)
         .enableInliningAnnotations()
         .enableNoHorizontalClassMergingAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .inspect(
             inspector -> {

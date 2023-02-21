@@ -32,7 +32,7 @@ public class UnusedReceiverInUnboxedEnumTest extends TestBase {
         .addKeepMainRule(Main.class)
         .addEnumUnboxingInspector(inspector -> inspector.assertUnboxed(MyEnum.class))
         .enableInliningAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .run(parameters.getRuntime(), Main.class)
         .assertFailureWithErrorThatThrows(NullPointerException.class);

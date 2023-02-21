@@ -74,7 +74,7 @@ public class FlatMapConversionTest extends DesugaredLibraryTestBase {
         "Run only once",
         libraryDesugaringSpecification == JDK11 && compilationSpecification == D8_L8DEBUG);
     testForD8()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addProgramClasses(Executor.class, CustomLibClass.class)
         .run(parameters.getRuntime(), Executor.class)
         .assertSuccessWithOutput(EXPECTED_RESULT);

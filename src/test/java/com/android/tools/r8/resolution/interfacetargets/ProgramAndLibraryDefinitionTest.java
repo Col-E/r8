@@ -68,7 +68,7 @@ public class ProgramAndLibraryDefinitionTest extends TestBase {
         testForR8(parameters.getBackend())
             .addDefaultRuntimeLibrary(parameters)
             .addProgramClasses(Main.class, Implementer.class, I.class)
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .addDontWarn(A.class, B.class)
             .addKeepMainRule(Main.class)
             .addOptionsModification(options -> options.loadAllClassDefinitions = true)

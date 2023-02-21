@@ -73,7 +73,7 @@ public class PrivateInvokeVirtualTest extends TestBase {
         .addProgramClasses(Main.class)
         .addProgramClassFileData(getUIntWithTransformedInvoke())
         .addKeepMainRule(Main.class)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines("1");
   }

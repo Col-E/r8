@@ -53,7 +53,7 @@ public class OverlappingLambdaMethodInSubclassWithSameNameTest extends TestBase 
             MAIN_CLASS,
             OverlappingLambdaMethodInSubclassWithSameNameTestA.class,
             OverlappingLambdaMethodInSubclassWithSameNameTestB.class)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), MAIN_CLASS)
         .assertSuccessWithOutput(EXPECTED);
   }
@@ -66,7 +66,7 @@ public class OverlappingLambdaMethodInSubclassWithSameNameTest extends TestBase 
             MAIN_CLASS,
             OverlappingLambdaMethodInSubclassWithSameNameTestA.class,
             OverlappingLambdaMethodInSubclassWithSameNameTestB.class)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addKeepMainRule(MAIN_CLASS)
         .run(parameters.getRuntime(), MAIN_CLASS)
         .assertSuccessWithOutput(EXPECTED);

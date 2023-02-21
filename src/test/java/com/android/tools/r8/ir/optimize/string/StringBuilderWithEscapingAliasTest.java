@@ -35,7 +35,7 @@ public class StringBuilderWithEscapingAliasTest extends TestBase {
         .addOptionsModification(
             options ->
                 options.itemFactory.libraryMethodsReturningReceiver = Sets.newIdentityHashSet())
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .run(parameters.getRuntime(), TestClass.class)
         .assertSuccessWithOutput(StringUtils.times(StringUtils.lines("Hello world!"), 2));

@@ -49,7 +49,7 @@ public class IfRuleWithFieldAnnotation extends TestBase {
         .addProgramClasses(Foo.class, Bar.class, SerializedName.class)
         .addKeepMainRule(Foo.class)
         .addKeepRules(CONDITIONAL_KEEP_RULE)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .inspect(
             codeInspector -> {
@@ -64,7 +64,7 @@ public class IfRuleWithFieldAnnotation extends TestBase {
         .addKeepMainRule(FooNotCallingBar.class)
         .addKeepRules(CONDITIONAL_KEEP_RULE)
         .allowUnusedProguardConfigurationRules()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .inspect(
             codeInspector -> {

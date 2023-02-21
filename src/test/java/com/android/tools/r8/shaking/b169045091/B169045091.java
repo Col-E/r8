@@ -58,7 +58,7 @@ public class B169045091 extends TestBase {
         .enableNeverClassInliningAnnotations()
         .enableInliningAnnotations()
         .enableNoVerticalClassMergingAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addDontObfuscate()
         .compile()
         .run(parameters.getRuntime(), TestClass.class)

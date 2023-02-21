@@ -70,12 +70,12 @@ public class ApiModelMockExceptionAndroidApiTest extends TestBase {
                     DescriptorUtils.javaTypeToDescriptor(illFormedLocaleException))
                 .transform())
         .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.LATEST))
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .apply(ApiModelingTestHelper::enableStubbingOfClasses);
   }
 
   private void setupTestRuntimeBuilder(TestCompilerBuilder<?, ?, ?, ?, ?> testBuilder) {
-    testBuilder.setMinApi(parameters.getApiLevel()).addAndroidBuildVersion();
+    testBuilder.setMinApi(parameters).addAndroidBuildVersion();
   }
 
   private void setupTestBuilder(TestCompilerBuilder<?, ?, ?, ?, ?> testBuilder) throws Exception {

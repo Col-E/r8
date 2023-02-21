@@ -138,7 +138,7 @@ public class SplitterTestBase extends TestBase {
             .addProgramClasses(baseClasses)
             .addFeatureSplit(featureClasses.toArray(new Class[0]))
             .addInliningAnnotations()
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .addKeepMainRule(SplitRunner.class)
             .addKeepClassRules(toRun)
             .apply(r8TestConfigurator)

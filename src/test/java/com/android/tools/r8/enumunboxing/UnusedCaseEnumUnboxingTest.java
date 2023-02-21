@@ -41,7 +41,7 @@ public class UnusedCaseEnumUnboxingTest extends EnumUnboxingTestBase {
         .enableInliningAnnotations()
         .addKeepRules(enumKeepRules.getKeepRules())
         .addOptionsModification(opt -> enableEnumOptions(opt, enumValueOptimization))
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .inspect(this::assertFieldsRemoved)
         .run(parameters.getRuntime(), Main.class)

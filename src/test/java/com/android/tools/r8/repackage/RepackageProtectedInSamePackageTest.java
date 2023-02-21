@@ -38,7 +38,7 @@ public class RepackageProtectedInSamePackageTest extends RepackageTestBase {
     testForProguard(ProguardVersion.V7_0_0)
         .addProgramClasses(Main.class)
         .addProgramClassFileData(getRepackageForKeepClassMembersWithProtectedAccess())
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .apply(this::configureRepackaging)
         .addKeepRules(
             "-keepclassmembers class " + typeName(RepackageForKeepClassMembers.class) + " { *; }")
@@ -54,7 +54,7 @@ public class RepackageProtectedInSamePackageTest extends RepackageTestBase {
     testForR8(parameters.getBackend())
         .addProgramClasses(Main.class)
         .addProgramClassFileData(getRepackageForKeepClassMembersWithProtectedAccess())
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .apply(this::configureRepackaging)
         .addKeepRules(
             "-keepclassmembers class " + typeName(RepackageForKeepClassMembers.class) + " { *; }")

@@ -63,11 +63,7 @@ public class CompilationDependentSetTest extends TestBase {
           .assertSuccessWithOutputLines("Hello World!");
     } else {
       Path dexInputForB =
-          testForD8()
-              .addProgramClasses(B.class)
-              .setMinApi(parameters.getApiLevel())
-              .compile()
-              .writeToZip();
+          testForD8().addProgramClasses(B.class).setMinApi(parameters).compile().writeToZip();
 
       D8TestBuilder builder = testForD8();
       DesugarGraphTestConsumer consumer = new DesugarGraphTestConsumer();
@@ -77,7 +73,7 @@ public class CompilationDependentSetTest extends TestBase {
       Origin originTestClass = DesugarGraphUtils.addClassWithOrigin(TestClass.class, builder);
       builder
           .addProgramFiles(dexInputForB)
-          .setMinApi(parameters.getApiLevel())
+          .setMinApi(parameters)
           .run(parameters.getRuntime(), TestClass.class)
           .assertSuccessWithOutputLines("Hello World!");
       // If API level indicates desugaring is needed check the edges are reported.

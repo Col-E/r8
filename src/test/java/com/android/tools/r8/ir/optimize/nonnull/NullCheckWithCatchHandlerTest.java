@@ -30,7 +30,7 @@ public class NullCheckWithCatchHandlerTest extends TestBase {
     testForR8(parameters.getBackend())
         .addProgramClasses(Main.class)
         .addKeepMainRule(Main.class)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithEmptyOutput();

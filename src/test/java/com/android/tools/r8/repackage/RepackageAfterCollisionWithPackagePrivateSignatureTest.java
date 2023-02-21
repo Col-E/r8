@@ -29,7 +29,7 @@ public class RepackageAfterCollisionWithPackagePrivateSignatureTest extends Repa
         .addClassObfuscationDictionary("a")
         .apply(this::configureRepackaging)
         .enableInliningAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .inspect(this::inspect)
         .run(parameters.getRuntime(), TestClass.class)

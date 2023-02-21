@@ -42,7 +42,7 @@ public class SingleResolutionWithFailingDispatchTest extends TestBase {
         .addProgramClasses(Main.class, I.class, J.class)
         .addProgramClassFileData(getProgramClassFileData())
         .addKeepMainRule(Main.class)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .run(parameters.getRuntime(), Main.class)
         .apply(this::inspectRunResult);

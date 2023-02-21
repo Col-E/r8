@@ -38,7 +38,7 @@ public class StatePropagationTest extends TestBase {
     testForR8(parameters.getBackend())
         .addInnerClasses(StatePropagationTest.class)
         .addKeepMainRule(TestClass.class)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
         .compile()

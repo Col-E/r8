@@ -45,7 +45,7 @@ public class ConvertRemovedStringSwitchTest extends TestBase {
     testForR8(parameters.getBackend())
         .addInnerClasses(ConvertRemovedStringSwitchTest.class)
         .addKeepMainRule(TestClass.class)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .inspect(this::inspect)
         .run(parameters.getRuntime(), TestClass.class, "A", "B", "C", "D", "E")

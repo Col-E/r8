@@ -42,7 +42,7 @@ public class DisjointFunctionalInterfacesWithSameNameAndDifferentParametersMergi
         .noClassInliningOfSynthetics()
         .noHorizontalClassMergingOfSynthetics()
         .noInliningOfSynthetics()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines("I", "J");

@@ -42,7 +42,7 @@ public class EqualsCompareToEnumUnboxingTest extends EnumUnboxingTestBase {
         .enableNeverClassInliningAnnotations()
         .addKeepRules(enumKeepRules.getKeepRules())
         .addOptionsModification(opt -> enableEnumOptions(opt, enumValueOptimization))
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .run(parameters.getRuntime(), success)
         .assertSuccess()

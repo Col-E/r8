@@ -66,7 +66,7 @@ public class RedundantConstNumberRemovalTest extends TestBase {
             .enableInliningAnnotations()
             .addOptionsModification(
                 internalOptions -> internalOptions.enableRedundantConstNumberOptimization = true)
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .run(TestClass.class)
             .assertSuccessWithOutput(expectedOutput);
 

@@ -47,7 +47,7 @@ public class ApiModelNoVerticalMergingTest extends TestBase {
         .addProgramClasses(Main.class, Base.class, Sub.class)
         .addLibraryClasses(Api.class)
         .addDefaultRuntimeLibrary(parameters)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addKeepMainRule(Main.class)
         .apply(setMockApiLevelForMethod(apiMethod, L_MR1))
         .apply(ApiModelingTestHelper::enableApiCallerIdentification)

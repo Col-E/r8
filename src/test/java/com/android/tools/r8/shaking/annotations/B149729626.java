@@ -44,7 +44,7 @@ public class B149729626 extends TestBase {
             "-keepclassmembers @" + Marker.class.getTypeName() + " class * {",
             "  <init>(...);",
             "}")
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .inspect(this::inspect)
         .run(parameters.getRuntime(), TestClass.class)
@@ -61,7 +61,7 @@ public class B149729626 extends TestBase {
             "-keep class <1> {",
             "  <init>(...);",
             "}")
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .inspect(this::inspect)
         .run(parameters.getRuntime(), TestClass.class)
@@ -73,7 +73,7 @@ public class B149729626 extends TestBase {
     testForR8Compat(parameters.getBackend())
         .addInnerClasses(B149729626.class)
         .addKeepMainRule(TestClass.class)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .inspect(this::inspect)
         .run(parameters.getRuntime(), TestClass.class)

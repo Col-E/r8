@@ -58,7 +58,7 @@ public class BufferCovariantReturnTypeTest extends TestBase {
   public void testD8() throws Exception {
     testForD8(parameters.getBackend())
         .addProgramFiles(JAR)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), "buffercovariantreturntype.BufferCovariantReturnTypeMain")
         .assertSuccessWithOutput(EXPECTED_RESULT);
   }
@@ -69,7 +69,7 @@ public class BufferCovariantReturnTypeTest extends TestBase {
     testForR8(parameters.getBackend())
         .addProgramFiles(JAR)
         .addKeepMainRule("buffercovariantreturntype.BufferCovariantReturnTypeMain")
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), "buffercovariantreturntype.BufferCovariantReturnTypeMain")
         .assertSuccessWithOutput(EXPECTED_RESULT);
   }

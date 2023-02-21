@@ -90,7 +90,7 @@ public class DefaultInterfaceMethodInSubInterfaceSubTypeTest extends TestBase {
         .enableNeverClassInliningAnnotations()
         .enableInliningAnnotations()
         .enableNoVerticalClassMergingAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines(EXPECTED);
   }

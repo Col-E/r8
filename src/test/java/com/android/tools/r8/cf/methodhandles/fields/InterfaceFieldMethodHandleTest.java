@@ -74,7 +74,7 @@ public class InterfaceFieldMethodHandleTest extends TestBase {
         .addLibraryFiles(ToolHelper.getMostRecentAndroidJar())
         .addProgramClasses(I.class)
         .addProgramClassFileData(getTransformedMain())
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compileWithExpectedDiagnostics(this::checkDiagnostics)
         .run(parameters.getRuntime(), Main.class)
         .apply(this::checkResult);
@@ -87,7 +87,7 @@ public class InterfaceFieldMethodHandleTest extends TestBase {
         .addLibraryFiles(ToolHelper.getMostRecentAndroidJar())
         .addProgramClasses(I.class)
         .addProgramClassFileData(getTransformedMain())
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .allowDiagnosticMessages()
         .compileWithExpectedDiagnostics(this::checkDiagnostics)
         .run(parameters.getRuntime(), Main.class)

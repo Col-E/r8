@@ -114,7 +114,7 @@ public class RepackageTest extends RepackageTestBase {
         .enableInliningAnnotations()
         .enableNoHorizontalClassMergingAnnotations()
         .enableNoHorizontalClassMergingAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .inspect(this::inspect)
         .run(parameters.getRuntime(), TestClass.class)

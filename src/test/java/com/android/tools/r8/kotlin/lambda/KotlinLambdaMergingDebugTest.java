@@ -47,7 +47,7 @@ public class KotlinLambdaMergingDebugTest extends KotlinTestBase {
             compiledJars.getForConfiguration(kotlinc, kotlinParameters.getTargetVersion()),
             kotlinc.getKotlinAnnotationJar())
         .addProgramFiles(getJavaJarFile(FOLDER))
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addKeepMainRule(MAIN_CLASS)
         .allowDiagnosticWarningMessages()
         .compile()

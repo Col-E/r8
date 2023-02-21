@@ -38,7 +38,7 @@ public class MainDexListMergeInRootTest extends TestBase {
     testForR8(parameters.getBackend())
         .addProgramClasses(OutsideMainDex.class, InsideA.class, InsideB.class, Main.class)
         .addKeepClassAndMembersRules(Main.class)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .enableNeverClassInliningAnnotations()
         .enableNoHorizontalClassMergingAnnotations()
         .enableInliningAnnotations()

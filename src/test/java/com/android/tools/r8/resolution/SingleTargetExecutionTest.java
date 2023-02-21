@@ -78,7 +78,7 @@ public class SingleTargetExecutionTest extends AsmTestBase {
             R8TestBuilder::enableInliningAnnotations,
             TestShrinkerBuilder::addInliningAnnotations)
         .enableNoHorizontalClassMergingAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutput(getExpectedOutput());
   }

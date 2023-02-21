@@ -58,7 +58,7 @@ public class KeepInterfaceMethodTest extends TestBase {
         .addProgramClasses(I.class)
         .addKeepRules("-keepclassmembers class " + I.class.getTypeName() + " { void foo(); }")
         .addKeepRules("-keep class " + I.class.getTypeName() + " { }")
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .inspect(this::inspectIClassAndMethodIsPresent);
   }
@@ -84,7 +84,7 @@ public class KeepInterfaceMethodTest extends TestBase {
         .addKeepRules("-keepclassmembers class " + I.class.getTypeName() + " { void foo(); }")
         .addKeepMainRule(Main.class)
         .enableNoHorizontalClassMergingAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines("A.foo")
         .inspect(this::inspectIClassAndMethodIsPresent);

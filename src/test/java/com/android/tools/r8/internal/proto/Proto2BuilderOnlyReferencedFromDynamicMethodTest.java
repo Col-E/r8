@@ -51,7 +51,7 @@ public class Proto2BuilderOnlyReferencedFromDynamicMethodTest extends ProtoShrin
         .allowUnusedDontWarnPatterns()
         .allowUnusedProguardConfigurationRules()
         .enableProtoShrinking()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .assertAllInfoMessagesMatch(
             containsString("Proguard configuration rule does not match anything"))

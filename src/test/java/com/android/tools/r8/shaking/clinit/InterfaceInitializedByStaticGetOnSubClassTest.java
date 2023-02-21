@@ -35,7 +35,7 @@ public class InterfaceInitializedByStaticGetOnSubClassTest
     assumeTrue(parameters.isDexRuntime());
     testForD8()
         .addInnerClasses(getClass())
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .run(parameters.getRuntime(), TestClass.class)
         .assertSuccessWithOutputLines("A");
@@ -47,7 +47,7 @@ public class InterfaceInitializedByStaticGetOnSubClassTest
         .addInnerClasses(getClass())
         .addKeepMainRule(TestClass.class)
         .allowStdoutMessages()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .run(parameters.getRuntime(), TestClass.class)
         .assertSuccessWithOutputLines("A");

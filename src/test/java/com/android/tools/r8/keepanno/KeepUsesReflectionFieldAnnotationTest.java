@@ -51,7 +51,7 @@ public class KeepUsesReflectionFieldAnnotationTest extends TestBase {
         .enableExperimentalKeepAnnotations()
         .addProgramClasses(getInputClasses())
         .addKeepMainRule(TestClass.class)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), TestClass.class)
         .assertSuccessWithOutput(EXPECTED)
         .inspect(this::checkOutput);

@@ -43,7 +43,7 @@ public class FieldTypeStrengtheningCollisionTest extends TestBase {
             "-keep class " + Main.class.getTypeName() + " { " + A.class.getTypeName() + " f; }")
         .enableInliningAnnotations()
         .addDontObfuscate()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .inspect(
             inspector -> {

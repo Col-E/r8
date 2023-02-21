@@ -53,7 +53,7 @@ public abstract class MethodsTestBase extends TestBase {
       List<String> keepRules, BiConsumer<CodeInspector, Shrinker> inspector, String expected)
       throws Throwable {
     testForR8(parameters.getBackend())
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .enableNoVerticalClassMergingAnnotations()
         .addProgramClasses(getClasses())
         .addKeepRules(keepRules)

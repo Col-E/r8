@@ -41,7 +41,7 @@ public class LibraryMethodOverrideInInterfaceMarkingTest extends TestBase {
         .addOptionsModification(
             options -> options.testing.enqueuerInspector = this::verifyLibraryOverrideInformation)
         .enableNoVerticalClassMergingAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), TestClass.class)
         .assertSuccessWithOutputLines("true", "true");
   }

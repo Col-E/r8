@@ -46,7 +46,7 @@ public class AnnotationShakingBehaviorTest extends TestBase {
         .addKeepMainRule(Main.class)
         .addKeepClassAndMembersRules(Factory.class)
         .addKeepAttributes("*Annotation*")
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines("Hello World!")
         .inspect(inspector -> assertThat(inspector.clazz(C.class), isPresent()));
@@ -65,7 +65,7 @@ public class AnnotationShakingBehaviorTest extends TestBase {
                 + "{void test();}")
         .addKeepAttributes("*Annotation*")
         .enableInliningAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), MainWithMethodAnnotation.class)
         .assertSuccessWithOutputLines("Hello World!")
         .inspect(inspector -> assertThat(inspector.clazz(C.class), isPresent()));
@@ -78,7 +78,7 @@ public class AnnotationShakingBehaviorTest extends TestBase {
         .addProgramClasses(MainWithGenericC.class, C.class)
         .addKeepMainRule(MainWithGenericC.class)
         .addKeepAttributes("Signature", "InnerClasses", "EnclosingMethod")
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), MainWithGenericC.class)
         .assertSuccessWithOutputLines("Hello World!")
         .inspect(
@@ -97,7 +97,7 @@ public class AnnotationShakingBehaviorTest extends TestBase {
         .addKeepAttributes("*Annotation*")
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), MainWithNewB.class)
         .assertSuccessWithOutputLines("Hello World!")
         .inspect(

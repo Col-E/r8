@@ -40,7 +40,7 @@ public class ClassesHaveBeenMergedTest extends VerticalClassMergerTestBase {
         .addVerticallyMergedClassesInspector(this::inspectVerticallyMergedClasses)
         .enableInliningAnnotations()
         .enableNoHorizontalClassMergingAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .inspect(this::inspect)
         .run(parameters.getRuntime(), TestClass.class)

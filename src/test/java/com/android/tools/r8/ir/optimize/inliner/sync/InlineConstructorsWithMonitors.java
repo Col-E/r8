@@ -40,7 +40,7 @@ public class InlineConstructorsWithMonitors extends TestBase {
     testForR8(parameters.getBackend())
         .addInnerClasses(InlineConstructorsWithMonitors.class)
         .addKeepMainRule(TestClass.class)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .run(parameters.getRuntime(), TestClass.class)
         .assertSuccessWithOutputLines("monitor", "monitor2")

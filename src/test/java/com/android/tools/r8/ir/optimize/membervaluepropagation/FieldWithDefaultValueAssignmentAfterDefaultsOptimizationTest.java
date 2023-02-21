@@ -39,7 +39,7 @@ public class FieldWithDefaultValueAssignmentAfterDefaultsOptimizationTest extend
         .addKeepMainRule(TestClass.class)
         .addOptionsModification(options -> options.testing.waveModifier = this::waveModifier)
         .enableInliningAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .run(parameters.getRuntime(), TestClass.class)
         .assertSuccessWithOutputLines("42");

@@ -45,7 +45,7 @@ public class LibraryMethodOverrideTest extends TestBase {
         .enableNeverClassInliningAnnotations()
         .enableNoVerticalClassMergingAnnotations()
         .enableNoHorizontalClassMergingAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .inspect(this::verifyOutput)
         .run(parameters.getRuntime(), TestClass.class)

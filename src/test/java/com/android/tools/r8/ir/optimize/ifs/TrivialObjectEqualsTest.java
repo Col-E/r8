@@ -37,7 +37,7 @@ public class TrivialObjectEqualsTest extends TestBase {
     assumeTrue(parameters.isDexRuntime());
     testForD8(parameters.getBackend())
         .addInnerClasses(getClass())
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .inspect(
             inspector ->
@@ -54,7 +54,7 @@ public class TrivialObjectEqualsTest extends TestBase {
         .addInnerClasses(getClass())
         .addKeepMainRule(Main.class)
         .enableInliningAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .inspect(
             inspector ->

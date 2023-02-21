@@ -33,7 +33,7 @@ public class RedundantValuesCloneEnumUnboxingTest extends TestBase {
         .addInnerClasses(getClass())
         .addKeepMainRule(Main.class)
         .addEnumUnboxingInspector(inspector -> inspector.assertUnboxed(MyEnum.class))
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         // Verify that there are no calls to clone().
         .inspect(

@@ -46,7 +46,7 @@ public class ArrayInstanceOfCloneableAndSerializableTest extends TestBase {
     testForD8()
         .addProgramClasses(Main.class)
         .release()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .inspect(
             inspector -> {
@@ -67,7 +67,7 @@ public class ArrayInstanceOfCloneableAndSerializableTest extends TestBase {
     testForR8(parameters.getBackend())
         .addProgramClasses(Main.class)
         .addKeepMainRule(Main.class)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .inspect(
             inspector -> {

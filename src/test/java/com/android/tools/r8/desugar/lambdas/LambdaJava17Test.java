@@ -71,7 +71,7 @@ public class LambdaJava17Test extends TestBase {
             parameters.isCfRuntime() && !parameters.getApiLevel().isEqualTo(AndroidApiLevel.B),
             // Alternatively we need to pass Jdk17 as library.
             b -> b.addKeepRules("-dontwarn java.lang.invoke.StringConcatFactory"))
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addKeepMainRule(MAIN)
         .run(parameters.getRuntime(), MAIN)
         .assertSuccessWithOutputLines(EXPECTED_RESULT);

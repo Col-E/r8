@@ -113,7 +113,7 @@ public class J$ExtensionTest extends DesugaredLibraryTestBase {
       stderr =
           testForD8()
               .addProgramFiles(compiledClasses)
-              .setMinApi(parameters.getApiLevel())
+              .setMinApi(parameters)
               .run(parameters.getRuntime(), MAIN_CLASS_NAME)
               .assertFailure()
               .getStdErr();

@@ -49,7 +49,7 @@ public class LibraryMethodOverridesTest extends TestBase {
         testForR8(parameters.getBackend())
             .addProgramClasses(LibClass.class)
             .addKeepClassAndMembersRules(LibClass.class)
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .compile();
     testForR8(parameters.getBackend())
         .addProgramClasses(TestClass.class, CustomPredicate.class)
@@ -60,7 +60,7 @@ public class LibraryMethodOverridesTest extends TestBase {
                 o.testing.callSiteOptimizationInfoInspector = this::callSiteOptimizationInfoInspect)
         .enableInliningAnnotations()
         .enableNoMethodStaticizingAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .addRunClasspathFiles(libraryCompileResult.writeToZip())
         .run(parameters.getRuntime(), MAIN)

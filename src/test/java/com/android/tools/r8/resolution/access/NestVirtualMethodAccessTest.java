@@ -94,7 +94,7 @@ public class NestVirtualMethodAccessTest extends TestBase {
     testForR8(parameters.getBackend())
         .addProgramClasses(getClasses())
         .addProgramClassFileData(getTransformedClasses())
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addKeepMainRule(Main.class)
         .enableNoHorizontalClassMergingAnnotations()
         .run(parameters.getRuntime(), Main.class)

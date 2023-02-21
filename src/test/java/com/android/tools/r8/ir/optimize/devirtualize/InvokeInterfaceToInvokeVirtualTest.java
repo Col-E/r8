@@ -55,7 +55,7 @@ public class InvokeInterfaceToInvokeVirtualTest extends TestBase {
                 options ->
                     options.inlinerOptions().enableInliningOfInvokesWithNullableReceivers = false)
             .enableNoHorizontalClassMergingAnnotations()
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .run(parameters.getRuntime(), Main.class)
             .assertSuccessWithOutputLines(EXPECTED_OUTPUT)
             .inspector();

@@ -49,7 +49,7 @@ public class InvokeSpecialMissingInvokeVirtualTest extends TestBase {
         .addProgramClasses(A.class, Main.class)
         .addProgramClassFileData(getClassWithTransformedInvoked())
         .addKeepMainRule(Main.class)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), Main.class)
         .assertFailureWithErrorThatMatches(containsString("NoSuchMethodError"));
   }

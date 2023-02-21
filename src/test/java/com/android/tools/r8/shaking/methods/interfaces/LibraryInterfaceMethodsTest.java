@@ -38,7 +38,7 @@ public class LibraryInterfaceMethodsTest extends TestBase {
             .addProgramClasses(BaseInterface.class, SubInterface.class)
             .addLibraryFiles(runtimeJar(parameters))
             .addKeepMethodRules(SubInterface.class, "int hashCode()")
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .compile();
     testForRuntime(parameters)
         .addProgramClasses(A.class, Main.class)

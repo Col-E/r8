@@ -58,7 +58,7 @@ public class RetraceInlineeWithNullCheckFollowingImplicitReceiverNullCheckTest e
         .enableExperimentalMapFileVersion()
         .enableInliningAnnotations()
         .enableNoMethodStaticizingAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), Caller.class)
         .assertFailureWithErrorThatThrows(NullPointerException.class)
         .inspectStackTrace(

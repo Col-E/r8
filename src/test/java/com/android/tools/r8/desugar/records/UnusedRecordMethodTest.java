@@ -48,7 +48,7 @@ public class UnusedRecordMethodTest extends TestBase {
     }
     testForD8(parameters.getBackend())
         .addProgramClassFileData(PROGRAM_DATA)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .run(parameters.getRuntime(), MAIN_TYPE)
         .assertSuccessWithOutput(EXPECTED_RESULT);
@@ -60,7 +60,7 @@ public class UnusedRecordMethodTest extends TestBase {
     R8FullTestBuilder builder =
         testForR8(parameters.getBackend())
             .addProgramClassFileData(PROGRAM_DATA)
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .addKeepRules("-keep class records.UnusedRecordMethod { *; }")
             .addKeepMainRule(MAIN_TYPE);
     if (parameters.isCfRuntime()) {

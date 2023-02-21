@@ -49,7 +49,7 @@ public class InvokeStaticPositiveTest extends TestBase {
         .addOptionsModification(
             o ->
                 o.testing.callSiteOptimizationInfoInspector = this::callSiteOptimizationInfoInspect)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), MAIN)
         .assertSuccessWithOutputLines("Sub1")
         .inspect(this::inspect);

@@ -30,7 +30,7 @@ public class EnumValueOfOptimizationTest extends TestBase {
     testForR8(parameters.getBackend())
         .addKeepMainRule(Main.class)
         .addInnerClasses(EnumValueOfOptimizationTest.class)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines("npe OK", "iae1 OK", "iae2 OK", "iae3 OK", "iae4 OK");

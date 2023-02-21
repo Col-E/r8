@@ -58,7 +58,7 @@ public class EmptyRecordAnnotationTest extends TestBase {
     }
     testForD8(parameters.getBackend())
         .addProgramClassFileData(PROGRAM_DATA)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .run(parameters.getRuntime(), MAIN_TYPE)
         .assertSuccessWithOutput(EXPECTED_RESULT_DEX);
@@ -70,7 +70,7 @@ public class EmptyRecordAnnotationTest extends TestBase {
     R8FullTestBuilder builder =
         testForR8(parameters.getBackend())
             .addProgramClassFileData(PROGRAM_DATA)
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .addKeepRules("-keep class records.EmptyRecordAnnotation { *; }")
             .addKeepRules("-keepattributes *Annotation*")
             .addKeepRules("-keep class records.EmptyRecordAnnotation$Empty")

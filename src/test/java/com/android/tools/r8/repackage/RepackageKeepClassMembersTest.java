@@ -34,7 +34,7 @@ public class RepackageKeepClassMembersTest extends RepackageTestBase {
     assumeTrue(parameters.isOrSimulateNoneRuntime());
     testForProguard(ProguardVersion.V7_0_0)
         .addProgramClasses(RepackageForKeepClassMembers.class, Main.class)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .apply(this::configureRepackaging)
         .addKeepRules(
             "-keepclassmembers class " + typeName(RepackageForKeepClassMembers.class) + " { *; }")
@@ -49,7 +49,7 @@ public class RepackageKeepClassMembersTest extends RepackageTestBase {
   public void testR8() throws Exception {
     testForR8(parameters.getBackend())
         .addProgramClasses(RepackageForKeepClassMembers.class, Main.class)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .apply(this::configureRepackaging)
         .addKeepRules(
             "-keepclassmembers class " + typeName(RepackageForKeepClassMembers.class) + " { *; }")

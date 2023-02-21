@@ -75,7 +75,7 @@ public class SuppressedExceptionsTest extends TestBase {
     parameters.assumeR8TestParameters();
     testForR8(parameters.getBackend())
         .addInnerClasses(SuppressedExceptionsTest.class)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addKeepMainRule(TestClass.class)
         .run(parameters.getRuntime(), TestClass.class)
         .assertSuccessWithOutput(

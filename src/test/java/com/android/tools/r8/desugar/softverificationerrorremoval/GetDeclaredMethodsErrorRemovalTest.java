@@ -51,7 +51,7 @@ public class GetDeclaredMethodsErrorRemovalTest extends TestBase {
     D8TestRunResult run =
         testForD8()
             .addInnerClasses(GetDeclaredMethodsErrorRemovalTest.class)
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .compile()
             .run(parameters.getRuntime(), TestClass.class);
     if (parameters.getDexRuntimeVersion().isOlderThanOrEqual(ToolHelper.DexVm.Version.V6_0_1)) {
@@ -70,7 +70,7 @@ public class GetDeclaredMethodsErrorRemovalTest extends TestBase {
     testForD8()
         .addInnerClasses(GetDeclaredMethodsErrorRemovalTest.class)
         .addProgramFiles(stubs)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .run(parameters.getRuntime(), TestClass.class)
         .assertSuccessWithOutputLines(EXPECTED_RESULT);

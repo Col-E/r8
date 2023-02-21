@@ -55,7 +55,7 @@ public class LibraryMethodOverrideCovariantTest extends TestBase {
         .addDefaultRuntimeLibrary(parameters)
         .addLibraryClasses(LibraryUser.class)
         .addKeepMainRule(Main.class)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .enableInliningAnnotations()
         .compile()
         .addRunClasspathFiles(buildOnDexRuntime(parameters, LibraryUser.class))

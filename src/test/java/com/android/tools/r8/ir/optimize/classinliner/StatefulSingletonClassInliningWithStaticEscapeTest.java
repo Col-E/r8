@@ -33,7 +33,7 @@ public class StatefulSingletonClassInliningWithStaticEscapeTest extends TestBase
         .addInnerClasses(StatefulSingletonClassInliningWithStaticEscapeTest.class)
         .addKeepMainRule(TestClass.class)
         .enableInliningAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .run(parameters.getRuntime(), TestClass.class)
         .assertSuccessWithOutputLines("true");

@@ -49,7 +49,7 @@ public class MergeSynthesizingContextIntoSyntheticLambdaTest extends TestBase {
                 inspector.assertMergedIntoSubtype(I.class);
               }
             })
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines("I", "J");

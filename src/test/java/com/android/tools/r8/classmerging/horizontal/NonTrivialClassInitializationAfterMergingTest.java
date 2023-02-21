@@ -39,7 +39,7 @@ public class NonTrivialClassInitializationAfterMergingTest extends TestBase {
                         i -> i.assertIsCompleteMergeGroup(A.class, B.class))
                     .assertNoOtherClassesMerged())
         .enableNoHorizontalClassMergingAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .run(parameters.getRuntime(), Main.class)
         .applyIf(

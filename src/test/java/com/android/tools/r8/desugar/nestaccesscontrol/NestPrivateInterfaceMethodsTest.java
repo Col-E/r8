@@ -65,26 +65,26 @@ public class NestPrivateInterfaceMethodsTest extends TestBase {
         testForD8(parameters.getBackend())
             .addProgramClassFileData(bytesI)
             .addClasspathClassFileData(bytesJ)
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .compile()
             .writeToZip();
     Path outJ =
         testForD8(parameters.getBackend())
             .addProgramClassFileData(bytesJ)
             .addClasspathClassFileData(bytesI)
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .compile()
             .writeToZip();
     Path outTestClass =
         testForD8(parameters.getBackend())
             .addProgramClasses(TestClass.class)
             .addClasspathClassFileData(bytesI, bytesJ)
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .compile()
             .writeToZip();
     testForD8(parameters.getBackend())
         .addProgramFiles(outI, outJ, outTestClass)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), TestClass.class)
         .assertSuccessWithOutput(EXPECTED);
   }

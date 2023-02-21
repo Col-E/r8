@@ -34,7 +34,7 @@ public class InstanceOfToNullCheckRewritingTest extends TestBase {
         .addInnerClasses(getClass())
         .addKeepMainRule(Main.class)
         .enableNoVerticalClassMergingAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .inspect(inspector -> assertThat(inspector.clazz(I.class), isPresent()))
         .run(parameters.getRuntime(), Main.class)

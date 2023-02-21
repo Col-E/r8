@@ -25,18 +25,18 @@ public class ConstructorMergingWithArgumentsTest extends HorizontalClassMergingT
         .addInnerClasses(getClass())
         .addKeepMainRule(Main.class)
         .enableNeverClassInliningAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines("foo hello", "bar world")
         .inspect(
             codeInspector -> {
-                ClassSubject aClassSubject = codeInspector.clazz(A.class);
+              ClassSubject aClassSubject = codeInspector.clazz(A.class);
 
-                assertThat(aClassSubject, isPresent());
-                assertThat(codeInspector.clazz(B.class), not(isPresent()));
+              assertThat(aClassSubject, isPresent());
+              assertThat(codeInspector.clazz(B.class), not(isPresent()));
 
-                MethodSubject initSubject = aClassSubject.init(String.class.getName(), "int");
-                assertThat(initSubject, isPresent());
+              MethodSubject initSubject = aClassSubject.init(String.class.getName(), "int");
+              assertThat(initSubject, isPresent());
             });
   }
 

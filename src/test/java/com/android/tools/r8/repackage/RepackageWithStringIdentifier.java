@@ -47,7 +47,7 @@ public class RepackageWithStringIdentifier extends RepackageTestBase {
         .addKeepMainRule(Main.class)
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .inspect(inspector -> assertThat(A.class, isRepackaged(inspector)))
         .run(parameters.getRuntime(), Main.class)

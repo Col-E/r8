@@ -45,7 +45,7 @@ public class MissingServiceClassWithFeatureTest extends TestBase {
                 AppServices.SERVICE_DIRECTORY_NAME + Service.class.getTypeName(),
                 Origin.unknown()))
         .addFeatureSplit(FeatureClass.class)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile();
   }
 

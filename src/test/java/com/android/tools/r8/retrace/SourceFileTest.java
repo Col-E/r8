@@ -93,7 +93,7 @@ public class SourceFileTest extends TestBase {
             .addKeepClassRules(ClassWithoutCustomFileName.class)
             .enableInliningAnnotations()
             .addKeepMainRule(Main.class)
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .addKeepAttributeSourceFile()
             .compile();
     R8TestRunResult runResult =

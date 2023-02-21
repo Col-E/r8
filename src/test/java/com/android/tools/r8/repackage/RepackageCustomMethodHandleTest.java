@@ -73,7 +73,7 @@ public class RepackageCustomMethodHandleTest extends RepackageTestBase {
         .apply(this::configureRepackaging)
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .inspect(inspector -> assertThat(InvokeCustom.class, isRepackaged(inspector)))
         .run(parameters.getRuntime(), Main.class)

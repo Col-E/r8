@@ -44,7 +44,7 @@ public class ApiModelBackportTest extends TestBase {
     Method callBackport = ApiCaller.class.getDeclaredMethod("callBackport", int.class);
     testForR8(parameters.getBackend())
         .addProgramClasses(ApiCaller.class, ApiCallerCaller.class, Main.class)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addKeepMainRule(Main.class)
         .apply(ApiModelingTestHelper::enableApiCallerIdentification)
         .apply(

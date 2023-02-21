@@ -90,7 +90,7 @@ public class B148525512 extends KotlinTestBase {
                         .assertIsCompleteMergeGroup(
                             "com.android.tools.r8.kotlin.lambda.b148525512.FeatureKt$feature$1",
                             "com.android.tools.r8.kotlin.lambda.b148525512.FeatureKt$feature$2"))
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .addFeatureSplit(
                 builder ->
                     builder

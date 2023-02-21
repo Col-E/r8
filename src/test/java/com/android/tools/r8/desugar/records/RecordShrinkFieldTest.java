@@ -54,7 +54,7 @@ public class RecordShrinkFieldTest extends TestBase {
     Assume.assumeTrue("Only valid in R8", minifying);
     testForD8(parameters.getBackend())
         .addProgramClassFileData(PROGRAM_DATA)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .run(parameters.getRuntime(), MAIN_TYPE)
         .assertSuccessWithOutput(EXPECTED_RESULT_D8);
@@ -65,7 +65,7 @@ public class RecordShrinkFieldTest extends TestBase {
     parameters.assumeR8TestParameters();
     testForR8(parameters.getBackend())
         .addProgramClassFileData(PROGRAM_DATA)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addKeepMainRule(MAIN_TYPE)
         .minification(minifying)
         .compile()
@@ -81,7 +81,6 @@ public class RecordShrinkFieldTest extends TestBase {
     Path desugared =
         testForR8(Backend.CF)
             .addProgramClassFileData(PROGRAM_DATA)
-            .setMinApi(parameters.getApiLevel())
             .addKeepMainRule(MAIN_TYPE)
             .minification(minifying)
             .addLibraryFiles(RecordTestUtils.getJdk15LibraryFiles(temp))
@@ -89,7 +88,7 @@ public class RecordShrinkFieldTest extends TestBase {
             .writeToZip();
     testForR8(parameters.getBackend())
         .addProgramFiles(desugared)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addKeepMainRule(MAIN_TYPE)
         .minification(minifying)
         .compile()

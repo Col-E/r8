@@ -56,7 +56,7 @@ public class SuperAPIConversionTest extends DesugaredLibraryTestBase {
         libraryDesugaringSpecification == JDK8 && compilationSpecification.isProgramShrink());
     testForD8()
         .addInnerClasses(SuperAPIConversionTest.class)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), Executor.class)
         .assertSuccessWithOutputLines("Head");
   }

@@ -43,7 +43,7 @@ public class B135918413 extends TestBase {
         .addInnerClasses(B135918413.class)
         .addKeepMainRule(TestClass.class)
         .enableInliningAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .inspect(this::inspect)
         .run(parameters.getRuntime(), TestClass.class)

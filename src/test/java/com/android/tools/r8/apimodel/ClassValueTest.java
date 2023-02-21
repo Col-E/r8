@@ -64,7 +64,7 @@ public class ClassValueTest extends TestBase {
     assumeTrue(parameters.isDexRuntime());
     testForD8(parameters.getBackend())
         .addInnerClasses(getClass())
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .inspect(this::computeValuePresent)
         .run(parameters.getRuntime(), TestClass.class)
@@ -77,7 +77,7 @@ public class ClassValueTest extends TestBase {
         .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.T))
         .addInnerClasses(getClass())
         .addKeepMainRule(TestClass.class)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addDontWarn(ClassValue.class)
         .compile()
         .inspect(this::computeValueAbsent)
@@ -95,7 +95,7 @@ public class ClassValueTest extends TestBase {
         .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.T))
         .addInnerClasses(getClass())
         .addKeepMainRule(TestClass.class)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         // ProGuard warns about the inner class attributes referring to this outer class.
         .addDontWarn(this.getClass().getTypeName())
         // ProGuard also warns about ClassValueSub not having method get.
@@ -115,7 +115,7 @@ public class ClassValueTest extends TestBase {
         .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.T))
         .addInnerClasses(getClass())
         .addKeepMainRule(TestClass.class)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addDontWarn(ClassValue.class)
         // Try to keep computeValue on classes extending unknown type.
         .addKeepRules("-keep class * extends " + ClassValue.class.getTypeName() + " { *; }")
@@ -144,7 +144,7 @@ public class ClassValueTest extends TestBase {
         .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.T))
         .addInnerClasses(getClass())
         .addKeepMainRule(TestClass.class)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         // ProGuard warns about the inner class attributes referring to this outer class.
         .addDontWarn(this.getClass().getTypeName())
         // Just -dontwarn on ClassValue is not sufficient. ProGuard also warns about ClassValueSub
@@ -167,7 +167,7 @@ public class ClassValueTest extends TestBase {
           .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.T))
           .addInnerClasses(getClass())
           .addKeepMainRule(TestClass.class)
-          .setMinApi(parameters.getApiLevel())
+          .setMinApi(parameters)
           .addDontWarn(dontWarn)
           .addKeepRules(
               "-keep class "

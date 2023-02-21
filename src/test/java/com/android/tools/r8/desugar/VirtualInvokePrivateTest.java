@@ -52,7 +52,7 @@ public class VirtualInvokePrivateTest extends TestBase implements Opcodes {
     testForR8(parameters.getBackend())
         .addProgramClassFileData(transformInvokeSpecialToInvokeVirtual())
         .addKeepMainRule(TestRunner.class)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), TestRunner.class)
         .assertSuccessWithOutput(EXPECTED_OUTPUT);
   }

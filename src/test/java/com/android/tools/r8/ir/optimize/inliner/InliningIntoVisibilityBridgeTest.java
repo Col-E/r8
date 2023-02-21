@@ -58,7 +58,7 @@ public class InliningIntoVisibilityBridgeTest extends TestBase {
             .applyIf(neverInline, R8TestBuilder::enableInliningAnnotations)
             .enableNoVerticalClassMergingAnnotations()
             .enableProguardTestOptions()
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .compile()
             .run(parameters.getRuntime(), TestClass.class)
             .assertSuccessWithOutput(expectedOutput);

@@ -40,7 +40,7 @@ public class StringSwitchWithHashCollisionsTest extends TestBase {
         .addInnerClasses(StringSwitchWithHashCollisionsTest.class)
         .addKeepMainRule(TestClass.class)
         .addOptionsModification(options -> assertTrue(options.minimumStringSwitchSize >= 3))
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .run(
             parameters.getRuntime(),

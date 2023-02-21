@@ -47,7 +47,7 @@ public class MissingReferenceNamingClashTest extends TestBase {
             transformer(Anno.class)
                 .replaceClassDescriptorInMembers(descriptor(Missing.class), newDescriptor)
                 .transform())
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addKeepMainRule(Main.class)
         .addKeepClassAndMembersRules(Anno.class)
         .addKeepClassRulesWithAllowObfuscation(A.class)

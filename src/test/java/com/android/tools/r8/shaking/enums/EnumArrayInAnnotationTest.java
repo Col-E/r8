@@ -108,7 +108,7 @@ public class EnumArrayInAnnotationTest extends TestBase {
               // Do nothing for DEX.
               assertTrue(useGenericEnumsRule); // Check not running twice.
             })
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addKeepRuntimeVisibleAnnotations()
         .run(parameters.getRuntime(), Main.class)
         .inspect(
@@ -133,7 +133,7 @@ public class EnumArrayInAnnotationTest extends TestBase {
         .addProgramFiles(r8cf)
         .addKeepMainRule(Main.class)
         .addKeepEnumsRule()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addKeepRuntimeVisibleAnnotations()
         .run(parameters.getRuntime(), Main.class)
         .inspect(

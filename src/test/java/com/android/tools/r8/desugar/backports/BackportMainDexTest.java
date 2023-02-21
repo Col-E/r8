@@ -111,12 +111,7 @@ public class BackportMainDexTest extends TestBase {
   @Test
   public void testMainDexTracingDex() throws Exception {
     assumeTrue(parameters.isDexRuntime());
-    Path out =
-        testForD8()
-            .addProgramClasses(CLASSES)
-            .setMinApi(parameters.getApiLevel())
-            .compile()
-            .writeToZip();
+    Path out = testForD8().addProgramClasses(CLASSES).setMinApi(parameters).compile().writeToZip();
     GenerateMainDexListRunResult mainDexListFromDex =
         traceMainDex(Collections.emptyList(), Collections.singleton(out));
     assertEquals(
@@ -136,7 +131,7 @@ public class BackportMainDexTest extends TestBase {
             // Setting intermediate will annotate synthetics, which should not cause types in those
             // to become main-dex included.
             .setIntermediate(true)
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .compile()
             .writeToZip();
     GenerateMainDexListRunResult mainDexListFromDex =
@@ -152,7 +147,7 @@ public class BackportMainDexTest extends TestBase {
     MainDexConsumer mainDexConsumer = new MainDexConsumer();
     testForD8(parameters.getBackend())
         .addProgramClasses(CLASSES)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addMainDexRules(keepMainProguardConfiguration(TestClass.class))
         .setProgramConsumer(mainDexConsumer)
         .compile()
@@ -178,13 +173,13 @@ public class BackportMainDexTest extends TestBase {
         testForD8(parameters.getBackend())
             .setOutputMode(outputMode)
             .addProgramClasses(CLASSES)
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .compile()
             .writeToZip();
     MainDexConsumer mainDexConsumer = new MainDexConsumer();
     testForD8()
         .addProgramFiles(perClassOutput)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         // Trace the classes run by main which will pick up their dependencies.
         .addMainDexRules(keepMainProguardConfiguration(TestClass.class))
         .setProgramConsumer(mainDexConsumer)
@@ -203,7 +198,7 @@ public class BackportMainDexTest extends TestBase {
             .addProgramClasses(User1.class)
             .addClasspathClasses(CLASSES)
             .setIntermediate(true)
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .compile()
             .writeToZip();
 
@@ -212,7 +207,7 @@ public class BackportMainDexTest extends TestBase {
             .addProgramClasses(User2.class)
             .addClasspathClasses(CLASSES)
             .setIntermediate(true)
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .compile()
             .writeToZip();
 
@@ -223,7 +218,7 @@ public class BackportMainDexTest extends TestBase {
     testForD8(parameters.getBackend())
         .addProgramClasses(classes)
         .addProgramFiles(files)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addMainDexListClassReferences(traceResult.getMainDexList())
         .setProgramConsumer(mainDexConsumer)
         .compile()
@@ -247,7 +242,7 @@ public class BackportMainDexTest extends TestBase {
             Reference.methodFromMethod(User1.class.getMethod("testBooleanCompare")),
             Reference.methodFromMethod(User1.class.getMethod("testCharacterCompare")))
         .addMainDexRules(keepMainProguardConfiguration(TestClass.class))
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), TestClass.class, getRunArgs())
         .assertSuccessWithOutput(EXPECTED)
         .inspect(this::checkExpectedSynthetics);

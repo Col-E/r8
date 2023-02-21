@@ -57,7 +57,7 @@ public class EmptyRecordTest extends TestBase {
     }
     testForD8(parameters.getBackend())
         .addProgramClassFileData(PROGRAM_DATA)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .run(parameters.getRuntime(), MAIN_TYPE)
         .assertSuccessWithOutput(EXPECTED_RESULT_D8);
@@ -73,7 +73,7 @@ public class EmptyRecordTest extends TestBase {
             parameters.isCfRuntime(),
             testBuilder -> testBuilder.addLibraryFiles(RecordTestUtils.getJdk15LibraryFiles(temp)))
         .minification(enableMinification)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .applyIf(
             parameters.isCfRuntime(),

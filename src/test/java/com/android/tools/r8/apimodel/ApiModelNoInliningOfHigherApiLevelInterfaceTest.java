@@ -44,7 +44,7 @@ public class ApiModelNoInliningOfHigherApiLevelInterfaceTest extends TestBase {
         .addProgramClassesAndInnerClasses(Main.class, A.class, ApiCaller.class)
         .addLibraryClasses(Api.class)
         .addDefaultRuntimeLibrary(parameters)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addKeepMainRule(Main.class)
         .enableConstantArgumentAnnotations()
         .enableInliningAnnotations()

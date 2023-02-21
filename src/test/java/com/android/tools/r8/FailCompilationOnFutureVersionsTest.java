@@ -42,7 +42,7 @@ public class FailCompilationOnFutureVersionsTest extends TestBase {
     Path out =
         testForD8()
             .addProgramClasses(TestClass.class)
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .addOptionsModification(
                 options ->
                     options.testing.forceDexVersionBytes =
@@ -52,7 +52,7 @@ public class FailCompilationOnFutureVersionsTest extends TestBase {
     try {
       testForD8()
           .addProgramFiles(out)
-          .setMinApi(parameters.getApiLevel())
+          .setMinApi(parameters)
           .compileWithExpectedDiagnostics(
               diagnotics -> {
                 diagnotics.assertOnlyErrors();
@@ -73,7 +73,7 @@ public class FailCompilationOnFutureVersionsTest extends TestBase {
     Path out =
         testForD8()
             .addProgramClasses(TestClass.class)
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .addOptionsModification(
                 options ->
                     options.testing.forceDexVersionBytes =
@@ -83,7 +83,7 @@ public class FailCompilationOnFutureVersionsTest extends TestBase {
     try {
       testForD8()
           .addProgramFiles(out)
-          .setMinApi(parameters.getApiLevel())
+          .setMinApi(parameters)
           .compileWithExpectedDiagnostics(
               diagnotics -> {
                 diagnotics.assertOnlyErrors();
@@ -106,7 +106,7 @@ public class FailCompilationOnFutureVersionsTest extends TestBase {
     try {
       testForD8()
           .addProgramClassFileData(CfDump.dump())
-          .setMinApi(parameters.getApiLevel())
+          .setMinApi(parameters)
           .compileWithExpectedDiagnostics(
               diagnotics -> {
                 diagnotics.assertOnlyErrors();

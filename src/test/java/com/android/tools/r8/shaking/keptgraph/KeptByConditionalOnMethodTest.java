@@ -77,7 +77,7 @@ public class KeptByConditionalOnMethodTest extends TestBase {
             .addProgramClasses(Main.class, IfClass.class, ThenClass.class)
             .addKeepMainRule(Main.class)
             .addKeepRules(ifRuleContent)
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .run(parameters.getRuntime(), Main.class, ThenClass.class.getTypeName())
             .assertSuccessWithOutput(EXPECTED)
             .graphInspector();

@@ -56,7 +56,7 @@ public class MissingServiceClassTest extends TestBase {
         .addOptionsModification(o -> o.dataResourceConsumer = dataResourceConsumer)
         .addDontWarn(ServiceImpl.class)
         .allowDiagnosticWarningMessages()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .inspectDiagnosticMessages(this::inspectDiagnosticMessagesWithDontWarn)
         .addRunClasspathClasses(Service.class, ServiceImpl.class)

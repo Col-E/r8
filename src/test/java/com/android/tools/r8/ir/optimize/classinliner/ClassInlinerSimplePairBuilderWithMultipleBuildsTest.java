@@ -51,7 +51,7 @@ public class ClassInlinerSimplePairBuilderWithMultipleBuildsTest extends ClassIn
         .addKeepMainRule(TestClass.class)
         .enableAlwaysInliningAnnotations()
         .addDontObfuscate()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .inspect(this::inspect)
         .run(parameters.getRuntime(), TestClass.class)

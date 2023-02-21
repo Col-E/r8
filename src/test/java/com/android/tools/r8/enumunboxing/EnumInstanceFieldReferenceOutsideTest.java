@@ -52,7 +52,7 @@ public class EnumInstanceFieldReferenceOutsideTest extends EnumUnboxingTestBase 
         .addEnumUnboxingInspector(inspector -> inspector.assertNotUnboxed(MyEnum.class))
         .addOptionsModification(opt -> enableEnumOptions(opt, enumValueOptimization))
         .addNeverClassInliningAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines("42");
   }

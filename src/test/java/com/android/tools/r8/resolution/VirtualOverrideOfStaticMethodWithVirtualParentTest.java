@@ -208,7 +208,7 @@ public class VirtualOverrideOfStaticMethodWithVirtualParentTest extends AsmTestB
           testForD8()
               .addProgramClasses(CLASSES)
               .addProgramClassFileData(DUMPS)
-              .setMinApi(parameters.getApiLevel())
+              .setMinApi(parameters)
               .run(parameters.getRuntime(), Main.class);
     }
     checkResult(runResult, false);
@@ -221,7 +221,7 @@ public class VirtualOverrideOfStaticMethodWithVirtualParentTest extends AsmTestB
             .addProgramClasses(CLASSES)
             .addProgramClassFileData(DUMPS)
             .addKeepMainRule(Main.class)
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .run(parameters.getRuntime(), Main.class);
     checkResult(runResult, true);
   }

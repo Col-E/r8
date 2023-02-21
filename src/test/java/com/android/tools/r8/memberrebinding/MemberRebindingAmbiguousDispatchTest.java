@@ -74,7 +74,7 @@ public class MemberRebindingAmbiguousDispatchTest extends TestBase {
     assumeFalse(desugaringWithoutSupport());
     testForR8(parameters.getBackend())
         .apply(this::setupInput)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addKeepMainRule(Main.class)
         .run(parameters.getRuntime(), Main.class)
         .apply(this::checkOutput);
@@ -89,7 +89,7 @@ public class MemberRebindingAmbiguousDispatchTest extends TestBase {
         () ->
             testForR8(parameters.getBackend())
                 .apply(this::setupInput)
-                .setMinApi(parameters.getApiLevel())
+                .setMinApi(parameters)
                 .addKeepMainRule(Main.class)
                 .compileWithExpectedDiagnostics(
                     diagnostics ->

@@ -164,7 +164,7 @@ public class ServiceLoaderRewritingTest extends TestBase {
     testForR8(parameters.getBackend())
         .addInnerClasses(ServiceLoaderRewritingTest.class)
         .addKeepMainRule(MainRunner.class)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addDataEntryResources(
             DataEntryResource.fromBytes(
                 StringUtils.lines(ServiceImpl.class.getTypeName()).getBytes(),
@@ -192,7 +192,7 @@ public class ServiceLoaderRewritingTest extends TestBase {
     testForR8(parameters.getBackend())
         .addInnerClasses(ServiceLoaderRewritingTest.class)
         .addKeepMainRule(MainRunner.class)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addDataEntryResources(
             DataEntryResource.fromBytes(
                 StringUtils.lines(ServiceImpl.class.getTypeName(), ServiceImpl2.class.getTypeName())
@@ -221,7 +221,7 @@ public class ServiceLoaderRewritingTest extends TestBase {
     testForR8(parameters.getBackend())
         .addInnerClasses(ServiceLoaderRewritingTest.class)
         .addKeepMainRule(MainWithTryCatchRunner.class)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addDataEntryResources(
             DataEntryResource.fromBytes(
                 StringUtils.lines(ServiceImpl.class.getTypeName(), ServiceImpl2.class.getTypeName())
@@ -250,7 +250,7 @@ public class ServiceLoaderRewritingTest extends TestBase {
         testForR8(parameters.getBackend())
             .addInnerClasses(ServiceLoaderRewritingTest.class)
             .addKeepMainRule(OtherRunner.class)
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .addDataEntryResources(
                 DataEntryResource.fromBytes(
                     StringUtils.lines(ServiceImpl.class.getTypeName()).getBytes(),
@@ -281,7 +281,7 @@ public class ServiceLoaderRewritingTest extends TestBase {
             .addInnerClasses(ServiceLoaderRewritingTest.class)
             .addKeepMainRule(EscapingRunner.class)
             .enableInliningAnnotations()
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .addDontObfuscate()
             .addDataEntryResources(
                 DataEntryResource.fromBytes(
@@ -313,7 +313,7 @@ public class ServiceLoaderRewritingTest extends TestBase {
             .addInnerClasses(ServiceLoaderRewritingTest.class)
             .addKeepMainRule(LoadWhereClassLoaderIsPhi.class)
             .enableInliningAnnotations()
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .addDataEntryResources(
                 DataEntryResource.fromBytes(
                     StringUtils.lines(ServiceImpl.class.getTypeName()).getBytes(),
@@ -349,7 +349,7 @@ public class ServiceLoaderRewritingTest extends TestBase {
             .addInnerClasses(ServiceLoaderRewritingTest.class)
             .addKeepMainRule(MainRunner.class)
             .addKeepClassRules(Service.class)
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .addDataEntryResources(
                 DataEntryResource.fromBytes(
                     StringUtils.lines(ServiceImpl.class.getTypeName()).getBytes(),

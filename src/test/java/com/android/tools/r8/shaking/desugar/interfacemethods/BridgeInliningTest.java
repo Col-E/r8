@@ -43,7 +43,7 @@ public class BridgeInliningTest extends TestBase {
         .addKeepMainRule(Main.class)
         .addKeepRules("-keep interface " + I.class.getTypeName() + " { m(); }")
         .enableNoVerticalClassMergingAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines("I::m")
         .inspect(this::inspect);

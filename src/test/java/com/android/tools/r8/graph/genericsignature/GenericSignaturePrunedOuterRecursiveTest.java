@@ -44,7 +44,7 @@ public class GenericSignaturePrunedOuterRecursiveTest extends TestBase {
         .addKeepMainRule(Main.class)
         .addKeepAttributeSignature()
         .addKeepAttributeInnerClassesAndEnclosingMethod()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addOptionsModification(options -> options.horizontalClassMergerOptions().disable())
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines("Bar::enclosingMethod")

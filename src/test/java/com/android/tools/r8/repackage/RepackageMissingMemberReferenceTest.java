@@ -38,7 +38,7 @@ public class RepackageMissingMemberReferenceTest extends RepackageTestBase {
         .addProgramClasses(ClassWithMissingReferenceInCode.class, Main.class)
         .addKeepMainRule(Main.class)
         .applyIf(repackage, this::configureRepackaging)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addDontWarn(MissingReference.class)
         .enableInliningAnnotations()
         .compile()

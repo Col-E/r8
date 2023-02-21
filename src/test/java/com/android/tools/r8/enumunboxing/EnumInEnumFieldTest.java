@@ -53,7 +53,7 @@ public class EnumInEnumFieldTest extends EnumUnboxingTestBase {
               inspector.assertUnboxed(OtherEnum.class);
             })
         .addNeverClassInliningAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines("0");
   }

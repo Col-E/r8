@@ -47,7 +47,7 @@ public class CheckCastNullForTypeTest extends TestBase {
   public void testR8() throws Exception {
     testForR8(parameters.getBackend())
         .addProgramClasses(A.class, Main.class)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addKeepClassAndMembersRules(Main.class)
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutput(EXPECTED)

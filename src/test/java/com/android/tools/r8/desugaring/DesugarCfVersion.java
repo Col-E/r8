@@ -39,14 +39,14 @@ public class DesugarCfVersion extends TestBase {
     Path zip1 =
         testForD8(parameters.getBackend())
             .addProgramClassFileData(hide_1_8)
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .compile()
             .writeToZip();
 
     Path zip2 =
         testForD8(parameters.getBackend())
             .addProgramClassFileData(hide_1_7)
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .compile()
             .writeToZip();
 

@@ -59,7 +59,7 @@ public class Regress165825758Test extends TestBase {
         .addKeepMainRule(TestClass.class)
         .addKeepClassRules(A.class)
         .enableNeverReprocessMethodAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), TestClass.class)
         .assertSuccessWithOutput(EXPECTED)
         .inspect(this::checkDeadCodeThrowInTryRange);

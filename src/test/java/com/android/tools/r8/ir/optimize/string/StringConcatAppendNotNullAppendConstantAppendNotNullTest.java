@@ -44,7 +44,7 @@ public class StringConcatAppendNotNullAppendConstantAppendNotNullTest extends Te
   public void testR8() throws Exception {
     testForR8(parameters.getBackend())
         .addProgramClasses(Main.class)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addKeepMainRule(Main.class)
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines(EXPECTED)

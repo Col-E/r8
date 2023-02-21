@@ -90,7 +90,7 @@ public class SerializedNameAlternateTest extends TestBase {
                     + " {",
                 "  @" + SerializedName.class.getTypeName() + " <fields>;",
                 "}")
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .addDontObfuscate()
             .run(parameters.getRuntime(), Main.class);
     checkRunResult(result);

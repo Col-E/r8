@@ -161,7 +161,7 @@ public class AssumenosideeffectsVisibleMethodsTest extends TestBase {
         .enableNoVerticalClassMergingAnnotations()
         .enableNeverClassInliningAnnotations()
         .enableInliningAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .addRunClasspathFiles(parameters.isDexRuntime() ? libDexPath : libJarPath)
         .run(parameters.getRuntime(), MAIN)

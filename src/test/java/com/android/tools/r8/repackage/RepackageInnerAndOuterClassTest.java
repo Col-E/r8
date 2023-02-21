@@ -48,7 +48,7 @@ public class RepackageInnerAndOuterClassTest extends RepackageTestBase {
         .enableInliningAnnotations()
         .enableNoHorizontalClassMergingAnnotations()
         .enableNoHorizontalClassMergingAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .inspect(inspector -> inspect(inspector, eligibleForRepackaging))
         .run(parameters.getRuntime(), TestClass.class)

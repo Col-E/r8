@@ -46,7 +46,7 @@ public class ApiModelOutlineStaticFieldTest extends TestBase {
         .addLibraryClasses(LibraryClass.class)
         .addDefaultRuntimeLibrary(parameters)
         .addProgramClasses(Main.class)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addAndroidBuildVersion()
         .apply(setMockApiLevelForClass(LibraryClass.class, classApiLevel))
         .apply(setMockApiLevelForField(LibraryClass.class.getField("getField"), fieldApiLevel))

@@ -40,7 +40,7 @@ public class EnumSideEffect extends TestBase {
         .enableInliningAnnotations()
         .addInnerClasses(EnumSideEffect.class)
         .enableNeverClassInliningAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines("clinit", "a", "b", "init", "init", "a", "b");

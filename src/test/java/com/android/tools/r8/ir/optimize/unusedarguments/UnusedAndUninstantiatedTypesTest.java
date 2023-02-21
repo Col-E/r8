@@ -41,7 +41,7 @@ public class UnusedAndUninstantiatedTypesTest extends TestBase {
         .addDontObfuscate()
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .inspect(this::assertMethodsAreThere)
         .run(parameters.getRuntime(), Main.class)

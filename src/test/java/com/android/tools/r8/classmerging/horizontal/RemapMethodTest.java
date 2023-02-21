@@ -25,7 +25,7 @@ public class RemapMethodTest extends HorizontalClassMergingTestBase {
         .addKeepMainRule(Main.class)
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines("foo", "foo", "bar", "bar")
@@ -33,8 +33,8 @@ public class RemapMethodTest extends HorizontalClassMergingTestBase {
             codeInspector -> {
               assertThat(codeInspector.clazz(A.class), isPresent());
               assertThat(codeInspector.clazz(C.class), isPresent());
-                assertThat(codeInspector.clazz(B.class), not(isPresent()));
-                assertThat(codeInspector.clazz(D.class), not(isPresent()));
+              assertThat(codeInspector.clazz(B.class), not(isPresent()));
+              assertThat(codeInspector.clazz(D.class), not(isPresent()));
             });
   }
 

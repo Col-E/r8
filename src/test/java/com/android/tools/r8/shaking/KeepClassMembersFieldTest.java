@@ -42,7 +42,7 @@ public class KeepClassMembersFieldTest extends TestBase {
         .addInnerClasses(getClass())
         .addKeepMainRule(Foo.class)
         .addKeepRules(KEEP_RULE)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .inspect(
             inspector ->

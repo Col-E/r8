@@ -60,7 +60,7 @@ public class EnumMinificationKotlinTest extends KotlinTestBase {
             .addKeepClassRulesWithAllowObfuscation(ENUM_CLASS_NAME)
             .allowDiagnosticWarningMessages()
             .minification(minify)
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .compile()
             .assertAllWarningMessagesMatch(
                 equalTo("Resource 'META-INF/MANIFEST.MF' already exists."))

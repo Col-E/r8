@@ -79,7 +79,7 @@ public class PrimitiveTypesTest extends TestBase {
         .addProgramClasses(testClass)
         .addProgramClasses(MyStringBuilder.class)
         .addKeepMainRule(testClass)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addDontObfuscate()
         .addOptionsModification(
             options -> {

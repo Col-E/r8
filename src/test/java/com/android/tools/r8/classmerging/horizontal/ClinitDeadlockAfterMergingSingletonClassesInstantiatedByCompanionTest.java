@@ -52,7 +52,7 @@ public class ClinitDeadlockAfterMergingSingletonClassesInstantiatedByCompanionTe
             options ->
                 options.horizontalClassMergerOptions().setEnableClassInitializerDeadlockDetection())
         .enableInliningAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile();
   }
 

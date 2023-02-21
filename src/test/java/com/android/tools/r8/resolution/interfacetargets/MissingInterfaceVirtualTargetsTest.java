@@ -38,13 +38,13 @@ public class MissingInterfaceVirtualTargetsTest extends TestBase {
     Path out =
         testForD8(parameters.getBackend())
             .addProgramClasses(TestClass.class)
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .compile()
             .assertNoMessages()
             .writeToZip();
     testForD8(parameters.getBackend())
         .addProgramClasses(I.class, A.class)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addRunClasspathFiles(out)
         .run(parameters.getRuntime(), TestClass.class)
         .assertSuccessWithOutput(EXPECTED);

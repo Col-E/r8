@@ -34,7 +34,7 @@ public class VerticalClassMergingWithMissingTypeArgsTest extends TestBase {
         .addVerticallyMergedClassesInspector(
             inspector -> inspector.assertMergedIntoSubtype(A.class))
         .enableInliningAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines("B.m()");

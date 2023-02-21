@@ -73,7 +73,7 @@ public class DefaultTopAbstractLeftTest extends TestBase {
         .addProgramClasses(CLASSES)
         .addProgramClassFileData(transformB())
         .addKeepMainRule(Main.class)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addOptionsModification(
             options -> options.testing.allowNonAbstractClassesWithAbstractMethods = true)
         .run(parameters.getRuntime(), Main.class)

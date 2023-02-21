@@ -67,7 +67,7 @@ public class VirtualMethodsAccessibilityErrorEnumUnboxingTest extends EnumUnboxi
         .enableNeverClassInliningAnnotations()
         .enableInliningAnnotations()
         .addOptionsModification(opt -> enableEnumOptions(opt, enumValueOptimization))
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .run(parameters.getRuntime(), TestClass.class)
         .assertFailureWithErrorThatMatches(containsString("java.lang.IllegalAccessError"));

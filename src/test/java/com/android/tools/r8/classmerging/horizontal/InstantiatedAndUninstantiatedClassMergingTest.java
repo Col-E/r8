@@ -36,7 +36,7 @@ public class InstantiatedAndUninstantiatedClassMergingTest extends HorizontalCla
         .addKeepMainRule(TestClass.class)
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .inspect(
             inspector -> {

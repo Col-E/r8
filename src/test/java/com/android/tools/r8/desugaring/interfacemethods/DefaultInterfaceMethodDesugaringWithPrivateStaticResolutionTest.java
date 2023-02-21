@@ -44,7 +44,7 @@ public class DefaultInterfaceMethodDesugaringWithPrivateStaticResolutionTest ext
     assumeTrue(parameters.isDexRuntime());
     testForD8()
         .addInnerClasses(DefaultInterfaceMethodDesugaringWithPrivateStaticResolutionTest.class)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .run(parameters.getRuntime(), TestClass.class)
         .assertSuccessWithOutput(EXPECTED);
@@ -55,7 +55,7 @@ public class DefaultInterfaceMethodDesugaringWithPrivateStaticResolutionTest ext
     testForR8(parameters.getBackend())
         .addInnerClasses(DefaultInterfaceMethodDesugaringWithPrivateStaticResolutionTest.class)
         .addKeepAllClassesRule()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .run(parameters.getRuntime(), TestClass.class)
         .assertSuccessWithOutput(EXPECTED);

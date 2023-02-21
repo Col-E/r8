@@ -41,7 +41,7 @@ public class NullAssignmentToArrayArgEnumUnboxingTest extends EnumUnboxingTestBa
         // replacing the checkNotNull method should not be inlined.
         .addOptionsModification(opt -> opt.inlinerOptions().enableInlining = false)
         .addOptionsModification(opt -> enableEnumOptions(opt, enumValueOptimization))
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines("false", "true", "npe", "npe");

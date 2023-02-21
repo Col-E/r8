@@ -23,7 +23,7 @@ public class VerticallyMergedClassDistinguishedByInstanceOfTest
         .addKeepMainRule(Main.class)
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines("false", "true")
         .inspect(codeInspector -> {});

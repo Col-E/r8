@@ -93,7 +93,7 @@ public class MaxIntSwitchTest extends TestBase {
   public void testD8() throws Exception {
     testForD8(parameters.getBackend())
         .addInnerClasses(this.getClass())
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .setMode(mode)
         .run(parameters.getRuntime(), TestClass.class)
         .inspect(this::checkSwitchKeys)
@@ -108,7 +108,7 @@ public class MaxIntSwitchTest extends TestBase {
         .enableConstantArgumentAnnotations()
         .enableInliningAnnotations()
         .enableMemberValuePropagationAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .setMode(mode)
         .run(parameters.getRuntime(), TestClass.class)
         .inspect(this::checkSwitchKeys)

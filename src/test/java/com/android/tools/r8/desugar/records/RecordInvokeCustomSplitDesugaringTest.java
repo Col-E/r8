@@ -54,12 +54,12 @@ public class RecordInvokeCustomSplitDesugaringTest extends TestBase {
     Path desugared =
         testForD8(Backend.CF)
             .addProgramClassFileData(PROGRAM_DATA)
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .compile()
             .writeToZip();
     testForD8(parameters.getBackend())
         .addProgramFiles(desugared)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .run(parameters.getRuntime(), MAIN_TYPE)
         .assertSuccessWithOutput(EXPECTED_RESULT_D8);
@@ -71,12 +71,12 @@ public class RecordInvokeCustomSplitDesugaringTest extends TestBase {
     Path desugared =
         testForD8(Backend.CF)
             .addProgramClassFileData(PROGRAM_DATA)
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .compile()
             .writeToZip();
     testForR8(parameters.getBackend())
         .addProgramFiles(desugared)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addKeepMainRule(MAIN_TYPE)
         .compile()
         .run(parameters.getRuntime(), MAIN_TYPE)

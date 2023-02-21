@@ -26,7 +26,7 @@ public class AbstractMethodMergingNonTrivialTest extends HorizontalClassMergingT
         .enableInliningAnnotations()
         .enableNoHorizontalClassMergingAnnotations()
         .enableNoVerticalClassMergingAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines("ASub1.f()", "B.f()", "C.f()", "A.g()", "BSub1.g()", "C.g()");

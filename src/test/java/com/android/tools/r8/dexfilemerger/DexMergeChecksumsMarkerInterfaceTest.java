@@ -31,7 +31,7 @@ public class DexMergeChecksumsMarkerInterfaceTest extends TestBase {
   public void testChecksumForMarkerInterface() throws Exception {
     Path dexArchiveI =
         testForD8()
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .addProgramClasses(I.class)
             .setMode(CompilationMode.DEBUG)
             .setIncludeClassesChecksum(true)
@@ -40,7 +40,7 @@ public class DexMergeChecksumsMarkerInterfaceTest extends TestBase {
 
     Path dexArchiveTestClass =
         testForD8()
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .addProgramClasses(TestClass.class)
             .setMode(CompilationMode.DEBUG)
             .setIncludeClassesChecksum(true)
@@ -48,7 +48,7 @@ public class DexMergeChecksumsMarkerInterfaceTest extends TestBase {
             .writeToZip();
 
     testForD8()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addProgramFiles(dexArchiveI, dexArchiveTestClass)
         .setIncludeClassesChecksum(true)
         .run(parameters.getRuntime(), TestClass.class)

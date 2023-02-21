@@ -55,7 +55,7 @@ public class FieldValueTypesInspectionTest extends TestBase {
     }
     testForD8()
         .addProgramClasses(TestClass.class)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .apply(b -> b.getBuilder().addOutputInspection(this::inspection))
         .run(parameters.getRuntime(), TestClass.class)
         .assertSuccessWithOutput(EXPECTED);
@@ -67,7 +67,7 @@ public class FieldValueTypesInspectionTest extends TestBase {
     testForR8(parameters.getBackend())
         .addProgramClasses(TestClass.class)
         .addKeepClassAndMembersRules(TestClass.class)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .apply(b -> b.getBuilder().addOutputInspection(this::inspection))
         .run(parameters.getRuntime(), TestClass.class)
         .assertSuccessWithOutput(EXPECTED);

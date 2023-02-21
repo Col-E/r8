@@ -42,7 +42,7 @@ public class CompanionWithPhisTest extends TestBase {
     testForR8(parameters.getBackend())
         .addProgramClasses(Main.class, CompanionUser.class)
         .addProgramClassesAndInnerClasses(ClassWithCompanion.class)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .enableNeverClassInliningAnnotations()
         .enableInliningAnnotations()
         .addKeepMainRule(Main.class)

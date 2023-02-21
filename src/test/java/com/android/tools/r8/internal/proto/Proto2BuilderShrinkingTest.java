@@ -76,7 +76,7 @@ public class Proto2BuilderShrinkingTest extends ProtoShrinkingTestBase {
             .allowUnusedProguardConfigurationRules()
             .enableInliningAnnotations()
             .enableProtoShrinking()
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .compile()
             .assertAllInfoMessagesMatch(
                 containsString("Proguard configuration rule does not match anything"))

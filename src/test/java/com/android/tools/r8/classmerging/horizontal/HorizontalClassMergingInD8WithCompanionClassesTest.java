@@ -45,7 +45,7 @@ public class HorizontalClassMergingInD8WithCompanionClassesTest extends TestBase
     testForD8(parameters.getBackend())
         .addInnerClasses(getClass())
         .setMode(CompilationMode.RELEASE)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addOptionsModification(
             options -> {
               options.horizontalClassMergerOptions().enable();

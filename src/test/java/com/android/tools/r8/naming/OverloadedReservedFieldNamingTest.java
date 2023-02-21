@@ -46,7 +46,7 @@ public class OverloadedReservedFieldNamingTest extends TestBase {
             "-keep class " + A.class.getTypeName() + " { boolean a; }",
             overloadAggressively ? "-overloadaggressively" : "")
         .enableNoFieldTypeStrengtheningAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .inspect(this::verifyAggressiveOverloading)
         .run(parameters.getRuntime(), TestClass.class)

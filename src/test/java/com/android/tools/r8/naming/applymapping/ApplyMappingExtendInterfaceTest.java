@@ -47,7 +47,7 @@ public class ApplyMappingExtendInterfaceTest extends TestBase {
             .addProgramClasses(LibI.class, Runner.class)
             .addKeepClassAndMembersRules(Runner.class)
             .addKeepClassAndMembersRulesWithAllowObfuscation(LibI.class)
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .compile();
     testForR8(parameters.getBackend())
         .addProgramClasses(TestI.class, TestA.class, Main.class)
@@ -55,7 +55,7 @@ public class ApplyMappingExtendInterfaceTest extends TestBase {
         .addKeepAllClassesRule()
         .addApplyMapping(libCompileResult.getProguardMap())
         .addRunClasspathFiles(libCompileResult.writeToZip())
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines("injectTestA", "injectObject");
   }

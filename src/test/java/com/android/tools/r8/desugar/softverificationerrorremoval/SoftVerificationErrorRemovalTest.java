@@ -38,7 +38,7 @@ public class SoftVerificationErrorRemovalTest extends TestBase {
     D8TestRunResult run =
         testForD8()
             .addInnerClasses(SoftVerificationErrorRemovalTest.class)
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .compile()
             .run(parameters.getRuntime(), TestClass.class);
     assertVerificationErrorsPresent(
@@ -68,7 +68,7 @@ public class SoftVerificationErrorRemovalTest extends TestBase {
         testForD8()
             .addInnerClasses(SoftVerificationErrorRemovalTest.class)
             .addProgramFiles(stubs)
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .compile()
             .run(parameters.getRuntime(), TestClass.class);
     assertVerificationErrorsPresent(run.getStdErr(), false);

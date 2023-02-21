@@ -100,7 +100,7 @@ public class YouTubeV1719Test extends YouTubeCompilationTestBase {
                         StringResource.fromFile(getDesugaredLibraryConfiguration()))
                     .build())
             .release()
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .compile();
 
     // Compile desugared library using cf backend (without keep rules).
@@ -259,7 +259,7 @@ public class YouTubeV1719Test extends YouTubeCompilationTestBase {
         .addKeepRuleFiles(getDesugaredLibraryKeepRuleFiles(generatedKeepRules))
         .apply(this::disableR8StrictMode)
         .apply(this::disableR8TestingDefaults)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile();
   }
 

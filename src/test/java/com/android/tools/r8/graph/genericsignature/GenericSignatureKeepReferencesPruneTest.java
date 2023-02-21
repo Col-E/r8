@@ -68,7 +68,7 @@ public class GenericSignatureKeepReferencesPruneTest extends TestBase {
             .addProgramClasses(I.class, Foo.class, J.class, K.class, L.class)
             .addProgramClassesAndInnerClasses(Main.class)
             .addKeepClassAndMembersRules(Main.class)
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .addKeepAttributeSignature()
             .addKeepAttributeInnerClassesAndEnclosingMethod()
             .enableInliningAnnotations()

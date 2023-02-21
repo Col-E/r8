@@ -34,7 +34,7 @@ public class LineDeltaTest extends TestBase {
             .addProgramClasses(LineDeltaTestClass.class)
             .addKeepMainRule(LineDeltaTestClass.class)
             .addKeepRules("-keepattributes LineNumberTable")
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .compile()
             .inspect(
                 inspector ->

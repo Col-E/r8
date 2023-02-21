@@ -98,7 +98,7 @@ public class TargetInDefaultMethodTest extends TestBase {
         .enableNoVerticalClassMergingAnnotations()
         .enableNeverClassInliningAnnotations()
         .addKeepMainRule(Main.class)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines(EXPECTED);
   }

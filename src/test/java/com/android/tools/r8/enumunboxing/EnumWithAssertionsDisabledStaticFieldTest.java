@@ -72,7 +72,7 @@ public class EnumWithAssertionsDisabledStaticFieldTest extends TestBase {
             })
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .enableRuntimeAssertions(enableRuntimeAssertions)
         .run(parameters.getRuntime(), EnumWithAssertionsDisabledStaticFieldMainClass.class)

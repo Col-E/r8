@@ -43,7 +43,7 @@ public class InvokeVirtualCascadeTest extends TestBase {
         .enableNoVerticalClassMergingAnnotations()
         .enableNeverClassInliningAnnotations()
         .enableInliningAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), MAIN)
         .assertSuccessWithOutputLines("A", "A", "B", "B")
         .inspect(this::inspect);

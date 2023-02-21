@@ -47,7 +47,7 @@ public class ShrinkFieldsWhileKeepingFieldNameTest extends TestBase {
         .enableNeverClassInliningAnnotations()
         .addKeepMainRule(Main.class)
         .addKeepRules(KEEP_FIELD_NAMES_RULE)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .inspect(this::assertSingleFieldWithOriginalName)
         .run(parameters.getRuntime(), Main.class)
@@ -61,7 +61,7 @@ public class ShrinkFieldsWhileKeepingFieldNameTest extends TestBase {
         .enableNeverClassInliningAnnotations()
         .addKeepMainRule(Main.class)
         .addKeepRules(KEEP_FIELD_NAMES_RULE)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         // TODO(b/200933020): this assert shall pass.
         // .inspect(this::assertSingleFieldWithOriginalName)

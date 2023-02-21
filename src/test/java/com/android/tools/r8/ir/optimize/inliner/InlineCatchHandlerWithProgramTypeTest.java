@@ -37,7 +37,7 @@ public class InlineCatchHandlerWithProgramTypeTest extends TestBase {
         .addInnerClasses(InlineCatchHandlerWithProgramTypeTest.class)
         .addKeepMainRule(TestClass.class)
         .enableInliningAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), TestClass.class)
         .assertSuccessWithOutputLines("Done...")
         .inspect(this::checkInlined);

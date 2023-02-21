@@ -61,7 +61,7 @@ public class KotlinIntrinsicsInlineChainTest extends KotlinTestBase {
         .addKeepMainRule(MAIN)
         .allowAccessModification(allowAccessModification)
         .allowDiagnosticWarningMessages()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addDontObfuscate()
         .apply(ApiModelingTestHelper::enableApiCallerIdentification)
         .compile()

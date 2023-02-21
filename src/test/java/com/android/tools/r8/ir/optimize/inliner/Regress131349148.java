@@ -52,7 +52,7 @@ public class Regress131349148 extends TestBase {
         testForR8(parameters.getBackend())
             .addProgramClasses(TestClass.class, ClassWithCatchReflectiveOperation.class)
             .addKeepMainRule(TestClass.class)
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .compile()
             .run(parameters.getRuntime(), TestClass.class)
             .assertSuccess();
@@ -107,7 +107,7 @@ public class Regress131349148 extends TestBase {
         .addKeepMainRule(TestClassCallingMethodWithNonExisting.class)
         .addDontWarn(NonExistingException.class)
         .allowDiagnosticWarningMessages()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .apply(r8TestBuilderConsumer)
         .compileWithExpectedDiagnostics(
             diagnostics ->

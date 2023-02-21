@@ -46,18 +46,21 @@ public class RecordWithNonMaterializableConstClassTest extends TestBase {
   }
 
   @Test
+  public void testJvm() throws Exception {
+    parameters.assumeJvmTestParameters();
+    testForJvm(parameters)
+        .addProgramClassFileData(PROGRAM_DATA)
+        .addProgramClassFileData(EXTRA_DATA)
+        .run(parameters.getRuntime(), MAIN_TYPE)
+        .assertSuccessWithOutput(EXPECTED_RESULT_D8);
+  }
+
+  @Test
   public void testD8AndJvm() throws Exception {
-    if (parameters.isCfRuntime()) {
-      testForJvm()
-          .addProgramClassFileData(PROGRAM_DATA)
-          .addProgramClassFileData(EXTRA_DATA)
-          .run(parameters.getRuntime(), MAIN_TYPE)
-          .assertSuccessWithOutput(EXPECTED_RESULT_D8);
-    }
     testForD8(parameters.getBackend())
         .addProgramClassFileData(PROGRAM_DATA)
         .addProgramClassFileData(EXTRA_DATA)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .run(parameters.getRuntime(), MAIN_TYPE)
         .assertSuccessWithOutput(EXPECTED_RESULT_D8);
@@ -70,6 +73,7 @@ public class RecordWithNonMaterializableConstClassTest extends TestBase {
         .addProgramClassFileData(PROGRAM_DATA)
         .addProgramClassFileData(EXTRA_DATA)
         .apply(this::configureR8)
+        .setMinApi(parameters)
         .compile()
         .run(parameters.getRuntime(), MAIN_TYPE)
         .assertSuccessWithOutput(EXPECTED_RESULT_R8);
@@ -89,6 +93,7 @@ public class RecordWithNonMaterializableConstClassTest extends TestBase {
     testForR8(parameters.getBackend())
         .addProgramFiles(desugared)
         .apply(this::configureR8)
+        .setMinApi(parameters)
         .compile()
         .run(parameters.getRuntime(), MAIN_TYPE)
         .assertSuccessWithOutput(EXPECTED_RESULT_R8);
@@ -98,7 +103,6 @@ public class RecordWithNonMaterializableConstClassTest extends TestBase {
     testBuilder
         .addKeepMainRule(MAIN_TYPE)
         .addKeepRules("-keep class " + PRIVATE_CLASS_NAME)
-        .setMinApi(parameters.getApiLevel())
         .applyIf(
             parameters.isCfRuntime(),
             b -> b.addLibraryFiles(RecordTestUtils.getJdk15LibraryFiles(temp)));

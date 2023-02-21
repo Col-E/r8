@@ -56,7 +56,7 @@ public class AssertionConfigurationAssertionHandlerMissingClassTest extends Test
     if (parameters.isDexRuntime()) {
       testForD8()
           .addProgramClasses(AssertionHandlers.class)
-          .setMinApi(parameters.getApiLevel())
+          .setMinApi(parameters)
           .compile()
           .writeToZip(jar);
       return jar;
@@ -77,7 +77,7 @@ public class AssertionConfigurationAssertionHandlerMissingClassTest extends Test
         .addKeepMainRule(MAIN_CLASS)
         .addKeepAnnotation()
         .addKeepRules("-keepclassmembers class * { @com.android.tools.r8.Keep *; }")
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addIgnoreWarnings()
         .addAssertionsConfiguration(
             builder -> builder.setAssertionHandler(getAssertionHandler()).setScopeAll().build())

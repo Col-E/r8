@@ -34,7 +34,7 @@ public class StringSwitchWitNonConstIdTest extends TestBase {
     testForD8()
         .addProgramClasses(Main.class)
         .release()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines("Foo", "Bar", "Baz", "Qux");
   }
@@ -46,7 +46,7 @@ public class StringSwitchWitNonConstIdTest extends TestBase {
         .addKeepMainRule(Main.class)
         .enableInliningAnnotations()
         .release()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines("Foo", "Bar", "Baz", "Qux");
   }

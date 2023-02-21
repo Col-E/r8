@@ -83,7 +83,7 @@ public class KeepClassMethodsAllowShrinkingCompatibilityTest extends TestBase {
         .addInnerClasses(KeepClassMethodsAllowShrinkingCompatibilityTest.class)
         .addKeepClassAndMembersRules(TestClass.class)
         .addKeepRules(keepRule)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), TestClass.class, A.class.getTypeName())
         .assertSuccessWithOutput(getExpected())
         .inspect(

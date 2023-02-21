@@ -188,7 +188,7 @@ public class StackTraceTest extends TestBase {
     assumeTrue(parameters.isDexRuntime());
     testForD8()
         .addInnerClasses(StackTraceTest.class)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), Main.class)
         .assertFailure()
         .inspectStackTrace(this::checkStackTraceFromRunning);

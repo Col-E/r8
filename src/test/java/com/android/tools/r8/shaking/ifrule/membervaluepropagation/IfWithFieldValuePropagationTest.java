@@ -50,7 +50,7 @@ public class IfWithFieldValuePropagationTest extends TestBase {
                 .addProgramClasses(Library.class)
                 .addClasspathClasses(Layout.class)
                 .addKeepAllClassesRule()
-                .setMinApi(parameters.getApiLevel())
+                .setMinApi(parameters)
                 .compile()
                 .writeToZip())
         .run(parameters.getRuntime(), TestClass.class)

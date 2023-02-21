@@ -45,7 +45,7 @@ public class DefaultValueForLiveButNotKeptAnnotationShrinkingTest extends TestBa
         .addKeepClassAndMembersRules(MyAnnotation.class)
         .addKeepAttributeAnnotationDefault()
         .addKeepRuntimeVisibleAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .apply(
             compileResult -> {

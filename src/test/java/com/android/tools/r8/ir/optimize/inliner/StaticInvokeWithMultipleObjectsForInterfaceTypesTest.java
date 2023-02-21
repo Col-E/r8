@@ -78,7 +78,7 @@ public class StaticInvokeWithMultipleObjectsForInterfaceTypesTest extends TestBa
             R8TestBuilder::addNoVerticalClassMergingAnnotations,
             R8TestBuilder::enableNoVerticalClassMergingAnnotations)
         .enableNoHorizontalClassMergingAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines("0", "0");

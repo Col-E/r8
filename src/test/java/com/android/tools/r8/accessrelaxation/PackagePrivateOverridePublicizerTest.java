@@ -46,7 +46,7 @@ public class PackagePrivateOverridePublicizerTest extends TestBase {
     testForR8(parameters.getBackend())
         .addProgramClasses(ViewModel.class, SubViewModel.class, Main.class)
         .addKeepMainRule(Main.class)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
         .allowAccessModification()

@@ -81,7 +81,7 @@ public class StaticClassMergerTest extends TestBase {
                 inspector.assertMergedInto(
                     StaticMergeCandidateB.class, StaticMergeCandidateA.class))
         .enableInliningAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), TestClass.class)
         .assertSuccessWithOutput(EXPECTED)
         .inspect(

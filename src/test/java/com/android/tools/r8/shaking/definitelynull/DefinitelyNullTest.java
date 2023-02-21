@@ -41,18 +41,14 @@ public class DefinitelyNullTest extends TestBase {
     if (parameters.isCfRuntime()) {
       writeClassesToJar(classpath, Collections.singletonList(A.class));
     } else {
-      testForD8()
-          .setMinApi(parameters.getApiLevel())
-          .addProgramClasses(A.class)
-          .compile()
-          .writeToZip(classpath);
+      testForD8().setMinApi(parameters).addProgramClasses(A.class).compile().writeToZip(classpath);
     }
     testForR8(parameters.getBackend())
         // Disable minification so that A still refers to A given on the classpath below.
         .addDontObfuscate()
         .addProgramClasses(TestClass.class, A.class)
         .addKeepMainRule(TestClass.class)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         // Prepend the full definition of class A since the compiler will have mostly eliminated it.
         .addRunClasspathFiles(classpath)

@@ -55,7 +55,7 @@ public class ApiModelNoHorizontalMergeAndD8MergeTest extends TestBase {
     testBuilder
         .addLibraryClasses(LibraryClass.class)
         .addDefaultRuntimeLibrary(parameters)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .apply(ApiModelingTestHelper::enableApiCallerIdentification)
         .apply(ApiModelingTestHelper::enableOutliningOfMethods)
         .apply(setMockApiLevelForClass(LibraryClass.class, oneMockLevel))

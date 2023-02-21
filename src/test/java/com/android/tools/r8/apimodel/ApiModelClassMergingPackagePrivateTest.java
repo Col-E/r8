@@ -66,7 +66,7 @@ public class ApiModelClassMergingPackagePrivateTest extends TestBase {
                 .transform())
         .addLibraryClasses(Api1.class, Api2.class)
         .addDefaultRuntimeLibrary(parameters)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .apply(ApiModelingTestHelper::enableOutliningOfMethods)
         .apply(b -> setApiLevels(b, Api1.class))
         .apply(b -> setApiLevels(b, Api2.class));

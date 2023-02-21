@@ -37,7 +37,7 @@ public class AssumeReturnsFieldWithSubtypingTest extends TestBase {
             "-keepclassmembers,allowobfuscation class " + Main.class.getTypeName() + "{",
             "  java.lang.String greeting;",
             "}")
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines("Hello world!");

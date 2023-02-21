@@ -39,7 +39,7 @@ public class ObjectsRequireNonNullElseTest extends TestBase {
   public void testD8() throws Exception {
     testForD8(parameters.getBackend())
         .addProgramClassFileData(getProgramClassFileData())
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines("Foo", "Bar", "Expected NPE");
@@ -51,7 +51,7 @@ public class ObjectsRequireNonNullElseTest extends TestBase {
         .addProgramClassFileData(getProgramClassFileData())
         .addKeepMainRule(Main.class)
         .enableInliningAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .inspect(
             inspector -> {

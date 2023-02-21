@@ -73,7 +73,7 @@ public class ClasspathClassExtendsProgramClassTest extends TestBase {
   @Test
   public void testR8() throws Exception {
     testForR8(parameters.getBackend())
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addProgramClasses(Main.class, ProgramClass.class)
         .addClasspathClasses(ClasspathClass.class, ClasspathIndirection.class)
         .addKeepMainRule(Main.class)

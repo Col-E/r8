@@ -75,7 +75,7 @@ public class CheckSubclassDiscardedEntirelyTest extends TestBase {
                     VerticallyMergedClassesInspector::assertNoClassesMerged)
                 .enableInliningAnnotations()
                 .enableNoVerticalClassMergingAnnotations()
-                .setMinApi(parameters.getApiLevel())
+                .setMinApi(parameters)
                 .compileWithExpectedDiagnostics(
                     diagnostics -> {
                       if (shrink) {

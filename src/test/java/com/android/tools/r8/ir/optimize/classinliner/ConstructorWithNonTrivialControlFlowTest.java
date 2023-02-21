@@ -50,7 +50,7 @@ public class ConstructorWithNonTrivialControlFlowTest extends TestBase {
         .addOptionsModification(options -> options.enableClassInlining = enableClassInlining)
         .enableInliningAnnotations()
         .enableMemberValuePropagationAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .inspect(this::verifyClassInliningRemovesCandidate)
         .run(parameters.getRuntime(), TestClass.class)

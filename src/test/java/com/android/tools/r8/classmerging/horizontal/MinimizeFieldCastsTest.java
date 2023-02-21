@@ -24,7 +24,7 @@ public class MinimizeFieldCastsTest extends HorizontalClassMergingTestBase {
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
         .enableNoHorizontalClassMergingAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addHorizontallyMergedClassesInspector(
             inspector ->
                 // Two merge groups are expected since we attempt to merge classes in a way that

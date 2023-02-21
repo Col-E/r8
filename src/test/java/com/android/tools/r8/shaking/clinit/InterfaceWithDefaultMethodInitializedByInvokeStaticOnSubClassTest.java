@@ -36,7 +36,7 @@ public class InterfaceWithDefaultMethodInitializedByInvokeStaticOnSubClassTest
     assumeTrue(parameters.isDexRuntime());
     testForD8()
         .addInnerClasses(getClass())
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .run(parameters.getRuntime(), TestClass.class)
         .apply(
@@ -60,7 +60,7 @@ public class InterfaceWithDefaultMethodInitializedByInvokeStaticOnSubClassTest
         .addInnerClasses(getClass())
         .addKeepMainRule(TestClass.class)
         .allowStdoutMessages()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .run(parameters.getRuntime(), TestClass.class)
         // TODO(b/144266257): This should succeed with "I" when default interface methods are

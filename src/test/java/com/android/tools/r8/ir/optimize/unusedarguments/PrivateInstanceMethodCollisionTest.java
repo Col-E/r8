@@ -68,7 +68,7 @@ public class PrivateInstanceMethodCollisionTest extends TestBase {
         .enableNoMethodStaticizingAnnotations()
         .minification(minification)
         .allowAccessModification(allowAccessModification)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .inspect(this::verifyUnusedArgumentsRemovedAndNoCollisions)
         .run(parameters.getRuntime(), TestClass.class)

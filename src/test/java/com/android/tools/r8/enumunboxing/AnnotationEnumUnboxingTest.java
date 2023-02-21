@@ -62,7 +62,7 @@ public class AnnotationEnumUnboxingTest extends EnumUnboxingTestBase {
         .enableMemberValuePropagationAnnotations()
         .enableNoVerticalClassMergingAnnotations()
         .addOptionsModification(opt -> enableEnumOptions(opt, enumValueOptimization))
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines("print", "1", "1", "1", "1", "1", "0", "0", "0", "0");

@@ -55,7 +55,7 @@ public class StaticInterfaceMethodsTest extends TestBase {
       throws Exception {
     return testForR8(parameters.getBackend())
         .addProgramClasses(InterfaceWithStaticMethods.class, TestClass.class)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addKeepMainRule(TestClass.class)
         .addKeepRules(additionalKeepRules)
         .enableInliningAnnotations()
@@ -78,7 +78,7 @@ public class StaticInterfaceMethodsTest extends TestBase {
               .addKeepAllClassesRule()
               .addApplyMapping(compileResult.getProguardMap())
               .addClasspathClasses(InterfaceWithStaticMethods.class)
-              .setMinApi(parameters.getApiLevel())
+              .setMinApi(parameters)
               .compile()
               .addRunClasspathFiles(app)
               .run(parameters.getRuntime(), InstrumentedTestClass.class);

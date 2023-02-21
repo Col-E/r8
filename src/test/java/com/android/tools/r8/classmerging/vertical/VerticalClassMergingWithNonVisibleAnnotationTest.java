@@ -43,7 +43,7 @@ public class VerticalClassMergingWithNonVisibleAnnotationTest extends TestBase {
     testForR8Compat(parameters.getBackend())
         .addInnerClasses(VerticalClassMergingWithNonVisibleAnnotationTestClasses.class)
         .addProgramClasses(Sub.class)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addKeepMainRule(Sub.class)
         .addKeepClassRules(
             VerticalClassMergingWithNonVisibleAnnotationTestClasses.class.getTypeName()

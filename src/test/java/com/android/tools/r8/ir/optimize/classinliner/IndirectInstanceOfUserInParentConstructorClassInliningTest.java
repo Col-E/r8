@@ -38,7 +38,7 @@ public class IndirectInstanceOfUserInParentConstructorClassInliningTest extends 
         .addKeepMainRule(Main.class)
         .enableInliningAnnotations()
         .enableNoVerticalClassMergingAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .inspect(this::inspect)
         .run(parameters.getRuntime(), Main.class)

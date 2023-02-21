@@ -31,10 +31,10 @@ public class B132749793 extends TestBase {
   @Test
   public void test() throws Exception {
     testForR8(parameters.getBackend())
-        .addProgramClasses(TestB132749793.class, InterfaceWithStaticAndDefault.class,
-            HasStaticField.class)
+        .addProgramClasses(
+            TestB132749793.class, InterfaceWithStaticAndDefault.class, HasStaticField.class)
         .addKeepMainRule(TestB132749793.class)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), TestB132749793.class)
         .assertSuccessWithOutputLines(EXPECTED);
   }

@@ -40,7 +40,7 @@ public class ClassNameComparisonSwitchTest extends TestBase {
         .addInnerClasses(ClassNameComparisonSwitchTest.class)
         .addKeepMainRule(TestClass.class)
         .enableInliningAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .inspect(this::verifyClassesHaveBeenMinified)
         .run(parameters.getRuntime(), TestClass.class)

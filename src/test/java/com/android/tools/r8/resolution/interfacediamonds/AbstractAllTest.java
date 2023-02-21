@@ -65,7 +65,7 @@ public class AbstractAllTest extends TestBase {
     testForR8(parameters.getBackend())
         .addInnerClasses(AbstractAllTest.class)
         .addKeepMainRule(Main.class)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines("C::f");
   }

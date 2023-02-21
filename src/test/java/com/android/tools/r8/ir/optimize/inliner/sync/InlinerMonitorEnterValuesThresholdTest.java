@@ -44,7 +44,7 @@ public class InlinerMonitorEnterValuesThresholdTest extends TestBase {
         .addKeepMainRule(TestClass.class)
         .addOptionsModification(
             options -> options.inlinerOptions().inliningMonitorEnterValuesAllowance = threshold)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), TestClass.class)
         .inspect(this::inspect)
         .assertSuccessWithOutputLines("Hello world!");

@@ -58,7 +58,7 @@ public class VerticalClassMergerSuperCallInStaticTest extends TestBase {
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
         .enableNoVerticalClassMergingAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines(EXPECTED)
         .inspect(inspector -> assertThat(inspector.clazz(A.class), not(isPresent())));

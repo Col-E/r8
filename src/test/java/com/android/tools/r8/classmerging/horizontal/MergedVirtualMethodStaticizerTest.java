@@ -21,7 +21,7 @@ public class MergedVirtualMethodStaticizerTest extends HorizontalClassMergingTes
         .addKeepClassAndMembersRules(Program.Main.class)
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addHorizontallyMergedClassesInspector(
             inspector -> inspector.assertMergedInto(Program.B.class, Program.A.class))
         .run(parameters.getRuntime(), Program.Main.class)

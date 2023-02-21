@@ -71,7 +71,7 @@ public class EnumToStringLibTest extends EnumUnboxingTestBase {
                   options.enableEnumValueOptimization = enumValueOptimization;
                   options.enableEnumSwitchMapRemoval = enumValueOptimization;
                 })
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .compile();
       compile
           .run(parameters.getRuntime(), AlwaysCorrectProgram.class)
@@ -106,7 +106,6 @@ public class EnumToStringLibTest extends EnumUnboxingTestBase {
             Reference.methodFromMethod(ToStringLib.class.getDeclaredMethod("directBean")),
             Reference.methodFromMethod(ToStringLib.class.getDeclaredMethod("directSugar")))
         .addKeepClassRules(ToStringLib.LibEnum.class)
-        .setMinApi(parameters.getApiLevel())
         .compile();
   }
 

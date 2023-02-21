@@ -32,14 +32,14 @@ public class ApplyMappingMissingInterfaceTest extends TestBase {
             .addLibraryClasses(LibraryI.class)
             .addDefaultRuntimeLibrary(parameters)
             .addProgramClasses(ClassPathI.class)
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .addKeepClassAndMembersRulesWithAllowObfuscation(ClassPathI.class)
             .compile();
 
     testForR8(parameters.getBackend())
         .addClasspathClasses(ClassPathI.class)
         .addProgramClasses(ProgramInterface.class, Main.class)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addApplyMapping(libraryCompileResult.getProguardMap())
         .addKeepMainRule(Main.class)
         .enableInliningAnnotations()

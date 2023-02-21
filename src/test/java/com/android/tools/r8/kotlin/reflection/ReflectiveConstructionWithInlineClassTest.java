@@ -80,7 +80,7 @@ public class ReflectiveConstructionWithInlineClassTest extends KotlinTestBase {
         .addProgramFiles(compiledJars.getForConfiguration(kotlinc, targetVersion))
         .addProgramFiles(kotlinc.getKotlinStdlibJar())
         .addProgramFiles(kotlinc.getKotlinReflectJar())
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addOptionsModification(
             options -> {
               options.testing.enableD8ResourcesPassThrough = true;
@@ -97,7 +97,7 @@ public class ReflectiveConstructionWithInlineClassTest extends KotlinTestBase {
         .addProgramFiles(kotlinc.getKotlinReflectJar())
         .addProgramFiles(kotlinc.getKotlinAnnotationJar())
         .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.LATEST))
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addKeepMainRule(MAIN_CLASS)
         .addKeepClassAndMembersRules(PKG + ".Data")
         // TODO(b/242158616): Figure out why this is necessary.

@@ -89,7 +89,7 @@ public class UpwardsInterfacePropagationToLibraryOrClasspathMethodTest extends T
             })
         .addProgramClasses(PROGRAM_CLASSES)
         .addKeepMainRule(TestClass.class)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .enableNoVerticalClassMergingAnnotations()
         .enableNoHorizontalClassMergingAnnotations()
         .enableNeverClassInliningAnnotations()

@@ -41,7 +41,7 @@ public class BuilderWithMethodOnParentClassTest extends TestBase {
         .enableInliningAnnotations()
         .enableMemberValuePropagationAnnotations()
         .enableNoVerticalClassMergingAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .inspect(this::inspect)
         .run(parameters.getRuntime(), TestClass.class)

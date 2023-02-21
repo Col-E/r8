@@ -73,7 +73,7 @@ public class StringConcatFactoryTest extends TestBase {
   public void testJdk8NoIgnoreR8() throws Exception {
     R8FullTestBuilder builder =
         testForR8(parameters.getBackend())
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .addProgramClassFileData(MAIN.bytes())
             // Always link to the JDK8 rt.jar which has no definition of StringConcatFactory.
             .addLibraryFiles(ToolHelper.getJava8RuntimeJar())
@@ -105,7 +105,7 @@ public class StringConcatFactoryTest extends TestBase {
   @Test
   public void testJdk8WithIgnoreR8() throws Exception {
     testForR8(parameters.getBackend())
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addProgramClassFileData(MAIN.bytes())
         // Always link to the JDK8 rt.jar which has no definition of StringConcatFactory.
         .addLibraryFiles(ToolHelper.getJava8RuntimeJar())
@@ -132,7 +132,7 @@ public class StringConcatFactoryTest extends TestBase {
           }
         };
     R8FullTestBuilder.create(new TestState(temp, handler), parameters.getBackend())
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addProgramClassFileData(MAIN.bytes())
         // Always link to the JDK8 rt.jar which has no definition of StringConcatFactory.
         .addLibraryFiles(ToolHelper.getJava8RuntimeJar())
@@ -157,7 +157,7 @@ public class StringConcatFactoryTest extends TestBase {
   @Test
   public void testSystemJdkNoIgnoreClassesR8() throws Exception {
     testForR8(parameters.getBackend())
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addProgramClassFileData(MAIN.bytes())
         // The system runtime has StringConcatFactory so link to its bootclasspath.
         .addLibraryProvider(JdkClassFileProvider.fromSystemJdk())

@@ -42,7 +42,7 @@ public class UndefinedLambdaInterfaceRegress232379893 extends TestBase {
         .addDontWarn(UndefinedInterface.class)
         .addDontShrink()
         .allowDiagnosticWarningMessages(parameters.isDexRuntime())
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compileWithExpectedDiagnostics(
             diagnostics -> {
               if (parameters.isDexRuntime()) {

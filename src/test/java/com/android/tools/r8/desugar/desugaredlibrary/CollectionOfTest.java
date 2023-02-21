@@ -92,7 +92,7 @@ public class CollectionOfTest extends DesugaredLibraryTestBase {
         libraryDesugaringSpecification == JDK8 && compilationSpecification == D8_L8DEBUG);
     testForD8()
         .addProgramFiles(INPUT_JAR)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), MAIN_CLASS)
         .assertSuccessWithOutput(getExpectedOutput(false, true));
   }

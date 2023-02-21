@@ -37,7 +37,7 @@ public class RuntimeBootstrapFunctionalityTest extends TestBase {
         testForR8(parameters.getBackend())
             .addProgramClasses(I.class)
             .addKeepClassAndMembersRules(I.class)
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .compile();
     testForRuntime(parameters)
         .addProgramClasses(A.class, Main.class)

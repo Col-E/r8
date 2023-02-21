@@ -77,7 +77,7 @@ public class KeepDeserializeLambdaMethodTestRunner extends TestBase {
     R8CompatTestBuilder builder =
         testForR8Compat(parameters.getBackend())
             .addProgramClasses(getClasses())
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .addKeepMainRule(getMainClass())
             .addOptionsModification(
                 options -> options.getOpenClosedInterfacesOptions().suppressAllOpenInterfaces());

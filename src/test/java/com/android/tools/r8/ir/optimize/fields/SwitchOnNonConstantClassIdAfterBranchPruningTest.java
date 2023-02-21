@@ -45,7 +45,7 @@ public class SwitchOnNonConstantClassIdAfterBranchPruningTest extends TestBase {
             inspector -> inspector.assertIsCompleteMergeGroup(A.class, B.class, C.class))
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addDontObfuscate()
         .compile()
         .inspect(

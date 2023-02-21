@@ -43,7 +43,7 @@ public class MetadataRewriteDependentKeepTest extends KotlinMetadataTestBase {
   public void testR8() throws CompilationFailedException, IOException, ExecutionException {
     testForR8(parameters.getBackend())
         .addProgramFiles(kotlinc.getKotlinStdlibJar(), kotlinc.getKotlinAnnotationJar())
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addKeepKotlinMetadata()
         .addKeepRules(StringUtils.joinLines("-if class *.Metadata", "-keep class <1>.io.** { *; }"))
         .allowDiagnosticWarningMessages()

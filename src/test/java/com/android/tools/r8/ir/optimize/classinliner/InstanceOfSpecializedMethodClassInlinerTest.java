@@ -31,7 +31,7 @@ public class InstanceOfSpecializedMethodClassInlinerTest extends TestBase {
         .addInnerClasses(getClass())
         .addKeepMainRule(Main.class)
         .enableInliningAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines("false", "true");

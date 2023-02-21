@@ -40,7 +40,7 @@ public class IllegalInliningOfMergedConstructorTest extends TestBase {
             options -> options.inlinerOptions().simpleInliningInstructionLimit = 4)
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines("Hello w0rld!");

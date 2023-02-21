@@ -108,7 +108,7 @@ public class JacocoConstantDynamicTest extends TestBase {
       testForD8(parameters.getBackend())
           .addProgramFiles(testClasses.getInstrumented())
           .addProgramFiles(ToolHelper.JACOCO_AGENT)
-          .setMinApi(parameters.getApiLevel())
+          .setMinApi(parameters)
           .compile()
           .runWithJaCoCo(agentOutput, parameters.getRuntime(), MAIN_CLASS)
           .assertSuccessWithOutput(EXPECTED_OUTPUT);
@@ -123,7 +123,7 @@ public class JacocoConstantDynamicTest extends TestBase {
       testForD8(parameters.getBackend())
           .addProgramFiles(testClasses.getInstrumented())
           .addProgramFiles(ToolHelper.JACOCO_AGENT)
-          .setMinApi(parameters.getApiLevel())
+          .setMinApi(parameters)
           .compile();
     }
   }

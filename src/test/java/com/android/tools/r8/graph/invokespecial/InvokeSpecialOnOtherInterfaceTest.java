@@ -58,7 +58,7 @@ public class InvokeSpecialOnOtherInterfaceTest extends TestBase {
         .addProgramClassFileData(getClassWithTransformedInvoked())
         .addKeepMainRule(Main.class)
         .enableNoMethodStaticizingAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), Main.class)
         // TODO(b/144410139): Consider making this a compilation failure when generating DEX.
         .applyIf(

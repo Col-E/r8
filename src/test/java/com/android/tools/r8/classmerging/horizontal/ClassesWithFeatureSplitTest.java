@@ -41,7 +41,7 @@ public class ClassesWithFeatureSplitTest extends HorizontalClassMergingTestBase 
             .addKeepFeatureMainRule(Feature1Main.class)
             .addKeepFeatureMainRule(Feature2Main.class)
             .enableNeverClassInliningAnnotations()
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .compile()
             .inspect(this::inspectBase, this::inspectFeature1, this::inspectFeature2);
 

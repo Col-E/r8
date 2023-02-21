@@ -123,7 +123,7 @@ public class B130791310 extends TestBase {
         .addKeepClassAndMembersRules(MAIN)
         .addKeepRules(RULES)
         .addNeverClassInliningAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .applyIf(
             !enableClassMerging, builder -> builder.addKeepRules("-optimizations !class/merging/*"))
         .compile()
@@ -137,7 +137,7 @@ public class B130791310 extends TestBase {
         .addKeepClassAndMembersRules(MAIN)
         .addKeepRules(RULES)
         .enableNeverClassInliningAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addOptionsModification(o -> o.enableVerticalClassMerging = enableClassMerging)
         .applyIf(
             onlyForceInlining,

@@ -28,7 +28,7 @@ public class VerticalMergingPreoptimizedTest extends HorizontalClassMergingTestB
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
         .enableNoHorizontalClassMergingAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines(
             "changed", "print a", "foo", "print b", "foo", "unused argument")

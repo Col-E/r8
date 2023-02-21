@@ -47,7 +47,7 @@ public class VerticalClassMergerReflectiveNameTest extends TestBase {
     testForR8(parameters.getBackend())
         .addProgramClasses(Main.class, A.class, B.class)
         .addKeepMainRule(Main.class)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
         .run(parameters.getRuntime(), Main.class)

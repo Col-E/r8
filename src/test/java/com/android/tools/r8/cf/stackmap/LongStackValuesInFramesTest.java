@@ -51,7 +51,7 @@ public class LongStackValuesInFramesTest extends TestBase {
     testForD8(parameters.getBackend())
         .addProgramClasses(Tester.class)
         .addProgramClassFileData(dump())
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines(EXPECTED);
   }

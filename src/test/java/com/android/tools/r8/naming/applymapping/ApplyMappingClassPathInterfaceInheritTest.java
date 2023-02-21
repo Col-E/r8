@@ -46,7 +46,7 @@ public class ApplyMappingClassPathInterfaceInheritTest extends TestBase {
                 minifyLibrary,
                 TestShrinkerBuilder::addKeepAllClassesRuleWithAllowObfuscation,
                 TestShrinkerBuilder::addKeepAllClassesRule)
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .compile();
     Path libraryJar = libraryResult.writeToZip();
     testForR8(parameters.getBackend())
@@ -56,7 +56,7 @@ public class ApplyMappingClassPathInterfaceInheritTest extends TestBase {
         .addProgramClasses(Main.class)
         .addKeepAllClassesRule()
         .addApplyMapping(libraryResult.getProguardMap())
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .addRunClasspathClasses(LibI.class)
         .addRunClasspathFiles(libraryJar)

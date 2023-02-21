@@ -55,7 +55,7 @@ public class LambdaGroupGCLimitTest extends TestBase {
     R8TestCompileResult compileResult =
         testForR8(parameters.getBackend())
             .addProgramFiles(getProgramFiles())
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .apply(
                 builder -> {
                   for (int mainId = 0; mainId < LAMBDA_HOLDER_LIMIT; mainId++) {

@@ -50,7 +50,7 @@ public class B146957343 extends TestBase implements Opcodes {
         .addOptionsModification(
             options -> options.getOpenClosedInterfacesOptions().suppressAllOpenInterfaces())
         .enableInliningAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines("In A.f()");

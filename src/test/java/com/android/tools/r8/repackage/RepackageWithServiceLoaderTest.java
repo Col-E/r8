@@ -53,7 +53,7 @@ public class RepackageWithServiceLoaderTest extends RepackageTestBase {
                   options.dataResourceConsumer = dataResourceConsumer.get();
                 })
             .apply(this::configureRepackaging)
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .compile()
             .inspect(this::inspect)
             .run(parameters.getRuntime(), TestClass.class)

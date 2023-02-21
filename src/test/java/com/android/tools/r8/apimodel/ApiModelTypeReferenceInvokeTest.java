@@ -42,7 +42,7 @@ public class ApiModelTypeReferenceInvokeTest extends TestBase {
         .addProgramClasses(Main.class, ApiHelper.class)
         .addLibraryClasses(LibraryClass.class)
         .addDefaultRuntimeLibrary(parameters)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .apply(setMockApiLevelForClass(LibraryClass.class, AndroidApiLevel.M))
         .apply(setMockApiLevelForMethod(apiMethod, AndroidApiLevel.M))
         .apply(ApiModelingTestHelper::enableApiCallerIdentification)

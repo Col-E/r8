@@ -119,7 +119,7 @@ public class ForNameTest extends ReflectionOptimizerTestBase {
         testForD8()
             .debug()
             .addProgramClassesAndInnerClasses(MAIN)
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .run(parameters.getRuntime(), MAIN)
             .assertSuccessWithOutput(JAVA_OUTPUT);
     test(result, 4, 0);
@@ -129,7 +129,7 @@ public class ForNameTest extends ReflectionOptimizerTestBase {
         testForD8()
             .release()
             .addProgramClassesAndInnerClasses(MAIN)
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .run(parameters.getRuntime(), MAIN)
             .assertSuccessWithOutput(JAVA_OUTPUT);
     test(result, 4, 0);
@@ -146,7 +146,7 @@ public class ForNameTest extends ReflectionOptimizerTestBase {
             .addKeepAllClassesRule()
             .addKeepAttributes("EnclosingMethod", "InnerClasses")
             .addDontObfuscate()
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .run(parameters.getRuntime(), MAIN);
     test(result, 4, 0);
 
@@ -158,7 +158,7 @@ public class ForNameTest extends ReflectionOptimizerTestBase {
             .addKeepAllClassesRule()
             .addKeepAttributes("EnclosingMethod", "InnerClasses")
             .addDontObfuscate()
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .run(parameters.getRuntime(), MAIN)
             .assertSuccessWithOutput(JAVA_OUTPUT);
     test(result, 1, 3);
@@ -170,7 +170,7 @@ public class ForNameTest extends ReflectionOptimizerTestBase {
             .addKeepMainRule(MAIN)
             .addKeepAllClassesRuleWithAllowObfuscation()
             .addKeepAttributes("EnclosingMethod", "InnerClasses")
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             // We are not checking output because it can't be matched due to minification. Just run.
             .run(parameters.getRuntime(), MAIN);
     test(result, 1, 3);

@@ -62,7 +62,7 @@ public class KeepNonVisibilityBridgeMethodsTest extends TestBase {
         .enableNoVerticalClassMergingAnnotations()
         .enableProguardTestOptions()
         .minification(minification)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .inspect(
             inspector -> {

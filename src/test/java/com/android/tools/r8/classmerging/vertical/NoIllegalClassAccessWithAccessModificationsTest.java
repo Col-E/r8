@@ -44,7 +44,7 @@ public class NoIllegalClassAccessWithAccessModificationsTest extends VerticalCla
         .allowAccessModification()
         .enableInliningAnnotations()
         .enableNoHorizontalClassMergingAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .inspect(this::inspect)
         .run(parameters.getRuntime(), TestClass.class)

@@ -40,7 +40,7 @@ public class GenericSignatureVerticalMergeTest extends TestBase {
     R8TestRunResult runResult =
         testForR8Compat(parameters.getBackend())
             .addInnerClasses(getClass())
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .addKeepMainRule(Main.class)
             .addKeepClassRules(I.class, J.class)
             .addKeepClassAndMembersRulesWithAllowObfuscation(Base.class)

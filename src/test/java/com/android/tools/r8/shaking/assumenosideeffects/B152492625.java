@@ -112,7 +112,7 @@ public class B152492625 extends TestBase {
         .addKeepMainRule(TestClass.class)
         .applyIf(dontWarnObject, tb -> tb.addDontWarn(Object.class))
         .addKeepRules("-assumenosideeffects class " + B.class.getTypeName() + " { *; }")
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .allowDiagnosticWarningMessages(!dontWarnObject)
         .compileWithExpectedDiagnostics(
             diagnostics -> assertErrorsOrWarnings(diagnostics, matchers))
@@ -167,7 +167,7 @@ public class B152492625 extends TestBase {
             b ->
                 b.getBuilder()
                     .addProguardConfiguration(ImmutableList.of(methodsRule), methodsRuleOrigin))
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .allowDiagnosticWarningMessages(!dontWarnObject)
         .compileWithExpectedDiagnostics(
             diagnostics -> assertErrorsOrWarnings(diagnostics, matchers))
@@ -183,7 +183,7 @@ public class B152492625 extends TestBase {
         .addKeepMainRule(TestClass.class)
         .applyIf(dontWarnObject, tb -> tb.addDontWarn(Object.class))
         .addKeepRules("-assumenosideeffects class " + B.class.getTypeName() + " { hash*(); }")
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .run(parameters.getRuntime(), TestClass.class)
         .assertSuccessWithOutputLines("Hello, world");
@@ -200,7 +200,7 @@ public class B152492625 extends TestBase {
         .addKeepMainRule(TestClass.class)
         .applyIf(dontWarnObject, tb -> tb.addDontWarn(Object.class))
         .addKeepRules("-assumenosideeffects class " + B.class.getTypeName() + " { <methods>; }")
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .allowDiagnosticWarningMessages(!dontWarnObject)
         .compileWithExpectedDiagnostics(
             diagnostics -> assertErrorsOrWarnings(diagnostics, matchers))
@@ -219,7 +219,7 @@ public class B152492625 extends TestBase {
         .addKeepMainRule(TestClass.class)
         .applyIf(dontWarnObject, tb -> tb.addDontWarn(Object.class))
         .addKeepRules("-assumenosideeffects class " + B.class.getTypeName() + " { *** w*(...); }")
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .allowDiagnosticWarningMessages(!dontWarnObject)
         .compileWithExpectedDiagnostics(
             diagnostics -> assertErrorsOrWarnings(diagnostics, matchers))
@@ -238,7 +238,7 @@ public class B152492625 extends TestBase {
         .addProgramClasses(TestClass.class, B.class)
         .addKeepMainRule(TestClass.class)
         .addKeepRules("-assumenosideeffects class java.lang.Object { void wait(); }")
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .allowDiagnosticWarningMessages()
         .compileWithExpectedDiagnostics(
             diagnostics -> assertErrorsOrWarnings(diagnostics, matchers))
@@ -256,7 +256,7 @@ public class B152492625 extends TestBase {
           .addKeepRules(
               "-if class " + TestClass.class.getTypeName(),
               " -assumenosideeffects class " + B.class.getTypeName() + " { *; }")
-          .setMinApi(parameters.getApiLevel())
+          .setMinApi(parameters)
           .compileWithExpectedDiagnostics(
               diagnostics -> {
                 diagnostics.assertOnlyErrors();
@@ -280,7 +280,7 @@ public class B152492625 extends TestBase {
         .addKeepMainRule(TestClass.class)
         .addKeepRules("-assumenosideeffects class " + B.class.getTypeName() + " { *; }")
         .addDontWarn(B152492625.class)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .run(parameters.getRuntime(), TestClass.class)
         .assertSuccessWithOutputLines("Hello, world");
@@ -296,7 +296,7 @@ public class B152492625 extends TestBase {
         .addKeepMainRule(TestClass.class)
         .addKeepRules("-assumenosideeffects class java.lang.Object { void wait(); }")
         .addDontWarn(B152492625.class)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .inspect(inspector -> checkIfWaitIsInvokedFromMain(inspector, false))
         .run(parameters.getRuntime(), TestClass.class)

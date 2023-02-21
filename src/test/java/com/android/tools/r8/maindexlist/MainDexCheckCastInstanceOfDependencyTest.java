@@ -39,7 +39,7 @@ public class MainDexCheckCastInstanceOfDependencyTest extends TestBase {
         .addInnerClasses(getClass())
         .addKeepAllClassesRule()
         .addMainDexRules("-keep class " + Main.class.getTypeName() + " { void foo(); }")
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .collectMainDexClasses()
         .compile()
         .inspectMainDexClasses(

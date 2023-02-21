@@ -46,7 +46,7 @@ public class DesugaredLambdaImplementationInliningTest extends TestBase {
         .addProgramClasses(TestClass.class)
         .addKeepMainRule(TestClass.class)
         .addDontObfuscate()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), TestClass.class)
         .assertSuccessWithOutput(EXPECTED)
         .inspector()

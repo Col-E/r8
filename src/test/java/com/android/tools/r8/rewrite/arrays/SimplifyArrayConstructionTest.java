@@ -107,8 +107,7 @@ public class SimplifyArrayConstructionTest extends TestBase {
     assumeFalse(compilationMode == CompilationMode.DEBUG);
     testForRuntime(
             parameters.getRuntime(),
-            d8TestBuilder ->
-                d8TestBuilder.setMinApi(parameters.getApiLevel()).setMode(compilationMode))
+            d8TestBuilder -> d8TestBuilder.setMinApi(parameters).setMode(compilationMode))
         .addProgramClassFileData(TRANSFORMED_MAIN)
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines(EXPECTED_OUTPUT)
@@ -118,7 +117,7 @@ public class SimplifyArrayConstructionTest extends TestBase {
   @Test
   public void testR8() throws Exception {
     testForR8(parameters.getBackend())
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addOptionsModification(
             options ->
                 options

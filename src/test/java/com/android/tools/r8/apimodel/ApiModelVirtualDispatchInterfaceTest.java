@@ -39,7 +39,7 @@ public class ApiModelVirtualDispatchInterfaceTest extends TestBase {
     testForR8(parameters.getBackend())
         .addProgramClasses(Main.class)
         .addDefaultRuntimeLibrary(parameters)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addKeepMainRule(Main.class)
         .apply(ApiModelingTestHelper::enableApiCallerIdentification)
         .apply(

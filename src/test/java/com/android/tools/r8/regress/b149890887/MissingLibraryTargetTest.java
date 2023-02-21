@@ -60,7 +60,7 @@ public class MissingLibraryTargetTest extends TestBase {
         .addProgramClasses(PROGRAM)
         .addKeepMainRule(MAIN)
         .addClasspathClasses(LIBRARY)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addKeepRules("-dontwarn")
         .compile()
         .addRunClasspathFiles(runtimeClasspath())

@@ -39,14 +39,14 @@ public class SyntheticMarkerDexTest extends TestBase {
   public void test() throws Exception {
     Path out =
         testForD8(parameters.getBackend())
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .setIntermediate(true)
             .addProgramClasses(TestClass.class)
             .compile()
             .inspect(this::checkSyntheticClassIsMarked)
             .writeToZip();
     testForD8(parameters.getBackend())
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addProgramFiles(out)
         // Use intermediate again to preserve synthetics.
         .setIntermediate(true)

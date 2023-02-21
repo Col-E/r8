@@ -37,7 +37,7 @@ public class DexMergeChecksumsHighSortingStrings extends TestBase {
     Path dexArchive1 =
         testForD8()
             .addProgramClasses(TestClass1.class)
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .setMode(CompilationMode.DEBUG)
             .setIncludeClassesChecksum(true)
             .compile()
@@ -46,28 +46,28 @@ public class DexMergeChecksumsHighSortingStrings extends TestBase {
     Path dexArchive2 =
         testForD8()
             .addProgramClasses(TestClass2.class)
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .setMode(CompilationMode.DEBUG)
             .setIncludeClassesChecksum(true)
             .compile()
             .writeToZip();
 
     testForD8()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addProgramFiles(dexArchive1)
         .setIncludeClassesChecksum(true)
         .run(parameters.getRuntime(), TestClass1.class)
         .assertSuccessWithOutputLines("Hello, \uDB3F\uDFFD");
 
     testForD8()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addProgramFiles(dexArchive2)
         .setIncludeClassesChecksum(true)
         .run(parameters.getRuntime(), TestClass2.class)
         .assertSuccessWithOutputLines("Hello, ~~~\u007f");
 
     testForD8()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addProgramFiles(dexArchive1, dexArchive2)
         .setIncludeClassesChecksum(true)
         .run(parameters.getRuntime(), TestClass2.class)

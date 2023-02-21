@@ -39,7 +39,7 @@ public class ApiModelNoUnknownMergeTest extends TestBase {
         .addProgramClasses(Main.class, LibraryClassFooCaller.class, LibraryClassBarCaller.class)
         .addLibraryClasses(LibraryClass.class)
         .addDefaultRuntimeLibrary(parameters)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addKeepMainRule(Main.class)
         .enableInliningAnnotations()
         .addOptionsModification(

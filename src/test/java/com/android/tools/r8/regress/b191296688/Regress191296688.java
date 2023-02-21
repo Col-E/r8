@@ -57,12 +57,12 @@ public class Regress191296688 extends KotlinTestBase {
             .addLibraryFiles(kotlinc.getKotlinStdlibJar(), kotlinc.getKotlinAnnotationJar())
             .addProgramFiles(ktClasses)
             .addProgramClasses(A.class)
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .compile()
             .writeToZip();
     testForD8()
         .addProgramFiles(desugaredJar)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .disableDesugaring()
         .run(parameters.getRuntime(), PKG + ".BKt")
         .assertSuccessWithOutputLines("hep");

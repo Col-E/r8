@@ -27,7 +27,7 @@ public class TreeFixerConstructorCollisionTest extends HorizontalClassMergingTes
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
         .enableNoHorizontalClassMergingAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines(
             "constructor a",

@@ -49,7 +49,7 @@ public class LineNumberOptimizationTest extends DebugTestBase {
     R8TestCompileResult result =
         testForR8(parameters.getBackend())
             .addProgramFiles(DEBUGGEE_JAR)
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .setMode(dontOptimizeByEnablingDebug ? CompilationMode.DEBUG : CompilationMode.RELEASE)
             .noTreeShaking()
             .addDontObfuscate()

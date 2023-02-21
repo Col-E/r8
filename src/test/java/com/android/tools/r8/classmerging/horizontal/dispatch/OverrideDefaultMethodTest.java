@@ -31,7 +31,7 @@ public class OverrideDefaultMethodTest extends HorizontalClassMergingTestBase {
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
         .enableNoVerticalClassMergingAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addHorizontallyMergedClassesInspector(
             inspector -> {
               if (parameters.canUseDefaultAndStaticInterfaceMethods()) {

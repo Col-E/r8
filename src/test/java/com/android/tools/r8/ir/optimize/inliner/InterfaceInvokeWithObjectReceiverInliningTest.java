@@ -84,7 +84,7 @@ public class InterfaceInvokeWithObjectReceiverInliningTest extends TestBase {
                 inspector.assertNoClassesMerged();
               }
             })
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutput(EXPECTED);

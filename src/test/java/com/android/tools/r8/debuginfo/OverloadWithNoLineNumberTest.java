@@ -44,7 +44,7 @@ public class OverloadWithNoLineNumberTest extends TestBase {
                 transformer(SimpleCallChainClassWithOverloads.class)
                     .removeLineNumberTable(MethodPredicate.onName("test"))
                     .transform())
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .addKeepMainRule(SimpleCallChainClassWithOverloads.class)
             .addKeepClassAndMembersRules(SimpleCallChainClassWithOverloads.class)
             .addKeepAttributeLineNumberTable()

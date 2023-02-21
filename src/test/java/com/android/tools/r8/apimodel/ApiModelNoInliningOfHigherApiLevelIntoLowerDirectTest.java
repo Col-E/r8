@@ -39,7 +39,7 @@ public class ApiModelNoInliningOfHigherApiLevelIntoLowerDirectTest extends TestB
     Method apiLevel22 = B.class.getDeclaredMethod("apiLevel22");
     testForR8(parameters.getBackend())
         .addInnerClasses(getClass())
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addKeepMainRule(Main.class)
         .enableInliningAnnotations()
         .enableNoHorizontalClassMergingAnnotations()

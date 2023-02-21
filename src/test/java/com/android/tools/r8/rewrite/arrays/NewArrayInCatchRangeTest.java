@@ -51,7 +51,7 @@ public class NewArrayInCatchRangeTest extends TestBase {
     assumeTrue(parameters.isDexRuntime());
     testForD8(parameters.getBackend())
         .release()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addInnerClasses(NewArrayInCatchRangeTest.class)
         .run(parameters.getRuntime(), TestClass.class)
         .assertSuccessWithOutput(EXPECTED)

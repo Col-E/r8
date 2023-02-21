@@ -41,7 +41,7 @@ public class AssertionErrorRewriteTest extends TestBase {
     assumeTrue(parameters.isDexRuntime());
     testForD8()
         .addProgramClasses(Main.class)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), Main.class)
         // None of the VMs we have for testing is missing the two args constructor.
         .assertSuccessWithOutputLines("message", "java.lang.RuntimeException: cause message");
@@ -52,7 +52,7 @@ public class AssertionErrorRewriteTest extends TestBase {
     assumeTrue(parameters.isDexRuntime());
     testForD8()
         .addProgramClasses(Main.class)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .disableDesugaring()
         .compile()
         // TODO(b/247596495): There should be no synthetics.
@@ -75,7 +75,7 @@ public class AssertionErrorRewriteTest extends TestBase {
         .addProgramClasses(Main.class)
         .addKeepMainRule(Main.class)
         .enableInliningAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), Main.class, String.valueOf(expectCause))
         // None of the VMs we have for testing is missing the two args constructor.
         .assertSuccessWithOutputLines("message", "java.lang.RuntimeException: cause message");

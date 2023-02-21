@@ -28,10 +28,10 @@ public class InlineLibraryInterfaceMethodTest extends TestBase {
     return getTestParameters().withDexRuntime(DexVm.ART_DEFAULT.getVersion()).build();
   }
 
-  private final TestParameters testParameters;
+  private final TestParameters parameters;
 
-  public InlineLibraryInterfaceMethodTest(TestParameters testParameters) {
-    this.testParameters = testParameters;
+  public InlineLibraryInterfaceMethodTest(TestParameters parameters) {
+    this.parameters = parameters;
   }
 
   @Test
@@ -41,7 +41,7 @@ public class InlineLibraryInterfaceMethodTest extends TestBase {
       private long println = 0;
     }
     Counts counts = new Counts();
-    TestRuntime testRuntime = testParameters.getRuntime();
+    TestRuntime testRuntime = parameters.getRuntime();
     testForR8(Backend.DEX)
         .addInnerClasses(InlineLibraryInterfaceMethodTest.class)
         .addKeepMainRule(TestClass.class)

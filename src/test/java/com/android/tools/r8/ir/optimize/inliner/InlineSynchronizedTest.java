@@ -41,7 +41,7 @@ public class InlineSynchronizedTest extends TestBase {
         .addKeepMainRule(TestClass.class)
         .enableNeverClassInliningAnnotations()
         .enableInliningAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .inspect(
             inspector -> {

@@ -92,7 +92,7 @@ public class ApplyMappingRepackagingTest extends TestBase {
             .enableMemberValuePropagationAnnotations()
             .enableNeverClassInliningAnnotations()
             .addApplyMapping(StringUtils.lines(pgMap))
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .addKeepMainRule(C.class)
             .addKeepRules("-repackageclasses")
             .run(parameters.getRuntime(), C.class)

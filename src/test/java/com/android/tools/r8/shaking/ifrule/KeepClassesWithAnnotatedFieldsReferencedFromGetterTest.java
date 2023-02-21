@@ -49,7 +49,7 @@ public class KeepClassesWithAnnotatedFieldsReferencedFromGetterTest extends Test
             "}")
         .enableInliningAnnotations()
         .enableMemberValuePropagationAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .inspect(
             inspector -> {

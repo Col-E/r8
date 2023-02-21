@@ -94,7 +94,7 @@ public class ServiceLoaderTest extends TestBase {
             .enableGraphInspector()
             .enableMemberValuePropagationAnnotations()
             .enableNoMethodStaticizingAnnotations()
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .run(parameters.getRuntime(), TestClass.class)
             .assertSuccessWithOutput(expectedOutput);
 
@@ -192,7 +192,7 @@ public class ServiceLoaderTest extends TestBase {
                   options.dataResourceConsumer = dataResourceConsumer;
                 })
             .enableNoMethodStaticizingAnnotations()
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .run(parameters.getRuntime(), OtherTestClass.class)
             .assertSuccessWithOutput(expectedOutput)
             .inspector();

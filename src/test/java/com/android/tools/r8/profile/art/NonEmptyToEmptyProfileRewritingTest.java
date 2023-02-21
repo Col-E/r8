@@ -39,7 +39,7 @@ public class NonEmptyToEmptyProfileRewritingTest extends TestBase {
         .addInnerClasses(getClass())
         .addKeepMainRule(Main.class)
         .addArtProfileForRewriting(getArtProfile())
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .inspect(this::inspect)
         .inspectResidualArtProfile(this::inspectResidualArtProfile)

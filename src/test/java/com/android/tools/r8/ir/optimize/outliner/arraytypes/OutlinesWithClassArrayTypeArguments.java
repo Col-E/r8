@@ -62,7 +62,7 @@ public class OutlinesWithClassArrayTypeArguments extends TestBase {
         .enableInliningAnnotations()
         .addInnerClasses(OutlinesWithClassArrayTypeArguments.class)
         .addKeepMainRule(TestClass.class)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addDontObfuscate()
         .addOptionsModification(
             options -> {

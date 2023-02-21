@@ -59,7 +59,7 @@ public class CheckClassDiscardedEntirelyTest extends TestBase {
                     // for the class and all of its members. Therefore, the corresponding rule to
                     // disallow optimizations must apply to all members.
                     getRuleForSecret("keep,allowshrinking", true))
-                .setMinApi(parameters.getApiLevel())
+                .setMinApi(parameters)
                 .compileWithExpectedDiagnostics(
                     diagnostics -> {
                       if (shrink) {

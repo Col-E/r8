@@ -34,7 +34,7 @@ public class VerticalClassMergingWithMissingSuperClassTest extends TestBase {
         .addVerticallyMergedClassesInspector(
             inspector -> inspector.assertMergedIntoSubtype(B.class))
         .enableNoVerticalClassMergingAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .addRunClasspathFiles(buildOnDexRuntime(parameters, MissingClass.class))
         .run(parameters.getRuntime(), Main.class)

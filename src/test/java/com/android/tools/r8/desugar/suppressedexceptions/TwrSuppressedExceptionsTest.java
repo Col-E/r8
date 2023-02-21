@@ -112,7 +112,7 @@ public class TwrSuppressedExceptionsTest extends TestBase {
     parameters.assumeR8TestParameters();
     testForR8(parameters.getBackend())
         .addProgramFiles(getProgramInputs())
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addKeepMainRule(MAIN.typeName())
         // TODO(b/214250388): Don't warn about AutoClosable in synthesized code.
         .apply(

@@ -41,7 +41,7 @@ public class MovedStaticInterfaceMethodProfileRewritingTest extends TestBase {
     testForD8(parameters.getBackend())
         .addInnerClasses(getClass())
         .addArtProfileForRewriting(getArtProfile())
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .inspectResidualArtProfile(this::inspectD8)
         .run(parameters.getRuntime(), Main.class)
@@ -55,7 +55,7 @@ public class MovedStaticInterfaceMethodProfileRewritingTest extends TestBase {
         .addArtProfileForRewriting(
             getArtProfileAfterDesugaring(
                 parameters.canUseDefaultAndStaticInterfaceMethodsWhenDesugaring()))
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .inspectResidualArtProfile(this::inspectD8)
         .run(parameters.getRuntime(), Main.class)
@@ -70,7 +70,7 @@ public class MovedStaticInterfaceMethodProfileRewritingTest extends TestBase {
         .addKeepMainRule(Main.class)
         .addArtProfileForRewriting(getArtProfile())
         .enableInliningAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .inspectResidualArtProfile(this::inspectR8)
         .run(parameters.getRuntime(), Main.class)
@@ -87,7 +87,7 @@ public class MovedStaticInterfaceMethodProfileRewritingTest extends TestBase {
             getArtProfileAfterDesugaring(
                 parameters.isCfRuntime() || parameters.canUseDefaultAndStaticInterfaceMethods()))
         .enableInliningAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .inspectResidualArtProfile(this::inspectR8)
         .run(parameters.getRuntime(), Main.class)

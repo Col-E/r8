@@ -46,7 +46,7 @@ public class MultipleRulesRegression228791247Test extends TestBase {
         .addProgramClasses(I.class, J.class, A.class, TestClass.class)
         .addKeepMainRule(TestClass.class)
         .addKeepRules(rule1, rule2)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), TestClass.class)
         .assertSuccessWithOutput(EXPECTED);
   }

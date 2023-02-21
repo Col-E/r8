@@ -58,14 +58,14 @@ public class ApiModelMockExceptionTest extends TestBase {
         .addProgramClasses(Main.class)
         .addLibraryClasses(LibrarySuperException.class, LibrarySubException.class, Thrower.class)
         .addDefaultRuntimeLibrary(parameters)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .apply(ApiModelingTestHelper::enableStubbingOfClasses)
         .apply(setMockApiLevelForClass(LibrarySuperException.class, mockSuperExceptionLevel))
         .apply(setMockApiLevelForClass(LibrarySubException.class, mockSubExceptionLevel));
   }
 
   private void setupTestRuntimeBuilder(TestCompilerBuilder<?, ?, ?, ?, ?> testBuilder) {
-    testBuilder.setMinApi(parameters.getApiLevel()).addAndroidBuildVersion();
+    testBuilder.setMinApi(parameters).addAndroidBuildVersion();
   }
 
   private void setupTestBuilder(TestCompilerBuilder<?, ?, ?, ?, ?> testBuilder) {

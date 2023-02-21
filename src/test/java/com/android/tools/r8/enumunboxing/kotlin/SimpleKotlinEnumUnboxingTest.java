@@ -76,7 +76,7 @@ public class SimpleKotlinEnumUnboxingTest extends EnumUnboxingTestBase {
         .addEnumUnboxingInspector(
             inspector -> inspector.assertUnboxedIf(!kotlinParameters.isKotlinDev(), PKG + ".Color"))
         .allowDiagnosticMessages()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .inspectDiagnosticMessages(
             messages ->

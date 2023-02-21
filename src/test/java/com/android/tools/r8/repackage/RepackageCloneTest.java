@@ -31,7 +31,7 @@ public class RepackageCloneTest extends RepackageTestBase {
         // Ensure we keep values() which has a call to clone.
         .addKeepRules("-keepclassmembers class " + typeName(A.class) + " { *; }")
         .apply(this::configureRepackaging)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addHorizontallyMergedClassesInspector(
             HorizontallyMergedClassesInspector::assertNoClassesMerged)
         .enableInliningAnnotations()

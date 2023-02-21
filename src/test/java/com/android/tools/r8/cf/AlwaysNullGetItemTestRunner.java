@@ -41,7 +41,7 @@ public class AlwaysNullGetItemTestRunner extends TestBase {
         .debug()
         .addDontObfuscate()
         .noTreeShaking()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .run(parameters.getRuntime(), CLASS)
         .assertSuccessWithOutputLines(NullPointerException.class.getSimpleName());

@@ -38,7 +38,7 @@ public class RepackageWithPackagePrivateLibrarySuperTest extends RepackageTestBa
         .addProgramClasses(Program.class, Main.class)
         .apply(this::configureRepackaging)
         .addKeepMainRule(Main.class)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .enableNeverClassInliningAnnotations()
         .compile()
         .addRunClasspathFiles(buildOnDexRuntime(parameters, Library.class))

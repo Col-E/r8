@@ -57,7 +57,7 @@ public class NestLambdaJava17Test extends TestBase {
   public void testJavaD8() throws Exception {
     testForD8(parameters.getBackend())
         .addProgramFiles(JDK17_JAR)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), MAIN)
         .assertSuccessWithOutput(EXPECTED_RESULT);
   }
@@ -71,7 +71,7 @@ public class NestLambdaJava17Test extends TestBase {
             parameters.isCfRuntime(),
             // Alternatively we need to pass Jdk17 as library.
             b -> b.addKeepRules("-dontwarn java.lang.invoke.StringConcatFactory"))
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addKeepMainRule(MAIN)
         .run(parameters.getRuntime(), MAIN)
         .assertSuccessWithOutput(EXPECTED_RESULT);

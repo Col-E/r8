@@ -64,7 +64,7 @@ public class LibraryMemberRebindingSuperTest extends TestBase {
         .apply(ApiModelingTestHelper::enableApiCallerIdentification)
         .apply(ApiModelingTestHelper::disableOutliningAndStubbing)
         .addKeepAllClassesRule()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .addRunClasspathClasses(LIBRARY_CLASSES)
         .run(parameters.getRuntime(), Main.class)

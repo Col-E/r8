@@ -46,7 +46,7 @@ public class RepackageWithPackagePrivateInnerClassTest extends RepackageTestBase
         .addKeepAttributeInnerClassesAndEnclosingMethod()
         .apply(this::configureRepackaging)
         .enableInliningAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .inspect(inspector -> inspect(inspector, expectRepackaged))
         .run(parameters.getRuntime(), TestClass.class)

@@ -62,7 +62,7 @@ public class RecordMergeTest extends TestBase {
         () ->
             testForD8(parameters.getBackend())
                 .addProgramClassFileData(PROGRAM_DATA_1)
-                .setMinApi(parameters.getApiLevel())
+                .setMinApi(parameters)
                 .setIntermediate(true)
                 .compileWithExpectedDiagnostics(
                     diagnostics ->
@@ -88,7 +88,7 @@ public class RecordMergeTest extends TestBase {
     Path output1 =
         testForD8(parameters.getBackend())
             .addProgramClassFileData(PROGRAM_DATA_1)
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .setIntermediate(true)
             .applyIf(
                 filePerClass && !parameters.isCfRuntime(),
@@ -102,7 +102,7 @@ public class RecordMergeTest extends TestBase {
     Path output2 =
         testForD8(parameters.getBackend())
             .addProgramClassFileData(PROGRAM_DATA_2)
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .setIntermediate(true)
             .applyIf(
                 filePerClass && !parameters.isCfRuntime(),
@@ -123,7 +123,7 @@ public class RecordMergeTest extends TestBase {
                     b.getBuilder()
                         .addGlobalSyntheticsResourceProviders(globals1.getProviders())
                         .addGlobalSyntheticsResourceProviders(globals2.getProviders()))
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .compile()
             .inspect(this::assertHasRecordTag);
 
@@ -137,7 +137,7 @@ public class RecordMergeTest extends TestBase {
     Path output1 =
         testForD8(parameters.getBackend())
             .addProgramClassFileData(PROGRAM_DATA_1)
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .setIntermediate(true)
             .apply(b -> b.getBuilder().setGlobalSyntheticsConsumer(globals1))
             .compile()
@@ -149,7 +149,7 @@ public class RecordMergeTest extends TestBase {
             .apply(
                 b -> b.getBuilder().addGlobalSyntheticsResourceProviders(globals1.getProviders()))
             .addProgramClassFileData(PROGRAM_DATA_2)
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .compile();
     result.run(parameters.getRuntime(), MAIN_TYPE_1).assertSuccessWithOutput(EXPECTED_RESULT_1);
     result.run(parameters.getRuntime(), MAIN_TYPE_2).assertSuccessWithOutput(EXPECTED_RESULT_2);
@@ -160,7 +160,7 @@ public class RecordMergeTest extends TestBase {
     Path output1 =
         testForD8(parameters.getBackend())
             .addProgramClassFileData(PROGRAM_DATA_1)
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .compile()
             .inspect(this::assertHasRecordTag)
             .writeToZip();
@@ -168,7 +168,7 @@ public class RecordMergeTest extends TestBase {
     Path output2 =
         testForD8(parameters.getBackend())
             .addProgramClassFileData(PROGRAM_DATA_2)
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .compile()
             .inspect(this::assertHasRecordTag)
             .writeToZip();
@@ -178,7 +178,7 @@ public class RecordMergeTest extends TestBase {
         () ->
             testForD8(parameters.getBackend())
                 .addProgramFiles(output1, output2)
-                .setMinApi(parameters.getApiLevel())
+                .setMinApi(parameters)
                 .compileWithExpectedDiagnostics(
                     diagnostics ->
                         diagnostics

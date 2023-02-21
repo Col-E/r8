@@ -42,7 +42,7 @@ public class ParameterWithUnknownArgumentInformationWidenedToUnknownTest extends
                         Reference.methodFromMethod(Main.class.getDeclaredMethod("test", A.class)))
                     .apply(ignore -> inspected.set()))
         .enableInliningAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines(null, "A");

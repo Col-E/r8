@@ -34,7 +34,7 @@ public class DexMergeChecksumsFileWithNoClassesTest extends TestBase {
   public void testChecksumWithNoClasses() throws Exception {
     Path out1 =
         testForD8()
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .setMode(CompilationMode.DEBUG)
             .setIncludeClassesChecksum(true)
             .setIntermediate(true)
@@ -44,7 +44,7 @@ public class DexMergeChecksumsFileWithNoClassesTest extends TestBase {
 
     Path out2 =
         testForD8()
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .setMode(CompilationMode.DEBUG)
             .setIncludeClassesChecksum(true)
             .addProgramClasses(TestClass.class)
@@ -56,7 +56,7 @@ public class DexMergeChecksumsFileWithNoClassesTest extends TestBase {
     testForD8()
         .addProgramFiles(out1, out2)
         .setIncludeClassesChecksum(true)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), TestClass.class)
         .inspect(this::checkContainsChecksums);
   }

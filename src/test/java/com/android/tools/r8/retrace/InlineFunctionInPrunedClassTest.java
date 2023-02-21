@@ -49,7 +49,7 @@ public class InlineFunctionInPrunedClassTest extends TestBase {
   public void testR8() throws Exception {
     testForR8(parameters.getBackend())
         .addProgramClassFileData(getAWithCustomSourceFile(), getMainWithStaticPosition())
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addKeepMainRule(Main.class)
         .addKeepAttributeSourceFile()
         .addKeepAttributeLineNumberTable()

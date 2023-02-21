@@ -44,7 +44,7 @@ public class LibraryMethodOverrideInLambdaMarkingTest extends TestBase {
         .addOptionsModification(
             options -> options.testing.enqueuerInspector = this::verifyLibraryOverrideInformation)
         .enableNoVerticalClassMergingAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), TestClass.class)
         .assertSuccessWithOutputLines("null", "null");
   }

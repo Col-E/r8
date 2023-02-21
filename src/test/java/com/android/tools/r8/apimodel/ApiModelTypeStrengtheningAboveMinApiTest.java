@@ -47,7 +47,7 @@ public class ApiModelTypeStrengtheningAboveMinApiTest extends TestBase {
         .apply(setMockApiLevelForClass(ApiLevel23.class, AndroidApiLevel.M))
         .apply(ApiModelingTestHelper::enableApiCallerIdentification)
         .apply(ApiModelingTestHelper::disableOutliningAndStubbing)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .inspect(
             inspector -> {

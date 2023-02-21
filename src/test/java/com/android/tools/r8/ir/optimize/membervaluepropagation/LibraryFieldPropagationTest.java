@@ -72,7 +72,7 @@ public class LibraryFieldPropagationTest extends TestBase {
             withAssumeValuesRule
                 ? "-assumevalues class java.lang.Thread { public int MIN_PRIORITY return 1; }"
                 : "")
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .inspect(this::verifyFieldValueNotPropagated)
         .run(parameters.getRuntime(), MAIN)

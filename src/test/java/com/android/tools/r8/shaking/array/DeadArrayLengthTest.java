@@ -65,7 +65,7 @@ public class DeadArrayLengthTest extends TestBase {
     testForD8()
         .release()
         .addProgramClasses(MAIN)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), MAIN)
         .assertSuccessWithOutput(EXPECTED_OUTPUT)
         .inspect(codeInspector -> inspect(codeInspector, false));
@@ -79,7 +79,7 @@ public class DeadArrayLengthTest extends TestBase {
         .enableInliningAnnotations()
         .enableMemberValuePropagationAnnotations()
         .addDontObfuscate()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), MAIN)
         .assertSuccessWithOutput(EXPECTED_OUTPUT)
         .inspect(codeInspector -> inspect(codeInspector, true));

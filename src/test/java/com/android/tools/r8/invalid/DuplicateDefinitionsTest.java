@@ -48,7 +48,7 @@ public class DuplicateDefinitionsTest extends JasminTestBase {
 
     testForD8(parameters.getBackend())
         .addProgramClassFileData(jasminBuilder.buildClasses())
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compileWithExpectedDiagnostics(
             diagnostics ->
                 diagnostics
@@ -90,7 +90,7 @@ public class DuplicateDefinitionsTest extends JasminTestBase {
 
     testForD8(parameters.getBackend())
         .addProgramClassFileData(jasminBuilder.buildClasses())
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compileWithExpectedDiagnostics(
             diagnostics ->
                 diagnostics

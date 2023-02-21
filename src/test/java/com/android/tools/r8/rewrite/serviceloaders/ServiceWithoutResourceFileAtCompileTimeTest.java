@@ -52,7 +52,7 @@ public class ServiceWithoutResourceFileAtCompileTimeTest extends TestBase {
             .addProgramClasses(TestClass.class, Service.class)
             .addKeepMainRule(TestClass.class)
             .addKeepClassAndMembersRulesWithAllowObfuscation(Service.class)
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .compile();
 
     CodeInspector inspector = compileResult.inspector();
@@ -70,7 +70,7 @@ public class ServiceWithoutResourceFileAtCompileTimeTest extends TestBase {
         .addKeepAllClassesRule()
         .addApplyMapping(compileResult.getProguardMap())
         .enableInliningAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .addRunClasspathFiles(
             injectServiceDeclarationInProgram(

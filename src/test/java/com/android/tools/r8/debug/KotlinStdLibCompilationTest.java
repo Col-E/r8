@@ -48,7 +48,7 @@ public class KotlinStdLibCompilationTest extends TestBase {
     assumeTrue(parameters.isDexRuntime());
     testForD8()
         .addProgramFiles(kotlinTestParameters.getCompiler().getKotlinStdlibJar())
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compileWithExpectedDiagnostics(
             diagnostics -> {
               if (kotlinTestParameters.isNewerThanOrEqualTo(KotlinCompilerVersion.KOTLINC_1_8_0)
@@ -74,7 +74,7 @@ public class KotlinStdLibCompilationTest extends TestBase {
         .addDontObfuscate()
         .noTreeShaking()
         .setMode(CompilationMode.DEBUG)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .applyIf(
             parameters.isCfRuntime()
                 && kotlinTestParameters.isNewerThanOrEqualTo(KotlinCompilerVersion.KOTLINC_1_8_0),

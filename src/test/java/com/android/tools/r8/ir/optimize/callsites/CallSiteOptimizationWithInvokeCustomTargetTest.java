@@ -61,7 +61,7 @@ public class CallSiteOptimizationWithInvokeCustomTargetTest extends TestBase {
         .addKeepMainRule(TestClass.class)
         .addKeepMethodRules(methodFromMethod(TestClass.class.getDeclaredMethod("bar", int.class)))
         .enableInliningAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), TestClass.class)
         .assertSuccessWithOutput(EXPECTED)
         .inspect(

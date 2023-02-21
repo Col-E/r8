@@ -34,7 +34,7 @@ public class KeptByReferenceInAnnotationTest extends TestBase {
         .addKeepMainRule(Main.class)
         .addKeepRuntimeVisibleAnnotations()
         .enableGraphInspector()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .inspectGraph(
             inspector -> {

@@ -45,7 +45,7 @@ public class ApiModelNoInliningOfHigherApiLevelInstanceFieldTest extends TestBas
         .addProgramClasses(ApiCaller.class, ApiCallerCaller.class, Main.class)
         .addLibraryClasses(Api.class)
         .addDefaultRuntimeLibrary(parameters)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addKeepMainRule(Main.class)
         .enableInliningAnnotations()
         .enableNoHorizontalClassMergingAnnotations()

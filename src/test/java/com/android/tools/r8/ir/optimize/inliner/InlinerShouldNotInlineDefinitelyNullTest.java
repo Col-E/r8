@@ -61,7 +61,7 @@ public class InlinerShouldNotInlineDefinitelyNullTest extends TestBase {
             .addKeepMainRule(Main.class)
             .addKeepAllAttributes()
             .addKeepClassRules(A.class)
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .compile()
             .inspect(
                 inspector -> {

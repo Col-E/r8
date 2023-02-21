@@ -134,6 +134,10 @@ public class TestParameters {
     return runtime == NoneRuntime.getInstance();
   }
 
+  public void configureApiLevel(TestAppViewBuilder testAppViewBuilder) {
+    testAppViewBuilder.setMinApi(apiLevel);
+  }
+
   public void configureApiLevel(TestCompilerBuilder<?, ?, ?, ?, ?> testCompilerBuilder) {
     testCompilerBuilder.setMinApi(apiLevel);
   }
@@ -218,6 +222,14 @@ public class TestParameters {
         "No need to use assumeR8TestParameters() when not using api levels for CF",
         isCfRuntime() && apiLevel == null);
     assertTrue(apiLevel != null || representativeApiLevelForRuntime);
+    assumeTrue(isDexRuntime() || representativeApiLevelForRuntime);
+    return this;
+  }
+
+  public TestParameters assumeRuntimeTestParameters() {
+    assertFalse(
+        "No need to use assumeRuntimeTestParameters() when not using api levels for CF",
+        apiLevel == null);
     assumeTrue(isDexRuntime() || representativeApiLevelForRuntime);
     return this;
   }

@@ -68,7 +68,7 @@ public class GenericSignatureKeepAttributesTest extends TestBase {
     (isCompat ? testForR8Compat(parameters.getBackend()) : testForR8(parameters.getBackend()))
         .addProgramClasses(Supplier.class, Predicate.class, Outer.class, Middle.class, Main.class)
         .addProgramClassFileData(getClassFileData())
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addKeepAttributeSignature()
         .addKeepAttributeInnerClassesAndEnclosingMethod()
         .addKeepMainRule(Main.class)

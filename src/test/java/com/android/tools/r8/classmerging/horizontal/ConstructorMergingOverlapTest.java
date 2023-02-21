@@ -32,7 +32,7 @@ public class ConstructorMergingOverlapTest extends HorizontalClassMergingTestBas
         .addKeepMainRule(Main.class)
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines("42", "13", "7", "print a", "print b")
         .inspect(

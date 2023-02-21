@@ -47,7 +47,7 @@ public class ValueOfEnumUnboxingTest extends EnumUnboxingTestBase {
             .enableNeverClassInliningAnnotations()
             .addKeepRules(enumKeepRules.getKeepRules())
             .addOptionsModification(opt -> enableEnumOptions(opt, enumValueOptimization))
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .compile();
     for (Class<?> main : TESTS) {
       compile

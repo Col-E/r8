@@ -36,7 +36,7 @@ public class ImplementingMethodInSubclassTest extends TestBase {
     R8TestCompileResult libraryResult =
         testForR8(parameters.getBackend())
             .addProgramClasses(I.class, A.class, B.class)
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .addKeepMethodRules(A.class, "void foo()")
             .addKeepClassRules(B.class)
             .compile();

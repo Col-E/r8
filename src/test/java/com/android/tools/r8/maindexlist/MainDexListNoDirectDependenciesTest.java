@@ -46,7 +46,7 @@ public class MainDexListNoDirectDependenciesTest extends TestBase {
             .addMainDexKeepClassRules(B.class)
             .collectMainDexClasses()
             .noTreeShaking()
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .allowDiagnosticMessages()
             .compileWithExpectedDiagnostics(
                 diagnostics ->

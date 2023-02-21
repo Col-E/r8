@@ -43,7 +43,7 @@ public class CollisionWithLibraryMethodAfterConstantParameterRemovalTest extends
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
         .enableNoMethodStaticizingAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .inspect(
             inspector -> {

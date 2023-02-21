@@ -49,7 +49,7 @@ public class GenericSignatureEnclosingTest extends TestBase {
         .addKeepMainRule(Main.class)
         .addKeepClassRules(Foo.class)
         .addKeepAttributeSignature()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addOptionsModification(
             options -> {
               options.horizontalClassMergerOptions().disable();

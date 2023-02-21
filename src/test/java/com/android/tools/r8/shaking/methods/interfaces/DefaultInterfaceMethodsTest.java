@@ -48,7 +48,7 @@ public class DefaultInterfaceMethodsTest extends TestBase {
     assumeTrue(parameters.isCfRuntime());
     testForProguard()
         .addProgramClasses(I.class, J.class)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addKeepMethodRules(J.class, "void foo()")
         .addKeepRules("-dontwarn")
         .compile()
@@ -68,7 +68,7 @@ public class DefaultInterfaceMethodsTest extends TestBase {
     R8TestCompileResult compileResult =
         testForR8(parameters.getBackend())
             .addProgramClasses(I.class, J.class)
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .addKeepMethodRules(J.class, "void foo()")
             .addOptionsModification(
                 internalOptions -> internalOptions.enableVerticalClassMerging = false)
@@ -78,7 +78,7 @@ public class DefaultInterfaceMethodsTest extends TestBase {
     testForR8(parameters.getBackend())
         .addProgramClasses(ImplJ.class, Main.class)
         .addClasspathClasses(I.class, J.class)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addKeepMainRule(Main.class)
         .addKeepClassRules(ImplJ.class)
         .addRunClasspathFiles(compileResult.writeToZip())
@@ -97,7 +97,7 @@ public class DefaultInterfaceMethodsTest extends TestBase {
     R8TestCompileResult compileResult =
         testForR8(parameters.getBackend())
             .addProgramClasses(I.class, J.class)
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .addKeepMethodRules(J.class, "void foo()")
             .compile();
     testForRuntime(parameters)
@@ -113,7 +113,7 @@ public class DefaultInterfaceMethodsTest extends TestBase {
     R8TestCompileResult compileResult =
         testForR8(parameters.getBackend())
             .addProgramClasses(I.class, J.class, ImplJ.class)
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .addKeepClassAndMembersRules(ImplJ.class)
             .addKeepMethodRules(J.class, "void foo()")
             .compile();
@@ -130,7 +130,7 @@ public class DefaultInterfaceMethodsTest extends TestBase {
     R8TestCompileResult compileResult =
         testForR8(parameters.getBackend())
             .addProgramClasses(I.class, J.class, ImplJ.class, SubImplJ.class)
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .addKeepMethodRules(SubImplJ.class, "void <init>()", "void foo()")
             .compile();
     testForRuntime(parameters)

@@ -42,7 +42,7 @@ public class ApiModelOutlineConstClassTest extends TestBase {
         .addLibraryClasses(LibraryClass.class)
         .addDefaultRuntimeLibrary(parameters)
         .addProgramClasses(Main.class)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addAndroidBuildVersion(getApiLevelForRuntime())
         .apply(setMockApiLevelForClass(LibraryClass.class, classApiLevel))
         .apply(ApiModelingTestHelper::enableApiCallerIdentification)

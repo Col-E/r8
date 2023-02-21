@@ -42,7 +42,7 @@ public class IfWithMethodValuePropagationTest extends TestBase {
             "-keep class " + Layout.class.getTypeName())
         .addLibraryClasses(Library.class)
         .addDefaultRuntimeLibrary(parameters)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .inspect(this::verifyOutput)
         .addRunClasspathFiles(
@@ -50,7 +50,7 @@ public class IfWithMethodValuePropagationTest extends TestBase {
                 .addProgramClasses(Library.class)
                 .addClasspathClasses(Layout.class)
                 .addKeepAllClassesRule()
-                .setMinApi(parameters.getApiLevel())
+                .setMinApi(parameters)
                 .compile()
                 .writeToZip())
         .run(parameters.getRuntime(), TestClass.class)

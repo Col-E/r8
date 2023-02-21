@@ -52,7 +52,7 @@ public class ApiModelMockAbstractMethodOnBaseToOutlineTest extends TestBase {
         .addLibraryClasses(
             LibraryClass.class, OtherLibraryClass.class, SubLibraryClassAtLaterApiLevel.class)
         .addDefaultRuntimeLibrary(parameters)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addAndroidBuildVersion()
         .apply(ApiModelingTestHelper::enableStubbingOfClasses)
         .apply(ApiModelingTestHelper::enableOutliningOfMethods)

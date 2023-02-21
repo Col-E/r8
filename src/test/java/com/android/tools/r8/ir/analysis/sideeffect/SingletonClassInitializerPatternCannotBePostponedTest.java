@@ -37,7 +37,7 @@ public class SingletonClassInitializerPatternCannotBePostponedTest extends TestB
     testForR8(parameters.getBackend())
         .addInnerClasses(SingletonClassInitializerPatternCannotBePostponedTest.class)
         .addKeepMainRule(TestClass.class)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .inspect(this::inspect)
         .run(parameters.getRuntime(), TestClass.class)

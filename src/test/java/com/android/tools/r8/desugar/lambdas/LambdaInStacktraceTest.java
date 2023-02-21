@@ -86,7 +86,7 @@ public class LambdaInStacktraceTest extends TestBase {
   public void testD8() throws Exception {
     testForD8(parameters.getBackend())
         .addInnerClasses(LambdaInStacktraceTest.class)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), TestRunner.class, Boolean.toString(isDalvik))
         .assertSuccessWithOutput(isAndroidOOrLater ? EXPECTED_D8_ANDROID_O : EXPECTED_D8);
   }
@@ -97,7 +97,7 @@ public class LambdaInStacktraceTest extends TestBase {
     String stdout =
         testForR8(parameters.getBackend())
             .addInnerClasses(LambdaInStacktraceTest.class)
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .addKeepMainRule(TestRunner.class)
             .addKeepAttributeSourceFile()
             .addKeepRules("-renamesourcefileattribute SourceFile")

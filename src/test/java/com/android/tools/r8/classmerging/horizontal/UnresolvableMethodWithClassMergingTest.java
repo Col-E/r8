@@ -22,7 +22,7 @@ public class UnresolvableMethodWithClassMergingTest extends HorizontalClassMergi
         .addDontWarn(Missing.class)
         .addHorizontallyMergedClassesInspector(
             HorizontallyMergedClassesInspector::assertNoOtherClassesMerged)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .addRunClasspathFiles(buildOnDexRuntime(parameters, Missing.class))
         .run(parameters.getRuntime(), Main.class)

@@ -112,7 +112,7 @@ public class StringValueOfTest extends TestBase {
             .enableInliningAnnotations()
             .enableMemberValuePropagationAnnotations()
             .addKeepMainRule(MAIN)
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .addDontObfuscate()
             .addOptionsModification(this::configure)
             .compile()

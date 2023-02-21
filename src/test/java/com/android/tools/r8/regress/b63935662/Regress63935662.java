@@ -37,7 +37,7 @@ public class Regress63935662 extends TestBase {
         .addKeepRuleFiles()
         .allowAccessModification()
         .addDontObfuscate()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .run(parameters.getRuntime(), mainClass)
         .assertSuccessWithOutput(runOnJava(mainClass));

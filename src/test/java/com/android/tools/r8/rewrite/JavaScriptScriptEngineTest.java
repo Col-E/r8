@@ -46,7 +46,7 @@ public class JavaScriptScriptEngineTest extends ScriptEngineTestBase {
     assumeTrue("Only run D8 for dex backend", parameters.isDexRuntime());
     testForD8()
         .addInnerClasses(JavaScriptScriptEngineTest.class)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .apply(this::addRhinoForAndroid)
         .compile()
         .run(parameters.getRuntime(), TestClassWithExplicitRhinoScriptEngineRegistration.class)
@@ -58,7 +58,7 @@ public class JavaScriptScriptEngineTest extends ScriptEngineTestBase {
     testForR8(parameters.getBackend())
         .addInnerClasses(JavaScriptScriptEngineTest.class)
         .addKeepMainRule(TestClass.class)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .applyIf(
             parameters.isDexRuntime(),
             testBuilder -> {

@@ -47,7 +47,7 @@ public class ImpreciseReceiverWithUnknownArgumentInformationWidenedToUnknownTest
         .addVerticallyMergedClassesInspector(
             VerticallyMergedClassesInspector::assertNoClassesMerged)
         .enableNoVerticalClassMergingAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines("A");

@@ -56,7 +56,7 @@ public class KeepPackageNameRootTest extends TestBase {
                 .transform())
         .addKeepRules("-keeppackagenames foo.**")
         .addKeepClassRulesWithAllowObfuscation("foo.Main")
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .inspect(
             inspector -> {

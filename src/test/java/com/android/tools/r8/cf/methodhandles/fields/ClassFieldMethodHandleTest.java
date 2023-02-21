@@ -71,7 +71,7 @@ public class ClassFieldMethodHandleTest extends TestBase {
         .addLibraryFiles(ToolHelper.getMostRecentAndroidJar())
         .addProgramClasses(C.class)
         .addProgramClassFileData(getTransformedMain())
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compileWithExpectedDiagnostics(this::checkDiagnostics)
         .run(parameters.getRuntime(), Main.class)
         .apply(this::checkResult);
@@ -84,7 +84,7 @@ public class ClassFieldMethodHandleTest extends TestBase {
         .addLibraryFiles(ToolHelper.getMostRecentAndroidJar())
         .addProgramClasses(C.class)
         .addProgramClassFileData(getTransformedMain())
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .allowDiagnosticMessages()
         .compileWithExpectedDiagnostics(this::checkDiagnostics)
         .run(parameters.getRuntime(), Main.class)

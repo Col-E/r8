@@ -70,7 +70,7 @@ public class MissingServiceImplementationClassTest extends TestBase {
                       new DataResourceConsumerForTesting(options.dataResourceConsumer));
                   options.dataResourceConsumer = dataResourceConsumer.get();
                 })
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .compile();
 
     CodeInspector inspector = compileResult.inspector();
@@ -93,7 +93,7 @@ public class MissingServiceImplementationClassTest extends TestBase {
         .addClasspathClasses(Service.class)
         .addKeepAllClassesRule()
         .addApplyMapping(compileResult.getProguardMap())
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .addRunClasspathFiles(
             transformServiceDeclarationInProgram(

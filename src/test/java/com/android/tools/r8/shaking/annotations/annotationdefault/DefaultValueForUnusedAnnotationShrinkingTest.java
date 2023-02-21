@@ -44,7 +44,7 @@ public class DefaultValueForUnusedAnnotationShrinkingTest extends TestBase {
         .addKeepMainRule(Main.class)
         .addKeepAttributeAnnotationDefault()
         .addKeepRuntimeVisibleAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .apply(
             compileResult -> {

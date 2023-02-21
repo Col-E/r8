@@ -121,7 +121,7 @@ public class MaximallySpecificAbstractOnIncompletePathTest extends TestBase {
         .addProgramClassFileData(getMainWithoutFoo(), getIOnProgram())
         .addDefaultRuntimeLibrary(parameters)
         .addLibraryFiles(libraryClasses)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addOptionsModification(options -> options.loadAllClassDefinitions = true);
   }
 

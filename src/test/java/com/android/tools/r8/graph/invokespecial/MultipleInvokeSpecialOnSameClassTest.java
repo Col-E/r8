@@ -48,7 +48,7 @@ public class MultipleInvokeSpecialOnSameClassTest extends TestBase {
         .addProgramClasses(Main.class)
         .addProgramClassFileData(getClassWithTransformedInvoked())
         .addKeepMainRule(Main.class)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutput(EXPECTED_RESULT);
   }

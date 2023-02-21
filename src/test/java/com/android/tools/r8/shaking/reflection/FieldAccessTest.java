@@ -48,7 +48,7 @@ public class FieldAccessTest extends TestBase {
         .enableGraphInspector()
         .addProgramClasses(testClass)
         .addKeepMainRule(testClass)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), testClass)
         .inspectGraph(
             inspector -> {

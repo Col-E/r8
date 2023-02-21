@@ -45,7 +45,7 @@ public class MemberRebindingRemoveInterfaceBridgeWithSubTypeTest extends TestBas
         .addProgramClasses(A.class, B.class, I.class)
         .addProgramClassFileData(
             transformer(Main.class).setClassDescriptor(newMainDescriptor).transform())
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addKeepMainRule(newMainTypeName)
         .addKeepClassAndMembersRules(I.class)
         .enableInliningAnnotations()

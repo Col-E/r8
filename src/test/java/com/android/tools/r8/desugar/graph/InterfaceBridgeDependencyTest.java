@@ -81,7 +81,7 @@ public class InterfaceBridgeDependencyTest extends TestBase {
       Origin originJ = DesugarGraphUtils.addClassWithOrigin(J.class, builder);
       Origin originK = DesugarGraphUtils.addClassWithOrigin(K.class, builder);
       builder
-          .setMinApi(parameters.getApiLevel())
+          .setMinApi(parameters)
           .addProgramClasses(TestClass.class)
           .run(parameters.getRuntime(), TestClass.class)
           .assertSuccessWithOutput(EXPECTED);

@@ -41,7 +41,7 @@ public class KeepIfPresentRuleWithVerticalClassMergingTest extends TestBase {
         .addKeepRules(
             "-if class * extends " + A.class.getTypeName(), "-keep class <1> { <init>(...); }")
         .enableInliningAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .inspect(
             inspector -> {

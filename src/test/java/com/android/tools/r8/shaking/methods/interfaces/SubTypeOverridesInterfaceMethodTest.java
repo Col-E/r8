@@ -42,7 +42,7 @@ public class SubTypeOverridesInterfaceMethodTest extends TestBase {
       throws CompilationFailedException, IOException, ExecutionException {
     testForR8(parameters.getBackend())
         .addProgramClasses(Main.class, I.class, A.class, B.class)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addKeepMainRule(Main.class)
         .addKeepMethodRules(A.class, "void <init>()", "void foo()")
         .addKeepClassRules(B.class)

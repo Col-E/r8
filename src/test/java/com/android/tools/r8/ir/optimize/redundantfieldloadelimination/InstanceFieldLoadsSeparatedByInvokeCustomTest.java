@@ -4,7 +4,6 @@
 
 package com.android.tools.r8.ir.optimize.redundantfieldloadelimination;
 
-import static org.hamcrest.CoreMatchers.containsString;
 
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
@@ -44,7 +43,7 @@ public class InstanceFieldLoadsSeparatedByInvokeCustomTest extends TestBase {
     testForR8(parameters.getBackend())
         .addProgramClassFileData(InstanceFieldLoadsSeparatedByInvokeCustomTestClassGenerator.dump())
         .addKeepAllClassesRule()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .run(parameters.getRuntime(), "InstanceFieldLoadsSeparatedByInvokeCustomTestClass")
         .assertSuccess();

@@ -51,7 +51,7 @@ public class OutlineFromStaticInterfaceMethodTest extends TestBase {
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
         .noHorizontalClassMergingOfSynthetics()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .inspect(this::inspect)
         .run(parameters.getRuntime(), TestClass.class)

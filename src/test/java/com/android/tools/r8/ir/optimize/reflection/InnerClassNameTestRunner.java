@@ -205,7 +205,7 @@ public class InnerClassNameTestRunner extends TestBase {
         testForD8()
             .addProgramClassFileData(InnerClassNameTestDump.dump(config, parameters))
             .addOptionsModification(InternalOptions::disableNameReflectionOptimization)
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .compile();
     checkWarningsAboutMalformedAttribute(d8CompileResult);
     D8TestRunResult d8RunResult = d8CompileResult.run(parameters.getRuntime(), MAIN_CLASS);
@@ -235,7 +235,7 @@ public class InnerClassNameTestRunner extends TestBase {
                   options.disableInnerClassSeparatorValidationWhenRepackaging = true;
                   options.disableNameReflectionOptimization();
                 })
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .compile()
             .apply(this::checkWarningsAboutMalformedAttribute);
 

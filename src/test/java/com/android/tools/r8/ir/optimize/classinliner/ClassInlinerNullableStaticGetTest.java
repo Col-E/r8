@@ -31,7 +31,7 @@ public class ClassInlinerNullableStaticGetTest extends TestBase {
         .addInnerClasses(getClass())
         .addKeepMainRule(Main.class)
         .enableNoVerticalClassMergingAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .run(parameters.getRuntime(), Main.class)
         .assertFailureWithErrorThatThrows(NullPointerException.class);

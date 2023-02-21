@@ -76,7 +76,7 @@ public class OutlinesWithInterfaceArrayTypeArguments extends TestBase {
         .addKeepMainRule(TestClass.class)
         .addKeepClassAndMembersRules(ClassImplementingIface.class)
         .addKeepClassAndMembersRules(OtherClassImplementingIface.class)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addDontObfuscate()
         .addOptionsModification(
             options -> {

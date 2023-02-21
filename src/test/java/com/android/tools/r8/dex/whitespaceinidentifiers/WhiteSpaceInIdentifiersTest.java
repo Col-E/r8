@@ -66,7 +66,7 @@ public class WhiteSpaceInIdentifiersTest extends TestBase {
   public void configure(TestCompilerBuilder<?, ?, ?, ?, ?> testBuilder) throws Exception {
     testBuilder
         .addProgramClassFileData(getTransformed())
-        .applyIf(parameters.isDexRuntime(), b -> b.setMinApi(parameters.getApiLevel()))
+        .applyIf(parameters.isDexRuntime(), b -> b.setMinApi(parameters))
         .applyIf(
             parameters.isDexRuntime() && parameters.getApiLevel().isLessThan(AndroidApiLevel.R),
             b -> {
@@ -111,7 +111,7 @@ public class WhiteSpaceInIdentifiersTest extends TestBase {
     String map =
         testForR8(parameters.getBackend())
             .addProgramClassFileData(getTransformed())
-            .applyIf(parameters.isDexRuntime(), b -> b.setMinApi(parameters.getApiLevel()))
+            .applyIf(parameters.isDexRuntime(), b -> b.setMinApi(parameters))
             .addKeepMainRule(TestClass.class)
             .compile()
             .getProguardMap();
@@ -163,7 +163,7 @@ public class WhiteSpaceInIdentifiersTest extends TestBase {
     // Run merge step with DEX with white space in input (not forcing min API level of R).
     testForD8(parameters.getBackend())
         .addProgramFiles(dex)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .applyIf(
             parameters.getApiLevel().isLessThan(AndroidApiLevel.R),
             b -> {

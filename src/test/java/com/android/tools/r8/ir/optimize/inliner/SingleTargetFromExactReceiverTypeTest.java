@@ -52,7 +52,7 @@ public class SingleTargetFromExactReceiverTypeTest extends TestBase {
         .enableAlwaysInliningAnnotations()
         .enableNeverClassInliningAnnotations()
         .enableInliningAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .inspect(this::verifyOnlyCanBeInlinedHasBeenInlined)
         .run(parameters.getRuntime(), TestClass.class)

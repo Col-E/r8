@@ -46,7 +46,7 @@ public class InlineInvokeWithNullableReceiverTest extends TestBase {
         testForR8(parameters.getBackend())
             .addInnerClasses(InlineInvokeWithNullableReceiverTest.class)
             .addKeepMainRule(TestClass.class)
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .compile()
             .inspect(this::verifyMethodHasBeenInlined);
 

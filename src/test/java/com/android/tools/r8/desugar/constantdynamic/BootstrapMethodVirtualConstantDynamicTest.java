@@ -73,7 +73,7 @@ public class BootstrapMethodVirtualConstantDynamicTest extends TestBase {
     parameters.assumeR8TestParameters();
     testForR8(parameters.getBackend())
         .addProgramClassFileData(getTransformedClasses())
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addKeepMainRule(A.class)
         // TODO(b/198142625): Support CONSTANT_Dynamic output for class files.
         .applyIf(

@@ -87,7 +87,7 @@ public class FormalTypeParameterClassBoundPruneTest extends TestBase {
             transformer(Interface.class).removeInnerClasses().transform())
         .addKeepMainRule(Main.class)
         .addKeepClassRules(Interface.class)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addKeepAttributes(
             ProguardKeepAttributes.SIGNATURE,
             ProguardKeepAttributes.INNER_CLASSES,

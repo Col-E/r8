@@ -47,7 +47,7 @@ public class InvalidLongStackValueMaxHeightTest extends TestBase {
     testForD8(parameters.getBackend())
         .addProgramClasses(Tester.class)
         .addProgramClassFileData(getMainWithChangedMaxStackHeight())
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compileWithExpectedDiagnostics(
             diagnostics -> {
               diagnostics.assertWarningThatMatches(
@@ -61,7 +61,7 @@ public class InvalidLongStackValueMaxHeightTest extends TestBase {
     testForD8(parameters.getBackend())
         .addProgramClasses(Tester.class)
         .addProgramClassFileData(getMainWithChangedMaxStackHeight())
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compileWithExpectedDiagnostics(
             diagnostics -> {
               diagnostics.assertWarningThatMatches(

@@ -57,7 +57,7 @@ public class RemovedClassTestRunner extends TestBase {
             .addProgramClasses(CLASSES)
             .addKeepMethodRules(mainMethod)
             .addKeepRules("-whyareyoukeeping class " + REMOVED_CLASS.getTypeName())
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .collectStdout()
             .compile()
             .assertStdoutThatMatches(

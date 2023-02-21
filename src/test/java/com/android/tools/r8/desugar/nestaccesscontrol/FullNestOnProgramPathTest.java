@@ -103,12 +103,13 @@ public class FullNestOnProgramPathTest extends TestBase {
   // then run the main class from this dex.
   @Test
   public void testSingleNestR8() throws Exception {
+    parameters.assumeR8TestParameters();
     for (String nestID : NEST_IDS) {
       testForR8(parameters.getBackend())
           .noTreeShaking()
           .addDontObfuscate()
           .addKeepAllAttributes()
-          .setMinApi(parameters.getApiLevel())
+          .setMinApi(parameters)
           .addProgramFiles(classesOfNest(nestID))
           .addOptionsModification(options -> options.enableNestReduction = false)
           .applyIf(parameters.isCfRuntime(), Jdk9TestUtils.addJdk9LibraryFiles(temp))
@@ -122,7 +123,7 @@ public class FullNestOnProgramPathTest extends TestBase {
   public void testSingleNestD8() throws Exception {
     for (String nestID : NEST_IDS) {
       testForD8(parameters.getBackend())
-          .setMinApi(parameters.getApiLevel())
+          .setMinApi(parameters)
           .addProgramFiles(classesOfNest(nestID))
           .compile()
           .run(parameters.getRuntime(), getMainClass(nestID))

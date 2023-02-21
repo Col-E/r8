@@ -38,7 +38,7 @@ public class B161735546 extends TestBase {
     testForR8(parameters.getBackend())
         .addInnerClasses(B161735546.class)
         .addKeepMainRule(TestClass.class)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .run(parameters.getRuntime(), TestClass.class)
         .assertSuccessWithOutputLines("1", "2", "3");

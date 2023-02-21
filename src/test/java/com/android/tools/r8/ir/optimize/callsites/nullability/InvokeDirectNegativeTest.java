@@ -47,7 +47,7 @@ public class InvokeDirectNegativeTest extends TestBase {
         .addOptionsModification(
             o ->
                 o.testing.callSiteOptimizationInfoInspector = this::callSiteOptimizationInfoInspect)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), MAIN)
         .assertSuccessWithOutputLines("null", "non-null")
         .inspect(this::inspect);

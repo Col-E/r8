@@ -36,7 +36,7 @@ public class StaticAndInterfaceMethodCollisionTest extends HorizontalClassMergin
         .enableNeverClassInliningAnnotations()
         .enableNoUnusedInterfaceRemovalAnnotations()
         .enableNoVerticalClassMergingAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines("A.foo()", "A.baz()", "B.bar()", "J.foo()");

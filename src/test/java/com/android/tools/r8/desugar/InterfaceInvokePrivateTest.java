@@ -107,7 +107,7 @@ public class InterfaceInvokePrivateTest extends TestBase implements Opcodes {
         .addKeepMainRule(TestRunner.class)
         // TODO(b/185463156): Not keeping I and its members will "fix" the ICCE for all runtimes.
         .addKeepClassAndMembersRules(I.class)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .run(parameters.getRuntime(), TestRunner.class)
         .applyIf(

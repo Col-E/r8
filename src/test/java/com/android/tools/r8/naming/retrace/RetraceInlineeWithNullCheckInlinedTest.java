@@ -59,7 +59,7 @@ public class RetraceInlineeWithNullCheckInlinedTest extends TestBase {
         .addKeepMainRule(Caller.class)
         .addKeepAttributeLineNumberTable()
         .addKeepAttributeSourceFile()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .enableInliningAnnotations()
         .enableNoMethodStaticizingAnnotations()
         .run(parameters.getRuntime(), Caller.class, getArgs())

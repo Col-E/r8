@@ -63,7 +63,7 @@ public class GenericSignatureStaticMethodTest extends TestBase {
         .addKeepAllClassesRule()
         .addKeepAttributeSignature()
         .addKeepAttributeInnerClassesAndEnclosingMethod()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines(EXPECTED);
   }

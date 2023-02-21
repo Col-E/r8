@@ -98,7 +98,7 @@ public class PackagePrivateWithDefaultMethodTest extends TestBase {
             .addProgramClasses(
                 Abstract.class, I.class, A.class, NonAbstractExtendingA.class, J.class, Main.class)
             .addProgramClassFileData(getNonAbstractWithoutDeclaredMethods())
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .addKeepMainRule(Main.class)
             .run(parameters.getRuntime(), Main.class);
     if (parameters.isDexRuntime()

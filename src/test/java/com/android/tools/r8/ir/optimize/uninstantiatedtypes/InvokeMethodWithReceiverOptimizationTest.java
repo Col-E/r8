@@ -69,7 +69,7 @@ public class InvokeMethodWithReceiverOptimizationTest extends TestBase {
             // TODO(b/120764902): The calls to getOriginalName() below does not work in presence of
             //  argument removal.
             .addDontObfuscate()
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .run(parameters.getRuntime(), TestClass.class)
             .assertSuccessWithOutput(expected)
             .inspector();

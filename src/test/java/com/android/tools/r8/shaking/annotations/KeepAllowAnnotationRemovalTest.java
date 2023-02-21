@@ -45,7 +45,7 @@ public class KeepAllowAnnotationRemovalTest extends TestBase {
             "}")
         .addKeepRuntimeInvisibleAnnotations()
         .enableProguardTestOptions()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .inspect(
             inspector -> {

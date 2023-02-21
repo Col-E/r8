@@ -39,7 +39,7 @@ public class LibraryOverrideInliningTest extends TestBase {
         .addInnerClasses(LibraryOverrideInliningTest.class)
         .addKeepMainRule(TestClass.class)
         .enableNeverClassInliningAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .inspect(
             inspector -> {

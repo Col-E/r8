@@ -39,7 +39,7 @@ public class ImplicitClassInitializationSynchronizationTest extends TestBase {
         .addOptionsModification(
             options ->
                 options.horizontalClassMergerOptions().setEnableClassInitializerDeadlockDetection())
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines(getExpectedOutput());

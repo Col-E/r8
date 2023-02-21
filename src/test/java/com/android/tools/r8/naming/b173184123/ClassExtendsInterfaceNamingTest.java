@@ -54,7 +54,7 @@ public class ClassExtendsInterfaceNamingTest extends TestBase {
         .addTestingAnnotationsAsProgramClasses()
         .enableAssertions(false)
         .useR8WithRelocatedDeps()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addKeepMainRule(Main.class)
         .addKeepClassAndMembersRules(Interface.class)
         .addKeepRules("-neverclassinline @com.android.tools.r8.NeverClassInline class *")

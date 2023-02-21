@@ -59,7 +59,7 @@ public class MetadataVersionNumberBumpTest extends KotlinMetadataTestBase {
     rewriteMetadataVersion(testBuilder::addProgramClassFileData, new int[] {1, 1, 16});
     testBuilder
         .addProgramFiles(kotlinc.getKotlinAnnotationJar())
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addOptionsModification(options -> options.testing.keepMetadataInR8IfNotRewritten = false)
         .addKeepAllClassesRuleWithAllowObfuscation()
         .addKeepAttributes(ProguardKeepAttributes.RUNTIME_VISIBLE_ANNOTATIONS)
@@ -73,7 +73,7 @@ public class MetadataVersionNumberBumpTest extends KotlinMetadataTestBase {
     rewriteMetadataVersion(testBuilder::addProgramClassFileData, new int[] {1, 4, 0});
     testBuilder
         .addProgramFiles(kotlinc.getKotlinAnnotationJar())
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addKeepAllClassesRuleWithAllowObfuscation()
         .addKeepAttributes(ProguardKeepAttributes.RUNTIME_VISIBLE_ANNOTATIONS)
         .compile()
@@ -86,7 +86,7 @@ public class MetadataVersionNumberBumpTest extends KotlinMetadataTestBase {
     rewriteMetadataVersion(testBuilder::addProgramClassFileData, new int[] {1, 4, 2});
     testBuilder
         .addProgramFiles(kotlinc.getKotlinAnnotationJar())
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addKeepAllClassesRuleWithAllowObfuscation()
         .addKeepAttributes(ProguardKeepAttributes.RUNTIME_VISIBLE_ANNOTATIONS)
         .compile()

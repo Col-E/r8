@@ -46,7 +46,7 @@ public class InvokeSuperToInvokeVirtualTest extends TestBase {
         .enableNoMethodStaticizingAnnotations()
         .enableNoVerticalClassMergingAnnotations()
         .enableNeverClassInliningAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .inspect(this::inspect)
         .run(parameters.getRuntime(), TestClass.class)

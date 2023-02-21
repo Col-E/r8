@@ -58,7 +58,7 @@ public class KeepAnnotationViaSuperTest extends TestBase {
         .addProgramClasses(getInputClasses())
         .addKeepMainRule(TestClass.class)
         .addKeepRuntimeVisibleAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), TestClass.class)
         .assertSuccessWithOutput(EXPECTED)
         .inspect(this::checkOutput);

@@ -39,7 +39,7 @@ public class ApiModelCovariantReturnTypeTest extends TestBase {
     Method main = Main.class.getDeclaredMethod("main", String[].class);
     testForR8(parameters.getBackend())
         .addProgramClasses(Main.class)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addKeepMainRule(Main.class)
         .apply(ApiModelingTestHelper::enableApiCallerIdentification)
         .apply(ApiModelingTestHelper::disableOutliningAndStubbing)

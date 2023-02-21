@@ -73,7 +73,7 @@ public class VarHandleNoDesugaredTypesInSignaturesNoAttributesTest extends TestB
             b -> b.addLibraryProvider(JdkClassFileProvider.fromSystemJdk()))
         .addProgramFiles(programWithoutAttributes)
         .addOptionsModification(options -> options.enableVarHandleDesugaring = true)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addKeepMainRule(MAIN_CLASS)
         .addKeepRules("-keep class " + MAIN_CLASS + "{ <fields>; }")
         .run(parameters.getRuntime(), MAIN_CLASS)

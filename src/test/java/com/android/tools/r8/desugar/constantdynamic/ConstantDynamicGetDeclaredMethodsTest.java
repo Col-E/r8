@@ -94,7 +94,7 @@ public class ConstantDynamicGetDeclaredMethodsTest extends TestBase {
     assumeTrue(parameters.isDexRuntime());
     testForR8(parameters.getBackend())
         .addProgramClassFileData(getTransformedClasses())
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addKeepMainRule(MAIN_CLASS)
         .applyIf(
             parameters.getApiLevel().isLessThan(AndroidApiLevel.O),
@@ -108,7 +108,7 @@ public class ConstantDynamicGetDeclaredMethodsTest extends TestBase {
     assumeTrue(parameters.isDexRuntime());
     testForR8(parameters.getBackend())
         .addProgramClassFileData(getTransformedClasses())
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addKeepMainRule(MAIN_CLASS)
         .addKeepMethodRules(MAIN_CLASS, "myConstant(...)")
         .applyIf(

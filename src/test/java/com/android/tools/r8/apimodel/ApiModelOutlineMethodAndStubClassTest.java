@@ -50,7 +50,7 @@ public class ApiModelOutlineMethodAndStubClassTest extends TestBase {
         .addProgramClasses(Main.class, TestClass.class)
         .addLibraryClasses(LibraryClass.class)
         .addDefaultRuntimeLibrary(parameters)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addAndroidBuildVersion()
         // TODO(b/213552119): Remove when enabled by default.
         .apply(ApiModelingTestHelper::enableApiCallerIdentification)

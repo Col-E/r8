@@ -65,7 +65,7 @@ public class ApiModelOutlinePackagePrivateTest extends TestBase {
         .addLibraryClasses(LibraryClass.class)
         .addProgramClasses(Main.class)
         .addAndroidBuildVersion()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile();
   }
 
@@ -74,7 +74,7 @@ public class ApiModelOutlinePackagePrivateTest extends TestBase {
         .addLibraryClasses(LibraryClass.class)
         .addDefaultRuntimeLibrary(parameters)
         .addProgramClasses(Main.class)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addAndroidBuildVersion()
         .apply(setMockApiLevelForClass(LibraryClass.class, classApiLevel))
         .apply(

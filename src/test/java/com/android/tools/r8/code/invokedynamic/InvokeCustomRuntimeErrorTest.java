@@ -86,7 +86,7 @@ public class InvokeCustomRuntimeErrorTest extends TestBase {
     testForD8(parameters.getBackend())
         .addProgramClasses(I.class, A.class)
         .addProgramClassFileData(getTransformedTestClass())
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .disableDesugaring()
         .compileWithExpectedDiagnostics(
             diagnostics ->

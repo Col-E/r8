@@ -82,7 +82,7 @@ public class MainDexListFromGenerateMainDexInliningTest extends TestBase {
             .enableInliningAnnotations()
             .enableNoHorizontalClassMergingAnnotations()
             .enableNoHorizontalClassMergingAnnotations()
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .allowDiagnosticMessages()
             .compileWithExpectedDiagnostics(
                 diagnostics ->

@@ -38,7 +38,7 @@ public class NonReboundFieldAccessWithMergedTypeTest extends TestBase {
             inspector -> inspector.assertMergedIntoSubtype(GreetingBase.class))
         .enableNeverClassInliningAnnotations()
         .enableNoVerticalClassMergingAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines("Hello world!");

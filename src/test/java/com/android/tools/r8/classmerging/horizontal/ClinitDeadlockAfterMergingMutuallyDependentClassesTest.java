@@ -37,7 +37,7 @@ public class ClinitDeadlockAfterMergingMutuallyDependentClassesTest extends Test
             options ->
                 options.horizontalClassMergerOptions().setEnableClassInitializerDeadlockDetection())
         .enableNoHorizontalClassMergingAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile();
   }
 

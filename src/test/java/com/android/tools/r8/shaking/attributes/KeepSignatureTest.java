@@ -81,7 +81,7 @@ public class KeepSignatureTest extends TestBase {
             ProguardKeepAttributes.SIGNATURE,
             ProguardKeepAttributes.INNER_CLASSES,
             ProguardKeepAttributes.ENCLOSING_METHOD)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .enableConstantArgumentAnnotations()
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()

@@ -45,7 +45,7 @@ public class ApiModelVerticalMergingOfSuperClassTest extends TestBase {
         .addProgramClasses(A.class, B.class, Main.class)
         .addLibraryClasses(Api.class)
         .addDefaultRuntimeLibrary(parameters)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addKeepMainRule(Main.class)
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()

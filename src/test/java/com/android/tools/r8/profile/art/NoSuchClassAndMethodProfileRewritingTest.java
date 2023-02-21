@@ -36,7 +36,7 @@ public class NoSuchClassAndMethodProfileRewritingTest extends TestBase {
         .addInnerClasses(getClass())
         .addKeepMainRule(Main.class)
         .addArtProfileForRewriting(getArtProfile())
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         // TODO(b/266178791): Emit a warning for each discarded item.
         .compileWithExpectedDiagnostics(TestDiagnosticMessages::assertNoMessages)
         .inspectResidualArtProfile(this::inspectResidualArtProfile)

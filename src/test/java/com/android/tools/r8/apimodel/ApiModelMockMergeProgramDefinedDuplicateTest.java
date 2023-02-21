@@ -54,7 +54,7 @@ public class ApiModelMockMergeProgramDefinedDuplicateTest extends TestBase {
         .addProgramClasses(programClass)
         .addLibraryClasses(LibraryClass.class)
         .addDefaultRuntimeLibrary(parameters)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .apply(ApiModelingTestHelper::enableApiCallerIdentification)
         .apply(ApiModelingTestHelper::enableStubbingOfClasses)
         .apply(ApiModelingTestHelper::disableOutlining)
@@ -108,7 +108,7 @@ public class ApiModelMockMergeProgramDefinedDuplicateTest extends TestBase {
         // Add the actual LibraryClass definition to the code, thus the globals will need to merge
         // the synthetic stubs but also disregard them due to a program definition being present.
         .addProgramClasses(LibraryClass.class)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .apply(
             b ->
                 b.getBuilder()

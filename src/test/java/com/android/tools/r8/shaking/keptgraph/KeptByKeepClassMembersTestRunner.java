@@ -76,7 +76,7 @@ public class KeptByKeepClassMembersTestRunner extends TestBase {
             .addProgramClasses(CLASS)
             .addKeepMainRule(KeptByKeepClassMembersTest.class)
             .addKeepRules(keepClassMembersRuleContent)
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .run(parameters.getRuntime(), CLASS)
             .assertSuccessWithOutput(EXPECTED)
             .graphInspector();

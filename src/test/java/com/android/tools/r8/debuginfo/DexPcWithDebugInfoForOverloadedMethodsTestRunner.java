@@ -68,7 +68,7 @@ public class DexPcWithDebugInfoForOverloadedMethodsTestRunner extends TestBase {
         .addKeepMethodRules(MAIN, "void overloaded(...)")
         .addKeepAttributeLineNumberTable()
         .enableAlwaysInliningAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), MAIN)
         .assertFailureWithErrorThatMatches(containsString(EXPECTED))
         .inspectOriginalStackTrace(

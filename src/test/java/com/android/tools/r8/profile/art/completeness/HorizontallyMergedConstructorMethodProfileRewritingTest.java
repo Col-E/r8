@@ -87,7 +87,7 @@ public class HorizontallyMergedConstructorMethodProfileRewritingTest extends Tes
         .addOptionsModification(
             options -> options.callSiteOptimizationOptions().disableOptimization())
         .enableNeverClassInliningAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .inspectResidualArtProfile(artProfileInputOutput::inspect)
         .run(parameters.getRuntime(), Main.class)

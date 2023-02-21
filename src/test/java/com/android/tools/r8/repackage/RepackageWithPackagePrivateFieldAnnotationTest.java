@@ -39,7 +39,7 @@ public class RepackageWithPackagePrivateFieldAnnotationTest extends RepackageTes
         .apply(this::configureRepackaging)
         .enableInliningAnnotations()
         .enableMemberValuePropagationAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .inspect(this::inspect)
         .run(parameters.getRuntime(), TestClass.class)

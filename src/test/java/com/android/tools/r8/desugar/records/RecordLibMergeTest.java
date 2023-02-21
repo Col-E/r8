@@ -47,7 +47,6 @@ public class RecordLibMergeTest extends TestBase {
     Path lib =
         testForR8(Backend.CF)
             .addProgramClassFileData(PROGRAM_DATA_LIB)
-            .setMinApi(parameters.getApiLevel())
             .addKeepRules(
                 "-keep class records.RecordLib { public static java.lang.Object getRecord(); }")
             .addKeepRules("-keep class records.RecordLib$LibRecord")
@@ -58,7 +57,7 @@ public class RecordLibMergeTest extends TestBase {
         testForR8(parameters.getBackend())
             .addProgramFiles(lib)
             .addProgramClassFileData(PROGRAM_DATA_MAIN)
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .addKeepMainRule(MAIN_TYPE)
             .addKeepRules("-keep class records.RecordLib$LibRecord")
             .addKeepRules("-keep class records.RecordMain$MainRecord");

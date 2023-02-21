@@ -44,7 +44,7 @@ public class StaticFieldClassInitMemberRebindingTest extends TestBase {
     testForR8(parameters.getBackend())
         .addProgramClassFileData(
             getMainWithRewrittenDescriptors(), getAWithPackageFoo(), getBWithRewrittenDescriptors())
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addKeepMainRule(Main.class)
         .enableInliningAnnotations()
         .run(parameters.getRuntime(), Main.class)

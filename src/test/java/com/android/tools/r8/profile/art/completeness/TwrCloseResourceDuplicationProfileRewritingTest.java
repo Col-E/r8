@@ -48,7 +48,7 @@ public class TwrCloseResourceDuplicationProfileRewritingTest
             testBuilder ->
                 testBuilder.addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.LATEST)))
         .noHorizontalClassMergingOfSynthetics()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .inspectResidualArtProfile(this::inspectD8)
         .run(parameters.getRuntime(), MAIN.typeName(), getZipFile())
@@ -77,7 +77,7 @@ public class TwrCloseResourceDuplicationProfileRewritingTest
             testBuilder ->
                 testBuilder.addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.LATEST)))
         .noHorizontalClassMergingOfSynthetics()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .inspectResidualArtProfile(this::inspectR8)
         .run(parameters.getRuntime(), MAIN.typeName(), getZipFile())

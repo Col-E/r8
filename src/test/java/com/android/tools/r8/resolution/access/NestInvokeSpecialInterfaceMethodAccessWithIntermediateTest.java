@@ -165,12 +165,13 @@ public class NestInvokeSpecialInterfaceMethodAccessWithIntermediateTest extends 
         .addProgramClassFileData(getTransformedClasses())
         .addLibraryFiles(parameters.getDefaultRuntimeLibrary())
         .addKeepMainRule(Main.class)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .buildWithLiveness();
   }
 
   @Test
   public void test() throws Exception {
+    parameters.assumeRuntimeTestParameters();
     testForRuntime(parameters)
         .addProgramClasses(getClasses())
         .addProgramClassFileData(getTransformedClasses())
@@ -180,10 +181,11 @@ public class NestInvokeSpecialInterfaceMethodAccessWithIntermediateTest extends 
 
   @Test
   public void testR8() throws Exception {
+    parameters.assumeR8TestParameters();
     testForR8(parameters.getBackend())
         .addProgramClasses(getClasses())
         .addProgramClassFileData(getTransformedClasses())
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addKeepMainRule(Main.class)
         .run(parameters.getRuntime(), Main.class)
         .apply(result -> checkExpectedResult(result, true));

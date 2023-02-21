@@ -68,7 +68,7 @@ public class InvokeSpecialToSuperclassTest extends TestBase {
         .addProgramClasses(S.class, A.class, EmptySubA.class, Main.class)
         .addProgramClassFileData(getClassBWithTransformedInvoked(holder))
         .addKeepMainRule(Main.class)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines(getExpectedResult(true));
   }

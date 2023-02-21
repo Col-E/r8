@@ -25,14 +25,14 @@ public class SyntheticConstructorArgumentsMerged extends HorizontalClassMergingT
         .addKeepMainRule(Main.class)
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines("5", "42")
         .inspect(
             codeInspector -> {
-                assertThat(codeInspector.clazz(A.class), isPresent());
-                assertThat(codeInspector.clazz(B.class), not(isPresent()));
+              assertThat(codeInspector.clazz(A.class), isPresent());
+              assertThat(codeInspector.clazz(B.class), not(isPresent()));
             });
   }
 

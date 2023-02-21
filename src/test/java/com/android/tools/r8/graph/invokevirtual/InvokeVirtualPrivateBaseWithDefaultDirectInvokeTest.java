@@ -49,7 +49,7 @@ public class InvokeVirtualPrivateBaseWithDefaultDirectInvokeTest extends TestBas
   public void testD8() throws Exception {
     testForD8(parameters.getBackend())
         .addInnerClasses(getClass())
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), Main.class)
         .apply(r -> assertResultIsCorrect(r, false));
   }
@@ -62,7 +62,7 @@ public class InvokeVirtualPrivateBaseWithDefaultDirectInvokeTest extends TestBas
         .addKeepMainRule(Main.class)
         .addKeepClassAndMembersRules(I.class)
         .enableNoVerticalClassMergingAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), Main.class)
         // TODO(b/182189123): This should have the same behavior as D8.
         .applyIf(

@@ -34,7 +34,7 @@ public class StringBuilderWithConstantsBeforeAndInOpenEndedIfTest extends TestBa
         .addOptionsModification(
             options ->
                 options.itemFactory.libraryMethodsReturningReceiver = Sets.newIdentityHashSet())
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), TestClass.class)
         .assertSuccessWithOutputLines("foo");
   }

@@ -28,7 +28,7 @@ public class RepackageMinificationNameClashTest extends TestBase {
   public void testR8() throws Exception {
     testForR8(parameters.getBackend())
         .addInnerClasses(getClass())
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addKeepRules("-repackageclasses ''")
         .addKeepRules("-adaptclassstrings")
         .addKeepClassRulesWithAllowObfuscation(Foo.class)

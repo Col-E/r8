@@ -25,7 +25,7 @@ public class CompatKeepConstructorLiveTest extends HorizontalClassMergingTestBas
         .addKeepMainRule(Main.class)
         .enableNeverClassInliningAnnotations()
         .enableNoHorizontalClassMergingAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines("b: main", "true")
         .inspect(

@@ -51,7 +51,7 @@ public class LibraryAndMissingAnnotationsTest extends TestBase {
     return testForR8(getStaticTemp(), parameters.getBackend())
         .addProgramClasses(LibraryAnnotation.class)
         .addKeepClassAndMembersRulesWithAllowObfuscation(LibraryAnnotation.class)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .writeToZip();
   }
@@ -111,7 +111,7 @@ public class LibraryAndMissingAnnotationsTest extends TestBase {
                 builder.isProguardTestBuilder(),
                 ignore -> builder.addDontWarn(LibraryAndMissingAnnotationsTest.class))
             .addKeepMainRule(mainClass)
-            .setMinApi(parameters.getApiLevel());
+            .setMinApi(parameters);
     if (includeOnLibraryPath) {
       t.addLibraryClasses(LibraryAnnotation.class);
     } else {

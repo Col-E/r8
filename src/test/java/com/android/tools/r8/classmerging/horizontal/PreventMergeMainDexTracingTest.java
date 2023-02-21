@@ -44,7 +44,7 @@ public class PreventMergeMainDexTracingTest extends HorizontalClassMergingTestBa
         .addOptionsModification(options -> options.minimalMainDex = true)
         .enableNeverClassInliningAnnotations()
         .enableNoHorizontalClassMergingAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .apply(this::checkCompileResult)
         .run(parameters.getRuntime(), Main.class)

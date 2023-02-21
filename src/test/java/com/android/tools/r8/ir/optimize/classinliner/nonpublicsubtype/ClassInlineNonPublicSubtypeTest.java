@@ -45,7 +45,7 @@ public class ClassInlineNonPublicSubtypeTest extends TestBase {
         .addInnerClasses(getClass())
         .addProgramClassesAndInnerClasses(Utils.class)
         .addKeepMainRule(TestClass.class)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), TestClass.class)
         .assertSuccessWithOutput(EXPECTED);
   }

@@ -33,7 +33,7 @@ public class StringBuilderWithIndirectPhiReadThroughPhiOperandToStringTest exten
     testForR8(parameters.getBackend())
         .addInnerClasses(getClass())
         .addKeepMainRule(Main.class)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .inspect(
             inspector -> {

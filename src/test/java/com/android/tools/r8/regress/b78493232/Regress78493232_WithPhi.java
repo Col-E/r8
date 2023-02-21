@@ -66,7 +66,7 @@ public class Regress78493232_WithPhi extends AsmTestBase {
         testForD8()
             .addProgramClasses(CLASSES)
             .addProgramClassFileData(CLASS_BYTES)
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .addOptionsModification(options -> options.testing.readInputStackMaps = false)
             .run(parameters.getRuntime(), MAIN);
     checkResult(result);
@@ -91,7 +91,7 @@ public class Regress78493232_WithPhi extends AsmTestBase {
             .allowDiagnosticWarningMessages()
             .treeShaking(treeShake)
             .addDontObfuscate()
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .addOptionsModification(options -> options.testing.readInputStackMaps = false)
             .addKeepMainRule(MAIN)
             .compileWithExpectedDiagnostics(

@@ -40,7 +40,7 @@ public class ApiModelNoInliningOfTryCatchReferenceTest extends TestBase {
         .addProgramClasses(Main.class, TestClass.class, Caller.class, KeptClass.class)
         .addLibraryClasses(ApiException.class)
         .addDefaultRuntimeLibrary(parameters)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addKeepMethodRules(
             Reference.methodFromMethod(KeptClass.class.getDeclaredMethod("keptMethodThatMayThrow")))
         .addKeepMainRule(Main.class)

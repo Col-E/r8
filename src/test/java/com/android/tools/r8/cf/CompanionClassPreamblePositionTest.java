@@ -59,7 +59,7 @@ public class CompanionClassPreamblePositionTest extends TestBase {
         testForD8(parameters.getBackend())
             .addProgramClasses(TestClass.class, A.class)
             .addProgramClassFileData(getTransformedI(false))
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .compile()
             .writeToZip();
     testForJvm()

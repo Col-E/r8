@@ -103,7 +103,7 @@ public class VerticalClassMergerTest extends TestBase {
             .enableProguardTestOptions()
             .addDontObfuscate()
             .addOptionsModification(optionsConsumer)
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .compile()
             .inspector();
   }
@@ -1186,7 +1186,7 @@ public class VerticalClassMergerTest extends TestBase {
                 })
             .addDontObfuscate()
             .enableProguardTestOptions()
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .compile();
 
     Path proguardMapPath = File.createTempFile("mapping", ".txt", temp.getRoot()).toPath();

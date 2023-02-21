@@ -40,7 +40,7 @@ public class DevirtualizeLibrarySuperTest extends TestBase {
         .addLibraryClasses(Library.class, LibraryOverride.class, LibraryBoundary.class)
         .addDefaultRuntimeLibrary(parameters)
         .addProgramClasses(Main.class)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addKeepMainRule(Main.class)
         .enableInliningAnnotations()
         .compile()

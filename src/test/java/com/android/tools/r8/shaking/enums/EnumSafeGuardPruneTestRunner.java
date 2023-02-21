@@ -49,7 +49,7 @@ public class EnumSafeGuardPruneTestRunner extends TestBase {
     testForR8(parameters.getBackend())
         .addInnerClasses(EnumSafeGuardPruneTestRunner.class)
         .addKeepMainRule(Main.class)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines(EXPECTED)
         .inspect(this::inspect);

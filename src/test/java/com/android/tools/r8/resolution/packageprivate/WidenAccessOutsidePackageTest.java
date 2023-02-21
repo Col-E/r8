@@ -95,7 +95,7 @@ public class WidenAccessOutsidePackageTest extends TestBase {
   public void testR8() throws ExecutionException, CompilationFailedException, IOException {
     testForR8(parameters.getBackend())
         .addProgramClasses(A.class, B.class, C.class, Main.class)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addKeepMainRule(Main.class)
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines(EXPECTED);

@@ -46,7 +46,7 @@ public class ApiModelVirtualDispatchSuperTypeTest extends TestBase {
         .addLibraryFiles(
             ToolHelper.getFirstSupportedAndroidJar(
                 parameters.isCfRuntime() ? AndroidApiLevel.B : parameters.getApiLevel()))
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addKeepMainRule(Main.class)
         .apply(ApiModelingTestHelper::enableApiCallerIdentification)
         .apply(

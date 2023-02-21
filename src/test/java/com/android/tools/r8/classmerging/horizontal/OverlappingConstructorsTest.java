@@ -24,13 +24,13 @@ public class OverlappingConstructorsTest extends HorizontalClassMergingTestBase 
         .addInnerClasses(getClass())
         .addKeepMainRule(Main.class)
         .enableNeverClassInliningAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), Main.class)
         .inspect(
             codeInspector -> {
-                assertThat(codeInspector.clazz(A.class), isPresent());
-                assertThat(codeInspector.clazz(B.class), not(isPresent()));
-                assertThat(codeInspector.clazz(C.class), not(isPresent()));
+              assertThat(codeInspector.clazz(A.class), isPresent());
+              assertThat(codeInspector.clazz(B.class), not(isPresent()));
+              assertThat(codeInspector.clazz(C.class), not(isPresent()));
             });
   }
 

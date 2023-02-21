@@ -39,7 +39,7 @@ public class Regress160831625Test extends TestBase {
   @Test
   public void testR8() throws Exception {
     testForR8(parameters.getBackend())
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addInnerClasses(getClass())
         .enableMemberValuePropagationAnnotations()
         .addKeepMainRule(TestClass.class)

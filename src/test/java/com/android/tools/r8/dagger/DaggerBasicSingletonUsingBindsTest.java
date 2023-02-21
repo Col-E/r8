@@ -64,7 +64,7 @@ public class DaggerBasicSingletonUsingBindsTest extends DaggerBasicTestBase {
     assumeTrue(parameters.isDexRuntime());
     testForD8(parameters.getBackend())
         .addProgramFiles(getProgramFiles(target))
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), MAIN_CLASS)
         .assertSuccessWithOutputLines(EXPECTED_OUTPUT);
   }
@@ -89,7 +89,7 @@ public class DaggerBasicSingletonUsingBindsTest extends DaggerBasicTestBase {
   public void testR8() throws Exception {
     testForR8(parameters.getBackend())
         .addProgramFiles(getProgramFiles(target))
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addKeepMainRule(MAIN_CLASS)
         .addHorizontallyMergedClassesInspector(
             inspector -> {

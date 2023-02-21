@@ -44,7 +44,7 @@ public class RemoveVisibilityBridgeMethodsTest extends TestBase {
         .addKeepMainRule(Main.class)
         .allowAccessModification()
         .minification(minification)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .inspect(this::inspect)
         .run(parameters.getRuntime(), Main.class)
@@ -107,7 +107,7 @@ public class RemoveVisibilityBridgeMethodsTest extends TestBase {
         .addOptionsModification(options -> options.inlinerOptions().enableInlining = false)
         .allowAccessModification()
         .minification(minification)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .inspect(
             inspector -> {

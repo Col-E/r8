@@ -34,7 +34,7 @@ public class DeadSwitchCaseWithSharedTargetTest extends TestBase {
             "-assumevalues class " + Main.class.getTypeName() + " {",
             "  static int FIELD return 27..30;",
             "}")
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines("?", "?", "O", "P", "Q", "R", "?");

@@ -38,7 +38,7 @@ public class HorizontalClassMergerShouldMergeSynchronizedMethodTest extends Test
     testForR8(parameters.getBackend())
         .addInnerClasses(HorizontalClassMergerShouldMergeSynchronizedMethodTest.class)
         .addKeepMainRule(Main.class)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines("1", "2", "3")
         .inspect(

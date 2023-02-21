@@ -94,13 +94,13 @@ public class DumpMainDexInputsTest extends TestBase {
     Path dexed =
         testForD8()
             .addInnerClasses(DumpMainDexInputsTest.class)
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .compile()
             .writeToZip();
 
     testForD8()
         .addProgramFiles(dexed)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addMainDexListFiles(
             mainDexListForMainDexFile1AndMainDexFile2(), mainDexListForMainDexFile3())
         .addMainDexListClasses(MainDexClass1.class, MainDexClass2.class, TestClass.class)
@@ -129,7 +129,7 @@ public class DumpMainDexInputsTest extends TestBase {
         parameters.getApiLevel().isLessThanOrEqualTo(AndroidApiLevel.K));
     Path dumpDir = temp.newFolder().toPath();
     testForD8()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addInnerClasses(DumpMainDexInputsTest.class)
         .addMainDexRulesFiles(newMainDexRulesPath1(), newMainDexRulesPath2())
         .addMainDexKeepClassRules(MainDexClass1.class, MainDexClass2.class, TestClass.class)
@@ -149,7 +149,7 @@ public class DumpMainDexInputsTest extends TestBase {
         parameters.getApiLevel().isLessThanOrEqualTo(AndroidApiLevel.K));
     Path dumpDir = temp.newFolder().toPath();
     testForR8(parameters.getBackend())
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addInnerClasses(DumpMainDexInputsTest.class)
         .addMainDexRuleFiles(newMainDexRulesPath1(), newMainDexRulesPath2())
         .addMainDexKeepClassRules(MainDexClass1.class, MainDexClass2.class, TestClass.class)

@@ -36,7 +36,7 @@ public class ApiModelBridgeToLibraryMethodTest extends TestBase {
     testForR8(parameters.getBackend())
         .addInnerClasses(getClass())
         .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.T))
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addKeepMainRule(TestClassWithApiLevelCheck.class)
         .addAndroidBuildVersion()
         .run(parameters.getRuntime(), TestClassWithApiLevelCheck.class)

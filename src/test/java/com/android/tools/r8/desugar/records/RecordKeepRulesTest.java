@@ -83,7 +83,7 @@ public class RecordKeepRulesTest extends TestBase {
   private void testR8FieldNames(String keepRules, String expectedOutput) throws Exception {
     testForR8Compat(parameters.getBackend(), proguardCompatibility)
         .addProgramClassFileData(PROGRAM_DATA)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addKeepMainRule(MAIN_TYPE)
         .addKeepRules(keepRules)
         .run(parameters.getRuntime(), MAIN_TYPE)
@@ -94,7 +94,6 @@ public class RecordKeepRulesTest extends TestBase {
     Path desugared =
         testForR8Compat(Backend.CF, proguardCompatibility)
             .addProgramClassFileData(PROGRAM_DATA)
-            .setMinApi(parameters.getApiLevel())
             .addKeepMainRule(MAIN_TYPE)
             .addKeepRules(keepRules)
             .addLibraryFiles(RecordTestUtils.getJdk15LibraryFiles(temp))
@@ -102,7 +101,7 @@ public class RecordKeepRulesTest extends TestBase {
             .writeToZip();
     testForD8(parameters.getBackend())
         .addProgramFiles(desugared)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), MAIN_TYPE)
         .assertSuccessWithOutput(expectedOutput);
   }

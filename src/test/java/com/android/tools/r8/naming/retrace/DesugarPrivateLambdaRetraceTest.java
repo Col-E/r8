@@ -80,7 +80,7 @@ public class DesugarPrivateLambdaRetraceTest extends TestBase {
     testForD8(parameters.getBackend())
         .setMode(CompilationMode.DEBUG)
         .addInnerClasses(DesugarInterfaceInstanceLambdaRetrace.class)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .internalEnableMappingOutput()
         .run(parameters.getRuntime(), DesugarInterfaceInstanceLambdaRetrace.Main.class)
         .assertFailureWithErrorThatThrows(NullPointerException.class)

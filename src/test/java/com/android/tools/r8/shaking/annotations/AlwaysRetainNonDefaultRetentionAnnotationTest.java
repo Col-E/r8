@@ -69,7 +69,7 @@ public class AlwaysRetainNonDefaultRetentionAnnotationTest extends TestBase {
                   "-keep,allowshrinking,allowobfuscation class "
                       + MyRuntimeAnnotation.class.getTypeName());
             })
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .inspect(
             inspector -> {

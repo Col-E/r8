@@ -59,7 +59,7 @@ public class InvokeClinitTest extends TestBase {
             testForD8(parameters.getBackend())
                 .addProgramClasses(A.class)
                 .addProgramClassFileData(transformMain())
-                .setMinApi(parameters.getApiLevel())
+                .setMinApi(parameters)
                 .compile());
   }
 
@@ -72,7 +72,7 @@ public class InvokeClinitTest extends TestBase {
                 .addProgramClasses(A.class)
                 .addProgramClassFileData(transformMain())
                 .addKeepMainRule(Main.class)
-                .setMinApi(parameters.getApiLevel())
+                .setMinApi(parameters)
                 .compile());
   }
 

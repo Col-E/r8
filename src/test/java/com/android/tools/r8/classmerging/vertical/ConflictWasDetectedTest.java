@@ -38,7 +38,7 @@ public class ConflictWasDetectedTest extends TestBase {
         .enableInliningAnnotations()
         // .enableNoHorizontalClassMergingAnnotations()
         .enableUnusedArgumentAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .run(parameters.getRuntime(), Main.class);
   }

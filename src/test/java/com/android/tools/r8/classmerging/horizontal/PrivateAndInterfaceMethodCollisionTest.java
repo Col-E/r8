@@ -36,7 +36,7 @@ public class PrivateAndInterfaceMethodCollisionTest extends HorizontalClassMergi
         .enableNeverClassInliningAnnotations()
         .enableNoUnusedInterfaceRemovalAnnotations()
         .enableNoVerticalClassMergingAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines("A.foo()", "B.bar()", "J.foo()");

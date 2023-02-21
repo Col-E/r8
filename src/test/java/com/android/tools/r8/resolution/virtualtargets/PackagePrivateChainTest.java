@@ -93,7 +93,7 @@ public class PackagePrivateChainTest extends TestBase {
     testForR8(parameters.getBackend())
         .addProgramClasses(Top.class, Middle.class, Bottom.class, TopRunner.class, Main.class)
         .addKeepMainRule(Main.class)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines(EXPECTED);
   }

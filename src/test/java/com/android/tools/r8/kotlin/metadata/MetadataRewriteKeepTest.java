@@ -41,7 +41,7 @@ public class MetadataRewriteKeepTest extends KotlinMetadataTestBase {
   public void testR8() throws Exception {
     testForR8(parameters.getBackend())
         .addProgramFiles(kotlinc.getKotlinStdlibJar(), kotlinc.getKotlinAnnotationJar())
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addKeepKotlinMetadata()
         .addKeepRules("-keep class kotlin.io.** { *; }")
         .allowDiagnosticWarningMessages()
@@ -54,7 +54,7 @@ public class MetadataRewriteKeepTest extends KotlinMetadataTestBase {
   public void testR8KeepIf() throws Exception {
     testForR8(parameters.getBackend())
         .addProgramFiles(kotlinc.getKotlinStdlibJar(), kotlinc.getKotlinAnnotationJar())
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addKeepRules("-keep class kotlin.io.** { *; }")
         .addKeepRules("-if class *", "-keep class kotlin.Metadata { *; }")
         .addKeepAttributes(ProguardKeepAttributes.RUNTIME_VISIBLE_ANNOTATIONS)

@@ -41,7 +41,7 @@ public class GenericSignatureInvalidInfoKeepTest extends TestBase {
             transformer(A.class)
                 .setGenericSignature(MethodPredicate.onName("foo"), (String) null)
                 .transform())
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addKeepMainRule(Main.class)
         .compile()
         // This tests that no info messages are generated due to us removing the generic parameters

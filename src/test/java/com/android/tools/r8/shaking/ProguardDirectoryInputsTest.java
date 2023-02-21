@@ -87,17 +87,19 @@ public class ProguardDirectoryInputsTest extends TestBase {
                       Collections.singletonList(prefix + directory.toAbsolutePath()), origin);
             })
         .addKeepMainRule(TestClass.class)
-        .setMinApi(parameters.getApiLevel())
-        .compileWithExpectedDiagnostics(diagnostics -> {
-          diagnostics.assertOnlyErrors();
-          diagnostics.assertErrorsCount(1);
-          Diagnostic diagnostic = diagnostics.getErrors().get(0);
-          assertThat(diagnostic.getDiagnosticMessage(), containsString("Unexpected input type"));
-          assertEquals(origin, diagnostic.getOrigin());
-          TextPosition position = (TextPosition) diagnostic.getPosition();
-          assertEquals(1, position.getLine());
-          assertEquals(prefix.length() + 1, position.getColumn());
-        });
+        .setMinApi(parameters)
+        .compileWithExpectedDiagnostics(
+            diagnostics -> {
+              diagnostics.assertOnlyErrors();
+              diagnostics.assertErrorsCount(1);
+              Diagnostic diagnostic = diagnostics.getErrors().get(0);
+              assertThat(
+                  diagnostic.getDiagnosticMessage(), containsString("Unexpected input type"));
+              assertEquals(origin, diagnostic.getOrigin());
+              TextPosition position = (TextPosition) diagnostic.getPosition();
+              assertEquals(1, position.getLine());
+              assertEquals(prefix.length() + 1, position.getColumn());
+            });
   }
 
   static class TestClass {

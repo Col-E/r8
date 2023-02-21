@@ -38,7 +38,7 @@ public class ApiModelOutlineMethodUnknownTest extends TestBase {
         .addLibraryClasses(LibraryClass.class)
         .addDefaultRuntimeLibrary(parameters)
         .addProgramClasses(Main.class)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addAndroidBuildVersion()
         .apply(setMockApiLevelForClass(LibraryClass.class, classApiLevel))
         // TODO(b/213552119): Remove when enabled by default.

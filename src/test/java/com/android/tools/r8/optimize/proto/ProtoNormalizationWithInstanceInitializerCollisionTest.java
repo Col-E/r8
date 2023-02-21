@@ -37,7 +37,7 @@ public class ProtoNormalizationWithInstanceInitializerCollisionTest extends Test
         .addInnerClasses(getClass())
         .addKeepMainRule(Main.class)
         .enableNoHorizontalClassMergingAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .inspect(
             inspector -> {

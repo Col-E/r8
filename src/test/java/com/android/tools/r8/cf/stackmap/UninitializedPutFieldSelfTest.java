@@ -47,7 +47,7 @@ public class UninitializedPutFieldSelfTest extends TestBase {
     assumeTrue(parameters.isCfRuntime());
     testForD8(parameters.getBackend())
         .addProgramClassFileData(dump())
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compileWithExpectedDiagnostics(this::inspect);
   }
 
@@ -59,7 +59,7 @@ public class UninitializedPutFieldSelfTest extends TestBase {
             || parameters.getDexRuntimeVersion().isNewerThan(Version.V6_0_1);
     testForD8(parameters.getBackend())
         .addProgramClassFileData(dump())
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compileWithExpectedDiagnostics(this::inspect)
         .run(parameters.getRuntime(), Main.class)
         .assertFailureWithErrorThatThrowsIf(willFailVerification, VerifyError.class)

@@ -40,7 +40,7 @@ public class OverrideAbstractMethodWithDefaultTest extends HorizontalClassMergin
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
         .enableNoVerticalClassMergingAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines("J", "B2")
         .inspect(

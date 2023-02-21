@@ -72,7 +72,7 @@ public class InvokeSpecialInterfaceWithBridge3Test extends TestBase {
         .addProgramClasses(I.class, A.class, Main.class)
         .addProgramClassFileData(getClassWithTransformedInvoked())
         .addKeepMainRule(Main.class)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), Main.class)
         // TODO(b/166210854): Runs but should have failed.
         .assertSuccessWithOutput(EXPECTED);

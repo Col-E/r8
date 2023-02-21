@@ -53,7 +53,7 @@ public class DebugSetFileSmaliTest extends TestBase {
         "    throw v0");
 
     testForD8(parameters.getBackend())
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addProgramDexFileData(builder.compile())
         .compile()
         .inspect(

@@ -58,7 +58,7 @@ public class MissingClassesJoinTest extends TestBase {
           testForD8()
               // Intentionally not adding ASub2 as a program class.
               .addProgramClasses(A.class, ASub1.class, Box.class, TestClass.class)
-              .setMinApi(parameters.getApiLevel())
+              .setMinApi(parameters)
               .compile();
 
       testForRuntime(parameters)
@@ -78,7 +78,7 @@ public class MissingClassesJoinTest extends TestBase {
               .addDontWarn(ASub2.class)
               .allowDiagnosticWarningMessages()
               .enableNoVerticalClassMergingAnnotations()
-              .setMinApi(parameters.getApiLevel())
+              .setMinApi(parameters)
               .compileWithExpectedDiagnostics(
                   diagnostics -> {
                     if (allowTypeErrors) {

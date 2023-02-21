@@ -71,7 +71,7 @@ public class B124357885Test extends TestBase {
             .enableInliningAnnotations()
             .enableKeepUnusedReturnValueAnnotations()
             .minification(minification)
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .compile()
             .inspect(
                 inspector -> {

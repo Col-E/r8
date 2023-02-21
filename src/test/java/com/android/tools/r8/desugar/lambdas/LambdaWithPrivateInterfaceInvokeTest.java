@@ -56,7 +56,7 @@ public class LambdaWithPrivateInterfaceInvokeTest extends TestBase {
         .addProgramClasses(TestClass.class, MyFun.class, A.class)
         .addProgramClassFileData(getTransformForI())
         .addKeepMainRule(TestClass.class)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), TestClass.class)
         .assertSuccessWithOutput(EXPECTED);
   }

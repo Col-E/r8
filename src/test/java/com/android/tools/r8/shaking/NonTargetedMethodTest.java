@@ -46,7 +46,7 @@ public class NonTargetedMethodTest extends TestBase {
         .enableNeverClassInliningAnnotations()
         .addInnerClasses(NonTargetedMethodTest.class)
         .addKeepMainRule(Main.class)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutput(EXPECTED)
         .inspect(this::checkIsFooPresent);

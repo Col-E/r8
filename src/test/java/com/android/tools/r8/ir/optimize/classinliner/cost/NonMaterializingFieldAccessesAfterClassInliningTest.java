@@ -45,7 +45,7 @@ public class NonMaterializingFieldAccessesAfterClassInliningTest extends TestBas
                     parameters.isCfRuntime() ? 3 : 6)
         .enableInliningAnnotations()
         .enableNoHorizontalClassMergingAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .inspect(this::inspect)
         .run(parameters.getRuntime(), TestClass.class)

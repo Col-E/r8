@@ -80,7 +80,7 @@ public class StringPlusTest extends KotlinTestBase {
     testForR8(parameters.getBackend())
         .addProgramFiles(compilationResults.getForConfiguration(kotlinc, targetVersion))
         .addProgramFiles(kotlinc.getKotlinAnnotationJar())
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .allowAccessModification()
         .allowDiagnosticWarningMessages()
         .addKeepMainRule(MAIN)

@@ -35,7 +35,7 @@ public class ClinitDeadlockAfterMergingClassInitializedBySuperTest extends TestB
         .addOptionsModification(
             options ->
                 options.horizontalClassMergerOptions().setEnableClassInitializerDeadlockDetection())
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile();
   }
 

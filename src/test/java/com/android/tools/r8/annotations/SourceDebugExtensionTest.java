@@ -70,7 +70,7 @@ public class SourceDebugExtensionTest extends TestBase {
         .addKeepAttributes(ProguardKeepAttributes.SOURCE_DEBUG_EXTENSION)
         .addKeepAllClassesRule()
         .setMode(CompilationMode.RELEASE)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .inspect(this::inspectSourceDebugExtension);
   }

@@ -33,7 +33,7 @@ public class ApplyMappingLambdaRepackageTest extends TestBase {
     R8TestRunResult firstRunResult =
         testForR8(parameters.getBackend())
             .addProgramClassesAndInnerClasses(Main.class, PackagePrivate.class, Foo.class)
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .addKeepMainRule(Main.class)
             .addKeepRules("-repackageclasses foo")
             .enableInliningAnnotations()
@@ -43,7 +43,7 @@ public class ApplyMappingLambdaRepackageTest extends TestBase {
     R8TestRunResult secondRunResult =
         testForR8(parameters.getBackend())
             .addProgramClassesAndInnerClasses(Main.class, PackagePrivate.class, Foo.class)
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .addKeepMainRule(Main.class)
             .enableInliningAnnotations()
             .enableNeverClassInliningAnnotations()

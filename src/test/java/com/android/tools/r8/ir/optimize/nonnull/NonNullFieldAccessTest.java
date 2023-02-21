@@ -39,7 +39,7 @@ public class NonNullFieldAccessTest extends TestBase {
         .addProgramClasses(TestClass.class)
         .addKeepMainRule(TestClass.class)
         .enableInliningAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .inspect(this::verifyNonNullPropagation)
         .run(parameters.getRuntime(), TestClass.class)

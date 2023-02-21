@@ -50,7 +50,7 @@ public class ApiModelOutlineHorizontalMergingTest extends TestBase {
         .addProgramClasses(Main.class, TestClass.class)
         .addLibraryClasses(LibraryClass.class, OtherLibraryClass.class)
         .addDefaultRuntimeLibrary(parameters)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addAndroidBuildVersion()
         .apply(setMockApiLevelForClass(LibraryClass.class, libraryClassApiLevel))
         .apply(

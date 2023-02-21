@@ -115,7 +115,7 @@ public class DesugarLambdaWithAnonymousClass extends TestBase {
     try {
       testForR8(parameters.getBackend())
           .addInnerClasses(DesugarLambdaWithAnonymousClass.class)
-          .setMinApi(parameters.getApiLevel())
+          .setMinApi(parameters)
           // Keep the synthesized inner classes.
           .addKeepRules("-keep class **.*$TestClass$1")
           .addKeepRules("-keep class **.*$TestClass$2")

@@ -65,7 +65,7 @@ public class InvokeMethodHandleRuntimeErrorTest extends TestBase {
     testForD8()
         .addProgramClasses(Main.class, I.class, Super.class)
         .addProgramClassFileData(getInvokeCustomTransform())
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compileWithExpectedDiagnostics(
             diagnostics -> {
               if (hasCompileSupport()) {

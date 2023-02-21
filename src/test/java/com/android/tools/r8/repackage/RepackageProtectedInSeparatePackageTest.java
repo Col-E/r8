@@ -39,7 +39,7 @@ public class RepackageProtectedInSeparatePackageTest extends RepackageTestBase {
         testForR8(parameters.getBackend())
             .addProgramClasses(Base.class, Sub.class, Main.class)
             .addKeepMainRule(Main.class)
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .addKeepClassAndMembersRules(Base.class)
             .apply(this::configureRepackaging)
             .enableInliningAnnotations()

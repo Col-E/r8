@@ -40,7 +40,7 @@ public class DebugLocalStackMapTest extends TestBase {
   public void testInvalidDebugLocals() throws Exception {
     testForD8(parameters.getBackend())
         .addProgramClassFileData(TestKtDump.dump())
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compileWithExpectedDiagnostics(
             diagnostics -> {
               diagnostics.assertInfosMatch(

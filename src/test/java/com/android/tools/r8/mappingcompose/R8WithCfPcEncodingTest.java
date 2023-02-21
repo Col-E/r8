@@ -43,7 +43,7 @@ public class R8WithCfPcEncodingTest extends TestBase {
   public void testR8() throws Exception {
     testForR8(parameters.getBackend())
         .addProgramClasses(MainWithHelloWorld.class)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addKeepMainRule(MainWithHelloWorld.class)
         .addKeepAttributeLineNumberTable()
         .addOptionsModification(

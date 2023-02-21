@@ -51,7 +51,7 @@ public class NonPublicOverrideOfPublicMethodAfterAbstractClassMergingTest extend
         .enableNoHorizontalClassMergingAnnotations()
         .enableNoMethodStaticizingAnnotations()
         .enableNoVerticalClassMergingAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .inspect(
             inspector -> {

@@ -40,7 +40,7 @@ public class StaticMethodWithConstantArgumentThroughCallChainTest extends TestBa
         .addInnerClasses(getClass())
         .addKeepMainRule(Main.class)
         .enableInliningAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .inspect(
             inspector -> {

@@ -81,7 +81,7 @@ public class ZipFileInstanceOfAutoCloseableTest extends TestBase {
     assumeTrue(parameters.isDexRuntime());
     testForD8()
         .addInnerClasses(ZipFileInstanceOfAutoCloseableTest.class)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addLibraryFiles(getAndroidJar())
         .run(parameters.getRuntime(), TestClass.class, getZipFile())
         .assertSuccessWithOutput(expectedOutput());
@@ -92,7 +92,7 @@ public class ZipFileInstanceOfAutoCloseableTest extends TestBase {
     testForR8(parameters.getBackend())
         .addInnerClasses(ZipFileInstanceOfAutoCloseableTest.class)
         .addKeepMainRule(TestClass.class)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addLibraryFiles(getAndroidJar())
         .run(parameters.getRuntime(), TestClass.class, getZipFile())
         .assertSuccessWithOutput(expectedOutput());

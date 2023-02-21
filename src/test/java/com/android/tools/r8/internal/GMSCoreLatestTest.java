@@ -112,7 +112,7 @@ public class GMSCoreLatestTest extends GMSCoreCompilationTestBase {
                 + "_gmscore__primes_bcdd2915GeneratedExtensionRegistryLite$Loader")
         .allowDiagnosticMessages()
         .allowUnusedProguardConfigurationRules()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .apply(configuration)
         .compile()
         .assertAllInfoMessagesMatch(

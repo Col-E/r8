@@ -67,7 +67,7 @@ public class KeepInnerClassesEnclosingMethodAnnotationsTest extends TestBase {
         (isCompat ? testForR8Compat(parameters.getBackend()) : testForR8(parameters.getBackend()))
             .addProgramClassesAndInnerClasses(Outer.class)
             .addProgramClasses(Main.class)
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .addKeepRules(proguardConfiguration)
             .run(parameters.getRuntime(), Main.class));
   }

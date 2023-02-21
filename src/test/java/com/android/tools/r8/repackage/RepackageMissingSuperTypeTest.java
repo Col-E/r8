@@ -50,7 +50,7 @@ public class RepackageMissingSuperTypeTest extends RepackageTestBase {
             Main.class)
         .addKeepMainRule(Main.class)
         .applyIf(repackage, this::configureRepackaging)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addDontWarn(MissingSuperType.class)
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()

@@ -59,7 +59,7 @@ public class UnusedArgumentsInstanceConstructorTest extends TestBase {
             .enableInliningAnnotations()
             .enableNeverClassInliningAnnotations()
             .enableNoHorizontalClassMergingAnnotations()
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .run(parameters.getRuntime(), TestClass.class)
             .assertSuccessWithOutput(expectedOutput)
             .inspector();

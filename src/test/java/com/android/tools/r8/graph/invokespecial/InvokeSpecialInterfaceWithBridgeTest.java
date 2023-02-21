@@ -48,7 +48,7 @@ public class InvokeSpecialInterfaceWithBridgeTest extends TestBase {
         .addProgramClasses(I.class, A.class, Main.class)
         .addProgramClassFileData(getClassWithTransformedInvoked())
         .addKeepMainRule(Main.class)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines("Hello World!");
   }

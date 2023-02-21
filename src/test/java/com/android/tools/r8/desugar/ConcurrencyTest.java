@@ -89,7 +89,7 @@ public class ConcurrencyTest extends TestBase {
     testForR8(parameters.getBackend())
         .addProgramClasses(getClasses())
         .addProgramClassFileData(getTransformedClasses())
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addKeepAllClassesRule()
         .compile();
   }

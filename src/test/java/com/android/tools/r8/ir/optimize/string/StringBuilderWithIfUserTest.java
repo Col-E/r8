@@ -30,7 +30,7 @@ public class StringBuilderWithIfUserTest extends TestBase {
     testForR8(parameters.getBackend())
         .addInnerClasses(StringBuilderWithIfUserTest.class)
         .addKeepMainRule(Main.class)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines("Hello world!");

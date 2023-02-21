@@ -38,7 +38,7 @@ public class MergingWithSafeCheckCastTest extends HorizontalClassMergingTestBase
         .enableNoHorizontalClassMergingAnnotations()
         .enableNoUnusedInterfaceRemovalAnnotations()
         .enableNoVerticalClassMergingAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addHorizontallyMergedClassesInspector(
             inspector ->
                 inspector

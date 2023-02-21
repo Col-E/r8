@@ -39,7 +39,7 @@ public class KeepWithMultipleInheritanceAnnotationsTest extends TestBase {
             "-keep class * extends @" + A.class.getTypeName() + " * {",
             "  public static void main(java.lang.String[]);",
             "}")
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .run(parameters.getRuntime(), TestClass.class)
         .assertSuccessWithOutputLines("Hello world!");
@@ -57,7 +57,7 @@ public class KeepWithMultipleInheritanceAnnotationsTest extends TestBase {
                 + " * {",
             "  public static void main(java.lang.String[]);",
             "}")
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .run(parameters.getRuntime(), TestClass.class)
         .assertSuccessWithOutputLines("Hello world!");
@@ -78,7 +78,7 @@ public class KeepWithMultipleInheritanceAnnotationsTest extends TestBase {
             "  public static void main(java.lang.String[]);",
             "}")
         .allowUnusedProguardConfigurationRules()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .inspect(inspector -> assertTrue(inspector.allClasses().isEmpty()));
   }

@@ -7,7 +7,6 @@ package com.android.tools.r8.classmerging.horizontal.interfaces;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isImplementing;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.Assert.assertFalse;
 
 import com.android.tools.r8.NoHorizontalClassMerging;
 import com.android.tools.r8.NoUnusedInterfaceRemoval;
@@ -47,7 +46,7 @@ public class ClassHierarchyCycleAfterMergingTest extends TestBase {
         .enableNoHorizontalClassMergingAnnotations()
         .enableNoUnusedInterfaceRemovalAnnotations()
         .enableNoVerticalClassMergingAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .inspect(
             inspector -> {

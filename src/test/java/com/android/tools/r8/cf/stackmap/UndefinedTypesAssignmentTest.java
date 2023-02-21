@@ -40,7 +40,7 @@ public class UndefinedTypesAssignmentTest extends TestBase {
   public void testReference() throws Exception {
     testForD8(parameters.getBackend())
         .addProgramClasses(TestClass.class)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .addRunClasspathClasses(I.class, A.class)
         .run(parameters.getRuntime(), TestClass.class)
@@ -53,7 +53,7 @@ public class UndefinedTypesAssignmentTest extends TestBase {
         .addProgramClasses(TestClass.class)
         .addDontWarn(I.class, A.class)
         .addKeepMainRule(TestClass.class)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .allowDiagnosticWarningMessages()
         .compileWithExpectedDiagnostics(
             diagnostics ->

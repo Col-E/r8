@@ -38,7 +38,7 @@ public class ReferencedInAnnotationTest extends HorizontalClassMergingTestBase {
         .addKeepClassAndMembersRules(Annotation.class)
         .addKeepRuntimeVisibleAnnotations()
         .enableNeverClassInliningAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), TestClass.class)
         .assertSuccessWithOutputLines("Hello world!")
         .inspect(this::inspect);

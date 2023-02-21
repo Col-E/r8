@@ -198,7 +198,7 @@ public class GMSCoreV10Test extends GMSCoreCompilationTestBase {
             "com.android.internal.location.ProviderRequest")
         .allowDiagnosticMessages()
         .allowUnusedProguardConfigurationRules()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .apply(configuration)
         .compile()
         .assertAllInfoMessagesMatch(

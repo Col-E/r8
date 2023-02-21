@@ -54,7 +54,7 @@ public class VerticalClassMergerSynchronizedMethodTest extends TestBase {
         .addInnerClasses(VerticalClassMergerSynchronizedMethodTest.class)
         .addKeepMainRule(Main.class)
         .enableNoVerticalClassMergingAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutput("Hello World!")
         .inspect(inspector -> assertThat(inspector.clazz(LockOne.class), isPresent()));

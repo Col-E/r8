@@ -39,7 +39,7 @@ public class InterfaceMethodDefinedInLibraryTest extends TestBase {
             .addProgramClasses(A.class)
             .addClasspathClasses(I.class)
             .addKeepMethodRules(A.class, "void foo()", "void <init>()")
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .compile();
     testForRuntime(parameters)
         .addProgramClasses(Main.class)
@@ -48,7 +48,7 @@ public class InterfaceMethodDefinedInLibraryTest extends TestBase {
             parameters.isDexRuntime()
                 ? testForD8()
                     .addProgramClasses(I.class)
-                    .setMinApi(parameters.getApiLevel())
+                    .setMinApi(parameters)
                     .compile()
                     .writeToZip()
                 : ToolHelper.getClassPathForTests())

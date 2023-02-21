@@ -101,7 +101,7 @@ public class FieldReadsJasminTest extends JasminTestBase {
     if (parameters.isDexRuntime()) {
       testForD8()
           .addProgramClassFileData(classes)
-          .setMinApi(parameters.getApiLevel())
+          .setMinApi(parameters)
           .compile()
           .inspect(inspector -> ensureNoFieldsRead(inspector, clazz.name, false));
     }
@@ -109,7 +109,7 @@ public class FieldReadsJasminTest extends JasminTestBase {
     testForR8(parameters.getBackend())
         .addProgramClassFileData(classes)
         .addKeepRules("-keep class * { <methods>; }")
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .inspect(inspector -> ensureNoFieldsRead(inspector, clazz.name, true));
   }
@@ -157,7 +157,7 @@ public class FieldReadsJasminTest extends JasminTestBase {
     testForR8(parameters.getBackend())
         .addProgramClassFileData(builder.buildClasses())
         .addKeepRules("-keep class * { <methods>; }")
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .inspect(
             inspector ->
@@ -314,7 +314,7 @@ public class FieldReadsJasminTest extends JasminTestBase {
     if (parameters.isDexRuntime()) {
       testForD8()
           .addProgramClassFileData(classes)
-          .setMinApi(parameters.getApiLevel())
+          .setMinApi(parameters)
           .compile()
           .inspect(d8Inspector);
     }
@@ -322,7 +322,7 @@ public class FieldReadsJasminTest extends JasminTestBase {
     testForR8(parameters.getBackend())
         .addProgramClassFileData(classes)
         .addKeepRules("-keep class * { <methods>; }")
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .inspect(r8Inspector);
   }

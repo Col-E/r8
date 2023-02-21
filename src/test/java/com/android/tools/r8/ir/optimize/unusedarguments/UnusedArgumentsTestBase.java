@@ -71,7 +71,7 @@ public abstract class UnusedArgumentsTestBase extends TestBase {
   @Test
   public void testR8() throws Throwable {
     testForR8(parameters.getBackend())
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addProgramClasses(getTestClass())
         .addProgramClasses(getAdditionalClasses())
         .addKeepMainRule(getTestClass())

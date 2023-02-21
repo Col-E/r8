@@ -81,7 +81,7 @@ public class SingleBridgeToPackagePrivateMethodThatOverridesPublicMethodTest ext
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
         .enableNoVerticalClassMergingAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .inspect(
             inspector -> {

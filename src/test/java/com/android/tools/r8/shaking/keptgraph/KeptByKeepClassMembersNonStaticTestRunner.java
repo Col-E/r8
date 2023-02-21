@@ -94,7 +94,7 @@ public class KeptByKeepClassMembersNonStaticTestRunner extends TestBase {
             .addProgramClasses(CLASS)
             .addKeepMainRule(CLASS)
             .addKeepRules(KEEP_CLASS_MEMBERS_RULE)
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .run(parameters.getRuntime(), CLASS)
             .assertSuccessWithOutput(EXPECTED)
             .graphInspector();

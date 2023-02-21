@@ -54,7 +54,7 @@ public class StaticClassMergerInterfaceTest extends TestBase {
               }
             })
         .enableInliningAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), TestClass.class)
         .assertSuccessWithOutput(expectedOutput)
         .inspect(

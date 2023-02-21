@@ -37,7 +37,7 @@ public class B148366506 extends TestBase implements Opcodes {
   public void test() throws Exception {
     testForD8()
         .addProgramClassFileData(dump())
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .setMode(compilationMode)
         .compile();
   }

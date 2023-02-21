@@ -27,7 +27,7 @@ public class MergeNonFinalAndFinalClassTest extends HorizontalClassMergingTestBa
             inspector -> inspector.assertMergedInto(B.class, A.class))
         .enableNeverClassInliningAnnotations()
         .enableNoVerticalClassMergingAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .inspect(inspector -> assertThat(inspector.clazz(A.class), not(isFinal())))
         .run(parameters.getRuntime(), Main.class)

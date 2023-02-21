@@ -38,7 +38,7 @@ public class UninitializedInitialLocalsTest extends TestBase implements Opcodes 
     } else {
       testForD8()
           .addProgramClassFileData(dump())
-          .setMinApi(parameters.getApiLevel())
+          .setMinApi(parameters)
           .run(parameters.getRuntime(), "Test")
           .assertSuccessWithOutputLines("42");
     }

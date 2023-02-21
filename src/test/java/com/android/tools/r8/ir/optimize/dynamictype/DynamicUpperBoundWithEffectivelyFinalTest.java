@@ -38,7 +38,7 @@ public class DynamicUpperBoundWithEffectivelyFinalTest extends TestBase {
         .addKeepMainRule(Main.class)
         .addKeepClassRules(Final.class)
         .addKeepClassAndMembersRules(Base.class)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
         .run(parameters.getRuntime(), Main.class)

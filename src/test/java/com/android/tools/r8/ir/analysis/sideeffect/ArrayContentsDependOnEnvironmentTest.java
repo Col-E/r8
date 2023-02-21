@@ -35,7 +35,7 @@ public class ArrayContentsDependOnEnvironmentTest extends TestBase {
         .addKeepMainRule(TestClass.class)
         .enableAssumeNoSideEffectsAnnotations()
         .enableInliningAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .run(parameters.getRuntime(), TestClass.class)
         .assertSuccessWithOutputLines("42");

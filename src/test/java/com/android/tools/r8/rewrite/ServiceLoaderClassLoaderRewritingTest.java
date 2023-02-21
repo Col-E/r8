@@ -83,7 +83,7 @@ public class ServiceLoaderClassLoaderRewritingTest extends TestBase {
     testForR8(parameters.getBackend())
         .addInnerClasses(ServiceLoaderClassLoaderRewritingTest.class)
         .addKeepMainRule(MainRunner.class)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .enableInliningAnnotations()
         .addDataEntryResources(
             DataEntryResource.fromBytes(

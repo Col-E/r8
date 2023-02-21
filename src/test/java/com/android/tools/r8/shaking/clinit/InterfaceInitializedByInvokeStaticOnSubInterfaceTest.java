@@ -45,7 +45,7 @@ public class InterfaceInitializedByInvokeStaticOnSubInterfaceTest
         .addInnerClasses(getClass())
         .addKeepMainRule(TestClass.class)
         .allowStdoutMessages()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .run(parameters.getRuntime(), TestClass.class)
         .assertSuccessWithOutputLines("J");

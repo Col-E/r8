@@ -35,7 +35,7 @@ public class RepackageObjectOnProgramPathTest extends TestBase {
     testForR8(parameters.getBackend())
         .addProgramClassFileData(dumpObject())
         .addProgramClasses(A.class, Main.class)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .enableInliningAnnotations()
         .addKeepMainRule(Main.class)
         .addDontWarn("*")

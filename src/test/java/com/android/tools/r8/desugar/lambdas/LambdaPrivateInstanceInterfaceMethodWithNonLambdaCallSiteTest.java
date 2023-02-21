@@ -66,7 +66,7 @@ public class LambdaPrivateInstanceInterfaceMethodWithNonLambdaCallSiteTest exten
         .addProgramClasses(Main.class, A.class, FunctionalInterface.class)
         .addProgramClassFileData(getProgramClassFileData())
         .addKeepMainRule(Main.class)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines("Hello world!", "Hello world!");
   }

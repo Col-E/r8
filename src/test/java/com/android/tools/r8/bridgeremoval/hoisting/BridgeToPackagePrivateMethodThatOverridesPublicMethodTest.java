@@ -62,7 +62,7 @@ public class BridgeToPackagePrivateMethodThatOverridesPublicMethodTest extends T
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
         .enableNoVerticalClassMergingAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .inspect(
             inspector -> {

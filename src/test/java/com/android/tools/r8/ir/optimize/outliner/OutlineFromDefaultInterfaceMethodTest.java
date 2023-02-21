@@ -56,7 +56,7 @@ public class OutlineFromDefaultInterfaceMethodTest extends TestBase {
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
         .noHorizontalClassMergingOfSynthetics()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .inspect(this::inspect)
         .run(parameters.getRuntime(), TestClass.class)

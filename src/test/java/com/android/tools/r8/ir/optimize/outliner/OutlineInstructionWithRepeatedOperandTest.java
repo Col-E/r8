@@ -37,7 +37,7 @@ public class OutlineInstructionWithRepeatedOperandTest extends TestBase {
               options.outline.threshold = 2;
             })
         .enableInliningAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines("0", "0");

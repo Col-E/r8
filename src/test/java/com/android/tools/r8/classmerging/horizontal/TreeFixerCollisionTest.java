@@ -29,7 +29,7 @@ public class TreeFixerCollisionTest extends HorizontalClassMergingTestBase {
         .enableNeverClassInliningAnnotations()
         .enableNoVerticalClassMergingAnnotations()
         .enableNoHorizontalClassMergingAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines(
             "print a: foo a", "print b: foo b", "print d: foo a", "print e: foo b")

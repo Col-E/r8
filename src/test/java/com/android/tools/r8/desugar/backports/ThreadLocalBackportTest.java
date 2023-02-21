@@ -50,7 +50,7 @@ public class ThreadLocalBackportTest extends DesugaredLibraryTestBase {
   public void testD8() throws Exception {
     testForD8(parameters.getBackend())
         .addInnerClasses(getClass())
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compileWithExpectedDiagnostics(this::checkDiagnostics)
         .run(parameters.getRuntime(), TestClass.class)
         .apply(this::checkExpected);
@@ -66,7 +66,7 @@ public class ThreadLocalBackportTest extends DesugaredLibraryTestBase {
                 : ToolHelper.getAndroidJar(LATEST))
         .addInnerClasses(getClass())
         .addKeepMainRule(TestClass.class)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), TestClass.class)
         .apply(this::checkExpected);
   }

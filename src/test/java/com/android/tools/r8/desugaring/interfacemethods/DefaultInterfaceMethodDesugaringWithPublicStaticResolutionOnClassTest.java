@@ -67,7 +67,7 @@ public class DefaultInterfaceMethodDesugaringWithPublicStaticResolutionOnClassTe
     testForD8(parameters.getBackend())
         .addProgramClasses(getProgramClasses())
         .addProgramClassFileData(getProgramClassData())
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .run(parameters.getRuntime(), TestClass.class)
         .applyIf(
@@ -84,7 +84,7 @@ public class DefaultInterfaceMethodDesugaringWithPublicStaticResolutionOnClassTe
         .addProgramClasses(getProgramClasses())
         .addProgramClassFileData(getProgramClassData())
         .addKeepAllClassesRule()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .run(parameters.getRuntime(), TestClass.class)
         .assertFailureWithErrorThatThrows(IncompatibleClassChangeError.class);

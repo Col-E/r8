@@ -33,7 +33,7 @@ public class FieldReadBeforeOtherwiseRedundantStoreTest extends TestBase {
   public void test() throws Exception {
     testForD8()
         .addInnerClasses(FieldReadBeforeOtherwiseRedundantStoreTest.class)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .setMode(mode)
         .compile()
         .run(parameters.getRuntime(), Main.class)

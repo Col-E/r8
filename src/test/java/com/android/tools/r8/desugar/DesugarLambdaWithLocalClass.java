@@ -113,7 +113,7 @@ public class DesugarLambdaWithLocalClass extends TestBase {
     parameters.assumeR8TestParameters();
     testForR8(parameters.getBackend())
         .addInnerClasses(DesugarLambdaWithLocalClass.class)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         // Keep the synthesized inner classes.
         .addKeepRules("-keep class **.*$TestClass$*MyConsumerImpl")
         // Keep the outer context: TestClass *and* the synthetic lambda methods.

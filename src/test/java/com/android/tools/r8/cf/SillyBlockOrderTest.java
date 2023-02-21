@@ -43,7 +43,7 @@ public class SillyBlockOrderTest extends TestBase {
     } else {
       testForD8()
           .addProgramClasses(TestClass.class)
-          .setMinApi(parameters.getApiLevel())
+          .setMinApi(parameters)
           .run(parameters.getRuntime(), TestClass.class)
           .assertSuccessWithOutput(EXPECTED)
           .inspect(i -> checkNumberOfGotos(i, 1));

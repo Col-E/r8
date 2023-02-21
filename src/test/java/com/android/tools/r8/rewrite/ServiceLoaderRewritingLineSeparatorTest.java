@@ -75,7 +75,7 @@ public class ServiceLoaderRewritingLineSeparatorTest extends TestBase {
     testForR8(parameters.getBackend())
         .addInnerClasses(ServiceLoaderRewritingTest.class)
         .addKeepMainRule(MainRunner.class)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addDataEntryResources(
             DataEntryResource.fromBytes(
                 StringUtils.join(

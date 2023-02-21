@@ -47,7 +47,7 @@ public class DefaultInterfaceIssue143628636Test extends TestBase {
         .addInnerClasses(DefaultInterfaceIssue143628636Test.class)
         .addKeepMainRule(TestClass.class)
         .addKeepClassRules(I.class)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), TestClass.class)
         .assertSuccessWithOutputLines("2", "5");
   }

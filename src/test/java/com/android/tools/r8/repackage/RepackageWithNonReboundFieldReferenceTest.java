@@ -55,7 +55,7 @@ public class RepackageWithNonReboundFieldReferenceTest extends RepackageTestBase
         .apply(this::configureRepackaging)
         .enableMemberValuePropagationAnnotations()
         .enableNoVerticalClassMergingAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .run(parameters.getRuntime(), TestClass.class)
         .assertSuccessWithOutputLines("Hello world!");

@@ -40,7 +40,7 @@ public class AdaptResourceFileContentsTest extends HorizontalClassMergingTestBas
                 DataEntryResource.fromString(
                     "foo.txt", Origin.unknown(), A.class.getTypeName(), B.class.getTypeName()))
             .addKeepRules("-adaptresourcefilecontents foo.txt")
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .addHorizontallyMergedClassesInspector(
                 inspector -> inspector.assertMergedInto(B.class, A.class))
             .compile()

@@ -104,7 +104,7 @@ public class VirtualMethodMergingWithAbsentMethodAndSuperClassMergingTest extend
                         i -> i.assertMergedInto(D.class, C.class),
                         i -> i.assertMergedInto(C.class, D.class))
                     .assertNoOtherClassesMerged())
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines("A", "B", "C", "A");

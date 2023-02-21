@@ -70,7 +70,7 @@ public class StartupSyntheticWithoutContextTest extends TestBase {
         .apply(
             StartupTestingUtils.enableStartupInstrumentationForOriginalAppUsingLogcat(parameters))
         .release()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .addRunClasspathFiles(StartupTestingUtils.getAndroidUtilLog(temp))
         .run(parameters.getRuntime(), Main.class)
@@ -95,7 +95,7 @@ public class StartupSyntheticWithoutContextTest extends TestBase {
                   .setMixedSectionLayoutStrategyInspector(getMixedSectionLayoutInspector());
             })
         .apply(testBuilder -> StartupTestingUtils.setStartupConfiguration(testBuilder, startupList))
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .inspectMultiDex(this::inspectPrimaryDex, this::inspectSecondaryDex)
         .run(parameters.getRuntime(), Main.class)

@@ -94,7 +94,7 @@ public class LibraryOverrideClassInliningTest extends TestBase {
                 Main.class, SimpleLibraryOverride.class, NonSimpleLibraryOverride.class)
             .addKeepMainRule(Main.class)
             .enableNoHorizontalClassMergingAnnotations()
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .run(parameters.getRuntime(), Main.class)
             .assertSuccessWithOutputLines("running...", "Hello world!")
             .inspector();

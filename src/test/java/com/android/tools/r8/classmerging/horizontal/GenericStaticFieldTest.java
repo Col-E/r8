@@ -20,7 +20,7 @@ public class GenericStaticFieldTest extends HorizontalClassMergingTestBase {
         .addKeepMainRule(Main.class)
         .addKeepRules("-keepattributes Signatures")
         .enableNeverClassInliningAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         // .addHorizontallyMergedClassesInspectorIf(
         //    enableHorizontalClassMerging, inspector ->
         // inspector.assertMergedInto(EmptyClassTest.B.class, EmptyClassTest.A.class))

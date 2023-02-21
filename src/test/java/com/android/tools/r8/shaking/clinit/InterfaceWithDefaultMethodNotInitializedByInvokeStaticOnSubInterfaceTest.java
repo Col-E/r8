@@ -37,7 +37,7 @@ public class InterfaceWithDefaultMethodNotInitializedByInvokeStaticOnSubInterfac
     assumeTrue(parameters.isDexRuntime());
     testForD8()
         .addInnerClasses(getClass())
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .run(parameters.getRuntime(), TestClass.class)
         .assertSuccessWithEmptyOutput();
@@ -49,7 +49,7 @@ public class InterfaceWithDefaultMethodNotInitializedByInvokeStaticOnSubInterfac
         .addInnerClasses(getClass())
         .addKeepMainRule(TestClass.class)
         .allowStdoutMessages()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .inspect(inspector -> assertEquals(1, inspector.allClasses().size()))
         .run(parameters.getRuntime(), TestClass.class)

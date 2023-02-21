@@ -60,7 +60,7 @@ public class MemberRebindingAmbiguousDispatchToLibraryTest extends TestBase {
   public void testD8() throws Exception {
     testForD8(parameters.getBackend())
         .apply(this::setupInput)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .addRunClasspathClasses(SuperInterface.class)
         .addRunClasspathClassFileData(getSuperClass())
@@ -73,7 +73,7 @@ public class MemberRebindingAmbiguousDispatchToLibraryTest extends TestBase {
     parameters.assumeR8TestParameters();
     testForR8(parameters.getBackend())
         .apply(this::setupInput)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addKeepMainRule(Main.class)
         .compile()
         .addRunClasspathClasses(SuperInterface.class)

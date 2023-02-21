@@ -23,7 +23,7 @@ public class DistinguishExceptionClassesTest extends HorizontalClassMergingTestB
         .addKeepMainRule(Main.class)
         .addHorizontallyMergedClassesInspector(
             HorizontallyMergedClassesInspector::assertNoClassesMerged)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines("test success")
         .inspect(

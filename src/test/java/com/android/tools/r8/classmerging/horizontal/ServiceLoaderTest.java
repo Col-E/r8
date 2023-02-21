@@ -35,7 +35,7 @@ public class ServiceLoaderTest extends HorizontalClassMergingTestBase {
                 StringUtils.lines(serviceImplementations).getBytes(),
                 "META-INF/services/" + A.class.getTypeName(),
                 Origin.unknown()))
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), Main.class)
         .assertSuccess()
         .inspect(

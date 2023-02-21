@@ -49,7 +49,7 @@ public class UninitializedGetFieldTest extends TestBase {
     assumeTrue(parameters.isCfRuntime());
     testForD8(parameters.getBackend())
         .addProgramClassFileData(dump())
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compileWithExpectedDiagnostics(this::inspect);
   }
 
@@ -58,7 +58,7 @@ public class UninitializedGetFieldTest extends TestBase {
     assumeTrue(parameters.isDexRuntime());
     testForD8(parameters.getBackend())
         .addProgramClassFileData(dump())
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compileWithExpectedDiagnostics(this::inspect)
         .run(parameters.getRuntime(), Main.class)
         .assertFailureWithErrorThatThrows(VerifyError.class);

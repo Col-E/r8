@@ -46,7 +46,7 @@ public class AbstractMethodOnNonAbstractClassTest extends TestBase {
             .addInnerClasses(AbstractMethodOnNonAbstractClassTest.class)
             .addKeepMainRule(TestClass.class)
             .enableNoHorizontalClassMergingAnnotations()
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .compile();
 
     // A is not made abstract in compat mode.
@@ -77,7 +77,7 @@ public class AbstractMethodOnNonAbstractClassTest extends TestBase {
             .addInnerClasses(AbstractMethodOnNonAbstractClassTest.class)
             .addKeepMainRule(TestClass.class)
             .enableNoHorizontalClassMergingAnnotations()
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .compile();
 
     // A is made abstract in full mode.

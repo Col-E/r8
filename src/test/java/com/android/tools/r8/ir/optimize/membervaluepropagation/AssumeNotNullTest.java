@@ -53,7 +53,7 @@ public class AssumeNotNullTest extends TestBase {
             "  java.lang.Object INSTANCE return 1;",
             "}")
         .enableInliningAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .inspect(
             inspector -> {

@@ -177,7 +177,7 @@ public class MinifierMethodSignatureTest extends TestBase {
                 ProguardKeepAttributes.ENCLOSING_METHOD,
                 ProguardKeepAttributes.SIGNATURE)
             .addKeepAllClassesRuleWithAllowObfuscation()
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .addOptionsModification(
                 internalOptions ->
                     internalOptions.testing.disableMappingToOriginalProgramVerification = true)

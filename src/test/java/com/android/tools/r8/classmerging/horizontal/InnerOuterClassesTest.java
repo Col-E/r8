@@ -37,7 +37,7 @@ public class InnerOuterClassesTest extends HorizontalClassMergingTestBase {
         .addKeepMainRule(Main.class)
         .enableNeverClassInliningAnnotations()
         .addKeepAttributeInnerClassesAndEnclosingMethod()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addOptionsModification(
             options ->
                 options.testing.horizontalClassMergingTarget =

@@ -58,7 +58,7 @@ public class KeepRuleWarningTest extends TestBase {
   public void test_allMethods() throws Exception {
     testForR8(parameters.getBackend())
         .addProgramClasses(I.class, C.class, MAIN)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .enableNoVerticalClassMergingAnnotations()
         .addKeepMainRule(MAIN)
         .addKeepRules("-keep interface **.I { <methods>; }")
@@ -72,7 +72,7 @@ public class KeepRuleWarningTest extends TestBase {
   public void test_asterisk() throws Exception {
     testForR8(parameters.getBackend())
         .addProgramClasses(I.class, C.class, MAIN)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .enableNoVerticalClassMergingAnnotations()
         .addKeepMainRule(MAIN)
         .addKeepRules("-keep interface **.I { *(); }")
@@ -86,7 +86,7 @@ public class KeepRuleWarningTest extends TestBase {
   public void test_stillNotSpecific() throws Exception {
     testForR8(parameters.getBackend())
         .addProgramClasses(I.class, C.class, MAIN)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .enableNoVerticalClassMergingAnnotations()
         .addKeepMainRule(MAIN)
         .addKeepRules("-keep interface **.I { *** f*(); }")
@@ -100,7 +100,7 @@ public class KeepRuleWarningTest extends TestBase {
   public void test_specific() throws Exception {
     testForR8(parameters.getBackend())
         .addProgramClasses(I.class, C.class, MAIN)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .enableNoVerticalClassMergingAnnotations()
         .addKeepMainRule(MAIN)
         .addKeepRules("-keep interface **.I { static void foo(); }")

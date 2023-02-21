@@ -36,7 +36,7 @@ public class DevirtualizationAcrossFeatureSplitTest extends SplitterTestBase {
         .addFeatureSplit(FeatureMain.class, BaseInterfaceImpl.class)
         .addKeepFeatureMainRules(FeatureMain.class)
         .enableInliningAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .runFeature(parameters.getRuntime(), FeatureMain.class)
         .assertSuccessWithOutputLines("Hello world!");

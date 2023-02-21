@@ -38,7 +38,7 @@ public class AbstractBridgeInheritTest extends TestBase {
             Service.class, Factory.class, SubService.class, SubFactory.class, Main.class)
         .addKeepMainRule(Main.class)
         .enableInliningAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines("Hello World!");
   }

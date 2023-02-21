@@ -24,13 +24,13 @@ public class NoHorizontalClassMergingTest extends HorizontalClassMergingTestBase
         .addKeepMainRule(Main.class)
         .enableNoHorizontalClassMergingAnnotations()
         .enableNeverClassInliningAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines("a", "b")
         .inspect(
             codeInspector -> {
-                assertThat(codeInspector.clazz(A.class), isPresent());
-                assertThat(codeInspector.clazz(B.class), isPresent());
+              assertThat(codeInspector.clazz(A.class), isPresent());
+              assertThat(codeInspector.clazz(B.class), isPresent());
             });
   }
 

@@ -33,7 +33,7 @@ public class IndirectKeepStaticMethodTest extends TestBase {
         .addProgramClasses(A.class, B.class)
         .addKeepRules("-keep class " + B.class.getTypeName() + " {", "  static void m();", "}")
         .enableNoVerticalClassMergingAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .addRunClasspathFiles(buildOnDexRuntime(parameters, Main.class))
         .run(parameters.getRuntime(), Main.class)

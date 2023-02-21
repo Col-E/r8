@@ -77,7 +77,7 @@ public class StackMapVerificationNoFrameForHandlerTest extends TestBase {
                     .stripFrames("main")
                     .transform())
         .addOptionsModification(options -> options.testing.readInputStackMaps = true)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compileWithExpectedDiagnostics(this::verifyWarningsRegardingStackMap)
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines(EXPECTED_OUTPUT);
@@ -93,7 +93,7 @@ public class StackMapVerificationNoFrameForHandlerTest extends TestBase {
                     .stripFrames("main")
                     .transform())
         .addKeepMainRule(Main.class)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .allowDiagnosticWarningMessages(!includeFrameInHandler)
         .addOptionsModification(
             options -> {

@@ -64,7 +64,7 @@ public class KotlinIntrinsicsInlineTest extends KotlinTestBase {
         .allowAccessModification(allowAccessModification)
         .allowDiagnosticWarningMessages()
         .addDontObfuscate()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .assertAllWarningMessagesMatch(equalTo("Resource 'META-INF/MANIFEST.MF' already exists."))
         .inspect(
@@ -119,7 +119,7 @@ public class KotlinIntrinsicsInlineTest extends KotlinTestBase {
         .allowAccessModification(allowAccessModification)
         .allowDiagnosticWarningMessages()
         .addDontObfuscate()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .assertAllWarningMessagesMatch(equalTo("Resource 'META-INF/MANIFEST.MF' already exists."))
         .inspect(

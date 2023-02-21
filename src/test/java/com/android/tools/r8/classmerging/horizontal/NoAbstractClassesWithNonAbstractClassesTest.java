@@ -29,7 +29,7 @@ public class NoAbstractClassesWithNonAbstractClassesTest extends HorizontalClass
         .enableNeverClassInliningAnnotations()
         .enableNoMethodStaticizingAnnotations()
         .enableNoVerticalClassMergingAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines("bar", "foo c", "foo d", "foo c")
         .inspect(

@@ -61,7 +61,7 @@ public class ProgramAnnotationRemovalTest extends TestBase {
             .addKeepMainRule(TestClass.class)
             .addKeepRuntimeVisibleAnnotations()
             .enableInliningAnnotations()
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .compile()
             .run(parameters.getRuntime(), TestClass.class);
 

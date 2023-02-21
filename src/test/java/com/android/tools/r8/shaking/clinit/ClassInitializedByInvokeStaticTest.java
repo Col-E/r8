@@ -36,7 +36,7 @@ public class ClassInitializedByInvokeStaticTest extends TestBase {
     testForR8(parameters.getBackend())
         .addInnerClasses(ClassInitializedByInvokeStaticTest.class)
         .addKeepMainRule(TestClass.class)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .inspect(this::inspect)
         .run(parameters.getRuntime(), TestClass.class)

@@ -42,7 +42,7 @@ public class BuilderWithNonArgumentFieldValueTest extends TestBase {
         .addKeepMainRule(TestClass.class)
         .addOptionsModification(options -> options.enableClassInlining = enableClassInlining)
         .enableInliningAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .inspect(this::inspect)
         .run(parameters.getRuntime(), TestClass.class)

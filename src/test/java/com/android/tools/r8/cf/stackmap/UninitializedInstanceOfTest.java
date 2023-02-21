@@ -49,7 +49,7 @@ public class UninitializedInstanceOfTest extends TestBase {
     assumeTrue(parameters.isCfRuntime());
     testForD8(parameters.getBackend())
         .addProgramClassFileData(dump())
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compileWithExpectedDiagnostics(this::inspect);
   }
 
@@ -59,7 +59,7 @@ public class UninitializedInstanceOfTest extends TestBase {
     boolean expectFailure = parameters.getDexRuntimeVersion().isNewerThanOrEqual(Version.V7_0_0);
     testForD8(parameters.getBackend())
         .addProgramClassFileData(dump())
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compileWithExpectedDiagnostics(this::inspect)
         .run(parameters.getRuntime(), Main.class)
         .applyIf(

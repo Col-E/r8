@@ -46,7 +46,7 @@ public class B133167042 extends TestBase {
         .addProgramClasses(TestClass.class)
         .addKeepMainRule(TestClass.class)
         .addKeepRules("-addconfigurationdebugging")
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), TestClass.class)
         .assertSuccessWithOutput(StringUtils.lines("false"));
   }

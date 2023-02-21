@@ -74,7 +74,7 @@ public class MethodHandleTestRunner extends TestBase {
   public void testD8() throws Exception {
     assumeTrue(parameters.isDexRuntime());
     testForD8(parameters.getBackend())
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addProgramClasses(getInputClasses())
         .addProgramClassFileData(getTransformedClasses())
         .compileWithExpectedDiagnostics(this::checkDiagnostics)
@@ -98,7 +98,7 @@ public class MethodHandleTestRunner extends TestBase {
   private void runR8(ThrowableConsumer<R8FullTestBuilder> additionalSetUp) throws Exception {
     testForR8(parameters.getBackend())
         .apply(additionalSetUp)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addProgramClasses(getInputClasses())
         .addProgramClassFileData(getTransformedClasses())
         .addLibraryFiles(ToolHelper.getMostRecentAndroidJar())

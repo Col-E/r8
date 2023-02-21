@@ -81,7 +81,7 @@ public class ConditionalKeepClassMethodsAllowShrinkingCompatibilityTest extends 
         .addInnerClasses(ConditionalKeepClassMethodsAllowShrinkingCompatibilityTest.class)
         .addKeepClassAndMembersRules(TestClass.class)
         .addKeepRules(keepRule)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), TestClass.class, A.class.getTypeName())
         .assertSuccessWithOutput(getExpected())
         .inspect(

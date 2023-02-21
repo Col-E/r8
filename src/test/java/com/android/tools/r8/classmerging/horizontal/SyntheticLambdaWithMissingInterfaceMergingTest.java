@@ -47,7 +47,7 @@ public class SyntheticLambdaWithMissingInterfaceMergingTest extends TestBase {
             HorizontallyMergedClassesInspector::assertNoClassesMerged)
         .applyIf(!enableOptimization, TestShrinkerBuilder::addDontOptimize)
         .allowDiagnosticWarningMessages()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compileWithExpectedDiagnostics(
             diagnostics ->
                 diagnostics.assertWarningsMatch(

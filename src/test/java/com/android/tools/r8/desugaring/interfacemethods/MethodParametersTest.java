@@ -90,14 +90,14 @@ public class MethodParametersTest extends TestBase {
     Path interfaceDesugared =
         testForD8(Backend.CF)
             .addProgramFiles(compiledWithParameters.get())
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .compile()
             .writeToZip();
 
     Path interfaceDesugaredTwice =
         testForD8(Backend.CF)
             .addProgramFiles(interfaceDesugared)
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .compile()
             .writeToZip();
 
@@ -105,14 +105,14 @@ public class MethodParametersTest extends TestBase {
         testForD8(Backend.CF)
             .addClasspathClasses(I.class)
             .addInnerClasses(getClass())
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .compile()
             .writeToZip();
 
     testForD8(parameters.getBackend())
         .addProgramFiles(interfaceDesugaredTwice)
         .addProgramFiles(programDesugared)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .run(parameters.getRuntime(), TestRunner.class)
         .applyIf(

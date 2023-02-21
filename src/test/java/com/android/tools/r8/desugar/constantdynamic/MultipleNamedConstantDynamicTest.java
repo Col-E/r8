@@ -78,7 +78,7 @@ public class MultipleNamedConstantDynamicTest extends TestBase {
     parameters.assumeR8TestParameters();
     testForR8(parameters.getBackend())
         .addProgramClassFileData(getTransformedClasses())
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addKeepMainRule(A.class)
         // TODO(b/198142613): There should not be a warnings on class references which are
         //  desugared away.

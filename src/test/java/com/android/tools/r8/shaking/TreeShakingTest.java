@@ -186,7 +186,7 @@ public abstract class TreeShakingTest extends TestBase {
                         .addProgramFiles(Paths.get(programFile)))
             .enableProguardTestOptions()
             .minification(minify.isMinify())
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .addKeepRuleFiles(ListUtils.map(keepRulesFiles, Paths::get))
             .addLibraryFiles(Paths.get(ToolHelper.EXAMPLES_BUILD_DIR + "shakinglib.jar"))
             .addDefaultRuntimeLibrary(parameters)

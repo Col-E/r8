@@ -44,7 +44,7 @@ public class InvokeSpecialOnSameInterfaceTest extends TestBase {
         .addProgramClasses(Main.class, A.class)
         .addProgramClassFileData(getClassWithTransformedInvoked())
         .addKeepMainRule(Main.class)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines("Hello World!");
   }

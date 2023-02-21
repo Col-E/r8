@@ -99,7 +99,7 @@ public class InvokeSuperTest extends TestBase {
             SubLevel2.class,
             SubClassOfInvokerClass.class)
         .addProgramClassFileData(InvokerClassDump.dumpVerifying())
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addKeepMainRule(MainClass.class)
         .run(parameters.getRuntime(), MainClass.class)
         .assertSuccessWithOutput(EXPECTED);
@@ -148,7 +148,7 @@ public class InvokeSuperTest extends TestBase {
             SubLevel2.class,
             SubClassOfInvokerClass.class)
         .addProgramClassFileData(InvokerClassDump.dumpNonVerifying())
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addKeepMainRule(MainClassFailing.class)
         .addOptionsModification(o -> o.testing.allowTypeErrors = true)
         .allowDiagnosticWarningMessages()

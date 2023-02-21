@@ -57,7 +57,7 @@ public class LambdaNamingConflictTest extends TestBase {
         .addProgramClasses(I.class)
         .addProgramClassFileData(getConflictingNameClass())
         .addProgramClassFileData(getTransformedMainClass())
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), TestClass.class)
         .assertSuccessWithOutput(EXPECTED);
   }
@@ -68,7 +68,7 @@ public class LambdaNamingConflictTest extends TestBase {
         .addProgramClasses(I.class)
         .addProgramClassFileData(getConflictingNameClass())
         .addProgramClassFileData(getTransformedMainClass())
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addKeepMainRule(TestClass.class)
         // Ensure that R8 cannot remove or rename the conflicting name.
         .addKeepClassAndMembersRules(CONFLICTING_NAME.getTypeName())

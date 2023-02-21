@@ -125,7 +125,7 @@ public class MaximallySpecificSingleDominatingSubTest extends TestBase {
         .addProgramClassFileData(getJOnProgram())
         .addDefaultRuntimeLibrary(parameters)
         .addLibraryFiles(libraryClasses)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addOptionsModification(options -> options.loadAllClassDefinitions = true)
         .compile()
         .addBootClasspathFiles(buildOnDexRuntime(parameters, libraryClasses))

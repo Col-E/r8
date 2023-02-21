@@ -65,7 +65,7 @@ public class APIConversionTest extends DesugaredLibraryTestBase {
         compilationSpecification == D8_L8DEBUG && libraryDesugaringSpecification == JDK8);
     testForD8()
         .addInnerClasses(APIConversionTest.class)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .assertNoWarningMessageThatMatches(containsString("java.util.Arrays#setAll"))
         .assertNoWarningMessageThatMatches(containsString("java.util.Random#ints"))

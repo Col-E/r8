@@ -92,7 +92,7 @@ public class B149971007 extends SplitterTestBase {
             .addProgramClasses(TestClass.class, FeatureAPI.class, FeatureClass.class)
             .addKeepClassAndMembersRules(TestClass.class)
             .addKeepClassAndMembersRules(FeatureClass.class)
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .addOptionsModification(options -> options.outline.threshold = 2)
             .compile();
 
@@ -144,7 +144,7 @@ public class B149971007 extends SplitterTestBase {
             .addProgramClasses(TestClass.class, FeatureAPI.class)
             .addKeepClassAndMembersRules(TestClass.class)
             .addKeepClassAndMembersRules(FeatureClass.class)
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .addFeatureSplit(
                 builder -> simpleSplitProvider(builder, featureCode, temp, FeatureClass.class))
             .addOptionsModification(options -> options.outline.threshold = 2)

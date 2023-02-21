@@ -91,7 +91,7 @@ public class NewArrayTestRunner extends TestBase {
     assumeTrue(parameters.isDexRuntime());
     testForD8()
         .addProgramClassesAndInnerClasses(CLASS)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .setMode(mode)
         .run(parameters.getRuntime(), CLASS)
         .assertSuccessWithOutputLines(EXPECTED);
@@ -107,7 +107,7 @@ public class NewArrayTestRunner extends TestBase {
             options ->
                 options.testing.enableMultiANewArrayDesugaringForClassFiles =
                     enableMultiANewArrayDesugaringForClassFiles)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .setMode(mode)
         .run(parameters.getRuntime(), CLASS)
         .assertSuccessWithOutputLines(EXPECTED);

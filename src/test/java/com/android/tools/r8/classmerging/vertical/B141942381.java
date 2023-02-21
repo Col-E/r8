@@ -49,7 +49,7 @@ public class B141942381 extends TestBase {
     testForR8(parameters.getBackend())
         .addInnerClasses(B141942381.class)
         .addKeepMainRule(TestClass.class)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addKeepAttributes("Signatures")
         .enableNeverClassInliningAnnotations()
         .addDontObfuscate()

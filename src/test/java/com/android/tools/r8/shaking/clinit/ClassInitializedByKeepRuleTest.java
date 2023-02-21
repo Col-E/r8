@@ -36,7 +36,7 @@ public class ClassInitializedByKeepRuleTest extends TestBase {
     testForR8(parameters.getBackend())
         .addInnerClasses(ClassInitializedByKeepRuleTest.class)
         .addKeepClassRules(TestClass.class)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .inspect(this::inspect);
   }

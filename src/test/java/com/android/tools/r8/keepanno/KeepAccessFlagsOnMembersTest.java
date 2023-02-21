@@ -56,7 +56,7 @@ public class KeepAccessFlagsOnMembersTest extends TestBase {
   @Test
   public void test() throws Exception {
     testForR8(parameters.getBackend())
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .enableExperimentalKeepAnnotations()
         .addProgramClassFileData(getTargetClass())
         .addProgramClassFileData(getMainClass())

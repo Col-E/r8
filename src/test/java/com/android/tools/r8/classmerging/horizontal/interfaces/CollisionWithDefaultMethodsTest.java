@@ -43,7 +43,7 @@ public class CollisionWithDefaultMethodsTest extends TestBase {
     testForR8(parameters.getBackend())
         .addInnerClasses(getClass())
         .addKeepMainRule(TestClass.class)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addKeepRules("-keep class ** { *; }")
         .addHorizontallyMergedClassesInspector(
             inspector -> {

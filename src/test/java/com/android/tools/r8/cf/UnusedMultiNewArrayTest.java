@@ -33,7 +33,7 @@ public class UnusedMultiNewArrayTest extends TestBase {
         .addProgramClasses(TestClass.class)
         .addKeepMainRule(TestClass.class)
         .addDontWarn(A.class)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile();
   }
 

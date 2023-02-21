@@ -38,7 +38,7 @@ public class ConstructorMergingPreoptimizedTest extends HorizontalClassMergingTe
         .enableNeverClassInliningAnnotations()
         .enableNoHorizontalClassMergingAnnotations()
         .enableNoMethodStaticizingAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines("changed", "0", "42", "foo", "7", "foo", "print a", "print b")
         .inspect(

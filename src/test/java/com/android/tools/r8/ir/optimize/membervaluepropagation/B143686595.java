@@ -32,7 +32,7 @@ public class B143686595 extends TestBase {
         testForR8(parameters.getBackend())
             .addProgramClasses(I.class)
             .addKeepClassAndMembersRules(I.class)
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .compile();
 
     testForR8(parameters.getBackend())
@@ -40,7 +40,7 @@ public class B143686595 extends TestBase {
         .addClasspathClasses(I.class)
         .addKeepMainRule(TestClass.class)
         .enableInliningAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .addRunClasspathFiles(libraryResult.writeToZip())
         .run(parameters.getRuntime(), TestClass.class)

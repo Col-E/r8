@@ -47,7 +47,7 @@ public class OutlineOptimizationProfileRewritingTest extends TestBase {
               options.outline.threshold = 2;
               options.outline.minSize = 2;
             })
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .inspectResidualArtProfile(this::inspect)
         .run(parameters.getRuntime(), Main.class)

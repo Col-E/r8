@@ -21,7 +21,7 @@ public class ConstructorMergingAfterUnusedArgumentRemovalTest
         .addInnerClasses(getClass())
         .addKeepMainRule(Main.class)
         .enableNeverClassInliningAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addHorizontallyMergedClassesInspector(
             inspector ->
                 inspector

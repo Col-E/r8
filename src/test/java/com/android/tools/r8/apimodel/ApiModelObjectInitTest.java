@@ -62,7 +62,7 @@ public class ApiModelObjectInitTest extends TestBase {
                 .transform())
         .addLibraryClasses(LibraryClass.class)
         .addDefaultRuntimeLibrary(parameters)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .apply(ApiModelingTestHelper::disableOutliningAndStubbing)
         .apply(setMockApiLevelForClass(LibraryClass.class, AndroidApiLevel.L))
         .apply(setMockApiLevelForMethod(declaredConstructor, AndroidApiLevel.L))

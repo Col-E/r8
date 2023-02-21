@@ -53,9 +53,7 @@ public class DesugarMissingTypeClassTest extends TestBase {
           .assertSuccessWithOutput(EXPECTED);
     } else {
       D8TestBuilder builder =
-          testForD8()
-              .addProgramClasses(TestClass.class, MyClass.class)
-              .setMinApi(parameters.getApiLevel());
+          testForD8().addProgramClasses(TestClass.class, MyClass.class).setMinApi(parameters);
       TestDiagnosticMessages messages = builder.getState().getDiagnosticsMessages();
       D8TestCompileResult compileResult = builder.compile();
       if (supportsDefaultInterfaceMethods()) {
@@ -63,7 +61,7 @@ public class DesugarMissingTypeClassTest extends TestBase {
         compileResult
             .addRunClasspathFiles(
                 testForD8()
-                    .setMinApi(parameters.getApiLevel())
+                    .setMinApi(parameters)
                     .addProgramClasses(MissingInterface.class)
                     .compile()
                     .writeToZip())

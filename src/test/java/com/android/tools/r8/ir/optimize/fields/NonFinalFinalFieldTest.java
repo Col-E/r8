@@ -50,7 +50,7 @@ public class NonFinalFinalFieldTest extends TestBase {
         .addProgramClassFileData(getProgramClassFileData())
         .addKeepMainRule(TestClass.class)
         .enableNeverClassInliningAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .run(parameters.getRuntime(), TestClass.class)
         .assertSuccessWithOutputLines("2", "2", "2");

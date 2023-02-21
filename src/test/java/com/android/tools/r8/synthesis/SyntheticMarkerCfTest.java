@@ -188,7 +188,7 @@ public class SyntheticMarkerCfTest extends TestBase {
     Box<SyntheticMarkerV2> currentCompilerMarker = new Box<>();
     testForD8(parameters.getBackend())
         .addProgramClasses(TestClass.class)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .setIntermediate(true)
         .setProgramConsumer(
             new ClassFileConsumer() {
@@ -215,7 +215,7 @@ public class SyntheticMarkerCfTest extends TestBase {
     // tests below.
     D8TestBuilder builder =
         testForD8(parameters.getBackend())
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .addProgramClassFileData(
                 getTestClassWithMarker(
                     new SyntheticMarkerV2(
@@ -229,7 +229,7 @@ public class SyntheticMarkerCfTest extends TestBase {
     // We do so by injecting an old marker and put in a non-valid ID which would cause the compiler
     // to fail if it was read.
     testForD8(parameters.getBackend())
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addProgramClassFileData(getTestClassWithMarker(new SyntheticMarkerV1(Short.MAX_VALUE)))
         .run(parameters.getRuntime(), TestClass.class)
         .assertSuccessWithOutput(EXPECTED);
@@ -241,7 +241,7 @@ public class SyntheticMarkerCfTest extends TestBase {
     // We do so by injecting an old marker and put in a non-valid ID which would cause the compiler
     // to fail if it was read.
     testForD8(parameters.getBackend())
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addProgramClassFileData(
             getTestClassWithMarker(new SyntheticMarkerV2(Short.MAX_VALUE, new byte[0])))
         .run(parameters.getRuntime(), TestClass.class)

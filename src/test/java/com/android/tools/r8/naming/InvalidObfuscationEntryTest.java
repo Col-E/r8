@@ -66,7 +66,7 @@ public class InvalidObfuscationEntryTest extends TestBase {
         .addKeepAllClassesRuleWithAllowObfuscation()
         .addKeepMainRule(Main.class)
         .allowDiagnosticInfoMessages()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .assertInfoMessageThatMatches(containsString("Invalid character"))
         .run(parameters.getRuntime(), Main.class)

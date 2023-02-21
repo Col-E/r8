@@ -52,7 +52,7 @@ public class InliningOutOfStartupPartitionTest extends TestBase {
         .addKeepMainRule(Main.class)
         .apply(
             testBuilder -> StartupTestingUtils.setStartupConfiguration(testBuilder, startupItems))
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .inspect(
             inspector -> {

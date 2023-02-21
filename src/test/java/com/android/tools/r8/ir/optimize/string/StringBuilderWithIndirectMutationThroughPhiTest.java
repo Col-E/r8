@@ -36,7 +36,7 @@ public class StringBuilderWithIndirectMutationThroughPhiTest extends TestBase {
         testForR8(parameters.getBackend())
             .addInnerClasses(getClass())
             .addKeepMainRule(Main.class)
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .compile()
             .inspect(
                 inspector -> {

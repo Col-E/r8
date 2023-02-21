@@ -53,7 +53,7 @@ public class RetraceInlineBranchTest extends TestBase {
   public void testR8() throws Throwable {
     testForR8(parameters.getBackend())
         .addInnerClasses(getClass())
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addKeepMainRule(Main.class)
         .addKeepAttributeLineNumberTable()
         .enableNeverClassInliningAnnotations()

@@ -61,7 +61,7 @@ public class LambdaSplitByCodeCorrectnessTest extends KotlinTestBase {
     testForR8(parameters.getBackend())
         .addProgramFiles(kotlinc.getKotlinStdlibJar(), kotlinc.getKotlinAnnotationJar())
         .addProgramFiles(ktClasses)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addKeepMainRule(PKG_NAME + ".SimpleKt")
         .applyIf(
             splitGroup,

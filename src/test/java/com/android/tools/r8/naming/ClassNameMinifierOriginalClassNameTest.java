@@ -57,7 +57,7 @@ public class ClassNameMinifierOriginalClassNameTest extends TestBase {
         .addProgramClasses(A.class, B.class)
         .addKeepClassAndMembersRulesWithAllowObfuscation(B.class)
         .addKeepRules("-classobfuscationdictionary " + dictionary.toString(), "-keeppackagenames")
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .inspect(
             inspector -> {
@@ -72,7 +72,7 @@ public class ClassNameMinifierOriginalClassNameTest extends TestBase {
     R8TestCompileResult libraryCompileResult = compilationResults.apply(parameters);
     testForR8(parameters.getBackend())
         .addProgramClasses(Main.class)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addKeepMainRule(Main.class)
         .addDontObfuscate()
         .addClasspathClasses(A.class, B.class)
@@ -92,7 +92,7 @@ public class ClassNameMinifierOriginalClassNameTest extends TestBase {
         () ->
             testForR8(parameters.getBackend())
                 .addProgramClasses(MainWithReferenceToNotMapped.class)
-                .setMinApi(parameters.getApiLevel())
+                .setMinApi(parameters)
                 .addKeepMainRule(MainWithReferenceToNotMapped.class)
                 .addDontObfuscate()
                 .addClasspathClasses(A.class, B.class)

@@ -41,7 +41,7 @@ public class FieldAnalysisTest extends TestBase {
   @Test
   public void testR8() throws Exception {
     testForR8(parameters.getBackend())
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addInnerClasses(FieldAnalysisTest.class)
         .addKeepMainRule(Main.class)
         .enableInliningAnnotations()

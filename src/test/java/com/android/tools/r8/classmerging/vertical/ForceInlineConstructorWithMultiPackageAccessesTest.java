@@ -38,7 +38,7 @@ public class ForceInlineConstructorWithMultiPackageAccessesTest extends TestBase
         .addInnerClasses(ForceInlineConstructorWithMultiPackageAccessesTestClasses.class)
         .addKeepMainRule(TestClass.class)
         .enableNoVerticalClassMergingAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .inspect(this::inspect)
         .run(parameters.getRuntime(), TestClass.class)

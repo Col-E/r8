@@ -41,7 +41,7 @@ public class EnumInAnnotationWhereAnnotationIsDeadTest extends TestBase {
         .addInnerClasses(getClass())
         .addKeepMainRule(Main.class)
         .addKeepEnumsRule()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addKeepRuntimeVisibleAnnotations()
         .run(parameters.getRuntime(), Main.class)
         .inspect(

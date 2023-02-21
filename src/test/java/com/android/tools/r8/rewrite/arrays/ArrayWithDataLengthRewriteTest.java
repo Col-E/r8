@@ -40,7 +40,7 @@ public class ArrayWithDataLengthRewriteTest extends TestBase {
   @Test
   public void d8() throws Exception {
     testForD8()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .setMode(CompilationMode.RELEASE)
         .addProgramClasses(Main.class)
         .addOptionsModification(opt -> opt.testing.irModifier = this::transformArray)

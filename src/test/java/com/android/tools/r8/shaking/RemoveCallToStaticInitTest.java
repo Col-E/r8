@@ -46,7 +46,7 @@ public class RemoveCallToStaticInitTest extends TestBase {
     testForR8(parameters.getBackend())
         .addProgramClasses(A.class, Main.class)
         .addProgramClassFileData(getBWithBridge())
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addKeepMainRule(Main.class)
         .enableInliningAnnotations()
         .run(parameters.getRuntime(), Main.class)

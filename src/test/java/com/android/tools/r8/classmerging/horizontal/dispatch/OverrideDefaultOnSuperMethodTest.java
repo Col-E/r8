@@ -31,7 +31,7 @@ public class OverrideDefaultOnSuperMethodTest extends HorizontalClassMergingTest
         .enableNeverClassInliningAnnotations()
         .enableNoUnusedInterfaceRemovalAnnotations()
         .enableNoVerticalClassMergingAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addHorizontallyMergedClassesInspector(
             inspector -> {
               if (parameters.canUseDefaultAndStaticInterfaceMethods()) {

@@ -38,7 +38,7 @@ public class NonFinalOverrideOfFinalMethodNonTrivialMergeTest
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
         .enableNoVerticalClassMergingAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addHorizontallyMergedClassesInspector(
             inspector -> inspector.assertIsCompleteMergeGroup(A.class, B.class, C.class))
         .compile()

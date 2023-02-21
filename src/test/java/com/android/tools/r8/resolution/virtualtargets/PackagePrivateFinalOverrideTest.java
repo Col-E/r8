@@ -102,7 +102,7 @@ public class PackagePrivateFinalOverrideTest extends TestBase {
         .addProgramClasses(MyViewModel.class, Main.class, ViewModel.class, ViewModelRunner.class)
         .addKeepMainRule(Main.class)
         .enableInliningAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines(EXPECTED);
   }
@@ -150,7 +150,7 @@ public class PackagePrivateFinalOverrideTest extends TestBase {
         .addProgramClassFileData(getModifiedMainWithIllegalInvokeToViewModelClear())
         .addKeepMainRule(Main.class)
         .enableInliningAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), Main.class)
         .assertFailureWithErrorThatThrows(IllegalAccessError.class);
   }
@@ -208,7 +208,7 @@ public class PackagePrivateFinalOverrideTest extends TestBase {
         .addProgramClassFileData(getModifiedViewModelRunnerWithDirectMyViewModelTarget())
         .addKeepMainRule(Main.class)
         .enableInliningAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines(AMBIGUOUS_EXPECTED_OUTPUT);
   }

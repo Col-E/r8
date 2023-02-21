@@ -100,7 +100,7 @@ public class AssertionConfigurationKotlinTest extends KotlinTestBase implements 
     Path kotlinStdlibDex = temp.newFolder().toPath().resolve("kotlin-stdlib-dex.jar");
     testForD8()
         .addProgramFiles(kotlinStdlibCf)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .writeToZip(kotlinStdlibDex);
     return kotlinStdlibDex;
@@ -115,7 +115,7 @@ public class AssertionConfigurationKotlinTest extends KotlinTestBase implements 
       testForD8()
           .addClasspathFiles(kotlinc.getKotlinStdlibJar())
           .addProgramFiles(compiledForAssertions.getForConfiguration(kotlinc, targetVersion))
-          .setMinApi(parameters.getApiLevel())
+          .setMinApi(parameters)
           .apply(builderConsumer)
           .addRunClasspathFiles(kotlinStdlibLibraryForRuntime())
           .run(
@@ -127,7 +127,7 @@ public class AssertionConfigurationKotlinTest extends KotlinTestBase implements 
       testForD8()
           .addProgramFiles(kotlinc.getKotlinStdlibJar())
           .addProgramFiles(compiledForAssertions.getForConfiguration(kotlinc, targetVersion))
-          .setMinApi(parameters.getApiLevel())
+          .setMinApi(parameters)
           .apply(builderConsumer)
           .run(
               parameters.getRuntime(),
@@ -164,7 +164,7 @@ public class AssertionConfigurationKotlinTest extends KotlinTestBase implements 
         .addProgramFiles(compiledForAssertions.getForConfiguration(kotlinc, targetVersion))
         .addKeepMainRule(testClassKt)
         .addKeepClassAndMembersRules(class1, class2)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .apply(builderConsumer)
         .allowDiagnosticWarningMessages(!kotlinStdlibAsLibrary)
         .addRunClasspathFiles(kotlinStdlibLibraryForRuntime())
@@ -535,7 +535,7 @@ public class AssertionConfigurationKotlinTest extends KotlinTestBase implements 
     testForD8()
         .addProgramClassFileData(dumpModifiedKotlinAssertions())
         .addProgramFiles(compiledForAssertions.getForConfiguration(kotlinc, targetVersion))
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addAssertionsConfiguration(AssertionsConfiguration.Builder::passthroughAllAssertions)
         .run(
             parameters.getRuntime(),
@@ -544,7 +544,7 @@ public class AssertionConfigurationKotlinTest extends KotlinTestBase implements 
     testForD8()
         .addProgramClassFileData(dumpModifiedKotlinAssertions())
         .addProgramFiles(compiledForAssertions.getForConfiguration(kotlinc, targetVersion))
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addAssertionsConfiguration(AssertionsConfiguration.Builder::compileTimeEnableAllAssertions)
         .run(
             parameters.getRuntime(),
@@ -553,7 +553,7 @@ public class AssertionConfigurationKotlinTest extends KotlinTestBase implements 
     testForD8()
         .addProgramClassFileData(dumpModifiedKotlinAssertions())
         .addProgramFiles(compiledForAssertions.getForConfiguration(kotlinc, targetVersion))
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addAssertionsConfiguration(
             AssertionsConfiguration.Builder::compileTimeDisableAllAssertions)
         .run(

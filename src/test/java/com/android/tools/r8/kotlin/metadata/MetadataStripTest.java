@@ -56,7 +56,7 @@ public class MetadataStripTest extends KotlinMetadataTestBase {
             .addKeepMainRule(mainClassName)
             .addKeepKotlinMetadata()
             .allowDiagnosticWarningMessages()
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .allowUnusedDontWarnKotlinReflectJvmInternal(kotlinc.isNot(KOTLINC_1_3_72))
             .allowUnusedDontWarnJavaLangClassValue(
                 kotlinc.getCompilerVersion().isGreaterThan(KOTLINC_1_7_0))

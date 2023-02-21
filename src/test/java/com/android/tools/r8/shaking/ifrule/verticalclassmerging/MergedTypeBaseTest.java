@@ -105,7 +105,7 @@ public abstract class MergedTypeBaseTest extends TestBase {
             "-keep class " + Unused.class.getTypeName(),
             getAdditionalKeepRules())
         .addDontObfuscate()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .apply(this::configure)
         .run(parameters.getRuntime(), getTestClass())
         .assertSuccessWithOutput(expected)

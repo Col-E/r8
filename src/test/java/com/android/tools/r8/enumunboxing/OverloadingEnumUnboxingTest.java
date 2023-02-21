@@ -44,7 +44,7 @@ public class OverloadingEnumUnboxingTest extends EnumUnboxingTestBase {
         .enableNeverClassInliningAnnotations()
         .enableInliningAnnotations()
         .addOptionsModification(opt -> enableEnumOptions(opt, enumValueOptimization))
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .run(parameters.getRuntime(), classToTest)
         .assertSuccess()

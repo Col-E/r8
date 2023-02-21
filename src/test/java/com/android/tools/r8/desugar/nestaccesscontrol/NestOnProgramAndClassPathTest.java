@@ -98,7 +98,7 @@ public class NestOnProgramAndClassPathTest extends TestBase {
             endsWith("BasicNestHostWithInnerClassConstructors"));
     testForD8()
         .addProgramFiles(inner.writeToZip(), host.writeToZip())
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .run(parameters.getRuntime(), getMainClass("constructors"))
         .assertSuccessWithOutput(getExpectedResult("constructors"));
@@ -112,7 +112,7 @@ public class NestOnProgramAndClassPathTest extends TestBase {
             .map(name -> CLASSES_PATH.resolve(name + CLASS_EXTENSION))
             .collect(toList());
     return testForD8()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addProgramFiles(matchingClasses)
         .addClasspathFiles(JAR)
         .compile();

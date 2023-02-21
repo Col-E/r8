@@ -49,7 +49,7 @@ public class StackTraceWithPcAndJumboStringTestRunner extends TestBase {
         .noTreeShaking()
         .addKeepAttributeLineNumberTable()
         .addKeepMainRule(getTestClass())
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addOptionsModification(
             o -> {
               o.testing.forceJumboStringProcessing = true;

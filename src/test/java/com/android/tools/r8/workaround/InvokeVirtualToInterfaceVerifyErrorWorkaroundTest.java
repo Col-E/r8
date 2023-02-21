@@ -55,7 +55,7 @@ public class InvokeVirtualToInterfaceVerifyErrorWorkaroundTest extends TestBase 
                             && parameters.getApiLevel().isGreaterThanOrEqualTo(AndroidApiLevel.L),
                         i -> i.assertIsCompleteMergeGroup(A.class, CameraDeviceUser.class))
                     .assertNoOtherClassesMerged())
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         // CameraDeviceUser.m() can only be inlined when min API>=L.
         .inspect(

@@ -130,7 +130,7 @@ public class InvalidDebugInfoTests extends TestBase {
     }
     testForD8(parameters.getBackend())
         .addProgramClassFileData(builder.buildClasses())
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addOptionsModification(this::optionsModification)
         .compileWithExpectedDiagnostics(
             diagnostics -> {
@@ -196,7 +196,7 @@ public class InvalidDebugInfoTests extends TestBase {
     testForD8(parameters.getBackend())
         .addProgramClassFileData(builder.buildClasses())
         .addOptionsModification(this::optionsModification)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compileWithExpectedDiagnostics(
             diagnostics -> {
               if (strict) {
@@ -252,7 +252,7 @@ public class InvalidDebugInfoTests extends TestBase {
     }
     testForD8(parameters.getBackend())
         .addProgramClassFileData(builder.buildClasses())
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addOptionsModification(this::optionsModification)
         .compileWithExpectedDiagnostics(
             diagnostics -> {
@@ -312,7 +312,7 @@ public class InvalidDebugInfoTests extends TestBase {
     testForD8(parameters.getBackend())
         .addProgramClassFileData(builder.buildClasses())
         .addOptionsModification(this::optionsModification)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compileWithExpectedDiagnostics(this::assertInvalidTypeMessage)
         .run(parameters.getRuntime(), clazz.name)
         .assertSuccessWithOutput(expected)
@@ -371,7 +371,7 @@ public class InvalidDebugInfoTests extends TestBase {
     testForD8(parameters.getBackend())
         .addProgramClassFileData(builder.buildClasses())
         .addOptionsModification(this::optionsModification)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compileWithExpectedDiagnostics(
             diagnostics -> {
               if (strict) {
@@ -438,7 +438,7 @@ public class InvalidDebugInfoTests extends TestBase {
     testForD8(parameters.getBackend())
         .addProgramClassFileData(builder.buildClasses())
         .addOptionsModification(this::optionsModification)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compileWithExpectedDiagnostics(TestDiagnosticMessages::assertNoMessages)
         .run(parameters.getRuntime(), clazz.name)
         .assertSuccessWithOutput(expected)

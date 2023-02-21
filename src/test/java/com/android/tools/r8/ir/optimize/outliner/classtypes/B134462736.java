@@ -70,7 +70,7 @@ public class B134462736 extends TestBase {
         .addKeepMainRule(TestClass.class)
         .enableConstantArgumentAnnotations()
         .enableNoMethodStaticizingAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addDontObfuscate()
         .addOptionsModification(
             options -> {

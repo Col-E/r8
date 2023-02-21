@@ -51,7 +51,7 @@ public class EnumWithNonDefaultForwardingConstructorTest extends TestBase {
         .apply(this::addProgramClasses)
         .addKeepMainRule(TestClass.class)
         .addOptionsModification(options -> options.enableEnumUnboxing = enableEnumUnboxing)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .run(parameters.getRuntime(), TestClass.class)
         .assertSuccessWithOutputLines("42");

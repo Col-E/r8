@@ -49,7 +49,7 @@ public class ComparisonEnumUnboxingTest extends EnumUnboxingTestBase {
             .addEnumUnboxingInspector(
                 inspector ->
                     inspector.assertUnboxed(NullCheck.MyEnum.class, EnumComparison.MyEnum.class))
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .compile()
             .inspect(
                 inspector -> {

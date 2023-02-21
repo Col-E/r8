@@ -53,7 +53,7 @@ public class MinifyPackageWithKeepToPackagePrivateMemberTest extends TestBase {
                 + ReflectiveCallerOfA.class.getTypeName()
                 + " { java.lang.String className; }")
         .enableInliningAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines("Hello World!", "Hello World!");
   }

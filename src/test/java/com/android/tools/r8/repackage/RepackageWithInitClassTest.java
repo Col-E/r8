@@ -53,7 +53,7 @@ public class RepackageWithInitClassTest extends RepackageTestBase {
         .apply(this::configureRepackaging)
         .enableMemberValuePropagationAnnotations(enableMemberValuePropagationAnnotations)
         .addOptionsModification(options -> options.enableRedundantFieldLoadElimination = false)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .inspect(this::inspect)
         .run(parameters.getRuntime(), TestClass.class)

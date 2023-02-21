@@ -47,7 +47,7 @@ public class Regress65007724 extends JasminTestBase {
 
     D8TestRunResult d8TestRunResult =
         testForD8(parameters.getBackend())
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .addProgramClassFileData(builder.buildClasses())
             .run(parameters.getRuntime(), clazz.name);
     d8TestRunResult.assertSuccessWithOutput("Hello World!");

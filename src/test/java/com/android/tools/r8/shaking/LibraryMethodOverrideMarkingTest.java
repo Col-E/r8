@@ -42,7 +42,7 @@ public class LibraryMethodOverrideMarkingTest extends TestBase {
         .addOptionsModification(
             options -> options.testing.enqueuerInspector = this::verifyLibraryOverrideInformation)
         .enableNoVerticalClassMergingAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile();
   }
 

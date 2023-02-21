@@ -28,7 +28,7 @@ public class InliningNonAccessible extends TestBase {
   @Test
   public void testCompileToInvalidFileD8() throws Exception {
     testForR8(parameters.getBackend())
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addProgramClasses(OuterAbstract.class, OuterImpl.class, InnerClass.class)
         .addProgramClasses(Main.class)
         .addKeepMainRule(Main.class)

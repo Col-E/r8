@@ -34,7 +34,7 @@ public class InvokeInterfaceToStringEqualsTest extends TestBase {
     assumeTrue(parameters.isDexRuntime());
     testForD8(parameters.getBackend())
         .addProgramClassFileData(getTransformedMain(MainD8.class))
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), MainD8.class)
         .assertSuccessWithOutputLines("false");
   }
@@ -45,7 +45,7 @@ public class InvokeInterfaceToStringEqualsTest extends TestBase {
         .addProgramClassFileData(getTransformedMain(MainR8.class))
         .addKeepMainRule(MainR8.class)
         .addDontOptimize()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), MainR8.class)
         .assertSuccessWithOutputLines("false");
   }

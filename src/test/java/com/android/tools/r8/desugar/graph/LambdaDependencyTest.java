@@ -65,7 +65,7 @@ public class LambdaDependencyTest extends TestBase {
       Origin originA = DesugarGraphUtils.addClassWithOrigin(A.class, builder);
       Origin originMain = DesugarGraphUtils.addClassWithOrigin(TestClass.class, builder);
       builder
-          .setMinApi(parameters.getApiLevel())
+          .setMinApi(parameters)
           .run(parameters.getRuntime(), TestClass.class)
           .assertSuccessWithOutputLines("lambda!");
       // If API level indicates desugaring is needed check the edges are reported.

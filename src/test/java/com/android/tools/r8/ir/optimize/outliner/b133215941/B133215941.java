@@ -69,7 +69,7 @@ public class B133215941 extends TestBase {
         .addInnerClasses(B133215941.class)
         .addKeepMainRule(TestClass.class)
         .addKeepClassAndMembersRules(ClassWithStaticMethod.class)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addDontObfuscate()
         .addOptionsModification(options -> options.outline.threshold = 2)
         .compile()

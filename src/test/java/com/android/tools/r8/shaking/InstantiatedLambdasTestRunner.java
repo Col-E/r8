@@ -69,7 +69,7 @@ public class InstantiatedLambdasTestRunner extends TestBase {
         .addProgramFiles(inputJar)
         .addKeepMainRule(CLASS)
         .debug()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .apply(
             compileResult ->

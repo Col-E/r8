@@ -64,7 +64,7 @@ public class MergingWithDesugaredLibraryTest extends DesugaredLibraryTestBase {
         testForD8()
             .addLibraryFiles(libraryDesugaringSpecification.getLibraryFiles())
             .addProgramFiles(buildPart1DesugaredLibrary(), buildPart2NoDesugaredLibrary())
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .applyIf(
                 someLibraryDesugaringRequired(),
                 b ->
@@ -117,7 +117,7 @@ public class MergingWithDesugaredLibraryTest extends DesugaredLibraryTestBase {
         testForD8()
             .addProgramFiles(buildPart1DesugaredLibrary(), shrunkenLib)
             .addLibraryFiles(libraryDesugaringSpecification.getLibraryFiles())
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .applyIf(
                 someLibraryDesugaringRequired(),
                 b ->
@@ -144,7 +144,7 @@ public class MergingWithDesugaredLibraryTest extends DesugaredLibraryTestBase {
     Path desugaredLibCf =
         testForD8(Backend.CF)
             .addProgramClasses(Part2.class)
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .compile()
             .writeToZip();
 
@@ -163,7 +163,7 @@ public class MergingWithDesugaredLibraryTest extends DesugaredLibraryTestBase {
         testForD8()
             .addProgramFiles(desugaredLibCf)
             .disableDesugaring()
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .compile()
             .writeToZip();
 
@@ -185,7 +185,7 @@ public class MergingWithDesugaredLibraryTest extends DesugaredLibraryTestBase {
     app =
         testForD8()
             .addProgramFiles(buildPart1DesugaredLibrary(), desugaredLibDex)
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .compile()
             .writeToZip();
 
@@ -221,7 +221,7 @@ public class MergingWithDesugaredLibraryTest extends DesugaredLibraryTestBase {
             .addProgramFiles(buildPart1DesugaredLibrary())
             .addProgramClasses(Part2.class)
             .addLibraryFiles(libraryDesugaringSpecification.getLibraryFiles())
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .applyIf(
                 someLibraryDesugaringRequired(),
                 b ->
@@ -254,7 +254,7 @@ public class MergingWithDesugaredLibraryTest extends DesugaredLibraryTestBase {
     return testForD8()
         .addLibraryFiles(libraryDesugaringSpecification.getLibraryFiles())
         .addProgramClasses(Part1.class)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .applyIf(
             someLibraryDesugaringRequired(),
             b ->
@@ -266,11 +266,7 @@ public class MergingWithDesugaredLibraryTest extends DesugaredLibraryTestBase {
   }
 
   private Path buildPart2NoDesugaredLibrary() throws Exception {
-    return testForD8()
-        .addProgramClasses(Part2.class)
-        .setMinApi(parameters.getApiLevel())
-        .compile()
-        .writeToZip();
+    return testForD8().addProgramClasses(Part2.class).setMinApi(parameters).compile().writeToZip();
   }
 
   @SuppressWarnings("RedundantOperationOnEmptyContainer")

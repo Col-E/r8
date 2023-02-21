@@ -32,7 +32,7 @@ public class EscapeBeforeStaticPutTest extends TestBase {
         .addInnerClasses(EscapeBeforeStaticPutTest.class)
         .addKeepMainRule(TestClass.class)
         .enableInliningAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .run(parameters.getRuntime(), TestClass.class)
         .assertSuccessWithOutputLines("Hello world!");

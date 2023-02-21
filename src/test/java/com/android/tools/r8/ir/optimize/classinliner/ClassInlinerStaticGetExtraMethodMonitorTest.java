@@ -40,7 +40,7 @@ public class ClassInlinerStaticGetExtraMethodMonitorTest extends TestBase {
         .addInnerClasses(ClassInlinerStaticGetExtraMethodMonitorTest.class)
         .addKeepMainRule(TestClass.class)
         .enableInliningAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addDontObfuscate()
         .compile()
         .inspect(this::inspect)

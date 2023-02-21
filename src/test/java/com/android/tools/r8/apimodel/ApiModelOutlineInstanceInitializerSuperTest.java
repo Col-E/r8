@@ -43,7 +43,7 @@ public class ApiModelOutlineInstanceInitializerSuperTest extends TestBase {
         .addLibraryClasses(LibraryClass.class)
         .addDefaultRuntimeLibrary(parameters)
         .addProgramClasses(Main.class, ProgramExtendsLibraryClass.class)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addAndroidBuildVersion()
         .apply(setMockApiLevelForClass(LibraryClass.class, classApiLevel))
         .apply(

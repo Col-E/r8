@@ -53,7 +53,7 @@ public class EnumUnboxingClassStaticizerTest extends EnumUnboxingTestBase {
         .enableInliningAnnotations()
         .addDontObfuscate() // For assertions.
         .addOptionsModification(opt -> enableEnumOptions(opt, enumValueOptimization))
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .inspect(this::assertClassStaticized)
         .run(parameters.getRuntime(), TestClass.class)

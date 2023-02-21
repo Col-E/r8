@@ -45,17 +45,13 @@ public class B72538146 extends TestBase {
             Parent.Inner4.class);
 
     Path parent =
-        testForD8()
-            .addProgramClasses(parentClasses)
-            .setMinApi(parameters.getApiLevel())
-            .compile()
-            .writeToZip();
+        testForD8().addProgramClasses(parentClasses).setMinApi(parameters).compile().writeToZip();
 
     Path child =
         testForD8()
             .addProgramClasses(Child.class)
             .addClasspathClasses(parentClasses)
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .compile()
             .writeToZip();
 
@@ -63,7 +59,7 @@ public class B72538146 extends TestBase {
     testForD8()
         .addProgramFiles(
             Paths.get("build/test/examplesAndroidApi/classes/classloader/Runner.class"))
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .run(
             parameters.getRuntime(),

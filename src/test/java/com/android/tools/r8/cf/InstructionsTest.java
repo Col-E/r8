@@ -39,7 +39,7 @@ public class InstructionsTest extends TestBase implements Opcodes {
     testForR8(parameters.getBackend())
         .addProgramClassFileData(dump())
         .addKeepMainRule("Test")
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), "Test")
         .assertSuccessWithOutputLines(EXPECTED);
   }

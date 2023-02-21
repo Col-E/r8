@@ -39,7 +39,7 @@ public class ClassNotInitializedByInstanceOfTest extends TestBase {
         .addKeepMainRule(TestClass.class)
         .addOptionsModification(
             options -> options.testing.enableCheckCastAndInstanceOfRemoval = false)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .inspect(this::inspect)
         .run(parameters.getRuntime(), TestClass.class)

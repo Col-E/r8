@@ -102,7 +102,7 @@ public class ApplyMappingMinificationTest extends TestBase {
             .enableMemberValuePropagationAnnotations()
             .enableNeverClassInliningAnnotations()
             .addApplyMapping(StringUtils.lines(pgMap))
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .run(parameters.getRuntime(), C.class)
             .assertSuccessWithOutputLines("1", "2", "A.methodA", "A.methodB", "A.methodC", "B.foo")
             .inspect(

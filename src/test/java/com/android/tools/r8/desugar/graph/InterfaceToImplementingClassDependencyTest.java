@@ -75,7 +75,7 @@ public class InterfaceToImplementingClassDependencyTest extends TestBase {
       Origin originA = DesugarGraphUtils.addClassWithOrigin(A.class, builder);
       builder
           .addProgramClasses(TestClass.class)
-          .setMinApi(parameters.getApiLevel())
+          .setMinApi(parameters)
           .run(parameters.getRuntime(), TestClass.class)
           .assertSuccessWithOutputLines("Hello World!");
       // If API level indicates desugaring is needed check the edges are reported.

@@ -46,7 +46,7 @@ public class MemberRebindingRemoveVirtualBridgeTest extends TestBase {
         .addProgramClasses(A.class, B.class)
         .addProgramClassFileData(
             transformer(Main.class).setClassDescriptor(newMainDescriptor).transform())
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addKeepMainRule(newMainTypeName)
         .enableInliningAnnotations()
         .enableNoVerticalClassMergingAnnotations()

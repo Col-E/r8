@@ -60,7 +60,7 @@ public class InvokeInterfaceToNonAccessPrivateInterfaceMethodTest extends TestBa
         .addProgramClassFileData(getTransformedI())
         .addProgramClassFileData(getAndCheckJ())
         .addKeepMainRule(TestClass.class)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), TestClass.class)
         .assertFailureWithErrorThatThrows(NoSuchMethodError.class);
   }

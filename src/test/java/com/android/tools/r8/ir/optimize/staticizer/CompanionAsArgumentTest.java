@@ -43,7 +43,7 @@ public class CompanionAsArgumentTest extends TestBase {
         .addKeepMainRule(MAIN)
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), MAIN)
         .assertSuccessWithOutputLines("Companion#foo(true)")
         .inspect(this::inspect);

@@ -36,7 +36,7 @@ public class TreeFixerInterfaceCollisionTest extends HorizontalClassMergingTestB
         .enableNeverClassInliningAnnotations()
         .enableNoVerticalClassMergingAnnotations()
         .enableNoHorizontalClassMergingAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines("print a: c", "print b: parent", "print a: e")
         .inspect(

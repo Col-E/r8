@@ -37,7 +37,7 @@ public abstract class AnalysisTestBase extends TestBase {
       D8TestCompileResult compileResult =
           testForD8()
               .release()
-              .setMinApi(parameters.getApiLevel())
+              .setMinApi(parameters)
               .addProgramClasses(clazz)
               .addTestingAnnotationsAsProgramClasses()
               .compile();
@@ -66,7 +66,7 @@ public abstract class AnalysisTestBase extends TestBase {
       D8TestCompileResult compileResult =
           testForD8()
               .release()
-              .setMinApi(parameters.getApiLevel())
+              .setMinApi(parameters)
               .addProgramClasses(classes)
               .addTestingAnnotationsAsProgramClasses()
               .compile();

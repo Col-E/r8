@@ -44,7 +44,7 @@ public class Regress147865212 extends TestBase {
     CodeInspector inspector =
         testForD8()
             .addProgramClassFileData(classFile)
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .debug()
             .compile()
             .inspector();

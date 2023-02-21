@@ -38,7 +38,7 @@ public class DevirtualizeWithCatchHandlersTest extends TestBase {
             "  " + Uninstantiated.class.getTypeName() + " get();",
             "}")
         .enableInliningAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines("A");

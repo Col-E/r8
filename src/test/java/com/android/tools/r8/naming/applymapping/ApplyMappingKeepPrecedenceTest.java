@@ -92,7 +92,7 @@ public class ApplyMappingKeepPrecedenceTest extends TestBase {
         .addKeepRules("-keepclassmembernames class " + B.class.getTypeName() + " { *; }")
         .addKeepMainRule(Main.class)
         .enableMemberValuePropagationAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines(
             "What is the answer to life the universe and everything?", "42")

@@ -39,7 +39,7 @@ public class AssumeNoSideEffectsForLibraryMethodTest extends TestBase {
         .addKeepMainRule(TestClass.class)
         .addKeepRules(
             "-assumenosideeffects class java.util.ArrayList { int hashCode() return 42; }")
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .inspect(
             inspector -> {

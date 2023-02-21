@@ -47,7 +47,7 @@ public class DynamicTypeOptimizationTest extends TestBase {
         .enableInliningAnnotations()
         .enableNoMethodStaticizingAnnotations()
         .enableNoReturnTypeStrengtheningAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .inspect(this::inspect)
         .run(parameters.getRuntime(), TestClass.class)

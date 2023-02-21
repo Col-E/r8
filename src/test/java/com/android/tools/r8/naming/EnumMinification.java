@@ -51,7 +51,7 @@ public class EnumMinification extends TestBase {
         .addKeepMainRule(mainClass)
         .addKeepRules("-neverinline enum * extends java.lang.Enum { valueOf(...); }")
         .enableProguardTestOptions()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile();
   }
 

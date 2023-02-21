@@ -35,7 +35,7 @@ public class ApplyMappingOnLibraryPathTest extends TestBase {
         .addLibraryClasses(LibraryClass.class)
         .addDefaultRuntimeLibrary(parameters)
         .addProgramClasses(Main.class)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addApplyMapping(typeName(LibraryClass.class) + " -> a.a:")
         .addKeepMainRule(Main.class)
         .compile()

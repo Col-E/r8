@@ -49,7 +49,7 @@ public class OpenUninstantiatedInterfaceInstanceofTest extends TestBase {
     testForD8(parameters.getBackend())
         .addProgramClasses(getProgramClasses())
         .addProgramClassFileData(getTransformedMainClass())
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines(getExpectedOutputLines());
   }
@@ -63,7 +63,7 @@ public class OpenUninstantiatedInterfaceInstanceofTest extends TestBase {
         .addOptionsModification(
             options -> options.getOpenClosedInterfacesOptions().suppressAllOpenInterfaces())
         .enableInliningAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines(getExpectedOutputLines());
   }

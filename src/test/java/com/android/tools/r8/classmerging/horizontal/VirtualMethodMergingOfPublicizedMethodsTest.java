@@ -26,7 +26,7 @@ public class VirtualMethodMergingOfPublicizedMethodsTest extends HorizontalClass
         .allowAccessModification()
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .run(parameters.getRuntime(), TestClass.class)
         .assertSuccessWithOutputLines(

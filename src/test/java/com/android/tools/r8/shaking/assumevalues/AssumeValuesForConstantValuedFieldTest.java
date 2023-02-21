@@ -32,7 +32,7 @@ public class AssumeValuesForConstantValuedFieldTest extends TestBase {
         .addInnerClasses(AssumeValuesForConstantValuedFieldTest.class)
         .addKeepMainRule(TestClass.class)
         .addKeepRules("-assumevalues class * { static boolean field return false; }")
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .run(parameters.getRuntime(), TestClass.class)
         .assertSuccessWithOutputLines(

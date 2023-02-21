@@ -74,7 +74,7 @@ public class PrintUsageTest extends TestBase {
         // Disable inlining to make this test not depend on inlining decisions.
         .addOptionsModification(o -> o.inlinerOptions().enableInlining = false)
         .enableProguardTestOptions()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile();
   }
 

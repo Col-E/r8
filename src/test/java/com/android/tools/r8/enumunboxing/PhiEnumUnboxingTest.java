@@ -42,7 +42,7 @@ public class PhiEnumUnboxingTest extends EnumUnboxingTestBase {
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
         .addOptionsModification(opt -> enableEnumOptions(opt, enumValueOptimization))
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .run(parameters.getRuntime(), Phi.class)
         .assertSuccess()

@@ -53,7 +53,7 @@ public class LambdaInstantiatedTypeTest extends TestBase {
             .addInnerClasses(LambdaInstantiatedTypeTest.class)
             .addKeepMainRule(TestClass.class)
             .enableInliningAnnotations()
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .run(parameters.getRuntime(), TestClass.class)
             .assertSuccessWithOutput(expected)
             .inspector();

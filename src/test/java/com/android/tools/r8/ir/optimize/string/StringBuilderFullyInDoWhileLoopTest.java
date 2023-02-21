@@ -35,7 +35,7 @@ public class StringBuilderFullyInDoWhileLoopTest extends TestBase {
     testForR8(parameters.getBackend())
         .addInnerClasses(StringBuilderFullyInDoWhileLoopTest.class)
         .addKeepMainRule(TestClass.class)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .inspect(this::inspect)
         .run(parameters.getRuntime(), TestClass.class)

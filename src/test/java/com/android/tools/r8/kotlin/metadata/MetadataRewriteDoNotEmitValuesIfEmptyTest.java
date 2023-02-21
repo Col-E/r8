@@ -45,7 +45,7 @@ public class MetadataRewriteDoNotEmitValuesIfEmptyTest extends KotlinMetadataTes
   public void testKotlinStdLib() throws Exception {
     testForR8(parameters.getBackend())
         .addProgramFiles(kotlinc.getKotlinStdlibJar(), kotlinc.getKotlinAnnotationJar())
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addKeepAllClassesRuleWithAllowObfuscation()
         .addKeepKotlinMetadata()
         .allowDiagnosticWarningMessages()

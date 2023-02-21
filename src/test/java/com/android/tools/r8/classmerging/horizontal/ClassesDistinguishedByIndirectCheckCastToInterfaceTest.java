@@ -27,7 +27,7 @@ public class ClassesDistinguishedByIndirectCheckCastToInterfaceTest
         .enableNoVerticalClassMergingAnnotations()
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines("fail", "bar")
         .inspect(

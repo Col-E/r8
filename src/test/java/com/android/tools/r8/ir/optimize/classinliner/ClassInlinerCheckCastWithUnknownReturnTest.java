@@ -38,7 +38,7 @@ public class ClassInlinerCheckCastWithUnknownReturnTest extends TestBase {
         .addInnerClasses(getClass())
         .addKeepMainRule(Main.class)
         .enableNeverSingleCallerInlineAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), Main.class)
         .assertFailureWithErrorThatThrows(ClassCastException.class)
         .inspectFailure(

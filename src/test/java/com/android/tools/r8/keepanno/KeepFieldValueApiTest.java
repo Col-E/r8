@@ -58,7 +58,7 @@ public class KeepFieldValueApiTest extends TestBase {
         testForR8(parameters.getBackend())
             .enableExperimentalKeepAnnotations()
             .addProgramClasses(getLibraryClasses())
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .compile()
             .inspect(this::checkLibraryOutput)
             .writeToZip();
@@ -66,7 +66,7 @@ public class KeepFieldValueApiTest extends TestBase {
     testForD8(parameters.getBackend())
         .addProgramClasses(getClientClasses())
         .addProgramFiles(lib)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), TestClass.class)
         .assertSuccessWithOutput(EXPECTED);
   }

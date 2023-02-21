@@ -51,7 +51,7 @@ public class EnumImplementingInterfaceImplicitUpcastInReturnTypeTest extends Enu
         .enableNeverClassInliningAnnotations()
         .enableInliningAnnotations()
         .addOptionsModification(opt -> enableEnumOptions(opt, enumValueOptimization))
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addEnumUnboxingInspector(inspector -> inspector.assertNotUnboxed(MyEnum.class))
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines(EXPECTED);

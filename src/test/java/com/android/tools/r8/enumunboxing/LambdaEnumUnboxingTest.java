@@ -4,7 +4,6 @@
 
 package com.android.tools.r8.enumunboxing;
 
-import static org.junit.Assert.assertFalse;
 
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
@@ -44,7 +43,7 @@ public class LambdaEnumUnboxingTest extends EnumUnboxingTestBase {
         .enableInliningAnnotations()
         .addOptionsModification(opt -> enableEnumOptions(opt, enumValueOptimization))
         .addEnumUnboxingInspector(inspector -> inspector.assertUnboxed(MyEnum.class))
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines("0", "0", "1", "0", "0");

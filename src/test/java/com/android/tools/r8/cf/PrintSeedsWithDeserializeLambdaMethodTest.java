@@ -51,7 +51,7 @@ public class PrintSeedsWithDeserializeLambdaMethodTest extends TestBase {
   public void test() throws Exception {
     testForR8Compat(parameters.getBackend())
         .addProgramClasses(getClasses())
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addKeepMainRule(getMainClass())
         // TODO(b/214496607): Improve analysis precision to ensure there are no open interfaces.
         .addOptionsModification(

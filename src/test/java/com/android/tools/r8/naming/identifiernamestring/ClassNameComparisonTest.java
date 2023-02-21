@@ -35,7 +35,7 @@ public class ClassNameComparisonTest extends TestBase {
         .addInnerClasses(ClassNameComparisonTest.class)
         .addKeepMainRule(TestClass.class)
         .enableNoHorizontalClassMergingAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .run(parameters.getRuntime(), TestClass.class)
         .assertSuccessWithOutputLines("Hello!", "Hello " + B.class.getName() + "!");

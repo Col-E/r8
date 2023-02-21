@@ -25,7 +25,7 @@ public class RemapFieldTest extends HorizontalClassMergingTestBase {
         .addKeepMainRule(Main.class)
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addHorizontallyMergedClassesInspector(
             inspector ->
                 inspector.assertMergedInto(B.class, A.class).assertMergedInto(D.class, C.class))

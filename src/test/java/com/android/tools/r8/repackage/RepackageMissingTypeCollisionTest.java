@@ -109,7 +109,7 @@ public class RepackageMissingTypeCollisionTest extends RepackageTestBase {
         .addKeepClassAndMembersRules(Anno.class)
         .addKeepRuntimeVisibleAnnotations()
         .applyIf(repackage, this::configureRepackaging)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addDontWarn(getNewMissingTypeName())
         .addOptionsModification(internalOptions -> internalOptions.enableEnumUnboxing = false)
         .addHorizontallyMergedClassesInspector(

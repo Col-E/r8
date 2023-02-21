@@ -83,7 +83,7 @@ public class ProtectedDifferentPackageLookupTest extends TestBase {
         .addProgramClasses(A.class)
         .addProgramClassFileData(getBInAnotherPackage(), getMainWithCallToRelocatedB())
         .addKeepMainRule(Main.class)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), Main.class)
         // TODO(b/173363527): Should be an error on CF.
         .assertSuccessWithOutputLines(EXPECTED);

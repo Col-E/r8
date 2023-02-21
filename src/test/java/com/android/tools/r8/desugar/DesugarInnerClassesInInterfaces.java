@@ -66,7 +66,7 @@ public class DesugarInnerClassesInInterfaces extends TestBase {
     parameters.assumeR8TestParameters();
     testForR8Compat(parameters.getBackend())
         .addInnerClasses(DesugarInnerClassesInInterfaces.class)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addKeepAllClassesRule()
         .addKeepAttributeInnerClassesAndEnclosingMethod()
         .noHorizontalClassMergingOfSynthetics()
@@ -83,7 +83,7 @@ public class DesugarInnerClassesInInterfaces extends TestBase {
     parameters.assumeR8TestParameters();
     testForR8(parameters.getBackend())
         .addInnerClasses(DesugarInnerClassesInInterfaces.class)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addKeepAllClassesRule()
         .addKeepAttributeInnerClassesAndEnclosingMethod()
         .compile()

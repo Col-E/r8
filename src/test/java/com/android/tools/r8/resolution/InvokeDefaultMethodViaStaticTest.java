@@ -53,7 +53,7 @@ public class InvokeDefaultMethodViaStaticTest extends TestBase {
     testForR8(parameters.getBackend())
         .addProgramClassFileData(CLASSES)
         .addKeepMainRule("Main")
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addOptionsModification(o -> o.testing.allowInvokeErrors = true)
         .run(parameters.getRuntime(), "Main")
         .assertFailureWithErrorThatThrows(getExpectedError());

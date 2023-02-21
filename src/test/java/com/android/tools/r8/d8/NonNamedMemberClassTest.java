@@ -34,7 +34,7 @@ public class NonNamedMemberClassTest extends TestBase {
   public void testD8() throws Exception {
     testForD8()
         .addProgramClassFileData(Dump.dump())
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .assertOnlyInfos()
         .assertInfoMessageThatMatches(containsString("missing EnclosingMethod"));

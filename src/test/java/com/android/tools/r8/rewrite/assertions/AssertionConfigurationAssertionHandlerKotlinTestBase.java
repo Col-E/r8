@@ -95,7 +95,7 @@ public abstract class AssertionConfigurationAssertionHandlerKotlinTestBase exten
     Path kotlinStdlibDex = temp.newFolder().toPath().resolve("kotlin-stdlib-dex.jar");
     testForD8()
         .addProgramFiles(kotlinStdlibCf)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .writeToZip(kotlinStdlibDex);
     return kotlinStdlibDex;
@@ -134,7 +134,7 @@ public abstract class AssertionConfigurationAssertionHandlerKotlinTestBase exten
     assumeTrue(parameters.isDexRuntime());
     testForD8()
         .apply(this::configureKotlinStdlib)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addProgramClasses(AssertionHandlers.class)
         .apply(this::addKotlinClasses)
         .addAssertionsConfiguration(
@@ -151,7 +151,7 @@ public abstract class AssertionConfigurationAssertionHandlerKotlinTestBase exten
   public void testR8() throws Exception {
     testForR8(parameters.getBackend())
         .apply(this::configureKotlinStdlib)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addProgramClasses(AssertionHandlers.class)
         .apply(this::addKotlinClasses)
         .addAssertionsConfiguration(

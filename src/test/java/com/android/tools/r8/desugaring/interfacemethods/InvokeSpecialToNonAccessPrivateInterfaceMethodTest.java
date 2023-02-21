@@ -59,7 +59,7 @@ public class InvokeSpecialToNonAccessPrivateInterfaceMethodTest extends TestBase
         .addProgramClassFileData(getTransformedI())
         .addProgramClassFileData(getTransformedJ())
         .addKeepMainRule(TestClass.class)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), TestClass.class)
         .assertFailureWithErrorThatThrows(NoSuchMethodError.class);
   }

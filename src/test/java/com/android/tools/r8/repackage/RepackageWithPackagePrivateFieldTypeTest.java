@@ -34,7 +34,7 @@ public class RepackageWithPackagePrivateFieldTypeTest extends RepackageTestBase 
         .apply(this::configureRepackaging)
         .enableInliningAnnotations()
         .enableNoFieldTypeStrengtheningAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .inspect(this::inspect)
         .run(parameters.getRuntime(), TestClass.class)

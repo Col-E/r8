@@ -51,7 +51,7 @@ public class ClinitDeadlockAfterMergingMultipleGroupsTest extends TestBase {
                           .addAll(policies)
                           .build();
             })
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile();
   }
 

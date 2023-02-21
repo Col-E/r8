@@ -89,7 +89,7 @@ public class NoLineInfoTest extends TestBase {
         .addKeepClassAndMembersRules(TestClass.class)
         .addKeepAttributeSourceFile()
         .addKeepAttributeLineNumberTable()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addOptionsModification(o -> o.testing.forcePcBasedEncoding = true)
         .applyIf(
             customSourceFile,

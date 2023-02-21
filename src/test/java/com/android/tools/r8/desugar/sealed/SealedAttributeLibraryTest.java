@@ -34,7 +34,7 @@ public class SealedAttributeLibraryTest extends TestBase {
         .addDefaultRuntimeLibrary(parameters)
         .addLibraryFiles(Sealed.jar())
         .addInnerClasses(getClass())
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), TestRunner.class)
         .assertSuccessWithOutputLines("Hello, world!");
   }

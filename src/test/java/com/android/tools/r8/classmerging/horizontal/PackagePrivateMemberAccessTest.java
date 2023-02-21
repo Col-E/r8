@@ -29,7 +29,7 @@ public class PackagePrivateMemberAccessTest extends HorizontalClassMergingTestBa
         .enableConstantArgumentAnnotations()
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines("foo", "B", "bar", "0", "foobar")
         .inspect(

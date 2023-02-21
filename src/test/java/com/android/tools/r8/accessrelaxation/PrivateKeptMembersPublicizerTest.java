@@ -60,7 +60,7 @@ public class PrivateKeptMembersPublicizerTest extends TestBase {
             "  private static void greet(java.lang.String);",
             "}")
         .allowAccessModification()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .inspect(this::inspect)
         .run(parameters.getRuntime(), TestClass.class)

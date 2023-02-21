@@ -38,7 +38,7 @@ public class StringSwitchWithSameTargetTest extends TestBase {
               assertTrue(options.minimumStringSwitchSize >= 3);
               options.minimumStringSwitchSize = 2;
             })
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), TestClass.class, "Hello", "_", "world!")
         .assertSuccessWithOutput("Hello world!");
   }

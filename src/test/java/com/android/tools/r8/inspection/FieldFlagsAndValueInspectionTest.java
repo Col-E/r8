@@ -46,7 +46,7 @@ public class FieldFlagsAndValueInspectionTest extends TestBase {
     }
     testForD8()
         .addProgramClasses(TestClass.class)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .apply(b -> b.getBuilder().addOutputInspection(inspector -> inspection(inspector, false)))
         .run(parameters.getRuntime(), TestClass.class)
         .assertSuccessWithOutput(EXPECTED);
@@ -58,7 +58,7 @@ public class FieldFlagsAndValueInspectionTest extends TestBase {
     testForR8(parameters.getBackend())
         .addProgramClasses(TestClass.class)
         .addKeepClassAndMembersRules(TestClass.class)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .apply(b -> b.getBuilder().addOutputInspection(inspector -> inspection(inspector, true)))
         .run(parameters.getRuntime(), TestClass.class)
         .assertSuccessWithOutput(EXPECTED);

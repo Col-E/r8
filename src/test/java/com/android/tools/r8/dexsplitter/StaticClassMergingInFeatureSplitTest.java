@@ -46,7 +46,7 @@ public class StaticClassMergingInFeatureSplitTest extends SplitterTestBase {
             .addKeepFeatureMainRules(Feature1Main.class, Feature2Main.class)
             .enableInliningAnnotations()
             .enableNeverClassInliningAnnotations()
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .compile()
             .inspect(this::inspectBase, this::inspectFeature1, this::inspectFeature2);
 

@@ -60,7 +60,7 @@ public class KotlinEnumSwitchTest extends KotlinTestBase {
               options.enableEnumValueOptimization = enableSwitchMapRemoval;
               options.enableEnumSwitchMapRemoval = enableSwitchMapRemoval;
             })
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addDontObfuscate()
         // This will probably start failing when the CL
         // https://github.com/JetBrains/kotlin/commit/79f6d4b590573e6adccd7e8899d3b15ddb42d185

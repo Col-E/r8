@@ -54,7 +54,7 @@ public class B162969014 extends TestBase {
               .apply(this::applyCheckDiscardedRule)
               .enableAssumeNoSideEffectsAnnotations()
               .enableInliningAnnotations()
-              .setMinApi(parameters.getApiLevel())
+              .setMinApi(parameters)
               .compileWithExpectedDiagnostics(
                   diagnostics -> {
                     if (checkLogIsDiscarded) {

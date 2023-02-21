@@ -87,7 +87,7 @@ public class UnusedAnnotatedArgumentsWithMissingAnnotationsTest extends TestBase
             "-keepconstantarguments class Test$Inner? { void <init>(...); }")
         .addKeepRuntimeVisibleParameterAnnotations()
         .enableProguardTestOptions()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .inspect(
             inspector -> {

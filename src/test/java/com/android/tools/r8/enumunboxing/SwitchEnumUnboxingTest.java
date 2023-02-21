@@ -51,7 +51,7 @@ public class SwitchEnumUnboxingTest extends EnumUnboxingTestBase {
         .enableNeverClassInliningAnnotations()
         .addDontObfuscate() // For assertions.
         .addOptionsModification(opt -> enableEnumOptions(opt, enumValueOptimization))
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .inspect(this::assertSwitchPresentButSwitchMapRemoved)
         .run(parameters.getRuntime(), classToTest)

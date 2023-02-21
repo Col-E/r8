@@ -42,7 +42,7 @@ public class ApiModelInlineMethodWithApiTypeTest extends TestBase {
         .addProgramClasses(ApiCaller.class, ApiCallerCaller.class, OtherCaller.class, Main.class)
         .addLibraryClasses(ApiType.class)
         .addDefaultRuntimeLibrary(parameters)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addKeepMainRule(Main.class)
         .enableNoHorizontalClassMergingAnnotations()
         .apply(setMockApiLevelForClass(ApiType.class, AndroidApiLevel.L_MR1))

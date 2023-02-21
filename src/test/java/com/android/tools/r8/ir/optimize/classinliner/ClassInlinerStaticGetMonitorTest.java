@@ -40,7 +40,7 @@ public class ClassInlinerStaticGetMonitorTest extends TestBase {
         .addInnerClasses(ClassInlinerStaticGetMonitorTest.class)
         .addKeepMainRule(TestClass.class)
         .enableInliningAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addDontObfuscate()
         .compile()
         .inspect(this::inspect)

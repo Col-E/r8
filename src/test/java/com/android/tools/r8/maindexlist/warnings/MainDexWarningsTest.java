@@ -55,7 +55,7 @@ public class MainDexWarningsTest extends TestBase {
         .addKeepMainRule(mainClass)
         // Include main dex rule for class Static.
         .addMainDexKeepClassRules(Main.class, Static.class)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .inspect(this::classStaticGone)
         .assertNoMessages();
@@ -71,7 +71,7 @@ public class MainDexWarningsTest extends TestBase {
         // Include explicit main dex entry for class Static.
         .addMainDexListClasses(Static.class)
         .allowDiagnosticWarningMessages()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .inspect(this::classStaticGone)
         .assertOnlyWarnings()
@@ -92,7 +92,7 @@ public class MainDexWarningsTest extends TestBase {
         .addMainDexKeepClassRules(Static2.class)
         .addDontWarn(Static.class)
         .allowDiagnosticWarningMessages()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .inspect(this::classStaticGone)
         .assertOnlyWarnings()

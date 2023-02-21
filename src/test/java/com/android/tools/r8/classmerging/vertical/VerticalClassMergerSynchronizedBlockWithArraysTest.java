@@ -52,7 +52,7 @@ public class VerticalClassMergerSynchronizedBlockWithArraysTest extends TestBase
     testForR8(parameters.getBackend())
         .addInnerClasses(VerticalClassMergerSynchronizedBlockWithArraysTest.class)
         .addKeepMainRule(Main.class)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutput("Hello World!")
         .inspect(inspector -> assertThat(inspector.clazz(LockOne.class), isPresent()));

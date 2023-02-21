@@ -37,7 +37,7 @@ public class DoubleInliningNullCheckTest extends TestBase {
         .addInnerClasses(DoubleInliningNullCheckTest.class)
         .addKeepMainRule(TestClass.class)
         .addDontObfuscate()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), TestClass.class)
         .assertSuccessWithOutputLines("true")
         .inspect(

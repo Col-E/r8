@@ -48,7 +48,7 @@ public class ClassInlinerBuilderWithControlFlowTest extends ClassInlinerTestBase
         .addInnerClasses(ClassInlinerBuilderWithControlFlowTest.class)
         .addKeepMainRule(TestClass.class)
         .addDontObfuscate()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .inspect(this::inspect)
         .run(parameters.getRuntime(), TestClass.class)

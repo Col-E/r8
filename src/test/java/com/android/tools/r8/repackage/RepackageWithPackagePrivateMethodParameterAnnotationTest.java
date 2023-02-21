@@ -39,7 +39,7 @@ public class RepackageWithPackagePrivateMethodParameterAnnotationTest extends Re
         .apply(this::configureRepackaging)
         .enableConstantArgumentAnnotations()
         .enableInliningAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .inspect(this::inspect)
         .run(parameters.getRuntime(), TestClass.class)

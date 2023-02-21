@@ -95,7 +95,7 @@ public class MainDexListFromGenerateMainHorizontalMergingTest extends TestBase {
         .collectMainDexClasses()
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addHorizontallyMergedClassesInspector(
             horizontallyMergedClassesInspector -> {
               horizontallyMergedClassesInspector.assertClassesNotMerged(B.class, A.class);

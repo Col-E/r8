@@ -43,7 +43,7 @@ public class JavaCGeneratedMethodTest extends EnumUnboxingTestBase {
         .enableNeverClassInliningAnnotations()
         .addOptionsModification(opt -> enableEnumOptions(opt, enumValueOptimization))
         .addOptionsModification(opt -> opt.testing.enumUnboxingRewriteJavaCGeneratedMethod = true)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .run(parameters.getRuntime(), classToTest)
         .assertSuccess()

@@ -54,7 +54,7 @@ public class DefaultMethodShadowedByStaticTest extends TestBase {
     testForR8(parameters.getBackend())
         .addProgramClassFileData(CLASSES)
         .addKeepMainRule("Main")
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), "Main")
         .assertFailureWithErrorThatThrows(IncompatibleClassChangeError.class);
   }

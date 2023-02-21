@@ -33,7 +33,7 @@ public class ThrowingInstructionBeforeOtherwiseRedundantInstanceStoreTest extend
   public void test() throws Exception {
     testForD8()
         .addInnerClasses(getClass())
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines("1");

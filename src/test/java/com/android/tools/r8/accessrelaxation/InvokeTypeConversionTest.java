@@ -80,7 +80,7 @@ public class InvokeTypeConversionTest extends SmaliTestBase {
                 // We're testing lens-based invocation type conversions.
                 "-dontoptimize", "-dontobfuscate", "-allowaccessmodification")
             .addOptionsModification(o -> o.inlinerOptions().enableInlining = false)
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .run(parameters.getRuntime(), CLASS_NAME);
     if (expectedException == null) {
       result.assertSuccessWithOutput("0");

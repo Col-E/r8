@@ -203,11 +203,7 @@ public class StringCanonicalizationTest extends TestBase {
   @Test
   public void testR8Debug() throws Exception {
     D8TestCompileResult result =
-        testForD8()
-            .debug()
-            .addProgramClassesAndInnerClasses(MAIN)
-            .setMinApi(parameters.getApiLevel())
-            .compile();
+        testForD8().debug().addProgramClassesAndInnerClasses(MAIN).setMinApi(parameters).compile();
     test(result, 2, 1, 1, 1, 1);
   }
 
@@ -217,7 +213,7 @@ public class StringCanonicalizationTest extends TestBase {
         testForD8()
             .release()
             .addProgramClassesAndInnerClasses(MAIN)
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .compile();
     test(result, 1, 1, 1, 1, 0);
   }
@@ -230,7 +226,7 @@ public class StringCanonicalizationTest extends TestBase {
             .enableProguardTestOptions()
             .enableInliningAnnotations()
             .addKeepMainRule(MessageLoader.class)
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .compile();
     test(result, 1, 1, 1, 1, 0);
   }

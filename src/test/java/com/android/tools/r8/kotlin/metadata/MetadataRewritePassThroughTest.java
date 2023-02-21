@@ -46,7 +46,7 @@ public class MetadataRewritePassThroughTest extends KotlinMetadataTestBase {
     assumeFalse(parameters.isNoneRuntime());
     testForR8(parameters.getBackend())
         .addProgramFiles(kotlinc.getKotlinStdlibJar(), kotlinc.getKotlinAnnotationJar())
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addKeepAllClassesRule()
         .addKeepKotlinMetadata()
         .addKeepAttributes(

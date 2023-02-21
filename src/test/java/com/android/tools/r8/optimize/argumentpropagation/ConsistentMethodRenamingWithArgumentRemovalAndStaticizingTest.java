@@ -36,7 +36,7 @@ public class ConsistentMethodRenamingWithArgumentRemovalAndStaticizingTest exten
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
         .enableNoHorizontalClassMergingAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines("A.m()", "B.m()");
   }

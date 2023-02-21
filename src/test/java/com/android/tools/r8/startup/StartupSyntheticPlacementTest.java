@@ -82,7 +82,7 @@ public class StartupSyntheticPlacementTest extends TestBase {
             .addKeepMainRule(Main.class)
             .addKeepClassAndMembersRules(A.class, B.class, C.class)
             .addDontOptimize()
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .compile();
 
     // Verify that the build works.
@@ -99,7 +99,7 @@ public class StartupSyntheticPlacementTest extends TestBase {
         .apply(
             StartupTestingUtils.enableStartupInstrumentationForOptimizedAppUsingLogcat(parameters))
         .release()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .addRunClasspathFiles(StartupTestingUtils.getAndroidUtilLog(temp))
         .run(parameters.getRuntime(), Main.class, Boolean.toString(useLambda))
@@ -119,7 +119,7 @@ public class StartupSyntheticPlacementTest extends TestBase {
             testBuilder ->
                 configureStartupOptions(testBuilder, r8CompileResult.inspector(), startupList))
         .release()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .inspectMultiDex(
             r8CompileResult.writeProguardMap(), this::inspectPrimaryDex, this::inspectSecondaryDex)
@@ -138,7 +138,7 @@ public class StartupSyntheticPlacementTest extends TestBase {
                 StartupTestingUtils.enableStartupInstrumentationForOriginalAppUsingLogcat(
                     parameters))
             .release()
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .compile();
 
     instrumentationCompileResult
@@ -161,7 +161,7 @@ public class StartupSyntheticPlacementTest extends TestBase {
             testBuilder ->
                 configureStartupOptions(
                     testBuilder, instrumentationCompileResult.inspector(), startupList))
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .inspectMultiDex(this::inspectPrimaryDex, this::inspectSecondaryDex)
         .run(parameters.getRuntime(), Main.class, Boolean.toString(useLambda))

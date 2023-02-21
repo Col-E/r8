@@ -64,7 +64,7 @@ public class CollisionWithDefaultMethodOutsideMergeGroupClassTest extends TestBa
         .enableNoMethodStaticizingAnnotations()
         .enableNoUnusedInterfaceRemovalAnnotations()
         .enableNoVerticalClassMergingAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .inspect(
             inspector -> {

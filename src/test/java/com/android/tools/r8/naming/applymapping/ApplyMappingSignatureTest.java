@@ -58,7 +58,7 @@ public class ApplyMappingSignatureTest extends TestBase {
             ProguardKeepAttributes.INNER_CLASSES,
             ProguardKeepAttributes.ENCLOSING_METHOD)
         .addApplyMapping(A.class.getTypeName() + " -> foo:")
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), SignatureTest.class)
         .assertSuccessWithOutput("HELLO")
         .inspect(

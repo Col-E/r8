@@ -100,7 +100,7 @@ public class PackagePrivateClasspathWidenTest extends TestBase {
     testForR8(parameters.getBackend())
         .addProgramClasses(C.class, Main.class)
         .addClasspathClasses(CLASSPATH_CLASSES)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addKeepMainRule(Main.class)
         .addRunClasspathFiles(buildOnDexRuntime(parameters, classPathJar))
         .run(parameters.getRuntime(), Main.class)

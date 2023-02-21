@@ -52,7 +52,7 @@ public class FilledArrayDataWithCatchHandlerTest extends TestBase {
     assumeTrue(parameters.isDexRuntime());
     testForD8(parameters.getBackend())
         .release()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addInnerClasses(FilledArrayDataWithCatchHandlerTest.class)
         .run(parameters.getRuntime(), TestClass.class)
         .assertSuccessWithOutput(EXPECTED)

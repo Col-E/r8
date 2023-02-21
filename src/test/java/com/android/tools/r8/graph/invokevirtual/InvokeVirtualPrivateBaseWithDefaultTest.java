@@ -43,7 +43,7 @@ public class InvokeVirtualPrivateBaseWithDefaultTest extends TestBase {
   public void testD8() throws Exception {
     testForD8(parameters.getBackend())
         .addInnerClasses(getClass())
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), Main.class)
         .applyIf(
             parameters.isCfRuntime()
@@ -61,7 +61,7 @@ public class InvokeVirtualPrivateBaseWithDefaultTest extends TestBase {
         .addKeepMainRule(Main.class)
         .addKeepClassAndMembersRules(I.class)
         .enableNoVerticalClassMergingAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .run(parameters.getRuntime(), Main.class)
         .assertFailureWithErrorThatThrows(IllegalAccessError.class);

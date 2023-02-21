@@ -55,7 +55,7 @@ public class UnknownClassInSignatureTest extends TestBase {
             ProguardKeepAttributes.SIGNATURE,
             ProguardKeepAttributes.ENCLOSING_METHOD,
             ProguardKeepAttributes.INNER_CLASSES)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .allowDiagnosticInfoMessages()
         .compile()
         .apply(TestBase::verifyExpectedInfoFromGenericSignatureSuperTypeValidation)

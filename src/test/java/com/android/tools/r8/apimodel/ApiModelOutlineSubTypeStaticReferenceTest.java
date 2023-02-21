@@ -68,7 +68,7 @@ public class ApiModelOutlineSubTypeStaticReferenceTest extends TestBase {
         .addLibraryClasses(LibraryClass.class)
         .addProgramClasses(Main.class, Sub.class)
         .addAndroidBuildVersion()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile();
   }
 
@@ -77,7 +77,7 @@ public class ApiModelOutlineSubTypeStaticReferenceTest extends TestBase {
         .addLibraryClasses(LibraryClass.class)
         .addDefaultRuntimeLibrary(parameters)
         .addProgramClasses(Main.class, Sub.class)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addAndroidBuildVersion()
         .apply(setMockApiLevelForClass(LibraryClass.class, libraryApiLevel))
         .apply(

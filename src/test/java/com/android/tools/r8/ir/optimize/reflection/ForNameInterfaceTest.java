@@ -51,7 +51,7 @@ public class ForNameInterfaceTest extends TestBase {
         .addInnerClasses(ForNameInterfaceTest.class)
         .addKeepMainRule(Main.class)
         .minification(false)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines(
             "com.android.tools.r8.ir.optimize.reflection.ForNameInterfaceTest$I",

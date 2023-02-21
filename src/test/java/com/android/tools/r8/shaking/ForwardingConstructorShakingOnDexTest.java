@@ -42,7 +42,7 @@ public class ForwardingConstructorShakingOnDexTest extends TestBase {
         .enableConstantArgumentAnnotations()
         .enableNeverClassInliningAnnotations()
         .enableNoVerticalClassMergingAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .inspect(this::inspect)
         .run(parameters.getRuntime(), Main.class)

@@ -48,7 +48,7 @@ public class ApiModelVirtualDispatchInterfaceOverrideTest extends TestBase {
                     descriptor(AssetManager.class), "Landroid/content/res/AssetManager;")
                 .transform())
         .addLibraryFiles(ToolHelper.getAndroidJar(LATEST))
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addKeepMainRule(Main.class)
         .apply(ApiModelingTestHelper::enableApiCallerIdentification)
         .apply(

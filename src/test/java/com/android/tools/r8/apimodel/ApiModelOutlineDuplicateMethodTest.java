@@ -56,7 +56,7 @@ public class ApiModelOutlineDuplicateMethodTest extends TestBase {
         .addProgramClasses(Main.class, TestClass.class)
         .addLibraryClasses(LibraryClass.class)
         .addDefaultRuntimeLibrary(parameters)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addAndroidBuildVersion()
         .apply(setMockApiLevelForClass(LibraryClass.class, classApiLevel))
         .apply(setMockApiLevelForMethod(addedOn23(), methodApiLevel))

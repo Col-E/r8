@@ -57,7 +57,7 @@ public class IfRuleWithAccessRelaxationTest extends TestBase {
             .allowAccessModification()
             .enableInliningAnnotations()
             .enableNoMethodStaticizingAnnotations()
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .compile()
             .inspector();
 

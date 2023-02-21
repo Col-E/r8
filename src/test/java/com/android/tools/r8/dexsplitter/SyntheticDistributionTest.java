@@ -104,7 +104,7 @@ public class SyntheticDistributionTest extends SplitterTestBase {
         .addDontObfuscate()
         // BaseDexClassLoader was introduced at api level 14.
         .apply(ApiModelingTestHelper::disableOutliningAndStubbing)
-        .setMinApi(parameters.getApiLevel());
+        .setMinApi(parameters);
   }
 
   public abstract static class BaseSuperClass implements RunInterface {

@@ -73,7 +73,7 @@ public class ArrayTypesTest extends TestBase {
         .addProgramClassFileData(generateTestClass())
         .addKeepMainRule(Main.class)
         .addKeepRules("-keep class " + generatedTestClassName + " { test(...); }")
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutput(expectedOutput);
   }
@@ -104,7 +104,7 @@ public class ArrayTypesTest extends TestBase {
         .addKeepRules("-applymapping " + mappingFile.toAbsolutePath())
         .addDontObfuscate()
         .noTreeShaking()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutput(expectedOutput);
   }

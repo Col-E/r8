@@ -44,7 +44,7 @@ public class MonomorphicVirtualMethodTest extends TestBase {
                     .apply(ignore -> inspected.set()))
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines("42");

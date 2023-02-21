@@ -37,7 +37,7 @@ public class NonPublicKeptClassPublicizerTest extends TestBase {
         .addInnerClasses(getClass())
         .addKeepMainRule(Main.class)
         .allowAccessModification()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .inspect(
             inspector -> {

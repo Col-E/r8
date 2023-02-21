@@ -41,7 +41,7 @@ public class EnumUnboxingSideEffectClInitTest extends EnumUnboxingTestBase {
         .addEnumUnboxingInspector(inspector -> inspector.assertUnboxed(ENUM_CLASS))
         .enableNeverClassInliningAnnotations()
         .addOptionsModification(opt -> enableEnumOptions(opt, enumValueOptimization))
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .run(parameters.getRuntime(), classToTest)
         .assertSuccessWithOutputLines("0");

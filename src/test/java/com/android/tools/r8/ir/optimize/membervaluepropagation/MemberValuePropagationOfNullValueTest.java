@@ -33,7 +33,7 @@ public class MemberValuePropagationOfNullValueTest extends TestBase {
     parameters.assumeR8TestParameters();
     testForR8(parameters.getBackend())
         .addProgramClasses(Main.class, A.class)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
         .addKeepMainRule(Main.class)

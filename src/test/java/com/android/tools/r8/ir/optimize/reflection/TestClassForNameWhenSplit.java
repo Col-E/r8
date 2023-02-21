@@ -48,7 +48,7 @@ public class TestClassForNameWhenSplit extends ReflectionOptimizerTestBase {
     Path featurePath = temp.newFile("feature1.zip").toPath();
     testForR8(parameters.getBackend())
         .addProgramClasses(Main.class)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addFeatureSplit(
             builder ->
                 SplitterTestBase.simpleSplitProvider(builder, featurePath, temp, Foobar.class))

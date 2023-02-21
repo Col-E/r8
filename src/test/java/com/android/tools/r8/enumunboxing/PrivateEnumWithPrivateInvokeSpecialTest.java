@@ -28,7 +28,7 @@ public class PrivateEnumWithPrivateInvokeSpecialTest extends TestBase {
   public void testR8() throws Exception {
     testForR8(parameters.getBackend())
         .addInnerClasses(getClass())
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addKeepMainRule(Main.class)
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines("FOO");

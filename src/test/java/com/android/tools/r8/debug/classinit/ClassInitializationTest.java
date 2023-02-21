@@ -44,7 +44,7 @@ public class ClassInitializationTest extends DebugTestBase {
     final String CLASS = typeName(clazz);
     testForD8(parameters.getBackend())
         .addProgramClasses(clazz)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), clazz)
         .debugger(
             config ->
@@ -77,7 +77,7 @@ public class ClassInitializationTest extends DebugTestBase {
     final String CLASS = typeName(clazz);
     testForD8(parameters.getBackend())
         .addProgramClasses(clazz)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), clazz)
         .debugger(
             config ->
@@ -98,7 +98,7 @@ public class ClassInitializationTest extends DebugTestBase {
 
     testForD8(parameters.getBackend())
         .addProgramClasses(clazz)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), clazz)
         .debugger(
             config ->
@@ -134,7 +134,7 @@ public class ClassInitializationTest extends DebugTestBase {
 
     testForD8(parameters.getBackend())
         .addProgramClasses(clazz)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), clazz)
         .debugger(
             config ->

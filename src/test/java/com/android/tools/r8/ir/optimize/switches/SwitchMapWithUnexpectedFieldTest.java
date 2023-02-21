@@ -55,7 +55,7 @@ public class SwitchMapWithUnexpectedFieldTest extends TestBase {
                 .transform())
         .addKeepMainRule(TestClass.class)
         .addDontObfuscate()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .run(parameters.getRuntime(), TestClass.class)
         .assertSuccessWithOutputLines("B", "D");

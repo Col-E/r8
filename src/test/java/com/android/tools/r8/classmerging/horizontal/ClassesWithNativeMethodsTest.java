@@ -27,7 +27,7 @@ public class ClassesWithNativeMethodsTest extends HorizontalClassMergingTestBase
         .addKeepMainRule(Main.class)
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addKeepPackageNamesRule(Main.class.getPackage())
         .addHorizontallyMergedClassesInspector(
             HorizontallyMergedClassesInspector::assertNoClassesMerged)

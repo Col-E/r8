@@ -50,7 +50,7 @@ public class EnumImplementingInterfaceImplicitUpcastClassInitializerTest
         .addKeepMainRule(Main.class)
         .addKeepRules(enumKeepRules.getKeepRules())
         .enableNeverClassInliningAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addOptionsModification(opt -> enableEnumOptions(opt, enumValueOptimization))
         .addEnumUnboxingInspector(
             inspector -> inspector.assertNotUnboxed(OtherEnum.class, MyEnum.class))

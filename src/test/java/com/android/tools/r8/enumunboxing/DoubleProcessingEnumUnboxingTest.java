@@ -62,7 +62,6 @@ public class DoubleProcessingEnumUnboxingTest extends EnumUnboxingTestBase {
             .enableNeverClassInliningAnnotations()
             .enableInliningAnnotations()
             .minification(minification)
-            .setMinApi(parameters.getApiLevel())
             .compile()
             .writeToZip();
     // Compile the app with the lib.
@@ -75,7 +74,7 @@ public class DoubleProcessingEnumUnboxingTest extends EnumUnboxingTestBase {
         .enableNeverClassInliningAnnotations()
         .enableInliningAnnotations()
         .addOptionsModification(opt -> enableEnumOptions(opt, enumValueOptimization))
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .inspect(this::assertSharedUtilityClassPresent)
         .run(parameters.getRuntime(), App.class)

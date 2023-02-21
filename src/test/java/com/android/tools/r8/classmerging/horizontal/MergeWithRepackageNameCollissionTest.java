@@ -31,7 +31,7 @@ public class MergeWithRepackageNameCollissionTest extends HorizontalClassMerging
         .addProgramClasses(I.class, Runner.class)
         .addKeepMainRule(Main.class)
         .addKeepClassAndMembersRules(I.class, Runner.class)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .enableNoHorizontalClassMergingAnnotations()
         .enableInliningAnnotations()
         .run(parameters.getRuntime(), Main.class)

@@ -27,7 +27,7 @@ public class FieldsWithDifferentAccessFlagsTest extends HorizontalClassMergingTe
             HorizontallyMergedClassesInspector::assertNoClassesMerged)
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines("A", "B", "C");

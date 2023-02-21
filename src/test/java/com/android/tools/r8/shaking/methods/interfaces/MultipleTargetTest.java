@@ -52,7 +52,7 @@ public class MultipleTargetTest extends TestBase {
     R8TestCompileResult compileResult =
         testForR8(parameters.getBackend())
             .addProgramClasses(Top.class, Left.class, Right.class, Bottom.class)
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .addKeepMethodRules(Bottom.class, "java.lang.String name()")
             .addDontObfuscate()
             .compile();
@@ -60,7 +60,7 @@ public class MultipleTargetTest extends TestBase {
     testForR8(parameters.getBackend())
         .addProgramClasses(A.class, Main.class)
         .addClasspathClasses(Top.class, Left.class, Right.class, Bottom.class)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addKeepMainRule(Main.class)
         .addRunClasspathFiles(compileResult.writeToZip())
         .run(parameters.getRuntime(), Main.class)
@@ -79,7 +79,7 @@ public class MultipleTargetTest extends TestBase {
         testForR8(parameters.getBackend())
             .addProgramClasses(Top.class, Left.class, Right.class, Bottom.class)
             .addKeepMethodRules(Bottom.class, "java.lang.String name()")
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .compile();
     testForRuntime(parameters)
         .addProgramClasses(A.class, Main.class)

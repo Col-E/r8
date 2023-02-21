@@ -72,7 +72,7 @@ public class NestAttributesInDexRewriteInvokeVirtualTest extends TestBase implem
     assertFalse(parameters.getApiLevel().getLevel() > 33);
     testForD8()
         .addProgramClassFileData(dumpHost(), dumpMember1(), dumpMember2())
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addOptionsModification(options -> options.emitNestAnnotationsInDex = true)
         .compile()
         .inspect(
@@ -108,7 +108,7 @@ public class NestAttributesInDexRewriteInvokeVirtualTest extends TestBase implem
         testForD8()
             .addProgramClassFileData(dumpHost())
             .addClasspathClassFileData(dumpMember1(), dumpMember2())
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .addOptionsModification(options -> options.emitNestAnnotationsInDex = true)
             .compile()
             .inspect(
@@ -128,7 +128,7 @@ public class NestAttributesInDexRewriteInvokeVirtualTest extends TestBase implem
         testForD8()
             .addProgramClassFileData(dumpMember1())
             .addClasspathClassFileData(dumpHost(), dumpMember2())
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .addOptionsModification(options -> options.emitNestAnnotationsInDex = true)
             .compile()
             .inspect(
@@ -144,7 +144,7 @@ public class NestAttributesInDexRewriteInvokeVirtualTest extends TestBase implem
         testForD8()
             .addProgramClassFileData(dumpMember2())
             .addClasspathClassFileData(dumpHost(), dumpMember1())
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .addOptionsModification(options -> options.emitNestAnnotationsInDex = true)
             .compile()
             .inspect(
@@ -159,7 +159,7 @@ public class NestAttributesInDexRewriteInvokeVirtualTest extends TestBase implem
     testForD8()
         .addProgramFiles(host, member1, member2)
         .addClasspathClassFileData(dumpMember2())
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addOptionsModification(options -> options.emitNestAnnotationsInDex = true)
         .compile()
         .inspect(
@@ -196,7 +196,7 @@ public class NestAttributesInDexRewriteInvokeVirtualTest extends TestBase implem
         () ->
             testForD8()
                 .addProgramClassFileData(dumpHost())
-                .setMinApi(parameters.getApiLevel())
+                .setMinApi(parameters)
                 .addOptionsModification(options -> options.emitNestAnnotationsInDex = true)
                 .compileWithExpectedDiagnostics(
                     diagnostics -> {
@@ -217,7 +217,7 @@ public class NestAttributesInDexRewriteInvokeVirtualTest extends TestBase implem
         () ->
             testForD8()
                 .addProgramClassFileData(dumpMember1(), dumpMember2())
-                .setMinApi(parameters.getApiLevel())
+                .setMinApi(parameters)
                 .addOptionsModification(options -> options.emitNestAnnotationsInDex = true)
                 .compileWithExpectedDiagnostics(
                     diagnostics -> {

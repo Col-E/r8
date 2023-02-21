@@ -96,7 +96,7 @@ public class HorizontallyMergedVirtualMethodProfileRewritingTest extends TestBas
         .addOptionsModification(InlinerOptions::setOnlyForceInlining)
         .addOptionsModification(
             options -> options.callSiteOptimizationOptions().disableOptimization())
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .inspectResidualArtProfile(artProfileInputOutput::inspect)
         .run(parameters.getRuntime(), Main.class)

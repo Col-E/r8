@@ -41,11 +41,12 @@ public class NestConstructorRemovedArgTest extends TestBase {
 
   @Test
   public void testRemoveArgConstructorNestsR8() throws Exception {
+    parameters.assumeR8TestParameters();
     String nestID = "constructors";
     testForR8(parameters.getBackend())
         .addKeepMainRule(getMainClass(nestID))
         .addDontObfuscate()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addOptionsModification(options -> options.enableClassInlining = false)
         .addProgramFiles(classesOfNest(nestID))
         .applyIf(parameters.isCfRuntime(), Jdk9TestUtils.addJdk9LibraryFiles(temp))
@@ -56,12 +57,13 @@ public class NestConstructorRemovedArgTest extends TestBase {
 
   @Test
   public void testRemoveArgConstructorNestsR8NoTreeShaking() throws Exception {
+    parameters.assumeR8TestParameters();
     String nestID = "constructors";
     testForR8(parameters.getBackend())
         .noTreeShaking()
         .addKeepMainRule(getMainClass(nestID))
         .addDontObfuscate()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addOptionsModification(options -> options.enableClassInlining = false)
         .addProgramFiles(classesOfNest(nestID))
         .applyIf(parameters.isCfRuntime(), Jdk9TestUtils.addJdk9LibraryFiles(temp))

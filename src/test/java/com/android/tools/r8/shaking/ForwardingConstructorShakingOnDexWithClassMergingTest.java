@@ -50,7 +50,7 @@ public class ForwardingConstructorShakingOnDexWithClassMergingTest extends TestB
             inspector -> inspector.assertMergedInto(A.class, B.class).assertNoOtherClassesMerged())
         .enableInliningAnnotations()
         .enableNoVerticalClassMergingAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .inspect(this::inspect)
         .run(parameters.getRuntime(), Main.class)

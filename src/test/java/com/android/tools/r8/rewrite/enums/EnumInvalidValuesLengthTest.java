@@ -37,7 +37,7 @@ public class EnumInvalidValuesLengthTest extends TestBase {
         .addProgramClasses(EnumInvalidValuesLengthTest.Main.class)
         .addProgramClassFileData(transformValues(MyEnum.class))
         .enableNeverClassInliningAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .run(parameters.getRuntime(), EnumInvalidValuesLengthTest.Main.class)
         .assertSuccessWithOutputLines("5");

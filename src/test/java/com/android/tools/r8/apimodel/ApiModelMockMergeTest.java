@@ -54,7 +54,7 @@ public class ApiModelMockMergeTest extends TestBase {
         .addProgramClasses(programClass)
         .addLibraryClasses(LibraryClass.class)
         .addDefaultRuntimeLibrary(parameters)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .apply(ApiModelingTestHelper::enableApiCallerIdentification)
         .apply(ApiModelingTestHelper::enableStubbingOfClasses)
         .apply(ApiModelingTestHelper::disableOutlining)
@@ -105,7 +105,7 @@ public class ApiModelMockMergeTest extends TestBase {
     testForD8()
         .setMode(mode)
         .addProgramFiles(paths)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .apply(
             b ->
                 b.getBuilder()

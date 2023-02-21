@@ -44,7 +44,7 @@ public class NonFinalFieldWithDefaultValueTest extends TestBase {
   public void testD8() throws Exception {
     testForD8()
         .addInnerClasses(NonFinalFieldWithDefaultValueTest.class)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         // Class initializer defaults optimization only runs in release mode.
         .release()
         .compile()
@@ -59,7 +59,7 @@ public class NonFinalFieldWithDefaultValueTest extends TestBase {
         .addInnerClasses(NonFinalFieldWithDefaultValueTest.class)
         .addKeepMainRule(TestClass.class)
         .enableInliningAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .inspect(this::inspect)
         .run(parameters.getRuntime(), TestClass.class)

@@ -45,7 +45,7 @@ public class TestBuilderMinAndroidJarTest extends TestBase {
     assumeTrue(parameters.getRuntime().asDex().getVm().isOlderThanOrEqual(DexVm.ART_6_0_1_HOST));
     testForD8()
         .addProgramClasses(Main.class)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), Main.class)
         .assertFailureWithErrorThatMatches(containsString("NoClassDefFoundError"));
   }
@@ -64,7 +64,7 @@ public class TestBuilderMinAndroidJarTest extends TestBase {
         .addProgramClasses(Main.class)
         .allowDiagnosticWarningMessages(
             parameters.isDexRuntime() && parameters.getApiLevel().isLessThan(AndroidApiLevel.O))
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addKeepMainRule(Main.class)
         .compile()
         .assertAllWarningMessagesMatch(
@@ -83,7 +83,7 @@ public class TestBuilderMinAndroidJarTest extends TestBase {
     assumeTrue(parameters.getRuntime().asDex().getVm().isNewerThan(DexVm.ART_6_0_1_HOST));
     testForD8()
         .addProgramClasses(Main.class)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines("Hello World!");
   }
@@ -96,7 +96,7 @@ public class TestBuilderMinAndroidJarTest extends TestBase {
             || parameters.getApiLevel().getLevel() >= AndroidApiLevel.N.getLevel());
     testForR8(parameters.getBackend())
         .addProgramClasses(Main.class)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addKeepMainRule(Main.class)
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines("Hello World!");

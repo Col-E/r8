@@ -189,7 +189,7 @@ public class TestRunnerBuilder extends TestBase {
     buildJar(benchmarkJar);
     D8TestCompileResult compileResult =
         testForD8(parameters.getBackend())
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .addProgramFiles(benchmarkJar)
             .compile();
     Dex2OatTestRunResult dex2OatTestRunResult = compileResult.runDex2Oat(parameters.getRuntime());

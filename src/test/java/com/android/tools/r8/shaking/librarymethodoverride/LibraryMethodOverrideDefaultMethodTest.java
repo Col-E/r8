@@ -48,7 +48,7 @@ public class LibraryMethodOverrideDefaultMethodTest extends TestBase {
         .addOptionsModification(
             options -> options.testing.enqueuerInspector = this::verifyLibraryOverrideInformation)
         .addLibraryClasses(LibraryI.class, LibraryClass.class)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addKeepMainRule(Main.class)
         .compile()
         .addBootClasspathClasses(LibraryI.class, LibraryClass.class)

@@ -43,7 +43,7 @@ public class NoLongerSyntheticConstructorTest extends TestBase {
             "  synthetic <init>();",
             "}",
             "-keep class " + B.class.getTypeName())
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .inspect(this::inspect);
   }

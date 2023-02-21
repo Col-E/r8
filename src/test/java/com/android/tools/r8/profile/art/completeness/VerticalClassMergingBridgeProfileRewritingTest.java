@@ -46,7 +46,7 @@ public class VerticalClassMergingBridgeProfileRewritingTest extends TestBase {
             options -> options.callSiteOptimizationOptions().disableOptimization())
         .addVerticallyMergedClassesInspector(
             inspector -> inspector.assertMergedIntoSubtype(A.class))
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .inspectResidualArtProfile(this::inspect)
         .run(parameters.getRuntime(), Main.class)

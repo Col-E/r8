@@ -45,7 +45,7 @@ public class InterfaceDefaultMethodKeptTest extends TestBase {
     R8TestCompileResult compileResult =
         testForR8(parameters.getBackend())
             .addProgramClasses(I.class, A.class)
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .addKeepClassAndMembersRules(I.class)
             .addKeepMethodRules(A.class, "void <init>()", "void foo()")
             .compile()
@@ -69,7 +69,7 @@ public class InterfaceDefaultMethodKeptTest extends TestBase {
     R8TestCompileResult compileResult =
         testForR8(parameters.getBackend())
             .addProgramClasses(I.class, A.class, B.class)
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .addKeepClassAndMembersRules(I.class)
             .addKeepMethodRules(B.class, "void <init>()", "void foo()")
             .compile()
@@ -94,7 +94,7 @@ public class InterfaceDefaultMethodKeptTest extends TestBase {
     R8TestCompileResult compileResult =
         testForR8(parameters.getBackend())
             .addProgramClasses(I.class, A.class, B.class)
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .addKeepMethodRules(A.class, "void <init>()", "void foo()")
             .addKeepMethodRules(B.class, "void <init>()", "void foo()")
             .addDontObfuscate()

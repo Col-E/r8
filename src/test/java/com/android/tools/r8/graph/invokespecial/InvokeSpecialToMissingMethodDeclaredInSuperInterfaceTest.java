@@ -46,7 +46,7 @@ public class InvokeSpecialToMissingMethodDeclaredInSuperInterfaceTest extends Te
         .addProgramClasses(A.class, C.class, Main.class)
         .addProgramClassFileData(getClassWithTransformedInvoked())
         .addKeepMainRule(Main.class)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines("A.foo()");
   }

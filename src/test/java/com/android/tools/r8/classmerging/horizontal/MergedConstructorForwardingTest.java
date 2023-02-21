@@ -34,7 +34,7 @@ public class MergedConstructorForwardingTest extends HorizontalClassMergingTestB
             inspector -> inspector.assertIsCompleteMergeGroup(A.class, B.class))
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines("42", "13", "21", "39", "print a", "print b")
         .inspect(

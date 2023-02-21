@@ -49,7 +49,7 @@ public class InvokeSpecialToMergedVirtualMethodTest extends TestBase {
                 inspector
                     .assertMergedInto(MergeIntoA.class, MergeIntoA.class)
                     .assertNoOtherClassesMerged())
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines("A.foo()");
   }

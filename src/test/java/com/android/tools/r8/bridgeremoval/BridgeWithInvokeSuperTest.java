@@ -49,7 +49,7 @@ public class BridgeWithInvokeSuperTest extends TestBase {
     testForR8(parameters.getBackend())
         .addProgramClasses(Main.class, I.class)
         .addProgramClassFileData(getAWithBridgeAccessFlag())
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addKeepMainRule(Main.class)
         .enableNoVerticalClassMergingAnnotations()
         .enableInliningAnnotations()

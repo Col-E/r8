@@ -58,7 +58,7 @@ public class CheckAllMembersDiscardedTest extends TestBase {
                     // if the class should also be fully discarded.
                     getRuleForSecret("checkdiscard"),
                     getRuleForSecret("keep,allowshrinking"))
-                .setMinApi(parameters.getApiLevel())
+                .setMinApi(parameters)
                 .compileWithExpectedDiagnostics(
                     diagnostics -> {
                       if (shrinkMethodReferences && shrinkTypeReference) {

@@ -51,7 +51,7 @@ public class InvokeSpecialForNonDeclaredInvokeVirtualTest extends TestBase {
         .addProgramClasses(A.class, B.class, Main.class)
         .addProgramClassFileData(getClassCWithTransformedInvoked())
         .addKeepMainRule(Main.class)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutput(EXPECTED);
   }

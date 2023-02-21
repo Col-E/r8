@@ -71,7 +71,7 @@ public class ProtectedSamePackageLookupTest extends TestBase {
     testForR8(parameters.getBackend())
         .addProgramClasses(A.class, C.class, Main.class)
         .addKeepMainRule(Main.class)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines(EXPECTED);
   }

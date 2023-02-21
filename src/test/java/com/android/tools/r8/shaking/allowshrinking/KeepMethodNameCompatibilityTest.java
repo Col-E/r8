@@ -49,7 +49,7 @@ public class KeepMethodNameCompatibilityTest extends TestBase {
         .addKeepMainRule(TestClass.class)
         .addKeepRules(
             "-keepclassmembernames class " + TestClass.class.getTypeName() + " { void test(); }")
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .inspect(
             inspector ->

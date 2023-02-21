@@ -28,7 +28,7 @@ public class NoMissingClassWarningForNonInterfaceInvoke extends TestBase {
   public void test() throws Exception {
     testForD8(Backend.CF)
         .addProgramClasses(TestClass.class)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .setIntermediate(true)
         .compile()
         .assertNoWarningMessages();

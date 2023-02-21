@@ -52,7 +52,7 @@ public class RepackageWithFeatureSplitTest extends RepackageTestBase {
         // BaseDexClassLoader was introduced at api level 14.
         .apply(ApiModelingTestHelper::disableOutliningAndStubbing)
         .enableInliningAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .inspect(this::inspectBase, this::inspectFeature)
         .runFeature(parameters.getRuntime(), FeatureMain.class)

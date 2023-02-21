@@ -71,7 +71,7 @@ public class InterfaceMethodKeepResolutionTest extends TestBase {
     R8FullTestBuilder libraryBuilder =
         testForR8(parameters.getBackend())
             .addProgramClasses(classPathClasses)
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .addKeepMethodRules(libraryClassWithMethod, "void foo()");
     if (!libraryClassWithMethod.isInterface()) {
       libraryBuilder.addKeepClassRules(libraryClassWithMethod);

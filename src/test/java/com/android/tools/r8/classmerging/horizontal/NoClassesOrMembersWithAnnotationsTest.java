@@ -58,7 +58,7 @@ public class NoClassesOrMembersWithAnnotationsTest extends HorizontalClassMergin
         .enableConstantArgumentAnnotations()
         .enableNeverClassInliningAnnotations()
         .enableInliningAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .inspect(
             codeInspector -> {

@@ -49,7 +49,7 @@ public class StackMapForThrowingInitializerTest extends TestBase {
   public void testD8() throws Exception {
     testForD8(parameters.getBackend())
         .addProgramClassFileData(StackMapForThrowingInitializerTest$MainDump.dump())
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), Main.class, EXPECTED)
         .assertSuccessWithOutputLines(EXPECTED);
   }
@@ -62,7 +62,7 @@ public class StackMapForThrowingInitializerTest extends TestBase {
         .addKeepClassAndMembersRules(Main.class)
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), Main.class, EXPECTED)
         .assertSuccessWithOutputLines(EXPECTED);
   }

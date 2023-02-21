@@ -70,7 +70,7 @@ public class StackWalkerTest extends DesugaredLibraryTestBase {
         compilationSpecification == D8_L8DEBUG && libraryDesugaringSpecification == JDK11);
     // No desugared library, this should work.
     testForD8()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addProgramFiles(INPUT_JAR)
         .run(parameters.getRuntime(), MAIN_CLASS)
         .assertSuccessWithOutput(EXPECTED_OUTPUT);

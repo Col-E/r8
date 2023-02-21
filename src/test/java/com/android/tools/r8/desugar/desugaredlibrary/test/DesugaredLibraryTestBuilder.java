@@ -76,9 +76,7 @@ public class DesugaredLibraryTestBuilder<T extends DesugaredLibraryTestBase> {
   }
 
   private void setUp() {
-    builder
-        .setMinApi(parameters.getApiLevel())
-        .setMode(compilationSpecification.getProgramCompilationMode());
+    builder.setMinApi(parameters).setMode(compilationSpecification.getProgramCompilationMode());
     LibraryDesugaringTestConfiguration.Builder libraryConfBuilder =
         LibraryDesugaringTestConfiguration.builder()
             .addDesugaredLibraryConfiguration(

@@ -33,7 +33,7 @@ public class ProtoNormalizationEnumParameterTest extends TestBase {
   public void testR8() throws Exception {
     testForR8Compat(parameters.getBackend())
         .addInnerClasses(getClass())
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addKeepClassAndMembersRules(Main.class)
         .addKeepClassRules(CustomAnnotation.class)
         .addKeepRuntimeVisibleParameterAnnotations()

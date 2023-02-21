@@ -73,7 +73,7 @@ public class NestDependencyTest extends TestBase {
           DesugarGraphUtils.addClassWithOrigin("Member2", inNest(Member2.class), builder);
       builder
           .addProgramClasses(TestClass.class)
-          .setMinApi(parameters.getApiLevel())
+          .setMinApi(parameters)
           .run(parameters.getRuntime(), TestClass.class)
           .assertSuccessWithOutputLines("Hello World!");
       // Currently there is no level at which nest desugaring is not needed.

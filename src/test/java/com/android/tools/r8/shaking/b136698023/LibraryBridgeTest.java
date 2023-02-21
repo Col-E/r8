@@ -102,7 +102,7 @@ public class LibraryBridgeTest extends TestBase {
         .addKeepClassAndMembersRules(ICloneable.class)
         .addKeepMainRule(MainWithOrdinaryClone.class)
         .addDontObfuscate()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), MainWithOrdinaryClone.class)
         .assertSuccessWithOutputThatMatches(containsString(BaseOrdinaryClone.class.getTypeName()));
   }
@@ -115,7 +115,7 @@ public class LibraryBridgeTest extends TestBase {
         .addKeepClassAndMembersRules(XCloneable.class, Base.class)
         .addKeepMainRule(Main.class)
         .addDontObfuscate()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputThatMatches(containsString(Model.class.getTypeName()));
   }
@@ -128,7 +128,7 @@ public class LibraryBridgeTest extends TestBase {
         .addKeepClassAndMembersRules(XCloneable.class, Base.class)
         .addKeepMainRule(MainImpl.class)
         .addDontObfuscate()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), MainImpl.class)
         .assertSuccessWithOutputThatMatches(containsString(Model.class.getTypeName()));
   }
@@ -140,7 +140,7 @@ public class LibraryBridgeTest extends TestBase {
         testForR8(parameters.getBackend())
             .addProgramClasses(Base.class)
             .addKeepAllClassesRule()
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .compile();
     testForR8(parameters.getBackend())
         .addProgramClasses(XCloneable.class, Model.class, Main.class)
@@ -148,7 +148,7 @@ public class LibraryBridgeTest extends TestBase {
         .addDefaultRuntimeLibrary(parameters)
         .addKeepClassAndMembersRules(XCloneable.class)
         .addKeepMainRule(Main.class)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addDontObfuscate()
         .compile()
         .addRunClasspathFiles(library.writeToZip())

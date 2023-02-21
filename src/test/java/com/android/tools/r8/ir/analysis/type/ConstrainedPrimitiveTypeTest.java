@@ -47,7 +47,7 @@ public class ConstrainedPrimitiveTypeTest extends AnalysisTestBase {
         .addInnerClasses(ConstrainedPrimitiveTypeTest.class)
         .addKeepMainRule(TestClass.class)
         .enableInliningAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), TestClass.class)
         .assertSuccessWithOutput(expectedOutput);
   }

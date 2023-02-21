@@ -44,7 +44,7 @@ public class InterfaceOnlyImplementedByMissingClassTest extends TestBase {
             // the
             // R8 compilation.
             .addKeepRules("-keep class " + I.class.getTypeName() + " { void m(); }")
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .compile()
             .writeToZip();
     ;

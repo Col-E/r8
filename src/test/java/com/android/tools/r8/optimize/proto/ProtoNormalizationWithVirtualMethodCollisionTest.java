@@ -53,7 +53,7 @@ public class ProtoNormalizationWithVirtualMethodCollisionTest extends TestBase {
         .enableNoVerticalClassMergingAnnotations()
         .addDontObfuscate()
         .addKeepClassAndMembersRules(B.class)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines(EXPECTED)

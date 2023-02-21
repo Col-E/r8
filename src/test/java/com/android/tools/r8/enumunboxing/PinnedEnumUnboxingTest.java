@@ -50,7 +50,7 @@ public class PinnedEnumUnboxingTest extends EnumUnboxingTestBase {
                         MainWithKeptEnum.MyEnum.class, MainWithKeptEnumArray.MyEnum.class))
             .enableNeverClassInliningAnnotations()
             .addOptionsModification(opt -> enableEnumOptions(opt, enumValueOptimization))
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .compile();
     for (Class<?> main : TESTS) {
       compileResult.run(parameters.getRuntime(), main).assertSuccessWithOutputLines("0");

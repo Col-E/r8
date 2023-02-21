@@ -50,7 +50,7 @@ public class OpenInterfaceInstanceofTest extends TestBase {
     testForD8(parameters.getBackend())
         .addProgramClasses(getProgramClasses())
         .addProgramClassFileData(getTransformedMainClass())
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines(getExpectedOutputLines());
   }
@@ -66,7 +66,7 @@ public class OpenInterfaceInstanceofTest extends TestBase {
         .enableInliningAnnotations()
         // TODO(b/214496607): I should not be merged into A in the first place, since I is open.
         .enableNoVerticalClassMergingAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines(getExpectedOutputLines());
   }

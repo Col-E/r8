@@ -41,7 +41,7 @@ public class InterfaceWithClinitAndNoStaticMethodsTest extends TestBase {
     testForR8(parameters.getBackend())
         .addInnerClasses(InterfaceWithClinitAndNoStaticMethodsTest.class)
         .addKeepMainRule(TestClass.class)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), TestClass.class)
         .assertSuccessWithOutput(EXPECTED);
   }

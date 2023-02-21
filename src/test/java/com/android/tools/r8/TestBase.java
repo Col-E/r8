@@ -1710,11 +1710,7 @@ public class TestBase {
       return paths;
     }
     return Collections.singletonList(
-        testForD8()
-            .addProgramFiles(paths)
-            .setMinApi(parameters.getApiLevel())
-            .compile()
-            .writeToZip());
+        testForD8().addProgramFiles(paths).setMinApi(parameters).compile().writeToZip());
   }
 
   public List<Path> buildOnDexRuntime(TestParameters parameters, Path... paths)
@@ -1725,11 +1721,7 @@ public class TestBase {
   public Path buildOnDexRuntime(TestParameters parameters, Class<?>... classes)
       throws IOException, CompilationFailedException {
     if (parameters.isDexRuntime()) {
-      return testForD8()
-          .addProgramClasses(classes)
-          .setMinApi(parameters.getApiLevel())
-          .compile()
-          .writeToZip();
+      return testForD8().addProgramClasses(classes).setMinApi(parameters).compile().writeToZip();
     }
     Path path = temp.newFolder().toPath().resolve("classes.jar");
     ArchiveConsumer consumer = new ArchiveConsumer(path);
@@ -1748,7 +1740,7 @@ public class TestBase {
     if (parameters.isDexRuntime()) {
       return testForD8()
           .addProgramClassFileData(classes)
-          .setMinApi(parameters.getApiLevel())
+          .setMinApi(parameters)
           .compile()
           .writeToZip();
     }
@@ -1886,7 +1878,7 @@ public class TestBase {
       return out;
     }
     return testForD8()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addProgramClasses(compilationUnit)
         .addClasspathClasses(classpath)
         .compile()

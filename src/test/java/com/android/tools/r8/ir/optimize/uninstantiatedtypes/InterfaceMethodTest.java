@@ -58,7 +58,7 @@ public class InterfaceMethodTest extends TestBase {
             .enableNeverClassInliningAnnotations()
             .enableNoVerticalClassMergingAnnotations()
             .enableNoHorizontalClassMergingAnnotations()
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .run(parameters.getRuntime(), TestClass.class)
             .assertSuccessWithOutput(expectedOutput)
             .inspector();

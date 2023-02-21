@@ -54,7 +54,7 @@ public class DesugarInstanceLambdaWithReadsTest extends TestBase {
         .addKeepClassRules(Consumer.class)
         .addKeepMainRule(Main.class)
         .enableInliningAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutput(EXPECTED)
         .inspect(inspector -> checkNumberOfLambdaMethods(inspector, true));

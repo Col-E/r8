@@ -29,7 +29,7 @@ public class PinnedClassMemberReferenceTest extends HorizontalClassMergingTestBa
         .addDontObfuscate()
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
-        .setMinApi(parameters.getApiLevel());
+        .setMinApi(parameters);
   }
 
   private R8TestRunResult runAndAssertOutput(R8FullTestBuilder builder) throws Exception {

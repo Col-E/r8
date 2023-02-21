@@ -111,7 +111,7 @@ public class LibraryProvidedProguardRulesTest extends LibraryProvidedProguardRul
     return testForR8(parameters.getBackend())
         .applyIf(providerType == ProviderType.API, b -> b.addProgramFiles(library))
         .applyIf(providerType == ProviderType.INJARS, b -> b.addKeepRules("-injars " + library))
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .inspector();
   }
@@ -161,7 +161,7 @@ public class LibraryProvidedProguardRulesTest extends LibraryProvidedProguardRul
         () ->
             testForR8(parameters.getBackend())
                 .addProgramFiles(buildLibrary(ImmutableList.of("error")))
-                .setMinApi(parameters.getApiLevel())
+                .setMinApi(parameters)
                 .compileWithExpectedDiagnostics(
                     diagnostics ->
                         diagnostics.assertErrorThatMatches(
@@ -180,7 +180,7 @@ public class LibraryProvidedProguardRulesTest extends LibraryProvidedProguardRul
         () ->
             testForR8(parameters.getBackend())
                 .addProgramFiles(buildLibrary(ImmutableList.of("-include other.rules")))
-                .setMinApi(parameters.getApiLevel())
+                .setMinApi(parameters)
                 .compileWithExpectedDiagnostics(
                     diagnostics ->
                         diagnostics.assertErrorThatMatches(
@@ -223,7 +223,7 @@ public class LibraryProvidedProguardRulesTest extends LibraryProvidedProguardRul
         () ->
             testForR8(parameters.getBackend())
                 .addProgramResourceProviders(new TestProvider())
-                .setMinApi(parameters.getApiLevel())
+                .setMinApi(parameters)
                 .compileWithExpectedDiagnostics(
                     diagnostics ->
                         diagnostics.assertErrorThatMatches(

@@ -55,7 +55,7 @@ public class InstanceOfMethodSpecializationTest extends TestBase {
         .addInnerClasses(InstanceOfMethodSpecializationTest.class)
         .addKeepMainRule(TestClass.class)
         .enableNoHorizontalClassMergingAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .inspect(this::inspect)
         .run(parameters.getRuntime(), TestClass.class)

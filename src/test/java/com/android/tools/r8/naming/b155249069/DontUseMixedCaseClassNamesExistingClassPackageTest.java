@@ -61,7 +61,7 @@ public class DontUseMixedCaseClassNamesExistingClassPackageTest extends TestBase
             transformer(com.android.tools.r8.naming.b155249069.A.A.class)
                 .setClassDescriptor(DescriptorUtils.javaTypeToDescriptor(renamedATypeName))
                 .transform())
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         // Keep testpackage.A such that the package A is kept.
         .addKeepClassRules(renamedATypeName)
         .addKeepClassRulesWithAllowObfuscation(A.class)

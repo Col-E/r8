@@ -60,7 +60,7 @@ public class DefaultAnnotationTest extends TestBase {
         .apply(modification)
         .addKeepAllAttributes()
         .addKeepRules("-keep class * { *; }")
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), TestClass.class)
         .assertSuccessWithOutput(getExpected());
   }

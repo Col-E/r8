@@ -64,7 +64,7 @@ public class KeepAccessFlagsOnFieldsTest extends TestBase {
   @Test
   public void testWithRuleExtraction() throws Exception {
     testForR8(parameters.getBackend())
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .enableExperimentalKeepAnnotations()
         .addProgramClassFileData(getTargetClass())
         .addProgramClassFileData(getMainClass())

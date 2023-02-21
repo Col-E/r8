@@ -27,7 +27,7 @@ public class ClassesWithIdenticalInterfacesTest extends HorizontalClassMergingTe
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
         .enableNoParameterTypeStrengtheningAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addHorizontallyMergedClassesInspector(
             inspector ->
                 inspector.assertMergedInto(Y.class, X.class).assertMergedInto(Z.class, X.class))

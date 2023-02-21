@@ -36,7 +36,7 @@ public class Regress171867367 extends TestBase {
     Path path =
         testForD8(Backend.CF)
             .addProgramClasses(TestClass.class)
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .compile()
             .writeToZip();
     D8TestBuilder d8TestBuilder =
@@ -44,7 +44,7 @@ public class Regress171867367 extends TestBase {
             .addProgramFiles(path)
             .addAndroidBuildVersion()
             .addProgramClasses(TestClass2.class)
-            .setMinApi(parameters.getApiLevel());
+            .setMinApi(parameters);
     if (parameters.getApiLevel().isLessThan(AndroidApiLevel.N)) {
       d8TestBuilder
           .run(parameters.getRuntime(), TestClass.class)

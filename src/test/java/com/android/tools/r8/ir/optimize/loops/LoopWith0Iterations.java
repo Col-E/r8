@@ -32,7 +32,7 @@ public class LoopWith0Iterations extends TestBase {
   @Test
   public void testLoopRemoved() throws Exception {
     testForR8(parameters.getBackend())
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addProgramClasses(Main.class)
         .addKeepMainRule(Main.class)
         .enableInliningAnnotations()

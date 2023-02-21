@@ -115,7 +115,7 @@ public class MainDexDevirtualizerTest extends TestBase {
         .enableNeverClassInliningAnnotations()
         .addKeepMainRule(Main.class)
         .addKeepClassRulesWithAllowObfuscation(I.class)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .applyIf(
             parameters.isDexRuntime() && parameters.getDexRuntimeVersion().isDalvik(),
             builder ->

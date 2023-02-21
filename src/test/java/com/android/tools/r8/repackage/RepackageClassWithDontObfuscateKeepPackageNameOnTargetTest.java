@@ -38,7 +38,7 @@ public class RepackageClassWithDontObfuscateKeepPackageNameOnTargetTest extends 
     String originalPackage = DescriptorUtils.getPackageNameFromBinaryName(binaryName(Foo.class));
     testForR8(parameters.getBackend())
         .addInnerClasses(getClass())
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addKeepMainRule(Main.class)
         .enableInliningAnnotations()
         .apply(this::configureRepackaging)

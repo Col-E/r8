@@ -40,7 +40,7 @@ public class InlineDefaultInterfaceMethodTest extends TestBase {
         testForR8(parameters.getBackend())
             .addInnerClasses(InlineDefaultInterfaceMethodTest.class)
             .addKeepMainRule(TestClass.class)
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .enableNeverClassInliningAnnotations()
             .enableNoVerticalClassMergingAnnotations()
             .addDontObfuscate()

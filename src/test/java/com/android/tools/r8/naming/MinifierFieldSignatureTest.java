@@ -188,7 +188,7 @@ public class MinifierFieldSignatureTest extends TestBase {
                 ProguardKeepAttributes.ENCLOSING_METHOD,
                 ProguardKeepAttributes.SIGNATURE)
             .addKeepAllClassesRuleWithAllowObfuscation()
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .allowDiagnosticMessages()
             .addOptionsModification(
                 internalOptions ->

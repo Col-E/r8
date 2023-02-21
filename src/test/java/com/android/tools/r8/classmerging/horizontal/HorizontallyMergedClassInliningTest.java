@@ -36,7 +36,7 @@ public class HorizontallyMergedClassInliningTest extends TestBase {
         .addHorizontallyMergedClassesInspector(
             inspector -> inspector.assertIsCompleteMergeGroup(A.class, B.class, C.class))
         .allowAccessModification()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .inspect(
             inspector -> {

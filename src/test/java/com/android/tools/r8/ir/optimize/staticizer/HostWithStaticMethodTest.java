@@ -38,7 +38,7 @@ public class HostWithStaticMethodTest extends TestBase {
     testForR8(parameters.getBackend())
         .addProgramClasses(Outer.class, SingletonHolder.class, Main.class)
         .addKeepMainRule(Main.class)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .enableNeverClassInliningAnnotations()
         .enableInliningAnnotations()
         .run(parameters.getRuntime(), Main.class)

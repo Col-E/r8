@@ -51,7 +51,7 @@ public class ApiModelMockClassTest extends TestBase {
         .addProgramClasses(Main.class, TestClass.class)
         .addLibraryClasses(LibraryClass.class)
         .addDefaultRuntimeLibrary(parameters)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .apply(ApiModelingTestHelper::enableStubbingOfClasses)
         .apply(ApiModelingTestHelper::disableOutlining)
         .apply(setMockApiLevelForClass(LibraryClass.class, mockLevel))
@@ -59,7 +59,7 @@ public class ApiModelMockClassTest extends TestBase {
   }
 
   private void setupTestRuntimeBuilder(TestCompilerBuilder<?, ?, ?, ?, ?> testBuilder) {
-    testBuilder.setMinApi(parameters.getApiLevel()).addAndroidBuildVersion();
+    testBuilder.setMinApi(parameters).addAndroidBuildVersion();
   }
 
   private void setupTestBuilder(TestCompilerBuilder<?, ?, ?, ?, ?> testBuilder) {

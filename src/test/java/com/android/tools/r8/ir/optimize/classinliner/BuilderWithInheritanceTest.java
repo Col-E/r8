@@ -42,7 +42,7 @@ public class BuilderWithInheritanceTest extends TestBase {
             .addKeepMainRule(TestClass.class)
             .enableInliningAnnotations()
             .enableNoVerticalClassMergingAnnotations()
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .run(parameters.getRuntime(), TestClass.class)
             .assertSuccessWithOutput("42")
             .inspector();

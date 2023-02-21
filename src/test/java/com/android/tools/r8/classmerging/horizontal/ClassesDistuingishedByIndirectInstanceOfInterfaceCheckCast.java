@@ -27,7 +27,7 @@ public class ClassesDistuingishedByIndirectInstanceOfInterfaceCheckCast
         .enableInliningAnnotations()
         .enableNoVerticalClassMergingAnnotations()
         .enableNeverClassInliningAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines("false", "true")
         .inspect(

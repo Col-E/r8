@@ -81,7 +81,7 @@ public class JumboStringTest extends SmaliTestBase {
     testForR8(parameters.getBackend())
         .addProgramDexFileData(smaliBuilder.compile())
         .addKeepMainRule(DEFAULT_CLASS_NAME)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addOptionsModification(
             options -> {
               options.enableStringConcatenationOptimization = false;
@@ -132,7 +132,7 @@ public class JumboStringTest extends SmaliTestBase {
         .addProgramDexFileData(smaliBuilder.compile())
         .addKeepMainRule(DEFAULT_CLASS_NAME)
         .addKeepRules("-addconfigurationdebugging")
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addOptionsModification(
             options -> {
               options.enableStringConcatenationOptimization = false;

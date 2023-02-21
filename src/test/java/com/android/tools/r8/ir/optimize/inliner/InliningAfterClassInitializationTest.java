@@ -230,7 +230,7 @@ public class InliningAfterClassInitializationTest extends TestBase {
         .enableConstantArgumentAnnotations()
         .enableUnusedArgumentAnnotations()
         .enableInliningAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), mainClass)
         .assertSuccessWithOutput(expectedOutput)
         .inspector();

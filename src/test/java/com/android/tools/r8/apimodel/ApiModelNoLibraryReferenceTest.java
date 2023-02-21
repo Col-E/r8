@@ -44,7 +44,7 @@ public class ApiModelNoLibraryReferenceTest extends TestBase {
                     DescriptorUtils.javaTypeToDescriptor(API_TYPE_NAME))
                 .transform())
         .addLibraryFiles(ToolHelper.getJava8RuntimeJar())
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addDontWarn(API_TYPE_NAME)
         .addKeepMainRule(Main.class)
         .addAndroidBuildVersion()

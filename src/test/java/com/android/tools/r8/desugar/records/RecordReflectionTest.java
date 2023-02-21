@@ -55,7 +55,7 @@ public class RecordReflectionTest extends TestBase {
   public void testR8Cf() throws Exception {
     testForR8(parameters.getBackend())
         .addProgramClassFileData(PROGRAM_DATA)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addKeepMainRule(MAIN_TYPE)
         .addKeepRules("-keepattributes *")
         .addKeepRules("-keep class * extends java.lang.Record { private final <fields>; }")

@@ -48,7 +48,7 @@ public class NullCheckEnumUnboxingTest extends EnumUnboxingTestBase {
         .enableInliningAnnotations()
         .addOptionsModification(opt -> enableEnumOptions(opt, enumValueOptimization))
         .allowDiagnosticMessages()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .run(parameters.getRuntime(), MainNullTest.class)
         .assertSuccess()

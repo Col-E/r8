@@ -45,15 +45,16 @@ public class DexMergeChecksumsClassWithNoMethodsTest extends TestBase {
 
     Path dexArchiveA =
         testForD8()
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .addProgramClassFileData(cw.toByteArray())
             .setMode(CompilationMode.DEBUG)
             .setIncludeClassesChecksum(true)
-            .compile().writeToZip();
+            .compile()
+            .writeToZip();
 
     Path dexArchiveTestClass =
         testForD8()
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .addProgramClasses(TestClass.class)
             .setMode(CompilationMode.DEBUG)
             .setIncludeClassesChecksum(true)
@@ -61,7 +62,7 @@ public class DexMergeChecksumsClassWithNoMethodsTest extends TestBase {
             .writeToZip();
 
     testForD8()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addProgramFiles(dexArchiveA, dexArchiveTestClass)
         .setIncludeClassesChecksum(true)
         .run(parameters.getRuntime(), TestClass.class)

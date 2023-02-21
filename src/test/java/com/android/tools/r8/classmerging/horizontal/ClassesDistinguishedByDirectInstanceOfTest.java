@@ -24,7 +24,7 @@ public class ClassesDistinguishedByDirectInstanceOfTest extends HorizontalClassM
         .addKeepMainRule(Main.class)
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines("foo", "bar", "false", "true")
         .inspect(

@@ -56,7 +56,7 @@ public class RepackageWithMainDexListTest extends RepackageTestBase {
         .apply(this::configureRepackaging)
         // Debug mode to enable minimal main dex.
         .debug()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .allowDiagnosticMessages()
         .compileWithExpectedDiagnostics(
             diagnostics ->

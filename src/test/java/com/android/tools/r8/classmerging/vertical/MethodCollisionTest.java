@@ -42,7 +42,7 @@ public class MethodCollisionTest extends TestBase {
             VerticallyMergedClassesInspector::assertNoClassesMerged)
         .enableInliningAnnotations()
         .enableNoHorizontalClassMergingAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .run(parameters.getRuntime(), Main.class);
   }

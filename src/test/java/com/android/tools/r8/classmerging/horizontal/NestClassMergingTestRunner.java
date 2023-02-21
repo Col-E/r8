@@ -253,7 +253,7 @@ public class NestClassMergingTestRunner extends HorizontalClassMergingTestBase {
         .apply(configuration)
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .run(parameters.getRuntime(), examplesTypeName(NestClassMergingTest.class))
         .assertSuccessWithOutputLines(

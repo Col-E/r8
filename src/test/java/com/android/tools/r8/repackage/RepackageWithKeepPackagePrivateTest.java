@@ -49,7 +49,7 @@ public class RepackageWithKeepPackagePrivateTest extends RepackageTestBase {
             .addKeepPackageNamesRule(getClass().getPackage())
             .allowAccessModification(allowAccessModification)
             .apply(this::configureRepackaging)
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .compile()
             .inspect(this::inspect);
 
@@ -58,7 +58,7 @@ public class RepackageWithKeepPackagePrivateTest extends RepackageTestBase {
         .addClasspathClasses(A.class, B.class)
         .addKeepAllClassesRule()
         .addApplyMapping(compileResult.getProguardMap())
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .addRunClasspathFiles(compileResult.writeToZip())
         .run(parameters.getRuntime(), TestClass.class)

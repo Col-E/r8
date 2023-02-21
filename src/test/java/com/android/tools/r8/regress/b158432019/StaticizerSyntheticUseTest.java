@@ -41,7 +41,7 @@ public class StaticizerSyntheticUseTest extends TestBase {
     testForR8(parameters.getBackend())
         .addProgramClasses(Singleton.class, Main.class, Sam.class, A.class)
         .addKeepClassAndMembersRules(Main.class)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addDontObfuscate()
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()

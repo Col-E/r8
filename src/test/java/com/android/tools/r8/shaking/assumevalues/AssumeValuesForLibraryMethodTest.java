@@ -38,7 +38,7 @@ public class AssumeValuesForLibraryMethodTest extends TestBase {
         .addProgramClasses(TestClass.class)
         .addKeepMainRule(TestClass.class)
         .addKeepRules("-assumevalues class java.util.ArrayList { int hashCode() return 42; }")
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .inspect(
             inspector -> {

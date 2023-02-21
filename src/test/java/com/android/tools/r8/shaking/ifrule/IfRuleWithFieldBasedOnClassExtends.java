@@ -53,7 +53,7 @@ public class IfRuleWithFieldBasedOnClassExtends extends TestBase {
         .addKeepMainRule(TestClass.class)
         .addKeepClassAndMembersRules(Extending.class)
         .addKeepRules(CONDITIONAL_KEEP_RULE)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .run(parameters.getRuntime(), TestClass.class)
         .inspect(
@@ -77,7 +77,7 @@ public class IfRuleWithFieldBasedOnClassExtends extends TestBase {
         .addInnerClasses(getClass())
         .addKeepMainRule(TestClass.class)
         .addKeepClassAndMembersRules(Extending.class)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .run(parameters.getRuntime(), TestClass.class)
         .assertFailureWithErrorThatThrows(NoSuchFieldException.class);
@@ -92,7 +92,7 @@ public class IfRuleWithFieldBasedOnClassExtends extends TestBase {
         .addDontWarn(getClass())
         .addKeepClassAndMembersRules(Extending.class)
         .addKeepRules(CONDITIONAL_KEEP_RULE)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .run(parameters.getRuntime(), TestClass.class)
         .assertSuccessWithOutputLines(EXPECTED);
@@ -108,7 +108,7 @@ public class IfRuleWithFieldBasedOnClassExtends extends TestBase {
         .addKeepClassAndMembersRules(Extending.class)
         .addKeepRules(CONDITIONAL_KEEP_RULE_FOR_SAME_CLASS)
         .allowUnusedProguardConfigurationRules()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .run(parameters.getRuntime(), TestClass.class)
         .assertFailureWithErrorThatThrows(NoSuchFieldException.class);

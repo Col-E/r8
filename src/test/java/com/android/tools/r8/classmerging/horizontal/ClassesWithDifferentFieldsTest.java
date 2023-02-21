@@ -27,7 +27,7 @@ public class ClassesWithDifferentFieldsTest extends HorizontalClassMergingTestBa
         .addKeepMainRule(Main.class)
         .enableNeverClassInliningAnnotations()
         .enableInliningAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addHorizontallyMergedClassesInspector(
             inspector -> inspector.assertMergedInto(B.class, A.class))
         .compile()

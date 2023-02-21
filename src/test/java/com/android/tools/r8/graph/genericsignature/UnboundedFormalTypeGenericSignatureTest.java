@@ -98,7 +98,7 @@ public class UnboundedFormalTypeGenericSignatureTest extends TestBase {
             ProguardKeepAttributes.SIGNATURE,
             ProguardKeepAttributes.INNER_CLASSES,
             ProguardKeepAttributes.ENCLOSING_METHOD)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .allowDiagnosticInfoMessages()
         .compile()
         .apply(TestBase::verifyAllInfoFromGenericSignatureTypeParameterValidation)
@@ -124,7 +124,7 @@ public class UnboundedFormalTypeGenericSignatureTest extends TestBase {
             ProguardKeepAttributes.SIGNATURE,
             ProguardKeepAttributes.INNER_CLASSES,
             ProguardKeepAttributes.ENCLOSING_METHOD)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .allowDiagnosticInfoMessages()
         .compile()
         .apply(TestBase::verifyAllInfoFromGenericSignatureTypeParameterValidation)

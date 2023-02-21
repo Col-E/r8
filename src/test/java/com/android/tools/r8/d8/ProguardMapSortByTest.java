@@ -57,7 +57,7 @@ public class ProguardMapSortByTest extends TestBase {
     d8TestBuilder
         .release()
         .addProgramClasses(A.class, B.class, C.class, D.class, E.class)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .apply(b -> b.getBuilder().setProguardInputMapFile(mappingFile))
         .run(parameters.getRuntime(), A.class)
         .assertSuccessWithOutputLines("Hello world!")

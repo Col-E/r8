@@ -71,7 +71,7 @@ public class IdenticalBlockSuffixSharingWithArrayTypesTest extends TestBase {
     String expectedOutput = StringUtils.lines("42");
     testForD8()
         .addInnerClasses(IdenticalBlockSuffixSharingWithArrayTypesTest.class)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .inspect(this::verifyInstructionCount)
         .run(parameters.getRuntime(), clazz)
@@ -87,7 +87,7 @@ public class IdenticalBlockSuffixSharingWithArrayTypesTest extends TestBase {
         .enableNeverClassInliningAnnotations()
         .enableInliningAnnotations()
         .enableNoHorizontalClassMergingAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .inspect(this::verifyInstructionCount)
         .run(parameters.getRuntime(), clazz)

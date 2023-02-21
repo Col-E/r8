@@ -54,7 +54,7 @@ public class VirtualMethodOverrideEnumUnboxingTest extends EnumUnboxingTestBase 
         .enableNoVerticalClassMergingAnnotations()
         .addOptionsModification(options -> enableEnumOptions(options, enumValueOptimization))
         .addEnumUnboxingInspector(inspector -> inspector.assertUnboxed(MyEnum.class))
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .inspect(this::inspect)
         .run(parameters.getRuntime(), TestClass.class)

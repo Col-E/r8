@@ -72,7 +72,7 @@ public class CheckDiscardedFailuresWithIfRulesAndVerticalClassMergingTest extend
                 .applyIf(
                     !enableVerticalClassMerging,
                     R8TestBuilder::enableNoVerticalClassMergingAnnotations)
-                .setMinApi(parameters.getApiLevel())
+                .setMinApi(parameters)
                 .compileWithExpectedDiagnostics(
                     diagnostics -> {
                       if (enableCheckDiscard) {

@@ -94,7 +94,7 @@ public class ServiceLoaderMultipleCallsTest extends TestBase {
     testForR8(parameters.getBackend())
         .addInnerClasses(ServiceLoaderMultipleCallsTest.class)
         .addKeepMainRule(MainRunner.class)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .enableInliningAnnotations()
         .addDataEntryResources(
             DataEntryResource.fromBytes(

@@ -38,7 +38,7 @@ public class LambdaMissingInterfaceTest extends TestBase {
     testForR8(parameters.getBackend())
         .addProgramClasses(ClassWithLambda.class, Main.class)
         .addKeepMainRule(Main.class)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addDontWarn(MissingInterface.class)
         .allowDiagnosticWarningMessages()
         .enableInliningAnnotations()

@@ -82,7 +82,7 @@ public class IfOnAccessModifierTest extends ProguardCompatibilityTestBase {
             "-keep,allowobfuscation class **.ClassForSubsequent {",
             "  public <methods>;",
             "}")
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .inspect(
             inspector -> {
@@ -117,7 +117,7 @@ public class IfOnAccessModifierTest extends ProguardCompatibilityTestBase {
             "-keep,allowobfuscation class **.ClassForSubsequent {",
             "  public <methods>;",
             "}")
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .inspect(
             inspector -> {
@@ -157,7 +157,7 @@ public class IfOnAccessModifierTest extends ProguardCompatibilityTestBase {
             "-keep,allowobfuscation class **.ClassForSubsequent {",
             "  !public <methods>;",
             "}")
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .inspect(
             inspector -> {
@@ -198,7 +198,7 @@ public class IfOnAccessModifierTest extends ProguardCompatibilityTestBase {
             "-keep,allowobfuscation class **.ClassForSubsequent {",
             "  public <methods>;",
             "}")
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .inspect(
             inspector -> {
@@ -237,7 +237,7 @@ public class IfOnAccessModifierTest extends ProguardCompatibilityTestBase {
             "-keep,allowobfuscation class **.ClassForSubsequent {",
             "  !public <methods>;",
             "}")
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .inspect(
             inspector -> {

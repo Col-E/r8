@@ -36,7 +36,7 @@ public class DebugLocalStartRangeInLinearBlockWithFrameTest extends TestBase {
   public void testD8() throws Exception {
     testForD8(parameters.getBackend())
         .addProgramClassFileData(AbstractAjaxCallbackDump.dump())
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile();
   }
 

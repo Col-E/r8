@@ -153,7 +153,7 @@ public class MaximallySpecificDifferentParentHierarchyTest extends TestBase {
         .addProgramClassFileData(getJProgram())
         .addDefaultRuntimeLibrary(parameters)
         .addLibraryFiles(libraryClasses)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addOptionsModification(options -> options.loadAllClassDefinitions = true);
   }
 

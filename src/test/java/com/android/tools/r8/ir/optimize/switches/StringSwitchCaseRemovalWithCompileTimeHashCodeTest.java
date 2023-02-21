@@ -49,7 +49,7 @@ public class StringSwitchCaseRemovalWithCompileTimeHashCodeTest extends TestBase
               assertTrue(options.minimumStringSwitchSize >= 3);
               options.minimumStringSwitchSize = 2;
             })
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), TestClass.class)
         .assertSuccessWithOutputLines("FOO")
         .inspect(

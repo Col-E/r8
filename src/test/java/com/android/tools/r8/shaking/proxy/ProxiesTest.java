@@ -68,7 +68,7 @@ public class ProxiesTest extends TestBase {
             })
         .enableAlwaysInliningAnnotations()
         .addDontObfuscate()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .inspect(inspection)
         .run(parameters.getRuntime(), Main.class)

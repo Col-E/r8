@@ -238,7 +238,7 @@ public class KeepEdgeAnnotationsTest extends TestBase {
         .enableExperimentalKeepAnnotations()
         .addProgramClassesAndInnerClasses(source)
         .addKeepMainRule(source)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), source)
         .assertSuccessWithOutput(getExpected());
   }

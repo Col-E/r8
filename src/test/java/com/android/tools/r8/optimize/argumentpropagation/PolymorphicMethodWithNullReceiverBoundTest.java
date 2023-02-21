@@ -50,7 +50,7 @@ public class PolymorphicMethodWithNullReceiverBoundTest extends TestBase {
               .addKeepMainRule(Main.class)
               .enableNoHorizontalClassMergingAnnotations()
               .enableNoVerticalClassMergingAnnotations()
-              .setMinApi(parameters.getApiLevel())
+              .setMinApi(parameters)
               .addOptionsModification(
                   options -> {
                     options.testing.cfByteCodePassThrough =
@@ -71,7 +71,7 @@ public class PolymorphicMethodWithNullReceiverBoundTest extends TestBase {
         .addKeepMainRule(Main.class)
         .enableNoHorizontalClassMergingAnnotations()
         .enableNoVerticalClassMergingAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addOptionsModification(
             options -> {
               options.testing.cfByteCodePassThrough = method -> method.getName().startsWith("main");

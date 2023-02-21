@@ -39,7 +39,7 @@ public class NestedStringBuilderTest extends TestBase {
     testForR8(parameters.getBackend())
         .addProgramClasses(MAIN)
         .addKeepMainRule(MAIN)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), MAIN.getTypeName(), "$")
         .assertSuccessWithOutput(EXPECTED)
         .inspect(

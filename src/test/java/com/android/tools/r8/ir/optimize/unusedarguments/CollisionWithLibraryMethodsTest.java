@@ -54,7 +54,7 @@ public class CollisionWithLibraryMethodsTest extends TestBase {
         .enableNoMethodStaticizingAnnotations()
         .enableInliningAnnotations()
         .minification(minification)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .inspect(this::verify)
         .run(parameters.getRuntime(), TestClass.class)

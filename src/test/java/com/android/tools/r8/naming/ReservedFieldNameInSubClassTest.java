@@ -60,7 +60,7 @@ public class ReservedFieldNameInSubClassTest extends TestBase {
                         + C.class.getTypeName()
                         + "{ java.lang.String a; }"
                     : "")
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .run(parameters.getRuntime(), TestClass.class)
             .assertSuccessWithOutput(expectedOutput)
             .inspector();

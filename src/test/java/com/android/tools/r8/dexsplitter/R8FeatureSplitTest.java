@@ -63,7 +63,7 @@ public class R8FeatureSplitTest extends SplitterTestBase {
   public void simpleApiTest() throws CompilationFailedException, IOException, ExecutionException {
     testForR8(parameters.getBackend())
         .addProgramClasses(HelloWorld.class)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addFeatureSplit(R8FeatureSplitTest::emptySplitProvider)
         .addKeepMainRule(HelloWorld.class)
         .compile()
@@ -132,7 +132,7 @@ public class R8FeatureSplitTest extends SplitterTestBase {
         .addProgramClasses(BaseClass.class, RunInterface.class, SplitRunner.class)
         // Link against android.jar that contains ReflectiveOperationException.
         .addLibraryFiles(parameters.getDefaultAndroidJarAbove(AndroidApiLevel.K))
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addFeatureSplit(
             builder ->
                 splitWithNonJavaFile(builder, feature1Path, temp, nonJavaFiles, FeatureClass.class))
@@ -170,7 +170,7 @@ public class R8FeatureSplitTest extends SplitterTestBase {
     R8TestCompileResult compileResult =
         testForR8(parameters.getBackend())
             .addProgramClasses(BaseClass.class, RunInterface.class, SplitRunner.class)
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .addFeatureSplitWithResources(nonJavaFiles, FeatureClass.class)
             .addFeatureSplitWithResources(nonJavaFiles, FeatureClass2.class)
             .addKeepClassRulesWithAllowObfuscation(
@@ -258,7 +258,7 @@ public class R8FeatureSplitTest extends SplitterTestBase {
               .addProgramClasses(BaseClass.class, RunInterface.class, SplitRunner.class)
               // Link against android.jar that contains ReflectiveOperationException.
               .addLibraryFiles(parameters.getDefaultAndroidJarAbove(AndroidApiLevel.K))
-              .setMinApi(parameters.getApiLevel())
+              .setMinApi(parameters)
               .addFeatureSplit(FeatureClass.class)
               .addFeatureSplit(FeatureClass2.class)
               .addKeepAllClassesRule()

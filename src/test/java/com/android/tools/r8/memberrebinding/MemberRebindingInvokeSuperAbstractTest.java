@@ -45,7 +45,7 @@ public class MemberRebindingInvokeSuperAbstractTest extends TestBase {
         .addLibraryClasses(libraryClasses)
         .addDefaultRuntimeLibrary(parameters)
         .addProgramClasses(Main.class)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addKeepMainRule(Main.class)
         .enableInliningAnnotations()
         .apply(ApiModelingTestHelper::enableApiCallerIdentification)

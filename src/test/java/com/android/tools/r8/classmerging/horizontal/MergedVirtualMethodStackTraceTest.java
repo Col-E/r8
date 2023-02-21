@@ -60,7 +60,7 @@ public class MergedVirtualMethodStackTraceTest extends TestBase {
         .addKeepAttributeLineNumberTable()
         .addKeepAttributeSourceFile()
         .enableNeverClassInliningAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .applyIf(
             forceInlineOnly, b -> b.addOptionsModification(InlinerOptions::setOnlyForceInlining))
         .addHorizontallyMergedClassesInspector(

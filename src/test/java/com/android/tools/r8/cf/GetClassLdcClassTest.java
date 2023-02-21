@@ -61,7 +61,7 @@ public class GetClassLdcClassTest extends TestBase {
     testForR8(parameters.getBackend())
         .addProgramClassFileData(getDowngradedClass(Runner.class))
         .addProgramClassFileData(getDowngradedClass(TestClass.class))
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addKeepMainRule(TestClass.class)
         // We cannot keep class Runner, as that prohibits getClass optimization.
         // Instead disable minification and inlining of the Runner class and method.
@@ -86,7 +86,7 @@ public class GetClassLdcClassTest extends TestBase {
             .addProgramClassFileData(getDowngradedClass(Runner.class))
             // Here the main class is not downgraded, thus the output may upgrade to that version.
             .addProgramClasses(TestClass.class)
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .addKeepMainRule(TestClass.class)
             // We cannot keep class Runner, as that prohibits getClass optimization.
             // Instead disable minification and inlining of the Runner class and method.

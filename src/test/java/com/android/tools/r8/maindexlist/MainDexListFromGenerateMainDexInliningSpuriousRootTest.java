@@ -83,7 +83,7 @@ public class MainDexListFromGenerateMainDexInliningSpuriousRootTest extends Test
             .collectMainDexClasses()
             .enableInliningAnnotations()
             .enableNoHorizontalClassMergingAnnotations()
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .addDontObfuscate()
             .allowDiagnosticMessages()
             .compileWithExpectedDiagnostics(

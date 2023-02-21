@@ -77,7 +77,7 @@ public class ConstantDynamicInDefaultInterfaceMethodICCETest extends TestBase {
     testForR8(parameters.getBackend())
         .addProgramClasses(MAIN_CLASS)
         .addProgramClassFileData(getTransformedClasses())
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addKeepMainRule(MAIN_CLASS)
         // TODO(b/198142625): Support CONSTANT_Dynamic output for class files.
         .applyIf(

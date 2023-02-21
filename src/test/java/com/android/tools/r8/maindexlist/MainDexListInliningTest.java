@@ -49,7 +49,7 @@ public class MainDexListInliningTest extends TestBase {
             .addMainDexListClasses(Main.class)
             .collectMainDexClasses()
             .enableNoHorizontalClassMergingAnnotations()
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .allowDiagnosticMessages()
             .compileWithExpectedDiagnostics(
                 diagnostics ->

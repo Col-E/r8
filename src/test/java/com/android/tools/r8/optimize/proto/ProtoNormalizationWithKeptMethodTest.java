@@ -42,7 +42,7 @@ public class ProtoNormalizationWithKeptMethodTest extends TestBase {
         .enableNoHorizontalClassMergingAnnotations()
         // TODO(b/173398086): uniqueMethodWithName() does not work with proto changes.
         .addDontObfuscate()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .inspect(
             inspector -> {

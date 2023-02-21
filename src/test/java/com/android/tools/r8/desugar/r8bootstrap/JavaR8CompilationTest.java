@@ -54,7 +54,7 @@ public class JavaR8CompilationTest extends TestBase {
   public void testR8CompiledWithR8() throws Exception {
     Assume.assumeTrue(JavaBootstrapUtils.exists(r8WithRelocatedDeps));
     testForR8(parameters.getBackend())
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addProgramFiles(r8WithRelocatedDeps)
         .addKeepRuleFiles(MAIN_KEEP)
         .compile()

@@ -39,7 +39,7 @@ public class IfOnTargetedMethodTest extends TestBase {
 
     CodeInspector inspector =
         testForR8(parameters.getBackend())
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .addInnerClasses(IfOnTargetedMethodTest.class)
             .addKeepMainRule(TestClass.class)
             .addKeepRules(

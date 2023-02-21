@@ -74,7 +74,7 @@ public class B123730538 extends TestBase {
         .addProgramFiles(CLASSES)
         .addKeepMainRule(MAIN)
         .addKeepRules("-dontoptimize")
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), MAIN)
         .assertSuccessWithOutput(EXPECTED_OUTPUT)
         .inspect(this::inspect);

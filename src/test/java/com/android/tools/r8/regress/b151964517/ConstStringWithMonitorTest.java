@@ -28,7 +28,7 @@ public class ConstStringWithMonitorTest extends TestBase {
     testForR8(parameters.getBackend())
         .addInnerClasses(ConstStringWithMonitorTest.class)
         .addDontObfuscate()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .allowAccessModification()
         .addKeepMainRule(TestClass.class)
         .compile()

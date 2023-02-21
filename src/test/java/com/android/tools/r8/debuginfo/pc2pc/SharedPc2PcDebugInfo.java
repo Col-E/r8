@@ -43,7 +43,7 @@ public class SharedPc2PcDebugInfo extends TestBase {
         .addProgramClasses(TestClass.class)
         .addKeepClassAndMembersRules(TestClass.class)
         .addKeepAttributeLineNumberTable()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .run(parameters.getRuntime(), TestClass.class)
         .assertSuccessWithOutput(EXPECTED)

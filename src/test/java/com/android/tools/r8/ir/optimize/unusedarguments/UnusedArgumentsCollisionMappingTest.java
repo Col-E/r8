@@ -44,7 +44,7 @@ public class UnusedArgumentsCollisionMappingTest extends TestBase {
     R8TestRunResult runResult =
         testForR8(parameters.getBackend())
             .addProgramClasses(Main.class)
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .addKeepMainRule(Main.class)
             .enableConstantArgumentAnnotations()
             .enableInliningAnnotations()

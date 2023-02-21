@@ -76,7 +76,7 @@ public class InvokeInterfaceWithStaticTargetTest extends TestBase {
         .addProgramClasses(A.class, I.class)
         .addProgramClassFileData(transformMain())
         .addKeepMainRule(Main.class)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), Main.class)
         .assertFailureWithErrorThatThrows(IncompatibleClassChangeError.class);
   }

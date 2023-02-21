@@ -154,7 +154,7 @@ public class DesugaredLibraryTestCompileResult<T extends DesugaredLibraryTestBas
     }
     return test.testForD8()
         .addProgramFiles(this.compileResult.writeToZip())
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .setMode(compilationSpecification.getProgramCompilationMode())
         .disableDesugaring()
         .compile();

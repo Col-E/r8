@@ -66,7 +66,7 @@ public class MainDexWithSynthesizedClassesTest extends TestBase {
           testForD8()
               .addInnerClasses(MainDexWithSynthesizedClassesTest.class)
               .addMainDexKeepClassAndMemberRules(TestClass.class)
-              .setMinApi(parameters.getApiLevel())
+              .setMinApi(parameters)
               .compile();
       checkCompilationResult(compileResult);
     }
@@ -78,14 +78,14 @@ public class MainDexWithSynthesizedClassesTest extends TestBase {
     D8TestCompileResult intermediateResult =
         testForD8()
             .addInnerClasses(MainDexWithSynthesizedClassesTest.class)
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .setIntermediate(true)
             .compile();
     D8TestCompileResult compileResult =
         testForD8()
             .addProgramFiles(intermediateResult.writeToZip())
             .addMainDexKeepClassAndMemberRules(TestClass.class)
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .compile();
     checkCompilationResult(compileResult);
   }
@@ -98,7 +98,7 @@ public class MainDexWithSynthesizedClassesTest extends TestBase {
     Path dexed =
         testForD8()
             .addInnerClasses(MainDexWithSynthesizedClassesTest.class)
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .compileWithExpectedDiagnostics(TestDiagnosticMessages::assertNoMessages)
             .writeToZip();
 
@@ -114,7 +114,7 @@ public class MainDexWithSynthesizedClassesTest extends TestBase {
         testForD8()
             .addProgramFiles(dexed)
             .addMainDexListFiles(mainDexFile)
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .compileWithExpectedDiagnostics(TestDiagnosticMessages::assertNoMessages);
     checkCompilationResult(compileResult);
   }
@@ -137,7 +137,7 @@ public class MainDexWithSynthesizedClassesTest extends TestBase {
             .addInnerClasses(MainDexWithSynthesizedClassesTest.class)
             .addMainDexListClasses(TestClass.class)
             .addMainDexListFiles(mainDexFile)
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .compileWithExpectedDiagnostics(
                 diagnostics ->
                     diagnostics
@@ -170,7 +170,7 @@ public class MainDexWithSynthesizedClassesTest extends TestBase {
     R8TestCompileResult compileResult =
         testForR8(parameters.getBackend())
             .addInnerClasses(MainDexWithSynthesizedClassesTest.class)
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .addOptionsModification(o -> o.minimalMainDex = true)
             .addMainDexListClasses(TestClass.class)
             .addMainDexListFiles(mainDexFile)

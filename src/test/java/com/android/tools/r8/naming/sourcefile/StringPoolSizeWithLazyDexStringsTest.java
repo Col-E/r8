@@ -44,7 +44,7 @@ public class StringPoolSizeWithLazyDexStringsTest extends TestBase {
     testForR8(parameters.getBackend())
         .addInnerClasses(StringPoolSizeWithLazyDexStringsTest.class)
         .addKeepMainRule(TestClass.class)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         // Ensure we have a source file that depends on the hash.
         .apply(
             b ->

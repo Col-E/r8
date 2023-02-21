@@ -79,7 +79,7 @@ public class ApplyMappingNonMemberClassTest extends TestBase {
         .allowAccessModification()
         .enableInliningAnnotations()
         .addApplyMapping(pgMap)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), "Main")
         .assertSuccessWithOutput(StringUtils.lines("Anonymous run"));
   }
@@ -98,7 +98,7 @@ public class ApplyMappingNonMemberClassTest extends TestBase {
         .allowAccessModification()
         .enableInliningAnnotations()
         .addApplyMapping(pgMap)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), "Main")
         .assertSuccessWithOutput(StringUtils.lines("Anonymous run"));
   }

@@ -37,7 +37,7 @@ public class SwitchMapInvalidInitTest extends TestBase {
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
         .addInnerClasses(SwitchMapInvalidInitTest.class)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .inspect(this::assertNoSwitchMap)
         .run(parameters.getRuntime(), Main.class)

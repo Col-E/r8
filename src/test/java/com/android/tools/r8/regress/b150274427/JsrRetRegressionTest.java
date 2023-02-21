@@ -51,7 +51,7 @@ public class JsrRetRegressionTest extends TestBase {
     try {
       testForD8()
           .addProgramClassFileData(getTransformClass(true))
-          .setMinApi(parameters.getApiLevel())
+          .setMinApi(parameters)
           .compileWithExpectedDiagnostics(
               diagnostics -> {
                 diagnostics.assertErrorMessageThatMatches(containsString("RET"));

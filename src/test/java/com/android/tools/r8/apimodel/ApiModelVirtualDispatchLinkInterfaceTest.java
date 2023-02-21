@@ -49,7 +49,7 @@ public class ApiModelVirtualDispatchLinkInterfaceTest extends TestBase {
                     "Landroid/view/accessibility/AccessibilityNodeInfo$AccessibilityAction;")
                 .transform())
         .addLibraryFiles(ToolHelper.getAndroidJar(LATEST))
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addKeepMainRule(Main.class)
         .apply(ApiModelingTestHelper::enableApiCallerIdentification)
         // We are testing that we do not inline/merge higher api-levels

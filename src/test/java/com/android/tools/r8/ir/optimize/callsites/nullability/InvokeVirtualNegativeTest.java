@@ -49,7 +49,7 @@ public class InvokeVirtualNegativeTest extends TestBase {
         .addOptionsModification(
             o ->
                 o.testing.callSiteOptimizationInfoInspector = this::callSiteOptimizationInfoInspect)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), MAIN)
         .assertSuccessWithOutputLines("null", "A", "null", "B")
         .inspect(this::inspect);

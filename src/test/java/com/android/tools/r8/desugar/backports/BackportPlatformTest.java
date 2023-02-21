@@ -51,7 +51,7 @@ public class BackportPlatformTest extends TestBase {
         .addProgramClasses(CLASSES)
         .addKeepMainRule(TestClass.class)
         .addKeepClassAndMembersRules(MiniAssert.class)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), TestClass.class)
         .assertSuccessWithOutput(EXPECTED);
   }
@@ -60,7 +60,7 @@ public class BackportPlatformTest extends TestBase {
   public void testD8() throws Exception {
     testForD8(parameters.getBackend())
         .addProgramClasses(CLASSES)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), TestClass.class)
         .assertSuccessWithOutput(EXPECTED);
   }
@@ -73,7 +73,7 @@ public class BackportPlatformTest extends TestBase {
         .addProgramClasses(CLASSES)
         .addKeepMainRule(TestClass.class)
         .addKeepClassAndMembersRules(MiniAssert.class)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compileWithExpectedDiagnostics(this::checkDiagnostics);
   }
 
@@ -83,7 +83,7 @@ public class BackportPlatformTest extends TestBase {
         .apply(b -> b.getBuilder().setAndroidPlatformBuild(true))
         .addOptionsModification(o -> o.disableBackportsWithErrorDiagnostics = true)
         .addProgramClasses(CLASSES)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compileWithExpectedDiagnostics(this::checkDiagnostics);
   }
 
@@ -97,7 +97,7 @@ public class BackportPlatformTest extends TestBase {
             transformer(BooleanDefinition.class)
                 .setClassDescriptor("Ljava/lang/Boolean;")
                 .transform())
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), TestClass.class)
         .assertSuccessWithOutput(EXPECTED);
   }

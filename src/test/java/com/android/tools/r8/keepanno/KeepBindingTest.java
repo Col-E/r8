@@ -54,7 +54,7 @@ public class KeepBindingTest extends TestBase {
         .addProgramClasses(getInputClasses())
         .addKeepClassRules(A.class, B.class)
         .addKeepMainRule(TestClass.class)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), TestClass.class)
         .assertSuccessWithOutput(EXPECTED)
         .inspect(i -> checkOutput(i, true));
@@ -66,7 +66,7 @@ public class KeepBindingTest extends TestBase {
         .enableExperimentalKeepAnnotations()
         .addProgramClasses(getInputClasses())
         .addKeepMainRule(TestClass.class)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), TestClass.class)
         .assertSuccessWithOutput(EXPECTED)
         .inspect(i -> checkOutput(i, false));

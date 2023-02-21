@@ -51,7 +51,7 @@ public class MainDexRulesAndListD8 extends TestBase {
   public void test() throws Exception {
     Path result =
         testForD8(parameters.getBackend())
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .addInnerClasses(getClass())
             .addMainDexRulesFiles(mainDexRules)
             .addMainDexListFiles(mainDexList)

@@ -47,7 +47,7 @@ public class DifferentParameterCountMultilineCodeTestRunner extends TestBase {
         .addKeepAttributeLineNumberTable()
         .addKeepAttributeSourceFile()
         .addKeepRules("-renamesourcefileattribute " + (customSourceFile ? "X" : "SourceFile"))
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), CLASS)
         .assertFailureWithErrorThatThrows(IllegalStateException.class)
         .inspectOriginalStackTrace(

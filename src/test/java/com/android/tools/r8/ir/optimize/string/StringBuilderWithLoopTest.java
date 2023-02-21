@@ -30,7 +30,7 @@ public class StringBuilderWithLoopTest extends TestBase {
         .addInnerClasses(getClass())
         .addKeepMainRule(Main.class)
         .addKeepClassAndMembersRules(Utils.class)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines("1", "2");
   }

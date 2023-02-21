@@ -44,7 +44,7 @@ public class ClassFilteringTest extends TestBase {
     // Run a test with normal providers, verify nothing is removed.
     testForD8()
         .addProgramClasses(input)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .run(parameters.getRuntime(), TestClass.class)
         .assertSuccessWithOutput("Keep Remove ");
@@ -53,12 +53,13 @@ public class ClassFilteringTest extends TestBase {
   @Test
   public void testFilterByChecksum() throws Exception {
     // Step #1: Build the inputs with checksum encoded.
-    final Path output = testForD8()
-        .setMinApi(parameters.getApiLevel())
-        .addProgramClasses(TestClass.class, TestClass.Remove.class, TestClass.Keep.class)
-        .setIncludeClassesChecksum(true)
-        .compile()
-        .writeToZip();
+    final Path output =
+        testForD8()
+            .setMinApi(parameters)
+            .addProgramClasses(TestClass.class, TestClass.Remove.class, TestClass.Keep.class)
+            .setIncludeClassesChecksum(true)
+            .compile()
+            .writeToZip();
 
     // Step #2: "Re-compile" the output dex with a filter that removes a class by checksum.
 
@@ -67,9 +68,12 @@ public class ClassFilteringTest extends TestBase {
 
     testForD8()
         .addProgramFiles(output)
-        .setMinApi(parameters.getApiLevel())
-        .apply(b -> b.getBuilder().setDexClassChecksumFilter(
-            (classDescriptor, checksum) -> !checksum.equals(crc)))
+        .setMinApi(parameters)
+        .apply(
+            b ->
+                b.getBuilder()
+                    .setDexClassChecksumFilter(
+                        (classDescriptor, checksum) -> !checksum.equals(crc)))
         .compile()
         .run(parameters.getRuntime(), TestClass.class)
         .assertSuccessWithOutput("Keep No Remove ");
@@ -85,28 +89,35 @@ public class ClassFilteringTest extends TestBase {
         buildDex(TestClass.Remove.class, true, null)};
 
     // Step #2: Now use D8 as a merging tool.
-    final Path merged = testForD8()
-        .setMinApi(parameters.getApiLevel())
-        .addProgramFiles(dexInput)
-        .setIncludeClassesChecksum(true)
-        .compile()
-        .writeToZip();
+    final Path merged =
+        testForD8()
+            .setMinApi(parameters)
+            .addProgramFiles(dexInput)
+            .setIncludeClassesChecksum(true)
+            .compile()
+            .writeToZip();
 
     // Try it with and without checksum. Both should yield identical result.
     testForD8()
         .addProgramFiles(merged)
-        .setMinApi(parameters.getApiLevel())
-        .apply(b -> b.getBuilder().setDexClassChecksumFilter(
-            (classDescriptor, checksum) -> keepCrcs.contains(checksum)))
+        .setMinApi(parameters)
+        .apply(
+            b ->
+                b.getBuilder()
+                    .setDexClassChecksumFilter(
+                        (classDescriptor, checksum) -> keepCrcs.contains(checksum)))
         .compile()
         .run(parameters.getRuntime(), TestClass.class)
         .assertSuccessWithOutput("Keep No Remove ");
 
     testForD8()
         .addProgramFiles(merged)
-        .setMinApi(parameters.getApiLevel())
-        .apply(b -> b.getBuilder().setDexClassChecksumFilter(
-            (classDescriptor, checksum) -> keepCrcs.contains(checksum)))
+        .setMinApi(parameters)
+        .apply(
+            b ->
+                b.getBuilder()
+                    .setDexClassChecksumFilter(
+                        (classDescriptor, checksum) -> keepCrcs.contains(checksum)))
         .setIncludeClassesChecksum(true)
         .compile()
         .run(parameters.getRuntime(), TestClass.class)
@@ -127,7 +138,7 @@ public class ClassFilteringTest extends TestBase {
     // Step #2: Now use D8 as a merging tool and verify that the compilation fails as expected.
     try {
       testForD8()
-          .setMinApi(parameters.getApiLevel())
+          .setMinApi(parameters)
           .addProgramFiles(dexInput)
           .setIncludeClassesChecksum(true)
           .compile()
@@ -142,40 +153,48 @@ public class ClassFilteringTest extends TestBase {
   @Test
   public void testDexFilePerClassFilteringOutput() throws Exception {
     // Step #1: Build the program pretending to be multidex files with DexPerClass.
-    final Path outZip = testForD8()
-        .setMinApi(parameters.getApiLevel())
-        .addProgramClasses(TestClass.class, TestClass.Keep.class, TestClass.Remove.class)
-        .setIncludeClassesChecksum(true)
-        .setOutputMode(OutputMode.DexFilePerClass)
-        .compile()
-        .writeToZip();
+    final Path outZip =
+        testForD8()
+            .setMinApi(parameters)
+            .addProgramClasses(TestClass.class, TestClass.Keep.class, TestClass.Remove.class)
+            .setIncludeClassesChecksum(true)
+            .setOutputMode(OutputMode.DexFilePerClass)
+            .compile()
+            .writeToZip();
 
     // Step #2: Verify that the checksums are present and filtering is working as expected.
     final long crc = ToolHelper.getClassByteCrc(TestClass.Remove.class);
     testForD8()
         .addProgramFiles(outZip)
         .apply(b -> b.getBuilder().setDexClassChecksumFilter((desc, checksum) -> checksum != crc))
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), TestClass.class)
         .assertSuccessWithOutput("Keep No Remove ");
   }
 
   @Test
   public void testLambdaChecksum() throws Exception {
-    final Path output = testForD8()
-        .setMinApi(parameters.getApiLevel())
-        .addProgramClasses(TestDesugar.class, TestDesugar.Consumer.class)
-        .setIncludeClassesChecksum(true)
-        .compile()
-        .writeToZip();
+    final Path output =
+        testForD8()
+            .setMinApi(parameters)
+            .addProgramClasses(TestDesugar.class, TestDesugar.Consumer.class)
+            .setIncludeClassesChecksum(true)
+            .compile()
+            .writeToZip();
 
     List<String> classesWithChecksum = Lists.newArrayList();
     testForD8()
         .addProgramFiles(output)
         .setIncludeClassesChecksum(true)
-        .apply(b -> b.getBuilder().setDexClassChecksumFilter(
-            (classDescriptor, checksum) -> { classesWithChecksum.add(classDescriptor); return true; }))
-        .setMinApi(parameters.getApiLevel())
+        .apply(
+            b ->
+                b.getBuilder()
+                    .setDexClassChecksumFilter(
+                        (classDescriptor, checksum) -> {
+                          classesWithChecksum.add(classDescriptor);
+                          return true;
+                        }))
+        .setMinApi(parameters)
         .compile()
         .run(parameters.getRuntime(), TestDesugar.class)
         .assertSuccessWithOutput("TestDesugar.consume");
@@ -198,7 +217,7 @@ public class ClassFilteringTest extends TestBase {
       crcCollection.add(ToolHelper.getClassByteCrc(c));
     }
     return testForD8()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addProgramClasses(c)
         .setIncludeClassesChecksum(checksum)
         .compile()

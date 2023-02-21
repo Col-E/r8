@@ -41,7 +41,7 @@ public class NestBasedAccessToNativeMethodTest extends TestBase {
     assumeTrue(parameters.isDexRuntime());
     testForD8()
         .addProgramClassFileData(getProgramClassFileData())
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines("Hello from native");
@@ -52,7 +52,7 @@ public class NestBasedAccessToNativeMethodTest extends TestBase {
     testForR8(parameters.getBackend())
         .addProgramClassFileData(getProgramClassFileData())
         .addKeepMainRule(Main.class)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines("Hello from native");

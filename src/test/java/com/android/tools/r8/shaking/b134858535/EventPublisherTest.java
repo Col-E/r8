@@ -51,7 +51,7 @@ public class EventPublisherTest extends TestBase {
         .addProgramFiles(kotlinTestParameters.getCompiler().getKotlinStdlibJar())
         .addKeepClassRules(Interface.class)
         .addKeepMainRule(Main.class)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addHorizontallyMergedClassesInspector(
             inspector -> inspector.assertClassesNotMerged(EventPublisher$b.class))
         .compile();

@@ -97,7 +97,7 @@ public class MainDexListFromGenerateMainVerticalMergingTest extends TestBase {
             .enableInliningAnnotations()
             .enableNeverClassInliningAnnotations()
             .apply(testBuilder)
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .compile();
 
     CodeInspector inspector = compileResult.inspector();

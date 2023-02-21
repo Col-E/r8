@@ -9,8 +9,6 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.CompilationFailedException;
-import com.android.tools.r8.NeverClassInline;
-import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
@@ -19,7 +17,6 @@ import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import java.io.IOException;
 import java.util.concurrent.ExecutionException;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -47,7 +44,7 @@ public class ApplyMappingInterfaceClInitTest extends TestBase {
         .addKeepMainRule(Main.class)
         .addKeepClassAndMembersRules(TestInterface.class)
         .addApplyMapping("")
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), Main.class)
         .inspect(this::verifyNoRenamingOfClInit);
   }
@@ -63,7 +60,7 @@ public class ApplyMappingInterfaceClInitTest extends TestBase {
         .addApplyMapping(
             StringUtils.lines(
                 interfaceName + " -> " + interfaceName + ":", "    void <clinit>() -> a"))
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), Main.class)
         .inspect(this::verifyNoRenamingOfClInit);
   }

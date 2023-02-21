@@ -93,7 +93,7 @@ public class ServiceLoaderMultipleCallsSameMethodTest extends TestBase {
     testForR8(parameters.getBackend())
         .addInnerClasses(ServiceLoaderMultipleCallsSameMethodTest.class)
         .addKeepMainRule(MainRunner.class)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .enableInliningAnnotations()
         .addDataEntryResources(
             DataEntryResource.fromBytes(

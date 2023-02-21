@@ -40,7 +40,7 @@ public class ConsequentRootSetWithSatisfiedDependentItemsTest extends TestBase {
             "-keepclassmembers class " + A.class.getTypeName() + "{",
             "  <init>();",
             "}")
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .inspect(this::inspect)
         .run(parameters.getRuntime(), TestClass.class)

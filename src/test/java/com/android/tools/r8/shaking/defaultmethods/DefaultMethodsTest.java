@@ -48,7 +48,7 @@ public class DefaultMethodsTest extends TestBase {
             ClassImplementingInterface.class,
             OtherClassImplementingInterface.class,
             TestClass.class)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addKeepMainRule(TestClass.class)
         .addKeepRules(additionalKeepRules)
         .addDontObfuscate()

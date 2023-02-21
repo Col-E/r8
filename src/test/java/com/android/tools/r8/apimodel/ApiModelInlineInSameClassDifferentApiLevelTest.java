@@ -41,7 +41,7 @@ public class ApiModelInlineInSameClassDifferentApiLevelTest extends TestBase {
         .addProgramClasses(ApiCaller.class, Main.class)
         .addLibraryClasses(Api.class)
         .addDefaultRuntimeLibrary(parameters)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addKeepMainRule(Main.class)
         .apply(setMockApiLevelForMethod(apiLevel22, AndroidApiLevel.L_MR1))
         .apply(ApiModelingTestHelper::enableApiCallerIdentification)

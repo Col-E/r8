@@ -47,7 +47,7 @@ public class JStyleKotlinLambdaMergingWithEnumUnboxingTest extends TestBase {
         .addEnumUnboxingInspector(inspector -> inspector.assertUnboxed(EnumUnboxingCandidate.class))
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines("Lambda1.method()", "Lambda2.method()");

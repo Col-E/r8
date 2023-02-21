@@ -43,7 +43,7 @@ public class InlineStaticSynchronizedMethodTest extends TestBase {
     testForR8(parameters.getBackend())
         .addInnerClasses(InlineStaticSynchronizedMethodTest.class)
         .addKeepMainRule(TestClass.class)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .inspect(this::verifySynchronizedMethodsAreInlined)
         .run(parameters.getRuntime(), TestClass.class)

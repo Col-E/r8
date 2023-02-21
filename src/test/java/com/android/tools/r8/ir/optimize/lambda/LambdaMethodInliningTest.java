@@ -45,7 +45,7 @@ public class LambdaMethodInliningTest extends TestBase {
         .addOptionsModification(options -> options.enableClassInlining = false)
         // TODO(b/173398086): Horizontal class merging breaks uniqueMethodWithName().
         .addDontObfuscate()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .inspect(this::inspect)
         .run(parameters.getRuntime(), TestClass.class)

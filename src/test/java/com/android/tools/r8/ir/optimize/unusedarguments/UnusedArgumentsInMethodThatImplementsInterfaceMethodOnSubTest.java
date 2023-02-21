@@ -33,7 +33,7 @@ public class UnusedArgumentsInMethodThatImplementsInterfaceMethodOnSubTest exten
         .addInnerClasses(UnusedArgumentsInMethodThatImplementsInterfaceMethodOnSubTest.class)
         .addKeepMainRule(TestClass.class)
         .enableNoVerticalClassMergingAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), TestClass.class)
         .assertSuccessWithOutputLines("Hello from A", "Hello from C");
   }

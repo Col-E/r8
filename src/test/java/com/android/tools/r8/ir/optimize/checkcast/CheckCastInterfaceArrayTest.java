@@ -42,7 +42,7 @@ public class CheckCastInterfaceArrayTest extends TestBase {
     testForR8(parameters.getBackend())
         .addInnerClasses(CheckCastInterfaceArrayTest.class)
         .addKeepMainRule(TestClass.class)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addDontObfuscate()
         .noTreeShaking()
         .compile()

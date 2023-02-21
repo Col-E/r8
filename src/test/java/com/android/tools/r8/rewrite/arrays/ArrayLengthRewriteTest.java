@@ -63,7 +63,7 @@ public class ArrayLengthRewriteTest extends TestBase {
     assumeTrue(parameters.isDexRuntime());
 
     testForD8()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .setMode(debugMode ? CompilationMode.DEBUG : CompilationMode.RELEASE)
         .addProgramClasses(Main.class)
         .run(parameters.getRuntime(), Main.class)
@@ -73,7 +73,7 @@ public class ArrayLengthRewriteTest extends TestBase {
 
   @Test public void r8() throws Exception {
     testForR8(parameters.getBackend())
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .setMode(debugMode ? CompilationMode.DEBUG : CompilationMode.RELEASE)
         .addProgramClasses(Main.class)
         .addKeepMainRule(Main.class)

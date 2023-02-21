@@ -42,7 +42,7 @@ public class DefaultInterfaceMethodCollisionInSubclassAfterClassMergingTest exte
         .enableNoHorizontalClassMergingAnnotations()
         .enableNoUnusedInterfaceRemovalAnnotations()
         .enableNoVerticalClassMergingAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), Main.class)
         // TODO(b/229951607): Should always succeed.
         .applyIf(

@@ -56,7 +56,7 @@ public class RetraceInlineConditionTest extends TestBase {
     R8TestCompileResult compileResult =
         testForR8(parameters.getBackend())
             .addInnerClasses(getClass())
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .addKeepMainRule(Main.class)
             .addKeepAttributeLineNumberTable()
             .compile()

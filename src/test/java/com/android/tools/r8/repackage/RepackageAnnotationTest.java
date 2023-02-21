@@ -78,7 +78,7 @@ public class RepackageAnnotationTest extends RepackageTestBase {
               builder.addKeepRules(
                   "-keep,allowshrinking,allowobfuscation class " + A.class.getTypeName());
             })
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addKeepMainRule(Main.class)
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()

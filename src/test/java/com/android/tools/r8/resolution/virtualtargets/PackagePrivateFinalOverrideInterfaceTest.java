@@ -48,7 +48,7 @@ public class PackagePrivateFinalOverrideInterfaceTest extends TestBase {
         .addProgramClasses(ViewModel.class, I.class, Zoolander.class, Main.class)
         .addKeepClassAndMembersRules(ViewModel.class)
         .addKeepClassAndMembersRules(I.class)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addKeepMainRule(Main.class)
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()

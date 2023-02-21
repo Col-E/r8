@@ -54,7 +54,7 @@ public class PrivateOverridePublicizerDevirtualizerTest extends TestBase {
         .addKeepMainRule(Main.class)
         .allowAccessModification()
         .addDontObfuscate()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .inspect(
             inspector -> {

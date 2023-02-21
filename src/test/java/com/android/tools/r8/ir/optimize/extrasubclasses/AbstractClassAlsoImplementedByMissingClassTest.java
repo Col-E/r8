@@ -53,7 +53,7 @@ public class AbstractClassAlsoImplementedByMissingClassTest extends TestBase {
             .addKeepRules(
                 "-keep class " + A.class.getTypeName() + " { void <init>(); void kept(); }")
             .enableNeverClassInliningAnnotations()
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .compile()
             .inspect(this::inspect)
             .writeToZip();

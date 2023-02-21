@@ -42,7 +42,7 @@ public class ProguardRuleWithEllipsisForReturnTypeTest extends TestBase {
             "  private static ... unused;",
             "  public static ... main(...);",
             "}")
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), clazz)
         .assertSuccessWithOutput(expectedOutput)
         .inspect(this::inspect);

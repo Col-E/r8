@@ -51,7 +51,7 @@ public class UnusedArgumentRemovalWithOverridingTest extends TestBase {
         .enableInliningAnnotations()
         .enableNoVerticalClassMergingAnnotations()
         .minification(minification)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .inspect(this::verify)
         .run(parameters.getRuntime(), TestClass.class)

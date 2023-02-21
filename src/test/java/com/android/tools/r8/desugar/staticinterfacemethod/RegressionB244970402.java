@@ -32,7 +32,7 @@ public class RegressionB244970402 extends TestBase {
         .addProgramClasses(I.class, TestClass.class)
         .addKeepMainRule(TestClass.class)
         .addMainDexRules("-keep class * { *; }")
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), TestClass.class)
         .assertSuccessWithOutputLines("null");
   }

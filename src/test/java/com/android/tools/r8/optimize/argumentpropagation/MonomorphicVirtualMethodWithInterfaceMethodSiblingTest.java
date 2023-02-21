@@ -58,7 +58,7 @@ public class MonomorphicVirtualMethodWithInterfaceMethodSiblingTest extends Test
         .enableNeverClassInliningAnnotations()
         .enableNoHorizontalClassMergingAnnotations()
         .enableNoVerticalClassMergingAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines("A: 42", "A: 42");

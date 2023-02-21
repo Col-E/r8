@@ -64,7 +64,7 @@ public class SyntheticInlineNullCheckPositionTest extends TestBase {
         .addKeepMainRule(Main.class)
         .addKeepAttributeLineNumberTable()
         .addKeepAttributeSourceFile()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .run(parameters.getRuntime(), Main.class)
         .assertFailureWithErrorThatThrows(NullPointerException.class)

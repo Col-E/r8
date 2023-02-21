@@ -72,7 +72,7 @@ public class ArrayPutToInterfaceWithObjectMergingTest extends TestBase {
               }
             })
         .enableInliningAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines("A");

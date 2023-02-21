@@ -79,7 +79,7 @@ public class CovariantReturnTypeInSubInterfaceTest extends TestBase {
   private void test() throws Exception {
     testForR8(parameters.getBackend())
         .addInnerClasses(CovariantReturnTypeInSubInterfaceTest.class)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addKeepMainRule(TestMain.class)
         .addKeepRules(
             "-keep,allowobfuscation class **.*$Super* { <methods>; }",

@@ -34,7 +34,7 @@ public class UnusedStringBuilderTest extends TestBase {
     testForR8(parameters.getBackend())
         .addInnerClasses(UnusedStringBuilderTest.class)
         .addKeepMainRule(TestClass.class)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .inspect(this::inspect)
         .run(parameters.getRuntime(), TestClass.class)

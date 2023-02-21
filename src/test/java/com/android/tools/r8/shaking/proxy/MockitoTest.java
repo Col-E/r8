@@ -53,7 +53,7 @@ public class MockitoTest extends TestBase {
             .addKeepRuleFiles(flagToKeepTestRunner)
             .addDontWarn("org.mockito.**")
             .minification(minify)
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .compile()
             .inspector();
     ClassSubject itf = inspector.clazz(M_I);
@@ -72,7 +72,7 @@ public class MockitoTest extends TestBase {
             .addKeepRuleFiles(flagToKeepInterfaceConditionally)
             .addDontWarn("org.mockito.**")
             .minification(minify)
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .compile()
             .inspector();
     ClassSubject itf = inspector.clazz(M_I);

@@ -42,7 +42,7 @@ public class UnsatisfiedDependentNoObfuscationTest extends TestBase {
             "  <methods>;",
             "}")
         .enableInliningAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .inspect(inspector -> assertThat(inspector.clazz(Greeter.class), isPresentAndRenamed()))
         .run(parameters.getRuntime(), Main.class)

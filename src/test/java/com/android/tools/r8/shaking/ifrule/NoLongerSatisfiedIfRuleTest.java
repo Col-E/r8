@@ -40,7 +40,7 @@ public class NoLongerSatisfiedIfRuleTest extends TestBase {
         .addKeepRules(
             "-if class " + A.class.getTypeName(),
             "-keep class " + B.class.getTypeName() + " { void m(); }")
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .inspect(this::inspect)
         .run(parameters.getRuntime(), TestClass.class)

@@ -38,7 +38,7 @@ public class PrunedClassNameComparisonTest extends TestBase {
         .addInnerClasses(PrunedClassNameComparisonTest.class)
         .addKeepMainRule(TestClass.class)
         .enableInliningAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .inspect(this::inspect)
         .run(parameters.getRuntime(), TestClass.class)

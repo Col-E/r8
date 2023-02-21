@@ -29,7 +29,7 @@ public class ConditionalSimpleInliningWithEnumUnboxingTest
         .addKeepMainRule(TestClass.class)
         .apply(this::configure)
         .addEnumUnboxingInspector(inspector -> inspector.assertUnboxed(EnumUnboxingCandidate.class))
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .run(parameters.getRuntime(), TestClass.class)
         .assertSuccessWithOutputLines("Hello world!");

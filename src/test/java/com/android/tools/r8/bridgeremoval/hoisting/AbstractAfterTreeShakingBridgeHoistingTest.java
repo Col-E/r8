@@ -46,7 +46,7 @@ public class AbstractAfterTreeShakingBridgeHoistingTest extends TestBase {
             "}")
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .run(parameters.getRuntime(), TestClass.class)
         .assertSuccessWithOutput("Hello");

@@ -87,7 +87,7 @@ public class PublicFieldInnerClassTest extends TestBase {
         .setMode(CompilationMode.DEBUG)
         .addProgramClassesAndInnerClasses(CLASS)
         .addKeepMainRule(CLASS)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), CLASS)
         .assertSuccessWithOutput(EXPECTED_OUTPUT);
   }

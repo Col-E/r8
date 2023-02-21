@@ -80,7 +80,7 @@ public class ReturnTypeTest extends TestBase {
             B112517039ReturnType.class, B112517039I.class, B112517039Caller.class, MAIN)
         .addKeepMainRule(MAIN)
         .enableConstantArgumentAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addOptionsModification(o -> o.inlinerOptions().enableInlining = false)
         .run(parameters.getRuntime(), MAIN)
         .assertSuccessWithOutput(JAVA_OUTPUT)

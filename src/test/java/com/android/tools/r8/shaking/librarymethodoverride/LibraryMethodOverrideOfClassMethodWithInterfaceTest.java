@@ -50,7 +50,7 @@ public class LibraryMethodOverrideOfClassMethodWithInterfaceTest extends TestBas
         .addLibraryClasses(LibraryClass.class)
         .addOptionsModification(
             options -> options.testing.enqueuerInspector = this::verifyLibraryOverrideInformation)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addKeepMainRule(Main.class)
         .compile()
         .addBootClasspathClasses(LibraryClass.class)

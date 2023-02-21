@@ -40,7 +40,7 @@ public class DebugLocalStartOutsideRangeTest extends TestBase {
   public void testD8() throws CompilationFailedException {
     testForD8(parameters.getBackend())
         .addProgramClassFileData(dump())
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compileWithExpectedDiagnostics(
             diagnostics -> {
               diagnostics.assertNoWarningsMatch(

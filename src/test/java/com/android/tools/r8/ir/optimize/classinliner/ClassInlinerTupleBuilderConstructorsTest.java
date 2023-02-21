@@ -47,7 +47,7 @@ public class ClassInlinerTupleBuilderConstructorsTest extends ClassInlinerTestBa
         .addKeepMainRule(TestClass.class)
         .enableAlwaysClassInlineAnnotations()
         .addDontObfuscate()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .inspect(this::inspect)
         .run(parameters.getRuntime(), TestClass.class)

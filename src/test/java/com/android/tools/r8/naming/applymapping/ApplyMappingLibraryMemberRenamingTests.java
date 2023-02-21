@@ -78,7 +78,7 @@ public class ApplyMappingLibraryMemberRenamingTests extends TestBase {
             .addProgramClasses(Dto.class, Interface.class, Main.class)
             .addKeepClassAndMembersRules(Main.class)
             .addKeepClassAndMembersRulesWithAllowObfuscation(Interface.class, Dto.class)
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .compile()
             .inspect(
                 codeInspector -> {
@@ -93,7 +93,7 @@ public class ApplyMappingLibraryMemberRenamingTests extends TestBase {
         .addClasspathClasses(Dto.class, Interface.class, Main.class)
         .addKeepAllClassesRule()
         .addApplyMapping(libraryCompileResult.getProguardMap())
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .addRunClasspathFiles(libraryCompileResult.writeToZip())
         .run(parameters.getRuntime(), ClientTest.class)

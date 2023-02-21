@@ -39,7 +39,7 @@ public class ApiModelClassMergingWithDifferentApiFieldsTest extends TestBase {
         .addProgramClasses(A.class, B.class, ApiSetter.class, Main.class)
         .addLibraryClasses(Api.class)
         .addDefaultRuntimeLibrary(parameters)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addKeepMainRule(Main.class)
         .enableInliningAnnotations()
         .enableNoHorizontalClassMergingAnnotations()

@@ -50,7 +50,7 @@ public class RepackageWithSyntheticItemTest extends RepackageTestBase {
         .addInnerClasses(RepackageWithSyntheticItemTest.class)
         .addKeepMainRule(Main.class)
         .addKeepClassRules(I.class)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .apply(this::configureRepackaging)
         .noClassInlining()
         .addInliningAnnotations()

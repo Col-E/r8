@@ -49,7 +49,7 @@ public class GetClassOnKeptClassTest extends TestBase {
         .addProgramClasses(KeptClass.class, TestClass.class)
         .addKeepMainRule(TestClass.class)
         .addKeepClassRules(KeptClass.class)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .addRunClasspathFiles(buildOnDexRuntime(parameters, UnknownClass.class))
         .run(parameters.getRuntime(), TestClass.class)

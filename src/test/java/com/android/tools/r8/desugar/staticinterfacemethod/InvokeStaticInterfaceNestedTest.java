@@ -89,7 +89,7 @@ public class InvokeStaticInterfaceNestedTest extends TestBase {
                 rewriteToUseNonInterfaceMethodReference(Main.class, "main"),
                 rewriteToUseNonInterfaceMethodReference(Library.class, "foo"))
             .addKeepAllClassesRule()
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .addKeepMainRule(Main.class);
     if (parameters.isDexRuntime()) {
       checkDexResult(testBuilder.run(parameters.getRuntime(), Main.class), true);

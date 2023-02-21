@@ -51,7 +51,7 @@ public class InvokeVirtualPositiveTest extends TestBase {
         .addOptionsModification(
             o ->
                 o.testing.callSiteOptimizationInfoInspector = this::callSiteOptimizationInfoInspect)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), MAIN)
         .assertSuccessWithOutputLines("A:Sub1", "B:Sub1")
         .inspect(this::inspect);

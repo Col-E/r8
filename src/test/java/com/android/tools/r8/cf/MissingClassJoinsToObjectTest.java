@@ -61,7 +61,7 @@ public class MissingClassJoinsToObjectTest extends TestBase {
             .addDontWarn(B.class)
             .allowDiagnosticWarningMessages()
             .enableNoMethodStaticizingAnnotations()
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .compileWithExpectedDiagnostics(
                 diagnostics ->
                     diagnostics.assertWarningsMatch(

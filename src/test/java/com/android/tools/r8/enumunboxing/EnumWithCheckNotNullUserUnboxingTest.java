@@ -35,7 +35,7 @@ public class EnumWithCheckNotNullUserUnboxingTest extends EnumUnboxingTestBase {
         .addKeepRules(enumKeepRules.getKeepRules())
         .addEnumUnboxingInspector(inspector -> inspector.assertUnboxed(MyEnum.class))
         .enableInliningAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines(

@@ -54,7 +54,7 @@ public class ApplyMappingExtendEmptyInterfaceTest extends TestBase {
             .addProgramClasses(LibI.class, LibI2.class, LibI3.class, Runner.class)
             .addKeepClassAndMembersRules(Runner.class)
             .addKeepClassAndMembersRulesWithAllowObfuscation(LibI.class, LibI2.class, LibI3.class)
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .compile();
     testForR8(parameters.getBackend())
         .addProgramClasses(TestI.class, TestA.class, Main.class)
@@ -62,7 +62,7 @@ public class ApplyMappingExtendEmptyInterfaceTest extends TestBase {
         .addKeepAllClassesRule()
         .addApplyMapping(libCompileResult.getProguardMap())
         .addRunClasspathFiles(libCompileResult.writeToZip())
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines("injectTestA", "injectObject");
   }

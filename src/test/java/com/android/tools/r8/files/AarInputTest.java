@@ -54,7 +54,7 @@ public class AarInputTest extends TestBase {
     } else {
       testForD8()
           .addProgramFiles(buildAar())
-          .setMinApi(parameters.getApiLevel())
+          .setMinApi(parameters)
           .compile()
           .inspect(inspector -> assertThat(inspector.clazz(TestClass.class), isPresent()))
           .run(parameters.getRuntime(), TestClass.class)

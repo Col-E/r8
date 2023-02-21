@@ -44,7 +44,7 @@ public class InvokeSpecialOnSameClassRecursionTest extends TestBase {
         .addProgramClasses(Main.class, B.class)
         .addProgramClassFileData(getClassWithTransformedInvoked())
         .addKeepMainRule(Main.class)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines("A.foo -1");
   }

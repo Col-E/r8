@@ -47,7 +47,7 @@ public class NarrowingWithoutSubtypingTest extends TestBase {
                   options.testing.enableNarrowAndWideningingChecksInD8 = true;
                   options.testing.noLocalsTableOnInput = true;
                 })
-            .setMinApi(parameters.getApiLevel());
+            .setMinApi(parameters);
     if (readStackMap) {
       d8TestBuilder
           .run(parameters.getRuntime(), TestClass.class)

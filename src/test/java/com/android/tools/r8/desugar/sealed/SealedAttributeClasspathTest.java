@@ -33,7 +33,7 @@ public class SealedAttributeClasspathTest extends TestBase {
     builder
         .addClasspathFiles(Sealed.jar())
         .addInnerClasses(getClass())
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), TestRunner.class)
         .assertSuccessWithOutputLines("Hello, world!");
   }

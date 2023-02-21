@@ -56,7 +56,7 @@ public class InvokeInterfacePositiveTest extends TestBase {
               o.enableDevirtualization = false;
               o.testing.callSiteOptimizationInfoInspector = this::callSiteOptimizationInfoInspect;
             })
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), MAIN)
         .assertSuccessWithOutputLines("A:Sub1", "B:Sub2")
         .inspect(this::inspect);

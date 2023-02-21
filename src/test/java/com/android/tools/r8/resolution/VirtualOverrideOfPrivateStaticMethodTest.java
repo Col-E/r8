@@ -109,7 +109,7 @@ public class VirtualOverrideOfPrivateStaticMethodTest extends TestBase {
   public void testD8() throws ExecutionException, CompilationFailedException, IOException {
     testForD8(parameters.getBackend())
         .addProgramClasses(CLASSES)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), Main.class)
         // TODO(b/182335909): Ideally, this should IllegalAccessError.
         .applyIf(
@@ -125,7 +125,7 @@ public class VirtualOverrideOfPrivateStaticMethodTest extends TestBase {
     testForR8(parameters.getBackend())
         .addProgramClasses(CLASSES)
         .addKeepMainRule(Main.class)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), Main.class)
         .assertFailureWithErrorThatThrows(expectedRuntimeError());
   }

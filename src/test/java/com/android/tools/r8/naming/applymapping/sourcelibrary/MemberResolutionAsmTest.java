@@ -101,7 +101,7 @@ public class MemberResolutionAsmTest extends TestBase {
     CodeInspector codeInspector =
         testForR8(parameters.getBackend())
             .addProgramClassFileData(noMappingInputs())
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .addKeepMainRule(noMappingMain)
             .addApplyMapping(pgMap)
             .addOptionsModification(
@@ -194,7 +194,7 @@ public class MemberResolutionAsmTest extends TestBase {
 
     R8TestCompileResult compileResult =
         testForR8(parameters.getBackend())
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .addProgramClassFileData(swappingInputs())
             .addKeepMainRule(swappingMain)
             .addApplyMapping(pgMap)

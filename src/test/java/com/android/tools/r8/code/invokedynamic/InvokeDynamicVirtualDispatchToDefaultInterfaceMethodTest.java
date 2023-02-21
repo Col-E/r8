@@ -69,7 +69,7 @@ public class InvokeDynamicVirtualDispatchToDefaultInterfaceMethodTest extends Te
         .allowAccessModification()
         .addProgramClasses(I.class, A.class)
         .addProgramClassFileData(getTransformedTestClass())
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addKeepMainRule(TestClass.class)
         .addKeepRules("-keepclassmembers class * { *** foo(...); }")
         .run(parameters.getRuntime(), TestClass.class)

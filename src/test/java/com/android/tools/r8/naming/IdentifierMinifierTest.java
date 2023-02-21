@@ -70,7 +70,7 @@ public class IdentifierMinifierTest extends TestBase {
             .addKeepRuleFiles(ListUtils.map(keepRulesFiles, Paths::get))
             .allowDiagnosticWarningMessages(hasWarning)
             .enableProguardTestOptions()
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .compile()
             .applyIf(
                 hasWarning,

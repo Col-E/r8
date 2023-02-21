@@ -67,7 +67,7 @@ public class StaticInterfaceMethodTest extends TestBase {
     testForR8(parameters.getBackend())
         .addProgramClasses(LibraryInterface.class, ProgramClass.class)
         .addKeepMainRule(ProgramClass.class)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), ProgramClass.class)
         .assertSuccessWithOutput(EXPECTED);
   }
@@ -78,7 +78,7 @@ public class StaticInterfaceMethodTest extends TestBase {
         testForR8(parameters.getBackend())
             .addProgramClasses(LibraryInterface.class)
             .addKeepClassAndMembersRules(LibraryInterface.class)
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .compile();
     CodeInspector inspector = libraryResult.inspector();
     ClassSubject libraryInterface = inspector.clazz(LibraryInterface.class);
@@ -101,7 +101,7 @@ public class StaticInterfaceMethodTest extends TestBase {
         .addClasspathClasses(LibraryInterface.class)
         .addApplyMapping(libraryResult.getProguardMap())
         .addKeepMainRule(ProgramClass.class)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .addRunClasspathFiles(libraryResult.writeToZip())
         .run(parameters.getRuntime(), ProgramClass.class)

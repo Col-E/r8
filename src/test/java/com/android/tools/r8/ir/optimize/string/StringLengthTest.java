@@ -75,7 +75,7 @@ public class StringLengthTest extends TestBase {
         testForD8()
             .release()
             .addProgramClasses(MAIN)
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .run(parameters.getRuntime(), MAIN);
     result.assertSuccessWithOutput(JAVA_OUTPUT);
     test(result, 1, 5);
@@ -84,7 +84,7 @@ public class StringLengthTest extends TestBase {
         testForD8()
             .debug()
             .addProgramClasses(MAIN)
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .run(parameters.getRuntime(), MAIN);
     result.assertSuccessWithOutput(JAVA_OUTPUT);
     test(result, 6, 1);
@@ -97,7 +97,7 @@ public class StringLengthTest extends TestBase {
             .addProgramClasses(MAIN)
             .enableInliningAnnotations()
             .addKeepMainRule(MAIN)
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .run(parameters.getRuntime(), MAIN)
             .assertSuccessWithOutput(JAVA_OUTPUT);
     test(result, 0, parameters.isDexRuntime() ? 6 : 7);

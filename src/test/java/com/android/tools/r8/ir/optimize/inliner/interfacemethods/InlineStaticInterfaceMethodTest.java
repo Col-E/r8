@@ -38,7 +38,7 @@ public class InlineStaticInterfaceMethodTest extends TestBase {
         testForR8(parameters.getBackend())
             .addInnerClasses(InlineStaticInterfaceMethodTest.class)
             .addKeepMainRule(TestClass.class)
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .run(parameters.getRuntime(), TestClass.class)
             .assertSuccessWithOutput(expectedOutput)
             .inspector();

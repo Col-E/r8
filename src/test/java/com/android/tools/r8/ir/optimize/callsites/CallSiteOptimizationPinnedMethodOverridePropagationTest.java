@@ -60,12 +60,12 @@ public class CallSiteOptimizationPinnedMethodOverridePropagationTest extends Tes
             .enableNoHorizontalClassMergingAnnotations()
             .enableInliningAnnotations()
             .enableMemberValuePropagationAnnotations()
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .compile();
     compiled.run(parameters.getRuntime(), Main2.class).assertSuccessWithOutputLines("Arg1");
     testForD8()
         .addProgramClasses(Main.class)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .addRunClasspathFiles(compiled.writeToZip())
         .run(parameters.getRuntime(), Main.class)

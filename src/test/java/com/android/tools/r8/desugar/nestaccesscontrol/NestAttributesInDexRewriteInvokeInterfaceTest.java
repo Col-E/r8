@@ -86,7 +86,7 @@ public class NestAttributesInDexRewriteInvokeInterfaceTest extends TestBase impl
             dumpHostImpl(),
             dumpMember1Impl(),
             dumpMember2Impl())
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addOptionsModification(options -> options.emitNestAnnotationsInDex = true)
         .compile()
         .inspect(
@@ -118,7 +118,7 @@ public class NestAttributesInDexRewriteInvokeInterfaceTest extends TestBase impl
         testForD8()
             .addProgramClassFileData(dumpHost())
             .addClasspathClassFileData(dumpMember1(), dumpMember2())
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .addOptionsModification(options -> options.emitNestAnnotationsInDex = true)
             .compile()
             .inspect(
@@ -134,7 +134,7 @@ public class NestAttributesInDexRewriteInvokeInterfaceTest extends TestBase impl
         testForD8()
             .addProgramClassFileData(dumpMember1())
             .addClasspathClassFileData(dumpHost(), dumpMember2())
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .addOptionsModification(options -> options.emitNestAnnotationsInDex = true)
             .compile()
             .inspect(
@@ -150,7 +150,7 @@ public class NestAttributesInDexRewriteInvokeInterfaceTest extends TestBase impl
         testForD8()
             .addProgramClassFileData(dumpMember2())
             .addClasspathClassFileData(dumpHost(), dumpMember1())
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .addOptionsModification(options -> options.emitNestAnnotationsInDex = true)
             .compile()
             .inspect(
@@ -166,7 +166,7 @@ public class NestAttributesInDexRewriteInvokeInterfaceTest extends TestBase impl
         testForD8()
             .addProgramClassFileData(dumpHostImpl(), dumpMember1Impl(), dumpMember2Impl())
             .addClasspathClassFileData(dumpHost(), dumpMember1(), dumpMember2Impl())
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .addOptionsModification(options -> options.emitNestAnnotationsInDex = true)
             .compile()
             .writeToZip();
@@ -174,7 +174,7 @@ public class NestAttributesInDexRewriteInvokeInterfaceTest extends TestBase impl
     testForD8()
         .addProgramFiles(host, member1, member2, impls)
         .addClasspathClassFileData(dumpMember2())
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addOptionsModification(options -> options.emitNestAnnotationsInDex = true)
         .compile()
         .inspect(
@@ -207,7 +207,7 @@ public class NestAttributesInDexRewriteInvokeInterfaceTest extends TestBase impl
         () ->
             testForD8()
                 .addProgramClassFileData(dumpHost())
-                .setMinApi(parameters.getApiLevel())
+                .setMinApi(parameters)
                 .addOptionsModification(options -> options.emitNestAnnotationsInDex = true)
                 .compileWithExpectedDiagnostics(
                     diagnostics -> {
@@ -228,7 +228,7 @@ public class NestAttributesInDexRewriteInvokeInterfaceTest extends TestBase impl
         () ->
             testForD8()
                 .addProgramClassFileData(dumpMember1(), dumpMember2())
-                .setMinApi(parameters.getApiLevel())
+                .setMinApi(parameters)
                 .addOptionsModification(options -> options.emitNestAnnotationsInDex = true)
                 .compileWithExpectedDiagnostics(
                     diagnostics -> {

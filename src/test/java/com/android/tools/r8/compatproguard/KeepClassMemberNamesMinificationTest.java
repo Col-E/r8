@@ -72,7 +72,7 @@ public class KeepClassMemberNamesMinificationTest extends TestBase {
         .addKeepMainRule(Main.class)
         .addKeepClassAndMembersRulesWithAllowObfuscation(A.class)
         .addKeepRules("-keepclassmembernames class ** { *; }")
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .inspect(
             inspector -> {

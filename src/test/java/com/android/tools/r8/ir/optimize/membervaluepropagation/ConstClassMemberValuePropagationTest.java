@@ -42,7 +42,7 @@ public class ConstClassMemberValuePropagationTest extends TestBase {
         .addInnerClasses(ConstClassMemberValuePropagationTest.class)
         .addKeepMainRule(TestClass.class)
         .enableInliningAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .inspect(this::inspect)
         .run(parameters.getRuntime(), TestClass.class)

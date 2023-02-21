@@ -49,7 +49,7 @@ public class Regress214340258 extends TestBase {
             .addDontOptimize()
             .addKeepAllClassesRule()
             .addProgramFiles(compiledJumbo)
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .run(parameters.getRuntime(), "TestClass0");
     r8TestRunResult.assertSuccessWithOutputLines("foobar");
     assertTrue(hasJumboString(r8TestRunResult));

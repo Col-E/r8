@@ -102,7 +102,7 @@ public class RepackageDontObfuscateTest extends RepackageTestBase {
   private R8TestCompileResult setup(R8TestBuilder<?> r8TestBuilder) throws Exception {
     return r8TestBuilder
         .addInnerClasses(getClass())
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addKeepMainRule(Main.class)
         .enableInliningAnnotations()
         .apply(this::configureRepackaging)

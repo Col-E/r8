@@ -34,7 +34,7 @@ public class SynchronizedClassesTest extends HorizontalClassMergingTestBase {
         .enableConstantArgumentAnnotations()
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines("foo", "b", "bar", "1", "true")

@@ -41,7 +41,7 @@ public class EnumWithStaticFieldUnboxingTest extends EnumUnboxingTestBase {
         .addOptionsModification(opt -> enableEnumOptions(opt, enumValueOptimization))
         .addEnumUnboxingInspector(
             inspector -> inspector.assertUnboxed(EnumStaticFieldMain.EnumStaticField.class))
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .run(parameters.getRuntime(), EnumStaticFieldMain.class)
         .assertSuccess()

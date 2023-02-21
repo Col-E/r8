@@ -39,7 +39,7 @@ public class MemberRebindingArrayTest extends TestBase {
     testForR8(parameters.getBackend())
         .addProgramClassFileData(getMainWithRewrittenEqualsAndHashCode())
         .addKeepMainRule(Main.class)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addOptionsModification(
             options -> options.apiModelingOptions().disableApiCallerIdentification())
         .run(parameters.getRuntime(), Main.class)

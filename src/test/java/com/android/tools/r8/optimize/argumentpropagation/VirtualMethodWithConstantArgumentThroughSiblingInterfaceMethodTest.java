@@ -38,7 +38,7 @@ public class VirtualMethodWithConstantArgumentThroughSiblingInterfaceMethodTest 
         .addInnerClasses(getClass())
         .addKeepMainRule(Main.class)
         .enableNoVerticalClassMergingAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .inspect(
             inspector -> {

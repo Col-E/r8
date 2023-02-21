@@ -53,7 +53,7 @@ public class LibraryMemberRebindingTest extends TestBase {
         .addKeepMainRule(TestClass.class)
         .addLibraryFiles(compileTimeLibrary)
         .addDefaultRuntimeLibrary(parameters)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .apply(compileResult -> configureRunClasspath(compileResult, runtimeLibrary))
         .run(parameters.getRuntime(), TestClass.class)
@@ -77,7 +77,6 @@ public class LibraryMemberRebindingTest extends TestBase {
                         String[] exceptions) -> !name.equals("<init>"))
                 .transform())
         .addKeepAllClassesRule()
-        .setMinApi(parameters.getApiLevel())
         .compile()
         .writeToZip();
   }
@@ -88,11 +87,7 @@ public class LibraryMemberRebindingTest extends TestBase {
       compileResult.addRunClasspathFiles(library);
     } else {
       compileResult.addRunClasspathFiles(
-          testForD8()
-              .addProgramFiles(library)
-              .setMinApi(parameters.getApiLevel())
-              .compile()
-              .writeToZip());
+          testForD8().addProgramFiles(library).setMinApi(parameters).compile().writeToZip());
     }
   }
 

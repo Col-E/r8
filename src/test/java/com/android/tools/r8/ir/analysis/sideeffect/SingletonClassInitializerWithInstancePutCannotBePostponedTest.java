@@ -44,7 +44,7 @@ public class SingletonClassInitializerWithInstancePutCannotBePostponedTest exten
         .enableInliningAnnotations()
         .enableMemberValuePropagationAnnotations()
         .enableNeverClassInliningAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .inspect(this::inspect)
         .run(parameters.getRuntime(), Main.class)

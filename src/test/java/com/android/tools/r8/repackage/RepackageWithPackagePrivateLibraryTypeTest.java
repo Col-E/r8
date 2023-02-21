@@ -49,7 +49,7 @@ public class RepackageWithPackagePrivateLibraryTypeTest extends RepackageTestBas
         .addKeepMainRule(Main.class)
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addRunClasspathFiles(buildOnDexRuntime(parameters, Library.class, LibraryI.class))
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines(EXPECTED)

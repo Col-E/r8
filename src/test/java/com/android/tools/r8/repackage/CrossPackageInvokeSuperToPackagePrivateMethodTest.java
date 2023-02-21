@@ -55,7 +55,7 @@ public class CrossPackageInvokeSuperToPackagePrivateMethodTest extends TestBase 
         .enableInliningAnnotations()
         .enableNoVerticalClassMergingAnnotations()
         .enableNeverClassInliningAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .run(parameters.getRuntime(), TestClass.class)
         .apply(this::inspectRunResult);

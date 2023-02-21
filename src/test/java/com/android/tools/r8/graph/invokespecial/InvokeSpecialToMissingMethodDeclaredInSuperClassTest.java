@@ -64,7 +64,7 @@ public class InvokeSpecialToMissingMethodDeclaredInSuperClassTest extends TestBa
                           }
                           inspector.assertNoOtherClassesMerged();
                         }))
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines("A.foo()");
   }

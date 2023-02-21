@@ -130,7 +130,7 @@ public class MaximallySpecificSingleDominatingAfterJoinTest extends TestBase {
         .addProgramClasses(K.class, Main.class)
         .addDefaultRuntimeLibrary(parameters)
         .addLibraryFiles(libraryClasses)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addOptionsModification(options -> options.loadAllClassDefinitions = true)
         .compile()
         .addBootClasspathFiles(buildOnDexRuntime(parameters, libraryClasses))

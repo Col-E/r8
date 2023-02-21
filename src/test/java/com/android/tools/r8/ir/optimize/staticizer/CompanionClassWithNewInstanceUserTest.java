@@ -36,7 +36,7 @@ public class CompanionClassWithNewInstanceUserTest extends TestBase {
         .addInnerClasses(CompanionClassWithNewInstanceUserTest.class)
         .addKeepMainRule(TestClass.class)
         .enableInliningAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .inspect(this::inspect)
         .run(parameters.getRuntime(), TestClass.class)

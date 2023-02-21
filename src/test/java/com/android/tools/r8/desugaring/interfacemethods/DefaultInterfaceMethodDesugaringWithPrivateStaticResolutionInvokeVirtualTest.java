@@ -94,7 +94,7 @@ public class DefaultInterfaceMethodDesugaringWithPrivateStaticResolutionInvokeVi
             .addProgramClasses(getProgramClasses())
             .addProgramClassFileData(getProgramClassData())
             .addKeepAllClassesRule()
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .compile()
             .run(parameters.getRuntime(), TestClass.class),
         true);

@@ -42,7 +42,7 @@ public class ApiModelNoInliningOfHigherApiLevelStaticMethodTest extends TestBase
         .addProgramClasses(Main.class, A.class, ApiCaller.class)
         .addLibraryClasses(Api.class)
         .addDefaultRuntimeLibrary(parameters)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addKeepMainRule(Main.class)
         .enableInliningAnnotations()
         .enableNoHorizontalClassMergingAnnotations()

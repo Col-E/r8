@@ -31,7 +31,7 @@ public class InterfaceClInit extends TestBase {
     testForR8(parameters.getBackend())
         .addProgramClasses(TestClass.class, InterfaceWithStaticBlock.class, UsedFromStatic.class)
         .addKeepMainRule(TestClass.class)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), TestClass.class)
         .assertSuccessWithOutputLines(EXPECTED);
   }

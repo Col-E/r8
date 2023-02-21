@@ -63,7 +63,7 @@ public class AbstractMethodRemovalTestRunner extends TestBase {
     testForR8(parameters.getBackend())
         .addProgramClasses(getProgramClasses())
         .addKeepMainRule(getMainClass())
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), getMainClass())
         .assertSuccessWithOutput(getExpected());
   }

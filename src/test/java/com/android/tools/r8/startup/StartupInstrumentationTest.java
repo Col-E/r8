@@ -59,7 +59,7 @@ public class StartupInstrumentationTest extends TestBase {
             StartupTestingUtils.enableStartupInstrumentationForOriginalAppUsingLogcat(parameters),
             StartupTestingUtils.enableStartupInstrumentationForOriginalAppUsingFile(parameters))
         .release()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .applyIf(
             logcat,

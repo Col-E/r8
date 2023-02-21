@@ -55,7 +55,7 @@ public class RepackageParameterSyntheticOutlineTest extends RepackageTestBase {
             rewrittenMainWithMethodReferencesToCodeToBeOutlined())
         .addKeepMainRule(Main.class)
         .addKeepClassRulesWithAllowObfuscation(Param.class, Return.class)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .enableInliningAnnotations()
         .addOptionsModification(
             options -> {

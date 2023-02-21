@@ -28,15 +28,15 @@ public class SuperMethodMergedTest extends HorizontalClassMergingTestBase {
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
         .enableNoVerticalClassMergingAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines("foo", "parent b", "parent b", "x", "parent b")
         .inspect(
             codeInspector -> {
-                assertThat(codeInspector.clazz(ParentA.class), isPresent());
-                assertThat(codeInspector.clazz(ParentB.class), not(isPresent()));
-                assertThat(codeInspector.clazz(X.class), isPresent());
-                assertThat(codeInspector.clazz(Y.class), not(isPresent()));
+              assertThat(codeInspector.clazz(ParentA.class), isPresent());
+              assertThat(codeInspector.clazz(ParentB.class), not(isPresent()));
+              assertThat(codeInspector.clazz(X.class), isPresent());
+              assertThat(codeInspector.clazz(Y.class), not(isPresent()));
             });
   }
 

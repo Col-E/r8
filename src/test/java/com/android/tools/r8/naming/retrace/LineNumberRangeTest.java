@@ -83,7 +83,7 @@ public class LineNumberRangeTest extends TestBase {
             .addKeepMainRule(Main.class)
             .addKeepAttributes(
                 ProguardKeepAttributes.SOURCE_FILE, ProguardKeepAttributes.LINE_NUMBER_TABLE)
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .addOptionsModification(
                 options -> {
                   options.inlinerOptions().enableInlining = false;

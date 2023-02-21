@@ -41,7 +41,7 @@ public class AdaptVerticallyMergedResourceFileContentsTest extends HorizontalCla
                     A.class.getTypeName(),
                     B.class.getTypeName()))
             .addKeepRules("-adaptresourcefilecontents foo.txt")
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .addHorizontallyMergedClassesInspector(
                 inspector -> inspector.assertMergedInto(B.class, A.class))
             .addVerticallyMergedClassesInspector(

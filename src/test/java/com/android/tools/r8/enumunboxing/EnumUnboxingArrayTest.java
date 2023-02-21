@@ -59,7 +59,7 @@ public class EnumUnboxingArrayTest extends EnumUnboxingTestBase {
                         EnumArrayReadWrite.MyEnum.class,
                         EnumArrayReadWriteNoEscape.MyEnum.class,
                         EnumVarArgs.MyEnum.class))
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .compile();
     for (Class<?> main : TESTS) {
       compile

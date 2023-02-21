@@ -114,7 +114,7 @@ public class ApplyMappingAfterDevirtualizationTest extends TestBase {
             .addKeepClassAndDefaultConstructor(LibClassB.class)
             .addOptionsModification(options -> options.inlinerOptions().enableInlining = false)
             .enableNoMethodStaticizingAnnotations()
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .compile();
 
     CodeInspector inspector = libraryResult.inspector();
@@ -131,7 +131,7 @@ public class ApplyMappingAfterDevirtualizationTest extends TestBase {
         .addProgramClasses(PROGRAM_CLASSES)
         .addApplyMapping(libraryResult.getProguardMap())
         .addClasspathClasses(CLASSPATH_CLASSES)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .addRunClasspathFiles(libraryResult.writeToZip())
         .run(parameters.getRuntime(), ProgramClass.class)
@@ -147,7 +147,7 @@ public class ApplyMappingAfterDevirtualizationTest extends TestBase {
                 LibClassA.class, LibClassB.class, LibInterfaceA.class)
             .addOptionsModification(options -> options.inlinerOptions().enableInlining = false)
             .enableNoMethodStaticizingAnnotations()
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .compile();
 
     CodeInspector inspector = libraryResult.inspector();
@@ -164,7 +164,7 @@ public class ApplyMappingAfterDevirtualizationTest extends TestBase {
         .addProgramClasses(PROGRAM_CLASSES)
         .addApplyMapping(libraryResult.getProguardMap())
         .addClasspathClasses(CLASSPATH_CLASSES)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .addRunClasspathFiles(libraryResult.writeToZip())
         .run(parameters.getRuntime(), ProgramClass.class)

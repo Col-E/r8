@@ -29,7 +29,7 @@ public class SoftPinDefaultInitializerWithConstClassInCompatModeTest extends Tes
     testForR8Compat(parameters.getBackend())
         .addInnerClasses(getClass())
         .addKeepMainRule(Main.class)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines("A");

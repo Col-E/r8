@@ -76,7 +76,7 @@ public class KotlinReflectTest extends KotlinTestBase {
         .addProgramFiles(kotlinc.getKotlinStdlibJar())
         .addProgramFiles(kotlinc.getKotlinReflectJar())
         .setProgramConsumer(new ArchiveConsumer(output.toPath(), true))
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addOptionsModification(
             options -> {
               options.testing.enableD8ResourcesPassThrough = true;
@@ -95,7 +95,7 @@ public class KotlinReflectTest extends KotlinTestBase {
         .addProgramFiles(kotlinc.getKotlinReflectJar())
         .addProgramFiles(kotlinc.getKotlinAnnotationJar())
         .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.LATEST))
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addKeepAllClassesRule()
         .addKeepAttributes(ProguardKeepAttributes.RUNTIME_VISIBLE_ANNOTATIONS)
         .allowDiagnosticMessages()

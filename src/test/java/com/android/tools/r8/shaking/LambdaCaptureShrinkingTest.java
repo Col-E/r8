@@ -41,7 +41,7 @@ public class LambdaCaptureShrinkingTest extends TestBase {
         .addInnerClasses(getClass())
         .addKeepMainRule(Main.class)
         .enableNoVerticalClassMergingAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .applyIf(
             parameters.isCfRuntime(),

@@ -77,7 +77,7 @@ public class MainDexPrunedReferenceTest extends TestBase {
         .enableNoHorizontalClassMergingAnnotations()
         .addKeepMainRule(Main.class)
         .addKeepClassRules(Outside.class)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .apply(configureMainDex)
         .applyIf(
             parameters.getDexRuntimeVersion().isDalvik(),

@@ -89,7 +89,7 @@ public class KeptByConditionalRuleTestRunner extends TestBase {
             .addProgramClasses(CLASS)
             .addKeepMainRule(CLASS)
             .addKeepRules(CONDITIONAL_KEEP_RULE)
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .run(parameters.getRuntime(), CLASS)
             .assertSuccessWithOutput(EXPECTED)
             .graphInspector();

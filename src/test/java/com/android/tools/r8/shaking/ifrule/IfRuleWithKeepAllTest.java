@@ -49,7 +49,7 @@ public class IfRuleWithKeepAllTest extends TestBase {
         .addProgramClasses(DirectlyKept.class, KeptByIf.class)
         .addKeepClassAndMembersRules(DirectlyKept.class)
         .addKeepRules(precondition + "\n-keep class " + KeptByIf.class.getTypeName() + " { *; }")
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .inspect(
             codeInspector -> {

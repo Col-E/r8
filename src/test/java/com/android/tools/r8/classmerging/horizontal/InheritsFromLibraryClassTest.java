@@ -30,7 +30,7 @@ public class InheritsFromLibraryClassTest extends HorizontalClassMergingTestBase
         .addKeepMainRule(Main.class)
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines("a", "foo a", "b", "foo")
         .inspect(

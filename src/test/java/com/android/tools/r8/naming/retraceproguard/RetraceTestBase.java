@@ -68,7 +68,7 @@ public abstract class RetraceTestBase extends TestBase {
             .addProgramClasses(getClasses())
             .addKeepMainRule(getMainClass())
             .addKeepRules(keepRules)
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .apply(this::configure)
             .compile()
             .apply(compileResultConsumer)

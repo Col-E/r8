@@ -46,7 +46,7 @@ public class UnusedInterfaceRemovalPackageBoundaryTest extends TestBase {
         .addKeepClassRules(I_CLASS)
         .enableNeverClassInliningAnnotations()
         .enableNoVerticalClassMergingAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .inspect(
             inspector -> {

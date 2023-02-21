@@ -41,7 +41,7 @@ public class NonNullStaticFieldTest extends TestBase {
         .addProgramClasses(TestClass.class)
         .addKeepMainRule(TestClass.class)
         .enableInliningAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .inspect(this::verifyMainIsEmpty)
         .run(parameters.getRuntime(), TestClass.class)

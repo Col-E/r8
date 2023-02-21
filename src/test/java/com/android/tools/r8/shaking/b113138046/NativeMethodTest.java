@@ -45,7 +45,7 @@ public class NativeMethodTest extends TestBase {
   private void test(List<String> config, boolean expectedFooPresence) throws Exception {
     R8TestCompileResult compileResult =
         (compatMode ? testForR8Compat(parameters.getBackend()) : testForR8(parameters.getBackend()))
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .addProgramClassesAndInnerClasses(Keep.class, Data.class, Handler.class, Outer.class)
             .addKeepRules(config)
             .addOptionsModification(options -> options.inlinerOptions().enableInlining = false)

@@ -51,7 +51,7 @@ public class MainDexUnusedArgumentRewriteWithLensTest extends TestBase {
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
         .enableNoMethodStaticizingAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addKeepClassRules(Dependency.class)
         .addMainDexRules(
             "-keep class " + A.class.getTypeName() + " { void foo(java.lang.Object,int); }")

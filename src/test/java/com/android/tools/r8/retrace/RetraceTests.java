@@ -108,14 +108,14 @@ public class RetraceTests extends TestBase {
         BooleanUtils.values());
   }
 
-  private final TestParameters testParameters;
+  private final TestParameters parameters;
   private final boolean external;
   private final boolean verbose;
   private final boolean stream;
 
   public RetraceTests(
       TestParameters parameters, boolean external, boolean verbose, boolean stream) {
-    this.testParameters = parameters;
+    this.parameters = parameters;
     this.external = external;
     this.verbose = verbose;
     this.stream = stream;
@@ -483,7 +483,7 @@ public class RetraceTests extends TestBase {
                 ? stackTraceForTest.retraceVerboseStackTrace()
                 : stackTraceForTest.retracedStackTrace());
     if (external) {
-      assumeTrue(testParameters.isCfRuntime());
+      assumeTrue(parameters.isCfRuntime());
       // The external dependency is built on top of R8Lib. If test.py is run with
       // no r8lib, do not try and run the external R8 Retrace since it has not been built.
       assumeTrue(ToolHelper.isTestingR8Lib());
@@ -498,7 +498,7 @@ public class RetraceTests extends TestBase {
               .getBytes(StandardCharsets.UTF_8));
 
       List<String> command = new ArrayList<>();
-      command.add(testParameters.getRuntime().asCf().getJavaExecutable().toString());
+      command.add(parameters.getRuntime().asCf().getJavaExecutable().toString());
       command.add("-ea");
       command.add("-cp");
       command.add(ToolHelper.R8_RETRACE_JAR.toString());

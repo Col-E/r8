@@ -38,7 +38,7 @@ public class MissingMethodTest extends TestBase {
     testForR8(parameters.getBackend())
         .addProgramClassFileData(InterfaceDump.dump(), MainDump.dump())
         .addKeepMainRule("Main")
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), "Main")
         .assertFailureWithErrorThatThrows(NoSuchMethodError.class);
   }

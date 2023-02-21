@@ -44,7 +44,7 @@ public class Regress199142666 extends TestBase {
         .addProgramClassFileData(getVirtualAAsStaticA())
         .addKeepMainRule(HasInvalidStaticCall.class)
         .addKeepMethodRules(StaticA.class, "void foo()")
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), HasInvalidStaticCall.class)
         // TODO(b/199142666): We should consider if we want to inline in this case (there are no
         //  verification errors)
@@ -63,7 +63,7 @@ public class Regress199142666 extends TestBase {
         .addProgramClassFileData(getVirtualAAsStaticA())
         .addKeepMainRule(TargetHasInvalidStaticCall.class)
         .addKeepMethodRules(StaticA.class, "void foo()")
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), TargetHasInvalidStaticCall.class)
         .assertSuccessWithEmptyOutput()
         .inspect(

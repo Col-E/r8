@@ -71,7 +71,7 @@ public class DefaultInterfaceMethodDesugaringImpossibleTest extends TestBase {
       testForD8()
           .addProgramClasses(getProgramClasses())
           .addProgramClassFileData(getProgramClassData())
-          .setMinApi(parameters.getApiLevel())
+          .setMinApi(parameters)
           .compileWithExpectedDiagnostics(this::checkDesugarError)
           .run(parameters.getRuntime(), TestClass.class)
           .assertSuccessWithOutput(EXPECTED);
@@ -88,7 +88,7 @@ public class DefaultInterfaceMethodDesugaringImpossibleTest extends TestBase {
           .addProgramClasses(getProgramClasses())
           .addProgramClassFileData(getProgramClassData())
           .addKeepAllClassesRule()
-          .setMinApi(parameters.getApiLevel())
+          .setMinApi(parameters)
           .compileWithExpectedDiagnostics(this::checkDesugarError)
           .run(parameters.getRuntime(), TestClass.class)
           .assertSuccessWithOutput(EXPECTED);

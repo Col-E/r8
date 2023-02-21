@@ -97,7 +97,7 @@ public abstract class MissingClassesTestBase extends TestBase {
       throws CompilationFailedException {
     testForR8(parameters.getBackend())
         .apply(configuration)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compileWithExpectedDiagnostics(diagnosticsConsumer);
   }
 

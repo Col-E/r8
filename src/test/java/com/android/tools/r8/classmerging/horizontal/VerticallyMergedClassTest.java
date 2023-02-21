@@ -27,7 +27,7 @@ public class VerticallyMergedClassTest extends HorizontalClassMergingTestBase {
         .enableNoHorizontalClassMergingAnnotations()
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines("b", "a", "c")
         .inspect(

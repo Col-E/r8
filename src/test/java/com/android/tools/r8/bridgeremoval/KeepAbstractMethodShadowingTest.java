@@ -48,7 +48,7 @@ public class KeepAbstractMethodShadowingTest extends TestBase {
     testForR8(parameters.getBackend())
         .addProgramClasses(A.class, C.class, Main.class)
         .addProgramClassFileData(getBWithAbstractFoo())
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addKeepMainRule(Main.class)
         .addKeepClassAndMembersRules(A.class)
         .run(parameters.getRuntime(), Main.class)

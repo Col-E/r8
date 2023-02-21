@@ -38,7 +38,7 @@ public class CastToUninstantiatedClassTest extends TestBase {
         .addInnerClasses(getClass())
         .addKeepMainRule(TestClass.class)
         .enableInliningAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .inspect(inspector -> assertThat(inspector.clazz(Uninstantiated.class), isAbsent()))
         .run(parameters.getRuntime(), TestClass.class)

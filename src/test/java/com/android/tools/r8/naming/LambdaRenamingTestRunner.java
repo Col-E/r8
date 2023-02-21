@@ -80,7 +80,7 @@ public class LambdaRenamingTestRunner extends TestBase {
             "  public java.lang.Integer reservedMethod2();",
             "}")
         .debug()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .apply(
             compileResult ->

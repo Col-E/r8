@@ -87,7 +87,7 @@ public class ForceProguardCompatibilityTest extends TestBase {
             .addProgramClasses(mainClass, mentionedClass)
             .addKeepMainRule(mainClass)
             .apply(configuration)
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .compile()
             .inspector();
     assertThat(inspector.clazz(mainClass), isPresent());
@@ -126,7 +126,7 @@ public class ForceProguardCompatibilityTest extends TestBase {
             .allowAccessModification()
             .addKeepClassAndMembersRules(annotationClass)
             .map(b -> keepAnnotations ? b.addKeepAttributes("*Annotation*") : b)
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .compile()
             .inspector();
 
@@ -165,7 +165,7 @@ public class ForceProguardCompatibilityTest extends TestBase {
             .addProgramClasses(testClass)
             .addKeepRules(proguardConfig)
             .enableGraphInspector()
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .compile()
             .graphInspector();
 
@@ -208,7 +208,7 @@ public class ForceProguardCompatibilityTest extends TestBase {
         testForR8Compat(parameters.getBackend(), forceProguardCompatibility)
             .addProgramClasses(mainClass, instantiatedClass)
             .addKeepRules(proguardConfig)
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .compile()
             .inspector();
 
@@ -261,7 +261,7 @@ public class ForceProguardCompatibilityTest extends TestBase {
         testForR8Compat(parameters.getBackend(), forceProguardCompatibility)
             .addProgramClasses(mainClass, forNameClass1, forNameClass2)
             .addKeepRules(proguardConfig)
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .compile()
             .inspector();
 
@@ -316,7 +316,7 @@ public class ForceProguardCompatibilityTest extends TestBase {
         testForR8Compat(parameters.getBackend(), forceProguardCompatibility)
             .addProgramClasses(mainClass, withMemberClass)
             .addKeepRules(proguardConfig)
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .compile()
             .inspector();
 
@@ -381,7 +381,7 @@ public class ForceProguardCompatibilityTest extends TestBase {
         testForR8Compat(parameters.getBackend(), forceProguardCompatibility)
             .addProgramClasses(mainClass, withVolatileFields)
             .addKeepRules(proguardConfig)
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .compile()
             .inspector();
 
@@ -459,7 +459,7 @@ public class ForceProguardCompatibilityTest extends TestBase {
                   keepRules)
               .addOptionsModification(options -> options.enableClassInlining = false)
               .enableSideEffectAnnotations()
-              .setMinApi(parameters.getApiLevel())
+              .setMinApi(parameters)
               .run(parameters.getRuntime(), TestKeepAttributes.class)
               .applyIf(
                   forceProguardCompatibility && (innerClasses || enclosingMethod),
@@ -511,7 +511,7 @@ public class ForceProguardCompatibilityTest extends TestBase {
                 "-dontobfuscate")
             .addKeepRules(additionalKeepRules)
             .enableGraphInspector()
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .addOptionsModification(
                 o -> {
                   o.enableClassInlining = false;

@@ -36,7 +36,7 @@ public class StatelessSingletonClassesMergingTest extends TestBase {
             inspector -> inspector.assertIsCompleteMergeGroup(A.class, B.class))
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines("A", "B");

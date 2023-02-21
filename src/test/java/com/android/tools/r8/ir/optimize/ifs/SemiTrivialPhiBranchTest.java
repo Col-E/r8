@@ -39,7 +39,7 @@ public class SemiTrivialPhiBranchTest extends TestBase {
         .addInnerClasses(SemiTrivialPhiBranchTest.class)
         .addKeepMainRule(TestClass.class)
         .enableInliningAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .inspect(this::inspect)
         .run(parameters.getRuntime(), TestClass.class)

@@ -65,7 +65,7 @@ public class RecordInvokeCustomTest extends TestBase {
     }
     testForD8(parameters.getBackend())
         .addProgramClassFileData(PROGRAM_DATA)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .run(parameters.getRuntime(), MAIN_TYPE)
         .assertSuccessWithOutput(EXPECTED_RESULT_D8);
@@ -77,7 +77,7 @@ public class RecordInvokeCustomTest extends TestBase {
     R8FullTestBuilder builder =
         testForR8(parameters.getBackend())
             .addProgramClassFileData(PROGRAM_DATA)
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .addKeepMainRule(MAIN_TYPE);
     if (parameters.isCfRuntime()) {
       builder

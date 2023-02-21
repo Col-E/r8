@@ -34,7 +34,7 @@ public class LambdaRewritingTest extends TestBase {
         .addVerticallyMergedClassesInspector(
             inspector -> inspector.assertMergedIntoSubtype(Interface.class))
         .enableInliningAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .run(parameters.getRuntime(), Main.class);
   }

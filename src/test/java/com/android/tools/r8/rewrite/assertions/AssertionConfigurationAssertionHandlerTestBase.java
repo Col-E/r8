@@ -59,7 +59,7 @@ public abstract class AssertionConfigurationAssertionHandlerTestBase extends Tes
     testForD8(parameters.getBackend())
         .addProgramClasses(getAssertionHandlerClasses())
         .addProgramClasses(getTestClasses())
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addOptionsModification(o -> o.testing.forceIRForCfToCfDesugar = true)
         .addAssertionsConfiguration(
             builder ->
@@ -80,7 +80,7 @@ public abstract class AssertionConfigurationAssertionHandlerTestBase extends Tes
         .addKeepMainRule(getTestClasses().get(0))
         .addKeepAnnotation()
         .addKeepRules("-keepclassmembers class * { @com.android.tools.r8.Keep *; }")
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addAssertionsConfiguration(
             builder ->
                 builder

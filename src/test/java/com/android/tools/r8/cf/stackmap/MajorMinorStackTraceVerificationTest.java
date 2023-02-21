@@ -32,7 +32,7 @@ public class MajorMinorStackTraceVerificationTest extends TestBase {
     testForR8(parameters.getBackend())
         .addProgramClassFileData(
             transformer(Main.class).setVersion(CfVersion.V1_1).stripFrames("main").transform())
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addKeepMainRule(Main.class)
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines("Hello World");

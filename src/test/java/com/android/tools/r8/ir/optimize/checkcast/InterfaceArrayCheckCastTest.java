@@ -35,7 +35,7 @@ public class InterfaceArrayCheckCastTest extends TestBase {
     assumeTrue(parameters.isDexRuntime());
     testForD8(parameters.getBackend())
         .addInnerClasses(getClass())
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), TestClass.class)
         .assertSuccessWithOutput(EXPECTED_OUTPUT);
   }
@@ -46,7 +46,7 @@ public class InterfaceArrayCheckCastTest extends TestBase {
         .addInnerClasses(getClass())
         .addKeepMainRule(TestClass.class)
         .addKeepRules("-keep class ** { *; }")
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .allowStdoutMessages()
         .run(parameters.getRuntime(), TestClass.class)
         .assertSuccessWithOutput(EXPECTED_OUTPUT);

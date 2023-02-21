@@ -64,7 +64,7 @@ public class Proto3ShrinkingTest extends ProtoShrinkingTestBase {
         .allowUnusedProguardConfigurationRules()
         .enableProtoShrinking()
         .minification(enableMinification)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .assertAllInfoMessagesMatch(
             containsString("Proguard configuration rule does not match anything"))
@@ -113,7 +113,7 @@ public class Proto3ShrinkingTest extends ProtoShrinkingTestBase {
         .allowUnusedProguardConfigurationRules()
         .enableProtoShrinking()
         .minification(enableMinification)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .assertAllInfoMessagesMatch(
             containsString("Proguard configuration rule does not match anything"))

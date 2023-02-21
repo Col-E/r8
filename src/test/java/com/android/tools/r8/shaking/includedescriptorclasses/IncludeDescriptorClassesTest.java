@@ -22,10 +22,10 @@ import org.junit.runners.Parameterized;
 
 @RunWith(Parameterized.class)
 public class IncludeDescriptorClassesTest extends TestBase {
-  private final TestParameters testParameters;
+  private final TestParameters parameters;
 
   public IncludeDescriptorClassesTest(TestParameters parameters) {
-    this.testParameters = parameters;
+    this.parameters = parameters;
   }
 
   @Parameterized.Parameters(name = "{0}")
@@ -87,8 +87,8 @@ public class IncludeDescriptorClassesTest extends TestBase {
       ThrowableConsumer<R8FullTestBuilder> configureR8)
       throws Exception {
     CodeInspector inspector =
-        testForR8(testParameters.getBackend())
-            .setMinApi(testParameters.getApiLevel())
+        testForR8(parameters.getBackend())
+            .setMinApi(parameters)
             .addProgramClasses(applicationClasses)
             .apply(configure::accept)
             .apply(configureR8)
@@ -100,7 +100,7 @@ public class IncludeDescriptorClassesTest extends TestBase {
     if (isRunProguard()) {
       proguardedInspector =
           testForProguard()
-              .setMinApi(testParameters.getApiLevel())
+              .setMinApi(parameters)
               .addProgramClasses(applicationClasses)
               .apply(configure::accept)
               .compile()

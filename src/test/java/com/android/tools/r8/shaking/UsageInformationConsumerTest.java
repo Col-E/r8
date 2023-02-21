@@ -40,7 +40,7 @@ public class UsageInformationConsumerTest extends TestBase {
         .addKeepClassAndMembersRules(TestClass.class)
         .apply(
             b -> b.getBuilder().setProguardUsageConsumer(ToolHelper.consumeString(usageData::set)))
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), TestClass.class)
         .assertSuccessWithOutput(EXPECTED);
     assertEquals(StringUtils.lines(UnusedClass.class.getTypeName()), usageData.get());
@@ -53,7 +53,7 @@ public class UsageInformationConsumerTest extends TestBase {
         .addProgramClasses(TestClass.class, UnusedClass.class)
         .addKeepClassAndMembersRules(TestClass.class)
         .addKeepRules("-printusage")
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .assertStdoutThatMatches(equalTo(StringUtils.lines(UnusedClass.class.getTypeName())))
         .run(parameters.getRuntime(), TestClass.class)

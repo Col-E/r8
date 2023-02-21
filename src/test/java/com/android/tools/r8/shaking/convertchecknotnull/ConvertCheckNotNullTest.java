@@ -55,7 +55,7 @@ public class ConvertCheckNotNullTest extends TestBase {
             "  ** requireNonNull(**, ...);",
             "}")
         .enableExperimentalConvertCheckNotNull()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .inspect(
             inspector -> {

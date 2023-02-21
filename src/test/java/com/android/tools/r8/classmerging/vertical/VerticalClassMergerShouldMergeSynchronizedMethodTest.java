@@ -39,7 +39,7 @@ public class VerticalClassMergerShouldMergeSynchronizedMethodTest extends TestBa
     testForR8(parameters.getBackend())
         .addInnerClasses(VerticalClassMergerShouldMergeSynchronizedMethodTest.class)
         .addKeepMainRule(Main.class)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines("1", "2", "3", "4")
         .inspect(

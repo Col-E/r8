@@ -61,7 +61,7 @@ public class RepackageWithCollisionsTest extends RepackageTestBase {
         .addKeepAttributeInnerClassesAndEnclosingMethod()
         .apply(this::configureRepackaging)
         .enableNeverClassInliningAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .inspect(this::inspect)
         .run(parameters.getRuntime(), TestClass.class)

@@ -64,7 +64,7 @@ public class DefaultInterfaceMethodDesugaringWithPublicStaticResolutionTest exte
     testForD8(parameters.getBackend())
         .addProgramClasses(getProgramClasses())
         .addProgramClassFileData(getProgramClassData())
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .run(parameters.getRuntime(), TestClass.class)
         .assertSuccessWithOutput(EXPECTED);
@@ -77,7 +77,7 @@ public class DefaultInterfaceMethodDesugaringWithPublicStaticResolutionTest exte
         .addProgramClasses(getProgramClasses())
         .addProgramClassFileData(getProgramClassData())
         .addKeepAllClassesRule()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .run(parameters.getRuntime(), TestClass.class)
         .assertSuccessWithOutput(EXPECTED);

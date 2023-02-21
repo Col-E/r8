@@ -105,7 +105,7 @@ public class DuplicateProgramTypesTest extends TestBase {
         CompilationFailedException.class,
         () ->
             testForD8(parameters.getBackend())
-                .setMinApi(parameters.getApiLevel())
+                .setMinApi(parameters)
                 .apply(b -> addDuplicateDefinitions(b.getBuilder()))
                 .compileWithExpectedDiagnostics(this::checkErrorDiagnostic));
   }
@@ -113,7 +113,7 @@ public class DuplicateProgramTypesTest extends TestBase {
   @Test
   public void testResolvedConflictD8() throws Exception {
     testForD8(parameters.getBackend())
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .apply(
             b -> {
               addDuplicateDefinitions(b.getBuilder());
@@ -126,7 +126,7 @@ public class DuplicateProgramTypesTest extends TestBase {
   @Test
   public void testResolvedConflictR8() throws Exception {
     testForR8(parameters.getBackend())
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addKeepMainRule(TestClass.class)
         .apply(
             b -> {
@@ -143,7 +143,7 @@ public class DuplicateProgramTypesTest extends TestBase {
         CompilationFailedException.class,
         () ->
             testForD8(parameters.getBackend())
-                .setMinApi(parameters.getApiLevel())
+                .setMinApi(parameters)
                 .apply(
                     b -> {
                       addDuplicateDefinitions(b.getBuilder());
@@ -158,7 +158,7 @@ public class DuplicateProgramTypesTest extends TestBase {
         CompilationFailedException.class,
         () ->
             testForR8(parameters.getBackend())
-                .setMinApi(parameters.getApiLevel())
+                .setMinApi(parameters)
                 .addKeepMainRule(TestClass.class)
                 .apply(
                     b -> {

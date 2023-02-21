@@ -42,7 +42,7 @@ public class IdentifierNameStringReprocessingTest extends TestBase {
             "}")
         .enableMemberValuePropagationAnnotations()
         .enableReprocessClassInitializerAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), Main.class)
         .apply(
             runResult -> {

@@ -68,7 +68,7 @@ public class MinifyPackageWithKeepToPublicMemberTest extends TestBase {
                 + ReflectiveCallerOfA.class.getTypeName()
                 + " { java.lang.String className; }")
         .enableInliningAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .inspect(
             inspector -> {

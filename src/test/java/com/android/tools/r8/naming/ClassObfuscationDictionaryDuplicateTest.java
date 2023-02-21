@@ -55,7 +55,7 @@ public class ClassObfuscationDictionaryDuplicateTest extends TestBase {
         .addKeepRules("-classobfuscationdictionary " + dictionary.toString())
         .addKeepMainRule(C.class)
         .addKeepClassRulesWithAllowObfuscation(A.class, B.class)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), C.class)
         .assertSuccessWithOutput("HELLO WORLD!")
         .inspect(

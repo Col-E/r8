@@ -57,7 +57,7 @@ public class DesugarToClassFile extends TestBase {
     Path jar =
         testForD8(Backend.CF)
             .addInnerClasses(DesugarToClassFile.class)
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .compile()
             .inspect(this::checkHasCompanionClassIfRequired)
             .inspect(this::checkHasLambdaClass)
@@ -74,7 +74,7 @@ public class DesugarToClassFile extends TestBase {
       // Convert to DEX without desugaring.
       testForD8()
           .addProgramFiles(jar)
-          .setMinApi(parameters.getApiLevel())
+          .setMinApi(parameters)
           .disableDesugaring()
           .run(parameters.getRuntime(), TestClass.class)
           .assertSuccessWithOutputLines("Hello, world!", "I::foo", "J::bar", "42");

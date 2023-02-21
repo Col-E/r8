@@ -45,7 +45,7 @@ public class InvalidEnclosingMethodAttributeTest extends TestBase {
     testForR8(parameters.getBackend())
         .addProgramClasses(Main.class)
         .addProgramClassFileData(getProgramClassFileDataWithRewrittenEnclosingMethod())
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addKeepAttributeInnerClassesAndEnclosingMethod()
         .addKeepAllClassesRule()
         .run(parameters.getRuntime(), Main.class)

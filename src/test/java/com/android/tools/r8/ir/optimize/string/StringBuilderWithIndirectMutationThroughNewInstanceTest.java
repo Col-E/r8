@@ -35,7 +35,7 @@ public class StringBuilderWithIndirectMutationThroughNewInstanceTest extends Tes
         .addInnerClasses(getClass())
         .addKeepMainRule(Main.class)
         .enableReprocessMethodAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .inspect(
             inspector -> {

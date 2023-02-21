@@ -48,7 +48,7 @@ public class OpenUninstantiatedInterfaceAlwaysNullTest extends TestBase {
     testForD8(parameters.getBackend())
         .addProgramClasses(getProgramClasses())
         .addProgramClassFileData(getTransformedMainClass())
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines(getExpectedOutputLines());
   }
@@ -63,7 +63,7 @@ public class OpenUninstantiatedInterfaceAlwaysNullTest extends TestBase {
             options -> options.getOpenClosedInterfacesOptions().suppressAllOpenInterfaces())
         // TODO(b/214496607): I should not be merged into A in the first place, since I is open.
         .enableNoVerticalClassMergingAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines(getExpectedOutputLines());
   }

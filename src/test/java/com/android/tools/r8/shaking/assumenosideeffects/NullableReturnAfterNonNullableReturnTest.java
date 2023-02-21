@@ -36,7 +36,7 @@ public class NullableReturnAfterNonNullableReturnTest extends TestBase {
         .enableAssumeNoSideEffectsAnnotations()
         .enableInliningAnnotations()
         .enableReprocessMethodAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile();
   }
 

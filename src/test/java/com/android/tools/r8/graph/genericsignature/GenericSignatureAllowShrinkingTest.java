@@ -40,7 +40,7 @@ public class GenericSignatureAllowShrinkingTest extends TestBase {
   public void testR8WithDirectKeep() throws Exception {
     testForR8(parameters.getBackend())
         .addInnerClasses(getClass())
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addKeepClassRules(Foo.class)
         .addKeepRules("-keep class * extends " + Foo.class.getTypeName() + " { *; }")
         .addKeepAttributes(ProguardKeepAttributes.SIGNATURE)
@@ -54,7 +54,7 @@ public class GenericSignatureAllowShrinkingTest extends TestBase {
   public void testR8AllowShrinking() throws Exception {
     testForR8(parameters.getBackend())
         .addInnerClasses(getClass())
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addKeepRules("-keep,allowshrinking class " + Foo.class.getTypeName() + " { *; }")
         .addKeepRules(
             "-keep,allowshrinking,allowobfuscation class * extends "

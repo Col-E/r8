@@ -92,7 +92,7 @@ public class MainDexRuntimeAndProgramEnumInAnnotationTest extends TestBase {
     testForD8(temp)
         .addInnerClasses(getClass())
         .addLibraryFiles(ToolHelper.getMostRecentAndroidJar())
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .applyIf(
             ignoreBootclasspathEnumsForMaindexTracing,
             builder ->

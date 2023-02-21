@@ -58,7 +58,7 @@ public class SimplifyIfNotNullTest extends TestBase {
       throws Exception {
     CodeInspector codeInspector =
         testForR8(parameters.getBackend())
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .addProgramClasses(testClass)
             .addKeepRules("-keep class " + testClass.getCanonicalName() + " { *; }")
             .apply(configuration)

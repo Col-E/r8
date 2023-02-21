@@ -51,7 +51,7 @@ public class InvokeSpecialToVirtualMethodTest extends TestBase {
     testForD8()
         .addProgramClasses(Base.class, Bar.class, TestClass.class)
         .addProgramClassFileData(getFooTransform())
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), TestClass.class)
         .assertSuccessWithOutput(EXPECTED);
   }
@@ -61,7 +61,7 @@ public class InvokeSpecialToVirtualMethodTest extends TestBase {
     testForR8(parameters.getBackend())
         .addProgramClasses(Base.class, Bar.class, TestClass.class)
         .addProgramClassFileData(getFooTransform())
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addKeepMainRule(TestClass.class)
         .run(parameters.getRuntime(), TestClass.class)
         .assertSuccessWithOutput(EXPECTED);
@@ -73,7 +73,7 @@ public class InvokeSpecialToVirtualMethodTest extends TestBase {
     testForDX()
         .addProgramClasses(Base.class, Bar.class, TestClass.class)
         .addProgramClassFileData(getFooTransform())
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), TestClass.class)
         .assertFailureWithErrorThatMatches(containsString(getExpectedOutput()));
   }

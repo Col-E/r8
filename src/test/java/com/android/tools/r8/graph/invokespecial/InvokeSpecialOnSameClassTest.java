@@ -40,13 +40,13 @@ public class InvokeSpecialOnSameClassTest extends TestBase {
 
   @Test
   public void testR8() throws Exception {
-      testForR8(parameters.getBackend())
-          .addProgramClasses(Main.class)
-          .addProgramClassFileData(getClassWithTransformedInvoked())
-          .addKeepMainRule(Main.class)
-          .setMinApi(parameters.getApiLevel())
-          .run(parameters.getRuntime(), Main.class)
-          .assertSuccessWithOutputLines("Hello World!");
+    testForR8(parameters.getBackend())
+        .addProgramClasses(Main.class)
+        .addProgramClassFileData(getClassWithTransformedInvoked())
+        .addKeepMainRule(Main.class)
+        .setMinApi(parameters)
+        .run(parameters.getRuntime(), Main.class)
+        .assertSuccessWithOutputLines("Hello World!");
   }
 
   private byte[] getClassWithTransformedInvoked() throws IOException {

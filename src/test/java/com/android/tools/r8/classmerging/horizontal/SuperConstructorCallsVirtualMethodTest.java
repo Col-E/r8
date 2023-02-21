@@ -25,14 +25,14 @@ public class SuperConstructorCallsVirtualMethodTest extends HorizontalClassMergi
         .addKeepMainRule(Main.class)
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines("5", "foo hello", "B", "bar world", "5", "B")
         .inspect(
             codeInspector -> {
-                assertThat(codeInspector.clazz(Parent.class), isPresent());
-                assertThat(codeInspector.clazz(A.class), isPresent());
-                assertThat(codeInspector.clazz(B.class), not(isPresent()));
+              assertThat(codeInspector.clazz(Parent.class), isPresent());
+              assertThat(codeInspector.clazz(A.class), isPresent());
+              assertThat(codeInspector.clazz(B.class), not(isPresent()));
             });
   }
 

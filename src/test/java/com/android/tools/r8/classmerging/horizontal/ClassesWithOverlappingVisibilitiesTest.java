@@ -29,7 +29,7 @@ public class ClassesWithOverlappingVisibilitiesTest extends HorizontalClassMergi
         .addKeepMainRule(Main.class)
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines("foo A", "FOO B", "FOO C", "foo D", "FOO E")
         .inspect(

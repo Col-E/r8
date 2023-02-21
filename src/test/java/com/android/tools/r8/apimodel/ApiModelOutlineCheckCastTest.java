@@ -43,7 +43,7 @@ public class ApiModelOutlineCheckCastTest extends TestBase {
         .addLibraryClasses(LibraryClass.class, LibraryProvider.class)
         .addDefaultRuntimeLibrary(parameters)
         .addProgramClasses(Main.class)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addAndroidBuildVersion(getApiLevelForRuntime())
         .apply(setMockApiLevelForClass(LibraryProvider.class, AndroidApiLevel.B))
         .apply(

@@ -65,7 +65,7 @@ public class ScriptEngineTest extends ScriptEngineTestBase {
                         options
                             .getOpenClosedInterfacesOptions()
                             .suppressAllOpenInterfacesDueToMissingClasses()))
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addDataEntryResources(
             DataEntryResource.fromBytes(
                 StringUtils.lines(MyScriptEngine1FactoryImpl.class.getTypeName()).getBytes(),

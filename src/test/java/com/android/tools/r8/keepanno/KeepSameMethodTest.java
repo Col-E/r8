@@ -54,7 +54,7 @@ public class KeepSameMethodTest extends TestBase {
         .enableExperimentalKeepAnnotations()
         .addProgramClasses(getInputClasses())
         .addKeepMainRule(TestClass.class)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         // The "all members" target will create an unused "all fields" rule.
         .allowUnusedProguardConfigurationRules()
         .run(parameters.getRuntime(), TestClass.class)

@@ -34,7 +34,7 @@ public class FieldSharedParentMinificationTest extends TestBase {
   public void testR8() throws Exception {
     testForR8(parameters.getBackend())
         .addInnerClasses(getClass())
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addKeepMainRule(Main.class)
         .addKeepClassAndMembersRulesWithAllowObfuscation(
             I.class, J.class, A.class, B.class, C.class)

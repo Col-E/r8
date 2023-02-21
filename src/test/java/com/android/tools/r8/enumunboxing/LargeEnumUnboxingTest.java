@@ -100,7 +100,7 @@ public class LargeEnumUnboxingTest extends EnumUnboxingTestBase {
         .addEnumUnboxingInspector(inspector -> inspector.assertUnboxed(LargeEnum.class))
         .enableNeverClassInliningAnnotations()
         .addOptionsModification(opt -> enableEnumOptions(opt, enumValueOptimization))
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .run(parameters.getRuntime(), mainClass)
         .assertSuccessWithOutput(EXPECTED_RESULT);

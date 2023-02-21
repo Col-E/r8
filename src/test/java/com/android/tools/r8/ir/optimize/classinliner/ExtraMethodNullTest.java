@@ -31,7 +31,7 @@ public class ExtraMethodNullTest extends TestBase {
     testForR8(parameters.getBackend())
         .addProgramClassesAndInnerClasses(One.class)
         .addKeepMainRule(One.class)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), One.class)
         .assertFailureWithErrorThatThrows(NullPointerException.class);
   }

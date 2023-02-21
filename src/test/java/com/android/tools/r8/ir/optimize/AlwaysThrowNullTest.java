@@ -228,7 +228,7 @@ public class AlwaysThrowNullTest extends TestBase {
         testForD8()
             .release()
             .addProgramClassesAndInnerClasses(MAIN)
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .run(parameters.getRuntime(), MAIN)
             .assertSuccessWithOutput(JAVA_OUTPUT);
     test(result, false);
@@ -244,7 +244,7 @@ public class AlwaysThrowNullTest extends TestBase {
             .enableMemberValuePropagationAnnotations()
             .addKeepMainRule(MAIN)
             .addDontObfuscate()
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .run(parameters.getRuntime(), MAIN)
             .assertSuccessWithOutput(JAVA_OUTPUT);
     test(result, true);

@@ -29,7 +29,7 @@ public class StringBuilderPartiallyInDoWhileLoopTest extends TestBase {
     testForR8(parameters.getBackend())
         .addInnerClasses(StringBuilderPartiallyInDoWhileLoopTest.class)
         .addKeepMainRule(TestClass.class)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), TestClass.class)
         .assertSuccessWithOutputLines("000");
   }

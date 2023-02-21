@@ -71,7 +71,7 @@ public class DefaultLeftAbstractRightTest extends TestBase {
         .addProgramClasses(CLASSES)
         .addProgramClassFileData(transformB())
         .addKeepMainRule(Main.class)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines("L::f");
   }

@@ -40,7 +40,7 @@ public class ClassInlinerInstanceEscapeViaPhiTest extends TestBase {
     testForR8(parameters.getBackend())
         .addInnerClasses(ClassInlinerInstanceEscapeViaPhiTest.class)
         .addKeepMainRule(TestClass.class)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .run(parameters.getRuntime(), TestClass.class)
         .assertSuccessWithOutputLines("false");

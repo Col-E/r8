@@ -95,7 +95,7 @@ public class ApplyMappingMultipleInterfacesTest extends TestBase {
         testForR8(parameters.getBackend())
             .addProgramClasses(I2Minified.class, I3Minified.class)
             .addKeepAllClassesRule()
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .compile();
     testForR8(parameters.getBackend())
         .addClasspathClasses(I2.class, I3.class)
@@ -112,7 +112,7 @@ public class ApplyMappingMultipleInterfacesTest extends TestBase {
                 + I3Minified.class.getTypeName()
                 + ":\n"
                 + "  java.lang.String foo(java.lang.String) -> a")
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .addRunClasspathFiles(libraryResult.writeToZip())
         .run(parameters.getRuntime(), MainForImplements.class)

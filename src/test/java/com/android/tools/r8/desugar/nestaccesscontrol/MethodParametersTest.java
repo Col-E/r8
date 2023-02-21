@@ -54,7 +54,7 @@ public class MethodParametersTest extends TestBase {
     Path nestDesugared =
         testForD8(Backend.CF)
             .addProgramFiles(nestCompiledWithParameters)
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .compile()
             .assertNoMessages()
             .inspect(this::verifyNoAnnotationsOnSyntheticConstructors)
@@ -63,7 +63,7 @@ public class MethodParametersTest extends TestBase {
     Path nestDesugaredTwice =
         testForD8(Backend.CF)
             .addProgramFiles(nestDesugared)
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .compile()
             .assertNoMessages()
             .inspect(this::verifyNoAnnotationsOnSyntheticConstructors)
@@ -73,7 +73,7 @@ public class MethodParametersTest extends TestBase {
         testForD8(Backend.CF)
             .addClasspathClasses(Outer.class)
             .addInnerClasses(getClass())
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .compile()
             .assertNoMessages()
             .writeToZip();
@@ -81,7 +81,7 @@ public class MethodParametersTest extends TestBase {
     testForD8(parameters.getBackend())
         .addProgramFiles(nestDesugaredTwice)
         .addProgramFiles(programDesugared)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .assertNoMessages()
         .inspect(this::verifyNoAnnotationsOnSyntheticConstructors)

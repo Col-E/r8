@@ -44,7 +44,7 @@ public class ProtoNormalizationDestinationOverrideLibraryTest extends TestBase {
         .addProgramClasses(Main.class, ProgramClass.class, X.class)
         .addDefaultRuntimeLibrary(parameters)
         .addLibraryClasses(LibraryClass.class)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addKeepMainRule(Main.class)
         .addDontObfuscate()
         .enableInliningAnnotations()

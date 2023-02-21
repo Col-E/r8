@@ -46,7 +46,7 @@ public class HorizontalClassMergingOfInitArgumentTypesTest extends TestBase {
               options.horizontalClassMergerOptions().enableIf(enableHorizontalClassMerging);
             })
         .enableNoHorizontalClassMergingAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .inspect(
             inspector -> {

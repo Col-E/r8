@@ -104,7 +104,7 @@ public final class NonConstructorRelaxationTest extends AccessRelaxationTestBase
                 "  *** pBlah1();",
                 "}")
             .allowAccessModification()
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .run(parameters.getRuntime(), mainClass);
 
     assertEquals(expectedOutput, result.getStdOut());
@@ -184,7 +184,7 @@ public final class NonConstructorRelaxationTest extends AccessRelaxationTestBase
                 "  *** p*();",
                 "}")
             .allowAccessModification()
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .run(parameters.getRuntime(), mainClass);
 
     assertEquals(

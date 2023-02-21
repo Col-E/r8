@@ -58,7 +58,7 @@ public class KeptClassInliningTest extends TestBase {
             .addProgramClasses(KeptClass.class, Main.class)
             .addKeepMainRule(Main.class)
             .addKeepClassRules(KeptClass.class)
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .run(parameters.getRuntime(), Main.class)
             .assertSuccessWithOutputLines("used()")
             .inspector();

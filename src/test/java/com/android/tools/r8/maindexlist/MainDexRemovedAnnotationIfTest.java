@@ -45,7 +45,7 @@ public class MainDexRemovedAnnotationIfTest extends TestBase {
     testForR8(parameters.getBackend())
         .addProgramClasses(MainDex.class, Inside.class, Main.class)
         .addKeepClassAndMembersRules(Main.class)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .enableInliningAnnotations()
         .addMainDexRules(
             "-if @" + MainDex.class.getTypeName() + " class *", "-keep class <1> { *; }")

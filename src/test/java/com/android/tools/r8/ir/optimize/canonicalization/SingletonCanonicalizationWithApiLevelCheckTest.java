@@ -38,7 +38,7 @@ public class SingletonCanonicalizationWithApiLevelCheckTest extends TestBase {
             .addLibraryClasses(LibraryVersion.class, LibraryInterfaceAddedInApi1.class)
             .addDefaultRuntimeLibrary(parameters)
             .addKeepMainRule(TestClass.class)
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .compile()
             .writeToZip();
 
@@ -47,7 +47,7 @@ public class SingletonCanonicalizationWithApiLevelCheckTest extends TestBase {
         .addProgramClasses(LibraryVersion.class, LibraryInterfaceAddedInApi1.class)
         .addKeepAllClassesRule()
         .addKeepRules(getAssumeValuesRule(1))
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .addRunClasspathFiles(program)
         .run(parameters.getRuntime(), TestClass.class)
@@ -58,7 +58,7 @@ public class SingletonCanonicalizationWithApiLevelCheckTest extends TestBase {
         .addProgramClasses(LibraryVersion.class)
         .addKeepAllClassesRule()
         .addKeepRules(getAssumeValuesRule(0))
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .addRunClasspathFiles(program)
         .run(parameters.getRuntime(), TestClass.class)

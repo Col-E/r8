@@ -47,7 +47,7 @@ public class RelaxedInstanceFieldCollisionTest extends TestBase {
     testForR8(parameters.getBackend())
         .addProgramClasses(UnrelatedA.class, UnrelatedB.class, UnrelatedC.class, UnrelatedD.class)
         .addProgramClassFileData(getTransformedClasses())
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addKeepMainRule(Main.class)
         .addKeepClassRules(UnrelatedA.class, UnrelatedB.class, UnrelatedC.class, UnrelatedD.class)
         .addHorizontallyMergedClassesInspector(

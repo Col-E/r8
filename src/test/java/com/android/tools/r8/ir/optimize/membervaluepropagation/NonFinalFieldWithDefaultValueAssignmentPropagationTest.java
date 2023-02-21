@@ -44,7 +44,7 @@ public class NonFinalFieldWithDefaultValueAssignmentPropagationTest extends Test
         .addKeepMainRule(TestClass.class)
         .enableNeverClassInliningAnnotations()
         .enableInliningAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .inspect(this::inspect)
         .run(parameters.getRuntime(), TestClass.class)

@@ -44,7 +44,7 @@ public class DefaultValueForAnnotationWithExplicitValueShrinkingTest extends Tes
         .addKeepMainRule(Main.class)
         .addKeepAttributeAnnotationDefault()
         .addKeepRuntimeVisibleAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .apply(
             compileResult -> {

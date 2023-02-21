@@ -60,7 +60,7 @@ public class InvokePolymorphicTypesTest extends TestBase {
             || parameters.asDexRuntime().getVersion().isNewerThanOrEqual(Version.V8_1_0);
     testForD8(parameters.getBackend())
         .addProgramClasses(Data.class, TestClass.class)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), TestClass.class)
         .applyIf(
             hasCompileSupport,
@@ -87,7 +87,7 @@ public class InvokePolymorphicTypesTest extends TestBase {
             || parameters.asDexRuntime().getVersion().isNewerThanOrEqual(Version.V8_1_0);
     testForR8(parameters.getBackend())
         .addProgramClasses(Data.class, TestClass.class)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .applyIf(
             !hasCompileSupport,
             b ->

@@ -53,7 +53,7 @@ public class ClassInlinerPhiDirectUserAfterInlineTest extends TestBase {
   public void testNoClassInlining() throws Exception {
     testForR8(parameters.getBackend())
         .addInnerClasses(getClass())
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addKeepMainRule(Main.class)
         .addOptionsModification(
             options -> {
@@ -70,7 +70,7 @@ public class ClassInlinerPhiDirectUserAfterInlineTest extends TestBase {
   public void testR8() throws Exception {
     testForR8(parameters.getBackend())
         .addInnerClasses(getClass())
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addKeepMainRule(Main.class)
         .addOptionsModification(
             options -> {

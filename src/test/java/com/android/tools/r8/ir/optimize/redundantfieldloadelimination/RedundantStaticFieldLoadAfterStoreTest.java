@@ -39,7 +39,7 @@ public class RedundantStaticFieldLoadAfterStoreTest extends TestBase {
     testForR8(parameters.getBackend())
         .addInnerClasses(RedundantStaticFieldLoadAfterStoreTest.class)
         .addKeepMainRule(TestClass.class)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .inspect(
             inspector -> {

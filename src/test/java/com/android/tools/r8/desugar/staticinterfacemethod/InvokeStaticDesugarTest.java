@@ -128,7 +128,7 @@ public class InvokeStaticDesugarTest extends TestBase {
       assert parameters.isDexRuntime();
       return testForD8(parameters.getBackend())
           .addProgramClasses(Library.class)
-          .setMinApi(parameters.getApiLevel())
+          .setMinApi(parameters)
           .disableDesugaring()
           .addOptionsModification(
               options -> {

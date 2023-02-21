@@ -36,7 +36,7 @@ public class SwitchMapWithEnumDependencyTest extends TestBase {
             .addKeepMainRule(TestClass.class)
             .addDontObfuscate()
             .enableInliningAnnotations()
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .compile();
     compile
         .run(parameters.getRuntime(), TestClass.class)

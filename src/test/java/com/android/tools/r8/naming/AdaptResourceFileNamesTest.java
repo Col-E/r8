@@ -280,7 +280,7 @@ public class AdaptResourceFileNamesTest extends ProguardCompatibilityTestBase {
             .addDataResources(dataResources)
             .addKeepRules(proguardConfig)
             .apply(builderConsumer)
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .addOptionsModification(options -> options.dataResourceConsumer = dataResourceConsumer)
             .compile();
     if (proguardMapConsumer != null) {

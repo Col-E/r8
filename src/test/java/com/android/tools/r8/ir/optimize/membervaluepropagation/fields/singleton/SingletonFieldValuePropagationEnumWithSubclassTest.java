@@ -36,7 +36,7 @@ public class SingletonFieldValuePropagationEnumWithSubclassTest extends TestBase
     testForR8(parameters.getBackend())
         .addInnerClasses(SingletonFieldValuePropagationEnumWithSubclassTest.class)
         .addKeepMainRule(TestClass.class)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .inspect(this::inspect)
         .run(parameters.getRuntime(), TestClass.class)

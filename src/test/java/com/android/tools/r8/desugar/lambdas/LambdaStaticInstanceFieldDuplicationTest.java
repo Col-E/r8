@@ -71,7 +71,7 @@ public class LambdaStaticInstanceFieldDuplicationTest extends TestBase {
         .addKeepMainRule(TestClass.class)
         // Prevent R8 from eliminating the lambdas by keeping the application of them.
         .addKeepClassAndMembersRules(Accept.class)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .minification(minify)
         .run(parameters.getRuntime(), TestClass.class)
         .assertSuccessWithOutput(EXPECTED)
@@ -82,7 +82,7 @@ public class LambdaStaticInstanceFieldDuplicationTest extends TestBase {
   public void testD8() throws Exception {
     testForD8(parameters.getBackend())
         .addProgramClasses(CLASSES)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), TestClass.class)
         .assertSuccessWithOutput(EXPECTED)
         .inspect(this::checkNoOriginalsAndNoInternalSynthetics)
@@ -111,7 +111,7 @@ public class LambdaStaticInstanceFieldDuplicationTest extends TestBase {
         testForD8(parameters.getBackend())
             .addProgramClasses(User1.class)
             .addClasspathClasses(CLASSES)
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .setIntermediate(intermediate)
             .compile()
             .writeToZip();
@@ -121,7 +121,7 @@ public class LambdaStaticInstanceFieldDuplicationTest extends TestBase {
         testForD8(parameters.getBackend())
             .addProgramClasses(User2.class)
             .addClasspathClasses(CLASSES)
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .setIntermediate(intermediate)
             .compile()
             .writeToZip();
@@ -137,7 +137,7 @@ public class LambdaStaticInstanceFieldDuplicationTest extends TestBase {
     testForD8(parameters.getBackend())
         .addProgramClasses(TestClass.class, MyConsumer.class, Accept.class)
         .addProgramFiles(out1, out2)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .setIntermediate(true)
         .compile()
         .writeToZip(out3)
@@ -149,7 +149,7 @@ public class LambdaStaticInstanceFieldDuplicationTest extends TestBase {
     // Finally do a non-intermediate merge.
     testForD8(parameters.getBackend())
         .addProgramFiles(out3)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), TestClass.class)
         .assertSuccessWithOutput(EXPECTED)
         .inspect(this::checkNoOriginalsAndNoInternalSynthetics)
@@ -183,12 +183,12 @@ public class LambdaStaticInstanceFieldDuplicationTest extends TestBase {
         testForD8(parameters.getBackend())
             .setOutputMode(outputMode)
             .addProgramClasses(CLASSES)
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .compile()
             .writeToZip();
     testForD8()
         .addProgramFiles(perClassOutput)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), TestClass.class)
         .assertSuccessWithOutput(EXPECTED)
         .inspect(this::checkNoOriginalsAndNoInternalSynthetics)

@@ -44,7 +44,7 @@ public class ValueOfWithoutCastEnumUnboxingTest extends EnumUnboxingTestBase {
         .addEnumUnboxingInspector(inspector -> inspector.assertNotUnboxed(MyEnum.class))
         .addOptionsModification(opt -> enableEnumOptions(opt, enumValueOptimization))
         .enableInliningAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines("A");

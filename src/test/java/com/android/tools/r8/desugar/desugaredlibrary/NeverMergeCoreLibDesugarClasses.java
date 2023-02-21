@@ -59,7 +59,7 @@ public class NeverMergeCoreLibDesugarClasses extends DesugaredLibraryTestBase {
       testForD8()
           .addInnerClasses(NeverMergeCoreLibDesugarClasses.class)
           .addProgramDexFileData(builder.compile())
-          .setMinApi(parameters.getApiLevel())
+          .setMinApi(parameters)
           .compileWithExpectedDiagnostics(
               diagnostics -> {
                 diagnostics.assertErrorsCount(1);
@@ -90,7 +90,7 @@ public class NeverMergeCoreLibDesugarClasses extends DesugaredLibraryTestBase {
       testForD8()
           .addInnerClasses(NeverMergeCoreLibDesugarClasses.class)
           .addLibraryFiles(libraryDesugaringSpecification.getLibraryFiles())
-          .setMinApi(parameters.getApiLevel())
+          .setMinApi(parameters)
           .addProgramFiles(input)
           .compileWithExpectedDiagnostics(
               diagnostics -> {

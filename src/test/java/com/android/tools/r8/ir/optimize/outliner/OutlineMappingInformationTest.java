@@ -73,7 +73,7 @@ public class OutlineMappingInformationTest extends TestBase {
         .addHorizontallyMergedClassesInspector(
             HorizontallyMergedClassesInspector::assertNoClassesMerged)
         .enableInliningAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .run(
             parameters.getRuntime(),

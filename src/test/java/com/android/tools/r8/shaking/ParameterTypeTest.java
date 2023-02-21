@@ -134,7 +134,7 @@ public class ParameterTypeTest extends TestBase {
                   options.enableVerticalClassMerging = enableVerticalClassMerging;
                 })
             .enableNoHorizontalClassMergingAnnotations()
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .compile()
             .run(parameters.getRuntime(), B112452064TestMain.class)
             .assertSuccessWithOutput(javaResult.stdout)
@@ -315,7 +315,7 @@ public class ParameterTypeTest extends TestBase {
               options.callSiteOptimizationOptions().setEnabled(enableArgumentPropagation);
             })
         .addDontObfuscate()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .inspect(
             inspector -> {

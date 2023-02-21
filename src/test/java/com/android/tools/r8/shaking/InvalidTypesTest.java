@@ -281,14 +281,14 @@ public class InvalidTypesTest extends JasminTestBase {
       DXTestRunResult dxResult =
           testForDX()
               .addProgramFiles(inputJar)
-              .setMinApi(parameters.getApiLevel())
+              .setMinApi(parameters)
               .run(parameters.getRuntime(), mainClass.name);
       checkTestRunResult(dxResult, Compiler.DX);
 
       D8TestRunResult d8Result =
           testForD8()
               .addProgramFiles(inputJar)
-              .setMinApi(parameters.getApiLevel())
+              .setMinApi(parameters)
               .run(parameters.getRuntime(), mainClass.name);
       checkTestRunResult(d8Result, Compiler.D8);
     }
@@ -313,7 +313,7 @@ public class InvalidTypesTest extends JasminTestBase {
                   }
                 })
             .allowDiagnosticWarningMessages(allowDiagnosticWarningMessages)
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .compileWithExpectedDiagnostics(
                 diagnostics -> {
                   if (allowDiagnosticWarningMessages) {

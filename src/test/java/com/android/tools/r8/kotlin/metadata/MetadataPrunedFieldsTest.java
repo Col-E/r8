@@ -51,7 +51,7 @@ public class MetadataPrunedFieldsTest extends KotlinMetadataTestBase {
         .addKeepRules("-keep class kotlin.Metadata { *** pn(); }")
         .addKeepMainRule(Main.class)
         .allowDiagnosticWarningMessages()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addKeepAttributes(ProguardKeepAttributes.RUNTIME_VISIBLE_ANNOTATIONS)
         .addOptionsModification(
             internalOptions -> {

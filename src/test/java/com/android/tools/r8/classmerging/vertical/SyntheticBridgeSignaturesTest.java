@@ -60,7 +60,7 @@ public class SyntheticBridgeSignaturesTest extends VerticalClassMergerTestBase {
             .addVerticallyMergedClassesInspector(this::inspectVerticallyMergedClasses)
             .enableInliningAnnotations()
             .enableNoHorizontalClassMergingAnnotations()
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .compile();
 
     compileResult

@@ -7,10 +7,8 @@ package com.android.tools.r8.ir.optimize.inliner.conditionalsimpleinlining;
 import com.android.tools.r8.R8FullTestBuilder;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.ir.optimize.Inliner;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.InternalOptions;
-import com.android.tools.r8.utils.SetUtils;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
@@ -34,9 +32,7 @@ public abstract class ConditionalSimpleInliningTestBase extends TestBase {
   }
 
   public void configure(R8FullTestBuilder testBuilder) {
-    testBuilder
-        .addOptionsModification(this::enableSimpleInliningConstraints)
-        .setMinApi(parameters.getApiLevel());
+    testBuilder.addOptionsModification(this::enableSimpleInliningConstraints).setMinApi(parameters);
   }
 
   private void enableSimpleInliningConstraints(InternalOptions options) {

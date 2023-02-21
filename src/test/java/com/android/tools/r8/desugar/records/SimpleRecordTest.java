@@ -58,7 +58,7 @@ public class SimpleRecordTest extends TestBase {
   public void testD8() throws Exception {
     testForD8(parameters.getBackend())
         .addProgramClassFileData(PROGRAM_DATA)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .inspectWithOptions(
             RecordTestUtils::assertNoJavaLangRecord,
@@ -78,7 +78,7 @@ public class SimpleRecordTest extends TestBase {
             b ->
                 b.getBuilder()
                     .addGlobalSyntheticsResourceProviders(globals.getIndexedModeProvider()))
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .setIncludeClassesChecksum(true)
         .run(parameters.getRuntime(), MAIN_TYPE)
         .assertSuccessWithOutput(EXPECTED_RESULT);
@@ -96,7 +96,7 @@ public class SimpleRecordTest extends TestBase {
             b ->
                 b.getBuilder()
                     .addGlobalSyntheticsResourceProviders(globals.getIndexedModeProvider()))
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .setIncludeClassesChecksum(true)
         .disableDesugaring()
         .run(parameters.getRuntime(), MAIN_TYPE)
@@ -107,7 +107,7 @@ public class SimpleRecordTest extends TestBase {
       throws Exception {
     return testForD8(Backend.DEX)
         .addProgramClassFileData(PROGRAM_DATA)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .setIntermediate(true)
         .setIncludeClassesChecksum(true)
         .apply(b -> b.getBuilder().setGlobalSyntheticsConsumer(globalSyntheticsConsumer))
@@ -122,7 +122,7 @@ public class SimpleRecordTest extends TestBase {
     R8FullTestBuilder builder =
         testForR8(parameters.getBackend())
             .addProgramClassFileData(PROGRAM_DATA)
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .addKeepMainRule(MAIN_TYPE);
     if (parameters.isCfRuntime()) {
       builder
@@ -150,7 +150,7 @@ public class SimpleRecordTest extends TestBase {
         testForR8(parameters.getBackend())
             .addProgramClassFileData(PROGRAM_DATA)
             .addDontObfuscate()
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .addKeepMainRule(MAIN_TYPE);
     if (parameters.isCfRuntime()) {
       builder

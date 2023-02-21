@@ -53,7 +53,7 @@ public class DesugarLambdaContextDuplicateInLibraryTest extends TestBase {
         .addProgramClasses(LIBRARY)
         .addKeepMainRule(MAIN)
         .addKeepMethodRules(pinnedPrintLn())
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addHorizontallyMergedClassesInspector(
             inspector -> {
               // The regression test relies on the library type being the target. A change to
@@ -80,7 +80,7 @@ public class DesugarLambdaContextDuplicateInLibraryTest extends TestBase {
         .addDefaultRuntimeLibrary(parameters)
         .addKeepMainRule(MAIN)
         .addKeepMethodRules(pinnedPrintLn())
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         // Use a checksum filter to simulate the classes being found on bootclasspath by removing
         // then from the program output.
         .setIncludeClassesChecksum(true)

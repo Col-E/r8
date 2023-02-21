@@ -55,7 +55,7 @@ public class KeepDisallowAnnotationRemovalAllowOptimizationTest extends TestBase
         .allowUnusedProguardConfigurationRules(enableCompatibilityMode)
         .enableInliningAnnotations()
         .enableKeepUnusedReturnValueAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .inspect(
             inspector -> {

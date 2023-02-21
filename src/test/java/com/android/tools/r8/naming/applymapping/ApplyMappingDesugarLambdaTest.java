@@ -52,7 +52,7 @@ public class ApplyMappingDesugarLambdaTest extends TestBase {
         testForR8(parameters.getBackend())
             .addProgramClasses(A.class)
             .addKeepClassAndMembersRulesWithAllowObfuscation(A.class)
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .addKeepRules(
                 "-keeppackagenames", "-classobfuscationdictionary " + dictionary.toString())
             .compile()
@@ -68,7 +68,7 @@ public class ApplyMappingDesugarLambdaTest extends TestBase {
     testForD8()
         .addProgramClasses(I.class, Main.class)
         .addClasspathFiles(libraryPath)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), Main.class, EXPECTED)
         .assertSuccessWithOutputLines(EXPECTED);
 
@@ -77,7 +77,7 @@ public class ApplyMappingDesugarLambdaTest extends TestBase {
         .addProgramClasses(I.class, Main.class)
         .addKeepMainRule(Main.class)
         .addKeepClassAndMembersRules(I.class)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addApplyMapping(libraryResult.getProguardMap())
         .addOptionsModification(internalOptions -> internalOptions.enableClassInlining = false)
         .addKeepRules("-classobfuscationdictionary " + dictionary.toString())

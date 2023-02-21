@@ -31,14 +31,14 @@ public class Regress241478253 extends TestBase {
     testForR8(parameters.getBackend())
         .addProgramClasses(Foo.class, Bar.class)
         .addKeepMainRule(Foo.class)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), Foo.class)
         .assertSuccessWithOutputLines(EXPECTED);
     testForR8(parameters.getBackend())
         .debug()
         .addProgramClasses(Foo.class, Bar.class)
         .addKeepMainRule(Foo.class)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), Foo.class)
         .assertSuccessWithOutputLines(EXPECTED);
   }

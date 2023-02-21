@@ -49,7 +49,7 @@ public class ClassInlinerWithSimpleSuperTypeTest extends TestBase {
         .addOptionsModification(options -> options.enableClassInlining = enableClassInlining)
         .enableInliningAnnotations()
         .enableNoVerticalClassMergingAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .inspect(this::verifyCandidateIsClassInlined)
         .run(parameters.getRuntime(), TestClass.class)

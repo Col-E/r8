@@ -52,7 +52,7 @@ public class PackagePrivateAllowAccessModificationPackageTest extends TestBase {
         .enableNoHorizontalClassMergingAnnotations()
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .inspect(
             inspector -> {

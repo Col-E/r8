@@ -50,7 +50,7 @@ public class Regress160394262Test extends TestBase {
         .allowAccessModification()
         .addKeepMainRule(TestClass.class)
         .addInnerClasses(Regress160394262Test.class)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), TestClass.class)
         .assertSuccessWithOutput(EXPECTED)
         .inspect(this::checkJoinerIsClassInlined);

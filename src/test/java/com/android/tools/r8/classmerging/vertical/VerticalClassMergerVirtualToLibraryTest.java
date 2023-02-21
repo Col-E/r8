@@ -58,7 +58,7 @@ public class VerticalClassMergerVirtualToLibraryTest extends TestBase {
         .addLibraryClasses(LibParent.class)
         .addLibraryClassFileData(classWithoutBarMethod(Lib.class))
         .addProgramClasses(A.class, B.class, Main.class)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .addBootClasspathFiles(
             buildOnDexRuntime(
@@ -79,7 +79,7 @@ public class VerticalClassMergerVirtualToLibraryTest extends TestBase {
         .addKeepMainRule(Main.class)
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addVerticallyMergedClassesInspector(
             VerticallyMergedClassesInspector::assertNoClassesMerged)
         .compile()

@@ -110,7 +110,7 @@ public class ConfigurationDebuggingTest extends TestBase {
             .addKeepRules("-addconfigurationdebugging")
             .addKeepRules("-keep class **.TestClass { <init>(); }")
             .addDontObfuscate()
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .compile()
             .inspect(this::inspect)
             .writeToZip();
@@ -121,7 +121,7 @@ public class ConfigurationDebuggingTest extends TestBase {
             .addDefaultRuntimeLibrary(parameters)
             .addProgramClasses(Caller.class)
             .addKeepMainRule(Caller.class)
-            .setMinApi(parameters.getApiLevel());
+            .setMinApi(parameters);
     R8TestRunResult result =
         builder
             .compile()

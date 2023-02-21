@@ -81,7 +81,7 @@ public class AnonymousObjectWithFinalizeTest extends TestBase {
   @Test
   public void testR8() throws Exception {
     testForR8(parameters.getBackend())
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addKeepMainRule(TestClass.class)
         .addProgramClassesAndInnerClasses(TestClass.class)
         .run(parameters.getRuntime(), TestClass.class)

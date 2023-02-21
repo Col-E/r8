@@ -104,7 +104,7 @@ public class ReflectiveAnnotationUseTest extends KotlinTestBase {
             .addKeepRules("-keep @interface " + ANNOTATION_NAME + " {", "  *;", "}")
             .allowDiagnosticWarningMessages()
             .minification(minify)
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .compile()
             .assertAllWarningMessagesMatch(
                 equalTo("Resource 'META-INF/MANIFEST.MF' already exists."))
@@ -145,7 +145,7 @@ public class ReflectiveAnnotationUseTest extends KotlinTestBase {
                 "}")
             .allowDiagnosticWarningMessages()
             .minification(minify)
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .compile()
             .assertAllWarningMessagesMatch(
                 equalTo("Resource 'META-INF/MANIFEST.MF' already exists."))
@@ -183,7 +183,7 @@ public class ReflectiveAnnotationUseTest extends KotlinTestBase {
             .addKeepRules(KEEP_ANNOTATIONS)
             .allowDiagnosticWarningMessages()
             .minification(minify)
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .compile()
             .assertAllWarningMessagesMatch(
                 equalTo("Resource 'META-INF/MANIFEST.MF' already exists."))
@@ -220,7 +220,7 @@ public class ReflectiveAnnotationUseTest extends KotlinTestBase {
             .addKeepMainRule(MAIN_CLASS_NAME)
             .allowDiagnosticWarningMessages()
             .minification(minify)
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .compile()
             .assertAllWarningMessagesMatch(
                 equalTo("Resource 'META-INF/MANIFEST.MF' already exists."))

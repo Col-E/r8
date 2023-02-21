@@ -46,7 +46,7 @@ public class InterfaceWithProxyTest extends TestBase {
         .addKeepMainRule(TestClass.class)
         .enableNeverClassInliningAnnotations()
         .enableInliningAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), TestClass.class)
         .assertSuccessWithOutput(EXPECTED);
   }

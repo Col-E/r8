@@ -68,7 +68,7 @@ public class PermittedSubclassesAttributeInDexTest extends TestBase {
     testForD8(parameters.getBackend())
         .addProgramClassFileData(getTransformedClasses())
         .addProgramClasses(Sub1.class, Sub2.class)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addOptionsModification(options -> options.emitPermittedSubclassesAnnotationsInDex = true)
         .compile()
         .inspect(this::inspect)

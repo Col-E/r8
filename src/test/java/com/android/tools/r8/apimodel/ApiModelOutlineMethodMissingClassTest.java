@@ -60,7 +60,7 @@ public class ApiModelOutlineMethodMissingClassTest extends TestBase {
         .addProgramClasses(Main.class, TestClass.class)
         .addLibraryClasses(LibraryClass.class)
         .addDefaultRuntimeLibrary(parameters)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addAndroidBuildVersion()
         .apply(setMockApiLevelForClass(LibraryClass.class, initialLibraryMockLevel))
         .apply(setMockApiLevelForMethod(addedOn23(), initialLibraryMockLevel))

@@ -47,7 +47,7 @@ public class SwitchStackFrameFallThroughTest extends TestBase {
     assumeTrue(parameters.isDexRuntime());
     testForD8(parameters.getBackend())
         .addProgramClassFileData(SwitchStackFrameFallThroughTest$MainDump.dump())
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addOptionsModification(options -> options.testing.readInputStackMaps = true)
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines("java.io.IOException");

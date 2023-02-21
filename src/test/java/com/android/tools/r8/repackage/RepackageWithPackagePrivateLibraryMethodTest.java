@@ -42,7 +42,7 @@ public class RepackageWithPackagePrivateLibraryMethodTest extends RepackageTestB
         .apply(this::configureRepackaging)
         .addKeepMainRule(Main.class)
         .enableInliningAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .addRunClasspathFiles(buildOnDexRuntime(parameters, Library.class))
         .run(parameters.getRuntime(), Main.class)

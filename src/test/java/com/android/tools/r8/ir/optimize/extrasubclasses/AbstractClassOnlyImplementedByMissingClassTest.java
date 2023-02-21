@@ -44,7 +44,7 @@ public class AbstractClassOnlyImplementedByMissingClassTest extends TestBase {
             // of
             // A after the R8 compilation.
             .addKeepRules("-keep class " + A.class.getTypeName() + " { void <init>(); void m(); }")
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .compile()
             .writeToZip();
 

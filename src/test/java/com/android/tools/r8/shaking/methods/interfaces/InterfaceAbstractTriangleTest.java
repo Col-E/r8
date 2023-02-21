@@ -35,7 +35,7 @@ public class InterfaceAbstractTriangleTest extends TestBase {
     R8TestCompileResult libraryResult =
         testForR8(parameters.getBackend())
             .addProgramClasses(I.class, J.class, A.class)
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .addKeepMethodRules(A.class, "void foo()", "void <init>()")
             .compile();
     testForRuntime(parameters)

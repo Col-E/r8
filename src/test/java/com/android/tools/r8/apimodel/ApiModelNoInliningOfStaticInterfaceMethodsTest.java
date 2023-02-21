@@ -45,7 +45,7 @@ public class ApiModelNoInliningOfStaticInterfaceMethodsTest extends TestBase {
         .addProgramClasses(Main.class, A.class, ApiCaller.class)
         .addLibraryClasses(Api.class)
         .addDefaultRuntimeLibrary(parameters)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addKeepMainRule(Main.class)
         .apply(setMockApiLevelForMethod(apiMethod22, L_MR1))
         .apply(setMockApiLevelForMethod(apiMethod26, O))

@@ -85,13 +85,14 @@ public class LocalClassRenamingTest extends TestBase {
         .addKeepAttributes("Signature", "InnerClasses")
         .noTreeShaking()
         .minification(enableMinification)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
-        .inspect(inspector -> {
-          ClassSubject local = inspector.clazz(TestMap.class.getName() + "$1LocalEntrySet");
-          assertThat(local, isPresent());
-          assertEquals(enableMinification, local.isRenamed());
-        })
+        .inspect(
+            inspector -> {
+              ClassSubject local = inspector.clazz(TestMap.class.getName() + "$1LocalEntrySet");
+              assertThat(local, isPresent());
+              assertEquals(enableMinification, local.isRenamed());
+            })
         .run(parameters.getRuntime(), TestMain.class)
         .assertSuccessWithOutput(EXPECTED_OUTPUT);
   }

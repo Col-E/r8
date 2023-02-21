@@ -28,8 +28,8 @@ public class RetraceMappingWithOverloadsTest extends TestBase {
     return getTestParameters().withNoneRuntime().build();
   }
 
-  public RetraceMappingWithOverloadsTest(TestParameters testParameters) {
-    testParameters.assertNoneRuntime();
+  public RetraceMappingWithOverloadsTest(TestParameters parameters) {
+    parameters.assertNoneRuntime();
   }
 
   private final ClassReference someClassOriginal = Reference.classFromTypeName("some.Class");

@@ -68,7 +68,7 @@ public class RetraceCompanionWithPreambleTest extends TestBase {
         .internalEnableMappingOutput()
         .addProgramClasses(Main.class, A.class)
         .addProgramClassFileData(getI())
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), Main.class)
         .apply(this::checkRunResult)
         .inspectStackTrace(RetraceCompanionWithPreambleTest::checkExpectedStackTrace);
@@ -82,7 +82,7 @@ public class RetraceCompanionWithPreambleTest extends TestBase {
         .addKeepMainRule(Main.class)
         .addKeepAttributeSourceFile()
         .addKeepAttributeLineNumberTable()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), Main.class)
         .apply(this::checkRunResult)
         .inspectStackTrace(RetraceCompanionWithPreambleTest::checkExpectedStackTrace);

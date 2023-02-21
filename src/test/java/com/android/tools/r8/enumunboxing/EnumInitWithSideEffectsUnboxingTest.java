@@ -31,7 +31,7 @@ public class EnumInitWithSideEffectsUnboxingTest extends EnumUnboxingTestBase {
         .addInnerClasses(EnumInitWithSideEffectsUnboxingTest.class)
         .addKeepMainRule(TestClass.class)
         .addKeepRules(enumEnumKeepRules.getKeepRules())
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .run(parameters.getRuntime(), TestClass.class)
         .assertSuccessWithOutputLines("Hello world!");

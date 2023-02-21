@@ -58,7 +58,7 @@ public class EnsureNoDebugInfoEmittedForPcOnlyTestRunner extends TestBase {
     testForD8(parameters.getBackend())
         .debug()
         .addProgramClasses(MAIN)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .internalEnableMappingOutput()
         .run(parameters.getRuntime(), MAIN)
         // For a debug build we always expect the output to have actual line information.
@@ -71,7 +71,7 @@ public class EnsureNoDebugInfoEmittedForPcOnlyTestRunner extends TestBase {
     testForD8(parameters.getBackend())
         .release()
         .addProgramClasses(MAIN)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .internalEnableMappingOutput()
         .applyIf(
             apiLevelSupportsPcAndSourceFileOutput(),
@@ -108,7 +108,7 @@ public class EnsureNoDebugInfoEmittedForPcOnlyTestRunner extends TestBase {
     testForD8(parameters.getBackend())
         .release()
         .addProgramClasses(MAIN)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), MAIN)
         // If compiling without a map output actual debug info should also be retained. Otherwise
         // there would not be any way to obtain the actual lines.
@@ -123,7 +123,7 @@ public class EnsureNoDebugInfoEmittedForPcOnlyTestRunner extends TestBase {
         .addProgramClasses(MAIN)
         .addKeepMainRule(MAIN)
         .addKeepAttributeLineNumberTable()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), MAIN)
         .inspectOriginalStackTrace(
             (stackTrace, inspector) -> {

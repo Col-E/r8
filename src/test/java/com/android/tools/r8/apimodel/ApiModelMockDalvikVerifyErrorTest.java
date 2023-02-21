@@ -48,7 +48,7 @@ public class ApiModelMockDalvikVerifyErrorTest extends TestBase {
         .addProgramClasses(Main.class)
         .addLibraryClasses(LibraryClass.class, LibrarySub.class)
         .addDefaultRuntimeLibrary(parameters)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addAndroidBuildVersion()
         .apply(ApiModelingTestHelper::enableStubbingOfClasses)
         .apply(setMockApiLevelForClass(LibraryClass.class, mockLevel))

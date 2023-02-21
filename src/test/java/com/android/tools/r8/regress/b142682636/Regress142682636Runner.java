@@ -37,12 +37,13 @@ public class Regress142682636Runner extends TestBase {
 
   @Test
   public void test() throws Exception {
-    CodeInspector inspector = testForD8()
-        .addProgramClasses(testClass)
-        .setMinApi(parameters.getApiLevel())
-        .release()
-        .compile()
-        .inspector();
+    CodeInspector inspector =
+        testForD8()
+            .addProgramClasses(testClass)
+            .setMinApi(parameters)
+            .release()
+            .compile()
+            .inspector();
     ClassSubject clazz = inspector.clazz(testClass);
     assertThat(clazz, isPresent());
     MethodSubject foo = clazz.uniqueMethodWithOriginalName("foo");

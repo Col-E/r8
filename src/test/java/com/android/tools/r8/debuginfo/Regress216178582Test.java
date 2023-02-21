@@ -45,7 +45,7 @@ public class Regress216178582Test extends TestBase {
     Path out =
         testForR8(parameters.getBackend())
             .addInnerClasses(Regress216178582Test.class)
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .addKeepMainRule(TestClass.class)
             .addKeepAttributeLineNumberTable()
             .addOptionsModification(o -> o.testing.forcePcBasedEncoding = true)
@@ -88,7 +88,7 @@ public class Regress216178582Test extends TestBase {
 
     testForD8(parameters.getBackend())
         .addProgramFiles(out)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addOptionsModification(o -> o.testing.forceJumboStringProcessing = true)
         .run(parameters.getRuntime(), TestClass.class)
         .assertSuccessWithOutput(EXPECTED);

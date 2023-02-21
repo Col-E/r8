@@ -60,7 +60,7 @@ public class DesugaredLibraryMismatchTest extends DesugaredLibraryTestBase {
     Path libraryDex =
         testForD8(Backend.DEX)
             .addProgramClasses(Library.class)
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .compile()
             .writeToZip();
 
@@ -93,7 +93,7 @@ public class DesugaredLibraryMismatchTest extends DesugaredLibraryTestBase {
     Path desugaredLibrary =
         testForD8(Backend.CF)
             .addProgramClasses(Library.class)
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .compile()
             .writeToZip();
 
@@ -110,7 +110,7 @@ public class DesugaredLibraryMismatchTest extends DesugaredLibraryTestBase {
     Path desugaredLibrary =
         testForD8(Backend.CF)
             .addProgramClasses(Library.class)
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .compile()
             .writeToZip();
 
@@ -118,7 +118,7 @@ public class DesugaredLibraryMismatchTest extends DesugaredLibraryTestBase {
     Path desugaredLibraryDex =
         testForD8(Backend.DEX)
             .addProgramFiles(desugaredLibrary)
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .disableDesugaring()
             .compile()
             .writeToZip();
@@ -135,7 +135,7 @@ public class DesugaredLibraryMismatchTest extends DesugaredLibraryTestBase {
     Path desugaredLibrary =
         testForD8(Backend.CF)
             .addProgramClasses(Library.class)
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .enableCoreLibraryDesugaring(
                 LibraryDesugaringTestConfiguration.forSpecification(
                     libraryDesugaringSpecification.getSpecification()))
@@ -146,7 +146,7 @@ public class DesugaredLibraryMismatchTest extends DesugaredLibraryTestBase {
     testForD8()
         .addProgramFiles(desugaredLibrary)
         .addProgramClasses(TestRunner.class)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile();
   }
 
@@ -164,14 +164,14 @@ public class DesugaredLibraryMismatchTest extends DesugaredLibraryTestBase {
     Path programDex =
         testForD8(Backend.DEX)
             .addProgramClasses(TestRunner.class)
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .compile()
             .writeToZip();
 
     testForD8()
         .addProgramFiles(libraryDex)
         .addProgramFiles(programDex)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile();
   }
 
@@ -182,7 +182,7 @@ public class DesugaredLibraryMismatchTest extends DesugaredLibraryTestBase {
     Path libraryDex =
         testForD8(Backend.DEX)
             .addProgramClasses(Library.class)
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .enableCoreLibraryDesugaring(
                 LibraryDesugaringTestConfiguration.builder()
                     // Minimal configuration with a different identifier.
@@ -213,14 +213,14 @@ public class DesugaredLibraryMismatchTest extends DesugaredLibraryTestBase {
     Path programDex =
         testForD8(Backend.DEX)
             .addProgramClasses(TestRunner.class)
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .compile()
             .writeToZip();
 
     testForD8()
         .addProgramFiles(libraryDex)
         .addProgramFiles(programDex)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile();
   }
 

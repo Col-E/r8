@@ -61,7 +61,7 @@ public class DaggerBasicNotSingletonUsingProvidesTest extends DaggerBasicTestBas
     assumeTrue(parameters.isDexRuntime());
     testForD8(parameters.getBackend())
         .addProgramFiles(getProgramFiles(target))
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), MAIN_CLASS)
         .assertSuccessWithOutputLines(EXPECTED_OUTPUT);
   }
@@ -74,7 +74,7 @@ public class DaggerBasicNotSingletonUsingProvidesTest extends DaggerBasicTestBas
   public void testR8() throws Exception {
     testForR8(parameters.getBackend())
         .addProgramFiles(getProgramFiles(target))
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addKeepMainRule(MAIN_CLASS)
         .run(parameters.getRuntime(), MAIN_CLASS)
         .inspect(this::inspect)

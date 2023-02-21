@@ -48,7 +48,7 @@ public class InstanceGetOnCheckCastCompareLongTest extends TestBase {
         .addProgramClassFileData(getTestClassWithRewrittenLongCompareToLCmp())
         .addKeepMainRule(Main.class)
         .addKeepClassRules(I.class)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .enableInliningAnnotations()
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines(EXPECTED);

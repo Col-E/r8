@@ -86,7 +86,7 @@ public class NestAttributesInDexShrinkingMethodsTest extends NestAttributesInDex
         .addProgramClassFileData(
             dumpHost(ACC_PRIVATE), dumpMember1(ACC_PRIVATE), dumpMember2(ACC_PRIVATE))
         .addKeepMainRule("Host")
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addOptionsModification(options -> options.emitNestAnnotationsInDex = true)
         .compile()
         .inspect(inspector -> assertEquals(1, inspector.allClasses().size()))
@@ -103,7 +103,7 @@ public class NestAttributesInDexShrinkingMethodsTest extends NestAttributesInDex
     testForR8(parameters.getBackend())
         .addProgramClassFileData(
             dumpHost(ACC_PRIVATE), dumpMember1(ACC_PRIVATE), dumpMember2(ACC_PRIVATE))
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addOptionsModification(options -> options.emitNestAnnotationsInDex = true)
         .addKeepMainRule("Host")
         .addKeepClassAndMembersRules("Host", "Host$Member1", "Host$Member2")
@@ -125,7 +125,7 @@ public class NestAttributesInDexShrinkingMethodsTest extends NestAttributesInDex
     testForR8(parameters.getBackend())
         .addProgramClassFileData(
             dumpHost(ACC_PUBLIC), dumpMember1(ACC_PUBLIC), dumpMember2(ACC_PUBLIC))
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addOptionsModification(options -> options.emitNestAnnotationsInDex = true)
         .addKeepMainRule("Host")
         .addKeepClassAndMembersRules("Host", "Host$Member1", "Host$Member2")

@@ -25,7 +25,7 @@ public class RepackageKeepPackageNameTest extends RepackageTestBase {
     R8TestCompileResult compileLib =
         testForR8(parameters.getBackend())
             .addInnerClasses(getClass())
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .addKeepClassAndMembersRulesWithAllowObfuscation(
                 ShouldStayInPackage.class, ShouldBeRepackaged.class)
             .addKeepPackageNamesRule(typeName(ShouldStayInPackage.class))
@@ -42,7 +42,7 @@ public class RepackageKeepPackageNameTest extends RepackageTestBase {
         .addClasspathClasses(ShouldStayInPackage.class, ShouldBeRepackaged.class)
         .addApplyMapping(compileLib.getProguardMap())
         .addKeepMainRule(Runner.class)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .addRunClasspathFiles(compileLib.writeToZip())
         .run(parameters.getRuntime(), Runner.class)

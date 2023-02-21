@@ -37,7 +37,7 @@ public class ServiceLoaderParentTest extends HorizontalClassMergingTestBase {
                 "META-INF/services/" + A.class.getTypeName(),
                 Origin.unknown()))
         .enableNoVerticalClassMergingAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), Main.class)
         .assertSuccess()
         .inspect(

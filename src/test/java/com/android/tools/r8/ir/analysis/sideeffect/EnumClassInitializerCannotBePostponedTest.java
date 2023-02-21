@@ -31,7 +31,7 @@ public class EnumClassInitializerCannotBePostponedTest extends TestBase {
     testForR8(parameters.getBackend())
         .addInnerClasses(EnumClassInitializerCannotBePostponedTest.class)
         .addKeepMainRule(TestClass.class)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), TestClass.class)
         .assertSuccessWithOutputLines("Hello world!");
   }

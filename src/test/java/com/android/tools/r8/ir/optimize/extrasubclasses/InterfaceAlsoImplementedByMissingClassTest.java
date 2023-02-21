@@ -51,7 +51,7 @@ public class InterfaceAlsoImplementedByMissingClassTest extends TestBase {
             // I after the R8 compilation.
             .addKeepRules("-keep class " + I.class.getTypeName() + " { void kept(); }")
             .enableNeverClassInliningAnnotations()
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .compile()
             .inspect(this::inspect)
             .writeToZip();

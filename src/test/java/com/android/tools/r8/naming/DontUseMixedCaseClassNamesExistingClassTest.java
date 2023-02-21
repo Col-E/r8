@@ -47,7 +47,7 @@ public class DontUseMixedCaseClassNamesExistingClassTest extends TestBase {
     FileUtils.writeTextFile(dictionary, FINAL_CLASS_NAME);
     testForR8(parameters.getBackend())
         .addProgramClasses(A.class, Main.class)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addKeepClassRulesWithAllowObfuscation(A.class)
         .addKeepMainRule(Main.class)
         .addKeepPackageNamesRule(Main.class.getPackage())

@@ -46,7 +46,7 @@ public class LambdaEnumUnboxingEmptyEnumTest extends EnumUnboxingTestBase {
         .addOptionsModification(opt -> enableEnumOptions(opt, enumValueOptimization))
         .addEnumUnboxingInspector(
             inspector -> inspector.assertUnboxedIf(enumKeepRules.isNone(), MyEnum.class))
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines("null");

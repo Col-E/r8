@@ -41,7 +41,7 @@ public class GenericSignatureDontOptimizeTest extends TestBase {
   public void testR8() throws Exception {
     testForR8(parameters.getBackend())
         .addInnerClasses(getClass())
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addKeepAttributes(ProguardKeepAttributes.SIGNATURE)
         .addKeepClassRules(Foo.class)
         .addKeepMainRule(Main.class)

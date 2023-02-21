@@ -37,7 +37,7 @@ public class ThrowingConstStringTest extends TestBase {
     Path cfout =
         testForD8(Backend.CF)
             .addInnerClasses(ThrowingConstStringTest.class)
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .addOptionsModification(o -> o.testing.forceIRForCfToCfDesugar = true)
             .compile()
             .inspect(
@@ -56,7 +56,7 @@ public class ThrowingConstStringTest extends TestBase {
             .writeToZip();
     testForD8(parameters.getBackend())
         .addProgramFiles(cfout)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), TestClass.class)
         .assertSuccessWithOutput(EXPECTED);
   }

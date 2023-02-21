@@ -58,21 +58,22 @@ public class NonAsciiClassNameChecksumTest extends TestBase {
     Path intermediate2 = compileIntermediate(TestClaass.class);
     testForD8()
         .addProgramFiles(intermediate1, intermediate2)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .setIncludeClassesChecksum(true)
         .run(parameters.getRuntime(), getTransformedName(TaestClass.class))
         .assertSuccessWithOutput(EXPECTED)
-        .inspect(inspector -> {
-          checkIncludesChecksum(inspector, TaestClass.class);
-          checkIncludesChecksum(inspector, TestClaass.class);
-        });
+        .inspect(
+            inspector -> {
+              checkIncludesChecksum(inspector, TaestClass.class);
+              checkIncludesChecksum(inspector, TestClaass.class);
+            });
   }
 
   private Path compileIntermediate(Class<?> clazz) throws Exception {
     return testForD8()
         .setOutputMode(OutputMode.DexFilePerClassFile)
         .addProgramClassFileData(getTransform(clazz))
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .setIncludeClassesChecksum(true)
         .compile()
         .inspect(inspector -> checkIncludesChecksum(inspector, clazz))

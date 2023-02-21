@@ -49,7 +49,7 @@ public class RepackageLambdaMissingInterfaceTest extends RepackageTestBase {
         .addKeepMainRule(Main.class)
         .addKeepAttributeInnerClassesAndEnclosingMethod()
         .applyIf(repackage, this::configureRepackaging)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addDontWarn(MissingInterface.class)
         .allowDiagnosticWarningMessages(parameters.isDexRuntime())
         .noClassInlining()

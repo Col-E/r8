@@ -40,7 +40,7 @@ public class ForNameRenamingTest extends TestBase {
         .addInnerClasses(ForNameRenamingTest.class)
         .addKeepMainRule(MAIN)
         .addKeepClassRulesWithAllowObfuscation(Boo.class)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), MAIN)
         .assertSuccessWithOutputLines("true")
         .inspect(this::inspect);

@@ -47,10 +47,7 @@ public class InconsistentLocalTypeOnExceptionEdgeTest extends JasminTestBase {
           .assertFailureWithErrorThatThrows(VerifyError.class);
     } else {
       try {
-        testForD8()
-            .addProgramClassFileData(classFileData)
-            .setMinApi(parameters.getApiLevel())
-            .compile();
+        testForD8().addProgramClassFileData(classFileData).setMinApi(parameters).compile();
       } catch (CompilationFailedException e) {
         inspectCompilationFailedException(e);
       }
@@ -61,7 +58,7 @@ public class InconsistentLocalTypeOnExceptionEdgeTest extends JasminTestBase {
           .addProgramClassFileData(classFileData)
           .addKeepAllClassesRule()
           .allowDiagnosticWarningMessages()
-          .setMinApi(parameters.getApiLevel())
+          .setMinApi(parameters)
           .compileWithExpectedDiagnostics(
               diagnostics ->
                   diagnostics.assertWarningsMatch(

@@ -57,7 +57,7 @@ public class HorizontalClassMergerSynchronizedMethodTest extends TestBase {
                 inspector
                     .assertClassesNotMerged(LockOne.class, LockTwo.class, LockThree.class)
                     .assertMergedInto(AcquireThree.class, AcquireOne.class))
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutput("Hello World!")

@@ -36,7 +36,7 @@ public class DeadConstructorWithCycleTest extends TestBase {
         .addInnerClasses(DeadConstructorWithCycleTest.class)
         .addKeepMainRule(TestClass.class)
         .enableNeverClassInliningAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .inspect(inspector -> assertThat(inspector.clazz(A.class), not(isPresent())))
         .run(parameters.getRuntime(), TestClass.class)

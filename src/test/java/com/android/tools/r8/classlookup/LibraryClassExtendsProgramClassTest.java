@@ -110,7 +110,7 @@ public class LibraryClassExtendsProgramClassTest extends TestBase {
   @Test
   public void testFullMode() throws Exception {
     testForR8(parameters.getBackend())
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addProgramClasses(TestClass.class)
         .addProgramClassFileData(junitClasses)
         .addKeepAllClassesRule()
@@ -124,7 +124,7 @@ public class LibraryClassExtendsProgramClassTest extends TestBase {
   @Test
   public void testCompatibilityMode() throws Exception {
     testForR8Compat(parameters.getBackend())
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addProgramClasses(TestClass.class)
         .addProgramClassFileData(junitClasses)
         .addKeepAllClassesRule()
@@ -139,7 +139,7 @@ public class LibraryClassExtendsProgramClassTest extends TestBase {
   public void testD8() throws Exception {
     assumeTrue("Only run D8 for Dex backend", parameters.isDexRuntime());
     testForD8()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addProgramClasses(TestClass.class)
         .addProgramClassFileData(junitClasses)
         .compile()
@@ -151,7 +151,7 @@ public class LibraryClassExtendsProgramClassTest extends TestBase {
   public void testFullModeError() throws Exception {
     R8FullTestBuilder builder =
         testForR8(parameters.getBackend())
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .addProgramClasses(TestClass.class)
             .addProgramClassFileData(junitClasses)
             .addKeepAllClassesRule()
@@ -175,7 +175,7 @@ public class LibraryClassExtendsProgramClassTest extends TestBase {
   @Test
   public void testCompatibilityModeWarning() throws Exception {
     testForR8Compat(parameters.getBackend())
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addProgramClasses(TestClass.class)
         .addProgramClassFileData(junitClasses)
         .addKeepAllClassesRule()
@@ -194,7 +194,7 @@ public class LibraryClassExtendsProgramClassTest extends TestBase {
   @Test
   public void testWithDontWarn() throws Exception {
     testForR8(parameters.getBackend())
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addProgramClasses(TestClass.class)
         .addProgramClassFileData(junitClasses)
         .addKeepAllClassesRule()

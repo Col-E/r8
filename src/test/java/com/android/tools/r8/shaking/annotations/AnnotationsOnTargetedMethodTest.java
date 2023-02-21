@@ -91,7 +91,7 @@ public class AnnotationsOnTargetedMethodTest extends TestBase {
         .enableNoHorizontalClassMergingAnnotations()
         .enableNoVerticalClassMergingAnnotations()
         .addDontObfuscate()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), TestClass.class)
         .assertSuccessWithOutput(
             !enableProguardCompatibilityMode && !keepAllowShrinking

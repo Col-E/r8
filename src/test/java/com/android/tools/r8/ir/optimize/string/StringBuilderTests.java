@@ -197,7 +197,7 @@ public class StringBuilderTests extends TestBase {
   private static R8TestCompileResult compileR8(TestParameters parameters) throws Exception {
     return testForR8(getStaticTemp(), parameters.getBackend())
         .addProgramClasses(Main.class)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addKeepClassAndMembersRules(Main.class)
         .enableInliningAnnotations()
         .compile();

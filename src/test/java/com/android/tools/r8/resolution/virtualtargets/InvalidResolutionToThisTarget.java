@@ -88,7 +88,7 @@ public class InvalidResolutionToThisTarget extends TestBase {
             testForR8(parameters.getBackend())
                 .addProgramClasses(A.class)
                 .addProgramClassFileData(getMainWithModifiedReceiverCall())
-                .setMinApi(parameters.getApiLevel())
+                .setMinApi(parameters)
                 .addKeepMainRule(Main.class)
                 .compileWithExpectedDiagnostics(
                     diagnosticMessages -> {

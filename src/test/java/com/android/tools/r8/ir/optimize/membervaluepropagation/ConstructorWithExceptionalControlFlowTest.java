@@ -33,7 +33,7 @@ public class ConstructorWithExceptionalControlFlowTest extends TestBase {
         .addInnerClasses(ConstructorWithExceptionalControlFlowTest.class)
         .addKeepMainRule(TestClass.class)
         .enableInliningAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .run(parameters.getRuntime(), TestClass.class)
         .assertSuccessWithOutputLines("false");

@@ -68,7 +68,7 @@ public class DefaultTopAndRightTest extends TestBase {
     testForR8(parameters.getBackend())
         .addProgramClasses(CLASSES)
         .addKeepMainRule(Main.class)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines("R::f");
   }

@@ -44,7 +44,7 @@ public class InlineCmpDoubleTest extends TestBase {
         .addKeepMainRule(TestClass.class)
         .addOptionsModification(options -> options.inlinerOptions().enableInlining = enableInlining)
         .enableKeepUnusedReturnValueAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .inspect(this::inspect)
         .run(parameters.getRuntime(), TestClass.class)

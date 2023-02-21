@@ -100,7 +100,7 @@ public class ClassInlinerTest extends ClassInlinerTestBase {
                         .assertMergedInto(Iface2Impl.class, Iface1Impl.class))
             .allowAccessModification()
             .addDontObfuscate()
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .run(parameters.getRuntime(), main)
             .assertSuccessWithOutput(javaOutput);
 
@@ -312,7 +312,7 @@ public class ClassInlinerTest extends ClassInlinerTestBase {
             .allowAccessModification()
             .enableInliningAnnotations()
             .addDontObfuscate()
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .run(parameters.getRuntime(), main)
             .assertSuccessWithOutput(javaOutput);
 

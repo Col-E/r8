@@ -50,7 +50,7 @@ public class UnrelatedClasspathClassFieldAccessTest extends TestBase {
         testForR8(parameters.getBackend())
             .addProgramClasses(ClasspathClass.class)
             .addKeepAllClassesRuleWithAllowObfuscation()
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .compile();
 
     testForR8(parameters.getBackend())
@@ -59,7 +59,7 @@ public class UnrelatedClasspathClassFieldAccessTest extends TestBase {
         .addApplyMapping(classpath.getProguardMap())
         .addKeepMainRule(ProgramClass.class)
         .addRunClasspathFiles(classpath.writeToZip())
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), ProgramClass.class)
         .assertSuccessWithOutputLines("42");
   }

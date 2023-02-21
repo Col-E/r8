@@ -38,7 +38,7 @@ public class B140588497 extends TestBase {
   public void testD8() throws Exception {
     testForD8()
         .addInnerClasses(B140588497.class)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), TestClass.class)
         .assertSuccessWithOutputLines("012345")
         .inspect(

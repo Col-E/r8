@@ -35,7 +35,7 @@ public class InterfaceWithDefaultMethodInitializedByStaticGetOnSubClassTest
     assumeTrue(parameters.isDexRuntime());
     testForD8()
         .addInnerClasses(getClass())
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .run(parameters.getRuntime(), TestClass.class)
         .apply(
@@ -59,7 +59,7 @@ public class InterfaceWithDefaultMethodInitializedByStaticGetOnSubClassTest
         .addInnerClasses(getClass())
         .addKeepMainRule(TestClass.class)
         .allowStdoutMessages()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .run(parameters.getRuntime(), TestClass.class)
         // TODO(b/144266257): This should succeed with "I\nA" when default interface methods are

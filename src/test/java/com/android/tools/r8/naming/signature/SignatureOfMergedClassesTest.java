@@ -60,7 +60,7 @@ public class SignatureOfMergedClassesTest extends TestBase {
         .addKeepMainRule(Main.class)
         .addKeepClassRules(InterfaceToKeep.class, ImplI.class, K.class)
         .addKeepAttributes("Signature, InnerClasses, EnclosingMethod, *Annotation*")
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addDontObfuscate()
         .addOptionsModification(
             internalOptions -> {
@@ -91,7 +91,7 @@ public class SignatureOfMergedClassesTest extends TestBase {
         .addKeepMainRule(Foo.class)
         .addKeepClassRules(InterfaceToKeep.class)
         .addKeepAttributes("Signature, InnerClasses, EnclosingMethod, *Annotation*")
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addDontObfuscate()
         .addOptionsModification(
             internalOptions -> {

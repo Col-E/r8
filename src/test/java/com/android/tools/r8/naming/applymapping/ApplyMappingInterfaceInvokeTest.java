@@ -68,7 +68,7 @@ public class ApplyMappingInterfaceInvokeTest extends TestBase {
         testForR8(parameters.getBackend())
             .addProgramClasses(classPathClasses)
             .addKeepAllClassesRuleWithAllowObfuscation()
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .compile();
     testForR8(parameters.getBackend())
         .addClasspathClasses(classPathClasses)
@@ -76,7 +76,7 @@ public class ApplyMappingInterfaceInvokeTest extends TestBase {
         .addDontObfuscate()
         .noTreeShaking()
         .addApplyMapping(libraryResult.getProguardMap())
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .addRunClasspathFiles(libraryResult.writeToZip())
         .run(parameters.getRuntime(), TestApp.class)

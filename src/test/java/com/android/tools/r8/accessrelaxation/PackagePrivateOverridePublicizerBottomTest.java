@@ -58,7 +58,7 @@ public class PackagePrivateOverridePublicizerBottomTest extends TestBase {
         .addProgramClassFileData(
             getSubViewModelInAnotherPackage(), getRewrittenSubViewModelInMain())
         .addKeepMainRule(Main.class)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .enableInliningAnnotations()
         .enableNoVerticalClassMergingAnnotations()
         .enableNeverClassInliningAnnotations()

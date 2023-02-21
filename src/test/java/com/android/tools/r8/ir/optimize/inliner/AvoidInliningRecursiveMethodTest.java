@@ -40,7 +40,7 @@ public class AvoidInliningRecursiveMethodTest extends TestBase {
         .addInnerClasses(AvoidInliningRecursiveMethodTest.class)
         .addKeepMainRule(TestClass.class)
         .enableInliningAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .inspect(this::inspect)
         .run(parameters.getRuntime(), TestClass.class)

@@ -160,7 +160,7 @@ public class NestInvokeSpecialMethodPublicAccessWithIntermediateTest extends Tes
     testForR8(parameters.getBackend())
         .addProgramClasses(getClasses())
         .addProgramClassFileData(getTransformedClasses())
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addKeepMainRule(Main.class)
         .run(parameters.getRuntime(), Main.class)
         .apply(this::checkExpectedResult);

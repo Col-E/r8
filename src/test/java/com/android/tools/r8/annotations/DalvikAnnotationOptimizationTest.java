@@ -92,7 +92,7 @@ public class DalvikAnnotationOptimizationTest extends TestBase {
     testForD8(parameters.getBackend())
         .addProgramClassFileData(
             transformer(TestClass.class).addMethodTransformer(getMethodTransformer()).transform())
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .applyIf(
             addAnnotationsOnLibraryPath,
             b -> {
@@ -131,7 +131,7 @@ public class DalvikAnnotationOptimizationTest extends TestBase {
                     optimizationPackage
                         ? "dalvik.annotation.optimization.*"
                         : "dalvik.annotation.codegen.*"))
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addKeepMainRule(TestClass.class)
         .compile()
         .inspect(this::checkExpectedAnnotations);

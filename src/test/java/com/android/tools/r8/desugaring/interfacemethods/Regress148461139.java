@@ -31,7 +31,7 @@ public class Regress148461139 extends TestBase {
   public void test() throws Exception {
     // This only failed if tree-shaking was disabled.
     testForR8(parameters.getBackend())
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addProgramClasses(Condition.class)
         .noTreeShaking()
         .compile()

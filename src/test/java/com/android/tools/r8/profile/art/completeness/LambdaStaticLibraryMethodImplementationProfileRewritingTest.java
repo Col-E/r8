@@ -44,7 +44,7 @@ public class LambdaStaticLibraryMethodImplementationProfileRewritingTest extends
     testForD8(parameters.getBackend())
         .addInnerClasses(getClass())
         .addArtProfileForRewriting(getArtProfile())
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .inspectResidualArtProfile(this::inspectD8)
         .run(parameters.getRuntime(), Main.class)
@@ -61,7 +61,7 @@ public class LambdaStaticLibraryMethodImplementationProfileRewritingTest extends
         .addOptionsModification(InlinerOptions::disableInlining)
         .addOptionsModification(
             options -> options.callSiteOptimizationOptions().setEnableMethodStaticizing(false))
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .inspectResidualArtProfile(this::inspectR8)
         .run(parameters.getRuntime(), Main.class)

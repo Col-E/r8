@@ -26,7 +26,7 @@ public class RepackageWithInvokeDynamicTest extends RepackageTestBase {
         .addKeepMainRule(TestClass.class)
         .apply(this::configureRepackaging)
         .enableInliningAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .inspect(this::inspect)
         .run(parameters.getRuntime(), TestClass.class)

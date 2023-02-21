@@ -55,7 +55,7 @@ public class AnnotationWithInjectedMethodsTest extends EnumUnboxingTestBase {
         .addKeepRuntimeVisibleAnnotations()
         .addOptionsModification(options -> options.testing.allowInjectedAnnotationMethods = true)
         .addDontObfuscate()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutput(getExpectedOutput());

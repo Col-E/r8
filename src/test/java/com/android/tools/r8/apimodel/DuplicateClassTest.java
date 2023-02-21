@@ -40,7 +40,7 @@ public class DuplicateClassTest extends TestBase {
                 .setClassDescriptor("Ljava/lang/Exception;")
                 .removeInnerClasses()
                 .transform())
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines("Hello World")

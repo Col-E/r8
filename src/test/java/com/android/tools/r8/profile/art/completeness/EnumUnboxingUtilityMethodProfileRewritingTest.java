@@ -45,7 +45,7 @@ public class EnumUnboxingUtilityMethodProfileRewritingTest extends TestBase {
         .addEnumUnboxingInspector(inspector -> inspector.assertUnboxed(MyEnum.class))
         .addOptionsModification(InlinerOptions::disableInlining)
         .noHorizontalClassMergingOfSynthetics()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .inspectResidualArtProfile(this::inspect)
         .run(parameters.getRuntime(), Main.class)

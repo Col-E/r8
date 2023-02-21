@@ -32,7 +32,7 @@ public class UnusedReturnValueTest extends TestBase {
         .addInnerClasses(UnusedReturnValueTest.class)
         .addKeepMainRule(TestClass.class)
         .enableInliningAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .run(parameters.getRuntime(), TestClass.class)
         .assertSuccessWithOutputLines("Hello world!");

@@ -82,7 +82,7 @@ public class IncompatiblePrimitiveTypesTest extends TestBase {
     TestRunResult<?> d8Result =
         testForD8()
             .addProgramFiles(inputJar)
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .run(parameters.getRuntime(), "TestClass");
     if (parameters.getRuntime().asDex().getVm().getVersion().isNewerThan(Version.V4_4_4)) {
       d8Result.assertSuccessWithOutput(expectedOutput);

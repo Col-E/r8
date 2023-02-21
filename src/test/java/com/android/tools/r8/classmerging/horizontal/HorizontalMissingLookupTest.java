@@ -25,7 +25,7 @@ public class HorizontalMissingLookupTest extends HorizontalClassMergingTestBase 
         .addProgramClassFileData(transformer(B.class).removeMethodsWithName("foo").transform())
         .addKeepMainRule(Main.class)
         .enableInliningAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addHorizontallyMergedClassesInspector(
             HorizontallyMergedClassesInspector::assertNoClassesMerged)
         .run(parameters.getRuntime(), Main.class)

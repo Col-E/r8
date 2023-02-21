@@ -38,7 +38,7 @@ public class LibraryClassInheritingFromProgramClassNamingTest extends TestBase {
   public void testR8() throws ExecutionException, CompilationFailedException, IOException {
     R8TestCompileResult libraryResult =
         testForR8(parameters.getBackend())
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .addProgramClasses(LIBRARY_CLASSES)
             .addProgramClasses(
                 I.class, Assert.class, TestCase.class, ApplicationTestCaseInProgram.class)
@@ -52,7 +52,7 @@ public class LibraryClassInheritingFromProgramClassNamingTest extends TestBase {
         .addKeepClassAndMembersRulesWithAllowObfuscation(
             I.class, Assert.class, TestCase.class, ApplicationTestCaseInProgram.class)
         .addKeepMainRule(Main.class)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .allowDiagnosticWarningMessages()
         .compile()
         .assertAllWarningMessagesMatch(

@@ -47,7 +47,7 @@ public class InvokeInterfaceOnClassTest extends TestBase {
         .addProgramClasses(I.class, C1.class, C2.class)
         .addProgramClassFileData(transformMain())
         .addKeepMainRule(Main.class)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addOptionsModification(options -> options.testing.allowInvokeErrors = true)
         .run(parameters.getRuntime(), Main.class)
         .assertFailureWithErrorThatMatches(getExpectedFailureMatcher(true));

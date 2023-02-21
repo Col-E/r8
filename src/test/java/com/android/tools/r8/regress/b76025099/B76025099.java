@@ -68,7 +68,7 @@ public class B76025099 extends TestBase {
     if (parameters.isDexRuntime()) {
       testForD8()
           .addProgramFiles(proguardCompileResult.outputJar())
-          .setMinApi(parameters.getApiLevel())
+          .setMinApi(parameters)
           .compile()
           .inspect(this::verifyFieldAccess)
           .run(parameters.getRuntime(), Main.class)
@@ -87,7 +87,7 @@ public class B76025099 extends TestBase {
         .addKeepMainRule(Main.class)
         .enableNoVerticalClassMergingAnnotations()
         .addDontObfuscate()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .inspect(this::verifyFieldAccess)
         .run(parameters.getRuntime(), Main.class)

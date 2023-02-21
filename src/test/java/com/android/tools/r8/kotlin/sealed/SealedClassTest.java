@@ -67,7 +67,7 @@ public class SealedClassTest extends KotlinTestBase {
         .addProgramFiles(compilationResults.getForConfiguration(kotlinc, targetVersion))
         .addProgramFiles(kotlinc.getKotlinStdlibJar())
         .addProgramFiles(kotlinc.getKotlinAnnotationJar())
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .allowAccessModification()
         .allowDiagnosticWarningMessages()
         .addKeepMainRule(MAIN)

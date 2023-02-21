@@ -36,7 +36,7 @@ public class ClassInitializedByClassForNameTest extends TestBase {
     testForR8(parameters.getBackend())
         .addInnerClasses(ClassInitializedByClassForNameTest.class)
         .addKeepMainRule(TestClass.class)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .inspect(this::inspect)
         .run(parameters.getRuntime(), TestClass.class)

@@ -50,7 +50,7 @@ public class GenericSignatureReflectiveInnerTest extends TestBase {
         .addKeepAttributeSignature()
         .addKeepClassRules(Foo.Bar.class)
         .enableInliningAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines(EXPECTED)
         .inspect(

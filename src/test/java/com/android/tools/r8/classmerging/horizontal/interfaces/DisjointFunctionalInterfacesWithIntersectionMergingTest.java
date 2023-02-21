@@ -43,7 +43,7 @@ public class DisjointFunctionalInterfacesWithIntersectionMergingTest extends Tes
         .noClassInliningOfSynthetics()
         .noHorizontalClassMergingOfSynthetics()
         .noInliningOfSynthetics()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines("I & J", "I & J");

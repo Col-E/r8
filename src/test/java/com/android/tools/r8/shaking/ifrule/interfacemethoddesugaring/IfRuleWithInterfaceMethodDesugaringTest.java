@@ -80,7 +80,7 @@ public class IfRuleWithInterfaceMethodDesugaringTest extends TestBase {
             .enableInliningAnnotations()
             .enableNeverClassInliningAnnotations()
             .enableNoVerticalClassMergingAnnotations()
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .run(parameters.getRuntime(), TestClass.class)
             .assertSuccessWithOutput(EXPECTED_OUTPUT)
             .inspector();

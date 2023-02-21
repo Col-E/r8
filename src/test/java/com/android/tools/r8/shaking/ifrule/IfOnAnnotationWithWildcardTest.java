@@ -56,7 +56,7 @@ public class IfOnAnnotationWithWildcardTest extends TestBase {
   private void runTest(String ifRule) throws Exception {
     testForR8Compat(parameters.getBackend())
         .addProgramClasses(MyClass.class, MyAnnotation.class)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addKeepClassAndMembersRules(MyAnnotation.class)
         .addKeepRules("-keep class * { @" + MyAnnotation.class.getTypeName() + " <fields>; }")
         .addKeepRules(ifRule)

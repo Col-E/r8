@@ -73,7 +73,7 @@ public class NonNullParamTest extends TestBase {
               options.inlinerOptions().simpleInliningInstructionLimit = 4;
             })
         .apply(configuration)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), mainClass)
         .assertSuccessWithOutput(javaOutput)
         .inspector();

@@ -65,12 +65,14 @@ public class NestCompilationExceptionTest extends TestBase {
 
   @Test
   public void testWarningR8() throws Exception {
+    parameters.assumeR8TestParameters();
     testIncompleteNestWarning(false, parameters.isDexRuntime());
     testMissingNestHostWarning(false, parameters.isDexRuntime());
   }
 
   @Test
   public void testErrorR8() {
+    parameters.assumeR8TestParameters();
     testMissingNestHostError(false);
     testIncompleteNestError(false);
   }
@@ -87,14 +89,14 @@ public class NestCompilationExceptionTest extends TestBase {
             .collect(toList());
     if (d8) {
       return testForD8(parameters.getBackend())
-          .setMinApi(parameters.getApiLevel())
+          .setMinApi(parameters)
           .addProgramFiles(matchingClasses);
     } else {
       return testForR8(parameters.getBackend())
           .noTreeShaking()
           .addDontObfuscate()
           .addKeepAllAttributes()
-          .setMinApi(parameters.getApiLevel())
+          .setMinApi(parameters)
           .addProgramFiles(matchingClasses)
           .applyIf(parameters.isCfRuntime(), Jdk9TestUtils.addJdk9LibraryFiles(temp))
           .addIgnoreWarnings(ignoreMissingClasses)

@@ -126,7 +126,7 @@ public class VirtualOverrideOfPrivateStaticMethodWithVirtualParentTest extends T
           testForD8()
               .addProgramClasses(CLASSES)
               .addProgramClassFileData(getDumps())
-              .setMinApi(parameters.getApiLevel())
+              .setMinApi(parameters)
               .run(parameters.getRuntime(), Main.class);
     }
     checkResult(runResult, false);
@@ -139,7 +139,7 @@ public class VirtualOverrideOfPrivateStaticMethodWithVirtualParentTest extends T
             .addProgramClasses(CLASSES)
             .addProgramClassFileData(getDumps())
             .addKeepMainRule(Main.class)
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .run(parameters.getRuntime(), Main.class);
     checkResult(runResult, true);
   }

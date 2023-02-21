@@ -94,7 +94,7 @@ public class LambdaEqualityTest extends TestBase {
   public void testD8() throws Exception {
     testForD8(parameters.getBackend())
         .addInnerClasses(LambdaEqualityTest.class)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), TestClass.class)
         .assertSuccessWithOutput(EXPECTED_D8);
   }
@@ -104,7 +104,7 @@ public class LambdaEqualityTest extends TestBase {
     parameters.assumeR8TestParameters();
     testForR8(parameters.getBackend())
         .addInnerClasses(LambdaEqualityTest.class)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addKeepMainRule(TestClass.class)
         .addKeepMethodRules(
             Reference.methodFromMethod(

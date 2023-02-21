@@ -55,7 +55,7 @@ public class ConditionalKeepIfKeptTest extends TestBase {
         .addInnerClasses(ConditionalKeepIfKeptTest.class)
         .addKeepRules(getConditionalRulePrefix())
         .addKeepMainRule(TestClass.class)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), TestClass.class)
         .assertSuccessWithOutput(EXPECTED)
         .inspect(
@@ -76,7 +76,7 @@ public class ConditionalKeepIfKeptTest extends TestBase {
         .addInnerClasses(ConditionalKeepIfKeptTest.class)
         .addKeepRules(getConditionalRulePrefix() + " { *; }")
         .addKeepMainRule(TestClass.class)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), TestClass.class)
         .assertSuccessWithOutput(EXPECTED)
         .inspect(
@@ -95,7 +95,7 @@ public class ConditionalKeepIfKeptTest extends TestBase {
         .addInnerClasses(ConditionalKeepIfKeptTest.class)
         .addKeepRules(getConditionalRulePrefix() + " { static *; }")
         .addKeepMainRule(TestClass.class)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), TestClass.class)
         .assertSuccessWithOutput(EXPECTED)
         .inspect(
@@ -114,7 +114,7 @@ public class ConditionalKeepIfKeptTest extends TestBase {
         .addInnerClasses(ConditionalKeepIfKeptTest.class)
         .addKeepRules(getConditionalRulePrefix() + " { !static *; }")
         .addKeepMainRule(TestClass.class)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), TestClass.class)
         .assertSuccessWithOutput(EXPECTED)
         .inspect(
@@ -133,7 +133,7 @@ public class ConditionalKeepIfKeptTest extends TestBase {
         .addInnerClasses(ConditionalKeepIfKeptTest.class)
         .addKeepRules(getConditionalRulePrefix() + " { <fields>; }")
         .addKeepMainRule(TestClass.class)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), TestClass.class)
         .assertSuccessWithOutput(EXPECTED)
         .inspect(
@@ -152,7 +152,7 @@ public class ConditionalKeepIfKeptTest extends TestBase {
         .addInnerClasses(ConditionalKeepIfKeptTest.class)
         .addKeepRules(getConditionalRulePrefix() + " { <methods>; }")
         .addKeepMainRule(TestClass.class)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), TestClass.class)
         .assertSuccessWithOutput(EXPECTED)
         .inspect(

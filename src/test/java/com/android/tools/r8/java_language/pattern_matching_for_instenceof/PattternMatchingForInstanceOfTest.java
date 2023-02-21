@@ -48,7 +48,7 @@ public class PattternMatchingForInstanceOfTest extends TestBase {
     }
     testForD8(parameters.getBackend())
         .addProgramFiles(JAR)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .run(parameters.getRuntime(), MAIN)
         .assertSuccessWithOutputLines(EXPECTED);
@@ -60,7 +60,7 @@ public class PattternMatchingForInstanceOfTest extends TestBase {
     R8TestBuilder<?> builder =
         testForR8(parameters.getBackend())
             .addProgramFiles(JAR)
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .addKeepMainRule(MAIN);
     if (parameters.getBackend().isDex()) {
       builder.run(parameters.getRuntime(), MAIN).assertSuccessWithOutputLines(EXPECTED);

@@ -85,7 +85,7 @@ public class InvokeSuperCallInStaticTest extends TestBase {
         .addProgramClassFileData(getAWithRewrittenInvokeSpecialToBase())
         .addKeepMainRule(Main.class)
         .allowAccessModification()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines(EXPECTED)
         .inspect(

@@ -49,7 +49,7 @@ public class OutlinesWithNonNullTest extends TestBase {
         .enableInliningAnnotations()
         .addProgramClasses(TestArg.class, TestClassWithNonNullOnOneSide.class)
         .addKeepMainRule(TestClassWithNonNullOnOneSide.class)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .allowAccessModification()
         .addDontObfuscate()
         .addOptionsModification(
@@ -70,7 +70,7 @@ public class OutlinesWithNonNullTest extends TestBase {
         .enableInliningAnnotations()
         .addProgramClasses(TestArg.class, TestClassWithNonNullOnBothSides.class)
         .addKeepMainRule(TestClassWithNonNullOnBothSides.class)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .allowAccessModification()
         .addDontObfuscate()
         .addOptionsModification(

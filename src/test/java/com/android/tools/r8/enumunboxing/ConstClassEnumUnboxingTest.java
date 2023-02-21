@@ -34,7 +34,7 @@ public class ConstClassEnumUnboxingTest extends EnumUnboxingTestBase {
         .addKeepMainRule(Main.class)
         .addKeepRules(enumKeepRules.getKeepRules())
         .addEnumUnboxingInspector(inspector -> inspector.assertUnboxed(MyEnum.class))
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines("int");

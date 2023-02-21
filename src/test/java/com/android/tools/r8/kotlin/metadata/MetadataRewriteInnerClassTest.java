@@ -84,6 +84,7 @@ public class MetadataRewriteInnerClassTest extends KotlinMetadataTestBase {
 
   @Test
   public void testMetadataOuterRenamed() throws Exception {
+    parameters.assumeR8TestParameters();
     Path mainJar =
         testForR8(parameters.getBackend())
             .addClasspathFiles(kotlinc.getKotlinStdlibJar())
@@ -94,7 +95,7 @@ public class MetadataRewriteInnerClassTest extends KotlinMetadataTestBase {
             .addKeepRules("-keep public class " + PKG_NESTED_REFLECT + ".Outer$Inner { *; }")
             .addKeepMainRule(PKG_NESTED_REFLECT + ".MainKt")
             .addKeepAttributes(ProguardKeepAttributes.RUNTIME_VISIBLE_ANNOTATIONS)
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .compile()
             .inspect(inspector -> inspectPruned(inspector, true))
             .writeToZip();
@@ -103,6 +104,7 @@ public class MetadataRewriteInnerClassTest extends KotlinMetadataTestBase {
 
   @Test
   public void testMetadataOuterNotRenamed() throws Exception {
+    parameters.assumeR8TestParameters();
     Path mainJar =
         testForR8(parameters.getBackend())
             .addClasspathFiles(kotlinc.getKotlinStdlibJar())
@@ -115,7 +117,7 @@ public class MetadataRewriteInnerClassTest extends KotlinMetadataTestBase {
             .addKeepRules("-keep public class " + PKG_NESTED_REFLECT + ".Outer$Inner { *; }")
             .addKeepMainRule(PKG_NESTED_REFLECT + ".MainKt")
             .addKeepAttributes(ProguardKeepAttributes.RUNTIME_VISIBLE_ANNOTATIONS)
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .compile()
             .inspect(inspector -> inspectPruned(inspector, false))
             .writeToZip();
@@ -130,7 +132,7 @@ public class MetadataRewriteInnerClassTest extends KotlinMetadataTestBase {
             : new ArchiveConsumer(output, true);
     testForD8(parameters.getBackend())
         .addProgramFiles(kotlinc.getKotlinStdlibJar(), kotlinc.getKotlinReflectJar(), jar)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .setProgramConsumer(programConsumer)
         .addOptionsModification(
             options -> {

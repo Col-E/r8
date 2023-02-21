@@ -96,6 +96,11 @@ public class TestAppViewBuilder {
     return this;
   }
 
+  public TestAppViewBuilder setMinApi(TestParameters parameters) {
+    parameters.configureApiLevel(this);
+    return this;
+  }
+
   public TestAppViewBuilder addClasspathClasses(Class<?>... classes) {
     return addClasspathClasses(Arrays.asList(classes));
   }

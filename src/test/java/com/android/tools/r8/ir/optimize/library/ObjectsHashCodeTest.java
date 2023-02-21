@@ -43,7 +43,7 @@ public class ObjectsHashCodeTest extends TestBase {
         .addKeepMainRule(Main.class)
         .enableNeverClassInliningAnnotations()
         .enableInliningAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .inspect(
             inspector -> {

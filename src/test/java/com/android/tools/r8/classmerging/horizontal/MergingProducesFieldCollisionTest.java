@@ -30,7 +30,7 @@ public class MergingProducesFieldCollisionTest extends HorizontalClassMergingTes
         .addProgramClasses(Parent.class, A.class, B.class, Main.class)
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), Main.class)
         .assertSuccess()
         .inspect(

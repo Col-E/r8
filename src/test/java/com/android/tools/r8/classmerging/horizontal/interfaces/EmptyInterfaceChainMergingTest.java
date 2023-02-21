@@ -44,7 +44,7 @@ public class EmptyInterfaceChainMergingTest extends TestBase {
                     .assertNoOtherClassesMerged())
         .enableNoUnusedInterfaceRemovalAnnotations()
         .enableNoVerticalClassMergingAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .inspect(
             inspector -> {

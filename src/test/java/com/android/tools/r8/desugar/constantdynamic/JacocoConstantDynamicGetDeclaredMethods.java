@@ -112,7 +112,7 @@ public class JacocoConstantDynamicGetDeclaredMethods extends TestBase {
     testForD8(parameters.getBackend())
         .addProgramFiles(testClasses.getInstrumented())
         .addProgramFiles(ToolHelper.JACOCO_AGENT)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .runWithJaCoCo(agentOutput, parameters.getRuntime(), MAIN_CLASS)
         .applyIf(
@@ -129,7 +129,7 @@ public class JacocoConstantDynamicGetDeclaredMethods extends TestBase {
     testForR8(parameters.getBackend())
         .addProgramFiles(testClasses.getInstrumented())
         .addProgramFiles(ToolHelper.JACOCO_AGENT)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addKeepMainRules(TestRunner.class)
         .applyIf(
             parameters.getApiLevel().isLessThan(AndroidApiLevel.O),
@@ -156,7 +156,7 @@ public class JacocoConstantDynamicGetDeclaredMethods extends TestBase {
     testForR8(parameters.getBackend())
         .addProgramFiles(testClasses.getInstrumented())
         .addProgramFiles(ToolHelper.JACOCO_AGENT)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addKeepMainRules(TestRunner.class)
         .addKeepRules("-keep class ** { *** " + jacocoBootstrapMethodName + "(...); }")
         .applyIf(

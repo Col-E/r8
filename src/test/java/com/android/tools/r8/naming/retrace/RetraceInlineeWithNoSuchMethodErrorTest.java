@@ -77,7 +77,7 @@ public class RetraceInlineeWithNoSuchMethodErrorTest extends TestBase {
             .addKeepMainRule(Caller.class)
             .addKeepAttributeLineNumberTable()
             .addKeepAttributeSourceFile()
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .enableInliningAnnotations()
             .enableKeepUnusedReturnValueAnnotations()
             .enableExperimentalMapFileVersion();

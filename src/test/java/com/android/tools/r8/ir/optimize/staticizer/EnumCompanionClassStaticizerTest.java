@@ -44,7 +44,7 @@ public class EnumCompanionClassStaticizerTest extends TestBase {
         .addOptionsModification(options -> options.enableEnumUnboxing = enableEnumUnboxing)
         .enableNeverClassInliningAnnotations()
         .enableInliningAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .inspect(this::inspect)
         .run(parameters.getRuntime(), TestClass.class)

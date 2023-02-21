@@ -30,7 +30,7 @@ public class SwitchMapInvalidOrdinalTest extends TestBase {
   @Test
   public void testD8() throws Exception {
     testForD8()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addInnerClasses(SwitchMapInvalidOrdinalTest.class)
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines("a", "b", "0", "a");
@@ -46,7 +46,7 @@ public class SwitchMapInvalidOrdinalTest extends TestBase {
                 + " static <fields>; }")
         .addInnerClasses(SwitchMapInvalidOrdinalTest.class)
         .enableNeverClassInliningAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .run(parameters.getRuntime(), Main.class)
         // When the code reaches the switch the first time, then the switch map int[] gets

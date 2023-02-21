@@ -88,7 +88,7 @@ public class DesugarToClassFileDeprecatedAttribute extends TestBase {
     Path jar =
         testForD8(Backend.CF)
             .addProgramClasses(TestClass.class)
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .setProgramConsumer(
                 new ClassFileConsumer.ForwardingConsumer(null) {
                   @Override
@@ -111,7 +111,7 @@ public class DesugarToClassFileDeprecatedAttribute extends TestBase {
       // Convert to DEX without desugaring.
       testForD8()
           .addProgramFiles(jar)
-          .setMinApi(parameters.getApiLevel())
+          .setMinApi(parameters)
           .disableDesugaring()
           .run(parameters.getRuntime(), TestClass.class)
           .assertSuccessWithOutputLines("Hello, world!");
@@ -126,7 +126,7 @@ public class DesugarToClassFileDeprecatedAttribute extends TestBase {
             .addProgramClasses(TestClass.class)
             .addKeepClassAndMembersRules(TestClass.class)
             .addKeepAllAttributes()
-            .setMinApi(parameters.getApiLevel());
+            .setMinApi(parameters);
     if (parameters.isCfRuntime()) {
       builder.setProgramConsumer(
           new ForwardingConsumer(null) {

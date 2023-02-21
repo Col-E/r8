@@ -58,7 +58,7 @@ public class EnumUnboxingB160535628Test extends EnumUnboxingTestBase {
                             !missingStaticMethods || enumKeepRules.isStudio(), Lib.LibEnum.class)
                         .assertUnboxedIf(!missingStaticMethods, Lib.LibEnumStaticMethod.class))
             .allowDiagnosticMessages()
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .compile();
     if (missingStaticMethods) {
       compile
@@ -93,7 +93,6 @@ public class EnumUnboxingB160535628Test extends EnumUnboxingTestBase {
             inspector ->
                 inspector.assertNotUnboxed(Lib.LibEnum.class, Lib.LibEnumStaticMethod.class))
         .allowDiagnosticMessages()
-        .setMinApi(parameters.getApiLevel())
         .compile()
         .writeToZip();
   }

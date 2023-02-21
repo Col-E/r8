@@ -51,7 +51,7 @@ public class InvokeStaticWithNullOutvalueTest extends TestBase {
         .enableMemberValuePropagationAnnotations()
         .enableNeverClassInliningAnnotations()
         .enableNoHorizontalClassMergingAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), MAIN)
         .assertSuccessWithOutputLines("Companion#boo", "Companion#foo")
         .inspect(this::inspect);

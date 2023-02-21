@@ -46,7 +46,7 @@ public class DefaultLambdaMethodWithPrivateSuperClassTest extends TestBase {
   public void testDesugar() throws Exception {
     testForD8(parameters.getBackend())
         .addInnerClasses(getClass())
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), Main.class)
         .applyIf(
             parameters.isCfRuntime()

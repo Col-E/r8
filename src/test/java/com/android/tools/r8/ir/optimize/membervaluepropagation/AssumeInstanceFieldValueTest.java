@@ -47,7 +47,7 @@ public class AssumeInstanceFieldValueTest extends TestBase {
             "-assumenosideeffects class " + Config.class.getTypeName() + " {",
             "  boolean alwaysTrueNoSideEffects return true;",
             "}")
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .inspect(this::inspect)
         .run(parameters.getRuntime(), TestClass.class)

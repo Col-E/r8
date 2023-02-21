@@ -38,7 +38,7 @@ public class CheckNotZeroMethodWithArgumentRemovalTest extends TestBase {
         .addKeepMainRule(Main.class)
         .addEnumUnboxingInspector(inspector -> inspector.assertUnboxed(MyEnum.class))
         .enableInliningAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .inspect(
             inspector -> {

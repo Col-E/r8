@@ -61,7 +61,7 @@ public class RetraceLambdaTest extends TestBase {
     testForD8(parameters.getBackend())
         .internalEnableMappingOutput()
         .addInnerClasses(getClass())
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), Main.class)
         .apply(this::checkRunResult)
         .apply(this::checkOneOutputSynthetic)
@@ -76,7 +76,7 @@ public class RetraceLambdaTest extends TestBase {
         .addKeepMainRule(Main.class)
         .addKeepAttributeSourceFile()
         .addKeepAttributeLineNumberTable()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), Main.class)
         .apply(this::checkRunResult)
         .inspectFailure(
@@ -104,7 +104,7 @@ public class RetraceLambdaTest extends TestBase {
         .addDontOptimize()
         .addKeepAttributeSourceFile()
         .addKeepAttributeLineNumberTable()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), Main.class)
         .apply(this::checkRunResult)
         .applyIf(

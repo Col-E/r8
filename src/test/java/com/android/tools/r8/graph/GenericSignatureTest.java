@@ -65,7 +65,7 @@ public class GenericSignatureTest extends TestBase {
                 GenericSignatureTestClassB.class,
                 GenericSignatureTestClassCY.class,
                 GenericSignatureTestClassCYY.class)
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .compile();
     AndroidApp app =
         AndroidApp.builder(compileResult.getApp())

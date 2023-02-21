@@ -100,7 +100,7 @@ public class PackagePrivateReentryWithNarrowingTest extends TestBase {
     testForR8(parameters.getBackend())
         .addProgramClasses(A.class, B.class, C.class, Main.class)
         .addProgramClassFileData(getDWithPackagePrivateFoo())
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addKeepMainRule(Main.class)
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines(EXPECTED);

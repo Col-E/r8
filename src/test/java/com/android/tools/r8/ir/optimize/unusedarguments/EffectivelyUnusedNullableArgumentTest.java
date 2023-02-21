@@ -43,7 +43,7 @@ public class EffectivelyUnusedNullableArgumentTest extends TestBase {
         .enableNeverClassInliningAnnotations()
         // TODO(b/173398086): uniqueMethodWithName() does not work with argument changes.
         .addDontObfuscate()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .inspect(
             inspector -> {

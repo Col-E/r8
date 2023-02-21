@@ -51,7 +51,7 @@ public class StringBuildersAfterAssumenosideeffectsTest extends TestBase {
             "  void info(...);",
             "}")
         .addDontObfuscate()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), MAIN)
         .assertSuccessWithOutput(EXPECTED)
         .inspect(this::inspect);

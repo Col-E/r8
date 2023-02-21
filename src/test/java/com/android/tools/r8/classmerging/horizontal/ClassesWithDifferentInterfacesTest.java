@@ -29,7 +29,7 @@ public class ClassesWithDifferentInterfacesTest extends HorizontalClassMergingTe
         .enableNeverClassInliningAnnotations()
         .enableNoParameterTypeStrengtheningAnnotations()
         .enableNoVerticalClassMergingAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addHorizontallyMergedClassesInspector(
             inspector -> inspector.assertMergedInto(Z.class, Y.class))
         .run(parameters.getRuntime(), Main.class)

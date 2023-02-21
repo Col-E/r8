@@ -100,7 +100,7 @@ public class InlineCatchHandlerWithLibraryTypeTest extends TestBase {
         .addProgramClasses(TestClass.class)
         .addProgramClassFileData(getClassWithCatchHandler())
         .addKeepMainRule(TestClass.class)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         // Use the latest library so that all of the exceptions are defined.
         .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.LATEST))
         .compile()

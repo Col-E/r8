@@ -30,7 +30,7 @@ public class OverrideMergeAbsentTest extends HorizontalClassMergingTestBase {
         .enableNeverClassInliningAnnotations()
         .enableNoParameterTypeStrengtheningAnnotations()
         .enableNoVerticalClassMergingAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addHorizontallyMergedClassesInspector(
             inspector -> {
               if (parameters.canUseDefaultAndStaticInterfaceMethods()) {

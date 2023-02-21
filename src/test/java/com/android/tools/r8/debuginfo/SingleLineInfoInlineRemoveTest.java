@@ -60,7 +60,7 @@ public class SingleLineInfoInlineRemoveTest extends TestBase {
   public void testDefaultSourceFile() throws Exception {
     testForR8(parameters.getBackend())
         .addInnerClasses(getClass())
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addKeepMainRule(Main.class)
         .addKeepAttributeSourceFile()
         .addKeepAttributeLineNumberTable()
@@ -83,7 +83,7 @@ public class SingleLineInfoInlineRemoveTest extends TestBase {
   public void testManuallySetDefaultSourceFile() throws Exception {
     testForR8(parameters.getBackend())
         .addInnerClasses(getClass())
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addKeepMainRule(Main.class)
         .addKeepAttributeSourceFile()
         .addKeepAttributeLineNumberTable()
@@ -107,7 +107,7 @@ public class SingleLineInfoInlineRemoveTest extends TestBase {
   public void testManuallySetEmptySourceFile() throws Exception {
     testForR8(parameters.getBackend())
         .addInnerClasses(getClass())
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addKeepMainRule(Main.class)
         .addKeepAttributeSourceFile()
         .addKeepAttributeLineNumberTable()
@@ -131,7 +131,7 @@ public class SingleLineInfoInlineRemoveTest extends TestBase {
   public void testNonDefaultSourceFile() throws Exception {
     testForR8(parameters.getBackend())
         .addInnerClasses(getClass())
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addKeepMainRule(Main.class)
         .addKeepAttributeSourceFile()
         .addKeepAttributeLineNumberTable()

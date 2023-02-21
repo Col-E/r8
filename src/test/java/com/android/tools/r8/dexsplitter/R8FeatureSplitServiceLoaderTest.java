@@ -47,7 +47,7 @@ public class R8FeatureSplitServiceLoaderTest extends SplitterTestBase {
     Path feature1Path = temp.newFile("feature1.zip").toPath();
     testForR8(parameters.getBackend())
         .addProgramClasses(Base.class, I.class, Feature1I.class, Feature2I.class)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addKeepMainRule(Base.class)
         .addFeatureSplit(
             builder -> simpleSplitProvider(builder, feature1Path, temp, Feature3Dummy.class))
@@ -75,7 +75,7 @@ public class R8FeatureSplitServiceLoaderTest extends SplitterTestBase {
     R8TestRunResult runResult =
         testForR8(parameters.getBackend())
             .addProgramClasses(Base.class, I.class)
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .addKeepMainRule(Base.class)
             .addFeatureSplit(
                 builder -> simpleSplitProvider(builder, feature1Path, temp, Feature1I.class))
@@ -109,7 +109,7 @@ public class R8FeatureSplitServiceLoaderTest extends SplitterTestBase {
     R8TestRunResult runResult =
         testForR8(parameters.getBackend())
             .addProgramClasses(Base.class, I.class)
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .addKeepMainRule(Base.class)
             .addFeatureSplitWithResources(
                 ImmutableList.of(
@@ -146,7 +146,7 @@ public class R8FeatureSplitServiceLoaderTest extends SplitterTestBase {
     R8TestRunResult runResult =
         testForR8(parameters.getBackend())
             .addProgramClasses(Base.class, I.class)
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .addKeepMainRule(Base.class)
             .addFeatureSplit(Feature1I.class)
             .addFeatureSplit(Feature2I.class)
@@ -180,7 +180,7 @@ public class R8FeatureSplitServiceLoaderTest extends SplitterTestBase {
   public void testR8OnlyFeature2() throws Exception {
     testForR8(parameters.getBackend())
         .addProgramClasses(Base.class, I.class)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addKeepMainRule(Base.class)
         .addFeatureSplitWithResources(
             ImmutableList.of(

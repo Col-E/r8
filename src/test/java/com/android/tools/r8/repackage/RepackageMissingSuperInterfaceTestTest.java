@@ -40,7 +40,7 @@ public class RepackageMissingSuperInterfaceTestTest extends RepackageTestBase {
         .addProgramClasses(ClassImplementingMissingInterface.class, Main.class)
         .addKeepMainRule(Main.class)
         .applyIf(repackage, this::configureRepackaging)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addDontWarn(MissingInterface.class)
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()

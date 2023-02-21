@@ -81,7 +81,7 @@ public class InvokeSpecialToSubclassTest extends TestBase {
         .addProgramClassFileData(getClassBWithTransformedInvoked(holder))
         .addKeepMainRule(Main.class)
         .allowDiagnosticWarningMessages(!isExpectedToSucceedWithJvm())
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compileWithExpectedDiagnostics(
             diagnostics -> {
               if (!isExpectedToSucceedWithJvm()) {

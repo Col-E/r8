@@ -41,7 +41,7 @@ public class EmptyInterfacesMergingTest extends TestBase {
             inspector -> inspector.assertIsCompleteMergeGroup(I.class, J.class))
         .enableNoUnusedInterfaceRemovalAnnotations()
         .enableNoVerticalClassMergingAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .inspect(
             inspector -> {

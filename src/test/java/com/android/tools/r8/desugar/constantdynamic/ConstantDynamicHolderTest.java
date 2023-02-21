@@ -59,7 +59,7 @@ public class ConstantDynamicHolderTest extends TestBase {
 
     testForD8()
         .addProgramClassFileData(getTransformedMain())
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .setDiagnosticsLevelModifier(
             (level, diagnostic) ->
                 (diagnostic instanceof UnsupportedFeatureDiagnostic
@@ -90,7 +90,7 @@ public class ConstantDynamicHolderTest extends TestBase {
 
     testForR8(parameters.getBackend())
         .addProgramClassFileData(getTransformedMain())
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addKeepMainRule(Main.class)
         .compile();
   }
@@ -101,7 +101,7 @@ public class ConstantDynamicHolderTest extends TestBase {
 
     testForR8(parameters.getBackend())
         .addProgramClassFileData(getTransformedMain())
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addKeepMainRule(Main.class)
         .allowDiagnosticWarningMessages()
         .compileWithExpectedDiagnostics(

@@ -77,7 +77,7 @@ public class AssumenosideeffectsPropagationWithSuperCallTest extends TestBase {
         .addKeepMainRule(MAIN)
         .addKeepRules(config.getKeepRules())
         .addDontObfuscate()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), MAIN)
         .assertSuccessWithOutput(config.expectedOutput(parameters));
   }

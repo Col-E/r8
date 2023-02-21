@@ -78,7 +78,7 @@ public class ConstantDynamicInDefaultInterfaceMethodTest extends TestBase {
     testForR8(parameters.getBackend())
         .addProgramClasses(MAIN_CLASS)
         .addProgramClassFileData(getTransformedClasses())
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addKeepMainRule(MAIN_CLASS)
         // TODO(b/198142613): There should not be a warnings on class references which are
         //  desugared away.

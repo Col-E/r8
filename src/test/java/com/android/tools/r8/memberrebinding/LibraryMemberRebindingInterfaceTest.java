@@ -98,7 +98,7 @@ public class LibraryMemberRebindingInterfaceTest extends TestBase {
                 AndroidApiLevel.B))
         .apply(setMockApiLevelForMethod(LibraryC.class.getDeclaredMethod("m"), AndroidApiLevel.B))
         .apply(setMockApiLevelForMethod(LibraryA.class.getDeclaredMethod("m"), AndroidApiLevel.N))
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .inspect(
             inspector -> {

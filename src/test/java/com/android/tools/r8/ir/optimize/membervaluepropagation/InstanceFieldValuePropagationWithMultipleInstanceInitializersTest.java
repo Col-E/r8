@@ -41,7 +41,7 @@ public class InstanceFieldValuePropagationWithMultipleInstanceInitializersTest e
         .addInnerClasses(InstanceFieldValuePropagationWithMultipleInstanceInitializersTest.class)
         .addKeepMainRule(TestClass.class)
         .enableNeverClassInliningAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .inspect(this::inspect)
         .run(parameters.getRuntime(), TestClass.class)

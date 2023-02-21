@@ -130,13 +130,13 @@ public class ConstClassCanonicalizationTest extends TestBase {
     testForD8()
         .release()
         .addProgramClasses(IncrementalA.class)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .setProgramConsumer(new ArchiveConsumer(zipA))
         .compile();
     testForD8()
         .release()
         .addProgramClasses(IncrementalMain.class)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .addRunClasspathFiles(zipA)
         .run(parameters.getRuntime(), IncrementalMain.class)
@@ -182,7 +182,7 @@ public class ConstClassCanonicalizationTest extends TestBase {
             .debug()
             .addProgramClassesAndInnerClasses(MAIN)
             .addOptionsModification(InternalOptions::disableNameReflectionOptimization)
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .run(parameters.getRuntime(), MAIN)
             .assertSuccessWithOutput(JAVA_OUTPUT),
         CANONICALIZED_MAIN_COUNT,
@@ -199,7 +199,7 @@ public class ConstClassCanonicalizationTest extends TestBase {
             .release()
             .addProgramClassesAndInnerClasses(MAIN)
             .addOptionsModification(InternalOptions::disableNameReflectionOptimization)
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .run(parameters.getRuntime(), MAIN)
             .assertSuccessWithOutput(JAVA_OUTPUT),
         CANONICALIZED_MAIN_COUNT,
@@ -216,7 +216,7 @@ public class ConstClassCanonicalizationTest extends TestBase {
             .addKeepAttributeInnerClassesAndEnclosingMethod()
             .addDontObfuscate()
             .addOptionsModification(InternalOptions::disableNameReflectionOptimization)
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .run(parameters.getRuntime(), MAIN)
             .assertSuccessWithOutput(isCompat ? JAVA_OUTPUT : "outer is null");
     // The number of expected const-class instructions differs because constant canonicalization is

@@ -48,7 +48,7 @@ public class FinalFieldWithMultipleWritesTest extends TestBase {
         .addProgramClasses(Main.class)
         .addProgramClassFileData(getTransformedClass())
         .addKeepMainRule(Main.class)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines("0", "1", "2", "2");

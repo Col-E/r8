@@ -37,7 +37,7 @@ public class DebugLocalWithoutStackMapTypeTest extends TestBase {
   public void testD8() throws Exception {
     testForD8(parameters.getBackend())
         .addProgramClassFileData(MainDump.dump())
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines("addSuppressed");
   }

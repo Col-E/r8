@@ -49,7 +49,7 @@ public class VerticalClassMergerInvokeSpecialInConstructorTest extends TestBase 
         .addKeepMainRule(Main.class)
         .addKeepClassRules(A.class)
         .enableNeverClassInliningAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines(EXPECTED);
   }

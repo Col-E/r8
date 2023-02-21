@@ -51,7 +51,7 @@ public class RetainIndirectlyReferencedConstructorShakingOnDexTest extends TestB
                 options.testing.enableRetargetingConstructorBridgeCalls =
                     enableRetargetingConstructorBridgeCalls)
         .enableNoVerticalClassMergingAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .compile()
         .inspect(this::inspect)
         .run(parameters.getRuntime(), Main.class)

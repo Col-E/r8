@@ -117,7 +117,7 @@ public class ClassStaticizerTest extends TestBase {
         .addOptionsModification(this::configure)
         .enableInliningAnnotations()
         .enableNoHorizontalClassMergingAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), main)
         .assertSuccessWithOutput(EXPECTED);
   }
@@ -134,7 +134,7 @@ public class ClassStaticizerTest extends TestBase {
             .addKeepAttributes("InnerClasses", "EnclosingMethod")
             .addOptionsModification(this::configure)
             .allowAccessModification()
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .run(parameters.getRuntime(), main)
             .assertSuccessWithOutput(EXPECTED);
 
@@ -250,7 +250,7 @@ public class ClassStaticizerTest extends TestBase {
             .allowAccessModification()
             .addDontObfuscate()
             .addOptionsModification(this::configure)
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .run(parameters.getRuntime(), main);
 
     CodeInspector inspector = result.inspector();
@@ -289,7 +289,7 @@ public class ClassStaticizerTest extends TestBase {
             .allowAccessModification()
             .addDontObfuscate()
             .addOptionsModification(this::configure)
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .run(parameters.getRuntime(), main)
             .assertSuccessWithOutput(javaOutput);
 
@@ -414,7 +414,7 @@ public class ClassStaticizerTest extends TestBase {
             .allowAccessModification()
             .addDontObfuscate()
             .addOptionsModification(this::configure)
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters)
             .run(parameters.getRuntime(), main)
             .assertSuccessWithOutput(javaOutput);
 
