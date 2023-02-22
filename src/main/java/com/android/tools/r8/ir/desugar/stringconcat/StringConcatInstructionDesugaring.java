@@ -13,7 +13,6 @@ import com.android.tools.r8.cf.code.CfNew;
 import com.android.tools.r8.cf.code.CfStackInstruction;
 import com.android.tools.r8.cf.code.CfStackInstruction.Opcode;
 import com.android.tools.r8.cf.code.CfStore;
-import com.android.tools.r8.contexts.CompilationContext.MethodProcessingContext;
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexCallSite;
@@ -29,8 +28,7 @@ import com.android.tools.r8.graph.DexValue.DexValueString;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.code.ValueType;
 import com.android.tools.r8.ir.desugar.CfInstructionDesugaring;
-import com.android.tools.r8.ir.desugar.CfInstructionDesugaringCollection;
-import com.android.tools.r8.ir.desugar.CfInstructionDesugaringEventConsumer;
+import com.android.tools.r8.ir.desugar.DesugarDescription;
 import com.android.tools.r8.ir.desugar.FreshLocalProvider;
 import com.android.tools.r8.ir.desugar.LocalStackAllocator;
 import com.android.tools.r8.utils.BooleanUtils;
@@ -70,15 +68,7 @@ public class StringConcatInstructionDesugaring implements CfInstructionDesugarin
   }
 
   @Override
-  public Collection<CfInstruction> desugarInstruction(
-      CfInstruction instruction,
-      FreshLocalProvider freshLocalProvider,
-      LocalStackAllocator localStackAllocator,
-      CfInstructionDesugaringEventConsumer eventConsumer,
-      ProgramMethod context,
-      MethodProcessingContext methodProcessingContext,
-      CfInstructionDesugaringCollection desugaringCollection,
-      DexItemFactory dexItemFactory) {
+  public DesugarDescription compute(CfInstruction instruction, ProgramMethod context) {
     if (instruction.isInvokeDynamic()) {
       // We are interested in bootstrap methods StringConcatFactory::makeConcat
       // and StringConcatFactory::makeConcatWthConstants, both are static.
@@ -87,18 +77,30 @@ public class StringConcatInstructionDesugaring implements CfInstructionDesugarin
       if (callSite.bootstrapMethod.type.isInvokeStatic()) {
         DexMethod bootstrapMethod = callSite.bootstrapMethod.asMethod();
         if (bootstrapMethod == factory.stringConcatFactoryMembers.makeConcat) {
-          return desugarMakeConcat(invoke, freshLocalProvider, localStackAllocator);
+          return desugarMakeConcat(invoke);
         }
         if (bootstrapMethod == factory.stringConcatFactoryMembers.makeConcatWithConstants) {
-          return desugarMakeConcatWithConstants(
-              invoke, freshLocalProvider, localStackAllocator, context);
+          return desugarMakeConcatWithConstants(invoke, context);
         }
       }
     }
-    return null;
+    return DesugarDescription.nothing();
   }
 
-  private Collection<CfInstruction> desugarMakeConcat(
+  private DesugarDescription desugarMakeConcat(CfInvokeDynamic invoke) {
+    return DesugarDescription.builder()
+        .setDesugarRewrite(
+            (freshLocalProvider,
+                localStackAllocator,
+                eventConsumer,
+                context,
+                methodProcessingContext,
+                dexItemFactory) ->
+                desugarMakeConcatInstructions(invoke, freshLocalProvider, localStackAllocator))
+        .build();
+  }
+
+  private Collection<CfInstruction> desugarMakeConcatInstructions(
       CfInvokeDynamic invoke,
       FreshLocalProvider freshLocalProvider,
       LocalStackAllocator localStackAllocator) {
@@ -119,7 +121,22 @@ public class StringConcatInstructionDesugaring implements CfInstructionDesugarin
     return builder.desugar(localStackAllocator);
   }
 
-  private Collection<CfInstruction> desugarMakeConcatWithConstants(
+  private DesugarDescription desugarMakeConcatWithConstants(
+      CfInvokeDynamic invoke, ProgramMethod context) {
+    return DesugarDescription.builder()
+        .setDesugarRewrite(
+            (freshLocalProvider,
+                localStackAllocator,
+                eventConsumer,
+                ignore, // context
+                methodProcessingContext,
+                dexItemFactory) ->
+                desugarMakeConcatWithConstantsInstructions(
+                    invoke, freshLocalProvider, localStackAllocator, context))
+        .build();
+  }
+
+  private Collection<CfInstruction> desugarMakeConcatWithConstantsInstructions(
       CfInvokeDynamic invoke,
       FreshLocalProvider freshLocalProvider,
       LocalStackAllocator localStackAllocator,
