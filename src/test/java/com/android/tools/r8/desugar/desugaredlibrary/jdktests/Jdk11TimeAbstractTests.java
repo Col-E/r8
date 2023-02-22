@@ -240,16 +240,7 @@ public abstract class Jdk11TimeAbstractTests extends DesugaredLibraryTestBase {
   }
 
   String[] split(String[] input, int index) {
-    return split(input, index, SPLIT);
-  }
-
-  private String[] split(String[] input, int index, int split) {
-    assert index >= 0 && index < split;
-    Arrays.sort(input);
-    int length = input.length;
-    int start = index * length / split + (index == 0 ? 0 : 1);
-    int last = (index + 1) * length / split;
-    return Arrays.copyOfRange(input, start, last);
+    return Jdk11TestInputSplitter.split(input, index, SPLIT);
   }
 
   void compileAndTestTime(String[] toRun) throws Exception {

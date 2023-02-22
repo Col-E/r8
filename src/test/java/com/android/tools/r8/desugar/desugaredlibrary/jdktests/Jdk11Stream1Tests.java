@@ -7,12 +7,13 @@ package com.android.tools.r8.desugar.desugaredlibrary.jdktests;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification;
 import com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification;
-import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
 @RunWith(Parameterized.class)
 public class Jdk11Stream1Tests extends Jdk11StreamAbstractTests {
+
+  private static final int INDEX = 1;
 
   public Jdk11Stream1Tests(
       TestParameters parameters,
@@ -21,8 +22,8 @@ public class Jdk11Stream1Tests extends Jdk11StreamAbstractTests {
     super(parameters, libraryDesugaringSpecification, compilationSpecification);
   }
 
-  @Test
-  public void testStream() throws Throwable {
-    testStream(firstHalf(getSuccessfulTests()), firstHalf(getFailingTests()));
+  @Override
+  int getIndex() {
+    return INDEX;
   }
 }
