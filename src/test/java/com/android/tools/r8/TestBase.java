@@ -187,10 +187,6 @@ public class TestBase {
     return D8TestBuilder.create(new TestState(temp), Backend.DEX);
   }
 
-  public static DXTestBuilder testForDX(TemporaryFolder temp) {
-    return DXTestBuilder.create(new TestState(temp));
-  }
-
   public static JvmTestBuilder testForJvm(TemporaryFolder temp) {
     return JvmTestBuilder.create(new TestState(temp));
   }
@@ -229,10 +225,6 @@ public class TestBase {
 
   public D8TestBuilder testForD8(Backend backend) {
     return testForD8(temp, backend);
-  }
-
-  public DXTestBuilder testForDX() {
-    return testForDX(temp);
   }
 
   @Deprecated
