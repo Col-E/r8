@@ -463,6 +463,17 @@ public abstract class ApiModelingTestHelper {
       }
     }
 
+    void isOutlinedFromBetween(
+        Executable method, AndroidApiLevel lowerBoundInclusive, AndroidApiLevel upperBound) {
+      if (parameters.isDexRuntime()
+          && parameters.getApiLevel().isLessThan(upperBound)
+          && parameters.getApiLevel().isGreaterThanOrEqualTo(lowerBoundInclusive)) {
+        isOutlinedFrom(method);
+      } else {
+        isNotOutlinedFrom(method);
+      }
+    }
+
     void isOutlinedFromUntilAlsoForCf(Executable method, AndroidApiLevel apiLevel) {
       if (parameters.getApiLevel().isLessThan(apiLevel)) {
         isOutlinedFrom(method);

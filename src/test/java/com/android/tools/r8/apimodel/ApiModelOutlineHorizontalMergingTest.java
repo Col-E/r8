@@ -100,7 +100,9 @@ public class ApiModelOutlineHorizontalMergingTest extends TestBase {
         .inspect(
             inspector -> {
               // TODO(b/187675788): Update when horizontal merging is enabled for D8 for debug mode.
-              if (parameters.getApiLevel().isLessThan(libraryClassApiLevel)) {
+              if (parameters.getApiLevel().isLessThan(AndroidApiLevel.L)) {
+                assertEquals(7, inspector.allClasses().size());
+              } else if (parameters.getApiLevel().isLessThan(libraryClassApiLevel)) {
                 // We have generated 4 outlines two having api level 23 and two having api level 27
                 // and 2 outlines for each instance initializer.
                 assertEquals(11, inspector.allClasses().size());
@@ -172,9 +174,10 @@ public class ApiModelOutlineHorizontalMergingTest extends TestBase {
       // If less than the library api level then we have synthesized two instance initializer
       // outlines as well.
       // Check that the levels are horizontally merged.
-      assertEquals(
-          parameters.getApiLevel().isLessThan(libraryClassApiLevel) ? 6 : 5,
-          inspector.allClasses().size());
+      boolean willOutlineInitializers =
+          parameters.getApiLevel().isGreaterThanOrEqualTo(AndroidApiLevel.L)
+              && parameters.getApiLevel().isLessThan(libraryClassApiLevel);
+      assertEquals(willOutlineInitializers ? 6 : 5, inspector.allClasses().size());
       assertEquals(2, outlinedAddedOn23.size());
       assertTrue(
           outlinedAddedOn23.stream()

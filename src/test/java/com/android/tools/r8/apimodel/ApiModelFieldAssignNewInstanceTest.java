@@ -7,9 +7,8 @@ package com.android.tools.r8.apimodel;
 import static com.android.tools.r8.apimodel.ApiModelingTestHelper.setMockApiLevelForClass;
 import static com.android.tools.r8.apimodel.ApiModelingTestHelper.setMockApiLevelForDefaultInstanceInitializer;
 import static com.android.tools.r8.apimodel.ApiModelingTestHelper.setMockApiLevelForMethod;
-import static com.android.tools.r8.synthesis.SyntheticItemsTestUtils.syntheticApiOutlineClass;
+import static com.android.tools.r8.apimodel.ApiModelingTestHelper.verifyThat;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
-import static com.android.tools.r8.utils.codeinspector.Matchers.notIf;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assume.assumeTrue;
 
@@ -23,6 +22,7 @@ import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.testing.AndroidBuildVersion;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
+import java.lang.reflect.Method;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -141,14 +141,12 @@ public class ApiModelFieldAssignNewInstanceTest extends TestBase {
         .apply(result -> checkOutput(result, true));
   }
 
-  private void inspect(CodeInspector inspector) {
+  private void inspect(CodeInspector inspector) throws Exception {
     assertThat(inspector.clazz(Main.class), isPresent());
     assertThat(inspector.clazz(Helper.class), isPresent());
-    if (!parameters.isCfRuntime()) {
-      assertThat(
-          inspector.clazz(syntheticApiOutlineClass(Helper.class, 0)),
-          notIf(isPresent(), parameters.getApiLevel().isGreaterThanOrEqualTo(mockApiLevel)));
-    }
+    Method getLibraryClass = Helper.class.getMethod("setLibraryClass");
+    verifyThat(inspector, parameters, SubLibraryClass.class.getConstructor())
+        .isOutlinedFromBetween(getLibraryClass, AndroidApiLevel.L, mockApiLevel);
   }
 
   private void checkOutput(SingleTestRunResult<?> runResult, boolean apiModelingEnabled) {
@@ -156,9 +154,6 @@ public class ApiModelFieldAssignNewInstanceTest extends TestBase {
       runResult.assertFailureWithErrorThatThrows(ClassNotFoundException.class);
     } else if (getMaxSupportedApiLevel().isGreaterThanOrEqualTo(mockApiLevel)) {
       runResult.assertSuccessWithOutputLines("SubLibraryClass::foo");
-    } else if (parameters.getDexRuntimeVersion().isDalvik() && apiModelingEnabled) {
-      // TODO(b/b/269097876): We should not cause a verification error.
-      runResult.assertFailureWithErrorThatThrows(VerifyError.class);
     } else {
       runResult.assertSuccessWithOutputLines("LibraryClass::foo");
     }
