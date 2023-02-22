@@ -142,6 +142,9 @@
         "java.time.": "j$.time.",
         "java.util.Desugar": "j$.util.Desugar"
       },
+      "dont_rewrite_prefix": [
+        "java.time.InstantSource"
+      ],
       "retarget_method": {
         "java.util.TimeZone java.util.TimeZone#getTimeZone(java.time.ZoneId)": "java.util.DesugarTimeZone"
       },
@@ -157,11 +160,13 @@
         "java.time.Duration": "java.time.TimeConversions",
         "java.time.Instant": "java.time.TimeConversions",
         "java.time.LocalDate": "java.time.TimeConversions",
+        "java.time.LocalDateTime": "java.time.TimeConversions",
         "java.time.LocalTime": "java.time.TimeConversions",
         "java.time.MonthDay": "java.time.TimeConversions",
         "java.time.Period": "java.time.TimeConversions",
         "java.time.ZoneId": "java.time.TimeConversions",
-        "java.time.ZonedDateTime": "java.time.TimeConversions"
+        "java.time.ZonedDateTime": "java.time.TimeConversions",
+        "java.time.ZoneOffset": "java.time.TimeConversions"
       }
     },
     {

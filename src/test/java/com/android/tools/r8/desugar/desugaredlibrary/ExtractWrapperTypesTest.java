@@ -74,6 +74,9 @@ public class ExtractWrapperTypesTest extends DesugaredLibraryTestBase {
   // needing wrappers and this is the exclusion set.
   private static final Set<String> NOT_NEEDED =
       ImmutableSet.of(
+          "java.time.InstantSource", // Introduced after Java 11.
+          "java.util.HexFormat",
+          "java.util.Locale$IsoCountryCode",
           "java.nio.channels.AsynchronousByteChannel",
           "java.nio.channels.AsynchronousChannelGroup",
           "java.nio.channels.AsynchronousServerSocketChannel",
@@ -119,6 +122,13 @@ public class ExtractWrapperTypesTest extends DesugaredLibraryTestBase {
               + " java.util.stream.Stream.flatMapToLong(java.util.function.Function)",
           "java.util.stream.LongStream"
               + " java.util.stream.LongStream.flatMap(java.util.function.LongFunction)",
+          "java.util.stream.DoubleStream"
+              + " java.util.stream.Stream.mapMultiToDouble(java.util.function.BiConsumer)",
+          "java.util.stream.Stream java.util.stream.Stream.mapMulti(java.util.function.BiConsumer)",
+          "java.util.stream.IntStream"
+              + " java.util.stream.Stream.mapMultiToInt(java.util.function.BiConsumer)",
+          "java.util.stream.LongStream"
+              + " java.util.stream.Stream.mapMultiToLong(java.util.function.BiConsumer)",
           "java.lang.Object java.lang.StackWalker.walk(java.util.function.Function)");
 
   // TODO(b/238179854): Investigate how to fix these.
@@ -159,7 +169,7 @@ public class ExtractWrapperTypesTest extends DesugaredLibraryTestBase {
 
   // TODO: parameterize to check both api<=23 as well as 23<api<26 for which the spec differs.
   private final AndroidApiLevel minApi = AndroidApiLevel.B;
-  private final AndroidApiLevel targetApi = AndroidApiLevel.MASTER;
+  private final AndroidApiLevel targetApi = AndroidApiLevel.U;
 
   private Set<String> getMissingGenericTypeConversions() {
     HashSet<String> missing = new HashSet<>(MISSING_GENERIC_TYPE_CONVERSION);
@@ -281,21 +291,6 @@ public class ExtractWrapperTypesTest extends DesugaredLibraryTestBase {
             specification.getWrappers(),
             genericConversionsInSpec,
             genericDependencies);
-    {
-      Set<String> missingGenericDependency = new HashSet<>();
-      for (DexEncodedMethod genericDependency : genericDependencies) {
-        if (!specification
-            .getApiGenericConversion()
-            .containsKey(genericDependency.getReference())) {
-          missingGenericDependency.add(genericDependency.getReference().toString());
-        }
-      }
-      // TODO(b/236356665): There should be no missing conversion.
-      assertEquals(
-          "Missing generic type conversion:\n" + String.join("\n", missingGenericDependency),
-          getMissingGenericTypeConversions(),
-          missingGenericDependency);
-    }
 
     {
       Set<String> missingWrappers = getMissingWrappers(directWrappers, wrappersInSpec);
@@ -318,6 +313,25 @@ public class ExtractWrapperTypesTest extends DesugaredLibraryTestBase {
           "Missing indirect wrappers:\n" + String.join("\n", missingWrappers),
           expectedMissingWrappers,
           missingWrappers.size());
+    }
+
+    {
+      Set<String> missingGenericDependency = new HashSet<>();
+      for (DexEncodedMethod genericDependency : genericDependencies) {
+        if (!specification
+            .getApiGenericConversion()
+            .containsKey(genericDependency.getReference())) {
+          missingGenericDependency.add(genericDependency.getReference().toString());
+        }
+      }
+      Set<String> diff = new HashSet<>(missingGenericDependency);
+      Set<String> missing = getMissingGenericTypeConversions();
+      diff.removeAll(missing);
+      // TODO(b/236356665): There should be no missing conversion.
+      assertEquals(
+          "Missing generic type conversion:\n" + String.join("\n", diff),
+          missing,
+          missingGenericDependency);
     }
 
     Set<String> additionalWrappers = new TreeSet<>();
@@ -375,10 +389,15 @@ public class ExtractWrapperTypesTest extends DesugaredLibraryTestBase {
                   return;
                 }
                 Consumer<ClassReference> adder =
-                    t ->
-                        directWrappers
-                            .computeIfAbsent(t, k -> new HashSet<>())
-                            .add(method.asMethodReference());
+                    t -> {
+                      if (t.toString().contains("HexFormat")
+                          || t.toString().contains("IsoCountryCode")) {
+                        System.out.println("x");
+                      }
+                      directWrappers
+                          .computeIfAbsent(t, k -> new HashSet<>())
+                          .add(method.asMethodReference());
+                    };
                 forEachType(
                     method,
                     t -> addType(adder, t, preDesugarTypes, customConversions, maintainType),
