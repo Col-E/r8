@@ -13,7 +13,6 @@ import com.android.tools.r8.cf.code.CfStackInstruction;
 import com.android.tools.r8.cf.code.CfStackInstruction.Opcode;
 import com.android.tools.r8.cf.code.CfStore;
 import com.android.tools.r8.contexts.CompilationContext.ClassSynthesisDesugaringContext;
-import com.android.tools.r8.contexts.CompilationContext.MethodProcessingContext;
 import com.android.tools.r8.errors.MissingGlobalSyntheticsConsumerDiagnostic;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.CfCode;
@@ -32,7 +31,6 @@ import com.android.tools.r8.ir.code.ValueType;
 import com.android.tools.r8.ir.desugar.CfClassSynthesizerDesugaring;
 import com.android.tools.r8.ir.desugar.CfClassSynthesizerDesugaringEventConsumer;
 import com.android.tools.r8.ir.desugar.CfInstructionDesugaring;
-import com.android.tools.r8.ir.desugar.CfInstructionDesugaringCollection;
 import com.android.tools.r8.ir.desugar.CfInstructionDesugaringEventConsumer;
 import com.android.tools.r8.ir.desugar.DesugarDescription;
 import com.android.tools.r8.ir.desugar.FreshLocalProvider;
@@ -227,31 +225,7 @@ public class VarHandleDesugaring implements CfInstructionDesugaring, CfClassSynt
   }
 
   @Override
-  public boolean needsDesugaring(CfInstruction instruction, ProgramMethod context) {
-    return computeDescription(instruction, context).needsDesugaring();
-  }
-
-  @Override
-  public Collection<CfInstruction> desugarInstruction(
-      CfInstruction instruction,
-      FreshLocalProvider freshLocalProvider,
-      LocalStackAllocator localStackAllocator,
-      CfInstructionDesugaringEventConsumer eventConsumer,
-      ProgramMethod context,
-      MethodProcessingContext methodProcessingContext,
-      CfInstructionDesugaringCollection desugaringCollection,
-      DexItemFactory dexItemFactory) {
-    return computeDescription(instruction, context)
-        .desugarInstruction(
-            freshLocalProvider,
-            localStackAllocator,
-            eventConsumer,
-            context,
-            methodProcessingContext,
-            dexItemFactory);
-  }
-
-  private DesugarDescription computeDescription(CfInstruction instruction, ProgramMethod context) {
+  public DesugarDescription compute(CfInstruction instruction, ProgramMethod context) {
     if (!instruction.isInvoke()) {
       return DesugarDescription.nothing();
     }

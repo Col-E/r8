@@ -12,7 +12,6 @@ import com.android.tools.r8.cf.code.CfStackInstruction;
 import com.android.tools.r8.contexts.CompilationContext.MethodProcessingContext;
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
-import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DexTypeList;
@@ -21,11 +20,9 @@ import com.android.tools.r8.graph.MethodResolutionResult.FailedResolutionResult;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.code.ValueType;
 import com.android.tools.r8.ir.desugar.CfInstructionDesugaring;
-import com.android.tools.r8.ir.desugar.CfInstructionDesugaringCollection;
 import com.android.tools.r8.ir.desugar.CfInstructionDesugaringEventConsumer;
 import com.android.tools.r8.ir.desugar.DesugarDescription;
 import com.android.tools.r8.ir.desugar.DesugarDescription.ScanCallback;
-import com.android.tools.r8.ir.desugar.FreshLocalProvider;
 import com.android.tools.r8.ir.desugar.LocalStackAllocator;
 import com.android.tools.r8.ir.optimize.UtilityMethodsForCodeOptimizations;
 import com.android.tools.r8.ir.optimize.UtilityMethodsForCodeOptimizations.MethodSynthesizerConsumer;
@@ -42,31 +39,7 @@ public class AlwaysThrowingInstructionDesugaring implements CfInstructionDesugar
   }
 
   @Override
-  public Collection<CfInstruction> desugarInstruction(
-      CfInstruction instruction,
-      FreshLocalProvider freshLocalProvider,
-      LocalStackAllocator localStackAllocator,
-      CfInstructionDesugaringEventConsumer eventConsumer,
-      ProgramMethod context,
-      MethodProcessingContext methodProcessingContext,
-      CfInstructionDesugaringCollection desugaringCollection,
-      DexItemFactory dexItemFactory) {
-    return computeDesugarDescription(instruction)
-        .desugarInstruction(
-            freshLocalProvider,
-            localStackAllocator,
-            eventConsumer,
-            context,
-            methodProcessingContext,
-            dexItemFactory);
-  }
-
-  @Override
-  public boolean needsDesugaring(CfInstruction instruction, ProgramMethod context) {
-    return computeDesugarDescription(instruction).needsDesugaring();
-  }
-
-  private DesugarDescription computeDesugarDescription(CfInstruction instruction) {
+  public DesugarDescription compute(CfInstruction instruction, ProgramMethod context) {
     if (instruction.isInvoke()) {
       CfInvoke invoke = instruction.asInvoke();
       DexMethod invokedMethod = invoke.getMethod();

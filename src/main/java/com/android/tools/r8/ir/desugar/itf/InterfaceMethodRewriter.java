@@ -13,7 +13,6 @@ import com.android.tools.r8.DesugarGraphConsumer;
 import com.android.tools.r8.cf.CfVersion;
 import com.android.tools.r8.cf.code.CfInstruction;
 import com.android.tools.r8.cf.code.CfInvoke;
-import com.android.tools.r8.contexts.CompilationContext.MethodProcessingContext;
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.graph.AppInfo;
@@ -35,11 +34,8 @@ import com.android.tools.r8.graph.MethodResolutionResult;
 import com.android.tools.r8.graph.MethodResolutionResult.SingleResolutionResult;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.desugar.CfInstructionDesugaring;
-import com.android.tools.r8.ir.desugar.CfInstructionDesugaringCollection;
 import com.android.tools.r8.ir.desugar.CfInstructionDesugaringEventConsumer;
 import com.android.tools.r8.ir.desugar.DesugarDescription;
-import com.android.tools.r8.ir.desugar.FreshLocalProvider;
-import com.android.tools.r8.ir.desugar.LocalStackAllocator;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.machinespecification.DerivedMethod;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.machinespecification.MachineDesugaredLibrarySpecification;
 import com.android.tools.r8.ir.desugar.icce.AlwaysThrowingInstructionDesugaring;
@@ -230,40 +226,15 @@ public final class InterfaceMethodRewriter implements CfInstructionDesugaring {
               instruction, appView.dexItemFactory())) {
         reportInterfaceMethodHandleCallSite(instruction.asInvokeDynamic().getCallSite(), context);
       }
-      computeDescription(instruction, context).scan();
+      compute(instruction, context).scan();
     }
   }
 
   @Override
-  public boolean needsDesugaring(CfInstruction instruction, ProgramMethod context) {
+  public DesugarDescription compute(CfInstruction instruction, ProgramMethod context) {
     if (isSyntheticMethodThatShouldNotBeDoubleProcessed(context)) {
-      return false;
+      return DesugarDescription.nothing();
     }
-    return computeDescription(instruction, context).needsDesugaring();
-  }
-
-  @Override
-  public Collection<CfInstruction> desugarInstruction(
-      CfInstruction instruction,
-      FreshLocalProvider freshLocalProvider,
-      LocalStackAllocator localStackAllocator,
-      CfInstructionDesugaringEventConsumer eventConsumer,
-      ProgramMethod context,
-      MethodProcessingContext methodProcessingContext,
-      CfInstructionDesugaringCollection desugaringCollection,
-      DexItemFactory dexItemFactory) {
-    assert !isSyntheticMethodThatShouldNotBeDoubleProcessed(context);
-    return computeDescription(instruction, context)
-        .desugarInstruction(
-            freshLocalProvider,
-            localStackAllocator,
-            eventConsumer,
-            context,
-            methodProcessingContext,
-            dexItemFactory);
-  }
-
-  private DesugarDescription computeDescription(CfInstruction instruction, ProgramMethod context) {
     // Interface desugaring is only interested in invokes.
     CfInvoke invoke = instruction.asInvoke();
     if (invoke == null) {

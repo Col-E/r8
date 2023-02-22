@@ -15,7 +15,6 @@ import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.desugar.CfInstructionDesugaring;
-import com.android.tools.r8.ir.desugar.CfInstructionDesugaringCollection;
 import com.android.tools.r8.ir.desugar.CfInstructionDesugaringEventConsumer;
 import com.android.tools.r8.ir.desugar.DesugarDescription;
 import com.android.tools.r8.ir.desugar.FreshLocalProvider;
@@ -49,7 +48,8 @@ public class ConstantDynamicInstructionDesugaring implements CfInstructionDesuga
         .build();
   }
 
-  private DesugarDescription computeDesugaring(CfInstruction instruction, ProgramMethod context) {
+  @Override
+  public DesugarDescription compute(CfInstruction instruction, ProgramMethod context) {
     if (!instruction.isConstDynamic()) {
       return DesugarDescription.nothing();
     }
@@ -114,33 +114,8 @@ public class ConstantDynamicInstructionDesugaring implements CfInstructionDesuga
   public void scan(ProgramMethod method, CfInstructionDesugaringEventConsumer eventConsumer) {
     for (CfInstruction instruction :
         method.getDefinition().getCode().asCfCode().getInstructions()) {
-      computeDesugaring(instruction, method).scan();
+      compute(instruction, method).scan();
     }
-  }
-
-  @Override
-  public boolean needsDesugaring(CfInstruction instruction, ProgramMethod context) {
-    return computeDesugaring(instruction, context).needsDesugaring();
-  }
-
-  @Override
-  public Collection<CfInstruction> desugarInstruction(
-      CfInstruction instruction,
-      FreshLocalProvider freshLocalProvider,
-      LocalStackAllocator localStackAllocator,
-      CfInstructionDesugaringEventConsumer eventConsumer,
-      ProgramMethod context,
-      MethodProcessingContext methodProcessingContext,
-      CfInstructionDesugaringCollection desugaringCollection,
-      DexItemFactory factory) {
-    return computeDesugaring(instruction, context)
-        .desugarInstruction(
-            freshLocalProvider,
-            localStackAllocator,
-            eventConsumer,
-            context,
-            methodProcessingContext,
-            factory);
   }
 
   private Collection<CfInstruction> desugarConstDynamicInstruction(
