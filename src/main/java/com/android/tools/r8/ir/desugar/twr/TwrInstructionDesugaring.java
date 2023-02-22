@@ -17,14 +17,10 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.desugar.CfInstructionDesugaring;
-import com.android.tools.r8.ir.desugar.CfInstructionDesugaringCollection;
-import com.android.tools.r8.ir.desugar.CfInstructionDesugaringEventConsumer;
-import com.android.tools.r8.ir.desugar.FreshLocalProvider;
-import com.android.tools.r8.ir.desugar.LocalStackAllocator;
+import com.android.tools.r8.ir.desugar.DesugarDescription;
 import com.android.tools.r8.ir.desugar.backports.BackportedMethods;
 import com.android.tools.r8.synthesis.SyntheticItems.SyntheticKindSelector;
 import com.google.common.collect.ImmutableList;
-import java.util.Collection;
 import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
 import org.objectweb.asm.Opcodes;
@@ -48,74 +44,87 @@ public class TwrInstructionDesugaring implements CfInstructionDesugaring {
   }
 
   @Override
-  public Collection<CfInstruction> desugarInstruction(
-      CfInstruction instruction,
-      FreshLocalProvider freshLocalProvider,
-      LocalStackAllocator localStackAllocator,
-      CfInstructionDesugaringEventConsumer eventConsumer,
-      ProgramMethod context,
-      MethodProcessingContext methodProcessingContext,
-      CfInstructionDesugaringCollection desugaringCollection,
-      DexItemFactory dexItemFactory) {
+  public DesugarDescription compute(CfInstruction instruction, ProgramMethod context) {
     if (!instruction.isInvoke()) {
-      return null;
+      return DesugarDescription.nothing();
     }
     if (isTwrCloseResourceInvoke(instruction)) {
-      return rewriteTwrCloseResourceInvoke(eventConsumer, methodProcessingContext);
+      return rewriteTwrCloseResourceInvoke();
     }
     if (!appView.options().canUseSuppressedExceptions()) {
       if (isTwrSuppressedInvoke(instruction, addSuppressed)) {
-        return rewriteTwrAddSuppressedInvoke(eventConsumer, methodProcessingContext);
+        return rewriteTwrAddSuppressedInvoke();
       }
       if (isTwrSuppressedInvoke(instruction, getSuppressed)) {
-        return rewriteTwrGetSuppressedInvoke(eventConsumer, methodProcessingContext);
+        return rewriteTwrGetSuppressedInvoke();
       }
     }
-    return null;
+    return DesugarDescription.nothing();
   }
 
-  private Collection<CfInstruction> rewriteTwrAddSuppressedInvoke(
-      CfInstructionDesugaringEventConsumer eventConsumer,
-      MethodProcessingContext methodProcessingContext) {
+  private DesugarDescription rewriteTwrAddSuppressedInvoke() {
     DexItemFactory factory = appView.dexItemFactory();
     DexProto proto =
         factory.createProto(factory.voidType, factory.throwableType, factory.throwableType);
-    return createAndCallSyntheticMethod(
-        kinds -> kinds.BACKPORT,
-        proto,
-        BackportedMethods::ThrowableMethods_addSuppressed,
-        methodProcessingContext,
-        eventConsumer::acceptBackportedMethod,
-        methodProcessingContext.getMethodContext());
+    return DesugarDescription.builder()
+        .setDesugarRewrite(
+            (freshLocalProvider,
+                localStackAllocator,
+                eventConsumer,
+                context,
+                methodProcessingContext,
+                dexItemFactory) ->
+                createAndCallSyntheticMethod(
+                    kinds -> kinds.BACKPORT,
+                    proto,
+                    BackportedMethods::ThrowableMethods_addSuppressed,
+                    methodProcessingContext,
+                    eventConsumer::acceptBackportedMethod,
+                    methodProcessingContext.getMethodContext()))
+        .build();
   }
 
-  private Collection<CfInstruction> rewriteTwrGetSuppressedInvoke(
-      CfInstructionDesugaringEventConsumer eventConsumer,
-      MethodProcessingContext methodProcessingContext) {
+  private DesugarDescription rewriteTwrGetSuppressedInvoke() {
     DexItemFactory factory = appView.dexItemFactory();
     DexProto proto =
         factory.createProto(
             factory.createArrayType(1, factory.throwableType), factory.throwableType);
-    return createAndCallSyntheticMethod(
-        kinds -> kinds.BACKPORT,
-        proto,
-        BackportedMethods::ThrowableMethods_getSuppressed,
-        methodProcessingContext,
-        eventConsumer::acceptBackportedMethod,
-        methodProcessingContext.getMethodContext());
+    return DesugarDescription.builder()
+        .setDesugarRewrite(
+            (freshLocalProvider,
+                localStackAllocator,
+                eventConsumer,
+                context,
+                methodProcessingContext,
+                dexItemFactory) ->
+                createAndCallSyntheticMethod(
+                    kinds -> kinds.BACKPORT,
+                    proto,
+                    BackportedMethods::ThrowableMethods_getSuppressed,
+                    methodProcessingContext,
+                    eventConsumer::acceptBackportedMethod,
+                    methodProcessingContext.getMethodContext()))
+        .build();
   }
 
-  private ImmutableList<CfInstruction> rewriteTwrCloseResourceInvoke(
-      CfInstructionDesugaringEventConsumer eventConsumer,
-      MethodProcessingContext methodProcessingContext) {
+  private DesugarDescription rewriteTwrCloseResourceInvoke() {
     // Synthesize a new method.
-    return createAndCallSyntheticMethod(
-        kinds -> kinds.TWR_CLOSE_RESOURCE,
-        twrCloseResourceProto,
-        BackportedMethods::CloseResourceMethod_closeResourceImpl,
-        methodProcessingContext,
-        eventConsumer::acceptTwrCloseResourceMethod,
-        methodProcessingContext.getMethodContext());
+    return DesugarDescription.builder()
+        .setDesugarRewrite(
+            (freshLocalProvider,
+                localStackAllocator,
+                eventConsumer,
+                context,
+                methodProcessingContext,
+                dexItemFactory) ->
+                createAndCallSyntheticMethod(
+                    kinds -> kinds.TWR_CLOSE_RESOURCE,
+                    twrCloseResourceProto,
+                    BackportedMethods::CloseResourceMethod_closeResourceImpl,
+                    methodProcessingContext,
+                    eventConsumer::acceptTwrCloseResourceMethod,
+                    methodProcessingContext.getMethodContext()))
+        .build();
   }
 
   private ImmutableList<CfInstruction> createAndCallSyntheticMethod(
@@ -142,16 +151,6 @@ public class TwrInstructionDesugaring implements CfInstructionDesugaring {
                             methodSig -> generator.apply(appView.dexItemFactory(), methodSig)));
     eventConsumerCallback.accept(method, context);
     return ImmutableList.of(new CfInvoke(Opcodes.INVOKESTATIC, method.getReference(), false));
-  }
-
-  @Override
-  public boolean needsDesugaring(CfInstruction instruction, ProgramMethod context) {
-    if (!instruction.isInvoke()) {
-      return false;
-    }
-    return isTwrCloseResourceInvoke(instruction)
-        || isTwrSuppressedInvoke(instruction, addSuppressed)
-        || isTwrSuppressedInvoke(instruction, getSuppressed);
   }
 
   private boolean isTwrSuppressedInvoke(CfInstruction instruction, DexMethod suppressed) {
