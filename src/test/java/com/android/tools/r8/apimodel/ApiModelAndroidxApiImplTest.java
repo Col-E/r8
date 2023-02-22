@@ -60,7 +60,7 @@ public class ApiModelAndroidxApiImplTest extends TestBase {
                 .transform())
         .addLibraryClasses(LibraryClass23.class, LibraryClass26.class, LibraryClass30.class)
         .addDefaultRuntimeLibrary(parameters)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters)
         .addAndroidBuildVersion(getMaxSupportedApiLevel())
         .apply(ApiModelingTestHelper::enableOutliningOfMethods)
         .apply(ApiModelingTestHelper::enableStubbingOfClasses)
@@ -130,7 +130,6 @@ public class ApiModelAndroidxApiImplTest extends TestBase {
     testForR8(parameters.getBackend())
         .apply(this::setupTestBuilder)
         .addKeepMainRule(Main.class)
-        .addDontObfuscate()
         .addHorizontallyMergedClassesInspector(
             HorizontallyMergedClassesInspector::assertNoClassesMerged)
         .compile()
