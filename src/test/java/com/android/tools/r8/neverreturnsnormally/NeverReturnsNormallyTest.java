@@ -4,6 +4,8 @@
 
 package com.android.tools.r8.neverreturnsnormally;
 
+import static com.android.tools.r8.utils.codeinspector.Matchers.isAbsent;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
@@ -28,36 +30,35 @@ import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import com.google.common.collect.ImmutableList;
 import java.util.Iterator;
 import java.util.List;
-import java.util.function.BiConsumer;
+import java.util.function.Consumer;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameter;
 import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
 public class NeverReturnsNormallyTest extends TestBase {
 
-  private boolean keepOuterTrivial;
-  private TestParameters parameters;
+  @Parameter(0)
+  public boolean keepOuterTrivial;
+
+  @Parameter(1)
+  public TestParameters parameters;
 
   @Parameters(name = "{1}, keep outerTrivial: {0}")
   public static List<Object[]> data() {
-    return buildParameters(BooleanUtils.values(), getTestParameters().withAllRuntimes().build());
+    return buildParameters(
+        BooleanUtils.values(), getTestParameters().withAllRuntimesAndApiLevels().build());
   }
 
-  public NeverReturnsNormallyTest(boolean keepOuterTrivial, TestParameters parameters) {
-    this.keepOuterTrivial = keepOuterTrivial;
-    this.parameters = parameters;
-  }
-
-  private void runTest(
-      BiConsumer<CodeInspector, CompilationMode> inspection,
-      boolean enableClassInliner, CompilationMode mode) throws Exception {
+  private void runTest(Consumer<CodeInspector> inspection, boolean enableClassInliner)
+      throws Exception {
     R8Command.Builder builder = R8Command.builder();
     builder.addProgramFiles(ToolHelper.getClassFileForTestClass(TestClass.class));
     builder.setProgramConsumer(emptyConsumer(parameters.getBackend()));
-    builder.addLibraryFiles(runtimeJar(parameters.getBackend()));
-    builder.setMode(mode);
+    builder.addLibraryFiles(parameters.getDefaultRuntimeLibrary());
+    builder.setMode(CompilationMode.RELEASE);
     builder.addProguardConfiguration(
         ImmutableList.of(
             "-keep class " + TestClass.class.getTypeName() + " {",
@@ -91,7 +92,7 @@ public class NeverReturnsNormallyTest extends TestBase {
               opts.enableClassInlining = enableClassInliner;
               opts.testing.dontReportFailingCheckDiscarded = true;
             });
-    inspection.accept(new CodeInspector(app), mode);
+    inspection.accept(new CodeInspector(app));
 
     if (parameters.isDexRuntime()) {
       // Run on Art to check generated code against verifier.
@@ -102,8 +103,7 @@ public class NeverReturnsNormallyTest extends TestBase {
     }
   }
 
-  private void validate(CodeInspector inspector, CompilationMode mode) {
-    assert parameters.isCfRuntime() || parameters.isDexRuntime();
+  private void validate(CodeInspector inspector) {
     ClassSubject clazz = inspector.clazz(TestClass.class);
     assertTrue(clazz.isPresent());
 
@@ -122,19 +122,7 @@ public class NeverReturnsNormallyTest extends TestBase {
     // Check the instruction used for testInlinedIntoVoidMethod
     MethodSubject methodThrowToBeInlined =
         clazz.method("int", "throwToBeInlined", ImmutableList.of());
-    boolean expectedToBePresent = mode == CompilationMode.DEBUG;
-    assertEquals(expectedToBePresent, methodThrowToBeInlined.isPresent());
-    if (expectedToBePresent) {
-      Iterator<InstructionSubject> instructions = methodThrowToBeInlined.iterateInstructions();
-      // Call, followed by throw null.
-      InstructionSubject insn = nextInstructionSkippingCfPositionAndLabel(instructions);
-      assertTrue(insn != null && insn.isConstString(JumboStringMode.ALLOW));
-      insn = nextInstruction(instructions);
-      assertTrue(insn.isInvoke());
-      assertTrue(((InvokeInstructionSubject) insn)
-          .invokedMethod().name.toString().equals("throwNpe"));
-      verifyTrailingPattern(instructions);
-    }
+    assertThat(methodThrowToBeInlined, isAbsent());
 
     // Check the instruction used for testInlinedIntoVoidMethod
     MethodSubject methodTestInlinedIntoVoidMethod =
@@ -143,24 +131,16 @@ public class NeverReturnsNormallyTest extends TestBase {
     Iterator<InstructionSubject> instructions =
         methodTestInlinedIntoVoidMethod.iterateInstructions();
     InstructionSubject insn = nextInstructionSkippingCfPositionAndLabel(instructions);
-    if (mode == CompilationMode.DEBUG) {
-      // Not inlined call to throwToBeInlined.
-      assertTrue(insn.isInvoke());
-      assertTrue(((InvokeInstructionSubject) insn)
-          .invokedMethod().name.toString().equals("throwToBeInlined"));
-    } else {
-      // Inlined code from throwToBeInlined.
-      assertTrue(insn.isConstString(JumboStringMode.ALLOW));
-      insn = nextInstructionSkippingCfPositionAndLabel(instructions);
-      assertTrue(insn.isInvoke());
-      assertTrue(((InvokeInstructionSubject) insn)
-          .invokedMethod().name.toString().equals("throwNpe"));
-    }
+    // Inlined code from throwToBeInlined.
+    assertTrue(insn.isConstString(JumboStringMode.ALLOW));
+    insn = nextInstructionSkippingCfPositionAndLabel(instructions);
+    assertTrue(insn.isInvoke());
+    assertEquals("throwNpe", ((InvokeInstructionSubject) insn).invokedMethod().name.toString());
     verifyTrailingPattern(instructions);
 
     // Check the instruction used for outerTrivial
     MethodSubject methodOuterTrivial = clazz.method("int", "outerTrivial", ImmutableList.of());
-    assertEquals(keepOuterTrivial || mode == CompilationMode.DEBUG, methodOuterTrivial.isPresent());
+    assertEquals(keepOuterTrivial, methodOuterTrivial.isPresent());
 
     if (methodOuterTrivial.isPresent()) {
       instructions = methodOuterTrivial.iterateInstructions();
@@ -208,11 +188,11 @@ public class NeverReturnsNormallyTest extends TestBase {
 
   @Test
   public void testRelease() throws Exception {
-    runTest(this::validate, true, CompilationMode.RELEASE);
+    runTest(this::validate, true);
   }
 
   @Test
   public void testReleaseNoClassInline() throws Exception {
-    runTest(this::validate, false, CompilationMode.RELEASE);
+    runTest(this::validate, false);
   }
 }

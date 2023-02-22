@@ -20,6 +20,7 @@ import java.util.Collection;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameter;
 
 @RunWith(Parameterized.class)
 public class AssumenosideeffectsWithoutReturnValueTest extends TestBase {
@@ -52,18 +53,16 @@ public class AssumenosideeffectsWithoutReturnValueTest extends TestBase {
     }
   }
 
-  private final TestParameters parameters;
-  private final TestConfig config;
+  @Parameter(0)
+  public TestParameters parameters;
+
+  @Parameter(1)
+  public TestConfig config;
 
   @Parameterized.Parameters(name = "{0} {1}")
   public static Collection<Object[]> data() {
-    return buildParameters(getTestParameters().withAllRuntimes().build(), TestConfig.values());
-  }
-
-  public AssumenosideeffectsWithoutReturnValueTest(
-      TestParameters parameters, TestConfig config) {
-    this.parameters = parameters;
-    this.config = config;
+    return buildParameters(
+        getTestParameters().withAllRuntimesAndApiLevels().build(), TestConfig.values());
   }
 
   @Test
@@ -74,7 +73,7 @@ public class AssumenosideeffectsWithoutReturnValueTest extends TestBase {
         .addKeepMainRule(MAIN)
         .addKeepRules(config.getKeepRules())
         .addDontObfuscate()
-        .setMinApi(parameters.getRuntime())
+        .setMinApi(parameters)
         .compile()
         .inspect(this::verifyDebugMethodIsRemoved)
         .run(parameters.getRuntime(), MAIN)

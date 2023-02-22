@@ -39,7 +39,7 @@ public class DesugaredLibraryMismatchTest extends DesugaredLibraryTestBase {
             .withDexRuntime(Version.first())
             .withDefaultDexRuntime()
             .withDexRuntime(Version.last())
-            .withOnlyDexRuntimeApiLevel()
+            .withMaximumApiLevel()
             .build(),
         getJdk8Jdk11(),
         ImmutableList.of(D8_L8DEBUG));

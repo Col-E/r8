@@ -17,6 +17,7 @@ import java.util.Collection;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameter;
 import org.junit.runners.Parameterized.Parameters;
 
 /**
@@ -28,20 +29,20 @@ public class CheckDiscardedOverriddenMethodTest extends TestBase {
 
   @Parameters(name = "{0} minification: {1}")
   public static Collection<Object[]> data() {
-    return buildParameters(getTestParameters().withNoneRuntime().build(), BooleanUtils.values());
+    return buildParameters(
+        getTestParameters().withDefaultDexRuntime().withMaximumApiLevel().build(),
+        BooleanUtils.values());
   }
 
-  private final TestParameters parameters;
-  private final boolean minification;
+  @Parameter(0)
+  public TestParameters parameters;
 
-  public CheckDiscardedOverriddenMethodTest(TestParameters parameters, boolean minification) {
-    this.parameters = parameters;
-    this.minification = minification;
-  }
+  @Parameter(1)
+  public boolean minification;
 
   private void test(Class<?> main, Class<?> targetClass) throws Exception {
     try {
-      testForR8(Backend.DEX)
+      testForR8(parameters.getBackend())
           .addInnerClasses(CheckDiscardedOverriddenMethodTest.class)
           .addKeepMainRule(main)
           .addKeepRules(
@@ -50,7 +51,7 @@ public class CheckDiscardedOverriddenMethodTest extends TestBase {
           .enableInliningAnnotations()
           .enableNoVerticalClassMergingAnnotations()
           .minification(minification)
-          .setMinApi(parameters.getRuntime())
+          .setMinApi(parameters)
           // Asserting that -checkdiscard is not giving any information out on an un-removed
           // sub-type member.
           .compileWithExpectedDiagnostics(diagnostics -> diagnostics.assertInfosCount(0));

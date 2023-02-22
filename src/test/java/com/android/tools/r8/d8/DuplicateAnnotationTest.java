@@ -7,7 +7,6 @@ import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.fail;
-import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.DexFilePerClassFileConsumer.ArchiveConsumer;
@@ -29,6 +28,8 @@ import java.nio.file.Path;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameter;
+import org.junit.runners.Parameterized.Parameters;
 
 @Retention(RetentionPolicy.CLASS)
 @Target({ElementType.METHOD, ElementType.FIELD})
@@ -66,27 +67,24 @@ class TestB extends TestA {
 @RunWith(Parameterized.class)
 public class DuplicateAnnotationTest extends TestBase {
 
-  private final TestParameters parameters;
+  @Parameter(0)
+  public TestParameters parameters;
 
-  @Parameterized.Parameters(name = "{0}")
+  @Parameters(name = "{0}")
   public static TestParametersCollection data() {
-    return getTestParameters().withAllRuntimes().build();
-  }
-
-  public DuplicateAnnotationTest(TestParameters parameters) {
-    this.parameters = parameters;
+    return getTestParameters().withAllRuntimesAndApiLevels().build();
   }
 
   @Test
   public void testMergingViaD8() throws Exception {
-    assumeTrue("D8 tests.", parameters.isDexRuntime());
+    parameters.assumeDexRuntime();
     Path dex1 = temp.newFile("classes1.zip").toPath().toAbsolutePath();
     CodeInspector inspector =
         testForD8()
             .addProgramClasses(TestA.class)
             .setIntermediate(true)
             .setProgramConsumer(new ArchiveConsumer(dex1))
-            .setMinApi(parameters.getRuntime())
+            .setMinApi(parameters)
             .compile()
             .inspector();
 
@@ -104,7 +102,7 @@ public class DuplicateAnnotationTest extends TestBase {
             .addProgramClasses(TestB.class)
             .setIntermediate(true)
             .setProgramConsumer(new ArchiveConsumer(dex2))
-            .setMinApi(parameters.getRuntime())
+            .setMinApi(parameters)
             .compile()
             .inspector();
     ClassSubject testB = inspector.clazz(TestB.class);
@@ -129,20 +127,20 @@ public class DuplicateAnnotationTest extends TestBase {
     testForD8()
         .addProgramFiles(dex1, dex2)
         .setProgramConsumer(new ArchiveConsumer(merged))
-        .setMinApi(parameters.getRuntime())
+        .setMinApi(parameters)
         .compile();
   }
 
   @Test
   public void testDuplicationInInput() throws Exception {
-    assumeTrue("D8 tests.", parameters.isDexRuntime());
+    parameters.assumeDexRuntime();
     Path dex1 = temp.newFile("classes1.zip").toPath().toAbsolutePath();
     try {
       testForD8()
           .addProgramClassFileData(TestADump.dump())
           .setIntermediate(true)
           .setProgramConsumer(new ArchiveConsumer(dex1))
-          .setMinApi(parameters.getRuntime())
+          .setMinApi(parameters)
           .compile();
       fail("Expected to fail due to multiple annotations");
     } catch (CompilationFailedException e) {
@@ -153,13 +151,13 @@ public class DuplicateAnnotationTest extends TestBase {
 
   @Test
   public void testJVMOutput() throws Exception {
-    assumeTrue("Only run JVM reference on CF runtimes", parameters.isCfRuntime());
-    testForJvm()
+    parameters.assumeJvmTestParameters();
+    testForJvm(parameters)
         .addProgramClassFileData(
             TestADump.dump(),
             ToolHelper.getClassAsBytes(TestB.class),
             ToolHelper.getClassAsBytes(TestKeep.class))
-        .run(TestB.class.getTypeName())
+        .run(parameters.getRuntime(), TestB.class.getTypeName())
         .assertSuccessWithOutput(StringUtils.lines("TestA::foo", "TestB::foo"));
   }
 

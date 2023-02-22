@@ -4,7 +4,6 @@
 
 package com.android.tools.r8.naming.applymapping;
 
-import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.R8TestCompileResult;
@@ -18,12 +17,13 @@ import com.android.tools.r8.naming.applymapping.ApplyMappingVirtualInvokeTest.Te
 import com.android.tools.r8.naming.applymapping.ApplyMappingVirtualInvokeTest.TestClasses.ProgramSubclass;
 import com.android.tools.r8.utils.StringUtils;
 import java.io.IOException;
-import java.nio.file.Path;
 import java.util.concurrent.ExecutionException;
 import java.util.function.Function;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameter;
+import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
 public class ApplyMappingVirtualInvokeTest extends TestBase {
@@ -87,15 +87,13 @@ public class ApplyMappingVirtualInvokeTest extends TestBase {
     LibraryInterface.class, LibraryBase.class, LibrarySubclass.class
   };
   private static final Class<?>[] PROGRAM_CLASSES = {ProgramClass.class, ProgramSubclass.class};
-  private final TestParameters parameters;
 
-  @Parameterized.Parameters(name = "{0}")
+  @Parameter(0)
+  public TestParameters parameters;
+
+  @Parameters(name = "{0}")
   public static TestParametersCollection data() {
-    return getTestParameters().withAllRuntimes().build();
-  }
-
-  public ApplyMappingVirtualInvokeTest(TestParameters parameters) {
-    this.parameters = parameters;
+    return getTestParameters().withAllRuntimesAndApiLevels().build();
   }
 
   private static Function<TestParameters, R8TestCompileResult> compilationResults =
@@ -106,7 +104,7 @@ public class ApplyMappingVirtualInvokeTest extends TestBase {
     return testForR8(getStaticTemp(), parameters.getBackend())
         .addProgramClasses(LIBRARY_CLASSES)
         .addKeepClassAndMembersRulesWithAllowObfuscation(LIBRARY_CLASSES)
-        .setMinApi(parameters.getRuntime())
+        .setMinApi(parameters)
         .addOptionsModification(
             options -> {
               options.inlinerOptions().enableInlining = false;
@@ -119,8 +117,8 @@ public class ApplyMappingVirtualInvokeTest extends TestBase {
   @Test
   public void runJvmProgramTest()
       throws ExecutionException, CompilationFailedException, IOException {
-    assumeTrue(parameters.isCfRuntime());
-    testForJvm()
+    parameters.assumeJvmTestParameters();
+    testForJvm(parameters)
         .addProgramClasses(LIBRARY_CLASSES)
         .addProgramClasses(PROGRAM_CLASSES)
         .run(parameters.getRuntime(), ProgramClass.class)
@@ -130,8 +128,8 @@ public class ApplyMappingVirtualInvokeTest extends TestBase {
   @Test
   public void runJvmProgramSubclassTest()
       throws ExecutionException, CompilationFailedException, IOException {
-    assumeTrue(parameters.isCfRuntime());
-    testForJvm()
+    parameters.assumeJvmTestParameters();
+    testForJvm(parameters)
         .addProgramClasses(LIBRARY_CLASSES)
         .addProgramClasses(PROGRAM_CLASSES)
         .run(parameters.getRuntime(), ProgramSubclass.class)
@@ -153,18 +151,16 @@ public class ApplyMappingVirtualInvokeTest extends TestBase {
   private void runTest(Class<?> main, String expected)
       throws ExecutionException, IOException, CompilationFailedException {
     R8TestCompileResult libraryCompileResult = compilationResults.apply(parameters);
-    Path outPath = temp.newFile("out.zip").toPath();
-    libraryCompileResult.writeToZip(outPath);
     testForR8(parameters.getBackend())
         .noTreeShaking()
         .addDontObfuscate()
         .addProgramClasses(PROGRAM_CLASSES)
         .addApplyMapping(libraryCompileResult.getProguardMap())
         .addClasspathClasses(LIBRARY_CLASSES)
-        .addLibraryFiles(runtimeJar(parameters.getBackend()))
-        .setMinApi(parameters.getRuntime())
+        .addLibraryFiles(parameters.getDefaultRuntimeLibrary())
+        .setMinApi(parameters)
         .compile()
-        .addRunClasspathFiles(outPath)
+        .addRunClasspathFiles(libraryCompileResult.writeToZip())
         .run(parameters.getRuntime(), main)
         .assertSuccessWithOutput(expected);
   }

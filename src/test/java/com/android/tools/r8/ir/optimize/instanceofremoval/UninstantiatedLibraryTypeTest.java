@@ -19,10 +19,13 @@ import com.google.common.collect.Streams;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameter;
 import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
 public class UninstantiatedLibraryTypeTest extends TestBase {
+
+  private static final String EXPECTED_OUTPUT = "In TestClass.live()";
 
   static class TestClass {
 
@@ -62,29 +65,31 @@ public class UninstantiatedLibraryTypeTest extends TestBase {
 
   @Parameters(name = "{0}")
   public static TestParametersCollection data() {
-    return getTestParameters().withAllRuntimes().build();
+    return getTestParameters().withAllRuntimesAndApiLevels().build();
   }
 
-  private final TestParameters parameters;
+  @Parameter(0)
+  public TestParameters parameters;
 
-  public UninstantiatedLibraryTypeTest(TestParameters parameters) {
-    this.parameters = parameters;
+  @Test
+  public void testJvm() throws Exception {
+    parameters.assumeJvmTestParameters();
+    testForJvm(parameters)
+        .addTestClasspath()
+        .run(parameters.getRuntime(), TestClass.class)
+        .assertSuccessWithOutput(EXPECTED_OUTPUT);
   }
 
   @Test
-  public void test() throws Exception {
-    String expected = "In TestClass.live()";
-
-    testForJvm().addTestClasspath().run(TestClass.class).assertSuccessWithOutput(expected);
-
+  public void testR8() throws Exception {
     CodeInspector inspector =
         testForR8(parameters.getBackend())
             .addInnerClasses(UninstantiatedLibraryTypeTest.class)
             .addKeepMainRule(TestClass.class)
             .enableInliningAnnotations()
-            .setMinApi(parameters.getRuntime())
+            .setMinApi(parameters)
             .run(parameters.getRuntime(), TestClass.class)
-            .assertSuccessWithOutput(expected)
+            .assertSuccessWithOutput(EXPECTED_OUTPUT)
             .inspector();
 
     ClassSubject classSubject = inspector.clazz(TestClass.class);

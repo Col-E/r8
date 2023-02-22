@@ -19,6 +19,8 @@ import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameter;
+import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
 public class AbstractMethodRenamingTest extends TestBase {
@@ -58,15 +60,12 @@ public class AbstractMethodRenamingTest extends TestBase {
     }
   }
 
-  private TestParameters parameters;
+  @Parameter(0)
+  public TestParameters parameters;
 
-  @Parameterized.Parameters(name = "{0}")
+  @Parameters(name = "{0}")
   public static TestParametersCollection data() {
-    return getTestParameters().withAllRuntimes().build();
-  }
-
-  public AbstractMethodRenamingTest(TestParameters parameters) {
-    this.parameters = parameters;
+    return getTestParameters().withAllRuntimesAndApiLevels().build();
   }
 
   @Test
@@ -76,7 +75,7 @@ public class AbstractMethodRenamingTest extends TestBase {
         .addKeepMainRule(TestMain.class)
         .enableInliningAnnotations()
         .enableNoHorizontalClassMergingAnnotations()
-        .setMinApi(parameters.getRuntime())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), TestMain.class)
         .assertSuccessWithOutput(StringUtils.lines("Sub1::foo"))
         .inspect(this::inspect);

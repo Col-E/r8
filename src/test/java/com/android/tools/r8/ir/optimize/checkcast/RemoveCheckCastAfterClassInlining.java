@@ -24,18 +24,18 @@ import com.google.common.collect.ImmutableList;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameter;
+import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
 public class RemoveCheckCastAfterClassInlining extends TestBase {
-  private final TestParameters parameters;
 
-  @Parameterized.Parameters(name = "{0}")
+  @Parameter(0)
+  public TestParameters parameters;
+
+  @Parameters(name = "{0}")
   public static TestParametersCollection data() {
-    return getTestParameters().withDexRuntimes().build();
-  }
-
-  public RemoveCheckCastAfterClassInlining(TestParameters parameters) {
-    this.parameters = parameters;
+    return getTestParameters().withDexRuntimesAndAllApiLevels().build();
   }
 
   @Test
@@ -46,7 +46,7 @@ public class RemoveCheckCastAfterClassInlining extends TestBase {
             .addProgramClassesAndInnerClasses(Lambda.class)
             .addKeepMainRule(Lambda.class)
             .addDontObfuscate()
-            .setMinApi(parameters.getRuntime())
+            .setMinApi(parameters)
             .compile()
             .inspector();
     ClassSubject classSubject = inspector.clazz(Lambda.class);

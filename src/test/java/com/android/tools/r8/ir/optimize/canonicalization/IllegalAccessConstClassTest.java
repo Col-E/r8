@@ -6,7 +6,6 @@ package com.android.tools.r8.ir.optimize.canonicalization;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
@@ -20,6 +19,8 @@ import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameter;
+import org.junit.runners.Parameterized.Parameters;
 
 // Will be changed to different package.
 class PackagePrivateClass {
@@ -45,21 +46,18 @@ public class IllegalAccessConstClassTest extends TestBase {
       "No need to load any classes"
   );
 
-  @Parameterized.Parameters(name = "{0}")
+  @Parameters(name = "{0}")
   public static TestParametersCollection data() {
-    return getTestParameters().withAllRuntimes().build();
+    return getTestParameters().withAllRuntimesAndApiLevels().build();
   }
 
-  private final TestParameters parameters;
-
-  public IllegalAccessConstClassTest(TestParameters parameters) {
-    this.parameters = parameters;
-  }
+  @Parameter(0)
+  public TestParameters parameters;
 
   @Test
   public void testJVMOutput() throws Exception {
-    assumeTrue("Only run JVM reference on CF runtimes", parameters.isCfRuntime());
-    testForJvm()
+    parameters.assumeJvmTestParameters();
+    testForJvm(parameters)
         .addTestClasspath()
         .run(parameters.getRuntime(), MAIN)
         .assertSuccessWithOutput(JAVA_OUTPUT);
@@ -67,16 +65,14 @@ public class IllegalAccessConstClassTest extends TestBase {
 
   @Test
   public void testD8() throws Exception {
-    assumeTrue("Only run D8 for Dex backend", parameters.isDexRuntime());
-
+    parameters.assumeDexRuntime();
     testForD8()
         .release()
-        .addProgramClassFileData(
-            IllegalAccessConstClassTestDump.PackagePrivateClassDump.dump())
+        .addProgramClassFileData(IllegalAccessConstClassTestDump.PackagePrivateClassDump.dump())
         .addProgramClassFileData(
             IllegalAccessConstClassTestDump.FakePackagePrivateClassConsumerDump.dump())
         .addOptionsModification(InternalOptions::disableNameReflectionOptimization)
-        .setMinApi(parameters.getRuntime())
+        .setMinApi(parameters)
         .compile()
         .inspect(this::inspect)
         .run(parameters.getRuntime(), MAIN)
@@ -92,7 +88,7 @@ public class IllegalAccessConstClassTest extends TestBase {
         .addKeepMainRule(MAIN)
         .addDontObfuscate()
         .addOptionsModification(InternalOptions::disableNameReflectionOptimization)
-        .setMinApi(parameters.getRuntime())
+        .setMinApi(parameters)
         .compile()
         .inspect(this::inspect)
         .run(parameters.getRuntime(), MAIN)

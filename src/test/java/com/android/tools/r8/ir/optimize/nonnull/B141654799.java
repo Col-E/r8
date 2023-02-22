@@ -16,18 +16,18 @@ import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameter;
+import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
 public class B141654799 extends TestBase {
-  private final TestParameters parameters;
 
-  @Parameterized.Parameters(name = "{0}")
+  @Parameter(0)
+  public TestParameters parameters;
+
+  @Parameters(name = "{0}")
   public static TestParametersCollection data() {
-    return getTestParameters().withAllRuntimes().build();
-  }
-
-  public B141654799(TestParameters parameters) {
-    this.parameters = parameters;
+    return getTestParameters().withAllRuntimesAndApiLevels().build();
   }
 
   @Test
@@ -36,16 +36,18 @@ public class B141654799 extends TestBase {
         .addInnerClasses(B141654799.class)
         .enableInliningAnnotations()
         .addKeepMainRule(TestClass.class)
-        .setMinApi(parameters.getRuntime())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), TestClass.class)
         .assertSuccessWithOutputLines("The end")
-        .inspect(inspector -> {
-          ClassSubject main = inspector.clazz(TestClass.class);
-          assertThat(main, isPresent());
-          MethodSubject mainMethod = main.mainMethod();
-          assertThat(mainMethod, isPresent());
-          assertTrue(mainMethod.streamInstructions().noneMatch(i -> i.isIfEqz() || i.isIfNez()));
-        });
+        .inspect(
+            inspector -> {
+              ClassSubject main = inspector.clazz(TestClass.class);
+              assertThat(main, isPresent());
+              MethodSubject mainMethod = main.mainMethod();
+              assertThat(mainMethod, isPresent());
+              assertTrue(
+                  mainMethod.streamInstructions().noneMatch(i -> i.isIfEqz() || i.isIfNez()));
+            });
   }
 
   static class TestClass {

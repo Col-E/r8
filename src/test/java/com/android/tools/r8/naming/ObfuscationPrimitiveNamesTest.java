@@ -7,19 +7,17 @@ package com.android.tools.r8.naming;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
-import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.utils.FileUtils;
 import com.google.common.collect.Lists;
-import java.io.IOException;
 import java.nio.file.Path;
 import java.util.List;
-import java.util.concurrent.ExecutionException;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameter;
 import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
@@ -43,20 +41,16 @@ public class ObfuscationPrimitiveNamesTest extends TestBase {
 
   public static class D {}
 
-  private final TestParameters parameters;
+  @Parameter(0)
+  public TestParameters parameters;
 
   @Parameters(name = "{0}")
   public static TestParametersCollection data() {
-    return getTestParameters().withAllRuntimes().build();
-  }
-
-  public ObfuscationPrimitiveNamesTest(TestParameters parameters) {
-    this.parameters = parameters;
+    return getTestParameters().withAllRuntimesAndApiLevels().build();
   }
 
   @Test
-  public void testNotHavingPrimitiveNames()
-      throws IOException, CompilationFailedException, ExecutionException {
+  public void testNotHavingPrimitiveNames() throws Exception {
     Path dictionary = temp.getRoot().toPath().resolve("dictionary.txt");
     FileUtils.writeTextFile(dictionary, FORBIDDEN_NAMES);
     testForR8(parameters.getBackend())
@@ -64,7 +58,7 @@ public class ObfuscationPrimitiveNamesTest extends TestBase {
         .addKeepRules("-classobfuscationdictionary " + dictionary.toString())
         .addKeepAllClassesRuleWithAllowObfuscation()
         .addKeepMainRule(Main.class)
-        .setMinApi(parameters.getRuntime())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutput("Hello World!")
         .inspect(

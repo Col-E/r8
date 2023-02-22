@@ -41,8 +41,8 @@ public class IfWithFieldValuePropagationTest extends TestBase {
             "}",
             "-keep class " + Layout.class.getTypeName())
         .addLibraryClasses(Library.class)
-        .addLibraryFiles(runtimeJar(parameters))
-        .setMinApi(parameters.getRuntime())
+        .addLibraryFiles(parameters.getDefaultRuntimeLibrary())
+        .setMinApi(parameters)
         .compile()
         .inspect(this::verifyOutput)
         .addRunClasspathFiles(

@@ -11,19 +11,17 @@ import com.android.tools.r8.ToolHelper.DexVm.Version;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameter;
 
 @RunWith(Parameterized.class)
 public class StaticFieldLoadsSeparatedByNewInstanceTest extends TestBase {
 
-  private final TestParameters parameters;
+  @Parameter(0)
+  public TestParameters parameters;
 
   @Parameterized.Parameters(name = "{0}")
   public static TestParametersCollection data() {
-    return getTestParameters().withAllRuntimes().build();
-  }
-
-  public StaticFieldLoadsSeparatedByNewInstanceTest(TestParameters parameters) {
-    this.parameters = parameters;
+    return getTestParameters().withAllRuntimesAndApiLevels().build();
   }
 
   @Test
@@ -31,7 +29,7 @@ public class StaticFieldLoadsSeparatedByNewInstanceTest extends TestBase {
     testForR8(parameters.getBackend())
         .addInnerClasses(StaticFieldLoadsSeparatedByNewInstanceTest.class)
         .addKeepMainRule(TestClass.class)
-        .setMinApi(parameters.getRuntime())
+        .setMinApi(parameters)
         .compile()
         .run(parameters.getRuntime(), TestClass.class)
         .assertSuccessWithOutputLines(getExpectedOutput());

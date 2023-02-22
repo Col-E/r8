@@ -19,6 +19,7 @@ import java.util.concurrent.ExecutionException;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameter;
 import org.junit.runners.Parameterized.Parameters;
 
 /**
@@ -65,15 +66,12 @@ public class IfSimilarClassSpecificationBundlingTest extends TestBase {
     }
   }
 
-  private final TestParameters parameters;
+  @Parameter(0)
+  public TestParameters parameters;
 
   @Parameters(name = "{0}")
   public static TestParametersCollection data() {
-    return getTestParameters().withAllRuntimes().build();
-  }
-
-  public IfSimilarClassSpecificationBundlingTest(TestParameters parameters) {
-    this.parameters = parameters;
+    return getTestParameters().withAllRuntimesAndApiLevels().build();
   }
 
   @Test
@@ -135,7 +133,7 @@ public class IfSimilarClassSpecificationBundlingTest extends TestBase {
         .addInnerClasses(IfSimilarClassSpecificationBundlingTest.class)
         .addKeepMainRule(Main.class)
         .addKeepRules(keepRules)
-        .setMinApi(parameters.getRuntime())
+        .setMinApi(parameters)
         .addOptionsModification(
             options -> {
               options.testing.measureProguardIfRuleEvaluations = true;

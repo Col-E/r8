@@ -16,11 +16,12 @@ import com.android.tools.r8.TestRuntime.CfVm;
 import com.android.tools.r8.ToolHelper;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import org.junit.Assume;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameter;
+import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
 public class Jdk11MathTests extends TestBase {
@@ -44,15 +45,12 @@ public class Jdk11MathTests extends TestBase {
   private static final Path[] JDK_11_STRICT_MATH_JAVA_FILES =
       new Path[] {JDK_11_STRICT_MATH_JAVA_DIR.resolve(EXACTARITH + JAVA_EXTENSION)};
 
-  private final TestParameters parameters;
+  @Parameter(0)
+  public TestParameters parameters;
 
-  @Parameterized.Parameters(name = "{0}")
+  @Parameters(name = "{0}")
   public static TestParametersCollection data() {
-    return getTestParameters().withDexRuntimes().withCfRuntime(CfVm.JDK11).build();
-  }
-
-  public Jdk11MathTests(TestParameters parameters) {
-    this.parameters = parameters;
+    return getTestParameters().withDexRuntimesAndAllApiLevels().withCfRuntime(CfVm.JDK11).build();
   }
 
   @BeforeClass
@@ -80,30 +78,30 @@ public class Jdk11MathTests extends TestBase {
 
   @Test
   public void testD8MathExactArith() throws Exception {
-    Assume.assumeTrue(parameters.isDexRuntime());
+    parameters.assumeDexRuntime();
     testForD8()
         .addProgramFiles(JDK_11_MATH_TEST_CLASS_FILES)
-        .setMinApi(parameters.getRuntime())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), EXACTARITH)
         .assertSuccessWithOutput("");
   }
 
   @Test
   public void testD8MathDivMod() throws Exception {
-    Assume.assumeTrue(parameters.isDexRuntime());
+    parameters.assumeDexRuntime();
     testForD8()
         .addProgramFiles(JDK_11_MATH_TEST_CLASS_FILES)
-        .setMinApi(parameters.getRuntime())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), DIVMOD)
         .assertSuccessWithOutput("");
   }
 
   @Test
   public void testD8StrictMathExactArith() throws Exception {
-    Assume.assumeTrue(parameters.isDexRuntime());
+    parameters.assumeDexRuntime();
     testForD8()
         .addProgramFiles(JDK_11_STRICT_MATH_TEST_CLASS_FILES)
-        .setMinApi(parameters.getRuntime())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), EXACTARITH)
         .assertSuccessWithOutput("");
   }
@@ -116,7 +114,7 @@ public class Jdk11MathTests extends TestBase {
         .addProgramFiles(JDK_11_MATH_TEST_CLASS_FILES)
         .addLibraryFiles(ToolHelper.getMostRecentAndroidJar())
         .applyIf(parameters.isCfRuntime(), Jdk9TestUtils.addJdk9LibraryFiles(temp))
-        .setMinApi(parameters.getRuntime())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), EXACTARITH)
         .assertSuccessWithOutput("");
   }
@@ -129,7 +127,7 @@ public class Jdk11MathTests extends TestBase {
         .addProgramFiles(JDK_11_MATH_TEST_CLASS_FILES)
         .addLibraryFiles(ToolHelper.getMostRecentAndroidJar())
         .applyIf(parameters.isCfRuntime(), Jdk9TestUtils.addJdk9LibraryFiles(temp))
-        .setMinApi(parameters.getRuntime())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), DIVMOD)
         .assertSuccessWithOutput("");
   }
@@ -141,7 +139,7 @@ public class Jdk11MathTests extends TestBase {
         .addKeepMainRule(EXACTARITH)
         .addLibraryFiles(ToolHelper.getMostRecentAndroidJar())
         .applyIf(parameters.isCfRuntime(), Jdk9TestUtils.addJdk9LibraryFiles(temp))
-        .setMinApi(parameters.getRuntime())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), EXACTARITH)
         .assertSuccessWithOutput("");
   }

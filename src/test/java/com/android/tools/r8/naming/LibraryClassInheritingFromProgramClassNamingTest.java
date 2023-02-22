@@ -46,7 +46,7 @@ public class LibraryClassInheritingFromProgramClassNamingTest extends TestBase {
             .compile();
     testForR8Compat(parameters.getBackend())
         .addLibraryClasses(LIBRARY_CLASSES)
-        .addLibraryFiles(runtimeJar(parameters.getBackend()))
+        .addLibraryFiles(parameters.getDefaultRuntimeLibrary())
         .addProgramClasses(
             I.class, Assert.class, TestCase.class, ApplicationTestCaseInProgram.class, Main.class)
         .addKeepClassAndMembersRulesWithAllowObfuscation(

@@ -49,7 +49,7 @@ public class MultipleIndirectCallSitesTest extends TestBase {
         // A.m() has a single call site, so it should not allow inlining of A.m().
         .addKeepRules(getKeepRules())
         .enableNeverClassInliningAnnotations()
-        .setMinApi(parameters.getRuntime())
+        .setMinApi(parameters)
         .compile()
         .inspect(this::verifyInlining)
         .run(parameters.getRuntime(), TestClass.class)

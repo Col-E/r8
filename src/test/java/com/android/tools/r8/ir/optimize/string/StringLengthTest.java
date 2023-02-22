@@ -45,7 +45,7 @@ public class StringLengthTest extends TestBase {
 
   @Test
   public void testJVMOutput() throws Exception {
-    assumeTrue("Only run JVM reference on CF runtimes", parameters.isCfRuntime());
+    parameters.assumeJvmTestParameters();
     testForJvm()
         .addTestClasspath()
         .run(parameters.getRuntime(), MAIN)

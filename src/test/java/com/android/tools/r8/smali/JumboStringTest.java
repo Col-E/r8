@@ -31,7 +31,7 @@ public class JumboStringTest extends SmaliTestBase {
 
   @Parameters(name = "{0}")
   public static TestParametersCollection data() {
-    return getTestParameters().withDexRuntimes().withOnlyDexRuntimeApiLevel().build();
+    return getTestParameters().withDexRuntimes().withMaximumApiLevel().build();
   }
 
   @BeforeClass

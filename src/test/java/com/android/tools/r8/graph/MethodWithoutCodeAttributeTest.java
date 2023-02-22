@@ -52,7 +52,7 @@ public class MethodWithoutCodeAttributeTest extends TestBase {
 
   @Test
   public void testJVMOutput() throws Exception {
-    assumeTrue("Only run JVM reference on CF runtimes", parameters.isCfRuntime());
+    parameters.assumeJvmTestParameters();
     testForJvm()
         .addProgramClassFileData(TestDump.dump())
         .run(parameters.getRuntime(), MAIN)

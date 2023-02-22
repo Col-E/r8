@@ -11,21 +11,19 @@ import com.android.tools.r8.TestParametersCollection;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameter;
 import org.junit.runners.Parameterized.Parameters;
 
 /** Regression test for b/133501933. */
 @RunWith(Parameterized.class)
 public class IncorrectRewritingOfInvokeSuperTest extends TestBase {
 
-  private final TestParameters parameters;
+  @Parameter(0)
+  public TestParameters parameters;
 
   @Parameters(name = "{0}")
   public static TestParametersCollection data() {
-    return getTestParameters().withAllRuntimes().build();
-  }
-
-  public IncorrectRewritingOfInvokeSuperTest(TestParameters parameters) {
-    this.parameters = parameters;
+    return getTestParameters().withAllRuntimesAndApiLevels().build();
   }
 
   @Test
@@ -36,7 +34,7 @@ public class IncorrectRewritingOfInvokeSuperTest extends TestBase {
         .addOptionsModification(options -> options.enableUnusedInterfaceRemoval = false)
         .enableInliningAnnotations()
         .addDontObfuscate()
-        .setMinApi(parameters.getRuntime())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), TestClass.class)
         .assertSuccess();
   }

@@ -16,6 +16,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.function.BiPredicate;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -196,26 +197,23 @@ public class TestParametersBuilder {
 
   private boolean enableApiLevels = false;
   private boolean enableApiLevelsForCf = false;
-  private boolean onlyDexRuntimeApiLevel = false;
 
-  private Predicate<AndroidApiLevel> apiLevelFilter = param -> false;
+  private BiPredicate<AndroidApiLevel, TestRuntime> apiLevelFilter = (api, runtime) -> false;
   private List<AndroidApiLevel> explicitApiLevels = new ArrayList<>();
   private List<TestRuntime> customRuntimes = new ArrayList<>();
 
-  private TestParametersBuilder withApiFilter(Predicate<AndroidApiLevel> filter) {
+  private TestParametersBuilder withApiFilter(BiPredicate<AndroidApiLevel, TestRuntime> filter) {
     enableApiLevels = true;
     apiLevelFilter = apiLevelFilter.or(filter);
     return this;
   }
 
   public TestParametersBuilder withAllApiLevels() {
-    return withApiFilter(api -> true);
+    return withApiFilter((api, runtime) -> true);
   }
 
-  public TestParametersBuilder withOnlyDexRuntimeApiLevel() {
-    enableApiLevels = true;
-    onlyDexRuntimeApiLevel = true;
-    return this;
+  public TestParametersBuilder withMaximumApiLevel() {
+    return withApiFilter((api, runtime) -> api.equals(runtime.maxSupportedApiLevel()));
   }
 
   public TestParametersBuilder enableApiLevelsForCf() {
@@ -229,23 +227,23 @@ public class TestParametersBuilder {
 
   public TestParametersBuilder withApiLevel(AndroidApiLevel api) {
     explicitApiLevels.add(api);
-    return withApiFilter(api::equals);
+    return withApiFilter((otherApi, runtime) -> api.equals(otherApi));
   }
 
   public TestParametersBuilder withApiLevelsStartingAtIncluding(AndroidApiLevel startInclusive) {
-    return withApiFilter(api -> startInclusive.getLevel() <= api.getLevel());
+    return withApiFilter((api, runtime) -> startInclusive.getLevel() <= api.getLevel());
   }
 
   public TestParametersBuilder withApiLevelsStartingAtExcluding(AndroidApiLevel startExclusive) {
-    return withApiFilter(api -> startExclusive.getLevel() < api.getLevel());
+    return withApiFilter((api, runtime) -> startExclusive.getLevel() < api.getLevel());
   }
 
   public TestParametersBuilder withApiLevelsEndingAtIncluding(AndroidApiLevel endInclusive) {
-    return withApiFilter(api -> api.getLevel() <= endInclusive.getLevel());
+    return withApiFilter((api, runtime) -> api.getLevel() <= endInclusive.getLevel());
   }
 
   public TestParametersBuilder withApiLevelsEndingAtExcluding(AndroidApiLevel endExclusive) {
-    return withApiFilter(api -> api.getLevel() < endExclusive.getLevel());
+    return withApiFilter((api, runtime) -> api.getLevel() < endExclusive.getLevel());
   }
 
   public TestParametersBuilder withApiLevelsWithoutNativeMultiDex() {
@@ -283,12 +281,9 @@ public class TestParametersBuilder {
       return Stream.of(new TestParameters(runtime));
     }
     AndroidApiLevel vmLevel = runtime.maxSupportedApiLevel();
-    if (onlyDexRuntimeApiLevel) {
-      return Stream.of(new TestParameters(runtime, vmLevel));
-    }
     List<AndroidApiLevel> sortedApiLevels =
         AndroidApiLevel.getAndroidApiLevelsSorted().stream()
-            .filter(apiLevelFilter)
+            .filter(apiLevel -> apiLevelFilter.test(apiLevel, runtime))
             .collect(Collectors.toList());
     if (sortedApiLevels.isEmpty()) {
       return Stream.of();
@@ -300,9 +295,6 @@ public class TestParametersBuilder {
     if (sortedApiLevels.size() > 1) {
       for (int i = sortedApiLevels.size() - 1; i >= 0; i--) {
         AndroidApiLevel highestApplicable = sortedApiLevels.get(i);
-        if (onlyDexRuntimeApiLevel) {
-          return Stream.of(new TestParameters(runtime, highestApplicable));
-        }
         if (highestApplicable.getLevel() <= vmLevel.getLevel()
             && lowestApplicable != highestApplicable) {
           Set<AndroidApiLevel> set = new TreeSet<>();

@@ -14,6 +14,8 @@ import java.util.Collection;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameter;
+import org.junit.runners.Parameterized.Parameters;
 
 class DataClass {
   public final int f1;
@@ -65,9 +67,15 @@ class DataClassUser {
 @RunWith(Parameterized.class)
 public class MissingEnclosingMethodTest extends TestBase {
   private static final String EXPECTED_OUTPUT = StringUtils.lines("f1: 8, f2: 8");
-  private final TestParameters parameters;
-  private final TestConfig config;
-  private final boolean enableMinification;
+
+  @Parameter(0)
+  public TestParameters parameters;
+
+  @Parameter(1)
+  public TestConfig config;
+
+  @Parameter(2)
+  public boolean enableMinification;
 
   enum TestConfig {
     CLASS,
@@ -93,32 +101,23 @@ public class MissingEnclosingMethodTest extends TestBase {
     }
   }
 
-  @Parameterized.Parameters(name = "{0} {1}  minification: {2}")
+  @Parameters(name = "{0} {1}  minification: {2}")
   public static Collection<Object[]> data() {
     return buildParameters(
-        getTestParameters().withAllRuntimes().build(),
+        getTestParameters().withAllRuntimesAndApiLevels().build(),
         TestConfig.values(),
         BooleanUtils.values());
   }
 
-  public MissingEnclosingMethodTest(
-      TestParameters parameters, TestConfig config, boolean enableMinification) {
-    this.parameters = parameters;
-    this.config = config;
-    this.enableMinification = enableMinification;
-  }
-
   @Test
   public void b131210377() throws Exception {
-    R8CompatTestBuilder builder =
-        testForR8Compat(parameters.getBackend())
-            .addProgramClasses(DataClass.class, DataClassUser.class);
-    config.addInnerClasses(builder);
-    builder
+    testForR8Compat(parameters.getBackend())
+        .addProgramClasses(DataClass.class, DataClassUser.class)
+        .apply(config::addInnerClasses)
         .addKeepMainRule(DataClassUser.class)
         .addKeepAttributes("Signature", "InnerClasses", "EnclosingMethod")
         .minification(enableMinification)
-        .setMinApi(parameters.getRuntime())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), DataClassUser.class)
         .assertSuccessWithOutput(EXPECTED_OUTPUT);
   }

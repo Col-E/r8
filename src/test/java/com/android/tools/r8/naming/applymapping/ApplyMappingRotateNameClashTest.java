@@ -14,6 +14,8 @@ import java.util.concurrent.ExecutionException;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameter;
+import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
 public class ApplyMappingRotateNameClashTest extends TestBase {
@@ -28,22 +30,19 @@ public class ApplyMappingRotateNameClashTest extends TestBase {
     }
   }
 
-  private final TestParameters parameters;
+  @Parameter(0)
+  public TestParameters parameters;
 
-  @Parameterized.Parameters(name = "{0}")
+  @Parameters(name = "{0}")
   public static TestParametersCollection data() {
-    return getTestParameters().withAllRuntimes().build();
-  }
-
-  public ApplyMappingRotateNameClashTest(TestParameters parameters) {
-    this.parameters = parameters;
+    return getTestParameters().withAllRuntimesAndApiLevels().build();
   }
 
   @Test
   public void test_b131532229() throws ExecutionException, CompilationFailedException, IOException {
     testForR8(parameters.getBackend())
         .addLibraryClasses(A.class, B.class)
-        .addLibraryFiles(TestBase.runtimeJar(parameters.getBackend()))
+        .addLibraryFiles(parameters.getDefaultRuntimeLibrary())
         .addProgramClasses(C.class)
         .addKeepMainRule(C.class)
         .noTreeShaking()
@@ -51,7 +50,7 @@ public class ApplyMappingRotateNameClashTest extends TestBase {
             StringUtils.lines(
                 A.class.getTypeName() + " -> " + B.class.getTypeName() + ":",
                 B.class.getTypeName() + " -> " + A.class.getTypeName() + ":"))
-        .setMinApi(parameters.getRuntime())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), C.class)
         .assertSuccessWithOutput("HELLO WORLD!");
   }

@@ -17,6 +17,7 @@ import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
 class L1 {
   private final String x;
@@ -160,9 +161,9 @@ public final class ConstructorRelaxationTest extends AccessRelaxationTestBase {
       L1.class, L2_1.class, L2_2.class, L3_1.class, L3_2.class
   };
 
-  @Parameterized.Parameters(name = "Backend: {0}")
+  @Parameters(name = "{0}")
   public static TestParametersCollection data() {
-    return getTestParameters().withAllRuntimes().build();
+    return getTestParameters().withAllRuntimesAndApiLevels().build();
   }
 
   public ConstructorRelaxationTest(TestParameters parameters) {
@@ -178,7 +179,7 @@ public final class ConstructorRelaxationTest extends AccessRelaxationTestBase {
             "22_L2_1_y",
             "31_L2_1_y_41",
             "22_32_main_z");
-    Class mainClass = CtorTestMain.class;
+    Class<?> mainClass = CtorTestMain.class;
 
     R8TestRunResult result =
         testForR8(parameters.getBackend())
@@ -192,7 +193,7 @@ public final class ConstructorRelaxationTest extends AccessRelaxationTestBase {
             .addDontObfuscate()
             .addKeepMainRule(mainClass)
             .allowAccessModification()
-            .setMinApi(parameters.getRuntime())
+            .setMinApi(parameters)
             .run(parameters.getRuntime(), mainClass);
 
     assertEquals(
@@ -202,7 +203,7 @@ public final class ConstructorRelaxationTest extends AccessRelaxationTestBase {
             .replace("java.lang.IncompatibleClassChangeError", "java.lang.IllegalAccessError"));
 
     CodeInspector codeInspector = result.inspector();
-    for (Class clazz : CLASSES) {
+    for (Class<?> clazz : CLASSES) {
       ClassSubject classSubject = codeInspector.clazz(clazz);
       assertThat(classSubject, isPresent());
       classSubject

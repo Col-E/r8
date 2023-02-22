@@ -29,7 +29,6 @@ public class SyntheticAndBridgeModifiersTest extends TestBase {
         .addKeepRules(keepRules)
         .addDontObfuscate()
         .compile()
-        .disassemble()
         .inspect(
             inspector -> {
               ClassSubject clazz =
@@ -43,7 +42,6 @@ public class SyntheticAndBridgeModifiersTest extends TestBase {
         .addKeepRules(keepRules)
         .addDontObfuscate()
         .compile()
-        .disassemble()
         .inspect(
             inspector -> {
               ClassSubject clazz =

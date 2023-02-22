@@ -20,12 +20,14 @@ import java.util.concurrent.ExecutionException;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameter;
 import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
 public class ProgramInterfaceNotImplementedTest extends TestBase {
 
-  private final TestParameters parameters;
+  @Parameter(0)
+  public TestParameters parameters;
 
   public interface I {
 
@@ -96,11 +98,7 @@ public class ProgramInterfaceNotImplementedTest extends TestBase {
 
   @Parameters(name = "{0}")
   public static TestParametersCollection data() {
-    return getTestParameters().withAllRuntimes().build();
-  }
-
-  public ProgramInterfaceNotImplementedTest(TestParameters parameters) {
-    this.parameters = parameters;
+    return getTestParameters().withAllRuntimesAndApiLevels().build();
   }
 
   @Test
@@ -128,7 +126,7 @@ public class ProgramInterfaceNotImplementedTest extends TestBase {
         .addKeepClassAndMembersRules(I.class)
         .addKeepMainRule(main)
         .addDontObfuscate()
-        .setMinApi(parameters.getRuntime())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), main)
         .assertSuccessWithOutputThatMatches(containsString(clazz.getTypeName()))
         .inspect(
@@ -146,15 +144,15 @@ public class ProgramInterfaceNotImplementedTest extends TestBase {
         testForR8(parameters.getBackend())
             .addProgramClasses(Lib.class)
             .addKeepAllClassesRule()
-            .setMinApi(parameters.getRuntime())
+            .setMinApi(parameters)
             .compile();
     testForR8(parameters.getBackend())
         .addProgramClasses(I.class, D.class, MainD.class)
         .addLibraryClasses(Lib.class)
-        .addLibraryFiles(runtimeJar(parameters.getBackend()))
+        .addLibraryFiles(parameters.getDefaultRuntimeLibrary())
         .addKeepClassAndMembersRules(I.class)
         .addKeepMainRule(MainD.class)
-        .setMinApi(parameters.getRuntime())
+        .setMinApi(parameters)
         .addDontObfuscate()
         .compile()
         .addRunClasspathFiles(library.writeToZip())

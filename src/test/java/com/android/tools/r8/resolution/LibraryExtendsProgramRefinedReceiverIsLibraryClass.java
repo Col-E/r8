@@ -43,7 +43,7 @@ public class LibraryExtendsProgramRefinedReceiverIsLibraryClass extends TestBase
   @Test
   public void regression145645482DebugMode() throws Exception {
     testForR8Compat(parameters.getBackend())
-        .addLibraryFiles(runtimeJar(parameters.getBackend()))
+        .addLibraryFiles(parameters.getDefaultRuntimeLibrary())
         .addLibraryClasses(LibraryClass.class)
         .addProgramClasses(ProgramClass.class, ProgramTestRunnerWithoutPhi.class)
         .enableInliningAnnotations()
@@ -62,7 +62,7 @@ public class LibraryExtendsProgramRefinedReceiverIsLibraryClass extends TestBase
   @Test
   public void regression145645482ReleaseMode() throws Exception {
     testForR8Compat(parameters.getBackend())
-        .addLibraryFiles(runtimeJar(parameters.getBackend()))
+        .addLibraryFiles(parameters.getDefaultRuntimeLibrary())
         .addLibraryClasses(LibraryClass.class)
         .addProgramClasses(ProgramClass.class, ProgramTestRunnerWithPhi.class)
         .enableInliningAnnotations()

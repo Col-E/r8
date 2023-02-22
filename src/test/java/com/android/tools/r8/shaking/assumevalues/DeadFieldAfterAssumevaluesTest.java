@@ -19,6 +19,8 @@ import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameter;
+import org.junit.runners.Parameterized.Parameters;
 
 class TestClass {
   private static final boolean HAS_R8 = Boolean.parseBoolean("false");
@@ -45,16 +47,13 @@ public class DeadFieldAfterAssumevaluesTest extends TestBase {
       "}"
   );
 
-  @Parameterized.Parameters(name = "{0}")
+  @Parameters(name = "{0}")
   public static TestParametersCollection data() {
-    return getTestParameters().withAllRuntimes().build();
+    return getTestParameters().withAllRuntimesAndApiLevels().build();
   }
 
-  private final TestParameters parameters;
-
-  public DeadFieldAfterAssumevaluesTest(TestParameters parameters) {
-    this.parameters = parameters;
-  }
+  @Parameter(0)
+  public TestParameters parameters;
 
   @Test
   public void testR8() throws Exception {
@@ -62,7 +61,7 @@ public class DeadFieldAfterAssumevaluesTest extends TestBase {
         .addProgramClasses(MAIN)
         .addKeepMainRule(MAIN)
         .addKeepRules(RULES)
-        .setMinApi(parameters.getRuntime())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), MAIN)
         .assertSuccessWithOutput(EXPECTED_OUTPUT)
         .inspect(this::inspect);

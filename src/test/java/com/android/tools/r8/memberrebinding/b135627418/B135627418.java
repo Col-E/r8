@@ -26,20 +26,19 @@ import com.google.common.collect.ImmutableMap;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameter;
+import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
 public class B135627418 extends TestBase {
 
-  private final TestParameters parameters;
+  @Parameter(0)
+  public TestParameters parameters;
 
-  @Parameterized.Parameters(name = "{0}")
+  @Parameters(name = "{0}")
   public static TestParametersCollection data() {
     // Only run on dex, as the runtime library used in the test is built as dex.
-    return getTestParameters().withDexRuntimes().build();
-  }
-
-  public B135627418(TestParameters parameters) {
-    this.parameters = parameters;
+    return getTestParameters().withDexRuntimesAndAllApiLevels().build();
   }
 
   private void noInvokeToDrawableWrapper(CodeInspector inspector) {
@@ -75,7 +74,7 @@ public class B135627418 extends TestBase {
             .addProgramClasses(
                 Drawable.class,
                 com.android.tools.r8.memberrebinding.b135627418.runtime.InsetDrawable.class)
-            .setMinApi(parameters.getRuntime())
+            .setMinApi(parameters)
             .addOptionsModification(
                 options -> {
                   DexType type =
@@ -97,13 +96,12 @@ public class B135627418 extends TestBase {
             .compile();
 
     testForR8(parameters.getBackend())
-        .addLibraryFiles(runtimeJar(parameters.getBackend()))
         .addLibraryClasses(Drawable.class, DrawableWrapper.class, InsetDrawable.class)
+        .addLibraryFiles(parameters.getDefaultRuntimeLibrary())
         .addProgramClasses(TestClass.class)
         .addKeepMainRule(TestClass.class)
-        .setMinApi(parameters.getRuntime())
+        .setMinApi(parameters)
         .compile()
-        .disassemble()
         .inspect(this::noInvokeToDrawableWrapper)
         .addRunClasspathFiles(runtimeLibrary.writeToZip())
         .run(parameters.getRuntime(), TestClass.class)

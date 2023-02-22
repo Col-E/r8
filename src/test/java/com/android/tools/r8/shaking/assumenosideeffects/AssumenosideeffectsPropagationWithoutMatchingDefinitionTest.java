@@ -21,6 +21,8 @@ import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameter;
+import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
 public class AssumenosideeffectsPropagationWithoutMatchingDefinitionTest extends TestBase {
@@ -29,16 +31,13 @@ public class AssumenosideeffectsPropagationWithoutMatchingDefinitionTest extends
       "The end"
   );
 
-  @Parameterized.Parameters(name = "{0}")
+  @Parameters(name = "{0}")
   public static TestParametersCollection data() {
-    return getTestParameters().withAllRuntimes().build();
+    return getTestParameters().withAllRuntimesAndApiLevels().build();
   }
 
-  private final TestParameters parameters;
-
-  public AssumenosideeffectsPropagationWithoutMatchingDefinitionTest(TestParameters parameters) {
-    this.parameters = parameters;
-  }
+  @Parameter(0)
+  public TestParameters parameters;
 
   @Test
   public void testR8() throws Exception {
@@ -53,7 +52,7 @@ public class AssumenosideeffectsPropagationWithoutMatchingDefinitionTest extends
             "  *** debug(...);",
             "}")
         .addDontObfuscate()
-        .setMinApi(parameters.getRuntime())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), MAIN)
         .assertSuccessWithOutput(OUTPUT_WITHOUT_LOGGING)
         .inspect(this::inspect);

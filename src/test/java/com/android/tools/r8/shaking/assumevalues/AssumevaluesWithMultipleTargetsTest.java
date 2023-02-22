@@ -20,6 +20,8 @@ import java.util.Collection;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameter;
+import org.junit.runners.Parameterized.Parameters;
 
 @NeverClassInline
 class Seed {
@@ -138,18 +140,17 @@ public class AssumevaluesWithMultipleTargetsTest extends TestBase {
     }
   }
 
-  @Parameterized.Parameters(name = "{0} {1}")
+  @Parameters(name = "{0} {1}")
   public static Collection<Object[]> data() {
-    return buildParameters(getTestParameters().withAllRuntimes().build(), TestConfig.values());
+    return buildParameters(
+        getTestParameters().withAllRuntimesAndApiLevels().build(), TestConfig.values());
   }
 
-  private final TestParameters parameters;
-  private final TestConfig config;
+  @Parameter(0)
+  public TestParameters parameters;
 
-  public AssumevaluesWithMultipleTargetsTest(TestParameters parameters, TestConfig config) {
-    this.parameters = parameters;
-    this.config = config;
-  }
+  @Parameter(1)
+  public TestConfig config;
 
   @Test
   public void testR8() throws Exception {
@@ -160,7 +161,7 @@ public class AssumevaluesWithMultipleTargetsTest extends TestBase {
         .addKeepMainRule(MAIN)
         .addKeepRules(config.getKeepRule())
         .addDontObfuscate()
-        .setMinApi(parameters.getRuntime())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), MAIN)
         .assertSuccessWithOutput(TestConfig.OUTPUT_WITH_FULL_REPLACEMENT)
         .inspect(config::inspect);

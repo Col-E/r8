@@ -20,20 +20,18 @@ import java.util.concurrent.ExecutionException;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameter;
 import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
 public class LambdaReturnTypeBridgeTest extends TestBase {
 
-  private final TestParameters parameters;
+  @Parameter(0)
+  public TestParameters parameters;
 
   @Parameters(name = "{0}")
   public static TestParametersCollection data() {
-    return getTestParameters().withDexRuntimes().build();
-  }
-
-  public LambdaReturnTypeBridgeTest(TestParameters parameters) {
-    this.parameters = parameters;
+    return getTestParameters().withDexRuntimesAndAllApiLevels().build();
   }
 
   @Test
@@ -55,7 +53,7 @@ public class LambdaReturnTypeBridgeTest extends TestBase {
       throws IOException, CompilationFailedException, ExecutionException {
     builder
         .addInnerClasses(LambdaWithMultipleImplementingInterfaces.class)
-        .setMinApi(parameters.getRuntime())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), LambdaWithMultipleImplementingInterfaces.class)
         .assertSuccessWithOutputLines("Hello World!", "Hello World!")
         .inspect(

@@ -15,19 +15,18 @@ import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameter;
+import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
 public class B137041585 extends TestBase {
 
-  private final TestParameters parameters;
+  @Parameter(0)
+  public TestParameters parameters;
 
-  @Parameterized.Parameters(name = "{0}")
+  @Parameters(name = "{0}")
   public static TestParametersCollection data() {
-    return getTestParameters().withAllRuntimes().build();
-  }
-
-  public B137041585(TestParameters parameters) {
-    this.parameters = parameters;
+    return getTestParameters().withAllRuntimesAndApiLevels().build();
   }
 
   @Test
@@ -35,7 +34,7 @@ public class B137041585 extends TestBase {
     testForR8(parameters.getBackend())
         .addInnerClasses(B137041585.class)
         .addKeepMainRule(TestClass.class)
-        .setMinApi(parameters.getRuntime())
+        .setMinApi(parameters)
         .compile()
         .inspect(
             inspector -> {

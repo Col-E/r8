@@ -19,21 +19,22 @@ import java.util.List;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameter;
+import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
 public class ArrayPutDebugTest extends TestBase {
 
-  private final boolean debug;
-  private final TestParameters parameters;
+  @Parameter(0)
+  public boolean debug;
 
-  @Parameterized.Parameters(name = "{1}, debug: {0}")
+  @Parameter(1)
+  public TestParameters parameters;
+
+  @Parameters(name = "{1}, debug: {0}")
   public static List<Object[]> data() {
-    return buildParameters(BooleanUtils.values(), getTestParameters().withAllRuntimes().build());
-  }
-
-  public ArrayPutDebugTest(boolean debug, TestParameters parameters) {
-    this.debug = debug;
-    this.parameters = parameters;
+    return buildParameters(
+        BooleanUtils.values(), getTestParameters().withAllRuntimesAndApiLevels().build());
   }
 
   @Test
@@ -42,7 +43,7 @@ public class ArrayPutDebugTest extends TestBase {
         .addProgramClasses(TestClass.class)
         .addKeepMainRule(TestClass.class)
         .setMode(debug ? CompilationMode.DEBUG : CompilationMode.RELEASE)
-        .setMinApi(parameters.getRuntime())
+        .setMinApi(parameters)
         .compile()
         .inspect(
             inspector -> {
@@ -54,7 +55,9 @@ public class ArrayPutDebugTest extends TestBase {
               assertEquals(
                   debug,
                   methodSubject.streamInstructions().anyMatch(InstructionSubject::isArrayPut));
-            });
+            })
+        .run(parameters.getRuntime(), TestClass.class)
+        .assertSuccessWithEmptyOutput();
   }
 
   static class TestClass {

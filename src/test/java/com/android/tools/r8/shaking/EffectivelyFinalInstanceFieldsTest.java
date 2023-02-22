@@ -7,7 +7,6 @@ import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
@@ -22,26 +21,26 @@ import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameter;
+import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
 public class EffectivelyFinalInstanceFieldsTest extends TestBase {
+
   private static final Class<?> MAIN = TestClass.class;
 
-  @Parameterized.Parameters(name = "{0}")
+  @Parameters(name = "{0}")
   public static TestParametersCollection data() {
-    return getTestParameters().withAllRuntimes().build();
+    return getTestParameters().withAllRuntimesAndApiLevels().build();
   }
 
-  private final TestParameters parameters;
-
-  public EffectivelyFinalInstanceFieldsTest(TestParameters parameters) {
-    this.parameters = parameters;
-  }
+  @Parameter(0)
+  public TestParameters parameters;
 
   @Test
-  public void testJVMOutput() throws Exception {
-    assumeTrue("Only run JVM reference on CF runtimes", parameters.isCfRuntime());
-    testForJvm()
+  public void testJvm() throws Exception {
+    parameters.assumeJvmTestParameters();
+    testForJvm(parameters)
         .addTestClasspath()
         .run(parameters.getRuntime(), MAIN)
         .assertSuccessWithOutputLines("The end");
@@ -56,7 +55,7 @@ public class EffectivelyFinalInstanceFieldsTest extends TestBase {
         .enableNeverClassInliningAnnotations()
         .enableNoVerticalClassMergingAnnotations()
         .enableNoHorizontalClassMergingAnnotations()
-        .setMinApi(parameters.getRuntime())
+        .setMinApi(parameters)
         .compile()
         .inspect(
             codeInspector -> {

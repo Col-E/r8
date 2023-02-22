@@ -14,6 +14,7 @@ import java.nio.file.Path;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameter;
 import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
@@ -43,15 +44,12 @@ public class ObfuscationDictionaryDuplicateTest extends TestBase {
 
   public static class SecondClass {}
 
-  private final TestParameters parameters;
+  @Parameter(0)
+  public TestParameters parameters;
 
   @Parameters(name = "{0}")
   public static TestParametersCollection data() {
-    return getTestParameters().withAllRuntimes().build();
-  }
-
-  public ObfuscationDictionaryDuplicateTest(TestParameters parameters) {
-    this.parameters = parameters;
+    return getTestParameters().withAllRuntimesAndApiLevels().build();
   }
 
   @Test(expected = CompilationFailedException.class)
@@ -63,7 +61,7 @@ public class ObfuscationDictionaryDuplicateTest extends TestBase {
         .addKeepRules("-obfuscationdictionary " + dictionary.toString())
         .addKeepAllClassesRuleWithAllowObfuscation()
         .addKeepMainRule(Main.class)
-        .setMinApi(parameters.getRuntime())
+        .setMinApi(parameters)
         .compile();
   }
 
@@ -76,7 +74,7 @@ public class ObfuscationDictionaryDuplicateTest extends TestBase {
         .addKeepRules("-classobfuscationdictionary " + dictionary.toString())
         .addKeepAllClassesRuleWithAllowObfuscation()
         .addKeepMainRule(Main.class)
-        .setMinApi(parameters.getRuntime())
+        .setMinApi(parameters)
         .compile();
   }
 }

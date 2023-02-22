@@ -10,7 +10,6 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.KotlinTestBase;
 import com.android.tools.r8.KotlinTestParameters;
@@ -81,7 +80,7 @@ public class ReflectiveAnnotationUseTest extends KotlinTestBase {
 
   @Test
   public void b120951621_JVMOutput() throws Exception {
-    assumeTrue("Only run JVM reference on CF runtimes", parameters.isCfRuntime());
+    parameters.assumeJvmTestParameters();
     AndroidApp app =
         AndroidApp.builder()
             .addProgramFile(compiledJars.getForConfiguration(kotlinc, targetVersion))

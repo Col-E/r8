@@ -126,19 +126,24 @@ public class ApplyMappingMultipleInterfacesTest extends TestBase {
         testForR8(parameters.getBackend())
             .addProgramClasses(I1Minified.class, I2Minified.class)
             .addKeepAllClassesRule()
-            .setMinApi(parameters.getRuntime())
+            .setMinApi(parameters)
             .compile();
     testForR8(parameters.getBackend())
         .addClasspathClasses(I1.class, I2.class)
         .addProgramClasses(MainWithLambda.class)
         .addKeepMainRule(MainWithLambda.class)
         .addApplyMapping(
-            I1.class.getTypeName() + " -> " + I1Minified.class.getTypeName() + ":\n" +
-            "  java.lang.Object foo(java.lang.String) -> a\n" +
-            I2.class.getTypeName() + " -> " + I2Minified.class.getTypeName() + ":\n" +
-            "  java.lang.String foo(java.lang.String) -> a"
-        )
-        .setMinApi(parameters.getRuntime())
+            I1.class.getTypeName()
+                + " -> "
+                + I1Minified.class.getTypeName()
+                + ":\n"
+                + "  java.lang.Object foo(java.lang.String) -> a\n"
+                + I2.class.getTypeName()
+                + " -> "
+                + I2Minified.class.getTypeName()
+                + ":\n"
+                + "  java.lang.String foo(java.lang.String) -> a")
+        .setMinApi(parameters)
         .compile()
         .addRunClasspathFiles(libraryResult.writeToZip())
         .run(parameters.getRuntime(), MainWithLambda.class)

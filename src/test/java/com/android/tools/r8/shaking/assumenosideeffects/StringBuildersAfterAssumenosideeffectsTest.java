@@ -6,7 +6,6 @@ package com.android.tools.r8.shaking.assumenosideeffects;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
@@ -20,27 +19,24 @@ import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameter;
+import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
 public class StringBuildersAfterAssumenosideeffectsTest extends TestBase {
   private static final Class<?> MAIN = TestClassAfterAssumenosideeffects.class;
   private static final String EXPECTED = StringUtils.lines("The end");
 
-  @Parameterized.Parameters(name = "{0}")
+  @Parameters(name = "{0}")
   public static TestParametersCollection data() {
     return getTestParameters().withAllRuntimesAndApiLevels().build();
   }
 
-  private final TestParameters parameters;
-
-  public StringBuildersAfterAssumenosideeffectsTest(TestParameters parameters) {
-    this.parameters = parameters;
-  }
+  @Parameter(0)
+  public TestParameters parameters;
 
   @Test
   public void testR8() throws Exception {
-    assumeTrue("CF does not rewrite move results.", parameters.isDexRuntime());
-
     testForR8(parameters.getBackend())
         .addInnerClasses(StringBuildersAfterAssumenosideeffectsTest.class)
         .enableNeverClassInliningAnnotations()

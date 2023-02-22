@@ -10,34 +10,33 @@ import com.android.tools.r8.utils.StringUtils;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameter;
+import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
 public class B132897042 extends TestBase {
 
-  @Parameterized.Parameters(name = "{0}")
+  @Parameters(name = "{0}")
   public static TestParametersCollection data() {
-    return getTestParameters().withAllRuntimes().build();
+    return getTestParameters().withAllRuntimesAndApiLevels().build();
   }
 
-  private final TestParameters parameters;
-
-  public B132897042(TestParameters parameters) {
-    this.parameters = parameters;
-  }
+  @Parameter(0)
+  public TestParameters parameters;
 
   @Test
   public void testR8() throws Exception {
     testForR8(parameters.getBackend())
         .addLibraryClasses(LibClass.class)
-        .addLibraryFiles(runtimeJar(parameters))
+        .addLibraryFiles(parameters.getDefaultRuntimeLibrary())
         .addProgramClasses(TestClass.class)
-        .addKeepRules(StringUtils.lines(
-            "-assumevalues class" + LibClass.class.getName() + " {",
-            "  static int SDK_INT return 1..28;",
-            "}"
-        ))
+        .addKeepRules(
+            StringUtils.lines(
+                "-assumevalues class" + LibClass.class.getName() + " {",
+                "  static int SDK_INT return 1..28;",
+                "}"))
         .noTreeShaking()
-        .setMinApi(parameters.getRuntime())
+        .setMinApi(parameters)
         .compile()
         .assertNoMessages();
   }

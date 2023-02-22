@@ -4,15 +4,12 @@
 
 package com.android.tools.r8.ir.optimize.redundantconstnumber;
 
-import static org.hamcrest.core.StringContains.containsString;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.NeverInline;
-import com.android.tools.r8.R8TestRunResult;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.google.common.collect.ImmutableList;
@@ -20,14 +17,20 @@ import java.util.List;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameter;
 import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
 public class B124152497 extends TestBase {
 
-  private final Class<?> clazz;
-  private final boolean forceRedundantConstNumberRemovalOnDalvik;
-  private final TestParameters parameters;
+  @Parameter(0)
+  public Class<?> clazz;
+
+  @Parameter(1)
+  public boolean forceRedundantConstNumberRemovalOnDalvik;
+
+  @Parameter(2)
+  public TestParameters parameters;
 
   @Parameters(name = "{2}, class: {0}, force redundant const number removal: {1}")
   public static List<Object[]> data() {
@@ -39,45 +42,35 @@ public class B124152497 extends TestBase {
             FloatTestClass.class,
             ShortTestClass.class),
         BooleanUtils.values(),
-        getTestParameters().withAllRuntimes().build());
-  }
-
-  public B124152497(
-      Class<?> clazz, boolean forceRedundantConstNumberRemovalOnDalvik, TestParameters parameters) {
-    this.clazz = clazz;
-    this.forceRedundantConstNumberRemovalOnDalvik = forceRedundantConstNumberRemovalOnDalvik;
-    this.parameters = parameters;
+        getTestParameters().withAllRuntimesAndApiLevels().build());
   }
 
   @Test
   public void test() throws Exception {
     assumeTrue(!forceRedundantConstNumberRemovalOnDalvik || isDalvik());
-    R8TestRunResult result =
-        testForR8(parameters.getBackend())
-            .addProgramClasses(clazz)
-            .addKeepMainRule(clazz)
-            .addOptionsModification(
-                options -> {
-                  options.enableRedundantConstNumberOptimization = true;
-                  if (forceRedundantConstNumberRemovalOnDalvik) {
-                    assertTrue(isDalvik());
-                    options.testing.forceRedundantConstNumberRemoval = true;
-                  }
-                })
-            .enableInliningAnnotations()
-            .setMinApi(parameters.getRuntime())
-            .compile()
-            .run(parameters.getRuntime(), clazz);
-    if (isExpectedToSucceed()) {
-      result.assertSuccessWithOutputLines(getExpectedOutput());
-    } else {
-      result.assertFailureWithErrorThatMatches(containsString("java.lang.VerifyError"));
-    }
+    testForR8(parameters.getBackend())
+        .addProgramClasses(clazz)
+        .addKeepMainRule(clazz)
+        .addOptionsModification(
+            options -> {
+              options.enableRedundantConstNumberOptimization = true;
+              if (forceRedundantConstNumberRemovalOnDalvik) {
+                assertTrue(isDalvik());
+                options.testing.forceRedundantConstNumberRemoval = true;
+              }
+            })
+        .enableInliningAnnotations()
+        .setMinApi(parameters)
+        .compile()
+        .run(parameters.getRuntime(), clazz)
+        .applyIf(
+            isExpectedToSucceed(),
+            runResult -> runResult.assertSuccessWithOutputLines(getExpectedOutput()),
+            runResult -> runResult.assertFailureWithErrorThatThrows(VerifyError.class));
   }
 
   private boolean isDalvik() {
-    return parameters.getRuntime().isDex()
-        && parameters.getRuntime().asDex().getVm().getVersion().isOlderThanOrEqual(Version.V4_4_4);
+    return parameters.isDexRuntime() && parameters.getDexRuntimeVersion().isDalvik();
   }
 
   private boolean isExpectedToSucceed() {

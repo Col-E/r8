@@ -43,7 +43,7 @@ public class JunitAvailabilityInHostArtTest extends TestBase {
     testForR8(parameters.getBackend())
         .addInnerClasses(JunitAvailabilityInHostArtTest.class)
         .addKeepMainRule(TestClass.class)
-        .setMinApi(parameters.getRuntime())
+        .setMinApi(parameters)
         .compile()
         .run(parameters.getRuntime(), TestClass.class)
         .apply(this::checkResult);
@@ -54,7 +54,7 @@ public class JunitAvailabilityInHostArtTest extends TestBase {
     assumeTrue("Only run D8 for Dex backend", parameters.getBackend() == Backend.DEX);
     testForD8()
         .addInnerClasses(JunitAvailabilityInHostArtTest.class)
-        .setMinApi(parameters.getRuntime())
+        .setMinApi(parameters)
         .compile()
         .run(parameters.getRuntime(), TestClass.class)
         .apply(this::checkResult);

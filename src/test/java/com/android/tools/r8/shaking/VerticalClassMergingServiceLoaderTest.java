@@ -4,6 +4,9 @@
 
 package com.android.tools.r8.shaking;
 
+import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
+import static org.hamcrest.MatcherAssert.assertThat;
+
 import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.DataEntryResource;
 import com.android.tools.r8.TestBase;
@@ -19,6 +22,7 @@ import java.util.concurrent.ExecutionException;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameter;
 import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
@@ -43,15 +47,12 @@ public class VerticalClassMergingServiceLoaderTest extends TestBase {
     }
   }
 
-  private final TestParameters parameters;
+  @Parameter(0)
+  public TestParameters parameters;
 
   @Parameters(name = "{0}")
   public static TestParametersCollection data() {
-    return getTestParameters().withAllRuntimes().build();
-  }
-
-  public VerticalClassMergingServiceLoaderTest(TestParameters parameters) {
-    this.parameters = parameters;
+    return getTestParameters().withAllRuntimesAndApiLevels().build();
   }
 
   @Test
@@ -69,12 +70,9 @@ public class VerticalClassMergingServiceLoaderTest extends TestBase {
                 StringUtils.lines(serviceImplementations).getBytes(),
                 "META-INF/services/" + A.class.getTypeName(),
                 Origin.unknown()))
-        .setMinApi(parameters.getRuntime())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), C.class)
         .assertSuccessWithOutputLines("Hello World!")
-        .inspect(
-            codeInspector -> {
-              assert codeInspector.clazz(A.class).isPresent();
-            });
+        .inspect(codeInspector -> assertThat(codeInspector.clazz(A.class), isPresent()));
   }
 }

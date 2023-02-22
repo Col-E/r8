@@ -19,20 +19,18 @@ import java.lang.annotation.Target;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameter;
 import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
 public class AnnotationsOnParameterTest extends TestBase {
 
-  private final TestParameters parameters;
+  @Parameter(0)
+  public TestParameters parameters;
 
   @Parameters(name = "{0}")
   public static TestParametersCollection data() {
-    return getTestParameters().withAllRuntimes().build();
-  }
-
-  public AnnotationsOnParameterTest(TestParameters parameters) {
-    this.parameters = parameters;
+    return getTestParameters().withAllRuntimesAndApiLevels().build();
   }
 
   @Test
@@ -41,7 +39,7 @@ public class AnnotationsOnParameterTest extends TestBase {
         .addProgramClasses(TestClass.class, Keep.class)
         .addKeepAttributes("*Annotations*")
         .addKeepRules("-keep class * { @" + Keep.class.getTypeName() + " *; }")
-        .setMinApi(parameters.getRuntime())
+        .setMinApi(parameters)
         .compile()
         .inspect(
             inspector -> {

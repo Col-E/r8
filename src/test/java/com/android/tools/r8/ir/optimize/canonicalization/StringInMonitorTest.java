@@ -31,6 +31,8 @@ import java.util.Iterator;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameter;
+import org.junit.runners.Parameterized.Parameters;
 
 class StringInMonitorTestMain {
   static final Object lock = new Object();
@@ -83,28 +85,25 @@ public class StringInMonitorTest extends TestBase {
       "2nd sync"
   );
 
-  @Parameterized.Parameters(name = "{0}")
+  @Parameters(name = "{0}")
   public static TestParametersCollection data() {
-    return getTestParameters().withAllRuntimes().build();
+    return getTestParameters().withAllRuntimesAndApiLevels().build();
   }
 
-  private final TestParameters parameters;
-
-  public StringInMonitorTest(TestParameters parameters) {
-    this.parameters = parameters;
-  }
+  @Parameter(0)
+  public TestParameters parameters;
 
   @Test
   public void testJVMOutput() throws Exception {
-    assumeTrue("Only run JVM reference on CF runtimes", parameters.isCfRuntime());
-    testForJvm()
+    parameters.assumeJvmTestParameters();
+    testForJvm(parameters)
         .addTestClasspath()
         .run(parameters.getRuntime(), MAIN)
         .assertSuccessWithOutput(JAVA_OUTPUT);
   }
 
   private void test(
-      SingleTestRunResult result,
+      SingleTestRunResult<?> result,
       int expectedConstStringCount1,
       int expectedConstStringCount2,
       int expectedConstStringCount3)
@@ -184,7 +183,7 @@ public class StringInMonitorTest extends TestBase {
         testForD8()
             .debug()
             .addProgramClasses(MAIN)
-            .setMinApi(parameters.getRuntime())
+            .setMinApi(parameters)
             .run(parameters.getRuntime(), MAIN)
             .assertSuccessWithOutput(JAVA_OUTPUT);
     test(result, 2, 2, 1);
@@ -193,7 +192,7 @@ public class StringInMonitorTest extends TestBase {
         testForD8()
             .release()
             .addProgramClasses(MAIN)
-            .setMinApi(parameters.getRuntime())
+            .setMinApi(parameters)
             .run(parameters.getRuntime(), MAIN)
             .assertSuccessWithOutput(JAVA_OUTPUT);
     test(result, 2, 2, 1);
@@ -207,7 +206,7 @@ public class StringInMonitorTest extends TestBase {
             .enableInliningAnnotations()
             .enableMemberValuePropagationAnnotations()
             .addKeepMainRule(MAIN)
-            .setMinApi(parameters.getRuntime())
+            .setMinApi(parameters)
             .run(parameters.getRuntime(), MAIN)
             .assertSuccessWithOutput(JAVA_OUTPUT);
     // Due to the different behavior regarding constant canonicalization.

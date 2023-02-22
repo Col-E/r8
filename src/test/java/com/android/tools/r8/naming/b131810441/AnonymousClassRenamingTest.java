@@ -17,6 +17,7 @@ import java.util.Collection;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameter;
 
 class TestMain {
   public static void main(String... args) {
@@ -29,19 +30,16 @@ class TestMain {
 public class AnonymousClassRenamingTest extends TestBase {
   private static final String EXPECTED_OUTPUT = StringUtils.lines("Outer#<init>(8)");
 
-  private final TestParameters parameters;
-  private final boolean enableMinification;
+  @Parameter(0)
+  public TestParameters parameters;
+
+  @Parameter(1)
+  public boolean enableMinification;
 
   @Parameterized.Parameters(name = "{0} minification: {1}")
   public static Collection<Object[]> data() {
     return buildParameters(
-        getTestParameters().withAllRuntimes().build(),
-        BooleanUtils.values());
-  }
-
-  public AnonymousClassRenamingTest(TestParameters parameters, boolean enableMinification) {
-    this.parameters = parameters;
-    this.enableMinification = enableMinification;
+        getTestParameters().withAllRuntimesAndApiLevels().build(), BooleanUtils.values());
   }
 
   @Test
@@ -53,13 +51,14 @@ public class AnonymousClassRenamingTest extends TestBase {
         .addKeepAttributes("InnerClasses", "EnclosingMethod")
         .enableInliningAnnotations()
         .minification(enableMinification)
-        .setMinApi(parameters.getRuntime())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), TestMain.class)
         .assertSuccessWithOutput(EXPECTED_OUTPUT)
-        .inspect(inspector -> {
-          ClassSubject anonymous = inspector.clazz(Outer.class.getName() + "$1");
-          assertThat(anonymous, isPresent());
-          assertEquals(enableMinification, anonymous.isRenamed());
-        });
+        .inspect(
+            inspector -> {
+              ClassSubject anonymous = inspector.clazz(Outer.class.getName() + "$1");
+              assertThat(anonymous, isPresent());
+              assertEquals(enableMinification, anonymous.isRenamed());
+            });
   }
 }

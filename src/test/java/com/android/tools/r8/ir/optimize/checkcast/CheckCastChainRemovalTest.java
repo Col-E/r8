@@ -4,33 +4,27 @@
 
 package com.android.tools.r8.ir.optimize.checkcast;
 
-import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.StringContains.containsString;
 
-import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
-import java.io.IOException;
-import java.util.concurrent.ExecutionException;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameter;
 import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
 public class CheckCastChainRemovalTest extends TestBase {
 
-  private final TestParameters parameters;
+  @Parameter(0)
+  public TestParameters parameters;
 
   @Parameters(name = "{0}")
   public static TestParametersCollection data() {
-    return getTestParameters().withAllRuntimes().build();
-  }
-
-  public CheckCastChainRemovalTest(TestParameters parameters) {
-    this.parameters = parameters;
+    return getTestParameters().withAllRuntimesAndApiLevels().build();
   }
 
   static class A {}
@@ -76,40 +70,32 @@ public class CheckCastChainRemovalTest extends TestBase {
   }
 
   @Test
-  public void testDescendingChainWillProvideCorrectStacktrace()
-      throws IOException, CompilationFailedException, ExecutionException {
-    String stdErr =
-        testForR8(parameters.getBackend())
-            .addProgramClasses(A.class, B.class, MainDescendingRunner.class)
-            .addKeepAllClassesRule()
-            .addKeepMainRule(MainDescendingRunner.class)
-            .enableInliningAnnotations()
-            .setMinApi(parameters.getRuntime())
-            .run(parameters.getRuntime(), MainDescendingRunner.class)
-            .assertFailure()
-            .getStdErr();
-    assertThat(stdErr, containsString("ClassCastException"));
-    assertThat(
-        stdErr,
-        containsString("com.android.tools.r8.ir.optimize.checkcast.CheckCastChainRemovalTest$B"));
+  public void testDescendingChainWillProvideCorrectStacktrace() throws Exception {
+    testForR8(parameters.getBackend())
+        .addProgramClasses(A.class, B.class, MainDescendingRunner.class)
+        .addKeepAllClassesRule()
+        .addKeepMainRule(MainDescendingRunner.class)
+        .enableInliningAnnotations()
+        .setMinApi(parameters)
+        .run(parameters.getRuntime(), MainDescendingRunner.class)
+        .assertFailureWithErrorThatThrows(ClassCastException.class)
+        .assertFailureWithErrorThatMatches(
+            containsString(
+                "com.android.tools.r8.ir.optimize.checkcast.CheckCastChainRemovalTest$B"));
   }
 
   @Test
-  public void testAscendingChainWillProvideCorrectStacktrace()
-      throws IOException, CompilationFailedException, ExecutionException {
-    String stdErr =
-        testForR8(parameters.getBackend())
-            .addProgramClasses(A.class, B.class, MainAscendingRunner.class)
-            .addKeepAllClassesRule()
-            .addKeepMainRule(MainAscendingRunner.class)
-            .enableInliningAnnotations()
-            .setMinApi(parameters.getRuntime())
-            .run(parameters.getRuntime(), MainAscendingRunner.class)
-            .assertFailure()
-            .getStdErr();
-    assertThat(stdErr, containsString("ClassCastException"));
-    assertThat(
-        stdErr,
-        containsString("com.android.tools.r8.ir.optimize.checkcast.CheckCastChainRemovalTest$A"));
+  public void testAscendingChainWillProvideCorrectStacktrace() throws Exception {
+    testForR8(parameters.getBackend())
+        .addProgramClasses(A.class, B.class, MainAscendingRunner.class)
+        .addKeepAllClassesRule()
+        .addKeepMainRule(MainAscendingRunner.class)
+        .enableInliningAnnotations()
+        .setMinApi(parameters)
+        .run(parameters.getRuntime(), MainAscendingRunner.class)
+        .assertFailureWithErrorThatThrows(ClassCastException.class)
+        .assertFailureWithErrorThatMatches(
+            containsString(
+                "com.android.tools.r8.ir.optimize.checkcast.CheckCastChainRemovalTest$A"));
   }
 }

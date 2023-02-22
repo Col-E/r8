@@ -52,7 +52,7 @@ public class ArrayWithDataLengthRewriteTest extends TestBase {
   @Test
   public void r8() throws Exception {
     testForR8(parameters.getBackend())
-        .setMinApi(parameters.getRuntime())
+        .setMinApi(parameters)
         .addProgramClasses(Main.class)
         .addOptionsModification(opt -> opt.testing.irModifier = this::transformArray)
         .addKeepMainRule(Main.class)

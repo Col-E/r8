@@ -12,53 +12,51 @@ import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.utils.StringUtils;
 import java.nio.file.Path;
 import java.util.ServiceLoader;
-import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameter;
 import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
 public class ServiceLoaderMultipleTest extends TestBase {
 
-  private final TestParameters parameters;
+  private static Path jarWithServiceInterface;
+  private static Path jarWithImpl1;
+  private static Path jarWithImpl2;
+  private static Path jarWithImpl1Impl2;
+  private static Path jarWithImpl2Impl1;
+  private static Path jarWithMultipleImpl1;
+  private static Path jarWithMultipleImpl1WithNoClasses;
 
-  private Path jarWithServiceInterface;
-  private Path jarWithImpl1;
-  private Path jarWithImpl2;
-  private Path jarWithImpl1Impl2;
-  private Path jarWithImpl2Impl1;
-  private Path jarWithMultipleImpl1;
-  private Path jarWithMultipleImpl1WithNoClasses;
+  @Parameter(0)
+  public TestParameters parameters;
 
   @Parameters(name = "{0}")
   public static TestParametersCollection data() {
-    return getTestParameters().withAllRuntimes().build();
+    return getTestParameters().withAllRuntimesAndApiLevels().build();
   }
 
-  public ServiceLoaderMultipleTest(TestParameters parameters) {
-    this.parameters = parameters;
-  }
-
-  @Before
-  public void buildServiceJars() throws Exception {
-    jarWithServiceInterface = jarBuilder().addClass(Greeter.class).build();
+  @BeforeClass
+  public static void buildServiceJars() throws Exception {
+    jarWithServiceInterface = createJarBuilder().addClass(Greeter.class).build();
     jarWithImpl1 =
-        jarBuilder()
+        createJarBuilder()
             .addClass(GreeterImpl1.class)
             .addResource(
                 "META-INF/services/" + Greeter.class.getTypeName(),
                 StringUtils.lines(GreeterImpl1.class.getTypeName()))
             .build();
     jarWithImpl2 =
-        jarBuilder()
+        createJarBuilder()
             .addClass(GreeterImpl2.class)
             .addResource(
                 "META-INF/services/" + Greeter.class.getTypeName(),
                 StringUtils.lines(GreeterImpl2.class.getTypeName()))
             .build();
     jarWithImpl1Impl2 =
-        jarBuilder()
+        createJarBuilder()
             .addClass(GreeterImpl1.class)
             .addClass(GreeterImpl2.class)
             .addResource(
@@ -67,7 +65,7 @@ public class ServiceLoaderMultipleTest extends TestBase {
                     GreeterImpl1.class.getTypeName(), GreeterImpl2.class.getTypeName()))
             .build();
     jarWithImpl2Impl1 =
-        jarBuilder()
+        createJarBuilder()
             .addClass(GreeterImpl1.class)
             .addClass(GreeterImpl2.class)
             .addResource(
@@ -76,7 +74,7 @@ public class ServiceLoaderMultipleTest extends TestBase {
                     GreeterImpl2.class.getTypeName(), GreeterImpl1.class.getTypeName()))
             .build();
     jarWithMultipleImpl1 =
-        jarBuilder()
+        createJarBuilder()
             .addClass(GreeterImpl1.class)
             .addResource(
                 "META-INF/services/" + Greeter.class.getTypeName(),
@@ -84,7 +82,7 @@ public class ServiceLoaderMultipleTest extends TestBase {
                     GreeterImpl1.class.getTypeName(), GreeterImpl1.class.getTypeName()))
             .build();
     jarWithMultipleImpl1WithNoClasses =
-        jarBuilder()
+        createJarBuilder()
             .addResource(
                 "META-INF/services/" + Greeter.class.getTypeName(),
                 StringUtils.lines(
@@ -92,10 +90,14 @@ public class ServiceLoaderMultipleTest extends TestBase {
             .build();
   }
 
+  private static JarBuilder createJarBuilder() throws Exception {
+    return JarBuilder.builder(getStaticTemp());
+  }
+
   @Test
   public void testMultipleServicesWithSameImplementationJVM() throws Exception {
     assumeTrue(parameters.isCfRuntime());
-    testForJvm()
+    testForJvm(parameters)
         .addClasspath(jarWithServiceInterface, jarWithMultipleImpl1, jarWithMultipleImpl1)
         .addProgramClasses(TestClass.class)
         .run(parameters.getRuntime(), TestClass.class)
@@ -111,15 +113,15 @@ public class ServiceLoaderMultipleTest extends TestBase {
             jarWithServiceInterface, jarWithMultipleImpl1, jarWithMultipleImpl1WithNoClasses)
         .addProgramClasses(TestClass.class)
         .addKeepMainRule(TestClass.class)
-        .setMinApi(parameters.getRuntime())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), TestClass.class)
         .assertSuccessWithOutputLines("Hello 1");
   }
 
   @Test
   public void testMultipleServicesDifferentJarsJVM() throws Exception {
-    assumeTrue(parameters.isCfRuntime());
-    testForJvm()
+    parameters.assumeJvmTestParameters();
+    testForJvm(parameters)
         .addClasspath(jarWithServiceInterface, jarWithImpl1, jarWithImpl2)
         .addProgramClasses(TestClass.class)
         .run(parameters.getRuntime(), TestClass.class)
@@ -132,15 +134,15 @@ public class ServiceLoaderMultipleTest extends TestBase {
         .addProgramFiles(jarWithServiceInterface, jarWithImpl1, jarWithImpl2)
         .addProgramClasses(TestClass.class)
         .addKeepMainRule(TestClass.class)
-        .setMinApi(parameters.getRuntime())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), TestClass.class)
         .assertSuccessWithOutputLines("Hello 1", "Hello 2");
   }
 
   @Test
   public void testMultipleServicesDifferentJarsOppositeOrderJVM() throws Exception {
-    assumeTrue(parameters.isCfRuntime());
-    testForJvm()
+    parameters.assumeJvmTestParameters();
+    testForJvm(parameters)
         .addClasspath(jarWithServiceInterface, jarWithImpl2, jarWithImpl1)
         .addProgramClasses(TestClass.class)
         .run(parameters.getRuntime(), TestClass.class)
@@ -153,15 +155,15 @@ public class ServiceLoaderMultipleTest extends TestBase {
         .addProgramFiles(jarWithServiceInterface, jarWithImpl2, jarWithImpl1)
         .addProgramClasses(TestClass.class)
         .addKeepMainRule(TestClass.class)
-        .setMinApi(parameters.getRuntime())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), TestClass.class)
         .assertSuccessWithOutputLines("Hello 2", "Hello 1");
   }
 
   @Test
   public void testMultipleServicesSameJarsJVM() throws Exception {
-    assumeTrue(parameters.isCfRuntime());
-    testForJvm()
+    parameters.assumeJvmTestParameters();
+    testForJvm(parameters)
         .addClasspath(jarWithServiceInterface, jarWithImpl1Impl2)
         .addProgramClasses(TestClass.class)
         .run(parameters.getRuntime(), TestClass.class)
@@ -174,15 +176,15 @@ public class ServiceLoaderMultipleTest extends TestBase {
         .addProgramFiles(jarWithServiceInterface, jarWithImpl1Impl2)
         .addProgramClasses(TestClass.class)
         .addKeepMainRule(TestClass.class)
-        .setMinApi(parameters.getRuntime())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), TestClass.class)
         .assertSuccessWithOutputLines("Hello 1", "Hello 2");
   }
 
   @Test
   public void testMultipleServicesSameJarsOppositeOrderJVM() throws Exception {
-    assumeTrue(parameters.isCfRuntime());
-    testForJvm()
+    parameters.assumeJvmTestParameters();
+    testForJvm(parameters)
         .addClasspath(jarWithServiceInterface, jarWithImpl2Impl1)
         .addProgramClasses(TestClass.class)
         .run(parameters.getRuntime(), TestClass.class)
@@ -195,7 +197,7 @@ public class ServiceLoaderMultipleTest extends TestBase {
         .addProgramFiles(jarWithServiceInterface, jarWithImpl2Impl1)
         .addProgramClasses(TestClass.class)
         .addKeepMainRule(TestClass.class)
-        .setMinApi(parameters.getRuntime())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), TestClass.class)
         .assertSuccessWithOutputLines("Hello 2", "Hello 1");
   }

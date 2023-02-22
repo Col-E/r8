@@ -58,7 +58,7 @@ public class AndroidLogRemovalTest extends TestBase {
                             descriptor,
                             isInterface))
                 .transform())
-        .addLibraryFiles(libraryFile, runtimeJar(parameters.getBackend()))
+        .addLibraryFiles(libraryFile, parameters.getDefaultRuntimeLibrary())
         .addKeepMainRule(TestClass.class)
         .addKeepRules("-maximumremovedandroidloglevel " + maxRemovedAndroidLogLevel)
         .setMinApi(parameters)

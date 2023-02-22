@@ -7,7 +7,6 @@ package com.android.tools.r8.ir.optimize.membervaluepropagation;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
@@ -15,20 +14,18 @@ import com.android.tools.r8.TestParametersCollection;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameter;
 import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
 public class B138912149 extends TestBase {
 
-  private final TestParameters parameters;
+  @Parameter(0)
+  public TestParameters parameters;
 
   @Parameters(name = "{0}")
   public static TestParametersCollection data() {
-    return getTestParameters().withAllRuntimes().build();
-  }
-
-  public B138912149(TestParameters parameters) {
-    this.parameters = parameters;
+    return getTestParameters().withAllRuntimesAndApiLevels().build();
   }
 
   @Test
@@ -36,7 +33,7 @@ public class B138912149 extends TestBase {
     testForR8(parameters.getBackend())
         .addInnerClasses(B138912149.class)
         .addKeepMainRule(TestClass.class)
-        .setMinApi(parameters.getRuntime())
+        .setMinApi(parameters)
         .addDontObfuscate()
         .compile()
         .run(parameters.getRuntime(), TestClass.class)
@@ -53,8 +50,8 @@ public class B138912149 extends TestBase {
 
   @Test
   public void testJvm() throws Exception {
-    assumeTrue(parameters.isCfRuntime());
-    testForJvm()
+    parameters.assumeJvmTestParameters();
+    testForJvm(parameters)
         .addTestClasspath()
         .run(parameters.getRuntime(), TestClass.class)
         .assertSuccessWithOutputLines("The end");

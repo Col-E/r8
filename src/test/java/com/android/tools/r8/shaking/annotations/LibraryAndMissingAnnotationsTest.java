@@ -105,7 +105,7 @@ public class LibraryAndMissingAnnotationsTest extends TestBase {
         builder
             .addProgramClasses(Foo.class, mainClass)
             .addKeepAttributes("*Annotation*")
-            .addLibraryFiles(runtimeJar(parameters))
+            .addLibraryFiles(parameters.getDefaultRuntimeLibrary())
             .addKeepClassAndMembersRules(Foo.class)
             .applyIf(
                 builder.isProguardTestBuilder(),

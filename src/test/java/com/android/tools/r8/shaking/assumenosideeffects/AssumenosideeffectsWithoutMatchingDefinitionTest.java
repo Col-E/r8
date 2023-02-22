@@ -26,6 +26,8 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameter;
+import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
 public class AssumenosideeffectsWithoutMatchingDefinitionTest extends TestBase {
@@ -74,19 +76,17 @@ public class AssumenosideeffectsWithoutMatchingDefinitionTest extends TestBase {
     }
   }
 
-  @Parameterized.Parameters(name = "{0} {1}")
+  @Parameters(name = "{0} {1}")
   public static Collection<Object[]> data() {
-    return buildParameters(getTestParameters().withAllRuntimes().build(), TestConfig.values());
+    return buildParameters(
+        getTestParameters().withAllRuntimesAndApiLevels().build(), TestConfig.values());
   }
 
-  private final TestParameters parameters;
-  private final TestConfig config;
+  @Parameter(0)
+  public TestParameters parameters;
 
-  public AssumenosideeffectsWithoutMatchingDefinitionTest(
-      TestParameters parameters, TestConfig config) {
-    this.parameters = parameters;
-    this.config = config;
-  }
+  @Parameter(1)
+  public TestConfig config;
 
   @ClassRule
   public static TemporaryFolder staticTemp = ToolHelper.getTemporaryFolderForTest();
@@ -110,12 +110,12 @@ public class AssumenosideeffectsWithoutMatchingDefinitionTest extends TestBase {
   public void testR8() throws Exception {
     testForR8(parameters.getBackend())
         .addLibraryFiles(libJarPath)
-        .addLibraryFiles(ToolHelper.getDefaultAndroidJar())
+        .addLibraryFiles(parameters.getDefaultRuntimeLibrary())
         .addProgramClasses(MAIN)
         .addKeepMainRule(MAIN)
         .addKeepRules(config.getKeepRule())
         .addDontObfuscate()
-        .setMinApi(parameters.getRuntime())
+        .setMinApi(parameters)
         .compile()
         .addRunClasspathFiles(parameters.isDexRuntime() ? libDexPath : libJarPath)
         .run(parameters.getRuntime(), MAIN)

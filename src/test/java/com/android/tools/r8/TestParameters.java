@@ -209,11 +209,8 @@ public class TestParameters {
   }
 
   public TestParameters assumeJvmTestParameters() {
-    assertFalse(
-        "No need to use assumeJvmTestParameters() when not using api levels for CF",
-        apiLevel == null);
     assumeCfRuntime();
-    assumeTrue(representativeApiLevelForRuntime);
+    assumeTrue(apiLevel == null || representativeApiLevelForRuntime);
     return this;
   }
 

@@ -19,6 +19,8 @@ import java.util.List;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameter;
+import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
 public class AccessFlagsCombinationsTest extends TestBase {
@@ -29,18 +31,19 @@ public class AccessFlagsCombinationsTest extends TestBase {
     BOTH_STATICS_AND_NON_STATICS
   }
 
-  private final TestParameters parameters;
   private static final int PPP =
       Constants.ACC_PUBLIC | Constants.ACC_PROTECTED | Constants.ACC_PRIVATE;
 
-  @Parameterized.Parameters(name = "{0}")
-  public static TestParametersCollection data() {
-    return getTestParameters().withAllRuntimes().build();
+  static {
+    assertEquals(7, PPP);
   }
 
-  public AccessFlagsCombinationsTest(TestParameters parameters) {
-    assertEquals(7, PPP);
-    this.parameters = parameters;
+  @Parameter(0)
+  public TestParameters parameters;
+
+  @Parameters(name = "{0}")
+  public static TestParametersCollection data() {
+    return getTestParameters().withAllRuntimesAndApiLevels().build();
   }
 
   private void checkKeptMembers(CodeInspector inspector, Integer flags, Expect expect) {
@@ -115,7 +118,7 @@ public class AccessFlagsCombinationsTest extends TestBase {
         .addInnerClasses(AccessFlagsCombinationsTest.class)
         .addKeepMainRule(TestClass.class)
         .addKeepRules(keepRules)
-        .setMinApi(parameters.getRuntime())
+        .setMinApi(parameters)
         .compile()
         .inspect(inspector)
         .run(parameters.getRuntime(), TestClass.class)

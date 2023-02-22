@@ -21,6 +21,8 @@ import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameter;
+import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
 public class StringContentCheckTest extends TestBase {
@@ -91,21 +93,18 @@ public class StringContentCheckTest extends TestBase {
   );
   private static final Class<?> MAIN = TestClass.class;
 
-  @Parameterized.Parameters(name = "{0}")
+  @Parameters(name = "{0}")
   public static TestParametersCollection data() {
-    return getTestParameters().withAllRuntimes().build();
+    return getTestParameters().withAllRuntimesAndApiLevels().build();
   }
 
-  private final TestParameters parameters;
-
-  public StringContentCheckTest(TestParameters parameters) {
-    this.parameters = parameters;
-  }
+  @Parameter(0)
+  public TestParameters parameters;
 
   @Test
   public void testJVMOutput() throws Exception {
-    assumeTrue("Only run JVM reference on CF runtimes", parameters.isCfRuntime());
-    testForJvm()
+    parameters.assumeJvmTestParameters();
+    testForJvm(parameters)
         .addTestClasspath()
         .run(parameters.getRuntime(), MAIN)
         .assertSuccessWithOutput(JAVA_OUTPUT);
@@ -161,7 +160,7 @@ public class StringContentCheckTest extends TestBase {
         testForD8()
             .debug()
             .addProgramClasses(MAIN)
-            .setMinApi(parameters.getRuntime())
+            .setMinApi(parameters)
             .run(parameters.getRuntime(), MAIN)
             .assertSuccessWithOutput(JAVA_OUTPUT);
     test(result, 31);
@@ -170,7 +169,7 @@ public class StringContentCheckTest extends TestBase {
         testForD8()
             .release()
             .addProgramClasses(MAIN)
-            .setMinApi(parameters.getRuntime())
+            .setMinApi(parameters)
             .run(parameters.getRuntime(), MAIN)
             .assertSuccessWithOutput(JAVA_OUTPUT);
     test(result, 16);
@@ -183,7 +182,7 @@ public class StringContentCheckTest extends TestBase {
             .addProgramClasses(MAIN)
             .enableInliningAnnotations()
             .addKeepMainRule(MAIN)
-            .setMinApi(parameters.getRuntime())
+            .setMinApi(parameters)
             .run(parameters.getRuntime(), MAIN)
             .assertSuccessWithOutput(JAVA_OUTPUT);
     test(result, 16);

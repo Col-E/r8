@@ -13,23 +13,22 @@ import com.android.tools.r8.utils.StringUtils;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameter;
 import org.junit.runners.Parameterized.Parameters;
 
 // Regression test for b/128987064
 @RunWith(Parameterized.class)
 public class DoubleInliningInvokeSuperTest extends TestBase {
-  public static final String EXPECTED = StringUtils.lines("8", "8");
+
+  private static final String EXPECTED = StringUtils.lines("8", "8");
 
   @Parameters(name = "{0}")
   public static TestParametersCollection params() {
-    return getTestParameters().withAllRuntimes().build();
+    return getTestParameters().withAllRuntimesAndApiLevels().build();
   }
 
-  private final TestParameters parameters;
-
-  public DoubleInliningInvokeSuperTest(TestParameters parameters) {
-    this.parameters = parameters;
-  }
+  @Parameter(0)
+  public TestParameters parameters;
 
   @Test
   public void test() throws Exception {
@@ -40,7 +39,7 @@ public class DoubleInliningInvokeSuperTest extends TestBase {
         .enableNeverClassInliningAnnotations()
         .enableInliningAnnotations()
         .enableNoVerticalClassMergingAnnotations()
-        .setMinApi(parameters.getRuntime())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), TestClass.class)
         .assertSuccessWithOutput(EXPECTED);
   }

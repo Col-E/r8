@@ -65,7 +65,7 @@ public class PreserveDesugaredLambdaTest extends TestBase {
     testForR8(parameters.getBackend())
         .addProgramClasses(Main.class)
         .addClasspathClasses(Interface.class)
-        .addLibraryFiles(TestBase.runtimeJar(parameters.getBackend()))
+        .addLibraryFiles(parameters.getDefaultRuntimeLibrary())
         .addKeepAllClassesRule()
         .addDontWarn(A.class)
         .setMinApi(parameters)

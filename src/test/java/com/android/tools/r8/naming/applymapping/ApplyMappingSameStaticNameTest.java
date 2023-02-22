@@ -4,16 +4,15 @@
 
 package com.android.tools.r8.naming.applymapping;
 
-import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.utils.StringUtils;
-import java.io.IOException;
-import java.util.concurrent.ExecutionException;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameter;
+import org.junit.runners.Parameterized.Parameters;
 
 /**
  * This test reproduces b/131532229 on d8-1.4. This test is basically just testing that we are not
@@ -49,23 +48,20 @@ public class ApplyMappingSameStaticNameTest extends TestBase {
 
   public static class C {}
 
-  @Parameterized.Parameters(name = "{0}")
+  @Parameters(name = "{0}")
   public static TestParametersCollection data() {
-    return getTestParameters().withAllRuntimes().build();
+    return getTestParameters().withAllRuntimesAndApiLevels().build();
   }
 
-  private TestParameters parameters;
-
-  public ApplyMappingSameStaticNameTest(TestParameters parameters) {
-    this.parameters = parameters;
-  }
+  @Parameter(0)
+  public TestParameters parameters;
 
   @Test
-  public void test_b131532229() throws CompilationFailedException, IOException, ExecutionException {
+  public void test_b131532229() throws Exception {
     testForR8(parameters.getBackend())
         .noTreeShaking()
         .addLibraryClasses(A.class, B.class)
-        .addLibraryFiles(runtimeJar(parameters))
+        .addLibraryFiles(parameters.getDefaultRuntimeLibrary())
         .addProgramClasses(C.class)
         .addApplyMapping(pgMap)
         .compile();

@@ -7,7 +7,6 @@ import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.TestBase;
@@ -37,7 +36,7 @@ public class B141942381 extends TestBase {
 
   @Test
   public void testJVM() throws Exception {
-    assumeTrue("Only run JVM reference on CF runtimes", parameters.isCfRuntime());
+    parameters.assumeJvmTestParameters();
     testForJvm()
         .addTestClasspath()
         .run(parameters.getRuntime(), TestClass.class)

@@ -20,6 +20,8 @@ import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameter;
+import org.junit.runners.Parameterized.Parameters;
 
 // Reproduce b/133686361
 // This test is just same as {@link com.android.tools.r8.naming.AbstractMethodRenamingTest},
@@ -65,15 +67,12 @@ public class AlreadyRenamedAbstractMethodRenamingTest extends TestBase {
     }
   }
 
-  private TestParameters parameters;
+  @Parameter(0)
+  public TestParameters parameters;
 
-  @Parameterized.Parameters(name = "{0}")
+  @Parameters(name = "{0}")
   public static TestParametersCollection data() {
-    return getTestParameters().withAllRuntimes().build();
-  }
-
-  public AlreadyRenamedAbstractMethodRenamingTest(TestParameters parameters) {
-    this.parameters = parameters;
+    return getTestParameters().withAllRuntimesAndApiLevels().build();
   }
 
   @Test
@@ -83,7 +82,7 @@ public class AlreadyRenamedAbstractMethodRenamingTest extends TestBase {
         .addKeepMainRule(TestMain.class)
         .enableInliningAnnotations()
         .enableNoHorizontalClassMergingAnnotations()
-        .setMinApi(parameters.getRuntime())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), TestMain.class)
         .assertSuccessWithOutput(StringUtils.lines("Sub1::a"))
         .inspect(this::inspect);

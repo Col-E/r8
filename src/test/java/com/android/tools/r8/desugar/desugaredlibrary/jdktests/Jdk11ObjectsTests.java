@@ -17,11 +17,12 @@ import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.DexVm;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import org.junit.Assume;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameter;
+import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
 public class Jdk11ObjectsTests extends TestBase {
@@ -31,20 +32,18 @@ public class Jdk11ObjectsTests extends TestBase {
   private static final Path JDK_11_OBJECTS_JAVA_DIR =
       Paths.get(ToolHelper.JDK_11_TESTS_DIR + "java/util/Objects");
 
-  private final TestParameters parameters;
+  @Parameter(0)
+  public TestParameters parameters;
 
-  @Parameterized.Parameters(name = "{0}")
+  @Parameters(name = "{0}")
   public static TestParametersCollection data() {
     return getTestParameters()
         // TODO desugaring desugaredlibrary is blocked by
         // https://issuetracker.google.com/issues/114481425
         .withDexRuntimesStartingFromIncluding(DexVm.Version.V8_1_0)
+        .withMaximumApiLevel()
         .withCfRuntime(CfVm.JDK11)
         .build();
-  }
-
-  public Jdk11ObjectsTests(TestParameters parameters) {
-    this.parameters = parameters;
   }
 
   @BeforeClass
@@ -62,10 +61,10 @@ public class Jdk11ObjectsTests extends TestBase {
 
   @Test
   public void testD8Objects() throws Exception {
-    Assume.assumeTrue(parameters.isDexRuntime());
+    parameters.assumeDexRuntime();
     testForD8()
         .addProgramFiles(JDK_11_OBJECTS_TEST_CLASS_FILES)
-        .setMinApi(parameters.getRuntime())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), BASIC_OBJECTS_TEST)
         .assertSuccessWithOutput("");
   }
@@ -83,7 +82,7 @@ public class Jdk11ObjectsTests extends TestBase {
         .addKeepMainRule(BASIC_OBJECTS_TEST)
         .addProgramFiles(JDK_11_OBJECTS_TEST_CLASS_FILES)
         .applyIf(parameters.isCfRuntime(), Jdk9TestUtils.addJdk9LibraryFiles(temp))
-        .setMinApi(parameters.getRuntime())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), BASIC_OBJECTS_TEST)
         .assertSuccessWithOutput("");
   }

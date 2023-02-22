@@ -4,17 +4,15 @@
 
 package com.android.tools.r8.naming.applymapping;
 
-import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.R8TestCompileResult;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.naming.applymapping.shared.R;
-import java.io.IOException;
-import java.util.concurrent.ExecutionException;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameter;
 import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
@@ -28,32 +26,28 @@ public class ApplyMappingReservationTest extends TestBase {
     }
   }
 
-  private final TestParameters parameters;
+  @Parameter(0)
+  public TestParameters parameters;
 
   @Parameters(name = "{0}")
   public static TestParametersCollection data() {
-    return getTestParameters().withAllRuntimes().build();
-  }
-
-  public ApplyMappingReservationTest(TestParameters parameters) {
-    this.parameters = parameters;
+    return getTestParameters().withAllRuntimesAndApiLevels().build();
   }
 
   @Test
-  public void testReservedNames()
-      throws IOException, CompilationFailedException, ExecutionException {
+  public void testReservedNames() throws Exception {
     R8TestCompileResult libraryCompileResult =
         testForR8(parameters.getBackend())
             .addProgramClasses(R.class)
             .addKeepClassAndMembersRules(R.class)
-            .setMinApi(parameters.getRuntime())
+            .setMinApi(parameters)
             .compile();
     testForR8(parameters.getBackend())
         .addProgramClasses(Runner.class)
         .addClasspathClasses(R.class)
         .addKeepMainRule(Runner.class)
         .addApplyMapping(R.class.getTypeName() + " -> " + R.class.getTypeName() + ":")
-        .setMinApi(parameters.getRuntime())
+        .setMinApi(parameters)
         .noTreeShaking()
         .compile()
         .addRunClasspathFiles(libraryCompileResult.writeToZip())

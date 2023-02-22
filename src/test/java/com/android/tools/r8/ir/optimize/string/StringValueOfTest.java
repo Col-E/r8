@@ -7,7 +7,6 @@ import static com.android.tools.r8.utils.codeinspector.Matchers.isAbsent;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.KeepConstantArguments;
 import com.android.tools.r8.NeverInline;
@@ -61,7 +60,7 @@ public class StringValueOfTest extends TestBase {
 
   @Test
   public void testJVMOutput() throws Exception {
-    assumeTrue("Only run JVM reference on CF runtimes", parameters.isCfRuntime());
+    parameters.assumeJvmTestParameters();
     testForJvm()
         .addTestClasspath()
         .run(parameters.getRuntime(), MAIN)

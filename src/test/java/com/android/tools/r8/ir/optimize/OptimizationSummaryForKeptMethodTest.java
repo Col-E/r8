@@ -21,23 +21,22 @@ import java.util.List;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameter;
 import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
 public class OptimizationSummaryForKeptMethodTest extends TestBase {
 
-  private final boolean enableExtraKeepRule;
-  private final TestParameters parameters;
+  @Parameter(0)
+  public boolean enableExtraKeepRule;
+
+  @Parameter(1)
+  public TestParameters parameters;
 
   @Parameters(name = "{1}, enable extra keep rule: {0}")
-  public static List<Object[]> params() {
-    return buildParameters(BooleanUtils.values(), getTestParameters().withAllRuntimes().build());
-  }
-
-  public OptimizationSummaryForKeptMethodTest(
-      boolean enableExtraKeepRule, TestParameters parameters) {
-    this.enableExtraKeepRule = enableExtraKeepRule;
-    this.parameters = parameters;
+  public static List<Object[]> data() {
+    return buildParameters(
+        BooleanUtils.values(), getTestParameters().withAllRuntimesAndApiLevels().build());
   }
 
   @Test
@@ -46,11 +45,13 @@ public class OptimizationSummaryForKeptMethodTest extends TestBase {
         .addInnerClasses(OptimizationSummaryForKeptMethodTest.class)
         .addKeepMainRule(TestClass.class)
         .addKeepClassAndMembersRules(
-            (Class<?>[]) (enableExtraKeepRule ? new Class<?>[] {KeptClass.class} : new Class<?>[0]))
+            enableExtraKeepRule ? new Class<?>[] {KeptClass.class} : new Class<?>[0])
         .enableInliningAnnotations()
-        .setMinApi(parameters.getRuntime())
+        .setMinApi(parameters)
         .compile()
-        .inspect(this::verifyOutput);
+        .inspect(this::verifyOutput)
+        .run(parameters.getRuntime(), TestClass.class)
+        .assertSuccessWithOutputLines("Caught java.lang.RuntimeException");
   }
 
   private void verifyOutput(CodeInspector inspector) {

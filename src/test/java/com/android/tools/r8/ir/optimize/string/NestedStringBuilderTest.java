@@ -4,7 +4,6 @@
 package com.android.tools.r8.ir.optimize.string;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
@@ -15,27 +14,24 @@ import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameter;
+import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
 public class NestedStringBuilderTest extends TestBase {
   private static final Class<?> MAIN = NestedStringBuilders.class;
   private static final String EXPECTED = StringUtils.lines("one$two");
 
-  @Parameterized.Parameters(name = "{0}")
+  @Parameters(name = "{0}")
   public static TestParametersCollection data() {
     return getTestParameters().withAllRuntimesAndApiLevels().build();
   }
 
-  private final TestParameters parameters;
-
-  public NestedStringBuilderTest(TestParameters parameters) {
-    this.parameters = parameters;
-  }
+  @Parameter(0)
+  public TestParameters parameters;
 
   @Test
   public void b113859361() throws Exception {
-    assumeTrue("CF does not rewrite move results.", parameters.isDexRuntime());
-
     testForR8(parameters.getBackend())
         .addProgramClasses(MAIN)
         .addKeepMainRule(MAIN)

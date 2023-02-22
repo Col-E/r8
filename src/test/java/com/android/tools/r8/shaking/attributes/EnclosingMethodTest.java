@@ -3,7 +3,6 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.shaking.attributes;
 
-import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
@@ -13,9 +12,12 @@ import com.android.tools.r8.utils.InternalOptions;
 import com.google.common.collect.ImmutableList;
 import java.nio.file.Path;
 import java.util.Collection;
+import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameter;
+import org.junit.runners.Parameterized.Parameters;
 
 class GetNameClass {
   interface Itf {
@@ -42,24 +44,28 @@ class GetNameMain {
 
 @RunWith(Parameterized.class)
 public class EnclosingMethodTest extends TestBase {
-  private final TestParameters parameters;
-  private final boolean enableMinification;
-  private Collection<Path> classPaths;
+
   private static final String JAVA_OUTPUT = "-Returned-null-" + System.lineSeparator();
   private static final String OUTPUT_WITH_SHRUNK_ATTRIBUTES =
       GetNameClass.class.getName() + "$1" + System.lineSeparator();
   private static final Class<?> MAIN = GetNameMain.class;
 
-  @Parameterized.Parameters(name = "{0} minification: {1}")
+  @Parameter(0)
+  public TestParameters parameters;
+
+  @Parameter(1)
+  public boolean enableMinification;
+
+  private Collection<Path> classPaths;
+
+  @Parameters(name = "{0} minification: {1}")
   public static Collection<Object[]> data() {
-    return buildParameters(getTestParameters().withAllRuntimes().build(), BooleanUtils.values());
+    return buildParameters(
+        getTestParameters().withAllRuntimesAndApiLevels().build(), BooleanUtils.values());
   }
 
-  public EnclosingMethodTest(TestParameters parameters, boolean enableMinification)
-      throws Exception {
-    this.parameters = parameters;
-    this.enableMinification = enableMinification;
-
+  @Before
+  public void setup() throws Exception {
     ImmutableList.Builder<Path> builder = ImmutableList.builder();
     builder.addAll(ToolHelper.getClassFilesForTestDirectory(
         ToolHelper.getPackageDirectoryForTestPackage(MAIN.getPackage()),
@@ -74,8 +80,8 @@ public class EnclosingMethodTest extends TestBase {
 
   @Test
   public void testJVMOutput() throws Exception {
-    assumeTrue("Only run JVM reference on CF runtimes", parameters.isCfRuntime());
-    testForJvm()
+    parameters.assumeJvmTestParameters();
+    testForJvm(parameters)
         .addTestClasspath()
         .run(parameters.getRuntime(), MAIN)
         .assertSuccessWithOutput(JAVA_OUTPUT);
@@ -90,7 +96,7 @@ public class EnclosingMethodTest extends TestBase {
         .addKeepRules("-keep class **.GetName*")
         .addKeepRules("-keepattributes InnerClasses,EnclosingMethod")
         .minification(enableMinification)
-        .setMinApi(parameters.getRuntime())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), MAIN)
         .assertSuccessWithOutput(OUTPUT_WITH_SHRUNK_ATTRIBUTES);
   }

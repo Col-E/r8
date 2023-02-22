@@ -77,7 +77,7 @@ public class KeptByLibraryMethod extends TestBase {
             .enableGraphInspector()
             .addKeepMainRule(Main.class)
             .addLibraryClasses(Scene.class, Drawable.class)
-            .addLibraryFiles(TestBase.runtimeJar(parameters.getBackend()))
+            .addLibraryFiles(parameters.getDefaultRuntimeLibrary())
             .addProgramClasses(Main.class, MyShape.class)
             .compile()
             // The use of classpath classes is unsupported for DEX runtimes currently.

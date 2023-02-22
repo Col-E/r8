@@ -15,6 +15,8 @@ import java.util.concurrent.ExecutionException;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameter;
+import org.junit.runners.Parameterized.Parameters;
 
 /** This is a reproduction of b/132612059. */
 @RunWith(Parameterized.class)
@@ -29,15 +31,12 @@ public class FieldMinificationObfuscationDictionaryDuplicateTest extends TestBas
     }
   }
 
-  private final TestParameters parameters;
+  @Parameter(0)
+  public TestParameters parameters;
 
-  @Parameterized.Parameters(name = "{0}")
+  @Parameters(name = "{0}")
   public static TestParametersCollection data() {
-    return getTestParameters().withAllRuntimes().build();
-  }
-
-  public FieldMinificationObfuscationDictionaryDuplicateTest(TestParameters parameters) {
-    this.parameters = parameters;
+    return getTestParameters().withAllRuntimesAndApiLevels().build();
   }
 
   @Test
@@ -49,7 +48,7 @@ public class FieldMinificationObfuscationDictionaryDuplicateTest extends TestBas
         .noTreeShaking()
         .addKeepRules("-obfuscationdictionary " + dictionary.toString())
         .addKeepMainRule(A.class)
-        .setMinApi(parameters.getRuntime())
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), A.class)
         .assertSuccessWithOutput("HELLO WORLD!");
   }

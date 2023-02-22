@@ -170,7 +170,7 @@ public class NestInvokeSpecialInterfaceMethodAccessTest extends TestBase {
     return computeAppViewWithClassHierarchy(
         buildClasses(getClasses())
             .addClassProgramData(getTransformedClasses())
-            .addLibraryFile(TestBase.runtimeJar(parameters.getBackend()))
+            .addLibraryFile(parameters.getDefaultRuntimeLibrary())
             .build());
   }
 

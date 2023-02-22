@@ -19,20 +19,18 @@ import com.android.tools.r8.utils.codeinspector.FieldSubject;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameter;
 import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
 public class KeepClassMembersRuleOnIndirectlyInstantiatedClassTest extends TestBase {
 
-  private final TestParameters parameters;
+  @Parameter(0)
+  public TestParameters parameters;
 
   @Parameters(name = "{0}")
   public static TestParametersCollection data() {
-    return getTestParameters().withAllRuntimes().build();
-  }
-
-  public KeepClassMembersRuleOnIndirectlyInstantiatedClassTest(TestParameters parameters) {
-    this.parameters = parameters;
+    return getTestParameters().withAllRuntimesAndApiLevels().build();
   }
 
   @Test
@@ -46,7 +44,7 @@ public class KeepClassMembersRuleOnIndirectlyInstantiatedClassTest extends TestB
             "}")
         .enableInliningAnnotations()
         .enableNoVerticalClassMergingAnnotations()
-        .setMinApi(parameters.getRuntime())
+        .setMinApi(parameters)
         .compile()
         .inspect(this::verifyFieldIsPresent)
         .run(parameters.getRuntime(), TestClass.class)

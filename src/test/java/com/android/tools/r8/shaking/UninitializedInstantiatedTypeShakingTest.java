@@ -17,20 +17,18 @@ import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameter;
 import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
 public class UninitializedInstantiatedTypeShakingTest extends TestBase {
 
-  private final TestParameters parameters;
+  @Parameter(0)
+  public TestParameters parameters;
 
   @Parameters(name = "{0}")
   public static TestParametersCollection data() {
-    return getTestParameters().withAllRuntimes().build();
-  }
-
-  public UninitializedInstantiatedTypeShakingTest(TestParameters parameters) {
-    this.parameters = parameters;
+    return getTestParameters().withAllRuntimesAndApiLevels().build();
   }
 
   @Test
@@ -39,7 +37,7 @@ public class UninitializedInstantiatedTypeShakingTest extends TestBase {
         .addInnerClasses(UninitializedInstantiatedTypeShakingTest.class)
         .addKeepMainRule(TestClass.class)
         .enableNoHorizontalClassMergingAnnotations()
-        .setMinApi(parameters.getRuntime())
+        .setMinApi(parameters)
         .compile()
         .inspect(UninitializedInstantiatedTypeShakingTest::verifyOutput)
         .run(parameters.getRuntime(), TestClass.class)

@@ -36,7 +36,7 @@ public class LibraryInterfaceMethodsTest extends TestBase {
     R8TestCompileResult compileResult =
         testForR8(parameters.getBackend())
             .addProgramClasses(BaseInterface.class, SubInterface.class)
-            .addLibraryFiles(runtimeJar(parameters))
+            .addLibraryFiles(parameters.getDefaultRuntimeLibrary())
             .addKeepMethodRules(SubInterface.class, "int hashCode()")
             .setMinApi(parameters)
             .compile();

@@ -4,33 +4,28 @@
 
 package com.android.tools.r8.shaking.interfacebridge;
 
-import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
-import java.io.IOException;
-import java.util.concurrent.ExecutionException;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameter;
 import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
 public class LambdaAbstractMethodErrorTest extends TestBase {
 
-  private final TestParameters parameters;
+  @Parameter(0)
+  public TestParameters parameters;
 
   @Parameters(name = "{0}")
   public static TestParametersCollection data() {
-    return getTestParameters().withDexRuntimes().build();
-  }
-
-  public LambdaAbstractMethodErrorTest(TestParameters parameters) {
-    this.parameters = parameters;
+    return getTestParameters().withDexRuntimesAndAllApiLevels().build();
   }
 
   @Test
-  public void test_b133457361() throws ExecutionException, CompilationFailedException, IOException {
+  public void test_b133457361() throws Exception {
     testForR8(parameters.getBackend())
         .addProgramClassesAndInnerClasses(Main.class)
         .addProgramClassesAndInnerClasses(Task.class, OuterClass.class)
@@ -41,8 +36,8 @@ public class LambdaAbstractMethodErrorTest extends TestBase {
               internalOptions.enableClassInlining = false;
               internalOptions.enableVerticalClassMerging = false;
             })
-        .setMinApi(parameters.getRuntime())
-        .run(Main.class.getTypeName())
+        .setMinApi(parameters)
+        .run(parameters.getRuntime(), Main.class.getTypeName())
         .assertSuccessWithOutput("FOO");
   }
 }

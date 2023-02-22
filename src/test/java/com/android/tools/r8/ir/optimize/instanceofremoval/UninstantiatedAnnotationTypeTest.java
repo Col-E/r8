@@ -24,10 +24,13 @@ import java.lang.annotation.Target;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameter;
 import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
 public class UninstantiatedAnnotationTypeTest extends TestBase {
+
+  private static final String EXPECTED_OUTPUT = "In TestClass.live()";
 
   @Retention(RetentionPolicy.RUNTIME)
   @Target(ElementType.TYPE)
@@ -61,30 +64,32 @@ public class UninstantiatedAnnotationTypeTest extends TestBase {
 
   @Parameters(name = "{0}")
   public static TestParametersCollection data() {
-    return getTestParameters().withAllRuntimes().build();
+    return getTestParameters().withAllRuntimesAndApiLevels().build();
   }
 
-  private final TestParameters parameters;
+  @Parameter(0)
+  public TestParameters parameters;
 
-  public UninstantiatedAnnotationTypeTest(TestParameters parameters) {
-    this.parameters = parameters;
+  @Test
+  public void testJvm() throws Exception {
+    parameters.assumeJvmTestParameters();
+    testForJvm(parameters)
+        .addTestClasspath()
+        .run(parameters.getRuntime(), TestClass.class)
+        .assertSuccessWithOutput(EXPECTED_OUTPUT);
   }
 
   @Test
   public void test() throws Exception {
-    String expected = "In TestClass.live()";
-
-    testForJvm().addTestClasspath().run(TestClass.class).assertSuccessWithOutput(expected);
-
     CodeInspector inspector =
         testForR8(parameters.getBackend())
             .addInnerClasses(UninstantiatedAnnotationTypeTest.class)
             .addKeepMainRule(TestClass.class)
             .addKeepRules("-keepattributes RuntimeVisibleAnnotations")
             .enableInliningAnnotations()
-            .setMinApi(parameters.getRuntime())
+            .setMinApi(parameters)
             .run(parameters.getRuntime(), TestClass.class)
-            .assertSuccessWithOutput(expected)
+            .assertSuccessWithOutput(EXPECTED_OUTPUT)
             .inspector();
 
     ClassSubject classSubject = inspector.clazz(TestClass.class);

@@ -28,6 +28,8 @@ import java.util.Map;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameter;
+import org.junit.runners.Parameterized.Parameters;
 
 class IdempotentFunctionMain {
   static int SEED;
@@ -128,27 +130,21 @@ public class IdempotentFunctionCallCanonicalizationTest extends TestBase {
   private static final String BOOLEAN_DESCRIPTOR = "Ljava/lang/Boolean;";
   private static final String INTEGER_DESCRIPTOR = "Ljava/lang/Integer;";
   private static final String LONG_DESCRIPTOR = "Ljava/lang/Long;";
-  private static final int EXPECTED_BOOLEAN_VALUE_OF = 2;
-  private static final int EXPECTED_INTEGER_VALUE_OF = 2;
-  private static final int EXPECTED_LONG_VALUE_OF = 7;
   private static final int EXPECTED_MAX_CALLS = 3;
   private static final int TOTAL_MAX_CALLS = 5;
 
-  @Parameterized.Parameters(name = "{0}")
+  @Parameters(name = "{0}")
   public static TestParametersCollection data() {
-    return getTestParameters().withAllRuntimes().build();
+    return getTestParameters().withAllRuntimesAndApiLevels().build();
   }
 
-  private final TestParameters parameters;
-
-  public IdempotentFunctionCallCanonicalizationTest(TestParameters parameters) {
-    this.parameters = parameters;
-  }
+  @Parameter(0)
+  public TestParameters parameters;
 
   @Test
   public void testJVMOutput() throws Exception {
-    assumeTrue("Only run JVM reference on CF runtimes", parameters.isCfRuntime());
-    testForJvm()
+    parameters.assumeJvmTestParameters();
+    testForJvm(parameters)
         .addTestClasspath()
         .run(parameters.getRuntime(), MAIN)
         .assertSuccessWithOutput(JAVA_OUTPUT);
@@ -204,7 +200,7 @@ public class IdempotentFunctionCallCanonicalizationTest extends TestBase {
         testForD8()
             .debug()
             .addProgramClasses(MAIN)
-            .setMinApi(parameters.getRuntime())
+            .setMinApi(parameters)
             .run(parameters.getRuntime(), MAIN)
             .assertSuccessWithOutput(JAVA_OUTPUT);
     test(
@@ -221,7 +217,7 @@ public class IdempotentFunctionCallCanonicalizationTest extends TestBase {
         testForD8()
             .release()
             .addProgramClasses(MAIN)
-            .setMinApi(parameters.getRuntime())
+            .setMinApi(parameters)
             .run(parameters.getRuntime(), MAIN)
             .assertSuccessWithOutput(JAVA_OUTPUT);
     test(
@@ -243,7 +239,7 @@ public class IdempotentFunctionCallCanonicalizationTest extends TestBase {
             .enableInliningAnnotations()
             .addKeepMainRule(MAIN)
             .addDontObfuscate()
-            .setMinApi(parameters.getRuntime())
+            .setMinApi(parameters)
             .run(parameters.getRuntime(), MAIN)
             .assertSuccessWithOutput(JAVA_OUTPUT);
     int expectedMaxCount = parameters.isCfRuntime() ? TOTAL_MAX_CALLS : EXPECTED_MAX_CALLS;

@@ -74,7 +74,7 @@ public class LambdaInStacktraceTest extends TestBase {
 
   @Test
   public void testJvm() throws Exception {
-    assumeTrue("Only run JVM reference on CF runtimes", parameters.isCfRuntime());
+    parameters.assumeJvmTestParameters();
     testForJvm()
         .addInnerClasses(LambdaInStacktraceTest.class)
         .run(parameters.getRuntime(), TestRunner.class, Boolean.toString(false))

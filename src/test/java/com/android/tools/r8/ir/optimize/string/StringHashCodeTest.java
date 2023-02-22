@@ -6,7 +6,6 @@ package com.android.tools.r8.ir.optimize.string;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.D8TestRunResult;
 import com.android.tools.r8.NeverInline;
@@ -23,6 +22,8 @@ import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameter;
+import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
 public class StringHashCodeTest extends TestBase {
@@ -36,21 +37,18 @@ public class StringHashCodeTest extends TestBase {
   );
   private static final Class<?> MAIN = TestClass.class;
 
-  @Parameterized.Parameters(name = "{0}")
+  @Parameters(name = "{0}")
   public static TestParametersCollection data() {
-    return getTestParameters().withAllRuntimes().build();
+    return getTestParameters().withAllRuntimesAndApiLevels().build();
   }
 
-  private final TestParameters parameters;
-
-  public StringHashCodeTest(TestParameters parameters) {
-    this.parameters = parameters;
-  }
+  @Parameter(0)
+  public TestParameters parameters;
 
   @Test
   public void testJVMOutput() throws Exception {
-    assumeTrue("Only run JVM reference on CF runtimes", parameters.isCfRuntime());
-    testForJvm()
+    parameters.assumeJvmTestParameters();
+    testForJvm(parameters)
         .addTestClasspath()
         .run(parameters.getRuntime(), MAIN)
         .assertSuccessWithOutput(JAVA_OUTPUT);
@@ -74,13 +72,12 @@ public class StringHashCodeTest extends TestBase {
 
   @Test
   public void testD8() throws Exception {
-    assumeTrue("Only run D8 for Dex backend", parameters.isDexRuntime());
-
+    parameters.assumeDexRuntime();
     D8TestRunResult result =
         testForD8()
             .release()
             .addProgramClasses(MAIN)
-            .setMinApi(parameters.getRuntime())
+            .setMinApi(parameters)
             .run(parameters.getRuntime(), MAIN)
             .assertSuccessWithOutput(JAVA_OUTPUT);
     test(result, 2, 3);
@@ -89,7 +86,7 @@ public class StringHashCodeTest extends TestBase {
         testForD8()
             .debug()
             .addProgramClasses(MAIN)
-            .setMinApi(parameters.getRuntime())
+            .setMinApi(parameters)
             .run(parameters.getRuntime(), MAIN)
             .assertSuccessWithOutput(JAVA_OUTPUT);
     test(result, 5, 0);
@@ -102,7 +99,7 @@ public class StringHashCodeTest extends TestBase {
             .addProgramClasses(MAIN)
             .enableInliningAnnotations()
             .addKeepMainRule(MAIN)
-            .setMinApi(parameters.getRuntime())
+            .setMinApi(parameters)
             .run(parameters.getRuntime(), MAIN)
             .assertSuccessWithOutput(JAVA_OUTPUT);
     test(result, 0, parameters.isDexRuntime() ? 4 : 5);

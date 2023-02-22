@@ -39,7 +39,7 @@ public class EmptyDesugaredLibrary extends DesugaredLibraryTestBase {
   @Parameters(name = "{0}, spec: {1}, {2}")
   public static List<Object[]> data() {
     return buildParameters(
-        getTestParameters().withDexRuntimes().withOnlyDexRuntimeApiLevel().build(),
+        getTestParameters().withDexRuntimes().withMaximumApiLevel().build(),
         getJdk8Jdk11(),
         ImmutableList.of(D8_L8DEBUG));
   }
