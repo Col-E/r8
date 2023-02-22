@@ -6,7 +6,6 @@ package com.android.tools.r8.ir.desugar.invokespecial;
 
 import com.android.tools.r8.cf.code.CfInstruction;
 import com.android.tools.r8.cf.code.CfInvoke;
-import com.android.tools.r8.contexts.CompilationContext.MethodProcessingContext;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.CfCode;
 import com.android.tools.r8.graph.DexClassAndMethod;
@@ -15,14 +14,9 @@ import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.desugar.CfInstructionDesugaring;
-import com.android.tools.r8.ir.desugar.CfInstructionDesugaringCollection;
-import com.android.tools.r8.ir.desugar.CfInstructionDesugaringEventConsumer;
-import com.android.tools.r8.ir.desugar.FreshLocalProvider;
-import com.android.tools.r8.ir.desugar.LocalStackAllocator;
+import com.android.tools.r8.ir.desugar.DesugarDescription;
 import com.android.tools.r8.ir.synthetic.ForwardMethodBuilder;
 import com.google.common.collect.ImmutableList;
-import java.util.Collection;
-import java.util.List;
 import org.objectweb.asm.Opcodes;
 
 /** This class defines the desugaring of a single invoke-special instruction. */
@@ -37,22 +31,19 @@ public class InvokeSpecialToSelfDesugaring implements CfInstructionDesugaring {
   }
 
   @Override
-  public boolean needsDesugaring(CfInstruction instruction, ProgramMethod context) {
-    if (instruction.isInvokeSpecial()) {
-      return needsDesugaring(instruction.asInvoke(), context) != null;
+  public DesugarDescription compute(CfInstruction instruction, ProgramMethod context) {
+    if (!instruction.isInvokeSpecial()) {
+      return DesugarDescription.nothing();
     }
-    return false;
-  }
 
-  /** @return the resolved method if desugaring is needed, otherwise null. */
-  private ProgramMethod needsDesugaring(CfInvoke invoke, ProgramMethod context) {
+    CfInvoke invoke = instruction.asInvoke();
     if (!invoke.isInvokeSpecial() || invoke.isInvokeConstructor(dexItemFactory)) {
-      return null;
+      return DesugarDescription.nothing();
     }
 
     DexMethod invokedMethod = invoke.getMethod();
     if (invokedMethod.getHolderType() != context.getHolderType()) {
-      return null;
+      return DesugarDescription.nothing();
     }
 
     ProgramMethod method = context.getHolder().lookupProgramMethod(invokedMethod);
@@ -60,48 +51,41 @@ public class InvokeSpecialToSelfDesugaring implements CfInstructionDesugaring {
         || method.getAccessFlags().isPrivate()
         || method.getDefinition().isStatic()
         || (invoke.isInterface() && method.isDefaultMethod())) {
-      return null;
-    }
-
-    return method;
-  }
-
-  @Override
-  public Collection<CfInstruction> desugarInstruction(
-      CfInstruction instruction,
-      FreshLocalProvider freshLocalProvider,
-      LocalStackAllocator localStackAllocator,
-      CfInstructionDesugaringEventConsumer eventConsumer,
-      ProgramMethod context,
-      MethodProcessingContext methodProcessingContext,
-      CfInstructionDesugaringCollection desugaringCollection,
-      DexItemFactory dexItemFactory) {
-    if (instruction.isInvokeSpecial()) {
-      return desugarInvokeInstruction(instruction.asInvoke(), eventConsumer, context);
-    }
-    return null;
-  }
-
-  private List<CfInstruction> desugarInvokeInstruction(
-      CfInvoke invoke,
-      InvokeSpecialToSelfDesugaringEventConsumer eventConsumer,
-      ProgramMethod context) {
-    ProgramMethod method = needsDesugaring(invoke, context);
-    if (method == null) {
-      return null;
+      return DesugarDescription.nothing();
     }
 
     if (method.getAccessFlags().isFinal()) {
       // This method is final thus we can use invoke-virtual.
-      return ImmutableList.of(
-          new CfInvoke(Opcodes.INVOKEVIRTUAL, invoke.getMethod(), invoke.isInterface()));
+      return DesugarDescription.builder()
+          .setDesugarRewrite(
+              (freshLocalProvider,
+                  localStackAllocator,
+                  eventConsumer,
+                  ignore, // context
+                  methodProcessingContext,
+                  dexItemFactory) ->
+                  ImmutableList.of(
+                      new CfInvoke(
+                          Opcodes.INVOKEVIRTUAL, invoke.getMethod(), invoke.isInterface())))
+          .build();
     }
 
     // This is an invoke-special to a virtual method on invoke-special method holder.
     // The invoke should be rewritten with a bridge.
-    DexMethod bridgeMethod = ensureInvokeSpecialBridge(method, eventConsumer);
-    return ImmutableList.of(
-        new CfInvoke(Opcodes.INVOKESPECIAL, bridgeMethod, invoke.isInterface()));
+    return DesugarDescription.builder()
+        .setDesugarRewrite(
+            (freshLocalProvider,
+                localStackAllocator,
+                eventConsumer,
+                ignore, // context
+                methodProcessingContext,
+                dexItemFactory) ->
+                ImmutableList.of(
+                    new CfInvoke(
+                        Opcodes.INVOKESPECIAL,
+                        ensureInvokeSpecialBridge(method, eventConsumer),
+                        invoke.isInterface())))
+        .build();
   }
 
   private DexMethod ensureInvokeSpecialBridge(
