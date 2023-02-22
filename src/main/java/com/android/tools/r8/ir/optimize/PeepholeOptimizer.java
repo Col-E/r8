@@ -91,7 +91,7 @@ public class PeepholeOptimizer {
       for (int i = 1; i < normalSuccessors.size(); i++) {
         BasicBlock otherNormalSuccessor = normalSuccessors.get(i);
         Instruction otherInstruction = otherNormalSuccessor.entry();
-        if (!equivalence.doEquivalent(instruction, otherInstruction)) {
+        if (!equivalence.equivalent(instruction, otherInstruction)) {
           return;
         }
       }

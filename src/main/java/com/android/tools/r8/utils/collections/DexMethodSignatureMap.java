@@ -15,7 +15,6 @@ import java.util.Set;
 import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
 import java.util.function.Function;
-import org.jetbrains.annotations.NotNull;
 
 public class DexMethodSignatureMap<T> implements Map<DexMethodSignature, T> {
 
@@ -103,44 +102,41 @@ public class DexMethodSignatureMap<T> implements Map<DexMethodSignature, T> {
 
   @Override
   public T computeIfAbsent(
-      DexMethodSignature key,
-      @NotNull Function<? super DexMethodSignature, ? extends T> mappingFunction) {
+      DexMethodSignature key, Function<? super DexMethodSignature, ? extends T> mappingFunction) {
     return backing.computeIfAbsent(key, mappingFunction);
   }
 
   @Override
   public T computeIfPresent(
       DexMethodSignature key,
-      @NotNull BiFunction<? super DexMethodSignature, ? super T, ? extends T> remappingFunction) {
+      BiFunction<? super DexMethodSignature, ? super T, ? extends T> remappingFunction) {
     return backing.computeIfPresent(key, remappingFunction);
   }
 
   @Override
   public T compute(
       DexMethodSignature key,
-      @NotNull BiFunction<? super DexMethodSignature, ? super T, ? extends T> remappingFunction) {
+      BiFunction<? super DexMethodSignature, ? super T, ? extends T> remappingFunction) {
     return backing.compute(key, remappingFunction);
   }
 
   @Override
   public T merge(
       DexMethodSignature key,
-      @NotNull T value,
-      @NotNull BiFunction<? super T, ? super T, ? extends T> remappingFunction) {
+      T value,
+      BiFunction<? super T, ? super T, ? extends T> remappingFunction) {
     return backing.merge(key, value, remappingFunction);
   }
 
   public T merge(
-      DexMethod method,
-      @NotNull T value,
-      @NotNull BiFunction<? super T, ? super T, ? extends T> remappingFunction) {
+      DexMethod method, T value, BiFunction<? super T, ? super T, ? extends T> remappingFunction) {
     return merge(method.getSignature(), value, remappingFunction);
   }
 
   public T merge(
       DexEncodedMethod method,
-      @NotNull T value,
-      @NotNull BiFunction<? super T, ? super T, ? extends T> remappingFunction) {
+      T value,
+      BiFunction<? super T, ? super T, ? extends T> remappingFunction) {
     return merge(method.getReference(), value, remappingFunction);
   }
 
@@ -193,7 +189,7 @@ public class DexMethodSignatureMap<T> implements Map<DexMethodSignature, T> {
   }
 
   @Override
-  public void putAll(@NotNull Map<? extends DexMethodSignature, ? extends T> m) {}
+  public void putAll(Map<? extends DexMethodSignature, ? extends T> m) {}
 
   public T remove(DexMethodSignature signature) {
     return backing.remove(signature);

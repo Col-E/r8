@@ -57,7 +57,7 @@ public class SeedMapper implements ProguardMap {
           ClassNamingForMapApplier.builder(
               renamedDescriptorName, originalDescriptor, position, reporter);
       if (map.put(originalDescriptor, classNamingBuilder) != null) {
-        reporter.error(ProguardMapError.duplicateSourceClass(originalName, position));
+        reporter.error(ProguardMapError.duplicateSourceClass(originalDescriptor, position));
       }
       return classNamingBuilder;
     }

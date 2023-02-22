@@ -253,7 +253,7 @@ public class MergeGroup implements Collection<DexProgramClass> {
 
   @Override
   public boolean retainAll(Collection<?> collection) {
-    return collection.retainAll(collection);
+    return classes.retainAll(collection);
   }
 
   @Override

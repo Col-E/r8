@@ -4,7 +4,7 @@
 package com.android.tools.r8.utils.structural;
 
 /** An ordered type is a type with a total order. */
-public interface Ordered<T> extends Equatable<T>, Comparable<T> {
+public interface Ordered<T extends Ordered<T>> extends Equatable<T>, Comparable<T> {
 
   /** Definition of total order. */
   @Override

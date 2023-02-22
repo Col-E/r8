@@ -199,7 +199,7 @@ public class ProguardMapPartitionerOnClassNameToText implements ProguardMapParti
 
     @Override
     public ProguardMapPartitionerBuilderImpl setAllowExperimentalMapping(
-        boolean allowExperimental) {
+        boolean allowExperimentalMapping) {
       this.allowExperimentalMapping = allowExperimentalMapping;
       return this;
     }

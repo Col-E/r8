@@ -120,4 +120,14 @@ public class KotlinMetadataAnnotationWrapper implements kotlin.Metadata {
   public Class<? extends Annotation> annotationType() {
     throw new Unreachable("Should never be called");
   }
+
+  @Override
+  public int hashCode() {
+    throw new Unreachable();
+  }
+
+  @Override
+  public boolean equals(Object obj) {
+    throw new Unreachable();
+  }
 }

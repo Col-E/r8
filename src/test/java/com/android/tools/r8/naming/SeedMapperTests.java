@@ -10,6 +10,8 @@ import static org.junit.Assert.fail;
 import com.android.tools.r8.Diagnostic;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestDiagnosticMessagesImpl;
+import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.utils.AbortException;
 import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.Reporter;
@@ -17,8 +19,21 @@ import java.io.IOException;
 import java.nio.file.Path;
 import org.junit.Ignore;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
+@RunWith(Parameterized.class)
 public class SeedMapperTests extends TestBase {
+
+  @Parameters(name = "{0}")
+  public static TestParametersCollection data() {
+    return getTestParameters().withNoneRuntime().build();
+  }
+
+  public SeedMapperTests(TestParameters parameters) {
+    parameters.assertNoneRuntime();
+  }
 
   private Path getApplyMappingFile(String... pgMap) throws IOException {
     Path mapPath = temp.newFile().toPath();
@@ -78,7 +93,7 @@ public class SeedMapperTests extends TestBase {
       assertEquals(1, testDiagnosticMessages.getErrors().size());
       Diagnostic diagnostic = testDiagnosticMessages.getErrors().get(0);
       assertEquals(
-          String.format(ProguardMapError.DUPLICATE_SOURCE_MESSAGE, "int aaaa(B)"),
+          String.format(ProguardMapError.DUPLICATE_SOURCE_MEMBER_MESSAGE, "int aaaa(B)", "A.B.C"),
           diagnostic.getDiagnosticMessage());
       assertEquals("line 3", diagnostic.getPosition().getDescription());
     }
@@ -101,7 +116,7 @@ public class SeedMapperTests extends TestBase {
       assertEquals(1, testDiagnosticMessages.getErrors().size());
       Diagnostic diagnostic = testDiagnosticMessages.getErrors().get(0);
       assertEquals(
-          String.format(ProguardMapError.DUPLICATE_SOURCE_MESSAGE, "int aaaa"),
+          String.format(ProguardMapError.DUPLICATE_SOURCE_MEMBER_MESSAGE, "int aaaa", "A.B.C"),
           diagnostic.getDiagnosticMessage());
       assertEquals("line 3", diagnostic.getPosition().getDescription());
     }
