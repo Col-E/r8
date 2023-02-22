@@ -7,25 +7,21 @@ package com.android.tools.r8.rewrite.assertions;
 import com.android.tools.r8.AssertionsConfiguration;
 import com.android.tools.r8.KotlinTestParameters;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.utils.BooleanUtils;
 import java.util.Collection;
 import org.junit.Test;
-import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
-@RunWith(Parameterized.class)
-public class AssertionConfigurationKotlinDexTest extends AssertionConfigurationKotlinTestBase {
+public abstract class AssertionConfigurationKotlinDexTestBase
+    extends AssertionConfigurationKotlinTestBase {
 
-  @Parameterized.Parameters(name = "{0}, {1}, kotlin-stdlib as library: {2}, -Xassertions=jvm: {3}")
+  @Parameterized.Parameters(name = "{0}, {1}")
   public static Collection<Object[]> data() {
     return buildParameters(
         getTestParameters().withDexRuntimesAndAllApiLevels().build(),
-        getKotlinTestParameters().withAllCompilersAndTargetVersions().build(),
-        BooleanUtils.values(),
-        BooleanUtils.values());
+        getKotlinTestParameters().withAllCompilersAndTargetVersions().build());
   }
 
-  public AssertionConfigurationKotlinDexTest(
+  public AssertionConfigurationKotlinDexTestBase(
       TestParameters parameters,
       KotlinTestParameters kotlinParameters,
       boolean kotlinStdlibAsClasspath,

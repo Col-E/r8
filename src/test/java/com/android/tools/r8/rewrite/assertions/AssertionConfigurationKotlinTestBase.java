@@ -27,9 +27,8 @@ import com.google.common.collect.ImmutableList;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.List;
-import org.objectweb.asm.Opcodes;
 
-public class AssertionConfigurationKotlinTestBase extends KotlinTestBase implements Opcodes {
+public class AssertionConfigurationKotlinTestBase extends KotlinTestBase {
 
   protected static final Package pkg = AssertionConfigurationKotlinTestBase.class.getPackage();
   protected static final String kotlintestclasesPackage = pkg.getName() + ".kotlintestclasses";
