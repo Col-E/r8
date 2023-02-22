@@ -6,13 +6,10 @@ package com.android.tools.r8.ir.desugar;
 
 import com.android.tools.r8.cf.code.CfInstruction;
 import com.android.tools.r8.cf.code.CfInvoke;
-import com.android.tools.r8.contexts.CompilationContext.MethodProcessingContext;
 import com.android.tools.r8.graph.DexEncodedMethod;
-import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.google.common.collect.ImmutableList;
-import java.util.Collection;
 import org.objectweb.asm.Opcodes;
 
 /**
@@ -28,33 +25,26 @@ import org.objectweb.asm.Opcodes;
 public class InvokeToPrivateRewriter implements CfInstructionDesugaring {
 
   @Override
-  public Collection<CfInstruction> desugarInstruction(
-      CfInstruction instruction,
-      FreshLocalProvider freshLocalProvider,
-      LocalStackAllocator localStackAllocator,
-      CfInstructionDesugaringEventConsumer eventConsumer,
-      ProgramMethod context,
-      MethodProcessingContext methodProcessingContext,
-      CfInstructionDesugaringCollection desugaringCollection,
-      DexItemFactory dexItemFactory) {
+  public DesugarDescription compute(CfInstruction instruction, ProgramMethod context) {
     if (!instruction.isInvokeVirtual() && !instruction.isInvokeInterface()) {
-      return null;
+      return DesugarDescription.nothing();
     }
     CfInvoke invoke = instruction.asInvoke();
     DexMethod method = invoke.getMethod();
     DexEncodedMethod privateMethod = privateMethodInvokedOnSelf(invoke, context);
     if (privateMethod == null) {
-      return null;
+      return DesugarDescription.nothing();
     }
-    return ImmutableList.of(new CfInvoke(Opcodes.INVOKESPECIAL, method, invoke.isInterface()));
-  }
-
-  @Override
-  public boolean needsDesugaring(CfInstruction instruction, ProgramMethod context) {
-    if (!instruction.isInvokeVirtual() && !instruction.isInvokeInterface()) {
-      return false;
-    }
-    return isInvokingPrivateMethodOnSelf(instruction.asInvoke(), context);
+    return DesugarDescription.builder()
+        .setDesugarRewrite(
+            (freshLocalProvider,
+                localStackAllocator,
+                eventConsumer,
+                ignore, // context
+                methodProcessingContext,
+                dexItemFactory) ->
+                ImmutableList.of(new CfInvoke(Opcodes.INVOKESPECIAL, method, invoke.isInterface())))
+        .build();
   }
 
   private DexEncodedMethod privateMethodInvokedOnSelf(CfInvoke invoke, ProgramMethod context) {
@@ -68,9 +58,5 @@ public class InvokeToPrivateRewriter implements CfInstructionDesugaring {
       return directTarget;
     }
     return null;
-  }
-
-  private boolean isInvokingPrivateMethodOnSelf(CfInvoke invoke, ProgramMethod context) {
-    return privateMethodInvokedOnSelf(invoke, context) != null;
   }
 }
