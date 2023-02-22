@@ -4,6 +4,8 @@
 
 package com.android.tools.r8.ir.optimize.api;
 
+import static com.android.tools.r8.utils.AndroidApiLevelUtils.isOutlinedAtSameOrLowerLevel;
+
 import com.android.tools.r8.androidapi.ComputedApiLevel;
 import com.android.tools.r8.contexts.CompilationContext.MethodProcessingContext;
 import com.android.tools.r8.graph.AppView;
@@ -96,6 +98,10 @@ public class InstanceInitializerOutliner {
               .apiLevelCompute()
               .computeApiLevelForLibraryReference(invokedConstructor, minApiLevel);
       if (minApiLevel.isGreaterThanOrEqualTo(apiReferenceLevel)) {
+        continue;
+      }
+      // Check if this is already outlined.
+      if (isOutlinedAtSameOrLowerLevel(context.getHolder(), apiReferenceLevel)) {
         continue;
       }
       DexEncodedMethod synthesizedInstanceInitializer =

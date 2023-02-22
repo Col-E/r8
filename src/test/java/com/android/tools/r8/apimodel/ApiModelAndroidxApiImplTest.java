@@ -9,6 +9,7 @@ import static com.android.tools.r8.apimodel.ApiModelingTestHelper.setMockApiLeve
 import static com.android.tools.r8.synthesis.SyntheticItemsTestUtils.syntheticApiOutlineClass;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static com.android.tools.r8.utils.codeinspector.Matchers.notIf;
+import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assume.assumeTrue;
 
@@ -145,16 +146,15 @@ public class ApiModelAndroidxApiImplTest extends TestBase {
     if (parameters.isCfRuntime()) {
       assertThat(inspector.clazz(classReference), isPresent());
     } else {
-      assertThat(inspector.clazz(classReference), notIf(isPresent(), isR8));
+      assertThat(
+          inspector.clazz(classReference),
+          notIf(
+              isPresent(),
+              isR8 && parameters.getApiLevel().isGreaterThanOrEqualTo(AndroidApiLevel.O)));
       assertThat(
           inspector.clazz(syntheticApiOutlineClass(classReference, 0)),
           notIf(isPresent(), parameters.getApiLevel().isGreaterThanOrEqualTo(AndroidApiLevel.R)));
-      assertThat(
-          inspector.clazz(syntheticApiOutlineClass(classReference, 1)),
-          notIf(isPresent(), parameters.getApiLevel().isGreaterThanOrEqualTo(AndroidApiLevel.O)));
-      assertThat(
-          inspector.clazz(syntheticApiOutlineClass(classReference, 2)),
-          notIf(isPresent(), parameters.getApiLevel().isGreaterThanOrEqualTo(AndroidApiLevel.M)));
+      assertThat(inspector.clazz(syntheticApiOutlineClass(classReference, 1)), not(isPresent()));
     }
   }
 

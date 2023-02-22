@@ -296,4 +296,37 @@ public class AndroidApiLevelUtils {
     }
     return interfaces;
   }
+
+  /**
+   * A lot of functionality has already been outlined in androidx. The ordinary pattern for manual
+   * outlining is to create a class with the name ApiXXImpl where XX is the api level. This method
+   * will check the context to see if it matches this pattern in androidx and extract the api level
+   * for comparison with the computed api level.
+   */
+  public static boolean isOutlinedAtSameOrLowerLevel(
+      DexProgramClass clazz, ComputedApiLevel apiLevel) {
+    assert apiLevel.isKnownApiLevel();
+    if (!clazz.getType().getDescriptor().startsWith("Landroidx/")) {
+      return false;
+    }
+    String simpleName = clazz.getSimpleName();
+    int apiIndex = simpleName.indexOf("Api");
+    if (apiIndex < 0) {
+      return false;
+    }
+    int endApiIndex = apiIndex += 3;
+    int implIndex = simpleName.indexOf("Impl");
+    if (implIndex < 0 || implIndex < endApiIndex || (implIndex - endApiIndex) != 2) {
+      return false;
+    }
+    String apiLevelAsString = simpleName.substring(endApiIndex, implIndex);
+    if (!StringUtils.onlyContainsDigits(apiLevelAsString)) {
+      return false;
+    }
+    int apiLevelAsInt = Integer.parseInt(apiLevelAsString);
+    if (apiLevelAsInt < 10 || apiLevelAsInt > AndroidApiLevel.LATEST.getLevel()) {
+      return false;
+    }
+    return apiLevel.asKnownApiLevel().getApiLevel().getLevel() <= apiLevelAsInt;
+  }
 }

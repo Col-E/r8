@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.ir.desugar.apimodel;
 
+import static com.android.tools.r8.utils.AndroidApiLevelUtils.isOutlinedAtSameOrLowerLevel;
 import static org.objectweb.asm.Opcodes.INVOKESTATIC;
 
 import com.android.tools.r8.androidapi.AndroidApiLevelCompute;
@@ -120,6 +121,10 @@ public class ApiInvokeOutlinerDesugaring implements CfInstructionDesugaring {
     DexClass firstLibraryClass = classAndApiLevel.getFirst();
     if (firstLibraryClass == null || !firstLibraryClass.isLibraryClass()) {
       assert false : "When computed a known api level we should always have a library class";
+      return appView.computedMinApiLevel();
+    }
+    // Check if this is already outlined.
+    if (isOutlinedAtSameOrLowerLevel(context.getHolder(), referenceApiLevel)) {
       return appView.computedMinApiLevel();
     }
     // Check for protected or package private access flags before outlining.
