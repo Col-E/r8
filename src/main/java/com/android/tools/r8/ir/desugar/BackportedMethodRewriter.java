@@ -90,34 +90,30 @@ public final class BackportedMethodRewriter implements CfInstructionDesugaring {
   }
 
   @Override
-  public Collection<CfInstruction> desugarInstruction(
-      CfInstruction instruction,
-      FreshLocalProvider freshLocalProvider,
-      LocalStackAllocator localStackAllocator,
-      CfInstructionDesugaringEventConsumer eventConsumer,
-      ProgramMethod context,
-      MethodProcessingContext methodProcessingContext,
-      CfInstructionDesugaringCollection desugaringCollection,
-      DexItemFactory dexItemFactory) {
+  public DesugarDescription compute(CfInstruction instruction, ProgramMethod context) {
     if (!instruction.isInvoke()) {
-      return null;
+      return DesugarDescription.nothing();
     }
 
     CfInvoke invoke = instruction.asInvoke();
     MethodProvider methodProvider = getMethodProviderOrNull(invoke.getMethod(), context);
-    return methodProvider != null
-        ? methodProvider.rewriteInvoke(
-            invoke, appView, eventConsumer, methodProcessingContext, localStackAllocator)
-        : null;
-  }
-
-  @Override
-  public boolean needsDesugaring(CfInstruction instruction, ProgramMethod context) {
-    return instruction.isInvoke()
-        && getMethodProviderOrNull(instruction.asInvoke().getMethod(), context) != null
-        && !appView
+    if (methodProvider == null
+        || appView
             .getSyntheticItems()
-            .isSyntheticOfKind(context.getContextType(), kinds -> kinds.BACKPORT_WITH_FORWARDING);
+            .isSyntheticOfKind(context.getContextType(), kinds -> kinds.BACKPORT_WITH_FORWARDING)) {
+      return DesugarDescription.nothing();
+    }
+    return DesugarDescription.builder()
+        .setDesugarRewrite(
+            (freshLocalProvider,
+                localStackAllocator,
+                eventConsumer,
+                ignore, // context
+                methodProcessingContext,
+                dexItemFactory) ->
+                methodProvider.rewriteInvoke(
+                    invoke, appView, eventConsumer, methodProcessingContext, localStackAllocator))
+        .build();
   }
 
   public static List<DexMethod> generateListOfBackportedMethods(
