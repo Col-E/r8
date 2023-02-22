@@ -99,6 +99,7 @@ public class ConstantDynamicInstructionDesugaring implements CfInstructionDesuga
                 eventConsumer,
                 context1,
                 methodProcessingContext,
+                desugaringCollection,
                 dexItemFactory) ->
                 desugarConstDynamicInstruction(
                     instruction.asConstDynamic(),

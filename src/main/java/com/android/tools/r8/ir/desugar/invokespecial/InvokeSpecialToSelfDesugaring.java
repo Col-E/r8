@@ -63,6 +63,7 @@ public class InvokeSpecialToSelfDesugaring implements CfInstructionDesugaring {
                   eventConsumer,
                   ignore, // context
                   methodProcessingContext,
+                  desugaringCollection,
                   dexItemFactory) ->
                   ImmutableList.of(
                       new CfInvoke(
@@ -79,6 +80,7 @@ public class InvokeSpecialToSelfDesugaring implements CfInstructionDesugaring {
                 eventConsumer,
                 ignore, // context
                 methodProcessingContext,
+                desugaringCollection,
                 dexItemFactory) ->
                 ImmutableList.of(
                     new CfInvoke(

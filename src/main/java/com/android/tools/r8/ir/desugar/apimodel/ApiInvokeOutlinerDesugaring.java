@@ -79,6 +79,7 @@ public class ApiInvokeOutlinerDesugaring implements CfInstructionDesugaring {
                 eventConsumer,
                 context1,
                 methodProcessingContext,
+                desugaringCollection,
                 dexItemFactory) ->
                 desugarLibraryCall(
                     methodProcessingContext.createUniqueContext(),

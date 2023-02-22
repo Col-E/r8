@@ -53,6 +53,7 @@ public interface CfInstructionDesugaring {
             eventConsumer,
             context,
             methodProcessingContext,
+            desugaringCollection,
             dexItemFactory);
   }
 

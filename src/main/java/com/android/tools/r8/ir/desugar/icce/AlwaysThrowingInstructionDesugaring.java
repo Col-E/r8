@@ -75,6 +75,7 @@ public class AlwaysThrowingInstructionDesugaring implements CfInstructionDesugar
                 eventConsumer,
                 context,
                 methodProcessingContext,
+                desugaringCollection,
                 dexItemFactory) ->
                 getThrowInstructions(
                     appView,
@@ -97,6 +98,7 @@ public class AlwaysThrowingInstructionDesugaring implements CfInstructionDesugar
                     eventConsumer,
                     context,
                     methodProcessingContext,
+                    desugaringCollection,
                     dexItemFactory) ->
                     getThrowInstructions(
                         appView,

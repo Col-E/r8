@@ -73,6 +73,7 @@ public class TwrInstructionDesugaring implements CfInstructionDesugaring {
                 eventConsumer,
                 context,
                 methodProcessingContext,
+                desugaringCollection,
                 dexItemFactory) ->
                 createAndCallSyntheticMethod(
                     kinds -> kinds.BACKPORT,
@@ -96,6 +97,7 @@ public class TwrInstructionDesugaring implements CfInstructionDesugaring {
                 eventConsumer,
                 context,
                 methodProcessingContext,
+                desugaringCollection,
                 dexItemFactory) ->
                 createAndCallSyntheticMethod(
                     kinds -> kinds.BACKPORT,
@@ -116,6 +118,7 @@ public class TwrInstructionDesugaring implements CfInstructionDesugaring {
                 eventConsumer,
                 context,
                 methodProcessingContext,
+                desugaringCollection,
                 dexItemFactory) ->
                 createAndCallSyntheticMethod(
                     kinds -> kinds.TWR_CLOSE_RESOURCE,

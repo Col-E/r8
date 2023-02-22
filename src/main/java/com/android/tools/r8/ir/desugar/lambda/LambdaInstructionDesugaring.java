@@ -16,7 +16,6 @@ import com.android.tools.r8.cf.code.CfStore;
 import com.android.tools.r8.contexts.CompilationContext.MethodProcessingContext;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.CfCode;
-import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexMethodHandle;
 import com.android.tools.r8.graph.DexProgramClass;
@@ -24,8 +23,8 @@ import com.android.tools.r8.graph.DexTypeList;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.code.ValueType;
 import com.android.tools.r8.ir.desugar.CfInstructionDesugaring;
-import com.android.tools.r8.ir.desugar.CfInstructionDesugaringCollection;
 import com.android.tools.r8.ir.desugar.CfInstructionDesugaringEventConsumer;
+import com.android.tools.r8.ir.desugar.DesugarDescription;
 import com.android.tools.r8.ir.desugar.FreshLocalProvider;
 import com.android.tools.r8.ir.desugar.LambdaClass;
 import com.android.tools.r8.ir.desugar.LambdaDescriptor;
@@ -68,33 +67,36 @@ public class LambdaInstructionDesugaring implements CfInstructionDesugaring {
   }
 
   @Override
-  public Collection<CfInstruction> desugarInstruction(
-      CfInstruction instruction,
-      FreshLocalProvider freshLocalProvider,
-      LocalStackAllocator localStackAllocator,
-      CfInstructionDesugaringEventConsumer eventConsumer,
-      ProgramMethod context,
-      MethodProcessingContext methodProcessingContext,
-      CfInstructionDesugaringCollection desugaringCollection,
-      DexItemFactory dexItemFactory) {
-    if (instruction.isInvokeDynamic()) {
-      return desugarInvokeDynamicInstruction(
-          instruction.asInvokeDynamic(),
-          freshLocalProvider,
-          localStackAllocator,
-          eventConsumer,
-          context,
-          methodProcessingContext,
-          (invoke, localProvider, stackAllocator) ->
-              desugaringCollection.desugarInstruction(
-                  invoke,
-                  localProvider,
-                  stackAllocator,
-                  eventConsumer,
-                  context,
-                  methodProcessingContext));
+  public DesugarDescription compute(CfInstruction instruction, ProgramMethod context) {
+    if (!isLambdaInvoke(instruction, context, appView)) {
+      return DesugarDescription.nothing();
     }
-    return null;
+
+    return DesugarDescription.builder()
+        .setDesugarRewrite(
+            (freshLocalProvider,
+                localStackAllocator,
+                eventConsumer,
+                ignore, // context
+                methodProcessingContext,
+                desugaringCollection,
+                dexItemFactory) ->
+                desugarInvokeDynamicInstruction(
+                    instruction.asInvokeDynamic(),
+                    freshLocalProvider,
+                    localStackAllocator,
+                    eventConsumer,
+                    context,
+                    methodProcessingContext,
+                    (invoke, localProvider, stackAllocator) ->
+                        desugaringCollection.desugarInstruction(
+                            invoke,
+                            localProvider,
+                            stackAllocator,
+                            eventConsumer,
+                            context,
+                            methodProcessingContext)))
+        .build();
   }
 
   public interface DesugarInvoke {
@@ -179,11 +181,6 @@ public class LambdaInstructionDesugaring implements CfInstructionDesugaring {
     LambdaClass lambdaClass = box.get();
     lambdaClass.setClass(clazz);
     return lambdaClass;
-  }
-
-  @Override
-  public boolean needsDesugaring(CfInstruction instruction, ProgramMethod context) {
-    return isLambdaInvoke(instruction, context, appView);
   }
 
   public static boolean isLambdaInvoke(

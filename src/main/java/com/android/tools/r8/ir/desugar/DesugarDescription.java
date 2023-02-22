@@ -38,6 +38,7 @@ public class DesugarDescription {
       CfInstructionDesugaringEventConsumer eventConsumer,
       ProgramMethod context,
       MethodProcessingContext methodProcessingContext,
+      CfInstructionDesugaringCollection desugaringCollection,
       DexItemFactory dexItemFactory) {
     return null;
   }
@@ -64,6 +65,7 @@ public class DesugarDescription {
         CfInstructionDesugaringEventConsumer eventConsumer,
         ProgramMethod context,
         MethodProcessingContext methodProcessingContext,
+        CfInstructionDesugaringCollection desugaringCollection,
         DexItemFactory dexItemFactory);
   }
 
@@ -142,6 +144,7 @@ public class DesugarDescription {
             CfInstructionDesugaringEventConsumer eventConsumer,
             ProgramMethod context,
             MethodProcessingContext methodProcessingContext,
+            CfInstructionDesugaringCollection desugaringCollection,
             DexItemFactory dexItemFactory) {
           return desugarRewrite == null
               ? null
@@ -151,6 +154,7 @@ public class DesugarDescription {
                   eventConsumer,
                   context,
                   methodProcessingContext,
+                  desugaringCollection,
                   dexItemFactory);
         }
       };

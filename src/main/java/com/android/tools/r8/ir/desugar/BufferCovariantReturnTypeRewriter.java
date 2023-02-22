@@ -51,6 +51,7 @@ public class BufferCovariantReturnTypeRewriter implements CfInstructionDesugarin
                 eventConsumer,
                 ignore, // context
                 methodProcessingContext,
+                desugaringCollection,
                 dexItemFactory) ->
                 ImmutableList.of(newInvoke, new CfCheckCast(invokedMethod.getReturnType())))
         .build();

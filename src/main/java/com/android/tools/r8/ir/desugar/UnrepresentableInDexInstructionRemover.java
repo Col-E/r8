@@ -166,6 +166,7 @@ public class UnrepresentableInDexInstructionRemover implements CfInstructionDesu
                   eventConsumer,
                   context,
                   methodProcessingContext,
+                  desugaringCollection,
                   dexItemFactory) -> {
                 report(context);
                 Builder<CfInstruction> replacement = ImmutableList.builder();
@@ -215,6 +216,7 @@ public class UnrepresentableInDexInstructionRemover implements CfInstructionDesu
                   eventConsumer,
                   context,
                   methodProcessingContext,
+                  desugaringCollection,
                   dexItemFactory) -> {
                 report(context);
                 Builder<CfInstruction> replacement = ImmutableList.builder();
@@ -260,6 +262,7 @@ public class UnrepresentableInDexInstructionRemover implements CfInstructionDesu
                   eventConsumer,
                   context,
                   methodProcessingContext,
+                  desugaringCollection,
                   dexItemFactory) -> {
                 report(context);
                 Builder<CfInstruction> replacement = ImmutableList.builder();
@@ -299,6 +302,7 @@ public class UnrepresentableInDexInstructionRemover implements CfInstructionDesu
                   eventConsumer,
                   context,
                   methodProcessingContext,
+                  desugaringCollection,
                   dexItemFactory) -> {
                 report(context);
                 Builder<CfInstruction> replacement = ImmutableList.builder();
@@ -339,6 +343,7 @@ public class UnrepresentableInDexInstructionRemover implements CfInstructionDesu
                   eventConsumer,
                   context,
                   methodProcessingContext,
+                  desugaringCollection,
                   dexItemFactory) -> {
                 report(context);
                 Builder<CfInstruction> replacement = ImmutableList.builder();
@@ -388,6 +393,7 @@ public class UnrepresentableInDexInstructionRemover implements CfInstructionDesu
             eventConsumer,
             context,
             methodProcessingContext,
+            desugaringCollection,
             dexItemFactory);
   }
 

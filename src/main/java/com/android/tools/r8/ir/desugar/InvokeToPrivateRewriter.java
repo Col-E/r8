@@ -42,6 +42,7 @@ public class InvokeToPrivateRewriter implements CfInstructionDesugaring {
                 eventConsumer,
                 ignore, // context
                 methodProcessingContext,
+                desugaringCollection,
                 dexItemFactory) ->
                 ImmutableList.of(new CfInvoke(Opcodes.INVOKESPECIAL, method, invoke.isInterface())))
         .build();

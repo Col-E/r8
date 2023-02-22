@@ -110,6 +110,7 @@ public final class BackportedMethodRewriter implements CfInstructionDesugaring {
                 eventConsumer,
                 ignore, // context
                 methodProcessingContext,
+                desugaringCollection,
                 dexItemFactory) ->
                 methodProvider.rewriteInvoke(
                     invoke, appView, eventConsumer, methodProcessingContext, localStackAllocator))

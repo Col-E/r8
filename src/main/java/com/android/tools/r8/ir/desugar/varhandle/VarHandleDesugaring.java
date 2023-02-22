@@ -301,6 +301,7 @@ public class VarHandleDesugaring implements CfInstructionDesugaring, CfClassSynt
                 eventConsumer,
                 context,
                 methodProcessingContext,
+                desugaringCollection,
                 dexItemFactory) -> {
               ensureMethodHandlesLookupClass(eventConsumer, context);
               localStackAllocator.allocateLocalStack(2);
@@ -326,6 +327,7 @@ public class VarHandleDesugaring implements CfInstructionDesugaring, CfClassSynt
                 eventConsumer,
                 context,
                 methodProcessingContext,
+                desugaringCollection,
                 dexItemFactory) -> {
               ensureMethodHandlesLookupClass(eventConsumer, context);
               // Rewrite MethodHandles.privateLookupIn(class, lookup) to
@@ -351,6 +353,7 @@ public class VarHandleDesugaring implements CfInstructionDesugaring, CfClassSynt
                 eventConsumer,
                 context,
                 methodProcessingContext,
+                desugaringCollection,
                 dexItemFactory) -> {
               localStackAllocator.allocateLocalStack(2);
               return ImmutableList.of(
@@ -377,6 +380,7 @@ public class VarHandleDesugaring implements CfInstructionDesugaring, CfClassSynt
                 eventConsumer,
                 context,
                 methodProcessingContext,
+                desugaringCollection,
                 dexItemFactory) -> {
               ensureVarHandleClass(eventConsumer, context);
               return desugarSignaturePolymorphicMethod(

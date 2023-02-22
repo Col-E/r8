@@ -95,6 +95,7 @@ public class StringConcatInstructionDesugaring implements CfInstructionDesugarin
                 eventConsumer,
                 context,
                 methodProcessingContext,
+                desugaringCollection,
                 dexItemFactory) ->
                 desugarMakeConcatInstructions(invoke, freshLocalProvider, localStackAllocator))
         .build();
@@ -130,6 +131,7 @@ public class StringConcatInstructionDesugaring implements CfInstructionDesugarin
                 eventConsumer,
                 ignore, // context
                 methodProcessingContext,
+                desugaringCollection,
                 dexItemFactory) ->
                 desugarMakeConcatWithConstantsInstructions(
                     invoke, freshLocalProvider, localStackAllocator, context))

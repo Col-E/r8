@@ -424,6 +424,7 @@ public final class InterfaceMethodRewriter implements CfInstructionDesugaring {
                   eventConsumer,
                   context1,
                   methodProcessingContext,
+                  desugaringCollection,
                   dexItemFactory) -> {
                 ProgramMethod newProgramMethod =
                     appView
@@ -472,6 +473,7 @@ public final class InterfaceMethodRewriter implements CfInstructionDesugaring {
                 eventConsumer,
                 context12,
                 methodProcessingContext,
+                desugaringCollection,
                 dexItemFactory) -> {
               DexClassAndMethod companionMethod =
                   helper.ensureStaticAsMethodOfCompanionClassStub(method, eventConsumer);
@@ -517,6 +519,7 @@ public final class InterfaceMethodRewriter implements CfInstructionDesugaring {
                 eventConsumer,
                 context1,
                 methodProcessingContext,
+                desugaringCollection,
                 dexItemFactory) ->
                 getInvokeStaticInstructions(
                     helper
@@ -563,6 +566,7 @@ public final class InterfaceMethodRewriter implements CfInstructionDesugaring {
                   eventConsumer,
                   context1,
                   methodProcessingContext,
+                  desugaringCollection,
                   dexItemFactory) -> {
                 // This can be a private instance method call. Note that the referenced
                 // method is expected to be in the current class since it is private, but desugaring
@@ -602,6 +606,7 @@ public final class InterfaceMethodRewriter implements CfInstructionDesugaring {
                     eventConsumer,
                     context12,
                     methodProcessingContext,
+                    desugaringCollection,
                     dexItemFactory) -> {
                   // This is a invoke-direct call to a virtual method.
                   DexClassAndMethod companionMethod =
@@ -718,6 +723,7 @@ public final class InterfaceMethodRewriter implements CfInstructionDesugaring {
                     eventConsumer,
                     context1,
                     methodProcessingContext,
+                    desugaringCollection,
                     dexItemFactory) -> {
                   DexClassAndMethod method = resolutionResult.getResolutionPair();
                   DexMethod companionMethod;
@@ -740,6 +746,7 @@ public final class InterfaceMethodRewriter implements CfInstructionDesugaring {
                     eventConsumer,
                     context12,
                     methodProcessingContext,
+                    desugaringCollection,
                     dexItemFactory) -> {
                   DexClassAndMethod method = resolutionResult.getResolutionPair();
                   // TODO(b/199135051): Why do this amend routine. We have done resolution, so would
@@ -800,6 +807,7 @@ public final class InterfaceMethodRewriter implements CfInstructionDesugaring {
                       eventConsumer,
                       context13,
                       methodProcessingContext,
+                      desugaringCollection,
                       dexItemFactory) -> {
                     DexClassAndMethod companionTarget =
                         helper.ensureDefaultAsMethodOfCompanionClassStub(
@@ -826,6 +834,7 @@ public final class InterfaceMethodRewriter implements CfInstructionDesugaring {
                 eventConsumer,
                 context14,
                 methodProcessingContext,
+                desugaringCollection,
                 dexItemFactory) ->
                 getInvokeStaticInstructions(
                     helper.ensureEmulatedInterfaceForwardingMethod(
