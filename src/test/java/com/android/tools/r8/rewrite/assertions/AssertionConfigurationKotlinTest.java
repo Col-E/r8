@@ -320,46 +320,80 @@ public class AssertionConfigurationKotlinTest extends KotlinTestBase implements 
   }
 
   @Test
-  public void testAssertionsForDex() throws Exception {
-    Assume.assumeTrue(parameters.isDexRuntime());
-    // Leaving assertions in or disabling them on Dalvik/Art means no assertions.
+  public void testD8PassthroughAllAssertions() throws Exception {
+    parameters.assumeDexRuntime();
     runD8Test(
         builder ->
             builder.addAssertionsConfiguration(
                 AssertionsConfiguration.Builder::passthroughAllAssertions),
         inspector -> checkAssertionCodeLeft(inspector, false),
+        // Leaving assertions in on Dalvik/Art means no assertions.
         noAllAssertionsExpectedLines());
+  }
+
+  @Test
+  public void testR8PassthroughAllAssertions() throws Exception {
+    parameters.assumeDexRuntime();
     runR8Test(
         builder ->
             builder.addAssertionsConfiguration(
                 AssertionsConfiguration.Builder::passthroughAllAssertions),
         inspector -> checkAssertionCodeLeft(inspector, true),
+        // Leaving assertions in on Dalvik/Art means no assertions.
         noAllAssertionsExpectedLines());
+  }
+
+  @Test
+  public void testD8CompileTimeDisableAllAssertions() throws Exception {
+    parameters.assumeDexRuntime();
     runD8Test(
         builder ->
             builder.addAssertionsConfiguration(
                 AssertionsConfiguration.Builder::compileTimeDisableAllAssertions),
         inspector -> checkAssertionCodeRemoved(inspector, false),
+        // Compile time disabling assertions on Dalvik/Art means no assertions.
         noAllAssertionsExpectedLines());
+  }
+
+  @Test
+  public void testR8CompileTimeDisableAllAssertions() throws Exception {
+    parameters.assumeDexRuntime();
     runR8Test(
         builder ->
             builder.addAssertionsConfiguration(
                 AssertionsConfiguration.Builder::compileTimeDisableAllAssertions),
         inspector -> checkAssertionCodeRemoved(inspector, true),
+        // Compile time disabling assertions on Dalvik/Art means no assertions.
         noAllAssertionsExpectedLines());
-    // Compile time enabling assertions gives assertions on Dalvik/Art.
+  }
+
+  @Test
+  public void testD8CompileTimeEnableAllAssertions() throws Exception {
+    parameters.assumeDexRuntime();
     runD8Test(
         builder ->
             builder.addAssertionsConfiguration(
                 AssertionsConfiguration.Builder::compileTimeEnableAllAssertions),
         inspector -> checkAssertionCodeEnabled(inspector, false),
+        // Compile time enabling assertions gives assertions on Dalvik/Art.
         allAssertionsExpectedLines());
+  }
+
+  @Test
+  public void testR8CompileTimeEnableAllAssertions() throws Exception {
+    parameters.assumeDexRuntime();
     runR8Test(
         builder ->
             builder.addAssertionsConfiguration(
                 AssertionsConfiguration.Builder::compileTimeEnableAllAssertions),
         inspector -> checkAssertionCodeEnabled(inspector, true),
+        // Compile time enabling assertions gives assertions on Dalvik/Art.
         allAssertionsExpectedLines());
+  }
+
+  @Test
+  public void testD8CompileTimeEnableForAllClasses() throws Exception {
+    parameters.assumeDexRuntime();
     if (useJvmAssertions) {
       // Enabling for the kotlin generated Java classes should enable all.
       runD8Test(
@@ -387,8 +421,12 @@ public class AssertionConfigurationKotlinTest extends KotlinTestBase implements 
           inspector -> checkAssertionCodeEnabled(inspector, false),
           allAssertionsExpectedLines());
     }
+  }
+
+  @Test
+  public void testR8CompileTimeEnableForAllClasses() throws Exception {
+    parameters.assumeDexRuntime();
     if (useJvmAssertions) {
-      // Enabling for the kotlin generated Java classes should enable all.
       runR8Test(
           builder ->
               builder
@@ -397,18 +435,25 @@ public class AssertionConfigurationKotlinTest extends KotlinTestBase implements 
                   .addAssertionsConfiguration(
                       b -> b.setCompileTimeEnable().setScopeClass(class2).build()),
           inspector -> checkAssertionCodeEnabled(inspector, true),
+          // When kotlinc generate JVM assertions compile time enabling assertions for the kotlinc
+          // generated Java classes should enable all.
           allAssertionsExpectedLines());
     } else {
-      // Enabling for the class kotlin._Assertions should enable all.
       runR8Test(
           builder ->
               builder.addAssertionsConfiguration(
                   b -> b.setCompileTimeEnable().setScopeClass("kotlin._Assertions").build()),
           inspector -> checkAssertionCodeEnabled(inspector, true),
+          // When kotlinc generate Kotlin assertions compile time enabling assertions the class
+          // kotlin._Assertions should enable all.
           allAssertionsExpectedLines());
     }
+  }
+
+  @Test
+  public void testD8CompileTimeEnableForPackage() throws Exception {
+    parameters.assumeDexRuntime();
     if (useJvmAssertions) {
-      // Enabling for the Java package for the kotlin test classes package should enable all.
       runD8Test(
           builder ->
               builder.addAssertionsConfiguration(
@@ -421,26 +466,36 @@ public class AssertionConfigurationKotlinTest extends KotlinTestBase implements 
             checkAssertionCodeEnabled(inspector, class1, false);
             checkAssertionCodeEnabled(inspector, class2, false);
           },
+          // When kotlinc generate JVM assertions compile time enabling assertions for the kotlinc
+          // generated test classes package should enable all.
           allAssertionsExpectedLines());
     } else {
-      // Enabling for the kotlin package (containing kotlin._Assertions) should enable all.
       runD8Test(
           builder ->
               builder.addAssertionsConfiguration(
                   b -> b.setCompileTimeEnable().setScopePackage("kotlin").build()),
           inspector -> checkAssertionCodeEnabled(inspector, false),
+          // When kotlinc generate Kotlin assertions compile time enabling assertions the package
+          // kotlin should enable all.
           allAssertionsExpectedLines());
     }
+  }
+
+  @Test
+  public void testR8CompileTimeEnableForPackage() throws Exception {
+    parameters.assumeDexRuntime();
     if (useJvmAssertions) {
-      // Enabling for the Java package for the kotlin test classes package should enable all.
       runR8Test(
           builder ->
               builder.addAssertionsConfiguration(
                   b -> b.setCompileTimeEnable().setScopePackage(kotlintestclasesPackage).build()),
           inspector -> checkAssertionCodeEnabled(inspector, true),
+          // When kotlinc generate JVM assertions compile time enabling assertions for the kotlinc
+          // generated test classes package should enable all.
           allAssertionsExpectedLines());
     } else {
-      // Enabling for the kotlin package (containing kotlin._Assertions) should enable all.
+      // When kotlinc generate Kotlin assertions compile time enabling assertions the package
+      // kotlin should enable all.
       runR8Test(
           builder ->
               builder.addAssertionsConfiguration(
@@ -452,7 +507,7 @@ public class AssertionConfigurationKotlinTest extends KotlinTestBase implements 
 
   @Test
   public void testAssertionsForCfEnableWithStackMap() throws Exception {
-    Assume.assumeTrue(parameters.isCfRuntime());
+    parameters.assumeCfRuntime();
     Assume.assumeTrue(useJvmAssertions);
     Assume.assumeTrue(targetVersion == KotlinTargetVersion.JAVA_8);
     // Compile time enabling or disabling assertions means the -ea flag has no effect.
@@ -475,7 +530,7 @@ public class AssertionConfigurationKotlinTest extends KotlinTestBase implements 
 
   @Test
   public void testAssertionsForCfPassThrough() throws Exception {
-    Assume.assumeTrue(parameters.isCfRuntime());
+    parameters.assumeCfRuntime();
     // Leaving assertion code means assertions are controlled by the -ea flag.
     runR8Test(
         builder ->
@@ -494,7 +549,7 @@ public class AssertionConfigurationKotlinTest extends KotlinTestBase implements 
 
   @Test
   public void testAssertionsForCfEnable() throws Exception {
-    Assume.assumeTrue(parameters.isCfRuntime());
+    parameters.assumeCfRuntime();
     // Compile time enabling or disabling assertions means the -ea flag has no effect.
     runR8Test(
         builder ->
@@ -513,7 +568,7 @@ public class AssertionConfigurationKotlinTest extends KotlinTestBase implements 
 
   @Test
   public void testAssertionsForCfDisable() throws Exception {
-    Assume.assumeTrue(parameters.isCfRuntime());
+    parameters.assumeCfRuntime();
     runR8Test(
         builder ->
             builder.addAssertionsConfiguration(
@@ -531,7 +586,7 @@ public class AssertionConfigurationKotlinTest extends KotlinTestBase implements 
 
   @Test
   public void TestWithModifiedKotlinAssertions() throws Exception {
-    Assume.assumeTrue(parameters.isDexRuntime());
+    parameters.assumeCfRuntime();
     testForD8()
         .addProgramClassFileData(dumpModifiedKotlinAssertions())
         .addProgramFiles(compiledForAssertions.getForConfiguration(kotlinc, targetVersion))
