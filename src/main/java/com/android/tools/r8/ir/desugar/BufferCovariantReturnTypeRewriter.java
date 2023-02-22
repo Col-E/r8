@@ -7,14 +7,12 @@ package com.android.tools.r8.ir.desugar;
 import com.android.tools.r8.cf.code.CfCheckCast;
 import com.android.tools.r8.cf.code.CfInstruction;
 import com.android.tools.r8.cf.code.CfInvoke;
-import com.android.tools.r8.contexts.CompilationContext.MethodProcessingContext;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.google.common.collect.ImmutableList;
-import java.util.Collection;
 
 /**
  * BufferCovariantReturnTypeRewriter rewrites the return type of invoked methods matching
@@ -31,30 +29,31 @@ public class BufferCovariantReturnTypeRewriter implements CfInstructionDesugarin
   }
 
   @Override
-  public Collection<CfInstruction> desugarInstruction(
-      CfInstruction instruction,
-      FreshLocalProvider freshLocalProvider,
-      LocalStackAllocator localStackAllocator,
-      CfInstructionDesugaringEventConsumer eventConsumer,
-      ProgramMethod context,
-      MethodProcessingContext methodProcessingContext,
-      CfInstructionDesugaringCollection desugaringCollection,
-      DexItemFactory dexItemFactory) {
+  public DesugarDescription compute(CfInstruction instruction, ProgramMethod context) {
     if (!isInvokeCandidate(instruction)) {
-      return null;
+      return DesugarDescription.nothing();
     }
     CfInvoke cfInvoke = instruction.asInvoke();
     DexMethod invokedMethod = cfInvoke.getMethod();
     DexMethod covariantMethod = matchingBufferCovariantMethod(invokedMethod);
     if (covariantMethod == null) {
-      return null;
+      return DesugarDescription.nothing();
     }
     DexProto proto =
         factory.createProto(factory.bufferType, invokedMethod.getProto().parameters.values);
     CfInvoke newInvoke =
         new CfInvoke(
             cfInvoke.getOpcode(), invokedMethod.withProto(proto, factory), cfInvoke.isInterface());
-    return ImmutableList.of(newInvoke, new CfCheckCast(invokedMethod.getReturnType()));
+    return DesugarDescription.builder()
+        .setDesugarRewrite(
+            (freshLocalProvider,
+                localStackAllocator,
+                eventConsumer,
+                ignore, // context
+                methodProcessingContext,
+                dexItemFactory) ->
+                ImmutableList.of(newInvoke, new CfCheckCast(invokedMethod.getReturnType())))
+        .build();
   }
 
   private DexMethod matchingBufferCovariantMethod(DexMethod invokedMethod) {
@@ -83,14 +82,5 @@ public class BufferCovariantReturnTypeRewriter implements CfInstructionDesugarin
     return instruction.isInvoke()
         || instruction.isInvokeStatic()
         || instruction.isInvokeInterface();
-  }
-
-  @Override
-  public boolean needsDesugaring(CfInstruction instruction, ProgramMethod context) {
-    if (!isInvokeCandidate(instruction)) {
-      return false;
-    }
-    DexMethod invokedMethod = instruction.asInvoke().getMethod();
-    return matchingBufferCovariantMethod(invokedMethod) != null;
   }
 }
