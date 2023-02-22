@@ -28,8 +28,6 @@ public class JumpSubroutineTests extends JasminTestBase {
     assertEquals(expected, artResult);
     String cfFrontendResult = runOnJavaR8CfFrontend(builder, main);
     assertEquals(expected, cfFrontendResult);
-    String dxArtResult = runOnArtDx(builder, main);
-    assertEquals(expected, dxArtResult);
   }
 
   private String runOnJavaR8CfFrontend(JasminBuilder builder, String main) throws Exception {
@@ -49,17 +47,6 @@ public class JumpSubroutineTests extends JasminTestBase {
     ProcessResult processResult = ToolHelper.runJava(outputJar, main);
     assertEquals(0, processResult.exitCode);
     return processResult.stdout;
-  }
-
-  private void expectDxFailure(JasminBuilder builder) throws Exception {
-    // This expects this dx failure:
-    // Uncaught translation error: com.android.dex.util.ExceptionWithContext: returning from
-    // invalid subroutine
-    // 1 error; aborting
-    ProcessResult result = runDX(builder);
-    assertNotEquals(0, result.exitCode);
-    assertTrue(result.stderr.contains("Uncaught translation error"));
-    assertTrue(result.stderr.contains("invalid subroutine"));
   }
 
   @Test
@@ -414,8 +401,6 @@ public class JumpSubroutineTests extends JasminTestBase {
     assertEquals(expected, artResult);
     String cfFrontendResult = runOnJavaR8CfFrontend(builder, clazz.name);
     assertEquals(expected, cfFrontendResult);
-    // This fails with dx.
-    expectDxFailure(builder);
   }
 
   @Test
@@ -1408,8 +1393,6 @@ public class JumpSubroutineTests extends JasminTestBase {
     assertNotEquals(expected, artResult);
     String cfFrontendResult = runOnJavaR8CfFrontend(builder, clazz.name);
     assertNotEquals(expected, cfFrontendResult);
-    // This fails with dx.
-    expectDxFailure(builder);
   }
 
   @Test
@@ -1458,8 +1441,6 @@ public class JumpSubroutineTests extends JasminTestBase {
     assertNotEquals(expected, artResult);
     String cfFrontendResult = runOnJavaR8CfFrontend(builder, clazz.name);
     assertNotEquals(expected, cfFrontendResult);
-    // This fails with dx.
-    expectDxFailure(builder);
   }
 
   @Test
@@ -1509,8 +1490,6 @@ public class JumpSubroutineTests extends JasminTestBase {
     assertNotEquals(expected, artResult);
     String cfFrontendResult = runOnJavaR8CfFrontend(builder, clazz.name);
     assertNotEquals(expected, cfFrontendResult);
-    // This fails with dx.
-    expectDxFailure(builder);
   }
 
   // Some jsr tests that fails bytecode verification on the Java VM.

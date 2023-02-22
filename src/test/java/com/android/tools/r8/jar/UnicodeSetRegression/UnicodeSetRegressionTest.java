@@ -16,7 +16,6 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
-import org.junit.ComparisonFailure;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -31,16 +30,6 @@ public class UnicodeSetRegressionTest {
 
   private AndroidApp dexFromDX() throws IOException {
     return ToolHelper.runDexer(JAR_FILE, temp.newFolder("dx-dex").getPath());
-  }
-
-  @Test
-  public void testUnicodeSetFromDex() throws Throwable {
-    Path combinedInput = temp.getRoot().toPath().resolve("all.zip");
-    Path oatFile = temp.getRoot().toPath().resolve("all.oat");
-    AndroidApp output =
-        ToolHelper.runR8(dexFromDX(), options -> options.ignoreMissingClasses = true);
-    output.write(combinedInput, OutputMode.DexIndexed);
-    ToolHelper.runDex2Oat(combinedInput, oatFile);
   }
 
   @Test
@@ -60,9 +49,6 @@ public class UnicodeSetRegressionTest {
     try {
       ToolHelper.runDex2Oat(combinedInput, oatFile);
     } catch (AssertionError e) {
-      AndroidApp fromDexApp =
-          ToolHelper.runR8(dexFromDX(), options -> options.ignoreMissingClasses = true);
-      CodeInspector fromDex = new CodeInspector(fromDexApp);
       CodeInspector fromJar = new CodeInspector(result);
       List<ArtErrorInfo> errors;
       try {
@@ -75,14 +61,12 @@ public class UnicodeSetRegressionTest {
         throw e;
       }
       for (ArtErrorInfo error : errors.subList(0, errors.size() - 1)) {
-        System.err.println(new ComparisonFailure(error.getMessage(),
-            "REFERENCE\n" + error.dump(fromDex, false) + "\nEND REFERENCE",
-            "PROCESSED\n" + error.dump(fromJar, true) + "\nEND PROCESSED").toString());
+        System.err.println(
+            error.getMessage() + "\nPROCESSED\n" + error.dump(fromJar, true) + "\nEND PROCESSED");
       }
       ArtErrorInfo error = errors.get(errors.size() - 1);
-      throw new ComparisonFailure(error.getMessage(),
-          "REFERENCE\n" + error.dump(fromDex, false) + "\nEND REFERENCE",
-          "PROCESSED\n" + error.dump(fromJar, true) + "\nEND PROCESSED");
+      throw new RuntimeException(
+          error.getMessage() + "\nPROCESSED\n" + error.dump(fromJar, true) + "\nEND PROCESSED");
     }
   }
 

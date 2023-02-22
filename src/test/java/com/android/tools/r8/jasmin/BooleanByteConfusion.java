@@ -15,8 +15,6 @@ public class BooleanByteConfusion extends JasminTestBase {
     String javaResult = runOnJava(builder, main);
     String artResult = runOnArtD8(builder, main);
     assertEquals(javaResult, artResult);
-    String dxArtResult = runOnArtDx(builder, main);
-    assertEquals(javaResult, dxArtResult);
   }
 
   @Test

@@ -13,7 +13,6 @@ import static org.junit.Assert.assertNull;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.ProcessResult;
-import com.android.tools.r8.VmTestRunner;
 import com.android.tools.r8.jasmin.JasminBuilder;
 import com.android.tools.r8.jasmin.JasminBuilder.ClassBuilder;
 import com.android.tools.r8.utils.AndroidApp;
@@ -25,7 +24,6 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.util.concurrent.ExecutionException;
 import org.junit.Test;
-import org.junit.runner.RunWith;
 
 public class NativeMethodWithCodeTest extends TestBase {
 
@@ -80,18 +78,9 @@ public class NativeMethodWithCodeTest extends TestBase {
     assertNotEquals(0, javaResult.exitCode);
     assertThat(javaResult.stderr, containsString("ClassFormatError"));
 
-    // DX strips code from native methods.
-    Path dxOutputDir = temp.newFolder().toPath();
-    Path dxOutputFile = dxOutputDir.resolve("classes.dex");
-    ToolHelper.runDexer(inputJar.toString(), dxOutputDir.toString());
-    AndroidApp dxApp = AndroidApp.builder().addProgramFiles(dxOutputFile).build();
-    assertNull(getNativeMethod(mainClassName, dxApp).getMethod().getCode());
-
-    // D8 should also strip code from native methods.
+    // D8 should strip code from native methods to be compatible with dx.
     AndroidApp processedApp = compileWithD8(inputApp);
     assertThat(getNativeMethod(mainClassName, processedApp), isPresent());
-    // TODO(mathiasr): Consider making D8 maintain code on native methods.
-    // If we do that, this assertNull should change to assertNotNull.
     assertNull(getNativeMethod(mainClassName, processedApp).getMethod().getCode());
 
     ProcessResult artResult = runOnArtRaw(processedApp, mainClassName);

@@ -114,15 +114,11 @@ public class Regress72413928 extends JasminTestBase {
     JasminBuilder builder = buildClass(type);
     String javaResult = runOnJava(builder, "Test");
     ProcessResult d8Result = runOnArtD8Raw(builder, "Test");
-    ProcessResult dxResult = runOnArtDxRaw(builder, "Test");
     if (supportedOnD8AndDx) {
       assertEquals(0, d8Result.exitCode);
       assertEquals(javaResult, d8Result.stdout);
-      assertEquals(0, dxResult.exitCode);
-      assertEquals(javaResult, dxResult.stdout);
     } else {
       assertNotEquals(0, d8Result.exitCode);
-      assertNotEquals(0, dxResult.exitCode);
     }
   }
 }

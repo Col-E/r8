@@ -62,9 +62,7 @@ public class Regress80124071 extends JasminTestBase {
   @Test
   public void test() throws Exception {
     JasminBuilder builder = buildClass();
-    String jvm = runOnArtDx(builder, "Test");
-    String dx = runOnJava(builder, "Test");
-    assertEquals(jvm, dx);
+    String jvm = runOnJava(builder, "Test");
     String d8 = runOnArtD8(builder, "Test");
     assertEquals(jvm, d8);
   }

@@ -67,17 +67,6 @@ public class InvokeSpecialToVirtualMethodTest extends TestBase {
         .assertSuccessWithOutput(EXPECTED);
   }
 
-  @Test
-  public void testDX() throws Exception {
-    assumeTrue(parameters.isDexRuntime());
-    testForDX()
-        .addProgramClasses(Base.class, Bar.class, TestClass.class)
-        .addProgramClassFileData(getFooTransform())
-        .setMinApi(parameters)
-        .run(parameters.getRuntime(), TestClass.class)
-        .assertFailureWithErrorThatMatches(containsString(getExpectedOutput()));
-  }
-
   private String getExpectedOutput() {
     if (parameters.getRuntime().asDex().getVm().getVersion().isOlderThanOrEqual(Version.V4_4_4)) {
       return "VFY: unable to resolve direct method";
