@@ -585,7 +585,7 @@ public class Value implements Comparable<Value> {
         consumer.accept(user.outValue());
       }
     }
-    uniquePhiUsers().forEach(consumer::accept);
+    uniquePhiUsers().forEach(consumer);
   }
 
   public void replaceUsers(Value newValue) {

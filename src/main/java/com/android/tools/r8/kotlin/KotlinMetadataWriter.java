@@ -157,7 +157,7 @@ public class KotlinMetadataWriter {
     return sb.toString();
   }
 
-  private static <T> void appendKmHelper(
+  private static void appendKmHelper(
       String key, StringBuilder sb, Action appendContent, String start, String end) {
     sb.append(key);
     sb.append(start);
@@ -165,7 +165,7 @@ public class KotlinMetadataWriter {
     sb.append(end);
   }
 
-  public static <T> void appendKmSection(
+  public static void appendKmSection(
       String indent, String typeDescription, StringBuilder sb, Consumer<String> appendContent) {
     appendKmHelper(
         typeDescription,

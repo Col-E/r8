@@ -23,7 +23,7 @@ buildscript {
 }
 
 plugins {
-  id "net.ltgt.errorprone" version "0.7"
+  id "net.ltgt.errorprone" version "2.0.2"
 }
 
 apply plugin: 'java'
@@ -44,7 +44,7 @@ ext {
     kotlinVersion = '1.8.0'
     kotlinExtMetadataJVMVersion = '0.6.0'
     smaliVersion = '2.2b4'
-    errorproneVersion = '2.3.2'
+    errorproneVersion = '2.18.0'
     testngVersion = '6.10'
 }
 
@@ -686,29 +686,78 @@ if (!project.hasProperty('without_error_prone') &&
         // Don't enable error prone on Java 8 as the plugin setup does not support it.
         !org.gradle.internal.jvm.Jvm.current().javaVersion.java8) {
     compileJava {
-        // Enable error prone for D8/R8 sources.
+
+        // Enable error prone for D8/R8 main sources and make all warnings errors.
+        // Warnings that we have chosen not to fix (or suppress) are disabled outright below.
+        options.compilerArgs << "-Werror"
         options.errorprone.enabled = true
-        options.errorprone.disableAllChecks = true
-        options.errorprone.check('ClassCanBeStatic', CheckSeverity.ERROR)
-        options.errorprone.check('CollectionIncompatibleType', CheckSeverity.ERROR)
-        options.errorprone.check('OperatorPrecedence', CheckSeverity.ERROR)
+
+        // Non-default / Experimental checks - explicitly enforced.
         options.errorprone.check('RemoveUnusedImports', CheckSeverity.ERROR)
-        options.errorprone.check('MissingOverride', CheckSeverity.ERROR)
-        options.errorprone.check('IntLongMath', CheckSeverity.ERROR)
-        options.errorprone.check('EqualsHashCode', CheckSeverity.ERROR)
         options.errorprone.check('InconsistentOverloads', CheckSeverity.ERROR)
-        options.errorprone.check('ArrayHashCode', CheckSeverity.ERROR)
-        options.errorprone.check('EqualsIncompatibleType', CheckSeverity.ERROR)
-        options.errorprone.check('NonOverridingEquals', CheckSeverity.ERROR)
-        options.errorprone.check('FallThrough', CheckSeverity.ERROR)
-        options.errorprone.check('MissingCasesInEnumSwitch', CheckSeverity.ERROR)
         options.errorprone.check('MissingDefault', CheckSeverity.ERROR)
         options.errorprone.check('MultipleTopLevelClasses', CheckSeverity.ERROR)
         options.errorprone.check('NarrowingCompoundAssignment', CheckSeverity.ERROR)
-        options.errorprone.check('BoxedPrimitiveConstructor', CheckSeverity.ERROR)
-        options.errorprone.check('LogicalAssignment', CheckSeverity.ERROR)
-        options.errorprone.check('FloatCast', CheckSeverity.ERROR)
-        options.errorprone.check('ReturnValueIgnored', CheckSeverity.ERROR)
+
+        // TODO(b/270534077): These should likely be fixed/suppressed and become hard failures.
+        options.errorprone.check('JdkObsolete', CheckSeverity.OFF)
+        options.errorprone.check('UnusedMethod', CheckSeverity.OFF)
+        options.errorprone.check('UnusedVariable', CheckSeverity.OFF)
+        options.errorprone.check('EqualsUnsafeCast', CheckSeverity.OFF)
+        options.errorprone.check('TypeParameterUnusedInFormals', CheckSeverity.OFF)
+        options.errorprone.check('LoopOverCharArray', CheckSeverity.OFF)
+        options.errorprone.check('ImmutableEnumChecker', CheckSeverity.OFF)
+        options.errorprone.check('BadImport', CheckSeverity.OFF)
+        options.errorprone.check('StringSplitter', CheckSeverity.OFF)
+        options.errorprone.check('ComplexBooleanConstant', CheckSeverity.OFF)
+        options.errorprone.check('StreamToIterable', CheckSeverity.OFF)
+        options.errorprone.check('HidingField', CheckSeverity.OFF)
+        options.errorprone.check('StreamResourceLeak', CheckSeverity.OFF)
+        options.errorprone.check('CatchAndPrintStackTrace', CheckSeverity.OFF)
+        options.errorprone.check('ShortCircuitBoolean', CheckSeverity.OFF)
+        options.errorprone.check('NonCanonicalType', CheckSeverity.OFF)
+        options.errorprone.check('UnusedNestedClass', CheckSeverity.OFF)
+        options.errorprone.check('AmbiguousMethodReference', CheckSeverity.OFF)
+        options.errorprone.check('InvalidParam', CheckSeverity.OFF)
+        options.errorprone.check('CharacterGetNumericValue', CheckSeverity.OFF)
+        options.errorprone.check('ModifyCollectionInEnhancedForLoop', CheckSeverity.OFF)
+        options.errorprone.check('EmptyCatch', CheckSeverity.OFF)
+        options.errorprone.check('ArgumentSelectionDefectChecker', CheckSeverity.OFF)
+        options.errorprone.check('ImmutableAnnotationChecker', CheckSeverity.OFF)
+        options.errorprone.check('ObjectToString', CheckSeverity.OFF)
+        options.errorprone.check('DoNotClaimAnnotations', CheckSeverity.OFF)
+        options.errorprone.check('AnnotateFormatMethod', CheckSeverity.OFF)
+
+        // TODO(b/270537614): Remove finalize uses.
+        options.errorprone.check('Finalize', CheckSeverity.OFF)
+
+        // The following warnings could/should be active but are hit by R8 now so silence them.
+        options.errorprone.check('EqualsGetClass', CheckSeverity.OFF)
+        options.errorprone.check('MixedMutabilityReturnType', CheckSeverity.OFF)
+        options.errorprone.check('UnnecessaryParentheses', CheckSeverity.OFF)
+        options.errorprone.check('DoNotCallSuggester', CheckSeverity.OFF)
+        options.errorprone.check('InlineMeSuggester', CheckSeverity.OFF)
+        options.errorprone.check('MutablePublicArray', CheckSeverity.OFF)
+        options.errorprone.check('DefaultCharset', CheckSeverity.OFF)
+        options.errorprone.check('InconsistentCapitalization', CheckSeverity.OFF)
+        options.errorprone.check('InlineFormatString', CheckSeverity.OFF)
+        options.errorprone.check('MissingImplementsComparable', CheckSeverity.OFF)
+
+        // Warnings that cause unwanted edits (e.g., inability to write informative asserts).
+        options.errorprone.check('AlreadyChecked', CheckSeverity.OFF)
+
+        // JavaDoc related warnings. Would be nice to resolve but of no real consequence.
+        options.errorprone.check('InvalidLink', CheckSeverity.OFF)
+        options.errorprone.check('InvalidBlockTag', CheckSeverity.OFF)
+        options.errorprone.check('InvalidInlineTag', CheckSeverity.OFF)
+        options.errorprone.check('EmptyBlockTag', CheckSeverity.OFF)
+        options.errorprone.check('MissingSummary', CheckSeverity.OFF)
+        options.errorprone.check('UnrecognisedJavadocTag', CheckSeverity.OFF)
+        options.errorprone.check('AlmostJavadoc', CheckSeverity.OFF)
+
+        // Moving away from identity and canonical items is not planned.
+        options.errorprone.check('ReferenceEquality', CheckSeverity.OFF)
+        options.errorprone.check('IdentityHashMapUsage', CheckSeverity.OFF)
     }
 }
 

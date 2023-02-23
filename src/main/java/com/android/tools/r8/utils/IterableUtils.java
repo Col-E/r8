@@ -19,7 +19,7 @@ import java.util.function.Predicate;
 
 public class IterableUtils {
 
-  public static <S, T> boolean allIdentical(Iterable<S> iterable) {
+  public static <S> boolean allIdentical(Iterable<S> iterable) {
     return allIdentical(iterable, Function.identity());
   }
 

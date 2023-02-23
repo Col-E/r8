@@ -155,7 +155,7 @@ public class DexCode extends Code implements DexWritableCode, StructuralItem<Dex
     assert handlers != null;
     assert instructions != null;
     assert verifySetPositionFramesFollowedByDefaultEvent(debugInfo);
-    hashCode();  // Cache the hash code eagerly.
+    int unused = hashCode(); // Cache the hash code eagerly.
   }
 
   public DexCode withCodeLens(GraphLens codeLens) {

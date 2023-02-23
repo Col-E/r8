@@ -856,7 +856,7 @@ public class ProguardMapReader implements AutoCloseable {
     }
 
     @Override
-    public String toString() {
+    public String getMessage() {
       if (eol) {
         return "Parse error [" + lineNo + ":eol] " + msg;
       } else {

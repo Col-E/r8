@@ -108,7 +108,7 @@ public final class ForwardMethodSourceCode extends SyntheticSourceCode {
   private final boolean isInterface;
   private final boolean extraNullParameter;
 
-  protected ForwardMethodSourceCode(
+  ForwardMethodSourceCode(
       DexType receiver,
       DexMethod method,
       DexMethod originalMethod,
