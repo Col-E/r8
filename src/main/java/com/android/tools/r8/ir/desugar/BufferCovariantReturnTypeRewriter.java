@@ -44,12 +44,16 @@ public class BufferCovariantReturnTypeRewriter implements CfInstructionDesugarin
     CfInvoke newInvoke =
         new CfInvoke(
             cfInvoke.getOpcode(), invokedMethod.withProto(proto, factory), cfInvoke.isInterface());
+    return desugarInstruction(invokedMethod, newInvoke);
+  }
+
+  private DesugarDescription desugarInstruction(DexMethod invokedMethod, CfInvoke newInvoke) {
     return DesugarDescription.builder()
         .setDesugarRewrite(
             (freshLocalProvider,
                 localStackAllocator,
                 eventConsumer,
-                ignore, // context
+                context,
                 methodProcessingContext,
                 desugaringCollection,
                 dexItemFactory) ->

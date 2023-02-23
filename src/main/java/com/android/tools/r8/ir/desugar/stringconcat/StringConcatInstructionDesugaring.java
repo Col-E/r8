@@ -80,7 +80,7 @@ public class StringConcatInstructionDesugaring implements CfInstructionDesugarin
           return desugarMakeConcat(invoke);
         }
         if (bootstrapMethod == factory.stringConcatFactoryMembers.makeConcatWithConstants) {
-          return desugarMakeConcatWithConstants(invoke, context);
+          return desugarMakeConcatWithConstants(invoke);
         }
       }
     }
@@ -122,14 +122,13 @@ public class StringConcatInstructionDesugaring implements CfInstructionDesugarin
     return builder.desugar(localStackAllocator);
   }
 
-  private DesugarDescription desugarMakeConcatWithConstants(
-      CfInvokeDynamic invoke, ProgramMethod context) {
+  private DesugarDescription desugarMakeConcatWithConstants(CfInvokeDynamic invoke) {
     return DesugarDescription.builder()
         .setDesugarRewrite(
             (freshLocalProvider,
                 localStackAllocator,
                 eventConsumer,
-                ignore, // context
+                context,
                 methodProcessingContext,
                 desugaringCollection,
                 dexItemFactory) ->

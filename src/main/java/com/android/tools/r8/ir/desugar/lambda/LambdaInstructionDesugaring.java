@@ -71,13 +71,16 @@ public class LambdaInstructionDesugaring implements CfInstructionDesugaring {
     if (!isLambdaInvoke(instruction, context, appView)) {
       return DesugarDescription.nothing();
     }
+    return desugarInstruction(instruction);
+  }
 
+  private DesugarDescription desugarInstruction(CfInstruction instruction) {
     return DesugarDescription.builder()
         .setDesugarRewrite(
             (freshLocalProvider,
                 localStackAllocator,
                 eventConsumer,
-                ignore, // context
+                context,
                 methodProcessingContext,
                 desugaringCollection,
                 dexItemFactory) ->

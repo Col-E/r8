@@ -35,12 +35,16 @@ public class InvokeToPrivateRewriter implements CfInstructionDesugaring {
     if (privateMethod == null) {
       return DesugarDescription.nothing();
     }
+    return desugarInstruction(invoke, method);
+  }
+
+  private DesugarDescription desugarInstruction(CfInvoke invoke, DexMethod method) {
     return DesugarDescription.builder()
         .setDesugarRewrite(
             (freshLocalProvider,
                 localStackAllocator,
                 eventConsumer,
-                ignore, // context
+                context,
                 methodProcessingContext,
                 desugaringCollection,
                 dexItemFactory) ->

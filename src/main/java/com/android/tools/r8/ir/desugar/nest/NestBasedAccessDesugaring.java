@@ -33,13 +33,11 @@ import com.android.tools.r8.ir.desugar.CfInstructionDesugaring;
 import com.android.tools.r8.ir.desugar.CfInstructionDesugaringEventConsumer;
 import com.android.tools.r8.ir.desugar.DesugarDescription;
 import com.android.tools.r8.ir.desugar.LambdaDescriptor;
-import com.android.tools.r8.ir.desugar.LocalStackAllocator;
 import com.android.tools.r8.ir.desugar.ProgramAdditions;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -313,34 +311,14 @@ public class NestBasedAccessDesugaring implements CfInstructionDesugaring {
   public DesugarDescription compute(CfInstruction instruction, ProgramMethod context) {
     if (instruction.isFieldInstruction()) {
       if (needsDesugaring(instruction.asFieldInstruction().getField(), context)) {
-        return DesugarDescription.builder()
-            .setDesugarRewrite(
-                (freshLocalProvider,
-                    localStackAllocator,
-                    eventConsumer,
-                    ignore, // context
-                    methodProcessingContext,
-                    desugaringCollection,
-                    dexItemFactory) ->
-                    desugarFieldInstruction(instruction.asFieldInstruction(), context))
-            .build();
+        return desugarFieldInstruction(instruction.asFieldInstruction());
       } else {
         return DesugarDescription.nothing();
       }
     }
     if (instruction.isInvoke()) {
       if (needsDesugaring(instruction.asInvoke().getMethod(), context)) {
-        return DesugarDescription.builder()
-            .setDesugarRewrite(
-                (freshLocalProvider,
-                    localStackAllocator,
-                    eventConsumer,
-                    ignore, // context
-                    methodProcessingContext,
-                    desugaringCollection,
-                    dexItemFactory) ->
-                    desugarInvokeInstruction(instruction.asInvoke(), localStackAllocator, context))
-            .build();
+        return desugarInvokeInstruction(instruction.asInvoke());
       } else {
         return DesugarDescription.nothing();
       }
@@ -348,47 +326,72 @@ public class NestBasedAccessDesugaring implements CfInstructionDesugaring {
     return DesugarDescription.nothing();
   }
 
-  private List<CfInstruction> desugarFieldInstruction(
-      CfFieldInstruction instruction, ProgramMethod context) {
-    BridgeAndTarget<DexClassAndField> bridgeAndTarget =
-        bridgeAndTargetForDesugaring(instruction.getField(), instruction.isFieldGet(), context);
-    if (bridgeAndTarget == null) {
-      return null;
-    }
-    // All bridges for program fields must have been added through the prepare step.
-    assert !bridgeAndTarget.getTarget().isProgramField()
-        || bridgeAndTarget.getTarget().getHolder().lookupDirectMethod(bridgeAndTarget.getBridge())
-            != null;
-    return ImmutableList.of(
-        new CfInvoke(
-            Opcodes.INVOKESTATIC,
-            bridgeAndTarget.getBridge(),
-            bridgeAndTarget.getTarget().getHolder().isInterface()));
+  private DesugarDescription desugarFieldInstruction(CfFieldInstruction instruction) {
+    return DesugarDescription.builder()
+        .setDesugarRewrite(
+            (freshLocalProvider,
+                localStackAllocator,
+                eventConsumer,
+                context,
+                methodProcessingContext,
+                desugaringCollection,
+                dexItemFactory) -> {
+              BridgeAndTarget<DexClassAndField> bridgeAndTarget =
+                  bridgeAndTargetForDesugaring(
+                      instruction.getField(), instruction.isFieldGet(), context);
+              assert bridgeAndTarget != null;
+              // All bridges for program fields must have been added through the prepare step.
+              assert !bridgeAndTarget.getTarget().isProgramField()
+                  || bridgeAndTarget
+                          .getTarget()
+                          .getHolder()
+                          .lookupDirectMethod(bridgeAndTarget.getBridge())
+                      != null;
+              return ImmutableList.of(
+                  new CfInvoke(
+                      Opcodes.INVOKESTATIC,
+                      bridgeAndTarget.getBridge(),
+                      bridgeAndTarget.getTarget().getHolder().isInterface()));
+            })
+        .build();
   }
 
-  private List<CfInstruction> desugarInvokeInstruction(
-      CfInvoke invoke, LocalStackAllocator localStackAllocator, ProgramMethod context) {
-    DexMethod invokedMethod = invoke.getMethod();
-    BridgeAndTarget<DexClassAndMethod> bridgeAndTarget =
-        bridgeAndTargetForDesugaring(invokedMethod, context, this::getConstructorArgumentClass);
-    if (bridgeAndTarget == null) {
-      return null;
-    }
-    // All bridges for program methods must have been added through the prepare step.
-    assert !bridgeAndTarget.getTarget().isProgramMethod()
-        || bridgeAndTarget.getTarget().getHolder().lookupDirectMethod(bridgeAndTarget.getBridge())
-            != null;
-    if (bridgeAndTarget.getTarget().getDefinition().isInstanceInitializer()) {
-      assert !invoke.isInterface();
-      // Ensure room on the stack for the extra null argument.
-      localStackAllocator.allocateLocalStack(1);
-      return ImmutableList.of(
-          new CfConstNull(),
-          new CfInvoke(Opcodes.INVOKESPECIAL, bridgeAndTarget.getBridge(), false));
-    }
+  private DesugarDescription desugarInvokeInstruction(CfInvoke invoke) {
+    return DesugarDescription.builder()
+        .setDesugarRewrite(
+            (freshLocalProvider,
+                localStackAllocator,
+                eventConsumer,
+                context,
+                methodProcessingContext,
+                desugaringCollection,
+                dexItemFactory) -> {
+              DexMethod invokedMethod = invoke.getMethod();
+              BridgeAndTarget<DexClassAndMethod> bridgeAndTarget =
+                  bridgeAndTargetForDesugaring(
+                      invokedMethod, context, this::getConstructorArgumentClass);
+              assert bridgeAndTarget != null;
+              // All bridges for program methods must have been added through the prepare step.
+              assert !bridgeAndTarget.getTarget().isProgramMethod()
+                  || bridgeAndTarget
+                          .getTarget()
+                          .getHolder()
+                          .lookupDirectMethod(bridgeAndTarget.getBridge())
+                      != null;
+              if (bridgeAndTarget.getTarget().getDefinition().isInstanceInitializer()) {
+                assert !invoke.isInterface();
+                // Ensure room on the stack for the extra null argument.
+                localStackAllocator.allocateLocalStack(1);
+                return ImmutableList.of(
+                    new CfConstNull(),
+                    new CfInvoke(Opcodes.INVOKESPECIAL, bridgeAndTarget.getBridge(), false));
+              }
 
-    return ImmutableList.of(
-        new CfInvoke(Opcodes.INVOKESTATIC, bridgeAndTarget.getBridge(), invoke.isInterface()));
+              return ImmutableList.of(
+                  new CfInvoke(
+                      Opcodes.INVOKESTATIC, bridgeAndTarget.getBridge(), invoke.isInterface()));
+            })
+        .build();
   }
 
   RuntimeException reportIncompleteNest(LibraryMember<?, ?> member) {

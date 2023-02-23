@@ -173,22 +173,7 @@ public class RecordDesugaring
   public DesugarDescription compute(CfInstruction instruction, ProgramMethod context) {
     if (instruction.isInvokeDynamic()) {
       if (needsDesugaring(instruction.asInvokeDynamic(), context)) {
-        return DesugarDescription.builder()
-            .setDesugarRewrite(
-                (freshLocalProvider,
-                    localStackAllocator,
-                    eventConsumer,
-                    ignore, // context
-                    methodProcessingContext,
-                    desugaringCollection,
-                    dexItemFactory) ->
-                    desugarInvokeDynamicOnRecord(
-                        instruction.asInvokeDynamic(),
-                        localStackAllocator,
-                        eventConsumer,
-                        context,
-                        methodProcessingContext))
-            .build();
+        return desugarInvokeDynamic(instruction);
       } else {
         return DesugarDescription.nothing();
       }
@@ -199,23 +184,46 @@ public class RecordDesugaring
         DexMethod newMethod =
             rewriteMethod(cfInvoke.getMethod(), cfInvoke.isInvokeSuper(context.getHolderType()));
         assert newMethod != cfInvoke.getMethod();
-        return DesugarDescription.builder()
-            .setDesugarRewrite(
-                (freshLocalProvider,
-                    localStackAllocator,
-                    eventConsumer,
-                    ignore, // context
-                    methodProcessingContext,
-                    desugaringCollection,
-                    dexItemFactory) ->
-                    Collections.singletonList(
-                        new CfInvoke(cfInvoke.getOpcode(), newMethod, cfInvoke.isInterface())))
-            .build();
+        return desugarInvoke(cfInvoke, newMethod);
       } else {
         return DesugarDescription.nothing();
       }
     }
     return DesugarDescription.nothing();
+  }
+
+  private DesugarDescription desugarInvokeDynamic(CfInstruction instruction) {
+    return DesugarDescription.builder()
+        .setDesugarRewrite(
+            (freshLocalProvider,
+                localStackAllocator,
+                eventConsumer,
+                context,
+                methodProcessingContext,
+                desugaringCollection,
+                dexItemFactory) ->
+                desugarInvokeDynamicOnRecord(
+                    instruction.asInvokeDynamic(),
+                    localStackAllocator,
+                    eventConsumer,
+                    context,
+                    methodProcessingContext))
+        .build();
+  }
+
+  private DesugarDescription desugarInvoke(CfInvoke invoke, DexMethod newMethod) {
+    return DesugarDescription.builder()
+        .setDesugarRewrite(
+            (freshLocalProvider,
+                localStackAllocator,
+                eventConsumer,
+                context,
+                methodProcessingContext,
+                desugaringCollection,
+                dexItemFactory) ->
+                Collections.singletonList(
+                    new CfInvoke(invoke.getOpcode(), newMethod, invoke.isInterface())))
+        .build();
   }
 
   private List<CfInstruction> desugarInvokeDynamicOnRecord(

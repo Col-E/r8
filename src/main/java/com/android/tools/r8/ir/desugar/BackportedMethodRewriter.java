@@ -103,12 +103,16 @@ public final class BackportedMethodRewriter implements CfInstructionDesugaring {
             .isSyntheticOfKind(context.getContextType(), kinds -> kinds.BACKPORT_WITH_FORWARDING)) {
       return DesugarDescription.nothing();
     }
+    return desugarInstruction(invoke, methodProvider);
+  }
+
+  private DesugarDescription desugarInstruction(CfInvoke invoke, MethodProvider methodProvider) {
     return DesugarDescription.builder()
         .setDesugarRewrite(
             (freshLocalProvider,
                 localStackAllocator,
                 eventConsumer,
-                ignore, // context
+                context,
                 methodProcessingContext,
                 desugaringCollection,
                 dexItemFactory) ->

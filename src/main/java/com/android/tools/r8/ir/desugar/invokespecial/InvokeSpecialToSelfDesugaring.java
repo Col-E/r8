@@ -56,29 +56,36 @@ public class InvokeSpecialToSelfDesugaring implements CfInstructionDesugaring {
 
     if (method.getAccessFlags().isFinal()) {
       // This method is final thus we can use invoke-virtual.
-      return DesugarDescription.builder()
-          .setDesugarRewrite(
-              (freshLocalProvider,
-                  localStackAllocator,
-                  eventConsumer,
-                  ignore, // context
-                  methodProcessingContext,
-                  desugaringCollection,
-                  dexItemFactory) ->
-                  ImmutableList.of(
-                      new CfInvoke(
-                          Opcodes.INVOKEVIRTUAL, invoke.getMethod(), invoke.isInterface())))
-          .build();
+      return desugarToInvokeVirtual(invoke);
     }
 
     // This is an invoke-special to a virtual method on invoke-special method holder.
     // The invoke should be rewritten with a bridge.
+    return desugarWithBridge(invoke, method);
+  }
+
+  private DesugarDescription desugarToInvokeVirtual(CfInvoke invoke) {
     return DesugarDescription.builder()
         .setDesugarRewrite(
             (freshLocalProvider,
                 localStackAllocator,
                 eventConsumer,
-                ignore, // context
+                context,
+                methodProcessingContext,
+                desugaringCollection,
+                dexItemFactory) ->
+                ImmutableList.of(
+                    new CfInvoke(Opcodes.INVOKEVIRTUAL, invoke.getMethod(), invoke.isInterface())))
+        .build();
+  }
+
+  private DesugarDescription desugarWithBridge(CfInvoke invoke, ProgramMethod method) {
+    return DesugarDescription.builder()
+        .setDesugarRewrite(
+            (freshLocalProvider,
+                localStackAllocator,
+                eventConsumer,
+                context,
                 methodProcessingContext,
                 desugaringCollection,
                 dexItemFactory) ->
