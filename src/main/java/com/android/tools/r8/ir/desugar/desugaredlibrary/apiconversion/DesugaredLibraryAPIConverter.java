@@ -17,8 +17,8 @@ import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.desugar.CfInstructionDesugaring;
-import com.android.tools.r8.ir.desugar.CfInstructionDesugaringCollection;
 import com.android.tools.r8.ir.desugar.CfInstructionDesugaringEventConsumer;
+import com.android.tools.r8.ir.desugar.DesugarDescription;
 import com.android.tools.r8.ir.desugar.FreshLocalProvider;
 import com.android.tools.r8.ir.desugar.LocalStackAllocator;
 import com.android.tools.r8.utils.DescriptorUtils;
@@ -73,41 +73,42 @@ public class DesugaredLibraryAPIConverter implements CfInstructionDesugaring {
     }
   }
 
-  @Override
-  public Collection<CfInstruction> desugarInstruction(
-      CfInstruction instruction,
-      FreshLocalProvider freshLocalProvider,
-      LocalStackAllocator localStackAllocator,
-      CfInstructionDesugaringEventConsumer eventConsumer,
-      ProgramMethod context,
-      MethodProcessingContext methodProcessingContext,
-      CfInstructionDesugaringCollection desugaringCollection,
-      DexItemFactory dexItemFactory) {
-    if (needsDesugaring(instruction, context)) {
-      assert instruction.isInvoke();
-      return rewriteLibraryInvoke(
-          instruction.asInvoke(),
-          methodProcessingContext,
-          freshLocalProvider,
-          localStackAllocator,
-          eventConsumer,
-          context);
-    }
-    return null;
-  }
-
-  @Override
-  public boolean needsDesugaring(CfInstruction instruction, ProgramMethod context) {
-    if (!instruction.isInvoke()) {
-      return false;
-    }
+  private boolean invokeNeedsDesugaring(CfInvoke invoke, ProgramMethod context) {
     if (isAPIConversionSyntheticType(context.getHolderType(), wrapperSynthesizor, appView)) {
       return false;
     }
     if (appView.dexItemFactory().multiDexTypes.contains(context.getHolderType())) {
       return false;
     }
-    return shouldRewriteInvoke(instruction.asInvoke(), context);
+    return shouldRewriteInvoke(invoke.asInvoke(), context);
+  }
+
+  @Override
+  public DesugarDescription compute(CfInstruction instruction, ProgramMethod context) {
+    if (!instruction.isInvoke()) {
+      return DesugarDescription.nothing();
+    }
+    CfInvoke invoke = instruction.asInvoke();
+    if (!invokeNeedsDesugaring(invoke, context)) {
+      return DesugarDescription.nothing();
+    }
+    return DesugarDescription.builder()
+        .setDesugarRewrite(
+            (freshLocalProvider,
+                localStackAllocator,
+                eventConsumer,
+                theContext,
+                methodProcessingContext,
+                desugaringCollection,
+                dexItemFactory) ->
+                rewriteLibraryInvoke(
+                    invoke,
+                    methodProcessingContext,
+                    freshLocalProvider,
+                    localStackAllocator,
+                    eventConsumer,
+                    context))
+        .build();
   }
 
   static boolean isAPIConversionSyntheticType(
@@ -294,7 +295,6 @@ public class DesugaredLibraryAPIConverter implements CfInstructionDesugaring {
     }
     return methodForDesugaring.getAccessFlags().isPublic();
   }
-
 
 
 }
