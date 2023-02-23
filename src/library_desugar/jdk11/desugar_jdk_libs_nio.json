@@ -15,6 +15,30 @@
     {
       "api_level_below_or_equal": 10000,
       "api_level_greater_or_equal": 26,
+      "amend_library_method": [
+        "public static java.lang.String java.nio.file.Files#readString(java.nio.file.Path)",
+        "public static java.lang.String java.nio.file.Files#readString(java.nio.file.Path, java.nio.charset.Charset)",
+        "public static java.nio.file.Path java.nio.file.Files#writeString(java.nio.file.Path, java.lang.CharSequence, java.nio.file.OpenOption[])",
+        "public static java.nio.file.Path java.nio.file.Files#writeString(java.nio.file.Path, java.lang.CharSequence, java.nio.charset.Charset, java.nio.file.OpenOption[])"
+      ]
+    },
+    {
+      "api_level_below_or_equal": 10000,
+      "api_level_greater_or_equal": 24,
+      "rewrite_prefix": {
+        "java.util.stream.DesugarDoubleStream": "j$.util.stream.DesugarDoubleStream",
+        "java.util.stream.DesugarIntStream": "j$.util.stream.DesugarIntStream",
+        "java.util.stream.DesugarLongStream": "j$.util.stream.DesugarLongStream"
+      },
+      "retarget_method": {
+        "java.util.stream.DoubleStream java.util.stream.DoubleStream#iterate(double, java.util.function.DoublePredicate, java.util.function.DoubleUnaryOperator)": "java.util.stream.DesugarDoubleStream",
+        "java.util.stream.IntStream java.util.stream.IntStream#iterate(int, java.util.function.IntPredicate, java.util.function.IntUnaryOperator)": "java.util.stream.DesugarIntStream",
+        "java.util.stream.LongStream java.util.stream.LongStream#iterate(long, java.util.function.LongPredicate, java.util.function.LongUnaryOperator)": "java.util.stream.DesugarLongStream"
+      }
+    },
+    {
+      "api_level_below_or_equal": 33,
+      "api_level_greater_or_equal": 26,
       "rewrite_prefix": {
         "java.time.DesugarLocalDate": "j$.time.DesugarLocalDate",
         "java.time.DesugarClock": "j$.time.DesugarClock",
@@ -45,27 +69,17 @@
         "public static java.time.LocalDate java.time.LocalDate#ofInstant(java.time.Instant, java.time.ZoneId)",
         "public long java.time.LocalDate#toEpochSecond(java.time.LocalTime, java.time.ZoneOffset)",
         "public static java.time.Clock java.time.Clock#tickMillis(java.time.ZoneId)",
-        "public long java.time.OffsetTime#toEpochSecond(java.time.LocalDate)",
-        "public static java.lang.String java.nio.file.Files#readString(java.nio.file.Path)",
-        "public static java.lang.String java.nio.file.Files#readString(java.nio.file.Path, java.nio.charset.Charset)",
-        "public static java.nio.file.Path java.nio.file.Files#writeString(java.nio.file.Path, java.lang.CharSequence, java.nio.file.OpenOption[])",
-        "public static java.nio.file.Path java.nio.file.Files#writeString(java.nio.file.Path, java.lang.CharSequence, java.nio.charset.Charset, java.nio.file.OpenOption[])"
+        "public long java.time.OffsetTime#toEpochSecond(java.time.LocalDate)"
       ]
     },
     {
-      "api_level_below_or_equal": 10000,
+      "api_level_below_or_equal": 33,
       "api_level_greater_or_equal": 24,
       "rewrite_prefix": {
-        "java.util.stream.DesugarDoubleStream": "j$.util.stream.DesugarDoubleStream",
-        "java.util.stream.DesugarIntStream": "j$.util.stream.DesugarIntStream",
-        "java.util.stream.DesugarLongStream": "j$.util.stream.DesugarLongStream",
         "java.util.stream.DesugarStream": "j$.util.stream.DesugarStream"
       },
       "retarget_method": {
-        "java.util.stream.DoubleStream java.util.stream.DoubleStream#iterate(double, java.util.function.DoublePredicate, java.util.function.DoubleUnaryOperator)":  "java.util.stream.DesugarDoubleStream",
-        "java.util.stream.IntStream java.util.stream.IntStream#iterate(int, java.util.function.IntPredicate, java.util.function.IntUnaryOperator)":  "java.util.stream.DesugarIntStream",
-        "java.util.stream.LongStream java.util.stream.LongStream#iterate(long, java.util.function.LongPredicate, java.util.function.LongUnaryOperator)":  "java.util.stream.DesugarLongStream",
-        "java.util.stream.Stream java.util.stream.Stream#iterate(java.lang.Object, java.util.function.Predicate, java.util.function.UnaryOperator)":  "java.util.stream.DesugarStream"
+        "java.util.stream.Stream java.util.stream.Stream#iterate(java.lang.Object, java.util.function.Predicate, java.util.function.UnaryOperator)": "java.util.stream.DesugarStream"
       }
     },
     {
@@ -256,23 +270,76 @@
         "java.nio.file.Path java.io.File#toPath()": "java.io.DesugarFile"
       },
       "api_generic_types_conversion": {
-        "java.nio.channels.AsynchronousFileChannel java.nio.file.spi.FileSystemProvider#newAsynchronousFileChannel(java.nio.file.Path, java.util.Set, java.util.concurrent.ExecutorService, java.nio.file.attribute.FileAttribute[])" : [1, "java.util.Set java.nio.file.FileApiFlips#flipOpenOptionSet(java.util.Set)"],
-        "java.nio.channels.SeekableByteChannel java.nio.file.spi.FileSystemProvider#newByteChannel(java.nio.file.Path, java.util.Set, java.nio.file.attribute.FileAttribute[])" : [1, "java.util.Set java.nio.file.FileApiFlips#flipOpenOptionSet(java.util.Set)"],
-        "java.nio.channels.FileChannel java.nio.file.spi.FileSystemProvider#newFileChannel(java.nio.file.Path, java.util.Set, java.nio.file.attribute.FileAttribute[])" : [1, "java.util.Set java.nio.file.FileApiFlips#flipOpenOptionSet(java.util.Set)"],
-        "java.util.List java.nio.file.WatchKey#pollEvents()": [-1, "java.util.List java.nio.file.FileApiFlips#flipWatchEventList(java.util.List)"],
-        "java.lang.Object java.nio.file.WatchEvent#context()": [-1, "java.lang.Object java.nio.file.PathApiFlips#convertPath(java.lang.Object)"],
-        "boolean java.nio.file.FileStore#supportsFileAttributeView(java.lang.Class)": [0, "java.lang.Class java.nio.file.FileApiFlips#flipFileAttributeView(java.lang.Class)"],
-        "java.nio.file.attribute.FileAttributeView java.nio.file.spi.FileSystemProvider#getFileAttributeView(java.nio.file.Path, java.lang.Class, java.nio.file.LinkOption[])": [1, "java.lang.Class java.nio.file.FileApiFlips#flipFileAttributeView(java.lang.Class)"],
-        "java.nio.file.attribute.BasicFileAttributes java.nio.file.spi.FileSystemProvider#readAttributes(java.nio.file.Path, java.lang.Class, java.nio.file.LinkOption[])": [1, "java.lang.Class java.nio.file.FileApiFlips#flipFileAttributes(java.lang.Class)"],
-        "java.util.Set java.nio.file.attribute.PosixFileAttributes#permissions()": [-1, "java.util.Set java.nio.file.FileApiFlips#flipPosixPermissionSet(java.util.Set)"],
-        "void java.nio.file.attribute.PosixFileAttributeView#setPermissions(java.util.Set)": [0, "java.util.Set java.nio.file.FileApiFlips#flipPosixPermissionSet(java.util.Set)"],
-        "java.util.Map java.nio.file.spi.FileSystemProvider#readAttributes(java.nio.file.Path, java.lang.String, java.nio.file.LinkOption[])" : [-1, "java.util.Map java.nio.file.FileApiFlips#flipMapWithMaybeFileTimeValues(java.util.Map)"],
-        "java.lang.Iterable java.nio.file.FileSystem#getRootDirectories()": [-1, "java.lang.Iterable java.nio.file.PathApiFlips#flipIterablePath(java.lang.Iterable)"],
-        "java.util.Iterator java.nio.file.Path#iterator()": [-1, "java.util.Iterator java.nio.file.PathApiFlips#flipIteratorPath(java.util.Iterator)"],
-        "int java.nio.file.Path#compareTo(java.lang.Object)": [0, "java.lang.Object java.nio.file.PathApiFlips#convertPath(java.lang.Object)"],
-        "java.nio.file.DirectoryStream java.nio.file.spi.FileSystemProvider#newDirectoryStream(java.nio.file.Path, java.nio.file.DirectoryStream$Filter)": [-1, "java.nio.file.DirectoryStream java.nio.file.PathApiFlips#flipDirectoryStreamPath(java.nio.file.DirectoryStream)", 1, "java.nio.file.DirectoryStream$Filter java.nio.file.PathApiFlips#flipDirectoryStreamFilterPath(java.nio.file.DirectoryStream$Filter)"],
-        "void java.nio.file.spi.FileSystemProvider#setAttribute(java.nio.file.Path, java.lang.String, java.lang.Object, java.nio.file.LinkOption[])": [2, "java.lang.Object java.nio.file.FileApiFlips#flipMaybeFileTime(java.lang.Object)"],
-        "java.nio.channels.FileChannel java.nio.channels.FileChannel#open(java.nio.file.Path, java.util.Set, java.nio.file.attribute.FileAttribute[])" : [1, "java.util.Set java.nio.file.FileApiFlips#flipOpenOptionSet(java.util.Set)"]
+        "java.nio.channels.AsynchronousFileChannel java.nio.file.spi.FileSystemProvider#newAsynchronousFileChannel(java.nio.file.Path, java.util.Set, java.util.concurrent.ExecutorService, java.nio.file.attribute.FileAttribute[])": [
+          1,
+          "java.util.Set java.nio.file.FileApiFlips#flipOpenOptionSet(java.util.Set)"
+        ],
+        "java.nio.channels.SeekableByteChannel java.nio.file.spi.FileSystemProvider#newByteChannel(java.nio.file.Path, java.util.Set, java.nio.file.attribute.FileAttribute[])": [
+          1,
+          "java.util.Set java.nio.file.FileApiFlips#flipOpenOptionSet(java.util.Set)"
+        ],
+        "java.nio.channels.FileChannel java.nio.file.spi.FileSystemProvider#newFileChannel(java.nio.file.Path, java.util.Set, java.nio.file.attribute.FileAttribute[])": [
+          1,
+          "java.util.Set java.nio.file.FileApiFlips#flipOpenOptionSet(java.util.Set)"
+        ],
+        "java.util.List java.nio.file.WatchKey#pollEvents()": [
+          -1,
+          "java.util.List java.nio.file.FileApiFlips#flipWatchEventList(java.util.List)"
+        ],
+        "java.lang.Object java.nio.file.WatchEvent#context()": [
+          -1,
+          "java.lang.Object java.nio.file.PathApiFlips#convertPath(java.lang.Object)"
+        ],
+        "boolean java.nio.file.FileStore#supportsFileAttributeView(java.lang.Class)": [
+          0,
+          "java.lang.Class java.nio.file.FileApiFlips#flipFileAttributeView(java.lang.Class)"
+        ],
+        "java.nio.file.attribute.FileAttributeView java.nio.file.spi.FileSystemProvider#getFileAttributeView(java.nio.file.Path, java.lang.Class, java.nio.file.LinkOption[])": [
+          1,
+          "java.lang.Class java.nio.file.FileApiFlips#flipFileAttributeView(java.lang.Class)"
+        ],
+        "java.nio.file.attribute.BasicFileAttributes java.nio.file.spi.FileSystemProvider#readAttributes(java.nio.file.Path, java.lang.Class, java.nio.file.LinkOption[])": [
+          1,
+          "java.lang.Class java.nio.file.FileApiFlips#flipFileAttributes(java.lang.Class)"
+        ],
+        "java.util.Set java.nio.file.attribute.PosixFileAttributes#permissions()": [
+          -1,
+          "java.util.Set java.nio.file.FileApiFlips#flipPosixPermissionSet(java.util.Set)"
+        ],
+        "void java.nio.file.attribute.PosixFileAttributeView#setPermissions(java.util.Set)": [
+          0,
+          "java.util.Set java.nio.file.FileApiFlips#flipPosixPermissionSet(java.util.Set)"
+        ],
+        "java.util.Map java.nio.file.spi.FileSystemProvider#readAttributes(java.nio.file.Path, java.lang.String, java.nio.file.LinkOption[])": [
+          -1,
+          "java.util.Map java.nio.file.FileApiFlips#flipMapWithMaybeFileTimeValues(java.util.Map)"
+        ],
+        "java.lang.Iterable java.nio.file.FileSystem#getRootDirectories()": [
+          -1,
+          "java.lang.Iterable java.nio.file.PathApiFlips#flipIterablePath(java.lang.Iterable)"
+        ],
+        "java.util.Iterator java.nio.file.Path#iterator()": [
+          -1,
+          "java.util.Iterator java.nio.file.PathApiFlips#flipIteratorPath(java.util.Iterator)"
+        ],
+        "int java.nio.file.Path#compareTo(java.lang.Object)": [
+          0,
+          "java.lang.Object java.nio.file.PathApiFlips#convertPath(java.lang.Object)"
+        ],
+        "java.nio.file.DirectoryStream java.nio.file.spi.FileSystemProvider#newDirectoryStream(java.nio.file.Path, java.nio.file.DirectoryStream$Filter)": [
+          -1,
+          "java.nio.file.DirectoryStream java.nio.file.PathApiFlips#flipDirectoryStreamPath(java.nio.file.DirectoryStream)",
+          1,
+          "java.nio.file.DirectoryStream$Filter java.nio.file.PathApiFlips#flipDirectoryStreamFilterPath(java.nio.file.DirectoryStream$Filter)"
+        ],
+        "void java.nio.file.spi.FileSystemProvider#setAttribute(java.nio.file.Path, java.lang.String, java.lang.Object, java.nio.file.LinkOption[])": [
+          2,
+          "java.lang.Object java.nio.file.FileApiFlips#flipMaybeFileTime(java.lang.Object)"
+        ],
+        "java.nio.channels.FileChannel java.nio.channels.FileChannel#open(java.nio.file.Path, java.util.Set, java.nio.file.attribute.FileAttribute[])": [
+          1,
+          "java.util.Set java.nio.file.FileApiFlips#flipOpenOptionSet(java.util.Set)"
+        ]
       },
       "wrapper_conversion": [
         "java.nio.channels.CompletionHandler",
@@ -383,18 +450,54 @@
         "java.util.Spliterator java.util.LinkedHashSet#spliterator()": "java.util.DesugarLinkedHashSet"
       },
       "api_generic_types_conversion": {
-        "java.util.Set java.util.stream.Collector#characteristics()" : [-1, "java.util.Set java.util.stream.StreamApiFlips#flipCharacteristicSet(java.util.Set)"],
-        "java.util.stream.Stream java.util.stream.Stream#flatMap(java.util.function.Function)": [0, "java.util.function.Function java.util.stream.FlatMapApiFlips#flipFunctionReturningStream(java.util.function.Function)"],
-        "java.util.stream.DoubleStream java.util.stream.DoubleStream#flatMap(java.util.function.DoubleFunction)": [0, "java.util.function.DoubleFunction java.util.stream.FlatMapApiFlips#flipFunctionReturningStream(java.util.function.DoubleFunction)"],
-        "java.util.stream.DoubleStream java.util.stream.Stream#flatMapToDouble(java.util.function.Function)": [0, "java.util.function.Function java.util.stream.FlatMapApiFlips#flipFunctionReturningStream(java.util.function.Function)"],
-        "java.util.stream.IntStream java.util.stream.Stream#flatMapToInt(java.util.function.Function)": [0, "java.util.function.Function java.util.stream.FlatMapApiFlips#flipFunctionReturningStream(java.util.function.Function)"],
-        "java.util.stream.IntStream java.util.stream.IntStream#flatMap(java.util.function.IntFunction)": [0, "java.util.function.IntFunction java.util.stream.FlatMapApiFlips#flipFunctionReturningStream(java.util.function.IntFunction)"],
-        "java.util.stream.LongStream java.util.stream.Stream#flatMapToLong(java.util.function.Function)": [0, "java.util.function.Function java.util.stream.FlatMapApiFlips#flipFunctionReturningStream(java.util.function.Function)"],
-        "java.util.stream.LongStream java.util.stream.LongStream#flatMap(java.util.function.LongFunction)": [0, "java.util.function.LongFunction java.util.stream.FlatMapApiFlips#flipFunctionReturningStream(java.util.function.LongFunction)"],
-        "java.lang.Object java.lang.StackWalker#walk(java.util.function.Function)": [0, "java.util.function.Function java.util.stream.StackWalkerApiFlips#flipFunctionStream(java.util.function.Function)"],
-        "java.nio.channels.FileChannel java.io.RandomAccessFile#getChannel()": [-1, "java.nio.channels.FileChannel java.nio.channels.DesugarChannels#convertMaybeLegacyFileChannelFromLibrary(java.nio.channels.FileChannel)"],
-        "java.nio.channels.FileChannel java.io.FileInputStream#getChannel()": [-1, "java.nio.channels.FileChannel java.nio.channels.DesugarChannels#convertMaybeLegacyFileChannelFromLibrary(java.nio.channels.FileChannel)"],
-        "java.nio.channels.FileChannel java.io.FileOutputStream#getChannel()": [-1, "java.nio.channels.FileChannel java.nio.channels.DesugarChannels#convertMaybeLegacyFileChannelFromLibrary(java.nio.channels.FileChannel)"]
+        "java.util.Set java.util.stream.Collector#characteristics()": [
+          -1,
+          "java.util.Set java.util.stream.StreamApiFlips#flipCharacteristicSet(java.util.Set)"
+        ],
+        "java.util.stream.Stream java.util.stream.Stream#flatMap(java.util.function.Function)": [
+          0,
+          "java.util.function.Function java.util.stream.FlatMapApiFlips#flipFunctionReturningStream(java.util.function.Function)"
+        ],
+        "java.util.stream.DoubleStream java.util.stream.DoubleStream#flatMap(java.util.function.DoubleFunction)": [
+          0,
+          "java.util.function.DoubleFunction java.util.stream.FlatMapApiFlips#flipFunctionReturningStream(java.util.function.DoubleFunction)"
+        ],
+        "java.util.stream.DoubleStream java.util.stream.Stream#flatMapToDouble(java.util.function.Function)": [
+          0,
+          "java.util.function.Function java.util.stream.FlatMapApiFlips#flipFunctionReturningStream(java.util.function.Function)"
+        ],
+        "java.util.stream.IntStream java.util.stream.Stream#flatMapToInt(java.util.function.Function)": [
+          0,
+          "java.util.function.Function java.util.stream.FlatMapApiFlips#flipFunctionReturningStream(java.util.function.Function)"
+        ],
+        "java.util.stream.IntStream java.util.stream.IntStream#flatMap(java.util.function.IntFunction)": [
+          0,
+          "java.util.function.IntFunction java.util.stream.FlatMapApiFlips#flipFunctionReturningStream(java.util.function.IntFunction)"
+        ],
+        "java.util.stream.LongStream java.util.stream.Stream#flatMapToLong(java.util.function.Function)": [
+          0,
+          "java.util.function.Function java.util.stream.FlatMapApiFlips#flipFunctionReturningStream(java.util.function.Function)"
+        ],
+        "java.util.stream.LongStream java.util.stream.LongStream#flatMap(java.util.function.LongFunction)": [
+          0,
+          "java.util.function.LongFunction java.util.stream.FlatMapApiFlips#flipFunctionReturningStream(java.util.function.LongFunction)"
+        ],
+        "java.lang.Object java.lang.StackWalker#walk(java.util.function.Function)": [
+          0,
+          "java.util.function.Function java.util.stream.StackWalkerApiFlips#flipFunctionStream(java.util.function.Function)"
+        ],
+        "java.nio.channels.FileChannel java.io.RandomAccessFile#getChannel()": [
+          -1,
+          "java.nio.channels.FileChannel java.nio.channels.DesugarChannels#convertMaybeLegacyFileChannelFromLibrary(java.nio.channels.FileChannel)"
+        ],
+        "java.nio.channels.FileChannel java.io.FileInputStream#getChannel()": [
+          -1,
+          "java.nio.channels.FileChannel java.nio.channels.DesugarChannels#convertMaybeLegacyFileChannelFromLibrary(java.nio.channels.FileChannel)"
+        ],
+        "java.nio.channels.FileChannel java.io.FileOutputStream#getChannel()": [
+          -1,
+          "java.nio.channels.FileChannel java.nio.channels.DesugarChannels#convertMaybeLegacyFileChannelFromLibrary(java.nio.channels.FileChannel)"
+        ]
       },
       "never_outline_api": [
         "java.lang.Object java.lang.StackWalker#walk(java.util.function.Function)"
@@ -455,7 +558,7 @@
       }
     },
     {
-      "api_level_below_or_equal": 33,
+      "api_level_below_or_equal": 32,
       "amend_library_method": [
         "public java.lang.Object[] java.util.Collection#toArray(java.util.function.IntFunction)"
       ]
@@ -536,7 +639,7 @@
         "sun.nio.fs.BasicFileAttributesHolder": "j$.sun.nio.fs.BasicFileAttributesHolder",
         "sun.nio.fs.DynamicFileAttributeView": "j$.sun.nio.fs.DynamicFileAttributeView",
         "sun.util.PreHashedMap": "j$.sun.util.PreHashedMap",
-        "java.adapter" : "j$.adapter",
+        "java.adapter": "j$.adapter",
         "java.util.ConversionRuntimeException": "j$.util.ConversionRuntimeException"
       },
       "rewrite_derived_prefix": {
@@ -547,7 +650,7 @@
           "sun.nio.fs.DefaultFileTypeDetector": "j$.adapter.HybridFileTypeDetector"
         },
         "sun.misc.DesugarUnsafe": {
-          "jdk.internal.misc.Unsafe" : "j$.sun.misc.DesugarUnsafe"
+          "jdk.internal.misc.Unsafe": "j$.sun.misc.DesugarUnsafe"
         },
         "java.time.": {
           "j$.time.": "java.time."
@@ -617,10 +720,10 @@
       "rewrite_prefix": {
         "java.lang.DesugarCharacter": "j$.lang.DesugarCharacter"
       },
-      "retarget_method" : {
-        "boolean java.lang.Character#isSurrogate(char)" : "java.lang.DesugarCharacter",
-        "char java.lang.Character#highSurrogate(int)" : "java.lang.DesugarCharacter",
-        "char java.lang.Character#lowSurrogate(int)" : "java.lang.DesugarCharacter"
+      "retarget_method": {
+        "boolean java.lang.Character#isSurrogate(char)": "java.lang.DesugarCharacter",
+        "char java.lang.Character#highSurrogate(int)": "java.lang.DesugarCharacter",
+        "char java.lang.Character#lowSurrogate(int)": "java.lang.DesugarCharacter"
       },
       "retarget_static_field": {
         "sun.nio.cs.US_ASCII sun.nio.cs.US_ASCII#INSTANCE": "java.nio.charset.Charset java.nio.charset.StandardCharsets#US_ASCII",
