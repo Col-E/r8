@@ -133,7 +133,9 @@ public class NonEmptyCfInstructionDesugaringCollection extends CfInstructionDesu
       desugarings.add(new InvokeToPrivateRewriter());
     }
     desugarings.add(new StringConcatInstructionDesugaring(appView));
-    desugarings.add(new BufferCovariantReturnTypeRewriter(appView));
+    if (appView.options().shouldDesugarBufferCovariantReturnType()) {
+      desugarings.add(new BufferCovariantReturnTypeRewriter(appView));
+    }
     if (backportedMethodRewriter.hasBackports()) {
       desugarings.add(backportedMethodRewriter);
     }

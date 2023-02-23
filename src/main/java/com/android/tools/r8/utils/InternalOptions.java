@@ -600,6 +600,14 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
     return desugarState.isOn() && !canUseRecords();
   }
 
+  public boolean canUseDesugarBufferCovariantReturnType() {
+    return hasFeaturePresentFrom(AndroidApiLevel.Q);
+  }
+
+  public boolean shouldDesugarBufferCovariantReturnType() {
+    return !canUseDesugarBufferCovariantReturnType();
+  }
+
   public boolean shouldDesugarVarHandle() {
     return desugarState.isOn() && !canUseVarHandle() && enableVarHandleDesugaring;
   }
