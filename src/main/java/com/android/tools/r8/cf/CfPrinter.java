@@ -69,9 +69,9 @@ import com.android.tools.r8.graph.DexMethodHandle;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DexValue;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
-import com.android.tools.r8.ir.code.If;
+import com.android.tools.r8.ir.code.IfType;
 import com.android.tools.r8.ir.code.MemberType;
-import com.android.tools.r8.ir.code.Monitor;
+import com.android.tools.r8.ir.code.MonitorType;
 import com.android.tools.r8.ir.code.NumericType;
 import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.code.ValueType;
@@ -361,7 +361,7 @@ public class CfPrinter {
   }
 
   public void print(CfMonitor monitor) {
-    print(monitor.getType() == Monitor.Type.ENTER ? "monitorenter" : "monitorexit");
+    print(monitor.getType() == MonitorType.ENTER ? "monitorenter" : "monitorexit");
   }
 
   public void print(CfArithmeticBinop arithmeticBinop) {
@@ -596,14 +596,14 @@ public class CfPrinter {
     builder.append("goto ").append(getLabel(jump.getTarget()));
   }
 
-  private String ifPostfix(If.Type kind) {
+  private String ifPostfix(IfType kind) {
     return kind.toString().toLowerCase();
   }
 
   public void print(CfIf conditional) {
     indent();
     if (conditional.getType().isObject()) {
-      builder.append("if").append(conditional.getKind() == If.Type.EQ ? "null" : "nonnull");
+      builder.append("if").append(conditional.getKind() == IfType.EQ ? "null" : "nonnull");
     } else {
       builder.append("if").append(ifPostfix(conditional.getKind()));
     }

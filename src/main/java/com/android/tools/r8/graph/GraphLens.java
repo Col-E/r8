@@ -7,7 +7,7 @@ import static com.android.tools.r8.graph.DexProgramClass.asProgramClassOrNull;
 
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.proto.RewrittenPrototypeDescription;
-import com.android.tools.r8.ir.code.Invoke.Type;
+import com.android.tools.r8.ir.code.InvokeType;
 import com.android.tools.r8.ir.conversion.LensCodeRewriterUtils;
 import com.android.tools.r8.ir.optimize.enums.EnumUnboxingLens;
 import com.android.tools.r8.optimize.MemberRebindingIdentityLens;
@@ -202,13 +202,13 @@ public abstract class GraphLens {
    */
   public static class MethodLookupResult extends MemberLookupResult<DexMethod> {
 
-    private final Type type;
+    private final InvokeType type;
     private final RewrittenPrototypeDescription prototypeChanges;
 
     public MethodLookupResult(
         DexMethod reference,
         DexMethod reboundReference,
-        Type type,
+        InvokeType type,
         RewrittenPrototypeDescription prototypeChanges) {
       super(reference, reboundReference);
       this.type = type;
@@ -219,7 +219,7 @@ public abstract class GraphLens {
       return new Builder(lens);
     }
 
-    public Type getType() {
+    public InvokeType getType() {
       return type;
     }
 
@@ -231,7 +231,7 @@ public abstract class GraphLens {
 
       private final GraphLens lens;
       private RewrittenPrototypeDescription prototypeChanges = RewrittenPrototypeDescription.none();
-      private Type type;
+      private InvokeType type;
 
       private Builder(GraphLens lens) {
         this.lens = lens;
@@ -242,7 +242,7 @@ public abstract class GraphLens {
         return this;
       }
 
-      public Builder setType(Type type) {
+      public Builder setType(InvokeType type) {
         this.type = type;
         return this;
       }
@@ -440,51 +440,52 @@ public abstract class GraphLens {
   }
 
   public final MethodLookupResult lookupInvokeDirect(DexMethod method, ProgramMethod context) {
-    return lookupMethod(method, context.getReference(), Type.DIRECT);
+    return lookupMethod(method, context.getReference(), InvokeType.DIRECT);
   }
 
   public final MethodLookupResult lookupInvokeDirect(
       DexMethod method, ProgramMethod context, GraphLens codeLens) {
-    return lookupMethod(method, context.getReference(), Type.DIRECT, codeLens);
+    return lookupMethod(method, context.getReference(), InvokeType.DIRECT, codeLens);
   }
 
   public final MethodLookupResult lookupInvokeInterface(DexMethod method, ProgramMethod context) {
-    return lookupMethod(method, context.getReference(), Type.INTERFACE);
+    return lookupMethod(method, context.getReference(), InvokeType.INTERFACE);
   }
 
   public final MethodLookupResult lookupInvokeInterface(
       DexMethod method, ProgramMethod context, GraphLens codeLens) {
-    return lookupMethod(method, context.getReference(), Type.INTERFACE, codeLens);
+    return lookupMethod(method, context.getReference(), InvokeType.INTERFACE, codeLens);
   }
 
   public final MethodLookupResult lookupInvokeStatic(DexMethod method, ProgramMethod context) {
-    return lookupMethod(method, context.getReference(), Type.STATIC);
+    return lookupMethod(method, context.getReference(), InvokeType.STATIC);
   }
 
   public final MethodLookupResult lookupInvokeStatic(
       DexMethod method, ProgramMethod context, GraphLens codeLens) {
-    return lookupMethod(method, context.getReference(), Type.STATIC, codeLens);
+    return lookupMethod(method, context.getReference(), InvokeType.STATIC, codeLens);
   }
 
   public final MethodLookupResult lookupInvokeSuper(DexMethod method, ProgramMethod context) {
-    return lookupMethod(method, context.getReference(), Type.SUPER);
+    return lookupMethod(method, context.getReference(), InvokeType.SUPER);
   }
 
   public final MethodLookupResult lookupInvokeSuper(
       DexMethod method, ProgramMethod context, GraphLens codeLens) {
-    return lookupMethod(method, context.getReference(), Type.SUPER, codeLens);
+    return lookupMethod(method, context.getReference(), InvokeType.SUPER, codeLens);
   }
 
   public final MethodLookupResult lookupInvokeVirtual(DexMethod method, ProgramMethod context) {
-    return lookupMethod(method, context.getReference(), Type.VIRTUAL);
+    return lookupMethod(method, context.getReference(), InvokeType.VIRTUAL);
   }
 
   public final MethodLookupResult lookupInvokeVirtual(
       DexMethod method, ProgramMethod context, GraphLens codeLens) {
-    return lookupMethod(method, context.getReference(), Type.VIRTUAL, codeLens);
+    return lookupMethod(method, context.getReference(), InvokeType.VIRTUAL, codeLens);
   }
 
-  public final MethodLookupResult lookupMethod(DexMethod method, DexMethod context, Type type) {
+  public final MethodLookupResult lookupMethod(
+      DexMethod method, DexMethod context, InvokeType type) {
     return lookupMethod(method, context, type, null);
   }
 
@@ -500,12 +501,12 @@ public abstract class GraphLens {
    *     should generally use the result of calling {@link AppView#codeLens()}.
    */
   public abstract MethodLookupResult lookupMethod(
-      DexMethod method, DexMethod context, Type type, GraphLens codeLens);
+      DexMethod method, DexMethod context, InvokeType type, GraphLens codeLens);
 
   protected abstract MethodLookupResult internalLookupMethod(
       DexMethod reference,
       DexMethod context,
-      Type type,
+      InvokeType type,
       GraphLens codeLens,
       LookupMethodContinuation continuation);
 
@@ -898,7 +899,7 @@ public abstract class GraphLens {
 
     @Override
     public MethodLookupResult lookupMethod(
-        DexMethod method, DexMethod context, Type type, GraphLens codeLens) {
+        DexMethod method, DexMethod context, InvokeType type, GraphLens codeLens) {
       if (method.getHolderType().isArrayType()) {
         assert lookupType(method.getReturnType()) == method.getReturnType();
         assert method.getParameters().stream()
@@ -963,7 +964,7 @@ public abstract class GraphLens {
     protected MethodLookupResult internalLookupMethod(
         DexMethod reference,
         DexMethod context,
-        Type type,
+        InvokeType type,
         GraphLens codeLens,
         LookupMethodContinuation continuation) {
       if (this == codeLens) {
@@ -1078,7 +1079,7 @@ public abstract class GraphLens {
 
     @Override
     public MethodLookupResult lookupMethod(
-        DexMethod method, DexMethod context, Type type, GraphLens codeLens) {
+        DexMethod method, DexMethod context, InvokeType type, GraphLens codeLens) {
       assert codeLens == null || codeLens.isIdentityLens();
       return MethodLookupResult.builder(this).setReference(method).setType(type).build();
     }
@@ -1102,7 +1103,7 @@ public abstract class GraphLens {
     protected MethodLookupResult internalLookupMethod(
         DexMethod reference,
         DexMethod context,
-        Type type,
+        InvokeType type,
         GraphLens codeLens,
         LookupMethodContinuation continuation) {
       // Passes the method reference back to the next graph lens. The identity lens intentionally
@@ -1189,7 +1190,7 @@ public abstract class GraphLens {
     protected MethodLookupResult internalLookupMethod(
         DexMethod reference,
         DexMethod context,
-        Type type,
+        InvokeType type,
         GraphLens codeLens,
         LookupMethodContinuation continuation) {
       assert codeLens == null || codeLens == this;

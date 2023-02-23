@@ -37,6 +37,7 @@ import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.CheckCast;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.If;
+import com.android.tools.r8.ir.code.IfType;
 import com.android.tools.r8.ir.code.InstanceGet;
 import com.android.tools.r8.ir.code.InstanceOf;
 import com.android.tools.r8.ir.code.InstancePut;
@@ -350,8 +351,8 @@ final class InlineCandidateProcessor {
         // Allow some IF instructions.
         if (user.isIf()) {
           If ifInsn = user.asIf();
-          If.Type type = ifInsn.getType();
-          if (ifInsn.isZeroTest() && (type == If.Type.EQ || type == If.Type.NE)) {
+          IfType type = ifInsn.getType();
+          if (ifInsn.isZeroTest() && (type == IfType.EQ || type == IfType.NE)) {
             // Allow ==/!= null tests, we know that the instance is a non-null value.
             continue;
           }
@@ -637,13 +638,13 @@ final class InlineCandidateProcessor {
         assert ifInsn.isZeroTest()
             : "Unexpected usage in non-zero-test IF instruction: " + user;
         BasicBlock block = user.getBlock();
-        If.Type type = ifInsn.getType();
-        assert type == If.Type.EQ || type == If.Type.NE
+        IfType type = ifInsn.getType();
+        assert type == IfType.EQ || type == IfType.NE
             : "Unexpected type in zero-test IF instruction: " + user;
-        BasicBlock newBlock = type == If.Type.EQ
-            ? ifInsn.fallthroughBlock() : ifInsn.getTrueTarget();
-        BasicBlock blockToRemove = type == If.Type.EQ
-            ? ifInsn.getTrueTarget() : ifInsn.fallthroughBlock();
+        BasicBlock newBlock =
+            type == IfType.EQ ? ifInsn.fallthroughBlock() : ifInsn.getTrueTarget();
+        BasicBlock blockToRemove =
+            type == IfType.EQ ? ifInsn.getTrueTarget() : ifInsn.fallthroughBlock();
         assert newBlock != blockToRemove;
 
         block.replaceSuccessor(blockToRemove, newBlock);

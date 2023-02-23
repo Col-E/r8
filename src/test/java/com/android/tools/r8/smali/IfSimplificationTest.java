@@ -19,7 +19,7 @@ import com.android.tools.r8.dex.code.DexReturn;
 import com.android.tools.r8.dex.code.DexReturnObject;
 import com.android.tools.r8.graph.DexCode;
 import com.android.tools.r8.graph.DexEncodedMethod;
-import com.android.tools.r8.ir.code.If.Type;
+import com.android.tools.r8.ir.code.IfType;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import java.util.ArrayList;
@@ -32,12 +32,12 @@ public class IfSimplificationTest extends SmaliTestBase {
   static String[] ifOpcode;
   static {
     ifOpcode = new String[6];
-    ifOpcode[Type.EQ.ordinal()] = "if-eq";
-    ifOpcode[Type.NE.ordinal()] = "if-ne";
-    ifOpcode[Type.LE.ordinal()] = "if-le";
-    ifOpcode[Type.GE.ordinal()] = "if-ge";
-    ifOpcode[Type.LT.ordinal()] = "if-lt";
-    ifOpcode[Type.GT.ordinal()] = "if-gt";
+    ifOpcode[IfType.EQ.ordinal()] = "if-eq";
+    ifOpcode[IfType.NE.ordinal()] = "if-ne";
+    ifOpcode[IfType.LE.ordinal()] = "if-le";
+    ifOpcode[IfType.GE.ordinal()] = "if-ge";
+    ifOpcode[IfType.LT.ordinal()] = "if-lt";
+    ifOpcode[IfType.GT.ordinal()] = "if-gt";
   }
 
   @Test
@@ -216,12 +216,12 @@ public class IfSimplificationTest extends SmaliTestBase {
         this.a = a;
         this.b = b;
         results = new boolean[6];
-        results[Type.EQ.ordinal()] = a == b;
-        results[Type.NE.ordinal()] = a != b;
-        results[Type.LE.ordinal()] = a <= b;
-        results[Type.GE.ordinal()] = a >= b;
-        results[Type.LT.ordinal()] = a < b;
-        results[Type.GT.ordinal()] = a > b;
+        results[IfType.EQ.ordinal()] = a == b;
+        results[IfType.NE.ordinal()] = a != b;
+        results[IfType.LE.ordinal()] = a <= b;
+        results[IfType.GE.ordinal()] = a >= b;
+        results[IfType.LT.ordinal()] = a < b;
+        results[IfType.GT.ordinal()] = a > b;
       }
     }
 
@@ -241,7 +241,7 @@ public class IfSimplificationTest extends SmaliTestBase {
     }
 
     for (TestData test : tests) {
-      for (Type type : Type.values()) {
+      for (IfType type : IfType.values()) {
         DexEncodedMethod method = oneMethodApplication(
             "int",
             Collections.singletonList("int"),
@@ -265,7 +265,7 @@ public class IfSimplificationTest extends SmaliTestBase {
     }
   }
 
-  public void runRewriteIfWithConstZeroTest(Type type, boolean zeroLeft, Class expected) {
+  public void runRewriteIfWithConstZeroTest(IfType type, boolean zeroLeft, Class expected) {
     String ifInstruction;
     if (zeroLeft) {
       ifInstruction = "  " + ifOpcode[type.ordinal()] + " v0, v1, :label_2";
@@ -293,19 +293,19 @@ public class IfSimplificationTest extends SmaliTestBase {
 
   @Test
   public void testRewriteIfWithConstZero() {
-    runRewriteIfWithConstZeroTest(Type.EQ, true, DexIfEqz.class);
-    runRewriteIfWithConstZeroTest(Type.NE, true, DexIfNez.class);
-    runRewriteIfWithConstZeroTest(Type.LE, true, DexIfGez.class);
-    runRewriteIfWithConstZeroTest(Type.GE, true, DexIfLez.class);
-    runRewriteIfWithConstZeroTest(Type.LT, true, DexIfGtz.class);
-    runRewriteIfWithConstZeroTest(Type.GT, true, DexIfLtz.class);
+    runRewriteIfWithConstZeroTest(IfType.EQ, true, DexIfEqz.class);
+    runRewriteIfWithConstZeroTest(IfType.NE, true, DexIfNez.class);
+    runRewriteIfWithConstZeroTest(IfType.LE, true, DexIfGez.class);
+    runRewriteIfWithConstZeroTest(IfType.GE, true, DexIfLez.class);
+    runRewriteIfWithConstZeroTest(IfType.LT, true, DexIfGtz.class);
+    runRewriteIfWithConstZeroTest(IfType.GT, true, DexIfLtz.class);
 
-    runRewriteIfWithConstZeroTest(Type.EQ, false, DexIfEqz.class);
-    runRewriteIfWithConstZeroTest(Type.NE, false, DexIfNez.class);
-    runRewriteIfWithConstZeroTest(Type.LE, false, DexIfLez.class);
-    runRewriteIfWithConstZeroTest(Type.GE, false, DexIfGez.class);
-    runRewriteIfWithConstZeroTest(Type.LT, false, DexIfLtz.class);
-    runRewriteIfWithConstZeroTest(Type.GT, false, DexIfGtz.class);
+    runRewriteIfWithConstZeroTest(IfType.EQ, false, DexIfEqz.class);
+    runRewriteIfWithConstZeroTest(IfType.NE, false, DexIfNez.class);
+    runRewriteIfWithConstZeroTest(IfType.LE, false, DexIfLez.class);
+    runRewriteIfWithConstZeroTest(IfType.GE, false, DexIfGez.class);
+    runRewriteIfWithConstZeroTest(IfType.LT, false, DexIfLtz.class);
+    runRewriteIfWithConstZeroTest(IfType.GT, false, DexIfGtz.class);
   }
 
   @Test

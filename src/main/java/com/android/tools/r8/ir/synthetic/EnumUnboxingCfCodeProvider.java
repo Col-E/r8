@@ -30,7 +30,7 @@ import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.analysis.value.AbstractValue;
-import com.android.tools.r8.ir.code.If;
+import com.android.tools.r8.ir.code.IfType;
 import com.android.tools.r8.ir.code.ValueType;
 import com.android.tools.r8.ir.optimize.enums.EnumDataMap.EnumData;
 import com.android.tools.r8.ir.optimize.enums.EnumInstanceFieldData.EnumInstanceFieldMappingData;
@@ -109,7 +109,7 @@ public abstract class EnumUnboxingCfCodeProvider extends SyntheticCfCodeProvider
             CfLabel dest = new CfLabel();
             instructions.add(new CfLoad(ValueType.fromDexType(factory.intType), 0));
             instructions.add(new CfConstNumber(unboxedEnumValue, ValueType.INT));
-            instructions.add(new CfIfCmp(If.Type.NE, ValueType.INT, dest));
+            instructions.add(new CfIfCmp(IfType.NE, ValueType.INT, dest));
             addCfInstructionsForAbstractValue(instructions, value, returnType);
             instructions.add(new CfReturn(ValueType.fromDexType(returnType)));
             instructions.add(dest);
@@ -163,7 +163,7 @@ public abstract class EnumUnboxingCfCodeProvider extends SyntheticCfCodeProvider
       // if (s == null) { throw npe("Name is null"); }
       CfLabel nullDest = new CfLabel();
       instructions.add(new CfLoad(ValueType.fromDexType(factory.stringType), 0));
-      instructions.add(new CfIf(If.Type.NE, ValueType.OBJECT, nullDest));
+      instructions.add(new CfIf(IfType.NE, ValueType.OBJECT, nullDest));
       instructions.add(new CfNew(factory.npeType));
       instructions.add(new CfStackInstruction(Opcode.Dup));
       instructions.add(new CfConstString(appView.dexItemFactory().createString("Name is null")));
@@ -182,7 +182,7 @@ public abstract class EnumUnboxingCfCodeProvider extends SyntheticCfCodeProvider
             addCfInstructionsForAbstractValue(instructions, value, factory.stringType);
             instructions.add(
                 new CfInvoke(Opcodes.INVOKEVIRTUAL, factory.stringMembers.equals, false));
-            instructions.add(new CfIf(If.Type.EQ, ValueType.INT, dest));
+            instructions.add(new CfIf(IfType.EQ, ValueType.INT, dest));
             instructions.add(new CfConstNumber(unboxedEnumValue, ValueType.INT));
             instructions.add(new CfReturn(ValueType.INT));
             instructions.add(dest);
@@ -241,7 +241,7 @@ public abstract class EnumUnboxingCfCodeProvider extends SyntheticCfCodeProvider
       List<CfInstruction> instructions = new ArrayList<>();
       CfLabel nullDest = new CfLabel();
       instructions.add(new CfStaticFieldRead(utilityField, utilityField));
-      instructions.add(new CfIf(If.Type.NE, ValueType.OBJECT, nullDest));
+      instructions.add(new CfIf(IfType.NE, ValueType.OBJECT, nullDest));
       instructions.add((new CfConstNumber(numEnumInstances, ValueType.INT)));
       assert initializationMethod.getArity() == 1;
       instructions.add(new CfInvoke(Opcodes.INVOKESTATIC, initializationMethod, false));

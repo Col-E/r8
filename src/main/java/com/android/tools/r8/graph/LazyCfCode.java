@@ -55,9 +55,9 @@ import com.android.tools.r8.graph.CfCode.LocalVariableInfo;
 import com.android.tools.r8.graph.JarClassFileReader.ReparseContext;
 import com.android.tools.r8.graph.proto.RewrittenPrototypeDescription;
 import com.android.tools.r8.ir.code.IRCode;
-import com.android.tools.r8.ir.code.If;
+import com.android.tools.r8.ir.code.IfType;
 import com.android.tools.r8.ir.code.MemberType;
-import com.android.tools.r8.ir.code.Monitor;
+import com.android.tools.r8.ir.code.MonitorType;
 import com.android.tools.r8.ir.code.NumberGenerator;
 import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.code.Position.SourcePosition;
@@ -736,10 +736,10 @@ public class LazyCfCode extends Code {
           addInstruction(new CfThrow());
           break;
         case Opcodes.MONITORENTER:
-          addInstruction(new CfMonitor(Monitor.Type.ENTER));
+          addInstruction(new CfMonitor(MonitorType.ENTER));
           break;
         case Opcodes.MONITOREXIT:
-          addInstruction(new CfMonitor(Monitor.Type.EXIT));
+          addInstruction(new CfMonitor(MonitorType.EXIT));
           break;
         default:
           throw new Unreachable("Unknown instruction");
@@ -932,7 +932,7 @@ public class LazyCfCode extends Code {
             break;
           case Opcodes.IFNULL:
           case Opcodes.IFNONNULL:
-            If.Type type = opcode == Opcodes.IFNULL ? If.Type.EQ : If.Type.NE;
+            IfType type = opcode == Opcodes.IFNULL ? IfType.EQ : IfType.NE;
             addInstruction(new CfIf(type, ValueType.OBJECT, target));
             break;
           case Opcodes.JSR:
@@ -943,28 +943,28 @@ public class LazyCfCode extends Code {
       }
     }
 
-    private static If.Type ifType(int opcode) {
+    private static IfType ifType(int opcode) {
       switch (opcode) {
         case Opcodes.IFEQ:
         case Opcodes.IF_ICMPEQ:
         case Opcodes.IF_ACMPEQ:
-          return If.Type.EQ;
+          return IfType.EQ;
         case Opcodes.IFNE:
         case Opcodes.IF_ICMPNE:
         case Opcodes.IF_ACMPNE:
-          return If.Type.NE;
+          return IfType.NE;
         case Opcodes.IFLT:
         case Opcodes.IF_ICMPLT:
-          return If.Type.LT;
+          return IfType.LT;
         case Opcodes.IFGE:
         case Opcodes.IF_ICMPGE:
-          return If.Type.GE;
+          return IfType.GE;
         case Opcodes.IFGT:
         case Opcodes.IF_ICMPGT:
-          return If.Type.GT;
+          return IfType.GT;
         case Opcodes.IFLE:
         case Opcodes.IF_ICMPLE:
-          return If.Type.LE;
+          return IfType.LE;
         default:
           throw new Unreachable("Unexpected If instruction opcode: " + opcode);
       }

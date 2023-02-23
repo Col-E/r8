@@ -15,7 +15,7 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.code.CatchHandlers;
 import com.android.tools.r8.ir.code.IRMetadata;
-import com.android.tools.r8.ir.code.If.Type;
+import com.android.tools.r8.ir.code.IfType;
 import com.android.tools.r8.ir.code.NumericType;
 import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.code.Position.SyntheticPosition;
@@ -345,7 +345,7 @@ public class LirBuilder<V, B> {
     return this;
   }
 
-  public LirBuilder<V, B> addIf(Type ifKind, ValueType valueType, V value, B trueTarget) {
+  public LirBuilder<V, B> addIf(IfType ifKind, ValueType valueType, V value, B trueTarget) {
     int opcode;
     switch (ifKind) {
       case EQ:
@@ -380,7 +380,7 @@ public class LirBuilder<V, B> {
   }
 
   public LirBuilder<V, B> addIfCmp(
-      Type ifKind, ValueType valueType, List<V> inValues, B trueTarget) {
+      IfType ifKind, ValueType valueType, List<V> inValues, B trueTarget) {
     int opcode;
     switch (ifKind) {
       case EQ:

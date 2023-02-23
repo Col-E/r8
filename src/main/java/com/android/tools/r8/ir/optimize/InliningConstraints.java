@@ -20,7 +20,7 @@ import com.android.tools.r8.graph.FieldResolutionResult;
 import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.MethodResolutionResult;
 import com.android.tools.r8.graph.ProgramMethod;
-import com.android.tools.r8.ir.code.Invoke.Type;
+import com.android.tools.r8.ir.code.InvokeType;
 import com.android.tools.r8.ir.optimize.Inliner.Constraint;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
@@ -143,7 +143,7 @@ public class InliningConstraints {
     return forFieldInstruction(field, context);
   }
 
-  public ConstraintWithTarget forInvoke(DexMethod method, Type type, ProgramMethod context) {
+  public ConstraintWithTarget forInvoke(DexMethod method, InvokeType type, ProgramMethod context) {
     switch (type) {
       case DIRECT:
         return forInvokeDirect(method, context);
@@ -171,7 +171,7 @@ public class InliningConstraints {
 
   public ConstraintWithTarget forInvokeDirect(DexMethod method, ProgramMethod context) {
     DexMethod lookup =
-        graphLens.lookupMethod(method, context.getReference(), Type.DIRECT).getReference();
+        graphLens.lookupMethod(method, context.getReference(), InvokeType.DIRECT).getReference();
     if (lookup.holder.isArrayType()) {
       return ConstraintWithTarget.ALWAYS;
     }
@@ -185,7 +185,7 @@ public class InliningConstraints {
 
   public ConstraintWithTarget forInvokeInterface(DexMethod method, ProgramMethod context) {
     DexMethod lookup =
-        graphLens.lookupMethod(method, context.getReference(), Type.INTERFACE).getReference();
+        graphLens.lookupMethod(method, context.getReference(), InvokeType.INTERFACE).getReference();
     return forVirtualInvoke(lookup, context, true);
   }
 
@@ -203,7 +203,7 @@ public class InliningConstraints {
 
   public ConstraintWithTarget forInvokeStatic(DexMethod method, ProgramMethod context) {
     DexMethod lookup =
-        graphLens.lookupMethod(method, context.getReference(), Type.STATIC).getReference();
+        graphLens.lookupMethod(method, context.getReference(), InvokeType.STATIC).getReference();
     if (lookup.holder.isArrayType()) {
       return ConstraintWithTarget.ALWAYS;
     }
@@ -260,7 +260,7 @@ public class InliningConstraints {
 
   public ConstraintWithTarget forInvokeVirtual(DexMethod method, ProgramMethod context) {
     DexMethod lookup =
-        graphLens.lookupMethod(method, context.getReference(), Type.VIRTUAL).getReference();
+        graphLens.lookupMethod(method, context.getReference(), InvokeType.VIRTUAL).getReference();
     return forVirtualInvoke(lookup, context, false);
   }
 

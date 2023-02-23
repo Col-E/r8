@@ -9,7 +9,7 @@ import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.NestedGraphLens;
 import com.android.tools.r8.graph.proto.RewrittenPrototypeDescription;
-import com.android.tools.r8.ir.code.Invoke.Type;
+import com.android.tools.r8.ir.code.InvokeType;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.collections.BidirectionalOneToOneHashMap;
 import com.android.tools.r8.utils.collections.BidirectionalOneToOneMap;
@@ -100,12 +100,13 @@ public class ArgumentPropagatorGraphLens extends NestedGraphLens {
   }
 
   @Override
-  protected Type mapInvocationType(DexMethod newMethod, DexMethod originalMethod, Type type) {
+  protected InvokeType mapInvocationType(
+      DexMethod newMethod, DexMethod originalMethod, InvokeType type) {
     return hasPrototypeChanges(newMethod)
             && getPrototypeChanges(newMethod)
                 .getArgumentInfoCollection()
                 .isConvertedToStaticMethod()
-        ? Type.STATIC
+        ? InvokeType.STATIC
         : super.mapInvocationType(newMethod, originalMethod, type);
   }
 

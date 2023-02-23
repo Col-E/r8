@@ -52,7 +52,7 @@ import com.android.tools.r8.ir.analysis.type.ClassTypeElement;
 import com.android.tools.r8.ir.analysis.type.DynamicType;
 import com.android.tools.r8.ir.analysis.type.TypeAnalysis;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
-import com.android.tools.r8.ir.code.Invoke.Type;
+import com.android.tools.r8.ir.code.InvokeType;
 import com.android.tools.r8.ir.desugar.LambdaDescriptor;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.apiconversion.DesugaredLibraryAPIConverter;
 import com.android.tools.r8.ir.desugar.itf.InterfaceDesugaringSyntheticHelper;
@@ -1258,7 +1258,7 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
 
   public DexEncodedMethod lookupSingleTarget(
       AppView<? extends AppInfoWithClassHierarchy> appView,
-      Type type,
+      InvokeType type,
       DexMethod target,
       ProgramMethod context,
       LibraryModeledPredicate modeledPredicate) {
@@ -1285,7 +1285,7 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
 
   public ProgramMethod lookupSingleProgramTarget(
       AppView<? extends AppInfoWithClassHierarchy> appView,
-      Type type,
+      InvokeType type,
       DexMethod target,
       ProgramMethod context,
       LibraryModeledPredicate modeledPredicate) {

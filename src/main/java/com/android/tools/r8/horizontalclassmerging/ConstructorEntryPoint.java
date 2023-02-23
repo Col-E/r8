@@ -6,7 +6,7 @@ package com.android.tools.r8.horizontalclassmerging;
 
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexMethod;
-import com.android.tools.r8.ir.code.Invoke.Type;
+import com.android.tools.r8.ir.code.InvokeType;
 import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.code.ValueType;
@@ -64,7 +64,8 @@ public class ConstructorEntryPoint extends SyntheticSourceCode {
             arguments.add(builder.getArgumentValues().get(i));
           }
 
-          builder.addInvoke(Type.DIRECT, typeConstructor, typeConstructor.proto, arguments, false);
+          builder.addInvoke(
+              InvokeType.DIRECT, typeConstructor, typeConstructor.proto, arguments, false);
         });
   }
 

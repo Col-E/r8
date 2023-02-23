@@ -15,6 +15,7 @@ import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.If;
+import com.android.tools.r8.ir.code.IfType;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionIterator;
 import com.android.tools.r8.ir.code.Value;
@@ -167,7 +168,7 @@ public class SimpleInliningConstraintAnalysis {
   }
 
   private SimpleInliningConstraint computeConstraintFromIfTest(
-      int argumentIndex, DexType argumentType, Value otherOperand, If.Type type) {
+      int argumentIndex, DexType argumentType, Value otherOperand, IfType type) {
     boolean isZeroTest = otherOperand == null;
     switch (type) {
       case EQ:

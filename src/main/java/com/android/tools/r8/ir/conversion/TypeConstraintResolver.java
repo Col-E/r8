@@ -13,6 +13,7 @@ import com.android.tools.r8.ir.code.ArrayPut;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.If;
+import com.android.tools.r8.ir.code.IfType;
 import com.android.tools.r8.ir.code.ImpreciseMemberTypeInstruction;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.MemberType;
@@ -121,8 +122,8 @@ public class TypeConstraintResolver {
         if (instruction.isIf() && instruction.inValues().size() == 2) {
           If ifInstruction = instruction.asIf();
           assert !ifInstruction.isZeroTest();
-          If.Type type = ifInstruction.getType();
-          if (type == If.Type.EQ || type == If.Type.NE) {
+          IfType type = ifInstruction.getType();
+          if (type == IfType.EQ || type == IfType.NE) {
             merge(ifInstruction.inValues().get(0), ifInstruction.inValues().get(1));
           }
         }

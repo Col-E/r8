@@ -69,8 +69,8 @@ public class InvokeDirect extends InvokeMethodWithReceiver {
   }
 
   @Override
-  public Type getType() {
-    return Type.DIRECT;
+  public InvokeType getType() {
+    return InvokeType.DIRECT;
   }
 
   @Override

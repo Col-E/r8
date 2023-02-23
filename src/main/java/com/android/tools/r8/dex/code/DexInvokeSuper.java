@@ -6,7 +6,7 @@ package com.android.tools.r8.dex.code;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.OffsetToObjectMapping;
 import com.android.tools.r8.graph.UseRegistry;
-import com.android.tools.r8.ir.code.Invoke.Type;
+import com.android.tools.r8.ir.code.InvokeType;
 import com.android.tools.r8.ir.conversion.IRBuilder;
 
 public class DexInvokeSuper extends DexInvokeMethod {
@@ -24,8 +24,8 @@ public class DexInvokeSuper extends DexInvokeMethod {
   }
 
   @Override
-  public Type getInvokeType() {
-    return Type.SUPER;
+  public InvokeType getInvokeType() {
+    return InvokeType.SUPER;
   }
 
   @Override
@@ -50,7 +50,8 @@ public class DexInvokeSuper extends DexInvokeMethod {
 
   @Override
   public void buildIR(IRBuilder builder) {
-    builder.addInvokeRegisters(Type.SUPER, getMethod(), getProto(), A, new int[] {C, D, E, F, G});
+    builder.addInvokeRegisters(
+        InvokeType.SUPER, getMethod(), getProto(), A, new int[] {C, D, E, F, G});
   }
 
   @Override

@@ -3,7 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.dex.code;
 
-import com.android.tools.r8.ir.code.If.Type;
+import com.android.tools.r8.ir.code.IfType;
 import com.android.tools.r8.ir.code.ValueTypeConstraint;
 
 public class DexIfGt extends DexFormat22t {
@@ -36,8 +36,8 @@ public class DexIfGt extends DexFormat22t {
   }
 
   @Override
-  public Type getType() {
-    return Type.GT;
+  public IfType getType() {
+    return IfType.GT;
   }
 
   @Override

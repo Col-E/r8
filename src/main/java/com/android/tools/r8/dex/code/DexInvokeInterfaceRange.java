@@ -6,7 +6,7 @@ package com.android.tools.r8.dex.code;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.OffsetToObjectMapping;
 import com.android.tools.r8.graph.UseRegistry;
-import com.android.tools.r8.ir.code.Invoke.Type;
+import com.android.tools.r8.ir.code.InvokeType;
 import com.android.tools.r8.ir.conversion.IRBuilder;
 
 public class DexInvokeInterfaceRange extends DexInvokeMethodRange {
@@ -24,8 +24,8 @@ public class DexInvokeInterfaceRange extends DexInvokeMethodRange {
   }
 
   @Override
-  public Type getInvokeType() {
-    return Type.INTERFACE;
+  public InvokeType getInvokeType() {
+    return InvokeType.INTERFACE;
   }
 
   @Override
@@ -50,7 +50,7 @@ public class DexInvokeInterfaceRange extends DexInvokeMethodRange {
 
   @Override
   public void buildIR(IRBuilder builder) {
-    builder.addInvokeRange(Type.INTERFACE, getMethod(), getProto(), AA, CCCC);
+    builder.addInvokeRange(InvokeType.INTERFACE, getMethod(), getProto(), AA, CCCC);
   }
 
   @Override

@@ -29,8 +29,7 @@ import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.graph.MethodResolutionResult;
 import com.android.tools.r8.graph.MethodResolutionResult.SingleResolutionResult;
 import com.android.tools.r8.graph.ProgramMethod;
-import com.android.tools.r8.ir.code.Invoke;
-import com.android.tools.r8.ir.code.Invoke.Type;
+import com.android.tools.r8.ir.code.InvokeType;
 import com.android.tools.r8.ir.desugar.lambda.ForcefullyMovedLambdaMethodConsumer;
 import com.android.tools.r8.ir.desugar.lambda.LambdaInstructionDesugaring;
 import com.android.tools.r8.ir.desugar.lambda.LambdaInstructionDesugaring.DesugarInvoke;
@@ -383,7 +382,7 @@ public final class LambdaClass {
       if (resolution.isFailedResolution()) {
         return new InvalidLambdaImplTarget(
             implMethod,
-            Type.STATIC,
+            InvokeType.STATIC,
             appView.dexItemFactory().icceType,
             descriptor.implHandle.isInterface);
       }
@@ -536,12 +535,12 @@ public final class LambdaClass {
   public abstract static class Target {
 
     final DexMethod callTarget;
-    final Invoke.Type invokeType;
+    final InvokeType invokeType;
     final boolean isInterface;
 
     private boolean hasEnsuredAccessibility;
 
-    Target(DexMethod callTarget, Type invokeType, boolean isInterface) {
+    Target(DexMethod callTarget, InvokeType invokeType, boolean isInterface) {
       assert callTarget != null;
       assert invokeType != null;
       this.callTarget = callTarget;
@@ -576,7 +575,7 @@ public final class LambdaClass {
       return callTarget;
     }
 
-    public Type getInvokeType() {
+    public InvokeType getInvokeType() {
       return invokeType;
     }
 
@@ -586,7 +585,7 @@ public final class LambdaClass {
   }
 
   public abstract static class D8SpecificTarget extends Target {
-    D8SpecificTarget(DexMethod callTarget, Type invokeType, boolean isInterface) {
+    D8SpecificTarget(DexMethod callTarget, InvokeType invokeType, boolean isInterface) {
       super(callTarget, invokeType, isInterface);
     }
   }
@@ -601,7 +600,7 @@ public final class LambdaClass {
           descriptor.implHandle.isInterface);
     }
 
-    NoAccessorMethodTarget(DexMethod method, Type invokeType, boolean isInterface) {
+    NoAccessorMethodTarget(DexMethod method, InvokeType invokeType, boolean isInterface) {
       super(method, invokeType, isInterface);
     }
 
@@ -619,7 +618,7 @@ public final class LambdaClass {
     final ProgramMethod target;
 
     StaticLambdaImplTarget(ProgramMethod target, boolean isInterface) {
-      super(target.getReference(), Invoke.Type.STATIC, isInterface);
+      super(target.getReference(), InvokeType.STATIC, isInterface);
       this.target = target;
     }
 
@@ -646,7 +645,7 @@ public final class LambdaClass {
 
     InterfaceLambdaImplTarget(
         DexMethod implMethod, boolean isInterface, DexMethod staticMethod, AppView<?> appView) {
-      super(staticMethod, Type.STATIC, isInterface);
+      super(staticMethod, InvokeType.STATIC, isInterface);
       this.implMethod = implMethod;
       this.appView = appView;
     }
@@ -721,7 +720,7 @@ public final class LambdaClass {
     final DexType exceptionType;
 
     public InvalidLambdaImplTarget(
-        DexMethod callTarget, Type invokeType, DexType exceptionType, boolean isInterface) {
+        DexMethod callTarget, InvokeType invokeType, DexType exceptionType, boolean isInterface) {
       super(callTarget, invokeType, isInterface);
       this.exceptionType = exceptionType;
     }
@@ -742,7 +741,7 @@ public final class LambdaClass {
 
     InstanceLambdaImplTarget(
         DexMethod implMethod, boolean isInterface, DexMethod staticMethod, AppView<?> appView) {
-      super(staticMethod, Type.VIRTUAL, isInterface);
+      super(staticMethod, InvokeType.VIRTUAL, isInterface);
       this.implMethod = implMethod;
       this.appView = appView;
     }
@@ -838,7 +837,7 @@ public final class LambdaClass {
         DexMethod accessorMethod,
         boolean accessorIsInterface,
         AppView<?> appView) {
-      super(accessorMethod, Invoke.Type.STATIC, accessorIsInterface);
+      super(accessorMethod, InvokeType.STATIC, accessorIsInterface);
       this.appView = appView;
       this.implMethod = implMethod;
       this.implMethodIsInterface = isInterface;

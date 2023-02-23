@@ -11,7 +11,7 @@ import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.InitClassLens;
 import com.android.tools.r8.graph.ProgramMethod;
-import com.android.tools.r8.ir.code.Monitor.Type;
+import com.android.tools.r8.ir.code.MonitorType;
 import com.android.tools.r8.ir.conversion.CfSourceCode;
 import com.android.tools.r8.ir.conversion.CfState;
 import com.android.tools.r8.ir.conversion.CfState.Slot;
@@ -29,13 +29,13 @@ import org.objectweb.asm.Opcodes;
 
 public class CfMonitor extends CfInstruction {
 
-  private final Type type;
+  private final MonitorType type;
 
-  public CfMonitor(Type type) {
+  public CfMonitor(MonitorType type) {
     this.type = type;
   }
 
-  public Type getType() {
+  public MonitorType getType() {
     return type;
   }
 
@@ -74,7 +74,7 @@ public class CfMonitor extends CfInstruction {
   }
 
   private int getAsmOpcode() {
-    return type == Type.ENTER ? Opcodes.MONITORENTER : Opcodes.MONITOREXIT;
+    return type == MonitorType.ENTER ? Opcodes.MONITORENTER : Opcodes.MONITOREXIT;
   }
 
   @Override

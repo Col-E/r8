@@ -25,7 +25,7 @@ import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
-import com.android.tools.r8.ir.code.If;
+import com.android.tools.r8.ir.code.IfType;
 import com.android.tools.r8.ir.code.MemberType;
 import com.android.tools.r8.ir.code.ValueType;
 import java.util.ArrayList;
@@ -168,7 +168,7 @@ public abstract class RecordCfCodeProvider {
       instructions.add(new CfInvoke(Opcodes.INVOKEVIRTUAL, factory.objectMembers.getClass, false));
       instructions.add(new CfLoad(objectType, 1));
       instructions.add(new CfInvoke(Opcodes.INVOKEVIRTUAL, factory.objectMembers.getClass, false));
-      instructions.add(new CfIfCmp(If.Type.EQ, ValueType.OBJECT, fieldCmp));
+      instructions.add(new CfIfCmp(IfType.EQ, ValueType.OBJECT, fieldCmp));
       instructions.add(new CfConstNumber(0, ValueType.INT));
       instructions.add(new CfReturn(ValueType.INT));
       instructions.add(fieldCmp);

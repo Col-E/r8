@@ -20,7 +20,7 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.CfCode;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexType;
-import com.android.tools.r8.ir.code.If;
+import com.android.tools.r8.ir.code.IfType;
 import com.android.tools.r8.ir.code.ValueType;
 import com.android.tools.r8.ir.synthetic.SyntheticCfCodeProvider;
 import it.unimi.dsi.fastutil.ints.Int2ObjectAVLTreeMap;
@@ -57,7 +57,7 @@ public class EqualsCfCodeProvider extends SyntheticCfCodeProvider {
     // other instanceof WrapperType
     instructions.add(new CfLoad(ValueType.OBJECT, 1));
     instructions.add(new CfInstanceOf(wrapperType));
-    instructions.add(new CfIf(If.Type.EQ, ValueType.INT, label1));
+    instructions.add(new CfIf(IfType.EQ, ValueType.INT, label1));
 
     // ((WrapperType) other).wrapperField
     instructions.add(new CfLoad(ValueType.OBJECT, 1));

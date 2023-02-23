@@ -16,7 +16,7 @@ import com.android.tools.r8.graph.GraphLens.MethodLookupResult;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.PrunedItems;
 import com.android.tools.r8.horizontalclassmerging.code.SyntheticInitializerConverter;
-import com.android.tools.r8.ir.code.Invoke.Type;
+import com.android.tools.r8.ir.code.InvokeType;
 import com.android.tools.r8.profile.art.ArtProfileCompletenessChecker;
 import com.android.tools.r8.profile.art.rewriting.ArtProfileCollectionAdditions;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
@@ -233,7 +233,7 @@ public class HorizontalClassMerger {
                     horizontalClassMergerGraphLens.lookupMethod(
                         representative,
                         null,
-                        Type.VIRTUAL,
+                        InvokeType.VIRTUAL,
                         horizontalClassMergerGraphLens.getPrevious());
                 ProgramMethod mergedMethod =
                     asProgramMethodOrNull(appView.definitionFor(lookupResult.getReference()));

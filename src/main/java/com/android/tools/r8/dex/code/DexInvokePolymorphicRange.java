@@ -7,7 +7,7 @@ import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.OffsetToObjectMapping;
 import com.android.tools.r8.graph.UseRegistry;
-import com.android.tools.r8.ir.code.Invoke.Type;
+import com.android.tools.r8.ir.code.InvokeType;
 import com.android.tools.r8.ir.conversion.IRBuilder;
 
 /** An invoke-polymorphic range instruction used to call method with polymorphic signature. */
@@ -53,7 +53,7 @@ public class DexInvokePolymorphicRange extends DexFormat4rcc {
 
   @Override
   public void buildIR(IRBuilder builder) {
-    builder.addInvokeRange(Type.POLYMORPHIC, getMethod(), getProto(), AA, CCCC);
+    builder.addInvokeRange(InvokeType.POLYMORPHIC, getMethod(), getProto(), AA, CCCC);
   }
 
   @Override

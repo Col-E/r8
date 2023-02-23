@@ -20,7 +20,7 @@ import com.android.tools.r8.ir.code.Goto;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.IRMetadata;
 import com.android.tools.r8.ir.code.If;
-import com.android.tools.r8.ir.code.If.Type;
+import com.android.tools.r8.ir.code.IfType;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.NumberGenerator;
 import com.android.tools.r8.ir.code.Position;
@@ -164,7 +164,7 @@ public class TrivialGotoEliminationTest extends TestBase {
     instruction = new Argument(value, 0, false);
     instruction.setPosition(position);
     block0.add(instruction, metadata);
-    instruction = new If(Type.EQ, value);
+    instruction = new If(IfType.EQ, value);
     instruction.setPosition(position);
     block0.add(instruction, metadata);
     block0.getMutableSuccessors().add(block2);

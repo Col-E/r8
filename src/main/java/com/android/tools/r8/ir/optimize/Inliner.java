@@ -41,6 +41,7 @@ import com.android.tools.r8.ir.code.Invoke;
 import com.android.tools.r8.ir.code.InvokeMethod;
 import com.android.tools.r8.ir.code.InvokeVirtual;
 import com.android.tools.r8.ir.code.Monitor;
+import com.android.tools.r8.ir.code.MonitorType;
 import com.android.tools.r8.ir.code.MoveException;
 import com.android.tools.r8.ir.code.Phi;
 import com.android.tools.r8.ir.code.Position;
@@ -676,10 +677,10 @@ public class Inliner {
         }
 
         // Insert the monitor-enter and monitor-exit instructions.
-        monitorEnterBlockIterator.add(new Monitor(Monitor.Type.ENTER, lockValue));
+        monitorEnterBlockIterator.add(new Monitor(MonitorType.ENTER, lockValue));
         if (monitorExitBlockIterator != null) {
           monitorExitBlockIterator.previous();
-          monitorExitBlockIterator.add(new Monitor(Monitor.Type.EXIT, lockValue));
+          monitorExitBlockIterator.add(new Monitor(MonitorType.EXIT, lockValue));
           monitorExitBlock.close(null);
         }
 
@@ -693,7 +694,7 @@ public class Inliner {
             InstructionListIterator instructionIterator =
                 block.listIterator(code, block.getInstructions().size() - 1);
             instructionIterator.setInsertionPosition(Position.syntheticNone());
-            instructionIterator.add(new Monitor(Monitor.Type.EXIT, lockValue));
+            instructionIterator.add(new Monitor(MonitorType.EXIT, lockValue));
           }
         }
       }

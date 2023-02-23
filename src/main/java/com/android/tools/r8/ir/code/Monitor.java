@@ -20,13 +20,9 @@ import com.android.tools.r8.ir.optimize.InliningConstraints;
 
 public class Monitor extends Instruction {
 
-  public enum Type {
-    ENTER, EXIT
-  }
+  private final MonitorType type;
 
-  private final Type type;
-
-  public Monitor(Type type, Value object) {
+  public Monitor(MonitorType type, Value object) {
     super(null, object);
     this.type = type;
   }
@@ -46,11 +42,11 @@ public class Monitor extends Instruction {
   }
 
   public boolean isEnter() {
-    return type == Type.ENTER;
+    return type == MonitorType.ENTER;
   }
 
   public boolean isExit() {
-    return type == Type.EXIT;
+    return type == MonitorType.EXIT;
   }
 
   @Override
@@ -64,7 +60,7 @@ public class Monitor extends Instruction {
     if (object > maxInValueRegister()) {
       object = builder.allocatedRegister(object(), getNumber());
     }
-    if (type == Type.ENTER) {
+    if (type == MonitorType.ENTER) {
       builder.add(this, new DexMonitorEnter(object));
     } else {
       builder.add(this, new DexMonitorExit(object));

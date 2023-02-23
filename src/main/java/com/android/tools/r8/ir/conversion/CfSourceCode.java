@@ -33,6 +33,7 @@ import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.code.CanonicalPositions;
 import com.android.tools.r8.ir.code.CatchHandlers;
 import com.android.tools.r8.ir.code.Monitor;
+import com.android.tools.r8.ir.code.MonitorType;
 import com.android.tools.r8.ir.code.Phi.RegisterReadType;
 import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.code.ValueType;
@@ -444,7 +445,7 @@ public class CfSourceCode implements SourceCode {
       monitorRegister = state.read(0).register;
     }
     // Build the monitor enter and save it for when generating exits later.
-    monitorEnter = builder.addMonitor(Monitor.Type.ENTER, monitorRegister);
+    monitorEnter = builder.addMonitor(MonitorType.ENTER, monitorRegister);
     currentlyGeneratingMethodSynchronization = false;
   }
 
@@ -452,7 +453,7 @@ public class CfSourceCode implements SourceCode {
     assert needsGeneratedMethodSynchronization;
     currentlyGeneratingMethodSynchronization = true;
     state.setPosition(getCanonicalDebugPositionAtOffset(EXCEPTIONAL_SYNC_EXIT_OFFSET));
-    builder.add(new Monitor(Monitor.Type.EXIT, monitorEnter.inValues().get(0)));
+    builder.add(new Monitor(MonitorType.EXIT, monitorEnter.inValues().get(0)));
     builder.addThrow(getMoveExceptionRegister(0));
     currentlyGeneratingMethodSynchronization = false;
   }
@@ -461,7 +462,7 @@ public class CfSourceCode implements SourceCode {
   public void buildPostlude(IRBuilder builder) {
     if (needsGeneratedMethodSynchronization) {
       currentlyGeneratingMethodSynchronization = true;
-      builder.add(new Monitor(Monitor.Type.EXIT, monitorEnter.inValues().get(0)));
+      builder.add(new Monitor(MonitorType.EXIT, monitorEnter.inValues().get(0)));
       currentlyGeneratingMethodSynchronization = false;
     }
   }

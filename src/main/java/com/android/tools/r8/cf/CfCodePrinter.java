@@ -60,9 +60,9 @@ import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
-import com.android.tools.r8.ir.code.If.Type;
+import com.android.tools.r8.ir.code.IfType;
 import com.android.tools.r8.ir.code.MemberType;
-import com.android.tools.r8.ir.code.Monitor;
+import com.android.tools.r8.ir.code.MonitorType;
 import com.android.tools.r8.ir.code.NumericType;
 import com.android.tools.r8.ir.code.ValueType;
 import com.android.tools.r8.utils.StringUtils;
@@ -267,7 +267,7 @@ public class CfCodePrinter extends CfPrinter {
     return irType("MemberType") + "." + type.name();
   }
 
-  private String ifTypeKind(Type kind) {
+  private String ifTypeKind(IfType kind) {
     return irType("If") + ".Type." + kind.name();
   }
 
@@ -360,7 +360,7 @@ public class CfCodePrinter extends CfPrinter {
     printNewInstruction(name, valueType(type), "" + index);
   }
 
-  private void printNewJumpInstruction(String name, Type kind, ValueType type, CfLabel target) {
+  private void printNewJumpInstruction(String name, IfType kind, ValueType type, CfLabel target) {
     printNewInstruction(name, ifTypeKind(kind), valueType(type), labelName(target));
   }
 
@@ -417,7 +417,7 @@ public class CfCodePrinter extends CfPrinter {
   public void print(CfMonitor monitor) {
     printNewInstruction(
         "CfMonitor",
-        monitor.getType() == Monitor.Type.ENTER
+        monitor.getType() == MonitorType.ENTER
             ? monitorType() + ".Type.ENTER"
             : monitorType() + ".Type.EXIT");
   }

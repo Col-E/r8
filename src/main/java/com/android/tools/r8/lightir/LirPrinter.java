@@ -8,7 +8,7 @@ import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
-import com.android.tools.r8.ir.code.If.Type;
+import com.android.tools.r8.ir.code.IfType;
 import com.android.tools.r8.ir.code.NumericType;
 import com.android.tools.r8.utils.StringUtils;
 import it.unimi.dsi.fastutil.ints.IntList;
@@ -134,7 +134,7 @@ public class LirPrinter extends LirParsedInstructionCallback {
   }
 
   @Override
-  public void onIf(Type ifKind, int blockIndex, int valueIndex) {
+  public void onIf(IfType ifKind, int blockIndex, int valueIndex) {
     builder.append(fmtValueIndex(valueIndex)).append(' ').append(fmtInsnIndex(blockIndex));
   }
 

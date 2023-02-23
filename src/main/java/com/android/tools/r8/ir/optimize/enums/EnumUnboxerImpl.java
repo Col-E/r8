@@ -64,6 +64,7 @@ import com.android.tools.r8.ir.code.ConstClass;
 import com.android.tools.r8.ir.code.FieldInstruction;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.If;
+import com.android.tools.r8.ir.code.IfType;
 import com.android.tools.r8.ir.code.InitClass;
 import com.android.tools.r8.ir.code.InstanceGet;
 import com.android.tools.r8.ir.code.Instruction;
@@ -1218,7 +1219,7 @@ public class EnumUnboxerImpl extends EnumUnboxer {
   // or e == X with X of same enum type as e. Ex: if (e == MyEnum.A).
   private Reason analyzeIfUser(
       If theIf, IRCode code, ProgramMethod context, DexProgramClass enumClass, Value enumValue) {
-    assert (theIf.getType() == If.Type.EQ || theIf.getType() == If.Type.NE)
+    assert (theIf.getType() == IfType.EQ || theIf.getType() == IfType.NE)
         : "Comparing a reference with " + theIf.getType().toString();
     // e == null.
     if (theIf.isZeroTest()) {

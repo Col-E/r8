@@ -21,8 +21,7 @@ import com.android.tools.r8.graph.GraphLens.MethodLookupResult;
 import com.android.tools.r8.graph.InitClassLens;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.UseRegistry;
-import com.android.tools.r8.ir.code.Invoke;
-import com.android.tools.r8.ir.code.Invoke.Type;
+import com.android.tools.r8.ir.code.InvokeType;
 import com.android.tools.r8.ir.code.ValueType;
 import com.android.tools.r8.ir.conversion.CfSourceCode;
 import com.android.tools.r8.ir.conversion.CfState;
@@ -111,8 +110,8 @@ public class CfInvoke extends CfInstruction {
       NamingLens namingLens,
       LensCodeRewriterUtils rewriter,
       MethodVisitor visitor) {
-    Invoke.Type invokeType = Invoke.Type.fromCfOpcode(opcode, method, context, appView);
-    if (invokeType == Type.POLYMORPHIC) {
+    InvokeType invokeType = InvokeType.fromCfOpcode(opcode, method, context, appView);
+    if (invokeType == InvokeType.POLYMORPHIC) {
       assert dexItemFactory.polymorphicMethods.isPolymorphicInvoke(method);
       // The method is one of java.lang.MethodHandle.invoke/invokeExact.
       // Only the method signature (getProto()) is to be type rewritten.
@@ -126,7 +125,7 @@ public class CfInvoke extends CfInstruction {
     } else {
       MethodLookupResult lookup =
           graphLens.lookupMethod(method, context.getReference(), invokeType);
-      Invoke.Type rewrittenType = lookup.getType();
+      InvokeType rewrittenType = lookup.getType();
       DexMethod rewrittenMethod = lookup.getReference();
       String owner = namingLens.lookupInternalName(rewrittenMethod.holder);
       String name = namingLens.lookupName(rewrittenMethod).toString();
@@ -206,28 +205,28 @@ public class CfInvoke extends CfInstruction {
 
   @Override
   public void buildIR(IRBuilder builder, CfState state, CfSourceCode code) {
-    Invoke.Type type;
+    InvokeType type;
     DexMethod canonicalMethod;
     DexProto callSiteProto = null;
     switch (opcode) {
       case Opcodes.INVOKEINTERFACE:
         {
           canonicalMethod = method;
-          type = Type.INTERFACE;
+          type = InvokeType.INTERFACE;
           break;
         }
       case Opcodes.INVOKEVIRTUAL:
         {
           canonicalMethod = builder.dexItemFactory().polymorphicMethods.canonicalize(method);
           if (canonicalMethod == null) {
-            type = Type.VIRTUAL;
+            type = InvokeType.VIRTUAL;
             canonicalMethod = method;
           } else {
             if (builder.appView.options().shouldDesugarVarHandle()) {
-              type = Type.VIRTUAL;
+              type = InvokeType.VIRTUAL;
               canonicalMethod = method;
             } else {
-              type = Type.POLYMORPHIC;
+              type = InvokeType.POLYMORPHIC;
               callSiteProto = method.proto;
             }
           }
@@ -249,13 +248,13 @@ public class CfInvoke extends CfInstruction {
           AppView<?> appView = builder.appView;
           ProgramMethod context = builder.getProgramMethod();
           canonicalMethod = method;
-          type = Invoke.Type.fromInvokeSpecial(method, context, appView, builder.getCodeLens());
+          type = InvokeType.fromInvokeSpecial(method, context, appView, builder.getCodeLens());
           break;
         }
       case Opcodes.INVOKESTATIC:
         {
           canonicalMethod = method;
-          type = Type.STATIC;
+          type = InvokeType.STATIC;
           break;
         }
       default:
@@ -263,7 +262,7 @@ public class CfInvoke extends CfInstruction {
     }
 
     int parameterCount = method.getParameters().size();
-    if (type != Type.STATIC) {
+    if (type != InvokeType.STATIC) {
       parameterCount += 1;
     }
     ValueType[] types = new ValueType[parameterCount];
@@ -279,7 +278,7 @@ public class CfInvoke extends CfInstruction {
       builder.addMoveResult(state.push(method.getReturnType()).register);
     }
     assert type
-        == Invoke.Type.fromCfOpcode(
+        == InvokeType.fromCfOpcode(
             opcode, method, builder.getProgramMethod(), builder.appView, builder.getCodeLens());
   }
 
@@ -290,18 +289,19 @@ public class CfInvoke extends CfInstruction {
     AppView<?> appView = inliningConstraints.getAppView();
     DexMethod target = method;
     // Find the DEX invocation type.
-    Type type;
+    InvokeType type;
     switch (opcode) {
       case Opcodes.INVOKEINTERFACE:
         // Could have changed to an invoke-virtual instruction due to vertical class merging
         // (if an interface is merged into a class).
-        type = graphLens.lookupMethod(target, context.getReference(), Type.INTERFACE).getType();
-        assert type == Type.INTERFACE || type == Type.VIRTUAL;
+        type =
+            graphLens.lookupMethod(target, context.getReference(), InvokeType.INTERFACE).getType();
+        assert type == InvokeType.INTERFACE || type == InvokeType.VIRTUAL;
         break;
 
       case Opcodes.INVOKESPECIAL:
         {
-          Type actualInvokeType =
+          InvokeType actualInvokeType =
               computeInvokeTypeForInvokeSpecial(appView, method, context, code.getOriginalHolder());
           type = graphLens.lookupMethod(target, context.getReference(), actualInvokeType).getType();
         }
@@ -311,7 +311,7 @@ public class CfInvoke extends CfInstruction {
         {
           // Static invokes may have changed as a result of horizontal class merging.
           MethodLookupResult lookup =
-              graphLens.lookupMethod(target, context.getReference(), Type.STATIC);
+              graphLens.lookupMethod(target, context.getReference(), InvokeType.STATIC);
           target = lookup.getReference();
           type = lookup.getType();
         }
@@ -319,13 +319,13 @@ public class CfInvoke extends CfInstruction {
 
       case Opcodes.INVOKEVIRTUAL:
         {
-          type = Type.VIRTUAL;
+          type = InvokeType.VIRTUAL;
           // Instructions that target a private method in the same class translates to
           // invoke-direct.
           if (target.holder == context.getHolderType()) {
             DexClass clazz = appView.definitionFor(target.holder);
             if (clazz != null && clazz.lookupDirectMethod(target) != null) {
-              type = Type.DIRECT;
+              type = InvokeType.DIRECT;
             }
           }
 
@@ -368,31 +368,31 @@ public class CfInvoke extends CfInstruction {
     return frame.push(config, method.getReturnType());
   }
 
-  private Type computeInvokeTypeForInvokeSpecial(
+  private InvokeType computeInvokeTypeForInvokeSpecial(
       AppView<?> appView, DexMethod method, ProgramMethod context, DexType originalHolder) {
     if (appView.dexItemFactory().isConstructor(method)) {
-      return Type.DIRECT;
+      return InvokeType.DIRECT;
     }
     if (originalHolder != method.getHolderType()) {
-      return Type.SUPER;
+      return InvokeType.SUPER;
     }
     return invokeTypeForInvokeSpecialToNonInitMethodOnHolder(context, appView.graphLens());
   }
 
-  private Type invokeTypeForInvokeSpecialToNonInitMethodOnHolder(
+  private InvokeType invokeTypeForInvokeSpecialToNonInitMethodOnHolder(
       ProgramMethod context, GraphLens graphLens) {
     MethodLookupResult lookupResult =
-        graphLens.lookupMethod(method, context.getReference(), Type.DIRECT);
+        graphLens.lookupMethod(method, context.getReference(), InvokeType.DIRECT);
     DexEncodedMethod definition = context.getHolder().lookupMethod(lookupResult.getReference());
     if (definition == null) {
-      return Type.SUPER;
+      return InvokeType.SUPER;
     }
 
     if (context.getHolder().isInterface()) {
       // On interfaces invoke-special should be mapped to invoke-super if the invoke-special
       // instruction is used to target a default interface method.
       if (definition.belongsToVirtualPool()) {
-        return Type.SUPER;
+        return InvokeType.SUPER;
       }
     } else {
       // Due to desugaring of invoke-special instructions that target virtual methods, this invoke
@@ -401,6 +401,6 @@ public class CfInvoke extends CfInstruction {
       assert definition.isPrivate() || lookupResult.getType().isVirtual();
     }
 
-    return Type.DIRECT;
+    return InvokeType.DIRECT;
   }
 }

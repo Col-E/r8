@@ -51,8 +51,8 @@ public class InvokeInterface extends InvokeMethodWithReceiver {
   }
 
   @Override
-  public Type getType() {
-    return Type.INTERFACE;
+  public InvokeType getType() {
+    return InvokeType.INTERFACE;
   }
 
   @Override

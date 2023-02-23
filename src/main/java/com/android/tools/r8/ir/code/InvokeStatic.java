@@ -66,8 +66,8 @@ public class InvokeStatic extends InvokeMethod {
   }
 
   @Override
-  public Type getType() {
-    return Type.STATIC;
+  public InvokeType getType() {
+    return InvokeType.STATIC;
   }
 
   @Override

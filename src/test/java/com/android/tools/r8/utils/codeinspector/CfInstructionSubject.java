@@ -38,7 +38,7 @@ import com.android.tools.r8.cf.code.CfThrow;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexMethod;
-import com.android.tools.r8.ir.code.Monitor.Type;
+import com.android.tools.r8.ir.code.MonitorType;
 import com.android.tools.r8.ir.code.ValueType;
 import java.util.Iterator;
 import org.objectweb.asm.Opcodes;
@@ -351,7 +351,7 @@ public class CfInstructionSubject implements InstructionSubject {
       return false;
     }
     CfMonitor monitor = (CfMonitor) instruction;
-    return monitor.getType() == Type.ENTER;
+    return monitor.getType() == MonitorType.ENTER;
   }
 
   @Override
@@ -360,7 +360,7 @@ public class CfInstructionSubject implements InstructionSubject {
       return false;
     }
     CfMonitor monitor = (CfMonitor) instruction;
-    return monitor.getType() == Type.EXIT;
+    return monitor.getType() == MonitorType.EXIT;
   }
 
   @Override

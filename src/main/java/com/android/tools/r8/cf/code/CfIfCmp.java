@@ -11,7 +11,7 @@ import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.InitClassLens;
 import com.android.tools.r8.graph.ProgramMethod;
-import com.android.tools.r8.ir.code.If;
+import com.android.tools.r8.ir.code.IfType;
 import com.android.tools.r8.ir.code.ValueType;
 import com.android.tools.r8.ir.conversion.CfSourceCode;
 import com.android.tools.r8.ir.conversion.CfState;
@@ -29,7 +29,7 @@ import org.objectweb.asm.Opcodes;
 
 public class CfIfCmp extends CfConditionalJumpInstruction {
 
-  public CfIfCmp(If.Type kind, ValueType type, CfLabel target) {
+  public CfIfCmp(IfType kind, ValueType type, CfLabel target) {
     super(kind, type, target);
   }
 

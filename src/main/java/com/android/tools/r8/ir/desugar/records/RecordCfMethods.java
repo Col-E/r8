@@ -30,7 +30,7 @@ import com.android.tools.r8.cf.code.frame.FrameType;
 import com.android.tools.r8.graph.CfCode;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
-import com.android.tools.r8.ir.code.If;
+import com.android.tools.r8.ir.code.IfType;
 import com.android.tools.r8.ir.code.MemberType;
 import com.android.tools.r8.ir.code.NumericType;
 import com.android.tools.r8.ir.code.ValueType;
@@ -110,7 +110,7 @@ public final class RecordCfMethods {
                     factory.createProto(factory.intType),
                     factory.createString("length")),
                 false),
-            new CfIf(If.Type.NE, ValueType.INT, label1),
+            new CfIf(IfType.NE, ValueType.INT, label1),
             new CfConstNumber(0, ValueType.INT),
             new CfNewArray(factory.createType("[Ljava/lang/String;")),
             new CfGoto(label2),
@@ -206,7 +206,7 @@ public final class RecordCfMethods {
             new CfLoad(ValueType.INT, 5),
             new CfLoad(ValueType.OBJECT, 3),
             new CfArrayLength(),
-            new CfIfCmp(If.Type.GE, ValueType.INT, label11),
+            new CfIfCmp(IfType.GE, ValueType.INT, label11),
             label7,
             new CfLoad(ValueType.OBJECT, 4),
             new CfLoad(ValueType.OBJECT, 3),
@@ -244,7 +244,7 @@ public final class RecordCfMethods {
             new CfArrayLength(),
             new CfConstNumber(1, ValueType.INT),
             new CfArithmeticBinop(CfArithmeticBinop.Opcode.Sub, NumericType.INT),
-            new CfIfCmp(If.Type.EQ, ValueType.INT, label10),
+            new CfIfCmp(IfType.EQ, ValueType.INT, label10),
             label9,
             new CfLoad(ValueType.OBJECT, 4),
             new CfConstString(factory.createString(", ")),

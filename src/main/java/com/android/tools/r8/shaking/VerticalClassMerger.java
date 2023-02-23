@@ -6,9 +6,9 @@ package com.android.tools.r8.shaking;
 import static com.android.tools.r8.dex.Constants.TEMPORARY_INSTANCE_INITIALIZER_PREFIX;
 import static com.android.tools.r8.graph.DexClassAndMethod.asProgramMethodOrNull;
 import static com.android.tools.r8.graph.DexProgramClass.asProgramClassOrNull;
-import static com.android.tools.r8.ir.code.Invoke.Type.DIRECT;
-import static com.android.tools.r8.ir.code.Invoke.Type.STATIC;
-import static com.android.tools.r8.ir.code.Invoke.Type.VIRTUAL;
+import static com.android.tools.r8.ir.code.InvokeType.DIRECT;
+import static com.android.tools.r8.ir.code.InvokeType.STATIC;
+import static com.android.tools.r8.ir.code.InvokeType.VIRTUAL;
 import static com.android.tools.r8.utils.AndroidApiLevelUtils.getApiReferenceLevelForMerging;
 
 import com.android.tools.r8.androidapi.AndroidApiLevelCompute;
@@ -64,7 +64,7 @@ import com.android.tools.r8.graph.UseRegistry;
 import com.android.tools.r8.graph.UseRegistryWithResult;
 import com.android.tools.r8.graph.classmerging.VerticallyMergedClasses;
 import com.android.tools.r8.graph.proto.RewrittenPrototypeDescription;
-import com.android.tools.r8.ir.code.Invoke.Type;
+import com.android.tools.r8.ir.code.InvokeType;
 import com.android.tools.r8.ir.code.Position.SyntheticPosition;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.MemberPoolCollection.MemberPool;
@@ -1451,7 +1451,7 @@ public class VerticalClassMerger {
         DexEncodedMethod oldTarget, DexEncodedMethod newTarget) {
       DexMethod oldTargetReference = oldTarget.getReference();
       DexMethod newTargetReference = newTarget.getReference();
-      Type newTargetType = newTarget.isNonPrivateVirtualMethod() ? VIRTUAL : DIRECT;
+      InvokeType newTargetType = newTarget.isNonPrivateVirtualMethod() ? VIRTUAL : DIRECT;
       if (source.accessFlags.isInterface()) {
         // If we merge a default interface method from interface I to its subtype C, then we need
         // to rewrite invocations on the form "invoke-super I.m()" to "invoke-direct C.m$I()".
@@ -2064,7 +2064,7 @@ public class VerticalClassMerger {
 
     @Override
     public MethodLookupResult lookupMethod(
-        DexMethod method, DexMethod context, Type type, GraphLens codeLens) {
+        DexMethod method, DexMethod context, InvokeType type, GraphLens codeLens) {
       // First look up the method using the existing graph lens (for example, the type will have
       // changed if the method was publicized by ClassAndMemberPublicizer).
       MethodLookupResult lookup = appView.graphLens().lookupMethod(method, context, type, codeLens);
@@ -2078,7 +2078,7 @@ public class VerticalClassMerger {
               .setReference(newMethod)
               .setPrototypeChanges(lookup.getPrototypeChanges())
               .setType(lookup.getType());
-      if (lookup.getType() == Type.INTERFACE) {
+      if (lookup.getType() == InvokeType.INTERFACE) {
         // If an interface has been merged into a class, invoke-interface needs to be translated
         // to invoke-virtual.
         DexClass clazz = appInfo.definitionFor(newMethod.holder);
@@ -2359,14 +2359,14 @@ public class VerticalClassMerger {
     private DexMethod method;
     private DexMethod originalMethod;
     private DexMethod invocationTarget;
-    private Type type;
+    private InvokeType type;
     private final boolean isInterface;
 
     public SynthesizedBridgeCode(
         DexMethod method,
         DexMethod originalMethod,
         DexMethod invocationTarget,
-        Type type,
+        InvokeType type,
         boolean isInterface) {
       this.method = method;
       this.originalMethod = originalMethod;

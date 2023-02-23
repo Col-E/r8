@@ -72,7 +72,7 @@ import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.DominatorTree;
 import com.android.tools.r8.ir.code.FieldInstruction;
 import com.android.tools.r8.ir.code.IRCode;
-import com.android.tools.r8.ir.code.If;
+import com.android.tools.r8.ir.code.IfType;
 import com.android.tools.r8.ir.code.InstancePut;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.Instruction.SideEffectAssumption;
@@ -714,9 +714,10 @@ public class MethodOptimizationInfoCollector {
   }
 
   private static boolean isNullCheck(Instruction instr, Value value) {
-    return instr.isIf() && instr.asIf().isZeroTest()
+    return instr.isIf()
+        && instr.asIf().isZeroTest()
         && instr.inValues().get(0).equals(value)
-        && (instr.asIf().getType() == If.Type.EQ || instr.asIf().getType() == If.Type.NE);
+        && (instr.asIf().getType() == IfType.EQ || instr.asIf().getType() == IfType.NE);
   }
 
   /**
@@ -1099,7 +1100,7 @@ public class MethodOptimizationInfoCollector {
 
       if (user.isIf()
           && user.asIf().isZeroTest()
-          && (user.asIf().getType() == If.Type.EQ || user.asIf().getType() == If.Type.NE)) {
+          && (user.asIf().getType() == IfType.EQ || user.asIf().getType() == IfType.NE)) {
         nullCheckedBlocks.add(user.asIf().targetFromNonNullObject());
       }
     }

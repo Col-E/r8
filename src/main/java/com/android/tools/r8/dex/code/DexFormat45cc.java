@@ -13,7 +13,7 @@ import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.GraphLens.MethodLookupResult;
 import com.android.tools.r8.graph.ObjectToOffsetMapping;
 import com.android.tools.r8.graph.ProgramMethod;
-import com.android.tools.r8.ir.code.Invoke.Type;
+import com.android.tools.r8.ir.code.InvokeType;
 import com.android.tools.r8.ir.conversion.LensCodeRewriterUtils;
 import com.android.tools.r8.utils.RetracerForCodePrinting;
 import com.android.tools.r8.utils.structural.CompareToVisitor;
@@ -106,8 +106,10 @@ public abstract class DexFormat45cc extends DexBase4Format {
       ProgramMethod context,
       LensCodeRewriterUtils rewriter) {
     MethodLookupResult lookup =
-        appView.graphLens().lookupMethod(getMethod(), context.getReference(), Type.POLYMORPHIC);
-    assert lookup.getType() == Type.POLYMORPHIC;
+        appView
+            .graphLens()
+            .lookupMethod(getMethod(), context.getReference(), InvokeType.POLYMORPHIC);
+    assert lookup.getType() == InvokeType.POLYMORPHIC;
     lookup.getReference().collectIndexedItems(appView, indexedItems);
 
     DexProto rewrittenProto = rewriter.rewriteProto(getProto());
@@ -127,7 +129,7 @@ public abstract class DexFormat45cc extends DexBase4Format {
     assert rewriter.dexItemFactory().polymorphicMethods.isPolymorphicInvoke(getMethod());
     assert getMethod()
         == graphLens
-            .lookupMethod(getMethod(), context.getReference(), Type.POLYMORPHIC)
+            .lookupMethod(getMethod(), context.getReference(), InvokeType.POLYMORPHIC)
             .getReference();
     DexProto rewrittenProto = rewriter.rewriteProto(getProto());
     writeFirst(A, G, dest);

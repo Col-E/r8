@@ -6,7 +6,7 @@ package com.android.tools.r8.dex.code;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.OffsetToObjectMapping;
 import com.android.tools.r8.graph.UseRegistry;
-import com.android.tools.r8.ir.code.Invoke.Type;
+import com.android.tools.r8.ir.code.InvokeType;
 import com.android.tools.r8.ir.conversion.IRBuilder;
 
 public class DexInvokeVirtual extends DexInvokeMethod {
@@ -24,8 +24,8 @@ public class DexInvokeVirtual extends DexInvokeMethod {
   }
 
   @Override
-  public Type getInvokeType() {
-    return Type.VIRTUAL;
+  public InvokeType getInvokeType() {
+    return InvokeType.VIRTUAL;
   }
 
   @Override
@@ -60,7 +60,8 @@ public class DexInvokeVirtual extends DexInvokeMethod {
 
   @Override
   public void buildIR(IRBuilder builder) {
-    builder.addInvokeRegisters(Type.VIRTUAL, getMethod(), getProto(), A, new int[] {C, D, E, F, G});
+    builder.addInvokeRegisters(
+        InvokeType.VIRTUAL, getMethod(), getProto(), A, new int[] {C, D, E, F, G});
   }
 
   @Override

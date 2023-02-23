@@ -21,7 +21,7 @@ import com.android.tools.r8.cf.code.frame.FrameType;
 import com.android.tools.r8.graph.CfCode;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
-import com.android.tools.r8.ir.code.If;
+import com.android.tools.r8.ir.code.IfType;
 import com.android.tools.r8.ir.code.ValueType;
 import com.google.common.collect.ImmutableList;
 import it.unimi.dsi.fastutil.ints.Int2ObjectAVLTreeMap;
@@ -50,7 +50,7 @@ public final class CfUtilityMethodsForCodeOptimizations {
         ImmutableList.of(
             label0,
             new CfLoad(ValueType.OBJECT, 0),
-            new CfIf(If.Type.EQ, ValueType.OBJECT, label2),
+            new CfIf(IfType.EQ, ValueType.OBJECT, label2),
             label1,
             new CfNew(factory.createType("Ljava/lang/ClassCastException;")),
             new CfStackInstruction(CfStackInstruction.Opcode.Dup),
@@ -183,7 +183,7 @@ public final class CfUtilityMethodsForCodeOptimizations {
         ImmutableList.of(
             label0,
             new CfLoad(ValueType.OBJECT, 0),
-            new CfIf(If.Type.EQ, ValueType.OBJECT, label2),
+            new CfIf(IfType.EQ, ValueType.OBJECT, label2),
             label1,
             new CfLoad(ValueType.OBJECT, 0),
             new CfInvoke(

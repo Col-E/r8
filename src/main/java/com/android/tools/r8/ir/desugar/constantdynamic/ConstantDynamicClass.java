@@ -48,8 +48,8 @@ import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.graph.MethodResolutionResult;
 import com.android.tools.r8.graph.MethodResolutionResult.SingleResolutionResult;
 import com.android.tools.r8.graph.ProgramMethod;
-import com.android.tools.r8.ir.code.If;
-import com.android.tools.r8.ir.code.Monitor;
+import com.android.tools.r8.ir.code.IfType;
+import com.android.tools.r8.ir.code.MonitorType;
 import com.android.tools.r8.ir.code.ValueType;
 import com.android.tools.r8.ir.desugar.FreshLocalProvider;
 import com.android.tools.r8.ir.desugar.LocalStackAllocator;
@@ -279,16 +279,16 @@ public class ConstantDynamicClass {
     CfLabel tryCatchEndFinally = new CfLabel();
 
     instructions.add(new CfStaticFieldRead(initializedValueField));
-    instructions.add(new CfIf(If.Type.NE, ValueType.INT, initializedTrue));
+    instructions.add(new CfIf(IfType.NE, ValueType.INT, initializedTrue));
 
     instructions.add(new CfConstClass(builder.getType()));
     instructions.add(new CfStackInstruction(Opcode.Dup));
     instructions.add(new CfStore(ValueType.OBJECT, 0));
-    instructions.add(new CfMonitor(Monitor.Type.ENTER));
+    instructions.add(new CfMonitor(MonitorType.ENTER));
     instructions.add(tryCatchStart);
 
     instructions.add(new CfStaticFieldRead(initializedValueField));
-    instructions.add(new CfIf(If.Type.NE, ValueType.INT, initializedTrueSecond));
+    instructions.add(new CfIf(IfType.NE, ValueType.INT, initializedTrueSecond));
 
     invokeBootstrapMethod(instructions);
     instructions.add(new CfStaticFieldWrite(constantValueField));
@@ -301,7 +301,7 @@ public class ConstantDynamicClass {
             .appendLocal(FrameType.initializedNonNullReference(builder.getFactory().objectType))
             .build());
     instructions.add(new CfLoad(ValueType.OBJECT, 0));
-    instructions.add(new CfMonitor(Monitor.Type.EXIT));
+    instructions.add(new CfMonitor(MonitorType.EXIT));
     instructions.add(tryCatchEnd);
     instructions.add(new CfGoto(initializedTrue));
 
@@ -313,7 +313,7 @@ public class ConstantDynamicClass {
             .build());
     instructions.add(new CfStore(ValueType.OBJECT, 1));
     instructions.add(new CfLoad(ValueType.OBJECT, 0));
-    instructions.add(new CfMonitor(Monitor.Type.EXIT));
+    instructions.add(new CfMonitor(MonitorType.EXIT));
     instructions.add(tryCatchEndFinally);
     instructions.add(new CfLoad(ValueType.OBJECT, 1));
     instructions.add(new CfThrow());

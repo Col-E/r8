@@ -6,7 +6,7 @@ package com.android.tools.r8.graph;
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.dex.IndexedItemCollection;
 import com.android.tools.r8.errors.Unreachable;
-import com.android.tools.r8.ir.code.Invoke.Type;
+import com.android.tools.r8.ir.code.InvokeType;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.utils.structural.StructuralMapping;
 import com.android.tools.r8.utils.structural.StructuralSpecification;
@@ -165,21 +165,21 @@ public class DexMethodHandle extends IndexedDexItem
       return this == MethodHandleType.INVOKE_CONSTRUCTOR;
     }
 
-    public Type toInvokeType() {
+    public InvokeType toInvokeType() {
       assert isMethodType();
       switch (this) {
         case INVOKE_STATIC:
-          return Type.STATIC;
+          return InvokeType.STATIC;
         case INVOKE_INSTANCE:
-          return Type.VIRTUAL;
+          return InvokeType.VIRTUAL;
         case INVOKE_CONSTRUCTOR:
-          return Type.DIRECT;
+          return InvokeType.DIRECT;
         case INVOKE_DIRECT:
-          return Type.DIRECT;
+          return InvokeType.DIRECT;
         case INVOKE_INTERFACE:
-          return Type.INTERFACE;
+          return InvokeType.INTERFACE;
         case INVOKE_SUPER:
-          return Type.SUPER;
+          return InvokeType.SUPER;
         default:
           throw new Unreachable(
               "Conversion to invoke type with unexpected method handle: " + this);

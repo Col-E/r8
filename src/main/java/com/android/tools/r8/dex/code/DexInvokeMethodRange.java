@@ -10,7 +10,7 @@ import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.GraphLens.MethodLookupResult;
 import com.android.tools.r8.graph.ObjectToOffsetMapping;
 import com.android.tools.r8.graph.ProgramMethod;
-import com.android.tools.r8.ir.code.Invoke.Type;
+import com.android.tools.r8.ir.code.InvokeType;
 import com.android.tools.r8.ir.conversion.LensCodeRewriterUtils;
 import java.nio.ShortBuffer;
 
@@ -43,7 +43,7 @@ public abstract class DexInvokeMethodRange extends DexFormat3rc<DexMethod> {
     return BBBB;
   }
 
-  public abstract Type getInvokeType();
+  public abstract InvokeType getInvokeType();
 
   @Override
   public void write(

@@ -9,7 +9,7 @@ import com.android.tools.r8.graph.DexItem;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
-import com.android.tools.r8.ir.code.If;
+import com.android.tools.r8.ir.code.IfType;
 import com.android.tools.r8.ir.code.NumericType;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.ints.IntList;
@@ -74,7 +74,7 @@ public abstract class LirParsedInstructionCallback implements LirInstructionCall
     onDiv(NumericType.INT, leftValueIndex, rightValueIndex);
   }
 
-  public void onIf(If.Type ifKind, int blockIndex, int valueIndex) {
+  public void onIf(IfType ifKind, int blockIndex, int valueIndex) {
     onInstruction();
   }
 
@@ -181,7 +181,7 @@ public abstract class LirParsedInstructionCallback implements LirInstructionCall
         {
           int blockIndex = view.getNextBlockOperand();
           int valueIndex = getNextValueOperand(view);
-          onIf(If.Type.NE, blockIndex, valueIndex);
+          onIf(IfType.NE, blockIndex, valueIndex);
           return;
         }
       case LirOpcodes.GOTO:

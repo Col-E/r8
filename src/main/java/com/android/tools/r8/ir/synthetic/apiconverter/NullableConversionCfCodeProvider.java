@@ -36,7 +36,7 @@ import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
-import com.android.tools.r8.ir.code.If;
+import com.android.tools.r8.ir.code.IfType;
 import com.android.tools.r8.ir.code.MemberType;
 import com.android.tools.r8.ir.code.NumericType;
 import com.android.tools.r8.ir.code.ValueType;
@@ -55,7 +55,7 @@ public abstract class NullableConversionCfCodeProvider extends SyntheticCfCodePr
   void generateNullCheck(List<CfInstruction> instructions) {
     CfLabel nullDest = new CfLabel();
     instructions.add(new CfLoad(ValueType.OBJECT, 0));
-    instructions.add(new CfIf(If.Type.NE, ValueType.OBJECT, nullDest));
+    instructions.add(new CfIf(IfType.NE, ValueType.OBJECT, nullDest));
     instructions.add(new CfConstNull());
     instructions.add(new CfReturn(ValueType.OBJECT));
     instructions.add(nullDest);
@@ -114,7 +114,7 @@ public abstract class NullableConversionCfCodeProvider extends SyntheticCfCodePr
       instructions.add(frame);
       instructions.add(new CfLoad(ValueType.INT, 3));
       instructions.add(new CfLoad(ValueType.INT, 1));
-      instructions.add(new CfIfCmp(If.Type.GE, ValueType.INT, returnLabel));
+      instructions.add(new CfIfCmp(IfType.GE, ValueType.INT, returnLabel));
       // t2[t3] = convert(arg[t3]);
       instructions.add(new CfLoad(ValueType.fromDexType(convertedTypeArray), 2));
       instructions.add(new CfLoad(ValueType.INT, 3));
@@ -176,7 +176,7 @@ public abstract class NullableConversionCfCodeProvider extends SyntheticCfCodePr
           instructions.add(new CfLoad(ValueType.fromDexType(enumType), 0));
           instructions.add(
               new CfStaticFieldRead(factory.createField(enumType, enumType, enumField.getName())));
-          instructions.add(new CfIfCmp(If.Type.NE, ValueType.OBJECT, notEqual));
+          instructions.add(new CfIfCmp(IfType.NE, ValueType.OBJECT, notEqual));
         }
         instructions.add(
             new CfStaticFieldRead(
@@ -225,7 +225,7 @@ public abstract class NullableConversionCfCodeProvider extends SyntheticCfCodePr
       CfLabel unwrapDest = new CfLabel();
       instructions.add(new CfLoad(ValueType.fromDexType(argType), 0));
       instructions.add(new CfInstanceOf(reverseWrapperField.holder));
-      instructions.add(new CfIf(If.Type.EQ, ValueType.INT, unwrapDest));
+      instructions.add(new CfIf(IfType.EQ, ValueType.INT, unwrapDest));
       instructions.add(new CfLoad(ValueType.fromDexType(argType), 0));
       instructions.add(new CfCheckCast(reverseWrapperField.holder));
       instructions.add(new CfInstanceFieldRead(reverseWrapperField));
@@ -241,7 +241,7 @@ public abstract class NullableConversionCfCodeProvider extends SyntheticCfCodePr
         DexType convertArgType = convert.getArgumentType(0, true);
         instructions.add(new CfLoad(ValueType.fromDexType(argType), 0));
         instructions.add(new CfInstanceOf(convertArgType));
-        instructions.add(new CfIf(If.Type.EQ, ValueType.INT, dest));
+        instructions.add(new CfIf(IfType.EQ, ValueType.INT, dest));
         instructions.add(new CfLoad(ValueType.fromDexType(argType), 0));
         instructions.add(new CfCheckCast(convertArgType));
         instructions.add(new CfInvoke(Opcodes.INVOKESTATIC, convert, false));

@@ -23,7 +23,7 @@ import com.android.tools.r8.ir.code.Div;
 import com.android.tools.r8.ir.code.Goto;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.If;
-import com.android.tools.r8.ir.code.If.Type;
+import com.android.tools.r8.ir.code.IfType;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InvokeDirect;
 import com.android.tools.r8.ir.code.InvokeVirtual;
@@ -315,7 +315,7 @@ public class Lir2IRConverter {
     }
 
     @Override
-    public void onIf(Type ifKind, int blockIndex, int valueIndex) {
+    public void onIf(IfType ifKind, int blockIndex, int valueIndex) {
       BasicBlock targetBlock = getBasicBlock(blockIndex);
       Value value = getValue(valueIndex);
       addInstruction(new If(ifKind, value));

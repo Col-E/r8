@@ -15,7 +15,7 @@ import com.android.tools.r8.graph.NestedGraphLens;
 import com.android.tools.r8.graph.classmerging.VerticallyMergedClasses;
 import com.android.tools.r8.graph.proto.ArgumentInfoCollection;
 import com.android.tools.r8.graph.proto.RewrittenPrototypeDescription;
-import com.android.tools.r8.ir.code.Invoke.Type;
+import com.android.tools.r8.ir.code.InvokeType;
 import com.android.tools.r8.utils.IterableUtils;
 import com.android.tools.r8.utils.collections.BidirectionalManyToOneRepresentativeHashMap;
 import com.android.tools.r8.utils.collections.BidirectionalManyToOneRepresentativeMap;
@@ -110,7 +110,7 @@ public class VerticalClassMergerGraphLens extends NestedGraphLens {
       MethodLookupResult previous, DexMethod context) {
     assert context != null || verifyIsContextFreeForMethod(previous.getReference());
     assert context == null || previous.getType() != null;
-    if (previous.getType() == Type.SUPER && !mergedMethods.contains(context)) {
+    if (previous.getType() == InvokeType.SUPER && !mergedMethods.contains(context)) {
       Map<DexMethod, GraphLensLookupResultProvider> virtualToDirectMethodMap =
           contextualVirtualToDirectMethodMaps.get(context.getHolderType());
       if (virtualToDirectMethodMap != null) {
@@ -159,7 +159,8 @@ public class VerticalClassMergerGraphLens extends NestedGraphLens {
   }
 
   @Override
-  protected Type mapInvocationType(DexMethod newMethod, DexMethod originalMethod, Type type) {
+  protected InvokeType mapInvocationType(
+      DexMethod newMethod, DexMethod originalMethod, InvokeType type) {
     return mapVirtualInterfaceInvocationTypes(appView, newMethod, originalMethod, type);
   }
 

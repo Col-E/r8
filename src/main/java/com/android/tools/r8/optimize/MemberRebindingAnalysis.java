@@ -23,7 +23,7 @@ import com.android.tools.r8.graph.MethodResolutionResult;
 import com.android.tools.r8.graph.MethodResolutionResult.SingleResolutionResult;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.UseRegistry;
-import com.android.tools.r8.ir.code.Invoke.Type;
+import com.android.tools.r8.ir.code.InvokeType;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.BiForEachable;
@@ -68,7 +68,7 @@ public class MemberRebindingAnalysis {
       DexClassAndMethod resolvedMethod,
       SingleResolutionResult<?> resolutionResult,
       ProgramMethodSet contexts,
-      Type invokeType,
+      InvokeType invokeType,
       DexMethod original) {
     assert !resolvedMethod.isProgramMethod();
 
@@ -145,7 +145,7 @@ public class MemberRebindingAnalysis {
       DexClassAndMethod resolvedMethod,
       SingleResolutionResult<?> resolutionResult,
       ProgramMethodSet contexts,
-      Type invokeType,
+      InvokeType invokeType,
       DexMethod original) {
     // TODO(b/194422791): It could potentially be that `original.holder` is not a subtype of
     //  `original.holder` on all API levels, in which case it is not OK to rebind to the resolved
@@ -170,11 +170,11 @@ public class MemberRebindingAnalysis {
         context -> resolutionResult.isAccessibleFrom(context, appView.appInfo()).isTrue());
   }
 
-  private boolean isInvokeSuperToInterfaceMethod(DexClassAndMethod method, Type invokeType) {
+  private boolean isInvokeSuperToInterfaceMethod(DexClassAndMethod method, InvokeType invokeType) {
     return method.getHolder().isInterface() && invokeType.isSuper();
   }
 
-  private boolean isInvokeSuperToAbstractMethod(DexClassAndMethod method, Type invokeType) {
+  private boolean isInvokeSuperToAbstractMethod(DexClassAndMethod method, InvokeType invokeType) {
     return method.getAccessFlags().isAbstract() && invokeType.isSuper();
   }
 
@@ -264,24 +264,26 @@ public class MemberRebindingAnalysis {
   private void computeMethodRebinding(MethodAccessInfoCollection methodAccessInfoCollection) {
     // Virtual invokes are on classes, so use class resolution.
     computeMethodRebinding(
-        methodAccessInfoCollection::forEachVirtualInvoke, this::resolveMethodOnClass, Type.VIRTUAL);
+        methodAccessInfoCollection::forEachVirtualInvoke,
+        this::resolveMethodOnClass,
+        InvokeType.VIRTUAL);
     // Interface invokes are always on interfaces, so use interface resolution.
     computeMethodRebinding(
         methodAccessInfoCollection::forEachInterfaceInvoke,
         this::resolveMethodOnInterface,
-        Type.INTERFACE);
+        InvokeType.INTERFACE);
     // Super invokes can be on both kinds, decide using the holder class.
     computeMethodRebinding(
-        methodAccessInfoCollection::forEachSuperInvoke, this::resolveMethod, Type.SUPER);
+        methodAccessInfoCollection::forEachSuperInvoke, this::resolveMethod, InvokeType.SUPER);
     // Likewise static invokes.
     computeMethodRebinding(
-        methodAccessInfoCollection::forEachStaticInvoke, this::resolveMethod, Type.STATIC);
+        methodAccessInfoCollection::forEachStaticInvoke, this::resolveMethod, InvokeType.STATIC);
   }
 
   private void computeMethodRebinding(
       BiForEachable<DexMethod, ProgramMethodSet> methodsWithContexts,
       Function<DexMethod, MethodResolutionResult> resolver,
-      Type invokeType) {
+      InvokeType invokeType) {
     Map<DexProgramClass, List<Pair<DexMethod, DexClassAndMethod>>> bridges =
         new IdentityHashMap<>();
     TriConsumer<DexProgramClass, DexMethod, DexClassAndMethod> addBridge =
@@ -394,9 +396,9 @@ public class MemberRebindingAnalysis {
   }
 
   private boolean needsBridgeForInterfaceMethod(
-      DexClass originalClass, DexClassAndMethod method, Type invokeType) {
+      DexClass originalClass, DexClassAndMethod method, InvokeType invokeType) {
     return options.isGeneratingClassFiles()
-        && invokeType == Type.SUPER
+        && invokeType == InvokeType.SUPER
         && method.getHolder() != originalClass
         && method.getHolder().isInterface();
   }

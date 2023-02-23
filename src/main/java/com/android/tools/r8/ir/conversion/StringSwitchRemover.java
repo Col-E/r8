@@ -18,7 +18,7 @@ import com.android.tools.r8.ir.code.ConstString;
 import com.android.tools.r8.ir.code.Goto;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.If;
-import com.android.tools.r8.ir.code.If.Type;
+import com.android.tools.r8.ir.code.IfType;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.ir.code.IntSwitch;
@@ -227,7 +227,7 @@ public class StringSwitchRemover {
                 code.createValue(PrimitiveTypeElement.getInt()),
                 ImmutableList.of(stringValue, constStringInstruction.outValue()));
         invokeInstruction.setPosition(position);
-        If ifInstruction = new If(If.Type.NE, invokeInstruction.outValue());
+        If ifInstruction = new If(IfType.NE, invokeInstruction.outValue());
         ifInstruction.setPosition(Position.none());
         BasicBlock targetBlock = entry.getValue();
         if (blocksTargetedByMultipleSwitchCases.contains(targetBlock)) {
@@ -458,7 +458,7 @@ public class StringSwitchRemover {
 
           // Insert `if (equalsKey) goto <id-switch-block> else goto <continuation-block>`.
           instructionIterator.next();
-          instructionIterator.replaceCurrentInstruction(new If(Type.NE, equalsInvoke.outValue()));
+          instructionIterator.replaceCurrentInstruction(new If(IfType.NE, equalsInvoke.outValue()));
 
           current = continuationBlock;
         }

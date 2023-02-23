@@ -16,7 +16,7 @@ import com.android.tools.r8.graph.LookupResult;
 import com.android.tools.r8.graph.MethodResolutionResult;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.UseRegistry;
-import com.android.tools.r8.ir.code.Invoke;
+import com.android.tools.r8.ir.code.InvokeType;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.collections.ProgramMethodSet;
 import java.util.Map;
@@ -67,18 +67,18 @@ public class InvokeExtractor<N extends NodeBase<N>> extends UseRegistry<ProgramM
     nodeFactory.apply(callee).addCallerConcurrently(currentMethod, likelySpuriousCallEdge);
   }
 
-  private void processInvoke(Invoke.Type originalType, DexMethod originalMethod) {
+  private void processInvoke(InvokeType originalType, DexMethod originalMethod) {
     ProgramMethod context = currentMethod.getProgramMethod();
     MethodLookupResult result =
         appView
             .graphLens()
             .lookupMethod(originalMethod, context.getReference(), originalType, getCodeLens());
     DexMethod method = result.getReference();
-    Invoke.Type type = result.getType();
-    if (type == Invoke.Type.INTERFACE || type == Invoke.Type.VIRTUAL) {
+    InvokeType type = result.getType();
+    if (type == InvokeType.INTERFACE || type == InvokeType.VIRTUAL) {
       // For virtual and interface calls add all potential targets that could be called.
       MethodResolutionResult resolutionResult =
-          appView.appInfo().resolveMethodLegacy(method, type == Invoke.Type.INTERFACE);
+          appView.appInfo().resolveMethodLegacy(method, type == InvokeType.INTERFACE);
       DexClassAndMethod target = resolutionResult.getResolutionPair();
       if (target != null) {
         processInvokeWithDynamicDispatch(type, target, context);
@@ -99,7 +99,7 @@ public class InvokeExtractor<N extends NodeBase<N>> extends UseRegistry<ProgramM
   }
 
   protected void processInvokeWithDynamicDispatch(
-      Invoke.Type type, DexClassAndMethod encodedTarget, ProgramMethod context) {
+      InvokeType type, DexClassAndMethod encodedTarget, ProgramMethod context) {
     DexMethod target = encodedTarget.getReference();
     DexClass clazz = encodedTarget.getHolder();
     if (!appView.options().testing.addCallEdgesForLibraryInvokes) {
@@ -109,7 +109,7 @@ public class InvokeExtractor<N extends NodeBase<N>> extends UseRegistry<ProgramM
       }
     }
 
-    boolean isInterface = type == Invoke.Type.INTERFACE;
+    boolean isInterface = type == InvokeType.INTERFACE;
     ProgramMethodSet possibleProgramTargets =
         possibleProgramTargetsCache.computeIfAbsent(
             target,
@@ -161,27 +161,27 @@ public class InvokeExtractor<N extends NodeBase<N>> extends UseRegistry<ProgramM
 
   @Override
   public void registerInvokeDirect(DexMethod method) {
-    processInvoke(Invoke.Type.DIRECT, method);
+    processInvoke(InvokeType.DIRECT, method);
   }
 
   @Override
   public void registerInvokeInterface(DexMethod method) {
-    processInvoke(Invoke.Type.INTERFACE, method);
+    processInvoke(InvokeType.INTERFACE, method);
   }
 
   @Override
   public void registerInvokeStatic(DexMethod method) {
-    processInvoke(Invoke.Type.STATIC, method);
+    processInvoke(InvokeType.STATIC, method);
   }
 
   @Override
   public void registerInvokeSuper(DexMethod method) {
-    processInvoke(Invoke.Type.SUPER, method);
+    processInvoke(InvokeType.SUPER, method);
   }
 
   @Override
   public void registerInvokeVirtual(DexMethod method) {
-    processInvoke(Invoke.Type.VIRTUAL, method);
+    processInvoke(InvokeType.VIRTUAL, method);
   }
 
   @Override

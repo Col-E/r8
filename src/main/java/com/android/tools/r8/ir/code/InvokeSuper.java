@@ -50,8 +50,8 @@ public class InvokeSuper extends InvokeMethodWithReceiver {
   }
 
   @Override
-  public Type getType() {
-    return Type.SUPER;
+  public InvokeType getType() {
+    return InvokeType.SUPER;
   }
 
   @Override

@@ -47,8 +47,8 @@ import com.android.tools.r8.graph.GenericSignature.ClassSignature;
 import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.graph.MethodCollection.MethodCollectionFactory;
 import com.android.tools.r8.graph.NestHostClassAttribute;
-import com.android.tools.r8.ir.code.If;
-import com.android.tools.r8.ir.code.Monitor;
+import com.android.tools.r8.ir.code.IfType;
+import com.android.tools.r8.ir.code.MonitorType;
 import com.android.tools.r8.ir.code.ValueType;
 import com.android.tools.r8.origin.Origin;
 import com.google.common.collect.ImmutableList;
@@ -340,7 +340,7 @@ public final class InstrumentationServerImplFactory {
                     factory.createString("lines"))),
             new CfStackInstruction(CfStackInstruction.Opcode.Dup),
             new CfStore(ValueType.OBJECT, 2),
-            new CfMonitor(Monitor.Type.ENTER),
+            new CfMonitor(MonitorType.ENTER),
             label1,
             new CfLoad(ValueType.OBJECT, 0),
             new CfInstanceFieldRead(
@@ -356,10 +356,10 @@ public final class InstrumentationServerImplFactory {
                     factory.createProto(factory.booleanType, factory.objectType),
                     factory.createString("add")),
                 false),
-            new CfIf(If.Type.NE, ValueType.INT, label4),
+            new CfIf(IfType.NE, ValueType.INT, label4),
             label2,
             new CfLoad(ValueType.OBJECT, 2),
-            new CfMonitor(Monitor.Type.EXIT),
+            new CfMonitor(MonitorType.EXIT),
             label3,
             new CfReturnVoid(),
             label4,
@@ -374,7 +374,7 @@ public final class InstrumentationServerImplFactory {
                       FrameType.initializedNonNullReference(factory.objectType)
                     })),
             new CfLoad(ValueType.OBJECT, 2),
-            new CfMonitor(Monitor.Type.EXIT),
+            new CfMonitor(MonitorType.EXIT),
             label5,
             new CfGoto(label8),
             label6,
@@ -392,7 +392,7 @@ public final class InstrumentationServerImplFactory {
                     Arrays.asList(FrameType.initializedNonNullReference(factory.throwableType)))),
             new CfStore(ValueType.OBJECT, 3),
             new CfLoad(ValueType.OBJECT, 2),
-            new CfMonitor(Monitor.Type.EXIT),
+            new CfMonitor(MonitorType.EXIT),
             label7,
             new CfLoad(ValueType.OBJECT, 3),
             new CfThrow(),
@@ -411,7 +411,7 @@ public final class InstrumentationServerImplFactory {
                     factory.createType("Lcom/android/tools/r8/startup/InstrumentationServerImpl;"),
                     factory.booleanType,
                     factory.createString("writeToLogcat"))),
-            new CfIf(If.Type.EQ, ValueType.INT, label10),
+            new CfIf(IfType.EQ, ValueType.INT, label10),
             label9,
             new CfLoad(ValueType.OBJECT, 0),
             new CfLoad(ValueType.OBJECT, 1),
@@ -542,7 +542,7 @@ public final class InstrumentationServerImplFactory {
                     factory.createString("lines"))),
             new CfStackInstruction(CfStackInstruction.Opcode.Dup),
             new CfStore(ValueType.OBJECT, 3),
-            new CfMonitor(Monitor.Type.ENTER),
+            new CfMonitor(MonitorType.ENTER),
             label2,
             new CfLoad(ValueType.OBJECT, 0),
             new CfInstanceFieldRead(
@@ -581,7 +581,7 @@ public final class InstrumentationServerImplFactory {
                     factory.createProto(factory.booleanType),
                     factory.createString("hasNext")),
                 true),
-            new CfIf(If.Type.EQ, ValueType.INT, label6),
+            new CfIf(IfType.EQ, ValueType.INT, label6),
             new CfLoad(ValueType.OBJECT, 4),
             new CfInvoke(
                 185,
@@ -618,7 +618,7 @@ public final class InstrumentationServerImplFactory {
                       FrameType.initializedNonNullReference(factory.objectType)
                     })),
             new CfLoad(ValueType.OBJECT, 3),
-            new CfMonitor(Monitor.Type.EXIT),
+            new CfMonitor(MonitorType.EXIT),
             label7,
             new CfGoto(label10),
             label8,
@@ -638,7 +638,7 @@ public final class InstrumentationServerImplFactory {
                     Arrays.asList(FrameType.initializedNonNullReference(factory.throwableType)))),
             new CfStore(ValueType.OBJECT, 6),
             new CfLoad(ValueType.OBJECT, 3),
-            new CfMonitor(Monitor.Type.EXIT),
+            new CfMonitor(MonitorType.EXIT),
             label9,
             new CfLoad(ValueType.OBJECT, 6),
             new CfThrow(),

@@ -5,7 +5,7 @@
 package com.android.tools.r8.graph;
 
 import com.android.tools.r8.graph.GraphLens.MethodLookupResult;
-import com.android.tools.r8.ir.code.Invoke.Type;
+import com.android.tools.r8.ir.code.InvokeType;
 import com.android.tools.r8.utils.ConsumerUtils;
 import com.android.tools.r8.utils.collections.ProgramMethodSet;
 import com.google.common.collect.Sets;
@@ -91,11 +91,11 @@ public class MethodAccessInfoCollection {
   public MethodAccessInfoCollection rewrittenWithLens(
       DexDefinitionSupplier definitions, GraphLens lens) {
     MethodAccessInfoCollection.Builder<?> builder = identityBuilder();
-    rewriteInvokesWithLens(builder, directInvokes, definitions, lens, Type.DIRECT);
-    rewriteInvokesWithLens(builder, interfaceInvokes, definitions, lens, Type.INTERFACE);
-    rewriteInvokesWithLens(builder, staticInvokes, definitions, lens, Type.STATIC);
-    rewriteInvokesWithLens(builder, superInvokes, definitions, lens, Type.SUPER);
-    rewriteInvokesWithLens(builder, virtualInvokes, definitions, lens, Type.VIRTUAL);
+    rewriteInvokesWithLens(builder, directInvokes, definitions, lens, InvokeType.DIRECT);
+    rewriteInvokesWithLens(builder, interfaceInvokes, definitions, lens, InvokeType.INTERFACE);
+    rewriteInvokesWithLens(builder, staticInvokes, definitions, lens, InvokeType.STATIC);
+    rewriteInvokesWithLens(builder, superInvokes, definitions, lens, InvokeType.SUPER);
+    rewriteInvokesWithLens(builder, virtualInvokes, definitions, lens, InvokeType.VIRTUAL);
     return builder.build();
   }
 
@@ -104,7 +104,7 @@ public class MethodAccessInfoCollection {
       Map<DexMethod, ProgramMethodSet> invokes,
       DexDefinitionSupplier definitions,
       GraphLens lens,
-      Type type) {
+      InvokeType type) {
     invokes.forEach(
         (reference, contexts) -> {
           ProgramMethodSet newContexts = contexts.rewrittenWithLens(definitions, lens);
@@ -112,7 +112,7 @@ public class MethodAccessInfoCollection {
             MethodLookupResult methodLookupResult =
                 lens.lookupMethod(reference, newContext.getReference(), type);
             DexMethod newReference = methodLookupResult.getReference();
-            Type newType = methodLookupResult.getType();
+            InvokeType newType = methodLookupResult.getType();
             builder.registerInvokeInContext(newReference, newContext, newType);
           }
         });
@@ -160,7 +160,7 @@ public class MethodAccessInfoCollection {
     }
 
     public boolean registerInvokeInContext(
-        DexMethod invokedMethod, ProgramMethod context, Type type) {
+        DexMethod invokedMethod, ProgramMethod context, InvokeType type) {
       switch (type) {
         case DIRECT:
           return registerInvokeDirectInContext(invokedMethod, context);

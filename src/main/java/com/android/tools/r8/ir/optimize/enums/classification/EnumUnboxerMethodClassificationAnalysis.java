@@ -15,7 +15,7 @@ import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.code.Argument;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.If;
-import com.android.tools.r8.ir.code.If.Type;
+import com.android.tools.r8.ir.code.IfType;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionIterator;
 import com.android.tools.r8.ir.code.Value;
@@ -95,7 +95,7 @@ public class EnumUnboxerMethodClassificationAnalysis {
           {
             If ifUser = user.asIf();
             if (!ifUser.isZeroTest()
-                || (ifUser.getType() != Type.EQ && ifUser.getType() != Type.NE)) {
+                || (ifUser.getType() != IfType.EQ && ifUser.getType() != IfType.NE)) {
               return false;
             }
             seenIf = true;

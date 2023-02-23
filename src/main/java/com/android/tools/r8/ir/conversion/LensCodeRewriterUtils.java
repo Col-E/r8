@@ -27,7 +27,7 @@ import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.GraphLens.MethodLookupResult;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.UseRegistry.MethodHandleUse;
-import com.android.tools.r8.ir.code.Invoke;
+import com.android.tools.r8.ir.code.InvokeType;
 import com.android.tools.r8.ir.desugar.LambdaDescriptor;
 import java.util.ArrayList;
 import java.util.List;
@@ -112,7 +112,7 @@ public class LensCodeRewriterUtils {
         LambdaDescriptor.getMainFunctionalInterfaceMethodReference(
             callSite, definitions.dexItemFactory());
     return graphLens
-        .lookupMethod(method, context.getReference(), Invoke.Type.INTERFACE, codeLens)
+        .lookupMethod(method, context.getReference(), InvokeType.INTERFACE, codeLens)
         .getReference()
         .getName();
   }

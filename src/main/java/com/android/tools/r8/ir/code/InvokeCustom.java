@@ -111,8 +111,8 @@ public final class InvokeCustom extends Invoke {
   }
 
   @Override
-  public Type getType() {
-    return Type.CUSTOM;
+  public InvokeType getType() {
+    return InvokeType.CUSTOM;
   }
 
   @Override

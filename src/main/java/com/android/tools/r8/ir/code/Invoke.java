@@ -5,240 +5,26 @@ package com.android.tools.r8.ir.code;
 
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.dex.code.DexInstruction;
-import com.android.tools.r8.dex.code.DexInvokeCustom;
-import com.android.tools.r8.dex.code.DexInvokeCustomRange;
-import com.android.tools.r8.dex.code.DexInvokeDirect;
-import com.android.tools.r8.dex.code.DexInvokeDirectRange;
-import com.android.tools.r8.dex.code.DexInvokeInterface;
-import com.android.tools.r8.dex.code.DexInvokeInterfaceRange;
-import com.android.tools.r8.dex.code.DexInvokePolymorphic;
-import com.android.tools.r8.dex.code.DexInvokePolymorphicRange;
-import com.android.tools.r8.dex.code.DexInvokeStatic;
-import com.android.tools.r8.dex.code.DexInvokeStaticRange;
-import com.android.tools.r8.dex.code.DexInvokeSuper;
-import com.android.tools.r8.dex.code.DexInvokeSuperRange;
-import com.android.tools.r8.dex.code.DexInvokeVirtual;
-import com.android.tools.r8.dex.code.DexInvokeVirtualRange;
 import com.android.tools.r8.dex.code.DexMoveResult;
 import com.android.tools.r8.dex.code.DexMoveResultObject;
 import com.android.tools.r8.dex.code.DexMoveResultWide;
-import com.android.tools.r8.dex.code.DexNewArray;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppView;
-import com.android.tools.r8.graph.DexClass;
-import com.android.tools.r8.graph.DexClassAndMethod;
-import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexItem;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
-import com.android.tools.r8.graph.DexMethodHandle.MethodHandleType;
 import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexType;
-import com.android.tools.r8.graph.GraphLens;
-import com.android.tools.r8.graph.GraphLens.MethodLookupResult;
 import com.android.tools.r8.ir.analysis.type.Nullability;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.conversion.DexBuilder;
 import com.android.tools.r8.utils.BooleanUtils;
 import java.util.List;
 import java.util.Set;
-import org.objectweb.asm.Opcodes;
 
 public abstract class Invoke extends Instruction {
 
-  private static final int NO_SUCH_DEX_INSTRUCTION = -1;
-
-  public enum Type {
-    DIRECT(DexInvokeDirect.OPCODE, DexInvokeDirectRange.OPCODE),
-    INTERFACE(DexInvokeInterface.OPCODE, DexInvokeInterfaceRange.OPCODE),
-    STATIC(DexInvokeStatic.OPCODE, DexInvokeStaticRange.OPCODE),
-    SUPER(DexInvokeSuper.OPCODE, DexInvokeSuperRange.OPCODE),
-    VIRTUAL(DexInvokeVirtual.OPCODE, DexInvokeVirtualRange.OPCODE),
-    NEW_ARRAY(DexNewArray.OPCODE, NO_SUCH_DEX_INSTRUCTION),
-    MULTI_NEW_ARRAY(NO_SUCH_DEX_INSTRUCTION, NO_SUCH_DEX_INSTRUCTION),
-    CUSTOM(DexInvokeCustom.OPCODE, DexInvokeCustomRange.OPCODE),
-    POLYMORPHIC(DexInvokePolymorphic.OPCODE, DexInvokePolymorphicRange.OPCODE);
-
-    private final int dexOpcode;
-    private final int dexOpcodeRange;
-
-    Type(int dexOpcode, int dexOpcodeRange) {
-      this.dexOpcode = dexOpcode;
-      this.dexOpcodeRange = dexOpcodeRange;
-    }
-
-    public static Type fromCfOpcode(
-        int opcode, DexMethod invokedMethod, DexClassAndMethod context, AppView<?> appView) {
-      return fromCfOpcode(opcode, invokedMethod, context, appView, appView.codeLens());
-    }
-
-    public static Type fromCfOpcode(
-        int opcode,
-        DexMethod invokedMethod,
-        DexClassAndMethod context,
-        AppView<?> appView,
-        GraphLens codeLens) {
-      switch (opcode) {
-        case Opcodes.INVOKEINTERFACE:
-          return Type.INTERFACE;
-        case Opcodes.INVOKESPECIAL:
-          return fromInvokeSpecial(invokedMethod, context, appView, codeLens);
-        case Opcodes.INVOKESTATIC:
-          return Type.STATIC;
-        case Opcodes.INVOKEVIRTUAL:
-          return appView.dexItemFactory().polymorphicMethods.isPolymorphicInvoke(invokedMethod)
-                  && !appView.options().shouldDesugarVarHandle()
-              ? Type.POLYMORPHIC
-              : Type.VIRTUAL;
-        default:
-          throw new Unreachable("unknown CfInvoke opcode " + opcode);
-      }
-    }
-
-    public static Type fromInvokeSpecial(
-        DexMethod invokedMethod,
-        DexClassAndMethod context,
-        AppView<?> appView,
-        GraphLens codeLens) {
-      if (invokedMethod.isInstanceInitializer(appView.dexItemFactory())) {
-        return Type.DIRECT;
-      }
-
-      GraphLens graphLens = appView.graphLens();
-      DexMethod originalContext =
-          graphLens.getOriginalMethodSignature(context.getReference(), codeLens);
-      if (invokedMethod.getHolderType() != originalContext.getHolderType()) {
-        if (appView.options().isGeneratingDex()
-            && appView.options().canUseNestBasedAccess()
-            && context.getHolder().isInANest()) {
-          DexClass holderType = appView.definitionFor(invokedMethod.getHolderType());
-          if (holderType != null
-              && holderType.isInANest()
-              && holderType.isInSameNest(context.getHolder())) {
-            return Type.DIRECT;
-          }
-        }
-        return Type.SUPER;
-      }
-
-      MethodLookupResult lookupResult =
-          graphLens.lookupMethod(invokedMethod, context.getReference(), Type.DIRECT);
-      if (lookupResult.getType().isStatic()) {
-        // This method has been staticized. The original invoke-type is DIRECT.
-        return Type.DIRECT;
-      }
-      if (lookupResult.getType().isVirtual()) {
-        // This method has been publicized. The original invoke-type is DIRECT.
-        return Type.DIRECT;
-      }
-
-      DexEncodedMethod definition = context.getHolder().lookupMethod(lookupResult.getReference());
-      if (definition == null) {
-        return Type.SUPER;
-      }
-
-      // If the definition was moved to the current context from a super class due to vertical class
-      // merging, then this used to be an invoke-super.
-      DexType originalHolderOfDefinition =
-          graphLens.getOriginalMethodSignature(definition.getReference(), codeLens).getHolderType();
-      if (originalHolderOfDefinition != originalContext.getHolderType()) {
-        return Type.SUPER;
-      }
-
-      boolean originalContextIsInterface =
-          context.getHolder().isInterface()
-              || (appView.hasVerticallyMergedClasses()
-                  && appView
-                      .verticallyMergedClasses()
-                      .hasInterfaceBeenMergedIntoSubtype(originalContext.getHolderType()));
-      if (originalContextIsInterface) {
-        // On interfaces invoke-special should be mapped to invoke-super if the invoke-special
-        // instruction is used to target a default interface method.
-        if (definition.belongsToVirtualPool()) {
-          return Type.SUPER;
-        }
-      } else {
-        // Due to desugaring of invoke-special instructions that target virtual methods, this should
-        // never target a virtual method.
-        assert definition.isPrivate() || lookupResult.getType().isVirtual();
-      }
-
-      return Type.DIRECT;
-    }
-
-    public int getCfOpcode() {
-      switch (this) {
-        case DIRECT:
-          return Opcodes.INVOKESPECIAL;
-        case INTERFACE:
-          return Opcodes.INVOKEINTERFACE;
-        case POLYMORPHIC:
-          return Opcodes.INVOKEVIRTUAL;
-        case STATIC:
-          return Opcodes.INVOKESTATIC;
-        case SUPER:
-          return Opcodes.INVOKESPECIAL;
-        case VIRTUAL:
-          return Opcodes.INVOKEVIRTUAL;
-        case NEW_ARRAY:
-        case MULTI_NEW_ARRAY:
-        default:
-          throw new Unreachable();
-      }
-    }
-
-    public int getDexOpcode() {
-      assert dexOpcode >= 0;
-      return dexOpcode;
-    }
-
-    public int getDexOpcodeRange() {
-      assert dexOpcodeRange >= 0;
-      return dexOpcodeRange;
-    }
-
-    public boolean isDirect() {
-      return this == DIRECT;
-    }
-
-    public boolean isInterface() {
-      return this == INTERFACE;
-    }
-
-    public boolean isStatic() {
-      return this == STATIC;
-    }
-
-    public boolean isSuper() {
-      return this == SUPER;
-    }
-
-    public boolean isVirtual() {
-      return this == VIRTUAL;
-    }
-
-    public MethodHandleType toMethodHandle(DexMethod targetMethod) {
-      switch (this) {
-        case STATIC:
-          return MethodHandleType.INVOKE_STATIC;
-        case VIRTUAL:
-          return MethodHandleType.INVOKE_INSTANCE;
-        case DIRECT:
-          if (targetMethod.name.toString().equals("<init>")) {
-            return MethodHandleType.INVOKE_CONSTRUCTOR;
-          } else {
-            return MethodHandleType.INVOKE_DIRECT;
-          }
-        case INTERFACE:
-          return MethodHandleType.INVOKE_INTERFACE;
-        case SUPER:
-          return MethodHandleType.INVOKE_SUPER;
-        default:
-          throw new Unreachable(
-              "Conversion to method handle with unexpected invoke type: " + this);
-      }
-    }
-  }
+  static final int NO_SUCH_DEX_INSTRUCTION = -1;
 
   protected Invoke(Value result, List<Value> arguments) {
     super(result, arguments);
@@ -246,12 +32,17 @@ public abstract class Invoke extends Instruction {
 
   @Deprecated
   public static Invoke create(
-      Type type, DexItem target, DexProto proto, Value result, List<Value> arguments) {
+      InvokeType type, DexItem target, DexProto proto, Value result, List<Value> arguments) {
     return create(type, target, proto, result, arguments, false);
   }
 
   public static Invoke create(
-      Type type, DexItem target, DexProto proto, Value result, List<Value> arguments, boolean itf) {
+      InvokeType type,
+      DexItem target,
+      DexProto proto,
+      Value result,
+      List<Value> arguments,
+      boolean itf) {
     switch (type) {
       case DIRECT:
         return new InvokeDirect((DexMethod) target, result, arguments, itf);
@@ -275,7 +66,7 @@ public abstract class Invoke extends Instruction {
     throw new Unreachable("Unknown invoke type: " + type);
   }
 
-  abstract public Type getType();
+  public abstract InvokeType getType();
 
   abstract public DexType getReturnType();
 

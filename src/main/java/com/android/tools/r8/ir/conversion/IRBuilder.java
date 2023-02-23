@@ -72,6 +72,7 @@ import com.android.tools.r8.ir.code.Goto;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.IRMetadata;
 import com.android.tools.r8.ir.code.If;
+import com.android.tools.r8.ir.code.IfType;
 import com.android.tools.r8.ir.code.ImpreciseMemberTypeInstruction;
 import com.android.tools.r8.ir.code.InitClass;
 import com.android.tools.r8.ir.code.InstanceGet;
@@ -81,11 +82,12 @@ import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.ir.code.IntSwitch;
 import com.android.tools.r8.ir.code.Invoke;
-import com.android.tools.r8.ir.code.Invoke.Type;
 import com.android.tools.r8.ir.code.InvokeCustom;
+import com.android.tools.r8.ir.code.InvokeType;
 import com.android.tools.r8.ir.code.JumpInstruction;
 import com.android.tools.r8.ir.code.MemberType;
 import com.android.tools.r8.ir.code.Monitor;
+import com.android.tools.r8.ir.code.MonitorType;
 import com.android.tools.r8.ir.code.MoveException;
 import com.android.tools.r8.ir.code.Mul;
 import com.android.tools.r8.ir.code.Neg;
@@ -1290,7 +1292,7 @@ public class IRBuilder {
     add(instruction);
   }
 
-  public Monitor addMonitor(Monitor.Type type, int monitor) {
+  public Monitor addMonitor(MonitorType type, int monitor) {
     Value in = readRegister(monitor, ValueTypeConstraint.OBJECT);
     Monitor monitorEnter = new Monitor(type, in);
     add(monitorEnter);
@@ -1404,8 +1406,13 @@ public class IRBuilder {
     closeCurrentBlock(instruction);
   }
 
-  public void addIf(If.Type type, ValueType operandType, int value1, int value2,
-      int trueTargetOffset, int falseTargetOffset) {
+  public void addIf(
+      IfType type,
+      ValueType operandType,
+      int value1,
+      int value2,
+      int trueTargetOffset,
+      int falseTargetOffset) {
     addIf(
         type,
         ValueTypeConstraint.fromValueType(operandType),
@@ -1416,7 +1423,7 @@ public class IRBuilder {
   }
 
   public void addIf(
-      If.Type type,
+      IfType type,
       ValueTypeConstraint operandConstraint,
       int value1,
       int value2,
@@ -1434,7 +1441,7 @@ public class IRBuilder {
   }
 
   public void addIfZero(
-      If.Type type, ValueType operandType, int value, int trueTargetOffset, int falseTargetOffset) {
+      IfType type, ValueType operandType, int value, int trueTargetOffset, int falseTargetOffset) {
     addIfZero(
         type,
         ValueTypeConstraint.fromValueType(operandType),
@@ -1444,7 +1451,7 @@ public class IRBuilder {
   }
 
   public void addIfZero(
-      If.Type type,
+      IfType type,
       ValueTypeConstraint operandConstraint,
       int value,
       int trueTargetOffset,
@@ -1498,8 +1505,8 @@ public class IRBuilder {
     add(new RecordFieldValues(fields, out, arguments));
   }
 
-  private boolean verifyRepresentablePolymorphicInvoke(Type type, DexItem item) {
-    if (type != Type.POLYMORPHIC) {
+  private boolean verifyRepresentablePolymorphicInvoke(InvokeType type, DexItem item) {
+    if (type != InvokeType.POLYMORPHIC) {
       return true;
     }
     assert item instanceof DexMethod;
@@ -1513,13 +1520,13 @@ public class IRBuilder {
   }
 
   public void addInvoke(
-      Type type, DexItem item, DexProto callSiteProto, List<Value> arguments, boolean itf) {
+      InvokeType type, DexItem item, DexProto callSiteProto, List<Value> arguments, boolean itf) {
     assert verifyRepresentablePolymorphicInvoke(type, item);
     add(Invoke.create(type, item, callSiteProto, null, arguments, itf));
   }
 
   public void addInvoke(
-      Type type,
+      InvokeType type,
       DexItem item,
       DexProto callSiteProto,
       List<ValueType> types,
@@ -1590,7 +1597,7 @@ public class IRBuilder {
   }
 
   public void addInvokeRegisters(
-      Invoke.Type type,
+      InvokeType type,
       DexMethod method,
       DexProto callSiteProto,
       int argumentRegisterCount,
@@ -1599,12 +1606,12 @@ public class IRBuilder {
     // but it is an upper bound on the number of arguments.
     List<Value> arguments = new ArrayList<>(argumentRegisterCount);
     int registerIndex = 0;
-    if (type != Invoke.Type.STATIC) {
+    if (type != InvokeType.STATIC) {
       arguments.add(readRegister(argumentRegisters[registerIndex], ValueTypeConstraint.OBJECT));
       registerIndex += ValueTypeConstraint.OBJECT.requiredRegisters();
     }
     DexString methodShorty;
-    if (type == Invoke.Type.POLYMORPHIC) {
+    if (type == InvokeType.POLYMORPHIC) {
       // The call site signature for invoke polymorphic must be take from call site and not from
       // the called method.
       methodShorty = callSiteProto.shorty;
@@ -1640,7 +1647,7 @@ public class IRBuilder {
       registerIndex += constraint.requiredRegisters();
     }
     checkInvokeArgumentRegisters(registerIndex, argumentCount);
-    addInvoke(Invoke.Type.NEW_ARRAY, type, null, arguments, false /* isInterface */);
+    addInvoke(InvokeType.NEW_ARRAY, type, null, arguments, false /* isInterface */);
   }
 
   public void addMultiNewArray(DexType type, int dest, int[] dimensions) {
@@ -1649,12 +1656,12 @@ public class IRBuilder {
     for (int dimension : dimensions) {
       arguments.add(readRegister(dimension, ValueTypeConstraint.INT));
     }
-    addInvoke(Invoke.Type.MULTI_NEW_ARRAY, type, null, arguments, false /* isInterface */);
+    addInvoke(InvokeType.MULTI_NEW_ARRAY, type, null, arguments, false /* isInterface */);
     addMoveResult(dest);
   }
 
   public void addInvokeRange(
-      Invoke.Type type,
+      InvokeType type,
       DexMethod method,
       DexProto callSiteProto,
       int argumentCount,
@@ -1663,12 +1670,12 @@ public class IRBuilder {
     // is an upper bound on the number of arguments.
     List<Value> arguments = new ArrayList<>(argumentCount);
     int register = firstArgumentRegister;
-    if (type != Invoke.Type.STATIC) {
+    if (type != InvokeType.STATIC) {
       arguments.add(readRegister(register, ValueTypeConstraint.OBJECT));
       register += ValueTypeConstraint.OBJECT.requiredRegisters();
     }
     DexString methodShorty;
-    if (type == Invoke.Type.POLYMORPHIC) {
+    if (type == InvokeType.POLYMORPHIC) {
       // The call site signature for invoke polymorphic must be take from call site and not from
       // the called method.
       methodShorty = callSiteProto.shorty;
@@ -1703,7 +1710,7 @@ public class IRBuilder {
     checkInvokeArgumentRegisters(register, firstArgumentRegister + argumentCount);
     // Note: We only call this register variant from DEX inputs where isInterface does not matter.
     assert appView.options().isGeneratingDex();
-    addInvoke(Invoke.Type.NEW_ARRAY, type, null, arguments, false /* isInterface */);
+    addInvoke(InvokeType.NEW_ARRAY, type, null, arguments, false /* isInterface */);
   }
 
   private void checkInvokeArgumentRegisters(int expected, int actual) {

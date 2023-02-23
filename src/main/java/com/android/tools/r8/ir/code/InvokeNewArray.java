@@ -57,8 +57,8 @@ public class InvokeNewArray extends Invoke {
   }
 
   @Override
-  public Type getType() {
-    return Type.NEW_ARRAY;
+  public InvokeType getType() {
+    return InvokeType.NEW_ARRAY;
   }
 
   @Override

@@ -9,7 +9,7 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.ObjectToOffsetMapping;
 import com.android.tools.r8.graph.ProgramMethod;
-import com.android.tools.r8.ir.code.If.Type;
+import com.android.tools.r8.ir.code.IfType;
 import com.android.tools.r8.ir.code.ValueTypeConstraint;
 import com.android.tools.r8.ir.conversion.IRBuilder;
 import com.android.tools.r8.ir.conversion.LensCodeRewriterUtils;
@@ -73,7 +73,7 @@ public abstract class DexFormat22t extends DexBase2Format {
     visitor.visit(this, DexFormat22t::specify);
   }
 
-  public abstract Type getType();
+  public abstract IfType getType();
 
   public abstract ValueTypeConstraint getOperandTypeConstraint();
 

@@ -54,8 +54,8 @@ public class InvokeMultiNewArray extends Invoke {
   }
 
   @Override
-  public Type getType() {
-    return Type.MULTI_NEW_ARRAY;
+  public InvokeType getType() {
+    return InvokeType.MULTI_NEW_ARRAY;
   }
 
   public DexType getArrayType() {

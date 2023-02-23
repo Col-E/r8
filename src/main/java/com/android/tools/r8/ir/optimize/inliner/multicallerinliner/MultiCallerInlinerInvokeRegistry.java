@@ -11,7 +11,7 @@ import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.ProgramMethod;
-import com.android.tools.r8.ir.code.Invoke.Type;
+import com.android.tools.r8.ir.code.InvokeType;
 import com.android.tools.r8.ir.conversion.callgraph.InvokeExtractor;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.collections.ProgramMethodSet;
@@ -35,7 +35,7 @@ public class MultiCallerInlinerInvokeRegistry extends InvokeExtractor<MultiCalle
 
   @Override
   protected void processInvokeWithDynamicDispatch(
-      Type type, DexClassAndMethod resolutionResult, ProgramMethod context) {
+      InvokeType type, DexClassAndMethod resolutionResult, ProgramMethod context) {
     // Skip calls that dispatch to library methods or library method overrides.
     if (resolutionResult.isProgramMethod()
         && resolutionResult.getDefinition().isLibraryMethodOverride().isPossiblyFalse()) {

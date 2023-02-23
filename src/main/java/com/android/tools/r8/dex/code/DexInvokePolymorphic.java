@@ -6,7 +6,7 @@ package com.android.tools.r8.dex.code;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.OffsetToObjectMapping;
-import com.android.tools.r8.ir.code.Invoke.Type;
+import com.android.tools.r8.ir.code.InvokeType;
 import com.android.tools.r8.ir.conversion.IRBuilder;
 
 /**
@@ -31,7 +31,7 @@ public class DexInvokePolymorphic extends DexFormat45cc {
   @Override
   public void buildIR(IRBuilder builder) {
     builder.addInvokeRegisters(
-        Type.POLYMORPHIC, getMethod(), getProto(), A, new int[] {C, D, E, F, G});
+        InvokeType.POLYMORPHIC, getMethod(), getProto(), A, new int[] {C, D, E, F, G});
   }
 
   @Override

@@ -4,7 +4,7 @@
 package com.android.tools.r8.ir.conversion;
 
 import static com.android.tools.r8.graph.UseRegistry.MethodHandleUse.NOT_ARGUMENT_TO_LAMBDA_METAFACTORY;
-import static com.android.tools.r8.ir.code.Invoke.Type.VIRTUAL;
+import static com.android.tools.r8.ir.code.InvokeType.VIRTUAL;
 import static com.android.tools.r8.ir.code.Opcodes.ARGUMENT;
 import static com.android.tools.r8.ir.code.Opcodes.ASSUME;
 import static com.android.tools.r8.ir.code.Opcodes.CHECK_CAST;
@@ -89,6 +89,7 @@ import com.android.tools.r8.ir.code.InvokeMethod;
 import com.android.tools.r8.ir.code.InvokeMultiNewArray;
 import com.android.tools.r8.ir.code.InvokeNewArray;
 import com.android.tools.r8.ir.code.InvokePolymorphic;
+import com.android.tools.r8.ir.code.InvokeType;
 import com.android.tools.r8.ir.code.MoveException;
 import com.android.tools.r8.ir.code.NewArrayEmpty;
 import com.android.tools.r8.ir.code.NewInstance;
@@ -374,7 +375,7 @@ public class LensCodeRewriter {
                   graphLens.lookupMethod(
                       invokedMethod, method.getReference(), invoke.getType(), codeLens);
               DexMethod actualTarget = lensLookup.getReference();
-              Invoke.Type actualInvokeType = lensLookup.getType();
+              InvokeType actualInvokeType = lensLookup.getType();
               int numberOfArguments =
                   actualTarget.getNumberOfArguments(actualInvokeType.isStatic());
 

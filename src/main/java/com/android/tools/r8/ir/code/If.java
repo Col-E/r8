@@ -21,62 +21,20 @@ import java.util.List;
 
 public class If extends JumpInstruction {
 
-  public enum Type {
-    EQ, GE, GT, LE, LT, NE;
-
-    // Returns the comparison type if the operands are swapped.
-    public Type forSwappedOperands() {
-      switch (this) {
-        case EQ:
-        case NE:
-          return this;
-        case GE:
-          return Type.LE;
-        case GT:
-          return Type.LT;
-        case LE:
-          return Type.GE;
-        case LT:
-          return Type.GT;
-        default:
-          throw new Unreachable("Unknown if condition type.");
-      }
-    }
-
-    public Type inverted() {
-      switch (this) {
-        case EQ:
-          return Type.NE;
-        case GE:
-          return Type.LT;
-        case GT:
-          return Type.LE;
-        case LE:
-          return Type.GT;
-        case LT:
-          return Type.GE;
-        case NE:
-          return Type.EQ;
-        default:
-          throw new Unreachable("Unknown if condition type.");
-      }
-    }
-  }
-
-  private static boolean verifyTypeCompatible(TypeElement valueType, If.Type ifType) {
+  private static boolean verifyTypeCompatible(TypeElement valueType, IfType ifType) {
     return valueType.isInt()
-        || (valueType.isFloat() && (ifType == Type.EQ || ifType == Type.NE))
-        || (valueType.isReferenceType() && (ifType == Type.EQ || ifType == Type.NE));
+        || (valueType.isFloat() && (ifType == IfType.EQ || ifType == IfType.NE))
+        || (valueType.isReferenceType() && (ifType == IfType.EQ || ifType == IfType.NE));
   }
 
-  private Type type;
+  private IfType type;
 
-  public If(Type type, Value value) {
+  public If(IfType type, Value value) {
     super(value);
     this.type = type;
   }
 
-  public If(Type type, List<Value> values) {
+  public If(IfType type, List<Value> values) {
     super(values);
     this.type = type;
   }
@@ -112,7 +70,7 @@ public class If extends JumpInstruction {
     return inValues.get(1);
   }
 
-  public Type getType() {
+  public IfType getType() {
     return type;
   }
 

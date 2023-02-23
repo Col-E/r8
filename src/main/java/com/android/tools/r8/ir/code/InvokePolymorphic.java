@@ -58,8 +58,8 @@ public class InvokePolymorphic extends InvokeMethod {
   }
 
   @Override
-  public Type getType() {
-    return Type.POLYMORPHIC;
+  public InvokeType getType() {
+    return InvokeType.POLYMORPHIC;
   }
 
   @Override

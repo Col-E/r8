@@ -9,7 +9,7 @@ import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.NestedGraphLens;
-import com.android.tools.r8.ir.code.Invoke.Type;
+import com.android.tools.r8.ir.code.InvokeType;
 import com.google.common.collect.Sets;
 import java.util.Set;
 
@@ -39,19 +39,21 @@ final class PublicizerLens extends NestedGraphLens {
   @Override
   public MethodLookupResult internalDescribeLookupMethod(
       MethodLookupResult previous, DexMethod context) {
-    if (previous.getType() == Type.DIRECT && publicizedMethods.contains(previous.getReference())) {
+    if (previous.getType() == InvokeType.DIRECT
+        && publicizedMethods.contains(previous.getReference())) {
       assert publicizedMethodIsPresentOnHolder(previous.getReference(), context);
       return MethodLookupResult.builder(this)
           .setReference(previous.getReference())
           .setPrototypeChanges(previous.getPrototypeChanges())
-          .setType(Type.VIRTUAL)
+          .setType(InvokeType.VIRTUAL)
           .build();
     }
     return previous;
   }
 
   private boolean publicizedMethodIsPresentOnHolder(DexMethod method, DexMethod context) {
-    MethodLookupResult lookup = appView.graphLens().lookupMethod(method, context, Type.VIRTUAL);
+    MethodLookupResult lookup =
+        appView.graphLens().lookupMethod(method, context, InvokeType.VIRTUAL);
     DexMethod signatureInCurrentWorld = lookup.getReference();
     DexClass clazz = appView.definitionFor(signatureInCurrentWorld.holder);
     assert clazz != null;

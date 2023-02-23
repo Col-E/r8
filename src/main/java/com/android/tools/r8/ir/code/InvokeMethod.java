@@ -51,7 +51,7 @@ public abstract class InvokeMethod extends Invoke {
   }
 
   public static InvokeMethod create(
-      Type type, DexMethod target, Value result, List<Value> arguments, boolean itf) {
+      InvokeType type, DexMethod target, Value result, List<Value> arguments, boolean itf) {
     switch (type) {
       case DIRECT:
         return new InvokeDirect(target, result, arguments, itf);

@@ -24,8 +24,7 @@ import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexType;
-import com.android.tools.r8.ir.code.Invoke;
-import com.android.tools.r8.ir.code.Invoke.Type;
+import com.android.tools.r8.ir.code.InvokeType;
 import com.android.tools.r8.ir.code.NumericType;
 import com.android.tools.r8.ir.code.ValueType;
 import com.android.tools.r8.ir.desugar.LambdaClass.InvalidLambdaImplTarget;
@@ -191,12 +190,12 @@ final class LambdaMainMethodSourceCode {
     // Only constructor call should use direct invoke type since super
     // and private methods require accessor methods.
     boolean constructorTarget = methodToCall.name == factory.constructorMethodName;
-    assert !constructorTarget || target.invokeType == Type.DIRECT;
+    assert !constructorTarget || target.invokeType == InvokeType.DIRECT;
 
     boolean targetWithReceiver =
-        target.invokeType == Invoke.Type.VIRTUAL
-            || target.invokeType == Invoke.Type.INTERFACE
-            || (target.invokeType == Type.DIRECT && !constructorTarget);
+        target.invokeType == InvokeType.VIRTUAL
+            || target.invokeType == InvokeType.INTERFACE
+            || (target.invokeType == InvokeType.DIRECT && !constructorTarget);
     List<DexType> implReceiverAndArgs = new ArrayList<>();
     if (targetWithReceiver) {
       implReceiverAndArgs.add(methodToCall.holder);
@@ -204,10 +203,10 @@ final class LambdaMainMethodSourceCode {
     implReceiverAndArgs.addAll(Lists.newArrayList(methodToCall.proto.parameters.values));
     DexType implReturnType = methodToCall.proto.returnType;
 
-    assert target.invokeType == Invoke.Type.STATIC
-        || target.invokeType == Invoke.Type.VIRTUAL
-        || target.invokeType == Invoke.Type.DIRECT
-        || target.invokeType == Invoke.Type.INTERFACE;
+    assert target.invokeType == InvokeType.STATIC
+        || target.invokeType == InvokeType.VIRTUAL
+        || target.invokeType == InvokeType.DIRECT
+        || target.invokeType == InvokeType.INTERFACE;
     assert checkSignatures(
         capturedTypes,
         enforcedParams,

@@ -19,7 +19,7 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.CfCode;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
-import com.android.tools.r8.ir.code.If;
+import com.android.tools.r8.ir.code.IfType;
 import com.android.tools.r8.ir.code.ValueType;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -68,7 +68,7 @@ public class EmulateDispatchSyntheticCfCodeProvider extends SyntheticCfCodeProvi
 
     instructions.add(new CfLoad(ValueType.fromDexType(receiverType), 0));
     instructions.add(new CfInstanceOf(interfaceMethod.holder));
-    instructions.add(new CfIf(If.Type.EQ, ValueType.INT, labels[nextLabel]));
+    instructions.add(new CfIf(IfType.EQ, ValueType.INT, labels[nextLabel]));
 
     // Branch with library call.
     instructions.add(new CfLoad(ValueType.fromDexType(receiverType), 0));
@@ -84,7 +84,7 @@ public class EmulateDispatchSyntheticCfCodeProvider extends SyntheticCfCodeProvi
       instructions.add(frame);
       instructions.add(new CfLoad(ValueType.fromDexType(receiverType), 0));
       instructions.add(new CfInstanceOf(dispatch.getKey()));
-      instructions.add(new CfIf(If.Type.EQ, ValueType.INT, labels[nextLabel]));
+      instructions.add(new CfIf(IfType.EQ, ValueType.INT, labels[nextLabel]));
 
       // Call basic block.
       instructions.add(new CfLoad(ValueType.fromDexType(receiverType), 0));

@@ -16,7 +16,7 @@ import com.android.tools.r8.graph.FieldAccessInfo;
 import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.GraphLens.NonIdentityGraphLens;
 import com.android.tools.r8.graph.proto.RewrittenPrototypeDescription;
-import com.android.tools.r8.ir.code.Invoke;
+import com.android.tools.r8.ir.code.InvokeType;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import java.util.Collections;
 import java.util.IdentityHashMap;
@@ -25,12 +25,12 @@ import java.util.Map;
 public class MemberRebindingLens extends NonIdentityGraphLens {
 
   private final AppView<AppInfoWithLiveness> appView;
-  private final Map<Invoke.Type, Map<DexMethod, DexMethod>> methodMaps;
+  private final Map<InvokeType, Map<DexMethod, DexMethod>> methodMaps;
   private final Map<DexField, DexField> nonReboundFieldReferenceToDefinitionMap;
 
   public MemberRebindingLens(
       AppView<AppInfoWithLiveness> appView,
-      Map<Invoke.Type, Map<DexMethod, DexMethod>> methodMaps,
+      Map<InvokeType, Map<DexMethod, DexMethod>> methodMaps,
       Map<DexField, DexField> nonReboundFieldReferenceToDefinitionMap) {
     super(appView.dexItemFactory(), appView.graphLens());
     this.appView = appView;
@@ -167,7 +167,7 @@ public class MemberRebindingLens extends NonIdentityGraphLens {
   public static class Builder {
 
     private final AppView<AppInfoWithLiveness> appView;
-    private final Map<Invoke.Type, Map<DexMethod, DexMethod>> methodMaps = new IdentityHashMap<>();
+    private final Map<InvokeType, Map<DexMethod, DexMethod>> methodMaps = new IdentityHashMap<>();
     private final Map<DexField, DexField> nonReboundFieldReferenceToDefinitionMap =
         new IdentityHashMap<>();
 
@@ -175,7 +175,7 @@ public class MemberRebindingLens extends NonIdentityGraphLens {
       this.appView = appView;
     }
 
-    public void map(DexMethod from, DexMethod to, Invoke.Type type) {
+    public void map(DexMethod from, DexMethod to, InvokeType type) {
       if (from == to) {
         assert !methodMaps.containsKey(type) || methodMaps.get(type).getOrDefault(from, to) == to;
         return;

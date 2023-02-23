@@ -6,7 +6,7 @@ package com.android.tools.r8.graph;
 import com.android.tools.r8.dex.code.CfOrDexInstanceFieldRead;
 import com.android.tools.r8.dex.code.CfOrDexInstruction;
 import com.android.tools.r8.dex.code.CfOrDexStaticFieldRead;
-import com.android.tools.r8.ir.code.Invoke;
+import com.android.tools.r8.ir.code.InvokeType;
 import com.android.tools.r8.utils.TraversalContinuation;
 import java.util.ListIterator;
 
@@ -74,7 +74,7 @@ public abstract class UseRegistry<T extends Definition> {
 
   public void registerInvokeSpecial(DexMethod method) {
     DexClassAndMethod context = getMethodContext();
-    Invoke.Type type = Invoke.Type.fromInvokeSpecial(method, context, appView, getCodeLens());
+    InvokeType type = InvokeType.fromInvokeSpecial(method, context, appView, getCodeLens());
     if (type.isDirect()) {
       registerInvokeDirect(method);
     } else {

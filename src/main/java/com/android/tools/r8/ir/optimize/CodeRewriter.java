@@ -65,7 +65,7 @@ import com.android.tools.r8.ir.code.Goto;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.IRMetadata;
 import com.android.tools.r8.ir.code.If;
-import com.android.tools.r8.ir.code.If.Type;
+import com.android.tools.r8.ir.code.IfType;
 import com.android.tools.r8.ir.code.InstanceFieldInstruction;
 import com.android.tools.r8.ir.code.InstanceGet;
 import com.android.tools.r8.ir.code.InstanceOf;
@@ -619,10 +619,10 @@ public class CodeRewriter {
       if (right != 0) {
         ConstNumber rightConst = code.createIntConstant(right);
         rightConst.setPosition(position);
-        newIf = new If(Type.EQ, ImmutableList.of(left, rightConst.dest()));
+        newIf = new If(IfType.EQ, ImmutableList.of(left, rightConst.dest()));
         ifBlock = BasicBlock.createIfBlock(blockNumber, newIf, code.metadata(), rightConst);
       } else {
-        newIf = new If(Type.EQ, left);
+        newIf = new If(IfType.EQ, left);
         ifBlock = BasicBlock.createIfBlock(blockNumber, newIf, code.metadata());
       }
       newIf.setPosition(position);
@@ -975,7 +975,7 @@ public class CodeRewriter {
     }
     If replacement;
     if (theSwitch.isIntSwitch() && theSwitch.asIntSwitch().getFirstKey() == 0) {
-      replacement = new If(Type.EQ, theSwitch.value());
+      replacement = new If(IfType.EQ, theSwitch.value());
     } else {
       Instruction labelConst = theSwitch.materializeFirstKey(appView, code);
       labelConst.setPosition(theSwitch.getPosition());
@@ -983,7 +983,7 @@ public class CodeRewriter {
       iterator.add(labelConst);
       Instruction dummy = iterator.next();
       assert dummy == theSwitch;
-      replacement = new If(Type.EQ, ImmutableList.of(theSwitch.value(), labelConst.outValue()));
+      replacement = new If(IfType.EQ, ImmutableList.of(theSwitch.value(), labelConst.outValue()));
     }
     iterator.replaceCurrentInstruction(replacement);
   }
@@ -2793,7 +2793,7 @@ public class CodeRewriter {
     }
 
     if (theIf.isNullTest()) {
-      assert theIf.getType() == Type.EQ || theIf.getType() == Type.NE;
+      assert theIf.getType() == IfType.EQ || theIf.getType() == IfType.NE;
 
       if (lhs.isAlwaysNull(appView)) {
         simplifyIfWithKnownCondition(code, block, theIf, theIf.targetFromNullObject());
@@ -2806,7 +2806,7 @@ public class CodeRewriter {
       }
     }
 
-    if (theIf.getType() == Type.EQ || theIf.getType() == Type.NE) {
+    if (theIf.getType() == IfType.EQ || theIf.getType() == IfType.NE) {
       AbstractValue lhsAbstractValue = lhs.getAbstractValue(appView, code.context());
       if (lhsAbstractValue.isConstantOrNonConstantNumberValue()
           && !lhsAbstractValue.asConstantOrNonConstantNumberValue().containsInt(0)) {
@@ -2874,7 +2874,7 @@ public class CodeRewriter {
     if (lhsRoot.isDefinedByInstructionSatisfying(Instruction::isCreatingInstanceOrArray)
         && rhsRoot.isDefinedByInstructionSatisfying(Instruction::isCreatingInstanceOrArray)) {
       // Comparing two newly created objects.
-      assert theIf.getType() == Type.EQ || theIf.getType() == Type.NE;
+      assert theIf.getType() == IfType.EQ || theIf.getType() == IfType.NE;
       simplifyIfWithKnownCondition(code, block, theIf, theIf.targetFromCondition(1));
       return true;
     }
@@ -2888,7 +2888,7 @@ public class CodeRewriter {
       return true;
     }
 
-    if (theIf.getType() == Type.EQ || theIf.getType() == Type.NE) {
+    if (theIf.getType() == IfType.EQ || theIf.getType() == IfType.NE) {
       AbstractValue lhsAbstractValue = lhs.getAbstractValue(appView, code.context());
       AbstractValue rhsAbstractValue = rhs.getAbstractValue(appView, code.context());
       if (lhsAbstractValue.isConstantOrNonConstantNumberValue()
@@ -2947,7 +2947,7 @@ public class CodeRewriter {
       }
     }
 
-    if (theIf.getType() == Type.EQ || theIf.getType() == Type.NE) {
+    if (theIf.getType() == IfType.EQ || theIf.getType() == IfType.NE) {
       ProgramMethod context = code.context();
       AbstractValue abstractValue = lhs.getAbstractValue(appView, context);
       if (abstractValue.isSingleConstClassValue()) {
@@ -3046,7 +3046,7 @@ public class CodeRewriter {
       }
 
       If ifInstruction = lastInstruction.asIf();
-      Type type = ifInstruction.getType();
+      IfType type = ifInstruction.getType();
 
       Value lhs = ifInstruction.inValues().get(0);
       Value rhs = !ifInstruction.isZeroTest() ? ifInstruction.inValues().get(1) : null;
@@ -3059,12 +3059,12 @@ public class CodeRewriter {
 
       // If the type is neither EQ nor NE, we cannot conclude anything about any of the in-values
       // of the if-instruction from the outcome of the if-instruction.
-      if (type != Type.EQ && type != Type.NE) {
+      if (type != IfType.EQ && type != IfType.NE) {
         continue;
       }
 
       BasicBlock trueTarget, falseTarget;
-      if (type == Type.EQ) {
+      if (type == IfType.EQ) {
         trueTarget = ifInstruction.getTrueTarget();
         falseTarget = ifInstruction.fallthroughBlock();
       } else {
@@ -3538,20 +3538,20 @@ public class CodeRewriter {
             if (trueValue.isConstNumber() && falseValue.isConstNumber()) {
               ConstNumber trueNumber = trueValue.getConstInstruction().asConstNumber();
               ConstNumber falseNumber = falseValue.getConstInstruction().asConstNumber();
-              if ((theIf.getType() == Type.EQ &&
-                  trueNumber.isIntegerZero() &&
-                  falseNumber.isIntegerOne()) ||
-                  (theIf.getType() == Type.NE &&
-                      trueNumber.isIntegerOne() &&
-                      falseNumber.isIntegerZero())) {
+              if ((theIf.getType() == IfType.EQ
+                      && trueNumber.isIntegerZero()
+                      && falseNumber.isIntegerOne())
+                  || (theIf.getType() == IfType.NE
+                      && trueNumber.isIntegerOne()
+                      && falseNumber.isIntegerZero())) {
                 phi.replaceUsers(testValue);
                 deadPhis++;
-              } else if ((theIf.getType() == Type.NE &&
-                           trueNumber.isIntegerZero() &&
-                           falseNumber.isIntegerOne()) ||
-                         (theIf.getType() == Type.EQ &&
-                           trueNumber.isIntegerOne() &&
-                           falseNumber.isIntegerZero())) {
+              } else if ((theIf.getType() == IfType.NE
+                      && trueNumber.isIntegerZero()
+                      && falseNumber.isIntegerOne())
+                  || (theIf.getType() == IfType.EQ
+                      && trueNumber.isIntegerOne()
+                      && falseNumber.isIntegerZero())) {
                 Value newOutValue = code.createValue(phi.getType(), phi.getLocalInfo());
                 ConstNumber cstToUse = trueNumber.isIntegerOne() ? trueNumber : falseNumber;
                 BasicBlock phiBlock = phi.getBlock();
@@ -3951,7 +3951,7 @@ public class CodeRewriter {
       } else {
         // Insert "if (argument != null) ...".
         successor = block.unlinkSingleSuccessor();
-        If theIf = new If(Type.NE, argument);
+        If theIf = new If(IfType.NE, argument);
         theIf.setPosition(position);
         BasicBlock ifBlock =
             BasicBlock.createIfBlock(code.getNextBlockNumber(), theIf, code.metadata());

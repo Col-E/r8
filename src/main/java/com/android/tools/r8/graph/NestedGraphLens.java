@@ -6,7 +6,7 @@ package com.android.tools.r8.graph;
 
 import com.android.tools.r8.graph.GraphLens.NonIdentityGraphLens;
 import com.android.tools.r8.graph.proto.RewrittenPrototypeDescription;
-import com.android.tools.r8.ir.code.Invoke.Type;
+import com.android.tools.r8.ir.code.InvokeType;
 import com.android.tools.r8.utils.IterableUtils;
 import com.android.tools.r8.utils.collections.BidirectionalManyToManyRepresentativeMap;
 import com.android.tools.r8.utils.collections.BidirectionalManyToOneRepresentativeMap;
@@ -23,8 +23,8 @@ import java.util.stream.Collectors;
  * <p>Subclasses can override the lookup methods.
  *
  * <p>For method mapping where invocation type can change just override {@link
- * #mapInvocationType(DexMethod, DexMethod, Type)} if the default name mapping applies, and only
- * invocation type might need to change.
+ * #mapInvocationType(DexMethod, DexMethod, InvokeType)} if the default name mapping applies, and
+ * only invocation type might need to change.
  */
 public class NestedGraphLens extends NonIdentityGraphLens {
 
@@ -266,9 +266,10 @@ public class NestedGraphLens extends NonIdentityGraphLens {
    * Default invocation type mapping.
    *
    * <p>This is an identity mapping. If a subclass need invocation type mapping either override this
-   * method or {@link #lookupMethod(DexMethod, DexMethod, Type)}
+   * method or {@link #lookupMethod(DexMethod, DexMethod, InvokeType)}
    */
-  protected Type mapInvocationType(DexMethod newMethod, DexMethod originalMethod, Type type) {
+  protected InvokeType mapInvocationType(
+      DexMethod newMethod, DexMethod originalMethod, InvokeType type) {
     return type;
   }
 
@@ -277,9 +278,12 @@ public class NestedGraphLens extends NonIdentityGraphLens {
    *
    * <p>Handle methods moved from interface to class or class to interface.
    */
-  public static Type mapVirtualInterfaceInvocationTypes(
-      DexDefinitionSupplier definitions, DexMethod newMethod, DexMethod originalMethod, Type type) {
-    if (type == Type.VIRTUAL || type == Type.INTERFACE) {
+  public static InvokeType mapVirtualInterfaceInvocationTypes(
+      DexDefinitionSupplier definitions,
+      DexMethod newMethod,
+      DexMethod originalMethod,
+      InvokeType type) {
+    if (type == InvokeType.VIRTUAL || type == InvokeType.INTERFACE) {
       // Get the invoke type of the actual definition.
       DexClass newTargetClass = definitions.definitionFor(newMethod.getHolderType());
       if (newTargetClass == null) {
@@ -287,12 +291,12 @@ public class NestedGraphLens extends NonIdentityGraphLens {
       }
       DexClass originalTargetClass = definitions.definitionFor(originalMethod.getHolderType());
       if (originalTargetClass != null
-          && (originalTargetClass.isInterface() ^ (type == Type.INTERFACE))) {
+          && (originalTargetClass.isInterface() ^ (type == InvokeType.INTERFACE))) {
         // The invoke was wrong to start with, so we keep it wrong. This is to ensure we get
         // the IncompatibleClassChangeError the original invoke would have triggered.
-        return newTargetClass.accessFlags.isInterface() ? Type.VIRTUAL : Type.INTERFACE;
+        return newTargetClass.accessFlags.isInterface() ? InvokeType.VIRTUAL : InvokeType.INTERFACE;
       }
-      return newTargetClass.accessFlags.isInterface() ? Type.INTERFACE : Type.VIRTUAL;
+      return newTargetClass.accessFlags.isInterface() ? InvokeType.INTERFACE : InvokeType.VIRTUAL;
     }
     return type;
   }

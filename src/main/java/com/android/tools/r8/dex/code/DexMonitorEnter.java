@@ -3,7 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.dex.code;
 
-import com.android.tools.r8.ir.code.Monitor.Type;
+import com.android.tools.r8.ir.code.MonitorType;
 import com.android.tools.r8.ir.conversion.IRBuilder;
 
 public class DexMonitorEnter extends DexFormat11x {
@@ -37,7 +37,7 @@ public class DexMonitorEnter extends DexFormat11x {
 
   @Override
   public void buildIR(IRBuilder builder) {
-    builder.addMonitor(Type.ENTER, AA);
+    builder.addMonitor(MonitorType.ENTER, AA);
   }
 
   @Override

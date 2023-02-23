@@ -6,19 +6,18 @@ package com.android.tools.r8.cf.code;
 
 import com.android.tools.r8.graph.CfCode;
 import com.android.tools.r8.graph.ProgramMethod;
-import com.android.tools.r8.ir.code.If;
-import com.android.tools.r8.ir.code.If.Type;
+import com.android.tools.r8.ir.code.IfType;
 import com.android.tools.r8.ir.code.ValueType;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.InliningConstraints;
 
 public abstract class CfConditionalJumpInstruction extends CfJumpInstruction {
 
-  final If.Type kind;
+  final IfType kind;
   final ValueType type;
   final CfLabel target;
 
-  CfConditionalJumpInstruction(If.Type kind, ValueType type, CfLabel target) {
+  CfConditionalJumpInstruction(IfType kind, ValueType type, CfLabel target) {
     this.kind = kind;
     this.type = type;
     this.target = target;
@@ -45,7 +44,7 @@ public abstract class CfConditionalJumpInstruction extends CfJumpInstruction {
     return true;
   }
 
-  public final Type getKind() {
+  public final IfType getKind() {
     return kind;
   }
 

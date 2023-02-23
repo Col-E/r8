@@ -17,7 +17,7 @@ import com.android.tools.r8.graph.proto.RewrittenTypeInfo;
 import com.android.tools.r8.ir.analysis.value.AbstractValueFactory;
 import com.android.tools.r8.ir.analysis.value.SingleFieldValue;
 import com.android.tools.r8.ir.analysis.value.SingleValue;
-import com.android.tools.r8.ir.code.Invoke;
+import com.android.tools.r8.ir.code.InvokeType;
 import com.android.tools.r8.ir.conversion.ExtraUnusedNullParameter;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.BooleanUtils;
@@ -111,12 +111,12 @@ public class EnumUnboxingLens extends NestedGraphLens {
   }
 
   @Override
-  protected Invoke.Type mapInvocationType(
-      DexMethod newMethod, DexMethod originalMethod, Invoke.Type type) {
+  protected InvokeType mapInvocationType(
+      DexMethod newMethod, DexMethod originalMethod, InvokeType type) {
     if (typeMap.containsKey(originalMethod.getHolderType())) {
       // Methods moved from unboxed enums to the utility class are either static or statified.
       assert newMethod != originalMethod;
-      return Invoke.Type.STATIC;
+      return InvokeType.STATIC;
     }
     return type;
   }

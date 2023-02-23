@@ -41,9 +41,9 @@ import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.ir.code.Invoke;
-import com.android.tools.r8.ir.code.Invoke.Type;
 import com.android.tools.r8.ir.code.InvokeMethod;
 import com.android.tools.r8.ir.code.InvokeStatic;
+import com.android.tools.r8.ir.code.InvokeType;
 import com.android.tools.r8.ir.code.LinearFlowInstructionListIterator;
 import com.android.tools.r8.ir.code.Mul;
 import com.android.tools.r8.ir.code.NewInstance;
@@ -398,13 +398,17 @@ public class OutlinerImpl extends Outliner {
 
   private static class InvokeOutlineInstruction extends OutlineInstruction {
     private final DexMethod method;
-    private final Invoke.Type invokeType;
+    private final InvokeType invokeType;
     private final boolean hasOutValue;
     private final DexProto proto;
     private final boolean hasReceiver;
 
     private InvokeOutlineInstruction(
-        DexMethod method, Type type, boolean hasOutValue, ValueType[] inputTypes, DexProto proto) {
+        DexMethod method,
+        InvokeType type,
+        boolean hasOutValue,
+        ValueType[] inputTypes,
+        DexProto proto) {
       super(OutlineInstructionType.INVOKE);
       hasReceiver = inputTypes.length != method.proto.parameters.values.length;
       assert !hasReceiver || inputTypes[0].isObject();

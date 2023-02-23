@@ -57,8 +57,8 @@ public class InvokeVirtual extends InvokeMethodWithReceiver {
   }
 
   @Override
-  public Type getType() {
-    return Type.VIRTUAL;
+  public InvokeType getType() {
+    return InvokeType.VIRTUAL;
   }
 
   @Override

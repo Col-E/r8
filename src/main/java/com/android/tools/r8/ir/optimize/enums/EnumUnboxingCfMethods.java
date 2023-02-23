@@ -31,7 +31,7 @@ import com.android.tools.r8.cf.code.frame.FrameType;
 import com.android.tools.r8.graph.CfCode;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
-import com.android.tools.r8.ir.code.If;
+import com.android.tools.r8.ir.code.IfType;
 import com.android.tools.r8.ir.code.MemberType;
 import com.android.tools.r8.ir.code.NumericType;
 import com.android.tools.r8.ir.code.ValueType;
@@ -58,9 +58,9 @@ public final class EnumUnboxingCfMethods {
         ImmutableList.of(
             label0,
             new CfLoad(ValueType.INT, 0),
-            new CfIf(If.Type.EQ, ValueType.INT, label1),
+            new CfIf(IfType.EQ, ValueType.INT, label1),
             new CfLoad(ValueType.INT, 1),
-            new CfIf(If.Type.NE, ValueType.INT, label2),
+            new CfIf(IfType.NE, ValueType.INT, label2),
             label1,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
@@ -102,7 +102,7 @@ public final class EnumUnboxingCfMethods {
         ImmutableList.of(
             label0,
             new CfLoad(ValueType.INT, 0),
-            new CfIf(If.Type.NE, ValueType.INT, label2),
+            new CfIf(IfType.NE, ValueType.INT, label2),
             label1,
             new CfNew(factory.createType("Ljava/lang/NullPointerException;")),
             new CfStackInstruction(CfStackInstruction.Opcode.Dup),
@@ -120,7 +120,7 @@ public final class EnumUnboxingCfMethods {
                     new int[] {0, 1}, new FrameType[] {FrameType.intType(), FrameType.intType()})),
             new CfLoad(ValueType.INT, 0),
             new CfLoad(ValueType.INT, 1),
-            new CfIfCmp(If.Type.NE, ValueType.INT, label3),
+            new CfIfCmp(IfType.NE, ValueType.INT, label3),
             new CfConstNumber(1, ValueType.INT),
             new CfGoto(label4),
             label3,
@@ -151,7 +151,7 @@ public final class EnumUnboxingCfMethods {
         ImmutableList.of(
             label0,
             new CfLoad(ValueType.INT, 0),
-            new CfIf(If.Type.NE, ValueType.INT, label2),
+            new CfIf(IfType.NE, ValueType.INT, label2),
             label1,
             new CfNew(factory.createType("Ljava/lang/NullPointerException;")),
             new CfStackInstruction(CfStackInstruction.Opcode.Dup),
@@ -207,7 +207,7 @@ public final class EnumUnboxingCfMethods {
             new CfLoad(ValueType.INT, 2),
             new CfLoad(ValueType.OBJECT, 1),
             new CfArrayLength(),
-            new CfIfCmp(If.Type.GE, ValueType.INT, label5),
+            new CfIfCmp(IfType.GE, ValueType.INT, label5),
             label3,
             new CfLoad(ValueType.OBJECT, 1),
             new CfLoad(ValueType.INT, 2),
@@ -245,7 +245,7 @@ public final class EnumUnboxingCfMethods {
         ImmutableList.of(
             label0,
             new CfLoad(ValueType.INT, 0),
-            new CfIf(If.Type.NE, ValueType.INT, label2),
+            new CfIf(IfType.NE, ValueType.INT, label2),
             label1,
             new CfNew(factory.createType("Ljava/lang/NullPointerException;")),
             new CfStackInstruction(CfStackInstruction.Opcode.Dup),
@@ -279,7 +279,7 @@ public final class EnumUnboxingCfMethods {
         ImmutableList.of(
             label0,
             new CfLoad(ValueType.INT, 0),
-            new CfIf(If.Type.NE, ValueType.INT, label2),
+            new CfIf(IfType.NE, ValueType.INT, label2),
             label1,
             new CfNew(factory.createType("Ljava/lang/NullPointerException;")),
             new CfStackInstruction(CfStackInstruction.Opcode.Dup),

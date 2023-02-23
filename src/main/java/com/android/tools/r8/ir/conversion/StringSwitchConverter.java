@@ -15,6 +15,7 @@ import com.android.tools.r8.ir.code.ConstString;
 import com.android.tools.r8.ir.code.Goto;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.If;
+import com.android.tools.r8.ir.code.IfType;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionIterator;
 import com.android.tools.r8.ir.code.IntSwitch;
@@ -432,7 +433,7 @@ class StringSwitchConverter {
       }
 
       private StringToIdMapping extendWithIf(StringToIdMapping toBeExtended, If theIf) {
-        if (theIf.getType() != If.Type.EQ && theIf.getType() != If.Type.NE) {
+        if (theIf.getType() != IfType.EQ && theIf.getType() != IfType.NE) {
           // Not an extension of `toBeExtended`.
           return toBeExtended;
         }
@@ -562,7 +563,7 @@ class StringSwitchConverter {
         if (theIf == null) {
           return false;
         }
-        if (theIf.getType() != If.Type.EQ && theIf.getType() != If.Type.NE) {
+        if (theIf.getType() != IfType.EQ && theIf.getType() != IfType.NE) {
           return false;
         }
 
@@ -713,8 +714,8 @@ class StringSwitchConverter {
 
       private IdToTargetMapping extendWithIf(
           IdToTargetMapping toBeExtended, If theIf, BasicBlock fallthroughBlock) {
-        If.Type type = theIf.getType();
-        if (type != If.Type.EQ && type != If.Type.NE) {
+        IfType type = theIf.getType();
+        if (type != IfType.EQ && type != IfType.NE) {
           // Not an extension of `toBeExtended`.
           return setFallthroughBlock(toBeExtended, fallthroughBlock);
         }
@@ -797,14 +798,14 @@ class StringSwitchConverter {
   static class Utils {
 
     static BasicBlock getTrueTarget(If theIf) {
-      assert theIf.getType() == If.Type.EQ || theIf.getType() == If.Type.NE;
-      return theIf.getType() == If.Type.EQ ? theIf.getTrueTarget() : theIf.fallthroughBlock();
+      assert theIf.getType() == IfType.EQ || theIf.getType() == IfType.NE;
+      return theIf.getType() == IfType.EQ ? theIf.getTrueTarget() : theIf.fallthroughBlock();
     }
 
     static BasicBlock fallthroughBlock(JumpInstruction exit) {
       if (exit.isIf()) {
         If theIf = exit.asIf();
-        return theIf.getType() == If.Type.EQ ? theIf.fallthroughBlock() : theIf.getTrueTarget();
+        return theIf.getType() == IfType.EQ ? theIf.fallthroughBlock() : theIf.getTrueTarget();
       }
       if (exit.isIntSwitch()) {
         return exit.asIntSwitch().fallthroughBlock();
