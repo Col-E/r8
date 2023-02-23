@@ -11,7 +11,6 @@ import com.android.tools.r8.cf.code.CfFieldInstruction;
 import com.android.tools.r8.cf.code.CfInstruction;
 import com.android.tools.r8.cf.code.CfInvoke;
 import com.android.tools.r8.cf.code.CfInvokeDynamic;
-import com.android.tools.r8.contexts.CompilationContext.MethodProcessingContext;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.Code;
@@ -31,9 +30,8 @@ import com.android.tools.r8.graph.LibraryMember;
 import com.android.tools.r8.graph.ProgramField;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.desugar.CfInstructionDesugaring;
-import com.android.tools.r8.ir.desugar.CfInstructionDesugaringCollection;
 import com.android.tools.r8.ir.desugar.CfInstructionDesugaringEventConsumer;
-import com.android.tools.r8.ir.desugar.FreshLocalProvider;
+import com.android.tools.r8.ir.desugar.DesugarDescription;
 import com.android.tools.r8.ir.desugar.LambdaDescriptor;
 import com.android.tools.r8.ir.desugar.LocalStackAllocator;
 import com.android.tools.r8.ir.desugar.ProgramAdditions;
@@ -41,7 +39,6 @@ import com.android.tools.r8.utils.BooleanUtils;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
-import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -296,17 +293,6 @@ public class NestBasedAccessDesugaring implements CfInstructionDesugaring {
         code.asCfCode().getInstructions(), instruction -> needsDesugaring(instruction, method));
   }
 
-  @Override
-  public boolean needsDesugaring(CfInstruction instruction, ProgramMethod context) {
-    if (instruction.isFieldInstruction()) {
-      return needsDesugaring(instruction.asFieldInstruction().getField(), context);
-    }
-    if (instruction.isInvoke()) {
-      return needsDesugaring(instruction.asInvoke().getMethod(), context);
-    }
-    return false;
-  }
-
   public boolean needsDesugaring(DexMember<?, ?> memberReference, ProgramMethod context) {
     if (!context.getHolder().isInANest() || !memberReference.getHolderType().isClassType()) {
       return false;
@@ -324,22 +310,42 @@ public class NestBasedAccessDesugaring implements CfInstructionDesugaring {
   }
 
   @Override
-  public Collection<CfInstruction> desugarInstruction(
-      CfInstruction instruction,
-      FreshLocalProvider freshLocalProvider,
-      LocalStackAllocator localStackAllocator,
-      CfInstructionDesugaringEventConsumer eventConsumer,
-      ProgramMethod context,
-      MethodProcessingContext methodProcessingContext,
-      CfInstructionDesugaringCollection desugaringCollection,
-      DexItemFactory dexItemFactory) {
+  public DesugarDescription compute(CfInstruction instruction, ProgramMethod context) {
     if (instruction.isFieldInstruction()) {
-      return desugarFieldInstruction(instruction.asFieldInstruction(), context);
+      if (needsDesugaring(instruction.asFieldInstruction().getField(), context)) {
+        return DesugarDescription.builder()
+            .setDesugarRewrite(
+                (freshLocalProvider,
+                    localStackAllocator,
+                    eventConsumer,
+                    ignore, // context
+                    methodProcessingContext,
+                    desugaringCollection,
+                    dexItemFactory) ->
+                    desugarFieldInstruction(instruction.asFieldInstruction(), context))
+            .build();
+      } else {
+        return DesugarDescription.nothing();
+      }
     }
     if (instruction.isInvoke()) {
-      return desugarInvokeInstruction(instruction.asInvoke(), localStackAllocator, context);
+      if (needsDesugaring(instruction.asInvoke().getMethod(), context)) {
+        return DesugarDescription.builder()
+            .setDesugarRewrite(
+                (freshLocalProvider,
+                    localStackAllocator,
+                    eventConsumer,
+                    ignore, // context
+                    methodProcessingContext,
+                    desugaringCollection,
+                    dexItemFactory) ->
+                    desugarInvokeInstruction(instruction.asInvoke(), localStackAllocator, context))
+            .build();
+      } else {
+        return DesugarDescription.nothing();
+      }
     }
-    return null;
+    return DesugarDescription.nothing();
   }
 
   private List<CfInstruction> desugarFieldInstruction(
