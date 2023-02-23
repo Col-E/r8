@@ -38,7 +38,11 @@ public class Regress {
       if (System.getProperty("java.specification.version").equals("9") && i == 0) {
         continue;
       }
-      System.out.print(index++ + ": ");
+      // On 9 and below, annotations are also printed for the Regress.class (first argument to the
+      // getDeclaredConstructor). b/120402200
+      if (i != 0 || annotations[i].length != 0) {
+        System.out.print(index++ + ": ");
+      }
       for (Annotation annotation : annotations[i]) {
         System.out.println(annotation);
       }
