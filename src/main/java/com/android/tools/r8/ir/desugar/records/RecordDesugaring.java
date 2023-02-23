@@ -101,7 +101,7 @@ public class RecordDesugaring
       ProgramAdditions programAdditions) {
     CfCode cfCode = method.getDefinition().getCode().asCfCode();
     for (CfInstruction instruction : cfCode.getInstructions()) {
-      if (instruction.isInvokeDynamic() && needsDesugaring(instruction, method)) {
+      if (instruction.isInvokeDynamic() && compute(instruction, method).needsDesugaring()) {
         prepareInvokeDynamicOnRecord(
             instruction.asInvokeDynamic(), programAdditions, method, eventConsumer);
       }

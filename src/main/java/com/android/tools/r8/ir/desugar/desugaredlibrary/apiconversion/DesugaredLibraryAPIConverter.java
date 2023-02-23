@@ -184,7 +184,7 @@ public class DesugaredLibraryAPIConverter implements CfInstructionDesugaring {
 
   private boolean isAlreadyDesugared(CfInvoke invoke, ProgramMethod context) {
     return Iterables.any(
-        precedingDesugarings, desugaring -> desugaring.needsDesugaring(invoke, context));
+        precedingDesugarings, desugaring -> desugaring.compute(invoke, context).needsDesugaring());
   }
 
   public static DexMethod methodWithVivifiedTypeInSignature(

@@ -5,11 +5,8 @@
 package com.android.tools.r8.ir.desugar;
 
 import com.android.tools.r8.cf.code.CfInstruction;
-import com.android.tools.r8.contexts.CompilationContext.MethodProcessingContext;
 import com.android.tools.r8.errors.Unreachable;
-import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.ProgramMethod;
-import java.util.Collection;
 
 /** Interface for desugaring a single class-file instruction. */
 public interface CfInstructionDesugaring {
@@ -31,39 +28,6 @@ public interface CfInstructionDesugaring {
       CfInstructionDesugaringEventConsumer eventConsumer,
       ProgramAdditions programAdditions) {
     // Default prepare is to do nothing.
-  }
-
-  /**
-   * Given an instruction, returns the list of instructions that the instruction should be desugared
-   * to. If no desugaring is needed, {@code null} should be returned (for efficiency).
-   */
-  default Collection<CfInstruction> desugarInstruction(
-      CfInstruction instruction,
-      FreshLocalProvider freshLocalProvider,
-      LocalStackAllocator localStackAllocator,
-      CfInstructionDesugaringEventConsumer eventConsumer,
-      ProgramMethod context,
-      MethodProcessingContext methodProcessingContext,
-      CfInstructionDesugaringCollection desugaringCollection,
-      DexItemFactory dexItemFactory) {
-    return compute(instruction, context)
-        .desugarInstruction(
-            freshLocalProvider,
-            localStackAllocator,
-            eventConsumer,
-            context,
-            methodProcessingContext,
-            desugaringCollection,
-            dexItemFactory);
-  }
-
-  /**
-   * Returns true if the given instruction needs desugaring.
-   *
-   * <p>This should return true if-and-only-if {@link #desugarInstruction} returns non-null.
-   */
-  default boolean needsDesugaring(CfInstruction instruction, ProgramMethod context) {
-    return compute(instruction, context).needsDesugaring();
   }
 
   /**

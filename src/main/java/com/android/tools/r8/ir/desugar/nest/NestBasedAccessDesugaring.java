@@ -288,7 +288,8 @@ public class NestBasedAccessDesugaring implements CfInstructionDesugaring {
     }
 
     return Iterables.any(
-        code.asCfCode().getInstructions(), instruction -> needsDesugaring(instruction, method));
+        code.asCfCode().getInstructions(),
+        instruction -> compute(instruction, method).needsDesugaring());
   }
 
   public boolean needsDesugaring(DexMember<?, ?> memberReference, ProgramMethod context) {

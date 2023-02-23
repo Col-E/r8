@@ -197,7 +197,7 @@ public final class InterfaceMethodRewriter implements CfInstructionDesugaring {
 
   private boolean isAlreadyDesugared(CfInvoke invoke, ProgramMethod context) {
     return Iterables.any(
-        precedingDesugarings, desugaring -> desugaring.needsDesugaring(invoke, context));
+        precedingDesugarings, desugaring -> desugaring.compute(invoke, context).needsDesugaring());
   }
 
   @Override

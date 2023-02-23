@@ -8,20 +8,14 @@ import com.android.tools.r8.cf.code.CfFieldInstruction;
 import com.android.tools.r8.cf.code.CfInstruction;
 import com.android.tools.r8.cf.code.CfInvoke;
 import com.android.tools.r8.cf.code.CfTypeInstruction;
-import com.android.tools.r8.contexts.CompilationContext.MethodProcessingContext;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexField;
-import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.desugar.CfInstructionDesugaring;
-import com.android.tools.r8.ir.desugar.CfInstructionDesugaringCollection;
-import com.android.tools.r8.ir.desugar.CfInstructionDesugaringEventConsumer;
-import com.android.tools.r8.ir.desugar.FreshLocalProvider;
-import com.android.tools.r8.ir.desugar.LocalStackAllocator;
-import java.util.Collection;
-import java.util.Collections;
+import com.android.tools.r8.ir.desugar.DesugarDescription;
+import com.google.common.collect.ImmutableList;
 
 /**
  * Disables the rewriting of types in specific classes declared in the desugared library
@@ -44,22 +38,25 @@ public class DesugaredLibraryDisableDesugarer implements CfInstructionDesugaring
   }
 
   @Override
-  public Collection<CfInstruction> desugarInstruction(
-      CfInstruction instruction,
-      FreshLocalProvider freshLocalProvider,
-      LocalStackAllocator localStackAllocator,
-      CfInstructionDesugaringEventConsumer eventConsumer,
-      ProgramMethod context,
-      MethodProcessingContext methodProcessingContext,
-      CfInstructionDesugaringCollection desugaringCollection,
-      DexItemFactory dexItemFactory) {
+  public DesugarDescription compute(CfInstruction instruction, ProgramMethod context) {
     CfInstruction replacement = rewriteInstruction(instruction, context);
-    return replacement == null ? null : Collections.singleton(replacement);
+    if (replacement == null) {
+      return DesugarDescription.nothing();
+    }
+    return compute(replacement);
   }
 
-  @Override
-  public boolean needsDesugaring(CfInstruction instruction, ProgramMethod context) {
-    return rewriteInstruction(instruction, context) != null;
+  private DesugarDescription compute(CfInstruction replacement) {
+    return DesugarDescription.builder()
+        .setDesugarRewrite(
+            (freshLocalProvider,
+                localStackAllocator,
+                eventConsumer,
+                context,
+                methodProcessingContext,
+                desugaringCollection,
+                dexItemFactory) -> ImmutableList.of(replacement))
+        .build();
   }
 
   // TODO(b/261024278): Share this code.

@@ -234,11 +234,6 @@ public class StringConcatInstructionDesugaring implements CfInstructionDesugarin
     return builder.desugar(localStackAllocator);
   }
 
-  @Override
-  public boolean needsDesugaring(CfInstruction instruction, ProgramMethod context) {
-    return isStringConcatInvoke(instruction, factory);
-  }
-
   public static boolean isStringConcatInvoke(CfInstruction instruction, DexItemFactory factory) {
     CfInvokeDynamic invoke = instruction.asInvokeDynamic();
     if (invoke == null) {
