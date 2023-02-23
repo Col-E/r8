@@ -29,7 +29,7 @@ import org.junit.runners.Parameterized.Parameters;
 
 // This is a reproduction of b/216136762.
 @RunWith(Parameterized.class)
-class ApiModelOutlineMethodProtectedTest extends TestBase {
+public class ApiModelOutlineMethodProtectedTest extends TestBase {
 
   private static final AndroidApiLevel classApiLevel = AndroidApiLevel.M;
   private static final AndroidApiLevel methodApiLevel = AndroidApiLevel.O_MR1;
