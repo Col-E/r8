@@ -67,7 +67,6 @@ import com.android.tools.r8.lightir.LirCode;
 import com.android.tools.r8.lightir.LirStrategy;
 import com.android.tools.r8.lightir.LirStrategy.ExternalPhisStrategy;
 import com.android.tools.r8.lightir.PhiInInstructionsStrategy;
-import com.android.tools.r8.logging.Log;
 import com.android.tools.r8.naming.IdentifierNameStringMarker;
 import com.android.tools.r8.optimize.argumentpropagation.ArgumentPropagatorIROptimizer;
 import com.android.tools.r8.position.MethodPosition;

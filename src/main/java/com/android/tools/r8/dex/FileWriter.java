@@ -46,7 +46,6 @@ import com.android.tools.r8.graph.ObjectToOffsetMapping;
 import com.android.tools.r8.graph.ParameterAnnotationsList;
 import com.android.tools.r8.graph.ProgramClassVisitor;
 import com.android.tools.r8.graph.ProgramMethod;
-import com.android.tools.r8.logging.Log;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.position.MethodPosition;
