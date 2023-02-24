@@ -408,14 +408,6 @@ public class VirtualFile {
             }
             mainDexFile.commitTransaction();
           });
-      if (Log.ENABLED) {
-        Log.info(
-            VirtualFile.class, "Main dex classes: " + mainDexFile.transaction.getNumberOfClasses());
-        Log.info(
-            VirtualFile.class, "Main dex methods: " + mainDexFile.transaction.getNumberOfMethods());
-        Log.info(
-            VirtualFile.class, "Main dex fields: " + mainDexFile.transaction.getNumberOfFields());
-      }
       mainDexFile.throwIfFull(true, options.reporter);
     }
 

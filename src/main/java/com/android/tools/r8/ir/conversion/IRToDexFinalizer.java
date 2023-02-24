@@ -75,10 +75,6 @@ public class IRToDexFinalizer extends IRFinalizer<DexCode> {
     CodeRewriter.removeUnneededMovesOnExitingPaths(code, registerAllocator);
     CodeRewriter.collapseTrivialGotos(appView, code);
     timing.end();
-    if (Log.ENABLED) {
-      Log.debug(
-          getClass(), "Final (non-SSA) flow graph for %s:\n%s", method.toSourceString(), code);
-    }
     return registerAllocator;
   }
 }

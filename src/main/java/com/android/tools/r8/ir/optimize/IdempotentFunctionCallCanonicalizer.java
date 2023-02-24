@@ -61,34 +61,10 @@ public class IdempotentFunctionCallCanonicalizer {
 
   private int numberOfLibraryCallCanonicalization = 0;
   private int numberOfProgramCallCanonicalization = 0;
-  private final Object2IntMap<Long> histogramOfCanonicalizationCandidatesPerMethod;
 
   public IdempotentFunctionCallCanonicalizer(AppView<?> appView) {
     this.appView = appView;
     this.factory = appView.dexItemFactory();
-    if (Log.ENABLED) {
-      histogramOfCanonicalizationCandidatesPerMethod = new Object2IntArrayMap<>();
-    } else {
-      histogramOfCanonicalizationCandidatesPerMethod = null;
-    }
-  }
-
-  public void logResults() {
-    assert Log.ENABLED;
-    Log.info(getClass(),
-        "# invoke canonicalization (library): %s", numberOfLibraryCallCanonicalization);
-    Log.info(getClass(),
-        "# invoke canonicalization (program): %s", numberOfProgramCallCanonicalization);
-    assert histogramOfCanonicalizationCandidatesPerMethod != null;
-    Log.info(getClass(), "------ histogram of invoke canonicalization candidates ------");
-    histogramOfCanonicalizationCandidatesPerMethod.forEach(
-        (length, count) ->
-            Log.info(
-                getClass(),
-                "%s: %s (%s)",
-                length,
-                StringUtils.times("*", Math.min(count, 53)),
-                count));
   }
 
   public void canonicalize(IRCode code) {
@@ -203,13 +179,6 @@ public class IdempotentFunctionCallCanonicalizer {
     Map<InvokeMethod, Value> deadInvocations = Maps.newHashMap();
 
     FastSortedEntrySet<InvokeMethod, List<Value>> entries = returnValues.object2ObjectEntrySet();
-    if (Log.ENABLED && Log.isLoggingEnabledFor(IdempotentFunctionCallCanonicalizer.class)) {
-      Long numOfCandidates = entries.stream().filter(a -> a.getValue().size() > 1).count();
-      synchronized (histogramOfCanonicalizationCandidatesPerMethod) {
-        int count = histogramOfCanonicalizationCandidatesPerMethod.getOrDefault(numOfCandidates, 0);
-        histogramOfCanonicalizationCandidatesPerMethod.put(numOfCandidates, count + 1);
-      }
-    }
     entries.stream()
         .filter(a -> a.getValue().size() > 1)
         .sorted((a, b) -> Integer.compare(b.getValue().size(), a.getValue().size()))
@@ -217,14 +186,6 @@ public class IdempotentFunctionCallCanonicalizer {
         .forEach(
             (entry) -> {
               InvokeMethod invoke = entry.getKey();
-              if (Log.ENABLED) {
-                if (factory.libraryMethodsWithReturnValueDependingOnlyOnArguments.contains(
-                    invoke.getInvokedMethod())) {
-                  numberOfLibraryCallCanonicalization += entry.getValue().size() - 1;
-                } else {
-                  numberOfProgramCallCanonicalization += entry.getValue().size() - 1;
-                }
-              }
               Value canonicalizedValue =
                   code.createValue(invoke.getOutType(), invoke.outValue().getLocalInfo());
               Invoke canonicalizedInvoke =

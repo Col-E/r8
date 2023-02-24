@@ -79,9 +79,6 @@ public class AbstractMethodRemover {
       return true;
     }
     // We will filter the method out since it is not pinned.
-    if (Log.ENABLED) {
-      Log.debug(getClass(), "Removing abstract method %s.", method.getReference());
-    }
     return false;
   }
 

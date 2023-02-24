@@ -664,14 +664,6 @@ public class RootSetUtils {
                 methodToKeep,
                 resolutionMethod,
                 (rootSetBuilder) -> {
-                  if (Log.ENABLED) {
-                    Log.verbose(
-                        getClass(),
-                        "Marking method `%s` due to `%s { %s }`.",
-                        methodToKeep,
-                        context,
-                        rule);
-                  }
                   DexProgramClass precondition =
                       testAndGetPrecondition(methodToKeep.getDefinition(), preconditionSupplier);
                   rootSetBuilder.addItemToSets(methodToKeep, context, rule, precondition, ifRule);
@@ -1081,10 +1073,6 @@ public class RootSetUtils {
       }
       for (ProguardMemberRule rule : rules) {
         if (rule.matches(method, appView, this::handleMatchedAnnotation, dexStringCache)) {
-          if (Log.ENABLED) {
-            Log.verbose(
-                getClass(), "Marking method `%s` due to `%s { %s }`.", method, context, rule);
-          }
           if (methodsMarked != null) {
             methodsMarked.add(MethodSignatureEquivalence.get().wrap(method.getReference()));
           }
@@ -1101,18 +1089,12 @@ public class RootSetUtils {
         ProguardIfRule ifRule) {
       for (ProguardMemberRule rule : rules) {
         if (rule.matches(field, appView, this::handleMatchedAnnotation, dexStringCache)) {
-          if (Log.ENABLED) {
-            Log.verbose(getClass(), "Marking field `%s` due to `%s { %s }`.", field, context, rule);
-          }
           addItemToSets(field, context, rule, precondition, ifRule);
         }
       }
     }
 
     private void markClass(DexClass clazz, ProguardConfigurationRule rule, ProguardIfRule ifRule) {
-      if (Log.ENABLED) {
-        Log.verbose(getClass(), "Marking class `%s` due to `%s`.", clazz.type, rule);
-      }
       addItemToSets(clazz, rule, null, null, ifRule);
     }
 

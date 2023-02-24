@@ -388,13 +388,6 @@ public class IRConverter {
         new IRToDexFinalizer(appView, deadCodeRemover)
             .finalizeCode(code, BytecodeMetadataProvider.empty(), timing),
         appView);
-    if (Log.ENABLED) {
-      Log.debug(
-          getClass(),
-          "Resulting dex code for %s:\n%s",
-          method.toSourceString(),
-          logCode(options, definition));
-    }
   }
 
   public void optimizeSynthesizedMethods(
@@ -514,13 +507,6 @@ public class IRConverter {
       options.reporter.info(
           new StringDiagnostic("Processing: " + method.toSourceString()));
     }
-    if (Log.ENABLED) {
-      Log.debug(
-          getClass(),
-          "Original code for %s:\n%s",
-          method.toSourceString(),
-          logCode(options, method.getDefinition()));
-    }
     if (options.testing.hookInIrConversion != null) {
       options.testing.hookInIrConversion.run();
     }
@@ -551,9 +537,6 @@ public class IRConverter {
 
     Timing timing = Timing.create(context.toSourceString(), options);
 
-    if (Log.ENABLED) {
-      Log.debug(getClass(), "Initial (SSA) flow graph for %s:\n%s", method.toSourceString(), code);
-    }
     // Compilation header if printing CFGs for this method.
     printC1VisualizerHeader(method);
     String previous = printMethod(code, "Initial IR (SSA)", null);
@@ -834,10 +817,6 @@ public class IRConverter {
     timing.end();
     previous = printMethod(code, "IR after class initializer optimisation (SSA)", previous);
 
-    if (Log.ENABLED) {
-      Log.debug(getClass(), "Intermediate (SSA) flow graph for %s:\n%s",
-          method.toSourceString(), code);
-    }
     // Dead code removal. Performed after simplifications to remove code that becomes dead
     // as a result of those simplifications. The following optimizations could reveal more
     // dead code which is removed right before register allocation in performRegisterAllocation.

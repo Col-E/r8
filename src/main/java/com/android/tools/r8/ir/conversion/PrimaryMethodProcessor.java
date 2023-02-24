@@ -107,9 +107,6 @@ public class PrimaryMethodProcessor extends MethodProcessorWithWave {
     while (!nodes.isEmpty()) {
       ProgramMethodSet wave = callGraph.extractLeaves();
       waves.addLast(wave);
-      if (Log.ENABLED && Log.isLoggingEnabledFor(PrimaryMethodProcessor.class)) {
-        Log.info(getClass(), "Wave #%d: %d", waveCount++, wave.size());
-      }
     }
     options.testing.waveModifier.accept(waves);
     return waves;

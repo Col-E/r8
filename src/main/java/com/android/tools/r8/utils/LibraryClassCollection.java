@@ -17,10 +17,6 @@ public class LibraryClassCollection extends ClassMap<DexLibraryClass> {
 
   @Override
   DexLibraryClass resolveClassConflict(DexLibraryClass a, DexLibraryClass b) {
-    if (Log.ENABLED) {
-      Log.warn(DexApplication.class,
-          "Class `%s` was specified twice as a library type.", a.type.toSourceString());
-    }
     return a;
   }
 

@@ -16,9 +16,6 @@ public final class ClasspathMethod extends DexClassAndMethod
   public void registerCodeReferencesForDesugaring(UseRegistry registry) {
     Code code = getDefinition().getCode();
     if (code != null) {
-      if (Log.ENABLED) {
-        Log.verbose(getClass(), "Registering definitions reachable from `%s`.", this);
-      }
       code.registerCodeReferencesForDesugaring(this, registry);
     }
   }

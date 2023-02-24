@@ -461,9 +461,6 @@ public class DexParser<T extends DexClass> {
   }
 
   private DexAnnotation parseAnnotation() {
-    if (Log.ENABLED) {
-      Log.verbose(getClass(), "Reading Annotation @ 0x%08x.", dexReader.position());
-    }
     int visibility = dexReader.get();
     return new DexAnnotation(visibility, parseEncodedAnnotation());
   }
@@ -473,9 +470,6 @@ public class DexParser<T extends DexClass> {
   }
 
   private DexAnnotationSet parseAnnotationSet() {
-    if (Log.ENABLED) {
-      Log.verbose(getClass(), "Reading AnnotationSet @ 0x%08x.", dexReader.position());
-    }
     int size = dexReader.getUint();
     int[] annotationOffsets = new int[size];
     for (int i = 0; i < size; i++) {
@@ -802,9 +796,6 @@ public class DexParser<T extends DexClass> {
     int[] staticValuesOffsets = new int[length];
 
     for (int i = 0; i < length; i++) {
-      if (Log.ENABLED) {
-        Log.verbose(getClass(), "Reading ClassDef @ 0x%08x.", dexReader.position());
-      }
       classIndices[i] = dexReader.getUint();
       accessFlags[i] = dexReader.getUint();
       superclassIndices[i] = dexReader.getInt();
@@ -954,19 +945,6 @@ public class DexParser<T extends DexClass> {
             origin);
       }
       result[i] = new DexSection(type, unused, size, offset);
-    }
-    if (Log.ENABLED) {
-      for (int i = 0; i < result.length; i++) {
-        DexSection dexSection = result[i];
-        int nextOffset = i < result.length - 1 ? result[i + 1].offset : dexSection.offset;
-        Log.debug(
-            this.getClass(),
-            "Read section 0x%04x @ 0x%08x #items %08d size 0x%08x.",
-            dexSection.type,
-            dexSection.offset,
-            dexSection.length,
-            nextOffset - dexSection.offset);
-      }
     }
     for (int i = 0; i < mapSize - 1; i++) {
       result[i].setEnd(result[i + 1].offset);

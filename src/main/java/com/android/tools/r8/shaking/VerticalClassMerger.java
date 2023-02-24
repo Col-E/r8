@@ -144,10 +144,6 @@ public class VerticalClassMerger {
     UNSUPPORTED_ATTRIBUTES,
     API_REFERENCE_LEVEL;
 
-    public void printLogMessageForClass(DexClass clazz) {
-      Log.info(VerticalClassMerger.class, getMessageForClass(clazz));
-    }
-
     private String getMessageForClass(DexClass clazz) {
       String message = null;
       switch (this) {
@@ -396,9 +392,6 @@ public class VerticalClassMerger {
     }
     if (appView.appServices().allServiceTypes().contains(sourceClass.type)
         && appInfo.isPinned(targetClass)) {
-      if (Log.ENABLED) {
-        AbortReason.SERVICE_LOADER.printLogMessageForClass(sourceClass);
-      }
       return false;
     }
     if (sourceClass.isAnnotation()) {
@@ -425,9 +418,6 @@ public class VerticalClassMerger {
                 AbortReason reason = disallowInlining(method, targetClass);
                 if (reason != null) {
                   // Cannot guarantee that markForceInline() will work.
-                  if (Log.ENABLED) {
-                    reason.printLogMessageForClass(sourceClass);
-                  }
                   return TraversalContinuation.doBreak();
                 }
                 return TraversalContinuation.doContinue();
@@ -439,17 +429,11 @@ public class VerticalClassMerger {
     if (sourceClass.getEnclosingMethodAttribute() != null
         || !sourceClass.getInnerClasses().isEmpty()) {
       // TODO(b/147504070): Consider merging of enclosing-method and inner-class attributes.
-      if (Log.ENABLED) {
-        AbortReason.UNSUPPORTED_ATTRIBUTES.printLogMessageForClass(sourceClass);
-      }
       return false;
     }
     // We abort class merging when merging across nests or from a nest to non-nest.
     // Without nest this checks null == null.
     if (targetClass.getNestHost() != sourceClass.getNestHost()) {
-      if (Log.ENABLED) {
-        AbortReason.MERGE_ACROSS_NESTS.printLogMessageForClass(sourceClass);
-      }
       return false;
     }
 
@@ -479,9 +463,6 @@ public class VerticalClassMerger {
     if (mergedClasses.containsValue(sourceClass.getType())) {
       // Do not allow merging the resulting class into its subclass.
       // TODO(christofferqa): Get rid of this limitation.
-      if (Log.ENABLED) {
-        AbortReason.ALREADY_MERGED.printLogMessageForClass(sourceClass);
-      }
       return false;
     }
     // For interface types, this is more complicated, see:
@@ -494,9 +475,6 @@ public class VerticalClassMerger {
         || (sourceClass.isInterface()
             && sourceClass.classInitializationMayHaveSideEffects(appView))) {
       // TODO(herhut): Handle class initializers.
-      if (Log.ENABLED) {
-        AbortReason.STATIC_INITIALIZERS.printLogMessageForClass(sourceClass);
-      }
       return false;
     }
     boolean sourceCanBeSynchronizedOn =
@@ -506,31 +484,19 @@ public class VerticalClassMerger {
         appView.appInfo().isLockCandidate(targetClass.type)
             || targetClass.hasStaticSynchronizedMethods();
     if (sourceCanBeSynchronizedOn && targetCanBeSynchronizedOn) {
-      if (Log.ENABLED) {
-        AbortReason.SOURCE_AND_TARGET_LOCK_CANDIDATES.printLogMessageForClass(sourceClass);
-      }
       return false;
     }
     if (targetClass.getEnclosingMethodAttribute() != null
         || !targetClass.getInnerClasses().isEmpty()) {
       // TODO(b/147504070): Consider merging of enclosing-method and inner-class attributes.
-      if (Log.ENABLED) {
-        AbortReason.UNSUPPORTED_ATTRIBUTES.printLogMessageForClass(sourceClass);
-      }
       return false;
     }
     if (methodResolutionMayChange(sourceClass, targetClass)) {
-      if (Log.ENABLED) {
-        AbortReason.RESOLUTION_FOR_METHODS_MAY_CHANGE.printLogMessageForClass(sourceClass);
-      }
       return false;
     }
     // Field resolution first considers the direct interfaces of [targetClass] before it proceeds
     // to the super class.
     if (fieldResolutionMayChange(sourceClass, targetClass)) {
-      if (Log.ENABLED) {
-        AbortReason.RESOLUTION_FOR_FIELDS_MAY_CHANGE.printLogMessageForClass(sourceClass);
-      }
       return false;
     }
     // Only merge if api reference level of source class is equal to target class. The check is
@@ -541,9 +507,6 @@ public class VerticalClassMerger {
       ComputedApiLevel targetApiLevel =
           getApiReferenceLevelForMerging(apiLevelCompute, targetClass);
       if (!sourceApiLevel.equals(targetApiLevel)) {
-        if (Log.ENABLED) {
-          AbortReason.API_REFERENCE_LEVEL.printLogMessageForClass(sourceClass);
-        }
         return false;
       }
     }
@@ -706,9 +669,6 @@ public class VerticalClassMerger {
     // Visit the program classes in a top-down order according to the class hierarchy.
     TopDownClassHierarchyTraversal.forProgramClasses(appView)
         .visit(mergeCandidates, this::mergeClassIfPossible);
-    if (Log.ENABLED) {
-      Log.debug(getClass(), "Merged %d classes.", mergedClasses.keySet().size());
-    }
     timing.end();
 
     VerticallyMergedClasses verticallyMergedClasses =
@@ -923,9 +883,6 @@ public class VerticalClassMerger {
     // Guard against the case where we have two methods that may get the same signature
     // if we replace types. This is rare, so we approximate and err on the safe side here.
     if (new CollisionDetector(clazz.type, targetClass.type).mayCollide()) {
-      if (Log.ENABLED) {
-        AbortReason.CONFLICT.printLogMessageForClass(clazz);
-      }
       return;
     }
 
@@ -945,21 +902,6 @@ public class VerticalClassMerger {
       // Commit the changes to the graph lens.
       lensBuilder.merge(merger.getRenamings());
       synthesizedBridges.addAll(merger.getSynthesizedBridges());
-    }
-    if (Log.ENABLED) {
-      if (merged) {
-        Log.info(
-            getClass(),
-            "Merged class %s into %s.",
-            clazz.toSourceString(),
-            targetClass.toSourceString());
-      } else {
-        Log.info(
-            getClass(),
-            "Aborted merge for class %s into %s.",
-            clazz.toSourceString(),
-            targetClass.toSourceString());
-      }
     }
   }
 
@@ -1609,17 +1551,6 @@ public class VerticalClassMerger {
       }
       // The method is not actually overridden. This means that we will move `method` to the
       // subtype. If `method` is abstract, then so should the subtype be.
-      if (Log.ENABLED) {
-        if (method.accessFlags.isAbstract() && !target.accessFlags.isAbstract()) {
-          Log.warn(
-              VerticalClassMerger.class,
-              "The non-abstract type `"
-                  + target.type.toSourceString()
-                  + "` does not implement the method `"
-                  + method.getReference().toSourceString()
-                  + "`.");
-        }
-      }
       return null;
     }
 

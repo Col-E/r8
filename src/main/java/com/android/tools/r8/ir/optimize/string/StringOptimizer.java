@@ -49,64 +49,9 @@ public class StringOptimizer {
   private final AppView<?> appView;
   private final DexItemFactory factory;
 
-  private int numberOfSimplifiedOperations = 0;
-  private final Object2IntMap<ClassNameMapping> numberOfComputedNames;
-  private final Object2IntMap<ClassNameMapping> numberOfDeferredComputationOfNames;
-  private final Object2IntMap<Integer> histogramOfLengthOfNames;
-  private final Object2IntMap<Integer> histogramOfLengthOfDeferredNames;
-  private int numberOfSimplifiedConversions = 0;
-
   public StringOptimizer(AppView<?> appView) {
     this.appView = appView;
     this.factory = appView.dexItemFactory();
-    if (Log.ENABLED && Log.isLoggingEnabledFor(StringOptimizer.class)) {
-      numberOfComputedNames = new Object2IntArrayMap<>();
-      numberOfDeferredComputationOfNames = new Object2IntArrayMap<>();
-      histogramOfLengthOfNames = new Object2IntArrayMap<>();
-      histogramOfLengthOfDeferredNames = new Object2IntArrayMap<>();
-    } else {
-      numberOfComputedNames = null;
-      numberOfDeferredComputationOfNames = null;
-      histogramOfLengthOfNames = null;
-      histogramOfLengthOfDeferredNames = null;
-    }
-  }
-
-  public void logResult() {
-    assert Log.ENABLED;
-    Log.info(getClass(),
-        "# trivial operations on const-string: %s", numberOfSimplifiedOperations);
-    Log.info(getClass(),
-        "# trivial conversions from/to const-string: %s", numberOfSimplifiedConversions);
-    if (numberOfComputedNames != null) {
-      Log.info(getClass(), "------ # of get*Name() computation ------");
-      numberOfComputedNames.forEach((kind, count) -> {
-        Log.info(getClass(),
-            "%s: %s (%s)", kind, StringUtils.times("*", Math.min(count, 53)), count);
-      });
-    }
-    if (numberOfDeferredComputationOfNames != null) {
-      Log.info(getClass(), "------ # of deferred get*Name() computation ------");
-      numberOfDeferredComputationOfNames.forEach((kind, count) -> {
-        Log.info(getClass(),
-            "%s: %s (%s)", kind, StringUtils.times("*", Math.min(count, 53)), count);
-      });
-    }
-    if (histogramOfLengthOfNames != null) {
-      Log.info(getClass(), "------ histogram of get*Name() result lengths ------");
-      histogramOfLengthOfNames.forEach((length, count) -> {
-        Log.info(getClass(),
-            "%s: %s (%s)", length, StringUtils.times("*", Math.min(count, 53)), count);
-      });
-    }
-    if (histogramOfLengthOfDeferredNames != null) {
-      Log.info(getClass(),
-          "------ histogram of original type length for deferred get*Name() ------");
-      histogramOfLengthOfDeferredNames.forEach((length, count) -> {
-        Log.info(getClass(),
-            "%s: %s (%s)", length, StringUtils.times("*", Math.min(count, 53)), count);
-      });
-    }
   }
 
   // boolean String#isEmpty()
@@ -187,7 +132,6 @@ public class StringOptimizer {
                 TypeElement.stringClassType(appView, definitelyNotNull()), invoke.getLocalInfo());
         affectedValues.addAll(invoke.outValue().affectedValues());
         it.replaceCurrentInstruction(new ConstString(stringValue, factory.createString(sub)));
-        numberOfSimplifiedOperations++;
         continue;
       }
 
@@ -203,7 +147,6 @@ public class StringOptimizer {
                 TypeElement.stringClassType(appView, definitelyNotNull()), invoke.getLocalInfo());
         affectedValues.addAll(invoke.outValue().affectedValues());
         it.replaceCurrentInstruction(new ConstString(newOutValue, resultString));
-        numberOfSimplifiedOperations++;
         continue;
       }
 
@@ -287,7 +230,6 @@ public class StringOptimizer {
         constNumber = code.createIntConstant(v);
       }
 
-      numberOfSimplifiedOperations++;
       it.replaceCurrentInstruction(constNumber);
     }
     // Computed substring is not null, and thus propagate that information.
@@ -379,10 +321,8 @@ public class StringOptimizer {
           deferred =
               new DexItemBasedConstString(
                   invoke.outValue(), baseType, ClassNameComputationInfo.create(NAME, arrayDepth));
-          logDeferredNameComputation(NAME);
         } else {
           name = NAME.map(descriptor, holder, factory, arrayDepth);
-          logNameComputation(NAME);
         }
       } else if (invokedMethod == factory.classMethods.getTypeName) {
         // TODO(b/119426668): desugar Type#getTypeName
@@ -405,10 +345,8 @@ public class StringOptimizer {
                     invoke.outValue(),
                     baseType,
                     ClassNameComputationInfo.create(CANONICAL_NAME, arrayDepth));
-            logDeferredNameComputation(CANONICAL_NAME);
           } else {
             name = CANONICAL_NAME.map(descriptor, holder, factory, arrayDepth);
-            logNameComputation(CANONICAL_NAME);
           }
         }
       } else if (invokedMethod == factory.classMethods.getSimpleName) {
@@ -427,10 +365,8 @@ public class StringOptimizer {
                     invoke.outValue(),
                     baseType,
                     ClassNameComputationInfo.create(SIMPLE_NAME, arrayDepth));
-            logDeferredNameComputation(SIMPLE_NAME);
           } else {
             name = SIMPLE_NAME.map(descriptor, holder, factory, arrayDepth);
-            logNameComputation(SIMPLE_NAME);
           }
         }
       }
@@ -441,61 +377,15 @@ public class StringOptimizer {
                 TypeElement.stringClassType(appView, definitelyNotNull()), invoke.getLocalInfo());
         ConstString constString = new ConstString(stringValue, name);
         it.replaceCurrentInstruction(constString);
-        logHistogramOfNames(name);
       } else if (deferred != null) {
         affectedValues.addAll(invoke.outValue().affectedValues());
         it.replaceCurrentInstruction(deferred);
-        logHistogramOfNames(deferred);
       }
     }
     // Computed name is not null or literally null (for canonical name of local/anonymous class).
     // In either way, that is narrower information, and thus propagate that.
     if (!affectedValues.isEmpty()) {
       new TypeAnalysis(appView).narrowing(affectedValues);
-    }
-  }
-
-  private void logNameComputation(ClassNameMapping kind) {
-    if (Log.ENABLED && Log.isLoggingEnabledFor(StringOptimizer.class)) {
-      assert numberOfComputedNames != null;
-      synchronized (numberOfComputedNames) {
-        int count = numberOfComputedNames.getOrDefault(kind, 0);
-        numberOfComputedNames.put(kind, count + 1);
-      }
-    }
-  }
-
-  private void logHistogramOfNames(DexString name) {
-    if (Log.ENABLED && Log.isLoggingEnabledFor(StringOptimizer.class)) {
-      Integer length = name.size;
-      assert histogramOfLengthOfNames != null;
-      synchronized (histogramOfLengthOfNames) {
-        int count = histogramOfLengthOfNames.getOrDefault(length, 0);
-        histogramOfLengthOfNames.put(length, count + 1);
-      }
-    }
-  }
-
-  private void logDeferredNameComputation(ClassNameMapping kind) {
-    if (Log.ENABLED && Log.isLoggingEnabledFor(StringOptimizer.class)) {
-      assert numberOfDeferredComputationOfNames != null;
-      synchronized (numberOfDeferredComputationOfNames) {
-        int count = numberOfDeferredComputationOfNames.getOrDefault(kind, 0);
-        numberOfDeferredComputationOfNames.put(kind, count + 1);
-      }
-    }
-  }
-
-  private void logHistogramOfNames(DexItemBasedConstString deferred) {
-    if (Log.ENABLED && Log.isLoggingEnabledFor(StringOptimizer.class)) {
-      assert deferred.getItem().isDexType();
-      DexType original = deferred.getItem().asDexType();
-      Integer length = original.descriptor.size;
-      assert histogramOfLengthOfDeferredNames != null;
-      synchronized (histogramOfLengthOfDeferredNames) {
-        int count = histogramOfLengthOfDeferredNames.getOrDefault(length, 0);
-        histogramOfLengthOfDeferredNames.put(length, count + 1);
-      }
     }
   }
 
@@ -527,7 +417,6 @@ public class StringOptimizer {
                   TypeElement.stringClassType(appView, definitelyNotNull()), invoke.getLocalInfo());
           ConstString nullString = new ConstString(nullStringValue, factory.createString("null"));
           it.replaceCurrentInstruction(nullString);
-          numberOfSimplifiedConversions++;
         } else if (inType.nullability().isDefinitelyNotNull()
             && inType.isClassType()
             && inType.asClassType().getClassType().equals(factory.stringType)) {
@@ -537,7 +426,6 @@ public class StringOptimizer {
           } else {
             it.removeOrReplaceByDebugLocalRead();
           }
-          numberOfSimplifiedConversions++;
         }
       } else if (instr.isInvokeVirtual()) {
         InvokeVirtual invoke = instr.asInvokeVirtual();
@@ -558,7 +446,6 @@ public class StringOptimizer {
           } else {
             it.removeOrReplaceByDebugLocalRead();
           }
-          numberOfSimplifiedConversions++;
         }
       }
     }

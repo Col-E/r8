@@ -115,9 +115,6 @@ public class CycleEliminator {
     } while (!roots.isEmpty());
 
     CycleEliminationResult result = new CycleEliminationResult(removedCallEdges);
-    if (Log.ENABLED) {
-      Log.info(getClass(), "# call graph cycles broken: %s", result.numberOfRemovedCallEdges());
-    }
     reset();
     return result;
   }

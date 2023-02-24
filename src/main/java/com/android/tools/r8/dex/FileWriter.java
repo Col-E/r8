@@ -145,9 +145,6 @@ public class FileWriter {
 
   public static void writeEncodedAnnotation(
       DexEncodedAnnotation annotation, DexOutputBuffer dest, ObjectToOffsetMapping mapping) {
-    if (Log.ENABLED) {
-      Log.verbose(FileWriter.class, "Writing encoded annotation @ %08x", dest.position());
-    }
     List<DexAnnotationElement> elements = new ArrayList<>(Arrays.asList(annotation.elements));
     elements.sort((a, b) -> a.name.acceptCompareTo(b.name, mapping.getCompareToVisitor()));
     dest.putUleb128(mapping.getOffsetFor(annotation.type));
@@ -468,9 +465,6 @@ public class FileWriter {
         }
       }
     }
-    if (Log.ENABLED) {
-      Log.verbose(getClass(), "Computed size item %08d.", result);
-    }
     return result;
   }
 
@@ -607,18 +601,12 @@ public class FileWriter {
 
   private void writeAnnotation(DexAnnotation annotation) {
     mixedSectionOffsets.setOffsetFor(annotation, dest.position());
-    if (Log.ENABLED) {
-      Log.verbose(getClass(), "Writing Annotation @ 0x%08x.", dest.position());
-    }
     dest.putByte((byte) annotation.visibility);
     writeEncodedAnnotation(annotation.annotation, dest, mapping);
   }
 
   private void writeAnnotationSet(DexAnnotationSet set) {
     mixedSectionOffsets.setOffsetFor(set, dest.align(4));
-    if (Log.ENABLED) {
-      Log.verbose(getClass(), "Writing AnnotationSet @ 0x%08x.", dest.position());
-    }
     List<DexAnnotation> annotations = new ArrayList<>(Arrays.asList(set.annotations));
     annotations.sort(
         (a, b) ->
@@ -771,9 +759,6 @@ public class FileWriter {
 
   private void writeEncodedArray(DexEncodedArray array) {
     mixedSectionOffsets.setOffsetFor(array, dest.position());
-    if (Log.ENABLED) {
-      Log.verbose(getClass(), "Writing EncodedArray @ 0x%08x [%s].", dest.position(), array);
-    }
     dest.putUleb128(array.values.length);
     for (DexValue value : array.values) {
       value.writeTo(dest, mapping);
@@ -913,9 +898,6 @@ public class FileWriter {
     public int write(DexOutputBuffer dest) {
       if (length == 0) {
         return 0;
-      }
-      if (Log.ENABLED) {
-        Log.debug(getClass(), "Map entry 0x%04x @ 0x%08x # %08d.", type, offset, length);
       }
       dest.putShort((short) type);
       dest.putShort((short) 0);

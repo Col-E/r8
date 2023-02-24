@@ -121,7 +121,6 @@ import com.android.tools.r8.ir.desugar.desugaredlibrary.apiconversion.DesugaredL
 import com.android.tools.r8.ir.desugar.itf.InterfaceMethodProcessorFacade;
 import com.android.tools.r8.ir.desugar.itf.InterfaceProcessor;
 import com.android.tools.r8.kotlin.KotlinMetadataEnqueuerExtension;
-import com.android.tools.r8.logging.Log;
 import com.android.tools.r8.naming.identifiernamestring.IdentifierNameStringLookupResult;
 import com.android.tools.r8.naming.identifiernamestring.IdentifierNameStringTypeLookupResult;
 import com.android.tools.r8.position.Position;
@@ -167,7 +166,6 @@ import com.google.common.base.Equivalence.Wrapper;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
-import com.google.common.collect.Sets.SetView;
 import it.unimi.dsi.fastutil.objects.Object2BooleanArrayMap;
 import it.unimi.dsi.fastutil.objects.Object2BooleanMap;
 import java.lang.reflect.InvocationHandler;
@@ -1445,9 +1443,6 @@ public class Enqueuer {
         methodAccessInfoCollection::registerInvokeDirectInContext, invokedMethod, context)) {
       return;
     }
-    if (Log.ENABLED) {
-      Log.verbose(getClass(), "Register invokeDirect `%s`.", invokedMethod);
-    }
     handleInvokeOfDirectTarget(invokedMethod, context, reason);
     invokeAnalyses.forEach(analysis -> analysis.traceInvokeDirect(invokedMethod, context));
   }
@@ -1465,9 +1460,6 @@ public class Enqueuer {
     if (!registerMethodWithTargetAndContext(
         methodAccessInfoCollection::registerInvokeInterfaceInContext, method, context)) {
       return;
-    }
-    if (Log.ENABLED) {
-      Log.verbose(getClass(), "Register invokeInterface `%s`.", method);
     }
     markVirtualMethodAsReachable(method, true, context, keepReason);
     invokeAnalyses.forEach(analysis -> analysis.traceInvokeInterface(method, context));
@@ -1506,9 +1498,6 @@ public class Enqueuer {
         methodAccessInfoCollection::registerInvokeStaticInContext, invokedMethod, context)) {
       return;
     }
-    if (Log.ENABLED) {
-      Log.verbose(getClass(), "Register invokeStatic `%s`.", invokedMethod);
-    }
     handleInvokeOfStaticTarget(invokedMethod, context, reason);
     invokeAnalyses.forEach(analysis -> analysis.traceInvokeStatic(invokedMethod, context));
   }
@@ -1520,9 +1509,6 @@ public class Enqueuer {
     if (!registerMethodWithTargetAndContext(
         methodAccessInfoCollection::registerInvokeSuperInContext, invokedMethod, context)) {
       return;
-    }
-    if (Log.ENABLED) {
-      Log.verbose(getClass(), "Register invokeSuper `%s`.", actualTarget);
     }
     workList.enqueueMarkReachableSuperAction(invokedMethod, context);
     invokeAnalyses.forEach(analysis -> analysis.traceInvokeSuper(invokedMethod, context));
@@ -1550,9 +1536,6 @@ public class Enqueuer {
     if (!registerMethodWithTargetAndContext(
         methodAccessInfoCollection::registerInvokeVirtualInContext, invokedMethod, context)) {
       return;
-    }
-    if (Log.ENABLED) {
-      Log.verbose(getClass(), "Register invokeVirtual `%s`.", invokedMethod);
     }
     markVirtualMethodAsReachable(invokedMethod, false, context, reason);
     invokeAnalyses.forEach(analysis -> analysis.traceInvokeVirtual(invokedMethod, context));
@@ -1733,10 +1716,6 @@ public class Enqueuer {
             fieldAccessInfoCollection.get(field.getReference()).setReadFromRecordInvokeDynamic();
           }
 
-          if (Log.ENABLED) {
-            Log.verbose(getClass(), "Register Iget `%s`.", fieldReference);
-          }
-
           if (field.getReference() != fieldReference) {
             // Mark the initial resolution holder as live.
             markTypeAsLive(singleResolutionResult.getInitialResolutionHolder(), currentMethod);
@@ -1798,10 +1777,6 @@ public class Enqueuer {
 
           if (metadata.isFromMethodHandle()) {
             fieldAccessInfoCollection.get(field.getReference()).setWrittenFromMethodHandle();
-          }
-
-          if (Log.ENABLED) {
-            Log.verbose(getClass(), "Register Iput `%s`.", fieldReference);
           }
 
           if (field.getReference() != fieldReference) {
@@ -1876,10 +1851,6 @@ public class Enqueuer {
 
           if (metadata.isFromMethodHandle()) {
             fieldAccessInfoCollection.get(field.getReference()).setReadFromMethodHandle();
-          }
-
-          if (Log.ENABLED) {
-            Log.verbose(getClass(), "Register Sget `%s`.", fieldReference);
           }
 
           if (field.getReference() != fieldReference) {
@@ -1960,10 +1931,6 @@ public class Enqueuer {
 
           if (metadata.isFromMethodHandle()) {
             fieldAccessInfoCollection.get(field.getReference()).setWrittenFromMethodHandle();
-          }
-
-          if (Log.ENABLED) {
-            Log.verbose(getClass(), "Register Sput `%s`.", fieldReference);
           }
 
           if (field.getReference() != fieldReference) {
@@ -2133,10 +2100,6 @@ public class Enqueuer {
         recordTypeReference(
             enclosingClass, clazz, this::recordNonProgramClass, missingClassConsumer);
       }
-    }
-
-    if (Log.ENABLED) {
-      Log.verbose(getClass(), "Type `%s` has become live.", clazz.type);
     }
 
     KeepReason reason = KeepReason.reachableFromLiveType(clazz.type);
@@ -2767,9 +2730,6 @@ public class Enqueuer {
       return;
     }
 
-    if (Log.ENABLED) {
-      Log.verbose(getClass(), "Class `%s` is instantiated, processing...", clazz);
-    }
     // This class becomes live, so it and all its supertypes become live types.
     markTypeAsLive(clazz, graphReporter.registerClass(clazz, keepReason));
     // Instantiation triggers class initialization.
@@ -3401,10 +3361,6 @@ public class Enqueuer {
                 return;
               }
 
-              if (Log.ENABLED) {
-                Log.verbose(getClass(), "Marking virtual method `%s` as reachable.", method);
-              }
-
               // We have to mark the resolution targeted, even if it does not become live, we
               // need at least an abstract version of it so that it can be targeted.
               DexProgramClass resolvedHolder = resolution.getResolvedHolder().asProgramClass();
@@ -3563,13 +3519,6 @@ public class Enqueuer {
 
               ProgramMethod method = target.asProgramMethod();
 
-              if (Log.ENABLED) {
-                Log.verbose(
-                    getClass(),
-                    "Adding super constraint from `%s` to `%s`",
-                    from,
-                    target.getReference());
-              }
               if (superInvokeDependencies
                   .computeIfAbsent(from.getDefinition(), ignore -> ProgramMethodSet.create())
                   .add(method)) {
@@ -4547,17 +4496,6 @@ public class Enqueuer {
       if (mode.isInitialTreeShaking()) {
         postProcessingDesugaring();
       }
-
-      if (Log.ENABLED) {
-        Set<DexEncodedMethod> allLive = Sets.newIdentityHashSet();
-        Set<DexEncodedMethod> reachableNotLive = Sets.difference(allLive, liveMethods.getItems());
-        Log.debug(getClass(), "%s methods are reachable but not live", reachableNotLive.size());
-        Log.info(getClass(), "Only reachable: %s", reachableNotLive);
-        SetView<DexEncodedMethod> targetedButNotLive =
-            Sets.difference(targetedMethods.getItems(), liveMethods.getItems());
-        Log.debug(getClass(), "%s methods are targeted but not live", targetedButNotLive.size());
-        Log.info(getClass(), "Targeted but not live: %s", targetedButNotLive);
-      }
     } finally {
       timing.end();
     }
@@ -4815,9 +4753,6 @@ public class Enqueuer {
     ProgramMethodSet superCallTargets = superInvokeDependencies.get(method.getDefinition());
     if (superCallTargets != null) {
       for (ProgramMethod superCallTarget : superCallTargets) {
-        if (Log.ENABLED) {
-          Log.verbose(getClass(), "Found super invoke constraint on `%s`.", superCallTarget);
-        }
         markMethodAsTargeted(superCallTarget, KeepReason.invokedViaSuperFrom(method));
         markVirtualMethodAsLive(superCallTarget, KeepReason.invokedViaSuperFrom(method));
       }
@@ -5333,16 +5268,6 @@ public class Enqueuer {
       DexType serviceType = argument.definition.asConstClass().getValue();
       if (!appView.appServices().allServiceTypes().contains(serviceType)) {
         // Should never happen.
-        if (Log.ENABLED) {
-          options.reporter.warning(
-              new StringDiagnostic(
-                  "The type `"
-                      + serviceType.toSourceString()
-                      + "` is being passed to the method `"
-                      + invoke.getInvokedMethod().toSourceString()
-                      + "`, but was not found in `META-INF/services/`.",
-                  method.getOrigin()));
-        }
         return;
       }
 

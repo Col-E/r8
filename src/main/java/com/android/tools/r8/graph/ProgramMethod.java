@@ -121,9 +121,6 @@ public final class ProgramMethod extends DexClassAndMethod
   public void registerCodeReferences(UseRegistry<?> registry) {
     Code code = getDefinition().getCode();
     if (code != null) {
-      if (Log.ENABLED) {
-        Log.verbose(getClass(), "Registering definitions reachable from `%s`.", this);
-      }
       code.registerCodeReferences(this, registry);
     }
   }

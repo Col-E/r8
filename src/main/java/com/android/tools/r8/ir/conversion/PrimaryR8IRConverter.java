@@ -14,7 +14,6 @@ import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.PrunedItems;
 import com.android.tools.r8.ir.analysis.fieldaccess.TrivialFieldAccessReprocessor;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackDelayed;
-import com.android.tools.r8.logging.Log;
 import com.android.tools.r8.optimize.argumentpropagation.ArgumentPropagator;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.CfgPrinter;
@@ -217,18 +216,6 @@ public class PrimaryR8IRConverter extends IRConverter {
 
     if (identifierNameStringMarker != null) {
       identifierNameStringMarker.decoupleIdentifierNameStringsInFields(executorService);
-    }
-
-    if (Log.ENABLED) {
-      if (idempotentFunctionCallCanonicalizer != null) {
-        idempotentFunctionCallCanonicalizer.logResults();
-      }
-      if (libraryMethodOverrideAnalysis != null) {
-        libraryMethodOverrideAnalysis.logResults();
-      }
-      if (stringOptimizer != null) {
-        stringOptimizer.logResult();
-      }
     }
 
     // Assure that no more optimization feedback left after post processing.

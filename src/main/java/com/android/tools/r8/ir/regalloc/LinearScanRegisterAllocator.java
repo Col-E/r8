@@ -223,9 +223,6 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
     ImmutableList<BasicBlock> blocks = computeLivenessInformation();
     performAllocation();
     assert code.isConsistentGraph(appView);
-    if (Log.ENABLED) {
-      Log.debug(this.getClass(), toString());
-    }
     assert registersUsed() == 0 || unusedRegisters != null;
     // Even if the method is reachability sensitive, we do not compute debug information after
     // register allocation. We just treat the method as being in debug mode in order to keep

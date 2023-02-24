@@ -730,9 +730,6 @@ public class ProguardConfigurationParser {
 
     private boolean skipFlag(String name) {
       if (acceptString(name)) {
-        if (Log.ENABLED) {
-          Log.debug(ProguardConfigurationParser.class, "Skipping '-%s` flag", name);
-        }
         return true;
       }
       return false;
@@ -740,9 +737,6 @@ public class ProguardConfigurationParser {
 
     private boolean skipOptionWithSingleArg(String name) {
       if (acceptString(name)) {
-        if (Log.ENABLED) {
-          Log.debug(ProguardConfigurationParser.class, "Skipping '-%s` option", name);
-        }
         skipSingleArgument();
         return true;
       }
@@ -751,9 +745,6 @@ public class ProguardConfigurationParser {
 
     private boolean skipOptionWithOptionalSingleArg(String name) {
       if (acceptString(name)) {
-        if (Log.ENABLED) {
-          Log.debug(ProguardConfigurationParser.class, "Skipping '-%s` option", name);
-        }
         skipWhitespace();
         if (isOptionalArgumentGiven()) {
           skipSingleArgument();
@@ -765,9 +756,6 @@ public class ProguardConfigurationParser {
 
     private boolean skipOptionWithClassSpec(String name) {
       if (acceptString(name)) {
-        if (Log.ENABLED) {
-          Log.debug(ProguardConfigurationParser.class, "Skipping '-%s` option", name);
-        }
         try {
           ProguardKeepRule.Builder keepRuleBuilder = ProguardKeepRule.builder();
           parseClassSpec(keepRuleBuilder, true);

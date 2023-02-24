@@ -375,13 +375,6 @@ public class PrimaryD8L8IRConverter extends IRConverter {
       MethodProcessor methodProcessor,
       MethodProcessingContext methodProcessingContext) {
     boolean didDesugar = desugar(method, desugaringEventConsumer, methodProcessingContext);
-    if (Log.ENABLED && didDesugar) {
-      Log.debug(
-          getClass(),
-          "Desugared code for %s:\n%s",
-          method.toSourceString(),
-          logCode(options, method.getDefinition()));
-    }
     return rewriteDesugaredCodeInternal(method, feedback, methodProcessor, methodProcessingContext);
   }
 

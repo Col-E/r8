@@ -169,9 +169,6 @@ public class PostMethodProcessor extends MethodProcessorWithWave {
     while (!callGraph.isEmpty()) {
       ProgramMethodSet wave = callGraph.extractLeaves();
       waves.addLast(wave);
-      if (Log.ENABLED && Log.isLoggingEnabledFor(PostMethodProcessor.class)) {
-        Log.info(getClass(), "Wave #%d: %d", waveCount++, wave.size());
-      }
     }
     return waves;
   }
