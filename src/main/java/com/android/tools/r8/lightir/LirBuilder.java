@@ -189,7 +189,9 @@ public class LirBuilder<V, B> {
     int[] indices = new int[size];
     Iterator<V> iterator = endValues.iterator();
     for (int i = 0; i < size; i++) {
-      indices[i] = getValueIndex(iterator.next());
+      int valueIndex = getValueIndex(iterator.next());
+      int encodedValueIndex = ssaValueStrategy.encodeValueIndex(valueIndex, instructionValueIndex);
+      indices[i] = encodedValueIndex;
     }
     debugLocalEnds.put(instructionValueIndex, indices);
     return this;

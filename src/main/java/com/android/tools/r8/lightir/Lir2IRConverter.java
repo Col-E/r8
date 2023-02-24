@@ -260,7 +260,8 @@ public class Lir2IRConverter {
       instruction.setBlock(currentBlock);
       int[] debugEndIndices = code.getDebugLocalEnds(index);
       if (debugEndIndices != null) {
-        for (int debugEndIndex : debugEndIndices) {
+        for (int encodedDebugEndIndex : debugEndIndices) {
+          int debugEndIndex = code.decodeValueIndex(encodedDebugEndIndex, index);
           Value debugValue = getValue(debugEndIndex);
           debugValue.addDebugLocalEnd(instruction);
         }
