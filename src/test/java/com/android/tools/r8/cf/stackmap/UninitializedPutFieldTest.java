@@ -95,7 +95,7 @@ public class UninitializedPutFieldTest extends TestBase {
   // now putfield before initializing this.
   static class MainDump implements Opcodes {
 
-    static byte[] dump() throws Exception {
+    static byte[] dump() {
 
       ClassWriter classWriter = new ClassWriter(0);
       FieldVisitor fieldVisitor;

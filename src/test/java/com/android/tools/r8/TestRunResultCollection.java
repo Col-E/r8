@@ -60,7 +60,7 @@ public abstract class TestRunResultCollection<
 
   @Override
   public <E extends Throwable> RR inspectFailure(ThrowingConsumer<CodeInspector, E> consumer)
-      throws IOException, E {
+      throws E {
     throw new Unimplemented();
   }
 

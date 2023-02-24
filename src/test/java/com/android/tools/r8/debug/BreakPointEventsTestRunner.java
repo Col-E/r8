@@ -32,11 +32,11 @@ public class BreakPointEventsTestRunner extends DebugTestBase {
     return ToolHelper.getClassFileForTestClass(CLASS);
   }
 
-  public static DebugTestConfig cfConfig() throws Exception {
+  public static DebugTestConfig cfConfig() {
     return new CfDebugTestConfig(ToolHelper.getClassPathForTests());
   }
 
-  public static DebugTestConfig d8Config() throws Exception {
+  public static DebugTestConfig d8Config() {
     return new D8DebugTestConfig().compileAndAdd(getStaticTemp(), getClassFilePath());
   }
 

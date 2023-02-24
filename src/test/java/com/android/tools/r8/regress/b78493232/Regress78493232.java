@@ -6,7 +6,6 @@ package com.android.tools.r8.regress.b78493232;
 import com.android.tools.r8.AsmTestBase;
 import com.android.tools.r8.ByteDataView;
 import com.android.tools.r8.ClassFileConsumer.ArchiveConsumer;
-import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.ToolHelper;
 import java.io.IOException;
 import java.nio.file.Path;
@@ -26,7 +25,7 @@ public class Regress78493232 extends AsmTestBase {
   }
 
   // Main method to build a test jar for testing on device.
-  public static void main(String[] args) throws CompilationFailedException, IOException {
+  public static void main(String[] args) throws IOException {
     Path output = args.length > 0
         ? Paths.get(args[0])
         : Paths.get("Regress78493232.jar");

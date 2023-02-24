@@ -12,9 +12,8 @@ import org.objectweb.asm.Opcodes;
 
 public class TestDump implements Opcodes {
 
-
   // Generated from Test.java with tools/asmifier.py. Change commented out below
-  public static byte[] dump() throws Exception {
+  public static byte[] dump() {
 
     ClassWriter classWriter = new ClassWriter(0);
     FieldVisitor fieldVisitor;

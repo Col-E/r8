@@ -32,7 +32,7 @@ public class EnableMissingLibraryApiModelingTest extends CompilerApiTestRunner {
       super(parameters);
     }
 
-    public void run() throws Exception {
+    public void run() {
       D8Command.builder().setEnableExperimentalMissingLibraryApiModeling(true);
       R8Command.builder().setEnableExperimentalMissingLibraryApiModeling(true);
     }

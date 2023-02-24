@@ -73,7 +73,7 @@ public class KeepFooIfBarSameClassTest extends TestBase {
 
   @KeepEdge(consequences = {@KeepTarget(classConstant = A.class)})
   static class A {
-    public void foo() throws Exception {
+    public void foo() {
       System.out.println("A::foo");
     }
 
@@ -84,7 +84,7 @@ public class KeepFooIfBarSameClassTest extends TestBase {
 
   @KeepEdge(consequences = {@KeepTarget(classConstant = B.class)})
   static class B {
-    public void foo() throws Exception {
+    public void foo() {
       System.out.println("B::foo");
     }
 

@@ -60,6 +60,7 @@ public class ArchiveClassFileProvider implements ClassFileResourceProvider, Clos
    * @param archive Zip archive to provide resources from.
    * @param include Predicate deciding if a given class-file entry should be provided.
    */
+  @SuppressWarnings("RedundantThrows")
   public ArchiveClassFileProvider(Path archive, Predicate<String> include) throws IOException {
     assert isArchive(archive);
     this.archive = archive;

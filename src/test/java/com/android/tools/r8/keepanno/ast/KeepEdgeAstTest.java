@@ -93,7 +93,7 @@ public class KeepEdgeAstTest extends TestBase {
   }
 
   @Test
-  public void testKeepClass() throws Exception {
+  public void testKeepClass() {
     KeepTarget target = target(classItem(CLASS));
     KeepConsequences consequences = KeepConsequences.builder().addTarget(target).build();
     KeepEdge edge = KeepEdge.builder().setConsequences(consequences).build();
@@ -102,7 +102,7 @@ public class KeepEdgeAstTest extends TestBase {
   }
 
   @Test
-  public void testKeepInitIfReferenced() throws Exception {
+  public void testKeepInitIfReferenced() {
     KeepEdge edge =
         KeepEdge.builder()
             .setPreconditions(
@@ -124,7 +124,7 @@ public class KeepEdgeAstTest extends TestBase {
   }
 
   @Test
-  public void testKeepInstanceIfReferenced() throws Exception {
+  public void testKeepInstanceIfReferenced() {
     KeepEdge edge =
         KeepEdge.builder()
             .setPreconditions(
@@ -140,7 +140,7 @@ public class KeepEdgeAstTest extends TestBase {
   }
 
   @Test
-  public void testKeepInstanceAndInitIfReferenced() throws Exception {
+  public void testKeepInstanceAndInitIfReferenced() {
     KeepEdge edge =
         KeepEdge.builder()
             .setPreconditions(

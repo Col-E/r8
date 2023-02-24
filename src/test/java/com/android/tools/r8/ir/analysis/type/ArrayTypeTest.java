@@ -48,7 +48,7 @@ public class ArrayTypeTest extends AnalysisTestBase {
   }
 
   @Test
-  public void testJoinOfArraysForPrimitivesSmallerThanInt() throws Exception {
+  public void testJoinOfArraysForPrimitivesSmallerThanInt() {
     buildAndCheckIR(
         "joinOfArraysForPrimitivesSmallerThanInt",
         joinOfArraysForPrimitivesSmallerThanInt());

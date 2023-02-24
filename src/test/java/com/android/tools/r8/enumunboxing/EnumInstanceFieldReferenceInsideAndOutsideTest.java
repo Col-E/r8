@@ -71,7 +71,7 @@ public class EnumInstanceFieldReferenceInsideAndOutsideTest extends EnumUnboxing
 
   public static class Main {
 
-    public static void main(String[] args) throws Exception {
+    public static void main(String[] args) {
       set(System.currentTimeMillis() > 0 ? 42 : 0);
       System.out.println(MyEnum.B.instanceValue);
     }

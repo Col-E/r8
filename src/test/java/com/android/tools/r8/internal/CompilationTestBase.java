@@ -138,9 +138,8 @@ public abstract class CompilationTestBase extends DesugaredLibraryTestBase {
     return checkVerification(outputApp.build(), referenceApk);
   }
 
-
   public AndroidApp checkVerification(AndroidApp outputApp, String referenceApk)
-      throws IOException, ExecutionException {
+      throws IOException {
     Path out = temp.getRoot().toPath().resolve("all.zip");
     Path oatFile = temp.getRoot().toPath().resolve("all.oat");
     outputApp.writeToZipForTesting(out, OutputMode.DexIndexed);
@@ -201,8 +200,7 @@ public abstract class CompilationTestBase extends DesugaredLibraryTestBase {
   }
 
   public void assertIdenticalApplicationsUpToCode(
-      AndroidApp app1, AndroidApp app2, boolean allowNewClassesInApp2)
-      throws IOException, ExecutionException {
+      AndroidApp app1, AndroidApp app2, boolean allowNewClassesInApp2) throws IOException {
     CodeInspector inspect1 = new CodeInspector(app1);
     CodeInspector inspect2 = new CodeInspector(app2);
 

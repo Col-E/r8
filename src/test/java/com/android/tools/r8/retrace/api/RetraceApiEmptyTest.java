@@ -33,7 +33,7 @@ public class RetraceApiEmptyTest extends RetraceApiTestBase {
   public static class RetraceTest implements RetraceApiBinaryTest {
 
     @Test
-    public void testNone() throws Exception {
+    public void testNone() {
       String expected = "hello.World";
       List<RetracedClassReference> retracedClasses = new ArrayList<>();
       Retracer.createDefault(ProguardMapProducer.fromString(""), new DiagnosticsHandler() {})

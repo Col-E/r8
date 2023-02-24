@@ -24,7 +24,6 @@ import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.List;
-import java.util.concurrent.ExecutionException;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -50,7 +49,7 @@ public class SourceDebugExtensionTest extends TestBase {
   }
 
   @Test
-  public void testR8() throws IOException, CompilationFailedException, ExecutionException {
+  public void testR8() throws IOException, CompilationFailedException {
     KotlinCompiler kotlinc = kotlinTestParameters.getCompiler();
     Path kotlinSources =
         kotlinc(

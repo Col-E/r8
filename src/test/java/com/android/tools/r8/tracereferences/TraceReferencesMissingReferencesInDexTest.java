@@ -69,7 +69,7 @@ public class TraceReferencesMissingReferencesInDexTest extends TestBase {
     }
   }
 
-  private void missingClassReferenced(Path sourceDex) throws Throwable {
+  private void missingClassReferenced(Path sourceDex) {
     DiagnosticsChecker diagnosticsChecker = new DiagnosticsChecker();
     MissingReferencesConsumer consumer = new MissingReferencesConsumer();
 
@@ -111,7 +111,7 @@ public class TraceReferencesMissingReferencesInDexTest extends TestBase {
             .resolve("classes.dex"));
   }
 
-  private void missingFieldAndMethodReferenced(Path sourceDex) throws Throwable {
+  private void missingFieldAndMethodReferenced(Path sourceDex) {
     DiagnosticsChecker diagnosticsChecker = new DiagnosticsChecker();
     MissingReferencesConsumer consumer = new MissingReferencesConsumer();
 

@@ -77,7 +77,7 @@ public class MinifierFieldSignatureTest extends TestBase {
   private String aFieldsOfXSignature = "LFields<TX;>;";
   private String aFieldsOfXInnerSignature = "LFields<TX;>.Inner;";
 
-  public byte[] dumpFields(Map<String, String> signatures) throws Exception {
+  public byte[] dumpFields(Map<String, String> signatures) {
 
     ClassWriter cw = new ClassWriter(0);
     FieldVisitor fv;
@@ -129,7 +129,7 @@ public class MinifierFieldSignatureTest extends TestBase {
     return cw.toByteArray();
   }
 
-  public byte[] dumpInner() throws Exception {
+  public byte[] dumpInner() {
 
     ClassWriter cw = new ClassWriter(0);
     FieldVisitor fv;

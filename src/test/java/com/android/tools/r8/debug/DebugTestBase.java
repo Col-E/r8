@@ -894,7 +894,7 @@ public abstract class DebugTestBase extends TestBase {
     }
 
     @Override
-    protected void runTest() throws Throwable {
+    protected void runTest() {
       if (DEBUG_TESTS) {
         logWriter.println("Starts loop with " + commandsQueue.size() + " command(s) to process");
       }

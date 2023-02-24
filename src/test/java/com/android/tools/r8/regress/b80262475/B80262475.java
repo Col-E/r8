@@ -49,7 +49,7 @@ public class B80262475 extends TestBase {
   }
 
   private MethodSubject getMethodSubject(AndroidApiLevel level)
-      throws CompilationFailedException, IOException, ExecutionException {
+      throws CompilationFailedException, IOException {
     CodeInspector inspector = testForD8()
         .addProgramClasses(TestClass.class)
         .setMinApi(level)

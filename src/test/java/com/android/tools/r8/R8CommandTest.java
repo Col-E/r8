@@ -463,21 +463,25 @@ public class R8CommandTest extends CommandTestBase<R8Command> {
   @Test(expected = CompilationFailedException.class)
   public void dexProviderUnsupported() throws Throwable {
     Path dexFile = temp.newFile("test.dex").toPath();
-    DiagnosticsChecker.checkErrorsContains("DEX input", handler ->
-        R8.run(R8Command
-            .builder(handler)
-            .setProgramConsumer(DexIndexedConsumer.emptyConsumer())
-            .addProgramResourceProvider(new ProgramResourceProvider() {
-              @Override
-              public Collection<ProgramResource> getProgramResources() throws ResourceException {
-                return Collections.singleton(ProgramResource.fromFile(Kind.DEX, dexFile));
-              }
-            })
-            .build()));
+    DiagnosticsChecker.checkErrorsContains(
+        "DEX input",
+        handler ->
+            R8.run(
+                R8Command.builder(handler)
+                    .setProgramConsumer(DexIndexedConsumer.emptyConsumer())
+                    .addProgramResourceProvider(
+                        new ProgramResourceProvider() {
+                          @Override
+                          public Collection<ProgramResource> getProgramResources() {
+                            return Collections.singleton(
+                                ProgramResource.fromFile(Kind.DEX, dexFile));
+                          }
+                        })
+                    .build()));
   }
 
   @Test
-  public void dexDataUnsupported() throws Throwable {
+  public void dexDataUnsupported() {
     for (Method method : R8Command.Builder.class.getMethods()) {
       assertNotEquals("addDexProgramData", method.getName());
     }
@@ -884,7 +888,7 @@ public class R8CommandTest extends CommandTestBase<R8Command> {
     assertEquals(10, parse("--thread-count", "10").getThreadCount());
   }
 
-  private void numThreadsOptionInvalid(String value) throws Exception {
+  private void numThreadsOptionInvalid(String value) {
     final String expectedErrorContains = "Invalid argument to --thread-count";
     try {
       DiagnosticsChecker.checkErrorsContains(

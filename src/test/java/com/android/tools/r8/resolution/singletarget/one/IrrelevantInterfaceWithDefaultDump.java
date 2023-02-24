@@ -17,7 +17,7 @@ import org.objectweb.asm.Type;
  */
 public class IrrelevantInterfaceWithDefaultDump implements Opcodes {
 
-  public static byte[] dump() throws Exception {
+  public static byte[] dump() {
 
     ClassWriter cw = new ClassWriter(0);
     FieldVisitor fv;

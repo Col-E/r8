@@ -29,7 +29,7 @@ public class Regress111337896Test {
     throw new Exception();
   }
 
-  public static void noThrow() throws Exception {
+  public static void noThrow() {
     // Intentionally empty.
   }
 

@@ -289,7 +289,7 @@ public class JarSizeCompare {
       return applicationReader.read(map == null ? null : StringResource.fromFile(map)).toDirect();
     }
 
-    AndroidApp getInputApp(List<Path> libraries) throws Exception {
+    AndroidApp getInputApp(List<Path> libraries) {
       return AndroidApp.builder().addLibraryFiles(libraries).addProgramFiles(jar).build();
     }
   }

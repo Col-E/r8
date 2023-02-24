@@ -37,7 +37,7 @@ public class StackTraceTest extends TestBase {
   }
 
   @Test
-  public void testJvmStackTrace() throws Exception {
+  public void testJvmStackTrace() {
     String stderr =
         StringUtils.join(
             "\n",

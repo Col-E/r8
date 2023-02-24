@@ -16,7 +16,6 @@ import com.android.tools.r8.ir.desugar.desugaredlibrary.specificationconversion.
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.SemanticVersion;
 import com.android.tools.r8.utils.Timing;
-import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -239,7 +238,7 @@ public class MachineDesugaredLibrarySpecification implements DesugaredLibrarySpe
 
   @Override
   public MachineDesugaredLibrarySpecification toMachineSpecification(
-      DexApplication app, Timing timing) throws IOException {
+      DexApplication app, Timing timing) {
     LibraryValidator.validate(app, libraryCompilation, getRequiredCompilationApiLevel());
     return this;
   }

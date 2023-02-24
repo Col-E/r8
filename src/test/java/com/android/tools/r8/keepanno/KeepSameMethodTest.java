@@ -89,17 +89,17 @@ public class KeepSameMethodTest extends TestBase {
       consequences = {@KeepTarget(memberFromBinding = "AnyMemberOnA")})
   static class A {
 
-    public void foo() throws Exception {
+    public void foo() {
       System.out.println(new Exception().getStackTrace()[0].getMethodName());
     }
 
     // TODO(b/265892343): There is no backref support for "any params", thus this method is hit by
     //  the extracted rule.
-    public void foo(int unused) throws Exception {
+    public void foo(int unused) {
       System.out.println(new Exception().getStackTrace()[0].getMethodName());
     }
 
-    public void bar() throws Exception {
+    public void bar() {
       System.out.println(new Exception().getStackTrace()[0].getMethodName());
     }
   }

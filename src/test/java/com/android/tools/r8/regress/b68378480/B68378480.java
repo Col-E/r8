@@ -48,7 +48,7 @@ class Main {
 public class B68378480 {
 
   private DexCode compileClassesGetSubClassInit(int minApi)
-      throws IOException, CompilationFailedException, ExecutionException {
+      throws IOException, CompilationFailedException {
     D8Command.Builder builder = D8Command.builder()
         .setMode(CompilationMode.RELEASE)
         .setMinApiLevel(minApi);

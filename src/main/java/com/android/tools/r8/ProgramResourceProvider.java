@@ -26,6 +26,7 @@ public interface ProgramResourceProvider {
    *
    * <p>Providers should make sure finished can be safely called multiple times.
    */
+  @SuppressWarnings("RedundantThrows")
   default void finished(DiagnosticsHandler handler) throws IOException {
     // Do nothing by default.
   }

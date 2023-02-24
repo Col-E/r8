@@ -134,7 +134,7 @@ public class IfOnStaticFinalFieldTest extends TestBase {
       return objects;
     }
 
-    public static void main(String[] args) throws Exception {
+    public static void main(String[] args) {
       if (System.nanoTime() < 0) {
         // Force evaluation of the conditional rule for the final field type.
         System.out.println(StaticFinalField.class.getTypeName());

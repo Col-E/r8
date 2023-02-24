@@ -28,7 +28,7 @@ public class CfVersionTest extends TestBase {
   }
 
   @Test
-  public void test() throws Exception {
+  public void test() {
     CfVersion v1_1 = CfVersion.V1_1;
     assertEquals(Opcodes.V1_1, v1_1.raw());
     assertEquals(45, v1_1.major());

@@ -21,7 +21,6 @@ import java.io.IOException;
 import java.lang.reflect.Method;
 import java.util.HashSet;
 import java.util.Set;
-import java.util.concurrent.ExecutionException;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -118,7 +117,7 @@ public class OverloadUniqueNameTest extends TestBase {
   }
 
   @Test
-  public void test() throws CompilationFailedException, IOException, ExecutionException {
+  public void test() throws CompilationFailedException, IOException {
     testForR8(Backend.DEX)
         .addProgramClasses(
             A.class, B.class, I1.class, I2.class, C.class, I3.class, I4.class, LambdaTest.class)
@@ -164,7 +163,7 @@ public class OverloadUniqueNameTest extends TestBase {
   }
 
   @Test
-  public void testReturnType() throws IOException, CompilationFailedException, ExecutionException {
+  public void testReturnType() throws IOException, CompilationFailedException {
     testForR8(Backend.DEX)
         .addProgramClassFileData(
             transformer(ReturnType.class)

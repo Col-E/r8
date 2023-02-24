@@ -48,7 +48,7 @@ public class JacocoRegressionTest extends TestBase implements Opcodes {
     assertTrue(result1.toString().contains("java.lang.VerifyError: Bad local variable type"));
   }
 
-  public static byte[] dump() throws Exception {
+  public static byte[] dump() {
 
     ClassWriter classWriter = new ClassWriter(0);
     FieldVisitor fieldVisitor;

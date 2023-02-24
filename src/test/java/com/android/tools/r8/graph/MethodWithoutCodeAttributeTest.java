@@ -61,7 +61,7 @@ public class MethodWithoutCodeAttributeTest extends TestBase {
   }
 
   static class TestDump implements Opcodes {
-    public static byte[] dump () throws Exception {
+    public static byte[] dump() {
       ClassWriter classWriter = new ClassWriter(0);
       MethodVisitor methodVisitor;
 

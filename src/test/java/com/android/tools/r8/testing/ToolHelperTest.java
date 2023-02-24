@@ -22,7 +22,7 @@ public class ToolHelperTest extends TestBase {
   }
 
   @Test
-  public void testGetFirstSupportedAndroidJar() throws Exception {
+  public void testGetFirstSupportedAndroidJar() {
     // Check some API levels for which the repo does not have android.jar.
     checkExpectedAndroidJar(
         ToolHelper.getFirstSupportedAndroidJar(AndroidApiLevel.B), AndroidApiLevel.I);

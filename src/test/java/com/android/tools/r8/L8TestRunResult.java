@@ -7,8 +7,6 @@ package com.android.tools.r8;
 import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.utils.ThrowingConsumer;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
-import java.io.IOException;
-import java.util.concurrent.ExecutionException;
 import org.hamcrest.Matcher;
 
 public class L8TestRunResult extends TestRunResult<L8TestRunResult> {
@@ -44,7 +42,7 @@ public class L8TestRunResult extends TestRunResult<L8TestRunResult> {
 
   @Override
   public <E extends Throwable> L8TestRunResult inspect(ThrowingConsumer<CodeInspector, E> consumer)
-      throws IOException, ExecutionException, E {
+      throws E {
     throw new Unimplemented();
   }
 
@@ -55,7 +53,7 @@ public class L8TestRunResult extends TestRunResult<L8TestRunResult> {
   }
 
   @Override
-  public L8TestRunResult disassemble() throws IOException, ExecutionException {
+  public L8TestRunResult disassemble() {
     throw new Unimplemented();
   }
 }

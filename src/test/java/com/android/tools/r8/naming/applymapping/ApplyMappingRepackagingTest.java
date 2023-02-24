@@ -80,7 +80,7 @@ public class ApplyMappingRepackagingTest extends TestBase {
 
   @Test
   public void testApplyMappingFollowedByMinification()
-      throws IOException, CompilationFailedException, ExecutionException, NoSuchMethodException {
+      throws IOException, CompilationFailedException, ExecutionException {
     String[] pgMap =
         new String[] {
           A.class.getTypeName() + " -> baz:", "  int fieldA -> foo", "  void methodA() -> bar"

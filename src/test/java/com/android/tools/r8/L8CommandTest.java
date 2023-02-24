@@ -529,7 +529,7 @@ public class L8CommandTest extends CommandTestBase<L8Command> {
             .getThreadCount());
   }
 
-  private void numThreadsOptionInvalid(String value) throws Exception {
+  private void numThreadsOptionInvalid(String value) {
     final String expectedErrorContains = "Invalid argument to --thread-count";
     try {
       DiagnosticsChecker.checkErrorsContains(

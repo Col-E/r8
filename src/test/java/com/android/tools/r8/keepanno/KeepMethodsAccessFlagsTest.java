@@ -94,7 +94,7 @@ public class KeepMethodsAccessFlagsTest extends TestBase {
           classConstant = Abs.class,
           methodAccess = {MethodAccessFlags.PUBLIC, MethodAccessFlags.ABSTRACT})
     })
-    void foo() throws Exception {
+    void foo() {
       List<String> sorted = new ArrayList<>();
       for (Method method : Abs.class.getDeclaredMethods()) {
         int modifiers = method.getModifiers();

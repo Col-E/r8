@@ -46,7 +46,6 @@ import com.google.common.collect.Iterators;
 import com.google.common.collect.Sets;
 import it.unimi.dsi.fastutil.objects.Object2IntMap;
 import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -60,7 +59,6 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.function.Function;
 import java.util.function.Predicate;
@@ -302,8 +300,7 @@ public class VirtualFile {
       this.writer = writer;
     }
 
-    public abstract List<VirtualFile> run() throws ExecutionException, IOException;
-
+    public abstract List<VirtualFile> run();
   }
 
   /**
@@ -495,7 +492,7 @@ public class VirtualFile {
     }
 
     @Override
-    public List<VirtualFile> run() throws IOException {
+    public List<VirtualFile> run() {
       assert virtualFiles.size() == 1;
       assert virtualFiles.get(0).isEmpty();
 
@@ -555,7 +552,7 @@ public class VirtualFile {
     }
 
     @Override
-    public List<VirtualFile> run() throws ExecutionException, IOException {
+    public List<VirtualFile> run() {
       Map<FeatureSplit, Set<DexProgramClass>> featureSplitClasses =
           removeFeatureSplitClassesGetMapping();
       // Add all classes to the main dex file.

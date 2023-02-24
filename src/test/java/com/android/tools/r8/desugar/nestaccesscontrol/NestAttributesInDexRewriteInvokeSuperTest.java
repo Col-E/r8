@@ -255,7 +255,7 @@ public class NestAttributesInDexRewriteInvokeSuperTest extends TestBase implemen
     }
   */
 
-  public static byte[] dumpHost() throws Exception {
+  public static byte[] dumpHost() {
 
     ClassWriter classWriter = new ClassWriter(0);
     MethodVisitor methodVisitor;
@@ -331,7 +331,7 @@ public class NestAttributesInDexRewriteInvokeSuperTest extends TestBase implemen
     return classWriter.toByteArray();
   }
 
-  public static byte[] dumpMember() throws Exception {
+  public static byte[] dumpMember() {
 
     ClassWriter classWriter = new ClassWriter(0);
     MethodVisitor methodVisitor;
@@ -378,7 +378,7 @@ public class NestAttributesInDexRewriteInvokeSuperTest extends TestBase implemen
     return classWriter.toByteArray();
   }
 
-  public static byte[] dumpSubMember() throws Exception {
+  public static byte[] dumpSubMember() {
 
     ClassWriter classWriter = new ClassWriter(0);
     MethodVisitor methodVisitor;

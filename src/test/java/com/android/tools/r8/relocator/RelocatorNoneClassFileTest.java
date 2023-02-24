@@ -9,7 +9,6 @@ import static junit.framework.TestCase.assertNotNull;
 import static junit.framework.TestCase.assertNull;
 
 import com.android.tools.r8.CompilationFailedException;
-import com.android.tools.r8.ResourceException;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
@@ -44,8 +43,7 @@ public class RelocatorNoneClassFileTest extends TestBase {
   }
 
   @Test
-  public void testRewritingFiles()
-      throws IOException, CompilationFailedException, ResourceException {
+  public void testRewritingFiles() throws IOException, CompilationFailedException {
     File testJar = temp.newFile("test.jar");
     Path testJarPath = testJar.toPath();
     OpenOption[] options =

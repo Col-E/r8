@@ -23,7 +23,7 @@ public class NoMappingDumps {
   //  }
   public static class HasMappingDump implements Opcodes {
 
-    public static byte[] dump() throws Exception {
+    public static byte[] dump() {
 
       ClassWriter classWriter = new ClassWriter(0);
       MethodVisitor methodVisitor;
@@ -91,7 +91,7 @@ public class NoMappingDumps {
   // then renamed bar() to foo() to introduce name clash.
   public static class NoMappingDump implements Opcodes {
 
-    public static byte[] dump() throws Exception {
+    public static byte[] dump() {
 
       ClassWriter classWriter = new ClassWriter(0);
       MethodVisitor methodVisitor;
@@ -152,7 +152,7 @@ public class NoMappingDumps {
   //  }
   public static class NoMappingMainDump implements Opcodes {
 
-    public static byte[] dump() throws Exception {
+    public static byte[] dump() {
 
       ClassWriter classWriter = new ClassWriter(0);
       MethodVisitor methodVisitor;

@@ -55,7 +55,7 @@ class ExtractMarkerCommand {
       return this;
     }
 
-    public ExtractMarkerCommand build() throws IOException {
+    public ExtractMarkerCommand build() {
       // If printing versions ignore everything else.
       if (isPrintHelp()) {
         return new ExtractMarkerCommand(isPrintHelp());
@@ -83,7 +83,7 @@ class ExtractMarkerCommand {
     return builder;
   }
 
-  private static void parse(String[] args, Builder builder) throws IOException {
+  private static void parse(String[] args, Builder builder) {
     for (int i = 0; i < args.length; i++) {
       String arg = args[i].trim();
       if (arg.length() == 0) {

@@ -19,7 +19,7 @@ import java.util.function.Consumer;
 public class R8TestRunResult extends SingleTestRunResult<R8TestRunResult> {
 
   public interface GraphInspectorSupplier {
-    GraphInspector get() throws IOException, ExecutionException;
+    GraphInspector get() throws IOException;
   }
 
   private final String proguardMap;

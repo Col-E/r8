@@ -158,7 +158,7 @@ public class KeepAccessFlagsOnMethodsTest extends TestBase {
           classConstant = A.class,
           methodAccess = {MethodAccessFlags.PUBLIC})
     })
-    public static void main(String[] args) throws Exception {
+    public static void main(String[] args) {
       Object o = System.nanoTime() > 0 ? new A() : null;
       for (Method m : o.getClass().getDeclaredMethods()) {
         System.out.println(m.getName());

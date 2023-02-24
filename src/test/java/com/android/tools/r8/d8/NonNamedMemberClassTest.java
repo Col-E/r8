@@ -49,7 +49,7 @@ public class NonNamedMemberClassTest extends TestBase {
   // and removed inner-name, Companion.
   private static class Dump implements Opcodes {
 
-    public static byte[] dump () throws Exception {
+    public static byte[] dump() {
 
       ClassWriter classWriter = new ClassWriter(0);
       MethodVisitor methodVisitor;

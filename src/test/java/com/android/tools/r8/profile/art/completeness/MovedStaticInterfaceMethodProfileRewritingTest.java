@@ -132,8 +132,7 @@ public class MovedStaticInterfaceMethodProfileRewritingTest extends TestBase {
   private void inspect(
       ArtProfileInspector profileInspector,
       CodeInspector inspector,
-      boolean canUseDefaultAndStaticInterfaceMethods)
-      throws Exception {
+      boolean canUseDefaultAndStaticInterfaceMethods) {
     if (canUseDefaultAndStaticInterfaceMethods) {
       ClassSubject iClassSubject = inspector.clazz(I.class);
       assertThat(iClassSubject, isPresent());

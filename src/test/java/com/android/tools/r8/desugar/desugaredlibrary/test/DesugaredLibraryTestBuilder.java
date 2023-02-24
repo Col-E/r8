@@ -135,18 +135,17 @@ public class DesugaredLibraryTestBuilder<T extends DesugaredLibraryTestBase> {
     return this;
   }
 
-  public DesugaredLibraryTestBuilder<T> addClasspathClasses(Class<?>... clazz) throws IOException {
+  public DesugaredLibraryTestBuilder<T> addClasspathClasses(Class<?>... clazz) {
     builder.addClasspathClasses(clazz);
     return this;
   }
 
-  public DesugaredLibraryTestBuilder<T> addProgramClasses(Class<?>... clazz) throws IOException {
+  public DesugaredLibraryTestBuilder<T> addProgramClasses(Class<?>... clazz) {
     builder.addProgramClasses(clazz);
     return this;
   }
 
-  public DesugaredLibraryTestBuilder<T> addProgramClasses(Collection<Class<?>> clazz)
-      throws IOException {
+  public DesugaredLibraryTestBuilder<T> addProgramClasses(Collection<Class<?>> clazz) {
     builder.addProgramClasses(clazz);
     return this;
   }

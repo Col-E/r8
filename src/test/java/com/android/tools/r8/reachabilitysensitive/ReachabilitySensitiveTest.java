@@ -161,8 +161,7 @@ public class ReachabilitySensitiveTest extends TestBase {
     checkNoLocals(code);
   }
 
-  private CodeInspector compile(Class... classes)
-      throws CompilationFailedException, IOException, ExecutionException {
+  private CodeInspector compile(Class... classes) throws CompilationFailedException, IOException {
     return testForD8()
         .addProgramClasses(classes)
         .setMinApi(parameters)

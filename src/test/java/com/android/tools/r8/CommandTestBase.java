@@ -24,7 +24,7 @@ import java.util.List;
 import org.junit.Test;
 
 public abstract class CommandTestBase<C extends BaseCompilerCommand> extends TestBase {
-  private void mapDiagnosticsMissingArguments(String... args) throws Exception {
+  private void mapDiagnosticsMissingArguments(String... args) {
     try {
       DiagnosticsChecker.checkErrorsContains(
           "Missing argument(s) for --map-diagnostics", handler -> parse(handler, args));
@@ -43,7 +43,7 @@ public abstract class CommandTestBase<C extends BaseCompilerCommand> extends Tes
     mapDiagnosticsMissingArguments("--map-diagnostics", "xxx");
   }
 
-  private void mapDiagnosticsInvalidArguments(String... args) throws Exception {
+  private void mapDiagnosticsInvalidArguments(String... args) {
     try {
       DiagnosticsChecker.checkErrorsContains(
           "Invalid diagnostics level 'xxx'", handler -> parse(handler, args));
@@ -66,7 +66,7 @@ public abstract class CommandTestBase<C extends BaseCompilerCommand> extends Tes
   }
 
   @Test
-  public void mapDiagnosticsInvalidArgumentsMoreErrors() throws Exception {
+  public void mapDiagnosticsInvalidArgumentsMoreErrors() {
     try {
       DiagnosticsChecker.checkErrorsContains(
           ImmutableList.of("Invalid diagnostics level 'xxx'", "Unknown option: --xxx"),
@@ -180,7 +180,7 @@ public abstract class CommandTestBase<C extends BaseCompilerCommand> extends Tes
   }
 
   @Test
-  public void warningsToError() throws Exception {
+  public void warningsToError() {
     try {
       DiagnosticsChecker.checkErrorsContains(
           "Warning",

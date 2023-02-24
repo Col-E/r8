@@ -75,7 +75,7 @@ public class DesugaredLibraryTestCompileResult<T extends DesugaredLibraryTestBas
   }
 
   public <E extends Throwable> DesugaredLibraryTestCompileResult<T> inspectL8ResidualArtProfile(
-      ThrowingConsumer<ArtProfileInspector, E> consumer) throws E, IOException, ExecutionException {
+      ThrowingConsumer<ArtProfileInspector, E> consumer) throws E, IOException {
     return inspectL8ResidualArtProfile(
         (rewrittenArtProfile, inspector) -> consumer.accept(rewrittenArtProfile));
   }

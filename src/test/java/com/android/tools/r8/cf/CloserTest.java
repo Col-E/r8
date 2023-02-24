@@ -19,7 +19,7 @@ public class CloserTest {
     return System.out;
   }
 
-  public void doSomething(String message) throws IOException {
+  public void doSomething(String message) {
     System.out.println(message);
   }
 

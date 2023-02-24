@@ -62,7 +62,7 @@ public class KeepInvalidTargetTest extends TestBase {
   }
 
   @Test
-  public void testInvalidClassDecl() throws Exception {
+  public void testInvalidClassDecl() {
     assertThrowsWith(
         () -> extractRuleForClass(MultipleClassDeclarations.class),
         allOf(
@@ -74,13 +74,13 @@ public class KeepInvalidTargetTest extends TestBase {
   static class MultipleClassDeclarations {
 
     @UsesReflection(@KeepTarget(className = "foo", classConstant = MultipleClassDeclarations.class))
-    public static void main(String[] args) throws Exception {
+    public static void main(String[] args) {
       System.out.println("Hello, world");
     }
   }
 
   @Test
-  public void testInvalidExtendsDecl() throws Exception {
+  public void testInvalidExtendsDecl() {
     assertThrowsWith(
         () -> extractRuleForClass(MultipleExtendsDeclarations.class),
         allOf(
@@ -95,13 +95,13 @@ public class KeepInvalidTargetTest extends TestBase {
         @KeepTarget(
             extendsClassName = "foo",
             extendsClassConstant = MultipleClassDeclarations.class))
-    public static void main(String[] args) throws Exception {
+    public static void main(String[] args) {
       System.out.println("Hello, world");
     }
   }
 
   @Test
-  public void testInvalidMemberDecl() throws Exception {
+  public void testInvalidMemberDecl() {
     assertThrowsWith(
         () -> extractRuleForClass(MultipleMemberDeclarations.class),
         allOf(containsString("field"), containsString("method")));
@@ -110,13 +110,13 @@ public class KeepInvalidTargetTest extends TestBase {
   static class MultipleMemberDeclarations {
 
     @UsesReflection(@KeepTarget(classConstant = A.class, methodName = "foo", fieldName = "bar"))
-    public static void main(String[] args) throws Exception {
+    public static void main(String[] args) {
       System.out.println("Hello, world");
     }
   }
 
   @Test
-  public void testInvalidOptionsDecl() throws Exception {
+  public void testInvalidOptionsDecl() {
     assertThrowsWith(
         () -> extractRuleForClass(MultipleOptionDeclarations.class),
         allOf(containsString("options"), containsString("allow"), containsString("disallow")));
@@ -129,7 +129,7 @@ public class KeepInvalidTargetTest extends TestBase {
             classConstant = A.class,
             allow = {KeepOption.OPTIMIZATION},
             disallow = {KeepOption.SHRINKING}))
-    public static void main(String[] args) throws Exception {
+    public static void main(String[] args) {
       System.out.println("Hello, world");
     }
   }

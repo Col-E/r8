@@ -250,7 +250,7 @@ public class MainDexListTests extends TestBase {
   }
 
   @Test
-  public void singleEntryNoNewLine() throws Exception {
+  public void singleEntryNoNewLine() {
     DexItemFactory factory = new DexItemFactory();
     Set<DexType> types =
         MainDexListParser.parseList(

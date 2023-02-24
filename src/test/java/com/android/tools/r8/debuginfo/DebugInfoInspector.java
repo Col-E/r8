@@ -25,7 +25,6 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import java.util.concurrent.ExecutionException;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
@@ -56,7 +55,7 @@ public class DebugInfoInspector {
   }
 
   public DebugInfoInspector(AndroidApp app, String clazz, MethodSignature method)
-      throws IOException, ExecutionException {
+      throws IOException {
     this(new CodeInspector(app), clazz, method);
   }
 

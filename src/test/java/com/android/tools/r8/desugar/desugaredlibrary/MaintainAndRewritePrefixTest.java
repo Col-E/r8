@@ -63,7 +63,7 @@ public class MaintainAndRewritePrefixTest extends DesugaredLibraryTestBase imple
   }
 
   @Test
-  public void test() throws Exception {
+  public void test() {
     try {
       testForL8(AndroidApiLevel.B, parameters.getBackend())
           .apply(libraryDesugaringSpecification::configureL8TestBuilder)

@@ -14,7 +14,7 @@ import org.junit.Test;
 
 public class CompatProguardTest {
 
-  private CompatProguardOptions parseArgs(String... args)throws Exception  {
+  private CompatProguardOptions parseArgs(String... args) {
     return CompatProguard.CompatProguardOptions.parse(args);
   }
 

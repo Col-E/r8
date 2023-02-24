@@ -21,7 +21,7 @@ public class BlockReorderingTest extends DebugTestBase {
   private static D8DebugTestConfig d8Config;
 
   @BeforeClass
-  public static void setup() throws Exception {
+  public static void setup() {
     // Force inversion of all conditionals to reliably construct a regression test for incorrect
     // line information when reordering blocks.
     d8Config =

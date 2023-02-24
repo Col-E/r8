@@ -104,8 +104,7 @@ public class RelocatorTest extends TestBase {
   }
 
   @Test
-  public void testRelocateKeepsDebugInfo()
-      throws IOException, CompilationFailedException, ExecutionException {
+  public void testRelocateKeepsDebugInfo() throws IOException, CompilationFailedException {
     String originalPrefix = "com.android.tools.r8";
     String newPrefix = "com.android.tools.r8";
     Path output = temp.newFile("output.jar").toPath();
@@ -326,8 +325,7 @@ public class RelocatorTest extends TestBase {
   }
 
   private void inspectAllClassesRelocated(
-      Path original, Path relocated, String originalPrefix, String newPrefix)
-      throws IOException, ExecutionException {
+      Path original, Path relocated, String originalPrefix, String newPrefix) throws IOException {
     CodeInspector originalInspector = new CodeInspector(original);
     CodeInspector relocatedInspector = new CodeInspector(relocated);
     for (FoundClassSubject clazz : originalInspector.allClasses()) {
@@ -343,7 +341,7 @@ public class RelocatorTest extends TestBase {
   }
 
   private void inspectAllSignaturesNotContainingString(Path relocated, String originalPrefix)
-      throws IOException, ExecutionException {
+      throws IOException {
     CodeInspector relocatedInspector = new CodeInspector(relocated);
     for (FoundClassSubject clazz : relocatedInspector.allClasses()) {
       assertThat(clazz.getFinalSignatureAttribute(), not(containsString(originalPrefix)));

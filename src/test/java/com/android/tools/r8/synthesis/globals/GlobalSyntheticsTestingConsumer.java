@@ -12,7 +12,6 @@ import com.android.tools.r8.ByteDataView;
 import com.android.tools.r8.DiagnosticsHandler;
 import com.android.tools.r8.GlobalSyntheticsConsumer;
 import com.android.tools.r8.GlobalSyntheticsResourceProvider;
-import com.android.tools.r8.ResourceException;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.references.ClassReference;
 import java.io.ByteArrayInputStream;
@@ -89,7 +88,7 @@ public class GlobalSyntheticsTestingConsumer implements GlobalSyntheticsConsumer
     }
 
     @Override
-    public InputStream getByteStream() throws ResourceException {
+    public InputStream getByteStream() {
       return new ByteArrayInputStream(bytes);
     }
   }

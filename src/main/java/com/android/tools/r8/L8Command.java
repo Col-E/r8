@@ -468,7 +468,7 @@ public final class L8Command extends BaseCompilerCommand {
     }
 
     @Override
-    public Collection<ProgramResource> getProgramResources() throws ResourceException {
+    public Collection<ProgramResource> getProgramResources() {
       return resources;
     }
 

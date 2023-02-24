@@ -335,7 +335,7 @@ public class ExamplesDebugTest extends DebugTestBase {
         .run();
   }
 
-  private DebugStreamComparator init(String pkg, String clazz) throws Exception {
+  private DebugStreamComparator init(String pkg, String clazz) {
     // TODO(b/199700280): Reenable on 12.0.0 when we have the libjdwp.so file include and the flags
     // fixed.
     Assume.assumeTrue(

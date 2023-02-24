@@ -22,7 +22,7 @@ import org.objectweb.asm.Opcodes;
 // then make bar _synthetic_ as `kotlinc` does.
 class Base implements Opcodes {
 
-  public static byte[] dump () throws Exception {
+  public static byte[] dump() {
 
     ClassWriter classWriter = new ClassWriter(0);
     MethodVisitor methodVisitor;
@@ -84,7 +84,7 @@ class Base implements Opcodes {
 //  class Sub extends Base {}
 class Sub implements Opcodes {
 
-  public static byte[] dump () throws Exception {
+  public static byte[] dump() {
 
     ClassWriter classWriter = new ClassWriter(0);
     MethodVisitor methodVisitor;

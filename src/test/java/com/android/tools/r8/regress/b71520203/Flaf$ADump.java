@@ -10,7 +10,7 @@ import org.objectweb.asm.Opcodes;
 
 public class Flaf$ADump implements Opcodes {
 
-  public static byte[] dump () throws Exception {
+  public static byte[] dump() {
     ClassWriter cw = new ClassWriter(0);
     MethodVisitor mv;
 

@@ -4,7 +4,6 @@
 
 package com.android.tools.r8;
 
-import java.io.IOException;
 import java.nio.file.Path;
 
 public class D8NonLazyRunExamplesAndroidOTest
@@ -16,12 +15,12 @@ public class D8NonLazyRunExamplesAndroidOTest
     }
 
     @Override
-    void addClasspathReference(Path testJarFile, D8Command.Builder builder) throws IOException {
+    void addClasspathReference(Path testJarFile, D8Command.Builder builder) {
       builder.addClasspathFiles(testJarFile);
     }
 
     @Override
-    void addLibraryReference(D8Command.Builder builder, Path location) throws IOException {
+    void addLibraryReference(D8Command.Builder builder, Path location) {
       builder.addLibraryFiles(ToolHelper.getAndroidJar(
           androidJarVersion == null ? builder.getMinApiLevel() : androidJarVersion.getLevel()));
     }

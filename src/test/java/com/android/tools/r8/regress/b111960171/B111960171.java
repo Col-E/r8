@@ -45,7 +45,7 @@ class TestClass {
 public class B111960171 {
 
   private MethodSubject compileTestClassAndGetMethod(int apiLevel)
-      throws IOException, CompilationFailedException, ExecutionException {
+      throws IOException, CompilationFailedException {
     AndroidApp app =
         ToolHelper.runD8(
             D8Command.builder()

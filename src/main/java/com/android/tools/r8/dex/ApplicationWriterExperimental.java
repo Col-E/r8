@@ -95,8 +95,7 @@ class ApplicationWriterExperimental extends ApplicationWriter {
       ExecutorService executorService,
       List<VirtualFile> virtualFiles,
       List<DexString> forcedStrings,
-      Timing timing)
-      throws ExecutionException {
+      Timing timing) {
     TimingMerger merger =
         timing.beginMerger("Write files", ThreadUtils.getNumberOfThreads(executorService));
     Collection<Timing> timings;

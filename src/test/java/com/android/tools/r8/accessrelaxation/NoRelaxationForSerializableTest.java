@@ -48,7 +48,7 @@ class MySerializable implements Serializable {
   }
 
   @NeverInline
-  private void readObject(ObjectInputStream in) throws IOException, ClassNotFoundException {
+  private void readObject(ObjectInputStream in) throws IOException {
     System.out.println("Serializable::read");
     value = in.readInt();
   }

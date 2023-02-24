@@ -265,12 +265,12 @@ public class AbsentClassSubject extends ClassSubject {
   }
 
   @Override
-  public String javap(boolean verbose) throws Exception {
+  public String javap(boolean verbose) {
     throw new Unreachable("Cannot disassembly an absent class");
   }
 
   @Override
-  public String asmify(TemporaryFolder tempFolder, boolean debug) throws Exception {
+  public String asmify(TemporaryFolder tempFolder, boolean debug) {
     throw new Unreachable("Cannot asmify an absent class");
   }
 }

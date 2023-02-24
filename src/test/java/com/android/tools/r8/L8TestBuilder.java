@@ -30,7 +30,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
-import java.util.concurrent.ExecutionException;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
@@ -99,7 +98,7 @@ public class L8TestBuilder {
     return this;
   }
 
-  public L8TestBuilder addKeepRules(String keepRule) throws IOException {
+  public L8TestBuilder addKeepRules(String keepRule) {
     this.keepRules.add(keepRule);
     return this;
   }
@@ -170,8 +169,7 @@ public class L8TestBuilder {
         : sink.wrapProgramConsumer(DexIndexedConsumer.emptyConsumer());
   }
 
-  public L8TestCompileResult compile()
-      throws IOException, CompilationFailedException, ExecutionException {
+  public L8TestCompileResult compile() throws IOException, CompilationFailedException {
     // We wrap exceptions in a RuntimeException to call this from a lambda.
     AndroidAppConsumers sink = new AndroidAppConsumers();
     l8Builder

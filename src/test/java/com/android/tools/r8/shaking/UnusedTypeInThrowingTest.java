@@ -17,7 +17,7 @@ class UnusedTypeInThrowing {
 
   public static final String EXPECTED = System.currentTimeMillis() >= 0 ? "42" : null;
 
-  public static void main(String[] args) throws UnusedTypeInThrowingThrowable {
+  public static void main(String[] args) {
     System.out.print(EXPECTED);
   }
 }
@@ -31,7 +31,7 @@ public class UnusedTypeInThrowingTest extends TestBase {
 
   @Test
   public void testTypeIsMarkedAsLive()
-      throws IOException, CompilationFailedException, ExecutionException, NoSuchMethodException {
+      throws IOException, CompilationFailedException, ExecutionException {
     CodeInspector inspector =
         testForR8(Backend.CF)
             .enableGraphInspector()

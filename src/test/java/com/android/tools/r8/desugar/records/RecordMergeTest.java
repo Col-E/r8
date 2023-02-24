@@ -56,7 +56,7 @@ public class RecordMergeTest extends TestBase {
   }
 
   @Test
-  public void testFailureWithoutGlobalSyntheticsConsumer() throws Exception {
+  public void testFailureWithoutGlobalSyntheticsConsumer() {
     assertThrows(
         CompilationFailedException.class,
         () ->

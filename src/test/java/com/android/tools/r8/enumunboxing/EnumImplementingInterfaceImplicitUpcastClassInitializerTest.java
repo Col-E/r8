@@ -97,7 +97,7 @@ public class EnumImplementingInterfaceImplicitUpcastClassInitializerTest
 
   public static class Main implements I {
 
-    public static void main(String[] args) throws Exception {
+    public static void main(String[] args) {
       System.out.println(MyEnum.A.otherEnum.get());
       System.out.println(new Main().get());
     }

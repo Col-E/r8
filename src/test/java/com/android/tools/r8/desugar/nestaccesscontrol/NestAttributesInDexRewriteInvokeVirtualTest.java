@@ -259,7 +259,7 @@ public class NestAttributesInDexRewriteInvokeVirtualTest extends TestBase implem
     }
   */
 
-  public static byte[] dumpHost() throws Exception {
+  public static byte[] dumpHost() {
 
     ClassWriter classWriter = new ClassWriter(0);
     MethodVisitor methodVisitor;
@@ -355,7 +355,7 @@ public class NestAttributesInDexRewriteInvokeVirtualTest extends TestBase implem
     return classWriter.toByteArray();
   }
 
-  public static byte[] dumpMember1() throws Exception {
+  public static byte[] dumpMember1() {
 
     ClassWriter classWriter = new ClassWriter(0);
     MethodVisitor methodVisitor;
@@ -397,7 +397,7 @@ public class NestAttributesInDexRewriteInvokeVirtualTest extends TestBase implem
     return classWriter.toByteArray();
   }
 
-  public static byte[] dumpMember2() throws Exception {
+  public static byte[] dumpMember2() {
 
     ClassWriter classWriter = new ClassWriter(0);
     MethodVisitor methodVisitor;

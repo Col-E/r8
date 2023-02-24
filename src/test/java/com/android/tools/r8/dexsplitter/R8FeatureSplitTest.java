@@ -72,7 +72,7 @@ public class R8FeatureSplitTest extends SplitterTestBase {
   }
 
   @Test
-  public void testTwoFeatures() throws CompilationFailedException, IOException, ExecutionException {
+  public void testTwoFeatures() throws CompilationFailedException, IOException {
     CompiledWithFeature compiledWithFeature = new CompiledWithFeature().invoke();
     Path basePath = compiledWithFeature.getBasePath();
     Path feature1Path = compiledWithFeature.getFeature1Path();

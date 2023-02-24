@@ -126,7 +126,7 @@ public class KeepClassApiTest extends TestBase {
 
   static class TestClass {
 
-    public static void main(String[] args) throws Exception {
+    public static void main(String[] args) {
       new A().bar();
       new B().foo();
     }

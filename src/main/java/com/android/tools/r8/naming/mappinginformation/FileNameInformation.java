@@ -6,7 +6,6 @@ package com.android.tools.r8.naming.mappinginformation;
 
 import com.android.tools.r8.DiagnosticsHandler;
 import com.android.tools.r8.naming.MapVersion;
-import com.android.tools.r8.naming.MappingComposeException;
 import com.android.tools.r8.naming.mappinginformation.MappingInformation.ReferentialMappingInformation;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
@@ -44,7 +43,7 @@ public class FileNameInformation extends ReferentialMappingInformation {
   }
 
   @Override
-  public MappingInformation compose(MappingInformation existing) throws MappingComposeException {
+  public MappingInformation compose(MappingInformation existing) {
     // Always take the first mapping.
     return existing;
   }

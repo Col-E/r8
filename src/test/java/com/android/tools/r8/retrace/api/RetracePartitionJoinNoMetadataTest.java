@@ -12,7 +12,6 @@ import com.android.tools.r8.naming.MapVersion;
 import com.android.tools.r8.retrace.PartitionMappingSupplier;
 import com.android.tools.r8.retrace.Retrace;
 import com.android.tools.r8.retrace.RetraceCommand;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
@@ -64,7 +63,7 @@ public class RetracePartitionJoinNoMetadataTest extends RetraceApiTestBase {
             " at com.android.google.R8.otherMethod(R8Car.kt:44)");
 
     @Test
-    public void test() throws IOException {
+    public void test() {
       List<String> preFetch = new ArrayList<>();
       PartitionMappingSupplier mappingSupplier =
           PartitionMappingSupplier.noMetadataBuilder(MapVersion.MAP_VERSION_1_0)

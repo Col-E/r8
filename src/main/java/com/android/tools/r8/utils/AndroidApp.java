@@ -978,7 +978,7 @@ public class AndroidApp {
         addProgramResourceProvider(
             new ProgramResourceProvider() {
               @Override
-              public Collection<ProgramResource> getProgramResources() throws ResourceException {
+              public Collection<ProgramResource> getProgramResources() {
                 return programResources;
               }
 
@@ -988,7 +988,7 @@ public class AndroidApp {
                     ? null
                     : new DataResourceProvider() {
                       @Override
-                      public void accept(Visitor visitor) throws ResourceException {
+                      public void accept(Visitor visitor) {
                         for (DataEntryResource dataResource : dataResources) {
                           visitor.visit(dataResource);
                         }

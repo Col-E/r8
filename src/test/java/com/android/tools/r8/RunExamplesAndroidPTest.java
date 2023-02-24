@@ -33,7 +33,6 @@ import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ExecutionException;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 import java.util.function.UnaryOperator;
@@ -253,8 +252,7 @@ public abstract class RunExamplesAndroidPTest<
     }
   }
 
-  protected CodeInspector getMainDexInspector(Path zip)
-      throws ZipException, IOException, ExecutionException {
+  protected CodeInspector getMainDexInspector(Path zip) throws ZipException, IOException {
     try (ZipFile zipFile = new ZipFile(zip.toFile(), StandardCharsets.UTF_8)) {
       try (InputStream in =
           zipFile.getInputStream(zipFile.getEntry(ToolHelper.DEFAULT_DEX_FILENAME))) {

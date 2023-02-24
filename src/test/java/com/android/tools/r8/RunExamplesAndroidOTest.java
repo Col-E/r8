@@ -412,7 +412,7 @@ public abstract class RunExamplesAndroidOTest<
   }
 
   @Test
-  public void repeatAnnotationsNewApi() throws Throwable {
+  public void repeatAnnotationsNewApi() {
     // No need to specify minSdk as repeat annotations are handled by javac and we do not have
     // to do anything to support them. The library methods to access them just have to be in
     // the system.
@@ -615,8 +615,7 @@ public abstract class RunExamplesAndroidOTest<
   abstract RunExamplesAndroidOTest<B>.TestRunner<?> test(String testName, String packageName,
       String mainClass);
 
-  void execute(String testName,
-      String qualifiedMainClass, Path[] jars, Path[] dexes) throws IOException {
+  void execute(String testName, String qualifiedMainClass, Path[] jars, Path[] dexes) {
     execute(testName, qualifiedMainClass, jars, dexes, Collections.emptyList());
   }
 

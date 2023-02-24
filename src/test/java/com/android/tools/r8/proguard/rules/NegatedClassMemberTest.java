@@ -53,7 +53,7 @@ public class NegatedClassMemberTest extends TestBase {
   }
 
   @Test
-  public void testR8() throws Exception {
+  public void testR8() {
     try {
       testForR8(Backend.DEX)
           .addProgramClasses(

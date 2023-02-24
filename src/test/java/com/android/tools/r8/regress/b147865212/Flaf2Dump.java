@@ -73,7 +73,7 @@ import org.objectweb.asm.Opcodes;
 //            0      25     0     x   I
 public class Flaf2Dump implements Opcodes {
 
-  public static byte[] dump() throws Exception {
+  public static byte[] dump() {
 
     ClassWriter classWriter = new ClassWriter(0);
     MethodVisitor methodVisitor;

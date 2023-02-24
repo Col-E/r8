@@ -137,7 +137,7 @@ public class UnboundedFormalTypeGenericSignatureTest extends TestBase {
 
   public static class Main<T> extends Super<T> {
 
-    public static <R extends Super<R>> void main(String[] args) throws NoSuchMethodException {
+    public static <R extends Super<R>> void main(String[] args) {
       System.out.println(Main.class.getGenericSuperclass());
       testStatic();
       new Main<>().testVirtual();

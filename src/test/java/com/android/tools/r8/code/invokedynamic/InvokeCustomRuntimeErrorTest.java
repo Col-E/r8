@@ -180,8 +180,7 @@ public class InvokeCustomRuntimeErrorTest extends TestBase {
   static class TestClass {
 
     public static CallSite bsmCreateCallSite(
-        MethodHandles.Lookup caller, String name, MethodType type, MethodHandle handle)
-        throws Throwable {
+        MethodHandles.Lookup caller, String name, MethodType type, MethodHandle handle) {
       return new ConstantCallSite(handle);
     }
 

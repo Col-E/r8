@@ -38,7 +38,7 @@ public class UnsupportedFeaturesDiagnosticApiTest extends CompilerApiTestRunner 
   }
 
   @Test
-  public void test() throws Exception {
+  public void test() {
     check(UnsupportedDefaultInterfaceMethodDiagnostic::new, "default-interface-method", 24);
     check(UnsupportedStaticInterfaceMethodDiagnostic::new, "static-interface-method", 24);
     check(UnsupportedPrivateInterfaceMethodDiagnostic::new, "private-interface-method", 24);
@@ -97,7 +97,7 @@ public class UnsupportedFeaturesDiagnosticApiTest extends CompilerApiTestRunner 
     }
 
     @Test
-    public void test() throws Exception {
+    public void test() {
       run(null, str -> {});
     }
   }

@@ -22,7 +22,6 @@ import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import com.google.common.collect.ImmutableList;
 import java.io.IOException;
 import java.nio.file.Path;
-import java.util.concurrent.ExecutionException;
 import org.junit.Test;
 
 public class NativeMethodWithCodeTest extends TestBase {
@@ -89,7 +88,7 @@ public class NativeMethodWithCodeTest extends TestBase {
   }
 
   private MethodSubject getNativeMethod(String mainClassName, AndroidApp processedApp)
-      throws IOException, ExecutionException {
+      throws IOException {
     CodeInspector inspector = new CodeInspector(processedApp);
     ClassSubject mainSubject = inspector.clazz(mainClassName);
     return mainSubject.method("void", "n1", ImmutableList.of("java.lang.String"));

@@ -194,7 +194,7 @@ public class R8EntryPointTests extends TestBase {
         r8.stderr, containsString("Cannot compile in both --dex and --classfile output mode"));
   }
 
-  private R8Command getCommand(Path out) throws IOException, CompilationFailedException {
+  private R8Command getCommand(Path out) throws CompilationFailedException {
     return R8Command.builder()
         .addLibraryFiles(ToolHelper.getDefaultAndroidJar())
         .addProgramFiles(INPUT_JAR)

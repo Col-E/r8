@@ -48,7 +48,7 @@ public class ClassNameMinifierOriginalClassNameTest extends TestBase {
       memoizeFunction(ClassNameMinifierOriginalClassNameTest::compile);
 
   private static R8TestCompileResult compile(TestParameters parameters)
-      throws CompilationFailedException, IOException, ExecutionException {
+      throws CompilationFailedException, IOException {
     // Adding the obfuscation dictionary just ensures that we assign a name to B that will collide
     // independent of minification scheme.
     Path dictionary = getStaticTemp().newFolder().toPath().resolve("dictionary.txt");

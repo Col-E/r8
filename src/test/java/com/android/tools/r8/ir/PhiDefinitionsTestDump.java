@@ -21,7 +21,7 @@ public class PhiDefinitionsTestDump implements Opcodes {
   // private static String INNER_SIMPLE_NAME = "MethodWriter";
   // static String INNER_INTERNAL_NAME = INTERNAL_NAME + '$' + INNER_SIMPLE_NAME;
 
-  public static byte[] dump() throws Exception {
+  public static byte[] dump() {
 
     ClassWriter cw = new ClassWriter(0);
     FieldVisitor fv;
@@ -474,7 +474,7 @@ public class PhiDefinitionsTestDump implements Opcodes {
     mv.visitEnd();
   }
 
-  public static byte[] dumpInner() throws Exception {
+  public static byte[] dumpInner() {
 
     ClassWriter cw = new ClassWriter(0);
     FieldVisitor fv;

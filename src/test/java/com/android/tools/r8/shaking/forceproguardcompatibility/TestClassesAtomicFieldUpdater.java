@@ -14,7 +14,7 @@ class TestClassWithVolatileFields {
 }
 
 class TestMainWithAtomicFieldUpdater {
-  public static void main(String[] args) throws Exception {
+  public static void main(String[] args) {
     TestClassWithVolatileFields instance = new TestClassWithVolatileFields();
     AtomicIntegerFieldUpdater<TestClassWithVolatileFields> iUpdater =
         AtomicIntegerFieldUpdater.newUpdater(TestClassWithVolatileFields.class, "intField");

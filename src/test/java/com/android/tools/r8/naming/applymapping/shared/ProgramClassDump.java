@@ -32,7 +32,7 @@ import org.objectweb.asm.Opcodes;
 //     void a() -> foo
 public class ProgramClassDump implements Opcodes {
 
-  public static byte[] dump () throws Exception {
+  public static byte[] dump() {
 
     ClassWriter classWriter = new ClassWriter(0);
     FieldVisitor fieldVisitor;

@@ -153,7 +153,7 @@ public class LibraryProvidedProguardRulesTest extends LibraryProvidedProguardRul
   }
 
   @Test
-  public void syntaxError() throws Exception {
+  public void syntaxError() {
     // TODO(b/228319861): Read Proguard rules from AAR's.
     assumeTrue(!libraryType.isAar());
     assertThrows(
@@ -172,7 +172,7 @@ public class LibraryProvidedProguardRulesTest extends LibraryProvidedProguardRul
   }
 
   @Test
-  public void includeError() throws Exception {
+  public void includeError() {
     // TODO(b/228319861): Read Proguard rules from AAR's.
     assumeTrue(!libraryType.isAar());
     assertThrows(
@@ -215,7 +215,7 @@ public class LibraryProvidedProguardRulesTest extends LibraryProvidedProguardRul
   }
 
   @Test
-  public void throwingDataResourceProvider() throws Exception {
+  public void throwingDataResourceProvider() {
     // TODO(b/228319861): Read Proguard rules from AAR's.
     assumeTrue(!libraryType.isAar());
     assertThrows(

@@ -170,7 +170,7 @@ public class NestAttributesInDexShrinkingMethodsTest extends NestAttributesInDex
     access methods is not feasible.
   */
 
-  public static byte[] dumpHost(int methodAccess) throws Exception {
+  public static byte[] dumpHost(int methodAccess) {
     assert methodAccess == ACC_PUBLIC || methodAccess == ACC_PRIVATE;
 
     ClassWriter classWriter = new ClassWriter(0);
@@ -267,7 +267,7 @@ public class NestAttributesInDexShrinkingMethodsTest extends NestAttributesInDex
     return classWriter.toByteArray();
   }
 
-  public static byte[] dumpMember1(int methodAccess) throws Exception {
+  public static byte[] dumpMember1(int methodAccess) {
     assert methodAccess == ACC_PUBLIC || methodAccess == ACC_PRIVATE;
 
     ClassWriter classWriter = new ClassWriter(0);
@@ -310,7 +310,7 @@ public class NestAttributesInDexShrinkingMethodsTest extends NestAttributesInDex
     return classWriter.toByteArray();
   }
 
-  public static byte[] dumpMember2(int methodAccess) throws Exception {
+  public static byte[] dumpMember2(int methodAccess) {
     assert methodAccess == ACC_PUBLIC || methodAccess == ACC_PRIVATE;
 
     ClassWriter classWriter = new ClassWriter(0);

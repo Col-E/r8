@@ -10,7 +10,6 @@ import com.android.tools.r8.DexIndexedConsumer;
 import com.android.tools.r8.DiagnosticsHandler;
 import com.android.tools.r8.GlobalSyntheticsConsumer;
 import com.android.tools.r8.GlobalSyntheticsResourceProvider;
-import com.android.tools.r8.ResourceException;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.compilerapi.CompilerApiTest;
 import com.android.tools.r8.compilerapi.CompilerApiTestRunner;
@@ -52,7 +51,7 @@ public class GlobalSyntheticsTest extends CompilerApiTestRunner {
             }
 
             @Override
-            public InputStream getByteStream() throws ResourceException {
+            public InputStream getByteStream() {
               throw new IllegalStateException();
             }
           };

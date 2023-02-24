@@ -248,7 +248,7 @@ public class B152492625 extends TestBase {
   }
 
   @Test
-  public void testR8AssumeNoSideEffectsNotConditional() throws Exception {
+  public void testR8AssumeNoSideEffectsNotConditional() {
     try {
       testForR8(parameters.getBackend())
           .addProgramClasses(TestClass.class, B.class)

@@ -38,7 +38,7 @@ public class LambdaHasNonSyntheticMethodTest extends TestBase {
   }
 
   interface MyCallable<T> {
-    T call() throws Exception;
+    T call();
   }
 
   static class TestClass {

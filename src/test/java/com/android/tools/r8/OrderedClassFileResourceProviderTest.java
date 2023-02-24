@@ -51,12 +51,12 @@ public class OrderedClassFileResourceProviderTest extends TestBase {
     }
 
     @Override
-    public InputStream getByteStream() throws ResourceException {
+    public InputStream getByteStream() {
       return null;
     }
 
     @Override
-    public byte[] getBytes() throws ResourceException {
+    public byte[] getBytes() {
       return null;
     }
 

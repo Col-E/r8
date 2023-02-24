@@ -15,7 +15,7 @@ import org.objectweb.asm.Opcodes;
 // tools/asmifier.py build/classes/test/com/android/tools/r8/cf/AlwaysNullGetItemTest.class
 // and edited to replace calls to get{Object,Typed}Array() with ACONST_NULL (without CHECKCAST).
 public class AlwaysNullGetItemDump implements Opcodes {
-  public static byte[] dump() throws Exception {
+  public static byte[] dump() {
 
     ClassWriter cw = new ClassWriter(0);
     FieldVisitor fv;

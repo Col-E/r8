@@ -119,7 +119,7 @@ public class LegacyDesugaredLibraryConfigurationParsingTest extends DesugaredLib
   }
 
   @Test
-  public void testReference() throws Exception {
+  public void testReference() {
     // Just test that the reference file parses without issues.
     LegacyDesugaredLibrarySpecification spec =
         runPassing(StringResource.fromFile(libraryDesugaringSpecification.getSpecification()));

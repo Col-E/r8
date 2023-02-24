@@ -66,7 +66,7 @@ public class PackageInfoClassFileWithoutAbstractAccessModifierTest extends TestB
 
   // Some versions of javac would generate package-info class files without ACC_ABSTRACT.
   // Dump of it/unimi/dsi/fastutil/package-info.class from fastutil-8.5.8.jar.
-  public static byte[] dump() throws Exception {
+  public static byte[] dump() {
     ClassWriter classWriter = new ClassWriter(0);
     classWriter.visit(
         V1_5, ACC_INTERFACE, "it/unimi/dsi/fastutil/package-info", null, "java/lang/Object", null);

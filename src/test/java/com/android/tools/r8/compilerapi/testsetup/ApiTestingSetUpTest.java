@@ -36,7 +36,7 @@ public class ApiTestingSetUpTest extends CompilerApiTestRunner {
     }
 
     @Test
-    public void testNonExistingApiUse() throws Exception {
+    public void testNonExistingApiUse() {
       try {
         new InternalOptions();
         // When running directly the class is public and visible.

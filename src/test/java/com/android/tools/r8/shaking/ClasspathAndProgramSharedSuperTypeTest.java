@@ -28,7 +28,7 @@ public class ClasspathAndProgramSharedSuperTypeTest extends TestBase {
   }
 
   @Test
-  public void testR8() throws Exception {
+  public void testR8() {
     // TODO(b/226054007): R8 should maintain classpath type.
     assertThrows(
         CompilationFailedException.class,

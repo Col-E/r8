@@ -25,7 +25,7 @@ public class ProguardConfigurationSourceBytes implements ProguardConfigurationSo
   }
 
   @Override
-  public String get() throws IOException {
+  public String get() {
     return new String(bytes, StandardCharsets.UTF_8);
   }
 

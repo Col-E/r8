@@ -27,7 +27,6 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
-import java.util.concurrent.ExecutionException;
 
 public class DumpCoreLibUsage {
   public boolean usesTypeFromPackage(String pkg, DexField field) {
@@ -62,7 +61,7 @@ public class DumpCoreLibUsage {
 
   private Set<DexReference> checkPackage(
       String pkg, AndroidApiLevel apiLevel, Set<DexReference> filter, DexItemFactory factory)
-      throws IOException, ExecutionException {
+      throws IOException {
     AndroidApp input =
         AndroidApp.builder().addLibraryFiles(ToolHelper.getAndroidJar(apiLevel)).build();
     DirectMappedDexApplication dexApplication =

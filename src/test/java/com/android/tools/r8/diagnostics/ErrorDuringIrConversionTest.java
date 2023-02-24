@@ -84,7 +84,7 @@ public class ErrorDuringIrConversionTest extends TestBase {
   }
 
   @Test
-  public void testNPE() throws Exception {
+  public void testNPE() {
     try {
       testForD8()
           .apply(addTestClassWithOrigin())
@@ -110,7 +110,7 @@ public class ErrorDuringIrConversionTest extends TestBase {
   }
 
   @Test
-  public void testFatalError() throws Exception {
+  public void testFatalError() {
     try {
       testForD8()
           .apply(addTestClassWithOrigin())
@@ -146,7 +146,7 @@ public class ErrorDuringIrConversionTest extends TestBase {
   }
 
   @Test
-  public void testThreeErrors() throws Exception {
+  public void testThreeErrors() {
     AtomicBoolean doError = new AtomicBoolean(true);
     try {
       testForD8()

@@ -43,14 +43,13 @@ public class ExtractMarker {
   }
 
   public static Collection<Marker> extractMarkerFromDexFile(Path file)
-      throws IOException, ExecutionException, ResourceException {
+      throws IOException, ResourceException {
     AndroidApp.Builder appBuilder = AndroidApp.builder();
     addDexResources(appBuilder, file);
     return extractMarker(appBuilder.build());
   }
 
-  public static Collection<Marker> extractMarkerFromJarFile(Path file)
-      throws IOException, ExecutionException {
+  public static Collection<Marker> extractMarkerFromJarFile(Path file) throws IOException {
     return extractMarker(AndroidApp.builder().addProgramFile(file).build());
   }
 
@@ -68,20 +67,18 @@ public class ExtractMarker {
     return size;
   }
 
-  public static Collection<Marker> extractMarkerFromDexProgramData(byte[] data)
-      throws IOException, ExecutionException {
+  public static Collection<Marker> extractMarkerFromDexProgramData(byte[] data) throws IOException {
     AndroidApp app = AndroidApp.builder().addDexProgramData(data, Origin.unknown()).build();
     return extractMarker(app);
   }
 
   public static Collection<Marker> extractMarkerFromClassProgramData(byte[] data)
-      throws IOException, ExecutionException {
+      throws IOException {
     AndroidApp app = AndroidApp.builder().addClassProgramData(data, Origin.unknown()).build();
     return extractMarker(app);
   }
 
-  private static void addDexResources(AndroidApp.Builder appBuilder, Path file)
-      throws IOException, ResourceException {
+  private static void addDexResources(AndroidApp.Builder appBuilder, Path file) throws IOException {
     if (FileUtils.isVDexFile(file)) {
       PathOrigin vdexOrigin = new PathOrigin(file);
       try (InputStream fileInputStream = Files.newInputStream(file)) {

@@ -175,7 +175,7 @@ public abstract class TestCompileResult<
   }
 
   @Deprecated
-  public RR run(String mainClass) throws ExecutionException, IOException {
+  public RR run(String mainClass) throws IOException {
     assert !libraryDesugaringTestConfiguration.isEnabled();
     ClassSubject mainClassSubject = inspector().clazz(mainClass);
     assertThat(mainClassSubject, isPresent());
@@ -206,8 +206,7 @@ public abstract class TestCompileResult<
     return run(runtime, mainClass, new String[] {});
   }
 
-  public RR run(TestRuntime runtime, String mainClass, String... args)
-      throws ExecutionException, IOException {
+  public RR run(TestRuntime runtime, String mainClass, String... args) throws IOException {
     assert getBackend() == runtime.getBackend();
     ClassSubject mainClassSubject = inspector().clazz(mainClass);
     if (!mainClassSubject.isPresent()) {
@@ -607,7 +606,7 @@ public abstract class TestCompileResult<
     return self();
   }
 
-  public CR disassemble(PrintStream ps) throws IOException, ExecutionException {
+  public CR disassemble(PrintStream ps) throws IOException {
     ToolHelper.disassemble(app, ps);
     return self();
   }

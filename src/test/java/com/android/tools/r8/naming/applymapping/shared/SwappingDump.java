@@ -28,7 +28,7 @@ public class SwappingDump {
   //  }
   public static class ADump implements Opcodes {
 
-    public static byte[] dump() throws Exception {
+    public static byte[] dump() {
 
       ClassWriter classWriter = new ClassWriter(0);
       MethodVisitor methodVisitor;
@@ -108,7 +108,7 @@ public class SwappingDump {
   //  }
   public static class BDump implements Opcodes {
 
-    public static byte[] dump() throws Exception {
+    public static byte[] dump() {
 
       ClassWriter classWriter = new ClassWriter(0);
       MethodVisitor methodVisitor;
@@ -146,7 +146,7 @@ public class SwappingDump {
   // then replaced use of y() with x() to introduce IllegalAccessError.
   public static class MainDump implements Opcodes {
 
-    public static byte[] dump() throws Exception {
+    public static byte[] dump() {
 
       ClassWriter classWriter = new ClassWriter(0);
       MethodVisitor methodVisitor;

@@ -168,7 +168,7 @@ public class ApiModelClassMergingPackagePrivateTest extends TestBase {
 
   public static class Main {
 
-    public static void main(String[] args) throws Exception {
+    public static void main(String[] args) {
       Caller.createAndCallFoo();
       new B().foo();
     }

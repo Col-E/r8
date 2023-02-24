@@ -141,7 +141,7 @@ public class DexSegments {
   }
 
   public static Map<Integer, SegmentInfo> run(Command command)
-      throws CompilationFailedException, IOException, ResourceException {
+      throws IOException, ResourceException {
     if (command.isPrintHelp()) {
       System.out.println(Command.USAGE_MESSAGE);
       return null;

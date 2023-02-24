@@ -96,7 +96,7 @@ class TestDoWhileLoop {
 public class B113326860 {
 
   private CodeInspector compileTestClasses(List<Class> classes)
-      throws IOException, CompilationFailedException, ExecutionException {
+      throws IOException, CompilationFailedException {
     D8Command.Builder builder = D8Command.builder().setMode(CompilationMode.RELEASE);
     for (Class c : classes) {
       builder.addClassProgramData(ToolHelper.getClassAsBytes(c), Origin.unknown());

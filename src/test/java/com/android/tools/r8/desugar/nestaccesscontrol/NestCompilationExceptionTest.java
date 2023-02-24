@@ -58,7 +58,7 @@ public class NestCompilationExceptionTest extends TestBase {
   }
 
   @Test
-  public void testD8() throws Exception {
+  public void testD8() {
     testMissingNestHostError(true);
     testIncompleteNestError(true);
   }

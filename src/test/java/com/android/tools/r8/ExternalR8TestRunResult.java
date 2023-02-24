@@ -11,7 +11,6 @@ import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import java.io.IOException;
 import java.nio.file.Path;
-import java.util.concurrent.ExecutionException;
 
 public class ExternalR8TestRunResult extends SingleTestRunResult<ExternalR8TestRunResult> {
 
@@ -40,7 +39,7 @@ public class ExternalR8TestRunResult extends SingleTestRunResult<ExternalR8TestR
   }
 
   @Override
-  public CodeInspector inspector() throws IOException, ExecutionException {
+  public CodeInspector inspector() throws IOException {
     // See comment in base class.
     assertSuccess();
     assertNotNull(app);

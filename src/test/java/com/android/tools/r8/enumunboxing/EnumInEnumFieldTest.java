@@ -74,7 +74,7 @@ public class EnumInEnumFieldTest extends EnumUnboxingTestBase {
 
   public static class Main {
 
-    public static void main(String[] args) throws Exception {
+    public static void main(String[] args) {
       set(System.currentTimeMillis() > 0 ? OtherEnum.C : OtherEnum.D);
       System.out.println(MyEnum.A.otherEnum.ordinal());
     }

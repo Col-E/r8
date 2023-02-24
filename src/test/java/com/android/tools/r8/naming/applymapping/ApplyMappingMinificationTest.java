@@ -87,7 +87,7 @@ public class ApplyMappingMinificationTest extends TestBase {
 
   @Test
   public void testApplyMappingFollowedByMinification()
-      throws IOException, CompilationFailedException, ExecutionException, NoSuchMethodException {
+      throws IOException, CompilationFailedException, ExecutionException {
     String[] pgMap =
         new String[] {
           A.class.getTypeName() + " -> a:", "  int fieldA -> a", "  void methodA() -> a"

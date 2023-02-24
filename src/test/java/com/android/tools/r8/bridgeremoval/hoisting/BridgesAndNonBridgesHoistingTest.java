@@ -26,7 +26,7 @@ public class BridgesAndNonBridgesHoistingTest extends TestBase {
   }
 
   @Test
-  public void test() throws Exception {}
+  public void test() {}
 
   static class TestClass {
 

@@ -140,8 +140,8 @@ public class AsmTestBase extends TestBase {
     ensureSameOutput(main, mergedApp, false, classes);
   }
 
-  protected static AndroidApp readClassesAndAsmDump(List<Class<?>> classes, List<byte[]> asmClasses)
-      throws IOException {
+  protected static AndroidApp readClassesAndAsmDump(
+      List<Class<?>> classes, List<byte[]> asmClasses) {
     AndroidApp.Builder builder = AndroidApp.builder();
     for (Class clazz : classes) {
       builder.addProgramFiles(ToolHelper.getClassFileForTestClass(clazz));

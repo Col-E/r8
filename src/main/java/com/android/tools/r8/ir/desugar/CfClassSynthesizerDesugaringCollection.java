@@ -90,8 +90,7 @@ public abstract class CfClassSynthesizerDesugaringCollection {
 
     @Override
     public void synthesizeClasses(
-        ExecutorService executorService, CfClassSynthesizerDesugaringEventConsumer eventConsumer)
-        throws ExecutionException {
+        ExecutorService executorService, CfClassSynthesizerDesugaringEventConsumer eventConsumer) {
       // Intentionally empty.
     }
   }

@@ -115,8 +115,7 @@ public abstract class CfPostProcessingDesugaringCollection {
     public void postProcessingDesugaring(
         Collection<DexProgramClass> programClasses,
         CfPostProcessingDesugaringEventConsumer eventConsumer,
-        ExecutorService executorService)
-        throws ExecutionException {
+        ExecutorService executorService) {
       // Intentionally empty.
     }
   }

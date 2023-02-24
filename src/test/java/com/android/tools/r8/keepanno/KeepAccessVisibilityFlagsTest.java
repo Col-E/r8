@@ -195,7 +195,7 @@ public class KeepAccessVisibilityFlagsTest extends TestBase {
           classConstant = MemberRuleTarget.class,
           memberAccess = {MemberAccessFlags.PACKAGE_PRIVATE, MemberAccessFlags.PRIVATE}),
     })
-    void foo() throws Exception {
+    void foo() {
       // Print all non-private fields.
       {
         List<String> nonPrivateFields = new ArrayList<>();

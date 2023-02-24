@@ -89,7 +89,7 @@ public class KeepBindingTest extends TestBase {
   }
 
   static class A {
-    public void foo() throws Exception {
+    public void foo() {
       System.out.println("A::foo");
     }
 
@@ -99,7 +99,7 @@ public class KeepBindingTest extends TestBase {
   }
 
   static class B {
-    public void foo() throws Exception {
+    public void foo() {
       System.out.println("B::foo");
     }
 
@@ -109,7 +109,7 @@ public class KeepBindingTest extends TestBase {
   }
 
   static class C {
-    public void foo() throws Exception {
+    public void foo() {
       System.out.println("C::foo");
     }
 

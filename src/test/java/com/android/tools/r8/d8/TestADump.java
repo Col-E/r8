@@ -11,7 +11,7 @@ import org.objectweb.asm.Opcodes;
 
 class TestADump implements Opcodes {
 
-  public static byte[] dump () throws Exception {
+  public static byte[] dump() {
 
     ClassWriter classWriter = new ClassWriter(0);
     MethodVisitor methodVisitor;

@@ -48,8 +48,7 @@ public abstract class Outliner {
           IRConverter converter,
           OptimizationFeedbackDelayed feedback,
           ExecutorService executorService,
-          Timing timing)
-          throws ExecutionException {
+          Timing timing) {
         // Intentionally empty.
       }
 

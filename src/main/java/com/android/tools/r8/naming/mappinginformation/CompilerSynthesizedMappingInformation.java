@@ -5,7 +5,6 @@
 package com.android.tools.r8.naming.mappinginformation;
 
 import com.android.tools.r8.naming.MapVersion;
-import com.android.tools.r8.naming.MappingComposeException;
 import com.android.tools.r8.naming.mappinginformation.MappingInformation.ReferentialMappingInformation;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonPrimitive;
@@ -44,7 +43,7 @@ public class CompilerSynthesizedMappingInformation extends ReferentialMappingInf
   }
 
   @Override
-  public MappingInformation compose(MappingInformation existing) throws MappingComposeException {
+  public MappingInformation compose(MappingInformation existing) {
     // There is no difference between taking the existing or new so we just do a consistent choice.
     return existing;
   }

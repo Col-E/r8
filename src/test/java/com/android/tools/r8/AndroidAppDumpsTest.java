@@ -114,7 +114,7 @@ public class AndroidAppDumpsTest extends TestBase {
       String name, byte[] content, Origin origin) {
     return new ProgramResourceProvider() {
       @Override
-      public Collection<ProgramResource> getProgramResources() throws ResourceException {
+      public Collection<ProgramResource> getProgramResources() {
         return Collections.emptyList();
       }
 
@@ -122,11 +122,11 @@ public class AndroidAppDumpsTest extends TestBase {
       public DataResourceProvider getDataResourceProvider() {
         return new DataResourceProvider() {
           @Override
-          public void accept(Visitor visitor) throws ResourceException {
+          public void accept(Visitor visitor) {
             visitor.visit(
                 new DataEntryResource() {
                   @Override
-                  public InputStream getByteStream() throws ResourceException {
+                  public InputStream getByteStream() {
                     return new ByteArrayInputStream(content);
                   }
 

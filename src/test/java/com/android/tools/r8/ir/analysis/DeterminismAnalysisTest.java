@@ -26,37 +26,37 @@ public class DeterminismAnalysisTest extends AnalysisTestBase {
   }
 
   @Test
-  public void testMax() throws Exception {
+  public void testMax() {
     buildAndCheckIR("max", checkAnalysisResult(true));
   }
 
   @Test
-  public void testSget() throws Exception {
+  public void testSget() {
     buildAndCheckIR("sget", checkAnalysisResult(false));
   }
 
   @Test
-  public void testIget() throws Exception {
+  public void testIget() {
     buildAndCheckIR("iget", checkAnalysisResult(false));
   }
 
   @Test
-  public void testAget() throws Exception {
+  public void testAget() {
     buildAndCheckIR("aget", checkAnalysisResult(false));
   }
 
   @Test
-  public void testAlength() throws Exception {
+  public void testAlength() {
     buildAndCheckIR("alength", checkAnalysisResult(false));
   }
 
   @Test
-  public void testCreateInstance() throws Exception {
+  public void testCreateInstance() {
     buildAndCheckIR("createInstance", checkAnalysisResult(false));
   }
 
   @Test
-  public void testCreateArray() throws Exception {
+  public void testCreateArray() {
     buildAndCheckIR("createArray", checkAnalysisResult(false));
   }
 

@@ -7,7 +7,6 @@ import com.android.tools.r8.GenerateMainDexListCommand.Builder;
 import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.InternalOptions;
-import java.io.IOException;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -42,14 +41,12 @@ public class GenerateMainDexListTestBuilder
   }
 
   @Override
-  public GenerateMainDexListRunResult run(String mainClass)
-      throws IOException, CompilationFailedException {
+  public GenerateMainDexListRunResult run(String mainClass) {
     throw new Unimplemented("No support for running with a main class");
   }
 
   @Override
-  public GenerateMainDexListRunResult run(TestRuntime runtime, String mainClass, String... args)
-      throws IOException, CompilationFailedException {
+  public GenerateMainDexListRunResult run(TestRuntime runtime, String mainClass, String... args) {
     throw new Unimplemented("No support for running with a main class");
   }
 
@@ -68,7 +65,7 @@ public class GenerateMainDexListTestBuilder
     throw new Unimplemented("No support for class path");
   }
 
-  public GenerateMainDexListRunResult run() throws CompilationFailedException, IOException {
+  public GenerateMainDexListRunResult run() throws CompilationFailedException {
     GenerateMainDexListCommand command = builder.build();
     InternalOptions internalOptions = command.getInternalOptions();
     optionsConsumer.accept(internalOptions);

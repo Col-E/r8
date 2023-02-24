@@ -58,7 +58,7 @@ public class MemberAndLocalClassTest extends TestBase {
   // and added EnclosingMethod attribute as described at b/137881258#comment7
   private static class Dump implements Opcodes {
 
-    public static byte[] dump () throws Exception {
+    public static byte[] dump() {
 
       ClassWriter classWriter = new ClassWriter(0);
       MethodVisitor methodVisitor;

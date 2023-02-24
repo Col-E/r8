@@ -47,7 +47,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-import java.util.concurrent.ExecutionException;
 import java.util.function.Consumer;
 import java.util.jar.JarEntry;
 import java.util.jar.JarOutputStream;
@@ -1679,8 +1678,7 @@ public abstract class R8RunArtTestsTest extends TestBase {
                   .addProgramResourceProvider(
                       new ProgramResourceProvider() {
                         @Override
-                        public Collection<ProgramResource> getProgramResources()
-                            throws ResourceException {
+                        public Collection<ProgramResource> getProgramResources() {
                           return cfInputs;
                         }
                       });
@@ -2062,8 +2060,7 @@ public abstract class R8RunArtTestsTest extends TestBase {
     expectedException = true;
   }
 
-  private void failWithDexDiff(File originalFile, File processedFile)
-      throws IOException, ExecutionException {
+  private void failWithDexDiff(File originalFile, File processedFile) throws IOException {
     CodeInspector inspectOriginal =
         new CodeInspector(originalFile.toPath().toAbsolutePath());
     CodeInspector inspectProcessed =

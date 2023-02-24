@@ -15,7 +15,6 @@ import com.android.tools.r8.ir.desugar.CfPostProcessingDesugaringEventConsumer;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 
 public class DesugaredLibraryDisableDesugarerPostProcessor implements CfPostProcessingDesugaring {
@@ -38,8 +37,7 @@ public class DesugaredLibraryDisableDesugarerPostProcessor implements CfPostProc
   public void postProcessingDesugaring(
       Collection<DexProgramClass> programClasses,
       CfPostProcessingDesugaringEventConsumer eventConsumer,
-      ExecutorService executorService)
-      throws ExecutionException {
+      ExecutorService executorService) {
     for (DexType multiDexType : appView.dexItemFactory().multiDexTypes) {
       DexClass clazz =
           appView.appInfoForDesugaring().definitionForWithoutExistenceAssert(multiDexType);

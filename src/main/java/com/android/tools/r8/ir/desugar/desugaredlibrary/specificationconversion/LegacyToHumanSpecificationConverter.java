@@ -33,7 +33,6 @@ import com.android.tools.r8.utils.Timing;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -54,8 +53,7 @@ public class LegacyToHumanSpecificationConverter {
   }
 
   public MultiAPILevelHumanDesugaredLibrarySpecification convertAllAPILevels(
-      MultiAPILevelLegacyDesugaredLibrarySpecification legacySpec, DexApplication app)
-      throws IOException {
+      MultiAPILevelLegacyDesugaredLibrarySpecification legacySpec, DexApplication app) {
     timing.begin("Legacy to human all API convert");
     Origin origin = legacySpec.getOrigin();
 
@@ -80,7 +78,7 @@ public class LegacyToHumanSpecificationConverter {
   }
 
   public HumanDesugaredLibrarySpecification convert(
-      LegacyDesugaredLibrarySpecification legacySpec, DexApplication app) throws IOException {
+      LegacyDesugaredLibrarySpecification legacySpec, DexApplication app) {
     timing.begin("Legacy to Human convert");
     LibraryValidator.validate(
         app,

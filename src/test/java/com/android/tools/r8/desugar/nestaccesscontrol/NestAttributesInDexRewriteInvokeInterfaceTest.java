@@ -281,7 +281,7 @@ public class NestAttributesInDexRewriteInvokeInterfaceTest extends TestBase impl
 
   */
 
-  public static byte[] dumpHost() throws Exception {
+  public static byte[] dumpHost() {
 
     ClassWriter classWriter = new ClassWriter(0);
     MethodVisitor methodVisitor;
@@ -340,7 +340,7 @@ public class NestAttributesInDexRewriteInvokeInterfaceTest extends TestBase impl
     return classWriter.toByteArray();
   }
 
-  public static byte[] dumpMember1() throws Exception {
+  public static byte[] dumpMember1() {
 
     ClassWriter classWriter = new ClassWriter(0);
     MethodVisitor methodVisitor;
@@ -377,7 +377,7 @@ public class NestAttributesInDexRewriteInvokeInterfaceTest extends TestBase impl
     return classWriter.toByteArray();
   }
 
-  public static byte[] dumpMember2() throws Exception {
+  public static byte[] dumpMember2() {
 
     ClassWriter classWriter = new ClassWriter(0);
     MethodVisitor methodVisitor;
@@ -414,7 +414,7 @@ public class NestAttributesInDexRewriteInvokeInterfaceTest extends TestBase impl
     return classWriter.toByteArray();
   }
 
-  public static byte[] dumpHostImpl() throws Exception {
+  public static byte[] dumpHostImpl() {
 
     ClassWriter classWriter = new ClassWriter(0);
     MethodVisitor methodVisitor;
@@ -488,7 +488,7 @@ public class NestAttributesInDexRewriteInvokeInterfaceTest extends TestBase impl
     return classWriter.toByteArray();
   }
 
-  public static byte[] dumpMember1Impl() throws Exception {
+  public static byte[] dumpMember1Impl() {
 
     ClassWriter classWriter = new ClassWriter(0);
     MethodVisitor methodVisitor;
@@ -515,7 +515,7 @@ public class NestAttributesInDexRewriteInvokeInterfaceTest extends TestBase impl
     return classWriter.toByteArray();
   }
 
-  public static byte[] dumpMember2Impl() throws Exception {
+  public static byte[] dumpMember2Impl() {
 
     ClassWriter classWriter = new ClassWriter(0);
     MethodVisitor methodVisitor;

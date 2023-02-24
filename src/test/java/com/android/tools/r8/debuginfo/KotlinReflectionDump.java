@@ -18,7 +18,7 @@ public class KotlinReflectionDump implements Opcodes {
   private static final String INTERNAL_NAME = "kotlin/jvm/internal/Reflection";
   public static final String CLASS_NAME = INTERNAL_NAME.replace('/', '.');
 
-  public static byte[] dump() throws Exception {
+  public static byte[] dump() {
 
     ClassWriter cw = new ClassWriter(0);
     FieldVisitor fv;

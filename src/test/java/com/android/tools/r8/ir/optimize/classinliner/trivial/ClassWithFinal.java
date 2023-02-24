@@ -13,7 +13,7 @@ public class ClassWithFinal {
   }
 
   @Override
-  protected void finalize() throws Throwable {
+  protected void finalize() {
     doNothing();
   }
 }

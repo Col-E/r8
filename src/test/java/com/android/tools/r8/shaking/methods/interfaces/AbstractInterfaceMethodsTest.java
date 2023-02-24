@@ -41,8 +41,7 @@ public class AbstractInterfaceMethodsTest extends TestBase {
   }
 
   @Test
-  public void testSingleInheritanceProguard()
-      throws CompilationFailedException, IOException, ExecutionException {
+  public void testSingleInheritanceProguard() throws CompilationFailedException, IOException {
     assumeTrue(parameters.isCfRuntime());
     testForProguard()
         .addProgramClasses(I.class, J.class)

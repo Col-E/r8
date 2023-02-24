@@ -588,8 +588,10 @@ public class MemberResolutionTest extends JasminTestBase {
     Assert.assertEquals(javaOutput, r8ShakenOutput);
   }
 
-  private void ensureFails(JasminBuilder builder, String main,
-      ThrowingBiFunction<JasminBuilder, String, ProcessResult, Exception> runner) throws Exception {
+  private void ensureFails(
+      JasminBuilder builder,
+      String main,
+      ThrowingBiFunction<JasminBuilder, String, ProcessResult, Exception> runner) {
     ProcessResult result;
     try {
       result = runner.apply(builder, main);
@@ -607,8 +609,7 @@ public class MemberResolutionTest extends JasminTestBase {
         (a, m) -> runOnArtR8Raw(a, m, keepMainProguardConfiguration(MAIN_CLASS), null));
   }
 
-  private void ensureException(JasminBuilder app, Class<? extends Throwable> exception)
-      throws Exception {
+  private void ensureException(JasminBuilder app, Class<? extends Throwable> exception) {
     String name = exception.getSimpleName();
     BiConsumer<ThrowingSupplier<ProcessResult, Exception>, CompilerUnderTest> runtest =
         (process, compiler) -> {

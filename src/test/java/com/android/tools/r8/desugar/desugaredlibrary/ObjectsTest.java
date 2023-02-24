@@ -458,7 +458,7 @@ public class ObjectsTest extends DesugaredLibraryTestBase implements Opcodes {
 
     This is added as a dump as it use APIs which are only abailable from JDK 9.
   */
-  public static byte[] dumpAndroidRUtilsObjectsMethods() throws Exception {
+  public static byte[] dumpAndroidRUtilsObjectsMethods() {
 
     ClassWriter classWriter = new ClassWriter(0);
     MethodVisitor methodVisitor;

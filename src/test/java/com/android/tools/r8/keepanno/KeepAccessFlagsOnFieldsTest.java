@@ -145,7 +145,7 @@ public class KeepAccessFlagsOnFieldsTest extends TestBase {
           classConstant = A.class,
           fieldAccess = {FieldAccessFlags.PUBLIC})
     })
-    public static void main(String[] args) throws Exception {
+    public static void main(String[] args) {
       Object o = System.nanoTime() > 0 ? new A() : null;
       for (Field f : o.getClass().getDeclaredFields()) {
         System.out.println(f.getName());

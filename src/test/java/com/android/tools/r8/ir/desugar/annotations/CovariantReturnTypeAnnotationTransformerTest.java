@@ -235,7 +235,7 @@ public class CovariantReturnTypeAnnotationTransformerTest extends AsmTestBase {
                         .anyMatch(method -> method.annotation(CRTS_TYPE_NAME).isPresent())));
   }
 
-  private void checkPresenceOfSyntheticMethods(CodeInspector inspector) throws Exception {
+  private void checkPresenceOfSyntheticMethods(CodeInspector inspector) {
     // Get classes A, B, and C.
     ClassSubject clazzA = inspector.clazz(A.class.getCanonicalName());
     assertThat(clazzA, isPresent());

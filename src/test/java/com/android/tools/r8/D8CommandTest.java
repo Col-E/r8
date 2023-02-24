@@ -755,7 +755,7 @@ public class D8CommandTest extends CommandTestBase<D8Command> {
     assertEquals(10, parse("--thread-count", "10").getThreadCount());
   }
 
-  private void numThreadsOptionInvalid(String value) throws Exception {
+  private void numThreadsOptionInvalid(String value) {
     final String expectedErrorContains = "Invalid argument to --thread-count";
     try {
       DiagnosticsChecker.checkErrorsContains(

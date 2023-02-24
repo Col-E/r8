@@ -473,6 +473,7 @@ final public class ResourceShrinker {
     }
   }
 
+  @SuppressWarnings("RedundantThrows")
   public static void run(Command command, ReferenceChecker callback)
       throws IOException, ExecutionException {
     AndroidApp inputApp = command.getInputApp();

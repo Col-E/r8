@@ -13,7 +13,7 @@ import org.objectweb.asm.Opcodes;
 
 public class UninitializedInFrameDump implements Opcodes {
 
-  public static byte[] dump() throws Exception {
+  public static byte[] dump() {
 
     ClassWriter cw = new ClassWriter(ClassWriter.COMPUTE_FRAMES | ClassWriter.COMPUTE_MAXS);
     FieldVisitor fv;

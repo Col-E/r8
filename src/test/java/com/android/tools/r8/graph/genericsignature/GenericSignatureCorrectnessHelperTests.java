@@ -219,7 +219,7 @@ public class GenericSignatureCorrectnessHelperTests extends TestBase {
   public interface I {}
 
   public interface J<T> {
-    <R extends Object & I & J<Integer>> R foo(T foo) throws CustomException;
+    <R extends Object & I & J<Integer>> R foo(T foo);
   }
 
   public static class Base<T> {}

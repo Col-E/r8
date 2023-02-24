@@ -9,7 +9,6 @@ import static junit.framework.TestCase.assertFalse;
 import static junit.framework.TestCase.assertNotNull;
 
 import com.android.tools.r8.CompilationFailedException;
-import com.android.tools.r8.ResourceException;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
@@ -51,7 +50,7 @@ public class RelocatorServiceLoaderTest extends TestBase {
 
   @Test
   public void testRewritingOfServicesForNotFoundClasses()
-      throws IOException, CompilationFailedException, ResourceException {
+      throws IOException, CompilationFailedException {
     File testJar = temp.newFile("test.jar");
     Path testJarPath = testJar.toPath();
     OpenOption[] options =
@@ -84,8 +83,7 @@ public class RelocatorServiceLoaderTest extends TestBase {
   }
 
   @Test
-  public void testRewritingService()
-      throws IOException, CompilationFailedException, ResourceException {
+  public void testRewritingService() throws IOException, CompilationFailedException {
     File testJar = temp.newFile("test.jar");
     Path testJarPath = testJar.toPath();
     OpenOption[] options =
@@ -121,8 +119,7 @@ public class RelocatorServiceLoaderTest extends TestBase {
   }
 
   @Test
-  public void testRewritingServiceImpl()
-      throws IOException, CompilationFailedException, ResourceException {
+  public void testRewritingServiceImpl() throws IOException, CompilationFailedException {
     File testJar = temp.newFile("test.jar");
     Path testJarPath = testJar.toPath();
     OpenOption[] options =

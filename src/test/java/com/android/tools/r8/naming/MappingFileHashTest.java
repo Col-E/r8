@@ -45,7 +45,7 @@ public class MappingFileHashTest extends TestBase {
     verifyHash(newline, hash);
   }
 
-  private void verifyHash(String newline, String hash) throws Exception {
+  private void verifyHash(String newline, String hash) {
     // Some header info. This should never affect the hash.
     String header =
         String.join(

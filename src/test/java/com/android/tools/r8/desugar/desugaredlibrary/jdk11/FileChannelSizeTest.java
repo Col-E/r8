@@ -93,7 +93,7 @@ public class FileChannelSizeTest extends DesugaredLibraryTestBase {
 
   public static class TestClass {
 
-    public static void main(String[] args) throws IOException {
+    public static void main(String[] args) {
       try {
         String toWrite = "Hello World! ";
         ByteBuffer byteBuffer = ByteBuffer.allocate(toWrite.length());

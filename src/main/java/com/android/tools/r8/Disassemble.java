@@ -241,8 +241,7 @@ public class Disassemble {
     disassemble(command);
   }
 
-  public static void disassemble(DisassembleCommand command)
-      throws IOException, ExecutionException {
+  public static void disassemble(DisassembleCommand command) {
     AndroidApp app = command.getInputApp();
     InternalOptions options = command.getInternalOptions();
     try (OutputWriter outputWriter = getOutputWriter(command)) {
@@ -328,7 +327,7 @@ public class Disassemble {
     }
 
     @Override
-    public void close() throws IOException {
+    public void close() {
       // Intentionally empty.
     }
   }
@@ -367,7 +366,7 @@ public class Disassemble {
     }
 
     @Override
-    public void close() throws IOException {
+    public void close() {
       // Intentionally empty.
     }
   }
@@ -406,7 +405,7 @@ public class Disassemble {
     }
 
     @Override
-    public void close() throws IOException {
+    public void close() {
       fileStream.flush();
       fileStream.close();
     }

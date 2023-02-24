@@ -33,7 +33,7 @@ public class LirBasicCallbackTest extends TestBase {
   }
 
   @Test
-  public void test() throws Exception {
+  public void test() {
     DexItemFactory factory = new DexItemFactory();
     DexMethod method = factory.createMethod(Reference.methodFromDescriptor("LFoo;", "bar", "()V"));
     LirCode code =

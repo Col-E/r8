@@ -148,7 +148,7 @@ public class B137392797 extends TestBase implements Opcodes {
    )
 
   */
-  public static byte[] classWireField(boolean defaultEnumValueInAnnotation) throws Exception {
+  public static byte[] classWireField(boolean defaultEnumValueInAnnotation) {
 
     ClassWriter classWriter = new ClassWriter(0);
     MethodVisitor methodVisitor;
@@ -654,7 +654,7 @@ public class B137392797 extends TestBase implements Opcodes {
     return classWriter.toByteArray();
   }
 
-  public static byte[] classTest(boolean defaultEnumValueInAnnotation) throws Exception {
+  public static byte[] classTest(boolean defaultEnumValueInAnnotation) {
 
     ClassWriter classWriter = new ClassWriter(0);
     FieldVisitor fieldVisitor;

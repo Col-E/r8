@@ -35,7 +35,7 @@ public class AtomicReferenceTest extends AbstractBackportTest {
   public static class Main extends MiniAssert {
     public volatile String field;
 
-    public static void main(String[] args) throws Exception {
+    public static void main(String[] args) {
       AtomicReference<String> reference = new AtomicReference<>(null);
       assertTrue(reference.compareAndSet(null, "A"));
       assertTrue(reference.compareAndSet("A", "B"));

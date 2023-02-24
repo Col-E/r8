@@ -25,6 +25,7 @@ public interface ProguardMapProducer {
     return false;
   }
 
+  @SuppressWarnings("RedundantThrows")
   default Path getPath() throws FileNotFoundException {
     return null;
   }

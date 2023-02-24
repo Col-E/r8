@@ -246,7 +246,7 @@ public class ScriptEngineTest extends ScriptEngineTestBase {
     }
 
     @Override
-    public Object eval(String script) throws ScriptException {
+    public Object eval(String script) {
       return "Engine " + variant + " evaluation of: " + script;
     }
 

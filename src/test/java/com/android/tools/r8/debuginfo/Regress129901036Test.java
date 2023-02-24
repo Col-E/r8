@@ -24,7 +24,7 @@ public class Regress129901036Test {
     }
   }
 
-  public static void noThrow() throws Exception {
+  public static void noThrow() {
     // Intentionally empty.
   }
 

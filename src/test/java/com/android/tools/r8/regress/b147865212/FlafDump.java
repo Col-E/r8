@@ -44,7 +44,7 @@ import org.objectweb.asm.Opcodes;
 //        Start  Length  Slot  Name   Signature
 //            5       1     0     e   Ljava/lang/IllegalStateException;
 public class FlafDump implements Opcodes {
-  public static byte[] dump(boolean generateLineNumberForLocal) throws Exception {
+  public static byte[] dump(boolean generateLineNumberForLocal) {
     ClassWriter classWriter = new ClassWriter(0);
     MethodVisitor methodVisitor;
     AnnotationVisitor annotationVisitor0;

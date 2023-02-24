@@ -89,7 +89,7 @@ public class UninitializedInstanceOfTest extends TestBase {
 
   static class MainDump implements Opcodes {
 
-    static byte[] dump() throws Exception {
+    static byte[] dump() {
 
       ClassWriter classWriter = new ClassWriter(0);
       MethodVisitor methodVisitor;

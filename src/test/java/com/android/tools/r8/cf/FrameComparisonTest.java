@@ -30,7 +30,7 @@ public class FrameComparisonTest extends TestBase {
   }
 
   @Test
-  public void test() throws Exception {
+  public void test() {
     DexItemFactory dexItemFactory = new DexItemFactory();
     CfFrame f1 =
         CfFrame.builder()

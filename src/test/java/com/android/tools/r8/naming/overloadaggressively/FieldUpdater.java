@@ -9,7 +9,7 @@ import java.util.concurrent.atomic.AtomicReferenceFieldUpdater;
 
 public class FieldUpdater {
   @SuppressWarnings("unchecked")
-  public static void main(String[] args) throws Exception {
+  public static void main(String[] args) {
     A a = new A();
     B b = new B();
     AtomicReferenceFieldUpdater f3Updater =

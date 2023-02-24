@@ -28,7 +28,6 @@ import com.android.tools.r8.synthesis.SyntheticItems.GlobalSyntheticsStrategy;
 import com.android.tools.r8.utils.Reporter;
 import com.android.tools.r8.utils.Timing;
 import com.google.common.collect.Sets;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -47,8 +46,7 @@ public class HumanToMachineSpecificationConverter {
   }
 
   public MultiAPILevelMachineDesugaredLibrarySpecification convertAllAPILevels(
-      MultiAPILevelHumanDesugaredLibrarySpecification humanSpec, DexApplication app)
-      throws IOException {
+      MultiAPILevelHumanDesugaredLibrarySpecification humanSpec, DexApplication app) {
     timing.begin("Legacy to human all API convert");
     reporter = app.options.reporter;
     appInfo =

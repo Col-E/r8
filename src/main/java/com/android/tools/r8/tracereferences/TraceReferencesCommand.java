@@ -17,7 +17,6 @@ import com.android.tools.r8.Keep;
 import com.android.tools.r8.ProgramResource;
 import com.android.tools.r8.ProgramResource.Kind;
 import com.android.tools.r8.ProgramResourceProvider;
-import com.android.tools.r8.ResourceException;
 import com.android.tools.r8.dex.Marker.Tool;
 import com.android.tools.r8.dump.DumpOptions;
 import com.android.tools.r8.origin.Origin;
@@ -283,7 +282,7 @@ public class TraceReferencesCommand {
               ProgramResource dexResource = ProgramResource.fromFile(Kind.DEX, file);
 
               @Override
-              public Collection<ProgramResource> getProgramResources() throws ResourceException {
+              public Collection<ProgramResource> getProgramResources() {
                 return Collections.singletonList(dexResource);
               }
             });

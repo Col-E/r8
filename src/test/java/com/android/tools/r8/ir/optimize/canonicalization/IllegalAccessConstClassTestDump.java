@@ -18,7 +18,7 @@ class IllegalAccessConstClassTestDump {
   // then repackaged to the top-level.
   static class PackagePrivateClassDump implements Opcodes {
 
-    public static byte[] dump () throws Exception {
+    public static byte[] dump() {
 
       ClassWriter classWriter = new ClassWriter(0);
       MethodVisitor methodVisitor;
@@ -65,7 +65,7 @@ class IllegalAccessConstClassTestDump {
   // then rewritten to use the repackaged PackagePrivateClass instead.
   static class FakePackagePrivateClassConsumerDump implements Opcodes {
 
-    public static byte[] dump () throws Exception {
+    public static byte[] dump() {
 
       ClassWriter classWriter = new ClassWriter(0);
       MethodVisitor methodVisitor;

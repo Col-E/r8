@@ -656,7 +656,7 @@ public class TestBase {
   }
 
   protected static AndroidApp readClassesAndRuntimeJar(
-      List<Class<?>> programClasses, Backend backend) throws IOException {
+      List<Class<?>> programClasses, Backend backend) {
     AndroidApp.Builder builder = AndroidApp.builder();
     for (Class<?> clazz : programClasses) {
       builder.addProgramFiles(ToolHelper.getClassFileForTestClass(clazz));
@@ -672,7 +672,7 @@ public class TestBase {
   }
 
   /** Build an AndroidApp from the specified program files. */
-  protected AndroidApp readProgramFiles(Path... programFiles) throws IOException {
+  protected AndroidApp readProgramFiles(Path... programFiles) {
     return AndroidApp.builder().addProgramFiles(programFiles).build();
   }
 
@@ -1074,7 +1074,7 @@ public class TestBase {
 
   /** Compile an application with R8. */
   protected AndroidApp compileWithR8(AndroidApp app, Consumer<InternalOptions> optionsConsumer)
-      throws IOException, CompilationFailedException {
+      throws CompilationFailedException {
     R8Command command = ToolHelper.prepareR8CommandBuilder(app)
         .setDisableTreeShaking(true)
         .setDisableMinification(true)
@@ -1105,7 +1105,7 @@ public class TestBase {
 
   /** Compile an application with R8 using the supplied proguard configuration. */
   protected AndroidApp compileWithR8(AndroidApp app, Path proguardConfig)
-      throws IOException, CompilationFailedException {
+      throws CompilationFailedException {
     R8Command command =
         ToolHelper.prepareR8CommandBuilder(app)
             .addProguardConfigurationFiles(proguardConfig)
@@ -1115,20 +1115,20 @@ public class TestBase {
 
   /** Compile an application with R8 using the supplied proguard configuration. */
   protected AndroidApp compileWithR8(AndroidApp app, String proguardConfig)
-      throws IOException, CompilationFailedException {
+      throws CompilationFailedException {
     return compileWithR8(app, proguardConfig, null, Backend.DEX);
   }
 
   /** Compile an application with R8 using the supplied proguard configuration. */
   protected AndroidApp compileWithR8(AndroidApp app, String proguardConfig, Backend backend)
-      throws IOException, CompilationFailedException {
+      throws CompilationFailedException {
     return compileWithR8(app, proguardConfig, null, backend);
   }
 
   /** Compile an application with R8 using the supplied proguard configuration. */
   protected AndroidApp compileWithR8(
       AndroidApp app, String proguardConfig, Consumer<InternalOptions> optionsConsumer)
-      throws IOException, CompilationFailedException {
+      throws CompilationFailedException {
     return compileWithR8(app, proguardConfig, optionsConsumer, Backend.DEX);
   }
 
@@ -1509,7 +1509,7 @@ public class TestBase {
   /**
    * Disassemble the content of an application. Only works for an application with only dex code.
    */
-  protected void disassemble(AndroidApp app) throws Exception {
+  protected void disassemble(AndroidApp app) {
     InternalOptions options = new InternalOptions();
     System.out.println(SmaliWriter.smali(app, options));
   }

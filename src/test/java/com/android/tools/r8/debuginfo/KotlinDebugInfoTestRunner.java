@@ -65,7 +65,7 @@ public class KotlinDebugInfoTestRunner extends TestBase {
     test(DebugInfoDump.dump(), DebugInfoDump.CLASS_NAME);
   }
 
-  public void test(byte[] bytes, String className) throws Exception {}
+  public void test(byte[] bytes, String className) {}
 
   public void test(
       byte[] bytes, String className, ThrowableConsumer<R8FullTestBuilder> configuration)

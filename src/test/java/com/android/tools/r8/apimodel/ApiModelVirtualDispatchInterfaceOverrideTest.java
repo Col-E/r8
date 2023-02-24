@@ -70,7 +70,7 @@ public class ApiModelVirtualDispatchInterfaceOverrideTest extends TestBase {
 
   public static class Main {
 
-    public static void main(String[] args) throws Exception {
+    public static void main(String[] args) {
       AssetManager manager = null;
       manager.close();
     }

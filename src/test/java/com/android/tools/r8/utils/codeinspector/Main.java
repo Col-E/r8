@@ -9,7 +9,6 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 
 public class Main {
@@ -20,7 +19,7 @@ public class Main {
       "  and <input> is a series of input files (eg, .class, .dex, .jar, .zip or .apk)"
   );
 
-  public static void main(String[] args) throws IOException, ExecutionException {
+  public static void main(String[] args) throws IOException {
     List<Path> inputs = new ArrayList<>();
     String method = null;
     for (int i = 0; i < args.length; i++) {

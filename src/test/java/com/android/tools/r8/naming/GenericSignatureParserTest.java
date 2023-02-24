@@ -352,8 +352,7 @@ public class GenericSignatureParserTest extends TestBase {
   }
 
   private void failingParseAction(
-      Consumer<GenericSignatureParser<String>> parse, String errorMessageType)
-      throws Exception {
+      Consumer<GenericSignatureParser<String>> parse, String errorMessageType) {
     class ThrowsInParserActionBase<E extends Error> extends ReGenerateGenericSignatureRewriter {
       protected Supplier<? extends E> exceptionSupplier;
 

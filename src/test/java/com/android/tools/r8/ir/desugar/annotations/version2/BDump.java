@@ -19,7 +19,7 @@ import org.objectweb.asm.Type;
 // manually changing the name of the CovariantReturnType annotation to
 // "Ldalvik/annotation/codegen/CovariantReturnType;".
 public class BDump implements Opcodes {
-  public static byte[] dump() throws Exception {
+  public static byte[] dump() {
 
     ClassWriter cw = new ClassWriter(0);
     FieldVisitor fv;

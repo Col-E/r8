@@ -35,7 +35,7 @@ public class AtomicReferenceFieldUpdaterTest extends AbstractBackportTest {
   public static class Main extends MiniAssert {
     public volatile String field;
 
-    public static void main(String[] args) throws Exception {
+    public static void main(String[] args) {
       AtomicReferenceFieldUpdater<Main, String> updater =
           AtomicReferenceFieldUpdater.newUpdater(Main.class, String.class, "field");
       Main x = new Main();

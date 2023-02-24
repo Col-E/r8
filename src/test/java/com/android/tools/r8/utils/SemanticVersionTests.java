@@ -27,7 +27,7 @@ public class SemanticVersionTests extends TestBase {
   }
 
   @Test
-  public void test() throws Exception {
+  public void test() {
     assertTrue(parse("1.0.1").isNewerOrEqual(parse("1.0.0")));
     assertFalse(parse("1.0.1").isNewerOrEqual(parse("1.1.0")));
     assertTrue(parse("1.1.0").isNewerOrEqual(parse("1.0.1")));

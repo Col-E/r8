@@ -132,7 +132,7 @@ public class KeepParameterNamesUnsortedLocalVariablesTableTest extends TestBase 
     The order of the local variable table changed to have x before parameter1.
   */
 
-  public static byte[] dumpApi() throws Exception {
+  public static byte[] dumpApi() {
 
     ClassWriter classWriter = new ClassWriter(0);
     MethodVisitor methodVisitor;

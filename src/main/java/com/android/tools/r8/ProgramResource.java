@@ -152,11 +152,13 @@ public interface ProgramResource extends Resource {
       return kind;
     }
 
+    @SuppressWarnings("RedundantThrows")
     @Override
     public InputStream getByteStream() throws ResourceException {
       return new ByteArrayInputStream(bytes);
     }
 
+    @SuppressWarnings("RedundantThrows")
     @Override
     public byte[] getBytes() throws ResourceException {
       return bytes;

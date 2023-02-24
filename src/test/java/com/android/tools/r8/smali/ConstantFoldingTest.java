@@ -315,7 +315,7 @@ public class ConstantFoldingTest extends SmaliTestBase {
     testBuilder.addTest(this::unopMethodBuilder, this::unopMethodChecker, test);
   }
 
-  private void addNegFoldingTest(SmaliBuilderWithCheckers testBuilder) throws Exception {
+  private void addNegFoldingTest(SmaliBuilderWithCheckers testBuilder) {
     addUnopTest(testBuilder, new UnopTestData("int", "neg", 2L, -2L));
     addUnopTest(testBuilder, new UnopTestData("int", "neg", -2L, 2L));
     addUnopTest(testBuilder, new UnopTestData("long", "neg", 2L, -2L));
@@ -601,7 +601,7 @@ public class ConstantFoldingTest extends SmaliTestBase {
     assertTrue(code.instructions[1] instanceof DexReturn);
   }
 
-  private void addNotIntFoldTests(SmaliBuilderWithCheckers testBuilder) throws Exception {
+  private void addNotIntFoldTests(SmaliBuilderWithCheckers testBuilder) {
     ImmutableList.of(0, 1, 0xff, 0xffffffff, 0xff000000, 0x80000000)
         .forEach(v -> testBuilder.addTest(this::notIntMethodBuilder, this::notIntMethodChecker, v));
   }
@@ -623,8 +623,7 @@ public class ConstantFoldingTest extends SmaliTestBase {
     assertTrue(code.instructions[1] instanceof DexReturnWide);
   }
 
-
-  private void addNotLongFoldTests(SmaliBuilderWithCheckers testBuilder) throws Exception {
+  private void addNotLongFoldTests(SmaliBuilderWithCheckers testBuilder) {
     ImmutableList.of(
         0L,
         1L,
@@ -653,7 +652,7 @@ public class ConstantFoldingTest extends SmaliTestBase {
     assertTrue(code.instructions[1] instanceof DexReturn);
   }
 
-  private void addNegIntFoldTests(SmaliBuilderWithCheckers testBuilder) throws Exception {
+  private void addNegIntFoldTests(SmaliBuilderWithCheckers testBuilder) {
     ImmutableList.of(0, 1, 0xff, 0xffffffff, 0xff000000, 0x80000000)
         .forEach(v -> testBuilder.addTest(this::negIntMethodBuilder, this::negIntMethodChecker, v));
   }
@@ -676,7 +675,7 @@ public class ConstantFoldingTest extends SmaliTestBase {
     assertTrue(code.instructions[1] instanceof DexReturnWide);
   }
 
-  private void addNegLongFoldTests(SmaliBuilderWithCheckers testBuilder) throws Exception {
+  private void addNegLongFoldTests(SmaliBuilderWithCheckers testBuilder) {
     ImmutableList.of(
         0L,
         1L,
@@ -751,7 +750,7 @@ public class ConstantFoldingTest extends SmaliTestBase {
     assertTrue(code.instructions[1] instanceof DexReturn);
   }
 
-  private void addCmpFloatFoldTests(SmaliBuilderWithCheckers testBuilder) throws Exception {
+  private void addCmpFloatFoldTests(SmaliBuilderWithCheckers testBuilder) {
     float[] testValues = new float[]{
         Float.NEGATIVE_INFINITY,
         -100.0f,
@@ -859,8 +858,7 @@ public class ConstantFoldingTest extends SmaliTestBase {
     assertTrue(code.instructions[1] instanceof DexReturn);
   }
 
-
-  private void addCmpDoubleFoldTests(SmaliBuilderWithCheckers testBuilder) throws Exception {
+  private void addCmpDoubleFoldTests(SmaliBuilderWithCheckers testBuilder) {
     double[] testValues = new double[]{
         Double.NEGATIVE_INFINITY,
         -100.0f,
@@ -923,7 +921,7 @@ public class ConstantFoldingTest extends SmaliTestBase {
     assertTrue(code.instructions[1] instanceof DexReturn);
   }
 
-  private void addCmpLongFold(SmaliBuilderWithCheckers testBuilder) throws Exception {
+  private void addCmpLongFold(SmaliBuilderWithCheckers testBuilder) {
     ImmutableList.of(
         new long[]{Long.MIN_VALUE, 1L},
         new long[]{Long.MAX_VALUE, 1L},

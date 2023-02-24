@@ -65,7 +65,7 @@ public class DuplicateProgramTypesTest extends TestBase {
     builder.addClassProgramData(bytes, originB);
   }
 
-  private void addResolvingHandler(BaseCompilerCommand.Builder<?, ?> builder) throws Exception {
+  private void addResolvingHandler(BaseCompilerCommand.Builder<?, ?> builder) {
     builder.setClassConflictResolver(
         (reference, origins, handler) -> {
           assertEquals(
@@ -74,7 +74,7 @@ public class DuplicateProgramTypesTest extends TestBase {
         });
   }
 
-  private void addNonResolvingHandler(BaseCompilerCommand.Builder<?, ?> builder) throws Exception {
+  private void addNonResolvingHandler(BaseCompilerCommand.Builder<?, ?> builder) {
     builder.setClassConflictResolver(
         (reference, origins, handler) -> {
           assertEquals(
@@ -100,7 +100,7 @@ public class DuplicateProgramTypesTest extends TestBase {
   }
 
   @Test
-  public void testDefaultError() throws Exception {
+  public void testDefaultError() {
     assertThrows(
         CompilationFailedException.class,
         () ->
@@ -138,7 +138,7 @@ public class DuplicateProgramTypesTest extends TestBase {
   }
 
   @Test
-  public void testNonResolvedConflictD8() throws Exception {
+  public void testNonResolvedConflictD8() {
     assertThrows(
         CompilationFailedException.class,
         () ->
@@ -153,7 +153,7 @@ public class DuplicateProgramTypesTest extends TestBase {
   }
 
   @Test
-  public void testNonResolvedConflictR8() throws Exception {
+  public void testNonResolvedConflictR8() {
     assertThrows(
         CompilationFailedException.class,
         () ->

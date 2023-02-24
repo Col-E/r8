@@ -22,7 +22,7 @@ import org.objectweb.asm.Type;
 // "Ldalvik/annotation/codegen/CovariantReturnType;" and
 // "Ldalvik/annotation/codegen/CovariantReturnType$CovariantReturnTypes;", respectively.
 public class CDump implements Opcodes {
-  public static byte[] dump() throws Exception {
+  public static byte[] dump() {
 
     ClassWriter cw = new ClassWriter(0);
     FieldVisitor fv;

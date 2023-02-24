@@ -34,7 +34,7 @@ public class CompileGuavaWithUnrepresentableRewritingTest extends TestBase {
   }
 
   @Test
-  public void testD8DexNoDesugaring() throws Throwable {
+  public void testD8DexNoDesugaring() {
     assumeTrue(ToolHelper.isTestingR8Lib());
     assertThrows(
         CompilationFailedException.class,

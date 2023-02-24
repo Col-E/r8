@@ -50,12 +50,12 @@ public class EscapeAnalysisForNameReflectionTest extends AnalysisTestBase {
   }
 
   @Test
-  public void testEscapeViaReturn() throws Exception {
+  public void testEscapeViaReturn() {
     buildAndCheckIR("escapeViaReturn", checkEscapingName(true, Instruction::isReturn));
   }
 
   @Test
-  public void testEscapeViaThrow() throws Exception {
+  public void testEscapeViaThrow() {
     buildAndCheckIR(
         "escapeViaThrow",
         code -> {
@@ -79,26 +79,26 @@ public class EscapeAnalysisForNameReflectionTest extends AnalysisTestBase {
   }
 
   @Test
-  public void testEscapeViaStaticPut() throws Exception {
+  public void testEscapeViaStaticPut() {
     buildAndCheckIR("escapeViaStaticPut", checkEscapingName(true, Instruction::isStaticPut));
   }
 
   @Test
-  public void testEscapeViaInstancePut_local() throws Exception {
+  public void testEscapeViaInstancePut_local() {
     buildAndCheckIR(
         "escapeViaInstancePut_local",
         checkEscapingName(true, invokesMethodWithName("namingInterfaceConsumer")));
   }
 
   @Test
-  public void testEscapeViaArrayPut_local() throws Exception {
+  public void testEscapeViaArrayPut_local() {
     buildAndCheckIR(
         "escapeViaArrayPut_local",
         checkEscapingName(true, invokesMethodWithName("namingInterfacesConsumer")));
   }
 
   @Test
-  public void testEscapeViaArrayPut_heap() throws Exception {
+  public void testEscapeViaArrayPut_heap() {
     buildAndCheckIR(
         "escapeViaArrayPut_heap",
         checkEscapingName(
@@ -107,7 +107,7 @@ public class EscapeAnalysisForNameReflectionTest extends AnalysisTestBase {
   }
 
   @Test
-  public void testEscapeViaArrayPut_argument() throws Exception {
+  public void testEscapeViaArrayPut_argument() {
     buildAndCheckIR(
         "escapeViaArrayPut_argument",
         checkEscapingName(
@@ -116,44 +116,44 @@ public class EscapeAnalysisForNameReflectionTest extends AnalysisTestBase {
   }
 
   @Test
-  public void testEscapeViaListPut() throws Exception {
+  public void testEscapeViaListPut() {
     buildAndCheckIR(
         "escapeViaListPut",
         checkEscapingName(true, invokesMethodWithName("add")));
   }
 
   @Test
-  public void testEscapeViaListArgumentPut() throws Exception {
+  public void testEscapeViaListArgumentPut() {
     buildAndCheckIR(
         "escapeViaListArgumentPut",
         checkEscapingName(true, invokesMethodWithName("add")));
   }
 
   @Test
-  public void testEscapeViaArrayGet() throws Exception {
+  public void testEscapeViaArrayGet() {
     buildAndCheckIR(
         "escapeViaArrayGet",
         checkEscapingName(true, invokesMethodWithName("namingInterfaceConsumer")));
   }
 
   @Test
-  public void testHandlePhiAndAlias() throws Exception {
+  public void testHandlePhiAndAlias() {
     buildAndCheckIR(
         "handlePhiAndAlias", checkEscapingName(true, invokesMethodWithName("stringConsumer")));
   }
 
   @Test
-  public void testToString() throws Exception {
+  public void testToString() {
     buildAndCheckIR("toString", checkEscapingName(true, Instruction::isReturn));
   }
 
   @Test
-  public void testEscapeViaRecursion() throws Exception {
+  public void testEscapeViaRecursion() {
     buildAndCheckIR("escapeViaRecursion", checkEscapingName(true, Instruction::isReturn));
   }
 
   @Test
-  public void testEscapeViaLoopAndBoxing() throws Exception {
+  public void testEscapeViaLoopAndBoxing() {
     buildAndCheckIR(
         "escapeViaLoopAndBoxing",
         checkEscapingName(

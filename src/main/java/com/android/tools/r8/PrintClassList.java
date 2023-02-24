@@ -24,13 +24,12 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.List;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 public class PrintClassList {
 
-  public static void main(String[] args) throws IOException, ExecutionException {
+  public static void main(String[] args) throws IOException {
     List<String> dexFiles = Arrays.asList(args);
     Builder builder = AndroidApp.builder();
     Path proguardMapFile = null;

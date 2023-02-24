@@ -305,7 +305,7 @@ public class MinifierMethodSignatureTest extends TestBase {
     return cw.toByteArray();
   }
 
-  private byte[] dumpInner() throws Exception {
+  private byte[] dumpInner() {
 
     ClassWriter cw = new ClassWriter(0);
     FieldVisitor fv;

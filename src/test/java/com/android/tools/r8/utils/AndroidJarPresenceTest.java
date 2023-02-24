@@ -27,7 +27,7 @@ public class AndroidJarPresenceTest extends TestBase {
   }
 
   @Test
-  public void test() throws Exception {
+  public void test() {
     for (AndroidApiLevel apiLevel : AndroidApiLevel.values()) {
       assertEquals(ToolHelper.shouldHaveAndroidJar(apiLevel), ToolHelper.hasAndroidJar(apiLevel));
     }

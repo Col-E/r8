@@ -10,7 +10,6 @@ import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.retrace.PartitionMappingSupplier;
 import com.android.tools.r8.retrace.Retrace;
 import com.android.tools.r8.retrace.RetraceCommand;
-import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
@@ -42,7 +41,7 @@ public class RetracePartitionSerializedObfuscatedKeyTest extends RetraceApiTestB
     private static final String retracedStackTraceLine = " at com.R8.m(R8.java)";
 
     @Test
-    public void test() throws IOException {
+    public void test() {
       PartitionMappingSupplier mappingSupplier =
           PartitionMappingSupplier.builder()
               .setMetadata(metadata)

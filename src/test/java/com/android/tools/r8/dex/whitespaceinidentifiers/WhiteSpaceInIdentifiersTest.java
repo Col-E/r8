@@ -93,7 +93,7 @@ public class WhiteSpaceInIdentifiersTest extends TestBase {
   }
 
   @Test
-  public void testR8() throws Exception {
+  public void testR8() {
     assumeParametersWithSupportForWhitespaceInIdentifiers();
     Exception e =
         assertThrows(

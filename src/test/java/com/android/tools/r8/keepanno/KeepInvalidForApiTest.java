@@ -61,7 +61,7 @@ public class KeepInvalidForApiTest extends TestBase {
   }
 
   @Test
-  public void testInvalidMemberAccess() throws Exception {
+  public void testInvalidMemberAccess() {
     assertThrowsWith(
         () -> extractRuleForClass(RefineMemberAccess.class),
         allOf(
@@ -73,13 +73,13 @@ public class KeepInvalidForApiTest extends TestBase {
   static class RefineMemberAccess {
 
     @KeepForApi(memberAccess = {MemberAccessFlags.PUBLIC})
-    public static void main(String[] args) throws Exception {
+    public static void main(String[] args) {
       System.out.println("Hello, world");
     }
   }
 
   @Test
-  public void testInvalidMethodName() throws Exception {
+  public void testInvalidMethodName() {
     assertThrowsWith(
         () -> extractRuleForClass(RefineMethodName.class),
         allOf(
@@ -91,13 +91,13 @@ public class KeepInvalidForApiTest extends TestBase {
   static class RefineMethodName {
 
     @KeepForApi(methodName = "foo")
-    public static void main(String[] args) throws Exception {
+    public static void main(String[] args) {
       System.out.println("Hello, world");
     }
   }
 
   @Test
-  public void testInvalidFieldName() throws Exception {
+  public void testInvalidFieldName() {
     assertThrowsWith(
         () -> extractRuleForClass(RefineFieldName.class),
         allOf(
@@ -109,7 +109,7 @@ public class KeepInvalidForApiTest extends TestBase {
   static class RefineFieldName {
 
     @KeepForApi(fieldName = "foo")
-    public static void main(String[] args) throws Exception {
+    public static void main(String[] args) {
       System.out.println("Hello, world");
     }
   }

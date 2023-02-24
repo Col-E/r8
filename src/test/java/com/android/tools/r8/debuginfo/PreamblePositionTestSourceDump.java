@@ -33,7 +33,7 @@ public class PreamblePositionTestSourceDump implements Opcodes {
 
   static final int FALSE_BRANCH_LINE_NUMBER = 123;
 
-  public static byte[] dump() throws Exception {
+  public static byte[] dump() {
 
     ClassWriter cw = new ClassWriter(0);
     FieldVisitor fv;

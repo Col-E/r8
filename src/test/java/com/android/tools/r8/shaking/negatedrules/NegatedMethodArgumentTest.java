@@ -37,7 +37,7 @@ public class NegatedMethodArgumentTest extends TestBase {
   private static final String EXPECTED_OUTPUT = StringUtils.lines("Hello, world!");
 
   @Test
-  public void testR8NegatedPrimitive() throws Exception {
+  public void testR8NegatedPrimitive() {
     assertThrows(
         CompilationFailedException.class,
         () ->
@@ -51,7 +51,7 @@ public class NegatedMethodArgumentTest extends TestBase {
   }
 
   @Test
-  public void testR8NegatedClass() throws Exception {
+  public void testR8NegatedClass() {
     assertThrows(
         CompilationFailedException.class,
         () ->

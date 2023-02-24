@@ -231,8 +231,7 @@ public abstract class D8IncrementalRunExamplesAndroidOTest
       }
     }
 
-    abstract void addClasspathReference(
-        Path testJarFile, D8Command.Builder builder) throws IOException;
+    abstract void addClasspathReference(Path testJarFile, D8Command.Builder builder);
 
     abstract void addLibraryReference(Builder builder, Path location) throws IOException;
   }
@@ -375,8 +374,7 @@ public abstract class D8IncrementalRunExamplesAndroidOTest
 
   @Override
   protected void testIntermediateWithMainDexList(
-      String packageName, Path input, int expectedMainDexListSize, List<String> mainDexClasses)
-      throws Throwable {
+      String packageName, Path input, int expectedMainDexListSize, List<String> mainDexClasses) {
     // Skip those tests.
     Assume.assumeTrue(false);
   }
@@ -387,8 +385,7 @@ public abstract class D8IncrementalRunExamplesAndroidOTest
       Path input,
       OutputMode outputMode,
       AndroidApiLevel minApi,
-      List<String> mainDexClasses)
-      throws Throwable {
+      List<String> mainDexClasses) {
     // tests using this should already been skipped.
     throw new Unreachable();
   }

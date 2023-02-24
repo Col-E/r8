@@ -717,7 +717,7 @@ public abstract class R8TestBuilder<T extends R8TestBuilder<T>>
     return self();
   }
 
-  public T enableExperimentalKeepAnnotations() throws IOException {
+  public T enableExperimentalKeepAnnotations() {
     builder.addClasspathResourceProvider(
         DirectoryClassFileProvider.fromDirectory(KeepEdgeAnnotationsTest.KEEP_ANNO_PATH));
     builder.setEnableExperimentalKeepAnnotations(true);

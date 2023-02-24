@@ -23,7 +23,6 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.concurrent.ExecutionException;
 import org.junit.Assert;
 import org.junit.Rule;
 import org.junit.Test;
@@ -142,8 +141,7 @@ public class JSR45Tests {
     Assert.assertFalse(annotationSubject.isPresent());
   }
 
-  private void checkAnnotationContent(Path inputPath, AndroidApp androidApp)
-      throws IOException, ExecutionException {
+  private void checkAnnotationContent(Path inputPath, AndroidApp androidApp) throws IOException {
     ClassReader classReader = new ClassReader(new FileInputStream(inputPath.toFile()));
     ReadSourceDebugExtensionAttribute sourceDebugExtensionReader =
         new ReadSourceDebugExtensionAttribute(InternalOptions.ASM_VERSION, null);
