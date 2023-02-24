@@ -136,10 +136,6 @@ public class ClassAccessFlags extends AccessFlags<ClassAccessFlags> {
     }
   }
 
-  private boolean isClass() {
-    return !isInterface() && !isAnnotation() && !isEnum();
-  }
-
   public boolean isInterface() {
     return isSet(Constants.ACC_INTERFACE);
   }

@@ -604,15 +604,6 @@ public class AndroidApp {
     };
   }
 
-  private Consumer<ProgramResource> createClassFileResourceConsumer(
-      Map<String, ProgramResource> classPathResources) {
-    return programResource -> {
-      assert programResource.getClassDescriptors().size() == 1;
-      String descriptor = programResource.getClassDescriptors().iterator().next();
-      classPathResources.put(descriptor, programResource);
-    };
-  }
-
   private int dumpProgramResources(
       String archiveName,
       FeatureSplitConfiguration featureSplitConfiguration,

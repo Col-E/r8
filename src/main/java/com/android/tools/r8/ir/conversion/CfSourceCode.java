@@ -182,27 +182,6 @@ public class CfSourceCode implements SourceCode {
       return startOffset <= instructionOffset && instructionOffset < endOffset;
     }
 
-    public DebugLocalInfo getLocal(int register) {
-      return locals.get(register);
-    }
-
-    public Int2ReferenceOpenHashMap<DebugLocalInfo> merge(LocalVariableList other) {
-      return merge(this, other);
-    }
-
-    private static Int2ReferenceOpenHashMap<DebugLocalInfo> merge(
-        LocalVariableList a, LocalVariableList b) {
-      if (a.locals.size() > b.locals.size()) {
-        return merge(b, a);
-      }
-      Int2ReferenceOpenHashMap<DebugLocalInfo> result = new Int2ReferenceOpenHashMap<>();
-      for (Entry<DebugLocalInfo> local : a.locals.int2ReferenceEntrySet()) {
-        if (local.getValue().equals(b.getLocal(local.getIntKey()))) {
-          result.put(local.getIntKey(), local.getValue());
-        }
-      }
-      return result;
-    }
   }
 
   private CfState state;

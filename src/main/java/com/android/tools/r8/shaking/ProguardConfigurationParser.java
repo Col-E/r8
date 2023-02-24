@@ -766,10 +766,6 @@ public class ProguardConfigurationParser {
       return false;
     }
 
-    private boolean skipReturnValueAttribute(String name) {
-      return acceptString(name);
-    }
-
     private boolean parseOptimizationOption(TextPosition optionStart)
         throws ProguardRuleParserException {
       if (!acceptString("optimizations")) {
@@ -978,28 +974,6 @@ public class ProguardConfigurationParser {
       }
       throw reporter.fatalError(new StringDiagnostic(
           "Expecting '-keep' option after '-if' option.", origin, getPosition(optionStart)));
-    }
-
-    private KeepConstantArgumentRule parseConstantArgumentRule(Position start)
-        throws ProguardRuleParserException {
-      KeepConstantArgumentRule.Builder keepRuleBuilder =
-          KeepConstantArgumentRule.builder().setOrigin(origin).setStart(start);
-      parseClassSpec(keepRuleBuilder);
-      Position end = getPosition();
-      keepRuleBuilder.setSource(getSourceSnippet(contents, start, end));
-      keepRuleBuilder.setEnd(end);
-      return keepRuleBuilder.build();
-    }
-
-    private KeepUnusedArgumentRule parseUnusedArgumentRule(Position start)
-        throws ProguardRuleParserException {
-      KeepUnusedArgumentRule.Builder keepRuleBuilder =
-          KeepUnusedArgumentRule.builder().setOrigin(origin).setStart(start);
-      parseClassSpec(keepRuleBuilder);
-      Position end = getPosition();
-      keepRuleBuilder.setSource(getSourceSnippet(contents, start, end));
-      keepRuleBuilder.setEnd(end);
-      return keepRuleBuilder.build();
     }
 
     private ReprocessClassInitializerRule parseReprocessClassInitializerRule(
@@ -1771,15 +1745,6 @@ public class ProguardConfigurationParser {
       }
     }
 
-    private boolean isInteger(String s) {
-      for (int i = 0; i < s.length(); i++) {
-        if (!Character.isDigit(s.charAt(i))) {
-          return false;
-        }
-      }
-      return true;
-    }
-
     private boolean eof() {
       return position == contents.length();
     }
@@ -2138,25 +2103,6 @@ public class ProguardConfigurationParser {
       }
     }
 
-    private void parsePackageFilter(BiConsumer<Boolean, ProguardPackageMatcher> consumer)
-        throws ProguardRuleParserException {
-      skipWhitespace();
-      if (isOptionalArgumentGiven()) {
-        do {
-          IdentifierPatternWithWildcardsAndNegation name =
-              acceptIdentifierWithBackreference(IdentifierType.PACKAGE_NAME, true);
-          if (name == null) {
-            throw parseError("Package name expected");
-          }
-          consumer.accept(
-              name.negated, new ProguardPackageMatcher(name.patternWithWildcards.pattern));
-          skipWhitespace();
-        } while (acceptChar(','));
-      } else {
-        consumer.accept(false, new ProguardPackageMatcher("**"));
-      }
-    }
-
     private void parseClassFilter(Consumer<ProguardClassNameList> consumer)
         throws ProguardRuleParserException {
       skipWhitespace();
@@ -2272,11 +2218,6 @@ public class ProguardConfigurationParser {
 
     private ProguardRuleParserException parseError(String message) {
       return new ProguardRuleParserException(message, snippetForPosition(), origin, getPosition());
-    }
-
-    private ProguardRuleParserException parseError(String message, Throwable cause) {
-      return new ProguardRuleParserException(message, snippetForPosition(), origin, getPosition(),
-          cause);
     }
 
     private ProguardRuleParserException parseError(String message, TextPosition start,

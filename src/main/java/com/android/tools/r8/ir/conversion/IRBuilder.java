@@ -122,7 +122,6 @@ import com.android.tools.r8.ir.code.Xor;
 import com.android.tools.r8.ir.conversion.MethodConversionOptions.MutableMethodConversionOptions;
 import com.android.tools.r8.naming.dexitembasedstring.NameComputationInfo;
 import com.android.tools.r8.origin.Origin;
-import com.android.tools.r8.position.MethodPosition;
 import com.android.tools.r8.utils.Pair;
 import com.google.common.collect.Sets;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceAVLTreeMap;
@@ -479,14 +478,6 @@ public class IRBuilder {
     this.prototypeChanges = prototypeChanges;
     this.valueNumberGenerator = valueNumberGenerator;
     this.basicBlockNumberGenerator = new NumberGenerator();
-  }
-
-  private Origin getOrigin() {
-    return origin;
-  }
-
-  private MethodPosition getPosition() {
-    return MethodPosition.create(method);
   }
 
   public DexItemFactory dexItemFactory() {

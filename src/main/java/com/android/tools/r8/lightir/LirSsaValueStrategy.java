@@ -22,20 +22,6 @@ public abstract class LirSsaValueStrategy<EV> {
 
   public abstract EV decodeValueIndex(int encodedValueIndex, int currentValueIndex);
 
-  private static class AbsoluteStrategy extends LirSsaValueStrategy<Integer> {
-
-    @Override
-    public int encodeValueIndex(Integer value, int currentValueIndex) {
-      assert value != null;
-      return value;
-    }
-
-    @Override
-    public Integer decodeValueIndex(int encodedValueIndex, int currentValueIndex) {
-      return encodedValueIndex;
-    }
-  }
-
   private static class RelativeStrategy extends LirSsaValueStrategy<Integer> {
 
     @Override

@@ -624,7 +624,7 @@ public class KeepEdgeReader implements Opcodes {
     }
   }
 
-  private abstract static class Declaration<T> {
+  abstract static class Declaration<T> {
     abstract String kind();
 
     abstract boolean isDefault();

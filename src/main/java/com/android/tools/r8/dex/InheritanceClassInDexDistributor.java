@@ -669,16 +669,6 @@ public class InheritanceClassInDexDistributor {
     return false;
   }
 
-  private boolean hasDirectSubclassInCollection(DexProgramClass clazz,
-      Set<DexProgramClass> collection) {
-    for (DexProgramClass subClass : directSubClasses.getDirectSubClasses(clazz)) {
-      if (collection.contains(subClass)) {
-        return true;
-      }
-    }
-    return false;
-  }
-
   private static List<DexProgramClass> getSortedCopy(Collection<DexProgramClass> collection) {
     List<DexProgramClass> sorted = new ArrayList<>(collection);
     Collections.sort(sorted, DEX_PROGRAM_CLASS_COMPARATOR);

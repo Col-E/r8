@@ -361,10 +361,6 @@ public class ComposingBuilder {
       this.methodName = methodName;
     }
 
-    public String getHolderTypeName() {
-      return holderTypeName;
-    }
-
     public String getMethodName() {
       return methodName;
     }
@@ -1218,9 +1214,6 @@ public class ComposingBuilder {
         return hasValue() ? end : NO_RANGE_FROM;
       }
 
-      private boolean isPreamble() {
-        return hasValue() && start == end && start == 0;
-      }
     }
 
     private static class ComputedOutlineInformation {

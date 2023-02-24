@@ -301,29 +301,6 @@ public abstract class TreeFixerBase {
     return result;
   }
 
-  // Should remain private as its correctness relies on the setup of 'newProgramClasses'.
-  private Collection<DexProgramClass> fixupSynthesizedFrom(
-      Collection<DexProgramClass> synthesizedFrom) {
-    if (synthesizedFrom.isEmpty()) {
-      return synthesizedFrom;
-    }
-    boolean changed = false;
-    List<DexProgramClass> newSynthesizedFrom = new ArrayList<>(synthesizedFrom.size());
-    for (DexProgramClass clazz : synthesizedFrom) {
-      // TODO(b/165783399): What do we want to put here if the class that this was synthesized from
-      //  is no longer in the application?
-      Map<DexType, DexProgramClass> classes =
-          appView.appInfo().definitionForWithoutExistenceAssert(clazz.getType()) != null
-              ? programClassCache
-              : synthesizedFromClasses;
-      DexProgramClass newClass =
-          classes.computeIfAbsent(clazz.getType(), ignore -> fixupClass(clazz));
-      newSynthesizedFrom.add(newClass);
-      changed |= newClass != clazz;
-    }
-    return changed ? newSynthesizedFrom : synthesizedFrom;
-  }
-
   private DexType fixupTypeOrNull(DexType type) {
     return type != null ? fixupType(type) : null;
   }

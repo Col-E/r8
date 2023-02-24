@@ -355,10 +355,6 @@ public class StringConcatInstructionDesugaring implements CfInstructionDesugarin
       this.method = method;
     }
 
-    public DexMethod getMethod() {
-      return method;
-    }
-
     public ValueType getValueType() {
       assert method.getProto().getArity() == 1;
       return ValueType.fromDexType(method.getParameter(0));

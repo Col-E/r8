@@ -8,7 +8,6 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexType;
-import com.android.tools.r8.graph.ProgramField;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.analysis.inlining.SimpleInliningConstraint;
 import com.android.tools.r8.ir.analysis.type.DynamicType;
@@ -40,10 +39,6 @@ public class OptimizationFeedbackDelayed extends OptimizationFeedback {
   private final Map<DexEncodedMethod, MutableMethodOptimizationInfo> methodOptimizationInfos =
       new IdentityHashMap<>();
   private final Map<DexEncodedMethod, ConstraintWithTarget> processed = new IdentityHashMap<>();
-
-  private MutableFieldOptimizationInfo getFieldOptimizationInfoForUpdating(ProgramField field) {
-    return getFieldOptimizationInfoForUpdating(field.getDefinition());
-  }
 
   private synchronized MutableFieldOptimizationInfo getFieldOptimizationInfoForUpdating(
       DexEncodedField field) {

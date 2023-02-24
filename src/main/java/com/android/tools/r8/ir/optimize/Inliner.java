@@ -24,7 +24,6 @@ import com.android.tools.r8.graph.NestMemberClassAttribute;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.analysis.ClassInitializationAnalysis;
 import com.android.tools.r8.ir.analysis.proto.ProtoInliningReasonStrategy;
-import com.android.tools.r8.ir.analysis.type.ClassTypeElement;
 import com.android.tools.r8.ir.analysis.type.Nullability;
 import com.android.tools.r8.ir.analysis.type.TypeAnalysis;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
@@ -1141,27 +1140,6 @@ public class Inliner {
       }
     }
     return false;
-  }
-
-  private DexProgramClass getDowncastTypeIfNeeded(
-      InliningStrategy strategy, InvokeMethod invoke, ProgramMethod target) {
-    if (invoke.isInvokeMethodWithReceiver()) {
-      // If the invoke has a receiver but the actual type of the receiver is different from the
-      // computed target holder, inlining requires a downcast of the receiver. In case we don't know
-      // the exact type of the receiver we use the static type of the receiver.
-      Value receiver = invoke.asInvokeMethodWithReceiver().getReceiver();
-      if (!receiver.getType().isClassType()) {
-        return target.getHolder();
-      }
-
-      ClassTypeElement receiverType =
-          strategy.getReceiverTypeOrDefault(invoke, receiver.getType().asClassType());
-      ClassTypeElement targetType = target.getHolderType().toTypeElement(appView).asClassType();
-      if (!receiverType.lessThanOrEqualUpToNullability(targetType, appView)) {
-        return target.getHolder();
-      }
-    }
-    return null;
   }
 
   /** Applies member rebinding to the inlinee and inserts assume instructions. */

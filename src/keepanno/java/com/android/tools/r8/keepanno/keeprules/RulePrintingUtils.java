@@ -294,13 +294,6 @@ public abstract class RulePrintingUtils {
     }
   }
 
-  private static String getTypePatternString(KeepTypePattern typePattern) {
-    if (typePattern.isAny()) {
-      return "***";
-    }
-    return descriptorToJavaType(typePattern.getDescriptor());
-  }
-
   private static String descriptorToJavaType(String descriptor) {
     if (descriptor.isEmpty()) {
       throw new KeepEdgeException("Invalid empty type descriptor");

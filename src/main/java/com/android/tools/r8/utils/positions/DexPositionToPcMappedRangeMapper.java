@@ -119,13 +119,4 @@ public class DexPositionToPcMappedRangeMapper {
     return debugInfo;
   }
 
-  private static boolean verifyIdentityMapping(
-      EventBasedDebugInfo originalDebugInfo, EventBasedDebugInfo optimizedDebugInfo) {
-    assert optimizedDebugInfo.startLine == originalDebugInfo.startLine;
-    assert optimizedDebugInfo.events.length == originalDebugInfo.events.length;
-    for (int i = 0; i < originalDebugInfo.events.length; ++i) {
-      assert optimizedDebugInfo.events[i].equals(originalDebugInfo.events[i]);
-    }
-    return true;
-  }
 }

@@ -134,16 +134,8 @@ public class LirBuilder<V, EV> {
     return strategy.getEncodedValueIndexForReference(value, referencingValueIndex);
   }
 
-  private int valueIndexSize(EV value, int referencingInstructionIndex) {
-    return encodedValueIndexSize(getEncodedValueIndex(value, referencingInstructionIndex));
-  }
-
   private int encodedValueIndexSize(int encodedValueIndex) {
     return ByteUtils.intEncodingSize(encodedValueIndex);
-  }
-
-  private void writeValueIndex(EV value, int referencingInstructionIndex) {
-    writeEncodedValueIndex(getEncodedValueIndex(value, referencingInstructionIndex));
   }
 
   private void writeEncodedValueIndex(int encodedValueIndex) {

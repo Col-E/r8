@@ -120,11 +120,6 @@ public class WhyAreYouKeepingConsumer extends CollectingGraphConsumer {
     out.println(getNodeString(node));
   }
 
-  private void printNothingKeeping(ClassReference clazz, PrintStream out) {
-    out.print("Nothing is keeping ");
-    out.println(DescriptorUtils.descriptorToJavaType(clazz.getDescriptor()));
-  }
-
   private List<Pair<GraphNode, GraphEdgeInfo>> findShortestPathTo(final GraphNode node) {
     if (node == null) {
       return null;

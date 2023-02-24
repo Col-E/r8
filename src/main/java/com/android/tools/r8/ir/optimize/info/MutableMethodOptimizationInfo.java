@@ -187,14 +187,6 @@ public class MutableMethodOptimizationInfo extends MethodOptimizationInfo
     return this;
   }
 
-  private void setFlag(int flag, boolean value) {
-    if (value) {
-      setFlag(flag);
-    } else {
-      clearFlag(flag);
-    }
-  }
-
   private void setFlag(int flag) {
     flags |= flag;
   }

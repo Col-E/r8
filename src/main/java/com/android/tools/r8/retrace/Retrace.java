@@ -700,10 +700,5 @@ public class Retrace<T, ST extends StackTraceElementProxy<T, ST>> {
               .compare(one, other)
           != 0;
     }
-
-    public static <T, ST extends StackTraceElementProxy<T, ST>>
-        RetraceStackTraceElementProxyEquivalence<T, ST> getInstance(boolean isVerbose) {
-      return new RetraceStackTraceElementProxyEquivalence<>(isVerbose);
-    }
   }
 }

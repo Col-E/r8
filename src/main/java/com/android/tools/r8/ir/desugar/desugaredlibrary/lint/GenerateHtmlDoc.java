@@ -77,11 +77,6 @@ public class GenerateHtmlDoc extends AbstractGenerateFiles {
       return this;
     }
 
-    StringBuilderWithIndent emptyLine() {
-      builder.append(NL);
-      return this;
-    }
-
     @Override
     public String toString() {
       return builder.toString();

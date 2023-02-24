@@ -209,10 +209,6 @@ public class CfCodePrinter extends CfPrinter {
     return r8Type("FrameType", ImmutableList.of("cf", "code", "frame"));
   }
 
-  private String asmOpcodesType() {
-    return type("Opcodes", ImmutableList.of("org", "objectweb", "asm"));
-  }
-
   private String dexItemFactoryType() {
     return r8Type("DexItemFactory", "graph");
   }

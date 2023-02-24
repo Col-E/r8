@@ -261,10 +261,6 @@ public class VirtualFile {
             hasMainDexList, transaction.getNumberOfMethods(), transaction.getNumberOfFields()));
   }
 
-  private boolean isFilledEnough() {
-    return isFull(MAX_ENTRIES);
-  }
-
   public void abortTransaction() {
     transaction.abort();
   }
@@ -955,10 +951,6 @@ public class VirtualFile {
           appView.options().testing.calculateItemUseCountInDex
               ? new IndexedItemsUsedByClassesInTransaction(appView, rewriter, base, this)
               : new EmptyIndexedItemUsedByClasses();
-    }
-
-    private NamingLens getNamingLens() {
-      return appView.getNamingLens();
     }
 
     private <T extends DexItem> boolean maybeInsert(T item, Set<T> set, Set<T> baseSet) {

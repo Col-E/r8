@@ -254,13 +254,6 @@ final class ClassProcessor {
       this.emulatedInterfaceInfo = emulatedInterfaceInfo;
     }
 
-    public static SignaturesInfo create(MethodSignatures signatures) {
-      if (signatures.isEmpty()) {
-        return EMPTY;
-      }
-      return new SignaturesInfo(signatures, EmulatedInterfaceInfo.EMPTY);
-    }
-
     public SignaturesInfo merge(SignaturesInfo other) {
       if (isEmpty()) {
         return other;

@@ -122,10 +122,6 @@ public class MainDexInfo {
     return items.contains(type);
   }
 
-  private boolean isDependency(ProgramDefinition definition) {
-    return isDependency(definition.getContextType());
-  }
-
   private boolean isDependency(DexReference reference) {
     return tracedDependencies.contains(reference.getContextType());
   }

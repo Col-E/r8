@@ -759,11 +759,6 @@ public class CfPrinter {
     builder.append(indent);
   }
 
-  private void comment(String comment) {
-    indent();
-    builder.append("; ").append(comment);
-  }
-
   private void appendComment(String comment) {
     builder.append(" ; ").append(comment);
   }
