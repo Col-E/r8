@@ -4,8 +4,6 @@
 package com.android.tools.r8;
 
 import com.android.tools.r8.TestBase.Backend;
-import com.android.tools.r8.debug.DebugTestConfig;
-import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.InternalOptions;
 import java.io.IOException;

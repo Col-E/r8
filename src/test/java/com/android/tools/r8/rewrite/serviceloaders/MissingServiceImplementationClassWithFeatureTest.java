@@ -11,7 +11,6 @@ import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.graph.AppServices;
 import com.android.tools.r8.origin.Origin;
-import com.android.tools.r8.rewrite.serviceloaders.MissingServiceImplementationClassTest.Service;
 import com.android.tools.r8.utils.StringUtils;
 import java.util.ServiceLoader;
 import org.junit.Test;

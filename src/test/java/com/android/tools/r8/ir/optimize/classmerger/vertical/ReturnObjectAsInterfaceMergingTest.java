@@ -11,7 +11,6 @@ import com.android.tools.r8.NoVerticalClassMerging;
 import com.android.tools.r8.R8TestBuilder;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.ir.optimize.classmerger.vertical.StaticPutToInterfaceWithObjectMergingTest.I;
 import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.transformers.ClassFileTransformer.MethodPredicate;
 import com.android.tools.r8.utils.BooleanUtils;

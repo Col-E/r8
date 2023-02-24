@@ -4,7 +4,6 @@
 
 package com.android.tools.r8.naming.applymapping.shared;
 
-import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.naming.applymapping.shared.InnerLibraryClass.LibraryClass;
 
 public class ProgramClassWithSimpleLibraryReference {

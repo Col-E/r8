@@ -6,7 +6,6 @@ package com.android.tools.r8.desugar.backports;
 
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.utils.AndroidApiLevel;
-import java.util.Arrays;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;

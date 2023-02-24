@@ -53,8 +53,6 @@ import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import org.junit.Before;
 import org.junit.ComparisonFailure;
-import org.junit.Rule;
-import org.junit.rules.TemporaryFolder;
 
 public abstract class CompilationTestBase extends DesugaredLibraryTestBase {
 

@@ -43,7 +43,6 @@ import java.util.zip.ZipFile;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
-import org.junit.rules.TemporaryFolder;
 
 public abstract class RunExamplesAndroidPTest<
         B extends BaseCommand.Builder<? extends BaseCommand, B>>

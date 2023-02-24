@@ -18,7 +18,6 @@ import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.diagnostic.DefinitionContext;
 import com.android.tools.r8.diagnostic.internal.DefinitionMethodContextImpl;
 import com.android.tools.r8.references.Reference;
-import com.android.tools.r8.tracereferences.TraceReferencesCommandTest.Source;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.StringDiagnostic;

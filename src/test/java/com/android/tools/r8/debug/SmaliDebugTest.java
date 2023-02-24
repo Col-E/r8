@@ -19,9 +19,7 @@ import java.nio.file.Path;
 import java.util.Collections;
 import java.util.List;
 import org.apache.harmony.jpda.tests.framework.jdwp.Value;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
 
 public class SmaliDebugTest extends DebugTestBase {
 

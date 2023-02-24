@@ -3,8 +3,6 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8;
 
-import com.android.tools.r8.debug.DebugTestConfig;
-import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.utils.Pair;
 import java.nio.file.Path;
 import java.util.Collection;

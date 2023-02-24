@@ -5,9 +5,6 @@
 package com.android.tools.r8.utils;
 
 import com.android.tools.r8.Diagnostic;
-import com.android.tools.r8.DiagnosticsHandler;
-import java.util.ArrayList;
-import java.util.List;
 
 public class ThrowingDiagnosticHandler extends KeepingDiagnosticHandler {
 

@@ -10,9 +10,6 @@ import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.classmerging.horizontal.EmptyClassTest.A;
-import com.android.tools.r8.classmerging.horizontal.EmptyClassTest.B;
-import com.android.tools.r8.classmerging.horizontal.EmptyClassTest.Main;
 import org.junit.Test;
 
 public class CompanionClassMergingTest extends HorizontalClassMergingTestBase {

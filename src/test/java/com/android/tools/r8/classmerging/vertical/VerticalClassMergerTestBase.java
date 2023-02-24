@@ -9,8 +9,6 @@ import static org.junit.Assert.assertTrue;
 import com.android.tools.r8.R8TestCompileResult;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.graph.DexItemFactory;
-import com.android.tools.r8.graph.classmerging.VerticallyMergedClasses;
 
 public abstract class VerticalClassMergerTestBase extends TestBase {
 

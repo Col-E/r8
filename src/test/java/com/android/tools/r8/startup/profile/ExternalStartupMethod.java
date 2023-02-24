@@ -6,7 +6,6 @@ package com.android.tools.r8.startup.profile;
 
 import com.android.tools.r8.references.MethodReference;
 import com.android.tools.r8.startup.StartupMethodBuilder;
-import com.android.tools.r8.startup.profile.ExternalStartupClass.Builder;
 import com.android.tools.r8.utils.MethodReferenceUtils;
 import java.util.function.Function;
 

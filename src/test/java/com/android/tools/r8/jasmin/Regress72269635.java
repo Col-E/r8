@@ -5,7 +5,6 @@ package com.android.tools.r8.jasmin;
 
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.jasmin.JasminBuilder.ClassFileVersion;
-import com.android.tools.r8.naming.MemberNaming.MethodSignature;
 import com.android.tools.r8.utils.AndroidApp;
 import com.google.common.collect.ImmutableList;
 import org.junit.Test;

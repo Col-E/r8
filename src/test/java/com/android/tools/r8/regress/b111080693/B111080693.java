@@ -14,14 +14,12 @@ import com.android.tools.r8.R8Command;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.ProcessResult;
-import com.android.tools.r8.VmTestRunner;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.regress.b111080693.a.Observable;
 import com.android.tools.r8.regress.b111080693.b.RecyclerView;
 import com.android.tools.r8.utils.AndroidApp;
 import com.google.common.collect.ImmutableList;
 import org.junit.Test;
-import org.junit.runner.RunWith;
 
 public class B111080693 extends TestBase {
   @Test

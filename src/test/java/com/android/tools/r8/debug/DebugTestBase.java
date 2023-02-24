@@ -18,7 +18,6 @@ import com.android.tools.r8.naming.MemberNaming;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
 import com.android.tools.r8.naming.MemberNaming.Signature;
 import com.android.tools.r8.references.MethodReference;
-import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.TestDescriptionWatcher;
 import com.google.common.collect.ImmutableList;
@@ -74,10 +73,8 @@ import org.apache.harmony.jpda.tests.jdwp.share.JDWPTestCase;
 import org.apache.harmony.jpda.tests.share.JPDATestOptions;
 import org.junit.Assert;
 import org.junit.Assume;
-import org.junit.ClassRule;
 import org.junit.Ignore;
 import org.junit.Rule;
-import org.junit.rules.TemporaryFolder;
 import org.junit.rules.TestName;
 
 /**

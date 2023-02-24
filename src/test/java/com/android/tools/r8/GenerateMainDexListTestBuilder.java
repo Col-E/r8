@@ -4,7 +4,6 @@
 package com.android.tools.r8;
 
 import com.android.tools.r8.GenerateMainDexListCommand.Builder;
-import com.android.tools.r8.debug.DebugTestConfig;
 import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.InternalOptions;

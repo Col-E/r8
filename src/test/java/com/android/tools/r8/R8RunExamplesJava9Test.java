@@ -9,7 +9,6 @@ import com.android.tools.r8.utils.AndroidApiLevel;
 import com.google.common.collect.ImmutableList;
 import java.nio.file.Path;
 import java.util.function.UnaryOperator;
-import org.junit.Test;
 
 public class R8RunExamplesJava9Test extends RunExamplesJava9Test<R8Command.Builder> {
 

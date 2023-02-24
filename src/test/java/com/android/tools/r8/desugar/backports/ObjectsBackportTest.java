@@ -13,8 +13,6 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
-import static java.util.Collections.reverseOrder;
-
 @RunWith(Parameterized.class)
 public final class ObjectsBackportTest extends AbstractBackportTest {
   @Parameters(name = "{0}")

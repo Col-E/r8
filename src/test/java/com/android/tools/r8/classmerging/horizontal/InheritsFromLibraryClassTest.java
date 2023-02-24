@@ -11,10 +11,6 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.classmerging.horizontal.SuperConstructorCallsVirtualMethodTest.A;
-import com.android.tools.r8.classmerging.horizontal.SuperConstructorCallsVirtualMethodTest.B;
-import com.android.tools.r8.classmerging.horizontal.SuperConstructorCallsVirtualMethodTest.Main;
-import com.android.tools.r8.classmerging.horizontal.SuperConstructorCallsVirtualMethodTest.Parent;
 import java.util.ArrayList;
 import org.junit.Test;
 
