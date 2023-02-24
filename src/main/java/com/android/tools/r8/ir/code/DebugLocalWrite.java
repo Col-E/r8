@@ -90,7 +90,7 @@ public class DebugLocalWrite extends Move {
   }
 
   @Override
-  public void buildLir(LirBuilder<Value, BasicBlock> builder) {
+  public void buildLir(LirBuilder<Value, ?> builder) {
     builder.addDebugLocalWrite(src());
   }
 }

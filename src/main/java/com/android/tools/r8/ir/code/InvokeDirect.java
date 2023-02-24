@@ -218,7 +218,7 @@ public class InvokeDirect extends InvokeMethodWithReceiver {
   }
 
   @Override
-  public void buildLir(LirBuilder<Value, BasicBlock> builder) {
+  public void buildLir(LirBuilder<Value, ?> builder) {
     builder.addInvokeDirect(getInvokedMethod(), arguments());
   }
 

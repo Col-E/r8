@@ -13,6 +13,7 @@ import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
+import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.CatchHandlers;
 import com.android.tools.r8.ir.code.IRMetadata;
 import com.android.tools.r8.ir.code.IfType;
@@ -31,41 +32,25 @@ import it.unimi.dsi.fastutil.objects.Reference2IntMap;
 import it.unimi.dsi.fastutil.objects.Reference2IntOpenHashMap;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
-/**
- * Builder for constructing LIR code from IR.
- *
- * @param <V> Type of SSA values. This is abstract to ensure that value internals are not used in
- *     building.
- * @param <B> Type of basic blocks. This is abstract to ensure that basic block internals are not
- *     used in building.
- */
-public class LirBuilder<V, B> {
-
-  // Abstraction for the only accessible properties of an SSA value.
-  public interface ValueIndexGetter<V> {
-    int getValueIndex(V value);
-  }
-
-  // Abstraction for the only accessible properties of a basic block.
-  public interface BlockIndexGetter<B> {
-    int getBlockIndex(B block);
-  }
+/** Builder for constructing LIR code from IR. */
+public class LirBuilder<V, EV> {
 
   private final DexItemFactory factory;
   private final ByteArrayWriter byteWriter = new ByteArrayWriter();
   private final LirWriter writer = new LirWriter(byteWriter);
   private final Reference2IntMap<DexItem> constants;
-  private final ValueIndexGetter<V> valueIndexGetter;
-  private final BlockIndexGetter<B> blockIndexGetter;
   private final List<PositionEntry> positionTable;
   private int argumentCount = 0;
   private int instructionCount = 0;
   private IRMetadata metadata = null;
-  private final LirSsaValueStrategy ssaValueStrategy = LirSsaValueStrategy.get();
+
+  private final LirEncodingStrategy<V, EV> strategy;
 
   private Position currentPosition;
   private Position flushedPosition;
@@ -74,7 +59,7 @@ public class LirBuilder<V, B> {
       new Int2ReferenceOpenHashMap<>();
 
   // Mapping from SSA value definition to the local name index in the constant pool.
-  private final Int2ReferenceMap<DebugLocalInfo> debugLocals = new Int2ReferenceOpenHashMap<>();
+  private final Map<EV, DebugLocalInfo> debugLocals = new HashMap<>();
   // Mapping from instruction to the end usage of SSA values with debug local info.
   private final Int2ReferenceMap<int[]> debugLocalEnds = new Int2ReferenceOpenHashMap<>();
 
@@ -83,16 +68,11 @@ public class LirBuilder<V, B> {
   private static final int MAX_VALUE_COUNT = 10;
   private int[] valueIndexBuffer = new int[MAX_VALUE_COUNT];
 
-  public LirBuilder(
-      DexMethod method,
-      ValueIndexGetter<V> valueIndexGetter,
-      BlockIndexGetter<B> blockIndexGetter,
-      DexItemFactory factory) {
+  public LirBuilder(DexMethod method, LirEncodingStrategy<V, EV> strategy, DexItemFactory factory) {
     this.factory = factory;
     constants = new Reference2IntOpenHashMap<>();
     positionTable = new ArrayList<>();
-    this.valueIndexGetter = valueIndexGetter;
-    this.blockIndexGetter = blockIndexGetter;
+    this.strategy = strategy;
     currentPosition = SyntheticPosition.builder().setLine(0).setMethod(method).build();
     flushedPosition = currentPosition;
   }
@@ -116,7 +96,7 @@ public class LirBuilder<V, B> {
     tryCatchRanges.put(blockIndex, handlers);
   }
 
-  public LirBuilder<V, B> setCurrentPosition(Position position) {
+  public LirBuilder<V, EV> setCurrentPosition(Position position) {
     assert position != null;
     assert position != Position.none();
     currentPosition = position;
@@ -145,24 +125,33 @@ public class LirBuilder<V, B> {
     ByteUtils.writeEncodedInt(index, writer::writeOperand);
   }
 
-  private int getValueIndex(V value) {
-    return valueIndexGetter.getValueIndex(value);
+  private EV getEncodedValue(V value) {
+    return strategy.getEncodedValue(value);
   }
 
-  private int valueIndexSize(int valueIndex, int referencingInstructionIndex) {
+  private int getEncodedValueIndex(EV value, int referencingInstructionIndex) {
     int referencingValueIndex = referencingInstructionIndex + argumentCount;
-    int encodedValueIndex = ssaValueStrategy.encodeValueIndex(valueIndex, referencingValueIndex);
+    return strategy.getEncodedValueIndexForReference(value, referencingValueIndex);
+  }
+
+  private int valueIndexSize(EV value, int referencingInstructionIndex) {
+    return encodedValueIndexSize(getEncodedValueIndex(value, referencingInstructionIndex));
+  }
+
+  private int encodedValueIndexSize(int encodedValueIndex) {
     return ByteUtils.intEncodingSize(encodedValueIndex);
   }
 
-  private void writeValueIndex(int valueIndex, int referencingInstructionIndex) {
-    int referencingValueIndex = referencingInstructionIndex + argumentCount;
-    int encodedValueIndex = ssaValueStrategy.encodeValueIndex(valueIndex, referencingValueIndex);
+  private void writeValueIndex(EV value, int referencingInstructionIndex) {
+    writeEncodedValueIndex(getEncodedValueIndex(value, referencingInstructionIndex));
+  }
+
+  private void writeEncodedValueIndex(int encodedValueIndex) {
     ByteUtils.writeEncodedInt(encodedValueIndex, writer::writeOperand);
   }
 
-  private int getBlockIndex(B block) {
-    return blockIndexGetter.getBlockIndex(block);
+  private int getBlockIndex(BasicBlock block) {
+    return strategy.getBlockIndex(block);
   }
 
   private int blockIndexSize(int index) {
@@ -173,31 +162,31 @@ public class LirBuilder<V, B> {
     ByteUtils.writeEncodedInt(index, writer::writeOperand);
   }
 
-  public LirBuilder<V, B> setMetadata(IRMetadata metadata) {
+  public LirBuilder<V, EV> setMetadata(IRMetadata metadata) {
     this.metadata = metadata;
     return this;
   }
 
-  public LirBuilder<V, B> setDebugValue(DebugLocalInfo debugInfo, int valueIndex) {
+  public LirBuilder<V, EV> setDebugValue(DebugLocalInfo debugInfo, EV valueIndex) {
     DebugLocalInfo old = debugLocals.put(valueIndex, debugInfo);
     assert old == null;
     return this;
   }
 
-  public LirBuilder<V, B> setDebugLocalEnds(int instructionValueIndex, Set<V> endValues) {
+  public LirBuilder<V, EV> setDebugLocalEnds(int instructionValueIndex, Set<V> endValues) {
     int size = endValues.size();
     int[] indices = new int[size];
     Iterator<V> iterator = endValues.iterator();
     for (int i = 0; i < size; i++) {
-      int valueIndex = getValueIndex(iterator.next());
-      int encodedValueIndex = ssaValueStrategy.encodeValueIndex(valueIndex, instructionValueIndex);
-      indices[i] = encodedValueIndex;
+      EV value = getEncodedValue(iterator.next());
+      // The index is already the value index (it has been offset by argument count).
+      indices[i] = strategy.getEncodedValueIndexForReference(value, instructionValueIndex);
     }
     debugLocalEnds.put(instructionValueIndex, indices);
     return this;
   }
 
-  public LirBuilder<V, B> addArgument(int index, boolean knownToBeBoolean) {
+  public LirBuilder<V, EV> addArgument(int index, boolean knownToBeBoolean) {
     // Arguments are implicitly given by method descriptor and not an actual instruction.
     assert argumentCount == index;
     argumentCount++;
@@ -212,22 +201,23 @@ public class LirBuilder<V, B> {
     return instructionCount++;
   }
 
-  private LirBuilder<V, B> addNoOperandInstruction(int opcode) {
+  private LirBuilder<V, EV> addNoOperandInstruction(int opcode) {
     advanceInstructionState();
     writer.writeOneByteInstruction(opcode);
     return this;
   }
 
-  private LirBuilder<V, B> addOneItemInstruction(int opcode, DexItem item) {
+  private LirBuilder<V, EV> addOneItemInstruction(int opcode, DexItem item) {
     return addInstructionTemplate(opcode, Collections.singletonList(item), Collections.emptyList());
   }
 
-  private LirBuilder<V, B> addOneValueInstruction(int opcode, V value) {
+  private LirBuilder<V, EV> addOneValueInstruction(int opcode, V value) {
     return addInstructionTemplate(
         opcode, Collections.emptyList(), Collections.singletonList(value));
   }
 
-  private LirBuilder<V, B> addInstructionTemplate(int opcode, List<DexItem> items, List<V> values) {
+  private LirBuilder<V, EV> addInstructionTemplate(
+      int opcode, List<DexItem> items, List<V> values) {
     assert values.size() < MAX_VALUE_COUNT;
     int instructionIndex = advanceInstructionState();
     int operandSize = 0;
@@ -235,26 +225,26 @@ public class LirBuilder<V, B> {
       operandSize += constantIndexSize(item);
     }
     for (int i = 0; i < values.size(); i++) {
-      V value = values.get(i);
-      int valueIndex = getValueIndex(value);
-      operandSize += valueIndexSize(valueIndex, instructionIndex);
-      valueIndexBuffer[i] = valueIndex;
+      EV value = getEncodedValue(values.get(i));
+      int encodedValueIndex = getEncodedValueIndex(value, instructionIndex);
+      operandSize += encodedValueIndexSize(encodedValueIndex);
+      valueIndexBuffer[i] = encodedValueIndex;
     }
     writer.writeInstruction(opcode, operandSize);
     for (DexItem item : items) {
       writeConstantIndex(item);
     }
     for (int i = 0; i < values.size(); i++) {
-      writeValueIndex(valueIndexBuffer[i], instructionIndex);
+      writeEncodedValueIndex(valueIndexBuffer[i]);
     }
     return this;
   }
 
-  public LirBuilder<V, B> addConstNull() {
+  public LirBuilder<V, EV> addConstNull() {
     return addNoOperandInstruction(LirOpcodes.ACONST_NULL);
   }
 
-  public LirBuilder<V, B> addConstInt(int value) {
+  public LirBuilder<V, EV> addConstInt(int value) {
     if (-1 <= value && value <= 5) {
       addNoOperandInstruction(LirOpcodes.ICONST_0 + value);
     } else {
@@ -265,7 +255,7 @@ public class LirBuilder<V, B> {
     return this;
   }
 
-  public LirBuilder<V, B> addConstNumber(ValueType type, long value) {
+  public LirBuilder<V, EV> addConstNumber(ValueType type, long value) {
     switch (type) {
       case OBJECT:
         return addConstNull();
@@ -279,11 +269,11 @@ public class LirBuilder<V, B> {
     }
   }
 
-  public LirBuilder<V, B> addConstString(DexString string) {
+  public LirBuilder<V, EV> addConstString(DexString string) {
     return addOneItemInstruction(LirOpcodes.LDC, string);
   }
 
-  public LirBuilder<V, B> addDiv(NumericType type, V leftValue, V rightValue) {
+  public LirBuilder<V, EV> addDiv(NumericType type, V leftValue, V rightValue) {
     switch (type) {
       case BYTE:
       case CHAR:
@@ -301,35 +291,35 @@ public class LirBuilder<V, B> {
     }
   }
 
-  public LirBuilder<V, B> addArrayLength(V array) {
+  public LirBuilder<V, EV> addArrayLength(V array) {
     return addOneValueInstruction(LirOpcodes.ARRAYLENGTH, array);
   }
 
-  public LirBuilder<V, B> addStaticGet(DexField field) {
+  public LirBuilder<V, EV> addStaticGet(DexField field) {
     return addOneItemInstruction(LirOpcodes.GETSTATIC, field);
   }
 
-  public LirBuilder<V, B> addInvokeInstruction(int opcode, DexMethod method, List<V> arguments) {
+  public LirBuilder<V, EV> addInvokeInstruction(int opcode, DexMethod method, List<V> arguments) {
     return addInstructionTemplate(opcode, Collections.singletonList(method), arguments);
   }
 
-  public LirBuilder<V, B> addInvokeDirect(DexMethod method, List<V> arguments) {
+  public LirBuilder<V, EV> addInvokeDirect(DexMethod method, List<V> arguments) {
     return addInvokeInstruction(LirOpcodes.INVOKEDIRECT, method, arguments);
   }
 
-  public LirBuilder<V, B> addInvokeVirtual(DexMethod method, List<V> arguments) {
+  public LirBuilder<V, EV> addInvokeVirtual(DexMethod method, List<V> arguments) {
     return addInvokeInstruction(LirOpcodes.INVOKEVIRTUAL, method, arguments);
   }
 
-  public LirBuilder<V, B> addReturn(V value) {
+  public LirBuilder<V, EV> addReturn(V value) {
     throw new Unimplemented();
   }
 
-  public LirBuilder<V, B> addReturnVoid() {
+  public LirBuilder<V, EV> addReturnVoid() {
     return addNoOperandInstruction(LirOpcodes.RETURN);
   }
 
-  public LirBuilder<V, B> addDebugPosition(Position position) {
+  public LirBuilder<V, EV> addDebugPosition(Position position) {
     assert currentPosition == position;
     return addNoOperandInstruction(LirOpcodes.DEBUGPOS);
   }
@@ -338,7 +328,7 @@ public class LirBuilder<V, B> {
     addNoOperandInstruction(LirOpcodes.FALLTHROUGH);
   }
 
-  public LirBuilder<V, B> addGoto(B target) {
+  public LirBuilder<V, EV> addGoto(BasicBlock target) {
     int targetIndex = getBlockIndex(target);
     int operandSize = blockIndexSize(targetIndex);
     advanceInstructionState();
@@ -347,7 +337,8 @@ public class LirBuilder<V, B> {
     return this;
   }
 
-  public LirBuilder<V, B> addIf(IfType ifKind, ValueType valueType, V value, B trueTarget) {
+  public LirBuilder<V, EV> addIf(
+      IfType ifKind, ValueType valueType, V value, BasicBlock trueTarget) {
     int opcode;
     switch (ifKind) {
       case EQ:
@@ -371,18 +362,18 @@ public class LirBuilder<V, B> {
       default:
         throw new Unreachable("Unexpected if kind: " + ifKind);
     }
-    int targetIndex = getBlockIndex(trueTarget);
-    int valueIndex = getValueIndex(value);
-    int operandSize = blockIndexSize(targetIndex) + valueIndexSize(valueIndex, instructionCount);
     int instructionIndex = advanceInstructionState();
+    int targetIndex = getBlockIndex(trueTarget);
+    int valueIndex = getEncodedValueIndex(getEncodedValue(value), instructionIndex);
+    int operandSize = blockIndexSize(targetIndex) + encodedValueIndexSize(valueIndex);
     writer.writeInstruction(opcode, operandSize);
     writeBlockIndex(targetIndex);
-    writeValueIndex(valueIndex, instructionIndex);
+    writeEncodedValueIndex(valueIndex);
     return this;
   }
 
-  public LirBuilder<V, B> addIfCmp(
-      IfType ifKind, ValueType valueType, List<V> inValues, B trueTarget) {
+  public LirBuilder<V, EV> addIfCmp(
+      IfType ifKind, ValueType valueType, List<V> inValues, BasicBlock trueTarget) {
     int opcode;
     switch (ifKind) {
       case EQ:
@@ -408,40 +399,40 @@ public class LirBuilder<V, B> {
     }
     int instructionIndex = advanceInstructionState();
     int targetIndex = getBlockIndex(trueTarget);
-    int valueOneIndex = getValueIndex(inValues.get(0));
-    int valueTwoIndex = getValueIndex(inValues.get(1));
+    int valueOneIndex = getEncodedValueIndex(getEncodedValue(inValues.get(0)), instructionIndex);
+    int valueTwoIndex = getEncodedValueIndex(getEncodedValue(inValues.get(1)), instructionIndex);
     int operandSize =
         blockIndexSize(targetIndex)
-            + valueIndexSize(valueOneIndex, instructionIndex)
-            + valueIndexSize(valueTwoIndex, instructionIndex);
+            + encodedValueIndexSize(valueOneIndex)
+            + encodedValueIndexSize(valueTwoIndex);
     writer.writeInstruction(opcode, operandSize);
     writeBlockIndex(targetIndex);
-    writeValueIndex(valueOneIndex, instructionIndex);
-    writeValueIndex(valueTwoIndex, instructionIndex);
+    writeEncodedValueIndex(valueOneIndex);
+    writeEncodedValueIndex(valueTwoIndex);
     return this;
   }
 
-  public LirBuilder<V, B> addMoveException(DexType exceptionType) {
+  public LirBuilder<V, EV> addMoveException(DexType exceptionType) {
     return addOneItemInstruction(LirOpcodes.MOVEEXCEPTION, exceptionType);
   }
 
-  public LirBuilder<V, B> addPhi(TypeElement type, List<V> operands) {
+  public LirBuilder<V, EV> addPhi(TypeElement type, List<V> operands) {
     DexType dexType = toDexType(type);
     return addInstructionTemplate(LirOpcodes.PHI, Collections.singletonList(dexType), operands);
   }
 
-  public LirBuilder<V, B> addDebugLocalWrite(V src) {
+  public LirBuilder<V, EV> addDebugLocalWrite(V src) {
     return addOneValueInstruction(LirOpcodes.DEBUGLOCALWRITE, src);
   }
 
-  public LirCode build() {
+  public LirCode<EV> build() {
     assert metadata != null;
     int constantsCount = constants.size();
     DexItem[] constantTable = new DexItem[constantsCount];
     constants.forEach((item, index) -> constantTable[index] = item);
-    DebugLocalInfoTable debugTable =
-        debugLocals.isEmpty() ? null : new DebugLocalInfoTable(debugLocals, debugLocalEnds);
-    return new LirCode(
+    DebugLocalInfoTable<EV> debugTable =
+        debugLocals.isEmpty() ? null : new DebugLocalInfoTable<>(debugLocals, debugLocalEnds);
+    return new LirCode<>(
         metadata,
         constantTable,
         positionTable.toArray(new PositionEntry[positionTable.size()]),
@@ -450,6 +441,6 @@ public class LirBuilder<V, B> {
         instructionCount,
         new TryCatchTable(tryCatchRanges),
         debugTable,
-        ssaValueStrategy);
+        strategy.getSsaValueStrategy());
   }
 }

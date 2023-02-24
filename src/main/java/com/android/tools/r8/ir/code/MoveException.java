@@ -134,7 +134,7 @@ public class MoveException extends Instruction {
   }
 
   @Override
-  public void buildLir(LirBuilder<Value, BasicBlock> builder) {
+  public void buildLir(LirBuilder<Value, ?> builder) {
     builder.addMoveException(exceptionType);
   }
 }

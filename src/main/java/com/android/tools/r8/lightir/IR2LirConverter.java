@@ -12,12 +12,9 @@ import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionIterator;
 import com.android.tools.r8.ir.code.Phi;
 import com.android.tools.r8.ir.code.Value;
-import com.android.tools.r8.lightir.LirBuilder.BlockIndexGetter;
 import com.android.tools.r8.utils.ListUtils;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.ints.IntList;
-import it.unimi.dsi.fastutil.objects.Reference2IntMap;
-import it.unimi.dsi.fastutil.objects.Reference2IntOpenHashMap;
 import it.unimi.dsi.fastutil.objects.Reference2ReferenceMap;
 import it.unimi.dsi.fastutil.objects.Reference2ReferenceOpenHashMap;
 import java.util.ArrayList;
@@ -25,39 +22,40 @@ import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
 
-public class IR2LirConverter {
+public class IR2LirConverter<EV> {
 
   private final DexItemFactory factory;
   private final IRCode irCode;
-  private final Reference2IntMap<BasicBlock> blocks = new Reference2IntOpenHashMap<>();
-  private final Reference2IntMap<Value> values = new Reference2IntOpenHashMap<>();
-  private final LirBuilder<Value, BasicBlock> builder;
+  private final LirEncodingStrategy<Value, EV> strategy;
+  private final LirBuilder<Value, EV> builder;
 
-  private IR2LirConverter(DexItemFactory factory, IRCode irCode) {
+  private IR2LirConverter(
+      DexItemFactory factory, IRCode irCode, LirEncodingStrategy<Value, EV> strategy) {
     this.factory = factory;
     this.irCode = irCode;
+    this.strategy = strategy;
     this.builder =
-        new LirBuilder<Value, BasicBlock>(
-                irCode.context().getReference(), values::getInt, blocks::getInt, factory)
+        new LirBuilder<>(irCode.context().getReference(), strategy, factory)
             .setMetadata(irCode.metadata());
   }
 
-  public static LirCode translate(IRCode irCode, DexItemFactory factory) {
-    return new IR2LirConverter(factory, irCode).internalTranslate();
+  public static <EV> LirCode<EV> translate(
+      IRCode irCode, LirEncodingStrategy<Value, EV> strategy, DexItemFactory factory) {
+    return new IR2LirConverter<>(factory, irCode, strategy).internalTranslate();
   }
 
   private void recordBlock(BasicBlock block, int blockIndex) {
-    blocks.put(block, blockIndex);
+    strategy.defineBlock(block, blockIndex);
   }
 
   private void recordValue(Value value, int valueIndex) {
-    values.put(value, valueIndex);
+    EV encodedValue = strategy.defineValue(value, valueIndex);
     if (value.hasLocalInfo()) {
-      builder.setDebugValue(value.getLocalInfo(), valueIndex);
+      builder.setDebugValue(value.getLocalInfo(), encodedValue);
     }
   }
 
-  private LirCode internalTranslate() {
+  private LirCode<EV> internalTranslate() {
     irCode.traceBlocks();
     computeBlockAndValueTables();
     computeInstructions();
@@ -74,7 +72,7 @@ public class IR2LirConverter {
       if (block.hasPhis()) {
         // The block order of the predecessors may change, since the LIR does not encode the
         // direct links, the block order is used to determine predecessor order.
-        int[] permutation = computePermutation(block.getPredecessors(), blocks::getInt);
+        int[] permutation = computePermutation(block.getPredecessors(), strategy::getBlockIndex);
         Value[] operands = new Value[block.getPredecessors().size()];
         for (Phi phi : block.getPhis()) {
           permuteOperands(phi.getOperands(), permutation, operands);
@@ -85,16 +83,17 @@ public class IR2LirConverter {
       if (block.hasCatchHandlers()) {
         CatchHandlers<BasicBlock> handlers = block.getCatchHandlers();
         builder.addTryCatchHanders(
-            blocks.getInt(block),
+            strategy.getBlockIndex(block),
             new CatchHandlers<>(
-                handlers.getGuards(), ListUtils.map(handlers.getAllTargets(), blocks::getInt)));
+                handlers.getGuards(),
+                ListUtils.map(handlers.getAllTargets(), strategy::getBlockIndex)));
       }
       InstructionIterator it = block.iterator();
       while (it.hasNext()) {
         assert builder.verifyCurrentValueIndex(currentValueIndex);
         Instruction instruction = it.next();
         assert !instruction.hasOutValue()
-            || currentValueIndex == values.getInt(instruction.outValue());
+            || strategy.verifyValueIndex(instruction.outValue(), currentValueIndex);
         builder.setCurrentPosition(instruction.getPosition());
         if (!instruction.getDebugValues().isEmpty()) {
           builder.setDebugLocalEnds(currentValueIndex, instruction.getDebugValues());
@@ -144,8 +143,12 @@ public class IR2LirConverter {
     }
   }
 
+  private interface BlockIndexGetter {
+    int getBlockIndex(BasicBlock block);
+  }
+
   private static int[] computePermutation(
-      List<BasicBlock> originalPredecessors, BlockIndexGetter<BasicBlock> blockIndexGetter) {
+      List<BasicBlock> originalPredecessors, BlockIndexGetter blockIndexGetter) {
     int predecessorCount = originalPredecessors.size();
     // The final predecessor list is sorted by block order.
     List<BasicBlock> sortedPredecessors = new ArrayList<>(originalPredecessors);

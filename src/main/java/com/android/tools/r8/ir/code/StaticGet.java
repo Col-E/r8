@@ -300,7 +300,7 @@ public class StaticGet extends FieldInstruction implements FieldGet, StaticField
   }
 
   @Override
-  public void buildLir(LirBuilder<Value, BasicBlock> builder) {
+  public void buildLir(LirBuilder<Value, ?> builder) {
     builder.addStaticGet(getField());
   }
 }

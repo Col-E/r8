@@ -10,11 +10,10 @@ import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.ir.code.CatchHandlers;
 import com.android.tools.r8.ir.code.IRMetadata;
 import com.android.tools.r8.ir.code.Position;
-import com.android.tools.r8.lightir.LirBuilder.BlockIndexGetter;
-import com.android.tools.r8.lightir.LirBuilder.ValueIndexGetter;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceMap;
+import java.util.Map;
 
-public class LirCode implements Iterable<LirInstructionView> {
+public class LirCode<EV> implements Iterable<LirInstructionView> {
 
   public static class PositionEntry {
     final int fromInstructionIndex;
@@ -38,13 +37,12 @@ public class LirCode implements Iterable<LirInstructionView> {
     }
   }
 
-  public static class DebugLocalInfoTable {
-    private final Int2ReferenceMap<DebugLocalInfo> valueToLocalMap;
+  public static class DebugLocalInfoTable<EV> {
+    private final Map<EV, DebugLocalInfo> valueToLocalMap;
     private final Int2ReferenceMap<int[]> instructionToEndUseMap;
 
     public DebugLocalInfoTable(
-        Int2ReferenceMap<DebugLocalInfo> valueToLocalMap,
-        Int2ReferenceMap<int[]> instructionToEndUseMap) {
+        Map<EV, DebugLocalInfo> valueToLocalMap, Int2ReferenceMap<int[]> instructionToEndUseMap) {
       assert !valueToLocalMap.isEmpty();
       assert !instructionToEndUseMap.isEmpty();
       this.valueToLocalMap = valueToLocalMap;
@@ -52,7 +50,7 @@ public class LirCode implements Iterable<LirInstructionView> {
     }
   }
 
-  private final LirSsaValueStrategy ssaValueStrategy;
+  private final LirSsaValueStrategy<EV> ssaValueStrategy;
 
   private final IRMetadata metadata;
 
@@ -74,14 +72,11 @@ public class LirCode implements Iterable<LirInstructionView> {
   private final TryCatchTable tryCatchTable;
 
   /** Table of debug local information for each SSA value (if present). */
-  private final DebugLocalInfoTable debugLocalInfoTable;
+  private final DebugLocalInfoTable<EV> debugLocalInfoTable;
 
-  public static <V, B> LirBuilder<V, B> builder(
-      DexMethod method,
-      ValueIndexGetter<V> valueIndexGetter,
-      BlockIndexGetter<B> blockIndexGetter,
-      DexItemFactory factory) {
-    return new LirBuilder<V, B>(method, valueIndexGetter, blockIndexGetter, factory);
+  public static <V, EV> LirBuilder<V, EV> builder(
+      DexMethod method, LirEncodingStrategy<V, EV> strategy, DexItemFactory factory) {
+    return new LirBuilder<>(method, strategy, factory);
   }
 
   /** Should be constructed using {@link LirBuilder}. */
@@ -93,8 +88,8 @@ public class LirCode implements Iterable<LirInstructionView> {
       byte[] instructions,
       int instructionCount,
       TryCatchTable tryCatchTable,
-      DebugLocalInfoTable debugLocalInfoTable,
-      LirSsaValueStrategy ssaValueStrategy) {
+      DebugLocalInfoTable<EV> debugLocalInfoTable,
+      LirSsaValueStrategy<EV> ssaValueStrategy) {
     this.metadata = metadata;
     this.constants = constants;
     this.positionTable = positions;
@@ -106,7 +101,7 @@ public class LirCode implements Iterable<LirInstructionView> {
     this.ssaValueStrategy = ssaValueStrategy;
   }
 
-  public int decodeValueIndex(int encodedValueIndex, int currentValueIndex) {
+  public EV decodeValueIndex(int encodedValueIndex, int currentValueIndex) {
     return ssaValueStrategy.decodeValueIndex(encodedValueIndex, currentValueIndex);
   }
 
@@ -138,7 +133,7 @@ public class LirCode implements Iterable<LirInstructionView> {
     return tryCatchTable;
   }
 
-  public DebugLocalInfoTable getDebugLocalInfoTable() {
+  public DebugLocalInfoTable<EV> getDebugLocalInfoTable() {
     return debugLocalInfoTable;
   }
 
@@ -159,6 +154,6 @@ public class LirCode implements Iterable<LirInstructionView> {
 
   @Override
   public String toString() {
-    return new LirPrinter(this).prettyPrint();
+    return new LirPrinter<>(this).prettyPrint();
   }
 }

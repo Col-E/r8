@@ -14,7 +14,9 @@ import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
+import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.IRMetadata;
+import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.references.Reference;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -32,20 +34,45 @@ public class LirBasicCallbackTest extends TestBase {
     parameters.assertNoneRuntime();
   }
 
+  private static class ThrowingStrategy extends LirEncodingStrategy<Value, Integer> {
+
+    @Override
+    public void defineBlock(BasicBlock block, int index) {
+      throw new Unreachable();
+    }
+
+    @Override
+    public int getBlockIndex(BasicBlock block) {
+      throw new Unreachable();
+    }
+
+    @Override
+    public Integer defineValue(Value value, int index) {
+      throw new Unreachable();
+    }
+
+    @Override
+    public boolean verifyValueIndex(Value value, int expectedIndex) {
+      throw new Unreachable();
+    }
+
+    @Override
+    public Integer getEncodedValue(Value value) {
+      throw new Unreachable();
+    }
+
+    @Override
+    public LirSsaValueStrategy<Integer> getSsaValueStrategy() {
+      return null;
+    }
+  }
+
   @Test
   public void test() {
     DexItemFactory factory = new DexItemFactory();
     DexMethod method = factory.createMethod(Reference.methodFromDescriptor("LFoo;", "bar", "()V"));
-    LirCode code =
-        LirCode.builder(
-                method,
-                v -> {
-                  throw new Unreachable();
-                },
-                b -> {
-                  throw new Unreachable();
-                },
-                factory)
+    LirCode<?> code =
+        LirCode.builder(method, new ThrowingStrategy(), factory)
             .setMetadata(IRMetadata.unknown())
             .addConstNull()
             .addConstInt(42)

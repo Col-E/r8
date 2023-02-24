@@ -128,7 +128,7 @@ public class Goto extends JumpInstruction {
   }
 
   @Override
-  public void buildLir(LirBuilder<Value, BasicBlock> builder) {
+  public void buildLir(LirBuilder<Value, ?> builder) {
     builder.addGoto(getTarget());
   }
 

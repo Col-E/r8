@@ -11,8 +11,8 @@ import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.code.IfType;
 import com.android.tools.r8.ir.code.NumericType;
-import it.unimi.dsi.fastutil.ints.IntArrayList;
-import it.unimi.dsi.fastutil.ints.IntList;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Structured callbacks for interpreting LIR.
@@ -25,11 +25,11 @@ import it.unimi.dsi.fastutil.ints.IntList;
  * <p>Due to the parsing of the individual instructions, this parser has a higher overhead than
  * using the basic {@link LirInstructionView}.
  */
-public abstract class LirParsedInstructionCallback implements LirInstructionCallback {
+public abstract class LirParsedInstructionCallback<EV> implements LirInstructionCallback {
 
-  private final LirCode code;
+  private final LirCode<EV> code;
 
-  public LirParsedInstructionCallback(LirCode code) {
+  public LirParsedInstructionCallback(LirCode<EV> code) {
     this.code = code;
   }
 
@@ -40,11 +40,11 @@ public abstract class LirParsedInstructionCallback implements LirInstructionCall
     return getCurrentValueIndex() - code.getArgumentCount();
   }
 
-  private int getActualValueIndex(int relativeValueIndex) {
+  private EV getActualValueIndex(int relativeValueIndex) {
     return code.decodeValueIndex(relativeValueIndex, getCurrentValueIndex());
   }
 
-  private int getNextValueOperand(LirInstructionView view) {
+  private EV getNextValueOperand(LirInstructionView view) {
     return getActualValueIndex(view.getNextValueOperand());
   }
 
@@ -66,15 +66,15 @@ public abstract class LirParsedInstructionCallback implements LirInstructionCall
     onInstruction();
   }
 
-  public void onDiv(NumericType type, int leftValueIndex, int rightValueIndex) {
+  public void onDiv(NumericType type, EV leftValueIndex, EV rightValueIndex) {
     onInstruction();
   }
 
-  public void onDivInt(int leftValueIndex, int rightValueIndex) {
+  public void onDivInt(EV leftValueIndex, EV rightValueIndex) {
     onDiv(NumericType.INT, leftValueIndex, rightValueIndex);
   }
 
-  public void onIf(IfType ifKind, int blockIndex, int valueIndex) {
+  public void onIf(IfType ifKind, int blockIndex, EV valueIndex) {
     onInstruction();
   }
 
@@ -90,19 +90,19 @@ public abstract class LirParsedInstructionCallback implements LirInstructionCall
     onInstruction();
   }
 
-  public void onDebugLocalWrite(int srcIndex) {
+  public void onDebugLocalWrite(EV srcIndex) {
     onInstruction();
   }
 
-  public void onInvokeMethodInstruction(DexMethod method, IntList arguments) {
+  public void onInvokeMethodInstruction(DexMethod method, List<EV> arguments) {
     onInstruction();
   }
 
-  public void onInvokeDirect(DexMethod method, IntList arguments) {
+  public void onInvokeDirect(DexMethod method, List<EV> arguments) {
     onInvokeMethodInstruction(method, arguments);
   }
 
-  public void onInvokeVirtual(DexMethod method, IntList arguments) {
+  public void onInvokeVirtual(DexMethod method, List<EV> arguments) {
     onInvokeMethodInstruction(method, arguments);
   }
 
@@ -118,7 +118,7 @@ public abstract class LirParsedInstructionCallback implements LirInstructionCall
     onInstruction();
   }
 
-  public void onArrayLength(int arrayValueIndex) {
+  public void onArrayLength(EV arrayValueIndex) {
     onInstruction();
   }
 
@@ -126,7 +126,7 @@ public abstract class LirParsedInstructionCallback implements LirInstructionCall
     onInstruction();
   }
 
-  public void onPhi(DexType type, IntList operands) {
+  public void onPhi(DexType type, List<EV> operands) {
     onInstruction();
   }
 
@@ -172,15 +172,15 @@ public abstract class LirParsedInstructionCallback implements LirInstructionCall
         }
       case LirOpcodes.IDIV:
         {
-          int leftValueIndex = getNextValueOperand(view);
-          int rightValueIndex = getNextValueOperand(view);
+          EV leftValueIndex = getNextValueOperand(view);
+          EV rightValueIndex = getNextValueOperand(view);
           onDivInt(leftValueIndex, rightValueIndex);
           return;
         }
       case LirOpcodes.IFNE:
         {
           int blockIndex = view.getNextBlockOperand();
-          int valueIndex = getNextValueOperand(view);
+          EV valueIndex = getNextValueOperand(view);
           onIf(IfType.NE, blockIndex, valueIndex);
           return;
         }
@@ -193,14 +193,14 @@ public abstract class LirParsedInstructionCallback implements LirInstructionCall
       case LirOpcodes.INVOKEDIRECT:
         {
           DexMethod target = getInvokeInstructionTarget(view);
-          IntList arguments = getInvokeInstructionArguments(view);
+          List<EV> arguments = getInvokeInstructionArguments(view);
           onInvokeDirect(target, arguments);
           return;
         }
       case LirOpcodes.INVOKEVIRTUAL:
         {
           DexMethod target = getInvokeInstructionTarget(view);
-          IntList arguments = getInvokeInstructionArguments(view);
+          List<EV> arguments = getInvokeInstructionArguments(view);
           onInvokeVirtual(target, arguments);
           return;
         }
@@ -228,7 +228,7 @@ public abstract class LirParsedInstructionCallback implements LirInstructionCall
       case LirOpcodes.PHI:
         {
           DexType type = (DexType) getConstantItem(view.getNextConstantOperand());
-          IntList operands = new IntArrayList();
+          List<EV> operands = new ArrayList<>();
           while (view.hasMoreOperands()) {
             operands.add(getNextValueOperand(view));
           }
@@ -248,7 +248,7 @@ public abstract class LirParsedInstructionCallback implements LirInstructionCall
         }
       case LirOpcodes.DEBUGLOCALWRITE:
         {
-          int srcIndex = getNextValueOperand(view);
+          EV srcIndex = getNextValueOperand(view);
           onDebugLocalWrite(srcIndex);
           return;
         }
@@ -261,8 +261,8 @@ public abstract class LirParsedInstructionCallback implements LirInstructionCall
     return (DexMethod) getConstantItem(view.getNextConstantOperand());
   }
 
-  private IntList getInvokeInstructionArguments(LirInstructionView view) {
-    IntList arguments = new IntArrayList();
+  private List<EV> getInvokeInstructionArguments(LirInstructionView view) {
+    List<EV> arguments = new ArrayList<>();
     while (view.hasMoreOperands()) {
       arguments.add(getNextValueOperand(view));
     }

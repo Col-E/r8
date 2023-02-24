@@ -31,7 +31,6 @@ import com.android.tools.r8.ir.code.MoveException;
 import com.android.tools.r8.ir.code.NumberGenerator;
 import com.android.tools.r8.ir.code.NumericType;
 import com.android.tools.r8.ir.code.Phi;
-import com.android.tools.r8.ir.code.Phi.RegisterReadType;
 import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.code.Position.SyntheticPosition;
 import com.android.tools.r8.ir.code.Return;
@@ -52,8 +51,12 @@ public class Lir2IRConverter {
 
   private Lir2IRConverter() {}
 
-  public static IRCode translate(ProgramMethod method, LirCode lirCode, AppView<?> appView) {
-    Parser parser = new Parser(lirCode, method.getReference(), appView);
+  public static <EV> IRCode translate(
+      ProgramMethod method,
+      LirCode<EV> lirCode,
+      LirDecodingStrategy<Value, EV> strategy,
+      AppView<?> appView) {
+    Parser<EV> parser = new Parser<>(lirCode, method.getReference(), appView, strategy);
     parser.parseArguments(method);
     lirCode.forEach(view -> view.accept(parser));
     return parser.getIRCode(method);
@@ -63,16 +66,16 @@ public class Lir2IRConverter {
    * When building IR the structured LIR parser is used to obtain the decoded operand indexes. The
    * below parser subclass handles translation of indexes to SSA values.
    */
-  private static class Parser extends LirParsedInstructionCallback {
+  private static class Parser<EV> extends LirParsedInstructionCallback<EV> {
 
     private static final int ENTRY_BLOCK_INDEX = -1;
 
     private final AppView<?> appView;
-    private final LirCode code;
+    private final LirCode<EV> code;
+    private final LirDecodingStrategy<Value, EV> strategy;
     private final NumberGenerator valueNumberGenerator = new NumberGenerator();
     private final NumberGenerator basicBlockNumberGenerator = new NumberGenerator();
 
-    private final Value[] values;
     private final Int2ReferenceMap<BasicBlock> blocks = new Int2ReferenceOpenHashMap<>();
 
     private BasicBlock currentBlock = null;
@@ -82,13 +85,17 @@ public class Lir2IRConverter {
     private PositionEntry nextPositionEntry = null;
     private int nextIndexInPositionsTable = 0;
 
-    public Parser(LirCode code, DexMethod method, AppView<?> appView) {
+    public Parser(
+        LirCode<EV> code,
+        DexMethod method,
+        AppView<?> appView,
+        LirDecodingStrategy<Value, EV> strategy) {
       super(code);
       assert code.getPositionTable().length > 0;
       assert code.getPositionTable()[0].fromInstructionIndex == 0;
       this.appView = appView;
       this.code = code;
-      values = new Value[code.getArgumentCount() + code.getInstructionCount()];
+      this.strategy = strategy;
       // Recreate the preamble position. This is active for arguments and code with no positions.
       currentPosition = SyntheticPosition.builder().setLine(0).setMethod(method).build();
     }
@@ -184,19 +191,14 @@ public class Lir2IRConverter {
           });
     }
 
-    public Value getValue(int index) {
-      Value value = values[index];
-      if (value == null) {
-        value = new Value(index, TypeElement.getBottom(), null);
-        values[index] = value;
-      }
-      return value;
+    public Value getValue(EV encodedValue) {
+      return strategy.getValue(encodedValue);
     }
 
-    public List<Value> getValues(IntList indices) {
+    public List<Value> getValues(List<EV> indices) {
       List<Value> arguments = new ArrayList<>(indices.size());
       for (int i = 0; i < indices.size(); i++) {
-        arguments.add(getValue(indices.getInt(i)));
+        arguments.add(getValue(indices.get(i)));
       }
       return arguments;
     }
@@ -212,17 +214,7 @@ public class Lir2IRConverter {
     public Value getOutValueForNextInstruction(TypeElement type) {
       int valueIndex = toInstructionIndexInIR(peekNextInstructionIndex());
       DebugLocalInfo localInfo = code.getDebugLocalInfo(valueIndex);
-      Value value = values[valueIndex];
-      if (value == null) {
-        value = new Value(valueIndex, type, localInfo);
-        values[valueIndex] = value;
-      } else {
-        value.setType(type);
-        if (localInfo != null) {
-          value.setLocalInfo(localInfo);
-        }
-      }
-      return value;
+      return strategy.getValueDefinitionForInstructionIndex(valueIndex, type, localInfo);
     }
 
     public Phi getPhiForNextInstructionAndAdvanceState(TypeElement type) {
@@ -233,17 +225,8 @@ public class Lir2IRConverter {
       //  uniform with instructions.
       advanceInstructionState();
       // Creating the phi implicitly adds it to currentBlock.
-      Phi phi = new Phi(valueIndex, currentBlock, type, localInfo, RegisterReadType.NORMAL);
-      Value value = values[valueIndex];
-      if (value != null) {
-        // A fake ssa value has already been created, replace the users by the actual phi.
-        // TODO(b/225838009): We could consider encoding the value type as a bit in the value index
-        //  and avoid the overhead of replacing users at phi-definition time.
-        assert !value.isPhi();
-        value.replaceUsers(phi);
-      }
-      values[valueIndex] = phi;
-      return phi;
+      return strategy.getPhiDefinitionForInstructionIndex(
+          valueIndex, currentBlock, type, localInfo);
     }
 
     private void advanceInstructionState() {
@@ -261,7 +244,7 @@ public class Lir2IRConverter {
       int[] debugEndIndices = code.getDebugLocalEnds(index);
       if (debugEndIndices != null) {
         for (int encodedDebugEndIndex : debugEndIndices) {
-          int debugEndIndex = code.decodeValueIndex(encodedDebugEndIndex, index);
+          EV debugEndIndex = code.decodeValueIndex(encodedDebugEndIndex, index);
           Value debugValue = getValue(debugEndIndex);
           debugValue.addDebugLocalEnd(instruction);
         }
@@ -278,9 +261,7 @@ public class Lir2IRConverter {
       // which would otherwise advance the state.
       TypeElement typeElement = type.toTypeElement(appView);
       DebugLocalInfo localInfo = code.getDebugLocalInfo(index);
-      Value dest = new Value(index, typeElement, localInfo);
-      assert values[index] == null;
-      values[index] = dest;
+      Value dest = strategy.getValueDefinitionForInstructionIndex(index, typeElement, localInfo);
       Argument argument = new Argument(dest, index, type.isBooleanType());
       assert currentBlock != null;
       assert currentPosition.isSyntheticPosition();
@@ -303,7 +284,7 @@ public class Lir2IRConverter {
     }
 
     @Override
-    public void onDivInt(int leftValueIndex, int rightValueIndex) {
+    public void onDivInt(EV leftValueIndex, EV rightValueIndex) {
       Value dest = getOutValueForNextInstruction(TypeElement.getInt());
       addInstruction(
           new Div(NumericType.INT, dest, getValue(leftValueIndex), getValue(rightValueIndex)));
@@ -316,7 +297,7 @@ public class Lir2IRConverter {
     }
 
     @Override
-    public void onIf(IfType ifKind, int blockIndex, int valueIndex) {
+    public void onIf(IfType ifKind, int blockIndex, EV valueIndex) {
       BasicBlock targetBlock = getBasicBlock(blockIndex);
       Value value = getValue(valueIndex);
       addInstruction(new If(ifKind, value));
@@ -340,7 +321,7 @@ public class Lir2IRConverter {
     }
 
     @Override
-    public void onInvokeDirect(DexMethod target, IntList arguments) {
+    public void onInvokeDirect(DexMethod target, List<EV> arguments) {
       // TODO(b/225838009): Maintain is-interface bit.
       Value dest = getInvokeInstructionOutputValue(target);
       List<Value> ssaArgumentValues = getValues(arguments);
@@ -349,7 +330,7 @@ public class Lir2IRConverter {
     }
 
     @Override
-    public void onInvokeVirtual(DexMethod target, IntList arguments) {
+    public void onInvokeVirtual(DexMethod target, List<EV> arguments) {
       // TODO(b/225838009): Maintain is-interface bit.
       Value dest = getInvokeInstructionOutputValue(target);
       List<Value> ssaArgumentValues = getValues(arguments);
@@ -376,7 +357,7 @@ public class Lir2IRConverter {
     }
 
     @Override
-    public void onArrayLength(int arrayValueIndex) {
+    public void onArrayLength(EV arrayValueIndex) {
       Value dest = getOutValueForNextInstruction(TypeElement.getInt());
       Value arrayValue = getValue(arrayValueIndex);
       addInstruction(new ArrayLength(dest, arrayValue));
@@ -388,11 +369,11 @@ public class Lir2IRConverter {
     }
 
     @Override
-    public void onPhi(DexType type, IntList operands) {
+    public void onPhi(DexType type, List<EV> operands) {
       Phi phi = getPhiForNextInstructionAndAdvanceState(type.toTypeElement(appView));
       List<Value> values = new ArrayList<>(operands.size());
       for (int i = 0; i < operands.size(); i++) {
-        values.add(getValue(operands.getInt(i)));
+        values.add(getValue(operands.get(i)));
       }
       phi.addOperands(values);
     }
@@ -404,7 +385,7 @@ public class Lir2IRConverter {
     }
 
     @Override
-    public void onDebugLocalWrite(int srcIndex) {
+    public void onDebugLocalWrite(EV srcIndex) {
       Value src = getValue(srcIndex);
       // The type is in the local table, so initialize it with bottom and reset with the local info.
       Value dest = getOutValueForNextInstruction(TypeElement.getBottom());

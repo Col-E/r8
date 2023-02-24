@@ -204,7 +204,7 @@ public class InvokeVirtual extends InvokeMethodWithReceiver {
   }
 
   @Override
-  public void buildLir(LirBuilder<Value, BasicBlock> builder) {
+  public void buildLir(LirBuilder<Value, ?> builder) {
     builder.addInvokeVirtual(getInvokedMethod(), arguments());
   }
 }

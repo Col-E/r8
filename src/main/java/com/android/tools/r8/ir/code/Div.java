@@ -151,7 +151,7 @@ public class Div extends ArithmeticBinop {
   }
 
   @Override
-  public void buildLir(LirBuilder<Value, BasicBlock> builder) {
+  public void buildLir(LirBuilder<Value, ?> builder) {
     builder.addDiv(type, leftValue(), rightValue());
   }
 }

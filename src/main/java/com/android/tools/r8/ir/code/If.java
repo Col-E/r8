@@ -250,7 +250,7 @@ public class If extends JumpInstruction {
   }
 
   @Override
-  public void buildLir(LirBuilder<Value, BasicBlock> builder) {
+  public void buildLir(LirBuilder<Value, ?> builder) {
     ValueType ifType = inValues.get(0).outType();
     if (inValues.size() == 1) {
       builder.addIf(type, ifType, inValues.get(0), getTrueTarget());

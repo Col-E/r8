@@ -10,40 +10,42 @@ package com.android.tools.r8.lightir;
  * the SSA out value. This strategy provides a way to opaquely encode any references of an SSA value
  * as the relative offset from the referencing instruction.
  */
-public abstract class LirSsaValueStrategy {
+public abstract class LirSsaValueStrategy<EV> {
 
-  private static final LirSsaValueStrategy INSTANCE = new RelativeStrategy();
+  private static final LirSsaValueStrategy<Integer> INSTANCE = new RelativeStrategy();
 
-  public static LirSsaValueStrategy get() {
+  public static LirSsaValueStrategy<Integer> get() {
     return INSTANCE;
   }
 
-  public abstract int encodeValueIndex(int absoluteValueIndex, int currentValueIndex);
+  public abstract int encodeValueIndex(EV value, int currentValueIndex);
 
-  public abstract int decodeValueIndex(int encodedValueIndex, int currentValueIndex);
+  public abstract EV decodeValueIndex(int encodedValueIndex, int currentValueIndex);
 
-  private static class AbsoluteStrategy extends LirSsaValueStrategy {
+  private static class AbsoluteStrategy extends LirSsaValueStrategy<Integer> {
 
     @Override
-    public int encodeValueIndex(int absoluteValueIndex, int currentValueIndex) {
-      return absoluteValueIndex;
+    public int encodeValueIndex(Integer value, int currentValueIndex) {
+      assert value != null;
+      return value;
     }
 
     @Override
-    public int decodeValueIndex(int encodedValueIndex, int currentValueIndex) {
+    public Integer decodeValueIndex(int encodedValueIndex, int currentValueIndex) {
       return encodedValueIndex;
     }
   }
 
-  private static class RelativeStrategy extends LirSsaValueStrategy {
+  private static class RelativeStrategy extends LirSsaValueStrategy<Integer> {
 
     @Override
-    public int encodeValueIndex(int absoluteValueIndex, int currentValueIndex) {
+    public int encodeValueIndex(Integer absoluteValueIndex, int currentValueIndex) {
+      assert absoluteValueIndex != null;
       return currentValueIndex - absoluteValueIndex;
     }
 
     @Override
-    public int decodeValueIndex(int encodedValueIndex, int currentValueIndex) {
+    public Integer decodeValueIndex(int encodedValueIndex, int currentValueIndex) {
       return currentValueIndex - encodedValueIndex;
     }
   }

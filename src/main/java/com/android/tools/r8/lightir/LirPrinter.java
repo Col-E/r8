@@ -11,12 +11,12 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.code.IfType;
 import com.android.tools.r8.ir.code.NumericType;
 import com.android.tools.r8.utils.StringUtils;
-import it.unimi.dsi.fastutil.ints.IntList;
+import java.util.List;
 
-public class LirPrinter extends LirParsedInstructionCallback {
+public class LirPrinter<EV> extends LirParsedInstructionCallback<EV> {
 
   private static final String SEPERATOR = "\n";
-  private final LirCode code;
+  private final LirCode<EV> code;
   private final StringBuilder builder = new StringBuilder();
 
   private final int instructionIndexPadding;
@@ -25,7 +25,7 @@ public class LirPrinter extends LirParsedInstructionCallback {
   private int valueIndex = 0;
   private LirInstructionView view;
 
-  public LirPrinter(LirCode code) {
+  public LirPrinter(LirCode<EV> code) {
     super(code);
     this.code = code;
     instructionIndexPadding =
@@ -52,13 +52,17 @@ public class LirPrinter extends LirParsedInstructionCallback {
     return "v" + valueIndex;
   }
 
+  private String fmtValueIndex(EV valueIndex) {
+    return "v" + valueIndex;
+  }
+
   private String fmtInsnIndex(int instructionIndex) {
     return instructionIndex < 0 ? "--" : ("" + instructionIndex);
   }
 
-  private void appendValueArguments(IntList arguments) {
+  private void appendValueArguments(List<EV> arguments) {
     for (int i = 0; i < arguments.size(); i++) {
-      builder.append(fmtValueIndex(arguments.getInt(i))).append(' ');
+      builder.append(fmtValueIndex(arguments.get(i))).append(' ');
     }
   }
 
@@ -124,7 +128,7 @@ public class LirPrinter extends LirParsedInstructionCallback {
   }
 
   @Override
-  public void onDiv(NumericType type, int leftValueIndex, int rightValueIndex) {
+  public void onDiv(NumericType type, EV leftValueIndex, EV rightValueIndex) {
     appendOutValue()
         .append(fmtValueIndex(leftValueIndex))
         .append(' ')
@@ -134,7 +138,7 @@ public class LirPrinter extends LirParsedInstructionCallback {
   }
 
   @Override
-  public void onIf(IfType ifKind, int blockIndex, int valueIndex) {
+  public void onIf(IfType ifKind, int blockIndex, EV valueIndex) {
     builder.append(fmtValueIndex(valueIndex)).append(' ').append(fmtInsnIndex(blockIndex));
   }
 
@@ -154,12 +158,12 @@ public class LirPrinter extends LirParsedInstructionCallback {
   }
 
   @Override
-  public void onDebugLocalWrite(int srcIndex) {
+  public void onDebugLocalWrite(EV srcIndex) {
     appendOutValue().append(fmtValueIndex(srcIndex));
   }
 
   @Override
-  public void onInvokeMethodInstruction(DexMethod method, IntList arguments) {
+  public void onInvokeMethodInstruction(DexMethod method, List<EV> arguments) {
     if (!method.getReturnType().isVoidType()) {
       appendOutValue();
     }
@@ -184,7 +188,7 @@ public class LirPrinter extends LirParsedInstructionCallback {
   }
 
   @Override
-  public void onArrayLength(int arrayValueIndex) {
+  public void onArrayLength(EV arrayValueIndex) {
     appendOutValue().append(fmtValueIndex(arrayValueIndex));
   }
 
@@ -194,7 +198,7 @@ public class LirPrinter extends LirParsedInstructionCallback {
   }
 
   @Override
-  public void onPhi(DexType type, IntList operands) {
+  public void onPhi(DexType type, List<EV> operands) {
     appendOutValue();
     appendValueArguments(operands);
     builder.append(type);

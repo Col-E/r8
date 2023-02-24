@@ -23,6 +23,7 @@ import com.android.tools.r8.ir.analysis.fieldvalueanalysis.StaticFieldValueAnaly
 import com.android.tools.r8.ir.analysis.fieldvalueanalysis.StaticFieldValues;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.IRCode;
+import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.desugar.CfInstructionDesugaringCollection;
 import com.android.tools.r8.ir.desugar.CovariantReturnTypeAnnotationTransformer;
 import com.android.tools.r8.ir.optimize.AssertionErrorTwoArgsConstructorRewriter;
@@ -63,6 +64,8 @@ import com.android.tools.r8.ir.optimize.string.StringOptimizer;
 import com.android.tools.r8.lightir.IR2LirConverter;
 import com.android.tools.r8.lightir.Lir2IRConverter;
 import com.android.tools.r8.lightir.LirCode;
+import com.android.tools.r8.lightir.LirStrategy;
+import com.android.tools.r8.lightir.LirStrategy.PhiInInstructionsStrategy;
 import com.android.tools.r8.logging.Log;
 import com.android.tools.r8.naming.IdentifierNameStringMarker;
 import com.android.tools.r8.optimize.argumentpropagation.ArgumentPropagatorIROptimizer;
@@ -1102,11 +1105,15 @@ public class IRConverter {
       OptimizationFeedback feedback,
       BytecodeMetadataProvider bytecodeMetadataProvider,
       Timing timing) {
+    LirStrategy<Value, Integer> strategy = new PhiInInstructionsStrategy();
     timing.begin("IR->LIR");
-    LirCode lirCode = IR2LirConverter.translate(code, appView.dexItemFactory());
+    LirCode<Integer> lirCode =
+        IR2LirConverter.translate(code, strategy.getEncodingStrategy(), appView.dexItemFactory());
     timing.end();
     timing.begin("LIR->IR");
-    IRCode irCode = Lir2IRConverter.translate(code.context(), lirCode, appView);
+    IRCode irCode =
+        Lir2IRConverter.translate(
+            code.context(), lirCode, strategy.getDecodingStrategy(lirCode), appView);
     timing.end();
     return irCode;
   }

@@ -1563,7 +1563,7 @@ public abstract class Instruction
     return false;
   }
 
-  public void buildLir(LirBuilder<Value, BasicBlock> builder) {
+  public void buildLir(LirBuilder<Value, ?> builder) {
     throw new Unimplemented("Missing impl for " + getClass().getSimpleName());
   }
 

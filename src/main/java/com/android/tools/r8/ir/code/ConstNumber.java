@@ -346,7 +346,7 @@ public class ConstNumber extends ConstInstruction {
   }
 
   @Override
-  public void buildLir(LirBuilder<Value, BasicBlock> builder) {
+  public void buildLir(LirBuilder<Value, ?> builder) {
     builder.addConstNumber(outType(), value);
   }
 }

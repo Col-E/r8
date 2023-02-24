@@ -182,7 +182,7 @@ public class ConstString extends ConstInstruction {
   }
 
   @Override
-  public void buildLir(LirBuilder<Value, BasicBlock> builder) {
+  public void buildLir(LirBuilder<Value, ?> builder) {
     builder.addConstString(value);
   }
 }
