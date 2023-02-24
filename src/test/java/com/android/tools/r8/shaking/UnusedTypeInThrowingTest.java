@@ -4,46 +4,54 @@
 
 package com.android.tools.r8.shaking;
 
-import static junit.framework.TestCase.assertTrue;
+import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
+import static org.hamcrest.MatcherAssert.assertThat;
 
-import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.TestBase;
+import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
-import java.io.IOException;
-import java.util.concurrent.ExecutionException;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameter;
+import org.junit.runners.Parameterized.Parameters;
 
-class UnusedTypeInThrowing {
-
-  public static final String EXPECTED = System.currentTimeMillis() >= 0 ? "42" : null;
-
-  public static void main(String[] args) {
-    System.out.print(EXPECTED);
-  }
-}
-
-class UnusedTypeInThrowingThrowable extends Throwable {}
-
+@RunWith(Parameterized.class)
 public class UnusedTypeInThrowingTest extends TestBase {
 
-  static final Class THROWABLE_CLASS = UnusedTypeInThrowingThrowable.class;
-  static final Class MAIN_CLASS = UnusedTypeInThrowing.class;
+  @Parameter(0)
+  public TestParameters parameters;
+
+  @Parameters(name = "{0}")
+  public static TestParametersCollection data() {
+    return getTestParameters().withAllRuntimesAndApiLevels().build();
+  }
 
   @Test
-  public void testTypeIsMarkedAsLive()
-      throws IOException, CompilationFailedException, ExecutionException {
+  public void testTypeIsMarkedAsLive() throws Exception {
     CodeInspector inspector =
-        testForR8(Backend.CF)
-            .enableGraphInspector()
-            .addProgramClasses(MAIN_CLASS)
-            .addProgramClasses(THROWABLE_CLASS)
-            .addKeepMainRule(MAIN_CLASS)
-            .addKeepRules("-keepattributes Exceptions")
-            .run(MAIN_CLASS)
-            .assertSuccessWithOutput(UnusedTypeInThrowing.EXPECTED)
+        testForR8(parameters.getBackend())
+            .addInnerClasses(getClass())
+            .addKeepMainRule(Main.class)
+            .addKeepAttributeExceptions()
+            .setMinApi(parameters)
+            .run(parameters.getRuntime(), Main.class)
+            .assertSuccessWithOutput(Main.EXPECTED)
             .inspector();
 
-    assertTrue(inspector.clazz(THROWABLE_CLASS).isPresent());
+    assertThat(inspector.clazz(UnusedThrowable.class), isPresent());
     // TODO(b/124217402) When done check that THROWABLE_CLASS is kept by the throwing annotation.
   }
+
+  static class Main {
+
+    public static final String EXPECTED = System.currentTimeMillis() >= 0 ? "42" : null;
+
+    public static void main(String[] args) throws UnusedThrowable {
+      System.out.print(EXPECTED);
+    }
+  }
+
+  static class UnusedThrowable extends Throwable {}
 }
