@@ -296,6 +296,42 @@ public class AndroidApp {
     }
   }
 
+  public Pair<Set<DataDirectoryResource>, Set<DataEntryResource>> getDataResourcesForTesting()
+      throws ResourceException {
+    Set<DataDirectoryResource> dataDirectoryResources =
+        new TreeSet<>(Comparator.comparing(DataResource::getName));
+    Set<DataEntryResource> dataEntryResources =
+        new TreeSet<>(Comparator.comparing(DataResource::getName));
+    for (ProgramResourceProvider programResourceProvider : getProgramResourceProviders()) {
+      DataResourceProvider dataResourceProvider = programResourceProvider.getDataResourceProvider();
+      if (dataResourceProvider != null) {
+        dataResourceProvider.accept(
+            new Visitor() {
+
+              @Override
+              public void visit(DataDirectoryResource directory) {
+                dataDirectoryResources.add(
+                    DataDirectoryResource.fromName(directory.getName(), directory.getOrigin()));
+              }
+
+              @Override
+              public void visit(DataEntryResource file) {
+                try {
+                  byte[] bytes = ByteStreams.toByteArray(file.getByteStream());
+                  DataEntryResource copy =
+                      DataEntryResource.fromBytes(bytes, file.getName(), file.getOrigin());
+                  dataEntryResources.add(copy);
+                } catch (IOException | ResourceException e) {
+                  throw new RuntimeException(e);
+                }
+              }
+            });
+      }
+    }
+    return new Pair<>(dataDirectoryResources, dataEntryResources);
+  }
+
+  @Deprecated
   public Set<DataEntryResource> getDataEntryResourcesForTesting() throws ResourceException {
     Set<DataEntryResource> out = new TreeSet<>(Comparator.comparing(DataResource::getName));
     for (ProgramResourceProvider programResourceProvider : getProgramResourceProviders()) {
@@ -625,10 +661,17 @@ public class AndroidApp {
       try (ByteArrayOutputStream archiveByteStream = new ByteArrayOutputStream()) {
         try (ZipOutputStream archiveOutputStream = new ZipOutputStream(archiveByteStream)) {
           Object2IntMap<String> seen = new Object2IntOpenHashMap<>();
-          Set<DataEntryResource> dataEntries = getDataEntryResourcesForTesting();
-          for (DataEntryResource dataResource : dataEntries) {
-            String entryName = dataResource.getName();
-            try (InputStream dataStream = dataResource.getByteStream()) {
+          Pair<Set<DataDirectoryResource>, Set<DataEntryResource>> dataResources =
+              getDataResourcesForTesting();
+          Set<DataDirectoryResource> dataDirectoryResources = dataResources.getFirst();
+          for (DataDirectoryResource dataDirectoryResource : dataDirectoryResources) {
+            writeToZipStream(
+                archiveOutputStream, dataDirectoryResource.getName(), new byte[0], ZipEntry.STORED);
+          }
+          Set<DataEntryResource> dataEntryResources = dataResources.getSecond();
+          for (DataEntryResource dataEntryResource : dataEntryResources) {
+            String entryName = dataEntryResource.getName();
+            try (InputStream dataStream = dataEntryResource.getByteStream()) {
               byte[] bytes = ByteStreams.toByteArray(dataStream);
               writeToZipStream(archiveOutputStream, entryName, bytes, ZipEntry.DEFLATED);
             }
