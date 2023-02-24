@@ -7,15 +7,21 @@ import com.android.tools.r8.graph.DebugLocalInfo;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.Phi;
+import java.util.function.Function;
+import java.util.function.IntFunction;
 
 /** Abstraction for how to decode SSA values (and basic blocks) when reading LIR. */
 public abstract class LirDecodingStrategy<V, EV> {
 
-  public abstract V getValue(EV encodedValue);
+  public abstract V getValue(EV encodedValue, LirStrategyInfo<EV> strategyInfo);
 
   public abstract V getValueDefinitionForInstructionIndex(
-      int instructionIndex, TypeElement type, DebugLocalInfo localInfo);
+      int instructionIndex, TypeElement type, Function<EV, DebugLocalInfo> getLocalInfo);
 
   public abstract Phi getPhiDefinitionForInstructionIndex(
-      int instructionIndex, BasicBlock block, TypeElement type, DebugLocalInfo localInfo);
+      int valueIndex,
+      IntFunction<BasicBlock> getBlock,
+      TypeElement type,
+      Function<EV, DebugLocalInfo> getLocalInfo,
+      LirStrategyInfo<EV> strategyInfo);
 }

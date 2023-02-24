@@ -51,6 +51,15 @@ public class ByteUtils {
     return (value >= 0) && (value <= 0xFFFF);
   }
 
+  private static int truncateToU2(int value) {
+    return value & 0xFFFF;
+  }
+
+  public static int ensureU2(int value) {
+    assert isU2(value);
+    return truncateToU2(value);
+  }
+
   public static int unsetBitAtIndex(int value, int index) {
     return value & ~(1 << (index - 1));
   }
