@@ -143,7 +143,7 @@ public interface ClassFileConsumer extends ProgramConsumer {
       return outputBuilder.getPath();
     }
 
-    public static void writeResources(
+    public static void writeResourcesForTesting(
         Path archive, List<ProgramResource> resources, Set<DataEntryResource> dataResources)
         throws IOException, ResourceException {
       OpenOption[] options =

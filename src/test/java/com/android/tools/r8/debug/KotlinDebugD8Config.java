@@ -40,7 +40,7 @@ class KotlinDebugD8Config extends D8DebugTestConfig {
         TestBase.getStaticTemp().newFolder().toPath().resolve("d8_debug_test_resources_kotlin.jar");
     Path kotlinJar = compiledKotlinJars.getForConfiguration(kotlinTestParameters);
     D8DebugTestConfig.d8Compile(Collections.singletonList(kotlinJar), apiLevel, null)
-        .write(outputPath, OutputMode.DexIndexed);
+        .writeForTesting(outputPath, OutputMode.DexIndexed);
     return outputPath;
   }
 

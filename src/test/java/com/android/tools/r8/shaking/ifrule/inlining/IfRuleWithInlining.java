@@ -79,7 +79,7 @@ public class IfRuleWithInlining extends ProguardCompatibilityTestBase {
     } else {
       assert shrinker == Shrinker.R8_CF;
       Path file = File.createTempFile("junit", ".zip", temp.getRoot()).toPath();
-      app.writeToZip(file, OutputMode.ClassFile);
+      app.writeToZipForTesting(file, OutputMode.ClassFile);
       result = ToolHelper.runJava(file, Main.class.getName());
     }
     assertEquals(0, result.exitCode);

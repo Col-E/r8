@@ -71,7 +71,7 @@ public class D8DebugTestConfig extends DexDebugTestConfig {
       TemporaryFolder temp, List<Path> paths, Consumer<InternalOptions> optionsConsumer) {
     try {
       Path out = temp.newFolder().toPath().resolve("d8_compiled.jar");
-      d8Compile(paths, optionsConsumer).write(out, OutputMode.DexIndexed);
+      d8Compile(paths, optionsConsumer).writeForTesting(out, OutputMode.DexIndexed);
       addPaths(out);
       return this;
     } catch (Exception e) {

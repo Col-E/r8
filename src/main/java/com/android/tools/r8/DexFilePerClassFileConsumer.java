@@ -208,7 +208,7 @@ public interface DexFilePerClassFileConsumer extends ProgramConsumer, ByteBuffer
       return outputBuilder.getPath();
     }
 
-    public static void writeResources(
+    public static void writeResourcesForTesting(
         Path archive,
         List<ProgramResource> resources,
         Map<Resource, String> primaryClassDescriptors)

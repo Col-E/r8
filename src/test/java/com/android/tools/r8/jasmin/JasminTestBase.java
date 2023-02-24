@@ -239,23 +239,23 @@ public class JasminTestBase extends TestBase {
   @Override
   protected ProcessResult runOnArtRaw(AndroidApp app, String main) throws IOException {
     Path out = temp.getRoot().toPath().resolve("out.zip");
-    app.writeToZip(out, OutputMode.DexIndexed);
+    app.writeToZipForTesting(out, OutputMode.DexIndexed);
     return ToolHelper.runArtRaw(out.toString(), main);
   }
 
   protected ProcessResult runOnArtRaw(AndroidApp program, AndroidApp library, String main)
       throws IOException {
     Path out = temp.getRoot().toPath().resolve("out.zip");
-    program.writeToZip(out, OutputMode.DexIndexed);
+    program.writeToZipForTesting(out, OutputMode.DexIndexed);
     Path libraryOut = temp.getRoot().toPath().resolve("libraryOut.zip");
-    library.writeToZip(libraryOut, OutputMode.DexIndexed);
+    library.writeToZipForTesting(libraryOut, OutputMode.DexIndexed);
     return ToolHelper.runArtRaw(ImmutableList.of(out.toString(), libraryOut.toString()), main,
         null);
   }
 
   protected String runOnArt(AndroidApp app, String main) throws IOException {
     Path out = temp.getRoot().toPath().resolve("out.zip");
-    app.writeToZip(out, OutputMode.DexIndexed);
+    app.writeToZipForTesting(out, OutputMode.DexIndexed);
     return ToolHelper.runArtNoVerificationErrors(out.toString(), main);
   }
 

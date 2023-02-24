@@ -411,12 +411,10 @@ public class AndroidApp {
         ImmutableList.of());
   }
 
-  /**
-   * Write the dex program resources and proguard resource to @code{output}.
-   */
-  public void write(Path output, OutputMode outputMode) throws IOException {
+  /** Write the dex program resources and proguard resource to @code{output}. */
+  public void writeForTesting(Path output, OutputMode outputMode) throws IOException {
     if (isArchive(output)) {
-      writeToZip(output, outputMode);
+      writeToZipForTesting(output, outputMode);
     } else {
       writeToDirectory(output, outputMode);
     }
@@ -440,18 +438,18 @@ public class AndroidApp {
   }
 
   /** Write the dex program resources to @code{archive}. */
-  public void writeToZip(Path archive, OutputMode outputMode) throws IOException {
+  public void writeToZipForTesting(Path archive, OutputMode outputMode) throws IOException {
     try {
       if (outputMode == OutputMode.DexIndexed) {
-        DexIndexedConsumer.ArchiveConsumer.writeResources(
+        DexIndexedConsumer.ArchiveConsumer.writeResourcesForTesting(
             archive, getDexProgramResourcesForTesting(), getDataEntryResourcesForTesting());
       } else if (outputMode == OutputMode.DexFilePerClassFile
           || outputMode == OutputMode.DexFilePerClass) {
         List<ProgramResource> resources = getDexProgramResourcesForTesting();
-        DexFilePerClassFileConsumer.ArchiveConsumer.writeResources(
+        DexFilePerClassFileConsumer.ArchiveConsumer.writeResourcesForTesting(
             archive, resources, programResourcesMainDescriptor);
       } else if (outputMode == OutputMode.ClassFile) {
-        ClassFileConsumer.ArchiveConsumer.writeResources(
+        ClassFileConsumer.ArchiveConsumer.writeResourcesForTesting(
             archive, getClassProgramResourcesForTesting(), getDataEntryResourcesForTesting());
       } else {
         throw new Unreachable("Unsupported output-mode for writing: " + outputMode);

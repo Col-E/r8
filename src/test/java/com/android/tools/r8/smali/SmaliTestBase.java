@@ -252,7 +252,7 @@ public class SmaliTestBase extends TestBase {
     try {
       Path out = temp.getRoot().toPath().resolve("run-art-input.zip");
       // TODO(sgjesse): Pass in a unique temp directory for each run.
-      application.writeToZip(out, OutputMode.DexIndexed);
+      application.writeToZipForTesting(out, OutputMode.DexIndexed);
       return ToolHelper.runArtNoVerificationErrors(out.toString(), mainClass);
     } catch (IOException e) {
       throw new RuntimeException(e);
@@ -271,7 +271,7 @@ public class SmaliTestBase extends TestBase {
     try {
       Path dexOut = temp.getRoot().toPath().resolve("run-dex2oat-input.zip");
       Path oatFile = temp.getRoot().toPath().resolve("oat-file");
-      application.writeToZip(dexOut, OutputMode.DexIndexed);
+      application.writeToZipForTesting(dexOut, OutputMode.DexIndexed);
       ToolHelper.runDex2Oat(dexOut, oatFile);
     } catch (IOException e) {
       throw new RuntimeException(e);

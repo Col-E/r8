@@ -288,11 +288,11 @@ public abstract class D8IncrementalRunExamplesAndroidOTest
             Lists.newArrayList(test.compileClassesTogether(inputJarFile, null).values()), null);
 
     Path out1 = temp.newFolder().toPath().resolve("out-together.zip");
-    mergedFromCompiledTogether.writeToZip(out1, OutputMode.DexIndexed);
+    mergedFromCompiledTogether.writeToZipForTesting(out1, OutputMode.DexIndexed);
     ToolHelper.runArtNoVerificationErrors(out1.toString(), testPackage + "." + mainClass);
 
     Path out2 = temp.newFolder().toPath().resolve("out-separate.zip");
-    mergedFromCompiledSeparately.writeToZip(out2, OutputMode.DexIndexed);
+    mergedFromCompiledSeparately.writeToZipForTesting(out2, OutputMode.DexIndexed);
     ToolHelper.runArtNoVerificationErrors(out2.toString(), testPackage + "." + mainClass);
 
     Path dissasemble1 = temp.newFolder().toPath().resolve("disassemble1.txt");

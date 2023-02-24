@@ -43,7 +43,7 @@ public class R8CfDebugTestResourcesConfig extends CfDebugTestConfig {
   public R8CfDebugTestResourcesConfig(TemporaryFolder temp) {
     try {
       Path path = temp.newFolder().toPath().resolve("r8_cf_debug_test_resources.jar");
-      getCompiledResources().write(path, OutputMode.ClassFile);
+      getCompiledResources().writeForTesting(path, OutputMode.ClassFile);
       addPaths(path);
     } catch (Throwable e) {
       throw new RuntimeException(e);

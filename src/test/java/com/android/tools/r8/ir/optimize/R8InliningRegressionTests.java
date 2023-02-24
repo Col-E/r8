@@ -50,7 +50,7 @@ public class R8InliningRegressionTests extends TestBase {
     String originalDexFile = Paths
         .get(ToolHelper.EXAMPLES_BUILD_DIR, folder, ToolHelper.DEFAULT_DEX_FILENAME).toString();
     Path generatedDexFile = temp.getRoot().toPath().resolve("classes.jar");
-    app.writeToZip(generatedDexFile, OutputMode.DexIndexed);
+    app.writeToZipForTesting(generatedDexFile, OutputMode.DexIndexed);
     String artOutput = ToolHelper
         .checkArtOutputIdentical(originalDexFile, generatedDexFile.toString(), mainClass,
             ToolHelper.getDexVm());

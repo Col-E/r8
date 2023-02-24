@@ -36,7 +36,7 @@ public class NestedExceptionTestRunner {
             .build());
     Path out = temp.newFolder().toPath().resolve("test.jar");
     AndroidApp compiledResources = sink.build();
-    compiledResources.write(out, OutputMode.ClassFile);
+    compiledResources.writeForTesting(out, OutputMode.ClassFile);
     assertEquals(0, ToolHelper.runJava(out, CLASS.getCanonicalName()).exitCode);
   }
 }

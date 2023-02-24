@@ -1238,7 +1238,7 @@ public class TestBase {
   protected ProcessResult runOnArtRaw(AndroidApp app, String mainClass,
       Consumer<ArtCommandBuilder> cmdBuilder, DexVm version) throws IOException {
     Path out = File.createTempFile("junit", ".zip", temp.getRoot()).toPath();
-    app.writeToZip(out, OutputMode.DexIndexed);
+    app.writeToZipForTesting(out, OutputMode.DexIndexed);
     return ToolHelper.runArtRaw(
         ImmutableList.of(out.toString()), mainClass, cmdBuilder, version, false);
   }
@@ -1287,7 +1287,7 @@ public class TestBase {
   protected String runOnArt(AndroidApp app, String mainClass, List<String> args, DexVm dexVm)
       throws IOException {
     Path out = File.createTempFile("junit", ".zip", temp.getRoot()).toPath();
-    app.writeToZip(out, OutputMode.DexIndexed);
+    app.writeToZipForTesting(out, OutputMode.DexIndexed);
     return ToolHelper.runArtNoVerificationErrors(
         ImmutableList.of(out.toString()), mainClass,
         builder -> {
@@ -1374,7 +1374,7 @@ public class TestBase {
   protected ProcessResult runOnJavaRaw(AndroidApp app, String mainClass, List<String> args)
       throws IOException {
     Path out = File.createTempFile("junit", ".zip", temp.getRoot()).toPath();
-    app.writeToZip(out, OutputMode.ClassFile);
+    app.writeToZipForTesting(out, OutputMode.ClassFile);
     List<String> mainAndArgs = new ArrayList<>();
     mainAndArgs.add(mainClass);
     mainAndArgs.addAll(args);
@@ -1384,7 +1384,7 @@ public class TestBase {
   protected ProcessResult runOnJavaRawNoVerify(AndroidApp app, String mainClass, List<String> args)
       throws IOException {
     Path out = File.createTempFile("junit", ".zip", temp.getRoot()).toPath();
-    app.writeToZip(out, OutputMode.ClassFile);
+    app.writeToZipForTesting(out, OutputMode.ClassFile);
     return ToolHelper.runJavaNoVerify(out, mainClass, args.toArray(StringUtils.EMPTY_ARRAY));
   }
 

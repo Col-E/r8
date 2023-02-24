@@ -138,7 +138,7 @@ public class InlinerTest extends TestBase {
     // Materialize file for execution.
     Path generatedFile = temp.getRoot().toPath().resolve("classes.jar");
     assert backend == Backend.DEX || backend == Backend.CF;
-    compiled.writeToZip(generatedFile, outputMode(backend));
+    compiled.writeToZipForTesting(generatedFile, outputMode(backend));
 
     String output =
         backend == Backend.DEX

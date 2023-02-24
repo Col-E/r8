@@ -232,7 +232,7 @@ public abstract class SingleTestRunResult<RR extends SingleTestRunResult<RR>>
   public <E extends Throwable> RR debugger(ThrowingConsumer<DebugTestConfig, E> consumer)
       throws E, IOException {
     Path out = state.getNewTempFolder().resolve("out.zip");
-    app.writeToZip(out, runtime.isCf() ? OutputMode.ClassFile : OutputMode.DexIndexed);
+    app.writeToZipForTesting(out, runtime.isCf() ? OutputMode.ClassFile : OutputMode.DexIndexed);
     DebugTestConfig config = DebugTestConfig.create(runtime, out);
     consumer.accept(config);
     return self();

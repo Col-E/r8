@@ -33,7 +33,7 @@ public class VerticalClassMergerDebugTestRunner extends DebugTestBase {
 
   public void run(AndroidApp app, Path proguardMapPath) throws Throwable {
     Path appPath = File.createTempFile("app", ".zip", temp.getRoot()).toPath();
-    app.writeToZip(appPath, OutputMode.DexIndexed);
+    app.writeToZipForTesting(appPath, OutputMode.DexIndexed);
 
     DexDebugTestConfig config = new DexDebugTestConfig(appPath);
     config.allowUnprocessedCommands();

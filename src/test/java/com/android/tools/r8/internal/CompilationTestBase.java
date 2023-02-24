@@ -43,8 +43,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Collections;
-import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -53,9 +51,6 @@ import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
-import java.util.zip.ZipEntry;
-import java.util.zip.ZipFile;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.ComparisonFailure;
 import org.junit.Rule;
@@ -153,7 +148,7 @@ public abstract class CompilationTestBase extends DesugaredLibraryTestBase {
       throws IOException, ExecutionException {
     Path out = temp.getRoot().toPath().resolve("all.zip");
     Path oatFile = temp.getRoot().toPath().resolve("all.oat");
-    outputApp.writeToZip(out, OutputMode.DexIndexed);
+    outputApp.writeToZipForTesting(out, OutputMode.DexIndexed);
     try {
       ToolHelper.runDex2Oat(out, oatFile);
       return outputApp;

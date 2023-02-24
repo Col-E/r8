@@ -19,7 +19,6 @@ import com.android.tools.r8.utils.TestDescriptionWatcher;
 import com.google.common.collect.ImmutableList;
 import java.io.IOException;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.concurrent.ExecutionException;
 import org.junit.Rule;
 import org.junit.rules.TemporaryFolder;
@@ -51,7 +50,7 @@ public class DebugInfoTestBase {
 
   protected String runOnArt(AndroidApp app, String main) throws IOException {
     Path out = temp.getRoot().toPath().resolve("out.zip");
-    app.writeToZip(out, OutputMode.DexIndexed);
+    app.writeToZipForTesting(out, OutputMode.DexIndexed);
     return ToolHelper.runArtNoVerificationErrors(ImmutableList.of(out.toString()), main, null);
   }
 
