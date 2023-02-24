@@ -76,7 +76,13 @@ public class FilledArray {
     }
     System.out.println("floats");
     for (int i = 0; i < floats.length; i++) {
-      System.out.println(floats[i]);
+      // Art versions up to 6.0.1 prints Float.MIN_VALUE as:
+      //   1.17549435E-38
+      // instead of
+      //   1.1754944E-38
+      String value = "" + floats[i];
+      value = value.replace("1.17549435E-38", "1.1754944E-38");
+      System.out.println(value);
     }
     for (int i = 0; i < localFloats.length; i++) {
       System.out.println(localFloats[i]);

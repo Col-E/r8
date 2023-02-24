@@ -298,6 +298,8 @@ public class Test {
     System.out.println("mJ = " + t.mJ);
     System.out.println("mF = " + t.mF);
     System.out.println("mD = " + t.mD);
-    System.out.println("mArray = " + Arrays.deepToString(t.mArray));
+    // Art 6 and prior will incorrectly print "1.78618509E9" instead of "1.7861851E9"
+    System.out.println(
+        "mArray = " + Arrays.deepToString(t.mArray).replace("1.78618509E9", "1.7861851E9"));
   }
 }

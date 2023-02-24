@@ -179,7 +179,9 @@ public class Test {
     System.out.println("mJ = " + t.mJ);
     System.out.println("mF = " + t.mF);
     System.out.println("mD = " + t.mD);
-    System.out.println("mArray = " + Arrays.toString(t.mArray));
+    // Art 6 and prior will print 1.61018893E9 instead of  1.6101889E9
+    System.out.println(
+        "mArray = " + Arrays.toString(t.mArray).replaceAll("1.61018893E9", "1.6101889E9"));
   }
 }
 

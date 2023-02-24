@@ -178,15 +178,6 @@ public class R8RunExamplesTest extends R8RunExamplesTestBase {
         // This results in Class.isLocalClass always being false and Class.isMemberClass always
         // being true even when the converse is the case when running on the JVM.
         .put("enclosingmethod.Main", TestCondition.any())
-        // Early art versions incorrectly print Float.MIN_VALUE.
-        .put("filledarray.FilledArray",
-            TestCondition.match(TestCondition.runtimesUpTo(Version.V6_0_1)))
-        // Early art versions incorrectly print doubles.
-        .put("regress_70736958.Test",
-            TestCondition.match(TestCondition.runtimesUpTo(Version.V6_0_1)))
-        // Early art versions incorrectly print doubles.
-        .put("regress_72361252.Test",
-            TestCondition.match(TestCondition.runtimesUpTo(Version.V6_0_1)))
         .build();
   }
 
