@@ -43,7 +43,7 @@ public class RecordWithMembersTest extends TestBase {
   @Test
   public void testD8AndJvm() throws Exception {
     if (parameters.isCfRuntime()) {
-      testForJvm()
+      testForJvm(parameters)
           .addProgramClassFileData(PROGRAM_DATA)
           .run(parameters.getRuntime(), MAIN_TYPE)
           .assertSuccessWithOutput(EXPECTED_RESULT);

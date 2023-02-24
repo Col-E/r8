@@ -4,7 +4,6 @@
 
 package com.android.tools.r8.naming.signature;
 
-import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.CompilationMode;
 import com.android.tools.r8.R8TestBuilder;
@@ -36,13 +35,16 @@ public class GenericSignatureRenamingTest extends TestBase {
 
   @Test
   public void testJVM() throws Exception {
-    assumeTrue(parameters.isCfRuntime());
-    testForJvm().addTestClasspath().run(parameters.getRuntime(), Main.class).assertSuccess();
+    parameters.assumeJvmTestParameters();
+    testForJvm(parameters)
+        .addTestClasspath()
+        .run(parameters.getRuntime(), Main.class)
+        .assertSuccess();
   }
 
   @Test
   public void testD8() throws Exception {
-    assumeTrue(parameters.isDexRuntime());
+    parameters.assumeDexRuntime();
     testForD8()
         .addProgramClasses(Main.class)
         .addProgramClassesAndInnerClasses(A.class, B.class, CY.class, CYY.class)

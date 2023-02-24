@@ -8,7 +8,6 @@ import static com.android.tools.r8.utils.codeinspector.Matchers.isAbstract;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
@@ -36,7 +35,7 @@ public class InputWithAbstractMethodOnNonAbstractClassTest extends TestBase {
 
   @Test
   public void testD8() throws Exception {
-    assumeTrue(parameters.isDexRuntime());
+    parameters.assumeDexRuntime();
     testForD8()
         .addProgramClasses(TestClass.class)
         .addProgramClassFileData(transformer(Greeter.class).unsetAbstract().transform())
@@ -63,8 +62,8 @@ public class InputWithAbstractMethodOnNonAbstractClassTest extends TestBase {
 
   @Test
   public void testJVM() throws Exception {
-    assumeTrue(parameters.isCfRuntime());
-    testForJvm()
+    parameters.assumeJvmTestParameters();
+    testForJvm(parameters)
         .addProgramClasses(TestClass.class)
         .addProgramClassFileData(transformer(Greeter.class).unsetAbstract().transform())
         .run(parameters.getRuntime(), TestClass.class)

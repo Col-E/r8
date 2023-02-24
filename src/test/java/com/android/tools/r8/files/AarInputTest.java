@@ -47,7 +47,7 @@ public class AarInputTest extends TestBase {
   @Test
   public void allowAarProgramInputD8() throws Exception {
     if (parameters.isCfRuntime()) {
-      testForJvm()
+      testForJvm(parameters)
           .addProgramClasses(TestClass.class)
           .run(parameters.getRuntime(), TestClass.class)
           .assertSuccessWithOutputLines("Hello!");

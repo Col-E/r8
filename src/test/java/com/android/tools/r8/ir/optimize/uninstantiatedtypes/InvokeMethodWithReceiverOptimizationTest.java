@@ -24,6 +24,7 @@ import java.util.List;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameter;
 import org.junit.runners.Parameterized.Parameters;
 
 /**
@@ -33,8 +34,17 @@ import org.junit.runners.Parameterized.Parameters;
 @RunWith(Parameterized.class)
 public class InvokeMethodWithReceiverOptimizationTest extends TestBase {
 
-  private final TestParameters parameters;
-  private final boolean enableArgumentPropagation;
+  private static final String EXPECTED_OUTPUT =
+      StringUtils.joinLines(
+          "Caught NullPointerException from testRewriteToThrowNull",
+          "Caught NullPointerException from testRewriteToThrowNullWithCatchHandlers",
+          "Caught NullPointerException from testRewriteToThrowNullWithDeadCatchHandler");
+
+  @Parameter(0)
+  public TestParameters parameters;
+
+  @Parameter(1)
+  public boolean enableArgumentPropagation;
 
   @Parameters(name = "{0}, argument propagation: {1}")
   public static List<Object[]> data() {
@@ -42,22 +52,17 @@ public class InvokeMethodWithReceiverOptimizationTest extends TestBase {
         getTestParameters().withAllRuntimesAndApiLevels().build(), BooleanUtils.values());
   }
 
-  public InvokeMethodWithReceiverOptimizationTest(
-      TestParameters parameters, boolean enableArgumentPropagation) {
-    this.parameters = parameters;
-    this.enableArgumentPropagation = enableArgumentPropagation;
+  @Test
+  public void testJvm() throws Exception {
+    parameters.assumeJvmTestParameters();
+    testForJvm(parameters)
+        .addTestClasspath()
+        .run(parameters.getRuntime(), TestClass.class)
+        .assertSuccessWithOutput(EXPECTED_OUTPUT);
   }
 
   @Test
-  public void test() throws Exception {
-    String expected =
-        StringUtils.joinLines(
-            "Caught NullPointerException from testRewriteToThrowNull",
-            "Caught NullPointerException from testRewriteToThrowNullWithCatchHandlers",
-            "Caught NullPointerException from testRewriteToThrowNullWithDeadCatchHandler");
-
-    testForJvm().addTestClasspath().run(TestClass.class).assertSuccessWithOutput(expected);
-
+  public void testR8() throws Exception {
     CodeInspector inspector =
         testForR8(parameters.getBackend())
             .addInnerClasses(InvokeMethodWithReceiverOptimizationTest.class)
@@ -71,7 +76,7 @@ public class InvokeMethodWithReceiverOptimizationTest extends TestBase {
             .addDontObfuscate()
             .setMinApi(parameters)
             .run(parameters.getRuntime(), TestClass.class)
-            .assertSuccessWithOutput(expected)
+            .assertSuccessWithOutput(EXPECTED_OUTPUT)
             .inspector();
 
     ClassSubject testClassSubject = inspector.clazz(TestClass.class);

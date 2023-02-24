@@ -21,34 +21,39 @@ import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameter;
 import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
 public class ParameterRewritingTest extends TestBase {
 
-  private final TestParameters parameters;
+  private static final String EXPECTED_OUTPUT =
+      StringUtils.lines(
+          "Factory.createStatic() -> null",
+          "Factory.createStaticWithUnused1() -> null",
+          "Factory.createStaticWithUnused2() -> null",
+          "Factory.createStaticWithUnused3() -> null",
+          "Factory.createStaticWithUnused4() -> null");
+
+  @Parameter(0)
+  public TestParameters parameters;
 
   @Parameters(name = "{0}")
   public static TestParametersCollection data() {
     return getTestParameters().withAllRuntimesAndApiLevels().build();
   }
 
-  public ParameterRewritingTest(TestParameters parameters) {
-    this.parameters = parameters;
+  @Test
+  public void testJvm() throws Exception {
+    parameters.assumeJvmTestParameters();
+    testForJvm(parameters)
+        .addTestClasspath()
+        .run(parameters.getRuntime(), TestClass.class)
+        .assertSuccessWithOutput(EXPECTED_OUTPUT);
   }
 
   @Test
-  public void test() throws Exception {
-    String expected =
-        StringUtils.lines(
-            "Factory.createStatic() -> null",
-            "Factory.createStaticWithUnused1() -> null",
-            "Factory.createStaticWithUnused2() -> null",
-            "Factory.createStaticWithUnused3() -> null",
-            "Factory.createStaticWithUnused4() -> null");
-
-    testForJvm().addTestClasspath().run(TestClass.class).assertSuccessWithOutput(expected);
-
+  public void testR8() throws Exception {
     CodeInspector inspector =
         testForR8(parameters.getBackend())
             .addInnerClasses(ParameterRewritingTest.class)
@@ -59,7 +64,7 @@ public class ParameterRewritingTest extends TestBase {
             .addDontObfuscate()
             .setMinApi(parameters)
             .run(parameters.getRuntime(), TestClass.class)
-            .assertSuccessWithOutput(expected)
+            .assertSuccessWithOutput(EXPECTED_OUTPUT)
             .inspector();
 
     ClassSubject factoryClassSubject = inspector.clazz(Factory.class);

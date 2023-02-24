@@ -75,7 +75,7 @@ public class LambdaInStacktraceTest extends TestBase {
   @Test
   public void testJvm() throws Exception {
     parameters.assumeJvmTestParameters();
-    testForJvm()
+    testForJvm(parameters)
         .addInnerClasses(LambdaInStacktraceTest.class)
         .run(parameters.getRuntime(), TestRunner.class, Boolean.toString(false))
         .assertSuccess()

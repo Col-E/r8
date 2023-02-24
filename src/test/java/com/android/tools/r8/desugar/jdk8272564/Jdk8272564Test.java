@@ -132,7 +132,7 @@ public class Jdk8272564Test extends TestBase {
   @Test
   public void testJvm() throws Exception {
     assumeTrue(isDefaultCfParameters());
-    testForJvm()
+    testForJvm(parameters)
         .addRunClasspathFiles(Jdk8272564.jar())
         .run(parameters.getRuntime(), Jdk8272564.Main.typeName())
         .assertSuccess();

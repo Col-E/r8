@@ -70,7 +70,7 @@ public class InvokeMethodWithNonNullParamCheckTest extends TestBase {
                 + "WithDeadCatchHandler");
 
     if (parameters.isCfRuntime()) {
-      testForJvm()
+      testForJvm(parameters)
           .addTestClasspath()
           .run(parameters.getRuntime(), TestClass.class)
           .assertSuccessWithOutput(expected);

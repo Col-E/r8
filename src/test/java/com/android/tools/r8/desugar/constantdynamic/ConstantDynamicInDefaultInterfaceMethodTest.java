@@ -40,11 +40,9 @@ public class ConstantDynamicInDefaultInterfaceMethodTest extends TestBase {
 
   @Test
   public void testReference() throws Exception {
-    assumeTrue(parameters.isCfRuntime());
+    parameters.assumeJvmTestParameters();
     assumeTrue(parameters.getRuntime().asCf().isNewerThanOrEqual(CfVm.JDK11));
-    assumeTrue(parameters.getApiLevel().isEqualTo(AndroidApiLevel.B));
-
-    testForJvm()
+    testForJvm(parameters)
         .addProgramClasses(MAIN_CLASS)
         .addProgramClassFileData(getTransformedClasses())
         .run(parameters.getRuntime(), MAIN_CLASS)

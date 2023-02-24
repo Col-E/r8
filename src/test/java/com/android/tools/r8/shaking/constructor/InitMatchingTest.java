@@ -9,23 +9,25 @@ import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.fail;
-import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.ProguardTestCompileResult;
+import com.android.tools.r8.ProguardVersion;
 import com.android.tools.r8.R8TestCompileResult;
 import com.android.tools.r8.TestBase;
-import com.android.tools.r8.ToolHelper;
+import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import com.google.common.collect.ImmutableList;
-import java.util.Collection;
 import java.util.List;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameter;
+import org.junit.runners.Parameterized.Parameters;
 
 class InitMatchingTestClass {
   // Trivial <clinit>
@@ -46,18 +48,18 @@ public class InitMatchingTest extends TestBase {
       "public void <clinit>", "static void <clinit>", "XYZ <clinit>", "private XYZ <init>"
   );
 
-  @Parameterized.Parameters(name = "{0} \"{1}\"")
-  public static Collection<Object[]> data() {
-    return buildParameters(ToolHelper.getBackends(), INIT_NAMES);
+  @Parameters(name = "{0} \"{1}\"")
+  public static List<Object[]> data() {
+    return buildParameters(
+        getTestParameters().withDefaultRuntimes().withApiLevel(AndroidApiLevel.B).build(),
+        INIT_NAMES);
   }
 
-  private final Backend backend;
-  private final String initName;
+  @Parameter(0)
+  public TestParameters parameters;
 
-  public InitMatchingTest(Backend backend, String initName) {
-    this.backend = backend;
-    this.initName = initName;
-  }
+  @Parameter(1)
+  public String initName;
 
   private String createKeepRule() {
     return "-keep class * { " + initName + "(...); }";
@@ -83,11 +85,11 @@ public class InitMatchingTest extends TestBase {
 
   @Test
   public void testProguard() throws Exception {
-    assumeTrue(backend == Backend.CF);
+    parameters.assumeProguardTestParameters();
     ProguardTestCompileResult result;
     try {
       result =
-          testForProguard()
+          testForProguard(ProguardVersion.V6_0_1)
               .addProgramClasses(InitMatchingTestClass.class)
               .addKeepRules(createKeepRule())
               .compile();
@@ -144,9 +146,10 @@ public class InitMatchingTest extends TestBase {
     R8TestCompileResult result;
     try {
       result =
-          testForR8(backend)
+          testForR8(parameters.getBackend())
               .addProgramClasses(InitMatchingTestClass.class)
               .addKeepRules(createKeepRule())
+              .setMinApi(parameters)
               .compile();
       if (!ALLOWED_INIT_NAMES.contains(initName)) {
         fail("Expect to fail");

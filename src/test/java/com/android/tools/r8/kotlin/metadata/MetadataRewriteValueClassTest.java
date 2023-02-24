@@ -65,7 +65,7 @@ public class MetadataRewriteValueClassTest extends KotlinMetadataTestBase {
                 getKotlinFileInTest(DescriptorUtils.getBinaryNameFromJavaType(PKG_APP), "main"))
             .setOutputPath(temp.newFolder().toPath())
             .compile();
-    testForJvm()
+    testForJvm(parameters)
         .addRunClasspathFiles(
             kotlinc.getKotlinStdlibJar(), kotlincLibJar.getForConfiguration(kotlinc, targetVersion))
         .addClasspath(output)
@@ -99,7 +99,7 @@ public class MetadataRewriteValueClassTest extends KotlinMetadataTestBase {
                 getKotlinFileInTest(DescriptorUtils.getBinaryNameFromJavaType(PKG_APP), "main"))
             .setOutputPath(temp.newFolder().toPath())
             .compile();
-    testForJvm()
+    testForJvm(parameters)
         .addRunClasspathFiles(kotlinc.getKotlinStdlibJar(), kotlinc.getKotlinReflectJar(), libJar)
         .addClasspath(main)
         .run(parameters.getRuntime(), PKG_APP + ".MainKt")

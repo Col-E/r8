@@ -83,8 +83,8 @@ public class MaximallySpecificAbstractOnIncompletePathTest extends TestBase {
 
   @Test
   public void testJvm() throws Exception {
-    assumeTrue(parameters.isCfRuntime());
-    testForJvm()
+    parameters.assumeJvmTestParameters();
+    testForJvm(parameters)
         .addRunClasspathFiles(libraryClasses)
         .addProgramClassFileData(getMainWithoutFoo(), getIOnProgram())
         .run(parameters.getRuntime(), Main.class)
@@ -93,7 +93,7 @@ public class MaximallySpecificAbstractOnIncompletePathTest extends TestBase {
 
   @Test
   public void testD8() throws Exception {
-    assumeTrue(parameters.isDexRuntime());
+    parameters.assumeDexRuntime();
     Version dexRuntime = parameters.getDexRuntimeVersion();
     testForD8(parameters.getBackend())
         .apply(this::setupTestBuilder)

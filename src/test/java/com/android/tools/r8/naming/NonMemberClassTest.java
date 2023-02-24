@@ -143,7 +143,7 @@ public class NonMemberClassTest extends TestBase {
     assumeTrue(
         "Only run JVM reference on CF runtimes",
         parameters.isCfRuntime() && config == TestConfig.NO_KEEP_NO_MINIFICATION);
-    testForJvm()
+    testForJvm(parameters)
         .addTestClasspath()
         .run(parameters.getRuntime(), MAIN)
         .assertSuccessWithOutput(JVM_OUTPUT);

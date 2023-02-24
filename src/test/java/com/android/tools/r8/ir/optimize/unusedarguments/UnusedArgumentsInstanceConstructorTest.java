@@ -44,7 +44,7 @@ public class UnusedArgumentsInstanceConstructorTest extends TestBase {
     String expectedOutput = StringUtils.lines("Hello world");
 
     if (parameters.isCfRuntime()) {
-      testForJvm()
+      testForJvm(parameters)
           .addTestClasspath()
           .run(parameters.getRuntime(), TestClass.class)
           .assertSuccessWithOutput(expectedOutput);

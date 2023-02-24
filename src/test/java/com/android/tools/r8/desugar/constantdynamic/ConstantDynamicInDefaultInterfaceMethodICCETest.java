@@ -14,7 +14,6 @@ import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestRuntime.CfVm;
 import com.android.tools.r8.cf.CfVersion;
-import com.android.tools.r8.utils.AndroidApiLevel;
 import java.lang.invoke.MethodHandles;
 import java.util.List;
 import org.junit.Test;
@@ -38,11 +37,9 @@ public class ConstantDynamicInDefaultInterfaceMethodICCETest extends TestBase {
 
   @Test
   public void testReference() throws Exception {
-    assumeTrue(parameters.isCfRuntime());
+    parameters.assumeJvmTestParameters();
     assumeTrue(parameters.getRuntime().asCf().isNewerThanOrEqual(CfVm.JDK11));
-    assumeTrue(parameters.getApiLevel().isEqualTo(AndroidApiLevel.B));
-
-    testForJvm()
+    testForJvm(parameters)
         .addProgramClasses(MAIN_CLASS)
         .addProgramClassFileData(getTransformedClasses())
         .run(parameters.getRuntime(), MAIN_CLASS)

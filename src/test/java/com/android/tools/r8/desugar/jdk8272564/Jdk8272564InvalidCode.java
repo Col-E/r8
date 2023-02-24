@@ -41,7 +41,7 @@ public class Jdk8272564InvalidCode extends TestBase {
   @Test
   public void testRuntime() throws Exception {
     assumeTrue(isDefaultCfParameters());
-    testForJvm()
+    testForJvm(parameters)
         .addProgramClasses(I.class)
         .addProgramClassFileData(getTransformedClass())
         .run(parameters.getRuntime(), A.class)

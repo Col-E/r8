@@ -42,7 +42,7 @@ public class ReflectiveNewInstanceTest extends TestBase {
         StringUtils.lines("Success", "Success", "Success", "Success", "Success");
 
     if (parameters.isCfRuntime()) {
-      testForJvm()
+      testForJvm(parameters)
           .addTestClasspath()
           .run(parameters.getRuntime(), TestClass.class)
           .assertSuccessWithOutput(expectedOutput);

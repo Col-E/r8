@@ -6,7 +6,6 @@ package com.android.tools.r8.kotlin.reflection;
 
 import static com.android.tools.r8.KotlinCompilerTool.KotlinCompilerVersion.KOTLINC_1_3_72;
 import static com.android.tools.r8.KotlinCompilerTool.KotlinCompilerVersion.KOTLINC_1_8_0;
-import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.DexIndexedConsumer.ArchiveConsumer;
 import com.android.tools.r8.KotlinTestBase;
@@ -57,8 +56,8 @@ public class KotlinReflectTest extends KotlinTestBase {
 
   @Test
   public void testCf() throws Exception {
-    assumeTrue(parameters.isCfRuntime());
-    testForJvm()
+    parameters.assumeJvmTestParameters();
+    testForJvm(parameters)
         .addProgramFiles(compiledJars.getForConfiguration(kotlinc, targetVersion))
         .addProgramFiles(kotlinc.getKotlinStdlibJar())
         .addProgramFiles(kotlinc.getKotlinReflectJar())
@@ -69,7 +68,7 @@ public class KotlinReflectTest extends KotlinTestBase {
 
   @Test
   public void testD8() throws Exception {
-    assumeTrue(parameters.isDexRuntime());
+    parameters.assumeDexRuntime();
     final File output = temp.newFile("output.zip");
     testForD8(parameters.getBackend())
         .addProgramFiles(compiledJars.getForConfiguration(kotlinc, targetVersion))

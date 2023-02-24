@@ -66,7 +66,7 @@ public class MetadataRewriteJvmStaticTest extends KotlinMetadataTestBase {
                 getKotlinFileInTest(DescriptorUtils.getBinaryNameFromJavaType(PKG_APP), "main"))
             .setOutputPath(temp.newFolder().toPath())
             .compile();
-    testForJvm()
+    testForJvm(parameters)
         .addRunClasspathFiles(
             kotlinc.getKotlinStdlibJar(), kotlincLibJar.getForConfiguration(kotlinc, targetVersion))
         .addClasspath(output)
@@ -76,7 +76,7 @@ public class MetadataRewriteJvmStaticTest extends KotlinMetadataTestBase {
 
   @Test
   public void smokeTestJava() throws Exception {
-    testForJvm()
+    testForJvm(parameters)
         .addRunClasspathFiles(
             kotlinc.getKotlinStdlibJar(), kotlincLibJar.getForConfiguration(kotlinc, targetVersion))
         .addProgramClassFileData(MainJava.dump())
@@ -110,7 +110,7 @@ public class MetadataRewriteJvmStaticTest extends KotlinMetadataTestBase {
                 getKotlinFileInTest(DescriptorUtils.getBinaryNameFromJavaType(PKG_APP), "main"))
             .setOutputPath(temp.newFolder().toPath())
             .compile();
-    testForJvm()
+    testForJvm(parameters)
         .addRunClasspathFiles(kotlinc.getKotlinStdlibJar(), libJar)
         .addClasspath(output)
         .run(parameters.getRuntime(), PKG_APP + ".MainKt")
@@ -118,7 +118,7 @@ public class MetadataRewriteJvmStaticTest extends KotlinMetadataTestBase {
   }
 
   private void testJava(Path libJar) throws Exception {
-    testForJvm()
+    testForJvm(parameters)
         .addRunClasspathFiles(kotlinc.getKotlinStdlibJar(), libJar)
         .addProgramClassFileData(MainJava.dump())
         .run(parameters.getRuntime(), MainJava.class)

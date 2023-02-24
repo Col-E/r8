@@ -69,7 +69,7 @@ public class RecordClasspathTest extends TestBase {
   @Test
   public void testD8AndJvm() throws Exception {
     if (parameters.isCfRuntime()) {
-      testForJvm()
+      testForJvm(parameters)
           .addProgramClasses(TestClass.class)
           .addClasspathClassFileData(getClasspathData())
           .run(parameters.getRuntime(), TestClass.class)

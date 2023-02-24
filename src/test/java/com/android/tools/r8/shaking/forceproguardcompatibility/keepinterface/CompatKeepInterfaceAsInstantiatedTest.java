@@ -117,7 +117,7 @@ public class CompatKeepInterfaceAsInstantiatedTest extends TestBase {
   }
 
   private void testReference(Class<?> main) throws Exception {
-    testForJvm()
+    testForJvm(parameters)
         .addProgramClasses(main, Foo.class, Bar.class)
         .run(parameters.getRuntime(), main)
         .assertSuccessWithOutput(expected);

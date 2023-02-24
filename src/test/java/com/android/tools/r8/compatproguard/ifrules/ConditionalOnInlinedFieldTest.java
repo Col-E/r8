@@ -3,17 +3,23 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.compatproguard.ifrules;
 
+import static org.junit.Assume.assumeFalse;
+import static org.junit.Assume.assumeTrue;
+
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestRunResult;
 import com.android.tools.r8.TestShrinkerBuilder;
 import com.android.tools.r8.shaking.methods.MethodsTestBase.Shrinker;
+import com.android.tools.r8.utils.ArrayUtils;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.StringUtils;
 import java.util.List;
+import java.util.Optional;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameter;
 import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
@@ -54,24 +60,24 @@ public class ConditionalOnInlinedFieldTest extends TestBase {
     }
   }
 
-  private static String EXPECTED = StringUtils.lines("B::method");
+  private static final String EXPECTED = StringUtils.lines("B::method");
 
   @Parameters(name = "{0}, {1}, ref:{2}")
   public static List<Object[]> data() {
     return buildParameters(
-        Shrinker.values(), getTestParameters().withCfRuntimes().build(), BooleanUtils.values());
+        ArrayUtils.withOptionalNone(Shrinker.values()),
+        getTestParameters().withCfRuntimes().build(),
+        BooleanUtils.values());
   }
 
-  private final Shrinker shrinker;
-  private final TestParameters parameters;
-  private final boolean withFieldReference;
+  @Parameter(0)
+  public Optional<Shrinker> optionalShrinker;
 
-  public ConditionalOnInlinedFieldTest(
-      Shrinker shrinker, TestParameters parameters, boolean withFieldReference) {
-    this.shrinker = shrinker;
-    this.parameters = parameters;
-    this.withFieldReference = withFieldReference;
-  }
+  @Parameter(1)
+  public TestParameters parameters;
+
+  @Parameter(2)
+  public boolean withFieldReference;
 
   private Class<?> getMain() {
     return withFieldReference ? MainWithFieldReference.class : MainWithoutFieldReference.class;
@@ -79,13 +85,15 @@ public class ConditionalOnInlinedFieldTest extends TestBase {
 
   @Test
   public void testReference() throws Exception {
-    testForJvm()
+    assumeFalse(optionalShrinker.isPresent());
+    assumeTrue(withFieldReference);
+    testForJvm(parameters)
         .addProgramClasses(getMain(), A.class, B.class)
         .run(parameters.getRuntime(), getMain(), B.class.getTypeName())
         .assertSuccessWithOutput(EXPECTED);
   }
 
-  private TestShrinkerBuilder<?, ?, ?, ?, ?> buildShrinker() throws Exception {
+  private TestShrinkerBuilder<?, ?, ?, ?, ?> buildShrinker(Shrinker shrinker) {
     TestShrinkerBuilder<?, ?, ?, ?, ?> builder;
     if (shrinker == Shrinker.Proguard) {
       builder = testForProguard().addDontWarn(ConditionalOnInlinedFieldTest.class);
@@ -108,8 +116,12 @@ public class ConditionalOnInlinedFieldTest extends TestBase {
 
   @Test
   public void testConditionalOnField() throws Exception {
+    assumeTrue(optionalShrinker.isPresent());
+    Shrinker shrinker = optionalShrinker.get();
     TestRunResult<?> result =
-        buildShrinker().compile().run(parameters.getRuntime(), getMain(), B.class.getTypeName());
+        buildShrinker(shrinker)
+            .compile()
+            .run(parameters.getRuntime(), getMain(), B.class.getTypeName());
     if (!withFieldReference && shrinker != Shrinker.Proguard) {
       // Without the reference we expect an error. For some reason PG keeps in any case.
       result.assertFailureWithErrorThatThrows(ClassNotFoundException.class);

@@ -4,7 +4,6 @@
 
 package com.android.tools.r8.shaking.serviceloader;
 
-import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
@@ -96,7 +95,7 @@ public class ServiceLoaderMultipleTest extends TestBase {
 
   @Test
   public void testMultipleServicesWithSameImplementationJVM() throws Exception {
-    assumeTrue(parameters.isCfRuntime());
+    parameters.assumeJvmTestParameters();
     testForJvm(parameters)
         .addClasspath(jarWithServiceInterface, jarWithMultipleImpl1, jarWithMultipleImpl1)
         .addProgramClasses(TestClass.class)

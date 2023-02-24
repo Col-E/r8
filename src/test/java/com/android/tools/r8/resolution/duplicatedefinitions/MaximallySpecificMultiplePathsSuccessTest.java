@@ -113,8 +113,8 @@ public class MaximallySpecificMultiplePathsSuccessTest extends TestBase {
 
   @Test
   public void testJvm() throws Exception {
-    assumeTrue(parameters.isCfRuntime());
-    testForJvm()
+    parameters.assumeJvmTestParameters();
+    testForJvm(parameters)
         .addRunClasspathFiles(libraryClasses)
         .addProgramClasses(Main.class)
         .addProgramClassFileData(getIProgram(), getJProgram())
@@ -125,7 +125,7 @@ public class MaximallySpecificMultiplePathsSuccessTest extends TestBase {
 
   @Test
   public void testD8() throws Exception {
-    assumeTrue(parameters.isDexRuntime());
+    parameters.assumeDexRuntime();
     boolean isDalvik = parameters.getDexRuntimeVersion().isDalvik();
     runTest(testForD8(parameters.getBackend()))
         .assertSuccessWithOutputLinesIf(isDalvik, D8_R8_RESULT)

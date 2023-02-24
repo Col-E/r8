@@ -56,7 +56,7 @@ public class SharedBootstrapMethodConstantDynamicTest extends TestBase {
     assumeTrue(parameters.asCfRuntime().isNewerThanOrEqual(CfVm.JDK11));
     assumeTrue(parameters.getApiLevel().isEqualTo(AndroidApiLevel.B));
 
-    testForJvm()
+    testForJvm(parameters)
         .addProgramClassFileData(getTransformedClasses())
         .run(parameters.getRuntime(), MAIN_CLASS)
         .assertSuccessWithOutput(EXPECTED_OUTPUT);
@@ -80,7 +80,7 @@ public class SharedBootstrapMethodConstantDynamicTest extends TestBase {
 
   @Test
   public void testD8Cf() throws Exception {
-    assumeTrue(parameters.isCfRuntime());
+    parameters.assumeCfRuntime();
     testForD8(parameters.getBackend())
         .addProgramClassFileData(getTransformedClasses())
         .setMinApi(parameters)
@@ -111,8 +111,8 @@ public class SharedBootstrapMethodConstantDynamicTest extends TestBase {
 
   @Test
   public void testD8() throws Exception {
-    assumeTrue(parameters.isDexRuntime());
-    testForD8(parameters.getBackend())
+    parameters.assumeDexRuntime();
+    testForD8()
         .addProgramClassFileData(getTransformedClasses())
         .setMinApi(parameters)
         .setDiagnosticsLevelModifier(

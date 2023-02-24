@@ -82,7 +82,7 @@ public class FileLockTest extends DesugaredLibraryTestBase {
       // Reference runtime, we use Jdk 11 since this is Jdk 11 desugared library, not that Jdk 8
       // behaves differently on this test.
       Assume.assumeTrue(parameters.isCfRuntime(CfVm.JDK11) && !ToolHelper.isWindows());
-      testForJvm()
+      testForJvm(parameters)
           .addInnerClasses(getClass())
           .run(parameters.getRuntime(), TestClass.class, "10000")
           .assertSuccessWithOutput(EXPECTED_RESULT);

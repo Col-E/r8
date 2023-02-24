@@ -9,13 +9,15 @@ import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.android.tools.r8.R8TestCompileResult;
 import com.android.tools.r8.TestBase;
-import com.android.tools.r8.ToolHelper;
+import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
-import org.junit.Assume;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameter;
+import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
 public class ApplyMappingAfterVerticalMergingFieldTest extends TestBase {
@@ -55,49 +57,49 @@ public class ApplyMappingAfterVerticalMergingFieldTest extends TestBase {
       ProgramClass.class
   };
 
-  private Backend backend;
+  @Parameter(0)
+  public TestParameters parameters;
 
-  @Parameterized.Parameters(name = "{0}")
-  public static Backend[] data() {
-    return ToolHelper.getBackends();
-  }
-
-  public ApplyMappingAfterVerticalMergingFieldTest(Backend backend) {
-    this.backend = backend;
+  @Parameters(name = "{0}")
+  public static TestParametersCollection data() {
+    return getTestParameters().withAllRuntimesAndApiLevels().build();
   }
 
   @Test
   public void runOnJvm() throws Throwable {
-    Assume.assumeTrue(backend == Backend.CF);
-    testForJvm()
+    parameters.assumeJvmTestParameters();
+    testForJvm(parameters)
         .addProgramClasses(LIBRARY_CLASSES)
         .addProgramClasses(PROGRAM_CLASSES)
-        .run(ProgramClass.class)
+        .run(parameters.getRuntime(), ProgramClass.class)
         .assertSuccessWithOutput(EXPECTED_SUCCESS);
   }
 
   @Test
   public void b121042934() throws Exception {
-    R8TestCompileResult libraryResult = testForR8(backend)
-        .addProgramClasses(LIBRARY_CLASSES)
-        .addKeepMainRule(LibrarySubclass.class)
-        .addKeepClassAndDefaultConstructor(LibrarySubclass.class)
-        .compile();
+    R8TestCompileResult libraryResult =
+        testForR8(parameters.getBackend())
+            .addProgramClasses(LIBRARY_CLASSES)
+            .addKeepMainRule(LibrarySubclass.class)
+            .addKeepClassAndDefaultConstructor(LibrarySubclass.class)
+            .setMinApi(parameters)
+            .compile();
 
     CodeInspector inspector = libraryResult.inspector();
     assertThat(inspector.clazz(LibraryBase.class), not(isPresent()));
     assertThat(inspector.clazz(LibrarySubclass.class), isPresent());
 
-    testForR8(backend)
+    testForR8(parameters.getBackend())
         .noTreeShaking()
         .addDontObfuscate()
         .addProgramClasses(PROGRAM_CLASSES)
         .addApplyMapping(libraryResult.getProguardMap())
         .addLibraryClasses(LIBRARY_CLASSES)
-        .addLibraryFiles(runtimeJar(backend))
+        .addLibraryFiles(parameters.getDefaultRuntimeLibrary())
+        .setMinApi(parameters)
         .compile()
         .addRunClasspathFiles(libraryResult.writeToZip())
-        .run(ProgramClass.class)
+        .run(parameters.getRuntime(), ProgramClass.class)
         .assertSuccessWithOutput(EXPECTED_SUCCESS);
   }
 }

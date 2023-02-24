@@ -4,7 +4,6 @@
 
 package com.android.tools.r8.cf.stackmap;
 
-import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
@@ -35,8 +34,8 @@ public class SwitchStackFrameFallThroughTest extends TestBase {
 
   @Test
   public void testJvm() throws Exception {
-    assumeTrue(parameters.isCfRuntime());
-    testForJvm()
+    parameters.assumeJvmTestParameters();
+    testForJvm(parameters)
         .addProgramClassFileData(SwitchStackFrameFallThroughTest$MainDump.dump())
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines("java.io.IOException");
@@ -44,8 +43,8 @@ public class SwitchStackFrameFallThroughTest extends TestBase {
 
   @Test
   public void testD8() throws Exception {
-    assumeTrue(parameters.isDexRuntime());
-    testForD8(parameters.getBackend())
+    parameters.assumeDexRuntime();
+    testForD8()
         .addProgramClassFileData(SwitchStackFrameFallThroughTest$MainDump.dump())
         .setMinApi(parameters)
         .addOptionsModification(options -> options.testing.readInputStackMaps = true)

@@ -10,7 +10,8 @@ import com.android.tools.r8.AssumeMayHaveSideEffects;
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NoHorizontalClassMerging;
 import com.android.tools.r8.TestBase;
-import com.android.tools.r8.ToolHelper;
+import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.FieldSubject;
 import com.google.common.collect.ImmutableList;
@@ -20,6 +21,8 @@ import java.util.List;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameter;
+import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
 public class AnnotationsOnFieldsTest extends TestBase {
@@ -33,20 +36,17 @@ public class AnnotationsOnFieldsTest extends TestBase {
           TestClass.class,
           MainClass.class);
 
-  private final Backend backend;
+  @Parameter(0)
+  public TestParameters parameters;
 
-  @Parameterized.Parameters(name = "Backend: {0}")
-  public static Backend[] data() {
-    return ToolHelper.getBackends();
-  }
-
-  public AnnotationsOnFieldsTest(Backend backend) {
-    this.backend = backend;
+  @Parameters(name = "{0}")
+  public static TestParametersCollection data() {
+    return getTestParameters().withAllRuntimesAndApiLevels().build();
   }
 
   @Test
   public void test() throws Exception {
-    testForR8Compat(backend)
+    testForR8Compat(parameters.getBackend())
         .enableNeverClassInliningAnnotations()
         .addProgramClasses(CLASSES)
         .addKeepMainRule(MainClass.class)
@@ -56,6 +56,7 @@ public class AnnotationsOnFieldsTest extends TestBase {
             "-keepattributes *Annotation*")
         .enableSideEffectAnnotations()
         .enableNoHorizontalClassMergingAnnotations()
+        .setMinApi(parameters)
         .compile()
         .inspect(
             inspector -> {
@@ -74,7 +75,7 @@ public class AnnotationsOnFieldsTest extends TestBase {
                   staticField.annotation(StaticFieldAnnotation.class.getTypeName()), isPresent());
               assertThat(inspector.clazz(StaticFieldAnnotationUse.class), isPresentAndRenamed());
             })
-        .run(MainClass.class)
+        .run(parameters.getRuntime(), MainClass.class)
         .assertSuccess();
   }
 

@@ -56,7 +56,7 @@ public class MetadataRewriteAnonymousTest extends KotlinMetadataTestBase {
             .addSourceFiles(getKotlinFileInTest(PKG_PREFIX + "/anonymous_app", "main"))
             .setOutputPath(temp.newFolder().toPath())
             .compile();
-    testForJvm()
+    testForJvm(parameters)
         .addRunClasspathFiles(kotlinc.getKotlinStdlibJar(), libJar)
         .addClasspath(output)
         .run(parameters.getRuntime(), PKG + ".anonymous_app.MainKt")
@@ -89,7 +89,7 @@ public class MetadataRewriteAnonymousTest extends KotlinMetadataTestBase {
     if (kotlinParameters.isOlderThan(KOTLINC_1_4_20)) {
       return;
     }
-    testForJvm()
+    testForJvm(parameters)
         .addRunClasspathFiles(kotlinc.getKotlinStdlibJar(), libJar)
         .addClasspath(main)
         .run(parameters.getRuntime(), PKG + ".anonymous_app.MainKt")

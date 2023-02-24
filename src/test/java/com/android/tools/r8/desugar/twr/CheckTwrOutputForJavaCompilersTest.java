@@ -56,7 +56,7 @@ public class CheckTwrOutputForJavaCompilersTest extends TestBase {
         javac(parameters.getRuntime().asCf())
             .addSourceFiles(ToolHelper.getSourceFileForTestClass(TwrTestSource.class))
             .compile();
-    testForJvm()
+    testForJvm(parameters)
         .addProgramFiles(javacOut)
         .run(parameters.getRuntime(), TwrTestSource.class)
         .assertSuccessWithOutput(EXPECTED)

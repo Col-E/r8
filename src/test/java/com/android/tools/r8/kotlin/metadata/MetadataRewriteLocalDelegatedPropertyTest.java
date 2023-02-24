@@ -49,7 +49,7 @@ public class MetadataRewriteLocalDelegatedPropertyTest extends KotlinMetadataTes
 
   @Test
   public void smokeTest() throws Exception {
-    testForJvm()
+    testForJvm(parameters)
         .addRunClasspathFiles(kotlinc.getKotlinStdlibJar(), kotlinc.getKotlinReflectJar())
         .addClasspath(jars.getForConfiguration(kotlinc, targetVersion))
         .run(parameters.getRuntime(), PKG_APP + ".MainKt")
@@ -75,7 +75,7 @@ public class MetadataRewriteLocalDelegatedPropertyTest extends KotlinMetadataTes
                         inspector,
                         (addedStrings, addedNonInitStrings) -> {}))
             .writeToZip();
-    testForJvm()
+    testForJvm(parameters)
         .addRunClasspathFiles(kotlinc.getKotlinStdlibJar(), kotlinc.getKotlinReflectJar())
         .addClasspath(outputJar)
         .run(parameters.getRuntime(), PKG_APP + ".MainKt")

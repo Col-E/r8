@@ -41,8 +41,8 @@ public class GenericSignatureStaticMethodTest extends TestBase {
 
   @Test
   public void testJvm() throws Exception {
-    assumeTrue(parameters.isCfRuntime());
-    testForJvm()
+    parameters.assumeJvmTestParameters();
+    testForJvm(parameters)
         .addProgramClassFileData(
             transformer(Main.class)
                 .removeInnerClasses()

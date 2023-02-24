@@ -33,7 +33,8 @@ import org.junit.runners.Parameterized.Parameters;
 @RunWith(Parameterized.class)
 public class JacocoConstantDynamicTest extends TestBase {
 
-  @Parameter() public TestParameters parameters;
+  @Parameter(0)
+  public TestParameters parameters;
 
   @Parameter(1)
   public boolean useConstantDynamic;
@@ -60,16 +61,15 @@ public class JacocoConstantDynamicTest extends TestBase {
   }
 
   @Before
-  public void setUp() throws IOException {
+  public void setUp() {
     testClasses = useConstantDynamic ? testClassesConstantDynamic : testClassesNoConstantDynamic;
   }
 
   @Test
   public void testJvm() throws Exception {
+    parameters.assumeJvmTestParameters();
     assumeTrue(
-        parameters.isCfRuntime()
-            && (parameters.getRuntime().asCf().isNewerThanOrEqual(CfVm.JDK11)
-                || !useConstantDynamic));
+        parameters.getRuntime().asCf().isNewerThanOrEqual(CfVm.JDK11) || !useConstantDynamic);
 
     // Run non-instrumented code.
     testForRuntime(parameters)
@@ -80,7 +80,7 @@ public class JacocoConstantDynamicTest extends TestBase {
     // Run non-instrumented code with an agent causing on the fly instrumentation on the JVM.
     Path output = temp.newFolder().toPath();
     Path agentOutputOnTheFly = output.resolve("on-the-fly");
-    testForJvm()
+    testForJvm(parameters)
         .addProgramFiles(testClasses.getOriginal())
         .enableJaCoCoAgent(ToolHelper.JACOCO_AGENT, agentOutputOnTheFly)
         .run(parameters.getRuntime(), MAIN_CLASS)
@@ -90,7 +90,7 @@ public class JacocoConstantDynamicTest extends TestBase {
 
     // Run the instrumented code.
     Path agentOutputOffline = output.resolve("offline");
-    testForJvm()
+    testForJvm(parameters)
         .addProgramFiles(testClasses.getInstrumented())
         .configureJaCoCoAgentForOfflineInstrumentedCode(ToolHelper.JACOCO_AGENT, agentOutputOffline)
         .run(parameters.getRuntime(), MAIN_CLASS)
@@ -101,11 +101,11 @@ public class JacocoConstantDynamicTest extends TestBase {
 
   @Test
   public void testD8() throws Exception {
-    assumeTrue(parameters.getRuntime().isDex());
+    parameters.assumeDexRuntime();
     if (!useConstantDynamic) {
       Path output = temp.newFolder().toPath();
       Path agentOutput = output.resolve("jacoco.exec");
-      testForD8(parameters.getBackend())
+      testForD8()
           .addProgramFiles(testClasses.getInstrumented())
           .addProgramFiles(ToolHelper.JACOCO_AGENT)
           .setMinApi(parameters)
@@ -120,7 +120,7 @@ public class JacocoConstantDynamicTest extends TestBase {
         assertFalse(Files.exists(agentOutput));
       }
     } else {
-      testForD8(parameters.getBackend())
+      testForD8()
           .addProgramFiles(testClasses.getInstrumented())
           .addProgramFiles(ToolHelper.JACOCO_AGENT)
           .setMinApi(parameters)

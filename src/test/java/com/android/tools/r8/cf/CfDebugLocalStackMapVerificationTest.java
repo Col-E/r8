@@ -43,7 +43,7 @@ public class CfDebugLocalStackMapVerificationTest extends TestBase {
 
   @Test
   public void testReference() throws Exception {
-    testForJvm()
+    testForJvm(parameters)
         .addProgramClasses(SmallRepro.class)
         .run(parameters.getRuntime(), SmallRepro.class)
         .assertSuccessWithOutputThatMatches(containsString("FOO"));

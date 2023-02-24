@@ -56,8 +56,8 @@ public class InvokeCustomRuntimeErrorTest extends TestBase {
 
   @Test
   public void testReference() throws Throwable {
-    assumeTrue(parameters.isCfRuntime());
-    testForJvm()
+    parameters.assumeJvmTestParameters();
+    testForJvm(parameters)
         .addProgramClasses(I.class, A.class)
         .addProgramClassFileData(getTransformedTestClass())
         .run(parameters.getRuntime(), TestClass.class)

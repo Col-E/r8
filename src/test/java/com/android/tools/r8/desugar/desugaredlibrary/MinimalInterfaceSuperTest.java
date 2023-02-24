@@ -52,7 +52,7 @@ public class MinimalInterfaceSuperTest extends DesugaredLibraryTestBase {
   @Test
   public void testMinimalInterfaceSuper() throws Exception {
     if (parameters.isCfRuntime()) {
-      testForJvm()
+      testForJvm(parameters)
           .addInnerClasses(MinimalInterfaceSuperTest.class)
           .run(parameters.getRuntime(), Main.class)
           .assertSuccessWithOutput(EXPECTED_OUTPUT);

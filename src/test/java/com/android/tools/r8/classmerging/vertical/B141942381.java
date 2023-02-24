@@ -37,7 +37,7 @@ public class B141942381 extends TestBase {
   @Test
   public void testJVM() throws Exception {
     parameters.assumeJvmTestParameters();
-    testForJvm()
+    testForJvm(parameters)
         .addTestClasspath()
         .run(parameters.getRuntime(), TestClass.class)
         .assertSuccessWithOutputLines("true");

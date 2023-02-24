@@ -4,124 +4,134 @@
 
 package com.android.tools.r8.naming.b114554345;
 
-import static junit.framework.TestCase.assertEquals;
 
 import com.android.tools.r8.TestBase;
-import com.android.tools.r8.ToolHelper;
-import com.android.tools.r8.utils.AndroidApp;
+import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.TestParametersCollection;
+import com.android.tools.r8.utils.InternalOptions.InlinerOptions;
+import com.android.tools.r8.utils.StringUtils;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameter;
 import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
 public class B114554345 extends TestBase {
 
-  private final Backend backend;
+  private static final String EXPECTED_OUTPUT =
+      StringUtils.lines(
+          "In InterfaceImpl.method()",
+          "In OtherInterfaceImpl.method()",
+          "In SubInterfaceImpl.method()",
+          "In YetAnotherSubInterfaceImpl.method()",
+          "In SubInterfaceImpl.method()",
+          "In OtherSubInterfaceImpl.method()",
+          "In YetAnotherSubInterfaceImpl.method()");
 
-  @Parameters(name = "backend: {0}")
-  public static Backend[] data() {
-    return ToolHelper.getBackends();
-  }
+  @Parameter(0)
+  public TestParameters parameters;
 
-  public B114554345(Backend backend) {
-    this.backend = backend;
+  @Parameters(name = "{0}")
+  public static TestParametersCollection data() {
+    return getTestParameters().withAllRuntimesAndApiLevels().build();
   }
 
   @Test
-  public void test() throws Exception {
-    AndroidApp input =
-        AndroidApp.builder()
-            .addProgramFiles(
-                ToolHelper.getClassFilesForTestDirectory(
-                    ToolHelper.getPackageDirectoryForTestPackage(this.getClass().getPackage()),
-                    path -> !path.toString().contains("B114554345")))
-            .build();
-    AndroidApp output =
-        compileWithR8(
-            input,
-            keepMainProguardConfiguration(TestDriver.class),
-            options -> options.inlinerOptions().enableInlining = false,
-            backend);
-    String mainClass = TestDriver.class.getName();
-    assertEquals(runOnJava(TestDriver.class), runOnVM(output, mainClass, backend));
-  }
-}
-
-// Interface and two implementations.
-
-interface Interface {
-  Interface method();
-}
-
-class InterfaceImpl implements Interface {
-
-  @Override
-  public InterfaceImpl method() {
-    System.out.println("In InterfaceImpl.method()");
-    return this;
-  }
-}
-
-class OtherInterfaceImpl extends InterfaceImpl {
-
-  @Override
-  public OtherInterfaceImpl method() {
-    System.out.println("In OtherInterfaceImpl.method()");
-    return this;
-  }
-}
-
-// Sub-interface and three implementations.
-
-interface SubInterface extends Interface {
-  SubInterface method();
-}
-
-class SubInterfaceImpl implements SubInterface {
-
-  @Override
-  public SubInterfaceImpl method() {
-    System.out.println("In SubInterfaceImpl.method()");
-    return this;
-  }
-}
-
-class OtherSubInterfaceImpl implements SubInterface {
-
-  @Override
-  public OtherSubInterfaceImpl method() {
-    System.out.println("In OtherSubInterfaceImpl.method()");
-    return this;
-  }
-}
-
-class YetAnotherSubInterfaceImpl extends InterfaceImpl implements SubInterface {
-
-  @Override
-  public YetAnotherSubInterfaceImpl method() {
-    System.out.println("In YetAnotherSubInterfaceImpl.method()");
-    return this;
-  }
-}
-
-class TestDriver {
-
-  public static void main(String[] args) {
-    foo(new InterfaceImpl());
-    foo(new OtherInterfaceImpl());
-    foo(new SubInterfaceImpl());
-    foo(new YetAnotherSubInterfaceImpl());
-    bar(new SubInterfaceImpl());
-    bar(new OtherSubInterfaceImpl());
-    bar(new YetAnotherSubInterfaceImpl());
+  public void testJvm() throws Exception {
+    parameters.assumeJvmTestParameters();
+    testForJvm(parameters)
+        .addInnerClasses(getClass())
+        .run(parameters.getRuntime(), TestDriver.class)
+        .assertSuccessWithOutput(EXPECTED_OUTPUT);
   }
 
-  private static void foo(Interface obj) {
-    obj.method();
+  @Test
+  public void testR8() throws Exception {
+    testForR8(parameters.getBackend())
+        .addInnerClasses(getClass())
+        .addKeepMainRule(TestDriver.class)
+        .addOptionsModification(InlinerOptions::disableInlining)
+        .setMinApi(parameters)
+        .run(parameters.getRuntime(), TestDriver.class)
+        .assertSuccessWithOutput(EXPECTED_OUTPUT);
   }
 
-  private static void bar(SubInterface obj) {
-    obj.method();
+  // Interface and two implementations.
+
+  interface Interface {
+    Interface method();
+  }
+
+  static class InterfaceImpl implements Interface {
+
+    @Override
+    public InterfaceImpl method() {
+      System.out.println("In InterfaceImpl.method()");
+      return this;
+    }
+  }
+
+  static class OtherInterfaceImpl extends InterfaceImpl {
+
+    @Override
+    public OtherInterfaceImpl method() {
+      System.out.println("In OtherInterfaceImpl.method()");
+      return this;
+    }
+  }
+
+  // Sub-interface and three implementations.
+
+  interface SubInterface extends Interface {
+    SubInterface method();
+  }
+
+  static class SubInterfaceImpl implements SubInterface {
+
+    @Override
+    public SubInterfaceImpl method() {
+      System.out.println("In SubInterfaceImpl.method()");
+      return this;
+    }
+  }
+
+  static class OtherSubInterfaceImpl implements SubInterface {
+
+    @Override
+    public OtherSubInterfaceImpl method() {
+      System.out.println("In OtherSubInterfaceImpl.method()");
+      return this;
+    }
+  }
+
+  static class YetAnotherSubInterfaceImpl extends InterfaceImpl implements SubInterface {
+
+    @Override
+    public YetAnotherSubInterfaceImpl method() {
+      System.out.println("In YetAnotherSubInterfaceImpl.method()");
+      return this;
+    }
+  }
+
+  static class TestDriver {
+
+    public static void main(String[] args) {
+      foo(new InterfaceImpl());
+      foo(new OtherInterfaceImpl());
+      foo(new SubInterfaceImpl());
+      foo(new YetAnotherSubInterfaceImpl());
+      bar(new SubInterfaceImpl());
+      bar(new OtherSubInterfaceImpl());
+      bar(new YetAnotherSubInterfaceImpl());
+    }
+
+    private static void foo(Interface obj) {
+      obj.method();
+    }
+
+    private static void bar(SubInterface obj) {
+      obj.method();
+    }
   }
 }

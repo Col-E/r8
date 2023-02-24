@@ -5,7 +5,6 @@
 package com.android.tools.r8.desugar.nest;
 
 import static com.android.tools.r8.TestRuntime.CfVm.JDK11;
-import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
@@ -38,7 +37,7 @@ public class NestBasedAccessToNativeMethodTest extends TestBase {
 
   @Test
   public void testD8() throws Exception {
-    assumeTrue(parameters.isDexRuntime());
+    parameters.assumeDexRuntime();
     testForD8()
         .addProgramClassFileData(getProgramClassFileData())
         .setMinApi(parameters)

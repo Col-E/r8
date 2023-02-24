@@ -7,7 +7,6 @@ package com.android.tools.r8.repackage;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresentAndRenamed;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.R8CompatTestBuilder;
 import com.android.tools.r8.TestParameters;
@@ -33,13 +32,13 @@ public class RepackageMissingTypeCollisionTest extends RepackageTestBase {
 
   @Test
   public void testJvm() throws Exception {
-    assumeTrue(parameters.isCfRuntime());
+    parameters.assumeJvmTestParameters();
     String newMissingTypeName =
         getRepackagePackage() + (isFlattenPackageHierarchy() ? ".a.a" : ".a");
     String newMissingDescriptor = DescriptorUtils.javaTypeToDescriptor(newMissingTypeName);
     String newATypeName = A.class.getPackage().getName() + ".a";
     String newADescriptor = DescriptorUtils.javaTypeToDescriptor(newATypeName);
-    testForJvm()
+    testForJvm(parameters)
         .addProgramClassFileData(
             transformer(A.class).setClassDescriptor(newADescriptor).transform(),
             transformer(Anno.class)

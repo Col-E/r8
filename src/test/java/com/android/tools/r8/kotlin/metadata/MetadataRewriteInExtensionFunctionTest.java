@@ -79,7 +79,7 @@ public class MetadataRewriteInExtensionFunctionTest extends KotlinMetadataTestBa
             .setOutputPath(temp.newFolder().toPath())
             .compile();
 
-    testForJvm()
+    testForJvm(parameters)
         .addRunClasspathFiles(kotlinc.getKotlinStdlibJar(), libJar)
         .addClasspath(output)
         .run(parameters.getRuntime(), PKG + ".extension_function_app.MainKt")
@@ -125,7 +125,7 @@ public class MetadataRewriteInExtensionFunctionTest extends KotlinMetadataTestBa
       return;
     }
 
-    testForJvm()
+    testForJvm(parameters)
         .addRunClasspathFiles(kotlinc.getKotlinStdlibJar(), libJar)
         .addClasspath(output)
         .run(parameters.getRuntime(), PKG + ".extension_function_app.MainKt")
@@ -182,7 +182,7 @@ public class MetadataRewriteInExtensionFunctionTest extends KotlinMetadataTestBa
       return;
     }
 
-    testForJvm()
+    testForJvm(parameters)
         .addRunClasspathFiles(kotlinc.getKotlinStdlibJar(), libJar)
         .addClasspath(output)
         .run(parameters.getRuntime(), PKG + ".extension_function_app.MainKt")
@@ -262,7 +262,7 @@ public class MetadataRewriteInExtensionFunctionTest extends KotlinMetadataTestBa
       return;
     }
 
-    testForJvm()
+    testForJvm(parameters)
         .addRunClasspathFiles(kotlinc.getKotlinStdlibJar(), libJar)
         .addClasspath(output)
         .run(parameters.getRuntime(), PKG + ".extension_function_app.MainKt")

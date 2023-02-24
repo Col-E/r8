@@ -46,9 +46,9 @@ public class NestBasedAccessBridgesProfileRewritingTest extends TestBase {
 
   @Test
   public void testJvm() throws Exception {
-    assumeTrue(parameters.isCfRuntime());
+    parameters.assumeJvmTestParameters();
     assumeTrue(parameters.asCfRuntime().isNewerThanOrEqual(CfVm.JDK11));
-    testForJvm()
+    testForJvm(parameters)
         .addProgramClassFileData(getProgramClassFileData())
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines("1", "2", "3", "4");

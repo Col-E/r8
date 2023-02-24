@@ -48,7 +48,7 @@ public class DesugarMissingTypeLambdaTest extends TestBase {
   @Test
   public void test() throws Exception {
     if (parameters.isCfRuntime()) {
-      testForJvm()
+      testForJvm(parameters)
           .addProgramClasses(TestClass.class, MissingInterface.class)
           .run(parameters.getRuntime(), TestClass.class)
           .assertSuccessWithOutput(EXPECTED);

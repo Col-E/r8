@@ -56,7 +56,10 @@ public class RedundantConstNumberRemovalTest extends TestBase {
             "true", "true", "true", "true", "true");
 
     if (parameters.getBackend() == Backend.CF) {
-      testForJvm().addTestClasspath().run(TestClass.class).assertSuccessWithOutput(expectedOutput);
+      testForJvm(parameters)
+          .addTestClasspath()
+          .run(TestClass.class)
+          .assertSuccessWithOutput(expectedOutput);
     }
 
     R8TestRunResult result =

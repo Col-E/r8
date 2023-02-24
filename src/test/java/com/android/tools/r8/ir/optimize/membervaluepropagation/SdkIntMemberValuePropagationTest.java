@@ -82,7 +82,7 @@ public class SdkIntMemberValuePropagationTest extends TestBase {
 
   @Test
   public void testD8() throws Exception {
-    assumeTrue(parameters.isDexRuntime());
+    parameters.assumeDexRuntime();
     assumeTrue(rule.getRule().equals(""));
     testForD8()
         .addProgramClassFileData(getTransformedMainClass())

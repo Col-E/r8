@@ -73,8 +73,8 @@ public class MethodParametersTest extends TestBase {
 
   @Test
   public void testJvm() throws Exception {
-    assumeTrue(parameters.isCfRuntime());
-    testForJvm()
+    parameters.assumeJvmTestParameters();
+    testForJvm(parameters)
         .addProgramFiles(compiledWithParameters.get())
         .addInnerClasses(getClass())
         .run(parameters.getRuntime(), TestRunner.class)

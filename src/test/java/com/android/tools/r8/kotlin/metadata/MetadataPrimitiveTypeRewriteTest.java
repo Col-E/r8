@@ -62,7 +62,7 @@ public class MetadataPrimitiveTypeRewriteTest extends KotlinMetadataTestBase {
                 getKotlinFileInTest(DescriptorUtils.getBinaryNameFromJavaType(PKG_APP), "main"))
             .setOutputPath(temp.newFolder().toPath())
             .compile();
-    testForJvm()
+    testForJvm(parameters)
         .addRunClasspathFiles(kotlinc.getKotlinStdlibJar(), libJar)
         .addClasspath(output)
         .run(parameters.getRuntime(), PKG_APP + ".MainKt")
@@ -113,7 +113,7 @@ public class MetadataPrimitiveTypeRewriteTest extends KotlinMetadataTestBase {
       return;
     }
     final JvmTestRunResult runResult =
-        testForJvm()
+        testForJvm(parameters)
             .addRunClasspathFiles(kotlinc.getKotlinStdlibJar(), libJar)
             .addClasspath(output)
             .run(parameters.getRuntime(), PKG_APP + ".MainKt");

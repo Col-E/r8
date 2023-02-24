@@ -74,7 +74,7 @@ public class MetadataRewriteDelegatedPropertyTest extends KotlinMetadataTestBase
                 getKotlinFileInTest(DescriptorUtils.getBinaryNameFromJavaType(PKG_APP), "main"))
             .setOutputPath(temp.newFolder().toPath())
             .compile();
-    testForJvm()
+    testForJvm(parameters)
         .addRunClasspathFiles(kotlinc.getKotlinStdlibJar(), kotlinc.getKotlinReflectJar(), libJar)
         .addClasspath(output)
         .run(parameters.getRuntime(), PKG_APP + ".MainKt")
@@ -102,7 +102,7 @@ public class MetadataRewriteDelegatedPropertyTest extends KotlinMetadataTestBase
                 getKotlinFileInTest(DescriptorUtils.getBinaryNameFromJavaType(PKG_APP), "main"))
             .setOutputPath(temp.newFolder().toPath())
             .compile();
-    testForJvm()
+    testForJvm(parameters)
         .addRunClasspathFiles(
             kotlinc.getKotlinStdlibJar(), kotlinc.getKotlinReflectJar(), outputJar)
         .addClasspath(main)
@@ -131,7 +131,7 @@ public class MetadataRewriteDelegatedPropertyTest extends KotlinMetadataTestBase
             .setOutputPath(outputPath)
             .compileRaw();
     if (kotlinParameters.isNewerThan(KOTLINC_1_8_0)) {
-      testForJvm()
+      testForJvm(parameters)
           .addRunClasspathFiles(
               kotlinc.getKotlinStdlibJar(), kotlinc.getKotlinReflectJar(), outputJar)
           .addClasspath(outputPath)

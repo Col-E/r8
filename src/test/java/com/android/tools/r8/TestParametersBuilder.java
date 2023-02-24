@@ -212,6 +212,10 @@ public class TestParametersBuilder {
     return withApiFilter((api, runtime) -> true);
   }
 
+  public TestParametersBuilder withMinimumApiLevel() {
+    return withApiFilter((api, runtime) -> api.equals(lowestCompilerApiLevel));
+  }
+
   public TestParametersBuilder withMaximumApiLevel() {
     return withApiFilter((api, runtime) -> api.equals(runtime.maxSupportedApiLevel()));
   }

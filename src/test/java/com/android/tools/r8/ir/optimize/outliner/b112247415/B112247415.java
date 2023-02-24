@@ -74,7 +74,7 @@ public class B112247415 extends TestBase {
   @Test
   public void test() throws Exception {
     if (parameters.isCfRuntime()) {
-      testForJvm()
+      testForJvm(parameters)
           .addTestClasspath()
           .run(parameters.getRuntime(), TestClass.class)
           .assertSuccessWithOutput(EXPECTED);

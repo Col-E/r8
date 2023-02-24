@@ -14,10 +14,11 @@ import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.utils.StringUtils;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import org.junit.Assume;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameter;
+import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
 public class BufferCovariantReturnTypeTest extends TestBase {
@@ -30,9 +31,10 @@ public class BufferCovariantReturnTypeTest extends TestBase {
   private static final String EXPECTED_RESULT =
       new String(new char[14]).replace("\0", EXPECTED_RESULT_PER_BUFFER);
 
-  private final TestParameters parameters;
+  @Parameter(0)
+  public TestParameters parameters;
 
-  @Parameterized.Parameters(name = "{0}")
+  @Parameters(name = "{0}")
   public static TestParametersCollection data() {
     return getTestParameters()
         .withCfRuntimesStartingFromIncluding(JDK11)
@@ -41,14 +43,10 @@ public class BufferCovariantReturnTypeTest extends TestBase {
         .build();
   }
 
-  public BufferCovariantReturnTypeTest(TestParameters parameters) {
-    this.parameters = parameters;
-  }
-
   @Test
   public void testJVM() throws Exception {
-    Assume.assumeTrue(parameters.isCfRuntime());
-    testForJvm()
+    parameters.assumeJvmTestParameters();
+    testForJvm(parameters)
         .addProgramFiles(JAR)
         .run(parameters.getRuntime(), "buffercovariantreturntype.BufferCovariantReturnTypeMain")
         .assertSuccessWithOutput(EXPECTED_RESULT);

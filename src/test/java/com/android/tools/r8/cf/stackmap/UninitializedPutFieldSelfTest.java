@@ -6,7 +6,6 @@ package com.android.tools.r8.cf.stackmap;
 
 import static com.android.tools.r8.cf.stackmap.UninitializedPutFieldSelfTest.MainDump.dump;
 import static org.hamcrest.CoreMatchers.containsString;
-import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.TestBase;
@@ -17,6 +16,7 @@ import com.android.tools.r8.ToolHelper.DexVm.Version;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameter;
 import org.junit.runners.Parameterized.Parameters;
 import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.FieldVisitor;
@@ -26,7 +26,8 @@ import org.objectweb.asm.Opcodes;
 @RunWith(Parameterized.class)
 public class UninitializedPutFieldSelfTest extends TestBase {
 
-  private final TestParameters parameters;
+  @Parameter(0)
+  public TestParameters parameters;
 
   @Parameters(name = "{0}")
   public static TestParametersCollection data() {
@@ -35,8 +36,8 @@ public class UninitializedPutFieldSelfTest extends TestBase {
 
   @Test
   public void testJvm() throws Exception {
-    assumeTrue(parameters.isCfRuntime());
-    testForJvm()
+    parameters.assumeJvmTestParameters();
+    testForJvm(parameters)
         .addProgramClassFileData(dump())
         .run(parameters.getRuntime(), Main.class)
         .assertFailureWithErrorThatThrows(VerifyError.class);
@@ -44,7 +45,7 @@ public class UninitializedPutFieldSelfTest extends TestBase {
 
   @Test(expected = CompilationFailedException.class)
   public void testD8Cf() throws Exception {
-    assumeTrue(parameters.isCfRuntime());
+    parameters.assumeCfRuntime();
     testForD8(parameters.getBackend())
         .addProgramClassFileData(dump())
         .setMinApi(parameters)
@@ -53,11 +54,11 @@ public class UninitializedPutFieldSelfTest extends TestBase {
 
   @Test
   public void testD8Dex() throws Exception {
-    assumeTrue(parameters.isDexRuntime());
+    parameters.assumeDexRuntime();
     boolean willFailVerification =
         parameters.getDexRuntimeVersion().isOlderThan(Version.V5_1_1)
             || parameters.getDexRuntimeVersion().isNewerThan(Version.V6_0_1);
-    testForD8(parameters.getBackend())
+    testForD8()
         .addProgramClassFileData(dump())
         .setMinApi(parameters)
         .compileWithExpectedDiagnostics(this::inspect)
@@ -76,10 +77,6 @@ public class UninitializedPutFieldSelfTest extends TestBase {
       diagnostics.assertErrorMessageThatMatches(
           containsString("Could not validate stack map frames"));
     }
-  }
-
-  public UninitializedPutFieldSelfTest(TestParameters parameters) {
-    this.parameters = parameters;
   }
 
   public static class Main {

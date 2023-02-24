@@ -4,7 +4,6 @@
 
 package com.android.tools.r8.classmerging.horizontal;
 
-import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
@@ -47,8 +46,8 @@ public class ImplicitClassInitializationSynchronizationTest extends TestBase {
 
   @Test
   public void testJvm() throws Exception {
-    assumeTrue(parameters.isCfRuntime());
-    testForJvm()
+    parameters.assumeJvmTestParameters();
+    testForJvm(parameters)
         .addTestClasspath()
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines(getExpectedOutput());

@@ -4,22 +4,23 @@
 package com.android.tools.r8.shaking.synthetic;
 
 import com.android.tools.r8.AsmTestBase;
-import com.android.tools.r8.ToolHelper;
+import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.TestParametersCollection;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameter;
+import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
 public class StaticCallInSyntheticMethodAsmTest extends AsmTestBase {
-  private final Backend backend;
 
-  @Parameterized.Parameters(name = "backend: {0}")
-  public static Backend[] data() {
-    return ToolHelper.getBackends();
-  }
+  @Parameter(0)
+  public TestParameters parameters;
 
-  public StaticCallInSyntheticMethodAsmTest(Backend backend) {
-    this.backend = backend;
+  @Parameters(name = "{0}")
+  public static TestParametersCollection data() {
+    return getTestParameters().withAllRuntimesAndApiLevels().build();
   }
 
   // class Base {
@@ -29,10 +30,10 @@ public class StaticCallInSyntheticMethodAsmTest extends AsmTestBase {
   // class Sub extends Base {}
   @Test
   public void test() throws Exception {
-    testForR8(backend)
+    testForR8(parameters.getBackend())
         .addProgramClassFileData(Base.dump(), Sub.dump())
-        .addKeepRules("-dontshrink")
+        .addDontShrink()
+        .setMinApi(parameters)
         .compile();
   }
-
 }

@@ -4,7 +4,6 @@
 
 package com.android.tools.r8.memberrebinding;
 
-import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestBuilder;
@@ -49,8 +48,8 @@ public class MemberRebindingAmbiguousDispatchToLibraryTest extends TestBase {
 
   @Test
   public void testReference() throws Exception {
-    assumeTrue(parameters.isCfRuntime());
-    testForJvm()
+    parameters.assumeJvmTestParameters();
+    testForJvm(parameters)
         .apply(this::setupInput)
         .run(parameters.getRuntime(), Main.class)
         .apply(this::checkOutput);

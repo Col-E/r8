@@ -44,8 +44,8 @@ public class Regression127524985 extends TestBase {
 
   @Test
   public void testJvm() throws Throwable {
-    assumeTrue(parameters.isCfRuntime());
-    testForJvm()
+    parameters.assumeJvmTestParameters();
+    testForJvm(parameters)
         .addClasspath(JAR)
         .run(parameters.getRuntime(), MAIN)
         .assertSuccessWithOutput(EXPECTED);

@@ -8,6 +8,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.google.common.collect.ImmutableList;
@@ -16,21 +17,18 @@ import java.util.List;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameter;
+import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
 public class RewriteSwitchMapsTest extends TestBase {
 
-  private final Backend backend;
+  @Parameter(0)
+  public TestParameters parameters;
 
-  @Parameterized.Parameters(name = "{0}, backend: {1}")
-  public static List<Object[]> data() {
-    return buildParameters(
-        TestParameters.builder().withNoneRuntime().build(), ToolHelper.getBackends());
-  }
-
-  public RewriteSwitchMapsTest(TestParameters parameters, Backend backend) {
-    parameters.assertNoneRuntime();
-    this.backend = backend;
+  @Parameters(name = "{0}, {1}")
+  public static TestParametersCollection data() {
+    return getTestParameters().withDefaultRuntimes().withApiLevel(AndroidApiLevel.B).build();
   }
 
   private static final String JAR_FILE = "switchmaps.jar";
@@ -42,14 +40,11 @@ public class RewriteSwitchMapsTest extends TestBase {
 
   @Test
   public void checkSwitchMapsRemoved() throws Exception {
-    testForR8(backend)
+    testForR8(parameters.getBackend())
         .addProgramFiles(Paths.get(ToolHelper.EXAMPLES_BUILD_DIR).resolve(JAR_FILE))
         .addKeepRules(PG_CONFIG)
-        .setMinApi(AndroidApiLevel.B)
+        .setMinApi(parameters)
         .compile()
-        .inspect(
-            inspector -> {
-              assertThat(inspector.clazz(SWITCHMAP_CLASS_NAME), isAbsent());
-            });
+        .inspect(inspector -> assertThat(inspector.clazz(SWITCHMAP_CLASS_NAME), isAbsent()));
   }
 }

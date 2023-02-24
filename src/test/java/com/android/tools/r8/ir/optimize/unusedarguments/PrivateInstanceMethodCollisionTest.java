@@ -53,7 +53,7 @@ public class PrivateInstanceMethodCollisionTest extends TestBase {
     String expectedOutput = StringUtils.lines("A#foo(used)", "A#foo(used, Object)");
 
     if (parameters.isCfRuntime() && !minification && !allowAccessModification) {
-      testForJvm()
+      testForJvm(parameters)
           .addTestClasspath()
           .run(parameters.getRuntime(), TestClass.class)
           .assertSuccessWithOutput(expectedOutput);

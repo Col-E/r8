@@ -111,7 +111,7 @@ public class MemberResolutionTest extends TestBase {
             "ConcreteChecker#check:NewTag");
 
     if (parameters.isCfRuntime()) {
-      testForJvm()
+      testForJvm(parameters)
           .addTestClasspath()
           .run(parameters.getRuntime(), MemberResolutionTestMain.class)
           .assertSuccessWithOutput(expectedOutput);

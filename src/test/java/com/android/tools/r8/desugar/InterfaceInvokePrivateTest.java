@@ -48,7 +48,7 @@ public class InterfaceInvokePrivateTest extends TestBase implements Opcodes {
     assumeTrue(parameters.getRuntime().isCf());
     assumeTrue(parameters.getApiLevel().isEqualTo(AndroidApiLevel.B));
 
-    testForJvm()
+    testForJvm(parameters)
         .addProgramClassFileData(transformIToPrivate(inputCfVersion))
         .addProgramClasses(TestRunner.class)
         .run(parameters.getRuntime(), TestRunner.class)

@@ -5,7 +5,6 @@ package com.android.tools.r8.resolution;
 
 import static com.android.tools.r8.ToolHelper.getMostRecentAndroidJar;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.TestBase;
@@ -98,8 +97,8 @@ public class VirtualOverrideOfPrivateStaticMethodTest extends TestBase {
 
   @Test
   public void testJvm() throws Exception {
-    assumeTrue(parameters.isCfRuntime());
-    testForJvm()
+    parameters.assumeJvmTestParameters();
+    testForJvm(parameters)
         .addProgramClasses(CLASSES)
         .run(parameters.getRuntime(), Main.class)
         .assertFailureWithErrorThatThrows(IllegalAccessError.class);

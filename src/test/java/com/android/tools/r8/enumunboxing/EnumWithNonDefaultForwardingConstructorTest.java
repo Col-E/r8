@@ -5,7 +5,6 @@
 package com.android.tools.r8.enumunboxing;
 
 import static org.junit.Assume.assumeFalse;
-import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestBuilder;
@@ -38,8 +37,8 @@ public class EnumWithNonDefaultForwardingConstructorTest extends TestBase {
   @Test
   public void testJvm() throws Exception {
     assumeFalse(enableEnumUnboxing);
-    assumeTrue(parameters.isCfRuntime());
-    testForJvm()
+    parameters.assumeJvmTestParameters();
+    testForJvm(parameters)
         .apply(this::addProgramClasses)
         .run(parameters.getRuntime(), TestClass.class)
         .assertSuccessWithOutputLines("42");

@@ -242,6 +242,14 @@ public class ListUtils {
     return list.remove(list.size() - 1);
   }
 
+  public static <T> List<T> reverse(List<T> list) {
+    List<T> reversed = new ArrayList<>(list.size());
+    for (int i = list.size() - 1; i >= 0; i--) {
+      reversed.add(list.get(i));
+    }
+    return reversed;
+  }
+
   public static <T extends Comparable<T>> boolean verifyListIsOrdered(List<T> list) {
     for (int i = list.size() - 1; i > 0; i--) {
       if (list.get(i).compareTo(list.get(i - 1)) < 0) {

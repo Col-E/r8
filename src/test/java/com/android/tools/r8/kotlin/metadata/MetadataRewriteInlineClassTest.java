@@ -55,7 +55,7 @@ public class MetadataRewriteInlineClassTest extends KotlinMetadataTestBase {
             .addSourceFiles(getKotlinFileInTest(PKG_PREFIX + "/inline_class_app", "main"))
             .setOutputPath(temp.newFolder().toPath())
             .compile();
-    testForJvm()
+    testForJvm(parameters)
         .addRunClasspathFiles(kotlinc.getKotlinStdlibJar(), libJar)
         .addClasspath(output)
         .run(parameters.getRuntime(), PKG + ".inline_class_app.MainKt")
@@ -87,7 +87,7 @@ public class MetadataRewriteInlineClassTest extends KotlinMetadataTestBase {
             .addSourceFiles(getKotlinFileInTest(PKG_PREFIX + "/inline_class_app", "main"))
             .setOutputPath(temp.newFolder().toPath())
             .compile();
-    testForJvm()
+    testForJvm(parameters)
         .addRunClasspathFiles(kotlinc.getKotlinStdlibJar(), kotlinc.getKotlinReflectJar(), libJar)
         .addClasspath(main)
         .run(parameters.getRuntime(), PKG + ".inline_class_app.MainKt")

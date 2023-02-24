@@ -47,7 +47,7 @@ public class MetadataRewriteBoxedTypesTest extends KotlinMetadataTestBase {
             .addSourceFiles(getKotlinFileInTest(PKG_PREFIX + "/box_primitives_app", "main"))
             .setOutputPath(temp.newFolder().toPath())
             .compile();
-    testForJvm()
+    testForJvm(parameters)
         .addRunClasspathFiles(kotlinc.getKotlinStdlibJar(), libJar)
         .addClasspath(output)
         .run(parameters.getRuntime(), PKG + ".box_primitives_app.MainKt")
@@ -63,7 +63,7 @@ public class MetadataRewriteBoxedTypesTest extends KotlinMetadataTestBase {
             .addSourceFiles(getKotlinFileInTest(PKG_PREFIX + "/box_primitives_app", "main_reflect"))
             .setOutputPath(temp.newFolder().toPath())
             .compile();
-    testForJvm()
+    testForJvm(parameters)
         .addVmArguments("-ea")
         .addRunClasspathFiles(kotlinc.getKotlinStdlibJar(), kotlinc.getKotlinReflectJar(), libJar)
         .addClasspath(output)
@@ -98,7 +98,7 @@ public class MetadataRewriteBoxedTypesTest extends KotlinMetadataTestBase {
             .addSourceFiles(getKotlinFileInTest(PKG_PREFIX + "/box_primitives_app", "main"))
             .setOutputPath(temp.newFolder().toPath())
             .compile();
-    testForJvm()
+    testForJvm(parameters)
         .addRunClasspathFiles(kotlinc.getKotlinStdlibJar(), kotlinc.getKotlinReflectJar(), libJar)
         .addClasspath(main)
         .run(parameters.getRuntime(), PKG + ".box_primitives_app.MainKt")
@@ -125,7 +125,7 @@ public class MetadataRewriteBoxedTypesTest extends KotlinMetadataTestBase {
             .addSourceFiles(getKotlinFileInTest(PKG_PREFIX + "/box_primitives_app", "main_reflect"))
             .setOutputPath(temp.newFolder().toPath())
             .compile();
-    testForJvm()
+    testForJvm(parameters)
         .addVmArguments("-ea")
         .addRunClasspathFiles(kotlinc.getKotlinStdlibJar(), kotlinc.getKotlinReflectJar(), libJar)
         .addClasspath(main)

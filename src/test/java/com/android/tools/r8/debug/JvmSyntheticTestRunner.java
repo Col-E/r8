@@ -10,6 +10,7 @@ import com.android.tools.r8.debug.JvmSyntheticTest.Runner;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameter;
 import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
@@ -22,15 +23,12 @@ public class JvmSyntheticTestRunner extends DebugTestBase {
     return getTestParameters().withCfRuntimes().build();
   }
 
-  private TestParameters parameters;
-
-  public JvmSyntheticTestRunner(TestParameters parameters) {
-    this.parameters = parameters;
-  }
+  @Parameter(0)
+  public TestParameters parameters;
 
   @Test
   public void testStacktrace() throws Throwable {
-    testForJvm()
+    testForJvm(parameters)
         .addProgramClasses(A.class, CLASS)
         .run(parameters.getRuntime(), CLASS)
         .assertSuccessWithOutputThatMatches(

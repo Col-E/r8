@@ -104,8 +104,8 @@ public class ApiModelD8GradleSetupTest extends TestBase {
 
   @Test
   public void testReference() throws Exception {
-    assumeTrue(parameters.isCfRuntime());
-    testForJvm()
+    parameters.assumeJvmTestParameters();
+    testForJvm(parameters)
         .addProgramClasses(Main.class, ProgramClassOne.class, ProgramClassTwo.class)
         .addAndroidBuildVersion(AndroidApiLevel.B)
         .addLibraryClasses(LibraryClassOne.class, LibraryClassTwo.class, LibraryClassThree.class)

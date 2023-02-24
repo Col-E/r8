@@ -8,7 +8,6 @@ import static com.android.tools.r8.utils.codeinspector.CodeMatchers.invokesMetho
 import static com.android.tools.r8.utils.codeinspector.Matchers.isAbsent;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.TestBase;
@@ -34,8 +33,8 @@ public class TrivialObjectEqualsTest extends TestBase {
 
   @Test
   public void testD8() throws Exception {
-    assumeTrue(parameters.isDexRuntime());
-    testForD8(parameters.getBackend())
+    parameters.assumeDexRuntime();
+    testForD8()
         .addInnerClasses(getClass())
         .setMinApi(parameters)
         .compile()

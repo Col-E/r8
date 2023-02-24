@@ -24,19 +24,27 @@ import org.junit.runners.Parameterized.Parameters;
 @RunWith(Parameterized.class)
 public class IfOnTargetedMethodTest extends TestBase {
 
+  private static final String EXPECTED_OUTPUT = StringUtils.lines("Hello world!");
+
   @Parameters(name = "{0}")
   public static TestParametersCollection data() {
     return getTestParameters().withAllRuntimes().withApiLevel(AndroidApiLevel.B).build();
   }
 
-  @Parameter public TestParameters parameters;
+  @Parameter(0)
+  public TestParameters parameters;
 
   @Test
-  public void test() throws Exception {
-    String expectedOutput = StringUtils.lines("Hello world!");
+  public void testJvm() throws Exception {
+    parameters.assumeJvmTestParameters();
+    testForJvm(parameters)
+        .addTestClasspath()
+        .run(parameters.getRuntime(), TestClass.class)
+        .assertSuccessWithOutput(EXPECTED_OUTPUT);
+  }
 
-    testForJvm().addTestClasspath().run(TestClass.class).assertSuccessWithOutput(expectedOutput);
-
+  @Test
+  public void testR8() throws Exception {
     CodeInspector inspector =
         testForR8(parameters.getBackend())
             .setMinApi(parameters)
@@ -46,7 +54,7 @@ public class IfOnTargetedMethodTest extends TestBase {
                 "-if interface * { @" + MyAnnotation.class.getTypeName() + " <methods>; }",
                 "-keep,allowobfuscation interface <1>")
             .run(parameters.getRuntime(), TestClass.class)
-            .assertSuccessWithOutput(expectedOutput)
+            .assertSuccessWithOutput(EXPECTED_OUTPUT)
             .inspector();
 
     ClassSubject interfaceSubject = inspector.clazz(Interface.class);

@@ -5,7 +5,6 @@
 package com.android.tools.r8.cf.stackmap;
 
 import static org.hamcrest.CoreMatchers.containsString;
-import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.NeverInline;
@@ -43,7 +42,7 @@ public class InvalidStackHeightTest extends TestBase {
 
   @Test(expected = CompilationFailedException.class)
   public void testD8Cf() throws Exception {
-    assumeTrue(parameters.isCfRuntime());
+    parameters.assumeCfRuntime();
     testForD8(parameters.getBackend())
         .addProgramClassFileData(getMainWithChangedMaxStackHeight())
         .setMinApi(parameters)
@@ -52,8 +51,8 @@ public class InvalidStackHeightTest extends TestBase {
 
   @Test
   public void testD8Dex() throws Exception {
-    assumeTrue(parameters.isDexRuntime());
-    testForD8(parameters.getBackend())
+    parameters.assumeDexRuntime();
+    testForD8()
         .addProgramClassFileData(getMainWithChangedMaxStackHeight())
         .setMinApi(parameters)
         .compileWithExpectedDiagnostics(this::inspect)

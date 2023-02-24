@@ -233,6 +233,7 @@ public class TestBase {
   }
 
   public JvmTestBuilder testForJvm(TestParameters parameters) {
+    parameters.assertCfRuntime();
     parameters.assertIsRepresentativeApiLevelForRuntime();
     return testForJvm(temp);
   }

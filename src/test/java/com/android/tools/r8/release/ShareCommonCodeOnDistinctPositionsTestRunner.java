@@ -6,70 +6,63 @@ package com.android.tools.r8.release;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 
-import com.android.tools.r8.CompilationFailedException;
-import com.android.tools.r8.R8Command;
 import com.android.tools.r8.TestBase;
-import com.android.tools.r8.ToolHelper;
-import com.android.tools.r8.origin.Origin;
-import com.android.tools.r8.utils.AndroidAppConsumers;
+import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.TestParametersCollection;
+import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.InternalOptions.LineNumberOptimization;
-import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.InstructionSubject;
 import com.android.tools.r8.utils.codeinspector.LineNumberTable;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Streams;
 import it.unimi.dsi.fastutil.ints.IntCollection;
-import java.io.IOException;
-import java.util.concurrent.ExecutionException;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameter;
 import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
 public class ShareCommonCodeOnDistinctPositionsTestRunner extends TestBase {
 
-  private static final Class CLASS = ShareCommonCodeOnDistinctPositionsTest.class;
+  private static final Class<?> CLASS = ShareCommonCodeOnDistinctPositionsTest.class;
 
-  @Parameters(name = "Backend: {0}")
-  public static Backend[] parameters() {
-    return ToolHelper.getBackends();
-  }
+  @Parameter(0)
+  public TestParameters parameters;
 
-  private final Backend backend;
-
-  public ShareCommonCodeOnDistinctPositionsTestRunner(Backend backend) {
-    this.backend = backend;
+  @Parameters(name = "{0}")
+  public static TestParametersCollection data() {
+    return getTestParameters().withDefaultRuntimes().withApiLevel(AndroidApiLevel.B).build();
   }
 
   @Test
-  public void test() throws CompilationFailedException, IOException, ExecutionException {
-    AndroidAppConsumers sink = new AndroidAppConsumers();
-    ToolHelper.runR8(
-        R8Command.builder()
-            .addLibraryFiles(runtimeJar(backend))
-            .addProgramFiles(ToolHelper.getClassFileForTestClass(CLASS))
-            .setProgramConsumer(sink.wrapProgramConsumer(emptyConsumer(backend)))
-            .setDisableMinification(true)
-            .setDisableTreeShaking(true)
-            .addProguardConfiguration(
-                ImmutableList.of("-keepattributes LineNumberTable"), Origin.unknown())
-            .build(),
-        options -> options.lineNumberOptimization = LineNumberOptimization.OFF);
-    CodeInspector inspector = new CodeInspector(sink.build());
-    MethodSubject method = inspector.clazz(CLASS).mainMethod();
-    // Check that the two shared lines are not in the output (they have no throwing instructions).
-    LineNumberTable lineNumberTable = method.getLineNumberTable();
-    IntCollection lines = lineNumberTable.getLines();
-    assertFalse(lines.contains(12));
-    assertFalse(lines.contains(14));
-    // Check that the two lines have been shared, e.g., there may be only one multiplication left.
-    assertEquals(
-        "Expected only one multiplcation due to instruction sharing.",
-        1,
-        Streams.stream(method.iterateInstructions())
-            .filter(InstructionSubject::isMultiplication)
-            .count());
+  public void test() throws Exception {
+    testForR8(parameters.getBackend())
+        .addProgramClasses(CLASS)
+        .addKeepAttributeLineNumberTable()
+        .addDontObfuscate()
+        .addDontShrink()
+        .addOptionsModification(
+            options -> options.lineNumberOptimization = LineNumberOptimization.OFF)
+        .setMinApi(parameters)
+        .compile()
+        .inspect(
+            inspector -> {
+              MethodSubject method = inspector.clazz(CLASS).mainMethod();
+              // Check that the two shared lines are not in the output (they have no throwing
+              // instructions).
+              LineNumberTable lineNumberTable = method.getLineNumberTable();
+              IntCollection lines = lineNumberTable.getLines();
+              assertFalse(lines.contains(12));
+              assertFalse(lines.contains(14));
+              // Check that the two lines have been shared, e.g., there may be only one
+              // multiplication left.
+              assertEquals(
+                  "Expected only one multiplcation due to instruction sharing.",
+                  1,
+                  Streams.stream(method.iterateInstructions())
+                      .filter(InstructionSubject::isMultiplication)
+                      .count());
+            });
   }
 }

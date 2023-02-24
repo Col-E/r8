@@ -73,7 +73,7 @@ public class MetadataRewriteInClasspathTypeTest extends KotlinMetadataTestBase {
             .setOutputPath(temp.newFolder().toPath())
             .compile();
 
-    testForJvm()
+    testForJvm(parameters)
         .addRunClasspathFiles(kotlinc.getKotlinStdlibJar(), baseLibJar, extLibJar)
         .addClasspath(output)
         .run(parameters.getRuntime(), PKG + ".classpath_app.MainKt")
@@ -110,7 +110,7 @@ public class MetadataRewriteInClasspathTypeTest extends KotlinMetadataTestBase {
       return;
     }
 
-    testForJvm()
+    testForJvm(parameters)
         .addRunClasspathFiles(kotlinc.getKotlinStdlibJar(), baseLibJar, libJar)
         .addClasspath(output)
         .run(parameters.getRuntime(), PKG + ".classpath_app.MainKt")

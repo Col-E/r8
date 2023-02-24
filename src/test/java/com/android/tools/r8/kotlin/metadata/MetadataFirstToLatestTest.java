@@ -141,7 +141,7 @@ public class MetadataFirstToLatestTest extends KotlinMetadataTestBase {
             .setOutputPath(temp.newFolder().toPath())
             .noStdLib()
             .compile();
-    testForJvm()
+    testForJvm(parameters)
         .addRunClasspathFiles(stdLibJar, libJar)
         .addClasspath(output)
         .run(parameters.getRuntime(), PKG_APP + ".MainKt")

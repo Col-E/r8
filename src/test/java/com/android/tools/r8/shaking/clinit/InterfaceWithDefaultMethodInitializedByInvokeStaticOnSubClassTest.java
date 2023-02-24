@@ -4,7 +4,6 @@
 
 package com.android.tools.r8.shaking.clinit;
 
-import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
@@ -33,7 +32,7 @@ public class InterfaceWithDefaultMethodInitializedByInvokeStaticOnSubClassTest
 
   @Test
   public void testD8() throws Exception {
-    assumeTrue(parameters.isDexRuntime());
+    parameters.assumeDexRuntime();
     testForD8()
         .addInnerClasses(getClass())
         .setMinApi(parameters)
@@ -71,8 +70,8 @@ public class InterfaceWithDefaultMethodInitializedByInvokeStaticOnSubClassTest
 
   @Test
   public void testJvm() throws Exception {
-    assumeTrue(parameters.isCfRuntime());
-    testForJvm()
+    parameters.assumeJvmTestParameters();
+    testForJvm(parameters)
         .addTestClasspath()
         .run(parameters.getRuntime(), TestClass.class)
         .assertSuccessWithOutputLines("I");

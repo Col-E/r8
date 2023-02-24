@@ -24,7 +24,6 @@ import java.nio.file.Path;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.function.Function;
-import org.junit.Assume;
 import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -152,8 +151,8 @@ public class ApplyMappingAfterVerticalMergingMethodTest extends TestBase {
 
   @Test
   public void runOnJvm() throws Throwable {
-    Assume.assumeTrue(parameters.isCfRuntime());
-    testForJvm()
+    parameters.assumeJvmTestParameters();
+    testForJvm(parameters)
         .addProgramClasses(LIBRARY_CLASSES)
         .addProgramClasses(PROGRAM_CLASSES)
         .run(parameters.getRuntime(), ProgramClass.class)

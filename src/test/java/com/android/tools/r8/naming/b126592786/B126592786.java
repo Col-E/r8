@@ -10,7 +10,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.TestBase;
-import com.android.tools.r8.ToolHelper;
+import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.FieldSubject;
@@ -18,31 +18,30 @@ import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
-import java.util.Collection;
 import java.util.List;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameter;
 
 @RunWith(Parameterized.class)
 public class B126592786 extends TestBase {
 
-  private final Backend backend;
-  private final boolean minify;
+  @Parameter(0)
+  public TestParameters parameters;
 
-  @Parameterized.Parameters(name = "Backend: {0} minify: {1}")
-  public static Collection<Object[]> data() {
-    return buildParameters(ToolHelper.getBackends(), BooleanUtils.values());
-  }
+  @Parameter(1)
+  public boolean minify;
 
-  public B126592786(Backend backend, boolean minify) {
-    this.backend = backend;
-    this.minify = minify;
+  @Parameterized.Parameters(name = "{0}, minify: {1}")
+  public static List<Object[]> data() {
+    return buildParameters(
+        getTestParameters().withAllRuntimesAndApiLevels().build(), BooleanUtils.values());
   }
 
   public void runTest(boolean genericTypeLive) throws Exception {
     Class<?> mainClass = genericTypeLive ? MainGenericTypeLive.class : MainGenericTypeNotLive.class;
-    testForR8(backend)
+    testForR8(parameters.getBackend())
         .minification(minify)
         .addProgramClasses(GetClassUtil.class, A.class, GenericType.class, mainClass, Marker.class)
         .addKeepMainRule(mainClass)
@@ -54,6 +53,7 @@ public class B126592786 extends TestBase {
             "  <fields>;",
             "}",
             "-keepattributes InnerClasses,EnclosingMethod,Signature ")
+        .setMinApi(parameters)
         .compile()
         .inspect(
             inspector -> {
@@ -68,7 +68,7 @@ public class B126592786 extends TestBase {
               assertThat(list, isPresent());
               assertEquals(expectedSignature, list.getFinalSignatureAttribute());
             })
-        .run(mainClass)
+        .run(parameters.getRuntime(), mainClass)
         .assertSuccess();
   }
 

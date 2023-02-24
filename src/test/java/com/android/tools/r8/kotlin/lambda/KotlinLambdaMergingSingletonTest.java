@@ -64,7 +64,7 @@ public class KotlinLambdaMergingSingletonTest extends KotlinTestBase {
     assumeFalse(allowAccessModification);
     assumeTrue(parameters.isCfRuntime());
     assumeTrue(kotlinParameters.isFirst());
-    testForJvm()
+    testForJvm(parameters)
         .addProgramFiles(getProgramFiles())
         .run(parameters.getRuntime(), getMainClassName())
         .assertSuccessWithOutput(getExpectedOutput());

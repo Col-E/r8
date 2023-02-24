@@ -6,7 +6,6 @@ package com.android.tools.r8.desugaring.interfacemethods;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.TestBase;
@@ -56,8 +55,8 @@ public class DefaultInterfaceMethodDesugaringImpossibleTest extends TestBase {
 
   @Test
   public void testJVM() throws Exception {
-    assumeTrue(parameters.isCfRuntime());
-    testForJvm()
+    parameters.assumeJvmTestParameters();
+    testForJvm(parameters)
         .addProgramClasses(getProgramClasses())
         .addProgramClassFileData(getProgramClassData())
         .run(parameters.getRuntime(), TestClass.class)
@@ -66,7 +65,7 @@ public class DefaultInterfaceMethodDesugaringImpossibleTest extends TestBase {
 
   @Test
   public void testD8() throws Exception {
-    assumeTrue(parameters.isDexRuntime());
+    parameters.assumeDexRuntime();
     try {
       testForD8()
           .addProgramClasses(getProgramClasses())

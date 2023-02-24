@@ -44,7 +44,7 @@ public class InterfaceMethodTest extends TestBase {
     String expectedOutput = StringUtils.lines("In A.m()", "In B.m()");
 
     if (parameters.isCfRuntime()) {
-      testForJvm()
+      testForJvm(parameters)
           .addTestClasspath()
           .run(parameters.getRuntime(), TestClass.class)
           .assertSuccessWithOutput(expectedOutput);

@@ -3,41 +3,32 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.optimize.checkcast;
 
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
-import com.android.tools.r8.ToolHelper;
-import com.android.tools.r8.ToolHelper.ProcessResult;
+import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.jasmin.JasminBuilder;
 import com.android.tools.r8.jasmin.JasminBuilder.ClassBuilder;
 import com.android.tools.r8.jasmin.JasminTestBase;
-import com.android.tools.r8.naming.MemberNaming.MethodSignature;
-import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.codeinspector.InstructionSubject;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
-import com.google.common.collect.ImmutableList;
-import java.io.IOException;
-import java.util.Collections;
-import java.util.Iterator;
-import java.util.List;
-import java.util.concurrent.ExecutionException;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameter;
+import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
 public class CheckCastRemovalTest extends JasminTestBase {
 
-  @Parameterized.Parameters(name = "Backend: {0}")
-  public static Backend[] data() {
-    return ToolHelper.getBackends();
-  }
+  private static final String CLASS_NAME = "Example";
 
-  private final Backend backend;
-  private final String CLASS_NAME = "Example";
+  @Parameter(0)
+  public TestParameters parameters;
 
-  public CheckCastRemovalTest(Backend backend) {
-    this.backend = backend;
+  @Parameters(name = "{0}")
+  public static TestParametersCollection data() {
+    return getTestParameters().withAllRuntimesAndApiLevels().build();
   }
 
   @Test
@@ -45,7 +36,7 @@ public class CheckCastRemovalTest extends JasminTestBase {
     JasminBuilder builder = new JasminBuilder();
     ClassBuilder classBuilder = builder.addClass(CLASS_NAME);
     classBuilder.addDefaultConstructor();
-    MethodSignature main = classBuilder.addMainMethod(
+    classBuilder.addMainMethod(
         ".limit stack 3",
         ".limit locals 1",
         "new Example",
@@ -54,13 +45,14 @@ public class CheckCastRemovalTest extends JasminTestBase {
         "checkcast Example", // Gone
         "return");
 
-    List<String> pgConfigs = ImmutableList.of(
-        "-keep class " + CLASS_NAME + " { *; }",
-        "-dontshrink");
-    AndroidApp app = compileWithR8(builder, pgConfigs, o -> o.enableClassInlining = false, backend);
-
-    checkCheckCasts(app, main, null);
-    checkRuntime(builder, app, CLASS_NAME);
+    testForR8(parameters.getBackend())
+        .addProgramClassFileData(builder.buildClasses())
+        .addKeepMainRule(CLASS_NAME)
+        .setMinApi(parameters)
+        .compile()
+        .inspect(inspector -> checkCheckCasts(inspector.clazz(CLASS_NAME).mainMethod()))
+        .run(parameters.getRuntime(), CLASS_NAME)
+        .assertSuccessWithEmptyOutput();
   }
 
   @Test
@@ -74,7 +66,7 @@ public class CheckCastRemovalTest extends JasminTestBase {
     ClassBuilder a = builder.addClass("A", "B");
     a.addDefaultConstructor();
     ClassBuilder classBuilder = builder.addClass(CLASS_NAME);
-    MethodSignature main = classBuilder.addMainMethod(
+    classBuilder.addMainMethod(
         ".limit stack 3",
         ".limit locals 1",
         "new A",
@@ -84,24 +76,21 @@ public class CheckCastRemovalTest extends JasminTestBase {
         "checkcast C", // Gone
         "return");
 
-    List<String> pgConfigs = ImmutableList.of(
-        "-keep class " + CLASS_NAME + " { *; }",
-        "-keep class A { *; }",
-        "-keep class B { *; }",
-        "-keep class C { *; }",
-        "-dontshrink");
-    AndroidApp app =
-        compileWithR8(builder, pgConfigs, opts -> opts.enableClassInlining = false, backend);
-
-    checkCheckCasts(app, main, null);
-    checkRuntime(builder, app, CLASS_NAME);
+    testForR8(parameters.getBackend())
+        .addProgramClassFileData(builder.buildClasses())
+        .addKeepClassAndMembersRules(CLASS_NAME, "A", "B", "C")
+        .setMinApi(parameters)
+        .compile()
+        .inspect(inspector -> checkCheckCasts(inspector.clazz(CLASS_NAME).mainMethod()))
+        .run(parameters.getRuntime(), CLASS_NAME)
+        .assertSuccessWithEmptyOutput();
   }
 
   @Test
   public void bothUpAndDowncast() throws Exception {
     JasminBuilder builder = new JasminBuilder();
     ClassBuilder classBuilder = builder.addClass(CLASS_NAME);
-    MethodSignature main = classBuilder.addMainMethod(
+    classBuilder.addMainMethod(
         ".limit stack 4",
         ".limit locals 1",
         "iconst_1",
@@ -110,21 +99,22 @@ public class CheckCastRemovalTest extends JasminTestBase {
         "iconst_0",
         "ldc \"a string\"",
         "aastore",
-        "checkcast [Ljava/lang/Object;",  // This upcast can be removed.
+        "checkcast [Ljava/lang/Object;", // This upcast can be removed.
         "iconst_0",
         "aaload",
-        "checkcast java/lang/String",  // Then, this downcast can be removed, too.
+        "checkcast java/lang/String", // Then, this downcast can be removed, too.
         "invokevirtual java/lang/String/length()I",
         "return");
+
     // That is, both checkcasts should be removed together or kept together.
-
-    List<String> pgConfigs = ImmutableList.of(
-        "-keep class " + CLASS_NAME + " { *; }",
-        "-dontshrink");
-    AndroidApp app = compileWithR8(builder, pgConfigs, null, backend);
-
-    checkCheckCasts(app, main, null);
-    checkRuntime(builder, app, CLASS_NAME);
+    testForR8(parameters.getBackend())
+        .addProgramClassFileData(builder.buildClasses())
+        .addKeepMainRule(CLASS_NAME)
+        .setMinApi(parameters)
+        .compile()
+        .inspect(inspector -> checkCheckCasts(inspector.clazz(CLASS_NAME).mainMethod()))
+        .run(parameters.getRuntime(), CLASS_NAME)
+        .assertSuccessWithEmptyOutput();
   }
 
   @Test
@@ -132,7 +122,7 @@ public class CheckCastRemovalTest extends JasminTestBase {
     JasminBuilder builder = new JasminBuilder();
     ClassBuilder classBuilder = builder.addClass(CLASS_NAME);
     classBuilder.addField("public", "fld", "Ljava/lang/String;", null);
-    MethodSignature main = classBuilder.addMainMethod(
+    classBuilder.addMainMethod(
         ".limit stack 3",
         ".limit locals 1",
         "aconst_null",
@@ -140,65 +130,17 @@ public class CheckCastRemovalTest extends JasminTestBase {
         "getfield Example.fld Ljava/lang/String;",
         "return");
 
-    List<String> pgConfigs = ImmutableList.of(
-        "-keep class " + CLASS_NAME + " { *; }",
-        "-dontshrink");
-    AndroidApp app = compileWithR8(builder, pgConfigs, null, backend);
-
-    checkCheckCasts(app, main, null);
-    checkRuntimeException(builder, app, CLASS_NAME, "NullPointerException");
+    testForR8(parameters.getBackend())
+        .addProgramClassFileData(builder.buildClasses())
+        .addKeepClassAndMembersRules(CLASS_NAME)
+        .setMinApi(parameters)
+        .compile()
+        .inspect(inspector -> checkCheckCasts(inspector.clazz(CLASS_NAME).mainMethod()))
+        .run(parameters.getRuntime(), CLASS_NAME)
+        .assertFailureWithErrorThatThrows(NullPointerException.class);
   }
 
-  private void checkCheckCasts(AndroidApp app, MethodSignature main, String maybeType)
-      throws ExecutionException, IOException {
-    MethodSubject method = getMethodSubject(app, CLASS_NAME, main);
-    assertTrue(method.isPresent());
-
-    // Make sure there is only a single CheckCast with specified type, or no CheckCasts (if
-    // maybeType == null).
-    Iterator<InstructionSubject> iterator = method.iterateInstructions();
-    boolean found = maybeType == null;
-    while (iterator.hasNext()) {
-      InstructionSubject instruction = iterator.next();
-      if (!instruction.isCheckCast()) {
-        continue;
-      }
-      assertTrue(!found && instruction.isCheckCast(maybeType));
-      found = true;
-    }
-    assertTrue(found);
-  }
-
-  private void checkRuntime(JasminBuilder builder, AndroidApp app, String className)
-      throws Exception {
-    String normalOutput = runOnJava(builder, className);
-    String optimizedOutput;
-    if (backend == Backend.DEX) {
-      optimizedOutput = runOnArt(app, className);
-    } else {
-      assert backend == Backend.CF;
-      optimizedOutput = runOnJava(app, className);
-    }
-    assertEquals(normalOutput, optimizedOutput);
-  }
-
-  private void checkRuntimeException(
-      JasminBuilder builder, AndroidApp app, String className, String exceptionName)
-      throws Exception {
-    ProcessResult javaOutput = runOnJavaRaw(builder, className);
-    assertEquals(1, javaOutput.exitCode);
-    assertTrue(javaOutput.stderr.contains(exceptionName));
-
-    ProcessResult output;
-
-    if (backend == Backend.DEX) {
-      output = runOnArtRaw(app, className);
-    } else {
-      assert backend == Backend.CF;
-      output = runOnJavaRaw(app, className, Collections.emptyList());
-    }
-
-    assertEquals(1, output.exitCode);
-    assertTrue(output.stderr.contains(exceptionName));
+  private void checkCheckCasts(MethodSubject method) {
+    assertTrue(method.streamInstructions().noneMatch(InstructionSubject::isCheckCast));
   }
 }

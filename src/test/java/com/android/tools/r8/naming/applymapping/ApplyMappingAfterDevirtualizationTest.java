@@ -16,7 +16,6 @@ import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
-import org.junit.Assume;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -96,8 +95,8 @@ public class ApplyMappingAfterDevirtualizationTest extends TestBase {
 
   @Test
   public void runOnJvm() throws Throwable {
-    Assume.assumeTrue(parameters.isCfRuntime());
-    testForJvm()
+    parameters.assumeJvmTestParameters();
+    testForJvm(parameters)
         .addClasspathClasses(CLASSPATH_CLASSES)
         .addProgramClasses(PROGRAM_CLASSES)
         .run(parameters.getRuntime(), ProgramClass.class)

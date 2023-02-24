@@ -47,7 +47,7 @@ public class ConstantDynamicHolderTest extends TestBase {
     assumeTrue(parameters.asCfRuntime().isNewerThanOrEqual(CfVm.JDK11));
     assumeTrue(parameters.getApiLevel().isEqualTo(AndroidApiLevel.B));
 
-    testForJvm()
+    testForJvm(parameters)
         .addProgramClassFileData(getTransformedMain())
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines("null");
@@ -55,7 +55,7 @@ public class ConstantDynamicHolderTest extends TestBase {
 
   @Test
   public void testD8() throws Exception {
-    assumeTrue(parameters.isDexRuntime());
+    parameters.assumeDexRuntime();
 
     testForD8()
         .addProgramClassFileData(getTransformedMain())
@@ -84,10 +84,8 @@ public class ConstantDynamicHolderTest extends TestBase {
   // TODO(b/198142625): Support const-dynamic in IR CF/CF.
   @Test(expected = CompilationFailedException.class)
   public void testR8Cf() throws Exception {
-    assumeTrue(parameters.isCfRuntime());
+    parameters.assumeJvmTestParameters();
     assumeTrue(parameters.asCfRuntime().isNewerThanOrEqual(CfVm.JDK11));
-    assumeTrue(parameters.getApiLevel().isEqualTo(AndroidApiLevel.B));
-
     testForR8(parameters.getBackend())
         .addProgramClassFileData(getTransformedMain())
         .setMinApi(parameters)

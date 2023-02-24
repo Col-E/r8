@@ -78,7 +78,7 @@ public class ZipFileInstanceOfAutoCloseableTest extends TestBase {
 
   @Test
   public void testD8() throws Exception {
-    assumeTrue(parameters.isDexRuntime());
+    parameters.assumeDexRuntime();
     testForD8()
         .addInnerClasses(ZipFileInstanceOfAutoCloseableTest.class)
         .setMinApi(parameters)

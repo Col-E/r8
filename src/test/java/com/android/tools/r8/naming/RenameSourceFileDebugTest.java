@@ -25,6 +25,8 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameter;
+import org.junit.runners.Parameterized.Parameters;
 
 /** Tests -renamesourcefileattribute. */
 @RunWith(Parameterized.class)
@@ -74,15 +76,12 @@ public class RenameSourceFileDebugTest extends DebugTestBase {
     }
   }
 
-  private Backend backend;
+  @Parameter(0)
+  public Backend backend;
 
-  @Parameterized.Parameters(name = "Backend: {0}")
+  @Parameters(name = "{0}")
   public static Backend[] data() {
-    return ToolHelper.getBackends();
-  }
-
-  public RenameSourceFileDebugTest(Backend backend) {
-    this.backend = backend;
+    return Backend.values();
   }
 
   /** replica of {@link ClassInitializationTest#testBreakpointInEmptyClassInitializer} */

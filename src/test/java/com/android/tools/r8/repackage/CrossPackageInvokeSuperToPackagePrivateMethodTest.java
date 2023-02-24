@@ -6,7 +6,6 @@ package com.android.tools.r8.repackage;
 
 import static org.hamcrest.CoreMatchers.allOf;
 import static org.hamcrest.CoreMatchers.containsString;
-import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
@@ -40,8 +39,8 @@ public class CrossPackageInvokeSuperToPackagePrivateMethodTest extends TestBase 
 
   @Test
   public void testJvm() throws Exception {
-    assumeTrue(parameters.isCfRuntime());
-    testForJvm()
+    parameters.assumeJvmTestParameters();
+    testForJvm(parameters)
         .apply(this::addProgramClasses)
         .run(parameters.getRuntime(), TestClass.class)
         .assertSuccessWithOutputLines("A", "B", "A", "C", "D", "C");

@@ -7,26 +7,48 @@ package com.android.tools.r8.desugaring.interfacemethods;
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NoVerticalClassMerging;
 import com.android.tools.r8.TestBase;
-import com.android.tools.r8.utils.AndroidApiLevel;
+import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.utils.StringUtils;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameter;
+import org.junit.runners.Parameterized.Parameters;
 
+@RunWith(Parameterized.class)
 public class InvokeSuperInDefaultInterfaceMethodTest extends TestBase {
 
+  private static final String EXPECTED_OUTPUT =
+      StringUtils.lines("I.m()", "J.m()", "JImpl.m()", "I.m()", "KImpl.m()");
+
+  @Parameter(0)
+  public TestParameters parameters;
+
+  @Parameters(name = "{0}")
+  public static TestParametersCollection data() {
+    return getTestParameters().withAllRuntimesAndApiLevels().build();
+  }
+
   @Test
-  public void test() throws Exception {
-    String expectedOutput = StringUtils.lines("I.m()", "J.m()", "JImpl.m()", "I.m()", "KImpl.m()");
+  public void testJvm() throws Exception {
+    parameters.assumeJvmTestParameters();
+    testForJvm(parameters)
+        .addTestClasspath()
+        .run(parameters.getRuntime(), TestClass.class)
+        .assertSuccessWithOutput(EXPECTED_OUTPUT);
+  }
 
-    testForJvm().addTestClasspath().run(TestClass.class).assertSuccessWithOutput(expectedOutput);
-
-    testForR8(Backend.DEX)
+  @Test
+  public void testR8() throws Exception {
+    testForR8(parameters.getBackend())
         .addInnerClasses(InvokeSuperInDefaultInterfaceMethodTest.class)
         .addKeepMainRule(TestClass.class)
         .enableNeverClassInliningAnnotations()
         .enableNoVerticalClassMergingAnnotations()
-        .setMinApi(AndroidApiLevel.M)
-        .run(TestClass.class)
-        .assertSuccessWithOutput(expectedOutput);
+        .setMinApi(parameters)
+        .run(parameters.getRuntime(), TestClass.class)
+        .assertSuccessWithOutput(EXPECTED_OUTPUT);
   }
 
   static class TestClass {

@@ -64,7 +64,7 @@ public class MetadataRewriteInlineClassIncludeDescriptorClassesTest extends Kotl
                     PKG_PREFIX + "/inline_class_fun_descriptor_classes_app", "main"))
             .setOutputPath(temp.newFolder().toPath())
             .compile();
-    testForJvm()
+    testForJvm(parameters)
         .addRunClasspathFiles(kotlinc.getKotlinStdlibJar(), libJar)
         .addClasspath(output)
         .run(parameters.getRuntime(), PKG + ".inline_class_fun_descriptor_classes_app.MainKt")

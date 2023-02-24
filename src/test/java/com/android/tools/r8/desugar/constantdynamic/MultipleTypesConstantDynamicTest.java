@@ -46,7 +46,7 @@ public class MultipleTypesConstantDynamicTest extends TestBase {
     assumeTrue(parameters.getRuntime().asCf().isNewerThanOrEqual(CfVm.JDK11));
     assumeTrue(parameters.getApiLevel().isEqualTo(AndroidApiLevel.B));
 
-    testForJvm()
+    testForJvm(parameters)
         .addProgramClassFileData(getTransformedClasses())
         .run(parameters.getRuntime(), A.class)
         .assertSuccessWithOutput(EXPECTED_OUTPUT);

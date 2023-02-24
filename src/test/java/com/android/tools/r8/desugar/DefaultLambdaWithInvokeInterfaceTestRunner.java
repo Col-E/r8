@@ -8,6 +8,8 @@ import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.android.tools.r8.D8TestCompileResult;
 import com.android.tools.r8.R8TestCompileResult;
+import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.debug.DebugTestBase;
 import com.android.tools.r8.debug.DebugTestBase.JUnit3Wrapper.Command;
 import com.android.tools.r8.debug.DebugTestConfig;
@@ -18,27 +20,77 @@ import com.android.tools.r8.utils.StringUtils;
 import com.google.common.collect.ImmutableList;
 import java.util.Collections;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameter;
+import org.junit.runners.Parameterized.Parameters;
 
+@RunWith(Parameterized.class)
 public class DefaultLambdaWithInvokeInterfaceTestRunner extends DebugTestBase {
 
-  final Class<?> CLASS = DefaultLambdaWithInvokeInterfaceTest.class;
-  final String EXPECTED = StringUtils.lines("stateful(hest)");
+  private final Class<?> CLASS = DefaultLambdaWithInvokeInterfaceTest.class;
+  private final String EXPECTED = StringUtils.lines("stateful(hest)");
+
+  @Parameter(0)
+  public TestParameters parameters;
+
+  @Parameters(name = "{0}")
+  public static TestParametersCollection data() {
+    return getTestParameters().withAllRuntimes().withApiLevel(AndroidApiLevel.K).build();
+  }
 
   @Test
   public void testJvm() throws Exception {
-    testForJvm().addTestClasspath().run(CLASS).assertSuccessWithOutput(EXPECTED);
+    parameters.assumeJvmTestParameters();
+    testForJvm(parameters)
+        .addTestClasspath()
+        .run(parameters.getRuntime(), CLASS)
+        .assertSuccessWithOutput(EXPECTED);
+  }
+
+  @Test
+  public void testR8Cf() throws Throwable {
+    parameters.assumeCfRuntime();
+    R8TestCompileResult compileResult =
+        testForR8(Backend.CF)
+            .addProgramClassesAndInnerClasses(CLASS)
+            .addDontObfuscate()
+            .noTreeShaking()
+            .debug()
+            .compile();
+    compileResult
+        // TODO(b/123506120): Add .assertNoMessages()
+        .run(parameters.getRuntime(), CLASS)
+        .assertSuccessWithOutput(EXPECTED)
+        .inspect(inspector -> assertThat(inspector.clazz(CLASS), isPresent()));
+    runDebugger(compileResult.debugConfig());
+  }
+
+  @Test
+  public void testD8() throws Throwable {
+    parameters.assumeDexRuntime();
+    D8TestCompileResult compileResult =
+        testForD8().addProgramClassesAndInnerClasses(CLASS).setMinApi(parameters).compile();
+    compileResult
+        // TODO(b/123506120): Add .assertNoMessages()
+        .run(parameters.getRuntime(), CLASS)
+        .assertSuccessWithOutput(EXPECTED)
+        .inspect(inspector -> assertThat(inspector.clazz(CLASS), isPresent()));
+    runDebugger(compileResult.debugConfig());
   }
 
   private void runDebugger(DebugTestConfig config) throws Throwable {
     MethodReference main = Reference.methodFromMethod(CLASS.getMethod("main", String[].class));
-    Command checkThis = conditional((state) ->
-        state.isCfRuntime()
-            ? Collections.singletonList(checkLocal("this"))
-            : ImmutableList.of(
-                checkNoLocal("this"),
-                checkLocal("_this")));
+    Command checkThis =
+        conditional(
+            (state) ->
+                state.isCfRuntime()
+                    ? Collections.singletonList(checkLocal("this"))
+                    : ImmutableList.of(checkNoLocal("this"), checkLocal("_this")));
 
-    runDebugTest(config, CLASS,
+    runDebugTest(
+        config,
+        CLASS,
         breakpoint(main, 27),
         run(),
         checkLine(27),
@@ -53,36 +105,5 @@ public class DefaultLambdaWithInvokeInterfaceTestRunner extends DebugTestBase {
         checkLine(19),
         checkThis,
         run());
-  }
-
-  @Test
-  public void testR8Cf() throws Throwable {
-    R8TestCompileResult compileResult =
-        testForR8(Backend.CF)
-            .addProgramClassesAndInnerClasses(CLASS)
-            .addDontObfuscate()
-            .noTreeShaking()
-            .debug()
-            .compile();
-    compileResult
-        // TODO(b/123506120): Add .assertNoMessages()
-        .run(CLASS)
-        .assertSuccessWithOutput(EXPECTED)
-        .inspect(inspector -> assertThat(inspector.clazz(CLASS), isPresent()));
-    runDebugger(compileResult.debugConfig());
-  }
-
-  @Test
-  public void testD8() throws Throwable {
-    D8TestCompileResult compileResult = testForD8()
-        .addProgramClassesAndInnerClasses(CLASS)
-        .setMinApi(AndroidApiLevel.K)
-        .compile();
-    compileResult
-        // TODO(b/123506120): Add .assertNoMessages()
-        .run(CLASS)
-        .assertSuccessWithOutput(EXPECTED)
-        .inspect(inspector -> assertThat(inspector.clazz(CLASS), isPresent()));
-    runDebugger(compileResult.debugConfig());
   }
 }

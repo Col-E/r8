@@ -65,7 +65,7 @@ public class KotlinCompilerTreeShakingTest extends CompilationTestBase {
             .addSourceFiles(HELLO_KT)
             .setOutputPath(temp.newFolder().toPath())
             .compile();
-    testForJvm()
+    testForJvm(parameters)
         .addRunClasspathFiles(kotlinTestParameters.getCompiler().getKotlinStdlibJar())
         .addClasspath(classPathBefore)
         .run(parameters.getRuntime(), PKG_NAME + ".HelloKt")
@@ -133,7 +133,7 @@ public class KotlinCompilerTreeShakingTest extends CompilationTestBase {
             .addSourceFiles(HELLO_KT)
             .setOutputPath(temp.newFolder().toPath())
             .compile();
-    testForJvm()
+    testForJvm(parameters)
         .addRunClasspathFiles(kotlinc.getKotlinStdlibJar())
         .addClasspath(classPathAfter)
         .run(parameters.getRuntime(), PKG_NAME + ".HelloKt")

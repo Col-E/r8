@@ -74,7 +74,7 @@ public class DefaultMethodOverrideInLibraryTest extends DesugaredLibraryTestBase
       assertFalse(spliterator.isDefault());
     }
     if (parameters.isCfRuntime()) {
-      testForJvm()
+      testForJvm(parameters)
           .addInnerClasses(DefaultMethodOverrideInLibraryTest.class)
           .run(parameters.getRuntime(), Main.class)
           .assertSuccessWithOutput(EXPECTED);

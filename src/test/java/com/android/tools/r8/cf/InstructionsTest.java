@@ -31,7 +31,7 @@ public class InstructionsTest extends TestBase implements Opcodes {
   @Test
   public void test() throws Exception {
     if (parameters.isCfRuntime()) {
-      testForJvm()
+      testForJvm(parameters)
           .addProgramClassFileData(dump())
           .run(parameters.getRuntime(), "Test")
           .assertSuccessWithOutputLines(EXPECTED);

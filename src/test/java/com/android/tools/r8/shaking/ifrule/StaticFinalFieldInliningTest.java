@@ -51,7 +51,7 @@ public class StaticFinalFieldInliningTest extends TestBase {
                 ToolHelper.getSourceFileForTestClass(StaticFinalFieldInliningSource.class))
             .compile();
 
-    testForJvm()
+    testForJvm(parameters)
         .addProgramFiles(output)
         .run(parameters.getRuntime(), StaticFinalFieldInliningSource.class)
         .assertSuccessWithOutput(EXPECTED);

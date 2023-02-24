@@ -37,8 +37,10 @@ import com.android.tools.r8.startup.StartupProfileProvider;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.InternalOptions;
+import com.android.tools.r8.utils.MapIdTemplateProvider;
 import com.android.tools.r8.utils.Pair;
 import com.android.tools.r8.utils.SemanticVersion;
+import com.android.tools.r8.utils.SourceFileTemplateProvider;
 import java.io.IOException;
 import java.lang.annotation.Annotation;
 import java.nio.file.Path;
@@ -746,6 +748,17 @@ public abstract class R8TestBuilder<T extends R8TestBuilder<T>>
 
   public T setMainDexKeptGraphConsumer(GraphConsumer graphConsumer) {
     builder.setMainDexKeptGraphConsumer(graphConsumer);
+    return self();
+  }
+
+  public T setMapIdTemplate(String mapIdTemplate) {
+    builder.setMapIdProvider(MapIdTemplateProvider.create(mapIdTemplate, builder.getReporter()));
+    return self();
+  }
+
+  public T setSourceFileTemplate(String sourceFileTemplate) {
+    builder.setSourceFileProvider(
+        SourceFileTemplateProvider.create(sourceFileTemplate, builder.getReporter()));
     return self();
   }
 

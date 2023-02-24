@@ -53,7 +53,7 @@ public class MethodWithoutCodeAttributeTest extends TestBase {
   @Test
   public void testJVMOutput() throws Exception {
     parameters.assumeJvmTestParameters();
-    testForJvm()
+    testForJvm(parameters)
         .addProgramClassFileData(TestDump.dump())
         .run(parameters.getRuntime(), MAIN)
         .assertFailureWithErrorThatMatches(

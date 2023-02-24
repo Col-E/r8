@@ -9,6 +9,8 @@ import com.android.tools.r8.TestParametersCollection;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameter;
+import org.junit.runners.Parameterized.Parameters;
 import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.Label;
 import org.objectweb.asm.MethodVisitor;
@@ -17,31 +19,31 @@ import org.objectweb.asm.Opcodes;
 @RunWith(Parameterized.class)
 public class UninitializedInitialLocalsTest extends TestBase implements Opcodes {
 
-  private final TestParameters parameters;
+  @Parameter(0)
+  public TestParameters parameters;
 
-  @Parameterized.Parameters(name = "{0}")
+  @Parameters(name = "{0}")
   public static TestParametersCollection data() {
-    return getTestParameters().withAllRuntimes().withAllApiLevels().build();
+    return getTestParameters().withAllRuntimesAndApiLevels().build();
   }
 
-  public UninitializedInitialLocalsTest(TestParameters parameters) {
-    this.parameters = parameters;
+  @Test
+  public void testJvm() throws Exception {
+    parameters.assumeJvmTestParameters();
+    testForJvm(parameters)
+        .addProgramClassFileData(dump())
+        .run(parameters.getRuntime(), "Test")
+        .assertSuccessWithOutputLines("42");
   }
 
   @Test
   public void test() throws Exception {
-    if (parameters.isCfRuntime()) {
-      testForJvm()
-          .addProgramClassFileData(dump())
-          .run(parameters.getRuntime(), "Test")
-          .assertSuccessWithOutputLines("42");
-    } else {
-      testForD8()
-          .addProgramClassFileData(dump())
-          .setMinApi(parameters)
-          .run(parameters.getRuntime(), "Test")
-          .assertSuccessWithOutputLines("42");
-    }
+    parameters.assumeDexRuntime();
+    testForD8()
+        .addProgramClassFileData(dump())
+        .setMinApi(parameters)
+        .run(parameters.getRuntime(), "Test")
+        .assertSuccessWithOutputLines("42");
   }
 
   public static byte[] dump() {

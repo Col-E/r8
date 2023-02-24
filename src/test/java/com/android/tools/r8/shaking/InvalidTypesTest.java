@@ -262,7 +262,9 @@ public class InvalidTypesTest extends JasminTestBase {
 
     if (parameters.isCfRuntime()) {
       TestRunResult<?> jvmResult =
-          testForJvm().addClasspath(inputJar).run(parameters.getRuntime(), mainClass.name);
+          testForJvm(parameters)
+              .addClasspath(inputJar)
+              .run(parameters.getRuntime(), mainClass.name);
       checkTestRunResult(jvmResult, Compiler.JAVAC);
 
       ProguardTestRunResult proguardResult =

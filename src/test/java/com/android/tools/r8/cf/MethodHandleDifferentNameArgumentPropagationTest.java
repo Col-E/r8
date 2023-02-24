@@ -30,7 +30,8 @@ public class MethodHandleDifferentNameArgumentPropagationTest extends TestBase {
 
   @Test
   public void testJvm() throws Exception {
-    testForJvm()
+    parameters.assumeJvmTestParameters();
+    testForJvm(parameters)
         .addInnerClasses(MethodHandleDifferentNameArgumentPropagationTest.class)
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines(EXPECTED);

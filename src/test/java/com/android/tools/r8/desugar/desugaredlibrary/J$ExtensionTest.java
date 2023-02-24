@@ -104,7 +104,7 @@ public class J$ExtensionTest extends DesugaredLibraryTestBase {
     String stderr;
     if (parameters.isCfRuntime()) {
       stderr =
-          testForJvm()
+          testForJvm(parameters)
               .addProgramFiles(compiledClasses)
               .run(parameters.getRuntime(), MAIN_CLASS_NAME)
               .assertFailure()

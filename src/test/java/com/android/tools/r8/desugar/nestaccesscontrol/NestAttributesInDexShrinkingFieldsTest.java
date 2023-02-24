@@ -46,7 +46,7 @@ public class NestAttributesInDexShrinkingFieldsTest extends NestAttributesInDexT
         parameters.isCfRuntime()
             && isRuntimeWithNestSupport(parameters.asCfRuntime())
             && parameters.getApiLevel().isEqualTo(AndroidApiLevel.B));
-    testForJvm()
+    testForJvm(parameters)
         .addProgramClassFileData(
             dumpHost(ACC_PRIVATE), dumpMember1(ACC_PRIVATE), dumpMember2(ACC_PRIVATE))
         .run(parameters.getRuntime(), "Host")

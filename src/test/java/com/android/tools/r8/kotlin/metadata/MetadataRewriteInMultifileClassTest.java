@@ -74,7 +74,7 @@ public class MetadataRewriteInMultifileClassTest extends KotlinMetadataTestBase 
             .setOutputPath(temp.newFolder().toPath())
             .compile();
 
-    testForJvm()
+    testForJvm(parameters)
         .addRunClasspathFiles(kotlinc.getKotlinStdlibJar(), libJar)
         .addClasspath(output)
         .run(parameters.getRuntime(), PKG + ".multifileclass_app.MainKt")
@@ -143,7 +143,7 @@ public class MetadataRewriteInMultifileClassTest extends KotlinMetadataTestBase 
             .setOutputPath(temp.newFolder().toPath())
             .compile();
 
-    testForJvm()
+    testForJvm(parameters)
         .addRunClasspathFiles(kotlinc.getKotlinStdlibJar(), libJar)
         .addClasspath(output)
         .run(parameters.getRuntime(), PKG + ".multifileclass_app.MainKt")

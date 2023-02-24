@@ -3,18 +3,25 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.compatproguard.ifrules;
 
+import static org.junit.Assume.assumeFalse;
+import static org.junit.Assume.assumeTrue;
+
+import com.android.tools.r8.ProguardVersion;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestRunResult;
 import com.android.tools.r8.TestShrinkerBuilder;
 import com.android.tools.r8.shaking.methods.MethodsTestBase.Shrinker;
+import com.android.tools.r8.utils.ArrayUtils;
 import com.android.tools.r8.utils.StringUtils;
 import com.google.common.collect.ImmutableList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Optional;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameter;
 import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
@@ -47,29 +54,30 @@ public class ConditionalOnInlinedTest extends TestBase {
 
   @Parameters(name = "{0}, {1}")
   public static List<Object[]> data() {
-    return buildParameters(Shrinker.values(), getTestParameters().withCfRuntimes().build());
+    return buildParameters(
+        ArrayUtils.withOptionalNone(Shrinker.values()),
+        getTestParameters().withCfRuntimes().build());
   }
 
-  private final Shrinker shrinker;
-  private final TestParameters parameters;
+  @Parameter(0)
+  public Optional<Shrinker> optionalShrinker;
 
-  public ConditionalOnInlinedTest(Shrinker shrinker, TestParameters parameters) {
-    this.shrinker = shrinker;
-    this.parameters = parameters;
-  }
+  @Parameter(1)
+  public TestParameters parameters;
 
   @Test
   public void testReference() throws Exception {
-    testForJvm()
+    assumeFalse(optionalShrinker.isPresent());
+    testForJvm(parameters)
         .addProgramClasses(CLASSES)
         .run(parameters.getRuntime(), MAIN_CLASS, B.class.getTypeName())
         .assertSuccessWithOutput(EXPECTED);
   }
 
-  private TestShrinkerBuilder<?, ?, ?, ?, ?> buildShrinker() throws Exception {
+  private TestShrinkerBuilder<?, ?, ?, ?, ?> buildShrinker(Shrinker shrinker) {
     TestShrinkerBuilder<?, ?, ?, ?, ?> builder;
     if (shrinker == Shrinker.Proguard) {
-      builder = testForProguard().addDontWarn(ConditionalOnInlinedTest.class);
+      builder = testForProguard(ProguardVersion.V6_0_1).addDontWarn(ConditionalOnInlinedTest.class);
     } else if (shrinker == Shrinker.R8Compat) {
       builder = testForR8Compat(parameters.getBackend());
     } else {
@@ -80,8 +88,10 @@ public class ConditionalOnInlinedTest extends TestBase {
 
   @Test
   public void testConditionalOnClass() throws Exception {
+    assumeTrue(optionalShrinker.isPresent());
+    Shrinker shrinker = optionalShrinker.get();
     TestRunResult<?> result =
-        buildShrinker()
+        buildShrinker(shrinker)
             .addKeepRules(
                 "-if class "
                     + A.class.getTypeName()
@@ -100,8 +110,10 @@ public class ConditionalOnInlinedTest extends TestBase {
 
   @Test
   public void testConditionalOnClassAndMethod() throws Exception {
+    assumeTrue(optionalShrinker.isPresent());
+    Shrinker shrinker = optionalShrinker.get();
     TestRunResult<?> result =
-        buildShrinker()
+        buildShrinker(shrinker)
             .addKeepRules(
                 "-if class "
                     + A.class.getTypeName()

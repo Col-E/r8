@@ -61,7 +61,7 @@ public class MetadataRewriteInReturnTypeTest extends KotlinMetadataTestBase {
             .setOutputPath(temp.newFolder().toPath())
             .compile();
 
-    testForJvm()
+    testForJvm(parameters)
         .addRunClasspathFiles(kotlinc.getKotlinStdlibJar(), libJar)
         .addClasspath(output)
         .run(parameters.getRuntime(), PKG + ".returntype_app.MainKt")
@@ -93,7 +93,7 @@ public class MetadataRewriteInReturnTypeTest extends KotlinMetadataTestBase {
       return;
     }
 
-    testForJvm()
+    testForJvm(parameters)
         .addRunClasspathFiles(kotlinc.getKotlinStdlibJar(), libJar)
         .addClasspath(output)
         .run(parameters.getRuntime(), PKG + ".returntype_app.MainKt")

@@ -4,7 +4,6 @@
 
 package com.android.tools.r8.ir.optimize.string;
 
-import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
@@ -31,8 +30,8 @@ public class InvokeInterfaceToStringEqualsTest extends TestBase {
 
   @Test
   public void testD8() throws Exception {
-    assumeTrue(parameters.isDexRuntime());
-    testForD8(parameters.getBackend())
+    parameters.assumeDexRuntime();
+    testForD8()
         .addProgramClassFileData(getTransformedMain(MainD8.class))
         .setMinApi(parameters)
         .run(parameters.getRuntime(), MainD8.class)

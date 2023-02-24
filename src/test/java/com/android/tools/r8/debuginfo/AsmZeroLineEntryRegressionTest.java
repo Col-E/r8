@@ -42,7 +42,7 @@ public class AsmZeroLineEntryRegressionTest extends TestBase {
    */
   @Test
   public void testReference() throws Exception {
-    testForJvm()
+    testForJvm(parameters)
         .addProgramClassFileData(getClassWithZeroLineEntry())
         .run(parameters.getRuntime(), TestClass.class)
         .assertFailureWithErrorThatThrows(RuntimeException.class)
@@ -56,7 +56,7 @@ public class AsmZeroLineEntryRegressionTest extends TestBase {
    */
   @Test
   public void testAsmIdentity() throws Exception {
-    testForJvm()
+    testForJvm(parameters)
         .addProgramClassFileData(
             getClassAfterAsmIdentity(
                 getClassWithZeroLineEntry(), Reference.classFromClass(TestClass.class)))

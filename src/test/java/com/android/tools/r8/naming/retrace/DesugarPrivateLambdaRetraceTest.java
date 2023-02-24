@@ -6,7 +6,6 @@ package com.android.tools.r8.naming.retrace;
 
 import static com.android.tools.r8.naming.retrace.StackTrace.isSame;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.CompilationMode;
 import com.android.tools.r8.TestBase;
@@ -68,8 +67,8 @@ public class DesugarPrivateLambdaRetraceTest extends TestBase {
 
   @Test
   public void testJvm() throws Exception {
-    assumeTrue(parameters.isCfRuntime());
-    testForJvm()
+    parameters.assumeJvmTestParameters();
+    testForJvm(parameters)
         .addInnerClasses(DesugarInterfaceInstanceLambdaRetrace.class)
         .run(TestRuntime.getDefaultCfRuntime(), DesugarInterfaceInstanceLambdaRetrace.Main.class)
         .inspectStackTrace(stackTrace -> assertThat(stackTrace, isSame(expectedStackTrace)));

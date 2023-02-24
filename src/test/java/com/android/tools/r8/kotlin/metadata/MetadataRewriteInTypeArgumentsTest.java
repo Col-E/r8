@@ -106,7 +106,7 @@ public class MetadataRewriteInTypeArgumentsTest extends KotlinMetadataTestBase {
             .setOutputPath(temp.newFolder().toPath())
             .compile();
 
-    testForJvm()
+    testForJvm(parameters)
         .addRunClasspathFiles(kotlinc.getKotlinStdlibJar(), libJar)
         .addClasspath(output)
         .run(parameters.getRuntime(), PKG + ".typeargument_app.MainKt")
@@ -145,7 +145,7 @@ public class MetadataRewriteInTypeArgumentsTest extends KotlinMetadataTestBase {
     if (kotlinParameters.isOlderThan(KOTLINC_1_4_20)) {
       return;
     }
-    testForJvm()
+    testForJvm(parameters)
         .addRunClasspathFiles(kotlinc.getKotlinStdlibJar(), libJar)
         .addClasspath(mainJar)
         .run(parameters.getRuntime(), PKG + ".typeargument_app.MainKt")

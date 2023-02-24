@@ -11,7 +11,8 @@ import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.TestBase;
-import com.android.tools.r8.ToolHelper;
+import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.cf.code.CfTryCatch;
 import com.android.tools.r8.graph.CfCode;
 import com.android.tools.r8.graph.Code;
@@ -24,10 +25,13 @@ import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameter;
 import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
 public class SubsumedCatchHandlerTest extends TestBase {
+
+  private static final String EXPECTED = "In bar() -> 0";
 
   static class TestClass {
 
@@ -64,30 +68,33 @@ public class SubsumedCatchHandlerTest extends TestBase {
     }
   }
 
-  @Parameters(name = "Backend: {0}")
-  public static Backend[] data() {
-    return ToolHelper.getBackends();
+  @Parameters(name = "{0}")
+  public static TestParametersCollection data() {
+    return getTestParameters().withAllRuntimesAndApiLevels().build();
   }
 
-  private final Backend backend;
+  @Parameter(0)
+  public TestParameters parameters;
 
-  public SubsumedCatchHandlerTest(Backend backend) {
-    this.backend = backend;
+  @Test
+  public void testJvm() throws Exception {
+    parameters.assumeJvmTestParameters();
+    testForJvm(parameters)
+        .addTestClasspath()
+        .run(parameters.getRuntime(), TestClass.class)
+        .assertSuccessWithOutput(EXPECTED);
   }
 
   @Test
-  public void test() throws Exception {
-    String expected = "In bar() -> 0";
-
-    testForJvm().addTestClasspath().run(TestClass.class).assertSuccessWithOutput(expected);
-
+  public void testR8() throws Exception {
     CodeInspector inspector =
-        testForR8(backend)
+        testForR8(parameters.getBackend())
             .addInnerClasses(SubsumedCatchHandlerTest.class)
             .addKeepMainRule(TestClass.class)
             .enableInliningAnnotations()
-            .run(TestClass.class)
-            .assertSuccessWithOutput(expected)
+            .setMinApi(parameters)
+            .run(parameters.getRuntime(), TestClass.class)
+            .assertSuccessWithOutput(EXPECTED)
             .inspector();
 
     ClassSubject classSubject = inspector.clazz(TestClass.class);

@@ -15,10 +15,12 @@ import com.android.tools.r8.DataDirectoryResource;
 import com.android.tools.r8.DataEntryResource;
 import com.android.tools.r8.DataResourceConsumer;
 import com.android.tools.r8.DataResourceProvider.Visitor;
-import com.android.tools.r8.TestCompileResult;
-import com.android.tools.r8.ToolHelper;
+import com.android.tools.r8.R8TestCompileResult;
+import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.shaking.forceproguardcompatibility.ProguardCompatibilityTestBase;
+import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.ArchiveResourceProvider;
 import com.android.tools.r8.utils.DataResourceConsumerForTesting;
 import com.android.tools.r8.utils.FileUtils;
@@ -36,6 +38,8 @@ import java.util.stream.Collectors;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameter;
+import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
 public class AdaptResourceFileContentsTest extends ProguardCompatibilityTestBase {
@@ -46,15 +50,12 @@ public class AdaptResourceFileContentsTest extends ProguardCompatibilityTestBase
           AdaptResourceFileContentsTestClass.A.class,
           AdaptResourceFileContentsTestClass.B.class);
 
-  private Backend backend;
+  @Parameter(0)
+  public TestParameters parameters;
 
-  @Parameterized.Parameters(name = "Backend: {0}")
-  public static Backend[] data() {
-    return ToolHelper.getBackends();
-  }
-
-  public AdaptResourceFileContentsTest(Backend backend) {
-    this.backend = backend;
+  @Parameters(name = "{0}")
+  public static TestParametersCollection data() {
+    return getTestParameters().withDefaultRuntimes().withApiLevel(AndroidApiLevel.B).build();
   }
 
   private static final ImmutableList<String> originalAllChangedResource =
@@ -281,15 +282,16 @@ public class AdaptResourceFileContentsTest extends ProguardCompatibilityTestBase
     }
   }
 
-  private TestCompileResult compileWithR8(
+  private R8TestCompileResult compileWithR8(
       String proguardConfig, DataResourceConsumer dataResourceConsumer)
       throws CompilationFailedException {
-    return testForR8(backend)
+    return testForR8(parameters.getBackend())
         .addProgramClasses(CLASSES)
         .addDataResources(getDataResources())
         .enableProguardTestOptions()
         .addKeepRules(proguardConfig)
         .addOptionsModification(o -> o.dataResourceConsumer = dataResourceConsumer)
+        .setMinApi(parameters)
         .compile();
   }
 

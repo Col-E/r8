@@ -6,7 +6,6 @@ package com.android.tools.r8.cf.stackmap;
 
 import static com.android.tools.r8.DiagnosticsMatcher.diagnosticMessage;
 import static org.hamcrest.CoreMatchers.containsString;
-import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.JvmTestRunResult;
 import com.android.tools.r8.TestBase;
@@ -49,9 +48,9 @@ public class StackMapVerificationNoFrameForHandlerTest extends TestBase {
 
   @Test
   public void testJvm() throws Exception {
-    assumeTrue(parameters.isCfRuntime());
+    parameters.assumeJvmTestParameters();
     JvmTestRunResult mainResult =
-        testForJvm()
+        testForJvm(parameters)
             .addProgramClassFileData(
                 includeFrameInHandler
                     ? MainDump.dump()
@@ -68,7 +67,7 @@ public class StackMapVerificationNoFrameForHandlerTest extends TestBase {
 
   @Test
   public void testD8() throws Exception {
-    assumeTrue(parameters.isDexRuntime());
+    parameters.assumeDexRuntime();
     testForD8()
         .addProgramClassFileData(
             includeFrameInHandler

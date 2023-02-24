@@ -117,7 +117,7 @@ public class VirtualOverrideOfPrivateStaticMethodWithVirtualParentTest extends T
     TestRunResult<?> runResult;
     if (parameters.isCfRuntime()) {
       runResult =
-          testForJvm()
+          testForJvm(parameters)
               .addProgramClasses(CLASSES)
               .addProgramClassFileData(getDumps())
               .run(parameters.getRuntime(), Main.class);

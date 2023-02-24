@@ -57,7 +57,7 @@ public class MainDexWithSynthesizedClassesTest extends TestBase {
   @Test
   public void testFinal() throws Exception {
     if (parameters.isCfRuntime()) {
-      testForJvm()
+      testForJvm(parameters)
           .addTestClasspath()
           .run(parameters.getRuntime(), TestClass.class)
           .assertSuccessWithOutput(EXPECTED);

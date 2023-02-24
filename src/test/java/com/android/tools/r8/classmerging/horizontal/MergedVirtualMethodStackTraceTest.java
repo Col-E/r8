@@ -18,7 +18,7 @@ import com.android.tools.r8.naming.retrace.StackTrace;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.InternalOptions.InlinerOptions;
 import java.util.List;
-import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -26,6 +26,8 @@ import org.junit.runners.Parameterized.Parameter;
 
 @RunWith(Parameterized.class)
 public class MergedVirtualMethodStackTraceTest extends TestBase {
+
+  private static StackTrace expectedStackTrace;
 
   @Parameter(0)
   public TestParameters parameters;
@@ -39,13 +41,11 @@ public class MergedVirtualMethodStackTraceTest extends TestBase {
         getTestParameters().withAllRuntimesAndApiLevels().build(), BooleanUtils.values());
   }
 
-  public StackTrace expectedStackTrace;
-
-  @Before
-  public void setup() throws Exception {
+  @BeforeClass
+  public static void setup() throws Exception {
     // Get the expected stack trace by running on the JVM.
     expectedStackTrace =
-        testForJvm()
+        testForJvm(getStaticTemp())
             .addTestClasspath()
             .run(CfRuntime.getSystemRuntime(), Main.class)
             .assertFailure()

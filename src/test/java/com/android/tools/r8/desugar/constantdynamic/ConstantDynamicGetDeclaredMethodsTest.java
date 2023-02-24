@@ -56,11 +56,9 @@ public class ConstantDynamicGetDeclaredMethodsTest extends TestBase {
 
   @Test
   public void testReference() throws Exception {
-    assumeTrue(parameters.isCfRuntime());
+    parameters.assumeJvmTestParameters();
     assumeTrue(parameters.getRuntime().asCf().isNewerThanOrEqual(CfVm.JDK11));
-    assumeTrue(parameters.getApiLevel().isEqualTo(AndroidApiLevel.B));
-
-    testForJvm()
+    testForJvm(parameters)
         .addProgramClassFileData(getTransformedClasses())
         .run(parameters.getRuntime(), MAIN_CLASS)
         .assertSuccessWithOutput(EXPECTED_OUTPUT_WITH_METHOD_HANDLES);

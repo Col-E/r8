@@ -150,7 +150,7 @@ public class GetClassTest extends ReflectionOptimizerTestBase {
     assumeTrue(
         "Only run JVM reference on CF runtimes",
         parameters.isCfRuntime() && mode == CompilationMode.DEBUG);
-    testForJvm()
+    testForJvm(parameters)
         .addInnerClasses(GetClassTest.class)
         .run(parameters.getRuntime(), MAIN)
         .assertSuccessWithOutput(JAVA_OUTPUT);

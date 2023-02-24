@@ -9,7 +9,8 @@ import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.android.tools.r8.TestBase;
-import com.android.tools.r8.ToolHelper;
+import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
@@ -17,25 +18,27 @@ import java.util.List;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameter;
 import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
 public class IfRuleWithClassInlining extends TestBase {
 
-  private final Backend backend;
-  private final boolean enableClassInlining;
-  private final boolean enableIfRule;
+  @Parameter(0)
+  public TestParameters parameters;
 
-  public IfRuleWithClassInlining(
-      Backend backend, boolean enableClassInlining, boolean enableIfRule) {
-    this.backend = backend;
-    this.enableClassInlining = enableClassInlining;
-    this.enableIfRule = enableIfRule;
-  }
+  @Parameter(1)
+  public boolean enableClassInlining;
 
-  @Parameters(name = "Backend: {0}, class inlining: {1}, with if rule: {2}")
+  @Parameter(2)
+  public boolean enableIfRule;
+
+  @Parameters(name = "{0}, class inlining: {1}, with if rule: {2}")
   public static List<Object[]> data() {
-    return buildParameters(ToolHelper.getBackends(), BooleanUtils.values(), BooleanUtils.values());
+    return buildParameters(
+        getTestParameters().withDefaultRuntimes().withApiLevel(AndroidApiLevel.B).build(),
+        BooleanUtils.values(),
+        BooleanUtils.values());
   }
 
   @Test
@@ -45,13 +48,14 @@ public class IfRuleWithClassInlining extends TestBase {
             "-if class " + StringBox.Builder.class.getTypeName(),
             "-keep class " + Unused.class.getTypeName());
     CodeInspector inspector =
-        testForR8(backend)
+        testForR8(parameters.getBackend())
             .addInnerClasses(IfRuleWithClassInlining.class)
             .addKeepMainRule(TestClass.class)
             .addKeepRules(enableIfRule ? ifRule : "")
             .addOptionsModification(options -> options.enableClassInlining = enableClassInlining)
             // TODO(b/120061431): Should not be needed for this example.
             .allowAccessModification()
+            .setMinApi(parameters)
             .compile()
             .inspector();
     if (enableIfRule || !enableClassInlining) {

@@ -70,7 +70,7 @@ public class FullNestOnProgramPathTest extends TestBase {
   public void testAllNestsJavaAndD8() throws Exception {
     for (String nestID : NEST_IDS) {
       if (parameters.isCfRuntime()) {
-        testForJvm()
+        testForJvm(parameters)
             .addProgramFiles(JAR)
             .run(parameters.getRuntime(), getMainClass(nestID))
             .assertSuccessWithOutput(getExpectedResult(nestID));

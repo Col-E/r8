@@ -124,7 +124,7 @@ public class AssumenosideeffectsPropagationTest extends TestBase {
     assumeTrue(parameters.isCfRuntime());
     assumeTrue(config == TestConfig.SPECIFIC_RULES);
     assumeFalse(enableHorizontalClassMerging);
-    testForJvm()
+    testForJvm(parameters)
         .addTestClasspath()
         .run(parameters.getRuntime(), MAIN)
         .assertSuccessWithOutputLines(

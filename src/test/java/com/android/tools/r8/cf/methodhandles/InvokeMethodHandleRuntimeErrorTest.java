@@ -51,8 +51,8 @@ public class InvokeMethodHandleRuntimeErrorTest extends TestBase {
 
   @Test
   public void testReference() throws Throwable {
-    assumeTrue(parameters.isCfRuntime());
-    testForJvm()
+    parameters.assumeJvmTestParameters();
+    testForJvm(parameters)
         .addProgramClasses(Main.class, I.class, Super.class)
         .addProgramClassFileData(getInvokeCustomTransform())
         .run(parameters.getRuntime(), Main.class)

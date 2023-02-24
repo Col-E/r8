@@ -64,7 +64,7 @@ public class MetadataRewriteInSealedClassTest extends KotlinMetadataTestBase {
             .setOutputPath(temp.newFolder().toPath())
             .compile();
 
-    testForJvm()
+    testForJvm(parameters)
         .addRunClasspathFiles(kotlinc.getKotlinStdlibJar(), libJar)
         .addClasspath(output)
         .run(parameters.getRuntime(), PKG + ".sealed_app.ValidKt")
@@ -95,7 +95,7 @@ public class MetadataRewriteInSealedClassTest extends KotlinMetadataTestBase {
             .setOutputPath(temp.newFolder().toPath())
             .compile();
 
-    testForJvm()
+    testForJvm(parameters)
         .addRunClasspathFiles(kotlinc.getKotlinStdlibJar(), libJar)
         .addClasspath(output)
         .run(parameters.getRuntime(), PKG + ".sealed_app.ValidKt")

@@ -8,7 +8,8 @@ import static com.android.tools.r8.references.Reference.methodFromMethod;
 import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.TestBase;
-import com.android.tools.r8.ToolHelper;
+import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.references.MethodReference;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.graphinspector.GraphInspector;
@@ -18,6 +19,7 @@ import java.util.Collection;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameter;
 import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
@@ -28,15 +30,21 @@ public class KeptByTwoRulesTestRunner extends TestBase {
 
   private final String EXPECTED = StringUtils.lines("called foo");
 
-  private final Backend backend;
+  @Parameter(0)
+  public TestParameters parameters;
 
   @Parameters(name = "{0}")
-  public static Backend[] data() {
-    return ToolHelper.getBackends();
+  public static TestParametersCollection data() {
+    return getTestParameters().withAllRuntimesAndApiLevels().build();
   }
 
-  public KeptByTwoRulesTestRunner(Backend backend) {
-    this.backend = backend;
+  @Test
+  public void testJvm() throws Exception {
+    parameters.assumeJvmTestParameters();
+    testForJvm(parameters)
+        .addProgramClasses(CLASSES)
+        .run(parameters.getRuntime(), CLASS)
+        .assertSuccessWithOutput(EXPECTED);
   }
 
   @Test
@@ -44,19 +52,16 @@ public class KeptByTwoRulesTestRunner extends TestBase {
     MethodReference mainMethod = methodFromMethod(CLASS.getDeclaredMethod("main", String[].class));
     MethodReference fooMethod = methodFromMethod(CLASS.getDeclaredMethod("foo"));
 
-    if (backend == Backend.CF) {
-      testForJvm().addProgramClasses(CLASSES).run(CLASS).assertSuccessWithOutput(EXPECTED);
-    }
-
     String keepPublicRule = "-keep @com.android.tools.r8.Keep class * {  public *; }";
     String keepFooRule = "-keep class " + CLASS.getTypeName() + " { public void foo(); }";
     GraphInspector inspector =
-        testForR8(backend)
+        testForR8(parameters.getBackend())
             .enableGraphInspector()
             .addProgramClasses(CLASSES)
             .addKeepAnnotation()
             .addKeepRules(keepPublicRule, keepFooRule)
-            .run(CLASS)
+            .setMinApi(parameters)
+            .run(parameters.getRuntime(), CLASS)
             .assertSuccessWithOutput(EXPECTED)
             .graphInspector();
 

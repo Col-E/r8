@@ -433,7 +433,7 @@ public class AssertionsConfigurationTest extends TestBase implements Opcodes {
   public void testInnerClassForJvm() throws Exception {
     Assume.assumeTrue(parameters.isCfRuntime());
     // Pointing to the outer class enables assertions for the inner as well.
-    testForJvm()
+    testForJvm(parameters)
         .addProgramClasses(TestClassForInnerClass.class, TestClassForInnerClass.InnerClass.class)
         .addVmArguments("-ea:" + TestClassForInnerClass.class.getCanonicalName())
         .run(parameters.getRuntime(), TestClassForInnerClass.class)
@@ -443,12 +443,12 @@ public class AssertionsConfigurationTest extends TestBase implements Opcodes {
             "DONE");
 
     // Pointing to the inner class enables no assertions.
-    testForJvm()
+    testForJvm(parameters)
         .addProgramClasses(TestClassForInnerClass.class, TestClassForInnerClass.InnerClass.class)
         .addVmArguments("-ea:" + TestClassForInnerClass.InnerClass.class.getCanonicalName())
         .run(parameters.getRuntime(), TestClassForInnerClass.class)
         .assertSuccessWithOutputLines("DONE");
-    testForJvm()
+    testForJvm(parameters)
         .addProgramClasses(TestClassForInnerClass.class, TestClassForInnerClass.InnerClass.class)
         .addVmArguments("-ea:" + TestClassForInnerClass.InnerClass.class.getTypeName())
         .run(parameters.getRuntime(), TestClassForInnerClass.class)

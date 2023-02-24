@@ -38,8 +38,8 @@ public class LegacyLambdaMergeTest extends TestBase {
 
   @Test
   public void testReference() throws Exception {
-    assumeTrue(parameters.isCfRuntime());
-    testForJvm()
+    parameters.assumeJvmTestParameters();
+    testForJvm(parameters)
         .addProgramClassFileData(getTransformedMain())
         // Add the lambda twice (JVM just picks the first).
         .addProgramClassFileData(getTransformedLambda())

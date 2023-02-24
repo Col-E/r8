@@ -7,12 +7,13 @@ package com.android.tools.r8.desugar.records;
 import com.android.tools.r8.R8FullTestBuilder;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.TestRuntime.CfVm;
 import com.android.tools.r8.utils.StringUtils;
-import java.util.List;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameter;
 
 @RunWith(Parameterized.class)
 public class UnusedRecordFieldTest extends TestBase {
@@ -22,30 +23,29 @@ public class UnusedRecordFieldTest extends TestBase {
   private static final String MAIN_TYPE = RecordTestUtils.getMainType(RECORD_NAME);
   private static final String EXPECTED_RESULT = StringUtils.lines("Hello!");
 
-  private final TestParameters parameters;
-
-  public UnusedRecordFieldTest(TestParameters parameters) {
-    this.parameters = parameters;
-  }
+  @Parameter(0)
+  public TestParameters parameters;
 
   @Parameterized.Parameters(name = "{0}")
-  public static List<Object[]> data() {
-    return buildParameters(
-        getTestParameters()
-            .withCfRuntimesStartingFromIncluding(CfVm.JDK17)
-            .withDexRuntimes()
-            .withAllApiLevelsAlsoForCf()
-            .build());
+  public static TestParametersCollection data() {
+    return getTestParameters()
+        .withCfRuntimesStartingFromIncluding(CfVm.JDK17)
+        .withDexRuntimes()
+        .withAllApiLevelsAlsoForCf()
+        .build();
   }
 
   @Test
-  public void testD8AndJvm() throws Exception {
-    if (parameters.isCfRuntime()) {
-      testForJvm()
-          .addProgramClassFileData(PROGRAM_DATA)
-          .run(parameters.getRuntime(), MAIN_TYPE)
-          .assertSuccessWithOutput(EXPECTED_RESULT);
+  public void testJvm() throws Exception {
+    parameters.assumeJvmTestParameters();
+    testForJvm(parameters)
+        .addProgramClassFileData(PROGRAM_DATA)
+        .run(parameters.getRuntime(), MAIN_TYPE)
+        .assertSuccessWithOutput(EXPECTED_RESULT);
     }
+
+  @Test
+  public void testD8() throws Exception {
     testForD8(parameters.getBackend())
         .addProgramClassFileData(PROGRAM_DATA)
         .setMinApi(parameters)

@@ -3,17 +3,14 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.optimize.checkcast;
 
-import static org.junit.Assert.assertEquals;
-
 import com.android.tools.r8.AsmTestBase;
-import com.android.tools.r8.ToolHelper;
-import com.android.tools.r8.ToolHelper.ProcessResult;
-import com.android.tools.r8.utils.AndroidApp;
-import com.google.common.collect.ImmutableList;
-import java.util.List;
+import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.TestParametersCollection;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameter;
+import org.junit.runners.Parameterized.Parameters;
 
 class NonAccessible {
   // because it's package-private
@@ -21,43 +18,41 @@ class NonAccessible {
 
 @RunWith(Parameterized.class)
 public class IllegalAccessErrorTest extends AsmTestBase {
-  private final Backend backend;
 
-  @Parameterized.Parameters(name = "backend: {0}")
-  public static Backend[] data() {
-    return ToolHelper.getBackends();
-  }
+  private static final String EXPECTED_OUTPUT = "null";
+  private static final String MAIN = "Test";
 
+  @Parameter(0)
+  public TestParameters parameters;
 
-  public IllegalAccessErrorTest(Backend backend) {
-    this.backend = backend;
+  @Parameters(name = "{0}")
+  public static TestParametersCollection data() {
+    return getTestParameters().withAllRuntimesAndApiLevels().build();
   }
 
   @Test
-  public void runTest() throws Exception {
-    String main = "Test";
-    AndroidApp input =
-        buildAndroidApp(
-            IllegalAccessErrorTestDump.dump(),
-            ToolHelper.getClassAsBytes(NonAccessible.class));
-    AndroidApp processedApp =
-        compileWithR8(input, keepMainProguardConfiguration(main), null, backend);
+  public void testJvm() throws Exception {
+    parameters.assumeJvmTestParameters();
+    testForJvm(parameters)
+        .addProgramClasses(NonAccessible.class)
+        .addProgramClassFileData(IllegalAccessErrorTestDump.dump())
+        .run(parameters.getRuntime(), MAIN)
+        .assertSuccessWithOutputLines(EXPECTED_OUTPUT);
+  }
 
-    List<byte[]> classBytes = ImmutableList.of(
-        IllegalAccessErrorTestDump.dump(),
-        ToolHelper.getClassAsBytes(NonAccessible.class)
-    );
-    ProcessResult javaOutput = runOnJavaRaw(main, classBytes, ImmutableList.of());
-    assertEquals(0, javaOutput.exitCode);
-
-    ProcessResult output = runOnVMRaw(processedApp, main, backend);
-    assertEquals(0, output.exitCode);
-    if (backend == Backend.DEX) {
-      assertEquals(IllegalAccessErrorTestDump.MESSAGE, output.stdout.trim());
-    } else {
-      assert backend == Backend.CF;
-      assertEquals(javaOutput.stdout.trim(), output.stdout.trim());
-      assertEquals("null", output.stdout.trim());
-    }
+  @Test
+  public void testR8() throws Exception {
+    testForR8(parameters.getBackend())
+        .addProgramClasses(NonAccessible.class)
+        .addProgramClassFileData(IllegalAccessErrorTestDump.dump())
+        .addKeepMainRule(MAIN)
+        .setMinApi(parameters)
+        .compile()
+        .run(parameters.getRuntime(), MAIN)
+        .applyIf(
+            parameters.isCfRuntime(),
+            runResult -> runResult.assertSuccessWithOutputLines(EXPECTED_OUTPUT),
+            runResult ->
+                runResult.assertSuccessWithOutputLines(IllegalAccessErrorTestDump.MESSAGE));
   }
 }

@@ -6,7 +6,6 @@ package com.android.tools.r8.cf.stackmap;
 
 import static com.android.tools.r8.cf.stackmap.UninitializedNewCheckCastTest.MainDump.dump;
 import static org.hamcrest.CoreMatchers.containsString;
-import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.TestBase;
@@ -35,8 +34,8 @@ public class UninitializedNewCheckCastTest extends TestBase {
 
   @Test
   public void testJvm() throws Exception {
-    assumeTrue(parameters.isCfRuntime());
-    testForJvm()
+    parameters.assumeJvmTestParameters();
+    testForJvm(parameters)
         .addProgramClassFileData(dump())
         .run(parameters.getRuntime(), Main.class)
         .assertFailureWithErrorThatThrows(VerifyError.class);
@@ -44,7 +43,7 @@ public class UninitializedNewCheckCastTest extends TestBase {
 
   @Test(expected = CompilationFailedException.class)
   public void testD8Cf() throws Exception {
-    assumeTrue(parameters.isCfRuntime());
+    parameters.assumeCfRuntime();
     testForD8(parameters.getBackend())
         .addProgramClassFileData(dump())
         .setMinApi(parameters)
@@ -53,8 +52,8 @@ public class UninitializedNewCheckCastTest extends TestBase {
 
   @Test
   public void testD8Dex() throws Exception {
-    assumeTrue(parameters.isDexRuntime());
-    testForD8(parameters.getBackend())
+    parameters.assumeDexRuntime();
+    testForD8()
         .addProgramClassFileData(dump())
         .setMinApi(parameters)
         .compileWithExpectedDiagnostics(this::inspect)

@@ -82,7 +82,7 @@ public class DefaultMethodOverrideConflictWithLibrary2Test extends DesugaredLibr
       assertTrue(method.isDefault());
     }
     if (parameters.isCfRuntime()) {
-      testForJvm()
+      testForJvm(parameters)
           .addProgramClasses(getClasses())
           .addProgramClassFileData(getTransforms())
           .run(parameters.getRuntime(), Main.class)

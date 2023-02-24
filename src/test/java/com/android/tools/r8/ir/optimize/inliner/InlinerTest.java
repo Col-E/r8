@@ -7,54 +7,37 @@ package com.android.tools.r8.ir.optimize.inliner;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isAbsent;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.fail;
 
 import com.android.tools.r8.TestBase;
-import com.android.tools.r8.ToolHelper;
-import com.android.tools.r8.ToolHelper.ProcessResult;
+import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.ir.optimize.inliner.exceptionhandling.ExceptionHandlingTestClass;
 import com.android.tools.r8.ir.optimize.inliner.interfaces.InterfaceTargetsTestClass;
-import com.android.tools.r8.ir.optimize.inliner.interfaces.InterfaceTargetsTestClass.IfaceA;
-import com.android.tools.r8.ir.optimize.inliner.interfaces.InterfaceTargetsTestClass.IfaceB;
-import com.android.tools.r8.ir.optimize.inliner.interfaces.InterfaceTargetsTestClass.IfaceC;
-import com.android.tools.r8.ir.optimize.inliner.interfaces.InterfaceTargetsTestClass.IfaceD;
-import com.android.tools.r8.ir.optimize.inliner.interfaces.InterfaceTargetsTestClass.IfaceNoImpl;
-import com.android.tools.r8.naming.MemberNaming.MethodSignature;
-import com.android.tools.r8.utils.AndroidApp;
-import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
-import com.android.tools.r8.utils.codeinspector.CodeInspector;
-import com.android.tools.r8.utils.codeinspector.MethodSubject;
-import java.nio.file.Path;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameter;
+import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
 public class InlinerTest extends TestBase {
 
-  private Backend backend;
+  @Parameter(0)
+  public TestParameters parameters;
 
-  @Parameterized.Parameters(name = "Backend: {0}")
-  public static Backend[] data() {
-    return ToolHelper.getBackends();
-  }
-
-  public InlinerTest(Backend backend) {
-    this.backend = backend;
+  @Parameters(name = "{0}")
+  public static TestParametersCollection data() {
+    return getTestParameters().withAllRuntimesAndApiLevels().build();
   }
 
   @Test
   public void testExceptionHandling() throws Exception {
-    testForR8(backend)
+    testForR8(parameters.getBackend())
         .addProgramClasses(ExceptionHandlingTestClass.class)
         .addKeepMainRule(ExceptionHandlingTestClass.class)
-        .addOptionsModification(this::configure)
         .enableInliningAnnotations()
+        .setMinApi(parameters)
         .compile()
         .inspect(
             inspector -> {
@@ -71,7 +54,7 @@ public class InlinerTest extends TestBase {
                   mainClassSubject.uniqueMethodWithOriginalName("inlineeWithoutNormalExit"),
                   isAbsent());
             })
-        .run(ExceptionHandlingTestClass.class)
+        .run(parameters.getRuntime(), ExceptionHandlingTestClass.class)
         .assertSuccessWithOutputLines(
             "Test succeeded: methodWithoutCatchHandlersTest(1)",
             "Test succeeded: methodWithoutCatchHandlersTest(2)",
@@ -83,96 +66,30 @@ public class InlinerTest extends TestBase {
 
   @Test
   public void testInterfacesWithoutTargets() throws Exception {
-    byte[][] classes = {
-        ToolHelper.getClassAsBytes(InterfaceTargetsTestClass.class),
-        ToolHelper.getClassAsBytes(InterfaceTargetsTestClass.IfaceNoImpl.class),
-        ToolHelper.getClassAsBytes(InterfaceTargetsTestClass.IfaceA.class),
-        ToolHelper.getClassAsBytes(InterfaceTargetsTestClass.BaseA.class),
-        ToolHelper.getClassAsBytes(InterfaceTargetsTestClass.DerivedA.class),
-        ToolHelper.getClassAsBytes(InterfaceTargetsTestClass.IfaceB.class),
-        ToolHelper.getClassAsBytes(InterfaceTargetsTestClass.BaseB.class),
-        ToolHelper.getClassAsBytes(InterfaceTargetsTestClass.DerivedB.class),
-        ToolHelper.getClassAsBytes(InterfaceTargetsTestClass.IfaceC.class),
-        ToolHelper.getClassAsBytes(InterfaceTargetsTestClass.IfaceC2.class),
-        ToolHelper.getClassAsBytes(InterfaceTargetsTestClass.BaseC.class),
-        ToolHelper.getClassAsBytes(InterfaceTargetsTestClass.DerivedC.class),
-        ToolHelper.getClassAsBytes(InterfaceTargetsTestClass.IfaceD.class),
-        ToolHelper.getClassAsBytes(InterfaceTargetsTestClass.BaseD.class)
-    };
-    AndroidApp app = runR8(buildAndroidApp(classes), InterfaceTargetsTestClass.class);
-
-    String javaOutput = runOnJava(InterfaceTargetsTestClass.class);
-    assert backend == Backend.DEX || backend == Backend.CF;
-    String output =
-        backend == Backend.DEX
-            ? runOnArt(app, InterfaceTargetsTestClass.class)
-            : runOnJava(app, InterfaceTargetsTestClass.class);
-    assertEquals(javaOutput, output);
-
-    CodeInspector inspector = new CodeInspector(app);
-    ClassSubject clazz = inspector.clazz(InterfaceTargetsTestClass.class);
-
-    assertFalse(getMethodSubject(clazz,
-        "testInterfaceNoImpl", String.class, IfaceNoImpl.class).isPresent());
-    assertFalse(getMethodSubject(clazz,
-        "testInterfaceA", String.class, IfaceA.class).isPresent());
-    assertFalse(getMethodSubject(clazz,
-        "testInterfaceB", String.class, IfaceB.class).isPresent());
-    assertFalse(getMethodSubject(clazz,
-        "testInterfaceD", String.class, IfaceC.class).isPresent());
-    assertFalse(getMethodSubject(clazz,
-        "testInterfaceD", String.class, IfaceD.class).isPresent());
-  }
-
-  private MethodSubject getMethodSubject(
-      ClassSubject clazz, String methodName, Class retValue, Class... params) {
-    return clazz.method(new MethodSignature(methodName, retValue.getTypeName(),
-        Stream.of(params).map(Class::getTypeName).collect(Collectors.toList())));
-  }
-
-  private AndroidApp runR8(AndroidApp app, Class mainClass) throws Exception {
-    AndroidApp compiled =
-        compileWithR8(
-            app, getProguardConfig(mainClass.getCanonicalName()), this::configure, backend);
-
-    // Materialize file for execution.
-    Path generatedFile = temp.getRoot().toPath().resolve("classes.jar");
-    assert backend == Backend.DEX || backend == Backend.CF;
-    compiled.writeToZipForTesting(generatedFile, outputMode(backend));
-
-    String output =
-        backend == Backend.DEX
-            ? ToolHelper.runArtNoVerificationErrors(
-                generatedFile.toString(), mainClass.getCanonicalName())
-            : ToolHelper.runJava(generatedFile, mainClass.getCanonicalName()).stdout;
-
-    // Compare with Java.
-    ProcessResult javaResult = ToolHelper.runJava(
-        ToolHelper.getClassPathForTests(), mainClass.getCanonicalName());
-
-    if (javaResult.exitCode != 0) {
-      System.out.println(javaResult.stdout);
-      System.err.println(javaResult.stderr);
-      fail("JVM failed for: " + mainClass);
-    }
-    assertEquals(
-        backend == Backend.DEX
-            ? "JVM and ART output differ."
-            : "Outputs of source and processed programs running on JVM differ.",
-        javaResult.stdout,
-        output);
-
-    return compiled;
-  }
-
-  private String getProguardConfig(String main) {
-    return keepMainProguardConfiguration(main)
-        + "\n"
-        + "-dontobfuscate\n"
-        + "-allowaccessmodification";
-  }
-
-  private void configure(InternalOptions options) {
-    options.enableClassInlining = false;
+    testForR8(parameters.getBackend())
+        .addProgramClassesAndInnerClasses(InterfaceTargetsTestClass.class)
+        .addKeepMainRule(InterfaceTargetsTestClass.class)
+        .allowAccessModification()
+        .addDontObfuscate()
+        .noClassInlining()
+        .setMinApi(parameters)
+        .compile()
+        .inspect(
+            inspector -> {
+              ClassSubject clazz = inspector.clazz(InterfaceTargetsTestClass.class);
+              assertThat(clazz, isPresent());
+              assertThat(clazz.uniqueMethodWithOriginalName("testInterfaceNoImpl"), isAbsent());
+              assertThat(clazz.uniqueMethodWithOriginalName("testInterfaceA"), isAbsent());
+              assertThat(clazz.uniqueMethodWithOriginalName("testInterfaceB"), isAbsent());
+              assertThat(clazz.uniqueMethodWithOriginalName("testInterfaceD"), isAbsent());
+              assertThat(clazz.uniqueMethodWithOriginalName("testInterfaceD"), isAbsent());
+            })
+        .run(parameters.getRuntime(), InterfaceTargetsTestClass.class)
+        .assertSuccessWithOutputLines(
+            "testInterfaceNoImpl::OK",
+            "testInterfaceA::OK",
+            "testInterfaceB::OK",
+            "testInterfaceC::OK",
+            "testInterfaceD::OK");
   }
 }

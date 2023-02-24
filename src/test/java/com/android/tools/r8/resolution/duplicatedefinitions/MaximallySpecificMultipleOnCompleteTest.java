@@ -86,8 +86,8 @@ public class MaximallySpecificMultipleOnCompleteTest extends TestBase {
 
   @Test
   public void testJvm() throws Exception {
-    assumeTrue(parameters.isCfRuntime());
-    testForJvm()
+    parameters.assumeJvmTestParameters();
+    testForJvm(parameters)
         .addRunClasspathFiles(libraryClasses)
         .addProgramClasses(K.class, M.class)
         .addProgramClassFileData(getJOnProgram(), getMainWithAllImplements())
@@ -97,7 +97,7 @@ public class MaximallySpecificMultipleOnCompleteTest extends TestBase {
 
   @Test
   public void testD8() throws Exception {
-    assumeTrue(parameters.isDexRuntime());
+    parameters.assumeDexRuntime();
     runTest(testForD8(parameters.getBackend()));
   }
 

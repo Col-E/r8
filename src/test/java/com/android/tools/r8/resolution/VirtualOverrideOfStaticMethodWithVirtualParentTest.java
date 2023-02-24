@@ -199,7 +199,7 @@ public class VirtualOverrideOfStaticMethodWithVirtualParentTest extends AsmTestB
     TestRunResult<?> runResult;
     if (parameters.isCfRuntime()) {
       runResult =
-          testForJvm()
+          testForJvm(parameters)
               .addProgramClasses(CLASSES)
               .addProgramClassFileData(DUMPS)
               .run(parameters.getRuntime(), Main.class);

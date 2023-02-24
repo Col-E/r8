@@ -217,7 +217,7 @@ public class InnerClassNameTestRunner extends TestBase {
     JvmTestRunResult runResult = null;
     if (parameters.isCfRuntime()) {
       runResult =
-          testForJvm()
+          testForJvm(parameters)
               .addProgramClassFileData(InnerClassNameTestDump.dump(config, parameters))
               .run(parameters.getRuntime(), MAIN_CLASS);
     }

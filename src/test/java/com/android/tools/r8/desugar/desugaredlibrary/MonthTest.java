@@ -65,7 +65,7 @@ public class MonthTest extends DesugaredLibraryTestBase {
   @Test
   public void testMonth() throws Exception {
     if (parameters.isCfRuntime()) {
-      testForJvm()
+      testForJvm(parameters)
           .addInnerClasses(MonthTest.class)
           .run(parameters.getRuntime(), MonthTest.Main.class)
           .assertSuccessWithOutput(getExpectedResult(parameters));

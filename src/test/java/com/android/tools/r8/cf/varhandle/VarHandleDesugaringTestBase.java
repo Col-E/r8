@@ -77,7 +77,7 @@ public abstract class VarHandleDesugaringTestBase extends TestBase {
     // possible spurious failures but expect it to behave like compareAndSet (which is what the
     // desugared implementation does.
     assumeTrue(parameters.isCfRuntime() && parameters.asCfRuntime().isNewerThanOrEqual(CfVm.JDK9));
-    testForJvm()
+    testForJvm(parameters)
         .addProgramFiles(VarHandle.jar())
         .run(parameters.getRuntime(), getMainClass())
         .assertSuccessWithOutput(getExpectedOutputForReferenceImplementation());

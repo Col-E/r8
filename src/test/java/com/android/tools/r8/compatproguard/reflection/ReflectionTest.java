@@ -5,22 +5,21 @@
 package com.android.tools.r8.compatproguard.reflection;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresentAndRenamed;
+import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.KeepConstantArguments;
 import com.android.tools.r8.NeverInline;
-import com.android.tools.r8.R8Command;
 import com.android.tools.r8.TestBase;
-import com.android.tools.r8.ToolHelper;
-import com.android.tools.r8.origin.Origin;
-import com.android.tools.r8.utils.AndroidApp;
-import com.android.tools.r8.utils.codeinspector.CodeInspector;
+import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.TestParametersCollection;
 import com.google.common.collect.ImmutableList;
 import java.lang.reflect.Method;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameter;
+import org.junit.runners.Parameterized.Parameters;
 
 class A {
 
@@ -451,117 +450,175 @@ class MainAllBoxedTypes {
 @RunWith(Parameterized.class)
 public class ReflectionTest extends TestBase {
 
-  private Backend backend;
+  private static final String MAIN_ALL_BOXED_TYPES_EXPECTED_OUTPUT =
+      "true0a1234.45.5true0a1234.45.5";
+  private static final String MAIN_ALL_PRIMITIVE_TYPES_EXPECTED_OUTPUT =
+      "true0a1234.45.5true0a1234.45.5";
+  private static final String MAIN_NON_CONST_ARRAY_SIZE_EXPECTED_OUTPUT = "00";
+  private static final String MAIN_TEST_EXPECTED_OUTPUT = "00000123012340123012342345545467234767";
 
-  @Parameterized.Parameters(name = "Backend: {0}")
-  public static Backend[] data() {
-    return ToolHelper.getBackends();
-  }
+  @Parameter(0)
+  public TestParameters parameters;
 
-  public ReflectionTest(Backend backend) {
-    this.backend = backend;
+  @Parameters(name = "{0}")
+  public static TestParametersCollection data() {
+    return getTestParameters().withAllRuntimesAndApiLevels().build();
   }
 
   @Test
-  public void test() throws Exception {
+  public void testJvmMainTest() throws Exception {
+    parameters.assumeJvmTestParameters();
+    testForJvm(parameters)
+        .addTestClasspath()
+        .run(parameters.getRuntime(), MainTest.class)
+        .assertSuccessWithOutput(MAIN_TEST_EXPECTED_OUTPUT);
+  }
+
+  @Test
+  public void testR8MainTest() throws Exception {
     Class<?> mainClass = MainTest.class;
-    AndroidApp output =
-        compileWithR8(
-            readClasses(A.class, mainClass), keepMainProguardConfiguration(mainClass), backend);
-    CodeInspector inspector = new CodeInspector(output);
-
-    assertThat(
-        inspector.clazz(A.class).method("void", "method0", ImmutableList.of()),
-        isPresentAndRenamed());
-    assertThat(
-        inspector.clazz(A.class).method("void", "method1", ImmutableList.of("java.lang.String")),
-        isPresentAndRenamed());
-    assertThat(
-        inspector
-            .clazz(A.class)
-            .method("void", "method2", ImmutableList.of("java.lang.String", "java.lang.String")),
-        isPresentAndRenamed());
-
-    assertEquals(runOnJava(mainClass), runOnVM(output, mainClass, backend));
-  }
-
-  @Test
-  public void testNonConstArraySize() throws Exception {
-    testForR8(backend)
-        .addProgramClasses(MainNonConstArraySize.class, A.class)
-        .addKeepMainRule(MainNonConstArraySize.class)
-        .enableConstantArgumentAnnotations()
-        .enableInliningAnnotations()
-        .run(MainNonConstArraySize.class)
+    testForR8(parameters.getBackend())
+        .addProgramClasses(mainClass, A.class)
+        .addKeepMainRule(mainClass)
+        .setMinApi(parameters)
+        .compile()
         .inspect(
             inspector -> {
               assertThat(
                   inspector.clazz(A.class).method("void", "method0", ImmutableList.of()),
                   isPresentAndRenamed());
+              assertThat(
+                  inspector
+                      .clazz(A.class)
+                      .method("void", "method1", ImmutableList.of("java.lang.String")),
+                  isPresentAndRenamed());
+              assertThat(
+                  inspector
+                      .clazz(A.class)
+                      .method(
+                          "void",
+                          "method2",
+                          ImmutableList.of("java.lang.String", "java.lang.String")),
+                  isPresentAndRenamed());
             })
+        .run(parameters.getRuntime(), mainClass)
+        .assertSuccessWithOutput(MAIN_TEST_EXPECTED_OUTPUT);
+  }
+
+  @Test
+  public void testJvmMainNonConstArraySize() throws Exception {
+    parameters.assumeJvmTestParameters();
+    testForJvm(parameters)
+        .addTestClasspath()
+        .run(parameters.getRuntime(), MainNonConstArraySize.class)
+        .assertSuccessWithOutput(MAIN_NON_CONST_ARRAY_SIZE_EXPECTED_OUTPUT);
+  }
+
+  @Test
+  public void testR8MainNonConstArraySize() throws Exception {
+    Class<?> mainClass = MainNonConstArraySize.class;
+    testForR8(parameters.getBackend())
+        .addProgramClasses(mainClass, A.class)
+        .addKeepMainRule(mainClass)
+        .enableConstantArgumentAnnotations()
+        .enableInliningAnnotations()
+        .setMinApi(parameters)
+        .compile()
+        .inspect(
+            inspector ->
+                assertThat(
+                    inspector.clazz(A.class).method("void", "method0", ImmutableList.of()),
+                    isPresentAndRenamed()))
+        .run(parameters.getRuntime(), mainClass)
         // The reference run on the Java VM will succeed, whereas the run on the R8 output will fail
         // as in this test we fail to recognize the reflective call. To compare the output of the
         // successful reference run append "java.lang.NoSuchMethodException" to it.
         .assertSuccessWithOutput(
-            runOnJava(MainNonConstArraySize.class) + "java.lang.NoSuchMethodException");
+            MAIN_NON_CONST_ARRAY_SIZE_EXPECTED_OUTPUT + "java.lang.NoSuchMethodException");
   }
 
   @Test
-  public void testPhiValue() throws Exception {
+  public void testJvmPhiValue() throws Exception {
+    parameters.assumeJvmTestParameters();
+    testForJvm(parameters)
+        .addTestClasspath()
+        .run(parameters.getRuntime(), MainPhiValue.class)
+        .assertFailureWithErrorThatThrows(Exception.class)
+        .assertStdoutMatches(equalTo("010"));
+  }
+
+  @Test
+  public void testR8PhiValue() throws Exception {
     Class<?> mainClass = MainPhiValue.class;
-    R8Command.Builder builder =
-        ToolHelper.prepareR8CommandBuilder(
-                readClasses(A.class, mainClass, NeverInline.class), emptyConsumer(backend))
-            .addLibraryFiles(runtimeJar(backend));
-    builder.addProguardConfiguration(
-        ImmutableList.of(keepMainProguardConfigurationWithInliningAnnotation(mainClass)),
-        Origin.unknown());
-    ToolHelper.allowTestProguardOptions(builder);
-    AndroidApp output =
-        ToolHelper.runR8(builder.build(), o -> o.inlinerOptions().enableInlining = false);
-
-    runOnVM(output, mainClass, backend);
+    testForR8(parameters.getBackend())
+        .addProgramClasses(mainClass, A.class)
+        .addKeepMainRule(mainClass)
+        .enableInliningAnnotations()
+        .setMinApi(parameters)
+        .compile()
+        .run(parameters.getRuntime(), mainClass)
+        .assertSuccessWithOutput("01");
   }
 
   @Test
-  public void testAllPrimitiveTypes() throws Exception {
+  public void testJvmAllPrimitiveTypes() throws Exception {
+    parameters.assumeJvmTestParameters();
+    testForJvm(parameters)
+        .addTestClasspath()
+        .run(parameters.getRuntime(), MainAllPrimitiveTypes.class)
+        .assertSuccessWithOutput(MAIN_ALL_PRIMITIVE_TYPES_EXPECTED_OUTPUT);
+  }
+
+  @Test
+  public void testR8AllPrimitiveTypes() throws Exception {
     Class<?> mainClass = MainAllPrimitiveTypes.class;
-    AndroidApp output =
-        compileWithR8(
-            readClasses(AllPrimitiveTypes.class, mainClass),
-            keepMainProguardConfiguration(mainClass),
-            backend);
-
-    new CodeInspector(output)
-        .clazz(AllPrimitiveTypes.class)
-        .forAllMethods(
-            m -> {
-              if (!m.isInstanceInitializer()) {
-                assertThat(m, isPresentAndRenamed());
-              }
-            });
-
-    assertEquals(runOnJava(mainClass), runOnVM(output, mainClass, backend));
+    testForR8(parameters.getBackend())
+        .addProgramClasses(mainClass, AllPrimitiveTypes.class)
+        .addKeepMainRule(mainClass)
+        .setMinApi(parameters)
+        .compile()
+        .inspect(
+            inspector ->
+                inspector
+                    .clazz(AllPrimitiveTypes.class)
+                    .forAllMethods(
+                        m -> {
+                          if (!m.isInstanceInitializer()) {
+                            assertThat(m, isPresentAndRenamed());
+                          }
+                        }))
+        .run(parameters.getRuntime(), mainClass)
+        .assertSuccessWithOutput(MAIN_ALL_PRIMITIVE_TYPES_EXPECTED_OUTPUT);
   }
 
   @Test
-  public void testAllBoxedTypes() throws Exception {
+  public void testJvmAllBoxedTypes() throws Exception {
+    parameters.assumeJvmTestParameters();
+    testForJvm(parameters)
+        .addTestClasspath()
+        .run(parameters.getRuntime(), MainAllBoxedTypes.class)
+        .assertSuccessWithOutput(MAIN_ALL_BOXED_TYPES_EXPECTED_OUTPUT);
+  }
+
+  @Test
+  public void testR8AllBoxedTypes() throws Exception {
     Class<?> mainClass = MainAllBoxedTypes.class;
-    AndroidApp output =
-        compileWithR8(
-            readClasses(AllBoxedTypes.class, mainClass),
-            keepMainProguardConfiguration(mainClass),
-            backend);
-
-    new CodeInspector(output)
-        .clazz(AllBoxedTypes.class)
-        .forAllMethods(
-            m -> {
-              if (!m.isInstanceInitializer()) {
-                assertThat(m, isPresentAndRenamed());
-              }
-            });
-
-    assertEquals(runOnJava(mainClass), runOnVM(output, mainClass, backend));
+    testForR8(parameters.getBackend())
+        .addProgramClasses(mainClass, AllBoxedTypes.class)
+        .addKeepMainRule(mainClass)
+        .setMinApi(parameters)
+        .compile()
+        .inspect(
+            inspector ->
+                inspector
+                    .clazz(AllBoxedTypes.class)
+                    .forAllMethods(
+                        m -> {
+                          if (!m.isInstanceInitializer()) {
+                            assertThat(m, isPresentAndRenamed());
+                          }
+                        }))
+        .run(parameters.getRuntime(), mainClass)
+        .assertSuccessWithOutput(MAIN_ALL_BOXED_TYPES_EXPECTED_OUTPUT);
   }
 }

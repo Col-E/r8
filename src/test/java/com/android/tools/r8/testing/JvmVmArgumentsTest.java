@@ -27,7 +27,7 @@ public class JvmVmArgumentsTest extends TestBase {
 
   @Test
   public void testArguments() throws Exception {
-    testForJvm()
+    testForJvm(parameters)
         .addTestClasspath()
         .addVmArguments("-ea")
         .run(parameters.getRuntime(), TestClass.class)
@@ -36,13 +36,13 @@ public class JvmVmArgumentsTest extends TestBase {
 
   @Test
   public void testMultipleArguments() throws Exception {
-    testForJvm()
+    testForJvm(parameters)
         .addTestClasspath()
         .addVmArguments("-ea", "-da")
         .run(parameters.getRuntime(), TestClass.class)
         .assertSuccessWithOutputLines("DONE");
 
-    testForJvm()
+    testForJvm(parameters)
         .addTestClasspath()
         .addVmArguments("-ea")
         .addVmArguments("-da")
@@ -52,7 +52,7 @@ public class JvmVmArgumentsTest extends TestBase {
 
   @Test
   public void testNoArguments() throws Exception {
-    testForJvm()
+    testForJvm(parameters)
         .addTestClasspath()
         .addVmArguments()
         .run(parameters.getRuntime(), TestClass.class)

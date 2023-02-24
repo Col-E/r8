@@ -50,7 +50,7 @@ public class EmptyRecordTest extends TestBase {
   public void testD8AndJvm() throws Exception {
     assumeFalse("Only applicable for R8", enableMinification);
     if (parameters.isCfRuntime()) {
-      testForJvm()
+      testForJvm(parameters)
           .addProgramClassFileData(PROGRAM_DATA)
           .run(parameters.getRuntime(), MAIN_TYPE)
           .assertSuccessWithOutput(EXPECTED_RESULT_D8);

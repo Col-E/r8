@@ -5,14 +5,16 @@ package com.android.tools.r8.rewrite.switches;
 
 import static org.junit.Assert.assertEquals;
 
-import com.android.tools.r8.ToolHelper;
+import com.android.tools.r8.R8TestCompileResult;
+import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.jasmin.JasminBuilder;
 import com.android.tools.r8.jasmin.JasminTestBase;
-import com.android.tools.r8.naming.MemberNaming.MethodSignature;
-import com.android.tools.r8.utils.AndroidApp;
+import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.InstructionSubject;
+import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import com.google.common.collect.ImmutableList;
 import java.util.Iterator;
 import java.util.List;
@@ -20,19 +22,18 @@ import java.util.stream.Collectors;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameter;
+import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
 public class SwitchRewritingJarTest extends JasminTestBase {
 
-  private Backend backend;
+  @Parameter(0)
+  public TestParameters parameters;
 
-  @Parameterized.Parameters(name = "Backend: {0}")
-  public static Backend[] data() {
-    return ToolHelper.getBackends();
-  }
-
-  public SwitchRewritingJarTest(Backend backend) {
-    this.backend = backend;
+  @Parameters(name = "{0}")
+  public static TestParametersCollection data() {
+    return getTestParameters().withDefaultRuntimes().withApiLevel(AndroidApiLevel.B).build();
   }
 
   static class Statistics {
@@ -71,8 +72,9 @@ public class SwitchRewritingJarTest extends JasminTestBase {
     }
   }
 
-  private Statistics countInstructions(Iterator<InstructionSubject> iterator) {
+  private Statistics countInstructions(MethodSubject methodSubject) {
     Statistics statistics = new Statistics();
+    Iterator<InstructionSubject> iterator = methodSubject.iterateInstructions();
     while (iterator.hasNext()) {
       InstructionSubject instruction = iterator.next();
       if (instruction.isIf()) {
@@ -127,19 +129,18 @@ public class SwitchRewritingJarTest extends JasminTestBase {
         "    invokevirtual java/io/PrintStream/print(I)V",
         "    return");
 
-    AndroidApp app =
-        ToolHelper.runR8(
-            ToolHelper.prepareR8CommandBuilder(builder.build(), emptyConsumer(backend))
-                .setDisableTreeShaking(true)
-                .setDisableMinification(true)
-                .addLibraryFiles(runtimeJar(backend))
-                .build());
-
-    Iterator<InstructionSubject> iterator =
-        getMethodSubject(app, "Test", new MethodSignature("test", "int", ImmutableList.of("int")))
-            .iterateInstructions();
-    Statistics stat = countInstructions(iterator);
-    assertEquals(new Statistics(1, 0, 0), stat);
+    testForR8(parameters.getBackend())
+        .addProgramClassFileData(builder.buildClasses())
+        .addDontObfuscate()
+        .addDontShrink()
+        .setMinApi(parameters)
+        .compile()
+        .inspect(
+            inspector -> {
+              Statistics stat =
+                  countInstructions(inspector.clazz("Test").uniqueMethodWithOriginalName("test"));
+              assertEquals(new Statistics(1, 0, 0), stat);
+            });
   }
 
   @Test
@@ -197,18 +198,17 @@ public class SwitchRewritingJarTest extends JasminTestBase {
         "    invokevirtual java/io/PrintStream/print(I)V",
         "    return");
 
-    AndroidApp app =
-        ToolHelper.runR8(
-            ToolHelper.prepareR8CommandBuilder(builder.build(), emptyConsumer(backend))
-                .setDisableTreeShaking(true)
-                .setDisableMinification(true)
-                .addLibraryFiles(runtimeJar(backend))
-                .build());
-
-    MethodSignature signature = new MethodSignature("test", "int", ImmutableList.of("int"));
+    CodeInspector inspector =
+        testForR8(parameters.getBackend())
+            .addProgramClassFileData(builder.buildClasses())
+            .addDontObfuscate()
+            .addDontShrink()
+            .setMinApi(parameters)
+            .compile()
+            .inspector();
 
     Statistics stat =
-        countInstructions(getMethodSubject(app, "Test", signature).iterateInstructions());
+        countInstructions(inspector.clazz("Test").uniqueMethodWithOriginalName("test"));
 
     int expectedIfCount = 0;
     int expectedPackedSwitchCount, expectedSparseSwitchCount;
@@ -219,7 +219,7 @@ public class SwitchRewritingJarTest extends JasminTestBase {
       expectedPackedSwitchCount = 0;
       expectedSparseSwitchCount = 1;
     }
-    if (backend == Backend.DEX
+    if (parameters.isDexRuntime()
         && additionalLastKey != null
         && additionalLastKey == Integer.MAX_VALUE) {
       expectedIfCount = 1;
@@ -244,7 +244,7 @@ public class SwitchRewritingJarTest extends JasminTestBase {
     // This is the maximal value possible with Jasmin with the generated code above. It depends on
     // the source, so making smaller source can raise this limit. However we never get close to the
     // class file max.
-    int totalKeys = backend == Backend.CF ? 4376 : 5503;
+    int totalKeys = parameters.isCfRuntime() ? 4376 : 5503;
     runLargerSwitchJarTest(0, 1, totalKeys, null);
   }
 
@@ -281,36 +281,27 @@ public class SwitchRewritingJarTest extends JasminTestBase {
         "    ireturn");
 
     // Add the Jasmin class and a class from Java source with the main method.
-    AndroidApp.Builder appBuilder = AndroidApp.builder();
-    appBuilder.addClassProgramData(builder.buildClasses());
-    appBuilder.addProgramFiles(ToolHelper.getClassFileForTestClass(CheckSwitchInTestClass.class));
-    AndroidApp app =
-        ToolHelper.runR8(
-            ToolHelper.prepareR8CommandBuilder(appBuilder.build(), emptyConsumer(backend))
-                .setDisableTreeShaking(true)
-                .setDisableMinification(true)
-                .addLibraryFiles(runtimeJar(backend))
-                .build());
+    R8TestCompileResult compileResult =
+        testForR8(parameters.getBackend())
+            .addProgramClasses(CheckSwitchInTestClass.class)
+            .addProgramClassFileData(builder.buildClasses())
+            .addDontObfuscate()
+            .addDontShrink()
+            .setMinApi(parameters)
+            .compile();
 
-    CodeInspector inspector = new CodeInspector(app);
     Statistics stat =
         countInstructions(
-            inspector
-                .clazz("Test")
-                .method("int", "test", ImmutableList.of("int"))
-                .iterateInstructions());
+            compileResult.inspector().clazz("Test").uniqueMethodWithOriginalName("test"));
 
     assertEquals(new Statistics(expectedIfs, expectedPackedSwitches, expectedSparseSwitches), stat);
 
     // Run the code
     List<String> args = keys.stream().map(Object::toString).collect(Collectors.toList());
     args.add(Integer.toString(defaultValue));
-    if (backend == Backend.DEX) {
-      runOnArt(app, CheckSwitchInTestClass.class, args);
-    } else {
-      assert backend == Backend.CF;
-      runOnJava(app, CheckSwitchInTestClass.class, args);
-    }
+    compileResult
+        .run(parameters.getRuntime(), CheckSwitchInTestClass.class, args.toArray(new String[0]))
+        .assertSuccess();
   }
 
   @Test
@@ -320,7 +311,7 @@ public class SwitchRewritingJarTest extends JasminTestBase {
     runConvertCasesToIf(ImmutableList.of(0, 1000, 2000), -100, 3, 0, 0);
     runConvertCasesToIf(ImmutableList.of(0, 1000, 2000, 3000), -100, 4, 0, 0);
     runConvertCasesToIf(ImmutableList.of(0, 1, 2), -100, 3, 0, 0);
-    if (backend == Backend.DEX) {
+    if (parameters.isDexRuntime()) {
       runConvertCasesToIf(ImmutableList.of(1000, 2000, 3000, 4000, 5000), -100, 5, 0, 0);
       runConvertCasesToIf(ImmutableList.of(0, 1, 2, 3), -100, 4, 0, 0);
       runConvertCasesToIf(ImmutableList.of(0, 1, 2, 3, 4), -100, 5, 0, 0);
@@ -347,7 +338,7 @@ public class SwitchRewritingJarTest extends JasminTestBase {
         -100, 2, 1, 0);
 
     // Switches that are completely converted to a combination of ifs and switches.
-    if (backend == Backend.DEX) {
+    if (parameters.isDexRuntime()) {
       runConvertCasesToIf(
           ImmutableList.of(100, 200, 300, 400, 500, 600, 700, 800, 900, 1000), -100, 10, 0, 0);
       runConvertCasesToIf(
@@ -386,7 +377,7 @@ public class SwitchRewritingJarTest extends JasminTestBase {
     // Switches that hit maximum number of switchs and ifs.
     runConvertCasesToIf(
         ImmutableList.of(100, 200, 300, 400, 500, 600, 700, 800, 900, 1000, 1100), -100, 0, 0, 1);
-    if (backend == Backend.DEX) {
+    if (parameters.isDexRuntime()) {
       runConvertCasesToIf(
           ImmutableList.of(
               0, 1, 2, 3, 4, 5, 6, 7, 8, 9,

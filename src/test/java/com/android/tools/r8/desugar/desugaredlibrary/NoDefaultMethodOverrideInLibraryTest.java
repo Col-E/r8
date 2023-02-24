@@ -78,7 +78,7 @@ public class NoDefaultMethodOverrideInLibraryTest extends DesugaredLibraryTestBa
       }
     }
     if (parameters.isCfRuntime()) {
-      testForJvm()
+      testForJvm(parameters)
           .addInnerClasses(NoDefaultMethodOverrideInLibraryTest.class)
           .run(parameters.getRuntime(), Main.class)
           .assertSuccessWithOutput(EXPECTED);

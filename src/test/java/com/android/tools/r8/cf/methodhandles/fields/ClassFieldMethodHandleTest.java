@@ -4,7 +4,6 @@
 package com.android.tools.r8.cf.methodhandles.fields;
 
 import static org.hamcrest.CoreMatchers.containsString;
-import static org.junit.Assume.assumeTrue;
 import static org.objectweb.asm.Opcodes.ARETURN;
 import static org.objectweb.asm.Opcodes.H_GETFIELD;
 import static org.objectweb.asm.Opcodes.H_GETSTATIC;
@@ -56,8 +55,8 @@ public class ClassFieldMethodHandleTest extends TestBase {
 
   @Test
   public void testReference() throws Exception {
-    assumeTrue(parameters.isCfRuntime());
-    testForJvm()
+    parameters.assumeJvmTestParameters();
+    testForJvm(parameters)
         .addProgramClasses(C.class)
         .addProgramClassFileData(getTransformedMain())
         .run(parameters.getRuntime(), Main.class)
@@ -66,8 +65,8 @@ public class ClassFieldMethodHandleTest extends TestBase {
 
   @Test
   public void testD8() throws Exception {
-    assumeTrue(parameters.isDexRuntime());
-    testForD8(parameters.getBackend())
+    parameters.assumeDexRuntime();
+    testForD8()
         .addLibraryFiles(ToolHelper.getMostRecentAndroidJar())
         .addProgramClasses(C.class)
         .addProgramClassFileData(getTransformedMain())

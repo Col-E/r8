@@ -64,7 +64,7 @@ public class MetadataRewriteInFunctionWithDefaultValueTest extends KotlinMetadat
             .setOutputPath(temp.newFolder().toPath())
             .compile();
 
-    testForJvm()
+    testForJvm(parameters)
         .addRunClasspathFiles(kotlinc.getKotlinStdlibJar(), libJar)
         .addClasspath(output)
         .run(parameters.getRuntime(), PKG + ".default_value_app.MainKt")
@@ -97,7 +97,7 @@ public class MetadataRewriteInFunctionWithDefaultValueTest extends KotlinMetadat
             .setOutputPath(temp.newFolder().toPath())
             .compile();
 
-    testForJvm()
+    testForJvm(parameters)
         .addRunClasspathFiles(kotlinc.getKotlinStdlibJar(), libJar)
         .addClasspath(output)
         .run(parameters.getRuntime(), PKG + ".default_value_app.MainKt")

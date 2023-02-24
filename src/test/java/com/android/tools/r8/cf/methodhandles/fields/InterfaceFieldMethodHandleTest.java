@@ -5,7 +5,6 @@ package com.android.tools.r8.cf.methodhandles.fields;
 
 import static com.android.tools.r8.DiagnosticsMatcher.diagnosticType;
 import static org.hamcrest.CoreMatchers.containsString;
-import static org.junit.Assume.assumeTrue;
 import static org.objectweb.asm.Opcodes.ARETURN;
 import static org.objectweb.asm.Opcodes.H_GETSTATIC;
 import static org.objectweb.asm.Opcodes.H_PUTSTATIC;
@@ -59,8 +58,8 @@ public class InterfaceFieldMethodHandleTest extends TestBase {
 
   @Test
   public void testReference() throws Exception {
-    assumeTrue(parameters.isCfRuntime());
-    testForJvm()
+    parameters.assumeJvmTestParameters();
+    testForJvm(parameters)
         .addProgramClasses(I.class)
         .addProgramClassFileData(getTransformedMain())
         .run(parameters.getRuntime(), Main.class)
@@ -69,8 +68,8 @@ public class InterfaceFieldMethodHandleTest extends TestBase {
 
   @Test
   public void testD8() throws Exception {
-    assumeTrue(parameters.isDexRuntime());
-    testForD8(parameters.getBackend())
+    parameters.assumeDexRuntime();
+    testForD8()
         .addLibraryFiles(ToolHelper.getMostRecentAndroidJar())
         .addProgramClasses(I.class)
         .addProgramClassFileData(getTransformedMain())

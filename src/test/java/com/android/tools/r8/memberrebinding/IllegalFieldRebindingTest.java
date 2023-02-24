@@ -9,7 +9,8 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.TestBase;
-import com.android.tools.r8.ToolHelper;
+import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.memberrebinding.testclasses.IllegalFieldRebindingTestClasses;
 import com.android.tools.r8.memberrebinding.testclasses.IllegalFieldRebindingTestClasses.B;
 import com.android.tools.r8.utils.StringUtils;
@@ -20,38 +21,43 @@ import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameter;
 import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
 public class IllegalFieldRebindingTest extends TestBase {
 
-  private final Backend backend;
+  private static final String EXPECTED_OUTPUT = StringUtils.lines("42");
+  private static final String OTHER_EXPECTED_OUTPUT = StringUtils.lines("0");
 
-  @Parameters(name = "Backend: {0}")
-  public static Backend[] data() {
-    return ToolHelper.getBackends();
+  @Parameter(0)
+  public TestParameters parameters;
+
+  @Parameters(name = "{0}")
+  public static TestParametersCollection data() {
+    return getTestParameters().withAllRuntimesAndApiLevels().build();
   }
 
-  public IllegalFieldRebindingTest(Backend backend) {
-    this.backend = backend;
+  @Test
+  public void testJvm() throws Exception {
+    parameters.assumeJvmTestParameters();
+    testForJvm(parameters)
+        .addTestClasspath()
+        .run(parameters.getRuntime(), TestClass.class)
+        .assertSuccessWithOutput(EXPECTED_OUTPUT);
   }
 
   @Test
   public void test() throws Exception {
-    String expectedOutput = StringUtils.lines("42");
-
-    if (backend == Backend.CF) {
-      testForJvm().addTestClasspath().run(TestClass.class).assertSuccessWithOutput(expectedOutput);
-    }
-
     CodeInspector inspector =
-        testForR8(Backend.DEX)
+        testForR8(parameters.getBackend())
             .addInnerClasses(IllegalFieldRebindingTest.class)
             .addInnerClasses(IllegalFieldRebindingTestClasses.class)
             .addKeepMainRule(TestClass.class)
             .enableNoVerticalClassMergingAnnotations()
-            .run(TestClass.class)
-            .assertSuccessWithOutput(expectedOutput)
+            .setMinApi(parameters)
+            .run(parameters.getRuntime(), TestClass.class)
+            .assertSuccessWithOutput(EXPECTED_OUTPUT)
             .inspector();
 
     ClassSubject classSubject = inspector.clazz(TestClass.class);
@@ -66,24 +72,25 @@ public class IllegalFieldRebindingTest extends TestBase {
   }
 
   @Test
+  public void testJvmOther() throws Exception {
+    parameters.assumeJvmTestParameters();
+    testForJvm(parameters)
+        .addTestClasspath()
+        .run(parameters.getRuntime(), OtherTestClass.class)
+        .assertSuccessWithOutput(OTHER_EXPECTED_OUTPUT);
+  }
+
+  @Test
   public void otherTest() throws Exception {
-    String expectedOutput = StringUtils.lines("0");
-
-    if (backend == Backend.CF) {
-      testForJvm()
-          .addTestClasspath()
-          .run(OtherTestClass.class)
-          .assertSuccessWithOutput(expectedOutput);
-    }
-
     CodeInspector inspector =
-        testForR8(Backend.DEX)
+        testForR8(parameters.getBackend())
             .addInnerClasses(IllegalFieldRebindingTest.class)
             .addInnerClasses(IllegalFieldRebindingTestClasses.class)
             .addKeepMainRule(OtherTestClass.class)
             .enableNoVerticalClassMergingAnnotations()
-            .run(OtherTestClass.class)
-            .assertSuccessWithOutput(expectedOutput)
+            .setMinApi(parameters)
+            .run(parameters.getRuntime(), OtherTestClass.class)
+            .assertSuccessWithOutput(OTHER_EXPECTED_OUTPUT)
             .inspector();
 
     // The static-get instruction in OtherTestClass.main() should have been replaced by the

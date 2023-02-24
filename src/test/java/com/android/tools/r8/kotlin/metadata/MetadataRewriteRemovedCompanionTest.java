@@ -52,7 +52,7 @@ public class MetadataRewriteRemovedCompanionTest extends KotlinMetadataTestBase 
             .setOutputPath(temp.newFolder().toPath())
             .compile();
 
-    testForJvm()
+    testForJvm(parameters)
         .addRunClasspathFiles(kotlinc.getKotlinStdlibJar(), libJar)
         .addClasspath(output)
         .run(parameters.getRuntime(), PKG + ".companion_remove_app.MainKt")
@@ -80,7 +80,7 @@ public class MetadataRewriteRemovedCompanionTest extends KotlinMetadataTestBase 
             .setOutputPath(temp.newFolder().toPath())
             .compile();
 
-    testForJvm()
+    testForJvm(parameters)
         .addRunClasspathFiles(kotlinc.getKotlinStdlibJar(), libJar)
         .addClasspath(output)
         .run(parameters.getRuntime(), PKG + ".companion_remove_app.MainKt")
@@ -107,7 +107,7 @@ public class MetadataRewriteRemovedCompanionTest extends KotlinMetadataTestBase 
             .setOutputPath(temp.newFolder().toPath())
             .compile();
 
-    testForJvm()
+    testForJvm(parameters)
         .addRunClasspathFiles(kotlinc.getKotlinStdlibJar(), libJar)
         .addClasspath(output)
         .run(parameters.getRuntime(), PKG + ".companion_remove_app.MainKt")

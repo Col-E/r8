@@ -6,7 +6,6 @@ package com.android.tools.r8.cf.stackmap;
 
 import static com.android.tools.r8.DiagnosticsMatcher.diagnosticMessage;
 import static org.hamcrest.CoreMatchers.containsString;
-import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.TestBase;
@@ -43,7 +42,7 @@ public class InvalidLongStackValueMaxHeightTest extends TestBase {
 
   @Test(expected = CompilationFailedException.class)
   public void testD8Cf() throws Exception {
-    assumeTrue(parameters.isCfRuntime());
+    parameters.assumeCfRuntime();
     testForD8(parameters.getBackend())
         .addProgramClasses(Tester.class)
         .addProgramClassFileData(getMainWithChangedMaxStackHeight())
@@ -57,8 +56,8 @@ public class InvalidLongStackValueMaxHeightTest extends TestBase {
 
   @Test()
   public void testD8Dex() throws Exception {
-    assumeTrue(parameters.isDexRuntime());
-    testForD8(parameters.getBackend())
+    parameters.assumeDexRuntime();
+    testForD8()
         .addProgramClasses(Tester.class)
         .addProgramClassFileData(getMainWithChangedMaxStackHeight())
         .setMinApi(parameters)

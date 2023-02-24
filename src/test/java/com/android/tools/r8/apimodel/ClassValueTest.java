@@ -61,8 +61,8 @@ public class ClassValueTest extends TestBase {
 
   @Test
   public void testD8() throws Exception {
-    assumeTrue(parameters.isDexRuntime());
-    testForD8(parameters.getBackend())
+    parameters.assumeDexRuntime();
+    testForD8()
         .addInnerClasses(getClass())
         .setMinApi(parameters)
         .compile()

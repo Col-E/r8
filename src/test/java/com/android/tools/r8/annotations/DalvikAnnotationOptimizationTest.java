@@ -4,7 +4,6 @@
 package com.android.tools.r8.annotations;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assume.assumeTrue;
 import static org.objectweb.asm.Opcodes.ASM7;
 
 import com.android.tools.r8.ClassFileResourceProvider;
@@ -88,8 +87,8 @@ public class DalvikAnnotationOptimizationTest extends TestBase {
 
   @Test
   public void testD8() throws Exception {
-    assumeTrue(parameters.isDexRuntime());
-    testForD8(parameters.getBackend())
+    parameters.assumeDexRuntime();
+    testForD8()
         .addProgramClassFileData(
             transformer(TestClass.class).addMethodTransformer(getMethodTransformer()).transform())
         .setMinApi(parameters)

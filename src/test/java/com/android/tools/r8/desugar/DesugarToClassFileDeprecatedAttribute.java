@@ -9,6 +9,7 @@ import static org.junit.Assert.assertTrue;
 import com.android.tools.r8.ByteDataView;
 import com.android.tools.r8.ClassFileConsumer;
 import com.android.tools.r8.ClassFileConsumer.ForwardingConsumer;
+import com.android.tools.r8.D8TestCompileResult;
 import com.android.tools.r8.DiagnosticsHandler;
 import com.android.tools.r8.R8FullTestBuilder;
 import com.android.tools.r8.TestBase;
@@ -17,10 +18,11 @@ import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.utils.InternalOptions;
 import java.nio.file.Files;
-import java.nio.file.Path;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameter;
+import org.junit.runners.Parameterized.Parameters;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.FieldVisitor;
@@ -30,16 +32,13 @@ import org.objectweb.asm.Opcodes;
 @RunWith(Parameterized.class)
 public class DesugarToClassFileDeprecatedAttribute extends TestBase {
 
-  @Parameterized.Parameters(name = "{0}")
+  @Parameters(name = "{0}")
   public static TestParametersCollection data() {
     return getTestParameters().withAllRuntimes().withAllApiLevelsAlsoForCf().build();
   }
 
-  private final TestParameters parameters;
-
-  public DesugarToClassFileDeprecatedAttribute(TestParameters parameters) {
-    this.parameters = parameters;
-  }
+  @Parameter(0)
+  public TestParameters parameters;
 
   private boolean isDeprecated(int access) {
     return (access & Opcodes.ACC_DEPRECATED) == Opcodes.ACC_DEPRECATED;
@@ -85,7 +84,7 @@ public class DesugarToClassFileDeprecatedAttribute extends TestBase {
         Files.readAllBytes(ToolHelper.getClassFileForTestClass(TestClass.class)));
 
     // Use D8 to desugar with Java classfile output.
-    Path jar =
+    D8TestCompileResult desugarCompileResult =
         testForD8(Backend.CF)
             .addProgramClasses(TestClass.class)
             .setMinApi(parameters)
@@ -97,20 +96,18 @@ public class DesugarToClassFileDeprecatedAttribute extends TestBase {
                     checkDeprecatedAttributes(data.getBuffer());
                   }
                 })
-            .compile()
-            .writeToZip();
+            .compile();
 
     if (parameters.getRuntime().isCf()) {
       // Run on the JVM.
-      testForJvm()
-          .addProgramFiles(jar)
+      desugarCompileResult
           .run(parameters.getRuntime(), TestClass.class)
           .assertSuccessWithOutputLines("Hello, world!");
     } else {
       assert parameters.getRuntime().isDex();
       // Convert to DEX without desugaring.
       testForD8()
-          .addProgramFiles(jar)
+          .addProgramFiles(desugarCompileResult.writeToZip())
           .setMinApi(parameters)
           .disableDesugaring()
           .run(parameters.getRuntime(), TestClass.class)

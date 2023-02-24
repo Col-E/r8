@@ -8,103 +8,85 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
-import com.android.tools.r8.R8Command;
 import com.android.tools.r8.TestBase;
+import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.ToolHelper;
-import com.android.tools.r8.ToolHelper.ProcessResult;
-import com.android.tools.r8.origin.Origin;
-import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.FileUtils;
+import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
-import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.FieldAccessInstructionSubject;
 import com.android.tools.r8.utils.codeinspector.InstructionSubject;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import com.google.common.collect.ImmutableList;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Collections;
 import java.util.Iterator;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameter;
+import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
 public class B77944861 extends TestBase {
 
-  private static final String PRG =
-      ToolHelper.EXAMPLES_BUILD_DIR + "regress_77944861" + FileUtils.JAR_EXTENSION;
+  private static final String MAIN = "regress_77944861.SomeView";
+  private static final String EXPECTED_OUTPUT = StringUtils.lines("foo");
 
-  private Backend backend;
+  private static final Path PRG =
+      Paths.get(ToolHelper.EXAMPLES_BUILD_DIR + "regress_77944861" + FileUtils.JAR_EXTENSION);
 
-  @Parameterized.Parameters(name = "Backend: {0}")
-  public static Backend[] data() {
-    return ToolHelper.getBackends();
-  }
+  @Parameter(0)
+  public TestParameters parameters;
 
-  public B77944861(Backend backend) {
-    this.backend = backend;
-  }
-
-  private AndroidApp runR8(AndroidApp app, String main, Path out) throws Exception {
-    R8Command command =
-        ToolHelper.addProguardConfigurationConsumer(
-                ToolHelper.prepareR8CommandBuilder(app),
-                pgConfig -> {
-                  pgConfig.setPrintMapping(true);
-                  pgConfig.setPrintMappingFile(out.resolve(ToolHelper.DEFAULT_PROGUARD_MAP_FILE));
-                })
-            .addProguardConfiguration(
-                ImmutableList.of(keepMainProguardConfiguration(main)), Origin.unknown())
-            .setOutput(out, outputMode(backend))
-            .addLibraryFiles(TestBase.runtimeJar(backend))
-            .setDisableTreeShaking(true)
-            .setDisableMinification(true)
-            .build();
-    return ToolHelper.runR8(
-        command,
-        o -> {
-          o.inlinerOptions().enableInlining = false;
-        });
+  @Parameters(name = "{0}")
+  public static TestParametersCollection data() {
+    return getTestParameters().withAllRuntimesAndApiLevels().build();
   }
 
   @Test
-  public void test() throws Exception {
-    Path out = temp.getRoot().toPath();
-    Path jarPath = Paths.get(PRG);
-    String mainName = "regress_77944861.SomeView";
-    ProcessResult jvmOutput = ToolHelper.runJava(ImmutableList.of(jarPath), mainName);
-    assertEquals(0, jvmOutput.exitCode);
-    AndroidApp processedApp = runR8(readJar(jarPath), mainName, out);
-    CodeInspector codeInspector = new CodeInspector(processedApp);
-    ClassSubject view = codeInspector.clazz("regress_77944861.SomeView");
-    assertThat(view, isPresent());
-    String className = "regress_77944861.inner.TopLevelPolicy$MobileIconState";
-    MethodSubject initView = view.method("java.lang.String", "get", ImmutableList.of(className));
-    assertThat(initView, isPresent());
-    Iterator<InstructionSubject> iterator = initView.iterateInstructions();
-    InstructionSubject instruction;
-    do {
-      assertTrue(iterator.hasNext());
-      instruction = iterator.next();
-    } while (!instruction.isInstanceGet());
-
-    assertEquals(className, ((FieldAccessInstructionSubject) instruction).holder().toString());
-
-    do {
-      assertTrue(iterator.hasNext());
-      instruction = iterator.next();
-    } while (!instruction.isReturnObject());
-
-    ProcessResult output;
-    if (backend == Backend.DEX) {
-      output = runOnArtRaw(processedApp, mainName);
-    } else {
-      assert backend == Backend.CF;
-      output = runOnJavaRaw(processedApp, mainName, Collections.emptyList());
-    }
-    assertEquals(0, output.exitCode);
-    assertEquals(jvmOutput.stdout, output.stdout);
+  public void testJvm() throws Exception {
+    parameters.assumeJvmTestParameters();
+    testForJvm(parameters)
+        .addProgramFiles(PRG)
+        .run(parameters.getRuntime(), MAIN)
+        .assertSuccessWithOutput(EXPECTED_OUTPUT);
   }
 
+  @Test
+  public void testR8() throws Exception {
+    testForR8(parameters.getBackend())
+        .addProgramFiles(PRG)
+        .addKeepMainRule(MAIN)
+        .addDontObfuscate()
+        .addDontShrink()
+        .setMinApi(parameters)
+        .compile()
+        .inspect(
+            inspector -> {
+              ClassSubject view = inspector.clazz("regress_77944861.SomeView");
+              assertThat(view, isPresent());
+              String className = "regress_77944861.inner.TopLevelPolicy$MobileIconState";
+              MethodSubject initView =
+                  view.method("java.lang.String", "get", ImmutableList.of(className));
+              assertThat(initView, isPresent());
+              Iterator<InstructionSubject> iterator = initView.iterateInstructions();
+              InstructionSubject instruction;
+              do {
+                assertTrue(iterator.hasNext());
+                instruction = iterator.next();
+              } while (!instruction.isInstanceGet());
+
+              assertEquals(
+                  className, ((FieldAccessInstructionSubject) instruction).holder().toString());
+
+              do {
+                assertTrue(iterator.hasNext());
+                instruction = iterator.next();
+              } while (!instruction.isReturnObject());
+            })
+        .run(parameters.getRuntime(), MAIN)
+        .assertSuccessWithOutput(EXPECTED_OUTPUT);
+  }
 }

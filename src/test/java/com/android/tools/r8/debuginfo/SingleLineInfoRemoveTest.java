@@ -21,17 +21,23 @@ import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import java.util.List;
 import org.hamcrest.CoreMatchers;
-import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameter;
 import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
 public class SingleLineInfoRemoveTest extends TestBase {
 
-  private final TestParameters parameters;
-  private final boolean customSourceFile;
+  private static StackTrace expectedStackTrace;
+
+  @Parameter(0)
+  public TestParameters parameters;
+
+  @Parameter(1)
+  public boolean customSourceFile;
 
   @Parameters(name = "{0}, custom-source-file:{1}")
   public static List<Object[]> data() {
@@ -39,18 +45,11 @@ public class SingleLineInfoRemoveTest extends TestBase {
         getTestParameters().withAllRuntimesAndApiLevels().build(), BooleanUtils.values());
   }
 
-  public SingleLineInfoRemoveTest(TestParameters parameters, boolean customSourceFile) {
-    this.parameters = parameters;
-    this.customSourceFile = customSourceFile;
-  }
-
-  public StackTrace expectedStackTrace;
-
-  @Before
-  public void setup() throws Exception {
+  @BeforeClass
+  public static void setup() throws Exception {
     // Get the expected stack trace by running on the JVM.
     expectedStackTrace =
-        testForJvm()
+        testForJvm(getStaticTemp())
             .addTestClasspath()
             .run(CfRuntime.getSystemRuntime(), Main.class)
             .assertFailure()

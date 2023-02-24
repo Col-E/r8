@@ -64,7 +64,7 @@ public class MetadataRewriteInSuperTypeTest extends KotlinMetadataTestBase {
             .setOutputPath(temp.newFolder().toPath())
             .compile();
 
-    testForJvm()
+    testForJvm(parameters)
         .addRunClasspathFiles(kotlinc.getKotlinStdlibJar(), libJar)
         .addClasspath(output)
         .run(parameters.getRuntime(), PKG + ".supertype_app.MainKt")
@@ -94,7 +94,7 @@ public class MetadataRewriteInSuperTypeTest extends KotlinMetadataTestBase {
       return;
     }
 
-    testForJvm()
+    testForJvm(parameters)
         .addRunClasspathFiles(kotlinc.getKotlinStdlibJar(), libJar)
         .addClasspath(output)
         .run(parameters.getRuntime(), PKG + ".supertype_app.MainKt")
@@ -144,7 +144,7 @@ public class MetadataRewriteInSuperTypeTest extends KotlinMetadataTestBase {
       return;
     }
 
-    testForJvm()
+    testForJvm(parameters)
         .addRunClasspathFiles(kotlinc.getKotlinStdlibJar(), libJar)
         .addClasspath(output)
         .run(parameters.getRuntime(), PKG + ".supertype_app.MainKt")

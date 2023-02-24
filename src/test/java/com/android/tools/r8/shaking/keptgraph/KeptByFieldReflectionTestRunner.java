@@ -8,7 +8,8 @@ import static com.android.tools.r8.references.Reference.methodFromMethod;
 import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.TestBase;
-import com.android.tools.r8.ToolHelper;
+import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.references.FieldReference;
 import com.android.tools.r8.references.MethodReference;
@@ -23,6 +24,7 @@ import java.util.Collection;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameter;
 import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
@@ -42,15 +44,21 @@ public class KeptByFieldReflectionTestRunner extends TestBase {
           "|- is referenced in keep rule:",
           "|  -keep class " + TYPE_NAME + " { public static void main(java.lang.String[]); }");
 
-  private final Backend backend;
+  @Parameter(0)
+  public TestParameters parameters;
 
   @Parameters(name = "{0}")
-  public static Backend[] data() {
-    return ToolHelper.getBackends();
+  public static TestParametersCollection data() {
+    return getTestParameters().withAllRuntimesAndApiLevels().build();
   }
 
-  public KeptByFieldReflectionTestRunner(Backend backend) {
-    this.backend = backend;
+  @Test
+  public void testJvm() throws Exception {
+    parameters.assumeJvmTestParameters();
+    testForJvm(parameters)
+        .addProgramClasses(CLASSES)
+        .run(parameters.getRuntime(), CLASS)
+        .assertSuccessWithOutput(EXPECTED_STDOUT);
   }
 
   @Test
@@ -59,18 +67,15 @@ public class KeptByFieldReflectionTestRunner extends TestBase {
     FieldReference fooField = fieldFromField(CLASS.getDeclaredField("foo"));
     MethodReference fooInit = methodFromMethod(CLASS.getDeclaredConstructor());
 
-    if (backend == Backend.CF) {
-      testForJvm().addProgramClasses(CLASSES).run(CLASS).assertSuccessWithOutput(EXPECTED_STDOUT);
-    }
-
     WhyAreYouKeepingConsumer consumer = new WhyAreYouKeepingConsumer(null);
     GraphInspector inspector =
-        testForR8(backend)
+        testForR8(parameters.getBackend())
             .enableGraphInspector(consumer)
             .addProgramClasses(CLASSES)
             .addKeepAnnotation()
             .addKeepMainRule(CLASS)
-            .run(CLASS)
+            .setMinApi(parameters)
+            .run(parameters.getRuntime(), CLASS)
             .assertSuccessWithOutput(EXPECTED_STDOUT)
             .graphInspector();
 

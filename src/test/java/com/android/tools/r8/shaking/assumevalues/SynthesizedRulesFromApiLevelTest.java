@@ -9,6 +9,7 @@ import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.D8;
 import com.android.tools.r8.D8Command;
@@ -16,9 +17,10 @@ import com.android.tools.r8.OutputMode;
 import com.android.tools.r8.R8FullTestBuilder;
 import com.android.tools.r8.R8TestBuilder;
 import com.android.tools.r8.TestBase;
+import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.ThrowableConsumer;
-import com.android.tools.r8.ToolHelper;
-import com.android.tools.r8.ToolHelper.DexVm;
+import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.jasmin.JasminBuilder;
 import com.android.tools.r8.jasmin.JasminBuilder.ClassBuilder;
 import com.android.tools.r8.shaking.ProguardAssumeNoSideEffectRule;
@@ -30,26 +32,24 @@ import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.google.common.collect.ImmutableList;
 import java.nio.file.Path;
 import java.util.List;
-import org.junit.Assume;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameter;
 import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
 public class SynthesizedRulesFromApiLevelTest extends TestBase {
 
-  private final Backend backend;
-  private final String mainClassName = "MainClass";
-  private final String compatLibraryClassName = "CompatLibrary";
+  private static final String mainClassName = "MainClass";
+  private static final String compatLibraryClassName = "CompatLibrary";
 
-  public SynthesizedRulesFromApiLevelTest(Backend backend) {
-    this.backend = backend;
-  }
+  @Parameter(0)
+  public TestParameters parameters;
 
-  @Parameters(name = "Backend: {0}")
-  public static Backend[] data() {
-    return ToolHelper.getBackends();
+  @Parameters(name = "{0}")
+  public static TestParametersCollection data() {
+    return getTestParameters().withDefaultRuntimes().build();
   }
 
   // Simple mock implementation of class android.os.Build$VERSION with just the SDK_INT field.
@@ -165,9 +165,9 @@ public class SynthesizedRulesFromApiLevelTest extends TestBase {
       SynthesizedRule synthesizedRule)
       throws Exception {
     assertTrue(runtimeApiLevel.getLevel() >= buildApiLevel.getLevel());
-    if (backend == Backend.DEX) {
+    if (parameters.isDexRuntime()) {
       Path androidRuntimeLibraryMock = mockAndroidRuntimeLibrary(runtimeApiLevel);
-      testForR8(backend)
+      testForR8(parameters.getBackend())
           .setMinApi(buildApiLevel)
           .addProgramFiles(buildApp(nativeApiLevel))
           .addClasspathFiles(androidRuntimeLibraryMock)
@@ -182,12 +182,11 @@ public class SynthesizedRulesFromApiLevelTest extends TestBase {
                   checkSynthesizedRuleExpectation(syntheticProguardRules, synthesizedRule))
           .inspect(inspector)
           .addRunClasspathFiles(buildMockAndroidRuntimeLibrary(androidRuntimeLibraryMock))
-          .run(mainClassName)
+          .run(parameters.getRuntime(), mainClassName)
           .assertSuccessWithOutput(expectedOutput);
     } else {
-      assert backend == Backend.CF;
       Path androidRuntimeLibraryMock = mockAndroidRuntimeLibrary(AndroidApiLevel.D);
-      testForR8(backend)
+      testForR8(parameters.getBackend())
           .addProgramFiles(buildApp(nativeApiLevel))
           .addKeepMainRule(mainClassName)
           .addKeepRules(additionalKeepRules)
@@ -196,7 +195,7 @@ public class SynthesizedRulesFromApiLevelTest extends TestBase {
           .compile()
           .inspectSyntheticProguardRules(this::noSynthesizedRules)
           .addRunClasspathFiles(androidRuntimeLibraryMock)
-          .run(mainClassName)
+          .run(parameters.getRuntime(), mainClassName)
           .assertSuccessWithOutput(expectedResultForCompat(AndroidApiLevel.D));
     }
   }
@@ -241,7 +240,8 @@ public class SynthesizedRulesFromApiLevelTest extends TestBase {
 
   @Test
   public void testNoExplicitAssumeValuesRuleNative() throws Exception {
-    Assume.assumeTrue(ToolHelper.getDexVm().isNewerThan(DexVm.ART_7_0_0_HOST));
+    assumeTrue(
+        parameters.isCfRuntime() || parameters.getDexRuntimeVersion().isNewerThan(Version.V7_0_0));
     runTest(
         AndroidApiLevel.O_MR1,
         AndroidApiLevel.O_MR1,
@@ -252,7 +252,8 @@ public class SynthesizedRulesFromApiLevelTest extends TestBase {
 
   @Test
   public void testNoExplicitAssumeValuesRuleCompatPresent() throws Exception {
-    Assume.assumeTrue(ToolHelper.getDexVm().isNewerThan(DexVm.ART_7_0_0_HOST));
+    assumeTrue(
+        parameters.isCfRuntime() || parameters.getDexRuntimeVersion().isNewerThan(Version.V7_0_0));
     runTest(
         AndroidApiLevel.O,
         AndroidApiLevel.O_MR1,
@@ -263,7 +264,8 @@ public class SynthesizedRulesFromApiLevelTest extends TestBase {
 
   @Test
   public void testNoExplicitAssumeValuesRuleCompatUsed() throws Exception {
-    Assume.assumeTrue(ToolHelper.getDexVm().isNewerThan(DexVm.ART_7_0_0_HOST));
+    assumeTrue(
+        parameters.isCfRuntime() || parameters.getDexRuntimeVersion().isNewerThan(Version.V7_0_0));
     runTest(
         AndroidApiLevel.O,
         AndroidApiLevel.O,
@@ -274,7 +276,8 @@ public class SynthesizedRulesFromApiLevelTest extends TestBase {
 
   @Test
   public void testExplicitAssumeValuesRuleWhichMatchAndDontKeepCompat() throws Exception {
-    Assume.assumeTrue(ToolHelper.getDexVm().isNewerThan(DexVm.ART_7_0_0_HOST));
+    assumeTrue(
+        parameters.isCfRuntime() || parameters.getDexRuntimeVersion().isNewerThan(Version.V7_0_0));
     runTest(
         AndroidApiLevel.O_MR1,
         AndroidApiLevel.O_MR1,
@@ -282,7 +285,7 @@ public class SynthesizedRulesFromApiLevelTest extends TestBase {
         expectedResultForNative(AndroidApiLevel.O_MR1),
         builder -> {
           // android.os.Build$VERSION only exists in the Android runtime.
-          builder.allowUnusedProguardConfigurationRules(backend == Backend.CF);
+          builder.allowUnusedProguardConfigurationRules(parameters.isCfRuntime());
         },
         this::compatCodeNotPresent,
         ImmutableList.of(
@@ -294,7 +297,8 @@ public class SynthesizedRulesFromApiLevelTest extends TestBase {
 
   @Test
   public void testExplicitAssumeValuesRulesWhichMatchAndKeepCompat() throws Exception {
-    Assume.assumeTrue(ToolHelper.getDexVm().isNewerThan(DexVm.ART_7_0_0_HOST));
+    assumeTrue(
+        parameters.isCfRuntime() || parameters.getDexRuntimeVersion().isNewerThan(Version.V7_0_0));
     String[] rules =
         new String[] {
           "-assumevalues class android.os.Build$VERSION { int SDK_INT return 1..1000; }",
@@ -316,7 +320,7 @@ public class SynthesizedRulesFromApiLevelTest extends TestBase {
           expectedResultForNative(AndroidApiLevel.O_MR1),
           builder ->
               builder.allowUnusedProguardConfigurationRules(
-                  backend == Backend.CF || finalRuleIndex >= 4),
+                  parameters.isCfRuntime() || finalRuleIndex >= 4),
           this::compatCodePresent,
           ImmutableList.of(rule),
           SynthesizedRule.NOT_PRESENT);
@@ -325,7 +329,8 @@ public class SynthesizedRulesFromApiLevelTest extends TestBase {
 
   @Test
   public void testExplicitAssumeValuesRulesWhichDoesNotMatch() throws Exception {
-    Assume.assumeTrue(ToolHelper.getDexVm().isNewerThan(DexVm.ART_7_0_0_HOST));
+    assumeTrue(
+        parameters.isCfRuntime() || parameters.getDexRuntimeVersion().isNewerThan(Version.V7_0_0));
     String[] rules = new String[] {
         "-assumevalues class * { !public int SDK_INT return 1..1000; }",
         "-assumevalues class * { !static int SDK_INT return 1..1000; }",

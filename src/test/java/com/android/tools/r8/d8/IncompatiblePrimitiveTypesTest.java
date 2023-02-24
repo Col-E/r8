@@ -23,6 +23,7 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameter;
 import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
@@ -36,14 +37,11 @@ public class IncompatiblePrimitiveTypesTest extends TestBase {
 
   @Parameters(name = "{0}")
   public static TestParametersCollection data() {
-    return getTestParameters().withAllRuntimes().withAllApiLevels().build();
+    return getTestParameters().withAllRuntimesAndApiLevels().build();
   }
 
-  final TestParameters parameters;
-
-  public IncompatiblePrimitiveTypesTest(TestParameters parameters) {
-    this.parameters = parameters;
-  }
+  @Parameter(0)
+  public TestParameters parameters;
 
   @BeforeClass
   public static void setup() throws Exception {
@@ -71,14 +69,17 @@ public class IncompatiblePrimitiveTypesTest extends TestBase {
   }
 
   @Test
-  public void test() throws Exception {
-    if (parameters.isCfRuntime()) {
-      testForJvm()
-          .addClasspath(inputJar)
-          .run(parameters.getRuntime(), "TestClass")
-          .assertSuccessWithOutput(expectedOutput);
-      return;
-    }
+  public void testJvm() throws Exception {
+    parameters.assumeJvmTestParameters();
+    testForJvm(parameters)
+        .addClasspath(inputJar)
+        .run(parameters.getRuntime(), "TestClass")
+        .assertSuccessWithOutput(expectedOutput);
+  }
+
+  @Test
+  public void testD8() throws Exception {
+    parameters.assumeDexRuntime();
     TestRunResult<?> d8Result =
         testForD8()
             .addProgramFiles(inputJar)

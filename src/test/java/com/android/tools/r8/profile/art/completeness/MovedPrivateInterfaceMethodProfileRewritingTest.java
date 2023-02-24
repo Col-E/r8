@@ -40,8 +40,8 @@ public class MovedPrivateInterfaceMethodProfileRewritingTest extends TestBase {
 
   @Test
   public void testJvm() throws Exception {
-    parameters.assumeCfRuntime();
-    testForJvm()
+    parameters.assumeJvmTestParameters();
+    testForJvm(parameters)
         .addProgramClasses(Main.class, A.class)
         .addProgramClassFileData(getTransformedInterface())
         .run(parameters.getRuntime(), Main.class)

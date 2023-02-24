@@ -89,8 +89,8 @@ public class DefaultLambdaWithSelfReferenceTestRunner extends DebugTestBase {
 
   @Test
   public void testJvm() throws Throwable {
-    assumeTrue(parameters.isCfRuntime());
-    testForJvm()
+    parameters.assumeJvmTestParameters();
+    testForJvm(parameters)
         .addProgramClassesAndInnerClasses(CLASS)
         .run(parameters.getRuntime(), CLASS)
         .assertSuccessWithOutput(EXPECTED)

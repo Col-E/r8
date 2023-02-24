@@ -39,7 +39,7 @@ public class InvokeVirtualPrivateBaseWithDefaultDirectInvokeTest extends TestBas
   @Test
   public void testJvm() throws Exception {
     assumeTrue(isDefaultCfParameters());
-    testForJvm()
+    testForJvm(parameters)
         .addInnerClasses(getClass())
         .run(parameters.getRuntime(), Main.class)
         .apply(r -> assertResultIsCorrect(r, true));

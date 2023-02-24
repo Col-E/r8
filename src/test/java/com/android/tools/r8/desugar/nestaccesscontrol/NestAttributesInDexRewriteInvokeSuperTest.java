@@ -50,7 +50,7 @@ public class NestAttributesInDexRewriteInvokeSuperTest extends TestBase implemen
         parameters.isCfRuntime()
             && parameters.asCfRuntime().isNewerThanOrEqual(CfVm.JDK11)
             && parameters.getApiLevel().isEqualTo(AndroidApiLevel.B));
-    testForJvm()
+    testForJvm(parameters)
         .addProgramClassFileData(dumpHost(), dumpMember(), dumpSubMember())
         .run(parameters.getRuntime(), "Host")
         .assertSuccessWithOutputLines(EXPECTED_OUTPUT_LINES);
@@ -67,7 +67,7 @@ public class NestAttributesInDexRewriteInvokeSuperTest extends TestBase implemen
 
   @Test
   public void testD8() throws Exception {
-    assumeTrue(parameters.isDexRuntime());
+    parameters.assumeDexRuntime();
     // TODO(b/247047415): Update test when a DEX VM natively supporting nests is added.
     assertFalse(parameters.getApiLevel().getLevel() > 33);
     testForD8()

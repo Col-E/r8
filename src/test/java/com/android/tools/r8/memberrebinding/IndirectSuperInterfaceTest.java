@@ -5,13 +5,15 @@ package com.android.tools.r8.memberrebinding;
 
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.TestBase;
-import com.android.tools.r8.ToolHelper;
+import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.utils.StringUtils;
 import com.google.common.collect.ImmutableList;
 import java.util.List;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameter;
 import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
@@ -129,36 +131,39 @@ public class IndirectSuperInterfaceTest extends TestBase {
     }
   }
 
-  private final Backend backend;
+  private static final String EXPECTED =
+      StringUtils.joinLines(
+          "A::method -> InterfaceA::method",
+          "B::method -> InterfaceB::method",
+          "C::method -> InterfaceC::method",
+          "D::method -> InterfaceD::method");
+
+  @Parameter(0)
+  public TestParameters parameters;
 
   @Parameters(name = "{0}")
-  public static Backend[] setup() {
-    return ToolHelper.getBackends();
-  }
-
-  public IndirectSuperInterfaceTest(Backend backend) {
-    this.backend = backend;
+  public static TestParametersCollection data() {
+    return getTestParameters().withAllRuntimesAndApiLevels().build();
   }
 
   @Test
-  public void test() throws Exception {
-    String expected = StringUtils.joinLines(
-        "A::method -> InterfaceA::method",
-        "B::method -> InterfaceB::method",
-        "C::method -> InterfaceC::method",
-        "D::method -> InterfaceD::method");
-
-    testForJvm()
+  public void testJvm() throws Exception {
+    parameters.assumeJvmTestParameters();
+    testForJvm(parameters)
         .addTestClasspath()
-        .run(TestClass.class)
-        .assertSuccessWithOutput(expected);
+        .run(parameters.getRuntime(), TestClass.class)
+        .assertSuccessWithOutput(EXPECTED);
+  }
 
-    testForR8(backend)
+  @Test
+  public void testR8() throws Exception {
+    testForR8(parameters.getBackend())
         .addProgramClasses(CLASSES)
         .addKeepPackageRules(TestClass.class.getPackage())
         .addKeepMainRule(TestClass.class)
         .enableInliningAnnotations()
-        .run(TestClass.class)
-        .assertSuccessWithOutput(expected);
+        .setMinApi(parameters)
+        .run(parameters.getRuntime(), TestClass.class)
+        .assertSuccessWithOutput(EXPECTED);
   }
 }

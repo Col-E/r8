@@ -4,31 +4,60 @@
 package com.android.tools.r8.reachabilitysensitive;
 
 import com.android.tools.r8.TestBase;
+import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.utils.StringUtils;
+import org.junit.BeforeClass;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameter;
+import org.junit.runners.Parameterized.Parameters;
 import org.objectweb.asm.AnnotationVisitor;
 import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.Label;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 
+@RunWith(Parameterized.class)
 public class ReachabilitySensitiveAndDebugLocalReads extends TestBase {
 
-  @Test
-  public void test() throws Exception {
-    byte[] classdata = Dump.dump();
-    String mainClass = "test.Test";
-    String expected = StringUtils.lines("5");
-    testForJvm()
-        .addProgramClassFileData(classdata)
-        .run(mainClass)
-        .assertSuccessWithOutput(expected);
+  private static final String MAIN_CLASS = "test.Test";
+  private static final String EXPECTED = StringUtils.lines("5");
 
+  private static byte[] classData;
+
+  @Parameter(0)
+  public TestParameters parameters;
+
+  @Parameters(name = "{0}")
+  public static TestParametersCollection data() {
+    return getTestParameters().withAllRuntimesAndApiLevels().build();
+  }
+
+  @BeforeClass
+  public static void setup() {
+    classData = Dump.dump();
+  }
+
+  @Test
+  public void testJvm() throws Exception {
+    parameters.assumeJvmTestParameters();
+    testForJvm(parameters)
+        .addProgramClassFileData(classData)
+        .run(parameters.getRuntime(), MAIN_CLASS)
+        .assertSuccessWithOutput(EXPECTED);
+  }
+
+  @Test
+  public void testD8() throws Exception {
+    parameters.assumeDexRuntime();
     testForD8()
         .release()
-        .addProgramClassFileData(classdata)
-        .run(mainClass)
-        .assertSuccessWithOutput(expected);
+        .addProgramClassFileData(classData)
+        .setMinApi(parameters)
+        .run(parameters.getRuntime(), MAIN_CLASS)
+        .assertSuccessWithOutput(EXPECTED);
   }
 }
 

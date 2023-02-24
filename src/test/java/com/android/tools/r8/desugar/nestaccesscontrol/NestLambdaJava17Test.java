@@ -14,18 +14,14 @@ import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.utils.StringUtils;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import org.junit.Assume;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameter;
 import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
 public class NestLambdaJava17Test extends TestBase {
-
-  public NestLambdaJava17Test(TestParameters parameters) {
-    this.parameters = parameters;
-  }
 
   private static final Path JDK17_JAR =
       Paths.get(ToolHelper.TESTS_BUILD_DIR, "examplesJava17").resolve("nest" + JAR_EXTENSION);
@@ -33,7 +29,8 @@ public class NestLambdaJava17Test extends TestBase {
   private static final String EXPECTED_RESULT =
       StringUtils.lines("printed: inner", "printed from itf: here");
 
-  private final TestParameters parameters;
+  @Parameter(0)
+  public TestParameters parameters;
 
   @Parameters(name = "{0}")
   public static TestParametersCollection data() {
@@ -46,8 +43,8 @@ public class NestLambdaJava17Test extends TestBase {
 
   @Test
   public void testReference() throws Exception {
-    Assume.assumeTrue(parameters.isCfRuntime());
-    testForJvm()
+    parameters.assumeJvmTestParameters();
+    testForJvm(parameters)
         .addProgramFiles(JDK17_JAR)
         .run(parameters.getRuntime(), MAIN)
         .assertSuccessWithOutput(EXPECTED_RESULT);

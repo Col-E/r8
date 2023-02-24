@@ -4,77 +4,111 @@
 
 package com.android.tools.r8.resource;
 
-import com.android.tools.r8.ClassFileConsumer;
-import com.android.tools.r8.CompilationFailedException;
-import com.android.tools.r8.DexIndexedConsumer;
-import com.android.tools.r8.R8Command;
 import com.android.tools.r8.TestBase;
-import com.android.tools.r8.TestBase.Backend;
+import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.ToolHelper;
-import com.android.tools.r8.ToolHelper.ProcessResult;
-import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.FileUtils;
+import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.TestDescriptionWatcher;
-import com.google.common.collect.ImmutableList;
-import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import org.junit.Assert;
 import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameter;
+import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
-public class DataResourceTest {
+public class DataResourceTest extends TestBase {
 
-  private TestBase.Backend backend;
+  private static final String PACKAGE_NAME = "dataresource";
+  private static final String MAIN_CLASS_NAME = PACKAGE_NAME + ".ResourceTest";
+  private static final Path INPUT_JAR =
+      Paths.get(ToolHelper.EXAMPLES_BUILD_DIR, PACKAGE_NAME + FileUtils.JAR_EXTENSION);
+  private static final String EXPECTED_OUTPUT =
+      StringUtils.lines(
+          "LibClass dir: true",
+          "LibClass properties: true",
+          "LibClass property: com.test.lib.LibClass",
+          "LibClass text: this is a text with some content",
+          "- partly matching pattern 123dataresource.lib.LibClass123",
+          "- totally matching pattern dataresource.lib.LibClass and something after",
+          "- matching the package dataresource.lib",
+          "- matching class simple name LibClass",
+          "- or only single element of the package name: lib",
+          "- matching class descriptor dataresource/lib/LibClass",
+          "- matching class full descriptor Ldataresource/lib/LibClass;",
+          "- matching windows path dataresource\\lib\\LibClass",
+          "- matching pattern dataresource.lib.LibClass.",
+          "- matching pattern .dataresource.lib.LibClass",
+          "- matching pattern dataresource.lib.LibClass,",
+          "- matching pattern ,dataresource.lib.LibClass",
+          "- matching pattern =dataresource.lib.LibClass",
+          "- matching pattern dataresource.lib.LibClass=",
+          "- matching pattern dataresource.lib.LibClass/",
+          "- matching pattern /dataresource.lib.LibClass",
+          "- matching pattern ?dataresource.lib.LibClass",
+          "- matching pattern dataresource.lib.LibClass?",
+          "- matching pattern dataresource.lib.LibClass!",
+          "- matching pattern !dataresource.lib.LibClass",
+          "- matching pattern :dataresource.lib.LibClass",
+          "- matching pattern dataresource.lib.LibClass:",
+          "- matching pattern dataresource.lib.LibClass*",
+          "- matching pattern *dataresource.lib.LibClass",
+          "- matching pattern $dataresource.lib.LibClass",
+          "- matching pattern +dataresource.lib.LibClass",
+          "- matching pattern -dataresource.lib.LibClass",
+          "- matching pattern ^dataresource.lib.LibClass",
+          "- matching pattern @dataresource.lib.LibClass",
+          "- matching pattern (dataresource.lib.LibClass",
+          "- matching pattern )dataresource.lib.LibClass",
+          "- matching pattern àdataresource.lib.LibClass",
+          "- matching pattern |dataresource.lib.LibClass",
+          "- matching pattern [dataresource.lib.LibClass",
+          "- matching pattern 'dataresource.lib.LibClass",
+          "- matching pattern \"dataresource.lib.LibClass",
+          "- matching pattern `dataresource.lib.LibClass",
+          "- matching pattern ~dataresource.lib.LibClass",
+          "- matching pattern &dataresource.lib.LibClass",
+          "- matching pattern -dataresource.lib.LibClass",
+          "- matching pattern dataresource.lib.LibClass-",
+          "",
+          "LibClass const string: dataresource.lib.LibClass",
+          "LibClass concat string: dataresource.lib.LibClasscom.test.lib.LibClass",
+          "LibClass field: dataresource.lib.LibClass");
 
-  @Parameterized.Parameters(name = "Backend: {0}")
-  public static Backend[] data() {
-    return ToolHelper.getBackends();
+  @Parameter(0)
+  public TestParameters parameters;
+
+  @Parameters(name = "{0}")
+  public static TestParametersCollection data() {
+    return getTestParameters().withAllRuntimesAndApiLevels().build();
   }
-
-  public DataResourceTest(TestBase.Backend backend) {
-    this.backend = backend;
-  }
-
-  @Rule
-  public TemporaryFolder temp = ToolHelper.getTemporaryFolderForTest();
 
   @Rule
   public TestDescriptionWatcher watcher = new TestDescriptionWatcher();
 
   @Test
-  public void dataResourceTest() throws IOException, CompilationFailedException {
-    String packageName = "dataresource";
-    String mainClassName = packageName + ".ResourceTest";
-    Path inputJar = Paths.get(ToolHelper.EXAMPLES_BUILD_DIR,
-        packageName + FileUtils.JAR_EXTENSION);
+  public void testJvm() throws Exception {
+    parameters.assumeJvmTestParameters();
+    testForJvm(parameters)
+        .addProgramFiles(INPUT_JAR)
+        .run(parameters.getRuntime(), MAIN_CLASS_NAME)
+        .assertSuccessWithOutput(EXPECTED_OUTPUT);
+  }
 
-    ProcessResult referenceResult = ToolHelper.runJava(inputJar, mainClassName);
-
-    assert backend == Backend.DEX || backend == Backend.CF;
-    Path r8Out = temp.getRoot().toPath().resolve("r8out.jar");
-    R8Command.Builder builder =
-        R8Command.builder()
-            .setDisableTreeShaking(true)
-            .setDisableMinification(true)
-            .addProgramFiles(inputJar)
-            .addProguardConfiguration(ImmutableList.of("-keepdirectories"), Origin.unknown())
-            .setProgramConsumer(
-                backend == Backend.DEX
-                    ? new DexIndexedConsumer.ArchiveConsumer(r8Out, true)
-                    : new ClassFileConsumer.ArchiveConsumer(r8Out, true));
-    ToolHelper.runR8(builder.build());
-
-    ProcessResult r8Result;
-    if (backend == Backend.DEX) {
-      r8Result = ToolHelper.runArtRaw(r8Out.toString(), mainClassName);
-    } else {
-      r8Result = ToolHelper.runJava(r8Out, mainClassName);
-    }
-    Assert.assertEquals(referenceResult.stdout, r8Result.stdout);
+  @Test
+  public void dataResourceTest() throws Exception {
+    testForR8(parameters.getBackend())
+        .addProgramFiles(INPUT_JAR)
+        .addKeepRules("-keepdirectories")
+        .addDontObfuscate()
+        .addDontShrink()
+        .setMinApi(parameters)
+        .compile()
+        .run(parameters.getRuntime(), MAIN_CLASS_NAME)
+        .assertSuccessWithOutput(EXPECTED_OUTPUT);
   }
 }

@@ -10,7 +10,7 @@ import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.TestBase;
-import com.android.tools.r8.ToolHelper;
+import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.StringUtils;
@@ -22,6 +22,7 @@ import java.util.List;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameter;
 import org.junit.runners.Parameterized.Parameters;
 
 @NeverClassInline
@@ -68,18 +69,17 @@ public class IfRuleWithVerticalClassMerging extends TestBase {
   private static final List<Class<?>> CLASSES =
       ImmutableList.of(A.class, B.class, C.class, D.class, Main.class);
 
-  private final Backend backend;
-  private final boolean enableVerticalClassMerging;
+  @Parameter(0)
+  public TestParameters parameters;
 
-  public IfRuleWithVerticalClassMerging(Backend backend, boolean enableVerticalClassMerging) {
-    this.backend = backend;
-    this.enableVerticalClassMerging = enableVerticalClassMerging;
-  }
+  @Parameter(1)
+  public boolean enableVerticalClassMerging;
 
-  @Parameters(name = "Backend: {0}, vertical class merging: {1}")
+  @Parameters(name = "{0}, vertical class merging: {1}")
   public static Collection<Object[]> data() {
     // We don't run this on Proguard, as Proguard does not merge A into B.
-    return buildParameters(ToolHelper.getBackends(), BooleanUtils.values());
+    return buildParameters(
+        getTestParameters().withAllRuntimesAndApiLevels().build(), BooleanUtils.values());
   }
 
   private void configure(InternalOptions options) {
@@ -124,13 +124,14 @@ public class IfRuleWithVerticalClassMerging extends TestBase {
 
   private void runTestWithProguardConfig(String config) throws Exception {
     CodeInspector inspector =
-        testForR8(backend)
+        testForR8(parameters.getBackend())
             .addProgramClasses(CLASSES)
             .addKeepMainRule(Main.class)
             .addKeepRules(config)
             .enableNeverClassInliningAnnotations()
             .addOptionsModification(this::configure)
-            .run(Main.class)
+            .setMinApi(parameters)
+            .run(parameters.getRuntime(), Main.class)
             .assertSuccessWithOutput("123456")
             .inspector();
 

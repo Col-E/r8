@@ -8,6 +8,7 @@ import static com.android.tools.r8.utils.FileUtils.DEX_EXTENSION;
 import static com.android.tools.r8.utils.FileUtils.MODULE_INFO_CLASS;
 
 import com.android.tools.r8.ByteDataView;
+import com.android.tools.r8.DataDirectoryResource;
 import com.android.tools.r8.DataEntryResource;
 import com.android.tools.r8.ProgramResource;
 import com.android.tools.r8.ResourceException;
@@ -52,13 +53,17 @@ public class ZipUtils {
 
   public static void writeResourcesToZip(
       List<ProgramResource> resources,
-      Set<DataEntryResource> dataResources,
+      Set<DataDirectoryResource> dataDirectoryResources,
+      Set<DataEntryResource> dataEntryResources,
       Closer closer,
       ZipOutputStream out)
       throws IOException, ResourceException {
-    for (DataEntryResource dataResource : dataResources) {
-      String entryName = dataResource.getName();
-      byte[] bytes = ByteStreams.toByteArray(closer.register(dataResource.getByteStream()));
+    for (DataDirectoryResource dataDirectoryResource : dataDirectoryResources) {
+      writeToZipStream(out, dataDirectoryResource.getName(), new byte[0], ZipEntry.DEFLATED);
+    }
+    for (DataEntryResource dataEntryResource : dataEntryResources) {
+      String entryName = dataEntryResource.getName();
+      byte[] bytes = ByteStreams.toByteArray(closer.register(dataEntryResource.getByteStream()));
       writeToZipStream(
           out,
           entryName,

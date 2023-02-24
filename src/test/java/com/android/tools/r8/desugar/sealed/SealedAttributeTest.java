@@ -40,7 +40,7 @@ public class SealedAttributeTest extends TestBase {
   @Test
   public void testJvm() throws Exception {
     assumeTrue(parameters.isCfRuntime() && parameters.asCfRuntime().isNewerThanOrEqual(CfVm.JDK17));
-    testForJvm()
+    testForJvm(parameters)
         .addRunClasspathFiles(Sealed.jar())
         .run(parameters.getRuntime(), Sealed.Main.typeName())
         .assertSuccessWithOutput(EXPECTED);

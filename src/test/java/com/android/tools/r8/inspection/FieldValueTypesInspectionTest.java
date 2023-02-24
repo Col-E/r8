@@ -47,7 +47,7 @@ public class FieldValueTypesInspectionTest extends TestBase {
   @Test
   public void testD8() throws Exception {
     if (parameters.isCfRuntime()) {
-      testForJvm()
+      testForJvm(parameters)
           .addProgramClasses(TestClass.class)
           .run(parameters.getRuntime(), TestClass.class)
           .assertSuccessWithOutput(EXPECTED);

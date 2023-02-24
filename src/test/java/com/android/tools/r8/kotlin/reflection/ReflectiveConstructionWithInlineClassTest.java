@@ -4,7 +4,6 @@
 
 package com.android.tools.r8.kotlin.reflection;
 
-import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.KotlinCompilerTool.KotlinCompilerVersion;
 import com.android.tools.r8.KotlinTestBase;
@@ -63,8 +62,8 @@ public class ReflectiveConstructionWithInlineClassTest extends KotlinTestBase {
 
   @Test
   public void testCf() throws Exception {
-    assumeTrue(parameters.isCfRuntime());
-    testForJvm()
+    parameters.assumeJvmTestParameters();
+    testForJvm(parameters)
         .addProgramFiles(compiledJars.getForConfiguration(kotlinc, targetVersion))
         .addProgramFiles(kotlinc.getKotlinStdlibJar())
         .addProgramFiles(kotlinc.getKotlinReflectJar())
@@ -75,8 +74,8 @@ public class ReflectiveConstructionWithInlineClassTest extends KotlinTestBase {
 
   @Test
   public void testD8() throws Exception {
-    assumeTrue(parameters.isDexRuntime());
-    testForD8(parameters.getBackend())
+    parameters.assumeDexRuntime();
+    testForD8()
         .addProgramFiles(compiledJars.getForConfiguration(kotlinc, targetVersion))
         .addProgramFiles(kotlinc.getKotlinStdlibJar())
         .addProgramFiles(kotlinc.getKotlinReflectJar())

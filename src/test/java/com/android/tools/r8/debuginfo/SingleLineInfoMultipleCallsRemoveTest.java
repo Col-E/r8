@@ -14,33 +14,31 @@ import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.TestRuntime.CfRuntime;
 import com.android.tools.r8.naming.retrace.StackTrace;
-import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameter;
 import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
 public class SingleLineInfoMultipleCallsRemoveTest extends TestBase {
 
-  private final TestParameters parameters;
+  private static StackTrace expectedStackTrace;
+
+  @Parameter(0)
+  public TestParameters parameters;
 
   @Parameters(name = "{0}")
   public static TestParametersCollection data() {
     return getTestParameters().withAllRuntimesAndApiLevels().build();
   }
 
-  public SingleLineInfoMultipleCallsRemoveTest(TestParameters parameters) {
-    this.parameters = parameters;
-  }
-
-  public StackTrace expectedStackTrace;
-
-  @Before
-  public void setup() throws Exception {
+  @BeforeClass
+  public static void setup() throws Exception {
     // Get the expected stack trace by running on the JVM.
     expectedStackTrace =
-        testForJvm()
+        testForJvm(getStaticTemp())
             .addTestClasspath()
             .run(CfRuntime.getSystemRuntime(), Main.class)
             .assertFailureWithErrorThatThrows(NullPointerException.class)

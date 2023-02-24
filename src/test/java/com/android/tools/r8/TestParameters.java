@@ -190,6 +190,10 @@ public class TestParameters {
     return runtime.toString();
   }
 
+  public void assertCfRuntime() {
+    assertTrue(runtime.isCf());
+  }
+
   public void assertNoneRuntime() {
     assertEquals(NoneRuntime.getInstance(), runtime);
   }
@@ -208,7 +212,25 @@ public class TestParameters {
     return this;
   }
 
+  public TestParameters assumeIsOrSimulateNoneRuntime() {
+    assumeTrue(isOrSimulateNoneRuntime());
+    return this;
+  }
+
+  public boolean isJvmTestParameters() {
+    if (isCfRuntime()) {
+      return apiLevel == null || representativeApiLevelForRuntime;
+    }
+    return false;
+  }
+
   public TestParameters assumeJvmTestParameters() {
+    assumeCfRuntime();
+    assumeTrue(apiLevel == null || representativeApiLevelForRuntime);
+    return this;
+  }
+
+  public TestParameters assumeProguardTestParameters() {
     assumeCfRuntime();
     assumeTrue(apiLevel == null || representativeApiLevelForRuntime);
     return this;

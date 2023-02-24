@@ -45,7 +45,8 @@ public class RecordReflectionTest extends TestBase {
 
   @Test
   public void testJvm() throws Exception {
-    testForJvm()
+    parameters.assumeJvmTestParameters();
+    testForJvm(parameters)
         .addProgramClassFileData(PROGRAM_DATA)
         .run(parameters.getRuntime(), MAIN_TYPE)
         .assertSuccessWithOutput(EXPECTED_RESULT);

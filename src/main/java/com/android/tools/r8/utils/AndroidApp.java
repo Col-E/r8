@@ -331,37 +331,6 @@ public class AndroidApp {
     return new Pair<>(dataDirectoryResources, dataEntryResources);
   }
 
-  @Deprecated
-  public Set<DataEntryResource> getDataEntryResourcesForTesting() throws ResourceException {
-    Set<DataEntryResource> out = new TreeSet<>(Comparator.comparing(DataResource::getName));
-    for (ProgramResourceProvider programResourceProvider : getProgramResourceProviders()) {
-      DataResourceProvider dataResourceProvider = programResourceProvider.getDataResourceProvider();
-      if (dataResourceProvider != null) {
-        dataResourceProvider.accept(
-            new Visitor() {
-
-              @Override
-              public void visit(DataDirectoryResource directory) {
-                // Ignore.
-              }
-
-              @Override
-              public void visit(DataEntryResource file) {
-                try {
-                  byte[] bytes = ByteStreams.toByteArray(file.getByteStream());
-                  DataEntryResource copy =
-                      DataEntryResource.fromBytes(bytes, file.getName(), file.getOrigin());
-                  out.add(copy);
-                } catch (IOException | ResourceException e) {
-                  throw new RuntimeException(e);
-                }
-              }
-            });
-      }
-    }
-    return out;
-  }
-
   /** Get program resource providers. */
   public List<ProgramResourceProvider> getProgramResourceProviders() {
     return programResourceProviders;
@@ -477,16 +446,26 @@ public class AndroidApp {
   public void writeToZipForTesting(Path archive, OutputMode outputMode) throws IOException {
     try {
       if (outputMode == OutputMode.DexIndexed) {
+        Pair<Set<DataDirectoryResource>, Set<DataEntryResource>> dataResourcesForTesting =
+            getDataResourcesForTesting();
         DexIndexedConsumer.ArchiveConsumer.writeResourcesForTesting(
-            archive, getDexProgramResourcesForTesting(), getDataEntryResourcesForTesting());
+            archive,
+            getDexProgramResourcesForTesting(),
+            dataResourcesForTesting.getFirst(),
+            dataResourcesForTesting.getSecond());
       } else if (outputMode == OutputMode.DexFilePerClassFile
           || outputMode == OutputMode.DexFilePerClass) {
         List<ProgramResource> resources = getDexProgramResourcesForTesting();
         DexFilePerClassFileConsumer.ArchiveConsumer.writeResourcesForTesting(
             archive, resources, programResourcesMainDescriptor);
       } else if (outputMode == OutputMode.ClassFile) {
+        Pair<Set<DataDirectoryResource>, Set<DataEntryResource>> dataResourcesForTesting =
+            getDataResourcesForTesting();
         ClassFileConsumer.ArchiveConsumer.writeResourcesForTesting(
-            archive, getClassProgramResourcesForTesting(), getDataEntryResourcesForTesting());
+            archive,
+            getClassProgramResourcesForTesting(),
+            dataResourcesForTesting.getFirst(),
+            dataResourcesForTesting.getSecond());
       } else {
         throw new Unreachable("Unsupported output-mode for writing: " + outputMode);
       }

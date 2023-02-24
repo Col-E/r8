@@ -3,45 +3,49 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.jasmin;
 
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
-import com.android.tools.r8.ToolHelper;
+import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.jasmin.JasminBuilder.ClassFileVersion;
-import com.android.tools.r8.naming.MemberNaming.MethodSignature;
-import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.codeinspector.CfInstructionSubject;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
-import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.InstructionSubject;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import com.google.common.collect.ImmutableList;
-import java.util.Collections;
 import java.util.Iterator;
+import java.util.List;
+import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameter;
+import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
 public class Regress65432240 extends JasminTestBase {
 
-  private Backend backend;
+  private static final String EXPECTED_OUTPUT = "00";
 
-  @Parameterized.Parameters(name = "Backend: {0}")
-  public static Backend[] data() {
-    return ToolHelper.getBackends();
+  private static List<byte[]> programClassFileData;
+
+  @Parameter(0)
+  public TestParameters parameters;
+
+  @Parameters(name = "{0}")
+  public static TestParametersCollection data() {
+    return getTestParameters().withAllRuntimesAndApiLevels().build();
   }
 
-  public Regress65432240(Backend backend) {
-    this.backend = backend;
-  }
-
-  @Test
-  public void testConstantNotIntoEntryBlock() throws Exception {
+  @BeforeClass
+  public static void setup() throws Exception {
     JasminBuilder builder = new JasminBuilder(ClassFileVersion.JDK_1_4);
     JasminBuilder.ClassBuilder clazz = builder.addClass("Test");
 
-    MethodSignature signature = clazz.addStaticMethod("test1", ImmutableList.of("I"), "I",
+    clazz.addStaticMethod(
+        "test1",
+        ImmutableList.of("I"),
+        "I",
         ".limit stack 3",
         ".limit locals 2",
         "  iload 0",
@@ -73,41 +77,45 @@ public class Regress65432240 extends JasminTestBase {
         "  invokevirtual java/io/PrintStream/print(Ljava/lang/String;)V",
         "  return");
 
-    String expected = runOnJava(builder, clazz.name);
+    programClassFileData = builder.buildClasses();
+  }
 
-    AndroidApp originalApplication = builder.build();
-    AndroidApp processedApplication =
-        ToolHelper.runR8(
-            ToolHelper.prepareR8CommandBuilder(originalApplication, emptyConsumer(backend))
-                .addLibraryFiles(runtimeJar(backend))
-                .setDisableTreeShaking(true)
-                .setDisableMinification(true)
-                .build());
+  @Test
+  public void testJvm() throws Exception {
+    parameters.assumeJvmTestParameters();
+    testForJvm(parameters)
+        .addProgramClassFileData(programClassFileData)
+        .run(parameters.getRuntime(), "Test")
+        .assertSuccessWithOutput(EXPECTED_OUTPUT);
+  }
 
-    CodeInspector inspector = new CodeInspector(processedApplication);
-    ClassSubject inspectedClass = inspector.clazz(clazz.name);
-    MethodSubject method = inspectedClass.method(signature);
-    assertTrue(method.isPresent());
-    Iterator<InstructionSubject> iterator = method.iterateInstructions();
-    InstructionSubject instruction = null;
-    boolean found = false;
-    while (iterator.hasNext()) {
-      instruction = iterator.next();
-      if (!(instruction instanceof CfInstructionSubject)
-          || !((CfInstructionSubject) instruction).isLoad()) {
-        found = true;
-        break;
-      }
-    }
-    assertTrue(found && instruction.isIfNez());
-
-    String result;
-    if (backend == Backend.DEX) {
-      result = runOnArt(processedApplication, clazz.name);
-    } else {
-      assert backend == Backend.CF;
-      result = runOnJava(processedApplication, clazz.name, Collections.emptyList());
-    }
-    assertEquals(expected, result);
+  @Test
+  public void testConstantNotIntoEntryBlock() throws Exception {
+    testForR8(parameters.getBackend())
+        .addProgramClassFileData(programClassFileData)
+        .addDontObfuscate()
+        .addDontShrink()
+        .setMinApi(parameters)
+        .compile()
+        .inspect(
+            inspector -> {
+              ClassSubject inspectedClass = inspector.clazz("Test");
+              MethodSubject method = inspectedClass.uniqueMethodWithOriginalName("test1");
+              assertTrue(method.isPresent());
+              Iterator<InstructionSubject> iterator = method.iterateInstructions();
+              InstructionSubject instruction = null;
+              boolean found = false;
+              while (iterator.hasNext()) {
+                instruction = iterator.next();
+                if (!(instruction instanceof CfInstructionSubject)
+                    || !((CfInstructionSubject) instruction).isLoad()) {
+                  found = true;
+                  break;
+                }
+              }
+              assertTrue(found && instruction.isIfNez());
+            })
+        .run(parameters.getRuntime(), "Test")
+        .assertSuccessWithOutput(EXPECTED_OUTPUT);
   }
 }

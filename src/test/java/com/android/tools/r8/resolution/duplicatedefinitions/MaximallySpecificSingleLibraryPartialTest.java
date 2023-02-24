@@ -111,8 +111,8 @@ public class MaximallySpecificSingleLibraryPartialTest extends TestBase {
 
   @Test
   public void testJvm() throws Exception {
-    assumeTrue(parameters.isCfRuntime());
-    testForJvm()
+    parameters.assumeJvmTestParameters();
+    testForJvm(parameters)
         .addRunClasspathFiles(libraryClasses)
         .addProgramClasses(Main.class)
         .addProgramClassFileData(getIProgram())
@@ -122,7 +122,7 @@ public class MaximallySpecificSingleLibraryPartialTest extends TestBase {
 
   @Test
   public void testD8() throws Exception {
-    assumeTrue(parameters.isDexRuntime());
+    parameters.assumeDexRuntime();
     // TODO(b/230289235): Extend resolution to support multiple definition results.
     runTest(testForD8(parameters.getBackend()))
         .assertFailureWithErrorThatThrowsIf(

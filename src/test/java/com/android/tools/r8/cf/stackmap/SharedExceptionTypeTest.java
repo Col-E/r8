@@ -4,36 +4,33 @@
 
 package com.android.tools.r8.cf.stackmap;
 
-import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
-import com.android.tools.r8.utils.AndroidApiLevel;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameter;
 import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
 public class SharedExceptionTypeTest extends TestBase {
 
-  private final TestParameters parameters;
-  private final String EXPECTED = "Hello World!";
+  private static final String EXPECTED = "Hello World!";
+
+  @Parameter(0)
+  public TestParameters parameters;
 
   @Parameters(name = "{0}")
   public static TestParametersCollection data() {
-    return getTestParameters().withAllRuntimes().build();
-  }
-
-  public SharedExceptionTypeTest(TestParameters parameters) {
-    this.parameters = parameters;
+    return getTestParameters().withAllRuntimes().withMinimumApiLevel().build();
   }
 
   @Test
   public void testJvm() throws Exception {
-    assumeTrue(parameters.isCfRuntime());
-    testForJvm()
+    parameters.assumeJvmTestParameters();
+    testForJvm(parameters)
         .addInnerClasses(SharedExceptionTypeTest.class)
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines(EXPECTED);
@@ -41,10 +38,10 @@ public class SharedExceptionTypeTest extends TestBase {
 
   @Test
   public void testD8() throws Exception {
-    assumeTrue(parameters.isDexRuntime());
-    testForD8(parameters.getBackend())
+    parameters.assumeDexRuntime();
+    testForD8()
         .addInnerClasses(SharedExceptionTypeTest.class)
-        .setMinApi(AndroidApiLevel.B)
+        .setMinApi(parameters)
         .addOptionsModification(options -> options.testing.readInputStackMaps = true)
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines(EXPECTED);

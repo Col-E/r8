@@ -82,7 +82,7 @@ public class NestAttributesInDexTest extends NestAttributesInDexTestBase {
         parameters.isCfRuntime()
             && isRuntimeWithNestSupport(parameters.asCfRuntime())
             && parameters.getApiLevel().isEqualTo(AndroidApiLevel.B));
-    testForJvm()
+    testForJvm(parameters)
         .addProgramClassFileData(getTransformedClasses())
         .addProgramClasses(OtherHost.class)
         .run(parameters.getRuntime(), TestClass.class)
@@ -108,8 +108,8 @@ public class NestAttributesInDexTest extends NestAttributesInDexTestBase {
 
   @Test
   public void testD8() throws Exception {
-    assumeTrue(parameters.isDexRuntime());
-    testForD8(parameters.getBackend())
+    parameters.assumeDexRuntime();
+    testForD8()
         .addProgramClassFileData(getTransformedClasses())
         .addProgramClasses(OtherHost.class)
         .setMinApi(parameters)

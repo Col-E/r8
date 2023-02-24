@@ -6,23 +6,21 @@ package com.android.tools.r8.ir.optimize.checkcast;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.TestBase;
-import com.android.tools.r8.ToolHelper;
-import com.android.tools.r8.ToolHelper.ProcessResult;
-import com.android.tools.r8.utils.AndroidApp;
+import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.InstructionSubject;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Streams;
-import java.util.List;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameter;
+import org.junit.runners.Parameterized.Parameters;
 
 class NullCheckCastTestMain {
   public static void main(String[] args) {
@@ -38,36 +36,38 @@ class SubClass extends Base {
 
 @RunWith(Parameterized.class)
 public class NullCheckCastTest extends TestBase {
-  private final Backend backend;
 
-  @Parameterized.Parameters(name = "backend: {0}")
-  public static Backend[] data() {
-    return ToolHelper.getBackends();
-  }
+  private static final String EXPECTED_OUTPUT = "null";
 
-  public NullCheckCastTest(Backend backend) {
-    this.backend = backend;
+  @Parameter(0)
+  public TestParameters parameters;
+
+  @Parameters(name = "{0}")
+  public static TestParametersCollection data() {
+    return getTestParameters().withAllRuntimesAndApiLevels().build();
   }
 
   @Test
-  public void runTest() throws Exception {
-    AndroidApp app = readClasses(Base.class, SubClass.class, NullCheckCastTestMain.class);
-    AndroidApp processedApp = compileWithR8(
-        app, keepMainProguardConfiguration(NullCheckCastTestMain.class), null, backend);
+  public void testJvm() throws Exception {
+    parameters.assumeJvmTestParameters();
+    testForJvm(parameters)
+        .addProgramClasses(Base.class, SubClass.class, NullCheckCastTestMain.class)
+        .run(parameters.getRuntime(), NullCheckCastTestMain.class)
+        .assertSuccessWithOutputLines(EXPECTED_OUTPUT);
+  }
 
-    List<byte[]> classBytes = ImmutableList.of(
-        ToolHelper.getClassAsBytes(Base.class),
-        ToolHelper.getClassAsBytes(SubClass.class),
-        ToolHelper.getClassAsBytes(NullCheckCastTestMain.class)
-    );
-    String main = NullCheckCastTestMain.class.getCanonicalName();
-    ProcessResult javaOutput = runOnJavaRaw(main, classBytes, ImmutableList.of());
-    assertEquals(0, javaOutput.exitCode);
-    ProcessResult output = runOnVMRaw(processedApp, main, backend);
-    assertEquals(0, output.exitCode);
-    assertEquals(javaOutput.stdout.trim(), output.stdout.trim());
+  @Test
+  public void testR8() throws Exception {
+    CodeInspector inspector =
+        testForR8(parameters.getBackend())
+            .addProgramClasses(Base.class, SubClass.class, NullCheckCastTestMain.class)
+            .addKeepMainRule(NullCheckCastTestMain.class)
+            .setMinApi(parameters)
+            .compile()
+            .run(parameters.getRuntime(), NullCheckCastTestMain.class)
+            .assertSuccessWithOutputLines(EXPECTED_OUTPUT)
+            .inspector();
 
-    CodeInspector inspector = new CodeInspector(processedApp);
     ClassSubject mainSubject = inspector.clazz(NullCheckCastTestMain.class);
     assertThat(mainSubject, isPresent());
     MethodSubject mainMethod = mainSubject.mainMethod();

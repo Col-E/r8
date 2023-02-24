@@ -29,6 +29,7 @@ import java.util.Collection;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameter;
 import org.junit.runners.Parameterized.Parameters;
 
 /** Regression test for compatibility with Proguard -keepclassmember{s,names}. b/119076934. */
@@ -58,17 +59,15 @@ public class CompatKeepClassMemberNamesTestRunner extends TestBase {
     return getTestParameters().withCfRuntimes().build();
   }
 
-  private final TestParameters parameters;
-
-  public CompatKeepClassMemberNamesTestRunner(TestParameters parameters) {
-    this.parameters = parameters;
-  }
+  @Parameter(0)
+  public TestParameters parameters;
 
   // Test reference implementation.
 
   @Test
   public void testJvm() throws Exception {
-    testForJvm()
+    parameters.assumeJvmTestParameters();
+    testForJvm(parameters)
         .addProgramClasses(CLASSES)
         .run(parameters.getRuntime(), MAIN_CLASS)
         .assertSuccessWithOutput(EXPECTED);

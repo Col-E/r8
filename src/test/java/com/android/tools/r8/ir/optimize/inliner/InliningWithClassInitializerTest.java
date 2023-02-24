@@ -12,28 +12,52 @@ import static org.hamcrest.core.IsNot.not;
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.NoVerticalClassMerging;
 import com.android.tools.r8.TestBase;
+import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameter;
+import org.junit.runners.Parameterized.Parameters;
 
+@RunWith(Parameterized.class)
 public class InliningWithClassInitializerTest extends TestBase {
 
+  private static final String EXPECTED_OUTPUT =
+      StringUtils.lines("In A.<clinit>()", "In B.<clinit>()", "In B.other()");
+
+  @Parameter(0)
+  public TestParameters parameters;
+
+  @Parameters(name = "{0}")
+  public static TestParametersCollection data() {
+    return getTestParameters().withAllRuntimesAndApiLevels().build();
+  }
+
   @Test
-  public void test() throws Exception {
-    String expectedOutput = StringUtils.lines("In A.<clinit>()", "In B.<clinit>()", "In B.other()");
+  public void testJvm() throws Exception {
+    parameters.assumeJvmTestParameters();
+    testForJvm(parameters)
+        .addTestClasspath()
+        .run(parameters.getRuntime(), TestClass.class)
+        .assertSuccessWithOutput(EXPECTED_OUTPUT);
+  }
 
-    testForJvm().addTestClasspath().run(TestClass.class).assertSuccessWithOutput(expectedOutput);
-
+  @Test
+  public void testR8() throws Exception {
     CodeInspector inspector =
-        testForR8(Backend.DEX)
+        testForR8(parameters.getBackend())
             .addInnerClasses(InliningWithClassInitializerTest.class)
             .addKeepMainRule(TestClass.class)
             .enableInliningAnnotations()
             .enableNoVerticalClassMergingAnnotations()
-            .run(TestClass.class)
-            .assertSuccessWithOutput(expectedOutput)
+            .setMinApi(parameters)
+            .run(parameters.getRuntime(), TestClass.class)
+            .assertSuccessWithOutput(EXPECTED_OUTPUT)
             .inspector();
 
     ClassSubject classA = inspector.clazz(A.class);

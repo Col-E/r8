@@ -51,8 +51,8 @@ public class NestAttributesInDexRewriteInvokeInterfaceTest extends TestBase impl
 
   @Test
   public void testRuntime() throws Exception {
-    assumeTrue(parameters.isCfRuntime());
-    testForJvm()
+    parameters.assumeJvmTestParameters();
+    testForJvm(parameters)
         .addProgramClassFileData(
             dumpHost(),
             dumpMember1(),
@@ -75,7 +75,7 @@ public class NestAttributesInDexRewriteInvokeInterfaceTest extends TestBase impl
 
   @Test
   public void testD8() throws Exception {
-    assumeTrue(parameters.isDexRuntime());
+    parameters.assumeDexRuntime();
     // TODO(b/247047415): Update test when a DEX VM natively supporting nests is added.
     assertFalse(parameters.getApiLevel().getLevel() > 33);
     testForD8()

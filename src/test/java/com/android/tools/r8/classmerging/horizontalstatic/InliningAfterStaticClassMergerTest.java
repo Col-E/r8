@@ -21,6 +21,7 @@ import java.util.stream.Collectors;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameter;
 import org.junit.runners.Parameterized.Parameters;
 
 /**
@@ -29,6 +30,9 @@ import org.junit.runners.Parameterized.Parameters;
  */
 @RunWith(Parameterized.class)
 public class InliningAfterStaticClassMergerTest extends TestBase {
+
+  private static final String EXPECTED_OUTPUT =
+      StringUtils.joinLines("StaticMergeCandidateA.m()", "StaticMergeCandidateB.m()");
 
   // A class that implements a library class.
   static class StaticMergeCandidateA implements Cloneable {
@@ -60,11 +64,8 @@ public class InliningAfterStaticClassMergerTest extends TestBase {
     }
   }
 
-  private final TestParameters parameters;
-
-  public InliningAfterStaticClassMergerTest(TestParameters parameters) {
-    this.parameters = parameters;
-  }
+  @Parameter(0)
+  public TestParameters parameters;
 
   @Parameters(name = "{0}")
   public static TestParametersCollection data() {
@@ -72,12 +73,16 @@ public class InliningAfterStaticClassMergerTest extends TestBase {
   }
 
   @Test
+  public void testJvm() throws Exception {
+    parameters.assumeJvmTestParameters();
+    testForJvm(parameters)
+        .addTestClasspath()
+        .run(parameters.getRuntime(), TestClass.class)
+        .assertSuccessWithOutput(EXPECTED_OUTPUT);
+  }
+
+  @Test
   public void testMethodsAreInlined() throws Exception {
-    String expected =
-        StringUtils.joinLines("StaticMergeCandidateA.m()", "StaticMergeCandidateB.m()");
-
-    testForJvm().addTestClasspath().run(TestClass.class).assertSuccessWithOutput(expected);
-
     CodeInspector inspector =
         testForR8(parameters.getBackend())
             .addProgramClasses(
@@ -89,7 +94,7 @@ public class InliningAfterStaticClassMergerTest extends TestBase {
             .addDontObfuscate()
             .setMinApi(parameters)
             .run(parameters.getRuntime(), TestClass.class)
-            .assertSuccessWithOutput(expected)
+            .assertSuccessWithOutput(EXPECTED_OUTPUT)
             .inspector();
 
     // Check that StaticMergeCandidateB has been removed.

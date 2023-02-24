@@ -57,7 +57,7 @@ public class NestDependencyTest extends TestBase {
   @Test
   public void test() throws Exception {
     if (parameters.isCfRuntime()) {
-      testForJvm()
+      testForJvm(parameters)
           .addProgramClassFileData(inNest(Host.class), inNest(Member1.class), inNest(Member2.class))
           .addProgramClasses(TestClass.class)
           .run(parameters.getRuntime(), TestClass.class)

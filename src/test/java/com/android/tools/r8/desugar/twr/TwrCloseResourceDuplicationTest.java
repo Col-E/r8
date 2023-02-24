@@ -84,8 +84,8 @@ public class TwrCloseResourceDuplicationTest extends TestBase {
 
   @Test
   public void testJvm() throws Exception {
-    assumeTrue(parameters.isCfRuntime());
-    testForJvm()
+    parameters.assumeJvmTestParameters();
+    testForJvm(parameters)
         .addProgramFiles(getProgramInputs())
         .run(parameters.getRuntime(), MAIN.typeName(), getZipFile())
         .assertSuccessWithOutput(EXPECTED);

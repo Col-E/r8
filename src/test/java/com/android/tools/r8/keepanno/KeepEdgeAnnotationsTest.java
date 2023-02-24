@@ -115,7 +115,7 @@ public class KeepEdgeAnnotationsTest extends TestBase {
     // The source is added as a classpath name but not part of the compilation unit output.
     assertThat(inspector.clazz(source), isAbsent());
 
-    testForJvm()
+    testForJvm(parameters)
         .addProgramClassesAndInnerClasses(source)
         .addProgramFiles(out)
         .run(parameters.getRuntime(), source)
@@ -132,7 +132,7 @@ public class KeepEdgeAnnotationsTest extends TestBase {
             .addClasspathFiles(KEEP_ANNO_PATH)
             .addClasspathFiles(ToolHelper.DEPS)
             .compile();
-    testForJvm()
+    testForJvm(parameters)
         .addProgramFiles(out)
         .run(parameters.getRuntime(), source)
         .assertSuccessWithOutput(getExpected())

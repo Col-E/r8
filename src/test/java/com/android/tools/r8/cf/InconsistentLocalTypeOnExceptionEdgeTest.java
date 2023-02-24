@@ -41,7 +41,7 @@ public class InconsistentLocalTypeOnExceptionEdgeTest extends JasminTestBase {
     List<byte[]> classFileData = getProgramClassFileData();
     String main = "Main";
     if (parameters.isCfRuntime()) {
-      testForJvm()
+      testForJvm(parameters)
           .addProgramClassFileData(classFileData)
           .run(parameters.getRuntime(), main)
           .assertFailureWithErrorThatThrows(VerifyError.class);

@@ -11,9 +11,11 @@ import static org.hamcrest.core.IsNot.not;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
-import com.android.tools.r8.ToolHelper;
+import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.shaking.forceproguardcompatibility.ProguardCompatibilityTestBase;
 import com.android.tools.r8.smali.ConstantFoldingTest.TriConsumer;
+import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.google.common.collect.ImmutableList;
@@ -21,6 +23,8 @@ import java.util.List;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameter;
+import org.junit.runners.Parameterized.Parameters;
 
 class SuperClass {
 
@@ -98,15 +102,12 @@ class MainGetStaticFieldInitialized {
 @RunWith(Parameterized.class)
 public class ImplicitlyKeptDefaultConstructorTest extends ProguardCompatibilityTestBase {
 
-  private Backend backend;
+  @Parameter(0)
+  public TestParameters parameters;
 
-  @Parameterized.Parameters(name = "Backend: {0}")
-  public static Backend[] data() {
-    return ToolHelper.getBackends();
-  }
-
-  public ImplicitlyKeptDefaultConstructorTest(Backend backend) {
-    this.backend = backend;
+  @Parameters(name = "{0}")
+  public static TestParametersCollection data() {
+    return getTestParameters().withDefaultRuntimes().withApiLevel(AndroidApiLevel.B).build();
   }
 
   private void checkPresentWithDefaultConstructor(ClassSubject clazz) {
@@ -152,7 +153,7 @@ public class ImplicitlyKeptDefaultConstructorTest extends ProguardCompatibilityT
       TriConsumer<Class, List<Class<?>>, CodeInspector> proguardChecker)
       throws Exception {
     CodeInspector inspector =
-        inspectR8CompatResult(programClasses, proguardConfiguration, null, backend);
+        inspectR8CompatResult(programClasses, proguardConfiguration, null, parameters.getBackend());
     r8Checker.accept(mainClass, programClasses, inspector);
 
     if (isRunProguard()) {

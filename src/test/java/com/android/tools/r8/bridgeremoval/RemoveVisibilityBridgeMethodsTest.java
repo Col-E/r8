@@ -95,7 +95,7 @@ public class RemoveVisibilityBridgeMethodsTest extends TestBase {
 
     // Run input program on java.
     if (parameters.isCfRuntime()) {
-      testForJvm()
+      testForJvm(parameters)
           .addProgramClassFileData(programClassFileData)
           .run(parameters.getRuntime(), mainClass.name)
           .assertSuccessWithOutputLines("Hello World");

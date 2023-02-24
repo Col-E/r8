@@ -69,7 +69,7 @@ public class MetadataRewriteInExtensionPropertyTest extends KotlinMetadataTestBa
             .setOutputPath(temp.newFolder().toPath())
             .compile();
 
-    testForJvm()
+    testForJvm(parameters)
         .addRunClasspathFiles(kotlinc.getKotlinStdlibJar(), libJar)
         .addClasspath(output)
         .run(parameters.getRuntime(), PKG + ".extension_property_app.MainKt")
@@ -112,7 +112,7 @@ public class MetadataRewriteInExtensionPropertyTest extends KotlinMetadataTestBa
       return;
     }
 
-    testForJvm()
+    testForJvm(parameters)
         .addRunClasspathFiles(kotlinc.getKotlinStdlibJar(), libJar)
         .addClasspath(output)
         .run(parameters.getRuntime(), PKG + ".extension_property_app.MainKt")
@@ -178,7 +178,7 @@ public class MetadataRewriteInExtensionPropertyTest extends KotlinMetadataTestBa
       return;
     }
 
-    testForJvm()
+    testForJvm(parameters)
         .addRunClasspathFiles(kotlinc.getKotlinStdlibJar(), libJar)
         .addClasspath(output)
         .run(parameters.getRuntime(), PKG + ".extension_property_app.MainKt")

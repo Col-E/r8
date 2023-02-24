@@ -369,7 +369,7 @@ public class RemoveAssertionsTest extends TestBase {
 
   @Test
   public void testD8() throws Exception {
-    assumeTrue(parameters.isDexRuntime());
+    parameters.assumeDexRuntime();
     checkResultWithAssertionsInactive(
         compileD8(builder -> builder.setCompileTimeDisable().setScopeAll().build()));
     checkResultWithAssertionsInactive(

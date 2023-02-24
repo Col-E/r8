@@ -4,7 +4,6 @@
 
 package com.android.tools.r8.rewrite.assertions;
 
-import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.KotlinTestBase;
 import com.android.tools.r8.KotlinTestParameters;
@@ -131,7 +130,7 @@ public abstract class AssertionConfigurationAssertionHandlerKotlinTestBase exten
 
   @Test
   public void testD8() throws Exception {
-    assumeTrue(parameters.isDexRuntime());
+    parameters.assumeDexRuntime();
     testForD8()
         .apply(this::configureKotlinStdlib)
         .setMinApi(parameters)

@@ -66,7 +66,7 @@ public class AnnotationsOnTargetedMethodTest extends TestBase {
     // No need to run R8 compat mode with extra -keep,allowshrinking rule.
     assumeTrue(!enableProguardCompatibilityMode || !keepAllowShrinking);
     if (parameters.isCfRuntime()) {
-      testForJvm()
+      testForJvm(parameters)
           .addTestClasspath()
           .run(parameters.getRuntime(), TestClass.class)
           .assertSuccessWithOutput(expectedOutput);

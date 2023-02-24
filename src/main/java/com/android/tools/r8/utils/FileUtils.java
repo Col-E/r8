@@ -8,6 +8,7 @@ import com.google.common.io.Closer;
 import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.io.UncheckedIOException;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -94,6 +95,14 @@ public class FileUtils {
 
   public static String readTextFile(Path file, Charset charset) throws IOException {
     return new String(Files.readAllBytes(file), charset);
+  }
+
+  public static byte[] uncheckedReadAllBytes(Path file) {
+    try {
+      return Files.readAllBytes(file);
+    } catch (IOException e) {
+      throw new UncheckedIOException(e);
+    }
   }
 
   public static List<String> readAllLines(Path file) throws IOException {

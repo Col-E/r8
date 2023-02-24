@@ -4,7 +4,6 @@
 
 package com.android.tools.r8.desugar.sealed;
 
-import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestCompilerBuilder;
@@ -40,7 +39,7 @@ public class SealedAttributeClasspathTest extends TestBase {
 
   @Test
   public void testD8() throws Exception {
-    assumeTrue(parameters.isDexRuntime());
+    parameters.assumeDexRuntime();
     runTest(testForD8(parameters.getBackend()));
   }
 

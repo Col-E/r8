@@ -7,7 +7,6 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.R8Command;
 import com.android.tools.r8.TestBase;
@@ -170,7 +169,10 @@ public class OverloadAggressivelyTest extends TestBase {
     String expectedOverloadAggressively = StringUtils.lines("diff: 0", "d8 v.s. 8", "r8 v.s. 8");
 
     if (parameters.isCfRuntime()) {
-      testForJvm().addTestClasspath().run(MethodResolution.class).assertSuccessWithOutput(expected);
+      testForJvm(parameters)
+          .addTestClasspath()
+          .run(MethodResolution.class)
+          .assertSuccessWithOutput(expected);
     }
 
     testForR8Compat(parameters.getBackend())

@@ -5,20 +5,15 @@
 package com.android.tools.r8.ir.optimize;
 
 import static org.hamcrest.CoreMatchers.containsString;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotEquals;
 
 import com.android.tools.r8.CompilationFailedException;
-import com.android.tools.r8.ToolHelper;
-import com.android.tools.r8.ToolHelper.DexVm;
-import com.android.tools.r8.ToolHelper.ProcessResult;
+import com.android.tools.r8.R8TestCompileResult;
+import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.jasmin.JasminBuilder;
 import com.android.tools.r8.jasmin.JasminBuilder.ClassBuilder;
 import com.android.tools.r8.jasmin.JasminTestBase;
 import com.android.tools.r8.utils.AbortException;
-import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.google.common.collect.ImmutableList;
 import java.util.Arrays;
@@ -27,34 +22,36 @@ import java.util.List;
 import java.util.stream.Collectors;
 import org.hamcrest.BaseMatcher;
 import org.hamcrest.Description;
+import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameter;
 import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
 public class B116282409 extends JasminTestBase {
 
-  private final Backend backend;
+  private static List<byte[]> programClassFileData;
 
-  private final boolean enableVerticalClassMerging;
+  @Parameter(0)
+  public TestParameters parameters;
+
+  @Parameter(1)
+  public boolean enableVerticalClassMerging;
 
   @Rule public ExpectedException exception = ExpectedException.none();
 
-  @Parameters(name = "Backend: {0}, vertical class merging: {1}")
+  @Parameters(name = "{0}, vertical class merging: {1}")
   public static Collection<Object[]> data() {
-    return buildParameters(ToolHelper.getBackends(), BooleanUtils.values());
+    return buildParameters(
+        getTestParameters().withAllRuntimesAndApiLevels().build(), BooleanUtils.values());
   }
 
-  public B116282409(Backend backend, boolean enableVerticalClassMerging) {
-    this.backend = backend;
-    this.enableVerticalClassMerging = enableVerticalClassMerging;
-  }
-
-  @Test
-  public void test() throws Exception {
+  @BeforeClass
+  public static void setup() throws Exception {
     JasminBuilder jasminBuilder = new JasminBuilder();
 
     // Create a class A with a default constructor that prints "In A.<init>()".
@@ -93,7 +90,21 @@ public class B116282409 extends JasminTestBase {
         "invokevirtual java/io/PrintStream/println(I)V",
         "return");
 
-    // Build app.
+    programClassFileData = jasminBuilder.buildClasses();
+  }
+
+  @Test
+  public void testJvm() throws Exception {
+    parameters.assumeJvmTestParameters();
+    testForJvm(parameters)
+        .addProgramClassFileData(programClassFileData)
+        .run(parameters.getRuntime(), "TestClass")
+        .assertFailureWithErrorThatThrows(VerifyError.class)
+        .assertFailureWithErrorThatMatches(containsString("Call to wrong initialization method"));
+  }
+
+  @Test
+  public void testR8() throws Exception {
     if (enableVerticalClassMerging) {
       exception.expect(CompilationFailedException.class);
       exception.expectCause(
@@ -104,40 +115,36 @@ public class B116282409 extends JasminTestBase {
                   + "`-keep,allowobfuscation class A`."));
     }
 
-    AndroidApp output =
-        compileWithR8(
-            jasminBuilder.build(),
-            keepMainProguardConfiguration("TestClass"),
-            options -> options.enableVerticalClassMerging = enableVerticalClassMerging,
-            backend);
+    R8TestCompileResult compileResult =
+        testForR8(parameters.getBackend())
+            .addProgramClassFileData(programClassFileData)
+            .addKeepMainRule("TestClass")
+            .addOptionsModification(
+                options -> options.enableVerticalClassMerging = enableVerticalClassMerging)
+            .allowDiagnosticWarningMessages()
+            .setMinApi(parameters)
+            .compile();
+
     assertFalse(enableVerticalClassMerging);
 
-    // Run app.
-    ProcessResult vmResult = runOnVMRaw(output, "TestClass", backend);
-    if (backend == Backend.CF) {
-      // Verify that the input code does not run with java.
-      ProcessResult javaResult = runOnJavaRaw(jasminBuilder, "TestClass");
-      assertNotEquals(0, javaResult.exitCode);
-      assertThat(javaResult.stderr, containsString("VerifyError"));
-      assertThat(javaResult.stderr, containsString("Call to wrong initialization method"));
-
-      // The same should be true for the generated program.
-      assertNotEquals(0, vmResult.exitCode);
-      assertThat(vmResult.stderr, containsString("VerifyError"));
-      assertThat(vmResult.stderr, containsString("Call to wrong initialization method"));
-    } else {
-      assert backend == Backend.DEX;
-      if (ToolHelper.getDexVm().isOlderThanOrEqual(DexVm.ART_4_4_4_HOST)) {
-        assertNotEquals(0, vmResult.exitCode);
-        assertThat(
-            vmResult.stderr,
-            containsString("VFY: invoke-direct <init> on super only allowed for 'this' in <init>"));
-      } else {
-        assertEquals(0, vmResult.exitCode);
-        assertEquals(
-            String.join(System.lineSeparator(), "In A.<init>()", "42", ""), vmResult.stdout);
-      }
-    }
+    compileResult
+        .run(parameters.getRuntime(), "TestClass")
+        .applyIf(
+            parameters.isCfRuntime(),
+            runResult ->
+                runResult
+                    .assertFailureWithErrorThatThrows(VerifyError.class)
+                    .assertFailureWithErrorThatMatches(
+                        containsString("Call to wrong initialization method")),
+            runResult -> {
+              if (parameters.getDexRuntimeVersion().isDalvik()) {
+                runResult.assertFailureWithErrorThatMatches(
+                    containsString(
+                        "VFY: invoke-direct <init> on super only allowed for 'this' in <init>"));
+              } else {
+                runResult.assertSuccessWithOutputLines("In A.<init>()", "42");
+              }
+            });
   }
 
   private static class CustomExceptionMatcher extends BaseMatcher<Throwable> {

@@ -84,7 +84,7 @@ public class DefaultMethodOverrideConflictWithLibraryTest extends DesugaredLibra
       }
     }
     if (parameters.isCfRuntime()) {
-      testForJvm()
+      testForJvm(parameters)
           .addProgramClasses(CLASSES)
           .addProgramClassFileData(getTransforms())
           .run(parameters.getRuntime(), Main.class)

@@ -92,7 +92,7 @@ public class ForNameTest extends ReflectionOptimizerTestBase {
   @Test
   public void testJVMOutput() throws Exception {
     parameters.assumeJvmTestParameters();
-    testForJvm()
+    testForJvm(parameters)
         .addTestClasspath()
         .run(parameters.getRuntime(), MAIN)
         .assertSuccessWithOutput(JAVA_OUTPUT);

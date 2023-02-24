@@ -53,7 +53,7 @@ public class LambdaDependencyTest extends TestBase {
   @Test
   public void test() throws Exception {
     if (parameters.isCfRuntime()) {
-      testForJvm()
+      testForJvm(parameters)
           .addProgramClasses(I.class, A.class, TestClass.class)
           .run(parameters.getRuntime(), TestClass.class)
           .assertSuccessWithOutputLines("lambda!");

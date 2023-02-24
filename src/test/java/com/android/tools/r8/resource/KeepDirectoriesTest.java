@@ -33,6 +33,8 @@ import java.util.stream.Collectors;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameter;
+import org.junit.runners.Parameterized.Parameters;
 
 class Main {
 
@@ -46,21 +48,17 @@ class Main {
 @RunWith(Parameterized.class)
 public class KeepDirectoriesTest extends ProguardCompatibilityTestBase {
 
-  private Backend backend;
-  private final boolean minify;
+  @Parameter(0)
+  public boolean minify;
 
-  @Parameterized.Parameters(name = "Backend: {0}, Minify: {1}")
+  @Parameter(1)
+  public TestParameters parameters;
+
+  @Parameters(name = "{1}, minify: {0}")
   public static Collection<Object[]> data() {
     return buildParameters(
-        ToolHelper.getBackends(),
         BooleanUtils.values(),
-        TestParameters.builder().withNoneRuntime().build());
-  }
-
-  public KeepDirectoriesTest(Backend backend, boolean minify, TestParameters parameters) {
-    this.backend = backend;
-    this.minify = minify;
-    parameters.assertNoneRuntime();
+        getTestParameters().withDefaultRuntimes().withMinimumApiLevel().build());
   }
 
   // Return the original package name for this package.
@@ -102,7 +100,7 @@ public class KeepDirectoriesTest extends ProguardCompatibilityTestBase {
   @Test
   public void testKeepSome1() throws Exception {
     CustomDataResourceConsumer dataResourceConsumer = new CustomDataResourceConsumer();
-    compileWithR8("-keepdirectories org/example/*", minify, dataResourceConsumer);
+    compileWithR8("-keepdirectories org/example/**", minify, dataResourceConsumer);
     Set<String> expected =
         getDataResources().stream()
             .map(DataResource::getName)
@@ -115,7 +113,7 @@ public class KeepDirectoriesTest extends ProguardCompatibilityTestBase {
     return (int) s.chars().filter(c -> c == '/').count();
   }
 
-  class PrefixMapper implements Function<String, String> {
+  static class PrefixMapper implements Function<String, String> {
     private final String original;
     private final String mapped;
 
@@ -165,10 +163,9 @@ public class KeepDirectoriesTest extends ProguardCompatibilityTestBase {
             + " class "
             + Main.class.getCanonicalName();
     R8Command command =
-        ToolHelper.prepareR8CommandBuilder(getAndroidApp(), emptyConsumer(backend))
-            .addProguardConfiguration(
-                ImmutableList.of(proguardConfig, "-printmapping", r), Origin.unknown())
-            .addLibraryFiles(runtimeJar(backend))
+        ToolHelper.prepareR8CommandBuilder(getAndroidApp(), emptyConsumer(parameters.getBackend()))
+            .addProguardConfiguration(ImmutableList.of(proguardConfig, r), Origin.unknown())
+            .addLibraryFiles(parameters.getDefaultRuntimeLibrary())
             .build();
     return ToolHelper.runR8(
         command, options -> options.dataResourceConsumer = dataResourceConsumer);
@@ -214,13 +211,13 @@ public class KeepDirectoriesTest extends ProguardCompatibilityTestBase {
 
   private List<DataResource> getDataResources() {
     return ImmutableList.of(
-        DataDirectoryResource.fromName("org", Origin.unknown()),
-        DataDirectoryResource.fromName("org/example", Origin.unknown()),
-        DataDirectoryResource.fromName("org/example/test", Origin.unknown()),
-        DataDirectoryResource.fromName(pathForThisPackage(), Origin.unknown()),
-        DataDirectoryResource.fromName(pathForThisPackage() + "/subpackage1", Origin.unknown()),
-        DataDirectoryResource.fromName(pathForThisPackage() + "/subpackage2", Origin.unknown()),
+        DataDirectoryResource.fromName("org/", Origin.unknown()),
+        DataDirectoryResource.fromName("org/example/", Origin.unknown()),
+        DataDirectoryResource.fromName("org/example/test/", Origin.unknown()),
+        DataDirectoryResource.fromName(pathForThisPackage() + '/', Origin.unknown()),
+        DataDirectoryResource.fromName(pathForThisPackage() + "/subpackage1/", Origin.unknown()),
+        DataDirectoryResource.fromName(pathForThisPackage() + "/subpackage2/", Origin.unknown()),
         DataDirectoryResource.fromName(
-            pathForThisPackage() + "/subpackage2/subpackage", Origin.unknown()));
+            pathForThisPackage() + "/subpackage2/subpackage/", Origin.unknown()));
   }
 }

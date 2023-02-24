@@ -200,7 +200,7 @@ public class BootstrapCurrentEqualityTest extends TestBase {
   @Test
   public void test() throws Exception {
     Path program = Paths.get(ToolHelper.EXAMPLES_BUILD_DIR, "hello" + JAR_EXTENSION);
-    testForJvm()
+    testForJvm(parameters)
         .addProgramFiles(program)
         .run(parameters.getRuntime(), HELLO_NAME)
         .assertSuccessWithOutput(HELLO_EXPECTED)
@@ -216,7 +216,7 @@ public class BootstrapCurrentEqualityTest extends TestBase {
             .addKeepRules(keep)
             .setMode(CompilationMode.DEBUG)
             .compile();
-    testForJvm()
+    testForJvm(parameters)
         .addProgramFiles(runR8Debug.outputJar())
         .run(parameters.getRuntime(), main)
         .assertSuccessWithOutput(expectedOutput);
@@ -227,7 +227,7 @@ public class BootstrapCurrentEqualityTest extends TestBase {
             .addKeepRules(keep)
             .setMode(CompilationMode.RELEASE)
             .compile();
-    testForJvm()
+    testForJvm(parameters)
         .addProgramFiles(runR8Release.outputJar())
         .run(parameters.getRuntime(), main)
         .assertSuccessWithOutput(expectedOutput);

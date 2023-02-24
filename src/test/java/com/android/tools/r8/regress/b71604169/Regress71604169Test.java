@@ -4,59 +4,58 @@
 
 package com.android.tools.r8.regress.b71604169;
 
-import static junit.framework.TestCase.assertEquals;
 
-import com.android.tools.r8.ClassFileConsumer;
-import com.android.tools.r8.DexIndexedConsumer;
-import com.android.tools.r8.R8Command;
 import com.android.tools.r8.TestBase;
-import com.android.tools.r8.ToolHelper;
-import com.android.tools.r8.origin.Origin;
-import com.google.common.collect.ImmutableList;
+import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.TestParametersCollection;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameter;
+import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
 public class Regress71604169Test extends TestBase {
-  private Backend backend;
 
-  @Parameterized.Parameters(name = "Backend: {0}")
-  public static Backend[] data() {
-    return ToolHelper.getBackends();
-  }
+  @Parameter(0)
+  public TestParameters parameters;
 
-  public Regress71604169Test(Backend backend) {
-    this.backend = backend;
+  @Parameters(name = "{0}")
+  public static TestParametersCollection data() {
+    return getTestParameters().withAllRuntimesAndApiLevels().build();
   }
 
   @Test
   public void test() throws Exception {
-    R8Command.Builder builder = R8Command.builder();
-    // Add application classes.
-    Class mainClass = Regress71604169.class;
-    builder.addProgramFiles(ToolHelper.getClassFileForTestClass(mainClass));
-    builder.addProgramFiles(ToolHelper.getClassFileForTestClass(Regress71604169.X.class));
-    builder.addProgramFiles(ToolHelper.getClassFileForTestClass(Regress71604169.Creator.class));
+    testForR8(parameters.getBackend())
+        .addInnerClasses(getClass())
+        .addKeepMainRule(Main.class)
+        .setMinApi(parameters)
+        .compile()
+        .run(parameters.getRuntime(), Main.class)
+        .assertSuccessWithOutput("Hello, world!");
+  }
 
-    // Keep main class.
-    builder.addProguardConfiguration(
-        ImmutableList.of(keepMainProguardConfiguration(mainClass, true, false)), Origin.unknown());
-
-    if (backend == Backend.DEX) {
-      builder
-          .setProgramConsumer(DexIndexedConsumer.emptyConsumer())
-          .addLibraryFiles(ToolHelper.getDefaultAndroidJar());
-    } else {
-      assert backend == Backend.CF;
-      builder
-          .setProgramConsumer(ClassFileConsumer.emptyConsumer())
-          .addLibraryFiles(ToolHelper.getJava8RuntimeJar());
+  public static class Main {
+    public interface Creator<C> {
+      C create(Object o);
     }
-    assertEquals(
-        "Hello, world!",
-        backend == Backend.DEX
-            ? runOnArt(ToolHelper.runR8(builder.build()), mainClass)
-            : runOnJava(ToolHelper.runR8(builder.build()), mainClass));
+
+    public static class X {
+      Object o;
+
+      X(Object o) {
+        this.o = o;
+        System.out.print(o);
+      }
+    }
+
+    public static <C> C create(Creator<C> creator) {
+      return creator.create("Hello, world!");
+    }
+
+    public static void main(String[] args) {
+      create(X::new);
+    }
   }
 }

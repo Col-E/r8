@@ -8,40 +8,40 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertTrue;
 
-import com.android.tools.r8.ToolHelper;
-import com.android.tools.r8.ToolHelper.ProcessResult;
+import com.android.tools.r8.R8TestRunResult;
+import com.android.tools.r8.TestCompileResult;
+import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.jasmin.JasminBuilder;
 import com.android.tools.r8.jasmin.JasminBuilder.ClassBuilder;
 import com.android.tools.r8.jasmin.JasminTestBase;
-import com.android.tools.r8.utils.AndroidApp;
-import com.android.tools.r8.utils.StringUtils;
+import com.android.tools.r8.utils.ListUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.FieldSubject;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
-import java.io.IOException;
-import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameter;
+import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
 public class ValidNameConflictTest extends JasminTestBase {
+
+  private static final List<String> EXPECTED_OUTPUT =
+      ImmutableList.of("null", "Expected to be seen at the end.");
   private static final String REPEATED_NAME = "hopeTheresNoSuchNameInRuntimeLibraries";
 
-  private final Backend backend;
+  @Parameter(0)
+  public TestParameters parameters;
 
-  @Parameterized.Parameters(name = "Backend: {0}")
-  public static Backend[] data() {
-    return ToolHelper.getBackends();
-  }
-
-  public ValidNameConflictTest(Backend backend) {
-    this.backend = backend;
+  @Parameters(name = "{0}")
+  public static TestParametersCollection data() {
+    return getTestParameters().withAllRuntimesAndApiLevels().build();
   }
 
   private final String CLASS_NAME = "Example";
@@ -79,7 +79,7 @@ public class ValidNameConflictTest extends JasminTestBase {
         "  return"));
   }
 
-  private JasminBuilder buildFieldNameConflictClassFile() {
+  private List<byte[]> buildFieldNameConflictClassFile() throws Exception {
     JasminBuilder builder = new JasminBuilder();
     ClassBuilder classBuilder = builder.addClass(CLASS_NAME);
     classBuilder.addStaticField(REPEATED_NAME, "Ljava/lang/Object;", null);
@@ -95,34 +95,34 @@ public class ValidNameConflictTest extends JasminTestBase {
                 "  aconst_null",
                 "  invokevirtual"
                     + " java/lang/reflect/Field/get(Ljava/lang/Object;)Ljava/lang/Object;")));
-    return builder;
-  }
-
-  private ProcessResult runRaw(AndroidApp app, String main) throws IOException {
-    if (backend == Backend.DEX) {
-      return runOnArtRaw(app, main);
-    } else {
-      assert backend == Backend.CF;
-      return runOnJavaRawNoVerify(app, main, Collections.emptyList());
-    }
+    return builder.buildClasses();
   }
 
   @Test
   public void remainFieldNameConflict_keepRules() throws Exception {
-    JasminBuilder builder = buildFieldNameConflictClassFile();
-    ProcessResult javaOutput = runOnJavaNoVerifyRaw(builder, CLASS_NAME);
-    assertEquals(0, javaOutput.exitCode);
+    List<byte[]> programClassFileData = buildFieldNameConflictClassFile();
 
-    List<String> pgConfigs = ImmutableList.of(
-        "-keep public class " + CLASS_NAME + " {\n"
-            + "  public static void main(java.lang.String[]);\n"
-            + "  static <fields>;"
-            + "}\n"
-            + "-printmapping\n",
-        "-dontshrink");
-    AndroidApp app = compileWithR8(builder, pgConfigs, null, backend);
+    if (parameters.isCfRuntime()) {
+      testForJvm(parameters)
+          .addProgramClassFileData(programClassFileData)
+          .noVerify()
+          .run(parameters.getRuntime(), CLASS_NAME)
+          .assertSuccessWithOutputLines(EXPECTED_OUTPUT);
+    }
 
-    CodeInspector codeInspector = new CodeInspector(app);
+    R8TestRunResult runResult =
+        testForR8(parameters.getBackend())
+            .addProgramClassFileData(programClassFileData)
+            .addKeepMainRule(CLASS_NAME)
+            .addKeepRules("-keep class " + CLASS_NAME + " { static <fields>; }")
+            .addDontShrink()
+            .setMinApi(parameters)
+            .compile()
+            .applyIf(parameters.isCfRuntime(), TestCompileResult::noVerify)
+            .run(parameters.getRuntime(), CLASS_NAME)
+            .assertSuccessWithOutputLines(EXPECTED_OUTPUT);
+
+    CodeInspector codeInspector = runResult.inspector();
     ClassSubject clazz = codeInspector.clazz(CLASS_NAME);
     assertTrue(clazz.isPresent());
     FieldSubject f1 = clazz.field("java.lang.String", REPEATED_NAME);
@@ -132,24 +132,32 @@ public class ValidNameConflictTest extends JasminTestBase {
     assertTrue(f2.isPresent());
     assertFalse(f2.isRenamed());
     assertEquals(f1.getFinalName(), f2.getFinalName());
-
-    ProcessResult output = runRaw(app, CLASS_NAME);
-    assertEquals(0, output.exitCode);
-    assertEquals(javaOutput.stdout, output.stdout);
   }
 
   @Test
   public void resolveFieldNameConflict_no_options() throws Exception {
-    JasminBuilder builder = buildFieldNameConflictClassFile();
-    ProcessResult javaOutput = runOnJavaNoVerifyRaw(builder, CLASS_NAME);
-    assertEquals(0, javaOutput.exitCode);
+    List<byte[]> programClassFileData = buildFieldNameConflictClassFile();
 
-    List<String> pgConfigs = ImmutableList.of(
-        keepMainProguardConfiguration(CLASS_NAME),
-        "-dontshrink");
-    AndroidApp app = compileWithR8(builder, pgConfigs, null, backend);
+    if (parameters.isCfRuntime()) {
+      testForJvm(parameters)
+          .addProgramClassFileData(programClassFileData)
+          .noVerify()
+          .run(parameters.getRuntime(), CLASS_NAME)
+          .assertSuccessWithOutputLines(EXPECTED_OUTPUT);
+    }
 
-    CodeInspector codeInspector = new CodeInspector(app);
+    R8TestRunResult runResult =
+        testForR8(parameters.getBackend())
+            .addProgramClassFileData(programClassFileData)
+            .addKeepMainRule(CLASS_NAME)
+            .addDontShrink()
+            .setMinApi(parameters)
+            .compile()
+            .applyIf(parameters.isCfRuntime(), TestCompileResult::noVerify)
+            .run(parameters.getRuntime(), CLASS_NAME)
+            .assertSuccessWithOutputLines(EXPECTED_OUTPUT);
+
+    CodeInspector codeInspector = runResult.inspector();
     ClassSubject clazz = codeInspector.clazz(CLASS_NAME);
     assertTrue(clazz.isPresent());
     FieldSubject f1 = clazz.field("java.lang.String", REPEATED_NAME);
@@ -159,13 +167,9 @@ public class ValidNameConflictTest extends JasminTestBase {
     assertTrue(f2.isPresent());
     assertTrue(f2.isRenamed());
     assertNotEquals(f1.getFinalName(), f2.getFinalName());
-
-    ProcessResult output = runRaw(app, CLASS_NAME);
-    assertEquals(0, output.exitCode);
-    assertEquals(javaOutput.stdout, output.stdout);
   }
 
-  private JasminBuilder buildMethodNameConflictClassFile() {
+  private List<byte[]> buildMethodNameConflictClassFile() throws Exception {
     JasminBuilder builder = new JasminBuilder();
     ClassBuilder classBuilder = builder.addClass(ANOTHER_CLASS);
     classBuilder.addStaticMethod(
@@ -176,7 +180,7 @@ public class ValidNameConflictTest extends JasminTestBase {
     classBuilder.addMainMethod(
         buildCodeForVisitingDeclaredMembers(
             ImmutableList.of(
-                ".limit stack 3",
+                ".limit stack 4",
                 ".limit locals 4",
                 "  ldc " + ANOTHER_CLASS,
                 "  invokevirtual java/lang/Class/getDeclaredMethods()[Ljava/lang/reflect/Method;"),
@@ -186,24 +190,34 @@ public class ValidNameConflictTest extends JasminTestBase {
                 "  checkcast [Ljava/lang/Object;",
                 "  invokevirtual java/lang/reflect/Method/invoke"
                     + "(Ljava/lang/Object;[Ljava/lang/Object;)Ljava/lang/Object;")));
-    return builder;
+    return builder.buildClasses();
   }
 
   @Test
   public void remainMethodNameConflict_keepRules() throws Exception {
-    JasminBuilder builder = buildMethodNameConflictClassFile();
-    ProcessResult javaOutput = runOnJavaNoVerifyRaw(builder, CLASS_NAME);
-    assertEquals(0, javaOutput.exitCode);
+    List<byte[]> programClassFileData = buildMethodNameConflictClassFile();
 
-    List<String> pgConfigs = ImmutableList.of(
-        "-keep class " + ANOTHER_CLASS + " {\n"
-            + "  static <methods>;"
-            + "}\n",
-        keepMainProguardConfiguration(CLASS_NAME),
-        "-dontshrink");
-    AndroidApp app = compileWithR8(builder, pgConfigs, null, backend);
+    if (parameters.isCfRuntime()) {
+      testForJvm(parameters)
+          .addProgramClassFileData(programClassFileData)
+          .noVerify()
+          .run(parameters.getRuntime(), CLASS_NAME)
+          .assertSuccessWithOutputLines(EXPECTED_OUTPUT);
+    }
 
-    CodeInspector codeInspector = new CodeInspector(app);
+    R8TestRunResult runResult =
+        testForR8(parameters.getBackend())
+            .addProgramClassFileData(programClassFileData)
+            .addKeepMainRule(CLASS_NAME)
+            .addKeepRules("-keep class " + ANOTHER_CLASS + " { static <methods>; }")
+            .addDontShrink()
+            .setMinApi(parameters)
+            .compile()
+            .applyIf(parameters.isCfRuntime(), TestCompileResult::noVerify)
+            .run(parameters.getRuntime(), CLASS_NAME)
+            .assertSuccessWithOutputLines(EXPECTED_OUTPUT);
+
+    CodeInspector codeInspector = runResult.inspector();
     ClassSubject clazz = codeInspector.clazz(ANOTHER_CLASS);
     assertTrue(clazz.isPresent());
     MethodSubject m1 = clazz.method("java.lang.String", REPEATED_NAME, ImmutableList.of());
@@ -213,24 +227,35 @@ public class ValidNameConflictTest extends JasminTestBase {
     assertTrue(m2.isPresent());
     assertFalse(m2.isRenamed());
     assertEquals(m1.getFinalName(), m2.getFinalName());
-
-    ProcessResult output = runRaw(app, CLASS_NAME);
-    assertEquals(0, output.exitCode);
-    assertEquals(javaOutput.stdout, output.stdout);
   }
 
   @Test
   public void resolveMethodNameConflict_no_options() throws Exception {
-    JasminBuilder builder = buildMethodNameConflictClassFile();
-    ProcessResult javaOutput = runOnJavaNoVerifyRaw(builder, CLASS_NAME);
-    assertEquals(0, javaOutput.exitCode);
+    List<byte[]> programClassFileData = buildMethodNameConflictClassFile();
 
-    List<String> pgConfigs = ImmutableList.of(
-        keepMainProguardConfiguration(CLASS_NAME),
-        "-dontshrink");
-    AndroidApp app = compileWithR8(builder, pgConfigs, null, backend);
+    if (parameters.isCfRuntime()) {
+      testForJvm(parameters)
+          .addProgramClassFileData(programClassFileData)
+          .noVerify()
+          .run(parameters.getRuntime(), CLASS_NAME)
+          .assertSuccessWithOutputLines(EXPECTED_OUTPUT);
+    }
 
-    CodeInspector codeInspector = new CodeInspector(app);
+    R8TestRunResult runResult =
+        testForR8(parameters.getBackend())
+            .addProgramClassFileData(programClassFileData)
+            .addKeepMainRule(CLASS_NAME)
+            .addDontShrink()
+            .setMinApi(parameters)
+            .compile()
+            .applyIf(parameters.isCfRuntime(), TestCompileResult::noVerify)
+            .run(parameters.getRuntime(), CLASS_NAME)
+            .applyIf(
+                parameters.isCfRuntime(),
+                r -> r.assertSuccessWithOutputLines(ListUtils.reverse(EXPECTED_OUTPUT)),
+                r -> r.assertSuccessWithOutputLines(EXPECTED_OUTPUT));
+
+    CodeInspector codeInspector = runResult.inspector();
     ClassSubject clazz = codeInspector.clazz(ANOTHER_CLASS);
     assertTrue(clazz.isPresent());
     MethodSubject m1 = clazz.method("java.lang.String", REPEATED_NAME, ImmutableList.of());
@@ -240,16 +265,9 @@ public class ValidNameConflictTest extends JasminTestBase {
     assertTrue(m2.isPresent());
     assertTrue(m2.isRenamed());
     assertNotEquals(m1.getFinalName(), m2.getFinalName());
-
-    ProcessResult output = runRaw(app, CLASS_NAME);
-    assertEquals(0, output.exitCode);
-    assertEquals(
-        new HashSet<>(StringUtils.splitLines(javaOutput.stdout)),
-        new HashSet<>(StringUtils.splitLines(output.stdout)));
   }
 
-
-  private JasminBuilder buildMethodNameConflictInHierarchy() {
+  private List<byte[]> buildMethodNameConflictInHierarchy() throws Exception {
     JasminBuilder builder = new JasminBuilder();
     ClassBuilder classBuilder = builder.addClass(SUPER_CLASS);
     classBuilder.addVirtualMethod(
@@ -275,7 +293,7 @@ public class ValidNameConflictTest extends JasminTestBase {
     classBuilder.addMainMethod(
         buildCodeForVisitingDeclaredMembers(
             ImmutableList.of(
-                ".limit stack 3",
+                ".limit stack 4",
                 ".limit locals 5",
                 "  new " + ANOTHER_CLASS,
                 "  dup",
@@ -284,29 +302,39 @@ public class ValidNameConflictTest extends JasminTestBase {
                 "  ldc " + ANOTHER_CLASS,
                 "  invokevirtual java/lang/Class/getDeclaredMethods()[Ljava/lang/reflect/Method;"),
             ImmutableList.of(
-                "  aload 4",  // instance
+                "  aload 4", // instance
                 "  aconst_null",
                 "  checkcast [Ljava/lang/Object;",
                 "  invokevirtual java/lang/reflect/Method/invoke"
                     + "(Ljava/lang/Object;[Ljava/lang/Object;)Ljava/lang/Object;")));
-    return builder;
+    return builder.buildClasses();
   }
 
   @Test
   public void remainMethodNameConflictInHierarchy_keepRules() throws Exception {
-    JasminBuilder builder = buildMethodNameConflictInHierarchy();
-    ProcessResult javaOutput = runOnJavaNoVerifyRaw(builder, CLASS_NAME);
-    assertEquals(0, javaOutput.exitCode);
+    List<byte[]> programClassFileData = buildMethodNameConflictInHierarchy();
 
-    List<String> pgConfigs = ImmutableList.of(
-        "-keep class " + ANOTHER_CLASS + " {\n"
-            + "  <methods>;"
-            + "}\n",
-        keepMainProguardConfiguration(CLASS_NAME),
-        "-dontshrink");
-    AndroidApp app = compileWithR8(builder, pgConfigs, null, backend);
+    if (parameters.isCfRuntime()) {
+      testForJvm(parameters)
+          .addProgramClassFileData(programClassFileData)
+          .noVerify()
+          .run(parameters.getRuntime(), CLASS_NAME)
+          .assertSuccessWithOutputLines(EXPECTED_OUTPUT);
+    }
 
-    CodeInspector codeInspector = new CodeInspector(app);
+    R8TestRunResult runResult =
+        testForR8(parameters.getBackend())
+            .addProgramClassFileData(programClassFileData)
+            .addKeepMainRule(CLASS_NAME)
+            .addKeepClassAndMembersRules(ANOTHER_CLASS)
+            .addDontShrink()
+            .setMinApi(parameters)
+            .compile()
+            .applyIf(parameters.isCfRuntime(), TestCompileResult::noVerify)
+            .run(parameters.getRuntime(), CLASS_NAME)
+            .assertSuccessWithOutputLines(EXPECTED_OUTPUT);
+
+    CodeInspector codeInspector = runResult.inspector();
     ClassSubject sup = codeInspector.clazz(SUPER_CLASS);
     assertTrue(sup.isPresent());
     MethodSubject m1 = sup.method("java.lang.String", REPEATED_NAME, ImmutableList.of());
@@ -330,24 +358,35 @@ public class ValidNameConflictTest extends JasminTestBase {
     // No matter what, overloading methods should be renamed to the same name.
     assertEquals(m1.getFinalName(), subM1.getFinalName());
     assertEquals(m2.getFinalName(), subM2.getFinalName());
-
-    ProcessResult output = runRaw(app, CLASS_NAME);
-    assertEquals(0, output.exitCode);
-    assertEquals(javaOutput.stdout, output.stdout);
   }
 
   @Test
   public void resolveMethodNameConflictInHierarchy_no_options() throws Exception {
-    JasminBuilder builder = buildMethodNameConflictInHierarchy();
-    ProcessResult javaOutput = runOnJavaNoVerifyRaw(builder, CLASS_NAME);
-    assertEquals(0, javaOutput.exitCode);
+    List<byte[]> programClassFileData = buildMethodNameConflictInHierarchy();
 
-    List<String> pgConfigs = ImmutableList.of(
-        keepMainProguardConfiguration(CLASS_NAME),
-        "-dontshrink");
-    AndroidApp app = compileWithR8(builder, pgConfigs, null, backend);
+    if (parameters.isCfRuntime()) {
+      testForJvm(parameters)
+          .addProgramClassFileData(programClassFileData)
+          .noVerify()
+          .run(parameters.getRuntime(), CLASS_NAME)
+          .assertSuccessWithOutputLines(EXPECTED_OUTPUT);
+    }
 
-    CodeInspector codeInspector = new CodeInspector(app);
+    R8TestRunResult runResult =
+        testForR8(parameters.getBackend())
+            .addProgramClassFileData(programClassFileData)
+            .addKeepMainRule(CLASS_NAME)
+            .addDontShrink()
+            .setMinApi(parameters)
+            .compile()
+            .applyIf(parameters.isCfRuntime(), TestCompileResult::noVerify)
+            .run(parameters.getRuntime(), CLASS_NAME)
+            .applyIf(
+                parameters.isCfRuntime(),
+                r -> r.assertSuccessWithOutputLines(ListUtils.reverse(EXPECTED_OUTPUT)),
+                r -> r.assertSuccessWithOutputLines(EXPECTED_OUTPUT));
+
+    CodeInspector codeInspector = runResult.inspector();
     ClassSubject sup = codeInspector.clazz(SUPER_CLASS);
     assertTrue(sup.isPresent());
     MethodSubject m1 = sup.method("java.lang.String", REPEATED_NAME, ImmutableList.of());
@@ -371,11 +410,5 @@ public class ValidNameConflictTest extends JasminTestBase {
     // No matter what, overloading methods should be renamed to the same name.
     assertEquals(m1.getFinalName(), subM1.getFinalName());
     assertEquals(m2.getFinalName(), subM2.getFinalName());
-
-    ProcessResult output = runRaw(app, CLASS_NAME);
-    assertEquals(0, output.exitCode);
-    assertEquals(
-        new HashSet<>(StringUtils.splitLines(javaOutput.stdout)),
-        new HashSet<>(StringUtils.splitLines(output.stdout)));
   }
 }

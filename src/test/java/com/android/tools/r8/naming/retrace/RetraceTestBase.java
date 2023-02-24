@@ -15,7 +15,7 @@ import com.google.common.collect.ImmutableList;
 import java.util.Collection;
 import java.util.List;
 import java.util.function.BiConsumer;
-import org.junit.Before;
+import java.util.function.Function;
 
 public abstract class RetraceTestBase extends TestBase {
   protected TestParameters parameters;
@@ -28,7 +28,14 @@ public abstract class RetraceTestBase extends TestBase {
     this.compat = compat;
   }
 
-  public StackTrace expectedStackTrace;
+  private static Function<Class<?>, StackTrace> expectedStackTrace =
+      memoizeFunction(
+          mainClass ->
+              testForJvm(getStaticTemp())
+                  .addTestClasspath()
+                  .run(CfRuntime.getSystemRuntime(), mainClass)
+                  .assertFailure()
+                  .map(StackTrace::extractFromJvm));
 
   public void configure(R8TestBuilder<?> builder) {}
 
@@ -38,24 +45,17 @@ public abstract class RetraceTestBase extends TestBase {
     return ImmutableList.of(getMainClass());
   }
 
-  public abstract Class<?> getMainClass();
-
-  @Before
-  public void setup() throws Exception {
-    // Get the expected stack trace by running on the JVM.
-    expectedStackTrace =
-        testForJvm()
-            .addTestClasspath()
-            .run(CfRuntime.getSystemRuntime(), getMainClass())
-            .assertFailure()
-            .map(StackTrace::extractFromJvm);
+  public StackTrace getExpectedStackTrace() {
+    return expectedStackTrace.apply(getMainClass());
   }
+
+  public abstract Class<?> getMainClass();
 
   public void runTest(List<String> keepRules, BiConsumer<StackTrace, StackTrace> checker)
       throws Exception {
 
     R8TestRunResult result =
-        (compat ? testForR8Compat(parameters.getBackend()) : testForR8(parameters.getBackend()))
+        testForR8Compat(parameters.getBackend(), compat)
             .setMode(mode)
             .addProgramClasses(getClasses())
             .addKeepMainRule(getMainClass())

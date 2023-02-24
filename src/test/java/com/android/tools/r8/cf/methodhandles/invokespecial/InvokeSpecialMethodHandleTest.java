@@ -5,7 +5,6 @@ package com.android.tools.r8.cf.methodhandles.invokespecial;
 
 import static com.android.tools.r8.DiagnosticsMatcher.diagnosticType;
 import static org.hamcrest.CoreMatchers.containsString;
-import static org.junit.Assume.assumeTrue;
 import static org.objectweb.asm.Opcodes.ARETURN;
 import static org.objectweb.asm.Opcodes.H_INVOKESPECIAL;
 
@@ -60,8 +59,8 @@ public class InvokeSpecialMethodHandleTest extends TestBase {
 
   @Test
   public void testReference() throws Exception {
-    assumeTrue(parameters.isCfRuntime());
-    testForJvm()
+    parameters.assumeJvmTestParameters();
+    testForJvm(parameters)
         .addProgramClasses(C.class, Main.class)
         .addProgramClassFileData(getTransformedD())
         .run(parameters.getRuntime(), Main.class)
@@ -70,8 +69,8 @@ public class InvokeSpecialMethodHandleTest extends TestBase {
 
   @Test
   public void testD8() throws Exception {
-    assumeTrue(parameters.isDexRuntime());
-    testForD8(parameters.getBackend())
+    parameters.assumeDexRuntime();
+    testForD8()
         .addLibraryFiles(ToolHelper.getMostRecentAndroidJar())
         .addProgramClasses(C.class, Main.class)
         .addProgramClassFileData(getTransformedD())

@@ -7,7 +7,6 @@ package com.android.tools.r8.ir.optimize.redundantcatchrethrowelimination;
 import static com.android.tools.r8.utils.codeinspector.CodeMatchers.containsThrow;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.TestBase;
@@ -43,8 +42,8 @@ public class RedundantCatchRethrowEliminationTest extends TestBase {
 
   @Test
   public void testReference() throws Exception {
-    assumeTrue(parameters.isCfRuntime());
-    testForJvm()
+    parameters.assumeJvmTestParameters();
+    testForJvm(parameters)
         .addProgramClasses(Main.class, TrivialClosableContext.class, ClosableContext.class)
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutput(EXPECTED);
@@ -52,8 +51,8 @@ public class RedundantCatchRethrowEliminationTest extends TestBase {
 
   @Test
   public void testD8() throws Exception {
-    assumeTrue(parameters.isDexRuntime());
-    testForD8(parameters.getBackend())
+    parameters.assumeDexRuntime();
+    testForD8()
         .addProgramClasses(Main.class, TrivialClosableContext.class, ClosableContext.class)
         .release()
         .setMinApi(parameters)

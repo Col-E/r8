@@ -63,7 +63,7 @@ public class DexItemBasedConstStringCanonicalizationTest extends GetNameTestBase
     assumeTrue(
         "Only run JVM reference on CF runtimes",
         parameters.isCfRuntime() && !enableMinification);
-    testForJvm()
+    testForJvm(parameters)
         .addTestClasspath()
         .run(parameters.getRuntime(), MAIN)
         .assertSuccessWithOutput(JAVA_OUTPUT);

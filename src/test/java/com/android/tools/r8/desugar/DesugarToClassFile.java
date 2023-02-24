@@ -6,12 +6,12 @@ package com.android.tools.r8.desugar;
 
 import static org.junit.Assert.assertTrue;
 
+import com.android.tools.r8.D8TestCompileResult;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.FoundClassSubject;
-import java.nio.file.Path;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -54,26 +54,24 @@ public class DesugarToClassFile extends TestBase {
   @Test
   public void test() throws Exception {
     // Use D8 to desugar with Java classfile output.
-    Path jar =
+    D8TestCompileResult desugarCompileResult =
         testForD8(Backend.CF)
             .addInnerClasses(DesugarToClassFile.class)
             .setMinApi(parameters)
             .compile()
             .inspect(this::checkHasCompanionClassIfRequired)
-            .inspect(this::checkHasLambdaClass)
-            .writeToZip();
+            .inspect(this::checkHasLambdaClass);
 
     if (parameters.getRuntime().isCf()) {
       // Run on the JVM.
-      testForJvm()
-          .addProgramFiles(jar)
+      desugarCompileResult
           .run(parameters.getRuntime(), TestClass.class)
           .assertSuccessWithOutputLines("Hello, world!", "I::foo", "J::bar", "42");
     } else {
       assert parameters.getRuntime().isDex();
       // Convert to DEX without desugaring.
       testForD8()
-          .addProgramFiles(jar)
+          .addProgramFiles(desugarCompileResult.writeToZip())
           .setMinApi(parameters)
           .disableDesugaring()
           .run(parameters.getRuntime(), TestClass.class)

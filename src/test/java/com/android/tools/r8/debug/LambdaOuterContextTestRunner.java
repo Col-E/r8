@@ -4,17 +4,16 @@
 package com.android.tools.r8.debug;
 
 import static com.android.tools.r8.references.Reference.methodFromMethod;
-import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.debug.LambdaOuterContextTest.Converter;
-import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.StringUtils;
 import org.apache.harmony.jpda.tests.framework.jdwp.Value;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameter;
 import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
@@ -25,19 +24,20 @@ public class LambdaOuterContextTestRunner extends DebugTestBase {
 
   @Parameters(name = "{0}")
   public static TestParametersCollection data() {
-    return getTestParameters().withAllRuntimes().build();
+    return getTestParameters()
+        .withAllRuntimes()
+        .withMinimumApiLevel()
+        .enableApiLevelsForCf()
+        .build();
   }
 
-  private final TestParameters parameters;
-
-  public LambdaOuterContextTestRunner(TestParameters parameters) {
-    this.parameters = parameters;
-  }
+  @Parameter(0)
+  public TestParameters parameters;
 
   @Test
   public void testJvm() throws Throwable {
-    assumeTrue(parameters.isCfRuntime());
-    testForJvm()
+    parameters.assumeJvmTestParameters();
+    testForJvm(parameters)
         .addProgramClassesAndInnerClasses(CLASS)
         .run(parameters.getRuntime(), CLASS)
         .assertSuccessWithOutput(EXPECTED)
@@ -48,7 +48,7 @@ public class LambdaOuterContextTestRunner extends DebugTestBase {
   public void testD8() throws Throwable {
     testForD8(parameters.getBackend())
         .addProgramClassesAndInnerClasses(CLASS)
-        .setMinApi(AndroidApiLevel.B)
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), CLASS)
         .assertSuccessWithOutput(EXPECTED)
         .debugger(this::runDebugger);
@@ -61,7 +61,7 @@ public class LambdaOuterContextTestRunner extends DebugTestBase {
         .debug()
         .addDontObfuscate()
         .noTreeShaking()
-        .setMinApi(AndroidApiLevel.B)
+        .setMinApi(parameters)
         .run(parameters.getRuntime(), CLASS)
         .assertSuccessWithOutput(EXPECTED)
         .debugger(this::runDebugger);

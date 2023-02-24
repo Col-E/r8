@@ -7,6 +7,7 @@ import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Map;
+import java.util.Optional;
 import java.util.function.Function;
 import java.util.function.IntPredicate;
 import java.util.function.Predicate;
@@ -173,5 +174,14 @@ public class ArrayUtils {
 
   public static <T> T first(T[] ts) {
     return ts[0];
+  }
+
+  public static <T> Optional<T>[] withOptionalNone(T[] ts) {
+    Optional<T>[] optionals = new Optional[ts.length + 1];
+    for (int i = 0; i < ts.length; i++) {
+      optionals[i] = Optional.of(ts[i]);
+    }
+    optionals[ts.length] = Optional.empty();
+    return optionals;
   }
 }

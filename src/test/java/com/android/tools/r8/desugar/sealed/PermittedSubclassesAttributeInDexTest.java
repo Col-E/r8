@@ -47,7 +47,7 @@ public class PermittedSubclassesAttributeInDexTest extends TestBase {
         parameters.isCfRuntime()
             && parameters.asCfRuntime().isNewerThanOrEqual(CfVm.JDK17)
             && parameters.getApiLevel().isEqualTo(AndroidApiLevel.B));
-    testForJvm()
+    testForJvm(parameters)
         .addProgramClassFileData(getTransformedClasses())
         .addProgramClasses(Sub1.class, Sub2.class)
         .run(parameters.getRuntime(), TestClass.class)
@@ -64,8 +64,8 @@ public class PermittedSubclassesAttributeInDexTest extends TestBase {
 
   @Test
   public void testD8() throws Exception {
-    assumeTrue(parameters.isDexRuntime());
-    testForD8(parameters.getBackend())
+    parameters.assumeDexRuntime();
+    testForD8()
         .addProgramClassFileData(getTransformedClasses())
         .addProgramClasses(Sub1.class, Sub2.class)
         .setMinApi(parameters)

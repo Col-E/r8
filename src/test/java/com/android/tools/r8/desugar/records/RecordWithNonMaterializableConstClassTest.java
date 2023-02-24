@@ -56,7 +56,7 @@ public class RecordWithNonMaterializableConstClassTest extends TestBase {
   }
 
   @Test
-  public void testD8AndJvm() throws Exception {
+  public void testD8() throws Exception {
     testForD8(parameters.getBackend())
         .addProgramClassFileData(PROGRAM_DATA)
         .addProgramClassFileData(EXTRA_DATA)

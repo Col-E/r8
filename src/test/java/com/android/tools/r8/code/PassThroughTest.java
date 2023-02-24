@@ -5,6 +5,7 @@
 package com.android.tools.r8.code;
 
 import static junit.framework.Assert.assertSame;
+import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.ArchiveClassFileProvider;
 import com.android.tools.r8.CfFrontendExamplesTest;
@@ -18,7 +19,6 @@ import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.StringUtils;
-import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.List;
@@ -27,6 +27,7 @@ import java.util.stream.Collectors;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameter;
 import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
@@ -34,27 +35,25 @@ public class PassThroughTest extends TestBase {
 
   private final String EXPECTED = StringUtils.lines("0", "foo", "0", "foo", "foo");
 
-  private final TestParameters parameters;
-  private final boolean keepDebug;
+  @Parameter(0)
+  public TestParameters parameters;
+
+  @Parameter(1)
+  public boolean keepDebug;
 
   @Parameters(name = "{0}, keep-debug: {1}")
   public static List<Object[]> data() {
     return buildParameters(getTestParameters().withCfRuntimes().build(), BooleanUtils.values());
   }
 
-  public PassThroughTest(TestParameters parameters, boolean keepDebug) {
-    this.parameters = parameters;
-    this.keepDebug = keepDebug;
-  }
-
   @Test
-  public void testJmv() throws Exception {
-    CodeInspector inspector =
-        testForJvm()
-            .addProgramClasses(Main.class)
-            .run(parameters.getRuntime(), Main.class)
-            .assertSuccessWithOutput(EXPECTED)
-            .inspector();
+  public void testJvm() throws Exception {
+    assumeTrue(keepDebug);
+    testForJvm(parameters)
+        .addProgramClasses(Main.class)
+        .run(parameters.getRuntime(), Main.class)
+        .assertSuccessWithOutput(EXPECTED);
+
     // Check that reading the same input is actual matches.
     ClassFileResourceProvider original =
         DirectoryClassFileProvider.fromDirectory(ToolHelper.getClassPathForTests());

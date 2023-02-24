@@ -6,7 +6,6 @@ package com.android.tools.r8.cf.stackmap;
 
 import static com.android.tools.r8.cf.stackmap.UninitializedInstanceOfTest.MainDump.dump;
 import static org.hamcrest.CoreMatchers.containsString;
-import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.TestBase;
@@ -37,8 +36,8 @@ public class UninitializedInstanceOfTest extends TestBase {
 
   @Test
   public void testJvm() throws Exception {
-    assumeTrue(parameters.isCfRuntime());
-    testForJvm()
+    parameters.assumeJvmTestParameters();
+    testForJvm(parameters)
         .addProgramClassFileData(dump())
         .run(parameters.getRuntime(), Main.class)
         .assertFailureWithErrorThatThrows(VerifyError.class);
@@ -46,7 +45,7 @@ public class UninitializedInstanceOfTest extends TestBase {
 
   @Test(expected = CompilationFailedException.class)
   public void testD8Cf() throws Exception {
-    assumeTrue(parameters.isCfRuntime());
+    parameters.assumeCfRuntime();
     testForD8(parameters.getBackend())
         .addProgramClassFileData(dump())
         .setMinApi(parameters)
@@ -55,7 +54,7 @@ public class UninitializedInstanceOfTest extends TestBase {
 
   @Test()
   public void testD8Dex() throws Exception {
-    assumeTrue(parameters.isDexRuntime());
+    parameters.assumeDexRuntime();
     boolean expectFailure = parameters.getDexRuntimeVersion().isNewerThanOrEqual(Version.V7_0_0);
     testForD8(parameters.getBackend())
         .addProgramClassFileData(dump())

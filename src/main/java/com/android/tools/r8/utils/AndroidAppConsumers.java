@@ -133,6 +133,8 @@ public class AndroidAppConsumers {
               @Override
               public void accept(
                   DataDirectoryResource directory, DiagnosticsHandler diagnosticsHandler) {
+                builder.addDataResource(
+                    DataDirectoryResource.fromName(directory.getName(), directory.getOrigin()));
                 if (dataResourceConsumer != null) {
                   dataResourceConsumer.accept(directory, diagnosticsHandler);
                 }
@@ -287,6 +289,8 @@ public class AndroidAppConsumers {
               @Override
               public void accept(
                   DataDirectoryResource directory, DiagnosticsHandler diagnosticsHandler) {
+                builder.addDataResource(
+                    DataDirectoryResource.fromName(directory.getName(), directory.getOrigin()));
                 if (dataResourceConsumer != null) {
                   dataResourceConsumer.accept(directory, diagnosticsHandler);
                 }

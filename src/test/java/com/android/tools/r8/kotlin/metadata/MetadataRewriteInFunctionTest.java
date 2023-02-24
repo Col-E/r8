@@ -68,7 +68,7 @@ public class MetadataRewriteInFunctionTest extends KotlinMetadataTestBase {
             .setOutputPath(temp.newFolder().toPath())
             .compile();
 
-    testForJvm()
+    testForJvm(parameters)
         .addRunClasspathFiles(kotlinc.getKotlinStdlibJar(), libJar)
         .addClasspath(output)
         .run(parameters.getRuntime(), PKG + ".function_app.MainKt")
@@ -110,7 +110,7 @@ public class MetadataRewriteInFunctionTest extends KotlinMetadataTestBase {
       return;
     }
 
-    testForJvm()
+    testForJvm(parameters)
         .addRunClasspathFiles(kotlinc.getKotlinStdlibJar(), libJar)
         .addClasspath(output)
         .run(parameters.getRuntime(), PKG + ".function_app.MainKt")
@@ -174,7 +174,7 @@ public class MetadataRewriteInFunctionTest extends KotlinMetadataTestBase {
       return;
     }
 
-    testForJvm()
+    testForJvm(parameters)
         .addRunClasspathFiles(kotlinc.getKotlinStdlibJar(), libJar)
         .addClasspath(output)
         .run(parameters.getRuntime(), PKG + ".function_app.MainKt")

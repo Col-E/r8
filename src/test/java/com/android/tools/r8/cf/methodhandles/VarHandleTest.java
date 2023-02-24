@@ -77,8 +77,8 @@ public class VarHandleTest extends TestBase {
 
   @Test
   public void testReference() throws Throwable {
-    assumeTrue(parameters.isCfRuntime());
-    testForJvm()
+    parameters.assumeJvmTestParameters();
+    testForJvm(parameters)
         .addProgramFiles(getProgramInputs())
         .run(parameters.getRuntime(), MAIN.typeName())
         .assertSuccessWithOutput(EXPECTED);

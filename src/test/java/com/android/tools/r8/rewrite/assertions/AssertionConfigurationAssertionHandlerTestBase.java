@@ -4,7 +4,6 @@
 
 package com.android.tools.r8.rewrite.assertions;
 
-import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.R8TestBuilder;
 import com.android.tools.r8.TestBase;
@@ -55,8 +54,8 @@ public abstract class AssertionConfigurationAssertionHandlerTestBase extends Tes
 
   @Test
   public void testD8() throws Exception {
-    assumeTrue(parameters.isDexRuntime());
-    testForD8(parameters.getBackend())
+    parameters.assumeDexRuntime();
+    testForD8()
         .addProgramClasses(getAssertionHandlerClasses())
         .addProgramClasses(getTestClasses())
         .setMinApi(parameters)

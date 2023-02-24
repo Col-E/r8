@@ -153,7 +153,7 @@ public class GetSimpleNameTest extends GetNameTestBase {
         "Only run JVM reference on CF runtimes",
         parameters.isCfRuntime() && !enableMinification);
     CodeInspector inspector = new CodeInspector(classPaths);
-    testForJvm()
+    testForJvm(parameters)
         .addTestClasspath()
         .run(parameters.getRuntime(), MAIN)
         .assertSuccessWithOutput(JVM_OUTPUT);

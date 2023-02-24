@@ -49,7 +49,7 @@ public class UnusedArgumentsCollisionTest extends TestBase {
     String expectedOutput = StringUtils.lines("Hello world", "Hello world");
 
     if (parameters.isCfRuntime() && !minification) {
-      testForJvm()
+      testForJvm(parameters)
           .addTestClasspath()
           .run(parameters.getRuntime(), TestClass.class)
           .assertSuccessWithOutput(expectedOutput);

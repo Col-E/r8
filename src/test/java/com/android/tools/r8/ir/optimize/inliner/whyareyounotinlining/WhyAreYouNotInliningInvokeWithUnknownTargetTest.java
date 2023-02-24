@@ -9,43 +9,40 @@ import static org.junit.Assert.assertEquals;
 import com.android.tools.r8.NoHorizontalClassMerging;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.TestParametersCollection;
+import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.StringUtils;
 import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
-import java.util.List;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameter;
 import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
 public class WhyAreYouNotInliningInvokeWithUnknownTargetTest extends TestBase {
 
-  private final Backend backend;
-  private final TestParameters parameters;
+  @Parameter(0)
+  public TestParameters parameters;
 
   @Parameters(name = "{0}")
-  public static List<Object[]> data() {
-    return buildParameters(Backend.values(), getTestParameters().withNoneRuntime().build());
-  }
-
-  public WhyAreYouNotInliningInvokeWithUnknownTargetTest(
-      Backend backend, TestParameters parameters) {
-    this.backend = backend;
-    this.parameters = parameters;
+  public static TestParametersCollection data() {
+    return getTestParameters().withDefaultRuntimes().withApiLevel(AndroidApiLevel.B).build();
   }
 
   @Test
   public void test() throws Exception {
     ByteArrayOutputStream baos = new ByteArrayOutputStream();
     PrintStream out = new PrintStream(baos);
-    testForR8(backend)
+    testForR8(parameters.getBackend())
         .addInnerClasses(WhyAreYouNotInliningInvokeWithUnknownTargetTest.class)
         .addKeepMainRule(TestClass.class)
         .addKeepRules("-whyareyounotinlining class " + A.class.getTypeName() + " { void m(); }")
         .addOptionsModification(options -> options.testing.whyAreYouNotInliningConsumer = out)
         .enableExperimentalWhyAreYouNotInlining()
         .enableNoHorizontalClassMergingAnnotations()
+        .setMinApi(parameters)
         .compile();
     out.close();
 

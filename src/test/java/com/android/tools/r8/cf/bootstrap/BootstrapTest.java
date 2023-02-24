@@ -10,7 +10,6 @@ import com.android.tools.r8.R8;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
-import com.android.tools.r8.TestRuntime.CfRuntime;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.utils.FileUtils;
@@ -22,6 +21,7 @@ import java.util.Collections;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameter;
 import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
@@ -50,17 +50,12 @@ public class BootstrapTest extends TestBase {
     }
   }
 
+  @Parameter(0)
+  public TestParameters parameters;
+
   @Parameters(name = "{0}")
   public static TestParametersCollection data() {
-    return getTestParameters().withNoneRuntime().build();
-  }
-
-  private static CfRuntime getHostRuntime() {
-    return CfRuntime.getSystemRuntime();
-  }
-
-  public BootstrapTest(TestParameters parameters) {
-    parameters.assertNoneRuntime();
+    return getTestParameters().withDefaultCfRuntime().build();
   }
 
   private Path getHelloInputs() {
@@ -73,9 +68,9 @@ public class BootstrapTest extends TestBase {
 
   @Test
   public void reference() throws Exception {
-    testForJvm()
+    testForJvm(parameters)
         .addProgramFiles(getHelloInputs())
-        .run(getHostRuntime(), Hello.class)
+        .run(parameters.getRuntime(), Hello.class)
         .assertSuccessWithOutput(HELLO_EXPECTED);
   }
 
@@ -93,9 +88,9 @@ public class BootstrapTest extends TestBase {
     // Run r8.jar on hello.jar to ensure that r8.jar is a working compiler.
     R8Result helloCompiledWithR8 =
         runExternalR8(R8_STABLE_JAR, getHelloInputs(), getHelloKeepRules(), mode);
-    testForJvm()
+    testForJvm(parameters)
         .addProgramFiles(helloCompiledWithR8.outputJar)
-        .run(getHostRuntime(), Hello.class)
+        .run(parameters.getRuntime(), Hello.class)
         .assertSuccessWithOutput(HELLO_EXPECTED);
 
     compareR8(helloCompiledWithR8, mode);
@@ -114,7 +109,7 @@ public class BootstrapTest extends TestBase {
   }
 
   private Path compileR8WithR8(CompilationMode mode) throws Exception {
-    return testForR8(Backend.CF)
+    return testForR8(parameters.getBackend())
         .setMode(mode)
         .addProgramFiles(R8_STABLE_JAR)
         .addKeepRules(TestBase.keepMainProguardConfiguration(R8.class))
@@ -135,7 +130,7 @@ public class BootstrapTest extends TestBase {
     FileUtils.writeTextFile(pgConfigFile, keepRules);
     ProcessResult processResult =
         ToolHelper.runJava(
-            getHostRuntime(),
+            parameters.getRuntime().asCf(),
             Collections.singletonList(r8Jar),
             R8.class.getTypeName(),
             "--lib",

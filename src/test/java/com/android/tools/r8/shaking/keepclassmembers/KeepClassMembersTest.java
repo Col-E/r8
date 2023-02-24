@@ -11,7 +11,8 @@ import static org.hamcrest.core.IsNot.not;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
-import com.android.tools.r8.ToolHelper;
+import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.shaking.forceproguardcompatibility.ProguardCompatibilityTestBase;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
@@ -21,23 +22,25 @@ import com.google.common.collect.ImmutableList;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameter;
+import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
 public class KeepClassMembersTest extends ProguardCompatibilityTestBase {
 
-  private Backend backend;
+  @Parameter public TestParameters parameters;
 
-  @Parameterized.Parameters(name = "Backend: {0}")
-  public static Backend[] data() {
-    return ToolHelper.getBackends();
+  @Parameters(name = "{0}")
+  public static TestParametersCollection data() {
+    return getTestParameters().withAllRuntimesAndApiLevels().build();
   }
 
-  public KeepClassMembersTest(Backend backend) {
-    this.backend = backend;
-  }
-
-  private void check(CodeInspector inspector, Class mainClass, Class<?> staticClass,
-      boolean forceProguardCompatibility, boolean fromProguard) {
+  private void check(
+      CodeInspector inspector,
+      Class<?> mainClass,
+      Class<?> staticClass,
+      boolean forceProguardCompatibility,
+      boolean fromProguard) {
     assertTrue(inspector.clazz(mainClass).isPresent());
     ClassSubject staticClassSubject = inspector.clazz(staticClass);
     assertThat(staticClassSubject, isPresent());
@@ -72,26 +75,25 @@ public class KeepClassMembersTest extends ProguardCompatibilityTestBase {
     assertThat(staticClassSubject.field("int", "j"), not(isPresent()));
   }
 
-  private void runTest(Class mainClass, Class<?> staticClass,
-      boolean forceProguardCompatibility) throws Exception {
+  private void runTest(Class<?> mainClass, Class<?> staticClass, boolean forceProguardCompatibility)
+      throws Exception {
     String proguardConfig = String.join("\n", ImmutableList.of(
-        "-keepclassmembers class **.PureStatic* {",
-        "  public static int b;",
-        "  public static int getA();",
-        "}",
-        "-keep class **.MainUsing* {",
-        "  public static void main(java.lang.String[]);",
-        "}",
-        "-dontoptimize", "-dontobfuscate"
     ));
     CodeInspector inspector;
     inspector =
-        new CodeInspector(
-            compileWithR8(
-                readClasses(ImmutableList.of(mainClass, staticClass)),
-                proguardConfig,
-                options -> options.forceProguardCompatibility = forceProguardCompatibility,
-                backend));
+        testForR8Compat(parameters.getBackend(), forceProguardCompatibility)
+            .addProgramClasses(mainClass, staticClass)
+            .addKeepMainRule(mainClass)
+            .addKeepRules(
+                "-keepclassmembers class **.PureStatic* {",
+                "  public static int b;",
+                "  public static int getA();",
+                "}")
+            .addDontObfuscate()
+            .addDontOptimize()
+            .setMinApi(parameters)
+            .compile()
+            .inspector();
     check(inspector, mainClass, staticClass, forceProguardCompatibility, false);
 
     if (isRunProguard()) {

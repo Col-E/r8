@@ -23,11 +23,15 @@ import java.util.function.Consumer;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
 public class ConstrainedPrimitiveTypeTest extends AnalysisTestBase {
 
-  @Parameterized.Parameters(name = "{0}")
+  private static final String EXPECTED_OUTPUT =
+      StringUtils.lines("1", "2", "3", "1.0", "1.0", "2.0", "1", "1", "2", "1.0", "1.0", "2.0");
+
+  @Parameters(name = "{0}")
   public static TestParametersCollection data() {
     return getTestParameters().withAllRuntimesAndApiLevels().build();
   }
@@ -37,19 +41,23 @@ public class ConstrainedPrimitiveTypeTest extends AnalysisTestBase {
   }
 
   @Test
-  public void testOutput() throws Exception {
-    String expectedOutput =
-        StringUtils.lines("1", "2", "3", "1.0", "1.0", "2.0", "1", "1", "2", "1.0", "1.0", "2.0");
+  public void testJvmOutput() throws Exception {
+    parameters.assumeJvmTestParameters();
+    testForJvm(parameters)
+        .addTestClasspath()
+        .run(parameters.getRuntime(), TestClass.class)
+        .assertSuccessWithOutput(EXPECTED_OUTPUT);
+  }
 
-    testForJvm().addTestClasspath().run(TestClass.class).assertSuccessWithOutput(expectedOutput);
-
+  @Test
+  public void testR8Output() throws Exception {
     testForR8(parameters.getBackend())
         .addInnerClasses(ConstrainedPrimitiveTypeTest.class)
         .addKeepMainRule(TestClass.class)
         .enableInliningAnnotations()
         .setMinApi(parameters)
         .run(parameters.getRuntime(), TestClass.class)
-        .assertSuccessWithOutput(expectedOutput);
+        .assertSuccessWithOutput(EXPECTED_OUTPUT);
   }
 
   @Test

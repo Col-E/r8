@@ -62,7 +62,7 @@ public class ProguardDirectoryInputsTest extends TestBase {
       consumer.finished(null);
     }
     if (parameters.isCfRuntime()) {
-      testForJvm()
+      testForJvm(parameters)
           .addProgramClasses(TestClass.class)
           .addClasspath(directory)
           .run(parameters.getRuntime(), TestClass.class)

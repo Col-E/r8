@@ -7,14 +7,11 @@ import static com.android.tools.r8.utils.codeinspector.Matchers.isPresentAndNotR
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresentAndRenamed;
 import static org.hamcrest.MatcherAssert.assertThat;
 
-import com.android.tools.r8.CompatProguardCommandBuilder;
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.NoHorizontalClassMerging;
-import com.android.tools.r8.R8Command;
 import com.android.tools.r8.TestBase;
-import com.android.tools.r8.ToolHelper;
-import com.android.tools.r8.origin.Origin;
-import com.android.tools.r8.utils.AndroidApp;
+import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
@@ -22,6 +19,7 @@ import com.google.common.collect.ImmutableList;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameter;
 import org.junit.runners.Parameterized.Parameters;
 
 @NoHorizontalClassMerging
@@ -51,45 +49,34 @@ class TestMain {
 @RunWith(Parameterized.class)
 public class ReserveOuterClassNameTest extends TestBase {
 
-  private Backend backend;
+  @Parameter(0)
+  public TestParameters parameters;
 
-  @Parameters(name = "Backend: {0}")
-  public static Backend[] data() {
-    return ToolHelper.getBackends();
-  }
-
-  public ReserveOuterClassNameTest(Backend backend){
-    this.backend = backend;
+  @Parameters(name = "{0}")
+  public static TestParametersCollection data() {
+    return getTestParameters().withAllRuntimesAndApiLevels().build();
   }
 
   private void runTest(boolean keepOuterName) throws Exception {
-    Class mainClass = TestMain.class;
-    R8Command.Builder builder = new CompatProguardCommandBuilder(true);
-    builder.addProgramFiles(
-        ToolHelper.getClassFileForTestClass(mainClass),
-        ToolHelper.getClassFileForTestClass(Outer.class),
-        ToolHelper.getClassFileForTestClass(Outer.Inner.class),
-        ToolHelper.getClassFileForTestClass(NeverInline.class),
-        ToolHelper.getClassFileForTestClass(NoHorizontalClassMerging.class));
-    builder.setProgramConsumer(emptyConsumer(backend));
-    builder.addLibraryFiles(runtimeJar(backend));
-    builder.addProguardConfiguration(
-        ImmutableList.of(
-            "-printmapping",
-            "-keepattributes EnclosingMethod,InnerClasses,Signature",
-            keepMainProguardConfigurationWithInliningAnnotation(mainClass),
-            // Note that reproducing b/116840216 relies on the order of following rules that cause
-            // the visiting of classes during class minification to be Outer$Inner before Outer.
-            "-keepnames class " + Outer.class.getCanonicalName() + "$Inner",
-            keepOuterName ? "-keepnames class " + Outer.class.getCanonicalName() : "",
-            noHorizontalClassMerging()),
-        Origin.unknown());
+    CodeInspector inspector =
+        testForR8Compat(parameters.getBackend())
+            .addProgramClasses(TestMain.class, Outer.class, Outer.Inner.class)
+            .addKeepAttributeInnerClassesAndEnclosingMethod()
+            .addKeepAttributeSignature()
+            .addKeepMainRule(TestMain.class)
+            .addKeepRules(
+                // Note that reproducing b/116840216 relies on the order of following rules that
+                // cause
+                // the visiting of classes during class minification to be Outer$Inner before Outer.
+                "-keepnames class " + Outer.class.getCanonicalName() + "$Inner",
+                keepOuterName ? "-keepnames class " + Outer.class.getCanonicalName() : "")
+            .enableInliningAnnotations()
+            .enableNoHorizontalClassMergingAnnotations()
+            .setMinApi(parameters)
+            .compile()
+            .inspector();
 
-    ToolHelper.allowTestProguardOptions(builder);
-    AndroidApp processedApp = ToolHelper.runR8(builder.build());
-
-    CodeInspector inspector = new CodeInspector(processedApp);
-    ClassSubject mainSubject = inspector.clazz(mainClass);
+    ClassSubject mainSubject = inspector.clazz(TestMain.class);
     assertThat(mainSubject, isPresentAndNotRenamed());
     MethodSubject mainMethod = mainSubject.mainMethod();
     assertThat(mainMethod, isPresentAndNotRenamed());

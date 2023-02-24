@@ -4,7 +4,6 @@
 package com.android.tools.r8.cf;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
@@ -50,8 +49,8 @@ public class AlwaysNullGetItemTestRunner extends TestBase {
   @Test
   public void testNoCheckCast() throws Exception {
     // Test that JVM accepts javac output when method calls have been replaced by ACONST_NULL.
-    assumeTrue(parameters.isCfRuntime());
-    testForJvm()
+    parameters.assumeJvmTestParameters();
+    testForJvm(parameters)
         .addProgramClassFileData(AlwaysNullGetItemDump.dump())
         .run(parameters.getRuntime(), CLASS)
         .assertSuccessWithOutputLines(NullPointerException.class.getSimpleName());

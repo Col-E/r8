@@ -65,7 +65,7 @@ public class MetadataRewriteFlexibleUpperBoundTest extends KotlinMetadataTestBas
             .addSourceFiles(getKotlinFileInTest(PKG_PREFIX + "/flexible_upper_bound_app", "main"))
             .setOutputPath(temp.newFolder().toPath())
             .compile();
-    testForJvm()
+    testForJvm(parameters)
         .addRunClasspathFiles(kotlinc.getKotlinStdlibJar(), libJar)
         .addClasspath(output)
         .run(parameters.getRuntime(), PKG + ".flexible_upper_bound_app.MainKt")
@@ -99,7 +99,7 @@ public class MetadataRewriteFlexibleUpperBoundTest extends KotlinMetadataTestBas
     if (kotlinParameters.isOlderThan(KOTLINC_1_4_20)) {
       return;
     }
-    testForJvm()
+    testForJvm(parameters)
         .addRunClasspathFiles(kotlinc.getKotlinStdlibJar(), kotlinc.getKotlinReflectJar(), libJar)
         .addClasspath(main)
         .run(parameters.getRuntime(), PKG + ".flexible_upper_bound_app.MainKt")

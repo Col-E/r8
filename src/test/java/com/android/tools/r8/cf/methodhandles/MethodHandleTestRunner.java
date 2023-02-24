@@ -62,8 +62,8 @@ public class MethodHandleTestRunner extends TestBase {
 
   @Test
   public void testReference() throws Exception {
-    assumeTrue(parameters.isCfRuntime());
-    testForJvm()
+    parameters.assumeJvmTestParameters();
+    testForJvm(parameters)
         .addProgramClasses(getInputClasses())
         .addProgramClassFileData(getTransformedClasses())
         .run(parameters.getRuntime(), CLASS.getName())
@@ -72,8 +72,8 @@ public class MethodHandleTestRunner extends TestBase {
 
   @Test
   public void testD8() throws Exception {
-    assumeTrue(parameters.isDexRuntime());
-    testForD8(parameters.getBackend())
+    parameters.assumeDexRuntime();
+    testForD8()
         .setMinApi(parameters)
         .addProgramClasses(getInputClasses())
         .addProgramClassFileData(getTransformedClasses())

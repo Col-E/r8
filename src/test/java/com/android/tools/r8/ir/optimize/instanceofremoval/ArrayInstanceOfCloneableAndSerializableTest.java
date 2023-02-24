@@ -6,7 +6,6 @@ package com.android.tools.r8.ir.optimize.instanceofremoval;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
@@ -33,8 +32,8 @@ public class ArrayInstanceOfCloneableAndSerializableTest extends TestBase {
 
   @Test
   public void testJvm() throws Exception {
-    assumeTrue(parameters.isCfRuntime());
-    testForJvm()
+    parameters.assumeJvmTestParameters();
+    testForJvm(parameters)
         .addTestClasspath()
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines("true", "true");
@@ -42,7 +41,7 @@ public class ArrayInstanceOfCloneableAndSerializableTest extends TestBase {
 
   @Test
   public void testD8() throws Exception {
-    assumeTrue(parameters.isDexRuntime());
+    parameters.assumeDexRuntime();
     testForD8()
         .addProgramClasses(Main.class)
         .release()

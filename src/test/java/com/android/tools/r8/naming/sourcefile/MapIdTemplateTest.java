@@ -11,37 +11,31 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
-import com.android.tools.r8.ClassFileConsumer.ArchiveConsumer;
-import com.android.tools.r8.DexIndexedConsumer;
 import com.android.tools.r8.DiagnosticsHandler;
-import com.android.tools.r8.R8;
-import com.android.tools.r8.R8Command.Builder;
 import com.android.tools.r8.R8CommandParser;
+import com.android.tools.r8.R8TestCompileResult;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestDiagnosticMessagesImpl;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.ToolHelper;
+import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.origin.Origin;
-import java.nio.file.Path;
+import com.android.tools.r8.utils.AndroidApiLevel;
 import java.util.Arrays;
-import java.util.List;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameter;
+import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
 public class MapIdTemplateTest extends TestBase {
 
-  @Parameterized.Parameters(name = "{0}, {1}")
-  public static List<Object[]> data() {
-    return buildParameters(getTestParameters().withNoneRuntime().build(), Backend.values());
-  }
+  @Parameter(0)
+  public TestParameters parameters;
 
-  private final Backend backend;
-
-  public MapIdTemplateTest(TestParameters parameters, Backend backend) {
-    parameters.assertNoneRuntime();
-    this.backend = backend;
+  @Parameters(name = "{0}")
+  public static TestParametersCollection data() {
+    return getTestParameters().withDefaultRuntimes().withApiLevel(AndroidApiLevel.B).build();
   }
 
   @Test
@@ -52,6 +46,7 @@ public class MapIdTemplateTest extends TestBase {
 
   @Test
   public void testInvalidVariable() {
+    parameters.assumeIsOrSimulateNoneRuntime();
     TestDiagnosticMessagesImpl messages = new TestDiagnosticMessagesImpl();
     parseMapIdTemplate("my-%build-id", messages);
     messages
@@ -62,6 +57,7 @@ public class MapIdTemplateTest extends TestBase {
 
   @Test
   public void testInvalidVariablesMix() {
+    parameters.assumeIsOrSimulateNoneRuntime();
     TestDiagnosticMessagesImpl messages = new TestDiagnosticMessagesImpl();
     parseMapIdTemplate("my%%MAP_HASHJUNK", messages);
     messages
@@ -72,6 +68,7 @@ public class MapIdTemplateTest extends TestBase {
 
   @Test
   public void testNoEscape() {
+    parameters.assumeIsOrSimulateNoneRuntime();
     TestDiagnosticMessagesImpl messages = new TestDiagnosticMessagesImpl();
     parseMapIdTemplate("my%%buildid", messages);
     messages
@@ -99,32 +96,21 @@ public class MapIdTemplateTest extends TestBase {
   }
 
   private String compileWithMapIdTemplate(String template) throws Exception {
-    Path out = temp.newFolder().toPath().resolve("out.jar");
-    TestDiagnosticMessagesImpl messages = new TestDiagnosticMessagesImpl();
-    StringBuilder mapping = new StringBuilder();
-    R8.run(
-        parseMapIdTemplate(template, messages)
-            .addProguardConfiguration(
-                Arrays.asList("-keep class * { *; }", "-dontwarn " + typeName(TestClass.class)),
-                Origin.unknown())
-            .setProgramConsumer(
-                backend.isCf()
-                    ? new ArchiveConsumer(out)
-                    : new DexIndexedConsumer.ArchiveConsumer(out))
-            .addProgramFiles(ToolHelper.getClassFileForTestClass(TestClass.class))
-            // TODO(b/201269335): What should be the expected result when no map is created?
-            .setProguardMapConsumer((content, handler) -> mapping.append(content))
-            .build());
-    messages.assertNoMessages();
-    return getMapId(mapping.toString());
+    return getMapId(
+        testForR8(parameters.getBackend())
+            .addProgramClasses(TestClass.class)
+            .addKeepMainRule(TestClass.class)
+            .setMapIdTemplate(template)
+            .setMinApi(parameters)
+            .compile());
   }
 
-  private Builder parseMapIdTemplate(String template, DiagnosticsHandler handler) {
-    return R8CommandParser.parse(
-        new String[] {"--map-id-template", template}, Origin.unknown(), handler);
+  private void parseMapIdTemplate(String template, DiagnosticsHandler handler) {
+    R8CommandParser.parse(new String[] {"--map-id-template", template}, Origin.unknown(), handler);
   }
 
-  private String getMapId(String mapping) {
+  private String getMapId(R8TestCompileResult compileResult) {
+    String mapping = compileResult.getProguardMap();
     String lineHeader = "# pg_map_id: ";
     int i = mapping.indexOf(lineHeader);
     assertTrue(i >= 0);

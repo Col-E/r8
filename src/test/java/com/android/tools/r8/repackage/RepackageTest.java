@@ -86,8 +86,8 @@ public class RepackageTest extends RepackageTestBase {
   public void testJvm() throws Exception {
     assumeFalse(allowAccessModification);
     assumeTrue(isFlattenPackageHierarchy());
-    assumeTrue(parameters.isCfRuntime());
-    testForJvm()
+    parameters.assumeJvmTestParameters();
+    testForJvm(parameters)
         .addTestClasspath()
         .run(parameters.getRuntime(), TestClass.class)
         .assertSuccessWithOutputLines(EXPECTED);

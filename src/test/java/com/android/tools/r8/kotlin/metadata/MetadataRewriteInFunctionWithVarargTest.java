@@ -69,7 +69,7 @@ public class MetadataRewriteInFunctionWithVarargTest extends KotlinMetadataTestB
             .setOutputPath(temp.newFolder().toPath())
             .compile();
 
-    testForJvm()
+    testForJvm(parameters)
         .addRunClasspathFiles(kotlinc.getKotlinStdlibJar(), libJar)
         .addClasspath(output)
         .run(parameters.getRuntime(), PKG + ".vararg_app.MainKt")
@@ -104,7 +104,7 @@ public class MetadataRewriteInFunctionWithVarargTest extends KotlinMetadataTestB
       return;
     }
 
-    testForJvm()
+    testForJvm(parameters)
         .addRunClasspathFiles(kotlinc.getKotlinStdlibJar(), libJar)
         .addClasspath(output)
         .run(parameters.getRuntime(), PKG + ".vararg_app.MainKt")

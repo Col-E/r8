@@ -116,7 +116,7 @@ public class ConstClassCanonicalizationTest extends TestBase {
   public void testJVMOutput() throws Exception {
     assumeTrue(isCompat);
     parameters.assumeJvmTestParameters();
-    testForJvm()
+    testForJvm(parameters)
         .addTestClasspath()
         .run(parameters.getRuntime(), MAIN)
         .assertSuccessWithOutput(JAVA_OUTPUT);

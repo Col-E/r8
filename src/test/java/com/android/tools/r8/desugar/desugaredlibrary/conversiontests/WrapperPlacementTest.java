@@ -65,7 +65,7 @@ public class WrapperPlacementTest extends DesugaredLibraryTestBase {
         parameters.isCfRuntime()
             && libraryDesugaringSpecification == JDK8
             && compilationSpecification.isProgramShrink());
-    testForJvm()
+    testForJvm(parameters)
         .addAndroidBuildVersion()
         .addProgramClassesAndInnerClasses(MyArrays1.class)
         .addProgramClassesAndInnerClasses(MyArrays2.class)

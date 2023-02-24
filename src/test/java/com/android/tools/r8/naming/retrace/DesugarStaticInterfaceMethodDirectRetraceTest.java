@@ -55,7 +55,7 @@ public class DesugarStaticInterfaceMethodDirectRetraceTest extends RetraceTestBa
     runTest(
         ImmutableList.of("-keepattributes SourceFile,LineNumberTable"),
         (StackTrace actualStackTrace, StackTrace retracedStackTrace) ->
-            assertThat(retracedStackTrace, isSameExceptForFileName(expectedStackTrace)));
+            assertThat(retracedStackTrace, isSameExceptForFileName(getExpectedStackTrace())));
   }
 }
 

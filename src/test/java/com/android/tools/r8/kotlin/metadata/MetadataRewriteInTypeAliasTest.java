@@ -92,7 +92,7 @@ public class MetadataRewriteInTypeAliasTest extends KotlinMetadataTestBase {
             .setOutputPath(temp.newFolder().toPath())
             .compile();
 
-    testForJvm()
+    testForJvm(parameters)
         .addRunClasspathFiles(kotlinc.getKotlinStdlibJar(), kotlinc.getKotlinReflectJar(), libJar)
         .addClasspath(output)
         .run(parameters.getRuntime(), PKG + ".typealias_app.MainKt")
@@ -141,7 +141,7 @@ public class MetadataRewriteInTypeAliasTest extends KotlinMetadataTestBase {
       return;
     }
 
-    testForJvm()
+    testForJvm(parameters)
         .addRunClasspathFiles(kotlinc.getKotlinStdlibJar(), kotlinc.getKotlinReflectJar(), libJar)
         .addClasspath(appJar)
         .run(parameters.getRuntime(), PKG + ".typealias_app.MainKt")

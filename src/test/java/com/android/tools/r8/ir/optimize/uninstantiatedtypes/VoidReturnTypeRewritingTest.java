@@ -46,7 +46,7 @@ public class VoidReturnTypeRewritingTest extends TestBase {
             "SubSubFactory.createVirtual() -> null");
 
     if (parameters.isCfRuntime()) {
-      testForJvm()
+      testForJvm(parameters)
           .addTestClasspath()
           .run(parameters.getRuntime(), TestClass.class)
           .assertSuccessWithOutput(expected);

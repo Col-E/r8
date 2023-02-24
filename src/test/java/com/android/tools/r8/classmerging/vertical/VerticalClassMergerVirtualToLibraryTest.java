@@ -6,7 +6,6 @@ package com.android.tools.r8.classmerging.vertical;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
@@ -37,8 +36,8 @@ public class VerticalClassMergerVirtualToLibraryTest extends TestBase {
 
   @Test
   public void testJvm() throws Exception {
-    assumeTrue(parameters.isCfRuntime());
-    testForJvm()
+    parameters.assumeJvmTestParameters();
+    testForJvm(parameters)
         .addProgramClasses(B.class, Main.class, A.class)
         .addLibraryClassFileData(classWithoutBarMethod(LibParent.class))
         .addLibraryClasses(Lib.class)
@@ -52,8 +51,8 @@ public class VerticalClassMergerVirtualToLibraryTest extends TestBase {
 
   @Test
   public void testD8() throws Exception {
-    assumeTrue(parameters.isDexRuntime());
-    testForD8(parameters.getBackend())
+    parameters.assumeDexRuntime();
+    testForD8()
         .addDefaultRuntimeLibrary(parameters)
         .addLibraryClasses(LibParent.class)
         .addLibraryClassFileData(classWithoutBarMethod(Lib.class))

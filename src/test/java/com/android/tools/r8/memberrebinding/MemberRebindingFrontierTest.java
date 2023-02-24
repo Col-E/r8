@@ -6,7 +6,6 @@ package com.android.tools.r8.memberrebinding;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.SingleTestRunResult;
 import com.android.tools.r8.TestBase;
@@ -34,8 +33,8 @@ public class MemberRebindingFrontierTest extends TestBase {
 
   @Test
   public void testD8() throws Exception {
-    assumeTrue(parameters.isDexRuntime());
-    testForD8(parameters.getBackend())
+    parameters.assumeDexRuntime();
+    testForD8()
         .addProgramClasses(Main.class, ProgramClass.class)
         .addDefaultRuntimeLibrary(parameters)
         .addLibraryClasses(Base.class, I.class)

@@ -8,7 +8,10 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 
+import com.android.tools.r8.ProguardVersion;
 import com.android.tools.r8.TestBase;
+import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.naming.b123068484.data.Concrete1;
 import com.android.tools.r8.naming.b123068484.runner.Runner;
@@ -25,6 +28,8 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameter;
+import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
 public class FieldRenamingTest extends TestBase {
@@ -33,15 +38,12 @@ public class FieldRenamingTest extends TestBase {
   private static List<Path> CLASSES;
   private static final String EXPECTED_OUTPUT = StringUtils.lines("Runner");
 
-  private final Backend backend;
+  @Parameter(0)
+  public TestParameters parameters;
 
-  @Parameterized.Parameters(name = "Backend: {0}")
-  public static Object[] data() {
-    return ToolHelper.getBackends();
-  }
-
-  public FieldRenamingTest(Backend backend) {
-    this.backend = backend;
+  @Parameters(name = "{0}")
+  public static TestParametersCollection data() {
+    return getTestParameters().withAllRuntimesAndApiLevels().build();
   }
 
   @BeforeClass
@@ -54,22 +56,24 @@ public class FieldRenamingTest extends TestBase {
 
   @Test
   public void testProguard() throws Exception {
+    parameters.assumeCfRuntime();
     Path inJar = temp.newFile("input.jar").toPath().toAbsolutePath();
     writeClassFilesToJar(inJar, CLASSES);
-    testForProguard()
+    testForProguard(ProguardVersion.V6_0_1)
         .addProgramFiles(inJar)
         .addKeepMainRule(MAIN)
-        .run(MAIN)
+        .run(parameters.getRuntime(), MAIN)
         .assertSuccessWithOutput(EXPECTED_OUTPUT)
         .inspect(this::inspect);
   }
 
   @Test
   public void testR8() throws Exception {
-    testForR8(backend)
+    testForR8(parameters.getBackend())
         .addProgramFiles(CLASSES)
         .addKeepMainRule(MAIN)
-        .run(MAIN)
+        .setMinApi(parameters)
+        .run(parameters.getRuntime(), MAIN)
         .assertSuccessWithOutput(EXPECTED_OUTPUT)
         .inspect(this::inspect);
   }

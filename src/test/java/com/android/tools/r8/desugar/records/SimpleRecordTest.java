@@ -48,7 +48,7 @@ public class SimpleRecordTest extends TestBase {
   @Test
   public void testReference() throws Exception {
     assumeTrue(isCfRuntimeWithNativeRecordSupport());
-    testForJvm()
+    testForJvm(parameters)
         .addProgramClassFileData(PROGRAM_DATA)
         .run(parameters.getRuntime(), MAIN_TYPE)
         .assertSuccessWithOutput(EXPECTED_RESULT);

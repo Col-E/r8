@@ -4,45 +4,46 @@
 package com.android.tools.r8.regress.b118075510;
 
 import com.android.tools.r8.AsmTestBase;
-import com.android.tools.r8.CompilationFailedException;
-import com.android.tools.r8.CompilationMode;
 import com.android.tools.r8.D8TestCompileResult;
 import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
-import java.io.IOException;
-import java.util.List;
-import java.util.concurrent.ExecutionException;
 import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameter;
+import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
 public class Regress118075510Runner extends AsmTestBase {
 
-  public static final Class<?> CLASS = Regress118075510Test.class;
-  public static final String EXPECTED = StringUtils.lines("0", "0");
+  private static final Class<?> CLASS = Regress118075510Test.class;
+  private static final String EXPECTED = StringUtils.lines("0", "0");
 
-  private final TestParameters parameters;
+  @Parameter(0)
+  public TestParameters parameters;
 
-  @Parameterized.Parameters(name = "{0}, {1}")
-  public static List<Object[]> data() {
-    return buildParameters(
-        getTestParameters().withDexRuntimes().withAllApiLevels().build(), CompilationMode.values());
-  }
-
-  public Regress118075510Runner(TestParameters parameters, CompilationMode mode) {
-    this.parameters = parameters;
+  @Parameters(name = "{0}")
+  public static TestParametersCollection data() {
+    return getTestParameters().withAllRuntimesAndApiLevels().build();
   }
 
   @Test
-  public void test()
-      throws CompilationFailedException, IOException, ExecutionException, NoSuchMethodException {
-    testForJvm().addTestClasspath().run(CLASS).assertSuccessWithOutput(EXPECTED);
+  public void testJvm() throws Exception {
+    parameters.assumeJvmTestParameters();
+    testForJvm(parameters)
+        .addTestClasspath()
+        .run(parameters.getRuntime(), CLASS)
+        .assertSuccessWithOutput(EXPECTED);
+  }
 
+  @Test
+  public void testD8() throws Exception {
+    parameters.assumeDexRuntime();
     D8TestCompileResult d8Result =
         testForD8().addProgramClasses(CLASS).setMinApi(AndroidApiLevel.M).release().compile();
 

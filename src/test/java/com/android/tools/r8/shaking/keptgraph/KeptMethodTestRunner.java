@@ -7,7 +7,8 @@ import static com.android.tools.r8.references.Reference.methodFromMethod;
 import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.TestBase;
-import com.android.tools.r8.ToolHelper;
+import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.references.MethodReference;
 import com.android.tools.r8.utils.StringUtils;
@@ -16,6 +17,7 @@ import com.android.tools.r8.utils.graphinspector.GraphInspector.QueryNode;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameter;
 import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
@@ -24,15 +26,12 @@ public class KeptMethodTestRunner extends TestBase {
   private static final Class<KeptMethodTest> CLASS = KeptMethodTest.class;
   private static final String EXPECTED = StringUtils.lines("called bar");
 
-  private final Backend backend;
+  @Parameter(0)
+  public TestParameters parameters;
 
   @Parameters(name = "{0}")
-  public static Backend[] data() {
-    return ToolHelper.getBackends();
-  }
-
-  public KeptMethodTestRunner(Backend backend) {
-    this.backend = backend;
+  public static TestParametersCollection data() {
+    return getTestParameters().withAllRuntimesAndApiLevels().build();
   }
 
   @Test
@@ -42,12 +41,13 @@ public class KeptMethodTestRunner extends TestBase {
     MethodReference bazMethod = methodFromMethod(CLASS.getDeclaredMethod("baz"));
 
     GraphInspector inspector =
-        testForR8(backend)
+        testForR8(parameters.getBackend())
             .enableGraphInspector()
             .enableInliningAnnotations()
             .addProgramClasses(CLASS)
             .addKeepMethodRules(mainMethod)
-            .run(CLASS)
+            .setMinApi(parameters)
+            .run(parameters.getRuntime(), CLASS)
             .assertSuccessWithOutput(EXPECTED)
             .graphInspector();
 

@@ -41,7 +41,7 @@ public class PattternMatchingForInstanceOfTest extends TestBase {
   @Test
   public void testD8AndJvm() throws Exception {
     if (parameters.isCfRuntime()) {
-      testForJvm()
+      testForJvm(parameters)
           .addRunClasspathFiles(JAR)
           .run(parameters.getRuntime(), MAIN)
           .assertSuccessWithOutputLines(EXPECTED);
@@ -65,7 +65,7 @@ public class PattternMatchingForInstanceOfTest extends TestBase {
     if (parameters.getBackend().isDex()) {
       builder.run(parameters.getRuntime(), MAIN).assertSuccessWithOutputLines(EXPECTED);
     } else {
-      testForJvm()
+      testForJvm(parameters)
           .addRunClasspathFiles(builder.compile().writeToZip())
           .run(parameters.getRuntime(), MAIN)
           .assertSuccessWithOutputLines(EXPECTED);

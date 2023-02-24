@@ -62,7 +62,7 @@ public class ApiOutlineProfileRewritingTest extends TestBase {
     assumeTrue(parameters.isCfRuntime());
     assumeTrue(parameters.getApiLevel() == AndroidApiLevel.B);
     assertFalse(isLibraryClassPresentInCurrentRuntime());
-    testForJvm()
+    testForJvm(parameters)
         .addProgramClasses(Main.class)
         .run(parameters.getRuntime(), Main.class)
         .apply(this::inspectRunResult);

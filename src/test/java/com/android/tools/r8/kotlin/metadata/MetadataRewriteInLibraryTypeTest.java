@@ -66,7 +66,7 @@ public class MetadataRewriteInLibraryTypeTest extends KotlinMetadataTestBase {
 
   @Test
   public void smokeTest() throws Exception {
-    testForJvm()
+    testForJvm(parameters)
         .addRunClasspathFiles(
             kotlinc.getKotlinStdlibJar(), baseLibJarMap.getForConfiguration(kotlinc, targetVersion))
         .addClasspath(
@@ -104,7 +104,7 @@ public class MetadataRewriteInLibraryTypeTest extends KotlinMetadataTestBase {
                     equalTo("Resource 'META-INF/main.kotlin_module' already exists.")))
             .writeToZip();
 
-    testForJvm()
+    testForJvm(parameters)
         .addRunClasspathFiles(
             kotlinc.getKotlinStdlibJar(), baseLibJarMap.getForConfiguration(kotlinc, targetVersion))
         .addClasspath(out)

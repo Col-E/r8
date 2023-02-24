@@ -178,7 +178,7 @@ public class AlwaysThrowNullTest extends TestBase {
   @Test
   public void testJvmOutput() throws Exception {
     parameters.assumeJvmTestParameters();
-    testForJvm()
+    testForJvm(parameters)
         .addTestClasspath()
         .run(parameters.getRuntime(), MAIN)
         .assertSuccessWithOutput(JAVA_OUTPUT);

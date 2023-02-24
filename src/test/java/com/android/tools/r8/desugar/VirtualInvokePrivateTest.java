@@ -40,7 +40,7 @@ public class VirtualInvokePrivateTest extends TestBase implements Opcodes {
     assumeTrue(parameters.getRuntime().isCf());
     assumeTrue(parameters.getApiLevel().isEqualTo(AndroidApiLevel.B));
 
-    testForJvm()
+    testForJvm(parameters)
         .addProgramClassFileData(transformInvokeSpecialToInvokeVirtual())
         .run(parameters.getRuntime(), TestRunner.class)
         .assertSuccessWithOutput(EXPECTED_OUTPUT);

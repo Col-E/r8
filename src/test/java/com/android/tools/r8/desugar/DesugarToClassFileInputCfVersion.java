@@ -11,14 +11,15 @@ import static org.objectweb.asm.Opcodes.V1_7;
 import static org.objectweb.asm.Opcodes.V1_8;
 import static org.objectweb.asm.Opcodes.V9;
 
+import com.android.tools.r8.D8TestCompileResult;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.google.common.collect.ImmutableList;
-import java.nio.file.Path;
 import java.util.List;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameter;
 import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
@@ -31,35 +32,31 @@ public class DesugarToClassFileInputCfVersion extends TestBase {
         ImmutableList.of(V1_4, V1_5, V1_6, V1_7, V1_8, V9));
   }
 
-  private final TestParameters parameters;
-  private final int cfVersion;
+  @Parameter(0)
+  public TestParameters parameters;
 
-  public DesugarToClassFileInputCfVersion(TestParameters parameters, int cfVersion) {
-    this.parameters = parameters;
-    this.cfVersion = cfVersion;
-  }
+  @Parameter(1)
+  public int cfVersion;
 
   @Test
   public void test() throws Exception {
     // Use D8 to desugar with Java classfile output.
-    Path jar =
+    D8TestCompileResult desugarCompileResult =
         testForD8(Backend.CF)
             .addProgramClassFileData(transformer(TestClass.class).setVersion(cfVersion).transform())
             .setMinApi(parameters)
-            .compile()
-            .writeToZip();
+            .compile();
 
     if (parameters.getRuntime().isCf()) {
       // Run on the JVM given that Cf version is supported. When we desugar we now target 1.7 (51).
-      testForJvm()
-          .addProgramFiles(jar)
+      desugarCompileResult
           .run(parameters.getRuntime(), TestClass.class)
           .assertSuccessWithOutputLines("Hello, world!");
     } else {
       assert parameters.getRuntime().isDex();
       // Convert to DEX without desugaring.
       testForD8()
-          .addProgramFiles(jar)
+          .addProgramFiles(desugarCompileResult.writeToZip())
           .setMinApi(parameters)
           .disableDesugaring()
           .run(parameters.getRuntime(), TestClass.class)

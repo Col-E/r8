@@ -88,6 +88,19 @@ public abstract class TestCompileResult<
     this.libraryDesugaringTestConfiguration = libraryDesugaringTestConfiguration;
   }
 
+  public CR addVmArguments(Collection<String> arguments) {
+    vmArguments.addAll(arguments);
+    return self();
+  }
+
+  public CR addVmArguments(String... arguments) {
+    return addVmArguments(Arrays.asList(arguments));
+  }
+
+  public CR noVerify() {
+    return addVmArguments("-noverify");
+  }
+
   public CR applyIf(boolean condition, ThrowableConsumer<CR> thenConsumer) {
     return applyIf(condition, thenConsumer, result -> {});
   }

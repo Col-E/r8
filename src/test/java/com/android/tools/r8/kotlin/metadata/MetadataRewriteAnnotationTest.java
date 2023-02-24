@@ -89,7 +89,7 @@ public class MetadataRewriteAnnotationTest extends KotlinMetadataTestBase {
                 getKotlinFileInTest(DescriptorUtils.getBinaryNameFromJavaType(PKG_APP), "main"))
             .setOutputPath(temp.newFolder().toPath())
             .compile();
-    testForJvm()
+    testForJvm(parameters)
         .addRunClasspathFiles(kotlinc.getKotlinStdlibJar(), kotlinc.getKotlinReflectJar(), libJar)
         .addClasspath(output)
         .run(parameters.getRuntime(), PKG_APP + ".MainKt")
@@ -140,7 +140,7 @@ public class MetadataRewriteAnnotationTest extends KotlinMetadataTestBase {
     if (kotlinParameters.isOlderThan(KOTLINC_1_4_20)) {
       return;
     }
-    testForJvm()
+    testForJvm(parameters)
         .addRunClasspathFiles(kotlinc.getKotlinStdlibJar(), kotlinc.getKotlinReflectJar(), libJar)
         .addProgramFiles(output)
         .run(parameters.getRuntime(), PKG_APP + ".MainKt")

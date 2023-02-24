@@ -42,7 +42,7 @@ public class InlineMappingOnSameLineTest extends RetraceTestBase {
     runTest(
         ImmutableList.of("-keepattributes SourceFile,LineNumberTable"),
         (StackTrace actualStackTrace, StackTrace retracedStackTrace) -> {
-          assertThat(retracedStackTrace, isSame(expectedStackTrace));
+          assertThat(retracedStackTrace, isSame(getExpectedStackTrace()));
         });
   }
 

@@ -82,7 +82,7 @@ public class MetadataRewriteContextReceiverTest extends KotlinMetadataTestBase {
             .setOutputPath(temp.newFolder().toPath())
             .enableExperimentalContextReceivers()
             .compile();
-    testForJvm()
+    testForJvm(parameters)
         .addRunClasspathFiles(
             kotlinc.getKotlinStdlibJar(),
             kotlinc.getKotlinReflectJar(),
@@ -124,7 +124,7 @@ public class MetadataRewriteContextReceiverTest extends KotlinMetadataTestBase {
             .setOutputPath(temp.newFolder().toPath())
             .enableExperimentalContextReceivers()
             .compile();
-    testForJvm()
+    testForJvm(parameters)
         .addRunClasspathFiles(kotlinc.getKotlinStdlibJar(), kotlinc.getKotlinReflectJar(), libJar)
         .addClasspath(main)
         .run(parameters.getRuntime(), MAIN)
@@ -184,7 +184,7 @@ public class MetadataRewriteContextReceiverTest extends KotlinMetadataTestBase {
             .enableExperimentalContextReceivers()
             .compile();
 
-    testForJvm()
+    testForJvm(parameters)
         .addRunClasspathFiles(kotlinc.getKotlinStdlibJar(), libJar)
         .addClasspath(output)
         .run(parameters.getRuntime(), MAIN)

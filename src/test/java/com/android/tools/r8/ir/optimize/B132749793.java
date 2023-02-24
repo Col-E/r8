@@ -3,7 +3,6 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.optimize;
 
-import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
@@ -41,10 +40,10 @@ public class B132749793 extends TestBase {
 
   @Test
   public void testJvm() throws Exception {
-    assumeTrue(parameters.isCfRuntime());
-    testForJvm()
-        .addProgramClasses(TestB132749793.class, InterfaceWithStaticAndDefault.class,
-            HasStaticField.class)
+    parameters.assumeJvmTestParameters();
+    testForJvm(parameters)
+        .addProgramClasses(
+            TestB132749793.class, InterfaceWithStaticAndDefault.class, HasStaticField.class)
         .run(parameters.getRuntime(), TestB132749793.class)
         .assertSuccessWithOutputLines(EXPECTED);
   }

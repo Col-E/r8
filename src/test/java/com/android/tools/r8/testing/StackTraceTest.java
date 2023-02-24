@@ -175,8 +175,8 @@ public class StackTraceTest extends TestBase {
 
   @Test
   public void testJvmStackTraceFromRunning() throws Exception {
-    assumeTrue(parameters.isCfRuntime());
-    testForJvm()
+    parameters.assumeJvmTestParameters();
+    testForJvm(parameters)
         .addInnerClasses(StackTraceTest.class)
         .run(parameters.getRuntime(), Main.class)
         .assertFailure()

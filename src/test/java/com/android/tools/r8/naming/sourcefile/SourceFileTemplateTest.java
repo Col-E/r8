@@ -10,53 +10,45 @@ import static org.hamcrest.CoreMatchers.startsWith;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 
-import com.android.tools.r8.ClassFileConsumer.ArchiveConsumer;
-import com.android.tools.r8.CompilationFailedException;
-import com.android.tools.r8.DexIndexedConsumer;
 import com.android.tools.r8.DiagnosticsHandler;
-import com.android.tools.r8.R8;
 import com.android.tools.r8.R8Command.Builder;
 import com.android.tools.r8.R8CommandParser;
-import com.android.tools.r8.StringConsumer;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestDiagnosticMessagesImpl;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.ToolHelper;
+import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.origin.Origin;
+import com.android.tools.r8.utils.AndroidApiLevel;
+import com.android.tools.r8.utils.ThrowingConsumer;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
-import java.io.IOException;
-import java.nio.file.Path;
 import java.util.Arrays;
-import java.util.List;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameter;
+import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
 public class SourceFileTemplateTest extends TestBase {
 
-  @Parameterized.Parameters(name = "{0}, {1}")
-  public static List<Object[]> data() {
-    return buildParameters(getTestParameters().withNoneRuntime().build(), Backend.values());
-  }
+  @Parameter(0)
+  public TestParameters parameters;
 
-  private final Backend backend;
-
-  public SourceFileTemplateTest(TestParameters parameters, Backend backend) {
-    parameters.assertNoneRuntime();
-    this.backend = backend;
+  @Parameters(name = "{0}")
+  public static TestParametersCollection data() {
+    return getTestParameters().withAllRuntimes().withApiLevel(AndroidApiLevel.B).build();
   }
 
   @Test
   public void testNoVariables() throws Exception {
     String template = "MySourceFile";
-    assertEquals(
+    compileWithSourceFileTemplate(
         template,
-        new CodeInspector(compileWithSourceFileTemplate(template))
-            .clazz(TestClass.class)
-            .getDexProgramClass()
-            .getSourceFile()
-            .toString());
+        inspector -> {
+          assertEquals(
+              template,
+              inspector.clazz(TestClass.class).getDexProgramClass().getSourceFile().toString());
+        });
   }
 
   @Test
@@ -96,62 +88,52 @@ public class SourceFileTemplateTest extends TestBase {
   @Test
   public void testMapId() throws Exception {
     String template = "MySourceFile %MAP_ID";
-    String actual =
-        new CodeInspector(compileWithSourceFileTemplate(template))
-            .clazz(TestClass.class)
-            .getDexProgramClass()
-            .getSourceFile()
-            .toString();
-    assertThat(actual, startsWith("MySourceFile "));
-    assertThat(actual, not(containsString("%")));
-    assertEquals("MySourceFile ".length() + 7, actual.length());
+    compileWithSourceFileTemplate(
+        template,
+        inspector -> {
+          String actual =
+              inspector.clazz(TestClass.class).getDexProgramClass().getSourceFile().toString();
+          assertThat(actual, startsWith("MySourceFile "));
+          assertThat(actual, not(containsString("%")));
+          assertEquals("MySourceFile ".length() + 7, actual.length());
+        });
   }
 
   @Test
   public void testMapHash() throws Exception {
     String template = "MySourceFile %MAP_HASH";
-    String actual =
-        new CodeInspector(compileWithSourceFileTemplate(template))
-            .clazz(TestClass.class)
-            .getDexProgramClass()
-            .getSourceFile()
-            .toString();
-    assertThat(actual, startsWith("MySourceFile "));
-    assertThat(actual, not(containsString("%")));
-    assertEquals("MySourceFile ".length() + 64, actual.length());
+    compileWithSourceFileTemplate(
+        template,
+        inspector -> {
+          String actual =
+              inspector.clazz(TestClass.class).getDexProgramClass().getSourceFile().toString();
+          assertThat(actual, startsWith("MySourceFile "));
+          assertThat(actual, not(containsString("%")));
+          assertEquals("MySourceFile ".length() + 64, actual.length());
+        });
   }
 
   @Test
   public void testMultiple() throws Exception {
     String template = "id %MAP_ID hash %MAP_HASH id %MAP_ID hash %MAP_HASH";
-    String actual =
-        new CodeInspector(compileWithSourceFileTemplate(template))
-            .clazz(TestClass.class)
-            .getDexProgramClass()
-            .getSourceFile()
-            .toString();
-    assertEquals("id  hash  id  hash ".length() + 2 * 7 + 2 * 64, actual.length());
+    compileWithSourceFileTemplate(
+        template,
+        inspector -> {
+          String actual =
+              inspector.clazz(TestClass.class).getDexProgramClass().getSourceFile().toString();
+          assertEquals("id  hash  id  hash ".length() + 2 * 7 + 2 * 64, actual.length());
+        });
   }
 
-  private Path compileWithSourceFileTemplate(String template)
-      throws IOException, CompilationFailedException {
-    Path out = temp.newFolder().toPath().resolve("out.jar");
-    TestDiagnosticMessagesImpl messages = new TestDiagnosticMessagesImpl();
-    R8.run(
-        parseSourceFileTemplate(template, messages)
-            .addProguardConfiguration(
-                Arrays.asList("-keep class * { *; }", "-dontwarn " + typeName(TestClass.class)),
-                Origin.unknown())
-            .setProgramConsumer(
-                backend.isCf()
-                    ? new ArchiveConsumer(out)
-                    : new DexIndexedConsumer.ArchiveConsumer(out))
-            .addProgramFiles(ToolHelper.getClassFileForTestClass(TestClass.class))
-            // TODO(b/201269335): What should be the expected result when no map is created?
-            .setProguardMapConsumer(StringConsumer.emptyConsumer())
-            .build());
-    messages.assertNoMessages();
-    return out;
+  private <E extends Exception> void compileWithSourceFileTemplate(
+      String template, ThrowingConsumer<CodeInspector, E> inspection) throws Exception {
+    testForR8(parameters.getBackend())
+        .addProgramClasses(TestClass.class)
+        .addKeepMainRule(TestClass.class)
+        .setMinApi(parameters)
+        .setSourceFileTemplate(template)
+        .compile()
+        .inspect(inspection);
   }
 
   private Builder parseSourceFileTemplate(String template, DiagnosticsHandler handler) {

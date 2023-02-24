@@ -14,22 +14,22 @@ import com.android.tools.r8.NoVerticalClassMerging;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestRuntime.CfRuntime;
 import com.android.tools.r8.naming.retrace.StackTrace;
-import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 public class MergedConstructorStackTraceTest extends HorizontalClassMergingTestBase {
 
-  public StackTrace expectedStackTrace;
+  private static StackTrace expectedStackTrace;
 
   public MergedConstructorStackTraceTest(TestParameters parameters) {
     super(parameters);
   }
 
-  @Before
-  public void setup() throws Exception {
+  @BeforeClass
+  public static void setup() throws Exception {
     // Get the expected stack trace by running on the JVM.
     expectedStackTrace =
-        testForJvm()
+        testForJvm(getStaticTemp())
             .addTestClasspath()
             .run(CfRuntime.getSystemRuntime(), Main.class)
             .assertFailure()
