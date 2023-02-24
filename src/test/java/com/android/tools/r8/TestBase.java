@@ -69,7 +69,6 @@ import com.android.tools.r8.shaking.ProguardMemberRule;
 import com.android.tools.r8.shaking.ProguardMemberType;
 import com.android.tools.r8.shaking.ProguardTypeMatcher;
 import com.android.tools.r8.shaking.RootSetUtils.RootSet;
-import com.android.tools.r8.shaking.serviceloader.ServiceLoaderMultipleTest.Greeter;
 import com.android.tools.r8.synthesis.SyntheticItems.GlobalSyntheticsStrategy;
 import com.android.tools.r8.transformers.ClassFileTransformer;
 import com.android.tools.r8.utils.AndroidApiLevel;
@@ -105,7 +104,6 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -493,10 +491,6 @@ public class TestBase {
     return writeTextToTempFile(System.lineSeparator(), Arrays.asList(lines));
   }
 
-  protected void writeTextToTempFile(Path file, String... lines) throws IOException {
-    writeTextToTempFile(file, System.lineSeparator(), Arrays.asList(lines));
-  }
-
   /**
    * Write lines of text to a temporary file, along with the specified line separator.
    *
@@ -505,11 +499,6 @@ public class TestBase {
   protected Path writeTextToTempFile(String lineSeparator, List<String> lines)
       throws IOException {
     return writeTextToTempFile(lineSeparator, lines, true);
-  }
-
-  protected void writeTextToTempFile(Path file, String lineSeparator, List<String> lines)
-      throws IOException {
-    writeTextToTempFile(file, lineSeparator, lines, true);
   }
 
   /**
@@ -540,11 +529,13 @@ public class TestBase {
   }
 
   /** Build an AndroidApp with the specified test classes as byte array. */
+  @Deprecated
   protected AndroidApp buildAndroidApp(byte[]... classes) {
     return buildAndroidApp(Arrays.asList(classes));
   }
 
   /** Build an AndroidApp with the specified test classes as byte array. */
+  @Deprecated
   protected AndroidApp buildAndroidApp(List<byte[]> classes) {
     AndroidApp.Builder builder = AndroidApp.builder();
     for (byte[] clazz : classes) {
@@ -563,49 +554,56 @@ public class TestBase {
         .build();
   }
 
+  @Deprecated
   protected List<String> classNamesFromDexFile(Path dexFile) throws IOException {
     return new CodeInspector(dexFile)
         .allClasses().stream().map(FoundClassSubject::toString).collect(Collectors.toList());
   }
 
-  /**
-   * Build an AndroidApp with the specified test classes.
-   */
+  /** Build an AndroidApp with the specified test classes. */
+  @Deprecated
   protected static AndroidApp readClasses(Class... classes) throws IOException {
     return readClasses(Arrays.asList(classes));
   }
 
   /** Build an AndroidApp with the specified test classes. */
+  @Deprecated
   protected static AndroidApp readClasses(List<Class<?>> classes) throws IOException {
     return readClasses(classes, Collections.emptyList());
   }
 
   /** Build an AndroidApp with the specified test classes. */
+  @Deprecated
   protected static AndroidApp readClasses(
       List<Class<?>> programClasses, List<Class<?>> libraryClasses) throws IOException {
     return buildClasses(programClasses, libraryClasses).build();
   }
 
+  @Deprecated
   protected static AndroidApp readClasses(
       List<Class<?>> programClasses, List<Class<?>> classpathClasses, List<Class<?>> libraryClasses)
       throws IOException {
     return buildClasses(programClasses, classpathClasses, libraryClasses).build();
   }
 
+  @Deprecated
   protected static AndroidApp.Builder buildClasses(Class<?>... programClasses) throws IOException {
     return buildClasses(Arrays.asList(programClasses));
   }
 
+  @Deprecated
   protected static AndroidApp.Builder buildClasses(Collection<Class<?>> programClasses)
       throws IOException {
     return buildClasses(programClasses, Collections.emptyList());
   }
 
+  @Deprecated
   protected static AndroidApp.Builder buildClassesWithTestingAnnotations(Class<?>... programClasses)
       throws IOException {
     return buildClassesWithTestingAnnotations(Arrays.asList(programClasses));
   }
 
+  @Deprecated
   protected static AndroidApp.Builder buildClassesWithTestingAnnotations(
       Collection<Class<?>> programClasses) throws IOException {
     AndroidApp.Builder builder = buildClasses(programClasses, Collections.emptyList());
@@ -615,11 +613,13 @@ public class TestBase {
     return builder;
   }
 
+  @Deprecated
   protected static AndroidApp.Builder buildClasses(
       Collection<Class<?>> programClasses, Collection<Class<?>> libraryClasses) throws IOException {
     return buildClasses(programClasses, Collections.emptyList(), libraryClasses);
   }
 
+  @Deprecated
   protected static AndroidApp.Builder buildClasses(
       Collection<Class<?>> programClasses,
       Collection<Class<?>> classpathClasses,
@@ -672,6 +672,7 @@ public class TestBase {
   }
 
   /** Build an AndroidApp from the specified program files. */
+  @Deprecated
   protected AndroidApp readProgramFiles(Path... programFiles) {
     return AndroidApp.builder().addProgramFiles(programFiles).build();
   }
@@ -690,11 +691,6 @@ public class TestBase {
   /** Create a temporary JAR file containing the specified test classes. */
   protected Path jarTestClasses(Class<?>... classes) throws IOException {
     return jarTestClasses(Arrays.asList(classes), null);
-  }
-
-  /** Create a temporary JAR file containing the specified test classes. */
-  protected Path jarTestClasses(Iterable<Class<?>> classes) throws IOException {
-    return jarTestClasses(classes, null);
   }
 
   /** Create a temporary JAR file containing the specified test classes and data resources. */
@@ -885,10 +881,6 @@ public class TestBase {
     return factory.createType(type.getDescriptor());
   }
 
-  protected static DexField buildField(Field field, DexItemFactory factory) {
-    return buildField(Reference.fieldFromField(field), factory);
-  }
-
   protected static DexField buildField(FieldReference field, DexItemFactory factory) {
     return factory.createField(
         buildType(field.getHolderClass(), factory),
@@ -960,15 +952,6 @@ public class TestBase {
     return builder.build();
   }
 
-  /** Returns a list containing all the data resources in the given app. */
-  public static List<DataEntryResource> getDataResources(AndroidApp app) throws ResourceException {
-    List<DataEntryResource> dataResources = new ArrayList<>();
-    for (ProgramResourceProvider programResourceProvider : app.getProgramResourceProviders()) {
-      dataResources.addAll(getDataResources(programResourceProvider.getDataResourceProvider()));
-    }
-    return dataResources;
-  }
-
   public static List<DataEntryResource> getDataResources(DataResourceProvider dataResourceProvider)
       throws ResourceException {
     List<DataEntryResource> dataResources = new ArrayList<>();
@@ -987,26 +970,9 @@ public class TestBase {
     return dataResources;
   }
 
+  @Deprecated
   protected static Path getFileInTest(String folder, String fileName) {
     return Paths.get(ToolHelper.TESTS_DIR, "java", folder, fileName);
-  }
-
-  /**
-   * Create a temporary JAR file containing all test classes in a package.
-   */
-  protected Path jarTestClassesInPackage(Package pkg) throws IOException {
-    Path jar = File.createTempFile("junit", ".jar", temp.getRoot()).toPath();
-    String zipEntryPrefix = ToolHelper.getJarEntryForTestPackage(pkg) + "/";
-    try (JarOutputStream out = new JarOutputStream(new FileOutputStream(jar.toFile()))) {
-      for (Path file : ToolHelper.getClassFilesForTestPackage(pkg)) {
-        try (FileInputStream in = new FileInputStream(file.toFile())) {
-          out.putNextEntry(new ZipEntry(zipEntryPrefix + file.getFileName()));
-          ByteStreams.copy(in, out);
-          out.closeEntry();
-        }
-      }
-    }
-    return jar;
   }
 
   /** Create a temporary JAR file containing the specified test classes. */
@@ -1032,6 +998,7 @@ public class TestBase {
   }
 
   /** Compile an application with D8. */
+  @Deprecated
   protected AndroidApp compileWithD8(AndroidApp app) throws CompilationFailedException {
     D8Command.Builder builder = ToolHelper.prepareD8CommandBuilder(app);
     AndroidAppConsumers appSink = new AndroidAppConsumers(builder);
@@ -1040,18 +1007,21 @@ public class TestBase {
   }
 
   /** Compile an application with D8. */
+  @Deprecated
   protected AndroidApp compileWithD8(AndroidApp app, Consumer<InternalOptions> optionsConsumer)
       throws CompilationFailedException {
     return ToolHelper.runD8(app, optionsConsumer);
   }
 
   /** Compile an application with R8. */
+  @Deprecated
   protected AndroidApp compileWithR8(Class... classes)
       throws IOException, CompilationFailedException {
     return ToolHelper.runR8(readClasses(classes));
   }
 
   /** Compile an application with R8. */
+  @Deprecated
   protected AndroidApp compileWithR8(List<Class<?>> classes)
       throws IOException, CompilationFailedException {
     R8Command command = ToolHelper.prepareR8CommandBuilder(readClasses(classes)).build();
@@ -1059,6 +1029,7 @@ public class TestBase {
   }
 
   /** Compile an application with R8. */
+  @Deprecated
   protected AndroidApp compileWithR8(
       List<Class<?>> classes, Consumer<InternalOptions> optionsConsumer)
       throws IOException, CompilationFailedException {
@@ -1067,12 +1038,14 @@ public class TestBase {
   }
 
   /** Compile an application with R8. */
+  @Deprecated
   protected AndroidApp compileWithR8(AndroidApp app) throws CompilationFailedException {
     R8Command command = ToolHelper.prepareR8CommandBuilder(app).build();
     return ToolHelper.runR8(command);
   }
 
   /** Compile an application with R8. */
+  @Deprecated
   protected AndroidApp compileWithR8(AndroidApp app, Consumer<InternalOptions> optionsConsumer)
       throws CompilationFailedException {
     R8Command command = ToolHelper.prepareR8CommandBuilder(app)
@@ -1085,12 +1058,14 @@ public class TestBase {
   }
 
   /** Compile an application with R8 using the supplied proguard configuration. */
+  @Deprecated
   protected AndroidApp compileWithR8(List<Class<?>> classes, String proguardConfig)
       throws IOException, CompilationFailedException {
     return compileWithR8(readClasses(classes), proguardConfig);
   }
 
   /** Compile an application with R8 using the supplied proguard configuration. */
+  @Deprecated
   protected AndroidApp compileWithR8(
       List<Class<?>> classes, String proguardConfig, Consumer<InternalOptions> optionsConsumer)
       throws IOException, CompilationFailedException {
@@ -1098,12 +1073,14 @@ public class TestBase {
   }
 
   /** Compile an application with R8 using the supplied proguard configuration. */
+  @Deprecated
   protected AndroidApp compileWithR8(List<Class<?>> classes, Path proguardConfig)
       throws IOException, CompilationFailedException {
     return compileWithR8(readClasses(classes), proguardConfig);
   }
 
   /** Compile an application with R8 using the supplied proguard configuration. */
+  @Deprecated
   protected AndroidApp compileWithR8(AndroidApp app, Path proguardConfig)
       throws CompilationFailedException {
     R8Command command =
@@ -1114,18 +1091,21 @@ public class TestBase {
   }
 
   /** Compile an application with R8 using the supplied proguard configuration. */
+  @Deprecated
   protected AndroidApp compileWithR8(AndroidApp app, String proguardConfig)
       throws CompilationFailedException {
     return compileWithR8(app, proguardConfig, null, Backend.DEX);
   }
 
   /** Compile an application with R8 using the supplied proguard configuration. */
+  @Deprecated
   protected AndroidApp compileWithR8(AndroidApp app, String proguardConfig, Backend backend)
       throws CompilationFailedException {
     return compileWithR8(app, proguardConfig, null, backend);
   }
 
   /** Compile an application with R8 using the supplied proguard configuration. */
+  @Deprecated
   protected AndroidApp compileWithR8(
       AndroidApp app, String proguardConfig, Consumer<InternalOptions> optionsConsumer)
       throws CompilationFailedException {
@@ -1133,6 +1113,7 @@ public class TestBase {
   }
 
   /** Compile an application with R8 using the supplied proguard configuration and backend. */
+  @Deprecated
   protected AndroidApp compileWithR8(
       AndroidApp app,
       String proguardConfig,
@@ -1148,6 +1129,7 @@ public class TestBase {
   }
 
   /** Compile an application with R8 using the supplied proguard configuration. */
+  @Deprecated
   protected AndroidApp compileWithR8(
       AndroidApp app, Path proguardConfig, Consumer<InternalOptions> optionsConsumer)
       throws CompilationFailedException {
@@ -1162,6 +1144,7 @@ public class TestBase {
    * Generate a Proguard configuration for keeping the "static void main(String[])" method of the
    * specified class.
    */
+  @Deprecated
   public static String keepMainProguardConfiguration(Class<?> clazz) {
     return keepMainProguardConfiguration(clazz.getTypeName());
   }
@@ -1170,6 +1153,7 @@ public class TestBase {
    * Generate a Proguard configuration for keeping the "static void main(String[])" method of the
    * specified class.
    */
+  @Deprecated
   public static String keepMainProguardConfiguration(Class<?> clazz, List<String> additionalLines) {
     return keepMainProguardConfiguration(clazz.getTypeName()) + StringUtils.lines(additionalLines);
   }
@@ -1178,13 +1162,15 @@ public class TestBase {
    * Generate a Proguard configuration for keeping the "public static void main(String[])" method of
    * the specified class.
    *
-   * The class is assumed to be public.
+   * <p>The class is assumed to be public.
    */
+  @Deprecated
   public static String keepMainProguardConfiguration(String clazz) {
     return StringUtils.lines(
         "-keep class " + clazz + " {", "  public static void main(java.lang.String[]);", "}");
   }
 
+  @Deprecated
   public static String noShrinkingNoMinificationProguardConfiguration() {
     return StringUtils.lines("-dontshrink", "-dontobfuscate");
   }
@@ -1193,6 +1179,7 @@ public class TestBase {
    * Generate a Proguard configuration for keeping the "static void main(String[])" method of the
    * specified class and specify if -allowaccessmodification and -dontobfuscate are added as well.
    */
+  @Deprecated
   public static String keepMainProguardConfiguration(
       Class<?> clazz, boolean allowaccessmodification, boolean obfuscate) {
     return keepMainProguardConfiguration(clazz)
@@ -1200,21 +1187,12 @@ public class TestBase {
         + (obfuscate ? "-printmapping\n" : "-dontobfuscate\n");
   }
 
+  @Deprecated
   public static String keepMainProguardConfiguration(
       String clazz, boolean allowaccessmodification, boolean obfuscate) {
     return keepMainProguardConfiguration(clazz)
         + (allowaccessmodification ? "-allowaccessmodification\n" : "")
         + (obfuscate ? "-printmapping\n" : "-dontobfuscate\n");
-  }
-
-  /**
-   * Generate a Proguard configuration for keeping the "static void main(String[])" method of the
-   * specified class and add rules to inline methods with the inlining annotation.
-   */
-  public static String keepMainProguardConfigurationWithInliningAnnotation(Class<?> clazz) {
-    return "-neverinline class * { @com.android.tools.r8.NeverInline *; }"
-        + System.lineSeparator()
-        + keepMainProguardConfiguration(clazz);
   }
 
   @Deprecated
@@ -1233,58 +1211,40 @@ public class TestBase {
         NoHorizontalClassMergingRule.RULE_NAME, NoHorizontalClassMerging.class);
   }
 
-  /**
-   * Run application on the specified version of Art with the specified main class.
-   */
-  protected ProcessResult runOnArtRaw(AndroidApp app, String mainClass,
-      Consumer<ArtCommandBuilder> cmdBuilder, DexVm version) throws IOException {
+  /** Run application on the specified version of Art with the specified main class. */
+  @Deprecated
+  protected ProcessResult runOnArtRaw(
+      AndroidApp app, String mainClass, Consumer<ArtCommandBuilder> cmdBuilder, DexVm version)
+      throws IOException {
     Path out = File.createTempFile("junit", ".zip", temp.getRoot()).toPath();
     app.writeToZipForTesting(out, OutputMode.DexIndexed);
     return ToolHelper.runArtRaw(
         ImmutableList.of(out.toString()), mainClass, cmdBuilder, version, false);
   }
 
-  /**
-   * Run application on the specified version of Art with the specified main class.
-   */
-  protected ProcessResult runOnArtRaw(AndroidApp app, String mainClass, DexVm version)
-      throws IOException {
-    return runOnArtRaw(app, mainClass, null, version);
-  }
-
-  /**
-   * Run application on Art with the specified main class.
-   */
+  /** Run application on Art with the specified main class. */
+  @Deprecated
   protected ProcessResult runOnArtRaw(AndroidApp app, String mainClass) throws IOException {
-    return runOnArtRaw(app, mainClass, null);
+    return runOnArtRaw(app, mainClass, null, null);
   }
 
-  /**
-   * Run application on Art with the specified main class.
-   */
+  /** Run application on Art with the specified main class. */
+  @Deprecated
   protected ProcessResult runOnArtRaw(AndroidApp app, Class mainClass) throws IOException {
     return runOnArtRaw(app, mainClass.getTypeName());
   }
 
-  /**
-   * Run application on Art with the specified main class and provided arguments.
-   */
+  /** Run application on Art with the specified main class and provided arguments. */
+  @Deprecated
   protected String runOnArt(AndroidApp app, Class mainClass, String... args) throws IOException {
     return runOnArt(app, mainClass, Arrays.asList(args));
-  }
-
-  /**
-   * Run application on Art with the specified main class and provided arguments.
-   */
-  protected String runOnArt(AndroidApp app, String mainClass, List<String> args)
-      throws IOException {
-    return runOnArt(app, mainClass, args, null);
   }
 
   /**
    * Run application on Art with the specified main class, provided arguments, and specified VM
    * version.
    */
+  @Deprecated
   protected String runOnArt(AndroidApp app, String mainClass, List<String> args, DexVm dexVm)
       throws IOException {
     Path out = File.createTempFile("junit", ".zip", temp.getRoot()).toPath();
@@ -1300,23 +1260,20 @@ public class TestBase {
         dexVm);
   }
 
-  /**
-   * Run application on Art with the specified main class and provided arguments.
-   */
+  /** Run application on Art with the specified main class and provided arguments. */
+  @Deprecated
   protected String runOnArt(AndroidApp app, Class mainClass, List<String> args) throws IOException {
-    return runOnArt(app, mainClass.getCanonicalName(), args);
+    return runOnArt(app, mainClass.getCanonicalName(), args, null);
   }
 
-  /**
-   * Run application on Art with the specified main class and provided arguments.
-   */
+  /** Run application on Art with the specified main class and provided arguments. */
+  @Deprecated
   protected String runOnArt(AndroidApp app, String mainClass, String... args) throws IOException {
-    return runOnArt(app, mainClass, Arrays.asList(args));
+    return runOnArt(app, mainClass, Arrays.asList(args), null);
   }
 
-  /**
-   * Run a single class application on Java.
-   */
+  /** Run a single class application on Java. */
+  @Deprecated
   protected String runOnJava(Class mainClass) throws Exception {
     ProcessResult result = ToolHelper.runJava(mainClass);
     ToolHelper.failOnProcessFailure(result);
@@ -1325,22 +1282,26 @@ public class TestBase {
   }
 
   /** Run application on Java with the specified main class and provided arguments. */
+  @Deprecated
   protected String runOnJava(AndroidApp app, Class mainClass, String... args) throws IOException {
     return runOnJava(app, mainClass, Arrays.asList(args));
   }
 
   /** Run application on Java with the specified main class and provided arguments. */
+  @Deprecated
   protected String runOnJava(AndroidApp app, Class mainClass, List<String> args)
       throws IOException {
     return runOnJava(app, mainClass.getCanonicalName(), args);
   }
 
   /** Run application on Java with the specified main class and provided arguments. */
+  @Deprecated
   protected String runOnJava(AndroidApp app, String mainClass, String... args) throws IOException {
     return runOnJava(app, mainClass, Arrays.asList(args));
   }
 
   /** Run application on Java with the specified main class and provided arguments. */
+  @Deprecated
   protected String runOnJava(AndroidApp app, String mainClass, List<String> args)
       throws IOException {
     ProcessResult result = runOnJavaRaw(app, mainClass, args);
@@ -1349,19 +1310,23 @@ public class TestBase {
     return result.stdout;
   }
 
+  @Deprecated
   protected ProcessResult runOnJavaRawNoVerify(String main, byte[]... classes) throws IOException {
     return runOnJavaRawNoVerify(main, Arrays.asList(classes), Collections.emptyList());
   }
 
+  @Deprecated
   protected ProcessResult runOnJavaRawNoVerify(String main, List<byte[]> classes, List<String> args)
       throws IOException {
     return ToolHelper.runJavaNoVerify(Collections.singletonList(writeToJar(classes)), main, args);
   }
 
+  @Deprecated
   protected ProcessResult runOnJavaRaw(String main, byte[]... classes) throws IOException {
     return runOnJavaRaw(main, Arrays.asList(classes), Collections.emptyList());
   }
 
+  @Deprecated
   protected ProcessResult runOnJavaRaw(String main, List<byte[]> classes, List<String> args)
       throws IOException {
     List<String> mainAndArgs = new ArrayList<>();
@@ -1372,6 +1337,7 @@ public class TestBase {
         mainAndArgs.toArray(StringUtils.EMPTY_ARRAY));
   }
 
+  @Deprecated
   protected ProcessResult runOnJavaRaw(AndroidApp app, String mainClass, List<String> args)
       throws IOException {
     Path out = File.createTempFile("junit", ".zip", temp.getRoot()).toPath();
@@ -1382,42 +1348,14 @@ public class TestBase {
     return ToolHelper.runJava(out, mainAndArgs.toArray(StringUtils.EMPTY_ARRAY));
   }
 
-  protected ProcessResult runOnJavaRawNoVerify(AndroidApp app, String mainClass, List<String> args)
-      throws IOException {
-    Path out = File.createTempFile("junit", ".zip", temp.getRoot()).toPath();
-    app.writeToZipForTesting(out, OutputMode.ClassFile);
-    return ToolHelper.runJavaNoVerify(out, mainClass, args.toArray(StringUtils.EMPTY_ARRAY));
-  }
-
   /** Run application on Art or Java with the specified main class. */
-  protected String runOnVM(AndroidApp app, Class mainClass, Backend backend) throws IOException {
-    return runOnVM(app, mainClass.getName(), backend);
-  }
-
-  /** Run application on Art or Java with the specified main class. */
+  @Deprecated
   protected String runOnVM(AndroidApp app, String mainClass, Backend backend) throws IOException {
     switch (backend) {
       case CF:
         return runOnJava(app, mainClass);
       case DEX:
         return runOnArt(app, mainClass);
-      default:
-        throw new Unreachable("Unexpected backend: " + backend);
-    }
-  }
-
-  protected ProcessResult runOnVMRaw(AndroidApp app, Class<?> mainClass, Backend backend)
-      throws IOException {
-    return runOnVMRaw(app, mainClass.getTypeName(), backend);
-  }
-
-  protected ProcessResult runOnVMRaw(AndroidApp app, String mainClass, Backend backend)
-      throws IOException {
-    switch (backend) {
-      case CF:
-        return runOnJavaRaw(app, mainClass, ImmutableList.of());
-      case DEX:
-        return runOnArtRaw(app, mainClass);
       default:
         throw new Unreachable("Unexpected backend: " + backend);
     }
@@ -1651,7 +1589,6 @@ public class TestBase {
   public static class JarBuilder {
     final Path jar;
     final ZipOutputStream stream;
-    final Set<Class<?>> servicesAdded = Sets.newIdentityHashSet();
 
     private JarBuilder(TemporaryFolder temp) throws IOException {
       jar = temp.newFolder().toPath().resolve("a.jar");
@@ -1676,25 +1613,10 @@ public class TestBase {
       return this;
     }
 
-    public JarBuilder addServiceWithImplementations(
-        Class<?> service, List<Class<?>> implementations) throws IOException {
-      boolean added = servicesAdded.add(service);
-      assert added : "Currently each service can only be added once";
-      addResource(
-          "META-INF/services/" + Greeter.class.getTypeName(),
-          StringUtils.lines(
-              implementations.stream().map(Class::getTypeName).collect(Collectors.toList())));
-      return this;
-    }
-
     public Path build() throws IOException {
       stream.close();
       return jar;
     }
-  }
-
-  public JarBuilder jarBuilder() throws IOException {
-    return JarBuilder.builder(temp);
   }
 
   public List<Path> buildOnDexRuntime(TestParameters parameters, List<Path> paths)
@@ -1762,21 +1684,6 @@ public class TestBase {
     return DescriptorUtils.javaTypeToDescriptor(typeName(clazz));
   }
 
-  public static String methodDescriptor(Method method) {
-    return Reference.methodFromMethod(method).getMethodDescriptor();
-  }
-
-  public static String methodDescriptor(Class<?> returnType, Class<?>... parameters) {
-    StringBuilder sb = new StringBuilder();
-    sb.append("(");
-    for (Class<?> parameter : parameters) {
-      sb.append(descriptor(parameter));
-    }
-    sb.append(")");
-    sb.append(returnType == null ? "V" : descriptor(returnType));
-    return sb.toString();
-  }
-
   public static PathOrigin getOrigin(Class<?> clazz) {
     return new PathOrigin(ToolHelper.getClassFileForTestClass(clazz));
   }
@@ -1809,10 +1716,6 @@ public class TestBase {
   }
 
   public static AndroidApiLevel apiLevelWithStaticInterfaceMethodsSupport() {
-    return AndroidApiLevel.N;
-  }
-
-  public static AndroidApiLevel apiLevelWithPrivateInterfaceMethodsSupport() {
     return AndroidApiLevel.N;
   }
 
