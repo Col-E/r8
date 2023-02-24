@@ -35,7 +35,7 @@ public class LocalsTest extends DebugTestBase {
   private final DebugTestConfig config;
 
   public LocalsTest(String name, DelayedDebugTestConfig config) {
-    this.config = config.getConfig(temp);
+    this.config = config.getConfig(getStaticTemp());
   }
 
   @Test

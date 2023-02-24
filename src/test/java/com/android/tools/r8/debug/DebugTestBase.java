@@ -142,9 +142,6 @@ public abstract class DebugTestBase extends TestBase {
     return new DebugTestParameters();
   }
 
-  @ClassRule
-  public static TemporaryFolder temp = ToolHelper.getTemporaryFolderForTest();
-
   @Rule
   public TestName testName = new TestName();
 

@@ -36,10 +36,9 @@ import java.util.stream.Collectors;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
-import org.junit.rules.TemporaryFolder;
 
-public abstract class RunExamplesJava9Test
-    <B extends BaseCommand.Builder<? extends BaseCommand, B>> {
+public abstract class RunExamplesJava9Test<B extends BaseCommand.Builder<? extends BaseCommand, B>>
+    extends TestBase {
 
   private static final String EXAMPLE_DIR = ToolHelper.EXAMPLES_JAVA9_BUILD_DIR;
 
@@ -146,9 +145,6 @@ public abstract class RunExamplesJava9Test
           "0: s>i>a\n" + "1: d>i>s>i>a\n" + "2: l>i>s>i>a\n" + "3: x>s\n" + "4: c>d>i>s>i>a\n",
           "desugared-private-interface-methods",
           "0: s>i>a\n" + "1: d>i>s>i>a\n" + "2: l>i>s>i>a\n" + "3: x>s\n" + "4: c>d>i>s>i>a\n");
-
-  @Rule
-  public TemporaryFolder temp = ToolHelper.getTemporaryFolderForTest();
 
   @Rule
   public ExpectedException thrown = ExpectedException.none();

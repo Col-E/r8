@@ -14,6 +14,7 @@ import com.android.tools.r8.DiagnosticsChecker;
 import com.android.tools.r8.GenerateMainDexList;
 import com.android.tools.r8.GenerateMainDexListCommand;
 import com.android.tools.r8.StringConsumer;
+import com.android.tools.r8.TestBase;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.origin.Origin;
@@ -30,15 +31,11 @@ import java.util.List;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
-import org.junit.rules.TemporaryFolder;
 
-public class GenerateMainDexListCommandTest {
+public class GenerateMainDexListCommandTest extends TestBase {
 
   @Rule
   public ExpectedException thrown = ExpectedException.none();
-
-  @Rule
-  public TemporaryFolder temp = ToolHelper.getTemporaryFolderForTest();
 
   private Path getOutputPath(GenerateMainDexListCommand command) {
     StringConsumer consumer = command.getMainDexListConsumer();

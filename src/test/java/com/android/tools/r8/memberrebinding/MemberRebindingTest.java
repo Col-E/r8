@@ -35,13 +35,12 @@ import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
-public class MemberRebindingTest {
+public class MemberRebindingTest extends TestBase {
 
   private static final Path JAR_LIBRARY =
       Paths.get(ToolHelper.EXAMPLES_BUILD_DIR + "memberrebindinglib.jar");
@@ -63,9 +62,6 @@ public class MemberRebindingTest {
   private final Consumer<CodeInspector> inspection;
   private final Consumer<CodeInspector> originalInspection;
   private final int minApiLevel;
-
-  @Rule
-  public TemporaryFolder temp = ToolHelper.getTemporaryFolderForTest();
 
   @Rule
   public TestDescriptionWatcher watcher = new TestDescriptionWatcher();

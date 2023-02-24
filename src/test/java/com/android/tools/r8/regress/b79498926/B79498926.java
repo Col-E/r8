@@ -33,9 +33,6 @@ public class B79498926 extends TestBase {
     return getTestParameters().withDexRuntimes().build();
   }
 
-  @Rule
-  public TemporaryFolder temp = ToolHelper.getTemporaryFolderForTest();
-
   @Test
   public void test() throws CompilationFailedException, IOException {
     Path outDex = temp.getRoot().toPath().resolve("out.zip");

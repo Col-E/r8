@@ -20,7 +20,7 @@ import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
-public class R8RunExamplesTest extends R8RunExamplesCommon {
+public class R8RunExamplesTest extends R8RunExamplesTestBase {
 
   @Parameters(name = "{0}_{1}_{2}_{3}_{5}_{6}")
   public static Collection<String[]> data() {

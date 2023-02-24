@@ -28,9 +28,6 @@ public class SmaliDebugTest extends DebugTestBase {
   static final String FILE = "SmaliDebugTestDebuggee.smali";
   static final String CLASS = "SmaliDebugTestDebuggee";
 
-  @Rule
-  public TemporaryFolder temp = ToolHelper.getTemporaryFolderForTest();
-
   /**
    * Simple test to check setup works for the Java source, ala:
    *

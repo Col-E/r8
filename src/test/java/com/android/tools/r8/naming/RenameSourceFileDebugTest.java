@@ -39,7 +39,7 @@ public class RenameSourceFileDebugTest extends DebugTestBase {
   @BeforeClass
   public static void initDebuggeePath() throws Exception {
     for (Backend backend : ToolHelper.getBackends()) {
-      Path outdir = temp.newFolder().toPath();
+      Path outdir = getStaticTemp().newFolder().toPath();
       Path outjar = outdir.resolve("r8_compiled.jar");
       Path proguardMapPath = outdir.resolve("proguard.map");
       R8Command.Builder builder =

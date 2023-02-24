@@ -37,11 +37,11 @@ public class BreakPointEventsTestRunner extends DebugTestBase {
   }
 
   public static DebugTestConfig d8Config() throws Exception {
-    return new D8DebugTestConfig().compileAndAdd(temp, getClassFilePath());
+    return new D8DebugTestConfig().compileAndAdd(getStaticTemp(), getClassFilePath());
   }
 
   public static DebugTestConfig r8CfConfig() throws Exception {
-    Path outCf = temp.getRoot().toPath().resolve("cf.jar");
+    Path outCf = getStaticTemp().getRoot().toPath().resolve("cf.jar");
     R8.run(
         R8Command.builder()
             .setMode(CompilationMode.DEBUG)
@@ -55,7 +55,7 @@ public class BreakPointEventsTestRunner extends DebugTestBase {
   public static DebugTestConfig dxConfig() throws Exception {
     Path cwd = ToolHelper.getClassPathForTests().toAbsolutePath();
     Path test = cwd.relativize(getClassFilePath().toAbsolutePath());
-    Path out = temp.newFolder().toPath().resolve("classes.dex").toAbsolutePath();
+    Path out = getStaticTemp().newFolder().toPath().resolve("classes.dex").toAbsolutePath();
     ProcessResult result = ToolHelper.runDX(cwd, "--output=" + out, test.toString());
     assertTrue(result.stderr, 0 == result.exitCode);
     DebugTestConfig config = new DexDebugTestConfig();
@@ -76,7 +76,7 @@ public class BreakPointEventsTestRunner extends DebugTestBase {
   // The main method will single-step each configuration of the test. It cannot be made a test as
   // the event streams are unequal due to ART vs JVM line change on return and DX incorrect locals.
   public static void main(String[] args) throws Exception {
-    temp.create();
+    getStaticTemp().create();
     try {
       BreakPointEventsTestRunner runner = new BreakPointEventsTestRunner("unused name");
       System.out.println("\n============== CF single stepping: ");
@@ -86,7 +86,7 @@ public class BreakPointEventsTestRunner extends DebugTestBase {
       System.out.println("\n============== DX single stepping: ");
       runner.printConfig("DX", dxConfig());
     } finally {
-      temp.delete();
+      getStaticTemp().delete();
     }
   }
 

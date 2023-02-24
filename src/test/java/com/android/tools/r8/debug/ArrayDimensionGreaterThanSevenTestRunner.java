@@ -25,7 +25,7 @@ import org.junit.Test;
 
 public class ArrayDimensionGreaterThanSevenTestRunner extends DebugTestBase {
 
-  private static final Class CLASS = ArrayDimensionGreaterThanSevenTest.class;
+  private static final Class<?> CLASS = ArrayDimensionGreaterThanSevenTest.class;
   private static final String NAME = CLASS.getCanonicalName();
 
   private DebugTestConfig getR8CfConfig(String s)

@@ -17,9 +17,7 @@ import com.google.common.collect.ImmutableList;
 import java.nio.file.Path;
 import java.util.Collection;
 import org.junit.BeforeClass;
-import org.junit.ClassRule;
 import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
@@ -130,18 +128,15 @@ public class AssumenosideeffectsVisibleMethodsTest extends TestBase {
     this.config = config;
   }
 
-  @ClassRule
-  public static TemporaryFolder staticTemp = ToolHelper.getTemporaryFolderForTest();
-
   private static Path libJarPath;
   private static Path libDexPath;
 
   @BeforeClass
   public static void prepareLib() throws Exception {
-    libJarPath = staticTemp.newFile("lib.jar").toPath().toAbsolutePath();
+    libJarPath = getStaticTemp().newFile("lib.jar").toPath().toAbsolutePath();
     writeClassesToJar(libJarPath, ImmutableList.of(LibraryBase.class));
-    libDexPath = staticTemp.newFile("lib.dex").toPath().toAbsolutePath();
-    testForD8(staticTemp)
+    libDexPath = getStaticTemp().newFile("lib.dex").toPath().toAbsolutePath();
+    testForD8(getStaticTemp())
         .addProgramFiles(libJarPath)
         .setMinApi(AndroidApiLevel.B)
         .setProgramConsumer(new ArchiveConsumer(libDexPath))

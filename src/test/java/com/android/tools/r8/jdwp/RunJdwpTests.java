@@ -11,6 +11,7 @@ import com.android.tools.r8.CompilationMode;
 import com.android.tools.r8.D8;
 import com.android.tools.r8.D8Command;
 import com.android.tools.r8.OutputMode;
+import com.android.tools.r8.TestBase;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.DexVm;
 import com.android.tools.r8.ToolHelper.DexVm.Version;
@@ -30,13 +31,11 @@ import java.util.Map;
 import java.util.Set;
 import org.junit.Assume;
 import org.junit.BeforeClass;
-import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
 
 /** Wrapper for the art JDWP tests. */
-public class RunJdwpTests {
+public class RunJdwpTests extends TestBase {
 
   enum Tool {
     JAVAC,
@@ -266,9 +265,6 @@ public class RunJdwpTests {
 
   private static File d8Out = null;
 
-  @ClassRule
-  public static TemporaryFolder temp = ToolHelper.getTemporaryFolderForTest();
-
   @Rule
   public TestDescriptionWatcher watcher = new TestDescriptionWatcher();
 
@@ -284,7 +280,7 @@ public class RunJdwpTests {
       extraTestResources.add(testPath.resolve(test + ".class"));
       extraTestResources.add(testPath.resolve(test.replace("Test", "Debuggee") + ".class"));
     }
-    d8Out = temp.newFolder("d8-out");
+    d8Out = getStaticTemp().newFolder("d8-out");
     D8.run(
         D8Command.builder()
             .addProgramFiles(jdwpTestsJar)

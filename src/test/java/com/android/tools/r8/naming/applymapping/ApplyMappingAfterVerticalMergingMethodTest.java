@@ -15,18 +15,14 @@ import com.android.tools.r8.R8TestCompileResult;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
-import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.FoundMethodSubject;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.List;
-import java.util.concurrent.ExecutionException;
 import java.util.function.Function;
-import org.junit.ClassRule;
 import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
@@ -92,11 +88,8 @@ public class ApplyMappingAfterVerticalMergingMethodTest extends TestBase {
   private static Function<Backend, CompilationResult> compilationResults =
       memoizeFunction(ApplyMappingAfterVerticalMergingMethodTest::compile);
 
-  @ClassRule
-  public static TemporaryFolder staticTemp = ToolHelper.getTemporaryFolderForTest();
-
   public static CompilationResult compile(Backend backend)
-      throws ExecutionException, CompilationFailedException, IOException {
+      throws CompilationFailedException, IOException {
     R8TestCompileResult library = compileLibrary(backend);
     R8TestCompileResult program = compileProgram(backend, library.getProguardMap());
     return new CompilationResult(library, program, library.writeToZip());
@@ -104,7 +97,7 @@ public class ApplyMappingAfterVerticalMergingMethodTest extends TestBase {
 
   private static R8TestCompileResult compileLibrary(Backend backend)
       throws CompilationFailedException, IOException {
-    return testForR8(staticTemp, backend)
+    return testForR8(getStaticTemp(), backend)
         .enableInliningAnnotations()
         .enableMemberValuePropagationAnnotations()
         .addProgramClasses(LIBRARY_CLASSES)
@@ -132,7 +125,7 @@ public class ApplyMappingAfterVerticalMergingMethodTest extends TestBase {
 
   private static R8TestCompileResult compileProgram(Backend backend, String proguardMap)
       throws CompilationFailedException {
-    return testForR8(staticTemp, backend)
+    return testForR8(getStaticTemp(), backend)
         .noTreeShaking()
         .addDontObfuscate()
         .addProgramClasses(PROGRAM_CLASSES)

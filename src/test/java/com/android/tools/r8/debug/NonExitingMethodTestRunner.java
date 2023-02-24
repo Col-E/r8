@@ -14,7 +14,6 @@ import com.android.tools.r8.VmTestRunner;
 import com.android.tools.r8.VmTestRunner.IgnoreIfVmOlderThan;
 import com.android.tools.r8.origin.Origin;
 import com.google.common.collect.ImmutableList;
-import java.io.IOException;
 import java.nio.file.Path;
 import org.junit.Assume;
 import org.junit.Test;
@@ -38,7 +37,7 @@ public class NonExitingMethodTestRunner extends DebugTestBase {
     return new D8DebugTestConfig().compileAndAdd(temp, getClassFilePath());
   }
 
-  public DebugTestConfig r8CfConfig() throws CompilationFailedException, IOException {
+  public DebugTestConfig r8CfConfig() throws CompilationFailedException {
     Path path = temp.getRoot().toPath().resolve("out.jar");
     ToolHelper.runR8(
         R8Command.builder()

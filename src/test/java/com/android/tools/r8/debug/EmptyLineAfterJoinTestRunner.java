@@ -19,14 +19,13 @@ import org.junit.runners.Parameterized.Parameters;
 @RunWith(Parameterized.class)
 public class EmptyLineAfterJoinTestRunner extends DebugTestBase {
 
-  static final Class CLASS = EmptyLineAfterJoinTest.class;
+  static final Class<?> CLASS = EmptyLineAfterJoinTest.class;
   static final String NAME = CLASS.getCanonicalName();
   static final String DESC = DescriptorUtils.javaTypeToDescriptor(NAME);
   static final String FILE = CLASS.getSimpleName() + ".java";
 
   private static Path inputJarCache = null;
 
-  private final String name;
   private final DebugTestConfig config;
 
   @Parameters(name = "{0}")
@@ -52,8 +51,7 @@ public class EmptyLineAfterJoinTestRunner extends DebugTestBase {
   }
 
   public EmptyLineAfterJoinTestRunner(String name, DelayedDebugTestConfig config) {
-    this.name = name;
-    this.config = config.getConfig(temp);
+    this.config = config.getConfig(getStaticTemp());
   }
 
   @Test

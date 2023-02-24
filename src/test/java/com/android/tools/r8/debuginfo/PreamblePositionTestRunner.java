@@ -10,21 +10,18 @@ import static org.junit.Assert.assertTrue;
 import com.android.tools.r8.CompilationMode;
 import com.android.tools.r8.D8Command;
 import com.android.tools.r8.OutputMode;
+import com.android.tools.r8.TestBase;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.ArtCommandBuilder;
 import com.android.tools.r8.ToolHelper.ProcessResult;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import org.junit.ClassRule;
 import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
 
-public class PreamblePositionTestRunner {
+public class PreamblePositionTestRunner extends TestBase {
 
   private static final String TEST_CLASS = "PreamblePositionTestSource";
   private static final String TEST_PACKAGE = "com.android.tools.r8.debuginfo";
-
-  @ClassRule public static TemporaryFolder temp = ToolHelper.getTemporaryFolderForTest();
 
   @Test
   public void testBothBranchesDefaultConditionals() throws Exception {

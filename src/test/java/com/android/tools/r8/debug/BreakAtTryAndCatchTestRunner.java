@@ -16,7 +16,7 @@ import org.junit.runners.Parameterized;
 @RunWith(Parameterized.class)
 public class BreakAtTryAndCatchTestRunner extends DebugTestBase {
 
-  private static final Class CLASS = BreakAtTryAndCatchTest.class;
+  private static final Class<?> CLASS = BreakAtTryAndCatchTest.class;
   private static final String FILE = CLASS.getSimpleName() + ".java";
   private static final String NAME = CLASS.getCanonicalName();
 
@@ -43,7 +43,7 @@ public class BreakAtTryAndCatchTestRunner extends DebugTestBase {
 
   public BreakAtTryAndCatchTestRunner(String name, DelayedDebugTestConfig config) {
     this.name = name;
-    this.config = config.getConfig(temp);
+    this.config = config.getConfig(getStaticTemp());
   }
 
   @Test

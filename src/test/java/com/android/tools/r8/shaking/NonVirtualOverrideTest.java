@@ -15,7 +15,6 @@ import com.android.tools.r8.R8TestCompileResult;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestRuntime.CfRuntime;
-import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.ir.optimize.Inliner.Reason;
 import com.android.tools.r8.utils.AndroidApiLevel;
@@ -29,9 +28,7 @@ import java.nio.file.Path;
 import java.util.Collection;
 import java.util.Objects;
 import java.util.function.Function;
-import org.junit.ClassRule;
 import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.objectweb.asm.ClassWriter;
@@ -83,8 +80,6 @@ public class NonVirtualOverrideTest extends TestBase {
     this.enableVerticalClassMerging = enableVerticalClassMerging;
   }
 
-  @ClassRule public static TemporaryFolder staticTemp = ToolHelper.getTemporaryFolderForTest();
-
   private static Function<Boolean, String> expectedResults =
       memoizeFunction(NonVirtualOverrideTest::getExpectedResult);
 
@@ -92,7 +87,7 @@ public class NonVirtualOverrideTest extends TestBase {
       memoizeFunction(NonVirtualOverrideTest::compile);
 
   public static String getExpectedResult(boolean isOldVm) throws Exception {
-    Path referenceJar = staticTemp.getRoot().toPath().resolve("input.jar");
+    Path referenceJar = getStaticTemp().getRoot().toPath().resolve("input.jar");
     ArchiveConsumer inputConsumer = new ArchiveConsumer(referenceJar);
     inputConsumer.accept(
         ByteDataView.of(NonVirtualOverrideTestClassDump.dump()),
@@ -128,7 +123,7 @@ public class NonVirtualOverrideTest extends TestBase {
   }
 
   public static R8TestCompileResult compile(Dimensions dimensions) throws Exception {
-    return testForR8(staticTemp, dimensions.backend)
+    return testForR8(getStaticTemp(), dimensions.backend)
         .addProgramClassFileData(
             NonVirtualOverrideTestClassDump.dump(), ADump.dump(), BDump.dump(), CDump.dump())
         .addKeepMainRule(NonVirtualOverrideTestClass.class)

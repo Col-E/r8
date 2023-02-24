@@ -30,6 +30,7 @@ import java.util.List;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameter;
 import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
@@ -38,15 +39,12 @@ public class DefaultLambdaWithSelfReferenceTestRunner extends DebugTestBase {
   private static final Class<?> CLASS = DefaultLambdaWithSelfReferenceTest.class;
   private static final String EXPECTED = StringUtils.lines("stateful(stateless)");
 
-  private final TestParameters parameters;
+  @Parameter(0)
+  public TestParameters parameters;
 
   @Parameters(name = "{0}")
   public static TestParametersCollection data() {
     return getTestParameters().withAllRuntimesAndApiLevels().build();
-  }
-
-  public DefaultLambdaWithSelfReferenceTestRunner(TestParameters parameters) {
-    this.parameters = parameters;
   }
 
   private void runDebugger(DebugTestConfig config, boolean isR8) throws Throwable {

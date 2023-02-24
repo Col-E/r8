@@ -7,16 +7,15 @@ import com.android.tools.r8.ClassFileConsumer.DirectoryConsumer;
 import com.android.tools.r8.CompilationMode;
 import com.android.tools.r8.R8;
 import com.android.tools.r8.R8Command;
+import com.android.tools.r8.TestBase;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.origin.Origin;
 import java.nio.file.Path;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
 
-public class NegativeZeroTestRunner {
+public class NegativeZeroTestRunner extends TestBase {
+
   static final Class CLASS = NegativeZeroTest.class;
-  @Rule public TemporaryFolder temp = ToolHelper.getTemporaryFolderForTest();
 
   @Test
   public void test() throws Exception {

@@ -10,6 +10,7 @@ import com.android.tools.r8.CompilationMode;
 import com.android.tools.r8.D8;
 import com.android.tools.r8.D8Command;
 import com.android.tools.r8.OutputMode;
+import com.android.tools.r8.TestBase;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
@@ -21,12 +22,8 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.util.concurrent.ExecutionException;
 import org.junit.Rule;
-import org.junit.rules.TemporaryFolder;
 
-public class DebugInfoTestBase {
-
-  @Rule
-  public TemporaryFolder temp = ToolHelper.getTemporaryFolderForTest();
+public class DebugInfoTestBase extends TestBase {
 
   @Rule
   public TestDescriptionWatcher watcher = new TestDescriptionWatcher();

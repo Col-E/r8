@@ -19,15 +19,10 @@ import com.google.common.collect.ImmutableList;
 import java.nio.file.Path;
 import org.junit.Before;
 import org.junit.BeforeClass;
-import org.junit.ClassRule;
 import org.junit.Ignore;
 import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
 
 public class NameClashTest extends TestBase {
-
-  @ClassRule
-  public static TemporaryFolder temporaryFolder = ToolHelper.getTemporaryFolderForTest();
 
   private static Class<?> MAIN = ProgramClass.class;
   private static String EXPECTED_OUTPUT =
@@ -42,13 +37,13 @@ public class NameClashTest extends TestBase {
   @BeforeClass
   public static void setUpJars() throws Exception {
     prgJarThatUsesOriginalLib =
-        temporaryFolder.newFile("prgOrginalLib.jar").toPath().toAbsolutePath();
+        getStaticTemp().newFile("prgOrginalLib.jar").toPath().toAbsolutePath();
     writeClassFileDataToJar(
         prgJarThatUsesOriginalLib, ImmutableList.of(ToolHelper.getClassAsBytes(MAIN)));
     prgJarThatUsesMinifiedLib =
-        temporaryFolder.newFile("prgMinifiedLib.jar").toPath().toAbsolutePath();
+        getStaticTemp().newFile("prgMinifiedLib.jar").toPath().toAbsolutePath();
     writeClassFileDataToJar(prgJarThatUsesMinifiedLib, ImmutableList.of(ProgramClassDump.dump()));
-    libJar = temporaryFolder.newFile("lib.jar").toPath().toAbsolutePath();
+    libJar = getStaticTemp().newFile("lib.jar").toPath().toAbsolutePath();
     writeClassesToJar(
         libJar,
         ImmutableList.of(

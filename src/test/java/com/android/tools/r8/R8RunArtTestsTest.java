@@ -56,13 +56,12 @@ import java.util.stream.StreamSupport;
 import org.junit.ComparisonFailure;
 import org.junit.Rule;
 import org.junit.rules.ExpectedException;
-import org.junit.rules.TemporaryFolder;
 
 /**
  * This test class is not invoked directly. Instead, the gradle script generates one subclass per
  * actual art test. This allows us to run these in parallel.
  */
-public abstract class R8RunArtTestsTest {
+public abstract class R8RunArtTestsTest extends TestBase {
 
   private static final boolean DEX_COMPARE_WITH_DEX_REFERENCE_ON_FAILURE = true;
 
@@ -1502,9 +1501,6 @@ public abstract class R8RunArtTestsTest {
     // DexTool.NONE uses class files in the dx directory.
     return "dx";
   }
-
-  @Rule
-  public TemporaryFolder temp = ToolHelper.getTemporaryFolderForTest();
 
   @Rule
   public TestDescriptionWatcher watcher = new TestDescriptionWatcher();

@@ -312,9 +312,6 @@ public abstract class RunExamplesAndroidOTest<
   }
 
   @Rule
-  public TemporaryFolder temp = ToolHelper.getTemporaryFolderForTest();
-
-  @Rule
   public ExpectedException thrown = ExpectedException.none();
 
   @Rule

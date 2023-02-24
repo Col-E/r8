@@ -35,9 +35,6 @@ public class LocalsLiveAtBlockEntryDebugTest extends DebugTestBase {
   final String sourcefile = className + ".j";
   final String methodName = "test";
 
-  @Rule
-  public TemporaryFolder temp = ToolHelper.getTemporaryFolderForTest();
-
   @Test
   public void testCF() throws Throwable {
     JasminBuilder builder = getBuilderForTest(className, methodName);

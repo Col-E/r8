@@ -14,16 +14,12 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import org.junit.Assume;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
 @RunWith(Parameterized.class)
-public class BackportedMethodListTest {
-
-  @Rule public TemporaryFolder temp = ToolHelper.getTemporaryFolderForTest();
+public class BackportedMethodListTest extends TestBase {
 
   enum Mode {
     NO_LIBRARY,

@@ -38,7 +38,7 @@ public class LoadInvokeLoadOptimizationTestRunner extends DebugTestBase {
   @Test
   public void testReference() throws Throwable {
     assumeTrue(parameters.isCfRuntime());
-    testForJvm(temp)
+    testForJvm(parameters)
         .addProgramClasses(CLASS)
         .run(parameters.getRuntime(), CLASS)
         .assertSuccessWithOutput(EXPECTED)

@@ -29,12 +29,16 @@ public class ArraySimplificationLineNumberTestRunner extends DebugTestBase {
         "Skipping test " + testName.getMethodName() + " because debugging not enabled in 12.0.0",
         !ToolHelper.getDexVm().isNewerThanOrEqual(DexVm.ART_12_0_0_HOST));
     DebugTestConfig cf = new CfDebugTestConfig().addPaths(ToolHelper.getClassPathForTests());
-    DebugTestConfig d8 = new D8DebugTestConfig().compileAndAdd(
-        temp, Collections.singletonList(ToolHelper.getClassFileForTestClass(CLASS)));
-    DebugTestConfig d8NoLocals = new D8DebugTestConfig().compileAndAdd(
-        temp,
-        Collections.singletonList(ToolHelper.getClassFileForTestClass(CLASS)),
-        options -> options.testing.noLocalsTableOnInput = true);
+    DebugTestConfig d8 =
+        new D8DebugTestConfig()
+            .compileAndAdd(
+                temp, Collections.singletonList(ToolHelper.getClassFileForTestClass(CLASS)));
+    DebugTestConfig d8NoLocals =
+        new D8DebugTestConfig()
+            .compileAndAdd(
+                temp,
+                Collections.singletonList(ToolHelper.getClassFileForTestClass(CLASS)),
+                options -> options.testing.noLocalsTableOnInput = true);
 
     new DebugStreamComparator()
         .add("CF", streamDebugTest(cf, NAME, NO_FILTER))

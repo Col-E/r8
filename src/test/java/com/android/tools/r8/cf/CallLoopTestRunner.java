@@ -7,16 +7,14 @@ import com.android.tools.r8.ClassFileConsumer.DirectoryConsumer;
 import com.android.tools.r8.CompilationMode;
 import com.android.tools.r8.R8;
 import com.android.tools.r8.R8Command;
+import com.android.tools.r8.TestBase;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.origin.Origin;
 import java.nio.file.Path;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
 
-public class CallLoopTestRunner {
-  static final Class CLASS = CallLoopTest.class;
-  @Rule public TemporaryFolder temp = ToolHelper.getTemporaryFolderForTest();
+public class CallLoopTestRunner extends TestBase {
+  static final Class<?> CLASS = CallLoopTest.class;
 
   @Test
   public void test() throws Exception {

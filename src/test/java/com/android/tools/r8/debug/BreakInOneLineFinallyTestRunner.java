@@ -14,7 +14,7 @@ import org.junit.runners.Parameterized;
 @RunWith(Parameterized.class)
 public class BreakInOneLineFinallyTestRunner extends DebugTestBase {
 
-  private static final Class CLASS = BreakInOneLineFinallyTest.class;
+  private static final Class<?> CLASS = BreakInOneLineFinallyTest.class;
   private static final String FILE = CLASS.getSimpleName() + ".java";
   private static final String NAME = CLASS.getCanonicalName();
 
@@ -30,7 +30,7 @@ public class BreakInOneLineFinallyTestRunner extends DebugTestBase {
   }
 
   public BreakInOneLineFinallyTestRunner(String name, DelayedDebugTestConfig config) {
-    this.config = config.getConfig(temp);
+    this.config = config.getConfig(getStaticTemp());
   }
 
   @Test

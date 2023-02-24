@@ -32,7 +32,7 @@ public class LambdaTest extends DebugTestBase {
   private final DebugTestConfig config;
 
   public LambdaTest(String name, DelayedDebugTestConfig delayedConfig) {
-    this.config = delayedConfig.getConfig(temp);
+    this.config = delayedConfig.getConfig(getStaticTemp());
   }
 
   @Test

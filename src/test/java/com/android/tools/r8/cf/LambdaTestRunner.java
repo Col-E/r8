@@ -9,6 +9,7 @@ import com.android.tools.r8.ClassFileConsumer.ArchiveConsumer;
 import com.android.tools.r8.CompilationMode;
 import com.android.tools.r8.R8;
 import com.android.tools.r8.R8Command;
+import com.android.tools.r8.TestBase;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.cf.code.CfInstruction;
@@ -23,17 +24,12 @@ import java.nio.file.Path;
 import java.util.Collections;
 import java.util.List;
 import org.junit.Assert;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
 
-public class LambdaTestRunner {
+public class LambdaTestRunner extends TestBase {
 
   private static final Class<?> CLASS = LambdaTest.class;
   private static final String METHOD = "main";
-
-  @Rule
-  public TemporaryFolder temp = ToolHelper.getTemporaryFolderForTest();
 
   @Test
   public void test() throws Exception {

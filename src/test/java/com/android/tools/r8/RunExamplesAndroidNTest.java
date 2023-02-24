@@ -27,9 +27,8 @@ import java.util.function.UnaryOperator;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
-import org.junit.rules.TemporaryFolder;
 
-public abstract class RunExamplesAndroidNTest<B> {
+public abstract class RunExamplesAndroidNTest<B> extends TestBase {
 
   private static final String EXAMPLE_DIR = ToolHelper.EXAMPLES_ANDROID_N_BUILD_DIR;
 
@@ -118,8 +117,6 @@ public abstract class RunExamplesAndroidNTest<B> {
           ImmutableList.of(),
           DexVm.Version.DEFAULT,
           ImmutableList.of());
-
-  @Rule public TemporaryFolder temp = ToolHelper.getTemporaryFolderForTest();
 
   @Rule public ExpectedException thrown = ExpectedException.none();
 

@@ -44,7 +44,7 @@ public class DoNotCrashOnAccessToThisRunner extends DebugTestBase {
   }
 
   public DoNotCrashOnAccessToThisRunner(String name, DelayedDebugTestConfig config) {
-    this.config = config.getConfig(temp);
+    this.config = config.getConfig(getStaticTemp());
   }
 
   @Test

@@ -9,22 +9,18 @@ import com.android.tools.r8.ClassFileConsumer.ArchiveConsumer;
 import com.android.tools.r8.CompilationMode;
 import com.android.tools.r8.R8Command;
 import com.android.tools.r8.R8Command.Builder;
+import com.android.tools.r8.TestBase;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.origin.Origin;
 import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.List;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
 
-public class BaseDefaultMethodTestRunner {
+public class BaseDefaultMethodTestRunner extends TestBase {
   static final Class CLASS = BaseDefaultMethodTest.class;
   static final Class[] CLASSES = BaseDefaultMethodTest.CLASSES;
-
-  @Rule
-  public TemporaryFolder temp = ToolHelper.getTemporaryFolderForTest();
 
   @Test
   public void test() throws Exception {

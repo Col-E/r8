@@ -19,7 +19,7 @@ public class DebugTestExamples extends DebugTestBase {
 
   @BeforeClass
   public static void setup() {
-    config = new D8DebugTestResourcesConfig(temp);
+    config = new D8DebugTestResourcesConfig(getStaticTemp());
   }
 
   /**

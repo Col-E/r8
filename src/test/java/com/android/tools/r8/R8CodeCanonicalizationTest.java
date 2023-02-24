@@ -10,11 +10,9 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import org.junit.Assert;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
 
-public class R8CodeCanonicalizationTest {
+public class R8CodeCanonicalizationTest extends TestBase {
 
   private static final Path SOURCE_DEX = Paths.get(
       ToolHelper.EXAMPLES_BUILD_DIR, "invokeempty", "classes.dex");
@@ -28,9 +26,6 @@ public class R8CodeCanonicalizationTest {
     }
     return 0;
   }
-
-  @Rule
-  public TemporaryFolder temp = ToolHelper.getTemporaryFolderForTest();
 
   @Test
   public void testNumberOfCodeItemsUnchanged() throws Exception {

@@ -23,8 +23,8 @@ public class StringLengthDebugTestRunner extends DebugTestBase {
   @IgnoreIfVmOlderThan(Version.V5_1_1)
   public void test() throws Throwable {
     Class<?> main = StringLengthDebugTest.class;
-    DebugTestConfig config = new D8DebugTestConfig()
-        .compileAndAdd(temp, ToolHelper.getClassFileForTestClass(main));
+    DebugTestConfig config =
+        new D8DebugTestConfig().compileAndAdd(temp, ToolHelper.getClassFileForTestClass(main));
     runDebugTest(config, main.getCanonicalName(),
         breakpoint(main.getCanonicalName(), "main"),
         run(),

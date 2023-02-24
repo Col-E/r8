@@ -50,9 +50,6 @@ public class TreeShakingSpecificTest extends TestBase {
     parameters.assertNoneRuntime();
   }
 
-  @Rule
-  public TemporaryFolder temp = ToolHelper.getTemporaryFolderForTest();
-
   private Path getProgramFiles(String test) {
     return Paths.get(EXAMPLES_BUILD_DIR, test + ".jar");
   }

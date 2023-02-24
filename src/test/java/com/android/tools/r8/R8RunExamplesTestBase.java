@@ -28,9 +28,8 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
-import org.junit.rules.TemporaryFolder;
 
-public abstract class R8RunExamplesCommon {
+public abstract class R8RunExamplesTestBase extends TestBase {
 
   protected enum Input {
     JAVAC,
@@ -59,9 +58,6 @@ public abstract class R8RunExamplesCommon {
   }
 
   @Rule
-  public TemporaryFolder temp = ToolHelper.getTemporaryFolderForTest();
-
-  @Rule
   public TestDescriptionWatcher watcher = new TestDescriptionWatcher();
 
   private final Input input;
@@ -71,13 +67,8 @@ public abstract class R8RunExamplesCommon {
   private final String mainClass;
   protected final Output output;
 
-  public R8RunExamplesCommon(
-      String pkg,
-      String input,
-      String compiler,
-      String mode,
-      String mainClass,
-      String output) {
+  public R8RunExamplesTestBase(
+      String pkg, String input, String compiler, String mode, String mainClass, String output) {
     this.pkg = pkg;
     this.input = Input.valueOf(input);
     this.compiler = CompilerUnderTest.valueOf(compiler);

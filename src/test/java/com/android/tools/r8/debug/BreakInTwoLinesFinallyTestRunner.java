@@ -31,7 +31,7 @@ public class BreakInTwoLinesFinallyTestRunner extends DebugTestBase {
   }
 
   public BreakInTwoLinesFinallyTestRunner(String name, DelayedDebugTestConfig config) {
-    this.config = config.getConfig(temp);
+    this.config = config.getConfig(getStaticTemp());
   }
 
   @Test

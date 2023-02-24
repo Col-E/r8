@@ -18,9 +18,6 @@ public class JasminDebugTest extends DebugTestBase {
   final String sourcefile = className + ".j";
   final String methodName = "test";
 
-  @Rule
-  public TemporaryFolder temp = ToolHelper.getTemporaryFolderForTest();
-
   @Test
   public void testUselessCheckcastCF() throws Throwable {
     JasminBuilder builder = getBuilderForUselessCheckcast(className, methodName);

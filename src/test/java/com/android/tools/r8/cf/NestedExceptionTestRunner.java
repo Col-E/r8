@@ -9,18 +9,16 @@ import com.android.tools.r8.CompilationMode;
 import com.android.tools.r8.OutputMode;
 import com.android.tools.r8.R8;
 import com.android.tools.r8.R8Command;
+import com.android.tools.r8.TestBase;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.AndroidAppConsumers;
 import java.nio.file.Path;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
 
-public class NestedExceptionTestRunner {
+public class NestedExceptionTestRunner extends TestBase {
   static final Class CLASS = NestedExceptionTest.class;
-  @Rule public TemporaryFolder temp = ToolHelper.getTemporaryFolderForTest();
 
   @Test
   public void testNestedException() throws Exception {

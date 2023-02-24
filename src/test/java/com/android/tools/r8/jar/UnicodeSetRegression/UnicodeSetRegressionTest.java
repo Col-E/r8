@@ -5,6 +5,7 @@ package com.android.tools.r8.jar.UnicodeSetRegression;
 
 import com.android.tools.r8.OutputMode;
 import com.android.tools.r8.R8Command;
+import com.android.tools.r8.TestBase;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.AndroidAppConsumers;
@@ -16,17 +17,12 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
 
-public class UnicodeSetRegressionTest {
+public class UnicodeSetRegressionTest extends TestBase {
 
   private static final String JAR_FILE =
       "src/test/java/com/android/tools/r8/jar/UnicodeSetRegression/UnicodeSet.jar";
-
-  @Rule
-  public TemporaryFolder temp = ToolHelper.getTemporaryFolderForTest();
 
   private AndroidApp dexFromDX() throws IOException {
     return ToolHelper.runDexer(JAR_FILE, temp.newFolder("dx-dex").getPath());

@@ -15,7 +15,7 @@ import org.junit.runners.Parameterized;
 @RunWith(Parameterized.class)
 public class LocalChangeOnSameLineTestRunner extends DebugTestBase {
 
-  private static final Class CLASS = LocalChangeOnSameLineTest.class;
+  private static final Class<?> CLASS = LocalChangeOnSameLineTest.class;
   private static final String FILE = CLASS.getSimpleName() + ".java";
   private static final String NAME = CLASS.getCanonicalName();
 
@@ -33,7 +33,7 @@ public class LocalChangeOnSameLineTestRunner extends DebugTestBase {
 
   public LocalChangeOnSameLineTestRunner(String name, DelayedDebugTestConfig config) {
     this.name = name;
-    this.config = config.getConfig(temp);
+    this.config = config.getConfig(getStaticTemp());
   }
 
   /** Test that only hit the break point at line 15 once. */

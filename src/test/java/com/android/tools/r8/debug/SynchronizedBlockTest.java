@@ -38,7 +38,7 @@ public class SynchronizedBlockTest extends DebugTestBase {
 
   public SynchronizedBlockTest(String name, DelayedDebugTestConfig config) {
     this.name = name;
-    this.config = config.getConfig(temp);
+    this.config = config.getConfig(getStaticTemp());
   }
 
   @Test

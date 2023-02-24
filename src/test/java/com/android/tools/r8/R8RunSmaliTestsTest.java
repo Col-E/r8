@@ -178,9 +178,6 @@ public class R8RunSmaliTestsTest extends TestBase {
   );
 
   @Rule
-  public TemporaryFolder temp = ToolHelper.getTemporaryFolderForTest();
-
-  @Rule
   public TestDescriptionWatcher watcher = new TestDescriptionWatcher();
 
   private final TestParameters parameters;

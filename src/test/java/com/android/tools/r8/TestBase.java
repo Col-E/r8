@@ -241,7 +241,7 @@ public class TestBase {
   public TestBuilder<? extends SingleTestRunResult<?>, ?> testForRuntime(
       TestRuntime runtime, Consumer<D8TestBuilder> d8TestBuilderConsumer) {
     if (runtime.isCf()) {
-      return testForJvm();
+      return testForJvm(temp);
     } else {
       assert runtime.isDex();
       D8TestBuilder d8TestBuilder = testForD8();

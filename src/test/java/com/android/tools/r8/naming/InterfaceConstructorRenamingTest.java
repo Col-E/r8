@@ -10,7 +10,6 @@ import com.android.tools.r8.R8TestCompileResult;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
-import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.StringUtils;
@@ -18,9 +17,7 @@ import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.function.Function;
-import org.junit.ClassRule;
 import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
@@ -38,12 +35,10 @@ public class InterfaceConstructorRenamingTest extends TestBase {
   private static Function<Backend, R8TestCompileResult> compilation =
       memoizeFunction(InterfaceConstructorRenamingTest::compile);
 
-  @ClassRule public static TemporaryFolder staticTemp = ToolHelper.getTemporaryFolderForTest();
-
   private static R8TestCompileResult compile(Backend backend)
       throws com.android.tools.r8.CompilationFailedException, IOException {
     R8TestCompileResult compileResult =
-        testForR8(staticTemp, backend)
+        testForR8(getStaticTemp(), backend)
             .addProgramClasses(TestInterface.class, TestClass.class)
             .addKeepMainRule(TestClass.class)
             .setMinApi(AndroidApiLevel.B)

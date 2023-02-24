@@ -61,9 +61,6 @@ public abstract class CompilationTestBase extends DesugaredLibraryTestBase {
   protected KeepingDiagnosticHandler handler;
   protected Reporter reporter;
 
-  @Rule
-  public TemporaryFolder temp = ToolHelper.getTemporaryFolderForTest();
-
   @Before
   public void reset() {
     handler = new KeepingDiagnosticHandler();

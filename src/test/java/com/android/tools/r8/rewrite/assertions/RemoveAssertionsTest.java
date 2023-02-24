@@ -28,9 +28,7 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Collection;
 import java.util.function.Function;
-import org.junit.ClassRule;
 import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.objectweb.asm.ClassReader;
@@ -178,14 +176,12 @@ public class RemoveAssertionsTest extends TestBase {
     this.parameters = parameters;
   }
 
-  @ClassRule public static TemporaryFolder staticTemp = ToolHelper.getTemporaryFolderForTest();
-
   private static Function<Backend, CompilationResults> compilationResults =
       memoizeFunction(RemoveAssertionsTest::compileAll);
 
   private static R8TestCompileResult compileWithAccessModification(Backend backend)
       throws CompilationFailedException {
-    return testForR8(staticTemp, backend)
+    return testForR8(getStaticTemp(), backend)
         .addProgramClasses(ClassWithAssertions.class)
         .addKeepMainRule(ClassWithAssertions.class)
         .addOptionsModification(o -> o.inlinerOptions().enableInlining = false)
@@ -198,7 +194,7 @@ public class RemoveAssertionsTest extends TestBase {
   private static R8TestCompileResult compileCf(
       Function<AssertionsConfiguration.Builder, AssertionsConfiguration> transformation)
       throws CompilationFailedException {
-    return testForR8(staticTemp, Backend.CF)
+    return testForR8(getStaticTemp(), Backend.CF)
         .addProgramClasses(ClassWithAssertions.class)
         .debug()
         .noTreeShaking()
@@ -219,7 +215,7 @@ public class RemoveAssertionsTest extends TestBase {
 
   private static R8TestCompileResult compileRegress110887293(Function<byte[], byte[]> rewriter)
       throws CompilationFailedException, IOException {
-    return testForR8(staticTemp, Backend.DEX)
+    return testForR8(getStaticTemp(), Backend.DEX)
         .addProgramClassFileData(
             rewriter.apply(ToolHelper.getClassAsBytes(ClassWithAssertions.class)))
         .addProgramClasses(ChromuimAssertionHookMock.class)
