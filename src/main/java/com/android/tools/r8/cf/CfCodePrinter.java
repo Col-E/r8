@@ -209,10 +209,6 @@ public class CfCodePrinter extends CfPrinter {
     return r8Type("FrameType", ImmutableList.of("cf", "code", "frame"));
   }
 
-  private String monitorType() {
-    return r8Type("Monitor", ImmutableList.of("ir", "code"));
-  }
-
   private String asmOpcodesType() {
     return type("Opcodes", ImmutableList.of("org", "objectweb", "asm"));
   }
@@ -268,7 +264,11 @@ public class CfCodePrinter extends CfPrinter {
   }
 
   private String ifTypeKind(IfType kind) {
-    return irType("If") + ".Type." + kind.name();
+    return irType("IfType") + "." + kind.name();
+  }
+
+  private String monitorTypeKind(MonitorType kind) {
+    return irType("MonitorType") + "." + kind.name();
   }
 
   private String dexString(DexString string) {
@@ -415,11 +415,7 @@ public class CfCodePrinter extends CfPrinter {
 
   @Override
   public void print(CfMonitor monitor) {
-    printNewInstruction(
-        "CfMonitor",
-        monitor.getType() == MonitorType.ENTER
-            ? monitorType() + ".Type.ENTER"
-            : monitorType() + ".Type.EXIT");
+    printNewInstruction("CfMonitor", monitorTypeKind(monitor.getType()));
   }
 
   @Override
