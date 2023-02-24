@@ -980,7 +980,7 @@ public class TestBase {
     return jarTestClasses(classes.toArray(new Class<?>[]{}));
   }
 
-  protected static List<Object[]> buildParameters(Object first, Object second, Object... extras) {
+  protected static List<Object[]> buildParameters(Object... arraysOrIterables) {
     Function<Object, List<Object>> arrayOrIterableToList =
         arrayOrIterable -> {
           if (arrayOrIterable.getClass().isArray()) {
@@ -988,18 +988,12 @@ public class TestBase {
             return Arrays.asList(array);
           } else {
             assert arrayOrIterable instanceof Iterable<?>;
-            Iterable<?> iterable = (Iterable<?>) arrayOrIterable;
+            Iterable<?> iterable = (Iterable) arrayOrIterable;
             return ImmutableList.builder().addAll(iterable).build();
           }
         };
-    List<List<Object>> lists = new ArrayList<>();
-    lists.add(arrayOrIterableToList.apply(first));
-    lists.add(arrayOrIterableToList.apply(second));
-    if (extras != null) {
-      for (Object extra : extras) {
-        lists.add(arrayOrIterableToList.apply(extra));
-      }
-    }
+    List<List<Object>> lists =
+        Arrays.stream(arraysOrIterables).map(arrayOrIterableToList).collect(Collectors.toList());
     return cartesianProduct(lists).stream().map(List::toArray).collect(Collectors.toList());
   }
 
