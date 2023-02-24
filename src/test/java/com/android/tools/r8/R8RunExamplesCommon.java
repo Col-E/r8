@@ -20,6 +20,7 @@ import com.google.common.collect.ImmutableList;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
 import org.junit.Assume;
@@ -187,7 +188,6 @@ public abstract class R8RunExamplesCommon {
       return;
     }
 
-    String original = getOriginalDexFile().toString();
     Path generated = getOutputFile();
 
     ToolHelper.ProcessResult javaResult = ToolHelper.runJava(getOriginalJarFile(""), mainClass);
@@ -222,14 +222,17 @@ public abstract class R8RunExamplesCommon {
       return;
     }
 
-    // Check output against Art output on original dex file.
-    String output =
-        ToolHelper.checkArtOutputIdentical(original, generated.toString(), mainClass, vm);
-
-    // Check output against JVM output.
+    // Check output against JVM output if we have it, otherwise check on art
     if (shouldMatchJVMOutput(vm.getVersion())) {
+      String d8Output =
+          ToolHelper.runArtNoVerificationErrors(
+              Collections.singletonList(generated.toString()), mainClass, null, vm);
       String javaOutput = javaResult.stdout;
-      assertEquals("JVM and Art output differ", javaOutput, output);
+      assertEquals("JVM and Art output differ", javaOutput, d8Output);
+    } else {
+      String dxCompiled = getOriginalDexFile().toString();
+      String output =
+          ToolHelper.checkArtOutputIdentical(dxCompiled, generated.toString(), mainClass, vm);
     }
   }
 
