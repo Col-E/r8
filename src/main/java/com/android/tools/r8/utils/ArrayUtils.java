@@ -176,6 +176,7 @@ public class ArrayUtils {
     return ts[0];
   }
 
+  @SuppressWarnings("unchecked")
   public static <T> Optional<T>[] withOptionalNone(T[] ts) {
     Optional<T>[] optionals = new Optional[ts.length + 1];
     for (int i = 0; i < ts.length; i++) {
