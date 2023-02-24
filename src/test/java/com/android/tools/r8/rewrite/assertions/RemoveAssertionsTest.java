@@ -15,6 +15,7 @@ import com.android.tools.r8.R8TestCompileResult;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestCompileResult;
 import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
@@ -26,7 +27,6 @@ import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import java.io.IOException;
 import java.nio.file.Path;
-import java.util.Collection;
 import java.util.function.Function;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -168,8 +168,8 @@ public class RemoveAssertionsTest extends TestBase {
   private final TestParameters parameters;
 
   @Parameterized.Parameters(name = "{0}")
-  public static Collection<Object[]> data() {
-    return buildParameters(getTestParameters().withAllRuntimes().build());
+  public static TestParametersCollection data() {
+    return getTestParameters().withAllRuntimes().build();
   }
 
   public RemoveAssertionsTest(TestParameters parameters) {

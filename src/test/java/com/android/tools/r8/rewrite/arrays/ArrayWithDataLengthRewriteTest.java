@@ -9,6 +9,7 @@ import com.android.tools.r8.CompilationMode;
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
@@ -25,8 +26,8 @@ import org.junit.runners.Parameterized.Parameters;
 @RunWith(Parameterized.class)
 public class ArrayWithDataLengthRewriteTest extends TestBase {
   @Parameters(name = "{0}")
-  public static Iterable<?> data() {
-    return buildParameters(getTestParameters().withDexRuntimes().withAllApiLevels().build());
+  public static TestParametersCollection data() {
+    return getTestParameters().withDexRuntimes().withAllApiLevels().build();
   }
 
   private final TestParameters parameters;

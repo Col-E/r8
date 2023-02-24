@@ -9,6 +9,7 @@ import static org.junit.Assert.assertEquals;
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
@@ -16,7 +17,6 @@ import com.android.tools.r8.utils.codeinspector.InstructionSubject;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import com.google.common.collect.Streams;
 import java.util.Iterator;
-import java.util.List;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -111,8 +111,8 @@ public class InstanceOfRemovalTest extends TestBase {
   }
 
   @Parameters(name = "{0}")
-  public static List<Object[]> data() {
-    return buildParameters(getTestParameters().withAllRuntimesAndApiLevels().build());
+  public static TestParametersCollection data() {
+    return getTestParameters().withAllRuntimesAndApiLevels().build();
   }
 
   private final TestParameters parameters;

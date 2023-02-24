@@ -14,11 +14,11 @@ import com.android.tools.r8.NoMethodStaticizing;
 import com.android.tools.r8.NoReturnTypeStrengthening;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
-import java.util.List;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -29,8 +29,8 @@ public class DynamicTypeOptimizationTest extends TestBase {
   private final TestParameters parameters;
 
   @Parameterized.Parameters(name = "{0}")
-  public static List<Object[]> data() {
-    return buildParameters(getTestParameters().withAllRuntimesAndApiLevels().build());
+  public static TestParametersCollection data() {
+    return getTestParameters().withAllRuntimesAndApiLevels().build();
   }
 
   public DynamicTypeOptimizationTest(TestParameters parameters) {

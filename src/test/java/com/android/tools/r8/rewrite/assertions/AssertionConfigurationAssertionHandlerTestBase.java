@@ -8,6 +8,7 @@ package com.android.tools.r8.rewrite.assertions;
 import com.android.tools.r8.R8TestBuilder;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.references.MethodReference;
 import com.android.tools.r8.rewrite.assertions.assertionhandler.AssertionHandlers;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
@@ -25,9 +26,8 @@ public abstract class AssertionConfigurationAssertionHandlerTestBase extends Tes
   @Parameter() public TestParameters parameters;
 
   @Parameters(name = "{0}")
-  public static List<Object[]> data() {
-    return buildParameters(
-        getTestParameters().withAllRuntimes().withAllApiLevelsAlsoForCf().build());
+  public static TestParametersCollection data() {
+    return getTestParameters().withAllRuntimes().withAllApiLevelsAlsoForCf().build();
   }
 
   abstract String getExpectedOutput();

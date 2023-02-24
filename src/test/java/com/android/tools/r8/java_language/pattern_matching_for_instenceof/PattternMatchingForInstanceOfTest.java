@@ -7,6 +7,7 @@ package com.android.tools.r8.java_language.pattern_matching_for_instenceof;
 import com.android.tools.r8.R8TestBuilder;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.TestRuntime.CfVm;
 import com.android.tools.r8.examples.jdk17.PatternMatchingForInstanceof;
 import com.google.common.collect.ImmutableList;
@@ -29,13 +30,12 @@ public class PattternMatchingForInstanceOfTest extends TestBase {
   private static final String MAIN = PatternMatchingForInstanceof.Main.typeName();
 
   @Parameters(name = "{0}")
-  public static List<Object[]> data() {
-    return buildParameters(
-        getTestParameters()
-            .withCfRuntimesStartingFromIncluding(CfVm.JDK17)
-            .withDexRuntimes()
-            .withAllApiLevelsAlsoForCf()
-            .build());
+  public static TestParametersCollection data() {
+    return getTestParameters()
+        .withCfRuntimesStartingFromIncluding(CfVm.JDK17)
+        .withDexRuntimes()
+        .withAllApiLevelsAlsoForCf()
+        .build();
   }
 
   @Test

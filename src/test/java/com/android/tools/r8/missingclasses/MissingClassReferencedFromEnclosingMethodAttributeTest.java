@@ -29,7 +29,7 @@ public class MissingClassReferencedFromEnclosingMethodAttributeTest extends Miss
           .build();
 
   @Parameters(name = "{1}, report: {0}")
-  public static List<Object[]> data() {
+  public static List<Object[]> refinedData() {
     return buildParameters(
         BooleanUtils.values(), getTestParameters().withAllRuntimesAndApiLevels().build());
   }

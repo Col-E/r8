@@ -6,9 +6,9 @@ package com.android.tools.r8.desugar.records;
 
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.utils.StringUtils;
 import java.nio.file.Path;
-import java.util.List;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -44,9 +44,8 @@ public class RecordInvokeCustomSplitDesugaringTest extends TestBase {
   }
 
   @Parameterized.Parameters(name = "{0}")
-  public static List<Object[]> data() {
-    return buildParameters(
-        getTestParameters().withDexRuntimes().withAllApiLevelsAlsoForCf().build());
+  public static TestParametersCollection data() {
+    return getTestParameters().withDexRuntimes().withAllApiLevelsAlsoForCf().build();
   }
 
   @Test

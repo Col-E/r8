@@ -9,7 +9,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
-import java.util.List;
+import com.android.tools.r8.TestParametersCollection;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -23,9 +23,8 @@ public class RetraceInlineeWithNullCheckSequenceTest extends TestBase {
   @Parameter() public TestParameters parameters;
 
   @Parameters(name = "{0}")
-  public static List<Object[]> data() {
-    return buildParameters(
-        getTestParameters().withAllRuntimes().withAllApiLevelsAlsoForCf().build());
+  public static TestParametersCollection data() {
+    return getTestParameters().withAllRuntimes().withAllApiLevelsAlsoForCf().build();
   }
 
   public StackTrace expectedStackTrace;

@@ -10,6 +10,7 @@ import static org.junit.Assert.fail;
 import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.TestRunResult;
 import com.android.tools.r8.TestRuntime.CfVm;
 import com.android.tools.r8.desugar.nestaccesscontrol.NestAttributesInDexTest.Host.Member1;
@@ -26,7 +27,6 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -41,9 +41,8 @@ public class NestAttributesInDexTest extends NestAttributesInDexTestBase {
   @Parameter() public TestParameters parameters;
 
   @Parameters(name = "{0}")
-  public static List<Object[]> data() {
-    return buildParameters(
-        getTestParameters().withAllRuntimes().withAllApiLevelsAlsoForCf().build());
+  public static TestParametersCollection data() {
+    return getTestParameters().withAllRuntimes().withAllApiLevelsAlsoForCf().build();
   }
 
   private static final String EXPECTED_OUTPUT =

@@ -11,6 +11,7 @@ import static org.junit.Assume.assumeTrue;
 import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.TestRuntime.CfVm;
 import com.android.tools.r8.cf.CfVersion;
 import com.android.tools.r8.utils.AndroidApiLevel;
@@ -19,7 +20,6 @@ import com.google.common.collect.ImmutableList;
 import java.io.IOException;
 import java.lang.invoke.MethodHandles;
 import java.util.Collection;
-import java.util.List;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -32,9 +32,8 @@ public class HierarchyConstantDynamicTest extends TestBase {
   @Parameter() public TestParameters parameters;
 
   @Parameters(name = "{0}")
-  public static List<Object[]> data() {
-    return buildParameters(
-        getTestParameters().withAllRuntimes().withAllApiLevelsAlsoForCf().build());
+  public static TestParametersCollection data() {
+    return getTestParameters().withAllRuntimes().withAllApiLevelsAlsoForCf().build();
   }
 
   private static final String EXPECTED_OUTPUT = StringUtils.lines("true", "true", "true");

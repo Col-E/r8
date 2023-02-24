@@ -8,6 +8,7 @@ import static org.junit.Assert.fail;
 
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.references.MethodReference;
 import com.android.tools.r8.references.Reference;
@@ -16,7 +17,6 @@ import com.android.tools.r8.rewrite.assertions.assertionhandler.AssertionsSimple
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.ZipUtils.ZipBuilder;
 import java.nio.file.Path;
-import java.util.List;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -36,9 +36,8 @@ public class AssertionConfigurationAssertionHandlerMissingClassTest extends Test
   @Parameter() public TestParameters parameters;
 
   @Parameters(name = "{0}")
-  public static List<Object[]> data() {
-    return buildParameters(
-        getTestParameters().withAllRuntimes().withAllApiLevelsAlsoForCf().build());
+  public static TestParametersCollection data() {
+    return getTestParameters().withAllRuntimes().withAllApiLevelsAlsoForCf().build();
   }
 
   private MethodReference getAssertionHandler() {

@@ -13,6 +13,7 @@ import static org.junit.Assume.assumeTrue;
 import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.TestRuntime.CfVm;
 import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.utils.AndroidApiLevel;
@@ -38,13 +39,12 @@ public class NestAttributesInDexRewriteInvokeInterfaceTest extends TestBase impl
   public TestParameters parameters;
 
   @Parameters(name = "{0}")
-  public static List<Object[]> data() {
-    return buildParameters(
-        getTestParameters()
-            .withDexRuntimesStartingFromIncluding(Version.V7_0_0)
-            .withCfRuntimesStartingFromIncluding(CfVm.JDK11)
-            .withApiLevelsStartingAtIncluding(AndroidApiLevel.N)
-            .build());
+  public static TestParametersCollection data() {
+    return getTestParameters()
+        .withDexRuntimesStartingFromIncluding(Version.V7_0_0)
+        .withCfRuntimesStartingFromIncluding(CfVm.JDK11)
+        .withApiLevelsStartingAtIncluding(AndroidApiLevel.N)
+        .build();
   }
 
   private static final List<String> EXPECTED_OUTPUT_LINES = ImmutableList.of("Hello, world!");

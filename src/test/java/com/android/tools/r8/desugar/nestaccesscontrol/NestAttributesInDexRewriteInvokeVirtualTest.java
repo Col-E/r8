@@ -13,6 +13,7 @@ import static org.junit.Assume.assumeTrue;
 import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.TestRuntime.CfVm;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.codeinspector.InstructionSubject;
@@ -37,9 +38,8 @@ public class NestAttributesInDexRewriteInvokeVirtualTest extends TestBase implem
   public TestParameters parameters;
 
   @Parameters(name = "{0}")
-  public static List<Object[]> data() {
-    return buildParameters(
-        getTestParameters().withAllRuntimes().withAllApiLevelsAlsoForCf().build());
+  public static TestParametersCollection data() {
+    return getTestParameters().withAllRuntimes().withAllApiLevelsAlsoForCf().build();
   }
 
   private static final List<String> EXPECTED_OUTPUT_LINES = ImmutableList.of("Hello, world!");

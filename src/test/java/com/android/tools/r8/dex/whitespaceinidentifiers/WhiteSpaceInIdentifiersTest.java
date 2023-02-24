@@ -19,6 +19,7 @@ import com.android.tools.r8.ProguardVersion;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestCompilerBuilder;
 import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.naming.ProguardMapReader.ParseException;
 import com.android.tools.r8.naming.retrace.StackTrace;
 import com.android.tools.r8.naming.retrace.StackTrace.StackTraceLine;
@@ -27,7 +28,6 @@ import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.DexVersion;
 import com.android.tools.r8.utils.StringUtils;
 import java.nio.file.Path;
-import java.util.List;
 import java.util.concurrent.ExecutionException;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -41,8 +41,8 @@ public class WhiteSpaceInIdentifiersTest extends TestBase {
   @Parameter() public TestParameters parameters;
 
   @Parameters(name = "{0}")
-  public static List<Object[]> data() {
-    return buildParameters(getTestParameters().withAllRuntimes().withAllApiLevels().build());
+  public static TestParametersCollection data() {
+    return getTestParameters().withAllRuntimesAndApiLevels().build();
   }
 
   private static final String EXPECTED_OUTPUT =
