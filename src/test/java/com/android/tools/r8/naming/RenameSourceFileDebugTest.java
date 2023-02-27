@@ -81,7 +81,7 @@ public class RenameSourceFileDebugTest extends DebugTestBase {
 
   @Parameters(name = "{0}")
   public static Backend[] data() {
-    return Backend.values();
+    return ToolHelper.getBackends();
   }
 
   /** replica of {@link ClassInitializationTest#testBreakpointInEmptyClassInitializer} */
