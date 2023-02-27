@@ -74,16 +74,6 @@ public abstract class TestShrinkerBuilder<
     }
   }
 
-  // TODO(b/270021825): Remove all uses of this.
-  @Deprecated
-  @Override
-  public T setMinApi(TestRuntime runtime) {
-    if (runtime.isDex()) {
-      setMinApi(runtime.asDex().getMinApiLevel());
-    }
-    return self();
-  }
-
   // TODO(b/270021825): Look into if we can assert backend is DEX.
   @Override
   public T setMinApi(int minApiLevel) {

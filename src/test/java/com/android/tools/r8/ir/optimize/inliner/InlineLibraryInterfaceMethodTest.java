@@ -9,13 +9,12 @@ import static org.junit.Assert.assertEquals;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
-import com.android.tools.r8.TestRuntime;
-import com.android.tools.r8.ToolHelper.DexVm;
 import com.android.tools.r8.utils.codeinspector.InvokeInstructionSubject;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameter;
 import org.junit.runners.Parameterized.Parameters;
 
 // Test whether a single-caller method, called through a single-target library interface,
@@ -25,14 +24,11 @@ public class InlineLibraryInterfaceMethodTest extends TestBase {
 
   @Parameters(name = "{0}")
   public static TestParametersCollection data() {
-    return getTestParameters().withDexRuntime(DexVm.ART_DEFAULT.getVersion()).build();
+    return getTestParameters().withAllRuntimesAndApiLevels().build();
   }
 
-  private final TestParameters parameters;
-
-  public InlineLibraryInterfaceMethodTest(TestParameters parameters) {
-    this.parameters = parameters;
-  }
+  @Parameter(0)
+  public TestParameters parameters;
 
   @Test
   public void test() throws Exception {
@@ -41,13 +37,12 @@ public class InlineLibraryInterfaceMethodTest extends TestBase {
       private long println = 0;
     }
     Counts counts = new Counts();
-    TestRuntime testRuntime = parameters.getRuntime();
-    testForR8(Backend.DEX)
+    testForR8(parameters.getBackend())
         .addInnerClasses(InlineLibraryInterfaceMethodTest.class)
         .addKeepMainRule(TestClass.class)
-        .setMinApi(testRuntime)
+        .setMinApi(parameters)
         .addDontObfuscate()
-        .run(testRuntime, TestClass.class)
+        .run(parameters.getRuntime(), TestClass.class)
         .assertSuccess()
         .inspect(
             inspector -> {

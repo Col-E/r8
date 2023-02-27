@@ -387,15 +387,6 @@ public abstract class TestCompilerBuilder<
     return self();
   }
 
-  /** @deprecated use {@link #setMinApi(AndroidApiLevel)} instead. */
-  @Deprecated
-  public T setMinApi(TestRuntime runtime) {
-    if (runtime.isDex()) {
-      setMinApi(runtime.asDex().getMinApiLevel());
-    }
-    return self();
-  }
-
   public T setOptimizeMultidexForLinearAlloc() {
     this.optimizeMultidexForLinearAlloc = true;
     return self();
