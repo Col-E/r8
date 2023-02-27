@@ -12,7 +12,6 @@ import com.android.tools.r8.ir.code.IRMetadata;
 import com.android.tools.r8.ir.code.Position;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceMap;
 import java.util.Map;
-import java.util.function.BiConsumer;
 
 public class LirCode<EV> implements Iterable<LirInstructionView> {
 
@@ -49,13 +48,9 @@ public class LirCode<EV> implements Iterable<LirInstructionView> {
       this.valueToLocalMap = valueToLocalMap;
       this.instructionToEndUseMap = instructionToEndUseMap;
     }
-
-    public void forEachLocalDefinition(BiConsumer<EV, DebugLocalInfo> fn) {
-      valueToLocalMap.forEach(fn);
-    }
   }
 
-  private final LirStrategyInfo<EV> strategyInfo;
+  private final LirSsaValueStrategy<EV> ssaValueStrategy;
 
   private final IRMetadata metadata;
 
@@ -94,7 +89,7 @@ public class LirCode<EV> implements Iterable<LirInstructionView> {
       int instructionCount,
       TryCatchTable tryCatchTable,
       DebugLocalInfoTable<EV> debugLocalInfoTable,
-      LirStrategyInfo<EV> strategyInfo) {
+      LirSsaValueStrategy<EV> ssaValueStrategy) {
     this.metadata = metadata;
     this.constants = constants;
     this.positionTable = positions;
@@ -103,17 +98,11 @@ public class LirCode<EV> implements Iterable<LirInstructionView> {
     this.instructionCount = instructionCount;
     this.tryCatchTable = tryCatchTable;
     this.debugLocalInfoTable = debugLocalInfoTable;
-    this.strategyInfo = strategyInfo;
+    this.ssaValueStrategy = ssaValueStrategy;
   }
 
   public EV decodeValueIndex(int encodedValueIndex, int currentValueIndex) {
-    return strategyInfo
-        .getReferenceStrategy()
-        .decodeValueIndex(encodedValueIndex, currentValueIndex);
-  }
-
-  public LirStrategyInfo<EV> getStrategyInfo() {
-    return strategyInfo;
+    return ssaValueStrategy.decodeValueIndex(encodedValueIndex, currentValueIndex);
   }
 
   public int getArgumentCount() {
@@ -148,7 +137,7 @@ public class LirCode<EV> implements Iterable<LirInstructionView> {
     return debugLocalInfoTable;
   }
 
-  public DebugLocalInfo getDebugLocalInfo(EV valueIndex) {
+  public DebugLocalInfo getDebugLocalInfo(int valueIndex) {
     return debugLocalInfoTable == null ? null : debugLocalInfoTable.valueToLocalMap.get(valueIndex);
   }
 

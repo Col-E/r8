@@ -4,6 +4,7 @@
 package com.android.tools.r8.lightir;
 
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.DebugLocalInfo;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexString;
@@ -57,7 +58,6 @@ public class Lir2IRConverter {
       AppView<?> appView) {
     Parser<EV> parser = new Parser<>(lirCode, method.getReference(), appView, strategy);
     parser.parseArguments(method);
-    parser.ensureDebugInfo();
     lirCode.forEach(view -> view.accept(parser));
     return parser.getIRCode(method);
   }
@@ -157,21 +157,6 @@ public class Lir2IRConverter {
       advanceNextPositionEntry();
     }
 
-    public void ensureDebugInfo() {
-      if (code.getDebugLocalInfoTable() == null) {
-        return;
-      }
-      code.getDebugLocalInfoTable()
-          .forEachLocalDefinition(
-              (encodedValue, localInfo) -> {
-                Value value = getValue(encodedValue);
-                if (!value.hasLocalInfo()) {
-                  value.setLocalInfo(localInfo);
-                }
-                assert value.getLocalInfo() == localInfo;
-              });
-    }
-
     public IRCode getIRCode(ProgramMethod method) {
       LinkedList<BasicBlock> blockList = new LinkedList<>();
       IntList blockIndices = new IntArrayList(blocks.keySet());
@@ -207,7 +192,7 @@ public class Lir2IRConverter {
     }
 
     public Value getValue(EV encodedValue) {
-      return strategy.getValue(encodedValue, code.getStrategyInfo());
+      return strategy.getValue(encodedValue);
     }
 
     public List<Value> getValues(List<EV> indices) {
@@ -228,34 +213,20 @@ public class Lir2IRConverter {
 
     public Value getOutValueForNextInstruction(TypeElement type) {
       int valueIndex = toInstructionIndexInIR(peekNextInstructionIndex());
-      return strategy.getValueDefinitionForInstructionIndex(
-          valueIndex, type, code::getDebugLocalInfo);
+      DebugLocalInfo localInfo = code.getDebugLocalInfo(valueIndex);
+      return strategy.getValueDefinitionForInstructionIndex(valueIndex, type, localInfo);
     }
 
     public Phi getPhiForNextInstructionAndAdvanceState(TypeElement type) {
-      int instructionIndex = peekNextInstructionIndex();
-      int valueIndex = toInstructionIndexInIR(instructionIndex);
-      Phi phi =
-          strategy.getPhiDefinitionForInstructionIndex(
-              valueIndex,
-              blockIndex -> getBasicBlockOrEnsureCurrentBlock(blockIndex, instructionIndex),
-              type,
-              code::getDebugLocalInfo,
-              code.getStrategyInfo());
-      ensureCurrentPosition();
-      ++nextInstructionIndex;
-      return phi;
-    }
-
-    private BasicBlock getBasicBlockOrEnsureCurrentBlock(int index, int currentInstructionIndex) {
-      // If the index is at current or past it ensure the block.
-      if (index >= currentInstructionIndex) {
-        ensureCurrentBlock();
-        return currentBlock;
-      }
-      // Otherwise we assume the index is an exact block index for an existing block.
-      assert blocks.containsKey(index);
-      return getBasicBlock(index);
+      int valueIndex = toInstructionIndexInIR(peekNextInstructionIndex());
+      DebugLocalInfo localInfo = code.getDebugLocalInfo(valueIndex);
+      // TODO(b/225838009): The phi constructor implicitly adds to the block, so we need to ensure
+      //  the block. However, we must grab the index above. Find a way to clean this up so it is
+      //  uniform with instructions.
+      advanceInstructionState();
+      // Creating the phi implicitly adds it to currentBlock.
+      return strategy.getPhiDefinitionForInstructionIndex(
+          valueIndex, currentBlock, type, localInfo);
     }
 
     private void advanceInstructionState() {
@@ -289,9 +260,8 @@ public class Lir2IRConverter {
       // Arguments are not included in the "instructions" so this does not call "addInstruction"
       // which would otherwise advance the state.
       TypeElement typeElement = type.toTypeElement(appView);
-      Value dest =
-          strategy.getValueDefinitionForInstructionIndex(
-              index, typeElement, code::getDebugLocalInfo);
+      DebugLocalInfo localInfo = code.getDebugLocalInfo(index);
+      Value dest = strategy.getValueDefinitionForInstructionIndex(index, typeElement, localInfo);
       Argument argument = new Argument(dest, index, type.isBooleanType());
       assert currentBlock != null;
       assert currentPosition.isSyntheticPosition();

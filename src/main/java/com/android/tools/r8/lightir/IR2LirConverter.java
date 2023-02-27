@@ -48,11 +48,6 @@ public class IR2LirConverter<EV> {
     strategy.defineBlock(block, blockIndex);
   }
 
-  private boolean recordPhi(Phi phi, int valueIndex) {
-    recordValue(phi, valueIndex);
-    return strategy.isPhiInlineInstruction();
-  }
-
   private void recordValue(Value value, int valueIndex) {
     EV encodedValue = strategy.defineValue(value, valueIndex);
     if (value.hasLocalInfo()) {
@@ -74,8 +69,16 @@ public class IR2LirConverter<EV> {
     BasicBlockIterator blockIt = irCode.listIterator();
     while (blockIt.hasNext()) {
       BasicBlock block = blockIt.next();
-      if (strategy.isPhiInlineInstruction()) {
-        currentValueIndex += computePhis(block);
+      if (block.hasPhis()) {
+        // The block order of the predecessors may change, since the LIR does not encode the
+        // direct links, the block order is used to determine predecessor order.
+        int[] permutation = computePermutation(block.getPredecessors(), strategy::getBlockIndex);
+        Value[] operands = new Value[block.getPredecessors().size()];
+        for (Phi phi : block.getPhis()) {
+          permuteOperands(phi.getOperands(), permutation, operands);
+          builder.addPhi(phi.getType(), Arrays.asList(operands));
+          currentValueIndex++;
+        }
       }
       if (block.hasCatchHandlers()) {
         CatchHandlers<BasicBlock> handlers = block.getCatchHandlers();
@@ -109,25 +112,6 @@ public class IR2LirConverter<EV> {
       }
       assert builder.verifyCurrentValueIndex(currentValueIndex);
     }
-    if (!strategy.isPhiInlineInstruction()) {
-      irCode.listIterator().forEachRemaining(this::computePhis);
-    }
-  }
-
-  private int computePhis(BasicBlock block) {
-    int valuesOffset = 0;
-    if (block.hasPhis()) {
-      // The block order of the predecessors may change, since the LIR does not encode the
-      // direct links, the block order is used to determine predecessor order.
-      int[] permutation = computePermutation(block.getPredecessors(), strategy::getBlockIndex);
-      Value[] operands = new Value[block.getPredecessors().size()];
-      for (Phi phi : block.getPhis()) {
-        permuteOperands(phi.getOperands(), permutation, operands);
-        builder.addPhi(phi.getType(), Arrays.asList(operands));
-        valuesOffset++;
-      }
-    }
-    return valuesOffset;
   }
 
   private void computeBlockAndValueTables() {
@@ -136,10 +120,9 @@ public class IR2LirConverter<EV> {
     for (BasicBlock block : irCode.blocks) {
       recordBlock(block, instructionIndex);
       for (Phi phi : block.getPhis()) {
-        if (recordPhi(phi, valueIndex)) {
-          valueIndex++;
-          instructionIndex++;
-        }
+        recordValue(phi, valueIndex);
+        valueIndex++;
+        instructionIndex++;
       }
       for (Instruction instruction : block.getInstructions()) {
         if (instruction.hasOutValue()) {
