@@ -255,7 +255,7 @@ def determine_version(args, dump):
   return args.version
 
 def determine_compiler(args, build_properties):
-  compilers = ['d8', 'r8', 'r8full', 'l8']
+  compilers = ['d8', 'r8', 'r8full', 'l8', 'l8d8']
   compiler = args.compiler
   if not compiler and 'tool' in build_properties:
     compiler = build_properties.get('tool').lower()
@@ -269,6 +269,9 @@ def determine_compiler(args, build_properties):
     error("Unable to determine a compiler to use. Specified %s,"
           " Valid options: %s" % (args.compiler, ', '.join(compilers)))
   return compiler
+
+def is_l8_compiler(compiler):
+  return compiler.startswith('l8')
 
 def determine_output(args, temp):
   return os.path.join(temp, 'out.jar')
@@ -453,7 +456,7 @@ def run1(out, args, otherargs, jdkhome=None):
     if compiler == 'd8':
       prepare_d8_wrapper(jar, temp, jdkhome)
       cmd.append('com.android.tools.r8.utils.CompileDumpD8')
-    if compiler == 'l8':
+    if is_l8_compiler(compiler):
       cmd.append('com.android.tools.r8.L8')
     if compiler.startswith('r8'):
       prepare_r8_wrapper(jar, temp, jdkhome)
@@ -472,11 +475,11 @@ def run1(out, args, otherargs, jdkhome=None):
                  determine_feature_output(feature_jar, temp)])
     if dump.library_jar():
       cmd.extend(['--lib', dump.library_jar()])
-    if dump.classpath_jar() and compiler != 'l8':
+    if dump.classpath_jar() and not is_l8_compiler(compiler):
       cmd.extend(['--classpath', dump.classpath_jar()])
     if dump.desugared_library_json() and not args.disable_desugared_lib:
       cmd.extend(['--desugared-lib', dump.desugared_library_json()])
-    if compiler != 'd8' and dump.config_file():
+    if compiler != 'd8' and compiler != 'l8d8' and dump.config_file():
       if hasattr(args, 'config_file_consumer') and args.config_file_consumer:
         args.config_file_consumer(dump.config_file())
       else:
@@ -490,9 +493,12 @@ def run1(out, args, otherargs, jdkhome=None):
       cmd.extend(['--main-dex-rules', dump.main_dex_rules_resource()])
     for startup_profile_resource in dump.startup_profile_resources():
       cmd.extend(['--startup-profile', startup_profile_resource])
-    if compiler == 'l8':
-      if dump.config_file():
-        cmd.extend(['--pg-map-output', '%s.map' % out])
+    if is_l8_compiler(compiler):
+      if compiler == 'l8':
+        if dump.config_file():
+          cmd.extend(['--pg-map-output', '%s.map' % out])
+      else:
+        assert compiler == 'l8d8'
     elif compiler != 'd8':
       cmd.extend(['--pg-map-output', '%s.map' % out])
     if min_api:
