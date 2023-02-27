@@ -17,6 +17,11 @@ USAGE = 'usage: %prog [options] <apk>'
 
 def parse_options():
   parser = optparse.OptionParser(usage=USAGE)
+  parser.add_option('--clear-profile',
+                    help='To remove baseline.prof and baseline.profm from '
+                         'assets/dexopt/',
+                    default=False,
+                    action='store_true')
   parser.add_option('--dex',
                     help='Directory or archive with dex files to use instead '
                          'of those in the apk',
@@ -59,12 +64,20 @@ def is_archive(file):
   return file.endswith('.zip') or file.endswith('.jar')
 
 def repack(
-    apk, processed_out, desugared_library_dex, resources, temp, quiet, logging):
+    apk, clear_profile, processed_out, desugared_library_dex, resources, temp,
+    quiet, logging):
   processed_apk = os.path.join(temp, 'processed.apk')
   shutil.copyfile(apk, processed_apk)
+
+  if clear_profile:
+    zip_utils.remove_files_from_zip(
+        ['assets/dexopt/baseline.prof', 'assets/dexopt/baseline.profm'],
+        processed_apk)
+
   if not processed_out:
-    utils.Print('Using original APK as is', quiet=quiet)
+    utils.Print('Using original dex as is', quiet=quiet)
     return processed_apk
+
   utils.Print(
       'Repacking APK with dex files from {}'.format(processed_out), quiet=quiet)
 
@@ -117,22 +130,23 @@ def align(signed_apk, temp, quiet, logging):
   return apk_utils.align(signed_apk, aligned_apk)
 
 def masseur(
-    apk, dex=None, desugared_library_dex=None, resources=None, out=None,
-    adb_options=None, sign_before_align=False, keystore=None, install=False,
-    quiet=False, logging=True):
+    apk, clear_profile=False, dex=None, desugared_library_dex=None,
+    resources=None, out=None, adb_options=None, sign_before_align=False,
+    keystore=None, install=False, quiet=False, logging=True):
   if not out:
     out = os.path.basename(apk)
   if not keystore:
     keystore = apk_utils.default_keystore()
   with utils.TempDir() as temp:
     processed_apk = None
-    if dex:
+    if dex or clear_profile:
       processed_apk = repack(
-          apk, dex, desugared_library_dex, resources, temp, quiet, logging)
+          apk, clear_profile, dex, desugared_library_dex, resources, temp,
+          quiet, logging)
     else:
       assert not desugared_library_dex
       utils.Print(
-          'Signing original APK without modifying dex files', quiet=quiet)
+          'Signing original APK without modifying apk', quiet=quiet)
       processed_apk = os.path.join(temp, 'processed.apk')
       shutil.copyfile(apk, processed_apk)
     if sign_before_align:
