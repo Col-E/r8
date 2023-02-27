@@ -101,7 +101,12 @@ class Throwing {
 
   public static void printFrameHead(Exception e) {
     for (StackTraceElement element : e.getStackTrace()) {
-      System.out.println("FRAME: " + element);
+      // Dalvik will print frames like:
+      // FRAME: dalvik.system.NativeStart.main(Native Method)
+      // ignore these to get same stacks as the JVM
+      if (!element.toString().contains("dalvik")) {
+        System.out.println("FRAME: " + element);
+      }
     }
   }
 

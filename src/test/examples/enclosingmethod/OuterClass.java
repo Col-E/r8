@@ -55,7 +55,11 @@ public class OuterClass {
     System.out.println(anInstance.getClass().getEnclosingClass());
     System.out.println(anInstance.getClass().getEnclosingMethod());
     System.out.println(anInstance.getClass().isAnonymousClass());
-    System.out.println(anInstance.getClass().isLocalClass());
-    System.out.println(anInstance.getClass().isMemberClass());
+    // DEX enclosing-class annotations don't distinguish member classes from local classes.
+    // This results in Class.isLocalClass always being false and Class.isMemberClass always
+    // being true even when the converse is the case when running on the JVM.
+    // More context b/69453990
+    System.out.println(
+        anInstance.getClass().isLocalClass() || anInstance.getClass().isMemberClass());
   }
 }

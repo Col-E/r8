@@ -214,22 +214,11 @@ public abstract class R8RunExamplesTestBase extends TestBase {
     }
 
     // Check output against JVM output if we have it, otherwise check on art
-    if (shouldMatchJVMOutput(vm.getVersion())) {
-      String d8Output =
-          ToolHelper.runArtNoVerificationErrors(
-              Collections.singletonList(generated.toString()), mainClass, null, vm);
-      String javaOutput = javaResult.stdout;
-      assertEquals("JVM and Art output differ", javaOutput, d8Output);
-    } else {
-      String dxCompiled = getOriginalDexFile().toString();
-      String output =
-          ToolHelper.checkArtOutputIdentical(dxCompiled, generated.toString(), mainClass, vm);
-    }
-  }
-
-  private boolean shouldMatchJVMOutput(DexVm.Version version) {
-    TestCondition condition = getOutputNotIdenticalToJVMOutput().get(mainClass);
-    return condition == null || !condition.test(DexTool.NONE, compiler, version, mode);
+    String d8Output =
+        ToolHelper.runArtNoVerificationErrors(
+            Collections.singletonList(generated.toString()), mainClass, null, vm);
+    String javaOutput = javaResult.stdout;
+    assertEquals("JVM and Art output differ", javaOutput, d8Output);
   }
 
   private boolean shouldSkipVm(DexVm.Version version) {
@@ -251,8 +240,6 @@ public abstract class R8RunExamplesTestBase extends TestBase {
   protected abstract Set<String> getFailingCompileCf();
 
   protected abstract Set<String> getFailingOutputCf();
-
-  protected abstract Map<String, TestCondition> getOutputNotIdenticalToJVMOutput();
 
   protected abstract Map<String, TestCondition> getSkip();
 }
