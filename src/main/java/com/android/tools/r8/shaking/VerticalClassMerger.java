@@ -141,73 +141,7 @@ public class VerticalClassMerger {
     UNHANDLED_INVOKE_SUPER,
     UNSAFE_INLINING,
     UNSUPPORTED_ATTRIBUTES,
-    API_REFERENCE_LEVEL;
-
-    private String getMessageForClass(DexClass clazz) {
-      String message = null;
-      switch (this) {
-        case ALREADY_MERGED:
-          message = "it has already been merged with its superclass";
-          break;
-        case ALWAYS_INLINE:
-          message = "it is mentioned in appInfo.alwaysInline";
-          break;
-        case CONFLICT:
-          message = "it is conflicting with its subclass";
-          break;
-        case ILLEGAL_ACCESS:
-          message = "it could lead to illegal accesses";
-          break;
-        case MAIN_DEX_ROOT_OUTSIDE_REFERENCE:
-          message = "contains a constructor with a reference outside the main dex classes";
-          break;
-        case MERGE_ACROSS_NESTS:
-          message = "cannot merge across nests, or from nest to non-nest";
-          break;
-        case NATIVE_METHOD:
-          message = "it has a native method";
-          break;
-        case NO_SIDE_EFFECTS:
-          message = "it is mentioned in appInfo.noSideEffects";
-          break;
-        case PINNED_SOURCE:
-          message = "it should be kept";
-          break;
-        case RESOLUTION_FOR_FIELDS_MAY_CHANGE:
-          message = "it could affect field resolution";
-          break;
-        case RESOLUTION_FOR_METHODS_MAY_CHANGE:
-          message = "it could affect method resolution";
-          break;
-        case SERVICE_LOADER:
-          message = "it is used by a service loader";
-          break;
-        case SOURCE_AND_TARGET_LOCK_CANDIDATES:
-          message = "source and target are both lock-candidates";
-          break;
-        case STATIC_INITIALIZERS:
-          message = "merging of static initializers are not supported";
-          break;
-        case UNHANDLED_INVOKE_DIRECT:
-          message = "a virtual method is targeted by an invoke-direct instruction";
-          break;
-        case UNHANDLED_INVOKE_SUPER:
-          message = "it may change the semantics of an invoke-super instruction";
-          break;
-        case UNSAFE_INLINING:
-          message = "force-inlining might fail";
-          break;
-        case UNSUPPORTED_ATTRIBUTES:
-          message = "since inner-class attributes are not supported";
-          break;
-        case API_REFERENCE_LEVEL:
-          message = "since source class references a higher api-level than target";
-          break;
-        default:
-          assert false;
-      }
-      return String.format("Cannot merge %s since %s.", clazz.toSourceString(), message);
-    }
+    API_REFERENCE_LEVEL
   }
 
   private enum Rename {
