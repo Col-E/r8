@@ -26,6 +26,7 @@ import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.ir.code.InvokeDirect;
 import com.android.tools.r8.ir.code.InvokeStatic;
 import com.android.tools.r8.ir.code.NewInstance;
+import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.conversion.MethodProcessor;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedback;
@@ -140,6 +141,12 @@ public class InstanceInitializerOutliner {
       if (newOutlineInstanceValue == null) {
         continue;
       }
+      newInstance.outValue().replaceUsers(newOutlineInstanceValue);
+      newOutValues.add(newOutlineInstanceValue);
+      if (canSkipClInit(iterator, newInstance, newOutlineInstanceValue)) {
+        iterator.removeOrReplaceByDebugLocalRead();
+        continue;
+      }
       ComputedApiLevel classApiLevel =
           appView
               .apiLevelCompute()
@@ -153,8 +160,6 @@ public class InstanceInitializerOutliner {
               .setMethod(synthesizedNewInstance.getReference())
               .setPosition(instruction)
               .build();
-      newInstance.outValue().replaceUsers(newOutlineInstanceValue);
-      newOutValues.add(newOutlineInstanceValue);
       iterator.replaceCurrentInstruction(outlinedStaticInit);
     }
     // We are changing a NewInstance to a method call where we loose that the type is not null.
@@ -168,6 +173,32 @@ public class InstanceInitializerOutliner {
     if (appView.enableWholeProgramOptimizations()) {
       recomputeApiLevel(context, code);
     }
+  }
+
+  private boolean canSkipClInit(
+      InstructionListIterator iterator, NewInstance newInstance, Value newInstanceOutValue) {
+    InvokeStatic definition = newInstanceOutValue.getDefinition().asInvokeStatic();
+    assert definition != null;
+    Position currentPosition = newInstance.getPosition();
+    // We can skip constant and debug local read instructions when searching for next instruction.
+    Instruction nextInstruction =
+        iterator.nextUntil(
+            instruction -> {
+              if (!instruction.isConstInstruction() && !instruction.isDebugLocalRead()) {
+                return true;
+              }
+              return isChangeInPosition(currentPosition, instruction.getPosition());
+            });
+    iterator.previousUntil(instruction -> instruction == newInstance);
+    Instruction newInstanceCopy = iterator.next();
+    assert newInstanceCopy == newInstance;
+    // Check if there is an instruction between the new-instance and init call that is not constant.
+    return nextInstruction == definition
+        && !isChangeInPosition(currentPosition, nextInstruction.getPosition());
+  }
+
+  private boolean isChangeInPosition(Position currentPosition, Position nextPosition) {
+    return !nextPosition.isNone() && currentPosition.getLine() != nextPosition.getLine();
   }
 
   private void recomputeApiLevel(ProgramMethod context, IRCode code) {
