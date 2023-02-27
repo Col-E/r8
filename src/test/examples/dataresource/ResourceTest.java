@@ -12,12 +12,12 @@ import java.io.IOException;
 
 public class ResourceTest {
   public static void main(String[] args) throws IOException {
-    System.out.println("LibClass dir: " + (LibClass.getThisDir() != null));
-    System.out.println("LibClass properties: " + (LibClass.getLibClassProperties() != null));
-    System.out.println("LibClass property: " + LibClass.getLibClassProperty());
-    System.out.println("LibClass text: " + LibClass.getText());
-    System.out.println("LibClass const string: " + LibClass.getConstString());
-    System.out.println("LibClass concat string: " + LibClass.getConcatConstString());
-    System.out.println("LibClass field: " + LibClass.getConstField());
+    System.out.print("LibClass dir: " + (LibClass.getThisDir() != null) + '\n');
+    System.out.print("LibClass properties: " + (LibClass.getLibClassProperties() != null) + '\n');
+    System.out.print("LibClass property: " + LibClass.getLibClassProperty() + '\n');
+    System.out.print("LibClass text: " + LibClass.getText() + '\n');
+    System.out.print("LibClass const string: " + LibClass.getConstString() + '\n');
+    System.out.print("LibClass concat string: " + LibClass.getConcatConstString() + '\n');
+    System.out.print("LibClass field: " + LibClass.getConstField() + '\n');
   }
 }

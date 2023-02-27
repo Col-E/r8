@@ -28,7 +28,7 @@ public class DataResourceTest extends TestBase {
   private static final Path INPUT_JAR =
       Paths.get(ToolHelper.EXAMPLES_BUILD_DIR, PACKAGE_NAME + FileUtils.JAR_EXTENSION);
   private static final String EXPECTED_OUTPUT =
-      StringUtils.lines(
+      StringUtils.unixLines(
           "LibClass dir: true",
           "LibClass properties: true",
           "LibClass property: com.test.lib.LibClass",
