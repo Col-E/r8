@@ -4,8 +4,11 @@
 # BSD-style license that can be found in the LICENSE file.
 
 import os
+import shutil
 import subprocess
 import zipfile
+
+import utils
 
 def add_file_to_zip(file, destination, zip_file):
   with zipfile.ZipFile(zip_file, 'a') as zip:
@@ -16,6 +19,12 @@ def extract_all_that_matches(zip_file, destination, predicate):
     names_to_extract = [name for name in zip.namelist() if predicate(name)]
     zip.extractall(path=destination, members=names_to_extract)
     return names_to_extract
+
+def extract_member(zip_file, member, destination):
+  with zipfile.ZipFile(zip_file) as zip:
+    with utils.TempDir() as temp:
+      zip.extract(member, path=temp)
+      shutil.move(os.path.join(temp, member), destination)
 
 def get_names_that_matches(zip_file, predicate):
   with zipfile.ZipFile(zip_file) as zip:
