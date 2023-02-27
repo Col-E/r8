@@ -225,11 +225,6 @@ public class TestBase {
     return testForD8(temp, backend);
   }
 
-  @Deprecated
-  public JvmTestBuilder testForJvm() {
-    return testForJvm(temp);
-  }
-
   public JvmTestBuilder testForJvm(TestParameters parameters) {
     parameters.assertCfRuntime();
     parameters.assertIsRepresentativeApiLevelForRuntime();
