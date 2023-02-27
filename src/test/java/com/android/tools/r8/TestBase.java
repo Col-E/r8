@@ -976,6 +976,7 @@ public class TestBase {
   }
 
   protected static List<Object[]> buildParameters(Object... arraysOrIterables) {
+    assertTrue(arraysOrIterables.length > 1);
     Function<Object, List<Object>> arrayOrIterableToList =
         arrayOrIterable -> {
           if (arrayOrIterable.getClass().isArray()) {
