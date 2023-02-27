@@ -40,13 +40,16 @@ public class RecordWithMembersTest extends TestBase {
   }
 
   @Test
-  public void testD8AndJvm() throws Exception {
-    if (parameters.isCfRuntime()) {
-      testForJvm(parameters)
-          .addProgramClassFileData(PROGRAM_DATA)
-          .run(parameters.getRuntime(), MAIN_TYPE)
-          .assertSuccessWithOutput(EXPECTED_RESULT);
-    }
+  public void testJvm() throws Exception {
+    parameters.assumeJvmTestParameters();
+    testForJvm(parameters)
+        .addProgramClassFileData(PROGRAM_DATA)
+        .run(parameters.getRuntime(), MAIN_TYPE)
+        .assertSuccessWithOutput(EXPECTED_RESULT);
+  }
+
+  @Test
+  public void testD8() throws Exception {
     testForD8(parameters.getBackend())
         .addProgramClassFileData(PROGRAM_DATA)
         .setMinApi(parameters)

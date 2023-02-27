@@ -39,13 +39,16 @@ public class PattternMatchingForInstanceOfTest extends TestBase {
   }
 
   @Test
-  public void testD8AndJvm() throws Exception {
-    if (parameters.isCfRuntime()) {
-      testForJvm(parameters)
-          .addRunClasspathFiles(JAR)
-          .run(parameters.getRuntime(), MAIN)
-          .assertSuccessWithOutputLines(EXPECTED);
-    }
+  public void testJvm() throws Exception {
+    parameters.assumeJvmTestParameters();
+    testForJvm(parameters)
+        .addRunClasspathFiles(JAR)
+        .run(parameters.getRuntime(), MAIN)
+        .assertSuccessWithOutputLines(EXPECTED);
+  }
+
+  @Test
+  public void testD8() throws Exception {
     testForD8(parameters.getBackend())
         .addProgramFiles(JAR)
         .setMinApi(parameters)

@@ -67,14 +67,17 @@ public class RecordClasspathTest extends TestBase {
   }
 
   @Test
-  public void testD8AndJvm() throws Exception {
-    if (parameters.isCfRuntime()) {
-      testForJvm(parameters)
-          .addProgramClasses(TestClass.class)
-          .addClasspathClassFileData(getClasspathData())
-          .run(parameters.getRuntime(), TestClass.class)
-          .assertSuccessWithOutput(EXPECTED_RESULT);
-    }
+  public void testJvm() throws Exception {
+    parameters.assumeJvmTestParameters();
+    testForJvm(parameters)
+        .addProgramClasses(TestClass.class)
+        .addClasspathClassFileData(getClasspathData())
+        .run(parameters.getRuntime(), TestClass.class)
+        .assertSuccessWithOutput(EXPECTED_RESULT);
+  }
+
+  @Test
+  public void testD8() throws Exception {
     testForD8(parameters.getBackend())
         .addProgramClasses(TestClass.class)
         .addClasspathClassFileData(getClasspathData())

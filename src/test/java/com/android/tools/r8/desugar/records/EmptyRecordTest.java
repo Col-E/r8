@@ -47,14 +47,18 @@ public class EmptyRecordTest extends TestBase {
   }
 
   @Test
-  public void testD8AndJvm() throws Exception {
+  public void testJvm() throws Exception {
     assumeFalse("Only applicable for R8", enableMinification);
-    if (parameters.isCfRuntime()) {
-      testForJvm(parameters)
-          .addProgramClassFileData(PROGRAM_DATA)
-          .run(parameters.getRuntime(), MAIN_TYPE)
-          .assertSuccessWithOutput(EXPECTED_RESULT_D8);
-    }
+    parameters.assumeJvmTestParameters();
+    testForJvm(parameters)
+        .addProgramClassFileData(PROGRAM_DATA)
+        .run(parameters.getRuntime(), MAIN_TYPE)
+        .assertSuccessWithOutput(EXPECTED_RESULT_D8);
+  }
+
+  @Test
+  public void testD8() throws Exception {
+    assumeFalse("Only applicable for R8", enableMinification);
     testForD8(parameters.getBackend())
         .addProgramClassFileData(PROGRAM_DATA)
         .setMinApi(parameters)
