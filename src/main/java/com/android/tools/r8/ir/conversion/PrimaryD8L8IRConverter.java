@@ -34,7 +34,6 @@ import com.android.tools.r8.ir.desugar.nest.D8NestBasedAccessDesugaring;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedback;
 import com.android.tools.r8.position.MethodPosition;
 import com.android.tools.r8.profile.art.rewriting.ArtProfileCollectionAdditions;
-import com.android.tools.r8.utils.CfgPrinter;
 import com.android.tools.r8.utils.ExceptionUtils;
 import com.android.tools.r8.utils.ListUtils;
 import com.android.tools.r8.utils.ThreadUtils;
@@ -47,7 +46,7 @@ import java.util.concurrent.ExecutorService;
 public class PrimaryD8L8IRConverter extends IRConverter {
 
   public PrimaryD8L8IRConverter(AppView<AppInfo> appView, Timing timing) {
-    super(appView, timing, appView.options().printCfg ? new CfgPrinter() : null);
+    super(appView, timing);
   }
 
   public void convert(AppView<AppInfo> appView, ExecutorService executorService)
@@ -102,8 +101,6 @@ public class PrimaryD8L8IRConverter extends IRConverter {
             appView.appInfo().getMainDexInfo()));
 
     artProfileCollectionAdditions.commit(appView);
-
-    printCfg();
   }
 
   void convertMethods(

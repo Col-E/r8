@@ -16,7 +16,6 @@ import com.android.tools.r8.ir.analysis.fieldaccess.TrivialFieldAccessReprocesso
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackDelayed;
 import com.android.tools.r8.optimize.argumentpropagation.ArgumentPropagator;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
-import com.android.tools.r8.utils.CfgPrinter;
 import com.android.tools.r8.utils.Timing;
 import com.android.tools.r8.utils.collections.ProgramMethodSet;
 import java.io.IOException;
@@ -28,7 +27,7 @@ import java.util.concurrent.ExecutorService;
 public class PrimaryR8IRConverter extends IRConverter {
 
   public PrimaryR8IRConverter(AppView<? extends AppInfoWithClassHierarchy> appView, Timing timing) {
-    super(appView, timing, appView.options().printCfg ? new CfgPrinter() : null);
+    super(appView, timing);
   }
 
   public void optimize(AppView<AppInfoWithLiveness> appView, ExecutorService executorService)
@@ -43,7 +42,6 @@ public class PrimaryR8IRConverter extends IRConverter {
     } finally {
       timing.end();
     }
-    printCfg();
   }
 
   private DexApplication internalOptimize(

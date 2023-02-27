@@ -653,7 +653,7 @@ public class R8 {
             appView.protoShrinker().enumLiteProtoShrinker.verifyDeadEnumLiteMapsAreDead();
           }
 
-          IRConverter converter = new IRConverter(appView, timing, null);
+          IRConverter converter = new IRConverter(appView, timing);
 
           // If proto shrinking is enabled, we need to reprocess every dynamicMethod(). This ensures
           // that proto fields that have been removed by the second round of tree shaking are also

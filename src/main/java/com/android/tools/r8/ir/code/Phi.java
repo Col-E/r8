@@ -17,7 +17,6 @@ import com.android.tools.r8.ir.code.BasicBlock.EdgeType;
 import com.android.tools.r8.ir.conversion.IRBuilder;
 import com.android.tools.r8.ir.conversion.TypeConstraintResolver;
 import com.android.tools.r8.origin.Origin;
-import com.android.tools.r8.utils.CfgPrinter;
 import com.android.tools.r8.utils.DequeUtils;
 import com.android.tools.r8.utils.ListUtils;
 import com.android.tools.r8.utils.Reporter;
@@ -335,18 +334,6 @@ public class Phi extends Value implements InstructionOrPhi {
     StringUtils.append(builder, ListUtils.map(operands, Value::toString));
     builder.append(" : ").append(getType());
     return builder.toString();
-  }
-
-  public void print(CfgPrinter printer) {
-    int uses = numberOfPhiUsers() + numberOfUsers();
-    printer
-        .print("0 ")                 // bci
-        .append(uses)                // use
-        .append(" v").append(number) // tid
-        .append(" Phi");
-    for (Value operand : operands) {
-      printer.append(" v").append(operand.number);
-    }
   }
 
   public void addDefinitionsUser(Map<Integer, Value> currentDefinitions) {

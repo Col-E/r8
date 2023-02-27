@@ -27,7 +27,6 @@ import com.android.tools.r8.ir.conversion.MethodConversionOptions;
 import com.android.tools.r8.ir.conversion.MethodConversionOptions.MutableMethodConversionOptions;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.BooleanUtils;
-import com.android.tools.r8.utils.CfgPrinter;
 import com.android.tools.r8.utils.DequeUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.IteratorUtils;
@@ -486,16 +485,6 @@ public class IRCode implements IRControlFlowGraph, ValueFactory {
     assert noColorsInUse();
   }
 
-  private void ensureBlockNumbering() {
-    if (!numbered) {
-      numbered = true;
-      int blockNumber = 0;
-      for (BasicBlock block : topologicallySortedBlocks()) {
-        block.setNumber(blockNumber++);
-      }
-    }
-  }
-
   @Override
   public String toString() {
     StringBuilder builder = new StringBuilder();
@@ -592,13 +581,6 @@ public class IRCode implements IRControlFlowGraph, ValueFactory {
       }
     }
     return reordered.build();
-  }
-
-  public void print(CfgPrinter printer) {
-    ensureBlockNumbering();
-    for (BasicBlock block : blocks) {
-      block.print(printer);
-    }
   }
 
   public boolean isConsistentSSA(AppView<?> appView) {

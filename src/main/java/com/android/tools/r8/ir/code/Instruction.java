@@ -37,7 +37,6 @@ import com.android.tools.r8.ir.optimize.InliningConstraints;
 import com.android.tools.r8.ir.regalloc.RegisterAllocator;
 import com.android.tools.r8.lightir.LirBuilder;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
-import com.android.tools.r8.utils.CfgPrinter;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.StringUtils.BraceType;
@@ -370,33 +369,6 @@ public abstract class Instruction
       StringUtils.append(builder, inValues, ", ", BraceType.NONE);
     }
     return builder.toString();
-  }
-
-  public void print(CfgPrinter printer) {
-    int uses = 0;
-    String value;
-    if (outValue == null) {
-      value = printer.makeUnusedValue();
-    } else {
-      if (outValue.hasUsersInfo()) {
-        uses = outValue.uniqueUsers().size() + outValue.uniquePhiUsers().size();
-      }
-      value = "v" + outValue.getNumber();
-    }
-    printer
-        .print(0)           // bci
-        .sp().append(uses)  // use
-        .sp().append(value) // tid
-        .sp().append(getClass().getSimpleName());
-    for (Value in : inValues) {
-      printer.append(" v").append(in.getNumber());
-    }
-  }
-
-  public void printLIR(CfgPrinter printer) {
-    // TODO(ager): Improve the instruction printing. Use different name for values so that the
-    // HIR and LIR values are not confused in the c1 visualizer.
-    printer.print(number).sp().append(toString());
   }
 
   public int getNumber() {

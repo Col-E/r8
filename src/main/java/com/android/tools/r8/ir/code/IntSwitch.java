@@ -17,7 +17,6 @@ import com.android.tools.r8.dex.code.DexSparseSwitchPayload;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
-import com.android.tools.r8.utils.CfgPrinter;
 import com.android.tools.r8.utils.IntObjConsumer;
 import com.android.tools.r8.utils.InternalOutputMode;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceAVLTreeMap;
@@ -277,15 +276,6 @@ public class IntSwitch extends Switch {
           .append(System.lineSeparator());
     }
     return builder.append("          F -> ").append(fallthroughBlock().getNumber()).toString();
-  }
-
-  @Override
-  public void print(CfgPrinter printer) {
-    super.print(printer);
-    for (int index : targetBlockIndices()) {
-      BasicBlock target = getBlock().getSuccessors().get(index);
-      printer.append(" B").append(target.getNumber());
-    }
   }
 
   @Override

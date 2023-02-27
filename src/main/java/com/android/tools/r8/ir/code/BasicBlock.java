@@ -22,7 +22,6 @@ import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.code.Phi.RegisterReadType;
 import com.android.tools.r8.ir.conversion.DexBuilder;
 import com.android.tools.r8.ir.conversion.IRBuilder;
-import com.android.tools.r8.utils.CfgPrinter;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.IterableUtils;
 import com.android.tools.r8.utils.ListUtils;
@@ -1396,48 +1395,6 @@ public class BasicBlock {
       builder.append("\n");
     }
     return builder.toString();
-  }
-
-  public void print(CfgPrinter printer) {
-    printer.begin("block");
-    printer.print("name \"B").append(number).append("\"\n");
-    printer.print("from_bci -1\n");
-    printer.print("to_bci -1\n");
-    printer.print("predecessors");
-    printBlockList(printer, predecessors);
-    printer.ln();
-    printer.print("successors");
-    printBlockList(printer, successors);
-    printer.ln();
-    printer.print("xhandlers\n");
-    printer.print("flags\n");
-    printer.print("first_lir_id ").print(instructions.get(0).getNumber()).ln();
-    printer.print("last_lir_id ").print(instructions.get(instructions.size() - 1).getNumber()).ln();
-    printer.begin("HIR");
-    if (phis != null) {
-      for (Phi phi : phis) {
-        phi.print(printer);
-        printer.append(" <|@\n");
-      }
-    }
-    for (Instruction instruction : instructions) {
-      instruction.print(printer);
-      printer.append(" <|@\n");
-    }
-    printer.end("HIR");
-    printer.begin("LIR");
-    for (Instruction instruction : instructions) {
-      instruction.printLIR(printer);
-      printer.append(" <|@\n");
-    }
-    printer.end("LIR");
-    printer.end("block");
-  }
-
-  private static void printBlockList(CfgPrinter printer, List<BasicBlock> blocks) {
-    for (BasicBlock block : blocks) {
-      printer.append(" \"B").append(block.number).append("\"");
-    }
   }
 
   public void addPhiMove(Move move) {

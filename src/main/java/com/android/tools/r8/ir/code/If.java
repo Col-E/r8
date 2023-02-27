@@ -15,7 +15,6 @@ import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
 import com.android.tools.r8.lightir.LirBuilder;
 import com.android.tools.r8.utils.BooleanUtils;
-import com.android.tools.r8.utils.CfgPrinter;
 import com.android.tools.r8.utils.InternalOutputMode;
 import java.util.List;
 
@@ -146,12 +145,6 @@ public class If extends JumpInstruction {
   public int maxOutValueRegister() {
     assert false : "If instructions define no values.";
     return 0;
-  }
-
-  @Override
-  public void print(CfgPrinter printer) {
-    super.print(printer);
-    printer.append(" B").append(getTrueTarget().getNumber());
   }
 
   @Override

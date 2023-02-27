@@ -10,7 +10,6 @@ import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.Phi;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.code.ValueType;
-import com.android.tools.r8.utils.CfgPrinter;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -604,25 +603,6 @@ public class LiveIntervals implements Comparable<LiveIntervals> {
       }
     }
     return builder.toString();
-  }
-
-  public void print(CfgPrinter printer, int number, int parentNumber) {
-    printer.append(number * 10000 + register) // range number
-        .sp().append("object") // range type
-        .sp().append(parentNumber * 10000 + getSplitParent().getRegister()) // split parent
-        .sp().append(-1); // hint
-    for (LiveRange range : getRanges()) {
-      printer.sp().append(range.toString());
-    }
-    for (LiveIntervalsUse use : getUses()) {
-      printer.sp().append(use.getPosition()).sp().append("M");
-    }
-    printer.append(" \"\"").ln();
-    int delta = 0;
-    for (LiveIntervals splitChild : splitChildren) {
-      delta += 10000;
-      splitChild.print(printer, number + delta, number);
-    }
   }
 
   public void computeRematerializable(LinearScanRegisterAllocator allocator) {

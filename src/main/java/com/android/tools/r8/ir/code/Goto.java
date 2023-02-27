@@ -8,7 +8,6 @@ import com.android.tools.r8.cf.code.CfGoto;
 import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
 import com.android.tools.r8.lightir.LirBuilder;
-import com.android.tools.r8.utils.CfgPrinter;
 import java.util.List;
 import java.util.ListIterator;
 
@@ -77,12 +76,6 @@ public class Goto extends JumpInstruction {
       return super.toString() + "block " + getTarget().getNumberAsString();
     }
     return super.toString() + "block <unknown>";
-  }
-
-  @Override
-  public void print(CfgPrinter printer) {
-    super.print(printer);
-    printer.append(" B").append(getTarget().getNumber());
   }
 
   @Override

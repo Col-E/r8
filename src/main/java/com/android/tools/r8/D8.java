@@ -43,7 +43,6 @@ import com.android.tools.r8.synthesis.SyntheticFinalization;
 import com.android.tools.r8.synthesis.SyntheticItems;
 import com.android.tools.r8.synthesis.SyntheticItems.GlobalSyntheticsStrategy;
 import com.android.tools.r8.utils.AndroidApp;
-import com.android.tools.r8.utils.CfgPrinter;
 import com.android.tools.r8.utils.ExceptionUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.StringDiagnostic;
@@ -219,8 +218,6 @@ public final class D8 {
       timing.begin("Collect input synthetics");
       SyntheticItems.collectSyntheticInputs(appView);
       timing.end();
-
-      final CfgPrinter printer = options.printCfg ? new CfgPrinter() : null;
 
       if (AssertionsRewriter.isEnabled(options)) {
         // Run analysis to mark all <clinit> methods having the javac generated assertion

@@ -74,7 +74,6 @@ import com.android.tools.r8.shaking.KeepMethodInfo;
 import com.android.tools.r8.shaking.LibraryMethodOverrideAnalysis;
 import com.android.tools.r8.utils.Action;
 import com.android.tools.r8.utils.AndroidApiLevel;
-import com.android.tools.r8.utils.CfgPrinter;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.ExceptionUtils;
 import com.android.tools.r8.utils.InternalOptions;
@@ -85,10 +84,6 @@ import com.android.tools.r8.utils.ThreadUtils;
 import com.android.tools.r8.utils.Timing;
 import com.android.tools.r8.utils.collections.ProgramMethodSet;
 import com.google.common.collect.Sets;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.OutputStreamWriter;
-import java.nio.charset.StandardCharsets;
 import java.util.Collection;
 import java.util.List;
 import java.util.Set;
@@ -110,7 +105,6 @@ public class IRConverter {
   protected final IdempotentFunctionCallCanonicalizer idempotentFunctionCallCanonicalizer;
   private final ClassInliner classInliner;
   protected final InternalOptions options;
-  protected final CfgPrinter printer;
   public final CodeRewriter codeRewriter;
   public final AssertionErrorTwoArgsConstructorRewriter assertionErrorTwoArgsConstructorRewriter;
   private final NaturalIntLoopRemover naturalIntLoopRemover = new NaturalIntLoopRemover();
@@ -153,14 +147,13 @@ public class IRConverter {
    * The argument `appView` is used to determine if whole program optimizations are allowed or not
    * (i.e., whether we are running R8). See {@link AppView#enableWholeProgramOptimizations()}.
    */
-  public IRConverter(AppView<?> appView, Timing timing, CfgPrinter printer) {
+  public IRConverter(AppView<?> appView, Timing timing) {
     assert appView.options() != null;
     assert appView.options().programConsumer != null;
     assert timing != null;
     this.timing = timing;
     this.appView = appView;
     this.options = appView.options();
-    this.printer = printer;
     this.codeRewriter = new CodeRewriter(appView);
     this.assertionErrorTwoArgsConstructorRewriter =
         appView.options().desugarState.isOn()
@@ -296,13 +289,8 @@ public class IRConverter {
             : null;
   }
 
-  /** Create an IR converter for processing methods with full program optimization disabled. */
-  public IRConverter(AppView<?> appView, Timing timing) {
-    this(appView, timing, null);
-  }
-
-  public IRConverter(AppInfo appInfo, Timing timing, CfgPrinter printer) {
-    this(AppView.createForD8(appInfo), timing, printer);
+  public IRConverter(AppInfo appInfo, Timing timing) {
+    this(AppView.createForD8(appInfo), timing);
   }
 
   public Inliner getInliner() {
@@ -443,20 +431,6 @@ public class IRConverter {
     return options.useSmaliSyntax ? method.toSmaliString(null) : method.codeToString();
   }
 
-  void printCfg() throws IOException {
-    if (printer != null) {
-      if (options.printCfgFile == null || options.printCfgFile.isEmpty()) {
-        System.out.print(printer.toString());
-      } else {
-        try (OutputStreamWriter writer =
-            new OutputStreamWriter(
-                new FileOutputStream(options.printCfgFile), StandardCharsets.UTF_8)) {
-          writer.write(printer.toString());
-        }
-      }
-    }
-  }
-
   // TODO(b/140766440): Make this receive a list of CodeOptimizations to conduct.
   public Timing processDesugaredMethod(
       ProgramMethod method,
@@ -535,8 +509,6 @@ public class IRConverter {
 
     Timing timing = Timing.create(context.toSourceString(), options);
 
-    // Compilation header if printing CFGs for this method.
-    printC1VisualizerHeader(method);
     String previous = printMethod(code, "Initial IR (SSA)", null);
 
     if (options.testing.irModifier != null) {
@@ -1161,16 +1133,6 @@ public class IRConverter {
     }
   }
 
-  private void printC1VisualizerHeader(DexEncodedMethod method) {
-    if (printer != null) {
-      printer.begin("compilation");
-      printer.print("name \"").append(method.toSourceString()).append("\"").ln();
-      printer.print("method \"").append(method.toSourceString()).append("\"").ln();
-      printer.print("date 0").ln();
-      printer.end("compilation");
-    }
-  }
-
   public void printPhase(String phase) {
     if (!options.extensiveLoggingFilter.isEmpty()) {
       System.out.println("Entering phase: " + phase);
@@ -1178,13 +1140,6 @@ public class IRConverter {
   }
 
   public String printMethod(IRCode code, String title, String previous) {
-    if (printer != null) {
-      printer.resetUnusedValue();
-      printer.begin("cfg");
-      printer.print("name \"").append(title).append("\"\n");
-      code.print(printer);
-      printer.end("cfg");
-    }
     if (options.extensiveLoggingFilter.size() > 0
         && options.extensiveLoggingFilter.contains(code.method().getReference().toSourceString())) {
       String current = code.toString();

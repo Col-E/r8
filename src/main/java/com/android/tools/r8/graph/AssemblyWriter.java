@@ -14,7 +14,6 @@ import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackIgnore;
 import com.android.tools.r8.kotlin.Kotlin;
 import com.android.tools.r8.kotlin.KotlinMetadataWriter;
 import com.android.tools.r8.synthesis.SyntheticItems.GlobalSyntheticsStrategy;
-import com.android.tools.r8.utils.CfgPrinter;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.RetracerForCodePrinting;
 import com.android.tools.r8.utils.StringUtils;
@@ -167,16 +166,15 @@ public class AssemblyWriter extends DexByteCodeWriter {
     Code code = definition.getCode();
     if (code != null) {
       if (writeIR) {
-        writeIR(method, ps);
+        writeIR(method);
       } else {
         ps.println(code.toString(definition, retracer));
       }
     }
   }
 
-  private void writeIR(ProgramMethod method, PrintStream ps) {
-    CfgPrinter printer = new CfgPrinter();
-    IRConverter converter = new IRConverter(appInfo, timing, printer);
+  private void writeIR(ProgramMethod method) {
+    IRConverter converter = new IRConverter(appInfo, timing);
     MethodProcessorEventConsumer eventConsumer = MethodProcessorEventConsumer.empty();
     OneTimeMethodProcessor methodProcessor =
         OneTimeMethodProcessor.create(
@@ -188,7 +186,6 @@ public class AssemblyWriter extends DexByteCodeWriter {
                 OptimizationFeedbackIgnore.getInstance(),
                 methodProcessor,
                 methodProcessingContext));
-    ps.println(printer);
   }
 
   private void writeAnnotations(
