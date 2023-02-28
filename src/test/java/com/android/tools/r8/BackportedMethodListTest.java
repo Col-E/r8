@@ -75,17 +75,21 @@ public class BackportedMethodListTest extends TestBase {
         apiLevel < AndroidApiLevel.O.getLevel(),
         backports.contains("java/lang/Short#toUnsignedLong(S)J"));
 
-    // Java 9, 10 and 11 Optional methods which require Android N or library desugaring.
+    // Java 9, 10 and 11 Optional methods added at API level T
+    // They require Android N or library desugaring to be backported.
     // The methods are not backported in desugared library JDK 11 (already present).
     assertEquals(
-        (mode == Mode.LIBRARY_DESUGAR) || apiLevel >= AndroidApiLevel.N.getLevel(),
+        apiLevel < AndroidApiLevel.T.getLevel()
+            && (mode == Mode.LIBRARY_DESUGAR || apiLevel >= AndroidApiLevel.N.getLevel()),
         backports.contains(
             "java/util/Optional#or(Ljava/util/function/Supplier;)Ljava/util/Optional;"));
     assertEquals(
-        (mode == Mode.LIBRARY_DESUGAR) || apiLevel >= AndroidApiLevel.N.getLevel(),
+        apiLevel < AndroidApiLevel.T.getLevel()
+            && (mode == Mode.LIBRARY_DESUGAR || apiLevel >= AndroidApiLevel.N.getLevel()),
         backports.contains("java/util/OptionalInt#orElseThrow()I"));
     assertEquals(
-        (mode == Mode.LIBRARY_DESUGAR) || apiLevel >= AndroidApiLevel.N.getLevel(),
+        apiLevel < AndroidApiLevel.T.getLevel()
+            && (mode == Mode.LIBRARY_DESUGAR || apiLevel >= AndroidApiLevel.N.getLevel()),
         backports.contains("java/util/OptionalLong#isEmpty()Z"));
 
     // Java 9, 10 and 11 method added at API level S.
@@ -97,10 +101,16 @@ public class BackportedMethodListTest extends TestBase {
         apiLevel < AndroidApiLevel.S.getLevel(),
         backports.contains("java/util/List#copyOf(Ljava/util/Collection;)Ljava/util/List;"));
 
+    // Java 9, 10 and 11 method added at API level T.
+    assertEquals(
+        apiLevel < AndroidApiLevel.T.getLevel(),
+        backports.contains("java/lang/Integer#parseInt(Ljava/lang/CharSequence;III)I"));
+    assertEquals(
+        apiLevel < AndroidApiLevel.T.getLevel(),
+        backports.contains("java/lang/String#repeat(I)Ljava/lang/String;"));
+
     // Java 9, 10 and 11 methods not yet added.
-    assertTrue(backports.contains("java/lang/Integer#parseInt(Ljava/lang/CharSequence;III)I"));
     assertTrue(backports.contains("java/lang/Character#toString(I)Ljava/lang/String;"));
-    assertTrue(backports.contains("java/lang/String#repeat(I)Ljava/lang/String;"));
   }
 
   private void addLibraryDesugaring(BackportedMethodListCommand.Builder builder) {
@@ -129,7 +139,7 @@ public class BackportedMethodListTest extends TestBase {
 
   @Test
   public void testFile() throws Exception {
-    for (int apiLevel = 1; apiLevel < AndroidApiLevel.LATEST.getLevel(); apiLevel++) {
+    for (int apiLevel = 1; apiLevel <= AndroidApiLevel.LATEST.getLevel(); apiLevel++) {
       Path output = temp.newFile().toPath();
       BackportedMethodListCommand.Builder builder =
           BackportedMethodListCommand.builder().setMinApiLevel(apiLevel).setOutputPath(output);
