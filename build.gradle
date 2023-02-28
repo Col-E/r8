@@ -1711,7 +1711,7 @@ task buildExamples {
     dependsOn buildExampleAndroidApi
     def examplesDir = file("src/test/examples")
     examplesDir.eachDir { dir ->
-        def exampleOutputDir = file("build/test/examples/" + dir.getName());
+        def exampleOutputDir = file("build/test/examples/" + name.getName());
         if (!exampleOutputDir.exists()) {
           exampleOutputDir.mkdirs()
         }
