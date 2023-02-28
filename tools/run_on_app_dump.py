@@ -666,9 +666,10 @@ def get_jdk_home(options, app):
 def build_app_with_shrinker(app, options, temp_dir, app_dir, shrinker,
                             compilation_step_index, compilation_steps,
                             prev_recomp_jar):
-  def config_file_consumer(file):
-    compiledump.clean_config(file, options)
-    remove_print_lines(file)
+  def config_files_consumer(files):
+    for file in files:
+      compiledump.clean_config(file, options)
+      remove_print_lines(file)
   args = AttrDict({
     'dump': dump_for_app(app_dir, app),
     'r8_jar': get_r8_jar(options, temp_dir, shrinker),
@@ -679,7 +680,7 @@ def build_app_with_shrinker(app, options, temp_dir, app_dir, shrinker,
     'debug_agent': options.debug_agent,
     'program_jar': prev_recomp_jar,
     'nolib': not is_minified_r8(shrinker),
-    'config_file_consumer': config_file_consumer,
+    'config_files_consumer': config_files_consumer,
     'properties': app.compiler_properties,
     'disable_desugared_lib': False,
     'print_times': options.print_times,
@@ -720,16 +721,20 @@ def build_app_with_shrinker(app, options, temp_dir, app_dir, shrinker,
 def build_test_with_shrinker(app, options, temp_dir, app_dir, shrinker,
                              compilation_step_index, mapping):
 
-  def rewrite_file(file):
-    compiledump.clean_config(file, options)
-    remove_print_lines(file)
-    with open(file) as f:
-      lines = f.readlines()
-    with open(file, 'w') as f:
-      for line in lines:
-        if '-applymapping' not in line:
-          f.write(line + '\n')
-      f.write("-applymapping " + mapping + '\n')
+  def rewrite_files(files):
+    add_applymapping = True
+    for file in files:
+      compiledump.clean_config(file, options)
+      remove_print_lines(file)
+      with open(file) as f:
+        lines = f.readlines()
+      with open(file, 'w') as f:
+        for line in lines:
+          if '-applymapping' not in line:
+            f.write(line + '\n')
+        if add_applymapping:
+          f.write("-applymapping " + mapping + '\n')
+          add_applymapping = False
 
   args = AttrDict({
     'dump': dump_test_for_app(app_dir, app),
@@ -741,7 +746,7 @@ def build_test_with_shrinker(app, options, temp_dir, app_dir, shrinker,
     'nolib': not is_minified_r8(shrinker),
     # The config file will have an -applymapping reference to an old map.
     # Update it to point to mapping file build in the compilation of the app.
-    'config_file_consumer': rewrite_file,
+    'config_files_consumer': rewrite_files,
   })
 
   test_jar = os.path.join(

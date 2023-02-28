@@ -5,6 +5,7 @@
 
 import argparse
 import os
+import shutil
 import subprocess
 import sys
 import zipfile
@@ -72,6 +73,10 @@ def make_parser():
   parser.add_argument(
     '--r8-flags', '--r8_flags',
     help='Additional option(s) for the compiler.')
+  parser.add_argument(
+    '--pg-conf', '--pg_conf',
+    help='Keep rule file(s).',
+    action='append')
   parser.add_argument(
     '--override',
     help='Do not override any extracted dump in temp-dir',
@@ -273,6 +278,22 @@ def determine_compiler(args, build_properties):
 def is_l8_compiler(compiler):
   return compiler.startswith('l8')
 
+def is_r8_compiler(compiler):
+  return compiler.startswith('r8')
+
+def determine_config_files(args, dump, temp):
+  if args.pg_conf:
+    config_files = []
+    for config_file in args.pg_conf:
+      dst = os.path.join(temp, 'proguard-%s.config' % len(config_files))
+      shutil.copyfile(config_file, dst)
+      config_files.append(dst)
+    return config_files
+  dump_config_file = dump.config_file()
+  if dump_config_file:
+    return [dump_config_file]
+  return []
+
 def determine_output(args, temp):
   return os.path.join(temp, 'out.jar')
 
@@ -282,6 +303,9 @@ def determine_min_api(args, build_properties):
   if 'min-api' in build_properties:
     return build_properties.get('min-api')
   return None
+
+def determine_desugared_lib_pg_conf_output(temp):
+  return os.path.join(temp, 'desugared-library-keep-rules.config')
 
 def determine_feature_output(feature_jar, temp):
   return os.path.join(temp, os.path.basename(feature_jar)[:-4] + ".out.jar")
@@ -337,6 +361,9 @@ def download_distribution(version, nolib, temp):
   utils.download_file_from_cloud_storage(source, dest)
   return dest
 
+def clean_configs(files, args):
+  for file in files:
+    clean_config(file, args)
 
 def clean_config(file, args):
   with open(file) as f:
@@ -362,7 +389,7 @@ def clean_config(file, args):
 
 def clean_config_line(line, minify, optimize, shrink):
   if ('-injars' in line or '-libraryjars' in line or
-      '-print' in line):
+      '-print' in line or '-applymapping' in line):
     return True
   if minify == 'force-enable' and '-dontobfuscate' in line:
     return True
@@ -424,6 +451,7 @@ def run1(out, args, otherargs, jdkhome=None):
     build_properties = determine_build_properties(args, dump)
     version = determine_version(args, dump)
     compiler = determine_compiler(args, build_properties)
+    config_files = determine_config_files(args, dump, temp)
     out = determine_output(args, temp)
     min_api = determine_min_api(args, build_properties)
     classfile = determine_class_file(args, build_properties)
@@ -479,28 +507,26 @@ def run1(out, args, otherargs, jdkhome=None):
       cmd.extend(['--classpath', dump.classpath_jar()])
     if dump.desugared_library_json() and not args.disable_desugared_lib:
       cmd.extend(['--desugared-lib', dump.desugared_library_json()])
-    if compiler != 'd8' and compiler != 'l8d8' and dump.config_file():
-      if hasattr(args, 'config_file_consumer') and args.config_file_consumer:
-        args.config_file_consumer(dump.config_file())
+      if not is_l8_compiler(compiler):
+        cmd.extend([
+            '--desugared-lib-pg-conf-output',
+            determine_desugared_lib_pg_conf_output(temp)])
+    if (is_r8_compiler(compiler) or compiler == 'l8') and config_files:
+      if hasattr(args, 'config_files_consumer') and args.config_files_consumer:
+        args.config_files_consumer(config_files)
       else:
         # If we get a dump from the wild we can't use -injars, -libraryjars or
         # -print{mapping,usage}
-        clean_config(dump.config_file(), args)
-      cmd.extend(['--pg-conf', dump.config_file()])
+        clean_configs(config_files, args)
+      for config_file in config_files:
+        cmd.extend(['--pg-conf', config_file])
+      cmd.extend(['--pg-map-output', '%s.map' % out])
     if dump.main_dex_list_resource():
       cmd.extend(['--main-dex-list', dump.main_dex_list_resource()])
     if dump.main_dex_rules_resource():
       cmd.extend(['--main-dex-rules', dump.main_dex_rules_resource()])
     for startup_profile_resource in dump.startup_profile_resources():
       cmd.extend(['--startup-profile', startup_profile_resource])
-    if is_l8_compiler(compiler):
-      if compiler == 'l8':
-        if dump.config_file():
-          cmd.extend(['--pg-map-output', '%s.map' % out])
-      else:
-        assert compiler == 'l8d8'
-    elif compiler != 'd8':
-      cmd.extend(['--pg-map-output', '%s.map' % out])
     if min_api:
       cmd.extend(['--min-api', min_api])
     if classfile:

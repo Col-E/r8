@@ -11,6 +11,7 @@ import com.android.tools.r8.OutputMode;
 import com.android.tools.r8.R8;
 import com.android.tools.r8.R8Command;
 import com.android.tools.r8.R8Command.Builder;
+import com.android.tools.r8.StringConsumer;
 import java.io.IOException;
 import java.lang.reflect.Method;
 import java.nio.file.Files;
@@ -60,6 +61,7 @@ public class CompileDumpCompatR8 {
           "--pg-conf",
           "--pg-map-output",
           "--desugared-lib",
+          "--desugared-lib-pg-conf-output",
           "--threads",
           "--startup-profile");
 
@@ -80,6 +82,7 @@ public class CompileDumpCompatR8 {
     Path outputPath = null;
     Path pgMapOutput = null;
     Path desugaredLibJson = null;
+    StringConsumer desugaredLibKeepRuleConsumer = null;
     CompilationMode compilationMode = CompilationMode.RELEASE;
     List<Path> program = new ArrayList<>();
     Map<Path, Path> features = new LinkedHashMap<>();
@@ -163,6 +166,11 @@ public class CompileDumpCompatR8 {
               desugaredLibJson = Paths.get(operand);
               break;
             }
+          case "--desugared-lib-pg-conf-output":
+            {
+              desugaredLibKeepRuleConsumer = new StringConsumer.FileConsumer(Paths.get(operand));
+              break;
+            }
           case "--threads":
             {
               threads = Integer.parseInt(operand);
@@ -221,6 +229,9 @@ public class CompileDumpCompatR8 {
         .accept(new Object[] {createStartupProfileProviders(startupProfileFiles)});
     if (desugaredLibJson != null) {
       commandBuilder.addDesugaredLibraryConfiguration(readAllBytesJava7(desugaredLibJson));
+    }
+    if (desugaredLibKeepRuleConsumer != null) {
+      commandBuilder.setDesugaredLibraryKeepRuleConsumer(desugaredLibKeepRuleConsumer);
     }
     if (outputMode != OutputMode.ClassFile) {
       commandBuilder.setMinApiLevel(minApi);
