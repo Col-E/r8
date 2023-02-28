@@ -33,7 +33,6 @@ public class DexDebugTestConfig extends DebugTestConfig {
 
   public DexDebugTestConfig(TestRuntime.DexRuntime runtime, List<Path> paths) {
     this.runtime = runtime;
-    addPaths(ToolHelper.getJdwpTestsDexJarPath(runtime.maxSupportedApiLevel()));
     addPaths(paths);
   }
 

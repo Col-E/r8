@@ -960,14 +960,6 @@ public class ToolHelper {
     }
   }
 
-  public static Path getJdwpTestsDexJarPath(AndroidApiLevel minSdk) {
-    if (minSdk.getLevel() >= AndroidApiLevel.N.getLevel()) {
-      return Paths.get("third_party", "jdwp-tests", "apache-harmony-jdwp-tests-hostdex.jar");
-    } else {
-      return Paths.get(ToolHelper.BUILD_DIR, "libs", "jdwp-tests-preN-dex.jar");
-    }
-  }
-
   /**
    * Get the junit jar bundled with the framework.
    */
