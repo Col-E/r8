@@ -18,15 +18,21 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.UncheckedIOException;
+import java.util.function.Consumer;
 
 public class HumanReadableArtProfileParser {
 
+  private final Consumer<HumanReadableArtProfileParserErrorDiagnostic> diagnosticConsumer;
   private final ArtProfileBuilder profileBuilder;
   private final ArtProfileRulePredicate rulePredicate;
   private final Reporter reporter;
 
   HumanReadableArtProfileParser(
-      ArtProfileBuilder profileBuilder, ArtProfileRulePredicate rulePredicate, Reporter reporter) {
+      Consumer<HumanReadableArtProfileParserErrorDiagnostic> diagnosticConsumer,
+      ArtProfileBuilder profileBuilder,
+      ArtProfileRulePredicate rulePredicate,
+      Reporter reporter) {
+    this.diagnosticConsumer = diagnosticConsumer;
     this.profileBuilder = profileBuilder;
     this.rulePredicate = rulePredicate;
     this.reporter = reporter;
@@ -60,8 +66,9 @@ public class HumanReadableArtProfileParser {
   }
 
   private void parseError(String rule, int lineNumber, Origin origin) {
-    if (reporter != null) {
-      reporter.error(new HumanReadableArtProfileParserErrorDiagnostic(rule, lineNumber, origin));
+    if (diagnosticConsumer != null) {
+      diagnosticConsumer.accept(
+          new HumanReadableArtProfileParserErrorDiagnostic(rule, lineNumber, origin));
     }
   }
 
@@ -143,9 +150,16 @@ public class HumanReadableArtProfileParser {
 
   public static class Builder implements HumanReadableArtProfileParserBuilder {
 
+    private Consumer<HumanReadableArtProfileParserErrorDiagnostic> diagnosticConsumer;
     private ArtProfileBuilder profileBuilder;
     private ArtProfileRulePredicate rulePredicate = new AlwaysTrueArtProfileRulePredicate();
     private Reporter reporter;
+
+    public Builder setDiagnosticConsumer(
+        Consumer<HumanReadableArtProfileParserErrorDiagnostic> diagnosticConsumer) {
+      this.diagnosticConsumer = diagnosticConsumer;
+      return this;
+    }
 
     public Builder setReporter(Reporter reporter) {
       this.reporter = reporter;
@@ -164,7 +178,11 @@ public class HumanReadableArtProfileParser {
     }
 
     public HumanReadableArtProfileParser build() {
-      return new HumanReadableArtProfileParser(profileBuilder, rulePredicate, reporter);
+      if (diagnosticConsumer == null && reporter != null) {
+        diagnosticConsumer = reporter::error;
+      }
+      return new HumanReadableArtProfileParser(
+          diagnosticConsumer, profileBuilder, rulePredicate, reporter);
     }
   }
 }

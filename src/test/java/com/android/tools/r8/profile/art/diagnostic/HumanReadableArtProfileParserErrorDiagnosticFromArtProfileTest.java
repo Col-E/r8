@@ -9,7 +9,6 @@ import static com.android.tools.r8.DiagnosticsMatcher.diagnosticType;
 import static org.hamcrest.CoreMatchers.allOf;
 import static org.hamcrest.CoreMatchers.equalTo;
 
-import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestDiagnosticMessages;
 import com.android.tools.r8.TestParameters;
@@ -38,7 +37,7 @@ public class HumanReadableArtProfileParserErrorDiagnosticFromArtProfileTest exte
     return getTestParameters().withNoneRuntime().build();
   }
 
-  @Test(expected = CompilationFailedException.class)
+  @Test
   public void testD8() throws Exception {
     testForD8()
         .addProgramClasses(Main.class)
@@ -48,12 +47,13 @@ public class HumanReadableArtProfileParserErrorDiagnosticFromArtProfileTest exte
         .compileWithExpectedDiagnostics(this::inspectDiagnostics);
   }
 
-  @Test(expected = CompilationFailedException.class)
+  @Test
   public void testR8() throws Exception {
     testForR8(Backend.DEX)
         .addProgramClasses(Main.class)
         .addKeepMainRule(Main.class)
         .addArtProfileForRewriting(createArtProfileProvider())
+        .allowDiagnosticInfoMessages()
         .release()
         .setMinApi(AndroidApiLevel.LATEST)
         .compileWithExpectedDiagnostics(this::inspectDiagnostics);
@@ -77,7 +77,7 @@ public class HumanReadableArtProfileParserErrorDiagnosticFromArtProfileTest exte
   }
 
   private void inspectDiagnostics(TestDiagnosticMessages diagnostics) {
-    diagnostics.assertErrorsMatch(
+    diagnostics.assertInfosMatch(
         allOf(
             diagnosticType(HumanReadableArtProfileParserErrorDiagnostic.class),
             diagnosticMessage(

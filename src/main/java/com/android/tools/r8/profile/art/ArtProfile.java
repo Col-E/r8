@@ -295,7 +295,10 @@ public class ArtProfile {
         TextInputStream textInputStream,
         Consumer<HumanReadableArtProfileParserBuilder> parserBuilderConsumer) {
       HumanReadableArtProfileParser.Builder parserBuilder =
-          HumanReadableArtProfileParser.builder().setReporter(reporter).setProfileBuilder(this);
+          HumanReadableArtProfileParser.builder()
+              .setDiagnosticConsumer(reporter::info)
+              .setReporter(reporter)
+              .setProfileBuilder(this);
       parserBuilderConsumer.accept(parserBuilder);
       HumanReadableArtProfileParser parser = parserBuilder.build();
       parser.parse(textInputStream, artProfileProvider.getOrigin());

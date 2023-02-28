@@ -112,6 +112,11 @@ public abstract class TestDiagnosticMessages {
     return assertInfosMatch(Collections.singletonList(matcher));
   }
 
+  @SafeVarargs
+  public final TestDiagnosticMessages assertInfosMatch(Matcher<Diagnostic>... matchers) {
+    return assertInfosMatch(Arrays.asList(matchers));
+  }
+
   public abstract TestDiagnosticMessages assertInfosMatch(Collection<Matcher<Diagnostic>> matchers);
 
   public final TestDiagnosticMessages assertWarningsMatch(Matcher<Diagnostic> matcher) {
