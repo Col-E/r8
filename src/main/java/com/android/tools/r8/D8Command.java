@@ -402,6 +402,13 @@ public final class D8Command extends BaseCompilerCommand {
           && isMinApiLevelSet()) {
         reporter.error("Compiling to CF with --min-api and --no-desugaring is not supported");
       }
+      if (!getStartupProfileProviders().isEmpty()
+          && getMinApiLevel() < AndroidApiLevel.L.getLevel()) {
+        reporter.error(
+            "D8 startup layout requires native multi dex support (API level "
+                + AndroidApiLevel.L.getLevel()
+                + " and above)");
+      }
       super.validate();
     }
 
