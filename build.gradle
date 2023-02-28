@@ -1710,26 +1710,10 @@ task buildExamples {
     dependsOn buildExampleJava18Jars
     dependsOn buildExampleAndroidApi
     def examplesDir = file("src/test/examples")
-    def noDexTests = [
-        "multidex",
-        "multidex002",
-        "multidex004",
-    ]
     examplesDir.eachDir { dir ->
-        def name = dir.getName();
-        if (!(name in noDexTests)) {
-            dependsOn "dex_example_${name}"
-            def exampleOutputDir = file("build/test/examples/" + name);
-            def dexPath = file("${exampleOutputDir}")
-            def debug = (name == "throwing")
-            if (!dexPath.exists()) {
-                dexPath.mkdirs()
-            }
-            task "dex_example_${name}"(type: DxTask, dependsOn: "jar_example_${name}") {
-                source = files(tasks.getByPath("jar_example_${name}")).asFileTree
-                destination = dexPath
-                debug = debug
-            }
+        def exampleOutputDir = file("build/test/examples/" + name.getName());
+        if (!exampleOutputDir.exists()) {
+          exampleOutputDir.mkdirs()
         }
     }
 }
