@@ -3,22 +3,23 @@
 // BSD-style license that can be found in the LICENSE file.
 package dx;
 
-import com.google.common.base.Optional;
 import java.io.File;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
 import javax.inject.Inject;
 import org.gradle.api.DefaultTask;
 import org.gradle.api.file.FileCollection;
+import org.gradle.api.file.RegularFileProperty;
+import org.gradle.api.provider.Property;
+import org.gradle.api.provider.SetProperty;
 import org.gradle.api.tasks.Input;
-import org.gradle.api.tasks.InputFile;
 import org.gradle.api.tasks.InputFiles;
 import org.gradle.api.tasks.OutputDirectory;
 import org.gradle.api.tasks.TaskAction;
-import org.gradle.workers.IsolationMode;
+import org.gradle.workers.WorkAction;
+import org.gradle.workers.WorkParameters;
 import org.gradle.workers.WorkerExecutor;
 import utils.Utils;
 
@@ -28,7 +29,6 @@ public class DxTask extends DefaultTask {
 
   private FileCollection source;
   private File destination;
-  private Optional<File> dxExecutable = Optional.absent(); // Worker API cannot handle null.
   private boolean debug;
 
   @Inject
@@ -54,16 +54,6 @@ public class DxTask extends DefaultTask {
     this.destination = destination;
   }
 
-  @InputFile
-  @org.gradle.api.tasks.Optional
-  public File getDxExecutable() {
-    return dxExecutable.orNull();
-  }
-
-  public void setDxExecutable(File dxExecutable) {
-    this.dxExecutable = Optional.fromNullable(dxExecutable);
-  }
-
   @Input
   public boolean isDebug() {
     return debug;
@@ -75,49 +65,41 @@ public class DxTask extends DefaultTask {
 
   @TaskAction
   void exec() {
-    workerExecutor.submit(
-        RunDx.class,
-        config -> {
-          File executable =
-              dxExecutable.isPresent()
-                  ? dxExecutable.get()
-                  : config
-                      .getForkOptions()
-                      .getWorkingDir()
-                      .toPath()
-                      .resolve(Utils.dxExecutable())
-                      .toFile();
-          config.setIsolationMode(IsolationMode.NONE);
-          config.params(source.getFiles(), destination, executable, debug);
-        });
+    workerExecutor
+        .noIsolation()
+        .submit(
+            RunDx.class,
+            parameters -> {
+              parameters.getSources().set(source.getFiles());
+              parameters.getDestination().set(destination);
+              parameters.getDebug().set(debug);
+            });
   }
 
-  public static class RunDx implements Runnable {
-    private final Set<File> sources;
-    private final File destination;
-    private final File dxExecutable;
-    private final boolean debug;
+  public interface RunDxParameters extends WorkParameters {
 
-    @Inject
-    public RunDx(Set<File> sources, File destination, File dxExecutable, boolean debug) {
-      this.sources = sources;
-      this.destination = destination;
-      this.dxExecutable = dxExecutable;
-      this.debug = debug;
-    }
+    SetProperty<File> getSources();
+
+    RegularFileProperty getDestination();
+
+    Property<Boolean> getDebug();
+  }
+
+  public abstract static class RunDx implements WorkAction<RunDxParameters> {
 
     @Override
-    public void run() {
+    public void execute() {
+      RunDxParameters parameters = getParameters();
       try {
         List<String> command = new ArrayList<>();
-        command.add(dxExecutable.getCanonicalPath());
+        command.add(Utils.dxExecutable().toString());
         command.add("--dex");
         command.add("--output");
-        command.add(destination.getCanonicalPath());
-        if (debug) {
+        command.add(parameters.getDestination().getAsFile().get().getCanonicalPath());
+        if (parameters.getDebug().get()) {
           command.add("--debug");
         }
-        for (File source : sources) {
+        for (File source : parameters.getSources().get()) {
           command.add(source.getCanonicalPath());
         }
 

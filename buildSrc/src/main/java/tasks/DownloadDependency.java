@@ -15,11 +15,14 @@ import java.util.List;
 import java.util.stream.Collectors;
 import javax.inject.Inject;
 import org.gradle.api.DefaultTask;
+import org.gradle.api.file.RegularFileProperty;
+import org.gradle.api.provider.Property;
 import org.gradle.api.tasks.InputFiles;
 import org.gradle.api.tasks.OutputDirectory;
 import org.gradle.api.tasks.TaskAction;
 import org.gradle.internal.os.OperatingSystem;
-import org.gradle.workers.IsolationMode;
+import org.gradle.workers.WorkAction;
+import org.gradle.workers.WorkParameters;
 import org.gradle.workers.WorkerExecutor;
 
 public class DownloadDependency extends DefaultTask {
@@ -88,29 +91,34 @@ public class DownloadDependency extends DefaultTask {
     if (outputDir.exists() && outputDir.isDirectory()) {
       outputDir.delete();
     }
-    workerExecutor.submit(RunDownload.class, config -> {
-      config.setIsolationMode(IsolationMode.NONE);
-      config.params(type, sha1File);
-    });
+    workerExecutor
+        .noIsolation()
+        .submit(
+            RunDownload.class,
+            parameters -> {
+              parameters.getType().set(type);
+              parameters.getSha1File().set(sha1File);
+            });
   }
 
-  public static class RunDownload implements Runnable {
-    private final Type type;
-    private final File sha1File;
+  public interface RunDownloadParameters extends WorkParameters {
+    Property<Type> getType();
 
-    @Inject
-    public RunDownload(Type type, File sha1File) {
-      this.type = type;
-      this.sha1File = sha1File;
-    }
+    RegularFileProperty getSha1File();
+  }
+
+  public abstract static class RunDownload implements WorkAction<RunDownloadParameters> {
 
     @Override
-    public void run() {
+    public void execute() {
       try {
+        RunDownloadParameters parameters = getParameters();
+        Type type = parameters.getType().get();
+        File sha1File = parameters.getSha1File().getAsFile().get();
         if (type == Type.GOOGLE_STORAGE) {
-          downloadFromGoogleStorage();
+          downloadFromGoogleStorage(sha1File);
         } else if (type == Type.X20) {
-          downloadFromX20();
+          downloadFromX20(sha1File);
         } else {
           throw new RuntimeException("Unexpected or missing dependency type: " + type);
         }
@@ -119,7 +127,7 @@ public class DownloadDependency extends DefaultTask {
       }
     }
 
-    private void downloadFromGoogleStorage() throws IOException, InterruptedException {
+    private void downloadFromGoogleStorage(File sha1File) throws IOException, InterruptedException {
       List<String> args = Arrays.asList("-n", "-b", "r8-deps", "-s", "-u", sha1File.toString());
       if (OperatingSystem.current().isWindows()) {
         List<String> command = new ArrayList<>();
@@ -133,7 +141,7 @@ public class DownloadDependency extends DefaultTask {
       }
     }
 
-    private void downloadFromX20() throws IOException, InterruptedException {
+    private void downloadFromX20(File sha1File) throws IOException, InterruptedException {
       if (OperatingSystem.current().isWindows()) {
         throw new RuntimeException("Downloading from x20 unsupported on windows");
       }
