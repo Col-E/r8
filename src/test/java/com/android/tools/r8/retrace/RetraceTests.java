@@ -68,6 +68,7 @@ import com.android.tools.r8.retrace.stacktraces.OutlineWithInliningStackTrace;
 import com.android.tools.r8.retrace.stacktraces.OutsideLineRangeStackTraceTest;
 import com.android.tools.r8.retrace.stacktraces.OverloadSameLineTest;
 import com.android.tools.r8.retrace.stacktraces.OverloadedWithAndWithoutRangeStackTrace;
+import com.android.tools.r8.retrace.stacktraces.PreambleLineNumberStackTrace;
 import com.android.tools.r8.retrace.stacktraces.RetraceAssertionErrorStackTrace;
 import com.android.tools.r8.retrace.stacktraces.SingleLineNoLineNumberStackTrace;
 import com.android.tools.r8.retrace.stacktraces.SourceFileNameSynthesizeStackTrace;
@@ -425,6 +426,11 @@ public class RetraceTests extends TestBase {
   @Test
   public void testIdentityMappingStackTrace() throws Exception {
     runRetraceTest(new IdentityMappingStackTrace());
+  }
+
+  @Test
+  public void testPreambleLineNumberStackTrace() throws Exception {
+    runRetraceTest(new PreambleLineNumberStackTrace());
   }
 
   @Test
