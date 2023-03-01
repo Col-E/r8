@@ -50,9 +50,12 @@ public class HumanReadableArtProfileParser {
           BufferedReader bufferedReader = new BufferedReader(inputStreamReader)) {
         int lineNumber = 1;
         while (bufferedReader.ready()) {
-          String rule = bufferedReader.readLine();
-          if (!parseRule(rule)) {
-            parseError(rule, lineNumber, origin);
+          String line = bufferedReader.readLine();
+          String lineWithoutComment = removeCommentFromLine(line);
+          if (isWhitespace(lineWithoutComment)) {
+            // Skip.
+          } else if (!parseRule(lineWithoutComment)) {
+            parseError(line, lineNumber, origin);
           }
           lineNumber++;
         }
@@ -70,6 +73,15 @@ public class HumanReadableArtProfileParser {
       diagnosticConsumer.accept(
           new HumanReadableArtProfileParserErrorDiagnostic(rule, lineNumber, origin));
     }
+  }
+
+  private boolean isWhitespace(String line) {
+    for (int i = 0; i < line.length(); i++) {
+      if (!Character.isWhitespace(line.charAt(i))) {
+        return false;
+      }
+    }
+    return true;
   }
 
   public boolean parseRule(String rule) {
@@ -146,6 +158,14 @@ public class HumanReadableArtProfileParser {
                               .setIsPostStartup(methodRuleInfo.isPostStartup())));
     }
     return true;
+  }
+
+  private static String removeCommentFromLine(String line) {
+    int commentStartIndex = line.indexOf('#');
+    if (commentStartIndex >= 0) {
+      return line.substring(0, commentStartIndex).stripTrailing();
+    }
+    return line;
   }
 
   public static class Builder implements HumanReadableArtProfileParserBuilder {
