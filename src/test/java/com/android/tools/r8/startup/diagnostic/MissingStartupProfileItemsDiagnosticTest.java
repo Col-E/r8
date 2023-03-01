@@ -70,6 +70,7 @@ public class MissingStartupProfileItemsDiagnosticTest extends TestBase {
             ClassReference fooClassReference = Reference.classFromTypeName("Foo");
             ClassReference barClassReference = Reference.classFromTypeName("Bar");
             ClassReference bazClassReference = Reference.classFromTypeName("Baz");
+            ClassReference jDollarClassReference = Reference.classFromTypeName("j$.Foo");
             startupProfileBuilder
                 .addStartupClass(
                     startupClassBuilder -> startupClassBuilder.setClassReference(fooClassReference))
@@ -80,7 +81,10 @@ public class MissingStartupProfileItemsDiagnosticTest extends TestBase {
                 .addSyntheticStartupMethod(
                     syntheticStartupMethodBuilder ->
                         syntheticStartupMethodBuilder.setSyntheticContextReference(
-                            bazClassReference));
+                            bazClassReference))
+                .addStartupClass(
+                    startupClassBuilder ->
+                        startupClassBuilder.setClassReference(jDollarClassReference));
           }
 
           @Override

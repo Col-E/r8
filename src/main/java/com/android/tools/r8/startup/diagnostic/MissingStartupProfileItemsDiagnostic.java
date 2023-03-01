@@ -11,6 +11,7 @@ import com.android.tools.r8.experimental.startup.profile.StartupMethod;
 import com.android.tools.r8.experimental.startup.profile.SyntheticStartupMethod;
 import com.android.tools.r8.graph.DexDefinitionSupplier;
 import com.android.tools.r8.graph.DexReference;
+import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.position.Position;
 import com.google.common.collect.Sets;
@@ -86,16 +87,16 @@ public class MissingStartupProfileItemsDiagnostic implements Diagnostic {
     }
 
     public boolean registerStartupClass(StartupClass startupClass) {
-      if (definitions != null && definitions.definitionFor(startupClass.getReference()) == null) {
-        missingStartupItems.add(startupClass.getReference());
+      if (definitions != null && !definitions.hasDefinitionFor(startupClass.getReference())) {
+        addMissingStartupItem(startupClass.getReference());
         return true;
       }
       return false;
     }
 
     public boolean registerStartupMethod(StartupMethod startupMethod) {
-      if (definitions != null && definitions.definitionFor(startupMethod.getReference()) == null) {
-        missingStartupItems.add(startupMethod.getReference());
+      if (definitions != null && !definitions.hasDefinitionFor(startupMethod.getReference())) {
+        addMissingStartupItem(startupMethod.getReference());
         return true;
       }
       return false;
@@ -103,11 +104,18 @@ public class MissingStartupProfileItemsDiagnostic implements Diagnostic {
 
     public boolean registerSyntheticStartupMethod(SyntheticStartupMethod syntheticStartupMethod) {
       if (definitions != null
-          && definitions.definitionFor(syntheticStartupMethod.getSyntheticContextType()) == null) {
-        missingStartupItems.add(syntheticStartupMethod.getSyntheticContextType());
+          && !definitions.hasDefinitionFor(syntheticStartupMethod.getSyntheticContextType())) {
+        addMissingStartupItem(syntheticStartupMethod.getSyntheticContextType());
         return true;
       }
       return false;
+    }
+
+    private void addMissingStartupItem(DexReference reference) {
+      DexString jDollarDescriptorPrefix = definitions.dexItemFactory().jDollarDescriptorPrefix;
+      if (!reference.getContextType().getDescriptor().startsWith(jDollarDescriptorPrefix)) {
+        missingStartupItems.add(reference);
+      }
     }
 
     public Builder setOrigin(Origin origin) {

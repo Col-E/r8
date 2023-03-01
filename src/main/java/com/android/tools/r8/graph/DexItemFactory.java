@@ -151,6 +151,7 @@ public class DexItemFactory {
   public final DexString voidDescriptor = createString("V");
   public final DexString descriptorSeparator = createString("/");
   public final DexString javaDescriptorPrefix = createString("Ljava/");
+  public final DexString jDollarDescriptorPrefix = createString("Lj$/");
 
   private final DexString booleanArrayDescriptor = createString("[Z");
   private final DexString byteArrayDescriptor = createString("[B");

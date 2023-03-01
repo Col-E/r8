@@ -25,7 +25,7 @@ public class LibraryDesugaredChecker {
 
   LibraryDesugaredChecker(AppView<?> appView) {
     this.appView = appView;
-    this.jDollarDescriptorPrefix = appView.dexItemFactory().createString("Lj$/");
+    this.jDollarDescriptorPrefix = appView.dexItemFactory().jDollarDescriptorPrefix;
   }
 
   public boolean isClassLibraryDesugared(DexProgramClass clazz) {

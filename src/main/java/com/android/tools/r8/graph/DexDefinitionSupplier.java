@@ -87,9 +87,17 @@ public interface DexDefinitionSupplier {
   @Deprecated
   DexClass definitionFor(DexType type);
 
+  default boolean hasDefinitionFor(DexType type) {
+    return definitionFor(type) != null;
+  }
+
   default DexClassAndMethod definitionFor(DexMethod method) {
     DexClass holder = definitionFor(method.getHolderType());
     return holder != null ? holder.lookupClassMethod(method) : null;
+  }
+
+  default boolean hasDefinitionFor(DexMethod method) {
+    return definitionFor(method) != null;
   }
 
   default ClassResolutionResult definitionForWithResolutionResult(
