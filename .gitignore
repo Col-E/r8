@@ -17,6 +17,7 @@
 android-data*/
 build/
 buildSrc/out/
+src/*/out
 gradle-app.setting
 gradle/*
 gradlew
@@ -25,6 +26,7 @@ local.properties
 r8.ipr
 r8.iws
 src/test/jack/ub-jack
+test_modules/tests_java_8/libs/
 tests/2016-12-19/art
 tests/2016-12-19/art.tar.gz
 tests/2017-10-04/art
@@ -99,6 +101,8 @@ third_party/gradle-plugin
 third_party/gradle-plugin.tar.gz
 third_party/gradle/gradle
 third_party/gradle/gradle.tar.gz
+third_party/gradle/gradle-8.0
+third_party/gradle/gradle-8.0.tar.gz
 third_party/internal/*
 third_party/iosched_2019
 third_party/iosched_2019.tar.gz
