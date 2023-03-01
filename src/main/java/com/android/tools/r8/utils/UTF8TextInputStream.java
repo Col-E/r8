@@ -5,6 +5,7 @@
 package com.android.tools.r8.utils;
 
 import com.android.tools.r8.TextInputStream;
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.Charset;
@@ -18,6 +19,10 @@ public class UTF8TextInputStream implements TextInputStream {
 
   public UTF8TextInputStream(Path path) throws IOException {
     this(Files.newInputStream(path));
+  }
+
+  public UTF8TextInputStream(String string) {
+    this(new ByteArrayInputStream(string.getBytes()));
   }
 
   public UTF8TextInputStream(InputStream inputStream) {

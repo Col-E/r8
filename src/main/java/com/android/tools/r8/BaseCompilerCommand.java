@@ -21,6 +21,7 @@ import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.DumpInputFlags;
 import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.InternalOptions.DesugarState;
+import com.android.tools.r8.utils.ListUtils;
 import com.android.tools.r8.utils.ProgramConsumerUtils;
 import com.android.tools.r8.utils.Reporter;
 import com.android.tools.r8.utils.ThreadUtils;
@@ -154,6 +155,9 @@ public abstract class BaseCompilerCommand extends BaseCommand {
         .setOptimizeMultidexForLinearAlloc(isOptimizeMultidexForLinearAlloc())
         .setThreadCount(getThreadCount())
         .setDesugarState(getDesugarState())
+        .setArtProfileProviders(
+            ListUtils.map(
+                getArtProfilesForRewriting(), ArtProfileForRewriting::getArtProfileProvider))
         .setStartupProfileProviders(getStartupProfileProviders());
     if (getAndroidPlatformBuild()) {
       builder.setAndroidPlatformBuild(true);
