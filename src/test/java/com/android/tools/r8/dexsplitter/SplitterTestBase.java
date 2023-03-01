@@ -3,10 +3,8 @@ package com.android.tools.r8.dexsplitter;
 import static junit.framework.TestCase.fail;
 import static org.junit.Assume.assumeTrue;
 
-import com.android.tools.r8.ByteDataView;
 import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.DexIndexedConsumer.ArchiveConsumer;
-import com.android.tools.r8.DiagnosticsHandler;
 import com.android.tools.r8.FeatureSplit;
 import com.android.tools.r8.R8FullTestBuilder;
 import com.android.tools.r8.R8TestCompileResult;
@@ -92,17 +90,7 @@ public class SplitterTestBase extends TestBase {
 
     builder
         .addProgramResourceProvider(ArchiveResourceProvider.fromArchive(featureJar, true))
-        .setProgramConsumer(
-            new ArchiveConsumer(outputPath, true) {
-              @Override
-              public void accept(
-                  int fileIndex,
-                  ByteDataView data,
-                  Set<String> descriptors,
-                  DiagnosticsHandler handler) {
-                super.accept(fileIndex, data, descriptors, handler);
-              }
-            });
+        .setProgramConsumer(new ArchiveConsumer(outputPath, true));
   }
 
   public static FeatureSplit splitWithNonJavaFile(

@@ -9,8 +9,8 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 
-import com.android.tools.r8.ByteDataView;
 import com.android.tools.r8.DexIndexedConsumer;
+import com.android.tools.r8.DexIndexedConsumerData;
 import com.android.tools.r8.DiagnosticsHandler;
 import com.android.tools.r8.GenerateMainDexListRunResult;
 import com.android.tools.r8.OutputMode;
@@ -361,13 +361,12 @@ public class BackportMainDexTest extends TestBase {
     Set<String> mainDexDescriptors;
 
     @Override
-    public void accept(
-        int fileIndex, ByteDataView data, Set<String> descriptors, DiagnosticsHandler handler) {
-      if (fileIndex == 0) {
+    public void acceptDexIndexedFile(DexIndexedConsumerData data) {
+      if (data.getFileIndex() == 0) {
         assertNull(mainDexBytes);
         assertNull(mainDexDescriptors);
-        mainDexBytes = data.copyByteData();
-        mainDexDescriptors = descriptors;
+        mainDexBytes = data.getByteDataCopy();
+        mainDexDescriptors = data.getClassDescriptors();
       }
     }
 

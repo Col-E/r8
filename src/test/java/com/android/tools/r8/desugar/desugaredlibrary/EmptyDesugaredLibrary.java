@@ -9,9 +9,8 @@ import static com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugari
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
-import com.android.tools.r8.ByteDataView;
 import com.android.tools.r8.DexIndexedConsumer;
-import com.android.tools.r8.DiagnosticsHandler;
+import com.android.tools.r8.DexIndexedConsumerData;
 import com.android.tools.r8.L8TestBuilder;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification;
@@ -22,7 +21,6 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
-import java.util.Set;
 import java.util.zip.ZipFile;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -67,8 +65,7 @@ public class EmptyDesugaredLibrary extends DesugaredLibraryTestBase {
     }
 
     @Override
-    public void accept(
-        int fileIndex, ByteDataView data, Set<String> descriptors, DiagnosticsHandler handler) {
+    public void acceptDexIndexedFile(DexIndexedConsumerData data) {
       count++;
     }
   }

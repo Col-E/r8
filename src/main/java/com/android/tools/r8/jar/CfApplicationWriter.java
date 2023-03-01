@@ -47,6 +47,7 @@ import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.synthesis.SyntheticNaming;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.AsmUtils;
+import com.android.tools.r8.utils.ClassFileConsumerDataImpl;
 import com.android.tools.r8.utils.ComparatorUtils;
 import com.android.tools.r8.utils.ExceptionUtils;
 import com.android.tools.r8.utils.InternalGlobalSyntheticsProgramConsumer.InternalGlobalSyntheticsCfConsumer;
@@ -334,7 +335,10 @@ public class CfApplicationWriter {
       verifyCf(result);
     }
     ExceptionUtils.withConsumeResourceHandler(
-        options.reporter, handler -> consumer.accept(ByteDataView.of(result), desc, handler));
+        options.reporter,
+        handler ->
+            consumer.acceptClassFile(
+                new ClassFileConsumerDataImpl(ByteDataView.of(result), desc, handler)));
   }
 
   private int compareTypesThroughLens(DexType a, DexType b) {

@@ -46,17 +46,22 @@ public interface DexIndexedConsumer extends ProgramConsumer, ByteBufferProvider 
    * <p>There is no guaranteed order and files might be written concurrently.
    *
    * <p>The consumer is expected not to throw, but instead report any errors via the diagnostics
-   * {@param handler}. If an error is reported via {@param handler} and no exceptions are thrown,
-   * then the compiler guaranties to exit with an error.
+   * {@link DiagnosticsHandler} in the callback data. If an error is reported via handler and no
+   * exceptions are thrown, then the compiler guaranties to exit with an error.
    *
-   * <p>The {@link ByteDataView} {@param data} object can only be assumed valid during the duration
-   * of the accept. If the bytes are needed beyond that, a copy must be made elsewhere.
-   *
-   * @param fileIndex Index of the DEX file for multi-dexing. Files are zero-indexed.
-   * @param data DEX encoded data in a ByteDataView wrapper.
-   * @param descriptors Class descriptors for all classes defined in the DEX data.
-   * @param handler Diagnostics handler for reporting.
+   * <p>The {@link ByteDataView} obtained from the {@param data} object can only be assumed valid
+   * during the duration of the accept. If the bytes are needed beyond that, a copy must be made
+   * elsewhere.
    */
+  default void acceptDexIndexedFile(DexIndexedConsumerData data) {
+    accept(
+        data.getFileIndex(),
+        data.getByteDataView(),
+        data.getClassDescriptors(),
+        data.getDiagnosticsHandler());
+  }
+
+  @Deprecated
   default void accept(
       int fileIndex, ByteDataView data, Set<String> descriptors, DiagnosticsHandler handler) {
     // To avoid breaking binary compatiblity, old consumers not implementing the new API will be
@@ -77,8 +82,8 @@ public interface DexIndexedConsumer extends ProgramConsumer, ByteBufferProvider 
     return ForwardingConsumer.EMPTY_CONSUMER;
   }
 
-  /** Forwarding consumer to delegate to an optional existing consumer. */
   @Keep
+  @Deprecated
   class ForwardingConsumer implements DexIndexedConsumer {
 
     private static final DexIndexedConsumer EMPTY_CONSUMER = new ForwardingConsumer(null);
@@ -95,10 +100,9 @@ public interface DexIndexedConsumer extends ProgramConsumer, ByteBufferProvider 
     }
 
     @Override
-    public void accept(
-        int fileIndex, ByteDataView data, Set<String> descriptors, DiagnosticsHandler handler) {
+    public void acceptDexIndexedFile(DexIndexedConsumerData data) {
       if (consumer != null) {
-        consumer.accept(fileIndex, data, descriptors, handler);
+        consumer.acceptDexIndexedFile(data);
       }
     }
 
@@ -150,11 +154,13 @@ public interface DexIndexedConsumer extends ProgramConsumer, ByteBufferProvider 
     }
 
     @Override
-    public void accept(
-        int fileIndex, ByteDataView data, Set<String> descriptors, DiagnosticsHandler handler) {
-      super.accept(fileIndex, data, descriptors, handler);
+    public void acceptDexIndexedFile(DexIndexedConsumerData data) {
+      super.acceptDexIndexedFile(data);
       outputBuilder.addIndexedClassFile(
-          fileIndex, DexUtils.getDefaultDexFileName(fileIndex), data, handler);
+          data.getFileIndex(),
+          DexUtils.getDefaultDexFileName(data.getFileIndex()),
+          data.getByteDataView(),
+          data.getDiagnosticsHandler());
     }
 
     @Override
@@ -245,15 +251,17 @@ public interface DexIndexedConsumer extends ProgramConsumer, ByteBufferProvider 
     }
 
     @Override
-    public void accept(
-        int fileIndex, ByteDataView data, Set<String> descriptors, DiagnosticsHandler handler) {
-      super.accept(fileIndex, data, descriptors, handler);
+    public void acceptDexIndexedFile(DexIndexedConsumerData data) {
+      super.acceptDexIndexedFile(data);
       try {
         prepareDirectory();
       } catch (IOException e) {
-        handler.error(new ExceptionDiagnostic(e, new PathOrigin(directory)));
+        data.getDiagnosticsHandler().error(new ExceptionDiagnostic(e, new PathOrigin(directory)));
       }
-      outputBuilder.addFile(DexUtils.getDefaultDexFileName(fileIndex), data, handler);
+      outputBuilder.addFile(
+          DexUtils.getDefaultDexFileName(data.getFileIndex()),
+          data.getByteDataView(),
+          data.getDiagnosticsHandler());
     }
 
     @Override

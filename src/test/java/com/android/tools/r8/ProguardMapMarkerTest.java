@@ -63,15 +63,11 @@ public class ProguardMapMarkerTest extends TestBase {
             .setProgramConsumer(
                 new DexIndexedConsumer.ForwardingConsumer(null) {
                   @Override
-                  public void accept(
-                      int fileIndex,
-                      ByteDataView data,
-                      Set<String> descriptors,
-                      DiagnosticsHandler handler) {
+                  public void acceptDexIndexedFile(DexIndexedConsumerData data) {
                     Marker marker;
                     try {
                       Collection<Marker> markers =
-                          ExtractMarker.extractMarkerFromDexProgramData(data.copyByteData());
+                          ExtractMarker.extractMarkerFromDexProgramData(data.getByteDataCopy());
                       assertEquals(1, markers.size());
                       marker = markers.iterator().next();
                     } catch (Exception e) {
@@ -111,12 +107,11 @@ public class ProguardMapMarkerTest extends TestBase {
             .setProgramConsumer(
                 new ClassFileConsumer.ForwardingConsumer(null) {
                   @Override
-                  public void accept(
-                      ByteDataView data, String descriptor, DiagnosticsHandler handler) {
+                  public void acceptClassFile(ClassFileConsumerData data) {
                     Marker marker;
                     try {
                       Collection<Marker> markers =
-                          ExtractMarker.extractMarkerFromClassProgramData(data.copyByteData());
+                          ExtractMarker.extractMarkerFromClassProgramData(data.getByteDataCopy());
                       assertEquals(1, markers.size());
                       marker = markers.iterator().next();
                     } catch (Exception e) {

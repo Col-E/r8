@@ -8,12 +8,11 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
-import com.android.tools.r8.ByteDataView;
 import com.android.tools.r8.D8;
 import com.android.tools.r8.D8Command;
 import com.android.tools.r8.D8Command.Builder;
 import com.android.tools.r8.DexIndexedConsumer;
-import com.android.tools.r8.DiagnosticsHandler;
+import com.android.tools.r8.DexIndexedConsumerData;
 import com.android.tools.r8.origin.EmbeddedOrigin;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.smali.SmaliTestBase;
@@ -22,7 +21,6 @@ import com.android.tools.r8.utils.AndroidAppConsumers;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import java.util.Base64;
-import java.util.Set;
 import org.junit.Test;
 
 public class Regress37740372 extends SmaliTestBase {
@@ -142,10 +140,9 @@ public class Regress37740372 extends SmaliTestBase {
     }
 
     @Override
-    public void accept(
-        int fileIndex, ByteDataView data, Set<String> descriptors, DiagnosticsHandler handler) {
-      assertEquals(0, fileIndex);
-      this.data = data.copyByteData();
+    public void acceptDexIndexedFile(DexIndexedConsumerData data) {
+      assertEquals(0, data.getFileIndex());
+      this.data = data.getByteDataCopy();
     }
   }
 
