@@ -3,6 +3,8 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.tracereferences;
 
+import static com.android.tools.r8.utils.CovariantReturnTypeUtils.modelLibraryMethodsWithCovariantReturnTypes;
+
 import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.Keep;
 import com.android.tools.r8.ProgramResource;
@@ -11,8 +13,14 @@ import com.android.tools.r8.ProgramResourceProvider;
 import com.android.tools.r8.ResourceException;
 import com.android.tools.r8.Version;
 import com.android.tools.r8.dex.ApplicationReader;
+import com.android.tools.r8.experimental.startup.StartupOrder;
+import com.android.tools.r8.features.ClassToFeatureSplitMap;
+import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
+import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.origin.CommandLineOrigin;
+import com.android.tools.r8.shaking.MainDexInfo;
+import com.android.tools.r8.synthesis.SyntheticItems.GlobalSyntheticsStrategy;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.ExceptionUtils;
 import com.android.tools.r8.utils.InternalOptions;
@@ -73,7 +81,20 @@ public class TraceReferences {
     for (ProgramResourceProvider provider : command.getSource()) {
       forEachDescriptor(provider, targetDescriptors::remove);
     }
-    Tracer tracer = new Tracer(targetDescriptors, builder.build(), command.getReporter(), options);
+    AppView<AppInfoWithClassHierarchy> appView =
+        AppView.createForTracer(
+            AppInfoWithClassHierarchy.createInitialAppInfoWithClassHierarchy(
+                new ApplicationReader(builder.build(), options, Timing.empty()).read().toDirect(),
+                ClassToFeatureSplitMap.createEmptyClassToFeatureSplitMap(),
+                MainDexInfo.none(),
+                GlobalSyntheticsStrategy.forSingleOutputMode(),
+                StartupOrder.empty()));
+    modelLibraryMethodsWithCovariantReturnTypes(appView);
+    Tracer tracer =
+        new Tracer(
+            appView,
+            command.getReporter(),
+            type -> targetDescriptors.contains(type.toDescriptorString()));
     tracer.run(command.getConsumer());
   }
 

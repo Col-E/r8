@@ -4,11 +4,8 @@
 package com.android.tools.r8.tracereferences;
 
 import com.android.tools.r8.DiagnosticsHandler;
-import com.android.tools.r8.dex.ApplicationReader;
 import com.android.tools.r8.diagnostic.DefinitionContext;
 import com.android.tools.r8.diagnostic.internal.DefinitionContextUtils;
-import com.android.tools.r8.experimental.startup.StartupOrder;
-import com.android.tools.r8.features.ClassToFeatureSplitMap;
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.ClassResolutionResult;
@@ -41,17 +38,11 @@ import com.android.tools.r8.references.ClassReference;
 import com.android.tools.r8.references.FieldReference;
 import com.android.tools.r8.references.MethodReference;
 import com.android.tools.r8.references.Reference;
-import com.android.tools.r8.shaking.MainDexInfo;
-import com.android.tools.r8.synthesis.SyntheticItems.GlobalSyntheticsStrategy;
 import com.android.tools.r8.tracereferences.TraceReferencesConsumer.TracedReference;
 import com.android.tools.r8.tracereferences.internal.TracedClassImpl;
 import com.android.tools.r8.tracereferences.internal.TracedFieldImpl;
 import com.android.tools.r8.tracereferences.internal.TracedMethodImpl;
-import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.BooleanBox;
-import com.android.tools.r8.utils.InternalOptions;
-import com.android.tools.r8.utils.Timing;
-import java.io.IOException;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.function.Function;
@@ -62,24 +53,6 @@ public class Tracer {
   private final AppView<? extends AppInfoWithClassHierarchy> appView;
   private final DiagnosticsHandler diagnostics;
   private final Predicate<DexType> targetPredicate;
-
-  Tracer(
-      Set<String> targetDescriptors,
-      AndroidApp inputApp,
-      DiagnosticsHandler diagnostics,
-      InternalOptions options)
-      throws IOException {
-    this(
-        AppView.createForTracer(
-            AppInfoWithClassHierarchy.createInitialAppInfoWithClassHierarchy(
-                new ApplicationReader(inputApp, options, Timing.empty()).read().toDirect(),
-                ClassToFeatureSplitMap.createEmptyClassToFeatureSplitMap(),
-                MainDexInfo.none(),
-                GlobalSyntheticsStrategy.forSingleOutputMode(),
-                StartupOrder.empty())),
-        diagnostics,
-        type -> targetDescriptors.contains(type.toDescriptorString()));
-  }
 
   public Tracer(
       AppView<? extends AppInfoWithClassHierarchy> appView,
