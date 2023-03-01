@@ -31,13 +31,25 @@ public class NoSuchClassAndMethodProfileRewritingTest extends TestBase {
   }
 
   @Test
-  public void test() throws Exception {
+  public void testD8() throws Exception {
+    parameters.assumeDexRuntime();
+    testForD8()
+        .addInnerClasses(getClass())
+        .addArtProfileForRewriting(getArtProfile())
+        .setMinApi(parameters)
+        .compileWithExpectedDiagnostics(TestDiagnosticMessages::assertNoMessages)
+        .inspectResidualArtProfile(this::inspectResidualArtProfile)
+        .run(parameters.getRuntime(), Main.class)
+        .assertSuccessWithOutputLines("Hello, world!");
+  }
+
+  @Test
+  public void testR8() throws Exception {
     testForR8(parameters.getBackend())
         .addInnerClasses(getClass())
         .addKeepMainRule(Main.class)
         .addArtProfileForRewriting(getArtProfile())
         .setMinApi(parameters)
-        // TODO(b/266178791): Emit a warning for each discarded item.
         .compileWithExpectedDiagnostics(TestDiagnosticMessages::assertNoMessages)
         .inspectResidualArtProfile(this::inspectResidualArtProfile)
         .run(parameters.getRuntime(), Main.class)
@@ -53,9 +65,8 @@ public class NoSuchClassAndMethodProfileRewritingTest extends TestBase {
   }
 
   private void inspectResidualArtProfile(ArtProfileInspector profileInspector) {
-    // None of the items in the profile exist in the input.
-    // TODO(b/266178791): Discard items from profile that is not in the input app.
-    profileInspector.assertNotEmpty();
+    // None of the items in the profile exist in the app.
+    profileInspector.assertEmpty();
   }
 
   static class Main {

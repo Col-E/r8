@@ -700,6 +700,9 @@ public class R8 {
         assert !options.isShrinking();
       }
 
+      appView.setArtProfileCollection(
+          appView.getArtProfileCollection().withoutMissingItems(appView));
+
       if (appView.appInfo().hasLiveness()) {
         SyntheticFinalization.finalizeWithLiveness(appView.withLiveness(), executorService, timing);
       } else {

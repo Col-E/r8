@@ -8,7 +8,9 @@ import static com.android.tools.r8.utils.MapUtils.ignoreKey;
 
 import com.android.tools.r8.TextInputStream;
 import com.android.tools.r8.TextOutputStream;
+import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexReference;
@@ -142,6 +144,27 @@ public class ArtProfile {
                 .acceptMethodRuleInfoBuilder(
                     methodRuleInfoBuilder ->
                         methodRuleInfoBuilder.merge(methodRule.getMethodRuleInfo())));
+  }
+
+  public ArtProfile withoutMissingItems(AppView<?> appView) {
+    AppInfo appInfo = appView.appInfo();
+    return transform(
+        (classRule, classRuleBuilderFactory) -> {
+          if (appInfo.hasDefinitionForWithoutExistenceAssert(classRule.getType())) {
+            classRuleBuilderFactory.accept(classRule.getType());
+          }
+        },
+        (methodRule, classRuleBuilderFactory, methodRuleBuilderFactory) -> {
+          DexClass clazz =
+              appInfo.definitionForWithoutExistenceAssert(methodRule.getMethod().getHolderType());
+          if (methodRule.getMethod().isDefinedOnClass(clazz)) {
+            methodRuleBuilderFactory
+                .apply(methodRule.getMethod())
+                .acceptMethodRuleInfoBuilder(
+                    methodRuleInfoBuilder ->
+                        methodRuleInfoBuilder.merge(methodRule.getMethodRuleInfo()));
+          }
+        });
   }
 
   public ArtProfile withoutPrunedItems(PrunedItems prunedItems) {

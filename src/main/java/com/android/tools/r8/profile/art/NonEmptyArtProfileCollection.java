@@ -84,6 +84,11 @@ public class NonEmptyArtProfileCollection extends ArtProfileCollection
   }
 
   @Override
+  public ArtProfileCollection withoutMissingItems(AppView<?> appView) {
+    return map(artProfile -> artProfile.withoutMissingItems(appView));
+  }
+
+  @Override
   public NonEmptyArtProfileCollection withoutPrunedItems(PrunedItems prunedItems) {
     return map(artProfile -> artProfile.withoutPrunedItems(prunedItems));
   }

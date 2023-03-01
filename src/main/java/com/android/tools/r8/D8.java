@@ -309,6 +309,9 @@ public final class D8 {
         timing.end();
       }
 
+      appView.setArtProfileCollection(
+          appView.getArtProfileCollection().withoutMissingItems(appView));
+
       finalizeApplication(appView, executor, timing);
 
       // Add the VarHandle naming lens after synthetic finalization.

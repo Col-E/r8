@@ -46,6 +46,11 @@ public class EmptyArtProfileCollection extends ArtProfileCollection {
   }
 
   @Override
+  public ArtProfileCollection withoutMissingItems(AppView<?> appView) {
+    return this;
+  }
+
+  @Override
   public ArtProfileCollection withoutPrunedItems(PrunedItems prunedItems) {
     return this;
   }

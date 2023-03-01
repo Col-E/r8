@@ -72,5 +72,7 @@ public abstract class ArtProfileCollection {
 
   public abstract void supplyConsumers(AppView<?> appView);
 
+  public abstract ArtProfileCollection withoutMissingItems(AppView<?> appView);
+
   public abstract ArtProfileCollection withoutPrunedItems(PrunedItems prunedItems);
 }

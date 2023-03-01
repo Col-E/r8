@@ -22,6 +22,10 @@ public abstract class DexMember<D extends DexEncodedMember<D, R>, R extends DexM
   public abstract <T> T apply(
       Function<DexField, T> fieldConsumer, Function<DexMethod, T> methodConsumer);
 
+  public final boolean isDefinedOnClass(DexClass clazz) {
+    return lookupOnClass(clazz) != null;
+  }
+
   public abstract DexEncodedMember<?, ?> lookupOnClass(DexClass clazz);
 
   public abstract DexClassAndMember<?, ?> lookupMemberOnClass(DexClass clazz);

@@ -164,6 +164,9 @@ public class AppInfo implements DexDefinitionSupplier {
         .toSingleClassWithProgramOverLibrary();
   }
 
+  public final boolean hasDefinitionForWithoutExistenceAssert(DexType type) {
+    return definitionForWithoutExistenceAssert(type) != null;
+  }
 
   public DexClass definitionForDesugarDependency(DexClass dependent, DexType type) {
     if (dependent.type == type) {
