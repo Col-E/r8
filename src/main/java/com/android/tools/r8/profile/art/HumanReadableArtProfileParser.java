@@ -12,6 +12,7 @@ import com.android.tools.r8.references.MethodReference;
 import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.references.TypeReference;
 import com.android.tools.r8.utils.Action;
+import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.MethodReferenceUtils;
 import com.android.tools.r8.utils.Reporter;
 import java.io.BufferedReader;
@@ -117,16 +118,12 @@ public class HumanReadableArtProfileParser {
   }
 
   private boolean parseClassRule(String descriptor) {
+    descriptor = DescriptorUtils.toBaseDescriptor(descriptor);
+    if (!DescriptorUtils.isValidClassDescriptor(descriptor)) {
+      return false;
+    }
     TypeReference typeReference = Reference.typeFromDescriptor(descriptor);
-    if (typeReference == null) {
-      return false;
-    }
-    if (typeReference.isArray()) {
-      typeReference = typeReference.asArray().getBaseType();
-    }
-    if (typeReference.isPrimitive()) {
-      return false;
-    }
+    assert typeReference != null;
     assert typeReference.isClass();
     ClassReference classReference = typeReference.asClass();
     if (rulePredicate.testClassRule(classReference, ArtProfileClassRuleInfoImpl.empty())) {
@@ -143,6 +140,18 @@ public class HumanReadableArtProfileParser {
     MethodReference methodReference =
         MethodReferenceUtils.parseSmaliString(descriptor, arrowStartIndex);
     if (methodReference == null) {
+      return false;
+    }
+    if (!DescriptorUtils.isValidClassDescriptor(methodReference.getHolderClass().getDescriptor())) {
+      return false;
+    }
+    for (TypeReference formalType : methodReference.getFormalTypes()) {
+      if (!DescriptorUtils.isValidDescriptor(formalType.getDescriptor())) {
+        return false;
+      }
+    }
+    if (methodReference.getReturnType() != null
+        && !DescriptorUtils.isValidDescriptor(methodReference.getReturnType().getDescriptor())) {
       return false;
     }
     if (rulePredicate.testMethodRule(methodReference, methodRuleInfo)) {

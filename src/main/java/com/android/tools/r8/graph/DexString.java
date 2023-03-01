@@ -3,10 +3,10 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.graph;
 
-import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.dex.IndexedItemCollection;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.utils.AndroidApiLevel;
+import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.IdentifierUtils;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.ThrowingCharIterator;
@@ -314,74 +314,9 @@ public class DexString extends IndexedDexItem implements NamingLensComparable<De
     }
   }
 
-  private static boolean isValidClassDescriptor(String string) {
-    if (string.length() < 3
-        || string.charAt(0) != 'L'
-        || string.charAt(string.length() - 1) != ';') {
-      return false;
-    }
-    if (string.charAt(1) == '/' || string.charAt(string.length() - 2) == '/') {
-      return false;
-    }
-    int cp;
-    for (int i = 1; i < string.length() - 1; i += Character.charCount(cp)) {
-      cp = string.codePointAt(i);
-      if (cp != '/' && !IdentifierUtils.isRelaxedDexIdentifierPart(cp)) {
-        return false;
-      }
-    }
-    return true;
-  }
-
-  private static boolean isValidMethodName(String string) {
-    if (string.isEmpty()) {
-      return false;
-    }
-    // According to https://source.android.com/devices/tech/dalvik/dex-format#membername
-    // '<' SimpleName '>' should be valid. However, the art verifier only allows <init>
-    // and <clinit> which is reasonable.
-    if ((string.charAt(0) == '<') &&
-        (string.equals(Constants.INSTANCE_INITIALIZER_NAME) ||
-            string.equals(Constants.CLASS_INITIALIZER_NAME))) {
-      return true;
-    }
-    int cp;
-    for (int i = 0; i < string.length(); i += Character.charCount(cp)) {
-      cp = string.codePointAt(i);
-      if (!IdentifierUtils.isRelaxedDexIdentifierPart(cp)) {
-        return false;
-      }
-    }
-    return true;
-  }
-
-  private static boolean isValidFieldName(String string) {
-    if (string.isEmpty()) {
-      return false;
-    }
-    int start = 0;
-    int end = string.length();
-    if (string.charAt(0) == '<') {
-      if (string.charAt(end - 1) == '>') {
-        start = 1;
-        --end;
-      } else {
-        return false;
-      }
-    }
-    int cp;
-    for (int i = start; i < end; i += Character.charCount(cp)) {
-      cp = string.codePointAt(i);
-      if (!IdentifierUtils.isRelaxedDexIdentifierPart(cp)) {
-        return false;
-      }
-    }
-    return true;
-  }
-
   public boolean isValidMethodName() {
     try {
-      return isValidMethodName(decode());
+      return DescriptorUtils.isValidMethodName(decode());
     } catch (UTFDataFormatException e) {
       return false;
     }
@@ -389,7 +324,7 @@ public class DexString extends IndexedDexItem implements NamingLensComparable<De
 
   public boolean isValidFieldName() {
     try {
-      return isValidFieldName(decode());
+      return DescriptorUtils.isValidFieldName(decode());
     } catch (UTFDataFormatException e) {
       return false;
     }
@@ -397,7 +332,7 @@ public class DexString extends IndexedDexItem implements NamingLensComparable<De
 
   public boolean isValidClassDescriptor() {
     try {
-      return isValidClassDescriptor(decode());
+      return DescriptorUtils.isValidClassDescriptor(decode());
     } catch (UTFDataFormatException e) {
       return false;
     }
