@@ -793,7 +793,12 @@ public class D8CommandTest extends CommandTestBase<D8Command> {
 
     // Pass the profile on the command line.
     List<StartupProfileProvider> startupProfileProviders =
-        parse("--startup-profile", profile.toString()).getStartupProfileProviders();
+        parse(
+                "--min-api",
+                Integer.toString(AndroidApiLevel.L.getLevel()),
+                "--startup-profile",
+                profile.toString())
+            .getStartupProfileProviders();
     assertEquals(1, startupProfileProviders.size());
 
     // Construct the internal profile representation using the provider.
