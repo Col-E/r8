@@ -46,7 +46,6 @@ public class MissingStartupProfileItemsDiagnosticTest extends TestBase {
         .addProgramClasses(Main.class)
         .addStartupProfileProviders(getStartupProfileProviders())
         .release()
-        .setIntermediate(true)
         .setMinApi(AndroidApiLevel.LATEST)
         .compileWithExpectedDiagnostics(this::inspectDiagnostics);
   }
