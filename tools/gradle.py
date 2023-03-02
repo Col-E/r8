@@ -19,16 +19,21 @@ GRADLE_DIR = os.path.join(utils.REPO_ROOT, 'third_party', 'gradle')
 GRADLE_SHA1 = os.path.join(GRADLE_DIR, 'gradle.tar.gz.sha1')
 GRADLE_TGZ = os.path.join(GRADLE_DIR, 'gradle.tar.gz')
 
-if utils.IsWindows():
-  GRADLE = os.path.join(GRADLE_DIR, 'gradle', 'bin', 'gradle.bat')
-else:
-  GRADLE = os.path.join(GRADLE_DIR, 'gradle', 'bin', 'gradle')
+def get_gradle(new_gradle):
+  gradle_dir = 'gradle-8.0' if new_gradle else 'gradle'
+  if utils.IsWindows():
+    return os.path.join(GRADLE_DIR, gradle_dir, 'bin', 'gradle.bat')
+  else:
+    return os.path.join(GRADLE_DIR, gradle_dir, 'bin', 'gradle')
 
 def ParseOptions():
   parser = argparse.ArgumentParser(description = 'Call gradle.')
   parser.add_argument('--exclude-deps', '--exclude_deps',
       help='Build without internalized dependencies.',
       default=False, action='store_true')
+  parser.add_argument('--new-gradle', '--new_gradle',
+                      help='Run with new experimental gradle configuration',
+                      default=False, action='store_true')
   parser.add_argument('--no-internal', '--no_internal',
       help='Do not build with support for Google internal tests.',
       default=False, action='store_true')
@@ -54,9 +59,9 @@ def PrintCmd(s):
   # I know this will hit os on windows eventually if we don't do this.
   sys.stdout.flush()
 
-def EnsureGradle():
+def EnsureGradle(new_gradle):
   utils.EnsureDepFromGoogleCloudStorage(
-    GRADLE, GRADLE_TGZ, GRADLE_SHA1, 'Gradle binary')
+    get_gradle(new_gradle), GRADLE_TGZ, GRADLE_SHA1, 'Gradle binary')
 
 def EnsureJdk():
   jdkRoot = jdk.GetJdkRoot()
@@ -64,13 +69,16 @@ def EnsureJdk():
   jdkSha1 = jdkTgz + '.sha1'
   utils.EnsureDepFromGoogleCloudStorage(jdkRoot, jdkTgz, jdkSha1, 'JDK')
 
-def EnsureDeps():
-  EnsureGradle()
+def EnsureDeps(new_gradle):
+  EnsureGradle(new_gradle)
   EnsureJdk()
 
-def RunGradleIn(gradleCmd, args, cwd, throw_on_failure=True, env=None):
-  EnsureDeps()
+def RunGradleIn(
+    gradleCmd, args, cwd, throw_on_failure=True, env=None, new_gradle=False):
+  EnsureDeps(new_gradle)
   cmd = [gradleCmd]
+  args.append(
+    '-c=d8_r8/settings.gradle.kts' if new_gradle else '-b=build.gradle')
   cmd.extend(args)
   utils.PrintCmd(cmd)
   with utils.ChangedWorkingDirectory(cwd):
@@ -82,16 +90,23 @@ def RunGradleIn(gradleCmd, args, cwd, throw_on_failure=True, env=None):
 def RunGradleWrapperIn(args, cwd, throw_on_failure=True, env=None):
   return RunGradleIn('./gradlew', args, cwd, throw_on_failure, env=env)
 
-def RunGradle(args, throw_on_failure=True, env=None):
-  return RunGradleIn(GRADLE, args, utils.REPO_ROOT, throw_on_failure, env=env)
+def RunGradle(args, throw_on_failure=True, env=None, new_gradle=False):
+  return RunGradleIn(
+    get_gradle(new_gradle),
+    args,
+    utils.REPO_ROOT,
+    throw_on_failure,
+    env=env,
+    new_gradle=new_gradle)
 
-def RunGradleExcludeDeps(args, throw_on_failure=True, env=None):
-  EnsureDeps()
+def RunGradleExcludeDeps(
+    args, throw_on_failure=True, env=None, new_gradle=False):
+  EnsureDeps(new_gradle)
   args.append('-Pexclude_deps')
   return RunGradle(args, throw_on_failure, env=env)
 
-def RunGradleInGetOutput(gradleCmd, args, cwd, env=None):
-  EnsureDeps()
+def RunGradleInGetOutput(gradleCmd, args, cwd, env=None, new_gradle=False):
+  EnsureDeps(new_gradle)
   cmd = [gradleCmd]
   cmd.extend(args)
   utils.PrintCmd(cmd)
@@ -101,8 +116,13 @@ def RunGradleInGetOutput(gradleCmd, args, cwd, env=None):
 def RunGradleWrapperInGetOutput(args, cwd, env=None):
   return RunGradleInGetOutput('./gradlew', args, cwd, env=env)
 
-def RunGradleGetOutput(args, env=None):
-  return RunGradleInGetOutput(GRADLE, args, utils.REPO_ROOT, env=env)
+def RunGradleGetOutput(args, env=None, new_gradle=False):
+  return RunGradleInGetOutput(
+    get_gradle(new_gradle),
+    args,
+    utils.REPO_ROOT,
+    env=env,
+    new_gradle=new_gradle)
 
 def Main():
   (options, args) = ParseOptions()
@@ -114,7 +134,7 @@ def Main():
     args.append('-Pexclude_deps')
   if options.worktree:
     args.append('-g=' + os.path.join(utils.REPO_ROOT, ".gradle_user_home"))
-  return RunGradle(args)
+  return RunGradle(args, new_gradle=options.new_gradle)
 
 if __name__ == '__main__':
   sys.exit(Main())
