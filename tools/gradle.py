@@ -61,11 +61,11 @@ def PrintCmd(s):
   # I know this will hit os on windows eventually if we don't do this.
   sys.stdout.flush()
 
-def EnsureGradle(new_gradle):
+def EnsureGradle():
   utils.EnsureDepFromGoogleCloudStorage(
-    get_gradle(new_gradle), GRADLE_TGZ, GRADLE_SHA1, 'Gradle binary')
+    get_gradle(False), GRADLE_TGZ, GRADLE_SHA1, 'Gradle binary')
   utils.EnsureDepFromGoogleCloudStorage(
-    get_gradle(new_gradle), GRADLE8_TGZ, GRADLE8_SHA1, 'Gradle binary')
+    get_gradle(True), GRADLE8_TGZ, GRADLE8_SHA1, 'Gradle binary')
 
 def EnsureJdk():
   jdkRoot = jdk.GetJdkRoot()
@@ -73,13 +73,13 @@ def EnsureJdk():
   jdkSha1 = jdkTgz + '.sha1'
   utils.EnsureDepFromGoogleCloudStorage(jdkRoot, jdkTgz, jdkSha1, 'JDK')
 
-def EnsureDeps(new_gradle):
-  EnsureGradle(new_gradle)
+def EnsureDeps():
+  EnsureGradle()
   EnsureJdk()
 
 def RunGradleIn(
     gradleCmd, args, cwd, throw_on_failure=True, env=None, new_gradle=False):
-  EnsureDeps(new_gradle)
+  EnsureDeps()
   cmd = [gradleCmd]
   args.append(
     '-c=d8_r8/settings.gradle.kts' if new_gradle else '-b=build.gradle')
@@ -103,14 +103,13 @@ def RunGradle(args, throw_on_failure=True, env=None, new_gradle=False):
     env=env,
     new_gradle=new_gradle)
 
-def RunGradleExcludeDeps(
-    args, throw_on_failure=True, env=None, new_gradle=False):
-  EnsureDeps(new_gradle)
+def RunGradleExcludeDeps(args, throw_on_failure=True, env=None):
+  EnsureDeps()
   args.append('-Pexclude_deps')
   return RunGradle(args, throw_on_failure, env=env)
 
-def RunGradleInGetOutput(gradleCmd, args, cwd, env=None, new_gradle=False):
-  EnsureDeps(new_gradle)
+def RunGradleInGetOutput(gradleCmd, args, cwd, env=None):
+  EnsureDeps()
   cmd = [gradleCmd]
   cmd.extend(args)
   utils.PrintCmd(cmd)
@@ -125,8 +124,7 @@ def RunGradleGetOutput(args, env=None, new_gradle=False):
     get_gradle(new_gradle),
     args,
     utils.REPO_ROOT,
-    env=env,
-    new_gradle=new_gradle)
+    env=env)
 
 def Main():
   (options, args) = ParseOptions()
