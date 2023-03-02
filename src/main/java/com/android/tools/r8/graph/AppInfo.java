@@ -3,7 +3,8 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.graph;
 
-import com.android.tools.r8.ir.desugar.itf.InterfaceMethodRewriter;
+import com.android.tools.r8.DesugarGraphConsumer;
+import com.android.tools.r8.origin.GlobalSyntheticOrigin;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.MainDexInfo;
@@ -174,9 +175,41 @@ public class AppInfo implements DexDefinitionSupplier {
     }
     DexClass definition = definitionFor(type);
     if (definition != null && !definition.isLibraryClass() && !dependent.isLibraryClass()) {
-      InterfaceMethodRewriter.reportDependencyEdge(dependent, definition, this);
+      reportDependencyEdge(dependent, definition);
     }
     return definition;
+  }
+
+  public void reportDependencyEdge(DexClass dependent, DexClass dependency) {
+    assert !dependent.isLibraryClass();
+    assert !dependency.isLibraryClass();
+    DesugarGraphConsumer consumer = options().desugarGraphConsumer;
+    if (consumer == null) {
+      return;
+    }
+    Origin dependencyOrigin = dependency.getOrigin();
+    java.util.Collection<DexType> dependents =
+        getSyntheticItems().getSynthesizingContextTypes(dependent.getType());
+    if (dependents.isEmpty()) {
+      reportDependencyEdge(consumer, dependencyOrigin, dependent);
+    } else {
+      for (DexType type : dependents) {
+        reportDependencyEdge(consumer, dependencyOrigin, definitionFor(type));
+      }
+    }
+  }
+
+  private void reportDependencyEdge(
+      DesugarGraphConsumer consumer, Origin dependencyOrigin, DexClass clazz) {
+    Origin dependentOrigin = clazz.getOrigin();
+    if (dependencyOrigin == GlobalSyntheticOrigin.instance()
+        || dependentOrigin == GlobalSyntheticOrigin.instance()) {
+      // D8/R8 does not report edges to synthetic classes that D8/R8 generates.
+      return;
+    }
+    if (dependentOrigin != dependencyOrigin) {
+      consumer.accept(dependentOrigin, dependencyOrigin);
+    }
   }
 
   public DexProgramClass unsafeDirectProgramTypeLookup(DexType type) {

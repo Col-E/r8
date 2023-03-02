@@ -14,6 +14,7 @@ import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.GraphLens.NonIdentityGraphLens;
 import com.android.tools.r8.graph.ProgramDefinition;
+import com.android.tools.r8.origin.GlobalSyntheticOrigin;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.shaking.MainDexInfo;
 import java.util.Comparator;
@@ -55,7 +56,7 @@ class SynthesizingContext implements Comparable<SynthesizingContext> {
   static SynthesizingContext fromType(DexType type) {
     // This method should only be used for synthesizing from a non-program context!
     // Thus we have no origin info and place the context in the "base" feature.
-    return new SynthesizingContext(type, type, Origin.unknown(), FeatureSplit.BASE);
+    return new SynthesizingContext(type, type, GlobalSyntheticOrigin.instance(), FeatureSplit.BASE);
   }
 
   static SynthesizingContext fromNonSyntheticInputContext(

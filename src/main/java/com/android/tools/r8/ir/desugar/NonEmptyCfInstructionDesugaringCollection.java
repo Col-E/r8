@@ -101,13 +101,24 @@ public class NonEmptyCfInstructionDesugaringCollection extends CfInstructionDesu
     if (appView.options().enableTryWithResourcesDesugaring()) {
       desugarings.add(new TwrInstructionDesugaring(appView));
     }
+    recordRewriter = RecordDesugaring.create(appView);
+    if (recordRewriter != null) {
+      desugarings.add(recordRewriter);
+    }
+    StringConcatInstructionDesugaring stringConcatDesugaring =
+        new StringConcatInstructionDesugaring(appView);
+    desugarings.add(stringConcatDesugaring);
+    LambdaInstructionDesugaring lambdaDesugaring = new LambdaInstructionDesugaring(appView);
+    desugarings.add(lambdaDesugaring);
     interfaceMethodRewriter =
         InterfaceMethodRewriter.create(
             appView,
             SetUtils.newImmutableSetExcludingNullItems(
                 alwaysThrowingInstructionDesugaring,
                 backportedMethodRewriter,
-                desugaredLibraryRetargeter));
+                desugaredLibraryRetargeter),
+            SetUtils.newImmutableSetExcludingNullItems(
+                lambdaDesugaring, stringConcatDesugaring, recordRewriter));
     if (interfaceMethodRewriter != null) {
       desugarings.add(interfaceMethodRewriter);
     }
@@ -124,7 +135,6 @@ public class NonEmptyCfInstructionDesugaringCollection extends CfInstructionDesu
     if (desugaredLibraryAPIConverter != null) {
       desugarings.add(desugaredLibraryAPIConverter);
     }
-    desugarings.add(new LambdaInstructionDesugaring(appView));
     desugarings.add(new ConstantDynamicInstructionDesugaring(appView));
     desugarings.add(new InvokeSpecialToSelfDesugaring(appView));
     if (appView.options().isGeneratingClassFiles()) {
@@ -132,7 +142,6 @@ public class NonEmptyCfInstructionDesugaringCollection extends CfInstructionDesu
       assert nestBasedAccessDesugaring != null;
       desugarings.add(new InvokeToPrivateRewriter());
     }
-    desugarings.add(new StringConcatInstructionDesugaring(appView));
     if (appView.options().shouldDesugarBufferCovariantReturnType()) {
       desugarings.add(new BufferCovariantReturnTypeRewriter(appView));
     }
@@ -141,10 +150,6 @@ public class NonEmptyCfInstructionDesugaringCollection extends CfInstructionDesu
     }
     if (nestBasedAccessDesugaring != null) {
       desugarings.add(nestBasedAccessDesugaring);
-    }
-    this.recordRewriter = RecordDesugaring.create(appView);
-    if (recordRewriter != null) {
-      desugarings.add(recordRewriter);
     }
     VarHandleDesugaring varHandleDesugaring = VarHandleDesugaring.create(appView);
     if (varHandleDesugaring != null) {

@@ -4,8 +4,6 @@
 
 package com.android.tools.r8.ir.desugar.nest;
 
-import static com.android.tools.r8.ir.desugar.itf.InterfaceMethodRewriter.reportDependencyEdge;
-
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.ClasspathMethod;
 import com.android.tools.r8.graph.DexClass;
@@ -47,8 +45,8 @@ public class D8NestBasedAccessDesugaring extends NestBasedAccessDesugaring {
           DexClass hostClass = nest.getHostClass();
           for (DexClass memberClass : nest.getMembers()) {
             if (hostClass.isProgramClass() || memberClass.isProgramClass()) {
-              reportDependencyEdge(hostClass, memberClass, appView.appInfo());
-              reportDependencyEdge(memberClass, hostClass, appView.appInfo());
+              appView.appInfo().reportDependencyEdge(hostClass, memberClass);
+              appView.appInfo().reportDependencyEdge(memberClass, hostClass);
             }
           }
         },

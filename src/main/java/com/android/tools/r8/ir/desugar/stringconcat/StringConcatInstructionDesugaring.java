@@ -234,22 +234,6 @@ public class StringConcatInstructionDesugaring implements CfInstructionDesugarin
     return builder.desugar(localStackAllocator);
   }
 
-  public static boolean isStringConcatInvoke(CfInstruction instruction, DexItemFactory factory) {
-    CfInvokeDynamic invoke = instruction.asInvokeDynamic();
-    if (invoke == null) {
-      return false;
-    }
-    // We are interested in bootstrap methods StringConcatFactory::makeConcat
-    // and StringConcatFactory::makeConcatWithConstants, both are static.
-    DexCallSite callSite = invoke.getCallSite();
-    if (callSite.bootstrapMethod.type.isInvokeStatic()) {
-      DexMethod bootstrapMethod = callSite.bootstrapMethod.asMethod();
-      return bootstrapMethod == factory.stringConcatFactoryMembers.makeConcat
-          || bootstrapMethod == factory.stringConcatFactoryMembers.makeConcatWithConstants;
-    }
-    return false;
-  }
-
   private static String convertToString(DexValue value, ProgramMethod context) {
     if (value.isDexValueString()) {
       return value.asDexValueString().getValue().toString();

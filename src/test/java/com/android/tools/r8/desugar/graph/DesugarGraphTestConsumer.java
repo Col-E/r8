@@ -4,9 +4,11 @@
 package com.android.tools.r8.desugar.graph;
 
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.DesugarGraphConsumer;
+import com.android.tools.r8.origin.GlobalSyntheticOrigin;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.StringUtils.BraceType;
@@ -96,6 +98,12 @@ public class DesugarGraphTestConsumer implements DesugarGraphConsumer {
 
   @Override
   public synchronized void accept(Origin dependent, Origin dependency) {
+    // D8/R8 should not report edges synthetic origin.
+    assertNotEquals(dependent, GlobalSyntheticOrigin.instance());
+    assertNotEquals(dependency, GlobalSyntheticOrigin.instance());
+    // D8/R8 may report edges to unknown origin, but that is typically *not* what should be done.
+    assertNotEquals(dependency, Origin.unknown());
+    assertNotEquals(dependent, Origin.unknown());
     assertFalse(finished);
     dependents.computeIfAbsent(dependency, s -> new HashSet<>()).add(dependent);
   }
