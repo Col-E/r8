@@ -47,8 +47,7 @@ public class OutsideLineRangeStackTraceTest implements StackTraceForTest {
         "\tat some.other.Class.void method1()(Class.java:42)",
         "\tat some.other.Class.void method1()(Class.java:42)",
         "\tat some.Class.a(Class.java:27)",
-        "\tat some.Class.void method2()(Class.java)",
-        "\t<OR> at some.Class.void method2()(Class.java:10)");
+        "\tat some.Class.void method2()(Class.java)");
   }
 
   @Override

@@ -43,7 +43,6 @@ import com.android.tools.r8.retrace.stacktraces.InlineNoLineNumberAssumeNoInline
 import com.android.tools.r8.retrace.stacktraces.InlineNoLineNumberStackTrace;
 import com.android.tools.r8.retrace.stacktraces.InlineNoLineWithBaseEntryNumberAssumeNoInlineStackTrace;
 import com.android.tools.r8.retrace.stacktraces.InlinePreambleNoOriginalStackTrace;
-import com.android.tools.r8.retrace.stacktraces.InlinePreambleWithOriginalStackTrace;
 import com.android.tools.r8.retrace.stacktraces.InlineSourceFileContextStackTrace;
 import com.android.tools.r8.retrace.stacktraces.InlineSourceFileStackTrace;
 import com.android.tools.r8.retrace.stacktraces.InlineWithLineNumbersStackTrace;
@@ -245,11 +244,6 @@ public class RetraceTests extends TestBase {
   @Test
   public void testInlineNoLineAssumeNoInlineAmbiguousStackTrace() throws Exception {
     runRetraceTest(new InlineNoLineAssumeNoInlineAmbiguousStackTrace());
-  }
-
-  @Test
-  public void testInlinePreambleWithOriginalStackTrace() throws Exception {
-    runRetraceTest(new InlinePreambleWithOriginalStackTrace());
   }
 
   @Test

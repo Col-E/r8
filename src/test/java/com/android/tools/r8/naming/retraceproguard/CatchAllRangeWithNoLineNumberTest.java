@@ -26,7 +26,6 @@ import org.junit.runners.Parameterized.Parameters;
 @RunWith(Parameterized.class)
 public class CatchAllRangeWithNoLineNumberTest extends TestBase {
 
-  private final TestParameters parameters;
   private final ProguardVersion proguardVersion;
 
   @Parameters(name = "{0}, {1}")
@@ -36,8 +35,8 @@ public class CatchAllRangeWithNoLineNumberTest extends TestBase {
 
   public CatchAllRangeWithNoLineNumberTest(
       TestParameters parameters, ProguardVersion proguardVersion) {
-    this.parameters = parameters;
     this.proguardVersion = proguardVersion;
+    parameters.assertNoneRuntime();
   }
 
   private final String[] stackTrace =
@@ -85,7 +84,7 @@ public class CatchAllRangeWithNoLineNumberTest extends TestBase {
   private final String retracedR8 =
       StringUtils.lines(
           "\tat foo.bar.Baz.foo(Baz.java:33)",
-          "\tat foo.bar.Qux.foo(Qux.java:33)",
+          "\tat foo.bar.Qux.foo(Qux.java)",
           "\tat foo.bar.Quux.foo(Quux.java:33)",
           "\tat foo.bar.Baz.foo(Baz.java:33)",
           "\tat foo.bar.Baz.foo(Baz.java:33)");

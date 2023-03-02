@@ -139,6 +139,10 @@ public class ClassNamingForNameMapper implements ClassNaming {
 
   /** List of MappedRanges that belong to the same renamed name. */
   public static class MappedRangesOfName {
+
+    private static final MappedRangesOfName EMPTY_INSTANCE =
+        new MappedRangesOfName(Collections.emptyList());
+
     private final List<MappedRange> mappedRanges;
 
     public MappedRangesOfName(List<MappedRange> mappedRanges) {
@@ -209,6 +213,10 @@ public class ClassNamingForNameMapper implements ClassNaming {
 
     public List<MappedRange> getMappedRanges() {
       return mappedRanges;
+    }
+
+    public static MappedRangesOfName empty() {
+      return EMPTY_INSTANCE;
     }
 
     @Override
@@ -562,7 +570,7 @@ public class ClassNamingForNameMapper implements ClassNaming {
      */
     private List<MappingInformation> additionalMappingInformation = EMPTY_MAPPING_INFORMATION;
 
-    MappedRange(
+    public MappedRange(
         Range minifiedRange, MethodSignature signature, Range originalRange, String renamedName) {
       this.minifiedRange = minifiedRange;
       this.signature = signature;

@@ -30,9 +30,8 @@ public class MultipleLinesNoLineNumberStackTrace implements StackTraceForTest {
   public List<String> retracedStackTrace() {
     return Arrays.asList(
         "Exception in thread \"main\" java.lang.NullPointerException",
-        "\tat com.android.tools.r8.naming.retrace.Main.main(Main.java)",
-        "\t<OR> at com.android.tools.r8.naming.retrace.Main.method1(Main.java)",
-        "\tat com.android.tools.r8.naming.retrace.Main.main(Main.java)");
+        "\tat com.android.tools.r8.naming.retrace.Main.method1(Main.java:42)",
+        "\tat com.android.tools.r8.naming.retrace.Main.main(Main.java:28)");
   }
 
   @Override
@@ -40,8 +39,6 @@ public class MultipleLinesNoLineNumberStackTrace implements StackTraceForTest {
     return Arrays.asList(
         "Exception in thread \"main\" java.lang.NullPointerException",
         "\tat com.android.tools.r8.naming.retrace.Main.void"
-            + " main(java.lang.String[])(Main.java:153)",
-        "\t<OR> at com.android.tools.r8.naming.retrace.Main.void"
             + " method1(java.lang.String)(Main.java:42)",
         "\tat com.android.tools.r8.naming.retrace.Main.void"
             + " main(java.lang.String[])(Main.java:28)");

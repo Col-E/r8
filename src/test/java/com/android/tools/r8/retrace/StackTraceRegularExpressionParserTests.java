@@ -485,12 +485,12 @@ public class StackTraceRegularExpressionParserTests extends TestBase {
 
           @Override
           public List<String> retracedStackTrace() {
-            return ImmutableList.of("com.android.tools.r8.R8.foo(7)");
+            return ImmutableList.of("com.android.tools.r8.R8.foo()");
           }
 
           @Override
           public List<String> retraceVerboseStackTrace() {
-            return ImmutableList.of("com.android.tools.r8.R8.boolean foo()(7)");
+            return ImmutableList.of("com.android.tools.r8.R8.boolean foo()()");
           }
 
           @Override

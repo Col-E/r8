@@ -34,7 +34,20 @@ class MemberNamingWithMappedRangesOfName {
     return mappedRangesOfName.getMappedRanges();
   }
 
+  List<MappedRange> getMappedRangesWithNoMinifiedRangeAndPositionZero() {
+    return mappedRangesOfName.allRangesForLine(0, true);
+  }
+
   public MemberNaming getMemberNaming() {
     return methodMemberNaming;
+  }
+
+  public boolean isSingleCatchAllRange() {
+    if (getMappedRanges().size() == 1) {
+      MappedRange singleMappedRange = ListUtils.first(getMappedRanges());
+      return singleMappedRange.minifiedRange != null
+          && singleMappedRange.minifiedRange.isCatchAll();
+    }
+    return false;
   }
 }

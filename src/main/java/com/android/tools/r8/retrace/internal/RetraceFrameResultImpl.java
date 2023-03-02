@@ -90,6 +90,7 @@ class RetraceFrameResultImpl implements RetraceFrameResult {
               RetraceClassElementImpl classElement = mappedRangeData.getRetraceClassElement();
               List<MemberNamingWithMappedRangesOfName> memberNamingWithMappedRangesOfNames =
                   mappedRangeData.getMemberNamingWithMappedRanges();
+              OptionalInt position = mappedRangeData.getPosition();
               if (memberNamingWithMappedRangesOfNames == null
                   || memberNamingWithMappedRangesOfNames.isEmpty()) {
                 return Stream.of(
@@ -101,7 +102,7 @@ class RetraceFrameResultImpl implements RetraceFrameResult {
                                 classElement.getRetracedClass().getClassReference())),
                         ImmutableList.of(),
                         Optional.empty(),
-                        mappedRangeData.getPosition(),
+                        position,
                         retracer));
               }
               // Iterate over mapped ranges that may have different positions than specified.
@@ -110,6 +111,23 @@ class RetraceFrameResultImpl implements RetraceFrameResult {
                   memberNamingWithMappedRangesOfNames) {
                 List<MappedRange> mappedRangesForMemberNaming =
                     memberNamingWithMappedRangesOfName.getMappedRanges();
+                MemberNaming memberNaming = memberNamingWithMappedRangesOfName.getMemberNaming();
+                if (mappedRangesForMemberNaming.isEmpty()) {
+                  assert memberNaming != null;
+                  MappedRange mappedRange =
+                      new MappedRange(
+                          null,
+                          memberNaming.getOriginalSignature().asMethodSignature(),
+                          null,
+                          memberNaming.getRenamedName());
+                  ambiguousFrames.add(
+                      elementFromMappedRanges(
+                          Collections.singletonList(MappedRangeForFrame.create(mappedRange)),
+                          Optional.of(memberNaming),
+                          classElement,
+                          position));
+                  continue;
+                }
                 MappedRange firstMappedRange = mappedRangesForMemberNaming.get(0);
                 Range minifiedRange = firstMappedRange.minifiedRange;
                 List<MappedRange> mappedRangesForElement = Lists.newArrayList(firstMappedRange);
@@ -119,10 +137,10 @@ class RetraceFrameResultImpl implements RetraceFrameResult {
                     // This is a new frame
                     separateAmbiguousOriginalPositions(
                         classElement,
-                        Optional.ofNullable(memberNamingWithMappedRangesOfName.getMemberNaming()),
+                        Optional.ofNullable(memberNaming),
                         mappedRangesForElement,
                         ambiguousFrames,
-                        mappedRangeData.getPosition());
+                        position);
                     mappedRangesForElement = new ArrayList<>();
                     minifiedRange = mappedRange.minifiedRange;
                   }
@@ -130,10 +148,10 @@ class RetraceFrameResultImpl implements RetraceFrameResult {
                 }
                 separateAmbiguousOriginalPositions(
                     classElement,
-                    Optional.ofNullable(memberNamingWithMappedRangesOfName.getMemberNaming()),
+                    Optional.ofNullable(memberNaming),
                     mappedRangesForElement,
                     ambiguousFrames,
-                    mappedRangeData.getPosition());
+                    position);
               }
               return ambiguousFrames.stream();
             });

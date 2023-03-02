@@ -19,12 +19,8 @@ public class InlineNoLineNumberAssumeNoInlineStackTrace implements StackTraceFor
 
   @Override
   public List<String> retracedStackTrace() {
-    // TODO(b/231622686): Should assume that no lines means no inline frames.
     return Arrays.asList(
         "Exception in thread \"main\" java.lang.NullPointerException",
-        "\tat retrace.Main.method1(Main.java)",
-        "\tat retrace.Main.main(Main.java)",
-        "\t<OR> at retrace.Main.method2(Main.java)",
         "\tat retrace.Main.main(Main.java)");
   }
 
@@ -33,10 +29,7 @@ public class InlineNoLineNumberAssumeNoInlineStackTrace implements StackTraceFor
     // TODO(b/231622686): Should assume that no lines means no inline frames.
     return Arrays.asList(
         "Exception in thread \"main\" java.lang.NullPointerException",
-        "\tat retrace.Main.void method1(java.lang.String)(Main.java:0)",
-        "\tat retrace.Main.void main(java.lang.String[])(Main.java:0)",
-        "\t<OR> at retrace.Main.void method2(int)(Main.java:0)",
-        "\tat retrace.Main.void main(java.lang.String[])(Main.java:0)");
+        "\tat retrace.Main.void main(java.lang.String[])(Main.java)");
   }
 
   @Override

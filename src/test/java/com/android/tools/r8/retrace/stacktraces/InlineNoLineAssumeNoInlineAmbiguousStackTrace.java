@@ -21,20 +21,14 @@ public class InlineNoLineAssumeNoInlineAmbiguousStackTrace implements StackTrace
   public List<String> retracedStackTrace() {
     return Arrays.asList(
         "Exception in thread \"main\" java.lang.NullPointerException",
-        // TODO(b/231622686): Should not emit inline frame.
-        "\tat retrace.Main.method1(Main.java)",
-        "\tat retrace.Main.main(Main.java)",
-        "\t<OR> at retrace.Main.otherMain(Main.java)");
+        "\tat retrace.Main.otherMain(Main.java)");
   }
 
   @Override
   public List<String> retraceVerboseStackTrace() {
     return Arrays.asList(
         "Exception in thread \"main\" java.lang.NullPointerException",
-        // TODO(b/231622686): Should not emit inline frame.
-        "\tat retrace.Main.void method1(java.lang.String)(Main.java:0)",
-        "\tat retrace.Main.void main(java.lang.String[])(Main.java:0)",
-        "\t<OR> at retrace.Main.void otherMain(java.lang.String[])(Main.java)");
+        "\tat retrace.Main.void otherMain(java.lang.String[])(Main.java)");
   }
 
   @Override

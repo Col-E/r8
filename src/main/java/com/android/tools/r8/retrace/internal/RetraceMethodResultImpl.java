@@ -94,7 +94,7 @@ public class RetraceMethodResultImpl implements RetraceMethodResult {
     if (context instanceof RetraceStackTraceContextImpl) {
       stackTraceContext = (RetraceStackTraceContextImpl) context;
     }
-    boolean hasPosition = position.isPresent() && position.getAsInt() >= 0;
+    boolean hasPosition = position.isPresent() && position.getAsInt() > 0;
     Function<MemberNamingWithMappedRangesOfName, List<MappedRange>> selector =
         hasPosition ? filterOnExistingPosition(position.getAsInt()) : filterOnNoPosition();
     for (Pair<RetraceClassElementImpl, List<MemberNamingWithMappedRangesOfName>> mappedRange :
@@ -114,9 +114,27 @@ public class RetraceMethodResultImpl implements RetraceMethodResult {
       }
     }
     if (narrowedRanges.isEmpty()) {
+      boolean preamblePosition = position.isEmpty() || position.getAsInt() <= 0;
       for (Pair<RetraceClassElementImpl, List<MemberNamingWithMappedRangesOfName>> mappedRange :
           mappedRanges) {
-        narrowedRanges.add(new RetraceFrameResultData(mappedRange.getFirst(), null, position));
+        List<MemberNamingWithMappedRangesOfName> memberNamingWithMappedRanges = new ArrayList<>();
+        // If we could find a result, and we have observed a reported preamble position, we create a
+        // mapping containing only the member-naming.
+        if (mappedRange.getSecond() != null && preamblePosition) {
+          memberNamingWithMappedRanges =
+              ListUtils.map(
+                  mappedRange.getSecond(),
+                  m ->
+                      // Check if we have a catch-all range since that could map 0 to a non-zero
+                      // original line.
+                      m.isSingleCatchAllRange()
+                          ? m
+                          : new MemberNamingWithMappedRangesOfName(
+                              m.getMemberNaming(), MappedRangesOfName.empty()));
+        }
+        narrowedRanges.add(
+            new RetraceFrameResultData(
+                mappedRange.getFirst(), memberNamingWithMappedRanges, position));
       }
     }
     return new RetraceFrameResultImpl(
@@ -186,7 +204,7 @@ public class RetraceMethodResultImpl implements RetraceMethodResult {
   }
 
   private Function<MemberNamingWithMappedRangesOfName, List<MappedRange>> filterOnNoPosition() {
-    return MemberNamingWithMappedRangesOfName::getMappedRanges;
+    return MemberNamingWithMappedRangesOfName::getMappedRangesWithNoMinifiedRangeAndPositionZero;
   }
 
   @Override
