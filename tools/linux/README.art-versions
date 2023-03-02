@@ -65,6 +65,37 @@ by the script for running Art.
 
 (cd tools/linux/host; upload_to_google_storage.py -a --bucket r8-deps art-master)
 
+repo init -b udc-preview1-release
+
+art-14 (Android U)
+------------------
+Build branch udc-preview1-release.
+
+export BRANCH=udc-preview1-release
+mkdir ${BRANCH}
+cd ${BRANCH}
+export ANDROID_CHECKOUT=$(pwd)
+repo init -u https://android.googlesource.com/platform/manifest -b ${BRANCH}
+repo sync -cq -j48
+source build/envsetup.sh
+lunch aosp_redfin-userdebug
+m -j48
+m -j48 build-art
+m -j48 test-art-host
+repo manifest -r -o build_spec.xml
+
+Collected into tools/linux/host/art-14.0.0-dp1. The "host" path element is checked
+by the script for running Art.
+
+  cd <r8 checkout>
+  scripts/update-host-art.sh \
+     --android-checkout $ANDROID_CHECKOUT \
+     --art-dir host/art-14.0.0-dp1 \
+     --android-product redfin
+
+  (cd tools/linux/host; upload_to_google_storage.py -a --bucket r8-deps art-14.0.0-dp1)
+
+
 art-13 (Android T)
 ------------------
 Build branch android-13.0.0_r3.
@@ -86,10 +117,10 @@ by the script for running Art.
   cd <r8 checkout>
   scripts/update-host-art.sh \
      --android-checkout <...>/android-13.0.0_r3 \
-     --art-dir host/art-13 \
+     --art-dir host/art-13.0.0 \
      --android-product redfin
 
-  (cd tools/linux/host; upload_to_google_storage.py -a --bucket r8-deps art-13)
+  (cd tools/linux/host; upload_to_google_storage.py -a --bucket r8-deps art-13.0.0)
 
 art-12.0.0 (Android S)
 ---------------------

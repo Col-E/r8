@@ -68,7 +68,10 @@ public class ClassValueTest extends TestBase {
         .compile()
         .inspect(this::computeValuePresent)
         .run(parameters.getRuntime(), TestClass.class)
-        .assertFailureWithErrorThatThrows(NoClassDefFoundError.class);
+        .applyIf(
+            parameters.runtimeWithClassValue(),
+            r -> r.assertSuccessWithOutput(EXPECTED_OUTPUT),
+            r -> r.assertFailureWithErrorThatThrows(NoClassDefFoundError.class));
   }
 
   @Test
@@ -83,7 +86,7 @@ public class ClassValueTest extends TestBase {
         .inspect(this::computeValueAbsent)
         .run(parameters.getRuntime(), TestClass.class)
         .applyIf(
-            parameters.isCfRuntime(),
+            parameters.runtimeWithClassValue(),
             r -> r.assertFailureWithErrorThatThrows(AbstractMethodError.class),
             r -> r.assertFailureWithErrorThatThrows(NoClassDefFoundError.class));
   }
@@ -132,7 +135,7 @@ public class ClassValueTest extends TestBase {
         .inspect(this::computeValueAbsent)
         .run(parameters.getRuntime(), TestClass.class)
         .applyIf(
-            parameters.isCfRuntime(),
+            parameters.runtimeWithClassValue(),
             r -> r.assertFailureWithErrorThatThrows(AbstractMethodError.class),
             r -> r.assertFailureWithErrorThatThrows(NoClassDefFoundError.class));
   }
@@ -177,7 +180,7 @@ public class ClassValueTest extends TestBase {
           .inspect(this::computeValuePresent)
           .run(parameters.getRuntime(), TestClass.class)
           .applyIf(
-              parameters.isCfRuntime(),
+              parameters.runtimeWithClassValue(),
               r -> r.assertSuccessWithOutput(EXPECTED_OUTPUT),
               r -> r.assertFailureWithErrorThatThrows(NoClassDefFoundError.class));
     }

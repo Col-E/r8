@@ -33,7 +33,6 @@ public final class StrictMathBackportJava17Test extends AbstractBackportTest {
 
   public StrictMathBackportJava17Test(TestParameters parameters) {
     super(parameters, StrictMath.class, TEST_JAR, "backport.StrictMathBackportJava17Main");
-    // The exact number needs to be updated once we test Android U.
-    registerTarget(AndroidApiLevel.U, 75);
+    registerTarget(AndroidApiLevel.U, 30);
   }
 }

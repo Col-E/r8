@@ -35,7 +35,6 @@ public final class ObjectsBackportJava17Test extends AbstractBackportTest {
   public ObjectsBackportJava17Test(TestParameters parameters) {
     super(parameters, Objects.class, TEST_JAR, TEST_CLASS);
     // Objects.checkFromIndexSize, Objects.checkFromToIndex, Objects.checkIndex.
-    // The exact number needs to be updated once we test Android U.
-    registerTarget(AndroidApiLevel.U, 28);
+    registerTarget(AndroidApiLevel.U, 21);
   }
 }

@@ -68,7 +68,7 @@ public class GenerateCovariantReturnTypeMethodsTest extends TestBase {
       Paths.get(ToolHelper.SOURCE_DIR)
           .resolve(PACKAGE_NAME.replace('.', '/'))
           .resolve(CLASS_NAME + ".java");
-  private static final AndroidApiLevel GENERATED_FOR_API_LEVEL = AndroidApiLevel.T;
+  private static final AndroidApiLevel GENERATED_FOR_API_LEVEL = AndroidApiLevel.U;
 
   @Parameter public TestParameters parameters;
 
@@ -79,7 +79,7 @@ public class GenerateCovariantReturnTypeMethodsTest extends TestBase {
 
   @Test
   public void testLibCoreNeedsUpgrading() {
-    assertEquals(GENERATED_FOR_API_LEVEL, AndroidApiLevel.LATEST);
+    assertEquals(GENERATED_FOR_API_LEVEL, AndroidApiLevel.API_DATABASE_LEVEL);
   }
 
   @Test

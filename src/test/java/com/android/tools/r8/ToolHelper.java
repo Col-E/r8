@@ -273,6 +273,8 @@ public class ToolHelper {
     ART_12_0_0_HOST(Version.V12_0_0, Kind.HOST),
     ART_13_0_0_TARGET(Version.V13_0_0, Kind.TARGET),
     ART_13_0_0_HOST(Version.V13_0_0, Kind.HOST),
+    ART_14_0_0_TARGET(Version.V14_0_0, Kind.TARGET),
+    ART_14_0_0_HOST(Version.V14_0_0, Kind.HOST),
     ART_MASTER_TARGET(Version.MASTER, Kind.TARGET),
     ART_MASTER_HOST(Version.MASTER, Kind.HOST);
 
@@ -293,6 +295,7 @@ public class ToolHelper {
       V10_0_0("10.0.0"),
       V12_0_0("12.0.0"),
       V13_0_0("13.0.0"),
+      V14_0_0("14.0.0"),
       MASTER("master");
 
       /** This should generally be the latest DEX VM fully supported. */
@@ -355,7 +358,7 @@ public class ToolHelper {
       }
 
       public static Version last() {
-        return V13_0_0;
+        return V14_0_0;
       }
 
       public static Version master() {
@@ -630,6 +633,7 @@ public class ToolHelper {
       ImmutableMap.<DexVm, String>builder()
           .put(DexVm.ART_DEFAULT, "art")
           .put(DexVm.ART_MASTER_HOST, "host/art-master")
+          .put(DexVm.ART_14_0_0_HOST, "host/art-14.0.0-dp1")
           .put(DexVm.ART_13_0_0_HOST, "host/art-13.0.0")
           .put(DexVm.ART_12_0_0_HOST, "host/art-12.0.0-beta4")
           .put(DexVm.ART_10_0_0_HOST, "art-10.0.0")
@@ -645,6 +649,7 @@ public class ToolHelper {
       ImmutableMap.<DexVm, String>builder()
           .put(DexVm.ART_DEFAULT, "bin/art")
           .put(DexVm.ART_MASTER_HOST, "bin/art")
+          .put(DexVm.ART_14_0_0_HOST, "bin/art")
           .put(DexVm.ART_13_0_0_HOST, "bin/art")
           .put(DexVm.ART_12_0_0_HOST, "bin/art")
           .put(DexVm.ART_10_0_0_HOST, "bin/art")
@@ -660,6 +665,7 @@ public class ToolHelper {
   private static final Map<DexVm, String> ART_BINARY_VERSIONS_X64 =
       ImmutableMap.<DexVm, String>builder()
           .put(DexVm.ART_DEFAULT, "bin/art")
+          .put(DexVm.ART_14_0_0_HOST, "bin/art")
           .put(DexVm.ART_13_0_0_HOST, "bin/art")
           .put(DexVm.ART_12_0_0_HOST, "bin/art")
           .put(DexVm.ART_10_0_0_HOST, "bin/art")
@@ -694,6 +700,7 @@ public class ToolHelper {
     ImmutableMap.Builder<DexVm, List<String>> builder = ImmutableMap.builder();
     builder
         .put(DexVm.ART_DEFAULT, ART_BOOT_LIBS)
+        .put(DexVm.ART_14_0_0_HOST, NEWER_ART_BOOT_LIBS)
         .put(DexVm.ART_13_0_0_HOST, NEWER_ART_BOOT_LIBS)
         .put(DexVm.ART_12_0_0_HOST, NEWER_ART_BOOT_LIBS)
         .put(DexVm.ART_10_0_0_HOST, ART_BOOT_LIBS)
@@ -713,6 +720,7 @@ public class ToolHelper {
     ImmutableMap.Builder<DexVm, String> builder = ImmutableMap.builder();
     builder
         .put(DexVm.ART_DEFAULT, "angler")
+        .put(DexVm.ART_14_0_0_HOST, "redfin")
         .put(DexVm.ART_13_0_0_HOST, "redfin")
         .put(DexVm.ART_12_0_0_HOST, "redfin")
         .put(DexVm.ART_10_0_0_HOST, "coral")
@@ -746,6 +754,7 @@ public class ToolHelper {
       case V12_0_0:
         return base.resolve("host").resolve("art-12.0.0-beta4");
       case V13_0_0:
+      case V14_0_0:
       case MASTER:
         return base.resolve("host").resolve("art-" + version);
       default:
@@ -780,15 +789,12 @@ public class ToolHelper {
         return "arm64";
       case V12_0_0:
       case V13_0_0:
+      case V14_0_0:
       case MASTER:
         return "x86_64";
       default:
         throw new Unimplemented();
     }
-  }
-
-  private static Path getProductBootImagePath(DexVm vm) {
-    return getProductPath(vm).resolve("system").resolve("framework").resolve("boot.art");
   }
 
   public static byte[] getClassAsBytes(Class clazz) throws IOException {
@@ -1073,6 +1079,8 @@ public class ToolHelper {
     switch (dexVm.version) {
       case MASTER:
         return AndroidApiLevel.MASTER;
+      case V14_0_0:
+        return AndroidApiLevel.U;
       case V13_0_0:
         return AndroidApiLevel.T;
       case V12_0_0:

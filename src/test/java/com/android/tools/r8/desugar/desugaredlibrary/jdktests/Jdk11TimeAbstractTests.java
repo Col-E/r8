@@ -169,7 +169,6 @@ public abstract class Jdk11TimeAbstractTests extends DesugaredLibraryTestBase {
         "test.java.time.TestOffsetTime",
         "test.java.time.TestClock_Offset",
         "test.java.time.TestPeriod",
-        "test.java.time.TestClock_System",
         "test.java.time.TestOffsetDateTime_instants",
         "test.java.time.temporal.TestDateTimeBuilderCombinations",
         "test.java.time.temporal.TestJulianFields",
@@ -180,6 +179,12 @@ public abstract class Jdk11TimeAbstractTests extends DesugaredLibraryTestBase {
       new String[] {"tck.java.time.TestIsoChronology"};
   static final String[] RAW_TEMPORAL_SUCCESSES_UP_TO_11 =
       new String[] {"test.java.time.temporal.TestIsoWeekFields"};
+  static final String[] RAW_TEMPORAL_SUCCESSES_UP_TO_14 =
+      new String[] {
+        // Reflective lookup Class.forName("java.time.Clock$SystemClock").getDeclaredField("offset")
+        // fails.
+        "test.java.time.TestClock_System"
+      };
   static final String[] FORMAT_CHRONO_SUCCESSES =
       new String[] {
         "test.java.time.format.TestFractionPrinterParser",
@@ -229,6 +234,10 @@ public abstract class Jdk11TimeAbstractTests extends DesugaredLibraryTestBase {
     if (parameters.getDexRuntimeVersion().isOlderThan(Version.V12_0_0)) {
       // In 12 some ISO is supported that other versions do not support.
       Collections.addAll(allTests, RAW_TEMPORAL_SUCCESSES_UP_TO_11);
+    }
+    if (parameters.getDexRuntimeVersion().isOlderThan(Version.V14_0_0)) {
+      // In 14 some reflection used in test fails.
+      Collections.addAll(allTests, RAW_TEMPORAL_SUCCESSES_UP_TO_14);
     }
     // The bridge is always present with JDK11 due to partial desugaring between 26 and 33.
     // On JDK8 the bridge is absent in between 26 and 33.

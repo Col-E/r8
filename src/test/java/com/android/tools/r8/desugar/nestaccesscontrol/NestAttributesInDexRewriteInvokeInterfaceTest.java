@@ -77,7 +77,7 @@ public class NestAttributesInDexRewriteInvokeInterfaceTest extends TestBase impl
   public void testD8() throws Exception {
     parameters.assumeDexRuntime();
     // TODO(b/247047415): Update test when a DEX VM natively supporting nests is added.
-    assertFalse(parameters.getApiLevel().getLevel() > 33);
+    assertFalse(parameters.getApiLevel().getLevel() > 34);
     testForD8()
         .addProgramClassFileData(
             dumpHost(),
@@ -111,8 +111,8 @@ public class NestAttributesInDexRewriteInvokeInterfaceTest extends TestBase impl
   @Test
   public void testD8WithClasspathAndMerge() throws Exception {
     assumeTrue(parameters.isDexRuntime());
-    // TODO(sgjesse): Update test when a DEX VM natively supporting nests is added.
-    assertFalse(parameters.getApiLevel().getLevel() > 33);
+    // TODO(b/247047415): Update test when a DEX VM natively supporting nests is added.
+    assertFalse(parameters.getApiLevel().getLevel() > 34);
 
     Path host =
         testForD8()
@@ -199,8 +199,8 @@ public class NestAttributesInDexRewriteInvokeInterfaceTest extends TestBase impl
   @Test
   public void testD8WithoutMembersOnClasspath() {
     assumeTrue(parameters.isDexRuntime());
-    // TODO(sgjesse): Update test when a DEX VM natively supporting nests is added.
-    assertFalse(parameters.getApiLevel().getLevel() > 33);
+    // TODO(b/247047415): Update test when a DEX VM natively supporting nests is added.
+    assertFalse(parameters.getApiLevel().getLevel() > 34);
 
     assertThrows(
         CompilationFailedException.class,
@@ -220,8 +220,8 @@ public class NestAttributesInDexRewriteInvokeInterfaceTest extends TestBase impl
   @Test
   public void testD8WithoutHostOnClasspath() {
     assumeTrue(parameters.isDexRuntime());
-    // TODO(sgjesse): Update test when a DEX VM natively supporting nests is added.
-    assertFalse(parameters.getApiLevel().getLevel() > 33);
+    // TODO(b/247047415): Update test when a DEX VM natively supporting nests is added.
+    assertFalse(parameters.getApiLevel().getLevel() > 34);
 
     assertThrows(
         CompilationFailedException.class,

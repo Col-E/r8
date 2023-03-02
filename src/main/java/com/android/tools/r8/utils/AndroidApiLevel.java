@@ -47,12 +47,13 @@ public enum AndroidApiLevel implements Ordered<AndroidApiLevel> {
   MASTER(35), // API level for master is tentative.
   ANDROID_PLATFORM(10000);
 
-  // When updating LATEST and a new version goes stable, add a new api-versions.xml to third_party
-  // and update the version and generated jar in AndroidApiDatabaseBuilderGeneratorTest.
-  public static final AndroidApiLevel LATEST = T;
+  // When updating LATEST and a new version goes public, add a new api-versions.xml to third_party
+  // and update the version and generated jar in AndroidApiDatabaseBuilderGeneratorTest. Together
+  // with that update third_party/android_jar/libcore_latest/core-oj.jar and run
+  // GenerateCovariantReturnTypeMethodsTest.
+  public static final AndroidApiLevel LATEST = U;
 
-  // TODO(b/268601605): When adding U to the test matrix, set this to LATEST.
-  public static final AndroidApiLevel API_DATABASE_LEVEL = U;
+  public static final AndroidApiLevel API_DATABASE_LEVEL = LATEST;
 
   private final int level;
 
@@ -109,7 +110,7 @@ public enum AndroidApiLevel implements Ordered<AndroidApiLevel> {
 
   public static AndroidApiLevel getAndroidApiLevel(int apiLevel) {
     assert apiLevel > 0;
-    assert T == LATEST; // This has to be updated when we add new api levels.
+    assert U == LATEST; // This has to be updated when we add new api levels.
     assert ANDROID_PLATFORM.isGreaterThan(LATEST);
     switch (apiLevel) {
       case 1:

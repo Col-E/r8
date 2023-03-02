@@ -13,6 +13,7 @@ import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.TestRunResult;
 import com.android.tools.r8.TestRuntime.CfVm;
+import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.desugar.nestaccesscontrol.NestAttributesInDexTest.Host.Member1;
 import com.android.tools.r8.desugar.nestaccesscontrol.NestAttributesInDexTest.Host.Member2;
 import com.android.tools.r8.transformers.ClassFileTransformer;
@@ -62,13 +63,18 @@ public class NestAttributesInDexTest extends NestAttributesInDexTestBase {
   private void checkResult(TestRunResult<?> result) {
     if (isRuntimeWithNestSupport(parameters.getRuntime())) {
       result.assertSuccessWithOutput(EXPECTED_OUTPUT);
+    } else if (parameters.isDexRuntimeVersionNewerThanOrEqual(Version.V14_0_0)) {
+      // TODO(b/247047415): Partial DEX support in Android U DP1 (reflective APIs).
+      result.assertSuccessWithOutput(R8_EXPECTED_OUTPUT);
     } else {
       result.assertFailureWithErrorThatThrows(NoSuchMethodError.class);
     }
   }
 
   private void checkResultR8(TestRunResult<?> result) {
-    if (isRuntimeWithNestSupport(parameters.getRuntime())) {
+    // TODO(b/247047415): Partial DEX support in Android U DP1 (reflective APIs).
+    if (parameters.isDexRuntimeVersionNewerThanOrEqual(Version.V14_0_0)
+        || isRuntimeWithNestSupport(parameters.getRuntime())) {
       result.assertSuccessWithOutput(R8_EXPECTED_OUTPUT);
     } else {
       result.assertFailureWithErrorThatThrows(NoSuchMethodError.class);

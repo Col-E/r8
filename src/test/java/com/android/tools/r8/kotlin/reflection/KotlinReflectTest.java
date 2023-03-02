@@ -99,6 +99,7 @@ public class KotlinReflectTest extends KotlinTestBase {
         .addKeepAttributes(ProguardKeepAttributes.RUNTIME_VISIBLE_ANNOTATIONS)
         .allowDiagnosticMessages()
         .allowUnusedDontWarnKotlinReflectJvmInternal(kotlinc.isNot(KOTLINC_1_3_72))
+        .allowUnusedDontWarnJavaLangClassValue()
         .applyIf(
             parameters.isCfRuntime() && kotlinParameters.isNewerThanOrEqualTo(KOTLINC_1_8_0),
             TestShrinkerBuilder::addDontWarnJavaLangInvokeLambdaMetadataFactory)

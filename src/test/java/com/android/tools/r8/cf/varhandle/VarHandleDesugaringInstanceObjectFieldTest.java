@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.cf.varhandle;
 
+import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.examples.jdk9.VarHandle;
 import com.android.tools.r8.utils.StringUtils;
 import com.google.common.collect.ImmutableList;
@@ -73,6 +74,9 @@ public class VarHandleDesugaringInstanceObjectFieldTest extends VarHandleDesugar
   @Override
   protected String getExpectedOutputForArtImplementation() {
     assert parameters.isDexRuntime();
-    return StringUtils.lines(EXPECTED_OUTPUT.trim(), "Art implementation", "Art implementation");
+    return parameters.isDexRuntimeVersionNewerThanOrEqual(Version.V14_0_0)
+        ? StringUtils.lines(
+            EXPECTED_OUTPUT.trim(), "Reference implementation", "Reference implementation")
+        : StringUtils.lines(EXPECTED_OUTPUT.trim(), "Art implementation", "Art implementation");
   }
 }

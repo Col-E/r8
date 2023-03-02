@@ -105,6 +105,11 @@ public class TestParameters {
     return false;
   }
 
+  public boolean runtimeWithClassValue() {
+    assert isCfRuntime() || isDexRuntime();
+    return isCfRuntime() || getDexRuntimeVersion().isNewerThanOrEqual(DexVm.Version.V14_0_0);
+  }
+
   // Convenience predicates.
   public boolean isDexRuntime() {
     return runtime.isDex();
@@ -127,7 +132,11 @@ public class TestParameters {
   }
 
   public boolean isDexRuntimeVersion(DexVm.Version vm) {
-    return isDexRuntime() && vm == getDexRuntimeVersion();
+    return isDexRuntime() && getDexRuntimeVersion().isEqualTo(vm);
+  }
+
+  public boolean isDexRuntimeVersionNewerThanOrEqual(DexVm.Version vm) {
+    return isDexRuntime() && getDexRuntimeVersion().isNewerThanOrEqual(vm);
   }
 
   public boolean isNoneRuntime() {

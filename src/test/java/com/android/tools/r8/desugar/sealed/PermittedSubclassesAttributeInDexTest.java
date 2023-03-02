@@ -11,6 +11,7 @@ import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.TestRuntime.CfVm;
+import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.transformers.ClassFileTransformer;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.DescriptorUtils;
@@ -72,8 +73,11 @@ public class PermittedSubclassesAttributeInDexTest extends TestBase {
         .compile()
         .inspect(this::inspect)
         .run(parameters.getRuntime(), TestClass.class)
-        // No Art versions have support for sealed classes yet.
-        .assertFailureWithErrorThatThrows(NoSuchMethodError.class);
+        .applyIf(
+            // TODO(b/270941147): Partial DEX support in Android U DP1 (reflective APIs).
+            parameters.isDexRuntimeVersionNewerThanOrEqual(Version.V14_0_0),
+            r -> r.assertSuccessWithOutput(EXPECTED_OUTPUT),
+            r -> r.assertFailureWithErrorThatThrows(NoSuchMethodError.class));
   }
 
   public Collection<byte[]> getTransformedClasses() throws Exception {

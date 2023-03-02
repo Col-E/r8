@@ -80,7 +80,7 @@ public class NestAttributesInDexShrinkingMethodsTest extends NestAttributesInDex
     parameters.assumeR8TestParameters();
     assumeTrue(parameters.isDexRuntime() || isRuntimeWithNestSupport(parameters.asCfRuntime()));
     // TODO(b/247047415): Update test when a DEX VM natively supporting nests is added.
-    assertFalse(parameters.getApiLevel().getLevel() > 33);
+    assertFalse(parameters.getApiLevel().getLevel() > 34);
     testForR8(parameters.getBackend())
         .addProgramClassFileData(
             dumpHost(ACC_PRIVATE), dumpMember1(ACC_PRIVATE), dumpMember2(ACC_PRIVATE))
@@ -98,7 +98,7 @@ public class NestAttributesInDexShrinkingMethodsTest extends NestAttributesInDex
     parameters.assumeR8TestParameters();
     assumeTrue(parameters.isDexRuntime() || isRuntimeWithNestSupport(parameters.asCfRuntime()));
     // TODO(b/247047415): Update test when a DEX VM natively supporting nests is added.
-    assertFalse(parameters.getApiLevel().getLevel() > 33);
+    assertFalse(parameters.getApiLevel().getLevel() > 34);
     testForR8(parameters.getBackend())
         .addProgramClassFileData(
             dumpHost(ACC_PRIVATE), dumpMember1(ACC_PRIVATE), dumpMember2(ACC_PRIVATE))
@@ -120,7 +120,7 @@ public class NestAttributesInDexShrinkingMethodsTest extends NestAttributesInDex
     parameters.assumeR8TestParameters();
     assumeTrue(parameters.isDexRuntime() || isRuntimeWithNestSupport(parameters.asCfRuntime()));
     // TODO(b/247047415): Update test when a DEX VM natively supporting nests is added.
-    assertFalse(parameters.getApiLevel().getLevel() > 33);
+    assertFalse(parameters.getApiLevel().getLevel() > 34);
     testForR8(parameters.getBackend())
         .addProgramClassFileData(
             dumpHost(ACC_PUBLIC), dumpMember1(ACC_PUBLIC), dumpMember2(ACC_PUBLIC))

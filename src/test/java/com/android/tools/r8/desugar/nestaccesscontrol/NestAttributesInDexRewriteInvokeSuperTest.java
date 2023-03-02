@@ -69,7 +69,7 @@ public class NestAttributesInDexRewriteInvokeSuperTest extends TestBase implemen
   public void testD8() throws Exception {
     parameters.assumeDexRuntime();
     // TODO(b/247047415): Update test when a DEX VM natively supporting nests is added.
-    assertFalse(parameters.getApiLevel().getLevel() > 33);
+    assertFalse(parameters.getApiLevel().getLevel() > 34);
     testForD8()
         .addProgramClassFileData(dumpHost(), dumpMember(), dumpSubMember())
         .setMinApi(parameters)
@@ -101,8 +101,8 @@ public class NestAttributesInDexRewriteInvokeSuperTest extends TestBase implemen
   @Test
   public void testD8WithClasspathAndMerge() throws Exception {
     assumeTrue(parameters.isDexRuntime());
-    // TODO(sgjesse): Update test when a DEX VM natively supporting nests is added.
-    assertFalse(parameters.getApiLevel().getLevel() > 33);
+    // TODO(b/247047415): Update test when a DEX VM natively supporting nests is added.
+    assertFalse(parameters.getApiLevel().getLevel() > 34);
 
     Path host =
         testForD8()
@@ -188,8 +188,8 @@ public class NestAttributesInDexRewriteInvokeSuperTest extends TestBase implemen
   @Test
   public void testD8WithoutMembersOnClasspath() {
     assumeTrue(parameters.isDexRuntime());
-    // TODO(sgjesse): Update test when a DEX VM natively supporting nests is added.
-    assertFalse(parameters.getApiLevel().getLevel() > 33);
+    // TODO(b/247047415): Update test when a DEX VM natively supporting nests is added.
+    assertFalse(parameters.getApiLevel().getLevel() > 34);
 
     assertThrows(
         CompilationFailedException.class,
@@ -209,8 +209,8 @@ public class NestAttributesInDexRewriteInvokeSuperTest extends TestBase implemen
   @Test
   public void testD8WithoutHostOnClasspath() {
     assumeTrue(parameters.isDexRuntime());
-    // TODO(sgjesse): Update test when a DEX VM natively supporting nests is added.
-    assertFalse(parameters.getApiLevel().getLevel() > 33);
+    // TODO(b/247047415): Update test when a DEX VM natively supporting nests is added.
+    assertFalse(parameters.getApiLevel().getLevel() > 34);
 
     assertThrows(
         CompilationFailedException.class,

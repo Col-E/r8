@@ -34,7 +34,6 @@ public final class MathBackportJava17Test extends AbstractBackportTest {
     super(parameters, Math.class, TEST_JAR, "backport.MathBackportJava17Main");
 
     // Math.absExact.
-    // The exact number needs to be updated once we test Android U.
-    registerTarget(AndroidApiLevel.U, 27);
+    registerTarget(AndroidApiLevel.U, 8);
   }
 }

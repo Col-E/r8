@@ -9,6 +9,7 @@ import static com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugari
 
 import com.android.tools.r8.SingleTestRunResult;
 import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification;
 import com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification;
 import com.android.tools.r8.utils.StringUtils;
@@ -29,6 +30,11 @@ public class DateTimeFormatterTest extends DesugaredLibraryTestBase {
       StringUtils.lines("2/3/01 4:05 AM - Feb 3, 1 4:05 AM");
   private static final String expectedOutput =
       StringUtils.lines("2/3/01, 4:05 AM - Feb 3, 1, 4:05 AM");
+  // From ICU 72, see https://android-review.git.corp.google.com/c/platform/libcore/+/2292140
+  private static final String expectedOutputDesugaredLibNNBSP =
+      StringUtils.lines("2/3/01 4:05\u202FAM - Feb 3, 1 4:05\u202FAM");
+  private static final String expectedOutputNNBSP =
+      StringUtils.lines("2/3/01, 4:05\u202FAM - Feb 3, 1, 4:05\u202FAM");
 
   private final TestParameters parameters;
   private final CompilationSpecification compilationSpecification;
@@ -61,9 +67,15 @@ public class DateTimeFormatterTest extends DesugaredLibraryTestBase {
             .run(parameters.getRuntime(), TestClass.class)
             .assertSuccess();
     if (libraryDesugaringSpecification.hasTimeDesugaring(parameters)) {
-      run.assertSuccessWithOutput(expectedOutputDesugaredLib);
+      run.assertSuccessWithOutput(
+          parameters.isDexRuntimeVersionNewerThanOrEqual(Version.V14_0_0)
+              ? expectedOutputDesugaredLibNNBSP
+              : expectedOutputDesugaredLib);
     } else {
-      run.assertSuccessWithOutput(expectedOutput);
+      run.assertSuccessWithOutput(
+          parameters.isDexRuntimeVersionNewerThanOrEqual(Version.V14_0_0)
+              ? expectedOutputNNBSP
+              : expectedOutput);
     }
   }
 

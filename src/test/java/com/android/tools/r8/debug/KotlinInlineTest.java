@@ -259,7 +259,9 @@ public class KotlinInlineTest extends KotlinDebugTestBase {
   public void testNestedInlining() throws Throwable {
     assumeTrue(
         "b/244704042: Incorrect step-into StringBuilder.",
-        parameters.isCfRuntime() || !parameters.getDexRuntimeVersion().isEqualTo(Version.V13_0_0));
+        parameters.isCfRuntime()
+            || !(parameters.getDexRuntimeVersion().isEqualTo(Version.V13_0_0)
+                || parameters.getDexRuntimeVersion().isEqualTo(Version.V14_0_0)));
     // Count the number of lines in the source file. This is needed to check that inlined code
     // refers to non-existing line numbers.
     Path sourceFilePath =

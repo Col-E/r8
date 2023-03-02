@@ -132,29 +132,41 @@ public class R8RunSmaliTestsTest extends TestBase {
   private static final Map<DexVm.Version, Map<String, String>> customProcessedOutputExpectation =
       ImmutableMap.of(
           Version.V4_4_4,
-              ImmutableMap.of(
-                  "bad-codegen", "java.lang.NullPointerException\n",
-                  "type-confusion-regression2", "java.lang.NullPointerException\n",
-                  "type-confusion-regression3", "java.lang.NullPointerException\n",
-                  "merge-blocks-regression", "java.lang.NullPointerException\n"),
+          ImmutableMap.of(
+              "bad-codegen", "java.lang.NullPointerException\n",
+              "type-confusion-regression2", "java.lang.NullPointerException\n",
+              "type-confusion-regression3", "java.lang.NullPointerException\n",
+              "merge-blocks-regression", "java.lang.NullPointerException\n"),
           Version.V4_0_4,
-              ImmutableMap.of(
-                  "bad-codegen", "java.lang.NullPointerException\n",
-                  "type-confusion-regression2", "java.lang.NullPointerException\n",
-                  "type-confusion-regression3", "java.lang.NullPointerException\n",
-                  "merge-blocks-regression", "java.lang.NullPointerException\n"),
+          ImmutableMap.of(
+              "bad-codegen", "java.lang.NullPointerException\n",
+              "type-confusion-regression2", "java.lang.NullPointerException\n",
+              "type-confusion-regression3", "java.lang.NullPointerException\n",
+              "merge-blocks-regression", "java.lang.NullPointerException\n"),
           Version.V13_0_0,
-              ImmutableMap.of(
-                  "bad-codegen",
-                      StringUtils.lines(
-                          "java.lang.NullPointerException: Attempt to read from field 'Test Test.a'"
-                              + " on a null object reference in method 'Test TestObject.a(Test,"
-                              + " Test, Test, Test, boolean)'"),
-                  "type-confusion-regression3",
-                      StringUtils.lines(
-                          "java.lang.NullPointerException: Attempt to read from field 'byte[]"
-                              + " Test.a' on a null object reference in method 'int"
-                              + " TestObject.a(Test, Test)'")));
+          ImmutableMap.of(
+              "bad-codegen",
+              StringUtils.lines(
+                  "java.lang.NullPointerException: Attempt to read from field 'Test Test.a'"
+                      + " on a null object reference in method 'Test TestObject.a(Test,"
+                      + " Test, Test, Test, boolean)'"),
+              "type-confusion-regression3",
+              StringUtils.lines(
+                  "java.lang.NullPointerException: Attempt to read from field 'byte[]"
+                      + " Test.a' on a null object reference in method 'int"
+                      + " TestObject.a(Test, Test)'")),
+          Version.V14_0_0,
+          ImmutableMap.of(
+              "bad-codegen",
+                  StringUtils.lines(
+                      "java.lang.NullPointerException: Attempt to read from field 'Test Test.a'"
+                          + " on a null object reference in method 'Test TestObject.a(Test,"
+                          + " Test, Test, Test, boolean)'"),
+              "type-confusion-regression3",
+                  StringUtils.lines(
+                      "java.lang.NullPointerException: Attempt to read from field 'byte[]"
+                          + " Test.a' on a null object reference in method 'int"
+                          + " TestObject.a(Test, Test)'")));
 
   // Tests where the input fails with a verification error on Dalvik instead of the
   // expected runtime exception.

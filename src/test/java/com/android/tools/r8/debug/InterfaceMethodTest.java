@@ -47,9 +47,12 @@ public class InterfaceMethodTest extends DebugTestBase {
 
   @Test
   public void testDefaultMethod() throws Throwable {
-    // TODO(b/244683447): This test fails on ART 13 when checking current method in doSomething.
+    // TODO(b/244683447): This test fails on Art 13 and Art 14 when checking current method in
+    //  doSomething.
     assumeTrue(
-        parameters.isCfRuntime() || !parameters.getDexRuntimeVersion().isEqualTo(Version.V13_0_0));
+        parameters.isCfRuntime()
+            || !(parameters.getDexRuntimeVersion().isEqualTo(Version.V13_0_0)
+                || parameters.getDexRuntimeVersion().isEqualTo(Version.V14_0_0)));
     testForRuntime(parameters)
         .addProgramFiles(JAR)
         .run(parameters.getRuntime(), debuggeeClass)

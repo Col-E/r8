@@ -94,7 +94,7 @@ public class OpenUninstantiatedInterfaceInstanceofTest extends TestBase {
   private List<String> getExpectedOutputLines() {
     if (parameters.isDexRuntime()) {
       if (parameters.getDexRuntimeVersion().isEqualTo(Version.V7_0_0)
-          || parameters.getDexRuntimeVersion().isEqualTo(Version.V13_0_0)) {
+          || parameters.isDexRuntimeVersionNewerThanOrEqual(Version.V13_0_0)) {
         return ImmutableList.of("true");
       }
     }

@@ -44,7 +44,7 @@ public class InvokeSpecialOnOtherInterfaceTest extends TestBase {
         .applyIf(
             parameters.isCfRuntime(),
             r -> r.assertFailureWithErrorThatThrows(VerifyError.class),
-            !(parameters.isDexRuntimeVersion(Version.V13_0_0)
+            !(parameters.isDexRuntimeVersionNewerThanOrEqual(Version.V13_0_0)
                 && parameters.canUseDefaultAndStaticInterfaceMethods()),
             r -> r.assertSuccessWithOutputLines("Hello World!"),
             r -> r.assertFailureWithErrorThatThrows(NoSuchMethodError.class));
@@ -67,7 +67,7 @@ public class InvokeSpecialOnOtherInterfaceTest extends TestBase {
             parameters.isDexRuntime() && !parameters.canUseDefaultAndStaticInterfaceMethods(),
             r -> r.assertSuccessWithOutputLines("Hello World!"),
             parameters.isDexRuntime()
-                && !parameters.isDexRuntimeVersion(Version.V13_0_0)
+                && !parameters.isDexRuntimeVersionNewerThanOrEqual(Version.V13_0_0)
                 && parameters.canUseDefaultAndStaticInterfaceMethods(),
             r -> r.assertFailureWithErrorThatThrows(NullPointerException.class),
             r -> r.assertFailureWithErrorThatThrows(NoSuchMethodError.class));
