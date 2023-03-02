@@ -2850,14 +2850,15 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
   // the symbolic reference java.lang.Object.
   //
   // The support was added in Android O, however at least for j.l.CharSequence.equals the handling
-  // in Art was incorrect (b/231450655).
+  // in Art was incorrect (b/231450655). Further down the line b/271408544 indicate that it is not
+  // until Android S that this is working.
   //
   // javac started generating code like this with the fix for JDK-8272564, which will be part of
   // JDK 18.
   //
   // See b/218298666.
   public boolean canHaveInvokeInterfaceToObjectMethodBug() {
-    return canHaveBugPresentUntil(AndroidApiLevel.P);
+    return canHaveBugPresentUntil(AndroidApiLevel.S);
   }
 
   // Until we fully drop support for API levels < 16, we have to emit an empty annotation set to
