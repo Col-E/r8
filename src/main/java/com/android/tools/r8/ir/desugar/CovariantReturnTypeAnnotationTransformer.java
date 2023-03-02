@@ -54,18 +54,18 @@ import java.util.Set;
 // the contained CovariantReturnType annotations.
 public final class CovariantReturnTypeAnnotationTransformer {
 
-  private final AppView<?> appView;
   private final IRConverter converter;
   private final MethodProcessorEventConsumer methodProcessorEventConsumer =
       MethodProcessorEventConsumer.empty();
   private final DexItemFactory factory;
 
   public CovariantReturnTypeAnnotationTransformer(AppView<?> appView, IRConverter converter) {
-    this.appView = appView;
     this.converter = converter;
     this.factory = appView.dexItemFactory();
   }
 
+  // TODO(b/270398965): Replace LinkedList.
+  @SuppressWarnings("JdkObsolete")
   public void process(
       DexApplication.Builder<?> builder,
       CovariantReturnTypeAnnotationTransformerEventConsumer eventConsumer) {

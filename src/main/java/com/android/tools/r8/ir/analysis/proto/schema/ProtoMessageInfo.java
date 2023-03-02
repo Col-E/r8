@@ -26,8 +26,14 @@ public class ProtoMessageInfo {
 
     private int flags;
 
+    // TODO(b/270398965): Replace LinkedList.
+    @SuppressWarnings("JdkObsolete")
     private LinkedList<ProtoFieldInfo> fields;
+    // TODO(b/270398965): Replace LinkedList.
+    @SuppressWarnings("JdkObsolete")
     private LinkedList<ProtoFieldObject> hasBitsObjects;
+    // TODO(b/270398965): Replace LinkedList.
+    @SuppressWarnings("JdkObsolete")
     private LinkedList<ProtoOneOfObjectPair> oneOfObjects;
 
     private Builder(ProgramMethod dynamicMethod) {
@@ -38,6 +44,8 @@ public class ProtoMessageInfo {
       this.flags = value;
     }
 
+    // TODO(b/270398965): Replace LinkedList.
+    @SuppressWarnings("JdkObsolete")
     public void addField(ProtoFieldInfo field) {
       if (fields == null) {
         fields = new LinkedList<>();
@@ -45,6 +53,8 @@ public class ProtoMessageInfo {
       fields.add(field);
     }
 
+    // TODO(b/270398965): Replace LinkedList.
+    @SuppressWarnings("JdkObsolete")
     public void addHasBitsObject(ProtoFieldObject hasBitsObject) {
       if (hasBitsObjects == null) {
         hasBitsObjects = new LinkedList<>();
@@ -52,6 +62,8 @@ public class ProtoMessageInfo {
       hasBitsObjects.add(hasBitsObject);
     }
 
+    // TODO(b/270398965): Replace LinkedList.
+    @SuppressWarnings("JdkObsolete")
     public void addOneOfObject(ProtoFieldObject oneOfObject, ProtoFieldObject oneOfCaseObject) {
       if (oneOfObjects == null) {
         oneOfObjects = new LinkedList<>();

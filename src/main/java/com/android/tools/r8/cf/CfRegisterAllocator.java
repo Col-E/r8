@@ -96,9 +96,13 @@ public class CfRegisterAllocator implements RegisterAllocator {
   private final List<LiveIntervals> liveIntervals = new ArrayList<>();
 
   // List of active intervals.
+  // TODO(b/270398965): Replace LinkedList.
+  @SuppressWarnings("JdkObsolete")
   private final List<LiveIntervals> active = new LinkedList<>();
 
   // List of intervals where the current instruction falls into one of their live range holes.
+  // TODO(b/270398965): Replace LinkedList.
+  @SuppressWarnings("JdkObsolete")
   private final List<LiveIntervals> inactive = new LinkedList<>();
 
   // List of intervals that no register has been allocated to sorted by first live range.

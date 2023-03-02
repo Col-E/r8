@@ -60,6 +60,8 @@ public class RegisterMoveScheduler {
     valueMap.put(move.dst, move.dst);
   }
 
+  // TODO(b/270398965): Replace LinkedList.
+  @SuppressWarnings("JdkObsolete")
   public void schedule() {
     assert everyDestinationOnlyWrittenOnce();
 

@@ -636,6 +636,8 @@ public class CodeRewriter {
    * Covert the switch instruction to a sequence of if instructions checking for a specified set of
    * keys, followed by a new switch with the remaining keys.
    */
+  // TODO(b/270398965): Replace LinkedList.
+  @SuppressWarnings("JdkObsolete")
   void convertSwitchToSwitchAndIfs(
       IRCode code,
       ListIterator<BasicBlock> blocksIterator,

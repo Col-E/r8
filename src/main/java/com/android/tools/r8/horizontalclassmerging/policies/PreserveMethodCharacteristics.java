@@ -135,6 +135,8 @@ public class PreserveMethodCharacteristics extends MultiClassPolicy {
     }
   }
 
+  // TODO(b/270398965): Replace LinkedList.
+  @SuppressWarnings("JdkObsolete")
   @Override
   public Collection<MergeGroup> apply(MergeGroup group) {
     List<TargetGroup> groups = new ArrayList<>();

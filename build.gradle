@@ -701,7 +701,6 @@ if (!project.hasProperty('without_error_prone') &&
         options.errorprone.check('NarrowingCompoundAssignment', CheckSeverity.ERROR)
 
         // TODO(b/270534077): These should likely be fixed/suppressed and become hard failures.
-        options.errorprone.check('JdkObsolete', CheckSeverity.OFF)
         options.errorprone.check('UnusedVariable', CheckSeverity.OFF)
         options.errorprone.check('EqualsUnsafeCast', CheckSeverity.OFF)
         options.errorprone.check('TypeParameterUnusedInFormals', CheckSeverity.OFF)

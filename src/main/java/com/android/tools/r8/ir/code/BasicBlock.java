@@ -169,7 +169,10 @@ public class BasicBlock {
   // Catch handler information about which successors are catch handlers and what their guards are.
   private CatchHandlers<Integer> catchHandlers = CatchHandlers.EMPTY_INDICES;
 
+  // TODO(b/270398965): Replace LinkedList.
+  @SuppressWarnings("JdkObsolete")
   private LinkedList<Instruction> instructions = new LinkedList<>();
+
   private int number = -1;
   private List<Phi> phis = new ArrayList<>();
 
@@ -1413,6 +1416,8 @@ public class BasicBlock {
    * Remove a number of instructions. The instructions to remove are given as indexes in the
    * instruction stream.
    */
+  // TODO(b/270398965): Replace LinkedList.
+  @SuppressWarnings("JdkObsolete")
   public void removeInstructions(List<Integer> toRemove) {
     if (!toRemove.isEmpty()) {
       LinkedList<Instruction> newInstructions = new LinkedList<>();

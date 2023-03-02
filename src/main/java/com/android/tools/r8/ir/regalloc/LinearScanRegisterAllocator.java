@@ -151,8 +151,12 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
   // List of all top-level live intervals for all SSA values.
   private List<LiveIntervals> liveIntervals = new ArrayList<>();
   // List of active intervals.
+  // TODO(b/270398965): Replace LinkedList.
+  @SuppressWarnings("JdkObsolete")
   private List<LiveIntervals> active = new LinkedList<>();
   // List of intervals where the current instruction falls into one of their live range holes.
+  // TODO(b/270398965): Replace LinkedList.
+  @SuppressWarnings("JdkObsolete")
   protected List<LiveIntervals> inactive = new LinkedList<>();
   // List of intervals that no register has been allocated to sorted by first live range.
   protected PriorityQueue<LiveIntervals> unhandled = new PriorityQueue<>();
@@ -243,6 +247,8 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
     clearState();
   }
 
+  // TODO(b/270398965): Replace LinkedList.
+  @SuppressWarnings("JdkObsolete")
   public static void computeDebugInfo(
       IRCode code,
       ImmutableList<BasicBlock> blocks,
@@ -1112,6 +1118,8 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
    * allocated and have been moved from unhandled to inactive. The move sources have their hints
    * updated. The rest of the register allocation state is unchanged.
    */
+  // TODO(b/270398965): Replace LinkedList.
+  @SuppressWarnings("JdkObsolete")
   private void allocateArgumentIntervalsWithSrc(LiveIntervals srcInterval, ArgumentReuseMode mode) {
     Value value = srcInterval.getValue();
     for (Instruction instruction : value.uniqueUsers()) {

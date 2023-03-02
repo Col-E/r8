@@ -20,7 +20,6 @@ import java.util.Deque;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Stack;
 
 public class Timing {
 
@@ -75,7 +74,7 @@ public class Timing {
   }
 
   private final Node top;
-  private final Stack<Node> stack;
+  private final Deque<Node> stack;
   private final boolean trackMemory;
 
   @Deprecated
@@ -85,7 +84,7 @@ public class Timing {
 
   private Timing(String title, boolean trackMemory) {
     this.trackMemory = trackMemory;
-    stack = new Stack<>();
+    stack = new ArrayDeque<>();
     top = new Node(title, trackMemory);
     stack.push(top);
   }

@@ -332,6 +332,8 @@ public class HorizontalClassMerger {
     }
   }
 
+  // TODO(b/270398965): Replace LinkedList.
+  @SuppressWarnings("JdkObsolete")
   private List<MergeGroup> getInitialGroups() {
     MergeGroup initialClassGroup = new MergeGroup();
     MergeGroup initialInterfaceGroup = new MergeGroup();

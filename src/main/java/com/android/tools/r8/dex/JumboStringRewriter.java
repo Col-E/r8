@@ -252,6 +252,8 @@ public class JumboStringRewriter {
     return code.getDebugInfo();
   }
 
+  // TODO(b/270398965): Replace LinkedList.
+  @SuppressWarnings("JdkObsolete")
   private List<DexInstruction> expandCode() {
     LinkedList<DexInstruction> instructions = new LinkedList<>();
     Collections.addAll(instructions, method.getCode().asDexCode().instructions);

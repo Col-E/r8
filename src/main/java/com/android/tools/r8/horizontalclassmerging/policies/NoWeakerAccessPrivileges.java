@@ -43,6 +43,8 @@ public class NoWeakerAccessPrivileges extends MultiClassPolicy {
     this.immediateSubtypingInfo = immediateSubtypingInfo;
   }
 
+  // TODO(b/270398965): Replace LinkedList.
+  @SuppressWarnings("JdkObsolete")
   @Override
   public Collection<MergeGroup> apply(MergeGroup group) {
     List<MergeGroup> newMergeGroups = new LinkedList<>();

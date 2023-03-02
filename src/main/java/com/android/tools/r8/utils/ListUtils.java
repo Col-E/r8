@@ -218,12 +218,16 @@ public class ListUtils {
     return builder.build();
   }
 
+  // TODO(b/270398965): Replace LinkedList.
+  @SuppressWarnings("JdkObsolete")
   public static <T> LinkedList<T> newLinkedList(T element) {
     LinkedList<T> list = new LinkedList<>();
     list.add(element);
     return list;
   }
 
+  // TODO(b/270398965): Replace LinkedList.
+  @SuppressWarnings("JdkObsolete")
   public static <T> LinkedList<T> newLinkedList(ForEachable<T> forEachable) {
     LinkedList<T> list = new LinkedList<>();
     forEachable.forEach(list::add);

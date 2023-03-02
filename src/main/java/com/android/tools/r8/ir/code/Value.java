@@ -167,9 +167,17 @@ public class Value implements Comparable<Value> {
 
   protected final int number;
   public Instruction definition = null;
+
+  // TODO(b/270398965): Replace LinkedList.
+  @SuppressWarnings("JdkObsolete")
   private LinkedList<Instruction> users = new LinkedList<>();
+
   private Set<Instruction> uniqueUsers = null;
+
+  // TODO(b/270398965): Replace LinkedList.
+  @SuppressWarnings("JdkObsolete")
   private LinkedList<Phi> phiUsers = new LinkedList<>();
+
   private Set<Phi> uniquePhiUsers = null;
   private Value nextConsecutive = null;
   private Value previousConsecutive = null;

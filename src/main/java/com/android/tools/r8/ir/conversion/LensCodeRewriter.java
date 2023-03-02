@@ -867,6 +867,8 @@ public class LensCodeRewriter {
   //   argument instruction
   // - Removes unused arguments
   // - Updates the type of arguments whose type has been strengthened
+  // TODO(b/270398965): Replace LinkedList.
+  @SuppressWarnings("JdkObsolete")
   private void rewriteArguments(
       IRCode code,
       DexMethod originalMethodReference,

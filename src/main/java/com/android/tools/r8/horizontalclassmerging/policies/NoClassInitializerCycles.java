@@ -106,6 +106,8 @@ public class NoClassInitializerCycles extends MultiClassPolicyWithPreprocessing<
     this.appView = appView;
   }
 
+  // TODO(b/270398965): Replace LinkedList.
+  @SuppressWarnings("JdkObsolete")
   @Override
   public Collection<MergeGroup> apply(MergeGroup group, Void nothing) {
     // Partition the merge group into smaller groups that may be merged. If the class initialization

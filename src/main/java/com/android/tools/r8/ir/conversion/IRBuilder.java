@@ -375,6 +375,8 @@ public class IRBuilder {
   private final Reference2IntMap<BasicBlock> offsets = new Reference2IntOpenHashMap<>();
 
   // Worklist of reachable blocks.
+  // TODO(b/270398965): Replace LinkedList.
+  @SuppressWarnings("JdkObsolete")
   private final Queue<Integer> traceBlocksWorklist = new LinkedList<>();
 
   // Bitmap to ensure we don't process an instruction more than once.
@@ -384,9 +386,13 @@ public class IRBuilder {
   private Set<Integer> processedSubroutineInstructions = null;
 
   // Worklist for SSA construction.
+  // TODO(b/270398965): Replace LinkedList.
+  @SuppressWarnings("JdkObsolete")
   private final Queue<WorklistItem> ssaWorklist = new LinkedList<>();
 
   // Basic blocks. Added after processing from the worklist.
+  // TODO(b/270398965): Replace LinkedList.
+  @SuppressWarnings("JdkObsolete")
   private final LinkedList<BasicBlock> blocks = new LinkedList<>();
 
   private BasicBlock entryBlock = null;

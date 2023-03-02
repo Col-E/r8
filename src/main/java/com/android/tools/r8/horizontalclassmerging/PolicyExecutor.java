@@ -34,6 +34,8 @@ public class PolicyExecutor {
     }
   }
 
+  // TODO(b/270398965): Replace LinkedList.
+  @SuppressWarnings("JdkObsolete")
   private LinkedList<MergeGroup> applyMultiClassPolicy(
       MultiClassPolicy policy, LinkedList<MergeGroup> groups) {
     // For each group apply the multi class policy and add all the new groups together.
@@ -51,6 +53,8 @@ public class PolicyExecutor {
     return newGroups;
   }
 
+  // TODO(b/270398965): Replace LinkedList.
+  @SuppressWarnings("JdkObsolete")
   private <T> LinkedList<MergeGroup> applyMultiClassPolicyWithPreprocessing(
       MultiClassPolicyWithPreprocessing<T> policy,
       LinkedList<MergeGroup> groups,
@@ -77,6 +81,8 @@ public class PolicyExecutor {
    * policies registered to this policy executor on the class groups yielding a new collection of
    * class groups.
    */
+  // TODO(b/270398965): Replace LinkedList.
+  @SuppressWarnings("JdkObsolete")
   public Collection<MergeGroup> run(
       Collection<MergeGroup> inputGroups,
       Collection<Policy> policies,

@@ -24,6 +24,8 @@ public class LimitClassGroups extends MultiClassPolicy {
     assert maxGroupSize >= 2;
   }
 
+  // TODO(b/270398965): Replace LinkedList.
+  @SuppressWarnings("JdkObsolete")
   @Override
   public Collection<MergeGroup> apply(MergeGroup group) {
     if (group.size() <= maxGroupSize || group.isInterfaceGroup()) {

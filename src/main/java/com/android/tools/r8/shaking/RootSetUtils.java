@@ -95,7 +95,6 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Queue;
 import java.util.Set;
-import java.util.Stack;
 import java.util.TreeSet;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
@@ -512,7 +511,7 @@ public class RootSetUtils {
         ProguardIfRule ifRule) {
       Set<Wrapper<DexMethod>> methodsMarked =
           options.forceProguardCompatibility ? null : new HashSet<>();
-      Stack<DexClass> worklist = new Stack<>();
+      Deque<DexClass> worklist = new ArrayDeque<>();
       worklist.add(clazz);
       while (!worklist.isEmpty()) {
         DexClass currentClass = worklist.pop();

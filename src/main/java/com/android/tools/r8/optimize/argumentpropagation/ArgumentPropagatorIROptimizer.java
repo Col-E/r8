@@ -33,6 +33,8 @@ public class ArgumentPropagatorIROptimizer {
    * {@link Assume} instructions when non-trivial information is known about non-constant arguments
    * such as their nullability, dynamic type, interval, etc.
    */
+  // TODO(b/270398965): Replace LinkedList.
+  @SuppressWarnings("JdkObsolete")
   public static void optimize(
       AppView<AppInfoWithLiveness> appView,
       IRCode code,

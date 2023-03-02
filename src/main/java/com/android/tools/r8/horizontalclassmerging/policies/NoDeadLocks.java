@@ -25,6 +25,8 @@ public class NoDeadLocks extends MultiClassPolicy {
     return appView.appInfo().isLockCandidate(clazz.type) || clazz.hasStaticSynchronizedMethods();
   }
 
+  // TODO(b/270398965): Replace LinkedList.
+  @SuppressWarnings("JdkObsolete")
   @Override
   public Collection<MergeGroup> apply(MergeGroup group) {
     // Gather all synchronized classes.

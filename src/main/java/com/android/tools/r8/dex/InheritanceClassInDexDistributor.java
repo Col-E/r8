@@ -514,6 +514,8 @@ public class InheritanceClassInDexDistributor {
    * I5 --> I1, I2<br>
    * I3 and I4 will be in the same group even if they have no relation with each other.
    */
+  // TODO(b/270398965): Replace LinkedList.
+  @SuppressWarnings("JdkObsolete")
   private List<ClassGroup> collectInheritanceGroups() {
     // Considering classes are the nodes of a graph which edges are the inheritance relation between
     // classes. We just want to isolate every connected sub-graphs.

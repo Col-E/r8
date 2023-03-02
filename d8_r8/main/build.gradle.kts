@@ -48,7 +48,6 @@ tasks.withType<JavaCompile> {
   options.errorprone.error("NarrowingCompoundAssignment")
 
   // TODO(b/270534077): These should likely be fixed/suppressed and become hard failures.
-  options.errorprone.disable("JdkObsolete")
   options.errorprone.disable("UnusedVariable")
   options.errorprone.disable("EqualsUnsafeCast")
   options.errorprone.disable("TypeParameterUnusedInFormals")

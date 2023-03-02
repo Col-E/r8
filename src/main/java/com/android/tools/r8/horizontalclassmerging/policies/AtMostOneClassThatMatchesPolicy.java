@@ -17,6 +17,8 @@ import java.util.List;
 
 public abstract class AtMostOneClassThatMatchesPolicy extends MultiClassPolicy {
 
+  // TODO(b/270398965): Replace LinkedList.
+  @SuppressWarnings("JdkObsolete")
   @Override
   public Collection<MergeGroup> apply(MergeGroup group) {
     // Create a new merge group for each class that we want at most one of.

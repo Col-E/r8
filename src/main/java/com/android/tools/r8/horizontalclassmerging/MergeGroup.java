@@ -31,6 +31,8 @@ public class MergeGroup implements Collection<DexProgramClass> {
 
   public static class Metadata {}
 
+  // TODO(b/270398965): Replace LinkedList.
+  @SuppressWarnings("JdkObsolete")
   private final LinkedList<DexProgramClass> classes;
 
   private DexField classIdField;
@@ -39,6 +41,8 @@ public class MergeGroup implements Collection<DexProgramClass> {
 
   private BidirectionalManyToOneMap<DexEncodedField, DexEncodedField> instanceFieldMap;
 
+  // TODO(b/270398965): Replace LinkedList.
+  @SuppressWarnings("JdkObsolete")
   public MergeGroup() {
     this.classes = new LinkedList<>();
   }

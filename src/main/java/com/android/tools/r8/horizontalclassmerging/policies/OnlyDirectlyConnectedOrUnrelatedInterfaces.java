@@ -70,6 +70,8 @@ public class OnlyDirectlyConnectedOrUnrelatedInterfaces
     this.mode = mode;
   }
 
+  // TODO(b/270398965): Replace LinkedList.
+  @SuppressWarnings("JdkObsolete")
   @Override
   public Collection<MergeGroup> apply(MergeGroup group, SubtypingInfo subtypingInfo) {
     if (!group.isInterfaceGroup()) {

@@ -3833,6 +3833,8 @@ public class Enqueuer {
     private Map<DexMethod, MethodProcessingContext> methodProcessingContexts =
         new ConcurrentHashMap<>();
 
+    // TODO(b/270398965): Replace LinkedList.
+    @SuppressWarnings("JdkObsolete")
     private final List<ProgramMethod> desugaredMethods = new LinkedList<>();
 
     private final Map<DexMethod, ProgramMethod> liveMethods = new ConcurrentHashMap<>();

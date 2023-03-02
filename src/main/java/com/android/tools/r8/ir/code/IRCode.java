@@ -447,10 +447,11 @@ public class IRCode implements IRControlFlowGraph, ValueFactory {
   }
 
   /**
-   * Trace blocks and attempt to put fallthrough blocks immediately after the block that
-   * falls through. When we fail to do that we create a new fallthrough block with an explicit
-   * goto to the actual fallthrough block.
+   * Trace blocks and attempt to put fallthrough blocks immediately after the block that falls
+   * through. When we fail to do that we create a new fallthrough block with an explicit goto to the
+   * actual fallthrough block.
    */
+  @SuppressWarnings("JdkObsolete") // Consider replacing the use of LinkedList.
   public void traceBlocks() {
     // Get the blocks first, as calling topologicallySortedBlocks also sets marks.
     ImmutableList<BasicBlock> sorted = topologicallySortedBlocks();

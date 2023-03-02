@@ -393,6 +393,8 @@ public class CycleEliminator {
     return false;
   }
 
+  // TODO(b/270398965): Replace LinkedList.
+  @SuppressWarnings("JdkObsolete")
   private LinkedList<Node> extractCycle(Node entry) {
     LinkedList<Node> cycle = new LinkedList<>();
     do {

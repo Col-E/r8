@@ -36,8 +36,13 @@ public class SparseConditionalConstantPropagation {
   private final AppView<?> appView;
   private final IRCode code;
   private final Map<Value, LatticeElement> mapping = new HashMap<>();
+  // TODO(b/270398965): Replace LinkedList.
+  @SuppressWarnings("JdkObsolete")
   private final Deque<Value> ssaEdges = new LinkedList<>();
+  // TODO(b/270398965): Replace LinkedList.
+  @SuppressWarnings("JdkObsolete")
   private final Deque<BasicBlock> flowEdges = new LinkedList<>();
+
   private final int maxBlockNumber;
   private final BitSet[] executableFlowEdges;
   private final BitSet visitedBlocks;

@@ -34,6 +34,8 @@ public abstract class ProguardClassSpecification {
         ImmutableList.builder();
     protected ProguardTypeMatcher inheritanceClassName;
     protected boolean inheritanceIsExtends = false;
+    // TODO(b/270398965): Replace LinkedList.
+    @SuppressWarnings("JdkObsolete")
     protected List<ProguardMemberRule> memberRules = new LinkedList<>();
 
     protected Builder() {

@@ -25,10 +25,10 @@ import com.android.tools.r8.utils.Pair;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.StringUtils.BraceType;
 import java.io.PrintStream;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
 import java.util.IdentityHashMap;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -125,7 +125,7 @@ public class WhyAreYouKeepingConsumer extends CollectingGraphConsumer {
       return null;
     }
     Map<GraphNode, GraphNode> seen = new IdentityHashMap<>();
-    Deque<GraphPath> queue = new LinkedList<>();
+    Deque<GraphPath> queue = new ArrayDeque<>();
     GraphPath path = null;
     GraphNode current = node;
     while (true) {

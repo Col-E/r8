@@ -136,6 +136,8 @@ public class HumanToMachineWrapperConverter {
             });
   }
 
+  // TODO(b/270398965): Replace LinkedList.
+  @SuppressWarnings("JdkObsolete")
   private LinkedHashMap<DexType, WrapperDescriptorBuilder> orderDescriptors(
       Map<DexType, WrapperDescriptorBuilder> descriptors) {
     LinkedHashMap<DexType, WrapperDescriptorBuilder> orderedDescriptors = new LinkedHashMap<>();
@@ -155,6 +157,8 @@ public class HumanToMachineWrapperConverter {
     return orderedDescriptors;
   }
 
+  // TODO(b/270398965): Replace LinkedList.
+  @SuppressWarnings("JdkObsolete")
   private void finalizeWrapperDescriptors(
       LinkedHashMap<DexType, WrapperDescriptorBuilder> descriptors,
       MachineRewritingFlags.Builder builder) {
@@ -171,6 +175,8 @@ public class HumanToMachineWrapperConverter {
         });
   }
 
+  // TODO(b/270398965): Replace LinkedList.
+  @SuppressWarnings("JdkObsolete")
   private void fillDescriptors(
       DexClass wrapperClass,
       Set<DexMethod> excludedMethods,

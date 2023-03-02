@@ -157,6 +157,8 @@ public class Lir2IRConverter {
       advanceNextPositionEntry();
     }
 
+    // TODO(b/270398965): Replace LinkedList.
+    @SuppressWarnings("JdkObsolete")
     public IRCode getIRCode(ProgramMethod method) {
       LinkedList<BasicBlock> blockList = new LinkedList<>();
       IntList blockIndices = new IntArrayList(blocks.keySet());
