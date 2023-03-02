@@ -211,16 +211,6 @@ public class AppInfo implements DexDefinitionSupplier {
     }
   }
 
-  public DexProgramClass unsafeDirectProgramTypeLookup(DexType type) {
-    return app.programDefinitionFor(type);
-  }
-
-  public Origin originFor(DexType type) {
-    assert checkIfObsolete();
-    DexClass definition = app.definitionFor(type);
-    return definition == null ? Origin.unknown() : definition.origin;
-  }
-
   /**
    * Lookup static method on the method holder, or answers null.
    *
