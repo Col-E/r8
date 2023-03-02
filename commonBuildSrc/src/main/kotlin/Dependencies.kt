@@ -44,6 +44,7 @@ object Versions {
   const val kotlinVersion = "1.8.0"
   const val kotlinMetadataVersion = "0.6.0"
   const val smaliVersion = "2.2b4"
+  const val errorproneVersion = "2.18.0"
 }
 
 object Deps {
@@ -60,4 +61,5 @@ object Deps {
   val kotlinStdLib by lazy { "org.jetbrains.kotlin:kotlin-stdlib:${Versions.kotlinVersion}" }
   val kotlinReflect by lazy { "org.jetbrains.kotlin:kotlin-reflect:${Versions.kotlinVersion}" }
   val smali by lazy { "org.smali:smali:${Versions.smaliVersion}" }
+  val errorprone by lazy { "com.google.errorprone:error_prone_core:${Versions.errorproneVersion}" }
 }
