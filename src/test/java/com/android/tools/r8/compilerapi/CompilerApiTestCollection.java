@@ -13,6 +13,7 @@ import com.android.tools.r8.compilerapi.artprofiles.ArtProfilesForRewritingApiTe
 import com.android.tools.r8.compilerapi.assertionconfiguration.AssertionConfigurationTest;
 import com.android.tools.r8.compilerapi.classconflictresolver.ClassConflictResolverTest;
 import com.android.tools.r8.compilerapi.desugardependencies.DesugarDependenciesTest;
+import com.android.tools.r8.compilerapi.dexconsumers.PerClassSyntheticContextsTest;
 import com.android.tools.r8.compilerapi.diagnostics.ProguardKeepRuleDiagnosticsApiTest;
 import com.android.tools.r8.compilerapi.diagnostics.UnsupportedFeaturesDiagnosticApiTest;
 import com.android.tools.r8.compilerapi.globalsynthetics.GlobalSyntheticsTest;
@@ -58,7 +59,8 @@ public class CompilerApiTestCollection extends BinaryCompatibilityTestCollection
           ArtProfilesForRewritingApiTest.ApiTest.class,
           StartupProfileApiTest.ApiTest.class,
           ClassConflictResolverTest.ApiTest.class,
-          ProguardKeepRuleDiagnosticsApiTest.ApiTest.class);
+          ProguardKeepRuleDiagnosticsApiTest.ApiTest.class,
+          PerClassSyntheticContextsTest.ApiTest.class);
 
   private final TemporaryFolder temp;
 

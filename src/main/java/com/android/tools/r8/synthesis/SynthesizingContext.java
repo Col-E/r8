@@ -97,6 +97,10 @@ class SynthesizingContext implements Comparable<SynthesizingContext> {
     this.featureSplit = featureSplit;
   }
 
+  public boolean isSyntheticInputClass() {
+    return synthesizingContextType != inputContextType;
+  }
+
   @Override
   public int compareTo(SynthesizingContext other) {
     return Comparator
@@ -104,12 +108,17 @@ class SynthesizingContext implements Comparable<SynthesizingContext> {
         // choose the context prefix for items.
         .comparing(SynthesizingContext::getSynthesizingContextType)
         // To ensure that equals coincides with compareTo == 0, we then compare 'type'.
+        // Also, the input type context is used as the hygienic prefix in intermediate modes.
         .thenComparing(c -> c.inputContextType)
         .compare(this, other);
   }
 
   DexType getSynthesizingContextType() {
     return synthesizingContextType;
+  }
+
+  DexType getSynthesizingInputContext(boolean intermediate) {
+    return intermediate ? inputContextType : getSynthesizingContextType();
   }
 
   Origin getInputContextOrigin() {
@@ -121,14 +130,14 @@ class SynthesizingContext implements Comparable<SynthesizingContext> {
   }
 
   SynthesizingContext rewrite(NonIdentityGraphLens lens) {
-    DexType rewrittenInputeContextType = lens.lookupType(inputContextType);
+    DexType rewrittenInputContextType = lens.lookupType(inputContextType);
     DexType rewrittenSynthesizingContextType = lens.lookupType(synthesizingContextType);
-    return rewrittenInputeContextType == inputContextType
+    return rewrittenInputContextType == inputContextType
             && rewrittenSynthesizingContextType == synthesizingContextType
         ? this
         : new SynthesizingContext(
             rewrittenSynthesizingContextType,
-            rewrittenInputeContextType,
+            rewrittenInputContextType,
             inputContextOrigin,
             featureSplit);
   }

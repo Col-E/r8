@@ -4,6 +4,7 @@
 package com.android.tools.r8.synthesis;
 
 import com.android.tools.r8.features.ClassToFeatureSplitMap;
+import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.GraphLens;
@@ -58,7 +59,13 @@ abstract class SyntheticDefinition<
     return context;
   }
 
-  final String getPrefixForExternalSyntheticType() {
+  final String getPrefixForExternalSyntheticType(AppView<?> appView) {
+    if (!appView.options().intermediate && context.isSyntheticInputClass() && !kind.isGlobal()) {
+      // If the input class was a synthetic and the build is non-intermediate, unwind the synthetic
+      // name back to the original context (if present in the textual type).
+      return SyntheticNaming.getOuterContextFromExternalSyntheticType(
+          getKind(), getHolder().getType());
+    }
     return SyntheticNaming.getPrefixForExternalSyntheticType(getKind(), getHolder().getType());
   }
 

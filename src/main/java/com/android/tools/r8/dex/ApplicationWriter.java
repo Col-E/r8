@@ -626,6 +626,7 @@ public class ApplicationWriter {
           .acceptDexFile(
               new DexFilePerClassFileConsumerDataImpl(
                   primaryClassDescriptor,
+                  virtualFile.getPrimaryClassSynthesizingContextDescriptor(),
                   data,
                   virtualFile.getClassDescriptors(),
                   options.reporter));

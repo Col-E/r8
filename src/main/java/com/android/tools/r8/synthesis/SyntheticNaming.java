@@ -5,6 +5,7 @@ package com.android.tools.r8.synthesis;
 
 import com.android.tools.r8.Version;
 import com.android.tools.r8.errors.Unreachable;
+import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.desugar.itf.InterfaceDesugaringForTesting;
@@ -419,6 +420,19 @@ public class SyntheticNaming {
     return binaryName.substring(0, index);
   }
 
+  static String getOuterContextFromExternalSyntheticType(SyntheticKind kind, DexType type) {
+    assert !kind.isGlobal();
+    String binaryName = type.toBinaryName();
+    int index =
+        binaryName.indexOf(
+            kind.isFixedSuffixSynthetic() ? kind.descriptor : EXTERNAL_SYNTHETIC_CLASS_SEPARATOR);
+    if (index < 0) {
+      throw new Unreachable(
+          "Unexpected failure to determine the context of synthetic class: " + binaryName);
+    }
+    return binaryName.substring(0, index);
+  }
+
   static DexType createFixedType(
       SyntheticKind kind, SynthesizingContext context, DexItemFactory factory) {
     assert kind.isFixedSuffixSynthetic();
@@ -426,14 +440,14 @@ public class SyntheticNaming {
   }
 
   static DexType createInternalType(
-      SyntheticKind kind, SynthesizingContext context, String id, DexItemFactory factory) {
+      SyntheticKind kind, SynthesizingContext context, String id, AppView<?> appView) {
     assert !kind.isFixedSuffixSynthetic();
     return createType(
         INTERNAL_SYNTHETIC_CLASS_SEPARATOR,
         kind,
-        context.getSynthesizingContextType(),
+        context.getSynthesizingInputContext(appView.options().intermediate),
         id,
-        factory);
+        appView.dexItemFactory());
   }
 
   static DexType createExternalType(

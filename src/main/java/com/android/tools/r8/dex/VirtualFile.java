@@ -49,7 +49,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.IdentityHashMap;
 import java.util.Iterator;
@@ -73,6 +72,7 @@ public class VirtualFile {
   private final StartupOrder startupOrder;
 
   private final DexString primaryClassDescriptor;
+  private final DexString primaryClassSynthesizingContextDescriptor;
   private DebugRepresentation debugRepresentation;
 
   VirtualFile(int id, AppView<?> appView) {
@@ -102,12 +102,23 @@ public class VirtualFile {
     this.id = id;
     this.indexedItems = new VirtualFileIndexedItemCollection(appView);
     this.transaction = new IndexedItemTransaction(indexedItems, appView);
-    this.primaryClassDescriptor =
-        primaryClass == null
-            ? null
-            : appView.getNamingLens().lookupClassDescriptor(primaryClass.type);
     this.featureSplit = featureSplit;
     this.startupOrder = startupOrder;
+    if (primaryClass == null) {
+      primaryClassDescriptor = null;
+      primaryClassSynthesizingContextDescriptor = null;
+    } else {
+      DexType type = primaryClass.getType();
+      primaryClassDescriptor = appView.getNamingLens().lookupClassDescriptor(type);
+      Collection<DexType> contexts = appView.getSyntheticItems().getSynthesizingContextTypes(type);
+      if (contexts.size() == 1) {
+        primaryClassSynthesizingContextDescriptor =
+            appView.getNamingLens().lookupClassDescriptor(contexts.iterator().next());
+      } else {
+        assert contexts.isEmpty();
+        primaryClassSynthesizingContextDescriptor = null;
+      }
+    }
   }
 
   public int getId() {
@@ -133,6 +144,12 @@ public class VirtualFile {
 
   public String getPrimaryClassDescriptor() {
     return primaryClassDescriptor == null ? null : primaryClassDescriptor.toString();
+  }
+
+  public String getPrimaryClassSynthesizingContextDescriptor() {
+    return primaryClassSynthesizingContextDescriptor == null
+        ? null
+        : primaryClassSynthesizingContextDescriptor.toString();
   }
 
   public void setDebugRepresentation(DebugRepresentation debugRepresentation) {
@@ -319,35 +336,36 @@ public class VirtualFile {
 
     @Override
     public List<VirtualFile> run() {
-      HashMap<DexProgramClass, VirtualFile> files = new HashMap<>();
-      Collection<DexProgramClass> synthetics = new ArrayList<>();
+      Map<DexType, VirtualFile> files = new IdentityHashMap<>();
+      Map<DexType, List<DexProgramClass>> derivedSynthetics = new LinkedHashMap<>();
       // Assign dedicated virtual files for all program classes.
       for (DexProgramClass clazz : classes) {
-        // TODO(b/181636450): Simplify this making use of the assumption that synthetics are never
-        //  duplicated.
-        if (!combineSyntheticClassesWithPrimaryClass
-            || !appView.getSyntheticItems().isSyntheticClass(clazz)) {
-          VirtualFile file = new VirtualFile(virtualFiles.size(), appView, clazz);
-          virtualFiles.add(file);
-          file.addClass(clazz);
-          files.put(clazz, file);
-          // Commit this early, so that we do not keep the transaction state around longer than
-          // needed and clear the underlying sets.
-          file.commitTransaction();
-        } else {
-          synthetics.add(clazz);
+        if (combineSyntheticClassesWithPrimaryClass) {
+          DexType inputContextType =
+              appView
+                  .getSyntheticItems()
+                  .getSynthesizingInputContext(clazz.getType(), appView.options());
+          if (inputContextType != null && inputContextType != clazz.getType()) {
+            derivedSynthetics.computeIfAbsent(inputContextType, k -> new ArrayList<>()).add(clazz);
+            continue;
+          }
         }
-      }
-      for (DexProgramClass synthetic : synthetics) {
-        Collection<DexType> synthesizingContexts =
-            appView.getSyntheticItems().getSynthesizingContextTypes(synthetic.getType());
-        assert synthesizingContexts.size() == 1;
-        DexProgramClass inputType =
-            appView.definitionForProgramType(synthesizingContexts.iterator().next());
-        VirtualFile file = files.get(inputType);
-        file.addClass(synthetic);
+        VirtualFile file = new VirtualFile(virtualFiles.size(), appView, clazz);
+        virtualFiles.add(file);
+        file.addClass(clazz);
+        files.put(clazz.getType(), file);
+        // Commit this early, so that we do not keep the transaction state around longer than
+        // needed and clear the underlying sets.
         file.commitTransaction();
       }
+      derivedSynthetics.forEach(
+          (inputContextType, synthetics) -> {
+            VirtualFile file = files.get(inputContextType);
+            for (DexProgramClass synthetic : synthetics) {
+              file.addClass(synthetic);
+              file.commitTransaction();
+            }
+          });
       return virtualFiles;
     }
   }

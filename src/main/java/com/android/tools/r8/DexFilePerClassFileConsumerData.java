@@ -23,4 +23,13 @@ public interface DexFilePerClassFileConsumerData {
 
   /** Diagnostics handler for reporting. */
   DiagnosticsHandler getDiagnosticsHandler();
+
+  /**
+   * Class descriptor of the primary-class's synthetic context.
+   *
+   * <p>If primary class is a compiler-synthesized class (i.e. it is an input that was synthesized
+   * by a prior D8 intermediate compilation) then the value is the descriptor of the class that
+   * caused the primary class to be synthesized. The value is null in all other cases.
+   */
+  String getSynthesizingContextForPrimaryClass();
 }

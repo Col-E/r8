@@ -193,7 +193,7 @@ public class SyntheticMarker {
     if (kind.isGlobal()) {
       return type;
     }
-    String prefix = SyntheticNaming.getPrefixForExternalSyntheticType(kind, type);
+    String prefix = SyntheticNaming.getOuterContextFromExternalSyntheticType(kind, type);
     return factory.createType(DescriptorUtils.getDescriptorFromClassBinaryName(prefix));
   }
 

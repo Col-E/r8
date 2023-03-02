@@ -88,7 +88,7 @@ public class AppInfo implements DexDefinitionSupplier {
     return new AppInfo(app, syntheticItems, mainDexInfo, new BooleanBox());
   }
 
-  protected InternalOptions options() {
+  public InternalOptions options() {
     return app.options;
   }
 
@@ -188,20 +188,19 @@ public class AppInfo implements DexDefinitionSupplier {
       return;
     }
     Origin dependencyOrigin = dependency.getOrigin();
-    java.util.Collection<DexType> dependents =
-        getSyntheticItems().getSynthesizingContextTypes(dependent.getType());
-    if (dependents.isEmpty()) {
-      reportDependencyEdge(consumer, dependencyOrigin, dependent);
+    Collection<Origin> dependentOrigins =
+        getSyntheticItems().getSynthesizingOrigin(dependent.getType());
+    if (dependentOrigins.isEmpty()) {
+      reportDependencyEdge(consumer, dependencyOrigin, dependent.getOrigin());
     } else {
-      for (DexType type : dependents) {
-        reportDependencyEdge(consumer, dependencyOrigin, definitionFor(type));
+      for (Origin dependentOrigin : dependentOrigins) {
+        reportDependencyEdge(consumer, dependencyOrigin, dependentOrigin);
       }
     }
   }
 
   private void reportDependencyEdge(
-      DesugarGraphConsumer consumer, Origin dependencyOrigin, DexClass clazz) {
-    Origin dependentOrigin = clazz.getOrigin();
+      DesugarGraphConsumer consumer, Origin dependencyOrigin, Origin dependentOrigin) {
     if (dependencyOrigin == GlobalSyntheticOrigin.instance()
         || dependentOrigin == GlobalSyntheticOrigin.instance()) {
       // D8/R8 does not report edges to synthetic classes that D8/R8 generates.

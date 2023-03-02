@@ -11,16 +11,19 @@ import java.util.Set;
 public class DexFilePerClassFileConsumerDataImpl implements DexFilePerClassFileConsumerData {
 
   private final String primaryClassDescriptor;
+  private final String synthesizingContextDescriptor;
   private final ByteDataView data;
   private final Set<String> classDescriptors;
   private final DiagnosticsHandler handler;
 
   public DexFilePerClassFileConsumerDataImpl(
       String primaryClassDescriptor,
+      String synthesizingContextDescriptor,
       ByteDataView data,
       Set<String> classDescriptors,
       DiagnosticsHandler handler) {
     this.primaryClassDescriptor = primaryClassDescriptor;
+    this.synthesizingContextDescriptor = synthesizingContextDescriptor;
     this.data = data;
     this.classDescriptors = classDescriptors;
     this.handler = handler;
@@ -29,6 +32,11 @@ public class DexFilePerClassFileConsumerDataImpl implements DexFilePerClassFileC
   @Override
   public String getPrimaryClassDescriptor() {
     return primaryClassDescriptor;
+  }
+
+  @Override
+  public String getSynthesizingContextForPrimaryClass() {
+    return synthesizingContextDescriptor;
   }
 
   @Override

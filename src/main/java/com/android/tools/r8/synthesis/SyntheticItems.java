@@ -37,8 +37,10 @@ import com.android.tools.r8.graph.ProgramOrClasspathDefinition;
 import com.android.tools.r8.graph.PrunedItems;
 import com.android.tools.r8.horizontalclassmerging.HorizontalClassMerger;
 import com.android.tools.r8.naming.NamingLens;
+import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.synthesis.SyntheticFinalization.Result;
 import com.android.tools.r8.synthesis.SyntheticNaming.SyntheticKind;
+import com.android.tools.r8.utils.Box;
 import com.android.tools.r8.utils.ConsumerUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.IterableUtils;
@@ -549,6 +551,33 @@ public class SyntheticItems implements SyntheticDefinitionsProvider {
     return syntheticContextsToSyntheticClasses;
   }
 
+  public Collection<Origin> getSynthesizingOrigin(DexType type) {
+    if (!isSynthetic(type)) {
+      return Collections.emptyList();
+    }
+    ImmutableList.Builder<Origin> builder = ImmutableList.builder();
+    forEachSynthesizingContext(
+        type,
+        context -> {
+          builder.add(context.getInputContextOrigin());
+        });
+    return builder.build();
+  }
+
+  public DexType getSynthesizingInputContext(DexType syntheticType, InternalOptions options) {
+    if (!isSynthetic(syntheticType)) {
+      return null;
+    }
+    Box<DexType> uniqueInputContext = new Box<>(null);
+    forEachSynthesizingContext(
+        syntheticType,
+        context -> {
+          assert uniqueInputContext.get() == null;
+          uniqueInputContext.set(context.getSynthesizingInputContext(options.intermediate));
+        });
+    return uniqueInputContext.get();
+  }
+
   public interface SynthesizingContextOracle {
 
     Set<DexReference> getSynthesizingContexts(DexProgramClass clazz);
@@ -729,9 +758,7 @@ public class SyntheticItems implements SyntheticDefinitionsProvider {
     // This is to ensure a flat input-type -> synthetic-item mapping.
     SynthesizingContext outerContext = getSynthesizingContext(context.getClassContext(), appView);
     Function<SynthesizingContext, DexType> contextToType =
-        c ->
-            SyntheticNaming.createInternalType(
-                kind, c, context.getSyntheticSuffix(), appView.dexItemFactory());
+        c -> SyntheticNaming.createInternalType(kind, c, context.getSyntheticSuffix(), appView);
     return internalCreateProgramClass(
         kind, fn, outerContext, contextToType.apply(outerContext), contextToType, appView);
   }
@@ -1028,8 +1055,7 @@ public class SyntheticItems implements SyntheticDefinitionsProvider {
     SynthesizingContext outerContext = getSynthesizingContext(context, appView);
     SyntheticKind kind = kindSelector.select(naming);
     DexType type =
-        SyntheticNaming.createInternalType(
-            kind, outerContext, syntheticIdSupplier.get(), appView.dexItemFactory());
+        SyntheticNaming.createInternalType(kind, outerContext, syntheticIdSupplier.get(), appView);
     SyntheticProgramClassBuilder classBuilder =
         new SyntheticProgramClassBuilder(type, kind, outerContext, appView.dexItemFactory());
     DexProgramClass clazz =
