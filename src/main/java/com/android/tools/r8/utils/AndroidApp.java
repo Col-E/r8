@@ -42,8 +42,6 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.origin.ArchiveEntryOrigin;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.origin.PathOrigin;
-import com.android.tools.r8.profile.art.ArtProfileProvider;
-import com.android.tools.r8.profile.art.ArtProfileProviderUtils;
 import com.android.tools.r8.shaking.FilteredClassPath;
 import com.android.tools.r8.startup.StartupProfileProvider;
 import com.android.tools.r8.synthesis.SyntheticItems;
@@ -541,9 +539,6 @@ public class AndroidApp {
             StringUtils.joinLines(dumpOptions.getMainDexKeepRules()).getBytes(),
             ZipEntry.DEFLATED);
       }
-      if (dumpOptions.hasArtProfileProviders()) {
-        dumpArtProfileProviders(dumpOptions.getArtProfileProviders(), options, out);
-      }
       if (dumpOptions.hasStartupProfileProviders()) {
         dumpStartupProfileProviders(dumpOptions.getStartupProfileProviders(), options, out);
       }
@@ -576,23 +571,6 @@ public class AndroidApp {
     return nextDexIndex;
   }
 
-  private void dumpArtProfileProviders(
-      Collection<ArtProfileProvider> artProfileProviders,
-      InternalOptions options,
-      ZipOutputStream out)
-      throws IOException {
-    int artProfileProviderIndex = 1;
-    for (ArtProfileProvider artProfileProvider : artProfileProviders) {
-      String artProfileFileName = "art-profile-" + artProfileProviderIndex + ".txt";
-      writeToZipStream(
-          out,
-          artProfileFileName,
-          ArtProfileProviderUtils.serializeToString(artProfileProvider).getBytes(),
-          ZipEntry.DEFLATED);
-      artProfileProviderIndex++;
-    }
-  }
-
   private void dumpStartupProfileProviders(
       Collection<StartupProfileProvider> startupProfileProviders,
       InternalOptions options,
@@ -600,10 +578,11 @@ public class AndroidApp {
       throws IOException {
     int startupProfileProviderIndex = 1;
     for (StartupProfileProvider startupProfileProvider : startupProfileProviders) {
-      String startupProfileFileName = "startup-profile-" + startupProfileProviderIndex + ".txt";
+      String startupProfileProviderFileName =
+          "startup-profile-" + startupProfileProviderIndex + ".txt";
       writeToZipStream(
           out,
-          startupProfileFileName,
+          startupProfileProviderFileName,
           StartupProfileProviderUtils.serializeToString(options, startupProfileProvider).getBytes(),
           ZipEntry.DEFLATED);
       startupProfileProviderIndex++;
