@@ -164,7 +164,13 @@ public final class L8Command extends BaseCompilerCommand {
 
   @Override
   List<ArtProfileForRewriting> getArtProfilesForRewriting() {
-    return getD8Command().getArtProfilesForRewriting();
+    if (getD8Command() != null) {
+      return getD8Command().getArtProfilesForRewriting();
+    }
+    if (getR8Command() != null) {
+      return getR8Command().getArtProfilesForRewriting();
+    }
+    return Collections.emptyList();
   }
 
   @Override
