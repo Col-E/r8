@@ -276,6 +276,8 @@ public class SharedEnumUnboxingUtilityClass extends EnumUnboxingUtilityClass {
                       sharedUtilityClassType, dexItemFactory.intArrayType, "$VALUES"))
               .setAccessFlags(FieldAccessFlags.createPublicStaticFinalSynthetic())
               .setApiLevel(appView.computedMinApiLevel())
+              .disableAndroidApiLevelCheckIf(
+                  !appView.options().apiModelingOptions().isApiCallerIdentificationEnabled())
               .build();
       fieldAccessInfoCollectionModifierBuilder
           .recordFieldReadInUnknownContext(valuesField.getReference())
