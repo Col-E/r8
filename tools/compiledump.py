@@ -199,6 +199,16 @@ class Dump(object):
   def main_dex_rules_resource(self):
     return self.if_exists('main-dex-rules.txt')
 
+  def art_profile_resources(self):
+    art_profile_resources = []
+    while True:
+      current_art_profile_index = len(art_profile_resources) + 1
+      art_profile_resource = self.if_exists(
+          'art-profile-%s.txt' % current_art_profile_index)
+      if art_profile_resource is None:
+        return art_profile_resources
+      art_profile_resources.append(art_profile_resource)
+
   def startup_profile_resources(self):
     startup_profile_resources = []
     while True:
@@ -316,6 +326,9 @@ def determine_min_api(args, build_properties):
     return build_properties.get('min-api')
   return None
 
+def determine_residual_art_profile_output(art_profile, temp):
+  return os.path.join(temp, os.path.basename(art_profile)[:-4] + ".out.txt")
+
 def determine_desugared_lib_pg_conf_output(temp):
   return os.path.join(temp, 'desugared-library-keep-rules.config')
 
@@ -412,7 +425,7 @@ def clean_config_line(line, minify, optimize, shrink):
   return False
 
 def prepare_r8_wrapper(dist, temp, jdkhome):
-  compile_with_javac(
+  compile_wrapper_with_javac(
     dist,
     temp,
     jdkhome,
@@ -421,7 +434,7 @@ def prepare_r8_wrapper(dist, temp, jdkhome):
       'src/main/java/com/android/tools/r8/utils/CompileDumpCompatR8.java'))
 
 def prepare_d8_wrapper(dist, temp, jdkhome):
-  compile_with_javac(
+  compile_wrapper_with_javac(
     dist,
     temp,
     jdkhome,
@@ -429,10 +442,14 @@ def prepare_d8_wrapper(dist, temp, jdkhome):
       utils.REPO_ROOT,
       'src/main/java/com/android/tools/r8/utils/CompileDumpD8.java'))
 
-def compile_with_javac(dist, temp, jdkhome, path):
+def compile_wrapper_with_javac(dist, temp, jdkhome, path):
+  base_path = os.path.join(
+      utils.REPO_ROOT,
+      'src/main/java/com/android/tools/r8/utils/CompileDumpBase.java')
   cmd = [
     jdk.GetJavacExecutable(jdkhome),
     path,
+    base_path,
     '-d', temp,
     '-cp', dist,
   ]
@@ -545,6 +562,11 @@ def run1(out, args, otherargs, jdkhome=None):
       cmd.extend(['--main-dex-list', dump.main_dex_list_resource()])
     if dump.main_dex_rules_resource():
       cmd.extend(['--main-dex-rules', dump.main_dex_rules_resource()])
+    for art_profile_resource in dump.art_profile_resources():
+      residual_art_profile_output = \
+          determine_residual_art_profile_output(art_profile_resource, temp)
+      cmd.extend([
+          '--art-profile', art_profile_resource, residual_art_profile_output])
     for startup_profile_resource in dump.startup_profile_resources():
       cmd.extend(['--startup-profile', startup_profile_resource])
     if min_api:

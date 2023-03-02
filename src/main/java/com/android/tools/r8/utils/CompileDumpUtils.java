@@ -7,6 +7,10 @@ package com.android.tools.r8.utils;
 import com.android.tools.r8.KeepMethodForCompileDump;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.origin.PathOrigin;
+import com.android.tools.r8.profile.art.ArtProfileConsumer;
+import com.android.tools.r8.profile.art.ArtProfileConsumerUtils;
+import com.android.tools.r8.profile.art.ArtProfileProvider;
+import com.android.tools.r8.profile.art.ArtProfileProviderUtils;
 import com.android.tools.r8.references.MethodReference;
 import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.startup.StartupProfileBuilder;
@@ -18,6 +22,16 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 
 class CompileDumpUtils {
+
+  @KeepMethodForCompileDump
+  static ArtProfileProvider createArtProfileProviderFromDumpFile(Path artProfile) {
+    return ArtProfileProviderUtils.createFromHumanReadableArtProfile(artProfile);
+  }
+
+  @KeepMethodForCompileDump
+  static ArtProfileConsumer createResidualArtProfileConsumerFromDumpFile(Path residualArtProfile) {
+    return ArtProfileConsumerUtils.create(residualArtProfile);
+  }
 
   @KeepMethodForCompileDump
   static StartupProfileProvider createStartupProfileProviderFromDumpFile(Path path) {
