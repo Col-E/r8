@@ -229,12 +229,7 @@ public class PrimaryD8L8IRConverter extends IRConverter {
         int limit = 11;
         for (DexProgramClass clazz : appView.appInfo().classesWithDeterministicOrder()) {
           if (!clazz.type.descriptor.startsWith(neverMergePrefix)) {
-            boolean hasExceptionPrefix = false;
-            for (DexString exceptionPrefix : neverMerge.getExceptionPrefixes()) {
-              hasExceptionPrefix =
-                  hasExceptionPrefix | clazz.type.descriptor.startsWith(exceptionPrefix);
-            }
-            if (hasExceptionPrefix) {
+            if (hasExceptionPrefix(clazz)) {
               continue;
             }
             if (limit-- < 0) {
@@ -253,6 +248,15 @@ public class PrimaryD8L8IRConverter extends IRConverter {
         throw new CompilationError(message.toString());
       }
     }
+  }
+
+  private boolean hasExceptionPrefix(DexProgramClass clazz) {
+    for (DexString exceptionPrefix : neverMerge.getExceptionPrefixes()) {
+      if (clazz.type.descriptor.startsWith(exceptionPrefix)) {
+        return true;
+      }
+    }
+    return false;
   }
 
   void classSynthesisDesugaring(

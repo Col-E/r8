@@ -58,7 +58,6 @@ tasks.withType<JavaCompile> {
   options.errorprone.disable("HidingField")
   options.errorprone.disable("StreamResourceLeak")
   options.errorprone.disable("CatchAndPrintStackTrace")
-  options.errorprone.disable("ShortCircuitBoolean")
   options.errorprone.disable("NonCanonicalType")
   options.errorprone.disable("UnusedNestedClass")
   options.errorprone.disable("AmbiguousMethodReference")

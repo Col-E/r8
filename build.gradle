@@ -711,7 +711,6 @@ if (!project.hasProperty('without_error_prone') &&
         options.errorprone.check('HidingField', CheckSeverity.OFF)
         options.errorprone.check('StreamResourceLeak', CheckSeverity.OFF)
         options.errorprone.check('CatchAndPrintStackTrace', CheckSeverity.OFF)
-        options.errorprone.check('ShortCircuitBoolean', CheckSeverity.OFF)
         options.errorprone.check('NonCanonicalType', CheckSeverity.OFF)
         options.errorprone.check('UnusedNestedClass', CheckSeverity.OFF)
         options.errorprone.check('AmbiguousMethodReference', CheckSeverity.OFF)
