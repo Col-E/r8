@@ -18,10 +18,12 @@ android-data*/
 build/
 buildSrc/out/
 src/*/out
+d8_r8/*/out
 gradle-app.setting
 gradle/*
 gradlew
 gradlew.bat
+d8_r8/gradle*
 local.properties
 r8.ipr
 r8.iws
