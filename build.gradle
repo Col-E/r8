@@ -395,7 +395,6 @@ def cloudDependencies = [
                 "linux/host/art-master",
                 "linux/dalvik",
                 "linux/dalvik-4.0.4",
-                "${osString}/dx",
         ]
 ]
 
@@ -501,16 +500,6 @@ task downloadOpenJDKrt {
    cloudDependencies.each { entry ->
         entry.value.each { entryFile ->
             if (entryFile.contains("openjdk-rt")) {
-                dependsOn "${getDownloadDepsTaskName(entry.key, entryFile)}"
-            }
-        }
-    }
-}
-
-task downloadDx {
-    cloudDependencies.each { entry ->
-        entry.value.each { entryFile ->
-            if (entryFile.endsWith("/dx")) {
                 dependsOn "${getDownloadDepsTaskName(entry.key, entryFile)}"
             }
         }
