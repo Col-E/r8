@@ -216,7 +216,6 @@ public class R8RunSmaliTestsTest extends TestBase {
   @Test
   public void SmaliTest() throws Exception {
     Path originalDexFile = Paths.get(SMALI_DIR, directoryName, dexFileName);
-    // Path outputPath = temp.getRoot().toPath().resolve("classes.dex");
 
     if (failingOnX8.contains(directoryName)) {
       thrown.expect(CompilationFailedException.class);
@@ -229,9 +228,21 @@ public class R8RunSmaliTestsTest extends TestBase {
     boolean originalFailing =
         (originalFailingOnArtVersions.containsKey(version)
             && originalFailingOnArtVersions.get(version).contains(directoryName));
+    Path testJar = Paths.get(SMALI_DIR, directoryName, "Test.jar");
+    boolean testJarExists = testJar.toFile().exists();
+    Path testJarDex = null;
+    if (testJarExists) {
+      testJarDex =
+          testForD8(Backend.DEX)
+              .setMinApi(parameters)
+              .addProgramFiles(testJar)
+              .compile()
+              .writeToZip();
+    }
     testForR8(parameters.getBackend())
         .addKeepAllClassesRule()
         .addProgramDexFileData(Files.readAllBytes(originalDexFile))
+        .applyIf(testJarExists, p -> p.addProgramFiles(testJar))
         .addDontWarn(missingClasses.getOrDefault(directoryName, Collections.emptySet()))
         .setMinApi(parameters)
         .compile()
@@ -243,12 +254,14 @@ public class R8RunSmaliTestsTest extends TestBase {
 
     // Also run the original DEX if possible.
     if (!dalvikVerificationError && !originalFailing) {
+      ImmutableList.Builder<String> dexListBuilder = ImmutableList.builder();
+      dexListBuilder.add(originalDexFile.toString());
+      if (testJarExists) {
+        dexListBuilder.add(testJarDex.toString());
+      }
       String originalOutput =
           ToolHelper.runArtNoVerificationErrors(
-              ImmutableList.of(originalDexFile.toString()),
-              "Test",
-              null,
-              parameters.getRuntime().asDex().getVm());
+              dexListBuilder.build(), "Test", null, parameters.getRuntime().asDex().getVm());
       assertEquals(expectedOutput, originalOutput);
     }
   }

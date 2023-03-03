@@ -1739,10 +1739,11 @@ task buildSmali {
                 }
             }
         } else {
-            dependsOn "${taskName}_dexmerger"
+            dependsOn "${taskName}_smali"
+            dependsOn "${taskName}_jar"
             task "${taskName}_smali"(type: SmaliTask) {
                 source = smaliFiles
-                destination = intermediateFile
+                destination = destFile
             }
             task "${taskName}_java"(type: JavaCompile) {
                 source = javaFiles
@@ -1756,15 +1757,6 @@ task buildSmali {
                 archiveName = "Test.jar"
                 destinationDir = destDir
                 from fileTree(dir: destDir, include: 'Test.class')
-            }
-            task "${taskName}_dx"(type: DxTask, dependsOn: "${taskName}_jar") {
-                source = fileTree(dir: destDir, include: 'Test.jar')
-                destination = destDir
-            }
-            task "${taskName}_dexmerger"(
-                    type: DexMergerTask, dependsOn: ["${taskName}_dx", "${taskName}_smali"]) {
-                source = fileTree(dir: destDir, include: ["classes.dex", intermediateFileName])
-                destination = destFile
             }
         }
     }
