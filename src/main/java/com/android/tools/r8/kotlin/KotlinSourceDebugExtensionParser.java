@@ -6,6 +6,7 @@ package com.android.tools.r8.kotlin;
 
 import com.android.tools.r8.naming.Range;
 import com.android.tools.r8.utils.SegmentTree;
+import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.ThrowingConsumer;
 import java.io.BufferedReader;
 import java.io.Closeable;
@@ -216,8 +217,8 @@ public class KotlinSourceDebugExtensionParser {
       throws KotlinSourceDebugExtensionParserException {
     // + <file_number_i> <file_name_i>
     // <file_path_i>
-    String[] entries = entryLine.trim().split(" ");
-    if (entries.length != 3 || !entries[0].equals("+")) {
+    String[] entries = StringUtils.splitKnownSize(entryLine.trim(), ' ', 3);
+    if (entries == null || !entries[0].equals("+")) {
       throw new KotlinSourceDebugExtensionParserException(
           "Wrong number of entries on line " + entryLine);
     }

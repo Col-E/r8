@@ -938,9 +938,7 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
     String property = System.getProperty("com.android.tools.r8.extensiveLoggingFilter");
     if (property != null) {
       ImmutableSet.Builder<String> builder = ImmutableSet.builder();
-      for (String method : property.split(";")) {
-        builder.add(method);
-      }
+      StringUtils.splitForEach(property, ';', builder::add);
       return builder.build();
     }
     return ImmutableSet.of();
@@ -951,9 +949,7 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
         System.getProperty("com.android.tools.r8.extensiveInterfaceMethodMinifierLoggingFilter");
     if (property != null) {
       ImmutableSet.Builder<String> builder = ImmutableSet.builder();
-      for (String method : property.split(";")) {
-        builder.add(method);
-      }
+      StringUtils.splitForEach(property, ';', builder::add);
       return builder.build();
     }
     return ImmutableSet.of();

@@ -3,7 +3,9 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.utils;
 
+import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
 
 import com.android.tools.r8.TestBase;
@@ -45,6 +47,18 @@ public class StringUtilsTest extends TestBase {
     assertListEquals(ImmutableList.of("\ra", "\rb\r"), StringUtils.splitLines("\ra\r\n\rb\r"));
 
     assertListEquals(ImmutableList.of("\ra\r\rb\r"), StringUtils.splitLines("\ra\r\rb\r"));
+  }
+
+  @Test
+  public void testSplit() {
+    assertListEquals(ImmutableList.of(" "), StringUtils.split(" ", '.'));
+    assertListEquals(ImmutableList.of("", ""), StringUtils.split(".", '.'));
+    assertListEquals(ImmutableList.of("", "", "", ""), StringUtils.split("...", '.'));
+    assertListEquals(ImmutableList.of("a", "b", "c", "d"), StringUtils.split("a.b.c.d", '.'));
+
+    assertArrayEquals(new String[] {"a", "b", "c"}, StringUtils.splitKnownSize("a.b.c", '.', 3));
+    assertNull(StringUtils.splitKnownSize("a.b.c", '.', 2));
+    assertNull(StringUtils.splitKnownSize("a.b.c", '.', 4));
   }
 
   private void assertListEquals(List<String> xs, List<String> ys) {

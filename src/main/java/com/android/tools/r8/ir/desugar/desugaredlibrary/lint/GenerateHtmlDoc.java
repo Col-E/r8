@@ -17,6 +17,8 @@ import com.android.tools.r8.ir.desugar.desugaredlibrary.lint.SupportedClasses.Fi
 import com.android.tools.r8.ir.desugar.desugaredlibrary.lint.SupportedClasses.MethodAnnotation;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.lint.SupportedClasses.SupportedClass;
 import com.android.tools.r8.utils.AndroidApiLevel;
+import com.android.tools.r8.utils.ListUtils;
+import com.android.tools.r8.utils.StringUtils;
 import java.io.PrintStream;
 import java.nio.file.Files;
 import java.util.ArrayList;
@@ -124,10 +126,10 @@ public class GenerateHtmlDoc extends AbstractGenerateFiles {
       if (rewritten != null) {
         return rewritten;
       }
-      String[] split = packageName.split("\\.");
-      if (split.length > 2) {
-        String prevPackage =
-            packageName.substring(0, packageName.length() - split[split.length - 1].length() - 1);
+      List<String> split = StringUtils.split(packageName, '.');
+      if (split.size() > 2) {
+        String last = ListUtils.last(split);
+        String prevPackage = packageName.substring(0, packageName.length() - last.length() - 1);
         return typeInPackage(typeName, prevPackage);
       }
       return null;
@@ -303,14 +305,14 @@ public class GenerateHtmlDoc extends AbstractGenerateFiles {
     }
 
     private String format(String s, int i) {
-      String[] regexpSplit = s.split("\\.");
-      if (regexpSplit.length < i) {
+      List<String> split = StringUtils.split(s, '.');
+      if (split.size() < i) {
         return s;
       }
       int splitIndex = 0;
       int mid = i / 2;
       for (int j = 0; j < mid; j++) {
-        splitIndex += regexpSplit[j].length();
+        splitIndex += split.get(j).length();
       }
       splitIndex += mid;
       return s.substring(0, splitIndex) + HTML_SPLIT + s.substring(splitIndex);
@@ -340,17 +342,17 @@ public class GenerateHtmlDoc extends AbstractGenerateFiles {
         return appendLiCode(s);
       }
       StringBuilder sb = new StringBuilder();
-      String[] split = s.split("\\(");
-      sb.append(split[0]).append('(').append(HTML_SPLIT);
-      if (split[1].length() < MAX_LINE_CHARACTERS - 2) {
-        sb.append(split[1]);
+      List<String> split = StringUtils.split(s, '(');
+      sb.append(split.get(0)).append('(').append(HTML_SPLIT);
+      if (split.get(1).length() < MAX_LINE_CHARACTERS - 2) {
+        sb.append(split.get(1));
         return appendLiCode(sb.toString());
       }
-      String[] secondSplit = split[1].split(",");
+      List<String> secondSplit = StringUtils.split(split.get(1), ',');
       sb.append("&nbsp;");
-      for (int i = 0; i < secondSplit.length; i++) {
-        sb.append(secondSplit[i]);
-        if (i != secondSplit.length - 1) {
+      for (int i = 0; i < secondSplit.size(); i++) {
+        sb.append(secondSplit.get(i));
+        if (i != secondSplit.size() - 1) {
           sb.append(',');
           sb.append(HTML_SPLIT);
         }

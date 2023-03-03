@@ -121,7 +121,7 @@ public class DeterminismChecker {
       return;
     }
     if (method.hasCode()) {
-      String[] lines = method.getCode().toString().split("\n");
+      List<String> lines = StringUtils.splitLines(method.getCode().toString());
       for (String line : lines) {
         if (!callback.onLine(line)) {
           return;

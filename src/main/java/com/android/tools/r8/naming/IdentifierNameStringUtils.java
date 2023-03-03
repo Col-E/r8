@@ -34,6 +34,7 @@ import com.android.tools.r8.ir.code.NewArrayEmpty;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.naming.identifiernamestring.IdentifierNameStringLookupResult;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
+import com.android.tools.r8.utils.StringUtils;
 import com.google.common.collect.Sets;
 import java.util.ArrayList;
 import java.util.List;
@@ -340,15 +341,15 @@ public final class IdentifierNameStringUtils {
     String identifier = dexString.toString();
     String typeIdentifier = null;
     String memberIdentifier = null;
-    String[] items = identifier.split("#");
+    List<String> items = StringUtils.split(identifier, '#');
     // "x#y#z"
-    if (items.length > 2) {
+    if (items.size() > 2) {
       return null;
     }
     // "fully.qualified.ClassName#fieldOrMethodName"
-    if (items.length == 2) {
-      typeIdentifier = items[0];
-      memberIdentifier = items[1];
+    if (items.size() == 2) {
+      typeIdentifier = items.get(0);
+      memberIdentifier = items.get(1);
     } else {
       int lastDot = identifier.lastIndexOf(".");
       // "fully.qualified.ClassName.fieldOrMethodName"

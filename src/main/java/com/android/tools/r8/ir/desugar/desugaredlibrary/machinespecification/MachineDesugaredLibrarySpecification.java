@@ -14,7 +14,9 @@ import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibrarySpecification;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.specificationconversion.LibraryValidator;
 import com.android.tools.r8.utils.AndroidApiLevel;
+import com.android.tools.r8.utils.ListUtils;
 import com.android.tools.r8.utils.SemanticVersion;
+import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.Timing;
 import java.util.List;
 import java.util.Map;
@@ -251,8 +253,9 @@ public class MachineDesugaredLibrarySpecification implements DesugaredLibrarySpe
     if (leadingVersionNumberCache != -1) {
       return leadingVersionNumberCache;
     }
-    String[] split = topLevelFlags.getIdentifier().split(":");
-    return leadingVersionNumberCache = SemanticVersion.parse(split[split.length - 1]).getMajor();
+    List<String> split = StringUtils.split(topLevelFlags.getIdentifier(), ':');
+    String last = ListUtils.last(split);
+    return leadingVersionNumberCache = SemanticVersion.parse(last).getMajor();
   }
 
   public boolean includesJDK11Methods() {

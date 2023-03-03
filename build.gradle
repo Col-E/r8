@@ -700,14 +700,13 @@ if (!project.hasProperty('without_error_prone') &&
         options.errorprone.check('MultipleTopLevelClasses', CheckSeverity.ERROR)
         options.errorprone.check('NarrowingCompoundAssignment', CheckSeverity.ERROR)
 
-        // TODO(b/270534077): These should likely be fixed/suppressed and become hard failures.
+        // TODO(b/270510095): These should likely be fixed/suppressed and become hard failures.
         options.errorprone.check('UnusedVariable', CheckSeverity.OFF)
         options.errorprone.check('EqualsUnsafeCast', CheckSeverity.OFF)
         options.errorprone.check('TypeParameterUnusedInFormals', CheckSeverity.OFF)
         options.errorprone.check('LoopOverCharArray', CheckSeverity.OFF)
         options.errorprone.check('ImmutableEnumChecker', CheckSeverity.OFF)
         options.errorprone.check('BadImport', CheckSeverity.OFF)
-        options.errorprone.check('StringSplitter', CheckSeverity.OFF)
         options.errorprone.check('ComplexBooleanConstant', CheckSeverity.OFF)
         options.errorprone.check('StreamToIterable', CheckSeverity.OFF)
         options.errorprone.check('HidingField', CheckSeverity.OFF)

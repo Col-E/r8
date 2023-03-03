@@ -47,14 +47,13 @@ tasks.withType<JavaCompile> {
   options.errorprone.error("MultipleTopLevelClasses")
   options.errorprone.error("NarrowingCompoundAssignment")
 
-  // TODO(b/270534077): These should likely be fixed/suppressed and become hard failures.
+  // TODO(b/270510095): These should likely be fixed/suppressed and become hard failures.
   options.errorprone.disable("UnusedVariable")
   options.errorprone.disable("EqualsUnsafeCast")
   options.errorprone.disable("TypeParameterUnusedInFormals")
   options.errorprone.disable("LoopOverCharArray")
   options.errorprone.disable("ImmutableEnumChecker")
   options.errorprone.disable("BadImport")
-  options.errorprone.disable("StringSplitter")
   options.errorprone.disable("ComplexBooleanConstant")
   options.errorprone.disable("StreamToIterable")
   options.errorprone.disable("HidingField")

@@ -14,6 +14,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -63,6 +64,68 @@ public class StringUtils {
       }
     }
     return builder.toString();
+  }
+
+  // Utilities for splitting (and avoiding errorprone String.split).
+
+  /**
+   * Iterate over the substrings of a string split by a single char separator.
+   *
+   * <p>No special treatment of whitespace. No occurrence of the separator will appear in any
+   * split-off substring. Given N occurrences of the separator, the resulting callback will be
+   * called N+1 times.
+   */
+  public static void splitForEach(String string, char separator, Consumer<String> fn) {
+    int length = string.length();
+    int start = 0;
+    for (int i = 0; i < length; i++) {
+      char c = string.charAt(i);
+      if (c == separator) {
+        fn.accept(string.substring(start, i));
+        start = i + 1;
+      }
+    }
+    fn.accept(string.substring(start));
+  }
+
+  /**
+   * Split a string by a single char separator.
+   *
+   * <p>No special treatment of whitespace. No occurrence of the separator will appear in any
+   * split-off substring. Given N occurrences of the separator, the resulting split list will have
+   * size N+1.
+   */
+  public static List<String> split(String string, char separator) {
+    List<String> result = new ArrayList<>();
+    splitForEach(string, separator, result::add);
+    return result;
+  }
+
+  /**
+   * Split a string by a single char separator with the requirement on the split size.
+   *
+   * <p>No special treatment of whitespace. No occurrence of the separator will appear in any
+   * split-off substring. Given N occurrences of the separator, the resulting split list will have
+   * size N+1.
+   *
+   * <p>Thus for a valid split with size=N, the result will be an array of length N if and only if
+   * the input string has exactly N-1 occurrences of the separator. In any other case the return
+   * value is null.
+   */
+  public static String[] splitKnownSize(String string, char separator, int size) {
+    assert size > 1;
+    String[] result = new String[size];
+    IntBox box = new IntBox(0);
+    splitForEach(
+        string,
+        separator,
+        part -> {
+          int i = box.getAndIncrement();
+          if (i < size) {
+            result[i] = part;
+          }
+        });
+    return size == box.get() ? result : null;
   }
 
   public static boolean appendNonEmpty(

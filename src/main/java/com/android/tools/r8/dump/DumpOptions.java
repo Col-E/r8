@@ -14,6 +14,7 @@ import com.android.tools.r8.shaking.ProguardConfiguration;
 import com.android.tools.r8.shaking.ProguardConfigurationRule;
 import com.android.tools.r8.startup.StartupProfileProvider;
 import com.android.tools.r8.utils.InternalOptions.DesugarState;
+import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.ThreadUtils;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -179,17 +180,19 @@ public class DumpOptions {
   }
 
   public static void parse(String content, DumpOptions.Builder builder) {
-    String[] lines = content.split("\n");
-    for (String line : lines) {
-      String trimmed = line.trim();
-      int i = trimmed.indexOf('=');
-      if (i < 0) {
-        throw new RuntimeException("Invalid dump line. Expected = in line: '" + trimmed + "'");
-      }
-      String key = trimmed.substring(0, i).trim();
-      String value = trimmed.substring(i + 1).trim();
-      parseKeyValue(builder, key, value);
-    }
+    StringUtils.splitForEach(
+        content,
+        '\n',
+        line -> {
+          String trimmed = line.trim();
+          int i = trimmed.indexOf('=');
+          if (i < 0) {
+            throw new RuntimeException("Invalid dump line. Expected = in line: '" + trimmed + "'");
+          }
+          String key = trimmed.substring(0, i).trim();
+          String value = trimmed.substring(i + 1).trim();
+          parseKeyValue(builder, key, value);
+        });
   }
 
   private static void parseKeyValue(Builder builder, String key, String value) {
