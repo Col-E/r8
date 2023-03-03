@@ -262,6 +262,8 @@ def determine_build_properties(args, dump):
         if stripped:
           pair = stripped.split('=')
           build_properties[pair[0]] = pair[1]
+    if 'mode' not in build_properties:
+      build_properties['mode'] = 'release'
   return build_properties
 
 def determine_version(args, dump):
