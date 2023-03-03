@@ -53,7 +53,7 @@ public class LirPrinter<EV> extends LirParsedInstructionCallback<EV> {
   }
 
   private String fmtValueIndex(EV valueIndex) {
-    return "v" + valueIndex;
+    return valueIndex.toString();
   }
 
   private String fmtInsnIndex(int instructionIndex) {

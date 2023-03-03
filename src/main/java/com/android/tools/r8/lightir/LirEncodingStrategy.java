@@ -14,13 +14,17 @@ public abstract class LirEncodingStrategy<V, EV> {
 
   public abstract EV defineValue(V value, int index);
 
+  public abstract boolean isPhiInlineInstruction();
+
   public abstract boolean verifyValueIndex(V value, int expectedIndex);
 
   public abstract EV getEncodedValue(V value);
 
   public int getEncodedValueIndexForReference(EV encodedValue, int referencingValueIndex) {
-    return getSsaValueStrategy().encodeValueIndex(encodedValue, referencingValueIndex);
+    return getStrategyInfo()
+        .getReferenceStrategy()
+        .encodeValueIndex(encodedValue, referencingValueIndex);
   }
 
-  public abstract LirSsaValueStrategy<EV> getSsaValueStrategy();
+  public abstract LirStrategyInfo<EV> getStrategyInfo();
 }

@@ -65,7 +65,8 @@ import com.android.tools.r8.lightir.IR2LirConverter;
 import com.android.tools.r8.lightir.Lir2IRConverter;
 import com.android.tools.r8.lightir.LirCode;
 import com.android.tools.r8.lightir.LirStrategy;
-import com.android.tools.r8.lightir.LirStrategy.PhiInInstructionsStrategy;
+import com.android.tools.r8.lightir.LirStrategy.ExternalPhisStrategy;
+import com.android.tools.r8.lightir.PhiInInstructionsStrategy;
 import com.android.tools.r8.naming.IdentifierNameStringMarker;
 import com.android.tools.r8.optimize.argumentpropagation.ArgumentPropagatorIROptimizer;
 import com.android.tools.r8.position.MethodPosition;
@@ -1055,12 +1056,18 @@ public class IRConverter {
       OptimizationFeedback feedback,
       BytecodeMetadataProvider bytecodeMetadataProvider,
       Timing timing) {
-    LirStrategy<Value, Integer> strategy = new PhiInInstructionsStrategy();
-    timing.begin("IR->LIR");
-    LirCode<Integer> lirCode =
+    IRCode round1 = doRoundtripWithStrategy(code, new ExternalPhisStrategy(), "indirect phis");
+    IRCode round2 = doRoundtripWithStrategy(round1, new PhiInInstructionsStrategy(), "inline phis");
+    return round2;
+  }
+
+  private <EV, S extends LirStrategy<Value, EV>> IRCode doRoundtripWithStrategy(
+      IRCode code, S strategy, String name) {
+    timing.begin("IR->LIR (" + name + ")");
+    LirCode<EV> lirCode =
         IR2LirConverter.translate(code, strategy.getEncodingStrategy(), appView.dexItemFactory());
     timing.end();
-    timing.begin("LIR->IR");
+    timing.begin("LIR->IR (" + name + ")");
     IRCode irCode =
         Lir2IRConverter.translate(
             code.context(), lirCode, strategy.getDecodingStrategy(lirCode), appView);

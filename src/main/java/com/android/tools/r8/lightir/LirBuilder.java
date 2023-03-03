@@ -433,6 +433,6 @@ public class LirBuilder<V, EV> {
         instructionCount,
         new TryCatchTable(tryCatchRanges),
         debugTable,
-        strategy.getSsaValueStrategy());
+        strategy.getStrategyInfo());
   }
 }

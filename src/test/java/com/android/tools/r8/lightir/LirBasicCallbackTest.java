@@ -37,6 +37,11 @@ public class LirBasicCallbackTest extends TestBase {
   private static class ThrowingStrategy extends LirEncodingStrategy<Value, Integer> {
 
     @Override
+    public boolean isPhiInlineInstruction() {
+      return false;
+    }
+
+    @Override
     public void defineBlock(BasicBlock block, int index) {
       throw new Unreachable();
     }
@@ -62,7 +67,7 @@ public class LirBasicCallbackTest extends TestBase {
     }
 
     @Override
-    public LirSsaValueStrategy<Integer> getSsaValueStrategy() {
+    public LirStrategyInfo<Integer> getStrategyInfo() {
       return null;
     }
   }
