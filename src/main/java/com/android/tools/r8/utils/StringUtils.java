@@ -56,7 +56,8 @@ public class StringUtils {
 
   public static String toASCIIString(String s) {
     StringBuilder builder = new StringBuilder();
-    for (char ch : s.toCharArray()) {
+    for (int i = 0; i < s.length(); i++) {
+      char ch = s.charAt(i);
       if (0x1f < ch && ch < 0x7f) {  // 0 - 0x1f and 0x7f are control characters.
         builder.append(ch);
       } else {

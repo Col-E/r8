@@ -704,7 +704,6 @@ if (!project.hasProperty('without_error_prone') &&
         options.errorprone.check('UnusedVariable', CheckSeverity.OFF)
         options.errorprone.check('EqualsUnsafeCast', CheckSeverity.OFF)
         options.errorprone.check('TypeParameterUnusedInFormals', CheckSeverity.OFF)
-        options.errorprone.check('LoopOverCharArray', CheckSeverity.OFF)
         options.errorprone.check('ImmutableEnumChecker', CheckSeverity.OFF)
         options.errorprone.check('BadImport', CheckSeverity.OFF)
         options.errorprone.check('ComplexBooleanConstant', CheckSeverity.OFF)

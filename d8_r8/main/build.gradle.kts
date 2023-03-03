@@ -51,7 +51,6 @@ tasks.withType<JavaCompile> {
   options.errorprone.disable("UnusedVariable")
   options.errorprone.disable("EqualsUnsafeCast")
   options.errorprone.disable("TypeParameterUnusedInFormals")
-  options.errorprone.disable("LoopOverCharArray")
   options.errorprone.disable("ImmutableEnumChecker")
   options.errorprone.disable("BadImport")
   options.errorprone.disable("ComplexBooleanConstant")
