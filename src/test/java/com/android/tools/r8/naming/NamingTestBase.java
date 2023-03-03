@@ -37,7 +37,7 @@ public abstract class NamingTestBase extends TestBase {
 
   protected NamingTestBase(
       String test, List<String> keepRulesFiles, BiConsumer<DexItemFactory, NamingLens> inspection) {
-    appFileName = ToolHelper.EXAMPLES_BUILD_DIR + test + "/classes.dex";
+    appFileName = ToolHelper.EXAMPLES_BUILD_DIR + test + ".jar";
     this.keepRulesFiles = keepRulesFiles;
     this.inspection = lens -> inspection.accept(dexItemFactory, lens);
   }

@@ -60,10 +60,7 @@ public class TreeShakingSpecificTest extends TestBase {
     // Generate R8 processed version without library option.
     String test = "shaking2";
     testForR8(backend)
-        .applyIf(
-            backend.isCf(),
-            builder -> builder.addProgramFiles(getProgramFiles(test)),
-            builder -> builder.addProgramDexFileData(getProgramDexFileData(test)))
+        .addProgramFiles(getProgramFiles(test))
         .addKeepRuleFiles(Paths.get(EXAMPLES_DIR, test, "keep-rules.txt"))
         .addIgnoreWarnings()
         .setMinApi(minApi)
@@ -75,10 +72,7 @@ public class TreeShakingSpecificTest extends TestBase {
     // Generate R8 processed version without library option.
     String test = "shaking2";
     testForR8(backend)
-        .applyIf(
-            backend.isCf(),
-            builder -> builder.addProgramFiles(getProgramFiles(test)),
-            builder -> builder.addProgramDexFileData(getProgramDexFileData(test)))
+        .addProgramFiles(getProgramFiles(test))
         .addLibraryFiles()
         .addKeepRuleFiles(Paths.get(EXAMPLES_DIR, test, "keep-rules.txt"))
         .allowDiagnosticErrorMessages()
@@ -107,10 +101,7 @@ public class TreeShakingSpecificTest extends TestBase {
     // Generate R8 processed version without library option.
     String test = "shaking1";
     testForR8(backend)
-        .applyIf(
-            backend.isCf(),
-            builder -> builder.addProgramFiles(getProgramFiles(test)),
-            builder -> builder.addProgramDexFileData(getProgramDexFileData(test)))
+        .addProgramFiles(getProgramFiles(test))
         .addKeepRuleFiles(Paths.get(EXAMPLES_DIR, test, "keep-rules.txt"))
         .addOptionsModification(options -> options.inlinerOptions().enableInlining = false)
         .setMinApi(minApi)

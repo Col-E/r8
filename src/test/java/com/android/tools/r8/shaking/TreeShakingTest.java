@@ -3,8 +3,6 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.shaking;
 
-import static org.junit.Assume.assumeFalse;
-
 import com.android.tools.r8.R8FullTestBuilder;
 import com.android.tools.r8.R8TestCompileResult;
 import com.android.tools.r8.TestBase;
@@ -25,7 +23,6 @@ import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.FoundFieldSubject;
 import com.android.tools.r8.utils.codeinspector.FoundMethodSubject;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Arrays;
@@ -48,35 +45,21 @@ import org.junit.runners.Parameterized.Parameters;
  */
 public abstract class TreeShakingTest extends TestBase {
 
-  @Parameters(name = "mode:{0}-{1} minify:{2}")
+  @Parameters(name = "{0} minify:{1}")
   public static List<Object[]> defaultTreeShakingParameters() {
-    return data(Frontend.values(), MinifyMode.values());
+    return data(MinifyMode.values());
   }
 
   public static List<Object[]> data(MinifyMode[] minifyModes) {
-    return data(Frontend.values(), minifyModes);
-  }
-
-  public static List<Object[]> data(Frontend[] frontends, MinifyMode[] minifyModes) {
-    return buildParameters(
-        frontends, getTestParameters().withAllRuntimesAndApiLevels().build(), minifyModes);
+    return buildParameters(getTestParameters().withAllRuntimesAndApiLevels().build(), minifyModes);
   }
 
   protected abstract String getName();
 
   protected abstract String getMainClass();
 
-  protected enum Frontend {
-    DEX, JAR
-  }
-
-  private final Frontend frontend;
   private final TestParameters parameters;
   private final MinifyMode minify;
-
-  public Frontend getFrontend() {
-    return frontend;
-  }
 
   public TestParameters getParameters() {
     return parameters;
@@ -86,8 +69,7 @@ public abstract class TreeShakingTest extends TestBase {
     return minify;
   }
 
-  public TreeShakingTest(Frontend frontend, TestParameters parameters, MinifyMode minify) {
-    this.frontend = frontend;
+  public TreeShakingTest(TestParameters parameters, MinifyMode minify) {
     this.parameters = parameters;
     this.minify = minify;
   }
@@ -173,10 +155,9 @@ public abstract class TreeShakingTest extends TestBase {
       ThrowableConsumer<R8FullTestBuilder> testBuilderConsumer,
       DiagnosticsConsumer diagnosticsConsumer)
       throws Exception {
-    assumeFalse(frontend == Frontend.DEX && parameters.isCfRuntime());
-    String originalDex = ToolHelper.TESTS_BUILD_DIR + getName() + "/classes.dex";
-    String programFile =
-        frontend == Frontend.DEX ? originalDex : ToolHelper.TESTS_BUILD_DIR + getName() + ".jar";
+
+    String programFile = ToolHelper.TESTS_BUILD_DIR + getName() + ".jar";
+
     R8FullTestBuilder testBuilder =
         testForR8(parameters.getBackend())
             // Go through app builder to add dex files.
@@ -226,36 +207,43 @@ public abstract class TreeShakingTest extends TestBase {
     if (!ToolHelper.artSupported() && !ToolHelper.compareAgaintsGoldenFiles()) {
       return;
     }
-    Consumer<ArtCommandBuilder> extraArtArgs = builder -> {
-      builder.appendClasspath(ToolHelper.EXAMPLES_BUILD_DIR + "shakinglib/classes.dex");
-    };
+    Path shakingLib =
+        testForD8(Backend.DEX)
+            .addProgramFiles(Paths.get(ToolHelper.EXAMPLES_BUILD_DIR + "shakinglib.jar"))
+            .setMinApi(parameters)
+            .compile()
+            .writeToZip();
+    Consumer<ArtCommandBuilder> extraArtArgs =
+        builder -> {
+          builder.appendClasspath(shakingLib.toString());
+        };
+    String d8Output =
+        testForD8(Backend.DEX)
+            .setMinApi(parameters)
+            .addProgramFiles(Paths.get(programFile))
+            .compile()
+            .writeToZip()
+            .toString();
     DexVm dexVm = parameters.getRuntime().asDex().getVm();
-    if (Files.exists(Paths.get(originalDex))) {
-      if (outputComparator != null) {
-        String output1 =
-            ToolHelper.runArtNoVerificationErrors(
-                Collections.singletonList(originalDex), getMainClass(), extraArtArgs, dexVm);
-        String output2 =
-            ToolHelper.runArtNoVerificationErrors(
-                Collections.singletonList(outJar.toString()), getMainClass(), extraArtArgs, dexVm);
-        outputComparator.accept(output1, output2);
-      } else {
-        ToolHelper.checkArtOutputIdentical(
-            Collections.singletonList(originalDex),
-            Collections.singletonList(outJar.toString()),
-            getMainClass(),
-            extraArtArgs,
-            null);
-      }
-      if (dexComparator != null) {
-        CodeInspector ref = new CodeInspector(Paths.get(originalDex));
-        dexComparator.accept(ref, compileResult.inspector());
-      }
+    if (outputComparator != null) {
+      String output1 =
+          ToolHelper.runArtNoVerificationErrors(
+              Collections.singletonList(d8Output), getMainClass(), extraArtArgs, dexVm);
+      String output2 =
+          ToolHelper.runArtNoVerificationErrors(
+              Collections.singletonList(outJar.toString()), getMainClass(), extraArtArgs, dexVm);
+      outputComparator.accept(output1, output2);
     } else {
-      Assert.assertNull(outputComparator);
-      Assert.assertNull(dexComparator);
-      ToolHelper.runArtNoVerificationErrors(
-          Collections.singletonList(outJar.toString()), getMainClass(), extraArtArgs, dexVm);
+      ToolHelper.checkArtOutputIdentical(
+          Collections.singletonList(d8Output),
+          Collections.singletonList(outJar.toString()),
+          getMainClass(),
+          extraArtArgs,
+          null);
+    }
+    if (dexComparator != null) {
+      CodeInspector ref = new CodeInspector(Paths.get(d8Output));
+      dexComparator.accept(ref, compileResult.inspector());
     }
     if (inspection != null) {
       compileResult.inspect(inspection);

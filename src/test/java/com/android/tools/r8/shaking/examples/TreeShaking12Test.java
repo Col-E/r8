@@ -24,10 +24,9 @@ import org.junit.runners.Parameterized.Parameters;
 @RunWith(Parameterized.class)
 public class TreeShaking12Test extends TreeShakingTest {
 
-  @Parameters(name = "mode:{0}-{1} minify:{2}")
+  @Parameters(name = "{0} minify:{1}")
   public static List<Object[]> data() {
     return buildParameters(
-        Frontend.values(),
         getTestParameters()
             .withAllRuntimes()
             .withApiLevelsStartingAtIncluding(AndroidApiLevel.K)
@@ -35,8 +34,8 @@ public class TreeShaking12Test extends TreeShakingTest {
         MinifyMode.values());
   }
 
-  public TreeShaking12Test(Frontend frontend, TestParameters parameters, MinifyMode minify) {
-    super(frontend, parameters, minify);
+  public TreeShaking12Test(TestParameters parameters, MinifyMode minify) {
+    super(parameters, minify);
   }
 
   @Override

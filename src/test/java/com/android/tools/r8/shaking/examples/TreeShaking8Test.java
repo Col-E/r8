@@ -22,13 +22,13 @@ import org.junit.runners.Parameterized.Parameters;
 @RunWith(Parameterized.class)
 public class TreeShaking8Test extends TreeShakingTest {
 
-  @Parameters(name = "mode:{0}-{1} minify:{2}")
+  @Parameters(name = "{0} minify:{1}")
   public static List<Object[]> data() {
     return defaultTreeShakingParameters();
   }
 
-  public TreeShaking8Test(Frontend frontend, TestParameters parameters, MinifyMode minify) {
-    super(frontend, parameters, minify);
+  public TreeShaking8Test(TestParameters parameters, MinifyMode minify) {
+    super(parameters, minify);
   }
 
   @Override

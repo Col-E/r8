@@ -15,13 +15,13 @@ import org.junit.runners.Parameterized.Parameters;
 @RunWith(Parameterized.class)
 public class TreeShakingAndroidNTest extends TreeShakingTest {
 
-  @Parameters(name = "mode:{0}-{1} minify:{2}")
+  @Parameters(name = "{0} minify:{1}")
   public static List<Object[]> data() {
-    return data(new Frontend[] {Frontend.JAR}, MinifyMode.values());
+    return data(MinifyMode.values());
   }
 
-  public TreeShakingAndroidNTest(Frontend frontend, TestParameters parameters, MinifyMode minify) {
-    super(frontend, parameters, minify);
+  public TreeShakingAndroidNTest(TestParameters parameters, MinifyMode minify) {
+    super(parameters, minify);
   }
 
   @Override

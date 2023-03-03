@@ -14,6 +14,7 @@ import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.FileUtils;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Collections;
 import org.junit.Assume;
 import org.junit.Test;
 
@@ -51,10 +52,12 @@ public class R8InliningRegressionTests extends TestBase {
         .get(ToolHelper.EXAMPLES_BUILD_DIR, folder, ToolHelper.DEFAULT_DEX_FILENAME).toString();
     Path generatedDexFile = temp.getRoot().toPath().resolve("classes.jar");
     app.writeToZipForTesting(generatedDexFile, OutputMode.DexIndexed);
-    String artOutput = ToolHelper
-        .checkArtOutputIdentical(originalDexFile, generatedDexFile.toString(), mainClass,
+    String artOutput =
+        ToolHelper.runArtNoVerificationErrors(
+            Collections.singletonList(generatedDexFile.toString()),
+            mainClass,
+            null,
             ToolHelper.getDexVm());
-
     // Compare with Java.
     ToolHelper.ProcessResult javaResult = ToolHelper.runJava(jarFile, mainClass);
     if (javaResult.exitCode != 0) {

@@ -22,7 +22,6 @@ import org.junit.Test;
 
 public class R8Shaking2LookupTest {
 
-  static final String APP_FILE_NAME = ToolHelper.EXAMPLES_BUILD_DIR + "shaking2/classes.dex";
   private DirectMappedDexApplication program;
   private DexItemFactory dexItemFactory;
   private AppInfoWithClassHierarchy appInfo;
@@ -30,7 +29,9 @@ public class R8Shaking2LookupTest {
 
   @Before
   public void readApp() throws IOException, ExecutionException {
-    program = ToolHelper.buildApplication(ImmutableList.of(APP_FILE_NAME));
+    program =
+        ToolHelper.buildApplication(
+            ImmutableList.of(ToolHelper.EXAMPLES_BUILD_DIR + "shaking2.jar"));
     dexItemFactory = program.dexItemFactory;
     AppView<AppInfoWithClassHierarchy> appView = AppView.createForR8(program);
     appInfo = appView.appInfo();

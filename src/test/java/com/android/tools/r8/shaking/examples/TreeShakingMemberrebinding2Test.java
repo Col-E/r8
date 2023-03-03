@@ -15,14 +15,13 @@ import org.junit.runners.Parameterized.Parameters;
 @RunWith(Parameterized.class)
 public class TreeShakingMemberrebinding2Test extends TreeShakingTest {
 
-  @Parameters(name = "mode:{0}-{1} minify:{2}")
+  @Parameters(name = "{0} minify:{1}")
   public static List<Object[]> data() {
     return defaultTreeShakingParameters();
   }
 
-  public TreeShakingMemberrebinding2Test(
-      Frontend frontend, TestParameters parameters, MinifyMode minify) {
-    super(frontend, parameters, minify);
+  public TreeShakingMemberrebinding2Test(TestParameters parameters, MinifyMode minify) {
+    super(parameters, minify);
   }
 
   @Override
