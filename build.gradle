@@ -5,8 +5,6 @@
 
 
 import desugaredlibrary.CustomConversionAsmRewriterTask
-import dx.DexMergerTask
-import dx.DxTask
 import net.ltgt.gradle.errorprone.CheckSeverity
 import org.gradle.internal.os.OperatingSystem
 import tasks.DownloadDependency
