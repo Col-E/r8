@@ -58,8 +58,6 @@ import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.ArrayUtils;
 import com.android.tools.r8.utils.Box;
 import com.android.tools.r8.utils.DescriptorUtils;
-import com.android.tools.r8.utils.DexFilePerClassFileConsumerDataImpl;
-import com.android.tools.r8.utils.DexIndexedConsumerDataImpl;
 import com.android.tools.r8.utils.ExceptionUtils;
 import com.android.tools.r8.utils.IntBox;
 import com.android.tools.r8.utils.InternalGlobalSyntheticsProgramConsumer;
@@ -588,14 +586,13 @@ public class ApplicationWriter {
     ProgramConsumer consumer;
     ByteBufferProvider byteBufferProvider;
 
-    String primaryClassDescriptor = virtualFile.getPrimaryClassDescriptor();
     if (globalSyntheticFiles != null && globalSyntheticFiles.contains(virtualFile)) {
       consumer = globalsSyntheticsConsumer;
       byteBufferProvider = globalsSyntheticsConsumer;
     } else if (programConsumer != null) {
       consumer = programConsumer;
       byteBufferProvider = programConsumer;
-    } else if (primaryClassDescriptor != null) {
+    } else if (virtualFile.getPrimaryClassDescriptor() != null) {
       consumer = options.getDexFilePerClassFileConsumer();
       byteBufferProvider = options.getDexFilePerClassFileConsumer();
     } else {
@@ -623,18 +620,14 @@ public class ApplicationWriter {
     timing.begin("Pass bytes to consumer");
     if (consumer instanceof DexFilePerClassFileConsumer) {
       ((DexFilePerClassFileConsumer) consumer)
-          .acceptDexFile(
-              new DexFilePerClassFileConsumerDataImpl(
-                  primaryClassDescriptor,
-                  virtualFile.getPrimaryClassSynthesizingContextDescriptor(),
-                  data,
-                  virtualFile.getClassDescriptors(),
-                  options.reporter));
+          .accept(
+              virtualFile.getPrimaryClassDescriptor(),
+              data,
+              virtualFile.getClassDescriptors(),
+              options.reporter);
     } else {
       ((DexIndexedConsumer) consumer)
-          .acceptDexIndexedFile(
-              new DexIndexedConsumerDataImpl(
-                  virtualFile.getId(), data, virtualFile.getClassDescriptors(), options.reporter));
+          .accept(virtualFile.getId(), data, virtualFile.getClassDescriptors(), options.reporter);
     }
     timing.end();
     // Release use of the backing buffer now that accept has returned.

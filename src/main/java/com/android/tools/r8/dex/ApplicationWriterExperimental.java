@@ -18,7 +18,6 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.ObjectToOffsetMapping;
 import com.android.tools.r8.utils.BitUtils;
-import com.android.tools.r8.utils.DexIndexedConsumerDataImpl;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.ListUtils;
 import com.android.tools.r8.utils.ThreadUtils;
@@ -173,9 +172,7 @@ class ApplicationWriterExperimental extends ApplicationWriter {
     if (consumer instanceof DexFilePerClassFileConsumer) {
       assert false;
     } else {
-      ((DexIndexedConsumer) consumer)
-          .acceptDexIndexedFile(
-              new DexIndexedConsumerDataImpl(0, data, Sets.newIdentityHashSet(), options.reporter));
+      ((DexIndexedConsumer) consumer).accept(0, data, Sets.newIdentityHashSet(), options.reporter);
     }
   }
 

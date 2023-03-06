@@ -10,11 +10,10 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
+import com.android.tools.r8.ByteDataView;
 import com.android.tools.r8.ClassFileConsumer;
-import com.android.tools.r8.ClassFileConsumerData;
 import com.android.tools.r8.DesugarGraphConsumer;
 import com.android.tools.r8.DexFilePerClassFileConsumer;
-import com.android.tools.r8.DexFilePerClassFileConsumerData;
 import com.android.tools.r8.DiagnosticsHandler;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
@@ -70,8 +69,8 @@ public class RepeatedCompilationNestedSyntheticsTest extends TestBase {
         .setProgramConsumer(
             new ClassFileConsumer() {
               @Override
-              public void acceptClassFile(ClassFileConsumerData data) {
-                firstCompilation.put(data.getClassDescriptor(), data.getByteDataCopy());
+              public void accept(ByteDataView data, String descriptor, DiagnosticsHandler handler) {
+                firstCompilation.put(descriptor, data.copyByteData());
               }
 
               @Override
@@ -122,9 +121,10 @@ public class RepeatedCompilationNestedSyntheticsTest extends TestBase {
                   b.setProgramConsumer(
                       new ClassFileConsumer() {
                         @Override
-                        public void acceptClassFile(ClassFileConsumerData data) {
-                          secondCompilation.put(data.getClassDescriptor(), data.getByteDataCopy());
-                          allDescriptors.add(data.getClassDescriptor());
+                        public void accept(
+                            ByteDataView data, String descriptor, DiagnosticsHandler handler) {
+                          secondCompilation.put(descriptor, data.copyByteData());
+                          allDescriptors.add(descriptor);
                         }
 
                         @Override
@@ -133,12 +133,15 @@ public class RepeatedCompilationNestedSyntheticsTest extends TestBase {
               b ->
                   b.setProgramConsumer(
                       new DexFilePerClassFileConsumer() {
+
                         @Override
-                        public synchronized void acceptDexFile(
-                            DexFilePerClassFileConsumerData data) {
-                          secondCompilation.put(
-                              data.getPrimaryClassDescriptor(), data.getByteDataCopy());
-                          allDescriptors.addAll(data.getClassDescriptors());
+                        public void accept(
+                            String primaryClassDescriptor,
+                            ByteDataView data,
+                            Set<String> descriptors,
+                            DiagnosticsHandler handler) {
+                          secondCompilation.put(primaryClassDescriptor, data.copyByteData());
+                          allDescriptors.addAll(descriptors);
                         }
 
                         @Override

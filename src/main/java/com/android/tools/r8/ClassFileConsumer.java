@@ -4,7 +4,6 @@
 package com.android.tools.r8;
 
 import com.android.tools.r8.utils.ArchiveBuilder;
-import com.android.tools.r8.utils.ClassFileConsumerDataImpl;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.DirectoryBuilder;
 import com.android.tools.r8.utils.OutputBuilder;
@@ -37,28 +36,22 @@ public interface ClassFileConsumer extends ProgramConsumer {
    * {@param handler}. If an error is reported via {@param handler} and no exceptions are thrown,
    * then the compiler guaranties to exit with an error.
    *
-   * <p>The {@link ByteDataView} obtained by way of {@param data} object can only be assumed valid
-   * during the duration of the accept. If the bytes are needed beyond that, a copy must be made
-   * elsewhere.
+   * <p>The {@link ByteDataView} {@param data} object can only be assumed valid during the duration
+   * of the accept. If the bytes are needed beyond that, a copy must be made elsewhere.
    *
-   * @param data Java class-file encoded data and its meta-data.
+   * @param data Java class-file encoded data.
+   * @param descriptor Class descriptor of the class the data pertains to.
+   * @param handler Diagnostics handler for reporting.
    */
-  default void acceptClassFile(ClassFileConsumerData data) {
-    accept(data.getByteDataView(), data.getClassDescriptor(), data.getDiagnosticsHandler());
-  }
-
-  @Deprecated
-  default void accept(ByteDataView data, String descriptor, DiagnosticsHandler handler) {
-    acceptClassFile(new ClassFileConsumerDataImpl(data, descriptor, handler));
-  }
+  void accept(ByteDataView data, String descriptor, DiagnosticsHandler handler);
 
   /** Empty consumer to request the production of the resource but ignore its value. */
   static ClassFileConsumer emptyConsumer() {
     return ForwardingConsumer.EMPTY_CONSUMER;
   }
 
+  /** Forwarding consumer to delegate to an optional existing consumer. */
   @Keep
-  @Deprecated
   class ForwardingConsumer implements ClassFileConsumer {
 
     private static final ClassFileConsumer EMPTY_CONSUMER = new ForwardingConsumer(null);
@@ -75,9 +68,9 @@ public interface ClassFileConsumer extends ProgramConsumer {
     }
 
     @Override
-    public void acceptClassFile(ClassFileConsumerData data) {
+    public void accept(ByteDataView data, String descriptor, DiagnosticsHandler handler) {
       if (consumer != null) {
-        consumer.acceptClassFile(data);
+        consumer.accept(data, descriptor, handler);
       }
     }
 
@@ -124,12 +117,9 @@ public interface ClassFileConsumer extends ProgramConsumer {
     }
 
     @Override
-    public void acceptClassFile(ClassFileConsumerData data) {
-      super.acceptClassFile(data);
-      outputBuilder.addFile(
-          DescriptorUtils.getClassFileName(data.getClassDescriptor()),
-          data.getByteDataView(),
-          data.getDiagnosticsHandler());
+    public void accept(ByteDataView data, String descriptor, DiagnosticsHandler handler) {
+      super.accept(data, descriptor, handler);
+      outputBuilder.addFile(DescriptorUtils.getClassFileName(descriptor), data, handler);
     }
 
     @Override
@@ -204,12 +194,9 @@ public interface ClassFileConsumer extends ProgramConsumer {
     }
 
     @Override
-    public void acceptClassFile(ClassFileConsumerData data) {
-      super.acceptClassFile(data);
-      outputBuilder.addFile(
-          DescriptorUtils.getClassFileName(data.getClassDescriptor()),
-          data.getByteDataView(),
-          data.getDiagnosticsHandler());
+    public void accept(ByteDataView data, String descriptor, DiagnosticsHandler handler) {
+      super.accept(data, descriptor, handler);
+      outputBuilder.addFile(DescriptorUtils.getClassFileName(descriptor), data, handler);
     }
 
     @Override

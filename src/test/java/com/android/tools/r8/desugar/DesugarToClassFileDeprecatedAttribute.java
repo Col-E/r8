@@ -6,10 +6,11 @@ package com.android.tools.r8.desugar;
 
 import static org.junit.Assert.assertTrue;
 
+import com.android.tools.r8.ByteDataView;
 import com.android.tools.r8.ClassFileConsumer;
 import com.android.tools.r8.ClassFileConsumer.ForwardingConsumer;
-import com.android.tools.r8.ClassFileConsumerData;
 import com.android.tools.r8.D8TestCompileResult;
+import com.android.tools.r8.DiagnosticsHandler;
 import com.android.tools.r8.R8FullTestBuilder;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
@@ -90,8 +91,9 @@ public class DesugarToClassFileDeprecatedAttribute extends TestBase {
             .setProgramConsumer(
                 new ClassFileConsumer.ForwardingConsumer(null) {
                   @Override
-                  public void acceptClassFile(ClassFileConsumerData data) {
-                    checkDeprecatedAttributes(data.getByteDataView().getBuffer());
+                  public void accept(
+                      ByteDataView data, String descriptor, DiagnosticsHandler handler) {
+                    checkDeprecatedAttributes(data.getBuffer());
                   }
                 })
             .compile();
@@ -126,8 +128,8 @@ public class DesugarToClassFileDeprecatedAttribute extends TestBase {
       builder.setProgramConsumer(
           new ForwardingConsumer(null) {
             @Override
-            public void acceptClassFile(ClassFileConsumerData data) {
-              checkDeprecatedAttributes(data.getByteDataView().getBuffer());
+            public void accept(ByteDataView data, String descriptor, DiagnosticsHandler handler) {
+              checkDeprecatedAttributes(data.getBuffer());
             }
           });
     }

@@ -44,6 +44,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Collection;
 import java.util.List;
+import java.util.Set;
 import java.util.function.Predicate;
 import java.util.zip.ZipFile;
 import org.junit.Test;
@@ -465,10 +466,15 @@ public class D8CommandTest extends CommandTestBase<D8Command> {
     class MultiTypeConsumer implements DexIndexedConsumer, DexFilePerClassFileConsumer {
 
       @Override
-      public void acceptDexFile(DexFilePerClassFileConsumerData data) {}
+      public void accept(
+          String primaryClassDescriptor,
+          ByteDataView data,
+          Set<String> descriptors,
+          DiagnosticsHandler handler) {}
 
       @Override
-      public void acceptDexIndexedFile(DexIndexedConsumerData data) {}
+      public void accept(
+          int fileIndex, ByteDataView data, Set<String> descriptors, DiagnosticsHandler handler) {}
 
       @Override
       public void finished(DiagnosticsHandler handler) {

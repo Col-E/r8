@@ -5,17 +5,18 @@ package com.android.tools.r8.d8;
 
 import static org.junit.Assert.assertTrue;
 
+import com.android.tools.r8.ByteDataView;
 import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.D8;
 import com.android.tools.r8.D8Command;
 import com.android.tools.r8.DexIndexedConsumer;
-import com.android.tools.r8.DexIndexedConsumerData;
 import com.android.tools.r8.DiagnosticsHandler;
 import com.android.tools.r8.OutputMode;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Set;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -76,7 +77,8 @@ public class DexVersionTests {
     boolean hasOutput = false;
 
     @Override
-    public void acceptDexIndexedFile(DexIndexedConsumerData data) {
+    public void accept(
+        int fileIndex, ByteDataView data, Set<String> descriptors, DiagnosticsHandler handler) {
       hasOutput = true;
     }
 

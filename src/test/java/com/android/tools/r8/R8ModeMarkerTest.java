@@ -8,6 +8,7 @@ import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.dex.Marker;
 import java.util.Collection;
+import java.util.Set;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -39,10 +40,11 @@ public class R8ModeMarkerTest extends TestBase {
     }
 
     @Override
-    public void acceptDexIndexedFile(DexIndexedConsumerData data) {
+    public void accept(
+        int fileIndex, ByteDataView data, Set<String> descriptors, DiagnosticsHandler handler) {
       try {
         Collection<Marker> markers =
-            ExtractMarker.extractMarkerFromDexProgramData(data.getByteDataCopy());
+            ExtractMarker.extractMarkerFromDexProgramData(data.copyByteData());
         assertEquals(1, markers.size());
         marker = markers.iterator().next();
       } catch (Exception e) {
@@ -65,10 +67,10 @@ public class R8ModeMarkerTest extends TestBase {
     }
 
     @Override
-    public void acceptClassFile(ClassFileConsumerData data) {
+    public void accept(ByteDataView data, String descriptors, DiagnosticsHandler handler) {
       try {
         Collection<Marker> markers =
-            ExtractMarker.extractMarkerFromClassProgramData(data.getByteDataCopy());
+            ExtractMarker.extractMarkerFromClassProgramData(data.copyByteData());
         assertEquals(1, markers.size());
         marker = markers.iterator().next();
       } catch (Exception e) {

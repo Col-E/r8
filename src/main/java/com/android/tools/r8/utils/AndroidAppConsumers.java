@@ -4,16 +4,14 @@
 package com.android.tools.r8.utils;
 
 import com.android.tools.r8.BaseCompilerCommand;
+import com.android.tools.r8.ByteDataView;
 import com.android.tools.r8.ClassFileConsumer;
-import com.android.tools.r8.ClassFileConsumerData;
 import com.android.tools.r8.DataDirectoryResource;
 import com.android.tools.r8.DataEntryResource;
 import com.android.tools.r8.DataResourceConsumer;
 import com.android.tools.r8.DexFilePerClassFileConsumer;
-import com.android.tools.r8.DexFilePerClassFileConsumerData;
 import com.android.tools.r8.DexIndexedConsumer;
 import com.android.tools.r8.DexIndexedConsumer.ForwardingConsumer;
-import com.android.tools.r8.DexIndexedConsumerData;
 import com.android.tools.r8.DiagnosticsHandler;
 import com.android.tools.r8.ProgramConsumer;
 import com.android.tools.r8.ResourceException;
@@ -105,9 +103,13 @@ public class AndroidAppConsumers {
               new Int2ReferenceAVLTreeMap<>();
 
           @Override
-          public void acceptDexIndexedFile(DexIndexedConsumerData data) {
-            super.acceptDexIndexedFile(data);
-            addDexFile(data.getFileIndex(), data.getByteDataCopy(), data.getClassDescriptors());
+          public void accept(
+              int fileIndex,
+              ByteDataView data,
+              Set<String> descriptors,
+              DiagnosticsHandler handler) {
+            super.accept(fileIndex, data, descriptors, handler);
+            addDexFile(fileIndex, data.copyByteData(), descriptors);
           }
 
           @Override
@@ -180,12 +182,13 @@ public class AndroidAppConsumers {
           private TreeMap<String, DescriptorsWithContents> files = new TreeMap<>();
 
           @Override
-          public void acceptDexFile(DexFilePerClassFileConsumerData data) {
-            super.acceptDexFile(data);
-            addDexFile(
-                data.getPrimaryClassDescriptor(),
-                data.getByteDataCopy(),
-                data.getClassDescriptors());
+          public void accept(
+              String primaryClassDescriptor,
+              ByteDataView data,
+              Set<String> descriptors,
+              DiagnosticsHandler handler) {
+            super.accept(primaryClassDescriptor, data, descriptors, handler);
+            addDexFile(primaryClassDescriptor, data.copyByteData(), descriptors);
           }
 
           synchronized void addDexFile(
@@ -255,9 +258,9 @@ public class AndroidAppConsumers {
           private List<DescriptorsWithContents> files = new ArrayList<>();
 
           @Override
-          public void acceptClassFile(ClassFileConsumerData data) {
-            super.acceptClassFile(data);
-            addClassFile(data.getByteDataCopy(), data.getClassDescriptor());
+          public void accept(ByteDataView data, String descriptor, DiagnosticsHandler handler) {
+            super.accept(data, descriptor, handler);
+            addClassFile(data.copyByteData(), descriptor);
           }
 
           synchronized void addClassFile(byte[] data, String descriptor) {

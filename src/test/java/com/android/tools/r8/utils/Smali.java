@@ -3,8 +3,8 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.utils;
 
+import com.android.tools.r8.ByteDataView;
 import com.android.tools.r8.DexIndexedConsumer;
-import com.android.tools.r8.DexIndexedConsumerData;
 import com.android.tools.r8.DiagnosticsHandler;
 import com.android.tools.r8.dex.ApplicationReader;
 import com.android.tools.r8.dex.ApplicationWriter;
@@ -19,6 +19,7 @@ import java.io.Reader;
 import java.io.StringReader;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import org.antlr.runtime.CommonTokenStream;
@@ -128,8 +129,9 @@ public class Smali {
     byte[] contents;
 
     @Override
-    public void acceptDexIndexedFile(DexIndexedConsumerData data) {
-      contents = data.getByteDataCopy();
+    public void accept(
+        int fileIndex, ByteDataView data, Set<String> descriptors, DiagnosticsHandler handler) {
+      contents = data.copyByteData();
     }
 
     @Override

@@ -10,7 +10,6 @@ import static org.junit.Assert.assertNull;
 import com.android.tools.r8.ByteDataView;
 import com.android.tools.r8.ClassFileConsumer;
 import com.android.tools.r8.DexFilePerClassFileConsumer;
-import com.android.tools.r8.DexFilePerClassFileConsumerData;
 import com.android.tools.r8.DiagnosticsHandler;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
@@ -23,6 +22,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -113,9 +113,12 @@ public class RepeatedCompilationSyntheticsTest extends TestBase {
                   b.setProgramConsumer(
                       new DexFilePerClassFileConsumer() {
                         @Override
-                        public synchronized void acceptDexFile(
-                            DexFilePerClassFileConsumerData data) {
-                          secondCompilation.addAll(data.getClassDescriptors());
+                        public void accept(
+                            String primaryClassDescriptor,
+                            ByteDataView data,
+                            Set<String> descriptors,
+                            DiagnosticsHandler handler) {
+                          secondCompilation.addAll(descriptors);
                         }
 
                         @Override

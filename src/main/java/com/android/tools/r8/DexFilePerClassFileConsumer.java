@@ -34,7 +34,7 @@ import java.util.zip.ZipOutputStream;
 @KeepForSubclassing
 public interface DexFilePerClassFileConsumer extends ProgramConsumer, ByteBufferProvider {
 
-  boolean SHOULD_COMBINE_SYNTHETIC_CLASSES = true;
+  static final boolean SHOULD_COMBINE_SYNTHETIC_CLASSES = true;
 
   /**
    * Callback to receive DEX data for a single Java class-file input and its companion classes.
@@ -42,30 +42,24 @@ public interface DexFilePerClassFileConsumer extends ProgramConsumer, ByteBuffer
    * <p>There is no guaranteed order and files might be written concurrently.
    *
    * <p>The consumer is expected not to throw, but instead report any errors via the diagnostics
-   * {@link DiagnosticsHandler} in the callback data. If an error is reported via handler and no
-   * exceptions are thrown, then the compiler guaranties to exit with an error.
+   * {@param handler}. If an error is reported via {@param handler} and no exceptions are thrown,
+   * then the compiler guaranties to exit with an error.
    *
-   * <p>The {@link ByteDataView} obtained from the {@param data} object can only be assumed valid
-   * during the duration of the accept. If the bytes are needed beyond that, a copy must be made
-   * elsewhere.
+   * <p>The {@link ByteDataView} {@param data} object can only be assumed valid during the duration
+   * of the accept. If the bytes are needed beyond that, a copy must be made elsewhere.
+   *
+   * @param primaryClassDescriptor Class descriptor of the class from the input class-file.
+   * @param data DEX encoded data in a ByteDataView wrapper.
+   * @param descriptors Class descriptors for all classes defined in the DEX data.
+   * @param handler Diagnostics handler for reporting.
    */
-  default void acceptDexFile(DexFilePerClassFileConsumerData data) {
-    accept(
-        data.getPrimaryClassDescriptor(),
-        data.getByteDataView(),
-        data.getClassDescriptors(),
-        data.getDiagnosticsHandler());
-  }
-
-  // Any new implementation should not use or call the deprecated accept method.
-  @Deprecated
   default void accept(
       String primaryClassDescriptor,
       ByteDataView data,
       Set<String> descriptors,
       DiagnosticsHandler handler) {
-    // To avoid breaking binary compatibility, old consumers not implementing the new API will be
-    // forwarded to. New consumers must implement the accept method on the data object.
+    // To avoid breaking binary compatiblity, old consumers not implementing the new API will be
+    // forwarded to. New consumers must implement the accept on ByteDataView.
     accept(primaryClassDescriptor, data.copyByteData(), descriptors, handler);
   }
 
@@ -98,8 +92,8 @@ public interface DexFilePerClassFileConsumer extends ProgramConsumer, ByteBuffer
     return ForwardingConsumer.EMPTY_CONSUMER;
   }
 
+  /** Forwarding consumer to delegate to an optional existing consumer. */
   @Keep
-  @Deprecated
   class ForwardingConsumer implements DexFilePerClassFileConsumer {
 
     private static final DexFilePerClassFileConsumer EMPTY_CONSUMER = new ForwardingConsumer(null);
@@ -116,9 +110,13 @@ public interface DexFilePerClassFileConsumer extends ProgramConsumer, ByteBuffer
     }
 
     @Override
-    public void acceptDexFile(DexFilePerClassFileConsumerData data) {
+    public void accept(
+        String primaryClassDescriptor,
+        ByteDataView data,
+        Set<String> descriptors,
+        DiagnosticsHandler handler) {
       if (consumer != null) {
-        consumer.acceptDexFile(data);
+        consumer.accept(primaryClassDescriptor, data, descriptors, handler);
       }
     }
 
@@ -180,12 +178,13 @@ public interface DexFilePerClassFileConsumer extends ProgramConsumer, ByteBuffer
     }
 
     @Override
-    public void acceptDexFile(DexFilePerClassFileConsumerData data) {
-      super.acceptDexFile(data);
-      outputBuilder.addFile(
-          getDexFileName(data.getPrimaryClassDescriptor()),
-          data.getByteDataView(),
-          data.getDiagnosticsHandler());
+    public void accept(
+        String primaryClassDescriptor,
+        ByteDataView data,
+        Set<String> descriptors,
+        DiagnosticsHandler handler) {
+      super.accept(primaryClassDescriptor, data, descriptors, handler);
+      outputBuilder.addFile(getDexFileName(primaryClassDescriptor), data, handler);
     }
 
     @Override
@@ -263,12 +262,13 @@ public interface DexFilePerClassFileConsumer extends ProgramConsumer, ByteBuffer
     }
 
     @Override
-    public void acceptDexFile(DexFilePerClassFileConsumerData data) {
-      super.acceptDexFile(data);
-      outputBuilder.addFile(
-          getDexFileName(data.getPrimaryClassDescriptor()),
-          data.getByteDataView(),
-          data.getDiagnosticsHandler());
+    public void accept(
+        String primaryClassDescriptor,
+        ByteDataView data,
+        Set<String> descriptors,
+        DiagnosticsHandler handler) {
+      super.accept(primaryClassDescriptor, data, descriptors, handler);
+      outputBuilder.addFile(getDexFileName(primaryClassDescriptor), data, handler);
     }
 
     @Override

@@ -10,11 +10,11 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.junit.Assume.assumeTrue;
 
+import com.android.tools.r8.ByteDataView;
 import com.android.tools.r8.ClassFileConsumer;
-import com.android.tools.r8.ClassFileConsumerData;
 import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.DexFilePerClassFileConsumer;
-import com.android.tools.r8.DexFilePerClassFileConsumerData;
+import com.android.tools.r8.DiagnosticsHandler;
 import com.android.tools.r8.OutputMode;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
@@ -247,16 +247,21 @@ public class BackportDuplicationTest extends TestBase {
             firstRoundOutput.isCf()
                 ? new ClassFileConsumer.ForwardingConsumer(null) {
                   @Override
-                  public void acceptClassFile(ClassFileConsumerData data) {
-                    byte[] bytes = data.getByteDataCopy();
+                  public void accept(
+                      ByteDataView data, String descriptor, DiagnosticsHandler handler) {
+                    byte[] bytes = data.copyByteData();
                     assert bytes != null;
                     outputsRoundOne.add(bytes);
                   }
                 }
                 : new DexFilePerClassFileConsumer.ForwardingConsumer(null) {
                   @Override
-                  public void acceptDexFile(DexFilePerClassFileConsumerData data) {
-                    byte[] bytes = data.getByteDataCopy();
+                  public void accept(
+                      String primaryClassDescriptor,
+                      ByteDataView data,
+                      Set<String> descriptors,
+                      DiagnosticsHandler handler) {
+                    byte[] bytes = data.copyByteData();
                     assert bytes != null;
                     outputsRoundOne.add(bytes);
                   }

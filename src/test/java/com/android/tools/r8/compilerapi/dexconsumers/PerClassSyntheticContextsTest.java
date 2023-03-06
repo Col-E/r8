@@ -3,14 +3,13 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.compilerapi.dexconsumers;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
 
+import com.android.tools.r8.ByteDataView;
 import com.android.tools.r8.ClassFileConsumer;
-import com.android.tools.r8.ClassFileConsumerData;
 import com.android.tools.r8.D8;
 import com.android.tools.r8.D8Command;
 import com.android.tools.r8.DexFilePerClassFileConsumer;
-import com.android.tools.r8.DexFilePerClassFileConsumerData;
 import com.android.tools.r8.DiagnosticsHandler;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.compilerapi.CompilerApiTest;
@@ -20,6 +19,7 @@ import com.android.tools.r8.references.ClassReference;
 import com.android.tools.r8.synthesis.SyntheticItemsTestUtils;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Consumer;
 import org.junit.Test;
 
@@ -47,8 +47,8 @@ public class PerClassSyntheticContextsTest extends CompilerApiTestRunner {
             new ClassFileConsumer() {
 
               @Override
-              public void acceptClassFile(ClassFileConsumerData data) {
-                outputs.put(data.getClassDescriptor(), data.getByteDataCopy());
+              public void accept(ByteDataView data, String descriptor, DiagnosticsHandler handler) {
+                outputs.put(descriptor, data.copyByteData());
               }
 
               @Override
@@ -60,7 +60,10 @@ public class PerClassSyntheticContextsTest extends CompilerApiTestRunner {
     new ApiTest(ApiTest.PARAMETERS)
         .run(
             outputs.get(backport.getDescriptor()),
-            context -> assertEquals(descriptor(UsesBackport.class), context));
+            context -> {
+              // TODO(b/241351268): This should be the UsesBackport class as context.
+              assertNull(context);
+            });
   }
 
   public static class UsesBackport {
@@ -83,9 +86,15 @@ public class PerClassSyntheticContextsTest extends CompilerApiTestRunner {
               .setMinApiLevel(1)
               .setProgramConsumer(
                   new DexFilePerClassFileConsumer() {
+
                     @Override
-                    public void acceptDexFile(DexFilePerClassFileConsumerData data) {
-                      syntheticContext.accept(data.getSynthesizingContextForPrimaryClass());
+                    public void accept(
+                        String primaryClassDescriptor,
+                        ByteDataView data,
+                        Set<String> descriptors,
+                        DiagnosticsHandler handler) {
+                      // TODO(b/241351268): Inform the caller of the context once possible.
+                      syntheticContext.accept(null);
                     }
 
                     @Override

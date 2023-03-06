@@ -9,7 +9,6 @@ import com.android.tools.r8.ByteBufferProvider;
 import com.android.tools.r8.ByteDataView;
 import com.android.tools.r8.ClassFileConsumer;
 import com.android.tools.r8.DexFilePerClassFileConsumer;
-import com.android.tools.r8.DexFilePerClassFileConsumerData;
 import com.android.tools.r8.DiagnosticsHandler;
 import com.android.tools.r8.GlobalSyntheticsConsumer;
 import com.android.tools.r8.ProgramConsumer;
@@ -103,8 +102,12 @@ public abstract class InternalGlobalSyntheticsProgramConsumer
     }
 
     @Override
-    public synchronized void acceptDexFile(DexFilePerClassFileConsumerData data) {
-      builder.addGlobalSynthetic(data.getPrimaryClassDescriptor(), data.getByteDataCopy());
+    public synchronized void accept(
+        String primaryClassDescriptor,
+        ByteDataView data,
+        Set<String> descriptors,
+        DiagnosticsHandler handler) {
+      builder.addGlobalSynthetic(primaryClassDescriptor, data.copyByteData());
     }
 
     @Override
@@ -146,8 +149,12 @@ public abstract class InternalGlobalSyntheticsProgramConsumer
     }
 
     @Override
-    public void acceptDexFile(DexFilePerClassFileConsumerData data) {
-      addGlobal(data.getPrimaryClassDescriptor(), data.getByteDataView());
+    public void accept(
+        String primaryClassDescriptor,
+        ByteDataView data,
+        Set<String> descriptors,
+        DiagnosticsHandler handler) {
+      addGlobal(primaryClassDescriptor, data);
     }
 
     @Override
