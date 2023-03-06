@@ -5,6 +5,7 @@ package com.android.tools.r8.debuginfo;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assume.assumeFalse;
 
 import com.android.tools.r8.TestBase;
@@ -126,7 +127,10 @@ public class NoLineInfoTest extends TestBase {
                 assertThat(
                     "Unexpected input-source stacktrace",
                     stacktrace,
-                    StackTrace.isSame(getUnexpectedRetracedStacktrace())));
+                    StackTrace.isSame(
+                        parameters.isCfRuntime()
+                            ? getExpectedInputStacktrace()
+                            : getUnexpectedRetracedStacktrace())));
   }
 
   private StackTraceLine line(String file, String method, int line) {
@@ -201,10 +205,9 @@ public class NoLineInfoTest extends TestBase {
 
   // TODO(b/232212653): The retraced stack trace should be the same as `getExpectedInputStacktrace`.
   private StackTrace getUnexpectedRetracedStacktrace() {
+    assertFalse(parameters.isCfRuntime());
     StackTraceLine fooLine;
-    if (parameters.isCfRuntime()) {
-      fooLine = inputLine("foo", -1);
-    } else if (customSourceFile) {
+    if (customSourceFile) {
       // TODO(b/232212653): Should retrace convert out of "0" and represent it as <noline>/-1?
       fooLine = inputLine("foo", 0);
     } else if (isRuntimeWithPcAsLineNumberSupport()) {
@@ -213,17 +216,8 @@ public class NoLineInfoTest extends TestBase {
     } else {
       fooLine = inputLine("foo", -1);
     }
-
-    // TODO(b/232212653): Normal line-opt will cause a single-line mapping. Retrace should not
-    //  optimize that to mean it represents a single possible line. (<noline> should not match 1:x).
-    StackTraceLine barLine =
-        parameters.isCfRuntime() ? inputLine("bar", 100) : inputLine("bar", getPcEncoding(0));
-
-    // TODO(b/232212653): The retracing in CF where the line table is preserved is incorrect.
-    //  same issue as for bar.
-    StackTraceLine bazLine =
-        parameters.isCfRuntime() ? inputLine("baz", 100) : inputLine("baz", getPcEncoding(0));
-
+    StackTraceLine barLine = inputLine("bar", getPcEncoding(0));
+    StackTraceLine bazLine = inputLine("baz", getPcEncoding(0));
     return StackTrace.builder()
         .add(fooLine)
         .add(barLine)
