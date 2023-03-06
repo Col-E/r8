@@ -6,6 +6,8 @@ package com.android.tools.r8.synthesis;
 import static com.android.tools.r8.utils.ConsumerUtils.emptyConsumer;
 
 import com.android.tools.r8.FeatureSplit;
+import com.android.tools.r8.SyntheticInfoConsumer;
+import com.android.tools.r8.SyntheticInfoConsumerData;
 import com.android.tools.r8.contexts.CompilationContext.UniqueContext;
 import com.android.tools.r8.errors.MissingGlobalSyntheticsConsumerDiagnostic;
 import com.android.tools.r8.errors.Unreachable;
@@ -38,6 +40,8 @@ import com.android.tools.r8.graph.PrunedItems;
 import com.android.tools.r8.horizontalclassmerging.HorizontalClassMerger;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.origin.Origin;
+import com.android.tools.r8.references.ClassReference;
+import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.synthesis.SyntheticFinalization.Result;
 import com.android.tools.r8.synthesis.SyntheticNaming.SyntheticKind;
 import com.android.tools.r8.utils.Box;
@@ -1168,5 +1172,41 @@ public class SyntheticItems implements SyntheticDefinitionsProvider {
     assert !hasPendingSyntheticClasses();
     return new SyntheticFinalization(appView.options(), this, committed)
         .computeFinalSynthetics(appView, timing);
+  }
+
+  public void reportSyntheticsInformation(SyntheticInfoConsumer consumer) {
+    assert isFinalized();
+    Map<DexType, DexType> seen = new IdentityHashMap<>();
+    committed.forEachItem(
+        ref -> {
+          DexType holder = ref.getHolder();
+          DexType context = ref.getContext().getSynthesizingContextType();
+          DexType old = seen.put(holder, context);
+          assert old == null || old == context;
+          if (old == null) {
+            consumer.acceptSyntheticInfo(new SyntheticInfoConsumerDataImpl(holder, context));
+          }
+        });
+  }
+
+  private static class SyntheticInfoConsumerDataImpl implements SyntheticInfoConsumerData {
+
+    private final DexType holder;
+    private final DexType context;
+
+    public SyntheticInfoConsumerDataImpl(DexType holder, DexType context) {
+      this.holder = holder;
+      this.context = context;
+    }
+
+    @Override
+    public ClassReference getSyntheticClass() {
+      return Reference.classFromDescriptor(holder.toDescriptorString());
+    }
+
+    @Override
+    public ClassReference getSynthesizingContextClass() {
+      return Reference.classFromDescriptor(context.toDescriptorString());
+    }
   }
 }

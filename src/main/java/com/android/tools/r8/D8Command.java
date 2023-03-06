@@ -90,6 +90,7 @@ public final class D8Command extends BaseCompilerCommand {
     private List<GlobalSyntheticsResourceProvider> globalSyntheticsResourceProviders =
         new ArrayList<>();
     private DesugarGraphConsumer desugarGraphConsumer = null;
+    private SyntheticInfoConsumer syntheticInfoConsumer = null;
     private StringConsumer desugaredLibraryKeepRuleConsumer = null;
     private String synthesizedClassPrefix = "";
     private boolean enableMainDexListCheck = true;
@@ -265,6 +266,21 @@ public final class D8Command extends BaseCompilerCommand {
      */
     public Builder setDesugarGraphConsumer(DesugarGraphConsumer desugarGraphConsumer) {
       this.desugarGraphConsumer = desugarGraphConsumer;
+      return self();
+    }
+
+    /** Get the consumer that will receive information about compiler synthesized classes. */
+    public SyntheticInfoConsumer getSyntheticInfoConsumer() {
+      return syntheticInfoConsumer;
+    }
+
+    /**
+     * Set the consumer that will receive information about compiler synthesized classes.
+     *
+     * <p>Setting the consumer will clear any previously set consumer.
+     */
+    public Builder setSyntheticInfoConsumer(SyntheticInfoConsumer syntheticInfoConsumer) {
+      this.syntheticInfoConsumer = syntheticInfoConsumer;
       return self();
     }
 
@@ -456,6 +472,7 @@ public final class D8Command extends BaseCompilerCommand {
           getIncludeClassesChecksum(),
           getDexClassChecksumFilter(),
           getDesugarGraphConsumer(),
+          getSyntheticInfoConsumer(),
           desugaredLibraryKeepRuleConsumer,
           desugaredLibrarySpecification,
           getAssertionsConfiguration(),
@@ -479,6 +496,7 @@ public final class D8Command extends BaseCompilerCommand {
 
   private final boolean intermediate;
   private final GlobalSyntheticsConsumer globalSyntheticsConsumer;
+  private final SyntheticInfoConsumer syntheticInfoConsumer;
   private final DesugarGraphConsumer desugarGraphConsumer;
   private final StringConsumer desugaredLibraryKeepRuleConsumer;
   private final DesugaredLibrarySpecification desugaredLibrarySpecification;
@@ -549,6 +567,7 @@ public final class D8Command extends BaseCompilerCommand {
       boolean encodeChecksum,
       BiPredicate<String, Long> dexClassChecksumFilter,
       DesugarGraphConsumer desugarGraphConsumer,
+      SyntheticInfoConsumer syntheticInfoConsumer,
       StringConsumer desugaredLibraryKeepRuleConsumer,
       DesugaredLibrarySpecification desugaredLibrarySpecification,
       List<AssertionsConfiguration> assertionsConfiguration,
@@ -590,6 +609,7 @@ public final class D8Command extends BaseCompilerCommand {
         classConflictResolver);
     this.intermediate = intermediate;
     this.globalSyntheticsConsumer = globalSyntheticsConsumer;
+    this.syntheticInfoConsumer = syntheticInfoConsumer;
     this.desugarGraphConsumer = desugarGraphConsumer;
     this.desugaredLibraryKeepRuleConsumer = desugaredLibraryKeepRuleConsumer;
     this.desugaredLibrarySpecification = desugaredLibrarySpecification;
@@ -606,6 +626,7 @@ public final class D8Command extends BaseCompilerCommand {
     super(printHelp, printVersion);
     intermediate = false;
     globalSyntheticsConsumer = null;
+    syntheticInfoConsumer = null;
     desugarGraphConsumer = null;
     desugaredLibraryKeepRuleConsumer = null;
     desugaredLibrarySpecification = null;
@@ -641,6 +662,7 @@ public final class D8Command extends BaseCompilerCommand {
     internal.intermediate = intermediate;
     internal.retainCompileTimeAnnotations = intermediate;
     internal.setGlobalSyntheticsConsumer(globalSyntheticsConsumer);
+    internal.setSyntheticInfoConsumer(syntheticInfoConsumer);
     internal.desugarGraphConsumer = desugarGraphConsumer;
     internal.mainDexKeepRules = mainDexKeepRules;
     internal.proguardMapConsumer = proguardMapConsumer;

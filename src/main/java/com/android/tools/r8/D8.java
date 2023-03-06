@@ -324,6 +324,8 @@ public final class D8 {
 
       timing.end(); // post-converter
 
+      reportSyntheticInformation(appView);
+
       if (options.isGeneratingClassFiles()) {
         new CfApplicationWriter(appView, marker).write(options.getClassFileConsumer(), inputApp);
       } else {
@@ -340,6 +342,15 @@ public final class D8 {
         timing.report();
       }
     }
+  }
+
+  private static void reportSyntheticInformation(AppView<?> appView) {
+    SyntheticInfoConsumer consumer = appView.options().getSyntheticInfoConsumer();
+    if (consumer == null || !appView.options().intermediate) {
+      return;
+    }
+    appView.getSyntheticItems().reportSyntheticsInformation(consumer);
+    consumer.finished();
   }
 
   private static void initializeAssumeInfoCollection(AppView<AppInfo> appView) {

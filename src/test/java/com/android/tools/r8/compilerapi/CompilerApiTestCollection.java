@@ -13,7 +13,6 @@ import com.android.tools.r8.compilerapi.artprofiles.ArtProfilesForRewritingApiTe
 import com.android.tools.r8.compilerapi.assertionconfiguration.AssertionConfigurationTest;
 import com.android.tools.r8.compilerapi.classconflictresolver.ClassConflictResolverTest;
 import com.android.tools.r8.compilerapi.desugardependencies.DesugarDependenciesTest;
-import com.android.tools.r8.compilerapi.dexconsumers.PerClassSyntheticContextsTest;
 import com.android.tools.r8.compilerapi.diagnostics.ProguardKeepRuleDiagnosticsApiTest;
 import com.android.tools.r8.compilerapi.diagnostics.UnsupportedFeaturesDiagnosticApiTest;
 import com.android.tools.r8.compilerapi.globalsynthetics.GlobalSyntheticsTest;
@@ -24,6 +23,7 @@ import com.android.tools.r8.compilerapi.mockdata.MockClassWithAssertion;
 import com.android.tools.r8.compilerapi.mockdata.PostStartupMockClass;
 import com.android.tools.r8.compilerapi.sourcefile.CustomSourceFileTest;
 import com.android.tools.r8.compilerapi.startupprofile.StartupProfileApiTest;
+import com.android.tools.r8.compilerapi.syntheticscontexts.SyntheticContextsConsumerTest;
 import com.android.tools.r8.compilerapi.testsetup.ApiTestingSetUpTest;
 import com.android.tools.r8.compilerapi.wrappers.CommandLineParserTest;
 import com.android.tools.r8.compilerapi.wrappers.EnableMissingLibraryApiModelingTest;
@@ -60,7 +60,7 @@ public class CompilerApiTestCollection extends BinaryCompatibilityTestCollection
           StartupProfileApiTest.ApiTest.class,
           ClassConflictResolverTest.ApiTest.class,
           ProguardKeepRuleDiagnosticsApiTest.ApiTest.class,
-          PerClassSyntheticContextsTest.ApiTest.class);
+          SyntheticContextsConsumerTest.ApiTest.class);
 
   private final TemporaryFolder temp;
 

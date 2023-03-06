@@ -66,9 +66,6 @@ import java.util.function.Predicate;
 
 public class SyntheticFinalization {
 
-  // TODO(b/237413146): Implement a non-quadratic grouping algorithm.
-  private static final int GROUP_COUNT_THRESHOLD = 10;
-
   public static class Result {
     public final CommittedItems commit;
     public final NonIdentityGraphLens lens;

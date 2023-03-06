@@ -80,8 +80,17 @@ public abstract class CompilerApiTest {
     return PostStartupMockClass.class;
   }
 
+  public static Path getProjectRoot() {
+    String userDirProperty = System.getProperty("user.dir");
+    if (userDirProperty.endsWith("d8_r8/test")) {
+      return Paths.get(userDirProperty).getParent().getParent();
+    }
+    return Paths.get("");
+  }
+
   public Path getJava8RuntimeJar() {
-    return Paths.get("third_party", "openjdk", "openjdk-rt-1.8", "rt.jar");
+    return getProjectRoot()
+        .resolve(Paths.get("third_party", "openjdk", "openjdk-rt-1.8", "rt.jar"));
   }
 
   public List<String> getKeepMainRules(Class<?> clazz) {

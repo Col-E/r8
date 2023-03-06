@@ -18,6 +18,7 @@ import com.android.tools.r8.MapIdProvider;
 import com.android.tools.r8.ProgramConsumer;
 import com.android.tools.r8.SourceFileProvider;
 import com.android.tools.r8.StringConsumer;
+import com.android.tools.r8.SyntheticInfoConsumer;
 import com.android.tools.r8.Version;
 import com.android.tools.r8.androidapi.ComputedApiLevel;
 import com.android.tools.r8.cf.CfVersion;
@@ -181,6 +182,7 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
   public ProgramClassConflictResolver programClassConflictResolver = null;
 
   private GlobalSyntheticsConsumer globalSyntheticsConsumer = null;
+  private SyntheticInfoConsumer syntheticInfoConsumer = null;
 
   public DataResourceConsumer dataResourceConsumer;
   public FeatureSplitConfiguration featureSplitConfiguration;
@@ -515,6 +517,14 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
 
   public void setGlobalSyntheticsConsumer(GlobalSyntheticsConsumer globalSyntheticsConsumer) {
     this.globalSyntheticsConsumer = globalSyntheticsConsumer;
+  }
+
+  public void setSyntheticInfoConsumer(SyntheticInfoConsumer syntheticInfoConsumer) {
+    this.syntheticInfoConsumer = syntheticInfoConsumer;
+  }
+
+  public SyntheticInfoConsumer getSyntheticInfoConsumer() {
+    return syntheticInfoConsumer;
   }
 
   public boolean isDesugaredLibraryCompilation() {

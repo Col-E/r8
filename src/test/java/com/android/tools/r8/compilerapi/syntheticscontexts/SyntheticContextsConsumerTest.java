@@ -1,9 +1,9 @@
 // Copyright (c) 2023, the R8 project authors. Please see the AUTHORS file
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
-package com.android.tools.r8.compilerapi.dexconsumers;
+package com.android.tools.r8.compilerapi.syntheticscontexts;
 
-import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.ByteDataView;
 import com.android.tools.r8.ClassFileConsumer;
@@ -11,6 +11,8 @@ import com.android.tools.r8.D8;
 import com.android.tools.r8.D8Command;
 import com.android.tools.r8.DexFilePerClassFileConsumer;
 import com.android.tools.r8.DiagnosticsHandler;
+import com.android.tools.r8.SyntheticInfoConsumer;
+import com.android.tools.r8.SyntheticInfoConsumerData;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.compilerapi.CompilerApiTest;
 import com.android.tools.r8.compilerapi.CompilerApiTestRunner;
@@ -20,12 +22,13 @@ import com.android.tools.r8.synthesis.SyntheticItemsTestUtils;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
 import org.junit.Test;
 
-public class PerClassSyntheticContextsTest extends CompilerApiTestRunner {
+public class SyntheticContextsConsumerTest extends CompilerApiTestRunner {
 
-  public PerClassSyntheticContextsTest(TestParameters parameters) {
+  public SyntheticContextsConsumerTest(TestParameters parameters) {
     super(parameters);
   }
 
@@ -60,10 +63,7 @@ public class PerClassSyntheticContextsTest extends CompilerApiTestRunner {
     new ApiTest(ApiTest.PARAMETERS)
         .run(
             outputs.get(backport.getDescriptor()),
-            context -> {
-              // TODO(b/241351268): This should be the UsesBackport class as context.
-              assertNull(context);
-            });
+            context -> assertEquals(descriptor(UsesBackport.class), context));
   }
 
   public static class UsesBackport {
@@ -79,11 +79,26 @@ public class PerClassSyntheticContextsTest extends CompilerApiTestRunner {
     }
 
     public void run(byte[] input, Consumer<String> syntheticContext) throws Exception {
+      Map<String, String> synthetic2context = new ConcurrentHashMap<>();
       D8.run(
           D8Command.builder()
               .addClassProgramData(input, Origin.unknown())
               .addLibraryFiles(getJava8RuntimeJar())
               .setMinApiLevel(1)
+              .setSyntheticInfoConsumer(
+                  new SyntheticInfoConsumer() {
+                    @Override
+                    public void acceptSyntheticInfo(SyntheticInfoConsumerData data) {
+                      synthetic2context.put(
+                          data.getSyntheticClass().getDescriptor(),
+                          data.getSynthesizingContextClass().getDescriptor());
+                    }
+
+                    @Override
+                    public void finished() {
+                      // nothing to finish up.
+                    }
+                  })
               .setProgramConsumer(
                   new DexFilePerClassFileConsumer() {
 
@@ -93,8 +108,7 @@ public class PerClassSyntheticContextsTest extends CompilerApiTestRunner {
                         ByteDataView data,
                         Set<String> descriptors,
                         DiagnosticsHandler handler) {
-                      // TODO(b/241351268): Inform the caller of the context once possible.
-                      syntheticContext.accept(null);
+                      syntheticContext.accept(synthetic2context.get(primaryClassDescriptor));
                     }
 
                     @Override
