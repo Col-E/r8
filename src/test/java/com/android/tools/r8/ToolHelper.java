@@ -97,9 +97,9 @@ public class ToolHelper {
   }
 
   public static String getProjectRoot() {
-    String property = System.getProperty("user.dir");
-    if (property.endsWith("d8_r8/test")) {
-      return "../../";
+    String userDirProperty = System.getProperty("user.dir");
+    if (userDirProperty.endsWith("d8_r8/test")) {
+      return Paths.get(userDirProperty).getParent().getParent().toString() + "/";
     }
     return "";
   }
@@ -2273,7 +2273,7 @@ public class ToolHelper {
       throws IOException {
     boolean printCwd = builder.directory() != null;
     if (printCwd) {
-      out.println("(cd " + builder.directory().toString() + "; ");
+      out.println("(cd " + builder.directory() + "; ");
     }
     String command = String.join(" ", builder.command());
     out.println(command);

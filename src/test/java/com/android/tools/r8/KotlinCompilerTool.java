@@ -17,6 +17,7 @@ import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.utils.ArrayUtils;
 import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.structural.Ordered;
+import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -367,6 +368,9 @@ public class KotlinCompilerTool {
     }
     cmdline.addAll(additionalArguments);
     ProcessBuilder builder = new ProcessBuilder(cmdline);
+    if (ToolHelper.isNewGradleSetup()) {
+      builder.directory(new File(ToolHelper.getProjectRoot()));
+    }
     return ToolHelper.runProcess(builder);
   }
 }
