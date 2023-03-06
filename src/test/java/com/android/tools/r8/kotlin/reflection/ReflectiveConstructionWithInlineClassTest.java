@@ -10,6 +10,7 @@ import com.android.tools.r8.KotlinTestBase;
 import com.android.tools.r8.KotlinTestParameters;
 import com.android.tools.r8.R8FullTestBuilder;
 import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.TestShrinkerBuilder;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.kotlin.metadata.KotlinMetadataTestBase;
 import com.android.tools.r8.shaking.ProguardKeepAttributes;
@@ -96,6 +97,9 @@ public class ReflectiveConstructionWithInlineClassTest extends KotlinTestBase {
         .addProgramFiles(kotlinc.getKotlinReflectJar())
         .addProgramFiles(kotlinc.getKotlinAnnotationJar())
         .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.LATEST))
+        .applyIf(
+            parameters.isCfRuntime(),
+            TestShrinkerBuilder::addDontWarnJavaLangInvokeLambdaMetadataFactory)
         .setMinApi(parameters)
         .addKeepMainRule(MAIN_CLASS)
         .addKeepClassAndMembersRules(PKG + ".Data")
@@ -119,11 +123,7 @@ public class ReflectiveConstructionWithInlineClassTest extends KotlinTestBase {
         .assertNoErrorMessages()
         .apply(KotlinMetadataTestBase::verifyExpectedWarningsFromKotlinReflectAndStdLib)
         .run(parameters.getRuntime(), MAIN_CLASS)
-        // TODO(b/269792580): Figure out why this is throwing an abstract method error.
-        .assertFailureWithErrorThatThrows(
-            kotlinParameters.isKotlinDev() && parameters.isCfRuntime()
-                ? AbstractMethodError.class
-                : IllegalArgumentException.class);
+        .assertFailureWithErrorThatThrows(IllegalArgumentException.class);
   }
 
   @Test
@@ -134,9 +134,6 @@ public class ReflectiveConstructionWithInlineClassTest extends KotlinTestBase {
         .assertNoErrorMessages()
         .apply(KotlinMetadataTestBase::verifyExpectedWarningsFromKotlinReflectAndStdLib)
         .run(parameters.getRuntime(), MAIN_CLASS)
-        // TODO(b/269792580): Figure out why this is throwing an abstract method error.
-        .assertFailureWithErrorThatThrowsIf(
-            kotlinParameters.isKotlinDev() && parameters.isCfRuntime(), AbstractMethodError.class)
-        .assertSuccessWithOutputLinesIf(!kotlinParameters.isKotlinDev(), EXPECTED_OUTPUT);
+        .assertSuccessWithOutputLines(EXPECTED_OUTPUT);
   }
 }
