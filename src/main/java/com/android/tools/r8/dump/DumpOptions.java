@@ -185,6 +185,9 @@ public class DumpOptions {
         '\n',
         line -> {
           String trimmed = line.trim();
+          if (trimmed.isEmpty()) {
+            return;
+          }
           int i = trimmed.indexOf('=');
           if (i < 0) {
             throw new RuntimeException("Invalid dump line. Expected = in line: '" + trimmed + "'");
