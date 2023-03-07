@@ -51,6 +51,9 @@ import java.util.Set;
 
 public class GenerateLintFiles extends AbstractGenerateFiles {
 
+  // Only recent versions of studio support the format with fields.
+  private static final boolean FORMAT_WITH_FIELD = true;
+
   public static GenerateLintFiles createForTesting(
       Path specification, Set<Path> implementation, Path outputDirectory) throws Exception {
     return new GenerateLintFiles(specification, implementation, outputDirectory);
@@ -181,6 +184,15 @@ public class GenerateLintFiles extends AbstractGenerateFiles {
                             + method.getReference().proto.toDescriptorString());
                   }
                 });
+            if (FORMAT_WITH_FIELD) {
+              supportedClass.forEachFieldAndAnnotation(
+                  (field, fieldAnnotation) -> {
+                    if (fieldAnnotation == null || !fieldAnnotation.unsupportedInMinApiRange) {
+                      desugaredApisSignatures.add(
+                          classBinaryName + '#' + field.getReference().name);
+                    }
+                  });
+            }
           } else {
             desugaredApisSignatures.add(classBinaryName);
           }

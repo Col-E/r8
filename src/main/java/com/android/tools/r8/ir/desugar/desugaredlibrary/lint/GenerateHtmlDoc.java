@@ -507,6 +507,15 @@ public class GenerateHtmlDoc extends AbstractGenerateFiles {
             .append(" Also supported with covariant return type.")
             .append(HTML_SPLIT);
       }
+      if (!classAnnotation.getUnsupportedFields().isEmpty()) {
+        commentBuilder
+            .append("Some fields (")
+            .append(classAnnotation.getUnsupportedFields().size())
+            .append(") present in Android ")
+            .append(MAX_TESTED_ANDROID_API_LEVEL)
+            .append(" are not supported.")
+            .append(HTML_SPLIT);
+      }
       if (!classAnnotation.getUnsupportedMethods().isEmpty()) {
         commentBuilder
             .append("Some methods (")

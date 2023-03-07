@@ -16,8 +16,11 @@ import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedField;
+import com.android.tools.r8.graph.DexEncodedMember;
 import com.android.tools.r8.graph.DexEncodedMethod;
+import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItemFactory;
+import com.android.tools.r8.graph.DexMember;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
@@ -82,34 +85,43 @@ public class SupportedClassesGenerator {
 
   private void annotateClasses(
       SupportedClasses.Builder builder, DirectMappedDexApplication appForMax) {
-    builder.forEachClassAndMethods(
-        (clazz, methods) -> {
+    builder.forEachClassFieldsAndMethods(
+        (clazz, fields, methods) -> {
           ClassAnnotation classAnnotation = builder.getClassAnnotation(clazz.type);
           if (classAnnotation != null && classAnnotation.isAdditionalMembersOnClass()) {
             return;
           }
           DexClass maxClass = appForMax.definitionFor(clazz.type);
-          List<DexMethod> missing = new ArrayList<>();
+          List<DexField> missingFields = new ArrayList<>();
+          List<DexMethod> missingMethods = new ArrayList<>();
           boolean fullySupported = true;
-          for (DexEncodedMethod method : maxClass.methods()) {
-            if (!(method.isPublic() || method.isProtectedMethod())) {
-              continue;
-            }
-            // If the method is in android.jar but not in the desugared library, or annotated, then
-            // the class is not marked as fully supported.
-            if (methods.stream().noneMatch(em -> em.getReference() == method.getReference())) {
-              missing.add(method.getReference());
-              fullySupported = false;
-            }
+          fullySupported &= analyzeMissingMembers(maxClass.fields(), fields, missingFields);
+          fullySupported &= analyzeMissingMembers(maxClass.methods(), methods, missingMethods);
+          fullySupported &= builder.getFieldAnnotations(clazz).isEmpty();
+          for (MethodAnnotation methodAnnotation : builder.getMethodAnnotations(clazz).values()) {
+            fullySupported &= !methodAnnotation.isCovariantReturnSupported();
           }
-          for (DexEncodedMethod method : clazz.methods()) {
-            MethodAnnotation methodAnnotation = builder.getMethodAnnotation(method.getReference());
-            if (methodAnnotation != null && !methodAnnotation.isCovariantReturnSupported()) {
-              fullySupported = false;
-            }
-          }
-          builder.annotateClass(clazz.type, new ClassAnnotation(fullySupported, missing));
+          builder.annotateClass(
+              clazz.type, new ClassAnnotation(fullySupported, missingFields, missingMethods));
         });
+  }
+
+  private <EM extends DexEncodedMember<EM, M>, M extends DexMember<EM, M>>
+      boolean analyzeMissingMembers(
+          Iterable<EM> maxClassMembers, Collection<EM> referenceMembers, List<M> missingMembers) {
+    boolean fullySupported = true;
+    for (EM member : maxClassMembers) {
+      if (!(member.getAccessFlags().isPublic() || member.getAccessFlags().isProtected())) {
+        continue;
+      }
+      // If the field is in android.jar but not in the desugared library, then
+      // the class is not marked as fully supported.
+      if (referenceMembers.stream().noneMatch(em -> em.getReference() == member.getReference())) {
+        missingMembers.add(member.getReference());
+        fullySupported = false;
+      }
+    }
+    return fullySupported;
   }
 
   private void annotatePartialDesugaringMembers(

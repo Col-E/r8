@@ -10,6 +10,7 @@ import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.utils.TriConsumer;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSortedMap;
 import java.util.Collection;
@@ -121,8 +122,10 @@ public class SupportedClasses {
         this.clazz = clazz;
       }
 
-      void forEachMethods(BiConsumer<DexClass, Collection<DexEncodedMethod>> biConsumer) {
-        biConsumer.accept(clazz, supportedMethods.values());
+      public void forEachFieldsAndMethods(
+          TriConsumer<DexClass, Collection<DexEncodedField>, Collection<DexEncodedMethod>>
+              triConsumer) {
+        triConsumer.accept(clazz, supportedFields.values(), supportedMethods.values());
       }
 
       void forEachMethod(BiConsumer<DexClass, DexEncodedMethod> biConsumer) {
@@ -166,10 +169,6 @@ public class SupportedClasses {
         fieldAnnotations.put(field, annotation.combine(prev));
       }
 
-      MethodAnnotation getMethodAnnotation(DexMethod method) {
-        return methodAnnotations.get(method);
-      }
-
       SupportedClass build() {
         return new SupportedClass(
             clazz,
@@ -196,10 +195,12 @@ public class SupportedClasses {
       return builder.classAnnotation;
     }
 
-    void forEachClassAndMethods(BiConsumer<DexClass, Collection<DexEncodedMethod>> biConsumer) {
+    void forEachClassFieldsAndMethods(
+        TriConsumer<DexClass, Collection<DexEncodedField>, Collection<DexEncodedMethod>>
+            triConsumer) {
       supportedClassBuilders
           .values()
-          .forEach(classBuilder -> classBuilder.forEachMethods(biConsumer));
+          .forEach(classBuilder -> classBuilder.forEachFieldsAndMethods(triConsumer));
     }
 
     void forEachClassAndMethod(BiConsumer<DexClass, DexEncodedMethod> biConsumer) {
@@ -254,10 +255,16 @@ public class SupportedClasses {
       annotateMethod(method, annotation);
     }
 
-    MethodAnnotation getMethodAnnotation(DexMethod method) {
-      SupportedClass.Builder classBuilder = supportedClassBuilders.get(method.getHolderType());
+    public Map<DexField, FieldAnnotation> getFieldAnnotations(DexClass clazz) {
+      SupportedClass.Builder classBuilder = supportedClassBuilders.get(clazz.getType());
       assert classBuilder != null;
-      return classBuilder.getMethodAnnotation(method);
+      return classBuilder.fieldAnnotations;
+    }
+
+    Map<DexMethod, MethodAnnotation> getMethodAnnotations(DexClass clazz) {
+      SupportedClass.Builder classBuilder = supportedClassBuilders.get(clazz.getType());
+      assert classBuilder != null;
+      return classBuilder.methodAnnotations;
     }
 
     SupportedClasses build() {
@@ -274,12 +281,18 @@ public class SupportedClasses {
 
     private final boolean additionalMembersOnClass;
     private final boolean fullySupported;
-    // Methods in latest android.jar but unsupported.
+    // Members in latest android.jar but unsupported.
+    private final List<DexField> unsupportedFields;
     private final List<DexMethod> unsupportedMethods;
 
-    public ClassAnnotation(boolean fullySupported, List<DexMethod> unsupportedMethods) {
+    public ClassAnnotation(
+        boolean fullySupported,
+        List<DexField> unsupportedFields,
+        List<DexMethod> unsupportedMethods) {
       this.additionalMembersOnClass = false;
       this.fullySupported = fullySupported;
+      unsupportedFields.sort(Comparator.naturalOrder());
+      this.unsupportedFields = unsupportedFields;
       unsupportedMethods.sort(Comparator.naturalOrder());
       this.unsupportedMethods = ImmutableList.copyOf(unsupportedMethods);
     }
@@ -287,6 +300,7 @@ public class SupportedClasses {
     private ClassAnnotation() {
       this.additionalMembersOnClass = true;
       this.fullySupported = false;
+      this.unsupportedFields = ImmutableList.of();
       this.unsupportedMethods = ImmutableList.of();
     }
 
@@ -302,6 +316,10 @@ public class SupportedClasses {
 
     public boolean isFullySupported() {
       return fullySupported;
+    }
+
+    public List<DexField> getUnsupportedFields() {
+      return unsupportedFields;
     }
 
     public List<DexMethod> getUnsupportedMethods() {
