@@ -109,6 +109,14 @@ luci.gitiles_poller(
 )
 
 luci.gitiles_poller(
+  name = "branch-gitiles-8.1-forward",
+  bucket = "ci",
+  repo = "https://r8.googlesource.com/r8",
+  refs = ["refs/heads/([8]\\.[1-9]+(\\.[0-9]+)?|[9]\\.[0-9]+(\\.[0-9]+)?)"],
+  path_regexps = ["src/main/java/com/android/tools/r8/Version.java"]
+)
+
+luci.gitiles_poller(
   name = "branch-gitiles-3.3-forward",
   bucket = "ci",
   repo = "https://r8.googlesource.com/r8",
@@ -307,6 +315,10 @@ r8_tester_with_default("linux-android-12.0.0",
 r8_tester_with_default("linux-android-13.0.0",
     ["--dex_vm=13.0.0", "--all_tests"],
     release_trigger=["branch-gitiles-3.3-forward"])
+r8_tester_with_default("linux-android-14.0.0",
+    ["--dex_vm=14.0.0", "--all_tests"],
+    release_trigger=["branch-gitiles-8.1-forward"])
+
 
 r8_tester_with_default("windows", ["--all_tests"],
     dimensions=get_dimensions(windows=True))
