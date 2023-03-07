@@ -99,7 +99,7 @@ public class SupportedClassesGenerator {
           fullySupported &= analyzeMissingMembers(maxClass.methods(), methods, missingMethods);
           fullySupported &= builder.getFieldAnnotations(clazz).isEmpty();
           for (MethodAnnotation methodAnnotation : builder.getMethodAnnotations(clazz).values()) {
-            fullySupported &= !methodAnnotation.isCovariantReturnSupported();
+            fullySupported &= methodAnnotation.isCovariantReturnSupported();
           }
           builder.annotateClass(
               clazz.type, new ClassAnnotation(fullySupported, missingFields, missingMethods));
