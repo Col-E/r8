@@ -98,7 +98,8 @@ public class ReflectiveConstructionWithInlineClassTest extends KotlinTestBase {
         .addProgramFiles(kotlinc.getKotlinAnnotationJar())
         .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.LATEST))
         .applyIf(
-            parameters.isCfRuntime(),
+            parameters.isCfRuntime()
+                && kotlinParameters.isNewerThan(KotlinCompilerVersion.KOTLINC_1_8_0),
             TestShrinkerBuilder::addDontWarnJavaLangInvokeLambdaMetadataFactory)
         .setMinApi(parameters)
         .addKeepMainRule(MAIN_CLASS)
