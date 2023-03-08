@@ -12,6 +12,7 @@ import com.android.tools.r8.dex.Marker.Tool;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.utils.BooleanUtils;
+import com.android.tools.r8.utils.ExtractMarkerUtils;
 import java.nio.file.Paths;
 import java.util.Collection;
 import java.util.Set;
@@ -68,7 +69,7 @@ public class ExtractMarkerTest extends TestBase {
                     Marker marker;
                     try {
                       Collection<Marker> markers =
-                          ExtractMarker.extractMarkerFromDexProgramData(data.copyByteData());
+                          ExtractMarkerUtils.extractMarkerFromDexProgramData(data.copyByteData());
                       assertEquals(1, markers.size());
                       marker = markers.iterator().next();
                     } catch (Exception e) {
@@ -109,7 +110,7 @@ public class ExtractMarkerTest extends TestBase {
                     Marker marker;
                     try {
                       Collection<Marker> markers =
-                          ExtractMarker.extractMarkerFromClassProgramData(data.copyByteData());
+                          ExtractMarkerUtils.extractMarkerFromClassProgramData(data.copyByteData());
                       assertEquals(1, markers.size());
                       marker = markers.iterator().next();
                     } catch (Exception e) {

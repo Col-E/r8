@@ -23,6 +23,7 @@ import com.android.tools.r8.origin.EmbeddedOrigin;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.utils.AndroidApiLevel;
+import com.android.tools.r8.utils.ExtractMarkerUtils;
 import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.InternalOptions.ApiModelTestingOptions;
@@ -199,7 +200,7 @@ public class R8CommandTest extends CommandTestBase<R8Command> {
         input.toString());
     assertEquals(0, ToolHelper.forkR8(working, "@flags.txt").exitCode);
     assertTrue(Files.exists(output));
-    Collection<Marker> markers = ExtractMarker.extractMarkerFromDexFile(output);
+    Collection<Marker> markers = ExtractMarkerUtils.extractMarkersFromFile(output);
     assertEquals(1, markers.size());
     Marker marker = markers.iterator().next();
     assertEquals(24, marker.getMinApi().intValue());

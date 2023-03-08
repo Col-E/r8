@@ -18,7 +18,6 @@ import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.CompilationMode;
 import com.android.tools.r8.D8TestCompileResult;
-import com.android.tools.r8.ExtractMarker;
 import com.android.tools.r8.LibraryDesugaringTestConfiguration;
 import com.android.tools.r8.TestDiagnosticMessages;
 import com.android.tools.r8.TestParameters;
@@ -27,6 +26,7 @@ import com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpeci
 import com.android.tools.r8.dex.Marker;
 import com.android.tools.r8.dex.Marker.Tool;
 import com.android.tools.r8.utils.AndroidApiLevel;
+import com.android.tools.r8.utils.ExtractMarkerUtils;
 import com.google.common.collect.ImmutableList;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -110,7 +110,7 @@ public class MergingWithDesugaredLibraryTest extends DesugaredLibraryTestBase {
             markerCompilationMode(CompilationMode.RELEASE),
             not(markerIsDesugared()),
             not(markerHasDesugaredLibraryIdentifier()));
-    assertMarkersMatch(ExtractMarker.extractMarkerFromJarFile(shrunkenLib), libraryMatcher);
+    assertMarkersMatch(ExtractMarkerUtils.extractMarkersFromFile(shrunkenLib), libraryMatcher);
 
     // Build an app with the R8 compiled library.
     Path app =
@@ -135,7 +135,8 @@ public class MergingWithDesugaredLibraryTest extends DesugaredLibraryTestBase {
             markerHasDesugaredLibraryIdentifier(
                 libraryDesugaringSpecification.hasAnyDesugaring(parameters)));
     assertMarkersMatch(
-        ExtractMarker.extractMarkerFromDexFile(app), ImmutableList.of(libraryMatcher, d8Matcher));
+        ExtractMarkerUtils.extractMarkersFromFile(app),
+        ImmutableList.of(libraryMatcher, d8Matcher));
   }
 
   @Test
@@ -157,7 +158,7 @@ public class MergingWithDesugaredLibraryTest extends DesugaredLibraryTestBase {
             markerIsDesugared(),
             markerMinApi(parameters.getApiLevel()),
             not(markerHasDesugaredLibraryIdentifier()));
-    assertMarkersMatch(ExtractMarker.extractMarkerFromJarFile(desugaredLibCf), markerMatcher);
+    assertMarkersMatch(ExtractMarkerUtils.extractMarkersFromFile(desugaredLibCf), markerMatcher);
 
     Path desugaredLibDex =
         testForD8()
@@ -178,7 +179,7 @@ public class MergingWithDesugaredLibraryTest extends DesugaredLibraryTestBase {
             not(markerHasDesugaredLibraryIdentifier()));
     List<Matcher<Marker>> markerMatcherAfterDex = ImmutableList.of(markerMatcher, dexMarkerMatcher);
     assertMarkersMatch(
-        ExtractMarker.extractMarkerFromJarFile(desugaredLibDex), markerMatcherAfterDex);
+        ExtractMarkerUtils.extractMarkersFromFile(desugaredLibDex), markerMatcherAfterDex);
 
     // Build an app using library desugaring merging with library not using library desugaring.
     Path app;
@@ -203,7 +204,7 @@ public class MergingWithDesugaredLibraryTest extends DesugaredLibraryTestBase {
               markerMinApi(parameters.getApiLevel()),
               markerHasDesugaredLibraryIdentifier()));
     }
-    assertMarkersMatch(ExtractMarker.extractMarkerFromDexFile(app), expectedMarkers);
+    assertMarkersMatch(ExtractMarkerUtils.extractMarkersFromFile(app), expectedMarkers);
   }
 
   private boolean expectError() {

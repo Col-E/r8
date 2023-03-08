@@ -32,6 +32,7 @@ import com.android.tools.r8.startup.StartupProfileProvider;
 import com.android.tools.r8.startup.diagnostic.MissingStartupProfileItemsDiagnostic;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AndroidApp;
+import com.android.tools.r8.utils.ExtractMarkerUtils;
 import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.ThreadUtils;
@@ -137,7 +138,7 @@ public class D8CommandTest extends CommandTestBase<D8Command> {
         input.toString());
     assertEquals(0, ToolHelper.forkD8(working, "@flags.txt").exitCode);
     assertTrue(Files.exists(output));
-    Collection<Marker> markers = ExtractMarker.extractMarkerFromDexFile(output);
+    Collection<Marker> markers = ExtractMarkerUtils.extractMarkersFromFile(output);
     assertEquals(1, markers.size());
     Marker marker = markers.iterator().next();
     assertEquals(24, marker.getMinApi().intValue());

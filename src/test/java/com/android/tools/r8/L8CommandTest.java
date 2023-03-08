@@ -21,6 +21,7 @@ import com.android.tools.r8.dex.Marker.Tool;
 import com.android.tools.r8.origin.EmbeddedOrigin;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.references.Reference;
+import com.android.tools.r8.utils.ExtractMarkerUtils;
 import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.ThreadUtils;
@@ -97,7 +98,7 @@ public class L8CommandTest extends CommandTestBase<L8Command> {
             .setOutput(output, OutputMode.DexIndexed)
             .build());
     assertMarkersMatch(
-        ExtractMarker.extractMarkerFromDexFile(output),
+        ExtractMarkerUtils.extractMarkersFromFile(output),
         ImmutableList.of(markerTool(Tool.L8), markerTool(Tool.D8)));
   }
 
@@ -112,7 +113,7 @@ public class L8CommandTest extends CommandTestBase<L8Command> {
             .addDesugaredLibraryConfiguration(getDesugaredLibraryConfiguration())
             .setOutput(output, OutputMode.ClassFile)
             .build());
-    assertMarkersMatch(ExtractMarker.extractMarkerFromDexFile(output), markerTool(Tool.L8));
+    assertMarkersMatch(ExtractMarkerUtils.extractMarkersFromFile(output), markerTool(Tool.L8));
   }
 
   private List<String> buildCommand(int minAPI, Path output) {
@@ -140,7 +141,7 @@ public class L8CommandTest extends CommandTestBase<L8Command> {
     L8Command l8Command = parse(command.toArray(new String[0]));
     L8.run(l8Command);
     assertMarkersMatch(
-        ExtractMarker.extractMarkerFromDexFile(output),
+        ExtractMarkerUtils.extractMarkersFromFile(output),
         ImmutableList.of(markerTool(Tool.L8), markerTool(Tool.D8)));
   }
 
@@ -151,7 +152,7 @@ public class L8CommandTest extends CommandTestBase<L8Command> {
     command.add("--classfile");
     L8Command l8Command = parse(command.toArray(new String[0]));
     L8.run(l8Command);
-    assertMarkersMatch(ExtractMarker.extractMarkerFromDexFile(output), markerTool(Tool.L8));
+    assertMarkersMatch(ExtractMarkerUtils.extractMarkersFromFile(output), markerTool(Tool.L8));
   }
 
   @Test

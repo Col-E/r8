@@ -7,6 +7,7 @@ package com.android.tools.r8;
 import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.dex.Marker;
+import com.android.tools.r8.utils.ExtractMarkerUtils;
 import java.util.Collection;
 import java.util.Set;
 import org.junit.Test;
@@ -44,7 +45,7 @@ public class R8ModeMarkerTest extends TestBase {
         int fileIndex, ByteDataView data, Set<String> descriptors, DiagnosticsHandler handler) {
       try {
         Collection<Marker> markers =
-            ExtractMarker.extractMarkerFromDexProgramData(data.copyByteData());
+            ExtractMarkerUtils.extractMarkerFromDexProgramData(data.copyByteData());
         assertEquals(1, markers.size());
         marker = markers.iterator().next();
       } catch (Exception e) {
@@ -70,7 +71,7 @@ public class R8ModeMarkerTest extends TestBase {
     public void accept(ByteDataView data, String descriptors, DiagnosticsHandler handler) {
       try {
         Collection<Marker> markers =
-            ExtractMarker.extractMarkerFromClassProgramData(data.copyByteData());
+            ExtractMarkerUtils.extractMarkerFromClassProgramData(data.copyByteData());
         assertEquals(1, markers.size());
         marker = markers.iterator().next();
       } catch (Exception e) {

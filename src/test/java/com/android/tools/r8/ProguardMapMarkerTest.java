@@ -12,6 +12,7 @@ import static org.junit.Assert.assertTrue;
 import com.android.tools.r8.dex.Marker;
 import com.android.tools.r8.naming.ProguardMapSupplier;
 import com.android.tools.r8.utils.AndroidApiLevel;
+import com.android.tools.r8.utils.ExtractMarkerUtils;
 import com.android.tools.r8.utils.VersionProperties;
 import java.nio.file.Paths;
 import java.util.Collection;
@@ -71,7 +72,7 @@ public class ProguardMapMarkerTest extends TestBase {
                     Marker marker;
                     try {
                       Collection<Marker> markers =
-                          ExtractMarker.extractMarkerFromDexProgramData(data.copyByteData());
+                          ExtractMarkerUtils.extractMarkerFromDexProgramData(data.copyByteData());
                       assertEquals(1, markers.size());
                       marker = markers.iterator().next();
                     } catch (Exception e) {
@@ -116,7 +117,7 @@ public class ProguardMapMarkerTest extends TestBase {
                     Marker marker;
                     try {
                       Collection<Marker> markers =
-                          ExtractMarker.extractMarkerFromClassProgramData(data.copyByteData());
+                          ExtractMarkerUtils.extractMarkerFromClassProgramData(data.copyByteData());
                       assertEquals(1, markers.size());
                       marker = markers.iterator().next();
                     } catch (Exception e) {

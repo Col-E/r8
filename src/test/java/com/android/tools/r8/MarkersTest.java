@@ -28,6 +28,7 @@ import com.android.tools.r8.dex.Marker.Tool;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.BooleanUtils;
+import com.android.tools.r8.utils.ExtractMarkerUtils;
 import com.android.tools.r8.utils.FileUtils;
 import com.google.common.base.Charsets;
 import com.google.common.collect.ImmutableList;
@@ -90,7 +91,7 @@ public class MarkersTest extends DesugaredLibraryTestBase {
       builder.addProguardConfiguration(ImmutableList.of("-keep class * { *; }"), Origin.unknown());
     }
     L8.run(builder.build());
-    Collection<Marker> markers = ExtractMarker.extractMarkerFromDexFile(output);
+    Collection<Marker> markers = ExtractMarkerUtils.extractMarkersFromFile(output);
     JsonObject jsonObject =
         new JsonParser()
             .parse(
@@ -138,7 +139,7 @@ public class MarkersTest extends DesugaredLibraryTestBase {
     } else {
       D8.run(builder.build());
     }
-    Collection<Marker> markers = ExtractMarker.extractMarkerFromDexFile(output);
+    Collection<Marker> markers = ExtractMarkerUtils.extractMarkersFromFile(output);
     Matcher<Marker> matcher =
         allOf(
             markerTool(Tool.D8),
@@ -167,11 +168,11 @@ public class MarkersTest extends DesugaredLibraryTestBase {
     if (noCfMarkerForDesugaredCode) {
       ToolHelper.runD8(
           builder, options -> options.desugarSpecificOptions().noCfMarkerForDesugaredCode = true);
-      Collection<Marker> markers = ExtractMarker.extractMarkerFromDexFile(output);
+      Collection<Marker> markers = ExtractMarkerUtils.extractMarkersFromFile(output);
       assertTrue(markers.isEmpty());
     } else {
       D8.run(builder.build());
-      Collection<Marker> markers = ExtractMarker.extractMarkerFromDexFile(output);
+      Collection<Marker> markers = ExtractMarkerUtils.extractMarkersFromFile(output);
       Matcher<Marker> matcher =
           allOf(
               markerTool(Tool.D8),
@@ -206,7 +207,7 @@ public class MarkersTest extends DesugaredLibraryTestBase {
     } else {
       R8.run(builder.build());
     }
-    Collection<Marker> markers = ExtractMarker.extractMarkerFromDexFile(output);
+    Collection<Marker> markers = ExtractMarkerUtils.extractMarkersFromFile(output);
     Matcher<Marker> matcher =
         allOf(
             markerTool(Tool.R8),
@@ -238,7 +239,7 @@ public class MarkersTest extends DesugaredLibraryTestBase {
     } else {
       R8.run(builder.build());
     }
-    Collection<Marker> markers = ExtractMarker.extractMarkerFromDexFile(output);
+    Collection<Marker> markers = ExtractMarkerUtils.extractMarkersFromFile(output);
     Matcher<Marker> matcher =
         allOf(
             markerTool(Tool.R8),
@@ -267,12 +268,12 @@ public class MarkersTest extends DesugaredLibraryTestBase {
     if (noCfMarkerForDesugaredCode) {
       ToolHelper.runD8(
           builder, options -> options.desugarSpecificOptions().noCfMarkerForDesugaredCode = true);
-      Collection<Marker> markers = ExtractMarker.extractMarkerFromDexFile(d8DesugaredOutput);
+      Collection<Marker> markers = ExtractMarkerUtils.extractMarkersFromFile(d8DesugaredOutput);
       assertTrue(markers.isEmpty());
     } else {
       D8.run(builder.build());
       assertMarkersMatch(
-          ExtractMarker.extractMarkerFromDexFile(d8DesugaredOutput),
+          ExtractMarkerUtils.extractMarkersFromFile(d8DesugaredOutput),
           allOf(
               markerTool(Tool.D8),
               markerCompilationMode(compilationSpecification.getProgramCompilationMode()),
@@ -292,7 +293,7 @@ public class MarkersTest extends DesugaredLibraryTestBase {
             .setOutput(output, OutputMode.ClassFile)
             .build());
     assertMarkersMatch(
-        ExtractMarker.extractMarkerFromDexFile(output),
+        ExtractMarkerUtils.extractMarkersFromFile(output),
         allOf(
             markerTool(Tool.R8),
             markerCompilationMode(compilationSpecification.getProgramCompilationMode()),

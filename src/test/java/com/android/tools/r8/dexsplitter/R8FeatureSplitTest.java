@@ -11,7 +11,6 @@ import static org.junit.Assert.assertNull;
 
 import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.DexIndexedConsumer;
-import com.android.tools.r8.ExtractMarker;
 import com.android.tools.r8.FeatureSplit;
 import com.android.tools.r8.R8TestCompileResult;
 import com.android.tools.r8.ResourceException;
@@ -20,6 +19,7 @@ import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.dex.Marker;
 import com.android.tools.r8.utils.AndroidApiLevel;
+import com.android.tools.r8.utils.ExtractMarkerUtils;
 import com.android.tools.r8.utils.Pair;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
@@ -109,9 +109,9 @@ public class R8FeatureSplitTest extends SplitterTestBase {
     Path basePath = compiledWithFeature.getBasePath();
     Path feature1Path = compiledWithFeature.getFeature1Path();
     Path feature2Path = compiledWithFeature.getFeature2Path();
-    Collection<Marker> markers = ExtractMarker.extractMarkerFromDexFile(basePath);
-    Collection<Marker> feature1Markers = ExtractMarker.extractMarkerFromDexFile(feature1Path);
-    Collection<Marker> feature2Markers = ExtractMarker.extractMarkerFromDexFile(feature2Path);
+    Collection<Marker> markers = ExtractMarkerUtils.extractMarkersFromFile(basePath);
+    Collection<Marker> feature1Markers = ExtractMarkerUtils.extractMarkersFromFile(feature1Path);
+    Collection<Marker> feature2Markers = ExtractMarkerUtils.extractMarkersFromFile(feature2Path);
 
     assertEquals(markers.size(), 1);
     assertEquals(feature1Markers.size(), 1);
