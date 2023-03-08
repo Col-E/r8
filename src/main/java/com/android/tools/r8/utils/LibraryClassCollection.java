@@ -13,6 +13,10 @@ public class LibraryClassCollection extends ClassMap<DexLibraryClass> {
     super(null, classProvider);
   }
 
+  public static LibraryClassCollection empty() {
+    return new LibraryClassCollection(null);
+  }
+
   @Override
   DexLibraryClass resolveClassConflict(DexLibraryClass a, DexLibraryClass b) {
     return a;

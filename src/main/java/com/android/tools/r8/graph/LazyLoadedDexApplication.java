@@ -284,7 +284,7 @@ public class LazyLoadedDexApplication extends DexApplication {
     Builder(InternalOptions options, Timing timing) {
       super(options, timing);
       this.classpathClasses = ClasspathClassCollection.empty();
-      this.libraryClasses = null;
+      this.libraryClasses = LibraryClassCollection.empty();
     }
 
     private Builder(LazyLoadedDexApplication application) {
