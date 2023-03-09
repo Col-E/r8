@@ -56,6 +56,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.BiConsumer;
+import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.zip.CRC32;
 import org.objectweb.asm.AnnotationVisitor;
@@ -175,20 +176,44 @@ public class JarClassFileReader<T extends DexClass> {
     return MethodAccessFlags.fromCfAccessFlags(cleanAccessFlags(access), isConstructor);
   }
 
-  private static AnnotationVisitor createAnnotationVisitor(String desc, boolean visible,
+  private static AnnotationVisitor createAnnotationVisitor(
+      String desc,
+      boolean visible,
       List<DexAnnotation> annotations,
-      JarApplicationReader application) {
-    assert annotations != null;
+      JarApplicationReader application,
+      BiFunction<Integer, DexEncodedAnnotation, DexAnnotation> newAnnotationConstructor) {
+    assert newAnnotationConstructor != null;
     if (visible || retainCompileTimeAnnotation(desc, application)) {
-      int visiblity = visible ? DexAnnotation.VISIBILITY_RUNTIME : DexAnnotation.VISIBILITY_BUILD;
+      int visibility = visible ? DexAnnotation.VISIBILITY_RUNTIME : DexAnnotation.VISIBILITY_BUILD;
       return new CreateAnnotationVisitor(
           application,
           (names, values) ->
               annotations.add(
-                  new DexAnnotation(
-                      visiblity, createEncodedAnnotation(desc, names, values, application))));
+                  newAnnotationConstructor.apply(
+                      visibility, createEncodedAnnotation(desc, names, values, application))));
     }
     return null;
+  }
+
+  private static AnnotationVisitor createTypeAnnotationVisitor(
+      String desc,
+      boolean visible,
+      List<DexAnnotation> annotations,
+      JarApplicationReader application,
+      int typeRef,
+      TypePath typePath) {
+    assert annotations != null;
+    // Java 8 type annotations are not supported by Dex. Ignore them.
+    if (!application.options.isGeneratingClassFiles()) {
+      return null;
+    }
+    return createAnnotationVisitor(
+        desc,
+        visible,
+        annotations,
+        application,
+        (visibility, annotation) ->
+            new DexTypeAnnotation(visibility, annotation, typeRef, typePath));
   }
 
   private static boolean retainCompileTimeAnnotation(
@@ -446,14 +471,15 @@ public class JarClassFileReader<T extends DexClass> {
 
     @Override
     public AnnotationVisitor visitAnnotation(String desc, boolean visible) {
-      return createAnnotationVisitor(desc, visible, getAnnotations(), application);
+      return createAnnotationVisitor(
+          desc, visible, getAnnotations(), application, DexAnnotation::new);
     }
 
     @Override
     public AnnotationVisitor visitTypeAnnotation(int typeRef, TypePath typePath, String desc,
         boolean visible) {
-      // Java 8 type annotations are not supported by Dex, thus ignore them.
-      return null;
+      return createTypeAnnotationVisitor(
+          desc, visible, getAnnotations(), application, typeRef, typePath);
     }
 
     @Override
@@ -674,14 +700,15 @@ public class JarClassFileReader<T extends DexClass> {
 
     @Override
     public AnnotationVisitor visitAnnotation(String desc, boolean visible) {
-      return createAnnotationVisitor(desc, visible, getAnnotations(), parent.application);
+      return createAnnotationVisitor(
+          desc, visible, getAnnotations(), parent.application, DexAnnotation::new);
     }
 
     @Override
     public AnnotationVisitor visitTypeAnnotation(int typeRef, TypePath typePath, String desc,
         boolean visible) {
-      // Java 8 type annotations are not supported by Dex, thus ignore them.
-      return null;
+      return createTypeAnnotationVisitor(
+          desc, visible, getAnnotations(), parent.application, typeRef, typePath);
     }
 
     @Override
@@ -815,7 +842,8 @@ public class JarClassFileReader<T extends DexClass> {
 
     @Override
     public AnnotationVisitor visitAnnotation(String desc, boolean visible) {
-      return createAnnotationVisitor(desc, visible, getAnnotations(), parent.application);
+      return createAnnotationVisitor(
+          desc, visible, getAnnotations(), parent.application, DexAnnotation::new);
     }
 
     @Override
@@ -824,13 +852,6 @@ public class JarClassFileReader<T extends DexClass> {
         assert elements.size() == 1;
         defaultAnnotation = elements.get(0);
       });
-    }
-
-    @Override
-    public AnnotationVisitor visitTypeAnnotation(int typeRef, TypePath typePath, String desc,
-        boolean visible) {
-      // Java 8 type annotations are not supported by Dex, thus ignore them.
-      return null;
     }
 
     @Override
@@ -856,28 +877,42 @@ public class JarClassFileReader<T extends DexClass> {
         }
       }
       assert mv == null;
-      return createAnnotationVisitor(desc, visible,
-          parameterAnnotationsLists.get(parameter), parent.application);
+      return createAnnotationVisitor(
+          desc,
+          visible,
+          parameterAnnotationsLists.get(parameter),
+          parent.application,
+          DexAnnotation::new);
+    }
+
+    @Override
+    public AnnotationVisitor visitTypeAnnotation(
+        int typeRef, TypePath typePath, String desc, boolean visible) {
+      return createTypeAnnotationVisitor(
+          desc, visible, getAnnotations(), parent.application, typeRef, typePath);
     }
 
     @Override
     public AnnotationVisitor visitInsnAnnotation(int typeRef, TypePath typePath, String desc,
         boolean visible) {
-      // Java 8 type annotations are not supported by Dex, thus ignore them.
+      // We do not support code type annotations since that would require us to maintain these
+      // through IR where we may as well invalidate any assumptions made on the code.
       return null;
     }
 
     @Override
     public AnnotationVisitor visitLocalVariableAnnotation(int typeRef, TypePath typePath,
         Label[] start, Label[] end, int[] index, String desc, boolean visible) {
-      // Java 8 type annotations are not supported by Dex, thus ignore them.
+      // We do not support code type annotations since that would require us to maintain these
+      // through IR where we may as well invalidate any assumptions made on the code.
       return null;
     }
 
     @Override
     public AnnotationVisitor visitTryCatchAnnotation(int typeRef, TypePath typePath, String desc,
         boolean visible) {
-      // Java 8 type annotations are not supported by Dex, thus ignore them.
+      // We do not support code type annotations since that would require us to maintain these
+      // through IR where we may as well invalidate any assumptions made on the code.
       return null;
     }
 

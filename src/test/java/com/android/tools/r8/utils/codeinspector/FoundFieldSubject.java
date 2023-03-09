@@ -4,7 +4,6 @@
 
 package com.android.tools.r8.utils.codeinspector;
 
-import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.graph.AccessFlags;
 import com.android.tools.r8.graph.DexAnnotation;
 import com.android.tools.r8.graph.DexEncodedField;
@@ -115,7 +114,7 @@ public class FoundFieldSubject extends FieldSubject {
 
   @Override
   public List<FoundAnnotationSubject> annotations() {
-    throw new Unimplemented();
+    return FoundAnnotationSubject.listFromDex(dexField.annotations(), codeInspector);
   }
 
   @Override
@@ -133,9 +132,7 @@ public class FoundFieldSubject extends FieldSubject {
 
   @Override
   public String getJvmFieldSignatureAsString() {
-    return dexField.getReference().name.toString()
-        + ":"
-        + dexField.getReference().type.toDescriptorString();
+    return dexField.getReference().name + ":" + dexField.getReference().type.toDescriptorString();
   }
 
   @Override

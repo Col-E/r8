@@ -6,6 +6,7 @@ package com.android.tools.r8.utils.codeinspector;
 
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.DexEncodedAnnotation;
+import com.android.tools.r8.graph.DexTypeAnnotation;
 
 public class AbsentAnnotationSubject extends AnnotationSubject {
 
@@ -27,5 +28,20 @@ public class AbsentAnnotationSubject extends AnnotationSubject {
   @Override
   public DexEncodedAnnotation getAnnotation() {
     throw new UnsupportedOperationException();
+  }
+
+  @Override
+  public int isVisible() {
+    throw new Unreachable("Subject is absent");
+  }
+
+  @Override
+  public boolean isTypeAnnotation() {
+    throw new Unreachable("Subject is absent");
+  }
+
+  @Override
+  public DexTypeAnnotation asDexTypeAnnotation() {
+    throw new Unreachable("Subject is absent");
   }
 }

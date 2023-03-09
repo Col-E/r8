@@ -30,6 +30,7 @@ import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.DexTypeAnnotation;
 import com.android.tools.r8.graph.DexValue;
 import com.android.tools.r8.graph.DexValue.DexValueAnnotation;
 import com.android.tools.r8.graph.DexValue.DexValueArray;
@@ -72,6 +73,7 @@ import org.objectweb.asm.FieldVisitor;
 import org.objectweb.asm.MethodTooLargeException;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Type;
+import org.objectweb.asm.TypePath;
 import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.MethodNode;
 import org.objectweb.asm.util.CheckClassAdapter;
@@ -268,7 +270,8 @@ public class CfApplicationWriter {
     assert SyntheticNaming.verifyNotInternalSynthetic(name);
     writer.visit(version.raw(), access, name, signature, superName, interfaces);
     appView.getSyntheticItems().writeAttributeIfIntermediateSyntheticClass(writer, clazz, appView);
-    writeAnnotations(writer::visitAnnotation, clazz.annotations().annotations);
+    writeAnnotations(
+        writer::visitAnnotation, writer::visitTypeAnnotation, clazz.annotations().annotations);
     ImmutableMap<DexString, DexValue> defaults = getAnnotationDefaults(clazz.annotations());
 
     if (clazz.getEnclosingMethodAttribute() != null) {
@@ -454,7 +457,8 @@ public class CfApplicationWriter {
     String signature = field.getGenericSignature().toRenamedString(getNamingLens(), isTypeMissing);
     Object value = getStaticValue(field);
     FieldVisitor visitor = writer.visitField(access, name, desc, signature, value);
-    writeAnnotations(visitor::visitAnnotation, field.annotations().annotations);
+    writeAnnotations(
+        visitor::visitAnnotation, visitor::visitTypeAnnotation, field.annotations().annotations);
     visitor.visitEnd();
   }
 
@@ -488,7 +492,10 @@ public class CfApplicationWriter {
       }
     }
     writeMethodParametersAnnotation(visitor, definition.annotations().annotations);
-    writeAnnotations(visitor::visitAnnotation, definition.annotations().annotations);
+    writeAnnotations(
+        visitor::visitAnnotation,
+        visitor::visitTypeAnnotation,
+        definition.annotations().annotations);
     writeParameterAnnotations(visitor, definition.parameterAnnotationsList);
     if (!definition.shouldNotHaveCode()) {
       writeCode(method, classFileVersion, namingLens, rewriter, visitor);
@@ -525,11 +532,13 @@ public class CfApplicationWriter {
         parameterAnnotations.getAnnotableParameterCount(), true);
     visitor.visitAnnotableParameterCount(
         parameterAnnotations.getAnnotableParameterCount(), false);
-
     for (int i = 0; i < parameterAnnotations.size(); i++) {
       int iFinal = i;
       writeAnnotations(
           (d, vis) -> visitor.visitParameterAnnotation(iFinal, d, vis),
+          (typeRef, typePath, desc, visible) -> {
+            throw new Unreachable("Type annotations are not placed on parameters");
+          },
           parameterAnnotations.get(i).annotations);
     }
   }
@@ -538,7 +547,14 @@ public class CfApplicationWriter {
     AnnotationVisitor visit(String desc, boolean visible);
   }
 
-  private void writeAnnotations(AnnotationConsumer visitor, DexAnnotation[] annotations) {
+  private interface TypeAnnotationConsumer {
+    AnnotationVisitor visit(int typeRef, TypePath typePath, String desc, boolean visible);
+  }
+
+  private void writeAnnotations(
+      AnnotationConsumer visitor,
+      TypeAnnotationConsumer typeAnnotationVisitor,
+      DexAnnotation[] annotations) {
     for (DexAnnotation dexAnnotation : annotations) {
       if (dexAnnotation.visibility == DexAnnotation.VISIBILITY_SYSTEM) {
         // Annotations with VISIBILITY_SYSTEM are not annotations in CF, but are special
@@ -546,10 +562,14 @@ public class CfApplicationWriter {
         // signature, throws.
         continue;
       }
+      String desc = getNamingLens().lookupDescriptor(dexAnnotation.annotation.type).toString();
+      boolean visible = dexAnnotation.visibility == DexAnnotation.VISIBILITY_RUNTIME;
+      DexTypeAnnotation dexTypeAnnotation = dexAnnotation.asTypeAnnotation();
       AnnotationVisitor v =
-          visitor.visit(
-              getNamingLens().lookupDescriptor(dexAnnotation.annotation.type).toString(),
-              dexAnnotation.visibility == DexAnnotation.VISIBILITY_RUNTIME);
+          dexTypeAnnotation == null
+              ? visitor.visit(desc, visible)
+              : typeAnnotationVisitor.visit(
+                  dexTypeAnnotation.getTypeRef(), dexTypeAnnotation.getTypePath(), desc, visible);
       if (v != null) {
         writeAnnotation(v, dexAnnotation.annotation);
         v.visitEnd();

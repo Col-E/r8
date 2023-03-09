@@ -81,6 +81,8 @@ public class DexAnnotationSet extends CachedHashValueDexItem
   public static DexType findDuplicateEntryType(List<DexAnnotation> annotations) {
     Set<DexType> seenTypes = Sets.newIdentityHashSet();
     for (DexAnnotation annotation : annotations) {
+      // This is only reachable from DEX where type annotations are not supported.
+      assert !annotation.isTypeAnnotation();
       if (!seenTypes.add(annotation.annotation.type)) {
         return annotation.annotation.type;
       }

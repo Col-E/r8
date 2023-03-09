@@ -62,13 +62,21 @@ public class DexAnnotation extends DexItem implements StructuralItem<DexAnnotati
   private static final int UNKNOWN_API_LEVEL = -1;
   private static final int NOT_SET_API_LEVEL = -2;
 
-  private static void specify(StructuralSpecification<DexAnnotation, ?> spec) {
+  protected static void specify(StructuralSpecification<DexAnnotation, ?> spec) {
     spec.withItem(a -> a.annotation).withInt(a -> a.visibility);
   }
 
   public DexAnnotation(int visibility, DexEncodedAnnotation annotation) {
     this.visibility = visibility;
     this.annotation = annotation;
+  }
+
+  public boolean isTypeAnnotation() {
+    return false;
+  }
+
+  public DexTypeAnnotation asTypeAnnotation() {
+    return null;
   }
 
   @Override
