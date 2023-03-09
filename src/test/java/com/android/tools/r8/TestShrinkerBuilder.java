@@ -438,6 +438,14 @@ public abstract class TestShrinkerBuilder<
     return addKeepAttributes(ProguardKeepAttributes.RUNTIME_VISIBLE_PARAMETER_ANNOTATIONS);
   }
 
+  public T addKeepRuntimeVisibleTypeAnnotations() {
+    return addKeepAttributes(ProguardKeepAttributes.RUNTIME_VISIBLE_TYPE_ANNOTATIONS);
+  }
+
+  public T addKeepRuntimeInvisibleTypeAnnotations() {
+    return addKeepAttributes(ProguardKeepAttributes.RUNTIME_INVISIBLE_TYPE_ANNOTATIONS);
+  }
+
   public T addKeepAllAttributes() {
     return addKeepAttributes("*");
   }
