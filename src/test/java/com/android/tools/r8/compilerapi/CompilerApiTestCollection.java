@@ -15,6 +15,7 @@ import com.android.tools.r8.compilerapi.classconflictresolver.ClassConflictResol
 import com.android.tools.r8.compilerapi.desugardependencies.DesugarDependenciesTest;
 import com.android.tools.r8.compilerapi.diagnostics.ProguardKeepRuleDiagnosticsApiTest;
 import com.android.tools.r8.compilerapi.diagnostics.UnsupportedFeaturesDiagnosticApiTest;
+import com.android.tools.r8.compilerapi.extractmarker.ExtractMarkerApiTest;
 import com.android.tools.r8.compilerapi.globalsynthetics.GlobalSyntheticsTest;
 import com.android.tools.r8.compilerapi.inputdependencies.InputDependenciesTest;
 import com.android.tools.r8.compilerapi.mapid.CustomMapIdTest;
@@ -60,7 +61,8 @@ public class CompilerApiTestCollection extends BinaryCompatibilityTestCollection
           StartupProfileApiTest.ApiTest.class,
           ClassConflictResolverTest.ApiTest.class,
           ProguardKeepRuleDiagnosticsApiTest.ApiTest.class,
-          SyntheticContextsConsumerTest.ApiTest.class);
+          SyntheticContextsConsumerTest.ApiTest.class,
+          ExtractMarkerApiTest.ApiTest.class);
 
   private final TemporaryFolder temp;
 
