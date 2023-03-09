@@ -7,6 +7,7 @@ package com.android.tools.r8.retrace;
 import static junit.framework.TestCase.assertEquals;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.junit.Assume.assumeFalse;
@@ -46,6 +47,8 @@ import com.android.tools.r8.retrace.stacktraces.InlinePreambleNoOriginalStackTra
 import com.android.tools.r8.retrace.stacktraces.InlineSourceFileContextStackTrace;
 import com.android.tools.r8.retrace.stacktraces.InlineSourceFileStackTrace;
 import com.android.tools.r8.retrace.stacktraces.InlineWithLineNumbersStackTrace;
+import com.android.tools.r8.retrace.stacktraces.InvalidMinifiedRangeStackTrace;
+import com.android.tools.r8.retrace.stacktraces.InvalidOriginalRangeStackTrace;
 import com.android.tools.r8.retrace.stacktraces.InvalidStackTrace;
 import com.android.tools.r8.retrace.stacktraces.MapVersionWarningStackTrace;
 import com.android.tools.r8.retrace.stacktraces.MemberFieldOverlapStackTrace;
@@ -455,6 +458,20 @@ public class RetraceTests extends TestBase {
   @Test
   public void testTrailingWhitespaceStackTrace() throws Exception {
     runRetraceTest(new TrailingWhitespaceStackTrace());
+  }
+
+  @Test
+  public void testInvalidMinifiedRangeStackTrace() {
+    assumeFalse(external);
+    // TODO(b/272032896): Should be InvalidMappingFileException
+    assertThrows(AssertionError.class, () -> runRetraceTest(new InvalidMinifiedRangeStackTrace()));
+  }
+
+  @Test
+  public void testInvalidOriginalRangeStackTrace() {
+    assumeFalse(external);
+    // TODO(b/272032896): Should be InvalidMappingFileException
+    assertThrows(AssertionError.class, () -> runRetraceTest(new InvalidOriginalRangeStackTrace()));
   }
 
   private void inspectRetraceTest(
