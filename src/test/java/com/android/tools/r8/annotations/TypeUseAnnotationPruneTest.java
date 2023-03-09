@@ -44,18 +44,10 @@ public class TypeUseAnnotationPruneTest extends TestBase {
     return StringUtils.joinLines(
         "printAnnotation - Class: " + notNullTestRuntimeTypeName,
         "printAnnotation - Class: NULL",
-        "printAnnotation - Extends(0): " + notNullTestRuntimeTypeName,
-        "printAnnotation - Implements(0): " + notNullTestRuntimeTypeName,
         "printAnnotation - Field: NULL",
         "printAnnotation - Field: NULL",
-        "printAnnotation - Field(0): " + notNullTestRuntimeTypeName,
         "printAnnotation - Method: NULL",
         "printAnnotation - Method: NULL",
-        "printAnnotation - MethodReturnType(0): " + notNullTestRuntimeTypeName,
-        "printAnnotation - MethodParameter at 0(0): " + notNullTestRuntimeTypeName,
-        "printAnnotation - MethodParameter at 1(0): " + notNullTestRuntimeTypeName,
-        "printAnnotation - MethodException at 0(0): " + notNullTestRuntimeTypeName,
-        "printAnnotation - MethodException at 1(0): " + notNullTestRuntimeTypeName,
         "Hello World!");
   }
 
@@ -88,30 +80,15 @@ public class TypeUseAnnotationPruneTest extends TestBase {
               assertThat(notNullTestRuntime, isPresent());
               ClassSubject clazz = inspector.clazz(TestClassWithTypeAndGenericAnnotations.class);
               assertThat(clazz, isPresent());
-              if (parameters.isDexRuntime()) {
-                assertTrue(
-                    clazz.annotations().stream()
-                        .noneMatch(FoundAnnotationSubject::isTypeAnnotation));
-              } else {
-                // TODO(b/271543766): Assert that we have no type annotations
-              }
+              assertTrue(
+                  clazz.annotations().stream().noneMatch(FoundAnnotationSubject::isTypeAnnotation));
               FieldSubject field = clazz.uniqueFieldWithOriginalName("field");
               assertThat(field, isPresent());
-              if (parameters.isDexRuntime()) {
-                assertEquals(0, field.annotations().size());
-              } else {
-                // TODO(b/271543766): Assert that we have no annotations
-                assertEquals(4, field.annotations().size());
-              }
+              assertEquals(0, field.annotations().size());
               MethodSubject method = clazz.uniqueMethodWithOriginalName("method");
               assertThat(method, isPresent());
               // We create a dex annotation for the checked exception.
-              if (parameters.isDexRuntime()) {
-                assertEquals(1, method.annotations().size());
-              } else {
-                // TODO(b/271543766): Assert that we have no annotations
-                assertEquals(17, method.annotations().size());
-              }
+              assertEquals(1, method.annotations().size());
             },
             options -> options.programConsumer = ClassFileConsumer.emptyConsumer())
         .run(parameters.getRuntime(), MainWithTypeAndGeneric.class)

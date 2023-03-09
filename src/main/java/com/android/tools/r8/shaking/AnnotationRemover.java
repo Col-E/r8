@@ -129,10 +129,12 @@ public class AnnotationRemover {
           if (!options.isKeepRuntimeVisibleParameterAnnotationsEnabled()) {
             return false;
           }
-        } else {
-          if (!options.isKeepRuntimeVisibleAnnotationsEnabled()) {
-            return false;
-          }
+        } else if (!annotation.isTypeAnnotation()
+            && !options.isKeepRuntimeVisibleAnnotationsEnabled()) {
+          return false;
+        } else if (annotation.isTypeAnnotation()
+            && !options.isKeepRuntimeVisibleTypeAnnotationsEnabled()) {
+          return false;
         }
         return isAnnotationTypeLive;
 
@@ -147,13 +149,14 @@ public class AnnotationRemover {
           if (!options.isKeepRuntimeInvisibleParameterAnnotationsEnabled()) {
             return false;
           }
-        } else {
-          if (!options.isKeepRuntimeInvisibleAnnotationsEnabled()) {
-            return false;
-          }
+        } else if (!annotation.isTypeAnnotation()
+            && !options.isKeepRuntimeInvisibleAnnotationsEnabled()) {
+          return false;
+        } else if (annotation.isTypeAnnotation()
+            && !options.isKeepRuntimeInvisibleTypeAnnotationsEnabled()) {
+          return false;
         }
         return isAnnotationTypeLive;
-
       default:
         throw new Unreachable("Unexpected annotation visibility.");
     }

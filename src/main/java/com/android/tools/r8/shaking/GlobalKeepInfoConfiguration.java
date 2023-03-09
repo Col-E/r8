@@ -35,4 +35,8 @@ public interface GlobalKeepInfoConfiguration {
   boolean isKeepRuntimeVisibleAnnotationsEnabled();
 
   boolean isKeepRuntimeVisibleParameterAnnotationsEnabled();
+
+  boolean isKeepRuntimeVisibleTypeAnnotationsEnabled();
+
+  boolean isKeepRuntimeInvisibleTypeAnnotationsEnabled();
 }
