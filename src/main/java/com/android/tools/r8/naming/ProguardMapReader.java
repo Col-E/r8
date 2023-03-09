@@ -807,6 +807,9 @@ public class ProguardMapReader implements AutoCloseable {
     expect(':');
     skipWhitespace();
     int to = parseNumber();
+    if (from > to) {
+      throw new ParseException("From is larger than to in range: " + from + ":" + to);
+    }
     return nonCardinalRangeCache.get(from, to);
   }
 

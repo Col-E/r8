@@ -463,15 +463,17 @@ public class RetraceTests extends TestBase {
   @Test
   public void testInvalidMinifiedRangeStackTrace() {
     assumeFalse(external);
-    // TODO(b/272032896): Should be InvalidMappingFileException
-    assertThrows(AssertionError.class, () -> runRetraceTest(new InvalidMinifiedRangeStackTrace()));
+    assertThrows(
+        InvalidMappingFileException.class,
+        () -> runRetraceTest(new InvalidMinifiedRangeStackTrace()));
   }
 
   @Test
   public void testInvalidOriginalRangeStackTrace() {
     assumeFalse(external);
-    // TODO(b/272032896): Should be InvalidMappingFileException
-    assertThrows(AssertionError.class, () -> runRetraceTest(new InvalidOriginalRangeStackTrace()));
+    assertThrows(
+        InvalidMappingFileException.class,
+        () -> runRetraceTest(new InvalidOriginalRangeStackTrace()));
   }
 
   private void inspectRetraceTest(
