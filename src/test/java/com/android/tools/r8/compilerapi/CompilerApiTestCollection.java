@@ -53,16 +53,16 @@ public class CompilerApiTestCollection extends BinaryCompatibilityTestCollection
           CommandLineParserTest.ApiTest.class,
           EnableMissingLibraryApiModelingTest.ApiTest.class,
           AndroidPlatformBuildApiTest.ApiTest.class,
-          UnsupportedFeaturesDiagnosticApiTest.ApiTest.class);
-
-  private static final List<Class<? extends CompilerApiTest>> CLASSES_PENDING_BINARY_COMPATIBILITY =
-      ImmutableList.of(
+          UnsupportedFeaturesDiagnosticApiTest.ApiTest.class,
           ArtProfilesForRewritingApiTest.ApiTest.class,
           StartupProfileApiTest.ApiTest.class,
           ClassConflictResolverTest.ApiTest.class,
           ProguardKeepRuleDiagnosticsApiTest.ApiTest.class,
           SyntheticContextsConsumerTest.ApiTest.class,
           ExtractMarkerApiTest.ApiTest.class);
+
+  private static final List<Class<? extends CompilerApiTest>> CLASSES_PENDING_BINARY_COMPATIBILITY =
+      ImmutableList.of();
 
   private final TemporaryFolder temp;
 
