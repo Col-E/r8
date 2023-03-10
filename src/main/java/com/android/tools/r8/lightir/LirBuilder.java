@@ -15,6 +15,8 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.CatchHandlers;
+import com.android.tools.r8.ir.code.Cmp;
+import com.android.tools.r8.ir.code.Cmp.Bias;
 import com.android.tools.r8.ir.code.IRMetadata;
 import com.android.tools.r8.ir.code.IfType;
 import com.android.tools.r8.ir.code.NumericType;
@@ -208,6 +210,11 @@ public class LirBuilder<V, EV> {
         opcode, Collections.emptyList(), Collections.singletonList(value));
   }
 
+  private LirBuilder<V, EV> addTwoValueInstruction(int opcode, V leftValue, V rightValue) {
+    return addInstructionTemplate(
+        opcode, Collections.emptyList(), ImmutableList.of(leftValue, rightValue));
+  }
+
   private LirBuilder<V, EV> addInstructionTemplate(
       int opcode, List<DexItem> items, List<V> values) {
     assert values.size() < MAX_VALUE_COUNT;
@@ -301,6 +308,18 @@ public class LirBuilder<V, EV> {
 
   public LirBuilder<V, EV> addInvokeVirtual(DexMethod method, List<V> arguments) {
     return addInvokeInstruction(LirOpcodes.INVOKEVIRTUAL, method, arguments);
+  }
+
+  public LirBuilder<V, EV> addInvokeStatic(DexMethod method, List<V> arguments) {
+    return addInvokeInstruction(LirOpcodes.INVOKESTATIC, method, arguments);
+  }
+
+  public LirBuilder<V, EV> addInvokeInterface(DexMethod method, List<V> arguments) {
+    return addInvokeInstruction(LirOpcodes.INVOKEINTERFACE, method, arguments);
+  }
+
+  public LirBuilder<V, EV> addNewInstance(DexType clazz) {
+    return addOneItemInstruction(LirOpcodes.NEW, clazz);
   }
 
   public LirBuilder<V, EV> addReturn(V value) {
@@ -434,5 +453,22 @@ public class LirBuilder<V, EV> {
         new TryCatchTable(tryCatchRanges),
         debugTable,
         strategy.getStrategyInfo());
+  }
+
+  private int getCmpOpcode(NumericType type, Cmp.Bias bias) {
+    switch (type) {
+      case LONG:
+        return LirOpcodes.LCMP;
+      case FLOAT:
+        return bias == Cmp.Bias.LT ? LirOpcodes.FCMPL : LirOpcodes.FCMPG;
+      case DOUBLE:
+        return bias == Cmp.Bias.LT ? LirOpcodes.DCMPL : LirOpcodes.DCMPG;
+      default:
+        throw new Unreachable("Cmp has unknown type " + type);
+    }
+  }
+
+  public LirBuilder<V, EV> addCmp(NumericType type, Bias bias, V leftValue, V rightValue) {
+    return addTwoValueInstruction(getCmpOpcode(type, bias), leftValue, rightValue);
   }
 }

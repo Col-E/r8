@@ -19,6 +19,7 @@ import com.android.tools.r8.ir.analysis.constant.LatticeElement;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
+import com.android.tools.r8.lightir.LirBuilder;
 import com.android.tools.r8.utils.LongInterval;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.StringUtils.BraceType;
@@ -233,6 +234,11 @@ public class Cmp extends Binop {
   @Override
   public void buildCf(CfBuilder builder) {
     builder.add(new CfCmp(bias, type), this);
+  }
+
+  @Override
+  public void buildLir(LirBuilder<Value, ?> builder) {
+    builder.addCmp(type, bias, leftValue(), rightValue());
   }
 
   @Override
