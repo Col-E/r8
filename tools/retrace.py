@@ -3,6 +3,8 @@
 # for details. All rights reserved. Use of this source code is governed by a
 # BSD-style license that can be found in the LICENSE file.
 
+from os import path
+
 import argparse
 import os
 import subprocess
@@ -122,7 +124,7 @@ def get_map_file(args, temp):
     else:
       args.commit_hash = r8_version_or_hash
     map_path = None
-    if get_hash_from_map_file(utils.R8LIB_MAP) == maphash:
+    if path.exists(utils.R8LIB_MAP) and get_hash_from_map_file(utils.R8LIB_MAP) == maphash:
       return utils.R8LIB_MAP
 
     try:
