@@ -81,7 +81,7 @@ public class R8GMSCoreLookupTest extends TestBase {
     AppInfoWithLiveness appInfo = null; // TODO(b/154881041): Remove or compute liveness.
     LookupResult lookupResult =
         resolutionResult.lookupVirtualDispatchTargets(
-            clazz, appInfo(), appInfo, dexReference -> false);
+            clazz, appView, appInfo, dexReference -> false);
     assertTrue(lookupResult.isLookupResultSuccess());
     assertTrue(lookupResult.asLookupResultSuccess().contains(method));
   }
@@ -99,7 +99,7 @@ public class R8GMSCoreLookupTest extends TestBase {
     LookupResultSuccess lookupResult =
         appInfo()
             .resolveMethodOnInterfaceLegacy(clazz, method.getReference())
-            .lookupVirtualDispatchTargets(clazz, appInfo(), appInfo, dexReference -> false)
+            .lookupVirtualDispatchTargets(clazz, appView, appInfo, dexReference -> false)
             .asLookupResultSuccess();
     assertNotNull(lookupResult);
     assertFalse(lookupResult.hasLambdaTargets());

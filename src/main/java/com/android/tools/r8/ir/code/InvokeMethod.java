@@ -156,14 +156,9 @@ public abstract class InvokeMethod extends Invoke {
     if (refinedReceiverUpperBound != null) {
       lookupResult =
           resolutionResult.lookupVirtualDispatchTargets(
-              context.getHolder(),
-              appView.withLiveness().appInfo(),
-              refinedReceiverUpperBound,
-              refinedReceiverLowerBound);
+              context.getHolder(), appView, refinedReceiverUpperBound, refinedReceiverLowerBound);
     } else {
-      lookupResult =
-          resolutionResult.lookupVirtualDispatchTargets(
-              context.getHolder(), appView.withLiveness().appInfo());
+      lookupResult = resolutionResult.lookupVirtualDispatchTargets(context.getHolder(), appView);
     }
     if (lookupResult.isLookupResultFailure()) {
       return null;

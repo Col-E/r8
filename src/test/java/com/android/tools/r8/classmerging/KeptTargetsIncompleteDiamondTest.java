@@ -87,7 +87,7 @@ public class KeptTargetsIncompleteDiamondTest extends TestBase {
     DexProgramClass classL = appView.definitionForProgramType(typeL);
     DexProgramClass classA = appView.definitionForProgramType(typeA);
     LookupResult lookupResult =
-        resolutionResult.lookupVirtualDispatchTargets(classI, appView.appInfo(), classL, classA);
+        resolutionResult.lookupVirtualDispatchTargets(classI, appView, classL, classA);
     assertTrue(lookupResult.isLookupResultSuccess());
     LookupResultSuccess lookupResultSuccess = lookupResult.asLookupResultSuccess();
     Set<String> targets = new HashSet<>();
@@ -128,7 +128,7 @@ public class KeptTargetsIncompleteDiamondTest extends TestBase {
     DexProgramClass classI = appView.definitionForProgramType(typeI);
     DexProgramClass classA = appView.definitionForProgramType(typeA);
     LookupResult lookupResult =
-        resolutionResult.lookupVirtualDispatchTargets(classI, appView.appInfo(), classI, classA);
+        resolutionResult.lookupVirtualDispatchTargets(classI, appView, classI, classA);
     assertTrue(lookupResult.isLookupResultSuccess());
     LookupResultSuccess lookupResultSuccess = lookupResult.asLookupResultSuccess();
     Set<String> targets = new HashSet<>();
@@ -168,7 +168,7 @@ public class KeptTargetsIncompleteDiamondTest extends TestBase {
     DexProgramClass classI = appView.definitionForProgramType(typeI);
     DexProgramClass classA = appView.definitionForProgramType(typeB);
     LookupResult lookupResult =
-        resolutionResult.lookupVirtualDispatchTargets(classI, appView.appInfo(), classA, classA);
+        resolutionResult.lookupVirtualDispatchTargets(classI, appView, classA, classA);
     assertTrue(lookupResult.isLookupResultSuccess());
     LookupResultSuccess lookupResultSuccess = lookupResult.asLookupResultSuccess();
     Set<String> targets = new HashSet<>();
@@ -206,7 +206,7 @@ public class KeptTargetsIncompleteDiamondTest extends TestBase {
     DexProgramClass classI = appView.definitionForProgramType(typeI);
     DexProgramClass classA = appView.definitionForProgramType(typeB);
     LookupResult lookupResult =
-        resolutionResult.lookupVirtualDispatchTargets(classI, appView.appInfo(), classA, classA);
+        resolutionResult.lookupVirtualDispatchTargets(classI, appView, classA, classA);
     assertTrue(lookupResult.isLookupResultSuccess());
     LookupResultSuccess lookupResultSuccess = lookupResult.asLookupResultSuccess();
     Set<String> targets = new HashSet<>();
@@ -246,7 +246,7 @@ public class KeptTargetsIncompleteDiamondTest extends TestBase {
     DexProgramClass classI = appView.definitionForProgramType(typeI);
     DexProgramClass classA = appView.definitionForProgramType(typeB);
     LookupResult lookupResult =
-        resolutionResult.lookupVirtualDispatchTargets(classI, appView.appInfo(), classA, classA);
+        resolutionResult.lookupVirtualDispatchTargets(classI, appView, classA, classA);
     assertTrue(lookupResult.isLookupResultSuccess());
     LookupResultSuccess lookupResultSuccess = lookupResult.asLookupResultSuccess();
     Set<String> targets = new HashSet<>();

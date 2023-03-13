@@ -329,7 +329,7 @@ public final class InterfaceMethodRewriter implements CfInstructionDesugaring {
               .asSingleResolution();
       if (resolution != null
           && resolution.getResolvedMethod().isPrivate()
-          && resolution.isAccessibleFrom(context, appInfoForDesugaring).isTrue()) {
+          && resolution.isAccessibleFrom(context, appView, appInfoForDesugaring).isTrue()) {
         return DesugarDescription.nothing();
       }
       if (resolution != null && resolution.getResolvedMethod().isStatic()) {
@@ -503,7 +503,7 @@ public final class InterfaceMethodRewriter implements CfInstructionDesugaring {
             .asSingleResolution();
     if (resolution != null
         && resolution.getResolvedMethod().isPrivate()
-        && resolution.isAccessibleFrom(context, appInfoForDesugaring).isTrue()) {
+        && resolution.isAccessibleFrom(context, appView, appInfoForDesugaring).isTrue()) {
       // TODO(b/198267586): What about the private in-accessible case?
       return computeInvokeDirect(holder, invoke, context);
     }
@@ -724,7 +724,9 @@ public final class InterfaceMethodRewriter implements CfInstructionDesugaring {
       // WARNING: This may result in incorrect code on older platforms!
       // Retarget call to an appropriate method of companion class.
       if (resolutionResult.getResolvedMethod().isPrivateMethod()) {
-        if (resolutionResult.isAccessibleFrom(context, appView.appInfoForDesugaring()).isFalse()) {
+        if (resolutionResult
+            .isAccessibleFrom(context, appView, appView.appInfoForDesugaring())
+            .isFalse()) {
           // TODO(b/145775365): This should throw IAE.
           return computeInvokeAsThrowRewrite(invoke, null, context);
         }
@@ -803,8 +805,11 @@ public final class InterfaceMethodRewriter implements CfInstructionDesugaring {
 
   private DesugarDescription computeEmulatedInterfaceInvokeSpecial(
       DexClass clazz, DexMethod invokedMethod, ProgramMethod context) {
+    AppInfoWithClassHierarchy appInfoForDesugaring = appView.appInfoForDesugaring();
     DexClassAndMethod superTarget =
-        appView.appInfoForDesugaring().lookupSuperTarget(invokedMethod, context);
+        appView
+            .appInfoForDesugaring()
+            .lookupSuperTarget(invokedMethod, context, appView, appInfoForDesugaring);
     if (clazz.isInterface()
         && clazz.isLibraryClass()
         && helper.isInDesugaredLibrary(clazz)

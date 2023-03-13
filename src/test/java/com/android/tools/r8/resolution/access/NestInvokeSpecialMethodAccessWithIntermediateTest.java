@@ -126,9 +126,11 @@ public class NestInvokeSpecialMethodAccessWithIntermediateTest extends TestBase 
     // Resolution fails when there is a mismatch between the symbolic reference and the definition.
     if (!symbolicReferenceIsDefiningType) {
       if (inSameNest) {
-        assertTrue(resolutionResult.isNoSuchMethodErrorResult(callerClassDefinition, appInfo));
+        assertTrue(
+            resolutionResult.isNoSuchMethodErrorResult(callerClassDefinition, appView, appInfo));
       } else {
-        assertTrue(resolutionResult.isIllegalAccessErrorResult(callerClassDefinition, appInfo));
+        assertTrue(
+            resolutionResult.isIllegalAccessErrorResult(callerClassDefinition, appView, appInfo));
       }
       return;
     }
@@ -140,14 +142,14 @@ public class NestInvokeSpecialMethodAccessWithIntermediateTest extends TestBase 
     // Verify that the resolved method is accessible only when in the same nest.
     assertEquals(
         OptionalBool.of(inSameNest),
-        resolutionResult.isAccessibleFrom(callerClassDefinition, appInfo));
+        resolutionResult.isAccessibleFrom(callerClassDefinition, appView));
 
     // Verify that looking up the dispatch target returns a valid target
     // iff in the same nest and declaredHolder == definingHolder.
     DexClassAndMethod targetSpecial =
-        resolutionResult.lookupInvokeSpecialTarget(callerClassDefinition, appInfo);
+        resolutionResult.lookupInvokeSpecialTarget(callerClassDefinition, appView);
     DexClassAndMethod targetSuper =
-        resolutionResult.lookupInvokeSuperTarget(callerClassDefinition, appInfo);
+        resolutionResult.lookupInvokeSuperTarget(callerClassDefinition, appView);
     if (inSameNest) {
       assertEquals(definingClassDefinition.type, targetSpecial.getHolderType());
       assertEquals(targetSpecial.getReference(), targetSuper.getReference());

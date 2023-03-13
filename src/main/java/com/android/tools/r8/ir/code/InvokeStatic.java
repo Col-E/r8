@@ -120,10 +120,11 @@ public class InvokeStatic extends InvokeMethod {
     DexMethod invokedMethod = getInvokedMethod();
     DexEncodedMethod result;
     if (appView.appInfo().hasLiveness()) {
-      AppInfoWithLiveness appInfo = appView.appInfo().withLiveness();
-      result = appInfo.lookupStaticTarget(invokedMethod, context);
+      AppView<AppInfoWithLiveness> appViewWithLiveness = appView.withLiveness();
+      AppInfoWithLiveness appInfo = appViewWithLiveness.appInfo();
+      result = appInfo.lookupStaticTarget(invokedMethod, context, appViewWithLiveness);
       assert verifyD8LookupResult(
-          result, appView.appInfo().lookupStaticTargetOnItself(invokedMethod, context));
+          result, appInfo.lookupStaticTargetOnItself(invokedMethod, context));
     } else {
       // Allow optimizing static library invokes in D8.
       DexClass clazz = appView.definitionForHolder(getInvokedMethod());
@@ -216,7 +217,7 @@ public class InvokeStatic extends InvokeMethod {
 
     // Verify that the target method is static and accessible.
     if (!singleTarget.getDefinition().isStatic()
-        || resolutionResult.isAccessibleFrom(context, appInfoWithLiveness).isPossiblyFalse()) {
+        || resolutionResult.isAccessibleFrom(context, appViewWithLiveness).isPossiblyFalse()) {
       return true;
     }
 

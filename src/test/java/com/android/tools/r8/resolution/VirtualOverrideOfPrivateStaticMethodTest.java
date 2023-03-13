@@ -10,6 +10,7 @@ import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
+import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.MethodResolutionResult;
@@ -59,14 +60,15 @@ public class VirtualOverrideOfPrivateStaticMethodTest extends TestBase {
   public static List<Class<?>> CLASSES =
       ImmutableList.of(A.class, B.class, C.class, I.class, Main.class);
 
+  private static AppView<AppInfoWithLiveness> appView;
   private static AppInfoWithLiveness appInfo;
 
   @BeforeClass
   public static void computeAppInfo() throws Exception {
-    appInfo =
+    appView =
         computeAppViewWithLiveness(
-                buildClasses(CLASSES).addLibraryFile(getMostRecentAndroidJar()).build(), Main.class)
-            .appInfo();
+            buildClasses(CLASSES).addLibraryFile(getMostRecentAndroidJar()).build(), Main.class);
+    appInfo = appView.appInfo();
   }
 
   private static DexMethod buildMethod(Class<?> clazz, String name) {
@@ -92,7 +94,7 @@ public class VirtualOverrideOfPrivateStaticMethodTest extends TestBase {
     MethodResolutionResult resolutionResult =
         appInfo.resolveMethodOnClassLegacy(methodOnB.holder, methodOnB);
     DexClass context = appInfo.definitionFor(methodOnB.holder);
-    assertTrue(resolutionResult.isIllegalAccessErrorResult(context, appInfo));
+    assertTrue(resolutionResult.isIllegalAccessErrorResult(context, appView));
   }
 
   @Test

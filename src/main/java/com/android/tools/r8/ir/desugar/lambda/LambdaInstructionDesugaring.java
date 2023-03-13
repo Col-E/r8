@@ -163,7 +163,8 @@ public class LambdaInstructionDesugaring implements CfInstructionDesugaring {
       MethodProcessingContext methodProcessingContext,
       DesugarInvoke desugarInvoke) {
     LambdaDescriptor descriptor =
-        LambdaDescriptor.tryInfer(invoke.getCallSite(), appView.appInfoForDesugaring(), context);
+        LambdaDescriptor.tryInfer(
+            invoke.getCallSite(), appView, appView.appInfoForDesugaring(), context);
     if (descriptor == null) {
       return null;
     }
@@ -191,6 +192,7 @@ public class LambdaInstructionDesugaring implements CfInstructionDesugaring {
     return instruction.isInvokeDynamic()
         && LambdaDescriptor.tryInfer(
                 instruction.asInvokeDynamic().getCallSite(),
+                appView,
                 appView.appInfoForDesugaring(),
                 context)
             != null;

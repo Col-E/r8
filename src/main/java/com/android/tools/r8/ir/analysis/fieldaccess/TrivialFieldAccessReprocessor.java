@@ -82,6 +82,10 @@ public class TrivialFieldAccessReprocessor {
     this.postMethodProcessorBuilder = postMethodProcessorBuilder;
   }
 
+  private AppView<AppInfoWithLiveness> appView() {
+    return appView;
+  }
+
   public void run(
       ExecutorService executorService, OptimizationFeedbackDelayed feedback, Timing timing)
       throws ExecutionException {
@@ -312,7 +316,7 @@ public class TrivialFieldAccessReprocessor {
   class TrivialFieldAccessUseRegistry extends UseRegistry<ProgramMethod> {
 
     TrivialFieldAccessUseRegistry(ProgramMethod method) {
-      super(appView, method);
+      super(appView(), method);
     }
 
     private void registerFieldAccess(
@@ -320,7 +324,7 @@ public class TrivialFieldAccessReprocessor {
         boolean isStatic,
         boolean isWrite,
         BytecodeInstructionMetadata metadata) {
-      FieldResolutionResult resolutionResult = appView.appInfo().resolveField(reference);
+      FieldResolutionResult resolutionResult = appView().appInfo().resolveField(reference);
       if (!resolutionResult.hasProgramResult()) {
         // We don't care about field accesses that may not resolve to a program field.
         return;
@@ -332,8 +336,8 @@ public class TrivialFieldAccessReprocessor {
       if (definition.isStatic() != isStatic
           || appView.isCfByteCodePassThrough(getContext().getDefinition())
           || !resolutionResult.isSingleProgramFieldResolutionResult()
-          || resolutionResult.isAccessibleFrom(getContext(), appView).isPossiblyFalse()
-          || appView.appInfo().isNeverReprocessMethod(getContext())) {
+          || resolutionResult.isAccessibleFrom(getContext(), appView()).isPossiblyFalse()
+          || appView().appInfo().isNeverReprocessMethod(getContext())) {
         recordAccessThatCannotBeOptimized(field, definition);
         return;
       }
@@ -355,7 +359,7 @@ public class TrivialFieldAccessReprocessor {
       }
 
       // Record access.
-      if (field.isProgramField() && appView.appInfo().mayPropagateValueFor(appView, field)) {
+      if (field.isProgramField() && appView().appInfo().mayPropagateValueFor(appView(), field)) {
         if (field.getAccessFlags().isStatic() == isStatic) {
           if (isWrite) {
             recordFieldAccessContext(definition, writtenFields, readFields);
@@ -400,7 +404,7 @@ public class TrivialFieldAccessReprocessor {
     private void recordAccessThatCannotBeOptimized(
         DexClassAndField field, DexEncodedField definition) {
       constantFields.remove(definition);
-      if (field.isProgramField() && appView.appInfo().mayPropagateValueFor(appView, field)) {
+      if (field.isProgramField() && appView().appInfo().mayPropagateValueFor(appView(), field)) {
         destroyFieldAccessContexts(definition);
       }
     }

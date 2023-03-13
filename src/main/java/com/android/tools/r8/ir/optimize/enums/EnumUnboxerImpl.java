@@ -332,7 +332,7 @@ public class EnumUnboxerImpl extends EnumUnboxer {
       InvokeCustom invoke, Set<DexType> eligibleEnums, ProgramMethod context) {
     invoke.getCallSite().getMethodProto().forEachType(t -> markEnumEligible(t, eligibleEnums));
     LambdaDescriptor lambdaDescriptor =
-        LambdaDescriptor.tryInfer(invoke.getCallSite(), appView.appInfo(), context);
+        LambdaDescriptor.tryInfer(invoke.getCallSite(), appView, appView.appInfo(), context);
     if (lambdaDescriptor == null) {
       // Based on lambda we can see that enums cannot be unboxed if used in call site bootstrap
       // arguments, since there might be expectations on overrides. Enums used directly in the

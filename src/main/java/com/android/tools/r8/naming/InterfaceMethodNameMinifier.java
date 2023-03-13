@@ -457,7 +457,7 @@ class InterfaceMethodNameMinifier {
           // Don't report errors, as the set of call sites is a conservative estimate, and can
           // refer to interfaces which has been removed.
           Set<DexEncodedMethod> implementedMethods =
-              appView.appInfo().lookupLambdaImplementedMethods(callSite);
+              appView.appInfo().lookupLambdaImplementedMethods(callSite, appView);
           for (DexEncodedMethod method : implementedMethods) {
             Wrapper<DexEncodedMethod> wrapped = definitionEquivalence.wrap(method);
             InterfaceMethodGroupState groupState = globalStateMap.get(wrapped);
@@ -470,8 +470,7 @@ class InterfaceMethodNameMinifier {
           }
           // For intersection types, we have to iterate all the multiple interfaces to look for
           // methods with the same signature.
-          List<DexType> implementedInterfaces =
-              LambdaDescriptor.getInterfaces(callSite, appView.appInfo());
+          List<DexType> implementedInterfaces = LambdaDescriptor.getInterfaces(callSite, appView);
           if (implementedInterfaces != null) {
             for (int i = 1; i < implementedInterfaces.size(); i++) {
               // Add the merging state for all additional implemented interfaces into the state

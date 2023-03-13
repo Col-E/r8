@@ -17,13 +17,13 @@ public abstract class MemberResolutionResult<
 
   public abstract SuccessfulMemberResolutionResult<D, R> asSuccessfulMemberResolutionResult();
 
-  public abstract OptionalBool isAccessibleFrom(
-      ProgramDefinition context, AppInfoWithClassHierarchy appInfo);
-
   public final OptionalBool isAccessibleFrom(
       ProgramDefinition context, AppView<? extends AppInfoWithClassHierarchy> appView) {
-    return isAccessibleFrom(context, appView.appInfo());
+    return isAccessibleFrom(context, appView, appView.appInfo());
   }
+
+  public abstract OptionalBool isAccessibleFrom(
+      ProgramDefinition context, AppView<?> appView, AppInfoWithClassHierarchy appInfo);
 
   /**
    * Returns true if resolution failed.

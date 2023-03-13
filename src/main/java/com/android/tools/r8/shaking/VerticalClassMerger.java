@@ -761,7 +761,7 @@ public class VerticalClassMerger {
         LookupResultSuccess lookupResult =
             appInfo
                 .resolveMethodOnInterfaceLegacy(method.getHolderType(), method.getReference())
-                .lookupVirtualDispatchTargets(target, appInfo)
+                .lookupVirtualDispatchTargets(target, appView)
                 .asLookupResultSuccess();
         assert lookupResult != null;
         if (lookupResult == null) {
@@ -1356,7 +1356,7 @@ public class VerticalClassMerger {
           // Only rewrite the invoke-super call if it does not lead to a NoSuchMethodError.
           boolean resolutionSucceeds =
               holder.lookupVirtualMethod(signatureInHolder) != null
-                  || appInfo.lookupSuperTarget(signatureInHolder, holder) != null;
+                  || appInfo.lookupSuperTarget(signatureInHolder, holder, appView) != null;
           if (resolutionSucceeds) {
             deferredRenamings.mapVirtualMethodToDirectInType(
                 signatureInHolder,
@@ -1381,7 +1381,7 @@ public class VerticalClassMerger {
             // its super classes declared the method.
             boolean resolutionSucceededBeforeMerge =
                 lensBuilder.hasMappingForSignatureInContext(holder, signatureInType)
-                    || appInfo.lookupSuperTarget(signatureInHolder, holder) != null;
+                    || appInfo.lookupSuperTarget(signatureInHolder, holder, appView) != null;
             if (resolutionSucceededBeforeMerge) {
               deferredRenamings.mapVirtualMethodToDirectInType(
                   signatureInType,

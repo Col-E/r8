@@ -136,7 +136,7 @@ public class InstantiatedLowerBoundTest extends TestBase {
     DexProgramClass upperBound = appView.definitionForProgramType(typeA);
     DexProgramClass lowerBound = appView.definitionForProgramType(typeC);
     LookupResult lookupResult =
-        resolution.lookupVirtualDispatchTargets(context, appInfo, upperBound, lowerBound);
+        resolution.lookupVirtualDispatchTargets(context, appView, upperBound, lowerBound);
     Set<DexMethod> expected = Sets.newIdentityHashSet();
     expected.add(fooA);
     expected.add(fooB);

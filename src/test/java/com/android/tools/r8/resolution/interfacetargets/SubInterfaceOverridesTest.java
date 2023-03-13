@@ -66,7 +66,7 @@ public class SubInterfaceOverridesTest extends TestBase {
         appInfo.resolveMethodOnInterfaceLegacy(method.holder, method);
     DexProgramClass context =
         appView.definitionForProgramType(buildType(Main.class, appInfo.dexItemFactory()));
-    LookupResult lookupResult = resolutionResult.lookupVirtualDispatchTargets(context, appInfo);
+    LookupResult lookupResult = resolutionResult.lookupVirtualDispatchTargets(context, appView);
     assertTrue(lookupResult.isLookupResultSuccess());
     assertFalse(lookupResult.asLookupResultSuccess().hasLambdaTargets());
     Set<String> targets = new HashSet<>();

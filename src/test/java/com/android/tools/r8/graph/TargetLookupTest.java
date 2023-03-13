@@ -92,7 +92,8 @@ public class TargetLookupTest extends SmaliTestBase {
     );
 
     AndroidApp application = buildApplication(builder);
-    AppInfoWithClassHierarchy appInfo = computeAppInfoWithClassHierarchy(application);
+    AppView<AppInfoWithClassHierarchy> appView = computeAppViewWithClassHierarchy(application);
+    AppInfoWithClassHierarchy appInfo = appView.appInfo();
     CodeInspector inspector = new CodeInspector(appInfo.app());
     ProgramMethod method = getMethod(inspector, DEFAULT_CLASS_NAME, "int", "x", ImmutableList.of());
     assertFalse(
@@ -100,8 +101,8 @@ public class TargetLookupTest extends SmaliTestBase {
             .resolveMethodOnClassHolderLegacy(method.getReference())
             .getSingleTarget()
             .isVirtualMethod());
-    assertNull(appInfo.lookupDirectTarget(method.getReference(), method));
-    assertNotNull(appInfo.lookupStaticTarget(method.getReference(), method));
+    assertNull(appInfo.lookupDirectTarget(method.getReference(), method, appView));
+    assertNotNull(appInfo.lookupStaticTarget(method.getReference(), method, appView));
 
     if (ToolHelper.getDexVm().getVersion().isOlderThanOrEqual(DexVm.Version.V4_4_4)) {
       // Dalvik rejects at verification time instead of producing the
@@ -165,7 +166,8 @@ public class TargetLookupTest extends SmaliTestBase {
     );
 
     AndroidApp application = buildApplication(builder);
-    AppInfoWithClassHierarchy appInfo = computeAppInfoWithClassHierarchy(application);
+    AppView<AppInfoWithClassHierarchy> appView = computeAppViewWithClassHierarchy(application);
+    AppInfoWithClassHierarchy appInfo = appView.appInfo();
     CodeInspector inspector = new CodeInspector(appInfo.app());
 
     ProgramMethod methodXOnTestSuper =
@@ -191,13 +193,14 @@ public class TargetLookupTest extends SmaliTestBase {
     assertNull(
         appInfo.resolveMethodOnClassLegacy(classTest, methodXOnTestReference).getSingleTarget());
 
-    assertNull(appInfo.lookupDirectTarget(methodXOnTestSuper.getReference(), methodXOnTestSuper));
-    assertNull(appInfo.lookupDirectTarget(methodXOnTestReference, methodYOnTest));
+    assertNull(
+        appInfo.lookupDirectTarget(methodXOnTestSuper.getReference(), methodXOnTestSuper, appView));
+    assertNull(appInfo.lookupDirectTarget(methodXOnTestReference, methodYOnTest, appView));
 
     assertNotNull(
-        appInfo.lookupStaticTarget(methodXOnTestSuper.getReference(), methodXOnTestSuper));
+        appInfo.lookupStaticTarget(methodXOnTestSuper.getReference(), methodXOnTestSuper, appView));
     // Accessing a private target on a different type will fail resolution outright.
-    assertNull(appInfo.lookupStaticTarget(methodXOnTestReference, methodYOnTest));
+    assertNull(appInfo.lookupStaticTarget(methodXOnTestReference, methodYOnTest, appView));
 
     assertEquals("OK", runArt(application));
   }
@@ -254,7 +257,8 @@ public class TargetLookupTest extends SmaliTestBase {
       builder.addLibraryFiles(ToolHelper.getDefaultAndroidJar());
     }
     AndroidApp application = builder.build();
-    AppInfoWithClassHierarchy appInfo = computeAppInfoWithClassHierarchy(application);
+    AppView<AppInfoWithClassHierarchy> appView = computeAppViewWithClassHierarchy(application);
+    AppInfoWithClassHierarchy appInfo = appView.appInfo();
     DexItemFactory factory = appInfo.dexItemFactory();
 
     DexType i0 = factory.createType("L" + pkg + "/I0;");
@@ -276,13 +280,13 @@ public class TargetLookupTest extends SmaliTestBase {
     DexMethod mOnI3 = factory.createMethod(i3, mProto, m);
     DexMethod mOnI4 = factory.createMethod(i4, mProto, m);
 
-    assertEquals(mOnI0, appInfo.lookupSuperTarget(mOnC0, c1).getReference());
-    assertEquals(mOnI1, appInfo.lookupSuperTarget(mOnI1, c1).getReference());
-    assertEquals(mOnI2, appInfo.lookupSuperTarget(mOnI2, c1).getReference());
+    assertEquals(mOnI0, appInfo.lookupSuperTarget(mOnC0, c1, appView).getReference());
+    assertEquals(mOnI1, appInfo.lookupSuperTarget(mOnI1, c1, appView).getReference());
+    assertEquals(mOnI2, appInfo.lookupSuperTarget(mOnI2, c1, appView).getReference());
 
-    assertNull(appInfo.lookupSuperTarget(mOnC1, c2)); // C2 is not a subclass of C1.
-    assertEquals(mOnI1, appInfo.lookupSuperTarget(mOnI3, c2).getReference());
-    assertEquals(mOnI2, appInfo.lookupSuperTarget(mOnI4, c2).getReference());
+    assertNull(appInfo.lookupSuperTarget(mOnC1, c2, appView)); // C2 is not a subclass of C1.
+    assertEquals(mOnI1, appInfo.lookupSuperTarget(mOnI3, c2, appView).getReference());
+    assertEquals(mOnI2, appInfo.lookupSuperTarget(mOnI4, c2, appView).getReference());
 
     // Copy classes to run on the Java VM.
     Path out = temp.newFolder().toPath();

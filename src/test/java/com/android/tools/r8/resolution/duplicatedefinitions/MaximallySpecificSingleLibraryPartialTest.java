@@ -95,7 +95,7 @@ public class MaximallySpecificSingleLibraryPartialTest extends TestBase {
                 (resolution.getResolvedHolder().isProgramClass() ? "Program: " : "Library: ")
                     + resolution.getResolvedMethod().getReference().toString());
           } else {
-            assertTrue(result.isNoSuchMethodErrorResult(mainClass, appInfo));
+            assertTrue(result.isNoSuchMethodErrorResult(mainClass, appView));
             methodResults.add(typeName(NoSuchMethodError.class));
             result
                 .asFailedResolution()

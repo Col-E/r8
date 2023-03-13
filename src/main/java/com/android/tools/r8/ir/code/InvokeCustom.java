@@ -25,6 +25,7 @@ import com.android.tools.r8.ir.conversion.DexBuilder;
 import com.android.tools.r8.ir.desugar.LambdaDescriptor;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.InliningConstraints;
+import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import java.util.List;
 
 public final class InvokeCustom extends Invoke {
@@ -70,8 +71,8 @@ public final class InvokeCustom extends Invoke {
     if (!appView.appInfo().hasLiveness()) {
       return returnType;
     }
-    List<DexType> lambdaInterfaces =
-        LambdaDescriptor.getInterfaces(callSite, appView.appInfo().withClassHierarchy());
+    AppView<AppInfoWithLiveness> appViewWithLiveness = appView.withLiveness();
+    List<DexType> lambdaInterfaces = LambdaDescriptor.getInterfaces(callSite, appViewWithLiveness);
     if (lambdaInterfaces == null || lambdaInterfaces.isEmpty()) {
       return returnType;
     }
@@ -98,7 +99,7 @@ public final class InvokeCustom extends Invoke {
     assert verifyLambdaInterfaces(returnType, lambdaInterfaceSet, objectType);
 
     return ClassTypeElement.create(
-        objectType, Nullability.maybeNull(), appView.withClassHierarchy(), lambdaInterfaceSet);
+        objectType, Nullability.maybeNull(), appViewWithLiveness, lambdaInterfaceSet);
   }
 
   @Override

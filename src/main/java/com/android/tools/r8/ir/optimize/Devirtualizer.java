@@ -320,7 +320,7 @@ public class Devirtualizer {
 
   /** This rebinds invoke-super instructions to their most specific target. */
   private DexClass rebindSuperInvokeToMostSpecific(DexMethod target, ProgramMethod context) {
-    DexClassAndMethod method = appView.appInfo().lookupSuperTarget(target, context);
+    DexClassAndMethod method = appView.appInfo().lookupSuperTarget(target, context, appView);
     if (method == null) {
       return null;
     }
@@ -375,7 +375,7 @@ public class Devirtualizer {
             .asSingleResolution();
     if (resolutionResult == null
         || resolutionResult
-            .isAccessibleForVirtualDispatchFrom(context, appView.appInfo())
+            .isAccessibleForVirtualDispatchFrom(context, appView)
             .isPossiblyFalse()) {
       // Method does not resolve or is not accessible.
       return target;
@@ -391,7 +391,7 @@ public class Devirtualizer {
         appView.appInfo().resolveMethodOnClassLegacy(receiverType, target).asSingleResolution();
     if (newResolutionResult == null
         || newResolutionResult
-            .isAccessibleForVirtualDispatchFrom(context, appView.appInfo())
+            .isAccessibleForVirtualDispatchFrom(context, appView)
             .isPossiblyFalse()
         || !newResolutionResult
             .getResolvedMethod()

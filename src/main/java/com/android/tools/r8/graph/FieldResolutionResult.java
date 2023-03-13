@@ -197,8 +197,8 @@ public abstract class FieldResolutionResult
 
     @Override
     public OptionalBool isAccessibleFrom(
-        ProgramDefinition context, AppInfoWithClassHierarchy appInfo) {
-      return AccessControl.isMemberAccessible(this, context, appInfo);
+        ProgramDefinition context, AppView<?> appView, AppInfoWithClassHierarchy appInfo) {
+      return AccessControl.isMemberAccessible(this, context, appView, appInfo);
     }
 
     @Override
@@ -382,7 +382,7 @@ public abstract class FieldResolutionResult
 
     @Override
     public OptionalBool isAccessibleFrom(
-        ProgramDefinition context, AppInfoWithClassHierarchy appInfo) {
+        ProgramDefinition context, AppView<?> appView, AppInfoWithClassHierarchy appInfo) {
       throw new Unimplemented("Should not be called on MultipleFieldResolutionResult");
     }
 
@@ -456,7 +456,7 @@ public abstract class FieldResolutionResult
 
     @Override
     public OptionalBool isAccessibleFrom(
-        ProgramDefinition context, AppInfoWithClassHierarchy appInfo) {
+        ProgramDefinition context, AppView<?> appView, AppInfoWithClassHierarchy appInfo) {
       return OptionalBool.FALSE;
     }
 

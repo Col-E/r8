@@ -9,7 +9,6 @@ import static com.android.tools.r8.graph.DexProgramClass.asProgramClassOrNull;
 import static com.android.tools.r8.graph.MethodResolutionResult.SingleResolutionResult.isOverriding;
 
 import com.android.tools.r8.cf.CfVersion;
-import com.android.tools.r8.experimental.startup.StartupOrder;
 import com.android.tools.r8.features.ClassToFeatureSplitMap;
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
@@ -202,7 +201,6 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
       ClassToFeatureSplitMap classToFeatureSplitMap,
       MainDexInfo mainDexInfo,
       MissingClasses missingClasses,
-      StartupOrder startupOrder,
       Set<DexType> deadProtoTypes,
       Set<DexType> liveTypes,
       Set<DexMethod> targetedMethods,
@@ -234,12 +232,7 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
       Set<DexType> lockCandidates,
       Map<DexType, Visibility> initClassReferences,
       Set<DexMethod> recordFieldValuesReferences) {
-    super(
-        committedItems,
-        classToFeatureSplitMap,
-        mainDexInfo,
-        missingClasses,
-        startupOrder);
+    super(committedItems, classToFeatureSplitMap, mainDexInfo, missingClasses);
     this.deadProtoTypes = deadProtoTypes;
     this.liveTypes = liveTypes;
     this.targetedMethods = targetedMethods;
@@ -280,7 +273,6 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
         previous.getClassToFeatureSplitMap(),
         previous.getMainDexInfo(),
         previous.getMissingClasses(),
-        previous.getStartupOrder(),
         previous.deadProtoTypes,
         CollectionUtils.addAll(previous.liveTypes, committedItems.getCommittedProgramTypes()),
         previous.targetedMethods,
@@ -324,7 +316,6 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
         previous.getClassToFeatureSplitMap().withoutPrunedItems(prunedItems),
         previous.getMainDexInfo().withoutPrunedItems(prunedItems),
         previous.getMissingClasses(),
-        previous.getStartupOrder().withoutPrunedItems(prunedItems, previous.getSyntheticItems()),
         previous.deadProtoTypes,
         pruneClasses(previous.liveTypes, prunedItems, executorService, futures),
         pruneMethods(previous.targetedMethods, prunedItems, executorService, futures),
@@ -489,7 +480,6 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
         getClassToFeatureSplitMap(),
         mainDexInfo,
         getMissingClasses(),
-        getStartupOrder(),
         deadProtoTypes,
         liveTypes,
         targetedMethods,
@@ -566,8 +556,7 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
         previous.getSyntheticItems().commit(previous.app()),
         previous.getClassToFeatureSplitMap(),
         previous.getMainDexInfo(),
-        previous.getMissingClasses(),
-        previous.getStartupOrder());
+        previous.getMissingClasses());
     this.deadProtoTypes = previous.deadProtoTypes;
     this.liveTypes = previous.liveTypes;
     this.targetedMethods = previous.targetedMethods;
@@ -767,9 +756,10 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
    * @param callSite Call site to resolve.
    * @return Methods implemented by the lambda expression that created the {@code callSite}.
    */
-  public Set<DexEncodedMethod> lookupLambdaImplementedMethods(DexCallSite callSite) {
+  public Set<DexEncodedMethod> lookupLambdaImplementedMethods(
+      DexCallSite callSite, AppView<AppInfoWithLiveness> appView) {
     assert checkIfObsolete();
-    List<DexType> callSiteInterfaces = LambdaDescriptor.getInterfaces(callSite, this);
+    List<DexType> callSiteInterfaces = LambdaDescriptor.getInterfaces(callSite, appView);
     if (callSiteInterfaces == null || callSiteInterfaces.isEmpty()) {
       return Collections.emptySet();
     }
@@ -1159,7 +1149,6 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
         getClassToFeatureSplitMap().rewrittenWithLens(lens),
         getMainDexInfo().rewrittenWithLens(getSyntheticItems(), lens),
         getMissingClasses(),
-        getStartupOrder().rewrittenWithLens(lens),
         deadProtoTypes,
         lens.rewriteReferences(liveTypes),
         lens.rewriteReferences(targetedMethods),
@@ -1229,7 +1218,7 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
   }
 
   public DexEncodedMethod lookupSingleTarget(
-      AppView<? extends AppInfoWithClassHierarchy> appView,
+      AppView<AppInfoWithLiveness> appView,
       InvokeType type,
       DexMethod target,
       ProgramMethod context,
@@ -1245,18 +1234,18 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
       case INTERFACE:
         return lookupSingleVirtualTarget(appView, target, context, true, modeledPredicate);
       case DIRECT:
-        return lookupDirectTarget(target, context);
+        return lookupDirectTarget(target, context, appView);
       case STATIC:
-        return lookupStaticTarget(target, context);
+        return lookupStaticTarget(target, context, appView);
       case SUPER:
-        return toMethodDefinitionOrNull(lookupSuperTarget(target, context));
+        return toMethodDefinitionOrNull(lookupSuperTarget(target, context, appView));
       default:
         return null;
     }
   }
 
   public ProgramMethod lookupSingleProgramTarget(
-      AppView<? extends AppInfoWithClassHierarchy> appView,
+      AppView<AppInfoWithLiveness> appView,
       InvokeType type,
       DexMethod target,
       ProgramMethod context,
@@ -1267,7 +1256,7 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
 
   /** For mapping invoke virtual instruction to single target method. */
   public DexEncodedMethod lookupSingleVirtualTarget(
-      AppView<? extends AppInfoWithClassHierarchy> appView,
+      AppView<AppInfoWithLiveness> appView,
       DexMethod method,
       ProgramMethod context,
       boolean isInterface) {
@@ -1277,7 +1266,7 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
 
   /** For mapping invoke virtual instruction to single target method. */
   public DexEncodedMethod lookupSingleVirtualTarget(
-      AppView<? extends AppInfoWithClassHierarchy> appView,
+      AppView<AppInfoWithLiveness> appView,
       DexMethod method,
       ProgramMethod context,
       boolean isInterface,
@@ -1288,7 +1277,7 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
   }
 
   public DexEncodedMethod lookupSingleVirtualTarget(
-      AppView<? extends AppInfoWithClassHierarchy> appView,
+      AppView<AppInfoWithLiveness> appView,
       DexMethod method,
       ProgramMethod context,
       boolean isInterface,
@@ -1325,7 +1314,7 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
     SingleResolutionResult<?> resolution =
         resolveMethodOnLegacy(initialResolutionHolder, method).asSingleResolution();
     if (resolution == null
-        || resolution.isAccessibleForVirtualDispatchFrom(context.getHolder(), this).isFalse()) {
+        || resolution.isAccessibleForVirtualDispatchFrom(context.getHolder(), appView).isFalse()) {
       return null;
     }
     // If the method is modeled, return the resolution.
@@ -1378,7 +1367,10 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
     LookupResultSuccess lookupResult =
         resolution
             .lookupVirtualDispatchTargets(
-                context.getHolder(), this, refinedReceiverClass.asProgramClass(), refinedLowerBound)
+                context.getHolder(),
+                appView,
+                refinedReceiverClass.asProgramClass(),
+                refinedLowerBound)
             .asLookupResultSuccess();
     if (lookupResult != null && !lookupResult.isIncomplete()) {
       LookupTarget singleTarget = lookupResult.getSingleLookupTarget();

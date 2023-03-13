@@ -66,7 +66,7 @@ public class FeatureSplitBoundaryOptimizationUtils {
     }
 
     // Next perform startup checks.
-    StartupOrder startupOrder = appView.appInfo().getStartupOrder();
+    StartupOrder startupOrder = appView.getStartupOrder();
     SyntheticItems syntheticItems = appView.getSyntheticItems();
     OptionalBool callerIsStartupMethod = isStartupMethod(caller, startupOrder, syntheticItems);
     if (callerIsStartupMethod.isTrue()) {
@@ -115,7 +115,7 @@ public class FeatureSplitBoundaryOptimizationUtils {
 
     // If the source class is a startup class then require that the target class is also a startup
     // class.
-    StartupOrder startupOrder = appView.appInfo().getStartupOrder();
+    StartupOrder startupOrder = appView.getStartupOrder();
     SyntheticItems syntheticItems = appView.getSyntheticItems();
     if (startupOrder.contains(sourceClass.getType(), syntheticItems)
         && !startupOrder.contains(targetClass.getType(), syntheticItems)) {

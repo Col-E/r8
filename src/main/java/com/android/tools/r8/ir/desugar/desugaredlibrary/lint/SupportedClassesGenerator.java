@@ -10,7 +10,6 @@ import com.android.tools.r8.StringResource;
 import com.android.tools.r8.androidapi.ComputedApiLevel;
 import com.android.tools.r8.dex.ApplicationReader;
 import com.android.tools.r8.dex.Constants;
-import com.android.tools.r8.experimental.startup.StartupOrder;
 import com.android.tools.r8.features.ClassToFeatureSplitMap;
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.DexApplication;
@@ -148,8 +147,7 @@ public class SupportedClassesGenerator {
               dexApplication,
               ClassToFeatureSplitMap.createEmptyClassToFeatureSplitMap(),
               MainDexInfo.none(),
-              GlobalSyntheticsStrategy.forNonSynthesizing(),
-              StartupOrder.empty());
+              GlobalSyntheticsStrategy.forNonSynthesizing());
 
       List<DexMethod> backports =
           BackportedMethodRewriter.generateListOfBackportedMethods(dexApplication, options);

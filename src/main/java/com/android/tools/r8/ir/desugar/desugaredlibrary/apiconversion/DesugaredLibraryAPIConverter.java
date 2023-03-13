@@ -7,6 +7,7 @@ package com.android.tools.r8.ir.desugar.desugaredlibrary.apiconversion;
 import com.android.tools.r8.cf.code.CfInstruction;
 import com.android.tools.r8.cf.code.CfInvoke;
 import com.android.tools.r8.contexts.CompilationContext.MethodProcessingContext;
+import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexClassAndMethod;
@@ -124,10 +125,11 @@ public class DesugaredLibraryAPIConverter implements CfInstructionDesugaring {
   private DexClassAndMethod getMethodForDesugaring(CfInvoke invoke, ProgramMethod context) {
     DexMethod invokedMethod = invoke.getMethod();
     // TODO(b/191656218): Use lookupInvokeSpecial instead when this is all to Cf.
+    AppInfoWithClassHierarchy appInfoForDesugaring = appView.appInfoForDesugaring();
     return invoke.isInvokeSuper(context.getHolderType())
-        ? appView.appInfoForDesugaring().lookupSuperTarget(invokedMethod, context)
-        : appView
-            .appInfoForDesugaring()
+        ? appInfoForDesugaring.lookupSuperTarget(
+            invokedMethod, context, appView, appInfoForDesugaring)
+        : appInfoForDesugaring
             .resolveMethodLegacy(invokedMethod, invoke.isInterface())
             .getResolutionPair();
   }

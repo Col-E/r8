@@ -92,7 +92,8 @@ public class DesugaredLibraryRetargeter implements CfInstructionDesugaring {
       return DesugarDescription.nothing();
     }
     if (cfInvoke.isInvokeSuper(context.getHolderType())) {
-      DexClassAndMethod superTarget = appInfo.lookupSuperTarget(invokedMethod, context);
+      DexClassAndMethod superTarget =
+          appInfo.lookupSuperTarget(invokedMethod, context, appView, appInfo);
       if (superTarget != null) {
         assert !superTarget.getDefinition().isStatic();
         return computeNonStaticRetarget(superTarget.getReference(), true);

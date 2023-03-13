@@ -57,7 +57,7 @@ public class ProtectedDifferentPackageLookupTest extends TestBase {
     MethodResolutionResult resolutionResult = appInfo.resolveMethodOnClassHolderLegacy(method);
     DexProgramClass context =
         appView.definitionForProgramType(buildType(Main.class, appInfo.dexItemFactory()));
-    LookupResult lookupResult = resolutionResult.lookupVirtualDispatchTargets(context, appInfo);
+    LookupResult lookupResult = resolutionResult.lookupVirtualDispatchTargets(context, appView);
     // TODO(b/173363527): Should be an error.
     assertTrue(lookupResult.isLookupResultSuccess());
   }

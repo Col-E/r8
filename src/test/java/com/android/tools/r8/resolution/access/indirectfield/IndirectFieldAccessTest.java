@@ -67,7 +67,7 @@ public class IndirectFieldAccessTest extends TestBase {
             appInfo.dexItemFactory());
     FieldResolutionResult resolutionResult = appInfo.resolveField(f);
     assertTrue(resolutionResult.isSingleFieldResolutionResult());
-    assertEquals(OptionalBool.TRUE, resolutionResult.isAccessibleFrom(barMethod, appInfo));
+    assertEquals(OptionalBool.TRUE, resolutionResult.isAccessibleFrom(barMethod, appView));
   }
 
   @Test

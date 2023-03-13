@@ -64,6 +64,10 @@ public class MemberRebindingAnalysis {
     this.lensBuilder = MemberRebindingLens.builder(appView);
   }
 
+  private AppView<AppInfoWithLiveness> appView() {
+    return appView;
+  }
+
   private DexMethod validMemberRebindingTargetForNonProgramMethod(
       DexClassAndMethod resolvedMethod,
       SingleResolutionResult<?> resolutionResult,
@@ -167,7 +171,7 @@ public class MemberRebindingAnalysis {
     }
     return Iterables.all(
         contexts,
-        context -> resolutionResult.isAccessibleFrom(context, appView.appInfo()).isTrue());
+        context -> resolutionResult.isAccessibleFrom(context, appView, appView.appInfo()).isTrue());
   }
 
   private boolean isInvokeSuperToInterfaceMethod(DexClassAndMethod method, InvokeType invokeType) {
@@ -578,7 +582,7 @@ public class MemberRebindingAnalysis {
                   }
 
                   private void registerFieldReference(DexField field) {
-                    appView
+                    appView()
                         .appInfo()
                         .resolveField(field)
                         .forEachSuccessfulFieldResolutionResult(

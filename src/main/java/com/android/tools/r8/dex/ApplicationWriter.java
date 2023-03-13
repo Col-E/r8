@@ -243,7 +243,7 @@ public class ApplicationWriter {
       // order is only used for writing the app, so we create it here for the first time.
       StartupOrder startupOrder =
           appView.appInfo().hasClassHierarchy()
-              ? appView.appInfoWithClassHierarchy().getStartupOrder()
+              ? appView.getStartupOrder()
               : StartupOrder.createInitialStartupOrderForD8(appView);
       distributor =
           new VirtualFile.FillFilesDistributor(

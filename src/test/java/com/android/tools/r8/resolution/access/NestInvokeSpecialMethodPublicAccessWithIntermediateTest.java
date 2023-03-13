@@ -106,15 +106,15 @@ public class NestInvokeSpecialMethodPublicAccessWithIntermediateTest extends Tes
 
     // Verify that the resolved method is accessible (it is public).
     assertEquals(
-        OptionalBool.TRUE, resolutionResult.isAccessibleFrom(callerClassDefinition, appInfo));
+        OptionalBool.TRUE, resolutionResult.isAccessibleFrom(callerClassDefinition, appView));
 
     // Verify that looking up the dispatch target returns the defining method.
     DexClassAndMethod targetSpecial =
-        resolutionResult.lookupInvokeSpecialTarget(callerClassDefinition, appInfo);
+        resolutionResult.lookupInvokeSpecialTarget(callerClassDefinition, appView);
     assertEquals(definingClassDefinition.type, targetSpecial.getHolderType());
 
     DexClassAndMethod targetSuper =
-        resolutionResult.lookupInvokeSuperTarget(callerClassDefinition, appInfo);
+        resolutionResult.lookupInvokeSuperTarget(callerClassDefinition, appView);
     assertEquals(targetSpecial.getReference(), targetSuper.getReference());
   }
 

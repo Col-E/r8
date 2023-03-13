@@ -75,7 +75,13 @@ public abstract class MethodResolutionResult
     return false;
   }
 
-  public boolean isNoSuchMethodErrorResult(DexClass context, AppInfoWithClassHierarchy appInfo) {
+  public final boolean isNoSuchMethodErrorResult(
+      DexClass context, AppView<? extends AppInfoWithClassHierarchy> appView) {
+    return isNoSuchMethodErrorResult(context, appView, appView.appInfo());
+  }
+
+  public boolean isNoSuchMethodErrorResult(
+      DexClass context, AppView<?> appView, AppInfoWithClassHierarchy appInfo) {
     return false;
   }
 
@@ -83,7 +89,13 @@ public abstract class MethodResolutionResult
     return false;
   }
 
-  public boolean isIllegalAccessErrorResult(DexClass context, AppInfoWithClassHierarchy appInfo) {
+  public final boolean isIllegalAccessErrorResult(
+      DexClass context, AppView<? extends AppInfoWithClassHierarchy> appView) {
+    return isIllegalAccessErrorResult(context, appView, appView.appInfo());
+  }
+
+  public boolean isIllegalAccessErrorResult(
+      DexClass context, AppView<?> appView, AppInfoWithClassHierarchy appInfo) {
     return false;
   }
 
@@ -139,41 +151,57 @@ public abstract class MethodResolutionResult
   }
 
   public abstract OptionalBool isAccessibleForVirtualDispatchFrom(
-      ProgramDefinition context, AppInfoWithClassHierarchy appInfo);
+      ProgramDefinition context, AppView<? extends AppInfoWithClassHierarchy> appView);
 
   public abstract boolean isVirtualTarget();
 
   /** Lookup the single target of an invoke-special on this resolution result if possible. */
   public abstract DexClassAndMethod lookupInvokeSpecialTarget(
-      DexProgramClass context, AppInfoWithClassHierarchy appInfo);
+      DexProgramClass context, AppView<? extends AppInfoWithClassHierarchy> appView);
+
+  public final DexClassAndMethod lookupInvokeSuperTarget(
+      DexProgramClass context, AppView<? extends AppInfoWithClassHierarchy> appView) {
+    return lookupInvokeSuperTarget(context, appView, appView.appInfo());
+  }
 
   /** Lookup the single target of an invoke-super on this resolution result if possible. */
   public abstract DexClassAndMethod lookupInvokeSuperTarget(
-      DexProgramClass context, AppInfoWithClassHierarchy appInfo);
+      DexProgramClass context, AppView<?> appView, AppInfoWithClassHierarchy appInfo);
 
   /** Lookup the single target of an invoke-direct on this resolution result if possible. */
+  public final DexEncodedMethod lookupInvokeDirectTarget(
+      DexProgramClass context, AppView<? extends AppInfoWithClassHierarchy> appView) {
+    return lookupInvokeDirectTarget(context, appView, appView.appInfo());
+  }
+
   public abstract DexEncodedMethod lookupInvokeDirectTarget(
-      DexProgramClass context, AppInfoWithClassHierarchy appInfo);
+      DexProgramClass context, AppView<?> appView, AppInfoWithClassHierarchy appInfo);
 
   /** Lookup the single target of an invoke-static on this resolution result if possible. */
+  public final DexEncodedMethod lookupInvokeStaticTarget(
+      DexProgramClass context, AppView<? extends AppInfoWithClassHierarchy> appView) {
+    return lookupInvokeStaticTarget(context, appView, appView.appInfo());
+  }
+
   public abstract DexEncodedMethod lookupInvokeStaticTarget(
-      DexProgramClass context, AppInfoWithClassHierarchy appInfo);
+      DexProgramClass context, AppView<?> appView, AppInfoWithClassHierarchy appInfo);
 
   public abstract LookupResult lookupVirtualDispatchTargets(
       DexProgramClass context,
-      AppInfoWithClassHierarchy appInfo,
+      AppView<? extends AppInfoWithClassHierarchy> appView,
       InstantiatedSubTypeInfo instantiatedInfo,
       PinnedPredicate pinnedPredicate);
 
   public final LookupResult lookupVirtualDispatchTargets(
-      DexProgramClass context, AppInfoWithLiveness appInfo) {
+      DexProgramClass context, AppView<AppInfoWithLiveness> appView) {
+    AppInfoWithLiveness appInfo = appView.appInfo();
     return lookupVirtualDispatchTargets(
-        context, appInfo, appInfo, appInfo::isPinnedNotProgramOrLibraryOverride);
+        context, appView, appInfo, appInfo::isPinnedNotProgramOrLibraryOverride);
   }
 
   public abstract LookupResult lookupVirtualDispatchTargets(
       DexProgramClass context,
-      AppInfoWithLiveness appInfo,
+      AppView<AppInfoWithLiveness> appView,
       DexProgramClass refinedReceiverUpperBound,
       DexProgramClass refinedReceiverLowerBound);
 
@@ -309,15 +337,15 @@ public abstract class MethodResolutionResult
 
     @Override
     public OptionalBool isAccessibleFrom(
-        ProgramDefinition context, AppInfoWithClassHierarchy appInfo) {
-      return AccessControl.isMemberAccessible(this, context, appInfo);
+        ProgramDefinition context, AppView<?> appView, AppInfoWithClassHierarchy appInfo) {
+      return AccessControl.isMemberAccessible(this, context, appView, appInfo);
     }
 
     @Override
     public OptionalBool isAccessibleForVirtualDispatchFrom(
-        ProgramDefinition context, AppInfoWithClassHierarchy appInfo) {
+        ProgramDefinition context, AppView<? extends AppInfoWithClassHierarchy> appView) {
       if (resolvedMethod.isVirtualMethod()) {
-        return isAccessibleFrom(context, appInfo);
+        return isAccessibleFrom(context, appView, appView.appInfo());
       }
       return OptionalBool.FALSE;
     }
@@ -335,9 +363,10 @@ public abstract class MethodResolutionResult
      */
     @Override
     public DexClassAndMethod lookupInvokeSpecialTarget(
-        DexProgramClass context, AppInfoWithClassHierarchy appInfo) {
+        DexProgramClass context, AppView<? extends AppInfoWithClassHierarchy> appView) {
       // If the resolution is non-accessible then no target exists.
-      if (isAccessibleFrom(context, appInfo).isPossiblyTrue()) {
+      AppInfoWithClassHierarchy appInfo = appView.appInfo();
+      if (isAccessibleFrom(context, appView).isPossiblyTrue()) {
         return internalInvokeSpecialOrSuper(
             context, appInfo, (sup, sub) -> isSuperclass(sup, sub, appInfo));
       }
@@ -372,14 +401,14 @@ public abstract class MethodResolutionResult
      */
     @Override
     public DexClassAndMethod lookupInvokeSuperTarget(
-        DexProgramClass context, AppInfoWithClassHierarchy appInfo) {
+        DexProgramClass context, AppView<?> appView, AppInfoWithClassHierarchy appInfo) {
       if (resolvedMethod.isInstanceInitializer()
           || (initialResolutionHolder != context
               && !isSuperclass(initialResolutionHolder, context, appInfo))) {
         // If the target is <init> or not on a super class then the call is invalid.
         return null;
       }
-      if (isAccessibleFrom(context, appInfo).isPossiblyTrue()) {
+      if (isAccessibleFrom(context, appView, appInfo).isPossiblyTrue()) {
         return internalInvokeSpecialOrSuper(context, appInfo, (sup, sub) -> true);
       }
       return null;
@@ -397,8 +426,8 @@ public abstract class MethodResolutionResult
      */
     @Override
     public DexEncodedMethod lookupInvokeStaticTarget(
-        DexProgramClass context, AppInfoWithClassHierarchy appInfo) {
-      if (isAccessibleFrom(context, appInfo).isFalse()) {
+        DexProgramClass context, AppView<?> appView, AppInfoWithClassHierarchy appInfo) {
+      if (isAccessibleFrom(context, appView, appInfo).isFalse()) {
         return null;
       }
       if (resolvedMethod.isStatic()) {
@@ -418,8 +447,8 @@ public abstract class MethodResolutionResult
      */
     @Override
     public DexEncodedMethod lookupInvokeDirectTarget(
-        DexProgramClass context, AppInfoWithClassHierarchy appInfo) {
-      if (isAccessibleFrom(context, appInfo).isFalse()) {
+        DexProgramClass context, AppView<?> appView, AppInfoWithClassHierarchy appInfo) {
+      if (isAccessibleFrom(context, appView, appInfo).isFalse()) {
         return null;
       }
       if (resolvedMethod.isDirectMethod()) {
@@ -513,13 +542,14 @@ public abstract class MethodResolutionResult
     @Override
     public LookupResult lookupVirtualDispatchTargets(
         DexProgramClass context,
-        AppInfoWithClassHierarchy appInfo,
+        AppView<? extends AppInfoWithClassHierarchy> appView,
         InstantiatedSubTypeInfo instantiatedInfo,
         PinnedPredicate pinnedPredicate) {
       // Check that the initial resolution holder is accessible from the context.
+      AppInfoWithClassHierarchy appInfo = appView.appInfo();
       assert appInfo.isSubtype(initialResolutionHolder.type, resolvedHolder.type)
           : initialResolutionHolder.type + " is not a subtype of " + resolvedHolder.type;
-      if (context != null && isAccessibleFrom(context, appInfo).isFalse()) {
+      if (context != null && isAccessibleFrom(context, appView).isFalse()) {
         return LookupResult.createFailedResult();
       }
       if (resolvedMethod.isPrivateMethod()) {
@@ -558,7 +588,7 @@ public abstract class MethodResolutionResult
           },
           lambda -> {
             assert resolvedHolder.isInterface()
-                || resolvedHolder.type == appInfo.dexItemFactory().objectType;
+                || resolvedHolder.type == appView.dexItemFactory().objectType;
             LookupTarget target =
                 lookupVirtualDispatchTarget(
                     lambda,
@@ -582,9 +612,10 @@ public abstract class MethodResolutionResult
     @Override
     public LookupResult lookupVirtualDispatchTargets(
         DexProgramClass context,
-        AppInfoWithLiveness appInfo,
+        AppView<AppInfoWithLiveness> appView,
         DexProgramClass refinedReceiverUpperBound,
         DexProgramClass refinedReceiverLowerBound) {
+      AppInfoWithLiveness appInfo = appView.appInfo();
       assert refinedReceiverUpperBound != null;
       assert appInfo.isSubtype(refinedReceiverUpperBound.type, initialResolutionHolder.type);
       assert refinedReceiverLowerBound == null
@@ -600,7 +631,7 @@ public abstract class MethodResolutionResult
       LookupResult lookupResult =
           lookupVirtualDispatchTargets(
               context,
-              appInfo,
+              appView,
               instantiatedSubTypeInfo,
               appInfo::isPinnedNotProgramOrLibraryOverride);
       if (hasInstantiatedLambdas.get() && lookupResult.isLookupResultSuccess()) {
@@ -977,32 +1008,32 @@ public abstract class MethodResolutionResult
 
     @Override
     public final DexClassAndMethod lookupInvokeSpecialTarget(
-        DexProgramClass context, AppInfoWithClassHierarchy appInfo) {
+        DexProgramClass context, AppView<? extends AppInfoWithClassHierarchy> appView) {
       return null;
     }
 
     @Override
     public DexClassAndMethod lookupInvokeSuperTarget(
-        DexProgramClass context, AppInfoWithClassHierarchy appInfo) {
+        DexProgramClass context, AppView<?> appView, AppInfoWithClassHierarchy appInfo) {
       return null;
     }
 
     @Override
     public DexEncodedMethod lookupInvokeStaticTarget(
-        DexProgramClass context, AppInfoWithClassHierarchy appInfo) {
+        DexProgramClass context, AppView<?> appView, AppInfoWithClassHierarchy appInfo) {
       return null;
     }
 
     @Override
     public DexEncodedMethod lookupInvokeDirectTarget(
-        DexProgramClass context, AppInfoWithClassHierarchy appInfo) {
+        DexProgramClass context, AppView<?> appView, AppInfoWithClassHierarchy appInfo) {
       return null;
     }
 
     @Override
     public LookupResult lookupVirtualDispatchTargets(
         DexProgramClass context,
-        AppInfoWithClassHierarchy appInfo,
+        AppView<? extends AppInfoWithClassHierarchy> appView,
         InstantiatedSubTypeInfo instantiatedInfo,
         PinnedPredicate pinnedPredicate) {
       return LookupResult.getIncompleteEmptyResult();
@@ -1011,7 +1042,7 @@ public abstract class MethodResolutionResult
     @Override
     public LookupResult lookupVirtualDispatchTargets(
         DexProgramClass context,
-        AppInfoWithLiveness appInfo,
+        AppView<AppInfoWithLiveness> appView,
         DexProgramClass refinedReceiverUpperBound,
         DexProgramClass refinedReceiverLowerBound) {
       return LookupResult.getIncompleteEmptyResult();
@@ -1050,13 +1081,13 @@ public abstract class MethodResolutionResult
 
     @Override
     public OptionalBool isAccessibleFrom(
-        ProgramDefinition context, AppInfoWithClassHierarchy appInfo) {
+        ProgramDefinition context, AppView<?> appView, AppInfoWithClassHierarchy appInfo) {
       return OptionalBool.TRUE;
     }
 
     @Override
     public OptionalBool isAccessibleForVirtualDispatchFrom(
-        ProgramDefinition context, AppInfoWithClassHierarchy appInfo) {
+        ProgramDefinition context, AppView<? extends AppInfoWithClassHierarchy> appView) {
       return OptionalBool.TRUE;
     }
 
@@ -1110,13 +1141,13 @@ public abstract class MethodResolutionResult
 
     @Override
     public OptionalBool isAccessibleFrom(
-        ProgramDefinition context, AppInfoWithClassHierarchy appInfo) {
+        ProgramDefinition context, AppView<?> appView, AppInfoWithClassHierarchy appInfo) {
       return OptionalBool.FALSE;
     }
 
     @Override
     public OptionalBool isAccessibleForVirtualDispatchFrom(
-        ProgramDefinition context, AppInfoWithClassHierarchy appInfo) {
+        ProgramDefinition context, AppView<? extends AppInfoWithClassHierarchy> appView) {
       return OptionalBool.FALSE;
     }
 
@@ -1218,7 +1249,8 @@ public abstract class MethodResolutionResult
     }
 
     @Override
-    public boolean isNoSuchMethodErrorResult(DexClass context, AppInfoWithClassHierarchy appInfo) {
+    public boolean isNoSuchMethodErrorResult(
+        DexClass context, AppView<?> appView, AppInfoWithClassHierarchy appInfo) {
       return true;
     }
 
@@ -1262,14 +1294,15 @@ public abstract class MethodResolutionResult
     }
 
     @Override
-    public boolean isIllegalAccessErrorResult(DexClass context, AppInfoWithClassHierarchy appInfo) {
+    public boolean isIllegalAccessErrorResult(
+        DexClass context, AppView<?> appView, AppInfoWithClassHierarchy appInfo) {
       if (!hasMethodsCausingError()) {
         return false;
       }
       BooleanBox seenNoAccess = new BooleanBox(false);
       forEachFailureDependency(
           type ->
-              appInfo
+              appView
                   .contextIndependentDefinitionForWithResolutionResult(type)
                   .forEachClassResolutionResult(
                       clazz ->
@@ -1278,27 +1311,28 @@ public abstract class MethodResolutionResult
                                       clazz,
                                       context,
                                       appInfo.getClassToFeatureSplitMap(),
-                                      appInfo.options(),
-                                      appInfo.getStartupOrder(),
-                                      appInfo.getSyntheticItems())
+                                      appView.options(),
+                                      appView.getStartupOrder(),
+                                      appView.getSyntheticItems())
                                   .isPossiblyFalse())),
           method -> {
-            DexClass holder = appInfo.definitionFor(method.getHolderType());
+            DexClass holder = appView.definitionFor(method.getHolderType());
             DexClassAndMethod classAndMethod = DexClassAndMethod.create(holder, method);
             seenNoAccess.or(
                 AccessControl.isMemberAccessible(
-                        classAndMethod, initialResolutionHolder, context, appInfo)
+                        classAndMethod, initialResolutionHolder, context, appView, appInfo)
                     .isPossiblyFalse());
           });
       return seenNoAccess.get();
     }
 
     @Override
-    public boolean isNoSuchMethodErrorResult(DexClass context, AppInfoWithClassHierarchy appInfo) {
+    public boolean isNoSuchMethodErrorResult(
+        DexClass context, AppView<?> appView, AppInfoWithClassHierarchy appInfo) {
       if (!hasMethodsCausingError()) {
         return true;
       }
-      if (isIllegalAccessErrorResult(context, appInfo)) {
+      if (isIllegalAccessErrorResult(context, appView, appInfo)) {
         return false;
       }
       // At this point we know we have methods causing errors but we have access to them. To be
@@ -1345,13 +1379,13 @@ public abstract class MethodResolutionResult
 
     @Override
     public OptionalBool isAccessibleFrom(
-        ProgramDefinition context, AppInfoWithClassHierarchy appInfo) {
+        ProgramDefinition context, AppView<?> appView, AppInfoWithClassHierarchy appInfo) {
       throw new Unreachable("Should not be called on MultipleFieldResolutionResult");
     }
 
     @Override
     public OptionalBool isAccessibleForVirtualDispatchFrom(
-        ProgramDefinition context, AppInfoWithClassHierarchy appInfo) {
+        ProgramDefinition context, AppView<? extends AppInfoWithClassHierarchy> appView) {
       throw new Unreachable("Should not be called on MultipleFieldResolutionResult");
     }
 
@@ -1362,32 +1396,32 @@ public abstract class MethodResolutionResult
 
     @Override
     public DexClassAndMethod lookupInvokeSpecialTarget(
-        DexProgramClass context, AppInfoWithClassHierarchy appInfo) {
+        DexProgramClass context, AppView<? extends AppInfoWithClassHierarchy> appView) {
       throw new Unreachable("Should not be called on MultipleFieldResolutionResult");
     }
 
     @Override
     public DexClassAndMethod lookupInvokeSuperTarget(
-        DexProgramClass context, AppInfoWithClassHierarchy appInfo) {
+        DexProgramClass context, AppView<?> appView, AppInfoWithClassHierarchy appInfo) {
       throw new Unreachable("Should not be called on MultipleFieldResolutionResult");
     }
 
     @Override
     public DexEncodedMethod lookupInvokeDirectTarget(
-        DexProgramClass context, AppInfoWithClassHierarchy appInfo) {
+        DexProgramClass context, AppView<?> appView, AppInfoWithClassHierarchy appInfo) {
       throw new Unreachable("Should not be called on MultipleFieldResolutionResult");
     }
 
     @Override
     public DexEncodedMethod lookupInvokeStaticTarget(
-        DexProgramClass context, AppInfoWithClassHierarchy appInfo) {
+        DexProgramClass context, AppView<?> appView, AppInfoWithClassHierarchy appInfo) {
       throw new Unreachable("Should not be called on MultipleFieldResolutionResult");
     }
 
     @Override
     public LookupResult lookupVirtualDispatchTargets(
         DexProgramClass context,
-        AppInfoWithClassHierarchy appInfo,
+        AppView<? extends AppInfoWithClassHierarchy> appView,
         InstantiatedSubTypeInfo instantiatedInfo,
         PinnedPredicate pinnedPredicate) {
       throw new Unreachable("Should not be called on MultipleFieldResolutionResult");
@@ -1396,7 +1430,7 @@ public abstract class MethodResolutionResult
     @Override
     public LookupResult lookupVirtualDispatchTargets(
         DexProgramClass context,
-        AppInfoWithLiveness appInfo,
+        AppView<AppInfoWithLiveness> appView,
         DexProgramClass refinedReceiverUpperBound,
         DexProgramClass refinedReceiverLowerBound) {
       throw new Unreachable("Should not be called on MultipleFieldResolutionResult");

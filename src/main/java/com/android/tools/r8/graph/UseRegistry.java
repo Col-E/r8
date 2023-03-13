@@ -12,7 +12,7 @@ import java.util.ListIterator;
 
 public abstract class UseRegistry<T extends Definition> {
 
-  private final AppView<?> appView;
+  protected final AppView<?> appView;
   private final T context;
 
   private TraversalContinuation<?, ?> continuation = TraversalContinuation.doContinue();

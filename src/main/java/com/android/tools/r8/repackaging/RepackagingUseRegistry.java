@@ -146,7 +146,8 @@ public class RepackagingUseRegistry extends UseRegistry<ProgramDefinition> {
       MethodResolutionResult methodResult = resolutionResult.asMethodResolutionResult();
       if (methodResult.isClassNotFoundResult()
           || methodResult.isArrayCloneMethodResult()
-          || methodResult.isNoSuchMethodErrorResult(getContext().getContextClass(), appInfo)) {
+          || methodResult.isNoSuchMethodErrorResult(
+              getContext().getContextClass(), appView, appInfo)) {
         return;
       }
       node.addNeighbor(missingTypeNode);

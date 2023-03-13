@@ -140,9 +140,10 @@ public class InvokeDirect extends InvokeMethodWithReceiver {
       AppView<?> appView, ProgramMethod context, DynamicType dynamicReceiverType) {
     DexMethod invokedMethod = getInvokedMethod();
     DexEncodedMethod result;
-    if (appView.appInfo().hasLiveness()) {
-      AppInfoWithLiveness appInfo = appView.appInfo().withLiveness();
-      result = appInfo.lookupDirectTarget(invokedMethod, context);
+    if (appView.hasLiveness()) {
+      AppView<AppInfoWithLiveness> appViewWithLiveness = appView.withLiveness();
+      AppInfoWithLiveness appInfo = appViewWithLiveness.appInfo();
+      result = appInfo.lookupDirectTarget(invokedMethod, context, appViewWithLiveness);
       assert verifyD8LookupResult(
           result, appView.appInfo().lookupDirectTargetOnItself(invokedMethod, context));
     } else {

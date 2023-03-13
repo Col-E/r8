@@ -27,7 +27,7 @@ public class AccessControl {
         context,
         appView.appInfo().getClassToFeatureSplitMap(),
         appView.options(),
-        appView.appInfo().getStartupOrder(),
+        appView.getStartupOrder(),
         appView.getSyntheticItems());
   }
 
@@ -58,37 +58,40 @@ public class AccessControl {
   /** Intentionally package-private, use {@link MemberResolutionResult#isAccessibleFrom}. */
   static OptionalBool isMemberAccessible(
       SuccessfulMemberResolutionResult<?, ?> resolutionResult,
-      ProgramDefinition context,
+      Definition context,
+      AppView<?> appView,
       AppInfoWithClassHierarchy appInfo) {
     return isMemberAccessible(
         resolutionResult.getResolutionPair(),
         resolutionResult.getInitialResolutionHolder(),
-        context.getContextClass(),
+        context,
+        appView,
         appInfo);
   }
 
   public static OptionalBool isMemberAccessible(
       DexClassAndMember<?, ?> member,
-      DexClass initialResolutionHolder,
-      ProgramDefinition context,
+      Definition initialResolutionContext,
+      Definition context,
       AppView<? extends AppInfoWithClassHierarchy> appView) {
     return isMemberAccessible(
-        member, initialResolutionHolder, context.getContextClass(), appView.appInfo());
+        member, initialResolutionContext, context, appView, appView.appInfo());
   }
 
   static OptionalBool isMemberAccessible(
       DexClassAndMember<?, ?> member,
-      DexClass initialResolutionHolder,
-      DexClass context,
+      Definition initialResolutionContext,
+      Definition context,
+      AppView<?> appView,
       AppInfoWithClassHierarchy appInfo) {
     AccessFlags<?> memberFlags = member.getDefinition().getAccessFlags();
     OptionalBool classAccessibility =
         isClassAccessible(
-            initialResolutionHolder,
+            initialResolutionContext.getContextClass(),
             context,
             appInfo.getClassToFeatureSplitMap(),
             appInfo.options(),
-            appInfo.getStartupOrder(),
+            appView.getStartupOrder(),
             appInfo.getSyntheticItems());
     if (classAccessibility.isFalse()) {
       return OptionalBool.FALSE;
@@ -97,15 +100,16 @@ public class AccessControl {
       return classAccessibility;
     }
     if (memberFlags.isPrivate()) {
-      if (!isNestMate(member.getHolder(), context)) {
+      if (!isNestMate(member.getHolder(), context.getContextClass())) {
         return OptionalBool.FALSE;
       }
       return classAccessibility;
     }
-    if (member.getHolderType().isSamePackage(context.getType())) {
+    if (member.getHolderType().isSamePackage(context.getContextType())) {
       return classAccessibility;
     }
-    if (memberFlags.isProtected() && appInfo.isSubtype(context.getType(), member.getHolderType())) {
+    if (memberFlags.isProtected()
+        && appInfo.isSubtype(context.getContextType(), member.getHolderType())) {
       return classAccessibility;
     }
     return OptionalBool.FALSE;

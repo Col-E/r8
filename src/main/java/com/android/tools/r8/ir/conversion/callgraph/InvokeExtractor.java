@@ -118,7 +118,7 @@ public class InvokeExtractor<N extends NodeBase<N>> extends UseRegistry<ProgramM
                   appView.appInfo().resolveMethodLegacy(method, isInterface);
               if (resolution.isVirtualTarget()) {
                 LookupResult lookupResult =
-                    resolution.lookupVirtualDispatchTargets(context.getHolder(), appView.appInfo());
+                    resolution.lookupVirtualDispatchTargets(context.getHolder(), appView);
                 if (lookupResult.isLookupResultSuccess()) {
                   ProgramMethodSet targets = ProgramMethodSet.create();
                   lookupResult

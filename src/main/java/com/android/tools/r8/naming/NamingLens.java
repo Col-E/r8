@@ -17,6 +17,7 @@ import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.InnerClassAttribute;
 import com.android.tools.r8.optimize.MemberRebindingAnalysis;
+import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.google.common.collect.Sets;
@@ -55,8 +56,9 @@ public abstract class NamingLens {
     if (!appView.appInfo().hasLiveness()) {
       return callSite.methodName;
     }
+    AppView<AppInfoWithLiveness> appViewWithLiveness = appView.withLiveness();
     Set<DexEncodedMethod> lambdaImplementedMethods =
-        appView.appInfo().withLiveness().lookupLambdaImplementedMethods(callSite);
+        appViewWithLiveness.appInfo().lookupLambdaImplementedMethods(callSite, appViewWithLiveness);
     if (lambdaImplementedMethods.isEmpty()) {
       return callSite.methodName;
     }

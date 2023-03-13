@@ -106,6 +106,10 @@ public class NoClassInitializerCycles extends MultiClassPolicyWithPreprocessing<
     this.appView = appView;
   }
 
+  private AppView<AppInfoWithLiveness> appView() {
+    return appView;
+  }
+
   // TODO(b/270398965): Replace LinkedList.
   @SuppressWarnings("JdkObsolete")
   @Override
@@ -407,7 +411,7 @@ public class NoClassInitializerCycles extends MultiClassPolicyWithPreprocessing<
     class TracerUseRegistry extends UseRegistry<ProgramMethod> {
 
       TracerUseRegistry(ProgramMethod context) {
-        super(appView, context);
+        super(appView(), context);
       }
 
       private void fail() {
@@ -431,7 +435,7 @@ public class NoClassInitializerCycles extends MultiClassPolicyWithPreprocessing<
       }
 
       private boolean isClassAlreadyInitializedInCurrentContext(DexProgramClass clazz) {
-        return appView.appInfo().isSubtype(getContext().getHolder(), clazz);
+        return appView().appInfo().isSubtype(getContext().getHolder(), clazz);
       }
 
       private void triggerClassInitializer(DexProgramClass root) {
@@ -481,7 +485,7 @@ public class NoClassInitializerCycles extends MultiClassPolicyWithPreprocessing<
         DexMethod rewrittenMethod =
             appView.graphLens().lookupInvokeDirect(method, getContext()).getReference();
         MethodResolutionResult resolutionResult =
-            appView.appInfo().resolveMethodOnClassHolderLegacy(rewrittenMethod);
+            appView().appInfo().resolveMethodOnClassHolderLegacy(rewrittenMethod);
         if (resolutionResult.isSingleResolution()
             && resolutionResult.getResolvedHolder().isProgramClass()) {
           enqueueMethod(resolutionResult.getResolvedProgramMethod());
@@ -493,7 +497,7 @@ public class NoClassInitializerCycles extends MultiClassPolicyWithPreprocessing<
         DexMethod rewrittenMethod =
             appView.graphLens().lookupInvokeInterface(method, getContext()).getReference();
         DexClassAndMethod resolvedMethod =
-            appView
+            appView()
                 .appInfo()
                 .resolveMethodOnInterfaceHolderLegacy(rewrittenMethod)
                 .getResolutionPair();
@@ -507,7 +511,7 @@ public class NoClassInitializerCycles extends MultiClassPolicyWithPreprocessing<
         DexMethod rewrittenMethod =
             appView.graphLens().lookupInvokeStatic(method, getContext()).getReference();
         ProgramMethod resolvedMethod =
-            appView
+            appView()
                 .appInfo()
                 .unsafeResolveMethodDueToDexFormatLegacy(rewrittenMethod)
                 .getResolvedProgramMethod();
@@ -523,7 +527,7 @@ public class NoClassInitializerCycles extends MultiClassPolicyWithPreprocessing<
             appView.graphLens().lookupInvokeSuper(method, getContext()).getReference();
         ProgramMethod superTarget =
             asProgramMethodOrNull(
-                appView.appInfo().lookupSuperTarget(rewrittenMethod, getContext()));
+                appView().appInfo().lookupSuperTarget(rewrittenMethod, getContext(), appView()));
         if (superTarget != null) {
           enqueueMethod(superTarget);
         }
@@ -534,7 +538,10 @@ public class NoClassInitializerCycles extends MultiClassPolicyWithPreprocessing<
         DexMethod rewrittenMethod =
             appView.graphLens().lookupInvokeVirtual(method, getContext()).getReference();
         DexClassAndMethod resolvedMethod =
-            appView.appInfo().resolveMethodOnClassHolderLegacy(rewrittenMethod).getResolutionPair();
+            appView()
+                .appInfo()
+                .resolveMethodOnClassHolderLegacy(rewrittenMethod)
+                .getResolutionPair();
         if (resolvedMethod != null) {
           if (!resolvedMethod.getHolder().isEffectivelyFinal(appView)) {
             fail();
@@ -569,7 +576,7 @@ public class NoClassInitializerCycles extends MultiClassPolicyWithPreprocessing<
 
       @Override
       public void registerCallSite(DexCallSite callSite) {
-        if (isLambdaMetafactoryMethod(callSite, appView.appInfo())) {
+        if (isLambdaMetafactoryMethod(callSite, appView().appInfo())) {
           // Use of lambda metafactory does not trigger any class initialization.
         } else {
           fail();

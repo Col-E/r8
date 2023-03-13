@@ -43,6 +43,10 @@ public class MainDexDirectReferenceTracer {
     this.consumer = consumer;
   }
 
+  private AppView<? extends AppInfoWithClassHierarchy> appView() {
+    return appView;
+  }
+
   public void run(Set<DexType> roots) {
     SyntheticItems syntheticItems = appView.getSyntheticItems();
     DexItemFactory factory = appView.dexItemFactory();
@@ -113,7 +117,7 @@ public class MainDexDirectReferenceTracer {
   private class DirectReferencesCollector extends UseRegistry<ProgramMethod> {
 
     private DirectReferencesCollector(ProgramMethod context) {
-      super(appView, context);
+      super(appView(), context);
     }
 
     @Override

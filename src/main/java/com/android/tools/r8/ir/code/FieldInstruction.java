@@ -92,7 +92,7 @@ public abstract class FieldInstruction extends Instruction {
     // Check if the resolution target is accessible.
     if (singleFieldResolutionResult.getResolvedHolder() != context.getHolder()) {
       if (singleFieldResolutionResult
-          .isAccessibleFrom(context, appView.appInfo().withClassHierarchy())
+          .isAccessibleFrom(context, appView.withClassHierarchy())
           .isPossiblyFalse()) {
         return true;
       }

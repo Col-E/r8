@@ -132,11 +132,11 @@ public class NestInvokeSpecialInterfaceMethodAccessTest extends TestBase {
 
     assertEquals(
         OptionalBool.of(inSameNest),
-        resolutionResult.isAccessibleFrom(callerClassDefinition, appInfo));
+        resolutionResult.isAccessibleFrom(callerClassDefinition, appView));
     DexClassAndMethod targetSpecial =
-        resolutionResult.lookupInvokeSpecialTarget(callerClassDefinition, appInfo);
+        resolutionResult.lookupInvokeSpecialTarget(callerClassDefinition, appView);
     DexClassAndMethod targetSuper =
-        resolutionResult.lookupInvokeSuperTarget(callerClassDefinition, appInfo);
+        resolutionResult.lookupInvokeSuperTarget(callerClassDefinition, appView);
     if (inSameNest) {
       assertEquals(definingClassDefinition.getType(), targetSpecial.getHolderType());
       assertEquals(targetSpecial.getReference(), targetSuper.getReference());

@@ -6,6 +6,7 @@ package com.android.tools.r8.ir.desugar;
 
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
+import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexCallSite;
 import com.android.tools.r8.graph.DexDefinitionSupplier;
 import com.android.tools.r8.graph.DexEncodedMethod;
@@ -68,6 +69,7 @@ public final class LambdaDescriptor {
   }
 
   private LambdaDescriptor(
+      AppView<?> appView,
       AppInfoWithClassHierarchy appInfo,
       ProgramMethod context,
       DexCallSite callSite,
@@ -94,7 +96,8 @@ public final class LambdaDescriptor {
     this.captures = captures;
 
     this.interfaces.add(mainInterface);
-    DexEncodedMethod targetMethod = context == null ? null : lookupTargetMethod(appInfo, context);
+    DexEncodedMethod targetMethod =
+        context == null ? null : lookupTargetMethod(appView, appInfo, context);
     if (targetMethod != null) {
       targetAccessFlags = targetMethod.accessFlags.copy();
       targetHolder = targetMethod.getHolderType();
@@ -114,7 +117,7 @@ public final class LambdaDescriptor {
   }
 
   private DexEncodedMethod lookupTargetMethod(
-      AppInfoWithClassHierarchy appInfo, ProgramMethod context) {
+      AppView<?> appView, AppInfoWithClassHierarchy appInfo, ProgramMethod context) {
     assert context != null;
     // Find the lambda's impl-method target.
     DexMethod method = implHandle.asMethod();
@@ -126,7 +129,7 @@ public final class LambdaDescriptor {
                   .resolveMethodOnLegacy(getImplReceiverType(), method, implHandle.isInterface)
                   .getSingleTarget();
         if (target == null) {
-            target = appInfo.lookupDirectTarget(method, context);
+            target = appInfo.lookupDirectTarget(method, context, appView, appInfo);
         }
         assert target == null
             || (implHandle.type.isInvokeInstance() && isInstanceMethod(target))
@@ -136,13 +139,13 @@ public final class LambdaDescriptor {
       }
 
       case INVOKE_STATIC: {
-          DexEncodedMethod target = appInfo.lookupStaticTarget(method, context);
+          DexEncodedMethod target = appInfo.lookupStaticTarget(method, context, appView, appInfo);
         assert target == null || target.accessFlags.isStatic();
         return target;
       }
 
       case INVOKE_CONSTRUCTOR: {
-          DexEncodedMethod target = appInfo.lookupDirectTarget(method, context);
+          DexEncodedMethod target = appInfo.lookupDirectTarget(method, context, appView, appInfo);
         assert target == null || target.accessFlags.isConstructor();
         return target;
       }
@@ -267,8 +270,11 @@ public final class LambdaDescriptor {
    * information, or null if match failed.
    */
   public static LambdaDescriptor tryInfer(
-      DexCallSite callSite, AppInfoWithClassHierarchy appInfo, ProgramMethod context) {
-    LambdaDescriptor descriptor = infer(callSite, appInfo, context);
+      DexCallSite callSite,
+      AppView<?> appView,
+      AppInfoWithClassHierarchy appInfo,
+      ProgramMethod context) {
+    LambdaDescriptor descriptor = infer(callSite, appView, appInfo, context);
     return descriptor == MATCH_FAILED ? null : descriptor;
   }
 
@@ -294,7 +300,10 @@ public final class LambdaDescriptor {
    * information, or MATCH_FAILED if match failed.
    */
   static LambdaDescriptor infer(
-      DexCallSite callSite, AppInfoWithClassHierarchy appInfo, ProgramMethod context) {
+      DexCallSite callSite,
+      AppView<?> appView,
+      AppInfoWithClassHierarchy appInfo,
+      ProgramMethod context) {
     if (!isLambdaMetafactoryMethod(callSite, appInfo)) {
       return LambdaDescriptor.MATCH_FAILED;
     }
@@ -337,6 +346,7 @@ public final class LambdaDescriptor {
     // Create a match.
     LambdaDescriptor match =
         new LambdaDescriptor(
+            appView,
             appInfo,
             context,
             callSite,
@@ -409,9 +419,9 @@ public final class LambdaDescriptor {
   }
 
   public static List<DexType> getInterfaces(
-      DexCallSite callSite, AppInfoWithClassHierarchy appInfo) {
+      DexCallSite callSite, AppView<? extends AppInfoWithClassHierarchy> appView) {
     // No need for the invocationContext to figure out only the interfaces.
-    LambdaDescriptor descriptor = infer(callSite, appInfo, null);
+    LambdaDescriptor descriptor = infer(callSite, appView, appView.appInfo(), null);
     if (descriptor == LambdaDescriptor.MATCH_FAILED) {
       return null;
     }

@@ -67,7 +67,7 @@ public class IndirectMethodAccessTest extends TestBase {
     DexMethod bar = buildMethod(B.class.getMethod("foo"), appInfo.dexItemFactory());
     MethodResolutionResult resolutionResult = appInfo.resolveMethodOnClassHolderLegacy(bar);
     assertEquals(
-        OptionalBool.TRUE, resolutionResult.isAccessibleForVirtualDispatchFrom(cClass, appInfo));
+        OptionalBool.TRUE, resolutionResult.isAccessibleForVirtualDispatchFrom(cClass, appView));
   }
 
   @Test

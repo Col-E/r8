@@ -168,7 +168,10 @@ public class NestBasedAccessDesugaring implements CfInstructionDesugaring {
                 CfInvokeDynamic cfInvokeDynamic = instruction.asInvokeDynamic();
                 LambdaDescriptor lambdaDescriptor =
                     LambdaDescriptor.tryInfer(
-                        cfInvokeDynamic.getCallSite(), appView.appInfoForDesugaring(), method);
+                        cfInvokeDynamic.getCallSite(),
+                        appView,
+                        appView.appInfoForDesugaring(),
+                        method);
                 if (lambdaDescriptor != null) {
                   DexMember<?, ?> member = lambdaDescriptor.implHandle.member;
                   if (needsDesugaring(member, method)) {

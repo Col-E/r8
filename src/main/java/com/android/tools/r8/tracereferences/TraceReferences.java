@@ -13,7 +13,6 @@ import com.android.tools.r8.ProgramResourceProvider;
 import com.android.tools.r8.ResourceException;
 import com.android.tools.r8.Version;
 import com.android.tools.r8.dex.ApplicationReader;
-import com.android.tools.r8.experimental.startup.StartupOrder;
 import com.android.tools.r8.features.ClassToFeatureSplitMap;
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
@@ -87,8 +86,7 @@ public class TraceReferences {
                 new ApplicationReader(builder.build(), options, Timing.empty()).read().toDirect(),
                 ClassToFeatureSplitMap.createEmptyClassToFeatureSplitMap(),
                 MainDexInfo.none(),
-                GlobalSyntheticsStrategy.forSingleOutputMode(),
-                StartupOrder.empty()));
+                GlobalSyntheticsStrategy.forSingleOutputMode()));
     modelLibraryMethodsWithCovariantReturnTypes(appView);
     Tracer tracer =
         new Tracer(

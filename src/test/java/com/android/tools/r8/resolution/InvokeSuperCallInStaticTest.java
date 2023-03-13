@@ -63,8 +63,7 @@ public class InvokeSuperCallInStaticTest extends TestBase {
     assertTrue(resolutionResult.isSingleResolution());
     DexProgramClass context =
         appView.definitionForProgramType(buildType(A.class, appInfo.dexItemFactory()));
-    DexClassAndMethod lookedUpMethod =
-        resolutionResult.lookupInvokeSuperTarget(context, appView.appInfo());
+    DexClassAndMethod lookedUpMethod = resolutionResult.lookupInvokeSuperTarget(context, appView);
     assertNotNull(lookedUpMethod);
     assertEquals(lookedUpMethod.getReference(), method);
   }

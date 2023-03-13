@@ -1155,7 +1155,7 @@ public class Enqueuer {
       }
     }
 
-    LambdaDescriptor descriptor = LambdaDescriptor.tryInfer(callSite, appInfo(), context);
+    LambdaDescriptor descriptor = LambdaDescriptor.tryInfer(callSite, appView, appInfo(), context);
     if (descriptor == null) {
       for (DexValue bootstrapArgument : callSite.getBootstrapArgs()) {
         if (bootstrapArgument.isDexValueMethodHandle()) {
@@ -2877,7 +2877,7 @@ public class Enqueuer {
                               LookupResult lookupResult =
                                   singleResolution.lookupVirtualDispatchTargets(
                                       contextHolder,
-                                      appInfo,
+                                      appView,
                                       (type, subTypeConsumer, lambdaConsumer) -> {
                                         assert appInfo.isSubtype(currentClass.type, type);
                                         instantiation.apply(subTypeConsumer, lambdaConsumer);
@@ -3364,7 +3364,7 @@ public class Enqueuer {
               DexProgramClass resolvedHolder = resolution.getResolvedHolder().asProgramClass();
               DexEncodedMethod resolvedMethod = resolution.getResolvedMethod();
               markMethodAsTargeted(new ProgramMethod(resolvedHolder, resolvedMethod), reason);
-              if (resolution.isAccessibleForVirtualDispatchFrom(contextHolder, appInfo).isFalse()) {
+              if (resolution.isAccessibleForVirtualDispatchFrom(contextHolder, appView).isFalse()) {
                 // Not accessible from this context, so this call will cause a runtime exception.
                 return;
               }
@@ -3378,7 +3378,7 @@ public class Enqueuer {
               resolution
                   .lookupVirtualDispatchTargets(
                       contextHolder,
-                      appInfo,
+                      appView,
                       (type, subTypeConsumer, lambdaConsumer) ->
                           objectAllocationInfoCollection.forEachInstantiatedSubType(
                               type, subTypeConsumer, lambdaConsumer, appInfo),
@@ -3500,7 +3500,7 @@ public class Enqueuer {
               // If invoke target is invalid (inaccessible or not an instance-method) record it and
               // stop.
               DexClassAndMethod target =
-                  resolution.lookupInvokeSuperTarget(from.getHolder(), appInfo);
+                  resolution.lookupInvokeSuperTarget(from.getHolder(), appView);
               if (target == null) {
                 failedMethodResolutionTargets.add(resolution.getResolvedMethod().getReference());
                 analyses.forEach(
@@ -4216,7 +4216,6 @@ public class Enqueuer {
                 ? missingClassesBuilder.reportMissingClasses(
                     appView, lambdaSynthesizingContextOracle)
                 : missingClassesBuilder.assertNoMissingClasses(appView),
-            appInfo.getStartupOrder(),
             deadProtoTypes,
             SetUtils.mapIdentityHashSet(liveTypes.getItems(), DexProgramClass::getType),
             Enqueuer.toDescriptorSet(targetedMethods.getItems()),

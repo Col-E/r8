@@ -850,11 +850,11 @@ final class ClassProcessor {
           addICCEThrowingMethod(method, clazz, resolutionResult.asFailedResolution());
           return;
         }
-        if (resolutionResult.isNoSuchMethodErrorResult(clazz, appInfo)) {
+        if (resolutionResult.isNoSuchMethodErrorResult(clazz, appView, appInfo)) {
           addNoSuchMethodErrorThrowingMethod(method, clazz, resolutionResult.asFailedResolution());
           return;
         }
-        assert resolutionResult.isIllegalAccessErrorResult(clazz, appInfo);
+        assert resolutionResult.isIllegalAccessErrorResult(clazz, appView, appInfo);
         addIllegalAccessErrorThrowingMethod(method, clazz, resolutionResult.asFailedResolution());
         return;
       }

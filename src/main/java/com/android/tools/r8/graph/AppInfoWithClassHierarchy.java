@@ -7,7 +7,6 @@ package com.android.tools.r8.graph;
 import static com.android.tools.r8.utils.TraversalContinuation.doBreak;
 import static com.android.tools.r8.utils.TraversalContinuation.doContinue;
 
-import com.android.tools.r8.experimental.startup.StartupOrder;
 import com.android.tools.r8.features.ClassToFeatureSplitMap;
 import com.android.tools.r8.ir.analysis.type.InterfaceCollection;
 import com.android.tools.r8.ir.analysis.type.InterfaceCollection.Builder;
@@ -50,18 +49,15 @@ public class AppInfoWithClassHierarchy extends AppInfo {
       DexApplication application,
       ClassToFeatureSplitMap classToFeatureSplitMap,
       MainDexInfo mainDexInfo,
-      GlobalSyntheticsStrategy globalSyntheticsStrategy,
-      StartupOrder startupOrder) {
+      GlobalSyntheticsStrategy globalSyntheticsStrategy) {
     return new AppInfoWithClassHierarchy(
         SyntheticItems.createInitialSyntheticItems(application, globalSyntheticsStrategy),
         classToFeatureSplitMap,
         mainDexInfo,
-        MissingClasses.empty(),
-        startupOrder);
+        MissingClasses.empty());
   }
 
   private final ClassToFeatureSplitMap classToFeatureSplitMap;
-  private final StartupOrder startupOrder;
 
   /** Set of types that are mentioned in the program, but for which no definition exists. */
   // TODO(b/175659048): Consider hoisting to AppInfo to allow using MissingClasses in D8 desugar.
@@ -72,12 +68,10 @@ public class AppInfoWithClassHierarchy extends AppInfo {
       CommittedItems committedItems,
       ClassToFeatureSplitMap classToFeatureSplitMap,
       MainDexInfo mainDexInfo,
-      MissingClasses missingClasses,
-      StartupOrder startupOrder) {
+      MissingClasses missingClasses) {
     super(committedItems, mainDexInfo);
     this.classToFeatureSplitMap = classToFeatureSplitMap;
     this.missingClasses = missingClasses;
-    this.startupOrder = startupOrder;
   }
 
   // For desugaring.
@@ -87,7 +81,6 @@ public class AppInfoWithClassHierarchy extends AppInfo {
     // TODO(b/175659048): Migrate the reporting of missing classes in D8 desugar to MissingClasses,
     //  and use the missing classes from AppInfo instead of MissingClasses.empty().
     this.missingClasses = MissingClasses.empty();
-    this.startupOrder = StartupOrder.empty();
   }
 
   public static AppInfoWithClassHierarchy createForDesugaring(AppInfo appInfo) {
@@ -97,11 +90,7 @@ public class AppInfoWithClassHierarchy extends AppInfo {
 
   public final AppInfoWithClassHierarchy rebuildWithClassHierarchy(CommittedItems commit) {
     return new AppInfoWithClassHierarchy(
-        commit,
-        getClassToFeatureSplitMap(),
-        getMainDexInfo(),
-        getMissingClasses(),
-        getStartupOrder());
+        commit, getClassToFeatureSplitMap(), getMainDexInfo(), getMissingClasses());
   }
 
   public AppInfoWithClassHierarchy rebuildWithClassHierarchy(
@@ -111,8 +100,7 @@ public class AppInfoWithClassHierarchy extends AppInfo {
         getSyntheticItems().commit(fn.apply(app())),
         getClassToFeatureSplitMap(),
         getMainDexInfo(),
-        getMissingClasses(),
-        getStartupOrder());
+        getMissingClasses());
   }
 
   @Override
@@ -123,8 +111,7 @@ public class AppInfoWithClassHierarchy extends AppInfo {
         getSyntheticItems().commit(app()),
         getClassToFeatureSplitMap(),
         mainDexInfo,
-        getMissingClasses(),
-        getStartupOrder());
+        getMissingClasses());
   }
 
   @Override
@@ -140,8 +127,7 @@ public class AppInfoWithClassHierarchy extends AppInfo {
         getSyntheticItems().commitPrunedItems(prunedItems),
         getClassToFeatureSplitMap().withoutPrunedItems(prunedItems),
         getMainDexInfo().withoutPrunedItems(prunedItems),
-        getMissingClasses(),
-        getStartupOrder().withoutPrunedItems(prunedItems, getSyntheticItems()));
+        getMissingClasses());
   }
 
   public ClassToFeatureSplitMap getClassToFeatureSplitMap() {
@@ -150,10 +136,6 @@ public class AppInfoWithClassHierarchy extends AppInfo {
 
   public MissingClasses getMissingClasses() {
     return missingClasses;
-  }
-
-  public StartupOrder getStartupOrder() {
-    return startupOrder;
   }
 
   @Override
@@ -621,14 +603,37 @@ public class AppInfoWithClassHierarchy extends AppInfo {
    * @return The actual target for {@code method} or {@code null} if none found.
    */
   // TODO(b/155968472): This should take a parameter `boolean isInterface` and use resolveMethod().
-  public DexEncodedMethod lookupStaticTarget(DexMethod method, DexProgramClass context) {
+  public DexEncodedMethod lookupStaticTarget(
+      DexMethod method,
+      DexProgramClass context,
+      AppView<? extends AppInfoWithClassHierarchy> appView) {
+    return lookupStaticTarget(method, context, appView, appView.appInfo());
+  }
+
+  public DexEncodedMethod lookupStaticTarget(
+      DexMethod method,
+      DexProgramClass context,
+      AppView<?> appView,
+      AppInfoWithClassHierarchy appInfo) {
     assert checkIfObsolete();
-    return unsafeResolveMethodDueToDexFormatLegacy(method).lookupInvokeStaticTarget(context, this);
+    return unsafeResolveMethodDueToDexFormatLegacy(method)
+        .lookupInvokeStaticTarget(context, appView, appInfo);
   }
 
   // TODO(b/155968472): This should take a parameter `boolean isInterface` and use resolveMethod().
-  public DexEncodedMethod lookupStaticTarget(DexMethod method, ProgramMethod context) {
-    return lookupStaticTarget(method, context.getHolder());
+  public DexEncodedMethod lookupStaticTarget(
+      DexMethod method,
+      ProgramMethod context,
+      AppView<? extends AppInfoWithClassHierarchy> appView) {
+    return lookupStaticTarget(method, context.getHolder(), appView);
+  }
+
+  public DexEncodedMethod lookupStaticTarget(
+      DexMethod method,
+      ProgramMethod context,
+      AppView<?> appView,
+      AppInfoWithClassHierarchy appInfo) {
+    return lookupStaticTarget(method, context.getHolder(), appView, appInfo);
   }
 
   /**
@@ -642,14 +647,37 @@ public class AppInfoWithClassHierarchy extends AppInfo {
    * @return The actual target for {@code method} or {@code null} if none found.
    */
   // TODO(b/155968472): This should take a parameter `boolean isInterface` and use resolveMethod().
-  public DexClassAndMethod lookupSuperTarget(DexMethod method, DexProgramClass context) {
+  public DexClassAndMethod lookupSuperTarget(
+      DexMethod method,
+      DexProgramClass context,
+      AppView<? extends AppInfoWithClassHierarchy> appView) {
+    return lookupSuperTarget(method, context, appView, appView.appInfo());
+  }
+
+  public DexClassAndMethod lookupSuperTarget(
+      DexMethod method,
+      DexProgramClass context,
+      AppView<?> appView,
+      AppInfoWithClassHierarchy appInfo) {
     assert checkIfObsolete();
-    return unsafeResolveMethodDueToDexFormatLegacy(method).lookupInvokeSuperTarget(context, this);
+    return unsafeResolveMethodDueToDexFormatLegacy(method)
+        .lookupInvokeSuperTarget(context, appView, appInfo);
   }
 
   // TODO(b/155968472): This should take a parameter `boolean isInterface` and use resolveMethod().
-  public DexClassAndMethod lookupSuperTarget(DexMethod method, ProgramMethod context) {
-    return lookupSuperTarget(method, context.getHolder());
+  public final DexClassAndMethod lookupSuperTarget(
+      DexMethod method,
+      ProgramMethod context,
+      AppView<? extends AppInfoWithClassHierarchy> appView) {
+    return lookupSuperTarget(method, context, appView, appView.appInfo());
+  }
+
+  public final DexClassAndMethod lookupSuperTarget(
+      DexMethod method,
+      ProgramMethod context,
+      AppView<?> appView,
+      AppInfoWithClassHierarchy appInfo) {
+    return lookupSuperTarget(method, context.getHolder(), appView, appInfo);
   }
 
   /**
@@ -661,14 +689,37 @@ public class AppInfoWithClassHierarchy extends AppInfo {
    * @return The actual target for {@code method} or {@code null} if none found.
    */
   // TODO(b/155968472): This should take a parameter `boolean isInterface` and use resolveMethod().
-  public DexEncodedMethod lookupDirectTarget(DexMethod method, DexProgramClass context) {
+  public DexEncodedMethod lookupDirectTarget(
+      DexMethod method,
+      DexProgramClass context,
+      AppView<? extends AppInfoWithClassHierarchy> appView) {
+    return lookupDirectTarget(method, context, appView, appView.appInfo());
+  }
+
+  public DexEncodedMethod lookupDirectTarget(
+      DexMethod method,
+      DexProgramClass context,
+      AppView<?> appView,
+      AppInfoWithClassHierarchy appInfo) {
     assert checkIfObsolete();
-    return unsafeResolveMethodDueToDexFormatLegacy(method).lookupInvokeDirectTarget(context, this);
+    return unsafeResolveMethodDueToDexFormatLegacy(method)
+        .lookupInvokeDirectTarget(context, appView, appInfo);
   }
 
   // TODO(b/155968472): This should take a parameter `boolean isInterface` and use resolveMethod().
-  public DexEncodedMethod lookupDirectTarget(DexMethod method, ProgramMethod context) {
-    return lookupDirectTarget(method, context.getHolder());
+  public DexEncodedMethod lookupDirectTarget(
+      DexMethod method,
+      ProgramMethod context,
+      AppView<? extends AppInfoWithClassHierarchy> appView) {
+    return lookupDirectTarget(method, context, appView, appView.appInfo());
+  }
+
+  public DexEncodedMethod lookupDirectTarget(
+      DexMethod method,
+      ProgramMethod context,
+      AppView<?> appView,
+      AppInfoWithClassHierarchy appInfo) {
+    return lookupDirectTarget(method, context.getHolder(), appView, appInfo);
   }
 
   /**

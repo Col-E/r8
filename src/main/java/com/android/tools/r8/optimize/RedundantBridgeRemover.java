@@ -205,7 +205,7 @@ public class RedundantBridgeRemover {
     // Only check for interfaces if resolving the method on super type causes NoSuchMethodError.
     FailedResolutionResult failedResolutionResult = superTypeResolution.asFailedResolution();
     if (failedResolutionResult == null
-        || !failedResolutionResult.isNoSuchMethodErrorResult(holder, appView.appInfo())
+        || !failedResolutionResult.isNoSuchMethodErrorResult(holder, appView, appView.appInfo())
         || holder.getInterfaces().isEmpty()) {
       return false;
     }

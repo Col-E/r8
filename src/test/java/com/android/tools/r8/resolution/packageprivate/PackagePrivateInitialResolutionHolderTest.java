@@ -66,7 +66,7 @@ public class PackagePrivateInitialResolutionHolderTest extends TestBase {
         appInfo.definitionForProgramType(
             buildType(
                 Reference.classFromDescriptor(descriptor(Main.class)), appInfo.dexItemFactory()));
-    assertEquals(OptionalBool.FALSE, resolutionResult.isAccessibleFrom(programClass, appInfo));
+    assertEquals(OptionalBool.FALSE, resolutionResult.isAccessibleFrom(programClass, appView));
     DexType cType =
         buildType(Reference.classFromDescriptor(newCDescriptor), appInfo.dexItemFactory());
     DexProgramClass cClass = appView.definitionForProgramType(cType);

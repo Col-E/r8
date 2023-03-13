@@ -205,7 +205,7 @@ public class ArgumentPropagatorCodeScanner {
       // Use the super target instead of the resolved method to ensure that we propagate the
       // argument information to the targeted method.
       DexClassAndMethod target =
-          resolutionResult.lookupInvokeSuperTarget(context.getHolder(), appView.appInfo());
+          resolutionResult.lookupInvokeSuperTarget(context.getHolder(), appView);
       if (target == null) {
         // Nothing to propagate; the invoke instruction fails.
         return;

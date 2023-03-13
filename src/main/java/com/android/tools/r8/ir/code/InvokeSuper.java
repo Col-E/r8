@@ -113,7 +113,7 @@ public class InvokeSuper extends InvokeMethodWithReceiver {
       AppView<AppInfoWithLiveness> appViewWithLiveness = appView.withLiveness();
       AppInfoWithLiveness appInfo = appViewWithLiveness.appInfo();
       if (appInfo.isSubtype(context.getHolderType(), getInvokedMethod().holder)) {
-        return appInfo.lookupSuperTarget(getInvokedMethod(), context);
+        return appInfo.lookupSuperTarget(getInvokedMethod(), context, appViewWithLiveness);
       }
     }
     return null;

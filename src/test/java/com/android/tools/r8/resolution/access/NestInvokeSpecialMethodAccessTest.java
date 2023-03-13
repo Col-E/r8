@@ -105,13 +105,13 @@ public class NestInvokeSpecialMethodAccessTest extends TestBase {
     // Verify that the resolved method is accessible if in the same nest.
     assertEquals(
         OptionalBool.of(inSameNest),
-        resolutionResult.isAccessibleFrom(callerClassDefinition, appInfo));
+        resolutionResult.isAccessibleFrom(callerClassDefinition, appView));
 
     // Verify that looking up the dispatch target returns the defining method.
     DexClassAndMethod targetSpecial =
-        resolutionResult.lookupInvokeSpecialTarget(callerClassDefinition, appInfo);
+        resolutionResult.lookupInvokeSpecialTarget(callerClassDefinition, appView);
     DexClassAndMethod targetSuper =
-        resolutionResult.lookupInvokeSuperTarget(callerClassDefinition, appInfo);
+        resolutionResult.lookupInvokeSuperTarget(callerClassDefinition, appView);
     if (inSameNest) {
       assertEquals(definingClassDefinition.type, targetSpecial.getHolderType());
       assertEquals(targetSpecial.getReference(), targetSuper.getReference());

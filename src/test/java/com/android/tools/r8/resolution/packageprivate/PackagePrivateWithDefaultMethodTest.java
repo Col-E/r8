@@ -71,7 +71,7 @@ public class PackagePrivateWithDefaultMethodTest extends TestBase {
     DexProgramClass context =
         appView.definitionForProgramType(buildType(A.class, appInfo.dexItemFactory()));
     assertTrue(resolutionResult.isAccessibleFrom(context, appView).isFalse());
-    LookupResult lookupResult = resolutionResult.lookupVirtualDispatchTargets(context, appInfo);
+    LookupResult lookupResult = resolutionResult.lookupVirtualDispatchTargets(context, appView);
     assertTrue(lookupResult.isLookupResultFailure());
   }
 

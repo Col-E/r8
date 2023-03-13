@@ -157,7 +157,7 @@ public class ConstantDynamicClass {
       // Unconditionally throw as the RI.
       behaviour =
           resolution.isNoSuchMethodErrorResult(
-                  context.getContextClass(), appView.appInfoForDesugaring())
+                  context.getContextClass(), appView, appView.appInfoForDesugaring())
               ? THROW_NSME
               : THROW_ICCE;
     }

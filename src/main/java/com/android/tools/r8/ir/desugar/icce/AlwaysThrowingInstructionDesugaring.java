@@ -189,9 +189,11 @@ public class AlwaysThrowingInstructionDesugaring implements CfInstructionDesugar
     } else if (resolutionResult.isFailedResolution()) {
       FailedResolutionResult failedResolutionResult = resolutionResult.asFailedResolution();
       AppInfoWithClassHierarchy appInfo = appView.appInfoForDesugaring();
-      if (failedResolutionResult.isIllegalAccessErrorResult(context.getHolder(), appInfo)) {
+      if (failedResolutionResult.isIllegalAccessErrorResult(
+          context.getHolder(), appView, appInfo)) {
         return UtilityMethodsForCodeOptimizations::synthesizeThrowIllegalAccessErrorMethod;
-      } else if (failedResolutionResult.isNoSuchMethodErrorResult(context.getHolder(), appInfo)) {
+      } else if (failedResolutionResult.isNoSuchMethodErrorResult(
+          context.getHolder(), appView, appInfo)) {
         return UtilityMethodsForCodeOptimizations::synthesizeThrowNoSuchMethodErrorMethod;
       } else if (failedResolutionResult.isIncompatibleClassChangeErrorResult()) {
         return UtilityMethodsForCodeOptimizations

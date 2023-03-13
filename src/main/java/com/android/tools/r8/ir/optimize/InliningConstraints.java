@@ -227,13 +227,16 @@ public class InliningConstraints {
       MethodResolutionResult resolutionResult,
       ProgramMethod context,
       TriFunction<
-              MethodResolutionResult, DexProgramClass, AppInfoWithClassHierarchy, DexEncodedMethod>
+              MethodResolutionResult,
+              DexProgramClass,
+              AppView<? extends AppInfoWithClassHierarchy>,
+              DexEncodedMethod>
           lookup) {
     if (!resolutionResult.isSingleResolution()) {
       return null;
     }
     DexEncodedMethod dexEncodedMethod =
-        lookup.apply(resolutionResult, context.getHolder(), appView.appInfo());
+        lookup.apply(resolutionResult, context.getHolder(), appView);
     if (!isVerticalClassMerging() || dexEncodedMethod != null) {
       return dexEncodedMethod;
     }
@@ -245,7 +248,7 @@ public class InliningConstraints {
       return null;
     }
     DexEncodedMethod alternativeDexEncodedMethod =
-        lookup.apply(resolutionResult, superContext, appView.appInfo());
+        lookup.apply(resolutionResult, superContext, appView);
     if (alternativeDexEncodedMethod != null
         && alternativeDexEncodedMethod.getHolderType() == superContext.type) {
       return alternativeDexEncodedMethod;

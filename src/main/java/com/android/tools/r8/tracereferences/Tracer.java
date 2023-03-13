@@ -109,6 +109,10 @@ public class Tracer {
       this.targetPredicate = targetPredicate;
     }
 
+    AppView<? extends AppInfoWithClassHierarchy> appView() {
+      return appView;
+    }
+
     AppInfoWithClassHierarchy appInfo() {
       return appView.appInfo();
     }
@@ -228,7 +232,7 @@ public class Tracer {
               ? appInfo().resolveMethodOnInterface(method.getHolder(), method.getReference())
               : appInfo().resolveMethodOnClass(method.getHolder(), method.getReference());
       DexClassAndMethod superTarget =
-          methodResolutionResult.lookupInvokeSpecialTarget(method.getHolder(), appInfo());
+          methodResolutionResult.lookupInvokeSpecialTarget(method.getHolder(), appView);
       if (superTarget != null
           && !superTarget.isProgramMethod()
           && isTargetType(superTarget.getHolderType())) {
@@ -263,7 +267,7 @@ public class Tracer {
       private final DefinitionContext referencedFrom;
 
       public MethodUseCollector(ProgramMethod context) {
-        super(appView, context);
+        super(appView(), context);
         this.referencedFrom = DefinitionContextUtils.create(context);
       }
 
@@ -316,7 +320,7 @@ public class Tracer {
         handleRewrittenMethodResolution(
             method,
             appInfo().unsafeResolveMethodDueToDexFormat(rewrittenMethod),
-            result -> result.lookupInvokeSuperTarget(getContext().getHolder(), appInfo()));
+            result -> result.lookupInvokeSuperTarget(getContext().getHolder(), appView, appInfo()));
       }
 
       @Override
@@ -486,7 +490,8 @@ public class Tracer {
 
         // For lambdas that implement an interface, also keep the interface method by simulating an
         // invoke to it from the current context.
-        LambdaDescriptor descriptor = LambdaDescriptor.tryInfer(callSite, appInfo(), getContext());
+        LambdaDescriptor descriptor =
+            LambdaDescriptor.tryInfer(callSite, appView(), appInfo(), getContext());
         if (descriptor != null) {
           for (DexType interfaceType : descriptor.interfaces) {
             ClassResolutionResult classResolutionResult =

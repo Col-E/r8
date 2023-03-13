@@ -180,7 +180,7 @@ public final class DefaultInliningOracle implements InliningOracle, InliningStra
     }
 
     // Abort inlining attempt if method -> target access is not right.
-    if (resolutionResult.isAccessibleFrom(method, appView.appInfo()).isPossiblyFalse()) {
+    if (resolutionResult.isAccessibleFrom(method, appView).isPossiblyFalse()) {
       whyAreYouNotInliningReporter.reportInaccessible();
       return false;
     }

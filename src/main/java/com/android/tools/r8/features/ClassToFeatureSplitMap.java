@@ -106,10 +106,7 @@ public class ClassToFeatureSplitMap {
   public Map<FeatureSplit, Set<DexProgramClass>> getFeatureSplitClasses(
       Set<DexProgramClass> classes, AppView<? extends AppInfoWithClassHierarchy> appView) {
     return getFeatureSplitClasses(
-        classes,
-        appView.options(),
-        appView.appInfo().getStartupOrder(),
-        appView.getSyntheticItems());
+        classes, appView.options(), appView.getStartupOrder(), appView.getSyntheticItems());
   }
 
   public Map<FeatureSplit, Set<DexProgramClass>> getFeatureSplitClasses(
@@ -130,10 +127,7 @@ public class ClassToFeatureSplitMap {
   public FeatureSplit getFeatureSplit(
       ProgramDefinition definition, AppView<? extends AppInfoWithClassHierarchy> appView) {
     return getFeatureSplit(
-        definition,
-        appView.options(),
-        appView.appInfo().getStartupOrder(),
-        appView.getSyntheticItems());
+        definition, appView.options(), appView.getStartupOrder(), appView.getSyntheticItems());
   }
 
   public FeatureSplit getFeatureSplit(
@@ -147,7 +141,7 @@ public class ClassToFeatureSplitMap {
   public FeatureSplit getFeatureSplit(
       DexType type, AppView<? extends AppInfoWithClassHierarchy> appView) {
     return getFeatureSplit(
-        type, appView.options(), appView.appInfo().getStartupOrder(), appView.getSyntheticItems());
+        type, appView.options(), appView.getStartupOrder(), appView.getSyntheticItems());
   }
 
   public FeatureSplit getFeatureSplit(
@@ -199,7 +193,7 @@ public class ClassToFeatureSplitMap {
   public boolean isInBase(
       DexProgramClass clazz, AppView<? extends AppInfoWithClassHierarchy> appView) {
     return isInBase(
-        clazz, appView.options(), appView.appInfo().getStartupOrder(), appView.getSyntheticItems());
+        clazz, appView.options(), appView.getStartupOrder(), appView.getSyntheticItems());
   }
 
   public boolean isInBase(
@@ -215,11 +209,7 @@ public class ClassToFeatureSplitMap {
       ProgramDefinition context,
       AppView<? extends AppInfoWithClassHierarchy> appView) {
     return isInBaseOrSameFeatureAs(
-        clazz,
-        context,
-        appView.options(),
-        appView.appInfo().getStartupOrder(),
-        appView.getSyntheticItems());
+        clazz, context, appView.options(), appView.getStartupOrder(), appView.getSyntheticItems());
   }
 
   public boolean isInBaseOrSameFeatureAs(
@@ -237,11 +227,7 @@ public class ClassToFeatureSplitMap {
       ProgramDefinition context,
       AppView<? extends AppInfoWithClassHierarchy> appView) {
     return isInBaseOrSameFeatureAs(
-        clazz,
-        context,
-        appView.options(),
-        appView.appInfo().getStartupOrder(),
-        appView.getSyntheticItems());
+        clazz, context, appView.options(), appView.getStartupOrder(), appView.getSyntheticItems());
   }
 
   public boolean isInBaseOrSameFeatureAs(
@@ -266,7 +252,7 @@ public class ClassToFeatureSplitMap {
   public boolean isInSameFeatureOrBothInSameBase(
       ProgramMethod a, ProgramMethod b, AppView<? extends AppInfoWithClassHierarchy> appView) {
     return isInSameFeatureOrBothInSameBase(
-        a, b, appView.options(), appView.appInfo().getStartupOrder(), appView.getSyntheticItems());
+        a, b, appView.options(), appView.getStartupOrder(), appView.getSyntheticItems());
   }
 
   public boolean isInSameFeatureOrBothInSameBase(
@@ -282,7 +268,7 @@ public class ClassToFeatureSplitMap {
   public boolean isInSameFeatureOrBothInSameBase(
       DexProgramClass a, DexProgramClass b, AppView<? extends AppInfoWithClassHierarchy> appView) {
     return isInSameFeatureOrBothInSameBase(
-        a, b, appView.options(), appView.appInfo().getStartupOrder(), appView.getSyntheticItems());
+        a, b, appView.options(), appView.getStartupOrder(), appView.getSyntheticItems());
   }
 
   public boolean isInSameFeatureOrBothInSameBase(
@@ -335,9 +321,6 @@ public class ClassToFeatureSplitMap {
       DexProgramClass clazz, AppView<? extends AppInfoWithClassHierarchy> appView) {
     return getMap(appView)
         .isInFeature(
-            clazz,
-            appView.options(),
-            appView.appInfo().getStartupOrder(),
-            appView.getSyntheticItems());
+            clazz, appView.options(), appView.getStartupOrder(), appView.getSyntheticItems());
   }
 }

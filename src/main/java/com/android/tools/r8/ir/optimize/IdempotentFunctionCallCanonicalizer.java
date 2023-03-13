@@ -115,7 +115,7 @@ public class IdempotentFunctionCallCanonicalizer {
                   .asSingleResolution();
           if (resolutionResult == null
               || resolutionResult
-                  .isAccessibleFrom(context, appInfoWithLiveness)
+                  .isAccessibleFrom(context, appViewWithLiveness)
                   .isPossiblyFalse()) {
             continue;
           }

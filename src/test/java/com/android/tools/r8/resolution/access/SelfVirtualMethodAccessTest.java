@@ -60,7 +60,7 @@ public class SelfVirtualMethodAccessTest extends TestBase {
         appInfo.definitionFor(buildType(A.class, appInfo.dexItemFactory())).asProgramClass();
     DexMethod bar = buildMethod(A.class.getDeclaredMethod("bar"), appInfo.dexItemFactory());
     MethodResolutionResult resolutionResult = appInfo.resolveMethodOnClassHolderLegacy(bar);
-    assertEquals(OptionalBool.TRUE, resolutionResult.isAccessibleFrom(aClass, appInfo));
+    assertEquals(OptionalBool.TRUE, resolutionResult.isAccessibleFrom(aClass, appView));
   }
 
   @Test
