@@ -33,7 +33,7 @@ public class PreambleLineNumberStackTrace implements StackTraceForTest {
     return Arrays.asList(
         "Exception in thread \"main\" java.lang.NullPointerException",
         "  at kotlin.ResultKt.createFailure(Result.kt)",
-        "  at kotlin.ResultKt.createFailure(Result.kt:0)",
+        "  at kotlin.ResultKt.createFailure(Result.kt)",
         "  at kotlin.ResultKt.createFailure(Result.kt:122)",
         "  at kotlin.ResultKt.createFailure(Result.kt:124)");
   }
@@ -43,7 +43,7 @@ public class PreambleLineNumberStackTrace implements StackTraceForTest {
     return Arrays.asList(
         "Exception in thread \"main\" java.lang.NullPointerException",
         "  at kotlin.ResultKt.void createFailure(java.lang.Throwable)(Result.kt)",
-        "  at kotlin.ResultKt.void createFailure(java.lang.Throwable)(Result.kt:0)",
+        "  at kotlin.ResultKt.void createFailure(java.lang.Throwable)(Result.kt)",
         "  at kotlin.ResultKt.void createFailure(java.lang.Throwable)(Result.kt:122)",
         "  at kotlin.ResultKt.void createFailure(java.lang.Throwable)(Result.kt:124)");
   }

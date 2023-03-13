@@ -60,7 +60,8 @@ public class MergedConstructorWithEquivalenceStackTraceTest extends HorizontalCl
                       // TODO(b/124483578): Stack trace lines from the merging of equivalent
                       //  constructors should retrace to the set of lines from each of the
                       //  individual source constructors.
-                      .map(1, stackTraceLine -> stackTraceLine.builderOf().setLineNumber(0).build())
+                      .map(
+                          1, stackTraceLine -> stackTraceLine.builderOf().setLineNumber(-1).build())
                       .build();
               assertThat(stackTrace, isSame(expectedStackTraceWithMergedConstructor));
               assertThat(codeInspector.clazz(B.class), not(isPresent()));

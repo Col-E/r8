@@ -115,6 +115,9 @@ public final class StackTraceElementStringProxy
     }
     try {
       String lineNumberString = getEntryInLine(lineNumber);
+      if (lineNumberString.startsWith(":")) {
+        lineNumberString = lineNumberString.substring(1);
+      }
       if (lineNumberString.isEmpty()) {
         return -1;
       }
@@ -238,14 +241,15 @@ public final class StackTraceElementStringProxy
               startIndex,
               endIndex,
               (retraced, original, verbose) -> {
-                boolean printLineNumber =
-                    retraced.hasLineNumber()
-                        && ((original.hasLineNumber() && original.getLineNumber() > -1)
-                            || !retraced.isAmbiguous()
-                            || verbose);
-                return printLineNumber
-                    ? ((insertSeparatorForRetraced ? ":" : "") + retraced.getLineNumber())
-                    : original.lineNumberAsString();
+                if (retraced.hasLineNumber()
+                    && ((original.hasLineNumber() && original.getLineNumber() > -1)
+                        || !retraced.isAmbiguous()
+                        || verbose)) {
+                  return retraced.getLineNumber() <= 0
+                      ? ""
+                      : ((insertSeparatorForRetraced ? ":" : "") + retraced.getLineNumber());
+                }
+                return original.lineNumberAsString();
               });
       orderedIndices.add(lineNumber);
       return this;
@@ -325,6 +329,10 @@ public final class StackTraceElementStringProxy
         throw new RuntimeException("Parsing has to be incremental in the order of characters.");
       }
       lastSeenStartIndex = newStartIndex;
+    }
+
+    public String getLine() {
+      return line;
     }
   }
 

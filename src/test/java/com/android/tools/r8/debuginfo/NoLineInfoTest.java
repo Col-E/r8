@@ -207,17 +207,16 @@ public class NoLineInfoTest extends TestBase {
   private StackTrace getUnexpectedRetracedStacktrace() {
     assertFalse(parameters.isCfRuntime());
     StackTraceLine fooLine;
-    if (customSourceFile) {
-      // TODO(b/232212653): Should retrace convert out of "0" and represent it as <noline>/-1?
-      fooLine = inputLine("foo", 0);
-    } else if (isRuntimeWithPcAsLineNumberSupport()) {
+    if (isRuntimeWithPcAsLineNumberSupport() && !customSourceFile) {
       // TODO(b/232212653): Retrace should convert PC 1 to line <noline>/-1/0.
       fooLine = inputLine("foo", 1);
     } else {
       fooLine = inputLine("foo", -1);
     }
-    StackTraceLine barLine = inputLine("bar", getPcEncoding(0));
-    StackTraceLine bazLine = inputLine("baz", getPcEncoding(0));
+    int position =
+        isCompileWithPcAsLineNumberSupport() && !customSourceFile ? -1 : getPcEncoding(0);
+    StackTraceLine barLine = inputLine("bar", position);
+    StackTraceLine bazLine = inputLine("baz", position);
     return StackTrace.builder()
         .add(fooLine)
         .add(barLine)

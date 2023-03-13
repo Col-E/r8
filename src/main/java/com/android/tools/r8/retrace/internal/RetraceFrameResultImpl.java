@@ -228,24 +228,28 @@ class RetraceFrameResultImpl implements RetraceFrameResult {
     OptionalInt originalPosition = mappedRangeForFrame.position;
     if (!isAmbiguous()
         && (mappedRange.minifiedRange == null || obfuscatedPosition.orElse(-1) == -1)) {
-      int originalLineNumber = mappedRange.getFirstPositionOfOriginalRange(0);
-      if (originalLineNumber > 0) {
-        return RetracedMethodReferenceImpl.create(
-            methodReference, OptionalUtils.orElse(originalPosition, originalLineNumber));
-      } else {
-        return RetracedMethodReferenceImpl.create(methodReference, originalPosition);
-      }
+      return RetracedMethodReferenceImpl.create(
+          methodReference,
+          OptionalUtils.map(
+              originalPosition,
+              () -> {
+                int originalLineNumber = mappedRange.getFirstPositionOfOriginalRange(0);
+                return originalLineNumber > 0
+                    ? OptionalInt.of(originalLineNumber)
+                    : OptionalInt.empty();
+              }));
     }
-    if (!obfuscatedPosition.isPresent()
+    if (obfuscatedPosition.isEmpty()
         || mappedRange.minifiedRange == null
         || !mappedRange.minifiedRange.contains(obfuscatedPosition.getAsInt())) {
       return RetracedMethodReferenceImpl.create(methodReference, originalPosition);
     }
     return RetracedMethodReferenceImpl.create(
         methodReference,
-        OptionalUtils.orElseGet(
+        OptionalUtils.map(
             originalPosition,
-            () -> mappedRange.getOriginalLineNumber(obfuscatedPosition.getAsInt())));
+            () ->
+                OptionalInt.of(mappedRange.getOriginalLineNumber(obfuscatedPosition.getAsInt()))));
   }
 
   @Override

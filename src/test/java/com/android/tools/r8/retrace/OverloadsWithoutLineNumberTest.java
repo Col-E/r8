@@ -66,7 +66,7 @@ public class OverloadsWithoutLineNumberTest extends TestBase {
     assertEquals(
         "\tat "
             + typeName(ClassWithOverload.class)
-            + ".void test(int)(OverloadsWithoutLineNumberTest.java:0)",
+            + ".void test(int)(OverloadsWithoutLineNumberTest.java)",
         box.get().get(1));
   }
 

@@ -150,7 +150,7 @@ public class InliningWithoutPositionsTestRunner extends TestBase {
         .setClassName(TEST_CLASS)
         .setFileName(TEST_FILE)
         .setMethodName(methodName)
-        .setLineNumber(hasPosition ? location.line : 0)
+        .setLineNumber(hasPosition ? location.line : -1)
         .build();
   }
 }

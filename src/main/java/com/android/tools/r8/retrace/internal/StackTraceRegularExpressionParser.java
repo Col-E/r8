@@ -297,7 +297,15 @@ public class StackTraceRegularExpressionParser
         if (startOfGroup == NO_MATCH) {
           return false;
         }
-        builder.registerLineNumber(startOfGroup, matcher.end(captureGroup), false);
+        boolean insertSeparatorForRetraced = false;
+        // We need to include ':' in the group since we may want to rewrite '(SourceFile:0)` into
+        // (SourceFile) and not (SourceFile:)
+        if (startOfGroup > 0 && builder.getLine().charAt(startOfGroup + -1) == ':') {
+          startOfGroup = startOfGroup - 1;
+          insertSeparatorForRetraced = true;
+        }
+        int end = matcher.end(captureGroup);
+        builder.registerLineNumber(startOfGroup, end, insertSeparatorForRetraced);
         return true;
       };
     }
@@ -321,9 +329,10 @@ public class StackTraceRegularExpressionParser
         int sourceFileEnd = startOfGroup + endOfSourceFileInGroup;
         builder.registerSourceFile(startOfGroup, sourceFileEnd);
         int endOfMatch = matcher.end(captureGroup);
-        int lineNumberStart = sourceFileEnd + 1;
-        builder.registerLineNumber(
-            Integer.min(lineNumberStart, endOfMatch), endOfMatch, lineNumberStart > endOfMatch);
+        // We need to include ':' in the group since we may want to rewrite '(SourceFile:0)` into
+        // (SourceFile) and not (SourceFile:). We fix this by setting the start of the linenumber
+        // group to the end of the SourceFile group and then force inserting ':'.
+        builder.registerLineNumber(Integer.min(sourceFileEnd, endOfMatch), endOfMatch, true);
         return true;
       };
     }

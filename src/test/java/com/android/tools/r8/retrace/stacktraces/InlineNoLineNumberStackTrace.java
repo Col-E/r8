@@ -21,20 +21,20 @@ public class InlineNoLineNumberStackTrace implements StackTraceForTest {
   public List<String> retracedStackTrace() {
     return Arrays.asList(
         "Exception in thread \"main\" java.lang.NullPointerException",
-        "\tat com.android.tools.r8.naming.retrace.Main.method3(Main.java:0)",
-        "\tat com.android.tools.r8.naming.retrace.Main.method2(Main.java:0)",
-        "\tat com.android.tools.r8.naming.retrace.Main.method1(Main.java:0)",
-        "\tat com.android.tools.r8.naming.retrace.Main.main(Main.java:0)");
+        "\tat com.android.tools.r8.naming.retrace.Main.method3(Main.java)",
+        "\tat com.android.tools.r8.naming.retrace.Main.method2(Main.java)",
+        "\tat com.android.tools.r8.naming.retrace.Main.method1(Main.java)",
+        "\tat com.android.tools.r8.naming.retrace.Main.main(Main.java)");
   }
 
   @Override
   public List<String> retraceVerboseStackTrace() {
     return Arrays.asList(
         "Exception in thread \"main\" java.lang.NullPointerException",
-        "\tat com.android.tools.r8.naming.retrace.Main.void method3(long)(Main.java:0)",
-        "\tat com.android.tools.r8.naming.retrace.Main.void method2(int)(Main.java:0)",
-        "\tat com.android.tools.r8.naming.retrace.Main.void method1(java.lang.String)(Main.java:0)",
-        "\tat com.android.tools.r8.naming.retrace.Main.void main(java.lang.String[])(Main.java:0)");
+        "\tat com.android.tools.r8.naming.retrace.Main.void method3(long)(Main.java)",
+        "\tat com.android.tools.r8.naming.retrace.Main.void method2(int)(Main.java)",
+        "\tat com.android.tools.r8.naming.retrace.Main.void method1(java.lang.String)(Main.java)",
+        "\tat com.android.tools.r8.naming.retrace.Main.void main(java.lang.String[])(Main.java)");
   }
 
   @Override

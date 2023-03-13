@@ -65,8 +65,8 @@ public class OverloadWithNoLineNumberTest extends TestBase {
                   String className = typeName(SimpleCallChainClassWithOverloads.class);
                   assertEquals(
                       StringUtils.joinLines(
-                          "\tat " + className + ".void test(long)(" + SOURCE_FILE_NAME + ":0)",
-                          "\tat " + className + ".void test()(" + SOURCE_FILE_NAME + ":0)",
+                          "\tat " + className + ".void test(long)(" + SOURCE_FILE_NAME + ")",
+                          "\tat " + className + ".void test()(" + SOURCE_FILE_NAME + ")",
                           "\tat "
                               + className
                               + ".void main(java.lang.String[])("

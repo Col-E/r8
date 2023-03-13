@@ -9,11 +9,8 @@ import java.util.function.Supplier;
 
 public class OptionalUtils {
 
-  public static OptionalInt orElse(OptionalInt optional, int orElse) {
-    return optional.isPresent() ? optional : OptionalInt.of(orElse);
+  public static OptionalInt map(OptionalInt optional, Supplier<OptionalInt> orElse) {
+    return optional.isPresent() ? optional : orElse.get();
   }
 
-  public static OptionalInt orElseGet(OptionalInt optional, Supplier<Integer> orElse) {
-    return optional.isPresent() ? optional : OptionalInt.of(orElse.get());
-  }
 }

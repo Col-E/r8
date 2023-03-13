@@ -26,8 +26,8 @@ public class NoObfuscationRangeMappingWithStackTrace implements StackTraceForTes
         "Exception in thread \"main\" java.lang.NullPointerException",
         "\tat com.android.tools.r8.naming.retrace.Main.foo(Main.java:1)",
         "\tat com.android.tools.r8.naming.retrace.Main.bar(Main.java:3)",
-        "\tat com.android.tools.r8.naming.retrace.Main.baz(Main.java:0)",
-        "\tat com.android.tools.r8.naming.retrace.Main.main(Main.java:0)");
+        "\tat com.android.tools.r8.naming.retrace.Main.baz(Main.java)",
+        "\tat com.android.tools.r8.naming.retrace.Main.main(Main.java)");
   }
 
   @Override
@@ -36,8 +36,8 @@ public class NoObfuscationRangeMappingWithStackTrace implements StackTraceForTes
         "Exception in thread \"main\" java.lang.NullPointerException",
         "\tat com.android.tools.r8.naming.retrace.Main.void foo(long)(Main.java:1)",
         "\tat com.android.tools.r8.naming.retrace.Main.void bar(int)(Main.java:3)",
-        "\tat com.android.tools.r8.naming.retrace.Main.void baz()(Main.java:0)",
-        "\tat com.android.tools.r8.naming.retrace.Main.void main(java.lang.String[])(Main.java:0)");
+        "\tat com.android.tools.r8.naming.retrace.Main.void baz()(Main.java)",
+        "\tat com.android.tools.r8.naming.retrace.Main.void main(java.lang.String[])(Main.java)");
   }
 
   @Override
