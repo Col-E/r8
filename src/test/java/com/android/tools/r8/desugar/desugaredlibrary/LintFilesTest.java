@@ -96,6 +96,10 @@ public class LintFilesTest extends DesugaredLibraryTestBase {
         minApiLevel == AndroidApiLevel.L,
         supportsMethodButNotAllMethodsInClass(
             "java/util/stream/DoubleStream#parallel()Ljava/util/stream/DoubleStream;"));
+    assertEquals(
+        minApiLevel == AndroidApiLevel.L,
+        supportsMethodButNotAllMethodsInClass(
+            "java/util/stream/BaseStream#parallel()Ljava/util/stream/BaseStream;"));
     assertTrue(
         supportsMethodButNotAllMethodsInClass(
             "java/util/stream/DoubleStream#allMatch(Ljava/util/function/DoublePredicate;)Z"));
@@ -222,9 +226,10 @@ public class LintFilesTest extends DesugaredLibraryTestBase {
   }
 
   public static void main(String[] args) throws Exception {
-    // Generate all html docs.
-    Path folder = Paths.get("html");
-    Files.createDirectories(folder);
+    // Generate all html docs and lint files.
+    Path top = Paths.get("generated");
+    Path html = top.resolve("html");
+    Files.createDirectories(html);
     ImmutableList<LibraryDesugaringSpecification> specs =
         ImmutableList.of(JDK8, JDK11_MINIMAL, JDK11, JDK11_PATH, JDK11_LEGACY);
     for (LibraryDesugaringSpecification spec : specs) {
@@ -232,9 +237,13 @@ public class LintFilesTest extends DesugaredLibraryTestBase {
           spec == JDK8
               ? ToolHelper.DESUGARED_JDK_8_LIB_JAR
               : LibraryDesugaringSpecification.getTempLibraryJDK11Undesugar();
-      new GenerateHtmlDoc(
-              spec.getSpecification().toString(), jdkLibJar.toString(), folder.toString())
+      new GenerateHtmlDoc(spec.getSpecification().toString(), jdkLibJar.toString(), html.toString())
           .run(spec + ".html");
+      Path lint = top.resolve("lint_" + spec);
+      Files.createDirectories(lint);
+      new GenerateLintFiles(
+              spec.getSpecification().toString(), jdkLibJar.toString(), lint.toString())
+          .run();
     }
   }
 }
