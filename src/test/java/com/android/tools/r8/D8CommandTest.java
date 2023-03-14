@@ -22,7 +22,7 @@ import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.dex.Marker;
 import com.android.tools.r8.dex.Marker.Tool;
 import com.android.tools.r8.experimental.startup.StartupProfile;
-import com.android.tools.r8.experimental.startup.profile.StartupItem;
+import com.android.tools.r8.experimental.startup.profile.StartupProfileRule;
 import com.android.tools.r8.origin.EmbeddedOrigin;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.references.Reference;
@@ -812,9 +812,9 @@ public class D8CommandTest extends CommandTestBase<D8Command> {
 
     // Verify we found the same rule.
     StartupProfile startupProfile = startupProfileBuilder.build();
-    Collection<StartupItem> startupItems = startupProfile.getItems();
+    Collection<StartupProfileRule> startupItems = startupProfile.getRules();
     assertEquals(1, startupItems.size());
-    StartupItem startupItem = startupItems.iterator().next();
+    StartupProfileRule startupItem = startupItems.iterator().next();
     startupItem.accept(
         startupClass -> fail(),
         startupMethod -> assertEquals(profileRule, startupMethod.getReference().toSmaliString()));

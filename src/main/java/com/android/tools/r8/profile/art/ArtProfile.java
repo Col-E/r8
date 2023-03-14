@@ -292,12 +292,7 @@ public class ArtProfile implements AbstractProfile<ArtProfileClassRule, ArtProfi
 
     @Override
     public Builder addRule(AbstractProfileRule rule) {
-      if (rule instanceof ArtProfileClassRule) {
-        return addClassRule((ArtProfileClassRule) rule);
-      } else {
-        assert rule instanceof ArtProfileMethodRule;
-        return addMethodRule((ArtProfileMethodRule) rule);
-      }
+      return addRule(rule.asArtProfileRule());
     }
 
     @Override

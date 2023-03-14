@@ -77,8 +77,8 @@ public class FeatureSplitBoundaryOptimizationUtils {
     } else if (callerIsStartupMethod.isFalse()) {
       // If the caller is not a startup method, then only allow inlining if the caller is not a
       // startup class or the callee is a startup class.
-      if (startupProfile.contains(caller.getHolderType())
-          && !startupProfile.contains(callee.getHolderType())) {
+      if (startupProfile.containsClassRule(caller.getHolderType())
+          && !startupProfile.containsClassRule(callee.getHolderType())) {
         return false;
       }
     }
@@ -91,7 +91,7 @@ public class FeatureSplitBoundaryOptimizationUtils {
       // accurate result in this case.
       return OptionalBool.unknown();
     }
-    return OptionalBool.of(startupProfile.contains(method.getReference()));
+    return OptionalBool.of(startupProfile.containsMethodRule(method.getReference()));
   }
 
   public static boolean isSafeForVerticalClassMerging(
@@ -114,8 +114,8 @@ public class FeatureSplitBoundaryOptimizationUtils {
     // If the source class is a startup class then require that the target class is also a startup
     // class.
     StartupProfile startupProfile = appView.getStartupOrder();
-    if (startupProfile.contains(sourceClass.getType())
-        && !startupProfile.contains(targetClass.getType())) {
+    if (startupProfile.containsClassRule(sourceClass.getType())
+        && !startupProfile.containsClassRule(targetClass.getType())) {
       return false;
     }
     return true;

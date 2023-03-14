@@ -4,13 +4,16 @@
 
 package com.android.tools.r8.experimental.startup;
 
-import com.android.tools.r8.experimental.startup.profile.StartupItem;
+import com.android.tools.r8.experimental.startup.profile.StartupProfileClassRule;
+import com.android.tools.r8.experimental.startup.profile.StartupProfileMethodRule;
+import com.android.tools.r8.experimental.startup.profile.StartupProfileRule;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.PrunedItems;
 import com.android.tools.r8.synthesis.SyntheticItems;
+import com.android.tools.r8.utils.ThrowingConsumer;
 import java.util.Collection;
 import java.util.Collections;
 
@@ -19,17 +22,34 @@ public class EmptyStartupProfile extends StartupProfile {
   EmptyStartupProfile() {}
 
   @Override
-  public boolean contains(DexMethod method) {
+  public boolean containsClassRule(DexType type) {
     return false;
   }
 
   @Override
-  public boolean contains(DexType type) {
+  public boolean containsMethodRule(DexMethod method) {
     return false;
   }
 
   @Override
-  public Collection<StartupItem> getItems() {
+  public <E1 extends Exception, E2 extends Exception> void forEachRule(
+      ThrowingConsumer<StartupProfileClassRule, E1> classRuleConsumer,
+      ThrowingConsumer<StartupProfileMethodRule, E2> methodRuleConsumer) {
+    // Intentionally empty.
+  }
+
+  @Override
+  public StartupProfileClassRule getClassRule(DexType type) {
+    return null;
+  }
+
+  @Override
+  public StartupProfileMethodRule getMethodRule(DexMethod method) {
+    return null;
+  }
+
+  @Override
+  public Collection<StartupProfileRule> getRules() {
     return Collections.emptyList();
   }
 

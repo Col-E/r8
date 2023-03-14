@@ -6,9 +6,9 @@ package com.android.tools.r8.dex;
 
 import com.android.tools.r8.dex.FileWriter.MixedSectionOffsets;
 import com.android.tools.r8.experimental.startup.StartupProfile;
-import com.android.tools.r8.experimental.startup.profile.StartupClass;
-import com.android.tools.r8.experimental.startup.profile.StartupItem;
-import com.android.tools.r8.experimental.startup.profile.StartupMethod;
+import com.android.tools.r8.experimental.startup.profile.StartupProfileClassRule;
+import com.android.tools.r8.experimental.startup.profile.StartupProfileMethodRule;
+import com.android.tools.r8.experimental.startup.profile.StartupProfileRule;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexAnnotation;
 import com.android.tools.r8.graph.DexAnnotationDirectory;
@@ -82,7 +82,7 @@ public class StartupMixedSectionLayoutStrategy extends DefaultMixedSectionLayout
             virtualFile.classes().size());
     LensCodeRewriterUtils rewriter = new LensCodeRewriterUtils(appView, true);
     StartupIndexedItemCollection indexedItemCollection = new StartupIndexedItemCollection();
-    for (StartupItem startupItem : startupProfileForWriting.getItems()) {
+    for (StartupProfileRule startupItem : startupProfileForWriting.getRules()) {
       startupItem.accept(
           startupClass ->
               collectStartupItems(startupClass, indexedItemCollection, virtualFileDefinitions),
@@ -93,7 +93,7 @@ public class StartupMixedSectionLayoutStrategy extends DefaultMixedSectionLayout
   }
 
   private void collectStartupItems(
-      StartupClass startupClass,
+      StartupProfileClassRule startupClass,
       StartupIndexedItemCollection indexedItemCollection,
       Map<DexType, DexProgramClass> virtualFileDefinitions) {
     DexProgramClass definition = virtualFileDefinitions.get(startupClass.getReference());
@@ -116,7 +116,7 @@ public class StartupMixedSectionLayoutStrategy extends DefaultMixedSectionLayout
   }
 
   private void collectStartupItems(
-      StartupMethod startupMethod,
+      StartupProfileMethodRule startupMethod,
       StartupIndexedItemCollection indexedItemCollection,
       Map<DexType, DexProgramClass> virtualFileDefinitions,
       LensCodeRewriterUtils rewriter) {

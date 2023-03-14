@@ -6,18 +6,20 @@ package com.android.tools.r8.experimental.startup.profile;
 
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.profile.AbstractProfileClassRule;
 import com.android.tools.r8.references.ClassReference;
 import com.android.tools.r8.startup.StartupClassBuilder;
 import com.android.tools.r8.utils.ClassReferenceUtils;
+import com.android.tools.r8.utils.ThrowingConsumer;
 import java.io.IOException;
-import java.util.function.Consumer;
 import java.util.function.Function;
 
-public class StartupClass extends StartupItem {
+public class StartupProfileClassRule extends StartupProfileRule
+    implements AbstractProfileClassRule {
 
   private final DexType type;
 
-  StartupClass(DexType type) {
+  StartupProfileClassRule(DexType type) {
     this.type = type;
   }
 
@@ -30,13 +32,17 @@ public class StartupClass extends StartupItem {
   }
 
   @Override
-  public void accept(Consumer<StartupClass> classConsumer, Consumer<StartupMethod> methodConsumer) {
+  public <E1 extends Exception, E2 extends Exception> void accept(
+      ThrowingConsumer<StartupProfileClassRule, E1> classConsumer,
+      ThrowingConsumer<StartupProfileMethodRule, E2> methodConsumer)
+      throws E1 {
     classConsumer.accept(this);
   }
 
   @Override
   public <T> T apply(
-      Function<StartupClass, T> classFunction, Function<StartupMethod, T> methodFunction) {
+      Function<StartupProfileClassRule, T> classFunction,
+      Function<StartupProfileMethodRule, T> methodFunction) {
     return classFunction.apply(this);
   }
 
@@ -53,7 +59,7 @@ public class StartupClass extends StartupItem {
     if (o == null || getClass() != o.getClass()) {
       return false;
     }
-    StartupClass that = (StartupClass) o;
+    StartupProfileClassRule that = (StartupProfileClassRule) o;
     return type == that.type;
   }
 
@@ -67,7 +73,8 @@ public class StartupClass extends StartupItem {
     appendable.append(getReference().toDescriptorString());
   }
 
-  public static class Builder implements StartupClassBuilder {
+  public static class Builder
+      implements AbstractProfileClassRule.Builder<StartupProfileClassRule>, StartupClassBuilder {
 
     private final DexItemFactory dexItemFactory;
 
@@ -92,8 +99,9 @@ public class StartupClass extends StartupItem {
       return this;
     }
 
-    public StartupClass build() {
-      return new StartupClass(type);
+    @Override
+    public StartupProfileClassRule build() {
+      return new StartupProfileClassRule(type);
     }
   }
 }

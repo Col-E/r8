@@ -77,7 +77,7 @@ public abstract class ProfileAdditions<
     void removeMovedMethodRule(DexMethod oldMethod, ProgramMethod newMethod);
   }
 
-  Profile profile;
+  protected Profile profile;
 
   final Map<DexType, ClassRuleBuilder> classRuleAdditions = new ConcurrentHashMap<>();
   final Map<DexMethod, MethodRuleBuilder> methodRuleAdditions = new ConcurrentHashMap<>();
@@ -86,7 +86,7 @@ public abstract class ProfileAdditions<
   private final NestedMethodRuleAdditionsGraph nestedMethodRuleAdditionsGraph =
       new NestedMethodRuleAdditionsGraph();
 
-  ProfileAdditions(Profile profile) {
+  protected ProfileAdditions(Profile profile) {
     this.profile = profile;
   }
 

@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.profile;
 
+import com.android.tools.r8.experimental.startup.profile.StartupProfileRule;
 import com.android.tools.r8.profile.art.ArtProfileRule;
 
 public interface AbstractProfileRule {
@@ -11,5 +12,10 @@ public interface AbstractProfileRule {
   @SuppressWarnings("unchecked")
   default ArtProfileRule asArtProfileRule() {
     return (ArtProfileRule) this;
+  }
+
+  @SuppressWarnings("unchecked")
+  default StartupProfileRule asStartupProfileRule() {
+    return (StartupProfileRule) this;
   }
 }

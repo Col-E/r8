@@ -6,7 +6,7 @@ package com.android.tools.r8.experimental.startup;
 
 import static com.android.tools.r8.utils.ConsumerUtils.emptyConsumer;
 
-import com.android.tools.r8.experimental.startup.profile.StartupItem;
+import com.android.tools.r8.experimental.startup.profile.StartupProfileRule;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.origin.PathOrigin;
 import com.android.tools.r8.profile.art.HumanReadableArtProfileParserBuilder;
@@ -61,7 +61,7 @@ public class StartupProfileProviderUtils {
     startupProfileProvider.getStartupProfile(startupProfileBuilder);
     // Serialize the startup items.
     StringBuilder resultBuilder = new StringBuilder();
-    for (StartupItem startupItem : startupProfileBuilder.build().getItems()) {
+    for (StartupProfileRule startupItem : startupProfileBuilder.build().getRules()) {
       startupItem.write(resultBuilder);
       resultBuilder.append('\n');
     }

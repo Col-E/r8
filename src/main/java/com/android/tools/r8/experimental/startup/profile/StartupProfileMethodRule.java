@@ -6,18 +6,20 @@ package com.android.tools.r8.experimental.startup.profile;
 
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
+import com.android.tools.r8.profile.AbstractProfileMethodRule;
 import com.android.tools.r8.references.MethodReference;
 import com.android.tools.r8.startup.StartupMethodBuilder;
 import com.android.tools.r8.utils.MethodReferenceUtils;
+import com.android.tools.r8.utils.ThrowingConsumer;
 import java.io.IOException;
-import java.util.function.Consumer;
 import java.util.function.Function;
 
-public class StartupMethod extends StartupItem {
+public class StartupProfileMethodRule extends StartupProfileRule
+    implements AbstractProfileMethodRule {
 
   private final DexMethod method;
 
-  StartupMethod(DexMethod method) {
+  StartupProfileMethodRule(DexMethod method) {
     this.method = method;
   }
 
@@ -30,13 +32,17 @@ public class StartupMethod extends StartupItem {
   }
 
   @Override
-  public void accept(Consumer<StartupClass> classConsumer, Consumer<StartupMethod> methodConsumer) {
+  public <E1 extends Exception, E2 extends Exception> void accept(
+      ThrowingConsumer<StartupProfileClassRule, E1> classConsumer,
+      ThrowingConsumer<StartupProfileMethodRule, E2> methodConsumer)
+      throws E2 {
     methodConsumer.accept(this);
   }
 
   @Override
   public <T> T apply(
-      Function<StartupClass, T> classFunction, Function<StartupMethod, T> methodFunction) {
+      Function<StartupProfileClassRule, T> classFunction,
+      Function<StartupProfileMethodRule, T> methodFunction) {
     return methodFunction.apply(this);
   }
 
@@ -53,7 +59,7 @@ public class StartupMethod extends StartupItem {
     if (o == null || getClass() != o.getClass()) {
       return false;
     }
-    StartupMethod that = (StartupMethod) o;
+    StartupProfileMethodRule that = (StartupProfileMethodRule) o;
     return method == that.method;
   }
 
@@ -67,7 +73,9 @@ public class StartupMethod extends StartupItem {
     appendable.append(method.toSmaliString());
   }
 
-  public static class Builder implements StartupMethodBuilder {
+  public static class Builder
+      implements AbstractProfileMethodRule.Builder<StartupProfileMethodRule, Builder>,
+          StartupMethodBuilder {
 
     private final DexItemFactory dexItemFactory;
 
@@ -82,18 +90,35 @@ public class StartupMethod extends StartupItem {
     }
 
     @Override
-    public Builder setMethodReference(MethodReference classReference) {
-      assert dexItemFactory != null;
-      return setMethodReference(MethodReferenceUtils.toDexMethod(classReference, dexItemFactory));
+    public boolean isGreaterThanOrEqualTo(Builder builder) {
+      return true;
     }
 
-    public Builder setMethodReference(DexMethod method) {
+    @Override
+    public Builder join(Builder builder) {
+      return this;
+    }
+
+    @Override
+    public Builder join(StartupProfileMethodRule methodRule) {
+      return this;
+    }
+
+    @Override
+    public Builder setMethod(DexMethod method) {
       this.method = method;
       return this;
     }
 
-    public StartupMethod build() {
-      return new StartupMethod(method);
+    @Override
+    public Builder setMethodReference(MethodReference classReference) {
+      assert dexItemFactory != null;
+      return setMethod(MethodReferenceUtils.toDexMethod(classReference, dexItemFactory));
+    }
+
+    @Override
+    public StartupProfileMethodRule build() {
+      return new StartupProfileMethodRule(method);
     }
   }
 }

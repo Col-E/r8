@@ -30,7 +30,7 @@ public interface AbstractProfile<
       Profile extends AbstractProfile<ClassRule, MethodRule>,
       ProfileBuilder extends Builder<ClassRule, MethodRule, Profile, ProfileBuilder>> {
 
-    ProfileBuilder addRule(AbstractProfileRule profileRule);
+    ProfileBuilder addRule(AbstractProfileRule rule);
 
     ProfileBuilder addClassRule(ClassRule classRule);
 

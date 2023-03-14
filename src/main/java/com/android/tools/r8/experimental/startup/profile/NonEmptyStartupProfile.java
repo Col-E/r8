@@ -13,30 +13,51 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.PrunedItems;
 import com.android.tools.r8.synthesis.SyntheticItems;
+import com.android.tools.r8.utils.ThrowingConsumer;
 import java.util.Collection;
 import java.util.LinkedHashMap;
 
 public class NonEmptyStartupProfile extends StartupProfile {
 
-  private final LinkedHashMap<DexReference, StartupItem> startupItems;
+  private final LinkedHashMap<DexReference, StartupProfileRule> startupItems;
 
-  public NonEmptyStartupProfile(LinkedHashMap<DexReference, StartupItem> startupItems) {
+  public NonEmptyStartupProfile(LinkedHashMap<DexReference, StartupProfileRule> startupItems) {
     assert !startupItems.isEmpty();
     this.startupItems = startupItems;
   }
 
   @Override
-  public boolean contains(DexMethod method) {
+  public boolean containsMethodRule(DexMethod method) {
     return startupItems.containsKey(method);
   }
 
   @Override
-  public boolean contains(DexType type) {
+  public boolean containsClassRule(DexType type) {
     return startupItems.containsKey(type);
   }
 
   @Override
-  public Collection<StartupItem> getItems() {
+  public <E1 extends Exception, E2 extends Exception> void forEachRule(
+      ThrowingConsumer<StartupProfileClassRule, E1> classRuleConsumer,
+      ThrowingConsumer<StartupProfileMethodRule, E2> methodRuleConsumer)
+      throws E1, E2 {
+    for (StartupProfileRule rule : getRules()) {
+      rule.accept(classRuleConsumer, methodRuleConsumer);
+    }
+  }
+
+  @Override
+  public StartupProfileClassRule getClassRule(DexType type) {
+    return (StartupProfileClassRule) startupItems.get(type);
+  }
+
+  @Override
+  public StartupProfileMethodRule getMethodRule(DexMethod method) {
+    return (StartupProfileMethodRule) startupItems.get(method);
+  }
+
+  @Override
+  public Collection<StartupProfileRule> getRules() {
     return startupItems.values();
   }
 
@@ -47,24 +68,23 @@ public class NonEmptyStartupProfile extends StartupProfile {
 
   @Override
   public StartupProfile rewrittenWithLens(GraphLens graphLens) {
-    LinkedHashMap<DexReference, StartupItem> rewrittenStartupItems =
+    LinkedHashMap<DexReference, StartupProfileRule> rewrittenStartupItems =
         new LinkedHashMap<>(startupItems.size());
-    for (StartupItem startupItem : startupItems.values()) {
+    for (StartupProfileRule startupItem : startupItems.values()) {
       // TODO(b/271822426): This should account for one-to-many mappings. e.g., when a bridge is
       //  created.
       startupItem.apply(
           startupClass ->
               rewrittenStartupItems.put(
                   startupClass.getReference(),
-                  StartupClass.builder()
+                  StartupProfileClassRule.builder()
                       .setClassReference(graphLens.lookupType(startupClass.getReference()))
                       .build()),
           startupMethod ->
               rewrittenStartupItems.put(
                   startupMethod.getReference(),
-                  StartupMethod.builder()
-                      .setMethodReference(
-                          graphLens.getRenamedMethodSignature(startupMethod.getReference()))
+                  StartupProfileMethodRule.builder()
+                      .setMethod(graphLens.getRenamedMethodSignature(startupMethod.getReference()))
                       .build()));
     }
     return createNonEmpty(rewrittenStartupItems);
@@ -95,17 +115,17 @@ public class NonEmptyStartupProfile extends StartupProfile {
    */
   @Override
   public StartupProfile toStartupOrderForWriting(AppView<?> appView) {
-    LinkedHashMap<DexReference, StartupItem> rewrittenStartupItems =
+    LinkedHashMap<DexReference, StartupProfileRule> rewrittenStartupItems =
         new LinkedHashMap<>(startupItems.size());
-    for (StartupItem startupItem : startupItems.values()) {
+    for (StartupProfileRule startupItem : startupItems.values()) {
       addStartupItem(startupItem, rewrittenStartupItems, appView);
     }
     return createNonEmpty(rewrittenStartupItems);
   }
 
   private static void addStartupItem(
-      StartupItem startupItem,
-      LinkedHashMap<DexReference, StartupItem> rewrittenStartupItems,
+      StartupProfileRule startupItem,
+      LinkedHashMap<DexReference, StartupProfileRule> rewrittenStartupItems,
       AppView<?> appView) {
     startupItem.accept(
         startupClass ->
@@ -114,16 +134,18 @@ public class NonEmptyStartupProfile extends StartupProfile {
   }
 
   private static boolean addClass(
-      DexProgramClass clazz, LinkedHashMap<DexReference, StartupItem> rewrittenStartupItems) {
-    StartupItem previous =
+      DexProgramClass clazz,
+      LinkedHashMap<DexReference, StartupProfileRule> rewrittenStartupItems) {
+    StartupProfileRule previous =
         rewrittenStartupItems.put(
-            clazz.getType(), StartupClass.builder().setClassReference(clazz.getType()).build());
+            clazz.getType(),
+            StartupProfileClassRule.builder().setClassReference(clazz.getType()).build());
     return previous == null;
   }
 
   private static void addClassAndParentClasses(
       DexType type,
-      LinkedHashMap<DexReference, StartupItem> rewrittenStartupItems,
+      LinkedHashMap<DexReference, StartupProfileRule> rewrittenStartupItems,
       AppView<?> appView) {
     DexProgramClass definition = appView.app().programDefinitionFor(type);
     if (definition != null) {
@@ -133,7 +155,7 @@ public class NonEmptyStartupProfile extends StartupProfile {
 
   private static void addClassAndParentClasses(
       DexProgramClass clazz,
-      LinkedHashMap<DexReference, StartupItem> rewrittenStartupItems,
+      LinkedHashMap<DexReference, StartupProfileRule> rewrittenStartupItems,
       AppView<?> appView) {
     if (addClass(clazz, rewrittenStartupItems)) {
       addParentClasses(clazz, rewrittenStartupItems, appView);
@@ -142,7 +164,7 @@ public class NonEmptyStartupProfile extends StartupProfile {
 
   private static void addParentClasses(
       DexProgramClass clazz,
-      LinkedHashMap<DexReference, StartupItem> rewrittenStartupItems,
+      LinkedHashMap<DexReference, StartupProfileRule> rewrittenStartupItems,
       AppView<?> appView) {
     clazz.forEachImmediateSupertype(
         supertype -> addClassAndParentClasses(supertype, rewrittenStartupItems, appView));
@@ -150,9 +172,9 @@ public class NonEmptyStartupProfile extends StartupProfile {
 
   @Override
   public StartupProfile withoutPrunedItems(PrunedItems prunedItems, SyntheticItems syntheticItems) {
-    LinkedHashMap<DexReference, StartupItem> rewrittenStartupItems =
+    LinkedHashMap<DexReference, StartupProfileRule> rewrittenStartupItems =
         new LinkedHashMap<>(startupItems.size());
-    for (StartupItem startupItem : startupItems.values()) {
+    for (StartupProfileRule startupItem : startupItems.values()) {
       // Only prune non-synthetic classes, since the pruning of a class does not imply that all
       // classes synthesized from it have been pruned.
       startupItem.accept(
@@ -170,7 +192,8 @@ public class NonEmptyStartupProfile extends StartupProfile {
     return createNonEmpty(rewrittenStartupItems);
   }
 
-  private StartupProfile createNonEmpty(LinkedHashMap<DexReference, StartupItem> startupItems) {
+  private StartupProfile createNonEmpty(
+      LinkedHashMap<DexReference, StartupProfileRule> startupItems) {
     if (startupItems.isEmpty()) {
       assert false;
       return empty();

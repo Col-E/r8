@@ -6,18 +6,18 @@ package com.android.tools.r8.experimental.startup;
 
 import com.android.tools.r8.TextInputStream;
 import com.android.tools.r8.experimental.startup.profile.NonEmptyStartupProfile;
-import com.android.tools.r8.experimental.startup.profile.StartupClass;
-import com.android.tools.r8.experimental.startup.profile.StartupItem;
-import com.android.tools.r8.experimental.startup.profile.StartupMethod;
+import com.android.tools.r8.experimental.startup.profile.StartupProfileClassRule;
+import com.android.tools.r8.experimental.startup.profile.StartupProfileMethodRule;
+import com.android.tools.r8.experimental.startup.profile.StartupProfileRule;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexDefinitionSupplier;
 import com.android.tools.r8.graph.DexItemFactory;
-import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexReference;
-import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.PrunedItems;
+import com.android.tools.r8.profile.AbstractProfile;
+import com.android.tools.r8.profile.AbstractProfileRule;
 import com.android.tools.r8.profile.art.ArtProfileBuilderUtils;
 import com.android.tools.r8.profile.art.HumanReadableArtProfileParser;
 import com.android.tools.r8.profile.art.HumanReadableArtProfileParserBuilder;
@@ -35,7 +35,8 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.function.Consumer;
 
-public abstract class StartupProfile {
+public abstract class StartupProfile
+    implements AbstractProfile<StartupProfileClassRule, StartupProfileMethodRule> {
 
   protected StartupProfile() {}
 
@@ -57,7 +58,7 @@ public abstract class StartupProfile {
       return empty();
     }
     StartupProfile.Builder builder = StartupProfile.builder();
-    for (StartupItem startupItem : startupProfile.getItems()) {
+    for (StartupProfileRule startupItem : startupProfile.getRules()) {
       builder.addStartupItem(startupItem);
     }
     return builder.build();
@@ -78,7 +79,7 @@ public abstract class StartupProfile {
   public static StartupProfile merge(Collection<StartupProfile> startupProfiles) {
     Builder builder = builder();
     for (StartupProfile startupProfile : startupProfiles) {
-      startupProfile.getItems().forEach(builder::addStartupItem);
+      startupProfile.getRules().forEach(builder::addStartupItem);
     }
     return builder.build();
   }
@@ -121,11 +122,7 @@ public abstract class StartupProfile {
     return StartupProfile.merge(startupProfiles);
   }
 
-  public abstract boolean contains(DexMethod method);
-
-  public abstract boolean contains(DexType type);
-
-  public abstract Collection<StartupItem> getItems();
+  public abstract Collection<StartupProfileRule> getRules();
 
   public abstract boolean isEmpty();
 
@@ -136,14 +133,18 @@ public abstract class StartupProfile {
   public abstract StartupProfile withoutPrunedItems(
       PrunedItems prunedItems, SyntheticItems syntheticItems);
 
-  public static class Builder implements StartupProfileBuilder {
+  public static class Builder
+      implements AbstractProfile.Builder<
+              StartupProfileClassRule, StartupProfileMethodRule, StartupProfile, Builder>,
+          StartupProfileBuilder {
 
     private final DexItemFactory dexItemFactory;
     private final MissingStartupProfileItemsDiagnostic.Builder missingItemsDiagnosticBuilder;
     private Reporter reporter;
     private final StartupProfileProvider startupProfileProvider;
 
-    private final LinkedHashMap<DexReference, StartupItem> startupItems = new LinkedHashMap<>();
+    private final LinkedHashMap<DexReference, StartupProfileRule> startupItems =
+        new LinkedHashMap<>();
 
     Builder() {
       this.dexItemFactory = null;
@@ -163,10 +164,26 @@ public abstract class StartupProfile {
     }
 
     @Override
+    public Builder addRule(AbstractProfileRule rule) {
+      return addStartupItem(rule.asStartupProfileRule());
+    }
+
+    @Override
+    public Builder addClassRule(StartupProfileClassRule classRule) {
+      return addStartupItem(classRule);
+    }
+
+    @Override
+    public Builder addMethodRule(StartupProfileMethodRule methodRule) {
+      return addStartupItem(methodRule);
+    }
+
+    @Override
     public Builder addStartupClass(Consumer<StartupClassBuilder> startupClassBuilderConsumer) {
-      StartupClass.Builder startupClassBuilder = StartupClass.builder(dexItemFactory);
+      StartupProfileClassRule.Builder startupClassBuilder =
+          StartupProfileClassRule.builder(dexItemFactory);
       startupClassBuilderConsumer.accept(startupClassBuilder);
-      StartupClass startupClass = startupClassBuilder.build();
+      StartupProfileClassRule startupClass = startupClassBuilder.build();
       if (missingItemsDiagnosticBuilder.registerStartupClass(startupClass)) {
         return this;
       }
@@ -175,9 +192,10 @@ public abstract class StartupProfile {
 
     @Override
     public Builder addStartupMethod(Consumer<StartupMethodBuilder> startupMethodBuilderConsumer) {
-      StartupMethod.Builder startupMethodBuilder = StartupMethod.builder(dexItemFactory);
+      StartupProfileMethodRule.Builder startupMethodBuilder =
+          StartupProfileMethodRule.builder(dexItemFactory);
       startupMethodBuilderConsumer.accept(startupMethodBuilder);
-      StartupMethod startupMethod = startupMethodBuilder.build();
+      StartupProfileMethodRule startupMethod = startupMethodBuilder.build();
       if (missingItemsDiagnosticBuilder.registerStartupMethod(startupMethod)) {
         return this;
       }
@@ -200,7 +218,7 @@ public abstract class StartupProfile {
       return this;
     }
 
-    public Builder addStartupItem(StartupItem startupItem) {
+    public Builder addStartupItem(StartupProfileRule startupItem) {
       startupItems.put(startupItem.getReference(), startupItem);
       return this;
     }
@@ -219,6 +237,7 @@ public abstract class StartupProfile {
       return this;
     }
 
+    @Override
     public StartupProfile build() {
       if (startupItems.isEmpty()) {
         return empty();

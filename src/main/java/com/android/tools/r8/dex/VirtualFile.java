@@ -1335,7 +1335,7 @@ public class VirtualFile {
 
       private static Predicate<DexProgramClass> getStartupClassPredicate(
           StartupProfile startupProfile) {
-        return clazz -> startupProfile.contains(clazz.getType());
+        return clazz -> startupProfile.containsClassRule(clazz.getType());
       }
 
       public List<DexProgramClass> getStartupClasses() {
