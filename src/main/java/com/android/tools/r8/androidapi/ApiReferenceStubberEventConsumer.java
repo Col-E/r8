@@ -7,7 +7,7 @@ package com.android.tools.r8.androidapi;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexLibraryClass;
 import com.android.tools.r8.graph.DexProgramClass;
-import com.android.tools.r8.profile.art.rewriting.ArtProfileRewritingApiReferenceStubberEventConsumer;
+import com.android.tools.r8.profile.art.rewriting.ProfileRewritingApiReferenceStubberEventConsumer;
 
 public interface ApiReferenceStubberEventConsumer {
 
@@ -21,7 +21,7 @@ public interface ApiReferenceStubberEventConsumer {
   boolean isEmpty();
 
   static ApiReferenceStubberEventConsumer create(AppView<?> appView) {
-    return ArtProfileRewritingApiReferenceStubberEventConsumer.attach(appView, empty());
+    return ProfileRewritingApiReferenceStubberEventConsumer.attach(appView, empty());
   }
 
   static EmptyApiReferenceStubberEventConsumer empty() {

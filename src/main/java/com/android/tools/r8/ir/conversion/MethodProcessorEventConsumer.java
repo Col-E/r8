@@ -12,8 +12,8 @@ import com.android.tools.r8.ir.optimize.ServiceLoaderRewriterEventConsumer;
 import com.android.tools.r8.ir.optimize.UtilityMethodsForCodeOptimizationsEventConsumer;
 import com.android.tools.r8.ir.optimize.api.InstanceInitializerOutlinerEventConsumer;
 import com.android.tools.r8.ir.optimize.enums.EnumUnboxerMethodProcessorEventConsumer;
-import com.android.tools.r8.profile.art.rewriting.ArtProfileRewritingMethodProcessorEventConsumer;
 import com.android.tools.r8.profile.art.rewriting.ProfileCollectionAdditions;
+import com.android.tools.r8.profile.art.rewriting.ProfileRewritingMethodProcessorEventConsumer;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 
 public abstract class MethodProcessorEventConsumer
@@ -27,13 +27,12 @@ public abstract class MethodProcessorEventConsumer
 
   public static MethodProcessorEventConsumer createForD8(
       ProfileCollectionAdditions profileCollectionAdditions) {
-    return ArtProfileRewritingMethodProcessorEventConsumer.attach(
-        profileCollectionAdditions, empty());
+    return ProfileRewritingMethodProcessorEventConsumer.attach(profileCollectionAdditions, empty());
   }
 
   public static MethodProcessorEventConsumer createForR8(
       AppView<? extends AppInfoWithClassHierarchy> appView) {
-    return ArtProfileRewritingMethodProcessorEventConsumer.attach(appView, empty());
+    return ProfileRewritingMethodProcessorEventConsumer.attach(appView, empty());
   }
 
   public static MethodProcessorEventConsumer empty() {

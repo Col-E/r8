@@ -4,7 +4,7 @@
 
 package com.android.tools.r8.profile.art.rewriting;
 
-import static com.android.tools.r8.profile.art.rewriting.ArtProfileRewritingVarHandleDesugaringEventConsumerUtils.handleVarHandleDesugaringClassContext;
+import static com.android.tools.r8.profile.art.rewriting.ProfileRewritingVarHandleDesugaringEventConsumerUtils.handleVarHandleDesugaringClassContext;
 
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClassAndMethod;
@@ -22,7 +22,7 @@ import com.android.tools.r8.ir.desugar.invokespecial.InvokeSpecialBridgeInfo;
 import com.android.tools.r8.ir.desugar.nest.NestBasedAccessDesugaringEventConsumer;
 import java.util.List;
 
-public class ArtProfileRewritingCfInstructionDesugaringEventConsumer
+public class ProfileRewritingCfInstructionDesugaringEventConsumer
     extends CfInstructionDesugaringEventConsumer {
 
   private final AppView<?> appView;
@@ -31,7 +31,7 @@ public class ArtProfileRewritingCfInstructionDesugaringEventConsumer
 
   private final NestBasedAccessDesugaringEventConsumer nestBasedAccessDesugaringEventConsumer;
 
-  private ArtProfileRewritingCfInstructionDesugaringEventConsumer(
+  private ProfileRewritingCfInstructionDesugaringEventConsumer(
       AppView<?> appView,
       ConcreteProfileCollectionAdditions additionsCollection,
       CfInstructionDesugaringEventConsumer parent) {
@@ -39,7 +39,7 @@ public class ArtProfileRewritingCfInstructionDesugaringEventConsumer
     this.additionsCollection = additionsCollection;
     this.parent = parent;
     this.nestBasedAccessDesugaringEventConsumer =
-        ArtProfileRewritingNestBasedAccessDesugaringEventConsumer.attach(
+        ProfileRewritingNestBasedAccessDesugaringEventConsumer.attach(
             additionsCollection, NestBasedAccessDesugaringEventConsumer.empty());
   }
 
@@ -50,7 +50,7 @@ public class ArtProfileRewritingCfInstructionDesugaringEventConsumer
     if (profileCollectionAdditions.isNop()) {
       return eventConsumer;
     }
-    return new ArtProfileRewritingCfInstructionDesugaringEventConsumer(
+    return new ProfileRewritingCfInstructionDesugaringEventConsumer(
         appView, profileCollectionAdditions.asConcrete(), eventConsumer);
   }
 

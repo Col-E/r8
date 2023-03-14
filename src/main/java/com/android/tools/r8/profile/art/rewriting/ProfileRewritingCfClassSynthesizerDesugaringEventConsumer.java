@@ -4,7 +4,7 @@
 
 package com.android.tools.r8.profile.art.rewriting;
 
-import static com.android.tools.r8.profile.art.rewriting.ArtProfileRewritingVarHandleDesugaringEventConsumerUtils.handleVarHandleDesugaringClassContext;
+import static com.android.tools.r8.profile.art.rewriting.ProfileRewritingVarHandleDesugaringEventConsumerUtils.handleVarHandleDesugaringClassContext;
 
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
@@ -15,14 +15,14 @@ import com.android.tools.r8.ir.desugar.CfClassSynthesizerDesugaringEventConsumer
 import com.android.tools.r8.profile.art.ArtProfileOptions;
 import java.util.Set;
 
-public class ArtProfileRewritingCfClassSynthesizerDesugaringEventConsumer
+public class ProfileRewritingCfClassSynthesizerDesugaringEventConsumer
     extends CfClassSynthesizerDesugaringEventConsumer {
 
   private final ConcreteProfileCollectionAdditions additionsCollection;
   private final ArtProfileOptions options;
   private final CfClassSynthesizerDesugaringEventConsumer parent;
 
-  private ArtProfileRewritingCfClassSynthesizerDesugaringEventConsumer(
+  private ProfileRewritingCfClassSynthesizerDesugaringEventConsumer(
       ConcreteProfileCollectionAdditions additionsCollection,
       ArtProfileOptions options,
       CfClassSynthesizerDesugaringEventConsumer parent) {
@@ -43,7 +43,7 @@ public class ArtProfileRewritingCfClassSynthesizerDesugaringEventConsumer
     if (profileCollectionAdditions.isNop()) {
       return eventConsumer;
     }
-    return new ArtProfileRewritingCfClassSynthesizerDesugaringEventConsumer(
+    return new ProfileRewritingCfClassSynthesizerDesugaringEventConsumer(
         profileCollectionAdditions.asConcrete(),
         appView.options().getArtProfileOptions(),
         eventConsumer);

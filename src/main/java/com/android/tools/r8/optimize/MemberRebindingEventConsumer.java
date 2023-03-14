@@ -7,7 +7,7 @@ package com.android.tools.r8.optimize;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.ProgramMethod;
-import com.android.tools.r8.profile.art.rewriting.ArtProfileRewritingMemberRebindingEventConsumer;
+import com.android.tools.r8.profile.art.rewriting.ProfileRewritingMemberRebindingEventConsumer;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 
 public interface MemberRebindingEventConsumer {
@@ -19,7 +19,7 @@ public interface MemberRebindingEventConsumer {
       AppView<AppInfoWithLiveness> appView, MemberRebindingLens memberRebindingLens) {}
 
   static MemberRebindingEventConsumer create(AppView<AppInfoWithLiveness> appView) {
-    return ArtProfileRewritingMemberRebindingEventConsumer.attach(appView, empty());
+    return ProfileRewritingMemberRebindingEventConsumer.attach(appView, empty());
   }
 
   static EmptyMemberRebindingEventConsumer empty() {

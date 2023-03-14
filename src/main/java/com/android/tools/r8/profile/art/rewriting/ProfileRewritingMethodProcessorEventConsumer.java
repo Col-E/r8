@@ -9,12 +9,12 @@ import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.conversion.MethodProcessorEventConsumer;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 
-public class ArtProfileRewritingMethodProcessorEventConsumer extends MethodProcessorEventConsumer {
+public class ProfileRewritingMethodProcessorEventConsumer extends MethodProcessorEventConsumer {
 
   private final ConcreteProfileCollectionAdditions additionsCollection;
   private final MethodProcessorEventConsumer parent;
 
-  private ArtProfileRewritingMethodProcessorEventConsumer(
+  private ProfileRewritingMethodProcessorEventConsumer(
       ConcreteProfileCollectionAdditions additionsCollection, MethodProcessorEventConsumer parent) {
     this.additionsCollection = additionsCollection;
     this.parent = parent;
@@ -26,7 +26,7 @@ public class ArtProfileRewritingMethodProcessorEventConsumer extends MethodProce
     if (additionsCollection.isNop()) {
       return eventConsumer;
     }
-    return new ArtProfileRewritingMethodProcessorEventConsumer(
+    return new ProfileRewritingMethodProcessorEventConsumer(
         additionsCollection.asConcrete(), eventConsumer);
   }
 
@@ -36,7 +36,7 @@ public class ArtProfileRewritingMethodProcessorEventConsumer extends MethodProce
     if (profileCollectionAdditions.isNop()) {
       return eventConsumer;
     }
-    return new ArtProfileRewritingMethodProcessorEventConsumer(
+    return new ProfileRewritingMethodProcessorEventConsumer(
         profileCollectionAdditions.asConcrete(), eventConsumer);
   }
 

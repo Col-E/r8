@@ -10,7 +10,7 @@ import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.ProgramDefinition;
 import com.android.tools.r8.profile.art.ArtProfileOptions;
 
-public class ArtProfileRewritingVarHandleDesugaringEventConsumerUtils {
+public class ProfileRewritingVarHandleDesugaringEventConsumerUtils {
 
   static void handleVarHandleDesugaringClassContext(
       DexProgramClass varHandleClass,

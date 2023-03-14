@@ -14,8 +14,8 @@ import com.android.tools.r8.ir.desugar.desugaredlibrary.retargeter.DesugaredLibr
 import com.android.tools.r8.ir.desugar.itf.EmulatedInterfaceSynthesizerEventConsumer.L8ProgramEmulatedInterfaceSynthesizerEventConsumer;
 import com.android.tools.r8.ir.desugar.records.RecordDesugaringEventConsumer.RecordClassSynthesizerDesugaringEventConsumer;
 import com.android.tools.r8.ir.desugar.varhandle.VarHandleDesugaringEventConsumer;
-import com.android.tools.r8.profile.art.rewriting.ArtProfileRewritingCfClassSynthesizerDesugaringEventConsumer;
 import com.android.tools.r8.profile.art.rewriting.ProfileCollectionAdditions;
+import com.android.tools.r8.profile.art.rewriting.ProfileRewritingCfClassSynthesizerDesugaringEventConsumer;
 import com.google.common.collect.Sets;
 import java.util.Set;
 
@@ -32,7 +32,7 @@ public abstract class CfClassSynthesizerDesugaringEventConsumer
       AppView<?> appView, ProfileCollectionAdditions profileCollectionAdditions) {
     CfClassSynthesizerDesugaringEventConsumer eventConsumer =
         new D8R8CfClassSynthesizerDesugaringEventConsumer();
-    return ArtProfileRewritingCfClassSynthesizerDesugaringEventConsumer.attach(
+    return ProfileRewritingCfClassSynthesizerDesugaringEventConsumer.attach(
         appView, eventConsumer, profileCollectionAdditions);
   }
 
@@ -40,8 +40,7 @@ public abstract class CfClassSynthesizerDesugaringEventConsumer
       AppView<? extends AppInfoWithClassHierarchy> appView) {
     CfClassSynthesizerDesugaringEventConsumer eventConsumer =
         new D8R8CfClassSynthesizerDesugaringEventConsumer();
-    return ArtProfileRewritingCfClassSynthesizerDesugaringEventConsumer.attach(
-        appView, eventConsumer);
+    return ProfileRewritingCfClassSynthesizerDesugaringEventConsumer.attach(appView, eventConsumer);
   }
 
   public void finished(AppView<? extends AppInfoWithClassHierarchy> appView) {}

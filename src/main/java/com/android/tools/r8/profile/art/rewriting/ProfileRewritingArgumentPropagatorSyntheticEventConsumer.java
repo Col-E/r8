@@ -5,42 +5,40 @@
 package com.android.tools.r8.profile.art.rewriting;
 
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.ProgramMethod;
-import com.android.tools.r8.ir.optimize.outliner.OutlineOptimizationEventConsumer;
+import com.android.tools.r8.optimize.argumentpropagation.ArgumentPropagatorSyntheticEventConsumer;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
-import java.util.Collection;
 
-public class ArtProfileRewritingOutlineOptimizationEventConsumer
-    implements OutlineOptimizationEventConsumer {
+public class ProfileRewritingArgumentPropagatorSyntheticEventConsumer
+    implements ArgumentPropagatorSyntheticEventConsumer {
 
   private final ConcreteProfileCollectionAdditions additionsCollection;
-  private final OutlineOptimizationEventConsumer parent;
+  private final ArgumentPropagatorSyntheticEventConsumer parent;
 
-  private ArtProfileRewritingOutlineOptimizationEventConsumer(
+  private ProfileRewritingArgumentPropagatorSyntheticEventConsumer(
       ConcreteProfileCollectionAdditions additionsCollection,
-      OutlineOptimizationEventConsumer parent) {
+      ArgumentPropagatorSyntheticEventConsumer parent) {
     this.additionsCollection = additionsCollection;
     this.parent = parent;
   }
 
-  public static OutlineOptimizationEventConsumer attach(
-      AppView<AppInfoWithLiveness> appView, OutlineOptimizationEventConsumer eventConsumer) {
+  public static ArgumentPropagatorSyntheticEventConsumer attach(
+      AppView<AppInfoWithLiveness> appView,
+      ArgumentPropagatorSyntheticEventConsumer eventConsumer) {
     ProfileCollectionAdditions additionsCollection = ProfileCollectionAdditions.create(appView);
     if (additionsCollection.isNop()) {
       return eventConsumer;
     }
-    return new ArtProfileRewritingOutlineOptimizationEventConsumer(
+    return new ProfileRewritingArgumentPropagatorSyntheticEventConsumer(
         additionsCollection.asConcrete(), eventConsumer);
   }
 
   @Override
-  public void acceptOutlineMethod(ProgramMethod method, Collection<ProgramMethod> contexts) {
-    for (ProgramMethod context : contexts) {
-      additionsCollection.applyIfContextIsInProfile(
-          context,
-          additionsBuilder -> additionsBuilder.addRule(method).addRule(method.getHolder()));
-    }
-    parent.acceptOutlineMethod(method, contexts);
+  public void acceptInitializerArgumentClass(DexProgramClass clazz, ProgramMethod context) {
+    additionsCollection.applyIfContextIsInProfile(
+        context, additionsBuilder -> additionsBuilder.addRule(clazz));
+    parent.acceptInitializerArgumentClass(clazz, context);
   }
 
   @Override

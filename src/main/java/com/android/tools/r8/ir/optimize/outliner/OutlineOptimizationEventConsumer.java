@@ -6,7 +6,7 @@ package com.android.tools.r8.ir.optimize.outliner;
 
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.ProgramMethod;
-import com.android.tools.r8.profile.art.rewriting.ArtProfileRewritingOutlineOptimizationEventConsumer;
+import com.android.tools.r8.profile.art.rewriting.ProfileRewritingOutlineOptimizationEventConsumer;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import java.util.Collection;
 
@@ -17,7 +17,7 @@ public interface OutlineOptimizationEventConsumer {
   void finished(AppView<AppInfoWithLiveness> appView);
 
   static OutlineOptimizationEventConsumer create(AppView<AppInfoWithLiveness> appView) {
-    return ArtProfileRewritingOutlineOptimizationEventConsumer.attach(appView, empty());
+    return ProfileRewritingOutlineOptimizationEventConsumer.attach(appView, empty());
   }
 
   static EmptyOutlineOptimizationEventConsumer empty() {

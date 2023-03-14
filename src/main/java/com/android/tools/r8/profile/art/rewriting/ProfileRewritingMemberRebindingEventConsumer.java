@@ -13,13 +13,12 @@ import com.android.tools.r8.optimize.MemberRebindingEventConsumer;
 import com.android.tools.r8.optimize.MemberRebindingLens;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 
-public class ArtProfileRewritingMemberRebindingEventConsumer
-    implements MemberRebindingEventConsumer {
+public class ProfileRewritingMemberRebindingEventConsumer implements MemberRebindingEventConsumer {
 
   private final ConcreteProfileCollectionAdditions additionsCollection;
   private final MemberRebindingEventConsumer parent;
 
-  private ArtProfileRewritingMemberRebindingEventConsumer(
+  private ProfileRewritingMemberRebindingEventConsumer(
       ConcreteProfileCollectionAdditions additionsCollection, MemberRebindingEventConsumer parent) {
     this.additionsCollection = additionsCollection;
     this.parent = parent;
@@ -31,7 +30,7 @@ public class ArtProfileRewritingMemberRebindingEventConsumer
     if (additionsCollection.isNop()) {
       return eventConsumer;
     }
-    return new ArtProfileRewritingMemberRebindingEventConsumer(
+    return new ProfileRewritingMemberRebindingEventConsumer(
         additionsCollection.asConcrete(), eventConsumer);
   }
 

@@ -7,12 +7,12 @@ package com.android.tools.r8.profile.art.rewriting;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.shaking.RootSetBuilderEventConsumer;
 
-public class ArtProfileRewritingRootSetBuilderEventConsumer implements RootSetBuilderEventConsumer {
+public class ProfileRewritingRootSetBuilderEventConsumer implements RootSetBuilderEventConsumer {
 
   private final ConcreteProfileCollectionAdditions additionsCollection;
   private final RootSetBuilderEventConsumer parent;
 
-  private ArtProfileRewritingRootSetBuilderEventConsumer(
+  private ProfileRewritingRootSetBuilderEventConsumer(
       ConcreteProfileCollectionAdditions additionsCollection, RootSetBuilderEventConsumer parent) {
     this.additionsCollection = additionsCollection;
     this.parent = parent;
@@ -23,7 +23,7 @@ public class ArtProfileRewritingRootSetBuilderEventConsumer implements RootSetBu
     if (additionsCollection.isNop()) {
       return eventConsumer;
     }
-    return new ArtProfileRewritingRootSetBuilderEventConsumer(
+    return new ProfileRewritingRootSetBuilderEventConsumer(
         additionsCollection.asConcrete(), eventConsumer);
   }
 

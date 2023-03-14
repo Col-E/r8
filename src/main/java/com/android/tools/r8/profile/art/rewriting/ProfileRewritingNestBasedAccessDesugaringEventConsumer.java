@@ -12,13 +12,13 @@ import com.android.tools.r8.graph.ProgramField;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.desugar.nest.NestBasedAccessDesugaringEventConsumer;
 
-public class ArtProfileRewritingNestBasedAccessDesugaringEventConsumer
+public class ProfileRewritingNestBasedAccessDesugaringEventConsumer
     implements NestBasedAccessDesugaringEventConsumer {
 
   private final ConcreteProfileCollectionAdditions additionsCollection;
   private final NestBasedAccessDesugaringEventConsumer parent;
 
-  private ArtProfileRewritingNestBasedAccessDesugaringEventConsumer(
+  private ProfileRewritingNestBasedAccessDesugaringEventConsumer(
       ConcreteProfileCollectionAdditions additionsCollection,
       NestBasedAccessDesugaringEventConsumer parent) {
     this.additionsCollection = additionsCollection;
@@ -31,7 +31,7 @@ public class ArtProfileRewritingNestBasedAccessDesugaringEventConsumer
     if (additionsCollection.isNop()) {
       return eventConsumer;
     }
-    return new ArtProfileRewritingNestBasedAccessDesugaringEventConsumer(
+    return new ProfileRewritingNestBasedAccessDesugaringEventConsumer(
         additionsCollection.asConcrete(), eventConsumer);
   }
 

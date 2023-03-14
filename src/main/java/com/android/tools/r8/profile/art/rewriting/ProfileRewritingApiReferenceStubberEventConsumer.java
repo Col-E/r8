@@ -11,13 +11,13 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexLibraryClass;
 import com.android.tools.r8.graph.DexProgramClass;
 
-public class ArtProfileRewritingApiReferenceStubberEventConsumer
+public class ProfileRewritingApiReferenceStubberEventConsumer
     implements ApiReferenceStubberEventConsumer {
 
   private final ConcreteProfileCollectionAdditions collectionAdditions;
   private final ApiReferenceStubberEventConsumer parent;
 
-  private ArtProfileRewritingApiReferenceStubberEventConsumer(
+  private ProfileRewritingApiReferenceStubberEventConsumer(
       ConcreteProfileCollectionAdditions collectionAdditions,
       ApiReferenceStubberEventConsumer parent) {
     this.collectionAdditions = collectionAdditions;
@@ -30,7 +30,7 @@ public class ArtProfileRewritingApiReferenceStubberEventConsumer
       ProfileCollectionAdditions profileCollectionAdditions =
           ProfileCollectionAdditions.create(appView);
       if (!profileCollectionAdditions.isNop()) {
-        return new ArtProfileRewritingApiReferenceStubberEventConsumer(
+        return new ProfileRewritingApiReferenceStubberEventConsumer(
             profileCollectionAdditions.asConcrete(), eventConsumer);
       }
     }

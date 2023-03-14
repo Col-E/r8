@@ -23,14 +23,14 @@ import com.android.tools.r8.utils.BooleanBox;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 
-public class ArtProfileRewritingCfPostProcessingDesugaringEventConsumer
+public class ProfileRewritingCfPostProcessingDesugaringEventConsumer
     extends CfPostProcessingDesugaringEventConsumer {
 
   private final ConcreteProfileCollectionAdditions additionsCollection;
   private final ArtProfileOptions options;
   private final CfPostProcessingDesugaringEventConsumer parent;
 
-  private ArtProfileRewritingCfPostProcessingDesugaringEventConsumer(
+  private ProfileRewritingCfPostProcessingDesugaringEventConsumer(
       ConcreteProfileCollectionAdditions additionsCollection,
       ArtProfileOptions options,
       CfPostProcessingDesugaringEventConsumer parent) {
@@ -46,7 +46,7 @@ public class ArtProfileRewritingCfPostProcessingDesugaringEventConsumer
     if (profileCollectionAdditions.isNop()) {
       return eventConsumer;
     }
-    return new ArtProfileRewritingCfPostProcessingDesugaringEventConsumer(
+    return new ProfileRewritingCfPostProcessingDesugaringEventConsumer(
         profileCollectionAdditions.asConcrete(),
         appView.options().getArtProfileOptions(),
         eventConsumer);

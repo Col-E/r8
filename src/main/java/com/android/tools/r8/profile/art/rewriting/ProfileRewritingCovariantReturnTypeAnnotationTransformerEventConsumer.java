@@ -7,13 +7,13 @@ package com.android.tools.r8.profile.art.rewriting;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.desugar.CovariantReturnTypeAnnotationTransformerEventConsumer;
 
-public class ArtProfileRewritingCovariantReturnTypeAnnotationTransformerEventConsumer
+public class ProfileRewritingCovariantReturnTypeAnnotationTransformerEventConsumer
     implements CovariantReturnTypeAnnotationTransformerEventConsumer {
 
   private final ConcreteProfileCollectionAdditions additionsCollection;
   private final CovariantReturnTypeAnnotationTransformerEventConsumer parent;
 
-  private ArtProfileRewritingCovariantReturnTypeAnnotationTransformerEventConsumer(
+  private ProfileRewritingCovariantReturnTypeAnnotationTransformerEventConsumer(
       ConcreteProfileCollectionAdditions additionsCollection,
       CovariantReturnTypeAnnotationTransformerEventConsumer parent) {
     this.additionsCollection = additionsCollection;
@@ -26,7 +26,7 @@ public class ArtProfileRewritingCovariantReturnTypeAnnotationTransformerEventCon
     if (additionsCollection.isNop()) {
       return eventConsumer;
     }
-    return new ArtProfileRewritingCovariantReturnTypeAnnotationTransformerEventConsumer(
+    return new ProfileRewritingCovariantReturnTypeAnnotationTransformerEventConsumer(
         additionsCollection.asConcrete(), eventConsumer);
   }
 

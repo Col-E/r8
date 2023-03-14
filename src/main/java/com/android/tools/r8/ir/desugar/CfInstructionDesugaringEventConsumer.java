@@ -32,8 +32,8 @@ import com.android.tools.r8.ir.desugar.nest.NestBasedAccessDesugaringEventConsum
 import com.android.tools.r8.ir.desugar.records.RecordDesugaringEventConsumer.RecordInstructionDesugaringEventConsumer;
 import com.android.tools.r8.ir.desugar.twr.TwrCloseResourceDesugaringEventConsumer;
 import com.android.tools.r8.ir.desugar.varhandle.VarHandleDesugaringEventConsumer;
-import com.android.tools.r8.profile.art.rewriting.ArtProfileRewritingCfInstructionDesugaringEventConsumer;
 import com.android.tools.r8.profile.art.rewriting.ProfileCollectionAdditions;
+import com.android.tools.r8.profile.art.rewriting.ProfileRewritingCfInstructionDesugaringEventConsumer;
 import com.android.tools.r8.shaking.Enqueuer.SyntheticAdditions;
 import com.android.tools.r8.shaking.KeepMethodInfo.Joiner;
 import com.google.common.collect.Sets;
@@ -77,7 +77,7 @@ public abstract class CfInstructionDesugaringEventConsumer
         new D8CfInstructionDesugaringEventConsumer(
             appView, classConverterResultBuilder, methodProcessor);
     CfInstructionDesugaringEventConsumer outermostEventConsumer =
-        ArtProfileRewritingCfInstructionDesugaringEventConsumer.attach(
+        ProfileRewritingCfInstructionDesugaringEventConsumer.attach(
             appView, profileCollectionAdditions, eventConsumer);
     eventConsumer.setOutermostEventConsumer(outermostEventConsumer);
     return outermostEventConsumer;
@@ -99,7 +99,7 @@ public abstract class CfInstructionDesugaringEventConsumer
             twrCloseResourceMethodConsumer,
             additions,
             companionMethodConsumer);
-    return ArtProfileRewritingCfInstructionDesugaringEventConsumer.attach(
+    return ProfileRewritingCfInstructionDesugaringEventConsumer.attach(
         appView, profileCollectionAdditions, eventConsumer);
   }
 
