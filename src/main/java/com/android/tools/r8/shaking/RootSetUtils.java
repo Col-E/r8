@@ -52,7 +52,7 @@ import com.android.tools.r8.ir.analysis.value.AbstractValue;
 import com.android.tools.r8.ir.desugar.itf.InterfaceDesugaringSyntheticHelper;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackSimple;
 import com.android.tools.r8.ir.optimize.membervaluepropagation.assume.AssumeInfo;
-import com.android.tools.r8.profile.art.rewriting.ArtProfileCollectionAdditions;
+import com.android.tools.r8.profile.art.rewriting.ProfileCollectionAdditions;
 import com.android.tools.r8.repackaging.RepackagingUtils;
 import com.android.tools.r8.shaking.AnnotationMatchResult.AnnotationsIgnoredMatchResult;
 import com.android.tools.r8.shaking.AnnotationMatchResult.ConcreteAnnotationMatchResult;
@@ -176,7 +176,7 @@ public class RootSetUtils {
         SubtypingInfo subtypingInfo) {
       this(
           appView,
-          RootSetBuilderEventConsumer.create(enqueuer.getArtProfileCollectionAdditions()),
+          RootSetBuilderEventConsumer.create(enqueuer.getProfileCollectionAdditions()),
           subtypingInfo,
           null);
     }
@@ -2151,12 +2151,12 @@ public class RootSetUtils {
 
     public static RootSetBuilder builder(
         AppView<? extends AppInfoWithClassHierarchy> appView,
-        ArtProfileCollectionAdditions artProfileCollectionAdditions,
+        ProfileCollectionAdditions profileCollectionAdditions,
         SubtypingInfo subtypingInfo,
         Iterable<? extends ProguardConfigurationRule> rules) {
       return new RootSetBuilder(
           appView,
-          RootSetBuilderEventConsumer.create(artProfileCollectionAdditions),
+          RootSetBuilderEventConsumer.create(profileCollectionAdditions),
           subtypingInfo,
           rules);
     }
@@ -2172,7 +2172,7 @@ public class RootSetUtils {
         SubtypingInfo subtypingInfo) {
       super(
           appView,
-          RootSetBuilderEventConsumer.create(enqueuer.getArtProfileCollectionAdditions()),
+          RootSetBuilderEventConsumer.create(enqueuer.getProfileCollectionAdditions()),
           subtypingInfo,
           null);
       this.enqueuer = enqueuer;
@@ -2220,12 +2220,12 @@ public class RootSetUtils {
 
     private MainDexRootSetBuilder(
         AppView<? extends AppInfoWithClassHierarchy> appView,
-        ArtProfileCollectionAdditions artProfileCollectionAdditions,
+        ProfileCollectionAdditions profileCollectionAdditions,
         SubtypingInfo subtypingInfo,
         Iterable<? extends ProguardConfigurationRule> rules) {
       super(
           appView,
-          RootSetBuilderEventConsumer.create(artProfileCollectionAdditions),
+          RootSetBuilderEventConsumer.create(profileCollectionAdditions),
           subtypingInfo,
           rules);
     }
@@ -2279,11 +2279,10 @@ public class RootSetUtils {
 
     public static MainDexRootSetBuilder builder(
         AppView<? extends AppInfoWithClassHierarchy> appView,
-        ArtProfileCollectionAdditions artProfileCollectionAdditions,
+        ProfileCollectionAdditions profileCollectionAdditions,
         SubtypingInfo subtypingInfo,
         Iterable<? extends ProguardConfigurationRule> rules) {
-      return new MainDexRootSetBuilder(
-          appView, artProfileCollectionAdditions, subtypingInfo, rules);
+      return new MainDexRootSetBuilder(appView, profileCollectionAdditions, subtypingInfo, rules);
     }
 
     @Override

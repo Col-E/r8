@@ -13,11 +13,11 @@ import com.android.tools.r8.shaking.AppInfoWithLiveness;
 public class ArtProfileRewritingArgumentPropagatorSyntheticEventConsumer
     implements ArgumentPropagatorSyntheticEventConsumer {
 
-  private final ConcreteArtProfileCollectionAdditions additionsCollection;
+  private final ConcreteProfileCollectionAdditions additionsCollection;
   private final ArgumentPropagatorSyntheticEventConsumer parent;
 
   private ArtProfileRewritingArgumentPropagatorSyntheticEventConsumer(
-      ConcreteArtProfileCollectionAdditions additionsCollection,
+      ConcreteProfileCollectionAdditions additionsCollection,
       ArgumentPropagatorSyntheticEventConsumer parent) {
     this.additionsCollection = additionsCollection;
     this.parent = parent;
@@ -26,8 +26,7 @@ public class ArtProfileRewritingArgumentPropagatorSyntheticEventConsumer
   public static ArgumentPropagatorSyntheticEventConsumer attach(
       AppView<AppInfoWithLiveness> appView,
       ArgumentPropagatorSyntheticEventConsumer eventConsumer) {
-    ArtProfileCollectionAdditions additionsCollection =
-        ArtProfileCollectionAdditions.create(appView);
+    ProfileCollectionAdditions additionsCollection = ProfileCollectionAdditions.create(appView);
     if (additionsCollection.isNop()) {
       return eventConsumer;
     }

@@ -15,7 +15,7 @@ public class ArtProfileRewritingVarHandleDesugaringEventConsumerUtils {
   static void handleVarHandleDesugaringClassContext(
       DexProgramClass varHandleClass,
       ProgramDefinition context,
-      ConcreteArtProfileCollectionAdditions additionsCollection,
+      ConcreteProfileCollectionAdditions additionsCollection,
       ArtProfileOptions options) {
     if (options.isIncludingVarHandleClasses()) {
       additionsCollection.applyIfContextIsInProfile(

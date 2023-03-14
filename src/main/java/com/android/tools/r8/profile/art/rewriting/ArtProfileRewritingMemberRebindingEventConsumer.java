@@ -16,20 +16,18 @@ import com.android.tools.r8.shaking.AppInfoWithLiveness;
 public class ArtProfileRewritingMemberRebindingEventConsumer
     implements MemberRebindingEventConsumer {
 
-  private final ConcreteArtProfileCollectionAdditions additionsCollection;
+  private final ConcreteProfileCollectionAdditions additionsCollection;
   private final MemberRebindingEventConsumer parent;
 
   private ArtProfileRewritingMemberRebindingEventConsumer(
-      ConcreteArtProfileCollectionAdditions additionsCollection,
-      MemberRebindingEventConsumer parent) {
+      ConcreteProfileCollectionAdditions additionsCollection, MemberRebindingEventConsumer parent) {
     this.additionsCollection = additionsCollection;
     this.parent = parent;
   }
 
   public static MemberRebindingEventConsumer attach(
       AppView<AppInfoWithLiveness> appView, MemberRebindingEventConsumer eventConsumer) {
-    ArtProfileCollectionAdditions additionsCollection =
-        ArtProfileCollectionAdditions.create(appView);
+    ProfileCollectionAdditions additionsCollection = ProfileCollectionAdditions.create(appView);
     if (additionsCollection.isNop()) {
       return eventConsumer;
     }

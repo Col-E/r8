@@ -73,7 +73,7 @@ import com.android.tools.r8.ir.optimize.info.OptimizationFeedback;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackSimple;
 import com.android.tools.r8.ir.synthetic.AbstractSynthesizedCode;
 import com.android.tools.r8.ir.synthetic.ForwardMethodSourceCode;
-import com.android.tools.r8.profile.art.rewriting.ArtProfileCollectionAdditions;
+import com.android.tools.r8.profile.art.rewriting.ProfileCollectionAdditions;
 import com.android.tools.r8.utils.Box;
 import com.android.tools.r8.utils.CollectionUtils;
 import com.android.tools.r8.utils.FieldSignatureEquivalence;
@@ -627,16 +627,16 @@ public class VerticalClassMerger {
     assert verifyGraphLens(lens);
 
     // Include bridges in art profiles.
-    ArtProfileCollectionAdditions artProfileCollectionAdditions =
-        ArtProfileCollectionAdditions.create(appView);
-    if (!artProfileCollectionAdditions.isNop()) {
+    ProfileCollectionAdditions profileCollectionAdditions =
+        ProfileCollectionAdditions.create(appView);
+    if (!profileCollectionAdditions.isNop()) {
       for (SynthesizedBridgeCode synthesizedBridge : synthesizedBridges) {
-        artProfileCollectionAdditions.applyIfContextIsInProfile(
+        profileCollectionAdditions.applyIfContextIsInProfile(
             synthesizedBridge.originalMethod,
             additionsBuilder -> additionsBuilder.addRule(synthesizedBridge.method));
       }
     }
-    artProfileCollectionAdditions.commit(appView);
+    profileCollectionAdditions.commit(appView);
 
     // Rewrite collections using the lens.
     appView.rewriteWithLens(lens);

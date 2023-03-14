@@ -23,17 +23,17 @@ import java.util.List;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
-public class ConcreteArtProfileCollectionAdditions extends ArtProfileCollectionAdditions {
+public class ConcreteProfileCollectionAdditions extends ProfileCollectionAdditions {
 
   private final List<ArtProfileAdditions> additionsCollection;
 
   private boolean committed = false;
 
-  private ConcreteArtProfileCollectionAdditions(List<ArtProfileAdditions> additionsCollection) {
+  private ConcreteProfileCollectionAdditions(List<ArtProfileAdditions> additionsCollection) {
     this.additionsCollection = additionsCollection;
   }
 
-  ConcreteArtProfileCollectionAdditions(NonEmptyArtProfileCollection artProfileCollection) {
+  ConcreteProfileCollectionAdditions(NonEmptyArtProfileCollection artProfileCollection) {
     additionsCollection = new ArrayList<>();
     for (ArtProfile artProfile : artProfileCollection) {
       additionsCollection.add(new ArtProfileAdditions(artProfile));
@@ -112,7 +112,7 @@ public class ConcreteArtProfileCollectionAdditions extends ArtProfileCollectionA
   }
 
   @Override
-  public ConcreteArtProfileCollectionAdditions asConcrete() {
+  public ConcreteProfileCollectionAdditions asConcrete() {
     return this;
   }
 
@@ -139,18 +139,18 @@ public class ConcreteArtProfileCollectionAdditions extends ArtProfileCollectionA
   }
 
   @Override
-  public ConcreteArtProfileCollectionAdditions rewriteMethodReferences(
+  public ConcreteProfileCollectionAdditions rewriteMethodReferences(
       Function<DexMethod, DexMethod> methodFn) {
     List<ArtProfileAdditions> rewrittenAdditionsCollection =
         new ArrayList<>(additionsCollection.size());
     for (ArtProfileAdditions additions : additionsCollection) {
       rewrittenAdditionsCollection.add(additions.rewriteMethodReferences(methodFn));
     }
-    return new ConcreteArtProfileCollectionAdditions(rewrittenAdditionsCollection);
+    return new ConcreteProfileCollectionAdditions(rewrittenAdditionsCollection);
   }
 
   @Override
-  public ConcreteArtProfileCollectionAdditions setArtProfileCollection(
+  public ConcreteProfileCollectionAdditions setArtProfileCollection(
       ArtProfileCollection artProfileCollection) {
     assert artProfileCollection.isNonEmpty();
     Iterator<ArtProfile> artProfileIterator = artProfileCollection.asNonEmpty().iterator();

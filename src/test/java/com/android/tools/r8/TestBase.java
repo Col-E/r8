@@ -45,7 +45,7 @@ import com.android.tools.r8.graph.SubtypingInfo;
 import com.android.tools.r8.jasmin.JasminBuilder;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.origin.PathOrigin;
-import com.android.tools.r8.profile.art.rewriting.ArtProfileCollectionAdditions;
+import com.android.tools.r8.profile.art.rewriting.ProfileCollectionAdditions;
 import com.android.tools.r8.references.ClassReference;
 import com.android.tools.r8.references.FieldReference;
 import com.android.tools.r8.references.MethodReference;
@@ -845,20 +845,19 @@ public class TestBase {
         computeAppViewWithClassHierarchy(app, keepConfig, optionsConsumer);
     // Run the tree shaker to compute an instance of AppInfoWithLiveness.
     ExecutorService executor = Executors.newSingleThreadExecutor();
-    ArtProfileCollectionAdditions artProfileCollectionAdditions =
-        ArtProfileCollectionAdditions.nop();
+    ProfileCollectionAdditions profileCollectionAdditions = ProfileCollectionAdditions.nop();
     SubtypingInfo subtypingInfo = SubtypingInfo.create(appView);
     RootSet rootSet =
         RootSet.builder(
                 appView,
-                artProfileCollectionAdditions,
+                profileCollectionAdditions,
                 subtypingInfo,
                 appView.options().getProguardConfiguration().getRules())
             .build(executor);
     appView.setRootSet(rootSet);
     EnqueuerResult enqueuerResult =
         EnqueuerFactory.createForInitialTreeShaking(
-                appView, artProfileCollectionAdditions, executor, subtypingInfo)
+                appView, profileCollectionAdditions, executor, subtypingInfo)
             .traceApplication(rootSet, executor, Timing.empty());
     executor.shutdown();
     // We do not run the tree pruner to ensure that the hierarchy is as designed and not modified

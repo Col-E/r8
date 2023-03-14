@@ -18,8 +18,8 @@ import com.android.tools.r8.ir.desugar.desugaredlibrary.machinespecification.Emu
 import com.android.tools.r8.ir.desugar.desugaredlibrary.retargeter.DesugaredLibraryRetargeterSynthesizerEventConsumer.DesugaredLibraryRetargeterPostProcessingEventConsumer;
 import com.android.tools.r8.ir.desugar.itf.InterfaceDesugaringSyntheticHelper;
 import com.android.tools.r8.ir.desugar.itf.InterfaceProcessingDesugaringEventConsumer;
-import com.android.tools.r8.profile.art.rewriting.ArtProfileCollectionAdditions;
 import com.android.tools.r8.profile.art.rewriting.ArtProfileRewritingCfPostProcessingDesugaringEventConsumer;
+import com.android.tools.r8.profile.art.rewriting.ProfileCollectionAdditions;
 import com.android.tools.r8.shaking.Enqueuer.SyntheticAdditions;
 import com.android.tools.r8.utils.collections.ProgramMethodSet;
 import java.util.Collections;
@@ -39,25 +39,25 @@ public abstract class CfPostProcessingDesugaringEventConsumer
 
   public static CfPostProcessingDesugaringEventConsumer createForD8(
       AppView<?> appView,
-      ArtProfileCollectionAdditions artProfileCollectionAdditions,
+      ProfileCollectionAdditions profileCollectionAdditions,
       D8MethodProcessor methodProcessor,
       CfInstructionDesugaringCollection instructionDesugaring) {
     CfPostProcessingDesugaringEventConsumer eventConsumer =
         new D8CfPostProcessingDesugaringEventConsumer(methodProcessor, instructionDesugaring);
     return ArtProfileRewritingCfPostProcessingDesugaringEventConsumer.attach(
-        appView, artProfileCollectionAdditions, eventConsumer);
+        appView, profileCollectionAdditions, eventConsumer);
   }
 
   public static CfPostProcessingDesugaringEventConsumer createForR8(
       AppView<?> appView,
       SyntheticAdditions additions,
-      ArtProfileCollectionAdditions artProfileCollectionAdditions,
+      ProfileCollectionAdditions profileCollectionAdditions,
       CfInstructionDesugaringCollection desugaring,
       BiConsumer<DexProgramClass, DexType> missingClassConsumer) {
     CfPostProcessingDesugaringEventConsumer eventConsumer =
         new R8PostProcessingDesugaringEventConsumer(additions, desugaring, missingClassConsumer);
     return ArtProfileRewritingCfPostProcessingDesugaringEventConsumer.attach(
-        appView, artProfileCollectionAdditions, eventConsumer);
+        appView, profileCollectionAdditions, eventConsumer);
   }
 
   public abstract Set<DexMethod> getNewlyLiveMethods();

@@ -10,18 +10,18 @@ import com.android.tools.r8.ir.desugar.CovariantReturnTypeAnnotationTransformerE
 public class ArtProfileRewritingCovariantReturnTypeAnnotationTransformerEventConsumer
     implements CovariantReturnTypeAnnotationTransformerEventConsumer {
 
-  private final ConcreteArtProfileCollectionAdditions additionsCollection;
+  private final ConcreteProfileCollectionAdditions additionsCollection;
   private final CovariantReturnTypeAnnotationTransformerEventConsumer parent;
 
   private ArtProfileRewritingCovariantReturnTypeAnnotationTransformerEventConsumer(
-      ConcreteArtProfileCollectionAdditions additionsCollection,
+      ConcreteProfileCollectionAdditions additionsCollection,
       CovariantReturnTypeAnnotationTransformerEventConsumer parent) {
     this.additionsCollection = additionsCollection;
     this.parent = parent;
   }
 
   public static CovariantReturnTypeAnnotationTransformerEventConsumer attach(
-      ArtProfileCollectionAdditions additionsCollection,
+      ProfileCollectionAdditions additionsCollection,
       CovariantReturnTypeAnnotationTransformerEventConsumer eventConsumer) {
     if (additionsCollection.isNop()) {
       return eventConsumer;

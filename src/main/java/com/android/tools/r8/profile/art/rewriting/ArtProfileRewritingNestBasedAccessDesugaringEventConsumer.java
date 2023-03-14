@@ -15,18 +15,18 @@ import com.android.tools.r8.ir.desugar.nest.NestBasedAccessDesugaringEventConsum
 public class ArtProfileRewritingNestBasedAccessDesugaringEventConsumer
     implements NestBasedAccessDesugaringEventConsumer {
 
-  private final ConcreteArtProfileCollectionAdditions additionsCollection;
+  private final ConcreteProfileCollectionAdditions additionsCollection;
   private final NestBasedAccessDesugaringEventConsumer parent;
 
   private ArtProfileRewritingNestBasedAccessDesugaringEventConsumer(
-      ConcreteArtProfileCollectionAdditions additionsCollection,
+      ConcreteProfileCollectionAdditions additionsCollection,
       NestBasedAccessDesugaringEventConsumer parent) {
     this.additionsCollection = additionsCollection;
     this.parent = parent;
   }
 
   public static NestBasedAccessDesugaringEventConsumer attach(
-      ArtProfileCollectionAdditions additionsCollection,
+      ProfileCollectionAdditions additionsCollection,
       NestBasedAccessDesugaringEventConsumer eventConsumer) {
     if (additionsCollection.isNop()) {
       return eventConsumer;

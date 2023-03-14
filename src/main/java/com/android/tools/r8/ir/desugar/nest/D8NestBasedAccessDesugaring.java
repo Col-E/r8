@@ -93,7 +93,7 @@ public class D8NestBasedAccessDesugaring extends NestBasedAccessDesugaring {
 
     NestBasedAccessDesugaringEventConsumer eventConsumer =
         ArtProfileRewritingNestBasedAccessDesugaringEventConsumer.attach(
-            methodProcessor.getArtProfileCollectionAdditions(),
+            methodProcessor.getProfileCollectionAdditions(),
             new NestBasedAccessDesugaringEventConsumer() {
 
               @Override

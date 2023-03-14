@@ -13,11 +13,11 @@ import java.util.Collection;
 public class ArtProfileRewritingOutlineOptimizationEventConsumer
     implements OutlineOptimizationEventConsumer {
 
-  private final ConcreteArtProfileCollectionAdditions additionsCollection;
+  private final ConcreteProfileCollectionAdditions additionsCollection;
   private final OutlineOptimizationEventConsumer parent;
 
   private ArtProfileRewritingOutlineOptimizationEventConsumer(
-      ConcreteArtProfileCollectionAdditions additionsCollection,
+      ConcreteProfileCollectionAdditions additionsCollection,
       OutlineOptimizationEventConsumer parent) {
     this.additionsCollection = additionsCollection;
     this.parent = parent;
@@ -25,8 +25,7 @@ public class ArtProfileRewritingOutlineOptimizationEventConsumer
 
   public static OutlineOptimizationEventConsumer attach(
       AppView<AppInfoWithLiveness> appView, OutlineOptimizationEventConsumer eventConsumer) {
-    ArtProfileCollectionAdditions additionsCollection =
-        ArtProfileCollectionAdditions.create(appView);
+    ProfileCollectionAdditions additionsCollection = ProfileCollectionAdditions.create(appView);
     if (additionsCollection.isNop()) {
       return eventConsumer;
     }

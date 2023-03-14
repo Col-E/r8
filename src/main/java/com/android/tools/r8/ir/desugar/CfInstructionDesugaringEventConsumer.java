@@ -32,8 +32,8 @@ import com.android.tools.r8.ir.desugar.nest.NestBasedAccessDesugaringEventConsum
 import com.android.tools.r8.ir.desugar.records.RecordDesugaringEventConsumer.RecordInstructionDesugaringEventConsumer;
 import com.android.tools.r8.ir.desugar.twr.TwrCloseResourceDesugaringEventConsumer;
 import com.android.tools.r8.ir.desugar.varhandle.VarHandleDesugaringEventConsumer;
-import com.android.tools.r8.profile.art.rewriting.ArtProfileCollectionAdditions;
 import com.android.tools.r8.profile.art.rewriting.ArtProfileRewritingCfInstructionDesugaringEventConsumer;
+import com.android.tools.r8.profile.art.rewriting.ProfileCollectionAdditions;
 import com.android.tools.r8.shaking.Enqueuer.SyntheticAdditions;
 import com.android.tools.r8.shaking.KeepMethodInfo.Joiner;
 import com.google.common.collect.Sets;
@@ -70,7 +70,7 @@ public abstract class CfInstructionDesugaringEventConsumer
 
   public static CfInstructionDesugaringEventConsumer createForD8(
       AppView<?> appView,
-      ArtProfileCollectionAdditions artProfileCollectionAdditions,
+      ProfileCollectionAdditions profileCollectionAdditions,
       ClassConverterResult.Builder classConverterResultBuilder,
       D8MethodProcessor methodProcessor) {
     D8CfInstructionDesugaringEventConsumer eventConsumer =
@@ -78,14 +78,14 @@ public abstract class CfInstructionDesugaringEventConsumer
             appView, classConverterResultBuilder, methodProcessor);
     CfInstructionDesugaringEventConsumer outermostEventConsumer =
         ArtProfileRewritingCfInstructionDesugaringEventConsumer.attach(
-            appView, artProfileCollectionAdditions, eventConsumer);
+            appView, profileCollectionAdditions, eventConsumer);
     eventConsumer.setOutermostEventConsumer(outermostEventConsumer);
     return outermostEventConsumer;
   }
 
   public static CfInstructionDesugaringEventConsumer createForR8(
       AppView<? extends AppInfoWithClassHierarchy> appView,
-      ArtProfileCollectionAdditions artProfileCollectionAdditions,
+      ProfileCollectionAdditions profileCollectionAdditions,
       BiConsumer<LambdaClass, ProgramMethod> lambdaClassConsumer,
       BiConsumer<ConstantDynamicClass, ProgramMethod> constantDynamicClassConsumer,
       BiConsumer<ProgramMethod, ProgramMethod> twrCloseResourceMethodConsumer,
@@ -100,7 +100,7 @@ public abstract class CfInstructionDesugaringEventConsumer
             additions,
             companionMethodConsumer);
     return ArtProfileRewritingCfInstructionDesugaringEventConsumer.attach(
-        appView, artProfileCollectionAdditions, eventConsumer);
+        appView, profileCollectionAdditions, eventConsumer);
   }
 
   public abstract List<ProgramMethod> finalizeDesugaring();

@@ -18,7 +18,7 @@ import com.android.tools.r8.graph.PrunedItems;
 import com.android.tools.r8.horizontalclassmerging.code.SyntheticInitializerConverter;
 import com.android.tools.r8.ir.code.InvokeType;
 import com.android.tools.r8.profile.art.ArtProfileCompletenessChecker;
-import com.android.tools.r8.profile.art.rewriting.ArtProfileCollectionAdditions;
+import com.android.tools.r8.profile.art.rewriting.ProfileCollectionAdditions;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.FieldAccessInfoCollectionModifier;
 import com.android.tools.r8.shaking.KeepInfoCollection;
@@ -126,8 +126,8 @@ public class HorizontalClassMerger {
 
     // Merge the classes.
     List<ClassMerger> classMergers = initializeClassMergers(codeProvider, lensBuilder, groups);
-    ArtProfileCollectionAdditions artProfileCollectionAdditions =
-        ArtProfileCollectionAdditions.create(appView);
+    ProfileCollectionAdditions profileCollectionAdditions =
+        ProfileCollectionAdditions.create(appView);
     SyntheticArgumentClass syntheticArgumentClass =
         mode.isInitial()
             ? new SyntheticArgumentClass.Builder(appView.withLiveness()).build(groups)
@@ -138,7 +138,7 @@ public class HorizontalClassMerger {
     PrunedItems prunedItems =
         applyClassMergers(
             classMergers,
-            artProfileCollectionAdditions,
+            profileCollectionAdditions,
             syntheticArgumentClass,
             syntheticInitializerConverterBuilder,
             virtuallyMergedMethodsKeepInfos::add);
@@ -155,13 +155,9 @@ public class HorizontalClassMerger {
 
     HorizontalClassMergerGraphLens horizontalClassMergerGraphLens =
         createLens(
-            mergedClasses,
-            lensBuilder,
-            mode,
-            artProfileCollectionAdditions,
-            syntheticArgumentClass);
-    artProfileCollectionAdditions =
-        artProfileCollectionAdditions.rewriteMethodReferences(
+            mergedClasses, lensBuilder, mode, profileCollectionAdditions, syntheticArgumentClass);
+    profileCollectionAdditions =
+        profileCollectionAdditions.rewriteMethodReferences(
             horizontalClassMergerGraphLens::getNextMethodToInvoke);
 
     assert verifyNoCyclesInInterfaceHierarchies(appView, groups);
@@ -195,7 +191,7 @@ public class HorizontalClassMerger {
     codeProvider.setGraphLens(horizontalClassMergerGraphLens);
 
     // Amend art profile collection.
-    artProfileCollectionAdditions
+    profileCollectionAdditions
         .setArtProfileCollection(appView.getArtProfileCollection())
         .commit(appView);
 
@@ -374,14 +370,14 @@ public class HorizontalClassMerger {
   /** Merges all class groups using {@link ClassMerger}. */
   private PrunedItems applyClassMergers(
       Collection<ClassMerger> classMergers,
-      ArtProfileCollectionAdditions artProfileCollectionAdditions,
+      ProfileCollectionAdditions profileCollectionAdditions,
       SyntheticArgumentClass syntheticArgumentClass,
       SyntheticInitializerConverter.Builder syntheticInitializerConverterBuilder,
       Consumer<VirtuallyMergedMethodsKeepInfo> virtuallyMergedMethodsKeepInfoConsumer) {
     PrunedItems.Builder prunedItemsBuilder = PrunedItems.builder().setPrunedApp(appView.app());
     for (ClassMerger merger : classMergers) {
       merger.mergeGroup(
-          artProfileCollectionAdditions,
+          profileCollectionAdditions,
           prunedItemsBuilder,
           syntheticArgumentClass,
           syntheticInitializerConverterBuilder,
@@ -398,14 +394,14 @@ public class HorizontalClassMerger {
       HorizontallyMergedClasses mergedClasses,
       HorizontalClassMergerGraphLens.Builder lensBuilder,
       Mode mode,
-      ArtProfileCollectionAdditions artProfileCollectionAdditions,
+      ProfileCollectionAdditions profileCollectionAdditions,
       SyntheticArgumentClass syntheticArgumentClass) {
     return new TreeFixer(
             appView,
             mergedClasses,
             lensBuilder,
             mode,
-            artProfileCollectionAdditions,
+            profileCollectionAdditions,
             syntheticArgumentClass)
         .fixupTypeReferences();
   }

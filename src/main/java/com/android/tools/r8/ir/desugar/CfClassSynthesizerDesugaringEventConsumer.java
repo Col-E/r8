@@ -14,8 +14,8 @@ import com.android.tools.r8.ir.desugar.desugaredlibrary.retargeter.DesugaredLibr
 import com.android.tools.r8.ir.desugar.itf.EmulatedInterfaceSynthesizerEventConsumer.L8ProgramEmulatedInterfaceSynthesizerEventConsumer;
 import com.android.tools.r8.ir.desugar.records.RecordDesugaringEventConsumer.RecordClassSynthesizerDesugaringEventConsumer;
 import com.android.tools.r8.ir.desugar.varhandle.VarHandleDesugaringEventConsumer;
-import com.android.tools.r8.profile.art.rewriting.ArtProfileCollectionAdditions;
 import com.android.tools.r8.profile.art.rewriting.ArtProfileRewritingCfClassSynthesizerDesugaringEventConsumer;
+import com.android.tools.r8.profile.art.rewriting.ProfileCollectionAdditions;
 import com.google.common.collect.Sets;
 import java.util.Set;
 
@@ -29,11 +29,11 @@ public abstract class CfClassSynthesizerDesugaringEventConsumer
   protected CfClassSynthesizerDesugaringEventConsumer() {}
 
   public static CfClassSynthesizerDesugaringEventConsumer createForD8(
-      AppView<?> appView, ArtProfileCollectionAdditions artProfileCollectionAdditions) {
+      AppView<?> appView, ProfileCollectionAdditions profileCollectionAdditions) {
     CfClassSynthesizerDesugaringEventConsumer eventConsumer =
         new D8R8CfClassSynthesizerDesugaringEventConsumer();
     return ArtProfileRewritingCfClassSynthesizerDesugaringEventConsumer.attach(
-        appView, eventConsumer, artProfileCollectionAdditions);
+        appView, eventConsumer, profileCollectionAdditions);
   }
 
   public static CfClassSynthesizerDesugaringEventConsumer createForR8(

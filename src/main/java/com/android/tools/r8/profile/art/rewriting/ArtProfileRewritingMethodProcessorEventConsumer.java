@@ -11,20 +11,18 @@ import com.android.tools.r8.shaking.AppInfoWithLiveness;
 
 public class ArtProfileRewritingMethodProcessorEventConsumer extends MethodProcessorEventConsumer {
 
-  private final ConcreteArtProfileCollectionAdditions additionsCollection;
+  private final ConcreteProfileCollectionAdditions additionsCollection;
   private final MethodProcessorEventConsumer parent;
 
   private ArtProfileRewritingMethodProcessorEventConsumer(
-      ConcreteArtProfileCollectionAdditions additionsCollection,
-      MethodProcessorEventConsumer parent) {
+      ConcreteProfileCollectionAdditions additionsCollection, MethodProcessorEventConsumer parent) {
     this.additionsCollection = additionsCollection;
     this.parent = parent;
   }
 
   public static MethodProcessorEventConsumer attach(
       AppView<?> appView, MethodProcessorEventConsumer eventConsumer) {
-    ArtProfileCollectionAdditions additionsCollection =
-        ArtProfileCollectionAdditions.create(appView);
+    ProfileCollectionAdditions additionsCollection = ProfileCollectionAdditions.create(appView);
     if (additionsCollection.isNop()) {
       return eventConsumer;
     }
@@ -33,13 +31,13 @@ public class ArtProfileRewritingMethodProcessorEventConsumer extends MethodProce
   }
 
   public static MethodProcessorEventConsumer attach(
-      ArtProfileCollectionAdditions artProfileCollectionAdditions,
+      ProfileCollectionAdditions profileCollectionAdditions,
       MethodProcessorEventConsumer eventConsumer) {
-    if (artProfileCollectionAdditions.isNop()) {
+    if (profileCollectionAdditions.isNop()) {
       return eventConsumer;
     }
     return new ArtProfileRewritingMethodProcessorEventConsumer(
-        artProfileCollectionAdditions.asConcrete(), eventConsumer);
+        profileCollectionAdditions.asConcrete(), eventConsumer);
   }
 
   @Override

@@ -9,7 +9,7 @@ import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.SubtypingInfo;
-import com.android.tools.r8.profile.art.rewriting.ArtProfileCollectionAdditions;
+import com.android.tools.r8.profile.art.rewriting.ProfileCollectionAdditions;
 import com.android.tools.r8.shaking.Enqueuer.Mode;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
@@ -18,12 +18,12 @@ public class EnqueuerFactory {
 
   public static Enqueuer createForInitialTreeShaking(
       AppView<? extends AppInfoWithClassHierarchy> appView,
-      ArtProfileCollectionAdditions artProfileCollectionAdditions,
+      ProfileCollectionAdditions profileCollectionAdditions,
       ExecutorService executorService,
       SubtypingInfo subtypingInfo) {
     return new Enqueuer(
         appView,
-        artProfileCollectionAdditions,
+        profileCollectionAdditions,
         executorService,
         subtypingInfo,
         null,
@@ -36,12 +36,12 @@ public class EnqueuerFactory {
       SubtypingInfo subtypingInfo,
       GraphConsumer keptGraphConsumer,
       Set<DexType> initialPrunedTypes) {
-    ArtProfileCollectionAdditions artProfileCollectionAdditions =
-        ArtProfileCollectionAdditions.create(appView);
+    ProfileCollectionAdditions profileCollectionAdditions =
+        ProfileCollectionAdditions.create(appView);
     Enqueuer enqueuer =
         new Enqueuer(
             appView,
-            artProfileCollectionAdditions,
+            profileCollectionAdditions,
             executorService,
             subtypingInfo,
             keptGraphConsumer,
@@ -56,11 +56,11 @@ public class EnqueuerFactory {
       AppView<? extends AppInfoWithClassHierarchy> appView,
       ExecutorService executorService,
       SubtypingInfo subtypingInfo) {
-    ArtProfileCollectionAdditions artProfileCollectionAdditions =
-        ArtProfileCollectionAdditions.create(appView);
+    ProfileCollectionAdditions profileCollectionAdditions =
+        ProfileCollectionAdditions.create(appView);
     return new Enqueuer(
         appView,
-        artProfileCollectionAdditions,
+        profileCollectionAdditions,
         executorService,
         subtypingInfo,
         null,
@@ -72,11 +72,11 @@ public class EnqueuerFactory {
       ExecutorService executorService,
       SubtypingInfo subtypingInfo,
       GraphConsumer keptGraphConsumer) {
-    ArtProfileCollectionAdditions artProfileCollectionAdditions =
-        ArtProfileCollectionAdditions.create(appView);
+    ProfileCollectionAdditions profileCollectionAdditions =
+        ProfileCollectionAdditions.create(appView);
     return new Enqueuer(
         appView,
-        artProfileCollectionAdditions,
+        profileCollectionAdditions,
         executorService,
         subtypingInfo,
         keptGraphConsumer,
@@ -88,11 +88,11 @@ public class EnqueuerFactory {
       ExecutorService executorService,
       SubtypingInfo subtypingInfo,
       GraphConsumer keptGraphConsumer) {
-    ArtProfileCollectionAdditions artProfileCollectionAdditions =
-        ArtProfileCollectionAdditions.create(appView);
+    ProfileCollectionAdditions profileCollectionAdditions =
+        ProfileCollectionAdditions.create(appView);
     return new Enqueuer(
         appView,
-        artProfileCollectionAdditions,
+        profileCollectionAdditions,
         executorService,
         subtypingInfo,
         keptGraphConsumer,
@@ -104,11 +104,11 @@ public class EnqueuerFactory {
       ExecutorService executorService,
       SubtypingInfo subtypingInfo,
       GraphConsumer keptGraphConsumer) {
-    ArtProfileCollectionAdditions artProfileCollectionAdditions =
-        ArtProfileCollectionAdditions.create(appView);
+    ProfileCollectionAdditions profileCollectionAdditions =
+        ProfileCollectionAdditions.create(appView);
     return new Enqueuer(
         appView,
-        artProfileCollectionAdditions,
+        profileCollectionAdditions,
         executorService,
         subtypingInfo,
         keptGraphConsumer,

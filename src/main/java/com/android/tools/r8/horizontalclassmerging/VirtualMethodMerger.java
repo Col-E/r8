@@ -14,7 +14,7 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.graph.MethodResolutionResult.SingleResolutionResult;
 import com.android.tools.r8.graph.ProgramMethod;
-import com.android.tools.r8.profile.art.rewriting.ArtProfileCollectionAdditions;
+import com.android.tools.r8.profile.art.rewriting.ProfileCollectionAdditions;
 import com.android.tools.r8.utils.ListUtils;
 import com.android.tools.r8.utils.OptionalBool;
 import com.android.tools.r8.utils.structural.Ordered;
@@ -245,7 +245,7 @@ public class VirtualMethodMerger {
   }
 
   public void merge(
-      ArtProfileCollectionAdditions artProfileCollectionAdditions,
+      ProfileCollectionAdditions profileCollectionAdditions,
       ClassMethodsBuilder classMethodsBuilder,
       HorizontalClassMergerGraphLens.Builder lensBuilder,
       Reference2IntMap<DexType> classIdentifiers,
@@ -327,9 +327,9 @@ public class VirtualMethodMerger {
     lensBuilder.recordNewMethodSignature(bridgeMethodReference, newMethodReference);
 
     // Amend the art profile collection.
-    if (!artProfileCollectionAdditions.isNop()) {
+    if (!profileCollectionAdditions.isNop()) {
       for (ProgramMethod oldMethod : methods) {
-        artProfileCollectionAdditions.applyIfContextIsInProfile(
+        profileCollectionAdditions.applyIfContextIsInProfile(
             oldMethod.getReference(),
             additionsBuilder -> additionsBuilder.addRule(representativeMethod.getReference()));
       }

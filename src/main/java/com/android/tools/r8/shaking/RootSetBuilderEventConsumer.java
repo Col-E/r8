@@ -6,15 +6,14 @@ package com.android.tools.r8.shaking;
 
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.desugar.itf.InterfaceMethodDesugaringBaseEventConsumer;
-import com.android.tools.r8.profile.art.rewriting.ArtProfileCollectionAdditions;
 import com.android.tools.r8.profile.art.rewriting.ArtProfileRewritingRootSetBuilderEventConsumer;
+import com.android.tools.r8.profile.art.rewriting.ProfileCollectionAdditions;
 
 public interface RootSetBuilderEventConsumer extends InterfaceMethodDesugaringBaseEventConsumer {
 
-  static RootSetBuilderEventConsumer create(
-      ArtProfileCollectionAdditions artProfileCollectionAdditions) {
+  static RootSetBuilderEventConsumer create(ProfileCollectionAdditions profileCollectionAdditions) {
     return ArtProfileRewritingRootSetBuilderEventConsumer.attach(
-        artProfileCollectionAdditions, empty());
+        profileCollectionAdditions, empty());
   }
 
   static EmptyRootSetBuilderEventConsumer empty() {

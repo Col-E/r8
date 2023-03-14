@@ -29,7 +29,7 @@ import com.android.tools.r8.horizontalclassmerging.code.SyntheticInitializerConv
 import com.android.tools.r8.ir.analysis.value.NumberFromIntervalValue;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedback;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackSimple;
-import com.android.tools.r8.profile.art.rewriting.ArtProfileCollectionAdditions;
+import com.android.tools.r8.profile.art.rewriting.ProfileCollectionAdditions;
 import com.android.tools.r8.utils.SetUtils;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
@@ -107,13 +107,11 @@ public class ClassMerger {
   }
 
   void mergeDirectMethods(
-      ArtProfileCollectionAdditions artProfileCollectionAdditions,
+      ProfileCollectionAdditions profileCollectionAdditions,
       SyntheticArgumentClass syntheticArgumentClass,
       SyntheticInitializerConverter.Builder syntheticInitializerConverterBuilder) {
     mergeInstanceInitializers(
-        artProfileCollectionAdditions,
-        syntheticArgumentClass,
-        syntheticInitializerConverterBuilder);
+        profileCollectionAdditions, syntheticArgumentClass, syntheticInitializerConverterBuilder);
     mergeStaticClassInitializers(syntheticInitializerConverterBuilder);
     group.forEach(this::mergeDirectMethods);
   }
@@ -192,38 +190,36 @@ public class ClassMerger {
   }
 
   void mergeInstanceInitializers(
-      ArtProfileCollectionAdditions artProfileCollectionAdditions,
+      ProfileCollectionAdditions profileCollectionAdditions,
       SyntheticArgumentClass syntheticArgumentClass,
       SyntheticInitializerConverter.Builder syntheticInitializerConverterBuilder) {
     instanceInitializerMergers.forEach(
         merger ->
             merger.merge(
-                artProfileCollectionAdditions,
+                profileCollectionAdditions,
                 classMethodsBuilder,
                 syntheticArgumentClass,
                 syntheticInitializerConverterBuilder));
   }
 
   void mergeMethods(
-      ArtProfileCollectionAdditions artProfileCollectionAdditions,
+      ProfileCollectionAdditions profileCollectionAdditions,
       SyntheticArgumentClass syntheticArgumentClass,
       SyntheticInitializerConverter.Builder syntheticInitializerConverterBuilder,
       Consumer<VirtuallyMergedMethodsKeepInfo> virtuallyMergedMethodsKeepInfoConsumer) {
-    mergeVirtualMethods(artProfileCollectionAdditions, virtuallyMergedMethodsKeepInfoConsumer);
+    mergeVirtualMethods(profileCollectionAdditions, virtuallyMergedMethodsKeepInfoConsumer);
     mergeDirectMethods(
-        artProfileCollectionAdditions,
-        syntheticArgumentClass,
-        syntheticInitializerConverterBuilder);
+        profileCollectionAdditions, syntheticArgumentClass, syntheticInitializerConverterBuilder);
     classMethodsBuilder.setClassMethods(group.getTarget());
   }
 
   void mergeVirtualMethods(
-      ArtProfileCollectionAdditions artProfileCollectionAdditions,
+      ProfileCollectionAdditions profileCollectionAdditions,
       Consumer<VirtuallyMergedMethodsKeepInfo> virtuallyMergedMethodsKeepInfoConsumer) {
     virtualMethodMergers.forEach(
         merger ->
             merger.merge(
-                artProfileCollectionAdditions,
+                profileCollectionAdditions,
                 classMethodsBuilder,
                 lensBuilder,
                 classIdentifiers,
@@ -342,7 +338,7 @@ public class ClassMerger {
   }
 
   public void mergeGroup(
-      ArtProfileCollectionAdditions artProfileCollectionAdditions,
+      ProfileCollectionAdditions profileCollectionAdditions,
       PrunedItems.Builder prunedItemsBuilder,
       SyntheticArgumentClass syntheticArgumentClass,
       SyntheticInitializerConverter.Builder syntheticInitializerConverterBuilder,
@@ -353,7 +349,7 @@ public class ClassMerger {
     mergeInterfaces();
     mergeFields(prunedItemsBuilder);
     mergeMethods(
-        artProfileCollectionAdditions,
+        profileCollectionAdditions,
         syntheticArgumentClass,
         syntheticInitializerConverterBuilder,
         virtuallyMergedMethodsKeepInfoConsumer);

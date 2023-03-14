@@ -9,19 +9,17 @@ import com.android.tools.r8.shaking.RootSetBuilderEventConsumer;
 
 public class ArtProfileRewritingRootSetBuilderEventConsumer implements RootSetBuilderEventConsumer {
 
-  private final ConcreteArtProfileCollectionAdditions additionsCollection;
+  private final ConcreteProfileCollectionAdditions additionsCollection;
   private final RootSetBuilderEventConsumer parent;
 
   private ArtProfileRewritingRootSetBuilderEventConsumer(
-      ConcreteArtProfileCollectionAdditions additionsCollection,
-      RootSetBuilderEventConsumer parent) {
+      ConcreteProfileCollectionAdditions additionsCollection, RootSetBuilderEventConsumer parent) {
     this.additionsCollection = additionsCollection;
     this.parent = parent;
   }
 
   public static RootSetBuilderEventConsumer attach(
-      ArtProfileCollectionAdditions additionsCollection,
-      RootSetBuilderEventConsumer eventConsumer) {
+      ProfileCollectionAdditions additionsCollection, RootSetBuilderEventConsumer eventConsumer) {
     if (additionsCollection.isNop()) {
       return eventConsumer;
     }

@@ -21,7 +21,7 @@ import com.android.tools.r8.graph.EnclosingMethodAttribute;
 import com.android.tools.r8.graph.TreeFixerBase;
 import com.android.tools.r8.horizontalclassmerging.HorizontalClassMerger.Mode;
 import com.android.tools.r8.ir.conversion.ExtraUnusedNullParameter;
-import com.android.tools.r8.profile.art.rewriting.ArtProfileCollectionAdditions;
+import com.android.tools.r8.profile.art.rewriting.ProfileCollectionAdditions;
 import com.android.tools.r8.shaking.AnnotationFixer;
 import com.android.tools.r8.utils.ArrayUtils;
 import com.android.tools.r8.utils.Box;
@@ -49,7 +49,7 @@ class TreeFixer extends TreeFixerBase {
   private final Mode mode;
   private final HorizontalClassMergerGraphLens.Builder lensBuilder;
   private final DexItemFactory dexItemFactory;
-  private final ArtProfileCollectionAdditions artProfileCollectionAdditions;
+  private final ProfileCollectionAdditions profileCollectionAdditions;
   private final SyntheticArgumentClass syntheticArgumentClass;
 
   private final Map<DexProgramClass, DexType> originalSuperTypes = new IdentityHashMap<>();
@@ -61,14 +61,14 @@ class TreeFixer extends TreeFixerBase {
       HorizontallyMergedClasses mergedClasses,
       HorizontalClassMergerGraphLens.Builder lensBuilder,
       Mode mode,
-      ArtProfileCollectionAdditions artProfileCollectionAdditions,
+      ProfileCollectionAdditions profileCollectionAdditions,
       SyntheticArgumentClass syntheticArgumentClass) {
     super(appView);
     this.appView = appView;
     this.mergedClasses = mergedClasses;
     this.mode = mode;
     this.lensBuilder = lensBuilder;
-    this.artProfileCollectionAdditions = artProfileCollectionAdditions;
+    this.profileCollectionAdditions = profileCollectionAdditions;
     this.syntheticArgumentClass = syntheticArgumentClass;
     this.dexItemFactory = appView.dexItemFactory();
   }
@@ -311,13 +311,13 @@ class TreeFixer extends TreeFixerBase {
           Set<DexMethod> previousMethodReferences =
               lensBuilder.methodMap.getKeys(originalMethodReference);
           if (previousMethodReferences.isEmpty()) {
-            artProfileCollectionAdditions.applyIfContextIsInProfile(
+            profileCollectionAdditions.applyIfContextIsInProfile(
                 originalMethodReference,
                 additionsBuilder ->
                     usedSyntheticArgumentClasses.get().forEach(additionsBuilder::addRule));
           } else {
             for (DexMethod previousMethodReference : previousMethodReferences) {
-              artProfileCollectionAdditions.applyIfContextIsInProfile(
+              profileCollectionAdditions.applyIfContextIsInProfile(
                   previousMethodReference,
                   additionsBuilder ->
                       usedSyntheticArgumentClasses.get().forEach(additionsBuilder::addRule));

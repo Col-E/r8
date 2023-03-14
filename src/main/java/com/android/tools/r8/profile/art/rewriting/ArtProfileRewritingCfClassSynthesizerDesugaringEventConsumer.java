@@ -18,12 +18,12 @@ import java.util.Set;
 public class ArtProfileRewritingCfClassSynthesizerDesugaringEventConsumer
     extends CfClassSynthesizerDesugaringEventConsumer {
 
-  private final ConcreteArtProfileCollectionAdditions additionsCollection;
+  private final ConcreteProfileCollectionAdditions additionsCollection;
   private final ArtProfileOptions options;
   private final CfClassSynthesizerDesugaringEventConsumer parent;
 
   private ArtProfileRewritingCfClassSynthesizerDesugaringEventConsumer(
-      ConcreteArtProfileCollectionAdditions additionsCollection,
+      ConcreteProfileCollectionAdditions additionsCollection,
       ArtProfileOptions options,
       CfClassSynthesizerDesugaringEventConsumer parent) {
     this.additionsCollection = additionsCollection;
@@ -33,18 +33,18 @@ public class ArtProfileRewritingCfClassSynthesizerDesugaringEventConsumer
 
   public static CfClassSynthesizerDesugaringEventConsumer attach(
       AppView<?> appView, CfClassSynthesizerDesugaringEventConsumer eventConsumer) {
-    return attach(appView, eventConsumer, ArtProfileCollectionAdditions.create(appView));
+    return attach(appView, eventConsumer, ProfileCollectionAdditions.create(appView));
   }
 
   public static CfClassSynthesizerDesugaringEventConsumer attach(
       AppView<?> appView,
       CfClassSynthesizerDesugaringEventConsumer eventConsumer,
-      ArtProfileCollectionAdditions artProfileCollectionAdditions) {
-    if (artProfileCollectionAdditions.isNop()) {
+      ProfileCollectionAdditions profileCollectionAdditions) {
+    if (profileCollectionAdditions.isNop()) {
       return eventConsumer;
     }
     return new ArtProfileRewritingCfClassSynthesizerDesugaringEventConsumer(
-        artProfileCollectionAdditions.asConcrete(),
+        profileCollectionAdditions.asConcrete(),
         appView.options().getArtProfileOptions(),
         eventConsumer);
   }

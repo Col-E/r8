@@ -33,7 +33,7 @@ import com.android.tools.r8.ir.desugar.lambda.LambdaDeserializationMethodRemover
 import com.android.tools.r8.ir.desugar.nest.D8NestBasedAccessDesugaring;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedback;
 import com.android.tools.r8.position.MethodPosition;
-import com.android.tools.r8.profile.art.rewriting.ArtProfileCollectionAdditions;
+import com.android.tools.r8.profile.art.rewriting.ProfileCollectionAdditions;
 import com.android.tools.r8.utils.ExceptionUtils;
 import com.android.tools.r8.utils.ListUtils;
 import com.android.tools.r8.utils.ThreadUtils;
@@ -54,10 +54,10 @@ public class PrimaryD8L8IRConverter extends IRConverter {
     LambdaDeserializationMethodRemover.run(appView);
     workaroundAbstractMethodOnNonAbstractClassVerificationBug(executorService);
     DexApplication application = appView.appInfo().app();
-    ArtProfileCollectionAdditions artProfileCollectionAdditions =
-        ArtProfileCollectionAdditions.create(appView);
+    ProfileCollectionAdditions profileCollectionAdditions =
+        ProfileCollectionAdditions.create(appView);
     D8MethodProcessor methodProcessor =
-        new D8MethodProcessor(artProfileCollectionAdditions, this, executorService);
+        new D8MethodProcessor(profileCollectionAdditions, this, executorService);
     InterfaceProcessor interfaceProcessor = InterfaceProcessor.create(appView);
 
     timing.begin("IR conversion");
@@ -90,7 +90,7 @@ public class PrimaryD8L8IRConverter extends IRConverter {
       new L8InnerOuterAttributeEraser(appView).run();
     }
 
-    processCovariantReturnTypeAnnotations(builder, artProfileCollectionAdditions);
+    processCovariantReturnTypeAnnotations(builder, profileCollectionAdditions);
 
     timing.end();
 
@@ -100,7 +100,7 @@ public class PrimaryD8L8IRConverter extends IRConverter {
             appView.appInfo().getSyntheticItems().commit(application),
             appView.appInfo().getMainDexInfo()));
 
-    artProfileCollectionAdditions.commit(appView);
+    profileCollectionAdditions.commit(appView);
   }
 
   void convertMethods(
@@ -310,7 +310,7 @@ public class PrimaryD8L8IRConverter extends IRConverter {
     CfPostProcessingDesugaringEventConsumer eventConsumer =
         CfPostProcessingDesugaringEventConsumer.createForD8(
             appView,
-            methodProcessor.getArtProfileCollectionAdditions(),
+            methodProcessor.getProfileCollectionAdditions(),
             methodProcessor,
             instructionDesugaring);
     methodProcessor.newWave();
@@ -341,12 +341,11 @@ public class PrimaryD8L8IRConverter extends IRConverter {
   }
 
   private void processCovariantReturnTypeAnnotations(
-      Builder<?> builder, ArtProfileCollectionAdditions artProfileCollectionAdditions) {
+      Builder<?> builder, ProfileCollectionAdditions profileCollectionAdditions) {
     if (covariantReturnTypeAnnotationTransformer != null) {
       covariantReturnTypeAnnotationTransformer.process(
           builder,
-          CovariantReturnTypeAnnotationTransformerEventConsumer.create(
-              artProfileCollectionAdditions));
+          CovariantReturnTypeAnnotationTransformerEventConsumer.create(profileCollectionAdditions));
     }
   }
 

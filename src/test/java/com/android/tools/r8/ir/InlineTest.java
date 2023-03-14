@@ -23,7 +23,7 @@ import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.origin.Origin;
-import com.android.tools.r8.profile.art.rewriting.ArtProfileCollectionAdditions;
+import com.android.tools.r8.profile.art.rewriting.ProfileCollectionAdditions;
 import com.android.tools.r8.shaking.Enqueuer;
 import com.android.tools.r8.shaking.EnqueuerFactory;
 import com.android.tools.r8.shaking.EnqueuerResult;
@@ -74,21 +74,20 @@ public class InlineTest extends IrInjectionTestBase {
       throws ExecutionException {
     AppView<AppInfoWithClassHierarchy> appView = AppView.createForR8(application.asDirect());
     appView.setAppServices(AppServices.builder(appView).build());
-    ArtProfileCollectionAdditions artProfileCollectionAdditions =
-        ArtProfileCollectionAdditions.nop();
+    ProfileCollectionAdditions profileCollectionAdditions = ProfileCollectionAdditions.nop();
     ExecutorService executorService = ThreadUtils.getExecutorService(options);
     SubtypingInfo subtypingInfo = SubtypingInfo.create(appView);
     appView.setRootSet(
         RootSet.builder(
                 appView,
-                artProfileCollectionAdditions,
+                profileCollectionAdditions,
                 subtypingInfo,
                 ImmutableList.of(ProguardKeepRule.defaultKeepAllRule(unused -> {})))
             .build(executorService));
     Timing timing = Timing.empty();
     Enqueuer enqueuer =
         EnqueuerFactory.createForInitialTreeShaking(
-            appView, artProfileCollectionAdditions, executorService, subtypingInfo);
+            appView, profileCollectionAdditions, executorService, subtypingInfo);
     EnqueuerResult enqueuerResult =
         enqueuer.traceApplication(appView.rootSet(), executorService, timing);
     appView.setAppInfo(enqueuerResult.getAppInfo());

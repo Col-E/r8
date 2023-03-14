@@ -13,26 +13,27 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 
 /**
- * Interface for adding (synthetic) items to an existing ArtProfileCollection.
+ * Interface for adding (synthetic) items to existing instances of {@link
+ * com.android.tools.r8.profile.AbstractProfile}.
  *
- * <p>The interface will be implemented by {@link NopArtProfileCollectionAdditions} when the
+ * <p>The interface will be implemented by {@link NopProfileCollectionAdditions} when the
  * compilation does not contain any ART profiles, for minimal performance overhead.
  *
- * <p>When one or more ART profiles are present, this is implemented by {@link
- * ConcreteArtProfileCollectionAdditions}.
+ * <p>When one or more ART profiles are present, or a startup profile is, then this class is
+ * implemented by {@link ConcreteProfileCollectionAdditions}.
  */
-public abstract class ArtProfileCollectionAdditions {
+public abstract class ProfileCollectionAdditions {
 
-  public static ArtProfileCollectionAdditions create(AppView<?> appView) {
+  public static ProfileCollectionAdditions create(AppView<?> appView) {
     ArtProfileCollection artProfileCollection = appView.getArtProfileCollection();
     if (artProfileCollection.isNonEmpty()) {
-      return new ConcreteArtProfileCollectionAdditions(artProfileCollection.asNonEmpty());
+      return new ConcreteProfileCollectionAdditions(artProfileCollection.asNonEmpty());
     }
     return nop();
   }
 
-  public static NopArtProfileCollectionAdditions nop() {
-    return NopArtProfileCollectionAdditions.getInstance();
+  public static NopProfileCollectionAdditions nop() {
+    return NopProfileCollectionAdditions.getInstance();
   }
 
   public abstract void addMethodIfContextIsInProfile(ProgramMethod method, ProgramMethod context);
@@ -46,14 +47,14 @@ public abstract class ArtProfileCollectionAdditions {
     return false;
   }
 
-  public ConcreteArtProfileCollectionAdditions asConcrete() {
+  public ConcreteProfileCollectionAdditions asConcrete() {
     return null;
   }
 
-  public abstract ArtProfileCollectionAdditions rewriteMethodReferences(
+  public abstract ProfileCollectionAdditions rewriteMethodReferences(
       Function<DexMethod, DexMethod> methodFn);
 
-  public abstract ArtProfileCollectionAdditions setArtProfileCollection(
+  public abstract ProfileCollectionAdditions setArtProfileCollection(
       ArtProfileCollection artProfileCollection);
 
   public abstract boolean verifyIsCommitted();

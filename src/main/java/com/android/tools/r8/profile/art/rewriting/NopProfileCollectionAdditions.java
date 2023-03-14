@@ -12,14 +12,13 @@ import com.android.tools.r8.profile.art.rewriting.ProfileAdditions.ProfileAdditi
 import java.util.function.Consumer;
 import java.util.function.Function;
 
-public class NopArtProfileCollectionAdditions extends ArtProfileCollectionAdditions {
+public class NopProfileCollectionAdditions extends ProfileCollectionAdditions {
 
-  private static final NopArtProfileCollectionAdditions INSTANCE =
-      new NopArtProfileCollectionAdditions();
+  private static final NopProfileCollectionAdditions INSTANCE = new NopProfileCollectionAdditions();
 
-  private NopArtProfileCollectionAdditions() {}
+  private NopProfileCollectionAdditions() {}
 
-  public static NopArtProfileCollectionAdditions getInstance() {
+  public static NopProfileCollectionAdditions getInstance() {
     return INSTANCE;
   }
 
@@ -45,14 +44,14 @@ public class NopArtProfileCollectionAdditions extends ArtProfileCollectionAdditi
   }
 
   @Override
-  public NopArtProfileCollectionAdditions rewriteMethodReferences(
+  public NopProfileCollectionAdditions rewriteMethodReferences(
       Function<DexMethod, DexMethod> methodFn) {
     // Intentionally empty.
     return this;
   }
 
   @Override
-  public NopArtProfileCollectionAdditions setArtProfileCollection(
+  public NopProfileCollectionAdditions setArtProfileCollection(
       ArtProfileCollection artProfileCollection) {
     // Intentionally empty.
     return this;

@@ -26,14 +26,14 @@ public class ArtProfileRewritingCfInstructionDesugaringEventConsumer
     extends CfInstructionDesugaringEventConsumer {
 
   private final AppView<?> appView;
-  private final ConcreteArtProfileCollectionAdditions additionsCollection;
+  private final ConcreteProfileCollectionAdditions additionsCollection;
   private final CfInstructionDesugaringEventConsumer parent;
 
   private final NestBasedAccessDesugaringEventConsumer nestBasedAccessDesugaringEventConsumer;
 
   private ArtProfileRewritingCfInstructionDesugaringEventConsumer(
       AppView<?> appView,
-      ConcreteArtProfileCollectionAdditions additionsCollection,
+      ConcreteProfileCollectionAdditions additionsCollection,
       CfInstructionDesugaringEventConsumer parent) {
     this.appView = appView;
     this.additionsCollection = additionsCollection;
@@ -45,13 +45,13 @@ public class ArtProfileRewritingCfInstructionDesugaringEventConsumer
 
   public static CfInstructionDesugaringEventConsumer attach(
       AppView<?> appView,
-      ArtProfileCollectionAdditions artProfileCollectionAdditions,
+      ProfileCollectionAdditions profileCollectionAdditions,
       CfInstructionDesugaringEventConsumer eventConsumer) {
-    if (artProfileCollectionAdditions.isNop()) {
+    if (profileCollectionAdditions.isNop()) {
       return eventConsumer;
     }
     return new ArtProfileRewritingCfInstructionDesugaringEventConsumer(
-        appView, artProfileCollectionAdditions.asConcrete(), eventConsumer);
+        appView, profileCollectionAdditions.asConcrete(), eventConsumer);
   }
 
   @Override

@@ -26,12 +26,12 @@ import java.util.concurrent.ExecutionException;
 public class ArtProfileRewritingCfPostProcessingDesugaringEventConsumer
     extends CfPostProcessingDesugaringEventConsumer {
 
-  private final ConcreteArtProfileCollectionAdditions additionsCollection;
+  private final ConcreteProfileCollectionAdditions additionsCollection;
   private final ArtProfileOptions options;
   private final CfPostProcessingDesugaringEventConsumer parent;
 
   private ArtProfileRewritingCfPostProcessingDesugaringEventConsumer(
-      ConcreteArtProfileCollectionAdditions additionsCollection,
+      ConcreteProfileCollectionAdditions additionsCollection,
       ArtProfileOptions options,
       CfPostProcessingDesugaringEventConsumer parent) {
     this.additionsCollection = additionsCollection;
@@ -41,13 +41,13 @@ public class ArtProfileRewritingCfPostProcessingDesugaringEventConsumer
 
   public static CfPostProcessingDesugaringEventConsumer attach(
       AppView<?> appView,
-      ArtProfileCollectionAdditions artProfileCollectionAdditions,
+      ProfileCollectionAdditions profileCollectionAdditions,
       CfPostProcessingDesugaringEventConsumer eventConsumer) {
-    if (artProfileCollectionAdditions.isNop()) {
+    if (profileCollectionAdditions.isNop()) {
       return eventConsumer;
     }
     return new ArtProfileRewritingCfPostProcessingDesugaringEventConsumer(
-        artProfileCollectionAdditions.asConcrete(),
+        profileCollectionAdditions.asConcrete(),
         appView.options().getArtProfileOptions(),
         eventConsumer);
   }
