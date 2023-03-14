@@ -8,7 +8,7 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.profile.art.ArtProfileCollection;
-import com.android.tools.r8.profile.art.rewriting.ArtProfileAdditions.ArtProfileAdditionsBuilder;
+import com.android.tools.r8.profile.art.rewriting.ProfileAdditions.ProfileAdditionsBuilder;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
@@ -38,7 +38,7 @@ public abstract class ArtProfileCollectionAdditions {
   public abstract void addMethodIfContextIsInProfile(ProgramMethod method, ProgramMethod context);
 
   public abstract void applyIfContextIsInProfile(
-      DexMethod context, Consumer<ArtProfileAdditionsBuilder> builderConsumer);
+      DexMethod context, Consumer<ProfileAdditionsBuilder> builderConsumer);
 
   public abstract void commit(AppView<?> appView);
 

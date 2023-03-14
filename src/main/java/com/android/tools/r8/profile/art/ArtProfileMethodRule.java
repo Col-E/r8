@@ -6,14 +6,16 @@ package com.android.tools.r8.profile.art;
 
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
+import com.android.tools.r8.profile.AbstractProfileMethodRule;
 import com.android.tools.r8.references.MethodReference;
 import com.android.tools.r8.utils.MethodReferenceUtils;
 import com.android.tools.r8.utils.ThrowingConsumer;
+import com.android.tools.r8.utils.ThrowingFunction;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.util.function.Consumer;
 
-public class ArtProfileMethodRule extends ArtProfileRule {
+public class ArtProfileMethodRule extends ArtProfileRule implements AbstractProfileMethodRule {
 
   private final DexMethod method;
   private final ArtProfileMethodRuleInfoImpl info;
@@ -39,6 +41,14 @@ public class ArtProfileMethodRule extends ArtProfileRule {
     methodRuleConsumer.accept(this);
   }
 
+  @Override
+  public <T, E1 extends Exception, E2 extends Exception> T apply(
+      ThrowingFunction<ArtProfileClassRule, T, E1> classRuleFunction,
+      ThrowingFunction<ArtProfileMethodRule, T, E2> methodRuleFunction)
+      throws E2 {
+    return methodRuleFunction.apply(this);
+  }
+
   public DexMethod getMethod() {
     return method;
   }
@@ -54,16 +64,6 @@ public class ArtProfileMethodRule extends ArtProfileRule {
   @Override
   public DexMethod getReference() {
     return getMethod();
-  }
-
-  @Override
-  public boolean isMethodRule() {
-    return true;
-  }
-
-  @Override
-  public ArtProfileMethodRule asMethodRule() {
-    return this;
   }
 
   @Override
@@ -97,7 +97,8 @@ public class ArtProfileMethodRule extends ArtProfileRule {
   }
 
   public static class Builder extends ArtProfileRule.Builder
-      implements ArtProfileMethodRuleBuilder {
+      implements ArtProfileMethodRuleBuilder,
+          AbstractProfileMethodRule.Builder<ArtProfileMethodRule, Builder> {
 
     private final DexItemFactory dexItemFactory;
 
@@ -118,12 +119,24 @@ public class ArtProfileMethodRule extends ArtProfileRule {
     }
 
     @Override
-    public boolean isMethodRuleBuilder() {
-      return true;
+    public boolean isGreaterThanOrEqualTo(Builder builder) {
+      return methodRuleInfoBuilder.isGreaterThanOrEqualTo(builder.methodRuleInfoBuilder);
     }
 
     @Override
     Builder asMethodRuleBuilder() {
+      return this;
+    }
+
+    @Override
+    public Builder join(Builder builder) {
+      methodRuleInfoBuilder.joinFlags(builder);
+      return this;
+    }
+
+    @Override
+    public Builder join(ArtProfileMethodRule methodRule) {
+      methodRuleInfoBuilder.joinFlags(methodRule.getMethodRuleInfo());
       return this;
     }
 
@@ -133,6 +146,7 @@ public class ArtProfileMethodRule extends ArtProfileRule {
       return setMethod(MethodReferenceUtils.toDexMethod(methodReference, dexItemFactory));
     }
 
+    @Override
     public Builder setMethod(DexMethod method) {
       this.method = method;
       return this;

@@ -19,6 +19,8 @@ import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.PrunedItems;
 import com.android.tools.r8.ir.optimize.enums.EnumUnboxingLens;
 import com.android.tools.r8.naming.NamingLens;
+import com.android.tools.r8.profile.AbstractProfile;
+import com.android.tools.r8.profile.AbstractProfileRule;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.Reporter;
 import com.android.tools.r8.utils.ThrowingConsumer;
@@ -33,7 +35,7 @@ import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
-public class ArtProfile {
+public class ArtProfile implements AbstractProfile<ArtProfileClassRule, ArtProfileMethodRule> {
 
   private final Map<DexReference, ArtProfileRule> rules;
 
@@ -50,10 +52,12 @@ public class ArtProfile {
     return new Builder(artProfileProvider, options);
   }
 
+  @Override
   public boolean containsClassRule(DexType type) {
     return rules.containsKey(type);
   }
 
+  @Override
   public boolean containsMethodRule(DexMethod method) {
     return rules.containsKey(method);
   }
@@ -65,6 +69,7 @@ public class ArtProfile {
     }
   }
 
+  @Override
   public <E1 extends Exception, E2 extends Exception> void forEachRule(
       ThrowingConsumer<ArtProfileClassRule, E1> classRuleConsumer,
       ThrowingConsumer<ArtProfileMethodRule, E2> methodRuleConsumer)
@@ -74,10 +79,12 @@ public class ArtProfile {
     }
   }
 
+  @Override
   public ArtProfileClassRule getClassRule(DexType type) {
     return (ArtProfileClassRule) rules.get(type);
   }
 
+  @Override
   public ArtProfileMethodRule getMethodRule(DexMethod method) {
     return (ArtProfileMethodRule) rules.get(method);
   }
@@ -259,7 +266,9 @@ public class ArtProfile {
                 methodRule.getMethodReference(), methodRule.getMethodRuleInfo()));
   }
 
-  public static class Builder implements ArtProfileBuilder {
+  public static class Builder
+      implements ArtProfileBuilder,
+          AbstractProfile.Builder<ArtProfileClassRule, ArtProfileMethodRule, ArtProfile, Builder> {
 
     private final ArtProfileProvider artProfileProvider;
     private final DexItemFactory dexItemFactory;
@@ -281,17 +290,32 @@ public class ArtProfile {
       this.reporter = options.reporter;
     }
 
-    public Builder addRule(ArtProfileRule rule) {
-      assert !rules.containsKey(rule.getReference());
-      rule.accept(
-          classRule -> rules.put(classRule.getType(), classRule),
-          methodRule -> rules.put(methodRule.getMethod(), methodRule));
+    @Override
+    public Builder addRule(AbstractProfileRule rule) {
+      if (rule instanceof ArtProfileClassRule) {
+        return addClassRule((ArtProfileClassRule) rule);
+      } else {
+        assert rule instanceof ArtProfileMethodRule;
+        return addMethodRule((ArtProfileMethodRule) rule);
+      }
+    }
+
+    @Override
+    public Builder addClassRule(ArtProfileClassRule classRule) {
+      assert !rules.containsKey(classRule.getReference());
+      rules.put(classRule.getType(), classRule);
       return this;
     }
 
-    public Builder addRules(Collection<ArtProfileRule> rules) {
-      rules.forEach(this::addRule);
+    @Override
+    public Builder addMethodRule(ArtProfileMethodRule methodRule) {
+      assert !rules.containsKey(methodRule.getReference());
+      rules.put(methodRule.getMethod(), methodRule);
       return this;
+    }
+
+    public Builder addRule(ArtProfileRule rule) {
+      return rule.apply(this::addClassRule, this::addMethodRule);
     }
 
     public Builder addRuleBuilders(Collection<ArtProfileRule.Builder> ruleBuilders) {
@@ -303,14 +327,14 @@ public class ArtProfile {
     public Builder addClassRule(Consumer<ArtProfileClassRuleBuilder> classRuleBuilderConsumer) {
       ArtProfileClassRule.Builder classRuleBuilder = ArtProfileClassRule.builder(dexItemFactory);
       classRuleBuilderConsumer.accept(classRuleBuilder);
-      return addRule(classRuleBuilder.build());
+      return addClassRule(classRuleBuilder.build());
     }
 
     @Override
     public Builder addMethodRule(Consumer<ArtProfileMethodRuleBuilder> methodRuleBuilderConsumer) {
       ArtProfileMethodRule.Builder methodRuleBuilder = ArtProfileMethodRule.builder(dexItemFactory);
       methodRuleBuilderConsumer.accept(methodRuleBuilder);
-      return addRule(methodRuleBuilder.build());
+      return addMethodRule(methodRuleBuilder.build());
     }
 
     @Override
@@ -328,6 +352,7 @@ public class ArtProfile {
       return this;
     }
 
+    @Override
     public ArtProfile build() {
       return new ArtProfile(rules);
     }

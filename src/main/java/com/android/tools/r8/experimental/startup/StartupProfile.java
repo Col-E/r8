@@ -110,9 +110,8 @@ public abstract class StartupProfile {
       MissingStartupProfileItemsDiagnostic.Builder missingItemsDiagnosticBuilder =
           new MissingStartupProfileItemsDiagnostic.Builder(definitions)
               .setOrigin(startupProfileProvider.getOrigin());
-      NonEmptyStartupProfile.Builder startupProfileBuilder =
-          NonEmptyStartupProfile.builder(
-              options, missingItemsDiagnosticBuilder, startupProfileProvider);
+      StartupProfile.Builder startupProfileBuilder =
+          StartupProfile.builder(options, missingItemsDiagnosticBuilder, startupProfileProvider);
       startupProfileProvider.getStartupProfile(startupProfileBuilder);
       startupProfiles.add(startupProfileBuilder.build());
       if (missingItemsDiagnosticBuilder.hasMissingStartupItems()) {

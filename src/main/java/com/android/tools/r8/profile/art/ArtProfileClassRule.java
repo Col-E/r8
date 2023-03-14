@@ -5,15 +5,16 @@
 package com.android.tools.r8.profile.art;
 
 import com.android.tools.r8.graph.DexItemFactory;
-import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.profile.AbstractProfileClassRule;
 import com.android.tools.r8.references.ClassReference;
 import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.utils.ThrowingConsumer;
+import com.android.tools.r8.utils.ThrowingFunction;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
 
-public class ArtProfileClassRule extends ArtProfileRule {
+public class ArtProfileClassRule extends ArtProfileRule implements AbstractProfileClassRule {
 
   private final DexType type;
 
@@ -37,6 +38,14 @@ public class ArtProfileClassRule extends ArtProfileRule {
     classRuleConsumer.accept(this);
   }
 
+  @Override
+  public <T, E1 extends Exception, E2 extends Exception> T apply(
+      ThrowingFunction<ArtProfileClassRule, T, E1> classRuleFunction,
+      ThrowingFunction<ArtProfileMethodRule, T, E2> methodRuleFunction)
+      throws E1 {
+    return classRuleFunction.apply(this);
+  }
+
   public ClassReference getClassReference() {
     return Reference.classFromDescriptor(type.toDescriptorString());
   }
@@ -46,22 +55,12 @@ public class ArtProfileClassRule extends ArtProfileRule {
   }
 
   @Override
-  public DexReference getReference() {
+  public DexType getReference() {
     return getType();
   }
 
   public DexType getType() {
     return type;
-  }
-
-  @Override
-  public boolean isClassRule() {
-    return true;
-  }
-
-  @Override
-  public ArtProfileClassRule asClassRule() {
-    return this;
   }
 
   @Override
@@ -91,7 +90,8 @@ public class ArtProfileClassRule extends ArtProfileRule {
     return type.toDescriptorString();
   }
 
-  public static class Builder extends ArtProfileRule.Builder implements ArtProfileClassRuleBuilder {
+  public static class Builder extends ArtProfileRule.Builder
+      implements ArtProfileClassRuleBuilder, AbstractProfileClassRule.Builder<ArtProfileClassRule> {
 
     private final DexItemFactory dexItemFactory;
     private DexType type;
@@ -102,11 +102,6 @@ public class ArtProfileClassRule extends ArtProfileRule {
 
     Builder(DexItemFactory dexItemFactory) {
       this.dexItemFactory = dexItemFactory;
-    }
-
-    @Override
-    public boolean isClassRuleBuilder() {
-      return true;
     }
 
     @Override

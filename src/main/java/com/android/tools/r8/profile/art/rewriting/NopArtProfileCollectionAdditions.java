@@ -8,7 +8,7 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.profile.art.ArtProfileCollection;
-import com.android.tools.r8.profile.art.rewriting.ArtProfileAdditions.ArtProfileAdditionsBuilder;
+import com.android.tools.r8.profile.art.rewriting.ProfileAdditions.ProfileAdditionsBuilder;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
@@ -30,7 +30,7 @@ public class NopArtProfileCollectionAdditions extends ArtProfileCollectionAdditi
 
   @Override
   public void applyIfContextIsInProfile(
-      DexMethod context, Consumer<ArtProfileAdditionsBuilder> builderConsumer) {
+      DexMethod context, Consumer<ProfileAdditionsBuilder> builderConsumer) {
     // Intentionally empty.
   }
 

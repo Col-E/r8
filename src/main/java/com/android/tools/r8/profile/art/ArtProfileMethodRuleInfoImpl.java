@@ -105,6 +105,10 @@ public class ArtProfileMethodRuleInfoImpl implements ArtProfileMethodRuleInfo {
       return flags;
     }
 
+    public boolean isGreaterThanOrEqualTo(Builder builder) {
+      return flags == (flags | builder.flags);
+    }
+
     public Builder merge(ArtProfileMethodRuleInfo methodRuleInfo) {
       if (methodRuleInfo.isHot()) {
         setIsHot();

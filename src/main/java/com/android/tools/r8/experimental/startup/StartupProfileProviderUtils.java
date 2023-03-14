@@ -6,7 +6,6 @@ package com.android.tools.r8.experimental.startup;
 
 import static com.android.tools.r8.utils.ConsumerUtils.emptyConsumer;
 
-import com.android.tools.r8.experimental.startup.profile.NonEmptyStartupProfile;
 import com.android.tools.r8.experimental.startup.profile.StartupItem;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.origin.PathOrigin;
@@ -54,9 +53,8 @@ public class StartupProfileProviderUtils {
     // Do not report missing items.
     MissingStartupProfileItemsDiagnostic.Builder missingItemsDiagnosticBuilder =
         MissingStartupProfileItemsDiagnostic.Builder.nop();
-    NonEmptyStartupProfile.Builder startupProfileBuilder =
-        NonEmptyStartupProfile.builder(
-            options, missingItemsDiagnosticBuilder, startupProfileProvider);
+    StartupProfile.Builder startupProfileBuilder =
+        StartupProfile.builder(options, missingItemsDiagnosticBuilder, startupProfileProvider);
     // Do not report warnings for lines that cannot be parsed.
     startupProfileBuilder.setIgnoreWarnings();
     // Populate the startup profile builder.

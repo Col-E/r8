@@ -5,15 +5,22 @@
 package com.android.tools.r8.profile.art;
 
 import com.android.tools.r8.graph.DexReference;
+import com.android.tools.r8.profile.AbstractProfileRule;
 import com.android.tools.r8.utils.ThrowingConsumer;
+import com.android.tools.r8.utils.ThrowingFunction;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
 
-public abstract class ArtProfileRule implements Comparable<ArtProfileRule> {
+public abstract class ArtProfileRule implements Comparable<ArtProfileRule>, AbstractProfileRule {
 
   public abstract <E1 extends Exception, E2 extends Exception> void accept(
       ThrowingConsumer<ArtProfileClassRule, E1> classRuleConsumer,
       ThrowingConsumer<ArtProfileMethodRule, E2> methodRuleConsumer)
+      throws E1, E2;
+
+  public abstract <T, E1 extends Exception, E2 extends Exception> T apply(
+      ThrowingFunction<ArtProfileClassRule, T, E1> classRuleFunction,
+      ThrowingFunction<ArtProfileMethodRule, T, E2> methodRuleFunction)
       throws E1, E2;
 
   @Override
@@ -23,36 +30,12 @@ public abstract class ArtProfileRule implements Comparable<ArtProfileRule> {
 
   public abstract DexReference getReference();
 
-  public boolean isClassRule() {
-    return false;
-  }
-
-  public ArtProfileClassRule asClassRule() {
-    return null;
-  }
-
-  public boolean isMethodRule() {
-    return false;
-  }
-
-  public ArtProfileMethodRule asMethodRule() {
-    return null;
-  }
-
   public abstract void writeHumanReadableRuleString(OutputStreamWriter writer) throws IOException;
 
   public abstract static class Builder {
 
-    public boolean isClassRuleBuilder() {
-      return false;
-    }
-
     ArtProfileClassRule.Builder asClassRuleBuilder() {
       return null;
-    }
-
-    public boolean isMethodRuleBuilder() {
-      return false;
     }
 
     ArtProfileMethodRule.Builder asMethodRuleBuilder() {

@@ -22,7 +22,6 @@ import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.dex.Marker;
 import com.android.tools.r8.dex.Marker.Tool;
 import com.android.tools.r8.experimental.startup.StartupProfile;
-import com.android.tools.r8.experimental.startup.profile.NonEmptyStartupProfile;
 import com.android.tools.r8.experimental.startup.profile.StartupItem;
 import com.android.tools.r8.origin.EmbeddedOrigin;
 import com.android.tools.r8.origin.Origin;
@@ -806,8 +805,8 @@ public class D8CommandTest extends CommandTestBase<D8Command> {
     MissingStartupProfileItemsDiagnostic.Builder missingStartupProfileItemsDiagnosticBuilder =
         MissingStartupProfileItemsDiagnostic.Builder.nop();
     StartupProfileProvider startupProfileProvider = startupProfileProviders.get(0);
-    NonEmptyStartupProfile.Builder startupProfileBuilder =
-        NonEmptyStartupProfile.builder(
+    StartupProfile.Builder startupProfileBuilder =
+        StartupProfile.builder(
             options, missingStartupProfileItemsDiagnosticBuilder, startupProfileProvider);
     startupProfileProvider.getStartupProfile(startupProfileBuilder);
 
