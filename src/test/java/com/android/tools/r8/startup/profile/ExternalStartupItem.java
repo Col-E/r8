@@ -10,6 +10,5 @@ public abstract class ExternalStartupItem {
 
   public abstract <T> T apply(
       Function<ExternalStartupClass, T> classFunction,
-      Function<ExternalStartupMethod, T> methodFunction,
-      Function<ExternalSyntheticStartupMethod, T> syntheticMethodFunction);
+      Function<ExternalStartupMethod, T> methodFunction);
 }

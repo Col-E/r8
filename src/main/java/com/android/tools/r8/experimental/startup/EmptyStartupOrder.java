@@ -19,12 +19,12 @@ public class EmptyStartupOrder extends StartupOrder {
   EmptyStartupOrder() {}
 
   @Override
-  public boolean contains(DexMethod method, SyntheticItems syntheticItems) {
+  public boolean contains(DexMethod method) {
     return false;
   }
 
   @Override
-  public boolean contains(DexType type, SyntheticItems syntheticItems) {
+  public boolean contains(DexType type) {
     return false;
   }
 

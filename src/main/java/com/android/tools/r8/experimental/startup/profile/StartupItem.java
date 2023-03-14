@@ -4,20 +4,19 @@
 
 package com.android.tools.r8.experimental.startup.profile;
 
+import com.android.tools.r8.graph.DexReference;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
 public abstract class StartupItem {
 
   public abstract void accept(
-      Consumer<StartupClass> classConsumer,
-      Consumer<StartupMethod> methodConsumer,
-      Consumer<SyntheticStartupMethod> syntheticMethodConsumer);
+      Consumer<StartupClass> classConsumer, Consumer<StartupMethod> methodConsumer);
 
   public abstract <T> T apply(
-      Function<StartupClass, T> classFunction,
-      Function<StartupMethod, T> methodFunction,
-      Function<SyntheticStartupMethod, T> syntheticMethodFunction);
+      Function<StartupClass, T> classFunction, Function<StartupMethod, T> methodFunction);
+
+  public abstract DexReference getReference();
 
   public boolean isStartupClass() {
     return false;
@@ -33,15 +32,6 @@ public abstract class StartupItem {
   }
 
   public StartupMethod asStartupMethod() {
-    assert false;
-    return null;
-  }
-
-  public boolean isSyntheticStartupMethod() {
-    return false;
-  }
-
-  public SyntheticStartupMethod asSyntheticStartupMethod() {
     assert false;
     return null;
   }

@@ -29,21 +29,17 @@ public class StartupMethod extends StartupItem {
   }
 
   @Override
-  public void accept(
-      Consumer<StartupClass> classConsumer,
-      Consumer<StartupMethod> methodConsumer,
-      Consumer<SyntheticStartupMethod> syntheticMethodConsumer) {
+  public void accept(Consumer<StartupClass> classConsumer, Consumer<StartupMethod> methodConsumer) {
     methodConsumer.accept(this);
   }
 
   @Override
   public <T> T apply(
-      Function<StartupClass, T> classFunction,
-      Function<StartupMethod, T> methodFunction,
-      Function<SyntheticStartupMethod, T> syntheticMethodFunction) {
+      Function<StartupClass, T> classFunction, Function<StartupMethod, T> methodFunction) {
     return methodFunction.apply(this);
   }
 
+  @Override
   public DexMethod getReference() {
     return method;
   }

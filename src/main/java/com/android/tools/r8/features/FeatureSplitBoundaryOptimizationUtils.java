@@ -67,33 +67,31 @@ public class FeatureSplitBoundaryOptimizationUtils {
 
     // Next perform startup checks.
     StartupOrder startupOrder = appView.getStartupOrder();
-    SyntheticItems syntheticItems = appView.getSyntheticItems();
-    OptionalBool callerIsStartupMethod = isStartupMethod(caller, startupOrder, syntheticItems);
+    OptionalBool callerIsStartupMethod = isStartupMethod(caller, startupOrder);
     if (callerIsStartupMethod.isTrue()) {
       // If the caller is a startup method, then only allow inlining if the callee is also a startup
       // method.
-      if (isStartupMethod(callee, startupOrder, syntheticItems).isFalse()) {
+      if (isStartupMethod(callee, startupOrder).isFalse()) {
         return false;
       }
     } else if (callerIsStartupMethod.isFalse()) {
       // If the caller is not a startup method, then only allow inlining if the caller is not a
       // startup class or the callee is a startup class.
-      if (startupOrder.contains(caller.getHolderType(), syntheticItems)
-          && !startupOrder.contains(callee.getHolderType(), syntheticItems)) {
+      if (startupOrder.contains(caller.getHolderType())
+          && !startupOrder.contains(callee.getHolderType())) {
         return false;
       }
     }
     return true;
   }
 
-  private static OptionalBool isStartupMethod(
-      ProgramMethod method, StartupOrder startupOrder, SyntheticItems syntheticItems) {
+  private static OptionalBool isStartupMethod(ProgramMethod method, StartupOrder startupOrder) {
     if (method.getDefinition().isD8R8Synthesized()) {
       // Due to inadequate rewriting of the startup list during desugaring, we do not give an
       // accurate result in this case.
       return OptionalBool.unknown();
     }
-    return OptionalBool.of(startupOrder.contains(method.getReference(), syntheticItems));
+    return OptionalBool.of(startupOrder.contains(method.getReference()));
   }
 
   public static boolean isSafeForVerticalClassMerging(
@@ -116,9 +114,8 @@ public class FeatureSplitBoundaryOptimizationUtils {
     // If the source class is a startup class then require that the target class is also a startup
     // class.
     StartupOrder startupOrder = appView.getStartupOrder();
-    SyntheticItems syntheticItems = appView.getSyntheticItems();
-    if (startupOrder.contains(sourceClass.getType(), syntheticItems)
-        && !startupOrder.contains(targetClass.getType(), syntheticItems)) {
+    if (startupOrder.contains(sourceClass.getType())
+        && !startupOrder.contains(targetClass.getType())) {
       return false;
     }
     return true;

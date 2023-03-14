@@ -88,12 +88,7 @@ public class StartupMixedSectionLayoutStrategy extends DefaultMixedSectionLayout
               collectStartupItems(startupClass, indexedItemCollection, virtualFileDefinitions),
           startupMethod ->
               collectStartupItems(
-                  startupMethod, indexedItemCollection, virtualFileDefinitions, rewriter),
-          syntheticStartupMethod -> {
-            // All synthetic startup items should be removed after calling
-            // StartupOrder#toStartupOrderForWriting.
-            assert false;
-          });
+                  startupMethod, indexedItemCollection, virtualFileDefinitions, rewriter));
     }
   }
 

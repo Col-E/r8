@@ -175,7 +175,7 @@ public class ClassToFeatureSplitMap {
       feature = classToFeatureSplitMap.getOrDefault(type, FeatureSplit.BASE);
     }
     if (feature.isBase()) {
-      return !startupOrder.contains(type, syntheticItems)
+      return !startupOrder.contains(type)
               || options.getStartupOptions().isStartupBoundaryOptimizationsEnabled()
           ? FeatureSplit.BASE
           : FeatureSplit.BASE_STARTUP;

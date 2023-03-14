@@ -23,8 +23,7 @@ public class ExternalStartupClass extends ExternalStartupItem {
   @Override
   public <T> T apply(
       Function<ExternalStartupClass, T> classFunction,
-      Function<ExternalStartupMethod, T> methodFunction,
-      Function<ExternalSyntheticStartupMethod, T> syntheticMethodFunction) {
+      Function<ExternalStartupMethod, T> methodFunction) {
     return classFunction.apply(this);
   }
 

@@ -43,26 +43,16 @@ class CompileDumpUtils {
           try (BufferedReader bufferedReader = Files.newBufferedReader(path)) {
             while (bufferedReader.ready()) {
               String rule = bufferedReader.readLine();
-              if (rule.charAt(0) == 'S') {
-                String classDescriptor = rule.substring(1);
-                assert DescriptorUtils.isClassDescriptor(classDescriptor);
-                startupProfileBuilder.addSyntheticStartupMethod(
-                    syntheticStartupMethodBuilder ->
-                        syntheticStartupMethodBuilder.setSyntheticContextReference(
-                            Reference.classFromDescriptor(classDescriptor)));
+              MethodReference methodReference = MethodReferenceUtils.parseSmaliString(rule);
+              if (methodReference != null) {
+                startupProfileBuilder.addStartupMethod(
+                    startupMethodBuilder ->
+                        startupMethodBuilder.setMethodReference(methodReference));
               } else {
-                MethodReference methodReference = MethodReferenceUtils.parseSmaliString(rule);
-                if (methodReference != null) {
-                  startupProfileBuilder.addStartupMethod(
-                      startupMethodBuilder ->
-                          startupMethodBuilder.setMethodReference(methodReference));
-                } else {
-                  assert DescriptorUtils.isClassDescriptor(rule);
-                  startupProfileBuilder.addStartupClass(
-                      startupClassBuilder ->
-                          startupClassBuilder.setClassReference(
-                              Reference.classFromDescriptor(rule)));
-                }
+                assert DescriptorUtils.isClassDescriptor(rule);
+                startupProfileBuilder.addStartupClass(
+                    startupClassBuilder ->
+                        startupClassBuilder.setClassReference(Reference.classFromDescriptor(rule)));
               }
             }
           }

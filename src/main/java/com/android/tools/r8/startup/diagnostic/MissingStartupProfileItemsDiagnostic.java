@@ -8,7 +8,6 @@ import com.android.tools.r8.Diagnostic;
 import com.android.tools.r8.Keep;
 import com.android.tools.r8.experimental.startup.profile.StartupClass;
 import com.android.tools.r8.experimental.startup.profile.StartupMethod;
-import com.android.tools.r8.experimental.startup.profile.SyntheticStartupMethod;
 import com.android.tools.r8.graph.DexDefinitionSupplier;
 import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexString;
@@ -97,15 +96,6 @@ public class MissingStartupProfileItemsDiagnostic implements Diagnostic {
     public boolean registerStartupMethod(StartupMethod startupMethod) {
       if (definitions != null && !definitions.hasDefinitionFor(startupMethod.getReference())) {
         addMissingStartupItem(startupMethod.getReference());
-        return true;
-      }
-      return false;
-    }
-
-    public boolean registerSyntheticStartupMethod(SyntheticStartupMethod syntheticStartupMethod) {
-      if (definitions != null
-          && !definitions.hasDefinitionFor(syntheticStartupMethod.getSyntheticContextType())) {
-        addMissingStartupItem(syntheticStartupMethod.getSyntheticContextType());
         return true;
       }
       return false;

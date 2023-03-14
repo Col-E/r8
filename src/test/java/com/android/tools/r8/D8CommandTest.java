@@ -26,7 +26,6 @@ import com.android.tools.r8.experimental.startup.profile.StartupMethod;
 import com.android.tools.r8.experimental.startup.profile.StartupProfile;
 import com.android.tools.r8.origin.EmbeddedOrigin;
 import com.android.tools.r8.origin.Origin;
-import com.android.tools.r8.profile.art.ArtProfileBuilderUtils.SyntheticToSyntheticContextGeneralization;
 import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.startup.StartupProfileProvider;
 import com.android.tools.r8.startup.diagnostic.MissingStartupProfileItemsDiagnostic;
@@ -807,14 +806,9 @@ public class D8CommandTest extends CommandTestBase<D8Command> {
     MissingStartupProfileItemsDiagnostic.Builder missingStartupProfileItemsDiagnosticBuilder =
         MissingStartupProfileItemsDiagnostic.Builder.nop();
     StartupProfileProvider startupProfileProvider = startupProfileProviders.get(0);
-    SyntheticToSyntheticContextGeneralization syntheticToSyntheticContextGeneralization =
-        SyntheticToSyntheticContextGeneralization.createForD8();
     StartupProfile.Builder startupProfileBuilder =
         StartupProfile.builder(
-            options,
-            missingStartupProfileItemsDiagnosticBuilder,
-            startupProfileProvider,
-            syntheticToSyntheticContextGeneralization);
+            options, missingStartupProfileItemsDiagnosticBuilder, startupProfileProvider);
     startupProfileProvider.getStartupProfile(startupProfileBuilder);
 
     // Verify we found the same rule.

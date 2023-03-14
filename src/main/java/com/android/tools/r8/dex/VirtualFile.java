@@ -30,7 +30,6 @@ import com.android.tools.r8.ir.conversion.LensCodeRewriterUtils;
 import com.android.tools.r8.naming.ClassNameMapper;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.shaking.MainDexInfo;
-import com.android.tools.r8.synthesis.SyntheticItems;
 import com.android.tools.r8.synthesis.SyntheticNaming;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.FileUtils;
@@ -1279,12 +1278,11 @@ public class VirtualFile {
       public static PackageSplitClassPartioning create(
           Collection<DexProgramClass> classes,
           Map<DexProgramClass, String> originalNames,
-          StartupOrder startupOrder,
-          SyntheticItems syntheticItems) {
+          StartupOrder startupOrder) {
         return create(
             classes,
             getClassesByPackageComparator(originalNames),
-            getStartupClassPredicate(startupOrder, syntheticItems));
+            getStartupClassPredicate(startupOrder));
       }
 
       private static PackageSplitClassPartioning create(
@@ -1335,8 +1333,8 @@ public class VirtualFile {
       }
 
       private static Predicate<DexProgramClass> getStartupClassPredicate(
-          StartupOrder startupOrder, SyntheticItems syntheticItems) {
-        return clazz -> startupOrder.contains(clazz.getType(), syntheticItems);
+          StartupOrder startupOrder) {
+        return clazz -> startupOrder.contains(clazz.getType());
       }
 
       public List<DexProgramClass> getStartupClasses() {
@@ -1375,8 +1373,7 @@ public class VirtualFile {
         StartupOrder startupOrder,
         IntBox nextFileId) {
       this.classPartioning =
-          PackageSplitClassPartioning.create(
-              classes, originalNames, startupOrder, appView.getSyntheticItems());
+          PackageSplitClassPartioning.create(classes, originalNames, startupOrder);
       this.originalNames = originalNames;
       this.dexItemFactory = appView.dexItemFactory();
       this.options = appView.options();

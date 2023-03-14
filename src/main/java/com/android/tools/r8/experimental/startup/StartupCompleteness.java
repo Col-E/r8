@@ -9,17 +9,12 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexReference;
-import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.ThrowNullCode;
-import com.android.tools.r8.profile.art.ArtProfileBuilderUtils.SyntheticToSyntheticContextGeneralization;
 import com.android.tools.r8.utils.InternalOptions;
 import com.google.common.collect.Sets;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceMaps;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
 public class StartupCompleteness {
@@ -28,16 +23,11 @@ public class StartupCompleteness {
   private final StartupOrder startupOrder;
 
   private StartupCompleteness(AppView<?> appView) {
-    SyntheticToSyntheticContextGeneralization syntheticToSyntheticContextGeneralization =
-        appView.enableWholeProgramOptimizations()
-            ? SyntheticToSyntheticContextGeneralization.createForR8()
-            : SyntheticToSyntheticContextGeneralization.createForD8();
     this.appView = appView;
     this.startupOrder =
         appView.hasClassHierarchy()
             ? appView.getStartupOrder()
-            : StartupOrder.createInitialStartupOrder(
-                appView.options(), null, syntheticToSyntheticContextGeneralization);
+            : StartupOrder.createInitialStartupOrder(appView.options(), null);
   }
 
   /**
@@ -82,22 +72,10 @@ public class StartupCompleteness {
 
   private Set<DexReference> computeStartupItems() {
     Set<DexReference> startupItems = Sets.newIdentityHashSet();
-    Map<DexType, List<DexProgramClass>> syntheticContextsToSyntheticClasses =
-        appView.getSyntheticItems().computeSyntheticContextsToSyntheticClasses(appView);
     for (StartupItem startupItem : startupOrder.getItems()) {
       startupItem.accept(
           startupClass -> startupItems.add(startupClass.getReference()),
-          startupMethod -> startupItems.add(startupMethod.getReference()),
-          syntheticStartupMethod -> {
-            List<DexProgramClass> syntheticClasses =
-                syntheticContextsToSyntheticClasses.getOrDefault(
-                    syntheticStartupMethod.getSyntheticContextType(), Collections.emptyList());
-            for (DexProgramClass syntheticClass : syntheticClasses) {
-              startupItems.add(syntheticClass.getType());
-              syntheticClass.forEachProgramMethod(
-                  method -> startupItems.add(method.getReference()));
-            }
-          });
+          startupMethod -> startupItems.add(startupMethod.getReference()));
     }
     return startupItems;
   }

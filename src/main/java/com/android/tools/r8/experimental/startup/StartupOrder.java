@@ -10,49 +10,48 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexDefinitionSupplier;
 import com.android.tools.r8.graph.DexMethod;
+import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.PrunedItems;
-import com.android.tools.r8.profile.art.ArtProfileBuilderUtils.SyntheticToSyntheticContextGeneralization;
 import com.android.tools.r8.synthesis.SyntheticItems;
 import com.android.tools.r8.utils.InternalOptions;
 import java.util.Collection;
-import java.util.LinkedHashSet;
+import java.util.LinkedHashMap;
 
 public abstract class StartupOrder {
 
   StartupOrder() {}
 
   public static StartupOrder createInitialStartupOrder(
-      InternalOptions options,
-      DexDefinitionSupplier definitions,
-      SyntheticToSyntheticContextGeneralization syntheticToSyntheticContextGeneralization) {
-    StartupProfile startupProfile =
-        StartupProfile.parseStartupProfile(
-            options, definitions, syntheticToSyntheticContextGeneralization);
+      InternalOptions options, DexDefinitionSupplier definitions) {
+    StartupProfile startupProfile = StartupProfile.parseStartupProfile(options, definitions);
     if (startupProfile == null || startupProfile.getStartupItems().isEmpty()) {
       return empty();
     }
-    return new NonEmptyStartupOrder(new LinkedHashSet<>(startupProfile.getStartupItems()));
+    LinkedHashMap<DexReference, StartupItem> startupItems =
+        new LinkedHashMap<>(startupProfile.size());
+    for (StartupItem startupItem : startupProfile.getStartupItems()) {
+      startupItems.put(startupItem.getReference(), startupItem);
+    }
+    return new NonEmptyStartupOrder(new LinkedHashMap<>(startupItems));
   }
 
   public static StartupOrder createInitialStartupOrderForD8(AppView<?> appView) {
-    return createInitialStartupOrder(
-        appView.options(), appView, SyntheticToSyntheticContextGeneralization.createForD8());
+    return createInitialStartupOrder(appView.options(), appView);
   }
 
   public static StartupOrder createInitialStartupOrderForR8(DexApplication application) {
-    return createInitialStartupOrder(
-        application.options, application, SyntheticToSyntheticContextGeneralization.createForR8());
+    return createInitialStartupOrder(application.options, application);
   }
 
   public static StartupOrder empty() {
     return new EmptyStartupOrder();
   }
 
-  public abstract boolean contains(DexMethod method, SyntheticItems syntheticItems);
+  public abstract boolean contains(DexMethod method);
 
-  public abstract boolean contains(DexType type, SyntheticItems syntheticItems);
+  public abstract boolean contains(DexType type);
 
   public abstract Collection<StartupItem> getItems();
 

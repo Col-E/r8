@@ -21,18 +21,15 @@ import com.android.tools.r8.experimental.startup.instrumentation.StartupInstrume
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.profile.art.ArtProfileBuilder;
 import com.android.tools.r8.profile.art.ArtProfileBuilderUtils;
-import com.android.tools.r8.profile.art.ArtProfileBuilderUtils.SyntheticToSyntheticContextGeneralization;
 import com.android.tools.r8.profile.art.HumanReadableArtProfileParser;
 import com.android.tools.r8.profile.art.HumanReadableArtProfileParserBuilder;
 import com.android.tools.r8.startup.StartupClassBuilder;
 import com.android.tools.r8.startup.StartupMethodBuilder;
 import com.android.tools.r8.startup.StartupProfileBuilder;
 import com.android.tools.r8.startup.StartupProfileProvider;
-import com.android.tools.r8.startup.SyntheticStartupMethodBuilder;
 import com.android.tools.r8.startup.profile.ExternalStartupClass;
 import com.android.tools.r8.startup.profile.ExternalStartupItem;
 import com.android.tools.r8.startup.profile.ExternalStartupMethod;
-import com.android.tools.r8.startup.profile.ExternalSyntheticStartupMethod;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.Reporter;
 import com.android.tools.r8.utils.StringUtils;
@@ -49,8 +46,7 @@ public class StartupTestingUtils {
   private static String startupInstrumentationTag = "startup";
 
   private static ArtProfileBuilder createStartupItemFactory(
-      Consumer<ExternalStartupItem> startupItemConsumer,
-      SyntheticToSyntheticContextGeneralization syntheticToSyntheticContextGeneralization) {
+      Consumer<ExternalStartupItem> startupItemConsumer) {
     StartupProfileBuilder startupProfileBuilder =
         new StartupProfileBuilder() {
           @Override
@@ -72,16 +68,6 @@ public class StartupTestingUtils {
           }
 
           @Override
-          public StartupProfileBuilder addSyntheticStartupMethod(
-              Consumer<SyntheticStartupMethodBuilder> syntheticStartupMethodBuilderConsumer) {
-            ExternalSyntheticStartupMethod.Builder syntheticStartupMethodBuilder =
-                ExternalSyntheticStartupMethod.builder();
-            syntheticStartupMethodBuilderConsumer.accept(syntheticStartupMethodBuilder);
-            startupItemConsumer.accept(syntheticStartupMethodBuilder.build());
-            return this;
-          }
-
-          @Override
           public StartupProfileBuilder addHumanReadableArtProfile(
               TextInputStream textInputStream,
               Consumer<HumanReadableArtProfileParserBuilder> parserBuilderConsumer) {
@@ -90,8 +76,7 @@ public class StartupTestingUtils {
           }
         };
     return ArtProfileBuilderUtils.createBuilderForArtProfileToStartupProfileConversion(
-        startupProfileBuilder,
-        syntheticToSyntheticContextGeneralization);
+        startupProfileBuilder);
   }
 
   public static ThrowableConsumer<D8TestBuilder>
@@ -135,41 +120,29 @@ public class StartupTestingUtils {
   }
 
   public static void readStartupListFromFile(
-      Path path,
-      Consumer<ExternalStartupItem> startupItemConsumer,
-      SyntheticToSyntheticContextGeneralization syntheticToSyntheticContextGeneralization)
-      throws IOException {
+      Path path, Consumer<ExternalStartupItem> startupItemConsumer) throws IOException {
     TestDiagnosticMessagesImpl diagnostics = new TestDiagnosticMessagesImpl();
     HumanReadableArtProfileParser parser =
         HumanReadableArtProfileParser.builder()
             .setReporter(new Reporter(diagnostics))
-            .setProfileBuilder(
-                createStartupItemFactory(
-                    startupItemConsumer, syntheticToSyntheticContextGeneralization))
+            .setProfileBuilder(createStartupItemFactory(startupItemConsumer))
             .build();
     parser.parse(new UTF8TextInputStream(path), Origin.unknown());
     diagnostics.assertNoMessages();
   }
 
   public static ThrowingConsumer<D8TestRunResult, RuntimeException> removeStartupListFromStdout(
-      Consumer<ExternalStartupItem> startupItemConsumer,
-      SyntheticToSyntheticContextGeneralization syntheticToSyntheticContextGeneralization) {
-    return runResult ->
-        removeStartupListFromStdout(
-            runResult, startupItemConsumer, syntheticToSyntheticContextGeneralization);
+      Consumer<ExternalStartupItem> startupItemConsumer) {
+    return runResult -> removeStartupListFromStdout(runResult, startupItemConsumer);
   }
 
   public static void removeStartupListFromStdout(
-      D8TestRunResult runResult,
-      Consumer<ExternalStartupItem> startupItemConsumer,
-      SyntheticToSyntheticContextGeneralization syntheticToSyntheticContextGeneralization) {
+      D8TestRunResult runResult, Consumer<ExternalStartupItem> startupItemConsumer) {
     TestDiagnosticMessagesImpl diagnostics = new TestDiagnosticMessagesImpl();
     HumanReadableArtProfileParser parser =
         HumanReadableArtProfileParser.builder()
             .setReporter(new Reporter(diagnostics))
-            .setProfileBuilder(
-                createStartupItemFactory(
-                    startupItemConsumer, syntheticToSyntheticContextGeneralization))
+            .setProfileBuilder(createStartupItemFactory(startupItemConsumer))
             .build();
     StringBuilder stdoutBuilder = new StringBuilder();
     String startupDescriptorPrefix = "[" + startupInstrumentationTag + "] ";
@@ -202,12 +175,7 @@ public class StartupTestingUtils {
                       startupProfileBuilder.addStartupMethod(
                           startupMethodBuilder ->
                               startupMethodBuilder.setMethodReference(
-                                  startupMethod.getReference())),
-                  syntheticStartupMethod ->
-                      startupProfileBuilder.addSyntheticStartupMethod(
-                          syntheticStartupMethodBuilder ->
-                              syntheticStartupMethodBuilder.setSyntheticContextReference(
-                                  syntheticStartupMethod.getSyntheticContextReference())));
+                                  startupMethod.getReference())));
             }
           }
 

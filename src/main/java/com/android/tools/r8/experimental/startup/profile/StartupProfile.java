@@ -8,14 +8,12 @@ import com.android.tools.r8.TextInputStream;
 import com.android.tools.r8.graph.DexDefinitionSupplier;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.profile.art.ArtProfileBuilderUtils;
-import com.android.tools.r8.profile.art.ArtProfileBuilderUtils.SyntheticToSyntheticContextGeneralization;
 import com.android.tools.r8.profile.art.HumanReadableArtProfileParser;
 import com.android.tools.r8.profile.art.HumanReadableArtProfileParserBuilder;
 import com.android.tools.r8.startup.StartupClassBuilder;
 import com.android.tools.r8.startup.StartupMethodBuilder;
 import com.android.tools.r8.startup.StartupProfileBuilder;
 import com.android.tools.r8.startup.StartupProfileProvider;
-import com.android.tools.r8.startup.SyntheticStartupMethodBuilder;
 import com.android.tools.r8.startup.diagnostic.MissingStartupProfileItemsDiagnostic;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.Reporter;
@@ -36,13 +34,8 @@ public class StartupProfile {
   public static Builder builder(
       InternalOptions options,
       MissingStartupProfileItemsDiagnostic.Builder missingItemsDiagnosticBuilder,
-      StartupProfileProvider startupProfileProvider,
-      SyntheticToSyntheticContextGeneralization syntheticToSyntheticContextGeneralization) {
-    return new Builder(
-        options,
-        missingItemsDiagnosticBuilder,
-        startupProfileProvider,
-        syntheticToSyntheticContextGeneralization);
+      StartupProfileProvider startupProfileProvider) {
+    return new Builder(options, missingItemsDiagnosticBuilder, startupProfileProvider);
   }
 
   public static StartupProfile merge(Collection<StartupProfile> startupProfiles) {
@@ -69,9 +62,7 @@ public class StartupProfile {
    * </pre>
    */
   public static StartupProfile parseStartupProfile(
-      InternalOptions options,
-      DexDefinitionSupplier definitions,
-      SyntheticToSyntheticContextGeneralization syntheticToSyntheticContextGeneralization) {
+      InternalOptions options, DexDefinitionSupplier definitions) {
     if (!options.getStartupOptions().hasStartupProfileProviders()) {
       return null;
     }
@@ -83,11 +74,7 @@ public class StartupProfile {
           new MissingStartupProfileItemsDiagnostic.Builder(definitions)
               .setOrigin(startupProfileProvider.getOrigin());
       StartupProfile.Builder startupProfileBuilder =
-          StartupProfile.builder(
-              options,
-              missingItemsDiagnosticBuilder,
-              startupProfileProvider,
-              syntheticToSyntheticContextGeneralization);
+          StartupProfile.builder(options, missingItemsDiagnosticBuilder, startupProfileProvider);
       startupProfileProvider.getStartupProfile(startupProfileBuilder);
       startupProfiles.add(startupProfileBuilder.build());
       if (missingItemsDiagnosticBuilder.hasMissingStartupItems()) {
@@ -101,27 +88,27 @@ public class StartupProfile {
     return startupItems;
   }
 
+  public int size() {
+    return startupItems.size();
+  }
+
   public static class Builder implements StartupProfileBuilder {
 
     private final DexItemFactory dexItemFactory;
     private final MissingStartupProfileItemsDiagnostic.Builder missingItemsDiagnosticBuilder;
     private Reporter reporter;
     private final StartupProfileProvider startupProfileProvider;
-    private final SyntheticToSyntheticContextGeneralization
-        syntheticToSyntheticContextGeneralization;
 
     private final LinkedHashSet<StartupItem> startupItems = new LinkedHashSet<>();
 
     Builder(
         InternalOptions options,
         MissingStartupProfileItemsDiagnostic.Builder missingItemsDiagnosticBuilder,
-        StartupProfileProvider startupProfileProvider,
-        SyntheticToSyntheticContextGeneralization syntheticToSyntheticContextGeneralization) {
+        StartupProfileProvider startupProfileProvider) {
       this.dexItemFactory = options.dexItemFactory();
       this.missingItemsDiagnosticBuilder = missingItemsDiagnosticBuilder;
       this.reporter = options.reporter;
       this.startupProfileProvider = startupProfileProvider;
-      this.syntheticToSyntheticContextGeneralization = syntheticToSyntheticContextGeneralization;
     }
 
     @Override
@@ -147,19 +134,6 @@ public class StartupProfile {
     }
 
     @Override
-    public StartupProfileBuilder addSyntheticStartupMethod(
-        Consumer<SyntheticStartupMethodBuilder> syntheticStartupMethodBuilderConsumer) {
-      SyntheticStartupMethod.Builder syntheticStartupMethodBuilder =
-          SyntheticStartupMethod.builder(dexItemFactory);
-      syntheticStartupMethodBuilderConsumer.accept(syntheticStartupMethodBuilder);
-      SyntheticStartupMethod syntheticStartupMethod = syntheticStartupMethodBuilder.build();
-      if (missingItemsDiagnosticBuilder.registerSyntheticStartupMethod(syntheticStartupMethod)) {
-        return this;
-      }
-      return addStartupItem(syntheticStartupMethod);
-    }
-
-    @Override
     public StartupProfileBuilder addHumanReadableArtProfile(
         TextInputStream textInputStream,
         Consumer<HumanReadableArtProfileParserBuilder> parserBuilderConsumer) {
@@ -168,7 +142,7 @@ public class StartupProfile {
               .setReporter(reporter)
               .setProfileBuilder(
                   ArtProfileBuilderUtils.createBuilderForArtProfileToStartupProfileConversion(
-                      this, syntheticToSyntheticContextGeneralization));
+                      this));
       parserBuilderConsumer.accept(parserBuilder);
       HumanReadableArtProfileParser parser = parserBuilder.build();
       parser.parse(textInputStream, startupProfileProvider.getOrigin());
