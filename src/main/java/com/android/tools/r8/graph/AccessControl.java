@@ -27,7 +27,7 @@ public class AccessControl {
         context,
         appView.appInfo().getClassToFeatureSplitMap(),
         appView.options(),
-        appView.getStartupOrder(),
+        appView.getStartupProfile(),
         appView.getSyntheticItems());
   }
 
@@ -91,7 +91,7 @@ public class AccessControl {
             context,
             appInfo.getClassToFeatureSplitMap(),
             appInfo.options(),
-            appView.getStartupOrder(),
+            appView.getStartupProfile(),
             appInfo.getSyntheticItems());
     if (classAccessibility.isFalse()) {
       return OptionalBool.FALSE;

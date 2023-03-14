@@ -377,11 +377,11 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
     this.artProfileCollection = artProfileCollection;
   }
 
-  public StartupProfile getStartupOrder() {
+  public StartupProfile getStartupProfile() {
     return startupProfile;
   }
 
-  public void setStartupOrder(StartupProfile startupProfile) {
+  public void setStartupProfile(StartupProfile startupProfile) {
     this.startupProfile = startupProfile;
   }
 
@@ -851,7 +851,7 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
     if (hasRootSet()) {
       rootSet.pruneItems(prunedItems);
     }
-    setStartupOrder(getStartupOrder().withoutPrunedItems(prunedItems, getSyntheticItems()));
+    setStartupProfile(getStartupProfile().withoutPrunedItems(prunedItems, getSyntheticItems()));
     if (hasMainDexRootSet()) {
       setMainDexRootSet(mainDexRootSet.withoutPrunedItems(prunedItems));
     }
@@ -971,7 +971,7 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
           if (appView.hasRootSet()) {
             appView.setRootSet(appView.rootSet().rewrittenWithLens(lens));
           }
-          appView.setStartupOrder(appView.getStartupOrder().rewrittenWithLens(lens));
+          appView.setStartupProfile(appView.getStartupProfile().rewrittenWithLens(lens));
         });
   }
 

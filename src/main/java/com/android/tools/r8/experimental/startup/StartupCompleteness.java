@@ -26,7 +26,7 @@ public class StartupCompleteness {
     this.appView = appView;
     this.startupProfile =
         appView.hasClassHierarchy()
-            ? appView.getStartupOrder()
+            ? appView.getStartupProfile()
             : StartupProfile.createInitialStartupOrder(appView.options(), null);
   }
 

@@ -610,7 +610,7 @@ public class SyntheticItems implements SyntheticDefinitionsProvider {
     if (appView.hasClassHierarchy()) {
       AppInfoWithClassHierarchy appInfo = appView.appInfoWithClassHierarchy();
       return getSynthesizingContext(
-          context, appInfo.getClassToFeatureSplitMap(), options, appView.getStartupOrder());
+          context, appInfo.getClassToFeatureSplitMap(), options, appView.getStartupProfile());
     }
     return getSynthesizingContext(
         context,

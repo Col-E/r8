@@ -243,7 +243,7 @@ public class ApplicationWriter {
       // order is only used for writing the app, so we create it here for the first time.
       StartupProfile startupProfile =
           appView.appInfo().hasClassHierarchy()
-              ? appView.getStartupOrder()
+              ? appView.getStartupProfile()
               : StartupProfile.createInitialStartupOrderForD8(appView);
       distributor =
           new VirtualFile.FillFilesDistributor(

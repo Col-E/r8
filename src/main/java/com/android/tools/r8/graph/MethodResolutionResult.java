@@ -1312,7 +1312,7 @@ public abstract class MethodResolutionResult
                                       context,
                                       appInfo.getClassToFeatureSplitMap(),
                                       appView.options(),
-                                      appView.getStartupOrder(),
+                                      appView.getStartupProfile(),
                                       appView.getSyntheticItems())
                                   .isPossiblyFalse())),
           method -> {
