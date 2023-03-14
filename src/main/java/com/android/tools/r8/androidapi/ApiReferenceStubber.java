@@ -23,6 +23,7 @@ import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.graph.ThrowExceptionCode;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.synthesis.CommittedItems;
+import com.android.tools.r8.synthesis.SyntheticItems;
 import com.android.tools.r8.utils.ThreadUtils;
 import com.android.tools.r8.utils.WorkList;
 import com.google.common.collect.Sets;
@@ -89,10 +90,15 @@ public class ApiReferenceStubber {
     eventConsumer.finished(appView);
   }
 
+  private boolean isAlreadyOutlined(DexProgramClass clazz) {
+    SyntheticItems syntheticItems = appView.getSyntheticItems();
+    return syntheticItems.isSyntheticOfKind(clazz.getType(), kinds -> kinds.API_MODEL_OUTLINE)
+        || syntheticItems.isSyntheticOfKind(
+            clazz.getType(), kinds -> kinds.API_MODEL_OUTLINE_WITHOUT_GLOBAL_MERGING);
+  }
+
   public void processClass(DexProgramClass clazz) {
-    if (appView
-        .getSyntheticItems()
-        .isSyntheticOfKind(clazz.getType(), kinds -> kinds.API_MODEL_OUTLINE)) {
+    if (isAlreadyOutlined(clazz)) {
       return;
     }
     // We cannot reliably create a stub that will have the same throwing behavior for all VMs.
