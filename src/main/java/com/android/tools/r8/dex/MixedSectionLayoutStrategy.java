@@ -5,7 +5,7 @@
 package com.android.tools.r8.dex;
 
 import com.android.tools.r8.dex.FileWriter.MixedSectionOffsets;
-import com.android.tools.r8.experimental.startup.StartupOrder;
+import com.android.tools.r8.experimental.startup.StartupProfile;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexAnnotation;
 import com.android.tools.r8.graph.DexAnnotationDirectory;
@@ -22,21 +22,21 @@ public abstract class MixedSectionLayoutStrategy {
 
   public static MixedSectionLayoutStrategy create(
       AppView<?> appView, MixedSectionOffsets mixedSectionOffsets, VirtualFile virtualFile) {
-    StartupOrder startupOrderForWriting;
+    StartupProfile startupProfileForWriting;
     if (virtualFile.getStartupOrder().isEmpty()) {
-      startupOrderForWriting = StartupOrder.empty();
+      startupProfileForWriting = StartupProfile.empty();
     } else {
       assert virtualFile.getId() == 0;
-      startupOrderForWriting =
+      startupProfileForWriting =
           appView.options().getStartupOptions().isStartupLayoutOptimizationsEnabled()
               ? virtualFile.getStartupOrder().toStartupOrderForWriting(appView)
-              : StartupOrder.empty();
+              : StartupProfile.empty();
     }
     MixedSectionLayoutStrategy mixedSectionLayoutStrategy =
-        startupOrderForWriting.isEmpty()
+        startupProfileForWriting.isEmpty()
             ? new DefaultMixedSectionLayoutStrategy(appView, mixedSectionOffsets)
             : new StartupMixedSectionLayoutStrategy(
-                appView, mixedSectionOffsets, startupOrderForWriting, virtualFile);
+                appView, mixedSectionOffsets, startupProfileForWriting, virtualFile);
     return wrapForTesting(appView, mixedSectionLayoutStrategy, virtualFile);
   }
 

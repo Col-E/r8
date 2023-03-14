@@ -9,7 +9,7 @@ import com.android.tools.r8.FeatureSplit;
 import com.android.tools.r8.debuginfo.DebugRepresentation;
 import com.android.tools.r8.errors.DexFileOverflowDiagnostic;
 import com.android.tools.r8.errors.InternalCompilerError;
-import com.android.tools.r8.experimental.startup.StartupOrder;
+import com.android.tools.r8.experimental.startup.StartupProfile;
 import com.android.tools.r8.features.ClassToFeatureSplitMap;
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
@@ -68,28 +68,28 @@ public class VirtualFile {
   public final VirtualFileIndexedItemCollection indexedItems;
   private final IndexedItemTransaction transaction;
   private final FeatureSplit featureSplit;
-  private final StartupOrder startupOrder;
+  private final StartupProfile startupProfile;
 
   private final DexString primaryClassDescriptor;
   private final DexString primaryClassSynthesizingContextDescriptor;
   private DebugRepresentation debugRepresentation;
 
   VirtualFile(int id, AppView<?> appView) {
-    this(id, appView, null, null, StartupOrder.empty());
+    this(id, appView, null, null, StartupProfile.empty());
   }
 
   VirtualFile(
       int id,
       AppView<?> appView,
       FeatureSplit featureSplit) {
-    this(id, appView, null, featureSplit, StartupOrder.empty());
+    this(id, appView, null, featureSplit, StartupProfile.empty());
   }
 
   private VirtualFile(
       int id,
       AppView<?> appView,
       DexProgramClass primaryClass) {
-    this(id, appView, primaryClass, null, StartupOrder.empty());
+    this(id, appView, primaryClass, null, StartupProfile.empty());
   }
 
   private VirtualFile(
@@ -97,12 +97,12 @@ public class VirtualFile {
       AppView<?> appView,
       DexProgramClass primaryClass,
       FeatureSplit featureSplit,
-      StartupOrder startupOrder) {
+      StartupProfile startupProfile) {
     this.id = id;
     this.indexedItems = new VirtualFileIndexedItemCollection(appView);
     this.transaction = new IndexedItemTransaction(indexedItems, appView);
     this.featureSplit = featureSplit;
-    this.startupOrder = startupOrder;
+    this.startupProfile = startupProfile;
     if (primaryClass == null) {
       primaryClassDescriptor = null;
       primaryClassSynthesizingContextDescriptor = null;
@@ -137,8 +137,8 @@ public class VirtualFile {
     return featureSplit;
   }
 
-  public StartupOrder getStartupOrder() {
-    return startupOrder;
+  public StartupProfile getStartupOrder() {
+    return startupProfile;
   }
 
   public String getPrimaryClassDescriptor() {
@@ -379,14 +379,14 @@ public class VirtualFile {
         ApplicationWriter writer,
         Collection<DexProgramClass> classes,
         InternalOptions options,
-        StartupOrder startupOrder) {
+        StartupProfile startupProfile) {
       super(writer);
       this.options = options;
       this.classes = SetUtils.newIdentityHashSet(classes);
 
       // Create the primary dex file. The distribution will add more if needed. We use the startup
       // order (if any) to guide the layout of the primary dex file.
-      mainDexFile = new VirtualFile(0, appView, null, null, startupOrder);
+      mainDexFile = new VirtualFile(0, appView, null, null, startupProfile);
       assert virtualFiles.isEmpty();
       virtualFiles.add(mainDexFile);
       addMarkers(mainDexFile);
@@ -449,7 +449,8 @@ public class VirtualFile {
     }
 
     protected void addFeatureSplitFiles(
-        Map<FeatureSplit, Set<DexProgramClass>> featureSplitClasses, StartupOrder startupOrder) {
+        Map<FeatureSplit, Set<DexProgramClass>> featureSplitClasses,
+        StartupProfile startupProfile) {
       if (featureSplitClasses.isEmpty()) {
         return;
       }
@@ -472,7 +473,7 @@ public class VirtualFile {
                 appView,
                 featureSplitSetEntry.getValue(),
                 originalNames,
-                startupOrder,
+                startupProfile,
                 nextFileId)
             .run();
       }
@@ -482,17 +483,17 @@ public class VirtualFile {
   public static class FillFilesDistributor extends DistributorBase {
 
     private final ExecutorService executorService;
-    private final StartupOrder startupOrder;
+    private final StartupProfile startupProfile;
 
     FillFilesDistributor(
         ApplicationWriter writer,
         Collection<DexProgramClass> classes,
         InternalOptions options,
         ExecutorService executorService,
-        StartupOrder startupOrder) {
-      super(writer, classes, options, startupOrder);
+        StartupProfile startupProfile) {
+      super(writer, classes, options, startupProfile);
       this.executorService = executorService;
-      this.startupOrder = startupOrder;
+      this.startupProfile = startupProfile;
     }
 
     @Override
@@ -538,11 +539,11 @@ public class VirtualFile {
                 appView,
                 classes,
                 originalNames,
-                startupOrder,
+                startupProfile,
                 nextFileId)
             .run();
       }
-      addFeatureSplitFiles(featureSplitClasses, startupOrder);
+      addFeatureSplitFiles(featureSplitClasses, startupProfile);
 
       assert totalClassNumber == virtualFiles.stream().mapToInt(dex -> dex.classes().size()).sum();
       return virtualFiles;
@@ -552,7 +553,7 @@ public class VirtualFile {
   public static class MonoDexDistributor extends DistributorBase {
     MonoDexDistributor(
         ApplicationWriter writer, Collection<DexProgramClass> classes, InternalOptions options) {
-      super(writer, classes, options, StartupOrder.empty());
+      super(writer, classes, options, StartupProfile.empty());
     }
 
     @Override
@@ -568,7 +569,7 @@ public class VirtualFile {
       if (options.featureSplitConfiguration != null) {
         if (!featureSplitClasses.isEmpty()) {
           // TODO(141334414): Figure out if we allow multidex in features even when mono-dexing
-          addFeatureSplitFiles(featureSplitClasses, StartupOrder.empty());
+          addFeatureSplitFiles(featureSplitClasses, StartupProfile.empty());
         }
       }
       return virtualFiles;
@@ -1278,11 +1279,11 @@ public class VirtualFile {
       public static PackageSplitClassPartioning create(
           Collection<DexProgramClass> classes,
           Map<DexProgramClass, String> originalNames,
-          StartupOrder startupOrder) {
+          StartupProfile startupProfile) {
         return create(
             classes,
             getClassesByPackageComparator(originalNames),
-            getStartupClassPredicate(startupOrder));
+            getStartupClassPredicate(startupProfile));
       }
 
       private static PackageSplitClassPartioning create(
@@ -1333,8 +1334,8 @@ public class VirtualFile {
       }
 
       private static Predicate<DexProgramClass> getStartupClassPredicate(
-          StartupOrder startupOrder) {
-        return clazz -> startupOrder.contains(clazz.getType());
+          StartupProfile startupProfile) {
+        return clazz -> startupProfile.contains(clazz.getType());
       }
 
       public List<DexProgramClass> getStartupClasses() {
@@ -1370,10 +1371,10 @@ public class VirtualFile {
         AppView<?> appView,
         Collection<DexProgramClass> classes,
         Map<DexProgramClass, String> originalNames,
-        StartupOrder startupOrder,
+        StartupProfile startupProfile,
         IntBox nextFileId) {
       this.classPartioning =
-          PackageSplitClassPartioning.create(classes, originalNames, startupOrder);
+          PackageSplitClassPartioning.create(classes, originalNames, startupProfile);
       this.originalNames = originalNames;
       this.dexItemFactory = appView.dexItemFactory();
       this.options = appView.options();

@@ -9,7 +9,7 @@ import com.android.tools.r8.androidapi.ComputedApiLevel;
 import com.android.tools.r8.contexts.CompilationContext;
 import com.android.tools.r8.contexts.CompilationContext.ProcessorContext;
 import com.android.tools.r8.errors.dontwarn.DontWarnConfiguration;
-import com.android.tools.r8.experimental.startup.StartupOrder;
+import com.android.tools.r8.experimental.startup.StartupProfile;
 import com.android.tools.r8.features.ClassToFeatureSplitMap;
 import com.android.tools.r8.graph.DexValue.DexValueString;
 import com.android.tools.r8.graph.GraphLens.NonIdentityGraphLens;
@@ -87,7 +87,7 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
   private ProguardCompatibilityActions proguardCompatibilityActions;
   private RootSet rootSet;
   private MainDexRootSet mainDexRootSet = null;
-  private StartupOrder startupOrder;
+  private StartupProfile startupProfile;
 
   // This should preferably always be obtained via AppInfoWithLiveness.
   // Currently however the liveness may be downgraded thus loosing the computed keep info.
@@ -140,13 +140,13 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
   private AppView(
       T appInfo,
       ArtProfileCollection artProfileCollection,
-      StartupOrder startupOrder,
+      StartupProfile startupProfile,
       WholeProgramOptimizations wholeProgramOptimizations,
       TypeRewriter mapper) {
     this(
         appInfo,
         artProfileCollection,
-        startupOrder,
+        startupProfile,
         wholeProgramOptimizations,
         mapper,
         Timing.empty());
@@ -155,7 +155,7 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
   private AppView(
       T appInfo,
       ArtProfileCollection artProfileCollection,
-      StartupOrder startupOrder,
+      StartupProfile startupProfile,
       WholeProgramOptimizations wholeProgramOptimizations,
       TypeRewriter mapper,
       Timing timing) {
@@ -165,7 +165,7 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
         timing.time(
             "Compilation context", () -> CompilationContext.createInitialContext(options()));
     this.artProfileCollection = artProfileCollection;
-    this.startupOrder = startupOrder;
+    this.startupProfile = startupProfile;
     this.dontWarnConfiguration =
         timing.time(
             "Dont warn config",
@@ -211,7 +211,7 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
     return new AppView<>(
         appInfo,
         ArtProfileCollection.createInitialArtProfileCollection(appInfo, appInfo.options()),
-        StartupOrder.empty(),
+        StartupProfile.empty(),
         WholeProgramOptimizations.OFF,
         defaultTypeRewriter(appInfo));
   }
@@ -220,7 +220,7 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
     return new AppView<>(
         appInfo,
         ArtProfileCollection.empty(),
-        StartupOrder.empty(),
+        StartupProfile.empty(),
         WholeProgramOptimizations.OFF,
         defaultTypeRewriter(appInfo));
   }
@@ -230,7 +230,7 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
     return new AppView<>(
         appInfo,
         ArtProfileCollection.createInitialArtProfileCollection(appInfo, appInfo.options()),
-        StartupOrder.empty(),
+        StartupProfile.empty(),
         WholeProgramOptimizations.OFF,
         mapper,
         timing);
@@ -253,7 +253,7 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
     return new AppView<>(
         appInfo,
         ArtProfileCollection.createInitialArtProfileCollection(appInfo, appInfo.options()),
-        StartupOrder.createInitialStartupOrderForR8(application),
+        StartupProfile.createInitialStartupOrderForR8(application),
         WholeProgramOptimizations.ON,
         defaultTypeRewriter(appInfo));
   }
@@ -262,7 +262,7 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
     return new AppView<>(
         appInfo,
         ArtProfileCollection.createInitialArtProfileCollection(appInfo, appInfo.options()),
-        StartupOrder.empty(),
+        StartupProfile.empty(),
         WholeProgramOptimizations.OFF,
         mapper);
   }
@@ -271,7 +271,7 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
     return new AppView<>(
         appInfo,
         ArtProfileCollection.empty(),
-        StartupOrder.empty(),
+        StartupProfile.empty(),
         WholeProgramOptimizations.OFF,
         defaultTypeRewriter(appInfo));
   }
@@ -281,7 +281,7 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
     return new AppView<>(
         appInfo,
         ArtProfileCollection.empty(),
-        StartupOrder.empty(),
+        StartupProfile.empty(),
         WholeProgramOptimizations.ON,
         defaultTypeRewriter(appInfo));
   }
@@ -377,12 +377,12 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
     this.artProfileCollection = artProfileCollection;
   }
 
-  public StartupOrder getStartupOrder() {
-    return startupOrder;
+  public StartupProfile getStartupOrder() {
+    return startupProfile;
   }
 
-  public void setStartupOrder(StartupOrder startupOrder) {
-    this.startupOrder = startupOrder;
+  public void setStartupOrder(StartupProfile startupProfile) {
+    this.startupProfile = startupProfile;
   }
 
   public AssumeInfoCollection getAssumeInfoCollection() {

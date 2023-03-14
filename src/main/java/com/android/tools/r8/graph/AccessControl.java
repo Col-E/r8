@@ -3,7 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.graph;
 
-import com.android.tools.r8.experimental.startup.StartupOrder;
+import com.android.tools.r8.experimental.startup.StartupProfile;
 import com.android.tools.r8.features.ClassToFeatureSplitMap;
 import com.android.tools.r8.features.FeatureSplitBoundaryOptimizationUtils;
 import com.android.tools.r8.synthesis.SyntheticItems;
@@ -36,7 +36,7 @@ public class AccessControl {
       Definition context,
       ClassToFeatureSplitMap classToFeatureSplitMap,
       InternalOptions options,
-      StartupOrder startupOrder,
+      StartupProfile startupProfile,
       SyntheticItems syntheticItems) {
     if (!clazz.isPublic() && !clazz.getType().isSamePackage(context.getContextType())) {
       return OptionalBool.FALSE;
@@ -48,7 +48,7 @@ public class AccessControl {
             context.asProgramDefinition(),
             classToFeatureSplitMap,
             options,
-            startupOrder,
+            startupProfile,
             syntheticItems)) {
       return OptionalBool.UNKNOWN;
     }

@@ -20,14 +20,14 @@ import java.util.Set;
 public class StartupCompleteness {
 
   private final AppView<?> appView;
-  private final StartupOrder startupOrder;
+  private final StartupProfile startupProfile;
 
   private StartupCompleteness(AppView<?> appView) {
     this.appView = appView;
-    this.startupOrder =
+    this.startupProfile =
         appView.hasClassHierarchy()
             ? appView.getStartupOrder()
-            : StartupOrder.createInitialStartupOrder(appView.options(), null);
+            : StartupProfile.createInitialStartupOrder(appView.options(), null);
   }
 
   /**
@@ -72,7 +72,7 @@ public class StartupCompleteness {
 
   private Set<DexReference> computeStartupItems() {
     Set<DexReference> startupItems = Sets.newIdentityHashSet();
-    for (StartupItem startupItem : startupOrder.getItems()) {
+    for (StartupItem startupItem : startupProfile.getItems()) {
       startupItem.accept(
           startupClass -> startupItems.add(startupClass.getReference()),
           startupMethod -> startupItems.add(startupMethod.getReference()));

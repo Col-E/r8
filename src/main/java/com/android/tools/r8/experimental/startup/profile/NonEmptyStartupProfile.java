@@ -2,11 +2,9 @@
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
-package com.android.tools.r8.experimental.startup;
+package com.android.tools.r8.experimental.startup.profile;
 
-import com.android.tools.r8.experimental.startup.profile.StartupClass;
-import com.android.tools.r8.experimental.startup.profile.StartupItem;
-import com.android.tools.r8.experimental.startup.profile.StartupMethod;
+import com.android.tools.r8.experimental.startup.StartupProfile;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
@@ -18,11 +16,11 @@ import com.android.tools.r8.synthesis.SyntheticItems;
 import java.util.Collection;
 import java.util.LinkedHashMap;
 
-public class NonEmptyStartupOrder extends StartupOrder {
+public class NonEmptyStartupProfile extends StartupProfile {
 
   private final LinkedHashMap<DexReference, StartupItem> startupItems;
 
-  NonEmptyStartupOrder(LinkedHashMap<DexReference, StartupItem> startupItems) {
+  public NonEmptyStartupProfile(LinkedHashMap<DexReference, StartupItem> startupItems) {
     assert !startupItems.isEmpty();
     this.startupItems = startupItems;
   }
@@ -48,7 +46,7 @@ public class NonEmptyStartupOrder extends StartupOrder {
   }
 
   @Override
-  public StartupOrder rewrittenWithLens(GraphLens graphLens) {
+  public StartupProfile rewrittenWithLens(GraphLens graphLens) {
     LinkedHashMap<DexReference, StartupItem> rewrittenStartupItems =
         new LinkedHashMap<>(startupItems.size());
     for (StartupItem startupItem : startupItems.values()) {
@@ -72,6 +70,10 @@ public class NonEmptyStartupOrder extends StartupOrder {
     return createNonEmpty(rewrittenStartupItems);
   }
 
+  public int size() {
+    return startupItems.size();
+  }
+
   /**
    * This is called to process the startup order before computing the startup layouts.
    *
@@ -92,7 +94,7 @@ public class NonEmptyStartupOrder extends StartupOrder {
    * </ul>
    */
   @Override
-  public StartupOrder toStartupOrderForWriting(AppView<?> appView) {
+  public StartupProfile toStartupOrderForWriting(AppView<?> appView) {
     LinkedHashMap<DexReference, StartupItem> rewrittenStartupItems =
         new LinkedHashMap<>(startupItems.size());
     for (StartupItem startupItem : startupItems.values()) {
@@ -147,7 +149,7 @@ public class NonEmptyStartupOrder extends StartupOrder {
   }
 
   @Override
-  public StartupOrder withoutPrunedItems(PrunedItems prunedItems, SyntheticItems syntheticItems) {
+  public StartupProfile withoutPrunedItems(PrunedItems prunedItems, SyntheticItems syntheticItems) {
     LinkedHashMap<DexReference, StartupItem> rewrittenStartupItems =
         new LinkedHashMap<>(startupItems.size());
     for (StartupItem startupItem : startupItems.values()) {
@@ -168,11 +170,11 @@ public class NonEmptyStartupOrder extends StartupOrder {
     return createNonEmpty(rewrittenStartupItems);
   }
 
-  private StartupOrder createNonEmpty(LinkedHashMap<DexReference, StartupItem> startupItems) {
+  private StartupProfile createNonEmpty(LinkedHashMap<DexReference, StartupItem> startupItems) {
     if (startupItems.isEmpty()) {
       assert false;
       return empty();
     }
-    return new NonEmptyStartupOrder(startupItems);
+    return new NonEmptyStartupProfile(startupItems);
   }
 }

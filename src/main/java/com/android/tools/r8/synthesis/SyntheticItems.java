@@ -11,7 +11,7 @@ import com.android.tools.r8.SyntheticInfoConsumerData;
 import com.android.tools.r8.contexts.CompilationContext.UniqueContext;
 import com.android.tools.r8.errors.MissingGlobalSyntheticsConsumerDiagnostic;
 import com.android.tools.r8.errors.Unreachable;
-import com.android.tools.r8.experimental.startup.StartupOrder;
+import com.android.tools.r8.experimental.startup.StartupProfile;
 import com.android.tools.r8.features.ClassToFeatureSplitMap;
 import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
@@ -616,7 +616,7 @@ public class SyntheticItems implements SyntheticDefinitionsProvider {
         context,
         ClassToFeatureSplitMap.createEmptyClassToFeatureSplitMap(),
         options,
-        StartupOrder.empty());
+        StartupProfile.empty());
   }
 
   /** Used to find the synthesizing context for a new synthetic that is about to be created. */
@@ -624,7 +624,7 @@ public class SyntheticItems implements SyntheticDefinitionsProvider {
       ProgramDefinition context,
       ClassToFeatureSplitMap featureSplits,
       InternalOptions options,
-      StartupOrder startupOrder) {
+      StartupProfile startupProfile) {
     DexType contextType = context.getContextType();
     SyntheticDefinition<?, ?, ?> existingDefinition = pending.definitions.get(contextType);
     if (existingDefinition != null) {
@@ -640,7 +640,8 @@ public class SyntheticItems implements SyntheticDefinitionsProvider {
           .getContext();
     }
     // This context is not nested in an existing synthetic context so create a new "leaf" context.
-    FeatureSplit featureSplit = featureSplits.getFeatureSplit(context, options, startupOrder, this);
+    FeatureSplit featureSplit =
+        featureSplits.getFeatureSplit(context, options, startupProfile, this);
     return SynthesizingContext.fromNonSyntheticInputContext(context, featureSplit);
   }
 

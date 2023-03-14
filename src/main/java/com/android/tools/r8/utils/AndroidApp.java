@@ -34,7 +34,7 @@ import com.android.tools.r8.dump.DumpOptions;
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.errors.InternalCompilerError;
 import com.android.tools.r8.errors.Unreachable;
-import com.android.tools.r8.experimental.startup.StartupOrder;
+import com.android.tools.r8.experimental.startup.StartupProfile;
 import com.android.tools.r8.experimental.startup.StartupProfileProviderUtils;
 import com.android.tools.r8.features.ClassToFeatureSplitMap;
 import com.android.tools.r8.features.FeatureSplitConfiguration;
@@ -679,7 +679,7 @@ public class AndroidApp {
                           SyntheticItems syntheticItems = null;
                           FeatureSplit featureSplit =
                               classToFeatureSplitMap.getFeatureSplit(
-                                  type, options, StartupOrder.empty(), syntheticItems);
+                                  type, options, StartupProfile.empty(), syntheticItems);
                           if (featureSplit != null && !featureSplit.isBase()) {
                             return featureSplitArchiveOutputStreams.get(featureSplit);
                           }

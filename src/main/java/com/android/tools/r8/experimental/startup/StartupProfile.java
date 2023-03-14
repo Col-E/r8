@@ -2,11 +2,22 @@
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
-package com.android.tools.r8.experimental.startup.profile;
+package com.android.tools.r8.experimental.startup;
 
 import com.android.tools.r8.TextInputStream;
+import com.android.tools.r8.experimental.startup.profile.NonEmptyStartupProfile;
+import com.android.tools.r8.experimental.startup.profile.StartupClass;
+import com.android.tools.r8.experimental.startup.profile.StartupItem;
+import com.android.tools.r8.experimental.startup.profile.StartupMethod;
+import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexDefinitionSupplier;
 import com.android.tools.r8.graph.DexItemFactory;
+import com.android.tools.r8.graph.DexMethod;
+import com.android.tools.r8.graph.DexReference;
+import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.GraphLens;
+import com.android.tools.r8.graph.PrunedItems;
 import com.android.tools.r8.profile.art.ArtProfileBuilderUtils;
 import com.android.tools.r8.profile.art.HumanReadableArtProfileParser;
 import com.android.tools.r8.profile.art.HumanReadableArtProfileParserBuilder;
@@ -15,20 +26,21 @@ import com.android.tools.r8.startup.StartupMethodBuilder;
 import com.android.tools.r8.startup.StartupProfileBuilder;
 import com.android.tools.r8.startup.StartupProfileProvider;
 import com.android.tools.r8.startup.diagnostic.MissingStartupProfileItemsDiagnostic;
+import com.android.tools.r8.synthesis.SyntheticItems;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.Reporter;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.LinkedHashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.function.Consumer;
 
-public class StartupProfile {
+public abstract class StartupProfile {
 
-  private final LinkedHashSet<StartupItem> startupItems;
+  protected StartupProfile() {}
 
-  StartupProfile(LinkedHashSet<StartupItem> startupItems) {
-    this.startupItems = startupItems;
+  public static Builder builder() {
+    return new Builder();
   }
 
   public static Builder builder(
@@ -38,12 +50,37 @@ public class StartupProfile {
     return new Builder(options, missingItemsDiagnosticBuilder, startupProfileProvider);
   }
 
-  public static StartupProfile merge(Collection<StartupProfile> startupProfiles) {
-    LinkedHashSet<StartupItem> mergedStartupItems = new LinkedHashSet<>();
-    for (StartupProfile startupProfile : startupProfiles) {
-      mergedStartupItems.addAll(startupProfile.getStartupItems());
+  public static StartupProfile createInitialStartupOrder(
+      InternalOptions options, DexDefinitionSupplier definitions) {
+    StartupProfile startupProfile = StartupProfile.parseStartupProfile(options, definitions);
+    if (startupProfile == null || startupProfile.isEmpty()) {
+      return empty();
     }
-    return new StartupProfile(mergedStartupItems);
+    StartupProfile.Builder builder = StartupProfile.builder();
+    for (StartupItem startupItem : startupProfile.getItems()) {
+      builder.addStartupItem(startupItem);
+    }
+    return builder.build();
+  }
+
+  public static StartupProfile createInitialStartupOrderForD8(AppView<?> appView) {
+    return createInitialStartupOrder(appView.options(), appView);
+  }
+
+  public static StartupProfile createInitialStartupOrderForR8(DexApplication application) {
+    return createInitialStartupOrder(application.options, application);
+  }
+
+  public static StartupProfile empty() {
+    return new EmptyStartupProfile();
+  }
+
+  public static StartupProfile merge(Collection<StartupProfile> startupProfiles) {
+    Builder builder = builder();
+    for (StartupProfile startupProfile : startupProfiles) {
+      startupProfile.getItems().forEach(builder::addStartupItem);
+    }
+    return builder.build();
   }
 
   /**
@@ -73,8 +110,9 @@ public class StartupProfile {
       MissingStartupProfileItemsDiagnostic.Builder missingItemsDiagnosticBuilder =
           new MissingStartupProfileItemsDiagnostic.Builder(definitions)
               .setOrigin(startupProfileProvider.getOrigin());
-      StartupProfile.Builder startupProfileBuilder =
-          StartupProfile.builder(options, missingItemsDiagnosticBuilder, startupProfileProvider);
+      NonEmptyStartupProfile.Builder startupProfileBuilder =
+          NonEmptyStartupProfile.builder(
+              options, missingItemsDiagnosticBuilder, startupProfileProvider);
       startupProfileProvider.getStartupProfile(startupProfileBuilder);
       startupProfiles.add(startupProfileBuilder.build());
       if (missingItemsDiagnosticBuilder.hasMissingStartupItems()) {
@@ -84,13 +122,20 @@ public class StartupProfile {
     return StartupProfile.merge(startupProfiles);
   }
 
-  public Collection<StartupItem> getStartupItems() {
-    return startupItems;
-  }
+  public abstract boolean contains(DexMethod method);
 
-  public int size() {
-    return startupItems.size();
-  }
+  public abstract boolean contains(DexType type);
+
+  public abstract Collection<StartupItem> getItems();
+
+  public abstract boolean isEmpty();
+
+  public abstract StartupProfile rewrittenWithLens(GraphLens graphLens);
+
+  public abstract StartupProfile toStartupOrderForWriting(AppView<?> appView);
+
+  public abstract StartupProfile withoutPrunedItems(
+      PrunedItems prunedItems, SyntheticItems syntheticItems);
 
   public static class Builder implements StartupProfileBuilder {
 
@@ -99,7 +144,14 @@ public class StartupProfile {
     private Reporter reporter;
     private final StartupProfileProvider startupProfileProvider;
 
-    private final LinkedHashSet<StartupItem> startupItems = new LinkedHashSet<>();
+    private final LinkedHashMap<DexReference, StartupItem> startupItems = new LinkedHashMap<>();
+
+    Builder() {
+      this.dexItemFactory = null;
+      this.missingItemsDiagnosticBuilder = null;
+      this.reporter = null;
+      this.startupProfileProvider = null;
+    }
 
     Builder(
         InternalOptions options,
@@ -149,8 +201,8 @@ public class StartupProfile {
       return this;
     }
 
-    private Builder addStartupItem(StartupItem startupItem) {
-      this.startupItems.add(startupItem);
+    public Builder addStartupItem(StartupItem startupItem) {
+      startupItems.put(startupItem.getReference(), startupItem);
       return this;
     }
 
@@ -169,7 +221,10 @@ public class StartupProfile {
     }
 
     public StartupProfile build() {
-      return new StartupProfile(startupItems);
+      if (startupItems.isEmpty()) {
+        return empty();
+      }
+      return new NonEmptyStartupProfile(startupItems);
     }
   }
 }

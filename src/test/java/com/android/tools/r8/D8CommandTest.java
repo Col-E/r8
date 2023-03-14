@@ -21,8 +21,9 @@ import com.android.tools.r8.D8CommandParser.OrderedClassFileResourceProvider;
 import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.dex.Marker;
 import com.android.tools.r8.dex.Marker.Tool;
+import com.android.tools.r8.experimental.startup.StartupProfile;
+import com.android.tools.r8.experimental.startup.profile.NonEmptyStartupProfile;
 import com.android.tools.r8.experimental.startup.profile.StartupItem;
-import com.android.tools.r8.experimental.startup.profile.StartupProfile;
 import com.android.tools.r8.origin.EmbeddedOrigin;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.references.Reference;
@@ -805,14 +806,14 @@ public class D8CommandTest extends CommandTestBase<D8Command> {
     MissingStartupProfileItemsDiagnostic.Builder missingStartupProfileItemsDiagnosticBuilder =
         MissingStartupProfileItemsDiagnostic.Builder.nop();
     StartupProfileProvider startupProfileProvider = startupProfileProviders.get(0);
-    StartupProfile.Builder startupProfileBuilder =
-        StartupProfile.builder(
+    NonEmptyStartupProfile.Builder startupProfileBuilder =
+        NonEmptyStartupProfile.builder(
             options, missingStartupProfileItemsDiagnosticBuilder, startupProfileProvider);
     startupProfileProvider.getStartupProfile(startupProfileBuilder);
 
     // Verify we found the same rule.
     StartupProfile startupProfile = startupProfileBuilder.build();
-    Collection<StartupItem> startupItems = startupProfile.getStartupItems();
+    Collection<StartupItem> startupItems = startupProfile.getItems();
     assertEquals(1, startupItems.size());
     StartupItem startupItem = startupItems.iterator().next();
     startupItem.accept(

@@ -14,9 +14,9 @@ import com.android.tools.r8.synthesis.SyntheticItems;
 import java.util.Collection;
 import java.util.Collections;
 
-public class EmptyStartupOrder extends StartupOrder {
+public class EmptyStartupProfile extends StartupProfile {
 
-  EmptyStartupOrder() {}
+  EmptyStartupProfile() {}
 
   @Override
   public boolean contains(DexMethod method) {
@@ -39,17 +39,17 @@ public class EmptyStartupOrder extends StartupOrder {
   }
 
   @Override
-  public EmptyStartupOrder rewrittenWithLens(GraphLens graphLens) {
+  public EmptyStartupProfile rewrittenWithLens(GraphLens graphLens) {
     return this;
   }
 
   @Override
-  public StartupOrder toStartupOrderForWriting(AppView<?> appView) {
+  public EmptyStartupProfile toStartupOrderForWriting(AppView<?> appView) {
     return this;
   }
 
   @Override
-  public EmptyStartupOrder withoutPrunedItems(
+  public EmptyStartupProfile withoutPrunedItems(
       PrunedItems prunedItems, SyntheticItems syntheticItems) {
     return this;
   }

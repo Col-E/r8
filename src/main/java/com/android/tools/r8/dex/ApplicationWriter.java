@@ -25,7 +25,7 @@ import com.android.tools.r8.dex.VirtualFile.FilePerInputClassDistributor;
 import com.android.tools.r8.dex.VirtualFile.ItemUseInfo;
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.experimental.startup.StartupCompleteness;
-import com.android.tools.r8.experimental.startup.StartupOrder;
+import com.android.tools.r8.experimental.startup.StartupProfile;
 import com.android.tools.r8.features.FeatureSplitConfiguration.DataResourceProvidersAndConsumer;
 import com.android.tools.r8.graph.AppServices;
 import com.android.tools.r8.graph.AppView;
@@ -241,13 +241,13 @@ public class ApplicationWriter {
       // Retrieve the startup order for writing the app. In R8, the startup order is created
       // up-front to guide optimizations through-out the compilation. In D8, the startup
       // order is only used for writing the app, so we create it here for the first time.
-      StartupOrder startupOrder =
+      StartupProfile startupProfile =
           appView.appInfo().hasClassHierarchy()
               ? appView.getStartupOrder()
-              : StartupOrder.createInitialStartupOrderForD8(appView);
+              : StartupProfile.createInitialStartupOrderForD8(appView);
       distributor =
           new VirtualFile.FillFilesDistributor(
-              this, classes, options, executorService, startupOrder);
+              this, classes, options, executorService, startupProfile);
     }
 
     List<VirtualFile> virtualFiles = distributor.run();
