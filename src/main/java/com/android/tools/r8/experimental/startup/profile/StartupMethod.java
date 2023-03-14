@@ -9,6 +9,7 @@ import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.references.MethodReference;
 import com.android.tools.r8.startup.StartupMethodBuilder;
 import com.android.tools.r8.utils.MethodReferenceUtils;
+import java.io.IOException;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
@@ -45,16 +46,6 @@ public class StartupMethod extends StartupItem {
   }
 
   @Override
-  public boolean isStartupMethod() {
-    return true;
-  }
-
-  @Override
-  public StartupMethod asStartupMethod() {
-    return this;
-  }
-
-  @Override
   public boolean equals(Object o) {
     if (this == o) {
       return true;
@@ -72,8 +63,8 @@ public class StartupMethod extends StartupItem {
   }
 
   @Override
-  public String serializeToString() {
-    return method.toSmaliString();
+  public void write(Appendable appendable) throws IOException {
+    appendable.append(method.toSmaliString());
   }
 
   public static class Builder implements StartupMethodBuilder {

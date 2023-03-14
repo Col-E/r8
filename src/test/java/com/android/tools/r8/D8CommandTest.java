@@ -22,7 +22,6 @@ import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.dex.Marker;
 import com.android.tools.r8.dex.Marker.Tool;
 import com.android.tools.r8.experimental.startup.profile.StartupItem;
-import com.android.tools.r8.experimental.startup.profile.StartupMethod;
 import com.android.tools.r8.experimental.startup.profile.StartupProfile;
 import com.android.tools.r8.origin.EmbeddedOrigin;
 import com.android.tools.r8.origin.Origin;
@@ -816,9 +815,9 @@ public class D8CommandTest extends CommandTestBase<D8Command> {
     Collection<StartupItem> startupItems = startupProfile.getStartupItems();
     assertEquals(1, startupItems.size());
     StartupItem startupItem = startupItems.iterator().next();
-    assertTrue(startupItem.isStartupMethod());
-    StartupMethod startupMethod = startupItem.asStartupMethod();
-    assertEquals(profileRule, startupMethod.getReference().toSmaliString());
+    startupItem.accept(
+        startupClass -> fail(),
+        startupMethod -> assertEquals(profileRule, startupMethod.getReference().toSmaliString()));
   }
 
   @Test

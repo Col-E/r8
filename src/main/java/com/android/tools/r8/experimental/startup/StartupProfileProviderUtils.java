@@ -50,7 +50,7 @@ public class StartupProfileProviderUtils {
 
   /** Serialize the given {@param startupProfileProvider} to a string for writing it to a dump. */
   public static String serializeToString(
-      InternalOptions options, StartupProfileProvider startupProfileProvider) {
+      InternalOptions options, StartupProfileProvider startupProfileProvider) throws IOException {
     // Do not report missing items.
     MissingStartupProfileItemsDiagnostic.Builder missingItemsDiagnosticBuilder =
         MissingStartupProfileItemsDiagnostic.Builder.nop();
@@ -63,7 +63,8 @@ public class StartupProfileProviderUtils {
     // Serialize the startup items.
     StringBuilder resultBuilder = new StringBuilder();
     for (StartupItem startupItem : startupProfileBuilder.build().getStartupItems()) {
-      resultBuilder.append(startupItem.serializeToString()).append('\n');
+      startupItem.write(resultBuilder);
+      resultBuilder.append('\n');
     }
     return resultBuilder.toString();
   }

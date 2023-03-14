@@ -9,6 +9,7 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.references.ClassReference;
 import com.android.tools.r8.startup.StartupClassBuilder;
 import com.android.tools.r8.utils.ClassReferenceUtils;
+import java.io.IOException;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
@@ -45,16 +46,6 @@ public class StartupClass extends StartupItem {
   }
 
   @Override
-  public boolean isStartupClass() {
-    return true;
-  }
-
-  @Override
-  public StartupClass asStartupClass() {
-    return this;
-  }
-
-  @Override
   public boolean equals(Object o) {
     if (this == o) {
       return true;
@@ -72,8 +63,8 @@ public class StartupClass extends StartupItem {
   }
 
   @Override
-  public String serializeToString() {
-    return getReference().toDescriptorString();
+  public void write(Appendable appendable) throws IOException {
+    appendable.append(getReference().toDescriptorString());
   }
 
   public static class Builder implements StartupClassBuilder {

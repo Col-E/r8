@@ -105,12 +105,10 @@ public class NonEmptyStartupOrder extends StartupOrder {
       StartupItem startupItem,
       LinkedHashMap<DexReference, StartupItem> rewrittenStartupItems,
       AppView<?> appView) {
-    if (startupItem.isStartupClass()) {
-      addClassAndParentClasses(
-          startupItem.asStartupClass().getReference(), rewrittenStartupItems, appView);
-    } else {
-      rewrittenStartupItems.put(startupItem.getReference(), startupItem);
-    }
+    startupItem.accept(
+        startupClass ->
+            addClassAndParentClasses(startupClass.getReference(), rewrittenStartupItems, appView),
+        startupMethod -> rewrittenStartupItems.put(startupItem.getReference(), startupItem));
   }
 
   private static boolean addClass(

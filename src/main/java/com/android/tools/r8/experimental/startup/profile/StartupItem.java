@@ -5,6 +5,7 @@
 package com.android.tools.r8.experimental.startup.profile;
 
 import com.android.tools.r8.graph.DexReference;
+import java.io.IOException;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
@@ -18,23 +19,5 @@ public abstract class StartupItem {
 
   public abstract DexReference getReference();
 
-  public boolean isStartupClass() {
-    return false;
-  }
-
-  public StartupClass asStartupClass() {
-    assert false;
-    return null;
-  }
-
-  public boolean isStartupMethod() {
-    return false;
-  }
-
-  public StartupMethod asStartupMethod() {
-    assert false;
-    return null;
-  }
-
-  public abstract String serializeToString();
+  public abstract void write(Appendable appendable) throws IOException;
 }
