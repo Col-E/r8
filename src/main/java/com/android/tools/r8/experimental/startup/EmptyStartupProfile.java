@@ -64,7 +64,12 @@ public class EmptyStartupProfile extends StartupProfile {
   }
 
   @Override
-  public EmptyStartupProfile toStartupOrderForWriting(AppView<?> appView) {
+  public EmptyStartupProfile toStartupProfileForWriting(AppView<?> appView) {
+    return this;
+  }
+
+  @Override
+  public StartupProfile withoutMissingItems(AppView<?> appView) {
     return this;
   }
 

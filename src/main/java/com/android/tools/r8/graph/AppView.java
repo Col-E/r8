@@ -253,7 +253,7 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
     return new AppView<>(
         appInfo,
         ArtProfileCollection.createInitialArtProfileCollection(appInfo, appInfo.options()),
-        StartupProfile.createInitialStartupOrderForR8(application),
+        StartupProfile.createInitialStartupProfileForR8(application),
         WholeProgramOptimizations.ON,
         defaultTypeRewriter(appInfo));
   }

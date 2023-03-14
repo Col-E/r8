@@ -12,6 +12,7 @@ import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.ThrowNullCode;
+import com.android.tools.r8.startup.diagnostic.MissingStartupProfileItemsDiagnostic;
 import com.android.tools.r8.utils.InternalOptions;
 import com.google.common.collect.Sets;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceMaps;
@@ -27,7 +28,8 @@ public class StartupCompleteness {
     this.startupProfile =
         appView.hasClassHierarchy()
             ? appView.getStartupProfile()
-            : StartupProfile.createInitialStartupOrder(appView.options(), null);
+            : StartupProfile.createInitialStartupProfile(
+                appView.options(), origin -> MissingStartupProfileItemsDiagnostic.Builder.nop());
   }
 
   /**

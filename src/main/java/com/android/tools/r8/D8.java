@@ -311,6 +311,7 @@ public final class D8 {
 
       appView.setArtProfileCollection(
           appView.getArtProfileCollection().withoutMissingItems(appView));
+      assert appView.getStartupProfile().isEmpty();
 
       finalizeApplication(appView, executor, timing);
 

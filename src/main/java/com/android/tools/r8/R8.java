@@ -699,6 +699,7 @@ public class R8 {
 
       appView.setArtProfileCollection(
           appView.getArtProfileCollection().withoutMissingItems(appView));
+      appView.setStartupProfile(appView.getStartupProfile().withoutMissingItems(appView));
 
       if (appView.appInfo().hasLiveness()) {
         SyntheticFinalization.finalizeWithLiveness(appView.withLiveness(), executorService, timing);

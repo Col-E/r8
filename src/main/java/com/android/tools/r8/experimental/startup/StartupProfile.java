@@ -11,11 +11,11 @@ import com.android.tools.r8.experimental.startup.profile.StartupProfileMethodRul
 import com.android.tools.r8.experimental.startup.profile.StartupProfileRule;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexApplication;
-import com.android.tools.r8.graph.DexDefinitionSupplier;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.PrunedItems;
+import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.profile.AbstractProfile;
 import com.android.tools.r8.profile.AbstractProfileRule;
 import com.android.tools.r8.profile.art.ArtProfileBuilderUtils;
@@ -34,6 +34,7 @@ import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.function.Consumer;
+import java.util.function.Function;
 
 public abstract class StartupProfile
     implements AbstractProfile<StartupProfileClassRule, StartupProfileMethodRule> {
@@ -44,6 +45,10 @@ public abstract class StartupProfile
     return new Builder();
   }
 
+  public static Builder builderWithCapacity(int capacity) {
+    return new Builder(capacity);
+  }
+
   public static Builder builder(
       InternalOptions options,
       MissingStartupProfileItemsDiagnostic.Builder missingItemsDiagnosticBuilder,
@@ -51,9 +56,12 @@ public abstract class StartupProfile
     return new Builder(options, missingItemsDiagnosticBuilder, startupProfileProvider);
   }
 
-  public static StartupProfile createInitialStartupOrder(
-      InternalOptions options, DexDefinitionSupplier definitions) {
-    StartupProfile startupProfile = StartupProfile.parseStartupProfile(options, definitions);
+  public static StartupProfile createInitialStartupProfile(
+      InternalOptions options,
+      Function<Origin, MissingStartupProfileItemsDiagnostic.Builder>
+          missingItemsDiagnosticBuilderFactory) {
+    StartupProfile startupProfile =
+        StartupProfile.parseStartupProfile(options, missingItemsDiagnosticBuilderFactory);
     if (startupProfile == null || startupProfile.isEmpty()) {
       return empty();
     }
@@ -64,12 +72,18 @@ public abstract class StartupProfile
     return builder.build();
   }
 
-  public static StartupProfile createInitialStartupOrderForD8(AppView<?> appView) {
-    return createInitialStartupOrder(appView.options(), appView);
+  public static StartupProfile createInitialStartupProfileForD8(AppView<?> appView) {
+    return createInitialStartupProfile(
+        appView.options(),
+        origin -> new MissingStartupProfileItemsDiagnostic.Builder(appView).setOrigin(origin));
   }
 
-  public static StartupProfile createInitialStartupOrderForR8(DexApplication application) {
-    return createInitialStartupOrder(application.options, application);
+  public static StartupProfile createInitialStartupProfileForR8(DexApplication application) {
+    // In R8 we expect a startup profile that matches the input app. Since profiles gathered from
+    // running on ART will include synthetics, and these synthetics are not in the input app, we do
+    // not raise warnings if some rules in the profile do not match anything.
+    return createInitialStartupProfile(
+        application.options, origin -> MissingStartupProfileItemsDiagnostic.Builder.nop());
   }
 
   public static StartupProfile empty() {
@@ -100,7 +114,9 @@ public abstract class StartupProfile
    * </pre>
    */
   public static StartupProfile parseStartupProfile(
-      InternalOptions options, DexDefinitionSupplier definitions) {
+      InternalOptions options,
+      Function<Origin, MissingStartupProfileItemsDiagnostic.Builder>
+          missingItemsDiagnosticBuilderFactory) {
     if (!options.getStartupOptions().hasStartupProfileProviders()) {
       return null;
     }
@@ -109,8 +125,7 @@ public abstract class StartupProfile
     List<StartupProfile> startupProfiles = new ArrayList<>(startupProfileProviders.size());
     for (StartupProfileProvider startupProfileProvider : startupProfileProviders) {
       MissingStartupProfileItemsDiagnostic.Builder missingItemsDiagnosticBuilder =
-          new MissingStartupProfileItemsDiagnostic.Builder(definitions)
-              .setOrigin(startupProfileProvider.getOrigin());
+          missingItemsDiagnosticBuilderFactory.apply(startupProfileProvider.getOrigin());
       StartupProfile.Builder startupProfileBuilder =
           StartupProfile.builder(options, missingItemsDiagnosticBuilder, startupProfileProvider);
       startupProfileProvider.getStartupProfile(startupProfileBuilder);
@@ -128,7 +143,9 @@ public abstract class StartupProfile
 
   public abstract StartupProfile rewrittenWithLens(GraphLens graphLens);
 
-  public abstract StartupProfile toStartupOrderForWriting(AppView<?> appView);
+  public abstract StartupProfile toStartupProfileForWriting(AppView<?> appView);
+
+  public abstract StartupProfile withoutMissingItems(AppView<?> appView);
 
   public abstract StartupProfile withoutPrunedItems(
       PrunedItems prunedItems, SyntheticItems syntheticItems);
@@ -143,13 +160,21 @@ public abstract class StartupProfile
     private Reporter reporter;
     private final StartupProfileProvider startupProfileProvider;
 
-    private final LinkedHashMap<DexReference, StartupProfileRule> startupItems =
-        new LinkedHashMap<>();
+    private final LinkedHashMap<DexReference, StartupProfileRule> startupItems;
 
     Builder() {
       this.dexItemFactory = null;
       this.missingItemsDiagnosticBuilder = null;
       this.reporter = null;
+      this.startupItems = new LinkedHashMap<>();
+      this.startupProfileProvider = null;
+    }
+
+    Builder(int capacity) {
+      this.dexItemFactory = null;
+      this.missingItemsDiagnosticBuilder = null;
+      this.reporter = null;
+      this.startupItems = new LinkedHashMap<>(capacity);
       this.startupProfileProvider = null;
     }
 
@@ -160,6 +185,7 @@ public abstract class StartupProfile
       this.dexItemFactory = options.dexItemFactory();
       this.missingItemsDiagnosticBuilder = missingItemsDiagnosticBuilder;
       this.reporter = options.reporter;
+      this.startupItems = new LinkedHashMap<>();
       this.startupProfileProvider = startupProfileProvider;
     }
 
@@ -235,6 +261,10 @@ public abstract class StartupProfile
     public Builder setReporter(Reporter reporter) {
       this.reporter = reporter;
       return this;
+    }
+
+    public int size() {
+      return startupItems.size();
     }
 
     @Override

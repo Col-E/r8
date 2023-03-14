@@ -137,7 +137,7 @@ public class VirtualFile {
     return featureSplit;
   }
 
-  public StartupProfile getStartupOrder() {
+  public StartupProfile getStartupProfile() {
     return startupProfile;
   }
 

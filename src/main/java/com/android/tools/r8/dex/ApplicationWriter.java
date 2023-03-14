@@ -244,7 +244,7 @@ public class ApplicationWriter {
       StartupProfile startupProfile =
           appView.appInfo().hasClassHierarchy()
               ? appView.getStartupProfile()
-              : StartupProfile.createInitialStartupOrderForD8(appView);
+              : StartupProfile.createInitialStartupProfileForD8(appView);
       distributor =
           new VirtualFile.FillFilesDistributor(
               this, classes, options, executorService, startupProfile);

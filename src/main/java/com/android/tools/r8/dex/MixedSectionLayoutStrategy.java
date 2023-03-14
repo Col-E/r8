@@ -23,13 +23,13 @@ public abstract class MixedSectionLayoutStrategy {
   public static MixedSectionLayoutStrategy create(
       AppView<?> appView, MixedSectionOffsets mixedSectionOffsets, VirtualFile virtualFile) {
     StartupProfile startupProfileForWriting;
-    if (virtualFile.getStartupOrder().isEmpty()) {
+    if (virtualFile.getStartupProfile().isEmpty()) {
       startupProfileForWriting = StartupProfile.empty();
     } else {
       assert virtualFile.getId() == 0;
       startupProfileForWriting =
           appView.options().getStartupOptions().isStartupLayoutOptimizationsEnabled()
-              ? virtualFile.getStartupOrder().toStartupOrderForWriting(appView)
+              ? virtualFile.getStartupProfile().toStartupProfileForWriting(appView)
               : StartupProfile.empty();
     }
     MixedSectionLayoutStrategy mixedSectionLayoutStrategy =
