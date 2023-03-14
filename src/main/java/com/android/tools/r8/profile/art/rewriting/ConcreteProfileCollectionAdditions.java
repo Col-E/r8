@@ -4,18 +4,20 @@
 
 package com.android.tools.r8.profile.art.rewriting;
 
+import com.android.tools.r8.experimental.startup.StartupProfile;
+import com.android.tools.r8.experimental.startup.rewriting.StartupProfileAdditions;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
-import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ProgramDefinition;
 import com.android.tools.r8.graph.ProgramMethod;
+import com.android.tools.r8.profile.AbstractProfileMethodRule;
 import com.android.tools.r8.profile.art.ArtProfile;
 import com.android.tools.r8.profile.art.ArtProfileCollection;
-import com.android.tools.r8.profile.art.ArtProfileMethodRuleInfoImpl;
 import com.android.tools.r8.profile.art.NonEmptyArtProfileCollection;
 import com.android.tools.r8.profile.art.rewriting.ProfileAdditions.ProfileAdditionsBuilder;
+import com.android.tools.r8.utils.Box;
 import com.google.common.collect.Iterables;
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -26,19 +28,35 @@ import java.util.function.Function;
 public class ConcreteProfileCollectionAdditions extends ProfileCollectionAdditions {
 
   private final List<ArtProfileAdditions> additionsCollection;
+  private final Box<StartupProfileAdditions> startupProfileAdditions;
 
   private boolean committed = false;
 
-  private ConcreteProfileCollectionAdditions(List<ArtProfileAdditions> additionsCollection) {
+  private ConcreteProfileCollectionAdditions(
+      List<ArtProfileAdditions> additionsCollection,
+      Box<StartupProfileAdditions> startupProfileAdditions) {
     this.additionsCollection = additionsCollection;
+    this.startupProfileAdditions = startupProfileAdditions;
   }
 
-  ConcreteProfileCollectionAdditions(NonEmptyArtProfileCollection artProfileCollection) {
+  ConcreteProfileCollectionAdditions(
+      ArtProfileCollection artProfileCollection, StartupProfile startupProfile) {
     additionsCollection = new ArrayList<>();
-    for (ArtProfile artProfile : artProfileCollection) {
-      additionsCollection.add(new ArtProfileAdditions(artProfile));
+    if (artProfileCollection.isNonEmpty()) {
+      for (ArtProfile artProfile : artProfileCollection.asNonEmpty()) {
+        additionsCollection.add(new ArtProfileAdditions(artProfile));
+      }
+      assert !additionsCollection.isEmpty();
     }
-    assert !additionsCollection.isEmpty();
+    startupProfileAdditions =
+        new Box<>(startupProfile.isEmpty() ? null : new StartupProfileAdditions(startupProfile));
+  }
+
+  void accept(Consumer<ProfileAdditions<?, ?, ?, ?, ?, ?, ?, ?>> additionsConsumer) {
+    for (ArtProfileAdditions additions : additionsCollection) {
+      additionsConsumer.accept(additions);
+    }
+    startupProfileAdditions.accept(additionsConsumer);
   }
 
   @Override
@@ -49,18 +67,11 @@ public class ConcreteProfileCollectionAdditions extends ProfileCollectionAdditio
   public void addMethodIfContextIsInProfile(
       ProgramMethod method,
       DexClassAndMethod context,
-      Consumer<ArtProfileMethodRuleInfoImpl.Builder> methodRuleInfoBuilderConsumer) {
+      Consumer<AbstractProfileMethodRule.Builder<?, ?>> methodRuleBuilderConsumer) {
     if (context.isProgramMethod()) {
-      applyIfContextIsInProfile(
-          context.asProgramMethod(), additionsBuilder -> additionsBuilder.addRule(method));
+      addMethodIfContextIsInProfile(method, context.asProgramMethod());
     } else {
-      apply(
-          artProfileAdditions ->
-              artProfileAdditions.addMethodRule(
-                  method,
-                  methodRuleBuilder ->
-                      methodRuleBuilder.acceptMethodRuleInfoBuilder(
-                          methodRuleInfoBuilderConsumer)));
+      accept(additions -> additions.addMethodRule(method, methodRuleBuilderConsumer));
     }
   }
 
@@ -69,15 +80,9 @@ public class ConcreteProfileCollectionAdditions extends ProfileCollectionAdditio
         context, additionsBuilder -> additionsBuilder.addRule(method).addRule(method.getHolder()));
   }
 
-  void apply(Consumer<ArtProfileAdditions> additionsConsumer) {
-    for (ArtProfileAdditions artProfileAdditions : additionsCollection) {
-      additionsConsumer.accept(artProfileAdditions);
-    }
-  }
-
   void applyIfContextIsInProfile(
       ProgramDefinition context,
-      Consumer<ArtProfileAdditions> additionsConsumer,
+      Consumer<ProfileAdditions<?, ?, ?, ?, ?, ?, ?, ?>> additionsConsumer,
       Consumer<ProfileAdditionsBuilder> additionsBuilderConsumer) {
     if (context.isProgramClass()) {
       applyIfContextIsInProfile(context.asProgramClass(), additionsConsumer);
@@ -88,14 +93,9 @@ public class ConcreteProfileCollectionAdditions extends ProfileCollectionAdditio
   }
 
   void applyIfContextIsInProfile(
-      DexProgramClass context, Consumer<ArtProfileAdditions> additionsConsumer) {
-    applyIfContextIsInProfile(context.getType(), additionsConsumer);
-  }
-
-  void applyIfContextIsInProfile(DexType type, Consumer<ArtProfileAdditions> additionsConsumer) {
-    for (ArtProfileAdditions artProfileAdditions : additionsCollection) {
-      artProfileAdditions.applyIfContextIsInProfile(type, additionsConsumer);
-    }
+      DexProgramClass context,
+      Consumer<ProfileAdditions<?, ?, ?, ?, ?, ?, ?, ?>> additionsConsumer) {
+    accept(additions -> additions.applyIfContextIsInProfile(context.getType(), additionsConsumer));
   }
 
   public void applyIfContextIsInProfile(
@@ -106,9 +106,7 @@ public class ConcreteProfileCollectionAdditions extends ProfileCollectionAdditio
   @Override
   public void applyIfContextIsInProfile(
       DexMethod context, Consumer<ProfileAdditionsBuilder> builderConsumer) {
-    for (ArtProfileAdditions artProfileAdditions : additionsCollection) {
-      artProfileAdditions.applyIfContextIsInProfile(context, builderConsumer);
-    }
+    accept(additions -> additions.applyIfContextIsInProfile(context, builderConsumer));
   }
 
   @Override
@@ -119,14 +117,17 @@ public class ConcreteProfileCollectionAdditions extends ProfileCollectionAdditio
   @Override
   public void commit(AppView<?> appView) {
     assert !committed;
-    if (hasAdditions()) {
+    if (hasArtProfileAdditions()) {
       appView.setArtProfileCollection(createNewArtProfileCollection());
+    }
+    if (hasStartupProfileAdditions()) {
+      appView.setStartupProfile(createNewStartupProfile());
     }
     committed = true;
   }
 
   private ArtProfileCollection createNewArtProfileCollection() {
-    assert hasAdditions();
+    assert hasArtProfileAdditions();
     List<ArtProfile> newArtProfiles = new ArrayList<>(additionsCollection.size());
     for (ArtProfileAdditions additions : additionsCollection) {
       newArtProfiles.add(additions.createNewProfile());
@@ -134,8 +135,17 @@ public class ConcreteProfileCollectionAdditions extends ProfileCollectionAdditio
     return new NonEmptyArtProfileCollection(newArtProfiles);
   }
 
-  private boolean hasAdditions() {
-    return Iterables.any(additionsCollection, ArtProfileAdditions::hasAdditions);
+  private StartupProfile createNewStartupProfile() {
+    assert hasStartupProfileAdditions();
+    return startupProfileAdditions.get().createNewProfile();
+  }
+
+  private boolean hasArtProfileAdditions() {
+    return Iterables.any(additionsCollection, ProfileAdditions::hasAdditions);
+  }
+
+  private boolean hasStartupProfileAdditions() {
+    return startupProfileAdditions.test(ProfileAdditions::hasAdditions);
   }
 
   @Override
@@ -146,17 +156,30 @@ public class ConcreteProfileCollectionAdditions extends ProfileCollectionAdditio
     for (ArtProfileAdditions additions : additionsCollection) {
       rewrittenAdditionsCollection.add(additions.rewriteMethodReferences(methodFn));
     }
-    return new ConcreteProfileCollectionAdditions(rewrittenAdditionsCollection);
+    Box<StartupProfileAdditions> rewrittenStartupProfileAdditions =
+        startupProfileAdditions.rebuild(additions -> additions.rewriteMethodReferences(methodFn));
+    return new ConcreteProfileCollectionAdditions(
+        rewrittenAdditionsCollection, rewrittenStartupProfileAdditions);
   }
 
   @Override
   public ConcreteProfileCollectionAdditions setArtProfileCollection(
       ArtProfileCollection artProfileCollection) {
-    assert artProfileCollection.isNonEmpty();
-    Iterator<ArtProfile> artProfileIterator = artProfileCollection.asNonEmpty().iterator();
-    for (ArtProfileAdditions additions : additionsCollection) {
-      additions.setProfile(artProfileIterator.next());
+    if (artProfileCollection.isNonEmpty()) {
+      Iterator<ArtProfile> artProfileIterator = artProfileCollection.asNonEmpty().iterator();
+      for (ArtProfileAdditions additions : additionsCollection) {
+        additions.setProfile(artProfileIterator.next());
+      }
+    } else {
+      assert additionsCollection.isEmpty();
+      assert startupProfileAdditions.isSet();
     }
+    return this;
+  }
+
+  @Override
+  public ProfileCollectionAdditions setStartupProfile(StartupProfile startupProfile) {
+    startupProfileAdditions.accept(additions -> additions.setProfile(startupProfile));
     return this;
   }
 

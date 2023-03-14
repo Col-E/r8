@@ -21,6 +21,11 @@ public class EmptyArtProfileCollection extends ArtProfileCollection {
   }
 
   @Override
+  public boolean isEmpty() {
+    return true;
+  }
+
+  @Override
   public boolean isNonEmpty() {
     return false;
   }

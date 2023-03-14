@@ -6,7 +6,9 @@ package com.android.tools.r8.utils;
 
 import java.util.Comparator;
 import java.util.Objects;
+import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.function.Predicate;
 import java.util.function.Supplier;
 
 public abstract class BoxBase<T> {
@@ -17,6 +19,12 @@ public abstract class BoxBase<T> {
 
   public BoxBase(T initialValue) {
     set(initialValue);
+  }
+
+  void accept(Consumer<? super T> consumer) {
+    if (isSet()) {
+      consumer.accept(get());
+    }
   }
 
   void clear() {
@@ -54,6 +62,10 @@ public abstract class BoxBase<T> {
     if (!isSet() || comparator.compare(value, get()) < 0) {
       set(value);
     }
+  }
+
+  boolean test(Predicate<T> predicate) {
+    return isSet() && predicate.test(get());
   }
 
   public boolean isSet() {

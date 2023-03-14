@@ -80,7 +80,7 @@ public class ArtProfileRewritingCfPostProcessingDesugaringEventConsumer
   public void acceptDesugaredLibraryRetargeterForwardingMethod(
       ProgramMethod method, EmulatedDispatchMethodDescriptor descriptor) {
     if (options.isIncludingDesugaredLibraryRetargeterForwardingMethodsUnconditionally()) {
-      additionsCollection.apply(additions -> additions.addMethodRule(method, emptyConsumer()));
+      additionsCollection.accept(additions -> additions.addMethodRule(method, emptyConsumer()));
     }
     parent.acceptDesugaredLibraryRetargeterForwardingMethod(method, descriptor);
   }

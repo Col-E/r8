@@ -46,7 +46,7 @@ public class ArtProfileRewritingNestBasedAccessDesugaringEventConsumer
           context.asProgramMethod(),
           additionsBuilder -> additionsBuilder.addRule(argumentClass).addRule(bridge));
     } else {
-      additionsCollection.apply(
+      additionsCollection.accept(
           additions ->
               additions.addClassRule(argumentClass).addMethodRule(bridge, emptyConsumer()));
     }

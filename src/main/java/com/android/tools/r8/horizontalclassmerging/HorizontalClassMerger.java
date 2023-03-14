@@ -193,6 +193,7 @@ public class HorizontalClassMerger {
     // Amend art profile collection.
     profileCollectionAdditions
         .setArtProfileCollection(appView.getArtProfileCollection())
+        .setStartupProfile(appView.getStartupProfile())
         .commit(appView);
 
     // Record where the synthesized $r8$classId fields are read and written.

@@ -14,7 +14,6 @@ import com.android.tools.r8.profile.AbstractProfileRule;
 import com.android.tools.r8.profile.art.rewriting.ProfileAdditions;
 import java.util.Comparator;
 
-// TODO(b/271822426): Use to include synthetics in startup profile.
 public class StartupProfileAdditions
     extends ProfileAdditions<
         StartupProfileAdditions,
@@ -26,7 +25,7 @@ public class StartupProfileAdditions
         StartupProfile,
         StartupProfile.Builder> {
 
-  StartupProfileAdditions(StartupProfile profile) {
+  public StartupProfileAdditions(StartupProfile profile) {
     super(profile);
   }
 

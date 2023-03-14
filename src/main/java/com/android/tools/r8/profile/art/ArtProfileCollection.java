@@ -62,6 +62,8 @@ public abstract class ArtProfileCollection {
     return EmptyArtProfileCollection.getInstance();
   }
 
+  public abstract boolean isEmpty();
+
   public abstract boolean isNonEmpty();
 
   public abstract NonEmptyArtProfileCollection asNonEmpty();

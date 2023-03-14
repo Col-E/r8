@@ -90,13 +90,13 @@ public abstract class ProfileAdditions<
     this.profile = profile;
   }
 
-  void applyIfContextIsInProfile(DexType context, Consumer<Additions> fn) {
+  public void applyIfContextIsInProfile(DexType context, Consumer<? super Additions> fn) {
     if (profile.containsClassRule(context) || classRuleAdditions.containsKey(context)) {
       fn.accept(self());
     }
   }
 
-  void applyIfContextIsInProfile(
+  public void applyIfContextIsInProfile(
       DexMethod context, Consumer<ProfileAdditionsBuilder> builderConsumer) {
     MethodRule contextMethodRule = profile.getMethodRule(context);
     if (contextMethodRule != null) {
@@ -163,12 +163,12 @@ public abstract class ProfileAdditions<
   }
 
   public Additions addMethodRule(
-      DexClassAndMethod method, Consumer<MethodRuleBuilder> methodRuleBuilderConsumer) {
+      DexClassAndMethod method, Consumer<? super MethodRuleBuilder> methodRuleBuilderConsumer) {
     return addMethodRule(method.getReference(), methodRuleBuilderConsumer);
   }
 
   public Additions addMethodRule(
-      DexMethod method, Consumer<MethodRuleBuilder> methodRuleBuilderConsumer) {
+      DexMethod method, Consumer<? super MethodRuleBuilder> methodRuleBuilderConsumer) {
     // Create profile rule for method.
     MethodRuleBuilder methodRuleBuilder =
         methodRuleAdditions.computeIfAbsent(method, this::createMethodRuleBuilder);
@@ -187,7 +187,7 @@ public abstract class ProfileAdditions<
     methodRuleRemovals.add(oldMethod);
   }
 
-  Profile createNewProfile() {
+  public Profile createNewProfile() {
     if (!hasAdditions()) {
       assert !hasRemovals();
       return profile;
@@ -229,7 +229,7 @@ public abstract class ProfileAdditions<
     return profileBuilder.build();
   }
 
-  boolean hasAdditions() {
+  public boolean hasAdditions() {
     return !classRuleAdditions.isEmpty() || !methodRuleAdditions.isEmpty();
   }
 
@@ -237,7 +237,7 @@ public abstract class ProfileAdditions<
     return !methodRuleRemovals.isEmpty();
   }
 
-  Additions rewriteMethodReferences(Function<DexMethod, DexMethod> methodFn) {
+  public Additions rewriteMethodReferences(Function<DexMethod, DexMethod> methodFn) {
     Additions rewrittenAdditions = create();
     assert methodRuleRemovals.isEmpty();
     rewrittenAdditions.classRuleAdditions.putAll(classRuleAdditions);
@@ -264,7 +264,7 @@ public abstract class ProfileAdditions<
 
   public abstract Additions self();
 
-  void setProfile(Profile profile) {
+  public void setProfile(Profile profile) {
     this.profile = profile;
   }
 

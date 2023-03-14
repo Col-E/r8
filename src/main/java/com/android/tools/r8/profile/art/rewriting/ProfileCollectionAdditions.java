@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.profile.art.rewriting;
 
+import com.android.tools.r8.experimental.startup.StartupProfile;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.ProgramMethod;
@@ -26,10 +27,11 @@ public abstract class ProfileCollectionAdditions {
 
   public static ProfileCollectionAdditions create(AppView<?> appView) {
     ArtProfileCollection artProfileCollection = appView.getArtProfileCollection();
-    if (artProfileCollection.isNonEmpty()) {
-      return new ConcreteProfileCollectionAdditions(artProfileCollection.asNonEmpty());
+    StartupProfile startupProfile = appView.getStartupProfile();
+    if (artProfileCollection.isEmpty() && startupProfile.isEmpty()) {
+      return nop();
     }
-    return nop();
+    return new ConcreteProfileCollectionAdditions(artProfileCollection, startupProfile);
   }
 
   public static NopProfileCollectionAdditions nop() {
@@ -56,6 +58,8 @@ public abstract class ProfileCollectionAdditions {
 
   public abstract ProfileCollectionAdditions setArtProfileCollection(
       ArtProfileCollection artProfileCollection);
+
+  public abstract ProfileCollectionAdditions setStartupProfile(StartupProfile startupProfile);
 
   public abstract boolean verifyIsCommitted();
 }

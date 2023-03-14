@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.profile.art.rewriting;
 
+import com.android.tools.r8.experimental.startup.StartupProfile;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.ProgramMethod;
@@ -53,6 +54,12 @@ public class NopProfileCollectionAdditions extends ProfileCollectionAdditions {
   @Override
   public NopProfileCollectionAdditions setArtProfileCollection(
       ArtProfileCollection artProfileCollection) {
+    // Intentionally empty.
+    return this;
+  }
+
+  @Override
+  public NopProfileCollectionAdditions setStartupProfile(StartupProfile startupProfile) {
     // Intentionally empty.
     return this;
   }
