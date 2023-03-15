@@ -5773,6 +5773,30 @@ public final class BackportedMethods {
         ImmutableList.of());
   }
 
+  public static CfCode MethodMethods_getParameterCount(DexItemFactory factory, DexMethod method) {
+    CfLabel label0 = new CfLabel();
+    CfLabel label1 = new CfLabel();
+    return new CfCode(
+        method.holder,
+        1,
+        1,
+        ImmutableList.of(
+            label0,
+            new CfLoad(ValueType.OBJECT, 0),
+            new CfInvoke(
+                182,
+                factory.createMethod(
+                    factory.createType("Ljava/lang/reflect/Method;"),
+                    factory.createProto(factory.createType("[Ljava/lang/Class;")),
+                    factory.createString("getParameterTypes")),
+                false),
+            new CfArrayLength(),
+            new CfReturn(ValueType.INT),
+            label1),
+        ImmutableList.of(),
+        ImmutableList.of());
+  }
+
   public static CfCode ObjectsMethods_checkFromIndexSize(DexItemFactory factory, DexMethod method) {
     CfLabel label0 = new CfLabel();
     CfLabel label1 = new CfLabel();

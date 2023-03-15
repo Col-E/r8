@@ -1015,6 +1015,20 @@ public final class BackportedMethodRewriter implements CfInstructionDesugaring {
               BackportedMethods::LongMethods_toUnsignedStringWithRadix,
               "toUnsignedStringWithRadix"));
 
+      // Method
+      type = factory.methodType;
+
+      // int Method.getParameterCount()
+      name = factory.createString("getParameterCount");
+      proto = factory.createProto(factory.intType);
+      method = factory.createMethod(type, proto, name);
+      addProvider(
+          new StatifyingMethodGenerator(
+              method,
+              BackportedMethods::MethodMethods_getParameterCount,
+              "getParameterCount",
+              type));
+
       // String
       type = factory.stringType;
 
