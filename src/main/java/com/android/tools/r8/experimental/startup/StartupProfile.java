@@ -62,14 +62,7 @@ public abstract class StartupProfile
           missingItemsDiagnosticBuilderFactory) {
     StartupProfile startupProfile =
         StartupProfile.parseStartupProfile(options, missingItemsDiagnosticBuilderFactory);
-    if (startupProfile == null || startupProfile.isEmpty()) {
-      return empty();
-    }
-    StartupProfile.Builder builder = StartupProfile.builder();
-    for (StartupProfileRule startupItem : startupProfile.getRules()) {
-      builder.addStartupItem(startupItem);
-    }
-    return builder.build();
+    return startupProfile != null ? startupProfile : empty();
   }
 
   public static StartupProfile createInitialStartupProfileForD8(AppView<?> appView) {

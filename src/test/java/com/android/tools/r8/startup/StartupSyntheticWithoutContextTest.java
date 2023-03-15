@@ -26,14 +26,15 @@ import com.android.tools.r8.synthesis.SyntheticItemsTestUtils;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.MethodReferenceUtils;
+import com.android.tools.r8.utils.TypeReferenceUtils;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -61,10 +62,8 @@ public class StartupSyntheticWithoutContextTest extends TestBase {
         BooleanUtils.values());
   }
 
-  // TODO(b/271822426): Reenable test.
-  @Ignore("b/271822426")
   @Test
-  public void test() throws Exception {
+  public void testR8() throws Exception {
     LinkedHashSet<ExternalStartupItem> startupList = new LinkedHashSet<>();
     testForD8(parameters.getBackend())
         .addInnerClasses(getClass())
@@ -121,10 +120,21 @@ public class StartupSyntheticWithoutContextTest extends TestBase {
         ExternalStartupMethod.builder()
             .setMethodReference(Reference.methodFromMethod(B.class.getDeclaredMethod("b")))
             .build(),
-        // TODO(b/271822426): Update after rewriting startup profile.
-        /*ExternalSyntheticStartupMethod.builder()
-        .setSyntheticContextReference(Reference.classFromClass(B.class))
-        .build(),*/
+        ExternalStartupClass.builder()
+            .setClassReference(getSyntheticLambdaClassReference(B.class))
+            .build(),
+        ExternalStartupMethod.builder()
+            .setMethodReference(
+                MethodReferenceUtils.instanceConstructor(getSyntheticLambdaClassReference(B.class)))
+            .build(),
+        ExternalStartupMethod.builder()
+            .setMethodReference(
+                Reference.method(
+                    getSyntheticLambdaClassReference(B.class),
+                    "run",
+                    Collections.emptyList(),
+                    TypeReferenceUtils.getVoidType()))
+            .build(),
         ExternalStartupMethod.builder()
             .setMethodReference(Reference.methodFromMethod(B.class.getDeclaredMethod("lambda$b$0")))
             .build(),
@@ -140,8 +150,8 @@ public class StartupSyntheticWithoutContextTest extends TestBase {
       builder.add(
           Reference.classFromClass(Main.class),
           Reference.classFromClass(A.class),
-          getSyntheticLambdaClassReference(B.class),
-          Reference.classFromClass(C.class));
+          Reference.classFromClass(C.class),
+          getSyntheticLambdaClassReference(B.class));
     }
     if (!enableMinimalStartupDex || virtualFile == 1) {
       builder.add(getSyntheticLambdaClassReference(Main.class));
@@ -186,13 +196,15 @@ public class StartupSyntheticWithoutContextTest extends TestBase {
 
     public static void main(String[] args) {
       A.a();
-      Runnable r = System.currentTimeMillis() > 0 ? B.b() : Main::error;
+      Runnable r = System.currentTimeMillis() > 0 ? B.b() : error();
       r.run();
       C.c();
     }
 
-    static void error() {
-      throw new RuntimeException();
+    static Runnable error() {
+      return () -> {
+        throw new RuntimeException();
+      };
     }
   }
 
@@ -203,6 +215,8 @@ public class StartupSyntheticWithoutContextTest extends TestBase {
     }
   }
 
+  // Class B will be pruned as a result of inlining, yet the synthetic derived from B.b() remains in
+  // the startup list.
   static class B {
 
     static Runnable b() {

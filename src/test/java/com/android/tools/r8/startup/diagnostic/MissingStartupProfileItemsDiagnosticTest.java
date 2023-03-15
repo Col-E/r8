@@ -9,6 +9,7 @@ import static com.android.tools.r8.DiagnosticsMatcher.diagnosticType;
 import static org.hamcrest.CoreMatchers.allOf;
 import static org.hamcrest.CoreMatchers.equalTo;
 
+import com.android.tools.r8.D8TestCompileResult;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestDiagnosticMessages;
 import com.android.tools.r8.TestParameters;
@@ -23,7 +24,6 @@ import com.android.tools.r8.utils.MethodReferenceUtils;
 import com.android.tools.r8.utils.StringUtils;
 import java.util.Collection;
 import java.util.Collections;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -41,29 +41,35 @@ public class MissingStartupProfileItemsDiagnosticTest extends TestBase {
     return getTestParameters().withNoneRuntime().build();
   }
 
-  // TODO(b/271822426): Reenable test.
-  @Ignore("b/271822426")
   @Test
   public void testD8() throws Exception {
+    // In D8 the startup profile is used to relayout an existing apk. Therefore, we first compile
+    // the program to dex, and then relayout the dex using D8 with a startup profile.
+    D8TestCompileResult compileResult =
+        testForD8(Backend.DEX)
+            .addProgramClasses(Main.class)
+            .release()
+            .setMinApi(AndroidApiLevel.LATEST)
+            .compile();
     testForD8(Backend.DEX)
-        .addProgramClasses(Main.class)
+        .addProgramFiles(compileResult.writeToZip())
         .addStartupProfileProviders(getStartupProfileProviders())
         .release()
         .setMinApi(AndroidApiLevel.LATEST)
         .compileWithExpectedDiagnostics(this::inspectDiagnostics);
   }
 
-  // TODO(b/271822426): Reenable test.
-  @Ignore("b/271822426")
   @Test
   public void testR8() throws Exception {
+    // In R8 we expect a startup profile that matches the input app. Since profiles gathered from
+    // running on ART will include synthetics, and these synthetics are not in the input app, we do
+    // not raise warnings if some rules in the profile do not match anything.
     testForR8(Backend.DEX)
         .addProgramClasses(Main.class)
         .addKeepMainRule(Main.class)
         .addStartupProfileProviders(getStartupProfileProviders())
-        .allowDiagnosticWarningMessages()
         .setMinApi(AndroidApiLevel.LATEST)
-        .compileWithExpectedDiagnostics(this::inspectDiagnostics);
+        .compileWithExpectedDiagnostics(TestDiagnosticMessages::assertNoMessages);
   }
 
   private static Collection<StartupProfileProvider> getStartupProfileProviders() {
@@ -73,7 +79,6 @@ public class MissingStartupProfileItemsDiagnosticTest extends TestBase {
           public void getStartupProfile(StartupProfileBuilder startupProfileBuilder) {
             ClassReference fooClassReference = Reference.classFromTypeName("Foo");
             ClassReference barClassReference = Reference.classFromTypeName("Bar");
-            ClassReference bazClassReference = Reference.classFromTypeName("Baz");
             ClassReference jDollarClassReference = Reference.classFromTypeName("j$.Foo");
             startupProfileBuilder
                 .addStartupClass(
@@ -82,11 +87,6 @@ public class MissingStartupProfileItemsDiagnosticTest extends TestBase {
                     startupMethodBuilder ->
                         startupMethodBuilder.setMethodReference(
                             MethodReferenceUtils.mainMethod(barClassReference)))
-                // TODO(b/271822426): Update after rewriting startup profile.
-                /*.addSyntheticStartupMethod(
-                syntheticStartupMethodBuilder ->
-                    syntheticStartupMethodBuilder.setSyntheticContextReference(
-                        bazClassReference))*/
                 .addStartupClass(
                     startupClassBuilder ->
                         startupClassBuilder.setClassReference(jDollarClassReference));
@@ -108,7 +108,6 @@ public class MissingStartupProfileItemsDiagnosticTest extends TestBase {
                 equalTo(
                     StringUtils.joinLines(
                         "Startup method not found: void Bar.main(java.lang.String[])",
-                        "Startup class not found: Baz",
                         "Startup class not found: Foo")))));
   }
 

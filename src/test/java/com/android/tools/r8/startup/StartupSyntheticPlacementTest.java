@@ -14,6 +14,7 @@ import static org.junit.Assert.assertTrue;
 import com.android.tools.r8.D8TestCompileResult;
 import com.android.tools.r8.R8TestCompileResult;
 import com.android.tools.r8.TestBase;
+import com.android.tools.r8.TestCompileResult;
 import com.android.tools.r8.TestCompilerBuilder;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.graph.DexProgramClass;
@@ -29,6 +30,7 @@ import com.android.tools.r8.synthesis.SyntheticItemsTestUtils;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.MethodReferenceUtils;
+import com.android.tools.r8.utils.TypeReferenceUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
@@ -36,11 +38,11 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.nio.file.Path;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.function.Consumer;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -49,6 +51,11 @@ import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
 public class StartupSyntheticPlacementTest extends TestBase {
+
+  private enum Compiler {
+    D8,
+    R8
+  }
 
   @Parameter(0)
   public TestParameters parameters;
@@ -120,12 +127,11 @@ public class StartupSyntheticPlacementTest extends TestBase {
         .compile()
         .inspectMultiDex(
             r8CompileResult.writeProguardMap(), this::inspectPrimaryDex, this::inspectSecondaryDex)
+        .apply(this::checkCompleteness)
         .run(parameters.getRuntime(), Main.class, Boolean.toString(useLambda))
         .assertSuccessWithOutputLines(getExpectedOutput());
   }
 
-  // TODO(b/271822426): Reenable test.
-  @Ignore("b/271822426")
   @Test
   public void testLayoutUsingR8() throws Exception {
     // First generate a startup list for the original app.
@@ -161,11 +167,17 @@ public class StartupSyntheticPlacementTest extends TestBase {
         .setMinApi(parameters)
         .compile()
         .inspectMultiDex(this::inspectPrimaryDex, this::inspectSecondaryDex)
+        .apply(this::checkCompleteness)
         .run(parameters.getRuntime(), Main.class, Boolean.toString(useLambda))
-        .applyIf(
-            enableStartupCompletenessCheck && useLambda,
-            runResult -> runResult.assertFailureWithErrorThatThrows(NullPointerException.class),
-            runResult -> runResult.assertSuccessWithOutputLines(getExpectedOutput()));
+        .assertSuccessWithOutputLines(getExpectedOutput());
+  }
+
+  private void checkCompleteness(TestCompileResult<?, ?> compileResult) throws Exception {
+    if (enableStartupCompletenessCheck && !useLambda) {
+      compileResult
+          .run(parameters.getRuntime(), Main.class, "true")
+          .assertFailureWithErrorThatThrows(NullPointerException.class);
+    }
   }
 
   private void configureStartupOptions(
@@ -182,7 +194,7 @@ public class StartupSyntheticPlacementTest extends TestBase {
               options
                   .getTestingOptions()
                   .setMixedSectionLayoutStrategyInspector(
-                      getMixedSectionLayoutInspector(inspector));
+                      getMixedSectionLayoutInspector(inspector, testBuilder.isD8TestBuilder()));
             })
         .apply(ignore -> StartupTestingUtils.setStartupConfiguration(testBuilder, startupList));
   }
@@ -212,12 +224,35 @@ public class StartupSyntheticPlacementTest extends TestBase {
                 Reference.methodFromMethod(B.class.getDeclaredMethod("b", boolean.class)))
             .build());
     if (useLambda) {
+      builder.add(
+          ExternalStartupMethod.builder()
+              .setMethodReference(
+                  Reference.methodFromMethod(B.class.getDeclaredMethod("synthesize")))
+              .build());
       if (isStartupListForOriginalApp) {
-        // TODO(b/271822426): Update after rewriting startup profile.
-        /*builder.add(
-        ExternalSyntheticStartupMethod.builder()
-            .setSyntheticContextReference(Reference.classFromClass(B.class))
-            .build());*/
+        ClassReference syntheticLambdaClassReference = getSyntheticLambdaClassReference();
+        builder.add(
+            ExternalStartupClass.builder().setClassReference(syntheticLambdaClassReference).build(),
+            ExternalStartupMethod.builder()
+                .setMethodReference(
+                    MethodReferenceUtils.instanceConstructor(syntheticLambdaClassReference))
+                .build(),
+            ExternalStartupMethod.builder()
+                .setMethodReference(
+                    Reference.method(
+                        syntheticLambdaClassReference,
+                        "accept",
+                        Collections.singletonList(Reference.classFromClass(Object.class)),
+                        TypeReferenceUtils.getVoidType()))
+                .build(),
+            ExternalStartupMethod.builder()
+                .setMethodReference(
+                    Reference.method(
+                        Reference.classFromClass(B.class),
+                        "lambda$synthesize$0",
+                        Collections.singletonList(Reference.classFromClass(Object.class)),
+                        TypeReferenceUtils.getVoidType()))
+                .build());
       } else {
         ClassSubject bClassSubject = inspector.clazz(B.class);
 
@@ -264,7 +299,8 @@ public class StartupSyntheticPlacementTest extends TestBase {
       builder.add(
           ExternalStartupMethod.builder()
               .setMethodReference(
-                  Reference.methodFromMethod(B.class.getDeclaredMethod("lambda$b$0", Object.class)))
+                  Reference.methodFromMethod(
+                      B.class.getDeclaredMethod("lambda$synthesize$0", Object.class)))
               .build());
     }
     builder.add(
@@ -276,7 +312,7 @@ public class StartupSyntheticPlacementTest extends TestBase {
   }
 
   private List<ClassReference> getExpectedClassDataLayout(
-      CodeInspector inspector, int virtualFile) {
+      CodeInspector inspector, boolean isD8, int virtualFile) {
     ClassSubject syntheticLambdaClassSubject = inspector.clazz(getSyntheticLambdaClassReference());
 
     // The synthetic lambda should only be placed alongside its synthetic context (B) if it is used.
@@ -287,10 +323,17 @@ public class StartupSyntheticPlacementTest extends TestBase {
           Reference.classFromClass(Main.class),
           Reference.classFromClass(A.class),
           Reference.classFromClass(B.class));
-      if (useLambda) {
-        layoutBuilder.add(syntheticLambdaClassSubject.getFinalReference());
+      if (isD8) {
+        if (useLambda) {
+          layoutBuilder.add(syntheticLambdaClassSubject.getFinalReference());
+        }
+        layoutBuilder.add(Reference.classFromClass(C.class));
+      } else {
+        layoutBuilder.add(Reference.classFromClass(C.class));
+        if (useLambda) {
+          layoutBuilder.add(syntheticLambdaClassSubject.getFinalReference());
+        }
       }
-      layoutBuilder.add(Reference.classFromClass(C.class));
     }
     if (!useLambda) {
       if (!enableMinimalStartupDex || virtualFile == 1) {
@@ -300,12 +343,14 @@ public class StartupSyntheticPlacementTest extends TestBase {
     return layoutBuilder.build();
   }
 
-  private MixedSectionLayoutInspector getMixedSectionLayoutInspector(CodeInspector inspector) {
+  private MixedSectionLayoutInspector getMixedSectionLayoutInspector(
+      CodeInspector inspector, boolean isD8) {
     return new MixedSectionLayoutInspector() {
       @Override
       public void inspectClassDataLayout(int virtualFile, Collection<DexProgramClass> layout) {
         assertThat(
-            layout, isEqualToClassDataLayout(getExpectedClassDataLayout(inspector, virtualFile)));
+            layout,
+            isEqualToClassDataLayout(getExpectedClassDataLayout(inspector, isD8, virtualFile)));
       }
     };
   }
@@ -355,10 +400,14 @@ public class StartupSyntheticPlacementTest extends TestBase {
     static void b(boolean useLambda) {
       String message = System.currentTimeMillis() > 0 ? "B" : null;
       if (useLambda) {
-        Consumer<Object> consumer = obj -> {};
-        consumer.accept(consumer);
+        synthesize();
       }
       System.out.println(message);
+    }
+
+    static void synthesize() {
+      Consumer<Object> consumer = obj -> {};
+      consumer.accept(consumer);
     }
   }
 

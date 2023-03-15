@@ -37,6 +37,10 @@ public class TypeReferenceUtils {
     return COMPARATOR;
   }
 
+  public static TypeReference getVoidType() {
+    return null;
+  }
+
   public static DexProto toDexProto(
       List<TypeReference> formalTypes, TypeReference returnType, DexItemFactory dexItemFactory) {
     return toDexProto(
