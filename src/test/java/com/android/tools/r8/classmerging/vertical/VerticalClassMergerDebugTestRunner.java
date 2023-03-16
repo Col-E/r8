@@ -10,10 +10,11 @@ import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.android.tools.r8.OutputMode;
+import com.android.tools.r8.TestRuntime;
 import com.android.tools.r8.debug.DebugTestBase;
 import com.android.tools.r8.debug.DebugTestBase.JUnit3Wrapper.Command;
 import com.android.tools.r8.debug.DebugTestBase.JUnit3Wrapper.DebuggeeState;
-import com.android.tools.r8.debug.DexDebugTestConfig;
+import com.android.tools.r8.debug.DebugTestConfig;
 import com.android.tools.r8.utils.AndroidApp;
 import java.io.File;
 import java.nio.file.Path;
@@ -31,11 +32,11 @@ public class VerticalClassMergerDebugTestRunner extends DebugTestBase {
     this.temp = temp;
   }
 
-  public void run(AndroidApp app, Path proguardMapPath) throws Throwable {
+  public void run(TestRuntime runtime, AndroidApp app, Path proguardMapPath) throws Throwable {
     Path appPath = File.createTempFile("app", ".zip", temp.getRoot()).toPath();
     app.writeToZipForTesting(appPath, OutputMode.DexIndexed);
 
-    DexDebugTestConfig config = new DexDebugTestConfig(appPath);
+    DebugTestConfig config = DebugTestConfig.create(runtime, appPath);
     config.allowUnprocessedCommands();
     config.setProguardMap(proguardMapPath);
 

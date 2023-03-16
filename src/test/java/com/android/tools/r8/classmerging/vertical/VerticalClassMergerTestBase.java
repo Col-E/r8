@@ -21,6 +21,6 @@ public abstract class VerticalClassMergerTestBase extends TestBase {
   public void runDebugTest(Class<?> mainClass, R8TestCompileResult compileResult) throws Throwable {
     assertTrue(parameters.isDexRuntime());
     new VerticalClassMergerDebugTestRunner(mainClass.getTypeName(), temp)
-        .run(compileResult.app, compileResult.writeProguardMap());
+        .run(parameters.getRuntime(), compileResult.app, compileResult.writeProguardMap());
   }
 }

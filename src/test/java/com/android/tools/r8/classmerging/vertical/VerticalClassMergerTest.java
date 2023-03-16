@@ -1217,7 +1217,7 @@ public class VerticalClassMergerTest extends TestBase {
     // Check that we never come across a method that has a name with "$classmerging$" in it during
     // debugging.
     if (debugTestRunner != null && parameters.isDexRuntime()) {
-      debugTestRunner.run(compileResult.app, proguardMapPath);
+      debugTestRunner.run(parameters.getRuntime(), compileResult.app, proguardMapPath);
     }
     return compileResult;
   }
