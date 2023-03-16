@@ -138,7 +138,7 @@ public class InterfaceMethodDesugaringTests extends AsmTestBase {
   }
 
   @Test
-  @IgnoreForRangeOfVmVersions(from = Version.V7_0_0, to = Version.V13_0_0) // No desugaring
+  @IgnoreForRangeOfVmVersions(from = Version.V7_0_0, to = Version.V14_0_0) // No desugaring
   public void testInvokeDefault1() throws Exception {
     ensureCustomCheck(
         (javaResult, d8Result, r8Result, r8ShakenResult) -> {
