@@ -298,6 +298,16 @@ public class LirBuilder<V, EV> {
     return addOneItemInstruction(LirOpcodes.GETSTATIC, field);
   }
 
+  public LirBuilder<V, EV> addInstanceGet(DexField field, V object) {
+    return addInstructionTemplate(
+        LirOpcodes.GETFIELD, Collections.singletonList(field), Collections.singletonList(object));
+  }
+
+  public LirBuilder<V, EV> addInstancePut(DexField field, V object, V value) {
+    return addInstructionTemplate(
+        LirOpcodes.PUTFIELD, Collections.singletonList(field), ImmutableList.of(object, value));
+  }
+
   public LirBuilder<V, EV> addInvokeInstruction(int opcode, DexMethod method, List<V> arguments) {
     return addInstructionTemplate(opcode, Collections.singletonList(method), arguments);
   }

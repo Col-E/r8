@@ -189,6 +189,19 @@ public class LirPrinter<EV> extends LirParsedInstructionCallback<EV> {
   }
 
   @Override
+  public void onInstanceGet(DexField field, EV object) {
+    appendOutValue();
+    builder.append(field).append(' ');
+    appendValueArguments(object);
+  }
+
+  @Override
+  public void onInstancePut(DexField field, EV object, EV value) {
+    builder.append(field).append(' ');
+    appendValueArguments(object, value);
+  }
+
+  @Override
   public void onReturnVoid() {
     // Nothing to append.
   }

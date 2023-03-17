@@ -27,6 +27,8 @@ import com.android.tools.r8.ir.code.Goto;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.If;
 import com.android.tools.r8.ir.code.IfType;
+import com.android.tools.r8.ir.code.InstanceGet;
+import com.android.tools.r8.ir.code.InstancePut;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InvokeDirect;
 import com.android.tools.r8.ir.code.InvokeInterface;
@@ -409,6 +411,17 @@ public class Lir2IRConverter {
     public void onStaticGet(DexField field) {
       Value dest = getOutValueForNextInstruction(field.getTypeElement(appView));
       addInstruction(new StaticGet(dest, field));
+    }
+
+    @Override
+    public void onInstanceGet(DexField field, EV object) {
+      Value dest = getOutValueForNextInstruction(field.getTypeElement(appView));
+      addInstruction(new InstanceGet(dest, getValue(object), field));
+    }
+
+    @Override
+    public void onInstancePut(DexField field, EV object, EV value) {
+      addInstruction(new InstancePut(field, getValue(object), getValue(value)));
     }
 
     @Override

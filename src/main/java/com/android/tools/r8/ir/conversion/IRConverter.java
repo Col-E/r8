@@ -1056,13 +1056,15 @@ public class IRConverter {
       OptimizationFeedback feedback,
       BytecodeMetadataProvider bytecodeMetadataProvider,
       Timing timing) {
-    IRCode round1 = doRoundtripWithStrategy(code, new ExternalPhisStrategy(), "indirect phis");
-    IRCode round2 = doRoundtripWithStrategy(round1, new PhiInInstructionsStrategy(), "inline phis");
+    IRCode round1 =
+        doRoundtripWithStrategy(code, new ExternalPhisStrategy(), "indirect phis", timing);
+    IRCode round2 =
+        doRoundtripWithStrategy(round1, new PhiInInstructionsStrategy(), "inline phis", timing);
     return round2;
   }
 
   private <EV, S extends LirStrategy<Value, EV>> IRCode doRoundtripWithStrategy(
-      IRCode code, S strategy, String name) {
+      IRCode code, S strategy, String name, Timing timing) {
     timing.begin("IR->LIR (" + name + ")");
     LirCode<EV> lirCode =
         IR2LirConverter.translate(code, strategy.getEncodingStrategy(), appView.dexItemFactory());

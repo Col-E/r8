@@ -32,6 +32,7 @@ import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.InliningConstraints;
+import com.android.tools.r8.lightir.LirBuilder;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import java.util.Set;
 
@@ -264,6 +265,11 @@ public class InstanceGet extends FieldInstruction implements FieldGet, InstanceF
   @Override
   void internalRegisterUse(UseRegistry<?> registry, DexClassAndMethod context) {
     registry.registerInstanceFieldRead(getField());
+  }
+
+  @Override
+  public void buildLir(LirBuilder<Value, ?> builder) {
+    builder.addInstanceGet(getField(), object());
   }
 
   public static class Builder extends BuilderBase<Builder, InstanceGet> {

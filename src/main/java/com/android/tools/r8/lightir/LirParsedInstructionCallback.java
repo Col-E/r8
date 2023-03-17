@@ -126,6 +126,10 @@ public abstract class LirParsedInstructionCallback<EV> implements LirInstruction
     onFieldInstruction(field);
   }
 
+  public abstract void onInstanceGet(DexField field, EV object);
+
+  public abstract void onInstancePut(DexField field, EV object, EV value);
+
   public void onReturnVoid() {
     onInstruction();
   }
@@ -248,6 +252,21 @@ public abstract class LirParsedInstructionCallback<EV> implements LirInstruction
         {
           DexField field = (DexField) getConstantItem(view.getNextConstantOperand());
           onStaticGet(field);
+          return;
+        }
+      case LirOpcodes.GETFIELD:
+        {
+          DexField field = (DexField) getConstantItem(view.getNextConstantOperand());
+          EV object = getNextValueOperand(view);
+          onInstanceGet(field, object);
+          return;
+        }
+      case LirOpcodes.PUTFIELD:
+        {
+          DexField field = (DexField) getConstantItem(view.getNextConstantOperand());
+          EV object = getNextValueOperand(view);
+          EV value = getNextValueOperand(view);
+          onInstancePut(field, object, value);
           return;
         }
       case LirOpcodes.RETURN:

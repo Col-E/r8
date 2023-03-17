@@ -33,6 +33,7 @@ import com.android.tools.r8.ir.conversion.MethodConversionOptions;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.InliningConstraints;
 import com.android.tools.r8.ir.regalloc.RegisterAllocator;
+import com.android.tools.r8.lightir.LirBuilder;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import java.util.Arrays;
 
@@ -282,5 +283,10 @@ public class InstancePut extends FieldInstruction implements FieldPut, InstanceF
   @Override
   void internalRegisterUse(UseRegistry<?> registry, DexClassAndMethod context) {
     registry.registerInstanceFieldWrite(getField());
+  }
+
+  @Override
+  public void buildLir(LirBuilder<Value, ?> builder) {
+    builder.addInstancePut(getField(), object(), value());
   }
 }
