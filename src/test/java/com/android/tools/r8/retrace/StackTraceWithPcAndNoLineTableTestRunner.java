@@ -88,8 +88,7 @@ public class StackTraceWithPcAndNoLineTableTestRunner extends TestBase {
                     b -> b.setLineNumber(10),
                     b -> {
                       if (parameters.isDexRuntime()) {
-                        // TODO(b/255705077): Should not have position 0.
-                        b.setLineNumber(0);
+                        b.setLineNumber(-1);
                       }
                     })
                 .build())
@@ -103,8 +102,7 @@ public class StackTraceWithPcAndNoLineTableTestRunner extends TestBase {
                     b -> b.setLineNumber(15),
                     b -> {
                       if (parameters.isDexRuntime()) {
-                        // TODO(b/255705077): Should not have position 0.
-                        b.setLineNumber(0);
+                        b.setLineNumber(-1);
                       }
                     })
                 .build())
