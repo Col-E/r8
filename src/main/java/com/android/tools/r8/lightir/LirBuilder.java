@@ -316,6 +316,10 @@ public class LirBuilder<V, EV> {
     return addInvokeInstruction(LirOpcodes.INVOKEDIRECT, method, arguments);
   }
 
+  public LirBuilder<V, EV> addInvokeSuper(DexMethod method, List<V> arguments) {
+    return addInvokeInstruction(LirOpcodes.INVOKESUPER, method, arguments);
+  }
+
   public LirBuilder<V, EV> addInvokeVirtual(DexMethod method, List<V> arguments) {
     return addInvokeInstruction(LirOpcodes.INVOKEVIRTUAL, method, arguments);
   }

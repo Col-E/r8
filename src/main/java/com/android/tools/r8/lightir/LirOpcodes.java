@@ -182,11 +182,12 @@ public interface LirOpcodes {
   int FCONST = 202;
   int DCONST = 203;
   int INVOKEDIRECT = 204;
-  int DEBUGPOS = 205;
-  int PHI = 206;
-  int FALLTHROUGH = 207;
-  int MOVEEXCEPTION = 208;
-  int DEBUGLOCALWRITE = 209;
+  int INVOKESUPER = 205;
+  int DEBUGPOS = 206;
+  int PHI = 207;
+  int FALLTHROUGH = 208;
+  int MOVEEXCEPTION = 209;
+  int DEBUGLOCALWRITE = 210;
 
   static String toString(int opcode) {
     switch (opcode) {

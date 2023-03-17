@@ -33,6 +33,7 @@ import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InvokeDirect;
 import com.android.tools.r8.ir.code.InvokeInterface;
 import com.android.tools.r8.ir.code.InvokeStatic;
+import com.android.tools.r8.ir.code.InvokeSuper;
 import com.android.tools.r8.ir.code.InvokeVirtual;
 import com.android.tools.r8.ir.code.MoveException;
 import com.android.tools.r8.ir.code.NewInstance;
@@ -189,6 +190,12 @@ public class Lir2IRConverter {
         BasicBlock block = blocks.get(blockIndices.getInt(i));
         block.setFilled();
         blockList.add(block);
+        // LIR has no value-user info so after building is done, removed unused values.
+        for (Instruction instruction : block.getInstructions()) {
+          if (!instruction.isArgument() && instruction.hasUnusedOutValue()) {
+            instruction.clearOutValue();
+          }
+        }
       }
       for (int i = 0; i < peekNextInstructionIndex(); ++i) {
         valueNumberGenerator.next();
@@ -365,6 +372,16 @@ public class Lir2IRConverter {
       Value dest = getInvokeInstructionOutputValue(target);
       List<Value> ssaArgumentValues = getValues(arguments);
       InvokeDirect instruction = new InvokeDirect(target, dest, ssaArgumentValues);
+      addInstruction(instruction);
+    }
+
+    @Override
+    public void onInvokeSuper(DexMethod method, List<EV> arguments) {
+      // TODO(b/225838009): Maintain is-interface bit.
+      boolean isInterface = false;
+      Value dest = getInvokeInstructionOutputValue(method);
+      List<Value> ssaArgumentValues = getValues(arguments);
+      InvokeSuper instruction = new InvokeSuper(method, dest, ssaArgumentValues, isInterface);
       addInstruction(instruction);
     }
 

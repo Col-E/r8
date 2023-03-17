@@ -102,6 +102,10 @@ public abstract class LirParsedInstructionCallback<EV> implements LirInstruction
     onInvokeMethodInstruction(method, arguments);
   }
 
+  public void onInvokeSuper(DexMethod method, List<EV> arguments) {
+    onInvokeMethodInstruction(method, arguments);
+  }
+
   public void onInvokeVirtual(DexMethod method, List<EV> arguments) {
     onInvokeMethodInstruction(method, arguments);
   }
@@ -216,6 +220,13 @@ public abstract class LirParsedInstructionCallback<EV> implements LirInstruction
           DexMethod target = getInvokeInstructionTarget(view);
           List<EV> arguments = getInvokeInstructionArguments(view);
           onInvokeDirect(target, arguments);
+          return;
+        }
+      case LirOpcodes.INVOKESUPER:
+        {
+          DexMethod target = getInvokeInstructionTarget(view);
+          List<EV> arguments = getInvokeInstructionArguments(view);
+          onInvokeSuper(target, arguments);
           return;
         }
       case LirOpcodes.INVOKEVIRTUAL:
