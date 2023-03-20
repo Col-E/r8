@@ -4,7 +4,6 @@
 
 package com.android.tools.r8.utils;
 
-import com.android.tools.r8.CompatProguardCommandBuilder;
 import java.io.IOException;
 import java.lang.reflect.Method;
 import java.nio.file.Files;
@@ -113,7 +112,7 @@ public class CompileDumpBase {
   static Consumer<Object[]> getReflectiveBuilderMethod(
       Object builder, String setter, Class<?>... parameters) {
     try {
-      Method declaredMethod = CompatProguardCommandBuilder.class.getMethod(setter, parameters);
+      Method declaredMethod = builder.getClass().getMethod(setter, parameters);
       return args -> {
         try {
           declaredMethod.invoke(builder, args);
