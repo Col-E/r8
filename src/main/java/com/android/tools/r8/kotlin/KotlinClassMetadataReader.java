@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.kotlin;
 
+import static com.android.tools.r8.kotlin.KotlinMetadataUtils.getInvalidKotlinInfo;
 import static com.android.tools.r8.kotlin.KotlinMetadataUtils.getNoKotlinInfo;
 import static com.android.tools.r8.kotlin.KotlinSyntheticClassInfo.getFlavour;
 
@@ -18,9 +19,11 @@ import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexValue;
 import com.android.tools.r8.graph.DexValue.DexValueArray;
 import com.android.tools.r8.kotlin.KotlinSyntheticClassInfo.Flavour;
+import com.android.tools.r8.utils.StringDiagnostic;
 import java.util.IdentityHashMap;
 import java.util.Map;
 import java.util.function.Consumer;
+import java.util.function.Supplier;
 import kotlin.Metadata;
 import kotlinx.metadata.InconsistentKotlinMetadataException;
 import kotlinx.metadata.jvm.KotlinClassMetadata;
@@ -34,16 +37,58 @@ public final class KotlinClassMetadataReader {
   private static final int SYNTHETIC_CLASS_KIND = 3;
 
   public static KotlinClassLevelInfo getKotlinInfo(
-      DexClass clazz, AppView<?> appView, Consumer<DexEncodedMethod> keepByteCode)
-      throws KotlinMetadataException {
+      AppView<?> appView,
+      DexClass clazz,
+      Consumer<DexEncodedMethod> keepByteCode,
+      Supplier<Boolean> reportUnknownMetadata) {
     DexAnnotation meta =
         clazz.annotations().getFirstMatching(appView.dexItemFactory().kotlinMetadataType);
-    return meta != null ? getKotlinInfo(clazz, appView, keepByteCode, meta) : getNoKotlinInfo();
+    if (meta == null) {
+      return getNoKotlinInfo();
+    }
+    return getKotlinInfoFromAnnotation(appView, clazz, meta, keepByteCode, reportUnknownMetadata);
   }
 
-  public static KotlinClassLevelInfo getKotlinInfo(
-      DexClass clazz,
+  public static KotlinClassLevelInfo getKotlinInfoFromAnnotation(
       AppView<?> appView,
+      DexClass clazz,
+      DexAnnotation meta,
+      Consumer<DexEncodedMethod> keepByteCode,
+      Supplier<Boolean> reportUnknownMetadata) {
+    try {
+      return getKotlinInfo(appView, clazz, keepByteCode, meta);
+    } catch (KotlinMetadataException e) {
+      if (reportUnknownMetadata.get()) {
+        appView.reporter().warning(KotlinMetadataDiagnostic.unknownMetadataVersion());
+      }
+      appView
+          .reporter()
+          .info(
+              new StringDiagnostic(
+                  "Class "
+                      + clazz.type.toSourceString()
+                      + " has malformed kotlin.Metadata: "
+                      + e.getMessage()));
+      return getInvalidKotlinInfo();
+    } catch (Throwable e) {
+      if (reportUnknownMetadata.get()) {
+        appView.reporter().warning(KotlinMetadataDiagnostic.unknownMetadataVersion());
+      }
+      appView
+          .reporter()
+          .info(
+              new StringDiagnostic(
+                  "Unexpected error while reading "
+                      + clazz.type.toSourceString()
+                      + "'s kotlin.Metadata: "
+                      + e.getMessage()));
+      return getNoKotlinInfo();
+    }
+  }
+
+  private static KotlinClassLevelInfo getKotlinInfo(
+      AppView<?> appView,
+      DexClass clazz,
       Consumer<DexEncodedMethod> keepByteCode,
       DexAnnotation annotation)
       throws KotlinMetadataException {
@@ -55,8 +100,8 @@ public final class KotlinClassMetadataReader {
     return createKotlinInfo(kotlin, clazz, kMetadata, appView, keepByteCode);
   }
 
-  public static boolean isLambda(AppView<?> appView, DexClass clazz)
-      throws KotlinMetadataException {
+  public static boolean isLambda(
+      AppView<?> appView, DexClass clazz, Supplier<Boolean> reportUnknownMetadata) {
     DexItemFactory dexItemFactory = appView.dexItemFactory();
     Kotlin kotlin = dexItemFactory.kotlin;
     Flavour flavour = getFlavour(clazz, kotlin);
@@ -69,16 +114,31 @@ public final class KotlinClassMetadataReader {
       return false;
     }
     Map<DexString, DexAnnotationElement> elementMap = toElementMap(metadataAnnotation.annotation);
-    if (getKind(kotlin, elementMap) == SYNTHETIC_CLASS_KIND) {
-      KotlinClassMetadata kMetadata = toKotlinClassMetadata(kotlin, elementMap);
-      if (kMetadata instanceof SyntheticClass) {
-        return ((SyntheticClass) kMetadata).isLambda();
+    try {
+      if (getKind(kotlin, elementMap) == SYNTHETIC_CLASS_KIND) {
+        KotlinClassMetadata kMetadata = toKotlinClassMetadata(kotlin, elementMap);
+        if (kMetadata instanceof SyntheticClass) {
+          return ((SyntheticClass) kMetadata).isLambda();
+        }
       }
+      assert toKotlinClassMetadata(kotlin, elementMap) instanceof SyntheticClass
+              == (getKind(kotlin, elementMap) == SYNTHETIC_CLASS_KIND)
+          : "Synthetic class kinds should agree";
+      return false;
+    } catch (KotlinMetadataException exception) {
+      if (reportUnknownMetadata.get()) {
+        appView.reporter().warning(KotlinMetadataDiagnostic.unknownMetadataVersion());
+      }
+      appView
+          .reporter()
+          .info(
+              new StringDiagnostic(
+                  "Class "
+                      + clazz.type.toSourceString()
+                      + " has malformed kotlin.Metadata: "
+                      + exception.getMessage()));
+      return false;
     }
-    assert toKotlinClassMetadata(kotlin, elementMap) instanceof SyntheticClass
-            == (getKind(kotlin, elementMap) == SYNTHETIC_CLASS_KIND)
-        : "Synthetic class kinds should agree";
-    return false;
   }
 
   public static boolean hasKotlinClassMetadataAnnotation(

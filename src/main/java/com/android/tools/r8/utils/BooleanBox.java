@@ -59,4 +59,10 @@ public class BooleanBox {
   public boolean isAssigned() {
     return assigned;
   }
+
+  public Boolean getAndSet() {
+    boolean current = get();
+    set();
+    return current;
+  }
 }

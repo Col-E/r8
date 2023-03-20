@@ -20,6 +20,7 @@ import com.android.tools.r8.graph.DexValue;
 import com.android.tools.r8.graph.DexValue.DexValueArray;
 import com.android.tools.r8.graph.DexValue.DexValueInt;
 import com.android.tools.r8.graph.DexValue.DexValueString;
+import com.android.tools.r8.utils.BooleanBox;
 import com.android.tools.r8.utils.ConsumerUtils;
 import com.android.tools.r8.utils.Pair;
 import com.android.tools.r8.utils.ThreadUtils;
@@ -130,6 +131,7 @@ public class KotlinMetadataRewriter {
       return;
     }
     final WriteMetadataFieldInfo writeMetadataFieldInfo = WriteMetadataFieldInfo.rewriteAll();
+    BooleanBox reportedUnknownMetadataVersion = new BooleanBox();
     ThreadUtils.processItems(
         appView.appInfo().classes(),
         clazz -> {
@@ -138,8 +140,12 @@ public class KotlinMetadataRewriter {
             return;
           }
           KotlinClassLevelInfo kotlinInfo =
-              KotlinClassMetadataReader.getKotlinInfo(
-                  clazz, appView, ConsumerUtils.emptyConsumer(), metadata);
+              KotlinClassMetadataReader.getKotlinInfoFromAnnotation(
+                  appView,
+                  clazz,
+                  metadata,
+                  ConsumerUtils.emptyConsumer(),
+                  reportedUnknownMetadataVersion::getAndSet);
           if (kotlinInfo == getNoKotlinInfo()) {
             return;
           }
