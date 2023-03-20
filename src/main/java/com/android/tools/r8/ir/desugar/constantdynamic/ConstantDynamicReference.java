@@ -15,24 +15,24 @@ import java.util.List;
 import java.util.Objects;
 
 public class ConstantDynamicReference implements StructuralItem<ConstantDynamicReference> {
+  private final int symbolicReferenceId;
   private final DexString name;
   private final DexType type;
   private final DexMethodHandle bootstrapMethod;
   private final List<DexValue> bootstrapMethodArguments;
 
   private static void specify(StructuralSpecification<ConstantDynamicReference, ?> spec) {
-    spec.withItem(ConstantDynamicReference::getName)
-        .withItem(ConstantDynamicReference::getType)
-        .withItem(ConstantDynamicReference::getBootstrapMethod)
-        .withItemCollection(ConstantDynamicReference::getBootstrapMethodArguments);
+    spec.withInt(c -> c.symbolicReferenceId);
   }
 
   public ConstantDynamicReference(
+      int symbolicReferenceId,
       DexString name,
       DexType type,
       DexMethodHandle bootstrapMethod,
       List<DexValue> bootstrapMethodArguments) {
     assert bootstrapMethodArguments.isEmpty();
+    this.symbolicReferenceId = symbolicReferenceId;
     this.name = name;
     this.type = type;
     this.bootstrapMethod = bootstrapMethod;

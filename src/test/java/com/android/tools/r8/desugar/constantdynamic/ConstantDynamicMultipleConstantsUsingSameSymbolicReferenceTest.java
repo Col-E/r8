@@ -19,8 +19,6 @@ import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.StringUtils;
 import java.io.IOException;
 import java.lang.invoke.MethodHandles;
-import java.util.Arrays;
-import java.util.List;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -28,7 +26,7 @@ import org.junit.runners.Parameterized.Parameter;
 import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
-public class ConstantDynamicRegress272346803Test extends TestBase {
+public class ConstantDynamicMultipleConstantsUsingSameSymbolicReferenceTest extends TestBase {
 
   @Parameter() public TestParameters parameters;
 
@@ -38,15 +36,15 @@ public class ConstantDynamicRegress272346803Test extends TestBase {
   }
 
   private static final Class<?> MAIN_CLASS = Main.class;
-  private static final String EXPECTED_OUTPUT = StringUtils.lines("A", "B");
+  private static final String EXPECTED_OUTPUT = StringUtils.lines("true");
 
   @Test
   public void testReference() throws Exception {
     parameters.assumeJvmTestParameters();
     assumeTrue(parameters.getRuntime().asCf().isNewerThanOrEqual(CfVm.JDK11));
     testForJvm(parameters)
-        .addProgramClasses(Main.class)
         .addProgramClassFileData(getTransformedClasses())
+        .addProgramClasses(Main.class)
         .run(parameters.getRuntime(), MAIN_CLASS)
         .assertSuccessWithOutput(EXPECTED_OUTPUT);
   }
@@ -54,8 +52,8 @@ public class ConstantDynamicRegress272346803Test extends TestBase {
   @Test
   public void testDesugaring() throws Exception {
     testForDesugaring(parameters)
-        .addProgramClasses(Main.class)
         .addProgramClassFileData(getTransformedClasses())
+        .addProgramClasses(Main.class)
         .run(parameters.getRuntime(), MAIN_CLASS)
         .applyIf(
             // When not desugaring the CF code requires JDK 11.
@@ -76,13 +74,10 @@ public class ConstantDynamicRegress272346803Test extends TestBase {
   public void testR8() throws Exception {
     parameters.assumeR8TestParameters();
     testForR8(parameters.getBackend())
-        .addProgramClasses(Main.class)
         .addProgramClassFileData(getTransformedClasses())
+        .addProgramClasses(Main.class)
         .setMinApi(parameters)
         .addKeepMainRule(MAIN_CLASS)
-        // Access modification is required for inlining the get method from the desugared constant
-        // dynamic class.
-        .allowAccessModification()
         // TODO(b/198142613): There should not be a warnings on class references which are
         //  desugared away.
         .applyIf(
@@ -109,51 +104,38 @@ public class ConstantDynamicRegress272346803Test extends TestBase {
                     .assertSuccessWithOutput(EXPECTED_OUTPUT));
   }
 
-  private List<byte[]> getTransformedClasses() throws IOException {
-    return Arrays.asList(
-        transformer(A.class)
-            .setVersion(CfVersion.V11)
-            .transformConstStringToConstantDynamic(
-                "condy1", A.class, "myConstant", false, "constantName", String.class)
-            .transform(),
-        transformer(B.class)
-            .setVersion(CfVersion.V11)
-            .transformConstStringToConstantDynamic(
-                "condy1", B.class, "myConstant", false, "constantName", String.class)
-            .transform());
+  // When ASM writes two dynamic constants with the same BSM and arguments they are canonicialized
+  // into the same symbolic reference.
+  private byte[] getTransformedClasses() throws IOException {
+    return transformer(A.class)
+        .setVersion(CfVersion.V11)
+        .transformConstStringToConstantDynamic(
+            "condy1", A.class, "myConstant", false, "constantName", Object.class)
+        .transformConstStringToConstantDynamic(
+            "condy2", A.class, "myConstant", false, "constantName", Object.class)
+        .transform();
   }
 
-  // When R8 optimize this code the getter for the two constant dynamics will be inlined into
-  // Main.main. This leaves the synthetic constant dynamic classes with just two static fields.
-  // The synthetic sharing cannot share these two synthetics as that would leave only one constant.
-  // See b/272346803 for details.
   public static class Main {
 
     public static void main(String[] args) {
-      System.out.println(A.getConstant());
-      System.out.println(B.getConstant());
+      // This prints "true" due to the ASM canonicalization of the ConstantDynamic when writing.
+      System.out.println(A.getConstant1() == A.getConstant2());
     }
   }
 
   public static class A {
 
-    public static String getConstant() {
+    public static Object getConstant1() {
       return "condy1"; // Will be transformed to Constant_DYNAMIC.
     }
 
-    private static Object myConstant(MethodHandles.Lookup lookup, String name, Class<?> type) {
-      return "A";
-    }
-  }
-
-  public static class B {
-
-    public static String getConstant() {
-      return "condy1"; // Will be transformed to Constant_DYNAMIC.
+    public static Object getConstant2() {
+      return "condy2"; // Will be transformed to Constant_DYNAMIC.
     }
 
     private static Object myConstant(MethodHandles.Lookup lookup, String name, Class<?> type) {
-      return "B";
+      return new Object();
     }
   }
 }

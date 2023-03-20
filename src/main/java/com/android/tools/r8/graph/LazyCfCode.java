@@ -79,6 +79,8 @@ import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceMap;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.ints.IntList;
+import it.unimi.dsi.fastutil.objects.Reference2IntArrayMap;
+import it.unimi.dsi.fastutil.objects.Reference2IntMap;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -86,6 +88,7 @@ import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.BiFunction;
+import java.util.function.Supplier;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.ConstantDynamic;
@@ -334,6 +337,7 @@ public class LazyCfCode extends Code {
     private boolean usrJsrInliner;
     private final Origin origin;
     private final DebugParsingOptions debugParsingOptions;
+    private Reference2IntMap<ConstantDynamic> constantDynamicSymbolicReferences;
 
     ClassCodeVisitor(
         DexClass clazz,
@@ -351,6 +355,13 @@ public class LazyCfCode extends Code {
       this.debugParsingOptions = debugParsingOptions;
     }
 
+    private Reference2IntMap<ConstantDynamic> getConstantDynamicSymbolicReferences() {
+      if (constantDynamicSymbolicReferences == null) {
+        constantDynamicSymbolicReferences = new Reference2IntArrayMap<>();
+      }
+      return constantDynamicSymbolicReferences;
+    }
+
     @Override
     public MethodVisitor visitMethod(
         int access, String name, String desc, String signature, String[] exceptions) {
@@ -360,7 +371,13 @@ public class LazyCfCode extends Code {
         if (code != null) {
           DexMethod method = application.getMethod(clazz.type, name, desc);
           MethodCodeVisitor methodVisitor =
-              new MethodCodeVisitor(application, method, code, origin, debugParsingOptions);
+              new MethodCodeVisitor(
+                  application,
+                  method,
+                  code,
+                  origin,
+                  debugParsingOptions,
+                  this::getConstantDynamicSymbolicReferences);
           if (!usrJsrInliner) {
             return methodVisitor;
           }
@@ -391,13 +408,16 @@ public class LazyCfCode extends Code {
     private final Origin origin;
     private int minLine = Integer.MAX_VALUE;
     private int maxLine = -1;
+    private final Supplier<Reference2IntMap<ConstantDynamic>>
+        constantDynamicSymbolicReferencesSupplier;
 
     MethodCodeVisitor(
         JarApplicationReader application,
         DexMethod method,
         LazyCfCode code,
         Origin origin,
-        DebugParsingOptions debugParsingOptions) {
+        DebugParsingOptions debugParsingOptions,
+        Supplier<Reference2IntMap<ConstantDynamic>> constantDynamicSymbolicReferencesSupplier) {
       super(InternalOptions.ASM_VERSION);
       this.debugParsingOptions = debugParsingOptions;
       assert code != null;
@@ -406,6 +426,7 @@ public class LazyCfCode extends Code {
       this.code = code;
       this.method = method;
       this.origin = origin;
+      this.constantDynamicSymbolicReferencesSupplier = constantDynamicSymbolicReferencesSupplier;
     }
 
     private void addInstruction(CfInstruction instruction) {
@@ -1004,9 +1025,20 @@ public class LazyCfCode extends Code {
             new CfConstMethodHandle(
                 DexMethodHandle.fromAsmHandle((Handle) cst, application, method.holder)));
       } else if (cst instanceof ConstantDynamic) {
+        // Each symbolic reference to a dynamically-computed constant has a unique ConstantDynamic
+        // instance from ASM, even when they are equal (i.e. all their components are equal). See
+        // ConstantDynamicMultipleConstantsWithDifferentSymbolicReferenceUsingSameBSMAndArgumentsTest
+        // for an example.
+        Reference2IntMap<ConstantDynamic> constantDynamicSymbolicReferences =
+            constantDynamicSymbolicReferencesSupplier.get();
+        int symbolicReferenceId = constantDynamicSymbolicReferences.getOrDefault(cst, -1);
+        if (symbolicReferenceId == -1) {
+          symbolicReferenceId = constantDynamicSymbolicReferences.size();
+          constantDynamicSymbolicReferences.put((ConstantDynamic) cst, symbolicReferenceId);
+        }
         addInstruction(
             CfConstDynamic.fromAsmConstantDynamic(
-                (ConstantDynamic) cst, application, method.holder));
+                symbolicReferenceId, (ConstantDynamic) cst, application, method.holder));
       } else {
         throw new CompilationError("Unsupported constant: " + cst.toString());
       }

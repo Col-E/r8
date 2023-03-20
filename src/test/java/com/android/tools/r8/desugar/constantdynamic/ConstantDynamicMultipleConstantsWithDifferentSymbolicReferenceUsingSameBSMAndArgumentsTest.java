@@ -38,7 +38,6 @@ public class ConstantDynamicMultipleConstantsWithDifferentSymbolicReferenceUsing
 
   private static final String MAIN_CLASS = "A";
   private static final String EXPECTED_OUTPUT = StringUtils.lines("false");
-  private static final String UNEXPECTED_OUTPUT = StringUtils.lines("true");
 
   @Test
   public void testReference() throws Exception {
@@ -68,7 +67,7 @@ public class ConstantDynamicMultipleConstantsWithDifferentSymbolicReferenceUsing
               }
             })
         .applyIf(
-            DesugarTestConfiguration::isDesugared, r -> r.assertSuccessWithOutput(UNEXPECTED_OUTPUT));
+            DesugarTestConfiguration::isDesugared, r -> r.assertSuccessWithOutput(EXPECTED_OUTPUT));
   }
 
   @Test
@@ -101,7 +100,7 @@ public class ConstantDynamicMultipleConstantsWithDifferentSymbolicReferenceUsing
             },
             r ->
                 r.run(parameters.getRuntime(), MAIN_CLASS)
-                    .assertSuccessWithOutput(UNEXPECTED_OUTPUT));
+                    .assertSuccessWithOutput(EXPECTED_OUTPUT));
   }
 
   /*

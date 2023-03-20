@@ -65,7 +65,7 @@ public class SyntheticNaming {
   // TODO(b/214901256): Sharing of synthetic classes may lead to duplicate method errors.
   public final SyntheticKind NON_FIXED_INIT_TYPE_ARGUMENT =
       generator.forNonSharableInstanceClass("$IA");
-  public final SyntheticKind CONST_DYNAMIC = generator.forInstanceClass("$Condy");
+  public final SyntheticKind CONST_DYNAMIC = generator.forNonSharableInstanceClass("$Condy");
 
   // Method synthetics.
   public final SyntheticKind ENUM_UNBOXING_CHECK_NOT_ZERO_METHOD =

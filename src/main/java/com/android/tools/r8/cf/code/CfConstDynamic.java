@@ -46,17 +46,21 @@ public class CfConstDynamic extends CfInstruction implements CfTypeInstruction {
   private final ConstantDynamicReference reference;
 
   public CfConstDynamic(
+      int symbolicReferenceId,
       DexString name,
       DexType type,
       DexMethodHandle bootstrapMethod,
       List<DexValue> bootstrapMethodArguments) {
+    assert symbolicReferenceId >= 0;
     assert name != null;
     assert type != null;
     assert bootstrapMethod != null;
     assert bootstrapMethodArguments != null;
     assert bootstrapMethodArguments.isEmpty();
 
-    reference = new ConstantDynamicReference(name, type, bootstrapMethod, bootstrapMethodArguments);
+    reference =
+        new ConstantDynamicReference(
+            symbolicReferenceId, name, type, bootstrapMethod, bootstrapMethodArguments);
   }
 
   @Override
@@ -86,7 +90,10 @@ public class CfConstDynamic extends CfInstruction implements CfTypeInstruction {
   }
 
   public static CfConstDynamic fromAsmConstantDynamic(
-      ConstantDynamic insn, JarApplicationReader application, DexType clazz) {
+      int symbolicReferenceId,
+      ConstantDynamic insn,
+      JarApplicationReader application,
+      DexType clazz) {
     String constantName = insn.getName();
     String constantDescriptor = insn.getDescriptor();
     DexMethodHandle bootstrapMethodHandle =
@@ -99,6 +106,7 @@ public class CfConstDynamic extends CfInstruction implements CfTypeInstruction {
       bootstrapMethodArguments.add(dexValue);
     }
     return new CfConstDynamic(
+        symbolicReferenceId,
         application.getString(constantName),
         application.getTypeFromDescriptor(constantDescriptor),
         bootstrapMethodHandle,
