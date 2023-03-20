@@ -75,6 +75,7 @@ import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.KeepMethodInfo;
 import com.android.tools.r8.shaking.LibraryMethodOverrideAnalysis;
 import com.android.tools.r8.utils.Action;
+import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.ExceptionUtils;
 import com.android.tools.r8.utils.InternalOptions;
@@ -220,7 +221,8 @@ public class IRConverter {
             ? new CovariantReturnTypeAnnotationTransformer(appView, this)
             : null;
     if (appView.options().desugarState.isOn()
-        && appView.options().apiModelingOptions().enableOutliningOfMethods) {
+        && appView.options().apiModelingOptions().enableOutliningOfMethods
+        && appView.options().getMinApiLevel().isGreaterThanOrEqualTo(AndroidApiLevel.L)) {
       this.instanceInitializerOutliner = new InstanceInitializerOutliner(appView);
     } else {
       this.instanceInitializerOutliner = null;
