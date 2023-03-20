@@ -425,10 +425,6 @@ public class IRConverter {
     }
   }
 
-  String logCode(InternalOptions options, DexEncodedMethod method) {
-    return options.useSmaliSyntax ? method.toSmaliString(null) : method.codeToString();
-  }
-
   // TODO(b/140766440): Make this receive a list of CodeOptimizations to conduct.
   public Timing processDesugaredMethod(
       ProgramMethod method,

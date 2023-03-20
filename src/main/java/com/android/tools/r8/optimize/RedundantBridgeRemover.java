@@ -3,8 +3,6 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.optimize;
 
-import static com.android.tools.r8.utils.ThreadUtils.processItems;
-
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.DexEncodedMethod;
@@ -21,6 +19,7 @@ import com.android.tools.r8.optimize.InvokeSingleTargetExtractor.InvokeKind;
 import com.android.tools.r8.optimize.redundantbridgeremoval.RedundantBridgeRemovalLens;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.KeepMethodInfo;
+import com.android.tools.r8.utils.ThreadUtils;
 import com.android.tools.r8.utils.collections.ProgramMethodSet;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -134,7 +133,7 @@ public class RedundantBridgeRemover {
       RedundantBridgeRemovalLens.Builder lensBuilder, ExecutorService executorService)
       throws ExecutionException {
     Map<DexProgramClass, ProgramMethodSet> bridgesToRemove = new ConcurrentHashMap<>();
-    processItems(
+    ThreadUtils.processItems(
         appView.appInfo().classes(),
         clazz -> {
           ProgramMethodSet bridgesToRemoveForClass = ProgramMethodSet.create();

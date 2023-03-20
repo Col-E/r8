@@ -8,6 +8,7 @@ import com.android.tools.r8.contexts.CompilationContext.ProcessorContext;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.utils.ThreadUtils;
+import com.android.tools.r8.utils.ThreadUtils.WorkLoad;
 import com.android.tools.r8.utils.collections.ProgramMethodSet;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -79,11 +80,11 @@ public class OneTimeMethodProcessor extends MethodProcessorWithWave {
   }
 
   @FunctionalInterface
-  public interface MethodAction<E extends Exception> {
-    void accept(ProgramMethod method, MethodProcessingContext methodProcessingContext) throws E;
+  public interface MethodAction {
+    void accept(ProgramMethod method, MethodProcessingContext methodProcessingContext);
   }
 
-  public <E extends Exception> void forEachWaveWithExtension(MethodAction<E> consumer) throws E {
+  public void forEachWaveWithExtension(MethodAction consumer) {
     while (!wave.isEmpty()) {
       for (ProgramMethod method : wave) {
         consumer.accept(method, processorContext.createMethodProcessingContext(method));
@@ -92,13 +93,15 @@ public class OneTimeMethodProcessor extends MethodProcessorWithWave {
     }
   }
 
-  public <E extends Exception> void forEachWaveWithExtension(
-      MethodAction<E> consumer, ExecutorService executorService) throws ExecutionException {
+  public void forEachWaveWithExtension(MethodAction consumer, ExecutorService executorService)
+      throws ExecutionException {
     while (!wave.isEmpty()) {
       ThreadUtils.processItems(
           wave,
-          method -> consumer.accept(method, processorContext.createMethodProcessingContext(method)),
-          executorService);
+          (method, ignored) ->
+              consumer.accept(method, processorContext.createMethodProcessingContext(method)),
+          executorService,
+          WorkLoad.HEAVY);
       prepareForWaveExtensionProcessing();
     }
   }

@@ -11,8 +11,8 @@ import com.android.tools.r8.ir.desugar.CfPostProcessingDesugaring;
 import com.android.tools.r8.ir.desugar.CfPostProcessingDesugaringEventConsumer;
 import com.android.tools.r8.ir.desugar.itf.InterfaceDesugaringSyntheticHelper.InterfaceMethodDesugaringMode;
 import com.android.tools.r8.ir.desugar.itf.InterfaceMethodRewriter.Flavor;
+import com.android.tools.r8.utils.ListUtils;
 import com.android.tools.r8.utils.ThreadUtils;
-import com.google.common.collect.Iterables;
 import java.util.Collection;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -51,7 +51,7 @@ public class InterfaceMethodProcessorFacade implements CfPostProcessingDesugarin
       ExecutorService executorService)
       throws ExecutionException {
     ThreadUtils.processItems(
-        Iterables.filter(programClasses, (DexProgramClass clazz) -> shouldProcess(clazz, flavour)),
+        ListUtils.filter(programClasses, clazz -> shouldProcess(clazz, flavour)),
         clazz -> classProcessor.process(clazz, eventConsumer),
         executorService);
     classProcessor.finalizeProcessing(eventConsumer, executorService);

@@ -11,6 +11,7 @@ import com.android.tools.r8.shaking.KeepInfo.Joiner;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.ThreadUtils;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -49,7 +50,7 @@ public class DiscardedChecker {
   }
 
   public List<ProgramDefinition> run(
-      Iterable<DexProgramClass> classes, ExecutorService executorService)
+      Collection<DexProgramClass> classes, ExecutorService executorService)
       throws ExecutionException {
     assert failed.isEmpty();
 

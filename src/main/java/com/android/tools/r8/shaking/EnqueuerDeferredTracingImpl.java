@@ -32,6 +32,7 @@ import com.android.tools.r8.shaking.Enqueuer.Mode;
 import com.android.tools.r8.shaking.EnqueuerWorklist.EnqueuerAction;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.ThreadUtils;
+import com.android.tools.r8.utils.ThreadUtils.WorkLoad;
 import com.android.tools.r8.utils.Timing;
 import com.android.tools.r8.utils.collections.ProgramFieldMap;
 import com.android.tools.r8.utils.collections.ProgramFieldSet;
@@ -237,8 +238,9 @@ public class EnqueuerDeferredTracingImpl extends EnqueuerDeferredTracing {
         new ConcurrentHashMap<>();
     ThreadUtils.processItems(
         methodsToProcess,
-        method -> rewriteMethod(method, initializedClassesWithContexts, prunedFields),
-        executorService);
+        (method, ignored) -> rewriteMethod(method, initializedClassesWithContexts, prunedFields),
+        executorService,
+        WorkLoad.HEAVY);
 
     // Register new InitClass instructions.
     initializedClassesWithContexts.forEach(

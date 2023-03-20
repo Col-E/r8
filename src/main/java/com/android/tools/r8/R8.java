@@ -1017,7 +1017,7 @@ public class R8 {
 
   static void processWhyAreYouKeepingAndCheckDiscarded(
       RootSet rootSet,
-      Supplier<Iterable<DexProgramClass>> classes,
+      Supplier<Collection<DexProgramClass>> classes,
       WhyAreYouKeepingConsumer whyAreYouKeepingConsumer,
       AppView<? extends AppInfoWithClassHierarchy> appView,
       Enqueuer enqueuer,

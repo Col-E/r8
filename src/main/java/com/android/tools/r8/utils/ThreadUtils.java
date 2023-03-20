@@ -5,6 +5,7 @@ package com.android.tools.r8.utils;
 
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.ProgramMethod;
+import com.android.tools.r8.utils.ListUtils.ReferenceAndIntConsumer;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
@@ -16,8 +17,36 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.Future;
+import java.util.function.Consumer;
 
 public class ThreadUtils {
+
+  public enum WorkLoad {
+    // The threshold for HEAVY is basically just a fan-out when we have two items to process.
+    HEAVY(2),
+    // The threshold for LIGHT has been found by running TiviIncremental benchmark in different
+    // configurations. For partitioning inputs in buckets of 3 and use threading on 4 or more was
+    // slightly better than threading on 3:
+    // Buckets of 3 with threshold 4:
+    // TiviIncrementalLibrary(RunTimeRaw): 28076 ms
+    // TiviIncrementalMerge(RunTimeRaw): 1429 ms
+    // TiviIncrementalProgram(RunTimeRaw): 26374 ms
+    // Buckets of 3 with threshold 3:
+    // TiviIncrementalLibrary(RunTimeRaw): 30347 ms
+    // TiviIncrementalMerge(RunTimeRaw): 1558 ms
+    // TiviIncrementalProgram(RunTimeRaw): 26638 ms
+    LIGHT(4);
+
+    private final int threshold;
+
+    WorkLoad(int threshold) {
+      this.threshold = threshold;
+    }
+
+    public int getThreshold() {
+      return threshold;
+    }
+  }
 
   public static final int NOT_SPECIFIED = -1;
 
@@ -71,18 +100,26 @@ public class ThreadUtils {
     return awaitFuturesWithResults(futures);
   }
 
-  public static <T, E extends Exception> void processItems(
-      Iterable<T> items, ThrowingConsumer<T, E> consumer, ExecutorService executorService)
+  public static <T> void processItems(
+      Collection<T> items, Consumer<T> consumer, ExecutorService executorService)
       throws ExecutionException {
-    processItems(items, (item, i) -> consumer.accept(item), executorService);
+    processItems(items, (item, i) -> consumer.accept(item), executorService, WorkLoad.LIGHT);
   }
 
-  public static <T, E extends Exception> void processItems(
-      Iterable<T> items,
-      ThrowingReferenceIntConsumer<T, E> consumer,
-      ExecutorService executorService)
+  public static <T> void processItems(
+      Collection<T> items,
+      ReferenceAndIntConsumer<T> consumer,
+      ExecutorService executorService,
+      WorkLoad workLoad)
       throws ExecutionException {
-    processItems(items::forEach, consumer, executorService);
+    if (items.size() >= workLoad.getThreshold()) {
+      processItems(items::forEach, consumer::accept, executorService);
+    } else {
+      int counter = 0;
+      for (T item : items) {
+        consumer.accept(item, counter++);
+      }
+    }
   }
 
   public static <T, E extends Exception> void processItems(

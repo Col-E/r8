@@ -13,6 +13,7 @@ import com.android.tools.r8.ir.conversion.FieldOptimizationFeedback;
 import com.android.tools.r8.ir.conversion.MethodOptimizationFeedback;
 import com.android.tools.r8.shaking.AppInfoWithLivenessModifier;
 import com.android.tools.r8.utils.ThreadUtils;
+import java.util.Collection;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.function.Consumer;
@@ -55,7 +56,7 @@ public abstract class OptimizationFeedback
   }
 
   public void fixupOptimizationInfos(
-      Iterable<DexProgramClass> classes,
+      Collection<DexProgramClass> classes,
       ExecutorService executorService,
       OptimizationInfoFixer fixer)
       throws ExecutionException {

@@ -12,8 +12,9 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.GenericSignatureContextBuilder;
 import com.android.tools.r8.graph.GenericSignaturePartialTypeArgumentApplier;
 import com.android.tools.r8.graph.GenericSignatureTypeRewriter;
-import com.android.tools.r8.utils.IterableUtils;
+import com.android.tools.r8.utils.ListUtils;
 import com.android.tools.r8.utils.ThreadUtils;
+import java.util.Collection;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.function.BiPredicate;
@@ -35,7 +36,8 @@ public class GenericSignatureRewriter {
     this.contextBuilder = contextBuilder;
   }
 
-  public void runForD8(Iterable<? extends DexProgramClass> classes, ExecutorService executorService)
+  public void runForD8(
+      Collection<? extends DexProgramClass> classes, ExecutorService executorService)
       throws ExecutionException {
     if (appView.getNamingLens().isIdentityLens()) {
       return;
@@ -43,7 +45,7 @@ public class GenericSignatureRewriter {
     run(classes, executorService);
   }
 
-  public void run(Iterable<? extends DexProgramClass> classes, ExecutorService executorService)
+  public void run(Collection<? extends DexProgramClass> classes, ExecutorService executorService)
       throws ExecutionException {
     // Rewrite signature annotations for applications that are minified or if we have liveness
     // information, since we could have pruned types.
@@ -66,7 +68,7 @@ public class GenericSignatureRewriter {
     ThreadUtils.processItems(
         // Final merging of classes can introduce pruned types that still exists in classes, we
         // therefore prune them from work here.
-        IterableUtils.filter(classes, clazz -> !wasPruned.test(clazz.getType())),
+        ListUtils.filter(classes, clazz -> !wasPruned.test(clazz.getType())),
         clazz -> {
           GenericSignaturePartialTypeArgumentApplier classArgumentApplier =
               contextBuilder != null
