@@ -8,6 +8,7 @@ import com.android.tools.r8.CompilationMode;
 import com.android.tools.r8.D8;
 import com.android.tools.r8.D8Command;
 import com.android.tools.r8.OutputMode;
+import com.android.tools.r8.StringConsumer;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -49,7 +50,9 @@ public class CompileDumpD8 extends CompileDumpBase {
           "--main-dex-list-output",
           "--desugared-lib",
           "--threads",
-          "--startup-profile");
+          "--startup-profile",
+          "--desugared-lib",
+          "--desugared-lib-pg-conf-output");
 
   private static final List<String> VALID_OPTIONS_WITH_TWO_OPERANDS =
       Arrays.asList("--art-profile");
@@ -58,6 +61,7 @@ public class CompileDumpD8 extends CompileDumpBase {
     OutputMode outputMode = OutputMode.DexIndexed;
     Path outputPath = null;
     Path desugaredLibJson = null;
+    Path desugaredLibConfig = null;
     CompilationMode compilationMode = CompilationMode.RELEASE;
     List<Path> program = new ArrayList<>();
     List<Path> library = new ArrayList<>();
@@ -125,6 +129,11 @@ public class CompileDumpD8 extends CompileDumpBase {
               desugaredLibJson = Paths.get(operand);
               break;
             }
+          case "--desugared-lib-pg-conf-output":
+            {
+              desugaredLibConfig = Paths.get(operand);
+              break;
+            }
           case "--threads":
             {
               threads = Integer.parseInt(operand);
@@ -173,6 +182,10 @@ public class CompileDumpD8 extends CompileDumpBase {
     setEnableExperimentalMissingLibraryApiModeling(commandBuilder, enableMissingLibraryApiModeling);
     if (desugaredLibJson != null) {
       commandBuilder.addDesugaredLibraryConfiguration(readAllBytesJava7(desugaredLibJson));
+    }
+    if (desugaredLibConfig != null) {
+      StringConsumer consumer = new StringConsumer.FileConsumer(desugaredLibConfig);
+      commandBuilder.setDesugaredLibraryKeepRuleConsumer(consumer);
     }
     commandBuilder.setMinApiLevel(minApi);
     D8Command command = commandBuilder.build();
