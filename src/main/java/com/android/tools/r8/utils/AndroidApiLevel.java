@@ -85,6 +85,10 @@ public enum AndroidApiLevel implements Ordered<AndroidApiLevel> {
     return this == ANDROID_PLATFORM;
   }
 
+  public AndroidApiLevel next() {
+    return getAndroidApiLevel(getLevel() + 1);
+  }
+
   public static List<AndroidApiLevel> getAndroidApiLevelsSorted() {
     return Arrays.asList(AndroidApiLevel.values());
   }
