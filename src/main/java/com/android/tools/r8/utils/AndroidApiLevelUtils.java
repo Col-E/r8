@@ -329,4 +329,9 @@ public class AndroidApiLevelUtils {
     }
     return apiLevel.asKnownApiLevel().getApiLevel().getLevel() <= apiLevelAsInt;
   }
+
+  public static boolean isApiLevelLessThanOrEqualToG(ComputedApiLevel apiLevel) {
+    return apiLevel.isKnownApiLevel()
+        && apiLevel.asKnownApiLevel().getApiLevel().isLessThanOrEqualTo(AndroidApiLevel.G);
+  }
 }

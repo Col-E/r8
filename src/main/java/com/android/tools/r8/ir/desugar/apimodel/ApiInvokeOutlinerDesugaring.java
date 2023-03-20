@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.ir.desugar.apimodel;
 
+import static com.android.tools.r8.utils.AndroidApiLevelUtils.isApiLevelLessThanOrEqualToG;
 import static com.android.tools.r8.utils.AndroidApiLevelUtils.isOutlinedAtSameOrLowerLevel;
 import static org.objectweb.asm.Opcodes.INVOKESTATIC;
 
@@ -38,7 +39,6 @@ import com.android.tools.r8.ir.synthetic.FieldAccessorBuilder;
 import com.android.tools.r8.ir.synthetic.ForwardMethodBuilder;
 import com.android.tools.r8.ir.synthetic.InstanceOfSourceCode;
 import com.android.tools.r8.synthesis.SyntheticMethodBuilder;
-import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AndroidApiLevelUtils;
 import com.android.tools.r8.utils.Pair;
 import com.android.tools.r8.utils.TraversalContinuation;
@@ -114,7 +114,7 @@ public class ApiInvokeOutlinerDesugaring implements CfInstructionDesugaring {
                 appView, appView.appInfoForDesugaring(), holder, reference.asDexMember());
     ComputedApiLevel referenceApiLevel = classAndApiLevel.getSecond();
     if (appView.computedMinApiLevel().isGreaterThanOrEqualTo(referenceApiLevel)
-        || isApiLevelLessThanOrEqualTo9(referenceApiLevel)
+        || isApiLevelLessThanOrEqualToG(referenceApiLevel)
         || referenceApiLevel.isUnknownApiLevel()) {
       return appView.computedMinApiLevel();
     }
@@ -182,11 +182,6 @@ public class ApiInvokeOutlinerDesugaring implements CfInstructionDesugaring {
                   return TraversalContinuation.doContinue();
                 });
     return traversalResult.isBreak() ? traversalResult.asBreak().getValue() : null;
-  }
-
-  private boolean isApiLevelLessThanOrEqualTo9(ComputedApiLevel apiLevel) {
-    return apiLevel.isKnownApiLevel()
-        && apiLevel.asKnownApiLevel().getApiLevel().isLessThanOrEqualTo(AndroidApiLevel.G);
   }
 
   private Collection<CfInstruction> desugarLibraryCall(

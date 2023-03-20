@@ -2258,7 +2258,7 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
    * Predicate to guard against the possible presence of a VM bug.
    *
    * <p>Note that if the compilation is not desugaring to a min-api or targeting DEX at a min-api,
-   * then the bug is assumed to be present as the CF output could be futher compiled to any target.
+   * then the bug is assumed to be present as the CF output could be further compiled to any target.
    */
   private boolean canHaveBugPresentUntil(AndroidApiLevel level) {
     if (desugarState.isOn() || isGeneratingDex()) {
@@ -2892,5 +2892,11 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
   // Don't inline code with monitors into methods that already have monitors.
   public boolean canHaveIssueWithInlinedMonitors() {
     return canHaveBugPresentUntil(AndroidApiLevel.N);
+  }
+
+  // b/272725341. ART 11 and 12 re-introduced hard verification errors when unable to compute
+  // subtype relationship when no other verification issues exists in code.
+  public boolean canHaveVerifyErrorForUnknownUnusedReturnValue() {
+    return isGeneratingDex() && canHaveBugPresentUntil(AndroidApiLevel.T);
   }
 }

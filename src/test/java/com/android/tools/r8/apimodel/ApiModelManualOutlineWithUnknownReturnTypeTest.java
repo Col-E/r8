@@ -4,10 +4,10 @@
 
 package com.android.tools.r8.apimodel;
 
+import static com.android.tools.r8.apimodel.ApiModelingTestHelper.setMockApiLevelForClass;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.junit.Assume.assumeTrue;
 
-import com.android.tools.r8.SingleTestRunResult;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestCompileResult;
 import com.android.tools.r8.TestParameters;
@@ -68,8 +68,30 @@ public class ApiModelManualOutlineWithUnknownReturnTypeTest extends TestBase {
   }
 
   @Test
-  public void testD8() throws Exception {
+  public void testD8WithModeling() throws Exception {
     assumeTrue(parameters.isDexRuntime());
+    testForD8(parameters.getBackend())
+        .addProgramClasses(Main.class, ProgramClass.class, ManualOutline.class)
+        .addDefaultRuntimeLibrary(parameters)
+        .addLibraryClasses(LibraryClass.class, LibrarySub.class)
+        .setMinApi(parameters)
+        .addOptionsModification(
+            options -> options.apiModelingOptions().disableOutliningAndStubbing())
+        .apply(setMockApiLevelForClass(LibraryClass.class, AndroidApiLevel.B))
+        .apply(setMockApiLevelForClass(LibrarySub.class, getMockApiLevel()))
+        .compile()
+        .apply(this::setupRuntime)
+        .run(parameters.getRuntime(), Main.class)
+        .assertSuccessWithOutputLines("ProgramClass::print");
+  }
+
+  @Test
+  public void testD8NoModeling() throws Exception {
+    assumeTrue(parameters.isDexRuntime());
+    boolean willHaveVerifyError =
+        (parameters.getDexRuntimeVersion().isDalvik()
+                || parameters.isDexRuntimeVersion(Version.V12_0_0))
+            && !addedToLibraryHere;
     testForD8(parameters.getBackend())
         .addProgramClasses(Main.class, ProgramClass.class, ManualOutline.class)
         .addDefaultRuntimeLibrary(parameters)
@@ -79,16 +101,6 @@ public class ApiModelManualOutlineWithUnknownReturnTypeTest extends TestBase {
         .compile()
         .apply(this::setupRuntime)
         .run(parameters.getRuntime(), Main.class)
-        .apply(this::checkOutput);
-  }
-
-  private void checkOutput(SingleTestRunResult<?> runResult) {
-    // TODO(b/272725341): Potentially we can remove the verification error
-    boolean willHaveVerifyError =
-        (parameters.getDexRuntimeVersion().isDalvik()
-                || parameters.isDexRuntimeVersion(Version.V12_0_0))
-            && !addedToLibraryHere;
-    runResult
         .assertSuccessWithOutputLinesIf(!willHaveVerifyError, "ProgramClass::print")
         .assertFailureWithErrorThatThrowsIf(willHaveVerifyError, VerifyError.class);
   }

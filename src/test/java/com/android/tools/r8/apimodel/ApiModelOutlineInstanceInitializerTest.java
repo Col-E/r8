@@ -73,7 +73,7 @@ public class ApiModelOutlineInstanceInitializerTest extends TestBase {
         .setMode(CompilationMode.DEBUG)
         .apply(this::setupTestBuilder)
         .compile()
-        .inspect(inspector -> inspect(inspector, false))
+        .inspect(this::inspect)
         .applyIf(
             addToBootClasspath(),
             b -> b.addBootClasspathClasses(LibraryClass.class, Argument.class))
@@ -88,7 +88,7 @@ public class ApiModelOutlineInstanceInitializerTest extends TestBase {
         .setMode(CompilationMode.RELEASE)
         .apply(this::setupTestBuilder)
         .compile()
-        .inspect(inspector -> inspect(inspector, false))
+        .inspect(this::inspect)
         .applyIf(
             addToBootClasspath(),
             b -> b.addBootClasspathClasses(LibraryClass.class, Argument.class))
@@ -102,7 +102,7 @@ public class ApiModelOutlineInstanceInitializerTest extends TestBase {
         .apply(this::setupTestBuilder)
         .addKeepMainRule(Main.class)
         .compile()
-        .inspect(inspector -> inspect(inspector, true))
+        .inspect(this::inspect)
         .applyIf(
             addToBootClasspath(),
             b -> b.addBootClasspathClasses(LibraryClass.class, Argument.class))
@@ -110,16 +110,14 @@ public class ApiModelOutlineInstanceInitializerTest extends TestBase {
         .apply(this::checkOutput);
   }
 
-  private void inspect(CodeInspector inspector, boolean isR8) throws Exception {
+  private void inspect(CodeInspector inspector) throws Exception {
     Method mainMethod = Main.class.getMethod("main", String[].class);
     verifyThat(inspector, parameters, Argument.class.getDeclaredConstructor(String.class))
-        .isOutlinedFromBetween(mainMethod, AndroidApiLevel.L, classApiLevel);
+        .isOutlinedFromUntil(mainMethod, classApiLevel);
     verifyThat(inspector, parameters, LibraryClass.class.getDeclaredConstructor(Argument.class))
-        .isOutlinedFromBetween(mainMethod, AndroidApiLevel.L, classApiLevel);
-    // For R8 we inline into the method with an instance initializer when we do not outline it.
+        .isOutlinedFromUntil(mainMethod, classApiLevel);
     verifyThat(inspector, parameters, LibraryClass.class.getMethod("print"))
-        .isOutlinedFromBetween(
-            mainMethod, isR8 ? AndroidApiLevel.L : AndroidApiLevel.B, classApiLevel);
+        .isOutlinedFromUntil(mainMethod, classApiLevel);
   }
 
   private void checkOutput(SingleTestRunResult<?> runResult) {

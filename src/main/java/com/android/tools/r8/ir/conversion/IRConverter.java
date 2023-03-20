@@ -43,6 +43,7 @@ import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.NaturalIntLoopRemover;
 import com.android.tools.r8.ir.optimize.RedundantFieldLoadAndStoreElimination;
 import com.android.tools.r8.ir.optimize.ReflectionOptimizer;
+import com.android.tools.r8.ir.optimize.RemoveVerificationErrorForUnknownReturnedValues;
 import com.android.tools.r8.ir.optimize.ServiceLoaderRewriter;
 import com.android.tools.r8.ir.optimize.api.InstanceInitializerOutliner;
 import com.android.tools.r8.ir.optimize.classinliner.ClassInliner;
@@ -74,7 +75,6 @@ import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.KeepMethodInfo;
 import com.android.tools.r8.shaking.LibraryMethodOverrideAnalysis;
 import com.android.tools.r8.utils.Action;
-import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.ExceptionUtils;
 import com.android.tools.r8.utils.InternalOptions;
@@ -120,6 +120,8 @@ public class IRConverter {
   private final EnumValueOptimizer enumValueOptimizer;
   protected final EnumUnboxer enumUnboxer;
   protected final InstanceInitializerOutliner instanceInitializerOutliner;
+  protected final RemoveVerificationErrorForUnknownReturnedValues
+      removeVerificationErrorForUnknownReturnedValues;
 
   public final AssumeInserter assumeInserter;
   private final DynamicTypeOptimization dynamicTypeOptimization;
@@ -206,6 +208,7 @@ public class IRConverter {
       this.enumUnboxer = EnumUnboxer.empty();
       this.assumeInserter = null;
       this.instanceInitializerOutliner = null;
+      this.removeVerificationErrorForUnknownReturnedValues = null;
       return;
     }
     this.instructionDesugaring =
@@ -217,12 +220,16 @@ public class IRConverter {
             ? new CovariantReturnTypeAnnotationTransformer(appView, this)
             : null;
     if (appView.options().desugarState.isOn()
-        && appView.options().apiModelingOptions().enableOutliningOfMethods
-        && appView.options().getMinApiLevel().isGreaterThanOrEqualTo(AndroidApiLevel.L)) {
+        && appView.options().apiModelingOptions().enableOutliningOfMethods) {
       this.instanceInitializerOutliner = new InstanceInitializerOutliner(appView);
     } else {
       this.instanceInitializerOutliner = null;
     }
+    removeVerificationErrorForUnknownReturnedValues =
+        (appView.options().apiModelingOptions().enableLibraryApiModeling
+                && appView.options().canHaveVerifyErrorForUnknownUnusedReturnValue())
+            ? new RemoveVerificationErrorForUnknownReturnedValues(appView)
+            : null;
     if (appView.enableWholeProgramOptimizations()) {
       assert appView.appInfo().hasLiveness();
       assert appView.rootSet() != null;
@@ -739,7 +746,7 @@ public class IRConverter {
     timing.begin("Split range invokes");
     codeRewriter.splitRangeInvokeConstants(code);
     timing.end();
-    timing.begin("Propogate sparse conditionals");
+    timing.begin("Propagate sparse conditionals");
     new SparseConditionalConstantPropagation(appView, code).run();
     timing.end();
     timing.begin("Rewrite always throwing instructions");
@@ -860,6 +867,10 @@ public class IRConverter {
       codeRewriter.shortenLiveRanges(code, constantCanonicalizer);
       timing.end();
       previous = printMethod(code, "IR after shorten live ranges (SSA)", previous);
+    }
+
+    if (removeVerificationErrorForUnknownReturnedValues != null) {
+      removeVerificationErrorForUnknownReturnedValues.run(context, code, timing);
     }
 
     timing.begin("Canonicalize idempotent calls");

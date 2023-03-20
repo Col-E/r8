@@ -141,9 +141,16 @@ public class Return extends JumpInstruction {
 
   public static class Builder extends BuilderBase<Builder, Return> {
 
+    private Value returnValue = null;
+
+    public Builder setReturnValue(Value returnValue) {
+      this.returnValue = returnValue;
+      return self();
+    }
+
     @Override
     public Return build() {
-      return amend(new Return());
+      return amend(returnValue == null ? new Return() : new Return(returnValue));
     }
 
     @Override

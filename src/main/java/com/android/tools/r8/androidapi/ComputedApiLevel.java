@@ -79,6 +79,8 @@ public interface ComputedApiLevel extends Equatable<ComputedApiLevel> {
 
   OptionalBool isLessThanOrEqualTo(ComputedApiLevel other);
 
+  OptionalBool isGreaterThan(AndroidApiLevel other);
+
   class NotSetApiLevel implements ComputedApiLevel {
 
     private static final NotSetApiLevel INSTANCE = new NotSetApiLevel();
@@ -93,6 +95,12 @@ public interface ComputedApiLevel extends Equatable<ComputedApiLevel> {
 
     @Override
     public OptionalBool isLessThanOrEqualTo(ComputedApiLevel other) {
+      assert false : "Cannot compute relationship for not set";
+      return OptionalBool.unknown();
+    }
+
+    @Override
+    public OptionalBool isGreaterThan(AndroidApiLevel other) {
       assert false : "Cannot compute relationship for not set";
       return OptionalBool.unknown();
     }
@@ -126,6 +134,11 @@ public interface ComputedApiLevel extends Equatable<ComputedApiLevel> {
 
     @Override
     public OptionalBool isLessThanOrEqualTo(ComputedApiLevel other) {
+      return OptionalBool.unknown();
+    }
+
+    @Override
+    public OptionalBool isGreaterThan(AndroidApiLevel other) {
       return OptionalBool.unknown();
     }
 
@@ -189,6 +202,11 @@ public interface ComputedApiLevel extends Equatable<ComputedApiLevel> {
       }
       assert other.isUnknownApiLevel() : "Cannot compute relationship for not set";
       return OptionalBool.unknown();
+    }
+
+    @Override
+    public OptionalBool isGreaterThan(AndroidApiLevel other) {
+      return OptionalBool.of(apiLevel.isGreaterThan(other));
     }
 
     @Override

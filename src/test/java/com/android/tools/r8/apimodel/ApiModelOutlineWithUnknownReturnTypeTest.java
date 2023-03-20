@@ -17,7 +17,6 @@ import com.android.tools.r8.TestCompileResult;
 import com.android.tools.r8.TestCompilerBuilder;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.ToolHelper;
-import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
@@ -124,14 +123,7 @@ public class ApiModelOutlineWithUnknownReturnTypeTest extends TestBase {
   }
 
   private void checkOutput(SingleTestRunResult<?> runResult) {
-    // TODO(b/272725341): We should not cause verify error.
-    boolean willHaveVerifyError =
-        (parameters.getDexRuntimeVersion().isDalvik()
-                || parameters.isDexRuntimeVersion(Version.V12_0_0))
-            && !addedToLibraryHere;
-    runResult
-        .assertSuccessWithOutputLinesIf(!willHaveVerifyError, "ProgramClass::print")
-        .assertFailureWithErrorThatThrowsIf(willHaveVerifyError, VerifyError.class);
+    runResult.assertSuccessWithOutputLines("ProgramClass::print");
   }
 
   public static class LibraryClass {
