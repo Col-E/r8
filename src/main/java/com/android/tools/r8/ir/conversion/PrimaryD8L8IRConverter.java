@@ -45,8 +45,11 @@ import java.util.concurrent.ExecutorService;
 
 public class PrimaryD8L8IRConverter extends IRConverter {
 
+  private final Timing timing;
+
   public PrimaryD8L8IRConverter(AppView<AppInfo> appView, Timing timing) {
-    super(appView, timing);
+    super(appView);
+    this.timing = timing;
   }
 
   public void convert(AppView<AppInfo> appView, ExecutorService executorService)

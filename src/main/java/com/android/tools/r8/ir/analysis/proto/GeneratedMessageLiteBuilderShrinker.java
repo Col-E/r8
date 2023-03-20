@@ -195,7 +195,7 @@ public class GeneratedMessageLiteBuilderShrinker {
     }
     timing.begin("Remove dead builder references");
     AppInfoWithLiveness appInfo = appView.appInfo();
-    IRConverter converter = new IRConverter(appView, Timing.empty());
+    IRConverter converter = new IRConverter(appView);
     ThreadUtils.processMap(
         builders,
         (builder, dynamicMethod) -> {

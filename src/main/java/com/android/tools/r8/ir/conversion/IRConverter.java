@@ -96,7 +96,6 @@ public class IRConverter {
 
   public final AppView<?> appView;
 
-  protected final Timing timing;
   public final Outliner outliner;
   private final ClassInitializerDefaultsOptimization classInitializerDefaultsOptimization;
   protected final CfInstructionDesugaringCollection instructionDesugaring;
@@ -148,11 +147,9 @@ public class IRConverter {
    * The argument `appView` is used to determine if whole program optimizations are allowed or not
    * (i.e., whether we are running R8). See {@link AppView#enableWholeProgramOptimizations()}.
    */
-  public IRConverter(AppView<?> appView, Timing timing) {
+  public IRConverter(AppView<?> appView) {
     assert appView.options() != null;
     assert appView.options().programConsumer != null;
-    assert timing != null;
-    this.timing = timing;
     this.appView = appView;
     this.options = appView.options();
     this.codeRewriter = new CodeRewriter(appView);
@@ -290,8 +287,8 @@ public class IRConverter {
             : null;
   }
 
-  public IRConverter(AppInfo appInfo, Timing timing) {
-    this(AppView.createForD8(appInfo), timing);
+  public IRConverter(AppInfo appInfo) {
+    this(AppView.createForD8(appInfo));
   }
 
   public Inliner getInliner() {

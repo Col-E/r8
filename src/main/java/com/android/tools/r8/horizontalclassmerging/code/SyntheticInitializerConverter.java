@@ -59,7 +59,7 @@ public class SyntheticInitializerConverter {
 
   public void convertClassInitializers(ExecutorService executorService) throws ExecutionException {
     if (!classInitializers.isEmpty()) {
-      IRConverter converter = new IRConverter(createAppViewForConversion(), Timing.empty());
+      IRConverter converter = new IRConverter(createAppViewForConversion());
       ThreadUtils.processItems(
           classInitializers, method -> processMethod(method, converter), executorService);
     }
@@ -68,7 +68,7 @@ public class SyntheticInitializerConverter {
   public void convertInstanceInitializers(ExecutorService executorService)
       throws ExecutionException {
     if (!instanceInitializers.isEmpty()) {
-      IRConverter converter = new IRConverter(createAppViewForConversion(), Timing.empty());
+      IRConverter converter = new IRConverter(createAppViewForConversion());
       ThreadUtils.processItems(
           instanceInitializers,
           clazz -> processInstanceInitializers(clazz, converter),

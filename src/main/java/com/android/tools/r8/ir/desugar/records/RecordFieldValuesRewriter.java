@@ -45,7 +45,7 @@ public class RecordFieldValuesRewriter {
 
   private RecordFieldValuesRewriter(AppView<AppInfoWithLiveness> appView) {
     this.appView = appView;
-    irConverter = new IRConverter(appView, Timing.empty());
+    irConverter = new IRConverter(appView);
   }
 
   // Called after final tree shaking, prune and minify field names and field values.

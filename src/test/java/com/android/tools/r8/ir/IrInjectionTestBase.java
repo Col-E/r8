@@ -101,7 +101,7 @@ public class IrInjectionTestBase extends SmaliTestBase {
 
     public String run() throws IOException {
       Timing timing = Timing.empty();
-      IRConverter converter = new IRConverter(appView, timing);
+      IRConverter converter = new IRConverter(appView);
       converter.replaceCodeForTesting(code);
       AndroidApp app = writeDex();
       return runOnArtRaw(app, DEFAULT_MAIN_CLASS_NAME).stdout;

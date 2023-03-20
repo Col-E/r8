@@ -26,8 +26,11 @@ import java.util.concurrent.ExecutorService;
 
 public class PrimaryR8IRConverter extends IRConverter {
 
+  private final Timing timing;
+
   public PrimaryR8IRConverter(AppView<? extends AppInfoWithClassHierarchy> appView, Timing timing) {
-    super(appView, timing);
+    super(appView);
+    this.timing = timing;
   }
 
   public void optimize(AppView<AppInfoWithLiveness> appView, ExecutorService executorService)

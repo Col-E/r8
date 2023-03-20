@@ -57,7 +57,7 @@ public class StartupInstrumentation {
 
   private StartupInstrumentation(AppView<AppInfo> appView) {
     this.appView = appView;
-    this.converter = new IRConverter(appView, Timing.empty());
+    this.converter = new IRConverter(appView);
     this.dexItemFactory = appView.dexItemFactory();
     this.options = appView.options();
     this.references = new StartupInstrumentationReferences(dexItemFactory);

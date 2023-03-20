@@ -174,7 +174,7 @@ public class AssemblyWriter extends DexByteCodeWriter {
   }
 
   private void writeIR(ProgramMethod method) {
-    IRConverter converter = new IRConverter(appInfo, timing);
+    IRConverter converter = new IRConverter(appInfo);
     MethodProcessorEventConsumer eventConsumer = MethodProcessorEventConsumer.empty();
     OneTimeMethodProcessor methodProcessor =
         OneTimeMethodProcessor.create(
