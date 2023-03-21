@@ -13,21 +13,29 @@ import com.android.tools.r8.TestDiagnosticMessagesImpl;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.ToolHelper;
+import com.android.tools.r8.androidapi.AndroidApiLevelCompute;
+import com.android.tools.r8.androidapi.AndroidApiLevelCompute.DefaultAndroidApiLevelCompute;
 import com.android.tools.r8.androidapi.AndroidApiLevelHashingDatabaseImpl;
 import com.android.tools.r8.apimodel.AndroidApiVersionsXmlParser.ParsedApiClass;
+import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
+import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItemFactory;
+import com.android.tools.r8.graph.DexLibraryClass;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.references.MethodReference;
 import com.android.tools.r8.utils.AndroidApiLevel;
+import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.IntBox;
 import com.android.tools.r8.utils.InternalOptions;
 import com.google.common.collect.ImmutableList;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 import org.junit.runner.RunWith;
@@ -111,6 +119,53 @@ public class AndroidApiHashingDatabaseBuilderGeneratorTest extends TestBase {
   public void testDatabaseGenerationUpToDate() throws Exception {
     GenerateDatabaseResourceFilesResult result = generateResourcesFiles();
     assertTrue(TestBase.filesAreEqual(result.apiLevels, API_DATABASE));
+  }
+
+  @Test
+  public void testAmendedClassesToApiDatabase() throws Exception {
+    Path androidJar = ToolHelper.getAndroidJar(API_LEVEL);
+    AppView<AppInfoWithClassHierarchy> appView =
+        computeAppViewWithClassHierarchy(AndroidApp.builder().addLibraryFile(androidJar).build());
+    AndroidApiLevelCompute androidApiLevelCompute = DefaultAndroidApiLevelCompute.create(appView);
+    assertTrue(androidApiLevelCompute.isEnabled());
+    ensureAllPublicMethodsAreMapped(appView, androidApiLevelCompute);
+  }
+
+  private static void ensureAllPublicMethodsAreMapped(
+      AppView<AppInfoWithClassHierarchy> appView, AndroidApiLevelCompute apiLevelCompute) {
+    Set<String> notModeledTypes = new HashSet<>();
+    notModeledTypes.add("androidx.annotation.RecentlyNullable");
+    notModeledTypes.add("androidx.annotation.RecentlyNonNull");
+    notModeledTypes.add("android.annotation.Nullable");
+    notModeledTypes.add("android.annotation.NonNull");
+    DexItemFactory factory = appView.dexItemFactory();
+    for (DexLibraryClass clazz : appView.app().asDirect().libraryClasses()) {
+      if (notModeledTypes.contains(clazz.getClassReference().getTypeName())) {
+        continue;
+      }
+      assertTrue(
+          apiLevelCompute
+              .computeApiLevelForLibraryReference(clazz.getReference())
+              .isKnownApiLevel());
+      clazz.forEachClassField(
+          field -> {
+            if (field.getAccessFlags().isPublic() && !field.toSourceString().contains("this$0")) {
+              assertTrue(
+                  apiLevelCompute
+                      .computeApiLevelForLibraryReference(field.getReference())
+                      .isKnownApiLevel());
+            }
+          });
+      clazz.forEachClassMethod(
+          method -> {
+            if (method.getAccessFlags().isPublic()) {
+              assertTrue(
+                  apiLevelCompute
+                      .computeApiLevelForLibraryReference(method.getReference())
+                      .isKnownApiLevel());
+            }
+          });
+    }
   }
 
   @Test

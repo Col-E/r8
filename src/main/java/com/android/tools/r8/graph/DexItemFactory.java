@@ -305,6 +305,10 @@ public class DexItemFactory {
   public final DexString streamDescriptor = createString("Ljava/util/stream/Stream;");
   public final DexString arraysDescriptor = createString("Ljava/util/Arrays;");
   public final DexString threadLocalDescriptor = createString("Ljava/lang/ThreadLocal;");
+  public final DexString concurrentHashMapDescriptor =
+      createString("Ljava/util/concurrent/ConcurrentHashMap;");
+  public final DexString concurrentHaspMapKeySetViewDescriptor =
+      createString("Ljava/util/concurrent/ConcurrentHashMap$KeySetView;");
 
   public final DexString throwableDescriptor = createString(throwableDescriptorString);
   public final DexString illegalAccessErrorDescriptor =
@@ -478,6 +482,10 @@ public class DexItemFactory {
   public final DexType optionalLongType = createStaticallyKnownType(optionalLongDescriptor);
   public final DexType streamType = createStaticallyKnownType(streamDescriptor);
   public final DexType threadLocalType = createStaticallyKnownType(threadLocalDescriptor);
+  public final DexType concurrentHashMapType =
+      createStaticallyKnownType(concurrentHashMapDescriptor);
+  public final DexType concurrentHashMapKeySetViewType =
+      createStaticallyKnownType(concurrentHaspMapKeySetViewDescriptor);
 
   public final DexType bufferType = createStaticallyKnownType(bufferDescriptor);
   public final DexType byteBufferType = createStaticallyKnownType(byteBufferDescriptor);

@@ -87,10 +87,9 @@ public class AndroidApiHashingDatabaseBuilderGenerator extends TestBase {
     for (ParsedApiClass apiClass : apiClasses) {
       Map<DexMethod, AndroidApiLevel> methodsForApiClass = new HashMap<>();
       apiClass.visitMethodReferences(
-          (apiLevel, methods) -> {
-            methods.forEach(
-                method -> methodsForApiClass.put(factory.createMethod(method), apiLevel));
-          });
+          (apiLevel, methods) ->
+              methods.forEach(
+                  method -> methodsForApiClass.put(factory.createMethod(method), apiLevel)));
       covariantMethodsInJar.visitCovariantMethodsForHolder(
           apiClass.getClassReference(),
           methodReferenceWithApiLevel -> {
@@ -105,9 +104,8 @@ public class AndroidApiHashingDatabaseBuilderGenerator extends TestBase {
           });
       Map<DexField, AndroidApiLevel> fieldsForApiClass = new HashMap<>();
       apiClass.visitFieldReferences(
-          (apiLevel, fields) -> {
-            fields.forEach(field -> fieldsForApiClass.put(factory.createField(field), apiLevel));
-          });
+          (apiLevel, fields) ->
+              fields.forEach(field -> fieldsForApiClass.put(factory.createField(field), apiLevel)));
       methodMap.put(apiClass.getClassReference(), methodsForApiClass);
       fieldMap.put(apiClass.getClassReference(), fieldsForApiClass);
       lookupMap.put(apiClass.getClassReference(), apiClass);
