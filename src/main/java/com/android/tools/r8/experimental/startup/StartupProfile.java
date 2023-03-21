@@ -13,6 +13,7 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexReference;
+import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.PrunedItems;
 import com.android.tools.r8.origin.Origin;
@@ -129,6 +130,8 @@ public abstract class StartupProfile
     }
     return StartupProfile.merge(startupProfiles);
   }
+
+  public abstract boolean isStartupClass(DexType type);
 
   public abstract Collection<StartupProfileRule> getRules();
 

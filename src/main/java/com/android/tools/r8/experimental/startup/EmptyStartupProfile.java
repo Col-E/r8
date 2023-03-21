@@ -59,6 +59,11 @@ public class EmptyStartupProfile extends StartupProfile {
   }
 
   @Override
+  public boolean isStartupClass(DexType type) {
+    return false;
+  }
+
+  @Override
   public EmptyStartupProfile rewrittenWithLens(GraphLens graphLens) {
     return this;
   }

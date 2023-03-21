@@ -15,28 +15,33 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.PrunedItems;
 import com.android.tools.r8.synthesis.SyntheticItems;
+import com.android.tools.r8.utils.SetUtils;
 import com.android.tools.r8.utils.ThrowingConsumer;
 import java.util.Collection;
 import java.util.LinkedHashMap;
+import java.util.Set;
 import java.util.function.BiConsumer;
 
 public class NonEmptyStartupProfile extends StartupProfile {
 
-  private final LinkedHashMap<DexReference, StartupProfileRule> startupItems;
+  private final Set<DexType> startupClasses;
+  private final LinkedHashMap<DexReference, StartupProfileRule> startupRules;
 
-  public NonEmptyStartupProfile(LinkedHashMap<DexReference, StartupProfileRule> startupItems) {
-    assert !startupItems.isEmpty();
-    this.startupItems = startupItems;
-  }
-
-  @Override
-  public boolean containsMethodRule(DexMethod method) {
-    return startupItems.containsKey(method);
+  public NonEmptyStartupProfile(LinkedHashMap<DexReference, StartupProfileRule> startupRules) {
+    assert !startupRules.isEmpty();
+    this.startupClasses =
+        SetUtils.mapIdentityHashSet(startupRules.keySet(), DexReference::getContextType);
+    this.startupRules = startupRules;
   }
 
   @Override
   public boolean containsClassRule(DexType type) {
-    return startupItems.containsKey(type);
+    return startupRules.containsKey(type);
+  }
+
+  @Override
+  public boolean containsMethodRule(DexMethod method) {
+    return startupRules.containsKey(method);
   }
 
   @Override
@@ -51,22 +56,27 @@ public class NonEmptyStartupProfile extends StartupProfile {
 
   @Override
   public StartupProfileClassRule getClassRule(DexType type) {
-    return (StartupProfileClassRule) startupItems.get(type);
+    return (StartupProfileClassRule) startupRules.get(type);
   }
 
   @Override
   public StartupProfileMethodRule getMethodRule(DexMethod method) {
-    return (StartupProfileMethodRule) startupItems.get(method);
+    return (StartupProfileMethodRule) startupRules.get(method);
   }
 
   @Override
   public Collection<StartupProfileRule> getRules() {
-    return startupItems.values();
+    return startupRules.values();
   }
 
   @Override
   public boolean isEmpty() {
     return false;
+  }
+
+  @Override
+  public boolean isStartupClass(DexType type) {
+    return startupClasses.contains(type);
   }
 
   @Override
@@ -85,7 +95,7 @@ public class NonEmptyStartupProfile extends StartupProfile {
   }
 
   public int size() {
-    return startupItems.size();
+    return startupRules.size();
   }
 
   /**
@@ -176,7 +186,7 @@ public class NonEmptyStartupProfile extends StartupProfile {
   private StartupProfile transform(
       BiConsumer<StartupProfileClassRule, Builder> classRuleTransformer,
       BiConsumer<StartupProfileMethodRule, Builder> methodRuleTransformer) {
-    Builder builder = builderWithCapacity(startupItems.size());
+    Builder builder = builderWithCapacity(startupRules.size());
     forEachRule(
         classRule -> classRuleTransformer.accept(classRule, builder),
         methodRule -> methodRuleTransformer.accept(methodRule, builder));

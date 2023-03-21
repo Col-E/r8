@@ -175,7 +175,7 @@ public class ClassToFeatureSplitMap {
       feature = classToFeatureSplitMap.getOrDefault(type, FeatureSplit.BASE);
     }
     if (feature.isBase()) {
-      return !startupProfile.containsClassRule(type)
+      return !startupProfile.isStartupClass(type)
               || options.getStartupOptions().isStartupBoundaryOptimizationsEnabled()
           ? FeatureSplit.BASE
           : FeatureSplit.BASE_STARTUP;

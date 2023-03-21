@@ -4,7 +4,6 @@
 
 package com.android.tools.r8.startup;
 
-import static com.android.tools.r8.utils.codeinspector.Matchers.isAbsent;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.MatcherAssert.assertThat;
 
@@ -58,17 +57,11 @@ public class MinimalStartupDexFromStartupMethodRuleTest extends TestBase {
             primaryDexInspector -> {
               ClassSubject mainClassSubject = primaryDexInspector.clazz(Main.class);
               assertThat(mainClassSubject, isPresent());
-
-              // TODO(b/274591979): Should be in classes2.dex.
-              ClassSubject postStartupClassSubject =
-                  primaryDexInspector.clazz(PostStartupClass.class);
-              assertThat(postStartupClassSubject, isPresent());
             },
             secondaryDexInspector -> {
-              // TODO(b/274591979): Should be present.
               ClassSubject postStartupClassSubject =
                   secondaryDexInspector.clazz(PostStartupClass.class);
-              assertThat(postStartupClassSubject, isAbsent());
+              assertThat(postStartupClassSubject, isPresent());
             })
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines("Hello, world!");

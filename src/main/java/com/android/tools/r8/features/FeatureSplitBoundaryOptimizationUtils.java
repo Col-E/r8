@@ -77,8 +77,8 @@ public class FeatureSplitBoundaryOptimizationUtils {
     } else if (callerIsStartupMethod.isFalse()) {
       // If the caller is not a startup method, then only allow inlining if the caller is not a
       // startup class or the callee is a startup class.
-      if (startupProfile.containsClassRule(caller.getHolderType())
-          && !startupProfile.containsClassRule(callee.getHolderType())) {
+      if (startupProfile.isStartupClass(caller.getHolderType())
+          && !startupProfile.isStartupClass(callee.getHolderType())) {
         return false;
       }
     }
@@ -114,8 +114,8 @@ public class FeatureSplitBoundaryOptimizationUtils {
     // If the source class is a startup class then require that the target class is also a startup
     // class.
     StartupProfile startupProfile = appView.getStartupProfile();
-    if (startupProfile.containsClassRule(sourceClass.getType())
-        && !startupProfile.containsClassRule(targetClass.getType())) {
+    if (startupProfile.isStartupClass(sourceClass.getType())
+        && !startupProfile.isStartupClass(targetClass.getType())) {
       return false;
     }
     return true;
