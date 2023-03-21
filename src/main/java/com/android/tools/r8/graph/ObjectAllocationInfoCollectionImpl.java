@@ -217,26 +217,27 @@ public abstract class ObjectAllocationInfoCollectionImpl implements ObjectAlloca
       }
     }
 
-    while (worklist.hasNext()) {
-      DexClass clazz = worklist.next();
-      if (clazz.isProgramClass()) {
-        DexProgramClass programClass = clazz.asProgramClass();
-        if (isInstantiatedDirectly(programClass)
-            || isInterfaceWithUnknownSubtypeHierarchy(programClass)) {
-          if (onClass.apply(programClass).shouldBreak()) {
-            return TraversalContinuation.doBreak();
+    return worklist.run(
+        clazz -> {
+          if (clazz.isProgramClass()) {
+            DexProgramClass programClass = clazz.asProgramClass();
+            if (isInstantiatedDirectly(programClass)
+                || isInterfaceWithUnknownSubtypeHierarchy(programClass)) {
+              if (onClass.apply(programClass).shouldBreak()) {
+                return TraversalContinuation.doBreak();
+              }
+            }
           }
-        }
-      }
-      worklist.addIfNotSeen(instantiatedHierarchy.getOrDefault(clazz.type, Collections.emptySet()));
-      for (LambdaDescriptor lambda :
-          instantiatedLambdas.getOrDefault(clazz.type, Collections.emptyList())) {
-        if (onLambda.apply(lambda).shouldBreak()) {
-          return TraversalContinuation.doBreak();
-        }
-      }
-    }
-    return TraversalContinuation.doContinue();
+          worklist.addIfNotSeen(
+              instantiatedHierarchy.getOrDefault(clazz.type, Collections.emptySet()));
+          for (LambdaDescriptor lambda :
+              instantiatedLambdas.getOrDefault(clazz.type, Collections.emptyList())) {
+            if (onLambda.apply(lambda).shouldBreak()) {
+              return TraversalContinuation.doBreak();
+            }
+          }
+          return TraversalContinuation.doContinue();
+        });
   }
 
   public Set<DexType> getInstantiatedLambdaInterfaces() {

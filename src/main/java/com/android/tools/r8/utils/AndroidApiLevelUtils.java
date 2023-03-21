@@ -258,20 +258,22 @@ public class AndroidApiLevelUtils {
     if (originalClass.isLibraryClass()) {
       return originalClass;
     }
-    WorkList<DexClass> workList = WorkList.newIdentityWorkList(originalClass);
-    while (workList.hasNext()) {
-      DexClass clazz = workList.next();
-      if (clazz.isLibraryClass()) {
-        return clazz;
-      } else if (clazz.lookupMember(reference) != null) {
-        return clazz;
-      } else if (clazz.getSuperType() != null) {
-        appInfo
-            .contextIndependentDefinitionForWithResolutionResult(clazz.getSuperType())
-            .forEachClassResolutionResult(workList::addIfNotSeen);
-      }
-    }
-    return null;
+    return WorkList.newIdentityWorkList(originalClass)
+        .run(
+            (clazz, workList) -> {
+              if (clazz.isLibraryClass()) {
+                return TraversalContinuation.doBreak(clazz);
+              } else if (clazz.lookupMember(reference) != null) {
+                return TraversalContinuation.doBreak(clazz);
+              } else if (clazz.getSuperType() != null) {
+                appInfo
+                    .contextIndependentDefinitionForWithResolutionResult(clazz.getSuperType())
+                    .forEachClassResolutionResult(workList::addIfNotSeen);
+              }
+              return TraversalContinuation.doContinue();
+            })
+        .asBreakOrDefault(null)
+        .getValue();
   }
 
   private static Set<DexClass> findAllFirstLibraryInterfacesOrProgramClassWithDefinition(

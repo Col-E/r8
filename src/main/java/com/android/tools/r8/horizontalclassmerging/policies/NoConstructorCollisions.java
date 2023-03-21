@@ -79,33 +79,33 @@ public class NoConstructorCollisions extends MultiClassPolicyWithPreprocessing<S
     // Find the set of types that must not be merged, because they could lead to a constructor
     // collision.
     Set<DexType> collisionResolution = Sets.newIdentityHashSet();
-    WorkList<DexProgramClass> workList = WorkList.newIdentityWorkList(appView.appInfo().classes());
-    while (workList.hasNext()) {
-      // Iterate over all the instance initializers of the current class. If the current class is in
-      // a merge group, we must include all constructors of the entire merge group.
-      DexProgramClass current = workList.next();
-      Iterable<DexProgramClass> group =
-          groupsByType.containsKey(current.getType())
-              ? groupsByType.get(current.getType())
-              : IterableUtils.singleton(current);
-      Set<DexMethod> seen = Sets.newIdentityHashSet();
-      for (DexProgramClass clazz : group) {
-        for (DexEncodedMethod method :
-            clazz.directMethods(DexEncodedMethod::isInstanceInitializer)) {
-          // Rewrite the constructor reference using the current merge groups.
-          DexMethod newReference = rewriteReference(method.getReference(), groupsByType);
-          if (!seen.add(newReference)) {
-            // Found a collision. Block all referenced types from being merged.
-            for (DexType type : method.getProto().getBaseTypes(dexItemFactory)) {
-              if (type.isClassType() && groupsByType.containsKey(type)) {
-                collisionResolution.add(type);
+    // Iterate over all the instance initializers of the current class. If the current class is in
+    // a merge group, we must include all constructors of the entire merge group.
+    WorkList.newIdentityWorkList(appView.appInfo().classes())
+        .process(
+            (current, workList) -> {
+              Iterable<DexProgramClass> group =
+                  groupsByType.containsKey(current.getType())
+                      ? groupsByType.get(current.getType())
+                      : IterableUtils.singleton(current);
+              Set<DexMethod> seen = Sets.newIdentityHashSet();
+              for (DexProgramClass clazz : group) {
+                for (DexEncodedMethod method :
+                    clazz.directMethods(DexEncodedMethod::isInstanceInitializer)) {
+                  // Rewrite the constructor reference using the current merge groups.
+                  DexMethod newReference = rewriteReference(method.getReference(), groupsByType);
+                  if (!seen.add(newReference)) {
+                    // Found a collision. Block all referenced types from being merged.
+                    for (DexType type : method.getProto().getBaseTypes(dexItemFactory)) {
+                      if (type.isClassType() && groupsByType.containsKey(type)) {
+                        collisionResolution.add(type);
+                      }
+                    }
+                  }
+                }
               }
-            }
-          }
-        }
-      }
-      workList.markAsSeen(group);
-    }
+              workList.markAsSeen(group);
+            });
     return collisionResolution;
   }
 

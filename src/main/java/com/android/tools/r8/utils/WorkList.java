@@ -10,6 +10,10 @@ import java.util.Collections;
 import java.util.Deque;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.function.BiConsumer;
+import java.util.function.BiFunction;
+import java.util.function.Consumer;
+import java.util.function.Function;
 
 public class WorkList<T> {
 
@@ -98,6 +102,32 @@ public class WorkList<T> {
       return true;
     }
     return false;
+  }
+
+  public WorkList<T> process(Consumer<T> consumer) {
+    return process((item, ignored) -> consumer.accept(item));
+  }
+
+  public WorkList<T> process(BiConsumer<T, WorkList<T>> consumer) {
+    while (hasNext()) {
+      consumer.accept(next(), this);
+    }
+    return this;
+  }
+
+  public <TB, TC> TraversalContinuation<TB, TC> run(Function<T, TraversalContinuation<TB, TC>> fn) {
+    return run((item, ignored) -> fn.apply(item));
+  }
+
+  public <TB, TC> TraversalContinuation<TB, TC> run(
+      BiFunction<T, WorkList<T>, TraversalContinuation<TB, TC>> fn) {
+    while (hasNext()) {
+      TraversalContinuation<TB, TC> result = fn.apply(next(), this);
+      if (result.shouldBreak()) {
+        return result;
+      }
+    }
+    return TraversalContinuation.doContinue();
   }
 
   public void addFirstIgnoringSeenSet(T item) {

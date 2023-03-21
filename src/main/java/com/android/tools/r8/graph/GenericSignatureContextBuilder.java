@@ -182,20 +182,26 @@ public class GenericSignatureContextBuilder {
 
   public static GenericSignatureContextBuilder createForSingleClass(
       AppView<?> appView, DexProgramClass clazz) {
-    WorkList<DexProgramClass> workList = WorkList.newIdentityWorkList(clazz);
-    while (workList.hasNext()) {
-      DexProgramClass current = workList.next();
-      DexClass outer = null;
-      if (current.getEnclosingMethodAttribute() != null) {
-        outer = appView.definitionFor(current.getEnclosingMethodAttribute().getEnclosingType());
-      } else if (current.getInnerClassAttributeForThisClass() != null) {
-        outer = appView.definitionFor(current.getInnerClassAttributeForThisClass().getOuter());
-      }
-      if (outer != null && outer.isProgramClass()) {
-        workList.addIfNotSeen(outer.asProgramClass());
-      }
-    }
-    return create(appView, workList.getSeenSet());
+    return create(
+        appView,
+        WorkList.newIdentityWorkList(clazz)
+            .process(
+                (current, workList) -> {
+                  DexClass outer = null;
+                  if (current.getEnclosingMethodAttribute() != null) {
+                    outer =
+                        appView.definitionFor(
+                            current.getEnclosingMethodAttribute().getEnclosingType());
+                  } else if (current.getInnerClassAttributeForThisClass() != null) {
+                    outer =
+                        appView.definitionFor(
+                            current.getInnerClassAttributeForThisClass().getOuter());
+                  }
+                  if (outer != null && outer.isProgramClass()) {
+                    workList.addIfNotSeen(outer.asProgramClass());
+                  }
+                })
+            .getSeenSet());
   }
 
   public TypeParameterContext computeTypeParameterContext(

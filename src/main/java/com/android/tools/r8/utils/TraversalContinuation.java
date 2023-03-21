@@ -18,6 +18,11 @@ public abstract class TraversalContinuation<TB, TC> {
     return null;
   }
 
+  public Break<TB, TC> asBreakOrDefault(TB defaultValue) {
+    Break<TB, TC> breakValue = asBreak();
+    return breakValue == null ? doBreak(defaultValue) : breakValue;
+  }
+
   public boolean isContinue() {
     return false;
   }

@@ -139,24 +139,25 @@ public class ApiReferenceStubber {
     if (!type.isClassType() || isJavaType(type)) {
       return;
     }
-    WorkList<DexType> workList = WorkList.newIdentityWorkList(type, seenTypes);
-    while (workList.hasNext()) {
-      DexClass clazz = appView.definitionFor(workList.next());
-      if (clazz == null || !clazz.isLibraryClass()) {
-        continue;
-      }
-      ComputedApiLevel androidApiLevel =
-          apiLevelCompute.computeApiLevelForLibraryReference(
-              clazz.type, ComputedApiLevel.unknown());
-      if (androidApiLevel.isGreaterThan(appView.computedMinApiLevel())
-          && androidApiLevel.isKnownApiLevel()) {
-        workList.addIfNotSeen(clazz.allImmediateSupertypes());
-        libraryClassesToMock.add(clazz.asLibraryClass());
-        referencingContexts
-            .computeIfAbsent(clazz.asLibraryClass(), ignoreKey(Sets::newConcurrentHashSet))
-            .add(context);
-      }
-    }
+    WorkList.newIdentityWorkList(type, seenTypes)
+        .process(
+            (classType, workList) -> {
+              DexClass clazz = appView.definitionFor(classType);
+              if (clazz == null || !clazz.isLibraryClass()) {
+                return;
+              }
+              ComputedApiLevel androidApiLevel =
+                  apiLevelCompute.computeApiLevelForLibraryReference(
+                      clazz.type, ComputedApiLevel.unknown());
+              if (androidApiLevel.isGreaterThan(appView.computedMinApiLevel())
+                  && androidApiLevel.isKnownApiLevel()) {
+                workList.addIfNotSeen(clazz.allImmediateSupertypes());
+                libraryClassesToMock.add(clazz.asLibraryClass());
+                referencingContexts
+                    .computeIfAbsent(clazz.asLibraryClass(), ignoreKey(Sets::newConcurrentHashSet))
+                    .add(context);
+              }
+            });
   }
 
   private boolean isJavaType(DexType type) {

@@ -133,21 +133,21 @@ public class OnlyDirectlyConnectedOrUnrelatedInterfaces
     WorkList<DexProgramClass> workList = WorkList.newWorkList(new LinkedHashSet<>());
     // Intentionally not marking `clazz` as seen, since we only want the strict sub/super types.
     workList.addIgnoringSeenSet(clazz);
-    while (workList.hasNext()) {
-      DexProgramClass interfaceDefinition = workList.next();
-      MergeGroup group = committed.get(interfaceDefinition);
-      if (group != null) {
-        workList.addIfNotSeen(group);
-      }
-      for (DexType immediateSubOrSuperInterfaceType :
-          immediateSubOrSuperInterfacesProvider.apply(interfaceDefinition)) {
-        DexProgramClass immediateSubOrSuperInterface =
-            asProgramClassOrNull(appView.definitionFor(immediateSubOrSuperInterfaceType));
-        if (immediateSubOrSuperInterface != null) {
-          workList.addIfNotSeen(immediateSubOrSuperInterface);
-        }
-      }
-    }
+    workList.process(
+        interfaceDefinition -> {
+          MergeGroup group = committed.get(interfaceDefinition);
+          if (group != null) {
+            workList.addIfNotSeen(group);
+          }
+          for (DexType immediateSubOrSuperInterfaceType :
+              immediateSubOrSuperInterfacesProvider.apply(interfaceDefinition)) {
+            DexProgramClass immediateSubOrSuperInterface =
+                asProgramClassOrNull(appView.definitionFor(immediateSubOrSuperInterfaceType));
+            if (immediateSubOrSuperInterface != null) {
+              workList.addIfNotSeen(immediateSubOrSuperInterface);
+            }
+          }
+        });
     assert !workList.isSeen(clazz);
     return workList.getMutableSeenSet();
   }
