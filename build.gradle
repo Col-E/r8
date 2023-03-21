@@ -2303,9 +2303,6 @@ test { task ->
         println "Running with deprecated tool d8, not running any tests"
         include ""
     }
-    if (!project.hasProperty('all_tests')) {
-        exclude "com/android/tools/r8/art/dx/**"
-    }
     if (project.hasProperty('no_arttests')) {
         exclude "com/android/tools/r8/art/**"
     }
