@@ -312,20 +312,26 @@ public class LirBuilder<V, EV> {
     return addInstructionTemplate(opcode, Collections.singletonList(method), arguments);
   }
 
-  public LirBuilder<V, EV> addInvokeDirect(DexMethod method, List<V> arguments) {
-    return addInvokeInstruction(LirOpcodes.INVOKEDIRECT, method, arguments);
+  public LirBuilder<V, EV> addInvokeDirect(
+      DexMethod method, List<V> arguments, boolean isInterface) {
+    int opcode = isInterface ? LirOpcodes.INVOKEDIRECT_ITF : LirOpcodes.INVOKEDIRECT;
+    return addInvokeInstruction(opcode, method, arguments);
   }
 
-  public LirBuilder<V, EV> addInvokeSuper(DexMethod method, List<V> arguments) {
-    return addInvokeInstruction(LirOpcodes.INVOKESUPER, method, arguments);
+  public LirBuilder<V, EV> addInvokeSuper(
+      DexMethod method, List<V> arguments, boolean isInterface) {
+    int opcode = isInterface ? LirOpcodes.INVOKESUPER_ITF : LirOpcodes.INVOKESUPER;
+    return addInvokeInstruction(opcode, method, arguments);
   }
 
   public LirBuilder<V, EV> addInvokeVirtual(DexMethod method, List<V> arguments) {
     return addInvokeInstruction(LirOpcodes.INVOKEVIRTUAL, method, arguments);
   }
 
-  public LirBuilder<V, EV> addInvokeStatic(DexMethod method, List<V> arguments) {
-    return addInvokeInstruction(LirOpcodes.INVOKESTATIC, method, arguments);
+  public LirBuilder<V, EV> addInvokeStatic(
+      DexMethod method, List<V> arguments, boolean isInterface) {
+    int opcode = isInterface ? LirOpcodes.INVOKESTATIC_ITF : LirOpcodes.INVOKESTATIC;
+    return addInvokeInstruction(opcode, method, arguments);
   }
 
   public LirBuilder<V, EV> addInvokeInterface(DexMethod method, List<V> arguments) {
@@ -334,6 +340,10 @@ public class LirBuilder<V, EV> {
 
   public LirBuilder<V, EV> addNewInstance(DexType clazz) {
     return addOneItemInstruction(LirOpcodes.NEW, clazz);
+  }
+
+  public LirBuilder<V, EV> addThrow(V exception) {
+    return addOneValueInstruction(LirOpcodes.ATHROW, exception);
   }
 
   public LirBuilder<V, EV> addReturn(V value) {

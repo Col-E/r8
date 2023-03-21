@@ -44,6 +44,7 @@ import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.code.Position.SyntheticPosition;
 import com.android.tools.r8.ir.code.Return;
 import com.android.tools.r8.ir.code.StaticGet;
+import com.android.tools.r8.ir.code.Throw;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.conversion.MethodConversionOptions.MutableMethodConversionOptions;
 import com.android.tools.r8.lightir.LirCode.PositionEntry;
@@ -370,18 +371,15 @@ public class Lir2IRConverter {
     }
 
     @Override
-    public void onInvokeDirect(DexMethod target, List<EV> arguments) {
-      // TODO(b/225838009): Maintain is-interface bit.
+    public void onInvokeDirect(DexMethod target, List<EV> arguments, boolean isInterface) {
       Value dest = getInvokeInstructionOutputValue(target);
       List<Value> ssaArgumentValues = getValues(arguments);
-      InvokeDirect instruction = new InvokeDirect(target, dest, ssaArgumentValues);
+      InvokeDirect instruction = new InvokeDirect(target, dest, ssaArgumentValues, isInterface);
       addInstruction(instruction);
     }
 
     @Override
-    public void onInvokeSuper(DexMethod method, List<EV> arguments) {
-      // TODO(b/225838009): Maintain is-interface bit.
-      boolean isInterface = false;
+    public void onInvokeSuper(DexMethod method, List<EV> arguments, boolean isInterface) {
       Value dest = getInvokeInstructionOutputValue(method);
       List<Value> ssaArgumentValues = getValues(arguments);
       InvokeSuper instruction = new InvokeSuper(method, dest, ssaArgumentValues, isInterface);
@@ -390,7 +388,6 @@ public class Lir2IRConverter {
 
     @Override
     public void onInvokeVirtual(DexMethod target, List<EV> arguments) {
-      // TODO(b/225838009): Maintain is-interface bit.
       Value dest = getInvokeInstructionOutputValue(target);
       List<Value> ssaArgumentValues = getValues(arguments);
       InvokeVirtual instruction = new InvokeVirtual(target, dest, ssaArgumentValues);
@@ -398,11 +395,10 @@ public class Lir2IRConverter {
     }
 
     @Override
-    public void onInvokeStatic(DexMethod target, List<EV> arguments) {
-      // TODO(b/225838009): Maintain is-interface bit.
+    public void onInvokeStatic(DexMethod target, List<EV> arguments, boolean isInterface) {
       Value dest = getInvokeInstructionOutputValue(target);
       List<Value> ssaArgumentValues = getValues(arguments);
-      InvokeStatic instruction = new InvokeStatic(target, dest, ssaArgumentValues);
+      InvokeStatic instruction = new InvokeStatic(target, dest, ssaArgumentValues, isInterface);
       addInstruction(instruction);
     }
 
@@ -442,6 +438,12 @@ public class Lir2IRConverter {
     @Override
     public void onInstancePut(DexField field, EV object, EV value) {
       addInstruction(new InstancePut(field, getValue(object), getValue(value)));
+    }
+
+    @Override
+    public void onThrow(EV exception) {
+      addInstruction(new Throw(getValue(exception)));
+      closeCurrentBlock();
     }
 
     @Override

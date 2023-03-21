@@ -98,11 +98,11 @@ public abstract class LirParsedInstructionCallback<EV> implements LirInstruction
     onInstruction();
   }
 
-  public void onInvokeDirect(DexMethod method, List<EV> arguments) {
+  public void onInvokeDirect(DexMethod method, List<EV> arguments, boolean isInterface) {
     onInvokeMethodInstruction(method, arguments);
   }
 
-  public void onInvokeSuper(DexMethod method, List<EV> arguments) {
+  public void onInvokeSuper(DexMethod method, List<EV> arguments, boolean isInterface) {
     onInvokeMethodInstruction(method, arguments);
   }
 
@@ -110,7 +110,7 @@ public abstract class LirParsedInstructionCallback<EV> implements LirInstruction
     onInvokeMethodInstruction(method, arguments);
   }
 
-  public void onInvokeStatic(DexMethod method, List<EV> arguments) {
+  public void onInvokeStatic(DexMethod method, List<EV> arguments, boolean isInterface) {
     onInvokeMethodInstruction(method, arguments);
   }
 
@@ -133,6 +133,8 @@ public abstract class LirParsedInstructionCallback<EV> implements LirInstruction
   public abstract void onInstanceGet(DexField field, EV object);
 
   public abstract void onInstancePut(DexField field, EV object, EV value);
+
+  public abstract void onThrow(EV exception);
 
   public void onReturnVoid() {
     onInstruction();
@@ -216,17 +218,19 @@ public abstract class LirParsedInstructionCallback<EV> implements LirInstruction
           return;
         }
       case LirOpcodes.INVOKEDIRECT:
+      case LirOpcodes.INVOKEDIRECT_ITF:
         {
           DexMethod target = getInvokeInstructionTarget(view);
           List<EV> arguments = getInvokeInstructionArguments(view);
-          onInvokeDirect(target, arguments);
+          onInvokeDirect(target, arguments, opcode == LirOpcodes.INVOKEDIRECT_ITF);
           return;
         }
       case LirOpcodes.INVOKESUPER:
+      case LirOpcodes.INVOKESUPER_ITF:
         {
           DexMethod target = getInvokeInstructionTarget(view);
           List<EV> arguments = getInvokeInstructionArguments(view);
-          onInvokeSuper(target, arguments);
+          onInvokeSuper(target, arguments, opcode == LirOpcodes.INVOKESUPER_ITF);
           return;
         }
       case LirOpcodes.INVOKEVIRTUAL:
@@ -237,10 +241,11 @@ public abstract class LirParsedInstructionCallback<EV> implements LirInstruction
           return;
         }
       case LirOpcodes.INVOKESTATIC:
+      case LirOpcodes.INVOKESTATIC_ITF:
         {
           DexMethod target = getInvokeInstructionTarget(view);
           List<EV> arguments = getInvokeInstructionArguments(view);
-          onInvokeStatic(target, arguments);
+          onInvokeStatic(target, arguments, opcode == LirOpcodes.INVOKESTATIC_ITF);
           return;
         }
       case LirOpcodes.INVOKEINTERFACE:
@@ -278,6 +283,12 @@ public abstract class LirParsedInstructionCallback<EV> implements LirInstruction
           EV object = getNextValueOperand(view);
           EV value = getNextValueOperand(view);
           onInstancePut(field, object, value);
+          return;
+        }
+      case LirOpcodes.ATHROW:
+        {
+          EV exception = getNextValueOperand(view);
+          onThrow(exception);
           return;
         }
       case LirOpcodes.RETURN:

@@ -28,6 +28,7 @@ import java.util.List;
 
 public class InvokeSuper extends InvokeMethodWithReceiver {
 
+  // TODO(b/145775365): The interface bit should never be needed once invoke special is in the IR.
   public final boolean isInterface;
 
   public InvokeSuper(DexMethod target, Value result, List<Value> arguments, boolean isInterface) {
@@ -144,6 +145,6 @@ public class InvokeSuper extends InvokeMethodWithReceiver {
 
   @Override
   public void buildLir(LirBuilder<Value, ?> builder) {
-    builder.addInvokeSuper(getInvokedMethod(), arguments());
+    builder.addInvokeSuper(getInvokedMethod(), arguments(), isInterface);
   }
 }

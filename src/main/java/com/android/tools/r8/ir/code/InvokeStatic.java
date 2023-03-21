@@ -247,7 +247,7 @@ public class InvokeStatic extends InvokeMethod {
 
   @Override
   public void buildLir(LirBuilder<Value, ?> builder) {
-    builder.addInvokeStatic(getInvokedMethod(), arguments());
+    builder.addInvokeStatic(getInvokedMethod(), arguments(), isInterface);
   }
 
   public static class Builder extends InvokeMethod.Builder<Builder, InvokeStatic> {

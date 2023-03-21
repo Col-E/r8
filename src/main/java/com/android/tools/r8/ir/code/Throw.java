@@ -14,6 +14,7 @@ import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.InliningConstraints;
+import com.android.tools.r8.lightir.LirBuilder;
 
 public class Throw extends JumpInstruction {
 
@@ -85,6 +86,11 @@ public class Throw extends JumpInstruction {
   @Override
   public void buildCf(CfBuilder builder) {
     builder.add(new CfThrow(), this);
+  }
+
+  @Override
+  public void buildLir(LirBuilder<Value, ?> builder) {
+    builder.addThrow(exception());
   }
 
   @Override

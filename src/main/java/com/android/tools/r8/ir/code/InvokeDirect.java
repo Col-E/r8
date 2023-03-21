@@ -35,6 +35,7 @@ import java.util.List;
 
 public class InvokeDirect extends InvokeMethodWithReceiver {
 
+  // TODO(b/145775365): The interface bit should never be needed once invoke special is in the IR.
   private final boolean isInterface;
 
   public InvokeDirect(DexMethod target, Value result, List<Value> arguments) {
@@ -220,7 +221,7 @@ public class InvokeDirect extends InvokeMethodWithReceiver {
 
   @Override
   public void buildLir(LirBuilder<Value, ?> builder) {
-    builder.addInvokeDirect(getInvokedMethod(), arguments());
+    builder.addInvokeDirect(getInvokedMethod(), arguments(), isInterface);
   }
 
   @Override

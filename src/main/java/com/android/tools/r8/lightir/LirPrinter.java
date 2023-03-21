@@ -202,6 +202,11 @@ public class LirPrinter<EV> extends LirParsedInstructionCallback<EV> {
   }
 
   @Override
+  public void onThrow(EV exception) {
+    appendValueArguments(exception);
+  }
+
+  @Override
   public void onReturnVoid() {
     // Nothing to append.
   }
