@@ -192,7 +192,10 @@ public class Lir2IRConverter {
         blockList.add(block);
         // LIR has no value-user info so after building is done, removed unused values.
         for (Instruction instruction : block.getInstructions()) {
-          if (!instruction.isArgument() && instruction.hasUnusedOutValue()) {
+          if (instruction.hasOutValue()
+              && !instruction.isArgument()
+              && !instruction.isMoveException()
+              && instruction.hasUnusedOutValue()) {
             instruction.clearOutValue();
           }
         }
