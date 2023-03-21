@@ -19,7 +19,7 @@ public class UninitializedNew extends UninitializedFrameType {
   private final DexType type;
 
   public UninitializedNew(CfLabel label, DexType type) {
-    assert type.isClassType();
+    assert type == null || type.isClassType();
     this.label = label;
     this.type = type;
   }
