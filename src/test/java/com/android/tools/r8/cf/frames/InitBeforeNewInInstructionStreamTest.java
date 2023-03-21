@@ -3,10 +3,8 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.cf.frames;
 
-import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.fail;
 
-import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
@@ -61,15 +59,12 @@ public class InitBeforeNewInInstructionStreamTest extends TestBase implements Op
   @Test
   public void testR8() throws Exception {
     parameters.assumeR8TestParameters();
-    assertThrows(
-        CompilationFailedException.class,
-        () ->
-            testForR8(parameters.getBackend())
-                .addProgramClassFileData(patchedDump())
-                .addKeepMainRule(MAIN_CLASS)
-                .setMinApi(parameters)
-                .run(parameters.getRuntime(), MAIN_CLASS)
-                .assertSuccessWithOutput(EXPECTED_OUTPUT));
+    testForR8(parameters.getBackend())
+        .addProgramClassFileData(patchedDump())
+        .addKeepMainRule(MAIN_CLASS)
+        .setMinApi(parameters)
+        .run(parameters.getRuntime(), MAIN_CLASS)
+        .assertSuccessWithOutput(EXPECTED_OUTPUT);
   }
 
   // This is reproducing b/b274337639, where a new instruction is before the corresponding
