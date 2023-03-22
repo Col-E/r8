@@ -37,9 +37,12 @@ public class GenerateHtmlDoc extends AbstractGenerateFiles {
   private static final String SUP_4 = "<sup>4</sup>";
 
   public GenerateHtmlDoc(
-      String desugarConfigurationPath, String desugarImplementationPath, String outputDirectory)
+      String desugarConfigurationPath,
+      String desugarImplementationPath,
+      String outputDirectory,
+      String androidJarPath)
       throws Exception {
-    super(desugarConfigurationPath, desugarImplementationPath, outputDirectory);
+    super(desugarConfigurationPath, desugarImplementationPath, outputDirectory, androidJarPath);
   }
 
   private static class StringBuilderWithIndent {

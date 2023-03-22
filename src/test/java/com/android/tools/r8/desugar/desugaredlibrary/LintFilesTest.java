@@ -41,6 +41,8 @@ import org.junit.runners.Parameterized.Parameters;
 @RunWith(Parameterized.class)
 public class LintFilesTest extends DesugaredLibraryTestBase {
 
+  private static final String ANDROID_JAR_34 = "third_party/android_jar/lib-v34/android.jar";
+
   private final LibraryDesugaringSpecification libraryDesugaringSpecification;
 
   private List<String> lintContents;
@@ -237,12 +239,19 @@ public class LintFilesTest extends DesugaredLibraryTestBase {
           spec == JDK8
               ? ToolHelper.DESUGARED_JDK_8_LIB_JAR
               : LibraryDesugaringSpecification.getTempLibraryJDK11Undesugar();
-      new GenerateHtmlDoc(spec.getSpecification().toString(), jdkLibJar.toString(), html.toString())
+      new GenerateHtmlDoc(
+              spec.getSpecification().toString(),
+              jdkLibJar.toString(),
+              html.toString(),
+              ANDROID_JAR_34)
           .run(spec + ".html");
       Path lint = top.resolve("lint_" + spec);
       Files.createDirectories(lint);
       new GenerateLintFiles(
-              spec.getSpecification().toString(), jdkLibJar.toString(), lint.toString())
+              spec.getSpecification().toString(),
+              jdkLibJar.toString(),
+              lint.toString(),
+              ANDROID_JAR_34)
           .run();
     }
   }

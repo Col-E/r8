@@ -516,7 +516,8 @@ public class ExtractWrapperTypesTest extends DesugaredLibraryTestBase {
         GenerateLintFiles.createForTesting(
             libraryDesugaringSpecification.getSpecification(),
             libraryDesugaringSpecification.getDesugarJdkLibs(),
-            out);
+            out,
+            ToolHelper.getAndroidJar(AndroidApiLevel.U));
     AndroidApiLevel compileApi = desugaredApi.run();
     return new CodeInspector(
         out.resolve("compile_api_level_" + compileApi.getLevel())

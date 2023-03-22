@@ -55,22 +55,27 @@ public class GenerateLintFiles extends AbstractGenerateFiles {
   private static final boolean FORMAT_WITH_FIELD = true;
 
   public static GenerateLintFiles createForTesting(
-      Path specification, Set<Path> implementation, Path outputDirectory) throws Exception {
-    return new GenerateLintFiles(specification, implementation, outputDirectory);
-  }
-
-  public GenerateLintFiles(
-      String desugarConfigurationPath, String desugarImplementationPath, String outputDirectory)
+      Path specification, Set<Path> implementation, Path outputDirectory, Path androidJar)
       throws Exception {
-    super(desugarConfigurationPath, desugarImplementationPath, outputDirectory);
+    return new GenerateLintFiles(specification, implementation, outputDirectory, androidJar);
   }
 
   public GenerateLintFiles(
+      String desugarConfigurationPath,
+      String desugarImplementationPath,
+      String outputDirectory,
+      String androidJarPath)
+      throws Exception {
+    super(desugarConfigurationPath, desugarImplementationPath, outputDirectory, androidJarPath);
+  }
+
+  private GenerateLintFiles(
       Path desugarConfigurationPath,
       Collection<Path> desugarImplementationPath,
-      Path outputDirectory)
+      Path outputDirectory,
+      Path androidJar)
       throws Exception {
-    super(desugarConfigurationPath, desugarImplementationPath, outputDirectory);
+    super(desugarConfigurationPath, desugarImplementationPath, outputDirectory, androidJar);
   }
 
   private CfCode buildEmptyThrowingCfCode(DexMethod method) {

@@ -28,8 +28,6 @@ import java.util.concurrent.ExecutorService;
 
 public abstract class AbstractGenerateFiles {
 
-  private static final String ANDROID_JAR_PATTERN = "third_party/android_jar/lib-v%d/android.jar";
-
   // If we increment this api level, we need to verify everything works correctly.
   static final AndroidApiLevel MAX_TESTED_ANDROID_API_LEVEL = AndroidApiLevel.U;
 
@@ -41,26 +39,33 @@ public abstract class AbstractGenerateFiles {
   final Path desugaredLibrarySpecificationPath;
   final Collection<Path> desugaredLibraryImplementation;
   final Path outputDirectory;
+  final Path androidJar;
 
-  public AbstractGenerateFiles(
-      String desugarConfigurationPath, String desugarImplementationPath, String outputDirectory)
+  AbstractGenerateFiles(
+      String desugarConfigurationPath,
+      String desugarImplementationPath,
+      String outputDirectory,
+      String androidJarPath)
       throws Exception {
     this(
         Paths.get(desugarConfigurationPath),
         ImmutableList.of(Paths.get(desugarImplementationPath)),
-        Paths.get(outputDirectory));
+        Paths.get(outputDirectory),
+        Paths.get(androidJarPath));
   }
 
   AbstractGenerateFiles(
       Path desugarConfigurationPath,
       Collection<Path> desugarImplementationPath,
-      Path outputDirectory)
+      Path outputDirectory,
+      Path androidJar)
       throws Exception {
+    assert androidJar != null;
     this.desugaredLibrarySpecificationPath = desugarConfigurationPath;
     DesugaredLibrarySpecification specification =
         readDesugaredLibraryConfiguration(desugarConfigurationPath);
-    Path androidJarPath = getAndroidJarPath(specification.getRequiredCompilationApiLevel());
-    DexApplication app = createApp(androidJarPath, options);
+    this.androidJar = androidJar;
+    DexApplication app = createApp(androidJar, options);
     this.desugaredLibrarySpecification = specification.toMachineSpecification(app, Timing.empty());
     this.desugaredLibraryImplementation = desugarImplementationPath;
     this.outputDirectory = outputDirectory;
@@ -68,15 +73,6 @@ public abstract class AbstractGenerateFiles {
       throw new Exception("Output directory " + outputDirectory + " is not a directory");
     }
   }
-
-  static Path getAndroidJarPath(AndroidApiLevel apiLevel) {
-    String jar =
-        apiLevel == AndroidApiLevel.MASTER
-            ? "third_party/android_jar/lib-master/android.jar"
-            : String.format(ANDROID_JAR_PATTERN, apiLevel.getLevel());
-    return Paths.get(jar);
-  }
-
 
   private DesugaredLibrarySpecification readDesugaredLibraryConfiguration(
       Path desugarConfigurationPath) {
@@ -88,10 +84,10 @@ public abstract class AbstractGenerateFiles {
         AndroidApiLevel.B.getLevel());
   }
 
-  private static DexApplication createApp(Path androidLib, InternalOptions options)
+  private static DexApplication createApp(Path androidJar, InternalOptions options)
       throws IOException {
     AndroidApp.Builder builder = AndroidApp.builder();
-    AndroidApp inputApp = builder.addLibraryFiles(androidLib).build();
+    AndroidApp inputApp = builder.addLibraryFiles(androidJar).build();
     ApplicationReader applicationReader = new ApplicationReader(inputApp, options, Timing.empty());
     ExecutorService executorService = ThreadUtils.getExecutorService(options);
     assert !options.ignoreJavaLibraryOverride;
@@ -103,19 +99,41 @@ public abstract class AbstractGenerateFiles {
 
   abstract AndroidApiLevel run() throws Exception;
 
-  public static void main(String[] args) throws Exception {
-    if (args.length == 3) {
-      new GenerateLintFiles(args[0], args[1], args[2]).run();
-      return;
+  private static String getFallBackAndroidJarPath(AndroidApiLevel apiLevel) {
+    String jar =
+        apiLevel == AndroidApiLevel.MASTER
+            ? "third_party/android_jar/lib-master/android.jar"
+            : String.format("third_party/android_jar/lib-v%d/android.jar", apiLevel.getLevel());
+    Path jarPath = Paths.get(jar);
+    if (!Files.exists(jarPath)) {
+      throw new RuntimeException(
+          "Generate files tools should pass a valid recent android.jar as parameter if used outside"
+              + " of the r8 repository. Missing file: "
+              + jarPath);
     }
-    if (args.length == 4 && args[0].equals("--generate-api-docs")) {
-      new GenerateHtmlDoc(args[1], args[2], args[3]).run();
+    return jar;
+  }
+
+  private static String getAndroidJarPath(String[] args, int fullLength) {
+    return args.length == fullLength
+        ? args[fullLength - 1]
+        : getFallBackAndroidJarPath(MAX_TESTED_ANDROID_API_LEVEL);
+  }
+
+  public static void main(String[] args) throws Exception {
+    if (args[0].equals("--generate-api-docs")) {
+      if (args.length == 4 || args.length == 5) {
+        new GenerateHtmlDoc(args[1], args[2], args[3], getAndroidJarPath(args, 5)).run();
+        return;
+      }
+    } else if (args.length == 3 || args.length == 4) {
+      new GenerateLintFiles(args[0], args[1], args[2], getAndroidJarPath(args, 4)).run();
       return;
     }
     throw new RuntimeException(
         StringUtils.joinLines(
             "Invalid invocation.",
-            "Usage: GenerateLineFiles [--generate-api-docs] "
-                + "<desugar configuration> <desugar implementation> <output directory>"));
+            "Usage: AbstractGenerateFiles [--generate-api-docs] <desugar configuration> <desugar"
+                + " implementation> <output directory> [<android jar path>]"));
   }
 }
