@@ -120,23 +120,28 @@ public class CfArithmeticBinop extends CfInstruction {
   }
 
   public int getAsmOpcode() {
+    return getAsmOpcode(opcode, type);
+  }
+
+  public static int getAsmOpcode(Opcode opcode, NumericType type) {
+    int typeOffset = getAsmOpcodeTypeOffset(type);
     switch (opcode) {
       case Add:
-        return Opcodes.IADD + getAsmOpcodeTypeOffset();
+        return Opcodes.IADD + typeOffset;
       case Sub:
-        return Opcodes.ISUB + getAsmOpcodeTypeOffset();
+        return Opcodes.ISUB + typeOffset;
       case Mul:
-        return Opcodes.IMUL + getAsmOpcodeTypeOffset();
+        return Opcodes.IMUL + typeOffset;
       case Div:
-        return Opcodes.IDIV + getAsmOpcodeTypeOffset();
+        return Opcodes.IDIV + typeOffset;
       case Rem:
-        return Opcodes.IREM + getAsmOpcodeTypeOffset();
+        return Opcodes.IREM + typeOffset;
       default:
         throw new Unreachable("CfArithmeticBinop has unknown opcode " + opcode);
     }
   }
 
-  private int getAsmOpcodeTypeOffset() {
+  private static int getAsmOpcodeTypeOffset(NumericType type) {
     switch (type) {
       case LONG:
         return Opcodes.LADD - Opcodes.IADD;

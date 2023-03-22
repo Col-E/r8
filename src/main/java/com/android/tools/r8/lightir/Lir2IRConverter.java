@@ -12,6 +12,7 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.analysis.type.Nullability;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
+import com.android.tools.r8.ir.code.Add;
 import com.android.tools.r8.ir.code.Argument;
 import com.android.tools.r8.ir.code.ArrayLength;
 import com.android.tools.r8.ir.code.BasicBlock;
@@ -36,14 +37,17 @@ import com.android.tools.r8.ir.code.InvokeStatic;
 import com.android.tools.r8.ir.code.InvokeSuper;
 import com.android.tools.r8.ir.code.InvokeVirtual;
 import com.android.tools.r8.ir.code.MoveException;
+import com.android.tools.r8.ir.code.Mul;
 import com.android.tools.r8.ir.code.NewInstance;
 import com.android.tools.r8.ir.code.NumberGenerator;
 import com.android.tools.r8.ir.code.NumericType;
 import com.android.tools.r8.ir.code.Phi;
 import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.code.Position.SyntheticPosition;
+import com.android.tools.r8.ir.code.Rem;
 import com.android.tools.r8.ir.code.Return;
 import com.android.tools.r8.ir.code.StaticGet;
+import com.android.tools.r8.ir.code.Sub;
 import com.android.tools.r8.ir.code.Throw;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.conversion.MethodConversionOptions.MutableMethodConversionOptions;
@@ -334,10 +338,33 @@ public class Lir2IRConverter {
     }
 
     @Override
-    public void onDivInt(EV leftValueIndex, EV rightValueIndex) {
+    public void onAdd(NumericType type, EV leftValueIndex, EV rightValueIndex) {
       Value dest = getOutValueForNextInstruction(TypeElement.getInt());
-      addInstruction(
-          new Div(NumericType.INT, dest, getValue(leftValueIndex), getValue(rightValueIndex)));
+      addInstruction(new Add(type, dest, getValue(leftValueIndex), getValue(rightValueIndex)));
+    }
+
+    @Override
+    public void onSub(NumericType type, EV leftValueIndex, EV rightValueIndex) {
+      Value dest = getOutValueForNextInstruction(TypeElement.getInt());
+      addInstruction(new Sub(type, dest, getValue(leftValueIndex), getValue(rightValueIndex)));
+    }
+
+    @Override
+    public void onMul(NumericType type, EV leftValueIndex, EV rightValueIndex) {
+      Value dest = getOutValueForNextInstruction(TypeElement.getInt());
+      addInstruction(new Mul(type, dest, getValue(leftValueIndex), getValue(rightValueIndex)));
+    }
+
+    @Override
+    public void onDiv(NumericType type, EV leftValueIndex, EV rightValueIndex) {
+      Value dest = getOutValueForNextInstruction(TypeElement.getInt());
+      addInstruction(new Div(type, dest, getValue(leftValueIndex), getValue(rightValueIndex)));
+    }
+
+    @Override
+    public void onRem(NumericType type, EV leftValueIndex, EV rightValueIndex) {
+      Value dest = getOutValueForNextInstruction(TypeElement.getInt());
+      addInstruction(new Rem(type, dest, getValue(leftValueIndex), getValue(rightValueIndex)));
     }
 
     @Override

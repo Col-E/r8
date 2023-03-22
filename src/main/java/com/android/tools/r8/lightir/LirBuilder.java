@@ -3,6 +3,8 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.lightir;
 
+import com.android.tools.r8.cf.code.CfArithmeticBinop;
+import com.android.tools.r8.cf.code.CfArithmeticBinop.Opcode;
 import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.DebugLocalInfo;
@@ -494,5 +496,14 @@ public class LirBuilder<V, EV> {
 
   public LirBuilder<V, EV> addCmp(NumericType type, Bias bias, V leftValue, V rightValue) {
     return addTwoValueInstruction(getCmpOpcode(type, bias), leftValue, rightValue);
+  }
+
+  public LirBuilder<V, EV> addArithmeticBinop(
+      Opcode binop, NumericType type, V leftValue, V rightValue) {
+    // The LIR and CF opcodes are the same values, check that the two endpoints match.
+    assert LirOpcodes.IADD == CfArithmeticBinop.getAsmOpcode(Opcode.Add, NumericType.INT);
+    assert LirOpcodes.DREM == CfArithmeticBinop.getAsmOpcode(Opcode.Rem, NumericType.DOUBLE);
+    int opcode = CfArithmeticBinop.getAsmOpcode(binop, type);
+    return addTwoValueInstruction(opcode, leftValue, rightValue);
   }
 }
