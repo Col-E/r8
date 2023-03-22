@@ -44,6 +44,11 @@ import java.util.Set;
 
 /** Builder for constructing LIR code from IR. */
 public class LirBuilder<V, EV> {
+  private static final int FLOAT_0 = Float.floatToRawIntBits(0);
+  private static final int FLOAT_1 = Float.floatToRawIntBits(1);
+  private static final int FLOAT_2 = Float.floatToRawIntBits(2);
+  private static final long DOUBLE_0 = Double.doubleToRawLongBits(0);
+  private static final long DOUBLE_1 = Double.doubleToRawLongBits(1);
 
   private final DexItemFactory factory;
   private final ByteArrayWriter byteWriter = new ByteArrayWriter();
@@ -256,6 +261,48 @@ public class LirBuilder<V, EV> {
     return this;
   }
 
+  public LirBuilder<V, EV> addConstFloat(int value) {
+    if (value == FLOAT_0) {
+      return addNoOperandInstruction(LirOpcodes.FCONST_0);
+    }
+    if (value == FLOAT_1) {
+      return addNoOperandInstruction(LirOpcodes.FCONST_1);
+    }
+    if (value == FLOAT_2) {
+      return addNoOperandInstruction(LirOpcodes.FCONST_2);
+    }
+    advanceInstructionState();
+    writer.writeInstruction(LirOpcodes.FCONST, ByteUtils.intEncodingSize(value));
+    ByteUtils.writeEncodedInt(value, writer::writeOperand);
+    return this;
+  }
+
+  public LirBuilder<V, EV> addConstLong(long value) {
+    if (value == 0) {
+      return addNoOperandInstruction(LirOpcodes.LCONST_0);
+    }
+    if (value == 1) {
+      return addNoOperandInstruction(LirOpcodes.LCONST_1);
+    }
+    advanceInstructionState();
+    writer.writeInstruction(LirOpcodes.LCONST, ByteUtils.longEncodingSize(value));
+    ByteUtils.writeEncodedLong(value, writer::writeOperand);
+    return this;
+  }
+
+  public LirBuilder<V, EV> addConstDouble(long value) {
+    if (value == DOUBLE_0) {
+      return addNoOperandInstruction(LirOpcodes.DCONST_0);
+    }
+    if (value == DOUBLE_1) {
+      return addNoOperandInstruction(LirOpcodes.DCONST_1);
+    }
+    advanceInstructionState();
+    writer.writeInstruction(LirOpcodes.DCONST, ByteUtils.longEncodingSize(value));
+    ByteUtils.writeEncodedLong(value, writer::writeOperand);
+    return this;
+  }
+
   public LirBuilder<V, EV> addConstNumber(ValueType type, long value) {
     switch (type) {
       case OBJECT:
@@ -263,8 +310,11 @@ public class LirBuilder<V, EV> {
       case INT:
         return addConstInt((int) value);
       case FLOAT:
+        return addConstFloat((int) value);
       case LONG:
+        return addConstLong(value);
       case DOUBLE:
+        return addConstDouble(value);
       default:
         throw new Unimplemented();
     }

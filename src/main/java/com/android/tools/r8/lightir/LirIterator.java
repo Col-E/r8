@@ -88,6 +88,12 @@ public class LirIterator implements Iterator<LirInstructionView>, LirInstruction
   }
 
   @Override
+  public long getNextLongOperand() {
+    assert hasMoreOperands();
+    return u8();
+  }
+
+  @Override
   public int getNextConstantOperand() {
     return getNextIntegerOperand();
   }
@@ -115,5 +121,10 @@ public class LirIterator implements Iterator<LirInstructionView>, LirInstruction
   private int u4() {
     currentByteIndex += 4;
     return ByteUtils.readEncodedInt(iterator);
+  }
+
+  private long u8() {
+    currentByteIndex += 8;
+    return ByteUtils.readEncodedLong(iterator);
   }
 }

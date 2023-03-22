@@ -17,6 +17,10 @@ public class ByteUtils {
     return value & 0xFF;
   }
 
+  private static int truncateToU1(long value) {
+    return (int) value & 0xFF;
+  }
+
   public static int ensureU1(int value) {
     assert isU1(value);
     return truncateToU1(value);
@@ -43,6 +47,35 @@ public class ByteUtils {
     int value = truncateToU1(iterator.nextByte()) << 24;
     value |= truncateToU1(iterator.nextByte()) << 16;
     value |= truncateToU1(iterator.nextByte()) << 8;
+    value |= truncateToU1(iterator.nextByte());
+    return value;
+  }
+
+  public static int longEncodingSize(long value) {
+    return 8;
+  }
+
+  public static void writeEncodedLong(long value, ByteWriter writer) {
+    assert 8 == longEncodingSize(value);
+    writer.put(truncateToU1(value >> 56));
+    writer.put(truncateToU1(value >> 48));
+    writer.put(truncateToU1(value >> 40));
+    writer.put(truncateToU1(value >> 32));
+    writer.put(truncateToU1(value >> 24));
+    writer.put(truncateToU1(value >> 16));
+    writer.put(truncateToU1(value >> 8));
+    writer.put(truncateToU1(value));
+  }
+
+  public static long readEncodedLong(ByteIterator iterator) {
+    assert 8 == longEncodingSize(0);
+    long value = ((long) truncateToU1(iterator.nextByte())) << 56;
+    value |= ((long) truncateToU1(iterator.nextByte())) << 48;
+    value |= ((long) truncateToU1(iterator.nextByte())) << 40;
+    value |= ((long) truncateToU1(iterator.nextByte())) << 32;
+    value |= ((long) truncateToU1(iterator.nextByte())) << 24;
+    value |= ((long) truncateToU1(iterator.nextByte())) << 16;
+    value |= ((long) truncateToU1(iterator.nextByte())) << 8;
     value |= truncateToU1(iterator.nextByte());
     return value;
   }

@@ -62,6 +62,18 @@ public abstract class LirParsedInstructionCallback<EV> implements LirInstruction
     onConstNumber(NumericType.INT, value);
   }
 
+  public void onConstFloat(int value) {
+    onConstNumber(NumericType.FLOAT, value);
+  }
+
+  public void onConstLong(long value) {
+    onConstNumber(NumericType.LONG, value);
+  }
+
+  public void onConstDouble(long value) {
+    onConstNumber(NumericType.DOUBLE, value);
+  }
+
   public void onConstString(DexString string) {
     onInstruction();
   }
@@ -287,6 +299,51 @@ public abstract class LirParsedInstructionCallback<EV> implements LirInstruction
         {
           int value = view.getNextIntegerOperand();
           onConstInt(value);
+          return;
+        }
+      case LirOpcodes.FCONST_0:
+      case LirOpcodes.FCONST_1:
+      case LirOpcodes.FCONST_2:
+        {
+          float value = opcode - LirOpcodes.FCONST_0;
+          onConstFloat(Float.floatToRawIntBits(value));
+          return;
+        }
+      case LirOpcodes.FCONST:
+        {
+          int value = view.getNextIntegerOperand();
+          onConstFloat(value);
+          return;
+        }
+      case LirOpcodes.LCONST_0:
+        {
+          onConstLong(0);
+          return;
+        }
+      case LirOpcodes.LCONST_1:
+        {
+          onConstLong(1);
+          return;
+        }
+      case LirOpcodes.LCONST:
+        {
+          long value = view.getNextLongOperand();
+          onConstLong(value);
+          return;
+        }
+      case LirOpcodes.DCONST_0:
+        {
+          onConstDouble(Double.doubleToRawLongBits(0));
+          return;
+        }
+      case LirOpcodes.DCONST_1:
+        {
+          onConstDouble(Double.doubleToRawLongBits(1));
+        }
+      case LirOpcodes.DCONST:
+        {
+          long value = view.getNextLongOperand();
+          onConstDouble(value);
           return;
         }
       case LirOpcodes.IADD:
