@@ -339,6 +339,7 @@ public abstract class LirParsedInstructionCallback<EV> implements LirInstruction
       case LirOpcodes.DCONST_1:
         {
           onConstDouble(Double.doubleToRawLongBits(1));
+          return;
         }
       case LirOpcodes.DCONST:
         {
