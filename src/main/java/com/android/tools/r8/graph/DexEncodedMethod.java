@@ -580,10 +580,10 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
       return false;
     } else if (accessFlags.isPrivate()) {
       return getHolderType() == other.getHolderType();
-    } else if (accessFlags.isPublic() || accessFlags.isProtected()) {
+    } else if (accessFlags.isPublic()) {
       return true;
     } else {
-      assert accessFlags.isPackagePrivate();
+      assert accessFlags.isPackagePrivate() || accessFlags.isProtected();
       return getHolderType().getPackageName().equals(other.getHolderType().getPackageName());
     }
   }

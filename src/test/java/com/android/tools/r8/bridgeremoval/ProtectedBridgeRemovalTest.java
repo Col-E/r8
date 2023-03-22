@@ -69,8 +69,7 @@ public class ProtectedBridgeRemovalTest extends TestBase {
         .setMinApi(parameters)
         .compile()
         .run(parameters.getRuntime(), Main.class)
-        // TODO(b/274724134): Should not fail.
-        .assertFailureWithErrorThatThrows(IllegalAccessError.class);
+        .assertSuccessWithOutput(EXPECTED_OUTPUT);
   }
 
   public static class Main {
