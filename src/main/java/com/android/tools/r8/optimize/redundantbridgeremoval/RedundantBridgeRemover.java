@@ -1,9 +1,10 @@
 // Copyright (c) 2017, the R8 project authors. Please see the AUTHORS file
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
-package com.android.tools.r8.optimize;
+package com.android.tools.r8.optimize.redundantbridgeremoval;
 
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexMethod;
@@ -15,23 +16,35 @@ import com.android.tools.r8.graph.MethodResolutionResult.SingleResolutionResult;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.PrunedItems;
 import com.android.tools.r8.ir.optimize.info.bridge.BridgeInfo;
+import com.android.tools.r8.optimize.InvokeSingleTargetExtractor;
 import com.android.tools.r8.optimize.InvokeSingleTargetExtractor.InvokeKind;
-import com.android.tools.r8.optimize.redundantbridgeremoval.RedundantBridgeRemovalLens;
+import com.android.tools.r8.optimize.MemberRebindingIdentityLens;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.KeepMethodInfo;
+import com.android.tools.r8.utils.IterableUtils;
 import com.android.tools.r8.utils.ThreadUtils;
+import com.android.tools.r8.utils.WorkList;
 import com.android.tools.r8.utils.collections.ProgramMethodSet;
+import com.google.common.collect.Iterables;
+import java.util.Collections;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
+import java.util.function.Consumer;
 
 public class RedundantBridgeRemover {
 
   private final AppView<AppInfoWithLiveness> appView;
+  private final RedundantBridgeRemovalOptions redundantBridgeRemovalOptions;
+
+  private final InvokedReflectivelyFromPlatformAnalysis invokedReflectivelyFromPlatformAnalysis =
+      new InvokedReflectivelyFromPlatformAnalysis();
 
   public RedundantBridgeRemover(AppView<AppInfoWithLiveness> appView) {
     this.appView = appView;
+    this.redundantBridgeRemovalOptions =
+        appView.options().getRedundantBridgeRemovalOptions().ensureInitialized();
   }
 
   private DexClassAndMethod getTargetForRedundantBridge(ProgramMethod method) {
@@ -50,6 +63,9 @@ public class RedundantBridgeRemover {
       return null;
     }
     if (!isTargetingSuperMethod(method, targetExtractor.getKind(), target)) {
+      return null;
+    }
+    if (invokedReflectivelyFromPlatformAnalysis.isMaybeInvokedReflectivelyFromPlatform(method)) {
       return null;
     }
     // This is a visibility forward, so check for the direct target.
@@ -235,5 +251,89 @@ public class RedundantBridgeRemover {
           methods.forEach(method -> prunedItemsBuilder.addRemovedMethod(method.getReference()));
         });
     appView.pruneItems(prunedItemsBuilder.build(), executorService);
+  }
+
+  class InvokedReflectivelyFromPlatformAnalysis {
+
+    // Maps each class to a boolean indicating if the class inherits from android.app.Fragment or
+    // android.app.ZygotePreload.
+    private final Map<DexClass, Boolean> cache = new ConcurrentHashMap<>();
+
+    boolean isMaybeInvokedReflectivelyFromPlatform(ProgramMethod method) {
+      return method.getDefinition().isDefaultInstanceInitializer()
+          && !method.getHolder().isAbstract()
+          && computeIsPlatformReflectingOnDefaultConstructor(method.getHolder());
+    }
+
+    private boolean computeIsPlatformReflectingOnDefaultConstructor(DexProgramClass clazz) {
+      Boolean cacheResult = cache.get(clazz);
+      if (cacheResult != null) {
+        return cacheResult;
+      }
+      WorkList.<WorklistItem>newIdentityWorkList(new NotProcessedWorklistItem(clazz))
+          .process(WorklistItem::accept);
+      assert cache.containsKey(clazz);
+      return cache.get(clazz);
+    }
+
+    abstract class WorklistItem implements Consumer<WorkList<WorklistItem>> {
+
+      protected final DexClass clazz;
+
+      WorklistItem(DexClass clazz) {
+        this.clazz = clazz;
+      }
+
+      Iterable<DexClass> getImmediateSupertypes() {
+        return IterableUtils.flatMap(
+            clazz.allImmediateSupertypes(),
+            supertype -> {
+              DexClass definition = appView.definitionFor(supertype);
+              return definition != null
+                  ? Collections.singletonList(definition)
+                  : Collections.emptyList();
+            });
+      }
+    }
+
+    class NotProcessedWorklistItem extends WorklistItem {
+
+      NotProcessedWorklistItem(DexClass clazz) {
+        super(clazz);
+      }
+
+      @Override
+      public void accept(WorkList<WorklistItem> worklist) {
+        // Enqueue a worklist item to process the current class after processing its super classes.
+        worklist.addFirstIgnoringSeenSet(new ProcessedWorklistItem(clazz));
+        // Enqueue all superclasses for processing.
+        for (DexClass supertype : getImmediateSupertypes()) {
+          if (!cache.containsKey(supertype)) {
+            worklist.addFirstIgnoringSeenSet(new NotProcessedWorklistItem(supertype));
+          }
+        }
+      }
+    }
+
+    class ProcessedWorklistItem extends WorklistItem {
+
+      ProcessedWorklistItem(DexClass clazz) {
+        super(clazz);
+      }
+
+      @Override
+      public void accept(WorkList<WorklistItem> worklist) {
+        cache.put(
+            clazz,
+            Iterables.any(
+                getImmediateSupertypes(),
+                supertype ->
+                    cache.get(supertype)
+                        || (supertype.isLibraryClass()
+                            && redundantBridgeRemovalOptions
+                                .isPlatformReflectingOnDefaultConstructorInSubclasses(
+                                    supertype.asLibraryClass()))));
+      }
+    }
   }
 }
