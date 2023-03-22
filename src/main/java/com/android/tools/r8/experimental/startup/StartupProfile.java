@@ -30,6 +30,7 @@ import com.android.tools.r8.startup.diagnostic.MissingStartupProfileItemsDiagnos
 import com.android.tools.r8.synthesis.SyntheticItems;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.Reporter;
+import com.android.tools.r8.utils.ThrowingConsumer;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.LinkedHashMap;
@@ -87,7 +88,7 @@ public abstract class StartupProfile
   public static StartupProfile merge(Collection<StartupProfile> startupProfiles) {
     Builder builder = builder();
     for (StartupProfile startupProfile : startupProfiles) {
-      startupProfile.getRules().forEach(builder::addStartupItem);
+      startupProfile.forEachRule(builder::addStartupItem);
     }
     return builder.build();
   }
@@ -131,9 +132,10 @@ public abstract class StartupProfile
     return StartupProfile.merge(startupProfiles);
   }
 
-  public abstract boolean isStartupClass(DexType type);
+  public abstract <E extends Exception> void forEachRule(
+      ThrowingConsumer<? super StartupProfileRule, E> consumer) throws E;
 
-  public abstract Collection<StartupProfileRule> getRules();
+  public abstract boolean isStartupClass(DexType type);
 
   public abstract boolean isEmpty();
 

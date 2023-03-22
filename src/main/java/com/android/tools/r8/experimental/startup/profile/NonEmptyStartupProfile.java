@@ -17,7 +17,6 @@ import com.android.tools.r8.graph.PrunedItems;
 import com.android.tools.r8.synthesis.SyntheticItems;
 import com.android.tools.r8.utils.SetUtils;
 import com.android.tools.r8.utils.ThrowingConsumer;
-import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.Set;
 import java.util.function.BiConsumer;
@@ -45,11 +44,17 @@ public class NonEmptyStartupProfile extends StartupProfile {
   }
 
   @Override
+  public <E extends Exception> void forEachRule(
+      ThrowingConsumer<? super StartupProfileRule, E> consumer) throws E {
+    forEachRule(consumer, consumer);
+  }
+
+  @Override
   public <E1 extends Exception, E2 extends Exception> void forEachRule(
-      ThrowingConsumer<StartupProfileClassRule, E1> classRuleConsumer,
-      ThrowingConsumer<StartupProfileMethodRule, E2> methodRuleConsumer)
+      ThrowingConsumer<? super StartupProfileClassRule, E1> classRuleConsumer,
+      ThrowingConsumer<? super StartupProfileMethodRule, E2> methodRuleConsumer)
       throws E1, E2 {
-    for (StartupProfileRule rule : getRules()) {
+    for (StartupProfileRule rule : startupRules.values()) {
       rule.accept(classRuleConsumer, methodRuleConsumer);
     }
   }
@@ -62,11 +67,6 @@ public class NonEmptyStartupProfile extends StartupProfile {
   @Override
   public StartupProfileMethodRule getMethodRule(DexMethod method) {
     return (StartupProfileMethodRule) startupRules.get(method);
-  }
-
-  @Override
-  public Collection<StartupProfileRule> getRules() {
-    return startupRules.values();
   }
 
   @Override

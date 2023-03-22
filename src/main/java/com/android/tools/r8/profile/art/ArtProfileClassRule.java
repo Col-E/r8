@@ -32,8 +32,8 @@ public class ArtProfileClassRule extends ArtProfileRule implements AbstractProfi
 
   @Override
   public <E1 extends Exception, E2 extends Exception> void accept(
-      ThrowingConsumer<ArtProfileClassRule, E1> classRuleConsumer,
-      ThrowingConsumer<ArtProfileMethodRule, E2> methodRuleConsumer)
+      ThrowingConsumer<? super ArtProfileClassRule, E1> classRuleConsumer,
+      ThrowingConsumer<? super ArtProfileMethodRule, E2> methodRuleConsumer)
       throws E1 {
     classRuleConsumer.accept(this);
   }

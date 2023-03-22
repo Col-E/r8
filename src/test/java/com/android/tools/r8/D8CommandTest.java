@@ -33,6 +33,7 @@ import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.ExtractMarkerUtils;
 import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.InternalOptions;
+import com.android.tools.r8.utils.ListUtils;
 import com.android.tools.r8.utils.ThreadUtils;
 import com.android.tools.r8.utils.ZipUtils;
 import com.google.common.collect.ImmutableList;
@@ -812,7 +813,8 @@ public class D8CommandTest extends CommandTestBase<D8Command> {
 
     // Verify we found the same rule.
     StartupProfile startupProfile = startupProfileBuilder.build();
-    Collection<StartupProfileRule> startupItems = startupProfile.getRules();
+    Collection<StartupProfileRule> startupItems =
+        ListUtils.newArrayList(consumer -> startupProfile.forEachRule(consumer::accept));
     assertEquals(1, startupItems.size());
     StartupProfileRule startupItem = startupItems.iterator().next();
     startupItem.accept(

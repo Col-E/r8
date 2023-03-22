@@ -33,8 +33,8 @@ public class StartupProfileMethodRule extends StartupProfileRule
 
   @Override
   public <E1 extends Exception, E2 extends Exception> void accept(
-      ThrowingConsumer<StartupProfileClassRule, E1> classConsumer,
-      ThrowingConsumer<StartupProfileMethodRule, E2> methodConsumer)
+      ThrowingConsumer<? super StartupProfileClassRule, E1> classConsumer,
+      ThrowingConsumer<? super StartupProfileMethodRule, E2> methodConsumer)
       throws E2 {
     methodConsumer.accept(this);
   }

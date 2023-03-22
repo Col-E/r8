@@ -61,10 +61,13 @@ public class StartupProfileProviderUtils {
     startupProfileProvider.getStartupProfile(startupProfileBuilder);
     // Serialize the startup items.
     StringBuilder resultBuilder = new StringBuilder();
-    for (StartupProfileRule startupItem : startupProfileBuilder.build().getRules()) {
-      startupItem.write(resultBuilder);
-      resultBuilder.append('\n');
-    }
+    StartupProfile startupProfile = startupProfileBuilder.build();
+    startupProfile.forEachRule(rule -> writeRule(rule, resultBuilder));
     return resultBuilder.toString();
+  }
+
+  private static void writeRule(StartupProfileRule rule, Appendable appendable) throws IOException {
+    rule.write(appendable);
+    appendable.append('\n');
   }
 }

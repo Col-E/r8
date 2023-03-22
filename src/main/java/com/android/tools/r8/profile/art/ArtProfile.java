@@ -71,8 +71,8 @@ public class ArtProfile implements AbstractProfile<ArtProfileClassRule, ArtProfi
 
   @Override
   public <E1 extends Exception, E2 extends Exception> void forEachRule(
-      ThrowingConsumer<ArtProfileClassRule, E1> classRuleConsumer,
-      ThrowingConsumer<ArtProfileMethodRule, E2> methodRuleConsumer)
+      ThrowingConsumer<? super ArtProfileClassRule, E1> classRuleConsumer,
+      ThrowingConsumer<? super ArtProfileMethodRule, E2> methodRuleConsumer)
       throws E1, E2 {
     for (ArtProfileRule rule : rules.values()) {
       rule.accept(classRuleConsumer, methodRuleConsumer);

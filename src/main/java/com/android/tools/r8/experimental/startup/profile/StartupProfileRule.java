@@ -14,8 +14,8 @@ public abstract class StartupProfileRule
     implements AbstractProfileRule, Comparable<StartupProfileRule> {
 
   public abstract <E1 extends Exception, E2 extends Exception> void accept(
-      ThrowingConsumer<StartupProfileClassRule, E1> classConsumer,
-      ThrowingConsumer<StartupProfileMethodRule, E2> methodConsumer)
+      ThrowingConsumer<? super StartupProfileClassRule, E1> classConsumer,
+      ThrowingConsumer<? super StartupProfileMethodRule, E2> methodConsumer)
       throws E1, E2;
 
   public abstract <T> T apply(

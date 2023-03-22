@@ -14,8 +14,6 @@ import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.PrunedItems;
 import com.android.tools.r8.synthesis.SyntheticItems;
 import com.android.tools.r8.utils.ThrowingConsumer;
-import java.util.Collection;
-import java.util.Collections;
 
 public class EmptyStartupProfile extends StartupProfile {
 
@@ -32,9 +30,15 @@ public class EmptyStartupProfile extends StartupProfile {
   }
 
   @Override
+  public <E extends Exception> void forEachRule(
+      ThrowingConsumer<? super StartupProfileRule, E> consumer) {
+    // Intentionally empty.
+  }
+
+  @Override
   public <E1 extends Exception, E2 extends Exception> void forEachRule(
-      ThrowingConsumer<StartupProfileClassRule, E1> classRuleConsumer,
-      ThrowingConsumer<StartupProfileMethodRule, E2> methodRuleConsumer) {
+      ThrowingConsumer<? super StartupProfileClassRule, E1> classRuleConsumer,
+      ThrowingConsumer<? super StartupProfileMethodRule, E2> methodRuleConsumer) {
     // Intentionally empty.
   }
 
@@ -46,11 +50,6 @@ public class EmptyStartupProfile extends StartupProfile {
   @Override
   public StartupProfileMethodRule getMethodRule(DexMethod method) {
     return null;
-  }
-
-  @Override
-  public Collection<StartupProfileRule> getRules() {
-    return Collections.emptyList();
   }
 
   @Override

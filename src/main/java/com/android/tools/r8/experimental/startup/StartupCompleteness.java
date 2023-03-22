@@ -4,7 +4,6 @@
 
 package com.android.tools.r8.experimental.startup;
 
-import com.android.tools.r8.experimental.startup.profile.StartupProfileRule;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexProgramClass;
@@ -74,11 +73,7 @@ public class StartupCompleteness {
 
   private Set<DexReference> computeStartupItems() {
     Set<DexReference> startupItems = Sets.newIdentityHashSet();
-    for (StartupProfileRule startupItem : startupProfile.getRules()) {
-      startupItem.accept(
-          startupClass -> startupItems.add(startupClass.getReference()),
-          startupMethod -> startupItems.add(startupMethod.getReference()));
-    }
+    startupProfile.forEachRule(rule -> startupItems.add(rule.getReference()));
     return startupItems;
   }
 }

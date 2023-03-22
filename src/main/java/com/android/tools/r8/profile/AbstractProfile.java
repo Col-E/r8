@@ -16,8 +16,8 @@ public interface AbstractProfile<
   boolean containsMethodRule(DexMethod method);
 
   <E1 extends Exception, E2 extends Exception> void forEachRule(
-      ThrowingConsumer<ClassRule, E1> classRuleConsumer,
-      ThrowingConsumer<MethodRule, E2> methodRuleConsumer)
+      ThrowingConsumer<? super ClassRule, E1> classRuleConsumer,
+      ThrowingConsumer<? super MethodRule, E2> methodRuleConsumer)
       throws E1, E2;
 
   ClassRule getClassRule(DexType type);
