@@ -134,6 +134,8 @@ public abstract class AbstractGenerateFiles {
         StringUtils.joinLines(
             "Invalid invocation.",
             "Usage: AbstractGenerateFiles [--generate-api-docs] <desugar configuration> <desugar"
-                + " implementation> <output directory> [<android jar path>]"));
+                + " implementation> <output directory> [<android jar path for Android "
+                + MAX_TESTED_ANDROID_API_LEVEL
+                + " or higher>]"));
   }
 }

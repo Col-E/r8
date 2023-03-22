@@ -58,9 +58,13 @@ public class SupportedClassesGenerator {
   private static final String ANDROID_JAR_PATTERN = "third_party/android_jar/lib-v%d/android.jar";
 
   private final InternalOptions options;
+  private final Path androidJar;
 
-  public SupportedClassesGenerator(InternalOptions options) {
+  private DexApplication loadingAppCache;
+
+  public SupportedClassesGenerator(InternalOptions options, Path androidJar) {
     this.options = options;
+    this.androidJar = androidJar;
   }
 
   public SupportedClasses run(Collection<Path> desugaredLibraryImplementation, Path specification)
@@ -69,10 +73,7 @@ public class SupportedClassesGenerator {
     // First analyze everything which is supported when desugaring for api 1.
     collectSupportedMembersInB(desugaredLibraryImplementation, specification, builder);
     // Second annotate all apis which are partially and/or fully supported.
-    AndroidApp library =
-        AndroidApp.builder()
-            .addProgramFiles(getAndroidJarPath(MAX_TESTED_ANDROID_API_LEVEL))
-            .build();
+    AndroidApp library = AndroidApp.builder().addProgramFiles(androidJar).build();
     DirectMappedDexApplication appForMax =
         new ApplicationReader(library, options, Timing.empty()).read().toDirect();
     annotateMethodsNotOnLatestAndroidJar(appForMax, builder);
@@ -245,10 +246,7 @@ public class SupportedClassesGenerator {
     DirectMappedDexApplication implementationApplication =
         new ApplicationReader(implementation, options, Timing.empty()).read().toDirect();
 
-    AndroidApp library =
-        AndroidApp.builder()
-            .addLibraryFiles(getAndroidJarPath(MAX_TESTED_ANDROID_API_LEVEL))
-            .build();
+    AndroidApp library = AndroidApp.builder().addLibraryFiles(androidJar).build();
     DirectMappedDexApplication amendedAppForMax =
         new ApplicationReader(library, options, Timing.empty()).read().toDirect();
 
@@ -402,15 +400,21 @@ public class SupportedClassesGenerator {
             options.reporter,
             false,
             api.getLevel());
-    Path androidJarPath = getAndroidJarPath(librarySpecification.getRequiredCompilationApiLevel());
-    DexApplication app = createLoadingApp(androidJarPath, options);
+    DexApplication app = getLoadingApp(androidJar, options);
     return librarySpecification.toMachineSpecification(app, Timing.empty());
   }
 
-  private DexApplication createLoadingApp(Path androidLib, InternalOptions options)
+  private DexApplication getLoadingApp(Path androidJar, InternalOptions options)
+      throws IOException {
+    return loadingAppCache == null
+        ? loadingAppCache = createLoadingApp(androidJar, options)
+        : loadingAppCache;
+  }
+
+  private DexApplication createLoadingApp(Path androidJar, InternalOptions options)
       throws IOException {
     AndroidApp.Builder builder = AndroidApp.builder();
-    AndroidApp inputApp = builder.addLibraryFiles(androidLib).build();
+    AndroidApp inputApp = builder.addLibraryFiles(androidJar).build();
     ApplicationReader applicationReader = new ApplicationReader(inputApp, options, Timing.empty());
     ExecutorService executorService = ThreadUtils.getExecutorService(options);
     assert !options.ignoreJavaLibraryOverride;

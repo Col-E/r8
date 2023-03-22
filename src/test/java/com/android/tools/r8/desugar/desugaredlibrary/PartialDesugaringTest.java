@@ -12,6 +12,7 @@ import static com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugari
 import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexMember;
@@ -129,7 +130,8 @@ public class PartialDesugaringTest extends DesugaredLibraryTestBase {
   @Test
   public void test() throws Exception {
     SupportedClasses supportedClasses =
-        new SupportedClassesGenerator(new InternalOptions())
+        new SupportedClassesGenerator(
+                new InternalOptions(), ToolHelper.getAndroidJar(AndroidApiLevel.U))
             .run(librarySpecification.getDesugarJdkLibs(), librarySpecification.getSpecification());
 
     for (AndroidApiLevel api : getRelevantApiLevels()) {
@@ -203,10 +205,6 @@ public class PartialDesugaringTest extends DesugaredLibraryTestBase {
     if (librarySpecification != JDK11_MINIMAL
         && api.isGreaterThanOrEqualTo(AndroidApiLevel.N)
         && api.isLessThan(AndroidApiLevel.T)) {
-      expectedFailures.addAll(FAILURES_TO_ARRAY);
-    }
-    if (librarySpecification == JDK8 && api.isLessThan(AndroidApiLevel.T)) {
-      // Interestingly that was added somehow to JDK8 desugared library at some point...
       expectedFailures.addAll(FAILURES_TO_ARRAY);
     }
     if (jdk11NonMinimal
