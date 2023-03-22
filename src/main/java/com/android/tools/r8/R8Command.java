@@ -658,8 +658,7 @@ public final class R8Command extends BaseCompilerCommand {
               getAndroidPlatformBuild(),
               getArtProfilesForRewriting(),
               getStartupProfileProviders(),
-              getClassConflictResolver(),
-              fakeCompilerVersion);
+              getClassConflictResolver());
 
       if (inputDependencyGraphConsumer != null) {
         inputDependencyGraphConsumer.finished();
@@ -846,7 +845,6 @@ public final class R8Command extends BaseCompilerCommand {
   private final FeatureSplitConfiguration featureSplitConfiguration;
   private final String synthesizedClassPrefix;
   private final boolean enableMissingLibraryApiModeling;
-  private final SemanticVersion fakeCompilerVersion;
 
   /** Get a new {@link R8Command.Builder}. */
   public static Builder builder() {
@@ -939,8 +937,7 @@ public final class R8Command extends BaseCompilerCommand {
       boolean isAndroidPlatformBuild,
       List<ArtProfileForRewriting> artProfilesForRewriting,
       List<StartupProfileProvider> startupProfileProviders,
-      ClassConflictResolver classConflictResolver,
-      SemanticVersion fakeCompilerVersion) {
+      ClassConflictResolver classConflictResolver) {
     super(
         inputApp,
         mode,
@@ -983,7 +980,6 @@ public final class R8Command extends BaseCompilerCommand {
     this.featureSplitConfiguration = featureSplitConfiguration;
     this.synthesizedClassPrefix = synthesizedClassPrefix;
     this.enableMissingLibraryApiModeling = enableMissingLibraryApiModeling;
-    this.fakeCompilerVersion = fakeCompilerVersion;
   }
 
   private R8Command(boolean printHelp, boolean printVersion) {
@@ -1007,7 +1003,6 @@ public final class R8Command extends BaseCompilerCommand {
     featureSplitConfiguration = null;
     synthesizedClassPrefix = null;
     enableMissingLibraryApiModeling = false;
-    fakeCompilerVersion = null;
   }
 
   public DexItemFactory getDexItemFactory() {
