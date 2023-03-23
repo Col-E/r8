@@ -77,6 +77,7 @@ public class PartitionMappingSupplierImpl extends PartitionMappingSupplier {
   }
 
   private void registerKeyUse(String key) {
+    // TODO(b/274735214): only call the register partition if we have a partition for it.
     if (!builtKeys.contains(key) && pendingKeys.add(key)) {
       registerPartitionCallback.register(key);
     }
@@ -103,9 +104,14 @@ public class PartitionMappingSupplierImpl extends PartitionMappingSupplier {
     }
     for (String pendingKey : pendingKeys) {
       try {
+        byte[] suppliedPartition = partitionSupplier.get(pendingKey);
+        // TODO(b/274735214): only expect a partition if have generated one for the key.
+        if (suppliedPartition == null) {
+          continue;
+        }
         LineReader reader =
             new ProguardMapReaderWithFilteringInputBuffer(
-                new ByteArrayInputStream(partitionSupplier.get(pendingKey)), alwaysTrue(), true);
+                new ByteArrayInputStream(suppliedPartition), alwaysTrue(), true);
         classNameMapper =
             ClassNameMapper.mapperFromLineReaderWithFiltering(
                     reader, metadata.getMapVersion(), diagnosticsHandler, true, allowExperimental)

@@ -25,6 +25,7 @@ import com.android.tools.r8.retrace.internal.ProguardMapReaderWithFiltering.Prog
 import com.android.tools.r8.utils.ExceptionDiagnostic;
 import com.android.tools.r8.utils.StringDiagnostic;
 import com.android.tools.r8.utils.StringUtils;
+import com.android.tools.r8.utils.TriConsumer;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -33,7 +34,6 @@ import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Set;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
@@ -62,8 +62,29 @@ public class ProguardMapPartitionerOnClassNameToText implements ProguardMapParti
     this.mappingPartitionKeyStrategy = mappingPartitionKeyStrategy;
   }
 
-  @Override
-  public MappingPartitionMetadata run() throws IOException {
+  private ClassNameMapper getPartitionsFromProguardMapProducer(
+      TriConsumer<ClassNameMapper, ClassNamingForNameMapper, String> consumer) throws IOException {
+    if (proguardMapProducer instanceof ProguardMapProducerInternal) {
+      return getPartitionsFromInternalProguardMapProducer(consumer);
+    } else {
+      return getPartitionsFromStringBackedProguardMapProducer(consumer);
+    }
+  }
+
+  private ClassNameMapper getPartitionsFromInternalProguardMapProducer(
+      TriConsumer<ClassNameMapper, ClassNamingForNameMapper, String> consumer) {
+    ClassNameMapper classNameMapper =
+        ((ProguardMapProducerInternal) proguardMapProducer).getClassNameMapper();
+    classNameMapper
+        .getClassNameMappings()
+        .forEach(
+            (key, mappingForClass) ->
+                consumer.accept(classNameMapper, mappingForClass, mappingForClass.toString()));
+    return classNameMapper;
+  }
+
+  private ClassNameMapper getPartitionsFromStringBackedProguardMapProducer(
+      TriConsumer<ClassNameMapper, ClassNamingForNameMapper, String> consumer) throws IOException {
     PartitionLineReader reader =
         new PartitionLineReader(
             proguardMapProducer.isFileBacked()
@@ -75,9 +96,11 @@ public class ProguardMapPartitionerOnClassNameToText implements ProguardMapParti
     // mappings.
     ClassNameMapper classMapper =
         ClassNameMapper.mapperFromLineReaderWithFiltering(
-            reader, MapVersion.MAP_VERSION_UNKNOWN, diagnosticsHandler, true, true);
-    HashSet<String> keys = new LinkedHashSet<>();
-    // We can then iterate over all sections.
+            reader,
+            MapVersion.MAP_VERSION_UNKNOWN,
+            diagnosticsHandler,
+            allowEmptyMappedRanges,
+            allowExperimentalMapping);
     reader.forEachClassMapping(
         (classMapping, entries) -> {
           try {
@@ -85,33 +108,44 @@ public class ProguardMapPartitionerOnClassNameToText implements ProguardMapParti
             ClassNameMapper classNameMapper =
                 ClassNameMapper.mapperFromString(
                     payload, null, allowEmptyMappedRanges, allowExperimentalMapping, false);
-            if (classNameMapper.getClassNameMappings().size() != 1) {
+            Map<String, ClassNamingForNameMapper> classNameMappings =
+                classNameMapper.getClassNameMappings();
+            if (classNameMappings.size() != 1) {
               diagnosticsHandler.error(
                   new StringDiagnostic("Multiple class names in payload\n: " + payload));
               return;
             }
-            Entry<String, ClassNamingForNameMapper> currentClassMapping =
-                classNameMapper.getClassNameMappings().entrySet().iterator().next();
-            ClassNamingForNameMapper value = currentClassMapping.getValue();
-            Set<String> seenMappings = new HashSet<>();
-            StringBuilder payloadWithClassReferences = new StringBuilder();
-            value.visitAllFullyQualifiedReferences(
-                holder -> {
-                  if (seenMappings.add(holder)) {
-                    payloadWithClassReferences.append(
-                        getSourceFileMapping(holder, classMapper.getSourceFile(holder)));
-                  }
-                });
-            payloadWithClassReferences.append(payload);
-            mappingPartitionConsumer.accept(
-                new MappingPartitionImpl(
-                    currentClassMapping.getKey(),
-                    payloadWithClassReferences.toString().getBytes(StandardCharsets.UTF_8)));
-            keys.add(currentClassMapping.getKey());
+            consumer.accept(classMapper, classNameMappings.values().iterator().next(), payload);
           } catch (IOException e) {
             diagnosticsHandler.error(new ExceptionDiagnostic(e));
           }
         });
+    return classMapper;
+  }
+
+  @Override
+  public MappingPartitionMetadata run() throws IOException {
+    HashSet<String> keys = new LinkedHashSet<>();
+    // We can then iterate over all sections.
+    ClassNameMapper classMapper =
+        getPartitionsFromProguardMapProducer(
+            (classNameMapper, classNamingForNameMapper, payload) -> {
+              Set<String> seenMappings = new HashSet<>();
+              StringBuilder payloadWithClassReferences = new StringBuilder();
+              classNamingForNameMapper.visitAllFullyQualifiedReferences(
+                  holder -> {
+                    if (seenMappings.add(holder)) {
+                      payloadWithClassReferences.append(
+                          getSourceFileMapping(holder, classNameMapper.getSourceFile(holder)));
+                    }
+                  });
+              payloadWithClassReferences.append(payload);
+              mappingPartitionConsumer.accept(
+                  new MappingPartitionImpl(
+                      classNamingForNameMapper.renamedName,
+                      payloadWithClassReferences.toString().getBytes(StandardCharsets.UTF_8)));
+              keys.add(classNamingForNameMapper.renamedName);
+            });
     MapVersion mapVersion = MapVersion.MAP_VERSION_UNKNOWN;
     MapVersionMappingInformation mapVersionInfo = classMapper.getFirstMapVersionInformation();
     if (mapVersionInfo != null) {

@@ -11,6 +11,7 @@ import static org.junit.Assert.assertTrue;
 import com.android.tools.r8.SingleTestRunResult;
 import com.android.tools.r8.ToolHelper.DexVm;
 import com.android.tools.r8.references.ClassReference;
+import com.android.tools.r8.retrace.MappingSupplier;
 import com.android.tools.r8.retrace.ProguardMapProducer;
 import com.android.tools.r8.retrace.ProguardMappingSupplier;
 import com.android.tools.r8.retrace.Retrace;
@@ -385,17 +386,21 @@ public class StackTrace {
   }
 
   public StackTrace retrace(String map, boolean allowExperimentalMapping) {
+    return retrace(
+        ProguardMappingSupplier.builder()
+            .setProguardMapProducer(ProguardMapProducer.fromString(map))
+            .setAllowExperimental(allowExperimentalMapping)
+            .build());
+  }
+
+  public StackTrace retrace(MappingSupplier<?> mappingSupplier) {
     Box<List<String>> box = new Box<>();
     List<String> stackTrace =
         stackTraceLines.stream().map(line -> line.originalLine).collect(Collectors.toList());
     stackTrace.add(0, exceptionLine);
     Retrace.run(
         RetraceCommand.builder()
-            .setMappingSupplier(
-                ProguardMappingSupplier.builder()
-                    .setProguardMapProducer(ProguardMapProducer.fromString(map))
-                    .setAllowExperimental(allowExperimentalMapping)
-                    .build())
+            .setMappingSupplier(mappingSupplier)
             .setStackTrace(stackTrace)
             .setRetracedStackTraceConsumer(box::set)
             .build());
