@@ -18,6 +18,9 @@ import com.android.tools.r8.retrace.MappingPartitionMetadata;
 import com.android.tools.r8.retrace.ProguardMapPartitioner;
 import com.android.tools.r8.retrace.ProguardMapPartitionerBuilder;
 import com.android.tools.r8.retrace.ProguardMapProducer;
+import com.android.tools.r8.retrace.RetracePartitionException;
+import com.android.tools.r8.retrace.internal.MappingPartitionMetadataInternal.ObfuscatedTypeNameAsKeyMetadata;
+import com.android.tools.r8.retrace.internal.MappingPartitionMetadataInternal.ObfuscatedTypeNameAsKeyMetadataWithPartitionNames;
 import com.android.tools.r8.retrace.internal.ProguardMapReaderWithFiltering.ProguardMapReaderWithFilteringInputBuffer;
 import com.android.tools.r8.retrace.internal.ProguardMapReaderWithFiltering.ProguardMapReaderWithFilteringMappedBuffer;
 import com.android.tools.r8.utils.ExceptionDiagnostic;
@@ -28,6 +31,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -42,18 +46,21 @@ public class ProguardMapPartitionerOnClassNameToText implements ProguardMapParti
   private final DiagnosticsHandler diagnosticsHandler;
   private final boolean allowEmptyMappedRanges;
   private final boolean allowExperimentalMapping;
+  private final MappingPartitionKeyStrategy mappingPartitionKeyStrategy;
 
   private ProguardMapPartitionerOnClassNameToText(
       ProguardMapProducer proguardMapProducer,
       Consumer<MappingPartition> mappingPartitionConsumer,
       DiagnosticsHandler diagnosticsHandler,
       boolean allowEmptyMappedRanges,
-      boolean allowExperimentalMapping) {
+      boolean allowExperimentalMapping,
+      MappingPartitionKeyStrategy mappingPartitionKeyStrategy) {
     this.proguardMapProducer = proguardMapProducer;
     this.mappingPartitionConsumer = mappingPartitionConsumer;
     this.diagnosticsHandler = diagnosticsHandler;
     this.allowEmptyMappedRanges = allowEmptyMappedRanges;
     this.allowExperimentalMapping = allowExperimentalMapping;
+    this.mappingPartitionKeyStrategy = mappingPartitionKeyStrategy;
   }
 
   @Override
@@ -70,6 +77,7 @@ public class ProguardMapPartitionerOnClassNameToText implements ProguardMapParti
     ClassNameMapper classMapper =
         ClassNameMapper.mapperFromLineReaderWithFiltering(
             reader, MapVersion.MAP_VERSION_UNKNOWN, diagnosticsHandler, true, true);
+    HashSet<String> keys = new LinkedHashSet<>();
     // We can then iterate over all sections.
     reader.forEachClassMapping(
         (classMapping, entries) -> {
@@ -100,6 +108,7 @@ public class ProguardMapPartitionerOnClassNameToText implements ProguardMapParti
                 new MappingPartitionImpl(
                     currentClassMapping.getKey(),
                     payloadWithClassReferences.toString().getBytes(StandardCharsets.UTF_8)));
+            keys.add(currentClassMapping.getKey());
           } catch (IOException e) {
             diagnosticsHandler.error(new ExceptionDiagnostic(e));
           }
@@ -109,7 +118,18 @@ public class ProguardMapPartitionerOnClassNameToText implements ProguardMapParti
     if (mapVersionInfo != null) {
       mapVersion = mapVersionInfo.getMapVersion();
     }
-    return MappingPartitionMetadataInternal.obfuscatedTypeNameAsKey(mapVersion);
+    if (mappingPartitionKeyStrategy == MappingPartitionKeyStrategy.OBFUSCATED_TYPE_NAME_AS_KEY) {
+      return ObfuscatedTypeNameAsKeyMetadata.create(mapVersion);
+    } else if (mappingPartitionKeyStrategy
+        == MappingPartitionKeyStrategy.OBFUSCATED_TYPE_NAME_AS_KEY_WITH_PARTITIONS) {
+      return ObfuscatedTypeNameAsKeyMetadataWithPartitionNames.create(
+          mapVersion, MetadataPartitionCollection.create(keys));
+    } else {
+      RetracePartitionException retraceError =
+          new RetracePartitionException("Unknown mapping partitioning strategy");
+      diagnosticsHandler.error(new ExceptionDiagnostic(retraceError));
+      throw retraceError;
+    }
   }
 
   private String getSourceFileMapping(String className, String sourceFile) {
@@ -129,13 +149,11 @@ public class ProguardMapPartitionerOnClassNameToText implements ProguardMapParti
 
     private final ProguardMapReaderWithFiltering lineReader;
     private final Map<String, List<String>> readSections = new LinkedHashMap<>();
-    private final List<String> preamble;
     private List<String> currentList;
 
     public PartitionLineReader(ProguardMapReaderWithFiltering lineReader) {
       this.lineReader = lineReader;
       currentList = new ArrayList<>();
-      preamble = currentList;
     }
 
     @Override
@@ -166,11 +184,11 @@ public class ProguardMapPartitionerOnClassNameToText implements ProguardMapParti
       implements ProguardMapPartitionerBuilder<
           ProguardMapPartitionerBuilderImpl, ProguardMapPartitionerOnClassNameToText> {
 
-    private ProguardMapProducer proguardMapProducer;
-    private Consumer<MappingPartition> mappingPartitionConsumer;
-    private final DiagnosticsHandler diagnosticsHandler;
-    private boolean allowEmptyMappedRanges = false;
-    private boolean allowExperimentalMapping = false;
+    protected ProguardMapProducer proguardMapProducer;
+    protected Consumer<MappingPartition> mappingPartitionConsumer;
+    protected final DiagnosticsHandler diagnosticsHandler;
+    protected boolean allowEmptyMappedRanges = false;
+    protected boolean allowExperimentalMapping = false;
 
     public ProguardMapPartitionerBuilderImpl(DiagnosticsHandler diagnosticsHandler) {
       this.diagnosticsHandler = diagnosticsHandler;
@@ -211,7 +229,38 @@ public class ProguardMapPartitionerOnClassNameToText implements ProguardMapParti
           mappingPartitionConsumer,
           diagnosticsHandler,
           allowEmptyMappedRanges,
-          allowExperimentalMapping);
+          allowExperimentalMapping,
+          MappingPartitionKeyStrategy.getDefaultStrategy());
+    }
+  }
+
+  // This class should not be exposed to clients and is only used from tests to control the
+  // partitioning strategy.
+  public static class ProguardMapPartitionerBuilderImplInternal
+      extends ProguardMapPartitionerBuilderImpl {
+
+    private MappingPartitionKeyStrategy mappingPartitionKeyStrategy =
+        MappingPartitionKeyStrategy.OBFUSCATED_TYPE_NAME_AS_KEY_WITH_PARTITIONS;
+
+    public ProguardMapPartitionerBuilderImplInternal(DiagnosticsHandler diagnosticsHandler) {
+      super(diagnosticsHandler);
+    }
+
+    public ProguardMapPartitionerBuilderImplInternal setMappingPartitionKeyStrategy(
+        MappingPartitionKeyStrategy mappingPartitionKeyStrategy) {
+      this.mappingPartitionKeyStrategy = mappingPartitionKeyStrategy;
+      return this;
+    }
+
+    @Override
+    public ProguardMapPartitionerOnClassNameToText build() {
+      return new ProguardMapPartitionerOnClassNameToText(
+          proguardMapProducer,
+          mappingPartitionConsumer,
+          diagnosticsHandler,
+          allowEmptyMappedRanges,
+          allowExperimentalMapping,
+          mappingPartitionKeyStrategy);
     }
   }
 }

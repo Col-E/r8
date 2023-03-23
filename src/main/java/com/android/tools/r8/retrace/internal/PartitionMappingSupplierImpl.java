@@ -65,7 +65,7 @@ public class PartitionMappingSupplierImpl extends PartitionMappingSupplier {
       return mappingPartitionMetadataCache;
     }
     return mappingPartitionMetadataCache =
-        MappingPartitionMetadataInternal.createFromBytes(
+        MappingPartitionMetadataInternal.deserialize(
             metadata, fallbackMapVersion, diagnosticsHandler);
   }
 

@@ -5,11 +5,23 @@
 package com.android.tools.r8.retrace.internal;
 
 public enum MappingPartitionKeyStrategy {
-  OBFUSCATED_TYPE_NAME_AS_KEY(0);
+  OBFUSCATED_TYPE_NAME_AS_KEY(0),
+  OBFUSCATED_TYPE_NAME_AS_KEY_WITH_PARTITIONS(1);
 
-  final int serializedKey;
+  private static final MappingPartitionKeyStrategy DEFAULT_STRATEGY =
+      OBFUSCATED_TYPE_NAME_AS_KEY_WITH_PARTITIONS;
+
+  private final int serializedKey;
 
   MappingPartitionKeyStrategy(int serializedKey) {
     this.serializedKey = serializedKey;
+  }
+
+  public int getSerializedKey() {
+    return serializedKey;
+  }
+
+  public static MappingPartitionKeyStrategy getDefaultStrategy() {
+    return DEFAULT_STRATEGY;
   }
 }
