@@ -1600,6 +1600,14 @@ public abstract class DexValue extends DexItem implements StructuralItem<DexValu
       return values;
     }
 
+    public int size() {
+      return values.length;
+    }
+
+    public DexValue getValue(int i) {
+      return values[i];
+    }
+
     @Override
     public DexValueKind getValueKind() {
       return DexValueKind.ARRAY;
