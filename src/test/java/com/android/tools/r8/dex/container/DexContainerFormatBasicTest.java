@@ -33,6 +33,7 @@ import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.BitUtils;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.DexVersion;
+import com.android.tools.r8.utils.ListUtils;
 import com.android.tools.r8.utils.ZipUtils;
 import com.google.common.collect.ImmutableList;
 import com.google.common.io.ByteStreams;
@@ -106,7 +107,7 @@ public class DexContainerFormatBasicTest extends TestBase {
   }
 
   @Test
-  public void testD8Experiment() throws Exception {
+  public void testD8ExperimentSimpleMerge() throws Exception {
     Path outputFromDexing =
         testForD8(Backend.DEX)
             .addProgramFiles(inputA)
@@ -116,10 +117,23 @@ public class DexContainerFormatBasicTest extends TestBase {
             .compile()
             .writeToZip();
     validateSingleContainerDex(outputFromDexing);
+
+    Path outputFromMerging =
+        testForD8(Backend.DEX)
+            .addProgramFiles(outputFromDexing)
+            .addOptionsModification(
+                options -> options.getTestingOptions().dexContainerExperiment = true)
+            .compile()
+            .writeToZip();
+    validateSingleContainerDex(outputFromMerging);
+
+    // Identical DEX after re-merging.
+    assertArrayEquals(
+        unzipContent(outputFromDexing).get(0), unzipContent(outputFromMerging).get(0));
   }
 
   @Test
-  public void testD8Experiment2() throws Exception {
+  public void testD8ExperimentMoreMerge() throws Exception {
     Path outputA =
         testForD8(Backend.DEX)
             .addProgramFiles(inputA)
@@ -139,6 +153,27 @@ public class DexContainerFormatBasicTest extends TestBase {
             .compile()
             .writeToZip();
     validateSingleContainerDex(outputB);
+
+    Path outputBoth =
+        testForD8(Backend.DEX)
+            .addProgramFiles(inputA, inputB)
+            .setMinApi(AndroidApiLevel.L)
+            .addOptionsModification(
+                options -> options.getTestingOptions().dexContainerExperiment = true)
+            .compile()
+            .writeToZip();
+    validateSingleContainerDex(outputBoth);
+
+    Path outputMerged =
+        testForD8(Backend.DEX)
+            .addProgramFiles(outputA, outputB)
+            .addOptionsModification(
+                options -> options.getTestingOptions().dexContainerExperiment = true)
+            .compile()
+            .writeToZip();
+    validateSingleContainerDex(outputMerged);
+
+    assertArrayEquals(unzipContent(outputBoth).get(0), unzipContent(outputMerged).get(0));
   }
 
   private void validateDex(Path output, int expectedDexes, DexVersion expectedVersion)
@@ -168,10 +203,14 @@ public class DexContainerFormatBasicTest extends TestBase {
       int dataSize = buffer.getInt(offset + DATA_SIZE_OFFSET);
       int dataOffset = buffer.getInt(offset + DATA_OFF_OFFSET);
       int file_size = buffer.getInt(offset + FILE_SIZE_OFFSET);
-      if (!expectedVersion.isContainerDex()) {
+      if (expectedVersion.isContainerDex()) {
+        assertEquals(0, dataSize);
+        assertEquals(0, dataOffset);
+      } else {
         assertEquals(file_size, dataOffset + dataSize);
       }
       offset += expectedVersion.isContainerDex() ? file_size : dataOffset + dataSize;
+      assertEquals(file_size, offset - ListUtils.last(sections));
     }
     assertEquals(buffer.capacity(), offset);
 

@@ -95,21 +95,23 @@ public class DexParser<T extends DexClass> {
   private final int NO_INDEX = -1;
   private final Origin origin;
   private DexReader dexReader;
-  private final DexSection[] dexSections;
+  private final List<DexSection> dexSections;
+  private final int offset;
   private int[] stringIDs;
   private final ClassKind<T> classKind;
   private final InternalOptions options;
   private Object2LongMap<String> checksums;
 
-  public static DexSection[] parseMapFrom(Path file) throws IOException {
+  public static List<DexSection> parseMapFrom(Path file) throws IOException {
     return parseMapFrom(Files.newInputStream(file), new PathOrigin(file));
   }
 
-  public static DexSection[] parseMapFrom(InputStream stream, Origin origin) throws IOException {
+  public static List<DexSection> parseMapFrom(InputStream stream, Origin origin)
+      throws IOException {
     return parseMapFrom(new DexReader(origin, ByteStreams.toByteArray(stream)));
   }
 
-  private static DexSection[] parseMapFrom(DexReader dexReader) {
+  private static List<DexSection> parseMapFrom(DexReader dexReader) {
     DexParser<DexProgramClass> dexParser =
         new DexParser<>(dexReader, ClassKind.PROGRAM, new InternalOptions());
     return dexParser.dexSections;
@@ -144,13 +146,27 @@ public class DexParser<T extends DexClass> {
   private final DexItemFactory dexItemFactory;
 
   public DexParser(DexReader dexReader, ClassKind<T> classKind, InternalOptions options) {
+    this(dexReader, classKind, options, 0, null);
+  }
+
+  public DexParser(
+      DexReader dexReader,
+      ClassKind<T> classKind,
+      InternalOptions options,
+      int offset,
+      DexParser<T> parserWithStringIDs) {
     assert dexReader.getOrigin() != null;
     this.origin = dexReader.getOrigin();
     this.dexReader = dexReader;
+    this.offset = offset;
     this.dexItemFactory = options.itemFactory;
     dexReader.setByteOrder();
     dexSections = parseMap();
-    parseStringIDs();
+    if (parserWithStringIDs == null) {
+      parseStringIDs();
+    } else {
+      stringIDs = parserWithStringIDs.stringIDs;
+    }
     this.classKind = classKind;
     this.options = options;
   }
@@ -919,12 +935,12 @@ public class DexParser<T extends DexClass> {
     return new DexSection(type, 0, 0, 0);
   }
 
-  private DexSection[] parseMap() {
+  private List<DexSection> parseMap() {
     // Read the dexSections information from the MAP.
-    int mapOffset = dexReader.getUint(Constants.MAP_OFF_OFFSET);
+    int mapOffset = dexReader.getUint(offset + Constants.MAP_OFF_OFFSET);
     dexReader.position(mapOffset);
     int mapSize = dexReader.getUint();
-    final DexSection[] result = new DexSection[mapSize];
+    final List<DexSection> result = new ArrayList<>(mapSize);
     for (int i = 0; i < mapSize; i++) {
       int type = dexReader.getUshort();
       int unused = dexReader.getUshort();
@@ -943,12 +959,12 @@ public class DexParser<T extends DexClass> {
                 + dexReader.end(),
             origin);
       }
-      result[i] = new DexSection(type, unused, size, offset);
+      result.add(new DexSection(type, unused, size, offset));
     }
     for (int i = 0; i < mapSize - 1; i++) {
-      result[i].setEnd(result[i + 1].offset);
+      result.get(i).setEnd(result.get(i + 1).offset);
     }
-    result[mapSize - 1].setEnd(dexReader.end());
+    result.get(mapSize - 1).setEnd(dexReader.end());
     return result;
   }
 

@@ -49,6 +49,8 @@ import com.android.tools.r8.utils.MainDexListParser;
 import com.android.tools.r8.utils.StringDiagnostic;
 import com.android.tools.r8.utils.ThreadUtils;
 import com.android.tools.r8.utils.Timing;
+import it.unimi.dsi.fastutil.ints.IntArrayList;
+import it.unimi.dsi.fastutil.ints.IntList;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -337,9 +339,17 @@ public class ApplicationReader {
       for (ProgramResource input : dexSources) {
         DexReader dexReader = new DexReader(input);
         if (options.passthroughDexCode) {
-          computedMinApiLevel = validateOrComputeMinApiLevel(computedMinApiLevel, dexReader);
+          if (!options.testing.dexContainerExperiment) {
+            computedMinApiLevel = validateOrComputeMinApiLevel(computedMinApiLevel, dexReader);
+          } else {
+            assert dexReader.getDexVersion() == DexVersion.V41;
+          }
         }
-        dexParsers.add(new DexParser<>(dexReader, PROGRAM, options));
+        if (!options.testing.dexContainerExperiment) {
+          dexParsers.add(new DexParser<>(dexReader, PROGRAM, options));
+        } else {
+          addDexParsersForContainer(dexParsers, dexReader);
+        }
       }
 
       options.setMinApiLevel(computedMinApiLevel);
@@ -349,15 +359,54 @@ public class ApplicationReader {
       // Read the DexCode items and DexProgramClass items in parallel.
       if (!options.skipReadingDexCode) {
         ApplicationReaderMap applicationReaderMap = ApplicationReaderMap.getInstance(options);
-        for (DexParser<DexProgramClass> dexParser : dexParsers) {
-          futures.add(
-              executorService.submit(
-                  () -> {
-                    dexParser.addClassDefsTo(
-                        classes::add, applicationReaderMap); // Depends on Methods, Code items etc.
-                  }));
+        if (!options.testing.dexContainerExperiment) {
+          for (DexParser<DexProgramClass> dexParser : dexParsers) {
+            futures.add(
+                executorService.submit(
+                    () -> {
+                      dexParser.addClassDefsTo(
+                          classes::add,
+                          applicationReaderMap); // Depends on Methods, Code items etc.
+                    }));
+          }
+        } else {
+          // All Dex parsers use the same DEX reader, so don't process in parallel.
+          for (int i = 0; i < dexParsers.size(); i++) {
+            dexParsers.get(i).addClassDefsTo(classes::add, applicationReaderMap);
+          }
         }
       }
+    }
+
+    private void addDexParsersForContainer(
+        List<DexParser<DexProgramClass>> dexParsers, DexReader dexReader) {
+      // Find the start offsets of each dex section.
+      IntList offsets = new IntArrayList();
+      dexReader.setByteOrder();
+      int offset = 0;
+      while (offset < dexReader.end()) {
+        offsets.add(offset);
+        DexReader tmp = new DexReader(Origin.unknown(), dexReader.buffer.array(), offset);
+        assert tmp.getDexVersion() == DexVersion.V41;
+        assert dexReader.getUint(offset + Constants.HEADER_SIZE_OFFSET)
+            == Constants.TYPE_HEADER_ITEM_SIZE_V41;
+        assert dexReader.getUint(offset + Constants.HEADER_OFF_OFFSET) == offset;
+        int dataSize = dexReader.getUint(offset + Constants.DATA_SIZE_OFFSET);
+        int dataOffset = dexReader.getUint(offset + Constants.DATA_OFF_OFFSET);
+        int file_size = dexReader.getUint(offset + Constants.FILE_SIZE_OFFSET);
+        assert dataOffset == 0;
+        assert dataSize == 0;
+        offset += file_size;
+      }
+      assert offset == dexReader.end();
+      // Create a parser for the last section with string data.
+      DexParser<DexProgramClass> last =
+          new DexParser<>(dexReader, PROGRAM, options, offsets.getInt(offsets.size() - 1), null);
+      // Create a parsers for the remaining sections with reference to the string data.
+      for (int i = 0; i < offsets.size() - 1; i++) {
+        dexParsers.add(new DexParser<>(dexReader, PROGRAM, options, offsets.getInt(i), last));
+      }
+      dexParsers.add(last);
     }
 
     private boolean includeAnnotationClass(DexProgramClass clazz) {

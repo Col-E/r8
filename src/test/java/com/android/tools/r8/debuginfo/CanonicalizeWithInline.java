@@ -15,6 +15,7 @@ import com.android.tools.r8.dex.DexSection;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.List;
 import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -34,7 +35,7 @@ public class CanonicalizeWithInline extends TestBase {
   }
 
   private int getNumberOfDebugInfos(Path file) throws IOException {
-    DexSection[] dexSections = DexParser.parseMapFrom(file);
+    List<DexSection> dexSections = DexParser.parseMapFrom(file);
     for (DexSection dexSection : dexSections) {
       if (dexSection.type == Constants.TYPE_DEBUG_INFO_ITEM) {
         return dexSection.length;

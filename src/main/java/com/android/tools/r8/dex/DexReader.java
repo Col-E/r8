@@ -25,7 +25,7 @@ public class DexReader extends BinaryReader {
 
   public DexReader(ProgramResource resource) throws ResourceException, IOException {
     super(resource);
-    version = parseMagic(buffer);
+    version = parseMagic(buffer, 0);
   }
 
   /**
@@ -35,18 +35,23 @@ public class DexReader extends BinaryReader {
    */
   DexReader(Origin origin, byte[] bytes) {
     super(origin, bytes);
-    version = parseMagic(buffer);
+    version = parseMagic(buffer, 0);
+  }
+
+  DexReader(Origin origin, byte[] bytes, int offset) {
+    super(origin, bytes);
+    version = parseMagic(buffer, offset);
   }
 
   // Parse the magic header and determine the dex file version.
-  private DexVersion parseMagic(CompatByteBuffer buffer) {
+  private DexVersion parseMagic(CompatByteBuffer buffer, int offset) {
     try {
       buffer.get();
       buffer.rewind();
     } catch (BufferUnderflowException e) {
       throw new CompilationError("Dex file is empty", origin);
     }
-    int index = 0;
+    int index = offset;
     for (byte prefixByte : DEX_FILE_MAGIC_PREFIX) {
       byte actualByte = buffer.get(index++);
       if (actualByte != prefixByte) {
