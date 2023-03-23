@@ -47,6 +47,9 @@ public abstract class AndroidApiLevelCompute {
     return computeApiLevelForLibraryReference(reference, ComputedApiLevel.unknown());
   }
 
+  public abstract ComputedApiLevel computeApiLevelForLibraryReferenceIgnoringDesugaredLibrary(
+      DexReference reference, ComputedApiLevel unknownValue);
+
   public ComputedApiLevel computeApiLevelForDefinition(Iterable<DexType> types) {
     return computeApiLevelForDefinition(types, ComputedApiLevel.unknown());
   }
@@ -102,6 +105,12 @@ public abstract class AndroidApiLevelCompute {
     }
 
     @Override
+    public ComputedApiLevel computeApiLevelForLibraryReferenceIgnoringDesugaredLibrary(
+        DexReference reference, ComputedApiLevel unknownValue) {
+      return ComputedApiLevel.notSet();
+    }
+
+    @Override
     public ComputedApiLevel computeInitialMinApiLevel(InternalOptions options) {
       return ComputedApiLevel.notSet();
     }
@@ -138,6 +147,12 @@ public abstract class AndroidApiLevelCompute {
     public ComputedApiLevel computeApiLevelForLibraryReference(
         DexReference reference, ComputedApiLevel unknownValue) {
       return cache.lookup(reference, unknownValue);
+    }
+
+    @Override
+    public ComputedApiLevel computeApiLevelForLibraryReferenceIgnoringDesugaredLibrary(
+        DexReference reference, ComputedApiLevel unknownValue) {
+      return cache.lookupIgnoringDesugaredLibrary(reference, unknownValue);
     }
 
     @Override

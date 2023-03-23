@@ -10,8 +10,9 @@ import com.android.tools.r8.StringResource;
 import com.android.tools.r8.androidapi.ComputedApiLevel;
 import com.android.tools.r8.dex.ApplicationReader;
 import com.android.tools.r8.dex.Constants;
-import com.android.tools.r8.features.ClassToFeatureSplitMap;
+import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
+import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedField;
@@ -28,14 +29,12 @@ import com.android.tools.r8.graph.FieldResolutionResult;
 import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.graph.MethodResolutionResult;
 import com.android.tools.r8.ir.desugar.BackportedMethodRewriter;
-import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibraryAmender;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibrarySpecification;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibrarySpecificationParser;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.lint.SupportedClasses.ClassAnnotation;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.lint.SupportedClasses.FieldAnnotation;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.lint.SupportedClasses.MethodAnnotation;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.machinespecification.MachineDesugaredLibrarySpecification;
-import com.android.tools.r8.shaking.MainDexInfo;
 import com.android.tools.r8.synthesis.SyntheticItems.GlobalSyntheticsStrategy;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AndroidApp;
@@ -46,7 +45,6 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import java.io.IOException;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -55,36 +53,28 @@ import java.util.concurrent.ExecutorService;
 
 public class SupportedClassesGenerator {
 
-  private static final String ANDROID_JAR_PATTERN = "third_party/android_jar/lib-v%d/android.jar";
-
   private final InternalOptions options;
-  private final Path androidJar;
+  private final DirectMappedDexApplication appForMax;
+  private final SupportedClasses.Builder builder = SupportedClasses.builder();
 
-  private DexApplication loadingAppCache;
-
-  public SupportedClassesGenerator(InternalOptions options, Path androidJar) {
+  public SupportedClassesGenerator(InternalOptions options, Path androidJar) throws IOException {
     this.options = options;
-    this.androidJar = androidJar;
+    this.appForMax = createAppForMax(androidJar);
   }
 
   public SupportedClasses run(Collection<Path> desugaredLibraryImplementation, Path specification)
       throws IOException {
-    SupportedClasses.Builder builder = SupportedClasses.builder();
     // First analyze everything which is supported when desugaring for api 1.
-    collectSupportedMembersInB(desugaredLibraryImplementation, specification, builder);
+    collectSupportedMembersInB(desugaredLibraryImplementation, specification);
     // Second annotate all apis which are partially and/or fully supported.
-    AndroidApp library = AndroidApp.builder().addProgramFiles(androidJar).build();
-    DirectMappedDexApplication appForMax =
-        new ApplicationReader(library, options, Timing.empty()).read().toDirect();
-    annotateMethodsNotOnLatestAndroidJar(appForMax, builder);
-    annotateParallelMethods(builder);
-    annotatePartialDesugaringMembers(builder, specification);
-    annotateClasses(builder, appForMax);
+    annotateMethodsNotOnLatestAndroidJar();
+    annotateParallelMethods();
+    annotatePartialDesugaringMembers(specification);
+    annotateClasses();
     return builder.build();
   }
 
-  private void annotateClasses(
-      SupportedClasses.Builder builder, DirectMappedDexApplication appForMax) {
+  private void annotateClasses() {
     builder.forEachClassFieldsAndMethods(
         (clazz, fields, methods) -> {
           ClassAnnotation classAnnotation = builder.getClassAnnotation(clazz.type);
@@ -124,34 +114,27 @@ public class SupportedClassesGenerator {
     return fullySupported;
   }
 
-  private void annotatePartialDesugaringMembers(
-      SupportedClasses.Builder builder, Path specification) throws IOException {
-    for (int api = AndroidApiLevel.K.getLevel();
+  private void annotatePartialDesugaringMembers(Path specification) throws IOException {
+    // The first difference should be at 18 so we're safe starting at J and not B.
+    for (int api = AndroidApiLevel.J.getLevel();
         api <= MAX_TESTED_ANDROID_API_LEVEL.getLevel();
         api++) {
-      if (api == 20) {
-        // Missing android.jar.
-        continue;
-      }
       AndroidApiLevel androidApiLevel = AndroidApiLevel.getAndroidApiLevel(api);
       MachineDesugaredLibrarySpecification machineSpecification =
           getMachineSpecification(androidApiLevel, specification);
       options.setMinApiLevel(androidApiLevel);
       options.resetDesugaredLibrarySpecificationForTesting();
       options.setDesugaredLibrarySpecification(machineSpecification);
-      AndroidApp library =
-          AndroidApp.builder().addProgramFiles(getAndroidJarPath(androidApiLevel)).build();
-      DirectMappedDexApplication dexApplication =
-          new ApplicationReader(library, options, Timing.empty()).read().toDirect();
-      AppInfoWithClassHierarchy appInfo =
-          AppInfoWithClassHierarchy.createInitialAppInfoWithClassHierarchy(
-              dexApplication,
-              ClassToFeatureSplitMap.createEmptyClassToFeatureSplitMap(),
-              MainDexInfo.none(),
-              GlobalSyntheticsStrategy.forNonSynthesizing());
 
+      AppInfo initialAppInfo =
+          AppInfo.createInitialAppInfo(appForMax, GlobalSyntheticsStrategy.forNonSynthesizing());
+      AppView<?> appView =
+          AppView.createForD8(initialAppInfo, options.getTypeRewriter(), Timing.empty());
+      AppInfoWithClassHierarchy appInfo = appView.appInfoForDesugaring();
+
+      // This should depend only on machine specification and min api.
       List<DexMethod> backports =
-          BackportedMethodRewriter.generateListOfBackportedMethods(dexApplication, options);
+          BackportedMethodRewriter.generateListOfBackportedMethods(appForMax, options);
 
       int finalApi = api;
       builder.forEachClassAndMethod(
@@ -171,13 +154,31 @@ public class SupportedClassesGenerator {
               // interface is supported.
               return;
             }
+            // This is not supported through desugared library. We look-up to see if it is
+            // supported at the given min-api level by the library.
             MethodResolutionResult methodResolutionResult =
                 appInfo.resolveMethod(
                     dexMethod,
                     appInfo
                         .contextIndependentDefinitionFor(dexMethod.getHolderType())
                         .isInterface());
-            if (methodResolutionResult.isFailedResolution()) {
+            if (methodResolutionResult.isSingleResolution()) {
+              ComputedApiLevel computedApiLevel =
+                  appView
+                      .apiLevelCompute()
+                      .computeApiLevelForLibraryReferenceIgnoringDesugaredLibrary(
+                          methodResolutionResult.getResolvedMethod().getReference(),
+                          ComputedApiLevel.unknown());
+              if (!computedApiLevel.isKnownApiLevel()) {
+                throw new RuntimeException(
+                    "API database does not recognize the method "
+                        + encodedMethod.getReference().toSourceString());
+              }
+              if (finalApi < computedApiLevel.asKnownApiLevel().getApiLevel().getLevel()) {
+                builder.annotateMethod(dexMethod, MethodAnnotation.createMissingInMinApi(finalApi));
+              }
+            } else {
+              assert methodResolutionResult.isFailedResolution();
               builder.annotateMethod(dexMethod, MethodAnnotation.createMissingInMinApi(finalApi));
             }
           });
@@ -193,7 +194,24 @@ public class SupportedClassesGenerator {
             }
             FieldResolutionResult fieldResolutionResult =
                 appInfo.resolveField(encodedField.getReference());
-            if (fieldResolutionResult.isFailedResolution()) {
+            if (fieldResolutionResult.isSingleFieldResolutionResult()) {
+              DexEncodedField resolvedField = fieldResolutionResult.getResolvedField();
+              ComputedApiLevel computedApiLevel =
+                  appView
+                      .apiLevelCompute()
+                      .computeApiLevelForLibraryReferenceIgnoringDesugaredLibrary(
+                          resolvedField.getReference(), ComputedApiLevel.unknown());
+              if (!computedApiLevel.isKnownApiLevel()) {
+                throw new RuntimeException(
+                    "API database does not recognize the field "
+                        + encodedField.getReference().toSourceString());
+              }
+              if (finalApi < computedApiLevel.asKnownApiLevel().getApiLevel().getLevel()) {
+                builder.annotateField(
+                    encodedField.getReference(), FieldAnnotation.createMissingInMinApi(finalApi));
+              }
+            } else {
+              assert fieldResolutionResult.isFailedResolution();
               builder.annotateField(
                   encodedField.getReference(), FieldAnnotation.createMissingInMinApi(finalApi));
             }
@@ -201,14 +219,13 @@ public class SupportedClassesGenerator {
     }
   }
 
-  private void annotateParallelMethods(SupportedClasses.Builder builder) {
+  private void annotateParallelMethods() {
     for (DexMethod parallelMethod : getParallelMethods()) {
       builder.annotateMethodIfPresent(parallelMethod, MethodAnnotation.getParallelStreamMethod());
     }
   }
 
-  private void annotateMethodsNotOnLatestAndroidJar(
-      DirectMappedDexApplication appForMax, SupportedClasses.Builder builder) {
+  private void annotateMethodsNotOnLatestAndroidJar() {
     builder.forEachClassAndMethod(
         (clazz, method) -> {
           DexClass dexClass = appForMax.definitionFor(clazz.type);
@@ -220,19 +237,8 @@ public class SupportedClassesGenerator {
         });
   }
 
-  static Path getAndroidJarPath(AndroidApiLevel apiLevel) {
-    String jar =
-        apiLevel == AndroidApiLevel.MASTER
-            ? "third_party/android_jar/lib-master/android.jar"
-            : String.format(ANDROID_JAR_PATTERN, apiLevel.getLevel());
-    return Paths.get(jar);
-  }
-
   private void collectSupportedMembersInB(
-      Collection<Path> desugaredLibraryImplementation,
-      Path specification,
-      SupportedClasses.Builder builder)
-      throws IOException {
+      Collection<Path> desugaredLibraryImplementation, Path specification) throws IOException {
 
     MachineDesugaredLibrarySpecification machineSpecification =
         getMachineSpecification(AndroidApiLevel.B, specification);
@@ -246,19 +252,8 @@ public class SupportedClassesGenerator {
     DirectMappedDexApplication implementationApplication =
         new ApplicationReader(implementation, options, Timing.empty()).read().toDirect();
 
-    AndroidApp library = AndroidApp.builder().addLibraryFiles(androidJar).build();
-    DirectMappedDexApplication amendedAppForMax =
-        new ApplicationReader(library, options, Timing.empty()).read().toDirect();
-
     List<DexMethod> backports =
-        BackportedMethodRewriter.generateListOfBackportedMethods(amendedAppForMax, options);
-
-    DesugaredLibraryAmender.run(
-        machineSpecification.getAmendLibraryMethods(),
-        machineSpecification.getAmendLibraryFields(),
-        amendedAppForMax,
-        options.reporter,
-        ComputedApiLevel.unknown());
+        BackportedMethodRewriter.generateListOfBackportedMethods(appForMax, options);
 
     for (DexProgramClass clazz : implementationApplication.classes()) {
       // All emulated interfaces static and default methods are supported.
@@ -283,20 +278,20 @@ public class SupportedClassesGenerator {
           }
           builder.addSupportedMethod(clazz, method);
         }
-        addBackports(clazz, backports, builder, amendedAppForMax);
+        addBackports(clazz, backports);
         builder.annotateClass(clazz.type, ClassAnnotation.getAdditionnalMembersOnClass());
       } else {
         // All methods in maintained or rewritten classes are supported.
         if ((clazz.accessFlags.isPublic() || clazz.accessFlags.isProtected())
             && machineSpecification.isContextTypeMaintainedOrRewritten(clazz.type)
-            && amendedAppForMax.definitionFor(clazz.type) != null) {
+            && appForMax.definitionFor(clazz.type) != null) {
           for (DexEncodedMethod method : clazz.methods()) {
             if (!method.isPublic() && !method.isProtectedMethod()) {
               continue;
             }
             builder.addSupportedMethod(clazz, method);
           }
-          addBackports(clazz, backports, builder, amendedAppForMax);
+          addBackports(clazz, backports);
           for (DexEncodedField field : clazz.fields()) {
             if (!field.isPublic() && !field.isProtected()) {
               continue;
@@ -319,7 +314,7 @@ public class SupportedClassesGenerator {
               return;
             }
           }
-          dexClass = amendedAppForMax.definitionFor(method.getHolderType());
+          dexClass = appForMax.definitionFor(method.getHolderType());
           DexEncodedMethod dexEncodedMethod = dexClass.lookupMethod(method);
           assert dexEncodedMethod != null;
           builder.addSupportedMethod(dexClass, dexEncodedMethod);
@@ -340,7 +335,7 @@ public class SupportedClassesGenerator {
                   return;
                 }
               }
-              dexClass = amendedAppForMax.definitionFor(field.getHolderType());
+              dexClass = appForMax.definitionFor(field.getHolderType());
               DexEncodedField dexEncodedField = dexClass.lookupField(field);
               assert dexEncodedField != null;
               builder.addSupportedField(dexClass, dexEncodedField);
@@ -348,14 +343,10 @@ public class SupportedClassesGenerator {
             });
   }
 
-  private void addBackports(
-      DexProgramClass clazz,
-      List<DexMethod> backports,
-      SupportedClasses.Builder builder,
-      DirectMappedDexApplication amendedAppForMax) {
+  private void addBackports(DexProgramClass clazz, List<DexMethod> backports) {
     for (DexMethod backport : backports) {
       if (clazz.type == backport.getHolderType()) {
-        DexClass maxClass = amendedAppForMax.definitionFor(clazz.type);
+        DexClass maxClass = appForMax.definitionFor(clazz.type);
         DexEncodedMethod dexEncodedMethod = maxClass.lookupMethod(backport);
         // Some backports are not in amendedAppForMax, such as Stream#ofNullable and recent ones
         // introduced in U.
@@ -400,28 +391,19 @@ public class SupportedClassesGenerator {
             options.reporter,
             false,
             api.getLevel());
-    DexApplication app = getLoadingApp(androidJar, options);
-    return librarySpecification.toMachineSpecification(app, Timing.empty());
+    return librarySpecification.toMachineSpecification(appForMax, Timing.empty());
   }
 
-  private DexApplication getLoadingApp(Path androidJar, InternalOptions options)
-      throws IOException {
-    return loadingAppCache == null
-        ? loadingAppCache = createLoadingApp(androidJar, options)
-        : loadingAppCache;
-  }
-
-  private DexApplication createLoadingApp(Path androidJar, InternalOptions options)
-      throws IOException {
+  private DirectMappedDexApplication createAppForMax(Path androidJar) throws IOException {
     AndroidApp.Builder builder = AndroidApp.builder();
     AndroidApp inputApp = builder.addLibraryFiles(androidJar).build();
     ApplicationReader applicationReader = new ApplicationReader(inputApp, options, Timing.empty());
     ExecutorService executorService = ThreadUtils.getExecutorService(options);
     assert !options.ignoreJavaLibraryOverride;
     options.ignoreJavaLibraryOverride = true;
-    DexApplication loadingApp = applicationReader.read(executorService);
+    DexApplication appForMax = applicationReader.read(executorService);
     options.ignoreJavaLibraryOverride = false;
-    return loadingApp;
+    return appForMax.toDirect();
   }
 
   private Set<DexMethod> getParallelMethods() {

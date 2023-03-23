@@ -67,12 +67,22 @@ public class AndroidApiReferenceLevelCache {
   }
 
   public ComputedApiLevel lookup(DexReference reference, ComputedApiLevel unknownValue) {
+    return lookup(reference, unknownValue, false);
+  }
+
+  public ComputedApiLevel lookupIgnoringDesugaredLibrary(
+      DexReference reference, ComputedApiLevel unknownValue) {
+    return lookup(reference, unknownValue, true);
+  }
+
+  private ComputedApiLevel lookup(
+      DexReference reference, ComputedApiLevel unknownValue, boolean ignoringDesugaredLibrary) {
     DexType contextType = reference.getContextType();
     if (contextType.isArrayType()) {
       if (reference.isDexMethod() && reference.asDexMethod().match(factory.objectMembers.clone)) {
         return appView.computedMinApiLevel();
       }
-      return lookup(contextType.toBaseType(factory), unknownValue);
+      return lookup(contextType.toBaseType(factory), unknownValue, ignoringDesugaredLibrary);
     }
     if (contextType.isPrimitiveType() || contextType.isVoidType()) {
       return appView.computedMinApiLevel();
@@ -87,10 +97,11 @@ public class AndroidApiReferenceLevelCache {
     if (reference.getContextType() == factory.objectType) {
       return appView.computedMinApiLevel();
     }
-    if (appView
-        .options()
-        .machineDesugaredLibrarySpecification
-        .isContextTypeMaintainedOrRewritten(reference)) {
+    if (!ignoringDesugaredLibrary
+        && appView
+            .options()
+            .machineDesugaredLibrarySpecification
+            .isContextTypeMaintainedOrRewritten(reference)) {
       // If we end up desugaring the reference, the library classes is bridged by j$ which is part
       // of the program.
       return appView.computedMinApiLevel();

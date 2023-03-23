@@ -216,10 +216,6 @@ public class PartialDesugaringTest extends DesugaredLibraryTestBase {
     if (librarySpecification == JDK8 && api.isGreaterThanOrEqualTo(AndroidApiLevel.O)) {
       expectedFailures.addAll(FAILURES_ERA);
     }
-    if (jdk11NonMinimal && api.isGreaterThanOrEqualTo(AndroidApiLevel.T)) {
-      // The method is present, but not in android.jar...
-      expectedFailures.addAll(FAILURES_ERA);
-    }
     return expectedFailures;
   }
 }
