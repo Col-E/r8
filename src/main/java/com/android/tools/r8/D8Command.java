@@ -12,6 +12,7 @@ import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.inspector.Inspector;
 import com.android.tools.r8.inspector.internal.InspectorImpl;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibrarySpecification;
+import com.android.tools.r8.naming.ProguardMapStringConsumer;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.profile.art.ArtProfileForRewriting;
 import com.android.tools.r8.shaking.ProguardConfigurationParser;
@@ -665,7 +666,13 @@ public final class D8Command extends BaseCompilerCommand {
     internal.setSyntheticInfoConsumer(syntheticInfoConsumer);
     internal.desugarGraphConsumer = desugarGraphConsumer;
     internal.mainDexKeepRules = mainDexKeepRules;
-    internal.proguardMapConsumer = proguardMapConsumer;
+    internal.proguardMapConsumer =
+        proguardMapConsumer == null
+            ? null
+            : ProguardMapStringConsumer.builder()
+                .setStringConsumer(proguardMapConsumer)
+                .setDiagnosticsHandler(getReporter())
+                .build();
     internal.lineNumberOptimization =
         !internal.debug && proguardMapConsumer != null
             ? LineNumberOptimization.ON

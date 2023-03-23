@@ -18,6 +18,7 @@ import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibrarySpecific
 import com.android.tools.r8.keepanno.asm.KeepEdgeReader;
 import com.android.tools.r8.keepanno.ast.KeepEdge;
 import com.android.tools.r8.keepanno.keeprules.KeepRuleExtractor;
+import com.android.tools.r8.naming.ProguardMapStringConsumer;
 import com.android.tools.r8.naming.SourceFileRewriter;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.origin.PathOrigin;
@@ -1065,11 +1066,18 @@ public final class R8Command extends BaseCompilerCommand {
     }
 
     // Amend the proguard-map consumer with options from the proguard configuration.
-    internal.proguardMapConsumer =
+    StringConsumer stringConsumer =
         wrapStringConsumer(
             proguardMapConsumer,
             proguardConfiguration.isPrintMapping(),
             proguardConfiguration.getPrintMappingFile());
+    internal.proguardMapConsumer =
+        stringConsumer == null
+            ? null
+            : ProguardMapStringConsumer.builder()
+                .setStringConsumer(stringConsumer)
+                .setDiagnosticsHandler(getReporter())
+                .build();
 
     // Amend the usage information consumer with options from the proguard configuration.
     internal.usageInformationConsumer =

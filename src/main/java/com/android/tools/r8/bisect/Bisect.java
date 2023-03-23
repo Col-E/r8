@@ -5,7 +5,7 @@ package com.android.tools.r8.bisect;
 
 import com.android.tools.r8.OutputMode;
 import com.android.tools.r8.ProgramConsumer;
-import com.android.tools.r8.StringConsumer;
+import com.android.tools.r8.ProguardMapConsumer;
 import com.android.tools.r8.bisect.BisectOptions.Result;
 import com.android.tools.r8.dex.ApplicationReader;
 import com.android.tools.r8.dex.ApplicationWriter;
@@ -182,9 +182,9 @@ public class Bisect {
   private static void writeApp(DexApplication app, Path output, ExecutorService executor)
       throws IOException, ExecutionException {
     InternalOptions options = app.options;
-    // Save the original consumers so they can be unwrapped after write.
+    // Save the original consumers, so they can be unwrapped after write.
     ProgramConsumer programConsumer = options.programConsumer;
-    StringConsumer proguardMapConsumer = options.proguardMapConsumer;
+    ProguardMapConsumer proguardMapConsumer = options.proguardMapConsumer;
     AndroidAppConsumers compatSink = new AndroidAppConsumers(options);
     ApplicationWriter writer =
         ApplicationWriter.create(

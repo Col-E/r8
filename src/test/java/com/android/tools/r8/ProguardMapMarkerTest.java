@@ -25,6 +25,7 @@ import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
 public class ProguardMapMarkerTest extends TestBase {
+
   private static final int EXPECTED_NUMBER_OF_KEYS_DEX = 6;
   private static final int EXPECTED_NUMBER_OF_KEYS_CF = 5;
   private static final String CLASS_FILE =
@@ -85,11 +86,10 @@ public class ProguardMapMarkerTest extends TestBase {
             .setMinApiLevel(minApiLevel.getLevel())
             .setProguardMapConsumer(
                 ToolHelper.consumeString(
-                    proguardMap -> {
-                      proguardMapIds.fromMap =
-                          verifyMarkersGetPgMapId(
-                              proguardMap, minApiLevel.getLevel(), EXPECTED_NUMBER_OF_KEYS_DEX);
-                    }))
+                    proguardMap ->
+                        proguardMapIds.fromMap =
+                            verifyMarkersGetPgMapId(
+                                proguardMap, minApiLevel.getLevel(), EXPECTED_NUMBER_OF_KEYS_DEX)))
             .build());
     verifyProguardMapIds(proguardMapIds);
   }
@@ -154,21 +154,28 @@ public class ProguardMapMarkerTest extends TestBase {
       }
       String key = comment.substring(0, colonIndex).trim();
       String value = comment.substring(colonIndex + 1).trim();
-      if (key.equals(ProguardMapSupplier.MARKER_KEY_COMPILER)) {
-        assertEquals("R8", value);
-      } else if (key.equals(ProguardMapSupplier.MARKER_KEY_COMPILER_VERSION)) {
-        assertEquals(Version.LABEL, value);
-      } else if (key.equals(ProguardMapSupplier.MARKER_KEY_MIN_API)) {
-        assertNotNull(minApiLevel);
-        assertEquals(minApiLevel.intValue(), Integer.parseInt(value));
-      } else if (key.equals(ProguardMapSupplier.MARKER_KEY_COMPILER_HASH)) {
-        assertEquals(VersionProperties.INSTANCE.getSha(), value);
-      } else if (key.equals(ProguardMapSupplier.MARKER_KEY_PG_MAP_ID)) {
-        proguardMapId = value;
-      } else if (key.equals(ProguardMapSupplier.MARKER_KEY_PG_MAP_HASH)) {
-        proguardMapHash = value;
-      } else {
-        continue;
+      switch (key) {
+        case "compiler":
+          assertEquals("R8", value);
+          break;
+        case "compiler_version":
+          assertEquals(Version.LABEL, value);
+          break;
+        case "min_api":
+          assertNotNull(minApiLevel);
+          assertEquals(minApiLevel.intValue(), Integer.parseInt(value));
+          break;
+        case "compiler_hash":
+          assertEquals(VersionProperties.INSTANCE.getSha(), value);
+          break;
+        case "pg_map_id":
+          proguardMapId = value;
+          break;
+        case "pg_map_hash":
+          proguardMapHash = value;
+          break;
+        default:
+          continue;
       }
       assertFalse(keysFound.contains(key));
       keysFound.add(key);

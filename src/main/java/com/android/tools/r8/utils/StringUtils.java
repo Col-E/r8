@@ -248,7 +248,11 @@ public class StringUtils {
   }
 
   public static String unixLines(String... lines) {
-    return lines(Arrays.asList(lines), "\n");
+    return unixLines(Arrays.asList(lines));
+  }
+
+  public static String unixLines(List<String> lines) {
+    return lines(lines, "\n");
   }
 
   public static String withNativeLineSeparator(String s) {

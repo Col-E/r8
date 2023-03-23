@@ -11,7 +11,6 @@ import com.android.tools.r8.DiagnosticsHandler;
 import com.android.tools.r8.naming.MapVersion;
 import com.android.tools.r8.references.ClassReference;
 import com.android.tools.r8.retrace.MappingPartitionMetadata;
-import com.android.tools.r8.retrace.RetracePartitionException;
 import com.android.tools.r8.retrace.internal.MetadataPartitionCollection.LazyMetadataPartitionCollection;
 import com.android.tools.r8.utils.ExceptionDiagnostic;
 import com.google.common.primitives.Ints;

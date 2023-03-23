@@ -14,8 +14,11 @@ import com.android.tools.r8.DexIndexedConsumer;
 import com.android.tools.r8.DexIndexedConsumer.ForwardingConsumer;
 import com.android.tools.r8.DiagnosticsHandler;
 import com.android.tools.r8.ProgramConsumer;
+import com.android.tools.r8.ProguardMapConsumer;
 import com.android.tools.r8.ResourceException;
 import com.android.tools.r8.StringConsumer;
+import com.android.tools.r8.naming.MultiProguardMapConsumer;
+import com.android.tools.r8.naming.ProguardMapStringConsumer;
 import com.android.tools.r8.origin.Origin;
 import com.google.common.io.ByteStreams;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceAVLTreeMap;
@@ -33,7 +36,7 @@ public class AndroidAppConsumers {
   private boolean closed = false;
 
   private ProgramConsumer programConsumer = null;
-  private StringConsumer proguardMapConsumer = null;
+  private ProguardMapConsumer proguardMapConsumer = null;
 
   public AndroidAppConsumers() {
     // Nothing to do.
@@ -45,7 +48,8 @@ public class AndroidAppConsumers {
 
   public AndroidAppConsumers(InternalOptions options) {
     options.programConsumer = wrapProgramConsumer(options.programConsumer);
-    options.proguardMapConsumer = wrapProguardMapConsumer(options.proguardMapConsumer);
+    options.proguardMapConsumer =
+        wrapProguardMapConsumer(options.proguardMapConsumer, options.reporter);
   }
 
   public ProgramConsumer wrapProgramConsumer(ProgramConsumer consumer) {
@@ -65,30 +69,37 @@ public class AndroidAppConsumers {
     return programConsumer;
   }
 
-  public StringConsumer wrapProguardMapConsumer(StringConsumer consumer) {
+  public ProguardMapConsumer wrapProguardMapConsumer(
+      ProguardMapConsumer consumer, DiagnosticsHandler diagnosticsHandler) {
     assert proguardMapConsumer == null;
     if (consumer != null) {
       proguardMapConsumer =
-          new StringConsumer.ForwardingConsumer(consumer) {
-            StringBuilder stringBuilder = null;
+          MultiProguardMapConsumer.builder()
+              .addProguardMapConsumer(consumer)
+              .addProguardMapConsumer(
+                  ProguardMapStringConsumer.builder()
+                      .setStringConsumer(
+                          new StringConsumer() {
+                            StringBuilder stringBuilder = null;
 
-            @Override
-            public void accept(String string, DiagnosticsHandler handler) {
-              super.accept(string, handler);
-              if (stringBuilder == null) {
-                stringBuilder = new StringBuilder();
-              }
-              stringBuilder.append(string);
-            }
+                            @Override
+                            public void accept(String string, DiagnosticsHandler handler) {
+                              if (stringBuilder == null) {
+                                stringBuilder = new StringBuilder();
+                              }
+                              stringBuilder.append(string);
+                            }
 
-            @Override
-            public void finished(DiagnosticsHandler handler) {
-              super.finished(handler);
-              if (stringBuilder != null) {
-                builder.setProguardMapOutputData(stringBuilder.toString());
-              }
-            }
-          };
+                            @Override
+                            public void finished(DiagnosticsHandler handler) {
+                              if (stringBuilder != null) {
+                                builder.setProguardMapOutputData(stringBuilder.toString());
+                              }
+                            }
+                          })
+                      .setDiagnosticsHandler(diagnosticsHandler)
+                      .build())
+              .build();
     }
     return proguardMapConsumer;
   }

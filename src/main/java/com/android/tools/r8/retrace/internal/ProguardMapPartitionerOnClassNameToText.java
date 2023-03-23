@@ -18,7 +18,6 @@ import com.android.tools.r8.retrace.MappingPartitionMetadata;
 import com.android.tools.r8.retrace.ProguardMapPartitioner;
 import com.android.tools.r8.retrace.ProguardMapPartitionerBuilder;
 import com.android.tools.r8.retrace.ProguardMapProducer;
-import com.android.tools.r8.retrace.RetracePartitionException;
 import com.android.tools.r8.retrace.internal.MappingPartitionMetadataInternal.ObfuscatedTypeNameAsKeyMetadata;
 import com.android.tools.r8.retrace.internal.MappingPartitionMetadataInternal.ObfuscatedTypeNameAsKeyMetadataWithPartitionNames;
 import com.android.tools.r8.retrace.internal.ProguardMapReaderWithFiltering.ProguardMapReaderWithFilteringInputBuffer;

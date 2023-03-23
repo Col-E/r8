@@ -18,6 +18,7 @@ import com.android.tools.r8.AssertionsConfiguration.AssertionTransformationScope
 import com.android.tools.r8.StringConsumer.FileConsumer;
 import com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification;
 import com.android.tools.r8.dex.Marker.Tool;
+import com.android.tools.r8.naming.ProguardMapStringConsumer;
 import com.android.tools.r8.origin.EmbeddedOrigin;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.references.Reference;
@@ -186,8 +187,10 @@ public class L8CommandTest extends CommandTestBase<L8Command> {
     assertNotNull(parsedCommand.getR8Command());
     InternalOptions internalOptions = parsedCommand.getR8Command().getInternalOptions();
     assertNotNull(internalOptions);
-    assertTrue(internalOptions.proguardMapConsumer instanceof StringConsumer.FileConsumer);
-    FileConsumer proguardMapConsumer = (FileConsumer) internalOptions.proguardMapConsumer;
+    assertTrue(internalOptions.proguardMapConsumer instanceof ProguardMapStringConsumer);
+    ProguardMapStringConsumer mapStringConsumer =
+        (ProguardMapStringConsumer) internalOptions.proguardMapConsumer;
+    FileConsumer proguardMapConsumer = (FileConsumer) mapStringConsumer.getStringConsumer();
     assertEquals(pgMap, proguardMapConsumer.getOutputPath());
   }
 

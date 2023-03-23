@@ -15,7 +15,7 @@ import java.nio.file.Path;
 
 /** Interface for receiving String resource. */
 @KeepForSubclassing
-public interface StringConsumer {
+public interface StringConsumer extends Finishable {
 
   /**
    * Callback to receive part of a string resource.
@@ -31,17 +31,6 @@ public interface StringConsumer {
    * @param handler Diagnostics handler for reporting.
    */
   void accept(String string, DiagnosticsHandler handler);
-
-  /**
-   * Callback when no further content will be provided for the string resource.
-   *
-   * <p>The consumer is expected not to throw, but instead report any errors via the diagnostics
-   * {@param handler}. If an error is reported via {@param handler} and no exceptions are thrown,
-   * then the compiler guaranties to exit with an error.
-   *
-   * @param handler Diagnostics handler for reporting.
-   */
-  default void finished(DiagnosticsHandler handler) {}
 
   static EmptyConsumer emptyConsumer() {
     return EmptyConsumer.EMPTY_CONSUMER;

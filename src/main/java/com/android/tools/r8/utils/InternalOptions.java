@@ -16,6 +16,7 @@ import com.android.tools.r8.FeatureSplit;
 import com.android.tools.r8.GlobalSyntheticsConsumer;
 import com.android.tools.r8.MapIdProvider;
 import com.android.tools.r8.ProgramConsumer;
+import com.android.tools.r8.ProguardMapConsumer;
 import com.android.tools.r8.SourceFileProvider;
 import com.android.tools.r8.StringConsumer;
 import com.android.tools.r8.SyntheticInfoConsumer;
@@ -1025,7 +1026,7 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
 
   // If null, no proguard map needs to be computed.
   // If non null it must be and passed to the consumer.
-  public StringConsumer proguardMapConsumer = null;
+  public ProguardMapConsumer proguardMapConsumer = null;
 
   // If null, no usage information needs to be computed.
   // If non-null, it must be and is passed to the consumer.
