@@ -17,6 +17,7 @@ import com.google.common.primitives.Ints;
 import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.util.Collection;
 
 public interface MappingPartitionMetadataInternal extends MappingPartitionMetadata {
 
@@ -24,12 +25,11 @@ public interface MappingPartitionMetadataInternal extends MappingPartitionMetada
 
   MapVersion getMapVersion();
 
-  default boolean isObfuscatedTypeNameAsKeyMetadataWithPartitionNames() {
+  default boolean canGetPartitionKeys() {
     return false;
   }
 
-  default ObfuscatedTypeNameAsKeyMetadataWithPartitionNames
-      asObfuscatedTypeNameAsKeyMetadataWithPartitionNames() {
+  default Collection<String> getPartitionKeys() {
     return null;
   }
 
@@ -150,14 +150,13 @@ public interface MappingPartitionMetadataInternal extends MappingPartitionMetada
     }
 
     @Override
-    public boolean isObfuscatedTypeNameAsKeyMetadataWithPartitionNames() {
+    public boolean canGetPartitionKeys() {
       return true;
     }
 
     @Override
-    public ObfuscatedTypeNameAsKeyMetadataWithPartitionNames
-        asObfuscatedTypeNameAsKeyMetadataWithPartitionNames() {
-      return this;
+    public Collection<String> getPartitionKeys() {
+      return metadataPartitionCollection.getPartitionKeys();
     }
 
     // The format is:
@@ -188,10 +187,6 @@ public interface MappingPartitionMetadataInternal extends MappingPartitionMetada
       return ObfuscatedTypeNameAsKeyMetadataWithPartitionNames.create(
           mapVersion,
           new LazyMetadataPartitionCollection(bytes, partitionCollectionStartIndex, bytes.length));
-    }
-
-    public MetadataPartitionCollection getMetadataPartitionCollection() {
-      return metadataPartitionCollection;
     }
   }
 }

@@ -132,11 +132,16 @@ public class ProguardMapPartitionerOnClassNameToText implements ProguardMapParti
             (classNameMapper, classNamingForNameMapper, payload) -> {
               Set<String> seenMappings = new HashSet<>();
               StringBuilder payloadWithClassReferences = new StringBuilder();
+              Map<String, String> lookupMap =
+                  classNameMapper.getObfuscatedToOriginalMapping().inverse;
               classNamingForNameMapper.visitAllFullyQualifiedReferences(
                   holder -> {
                     if (seenMappings.add(holder)) {
                       payloadWithClassReferences.append(
-                          getSourceFileMapping(holder, classNameMapper.getSourceFile(holder)));
+                          getSourceFileMapping(
+                              holder,
+                              lookupMap.get(holder),
+                              classNameMapper.getSourceFile(holder)));
                     }
                   });
               payloadWithClassReferences.append(payload);
@@ -165,13 +170,14 @@ public class ProguardMapPartitionerOnClassNameToText implements ProguardMapParti
     }
   }
 
-  private String getSourceFileMapping(String className, String sourceFile) {
+  private String getSourceFileMapping(
+      String className, String obfuscatedClassName, String sourceFile) {
     if (sourceFile == null) {
       return "";
     }
     return className
         + " -> "
-        + className
+        + (obfuscatedClassName == null ? className : obfuscatedClassName)
         + ":"
         + "\n  # "
         + FileNameInformation.build(sourceFile).serialize()

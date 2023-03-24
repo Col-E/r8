@@ -19,7 +19,6 @@ import com.android.tools.r8.retrace.MappingPartitionMetadata;
 import com.android.tools.r8.retrace.ProguardMapProducer;
 import com.android.tools.r8.retrace.internal.MappingPartitionKeyStrategy;
 import com.android.tools.r8.retrace.internal.MappingPartitionMetadataInternal;
-import com.android.tools.r8.retrace.internal.MappingPartitionMetadataInternal.ObfuscatedTypeNameAsKeyMetadataWithPartitionNames;
 import com.android.tools.r8.retrace.internal.ProguardMapPartitionerOnClassNameToText.ProguardMapPartitionerBuilderImplInternal;
 import com.android.tools.r8.utils.StringUtils;
 import java.util.ArrayList;
@@ -84,11 +83,7 @@ public class RetracePartitionMetadataPartitionNamesTest extends TestBase {
     MappingPartitionMetadataInternal mappingPartitionMetadata =
         MappingPartitionMetadataInternal.deserialize(
             bytes, MapVersion.MAP_VERSION_NONE, diagnosticsHandler);
-    assertTrue(mappingPartitionMetadata.isObfuscatedTypeNameAsKeyMetadataWithPartitionNames());
-    ObfuscatedTypeNameAsKeyMetadataWithPartitionNames obfuscatedTypeNameMetadata =
-        mappingPartitionMetadata.asObfuscatedTypeNameAsKeyMetadataWithPartitionNames();
-    assertEquals(
-        expectedPartitionKeys,
-        obfuscatedTypeNameMetadata.getMetadataPartitionCollection().getPartitionKeys());
+    assertTrue(mappingPartitionMetadata.canGetPartitionKeys());
+    assertEquals(expectedPartitionKeys, mappingPartitionMetadata.getPartitionKeys());
   }
 }
