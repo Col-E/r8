@@ -53,7 +53,7 @@ public class OptimizationFeedbackSimple extends OptimizationFeedback {
 
   @Override
   public void markFieldHasDynamicType(DexEncodedField field, DynamicType dynamicType) {
-    // Ignored.
+    field.getMutableOptimizationInfo().setDynamicType(dynamicType);
   }
 
   @Override

@@ -10,6 +10,7 @@ import static com.android.tools.r8.kotlin.KotlinMetadataUtils.getNoKotlinInfo;
 import com.android.tools.r8.androidapi.ComputedApiLevel;
 import com.android.tools.r8.dex.MixedSectionCollection;
 import com.android.tools.r8.graph.GenericSignature.FieldTypeSignature;
+import com.android.tools.r8.ir.analysis.type.DynamicType;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.analysis.value.AbstractValue;
 import com.android.tools.r8.ir.analysis.value.SingleValue;
@@ -447,6 +448,13 @@ public class DexEncodedField extends DexEncodedMember<DexEncodedField, DexField>
           fixedUpField ->
               OptimizationFeedbackSimple.getInstance()
                   .recordFieldHasAbstractValue(fixedUpField, appView, abstractValue));
+    }
+
+    public Builder clearDynamicType() {
+      return addBuildConsumer(
+          fixedUpField ->
+              OptimizationFeedbackSimple.getInstance()
+                  .markFieldHasDynamicType(fixedUpField, DynamicType.unknown()));
     }
 
     public Builder clearAnnotations() {

@@ -10,6 +10,7 @@ import com.android.tools.r8.contexts.CompilationContext.ProcessorContext;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedField;
+import com.android.tools.r8.graph.DexEncodedField.Builder;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItemFactory;
@@ -623,12 +624,7 @@ class EnumUnboxingTreeFixer {
     DexField newField = field.withType(newType, factory);
     lensBuilder.move(field, newField);
     DexEncodedField newEncodedField =
-        encodedField.toTypeSubstitutedField(
-            appView,
-            newField,
-            builder ->
-                builder.setAbstractValue(
-                    encodedField.getOptimizationInfo().getAbstractValue(), appView));
+        encodedField.toTypeSubstitutedField(appView, newField, Builder::clearDynamicType);
     if (encodedField.isStatic() && encodedField.hasExplicitStaticValue()) {
       assert encodedField.getStaticValue() == DexValue.DexValueNull.NULL;
       newEncodedField.setStaticValue(DexValue.DexValueInt.DEFAULT);

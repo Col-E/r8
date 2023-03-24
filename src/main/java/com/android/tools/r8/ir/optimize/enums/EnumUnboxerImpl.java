@@ -762,8 +762,8 @@ public class EnumUnboxerImpl extends EnumUnboxer {
           @Override
           public void fixup(DexEncodedField field, MutableFieldOptimizationInfo optimizationInfo) {
             optimizationInfo
-                .fixupClassTypeReferences(appView, graphLens)
-                .fixupAbstractValue(appView, graphLens, codeLens);
+                .fixupAbstractValue(appView, graphLens, codeLens)
+                .fixupClassTypeReferences(appView, graphLens);
           }
 
           @Override

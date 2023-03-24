@@ -64,9 +64,10 @@ public class MutableFieldOptimizationInfo extends FieldOptimizationInfo
     this.abstractValue = abstractValue;
   }
 
-  public void fixupAbstractValue(
+  public MutableFieldOptimizationInfo fixupAbstractValue(
       AppView<AppInfoWithLiveness> appView, GraphLens lens, GraphLens codeLens) {
     setAbstractValue(abstractValue.rewrittenWithLens(appView, lens, codeLens));
+    return this;
   }
 
   @Override
