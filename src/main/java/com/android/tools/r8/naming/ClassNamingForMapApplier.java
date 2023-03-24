@@ -13,6 +13,7 @@ import com.android.tools.r8.naming.MemberNaming.Signature;
 import com.android.tools.r8.naming.MemberNaming.Signature.SignatureKind;
 import com.android.tools.r8.naming.mappinginformation.MappingInformation;
 import com.android.tools.r8.position.Position;
+import com.android.tools.r8.utils.CollectionUtils;
 import com.android.tools.r8.utils.Reporter;
 import com.android.tools.r8.utils.ThrowingConsumer;
 import com.google.common.base.Objects;
@@ -165,9 +166,25 @@ public class ClassNamingForMapApplier implements ClassNaming {
   }
 
   @Override
+  public <T extends Throwable> void forAllFieldNamingSorted(
+      ThrowingConsumer<MemberNaming, T> consumer) throws T {
+    for (MemberNaming naming : CollectionUtils.sort(fieldMembers.values())) {
+      consumer.accept(naming);
+    }
+  }
+
+  @Override
   public <T extends Throwable> void forAllMethodNaming(
       ThrowingConsumer<MemberNaming, T> consumer) throws T {
     for (MemberNaming naming : methodMembers.values()) {
+      consumer.accept(naming);
+    }
+  }
+
+  @Override
+  public <T extends Throwable> void forAllMethodNamingSorted(
+      ThrowingConsumer<MemberNaming, T> consumer) throws T {
+    for (MemberNaming naming : CollectionUtils.sort(methodMembers.values())) {
       consumer.accept(naming);
     }
   }

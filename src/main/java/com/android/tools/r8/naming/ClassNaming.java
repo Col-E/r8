@@ -45,6 +45,12 @@ public interface ClassNaming {
   <T extends Throwable> void forAllFieldNaming(
       ThrowingConsumer<MemberNaming, T> consumer) throws T;
 
+  <T extends Throwable> void forAllFieldNamingSorted(ThrowingConsumer<MemberNaming, T> consumer)
+      throws T;
+
   <T extends Throwable> void forAllMethodNaming(
       ThrowingConsumer<MemberNaming, T> consumer) throws T;
+
+  <T extends Throwable> void forAllMethodNamingSorted(ThrowingConsumer<MemberNaming, T> consumer)
+      throws T;
 }

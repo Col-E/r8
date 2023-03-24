@@ -32,6 +32,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -42,7 +43,7 @@ import org.objectweb.asm.Type;
  *
  * <p>This includes the signature and the original name.
  */
-public class MemberNaming implements MappingWithResidualInfo {
+public class MemberNaming implements MappingWithResidualInfo, Comparable<MemberNaming> {
 
   private static final List<ReferentialMappingInformation> EMPTY_MAPPING_INFORMATION =
       Collections.emptyList();
@@ -170,6 +171,15 @@ public class MemberNaming implements MappingWithResidualInfo {
 
   public List<ReferentialMappingInformation> getAdditionalMappingInformation() {
     return additionalMappingInformation;
+  }
+
+  @Override
+  public int compareTo(MemberNaming other) {
+    return Comparator.comparing(MemberNaming::isFieldNaming)
+        .thenComparing(MemberNaming::getRenamedName)
+        .thenComparing(MemberNaming::getOriginalName)
+        .thenComparing(memberNaming -> getOriginalSignature().toString())
+        .compare(this, other);
   }
 
   public abstract static class Signature {
