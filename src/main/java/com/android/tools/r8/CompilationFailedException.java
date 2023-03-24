@@ -10,19 +10,15 @@ package com.android.tools.r8;
 @Keep
 public class CompilationFailedException extends Exception {
 
-  public CompilationFailedException() {
-    super("Compilation failed to complete");
-  }
+  private final boolean cancelled;
 
-  public CompilationFailedException(Throwable cause) {
-    this("Compilation failed to complete", cause);
-  }
-
-  public CompilationFailedException(String message, Throwable cause) {
+  CompilationFailedException(String message, Throwable cause, boolean cancelled) {
     super(message, cause);
+    this.cancelled = cancelled;
   }
 
-  public CompilationFailedException(String message) {
-    super(message);
+  /** True if the compilation was cancelled by {@link CancelCompilationChecker} otherwise false. */
+  public boolean wasCancelled() {
+    return cancelled;
   }
 }

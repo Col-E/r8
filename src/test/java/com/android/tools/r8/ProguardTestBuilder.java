@@ -114,14 +114,14 @@ public class ProguardTestBuilder
       ProcessBuilder pbuilder = new ProcessBuilder(command);
       ProcessResult result = ToolHelper.runProcess(pbuilder, getStdoutForTesting());
       if (result.exitCode != 0) {
-        throw new CompilationFailedException(result.toString());
+        throw InternalCompilationFailedExceptionUtils.createForTesting(result.toString());
       }
       String proguardMap =
           Files.exists(mapFile) ? FileUtils.readTextFile(mapFile, Charsets.UTF_8) : "";
       return new ProguardTestCompileResult(
           result, getState(), outJar, getMinApiLevel(), proguardMap);
     } catch (IOException e) {
-      throw new CompilationFailedException(e);
+      throw InternalCompilationFailedExceptionUtils.createForTesting(e);
     }
   }
 

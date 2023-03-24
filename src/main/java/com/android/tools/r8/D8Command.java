@@ -491,6 +491,7 @@ public final class D8Command extends BaseCompilerCommand {
           getArtProfilesForRewriting(),
           getStartupProfileProviders(),
           getClassConflictResolver(),
+          getCancelCompilationChecker(),
           factory);
     }
   }
@@ -586,6 +587,7 @@ public final class D8Command extends BaseCompilerCommand {
       List<ArtProfileForRewriting> artProfilesForRewriting,
       List<StartupProfileProvider> startupProfileProviders,
       ClassConflictResolver classConflictResolver,
+      CancelCompilationChecker cancelCompilationChecker,
       DexItemFactory factory) {
     super(
         inputApp,
@@ -607,7 +609,8 @@ public final class D8Command extends BaseCompilerCommand {
         isAndroidPlatformBuild,
         artProfilesForRewriting,
         startupProfileProviders,
-        classConflictResolver);
+        classConflictResolver,
+        cancelCompilationChecker);
     this.intermediate = intermediate;
     this.globalSyntheticsConsumer = globalSyntheticsConsumer;
     this.syntheticInfoConsumer = syntheticInfoConsumer;
@@ -748,6 +751,8 @@ public final class D8Command extends BaseCompilerCommand {
     internal.programClassConflictResolver =
         ProgramClassCollection.wrappedConflictResolver(
             getClassConflictResolver(), internal.reporter);
+
+    internal.cancelCompilationChecker = getCancelCompilationChecker();
 
     internal.tool = Tool.D8;
     internal.setDumpInputFlags(getDumpInputFlags());

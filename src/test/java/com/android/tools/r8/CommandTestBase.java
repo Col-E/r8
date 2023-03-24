@@ -96,7 +96,7 @@ public abstract class CommandTestBase<C extends BaseCompilerCommand> extends Tes
             try {
               command.getReporter().failIfPendingErrors();
             } catch (RuntimeException e) {
-              throw new CompilationFailedException();
+              throw InternalCompilationFailedExceptionUtils.createForTesting();
             }
           });
       fail("Failure expected");
@@ -144,7 +144,7 @@ public abstract class CommandTestBase<C extends BaseCompilerCommand> extends Tes
             try {
               command.getReporter().failIfPendingErrors();
             } catch (RuntimeException e) {
-              throw new CompilationFailedException();
+              throw InternalCompilationFailedExceptionUtils.createForTesting();
             }
           });
       fail("Failure expected");
@@ -190,7 +190,7 @@ public abstract class CommandTestBase<C extends BaseCompilerCommand> extends Tes
             try {
               command.getReporter().failIfPendingErrors();
             } catch (RuntimeException e) {
-              throw new CompilationFailedException();
+              throw InternalCompilationFailedExceptionUtils.createForTesting();
             }
           });
       fail("Expected failure");
@@ -209,7 +209,7 @@ public abstract class CommandTestBase<C extends BaseCompilerCommand> extends Tes
             try {
               command.getReporter().failIfPendingErrors();
             } catch (RuntimeException e) {
-              throw new CompilationFailedException();
+              throw InternalCompilationFailedExceptionUtils.createForTesting();
             }
           });
       fail("Expected failure");

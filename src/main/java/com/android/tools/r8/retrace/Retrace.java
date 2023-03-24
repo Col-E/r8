@@ -425,7 +425,10 @@ public class Retrace<T, ST extends StackTraceElementProxy<T, ST>> {
       run(mappedArgs, retraceDiagnosticsHandler);
     } catch (Throwable t) {
       throw failWithFakeEntry(
-          retraceDiagnosticsHandler, t, RetraceFailedException::new, RetraceAbortException.class);
+          retraceDiagnosticsHandler,
+          t,
+          (message, cause, ignore) -> new RetraceFailedException(message, cause),
+          RetraceAbortException.class);
     }
   }
 

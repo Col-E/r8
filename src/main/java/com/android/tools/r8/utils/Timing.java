@@ -62,11 +62,60 @@ public class Timing {
     return Timing.EMPTY;
   }
 
+  private static class TimingWithCancellation extends Timing {
+    private final InternalOptions options;
+    private final Timing timing;
+
+    TimingWithCancellation(InternalOptions options, Timing timing) {
+      super("<cancel>", false);
+      this.options = options;
+      this.timing = timing;
+    }
+
+    @Override
+    public TimingMerger beginMerger(String title, int numberOfThreads) {
+      return timing.beginMerger(title, numberOfThreads);
+    }
+
+    @Override
+    public void begin(String title) {
+      if (options.checkIfCancelled()) {
+        throw new CancelCompilationException();
+      }
+      timing.begin(title);
+    }
+
+    @Override
+    public <E extends Exception> void time(String title, ThrowingAction<E> action) throws E {
+      timing.time(title, action);
+    }
+
+    @Override
+    public <T, E extends Exception> T time(String title, ThrowingSupplier<T, E> supplier) throws E {
+      return timing.time(title, supplier);
+    }
+
+    @Override
+    public void end() {
+      timing.end();
+    }
+
+    @Override
+    public void report() {
+      timing.report();
+    }
+  }
+
   public static Timing create(String title, InternalOptions options) {
     // We also create a timer when running assertions to validate wellformedness of the node stack.
-    return options.printTimes || InternalOptions.assertionsEnabled()
-        ? new Timing(title, options.printMemory)
-        : Timing.empty();
+    Timing timing =
+        options.printTimes || InternalOptions.assertionsEnabled()
+            ? new Timing(title, options.printMemory)
+            : Timing.empty();
+    if (options.cancelCompilationChecker != null) {
+      return new TimingWithCancellation(options, timing);
+    }
+    return timing;
   }
 
   public static Timing create(String title, boolean printMemory) {

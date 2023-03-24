@@ -5,6 +5,7 @@ package com.android.tools.r8.utils;
 
 import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.DiagnosticsHandler;
+import com.android.tools.r8.InternalCompilationFailedExceptionUtils;
 import com.android.tools.r8.ResourceException;
 import com.android.tools.r8.StringConsumer;
 import com.android.tools.r8.Version;
@@ -19,7 +20,6 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
-import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
@@ -87,13 +87,16 @@ public abstract class ExceptionUtils {
   private static CompilationFailedException failCompilation(
       Reporter reporter, Throwable topMostException) {
     return failWithFakeEntry(
-        reporter, topMostException, CompilationFailedException::new, AbortException.class);
+        reporter,
+        topMostException,
+        InternalCompilationFailedExceptionUtils::create,
+        AbortException.class);
   }
 
   public static <T extends Exception, A extends Exception> T failWithFakeEntry(
       DiagnosticsHandler diagnosticsHandler,
       Throwable topMostException,
-      BiFunction<String, Throwable, T> newException,
+      TriFunction<String, Throwable, Boolean, T> newException,
       Class<A> abortException) {
     // Find inner-most cause of the failure and compute origin, position and reported for the path.
     boolean hasBeenReported = false;
@@ -122,8 +125,13 @@ public abstract class ExceptionUtils {
       innerMostCause.addSuppressed(topMostException);
     }
 
+    boolean cancelled =
+        topMostException instanceof CancelCompilationException
+            || innerMostCause instanceof CancelCompilationException;
+    assert !cancelled || topMostException == innerMostCause;
+
     // If no abort is seen, the exception is not reported, so report it now.
-    if (!hasBeenReported) {
+    if (!cancelled && !hasBeenReported) {
       diagnosticsHandler.error(new ExceptionDiagnostic(innerMostCause, origin, position));
     }
 
@@ -136,7 +144,7 @@ public abstract class ExceptionUtils {
       message.append(", origin: ").append(origin);
     }
     // Create the final exception object.
-    T rethrow = newException.apply(message.toString(), innerMostCause);
+    T rethrow = newException.apply(message.toString(), innerMostCause, cancelled);
     // Replace its stack by the cause stack and insert version info at the top.
     String filename = "Version_" + Version.LABEL + ".java";
     StackTraceElement versionElement =
@@ -244,6 +252,8 @@ public abstract class ExceptionUtils {
       Origin origin, Position position, Supplier<T> action) {
     try {
       return action.get();
+    } catch (CancelCompilationException e) {
+      throw e;
     } catch (RuntimeException e) {
       throw OriginAttachmentException.wrap(e, origin, position);
     }

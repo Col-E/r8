@@ -11,6 +11,7 @@ import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.compilerapi.androidplatformbuild.AndroidPlatformBuildApiTest;
 import com.android.tools.r8.compilerapi.artprofiles.ArtProfilesForRewritingApiTest;
 import com.android.tools.r8.compilerapi.assertionconfiguration.AssertionConfigurationTest;
+import com.android.tools.r8.compilerapi.cancelcompilationchecker.CancelCompilationCheckerTest;
 import com.android.tools.r8.compilerapi.classconflictresolver.ClassConflictResolverTest;
 import com.android.tools.r8.compilerapi.desugardependencies.DesugarDependenciesTest;
 import com.android.tools.r8.compilerapi.diagnostics.ProguardKeepRuleDiagnosticsApiTest;
@@ -62,7 +63,7 @@ public class CompilerApiTestCollection extends BinaryCompatibilityTestCollection
           ExtractMarkerApiTest.ApiTest.class);
 
   private static final List<Class<? extends CompilerApiTest>> CLASSES_PENDING_BINARY_COMPATIBILITY =
-      ImmutableList.of();
+      ImmutableList.of(CancelCompilationCheckerTest.ApiTest.class);
 
   private final TemporaryFolder temp;
 

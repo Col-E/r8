@@ -197,7 +197,7 @@ public class ExternalR8TestBuilder
       return new ExternalR8TestCompileResult(
           getState(), outputJar, processResult, proguardMap, getMinApiLevel(), getOutputMode());
     } catch (IOException e) {
-      throw new CompilationFailedException(e);
+      throw InternalCompilationFailedExceptionUtils.createForTesting(e);
     }
   }
 

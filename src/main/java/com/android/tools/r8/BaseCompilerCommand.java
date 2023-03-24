@@ -65,6 +65,7 @@ public abstract class BaseCompilerCommand extends BaseCommand {
   private final List<ArtProfileForRewriting> artProfilesForRewriting;
   private final List<StartupProfileProvider> startupProfileProviders;
   private final ClassConflictResolver classConflictResolver;
+  private final CancelCompilationChecker cancelCompilationChecker;
 
   BaseCompilerCommand(boolean printHelp, boolean printVersion) {
     super(printHelp, printVersion);
@@ -87,6 +88,7 @@ public abstract class BaseCompilerCommand extends BaseCommand {
     artProfilesForRewriting = null;
     startupProfileProviders = null;
     classConflictResolver = null;
+    cancelCompilationChecker = null;
   }
 
   BaseCompilerCommand(
@@ -109,7 +111,8 @@ public abstract class BaseCompilerCommand extends BaseCommand {
       boolean isAndroidPlatformBuild,
       List<ArtProfileForRewriting> artProfilesForRewriting,
       List<StartupProfileProvider> startupProfileProviders,
-      ClassConflictResolver classConflictResolver) {
+      ClassConflictResolver classConflictResolver,
+      CancelCompilationChecker cancelCompilationChecker) {
     super(app);
     assert minApiLevel > 0;
     assert mode != null;
@@ -132,6 +135,7 @@ public abstract class BaseCompilerCommand extends BaseCommand {
     this.artProfilesForRewriting = artProfilesForRewriting;
     this.startupProfileProviders = startupProfileProviders;
     this.classConflictResolver = classConflictResolver;
+    this.cancelCompilationChecker = cancelCompilationChecker;
   }
 
   /**
@@ -244,6 +248,10 @@ public abstract class BaseCompilerCommand extends BaseCommand {
     return classConflictResolver;
   }
 
+  public CancelCompilationChecker getCancelCompilationChecker() {
+    return cancelCompilationChecker;
+  }
+
   DumpInputFlags getDumpInputFlags() {
     return dumpInputFlags;
   }
@@ -287,6 +295,7 @@ public abstract class BaseCompilerCommand extends BaseCommand {
     private List<ArtProfileForRewriting> artProfilesForRewriting = new ArrayList<>();
     private List<StartupProfileProvider> startupProfileProviders = new ArrayList<>();
     private ClassConflictResolver classConflictResolver = null;
+    private CancelCompilationChecker cancelCompilationChecker = null;
 
     abstract CompilationMode defaultCompilationMode();
 
@@ -730,6 +739,21 @@ public abstract class BaseCompilerCommand extends BaseCommand {
 
     List<StartupProfileProvider> getStartupProfileProviders() {
       return startupProfileProviders;
+    }
+
+    /**
+     * Set a cancellation checker.
+     *
+     * <p>The cancellation checker will be periodically called to check if the compilation should be
+     * cancelled before completion.
+     */
+    public B setCancelCompilationChecker(CancelCompilationChecker checker) {
+      this.cancelCompilationChecker = checker;
+      return self();
+    }
+
+    public CancelCompilationChecker getCancelCompilationChecker() {
+      return cancelCompilationChecker;
     }
 
     /**

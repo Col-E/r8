@@ -102,6 +102,7 @@ public final class L8Command extends BaseCompilerCommand {
       DumpInputFlags dumpInputFlags,
       MapIdProvider mapIdProvider,
       ClassConflictResolver classConflictResolver,
+      CancelCompilationChecker cancelCompilationChecker,
       DexItemFactory factory) {
     super(
         inputApp,
@@ -123,7 +124,8 @@ public final class L8Command extends BaseCompilerCommand {
         false,
         null,
         null,
-        classConflictResolver);
+        classConflictResolver,
+        cancelCompilationChecker);
     this.d8Command = d8Command;
     this.r8Command = r8Command;
     this.desugaredLibrarySpecification = desugaredLibrarySpecification;
@@ -227,6 +229,8 @@ public final class L8Command extends BaseCompilerCommand {
     internal.programClassConflictResolver =
         ProgramClassCollection.wrappedConflictResolver(
             getClassConflictResolver(), internal.reporter);
+
+    internal.cancelCompilationChecker = getCancelCompilationChecker();
 
     if (!DETERMINISTIC_DEBUGGING) {
       assert internal.threadCount == ThreadUtils.NOT_SPECIFIED;
@@ -456,6 +460,7 @@ public final class L8Command extends BaseCompilerCommand {
           getDumpInputFlags(),
           getMapIdProvider(),
           getClassConflictResolver(),
+          getCancelCompilationChecker(),
           factory);
     }
   }

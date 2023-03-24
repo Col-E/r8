@@ -6,6 +6,7 @@ package com.android.tools.r8.utils;
 import static com.android.tools.r8.utils.AndroidApiLevel.B;
 import static com.android.tools.r8.utils.SystemPropertyUtils.parseSystemPropertyForDevelopmentOrDefault;
 
+import com.android.tools.r8.CancelCompilationChecker;
 import com.android.tools.r8.ClassFileConsumer;
 import com.android.tools.r8.CompilationMode;
 import com.android.tools.r8.DataResourceConsumer;
@@ -165,6 +166,27 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
 
   public DexItemFactory dexItemFactory() {
     return itemFactory;
+  }
+
+  // Internal state signifying that the compilation is cancelled.
+  // The state can only ever transition from false to true.
+  private final AtomicBoolean cancelled = new AtomicBoolean(false);
+  public CancelCompilationChecker cancelCompilationChecker = null;
+
+  public boolean checkIfCancelled() {
+    if (cancelCompilationChecker == null) {
+      assert !cancelled.get();
+      return false;
+    }
+    if (cancelled.get()) {
+      return true;
+    }
+    if (cancelCompilationChecker.cancel()) {
+      cancelled.set(true);
+      return true;
+    }
+    // Return the cancelled value in case another thread has cancelled.
+    return cancelled.get();
   }
 
   public boolean hasProguardConfiguration() {

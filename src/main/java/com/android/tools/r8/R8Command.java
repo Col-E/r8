@@ -659,7 +659,8 @@ public final class R8Command extends BaseCompilerCommand {
               getAndroidPlatformBuild(),
               getArtProfilesForRewriting(),
               getStartupProfileProviders(),
-              getClassConflictResolver());
+              getClassConflictResolver(),
+              getCancelCompilationChecker());
 
       if (inputDependencyGraphConsumer != null) {
         inputDependencyGraphConsumer.finished();
@@ -938,7 +939,8 @@ public final class R8Command extends BaseCompilerCommand {
       boolean isAndroidPlatformBuild,
       List<ArtProfileForRewriting> artProfilesForRewriting,
       List<StartupProfileProvider> startupProfileProviders,
-      ClassConflictResolver classConflictResolver) {
+      ClassConflictResolver classConflictResolver,
+      CancelCompilationChecker cancelCompilationChecker) {
     super(
         inputApp,
         mode,
@@ -959,7 +961,8 @@ public final class R8Command extends BaseCompilerCommand {
         isAndroidPlatformBuild,
         artProfilesForRewriting,
         startupProfileProviders,
-        classConflictResolver);
+        classConflictResolver,
+        cancelCompilationChecker);
     assert proguardConfiguration != null;
     assert mainDexKeepRules != null;
     this.mainDexKeepRules = mainDexKeepRules;
@@ -1175,6 +1178,8 @@ public final class R8Command extends BaseCompilerCommand {
     internal.programClassConflictResolver =
         ProgramClassCollection.wrappedConflictResolver(
             getClassConflictResolver(), internal.reporter);
+
+    internal.cancelCompilationChecker = getCancelCompilationChecker();
 
     if (!DETERMINISTIC_DEBUGGING) {
       assert internal.threadCount == ThreadUtils.NOT_SPECIFIED;
