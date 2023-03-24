@@ -5,7 +5,6 @@
 package com.android.tools.r8.tracereferences;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotEquals;
 
 import com.android.tools.r8.DiagnosticsChecker;
 import com.android.tools.r8.DiagnosticsHandler;
@@ -88,10 +87,8 @@ public class TraceReferenceNonReboundConstructorCallTest extends TestBase {
     ImmutableSet<MethodReference> expectedFoundMethods =
         ImmutableSet.of(MethodReferenceUtils.instanceConstructor(SuperClass.class));
     ImmutableSet<MethodReference> expectedMissingMethods = ImmutableSet.of();
-    // TODO(b/274904746): Should be equals.
-    assertNotEquals(expectedFoundMethods, consumer.foundMethods);
-    // TODO(b/274904746): Should be equals.
-    assertNotEquals(expectedMissingMethods, consumer.missingMethods);
+    assertEquals(expectedFoundMethods, consumer.foundMethods);
+    assertEquals(expectedMissingMethods, consumer.missingMethods);
   }
 
   private MissingReferencesConsumer runTest(Path sourceFile) throws Throwable {

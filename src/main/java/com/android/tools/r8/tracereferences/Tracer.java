@@ -278,19 +278,26 @@ public class Tracer {
         MethodLookupResult lookupResult = graphLens().lookupInvokeDirect(method, getContext());
         assert lookupResult.getType().isDirect();
         DexMethod rewrittenMethod = lookupResult.getReference();
-        BooleanBox seenMethod = new BooleanBox();
-        appView
-            .contextIndependentDefinitionForWithResolutionResult(rewrittenMethod.getHolderType())
-            .forEachClassResolutionResult(
-                holder -> {
-                  DexClassAndMethod target = rewrittenMethod.lookupMemberOnClass(holder);
-                  if (target != null) {
-                    handleRewrittenMethodReference(rewrittenMethod, target);
-                    seenMethod.set();
-                  }
-                });
-        if (seenMethod.isFalse()) {
-          handleRewrittenMethodReference(rewrittenMethod, (DexClassAndMethod) null);
+        if (getContext().getHolder().originatesFromDexResource()) {
+          handleRewrittenMethodResolution(
+              rewrittenMethod,
+              appInfo().unsafeResolveMethodDueToDexFormat(rewrittenMethod),
+              SingleResolutionResult::getResolutionPair);
+        } else {
+          BooleanBox seenMethod = new BooleanBox();
+          appView
+              .contextIndependentDefinitionForWithResolutionResult(rewrittenMethod.getHolderType())
+              .forEachClassResolutionResult(
+                  holder -> {
+                    DexClassAndMethod target = rewrittenMethod.lookupMemberOnClass(holder);
+                    if (target != null) {
+                      handleRewrittenMethodReference(rewrittenMethod, target);
+                      seenMethod.set();
+                    }
+                  });
+          if (seenMethod.isFalse()) {
+            handleRewrittenMethodReference(rewrittenMethod, (DexClassAndMethod) null);
+          }
         }
       }
 
