@@ -8,8 +8,7 @@ public enum MappingPartitionKeyStrategy {
   OBFUSCATED_TYPE_NAME_AS_KEY(0),
   OBFUSCATED_TYPE_NAME_AS_KEY_WITH_PARTITIONS(1);
 
-  private static final MappingPartitionKeyStrategy DEFAULT_STRATEGY =
-      OBFUSCATED_TYPE_NAME_AS_KEY_WITH_PARTITIONS;
+  private static final MappingPartitionKeyStrategy DEFAULT_STRATEGY = OBFUSCATED_TYPE_NAME_AS_KEY;
 
   private final int serializedKey;
 

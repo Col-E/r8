@@ -54,7 +54,7 @@ public class RetracePartitionMetadataPartitionNamesTest extends TestBase {
           "  void field -> a",
           "some.class2 -> " + obfuscatedClass2.getTypeName() + ":",
           "  void field -> a",
-          "some.class2 -> " + obfuscatedClass3.getTypeName() + ":",
+          "some.class3 -> " + obfuscatedClass3.getTypeName() + ":",
           "  void field -> a");
 
   @Test

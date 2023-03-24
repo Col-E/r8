@@ -13,8 +13,9 @@ import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.retrace.MappingPartitionMetadata;
 import com.android.tools.r8.retrace.PartitionedToProguardMappingConverter;
-import com.android.tools.r8.retrace.ProguardMapPartitioner;
 import com.android.tools.r8.retrace.ProguardMapProducer;
+import com.android.tools.r8.retrace.internal.MappingPartitionKeyStrategy;
+import com.android.tools.r8.retrace.internal.ProguardMapPartitionerOnClassNameToText.ProguardMapPartitionerBuilderImplInternal;
 import com.android.tools.r8.utils.StringUtils;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -47,7 +48,9 @@ public class RetracePartitionAndJoinIdentityTest extends TestBase {
     TestDiagnosticMessagesImpl diagnosticsHandler = new TestDiagnosticMessagesImpl();
     Map<String, byte[]> partitions = new HashMap<>();
     MappingPartitionMetadata metadataData =
-        ProguardMapPartitioner.builder(diagnosticsHandler)
+        new ProguardMapPartitionerBuilderImplInternal(diagnosticsHandler)
+            .setMappingPartitionKeyStrategy(
+                MappingPartitionKeyStrategy.OBFUSCATED_TYPE_NAME_AS_KEY_WITH_PARTITIONS)
             .setProguardMapProducer(proguardMapProducer)
             .setPartitionConsumer(
                 partition -> partitions.put(partition.getKey(), partition.getPayload()))
