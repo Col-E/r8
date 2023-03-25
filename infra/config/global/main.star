@@ -178,7 +178,7 @@ def get_dimensions(windows=False, internal=False, normal=False):
   if windows:
     dimensions["os"] = "Windows-10"
   else:
-    dimensions["os"] = "Ubuntu-18.04"
+    dimensions["os"] = "Ubuntu-22.04"
   if internal:
     dimensions["internal"] = "true"
   if normal:
