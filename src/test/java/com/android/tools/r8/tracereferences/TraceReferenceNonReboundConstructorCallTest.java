@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.tracereferences;
 
+import static com.android.tools.r8.utils.FileUtils.CLASS_EXTENSION;
 import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.DiagnosticsChecker;
@@ -99,9 +100,7 @@ public class TraceReferenceNonReboundConstructorCallTest extends TestBase {
                 ToolHelper.getClassPathForTests(),
                 ToolHelper.getClassFileForTestClass(SuperClass.class))
             .addBytes(
-                ToolHelper.getClassPathForTests()
-                    .relativize(ToolHelper.getClassFileForTestClass(SubClass.class))
-                    .toString(),
+                binaryName(SubClass.class) + CLASS_EXTENSION,
                 transformer(SubClass.class).removeMethodsWithName("<init>").transform())
             .build();
     DiagnosticsChecker diagnosticsChecker = new DiagnosticsChecker();
