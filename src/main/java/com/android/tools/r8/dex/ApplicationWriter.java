@@ -773,7 +773,8 @@ public class ApplicationWriter {
     if (enclosingMethod == null
         && innerClasses.isEmpty()
         && clazz.getClassSignature().hasNoSignature()
-        && !clazz.isInANest()) {
+        && !clazz.isInANest()
+        && !clazz.isRecord()) {
       return;
     }
 
@@ -853,6 +854,10 @@ public class ApplicationWriter {
               clazz.getPermittedSubclassAttributes(), options.itemFactory));
     }
 
+    if (clazz.isRecord() && options.canUseRecords()) {
+      annotations.add(DexAnnotation.createRecordAnnotation(clazz, appView));
+    }
+
     if (!annotations.isEmpty()) {
       // Append the annotations to annotations array of the class.
       DexAnnotation[] copy =
@@ -868,6 +873,7 @@ public class ApplicationWriter {
     clazz.clearInnerClasses();
     clazz.clearClassSignature();
     clazz.clearPermittedSubclasses();
+    clazz.clearRecordComponents();
   }
 
   private void insertAttributeAnnotationsForField(DexEncodedField field) {

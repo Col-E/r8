@@ -22,6 +22,7 @@ import com.android.tools.r8.graph.InnerClassAttribute;
 import com.android.tools.r8.graph.NestHostClassAttribute;
 import com.android.tools.r8.graph.NestMemberClassAttribute;
 import com.android.tools.r8.graph.PermittedSubclassAttribute;
+import com.android.tools.r8.graph.RecordComponentInfo;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.synthesis.SyntheticNaming.SyntheticKind;
 import java.util.ArrayList;
@@ -173,6 +174,7 @@ public abstract class SyntheticClassBuilder<
     NestHostClassAttribute nestHost = null;
     List<NestMemberClassAttribute> nestMembers = Collections.emptyList();
     List<PermittedSubclassAttribute> permittedSubclasses = Collections.emptyList();
+    List<RecordComponentInfo> recordComponents = Collections.emptyList();
     EnclosingMethodAttribute enclosingMembers = null;
     List<InnerClassAttribute> innerClasses = Collections.emptyList();
     for (SyntheticMethodBuilder builder : methods) {
@@ -201,6 +203,7 @@ public abstract class SyntheticClassBuilder<
                 nestHost,
                 nestMembers,
                 permittedSubclasses,
+                recordComponents,
                 enclosingMembers,
                 innerClasses,
                 signature,

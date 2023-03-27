@@ -250,6 +250,8 @@ public abstract class ClassSubject extends ClassOrMemberSubject {
 
   public abstract List<TypeSubject> getFinalPermittedSubclassAttributes();
 
+  public abstract List<RecordComponentSubject> getFinalRecordComponents();
+
   public abstract KmClassSubject getKmClass();
 
   public abstract KmPackageSubject getKmPackage();

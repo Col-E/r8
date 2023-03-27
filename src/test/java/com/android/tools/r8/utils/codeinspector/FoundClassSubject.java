@@ -525,6 +525,15 @@ public class FoundClassSubject extends ClassSubject {
   }
 
   @Override
+  public List<RecordComponentSubject> getFinalRecordComponents() {
+    List<RecordComponentSubject> result = new ArrayList<>(dexClass.getRecordComponents().size());
+    for (int i = 0; i < dexClass.getRecordComponents().size(); i++) {
+      result.add(new RecordComponentSubject(codeInspector, dexClass, i));
+    }
+    return result;
+  }
+
+  @Override
   public int hashCode() {
     int result = codeInspector.hashCode();
     result = 31 * result + dexClass.hashCode();

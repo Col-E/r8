@@ -34,6 +34,7 @@ public class DexLibraryClass extends DexClass implements LibraryClass, Supplier<
       NestHostClassAttribute nestHost,
       List<NestMemberClassAttribute> nestMembers,
       List<PermittedSubclassAttribute> permittedSubclasses,
+      List<RecordComponentInfo> recordComponents,
       EnclosingMethodAttribute enclosingMember,
       List<InnerClassAttribute> innerClasses,
       ClassSignature classSignature,
@@ -54,6 +55,7 @@ public class DexLibraryClass extends DexClass implements LibraryClass, Supplier<
         nestHost,
         nestMembers,
         permittedSubclasses,
+        recordComponents,
         enclosingMember,
         innerClasses,
         classSignature,
@@ -174,6 +176,7 @@ public class DexLibraryClass extends DexClass implements LibraryClass, Supplier<
     private NestHostClassAttribute nestHost = null;
     private List<NestMemberClassAttribute> nestMembers = Collections.emptyList();
     private List<PermittedSubclassAttribute> permittedSubclasses = Collections.emptyList();
+    private List<RecordComponentInfo> recordComponents = Collections.emptyList();
     private EnclosingMethodAttribute enclosingMember = null;
     private List<InnerClassAttribute> innerClasses = Collections.emptyList();
     private ClassSignature classSignature = ClassSignature.noSignature();
@@ -217,6 +220,7 @@ public class DexLibraryClass extends DexClass implements LibraryClass, Supplier<
           nestHost,
           nestMembers,
           permittedSubclasses,
+          recordComponents,
           enclosingMember,
           innerClasses,
           classSignature,

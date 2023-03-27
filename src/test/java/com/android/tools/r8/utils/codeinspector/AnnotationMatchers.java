@@ -4,6 +4,8 @@
 
 package com.android.tools.r8.utils.codeinspector;
 
+import com.android.tools.r8.graph.DexAnnotationElement;
+import com.android.tools.r8.utils.Pair;
 import com.android.tools.r8.utils.StringUtils;
 import java.util.Arrays;
 import java.util.List;
@@ -98,6 +100,52 @@ public class AnnotationMatchers {
       public void describeMismatchSafely(
           List<FoundAnnotationSubject> subjects, Description description) {
         description.appendText("annotations did not");
+      }
+    };
+  }
+
+  @SafeVarargs
+  public static Matcher<FoundAnnotationSubject> hasElements(
+      Pair<String, String>... expectedElements) {
+    return new TypeSafeMatcher<FoundAnnotationSubject>() {
+
+      @Override
+      protected boolean matchesSafely(FoundAnnotationSubject subject) {
+        if (expectedElements.length != subject.getAnnotation().elements.length) {
+          return false;
+        }
+        for (int i = 0; i < expectedElements.length; i++) {
+          DexAnnotationElement element = subject.getAnnotation().elements[i];
+          if (!element.name.toString().equals(expectedElements[i].getFirst())
+              || !element.value.isDexValueString()
+              || !element
+                  .value
+                  .asDexValueString()
+                  .getValue()
+                  .toString()
+                  .equals(expectedElements[i].getSecond())) {
+            return false;
+          }
+        }
+        return true;
+      }
+
+      @Override
+      public void describeTo(Description description) {
+        StringBuilder builder = new StringBuilder("has elements ");
+        for (Pair<String, String> expectedElement : expectedElements) {
+          builder
+              .append(expectedElement.getFirst())
+              .append(" = ")
+              .append(expectedElement.getSecond())
+              .append(", ");
+        }
+        description.appendText(builder.toString());
+      }
+
+      @Override
+      public void describeMismatchSafely(FoundAnnotationSubject subject, Description description) {
+        description.appendText("annotation did not");
       }
     };
   }

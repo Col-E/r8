@@ -12,6 +12,7 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.GenericSignatureContextBuilder;
 import com.android.tools.r8.graph.GenericSignaturePartialTypeArgumentApplier;
 import com.android.tools.r8.graph.GenericSignatureTypeRewriter;
+import com.android.tools.r8.graph.RecordComponentInfo;
 import com.android.tools.r8.utils.ListUtils;
 import com.android.tools.r8.utils.ThreadUtils;
 import java.util.Collection;
@@ -108,6 +109,10 @@ public class GenericSignatureRewriter {
                                 .visitMethodSignature(method.getGenericSignature())
                             : method.getGenericSignature()));
               });
+          // TODO(b/274888318): Check this.
+          for (RecordComponentInfo recordComponent : clazz.getRecordComponents()) {
+            genericSignatureTypeRewriter.rewrite(recordComponent.getSignature());
+          }
         },
         executorService);
   }

@@ -3,6 +3,8 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.shaking;
 
+import static com.google.common.base.Predicates.alwaysFalse;
+
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DefaultInstanceInitializerCode;
 import com.android.tools.r8.graph.DexClass;
@@ -21,15 +23,18 @@ import com.android.tools.r8.graph.InnerClassAttribute;
 import com.android.tools.r8.graph.NestMemberClassAttribute;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.PrunedItems;
+import com.android.tools.r8.graph.RecordComponentInfo;
 import com.android.tools.r8.ir.optimize.info.MutableFieldOptimizationInfo;
 import com.android.tools.r8.ir.optimize.info.MutableMethodOptimizationInfo;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedback;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedback.OptimizationInfoFixer;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackSimple;
+import com.android.tools.r8.utils.ArrayUtils;
 import com.android.tools.r8.utils.CollectionUtils;
 import com.android.tools.r8.utils.ExceptionUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.IterableUtils;
+import com.android.tools.r8.utils.PredicateUtils;
 import com.android.tools.r8.utils.Timing;
 import com.google.common.collect.Sets;
 import java.util.ArrayList;
@@ -219,6 +224,13 @@ public class TreePruner {
     clazz.removeInnerClasses(this::isAttributeReferencingMissingOrPrunedType);
     clazz.removeEnclosingMethodAttribute(this::isAttributeReferencingPrunedItem);
     rewriteNestAttributes(clazz, this::isTypeLive, appView::definitionFor);
+    // TODO(b/274888318): Check this.
+    if (reachableInstanceFields != null) {
+      if (!clazz.getRecordComponents().isEmpty()) {
+        clazz.removeRecordComponents(
+            PredicateUtils.not(isReachableInstanceField(reachableInstanceFields)));
+      }
+    }
     unusedItemsPrinter.visited();
     assert verifyNoDeadFields(clazz);
   }
@@ -235,6 +247,24 @@ public class TreePruner {
       if (!isLive.test(clazz.getNestHost())) {
         claimNestOwnership(clazz, isLive, definition);
       }
+    }
+  }
+
+  public static Predicate<RecordComponentInfo> isReachableInstanceField(
+      DexEncodedField[] reachableInstanceFields) {
+    final int ARRAY_LOOKUP_THRESHOLD = 10;
+    if (reachableInstanceFields.length == 0) {
+      return alwaysFalse();
+    } else if (reachableInstanceFields.length < ARRAY_LOOKUP_THRESHOLD) {
+      return info ->
+          ArrayUtils.contains(
+              reachableInstanceFields, DexEncodedField::getReference, info.getField());
+    } else {
+      Set<DexField> reachableInstanceFieldSet = Sets.newIdentityHashSet();
+      for (DexEncodedField reachableInstanceField : reachableInstanceFields) {
+        reachableInstanceFieldSet.add(reachableInstanceField.getReference());
+      }
+      return info -> reachableInstanceFieldSet.contains(info.getField());
     }
   }
 

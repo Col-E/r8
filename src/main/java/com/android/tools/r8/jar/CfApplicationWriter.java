@@ -41,6 +41,7 @@ import com.android.tools.r8.graph.NestMemberClassAttribute;
 import com.android.tools.r8.graph.ParameterAnnotationsList;
 import com.android.tools.r8.graph.PermittedSubclassAttribute;
 import com.android.tools.r8.graph.ProgramMethod;
+import com.android.tools.r8.graph.RecordComponentInfo;
 import com.android.tools.r8.ir.conversion.LensCodeRewriterUtils;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.naming.ProguardMapSupplier.ProguardMapId;
@@ -293,14 +294,9 @@ public class CfApplicationWriter {
     }
 
     if (clazz.isRecord()) {
-      // TODO(b/169645628): Strip record components if not kept.
-      for (DexEncodedField instanceField : clazz.instanceFields()) {
-        String componentName = getNamingLens().lookupName(instanceField.getReference()).toString();
-        String componentDescriptor =
-            getNamingLens().lookupDescriptor(instanceField.getReference().type).toString();
-        String componentSignature =
-            instanceField.getGenericSignature().toRenamedString(getNamingLens(), isTypeMissing);
-        writer.visitRecordComponent(componentName, componentDescriptor, componentSignature);
+      // TODO(b/274888318): Strip record components if not kept.
+      for (RecordComponentInfo info : clazz.getRecordComponents()) {
+        info.write(writer, getNamingLens(), isTypeMissing, this::writeAnnotation);
       }
     }
 

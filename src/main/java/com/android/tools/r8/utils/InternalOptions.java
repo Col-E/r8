@@ -449,6 +449,8 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
   // Flag to allow record annotations in DEX. See b/231930852 for context.
   public boolean emitRecordAnnotationsInDex =
       System.getProperty("com.android.tools.r8.emitRecordAnnotationsInDex") != null;
+  public boolean emitRecordAnnotationsExInDex =
+      System.getProperty("com.android.tools.r8.emitRecordAnnotationsExInDex") != null;
 
   // Flag to allow nest annotations in DEX. See b/231930852 for context.
   public boolean emitNestAnnotationsInDex =

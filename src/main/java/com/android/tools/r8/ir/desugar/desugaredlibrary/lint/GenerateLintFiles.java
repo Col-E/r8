@@ -131,6 +131,7 @@ public class GenerateLintFiles extends AbstractGenerateFiles {
             null,
             Collections.emptyList(),
             Collections.emptyList(),
+            Collections.emptyList(),
             null,
             Collections.emptyList(),
             ClassSignature.noSignature(),

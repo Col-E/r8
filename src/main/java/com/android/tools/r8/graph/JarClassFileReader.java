@@ -48,9 +48,9 @@ import com.android.tools.r8.utils.StringDiagnostic;
 import com.android.tools.r8.utils.StringUtils;
 import com.google.common.base.Equivalence.Wrapper;
 import com.google.common.collect.Iterables;
-import com.google.common.collect.Sets;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
@@ -203,7 +203,7 @@ public class JarClassFileReader<T extends DexClass> {
       int typeRef,
       TypePath typePath) {
     assert annotations != null;
-    // Java 8 type annotations are not supported by Dex. Ignore them.
+    // Java 8 type annotations are not supported by DEX. Ignore them.
     if (!application.options.isGeneratingClassFiles()) {
       return null;
     }
@@ -252,7 +252,7 @@ public class JarClassFileReader<T extends DexClass> {
     private NestHostClassAttribute nestHost = null;
     private final List<NestMemberClassAttribute> nestMembers = new ArrayList<>();
     private final List<PermittedSubclassAttribute> permittedSubclasses = new ArrayList<>();
-    private final Set<DexField> recordComponents = Sets.newIdentityHashSet();
+    private final List<RecordComponentInfo> recordComponents = new ArrayList<>();
     private EnclosingMethodAttribute enclosingMember = null;
     private final List<InnerClassAttribute> innerClasses = new ArrayList<>();
     private ClassSignature classSignature = ClassSignature.noSignature();
@@ -361,15 +361,7 @@ public class JarClassFileReader<T extends DexClass> {
         String name, String descriptor, String signature) {
       assert name != null;
       assert descriptor != null;
-      // Javac generated record components are only the instance fields, so we just reuse the field
-      // to avoid duplicating the field and field signature rewriting logic.
-      DexField field =
-          application
-              .getFactory()
-              .createField(
-                  type, application.getTypeFromDescriptor(descriptor), application.getString(name));
-      recordComponents.add(field);
-      return super.visitRecordComponent(name, descriptor, signature);
+      return new CreateRecordComponentVisitor(this, name, descriptor, signature);
     }
 
     @Override
@@ -502,6 +494,7 @@ public class JarClassFileReader<T extends DexClass> {
               nestHost,
               nestMembers,
               permittedSubclasses,
+              recordComponents,
               enclosingMember,
               innerClasses,
               classSignature,
@@ -568,17 +561,11 @@ public class JarClassFileReader<T extends DexClass> {
         // so it's safe to compile even if there is a missmatch.
         return;
       }
-      // TODO(b/169645628): Change this logic if we start stripping the record components.
+      // TODO(b/274888318): Change this logic if we start stripping the record components.
       // Another approach would be to mark a bit in fields that are record components instead.
       String message = "Records are expected to have one record component per instance field.";
       if (recordComponents.size() != instanceFields.size()) {
         throw new CompilationError(message, origin);
-      }
-      for (DexEncodedField instanceField : instanceFields) {
-        if (!recordComponents.contains(instanceField.getReference())) {
-          throw new CompilationError(
-              message + " Unmatched field " + instanceField.getReference() + ".", origin);
-        }
       }
     }
 
@@ -1169,6 +1156,66 @@ public class JarClassFileReader<T extends DexClass> {
         return new DexValueType(application.getTypeFromDescriptor(((Type) value).getDescriptor()));
       }
       return getDexValueArray(value);
+    }
+  }
+
+  private static class CreateRecordComponentVisitor extends RecordComponentVisitor {
+    private final CreateDexClassVisitor<?> parent;
+    private final String name;
+    private final String descriptor;
+    private final DexField field;
+    private final FieldTypeSignature componentSignature;
+
+    public CreateRecordComponentVisitor(
+        CreateDexClassVisitor<?> parent, String name, String descriptor, String signature) {
+      super(ASM_VERSION);
+      this.field = parent.application.getField(parent.type, name, descriptor);
+      this.parent = parent;
+      this.name = name;
+      this.descriptor = descriptor;
+      this.componentSignature =
+          parent.application.options.parseSignatureAttribute()
+              ? GenericSignature.parseFieldTypeSignature(
+                  name,
+                  signature,
+                  parent.origin,
+                  parent.application.getFactory(),
+                  parent.application.options.reporter)
+              : FieldTypeSignature.noSignature();
+    }
+
+    private List<DexAnnotation> annotations = null;
+
+    private List<DexAnnotation> getAnnotations() {
+      if (annotations == null) {
+        annotations = new ArrayList<>();
+      }
+      return annotations;
+    }
+
+    @Override
+    public AnnotationVisitor visitAnnotation(String desc, boolean visible) {
+      return createAnnotationVisitor(
+          desc, visible, getAnnotations(), parent.application, DexAnnotation::new);
+    }
+
+    @Override
+    public AnnotationVisitor visitTypeAnnotation(
+        int typeRef, TypePath typePath, String desc, boolean visible) {
+      // Java 8 type annotations are not supported by DEX, thus ignore them.
+      return null;
+    }
+
+    @Override
+    public void visitEnd() {
+      assert annotations == null || !annotations.isEmpty();
+      parent.recordComponents.add(
+          new RecordComponentInfo(
+              field,
+              componentSignature,
+              annotations != null && !annotations.isEmpty()
+                  ? annotations
+                  : Collections.emptyList()));
     }
   }
 

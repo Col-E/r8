@@ -48,6 +48,7 @@ public final class InstrumentationServerFactory {
         NestHostClassAttribute.none(),
         Collections.emptyList(),
         Collections.emptyList(),
+        Collections.emptyList(),
         EnclosingMethodAttribute.none(),
         Collections.emptyList(),
         ClassSignature.noSignature(),

@@ -144,6 +144,16 @@ public class ArrayUtils {
     return false;
   }
 
+  public static <T, U> boolean contains(
+      T[] elements, Function<T, U> elementMap, U mappedElementToLookFor) {
+    for (T element : elements) {
+      if (elementMap.apply(element).equals(mappedElementToLookFor)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
   public static int[] fromPredicate(IntPredicate predicate, int size) {
     int[] result = new int[size];
     for (int i = 0; i < size; i++) {

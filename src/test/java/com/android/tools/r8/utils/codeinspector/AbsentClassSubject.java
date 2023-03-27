@@ -235,6 +235,11 @@ public class AbsentClassSubject extends ClassSubject {
   }
 
   @Override
+  public List<RecordComponentSubject> getFinalRecordComponents() {
+    throw new Unreachable("Cannot determine RecordComponents attribute of an absent class");
+  }
+
+  @Override
   public KmClassSubject getKmClass() {
     return null;
   }

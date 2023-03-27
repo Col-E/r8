@@ -108,6 +108,7 @@ public abstract class TreeFixerBase {
             fixupNestHost(clazz.getNestHostClassAttribute()),
             fixupNestMemberAttributes(clazz.getNestMembersClassAttributes()),
             fixupPermittedSubclassAttribute(clazz.getPermittedSubclassAttributes()),
+            fixupRecordComponents(clazz.getRecordComponents()),
             fixupEnclosingMethodAttribute(clazz.getEnclosingMethodAttribute()),
             fixupInnerClassAttributes(clazz.getInnerClasses()),
             clazz.getClassSignature(),
@@ -287,6 +288,24 @@ public abstract class TreeFixerBase {
       changed |= newPermittedSubclassType != permittedSubclassType;
     }
     return changed ? newPermittedSubclassAttributes : permittedSubclassAttributes;
+  }
+
+  protected List<RecordComponentInfo> fixupRecordComponents(
+      List<RecordComponentInfo> recordComponents) {
+    if (recordComponents.isEmpty()) {
+      return recordComponents;
+    }
+    // TODO(b/274888318): Check this.
+    boolean changed = false;
+    List<RecordComponentInfo> newRecordComponents = new ArrayList<>(recordComponents.size());
+    for (RecordComponentInfo info : recordComponents) {
+      DexField field = info.getField();
+      DexField newField = fixupFieldReference(field);
+      newRecordComponents.add(
+          new RecordComponentInfo(newField, info.getSignature(), info.getAnnotations()));
+      changed |= newField != field;
+    }
+    return changed ? newRecordComponents : recordComponents;
   }
 
   /** Fixup a proto descriptor. */

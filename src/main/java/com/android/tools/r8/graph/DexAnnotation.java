@@ -14,7 +14,9 @@ import com.android.tools.r8.graph.DexValue.DexValueMethod;
 import com.android.tools.r8.graph.DexValue.DexValueNull;
 import com.android.tools.r8.graph.DexValue.DexValueString;
 import com.android.tools.r8.graph.DexValue.DexValueType;
+import com.android.tools.r8.graph.GenericSignature.FieldTypeSignature;
 import com.android.tools.r8.ir.desugar.CovariantReturnTypeAnnotationTransformer;
+import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.synthesis.SyntheticItems;
 import com.android.tools.r8.synthesis.SyntheticNaming.SyntheticKind;
 import com.android.tools.r8.utils.AndroidApiLevel;
@@ -24,6 +26,7 @@ import com.android.tools.r8.utils.structural.StructuralItem;
 import com.android.tools.r8.utils.structural.StructuralMapping;
 import com.android.tools.r8.utils.structural.StructuralSpecification;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.function.Function;
 
@@ -209,6 +212,10 @@ public class DexAnnotation extends DexItem implements StructuralItem<DexAnnotati
     return annotation.annotation.type == factory.annotationPermittedSubclasses;
   }
 
+  public static boolean isRecordAnnotation(DexAnnotation annotation, DexItemFactory factory) {
+    return annotation.getAnnotationType() == factory.annotationRecord;
+  }
+
   public static DexAnnotation createInnerClassAnnotation(
       DexString clazz, int access, DexItemFactory factory) {
     return new DexAnnotation(
@@ -299,6 +306,108 @@ public class DexAnnotation extends DexItem implements StructuralItem<DexAnnotati
     return getTypesFromAnnotation(factory.annotationPermittedSubclasses, annotation);
   }
 
+  /** See {@link #createRecordAnnotation(DexProgramClass, AppView)} for the representation. */
+  public static List<RecordComponentInfo> getRecordComponentInfoFromAnnotation(
+      DexType type, DexAnnotation annotation, DexItemFactory factory, Origin origin) {
+    DexValue componentNamesValue =
+        getSystemValueAnnotationValueWithName(
+            factory.annotationRecord, annotation, factory.annotationRecordComponentNames);
+    DexValue componentTypesValue =
+        getSystemValueAnnotationValueWithName(
+            factory.annotationRecord, annotation, factory.annotationRecordComponentTypes);
+    DexValue componentSignaturesValue =
+        getSystemValueAnnotationValueWithName(
+            factory.annotationRecord, annotation, factory.annotationRecordComponentSignatures);
+    DexValue componentAnnotationVisibilitiesValue =
+        getSystemValueAnnotationValueWithName(
+            factory.annotationRecord, annotation, factory.annotationRecordComponentVisibilities);
+    DexValue componentAnnotationsValue =
+        getSystemValueAnnotationValueWithName(
+            factory.annotationRecord, annotation, factory.annotationRecordComponentAnnotations);
+
+    if (componentNamesValue == null
+        || componentTypesValue == null
+        || componentSignaturesValue == null
+        || componentAnnotationVisibilitiesValue == null
+        || componentAnnotationsValue == null) {
+      return null;
+    }
+    if (!componentNamesValue.isDexValueArray()
+        || !componentTypesValue.isDexValueArray()
+        || !componentSignaturesValue.isDexValueArray()
+        || !componentAnnotationVisibilitiesValue.isDexValueArray()
+        || !componentAnnotationsValue.isDexValueArray()) {
+      return null;
+    }
+    DexValueArray componentNamesValueArray = componentNamesValue.asDexValueArray();
+    DexValueArray componentTypesValueArray = componentTypesValue.asDexValueArray();
+    DexValueArray componentSignaturesValueArray = componentSignaturesValue.asDexValueArray();
+    DexValueArray componentAnnotationVisibilitiesValueArray =
+        componentAnnotationVisibilitiesValue.asDexValueArray();
+    DexValueArray componentAnnotationsValueArray = componentAnnotationsValue.asDexValueArray();
+    if (componentNamesValueArray.size() != componentTypesValueArray.size()
+        || componentNamesValueArray.size() != componentSignaturesValueArray.size()
+        || componentNamesValueArray.size() != componentAnnotationVisibilitiesValueArray.size()
+        || componentNamesValueArray.size() != componentAnnotationsValueArray.size()) {
+      return null;
+    }
+    List<RecordComponentInfo> result = new ArrayList<>(componentNamesValueArray.size());
+    for (int componentIndex = 0;
+        componentIndex < componentNamesValueArray.size();
+        componentIndex++) {
+      DexValue nameValue = componentNamesValueArray.getValue(componentIndex);
+      DexValue typeValue = componentTypesValueArray.getValue(componentIndex);
+      DexValue signatureValue = componentSignaturesValueArray.getValue(componentIndex);
+      DexValue visibilitiesValue =
+          componentAnnotationVisibilitiesValueArray.getValue(componentIndex);
+      DexValue annotationsValue = componentAnnotationsValueArray.getValue(componentIndex);
+      if (!nameValue.isDexValueString()
+          || !typeValue.isDexValueType()
+          || !(signatureValue.isDexValueAnnotation() || signatureValue.isDexValueNull())
+          || !visibilitiesValue.isDexValueArray()
+          || !annotationsValue.isDexValueArray()) {
+        return null;
+      }
+      DexValueArray visibilitiesValueArray = visibilitiesValue.asDexValueArray();
+      DexValueArray annotationsValueArray = annotationsValue.asDexValueArray();
+      if (visibilitiesValueArray.size() != annotationsValueArray.size()) {
+        return null;
+      }
+      List<DexAnnotation> componentAnnotations = Collections.emptyList();
+      if (annotationsValueArray.size() > 0) {
+        componentAnnotations = new ArrayList<>(annotationsValueArray.size());
+        for (int annotationIndex = 0;
+            annotationIndex < annotationsValueArray.size();
+            annotationIndex++) {
+          DexValue visibilityValue = visibilitiesValueArray.getValue(annotationIndex);
+          DexValue annotationValue = annotationsValueArray.getValue(annotationIndex);
+          if (!visibilityValue.isDexValueInt() || !annotationValue.isDexValueAnnotation()) {
+            return null;
+          }
+          componentAnnotations.add(
+              new DexAnnotation(
+                  visibilityValue.asDexValueInt().getValue(),
+                  annotationValue.asDexValueAnnotation().getValue()));
+        }
+      }
+      FieldTypeSignature componentSignature =
+          GenericSignature.parseFieldTypeSignature(
+              nameValue.asDexValueString().getValue().toString(),
+              signatureValue.isDexValueAnnotation()
+                  ? getSignature(signatureValue.asDexValueAnnotation().getValue())
+                  : null,
+              origin,
+              factory,
+              null);
+
+      DexType componentType = typeValue.asDexValueType().getValue();
+      DexString componentName = nameValue.asDexValueString().getValue();
+      DexField componentField = factory.createField(type, componentType, componentName);
+      result.add(new RecordComponentInfo(componentField, componentSignature, componentAnnotations));
+    }
+    return result;
+  }
+
   public static DexAnnotation createSourceDebugExtensionAnnotation(DexValue value,
       DexItemFactory factory) {
     return new DexAnnotation(VISIBILITY_SYSTEM,
@@ -367,8 +476,143 @@ public class DexAnnotation extends DexItem implements StructuralItem<DexAnnotati
         new DexValue.DexValueArray(list.toArray(DexValue.EMPTY_ARRAY)));
   }
 
+  /**
+   * Record component information is written to DEX as a system annotation named <code>
+   * dalvik.annotation.Record</code> with the following content:
+   *
+   * <pre>
+   *   componentAnnotationVisibilities int[][]
+   *   componentAnnotations Annotation[][]
+   *   componentNames String[]
+   *   componentSignatures Annotation[]  // Annotation dalvik.annotation.Signature or NULL
+   *   componentTypes String[]
+   * </pre>
+   *
+   * Each of the arrays have one element for each component.
+   *
+   * <p>Example of a two component record with two annotations on the first component and one on the
+   * second and with a signature on the first component.
+   *
+   * <pre>
+   * .annotation system Ldalvik/annotation/Record;
+   *   componentAnnotationVisibilities = {
+   *     {
+   *       0x1,
+   *       0x1
+   *     },
+   *     {
+   *       0x1
+   *     }
+   *   }
+   *   componentAnnotations = {
+   *     {
+   *       .subannotation LAnnotation1;
+   *         value = "a"
+   *       .end subannotation,
+   *       .subannotation LAnnotation2;
+   *         value = "c"
+   *       .end subannotation
+   *     },
+   *     {
+   *       .subannotation LAnnotation3;
+   *         value = "z"
+   *       .end subannotation
+   *     }
+   *   }
+   *   componentNames = {
+   *      "name",
+   *      "age"
+   *   }
+   *   componentSignatures = {
+   *     .subannotation Ldalvik/annotation/Signature;
+   *       value = {
+   *         "TX;"
+   *       }
+   *     .end subannotation,
+   *     NULL
+   *   }
+   *   componentTypes = {
+   *     Ljava/lang/CharSequence;,
+   *     Ljava/lang/Object;
+   *   }
+   * .end annotation
+   * </pre>
+   */
+  public static DexAnnotation createRecordAnnotation(DexProgramClass clazz, AppView<?> appView) {
+    DexItemFactory factory = appView.dexItemFactory();
+    int componentCount = clazz.getRecordComponents().size();
+    DexValueString[] componentNames = new DexValueString[componentCount];
+    DexValueType[] componentTypes = new DexValueType[componentCount];
+    DexValue[] componentSignatures = new DexValue[componentCount];
+    DexValueArray[] componentAnnotationVisibilities = new DexValueArray[componentCount];
+    DexValueArray[] componentAnnotations = new DexValueArray[componentCount];
+    for (int componentIndex = 0; componentIndex < componentCount; componentIndex++) {
+      RecordComponentInfo info = clazz.getRecordComponents().get(componentIndex);
+      componentNames[componentIndex] =
+          new DexValueString(appView.getNamingLens().lookupName(info.getField()));
+      componentTypes[componentIndex] = new DexValueType(info.getType());
+      if (info.getSignature().hasNoSignature()) {
+        componentSignatures[componentIndex] = DexValueNull.NULL;
+      } else {
+        componentSignatures[componentIndex] =
+            new DexValueAnnotation(
+                createSignatureAnnotation(info.getSignature().toString(), factory).annotation);
+      }
+      int annotationsSize = info.getAnnotations().size();
+      DexValueInt[] visibilities = new DexValueInt[annotationsSize];
+      DexValueAnnotation[] annotations = new DexValueAnnotation[annotationsSize];
+      componentAnnotationVisibilities[componentIndex] = new DexValueArray(visibilities);
+      componentAnnotations[componentIndex] = new DexValueArray(annotations);
+      for (int annotationIndex = 0; annotationIndex < annotationsSize; annotationIndex++) {
+        DexAnnotation annotation = info.getAnnotations().get(annotationIndex);
+        visibilities[annotationIndex] = DexValueInt.create(annotation.getVisibility());
+        annotations[annotationIndex] = new DexValueAnnotation(annotation.annotation);
+      }
+    }
+
+    if (appView.options().emitRecordAnnotationsExInDex) {
+      return new DexAnnotation(
+          VISIBILITY_SYSTEM,
+          new DexEncodedAnnotation(
+              factory.annotationRecord,
+              new DexAnnotationElement[] {
+                new DexAnnotationElement(
+                    factory.annotationRecordComponentNames, new DexValueArray(componentNames)),
+                new DexAnnotationElement(
+                    factory.annotationRecordComponentTypes, new DexValueArray(componentTypes)),
+                new DexAnnotationElement(
+                    factory.annotationRecordComponentSignatures,
+                    new DexValueArray(componentSignatures)),
+                new DexAnnotationElement(
+                    factory.annotationRecordComponentVisibilities,
+                    new DexValueArray(componentAnnotationVisibilities)),
+                new DexAnnotationElement(
+                    factory.annotationRecordComponentAnnotations,
+                    new DexValueArray(componentAnnotations))
+              }));
+    } else {
+      return new DexAnnotation(
+          VISIBILITY_SYSTEM,
+          new DexEncodedAnnotation(
+              factory.annotationRecord,
+              new DexAnnotationElement[] {
+                new DexAnnotationElement(
+                    factory.annotationRecordComponentNames, new DexValueArray(componentNames)),
+                new DexAnnotationElement(
+                    factory.annotationRecordComponentTypes, new DexValueArray(componentTypes))
+              }));
+    }
+  }
+
   public static String getSignature(DexAnnotation signatureAnnotation) {
-    DexValueArray elements = signatureAnnotation.annotation.elements[0].value.asDexValueArray();
+    return getSignature(signatureAnnotation.annotation);
+  }
+
+  public static String getSignature(DexEncodedAnnotation signatureAnnotation) {
+    return getSignature(signatureAnnotation.elements[0].value.asDexValueArray());
+  }
+
+  public static String getSignature(DexValueArray elements) {
     StringBuilder signature = new StringBuilder();
     for (DexValue element : elements.getValues()) {
       signature.append(element.asDexValueString().value.toString());
@@ -401,6 +645,18 @@ public class DexAnnotation extends DexItem implements StructuralItem<DexAnnotati
     return annotation.annotation.elements.length == 0
         ? null
         : annotation.annotation.elements[0].value;
+  }
+
+  private static DexValue getSystemValueAnnotationValueWithName(
+      DexType type, DexAnnotation annotation, DexString name) {
+    assert annotation.visibility == VISIBILITY_SYSTEM;
+    assert annotation.getAnnotationType() == type;
+    for (DexAnnotationElement element : annotation.annotation.elements) {
+      if (element.name == name) {
+        return element.value;
+      }
+    }
+    return null;
   }
 
   public static boolean isThrowingAnnotation(DexAnnotation annotation,

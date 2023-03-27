@@ -70,6 +70,7 @@ public final class InstrumentationServerImplFactory {
         NestHostClassAttribute.none(),
         Collections.emptyList(),
         Collections.emptyList(),
+        Collections.emptyList(),
         EnclosingMethodAttribute.none(),
         Collections.emptyList(),
         ClassSignature.noSignature(),

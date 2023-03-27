@@ -67,6 +67,7 @@ import com.android.tools.r8.graph.NestMemberClassAttribute;
 import com.android.tools.r8.graph.OffsetToObjectMapping;
 import com.android.tools.r8.graph.ParameterAnnotationsList;
 import com.android.tools.r8.graph.PermittedSubclassAttribute;
+import com.android.tools.r8.graph.RecordComponentInfo;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.origin.PathOrigin;
 import com.android.tools.r8.utils.InternalOptions;
@@ -898,6 +899,7 @@ public class DexParser<T extends DexClass> {
               attrs.nestHostAttribute,
               attrs.nestMembersAttribute,
               attrs.permittedSubclassesAttribute,
+              attrs.recordComponents,
               attrs.getEnclosingMethodAttribute(),
               attrs.getInnerClasses(),
               attrs.classSignature,
@@ -1464,6 +1466,7 @@ public class DexParser<T extends DexClass> {
     private NestHostClassAttribute nestHostAttribute;
     private List<NestMemberClassAttribute> nestMembersAttribute = Collections.emptyList();
     private List<PermittedSubclassAttribute> permittedSubclassesAttribute = Collections.emptyList();
+    private List<RecordComponentInfo> recordComponents = Collections.emptyList();
 
     public DexAnnotationSet getAnnotations() {
       if (lazyAnnotations != null) {
@@ -1544,6 +1547,13 @@ public class DexParser<T extends DexClass> {
           if (permittedSubclasses != null) {
             permittedSubclassesAttribute =
                 ListUtils.map(permittedSubclasses, PermittedSubclassAttribute::new);
+          }
+        } else if (DexAnnotation.isRecordAnnotation(annotation, factory)) {
+          ensureAnnotations(i);
+          List<RecordComponentInfo> recordComponents =
+              DexAnnotation.getRecordComponentInfoFromAnnotation(type, annotation, factory, origin);
+          if (recordComponents != null) {
+            this.recordComponents = recordComponents;
           }
         } else {
           copyAnnotation(annotation);

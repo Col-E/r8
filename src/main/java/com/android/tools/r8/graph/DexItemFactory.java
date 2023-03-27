@@ -735,6 +735,14 @@ public class DexItemFactory {
       createStaticallyKnownType("Ldalvik/annotation/NestMembers;");
   public final DexType annotationPermittedSubclasses =
       createStaticallyKnownType("Ldalvik/annotation/PermittedSubclasses;");
+  public final DexType annotationRecord = createStaticallyKnownType("Ldalvik/annotation/Record;");
+  public final DexString annotationRecordComponentNames = createString("componentNames");
+  public final DexString annotationRecordComponentTypes = createString("componentTypes");
+  public final DexString annotationRecordComponentSignatures = createString("componentSignatures");
+  public final DexString annotationRecordComponentVisibilities =
+      createString("componentVisibilities");
+  public final DexString annotationRecordComponentAnnotations =
+      createString("componentAnnotations");
   public final DexType annotationSourceDebugExtension =
       createStaticallyKnownType("Ldalvik/annotation/SourceDebugExtension;");
   public final DexType annotationThrows = createStaticallyKnownType("Ldalvik/annotation/Throws;");
