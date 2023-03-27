@@ -45,6 +45,13 @@ public class AssumeInfoCollection {
     return get(member.getReference());
   }
 
+  public boolean isMaterializableInAllContexts(
+      AppView<AppInfoWithLiveness> appView, DexClassAndMember<?, ?> member) {
+    AbstractValue assumeValue = get(member).getAssumeValue();
+    return assumeValue.isSingleValue()
+        && assumeValue.asSingleValue().isMaterializableInAllContexts(appView);
+  }
+
   public boolean isSideEffectFree(DexMember<?, ?> member) {
     return get(member).isSideEffectFree();
   }

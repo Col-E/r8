@@ -47,17 +47,12 @@ public class UnusedParameterAfterAssumeValuesFieldRuleTest extends TestBase {
               List<FoundMethodSubject> aConstructorSubjects =
                   aClassSubject.allMethods(FoundMethodSubject::isInstanceInitializer);
               if (parameters.canHaveNonReboundConstructorInvoke()) {
-                // TODO(b/274775179): Should be 0.
-                assertEquals(1, aConstructorSubjects.size());
-
-                FoundMethodSubject aConstructorSubject = aConstructorSubjects.get(0);
-                assertEquals(1, aConstructorSubject.getParameters().size());
+                assertEquals(0, aConstructorSubjects.size());
               } else {
                 assertEquals(1, aConstructorSubjects.size());
 
                 FoundMethodSubject aConstructorSubject = aConstructorSubjects.get(0);
-                // TODO(b/274775179): Should be 0.
-                assertEquals(1, aConstructorSubject.getParameters().size());
+                assertEquals(0, aConstructorSubject.getParameters().size());
               }
             })
         .run(parameters.getRuntime(), Main.class)

@@ -342,19 +342,23 @@ public class R8MemberValuePropagation extends MemberValuePropagation<AppInfoWith
 
   private void replaceInstancePutByNullCheckIfNeverRead(
       IRCode code, InstructionListIterator iterator, InstancePut current) {
-    DexEncodedField field = appView.appInfo().resolveField(current.getField()).getResolvedField();
-    if (field == null || field.isStatic()) {
+    DexClassAndField field = appView.appInfo().resolveField(current.getField()).getResolutionPair();
+    if (field == null || field.getAccessFlags().isStatic()) {
       return;
     }
 
     // If the field is read, we can't remove the instance-put unless the value of the field is known
     // to be null (in which case the instance-put is a no-op because it assigns the field the same
     // value as its default value).
-    if (!field.type().isAlwaysNull(appView) && appView.appInfo().isFieldRead(field)) {
+    if (field.getType().isAlwaysNull(appView)
+        || !appView.appInfo().isFieldRead(field.getDefinition())) {
+      iterator.replaceCurrentInstructionByNullCheckIfPossible(appView, code.context());
       return;
     }
 
-    iterator.replaceCurrentInstructionByNullCheckIfPossible(appView, code.context());
+    if (appView.getAssumeInfoCollection().isMaterializableInAllContexts(appView, field)) {
+      iterator.replaceCurrentInstructionByNullCheckIfPossible(appView, code.context());
+    }
   }
 
   @Override
@@ -364,19 +368,24 @@ public class R8MemberValuePropagation extends MemberValuePropagation<AppInfoWith
 
   private void replaceStaticPutByInitClassIfNeverRead(
       IRCode code, InstructionListIterator iterator, StaticPut current) {
-    DexEncodedField field = appView.appInfo().resolveField(current.getField()).getResolvedField();
-    if (field == null || !field.isStatic()) {
+    DexClassAndField field = appView.appInfo().resolveField(current.getField()).getResolutionPair();
+    if (field == null || !field.getAccessFlags().isStatic()) {
       return;
     }
 
     // If the field is read, we can't remove the static-put unless the value of the field is known
     // to be null (in which case the static-put is a no-op because it assigns the field the same
     // value as its default value).
-    if (!field.type().isAlwaysNull(appView) && appView.appInfo().isFieldRead(field)) {
+    if (field.getType().isAlwaysNull(appView)
+        || !appView.appInfo().isFieldRead(field.getDefinition())) {
+      iterator.removeOrReplaceCurrentInstructionByInitClassIfPossible(
+          appView, code, field.getHolderType());
       return;
     }
 
-    iterator.removeOrReplaceCurrentInstructionByInitClassIfPossible(
-        appView, code, field.getHolderType());
+    if (appView.getAssumeInfoCollection().isMaterializableInAllContexts(appView, field)) {
+      iterator.removeOrReplaceCurrentInstructionByInitClassIfPossible(
+          appView, code, field.getHolderType());
+    }
   }
 }

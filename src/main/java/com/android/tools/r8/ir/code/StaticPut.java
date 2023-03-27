@@ -16,8 +16,8 @@ import com.android.tools.r8.dex.code.DexSputShort;
 import com.android.tools.r8.dex.code.DexSputWide;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.DexClassAndField;
 import com.android.tools.r8.graph.DexClassAndMethod;
-import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.FieldResolutionResult;
@@ -119,22 +119,28 @@ public class StaticPut extends FieldInstruction implements FieldPut, StaticField
         return true;
       }
 
-      DexEncodedField encodedField = resolutionResult.getResolvedField();
-      assert encodedField != null : "NoSuchFieldError (resolution failure) should be caught.";
+      DexClassAndField field = resolutionResult.getResolutionPair();
+      assert field != null : "NoSuchFieldError (resolution failure) should be caught.";
 
       boolean isDeadProtoExtensionField =
           appView.withGeneratedExtensionRegistryShrinker(
-              shrinker -> shrinker.isDeadProtoExtensionField(encodedField.getReference()), false);
+              shrinker -> shrinker.isDeadProtoExtensionField(field.getReference()), false);
       if (isDeadProtoExtensionField) {
         return false;
       }
 
-      if (encodedField.type().isAlwaysNull(appViewWithLiveness)) {
+      if (field.getType().isAlwaysNull(appViewWithLiveness)) {
         return false;
       }
 
-      return appInfoWithLiveness.isFieldRead(encodedField)
-          || isStoringObjectWithFinalizer(appViewWithLiveness, encodedField);
+      if (appView
+          .getAssumeInfoCollection()
+          .isMaterializableInAllContexts(appViewWithLiveness, field)) {
+        return false;
+      }
+
+      return appInfoWithLiveness.isFieldRead(field.getDefinition())
+          || isStoringObjectWithFinalizer(appViewWithLiveness, field.getDefinition());
     }
 
     // In D8, we always have to assume that the field can be read, and thus have side effects.
