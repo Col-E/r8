@@ -47,6 +47,7 @@ public class MinimalStartupDexFromStartupMethodRuleTest extends TestBase {
     runTest(testForR8(parameters.getBackend()).addKeepAllClassesRule());
   }
 
+  @SuppressWarnings("unchecked")
   private void runTest(TestCompilerBuilder<?, ?, ?, ?, ?> testCompilerBuilder) throws Exception {
     testCompilerBuilder
         .addInnerClasses(getClass())
