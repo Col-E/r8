@@ -85,14 +85,18 @@ public class SemanticVersion implements Comparable<SemanticVersion> {
     return patch;
   }
 
-  public boolean isNewerOrEqual(SemanticVersion other) {
+  public boolean isNewer(SemanticVersion other) {
     if (major != other.major) {
       return major > other.major;
     }
     if (minor != other.minor) {
       return minor > other.minor;
     }
-    return patch >= other.patch;
+    return patch > other.patch;
+  }
+
+  public boolean isNewerOrEqual(SemanticVersion other) {
+    return isNewer(other) || equals(other);
   }
 
   @Override

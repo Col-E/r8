@@ -1294,20 +1294,20 @@ public final class R8Command extends BaseCompilerCommand {
         return true;
       }
       // Expect one of the following patterns:
-      //   com.android.tools/r8-min-1.5.0/
-      //   com.android.tools/r8-max-1.5.99/
-      //   com.android.tools/r8-min-1.5.0-max-1.5.99/
-      final String minPrefix = "-min-";
-      final String maxPrefix = "-max-";
-      if (!withoutPrefix.startsWith(minPrefix) && !withoutPrefix.startsWith(maxPrefix)) {
+      //   com.android.tools/r8-from-1.5.0/
+      //   com.android.tools/r8-upto-1.6.0/
+      //   com.android.tools/r8-from-1.5.0-upto-1.6.0/
+      final String fromPrefix = "-from-";
+      final String uptoPrefix = "-upto-";
+      if (!withoutPrefix.startsWith(fromPrefix) && !withoutPrefix.startsWith(uptoPrefix)) {
         return false;
       }
 
       SemanticVersion from = SemanticVersion.min();
-      SemanticVersion to = SemanticVersion.max();
+      SemanticVersion upto = null;
 
-      if (withoutPrefix.startsWith(minPrefix)) {
-        withoutPrefix = withoutPrefix.substring(minPrefix.length());
+      if (withoutPrefix.startsWith(fromPrefix)) {
+        withoutPrefix = withoutPrefix.substring(fromPrefix.length());
         int versionEnd = StringUtils.indexOf(withoutPrefix, '-', '/');
         if (versionEnd == -1) {
           return false;
@@ -1319,14 +1319,14 @@ public final class R8Command extends BaseCompilerCommand {
         }
         withoutPrefix = withoutPrefix.substring(versionEnd);
       }
-      if (withoutPrefix.startsWith(maxPrefix)) {
-        withoutPrefix = withoutPrefix.substring(maxPrefix.length());
+      if (withoutPrefix.startsWith(uptoPrefix)) {
+        withoutPrefix = withoutPrefix.substring(uptoPrefix.length());
         int versionEnd = withoutPrefix.indexOf('/');
         if (versionEnd == -1) {
           return false;
         }
         try {
-          to = SemanticVersion.parse(withoutPrefix.substring(0, versionEnd));
+          upto = SemanticVersion.parse(withoutPrefix.substring(0, versionEnd));
         } catch (IllegalArgumentException e) {
           return false;
         }
@@ -1334,7 +1334,8 @@ public final class R8Command extends BaseCompilerCommand {
       if (compilerVersion == null) {
         compilerVersion = compilerVersionSupplier.get();
       }
-      return compilerVersion.isNewerOrEqual(from) && to.isNewerOrEqual(compilerVersion);
+      return compilerVersion.isNewerOrEqual(from)
+          && (upto == null || upto.isNewer(compilerVersion));
     }
 
     private void parse(

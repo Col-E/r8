@@ -76,16 +76,16 @@ public class LibraryProvidedProguardRulesR8SpecificTest
     if (libraryType.hasRulesInJar()) {
       jarBuilder.addText("META-INF/com.android.tools/r8/test1.pro", "-keep class A1");
       jarBuilder.addText("META-INF/com.android.tools/r8/test2.pro", "-keep class A2");
-      jarBuilder.addText("META-INF/com.android.tools/r8-min-4.0.0/test1.pro", "-keep class B1");
-      jarBuilder.addText("META-INF/com.android.tools/r8-min-4.0.0/test2.pro", "-keep class B2");
-      jarBuilder.addText("META-INF/com.android.tools/r8-max-8.1.0/test1.pro", "-keep class C1");
-      jarBuilder.addText("META-INF/com.android.tools/r8-max-8.1.0/test2.pro", "-keep class C2");
+      jarBuilder.addText("META-INF/com.android.tools/r8-from-4.0.0/test1.pro", "-keep class B1");
+      jarBuilder.addText("META-INF/com.android.tools/r8-from-4.0.0/test2.pro", "-keep class B2");
+      jarBuilder.addText("META-INF/com.android.tools/r8-upto-8.1.0/test1.pro", "-keep class C1");
+      jarBuilder.addText("META-INF/com.android.tools/r8-upto-8.1.0/test2.pro", "-keep class C2");
       jarBuilder.addText(
-          "META-INF/com.android.tools/r8-min-5.0.0-max-8.0.0/test1.pro", "-keep class D1");
+          "META-INF/com.android.tools/r8-from-5.0.0-upto-8.0.0/test1.pro", "-keep class D1");
       jarBuilder.addText(
-          "META-INF/com.android.tools/r8-min-5.0.0-max-8.0.0/test2.pro", "-keep class D2");
-      jarBuilder.addText("META-INF/com.android.tools/r8-min-10.5.0/test1.pro", "-keep class E1");
-      jarBuilder.addText("META-INF/com.android.tools/r8-min-10.5.0/test2.pro", "-keep class E2");
+          "META-INF/com.android.tools/r8-from-5.0.0-upto-8.0.0/test2.pro", "-keep class D2");
+      jarBuilder.addText("META-INF/com.android.tools/r8-from-10.5.0/test1.pro", "-keep class E1");
+      jarBuilder.addText("META-INF/com.android.tools/r8-from-10.5.0/test2.pro", "-keep class E2");
       jarBuilder.addText("META-INF/proguard/test1.pro", "-keep class X1");
       jarBuilder.addText("META-INF/proguard/test2.pro", "-keep class X2");
     }
@@ -171,18 +171,31 @@ public class LibraryProvidedProguardRulesR8SpecificTest
   }
 
   @Test
-  public void runTestVersion8() throws Exception {
+  public void runTestVersion7_99_99() throws Exception {
     runTest(
-        SemanticVersion.create(8, 0, 0),
+        SemanticVersion.create(7, 99, 99),
         StringUtils.lines(
             EXPECTED_A.trim(), EXPECTED_B.trim(), EXPECTED_C.trim(), EXPECTED_D.trim()));
   }
 
   @Test
+  public void runTestVersion8() throws Exception {
+    runTest(
+        SemanticVersion.create(8, 0, 0),
+        StringUtils.lines(EXPECTED_A.trim(), EXPECTED_B.trim(), EXPECTED_C.trim()));
+  }
+
+  @Test
+  public void runTestVersion8_0_99() throws Exception {
+    runTest(
+        SemanticVersion.create(8, 0, 99),
+        StringUtils.lines(EXPECTED_A.trim(), EXPECTED_B.trim(), EXPECTED_C.trim()));
+  }
+
+  @Test
   public void runTestVersion8_1() throws Exception {
     runTest(
-        SemanticVersion.create(8, 1, 0),
-        StringUtils.lines(EXPECTED_A.trim(), EXPECTED_B.trim(), EXPECTED_C.trim()));
+        SemanticVersion.create(8, 1, 0), StringUtils.lines(EXPECTED_A.trim(), EXPECTED_B.trim()));
   }
 
   @Test
@@ -286,14 +299,14 @@ public class LibraryProvidedProguardRulesR8SpecificTest
   public void testUnusedProguardOnlyRules() throws Exception {
     for (String directory :
         ImmutableList.of(
-            "proguard-min-6.1.0",
-            "proguard-max-7.0.0",
-            "proguard-min-6.1.0-max-7.0.0",
+            "proguard-from-6.1.0",
+            "proguard-upto-7.0.0",
+            "proguard-from-6.1.0-upto-7.0.0",
             "proguard610",
             "com.android.tools/proguard",
-            "com.android.tools/proguard-min-6.1.0",
-            "com.android.tools/proguard-max-7.0.0",
-            "com.android.tools/proguard-min-6.1.0-max-7.0.0",
+            "com.android.tools/proguard-from-6.1.0",
+            "com.android.tools/proguard-upto-7.0.0",
+            "com.android.tools/proguard-from-6.1.0-upto-7.0.0",
             "com.android.tools/proguard610")) {
       Path library = buildLibraryProguardOnlyRules(directory);
       testForR8(Backend.DEX)
@@ -311,14 +324,14 @@ public class LibraryProvidedProguardRulesR8SpecificTest
   public void testUnusedProguardOnlyRulesVersionMain() throws Exception {
     for (String directory :
         ImmutableList.of(
-            "proguard-min-6.1.0",
-            "proguard-max-7.0.0",
-            "proguard-min-6.1.0-max-7.0.0",
+            "proguard-from-6.1.0",
+            "proguard-upto-7.0.0",
+            "proguard-from-6.1.0-upto-7.0.0",
             "proguard610",
             "com.android.tools/proguard",
-            "com.android.tools/proguard-min-6.1.0",
-            "com.android.tools/proguard-max-7.0.0",
-            "com.android.tools/proguard-min-6.1.0-max-7.0.0",
+            "com.android.tools/proguard-from-6.1.0",
+            "com.android.tools/proguard-upto-7.0.0",
+            "com.android.tools/proguard-from-6.1.0-upto-7.0.0",
             "com.android.tools/proguard610")) {
       Path library = buildLibraryProguardOnlyRules(directory);
       testForR8(Backend.DEX)
