@@ -4,7 +4,7 @@
 
 package com.android.tools.r8.optimize;
 
-import static com.android.tools.r8.graph.NestedGraphLens.mapVirtualInterfaceInvocationTypes;
+import static com.android.tools.r8.graph.lens.NestedGraphLens.mapVirtualInterfaceInvocationTypes;
 
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
