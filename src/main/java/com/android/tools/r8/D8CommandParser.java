@@ -5,11 +5,11 @@ package com.android.tools.r8;
 
 import static com.android.tools.r8.ParseFlagInfoImpl.flag1;
 
-import com.android.tools.r8.experimental.startup.StartupProfileProviderUtils;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.origin.PathOrigin;
 import com.android.tools.r8.profile.art.ArtProfileConsumerUtils;
 import com.android.tools.r8.profile.art.ArtProfileProviderUtils;
+import com.android.tools.r8.profile.startup.StartupProfileProviderUtils;
 import com.android.tools.r8.utils.ExceptionDiagnostic;
 import com.android.tools.r8.utils.FlagFile;
 import com.android.tools.r8.utils.StringDiagnostic;

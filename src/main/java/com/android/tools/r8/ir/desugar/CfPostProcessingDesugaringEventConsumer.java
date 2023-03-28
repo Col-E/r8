@@ -18,8 +18,8 @@ import com.android.tools.r8.ir.desugar.desugaredlibrary.machinespecification.Emu
 import com.android.tools.r8.ir.desugar.desugaredlibrary.retargeter.DesugaredLibraryRetargeterSynthesizerEventConsumer.DesugaredLibraryRetargeterPostProcessingEventConsumer;
 import com.android.tools.r8.ir.desugar.itf.InterfaceDesugaringSyntheticHelper;
 import com.android.tools.r8.ir.desugar.itf.InterfaceProcessingDesugaringEventConsumer;
-import com.android.tools.r8.profile.art.rewriting.ProfileCollectionAdditions;
-import com.android.tools.r8.profile.art.rewriting.ProfileRewritingCfPostProcessingDesugaringEventConsumer;
+import com.android.tools.r8.profile.rewriting.ProfileCollectionAdditions;
+import com.android.tools.r8.profile.rewriting.ProfileRewritingCfPostProcessingDesugaringEventConsumer;
 import com.android.tools.r8.shaking.Enqueuer.SyntheticAdditions;
 import com.android.tools.r8.utils.collections.ProgramMethodSet;
 import java.util.Collections;

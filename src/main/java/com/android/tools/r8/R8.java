@@ -73,7 +73,7 @@ import com.android.tools.r8.optimize.proto.ProtoNormalizer;
 import com.android.tools.r8.optimize.redundantbridgeremoval.RedundantBridgeRemover;
 import com.android.tools.r8.origin.CommandLineOrigin;
 import com.android.tools.r8.profile.art.ArtProfileCompletenessChecker;
-import com.android.tools.r8.profile.art.rewriting.ProfileCollectionAdditions;
+import com.android.tools.r8.profile.rewriting.ProfileCollectionAdditions;
 import com.android.tools.r8.repackaging.Repackaging;
 import com.android.tools.r8.repackaging.RepackagingLens;
 import com.android.tools.r8.shaking.AbstractMethodRemover;

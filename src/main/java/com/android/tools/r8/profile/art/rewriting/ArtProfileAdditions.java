@@ -9,22 +9,24 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.profile.AbstractProfileRule;
 import com.android.tools.r8.profile.art.ArtProfile;
 import com.android.tools.r8.profile.art.ArtProfileClassRule;
+import com.android.tools.r8.profile.art.ArtProfileClassRule.Builder;
 import com.android.tools.r8.profile.art.ArtProfileMethodRule;
 import com.android.tools.r8.profile.art.ArtProfileRule;
+import com.android.tools.r8.profile.rewriting.ProfileAdditions;
 import java.util.Comparator;
 
 public class ArtProfileAdditions
     extends ProfileAdditions<
         ArtProfileAdditions,
         ArtProfileClassRule,
-        ArtProfileClassRule.Builder,
+        Builder,
         ArtProfileMethodRule,
         ArtProfileMethodRule.Builder,
         ArtProfileRule,
         ArtProfile,
         ArtProfile.Builder> {
 
-  ArtProfileAdditions(ArtProfile profile) {
+  public ArtProfileAdditions(ArtProfile profile) {
     super(profile);
   }
 

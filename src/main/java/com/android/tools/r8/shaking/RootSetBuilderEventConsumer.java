@@ -6,8 +6,8 @@ package com.android.tools.r8.shaking;
 
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.desugar.itf.InterfaceMethodDesugaringBaseEventConsumer;
-import com.android.tools.r8.profile.art.rewriting.ProfileCollectionAdditions;
-import com.android.tools.r8.profile.art.rewriting.ProfileRewritingRootSetBuilderEventConsumer;
+import com.android.tools.r8.profile.rewriting.ProfileCollectionAdditions;
+import com.android.tools.r8.profile.rewriting.ProfileRewritingRootSetBuilderEventConsumer;
 
 public interface RootSetBuilderEventConsumer extends InterfaceMethodDesugaringBaseEventConsumer {
 

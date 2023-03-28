@@ -24,7 +24,7 @@ import com.android.tools.r8.horizontalclassmerging.code.SyntheticInitializerConv
 import com.android.tools.r8.ir.conversion.ExtraConstantIntParameter;
 import com.android.tools.r8.ir.conversion.ExtraParameter;
 import com.android.tools.r8.ir.conversion.ExtraUnusedNullParameter;
-import com.android.tools.r8.profile.art.rewriting.ProfileCollectionAdditions;
+import com.android.tools.r8.profile.rewriting.ProfileCollectionAdditions;
 import com.android.tools.r8.utils.ArrayUtils;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.Box;

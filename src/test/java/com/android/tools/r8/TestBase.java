@@ -45,7 +45,7 @@ import com.android.tools.r8.graph.SubtypingInfo;
 import com.android.tools.r8.jasmin.JasminBuilder;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.origin.PathOrigin;
-import com.android.tools.r8.profile.art.rewriting.ProfileCollectionAdditions;
+import com.android.tools.r8.profile.rewriting.ProfileCollectionAdditions;
 import com.android.tools.r8.references.ClassReference;
 import com.android.tools.r8.references.FieldReference;
 import com.android.tools.r8.references.MethodReference;

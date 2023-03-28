@@ -33,7 +33,7 @@ import com.android.tools.r8.ir.desugar.lambda.LambdaDeserializationMethodRemover
 import com.android.tools.r8.ir.desugar.nest.D8NestBasedAccessDesugaring;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedback;
 import com.android.tools.r8.position.MethodPosition;
-import com.android.tools.r8.profile.art.rewriting.ProfileCollectionAdditions;
+import com.android.tools.r8.profile.rewriting.ProfileCollectionAdditions;
 import com.android.tools.r8.utils.ExceptionUtils;
 import com.android.tools.r8.utils.ListUtils;
 import com.android.tools.r8.utils.ThreadUtils;

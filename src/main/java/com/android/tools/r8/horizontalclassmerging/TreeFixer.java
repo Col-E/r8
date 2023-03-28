@@ -21,7 +21,7 @@ import com.android.tools.r8.graph.EnclosingMethodAttribute;
 import com.android.tools.r8.graph.TreeFixerBase;
 import com.android.tools.r8.horizontalclassmerging.HorizontalClassMerger.Mode;
 import com.android.tools.r8.ir.conversion.ExtraUnusedNullParameter;
-import com.android.tools.r8.profile.art.rewriting.ProfileCollectionAdditions;
+import com.android.tools.r8.profile.rewriting.ProfileCollectionAdditions;
 import com.android.tools.r8.shaking.AnnotationFixer;
 import com.android.tools.r8.utils.ArrayUtils;
 import com.android.tools.r8.utils.Box;

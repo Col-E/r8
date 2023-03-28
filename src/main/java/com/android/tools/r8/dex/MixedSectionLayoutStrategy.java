@@ -5,7 +5,6 @@
 package com.android.tools.r8.dex;
 
 import com.android.tools.r8.dex.FileWriter.MixedSectionOffsets;
-import com.android.tools.r8.experimental.startup.StartupProfile;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexAnnotation;
 import com.android.tools.r8.graph.DexAnnotationDirectory;
@@ -16,6 +15,7 @@ import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexTypeList;
 import com.android.tools.r8.graph.ParameterAnnotationsList;
 import com.android.tools.r8.graph.ProgramMethod;
+import com.android.tools.r8.profile.startup.profile.StartupProfile;
 import java.util.Collection;
 
 public abstract class MixedSectionLayoutStrategy {

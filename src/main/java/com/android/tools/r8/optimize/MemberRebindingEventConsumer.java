@@ -7,7 +7,7 @@ package com.android.tools.r8.optimize;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.ProgramMethod;
-import com.android.tools.r8.profile.art.rewriting.ProfileRewritingMemberRebindingEventConsumer;
+import com.android.tools.r8.profile.rewriting.ProfileRewritingMemberRebindingEventConsumer;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 
 public interface MemberRebindingEventConsumer {

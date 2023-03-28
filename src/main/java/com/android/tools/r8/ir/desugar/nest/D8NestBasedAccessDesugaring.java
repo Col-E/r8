@@ -18,7 +18,7 @@ import com.android.tools.r8.graph.ProgramField;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.UseRegistry;
 import com.android.tools.r8.ir.conversion.D8MethodProcessor;
-import com.android.tools.r8.profile.art.rewriting.ProfileRewritingNestBasedAccessDesugaringEventConsumer;
+import com.android.tools.r8.profile.rewriting.ProfileRewritingNestBasedAccessDesugaringEventConsumer;
 import com.android.tools.r8.utils.ThreadUtils;
 import com.google.common.collect.Iterables;
 import java.util.ArrayList;

@@ -5,8 +5,8 @@
 package com.android.tools.r8.ir.desugar;
 
 import com.android.tools.r8.graph.ProgramMethod;
-import com.android.tools.r8.profile.art.rewriting.ProfileCollectionAdditions;
-import com.android.tools.r8.profile.art.rewriting.ProfileRewritingCovariantReturnTypeAnnotationTransformerEventConsumer;
+import com.android.tools.r8.profile.rewriting.ProfileCollectionAdditions;
+import com.android.tools.r8.profile.rewriting.ProfileRewritingCovariantReturnTypeAnnotationTransformerEventConsumer;
 
 public interface CovariantReturnTypeAnnotationTransformerEventConsumer {
 

@@ -5,9 +5,6 @@
 package com.android.tools.r8.dex;
 
 import com.android.tools.r8.dex.FileWriter.MixedSectionOffsets;
-import com.android.tools.r8.experimental.startup.StartupProfile;
-import com.android.tools.r8.experimental.startup.profile.StartupProfileClassRule;
-import com.android.tools.r8.experimental.startup.profile.StartupProfileMethodRule;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexAnnotation;
 import com.android.tools.r8.graph.DexAnnotationDirectory;
@@ -26,6 +23,9 @@ import com.android.tools.r8.graph.DexWritableCode;
 import com.android.tools.r8.graph.ParameterAnnotationsList;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.conversion.LensCodeRewriterUtils;
+import com.android.tools.r8.profile.startup.profile.StartupProfile;
+import com.android.tools.r8.profile.startup.profile.StartupProfileClassRule;
+import com.android.tools.r8.profile.startup.profile.StartupProfileMethodRule;
 import com.android.tools.r8.utils.MapUtils;
 import com.android.tools.r8.utils.collections.LinkedProgramMethodSet;
 import com.android.tools.r8.utils.collections.ProgramMethodSet;

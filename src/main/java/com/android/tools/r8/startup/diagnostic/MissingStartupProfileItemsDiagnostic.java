@@ -6,13 +6,13 @@ package com.android.tools.r8.startup.diagnostic;
 
 import com.android.tools.r8.Diagnostic;
 import com.android.tools.r8.Keep;
-import com.android.tools.r8.experimental.startup.profile.StartupProfileClassRule;
-import com.android.tools.r8.experimental.startup.profile.StartupProfileMethodRule;
 import com.android.tools.r8.graph.DexDefinitionSupplier;
 import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.position.Position;
+import com.android.tools.r8.profile.startup.profile.StartupProfileClassRule;
+import com.android.tools.r8.profile.startup.profile.StartupProfileMethodRule;
 import com.google.common.collect.Sets;
 import java.util.ArrayList;
 import java.util.Iterator;

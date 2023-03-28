@@ -3,9 +3,9 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.graph;
 
-import com.android.tools.r8.experimental.startup.StartupProfile;
 import com.android.tools.r8.features.ClassToFeatureSplitMap;
 import com.android.tools.r8.features.FeatureSplitBoundaryOptimizationUtils;
+import com.android.tools.r8.profile.startup.profile.StartupProfile;
 import com.android.tools.r8.synthesis.SyntheticItems;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.OptionalBool;

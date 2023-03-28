@@ -32,8 +32,8 @@ import com.android.tools.r8.ir.desugar.nest.NestBasedAccessDesugaringEventConsum
 import com.android.tools.r8.ir.desugar.records.RecordDesugaringEventConsumer.RecordInstructionDesugaringEventConsumer;
 import com.android.tools.r8.ir.desugar.twr.TwrCloseResourceDesugaringEventConsumer;
 import com.android.tools.r8.ir.desugar.varhandle.VarHandleDesugaringEventConsumer;
-import com.android.tools.r8.profile.art.rewriting.ProfileCollectionAdditions;
-import com.android.tools.r8.profile.art.rewriting.ProfileRewritingCfInstructionDesugaringEventConsumer;
+import com.android.tools.r8.profile.rewriting.ProfileCollectionAdditions;
+import com.android.tools.r8.profile.rewriting.ProfileRewritingCfInstructionDesugaringEventConsumer;
 import com.android.tools.r8.shaking.Enqueuer.SyntheticAdditions;
 import com.android.tools.r8.shaking.KeepMethodInfo.Joiner;
 import com.google.common.collect.Sets;

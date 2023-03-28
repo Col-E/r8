@@ -6,7 +6,7 @@ package com.android.tools.r8.ir.optimize.outliner;
 
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.ProgramMethod;
-import com.android.tools.r8.profile.art.rewriting.ProfileRewritingOutlineOptimizationEventConsumer;
+import com.android.tools.r8.profile.rewriting.ProfileRewritingOutlineOptimizationEventConsumer;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import java.util.Collection;
 

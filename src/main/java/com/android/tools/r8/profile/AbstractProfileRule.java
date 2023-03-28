@@ -4,8 +4,8 @@
 
 package com.android.tools.r8.profile;
 
-import com.android.tools.r8.experimental.startup.profile.StartupProfileRule;
 import com.android.tools.r8.profile.art.ArtProfileRule;
+import com.android.tools.r8.profile.startup.profile.StartupProfileRule;
 
 public interface AbstractProfileRule {
 

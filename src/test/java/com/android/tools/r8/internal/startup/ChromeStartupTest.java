@@ -18,7 +18,7 @@ import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.ThrowableConsumer;
 import com.android.tools.r8.ToolHelper;
-import com.android.tools.r8.experimental.startup.StartupProfileProviderUtils;
+import com.android.tools.r8.profile.startup.StartupProfileProviderUtils;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.ZipUtils;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;

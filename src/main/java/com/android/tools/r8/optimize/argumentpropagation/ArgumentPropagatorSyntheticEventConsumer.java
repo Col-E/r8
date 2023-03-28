@@ -7,7 +7,7 @@ package com.android.tools.r8.optimize.argumentpropagation;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.ProgramMethod;
-import com.android.tools.r8.profile.art.rewriting.ProfileRewritingArgumentPropagatorSyntheticEventConsumer;
+import com.android.tools.r8.profile.rewriting.ProfileRewritingArgumentPropagatorSyntheticEventConsumer;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 
 public interface ArgumentPropagatorSyntheticEventConsumer {

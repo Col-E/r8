@@ -484,8 +484,6 @@ public final class R8Command extends BaseCompilerCommand {
      *
      * <p>NOTE: Startup profiles are ignored when compiling to class files or the min-API level does
      * not support native multidex (API<=20).
-     *
-     * <p>NOTE: This API is experimental and may be subject to changes.
      */
     @Override
     public Builder addStartupProfileProviders(StartupProfileProvider... startupProfileProviders) {
@@ -499,8 +497,6 @@ public final class R8Command extends BaseCompilerCommand {
      *
      * <p>NOTE: Startup profiles are ignored when compiling to class files or the min-API level does
      * not support native multidex (API<=20).
-     *
-     * <p>NOTE: This API is experimental and may be subject to changes.
      */
     @Override
     public Builder addStartupProfileProviders(

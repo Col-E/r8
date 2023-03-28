@@ -12,8 +12,8 @@ import com.android.tools.r8.ir.optimize.ServiceLoaderRewriterEventConsumer;
 import com.android.tools.r8.ir.optimize.UtilityMethodsForCodeOptimizationsEventConsumer;
 import com.android.tools.r8.ir.optimize.api.InstanceInitializerOutlinerEventConsumer;
 import com.android.tools.r8.ir.optimize.enums.EnumUnboxerMethodProcessorEventConsumer;
-import com.android.tools.r8.profile.art.rewriting.ProfileCollectionAdditions;
-import com.android.tools.r8.profile.art.rewriting.ProfileRewritingMethodProcessorEventConsumer;
+import com.android.tools.r8.profile.rewriting.ProfileCollectionAdditions;
+import com.android.tools.r8.profile.rewriting.ProfileRewritingMethodProcessorEventConsumer;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 
 public abstract class MethodProcessorEventConsumer

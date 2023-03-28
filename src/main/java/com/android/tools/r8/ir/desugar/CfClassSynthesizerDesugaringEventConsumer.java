@@ -14,8 +14,8 @@ import com.android.tools.r8.ir.desugar.desugaredlibrary.retargeter.DesugaredLibr
 import com.android.tools.r8.ir.desugar.itf.EmulatedInterfaceSynthesizerEventConsumer.L8ProgramEmulatedInterfaceSynthesizerEventConsumer;
 import com.android.tools.r8.ir.desugar.records.RecordDesugaringEventConsumer.RecordClassSynthesizerDesugaringEventConsumer;
 import com.android.tools.r8.ir.desugar.varhandle.VarHandleDesugaringEventConsumer;
-import com.android.tools.r8.profile.art.rewriting.ProfileCollectionAdditions;
-import com.android.tools.r8.profile.art.rewriting.ProfileRewritingCfClassSynthesizerDesugaringEventConsumer;
+import com.android.tools.r8.profile.rewriting.ProfileCollectionAdditions;
+import com.android.tools.r8.profile.rewriting.ProfileRewritingCfClassSynthesizerDesugaringEventConsumer;
 import com.google.common.collect.Sets;
 import java.util.Set;
 
