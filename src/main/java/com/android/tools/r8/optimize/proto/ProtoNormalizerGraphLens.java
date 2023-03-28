@@ -6,13 +6,11 @@ package com.android.tools.r8.optimize.proto;
 
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexEncodedMethod;
-import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
-import com.android.tools.r8.graph.lens.FieldLookupResult;
+import com.android.tools.r8.graph.lens.DefaultNonIdentityGraphLens;
 import com.android.tools.r8.graph.lens.GraphLens;
 import com.android.tools.r8.graph.lens.MethodLookupResult;
-import com.android.tools.r8.graph.lens.NonIdentityGraphLens;
 import com.android.tools.r8.graph.proto.ArgumentInfoCollection;
 import com.android.tools.r8.graph.proto.ArgumentPermutation;
 import com.android.tools.r8.graph.proto.RewrittenPrototypeDescription;
@@ -24,7 +22,7 @@ import com.google.common.collect.ImmutableList;
 import java.util.IdentityHashMap;
 import java.util.Map;
 
-public class ProtoNormalizerGraphLens extends NonIdentityGraphLens {
+public class ProtoNormalizerGraphLens extends DefaultNonIdentityGraphLens {
 
   private final BidirectionalOneToOneMap<DexMethod, DexMethod> newMethodSignatures;
   private final Map<DexMethod, RewrittenPrototypeDescription> prototypeChanges;
@@ -43,37 +41,6 @@ public class ProtoNormalizerGraphLens extends NonIdentityGraphLens {
   }
 
   @Override
-  public DexType getOriginalType(DexType type) {
-    return getPrevious().getOriginalType(type);
-  }
-
-  @Override
-  public Iterable<DexType> getOriginalTypes(DexType type) {
-    return getPrevious().getOriginalTypes(type);
-  }
-
-  @Override
-  public DexField getOriginalFieldSignature(DexField field) {
-    return getPrevious().getOriginalFieldSignature(field);
-  }
-
-  @Override
-  public DexField getRenamedFieldSignature(DexField originalField, GraphLens applied) {
-    if (this == applied) {
-      return originalField;
-    }
-    return getPrevious().getRenamedFieldSignature(originalField);
-  }
-
-  @Override
-  public DexMethod getRenamedMethodSignature(DexMethod originalMethod, GraphLens applied) {
-    if (this == applied) {
-      return originalMethod;
-    }
-    return getNextMethodSignature(getPrevious().getRenamedMethodSignature(originalMethod));
-  }
-
-  @Override
   public RewrittenPrototypeDescription lookupPrototypeChangesForMethodDefinition(
       DexMethod method, GraphLens codeLens) {
     if (this == codeLens) {
@@ -87,16 +54,6 @@ public class ProtoNormalizerGraphLens extends NonIdentityGraphLens {
     }
     return previousPrototypeChanges.combine(
         prototypeChanges.getOrDefault(method, RewrittenPrototypeDescription.none()));
-  }
-
-  @Override
-  public boolean isContextFreeForMethods() {
-    return getPrevious().isContextFreeForMethods();
-  }
-
-  @Override
-  protected FieldLookupResult internalDescribeLookupField(FieldLookupResult previous) {
-    return previous;
   }
 
   @Override
@@ -119,11 +76,6 @@ public class ProtoNormalizerGraphLens extends NonIdentityGraphLens {
         .setReference(newMethodSignature)
         .setType(previous.getType())
         .build();
-  }
-
-  @Override
-  protected DexType internalDescribeLookupClassType(DexType previous) {
-    return previous;
   }
 
   @Override
