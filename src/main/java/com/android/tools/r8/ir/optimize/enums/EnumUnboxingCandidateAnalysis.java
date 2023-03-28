@@ -4,7 +4,10 @@
 
 package com.android.tools.r8.ir.optimize.enums;
 
+import static com.android.tools.r8.utils.MapUtils.ignoreKey;
+
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMember;
@@ -16,6 +19,12 @@ import com.android.tools.r8.ir.optimize.enums.eligibility.Reason;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.KeepInfoCollection;
 import com.android.tools.r8.utils.InternalOptions;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Sets;
+import java.util.IdentityHashMap;
+import java.util.Map;
+import java.util.Set;
 
 class EnumUnboxingCandidateAnalysis {
 
@@ -29,6 +38,9 @@ class EnumUnboxingCandidateAnalysis {
   private final DexItemFactory factory;
   private EnumUnboxingCandidateInfoCollection enumToUnboxCandidates =
       new EnumUnboxingCandidateInfoCollection();
+
+  private final Map<DexType, Set<DexProgramClass>> enumSubclasses = new IdentityHashMap<>();
+  private final Set<DexType> ineligibleCandidates = Sets.newIdentityHashSet();
 
   EnumUnboxingCandidateAnalysis(AppView<AppInfoWithLiveness> appView, EnumUnboxerImpl enumUnboxer) {
     this.appView = appView;
@@ -44,32 +56,125 @@ class EnumUnboxingCandidateAnalysis {
       return enumToUnboxCandidates;
     }
     for (DexProgramClass clazz : appView.appInfo().classes()) {
-      if (isEnumUnboxingCandidate(clazz)) {
-        enumToUnboxCandidates.addCandidate(appView, clazz, graphLensForPrimaryOptimizationPass);
+      if (clazz.isEnum()) {
+        analyzeEnum(graphLensForPrimaryOptimizationPass, clazz);
       }
     }
+    removeIneligibleCandidates();
     removeEnumsInAnnotations();
     removePinnedCandidates();
     if (appView.options().protoShrinking().isProtoShrinkingEnabled()) {
       enumToUnboxCandidates.removeCandidate(appView.protoShrinker().references.methodToInvokeType);
     }
+    setEnumSubclassesOnCandidates();
+    assert enumToUnboxCandidates.verifyAllSubtypesAreSet();
     return enumToUnboxCandidates;
   }
 
-  private boolean isEnumUnboxingCandidate(DexProgramClass clazz) {
-    if (!clazz.isEnum()) {
-      return false;
-    }
+  private void setEnumSubclassesOnCandidates() {
+    enumToUnboxCandidates.forEachCandidate(
+        candidate ->
+            enumToUnboxCandidates.setEnumSubclasses(
+                candidate.getType(),
+                enumSubclasses.getOrDefault(candidate.getType(), ImmutableSet.of())));
+  }
 
+  private void removeIneligibleCandidates() {
+    for (DexType ineligibleCandidate : ineligibleCandidates) {
+      enumToUnboxCandidates.removeCandidate(ineligibleCandidate);
+    }
+  }
+
+  private void analyzeEnum(GraphLens graphLensForPrimaryOptimizationPass, DexProgramClass clazz) {
+    if (!appView.options().testing.enableEnumWithSubtypesUnboxing) {
+      if (legacyIsEnumUnboxingCandidate(clazz)) {
+        enumToUnboxCandidates.addCandidate(appView, clazz, graphLensForPrimaryOptimizationPass);
+      }
+      return;
+    }
+    if (clazz.superType == factory.enumType) {
+      if (isSuperEnumUnboxingCandidate(clazz)) {
+        enumToUnboxCandidates.addCandidate(appView, clazz, graphLensForPrimaryOptimizationPass);
+      }
+    } else {
+      if (isSubEnumUnboxingCandidate(clazz)) {
+        enumSubclasses
+            .computeIfAbsent(clazz.superType, ignoreKey(Sets::newIdentityHashSet))
+            .add(clazz);
+      } else {
+        ineligibleCandidates.add(clazz.superType);
+      }
+    }
+  }
+
+  private boolean isSubEnumUnboxingCandidate(DexProgramClass clazz) {
+    assert clazz.isEnum();
     boolean result = true;
-    if (clazz.superType != factory.enumType || !clazz.isEffectivelyFinal(appView)) {
+    // Javac does not seem to generate enums with more than a single subtype level.
+    // TODO(b/273910479): Stop using isEffectivelyFinal.
+    if (!clazz.isEffectivelyFinal(appView)) {
+      if (!enumUnboxer.reportFailure(clazz.superType, Reason.SUBENUM_SUBTYPES)) {
+        return false;
+      }
+      result = false;
+    }
+    DexClass superEnum = appView.definitionFor(clazz.superType);
+    if (superEnum == null || !superEnum.isEnum() || superEnum.superType != factory.enumType) {
+      if (!enumUnboxer.reportFailure(clazz.superType, Reason.SUBENUM_INVALID_HIERARCHY)) {
+        return false;
+      }
+      result = false;
+    }
+    // TODO(b/271385332): Support subEnums with instance fields.
+    if (!clazz.instanceFields().isEmpty()) {
+      if (!enumUnboxer.reportFailure(clazz.superType, Reason.SUBENUM_INSTANCE_FIELDS)) {
+        return false;
+      }
+      result = false;
+    }
+    // TODO(b/271385332): Support subEnums with static members (JDK16+).
+    if (!clazz.staticFields().isEmpty()
+        || !Iterables.isEmpty(clazz.directMethods(DexEncodedMethod::isStatic))) {
+      if (!enumUnboxer.reportFailure(clazz.superType, Reason.SUBENUM_STATIC_MEMBER)) {
+        return false;
+      }
+      result = false;
+    }
+    return result;
+  }
+
+  private boolean legacyIsEnumUnboxingCandidate(DexProgramClass clazz) {
+    assert clazz.isEnum();
+
+    // This is used in debug mode, where we don't do quick returns to log all the reasons an enum
+    // is not unboxed.
+    boolean result = true;
+
+    if (!clazz.isEffectivelyFinal(appView)) {
       if (!enumUnboxer.reportFailure(clazz, Reason.SUBTYPES)) {
         return false;
       }
-      // Record that `clazz` is ineligible, and continue analysis to ensure all reasons are reported
-      // for debugging.
       result = false;
     }
+
+    return isSuperEnumUnboxingCandidate(clazz) && result;
+  }
+
+  private boolean isSuperEnumUnboxingCandidate(DexProgramClass clazz) {
+    assert clazz.isEnum();
+
+    // This is used in debug mode, where we don't do quick returns to log all the reasons an enum
+    // is not unboxed.
+    boolean result = true;
+
+    // TODO(b/271385332): Change this into an assert when legacy is removed.
+    if (clazz.superType != factory.enumType) {
+      if (!enumUnboxer.reportFailure(clazz, Reason.INVALID_LIBRARY_SUPERTYPE)) {
+        return false;
+      }
+      result = false;
+    }
+
     if (clazz.instanceFields().size() > MAX_INSTANCE_FIELDS_FOR_UNBOXING) {
       if (!enumUnboxer.reportFailure(clazz, Reason.MANY_INSTANCE_FIELDS)) {
         return false;

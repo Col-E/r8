@@ -2146,6 +2146,7 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
     public boolean enableSwitchToIfRewriting = true;
     public boolean enableEnumUnboxingDebugLogs =
         System.getProperty("com.android.tools.r8.enableEnumUnboxingDebugLogs") != null;
+    public boolean enableEnumWithSubtypesUnboxing = false;
     public boolean forceRedundantConstNumberRemoval = false;
     public boolean enableExperimentalDesugaredLibraryKeepRuleGenerator = false;
     public boolean invertConditionals = false;

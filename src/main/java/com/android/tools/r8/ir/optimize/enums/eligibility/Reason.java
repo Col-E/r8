@@ -14,7 +14,14 @@ public abstract class Reason {
   public static final Reason ANNOTATION = new StringReason("ANNOTATION");
   public static final Reason PINNED = new StringReason("PINNED");
   public static final Reason DOWN_CAST = new StringReason("DOWN_CAST");
+  public static final Reason INVALID_LIBRARY_SUPERTYPE =
+      new StringReason("INVALID_LIBRARY_SUPERTYPE");
   public static final Reason SUBTYPES = new StringReason("SUBTYPES");
+  public static final Reason SUBENUM_SUBTYPES = new StringReason("SUBENUM_SUBTYPES");
+  public static final Reason SUBENUM_INVALID_HIERARCHY =
+      new StringReason("SUBENUM_INVALID_HIERARCHY");
+  public static final Reason SUBENUM_INSTANCE_FIELDS = new StringReason("SUBENUM_INSTANCE_FIELDS");
+  public static final Reason SUBENUM_STATIC_MEMBER = new StringReason("SUBENUM_STATIC_MEMBER");
   public static final Reason MANY_INSTANCE_FIELDS = new StringReason("MANY_INSTANCE_FIELDS");
   public static final Reason DEFAULT_METHOD_INVOKE = new StringReason("DEFAULT_METHOD_INVOKE");
   public static final Reason UNRESOLVABLE_FIELD = new StringReason("UNRESOLVABLE_FIELD");

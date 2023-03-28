@@ -38,6 +38,10 @@ public class EnumUnboxingCandidateInfoCollection {
         new EnumUnboxingCandidateInfo(appView, enumClass, graphLensForPrimaryOptimizationPass));
   }
 
+  public void setEnumSubclasses(DexType superEnum, Set<DexProgramClass> subclasses) {
+    enumTypeToInfo.get(superEnum).setSubclasses(subclasses);
+  }
+
   public void addPrunedMethod(ProgramMethod method) {
     prunedMethods.add(method.getReference());
   }
@@ -128,11 +132,20 @@ public class EnumUnboxingCandidateInfoCollection {
     enumTypeToInfo.clear();
   }
 
+  public boolean verifyAllSubtypesAreSet() {
+    for (EnumUnboxingCandidateInfo value : enumTypeToInfo.values()) {
+      assert value.subclasses != null;
+    }
+    return true;
+  }
+
   private static class EnumUnboxingCandidateInfo {
 
     private final DexProgramClass enumClass;
     private final LongLivedProgramMethodSetBuilder<ProgramMethodSet> methodDependencies;
     private final Set<DexField> requiredInstanceFieldData = Sets.newConcurrentHashSet();
+
+    private Set<DexProgramClass> subclasses = null;
 
     public EnumUnboxingCandidateInfo(
         AppView<AppInfoWithLiveness> appView,
@@ -144,6 +157,14 @@ public class EnumUnboxingCandidateInfoCollection {
       this.methodDependencies =
           LongLivedProgramMethodSetBuilder.createConcurrentForIdentitySet(
               graphLensForPrimaryOptimizationPass);
+    }
+
+    public Set<DexProgramClass> getSubclasses() {
+      return subclasses;
+    }
+
+    public void setSubclasses(Set<DexProgramClass> subclasses) {
+      this.subclasses = subclasses;
     }
 
     public DexProgramClass getEnumClass() {
