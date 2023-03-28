@@ -86,8 +86,8 @@ public class JavaScriptScriptEngineTest extends ScriptEngineTestBase {
                         equalTo("Resource 'META-INF/MANIFEST.MF' already exists."))))
         .run(parameters.getRuntime(), TestClass.class)
         .applyIf(
-            // TODO(b/227162584): Fails to find any engine on JDK17.
-            parameters.isCfRuntime(CfVm.JDK17),
+            // No default JS engine starting from JDK-14 where Nashorn was removed, see b/227162584.
+            parameters.isCfRuntime() && parameters.asCfRuntime().isNewerThanOrEqual(CfVm.JDK14),
             r -> r.assertFailureWithErrorThatThrows(NullPointerException.class),
             r ->
                 r.assertSuccessWithOutput(

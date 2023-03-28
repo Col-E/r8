@@ -107,8 +107,10 @@ public class ScriptEngineTest extends ScriptEngineTestBase {
         //  comes with "Oracle Nashorn" included.
         .assertSuccessWithOutput(
             parameters.isCfRuntime()
-                // TODO(b/227162584): It looks like the JS engine is not in the jdk anymore.
-                ? (parameters.isCfRuntime(CfVm.JDK17)
+                // No default JS engine starting from JDK-14 where Nashorn was removed,
+                // see b/227162584.
+                ? (parameters.isCfRuntime()
+                        && parameters.asCfRuntime().isNewerThanOrEqual(CfVm.JDK14)
                     ? StringUtils.lines("MyEngine1", "MyEngine2")
                     : StringUtils.lines("MyEngine1", "MyEngine2", "Oracle Nashorn"))
                 : StringUtils.lines("Mozilla Rhino", "MyEngine1", "MyEngine2"));
