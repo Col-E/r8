@@ -739,8 +739,8 @@ public class DexItemFactory {
   public final DexString annotationRecordComponentNames = createString("componentNames");
   public final DexString annotationRecordComponentTypes = createString("componentTypes");
   public final DexString annotationRecordComponentSignatures = createString("componentSignatures");
-  public final DexString annotationRecordComponentVisibilities =
-      createString("componentVisibilities");
+  public final DexString annotationRecordComponentAnnotationVisibilities =
+      createString("componentAnnotationVisibilities");
   public final DexString annotationRecordComponentAnnotations =
       createString("componentAnnotations");
   public final DexType annotationSourceDebugExtension =

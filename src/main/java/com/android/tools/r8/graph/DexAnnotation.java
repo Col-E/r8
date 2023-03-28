@@ -9,6 +9,7 @@ import com.android.tools.r8.dex.IndexedItemCollection;
 import com.android.tools.r8.dex.MixedSectionCollection;
 import com.android.tools.r8.graph.DexValue.DexValueAnnotation;
 import com.android.tools.r8.graph.DexValue.DexValueArray;
+import com.android.tools.r8.graph.DexValue.DexValueByte;
 import com.android.tools.r8.graph.DexValue.DexValueInt;
 import com.android.tools.r8.graph.DexValue.DexValueMethod;
 import com.android.tools.r8.graph.DexValue.DexValueNull;
@@ -320,7 +321,9 @@ public class DexAnnotation extends DexItem implements StructuralItem<DexAnnotati
             factory.annotationRecord, annotation, factory.annotationRecordComponentSignatures);
     DexValue componentAnnotationVisibilitiesValue =
         getSystemValueAnnotationValueWithName(
-            factory.annotationRecord, annotation, factory.annotationRecordComponentVisibilities);
+            factory.annotationRecord,
+            annotation,
+            factory.annotationRecordComponentAnnotationVisibilities);
     DexValue componentAnnotationsValue =
         getSystemValueAnnotationValueWithName(
             factory.annotationRecord, annotation, factory.annotationRecordComponentAnnotations);
@@ -381,12 +384,12 @@ public class DexAnnotation extends DexItem implements StructuralItem<DexAnnotati
             annotationIndex++) {
           DexValue visibilityValue = visibilitiesValueArray.getValue(annotationIndex);
           DexValue annotationValue = annotationsValueArray.getValue(annotationIndex);
-          if (!visibilityValue.isDexValueInt() || !annotationValue.isDexValueAnnotation()) {
+          if (!visibilityValue.isDexValueByte() || !annotationValue.isDexValueAnnotation()) {
             return null;
           }
           componentAnnotations.add(
               new DexAnnotation(
-                  visibilityValue.asDexValueInt().getValue(),
+                  visibilityValue.asDexValueByte().getValue(),
                   annotationValue.asDexValueAnnotation().getValue()));
         }
       }
@@ -481,7 +484,7 @@ public class DexAnnotation extends DexItem implements StructuralItem<DexAnnotati
    * dalvik.annotation.Record</code> with the following content:
    *
    * <pre>
-   *   componentAnnotationVisibilities int[][]
+   *   componentAnnotationVisibilities byte[][]
    *   componentAnnotations Annotation[][]
    *   componentNames String[]
    *   componentSignatures Annotation[]  // Annotation dalvik.annotation.Signature or NULL
@@ -559,13 +562,13 @@ public class DexAnnotation extends DexItem implements StructuralItem<DexAnnotati
                 createSignatureAnnotation(info.getSignature().toString(), factory).annotation);
       }
       int annotationsSize = info.getAnnotations().size();
-      DexValueInt[] visibilities = new DexValueInt[annotationsSize];
+      DexValueByte[] visibilities = new DexValueByte[annotationsSize];
       DexValueAnnotation[] annotations = new DexValueAnnotation[annotationsSize];
       componentAnnotationVisibilities[componentIndex] = new DexValueArray(visibilities);
       componentAnnotations[componentIndex] = new DexValueArray(annotations);
       for (int annotationIndex = 0; annotationIndex < annotationsSize; annotationIndex++) {
         DexAnnotation annotation = info.getAnnotations().get(annotationIndex);
-        visibilities[annotationIndex] = DexValueInt.create(annotation.getVisibility());
+        visibilities[annotationIndex] = DexValueByte.create((byte) annotation.getVisibility());
         annotations[annotationIndex] = new DexValueAnnotation(annotation.annotation);
       }
     }
@@ -584,7 +587,7 @@ public class DexAnnotation extends DexItem implements StructuralItem<DexAnnotati
                     factory.annotationRecordComponentSignatures,
                     new DexValueArray(componentSignatures)),
                 new DexAnnotationElement(
-                    factory.annotationRecordComponentVisibilities,
+                    factory.annotationRecordComponentAnnotationVisibilities,
                     new DexValueArray(componentAnnotationVisibilities)),
                 new DexAnnotationElement(
                     factory.annotationRecordComponentAnnotations,
