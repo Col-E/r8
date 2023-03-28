@@ -44,7 +44,7 @@ import com.android.tools.r8.graph.FieldResolutionResult;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.PrunedItems;
 import com.android.tools.r8.graph.lens.GraphLens;
-import com.android.tools.r8.graph.lens.GraphLens.NonIdentityGraphLens;
+import com.android.tools.r8.graph.lens.NonIdentityGraphLens;
 import com.android.tools.r8.graph.proto.RewrittenPrototypeDescription;
 import com.android.tools.r8.ir.analysis.fieldvalueanalysis.StaticFieldValues;
 import com.android.tools.r8.ir.analysis.fieldvalueanalysis.StaticFieldValues.EnumStaticFieldValues;

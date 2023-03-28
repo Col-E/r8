@@ -4,7 +4,7 @@
 
 package com.android.tools.r8.verticalclassmerging;
 
-import com.android.tools.r8.graph.lens.GraphLens.MethodLookupResult;
+import com.android.tools.r8.graph.lens.MethodLookupResult;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.BasicBlockIterator;
 import com.android.tools.r8.ir.code.FieldPut;

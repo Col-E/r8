@@ -15,7 +15,7 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.UseRegistry;
 import com.android.tools.r8.graph.lens.GraphLens;
-import com.android.tools.r8.graph.lens.GraphLens.NonIdentityGraphLens;
+import com.android.tools.r8.graph.lens.NonIdentityGraphLens;
 import com.android.tools.r8.ir.analysis.VerifyTypesHelper;
 import com.android.tools.r8.ir.analysis.type.Nullability;
 import com.android.tools.r8.ir.analysis.type.TypeElement;

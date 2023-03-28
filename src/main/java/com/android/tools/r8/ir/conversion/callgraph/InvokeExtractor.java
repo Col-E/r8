@@ -15,7 +15,7 @@ import com.android.tools.r8.graph.LookupResult;
 import com.android.tools.r8.graph.MethodResolutionResult;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.UseRegistry;
-import com.android.tools.r8.graph.lens.GraphLens.MethodLookupResult;
+import com.android.tools.r8.graph.lens.MethodLookupResult;
 import com.android.tools.r8.ir.code.InvokeType;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.collections.ProgramMethodSet;

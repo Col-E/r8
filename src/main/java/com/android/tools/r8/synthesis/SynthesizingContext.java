@@ -13,7 +13,7 @@ import com.android.tools.r8.graph.ClasspathOrLibraryClass;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ProgramDefinition;
-import com.android.tools.r8.graph.lens.GraphLens.NonIdentityGraphLens;
+import com.android.tools.r8.graph.lens.NonIdentityGraphLens;
 import com.android.tools.r8.origin.GlobalSyntheticOrigin;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.shaking.MainDexInfo;

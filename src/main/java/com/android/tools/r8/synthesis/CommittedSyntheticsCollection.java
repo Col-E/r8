@@ -8,7 +8,7 @@ import static java.util.Collections.emptyList;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.PrunedItems;
-import com.android.tools.r8.graph.lens.GraphLens.NonIdentityGraphLens;
+import com.android.tools.r8.graph.lens.NonIdentityGraphLens;
 import com.android.tools.r8.synthesis.SyntheticItems.ContextsForGlobalSynthetics;
 import com.android.tools.r8.synthesis.SyntheticNaming.SyntheticKind;
 import com.android.tools.r8.utils.IterableUtils;

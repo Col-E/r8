@@ -26,7 +26,7 @@ import com.android.tools.r8.graph.DexValue.DexValueType;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.UseRegistry.MethodHandleUse;
 import com.android.tools.r8.graph.lens.GraphLens;
-import com.android.tools.r8.graph.lens.GraphLens.MethodLookupResult;
+import com.android.tools.r8.graph.lens.MethodLookupResult;
 import com.android.tools.r8.ir.code.InvokeType;
 import com.android.tools.r8.ir.desugar.LambdaDescriptor;
 import java.util.ArrayList;

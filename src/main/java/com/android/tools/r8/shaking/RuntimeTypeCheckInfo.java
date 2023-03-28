@@ -13,6 +13,7 @@ import com.android.tools.r8.graph.analysis.EnqueuerCheckCastAnalysis;
 import com.android.tools.r8.graph.analysis.EnqueuerExceptionGuardAnalysis;
 import com.android.tools.r8.graph.analysis.EnqueuerInstanceOfAnalysis;
 import com.android.tools.r8.graph.lens.GraphLens;
+import com.android.tools.r8.graph.lens.NonIdentityGraphLens;
 import com.android.tools.r8.utils.SetUtils;
 import com.google.common.collect.Sets;
 import java.util.Set;
@@ -106,7 +107,7 @@ public class RuntimeTypeCheckInfo {
     return isInstanceOfType(clazz) || isCheckCastType(clazz) || isExceptionGuardType(clazz);
   }
 
-  public RuntimeTypeCheckInfo rewriteWithLens(GraphLens.NonIdentityGraphLens graphLens) {
+  public RuntimeTypeCheckInfo rewriteWithLens(NonIdentityGraphLens graphLens) {
     return new RuntimeTypeCheckInfo(
         SetUtils.mapIdentityHashSet(instanceOfTypes, graphLens::lookupType),
         SetUtils.mapIdentityHashSet(checkCastTypes, graphLens::lookupType),

@@ -15,8 +15,8 @@ import com.android.tools.r8.graph.analysis.InitializedClassesInInstanceMethodsAn
 import com.android.tools.r8.graph.classmerging.MergedClassesCollection;
 import com.android.tools.r8.graph.classmerging.VerticallyMergedClasses;
 import com.android.tools.r8.graph.lens.GraphLens;
-import com.android.tools.r8.graph.lens.GraphLens.NonIdentityGraphLens;
 import com.android.tools.r8.graph.lens.InitClassLens;
+import com.android.tools.r8.graph.lens.NonIdentityGraphLens;
 import com.android.tools.r8.horizontalclassmerging.HorizontalClassMerger;
 import com.android.tools.r8.horizontalclassmerging.HorizontallyMergedClasses;
 import com.android.tools.r8.ir.analysis.inlining.SimpleInliningConstraintFactory;

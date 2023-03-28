@@ -5,7 +5,7 @@
 package com.android.tools.r8.graph;
 
 import com.android.tools.r8.graph.lens.GraphLens;
-import com.android.tools.r8.graph.lens.GraphLens.MethodLookupResult;
+import com.android.tools.r8.graph.lens.MethodLookupResult;
 import com.android.tools.r8.ir.code.InvokeType;
 import com.android.tools.r8.utils.ConsumerUtils;
 import com.android.tools.r8.utils.collections.ProgramMethodSet;

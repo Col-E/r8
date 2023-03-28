@@ -27,7 +27,7 @@ import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexMethodHandle.MethodHandleType;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.lens.GraphLens;
-import com.android.tools.r8.graph.lens.GraphLens.MethodLookupResult;
+import com.android.tools.r8.graph.lens.MethodLookupResult;
 import org.objectweb.asm.Opcodes;
 
 public enum InvokeType {

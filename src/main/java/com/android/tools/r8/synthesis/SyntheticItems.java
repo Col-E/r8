@@ -35,7 +35,7 @@ import com.android.tools.r8.graph.ProgramDefinition;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.ProgramOrClasspathDefinition;
 import com.android.tools.r8.graph.PrunedItems;
-import com.android.tools.r8.graph.lens.GraphLens.NonIdentityGraphLens;
+import com.android.tools.r8.graph.lens.NonIdentityGraphLens;
 import com.android.tools.r8.horizontalclassmerging.HorizontalClassMerger;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.origin.Origin;

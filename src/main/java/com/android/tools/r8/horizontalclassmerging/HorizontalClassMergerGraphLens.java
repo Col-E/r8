@@ -11,6 +11,8 @@ import com.android.tools.r8.graph.DexMember;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ProgramMethod;
+import com.android.tools.r8.graph.lens.FieldLookupResult;
+import com.android.tools.r8.graph.lens.MethodLookupResult;
 import com.android.tools.r8.graph.lens.NestedGraphLens;
 import com.android.tools.r8.ir.conversion.ExtraParameter;
 import com.android.tools.r8.utils.IterableUtils;

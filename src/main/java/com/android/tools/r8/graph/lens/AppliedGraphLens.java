@@ -12,7 +12,6 @@ import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
-import com.android.tools.r8.graph.lens.GraphLens.NonIdentityGraphLens;
 import com.android.tools.r8.graph.proto.RewrittenPrototypeDescription;
 import com.android.tools.r8.utils.MapUtils;
 import com.android.tools.r8.utils.collections.BidirectionalManyToOneRepresentativeHashMap;

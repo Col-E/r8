@@ -12,6 +12,7 @@ import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.classmerging.VerticallyMergedClasses;
+import com.android.tools.r8.graph.lens.MethodLookupResult;
 import com.android.tools.r8.graph.lens.NestedGraphLens;
 import com.android.tools.r8.graph.proto.ArgumentInfoCollection;
 import com.android.tools.r8.graph.proto.RewrittenPrototypeDescription;

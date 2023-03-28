@@ -25,7 +25,7 @@ import com.android.tools.r8.graph.ProgramField;
 import com.android.tools.r8.graph.ProgramMember;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.PrunedItems;
-import com.android.tools.r8.graph.lens.GraphLens.NonIdentityGraphLens;
+import com.android.tools.r8.graph.lens.NonIdentityGraphLens;
 import com.android.tools.r8.shaking.KeepFieldInfo.Joiner;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.MapUtils;
