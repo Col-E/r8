@@ -4,15 +4,13 @@
 
 package com.android.tools.r8.shaking;
 
-import static com.android.tools.r8.DiagnosticsMatcher.diagnosticMessage;
-import static org.hamcrest.CoreMatchers.allOf;
-import static org.hamcrest.CoreMatchers.containsString;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.Version;
 import com.android.tools.r8.utils.AndroidApiLevel;
+import com.android.tools.r8.utils.LibraryProvidedProguardRulesTestUtils;
 import com.android.tools.r8.utils.SemanticVersion;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.ZipUtils.ZipBuilder;
@@ -237,13 +235,7 @@ public class LibraryProvidedProguardRulesR8SpecificTest
                     1,
                     diagnostics.getWarnings().stream()
                         .filter(
-                            allOf(
-                                    diagnosticMessage(containsString("Running R8 version main")),
-                                    diagnosticMessage(
-                                        containsString(
-                                            "Using an artificial version newer than any known"
-                                                + " version")))
-                                ::matches)
+                            LibraryProvidedProguardRulesTestUtils.getDiagnosticMatcher()::matches)
                         .count()))
         .inspectProguardConfiguration(
             configuration ->

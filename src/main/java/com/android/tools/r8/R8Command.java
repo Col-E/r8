@@ -706,8 +706,8 @@ public final class R8Command extends BaseCompilerCommand {
                             + ", which cannot be represented as a semantic version. Using"
                             + " an artificial version newer than any known version for selecting"
                             + " Proguard configurations embedded under META-INF/. This means that"
-                            + " all rules with a '-max-' qualifier will be excluded and all rules"
-                            + " with a -min- qualifier will be included.");
+                            + " all rules with a '-upto-' qualifier will be excluded and all rules"
+                            + " with a -from- qualifier will be included.");
                   }
                   return compilerVersion;
                 });

@@ -19,6 +19,7 @@ import com.android.tools.r8.kotlin.KotlinMetadataAnnotationWrapper;
 import com.android.tools.r8.kotlin.KotlinMetadataWriter;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.IntBox;
+import com.android.tools.r8.utils.LibraryProvidedProguardRulesTestUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.FoundClassSubject;
@@ -176,6 +177,7 @@ public abstract class KotlinMetadataTestBase extends KotlinTestBase {
     compileResult.assertAllWarningMessagesMatch(
         anyOf(
             equalTo("Resource 'META-INF/MANIFEST.MF' already exists."),
-            equalTo("Resource 'META-INF/versions/9/module-info.class' already exists.")));
+            equalTo("Resource 'META-INF/versions/9/module-info.class' already exists."),
+            LibraryProvidedProguardRulesTestUtils.getDiagnosticMessageMatcher()));
   }
 }
