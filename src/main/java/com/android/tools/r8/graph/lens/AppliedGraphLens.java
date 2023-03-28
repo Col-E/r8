@@ -32,7 +32,7 @@ import java.util.Set;
  *
  * <p>The mappings from the original program to the generated program are kept, though.
  */
-public final class AppliedGraphLens extends NonIdentityGraphLens {
+public final class AppliedGraphLens extends DefaultNonIdentityGraphLens {
 
   private final MutableBidirectionalManyToOneRepresentativeMap<DexType, DexType> renamedTypeNames =
       BidirectionalManyToOneRepresentativeHashMap.newIdentityHashMap();
@@ -151,17 +151,6 @@ public final class AppliedGraphLens extends NonIdentityGraphLens {
   @Override
   public DexType internalDescribeLookupClassType(DexType previous) {
     return renamedTypeNames.getOrDefault(previous, previous);
-  }
-
-  @Override
-  protected FieldLookupResult internalDescribeLookupField(FieldLookupResult previous) {
-    return previous;
-  }
-
-  @Override
-  public MethodLookupResult internalDescribeLookupMethod(
-      MethodLookupResult previous, DexMethod context) {
-    return previous;
   }
 
   @Override

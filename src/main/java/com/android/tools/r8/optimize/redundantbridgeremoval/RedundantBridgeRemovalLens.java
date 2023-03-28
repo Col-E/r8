@@ -6,22 +6,19 @@ package com.android.tools.r8.optimize.redundantbridgeremoval;
 
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClassAndMethod;
-import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ProgramMethod;
-import com.android.tools.r8.graph.lens.FieldLookupResult;
+import com.android.tools.r8.graph.lens.DefaultNonIdentityGraphLens;
 import com.android.tools.r8.graph.lens.GraphLens;
 import com.android.tools.r8.graph.lens.MethodLookupResult;
-import com.android.tools.r8.graph.lens.NonIdentityGraphLens;
-import com.android.tools.r8.graph.proto.RewrittenPrototypeDescription;
 import com.android.tools.r8.ir.code.InvokeType;
 import com.google.common.collect.Sets;
 import java.util.IdentityHashMap;
 import java.util.Map;
 import java.util.Set;
 
-public class RedundantBridgeRemovalLens extends NonIdentityGraphLens {
+public class RedundantBridgeRemovalLens extends DefaultNonIdentityGraphLens {
 
   private final Set<DexType> interfaces;
   private final Map<DexMethod, DexMethod> methodMap;
@@ -31,26 +28,6 @@ public class RedundantBridgeRemovalLens extends NonIdentityGraphLens {
     super(appView);
     this.interfaces = interfaces;
     this.methodMap = methodMap;
-  }
-
-  // Fields.
-
-  @Override
-  public DexField getOriginalFieldSignature(DexField field) {
-    return getPrevious().getOriginalFieldSignature(field);
-  }
-
-  @Override
-  public DexField getRenamedFieldSignature(DexField originalField, GraphLens codeLens) {
-    if (this == codeLens) {
-      return originalField;
-    }
-    return getPrevious().getRenamedFieldSignature(originalField, codeLens);
-  }
-
-  @Override
-  protected FieldLookupResult internalDescribeLookupField(FieldLookupResult previous) {
-    return previous;
   }
 
   // Methods.
@@ -63,16 +40,6 @@ public class RedundantBridgeRemovalLens extends NonIdentityGraphLens {
     DexMethod previousMethodSignature =
         getPrevious().getRenamedMethodSignature(originalMethod, applied);
     return methodMap.getOrDefault(previousMethodSignature, previousMethodSignature);
-  }
-
-  @Override
-  public DexMethod getNextMethodSignature(DexMethod method) {
-    return method;
-  }
-
-  @Override
-  public DexMethod getPreviousMethodSignature(DexMethod method) {
-    return method;
   }
 
   @Override
@@ -98,39 +65,6 @@ public class RedundantBridgeRemovalLens extends NonIdentityGraphLens {
           .build();
     }
     return previous;
-  }
-
-  @Override
-  public RewrittenPrototypeDescription lookupPrototypeChangesForMethodDefinition(
-      DexMethod method, GraphLens codeLens) {
-    if (this == codeLens) {
-      return RewrittenPrototypeDescription.none();
-    }
-    return getPrevious().lookupPrototypeChangesForMethodDefinition(method, codeLens);
-  }
-
-  // Types.
-
-  @Override
-  public DexType getOriginalType(DexType type) {
-    return getPrevious().getOriginalType(type);
-  }
-
-  @Override
-  public Iterable<DexType> getOriginalTypes(DexType type) {
-    return getPrevious().getOriginalTypes(type);
-  }
-
-  @Override
-  protected DexType internalDescribeLookupClassType(DexType previous) {
-    return previous;
-  }
-
-  // Misc.
-
-  @Override
-  public boolean isContextFreeForMethods() {
-    return getPrevious().isContextFreeForMethods();
   }
 
   public static class Builder {

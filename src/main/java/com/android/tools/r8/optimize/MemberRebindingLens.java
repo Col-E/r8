@@ -11,20 +11,19 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
-import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.FieldAccessInfo;
+import com.android.tools.r8.graph.lens.DefaultNonIdentityGraphLens;
 import com.android.tools.r8.graph.lens.FieldLookupResult;
 import com.android.tools.r8.graph.lens.GraphLens;
 import com.android.tools.r8.graph.lens.MethodLookupResult;
 import com.android.tools.r8.graph.lens.NonIdentityGraphLens;
-import com.android.tools.r8.graph.proto.RewrittenPrototypeDescription;
 import com.android.tools.r8.ir.code.InvokeType;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import java.util.Collections;
 import java.util.IdentityHashMap;
 import java.util.Map;
 
-public class MemberRebindingLens extends NonIdentityGraphLens {
+public class MemberRebindingLens extends DefaultNonIdentityGraphLens {
 
   private final AppView<AppInfoWithLiveness> appView;
   private final Map<InvokeType, Map<DexMethod, DexMethod>> methodMaps;
@@ -52,55 +51,6 @@ public class MemberRebindingLens extends NonIdentityGraphLens {
   @Override
   public MemberRebindingLens asMemberRebindingLens() {
     return this;
-  }
-
-  @Override
-  public DexType getOriginalType(DexType type) {
-    return getPrevious().getOriginalType(type);
-  }
-
-  @Override
-  public Iterable<DexType> getOriginalTypes(DexType type) {
-    return getPrevious().getOriginalTypes(type);
-  }
-
-  @Override
-  public DexField getOriginalFieldSignature(DexField field) {
-    return getPrevious().getOriginalFieldSignature(field);
-  }
-
-  @Override
-  public DexField getRenamedFieldSignature(DexField originalField, GraphLens codeLens) {
-    if (this == codeLens) {
-      return originalField;
-    }
-    return getPrevious().getRenamedFieldSignature(originalField);
-  }
-
-  @Override
-  public DexMethod getRenamedMethodSignature(DexMethod originalMethod, GraphLens applied) {
-    return this != applied
-        ? getPrevious().getRenamedMethodSignature(originalMethod, applied)
-        : originalMethod;
-  }
-
-  @Override
-  public RewrittenPrototypeDescription lookupPrototypeChangesForMethodDefinition(
-      DexMethod method, GraphLens codeLens) {
-    if (this == codeLens) {
-      return getIdentityLens().lookupPrototypeChangesForMethodDefinition(method, codeLens);
-    }
-    return getPrevious().lookupPrototypeChangesForMethodDefinition(method, codeLens);
-  }
-
-  @Override
-  public boolean isContextFreeForMethods() {
-    return getPrevious().isContextFreeForMethods();
-  }
-
-  @Override
-  protected DexType internalDescribeLookupClassType(DexType previous) {
-    return previous;
   }
 
   @Override
@@ -133,16 +83,6 @@ public class MemberRebindingLens extends NonIdentityGraphLens {
             mapVirtualInterfaceInvocationTypes(
                 appView, newMethod, previous.getReference(), previous.getType()))
         .build();
-  }
-
-  @Override
-  public DexMethod getPreviousMethodSignature(DexMethod method) {
-    return method;
-  }
-
-  @Override
-  public DexMethod getNextMethodSignature(DexMethod method) {
-    return method;
   }
 
   public FieldRebindingIdentityLens toRewrittenFieldRebindingLens(

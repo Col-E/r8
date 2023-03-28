@@ -8,31 +8,15 @@ import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
-import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.proto.RewrittenPrototypeDescription;
 import com.android.tools.r8.ir.code.InvokeType;
 
 // This lens clears all code rewriting (lookup methods mimics identity lens behavior) but still
 // relies on the previous lens for names (getRenamed/Original methods).
-public class ClearCodeRewritingGraphLens extends NonIdentityGraphLens {
+public class ClearCodeRewritingGraphLens extends DefaultNonIdentityGraphLens {
 
   public ClearCodeRewritingGraphLens(DexItemFactory dexItemFactory, GraphLens previousLens) {
     super(dexItemFactory, previousLens);
-  }
-
-  @Override
-  public DexType getOriginalType(DexType type) {
-    return getPrevious().getOriginalType(type);
-  }
-
-  @Override
-  public Iterable<DexType> getOriginalTypes(DexType type) {
-    return getPrevious().getOriginalTypes(type);
-  }
-
-  @Override
-  public DexField getOriginalFieldSignature(DexField field) {
-    return getPrevious().getOriginalFieldSignature(field);
   }
 
   @Override
@@ -56,11 +40,6 @@ public class ClearCodeRewritingGraphLens extends NonIdentityGraphLens {
   public RewrittenPrototypeDescription lookupPrototypeChangesForMethodDefinition(
       DexMethod method, GraphLens codeLens) {
     return getIdentityLens().lookupPrototypeChangesForMethodDefinition(method, codeLens);
-  }
-
-  @Override
-  public final DexType internalDescribeLookupClassType(DexType previous) {
-    return previous;
   }
 
   @Override
@@ -90,16 +69,6 @@ public class ClearCodeRewritingGraphLens extends NonIdentityGraphLens {
   public MethodLookupResult internalDescribeLookupMethod(
       MethodLookupResult previous, DexMethod context) {
     throw new Unreachable();
-  }
-
-  @Override
-  public DexMethod getPreviousMethodSignature(DexMethod method) {
-    return method;
-  }
-
-  @Override
-  public DexMethod getNextMethodSignature(DexMethod method) {
-    return method;
   }
 
   @Override
