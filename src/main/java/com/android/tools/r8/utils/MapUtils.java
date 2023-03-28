@@ -7,6 +7,7 @@ package com.android.tools.r8.utils;
 import com.android.tools.r8.utils.StringUtils.BraceType;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceMap;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceMaps;
+import java.util.Collections;
 import java.util.IdentityHashMap;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -120,5 +121,9 @@ public class MapUtils {
       }
     }
     return true;
+  }
+
+  public static <K, V> Map<K, V> unmodifiableForTesting(Map<K, V> map) {
+    return InternalOptions.assertionsEnabled() ? Collections.unmodifiableMap(map) : map;
   }
 }

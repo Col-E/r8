@@ -15,22 +15,25 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.PrunedItems;
 import com.android.tools.r8.synthesis.SyntheticItems;
+import com.android.tools.r8.utils.MapUtils;
 import com.android.tools.r8.utils.SetUtils;
 import com.android.tools.r8.utils.ThrowingConsumer;
 import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.Set;
 import java.util.function.BiConsumer;
 
 public class NonEmptyStartupProfile extends StartupProfile {
 
   private final Set<DexType> startupClasses;
-  private final LinkedHashMap<DexReference, StartupProfileRule> startupRules;
+  private final Map<DexReference, StartupProfileRule> startupRules;
 
   public NonEmptyStartupProfile(LinkedHashMap<DexReference, StartupProfileRule> startupRules) {
     assert !startupRules.isEmpty();
     this.startupClasses =
-        SetUtils.mapIdentityHashSet(startupRules.keySet(), DexReference::getContextType);
-    this.startupRules = startupRules;
+        SetUtils.unmodifiableForTesting(
+            SetUtils.mapIdentityHashSet(startupRules.keySet(), DexReference::getContextType));
+    this.startupRules = MapUtils.unmodifiableForTesting(startupRules);
   }
 
   @Override

@@ -131,4 +131,8 @@ public class SetUtils {
     union.addAll(other);
     return union;
   }
+
+  public static <K> Set<K> unmodifiableForTesting(Set<K> map) {
+    return InternalOptions.assertionsEnabled() ? Collections.unmodifiableSet(map) : map;
+  }
 }
