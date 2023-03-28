@@ -2238,6 +2238,9 @@ test { task ->
         systemProperty 'slow_tests', project.property('slow_tests')
     }
 
+    if (project.hasProperty('force_32_bit_art')) {
+        systemProperty 'force_32_bit_art', project.property('force_32_bit_art')
+    }
 
     if (project.hasProperty('desugar_jdk_json_dir')) {
         systemProperty 'desugar_jdk_json_dir', project.property('desugar_jdk_json_dir')

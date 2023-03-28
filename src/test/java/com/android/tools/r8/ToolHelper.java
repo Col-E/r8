@@ -1907,6 +1907,10 @@ public class ToolHelper {
     return new ProcessResult(passed ? 0 : -1, "", stdErr);
   }
 
+  public static boolean force32BitArt() {
+    return System.getProperty("force_32_bit_art") != null;
+  }
+
   public static boolean dealsWithGoldenFiles() {
     return compareAgaintsGoldenFiles() || generateGoldenFiles();
   }
