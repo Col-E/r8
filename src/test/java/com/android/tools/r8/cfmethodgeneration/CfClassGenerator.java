@@ -119,7 +119,7 @@ public abstract class CfClassGenerator extends CodeGenerationBase {
 
     builder.startLine().append(imports.getNestHostClassAttribute()).appendLine(".none(),");
 
-    for (int i = 0; i < 2; i++) {
+    for (int i = 0; i < 3; i++) {
       builder.startLine().append(imports.getJavaUtilCollections()).appendLine(".emptyList(),");
     }
 
