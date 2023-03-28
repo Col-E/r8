@@ -159,10 +159,6 @@ public class EnumUnboxingCandidateInfoCollection {
               graphLensForPrimaryOptimizationPass);
     }
 
-    public Set<DexProgramClass> getSubclasses() {
-      return subclasses;
-    }
-
     public void setSubclasses(Set<DexProgramClass> subclasses) {
       this.subclasses = subclasses;
     }
