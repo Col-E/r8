@@ -6,9 +6,9 @@ package com.android.tools.r8.verticalclassmerging;
 
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
-import com.android.tools.r8.graph.GraphLens;
-import com.android.tools.r8.graph.GraphLens.MethodLookupResult;
-import com.android.tools.r8.graph.GraphLens.NonIdentityGraphLens;
+import com.android.tools.r8.graph.lens.GraphLens;
+import com.android.tools.r8.graph.lens.GraphLens.MethodLookupResult;
+import com.android.tools.r8.graph.lens.GraphLens.NonIdentityGraphLens;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.BasicBlockIterator;
 import com.android.tools.r8.ir.code.FieldPut;

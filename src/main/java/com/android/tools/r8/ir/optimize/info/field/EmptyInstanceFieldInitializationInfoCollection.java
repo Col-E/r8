@@ -7,7 +7,7 @@ package com.android.tools.r8.ir.optimize.info.field;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexDefinitionSupplier;
 import com.android.tools.r8.graph.DexEncodedField;
-import com.android.tools.r8.graph.GraphLens;
+import com.android.tools.r8.graph.lens.GraphLens;
 import com.android.tools.r8.graph.proto.ArgumentInfoCollection;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import java.util.function.BiConsumer;

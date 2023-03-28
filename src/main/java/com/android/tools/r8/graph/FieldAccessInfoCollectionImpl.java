@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.graph;
 
+import com.android.tools.r8.graph.lens.GraphLens;
 import com.android.tools.r8.utils.ObjectUtils;
 import com.android.tools.r8.utils.SetUtils;
 import java.util.IdentityHashMap;

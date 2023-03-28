@@ -6,7 +6,7 @@ package com.android.tools.r8.synthesis;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexClasspathClass;
 import com.android.tools.r8.graph.DexType;
-import com.android.tools.r8.graph.GraphLens.NonIdentityGraphLens;
+import com.android.tools.r8.graph.lens.GraphLens.NonIdentityGraphLens;
 import com.android.tools.r8.synthesis.SyntheticNaming.SyntheticKind;
 import java.util.function.Function;
 

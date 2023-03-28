@@ -4,7 +4,8 @@
 
 package com.android.tools.r8.graph;
 
-import com.android.tools.r8.graph.GraphLens.NonIdentityGraphLens;
+import com.android.tools.r8.graph.lens.GraphLens;
+import com.android.tools.r8.graph.lens.GraphLens.NonIdentityGraphLens;
 import com.android.tools.r8.graph.proto.RewrittenPrototypeDescription;
 import com.android.tools.r8.ir.code.InvokeType;
 import com.android.tools.r8.utils.IterableUtils;

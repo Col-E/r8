@@ -5,7 +5,7 @@
 package com.android.tools.r8.graph.proto;
 
 import com.android.tools.r8.graph.AppView;
-import com.android.tools.r8.graph.GraphLens;
+import com.android.tools.r8.graph.lens.GraphLens;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 
 public abstract class ArgumentInfo {

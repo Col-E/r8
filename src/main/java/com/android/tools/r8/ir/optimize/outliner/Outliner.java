@@ -5,8 +5,8 @@
 package com.android.tools.r8.ir.optimize.outliner;
 
 import com.android.tools.r8.graph.AppView;
-import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.ProgramMethod;
+import com.android.tools.r8.graph.lens.GraphLens;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.conversion.IRConverter;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackDelayed;

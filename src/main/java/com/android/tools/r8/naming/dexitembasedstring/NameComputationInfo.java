@@ -7,7 +7,7 @@ package com.android.tools.r8.naming.dexitembasedstring;
 import com.android.tools.r8.graph.DexDefinitionSupplier;
 import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexString;
-import com.android.tools.r8.graph.GraphLens;
+import com.android.tools.r8.graph.lens.GraphLens;
 import com.android.tools.r8.naming.NamingLens;
 
 public abstract class NameComputationInfo<T extends DexReference> {

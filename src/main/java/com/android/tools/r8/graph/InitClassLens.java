@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.graph;
 
+import com.android.tools.r8.graph.lens.GraphLens;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 

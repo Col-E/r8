@@ -5,6 +5,7 @@
 package com.android.tools.r8.graph;
 
 import com.android.tools.r8.errors.Unreachable;
+import com.android.tools.r8.graph.lens.GraphLens;
 import java.util.Map;
 
 public class FinalInitClassLens extends InitClassLens {

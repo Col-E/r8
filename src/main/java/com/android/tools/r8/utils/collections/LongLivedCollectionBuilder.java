@@ -4,7 +4,7 @@
 
 package com.android.tools.r8.utils.collections;
 
-import com.android.tools.r8.graph.GraphLens;
+import com.android.tools.r8.graph.lens.GraphLens;
 import java.util.function.IntFunction;
 
 public abstract class LongLivedCollectionBuilder<BuilderCollection, ResultCollection> {

@@ -7,6 +7,7 @@ package com.android.tools.r8.graph;
 import com.android.tools.r8.dex.DebugBytecodeWriter;
 import com.android.tools.r8.dex.IndexedItemCollection;
 import com.android.tools.r8.dex.MixedSectionCollection;
+import com.android.tools.r8.graph.lens.GraphLens;
 
 /** Interface to guarantee that the info only contains writable events. */
 public interface DexDebugInfoForWriting {

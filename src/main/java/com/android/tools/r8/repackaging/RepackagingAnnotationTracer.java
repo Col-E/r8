@@ -13,8 +13,8 @@ import com.android.tools.r8.graph.DexAnnotationSet;
 import com.android.tools.r8.graph.DexEncodedAnnotation;
 import com.android.tools.r8.graph.DexMethodHandle;
 import com.android.tools.r8.graph.DexValue;
-import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.ParameterAnnotationsList;
+import com.android.tools.r8.graph.lens.GraphLens;
 
 public class RepackagingAnnotationTracer {
 
