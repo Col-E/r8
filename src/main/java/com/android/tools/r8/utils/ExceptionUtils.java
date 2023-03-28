@@ -104,7 +104,9 @@ public abstract class ExceptionUtils {
     Position position = Position.UNKNOWN;
     List<Throwable> suppressed = new ArrayList<>();
     Throwable innerMostCause = topMostException;
+    boolean cancelled = false;
     while (true) {
+      cancelled |= innerMostCause instanceof CancelCompilationException;
       hasBeenReported |= abortException.isAssignableFrom(innerMostCause.getClass());
       Origin nextOrigin = getOrigin(innerMostCause);
       if (nextOrigin != Origin.unknown()) {
@@ -124,11 +126,6 @@ public abstract class ExceptionUtils {
     if (topMostException != innerMostCause) {
       innerMostCause.addSuppressed(topMostException);
     }
-
-    boolean cancelled =
-        topMostException instanceof CancelCompilationException
-            || innerMostCause instanceof CancelCompilationException;
-    assert !cancelled || topMostException == innerMostCause;
 
     // If no abort is seen, the exception is not reported, so report it now.
     if (!cancelled && !hasBeenReported) {

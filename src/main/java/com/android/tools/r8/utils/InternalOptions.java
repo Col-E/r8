@@ -185,8 +185,10 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
       cancelled.set(true);
       return true;
     }
-    // Return the cancelled value in case another thread has cancelled.
-    return cancelled.get();
+    // The expected path is for no cancel to happen, thus return false here even though a cancel
+    // may have happened since the above check. Either next print phase will see the change or the
+    // task is done now.
+    return false;
   }
 
   public boolean hasProguardConfiguration() {
