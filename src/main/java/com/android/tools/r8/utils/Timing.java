@@ -62,13 +62,11 @@ public class Timing {
     return Timing.EMPTY;
   }
 
-  private static class TimingWithCancellation extends Timing {
-    private final InternalOptions options;
+  private abstract static class TimingDelegateBase extends Timing {
     private final Timing timing;
 
-    TimingWithCancellation(InternalOptions options, Timing timing) {
-      super("<cancel>", false);
-      this.options = options;
+    public TimingDelegateBase(String title, Timing timing) {
+      super(title);
       this.timing = timing;
     }
 
@@ -79,9 +77,6 @@ public class Timing {
 
     @Override
     public void begin(String title) {
-      if (options.checkIfCancelled()) {
-        throw new CancelCompilationException();
-      }
       timing.begin(title);
     }
 
@@ -103,6 +98,23 @@ public class Timing {
     @Override
     public void report() {
       timing.report();
+    }
+  }
+
+  private static class TimingWithCancellation extends TimingDelegateBase {
+    private final InternalOptions options;
+
+    TimingWithCancellation(InternalOptions options, Timing timing) {
+      super("<cancel>", timing);
+      this.options = options;
+    }
+
+    @Override
+    public void begin(String title) {
+      if (options.checkIfCancelled()) {
+        throw new CancelCompilationException();
+      }
+      super.begin(title);
     }
   }
 
