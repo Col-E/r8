@@ -14,7 +14,6 @@ import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestShrinkerBuilder;
 import com.android.tools.r8.ThrowableConsumer;
 import com.android.tools.r8.ToolHelper;
-import com.android.tools.r8.kotlin.metadata.KotlinMetadataTestBase;
 import com.android.tools.r8.shaking.ProguardKeepAttributes;
 import java.util.Collection;
 import org.junit.Test;
@@ -63,12 +62,10 @@ public class ProcessKotlinReflectionLibTest extends KotlinTestBase {
         .allowUnusedProguardConfigurationRules(
             kotlinc.getCompilerVersion().isGreaterThan(KOTLINC_1_3_72))
         .apply(testBuilderConsumer)
+        .apply(configureForLibraryWithEmbeddedProguardRules())
         .compile()
         .apply(compileResultBuilder)
-        .apply(assertUnusedKeepRuleForKotlinMetadata(kotlinc.isNot(KOTLINC_1_3_72)))
-        .applyIf(
-            kotlinc.getCompilerVersion().isGreaterThan(KOTLINC_1_3_72),
-            KotlinMetadataTestBase::verifyExpectedWarningsFromKotlinReflectAndStdLib);
+        .apply(assertUnusedKeepRuleForKotlinMetadata(kotlinc.isNot(KOTLINC_1_3_72)));
   }
 
   @Test

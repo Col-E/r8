@@ -114,7 +114,8 @@ public class ReflectiveConstructionWithInlineClassTest extends KotlinTestBase {
         .addKeepAttributes(ProguardKeepAttributes.RUNTIME_VISIBLE_ANNOTATIONS)
         .allowDiagnosticMessages()
         .allowUnusedDontWarnKotlinReflectJvmInternal()
-        .allowUnusedDontWarnJavaLangClassValue();
+        .allowUnusedDontWarnJavaLangClassValue()
+        .apply(configureForLibraryWithEmbeddedProguardRules());
   }
 
   @Test

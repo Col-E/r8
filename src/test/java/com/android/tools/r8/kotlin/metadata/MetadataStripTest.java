@@ -60,6 +60,7 @@ public class MetadataStripTest extends KotlinMetadataTestBase {
             .allowUnusedDontWarnKotlinReflectJvmInternal(kotlinc.isNot(KOTLINC_1_3_72))
             .allowUnusedDontWarnJavaLangClassValue(
                 kotlinc.getCompilerVersion().isGreaterThan(KOTLINC_1_7_0))
+            .apply(configureForLibraryWithEmbeddedProguardRules())
             .compile()
             .assertNoErrorMessages()
             .apply(KotlinMetadataTestBase::verifyExpectedWarningsFromKotlinReflectAndStdLib)

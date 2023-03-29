@@ -11,6 +11,7 @@ import com.android.tools.r8.KotlinCompilerTool.KotlinTargetVersion;
 import com.android.tools.r8.TestRuntime.CfRuntime;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.FileUtils;
+import com.android.tools.r8.utils.SemanticVersion;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -140,6 +141,15 @@ public abstract class KotlinTestBase extends TestBase {
                       "Proguard configuration rule does not match anything: `-keep class"
                           + " kotlin.Metadata")));
     };
+  }
+
+  public static ThrowableConsumer<R8FullTestBuilder>
+      configureForLibraryWithEmbeddedProguardRules() {
+    // When running on main explicitly configure max compiler version for checking against
+    // embeded proguard rules.
+    return builder ->
+        builder.applyIf(
+            Version.isMainVersion(), b -> b.setFakeCompilerVersion(SemanticVersion.max()));
   }
 
   public static class KotlinCompileMemoizer {

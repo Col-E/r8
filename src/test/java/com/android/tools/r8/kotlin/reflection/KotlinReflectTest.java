@@ -103,6 +103,7 @@ public class KotlinReflectTest extends KotlinTestBase {
         .applyIf(
             parameters.isCfRuntime() && kotlinParameters.isNewerThanOrEqualTo(KOTLINC_1_8_0),
             TestShrinkerBuilder::addDontWarnJavaLangInvokeLambdaMetadataFactory)
+        .apply(configureForLibraryWithEmbeddedProguardRules())
         .compile()
         .assertNoErrorMessages()
         // -keepattributes Signature is added in kotlin-reflect from version 1.4.20.
