@@ -24,10 +24,6 @@ public class UnicodeSetRegressionTest extends TestBase {
   private static final String JAR_FILE =
       "src/test/java/com/android/tools/r8/jar/UnicodeSetRegression/UnicodeSet.jar";
 
-  private AndroidApp dexFromDX() throws IOException {
-    return ToolHelper.runDexer(JAR_FILE, temp.newFolder("dx-dex").getPath());
-  }
-
   @Test
   public void testUnicodeSetFromJar() throws Throwable {
     Path combinedInput = temp.getRoot().toPath().resolve("all.zip");

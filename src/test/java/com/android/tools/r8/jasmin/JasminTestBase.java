@@ -197,45 +197,6 @@ public class JasminTestBase extends TestBase {
     return runOnArtRaw(result, libraryApp, main);
   }
 
-  private ProcessResult runDx(JasminBuilder builder, File classes, Path dex) throws Exception {
-    builder.writeClassFiles(classes.toPath());
-    List<String> args = new ArrayList<>();
-    args.add("--output=" + dex.toString());
-    args.add(classes.toString());
-    System.out.println("running: dx " + StringUtils.join(" ", args));
-    return ToolHelper.runDX(args.toArray(new String[args.size()]));
-  }
-
-  protected ProcessResult runDX(JasminBuilder builder) throws Exception {
-    return runDx(builder, temp.newFolder("classes_for_dx"),
-        temp.getRoot().toPath().resolve("classes.dex"));
-  }
-
-  protected String runOnArtDx(JasminBuilder builder, String main) throws Exception {
-    Path dex = temp.getRoot().toPath().resolve("classes.dex");
-    ProcessResult result = runDx(builder, temp.newFolder("classes_for_dx"), dex);
-    assertNormalExitAndGetStdout(result);
-    return ToolHelper.runArtNoVerificationErrors(dex.toString(), main);
-  }
-
-  protected ProcessResult runOnArtDxRaw(JasminBuilder builder, String main) throws Exception {
-    Path dex = temp.getRoot().toPath().resolve("classes.dex");
-    ProcessResult result = runDx(builder, temp.newFolder("classes_for_dx"), dex);
-    assertNormalExitAndGetStdout(result);
-    return ToolHelper.runArtRaw(dex.toString(), main);
-  }
-
-  protected ProcessResult runOnArtDxRaw(JasminBuilder program, JasminBuilder library, String main)
-      throws Exception {
-    Path dex = temp.getRoot().toPath().resolve("classes.dex");
-    ProcessResult result = runDx(program, temp.newFolder("classes_for_dx"), dex);
-    assertNormalExitAndGetStdout(result);
-    Path libraryDex = temp.getRoot().toPath().resolve("library.dex");
-    result = runDx(library, temp.newFolder("classes_for_library_dx"), libraryDex);
-    assertNormalExitAndGetStdout(result);
-    return ToolHelper.runArtRaw(ImmutableList.of(dex.toString(), libraryDex.toString()), main, null);
-  }
-
   @Override
   protected ProcessResult runOnArtRaw(AndroidApp app, String main) throws IOException {
     Path out = temp.getRoot().toPath().resolve("out.zip");

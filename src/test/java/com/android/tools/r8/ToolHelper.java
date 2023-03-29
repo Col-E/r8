@@ -588,23 +588,6 @@ public class ToolHelper {
     return filePathList.stream().map(File::new).collect(Collectors.toList());
   }
 
-  public static class DXCommandBuilder extends CommandBuilder {
-
-    public DXCommandBuilder() {
-      appendProgramArgument("--dex");
-    }
-
-    @Override
-    protected boolean shouldUseDocker() {
-      return false;
-    }
-
-    @Override
-    protected String getExecutable() {
-      return DX.toAbsolutePath().toString();
-    }
-  }
-
   private static class StreamReader implements Runnable {
 
     private InputStream stream;
@@ -734,7 +717,6 @@ public class ToolHelper {
     PRODUCT = builder.build();
   }
 
-  private static final Path DX = getDxExecutablePath();
 
   private static Path getDexVmPath(DexVm vm) {
     DexVm.Version version = vm.getVersion();
@@ -856,12 +838,6 @@ public class ToolHelper {
       return Backend.values();
     }
     return new Backend[]{Backend.DEX};
-  }
-
-  private static Path getDxExecutablePath() {
-    String toolsDir = toolsDir();
-    String executableName = toolsDir.equals("windows") ? "dx.bat" : "dx";
-    return Paths.get(TOOLS_DIR, toolsDir(), "dx", "bin", executableName);
   }
 
   public static String getArtBinary(DexVm version) {
@@ -1472,41 +1448,6 @@ public class ToolHelper {
     InternalOptions internalOptions = command.getInternalOptions();
     optionsConsumer.accept(internalOptions);
     return GenerateMainDexList.runForTesting(command.getInputApp(), internalOptions);
-  }
-
-  public static AndroidApp runDexer(String fileName, String outDir, String... extraArgs)
-      throws IOException {
-    List<String> args = new ArrayList<>();
-    Collections.addAll(args, extraArgs);
-    Collections.addAll(args, "--output=" + outDir + "/classes.dex", fileName);
-    int result = runDX(args.toArray(StringUtils.EMPTY_ARRAY)).exitCode;
-    return result != 0 ? null : builderFromProgramDirectory(Paths.get(outDir)).build();
-  }
-
-  public static ProcessResult runDX(String... args) throws IOException {
-    return runDX(null, args);
-  }
-
-  public static ProcessResult runDX(Path workingDirectory, String... args) throws IOException {
-    return runProcess(createProcessBuilderForRunningDx(workingDirectory, args));
-  }
-
-  public static ProcessBuilder createProcessBuilderForRunningDx(String... args) {
-    return createProcessBuilderForRunningDx(null, args);
-  }
-
-  public static ProcessBuilder createProcessBuilderForRunningDx(
-      Path workingDirectory, String... args) {
-    Assume.assumeTrue(ToolHelper.artSupported());
-    DXCommandBuilder builder = new DXCommandBuilder();
-    for (String arg : args) {
-      builder.appendProgramArgument(arg);
-    }
-    ProcessBuilder pb = builder.asProcessBuilder();
-    if (workingDirectory != null) {
-      pb.directory(workingDirectory.toFile());
-    }
-    return pb;
   }
 
   @Deprecated

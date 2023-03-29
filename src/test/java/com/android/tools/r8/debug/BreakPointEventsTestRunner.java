@@ -52,17 +52,6 @@ public class BreakPointEventsTestRunner extends DebugTestBase {
     return new CfDebugTestConfig(ToolHelper.getClassPathForTests()).addPaths(outCf);
   }
 
-  public static DebugTestConfig dxConfig() throws Exception {
-    Path cwd = ToolHelper.getClassPathForTests().toAbsolutePath();
-    Path test = cwd.relativize(getClassFilePath().toAbsolutePath());
-    Path out = getStaticTemp().newFolder().toPath().resolve("classes.dex").toAbsolutePath();
-    ProcessResult result = ToolHelper.runDX(cwd, "--output=" + out, test.toString());
-    assertTrue(result.stderr, 0 == result.exitCode);
-    DebugTestConfig config = new DexDebugTestConfig();
-    config.addPaths(out);
-    return config;
-  }
-
   public void printConfig(String name, DebugTestConfig config) throws Exception {
     new DebugStreamComparator()
         .add(name, streamDebugTest(config, CLASS.getCanonicalName(), NO_FILTER))
@@ -83,8 +72,6 @@ public class BreakPointEventsTestRunner extends DebugTestBase {
       runner.printConfig("CF", cfConfig());
       System.out.println("\n============== D8 single stepping: ");
       runner.printConfig("D8", d8Config());
-      System.out.println("\n============== DX single stepping: ");
-      runner.printConfig("DX", dxConfig());
     } finally {
       getStaticTemp().delete();
     }
