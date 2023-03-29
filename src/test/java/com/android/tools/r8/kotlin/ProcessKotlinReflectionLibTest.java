@@ -60,12 +60,15 @@ public class ProcessKotlinReflectionLibTest extends KotlinTestBase {
         .allowUnusedDontWarnKotlinReflectJvmInternal(kotlinc.isNot(KOTLINC_1_3_72))
         .allowUnusedDontWarnJavaLangClassValue(
             kotlinc.getCompilerVersion().isGreaterThan(KOTLINC_1_7_0))
-        .allowUnusedProguardConfigurationRules()
+        .allowUnusedProguardConfigurationRules(
+            kotlinc.getCompilerVersion().isGreaterThan(KOTLINC_1_3_72))
         .apply(testBuilderConsumer)
         .compile()
         .apply(compileResultBuilder)
         .apply(assertUnusedKeepRuleForKotlinMetadata(kotlinc.isNot(KOTLINC_1_3_72)))
-        .apply(KotlinMetadataTestBase::verifyExpectedWarningsFromKotlinReflectAndStdLib);
+        .applyIf(
+            kotlinc.getCompilerVersion().isGreaterThan(KOTLINC_1_3_72),
+            KotlinMetadataTestBase::verifyExpectedWarningsFromKotlinReflectAndStdLib);
   }
 
   @Test
