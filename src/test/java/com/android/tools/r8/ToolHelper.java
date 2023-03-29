@@ -488,9 +488,8 @@ public class ToolHelper {
         result.add("/bin/bash");
       }
       result.add(getExecutable());
-      for (String option : options) {
-        result.add(option);
-      }
+      result.addAll(getExecutableArguments());
+      result.addAll(options);
       for (Map.Entry<String, String> entry : systemProperties.entrySet()) {
         StringBuilder builder = new StringBuilder("-D");
         builder.append(entry.getKey());
@@ -508,9 +507,7 @@ public class ToolHelper {
       if (mainClass != null) {
         result.add(mainClass);
       }
-      for (String argument : programArguments) {
-        result.add(argument);
-      }
+      result.addAll(programArguments);
       return result;
     }
 
@@ -529,6 +526,8 @@ public class ToolHelper {
     protected abstract boolean shouldUseDocker();
 
     protected abstract String getExecutable();
+
+    protected abstract List<String> getExecutableArguments();
   }
 
   public static class ArtCommandBuilder extends CommandBuilder {
@@ -561,6 +560,11 @@ public class ToolHelper {
         return getRawArtBinary(version);
       }
       return version != null ? getArtBinary(version) : getArtBinary();
+    }
+
+    @Override
+    protected List<String> getExecutableArguments() {
+      return force32BitArt() ? ImmutableList.of("--32") : ImmutableList.of();
     }
 
     public boolean isForDevice() {
