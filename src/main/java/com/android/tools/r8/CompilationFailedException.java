@@ -17,6 +17,12 @@ public class CompilationFailedException extends Exception {
     this.cancelled = cancelled;
   }
 
+  // TODO(b/275715936): Remove this again.
+  public CompilationFailedException(String message) {
+    super(message);
+    cancelled = false;
+  }
+
   /** True if the compilation was cancelled by {@link CancelCompilationChecker} otherwise false. */
   public boolean wasCancelled() {
     return cancelled;
