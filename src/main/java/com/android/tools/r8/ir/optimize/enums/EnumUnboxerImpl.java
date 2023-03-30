@@ -50,6 +50,7 @@ import com.android.tools.r8.ir.analysis.fieldvalueanalysis.StaticFieldValues;
 import com.android.tools.r8.ir.analysis.fieldvalueanalysis.StaticFieldValues.EnumStaticFieldValues;
 import com.android.tools.r8.ir.analysis.type.ArrayTypeElement;
 import com.android.tools.r8.ir.analysis.type.ClassTypeElement;
+import com.android.tools.r8.ir.analysis.type.DynamicType;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.analysis.value.AbstractValue;
 import com.android.tools.r8.ir.analysis.value.objectstate.EnumValuesObjectState;
@@ -92,6 +93,7 @@ import com.android.tools.r8.ir.optimize.enums.eligibility.Reason;
 import com.android.tools.r8.ir.optimize.enums.eligibility.Reason.IllegalInvokeWithImpreciseParameterTypeReason;
 import com.android.tools.r8.ir.optimize.enums.eligibility.Reason.MissingContentsForEnumValuesArrayReason;
 import com.android.tools.r8.ir.optimize.enums.eligibility.Reason.MissingEnumStaticFieldValuesReason;
+import com.android.tools.r8.ir.optimize.enums.eligibility.Reason.MissingExactDynamicEnumTypeForEnumWithSubtypesReason;
 import com.android.tools.r8.ir.optimize.enums.eligibility.Reason.MissingInstanceFieldValueForEnumInstanceReason;
 import com.android.tools.r8.ir.optimize.enums.eligibility.Reason.MissingObjectStateForEnumInstanceReason;
 import com.android.tools.r8.ir.optimize.enums.eligibility.Reason.UnsupportedInstanceFieldValueForEnumInstanceReason;
@@ -827,12 +829,16 @@ public class EnumUnboxerImpl extends EnumUnboxer {
 
   private EnumData buildData(DexProgramClass enumClass, Set<DexField> instanceFields) {
     if (!enumClass.hasStaticFields()) {
-      return new EnumData(ImmutableMap.of(), ImmutableMap.of(), ImmutableSet.of(), -1);
+      return new EnumData(ImmutableMap.of(), null, ImmutableMap.of(), ImmutableSet.of(), -1);
     }
 
     // This map holds all the accessible fields to their unboxed value, so we can remap the field
     // read to the unboxed value.
     ImmutableMap.Builder<DexField, Integer> unboxedValues = ImmutableMap.builder();
+    // This maps the ordinal to their original type so that enum with subtypes can be correctly
+    // handled.
+    Int2ReferenceMap<DexType> valueTypes = new Int2ReferenceArrayMap<>();
+    boolean isEnumWithSubtypes = enumUnboxingCandidatesInfo.hasSubtypes(enumClass.getType());
     // This maps the ordinal to the object state, note that some fields may have been removed,
     // hence the entry is in this map but not the enumToOrdinalMap.
     Int2ReferenceMap<ObjectState> ordinalToObjectState = new Int2ReferenceArrayMap<>();
@@ -874,6 +880,18 @@ public class EnumUnboxerImpl extends EnumUnboxer {
         int ordinal = optionalOrdinal.getAsInt();
         unboxedValues.put(staticField.getReference(), ordinalToUnboxedInt(ordinal));
         ordinalToObjectState.put(ordinal, enumState);
+        if (isEnumWithSubtypes) {
+          DynamicType dynamicType = staticField.getOptimizationInfo().getDynamicType();
+          if (dynamicType.isExactClassType()) {
+            valueTypes.put(ordinal, dynamicType.getExactClassType().getClassType());
+          } else {
+            reportFailure(
+                enumClass,
+                new MissingExactDynamicEnumTypeForEnumWithSubtypesReason(
+                    staticField.getReference()));
+            return null;
+          }
+        }
       } else if (factory.enumMembers.isValuesFieldCandidate(staticField, enumClass.type)) {
         ObjectState valuesState =
             enumStaticFieldValues.getObjectStateForPossiblyPinnedField(staticField.getReference());
@@ -905,11 +923,24 @@ public class EnumUnboxerImpl extends EnumUnboxer {
           ObjectState enumState = valuesContents.getObjectStateForOrdinal(ordinal);
           if (enumState.isEmpty()) {
             // If $VALUES is used, we need data for all enums, at least the ordinal.
+            reportFailure(
+                enumClass,
+                new MissingInstanceFieldValueForEnumInstanceReason(
+                    factory.enumMembers.ordinalField, ordinal));
             return null;
           }
           assert getOrdinal(enumState).isPresent();
           assert getOrdinal(enumState).getAsInt() == ordinal;
           ordinalToObjectState.put(ordinal, enumState);
+          if (isEnumWithSubtypes) {
+            DexType type = valuesContents.getObjectClassForOrdinal(ordinal);
+            if (type == null) {
+              reportFailure(
+                  enumClass, new MissingExactDynamicEnumTypeForEnumWithSubtypesReason(ordinal));
+              return null;
+            }
+            valueTypes.put(ordinal, type);
+          }
         }
       }
     }
@@ -925,6 +956,7 @@ public class EnumUnboxerImpl extends EnumUnboxer {
 
     return new EnumData(
         instanceFieldsData,
+        isEnumWithSubtypes ? valueTypes : null,
         unboxedValues.build(),
         valuesField.build(),
         valuesContents == null ? EnumData.INVALID_VALUES_SIZE : valuesContents.getEnumValuesSize());

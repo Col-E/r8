@@ -124,6 +124,34 @@ public abstract class Reason {
     }
   }
 
+  public static class MissingExactDynamicEnumTypeForEnumWithSubtypesReason extends Reason {
+
+    private final DexField enumField;
+    private final int ordinal;
+
+    public MissingExactDynamicEnumTypeForEnumWithSubtypesReason(DexField enumField) {
+      this.enumField = enumField;
+      this.ordinal = -1;
+    }
+
+    public MissingExactDynamicEnumTypeForEnumWithSubtypesReason(int ordinal) {
+      this.ordinal = ordinal;
+      this.enumField = null;
+    }
+
+    @Override
+    public Object getKind() {
+      return getClass();
+    }
+
+    @Override
+    public String toString() {
+      return "MissingDynamicType("
+          + (enumField != null ? enumField.toSourceString() : "ordinal=" + ordinal)
+          + ")";
+    }
+  }
+
   public static class MissingInstanceFieldValueForEnumInstanceReason extends Reason {
 
     private final DexField enumField;

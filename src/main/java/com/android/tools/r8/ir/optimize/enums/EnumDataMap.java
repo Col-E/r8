@@ -14,6 +14,7 @@ import com.android.tools.r8.ir.optimize.enums.EnumInstanceFieldData.EnumInstance
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import it.unimi.dsi.fastutil.ints.Int2ReferenceMap;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
@@ -109,6 +110,8 @@ public class EnumDataMap {
 
     // Map each enum instance field to the list of field known data.
     final ImmutableMap<DexField, EnumInstanceFieldKnownData> instanceFieldMap;
+    // Map each ordinal to their original type. This is recorded *only* if the enum has subtypes.
+    final Int2ReferenceMap<DexType> valuesTypes;
     // Map each enum instance (static field) to the unboxed integer value.
     final ImmutableMap<DexField, Integer> unboxedValues;
     // Fields matching the $VALUES content and type, usually one.
@@ -118,10 +121,12 @@ public class EnumDataMap {
 
     public EnumData(
         ImmutableMap<DexField, EnumInstanceFieldKnownData> instanceFieldMap,
+        Int2ReferenceMap<DexType> valuesTypes,
         ImmutableMap<DexField, Integer> unboxedValues,
         ImmutableSet<DexField> valuesFields,
         int valuesSize) {
       this.instanceFieldMap = instanceFieldMap;
+      this.valuesTypes = valuesTypes;
       this.unboxedValues = unboxedValues;
       this.valuesFields = valuesFields;
       this.valuesSize = valuesSize;

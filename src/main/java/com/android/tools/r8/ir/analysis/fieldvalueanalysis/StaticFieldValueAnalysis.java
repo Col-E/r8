@@ -37,6 +37,7 @@ import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.optimize.ClassInitializerDefaultsOptimization.ClassInitializerDefaultsResult;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedback;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
+import com.android.tools.r8.utils.ArrayUtils;
 import com.android.tools.r8.utils.Timing;
 import java.util.IdentityHashMap;
 import java.util.List;
@@ -262,13 +263,14 @@ public class StaticFieldValueAnalysis extends FieldValueAnalysis {
       return null;
     }
 
+    DexType[] valuesTypes = new DexType[valuesSize];
     ObjectState[] valuesState = new ObjectState[valuesSize];
 
     if (invokeNewArray != null) {
       // Populate array values from filled-new-array values.
       List<Value> inValues = invokeNewArray.inValues();
       for (int i = 0; i < valuesSize; ++i) {
-        if (!updateEnumValueState(valuesState, i, inValues.get(i))) {
+        if (!updateEnumValueState(valuesState, valuesTypes, i, inValues.get(i))) {
           return null;
         }
       }
@@ -291,7 +293,7 @@ public class StaticFieldValueAnalysis extends FieldValueAnalysis {
           if (index < 0 || index >= valuesSize) {
             return null;
           }
-          if (!updateEnumValueState(valuesState, index, arrayPut.value())) {
+          if (!updateEnumValueState(valuesState, valuesTypes, index, arrayPut.value())) {
             return null;
           }
           break;
@@ -323,18 +325,20 @@ public class StaticFieldValueAnalysis extends FieldValueAnalysis {
       return null;
     }
 
-    for (ObjectState objectState : valuesState) {
-      if (objectState == null) {
-        return null;
-      }
+    if (ArrayUtils.contains(valuesState, null)) {
+      return null;
     }
+    // This should be guaranteed since valuesState and valuesTypes are updated at the same time.
+    assert !ArrayUtils.contains(valuesTypes, null);
 
     return appView
         .abstractValueFactory()
-        .createSingleFieldValue(valuesField.getReference(), new EnumValuesObjectState(valuesState));
+        .createSingleFieldValue(
+            valuesField.getReference(), new EnumValuesObjectState(valuesState, valuesTypes));
   }
 
-  private boolean updateEnumValueState(ObjectState[] valuesState, int index, Value value) {
+  private boolean updateEnumValueState(
+      ObjectState[] valuesState, DexType[] valuesTypes, int index, Value value) {
     Value root = value.getAliasedValue();
     if (root.isPhi()) {
       return false;
@@ -360,6 +364,8 @@ public class StaticFieldValueAnalysis extends FieldValueAnalysis {
     if (valuesState[index] != null) {
       return false;
     }
+    assert definition.isNewInstance();
+    valuesTypes[index] = definition.asNewInstance().getType();
     valuesState[index] = objectState;
     return true;
   }

@@ -55,7 +55,7 @@ public class NonEmptyObjectState extends ObjectState {
 
   @Override
   public boolean equals(Object o) {
-    if (getClass() != o.getClass()) {
+    if (o == null || getClass() != o.getClass()) {
       return false;
     }
     NonEmptyObjectState other = (NonEmptyObjectState) o;

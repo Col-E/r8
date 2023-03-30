@@ -38,6 +38,10 @@ public class EnumUnboxingCandidateInfoCollection {
         new EnumUnboxingCandidateInfo(appView, enumClass, graphLensForPrimaryOptimizationPass));
   }
 
+  public boolean hasSubtypes(DexType enumType) {
+    return !enumTypeToInfo.get(enumType).getSubclasses().isEmpty();
+  }
+
   public void setEnumSubclasses(DexType superEnum, Set<DexProgramClass> subclasses) {
     enumTypeToInfo.get(superEnum).setSubclasses(subclasses);
   }
@@ -157,6 +161,10 @@ public class EnumUnboxingCandidateInfoCollection {
       this.methodDependencies =
           LongLivedProgramMethodSetBuilder.createConcurrentForIdentitySet(
               graphLensForPrimaryOptimizationPass);
+    }
+
+    public Set<DexProgramClass> getSubclasses() {
+      return subclasses;
     }
 
     public void setSubclasses(Set<DexProgramClass> subclasses) {
