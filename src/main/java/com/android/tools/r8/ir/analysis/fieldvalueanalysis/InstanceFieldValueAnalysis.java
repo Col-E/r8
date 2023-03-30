@@ -11,7 +11,9 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.ProgramField;
 import com.android.tools.r8.graph.ProgramMethod;
+import com.android.tools.r8.ir.analysis.fieldaccess.readbeforewrite.FieldReadBeforeWriteAnalysis;
 import com.android.tools.r8.ir.analysis.type.ClassTypeElement;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.analysis.value.AbstractValue;
@@ -50,9 +52,10 @@ public class InstanceFieldValueAnalysis extends FieldValueAnalysis {
       AppView<AppInfoWithLiveness> appView,
       IRCode code,
       OptimizationFeedback feedback,
+      FieldReadBeforeWriteAnalysis fieldReadBeforeWriteAnalysis,
       DexClassAndMethod parentConstructor,
       InvokeDirect parentConstructorCall) {
-    super(appView, code, feedback);
+    super(appView, code, feedback, fieldReadBeforeWriteAnalysis);
     this.factory = appView.instanceFieldInitializationInfoFactory();
     this.parentConstructor = parentConstructor;
     this.parentConstructorCall = parentConstructorCall;
@@ -67,10 +70,11 @@ public class InstanceFieldValueAnalysis extends FieldValueAnalysis {
       IRCode code,
       ClassInitializerDefaultsResult classInitializerDefaultsResult,
       OptimizationFeedback feedback,
+      FieldReadBeforeWriteAnalysis fieldReadBeforeWriteAnalysis,
       Timing timing) {
     timing.begin("Analyze instance initializer");
     InstanceFieldInitializationInfoCollection result =
-        run(appView, code, classInitializerDefaultsResult, feedback);
+        run(appView, code, classInitializerDefaultsResult, feedback, fieldReadBeforeWriteAnalysis);
     timing.end();
     return result;
   }
@@ -79,7 +83,8 @@ public class InstanceFieldValueAnalysis extends FieldValueAnalysis {
       AppView<?> appView,
       IRCode code,
       ClassInitializerDefaultsResult classInitializerDefaultsResult,
-      OptimizationFeedback feedback) {
+      OptimizationFeedback feedback,
+      FieldReadBeforeWriteAnalysis fieldReadBeforeWriteAnalysis) {
     assert appView.appInfo().hasLiveness();
     assert appView.enableWholeProgramOptimizations();
     assert code.context().getDefinition().isInstanceInitializer();
@@ -101,6 +106,7 @@ public class InstanceFieldValueAnalysis extends FieldValueAnalysis {
             appView.withLiveness(),
             code,
             feedback,
+            fieldReadBeforeWriteAnalysis,
             parentConstructor,
             parentConstructorCall);
     analysis.computeFieldOptimizationInfo(classInitializerDefaultsResult);
@@ -119,12 +125,12 @@ public class InstanceFieldValueAnalysis extends FieldValueAnalysis {
   }
 
   @Override
-  boolean isSubjectToOptimization(DexEncodedField field) {
-    return !field.isStatic() && field.getHolderType() == context.getHolderType();
+  boolean isSubjectToOptimization(ProgramField field) {
+    return !field.getAccessFlags().isStatic() && field.getHolderType() == context.getHolderType();
   }
 
   @Override
-  boolean isSubjectToOptimizationIgnoringPinning(DexEncodedField field) {
+  boolean isSubjectToOptimizationIgnoringPinning(ProgramField field) {
     throw new Unreachable("Used by static analysis only.");
   }
 
@@ -203,7 +209,7 @@ public class InstanceFieldValueAnalysis extends FieldValueAnalysis {
     if (abstractValue.isSingleValue()) {
       return abstractValue.asSingleValue();
     }
-    DexType fieldType = field.type();
+    DexType fieldType = field.getType();
     if (fieldType.isClassType()) {
       ClassTypeElement dynamicLowerBoundType = value.getDynamicLowerBoundType(appView);
       TypeElement dynamicUpperBoundType = value.getDynamicUpperBoundType(appView);
@@ -229,7 +235,7 @@ public class InstanceFieldValueAnalysis extends FieldValueAnalysis {
 
   private boolean fieldNeverWrittenBetweenInstancePutAndMethodExit(
       DexEncodedField field, InstancePut instancePut) {
-    if (field.isFinal()) {
+    if (field.getAccessFlags().isFinal()) {
       return true;
     }
 

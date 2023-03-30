@@ -15,6 +15,8 @@ import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DexValue;
 import com.android.tools.r8.graph.DexValue.DexValueNull;
+import com.android.tools.r8.graph.ProgramField;
+import com.android.tools.r8.ir.analysis.fieldaccess.readbeforewrite.FieldReadBeforeWriteAnalysis;
 import com.android.tools.r8.ir.analysis.type.DynamicTypeWithUpperBound;
 import com.android.tools.r8.ir.analysis.type.Nullability;
 import com.android.tools.r8.ir.analysis.value.AbstractValue;
@@ -49,8 +51,11 @@ public class StaticFieldValueAnalysis extends FieldValueAnalysis {
   private final Map<Value, AbstractValue> computedValues = new IdentityHashMap<>();
 
   private StaticFieldValueAnalysis(
-      AppView<AppInfoWithLiveness> appView, IRCode code, OptimizationFeedback feedback) {
-    super(appView, code, feedback);
+      AppView<AppInfoWithLiveness> appView,
+      IRCode code,
+      OptimizationFeedback feedback,
+      FieldReadBeforeWriteAnalysis fieldReadBeforeWriteAnalysis) {
+    super(appView, code, feedback, fieldReadBeforeWriteAnalysis);
     builder = StaticFieldValues.builder(code.context().getHolder());
   }
 
@@ -59,13 +64,15 @@ public class StaticFieldValueAnalysis extends FieldValueAnalysis {
       IRCode code,
       ClassInitializerDefaultsResult classInitializerDefaultsResult,
       OptimizationFeedback feedback,
+      FieldReadBeforeWriteAnalysis fieldReadBeforeWriteAnalysis,
       Timing timing) {
     assert appView.appInfo().hasLiveness();
     assert appView.enableWholeProgramOptimizations();
     assert code.context().getDefinition().isClassInitializer();
     timing.begin("Analyze class initializer");
     StaticFieldValues result =
-        new StaticFieldValueAnalysis(appView.withLiveness(), code, feedback)
+        new StaticFieldValueAnalysis(
+                appView.withLiveness(), code, feedback, fieldReadBeforeWriteAnalysis)
             .analyze(classInitializerDefaultsResult);
     timing.end();
     return result;
@@ -117,19 +124,22 @@ public class StaticFieldValueAnalysis extends FieldValueAnalysis {
   }
 
   @Override
-  boolean isSubjectToOptimization(DexEncodedField field) {
-    return field.isStatic()
-        && field.getHolderType() == context.getHolderType()
-        && appView.appInfo().isFieldOnlyWrittenInMethod(field, context.getDefinition());
-  }
-
-  @Override
-  boolean isSubjectToOptimizationIgnoringPinning(DexEncodedField field) {
-    return field.isStatic()
+  boolean isSubjectToOptimization(ProgramField field) {
+    return field.getAccessFlags().isStatic()
         && field.getHolderType() == context.getHolderType()
         && appView
             .appInfo()
-            .isFieldOnlyWrittenInMethodIgnoringPinning(field, context.getDefinition());
+            .isFieldOnlyWrittenInMethod(field.getDefinition(), context.getDefinition());
+  }
+
+  @Override
+  boolean isSubjectToOptimizationIgnoringPinning(ProgramField field) {
+    return field.getAccessFlags().isStatic()
+        && field.getHolderType() == context.getHolderType()
+        && appView
+            .appInfo()
+            .isFieldOnlyWrittenInMethodIgnoringPinning(
+                field.getDefinition(), context.getDefinition());
   }
 
   @Override

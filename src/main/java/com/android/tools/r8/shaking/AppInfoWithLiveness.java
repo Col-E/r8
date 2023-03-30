@@ -954,14 +954,6 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
     return staticInitializer != null && isFieldOnlyWrittenInMethod(field, staticInitializer);
   }
 
-  public boolean mayPropagateArgumentsTo(ProgramMethod method) {
-    DexMethod reference = method.getReference();
-    return method.getDefinition().hasCode()
-        && !method.getDefinition().isLibraryMethodOverride().isPossiblyTrue()
-        && !neverReprocess.contains(reference)
-        && !keepInfo.getMethodInfo(method).isPinned(options());
-  }
-
   public boolean mayPropagateValueFor(
       AppView<AppInfoWithLiveness> appView, DexClassAndMember<?, ?> member) {
     assert checkIfObsolete();

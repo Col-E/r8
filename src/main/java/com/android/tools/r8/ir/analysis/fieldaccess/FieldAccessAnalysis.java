@@ -11,6 +11,7 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.ProgramField;
 import com.android.tools.r8.graph.bytecodemetadata.BytecodeMetadataProvider;
+import com.android.tools.r8.ir.analysis.fieldaccess.readbeforewrite.FieldReadBeforeWriteAnalysis;
 import com.android.tools.r8.ir.code.FieldInstruction;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
@@ -69,6 +70,7 @@ public class FieldAccessAnalysis {
       IRCode code,
       BytecodeMetadataProvider.Builder bytecodeMetadataProviderBuilder,
       OptimizationFeedback feedback,
+      FieldReadBeforeWriteAnalysis fieldReadBeforeWriteAnalysis,
       MethodProcessor methodProcessor) {
     if (!methodProcessor.isPrimaryMethodProcessor()) {
       return;
@@ -85,7 +87,8 @@ public class FieldAccessAnalysis {
             appView.appInfo().resolveField(fieldInstruction.getField()).getProgramField();
         if (field != null) {
           if (fieldAssignmentTracker != null) {
-            fieldAssignmentTracker.recordFieldAccess(fieldInstruction, field, code.context());
+            fieldAssignmentTracker.recordFieldAccess(
+                fieldInstruction, field, fieldReadBeforeWriteAnalysis);
           }
           if (fieldBitAccessAnalysis != null) {
             fieldBitAccessAnalysis.recordFieldAccess(

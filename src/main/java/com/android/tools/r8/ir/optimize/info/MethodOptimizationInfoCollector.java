@@ -420,9 +420,10 @@ public class MethodOptimizationInfoCollector {
                 }
                 builder.setParent(invokedMethod);
               } else {
-                builder
-                    .markAllFieldsAsRead()
-                    .setMayHaveOtherSideEffectsThanInstanceFieldAssignments();
+                builder.markAllFieldsAsRead();
+                if (invoke.instructionMayHaveSideEffects(appView, context)) {
+                  builder.setMayHaveOtherSideEffectsThanInstanceFieldAssignments();
+                }
                 for (Value inValue : invoke.inValues()) {
                   if (couldBeReceiverValue(inValue, receiver, aliasesThroughAssumeAndCheckCasts)) {
                     builder.setReceiverMayEscapeOutsideConstructorChain();
@@ -453,9 +454,10 @@ public class MethodOptimizationInfoCollector {
           case INVOKE_VIRTUAL:
             {
               InvokeMethod invoke = instruction.asInvokeMethod();
-              builder
-                  .markAllFieldsAsRead()
-                  .setMayHaveOtherSideEffectsThanInstanceFieldAssignments();
+              builder.markAllFieldsAsRead();
+              if (invoke.instructionMayHaveSideEffects(appView, context)) {
+                builder.setMayHaveOtherSideEffectsThanInstanceFieldAssignments();
+              }
               for (Value argument : invoke.arguments()) {
                 if (couldBeReceiverValue(argument, receiver, aliasesThroughAssumeAndCheckCasts)) {
                   builder.setReceiverMayEscapeOutsideConstructorChain();
