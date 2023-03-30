@@ -65,6 +65,11 @@ public class L8CommandTest extends CommandTestBase<L8Command> {
     return StringResource.fromFile(libraryDesugaringSpecification.getSpecification());
   }
 
+  @Override
+  public boolean isL8() {
+    return true;
+  }
+
   @Test(expected = CompilationFailedException.class)
   public void emptyBuilder() throws Throwable {
     verifyEmptyCommand(L8Command.builder().build());

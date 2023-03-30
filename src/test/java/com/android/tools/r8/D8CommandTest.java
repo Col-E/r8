@@ -779,61 +779,6 @@ public class D8CommandTest extends CommandTestBase<D8Command> {
     assertTrue(parse("--android-platform-build").getAndroidPlatformBuild());
   }
 
-  @Test
-  public void startupProfileFlagAbsentTest() throws Exception {
-    assertTrue(parse().getStartupProfileProviders().isEmpty());
-  }
-
-  @Test
-  public void startupProfileFlagPresentTest() throws Exception {
-    // Create a simple profile.
-    Path profile = temp.newFile("profile.txt").toPath();
-    String profileRule = "Lfoo/bar/Baz;->qux()V";
-    FileUtils.writeTextFile(profile, profileRule);
-
-    // Pass the profile on the command line.
-    List<StartupProfileProvider> startupProfileProviders =
-        parse(
-                "--min-api",
-                Integer.toString(AndroidApiLevel.L.getLevel()),
-                "--startup-profile",
-                profile.toString())
-            .getStartupProfileProviders();
-    assertEquals(1, startupProfileProviders.size());
-
-    // Construct the internal profile representation using the provider.
-    InternalOptions options = new InternalOptions();
-    MissingStartupProfileItemsDiagnostic.Builder missingStartupProfileItemsDiagnosticBuilder =
-        MissingStartupProfileItemsDiagnostic.Builder.nop();
-    StartupProfileProvider startupProfileProvider = startupProfileProviders.get(0);
-    StartupProfile.Builder startupProfileBuilder =
-        StartupProfile.builder(
-            options, missingStartupProfileItemsDiagnosticBuilder, startupProfileProvider);
-    startupProfileProvider.getStartupProfile(startupProfileBuilder);
-
-    // Verify we found the same rule.
-    StartupProfile startupProfile = startupProfileBuilder.build();
-    Collection<StartupProfileRule> startupItems =
-        ListUtils.newArrayList(consumer -> startupProfile.forEachRule(consumer::accept));
-    assertEquals(1, startupItems.size());
-    StartupProfileRule startupItem = startupItems.iterator().next();
-    startupItem.accept(
-        startupClass -> fail(),
-        startupMethod -> assertEquals(profileRule, startupMethod.getReference().toSmaliString()));
-  }
-
-  @Test
-  public void startupProfileFlagMissingParameterTest() {
-    String expectedErrorContains = "Missing parameter for --startup-profile.";
-    try {
-      DiagnosticsChecker.checkErrorsContains(
-          expectedErrorContains, handler -> parse(handler, "--startup-profile"));
-      fail("Expected failure");
-    } catch (CompilationFailedException e) {
-      // Expected.
-    }
-  }
-
   @Override
   String[] requiredArgsForTest() {
     return new String[0];

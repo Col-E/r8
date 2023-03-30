@@ -13,17 +13,29 @@ import com.android.tools.r8.profile.art.ArtProfile;
 import com.android.tools.r8.profile.art.ArtProfileConsumer;
 import com.android.tools.r8.profile.art.ArtProfileForRewriting;
 import com.android.tools.r8.profile.art.ArtProfileProvider;
+import com.android.tools.r8.profile.startup.profile.StartupProfile;
+import com.android.tools.r8.profile.startup.profile.StartupProfileRule;
+import com.android.tools.r8.startup.StartupProfileProvider;
+import com.android.tools.r8.startup.diagnostic.MissingStartupProfileItemsDiagnostic;
+import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.IntBox;
 import com.android.tools.r8.utils.InternalOptions;
+import com.android.tools.r8.utils.ListUtils;
 import com.android.tools.r8.utils.Timing;
 import com.google.common.collect.ImmutableList;
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.Collection;
 import java.util.List;
 import org.junit.Test;
 
 public abstract class CommandTestBase<C extends BaseCompilerCommand> extends TestBase {
+
+  public boolean isL8() {
+    return false;
+  }
+
   private void mapDiagnosticsMissingArguments(String... args) {
     try {
       DiagnosticsChecker.checkErrorsContains(
@@ -369,6 +381,69 @@ public abstract class CommandTestBase<C extends BaseCompilerCommand> extends Tes
       DiagnosticsChecker.checkErrorsContains(
           expectedErrorContains,
           handler -> parseWithRequiredArgs(handler, "--art-profile", profile.toString()));
+      fail("Expected failure");
+    } catch (CompilationFailedException e) {
+      // Expected.
+    }
+  }
+
+  @Test
+  public void startupProfileFlagAbsentTest() throws Exception {
+    assertTrue(parse().getStartupProfileProviders().isEmpty());
+  }
+
+  @Test
+  public void startupProfileFlagPresentTest() throws Exception {
+    // Create a simple profile.
+    Path profile = temp.newFile("profile.txt").toPath();
+    String profileRule = "Lfoo/bar/Baz;->qux()V";
+    FileUtils.writeTextFile(profile, profileRule);
+
+    // Pass the profile on the command line.
+    List<StartupProfileProvider> startupProfileProviders;
+    try {
+      startupProfileProviders =
+          parse(
+                  "--min-api",
+                  Integer.toString(AndroidApiLevel.L.getLevel()),
+                  "--startup-profile",
+                  profile.toString())
+              .getStartupProfileProviders();
+    } catch (CompilationFailedException e) {
+      assertTrue(isL8());
+      return;
+    }
+
+    assertEquals(1, startupProfileProviders.size());
+
+    // Construct the internal profile representation using the provider.
+    InternalOptions options = new InternalOptions();
+    MissingStartupProfileItemsDiagnostic.Builder missingStartupProfileItemsDiagnosticBuilder =
+        MissingStartupProfileItemsDiagnostic.Builder.nop();
+    StartupProfileProvider startupProfileProvider = startupProfileProviders.get(0);
+    StartupProfile.Builder startupProfileBuilder =
+        StartupProfile.builder(
+            options, missingStartupProfileItemsDiagnosticBuilder, startupProfileProvider);
+    startupProfileProvider.getStartupProfile(startupProfileBuilder);
+
+    // Verify we found the same rule.
+    StartupProfile startupProfile = startupProfileBuilder.build();
+    Collection<StartupProfileRule> startupItems =
+        ListUtils.newArrayList(consumer -> startupProfile.forEachRule(consumer::accept));
+    assertEquals(1, startupItems.size());
+    StartupProfileRule startupItem = startupItems.iterator().next();
+    startupItem.accept(
+        startupClass -> fail(),
+        startupMethod -> assertEquals(profileRule, startupMethod.getReference().toSmaliString()));
+  }
+
+  @Test
+  public void startupProfileFlagMissingParameterTest() {
+    String expectedErrorContains =
+        isL8() ? "Unknown option: --startup-profile" : "Missing parameter for --startup-profile.";
+    try {
+      DiagnosticsChecker.checkErrorsContains(
+          expectedErrorContains, handler -> parse(handler, "--startup-profile"));
       fail("Expected failure");
     } catch (CompilationFailedException e) {
       // Expected.

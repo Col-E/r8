@@ -22,6 +22,7 @@ public class BaseCompilerCommandParser<
 
   protected static final String ART_PROFILE_FLAG = "--art-profile";
   protected static final String MIN_API_FLAG = "--min-api";
+  protected static final String STARTUP_PROFILE_FLAG = "--startup-profile";
   protected static final String THREAD_COUNT_FLAG = "--thread-count";
   protected static final String MAP_DIAGNOSTICS = "--map-diagnostics";
   protected static final String DUMP_INPUT_TO_FILE = "--dumpinputtofile";

@@ -27,8 +27,6 @@ import java.util.Set;
 
 public class D8CommandParser extends BaseCompilerCommandParser<D8Command, D8Command.Builder> {
 
-  static final String STARTUP_PROFILE_FLAG = "--startup-profile";
-
   private static final Set<String> OPTIONS_WITH_ONE_PARAMETER =
       ImmutableSet.of(
           "--output",

@@ -11,6 +11,7 @@ import com.android.tools.r8.StringConsumer.FileConsumer;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.profile.art.ArtProfileConsumerUtils;
 import com.android.tools.r8.profile.art.ArtProfileProviderUtils;
+import com.android.tools.r8.profile.startup.StartupProfileProviderUtils;
 import com.android.tools.r8.utils.FlagFile;
 import com.android.tools.r8.utils.MapIdTemplateProvider;
 import com.android.tools.r8.utils.SourceFileTemplateProvider;
@@ -47,6 +48,7 @@ public class R8CommandParser extends BaseCompilerCommandParser<R8Command, R8Comm
           "--map-id-template",
           "--source-file-template",
           ART_PROFILE_FLAG,
+          STARTUP_PROFILE_FLAG,
           THREAD_COUNT_FLAG);
 
   // Note: this must be a subset of OPTIONS_WITH_ONE_PARAMETER.
@@ -312,6 +314,10 @@ public class R8CommandParser extends BaseCompilerCommandParser<R8Command, R8Comm
         builder.addArtProfileForRewriting(
             ArtProfileProviderUtils.createFromHumanReadableArtProfile(artProfilePath),
             ArtProfileConsumerUtils.create(rewrittenArtProfilePath));
+      } else if (arg.equals(STARTUP_PROFILE_FLAG)) {
+        Path startupProfilePath = Paths.get(nextArg);
+        builder.addStartupProfileProviders(
+            StartupProfileProviderUtils.createFromHumanReadableArtProfile(startupProfilePath));
       } else if (arg.startsWith("--")) {
         if (tryParseAssertionArgument(builder, arg, argsOrigin)) {
           continue;
