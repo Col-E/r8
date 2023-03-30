@@ -152,10 +152,11 @@ public abstract class GraphLens {
 
   public abstract DexField getRenamedFieldSignature(DexField originalField, GraphLens codeLens);
 
-  public final DexMember<?, ?> getRenamedMemberSignature(DexMember<?, ?> originalMember) {
+  public final DexMember<?, ?> getRenamedMemberSignature(
+      DexMember<?, ?> originalMember, GraphLens codeLens) {
     return originalMember.isDexField()
-        ? getRenamedFieldSignature(originalMember.asDexField())
-        : getRenamedMethodSignature(originalMember.asDexMethod());
+        ? getRenamedFieldSignature(originalMember.asDexField(), codeLens)
+        : getRenamedMethodSignature(originalMember.asDexMethod(), codeLens);
   }
 
   public final DexMethod getRenamedMethodSignature(DexMethod originalMethod) {

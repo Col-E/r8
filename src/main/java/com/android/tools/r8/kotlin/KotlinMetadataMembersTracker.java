@@ -6,7 +6,6 @@ package com.android.tools.r8.kotlin;
 
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexMember;
-import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.utils.IterableUtils;
 import com.google.common.collect.Sets;
@@ -48,7 +47,10 @@ public class KotlinMetadataMembersTracker {
         // underlying types are changed.
         diffComparedToRewritten.forEach(
             diff -> {
-              DexReference rewrittenReference = appView.graphLens().lookupReference(diff);
+              DexMember<?, ?> rewrittenReference =
+                  appView
+                      .graphLens()
+                      .getRenamedMemberSignature(diff, appView.getKotlinMetadataLens());
               assert diffComparedToOriginal.contains(rewrittenReference);
               assert IterableUtils.findOrDefault(
                       diff.getReferencedTypes(), type -> isKotlinJvmType(appView, type), null)

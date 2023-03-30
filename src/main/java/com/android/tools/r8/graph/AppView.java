@@ -85,6 +85,7 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
   private GraphLens codeLens = GraphLens.getIdentityLens();
   private GraphLens graphLens = GraphLens.getIdentityLens();
   private InitClassLens initClassLens;
+  private GraphLens kotlinMetadataLens = GraphLens.getIdentityLens();
   private NamingLens namingLens = NamingLens.getIdentityLens();
   private ProguardCompatibilityActions proguardCompatibilityActions;
   private RootSet rootSet;
@@ -594,6 +595,14 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
     this.initClassLens = initClassLens;
   }
 
+  public GraphLens getKotlinMetadataLens() {
+    return kotlinMetadataLens;
+  }
+
+  public void setKotlinMetadataLens(GraphLens kotlinMetadataLens) {
+    this.kotlinMetadataLens = kotlinMetadataLens;
+  }
+
   public void setInitializedClassesInInstanceMethods(
       InitializedClassesInInstanceMethods initializedClassesInInstanceMethods) {
     this.initializedClassesInInstanceMethods = initializedClassesInInstanceMethods;
@@ -939,6 +948,7 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
     firstUnappliedLens.withAlternativeParentLens(
         newMemberRebindingLens,
         () -> {
+          GraphLens appliedLensInModifiedLens = GraphLens.getIdentityLens();
           if (appView.hasLiveness()) {
             appView
                 .withLiveness()
@@ -957,7 +967,9 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
           appView.setArtProfileCollection(
               appView.getArtProfileCollection().rewrittenWithLens(appView, lens));
           appView.setAssumeInfoCollection(
-              appView.getAssumeInfoCollection().rewrittenWithLens(appView, lens));
+              appView
+                  .getAssumeInfoCollection()
+                  .rewrittenWithLens(appView, lens, appliedLensInModifiedLens));
           if (appView.hasInitClassLens()) {
             appView.setInitClassLens(appView.initClassLens().rewrittenWithLens(lens));
           }

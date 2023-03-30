@@ -20,6 +20,7 @@ import com.android.tools.r8.graph.DexValue;
 import com.android.tools.r8.graph.DexValue.DexValueArray;
 import com.android.tools.r8.graph.DexValue.DexValueInt;
 import com.android.tools.r8.graph.DexValue.DexValueString;
+import com.android.tools.r8.graph.lens.GraphLens;
 import com.android.tools.r8.utils.BooleanBox;
 import com.android.tools.r8.utils.ConsumerUtils;
 import com.android.tools.r8.utils.Pair;
@@ -84,7 +85,10 @@ public class KotlinMetadataRewriter {
   }
 
   public void runForR8(ExecutorService executorService) throws ExecutionException {
-    DexType rewrittenMetadataType = appView.graphLens().lookupClassType(factory.kotlinMetadataType);
+    GraphLens graphLens = appView.graphLens();
+    GraphLens kotlinMetadataLens = appView.getKotlinMetadataLens();
+    DexType rewrittenMetadataType =
+        graphLens.lookupClassType(factory.kotlinMetadataType, kotlinMetadataLens);
     DexClass kotlinMetadata = appView.definitionFor(rewrittenMetadataType);
     WriteMetadataFieldInfo writeMetadataFieldInfo =
         new WriteMetadataFieldInfo(
@@ -124,6 +128,7 @@ public class KotlinMetadataRewriter {
           writeKotlinInfoToAnnotation(clazz, kotlinInfo, oldMeta, writeMetadataFieldInfo);
         },
         executorService);
+    appView.setKotlinMetadataLens(appView.graphLens());
   }
 
   public void runForD8(ExecutorService executorService) throws ExecutionException {

@@ -60,11 +60,13 @@ public class AssumeInfoCollection {
     return isSideEffectFree(member.getReference());
   }
 
-  public AssumeInfoCollection rewrittenWithLens(AppView<?> appView, GraphLens graphLens) {
+  public AssumeInfoCollection rewrittenWithLens(
+      AppView<?> appView, GraphLens graphLens, GraphLens appliedLens) {
     Map<DexMember<?, ?>, AssumeInfo> rewrittenCollection = new IdentityHashMap<>();
     backing.forEach(
         (reference, info) -> {
-          DexMember<?, ?> rewrittenReference = graphLens.getRenamedMemberSignature(reference);
+          DexMember<?, ?> rewrittenReference =
+              graphLens.getRenamedMemberSignature(reference, appliedLens);
           AssumeInfo rewrittenInfo = info.rewrittenWithLens(appView, graphLens);
           assert !rewrittenInfo.isEmpty();
           rewrittenCollection.put(rewrittenReference, rewrittenInfo);
