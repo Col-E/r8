@@ -26,9 +26,15 @@ import com.android.tools.r8.utils.ArrayUtils;
 public class AnnotationFixer {
 
   private final GraphLens lens;
+  private final GraphLens annotationLens;
 
-  public AnnotationFixer(GraphLens lens) {
+  public AnnotationFixer(GraphLens lens, GraphLens annotationLens) {
     this.lens = lens;
+    this.annotationLens = annotationLens;
+  }
+
+  private DexType lookupType(DexType type) {
+    return lens.lookupType(type, annotationLens);
   }
 
   public void run(Iterable<DexProgramClass> classes) {
@@ -54,7 +60,7 @@ public class AnnotationFixer {
 
   private DexEncodedAnnotation rewriteEncodedAnnotation(DexEncodedAnnotation original) {
     DexEncodedAnnotation rewritten =
-        original.rewrite(lens::lookupType, this::rewriteAnnotationElement);
+        original.rewrite(this::lookupType, this::rewriteAnnotationElement);
     assert rewritten != null;
     return rewritten;
   }
@@ -96,7 +102,7 @@ public class AnnotationFixer {
       }
     } else if (value.isDexValueEnum()) {
       DexField original = value.asDexValueEnum().value;
-      DexField rewritten = lens.lookupField(original);
+      DexField rewritten = lens.lookupField(original, annotationLens);
       if (original != rewritten) {
         return new DexValueEnum(rewritten);
       }
@@ -112,7 +118,7 @@ public class AnnotationFixer {
       // If we identified references in the string it would be a DexItemBasedValueString.
     } else if (value.isDexValueType()) {
       DexType originalType = value.asDexValueType().value;
-      DexType rewrittenType = lens.lookupType(originalType);
+      DexType rewrittenType = lookupType(originalType);
       if (rewrittenType != originalType) {
         return new DexValueType(rewrittenType);
       }

@@ -1690,7 +1690,7 @@ public class VerticalClassMerger {
       }
       VerticalClassMergerGraphLens lens = lensBuilder.build(appView, mergedClasses);
       if (lens != null) {
-        new AnnotationFixer(lens).run(appView.appInfo().classes());
+        new AnnotationFixer(lens, appView.graphLens()).run(appView.appInfo().classes());
       }
       return lens;
     }

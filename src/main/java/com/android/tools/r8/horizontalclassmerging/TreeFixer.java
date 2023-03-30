@@ -139,7 +139,7 @@ class TreeFixer extends TreeFixerBase {
       for (DexProgramClass root : subtypingForrest.getProgramRoots()) {
         subtypingForrest.traverseNodeDepthFirst(root, HashBiMap.create(), this::fixupProgramClass);
       }
-      new AnnotationFixer(lens).run(appView.appInfo().classes());
+      new AnnotationFixer(lens, appView.graphLens()).run(appView.appInfo().classes());
     }
     return lens;
   }
