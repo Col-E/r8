@@ -122,8 +122,8 @@ public final class L8Command extends BaseCompilerCommand {
         mapIdProvider,
         null,
         false,
-        null,
-        null,
+        Collections.emptyList(),
+        Collections.emptyList(),
         classConflictResolver,
         cancelCompilationChecker);
     this.d8Command = d8Command;

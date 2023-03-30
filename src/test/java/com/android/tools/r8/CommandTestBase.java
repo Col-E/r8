@@ -389,7 +389,7 @@ public abstract class CommandTestBase<C extends BaseCompilerCommand> extends Tes
 
   @Test
   public void startupProfileFlagAbsentTest() throws Exception {
-    assertTrue(parse().getStartupProfileProviders().isEmpty());
+    assertTrue(parseWithRequiredArgs().getStartupProfileProviders().isEmpty());
   }
 
   @Test
@@ -403,7 +403,7 @@ public abstract class CommandTestBase<C extends BaseCompilerCommand> extends Tes
     List<StartupProfileProvider> startupProfileProviders;
     try {
       startupProfileProviders =
-          parse(
+          parseWithRequiredArgs(
                   "--min-api",
                   Integer.toString(AndroidApiLevel.L.getLevel()),
                   "--startup-profile",
@@ -443,7 +443,7 @@ public abstract class CommandTestBase<C extends BaseCompilerCommand> extends Tes
         isL8() ? "Unknown option: --startup-profile" : "Missing parameter for --startup-profile.";
     try {
       DiagnosticsChecker.checkErrorsContains(
-          expectedErrorContains, handler -> parse(handler, "--startup-profile"));
+          expectedErrorContains, handler -> parseWithRequiredArgs(handler, "--startup-profile"));
       fail("Expected failure");
     } catch (CompilationFailedException e) {
       // Expected.
