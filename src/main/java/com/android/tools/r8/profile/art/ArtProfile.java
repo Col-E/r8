@@ -297,15 +297,25 @@ public class ArtProfile implements AbstractProfile<ArtProfileClassRule, ArtProfi
 
     @Override
     public Builder addClassRule(ArtProfileClassRule classRule) {
-      assert !rules.containsKey(classRule.getReference());
       rules.put(classRule.getType(), classRule);
       return this;
     }
 
     @Override
     public Builder addMethodRule(ArtProfileMethodRule methodRule) {
-      assert !rules.containsKey(methodRule.getReference());
-      rules.put(methodRule.getMethod(), methodRule);
+      rules.compute(
+          methodRule.getReference(),
+          (reference, existingRule) -> {
+            if (existingRule == null) {
+              return methodRule;
+            }
+            ArtProfileMethodRule existingMethodRule = (ArtProfileMethodRule) existingRule;
+            return ArtProfileMethodRule.builder()
+                .setMethod(methodRule.getMethod())
+                .join(methodRule)
+                .join(existingMethodRule)
+                .build();
+          });
       return this;
     }
 

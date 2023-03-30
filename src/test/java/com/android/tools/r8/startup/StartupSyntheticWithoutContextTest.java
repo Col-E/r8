@@ -92,7 +92,7 @@ public class StartupSyntheticWithoutContextTest extends TestBase {
                   .getTestingOptions()
                   .setMixedSectionLayoutStrategyInspector(getMixedSectionLayoutInspector());
             })
-        .apply(testBuilder -> StartupTestingUtils.setStartupConfiguration(testBuilder, startupList))
+        .apply(testBuilder -> StartupTestingUtils.addStartupProfile(testBuilder, startupList))
         .setMinApi(parameters)
         .compile()
         .inspectMultiDex(this::inspectPrimaryDex, this::inspectSecondaryDex)

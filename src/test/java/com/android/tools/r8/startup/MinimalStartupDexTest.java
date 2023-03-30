@@ -67,7 +67,7 @@ public class MinimalStartupDexTest extends TestBase {
                     .setEnableMinimalStartupDex(true)
                     .setEnableStartupCompletenessCheckForTesting())
         .enableInliningAnnotations()
-        .apply(testBuilder -> StartupTestingUtils.setStartupConfiguration(testBuilder, startupList))
+        .apply(testBuilder -> StartupTestingUtils.addStartupProfile(testBuilder, startupList))
         .setMinApi(parameters)
         .compile()
         .inspectMultiDex(

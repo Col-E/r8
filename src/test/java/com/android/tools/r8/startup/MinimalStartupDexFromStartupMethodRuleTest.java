@@ -69,7 +69,7 @@ public class MinimalStartupDexFromStartupMethodRuleTest extends TestBase {
   }
 
   private void configureStartupConfiguration(TestCompilerBuilder<?, ?, ?, ?, ?> testBuilder) {
-    StartupTestingUtils.setStartupConfiguration(
+    StartupTestingUtils.addStartupProfile(
         testBuilder,
         ImmutableList.of(
             ExternalStartupMethod.builder()

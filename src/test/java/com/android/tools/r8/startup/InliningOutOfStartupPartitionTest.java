@@ -50,8 +50,7 @@ public class InliningOutOfStartupPartitionTest extends TestBase {
     testForR8(parameters.getBackend())
         .addInnerClasses(getClass())
         .addKeepMainRule(Main.class)
-        .apply(
-            testBuilder -> StartupTestingUtils.setStartupConfiguration(testBuilder, startupItems))
+        .apply(testBuilder -> StartupTestingUtils.addStartupProfile(testBuilder, startupItems))
         .setMinApi(parameters)
         .compile()
         .inspect(

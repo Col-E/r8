@@ -158,7 +158,7 @@ public class StartupTestingUtils {
     runResult.getResult().setStdout(stdoutBuilder.toString());
   }
 
-  public static void setStartupConfiguration(
+  public static void addStartupProfile(
       TestCompilerBuilder<?, ?, ?, ?, ?> testBuilder,
       Collection<ExternalStartupItem> startupItems) {
     StartupProfileProvider startupProfileProvider =

@@ -196,7 +196,7 @@ public class StartupSyntheticPlacementTest extends TestBase {
                   .setMixedSectionLayoutStrategyInspector(
                       getMixedSectionLayoutInspector(inspector, testBuilder.isD8TestBuilder()));
             })
-        .apply(ignore -> StartupTestingUtils.setStartupConfiguration(testBuilder, startupList));
+        .apply(ignore -> StartupTestingUtils.addStartupProfile(testBuilder, startupList));
   }
 
   private List<String> getExpectedOutput() {
