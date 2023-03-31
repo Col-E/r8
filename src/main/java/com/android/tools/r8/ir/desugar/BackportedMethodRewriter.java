@@ -49,6 +49,7 @@ import com.android.tools.r8.ir.desugar.backports.ContentProviderClientMethodRewr
 import com.android.tools.r8.ir.desugar.backports.DrmManagerClientMethodRewrites;
 import com.android.tools.r8.ir.desugar.backports.FloatMethodRewrites;
 import com.android.tools.r8.ir.desugar.backports.LongMethodRewrites;
+import com.android.tools.r8.ir.desugar.backports.MediaDrmMethodRewrites;
 import com.android.tools.r8.ir.desugar.backports.NumericMethodRewrites;
 import com.android.tools.r8.ir.desugar.backports.ObjectsMethodRewrites;
 import com.android.tools.r8.ir.desugar.backports.OptionalMethodRewrites;
@@ -237,6 +238,9 @@ public final class BackportedMethodRewriter implements CfInstructionDesugaring {
         if (typeIsPresent(factory.supplierType)) {
           initializeAndroidOThreadLocalMethodProviderWithSupplier(factory);
         }
+      }
+      if (options.getMinApiLevel().isLessThan(AndroidApiLevel.P)) {
+        initializeAndroidPMethodProviders(factory);
       }
       if (options.getMinApiLevel().isLessThan(AndroidApiLevel.R)) {
         if (options.testing.alwaysBackportListSetMapMethods
@@ -1068,6 +1072,13 @@ public final class BackportedMethodRewriter implements CfInstructionDesugaring {
       addProvider(
           new MethodGenerator(
               method, BackportedMethods::StringMethods_joinIterable, "joinIterable"));
+    }
+
+    private void initializeAndroidPMethodProviders(DexItemFactory factory) {
+      // void android.drm.DrmManagerClient.close()
+      addProvider(
+          new InvokeRewriter(
+              factory.androidMediaMediaDrmMembers.close, MediaDrmMethodRewrites.rewriteClose()));
     }
 
     private void initializeAndroidRObjectsMethodProviderWithSupplier(DexItemFactory factory) {

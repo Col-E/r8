@@ -92,6 +92,7 @@ public class DexItemFactory {
       "Landroid/content/ContentProviderClient;";
   public static final String androidDrmDrmManagerClientDescriptorString =
       "Landroid/drm/DrmManagerClient;";
+  public static final String androidMediaMediaDrmDescriptorString = "Landroid/media/MediaDrm;";
 
   /** Set of types that may be synthesized during compilation. */
   private final Set<DexType> possibleCompilerSynthesizedTypes = Sets.newIdentityHashSet();
@@ -622,6 +623,8 @@ public class DexItemFactory {
       createStaticallyKnownType(androidContentContentProviderClientDescriptorString);
   public final DexType androidDrmDrmManagerClientType =
       createStaticallyKnownType(androidDrmDrmManagerClientDescriptorString);
+  public final DexType androidMediaMediaDrmType =
+      createStaticallyKnownType(androidMediaMediaDrmDescriptorString);
 
   public final StringBuildingMethods stringBuilderMethods =
       new StringBuildingMethods(stringBuilderType);
@@ -681,6 +684,8 @@ public class DexItemFactory {
       androidContentContentProviderClientMembers = new AndroidContentContentProviderClientMembers();
   public final AndroidDrmDrmManagerClientMembers androidDrmDrmManagerClientMembers =
       new AndroidDrmDrmManagerClientMembers();
+  public final AndroidMediaMediaDrmMembers androidMediaMediaDrmMembers =
+      new AndroidMediaMediaDrmMembers();
 
   // java.**
   public final JavaIoFileMembers javaIoFileMembers = new JavaIoFileMembers();
@@ -1185,6 +1190,14 @@ public class DexItemFactory {
         createMethod(androidDrmDrmManagerClientType, createProto(voidType), "release");
     public final DexMethod close =
         createMethod(androidDrmDrmManagerClientType, createProto(voidType), "close");
+  }
+
+  // android.media.MediaDrm
+  public class AndroidMediaMediaDrmMembers extends LibraryMembers {
+    public final DexMethod release =
+        createMethod(androidMediaMediaDrmType, createProto(voidType), "release");
+    public final DexMethod close =
+        createMethod(androidMediaMediaDrmType, createProto(voidType), "close");
   }
 
   public class BooleanMembers extends BoxedPrimitiveMembers {
