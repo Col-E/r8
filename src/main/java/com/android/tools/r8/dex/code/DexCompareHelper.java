@@ -11,7 +11,7 @@ public class DexCompareHelper {
   static final int DEX_ITEM_CONST_STRING_COMPARE_ID;
   static final int DEX_RECORD_FIELD_VALUES_COMPARE_ID;
 
-  private static int HIGHEST_DEX_OPCODE = 0xFF;
+  private static final int HIGHEST_DEX_OPCODE = 0xFF;
 
   static {
     int lastId = HIGHEST_DEX_OPCODE;

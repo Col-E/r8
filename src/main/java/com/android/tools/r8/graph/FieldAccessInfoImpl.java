@@ -25,12 +25,12 @@ public class FieldAccessInfoImpl implements FieldAccessInfo {
 
   public static final FieldAccessInfoImpl MISSING_FIELD_ACCESS_INFO = new FieldAccessInfoImpl(null);
 
-  public static int FLAG_IS_READ_FROM_ANNOTATION = 1 << 0;
-  public static int FLAG_IS_READ_FROM_METHOD_HANDLE = 1 << 1;
-  public static int FLAG_IS_WRITTEN_FROM_METHOD_HANDLE = 1 << 2;
-  public static int FLAG_HAS_REFLECTIVE_READ = 1 << 3;
-  public static int FLAG_HAS_REFLECTIVE_WRITE = 1 << 4;
-  public static int FLAG_IS_READ_FROM_RECORD_INVOKE_DYNAMIC = 1 << 5;
+  public static final int FLAG_IS_READ_FROM_ANNOTATION = 1 << 0;
+  public static final int FLAG_IS_READ_FROM_METHOD_HANDLE = 1 << 1;
+  public static final int FLAG_IS_WRITTEN_FROM_METHOD_HANDLE = 1 << 2;
+  public static final int FLAG_HAS_REFLECTIVE_READ = 1 << 3;
+  public static final int FLAG_HAS_REFLECTIVE_WRITE = 1 << 4;
+  public static final int FLAG_IS_READ_FROM_RECORD_INVOKE_DYNAMIC = 1 << 5;
 
   // A direct reference to the definition of the field.
   private DexField field;

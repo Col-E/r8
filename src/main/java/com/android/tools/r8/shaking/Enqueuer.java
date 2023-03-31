@@ -1624,9 +1624,9 @@ public class Enqueuer {
 
   static class FieldAccessMetadata {
 
-    private static int DEFERRED_MASK = 1;
-    private static int FROM_METHOD_HANDLE_MASK = 2;
-    private static int FROM_RECORD_METHOD_HANDLE_MASK = 4;
+    private static final int DEFERRED_MASK = 1;
+    private static final int FROM_METHOD_HANDLE_MASK = 2;
+    private static final int FROM_RECORD_METHOD_HANDLE_MASK = 4;
 
     static FieldAccessMetadata DEFAULT = new FieldAccessMetadata(0);
     static FieldAccessMetadata FROM_METHOD_HANDLE =

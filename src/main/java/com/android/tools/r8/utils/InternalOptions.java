@@ -2064,7 +2064,7 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
       }
     }
 
-    public static int NO_LIMIT = -1;
+    public static final int NO_LIMIT = -1;
 
     public ArgumentPropagatorEventConsumer argumentPropagatorEventConsumer =
         ArgumentPropagatorEventConsumer.emptyConsumer();

@@ -28,16 +28,16 @@ public class DefaultMethodOptimizationInfo extends MethodOptimizationInfo {
   public static final DefaultMethodOptimizationInfo DEFAULT_INSTANCE =
       new DefaultMethodOptimizationInfo();
 
-  static Set<DexType> UNKNOWN_INITIALIZED_CLASSES_ON_NORMAL_EXIT = ImmutableSet.of();
-  static int UNKNOWN_RETURNED_ARGUMENT = -1;
-  static boolean UNKNOWN_NEVER_RETURNS_NORMALLY = false;
-  static AbstractValue UNKNOWN_ABSTRACT_RETURN_VALUE = UnknownValue.getInstance();
-  static boolean UNKNOWN_TRIGGERS_CLASS_INIT_BEFORE_ANY_SIDE_EFFECT = false;
-  static boolean UNKNOWN_INITIALIZER_ENABLING_JAVA_ASSERTIONS = false;
-  static boolean UNKNOWN_MAY_HAVE_SIDE_EFFECTS = true;
-  static boolean UNKNOWN_RETURN_VALUE_ONLY_DEPENDS_ON_ARGUMENTS = false;
-  static BitSet NO_NULL_PARAMETER_OR_THROW_FACTS = null;
-  static BitSet NO_NULL_PARAMETER_ON_NORMAL_EXITS_FACTS = null;
+  static final Set<DexType> UNKNOWN_INITIALIZED_CLASSES_ON_NORMAL_EXIT = ImmutableSet.of();
+  static final int UNKNOWN_RETURNED_ARGUMENT = -1;
+  static final boolean UNKNOWN_NEVER_RETURNS_NORMALLY = false;
+  static final AbstractValue UNKNOWN_ABSTRACT_RETURN_VALUE = UnknownValue.getInstance();
+  static final boolean UNKNOWN_TRIGGERS_CLASS_INIT_BEFORE_ANY_SIDE_EFFECT = false;
+  static final boolean UNKNOWN_INITIALIZER_ENABLING_JAVA_ASSERTIONS = false;
+  static final boolean UNKNOWN_MAY_HAVE_SIDE_EFFECTS = true;
+  static final boolean UNKNOWN_RETURN_VALUE_ONLY_DEPENDS_ON_ARGUMENTS = false;
+  static final BitSet NO_NULL_PARAMETER_OR_THROW_FACTS = null;
+  static final BitSet NO_NULL_PARAMETER_ON_NORMAL_EXITS_FACTS = null;
 
   protected DefaultMethodOptimizationInfo() {}
 

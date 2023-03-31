@@ -17,7 +17,7 @@ import java.nio.charset.StandardCharsets;
 
 public class ProguardMapSupplier {
 
-  public static int PG_MAP_ID_LENGTH = 7;
+  public static final int PG_MAP_ID_LENGTH = 7;
 
   // Hash of the Proguard map (excluding the header up to and including the hash marker).
   public static class ProguardMapId {
