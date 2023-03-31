@@ -46,6 +46,7 @@ import com.android.tools.r8.ir.desugar.backports.BooleanMethodRewrites;
 import com.android.tools.r8.ir.desugar.backports.CollectionMethodGenerators;
 import com.android.tools.r8.ir.desugar.backports.CollectionMethodRewrites;
 import com.android.tools.r8.ir.desugar.backports.ContentProviderClientMethodRewrites;
+import com.android.tools.r8.ir.desugar.backports.DrmManagerClientMethodRewrites;
 import com.android.tools.r8.ir.desugar.backports.FloatMethodRewrites;
 import com.android.tools.r8.ir.desugar.backports.LongMethodRewrites;
 import com.android.tools.r8.ir.desugar.backports.NumericMethodRewrites;
@@ -823,6 +824,14 @@ public final class BackportedMethodRewriter implements CfInstructionDesugaring {
           new InvokeRewriter(
               factory.androidContentContentProviderClientMembers.close,
               ContentProviderClientMethodRewrites.rewriteClose()));
+
+      // android.drm.DrmManagerClient
+
+      // void android.drm.DrmManagerClient.close()
+      addProvider(
+          new InvokeRewriter(
+              factory.androidDrmDrmManagerClientMembers.close,
+              DrmManagerClientMethodRewrites.rewriteClose()));
     }
 
     /**

@@ -90,6 +90,8 @@ public class DexItemFactory {
       "Landroid/content/res/TypedArray;";
   public static final String androidContentContentProviderClientDescriptorString =
       "Landroid/content/ContentProviderClient;";
+  public static final String androidDrmDrmManagerClientDescriptorString =
+      "Landroid/drm/DrmManagerClient;";
 
   /** Set of types that may be synthesized during compilation. */
   private final Set<DexType> possibleCompilerSynthesizedTypes = Sets.newIdentityHashSet();
@@ -618,6 +620,8 @@ public class DexItemFactory {
       createStaticallyKnownType(androidContentResTypedArrayDescriptorString);
   public final DexType androidContentContentProviderClientType =
       createStaticallyKnownType(androidContentContentProviderClientDescriptorString);
+  public final DexType androidDrmDrmManagerClientType =
+      createStaticallyKnownType(androidDrmDrmManagerClientDescriptorString);
 
   public final StringBuildingMethods stringBuilderMethods =
       new StringBuildingMethods(stringBuilderType);
@@ -675,6 +679,8 @@ public class DexItemFactory {
       new AndroidContentResTypedArrayMembers();
   public final AndroidContentContentProviderClientMembers
       androidContentContentProviderClientMembers = new AndroidContentContentProviderClientMembers();
+  public final AndroidDrmDrmManagerClientMembers androidDrmDrmManagerClientMembers =
+      new AndroidDrmDrmManagerClientMembers();
 
   // java.**
   public final JavaIoFileMembers javaIoFileMembers = new JavaIoFileMembers();
@@ -1171,6 +1177,14 @@ public class DexItemFactory {
         createMethod(androidContentContentProviderClientType, createProto(voidType), "release");
     public final DexMethod close =
         createMethod(androidContentContentProviderClientType, createProto(voidType), "close");
+  }
+
+  // android.drm.DrmManagerClient
+  public class AndroidDrmDrmManagerClientMembers extends LibraryMembers {
+    public final DexMethod release =
+        createMethod(androidDrmDrmManagerClientType, createProto(voidType), "release");
+    public final DexMethod close =
+        createMethod(androidDrmDrmManagerClientType, createProto(voidType), "close");
   }
 
   public class BooleanMembers extends BoxedPrimitiveMembers {
