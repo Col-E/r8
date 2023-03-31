@@ -51,6 +51,7 @@ import com.android.tools.r8.ir.desugar.backports.NumericMethodRewrites;
 import com.android.tools.r8.ir.desugar.backports.ObjectsMethodRewrites;
 import com.android.tools.r8.ir.desugar.backports.OptionalMethodRewrites;
 import com.android.tools.r8.ir.desugar.backports.SparseArrayMethodRewrites;
+import com.android.tools.r8.ir.desugar.backports.TypedArrayMethodRewrites;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.retargeter.DesugaredLibraryRetargeter;
 import com.android.tools.r8.position.MethodPosition;
 import com.android.tools.r8.synthesis.SyntheticItems.GlobalSyntheticsStrategy;
@@ -1286,10 +1287,18 @@ public final class BackportedMethodRewriter implements CfInstructionDesugaring {
 
       // android.util.SparseArray
 
-      // void android.util.SparseArray.set(int, Object))
+      // void android.util.SparseArray.set(int, Object)
       addProvider(
           new InvokeRewriter(
               factory.androidUtilSparseArrayMembers.set, SparseArrayMethodRewrites.rewriteSet()));
+
+      // android.content.res.TypedArray
+
+      // void android.content.res.TypedArray.close()
+      addProvider(
+          new InvokeRewriter(
+              factory.androidContentResTypedArrayMembers.close,
+              TypedArrayMethodRewrites.rewriteClose()));
     }
 
     private void initializeAndroidSv2MethodProviders(DexItemFactory factory) {
