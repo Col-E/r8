@@ -88,6 +88,8 @@ public class DexItemFactory {
   public static final String androidUtilSparseArrayDescriptorString = "Landroid/util/SparseArray;";
   public static final String androidContentResTypedArrayDescriptorString =
       "Landroid/content/res/TypedArray;";
+  public static final String androidContentContentProviderClientDescriptorString =
+      "Landroid/content/ContentProviderClient;";
 
   /** Set of types that may be synthesized during compilation. */
   private final Set<DexType> possibleCompilerSynthesizedTypes = Sets.newIdentityHashSet();
@@ -614,6 +616,8 @@ public class DexItemFactory {
       createStaticallyKnownType(androidUtilSparseArrayDescriptorString);
   public final DexType androidContentResTypedArrayType =
       createStaticallyKnownType(androidContentResTypedArrayDescriptorString);
+  public final DexType androidContentContentProviderClientType =
+      createStaticallyKnownType(androidContentContentProviderClientDescriptorString);
 
   public final StringBuildingMethods stringBuilderMethods =
       new StringBuildingMethods(stringBuilderType);
@@ -669,6 +673,8 @@ public class DexItemFactory {
       new AndroidUtilSparseArrayMembers();
   public final AndroidContentResTypedArrayMembers androidContentResTypedArrayMembers =
       new AndroidContentResTypedArrayMembers();
+  public final AndroidContentContentProviderClientMembers
+      androidContentContentProviderClientMembers = new AndroidContentContentProviderClientMembers();
 
   // java.**
   public final JavaIoFileMembers javaIoFileMembers = new JavaIoFileMembers();
@@ -1157,6 +1163,14 @@ public class DexItemFactory {
         createMethod(androidContentResTypedArrayType, createProto(voidType), "recycle");
     public final DexMethod close =
         createMethod(androidContentResTypedArrayType, createProto(voidType), "close");
+  }
+
+  // android.content.ContentProviderClient
+  public class AndroidContentContentProviderClientMembers extends LibraryMembers {
+    public final DexMethod release =
+        createMethod(androidContentContentProviderClientType, createProto(voidType), "release");
+    public final DexMethod close =
+        createMethod(androidContentContentProviderClientType, createProto(voidType), "close");
   }
 
   public class BooleanMembers extends BoxedPrimitiveMembers {

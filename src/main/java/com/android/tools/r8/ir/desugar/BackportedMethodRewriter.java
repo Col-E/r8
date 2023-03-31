@@ -45,6 +45,7 @@ import com.android.tools.r8.ir.desugar.backports.BackportedMethods;
 import com.android.tools.r8.ir.desugar.backports.BooleanMethodRewrites;
 import com.android.tools.r8.ir.desugar.backports.CollectionMethodGenerators;
 import com.android.tools.r8.ir.desugar.backports.CollectionMethodRewrites;
+import com.android.tools.r8.ir.desugar.backports.ContentProviderClientMethodRewrites;
 import com.android.tools.r8.ir.desugar.backports.FloatMethodRewrites;
 import com.android.tools.r8.ir.desugar.backports.LongMethodRewrites;
 import com.android.tools.r8.ir.desugar.backports.NumericMethodRewrites;
@@ -814,6 +815,14 @@ public final class BackportedMethodRewriter implements CfInstructionDesugaring {
       }
 
       initializeMathExactApis(factory, factory.mathType);
+
+      // android.content.res.ContentProviderClient
+
+      // void android.content.ContentProviderClient.close()
+      addProvider(
+          new InvokeRewriter(
+              factory.androidContentContentProviderClientMembers.close,
+              ContentProviderClientMethodRewrites.rewriteClose()));
     }
 
     /**
