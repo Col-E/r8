@@ -93,6 +93,8 @@ public class DexItemFactory {
   public static final String androidDrmDrmManagerClientDescriptorString =
       "Landroid/drm/DrmManagerClient;";
   public static final String androidMediaMediaDrmDescriptorString = "Landroid/media/MediaDrm;";
+  public static final String androidMediaMediaMetadataRetrieverDescriptorString =
+      "Landroid/media/MediaMetadataRetriever;";
 
   /** Set of types that may be synthesized during compilation. */
   private final Set<DexType> possibleCompilerSynthesizedTypes = Sets.newIdentityHashSet();
@@ -625,6 +627,8 @@ public class DexItemFactory {
       createStaticallyKnownType(androidDrmDrmManagerClientDescriptorString);
   public final DexType androidMediaMediaDrmType =
       createStaticallyKnownType(androidMediaMediaDrmDescriptorString);
+  public final DexType androidMediaMediaMetadataRetrieverType =
+      createStaticallyKnownType(androidMediaMediaMetadataRetrieverDescriptorString);
 
   public final StringBuildingMethods stringBuilderMethods =
       new StringBuildingMethods(stringBuilderType);
@@ -686,6 +690,8 @@ public class DexItemFactory {
       new AndroidDrmDrmManagerClientMembers();
   public final AndroidMediaMediaDrmMembers androidMediaMediaDrmMembers =
       new AndroidMediaMediaDrmMembers();
+  public final AndroidMediaMetadataRetrieverMembers androidMediaMetadataRetrieverMembers =
+      new AndroidMediaMetadataRetrieverMembers();
 
   // java.**
   public final JavaIoFileMembers javaIoFileMembers = new JavaIoFileMembers();
@@ -1198,6 +1204,14 @@ public class DexItemFactory {
         createMethod(androidMediaMediaDrmType, createProto(voidType), "release");
     public final DexMethod close =
         createMethod(androidMediaMediaDrmType, createProto(voidType), "close");
+  }
+
+  // android.media.MediaMetadataRetriever
+  public class AndroidMediaMetadataRetrieverMembers extends LibraryMembers {
+    public final DexMethod release =
+        createMethod(androidMediaMediaMetadataRetrieverType, createProto(voidType), "release");
+    public final DexMethod close =
+        createMethod(androidMediaMediaMetadataRetrieverType, createProto(voidType), "close");
   }
 
   public class BooleanMembers extends BoxedPrimitiveMembers {
