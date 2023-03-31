@@ -1677,6 +1677,7 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
     private boolean enable =
         !Version.isDevelopmentVersion()
             || System.getProperty("com.android.tools.r8.disableHorizontalClassMerging") == null;
+    private boolean enableInitial = true;
     // TODO(b/205611444): Enable by default.
     private boolean enableClassInitializerDeadlockDetection = true;
     private boolean enableInterfaceMerging =
@@ -1690,6 +1691,10 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
 
     public void disable() {
       enable = false;
+    }
+
+    public void disableInitialRoundOfClassMerging() {
+      enableInitial = false;
     }
 
     public void disableSyntheticMerging() {
@@ -1729,7 +1734,7 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
         return false;
       }
       if (mode.isInitial()) {
-        return inlinerOptions.enableInlining && isShrinking();
+        return enableInitial && inlinerOptions.enableInlining && isShrinking();
       }
       assert mode.isFinal();
       return true;
