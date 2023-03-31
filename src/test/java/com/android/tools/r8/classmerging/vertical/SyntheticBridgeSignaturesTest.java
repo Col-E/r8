@@ -13,14 +13,12 @@ import com.android.tools.r8.NoHorizontalClassMerging;
 import com.android.tools.r8.R8TestCompileResult;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.ir.optimize.Inliner.Reason;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.VerticallyMergedClassesInspector;
 import com.google.common.collect.ImmutableSet;
 import java.util.List;
-import org.junit.Assume;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -49,9 +47,6 @@ public class SyntheticBridgeSignaturesTest extends VerticalClassMergerTestBase {
 
   @Test
   public void test() throws Throwable {
-    Assume.assumeTrue(
-        "b/273921056",
-        parameters.isCfRuntime() || !parameters.getDexRuntimeVersion().isEqualTo(Version.V14_0_0));
     R8TestCompileResult compileResult =
         testForR8(parameters.getBackend())
             .addInnerClasses(getClass())

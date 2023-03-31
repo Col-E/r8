@@ -3,7 +3,6 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.debug;
 
-import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.debug.DebugTestBase.JUnit3Wrapper.Command;
 import com.android.tools.r8.debug.DebugTestBase.JUnit3Wrapper.FrameInspector;
 import java.util.ArrayList;
@@ -15,7 +14,6 @@ import java.util.Map;
 import org.apache.harmony.jpda.tests.framework.jdwp.JDWPConstants.Tag;
 import org.apache.harmony.jpda.tests.framework.jdwp.Value;
 import org.junit.Assert;
-import org.junit.Assume;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -279,10 +277,6 @@ public class LocalsTest extends DebugTestBase {
 
   @Test
   public void testLocals_MoreThan16() throws Throwable {
-    Assume.assumeTrue(
-        "b/273921056",
-        config.isCfRuntime()
-            || !config.getRuntime().asDex().getVersion().isEqualTo(Version.V14_0_0));
     final int minIndex = 1;
     final int maxIndex = 16;
     Map<String, Value> arrayLocals = new HashMap<>();

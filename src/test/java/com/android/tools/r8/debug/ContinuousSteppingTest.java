@@ -36,7 +36,6 @@ import java.util.function.Predicate;
 import java.util.jar.JarEntry;
 import java.util.jar.JarInputStream;
 import java.util.stream.Collectors;
-import org.junit.Assume;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 import org.junit.runner.RunWith;
@@ -143,10 +142,6 @@ public class ContinuousSteppingTest extends DebugTestBase {
   public void testContinuousSingleStep() throws Throwable {
     DebugTestConfig config = compiledJars.apply(jarPath);
     assert config != null;
-    Assume.assumeTrue(
-        "b/273921056",
-        config.isCfRuntime()
-            || !config.getRuntime().asDex().getVersion().isEqualTo(Version.V14_0_0));
     runContinuousTest(mainClass, config, MAIN_METHOD_NAME);
   }
 

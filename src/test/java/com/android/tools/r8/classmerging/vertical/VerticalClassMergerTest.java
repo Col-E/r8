@@ -223,9 +223,6 @@ public class VerticalClassMergerTest extends TestBase {
   // This test has a cycle in the call graph consisting of the methods A.<init> and B.<init>.
   @Test
   public void testCallGraphCycle() throws Throwable {
-    Assume.assumeTrue(
-        "b/273921056",
-        parameters.isCfRuntime() || !parameters.getDexRuntimeVersion().isEqualTo(Version.V14_0_0));
     String main = "classmerging.CallGraphCycleTest";
     Path[] programFiles =
         new Path[] {
@@ -319,9 +316,6 @@ public class VerticalClassMergerTest extends TestBase {
 
   @Test
   public void testFieldCollision() throws Throwable {
-    Assume.assumeTrue(
-        "b/273921056",
-        parameters.isCfRuntime() || !parameters.getDexRuntimeVersion().isEqualTo(Version.V14_0_0));
     String main = "classmerging.FieldCollisionTest";
     Path[] programFiles =
         new Path[] {
@@ -429,9 +423,6 @@ public class VerticalClassMergerTest extends TestBase {
 
   @Test
   public void testPinnedParameterTypes() throws Throwable {
-    Assume.assumeTrue(
-        "b/273921056",
-        parameters.isCfRuntime() || !parameters.getDexRuntimeVersion().isEqualTo(Version.V14_0_0));
     String main = "classmerging.PinnedParameterTypesTest";
     Path[] programFiles =
         new Path[] {
@@ -457,9 +448,6 @@ public class VerticalClassMergerTest extends TestBase {
 
   @Test
   public void testPinnedArrayParameterTypes() throws Throwable {
-    Assume.assumeTrue(
-        "b/273921056",
-        parameters.isCfRuntime() || !parameters.getDexRuntimeVersion().isEqualTo(Version.V14_0_0));
     String main = "classmerging.PinnedArrayParameterTypesTest";
     Path[] programFiles =
         new Path[] {
@@ -853,9 +841,6 @@ public class VerticalClassMergerTest extends TestBase {
   //   }
   @Test
   public void testSuperCallToMergedClassIsRewritten() throws Throwable {
-    Assume.assumeTrue(
-        "b/273921056",
-        parameters.isCfRuntime() || !parameters.getDexRuntimeVersion().isEqualTo(Version.V14_0_0));
     assumeTrue(parameters.isDexRuntime()); // Due to smali input.
     assumeFalse(parameters.getRuntime().asDex().getVm().getVersion() == Version.V5_1_1);
     assumeFalse(parameters.getRuntime().asDex().getVm().getVersion() == Version.V6_0_1);
