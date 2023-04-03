@@ -1134,7 +1134,7 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
     assert checkIfObsolete();
 
     // Switchmap classes should never be affected by renaming.
-    assert lens.assertDefinitionsNotModified(
+    assert lens.assertFieldsNotModified(
         switchMaps.keySet().stream()
             .map(this::resolveField)
             .filter(FieldResolutionResult::isSingleFieldResolutionResult)

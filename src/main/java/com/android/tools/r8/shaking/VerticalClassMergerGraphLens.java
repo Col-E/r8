@@ -12,6 +12,7 @@ import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.classmerging.VerticallyMergedClasses;
+import com.android.tools.r8.graph.lens.GraphLens;
 import com.android.tools.r8.graph.lens.MethodLookupResult;
 import com.android.tools.r8.graph.lens.NestedGraphLens;
 import com.android.tools.r8.graph.proto.ArgumentInfoCollection;
@@ -108,8 +109,8 @@ public class VerticalClassMergerGraphLens extends NestedGraphLens {
 
   @Override
   public MethodLookupResult internalDescribeLookupMethod(
-      MethodLookupResult previous, DexMethod context) {
-    assert context != null || verifyIsContextFreeForMethod(previous.getReference());
+      MethodLookupResult previous, DexMethod context, GraphLens codeLens) {
+    assert context != null || verifyIsContextFreeForMethod(previous.getReference(), codeLens);
     assert context == null || previous.getType() != null;
     if (previous.getType() == InvokeType.SUPER && !mergedMethods.contains(context)) {
       Map<DexMethod, GraphLensLookupResultProvider> virtualToDirectMethodMap =
@@ -166,14 +167,21 @@ public class VerticalClassMergerGraphLens extends NestedGraphLens {
   }
 
   @Override
-  public boolean isContextFreeForMethods() {
-    return contextualVirtualToDirectMethodMaps.isEmpty() && getPrevious().isContextFreeForMethods();
+  public boolean isContextFreeForMethods(GraphLens codeLens) {
+    if (codeLens == this) {
+      return true;
+    }
+    return contextualVirtualToDirectMethodMaps.isEmpty()
+        && getPrevious().isContextFreeForMethods(codeLens);
   }
 
   @Override
-  public boolean verifyIsContextFreeForMethod(DexMethod method) {
-    assert getPrevious().verifyIsContextFreeForMethod(method);
-    DexMethod previous = getPrevious().lookupMethod(method);
+  public boolean verifyIsContextFreeForMethod(DexMethod method, GraphLens codeLens) {
+    if (codeLens == this) {
+      return true;
+    }
+    assert getPrevious().verifyIsContextFreeForMethod(method, codeLens);
+    DexMethod previous = getPrevious().lookupMethod(method, null, null, codeLens).getReference();
     assert contextualVirtualToDirectMethodMaps.values().stream()
         .noneMatch(virtualToDirectMethodMap -> virtualToDirectMethodMap.containsKey(previous));
     return true;

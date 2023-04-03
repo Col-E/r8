@@ -17,7 +17,8 @@ public abstract class NameComputationInfo<T extends DexReference> {
       DexDefinitionSupplier definitions,
       GraphLens graphLens,
       NamingLens namingLens) {
-    DexReference rewritten = graphLens.lookupReference(reference);
+    GraphLens nameLens = GraphLens.getIdentityLens();
+    DexReference rewritten = graphLens.getRenamedReference(reference, nameLens);
     if (needsToComputeName()) {
       if (isFieldNameComputationInfo()) {
         return asFieldNameComputationInfo()

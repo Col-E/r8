@@ -22,8 +22,11 @@ public class DefaultNonIdentityGraphLens extends NonIdentityGraphLens {
   }
 
   @Override
-  public boolean isContextFreeForMethods() {
-    return getPrevious().isContextFreeForMethods();
+  public boolean isContextFreeForMethods(GraphLens codeLens) {
+    if (this == codeLens) {
+      return true;
+    }
+    return getPrevious().isContextFreeForMethods(codeLens);
   }
 
   // Class lookup APIs.
@@ -67,7 +70,7 @@ public class DefaultNonIdentityGraphLens extends NonIdentityGraphLens {
 
   @Override
   protected MethodLookupResult internalDescribeLookupMethod(
-      MethodLookupResult previous, DexMethod context) {
+      MethodLookupResult previous, DexMethod context, GraphLens codeLens) {
     return previous;
   }
 

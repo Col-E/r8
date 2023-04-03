@@ -155,13 +155,18 @@ public abstract class NonIdentityGraphLens extends GraphLens {
         getPreviousMethodSignature(context),
         type,
         codeLens,
-        previous -> continuation.lookupMethod(internalDescribeLookupMethod(previous, context)));
+        previous ->
+            continuation.lookupMethod(internalDescribeLookupMethod(previous, context, codeLens)));
   }
 
   protected abstract FieldLookupResult internalDescribeLookupField(FieldLookupResult previous);
 
+  /**
+   * The codeLens is only needed for assertions that call other lens methods, it should not
+   * influence the lookup itself.
+   */
   protected abstract MethodLookupResult internalDescribeLookupMethod(
-      MethodLookupResult previous, DexMethod context);
+      MethodLookupResult previous, DexMethod context, GraphLens codeLens);
 
   protected abstract DexType internalDescribeLookupClassType(DexType previous);
 

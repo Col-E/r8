@@ -208,7 +208,14 @@ public class EnumUnboxingRewriter {
               rewriteNameMethod(iterator, invoke, enumType, context, eventConsumer);
               continue;
             } else if (invokedMethod.match(factory.enumMembers.toString)) {
-              DexMethod lookupMethod = enumUnboxingLens.lookupMethod(invokedMethod);
+              DexMethod lookupMethod =
+                  enumUnboxingLens
+                      .lookupMethod(
+                          invokedMethod,
+                          context.getReference(),
+                          invoke.getType(),
+                          enumUnboxingLens.getPrevious())
+                      .getReference();
               // If the lookupMethod is different, then a toString method was on the enumType
               // class, which was moved, and the lens code rewriter will rewrite the invoke to
               // that method.

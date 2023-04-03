@@ -1957,7 +1957,7 @@ public class VerticalClassMerger {
 
     @Override
     protected MethodLookupResult internalDescribeLookupMethod(
-        MethodLookupResult previous, DexMethod context) {
+        MethodLookupResult previous, DexMethod context, GraphLens codeLens) {
       // This is unreachable since we override the implementation of lookupMethod() above.
       throw new Unreachable();
     }
@@ -1980,7 +1980,7 @@ public class VerticalClassMerger {
     }
 
     @Override
-    public boolean isContextFreeForMethods() {
+    public boolean isContextFreeForMethods(GraphLens codeLens) {
       return true;
     }
   }

@@ -191,7 +191,7 @@ public class NestedGraphLens extends NonIdentityGraphLens {
 
   @Override
   public MethodLookupResult internalDescribeLookupMethod(
-      MethodLookupResult previous, DexMethod context) {
+      MethodLookupResult previous, DexMethod context, GraphLens codeLens) {
     if (previous.hasReboundReference()) {
       // TODO(sgjesse): Should we always do interface to virtual mapping? Is it a performance win
       //  that only subclasses which are known to need it actually do it?
@@ -307,13 +307,17 @@ public class NestedGraphLens extends NonIdentityGraphLens {
   }
 
   @Override
-  public boolean isContextFreeForMethods() {
-    return getPrevious().isContextFreeForMethods();
+  public boolean isContextFreeForMethods(GraphLens codeLens) {
+    if (codeLens == this) {
+      return true;
+    }
+    return getPrevious().isContextFreeForMethods(codeLens);
   }
 
   @Override
-  public boolean verifyIsContextFreeForMethod(DexMethod method) {
-    assert getPrevious().verifyIsContextFreeForMethod(method);
+  public boolean verifyIsContextFreeForMethod(DexMethod method, GraphLens codeLens) {
+    assert codeLens == this
+        || getPrevious().verifyIsContextFreeForMethod(getPreviousMethodSignature(method), codeLens);
     return true;
   }
 

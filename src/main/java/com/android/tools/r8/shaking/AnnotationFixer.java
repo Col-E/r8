@@ -96,7 +96,7 @@ public class AnnotationFixer {
     if (value.isDexItemBasedValueString()) {
       DexItemBasedValueString valueString = value.asDexItemBasedValueString();
       DexReference original = valueString.value;
-      DexReference rewritten = lens.lookupReference(original);
+      DexReference rewritten = lens.getRenamedReference(original, annotationLens);
       if (original != rewritten) {
         return new DexItemBasedValueString(rewritten, valueString.getNameComputationInfo());
       }

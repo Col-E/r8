@@ -12,6 +12,7 @@ import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.lens.FieldLookupResult;
+import com.android.tools.r8.graph.lens.GraphLens;
 import com.android.tools.r8.graph.lens.MethodLookupResult;
 import com.android.tools.r8.graph.lens.NestedGraphLens;
 import com.android.tools.r8.ir.conversion.ExtraParameter;
@@ -67,9 +68,9 @@ public class HorizontalClassMergerGraphLens extends NestedGraphLens {
    */
   @Override
   public MethodLookupResult internalDescribeLookupMethod(
-      MethodLookupResult previous, DexMethod context) {
+      MethodLookupResult previous, DexMethod context, GraphLens codeLens) {
     List<ExtraParameter> extraParameters = methodExtraParameters.get(previous.getReference());
-    MethodLookupResult lookup = super.internalDescribeLookupMethod(previous, context);
+    MethodLookupResult lookup = super.internalDescribeLookupMethod(previous, context, codeLens);
     if (extraParameters == null) {
       return lookup;
     }

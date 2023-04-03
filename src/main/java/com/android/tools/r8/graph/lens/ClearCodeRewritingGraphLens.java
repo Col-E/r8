@@ -67,12 +67,12 @@ public class ClearCodeRewritingGraphLens extends DefaultNonIdentityGraphLens {
 
   @Override
   public MethodLookupResult internalDescribeLookupMethod(
-      MethodLookupResult previous, DexMethod context) {
+      MethodLookupResult previous, DexMethod context, GraphLens codeLens) {
     throw new Unreachable();
   }
 
   @Override
-  public boolean isContextFreeForMethods() {
-    return getIdentityLens().isContextFreeForMethods();
+  public boolean isContextFreeForMethods(GraphLens codeLens) {
+    return true;
   }
 }

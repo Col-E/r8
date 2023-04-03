@@ -69,7 +69,7 @@ public class MemberRebindingLens extends DefaultNonIdentityGraphLens {
 
   @Override
   public MethodLookupResult internalDescribeLookupMethod(
-      MethodLookupResult previous, DexMethod context) {
+      MethodLookupResult previous, DexMethod context, GraphLens codeLens) {
     Map<DexMethod, DexMethod> methodMap =
         methodMaps.getOrDefault(previous.getType(), Collections.emptyMap());
     DexMethod newMethod = methodMap.get(previous.getReference());

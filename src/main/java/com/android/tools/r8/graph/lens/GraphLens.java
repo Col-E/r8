@@ -9,7 +9,6 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexCallSite;
 import com.android.tools.r8.graph.DexClass;
-import com.android.tools.r8.graph.DexDefinition;
 import com.android.tools.r8.graph.DexDefinitionSupplier;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
@@ -146,6 +145,14 @@ public abstract class GraphLens {
     return original;
   }
 
+  public final DexReference getRenamedReference(
+      DexReference originalReference, GraphLens codeLens) {
+    return originalReference.apply(
+        clazz -> lookupType(clazz, codeLens),
+        field -> getRenamedFieldSignature(field, codeLens),
+        method -> getRenamedMethodSignature(method, codeLens));
+  }
+
   public final DexField getRenamedFieldSignature(DexField originalField) {
     return getRenamedFieldSignature(originalField, null);
   }
@@ -237,12 +244,6 @@ public abstract class GraphLens {
   }
 
   public abstract DexType lookupType(DexType type, GraphLens applied);
-
-  @Deprecated
-  public final DexMethod lookupMethod(DexMethod method) {
-    assert verifyIsContextFreeForMethod(method);
-    return lookupMethod(method, null, null).getReference();
-  }
 
   public final MethodLookupResult lookupInvokeDirect(DexMethod method, ProgramMethod context) {
     return lookupMethod(method, context.getReference(), InvokeType.DIRECT);
@@ -359,10 +360,6 @@ public abstract class GraphLens {
     FieldLookupResult lookupField(FieldLookupResult previous);
   }
 
-  public DexReference lookupReference(DexReference reference) {
-    return reference.apply(this::lookupType, this::lookupField, this::lookupMethod);
-  }
-
   // The method lookupMethod() maps a pair INVOKE=(method signature, invoke type) to a new pair
   // INVOKE'=(method signature', invoke type'). This mapping can be context sensitive, meaning that
   // the result INVOKE' depends on where the invocation INVOKE is in the program. This is, for
@@ -373,10 +370,11 @@ public abstract class GraphLens {
   // is context insensitive, it is safe to invoke lookupMethod() without a context (or to pass null
   // as context). Trying to invoke a context sensitive graph lens without a context will lead to
   // an assertion error.
-  public abstract boolean isContextFreeForMethods();
+  public abstract boolean isContextFreeForMethods(GraphLens codeLens);
 
-  public boolean verifyIsContextFreeForMethod(DexMethod method) {
-    return isContextFreeForMethods();
+  public boolean verifyIsContextFreeForMethod(DexMethod method, GraphLens codeLens) {
+    assert isContextFreeForMethods(codeLens);
+    return true;
   }
 
   public static GraphLens getIdentityLens() {
@@ -454,13 +452,10 @@ public abstract class GraphLens {
     return this;
   }
 
-  public <T extends DexDefinition> boolean assertDefinitionsNotModified(Iterable<T> definitions) {
-    for (DexDefinition definition : definitions) {
-      DexReference reference = definition.getReference();
-      // We allow changes to bridge methods as these get retargeted even if they are kept.
-      boolean isBridge =
-          definition.isDexEncodedMethod() && definition.asDexEncodedMethod().accessFlags.isBridge();
-      assert isBridge || lookupReference(reference) == reference;
+  public boolean assertFieldsNotModified(Iterable<DexEncodedField> fields) {
+    for (DexEncodedField field : fields) {
+      DexField reference = field.getReference();
+      assert getRenamedFieldSignature(reference) == reference;
     }
     return true;
   }
@@ -642,5 +637,4 @@ public abstract class GraphLens {
 
     return true;
   }
-
 }

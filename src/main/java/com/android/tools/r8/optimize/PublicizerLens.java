@@ -40,7 +40,7 @@ final class PublicizerLens extends NestedGraphLens {
 
   @Override
   public MethodLookupResult internalDescribeLookupMethod(
-      MethodLookupResult previous, DexMethod context) {
+      MethodLookupResult previous, DexMethod context, GraphLens codeLens) {
     if (previous.getType() == InvokeType.DIRECT
         && publicizedMethods.contains(previous.getReference())) {
       assert publicizedMethodIsPresentOnHolder(previous.getReference(), context);

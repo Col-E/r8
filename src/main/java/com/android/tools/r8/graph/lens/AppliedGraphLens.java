@@ -167,7 +167,7 @@ public final class AppliedGraphLens extends DefaultNonIdentityGraphLens {
   }
 
   @Override
-  public boolean isContextFreeForMethods() {
+  public boolean isContextFreeForMethods(GraphLens codeLens) {
     return true;
   }
 

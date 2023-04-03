@@ -44,7 +44,7 @@ public class RedundantBridgeRemovalLens extends DefaultNonIdentityGraphLens {
 
   @Override
   protected MethodLookupResult internalDescribeLookupMethod(
-      MethodLookupResult previous, DexMethod context) {
+      MethodLookupResult previous, DexMethod context, GraphLens codeLens) {
     if (methodMap.containsKey(previous.getReference())) {
       DexMethod newReference = previous.getReference();
       do {

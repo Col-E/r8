@@ -58,7 +58,7 @@ public class ProtoNormalizerGraphLens extends DefaultNonIdentityGraphLens {
 
   @Override
   protected MethodLookupResult internalDescribeLookupMethod(
-      MethodLookupResult previous, DexMethod context) {
+      MethodLookupResult previous, DexMethod context, GraphLens codeLens) {
     DexMethod methodSignature = previous.getReference();
     DexMethod newMethodSignature = getNextMethodSignature(methodSignature);
     if (methodSignature == newMethodSignature) {

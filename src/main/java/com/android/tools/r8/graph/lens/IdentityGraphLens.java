@@ -107,7 +107,7 @@ final class IdentityGraphLens extends GraphLens {
   }
 
   @Override
-  public boolean isContextFreeForMethods() {
+  public boolean isContextFreeForMethods(GraphLens codeLens) {
     return true;
   }
 

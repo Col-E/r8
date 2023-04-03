@@ -76,7 +76,7 @@ public class MemberRebindingIdentityLens extends DefaultNonIdentityGraphLens {
 
   @Override
   public MethodLookupResult internalDescribeLookupMethod(
-      MethodLookupResult previous, DexMethod context) {
+      MethodLookupResult previous, DexMethod context, GraphLens codeLens) {
     assert previous.getReboundReference() == null;
     return MethodLookupResult.builder(this)
         .setReference(previous.getReference())
