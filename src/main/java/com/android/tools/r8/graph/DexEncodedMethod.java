@@ -475,9 +475,9 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
     return isInstanceInitializer() || willBeInlinedIntoInstanceInitializer(dexItemFactory);
   }
 
-  public boolean isDefaultInstanceInitializer() {
+  public boolean isDefaultInitializer() {
     checkIfObsolete();
-    return isInstanceInitializer() && getParameters().isEmpty();
+    return isInstanceInitializer() && getReference().proto.parameters.isEmpty();
   }
 
   public boolean isClassInitializer() {

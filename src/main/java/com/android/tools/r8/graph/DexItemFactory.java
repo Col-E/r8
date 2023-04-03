@@ -602,9 +602,6 @@ public class DexItemFactory {
   public final DexType javaUtilSetType = createStaticallyKnownType("Ljava/util/Set;");
 
   public final DexType androidAppActivity = createStaticallyKnownType("Landroid/app/Activity;");
-  public final DexType androidAppFragment = createStaticallyKnownType("Landroid/app/Fragment;");
-  public final DexType androidAppZygotePreload =
-      createStaticallyKnownType("Landroid/app/ZygotePreload;");
   public final DexType androidOsBuildType = createStaticallyKnownType("Landroid/os/Build;");
   public final DexType androidOsBuildVersionType =
       createStaticallyKnownType("Landroid/os/Build$VERSION;");

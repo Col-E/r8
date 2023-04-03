@@ -149,7 +149,6 @@ public class RecordProfileRewritingTest extends TestBase {
         profileInspector,
         inspector,
         SyntheticItemsTestUtils.syntheticRecordTagClass(),
-        false,
         parameters.canUseNestBasedAccessesWhenDesugaring(),
         parameters.canUseRecordsWhenDesugaring());
   }
@@ -159,7 +158,6 @@ public class RecordProfileRewritingTest extends TestBase {
         profileInspector,
         inspector,
         RECORD_REFERENCE,
-        parameters.canHaveNonReboundConstructorInvoke(),
         parameters.canUseNestBasedAccesses(),
         parameters.canUseRecords());
   }
@@ -168,7 +166,6 @@ public class RecordProfileRewritingTest extends TestBase {
       ArtProfileInspector profileInspector,
       CodeInspector inspector,
       ClassReference recordClassReference,
-      boolean canHaveNonReboundConstructorInvoke,
       boolean canUseNestBasedAccesses,
       boolean canUseRecords) {
     ClassSubject mainClassSubject = inspector.clazz(MAIN_REFERENCE);
@@ -180,14 +177,11 @@ public class RecordProfileRewritingTest extends TestBase {
     ClassSubject recordTagClassSubject = inspector.clazz(recordClassReference);
     assertThat(recordTagClassSubject, notIf(isPresent(), canUseRecords));
     if (!canUseRecords) {
-      assertEquals(
-          canHaveNonReboundConstructorInvoke ? 0 : 1, recordTagClassSubject.allMethods().size());
+      assertEquals(1, recordTagClassSubject.allMethods().size());
     }
 
     MethodSubject recordTagInstanceInitializerSubject = recordTagClassSubject.init();
-    assertThat(
-        recordTagInstanceInitializerSubject,
-        notIf(isPresent(), canHaveNonReboundConstructorInvoke || canUseRecords));
+    assertThat(recordTagInstanceInitializerSubject, notIf(isPresent(), canUseRecords));
 
     ClassSubject personRecordClassSubject = inspector.clazz(PERSON_REFERENCE);
     assertThat(personRecordClassSubject, isPresent());
@@ -296,13 +290,11 @@ public class RecordProfileRewritingTest extends TestBase {
                         hashCodeHelperClassSubject,
                         toStringHelperClassSubject)
                     .assertContainsMethodRules(
+                        recordTagInstanceInitializerSubject,
                         equalsHelperMethodSubject,
                         getFieldsAsObjectsMethodSubject,
                         hashCodeHelperMethodSubject,
-                        toStringHelperMethodSubject)
-                    .applyIf(
-                        !canHaveNonReboundConstructorInvoke,
-                        j -> j.assertContainsMethodRule(recordTagInstanceInitializerSubject)))
+                        toStringHelperMethodSubject))
         .assertContainsNoOtherRules();
   }
 }

@@ -68,7 +68,6 @@ public class SyntheticLambdaClassProfileRewritingTest extends TestBase {
     public void inspect(
         ArtProfileInspector profileInspector,
         CodeInspector inspector,
-        boolean canHaveNonReboundConstructorInvoke,
         boolean canUseLambdas,
         boolean canAccessModifyLambdaImplementationMethods) {
       ClassSubject mainClassSubject = inspector.clazz(Main.class);
@@ -107,9 +106,7 @@ public class SyntheticLambdaClassProfileRewritingTest extends TestBase {
       assertThat(lambdaClassSubject, notIf(isPresent(), canUseLambdas));
 
       MethodSubject lambdaInitializerSubject = lambdaClassSubject.uniqueInstanceInitializer();
-      assertThat(
-          lambdaInitializerSubject,
-          notIf(isPresent(), canHaveNonReboundConstructorInvoke || canUseLambdas));
+      assertThat(lambdaInitializerSubject, notIf(isPresent(), canUseLambdas));
 
       MethodSubject lambdaMainMethodSubject =
           lambdaClassSubject.uniqueMethodThatMatches(FoundMethodSubject::isVirtual);
@@ -122,9 +119,7 @@ public class SyntheticLambdaClassProfileRewritingTest extends TestBase {
 
       MethodSubject otherLambdaInitializerSubject =
           otherLambdaClassSubject.uniqueInstanceInitializer();
-      assertThat(
-          otherLambdaInitializerSubject,
-          notIf(isPresent(), canHaveNonReboundConstructorInvoke || canUseLambdas));
+      assertThat(otherLambdaInitializerSubject, notIf(isPresent(), canUseLambdas));
 
       MethodSubject otherLambdaMainMethodSubject =
           otherLambdaClassSubject.uniqueMethodThatMatches(FoundMethodSubject::isVirtual);
@@ -154,12 +149,8 @@ public class SyntheticLambdaClassProfileRewritingTest extends TestBase {
             // interface method implementation does not need to be included in the profile.
             profileInspector
                 .assertContainsClassRules(lambdaClassSubject, otherLambdaClassSubject)
-                .assertContainsMethodRules(mainMethodSubject)
-                .applyIf(
-                    !canHaveNonReboundConstructorInvoke,
-                    i ->
-                        i.assertContainsMethodRules(
-                            lambdaInitializerSubject, otherLambdaInitializerSubject))
+                .assertContainsMethodRules(
+                    mainMethodSubject, lambdaInitializerSubject, otherLambdaInitializerSubject)
                 .assertContainsNoOtherRules();
             break;
           case IMPLEMENTATION_METHOD:
@@ -230,16 +221,11 @@ public class SyntheticLambdaClassProfileRewritingTest extends TestBase {
   }
 
   private void inspectD8(ArtProfileInspector profileInspector, CodeInspector inspector) {
-    artProfileInputOutput.inspect(profileInspector, inspector, false, false, true);
+    artProfileInputOutput.inspect(profileInspector, inspector, false, true);
   }
 
   private void inspectR8(ArtProfileInspector profileInspector, CodeInspector inspector) {
-    artProfileInputOutput.inspect(
-        profileInspector,
-        inspector,
-        parameters.canHaveNonReboundConstructorInvoke(),
-        parameters.isCfRuntime(),
-        false);
+    artProfileInputOutput.inspect(profileInspector, inspector, parameters.isCfRuntime(), false);
   }
 
   static class Main {

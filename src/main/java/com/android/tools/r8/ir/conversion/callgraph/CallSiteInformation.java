@@ -86,7 +86,7 @@ public abstract class CallSiteInformation {
           continue;
         }
 
-        if (method.getDefinition().isDefaultInstanceInitializer()
+        if (method.getDefinition().isDefaultInitializer()
             && appView.hasProguardCompatibilityActions()
             && appView.getProguardCompatibilityActions().isCompatInstantiated(method.getHolder())) {
           continue;

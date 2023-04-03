@@ -104,22 +104,17 @@ public class NestBasedAccessBridgesProfileRewritingTest extends TestBase {
 
   private void inspectD8(ArtProfileInspector profileInspector, CodeInspector inspector)
       throws Exception {
-    inspect(profileInspector, inspector, false, parameters.canUseNestBasedAccessesWhenDesugaring());
+    inspect(profileInspector, inspector, parameters.canUseNestBasedAccessesWhenDesugaring());
   }
 
   private void inspectR8(ArtProfileInspector profileInspector, CodeInspector inspector)
       throws Exception {
-    inspect(
-        profileInspector,
-        inspector,
-        parameters.canHaveNonReboundConstructorInvoke(),
-        parameters.canUseNestBasedAccesses());
+    inspect(profileInspector, inspector, parameters.canUseNestBasedAccesses());
   }
 
   private void inspect(
       ArtProfileInspector profileInspector,
       CodeInspector inspector,
-      boolean canHaveNonReboundConstructorInvoke,
       boolean canUseNestBasedAccesses)
       throws Exception {
     ClassSubject nestMemberClassSubject = inspector.clazz(NestMember.class);
@@ -133,7 +128,7 @@ public class NestBasedAccessBridgesProfileRewritingTest extends TestBase {
         syntheticConstructorArgumentClassSubject, notIf(isPresent(), canUseNestBasedAccesses));
 
     MethodSubject instanceInitializer = nestMemberClassSubject.init();
-    assertThat(instanceInitializer, notIf(isPresent(), canHaveNonReboundConstructorInvoke));
+    assertThat(instanceInitializer, isPresent());
 
     MethodSubject instanceInitializerWithSyntheticArgumentSubject =
         syntheticConstructorArgumentClassSubject.isPresent()

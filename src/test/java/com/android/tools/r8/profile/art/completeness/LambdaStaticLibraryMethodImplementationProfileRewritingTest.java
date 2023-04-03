@@ -75,22 +75,15 @@ public class LambdaStaticLibraryMethodImplementationProfileRewritingTest extends
   }
 
   private void inspectD8(ArtProfileInspector profileInspector, CodeInspector inspector) {
-    inspect(profileInspector, inspector, false, false);
+    inspect(profileInspector, inspector, false);
   }
 
   private void inspectR8(ArtProfileInspector profileInspector, CodeInspector inspector) {
-    inspect(
-        profileInspector,
-        inspector,
-        parameters.canHaveNonReboundConstructorInvoke(),
-        parameters.isCfRuntime());
+    inspect(profileInspector, inspector, parameters.isCfRuntime());
   }
 
   public void inspect(
-      ArtProfileInspector profileInspector,
-      CodeInspector inspector,
-      boolean canHaveNonReboundConstructorInvoke,
-      boolean canUseLambdas) {
+      ArtProfileInspector profileInspector, CodeInspector inspector, boolean canUseLambdas) {
     ClassSubject mainClassSubject = inspector.clazz(Main.class);
     assertThat(mainClassSubject, isPresent());
 
@@ -103,26 +96,21 @@ public class LambdaStaticLibraryMethodImplementationProfileRewritingTest extends
     assertThat(lambdaClassSubject, notIf(isPresent(), canUseLambdas));
 
     MethodSubject lambdaInitializerSubject = lambdaClassSubject.uniqueInstanceInitializer();
-    assertThat(
-        lambdaInitializerSubject,
-        notIf(isPresent(), canHaveNonReboundConstructorInvoke || canUseLambdas));
+    assertThat(lambdaInitializerSubject, notIf(isPresent(), canUseLambdas));
 
     MethodSubject lambdaMainMethodSubject =
         lambdaClassSubject.uniqueMethodThatMatches(FoundMethodSubject::isVirtual);
     assertThat(lambdaMainMethodSubject, notIf(isPresent(), canUseLambdas));
 
     if (canUseLambdas) {
-      profileInspector.assertContainsMethodRule(mainMethodSubject);
+      profileInspector.assertContainsMethodRule(mainMethodSubject).assertContainsNoOtherRules();
     } else {
       profileInspector
           .assertContainsClassRules(lambdaClassSubject)
-          .assertContainsMethodRules(mainMethodSubject, lambdaMainMethodSubject)
-          .applyIf(
-              !canHaveNonReboundConstructorInvoke,
-              i -> i.assertContainsMethodRule(lambdaInitializerSubject));
+          .assertContainsMethodRules(
+              mainMethodSubject, lambdaInitializerSubject, lambdaMainMethodSubject)
+          .assertContainsNoOtherRules();
     }
-
-    profileInspector.assertContainsNoOtherRules();
   }
 
   static class Main {
