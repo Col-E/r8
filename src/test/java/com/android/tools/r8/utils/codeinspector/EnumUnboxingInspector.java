@@ -22,6 +22,11 @@ public class EnumUnboxingInspector {
     this.unboxedEnums = unboxedEnums;
   }
 
+  public EnumUnboxingInspector assertNoEnumsUnboxed() {
+    assertTrue(unboxedEnums.isEmpty());
+    return this;
+  }
+
   public EnumUnboxingInspector assertUnboxed(String typeName) {
     assertTrue(
         unboxedEnums.isUnboxedEnum(

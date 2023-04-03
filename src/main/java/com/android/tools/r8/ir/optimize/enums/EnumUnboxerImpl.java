@@ -96,6 +96,7 @@ import com.android.tools.r8.ir.optimize.enums.eligibility.Reason.MissingEnumStat
 import com.android.tools.r8.ir.optimize.enums.eligibility.Reason.MissingExactDynamicEnumTypeForEnumWithSubtypesReason;
 import com.android.tools.r8.ir.optimize.enums.eligibility.Reason.MissingInstanceFieldValueForEnumInstanceReason;
 import com.android.tools.r8.ir.optimize.enums.eligibility.Reason.MissingObjectStateForEnumInstanceReason;
+import com.android.tools.r8.ir.optimize.enums.eligibility.Reason.UnboxedValueNonComparable;
 import com.android.tools.r8.ir.optimize.enums.eligibility.Reason.UnsupportedInstanceFieldValueForEnumInstanceReason;
 import com.android.tools.r8.ir.optimize.enums.eligibility.Reason.UnsupportedLibraryInvokeReason;
 import com.android.tools.r8.ir.optimize.info.MutableFieldOptimizationInfo;
@@ -1369,6 +1370,24 @@ public class EnumUnboxerImpl extends EnumUnboxer {
     return reason;
   }
 
+  private Reason comparableAsUnboxedValues(InvokeMethod invoke) {
+    assert invoke.inValues().size() == 2;
+    TypeElement type1 = invoke.getFirstArgument().getType();
+    TypeElement type2 = invoke.getLastArgument().getType();
+    DexProgramClass candidate1 = getEnumUnboxingCandidateOrNull(type1);
+    DexProgramClass candidate2 = getEnumUnboxingCandidateOrNull(type2);
+    assert candidate1 != null || candidate2 != null;
+    if (type1.isNullType() || type2.isNullType()) {
+      // Comparing an unboxed enum to null is always allowed.
+      return Reason.ELIGIBLE;
+    }
+    if (candidate1 == candidate2) {
+      // Comparing two unboxed enum values is valid only if they come from the same enum.
+      return Reason.ELIGIBLE;
+    }
+    return new UnboxedValueNonComparable(invoke.getInvokedMethod(), type1, type2);
+  }
+
   private Reason analyzeLibraryInvoke(
       InvokeMethod invoke,
       IRCode code,
@@ -1382,13 +1401,9 @@ public class EnumUnboxerImpl extends EnumUnboxer {
       // TODO(b/147860220): EnumSet and EnumMap may be interesting to model.
       if (singleTargetReference == factory.enumMembers.compareTo
           || singleTargetReference == factory.enumMembers.compareToWithObject) {
-        DexProgramClass otherEnumClass =
-            getEnumUnboxingCandidateOrNull(invoke.getLastArgument().getType());
-        if (otherEnumClass == enumClass || invoke.getLastArgument().getType().isNullType()) {
-          return Reason.ELIGIBLE;
-        }
+        return comparableAsUnboxedValues(invoke);
       } else if (singleTargetReference == factory.enumMembers.equals) {
-        return Reason.ELIGIBLE;
+        return comparableAsUnboxedValues(invoke);
       } else if (singleTargetReference == factory.enumMembers.nameMethod
           || singleTargetReference == factory.enumMembers.toString) {
         assert invoke.asInvokeMethodWithReceiver().getReceiver() == enumValue;
@@ -1414,6 +1429,17 @@ public class EnumUnboxerImpl extends EnumUnboxer {
       if (singleTargetReference == factory.objectMembers.getClass && invoke.hasUnusedOutValue()) {
         // This is a hidden null check.
         return Reason.ELIGIBLE;
+      }
+      if (singleTargetReference == factory.objectMembers.toString) {
+        assert invoke.asInvokeMethodWithReceiver().getReceiver() == enumValue;
+        addRequiredNameData(enumClass);
+        return Reason.ELIGIBLE;
+      }
+      if (singleTargetReference == factory.objectMembers.hashCode) {
+        return Reason.ELIGIBLE;
+      }
+      if (singleTargetReference == factory.objectMembers.equals) {
+        return comparableAsUnboxedValues(invoke);
       }
       return new UnsupportedLibraryInvokeReason(singleTargetReference);
     }

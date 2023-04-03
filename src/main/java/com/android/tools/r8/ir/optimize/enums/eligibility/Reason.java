@@ -6,6 +6,7 @@ package com.android.tools.r8.ir.optimize.enums.eligibility;
 
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexMethod;
+import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.google.common.collect.ImmutableList;
 
 public abstract class Reason {
@@ -265,6 +266,43 @@ public abstract class Reason {
     @Override
     public String toString() {
       return "UnsupportedLibraryInvoke(" + invokedMethod.toSourceString() + ")";
+    }
+  }
+
+  public static class UnboxedValueNonComparable extends Reason {
+
+    private final DexMethod invokedMethod;
+    private final TypeElement type1;
+    private final TypeElement type2;
+
+    public UnboxedValueNonComparable(
+        DexMethod invokedMethod, TypeElement type1, TypeElement type2) {
+      this.invokedMethod = invokedMethod;
+      this.type1 = type1;
+      this.type2 = type2;
+    }
+
+    @Override
+    public Object getKind() {
+      return ImmutableList.of(getClass(), invokedMethod);
+    }
+
+    private static String typeInformation(TypeElement type) {
+      if (type.isClassType()) {
+        return type.asClassType().getClassType().toSourceString();
+      }
+      return type.toString();
+    }
+
+    @Override
+    public String toString() {
+      return "NonComparableElements("
+          + invokedMethod.toSourceString()
+          + " - "
+          + typeInformation(type1)
+          + " vs "
+          + typeInformation(type2)
+          + ")";
     }
   }
 
