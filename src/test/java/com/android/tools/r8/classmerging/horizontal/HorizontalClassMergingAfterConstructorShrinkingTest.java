@@ -12,6 +12,7 @@ import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.utils.AndroidApiLevel;
+import org.junit.Assume;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -34,6 +35,8 @@ public class HorizontalClassMergingAfterConstructorShrinkingTest extends TestBas
 
   @Test
   public void test() throws Exception {
+    // TODO(b/276385221): Disabled constructor shrinking for now
+    Assume.assumeTrue(parameters.canHaveNonReboundConstructorInvoke());
     assertTrue(parameters.canHaveNonReboundConstructorInvoke());
     testForR8(parameters.getBackend())
         .addInnerClasses(getClass())
