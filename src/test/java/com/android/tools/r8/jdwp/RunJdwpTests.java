@@ -72,6 +72,10 @@ public class RunJdwpTests extends TestBase {
     return dexVm.getVersion().isNewerThanOrEqual(Version.V4_4_4);
   }
 
+  static boolean isAndroidK(DexVm dexVm, Tool tool) {
+    return dexVm.getVersion().isEqualTo(Version.V4_4_4);
+  }
+
   static boolean isAndroidLOrAbove(DexVm dexVm, Tool tool) {
     return dexVm.getVersion().isNewerThan(Version.V4_4_4);
   }
@@ -126,11 +130,13 @@ public class RunJdwpTests extends TestBase {
           .put("ClassObjectReference.ReflectedType002Test", RunJdwpTests::isAndroidLOrAbove)
           .put("ClassType.InvokeMethodTest", RunJdwpTests::isAndroidLOrAbove)
           .put("ClassType.InvokeMethod002Test", RunJdwpTests::isAndroidLOrAbove)
-          .put("ClassType.InvokeMethodAfterMultipleThreadSuspensionTest",
+          .put(
+              "ClassType.InvokeMethodAfterMultipleThreadSuspensionTest",
               RunJdwpTests::isAndroidNOrAbove)
           .put("ClassType.InvokeMethodWithSuspensionTest", RunJdwpTests::isAndroidMOrAbove)
           .put("ClassType.NewInstanceTest", RunJdwpTests::isAndroidLOrAbove)
-          .put("ClassType.NewInstanceAfterMultipleThreadSuspensionTest",
+          .put(
+              "ClassType.NewInstanceAfterMultipleThreadSuspensionTest",
               RunJdwpTests::isAndroidNOrAbove)
           .put("ClassType.NewInstanceStringTest", RunJdwpTests::isAndroidOOrAbove)
           .put("ClassType.NewInstanceTagTest", RunJdwpTests::isAndroidNOrAbove)
@@ -164,7 +170,9 @@ public class RunJdwpTests extends TestBase {
           .put("Method.IsObsoleteTest", RunJdwpTests::isAndroidNOrAbove)
           .put("Method.LineTableTest", or(RunJdwpTests::isAndroidKOrAbove, RunJdwpTests::isJava))
           .put("Method.VariableTableTest", RunJdwpTests::isAndroidOOrAbove)
-          .put("Method.VariableTableWithGenericTest", RunJdwpTests::isAndroidOOrAbove)
+          .put(
+              "Method.VariableTableWithGenericTest",
+              or(RunJdwpTests::isAndroidOOrAbove, RunJdwpTests::isAndroidK))
           .put("MultiSession.AttachConnectorTest", RunJdwpTests::isAndroidLOrAbove)
           .put("MultiSession.BreakpointTest", RunJdwpTests::isAndroidLOrAbove)
           .put("MultiSession.ClassObjectIDTest", RunJdwpTests::isAndroidLOrAbove)
@@ -183,7 +191,8 @@ public class RunJdwpTests extends TestBase {
           .put("ObjectReference.GetValues002Test", RunJdwpTests::isAndroidLOrAbove)
           .put("ObjectReference.InvokeMethodDefaultTest", RunJdwpTests::isAndroidNOrAbove)
           .put("ObjectReference.InvokeMethodDefault002Test", RunJdwpTests::isAndroidNOrAbove)
-          .put("ObjectReference.InvokeMethodAfterMultipleThreadSuspensionTest",
+          .put(
+              "ObjectReference.InvokeMethodAfterMultipleThreadSuspensionTest",
               RunJdwpTests::isAndroidNOrAbove)
           .put("ObjectReference.InvokeMethodWithSuspensionTest", RunJdwpTests::isAndroidMOrAbove)
           .put("ObjectReference.IsCollectedTest", RunJdwpTests::isAndroidLOrAbove)
