@@ -1182,7 +1182,7 @@ public class DexItemFactory {
   // android.content.ContentProviderClient
   public class AndroidContentContentProviderClientMembers extends LibraryMembers {
     public final DexMethod release =
-        createMethod(androidContentContentProviderClientType, createProto(voidType), "release");
+        createMethod(androidContentContentProviderClientType, createProto(booleanType), "release");
     public final DexMethod close =
         createMethod(androidContentContentProviderClientType, createProto(voidType), "close");
   }

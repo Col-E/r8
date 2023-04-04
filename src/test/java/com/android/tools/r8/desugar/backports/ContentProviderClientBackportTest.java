@@ -70,8 +70,9 @@ public class ContentProviderClientBackportTest extends AbstractBackportTest {
       TestRunner.doFail("close should not be called");
     }
 
-    public void release() {
+    public boolean release() {
       wasClosed = true;
+      return wasClosed;
     }
   }
 
@@ -82,8 +83,9 @@ public class ContentProviderClientBackportTest extends AbstractBackportTest {
       wasClosed = true;
     }
 
-    public void release() {
+    public boolean release() {
       TestRunner.doFail("release should not be called");
+      return true;
     }
   }
 
