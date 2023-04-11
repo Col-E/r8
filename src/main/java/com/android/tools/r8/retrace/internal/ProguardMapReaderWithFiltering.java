@@ -4,9 +4,6 @@
 
 package com.android.tools.r8.retrace.internal;
 
-import static com.android.tools.r8.retrace.internal.ProguardMapReaderWithFiltering.LineParserState.COMPLETE_CLASS_MAPPING;
-import static com.android.tools.r8.retrace.internal.ProguardMapReaderWithFiltering.LineParserState.IS_COMMENT_SOURCE_FILE;
-import static com.android.tools.r8.retrace.internal.ProguardMapReaderWithFiltering.LineParserState.NOT_CLASS_MAPPING_OR_SOURCE_FILE;
 import static java.lang.Integer.MAX_VALUE;
 
 import com.android.tools.r8.errors.Unreachable;
@@ -23,20 +20,9 @@ import java.util.function.Predicate;
 
 public abstract class ProguardMapReaderWithFiltering implements LineReader {
 
-  // The LineParserState encodes a simple state that the line parser can be in, where the
-  // (successful) transitions allowed are:
+  private static final byte[] SOURCE_FILE_BYTES = "sourceFile".getBytes();
 
-  // BEGINNING -> BEGINNING_NO_WHITESPACE -> SEEN_ORIGINAL_CLASS || IS_COMMENT_START
-
-  // IS_COMMENT_START -> IS_COMMENT_SOURCE_FILE
-
-  // SEEN_ORIGINAL_CLASS -> SEEN_ARROW -> SEEN_OBFUSCATED_CLASS -> COMPLETE_CLASS_MAPPING
-  //
-  // From all states there is a transition on invalid input to NOT_CLASS_MAPPING_OR_SOURCE_FILE.
-  // The terminal states are:
-  // { IS_COMMENT_SOURCE_FILE, COMPLETE_CLASS_MAPPING, NOT_CLASS_MAPPING_OR_SOURCE_FILE }
-  //
-  public enum LineParserState {
+  public enum LineParserNode {
     BEGINNING,
     BEGINNING_NO_WHITESPACE,
     SEEN_ORIGINAL_CLASS,
@@ -52,62 +38,87 @@ public abstract class ProguardMapReaderWithFiltering implements LineReader {
           || this == COMPLETE_CLASS_MAPPING
           || this == IS_COMMENT_SOURCE_FILE;
     }
+  }
 
-    private static int currentIndex;
-    private static int endIndex;
-    private static byte[] bytes;
-    private static final byte[] SOURCE_FILE_BYTES = "sourceFile".getBytes();
+  // The LineParserState encodes a simple state that the line parser can be in, where the
+  // (successful) transitions allowed are:
 
-    public static LineParserState computeState(byte[] bytes, int startIndex, int endIndex) {
-      currentIndex = startIndex;
-      LineParserState.endIndex = endIndex;
-      LineParserState.bytes = bytes;
-      LineParserState currentState = BEGINNING;
-      while (!currentState.isTerminal()) {
-        currentState = currentState.computeNextState();
-      }
-      return currentState;
+  // BEGINNING -> BEGINNING_NO_WHITESPACE -> SEEN_ORIGINAL_CLASS || IS_COMMENT_START
+
+  // IS_COMMENT_START -> IS_COMMENT_SOURCE_FILE
+
+  // SEEN_ORIGINAL_CLASS -> SEEN_ARROW -> SEEN_OBFUSCATED_CLASS -> COMPLETE_CLASS_MAPPING
+  //
+  // From all states there is a transition on invalid input to NOT_CLASS_MAPPING_OR_SOURCE_FILE.
+  // The terminal states are:
+  // { IS_COMMENT_SOURCE_FILE, COMPLETE_CLASS_MAPPING, NOT_CLASS_MAPPING_OR_SOURCE_FILE }
+  //
+  private static class LineParserState {
+
+    private int currentIndex;
+    private final int endIndex;
+    private final byte[] bytes;
+    private LineParserNode node;
+
+    private LineParserState(byte[] bytes, int currentIndex, int endIndex) {
+      this.currentIndex = currentIndex;
+      this.endIndex = endIndex;
+      this.bytes = bytes;
+      node = LineParserNode.BEGINNING;
     }
 
-    private LineParserState computeNextState() {
-      assert this != NOT_CLASS_MAPPING_OR_SOURCE_FILE;
-      switch (this) {
+    private LineParserNode run() {
+      while (!node.isTerminal()) {
+        node = computeNextState();
+      }
+      return node;
+    }
+
+    private LineParserNode computeNextState() {
+      assert node != LineParserNode.NOT_CLASS_MAPPING_OR_SOURCE_FILE;
+      switch (node) {
         case BEGINNING:
           return readUntilNoWhiteSpace()
-              ? BEGINNING_NO_WHITESPACE
-              : NOT_CLASS_MAPPING_OR_SOURCE_FILE;
+              ? LineParserNode.BEGINNING_NO_WHITESPACE
+              : LineParserNode.NOT_CLASS_MAPPING_OR_SOURCE_FILE;
         case BEGINNING_NO_WHITESPACE:
           if (isCommentChar()) {
-            return IS_COMMENT_START;
+            return LineParserNode.IS_COMMENT_START;
           } else {
             int readLength = readCharactersNoWhiteSpaceUntil(' ');
-            return readLength > 0 ? SEEN_ORIGINAL_CLASS : NOT_CLASS_MAPPING_OR_SOURCE_FILE;
+            return readLength > 0
+                ? LineParserNode.SEEN_ORIGINAL_CLASS
+                : LineParserNode.NOT_CLASS_MAPPING_OR_SOURCE_FILE;
           }
         case SEEN_ORIGINAL_CLASS:
-          return readArrow() ? SEEN_ARROW : NOT_CLASS_MAPPING_OR_SOURCE_FILE;
+          return readArrow()
+              ? LineParserNode.SEEN_ARROW
+              : LineParserNode.NOT_CLASS_MAPPING_OR_SOURCE_FILE;
         case SEEN_ARROW:
           int colonIndex = readCharactersNoWhiteSpaceUntil(':');
-          return colonIndex > 0 ? SEEN_OBFUSCATED_CLASS : NOT_CLASS_MAPPING_OR_SOURCE_FILE;
+          return colonIndex > 0
+              ? LineParserNode.SEEN_OBFUSCATED_CLASS
+              : LineParserNode.NOT_CLASS_MAPPING_OR_SOURCE_FILE;
         case SEEN_OBFUSCATED_CLASS:
           boolean read = readColon();
           if (!read) {
-            return NOT_CLASS_MAPPING_OR_SOURCE_FILE;
+            return LineParserNode.NOT_CLASS_MAPPING_OR_SOURCE_FILE;
           }
           boolean noWhiteSpace = readUntilNoWhiteSpace();
           return (!noWhiteSpace || isCommentChar())
-              ? COMPLETE_CLASS_MAPPING
-              : NOT_CLASS_MAPPING_OR_SOURCE_FILE;
+              ? LineParserNode.COMPLETE_CLASS_MAPPING
+              : LineParserNode.NOT_CLASS_MAPPING_OR_SOURCE_FILE;
         case IS_COMMENT_START:
           if (readCharactersUntil('{')
               && readCharactersUntil(':')
               && readSingleOrDoubleQuote()
               && readSourceFile()) {
-            return IS_COMMENT_SOURCE_FILE;
+            return LineParserNode.IS_COMMENT_SOURCE_FILE;
           } else {
-            return NOT_CLASS_MAPPING_OR_SOURCE_FILE;
+            return LineParserNode.NOT_CLASS_MAPPING_OR_SOURCE_FILE;
           }
         default:
-          assert isTerminal();
+          assert node.isTerminal();
           throw new Unreachable("Should not compute next state on terminal state");
       }
     }
@@ -208,7 +219,7 @@ public abstract class ProguardMapReaderWithFiltering implements LineReader {
 
   private boolean isInsideClassOfInterest = false;
   private boolean seenFirstClass = false;
-  private LineParserState lineParserState = NOT_CLASS_MAPPING_OR_SOURCE_FILE;
+  private LineParserNode lineParserResult = LineParserNode.NOT_CLASS_MAPPING_OR_SOURCE_FILE;
 
   @Override
   public String readLine() throws IOException {
@@ -220,8 +231,8 @@ public abstract class ProguardMapReaderWithFiltering implements LineReader {
       if (filter == null) {
         return new String(bytes, startIndex, endIndex - startIndex, StandardCharsets.UTF_8);
       }
-      lineParserState = LineParserState.computeState(bytes, startIndex, endIndex);
-      if (lineParserState == COMPLETE_CLASS_MAPPING) {
+      lineParserResult = new LineParserState(bytes, startIndex, endIndex).run();
+      if (lineParserResult == LineParserNode.COMPLETE_CLASS_MAPPING) {
         seenFirstClass = true;
         String classMapping = getBufferAsString(bytes);
         String obfuscatedClassName = getObfuscatedClassName(classMapping);
@@ -229,7 +240,8 @@ public abstract class ProguardMapReaderWithFiltering implements LineReader {
         if (isInsideClassOfInterest || readPreambleAndSourceFiles) {
           return classMapping;
         }
-      } else if (lineParserState == IS_COMMENT_SOURCE_FILE && readPreambleAndSourceFiles) {
+      } else if (lineParserResult == LineParserNode.IS_COMMENT_SOURCE_FILE
+          && readPreambleAndSourceFiles) {
         return getBufferAsString(bytes);
       } else if (isInsideClassOfInterest || (!seenFirstClass && readPreambleAndSourceFiles)) {
         return getBufferAsString(bytes);
@@ -238,7 +250,7 @@ public abstract class ProguardMapReaderWithFiltering implements LineReader {
   }
 
   public boolean isClassMapping() {
-    return lineParserState == COMPLETE_CLASS_MAPPING;
+    return lineParserResult == LineParserNode.COMPLETE_CLASS_MAPPING;
   }
 
   private String getBufferAsString(byte[] bytes) {
