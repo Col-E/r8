@@ -95,7 +95,8 @@ public final class KotlinClassMetadataReader {
     Kotlin kotlin = appView.dexItemFactory().kotlin;
     KotlinClassMetadata kMetadata = toKotlinClassMetadata(kotlin, annotation.annotation);
     if (kMetadata == null) {
-      throw new KotlinMetadataException();
+      throw new KotlinMetadataException(
+          new Exception("Could not parse metadata for " + clazz.toSourceString()));
     }
     return createKotlinInfo(kotlin, clazz, kMetadata, appView, keepByteCode);
   }
