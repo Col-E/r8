@@ -5,15 +5,16 @@ package com.android.tools.r8.debug;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.KotlinCompilerTool.KotlinCompilerVersion;
 import com.android.tools.r8.KotlinTestParameters;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.ToolHelper.DexVm.Version;
+import com.android.tools.r8.debug.DebugTestBase.JUnit3Wrapper.Command;
 import com.android.tools.r8.kotlin.AbstractR8KotlinTestBase;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.List;
 import org.apache.harmony.jpda.tests.framework.jdwp.Value;
 import org.junit.Test;
@@ -257,11 +258,6 @@ public class KotlinInlineTest extends KotlinDebugTestBase {
 
   @Test
   public void testNestedInlining() throws Throwable {
-    assumeTrue(
-        "b/244704042: Incorrect step-into StringBuilder.",
-        parameters.isCfRuntime()
-            || !(parameters.getDexRuntimeVersion().isEqualTo(Version.V13_0_0)
-                || parameters.getDexRuntimeVersion().isEqualTo(Version.V14_0_0)));
     // Count the number of lines in the source file. This is needed to check that inlined code
     // refers to non-existing line numbers.
     Path sourceFilePath =
@@ -343,13 +339,7 @@ public class KotlinInlineTest extends KotlinDebugTestBase {
         stepInto(),
         checkLocals(left_mangledLvName, right_mangledLvName),
         // Enter "foo"
-        stepInto(),
-        // See b/207743106 for incorrect debug info on Kotlin 1.6.
-        applyIf(
-            kotlinParameters.getCompilerVersion() == KotlinCompilerVersion.KOTLINC_1_6_0,
-            this::stepInto),
-        checkMethod(DEBUGGEE_CLASS, "foo"),
-        checkLine(SOURCE_FILE, 34),
+        stepIntoFooWithWorkaroundKotlin16(),
         stepOut(),
         // We're back to the inline section, at the end of the lambda
         inspect(
@@ -401,15 +391,27 @@ public class KotlinInlineTest extends KotlinDebugTestBase {
         checkLocal(inlinee2_inlineScope),
         checkNoLocal(inlinee2_lambda1_inlineScope),
         checkNoLocal(inlinee2_lambda2_inlineScope),
-        // Enter the call to "foo"
-        stepInto(),
-        // See b/207743106 for incorrect debug info on Kotlin 1.6.
-        applyIf(
-            kotlinParameters.getCompilerVersion() == KotlinCompilerVersion.KOTLINC_1_6_0,
-            this::stepInto),
-        checkMethod(DEBUGGEE_CLASS, "foo"),
-        checkLine(SOURCE_FILE, 34),
+        stepIntoFooWithWorkaroundKotlin16(),
         run());
   }
 
+  // See b/207743106 for incorrect debug info on Kotlin 1.6.
+  private Command stepIntoFooWithWorkaroundKotlin16() {
+    boolean is16 = kotlinParameters.getCompilerVersion() == KotlinCompilerVersion.KOTLINC_1_6_0;
+    boolean stepHitsStringBuilder = parameters.isDexRuntimeVersionNewerThanOrEqual(Version.V13_0_0);
+    List<Command> commands = new ArrayList<>();
+    // Enter the call to "foo"
+    commands.add(stepInto());
+    // The code on kotlin 1.6 does not have an active line on entry, so advance to hit it.
+    if (is16) {
+      commands.add(stepInto());
+      // On newer VMs the stepInput will enter StringBuilder, so step out of that again.
+      if (stepHitsStringBuilder) {
+        commands.add(stepOut());
+      }
+    }
+    commands.add(checkMethod(DEBUGGEE_CLASS, "foo"));
+    commands.add(checkLine(SOURCE_FILE, 34));
+    return subcommands(commands);
+  }
 }
