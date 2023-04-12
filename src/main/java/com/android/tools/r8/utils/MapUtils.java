@@ -5,6 +5,7 @@
 package com.android.tools.r8.utils;
 
 import com.android.tools.r8.utils.StringUtils.BraceType;
+import com.google.common.collect.ImmutableMap;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceMap;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceMaps;
 import java.util.Collections;
@@ -13,6 +14,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.function.BiFunction;
 import java.util.function.BiPredicate;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.IntFunction;
 import java.util.function.Supplier;
@@ -41,9 +43,10 @@ public class MapUtils {
     return ignore -> supplier.get();
   }
 
-  public static <K, V> IdentityHashMap<K, V> newIdentityHashMap(BiForEachable<K, V> forEachable) {
+  public static <K, V> IdentityHashMap<K, V> newIdentityHashMap(
+      Consumer<IdentityHashMap<K, V>> builder) {
     IdentityHashMap<K, V> map = new IdentityHashMap<>();
-    forEachable.forEach(map::put);
+    builder.accept(map);
     return map;
   }
 
@@ -52,6 +55,13 @@ public class MapUtils {
     IdentityHashMap<K, V> map = new IdentityHashMap<>(capacity);
     forEachable.forEach(map::put);
     return map;
+  }
+
+  public static <K, V> ImmutableMap<K, V> newImmutableMap(
+      Consumer<ImmutableMap.Builder<K, V>> consumer) {
+    ImmutableMap.Builder<K, V> builder = ImmutableMap.builder();
+    consumer.accept(builder);
+    return builder.build();
   }
 
   public static <T> void removeIdentityMappings(Map<T, T> map) {

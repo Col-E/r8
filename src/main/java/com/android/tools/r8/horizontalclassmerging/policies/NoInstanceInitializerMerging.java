@@ -4,38 +4,47 @@
 
 package com.android.tools.r8.horizontalclassmerging.policies;
 
+import static com.android.tools.r8.utils.MapUtils.ignoreKey;
+
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexEncodedField;
+import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexMethodSignature;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DexTypeList;
+import com.android.tools.r8.graph.MethodAccessInfoCollection;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.horizontalclassmerging.ClassInstanceFieldsMerger;
 import com.android.tools.r8.horizontalclassmerging.HorizontalClassMerger.Mode;
 import com.android.tools.r8.horizontalclassmerging.IRCodeProvider;
 import com.android.tools.r8.horizontalclassmerging.InstanceInitializerAnalysis;
+import com.android.tools.r8.horizontalclassmerging.InstanceInitializerAnalysis.AbsentInstanceInitializer;
+import com.android.tools.r8.horizontalclassmerging.InstanceInitializerAnalysis.InstanceInitializer;
+import com.android.tools.r8.horizontalclassmerging.InstanceInitializerAnalysis.PresentInstanceInitializer;
 import com.android.tools.r8.horizontalclassmerging.InstanceInitializerDescription;
 import com.android.tools.r8.horizontalclassmerging.MergeGroup;
-import com.android.tools.r8.horizontalclassmerging.MultiClassPolicy;
+import com.android.tools.r8.horizontalclassmerging.MultiClassPolicyWithPreprocessing;
+import com.android.tools.r8.utils.IterableUtils;
 import com.android.tools.r8.utils.ListUtils;
+import com.android.tools.r8.utils.MapUtils;
 import com.android.tools.r8.utils.SetUtils;
 import com.android.tools.r8.utils.collections.BidirectionalManyToOneHashMap;
 import com.android.tools.r8.utils.collections.MutableBidirectionalManyToOneMap;
-import com.android.tools.r8.utils.collections.ProgramMethodMap;
-import com.google.common.collect.Iterators;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Sets;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.IdentityHashMap;
-import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.ExecutorService;
 import java.util.function.Function;
 
 /**
@@ -46,7 +55,8 @@ import java.util.function.Function;
  * <p>This policy requires that all instance initializers with the same signature (relaxed, by
  * converting references types to java.lang.Object) have the same behavior.
  */
-public class NoInstanceInitializerMerging extends MultiClassPolicy {
+public class NoInstanceInitializerMerging
+    extends MultiClassPolicyWithPreprocessing<Map<DexProgramClass, Set<DexMethod>>> {
 
   private final AppView<? extends AppInfoWithClassHierarchy> appView;
   private final IRCodeProvider codeProvider;
@@ -61,7 +71,53 @@ public class NoInstanceInitializerMerging extends MultiClassPolicy {
   }
 
   @Override
-  public Collection<MergeGroup> apply(MergeGroup group) {
+  public Map<DexProgramClass, Set<DexMethod>> preprocess(
+      Collection<MergeGroup> groups, ExecutorService executorService) {
+    if (!appView.options().canHaveNonReboundConstructorInvoke()) {
+      return Collections.emptyMap();
+    }
+
+    if (appView.hasLiveness()) {
+      DexItemFactory dexItemFactory = appView.dexItemFactory();
+      MethodAccessInfoCollection methodAccessInfoCollection =
+          appView.appInfoWithLiveness().getMethodAccessInfoCollection();
+
+      // Compute a mapping for the merge candidates to efficiently determine if a given type is a
+      // merge candidate.
+      Map<DexType, DexProgramClass> mergeCandidates =
+          MapUtils.newImmutableMap(
+              builder ->
+                  IterableUtils.flatten(groups)
+                      .forEach(
+                          mergeCandidate -> builder.put(mergeCandidate.getType(), mergeCandidate)));
+
+      // Compute a mapping from merge candidates to the constructors that have been removed by
+      // constructor shrinking.
+      return MapUtils.newIdentityHashMap(
+          builder ->
+              methodAccessInfoCollection.forEachDirectInvoke(
+                  (method, contexts) -> {
+                    DexProgramClass mergeCandidateHolder =
+                        mergeCandidates.get(method.getHolderType());
+                    if (mergeCandidateHolder != null
+                        && method.isInstanceInitializer(dexItemFactory)
+                        && mergeCandidateHolder.getMethodCollection().getMethod(method) == null) {
+                      builder
+                          .computeIfAbsent(
+                              mergeCandidateHolder, ignoreKey(Sets::newIdentityHashSet))
+                          .add(method);
+                    }
+                  }));
+    }
+
+    // Constructor shrinking is disabled when shrinking is disabled.
+    assert !appView.options().isShrinking();
+    return Collections.emptyMap();
+  }
+
+  @Override
+  public Collection<MergeGroup> apply(
+      MergeGroup group, Map<DexProgramClass, Set<DexMethod>> absentInstanceInitializers) {
     assert !group.hasTarget();
     assert !group.hasInstanceFieldMap();
 
@@ -76,7 +132,10 @@ public class NoInstanceInitializerMerging extends MultiClassPolicy {
     // reference parameters are converted to java.lang.Object), to ensure that merging will result
     // in a simple renaming (specifically, we must not need to append null arguments to constructor
     // calls due to constructor collisions).
-    group.removeIf(this::hasMultipleInstanceInitializersWithSameRelaxedSignature);
+    group.removeIf(
+        clazz ->
+            hasMultipleInstanceInitializersWithSameRelaxedSignature(
+                clazz, absentInstanceInitializers));
 
     if (group.isEmpty()) {
       return Collections.emptyList();
@@ -87,14 +146,14 @@ public class NoInstanceInitializerMerging extends MultiClassPolicy {
     group.selectTarget(appView);
     group.selectInstanceFieldMap(appView);
 
-    Map<MergeGroup, Map<DexMethodSignature, ProgramMethod>> newGroups = new LinkedHashMap<>();
+    Map<MergeGroup, Map<DexMethodSignature, InstanceInitializer>> newGroups = new LinkedHashMap<>();
 
     // Caching of instance initializer descriptions, which are used to determine equivalence.
     // TODO(b/181846319): Make this cache available to the instance initializer merger so that we
     //  don't reanalyze instance initializers.
-    ProgramMethodMap<Optional<InstanceInitializerDescription>> instanceInitializerDescriptions =
-        ProgramMethodMap.create();
-    Function<ProgramMethod, Optional<InstanceInitializerDescription>>
+    Map<DexMethod, Optional<InstanceInitializerDescription>> instanceInitializerDescriptions =
+        new IdentityHashMap<>();
+    Function<InstanceInitializer, Optional<InstanceInitializerDescription>>
         instanceInitializerDescriptionProvider =
             instanceInitializer ->
                 getOrComputeInstanceInitializerDescription(
@@ -104,11 +163,12 @@ public class NoInstanceInitializerMerging extends MultiClassPolicy {
     // collisions.
     for (DexProgramClass clazz : group) {
       MergeGroup newGroup = null;
-      Map<DexMethodSignature, ProgramMethod> classInstanceInitializers =
-          getInstanceInitializersByRelaxedSignature(clazz);
-      for (Entry<MergeGroup, Map<DexMethodSignature, ProgramMethod>> entry : newGroups.entrySet()) {
+      Map<DexMethodSignature, InstanceInitializer> classInstanceInitializers =
+          getInstanceInitializersByRelaxedSignature(clazz, absentInstanceInitializers);
+      for (Entry<MergeGroup, Map<DexMethodSignature, InstanceInitializer>> entry :
+          newGroups.entrySet()) {
         MergeGroup candidateGroup = entry.getKey();
-        Map<DexMethodSignature, ProgramMethod> groupInstanceInitializers = entry.getValue();
+        Map<DexMethodSignature, InstanceInitializer> groupInstanceInitializers = entry.getValue();
         if (canAddClassToGroup(
             classInstanceInitializers,
             groupInstanceInitializers,
@@ -132,14 +192,16 @@ public class NoInstanceInitializerMerging extends MultiClassPolicy {
   }
 
   private boolean canAddClassToGroup(
-      Map<DexMethodSignature, ProgramMethod> classInstanceInitializers,
-      Map<DexMethodSignature, ProgramMethod> groupInstanceInitializers,
-      Function<ProgramMethod, Optional<InstanceInitializerDescription>>
+      Map<DexMethodSignature, InstanceInitializer> classInstanceInitializers,
+      Map<DexMethodSignature, InstanceInitializer> groupInstanceInitializers,
+      Function<InstanceInitializer, Optional<InstanceInitializerDescription>>
           instanceInitializerDescriptionProvider) {
-    for (Entry<DexMethodSignature, ProgramMethod> entry : classInstanceInitializers.entrySet()) {
+    for (Entry<DexMethodSignature, InstanceInitializer> entry :
+        classInstanceInitializers.entrySet()) {
       DexMethodSignature relaxedSignature = entry.getKey();
-      ProgramMethod classInstanceInitializer = entry.getValue();
-      ProgramMethod groupInstanceInitializer = groupInstanceInitializers.get(relaxedSignature);
+      InstanceInitializer classInstanceInitializer = entry.getValue();
+      InstanceInitializer groupInstanceInitializer =
+          groupInstanceInitializers.get(relaxedSignature);
       if (groupInstanceInitializer == null) {
         continue;
       }
@@ -160,31 +222,41 @@ public class NoInstanceInitializerMerging extends MultiClassPolicy {
     return true;
   }
 
-  private boolean hasMultipleInstanceInitializersWithSameRelaxedSignature(DexProgramClass clazz) {
-    Iterator<ProgramMethod> instanceInitializers = clazz.programInstanceInitializers().iterator();
-    if (!instanceInitializers.hasNext()) {
-      // No instance initializers.
+  private boolean hasMultipleInstanceInitializersWithSameRelaxedSignature(
+      DexProgramClass clazz, Map<DexProgramClass, Set<DexMethod>> absentInstanceInitializers) {
+    Set<DexMethod> instanceInitializerReferences =
+        SetUtils.unionIdentityHashSet(
+            SetUtils.newIdentityHashSet(
+                IterableUtils.transform(
+                    clazz.programInstanceInitializers(), ProgramMethod::getReference)),
+            absentInstanceInitializers.getOrDefault(clazz, Collections.emptySet()));
+    if (instanceInitializerReferences.size() <= 1) {
       return false;
     }
 
-    ProgramMethod first = instanceInitializers.next();
-    if (!instanceInitializers.hasNext()) {
-      // Only a single instance initializer.
-      return false;
-    }
-
-    Set<DexMethod> seen = SetUtils.newIdentityHashSet(getRelaxedSignature(first));
-    return Iterators.any(
-        instanceInitializers,
-        instanceInitializer -> !seen.add(getRelaxedSignature(instanceInitializer)));
+    Set<DexMethod> seen = SetUtils.newIdentityHashSet();
+    return Iterables.any(
+        instanceInitializerReferences,
+        instanceInitializerReference ->
+            !seen.add(getRelaxedSignature(instanceInitializerReference)));
   }
 
-  private Map<DexMethodSignature, ProgramMethod> getInstanceInitializersByRelaxedSignature(
-      DexProgramClass clazz) {
-    Map<DexMethodSignature, ProgramMethod> result = new HashMap<>();
-    for (ProgramMethod instanceInitializer : clazz.programInstanceInitializers()) {
-      DexMethodSignature relaxedSignature = getRelaxedSignature(instanceInitializer).getSignature();
-      ProgramMethod previous = result.put(relaxedSignature, instanceInitializer);
+  private Map<DexMethodSignature, InstanceInitializer> getInstanceInitializersByRelaxedSignature(
+      DexProgramClass clazz, Map<DexProgramClass, Set<DexMethod>> absentInstanceInitializers) {
+    Map<DexMethodSignature, InstanceInitializer> result = new HashMap<>();
+    for (ProgramMethod presentInstanceInitializer : clazz.programInstanceInitializers()) {
+      DexMethodSignature relaxedSignature =
+          getRelaxedSignature(presentInstanceInitializer).getSignature();
+      InstanceInitializer previous =
+          result.put(relaxedSignature, new PresentInstanceInitializer(presentInstanceInitializer));
+      assert previous == null;
+    }
+    for (DexMethod absentInstanceInitializer :
+        absentInstanceInitializers.getOrDefault(clazz, Collections.emptySet())) {
+      DexMethodSignature relaxedSignature =
+          getRelaxedSignature(absentInstanceInitializer).getSignature();
+      InstanceInitializer previous =
+          result.put(relaxedSignature, new AbsentInstanceInitializer(absentInstanceInitializer));
       assert previous == null;
     }
     return result;
@@ -192,10 +264,10 @@ public class NoInstanceInitializerMerging extends MultiClassPolicy {
 
   private Optional<InstanceInitializerDescription> getOrComputeInstanceInitializerDescription(
       MergeGroup group,
-      ProgramMethod instanceInitializer,
-      ProgramMethodMap<Optional<InstanceInitializerDescription>> instanceInitializerDescriptions) {
+      InstanceInitializer instanceInitializer,
+      Map<DexMethod, Optional<InstanceInitializerDescription>> instanceInitializerDescriptions) {
     return instanceInitializerDescriptions.computeIfAbsent(
-        instanceInitializer,
+        instanceInitializer.getReference(),
         key -> {
           InstanceInitializerDescription instanceInitializerDescription =
               InstanceInitializerAnalysis.analyze(
@@ -205,15 +277,20 @@ public class NoInstanceInitializerMerging extends MultiClassPolicy {
   }
 
   private DexMethod getRelaxedSignature(ProgramMethod instanceInitializer) {
+    return getRelaxedSignature(instanceInitializer.getReference());
+  }
+
+  private DexMethod getRelaxedSignature(DexMethod instanceInitializerReference) {
     DexType objectType = appView.dexItemFactory().objectType;
-    DexTypeList parameters = instanceInitializer.getParameters();
+    DexTypeList parameters = instanceInitializerReference.getParameters();
     DexTypeList relaxedParameters =
         parameters.map(parameter -> parameter.isPrimitiveType() ? parameter : objectType);
     return parameters != relaxedParameters
         ? appView
             .dexItemFactory()
-            .createInstanceInitializer(instanceInitializer.getHolderType(), relaxedParameters)
-        : instanceInitializer.getReference();
+            .createInstanceInitializer(
+                instanceInitializerReference.getHolderType(), relaxedParameters)
+        : instanceInitializerReference;
   }
 
   private void setInstanceFieldMaps(Iterable<MergeGroup> newGroups, MergeGroup group) {

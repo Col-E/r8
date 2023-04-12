@@ -282,8 +282,7 @@ public class NoDefaultInterfaceMethodCollisions
         MapUtils.newIdentityHashMap(
             builder ->
                 Iterables.filter(groups, MergeGroup::isClassGroup)
-                    .forEach(
-                        group -> group.forEach(clazz -> builder.accept(clazz.getType(), group))));
+                    .forEach(group -> group.forEach(clazz -> builder.put(clazz.getType(), group))));
 
     // Copy the map from classes to their inherited default methods.
     Map<DexType, Map<DexMethodSignature, Set<DexMethod>>>

@@ -12,6 +12,7 @@ import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.utils.AndroidApiLevel;
+import com.android.tools.r8.utils.codeinspector.HorizontallyMergedClassesInspector;
 import org.junit.Assume;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -44,15 +45,13 @@ public class HorizontalClassMergingAfterConstructorShrinkingTest extends TestBas
         .addOptionsModification(
             options -> options.horizontalClassMergerOptions().disableInitialRoundOfClassMerging())
         .addHorizontallyMergedClassesInspector(
-            inspector ->
-                inspector.assertIsCompleteMergeGroup(A.class, B.class).assertNoOtherClassesMerged())
+            HorizontallyMergedClassesInspector::assertNoClassesMerged)
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
         .setMinApi(parameters)
         .compile()
         .run(parameters.getRuntime(), Main.class)
-        // TODO(b/276385221): Should not trigger A.<init>.
-        .assertSuccessWithOutputLines("Ouch!", "B");
+        .assertSuccessWithOutputLines("B");
   }
 
   static class Main {

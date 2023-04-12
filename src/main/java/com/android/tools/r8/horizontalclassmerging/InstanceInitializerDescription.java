@@ -57,6 +57,11 @@ public class InstanceInitializerDescription {
   }
 
   public static Builder builder(
+      AppView<? extends AppInfoWithClassHierarchy> appView, DexMethod instanceInitializer) {
+    return new Builder(appView.dexItemFactory(), instanceInitializer);
+  }
+
+  public static Builder builder(
       AppView<? extends AppInfoWithClassHierarchy> appView, ProgramMethod instanceInitializer) {
     return new Builder(appView.dexItemFactory(), instanceInitializer);
   }
@@ -120,13 +125,17 @@ public class InstanceInitializerDescription {
     private DexMethod parentConstructor;
     private List<InstanceFieldInitializationInfo> parentConstructorArguments;
 
-    Builder(DexItemFactory dexItemFactory, ProgramMethod method) {
+    Builder(DexItemFactory dexItemFactory, DexMethod methodReference) {
       this.dexItemFactory = dexItemFactory;
       this.relaxedParameters =
-          method
+          methodReference
               .getParameters()
               .map(
                   parameter -> parameter.isPrimitiveType() ? parameter : dexItemFactory.objectType);
+    }
+
+    Builder(DexItemFactory dexItemFactory, ProgramMethod method) {
+      this(dexItemFactory, method.getReference());
     }
 
     public void addInstancePut(DexField field, InstanceFieldInitializationInfo value) {

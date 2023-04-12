@@ -39,6 +39,34 @@ public class InstanceInitializerAnalysis {
       AppView<? extends AppInfoWithClassHierarchy> appView,
       IRCodeProvider codeProvider,
       MergeGroup group,
+      InstanceInitializer instanceInitializer) {
+    if (instanceInitializer.isAbsent()) {
+      InstanceInitializerDescription.Builder builder =
+          InstanceInitializerDescription.builder(appView, instanceInitializer.getReference());
+      DexMethod invokedConstructor =
+          instanceInitializer
+              .getReference()
+              .withHolder(group.getSuperType(), appView.dexItemFactory());
+      List<InstanceFieldInitializationInfo> invokedConstructorArguments = new ArrayList<>();
+      for (int argumentIndex = 1;
+          argumentIndex < invokedConstructor.getNumberOfArguments(false);
+          argumentIndex++) {
+        invokedConstructorArguments.add(
+            appView
+                .instanceFieldInitializationInfoFactory()
+                .createArgumentInitializationInfo(argumentIndex));
+      }
+      builder.addInvokeConstructor(invokedConstructor, invokedConstructorArguments);
+      return builder.build();
+    } else {
+      return analyze(appView, codeProvider, group, instanceInitializer.asPresent().getMethod());
+    }
+  }
+
+  public static InstanceInitializerDescription analyze(
+      AppView<? extends AppInfoWithClassHierarchy> appView,
+      IRCodeProvider codeProvider,
+      MergeGroup group,
       ProgramMethod instanceInitializer) {
     InstanceInitializerDescription.Builder builder =
         InstanceInitializerDescription.builder(appView, instanceInitializer);
@@ -178,5 +206,66 @@ public class InstanceInitializerAnalysis {
 
   private static InstanceInitializerDescription invalid() {
     return null;
+  }
+
+  public abstract static class InstanceInitializer {
+
+    public abstract DexMethod getReference();
+
+    public abstract boolean isAbsent();
+
+    public abstract PresentInstanceInitializer asPresent();
+  }
+
+  public static class AbsentInstanceInitializer extends InstanceInitializer {
+
+    private final DexMethod methodReference;
+
+    public AbsentInstanceInitializer(DexMethod methodReference) {
+      this.methodReference = methodReference;
+    }
+
+    @Override
+    public DexMethod getReference() {
+      return methodReference;
+    }
+
+    @Override
+    public boolean isAbsent() {
+      return true;
+    }
+
+    @Override
+    public PresentInstanceInitializer asPresent() {
+      return null;
+    }
+  }
+
+  public static class PresentInstanceInitializer extends InstanceInitializer {
+
+    private final ProgramMethod method;
+
+    public PresentInstanceInitializer(ProgramMethod method) {
+      this.method = method;
+    }
+
+    public ProgramMethod getMethod() {
+      return method;
+    }
+
+    @Override
+    public DexMethod getReference() {
+      return method.getReference();
+    }
+
+    @Override
+    public boolean isAbsent() {
+      return false;
+    }
+
+    @Override
+    public PresentInstanceInitializer asPresent() {
+      return this;
+    }
   }
 }
