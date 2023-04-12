@@ -5,14 +5,21 @@
 package com.android.tools.r8.shaking.constructor;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
+import static com.android.tools.r8.utils.codeinspector.Matchers.onlyIf;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.Assume.assumeFalse;
 
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.TestParametersCollection;
+import com.android.tools.r8.apimodel.ApiModelingTestHelper;
+import com.android.tools.r8.utils.BooleanUtils;
+import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
+import com.google.common.collect.ImmutableList;
+import java.util.List;
+import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -22,48 +29,168 @@ import org.junit.runners.Parameterized.Parameters;
 @RunWith(Parameterized.class)
 public class ForwardingConstructorUsedFromPlatformShakingOnDexTest extends TestBase {
 
+  private static final String APPLICATION_INFO_DESCRIPTOR = "Landroid/content/pm/ApplicationInfo;";
+  private static final String FRAGMENT_DESCRIPTOR = "Landroid/app/Fragment;";
+  private static final String ZYGOTE_PRELOAD_DESCRIPTOR = "Landroid/app/ZygotePreload;";
+
+  private static final String EXPECTED_OUTPUT =
+      StringUtils.lines(
+          "Fragment.onCreate()", "MyFragment.onCreate()", "MyZygotePreload.doPreload()");
+
+  private static List<byte[]> transformedProgramClassFileData;
+  private static List<byte[]> transformedLibraryClassFileData;
+
   @Parameter(0)
+  public boolean enableModeling;
+
+  @Parameter(1)
   public TestParameters parameters;
 
-  @Parameters(name = "{0}")
-  public static TestParametersCollection data() {
-    return getTestParameters().withAllRuntimesAndApiLevels().build();
+  @Parameters(name = "{1}, modeling: {0}")
+  public static List<Object[]> data() {
+    return buildParameters(
+        BooleanUtils.values(), getTestParameters().withAllRuntimesAndApiLevels().build());
+  }
+
+  @BeforeClass
+  public static void setup() throws Exception {
+    transformedProgramClassFileData = getTransformedProgramClasses();
+    transformedLibraryClassFileData = getTransformedLibraryClasses();
   }
 
   @Test
-  public void test() throws Exception {
+  public void testRuntime() throws Exception {
+    assumeFalse(enableModeling);
+    testForRuntime(parameters)
+        .addProgramClassFileData(transformedProgramClassFileData)
+        .addProgramClassFileData(transformedLibraryClassFileData)
+        .run(parameters.getRuntime(), Main.class)
+        .assertSuccessWithOutput(EXPECTED_OUTPUT);
+  }
+
+  @Test
+  public void testR8() throws Exception {
     testForR8(parameters.getBackend())
-        .addProgramClasses(Main.class, MyFragment.class)
-        .addLibraryClasses(Fragment.class)
+        .addProgramClassFileData(transformedProgramClassFileData)
+        .addLibraryClassFileData(transformedLibraryClassFileData)
         .addLibraryFiles(parameters.getDefaultRuntimeLibrary())
         .addKeepMainRule(Main.class)
+        .applyIf(
+            !enableModeling,
+            testBuilder ->
+                testBuilder.addOptionsModification(
+                    options ->
+                        options
+                            .getRedundantBridgeRemovalOptions()
+                            .clearNoConstructorShrinkingHierarchiesForTesting()))
+        // Since Fragment is first defined in API 11.
+        .apply(ApiModelingTestHelper::disableStubbingOfClasses)
         .enableNeverClassInliningAnnotations()
         .setMinApi(parameters)
         .compile()
         .inspect(this::inspect)
-        .addBootClasspathClasses(Fragment.class)
+        .addRunClasspathClassFileData(transformedLibraryClassFileData)
         .run(parameters.getRuntime(), Main.class)
-        .assertSuccessWithOutputLines("Instantiating");
+        .applyIf(
+            enableModeling || !parameters.canHaveNonReboundConstructorInvoke(),
+            runResult -> runResult.assertSuccessWithOutput(EXPECTED_OUTPUT),
+            runResult -> runResult.assertFailureWithErrorThatThrows(NoSuchMethodException.class));
+  }
+
+  private static List<byte[]> getTransformedProgramClasses() throws Exception {
+    return ImmutableList.of(
+        transformer(Main.class)
+            .replaceClassDescriptorInMethodInstructions(
+                descriptor(Fragment.class), FRAGMENT_DESCRIPTOR)
+            .replaceClassDescriptorInMethodInstructions(
+                descriptor(ZygotePreload.class), ZYGOTE_PRELOAD_DESCRIPTOR)
+            .transform(),
+        transformer(MyFragment.class)
+            .replaceClassDescriptorInMethodInstructions(
+                descriptor(Fragment.class), FRAGMENT_DESCRIPTOR)
+            .setSuper(FRAGMENT_DESCRIPTOR)
+            .transform(),
+        transformer(MyZygotePreload.class)
+            .replaceClassDescriptorInMembers(
+                descriptor(ApplicationInfo.class), APPLICATION_INFO_DESCRIPTOR)
+            .setImplementsClassDescriptors(ZYGOTE_PRELOAD_DESCRIPTOR)
+            .transform());
+  }
+
+  private static List<byte[]> getTransformedLibraryClasses() throws Exception {
+    return ImmutableList.of(
+        transformer(ApplicationInfo.class)
+            .setClassDescriptor(APPLICATION_INFO_DESCRIPTOR)
+            .transform(),
+        transformer(Fragment.class).setClassDescriptor(FRAGMENT_DESCRIPTOR).transform(),
+        transformer(Platform.class)
+            .replaceClassDescriptorInMembers(descriptor(Fragment.class), FRAGMENT_DESCRIPTOR)
+            .replaceClassDescriptorInMethodInstructions(
+                descriptor(Fragment.class), FRAGMENT_DESCRIPTOR)
+            .replaceClassDescriptorInMembers(
+                descriptor(ZygotePreload.class), ZYGOTE_PRELOAD_DESCRIPTOR)
+            .replaceClassDescriptorInMethodInstructions(
+                descriptor(ApplicationInfo.class), APPLICATION_INFO_DESCRIPTOR)
+            .replaceClassDescriptorInMethodInstructions(
+                descriptor(ZygotePreload.class), ZYGOTE_PRELOAD_DESCRIPTOR)
+            .transform(),
+        transformer(ZygotePreload.class)
+            .replaceClassDescriptorInMembers(
+                descriptor(ApplicationInfo.class), APPLICATION_INFO_DESCRIPTOR)
+            .setClassDescriptor(ZYGOTE_PRELOAD_DESCRIPTOR)
+            .transform());
   }
 
   private void inspect(CodeInspector inspector) {
     ClassSubject myFragmentClassSubject = inspector.clazz(MyFragment.class);
     assertThat(myFragmentClassSubject, isPresent());
-    assertThat(myFragmentClassSubject.init(), isPresent());
+    assertThat(
+        myFragmentClassSubject.init(),
+        onlyIf(enableModeling || !parameters.canHaveNonReboundConstructorInvoke(), isPresent()));
+
+    ClassSubject myZygotePreloadClassSubject = inspector.clazz(MyZygotePreload.class);
+    assertThat(myZygotePreloadClassSubject, isPresent());
+    assertThat(
+        myZygotePreloadClassSubject.init(),
+        onlyIf(enableModeling || !parameters.canHaveNonReboundConstructorInvoke(), isPresent()));
   }
+
+  // Library classes.
+
+  public abstract static class ApplicationInfo {}
 
   public abstract static class Fragment {
 
-    public Fragment newInstance() throws Exception {
-      System.out.println("Instantiating");
-      return getClass().getDeclaredConstructor().newInstance();
+    public void onCreate() {
+      System.out.println("Fragment.onCreate()");
     }
   }
+
+  public interface ZygotePreload {
+
+    void doPreload(ApplicationInfo applicationInfo);
+  }
+
+  public static class Platform {
+
+    public static void accept(Fragment fragment) throws Exception {
+      Fragment newFragment = fragment.getClass().getDeclaredConstructor().newInstance();
+      newFragment.onCreate();
+    }
+
+    public static void accept(ZygotePreload runnable) throws Exception {
+      ZygotePreload newZygotePreload = runnable.getClass().getDeclaredConstructor().newInstance();
+      newZygotePreload.doPreload(null);
+    }
+  }
+
+  // Program classes.
 
   public static class Main {
 
     public static void main(String[] args) throws Exception {
-      new MyFragment().newInstance();
+      Platform.accept(new MyFragment());
+      Platform.accept(new MyZygotePreload());
     }
   }
 
@@ -71,5 +198,21 @@ public class ForwardingConstructorUsedFromPlatformShakingOnDexTest extends TestB
   public static class MyFragment extends Fragment {
 
     public MyFragment() {}
+
+    @Override
+    public void onCreate() {
+      super.onCreate();
+      System.out.println("MyFragment.onCreate()");
+    }
+  }
+
+  public static class MyZygotePreload implements ZygotePreload {
+
+    public MyZygotePreload() {}
+
+    @Override
+    public void doPreload(ApplicationInfo applicationInfo) {
+      System.out.println("MyZygotePreload.doPreload()");
+    }
   }
 }

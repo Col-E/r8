@@ -36,8 +36,6 @@ public class HorizontalClassMergingAfterConstructorShrinkingTest extends TestBas
 
   @Test
   public void test() throws Exception {
-    // TODO(b/276385221): Disabled constructor shrinking for now
-    Assume.assumeTrue(parameters.canHaveNonReboundConstructorInvoke());
     assertTrue(parameters.canHaveNonReboundConstructorInvoke());
     testForR8(parameters.getBackend())
         .addInnerClasses(getClass())
