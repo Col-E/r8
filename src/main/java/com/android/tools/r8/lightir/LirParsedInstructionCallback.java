@@ -659,11 +659,13 @@ public abstract class LirParsedInstructionCallback<EV> implements LirInstruction
         {
           EV value = getNextValueOperand(view);
           onMonitorEnter(value);
+          return;
         }
       case LirOpcodes.MONITOREXIT:
         {
           EV value = getNextValueOperand(view);
           onMonitorExit(value);
+          return;
         }
       case LirOpcodes.DEBUGLOCALWRITE:
         {
