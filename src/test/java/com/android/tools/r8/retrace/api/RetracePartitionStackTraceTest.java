@@ -4,8 +4,9 @@
 
 package com.android.tools.r8.retrace.api;
 
+import static com.android.tools.r8.naming.retrace.StackTrace.isSame;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThrows;
 
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestDiagnosticMessagesImpl;
@@ -93,17 +94,39 @@ public class RetracePartitionStackTraceTest extends TestBase {
     minifiedStackTrace.add(StackTraceLine.parse("at b.b(SourceFile:2)"));
     minifiedStackTrace.add(StackTraceLine.parse("at c.c(SourceFile:3)"));
     StackTrace.Builder retraceStackTraceBuilder = StackTrace.builder();
-    // TODO(b/277673018): Ensure that we can use a mapping supplier directly.
-    assertThrows(
-        NullPointerException.class,
-        () ->
-            retrace
-                .retraceStackTrace(minifiedStackTrace, RetraceStackTraceContext.empty())
-                .forEach(
-                    stackTraceLines -> {
-                      assertEquals(1, stackTraceLines.size());
-                      stackTraceLines.get(0).forEach(retraceStackTraceBuilder::add);
-                    }));
+    retrace
+        .retraceStackTrace(minifiedStackTrace, RetraceStackTraceContext.empty())
+        .forEach(
+            stackTraceLines -> {
+              assertEquals(1, stackTraceLines.size());
+              stackTraceLines.get(0).forEach(retraceStackTraceBuilder::add);
+            });
+    assertEquals(partitions.keySet(), requestedKeys);
+    StackTrace expectedStackTrace =
+        StackTrace.builder()
+            .add(
+                StackTraceLine.builder()
+                    .setClassName("com.Foo")
+                    .setMethodName("m1")
+                    .setFileName("Foo.java")
+                    .setLineNumber(42)
+                    .build())
+            .add(
+                StackTraceLine.builder()
+                    .setClassName("com.Bar")
+                    .setMethodName("m2")
+                    .setFileName("Bar.java")
+                    .setLineNumber(43)
+                    .build())
+            .add(
+                StackTraceLine.builder()
+                    .setClassName("com.Baz")
+                    .setMethodName("m3")
+                    .setFileName("Baz.java")
+                    .setLineNumber(44)
+                    .build())
+            .build();
+    assertThat(expectedStackTrace, isSame(retraceStackTraceBuilder.build()));
   }
 
   public static class IdentityStackTraceLineParser

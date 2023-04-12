@@ -4,8 +4,12 @@
 
 package com.android.tools.r8.retrace;
 
+import com.android.tools.r8.DiagnosticsHandler;
 import com.android.tools.r8.Keep;
 import com.android.tools.r8.references.ClassReference;
+import com.android.tools.r8.references.Reference;
+import com.android.tools.r8.references.TypeReference;
+import java.util.Arrays;
 
 @Keep
 public abstract class StackTraceElementProxy<T, ST extends StackTraceElementProxy<T, ST>> {
@@ -40,4 +44,31 @@ public abstract class StackTraceElementProxy<T, ST extends StackTraceElementProx
 
   public abstract T toRetracedItem(
       RetraceStackTraceElementProxy<T, ST> retracedProxy, boolean verbose);
+
+  public void registerUses(
+      MappingSupplier<?> mappingSupplier, DiagnosticsHandler diagnosticsHandler) {
+    if (hasClassName()) {
+      mappingSupplier.registerClassUse(diagnosticsHandler, getClassReference());
+    }
+    if (hasMethodArguments()) {
+      Arrays.stream(getMethodArguments().split(","))
+          .forEach(
+              typeName ->
+                  registerUseFromTypeReference(mappingSupplier, typeName, diagnosticsHandler));
+    }
+    if (hasFieldOrReturnType() && !getFieldOrReturnType().equals("void")) {
+      registerUseFromTypeReference(mappingSupplier, getFieldOrReturnType(), diagnosticsHandler);
+    }
+  }
+
+  private static void registerUseFromTypeReference(
+      MappingSupplier<?> mappingSupplier, String typeName, DiagnosticsHandler diagnosticsHandler) {
+    TypeReference typeReference = Reference.typeFromTypeName(typeName);
+    if (typeReference.isArray()) {
+      typeReference = typeReference.asArray().getBaseType();
+    }
+    if (typeReference.isClass()) {
+      mappingSupplier.registerClassUse(diagnosticsHandler, typeReference.asClass());
+    }
+  }
 }

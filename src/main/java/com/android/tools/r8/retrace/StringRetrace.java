@@ -27,10 +27,10 @@ public class StringRetrace extends Retrace<String, StackTraceElementStringProxy>
 
   StringRetrace(
       StackTraceLineParser<String, StackTraceElementStringProxy> stackTraceLineParser,
-      StackTraceElementProxyRetracer<String, StackTraceElementStringProxy> proxyRetracer,
+      MappingSupplier<?> mappingSupplier,
       DiagnosticsHandler diagnosticsHandler,
       boolean isVerbose) {
-    super(stackTraceLineParser, proxyRetracer, null, diagnosticsHandler, isVerbose);
+    super(stackTraceLineParser, mappingSupplier, diagnosticsHandler, isVerbose);
   }
 
   /**
@@ -41,7 +41,7 @@ public class StringRetrace extends Retrace<String, StackTraceElementStringProxy>
    */
   public static StringRetrace create(RetraceOptions command) {
     return create(
-        command.getMappingSupplier().createRetracer(command.getDiagnosticsHandler()),
+        command.getMappingSupplier(),
         command.getDiagnosticsHandler(),
         command.getRegularExpression(),
         command.isVerbose());
@@ -51,20 +51,20 @@ public class StringRetrace extends Retrace<String, StackTraceElementStringProxy>
    * Entry point for creating a retracer designed for string input and output where the mapping file
    * has already been parsed.
    *
-   * @param retracer a loaded retracer with parsed mapping
+   * @param mappingSupplier a supplier that can be used to construct a retracer
    * @param diagnosticsHandler a diagnosticshandler for emitting information
    * @param regularExpression the regular expression to use for identifying information in strings
    * @param isVerbose specify to emit verbose information
    * @return a StringRetrace object
    */
   public static StringRetrace create(
-      Retracer retracer,
+      MappingSupplier<?> mappingSupplier,
       DiagnosticsHandler diagnosticsHandler,
       String regularExpression,
       boolean isVerbose) {
     return new StringRetrace(
         StackTraceLineParser.createRegularExpressionParser(regularExpression),
-        StackTraceElementProxyRetracer.createDefault(retracer),
+        mappingSupplier,
         diagnosticsHandler,
         isVerbose);
   }

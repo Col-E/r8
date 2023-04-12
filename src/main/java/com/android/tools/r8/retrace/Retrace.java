@@ -10,8 +10,6 @@ import com.android.tools.r8.Diagnostic;
 import com.android.tools.r8.DiagnosticsHandler;
 import com.android.tools.r8.Keep;
 import com.android.tools.r8.Version;
-import com.android.tools.r8.references.Reference;
-import com.android.tools.r8.references.TypeReference;
 import com.android.tools.r8.retrace.internal.ResultWithContextImpl;
 import com.android.tools.r8.retrace.internal.RetraceAbortException;
 import com.android.tools.r8.retrace.internal.StackTraceElementStringProxy;
@@ -159,19 +157,16 @@ public class Retrace<T, ST extends StackTraceElementProxy<T, ST>> {
   }
 
   private final StackTraceLineParser<T, ST> stackTraceLineParser;
-  private final StackTraceElementProxyRetracer<T, ST> proxyRetracer;
   private final MappingSupplier<?> mappingSupplier;
   private final DiagnosticsHandler diagnosticsHandler;
   protected final boolean isVerbose;
 
   Retrace(
       StackTraceLineParser<T, ST> stackTraceLineParser,
-      StackTraceElementProxyRetracer<T, ST> proxyRetracer,
       MappingSupplier<?> mappingSupplier,
       DiagnosticsHandler diagnosticsHandler,
       boolean isVerbose) {
     this.stackTraceLineParser = stackTraceLineParser;
-    this.proxyRetracer = proxyRetracer;
     this.mappingSupplier = mappingSupplier;
     this.diagnosticsHandler = diagnosticsHandler;
     this.isVerbose = isVerbose;
@@ -210,6 +205,10 @@ public class Retrace<T, ST extends StackTraceElementProxy<T, ST>> {
       List<ST> stackTrace, RetraceStackTraceContext context) {
     RetraceStackTraceElementProxyEquivalence<T, ST> equivalence =
         new RetraceStackTraceElementProxyEquivalence<>(isVerbose);
+    stackTrace.forEach(proxy -> proxy.registerUses(mappingSupplier, diagnosticsHandler));
+    StackTraceElementProxyRetracer<T, ST> proxyRetracer =
+        StackTraceElementProxyRetracer.createDefault(
+            mappingSupplier.createRetracer(diagnosticsHandler));
     List<List<List<T>>> finalResult = new ArrayList<>();
     RetraceStackTraceContext finalContext =
         ListUtils.fold(
@@ -263,6 +262,10 @@ public class Retrace<T, ST extends StackTraceElementProxy<T, ST>> {
     Map<RetraceStackTraceElementProxy<T, ST>, List<T>> ambiguousBlocks = new HashMap<>();
     List<RetraceStackTraceElementProxy<T, ST>> ambiguousKeys = new ArrayList<>();
     ST parsedLine = stackTraceLineParser.parse(stackTraceFrame);
+    parsedLine.registerUses(mappingSupplier, diagnosticsHandler);
+    StackTraceElementProxyRetracer<T, ST> proxyRetracer =
+        StackTraceElementProxyRetracer.createDefault(
+            mappingSupplier.createRetracer(diagnosticsHandler));
     Box<RetraceStackTraceContext> contextBox = new Box<>(context);
     proxyRetracer.retrace(parsedLine, context).stream()
         .forEach(
@@ -292,6 +295,10 @@ public class Retrace<T, ST extends StackTraceElementProxy<T, ST>> {
    */
   public ResultWithContext<T> retraceLine(T stackTraceLine, RetraceStackTraceContext context) {
     ST parsedLine = stackTraceLineParser.parse(stackTraceLine);
+    parsedLine.registerUses(mappingSupplier, diagnosticsHandler);
+    StackTraceElementProxyRetracer<T, ST> proxyRetracer =
+        StackTraceElementProxyRetracer.createDefault(
+            mappingSupplier.createRetracer(diagnosticsHandler));
     Box<RetraceStackTraceContext> contextBox = new Box<>(context);
     List<T> result =
         proxyRetracer.retrace(parsedLine, context).stream()
@@ -338,31 +345,10 @@ public class Retrace<T, ST extends StackTraceElementProxy<T, ST>> {
           lineNumber += 1;
         }
         timing.end();
-        parsedStackTrace.forEach(
-            proxy -> {
-              if (proxy.hasClassName()) {
-                mappingSupplier.registerClassUse(diagnosticsHandler, proxy.getClassReference());
-              }
-              if (proxy.hasMethodArguments()) {
-                Arrays.stream(proxy.getMethodArguments().split(","))
-                    .forEach(
-                        typeName ->
-                            registerUseFromTypeReference(
-                                mappingSupplier, typeName, diagnosticsHandler));
-              }
-              if (proxy.hasFieldOrReturnType() && !proxy.getFieldOrReturnType().equals("void")) {
-                registerUseFromTypeReference(
-                    mappingSupplier, proxy.getFieldOrReturnType(), diagnosticsHandler);
-              }
-            });
         timing.begin("Read proguard map");
         StringRetrace stringRetracer =
             new StringRetrace(
-                stackTraceLineParser,
-                StackTraceElementProxyRetracer.createDefault(
-                    mappingSupplier.createRetracer(diagnosticsHandler)),
-                diagnosticsHandler,
-                options.isVerbose());
+                stackTraceLineParser, mappingSupplier, diagnosticsHandler, options.isVerbose());
         timing.end();
         timing.begin("Retracing");
         ResultWithContext<String> result = stringRetracer.retraceParsed(parsedStackTrace, context);
@@ -389,17 +375,6 @@ public class Retrace<T, ST extends StackTraceElementProxy<T, ST>> {
     } catch (InvalidMappingFileException e) {
       command.getOptions().getDiagnosticsHandler().error(new ExceptionDiagnostic(e));
       throw e;
-    }
-  }
-
-  private static void registerUseFromTypeReference(
-      MappingSupplier<?> mappingSupplier, String typeName, DiagnosticsHandler diagnosticsHandler) {
-    TypeReference typeReference = Reference.typeFromTypeName(typeName);
-    if (typeReference.isArray()) {
-      typeReference = typeReference.asArray().getBaseType();
-    }
-    if (typeReference.isClass()) {
-      mappingSupplier.registerClassUse(diagnosticsHandler, typeReference.asClass());
     }
   }
 
@@ -505,7 +480,6 @@ public class Retrace<T, ST extends StackTraceElementProxy<T, ST>> {
   public static class Builder<T, ST extends StackTraceElementProxy<T, ST>> {
 
     private StackTraceLineParser<T, ST> stackTraceLineParser;
-    private StackTraceElementProxyRetracer<T, ST> proxyRetracer;
     private MappingSupplier<?> mappingSupplier;
     private DiagnosticsHandler diagnosticsHandler;
     protected boolean isVerbose;
@@ -516,25 +490,6 @@ public class Retrace<T, ST extends StackTraceElementProxy<T, ST>> {
       return this;
     }
 
-    /***
-     * Set a final constructed retracer where discovery of keys has been done.
-     */
-    public Builder<T, ST> setRetracer(Retracer retracer) {
-      return setProxyRetracer(StackTraceElementProxyRetracer.createDefault(retracer));
-    }
-
-    /***
-     * Set a final constructed proxy retracer where discovery of keys has been done.
-     */
-    public Builder<T, ST> setProxyRetracer(StackTraceElementProxyRetracer<T, ST> proxyRetracer) {
-      this.proxyRetracer = proxyRetracer;
-      return this;
-    }
-
-    /***
-     * Set a mapping supplier to be used for retracing where keys needed will be discovered when
-     * performing the actual retracing.
-     */
     public Builder<T, ST> setMappingSupplier(MappingSupplier<?> mappingSupplier) {
       this.mappingSupplier = mappingSupplier;
       return this;
@@ -551,8 +506,7 @@ public class Retrace<T, ST extends StackTraceElementProxy<T, ST>> {
     }
 
     public Retrace<T, ST> build() {
-      return new Retrace<>(
-          stackTraceLineParser, proxyRetracer, mappingSupplier, diagnosticsHandler, isVerbose);
+      return new Retrace<>(stackTraceLineParser, mappingSupplier, diagnosticsHandler, isVerbose);
     }
   }
 
