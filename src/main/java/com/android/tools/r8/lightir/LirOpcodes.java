@@ -148,11 +148,13 @@ public interface LirOpcodes {
   // int RET = 169;
   int TABLESWITCH = 170;
   int LOOKUPSWITCH = 171;
-  int IRETURN = 172;
-  int LRETURN = 173;
-  int FRETURN = 174;
-  int DRETURN = 175;
+  // int IRETURN = 172;
+  // int LRETURN = 173;
+  // int FRETURN = 174;
+  // int DRETURN = 175;
+  // All value returns use areturn.
   int ARETURN = 176;
+  // Void return.
   int RETURN = 177;
   int GETSTATIC = 178;
   int PUTSTATIC = 179;
@@ -165,7 +167,8 @@ public interface LirOpcodes {
   int INVOKEDYNAMIC = 186;
   int NEW = 187;
   int NEWARRAY = 188;
-  int ANEWARRAY = 189;
+  // All arrays use NEWARRAY and a type item pointer
+  // int ANEWARRAY = 189;
   int ARRAYLENGTH = 190;
   int ATHROW = 191;
   int CHECKCAST = 192;
@@ -429,14 +432,6 @@ public interface LirOpcodes {
         return "TABLESWITCH";
       case LOOKUPSWITCH:
         return "LOOKUPSWITCH";
-      case IRETURN:
-        return "IRETURN";
-      case LRETURN:
-        return "LRETURN";
-      case FRETURN:
-        return "FRETURN";
-      case DRETURN:
-        return "DRETURN";
       case ARETURN:
         return "ARETURN";
       case RETURN:
@@ -463,8 +458,6 @@ public interface LirOpcodes {
         return "NEW";
       case NEWARRAY:
         return "NEWARRAY";
-      case ANEWARRAY:
-        return "ANEWARRAY";
       case ARRAYLENGTH:
         return "ARRAYLENGTH";
       case ATHROW:

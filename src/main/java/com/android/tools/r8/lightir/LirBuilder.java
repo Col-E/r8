@@ -5,6 +5,7 @@ package com.android.tools.r8.lightir;
 
 import com.android.tools.r8.cf.code.CfArithmeticBinop;
 import com.android.tools.r8.cf.code.CfArithmeticBinop.Opcode;
+import com.android.tools.r8.cf.code.CfNumberConversion;
 import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.DebugLocalInfo;
@@ -21,6 +22,7 @@ import com.android.tools.r8.ir.code.Cmp;
 import com.android.tools.r8.ir.code.Cmp.Bias;
 import com.android.tools.r8.ir.code.IRMetadata;
 import com.android.tools.r8.ir.code.IfType;
+import com.android.tools.r8.ir.code.MonitorType;
 import com.android.tools.r8.ir.code.NumericType;
 import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.code.Position.SyntheticPosition;
@@ -325,21 +327,36 @@ public class LirBuilder<V, EV> {
   }
 
   public LirBuilder<V, EV> addDiv(NumericType type, V leftValue, V rightValue) {
+    int opcode;
     switch (type) {
       case BYTE:
       case CHAR:
       case SHORT:
       case INT:
         {
-          return addInstructionTemplate(
-              LirOpcodes.IDIV, Collections.emptyList(), ImmutableList.of(leftValue, rightValue));
+          opcode = LirOpcodes.IDIV;
+          break;
         }
       case LONG:
+        {
+          opcode = LirOpcodes.LDIV;
+          break;
+        }
       case FLOAT:
+        {
+          opcode = LirOpcodes.FDIV;
+          break;
+        }
       case DOUBLE:
+        {
+          opcode = LirOpcodes.DDIV;
+          break;
+        }
       default:
-        throw new Unimplemented();
+        throw new Unreachable("Unexpected type: " + type);
     }
+    return addInstructionTemplate(
+        opcode, Collections.emptyList(), ImmutableList.of(leftValue, rightValue));
   }
 
   public LirBuilder<V, EV> addArrayLength(V array) {
@@ -399,7 +416,7 @@ public class LirBuilder<V, EV> {
   }
 
   public LirBuilder<V, EV> addReturn(V value) {
-    throw new Unimplemented();
+    return addOneValueInstruction(LirOpcodes.ARETURN, value);
   }
 
   public LirBuilder<V, EV> addReturnVoid() {
@@ -555,5 +572,22 @@ public class LirBuilder<V, EV> {
     assert LirOpcodes.DREM == CfArithmeticBinop.getAsmOpcode(Opcode.Rem, NumericType.DOUBLE);
     int opcode = CfArithmeticBinop.getAsmOpcode(binop, type);
     return addTwoValueInstruction(opcode, leftValue, rightValue);
+  }
+
+  public LirBuilder<V, EV> addMonitor(MonitorType type, V value) {
+    return addOneValueInstruction(
+        type == MonitorType.ENTER ? LirOpcodes.MONITORENTER : LirOpcodes.MONITOREXIT, value);
+  }
+
+  public LirBuilder<V, EV> addNewArrayEmpty(V size, DexType type) {
+    return addInstructionTemplate(
+        LirOpcodes.NEWARRAY, Collections.singletonList(type), Collections.singletonList(size));
+  }
+
+  public LirBuilder<V, EV> addNumberConversion(NumericType from, NumericType to, V value) {
+    int opcode = new CfNumberConversion(from, to).getAsmOpcode();
+    assert LirOpcodes.I2L <= opcode;
+    assert opcode <= LirOpcodes.I2S;
+    return addOneValueInstruction(opcode, value);
   }
 }

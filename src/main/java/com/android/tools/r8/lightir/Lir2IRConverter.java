@@ -36,9 +36,13 @@ import com.android.tools.r8.ir.code.InvokeInterface;
 import com.android.tools.r8.ir.code.InvokeStatic;
 import com.android.tools.r8.ir.code.InvokeSuper;
 import com.android.tools.r8.ir.code.InvokeVirtual;
+import com.android.tools.r8.ir.code.Monitor;
+import com.android.tools.r8.ir.code.MonitorType;
 import com.android.tools.r8.ir.code.MoveException;
 import com.android.tools.r8.ir.code.Mul;
+import com.android.tools.r8.ir.code.NewArrayEmpty;
 import com.android.tools.r8.ir.code.NewInstance;
+import com.android.tools.r8.ir.code.NumberConversion;
 import com.android.tools.r8.ir.code.NumberGenerator;
 import com.android.tools.r8.ir.code.NumericType;
 import com.android.tools.r8.ir.code.Phi;
@@ -374,6 +378,14 @@ public class Lir2IRConverter {
     }
 
     @Override
+    public void onNumberConversion(NumericType from, NumericType to, EV value) {
+      Value dest =
+          getOutValueForNextInstruction(
+              to.toDexType(appView.dexItemFactory()).toTypeElement(appView));
+      addInstruction(new NumberConversion(from, to, dest, getValue(value)));
+    }
+
+    @Override
     public void onIf(IfType ifKind, int blockIndex, EV valueIndex) {
       BasicBlock targetBlock = getBasicBlock(blockIndex);
       Value value = getValue(valueIndex);
@@ -468,6 +480,12 @@ public class Lir2IRConverter {
     }
 
     @Override
+    public void onNewArrayEmpty(DexType type, EV size) {
+      Value dest = getOutValueForNextInstruction(type.toTypeElement(appView));
+      addInstruction(new NewArrayEmpty(dest, getValue(size), type));
+    }
+
+    @Override
     public void onThrow(EV exception) {
       addInstruction(new Throw(getValue(exception)));
       closeCurrentBlock();
@@ -549,6 +567,16 @@ public class Lir2IRConverter {
       Value rightValue = getValue(rightIndex);
       Value dest = getOutValueForNextInstruction(TypeElement.getInt());
       addInstruction(new Cmp(type, bias, dest, leftValue, rightValue));
+    }
+
+    @Override
+    public void onMonitorEnter(EV value) {
+      addInstruction(new Monitor(MonitorType.ENTER, getValue(value)));
+    }
+
+    @Override
+    public void onMonitorExit(EV value) {
+      addInstruction(new Monitor(MonitorType.EXIT, getValue(value)));
     }
   }
 }

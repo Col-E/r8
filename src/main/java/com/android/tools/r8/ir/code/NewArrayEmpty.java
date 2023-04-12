@@ -24,6 +24,7 @@ import com.android.tools.r8.ir.conversion.DexBuilder;
 import com.android.tools.r8.ir.optimize.DeadCodeRemover.DeadInstructionResult;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.InliningConstraints;
+import com.android.tools.r8.lightir.LirBuilder;
 
 public class NewArrayEmpty extends Instruction {
 
@@ -156,6 +157,11 @@ public class NewArrayEmpty extends Instruction {
   @Override
   public TypeElement evaluate(AppView<?> appView) {
     return TypeElement.fromDexType(type, Nullability.definitelyNotNull(), appView);
+  }
+
+  @Override
+  public void buildLir(LirBuilder<Value, ?> builder) {
+    builder.addNewArrayEmpty(size(), type);
   }
 
   @Override

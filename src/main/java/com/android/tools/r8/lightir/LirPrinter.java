@@ -144,6 +144,12 @@ public class LirPrinter<EV> extends LirParsedInstructionCallback<EV> {
   }
 
   @Override
+  public void onNumberConversion(int opcode, EV value) {
+    appendOutValue();
+    appendValueArguments(value);
+  }
+
+  @Override
   public void onIf(IfType ifKind, int blockIndex, EV valueIndex) {
     builder.append(fmtValueIndex(valueIndex)).append(' ').append(fmtInsnIndex(blockIndex));
   }
@@ -202,6 +208,13 @@ public class LirPrinter<EV> extends LirParsedInstructionCallback<EV> {
   }
 
   @Override
+  public void onNewArrayEmpty(DexType type, EV size) {
+    appendOutValue();
+    builder.append(type).append(' ');
+    appendValueArguments(size);
+  }
+
+  @Override
   public void onThrow(EV exception) {
     appendValueArguments(exception);
   }
@@ -232,5 +245,15 @@ public class LirPrinter<EV> extends LirParsedInstructionCallback<EV> {
   public void onCmpInstruction(int opcode, EV leftValue, EV rightValue) {
     appendOutValue();
     appendValueArguments(leftValue, rightValue);
+  }
+
+  @Override
+  public void onMonitorEnter(EV value) {
+    appendValueArguments(value);
+  }
+
+  @Override
+  public void onMonitorExit(EV value) {
+    appendValueArguments(value);
   }
 }

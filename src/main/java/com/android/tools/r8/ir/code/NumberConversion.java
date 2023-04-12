@@ -26,6 +26,7 @@ import com.android.tools.r8.ir.analysis.type.PrimitiveTypeElement;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
+import com.android.tools.r8.lightir.LirBuilder;
 import java.util.Set;
 
 public class NumberConversion extends Unop {
@@ -161,6 +162,11 @@ public class NumberConversion extends Unop {
   @Override
   public void buildCf(CfBuilder builder) {
     builder.add(new CfNumberConversion(from, to), this);
+  }
+
+  @Override
+  public void buildLir(LirBuilder<Value, ?> builder) {
+    builder.addNumberConversion(from, to, source());
   }
 
   @Override

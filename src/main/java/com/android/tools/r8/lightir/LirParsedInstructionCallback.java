@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.lightir;
 
+import com.android.tools.r8.cf.code.CfNumberConversion;
 import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItem;
@@ -178,6 +179,17 @@ public abstract class LirParsedInstructionCallback<EV> implements LirInstruction
     onRem(NumericType.DOUBLE, leftValueIndex, rightValueIndex);
   }
 
+  public void onNumberConversion(int opcode, EV value) {
+    assert LirOpcodes.I2L <= opcode;
+    assert opcode <= LirOpcodes.I2S;
+    CfNumberConversion insn = CfNumberConversion.fromAsm(opcode);
+    onNumberConversion(insn.getFromType(), insn.getToType(), value);
+  }
+
+  public void onNumberConversion(NumericType from, NumericType to, EV value) {
+    onInstruction();
+  }
+
   public void onIf(IfType ifKind, int blockIndex, EV valueIndex) {
     onInstruction();
   }
@@ -238,6 +250,8 @@ public abstract class LirParsedInstructionCallback<EV> implements LirInstruction
 
   public abstract void onInstancePut(DexField field, EV object, EV value);
 
+  public abstract void onNewArrayEmpty(DexType type, EV size);
+
   public abstract void onThrow(EV exception);
 
   public void onReturnVoid() {
@@ -260,6 +274,10 @@ public abstract class LirParsedInstructionCallback<EV> implements LirInstruction
     assert LirOpcodes.LCMP <= opcode && opcode <= LirOpcodes.DCMPG;
     onInstruction();
   }
+
+  public abstract void onMonitorEnter(EV value);
+
+  public abstract void onMonitorExit(EV value);
 
   private DexItem getConstantItem(int index) {
     return code.getConstantItem(index);
@@ -487,6 +505,26 @@ public abstract class LirParsedInstructionCallback<EV> implements LirInstruction
           onRemDouble(leftValueIndex, rightValueIndex);
           return;
         }
+      case LirOpcodes.I2L:
+      case LirOpcodes.I2F:
+      case LirOpcodes.I2D:
+      case LirOpcodes.L2I:
+      case LirOpcodes.L2F:
+      case LirOpcodes.L2D:
+      case LirOpcodes.F2I:
+      case LirOpcodes.F2L:
+      case LirOpcodes.F2D:
+      case LirOpcodes.D2I:
+      case LirOpcodes.D2L:
+      case LirOpcodes.D2F:
+      case LirOpcodes.I2B:
+      case LirOpcodes.I2C:
+      case LirOpcodes.I2S:
+        {
+          EV value = getNextValueOperand(view);
+          onNumberConversion(opcode, value);
+          return;
+        }
       case LirOpcodes.IFNE:
         {
           int blockIndex = view.getNextBlockOperand();
@@ -568,6 +606,13 @@ public abstract class LirParsedInstructionCallback<EV> implements LirInstruction
           onInstancePut(field, object, value);
           return;
         }
+      case LirOpcodes.NEWARRAY:
+        {
+          DexType type = (DexType) getConstantItem(view.getNextConstantOperand());
+          EV size = getNextValueOperand(view);
+          onNewArrayEmpty(type, size);
+          return;
+        }
       case LirOpcodes.ATHROW:
         {
           EV exception = getNextValueOperand(view);
@@ -609,6 +654,16 @@ public abstract class LirParsedInstructionCallback<EV> implements LirInstruction
           DexType type = (DexType) getConstantItem(view.getNextConstantOperand());
           onMoveException(type);
           return;
+        }
+      case LirOpcodes.MONITORENTER:
+        {
+          EV value = getNextValueOperand(view);
+          onMonitorEnter(value);
+        }
+      case LirOpcodes.MONITOREXIT:
+        {
+          EV value = getNextValueOperand(view);
+          onMonitorExit(value);
         }
       case LirOpcodes.DEBUGLOCALWRITE:
         {
