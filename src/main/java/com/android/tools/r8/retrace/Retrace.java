@@ -160,16 +160,19 @@ public class Retrace<T, ST extends StackTraceElementProxy<T, ST>> {
 
   private final StackTraceLineParser<T, ST> stackTraceLineParser;
   private final StackTraceElementProxyRetracer<T, ST> proxyRetracer;
+  private final MappingSupplier<?> mappingSupplier;
   private final DiagnosticsHandler diagnosticsHandler;
   protected final boolean isVerbose;
 
   Retrace(
       StackTraceLineParser<T, ST> stackTraceLineParser,
       StackTraceElementProxyRetracer<T, ST> proxyRetracer,
+      MappingSupplier<?> mappingSupplier,
       DiagnosticsHandler diagnosticsHandler,
       boolean isVerbose) {
     this.stackTraceLineParser = stackTraceLineParser;
     this.proxyRetracer = proxyRetracer;
+    this.mappingSupplier = mappingSupplier;
     this.diagnosticsHandler = diagnosticsHandler;
     this.isVerbose = isVerbose;
   }
@@ -503,6 +506,7 @@ public class Retrace<T, ST extends StackTraceElementProxy<T, ST>> {
 
     private StackTraceLineParser<T, ST> stackTraceLineParser;
     private StackTraceElementProxyRetracer<T, ST> proxyRetracer;
+    private MappingSupplier<?> mappingSupplier;
     private DiagnosticsHandler diagnosticsHandler;
     protected boolean isVerbose;
 
@@ -512,12 +516,27 @@ public class Retrace<T, ST extends StackTraceElementProxy<T, ST>> {
       return this;
     }
 
+    /***
+     * Set a final constructed retracer where discovery of keys has been done.
+     */
     public Builder<T, ST> setRetracer(Retracer retracer) {
       return setProxyRetracer(StackTraceElementProxyRetracer.createDefault(retracer));
     }
 
+    /***
+     * Set a final constructed proxy retracer where discovery of keys has been done.
+     */
     public Builder<T, ST> setProxyRetracer(StackTraceElementProxyRetracer<T, ST> proxyRetracer) {
       this.proxyRetracer = proxyRetracer;
+      return this;
+    }
+
+    /***
+     * Set a mapping supplier to be used for retracing where keys needed will be discovered when
+     * performing the actual retracing.
+     */
+    public Builder<T, ST> setMappingSupplier(MappingSupplier<?> mappingSupplier) {
+      this.mappingSupplier = mappingSupplier;
       return this;
     }
 
@@ -532,7 +551,8 @@ public class Retrace<T, ST extends StackTraceElementProxy<T, ST>> {
     }
 
     public Retrace<T, ST> build() {
-      return new Retrace<>(stackTraceLineParser, proxyRetracer, diagnosticsHandler, isVerbose);
+      return new Retrace<>(
+          stackTraceLineParser, proxyRetracer, mappingSupplier, diagnosticsHandler, isVerbose);
     }
   }
 

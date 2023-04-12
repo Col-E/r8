@@ -30,7 +30,7 @@ public class StringRetrace extends Retrace<String, StackTraceElementStringProxy>
       StackTraceElementProxyRetracer<String, StackTraceElementStringProxy> proxyRetracer,
       DiagnosticsHandler diagnosticsHandler,
       boolean isVerbose) {
-    super(stackTraceLineParser, proxyRetracer, diagnosticsHandler, isVerbose);
+    super(stackTraceLineParser, proxyRetracer, null, diagnosticsHandler, isVerbose);
   }
 
   /**
