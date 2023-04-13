@@ -12,7 +12,6 @@ import com.android.tools.r8.DiagnosticsHandler;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
-import com.android.tools.r8.dex.CompatByteBuffer;
 import com.android.tools.r8.naming.MapVersion;
 import com.android.tools.r8.references.ClassReference;
 import com.android.tools.r8.references.Reference;
@@ -83,7 +82,7 @@ public class RetracePartitionMetadataPartitionNamesTest extends TestBase {
     byte[] bytes = metadataData.getBytes();
     MappingPartitionMetadataInternal mappingPartitionMetadata =
         MappingPartitionMetadataInternal.deserialize(
-            CompatByteBuffer.wrap(bytes), MapVersion.MAP_VERSION_NONE, diagnosticsHandler);
+            bytes, MapVersion.MAP_VERSION_NONE, diagnosticsHandler);
     assertTrue(mappingPartitionMetadata.canGetPartitionKeys());
     assertEquals(expectedPartitionKeys, mappingPartitionMetadata.getPartitionKeys());
   }

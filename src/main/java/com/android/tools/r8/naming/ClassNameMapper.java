@@ -29,6 +29,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -64,13 +65,13 @@ public class ClassNameMapper implements ProguardMap {
       return classNamingBuilder;
     }
 
-    public Builder setBuildPreamble(boolean buildPreamble) {
+    Builder setBuildPreamble(boolean buildPreamble) {
       this.buildPreamble = buildPreamble;
       return this;
     }
 
     @Override
-    public void addPreambleLine(String line) {
+    void addPreambleLine(String line) {
       if (buildPreamble) {
         preamble.add(line);
       }
@@ -210,7 +211,7 @@ public class ClassNameMapper implements ProguardMap {
             allowEmptyMappedRanges,
             allowExperimentalMapping,
             mapVersion)) {
-      ClassNameMapper.Builder builder = ClassNameMapper.builder().setBuildPreamble(true);
+      ClassNameMapper.Builder builder = ClassNameMapper.builder();
       proguardReader.parse(builder);
       return builder.build();
     }
@@ -238,7 +239,7 @@ public class ClassNameMapper implements ProguardMap {
     return classNameMappings;
   }
 
-  public List<String> getPreamble() {
+  public Collection<String> getPreamble() {
     return preamble;
   }
 
@@ -349,7 +350,7 @@ public class ClassNameMapper implements ProguardMap {
   }
 
   public boolean isEmpty() {
-    return classNameMappings.isEmpty() && preamble.isEmpty();
+    return classNameMappings.isEmpty();
   }
 
   public ClassNameMapper sorted() {

@@ -7,7 +7,6 @@ import java.nio.Buffer;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.ShortBuffer;
-import java.nio.charset.StandardCharsets;
 
 /**
  * In JDK 9 ByteBuffer ByteBuffer.position(int) started overriding Buffer Buffer.position(int) along
@@ -25,10 +24,6 @@ public class CompatByteBuffer {
 
   public static CompatByteBuffer wrap(byte[] bytes) {
     return new CompatByteBuffer(ByteBuffer.wrap(bytes));
-  }
-
-  public static CompatByteBuffer wrapOrNull(byte[] bytes) {
-    return bytes == null ? null : wrap(bytes);
   }
 
   private Buffer asBuffer() {
@@ -140,35 +135,5 @@ public class CompatByteBuffer {
 
   public void put(byte[] bytes) {
     asByteBuffer().put(bytes);
-  }
-
-  // ----------------------------------------------------------------------------------------------
-  // Additional custom methods
-  // ----------------------------------------------------------------------------------------------
-
-  public int getUShort() {
-    return buffer.getShort() & 0xffff;
-  }
-
-  public byte[] getBytesOfUByteSize() {
-    int length = getUShort();
-    byte[] data = new byte[length];
-    get(data);
-    return data;
-  }
-
-  public String getUTFOfUByteSize() {
-    return new String(getBytesOfUByteSize(), StandardCharsets.UTF_8);
-  }
-
-  public byte[] getBytesOfIntSize() {
-    int length = buffer.getInt();
-    byte[] data = new byte[length];
-    get(data);
-    return data;
-  }
-
-  public String getUTFOfIntSize() {
-    return new String(getBytesOfIntSize(), StandardCharsets.UTF_8);
   }
 }
