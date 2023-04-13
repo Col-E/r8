@@ -10,7 +10,6 @@ import com.android.tools.r8.KotlinTestBase;
 import com.android.tools.r8.KotlinTestParameters;
 import com.android.tools.r8.R8FullTestBuilder;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.TestShrinkerBuilder;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.kotlin.metadata.KotlinMetadataTestBase;
 import com.android.tools.r8.shaking.ProguardKeepAttributes;
@@ -97,10 +96,6 @@ public class ReflectiveConstructionWithInlineClassTest extends KotlinTestBase {
         .addProgramFiles(kotlinc.getKotlinReflectJar())
         .addProgramFiles(kotlinc.getKotlinAnnotationJar())
         .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.LATEST))
-        .applyIf(
-            parameters.isCfRuntime()
-                && kotlinParameters.isNewerThan(KotlinCompilerVersion.KOTLINC_1_8_0),
-            TestShrinkerBuilder::addDontWarnJavaLangInvokeLambdaMetadataFactory)
         .setMinApi(parameters)
         .addKeepMainRule(MAIN_CLASS)
         .addKeepClassAndMembersRules(PKG + ".Data")
