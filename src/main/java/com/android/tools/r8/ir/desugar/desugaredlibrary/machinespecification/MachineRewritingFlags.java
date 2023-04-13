@@ -6,8 +6,11 @@ package com.android.tools.r8.ir.desugar.desugaredlibrary.machinespecification;
 
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.graph.DexField;
+import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
+import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.DexTypeList;
 import com.android.tools.r8.graph.FieldAccessFlags;
 import com.android.tools.r8.graph.MethodAccessFlags;
 import com.google.common.collect.ImmutableMap;
@@ -230,6 +233,109 @@ public class MachineRewritingFlags {
         && !hasRetargeting()
         && emulatedInterfaces.isEmpty()
         && legacyBackport.isEmpty();
+  }
+
+  public MachineRewritingFlags withPostPrefix(
+      DexItemFactory factory, String oldPrefix, String newPrefix) {
+    return new MachineRewritingFlags(
+        typeMapWithPostPrefix(rewriteType, factory, oldPrefix, newPrefix),
+        maintainType,
+        typeMapWithPostPrefix(rewriteDerivedTypeOnly, factory, oldPrefix, newPrefix),
+        staticFieldRetarget,
+        covariantRetarget,
+        staticRetarget,
+        nonEmulatedVirtualRetarget,
+        emulatedVirtualRetarget,
+        emulatedVirtualRetargetThroughEmulatedInterface,
+        apiGenericTypesConversion,
+        emulatedInterfacesWithPostPrefix(factory, oldPrefix, newPrefix),
+        wrappers,
+        legacyBackport,
+        dontRetarget,
+        customConversionsWithPostPrefix(factory, oldPrefix, newPrefix),
+        neverOutlineApi,
+        amendLibraryMethod,
+        amendLibraryField);
+  }
+
+  private Map<DexType, CustomConversionDescriptor> customConversionsWithPostPrefix(
+      DexItemFactory factory, String oldPrefix, String newPrefix) {
+    ImmutableMap.Builder<DexType, CustomConversionDescriptor> builder = ImmutableMap.builder();
+    customConversions.forEach(
+        (k, v) ->
+            builder.put(
+                k,
+                new CustomConversionDescriptor(
+                    methodWithPostPrefix(v.getTo(), factory, oldPrefix, newPrefix),
+                    methodWithPostPrefix(v.getFrom(), factory, oldPrefix, newPrefix))));
+    return builder.build();
+  }
+
+  private Map<DexType, EmulatedInterfaceDescriptor> emulatedInterfacesWithPostPrefix(
+      DexItemFactory factory, String oldPrefix, String newPrefix) {
+    ImmutableMap.Builder<DexType, EmulatedInterfaceDescriptor> builder = ImmutableMap.builder();
+    emulatedInterfaces.forEach(
+        (k, v) -> builder.put(k, descriptorWithPostPrefix(v, factory, oldPrefix, newPrefix)));
+    return builder.build();
+  }
+
+  private EmulatedInterfaceDescriptor descriptorWithPostPrefix(
+      EmulatedInterfaceDescriptor descriptor,
+      DexItemFactory factory,
+      String oldPrefix,
+      String newPrefix) {
+    DexType rewritten =
+        typeWithPostPrefix(descriptor.getRewrittenType(), factory, oldPrefix, newPrefix);
+    Map<DexMethod, EmulatedDispatchMethodDescriptor> newDescriptors = new IdentityHashMap<>();
+    descriptor
+        .getEmulatedMethods()
+        .forEach(
+            (method, descr) -> {
+              assert descr.getInterfaceMethod().getMethod().getHolderType()
+                  == descriptor.getRewrittenType();
+              newDescriptors.put(
+                  method,
+                  new EmulatedDispatchMethodDescriptor(
+                      new DerivedMethod(
+                          descr.getInterfaceMethod().getMethod().withHolder(rewritten, factory),
+                          descr.getInterfaceMethod().getMachineHolderKind()),
+                      descr.getEmulatedDispatchMethod(),
+                      descr.getForwardingMethod(),
+                      descr.getDispatchCases()));
+            });
+    return new EmulatedInterfaceDescriptor(rewritten, newDescriptors);
+  }
+
+  private Map<DexType, DexType> typeMapWithPostPrefix(
+      Map<DexType, DexType> map, DexItemFactory factory, String oldPrefix, String newPrefix) {
+    ImmutableMap.Builder<DexType, DexType> builder = ImmutableMap.builder();
+    map.forEach((k, v) -> builder.put(k, typeWithPostPrefix(v, factory, oldPrefix, newPrefix)));
+    return builder.build();
+  }
+
+  private DexMethod methodWithPostPrefix(
+      DexMethod method, DexItemFactory factory, String oldPrefix, String newPrefix) {
+    return factory.createMethod(
+        method.getHolderType(),
+        protoWithPostPrefix(method.getProto(), factory, oldPrefix, newPrefix),
+        method.getName());
+  }
+
+  private DexProto protoWithPostPrefix(
+      DexProto proto, DexItemFactory factory, String oldPrefix, String newPrefix) {
+    DexType[] values = proto.getParameters().values;
+    DexType[] newValues = new DexType[values.length];
+    for (int i = 0; i < values.length; i++) {
+      newValues[i] = typeWithPostPrefix(values[i], factory, oldPrefix, newPrefix);
+    }
+    return factory.createProto(
+        typeWithPostPrefix(proto.getReturnType(), factory, oldPrefix, newPrefix),
+        DexTypeList.create(newValues));
+  }
+
+  private DexType typeWithPostPrefix(
+      DexType type, DexItemFactory factory, String oldPrefix, String newPrefix) {
+    return factory.createType(type.toDescriptorString().replace(oldPrefix, newPrefix));
   }
 
   public static class Builder {

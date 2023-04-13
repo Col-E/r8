@@ -211,10 +211,9 @@ public final class L8Command extends BaseCompilerCommand {
     assert internal.enableInheritanceClassInDexDistributor;
     internal.enableInheritanceClassInDexDistributor = false;
 
-    assert desugaredLibrarySpecification != null;
-    internal.setDesugaredLibrarySpecification(desugaredLibrarySpecification);
-    internal.synthesizedClassPrefix =
-        desugaredLibrarySpecification.getSynthesizedLibraryClassesPackagePrefix();
+    internal.configureDesugaredLibrary(
+        desugaredLibrarySpecification,
+        desugaredLibrarySpecification.getSynthesizedLibraryClassesPackagePrefix());
 
     // Default is to remove all javac generated assertion code when generating dex.
     assert internal.assertionsConfiguration == null;

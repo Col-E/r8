@@ -696,11 +696,8 @@ public final class D8Command extends BaseCompilerCommand {
     internal.encodeChecksums = getIncludeClassesChecksum();
     internal.dexClassChecksumFilter = getDexClassChecksumFilter();
     internal.enableInheritanceClassInDexDistributor = isOptimizeMultidexForLinearAlloc();
-    internal.setDesugaredLibrarySpecification(desugaredLibrarySpecification);
-    internal.synthesizedClassPrefix =
-        synthesizedClassPrefix.isEmpty()
-            ? System.getProperty("com.android.tools.r8.synthesizedClassPrefix", "")
-            : synthesizedClassPrefix;
+
+    internal.configureDesugaredLibrary(desugaredLibrarySpecification, synthesizedClassPrefix);
     internal.desugaredLibraryKeepRuleConsumer = desugaredLibraryKeepRuleConsumer;
 
     if (!enableMissingLibraryApiModeling) {

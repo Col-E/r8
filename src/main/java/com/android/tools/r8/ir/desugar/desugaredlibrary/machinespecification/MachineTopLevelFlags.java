@@ -5,7 +5,9 @@
 package com.android.tools.r8.ir.desugar.desugaredlibrary.machinespecification;
 
 import com.android.tools.r8.utils.AndroidApiLevel;
+import com.android.tools.r8.utils.DescriptorUtils;
 import com.google.common.collect.ImmutableList;
+import java.util.ArrayList;
 import java.util.List;
 
 public class MachineTopLevelFlags {
@@ -70,5 +72,26 @@ public class MachineTopLevelFlags {
 
   public String getExtraKeepRulesConcatenated() {
     return String.join("\n", extraKeepRules);
+  }
+
+  public MachineTopLevelFlags withPostPrefix(String postPrefix) {
+    assert postPrefix.endsWith(String.valueOf(DescriptorUtils.JAVA_PACKAGE_SEPARATOR));
+    String prefix =
+        DescriptorUtils.getJavaTypeFromBinaryName(synthesizedLibraryClassesPackagePrefix);
+    String cleanPostPrefix = DescriptorUtils.getJavaTypeFromBinaryName(postPrefix);
+    String newPrefix = prefix + cleanPostPrefix;
+    String newPrefixWithSlash = DescriptorUtils.getPackageBinaryNameFromJavaType(newPrefix);
+    List<String> newKeepRules = new ArrayList<>(extraKeepRules.size());
+    for (String kr : extraKeepRules) {
+      // TODO(b/278046666): Consider changing the ProguardRuleParser to avoid invalid replacements.
+      newKeepRules.add(kr.replace(prefix, newPrefix));
+    }
+    return new MachineTopLevelFlags(
+        requiredCompilationAPILevel,
+        newPrefixWithSlash,
+        identifier,
+        jsonSource,
+        supportAllCallbacksFromLibrary,
+        newKeepRules);
   }
 }

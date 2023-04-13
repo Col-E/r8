@@ -15,7 +15,7 @@ import java.util.function.Consumer;
 public abstract class TypeRewriter {
 
   public static TypeRewriter empty() {
-    return new EmptyPrefixRewritingMapper();
+    return new EmptyTypeRewriter();
   }
 
   public abstract void rewriteType(DexType type, DexType rewrittenType);
@@ -44,12 +44,12 @@ public abstract class TypeRewriter {
 
   public abstract void forAllRewrittenTypes(Consumer<DexType> consumer);
 
-  public static class MachineDesugarPrefixRewritingMapper extends TypeRewriter {
+  public static class MachineTypeRewriter extends TypeRewriter {
 
     private final Map<DexType, DexType> rewriteType;
     private final Map<DexType, DexType> rewriteDerivedTypeOnly;
 
-    public MachineDesugarPrefixRewritingMapper(MachineDesugaredLibrarySpecification specification) {
+    public MachineTypeRewriter(MachineDesugaredLibrarySpecification specification) {
       this.rewriteType = new ConcurrentHashMap<>(specification.getRewriteType());
       rewriteDerivedTypeOnly = specification.getRewriteDerivedTypeOnly();
     }
@@ -99,7 +99,7 @@ public abstract class TypeRewriter {
     }
   }
 
-  public static class EmptyPrefixRewritingMapper extends TypeRewriter {
+  public static class EmptyTypeRewriter extends TypeRewriter {
 
     @Override
     public DexType rewrittenType(DexType type, AppView<?> appView) {

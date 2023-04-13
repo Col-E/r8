@@ -6,6 +6,7 @@ package com.android.tools.r8.ir.desugar.desugaredlibrary.machinespecification;
 
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexField;
+import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexType;
@@ -14,6 +15,7 @@ import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibrarySpecification;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.specificationconversion.LibraryValidator;
 import com.android.tools.r8.utils.AndroidApiLevel;
+import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.ListUtils;
 import com.android.tools.r8.utils.SemanticVersion;
 import com.android.tools.r8.utils.StringUtils;
@@ -260,5 +262,15 @@ public class MachineDesugaredLibrarySpecification implements DesugaredLibrarySpe
 
   public boolean includesJDK11Methods() {
     return getLeadingVersionNumber() >= 2;
+  }
+
+  public MachineDesugaredLibrarySpecification withPostPrefix(
+      DexItemFactory factory, String postPrefix) {
+    String oldPrefix = topLevelFlags.getSynthesizedLibraryClassesPackagePrefix();
+    String newPrefix = oldPrefix + DescriptorUtils.getPackageBinaryNameFromJavaType(postPrefix);
+    return new MachineDesugaredLibrarySpecification(
+        libraryCompilation,
+        topLevelFlags.withPostPrefix(postPrefix),
+        rewritingFlags.withPostPrefix(factory, oldPrefix, newPrefix));
   }
 }

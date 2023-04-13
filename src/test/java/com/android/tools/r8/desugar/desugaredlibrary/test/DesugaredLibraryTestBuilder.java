@@ -57,10 +57,10 @@ public class DesugaredLibraryTestBuilder<T extends DesugaredLibraryTestBase> {
   private Consumer<InternalOptions> l8OptionModifier = ConsumerUtils.emptyConsumer();
   private boolean l8FinalPrefixVerification = true;
   private boolean overrideDefaultLibraryFiles = false;
-
   private CustomLibrarySpecification customLibrarySpecification = null;
   private TestingKeepRuleConsumer keepRuleConsumer = null;
   private List<ExternalArtProfile> l8ResidualArtProfiles = new ArrayList<>();
+  private boolean managedPostPrefix = false;
 
   public DesugaredLibraryTestBuilder(
       T test,
@@ -168,6 +168,12 @@ public class DesugaredLibraryTestBuilder<T extends DesugaredLibraryTestBase> {
 
   public DesugaredLibraryTestBuilder<T> addProgramFiles(Collection<Path> files) {
     builder.addProgramFiles(files);
+    return this;
+  }
+
+  public DesugaredLibraryTestBuilder<T> setL8PostPrefix(String postPrefix) {
+    System.setProperty("com.android.tools.r8.desugaredLibraryPostPrefix", postPrefix);
+    this.managedPostPrefix = true;
     return this;
   }
 
@@ -371,6 +377,9 @@ public class DesugaredLibraryTestBuilder<T extends DesugaredLibraryTestBase> {
       throws CompilationFailedException, IOException, ExecutionException {
     L8TestCompileResult l8Compile = compileDesugaredLibrary(compile, keepRuleConsumer);
     D8TestCompileResult customLibCompile = compileCustomLib();
+    if (managedPostPrefix) {
+      System.clearProperty("com.android.tools.r8.desugaredLibraryPostPrefix");
+    }
     return new DesugaredLibraryTestCompileResult<>(
         test,
         compile,

@@ -35,12 +35,14 @@ public class CustomConversionAsmRewriteDescription {
   static Map<String, String> getWrapConvertOwnerMap() {
     HashMap<String, String> map = new HashMap<>();
     for (String theEnum : ENUM_WRAP_CONVERT_OWNER) {
-      map.put(theEnum, theEnum + "$EnumConversion");
-      map.put(withJavaPrefix(theEnum), theEnum + "$EnumConversion");
+      String theEnumJava = withJavaPrefix(theEnum);
+      map.put(theEnum, theEnumJava + "$EnumConversion");
+      map.put(theEnumJava, theEnumJava + "$EnumConversion");
     }
     for (String owner : WRAP_CONVERT_OWNER) {
-      map.put(withJavaPrefix(owner), owner + "$Wrapper");
-      map.put(owner, owner + "$VivifiedWrapper");
+      String ownerJava = withJavaPrefix(owner);
+      map.put(ownerJava, ownerJava + "$Wrapper");
+      map.put(owner, ownerJava + "$VivifiedWrapper");
     }
     return map;
   }
