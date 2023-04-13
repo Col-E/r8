@@ -24,7 +24,7 @@ public class MapBackportJava10Test extends AbstractBackportTest {
     return getTestParameters()
         .withCfRuntimesStartingFromIncluding(CfVm.JDK10)
         .withDexRuntimes()
-        .withAllApiLevels()
+        .withAllApiLevelsAlsoForCf()
         .build();
   }
 

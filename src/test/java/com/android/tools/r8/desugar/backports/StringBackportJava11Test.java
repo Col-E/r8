@@ -22,8 +22,8 @@ public final class StringBackportJava11Test extends AbstractBackportTest {
   public static Iterable<?> data() {
     return getTestParameters()
         .withDexRuntimes()
-        .withAllApiLevels()
         .withCfRuntimesStartingFromIncluding(CfVm.JDK11)
+        .withAllApiLevelsAlsoForCf()
         .build();
   }
 

@@ -14,9 +14,7 @@ import org.junit.runners.Parameterized.Parameters;
 public final class CharacterBackportTest extends AbstractBackportTest {
   @Parameters(name = "{0}")
   public static Iterable<?> data() {
-    return getTestParameters()
-        .withAllRuntimesAndApiLevels()
-        .build();
+    return getTestParameters().withAllRuntimes().withAllApiLevelsAlsoForCf().build();
   }
 
   public CharacterBackportTest(TestParameters parameters) {

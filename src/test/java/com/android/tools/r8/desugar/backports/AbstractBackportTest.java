@@ -14,6 +14,7 @@ import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestBuilder;
+import com.android.tools.r8.TestDiagnosticMessages;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.errors.InterfaceDesugarMissingTypeDiagnostic;
 import com.android.tools.r8.utils.AndroidApiLevel;
@@ -144,7 +145,7 @@ abstract class AbstractBackportTest extends TestBase {
     ignoredInvokes.add(methodName);
   }
 
-  private void configureProgram(TestBuilder<?, ?> builder) throws IOException {
+  protected void configureProgram(TestBuilder<?, ?> builder) throws IOException {
     builder.addProgramClasses(MiniAssert.class, IgnoreInvokes.class);
     if (testClass != null) {
       testClass.addAsProgramClass(builder);
@@ -162,33 +163,45 @@ abstract class AbstractBackportTest extends TestBase {
         .assertSuccess();
   }
 
+  private void checkDiagnostics(TestDiagnosticMessages diagnostics) {
+    if (diagnostics.getWarnings().isEmpty()) {
+      diagnostics.assertNoMessages();
+      return;
+    }
+    // When compiling with an old android.jar some tests refer to non-present types.
+    // Check only java.util types are missing and that none of them are about the target
+    // type that is being backported.
+    diagnostics
+        .assertOnlyWarnings()
+        .assertAllWarningsMatch(diagnosticType(InterfaceDesugarMissingTypeDiagnostic.class))
+        .assertAllWarningsMatch(diagnosticMessage(containsString("java.util")))
+        .assertNoWarningsMatch(diagnosticMessage(containsString(targetClass.getName())));
+  }
+
   @Test
   public void testD8() throws Exception {
     parameters.assumeDexRuntime();
-      testForD8()
-          .setMinApi(parameters)
-          .apply(this::configureProgram)
-          .setIncludeClassesChecksum(true)
-          .compileWithExpectedDiagnostics(
-              diagnostics -> {
-                if (diagnostics.getWarnings().isEmpty()) {
-                  diagnostics.assertNoMessages();
-                  return;
-                }
-                // When compiling with an old android.jar some tests refer to non-present types.
-                // Check only java.util types are missing and that none of them are about the target
-                // type that is being backported.
-                diagnostics
-                    .assertOnlyWarnings()
-                    .assertAllWarningsMatch(
-                        diagnosticType(InterfaceDesugarMissingTypeDiagnostic.class))
-                    .assertAllWarningsMatch(diagnosticMessage(containsString("java.util")))
-                    .assertNoWarningsMatch(
-                        diagnosticMessage(containsString(targetClass.getName())));
-              })
-          .run(parameters.getRuntime(), testClassName)
-          .assertSuccess()
-          .inspect(this::assertDesugaring);
+    testForD8()
+        .setMinApi(parameters)
+        .apply(this::configureProgram)
+        .setIncludeClassesChecksum(true)
+        .compileWithExpectedDiagnostics(this::checkDiagnostics)
+        .run(parameters.getRuntime(), testClassName)
+        .assertSuccess()
+        .inspect(this::assertDesugaring);
+  }
+
+  @Test
+  public void testD8Cf() throws Exception {
+    parameters.assumeCfRuntime();
+    testForD8(Backend.CF)
+        .setMinApi(parameters)
+        .apply(this::configureProgram)
+        .setIncludeClassesChecksum(true)
+        .compileWithExpectedDiagnostics(this::checkDiagnostics)
+        .run(parameters.getRuntime(), testClassName)
+        .assertSuccess()
+        .inspect(this::assertDesugaring);
   }
 
   private void assertDesugaring(CodeInspector inspector) {
@@ -217,6 +230,10 @@ abstract class AbstractBackportTest extends TestBase {
         + actualTargetInvokes
         + ": "
         + javaInvokeStatics, expectedTargetInvokes, actualTargetInvokes);
+  }
+
+  public String getTestClassName() {
+    return testClassName;
   }
 
   /** JUnit {@link Assert} isn't available in the VM runtime. This is a mini mirror of its API. */

@@ -26,6 +26,7 @@ public final class OptionalLongBackportJava10Test extends AbstractBackportTest {
         .withDexRuntimesStartingFromIncluding(Version.V7_0_0)
         .withApiLevelsStartingAtIncluding(AndroidApiLevel.N)
         .withCfRuntimesStartingFromIncluding(CfVm.JDK10)
+        .enableApiLevelsForCf()
         .build();
   }
 

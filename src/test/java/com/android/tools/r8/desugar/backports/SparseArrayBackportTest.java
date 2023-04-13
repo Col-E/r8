@@ -4,11 +4,13 @@
 
 package com.android.tools.r8.desugar.backports;
 
+import static org.hamcrest.CoreMatchers.containsString;
+
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.ToolHelper.DexVm;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.google.common.collect.ImmutableList;
 import java.io.IOException;
+import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
@@ -20,7 +22,7 @@ public class SparseArrayBackportTest extends AbstractBackportTest {
 
   @Parameters(name = "{0}")
   public static Iterable<?> data() {
-    return getTestParameters().withDexRuntimes().withAllApiLevels().build();
+    return getTestParameters().withAllRuntimes().withAllApiLevelsAlsoForCf().build();
   }
 
   public SparseArrayBackportTest(TestParameters parameters) throws IOException {
@@ -40,9 +42,18 @@ public class SparseArrayBackportTest extends AbstractBackportTest {
     registerTarget(AndroidApiLevel.S, 1);
   }
 
+  @Test
+  public void testJvm() throws Exception {
+    parameters.assumeJvmTestParameters();
+    testForJvm(parameters)
+        .apply(this::configureProgram)
+        .run(parameters.getRuntime(), getTestClassName())
+        // Fails when not desugared.
+        .assertFailureWithErrorThatMatches(containsString("Failed: set should not be called"));
+  }
+
   private static byte[] getSparseArray(TestParameters parameters) throws IOException {
     if (parameters.getApiLevel().isGreaterThanOrEqualTo(AndroidApiLevel.S)) {
-      assert parameters.getRuntime().asDex().getVm().isNewerThanOrEqual(DexVm.ART_12_0_0_HOST);
       return transformer(SparseArrayAndroid12.class)
           .setClassDescriptor(SPARSE_ARRAY_DESCRIPTOR)
           .transform();

@@ -19,7 +19,8 @@ public class AtomicReferenceTest extends AbstractBackportTest {
   public static Iterable<?> data() {
     return getTestParameters()
         .withDexRuntimesStartingFromExcluding(Version.V4_0_4)
-        .withAllApiLevels()
+        .withCfRuntimes()
+        .withAllApiLevelsAlsoForCf()
         .build();
   }
 

@@ -26,6 +26,7 @@ public final class StreamBackportJava9Test extends AbstractBackportTest {
         .withDexRuntimesStartingFromIncluding(Version.V7_0_0)
         .withApiLevelsStartingAtIncluding(AndroidApiLevel.N)
         .withCfRuntimesStartingFromIncluding(CfVm.JDK9)
+        .enableApiLevelsForCf()
         .build();
   }
 

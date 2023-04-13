@@ -23,7 +23,7 @@ public final class LongBackportJava9Test extends AbstractBackportTest {
     return getTestParameters()
         .withCfRuntimesStartingFromIncluding(CfVm.JDK9)
         .withDexRuntimes()
-        .withAllApiLevels()
+        .withAllApiLevelsAlsoForCf()
         .build();
   }
 

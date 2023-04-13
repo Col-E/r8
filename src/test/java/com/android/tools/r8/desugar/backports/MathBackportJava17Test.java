@@ -22,8 +22,8 @@ public final class MathBackportJava17Test extends AbstractBackportTest {
   public static Iterable<?> data() {
     return getTestParameters()
         .withDexRuntimes()
-        .withAllApiLevels()
         .withCfRuntimesStartingFromIncluding(CfVm.JDK17)
+        .withAllApiLevelsAlsoForCf()
         .build();
   }
 

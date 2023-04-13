@@ -4,15 +4,15 @@
 
 package com.android.tools.r8.desugar.backports;
 
-import static org.junit.Assert.assertTrue;
+import static org.hamcrest.CoreMatchers.containsString;
 
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
-import com.android.tools.r8.ToolHelper.DexVm;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.google.common.collect.ImmutableList;
 import java.io.IOException;
+import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
@@ -22,7 +22,7 @@ public class MediaDrmBackportTest extends AbstractBackportTest {
 
   @Parameters(name = "{0}")
   public static TestParametersCollection data() {
-    return getTestParameters().withDexRuntimesAndAllApiLevels().build();
+    return getTestParameters().withAllRuntimes().withAllApiLevelsAlsoForCf().build();
   }
 
   public MediaDrmBackportTest(TestParameters parameters) throws IOException {
@@ -41,9 +41,18 @@ public class MediaDrmBackportTest extends AbstractBackportTest {
     registerTarget(AndroidApiLevel.P, 1);
   }
 
+  @Test
+  public void testJvm() throws Exception {
+    parameters.assumeJvmTestParameters();
+    testForJvm(parameters)
+        .apply(this::configureProgram)
+        .run(parameters.getRuntime(), getTestClassName())
+        // Fails when not desugared.
+        .assertFailureWithErrorThatMatches(containsString("Failed: close should not be called"));
+  }
+
   private static byte[] getMediaDrm(TestParameters parameters) throws IOException {
     if (parameters.getApiLevel().isGreaterThanOrEqualTo(AndroidApiLevel.P)) {
-      assertTrue(parameters.getRuntime().asDex().getVm().isNewerThanOrEqual(DexVm.ART_8_1_0_HOST));
       return transformer(MediaDrmApiLevel28.class)
           .setClassDescriptor(DexItemFactory.androidMediaMediaDrmDescriptorString)
           .transform();

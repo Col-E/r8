@@ -26,7 +26,7 @@ public class SetBackportJava9Test extends AbstractBackportTest {
     return getTestParameters()
         .withCfRuntimesStartingFromIncluding(CfVm.JDK9)
         .withDexRuntimes()
-        .withAllApiLevels()
+        .withAllApiLevelsAlsoForCf()
         .build();
   }
 

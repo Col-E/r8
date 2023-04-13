@@ -21,8 +21,8 @@ public final class StrictMathBackportJava9Test extends AbstractBackportTest {
   public static Iterable<?> data() {
     return getTestParameters()
         .withDexRuntimes()
-        .withAllApiLevels()
         .withCfRuntimesStartingFromIncluding(CfVm.JDK9)
+        .withAllApiLevelsAlsoForCf()
         .build();
   }
 

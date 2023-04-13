@@ -4,22 +4,20 @@
 
 package com.android.tools.r8.desugar.backports;
 
+import static java.util.Arrays.asList;
+import static java.util.Collections.emptyList;
+
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
-import static java.util.Arrays.asList;
-import static java.util.Collections.emptyList;
-
 @RunWith(Parameterized.class)
 public final class StringBackportTest extends AbstractBackportTest {
   @Parameters(name = "{0}")
   public static Iterable<?> data() {
-    return getTestParameters()
-        .withAllRuntimesAndApiLevels()
-        .build();
+    return getTestParameters().withAllRuntimes().withAllApiLevelsAlsoForCf().build();
   }
 
   public StringBackportTest(TestParameters parameters) {

@@ -4,6 +4,8 @@
 
 package com.android.tools.r8.desugar.backports;
 
+import static com.android.tools.r8.utils.FileUtils.JAR_EXTENSION;
+
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestRuntime.CfVm;
 import com.android.tools.r8.ToolHelper;
@@ -13,16 +15,14 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
-import static com.android.tools.r8.utils.FileUtils.JAR_EXTENSION;
-
 @RunWith(Parameterized.class)
 public final class CharSequenceBackportJava11Test extends AbstractBackportTest {
   @Parameters(name = "{0}")
   public static Iterable<?> data() {
     return getTestParameters()
         .withDexRuntimes()
-        .withAllApiLevels()
         .withCfRuntimesStartingFromIncluding(CfVm.JDK11)
+        .withAllApiLevelsAlsoForCf()
         .build();
   }
 
