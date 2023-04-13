@@ -4,7 +4,11 @@
 
 package com.android.tools.r8.retrace.internal;
 
+import com.android.tools.r8.dex.CompatByteBuffer;
+import com.android.tools.r8.utils.SerializationUtils;
 import com.android.tools.r8.utils.StringUtils;
+import java.io.DataOutputStream;
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.Collection;
 import java.util.Collections;
@@ -23,50 +27,43 @@ public class MetadataPartitionCollection {
     return partitionKeys;
   }
 
-  public byte[] serialize() {
-    return StringUtils.join(SEPARATOR + "", partitionKeys).getBytes(StandardCharsets.UTF_8);
+  // The format is:
+  // <length-in-bytes:int><data>
+  public void serialize(DataOutputStream dataOutputStream) throws IOException {
+    SerializationUtils.writeUTFOfIntSize(
+        dataOutputStream, StringUtils.join(SEPARATOR + "", partitionKeys));
+  }
+
+  private static MetadataPartitionCollection deserialize(byte[] bytes) {
+    String allKeys = new String(bytes, StandardCharsets.UTF_8);
+    return create(StringUtils.split(allKeys, SEPARATOR));
   }
 
   public static MetadataPartitionCollection create(Collection<String> partitionKeys) {
     return new MetadataPartitionCollection(partitionKeys);
   }
 
-  public static MetadataPartitionCollection createLazy(
-      byte[] bytes, int partitionCollectionStartIndex, int partitionCollectionEndIndex) {
-    return new LazyMetadataPartitionCollection(
-        bytes, partitionCollectionStartIndex, partitionCollectionEndIndex);
-  }
-
   public static class LazyMetadataPartitionCollection extends MetadataPartitionCollection {
 
-    private final byte[] bytes;
-    private final int partitionCollectionStartIndex;
-    private final int partitionCollectionEndIndex;
+    private byte[] bytes;
     private MetadataPartitionCollection metadataPartitionCollection = null;
 
-    public LazyMetadataPartitionCollection(
-        byte[] bytes, int partitionCollectionStartIndex, int partitionCollectionEndIndex) {
+    private LazyMetadataPartitionCollection(byte[] bytes) {
       super(Collections.emptyList());
       this.bytes = bytes;
-      this.partitionCollectionStartIndex = partitionCollectionStartIndex;
-      this.partitionCollectionEndIndex = partitionCollectionEndIndex;
     }
 
     @Override
     public Collection<String> getPartitionKeys() {
       if (metadataPartitionCollection == null) {
-        metadataPartitionCollection = deserialize();
+        metadataPartitionCollection = deserialize(bytes);
+        bytes = null;
       }
       return metadataPartitionCollection.getPartitionKeys();
     }
 
-    private MetadataPartitionCollection deserialize() {
-      String allKeys =
-          new String(
-              bytes,
-              partitionCollectionStartIndex,
-              partitionCollectionEndIndex - partitionCollectionStartIndex);
-      return create(StringUtils.split(allKeys, SEPARATOR));
+    public static LazyMetadataPartitionCollection create(CompatByteBuffer buffer) {
+      return new LazyMetadataPartitionCollection(buffer.getBytesOfIntSize());
     }
   }
 }

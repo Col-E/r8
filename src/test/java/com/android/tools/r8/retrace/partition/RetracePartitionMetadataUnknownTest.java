@@ -11,9 +11,10 @@ import com.android.tools.r8.DiagnosticsHandler;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
+import com.android.tools.r8.dex.CompatByteBuffer;
 import com.android.tools.r8.naming.MapVersion;
+import com.android.tools.r8.retrace.RetracePartitionException;
 import com.android.tools.r8.retrace.internal.MappingPartitionMetadataInternal;
-import com.android.tools.r8.retrace.internal.RetracePartitionException;
 import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
 import org.junit.Test;
@@ -46,7 +47,7 @@ public class RetracePartitionMetadataUnknownTest extends TestBase {
             RetracePartitionException.class,
             () ->
                 MappingPartitionMetadataInternal.deserialize(
-                    bytes, MapVersion.MAP_VERSION_NONE, diagnosticsHandler));
+                    CompatByteBuffer.wrap(bytes), MapVersion.MAP_VERSION_NONE, diagnosticsHandler));
     assertEquals(
         "Unknown map partition strategy for metadata", retracePartitionException.getMessage());
   }

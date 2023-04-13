@@ -7,6 +7,7 @@ package com.android.tools.r8.retrace.internal;
 import static com.google.common.base.Predicates.alwaysTrue;
 
 import com.android.tools.r8.DiagnosticsHandler;
+import com.android.tools.r8.dex.CompatByteBuffer;
 import com.android.tools.r8.naming.ClassNameMapper;
 import com.android.tools.r8.naming.LineReader;
 import com.android.tools.r8.naming.MapVersion;
@@ -66,7 +67,7 @@ public class PartitionMappingSupplierImpl extends PartitionMappingSupplier {
     }
     return mappingPartitionMetadataCache =
         MappingPartitionMetadataInternal.deserialize(
-            metadata, fallbackMapVersion, diagnosticsHandler);
+            CompatByteBuffer.wrapOrNull(metadata), fallbackMapVersion, diagnosticsHandler);
   }
 
   @Override
