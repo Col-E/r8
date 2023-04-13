@@ -46,16 +46,6 @@ public class CfFrontendExamplesTest extends TestBase {
   }
 
   @Test
-  public void testArrayAccess() throws Exception {
-    runTest("arrayaccess.ArrayAccess");
-  }
-
-  @Test
-  public void testBArray() throws Exception {
-    runTest("barray.BArray");
-  }
-
-  @Test
   public void testBridgeMethod() throws Exception {
     runTest("bridge.BridgeMethod");
   }

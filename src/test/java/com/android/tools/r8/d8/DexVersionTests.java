@@ -12,23 +12,32 @@ import com.android.tools.r8.D8Command;
 import com.android.tools.r8.DexIndexedConsumer;
 import com.android.tools.r8.DiagnosticsHandler;
 import com.android.tools.r8.OutputMode;
+import com.android.tools.r8.TestBase;
+import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.Set;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
-public class DexVersionTests {
+@RunWith(Parameterized.class)
+public class DexVersionTests extends TestBase {
 
-  private static final Path ARITHMETIC_JAR =
-      Paths.get(ToolHelper.EXAMPLES_BUILD_DIR + "/arithmetic.jar");
+  @Parameters(name = "{0}")
+  public static TestParametersCollection data() {
+    return TestParameters.builder().withNoneRuntime().build();
+  }
 
-  private static final Path ARRAYACCESS_JAR =
-      Paths.get(ToolHelper.EXAMPLES_BUILD_DIR + "/arrayaccess.jar");
+  public DexVersionTests(TestParameters parameters) {
+    parameters.assertNoneRuntime();
+  }
 
   @Rule public TemporaryFolder defaultApiFolder1 = ToolHelper.getTemporaryFolderForTest();
   @Rule public TemporaryFolder defaultApiFolder2 = ToolHelper.getTemporaryFolderForTest();
@@ -37,9 +46,15 @@ public class DexVersionTests {
   @Rule public TemporaryFolder androidNApiFolder1 = ToolHelper.getTemporaryFolderForTest();
   @Rule public TemporaryFolder androidNApiFolder2 = ToolHelper.getTemporaryFolderForTest();
 
+  static class Input1 {}
+
+  static class Input2 {}
+
   @Before
   public void compileVersions() throws Exception {
-    D8Command.Builder arrayAccessBuilder = D8Command.builder().addProgramFiles(ARRAYACCESS_JAR);
+    Path inputJar1 = getStaticTemp().newFolder().toPath().resolve("input1.jar");
+    writeClassesToJar(inputJar1, Input1.class);
+    D8Command.Builder arrayAccessBuilder = D8Command.builder().addProgramFiles(inputJar1);
     D8.run(
         arrayAccessBuilder
             .setOutput(defaultApiFolder1.getRoot().toPath(), OutputMode.DexIndexed)
@@ -55,7 +70,9 @@ public class DexVersionTests {
             .setMinApiLevel(AndroidApiLevel.N.getLevel())
             .build());
 
-    D8Command.Builder arithmeticBuilder = D8Command.builder().addProgramFiles(ARITHMETIC_JAR);
+    Path inputJar2 = getStaticTemp().newFolder().toPath().resolve("input2.jar");
+    writeClassesToJar(inputJar2, Input2.class);
+    D8Command.Builder arithmeticBuilder = D8Command.builder().addProgramFiles(inputJar2);
     D8.run(
         arithmeticBuilder
             .setOutput(defaultApiFolder2.getRoot().toPath(), OutputMode.DexIndexed)

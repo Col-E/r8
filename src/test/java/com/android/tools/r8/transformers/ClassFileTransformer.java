@@ -1446,6 +1446,19 @@ public class ClassFileTransformer {
         });
   }
 
+  public ClassFileTransformer stripDebugLocals(MethodPredicate predicate) {
+    return addMethodTransformer(
+        new MethodTransformer() {
+          @Override
+          public void visitLocalVariable(
+              String name, String descriptor, String signature, Label start, Label end, int index) {
+            if (!MethodPredicate.testContext(predicate, getContext())) {
+              super.visitLocalVariable(name, descriptor, signature, start, end, index);
+            }
+          }
+        });
+  }
+
   public ClassFileTransformer stripFrames(String methodName) {
     return addMethodTransformer(
         new MethodTransformer() {

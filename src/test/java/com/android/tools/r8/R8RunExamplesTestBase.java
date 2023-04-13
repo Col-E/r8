@@ -102,11 +102,6 @@ public abstract class R8RunExamplesTestBase extends TestBase {
   public Path getOriginalJarFile(String postFix) {
     return Paths.get(getExampleDir(), pkg + postFix + JAR_EXTENSION);
   }
-
-  private Path getOriginalDexFile() {
-    return Paths.get(getExampleDir(), pkg, ToolHelper.DEFAULT_DEX_FILENAME);
-  }
-
   @Rule
   public ExpectedException thrown = ExpectedException.none();
 

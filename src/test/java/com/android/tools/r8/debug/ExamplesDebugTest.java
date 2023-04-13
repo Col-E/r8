@@ -60,16 +60,6 @@ public class ExamplesDebugTest extends DebugTestBase {
   }
 
   @Test
-  public void testArrayAccess() throws Exception {
-    testDebugging("arrayaccess", "ArrayAccess");
-  }
-
-  @Test
-  public void testBArray() throws Exception {
-    testDebugging("barray", "BArray");
-  }
-
-  @Test
   public void testBridgeMethod() throws Exception {
     testDebugging("bridge", "BridgeMethod");
   }

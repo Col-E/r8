@@ -236,7 +236,9 @@ public class DebugStreamComparator {
 
   public static String prettyPrintState(DebuggeeState state, PrintOptions options) {
     StringBuilder builder = new StringBuilder();
-    if (!options.printStack) {
+    if (state == null) {
+      builder.append("null state\n");
+    } else if (!options.printStack) {
       builder.append(prettyPrintFrame(state, options));
     } else {
       for (int i = 0; i < state.getFrameDepth(); i++) {

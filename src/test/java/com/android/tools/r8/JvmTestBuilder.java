@@ -4,6 +4,7 @@
 package com.android.tools.r8;
 
 import com.android.tools.r8.ToolHelper.ProcessResult;
+import com.android.tools.r8.debug.CfDebugTestConfig;
 import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.testing.AndroidBuildVersion;
 import com.android.tools.r8.utils.AndroidApiLevel;
@@ -63,6 +64,11 @@ public class JvmTestBuilder extends TestBuilder<JvmTestRunResult, JvmTestBuilder
         ToolHelper.runJava(
             runtime.asCf(), vmArguments, classpath, ObjectArrays.concat(mainClass, args));
     return new JvmTestRunResult(builder.build(), runtime, result, getState());
+  }
+
+  public CfDebugTestConfig debugConfig(TestRuntime runtime) {
+    assert runtime.isCf();
+    return new CfDebugTestConfig(runtime.asCf(), classpath);
   }
 
   @Override

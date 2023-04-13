@@ -26,8 +26,6 @@ public class R8RunExamplesTest extends R8RunExamplesTestBase {
   public static Collection<String[]> data() {
     String[] tests = {
         "arithmetic.Arithmetic",
-        "arrayaccess.ArrayAccess",
-        "barray.BArray",
         "bridge.BridgeMethod",
         "catchhandleroverlap.CatchHandlerOverlap",
         "cse.CommonSubexpressionElimination",

@@ -61,6 +61,22 @@ public class R8CommandTest extends CommandTestBase<R8Command> {
     parameters.assertNoneRuntime();
   }
 
+  static class A {}
+
+  static class B {}
+
+  private Path getJarWithA() throws Exception {
+    Path jar = temp.newFolder().toPath().resolve("out.jar");
+    writeClassesToJar(jar, A.class);
+    return jar;
+  }
+
+  private Path getJarWithB() throws Exception {
+    Path jar = temp.newFolder().toPath().resolve("out.jar");
+    writeClassesToJar(jar, B.class);
+    return jar;
+  }
+
   @Test(expected = CompilationFailedException.class)
   public void emptyBuilder() throws Throwable {
     // The builder must have a program consumer.
@@ -120,7 +136,7 @@ public class R8CommandTest extends CommandTestBase<R8Command> {
   @Test
   public void defaultOutIsCwd() throws Throwable {
     Path working = temp.getRoot().toPath();
-    Path input = Paths.get(EXAMPLES_BUILD_DIR, "arithmetic.jar").toAbsolutePath();
+    Path input = getJarWithA();
     Path library = ToolHelper.getDefaultAndroidJar();
     Path output = working.resolve("classes.dex");
     assertFalse(Files.exists(output));
@@ -138,8 +154,8 @@ public class R8CommandTest extends CommandTestBase<R8Command> {
   @Test
   public void passFeatureSplit() throws Throwable {
     Path working = temp.getRoot().toPath();
-    Path input = Paths.get(EXAMPLES_BUILD_DIR, "arithmetic.jar").toAbsolutePath();
-    Path inputFeature = Paths.get(EXAMPLES_BUILD_DIR, "arrayaccess.jar").toAbsolutePath();
+    Path input = getJarWithA();
+    Path inputFeature = getJarWithB();
     Path library = ToolHelper.getDefaultAndroidJar();
     Path output = working.resolve("classes.dex");
     Path featureOutput = working.resolve("feature.zip");
@@ -163,8 +179,8 @@ public class R8CommandTest extends CommandTestBase<R8Command> {
   @Test
   public void featureOnlyOneArgument() throws Throwable {
     Path working = temp.getRoot().toPath();
-    Path input = Paths.get(EXAMPLES_BUILD_DIR, "arithmetic.jar").toAbsolutePath();
-    Path inputFeature = Paths.get(EXAMPLES_BUILD_DIR, "arrayaccess.jar").toAbsolutePath();
+    Path input = getJarWithA();
+    Path inputFeature = getJarWithB();
     Path library = ToolHelper.getDefaultAndroidJar();
     Path output = working.resolve("classes.dex");
     assertFalse(Files.exists(output));
@@ -185,7 +201,7 @@ public class R8CommandTest extends CommandTestBase<R8Command> {
   public void flagsFile() throws Throwable {
     Path working = temp.getRoot().toPath();
     Path library = ToolHelper.getDefaultAndroidJar();
-    Path input = Paths.get(EXAMPLES_BUILD_DIR + "/arithmetic.jar").toAbsolutePath();
+    Path input = getJarWithA();
     Path output = working.resolve("output.zip");
     Path flagsFile = working.resolve("flags.txt");
     FileUtils.writeTextFile(
@@ -226,7 +242,7 @@ public class R8CommandTest extends CommandTestBase<R8Command> {
     Path working = temp.getRoot().toPath();
     Path flagsFile = working.resolve("flags.txt");
     Path recursiveFlagsFile = working.resolve("recursive_flags.txt");
-    Path input = Paths.get(EXAMPLES_BUILD_DIR + "/arithmetic.jar").toAbsolutePath();
+    Path input = getJarWithA();
     FileUtils.writeTextFile(recursiveFlagsFile, "--output", "output.zip");
     FileUtils.writeTextFile(
         flagsFile, "--min-api", "24", input.toString(), "@" + recursiveFlagsFile);
@@ -386,7 +402,7 @@ public class R8CommandTest extends CommandTestBase<R8Command> {
       Files.createFile(file);
       assertTrue(Files.exists(file));
     }
-    Path input = Paths.get(EXAMPLES_BUILD_DIR, "arithmetic.jar");
+    Path input = getJarWithA();
     ProcessResult result =
         ToolHelper.forkR8(
             Paths.get("."),
