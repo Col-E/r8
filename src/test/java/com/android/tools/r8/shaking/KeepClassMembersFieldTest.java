@@ -59,10 +59,7 @@ public class KeepClassMembersFieldTest extends TestBase {
     Bar value = new Bar();
 
     public static void main(String[] args) {
-      Foo foo = new Foo();
-      if (System.currentTimeMillis() < 0) {
-        System.out.println(foo);
-      }
+      new Foo();
     }
   }
 }

@@ -747,7 +747,7 @@ public class ApplicationWriter {
                   dataResourceConsumer.accept(adapted, options.reporter);
                 } else {
                   options.reporter.warning(
-                      new StringDiagnostic("Resource '" + adapted.getName() + "' already exists."));
+                      new StringDiagnostic("Resource '" + file.getName() + "' already exists."));
                 }
                 options.reporter.failIfPendingErrors();
               }

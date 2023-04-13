@@ -26,7 +26,6 @@ import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DirectMappedDexApplication;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.bytecodemetadata.BytecodeMetadataProvider;
-import com.android.tools.r8.ir.analysis.fieldaccess.readbeforewrite.FieldReadBeforeWriteAnalysis;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.conversion.MethodProcessorEventConsumer;
 import com.android.tools.r8.ir.conversion.MethodProcessorWithWave;
@@ -97,11 +96,7 @@ public class FieldBitAccessInfoTest extends TestBase {
         method -> {
           IRCode code = method.buildIR(appView);
           fieldAccessAnalysis.recordFieldAccesses(
-              code,
-              BytecodeMetadataProvider.builder(),
-              feedback,
-              FieldReadBeforeWriteAnalysis.trivial(),
-              new PrimaryMethodProcessorMock());
+              code, BytecodeMetadataProvider.builder(), feedback, new PrimaryMethodProcessorMock());
         });
 
     int bitsReadInBitField = feedback.bitsReadPerField.getInt(uniqueFieldByName(clazz, "bitField"));

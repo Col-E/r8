@@ -18,7 +18,6 @@ import com.android.tools.r8.ir.analysis.TypeChecker;
 import com.android.tools.r8.ir.analysis.VerifyTypesHelper;
 import com.android.tools.r8.ir.analysis.constant.SparseConditionalConstantPropagation;
 import com.android.tools.r8.ir.analysis.fieldaccess.FieldAccessAnalysis;
-import com.android.tools.r8.ir.analysis.fieldaccess.readbeforewrite.FieldReadBeforeWriteAnalysis;
 import com.android.tools.r8.ir.analysis.fieldvalueanalysis.InstanceFieldValueAnalysis;
 import com.android.tools.r8.ir.analysis.fieldvalueanalysis.StaticFieldValueAnalysis;
 import com.android.tools.r8.ir.analysis.fieldvalueanalysis.StaticFieldValues;
@@ -980,16 +979,10 @@ public class IRConverter {
       timing.end();
     }
 
-    FieldReadBeforeWriteAnalysis fieldReadBeforeWriteAnalysis =
-        FieldReadBeforeWriteAnalysis.create(appView, code, method);
     if (fieldAccessAnalysis != null) {
       timing.begin("Analyze field accesses");
       fieldAccessAnalysis.recordFieldAccesses(
-          code,
-          bytecodeMetadataProviderBuilder,
-          feedback,
-          fieldReadBeforeWriteAnalysis,
-          methodProcessor);
+          code, bytecodeMetadataProviderBuilder, feedback, methodProcessor);
       if (classInitializerDefaultsResult != null) {
         fieldAccessAnalysis.acceptClassInitializerDefaultsResult(classInitializerDefaultsResult);
       }
@@ -1006,21 +999,11 @@ public class IRConverter {
       if (method.getDefinition().isClassInitializer()) {
         staticFieldValues =
             StaticFieldValueAnalysis.run(
-                appView,
-                code,
-                classInitializerDefaultsResult,
-                feedback,
-                fieldReadBeforeWriteAnalysis,
-                timing);
+                appView, code, classInitializerDefaultsResult, feedback, timing);
       } else {
         instanceFieldInitializationInfos =
             InstanceFieldValueAnalysis.run(
-                appView,
-                code,
-                classInitializerDefaultsResult,
-                feedback,
-                fieldReadBeforeWriteAnalysis,
-                timing);
+                appView, code, classInitializerDefaultsResult, feedback, timing);
       }
     }
     enumUnboxer.recordEnumState(method.getHolder(), staticFieldValues);

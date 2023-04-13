@@ -19,7 +19,6 @@ import com.android.tools.r8.graph.ObjectAllocationInfoCollection;
 import com.android.tools.r8.graph.ProgramField;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.horizontalclassmerging.HorizontalClassMergerUtils;
-import com.android.tools.r8.ir.analysis.fieldaccess.readbeforewrite.FieldReadBeforeWriteAnalysis;
 import com.android.tools.r8.ir.analysis.fieldaccess.state.ConcreteArrayTypeFieldState;
 import com.android.tools.r8.ir.analysis.fieldaccess.state.ConcreteClassTypeFieldState;
 import com.android.tools.r8.ir.analysis.fieldaccess.state.ConcretePrimitiveTypeFieldState;
@@ -35,8 +34,6 @@ import com.android.tools.r8.ir.analysis.value.NonConstantNumberValue;
 import com.android.tools.r8.ir.analysis.value.SingleValue;
 import com.android.tools.r8.ir.analysis.value.UnknownValue;
 import com.android.tools.r8.ir.code.FieldInstruction;
-import com.android.tools.r8.ir.code.FieldPut;
-import com.android.tools.r8.ir.code.InstancePut;
 import com.android.tools.r8.ir.code.InvokeDirect;
 import com.android.tools.r8.ir.code.NewInstance;
 import com.android.tools.r8.ir.code.Value;
@@ -182,23 +179,16 @@ public class FieldAssignmentTracker {
         });
   }
 
-  void recordFieldAccess(
-      FieldInstruction instruction,
-      ProgramField field,
-      FieldReadBeforeWriteAnalysis fieldReadBeforeWriteAnalysis) {
+  void recordFieldAccess(FieldInstruction instruction, ProgramField field, ProgramMethod context) {
     if (instruction.isFieldPut()) {
-      recordFieldPut(instruction.asFieldPut(), field, fieldReadBeforeWriteAnalysis);
+      recordFieldPut(field, instruction.value(), context);
     }
   }
 
-  private void recordFieldPut(
-      FieldPut fieldPut,
-      ProgramField field,
-      FieldReadBeforeWriteAnalysis fieldReadBeforeWriteAnalysis) {
+  private void recordFieldPut(ProgramField field, Value value, ProgramMethod context) {
     // For now only attempt to prove that fields are definitely null. In order to prove a single
     // value for fields that are not definitely null, we need to prove that the given field is never
     // read before it is written.
-    Value value = fieldPut.value();
     AbstractValue abstractValue =
         value.isZero() ? abstractValueFactory.createZeroValue() : AbstractValue.unknown();
     fieldStates.compute(
@@ -213,8 +203,12 @@ public class FieldAssignmentTracker {
               return ConcretePrimitiveTypeFieldState.create(abstractValue);
             }
             assert fieldType.isClassType();
-            return ConcreteClassTypeFieldState.create(
-                abstractValue, getDynamicType(fieldPut, field, fieldReadBeforeWriteAnalysis));
+            DynamicType dynamicType =
+                WideningUtils.widenDynamicNonReceiverType(
+                    appView,
+                    value.getDynamicType(appView).withNullability(Nullability.maybeNull()),
+                    field.getType());
+            return ConcreteClassTypeFieldState.create(abstractValue, dynamicType);
           }
 
           if (fieldState.isUnknown()) {
@@ -237,29 +231,8 @@ public class FieldAssignmentTracker {
 
           ConcreteClassTypeFieldState classFieldState = fieldState.asClass();
           return classFieldState.mutableJoin(
-              appView,
-              abstractValue,
-              getDynamicType(fieldPut, field, fieldReadBeforeWriteAnalysis),
-              field);
+              appView, abstractValue, value.getDynamicType(appView), field);
         });
-  }
-
-  private DynamicType getDynamicType(
-      FieldPut fieldPut,
-      ProgramField field,
-      FieldReadBeforeWriteAnalysis fieldReadBeforeWriteAnalysis) {
-    DynamicTypeWithUpperBound dynamicType = fieldPut.value().getDynamicType(appView);
-    if (fieldPut.isInstancePut()) {
-      InstancePut instancePut = fieldPut.asInstancePut();
-      if (fieldReadBeforeWriteAnalysis.isInstanceFieldMaybeReadBeforeInstruction(
-          instancePut.object(), field.getDefinition(), instancePut)) {
-        dynamicType = dynamicType.withNullability(Nullability.maybeNull());
-      }
-    } else if (fieldReadBeforeWriteAnalysis.isStaticFieldMaybeReadBeforeInstruction(
-        field.getDefinition(), fieldPut.asStaticPut())) {
-      dynamicType = dynamicType.withNullability(Nullability.maybeNull());
-    }
-    return WideningUtils.widenDynamicNonReceiverType(appView, dynamicType, field.getType());
   }
 
   void recordAllocationSite(NewInstance instruction, DexProgramClass clazz, ProgramMethod context) {

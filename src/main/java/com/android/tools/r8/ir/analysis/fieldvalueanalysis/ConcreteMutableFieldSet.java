@@ -39,7 +39,7 @@ public class ConcreteMutableFieldSet extends AbstractFieldSet implements KnownFi
     return this;
   }
 
-  public Set<DexEncodedField> getFields() {
+  Set<DexEncodedField> getFields() {
     if (InternalOptions.assertionsEnabled()) {
       return Collections.unmodifiableSet(fields);
     }
