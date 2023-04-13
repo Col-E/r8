@@ -16,6 +16,7 @@ public class RedundantBridgeRemovalOptions {
 
   private final InternalOptions options;
 
+  private boolean enableRetargetingOfConstructorBridgeCalls = false;
   private Set<DexType> noConstructorShrinkingHierarchies;
 
   public RedundantBridgeRemovalOptions(InternalOptions options) {
@@ -38,5 +39,14 @@ public class RedundantBridgeRemovalOptions {
 
   public boolean isPlatformReflectingOnDefaultConstructorInSubclasses(DexLibraryClass clazz) {
     return noConstructorShrinkingHierarchies.contains(clazz.getType());
+  }
+
+  public boolean isRetargetingOfConstructorBridgeCallsEnabled() {
+    return enableRetargetingOfConstructorBridgeCalls;
+  }
+
+  public void setEnableRetargetingOfConstructorBridgeCalls(
+      boolean enableRetargetingOfConstructorBridgeCalls) {
+    this.enableRetargetingOfConstructorBridgeCalls = enableRetargetingOfConstructorBridgeCalls;
   }
 }

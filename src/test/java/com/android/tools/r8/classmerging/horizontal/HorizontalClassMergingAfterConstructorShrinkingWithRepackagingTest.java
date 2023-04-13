@@ -15,12 +15,13 @@ import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.utils.AndroidApiLevel;
+import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.FoundMethodSubject;
 import com.android.tools.r8.utils.codeinspector.HorizontallyMergedClassesInspector;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
+import java.util.List;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -36,14 +37,19 @@ import org.junit.runners.Parameterized.Parameters;
 public class HorizontalClassMergingAfterConstructorShrinkingWithRepackagingTest extends TestBase {
 
   @Parameter(0)
+  public boolean enableRetargetingOfConstructorBridgeCalls;
+
+  @Parameter(1)
   public TestParameters parameters;
 
-  @Parameters(name = "{0}")
-  public static TestParametersCollection data() {
-    return getTestParameters()
-        .withDexRuntimes()
-        .withApiLevelsStartingAtIncluding(AndroidApiLevel.L)
-        .build();
+  @Parameters(name = "{1}, retarget: {0}")
+  public static List<Object[]> data() {
+    return buildParameters(
+        BooleanUtils.values(),
+        getTestParameters()
+            .withDexRuntimes()
+            .withApiLevelsStartingAtIncluding(AndroidApiLevel.L)
+            .build());
   }
 
   @Test
@@ -53,6 +59,12 @@ public class HorizontalClassMergingAfterConstructorShrinkingWithRepackagingTest 
         .addInnerClasses(getClass())
         .addKeepMainRule(Main.class)
         .addKeepRules("-repackageclasses")
+        .addOptionsModification(
+            options ->
+                options
+                    .getRedundantBridgeRemovalOptions()
+                    .setEnableRetargetingOfConstructorBridgeCalls(
+                        enableRetargetingOfConstructorBridgeCalls))
         .addOptionsModification(
             options -> options.horizontalClassMergerOptions().disableInitialRoundOfClassMerging())
         .addHorizontallyMergedClassesInspector(

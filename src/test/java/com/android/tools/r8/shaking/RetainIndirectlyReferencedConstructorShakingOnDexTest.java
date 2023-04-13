@@ -30,7 +30,7 @@ import org.junit.runners.Parameterized.Parameters;
 public class RetainIndirectlyReferencedConstructorShakingOnDexTest extends TestBase {
 
   @Parameter(0)
-  public boolean enableRetargetingConstructorBridgeCalls;
+  public boolean enableRetargetingOfConstructorBridgeCalls;
 
   @Parameter(1)
   public TestParameters parameters;
@@ -48,8 +48,10 @@ public class RetainIndirectlyReferencedConstructorShakingOnDexTest extends TestB
         .addKeepMainRule(Main.class)
         .addOptionsModification(
             options ->
-                options.testing.enableRetargetingConstructorBridgeCalls =
-                    enableRetargetingConstructorBridgeCalls)
+                options
+                    .getRedundantBridgeRemovalOptions()
+                    .setEnableRetargetingOfConstructorBridgeCalls(
+                        enableRetargetingOfConstructorBridgeCalls))
         .enableNoVerticalClassMergingAnnotations()
         .setMinApi(parameters)
         .compile()
@@ -80,7 +82,7 @@ public class RetainIndirectlyReferencedConstructorShakingOnDexTest extends TestB
         invokesMethod(
             MethodReferenceUtils.instanceConstructor(
                 parameters.canHaveNonReboundConstructorInvoke()
-                        && enableRetargetingConstructorBridgeCalls
+                        && enableRetargetingOfConstructorBridgeCalls
                     ? Reference.classFromDescriptor(aClassSubject.getFinalDescriptor())
                     : Reference.classFromDescriptor(bClassSubject.getFinalDescriptor()))));
   }
