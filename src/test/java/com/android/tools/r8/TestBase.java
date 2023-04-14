@@ -58,6 +58,7 @@ import com.android.tools.r8.shaking.MainDexInfo;
 import com.android.tools.r8.shaking.NoHorizontalClassMergingRule;
 import com.android.tools.r8.shaking.NoVerticalClassMergingRule;
 import com.android.tools.r8.shaking.ProguardClassNameList;
+import com.android.tools.r8.shaking.ProguardClassType;
 import com.android.tools.r8.shaking.ProguardConfiguration;
 import com.android.tools.r8.shaking.ProguardConfigurationRule;
 import com.android.tools.r8.shaking.ProguardKeepAttributes;
@@ -910,6 +911,7 @@ public class TestBase {
     Builder keepRuleBuilder = ProguardKeepRule.builder();
     keepRuleBuilder.setSource("buildKeepRuleForClass " + clazz.getTypeName());
     keepRuleBuilder.setType(ProguardKeepRuleType.KEEP);
+    keepRuleBuilder.setClassType(ProguardClassType.CLASS);
     keepRuleBuilder.setClassNames(
         ProguardClassNameList.singletonList(
             ProguardTypeMatcher.create(
@@ -922,6 +924,7 @@ public class TestBase {
     Builder keepRuleBuilder = ProguardKeepRule.builder();
     keepRuleBuilder.setSource("buildKeepRuleForClassAndMethods " + clazz.getTypeName());
     keepRuleBuilder.setType(ProguardKeepRuleType.KEEP);
+    keepRuleBuilder.setClassType(ProguardClassType.CLASS);
     keepRuleBuilder.setClassNames(
         ProguardClassNameList.singletonList(
             ProguardTypeMatcher.create(
