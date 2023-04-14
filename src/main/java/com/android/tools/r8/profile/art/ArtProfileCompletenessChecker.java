@@ -85,7 +85,9 @@ public class ArtProfileCompletenessChecker {
       ProgramDefinition definition,
       Set<CompletenessExceptions> completenessExceptions,
       List<DexReference> missing) {
-    if (completenessExceptions.contains(ALLOW_MISSING_ENUM_UNBOXING_UTILITY_METHODS)) {
+    // TODO(b/274030968): Fix profile for enum unboxing with subtypes.
+    if (appView.options().testing.enableEnumWithSubtypesUnboxing
+        || completenessExceptions.contains(ALLOW_MISSING_ENUM_UNBOXING_UTILITY_METHODS)) {
       DexType contextType = definition.getContextType();
       SyntheticItems syntheticItems = appView.getSyntheticItems();
       if (syntheticItems.isSynthetic(contextType)) {

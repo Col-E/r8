@@ -72,11 +72,12 @@ class EnumUnboxingCandidateAnalysis {
   }
 
   private void setEnumSubclassesOnCandidates() {
-    enumToUnboxCandidates.forEachCandidate(
-        candidate ->
-            enumToUnboxCandidates.setEnumSubclasses(
-                candidate.getType(),
-                enumSubclasses.getOrDefault(candidate.getType(), ImmutableSet.of())));
+    enumToUnboxCandidates.forEachCandidateInfo(
+        info -> {
+          DexType type = info.getEnumClass().getType();
+          enumToUnboxCandidates.setEnumSubclasses(
+              type, enumSubclasses.getOrDefault(type, ImmutableSet.of()));
+        });
   }
 
   private void removeIneligibleCandidates() {

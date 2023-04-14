@@ -14,6 +14,7 @@ import com.android.tools.r8.ir.optimize.enums.EnumInstanceFieldData.EnumInstance
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Sets;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceMap;
 import java.util.ArrayList;
 import java.util.List;
@@ -21,13 +22,20 @@ import java.util.Set;
 
 public class EnumDataMap {
   private final ImmutableMap<DexType, EnumData> map;
+  private final ImmutableMap<DexType, DexType> subEnumToSuperEnumMap;
 
   public static EnumDataMap empty() {
-    return new EnumDataMap(ImmutableMap.of());
+    return new EnumDataMap(ImmutableMap.of(), ImmutableMap.of());
   }
 
-  public EnumDataMap(ImmutableMap<DexType, EnumData> map) {
+  public EnumDataMap(
+      ImmutableMap<DexType, EnumData> map, ImmutableMap<DexType, DexType> subEnumToSuperEnumMap) {
     this.map = map;
+    this.subEnumToSuperEnumMap = subEnumToSuperEnumMap;
+  }
+
+  public boolean hasAnyEnumsWithSubtypes() {
+    return !subEnumToSuperEnumMap.isEmpty();
   }
 
   public void checkEnumsUnboxed(AppView<AppInfoWithLiveness> appView) {
@@ -47,47 +55,66 @@ public class EnumDataMap {
     }
   }
 
-  public boolean isUnboxedEnum(DexProgramClass clazz) {
-    return isUnboxedEnum(clazz.getType());
-  }
-
-  public boolean isUnboxedEnum(DexType type) {
-    return map.containsKey(type);
+  public DexType representativeType(DexType type) {
+    return subEnumToSuperEnumMap.getOrDefault(type, type);
   }
 
   public boolean isEmpty() {
     return map.isEmpty();
   }
 
-  public EnumData get(DexProgramClass enumClass) {
-    EnumData enumData = map.get(enumClass.getType());
+  public boolean isSuperUnboxedEnum(DexType type) {
+    return map.containsKey(type);
+  }
+
+  public boolean isUnboxedEnum(DexProgramClass clazz) {
+    return isUnboxedEnum(clazz.getType());
+  }
+
+  public boolean isUnboxedEnum(DexType type) {
+    return map.containsKey(representativeType(type));
+  }
+
+  private EnumData get(DexType type) {
+    EnumData enumData = map.get(representativeType(type));
     assert enumData != null;
     return enumData;
   }
 
-  public Set<DexType> getUnboxedEnums() {
+  public EnumData get(DexProgramClass enumClass) {
+    return get(enumClass.getType());
+  }
+
+  public Set<DexType> getUnboxedSuperEnums() {
     return map.keySet();
+  }
+
+  public Set<DexType> computeAllUnboxedEnums() {
+    Set<DexType> items = Sets.newIdentityHashSet();
+    items.addAll(map.keySet());
+    items.addAll(subEnumToSuperEnumMap.keySet());
+    return items;
   }
 
   public EnumInstanceFieldKnownData getInstanceFieldData(
       DexType enumType, DexField enumInstanceField) {
-    assert map.containsKey(enumType);
-    return map.get(enumType).getInstanceFieldData(enumInstanceField);
+    assert isUnboxedEnum(enumType);
+    return get(enumType).getInstanceFieldData(enumInstanceField);
   }
 
   public boolean hasUnboxedValueFor(DexField enumStaticField) {
-    return isUnboxedEnum(enumStaticField.holder)
-        && map.get(enumStaticField.holder).hasUnboxedValueFor(enumStaticField);
+    return isUnboxedEnum(enumStaticField.getHolderType())
+        && get(enumStaticField.getHolderType()).hasUnboxedValueFor(enumStaticField);
   }
 
   public int getUnboxedValue(DexField enumStaticField) {
-    assert map.containsKey(enumStaticField.holder);
-    return map.get(enumStaticField.holder).getUnboxedValue(enumStaticField);
+    assert isUnboxedEnum(enumStaticField.getHolderType());
+    return get(enumStaticField.getHolderType()).getUnboxedValue(enumStaticField);
   }
 
   public int getValuesSize(DexType enumType) {
-    assert map.containsKey(enumType);
-    return map.get(enumType).getValuesSize();
+    assert isUnboxedEnum(enumType);
+    return get(enumType).getValuesSize();
   }
 
   public int getMaxValuesSize() {
@@ -101,8 +128,8 @@ public class EnumDataMap {
   }
 
   public boolean matchesValuesField(DexField staticField) {
-    assert map.containsKey(staticField.holder);
-    return map.get(staticField.holder).matchesValuesField(staticField);
+    assert isUnboxedEnum(staticField.getHolderType());
+    return get(staticField.getHolderType()).matchesValuesField(staticField);
   }
 
   public static class EnumData {

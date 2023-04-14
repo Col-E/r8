@@ -51,6 +51,7 @@ import com.android.tools.r8.ir.analysis.fieldvalueanalysis.StaticFieldValues.Enu
 import com.android.tools.r8.ir.analysis.type.ArrayTypeElement;
 import com.android.tools.r8.ir.analysis.type.ClassTypeElement;
 import com.android.tools.r8.ir.analysis.type.DynamicType;
+import com.android.tools.r8.ir.analysis.type.ReferenceTypeElement;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.analysis.value.AbstractValue;
 import com.android.tools.r8.ir.analysis.value.objectstate.EnumValuesObjectState;
@@ -116,9 +117,11 @@ import com.android.tools.r8.utils.collections.ProgramMethodSet;
 import com.google.common.collect.HashMultiset;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceArrayMap;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceMap;
+import it.unimi.dsi.fastutil.ints.Int2ReferenceMaps;
 import it.unimi.dsi.fastutil.objects.Object2IntMap;
 import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
 import java.util.ArrayList;
@@ -683,8 +686,8 @@ public class EnumUnboxerImpl extends EnumUnboxer {
 
     GraphLens previousLens = appView.graphLens();
     ImmutableSet<DexType> enumsToUnbox = enumUnboxingCandidatesInfo.candidates();
-    ImmutableSet<DexProgramClass> enumClassesToUnbox =
-        enumUnboxingCandidatesInfo.candidateClasses();
+    ImmutableMap<DexProgramClass, Set<DexProgramClass>> enumClassesToUnbox =
+        enumUnboxingCandidatesInfo.candidateClassesWithSubclasses();
     LongLivedProgramMethodSetBuilder<ProgramMethodSet> dependencies =
         enumUnboxingCandidatesInfo.allMethodDependencies();
     enumUnboxingCandidatesInfo.clear();
@@ -693,7 +696,7 @@ public class EnumUnboxerImpl extends EnumUnboxer {
 
     EnumUnboxingUtilityClasses utilityClasses =
         EnumUnboxingUtilityClasses.builder(appView)
-            .synthesizeEnumUnboxingUtilityClasses(enumClassesToUnbox, enumDataMap)
+            .synthesizeEnumUnboxingUtilityClasses(enumClassesToUnbox.keySet(), enumDataMap)
             .build(converter, executorService);
 
     // Fixup the application.
@@ -729,7 +732,8 @@ public class EnumUnboxerImpl extends EnumUnboxer {
         .merge(
             methodsDependingOnLibraryModelisation
                 .rewrittenWithLens(appView)
-                .removeAll(treeFixerResult.getPrunedItems().getRemovedMethods()));
+                .removeAll(treeFixerResult.getPrunedItems().getRemovedMethods()))
+        .addAll(treeFixerResult.getDispatchMethods(), appView.graphLens());
     methodsDependingOnLibraryModelisation.clear();
 
     updateOptimizationInfos(executorService, feedback, treeFixerResult, previousLens);
@@ -806,15 +810,18 @@ public class EnumUnboxerImpl extends EnumUnboxer {
       debugLogs.keySet().forEach(enumUnboxingCandidatesInfo::removeCandidate);
       reportEnumsAnalysis();
     }
-    assert enumDataMap.getUnboxedEnums().size() == enumUnboxingCandidatesInfo.candidates().size();
+    assert enumDataMap.getUnboxedSuperEnums().size()
+        == enumUnboxingCandidatesInfo.candidates().size();
     return enumDataMap;
   }
 
   private EnumDataMap analyzeEnumInstances() {
+    ImmutableMap.Builder<DexType, DexType> enumSubtypes = ImmutableMap.builder();
     ImmutableMap.Builder<DexType, EnumData> builder = ImmutableMap.builder();
-    enumUnboxingCandidatesInfo.forEachCandidateAndRequiredInstanceFieldData(
-        (enumClass, instanceFields) -> {
-          EnumData data = buildData(enumClass, instanceFields);
+    enumUnboxingCandidatesInfo.forEachCandidateInfo(
+        info -> {
+          DexProgramClass enumClass = info.getEnumClass();
+          EnumData data = buildData(enumClass, info.getRequiredInstanceFieldData());
           if (data == null) {
             // Reason is already reported at this point.
             enumUnboxingCandidatesInfo.removeCandidate(enumClass);
@@ -822,10 +829,17 @@ public class EnumUnboxerImpl extends EnumUnboxer {
           }
           if (!debugLogEnabled || !debugLogs.containsKey(enumClass.getType())) {
             builder.put(enumClass.type, data);
+            if (data.valuesTypes != null) {
+              for (DexType value : data.valuesTypes.values()) {
+                if (value != enumClass.type) {
+                  enumSubtypes.put(value, enumClass.type);
+                }
+              }
+            }
           }
         });
     staticFieldValuesMap.clear();
-    return new EnumDataMap(builder.build());
+    return new EnumDataMap(builder.build(), enumSubtypes.build());
   }
 
   private EnumData buildData(DexProgramClass enumClass, Set<DexField> instanceFields) {
@@ -854,13 +868,21 @@ public class EnumUnboxerImpl extends EnumUnboxer {
       return null;
     }
 
+    enumStaticFieldValues =
+        enumStaticFieldValues.rewrittenWithLens(appView, appView.graphLens(), appView.codeLens());
+    Set<DexType> enumSubtypes = enumUnboxingCandidatesInfo.getSubtypes(enumClass.getType());
+
     // Step 1: We iterate over the field to find direct enum instance information and the values
     // fields.
     for (DexEncodedField staticField : enumClass.staticFields()) {
-      if (factory.enumMembers.isEnumField(staticField, enumClass.type)) {
+      // The field might be specialized while the data was recorded without the specialization.
+      if (factory.enumMembers.isEnumField(staticField, enumClass.type, enumSubtypes)) {
         ObjectState enumState =
             enumStaticFieldValues.getObjectStateForPossiblyPinnedField(staticField.getReference());
         if (enumState == null) {
+          assert enumStaticFieldValues.getObjectStateForPossiblyPinnedField(
+                  staticField.getReference().withType(enumClass.type, factory))
+              == null;
           if (staticField.getOptimizationInfo().isDead()) {
             // We don't care about unused field data.
             continue;
@@ -957,7 +979,7 @@ public class EnumUnboxerImpl extends EnumUnboxer {
 
     return new EnumData(
         instanceFieldsData,
-        isEnumWithSubtypes ? valueTypes : null,
+        isEnumWithSubtypes ? valueTypes : Int2ReferenceMaps.emptyMap(),
         unboxedValues.build(),
         valuesField.build(),
         valuesContents == null ? EnumData.INVALID_VALUES_SIZE : valuesContents.getEnumValuesSize());
@@ -1051,24 +1073,42 @@ public class EnumUnboxerImpl extends EnumUnboxer {
   }
 
   private void analyzeInitializers() {
-    enumUnboxingCandidatesInfo.forEachCandidate(
-        enumClass -> {
-          for (DexEncodedMethod directMethod : enumClass.directMethods()) {
-            if (directMethod.isInstanceInitializer()) {
-              if (directMethod
-                  .getOptimizationInfo()
-                  .getContextInsensitiveInstanceInitializerInfo()
-                  .mayHaveOtherSideEffectsThanInstanceFieldAssignments()) {
-                if (markEnumAsUnboxable(Reason.INVALID_INIT, enumClass)) {
-                  break;
-                }
-              }
+    enumUnboxingCandidatesInfo.forEachCandidateInfo(
+        (info) -> {
+          DexProgramClass enumClass = info.getEnumClass();
+          if (!instanceInitializersAllowUnboxing(enumClass)) {
+            if (markEnumAsUnboxable(Reason.INVALID_INIT, enumClass)) {
+              return;
             }
           }
           if (enumClass.classInitializationMayHaveSideEffects(appView)) {
-            markEnumAsUnboxable(Reason.INVALID_CLINIT, enumClass);
+            if (markEnumAsUnboxable(Reason.INVALID_CLINIT, enumClass)) {
+              return;
+            }
+          }
+          for (DexProgramClass subclass : info.getSubclasses()) {
+            if (!instanceInitializersAllowUnboxing(subclass)) {
+              if (markEnumAsUnboxable(Reason.INVALID_SUBTYPE_INIT, enumClass)) {
+                return;
+              }
+            }
+            if (subclass.hasClassInitializer()) {
+              if (markEnumAsUnboxable(Reason.SUBTYPE_CLINIT, enumClass)) {
+                return;
+              }
+            }
           }
         });
+  }
+
+  private boolean instanceInitializersAllowUnboxing(DexProgramClass clazz) {
+    return !Iterables.any(
+        clazz.programInstanceInitializers(),
+        instanceInitializer ->
+            instanceInitializer
+                .getOptimizationInfo()
+                .getContextInsensitiveInstanceInitializerInfo()
+                .mayHaveOtherSideEffectsThanInstanceFieldAssignments());
   }
 
   private Reason instructionAllowEnumUnboxing(
@@ -1142,6 +1182,28 @@ public class EnumUnboxerImpl extends EnumUnboxer {
     return Reason.ELIGIBLE;
   }
 
+  private ReferenceTypeElement getValueBaseType(Value value, TypeElement arrayType) {
+    TypeElement valueBaseType = value.getType();
+    if (valueBaseType.isArrayType()) {
+      assert valueBaseType.asArrayType().getBaseType().isClassType();
+      assert valueBaseType.asArrayType().getNesting() == arrayType.asArrayType().getNesting() - 1;
+      valueBaseType = valueBaseType.asArrayType().getBaseType();
+    }
+    assert valueBaseType.isClassType() || valueBaseType.isNullType();
+    return valueBaseType.asReferenceType();
+  }
+
+  private boolean areCompatibleArrayTypes(
+      ClassTypeElement arrayBaseType, ReferenceTypeElement valueBaseType) {
+    assert valueBaseType.isClassType() || valueBaseType.isNullType();
+    if (valueBaseType.isNullType()) {
+      // TODO(b/271385332): Allow nulls in enum arrays to be unboxed.
+      return false;
+    }
+    return enumUnboxingCandidatesInfo.isAssignableTo(
+        valueBaseType.asClassType().getClassType(), arrayBaseType.getClassType());
+  }
+
   private Reason analyzeArrayPutUser(
       ArrayPut arrayPut,
       IRCode code,
@@ -1157,14 +1219,8 @@ public class EnumUnboxerImpl extends EnumUnboxer {
     assert arrayType.isArrayType();
     assert arrayType.asArrayType().getBaseType().isClassType();
     ClassTypeElement arrayBaseType = arrayType.asArrayType().getBaseType().asClassType();
-    TypeElement valueBaseType = arrayPut.value().getType();
-    if (valueBaseType.isArrayType()) {
-      assert valueBaseType.asArrayType().getBaseType().isClassType();
-      assert valueBaseType.asArrayType().getNesting() == arrayType.asArrayType().getNesting() - 1;
-      valueBaseType = valueBaseType.asArrayType().getBaseType();
-    }
-    if (arrayBaseType.equalUpToNullability(valueBaseType)
-        && arrayBaseType.getClassType() == enumClass.type) {
+    ReferenceTypeElement valueBaseType = getValueBaseType(arrayPut.value(), arrayType);
+    if (areCompatibleArrayTypes(arrayBaseType, valueBaseType)) {
       return Reason.ELIGIBLE;
     }
     return Reason.INVALID_ARRAY_PUT;
@@ -1191,13 +1247,8 @@ public class EnumUnboxerImpl extends EnumUnboxer {
     }
 
     for (Value value : invokeNewArray.inValues()) {
-      TypeElement valueBaseType = value.getType();
-      if (valueBaseType.isArrayType()) {
-        assert valueBaseType.asArrayType().getBaseType().isClassType();
-        assert valueBaseType.asArrayType().getNesting() == arrayType.asArrayType().getNesting() - 1;
-        valueBaseType = valueBaseType.asArrayType().getBaseType();
-      }
-      if (!arrayBaseType.equalUpToNullability(valueBaseType)) {
+      ReferenceTypeElement valueBaseType = getValueBaseType(value, arrayType);
+      if (!areCompatibleArrayTypes(arrayBaseType, valueBaseType)) {
         return Reason.INVALID_INVOKE_NEW_ARRAY;
       }
     }
@@ -1305,7 +1356,9 @@ public class EnumUnboxerImpl extends EnumUnboxer {
       if (targetHolder.isEnum() && singleTarget.getDefinition().isInstanceInitializer()) {
         // The enum instance initializer is only allowed to be called from an initializer of the
         // enum itself.
-        if (code.context().getHolder() != targetHolder || !code.method().isInitializer()) {
+        if (getEnumUnboxingCandidateOrNull(code.context().getHolder().getType())
+                != getEnumUnboxingCandidateOrNull(targetHolder.getType())
+            || !context.getDefinition().isInitializer()) {
           return Reason.INVALID_INIT;
         }
         if (code.method().isInstanceInitializer() && !invoke.getFirstArgument().isThis()) {

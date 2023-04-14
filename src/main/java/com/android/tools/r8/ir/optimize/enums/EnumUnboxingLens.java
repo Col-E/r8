@@ -4,12 +4,15 @@
 
 package com.android.tools.r8.ir.optimize.enums;
 
+import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ProgramMethod;
+import com.android.tools.r8.graph.lens.GraphLens;
+import com.android.tools.r8.graph.lens.MethodLookupResult;
 import com.android.tools.r8.graph.lens.NestedGraphLens;
 import com.android.tools.r8.graph.proto.ArgumentInfoCollection;
 import com.android.tools.r8.graph.proto.RewrittenPrototypeDescription;
@@ -43,10 +46,11 @@ public class EnumUnboxingLens extends NestedGraphLens {
   EnumUnboxingLens(
       AppView<?> appView,
       BidirectionalOneToOneMap<DexField, DexField> fieldMap,
-      BidirectionalOneToManyRepresentativeMap<DexMethod, DexMethod> methodMap,
+      BidirectionalOneToManyRepresentativeMap<DexMethod, DexMethod> renamedSignatures,
       Map<DexType, DexType> typeMap,
+      Map<DexMethod, DexMethod> methodMap,
       Map<DexMethod, RewrittenPrototypeDescription> prototypeChangesPerMethod) {
-    super(appView, fieldMap, methodMap::getRepresentativeValue, typeMap, methodMap);
+    super(appView, fieldMap, methodMap, typeMap, renamedSignatures);
     assert !appView.unboxedEnums().isEmpty();
     this.abstractValueFactory = appView.abstractValueFactory();
     this.prototypeChangesPerMethod = prototypeChangesPerMethod;
@@ -66,6 +70,58 @@ public class EnumUnboxingLens extends NestedGraphLens {
   @Override
   public EnumUnboxingLens asEnumUnboxerLens() {
     return this;
+  }
+
+  @Override
+  public boolean isContextFreeForMethods(GraphLens codeLens) {
+    if (codeLens == this) {
+      return true;
+    }
+    return !unboxedEnums.hasAnyEnumsWithSubtypes()
+        && getPrevious().isContextFreeForMethods(codeLens);
+  }
+
+  @Override
+  public boolean verifyIsContextFreeForMethod(DexMethod method, GraphLens codeLens) {
+    if (codeLens == this) {
+      return true;
+    }
+    assert getPrevious().verifyIsContextFreeForMethod(getPreviousMethodSignature(method), codeLens);
+    DexMethod previous =
+        getPrevious()
+            .lookupMethod(getPreviousMethodSignature(method), null, null, codeLens)
+            .getReference();
+    assert unboxedEnums.representativeType(previous.getHolderType()) == previous.getHolderType();
+    return true;
+  }
+
+  @Override
+  public MethodLookupResult internalDescribeLookupMethod(
+      MethodLookupResult previous, DexMethod context, GraphLens codeLens) {
+    assert context != null || verifyIsContextFreeForMethod(previous.getReference(), codeLens);
+    assert context == null || previous.getType() != null;
+    DexMethod result;
+    if (previous.getType() == InvokeType.SUPER) {
+      assert context != null;
+      DexType superEnum = unboxedEnums.representativeType(context.getHolderType());
+      if (superEnum != context.getHolderType()) {
+        // TODO(b/271385332): implement this.
+        throw new Unreachable();
+      } else {
+        result = methodMap.apply(previous.getReference());
+      }
+    } else {
+      result = methodMap.apply(previous.getReference());
+    }
+    if (result == null) {
+      return previous;
+    }
+    return MethodLookupResult.builder(this)
+        .setReference(result)
+        .setPrototypeChanges(
+            internalDescribePrototypeChanges(previous.getPrototypeChanges(), result))
+        .setType(mapInvocationType(result, previous.getReference(), previous.getType()))
+        .build();
   }
 
   @Override
@@ -133,6 +189,7 @@ public class EnumUnboxingLens extends NestedGraphLens {
         new BidirectionalOneToOneHashMap<>();
     private final MutableBidirectionalOneToManyRepresentativeMap<DexMethod, DexMethod>
         newMethodSignatures = new BidirectionalOneToManyRepresentativeHashMap<>();
+    private final Map<DexMethod, DexMethod> methodMap = new IdentityHashMap<>();
 
     private Map<DexMethod, RewrittenPrototypeDescription> prototypeChangesPerMethod =
         new IdentityHashMap<>();
@@ -155,18 +212,59 @@ public class EnumUnboxingLens extends NestedGraphLens {
       newFieldSignatures.put(from, to);
     }
 
-    public void move(DexMethod from, DexMethod to, boolean fromStatic, boolean toStatic) {
-      move(from, to, fromStatic, toStatic, Collections.emptyList());
+    private RewrittenPrototypeDescription recordPrototypeChanges(
+        DexMethod from,
+        DexMethod to,
+        boolean fromStatic,
+        boolean toStatic,
+        boolean virtualReceiverAlreadyRemapped,
+        List<ExtraUnusedNullParameter> extraUnusedNullParameters) {
+      assert from != to;
+      RewrittenPrototypeDescription prototypeChanges =
+          computePrototypeChanges(
+              from,
+              to,
+              fromStatic,
+              toStatic,
+              virtualReceiverAlreadyRemapped,
+              extraUnusedNullParameters);
+      prototypeChangesPerMethod.put(to, prototypeChanges);
+      return prototypeChanges;
     }
 
-    public RewrittenPrototypeDescription move(
+    public void moveAndMap(DexMethod from, DexMethod to, boolean fromStatic) {
+      moveAndMap(from, to, fromStatic, true, Collections.emptyList());
+    }
+
+    public RewrittenPrototypeDescription moveVirtual(DexMethod from, DexMethod to) {
+      newMethodSignatures.put(from, to);
+      return recordPrototypeChanges(from, to, false, true, false, Collections.emptyList());
+    }
+
+    public RewrittenPrototypeDescription mapToDispatch(DexMethod from, DexMethod to) {
+      methodMap.put(from, to);
+      return recordPrototypeChanges(from, to, false, true, true, Collections.emptyList());
+    }
+
+    public RewrittenPrototypeDescription moveAndMap(
         DexMethod from,
         DexMethod to,
         boolean fromStatic,
         boolean toStatic,
         List<ExtraUnusedNullParameter> extraUnusedNullParameters) {
-      assert from != to;
       newMethodSignatures.put(from, to);
+      methodMap.put(from, to);
+      return recordPrototypeChanges(
+          from, to, fromStatic, toStatic, false, extraUnusedNullParameters);
+    }
+
+    private RewrittenPrototypeDescription computePrototypeChanges(
+        DexMethod from,
+        DexMethod to,
+        boolean fromStatic,
+        boolean toStatic,
+        boolean virtualReceiverAlreadyRemapped,
+        List<ExtraUnusedNullParameter> extraUnusedNullParameters) {
       int offsetDiff = 0;
       int toOffset = BooleanUtils.intValue(!toStatic);
       ArgumentInfoCollection.Builder builder =
@@ -175,14 +273,21 @@ public class EnumUnboxingLens extends NestedGraphLens {
       if (fromStatic != toStatic) {
         assert toStatic;
         offsetDiff = 1;
-        builder
-            .addArgumentInfo(
-                0,
-                RewrittenTypeInfo.builder()
-                    .setOldType(from.getHolderType())
-                    .setNewType(to.getParameter(0))
-                    .build())
-            .setIsConvertedToStaticMethod();
+        if (!virtualReceiverAlreadyRemapped) {
+          builder
+              .addArgumentInfo(
+                  0,
+                  RewrittenTypeInfo.builder()
+                      .setOldType(from.getHolderType())
+                      .setNewType(to.getParameter(0))
+                      .build())
+              .setIsConvertedToStaticMethod();
+        } else {
+          assert to.getParameter(0).isIntType();
+          assert !fromStatic;
+          assert toStatic;
+          assert from.getArity() == to.getArity() - 1;
+        }
       }
       for (int i = 0; i < from.getParameters().size(); i++) {
         DexType fromType = from.getParameter(i);
@@ -200,11 +305,8 @@ public class EnumUnboxingLens extends NestedGraphLens {
                   .setOldType(from.getReturnType())
                   .setNewType(to.getReturnType())
                   .build();
-      RewrittenPrototypeDescription prototypeChanges =
-          RewrittenPrototypeDescription.createForRewrittenTypes(returnInfo, builder.build())
-              .withExtraParameters(extraUnusedNullParameters);
-      prototypeChangesPerMethod.put(to, prototypeChanges);
-      return prototypeChanges;
+      return RewrittenPrototypeDescription.createForRewrittenTypes(returnInfo, builder.build())
+          .withExtraParameters(extraUnusedNullParameters);
     }
 
     void recordCheckNotZeroMethod(
@@ -227,6 +329,7 @@ public class EnumUnboxingLens extends NestedGraphLens {
           newFieldSignatures,
           newMethodSignatures,
           typeMap,
+          methodMap,
           ImmutableMap.copyOf(prototypeChangesPerMethod));
     }
   }

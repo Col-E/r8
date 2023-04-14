@@ -31,6 +31,8 @@ public abstract class Reason {
   public static final Reason NO_INIT = new StringReason("NO_INIT");
   public static final Reason INVALID_INIT = new StringReason("INVALID_INIT");
   public static final Reason INVALID_CLINIT = new StringReason("INVALID_CLINIT");
+  public static final Reason INVALID_SUBTYPE_INIT = new StringReason("INVALID_SUBTYPE_INIT");
+  public static final Reason SUBTYPE_CLINIT = new StringReason("SUBTYPE_CLINIT");
   public static final Reason INVALID_INVOKE = new StringReason("INVALID_INVOKE");
   public static final Reason INVALID_INVOKE_CLASSPATH =
       new StringReason("INVALID_INVOKE_CLASSPATH");

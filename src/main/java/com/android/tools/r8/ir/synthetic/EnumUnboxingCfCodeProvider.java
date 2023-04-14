@@ -16,6 +16,7 @@ import com.android.tools.r8.cf.code.CfLabel;
 import com.android.tools.r8.cf.code.CfLoad;
 import com.android.tools.r8.cf.code.CfNew;
 import com.android.tools.r8.cf.code.CfReturn;
+import com.android.tools.r8.cf.code.CfReturnVoid;
 import com.android.tools.r8.cf.code.CfStackInstruction;
 import com.android.tools.r8.cf.code.CfStackInstruction.Opcode;
 import com.android.tools.r8.cf.code.CfStaticFieldRead;
@@ -29,11 +30,13 @@ import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.lens.GraphLens;
 import com.android.tools.r8.ir.analysis.value.AbstractValue;
 import com.android.tools.r8.ir.code.IfType;
 import com.android.tools.r8.ir.code.ValueType;
 import com.android.tools.r8.ir.optimize.enums.EnumDataMap.EnumData;
 import com.android.tools.r8.ir.optimize.enums.EnumInstanceFieldData.EnumInstanceFieldMappingData;
+import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import java.util.ArrayList;
 import java.util.List;
 import org.objectweb.asm.Opcodes;
@@ -62,6 +65,85 @@ public abstract class EnumUnboxingCfCodeProvider extends SyntheticCfCodeProvider
       }
     } else {
       throw new Unreachable("Only Number and String fields in enums are supported.");
+    }
+  }
+
+  public static class EnumUnboxingMethodDispatchCfCodeProvider extends EnumUnboxingCfCodeProvider {
+
+    private final GraphLens codeLens;
+    private final DexMethod superEnumMethod;
+    private final Int2ObjectMap<DexMethod> methodMap;
+
+    public EnumUnboxingMethodDispatchCfCodeProvider(
+        AppView<?> appView,
+        DexType holder,
+        DexMethod superEnumMethod,
+        Int2ObjectMap<DexMethod> methodMap) {
+      super(appView, holder);
+      this.codeLens = appView.codeLens();
+      this.superEnumMethod = superEnumMethod;
+      this.methodMap = methodMap;
+    }
+
+    @Override
+    public CfCodeWithLens generateCfCode() {
+      // TODO(b/167942775): Should use a table-switch for large enums (maybe same threshold in the
+      //  rewriter of switchmaps).
+
+      DexItemFactory factory = appView.dexItemFactory();
+      int returnInvokeSize = superEnumMethod.getParameters().size() + 2;
+      List<CfInstruction> instructions =
+          new ArrayList<>(methodMap.size() * (returnInvokeSize + 5) + returnInvokeSize);
+
+      CfFrame.Builder frameBuilder = CfFrame.builder();
+      for (DexType parameter : superEnumMethod.getParameters()) {
+        frameBuilder.appendLocal(FrameType.initialized(parameter));
+      }
+      methodMap.forEach(
+          (unboxedEnumValue, method) -> {
+            CfLabel dest = new CfLabel();
+            instructions.add(new CfLoad(ValueType.fromDexType(factory.intType), 0));
+            instructions.add(new CfConstNumber(unboxedEnumValue, ValueType.INT));
+            instructions.add(new CfIfCmp(IfType.NE, ValueType.INT, dest));
+            addReturnInvoke(instructions, method);
+            instructions.add(dest);
+            instructions.add(frameBuilder.build());
+          });
+
+      addReturnInvoke(instructions, superEnumMethod);
+      return new CfCodeWithLens(getHolder(), defaultMaxStack(), defaultMaxLocals(), instructions);
+    }
+
+    private void addReturnInvoke(List<CfInstruction> instructions, DexMethod method) {
+      int localIndex = 0;
+      for (DexType parameterType : method.getParameters()) {
+        instructions.add(new CfLoad(ValueType.fromDexType(parameterType), localIndex));
+        localIndex += parameterType.getRequiredRegisters();
+      }
+      instructions.add(new CfInvoke(Opcodes.INVOKESTATIC, method, false));
+      instructions.add(
+          method.getReturnType().isVoidType()
+              ? new CfReturnVoid()
+              : new CfReturn(ValueType.fromDexType(method.getReturnType())));
+    }
+
+    public static class CfCodeWithLens extends CfCode {
+      private GraphLens codeLens;
+
+      public void setCodeLens(GraphLens codeLens) {
+        this.codeLens = codeLens;
+      }
+
+      public CfCodeWithLens(
+          DexType originalHolder, int maxStack, int maxLocals, List<CfInstruction> instructions) {
+        super(originalHolder, maxStack, maxLocals, instructions);
+      }
+
+      @Override
+      public GraphLens getCodeLens(AppView<?> appView) {
+        assert codeLens != null;
+        return codeLens;
+      }
     }
   }
 

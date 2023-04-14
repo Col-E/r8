@@ -61,7 +61,7 @@ public class EnumUnboxingTestBase extends TestBase {
     options.enableEnumSwitchMapRemoval = enumValueOptimization;
   }
 
-  static List<Object[]> enumUnboxingTestParameters() {
+  public static List<Object[]> enumUnboxingTestParameters() {
     return enumUnboxingTestParameters(
         getTestParameters().withDexRuntimes().withAllApiLevels().build());
   }

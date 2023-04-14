@@ -5,6 +5,7 @@
 package com.android.tools.r8.ir.optimize.enums;
 
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
@@ -12,20 +13,23 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.lens.GraphLens;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
+import com.android.tools.r8.utils.SetUtils;
 import com.android.tools.r8.utils.collections.LongLivedProgramMethodSetBuilder;
 import com.android.tools.r8.utils.collections.ProgramMethodSet;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
+import java.util.IdentityHashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
 public class EnumUnboxingCandidateInfoCollection {
 
   private final Map<DexType, EnumUnboxingCandidateInfo> enumTypeToInfo = new ConcurrentHashMap<>();
+  private final Map<DexType, DexType> subEnumToSuperEnumMap = new IdentityHashMap<>();
   private final Set<DexMethod> prunedMethods = Sets.newConcurrentHashSet();
 
   public void addCandidate(
@@ -42,8 +46,16 @@ public class EnumUnboxingCandidateInfoCollection {
     return !enumTypeToInfo.get(enumType).getSubclasses().isEmpty();
   }
 
+  public Set<DexType> getSubtypes(DexType enumType) {
+    return SetUtils.mapIdentityHashSet(
+        enumTypeToInfo.get(enumType).getSubclasses(), DexClass::getType);
+  }
+
   public void setEnumSubclasses(DexType superEnum, Set<DexProgramClass> subclasses) {
     enumTypeToInfo.get(superEnum).setSubclasses(subclasses);
+    for (DexProgramClass subclass : subclasses) {
+      subEnumToSuperEnumMap.put(subclass.getType(), superEnum);
+    }
   }
 
   public void addPrunedMethod(ProgramMethod method) {
@@ -70,16 +82,27 @@ public class EnumUnboxingCandidateInfoCollection {
     return ImmutableSet.copyOf(enumTypeToInfo.keySet());
   }
 
-  public ImmutableSet<DexProgramClass> candidateClasses() {
-    ImmutableSet.Builder<DexProgramClass> builder = ImmutableSet.builder();
+  public ImmutableMap<DexProgramClass, Set<DexProgramClass>> candidateClassesWithSubclasses() {
+    ImmutableMap.Builder<DexProgramClass, Set<DexProgramClass>> builder = ImmutableMap.builder();
     for (EnumUnboxingCandidateInfo info : enumTypeToInfo.values()) {
-      builder.add(info.getEnumClass());
+      builder.put(info.getEnumClass(), info.getSubclasses());
     }
     return builder.build();
   }
 
+  /** Answers true if both enums are identical, or if one inherit from the other. */
+  public boolean isAssignableTo(DexType subtype, DexType superType) {
+    assert superType != null;
+    assert subtype != null;
+    if (superType == subtype) {
+      return true;
+    }
+    return superType == subEnumToSuperEnumMap.get(subtype);
+  }
+
   public DexProgramClass getCandidateClassOrNull(DexType enumType) {
-    EnumUnboxingCandidateInfo info = enumTypeToInfo.get(enumType);
+    DexType superEnum = subEnumToSuperEnumMap.getOrDefault(enumType, enumType);
+    EnumUnboxingCandidateInfo info = enumTypeToInfo.get(superEnum);
     if (info == null) {
       return null;
     }
@@ -120,16 +143,8 @@ public class EnumUnboxingCandidateInfoCollection {
     info.addRequiredInstanceFieldData(field);
   }
 
-  public void forEachCandidate(Consumer<DexProgramClass> enumClassConsumer) {
-    enumTypeToInfo.values().forEach(info -> enumClassConsumer.accept(info.enumClass));
-  }
-
-  public void forEachCandidateAndRequiredInstanceFieldData(
-      BiConsumer<DexProgramClass, Set<DexField>> biConsumer) {
-    enumTypeToInfo
-        .values()
-        .forEach(
-            info -> biConsumer.accept(info.getEnumClass(), info.getRequiredInstanceFieldData()));
+  public void forEachCandidateInfo(Consumer<EnumUnboxingCandidateInfo> consumer) {
+    enumTypeToInfo.values().forEach(consumer);
   }
 
   public void clear() {
@@ -143,7 +158,7 @@ public class EnumUnboxingCandidateInfoCollection {
     return true;
   }
 
-  private static class EnumUnboxingCandidateInfo {
+  public static class EnumUnboxingCandidateInfo {
 
     private final DexProgramClass enumClass;
     private final LongLivedProgramMethodSetBuilder<ProgramMethodSet> methodDependencies;
@@ -164,6 +179,7 @@ public class EnumUnboxingCandidateInfoCollection {
     }
 
     public Set<DexProgramClass> getSubclasses() {
+      assert subclasses != null;
       return subclasses;
     }
 

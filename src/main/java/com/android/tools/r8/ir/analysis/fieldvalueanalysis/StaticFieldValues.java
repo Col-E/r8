@@ -4,12 +4,15 @@
 
 package com.android.tools.r8.ir.analysis.fieldvalueanalysis;
 
+import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexProgramClass;
+import com.android.tools.r8.graph.lens.GraphLens;
 import com.android.tools.r8.ir.analysis.value.AbstractValue;
 import com.android.tools.r8.ir.analysis.value.objectstate.ObjectState;
+import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.google.common.collect.ImmutableMap;
 
 public abstract class StaticFieldValues {
@@ -45,6 +48,16 @@ public abstract class StaticFieldValues {
 
     static StaticFieldValues.Builder builder() {
       return new Builder();
+    }
+
+    public EnumStaticFieldValues rewrittenWithLens(
+        AppView<AppInfoWithLiveness> appView, GraphLens lens, GraphLens codeLens) {
+      ImmutableMap.Builder<DexField, ObjectState> builder = ImmutableMap.builder();
+      enumAbstractValues.forEach(
+          (field, state) ->
+              builder.put(
+                  lens.lookupField(field), state.rewrittenWithLens(appView, lens, codeLens)));
+      return new EnumStaticFieldValues(builder.build());
     }
 
     public static class Builder extends StaticFieldValues.Builder {

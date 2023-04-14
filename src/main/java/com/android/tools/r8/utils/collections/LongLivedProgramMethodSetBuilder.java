@@ -8,6 +8,7 @@ import static com.android.tools.r8.graph.DexProgramClass.asProgramClassOrNull;
 
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexDefinitionSupplier;
+import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.ProgramMethod;
@@ -166,7 +167,9 @@ public class LongLivedProgramMethodSetBuilder<T extends ProgramMethodSet> {
       DexMethod rewrittenMethod =
           appView.graphLens().getRenamedMethodSignature(method, appliedGraphLens);
       DexProgramClass holder = appView.definitionForHolder(rewrittenMethod).asProgramClass();
-      result.createAndAdd(holder, holder.lookupMethod(rewrittenMethod));
+      DexEncodedMethod definition = holder.lookupMethod(rewrittenMethod);
+      assert definition != null;
+      result.createAndAdd(holder, definition);
     }
     return result;
   }
