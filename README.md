@@ -6,11 +6,46 @@ The R8 repo contains two tools:
 - R8 is a java program shrinking and minification tool that converts java byte
   code to optimized dex code.
 
-D8 is a replacement for the DX dexer and R8 is a replacement for
-the [Proguard](https://www.guardsquare.com/en/proguard) shrinking and
+D8 is a replacement for the DX dexer and R8 is an alternative to
+the [ProGuard](https://www.guardsquare.com/en/proguard) shrinking and
 minification tool.
 
-## Downloading and building
+## Obtaining prebuilts
+
+There are several places to obtain a prebuilt version without building it
+yourself.
+
+The stable release versions shipped with Android Studio are available from
+the Google Maven repository, see
+https://maven.google.com/web/index.html#com.android.tools:r8.
+
+Our [CI](https://ci.chromium.org/p/r8/g/main/console) builds for each commit and
+stores all build artifacts in Google Cloud Storage in the bucket r8-releases.
+
+To obtain a prebuild from the CI for a specifc version (including both
+stable and `-dev` versions), download from the following URL:
+
+    https://storage.googleapis.com/r8-releases/raw/<version>/r8lib.jar
+
+To obtain a prebuild from the CI for a specifc main branch hash, download from the
+following URL:
+
+    https://storage.googleapis.com/r8-releases/raw/main/<hash>/r8lib.jar
+
+The prebuilt JARs have been processed by R8, and for each build the corresponding
+mapping file is located together with the prebuild under the name `r8lib.jar.map`.
+
+The Google Cloud Storage bucket r8-releases can also be used as a simple
+Maven repository using the following in a Gradle build file:
+
+    maven {
+        url = uri("https://storage.googleapis.com/r8-releases/raw")
+    }
+
+See [Running D8](#running-d8) and [Running R8](#running-r8) below on how to invoke
+D8 and R8 using the obtained `r8lib.jar` in place of `build/libs/r8.jar`.
+
+## Downloading source and building
 
 The R8 project uses [`depot_tools`](https://www.chromium.org/developers/how-tos/install-depot-tools)
 from the chromium project to manage dependencies. Install `depot_tools` and add it to
@@ -30,9 +65,10 @@ The `tools/gradle.py` script will bootstrap using depot_tools to download
 a version of gradle to use for building on the first run. This will produce
 a jar file: `build/libs/r8.jar` which contains both R8 and D8.
 
-## Running D8
+## <a name="running-d8"></a>Running D8
 
 The D8 dexer has a simple command-line interface with only a few options.
+D8 consumes class files and produce DEX.
 
 The most important option is whether to build in debug or release mode.  Debug
 is the default mode and includes debugging information in the resulting dex
@@ -54,18 +90,27 @@ Release mode build:
 The full set of D8 options can be obtained by running the command line tool with
 the `--help` option.
 
-## Running R8
+## <a name="running-r8"></a>Running R8
 
-R8 is a [Proguard](https://www.guardsquare.com/en/proguard) replacement for
-whole-program optimization, shrinking and minification. R8 uses the Proguard
+R8 is a [ProGuard](https://www.guardsquare.com/en/proguard) replacement for
+whole-program optimization, shrinking and minification. R8 uses the ProGuard
 keep rule format for specifying the entry points for an application.
 
-Typical invocations of R8 to produce optimized dex file(s) in the out directory:
+R8 consumes class files and can output either DEX for Android apps or class files
+for Java apps.
 
-    $ java -jar build/libs/r8.jar --release --output out --pg-conf proguard.cfg input.jar
+Typical invocations of R8 to produce optimized DEX file(s) in the `out` directory:
+
+    $ java -cp build/libs/r8.jar com.android.tools.r8.R8 --release --output out --pg-conf proguard.cfg input.jar
+
+ The default is to produce DEX. To produce class files pass the option `--classfile`. This invocation will provide optimized Java classfiles in `output.jar`:
+
+    $ java -cp build/libs/r8.jar com.android.tools.r8.R8 --classfile --release --output output.jar --pg-conf proguard.cfg input.jar
 
 The full set of R8 options can be obtained by running the command line tool with
 the `--help` option.
+
+R8 is not command line compatible with ProGuard, for instance keep rules cannot be passed on the command line, but have to be passed in a file using the `--pg-conf` option.
 
 ## Testing
 
