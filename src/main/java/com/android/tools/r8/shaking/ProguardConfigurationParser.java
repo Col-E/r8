@@ -28,6 +28,7 @@ import com.android.tools.r8.utils.LongInterval;
 import com.android.tools.r8.utils.Reporter;
 import com.android.tools.r8.utils.StringDiagnostic;
 import com.android.tools.r8.utils.StringUtils;
+import com.android.tools.r8.utils.ThrowingAction;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import java.io.File;
@@ -473,14 +474,8 @@ public class ProguardConfigurationParser {
         configurationBuilder.setConfigurationDebugging(true);
       } else if (acceptString("dontusemixedcaseclassnames")) {
         configurationBuilder.setDontUseMixedCaseClassnames(true);
-      } else if (acceptString("maximumremovedandroidloglevel")) {
-        skipWhitespace();
-        Integer maxRemovedAndroidLogLevel = acceptInteger();
-        if (maxRemovedAndroidLogLevel != null && maxRemovedAndroidLogLevel >= 1) {
-          configurationBuilder.joinMaxRemovedAndroidLogLevel(maxRemovedAndroidLogLevel);
-        } else {
-          throw parseError("Expected integer greater than or equal to 1", getPosition());
-        }
+      } else if (parseMaximumRemovedAndroidLogLevelRule(optionStart)) {
+        return true;
       } else {
         String unknownOption = acceptString();
         String devMessage = "";
@@ -976,6 +971,47 @@ public class ProguardConfigurationParser {
           "Expecting '-keep' option after '-if' option.", origin, getPosition(optionStart)));
     }
 
+    private boolean parseMaximumRemovedAndroidLogLevelRule(Position start)
+        throws ProguardRuleParserException {
+      if (acceptString("maximumremovedandroidloglevel")) {
+        skipWhitespace();
+        // First parse the mandatory log level int.
+        Integer maxRemovedAndroidLogLevel = acceptInteger();
+        if (maxRemovedAndroidLogLevel == null
+            || maxRemovedAndroidLogLevel < MaximumRemovedAndroidLogLevelRule.NONE) {
+          throw parseError("Expected integer greater than or equal to 1", getPosition());
+        }
+        MaximumRemovedAndroidLogLevelRule.Builder builder =
+            MaximumRemovedAndroidLogLevelRule.builder()
+                .setMaxRemovedAndroidLogLevel(maxRemovedAndroidLogLevel)
+                .setOrigin(origin)
+                .setStart(start);
+        // Check if we can parse any class annotations or flag.
+        if (parseClassAnnotationsAndFlags(builder)) {
+          // Parse the remainder of the class specification.
+          parseClassSpecFromClassTypeInclusive(builder, false);
+        } else {
+          // Otherwise check if we can parse a class name.
+          parseClassType(
+              builder,
+              // Parse the remainder of the class specification.
+              () -> parseClassSpecFromClassNameInclusive(builder, false),
+              // In case of an error, move position back to the place we expected an (optional)
+              // class type.
+              expectedClassTypeStart -> position = expectedClassTypeStart.getOffsetAsInt());
+        }
+        if (builder.hasClassType()) {
+          Position end = getPosition();
+          configurationBuilder.addRule(
+              builder.setEnd(end).setSource(getSourceSnippet(contents, start, end)).build());
+        } else {
+          configurationBuilder.joinMaxRemovedAndroidLogLevel(maxRemovedAndroidLogLevel);
+        }
+        return true;
+      }
+      return false;
+    }
+
     private ReprocessClassInitializerRule parseReprocessClassInitializerRule(
         ReprocessClassInitializerRule.Type type, Position start)
         throws ProguardRuleParserException {
@@ -1048,7 +1084,27 @@ public class ProguardConfigurationParser {
         boolean allowValueSpecification)
         throws ProguardRuleParserException {
       parseClassAnnotationsAndFlags(builder);
-      parseClassType(builder);
+      parseClassSpecFromClassTypeInclusive(builder, allowValueSpecification);
+    }
+
+    private <
+            C extends ProguardClassSpecification,
+            B extends ProguardClassSpecification.Builder<C, B>>
+        void parseClassSpecFromClassTypeInclusive(
+            ProguardClassSpecification.Builder<C, B> builder, boolean allowValueSpecification)
+            throws ProguardRuleParserException {
+      parseClassType(
+          builder,
+          () -> parseClassSpecFromClassNameInclusive(builder, allowValueSpecification),
+          this::parseClassTypeErrorHandler);
+    }
+
+    private <
+            C extends ProguardClassSpecification,
+            B extends ProguardClassSpecification.Builder<C, B>>
+        void parseClassSpecFromClassNameInclusive(
+            ProguardClassSpecification.Builder<C, B> builder, boolean allowValueSpecification)
+            throws ProguardRuleParserException {
       builder.setClassNames(parseClassNames());
       parseInheritance(builder);
       parseMemberRules(builder, allowValueSpecification);
@@ -1156,14 +1212,17 @@ public class ProguardConfigurationParser {
       return acceptChar('!');
     }
 
-    private void parseClassAnnotationsAndFlags(ProguardClassSpecification.Builder<?, ?> builder)
+    /** Returns true if any class annotations or flags were parsed. */
+    private boolean parseClassAnnotationsAndFlags(ProguardClassSpecification.Builder<?, ?> builder)
         throws ProguardRuleParserException {
       // We allow interleaving the class annotations and class flags for compatibility with
       // Proguard, although this should not be possible according to the grammar.
+      boolean changed = false;
       while (true) {
         ProguardTypeMatcher annotation = parseAnnotation();
         if (annotation != null) {
           builder.addClassAnnotation(annotation);
+          changed = true;
         } else {
           int start = position;
           ProguardAccessFlags flags =
@@ -1173,10 +1232,13 @@ public class ProguardConfigurationParser {
           skipWhitespace();
           if (acceptString("public")) {
             flags.setPublic();
+            changed = true;
           } else if (acceptString("final")) {
             flags.setFinal();
+            changed = true;
           } else if (acceptString("abstract")) {
             flags.setAbstract();
+            changed = true;
           } else {
             // Undo reading the ! in case there is no modifier following.
             position = start;
@@ -1184,6 +1246,7 @@ public class ProguardConfigurationParser {
           }
         }
       }
+      return changed;
     }
 
     private StringDiagnostic parseClassTypeUnexpected(Origin origin, TextPosition start) {
@@ -1191,7 +1254,11 @@ public class ProguardConfigurationParser {
           "Expected [!]interface|@interface|class|enum", origin, getPosition(start));
     }
 
-    private void parseClassType(ProguardClassSpecification.Builder<?, ?> builder) {
+    private <E extends Throwable> void parseClassType(
+        ProguardClassSpecification.Builder<?, ?> builder,
+        ThrowingAction<E> continuation,
+        Consumer<TextPosition> errorHandler)
+        throws E {
       skipWhitespace();
       TextPosition start = getPosition();
       if (acceptChar('!')) {
@@ -1202,7 +1269,8 @@ public class ProguardConfigurationParser {
         if (acceptString("interface")) {
           builder.setClassType(ProguardClassType.ANNOTATION_INTERFACE);
         } else {
-          throw reporter.fatalError(parseClassTypeUnexpected(origin, start));
+          errorHandler.accept(start);
+          return;
         }
       } else if (acceptString("interface")) {
         builder.setClassType(ProguardClassType.INTERFACE);
@@ -1211,8 +1279,14 @@ public class ProguardConfigurationParser {
       } else if (acceptString("enum")) {
         builder.setClassType(ProguardClassType.ENUM);
       } else {
-        throw reporter.fatalError(parseClassTypeUnexpected(origin, start));
+        errorHandler.accept(start);
+        return;
       }
+      continuation.execute();
+    }
+
+    private void parseClassTypeErrorHandler(TextPosition start) {
+      throw reporter.fatalError(parseClassTypeUnexpected(origin, start));
     }
 
     private void parseInheritance(
@@ -2291,7 +2365,7 @@ public class ProguardConfigurationParser {
         || length <= 0) {
       return null;
     } else {
-      return source.substring((int) start.getOffset(), (int) end.getOffset());
+      return source.substring(start.getOffsetAsInt(), end.getOffsetAsInt());
     }
   }
 

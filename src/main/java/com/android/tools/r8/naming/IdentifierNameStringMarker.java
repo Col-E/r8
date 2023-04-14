@@ -380,7 +380,7 @@ public class IdentifierNameStringMarker {
     StringDiagnostic diagnostic =
         instruction.getPosition().getLine() >= 1
             ? new StringDiagnostic(
-                message, origin, new TextPosition(0L, instruction.getPosition().getLine(), 1))
+                message, origin, new TextPosition(0, instruction.getPosition().getLine(), 1))
             : new StringDiagnostic(message, origin);
     appView.options().reporter.warning(diagnostic);
   }

@@ -299,7 +299,8 @@ public class RootSetUtils {
           || rule instanceof NoReturnTypeStrengtheningRule
           || rule instanceof KeepUnusedArgumentRule
           || rule instanceof ReprocessMethodRule
-          || rule instanceof WhyAreYouNotInliningRule) {
+          || rule instanceof WhyAreYouNotInliningRule
+          || rule.isMaximumRemovedAndroidLogLevelRule()) {
         markMatchingMethods(clazz, memberKeepRules, rule, null, ifRule);
       } else if (rule instanceof ClassInlineRule
           || rule instanceof NoUnusedInterfaceRemovalRule
@@ -1359,6 +1360,9 @@ public class RootSetUtils {
               .disallowOptimization();
         }
         context.markAsUsed();
+      } else if (context.isMaximumRemovedAndroidLogLevelRule()) {
+        evaluateMaximumRemovedAndroidLogLevelRule(
+            item, context.asMaximumRemovedAndroidLogLevelRule());
       } else {
         throw new Unreachable();
       }
@@ -1687,6 +1691,14 @@ public class RootSetUtils {
       }
 
       identifierNameStrings.add(item.asMember().getReference());
+      context.markAsUsed();
+    }
+
+    private void evaluateMaximumRemovedAndroidLogLevelRule(
+        Definition item, MaximumRemovedAndroidLogLevelRule context) {
+      assert item.isProgramMethod();
+      feedback.joinMaxRemovedAndroidLogLevel(
+          item.asProgramMethod(), context.getMaxRemovedAndroidLogLevel());
       context.markAsUsed();
     }
 

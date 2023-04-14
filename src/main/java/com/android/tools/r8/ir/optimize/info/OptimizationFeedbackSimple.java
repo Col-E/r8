@@ -75,6 +75,13 @@ public class OptimizationFeedbackSimple extends OptimizationFeedback {
 
   // METHOD OPTIMIZATION INFO.
 
+  public void joinMaxRemovedAndroidLogLevel(ProgramMethod method, int maxRemovedAndroidLogLevel) {
+    method
+        .getDefinition()
+        .getMutableOptimizationInfo()
+        .joinMaxRemovedAndroidLogLevel(maxRemovedAndroidLogLevel);
+  }
+
   @Override
   public void markForceInline(DexEncodedMethod method) {
     // Ignored.

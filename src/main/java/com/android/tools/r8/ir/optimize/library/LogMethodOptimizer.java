@@ -4,11 +4,19 @@
 
 package com.android.tools.r8.ir.optimize.library;
 
+import static com.android.tools.r8.shaking.MaximumRemovedAndroidLogLevelRule.ASSERT;
+import static com.android.tools.r8.shaking.MaximumRemovedAndroidLogLevelRule.DEBUG;
+import static com.android.tools.r8.shaking.MaximumRemovedAndroidLogLevelRule.ERROR;
+import static com.android.tools.r8.shaking.MaximumRemovedAndroidLogLevelRule.INFO;
+import static com.android.tools.r8.shaking.MaximumRemovedAndroidLogLevelRule.VERBOSE;
+import static com.android.tools.r8.shaking.MaximumRemovedAndroidLogLevelRule.WARN;
+
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.BasicBlockIterator;
 import com.android.tools.r8.ir.code.IRCode;
@@ -16,17 +24,11 @@ import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.ir.code.InvokeMethod;
 import com.android.tools.r8.ir.code.Value;
+import com.android.tools.r8.shaking.MaximumRemovedAndroidLogLevelRule;
 import com.android.tools.r8.shaking.ProguardConfiguration;
 import java.util.Set;
 
 public class LogMethodOptimizer extends StatelessLibraryMethodModelCollection {
-
-  private static final int VERBOSE = 2;
-  private static final int DEBUG = 3;
-  private static final int INFO = 4;
-  private static final int WARN = 5;
-  private static final int ERROR = 6;
-  private static final int ASSERT = 7;
 
   private final AppView<?> appView;
 
@@ -92,8 +94,11 @@ public class LogMethodOptimizer extends StatelessLibraryMethodModelCollection {
 
   public static boolean isEnabled(AppView<?> appView) {
     ProguardConfiguration proguardConfiguration = appView.options().getProguardConfiguration();
-    return proguardConfiguration != null
-        && proguardConfiguration.getMaxRemovedAndroidLogLevel() >= VERBOSE;
+    if (proguardConfiguration == null) {
+      return false;
+    }
+    return proguardConfiguration.getMaxRemovedAndroidLogLevel() >= VERBOSE
+        || proguardConfiguration.hasMaximumRemovedAndroidLogLevelRules();
   }
 
   @Override
@@ -113,11 +118,19 @@ public class LogMethodOptimizer extends StatelessLibraryMethodModelCollection {
     // Replace Android logging statements like Log.w(...) and Log.IsLoggable(..., WARNING) at or
     // below a certain logging level by false.
     int logLevel = getLogLevel(invoke, singleTarget);
-    int maxRemovedAndroidLogLevel =
-        appView.options().getProguardConfiguration().getMaxRemovedAndroidLogLevel();
+    int maxRemovedAndroidLogLevel = getMaxRemovedAndroidLogLevel(code.context());
     if (VERBOSE <= logLevel && logLevel <= maxRemovedAndroidLogLevel) {
       instructionIterator.replaceCurrentInstructionWithConstFalse(code);
     }
+  }
+
+  private int getMaxRemovedAndroidLogLevel(ProgramMethod context) {
+    int globalMaxRemovedAndroidLogLevel =
+        appView.options().getProguardConfiguration().getMaxRemovedAndroidLogLevel();
+    int methodMaxRemovedAndroidLogLevel =
+        context.getOptimizationInfo().getMaxRemovedAndroidLogLevel();
+    return MaximumRemovedAndroidLogLevelRule.joinMaxRemovedAndroidLogLevel(
+        globalMaxRemovedAndroidLogLevel, methodMaxRemovedAndroidLogLevel);
   }
 
   /**

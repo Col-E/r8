@@ -17,6 +17,7 @@ import com.android.tools.r8.ir.optimize.enums.classification.EnumUnboxerMethodCl
 import com.android.tools.r8.ir.optimize.info.bridge.BridgeInfo;
 import com.android.tools.r8.ir.optimize.info.initializer.DefaultInstanceInitializerInfo;
 import com.android.tools.r8.ir.optimize.info.initializer.InstanceInitializerInfo;
+import com.android.tools.r8.shaking.MaximumRemovedAndroidLogLevelRule;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.OptionalBool;
 import com.google.common.collect.ImmutableSet;
@@ -88,6 +89,11 @@ public class DefaultMethodOptimizationInfo extends MethodOptimizationInfo {
   @Override
   public InstanceInitializerInfo getInstanceInitializerInfo(InvokeDirect invoke) {
     return DefaultInstanceInitializerInfo.getInstance();
+  }
+
+  @Override
+  public int getMaxRemovedAndroidLogLevel() {
+    return MaximumRemovedAndroidLogLevelRule.NOT_SET;
   }
 
   @Override

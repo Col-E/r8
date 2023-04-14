@@ -12,6 +12,7 @@ import com.android.tools.r8.utils.InternalOptions.PackageObfuscationMode;
 import com.android.tools.r8.utils.Reporter;
 import com.android.tools.r8.utils.StringUtils;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -70,7 +71,7 @@ public class ProguardConfiguration {
     private boolean configurationDebugging = false;
     private boolean dontUseMixedCaseClassnames = false;
     private boolean protoShrinking = false;
-    private int maxRemovedAndroidLogLevel = -1;
+    private int maxRemovedAndroidLogLevel = MaximumRemovedAndroidLogLevelRule.NOT_SET;
 
     private Builder(DexItemFactory dexItemFactory, Reporter reporter) {
       this.dexItemFactory = dexItemFactory;
@@ -290,14 +291,13 @@ public class ProguardConfiguration {
       protoShrinking = true;
     }
 
-    public int getMaxRemovedAndroidLogLevelOrDefault(int defaultValue) {
-      assert maxRemovedAndroidLogLevel == -1 || maxRemovedAndroidLogLevel >= 1;
-      return maxRemovedAndroidLogLevel >= 1 ? maxRemovedAndroidLogLevel : defaultValue;
+    public int getMaxRemovedAndroidLogLevel() {
+      return maxRemovedAndroidLogLevel;
     }
 
     public void joinMaxRemovedAndroidLogLevel(int maxRemovedAndroidLogLevel) {
-      assert maxRemovedAndroidLogLevel >= 1;
-      if (this.maxRemovedAndroidLogLevel == -1) {
+      assert maxRemovedAndroidLogLevel >= MaximumRemovedAndroidLogLevelRule.NONE;
+      if (this.maxRemovedAndroidLogLevel == MaximumRemovedAndroidLogLevelRule.NOT_SET) {
         this.maxRemovedAndroidLogLevel = maxRemovedAndroidLogLevel;
       } else {
         // If there are multiple -maximumremovedandroidloglevel rules we only allow removing logging
@@ -348,7 +348,7 @@ public class ProguardConfiguration {
               configurationDebugging,
               dontUseMixedCaseClassnames,
               protoShrinking,
-              getMaxRemovedAndroidLogLevelOrDefault(1));
+              getMaxRemovedAndroidLogLevel());
 
       reporter.failIfPendingErrors();
 
@@ -665,6 +665,10 @@ public class ProguardConfiguration {
 
   public int getMaxRemovedAndroidLogLevel() {
     return maxRemovedAndroidLogLevel;
+  }
+
+  public boolean hasMaximumRemovedAndroidLogLevelRules() {
+    return Iterables.any(rules, ProguardConfigurationRule::isMaximumRemovedAndroidLogLevelRule);
   }
 
   @Override

@@ -4,38 +4,75 @@
 
 package com.android.tools.r8.ir.optimize.logging;
 
+import static org.junit.Assume.assumeTrue;
+
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.errors.Unreachable;
+import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.StringUtils;
 import com.google.common.collect.ImmutableList;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
 import java.nio.file.Path;
 import java.util.List;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameter;
 import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
 public class AndroidLogRemovalTest extends TestBase {
 
-  private final int maxRemovedAndroidLogLevel;
-  private final TestParameters parameters;
+  enum ClassSpecification {
+    ANNOTATED_CLASSES,
+    ANNOTATED_METHODS,
+    MAIN_METHOD,
+    NONE;
 
-  @Parameters(name = "{1}, log level: {0}")
+    public String getClassSpecification() {
+      switch (this) {
+        case ANNOTATED_CLASSES:
+          return "@" + StripLogs.class.getTypeName() + " class * { <methods>; }";
+        case ANNOTATED_METHODS:
+          return "class * { @" + StripLogs.class.getTypeName() + " <methods>; }";
+        case MAIN_METHOD:
+          return "class " + Main.class.getTypeName() + " { public static void main(...); }";
+        case NONE:
+          return "";
+        default:
+          throw new Unreachable();
+      }
+    }
+  }
+
+  @Parameter(0)
+  public ClassSpecification classSpecifiction;
+
+  @Parameter(1)
+  public boolean keepLogs;
+
+  @Parameter(2)
+  public int maxRemovedAndroidLogLevel;
+
+  @Parameter(3)
+  public TestParameters parameters;
+
+  @Parameters(name = "{3}, class spec: {0}, keep logs: {1}, log level: {2}")
   public static List<Object[]> data() {
     return buildParameters(
+        ClassSpecification.values(),
+        BooleanUtils.values(),
         ImmutableList.of(1, 2, 3, 4, 5, 6, 7),
         getTestParameters().withAllRuntimesAndApiLevels().build());
   }
 
-  public AndroidLogRemovalTest(int maxRemovedAndroidLogLevel, TestParameters parameters) {
-    this.maxRemovedAndroidLogLevel = maxRemovedAndroidLogLevel;
-    this.parameters = parameters;
-  }
-
   @Test
   public void test() throws Exception {
+    // Only test @KeepLogs with one log level variant.
+    assumeTrue(!keepLogs || maxRemovedAndroidLogLevel == 7);
+
     Path libraryFile =
         testForR8(parameters.getBackend())
             .addProgramClassFileData(
@@ -47,7 +84,7 @@ public class AndroidLogRemovalTest extends TestBase {
 
     testForR8(parameters.getBackend())
         .addProgramClassFileData(
-            transformer(TestClass.class)
+            transformer(Main.class)
                 .transformMethodInsnInMethod(
                     "main",
                     (opcode, owner, name, descriptor, isInterface, continuation) ->
@@ -58,18 +95,30 @@ public class AndroidLogRemovalTest extends TestBase {
                             descriptor,
                             isInterface))
                 .transform())
+        .addProgramClasses(KeepLogs.class, StripLogs.class)
         .addLibraryFiles(libraryFile, parameters.getDefaultRuntimeLibrary())
-        .addKeepMainRule(TestClass.class)
-        .addKeepRules("-maximumremovedandroidloglevel " + maxRemovedAndroidLogLevel)
+        .addKeepMainRule(Main.class)
+        .addKeepRules(
+            "-maximumremovedandroidloglevel "
+                + maxRemovedAndroidLogLevel
+                + " "
+                + classSpecifiction.getClassSpecification())
+        .applyIf(
+            keepLogs,
+            testBuilder ->
+                testBuilder.addKeepRules(
+                    "-maximumremovedandroidloglevel 1 class " + Main.class.getTypeName() + " {",
+                    "  @" + KeepLogs.class.getTypeName() + " <methods>;",
+                    "}"))
         .setMinApi(parameters)
         .compile()
         .addRunClasspathFiles(libraryFile)
-        .run(parameters.getRuntime(), TestClass.class)
+        .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutput(getExpectedOutputForMaxLogLevel());
   }
 
   private String getExpectedOutputForMaxLogLevel() {
-    switch (maxRemovedAndroidLogLevel) {
+    switch (keepLogs ? 1 : maxRemovedAndroidLogLevel) {
       case 1:
         return StringUtils.join(
             "",
@@ -114,8 +163,11 @@ public class AndroidLogRemovalTest extends TestBase {
     }
   }
 
-  static class TestClass {
+  @StripLogs
+  static class Main {
 
+    @KeepLogs
+    @StripLogs
     public static void main(String[] args) {
       Log.v("R8", "VERBOSE.");
       if (Log.isLoggable("R8", Log.VERBOSE)) {
@@ -192,4 +244,10 @@ public class AndroidLogRemovalTest extends TestBase {
       return 42;
     }
   }
+
+  @Retention(RetentionPolicy.CLASS)
+  @interface KeepLogs {}
+
+  @Retention(RetentionPolicy.CLASS)
+  @interface StripLogs {}
 }

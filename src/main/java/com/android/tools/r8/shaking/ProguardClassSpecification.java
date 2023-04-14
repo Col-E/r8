@@ -131,6 +131,10 @@ public abstract class ProguardClassSpecification {
       return self();
     }
 
+    public boolean hasClassType() {
+      return classType != null && classType != ProguardClassType.UNSPECIFIED;
+    }
+
     public ProguardClassType getClassType() {
       return classType;
     }
@@ -216,6 +220,8 @@ public abstract class ProguardClassSpecification {
       ProguardTypeMatcher inheritanceClassName,
       boolean inheritanceIsExtends,
       List<ProguardMemberRule> memberRules) {
+    assert classType != null;
+    assert classType != ProguardClassType.UNSPECIFIED;
     assert origin != null;
     assert position != null;
     assert source != null || origin != Origin.unknown();

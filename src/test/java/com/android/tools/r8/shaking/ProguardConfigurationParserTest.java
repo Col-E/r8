@@ -3298,4 +3298,43 @@ public class ProguardConfigurationParserTest extends TestBase {
       }
     }
   }
+
+  @Test
+  public void parseMaximumRemovedAndroidLogLevelWithoutClassSpecification() {
+    DexItemFactory dexItemFactory = new DexItemFactory();
+    ProguardConfigurationParser parser = new ProguardConfigurationParser(dexItemFactory, reporter);
+    String configuration = StringUtils.lines("-maximumremovedandroidloglevel 2");
+    parser.parse(createConfigurationForTesting(ImmutableList.of(configuration)));
+    verifyParserEndsCleanly();
+
+    ProguardConfiguration config = parser.getConfig();
+    assertEquals(MaximumRemovedAndroidLogLevelRule.VERBOSE, config.getMaxRemovedAndroidLogLevel());
+    assertEquals(0, config.getRules().size());
+  }
+
+  @Test
+  public void parseMaximumRemovedAndroidLogLevelWithClassSpecification() {
+    for (String input :
+        new String[] {
+          "-maximumremovedandroidloglevel 2 class * { <methods>; }",
+          "-maximumremovedandroidloglevel 2 @Foo class * { <methods>; }"
+        }) {
+      DexItemFactory dexItemFactory = new DexItemFactory();
+      ProguardConfigurationParser parser =
+          new ProguardConfigurationParser(dexItemFactory, reporter);
+      String configuration = StringUtils.lines(input);
+      parser.parse(createConfigurationForTesting(ImmutableList.of(configuration)));
+      verifyParserEndsCleanly();
+
+      ProguardConfiguration config = parser.getConfig();
+      assertEquals(
+          MaximumRemovedAndroidLogLevelRule.NOT_SET, config.getMaxRemovedAndroidLogLevel());
+      assertEquals(1, config.getRules().size());
+      assertTrue(config.getRules().get(0).isMaximumRemovedAndroidLogLevelRule());
+
+      MaximumRemovedAndroidLogLevelRule rule =
+          config.getRules().get(0).asMaximumRemovedAndroidLogLevelRule();
+      assertEquals(MaximumRemovedAndroidLogLevelRule.VERBOSE, rule.getMaxRemovedAndroidLogLevel());
+    }
+  }
 }

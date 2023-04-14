@@ -68,6 +68,14 @@ public abstract class ProguardConfigurationRule extends ProguardClassSpecificati
     used = true;
   }
 
+  public boolean isMaximumRemovedAndroidLogLevelRule() {
+    return false;
+  }
+
+  public MaximumRemovedAndroidLogLevelRule asMaximumRemovedAndroidLogLevelRule() {
+    return null;
+  }
+
   public boolean isProguardCheckDiscardRule() {
     return false;
   }
@@ -168,6 +176,10 @@ public abstract class ProguardConfigurationRule extends ProguardClassSpecificati
 
   abstract String typeString();
 
+  String typeSuffix() {
+    return null;
+  }
+
   String modifierString() {
     return null;
   }
@@ -223,6 +235,7 @@ public abstract class ProguardConfigurationRule extends ProguardClassSpecificati
     builder.append("-");
     builder.append(typeString());
     StringUtils.appendNonEmpty(builder, ",", modifierString(), null);
+    StringUtils.appendNonEmpty(builder, " ", typeSuffix(), null);
     builder.append(' ');
     super.append(builder);
     return builder;

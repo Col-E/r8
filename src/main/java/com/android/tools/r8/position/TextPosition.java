@@ -17,10 +17,9 @@ public class TextPosition implements Position {
    */
   public static final int UNKNOWN_COLUMN = -1;
 
-  /**
-   * Char offset from the start of the text resource.
-   */
+  /** Char offset from the start of the text resource. */
   private final long offset;
+
   private final int line;
   private final int column;
 
@@ -50,6 +49,13 @@ public class TextPosition implements Position {
 
   public long getOffset() {
     return offset;
+  }
+
+  public int getOffsetAsInt() {
+    if (offset > Integer.MAX_VALUE) {
+      throw new RuntimeException("Expected offset to be an int, but was " + offset);
+    }
+    return (int) offset;
   }
 
   @Override

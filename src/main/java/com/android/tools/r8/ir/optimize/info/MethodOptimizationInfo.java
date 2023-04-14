@@ -40,6 +40,8 @@ public abstract class MethodOptimizationInfo
 
   public abstract DynamicType getDynamicType();
 
+  public abstract int getMaxRemovedAndroidLogLevel();
+
   public final boolean hasNonNullParamOrThrow() {
     return getNonNullParamOrThrow() != null;
   }

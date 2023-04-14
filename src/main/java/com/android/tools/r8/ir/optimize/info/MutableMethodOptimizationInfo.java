@@ -25,6 +25,7 @@ import com.android.tools.r8.ir.optimize.info.bridge.BridgeInfo;
 import com.android.tools.r8.ir.optimize.info.initializer.InstanceInitializerInfo;
 import com.android.tools.r8.ir.optimize.info.initializer.InstanceInitializerInfoCollection;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
+import com.android.tools.r8.shaking.MaximumRemovedAndroidLogLevelRule;
 import com.android.tools.r8.utils.BitSetUtils;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.InternalOptions;
@@ -77,6 +78,7 @@ public class MutableMethodOptimizationInfo extends MethodOptimizationInfo
   private SimpleInliningConstraint simpleInliningConstraint =
       NeverSimpleInliningConstraint.getInstance();
 
+  private int maxRemovedAndroidLogLevel = MaximumRemovedAndroidLogLevelRule.NOT_SET;
   private BitSet unusedArguments = null;
 
   // To reduce the memory footprint of UpdatableMethodOptimizationInfo, all the boolean fields are
@@ -144,6 +146,7 @@ public class MutableMethodOptimizationInfo extends MethodOptimizationInfo
     nonNullParamOnNormalExits = template.nonNullParamOnNormalExits;
     classInlinerConstraint = template.classInlinerConstraint;
     enumUnboxerMethodClassification = template.enumUnboxerMethodClassification;
+    maxRemovedAndroidLogLevel = template.maxRemovedAndroidLogLevel;
   }
 
   public MutableMethodOptimizationInfo fixup(
@@ -313,6 +316,17 @@ public class MutableMethodOptimizationInfo extends MethodOptimizationInfo
     instanceInitializerInfoCollection =
         fixer.fixupInstanceInitializerInfo(appView, instanceInitializerInfoCollection);
     return this;
+  }
+
+  @Override
+  public int getMaxRemovedAndroidLogLevel() {
+    return maxRemovedAndroidLogLevel;
+  }
+
+  public void joinMaxRemovedAndroidLogLevel(int maxRemovedAndroidLogLevel) {
+    this.maxRemovedAndroidLogLevel =
+        MaximumRemovedAndroidLogLevelRule.joinMaxRemovedAndroidLogLevel(
+            this.maxRemovedAndroidLogLevel, maxRemovedAndroidLogLevel);
   }
 
   @Override
