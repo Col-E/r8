@@ -30,12 +30,6 @@ public enum ProguardClassType {
     public boolean matches(DexClass clazz) {
       return clazz.accessFlags.isInterface();
     }
-  },
-  UNSPECIFIED {
-    @Override
-    public boolean matches(DexClass clazz) {
-      return true;
-    }
   };
 
   @Override
@@ -45,8 +39,6 @@ public enum ProguardClassType {
       case CLASS: return "class";
       case ENUM: return "enum";
       case INTERFACE: return "interface";
-      case UNSPECIFIED:
-        return "";
       default:
         throw new Unreachable("Invalid proguard class type '" + this + "'");
     }
