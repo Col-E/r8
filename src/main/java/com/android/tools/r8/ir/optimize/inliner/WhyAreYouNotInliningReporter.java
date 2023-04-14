@@ -21,8 +21,7 @@ public abstract class WhyAreYouNotInliningReporter {
   public static WhyAreYouNotInliningReporter createFor(
       ProgramMethod callee, AppView<AppInfoWithLiveness> appView, ProgramMethod context) {
     if (appView.appInfo().isWhyAreYouNotInliningMethod(callee.getReference())) {
-      return new WhyAreYouNotInliningReporterImpl(
-          callee, context, appView.options().testing.whyAreYouNotInliningConsumer);
+      return new WhyAreYouNotInliningReporterImpl(appView, callee, context);
     }
     return NopWhyAreYouNotInliningReporter.getInstance();
   }

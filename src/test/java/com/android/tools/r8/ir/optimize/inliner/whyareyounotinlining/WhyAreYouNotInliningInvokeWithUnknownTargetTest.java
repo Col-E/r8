@@ -4,16 +4,16 @@
 
 package com.android.tools.r8.ir.optimize.inliner.whyareyounotinlining;
 
-import static org.junit.Assert.assertEquals;
+import static org.hamcrest.CoreMatchers.allOf;
+import static org.hamcrest.CoreMatchers.is;
 
+import com.android.tools.r8.DiagnosticsMatcher;
 import com.android.tools.r8.NoHorizontalClassMerging;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
+import com.android.tools.r8.ir.optimize.inliner.WhyAreYouNotInliningDiagnostic;
 import com.android.tools.r8.utils.AndroidApiLevel;
-import com.android.tools.r8.utils.StringUtils;
-import java.io.ByteArrayOutputStream;
-import java.io.PrintStream;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -33,28 +33,28 @@ public class WhyAreYouNotInliningInvokeWithUnknownTargetTest extends TestBase {
 
   @Test
   public void test() throws Exception {
-    ByteArrayOutputStream baos = new ByteArrayOutputStream();
-    PrintStream out = new PrintStream(baos);
     testForR8(parameters.getBackend())
-        .addInnerClasses(WhyAreYouNotInliningInvokeWithUnknownTargetTest.class)
+        .addInnerClasses(getClass())
         .addKeepMainRule(TestClass.class)
         .addKeepRules("-whyareyounotinlining class " + A.class.getTypeName() + " { void m(); }")
-        .addOptionsModification(options -> options.testing.whyAreYouNotInliningConsumer = out)
         .enableExperimentalWhyAreYouNotInlining()
         .enableNoHorizontalClassMergingAnnotations()
         .setMinApi(parameters)
-        .compile();
-    out.close();
-
-    assertEquals(
-        StringUtils.lines(
-            "Method `void "
-                + A.class.getTypeName()
-                + ".m()` was not inlined into `void "
-                + TestClass.class.getTypeName()
-                + ".main(java.lang.String[])`: "
-                + "could not find a single target."),
-        baos.toString());
+        .allowDiagnosticInfoMessages()
+        .compile()
+        .inspectDiagnosticMessages(
+            testDiagnosticMessages ->
+                testDiagnosticMessages.assertInfosMatch(
+                    allOf(
+                        DiagnosticsMatcher.diagnosticType(WhyAreYouNotInliningDiagnostic.class),
+                        DiagnosticsMatcher.diagnosticMessage(
+                            is(
+                                "Method `void "
+                                    + A.class.getTypeName()
+                                    + ".m()` was not inlined into `void "
+                                    + TestClass.class.getTypeName()
+                                    + ".main(java.lang.String[])`: "
+                                    + "could not find a single target.")))));
   }
 
   static class TestClass {

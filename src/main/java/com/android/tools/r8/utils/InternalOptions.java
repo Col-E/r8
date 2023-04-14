@@ -104,7 +104,6 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import java.io.IOException;
-import java.io.PrintStream;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -2197,7 +2196,6 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
     public int basicBlockMuncherIterationLimit = NO_LIMIT;
     public boolean dontReportFailingCheckDiscarded = false;
     public boolean disableRecordApplicationReaderMap = false;
-    public PrintStream whyAreYouNotInliningConsumer = System.out;
     public boolean trackDesugaredAPIConversions =
         System.getProperty("com.android.tools.r8.trackDesugaredAPIConversions") != null;
     public boolean enumUnboxingRewriteJavaCGeneratedMethod = false;

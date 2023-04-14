@@ -5,69 +5,72 @@
 package com.android.tools.r8.ir.optimize.inliner;
 
 import com.android.tools.r8.androidapi.ComputedApiLevel;
+import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.code.InstancePut;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InvokeDirect;
 import com.android.tools.r8.ir.optimize.Inliner.Reason;
+import com.android.tools.r8.utils.Reporter;
 import com.android.tools.r8.utils.StringUtils;
-import java.io.PrintStream;
 import java.util.Set;
 
 class WhyAreYouNotInliningReporterImpl extends WhyAreYouNotInliningReporter {
 
   private final ProgramMethod callee;
   private final ProgramMethod context;
-  private final PrintStream output;
+  private final Reporter reporter;
 
   private boolean reasonHasBeenReported = false;
 
   WhyAreYouNotInliningReporterImpl(
-      ProgramMethod callee, ProgramMethod context, PrintStream output) {
+      AppView<?> appView, ProgramMethod callee, ProgramMethod context) {
     this.callee = callee;
     this.context = context;
-    this.output = output;
+    reporter = appView.reporter();
   }
 
-  private void print(String reason) {
-    output.print("Method `");
-    output.print(callee.toSourceString());
-    output.print("` was not inlined into `");
-    output.print(context.toSourceString());
+  private void report(String reason) {
+    StringBuilder message = new StringBuilder();
+    message.append("Method `");
+    message.append(callee.toSourceString());
+    message.append("` was not inlined into `");
+    message.append(context.toSourceString());
     if (reason != null) {
-      output.print("`: ");
-      output.println(reason);
+      message.append("`: ");
+      message.append(reason);
     } else {
-      output.println("`.");
+      message.append("`.");
     }
+    reporter.info(new WhyAreYouNotInliningDiagnostic(context.getOrigin(), message.toString()));
     reasonHasBeenReported = true;
   }
 
   private void printWithExceededThreshold(
       String reason, String description, int value, int threshold) {
-    print(reason + " (" + description + ": " + value + ", threshold: " + threshold + ").");
+    report(reason + " (" + description + ": " + value + ", threshold: " + threshold + ").");
   }
 
   @Override
   public void reportCallerNotSameClass() {
-    print("inlinee can only be inlined into methods in the same class.");
+    report("inlinee can only be inlined into methods in the same class.");
   }
 
   @Override
   public void reportCallerNotSameNest() {
-    print("inlinee can only be inlined into methods in the same class (and its nest members).");
+    report("inlinee can only be inlined into methods in the same class (and its nest members).");
   }
 
   @Override
   public void reportCallerNotSamePackage() {
-    print(
+    report(
         "inlinee can only be inlined into methods in the same package "
             + "(declared package private or accesses package private type or member).");
   }
 
   @Override
   public void reportCallerNotSubtype() {
-    print(
+    report(
         "inlinee can only be inlined into methods in the same package and methods in subtypes of "
             + "the inlinee's enclosing class"
             + "(declared protected or accesses protected type or member).");
@@ -75,22 +78,22 @@ class WhyAreYouNotInliningReporterImpl extends WhyAreYouNotInliningReporter {
 
   @Override
   public void reportCallerHasUnknownApiLevel() {
-    print("computed API level for caller is unknown");
+    report("computed API level for caller is unknown");
   }
 
   @Override
   public void reportClasspathMethod() {
-    print("inlinee is on the classpath.");
+    report("inlinee is on the classpath.");
   }
 
   @Override
   public void reportInaccessible() {
-    print("inlinee is not accessible from the caller context.");
+    report("inlinee is not accessible from the caller context.");
   }
 
   @Override
   public void reportIncorrectArity(int numberOfArguments, int arity) {
-    print(
+    report(
         "number of arguments ("
             + numberOfArguments
             + ") does not match arity of method ("
@@ -100,22 +103,22 @@ class WhyAreYouNotInliningReporterImpl extends WhyAreYouNotInliningReporter {
 
   @Override
   public void reportInlineeDoesNotHaveCode() {
-    print("inlinee does not have code.");
+    report("inlinee does not have code.");
   }
 
   @Override
   public void reportInlineeNotInliningCandidate() {
-    print("unsupported instruction in inlinee.");
+    report("unsupported instruction in inlinee.");
   }
 
   @Override
   public void reportInlineeNotProcessed() {
-    print("inlinee not processed yet.");
+    report("inlinee not processed yet.");
   }
 
   @Override
   public void reportInlineeNotSimple() {
-    print(
+    report(
         "not inlining due to code size heuristic "
             + "(inlinee may have multiple callers and is not considered trivial).");
   }
@@ -125,10 +128,10 @@ class WhyAreYouNotInliningReporterImpl extends WhyAreYouNotInliningReporter {
       ComputedApiLevel callerApiLevel, ComputedApiLevel inlineeApiLevel) {
     assert callerApiLevel.isKnownApiLevel();
     if (inlineeApiLevel.isUnknownApiLevel()) {
-      print("computed API level for inlinee is unknown");
+      report("computed API level for inlinee is unknown");
     } else {
       assert inlineeApiLevel.isKnownApiLevel();
-      print(
+      report(
           "computed API level for inlinee ("
               + inlineeApiLevel.asKnownApiLevel().getApiLevel()
               + ") is higher than caller's ("
@@ -139,29 +142,29 @@ class WhyAreYouNotInliningReporterImpl extends WhyAreYouNotInliningReporter {
 
   @Override
   public void reportInlineeRefersToClassesNotInMainDex() {
-    print(
+    report(
         "inlining could increase the main dex size "
             + "(caller is in main dex and inlinee refers to classes not in main dex).");
   }
 
   @Override
   public void reportInliningAcrossFeatureSplit() {
-    print("cannot inline across feature splits.");
+    report("cannot inline across feature splits.");
   }
 
   @Override
   public void reportInstructionBudgetIsExceeded() {
-    print("caller's instruction budget is exceeded.");
+    report("caller's instruction budget is exceeded.");
   }
 
   @Override
   public void reportInvalidDoubleInliningCandidate() {
-    print("inlinee is invoked more than once and could not be inlined into all call sites.");
+    report("inlinee is invoked more than once and could not be inlined into all call sites.");
   }
 
   @Override
   public void reportInvalidInliningReason(Reason reason, Set<Reason> validInliningReasons) {
-    print(
+    report(
         "not a valid inlining reason (was: "
             + reason
             + ", allowed: one of "
@@ -171,29 +174,29 @@ class WhyAreYouNotInliningReporterImpl extends WhyAreYouNotInliningReporter {
 
   @Override
   public void reportLibraryMethod() {
-    print("inlinee is a library method.");
+    report("inlinee is a library method.");
   }
 
   @Override
   public void reportMarkedAsNeverInline() {
-    print("method is marked by a -neverinline rule.");
+    report("method is marked by a -neverinline rule.");
   }
 
   @Override
   public void reportMustTriggerClassInitialization() {
-    print(
+    report(
         "cannot guarantee that the enclosing class of the inlinee is guaranteed to be class "
             + "initialized before the first side-effecting instruction in the inlinee.");
   }
 
   @Override
   public void reportNoInliningIntoConstructorsWhenGeneratingClassFiles() {
-    print("inlining into constructors not supported when generating class files.");
+    report("inlining into constructors not supported when generating class files.");
   }
 
   @Override
   public void reportPinned() {
-    print("method is kept by a Proguard configuration rule.");
+    report("method is kept by a Proguard configuration rule.");
   }
 
   @Override
@@ -208,33 +211,33 @@ class WhyAreYouNotInliningReporterImpl extends WhyAreYouNotInliningReporter {
 
   @Override
   public void reportProcessedConcurrently() {
-    print(
+    report(
         "could lead to nondeterministic output since the inlinee is being optimized concurrently.");
   }
 
   @Override
   public void reportReceiverDefinitelyNull() {
-    print("the receiver is always null at the call site.");
+    report("the receiver is always null at the call site.");
   }
 
   @Override
   public void reportReceiverMaybeNull() {
-    print("the receiver may be null at the call site.");
+    report("the receiver may be null at the call site.");
   }
 
   @Override
   public void reportRecursiveMethod() {
-    print("recursive calls are not inlined.");
+    report("recursive calls are not inlined.");
   }
 
   @Override
   public void reportUnknownTarget() {
-    print("could not find a single target.");
+    report("could not find a single target.");
   }
 
   @Override
   public void reportUnsafeConstructorInliningDueToFinalFieldAssignment(InstancePut instancePut) {
-    print(
+    report(
         "final field `"
             + instancePut.getField()
             + "` must be initialized in a constructor of `"
@@ -244,7 +247,7 @@ class WhyAreYouNotInliningReporterImpl extends WhyAreYouNotInliningReporter {
 
   @Override
   public void reportUnsafeConstructorInliningDueToIndirectConstructorCall(InvokeDirect invoke) {
-    print(
+    report(
         "must invoke a constructor from the class being instantiated (would invoke `"
             + invoke.getInvokedMethod().toSourceString()
             + "`).");
@@ -252,7 +255,7 @@ class WhyAreYouNotInliningReporterImpl extends WhyAreYouNotInliningReporter {
 
   @Override
   public void reportUnsafeConstructorInliningDueToUninitializedObjectUse(Instruction user) {
-    print("would lead to use of uninitialized object (user: `" + user.toString() + "`).");
+    report("would lead to use of uninitialized object (user: `" + user.toString() + "`).");
   }
 
   @Override
