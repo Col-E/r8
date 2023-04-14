@@ -143,7 +143,7 @@ public class R8CommandTest extends CommandTestBase<R8Command> {
     ProcessResult result =
         ToolHelper.forkR8(
             working,
-            input.toString(),
+            input.toAbsolutePath().toString(),
             "--lib",
             library.toAbsolutePath().toString(),
             "--no-tree-shaking");
@@ -164,7 +164,7 @@ public class R8CommandTest extends CommandTestBase<R8Command> {
     ProcessResult result =
         ToolHelper.forkR8(
             working,
-            input.toString(),
+            input.toAbsolutePath().toString(),
             "--lib",
             library.toAbsolutePath().toString(),
             "--feature",
@@ -213,7 +213,7 @@ public class R8CommandTest extends CommandTestBase<R8Command> {
         "--lib",
         library.toAbsolutePath().toString(),
         "--no-tree-shaking",
-        input.toString());
+        input.toAbsolutePath().toString());
     assertEquals(0, ToolHelper.forkR8(working, "@flags.txt").exitCode);
     assertTrue(Files.exists(output));
     Collection<Marker> markers = ExtractMarkerUtils.extractMarkersFromFile(output);
