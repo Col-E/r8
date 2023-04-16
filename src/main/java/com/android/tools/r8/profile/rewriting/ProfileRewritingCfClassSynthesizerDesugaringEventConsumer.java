@@ -84,7 +84,7 @@ public class ProfileRewritingCfClassSynthesizerDesugaringEventConsumer
   public void acceptRecordClassContext(
       DexProgramClass recordTagClass, DexProgramClass recordClass) {
     additionsCollection.applyIfContextIsInProfile(
-        recordClass, additions -> additions.addClassRule(recordTagClass));
+        recordClass, additionsBuilder -> additionsBuilder.addClassRule(recordTagClass.getType()));
     ProgramMethod recordTagInstanceInitializer = recordTagClass.getProgramDefaultInitializer();
     if (recordTagInstanceInitializer != null) {
       recordClass.forEachProgramInstanceInitializer(

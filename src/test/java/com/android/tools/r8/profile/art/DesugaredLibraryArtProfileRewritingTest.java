@@ -82,6 +82,7 @@ public class DesugaredLibraryArtProfileRewritingTest extends DesugaredLibraryTes
         .addRule(
             ExternalArtProfileMethodRule.builder()
                 .setMethodReference(forEachMethodReference)
+                .setMethodRuleInfo(ArtProfileMethodRuleInfoImpl.builder().setIsStartup().build())
                 .build())
         .build();
   }

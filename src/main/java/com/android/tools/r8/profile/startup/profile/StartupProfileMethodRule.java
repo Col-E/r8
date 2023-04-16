@@ -105,6 +105,12 @@ public class StartupProfileMethodRule extends StartupProfileRule
     }
 
     @Override
+    public Builder setIsStartup() {
+      // Intentionally empty, startup profile rules do not have any flags.
+      return this;
+    }
+
+    @Override
     public Builder setMethod(DexMethod method) {
       this.method = method;
       return this;

@@ -18,6 +18,7 @@ import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.desugar.CfPostProcessingDesugaringEventConsumer;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.machinespecification.EmulatedDispatchMethodDescriptor;
 import com.android.tools.r8.ir.desugar.itf.InterfaceDesugaringSyntheticHelper;
+import com.android.tools.r8.profile.AbstractProfileMethodRule;
 import com.android.tools.r8.profile.art.ArtProfileOptions;
 import com.android.tools.r8.utils.BooleanBox;
 import java.util.Set;
@@ -80,7 +81,9 @@ public class ProfileRewritingCfPostProcessingDesugaringEventConsumer
   public void acceptDesugaredLibraryRetargeterForwardingMethod(
       ProgramMethod method, EmulatedDispatchMethodDescriptor descriptor) {
     if (options.isIncludingDesugaredLibraryRetargeterForwardingMethodsUnconditionally()) {
-      additionsCollection.accept(additions -> additions.addMethodRule(method, emptyConsumer()));
+      additionsCollection.accept(
+          additions ->
+              additions.addMethodRule(method, AbstractProfileMethodRule.Builder::setIsStartup));
     }
     parent.acceptDesugaredLibraryRetargeterForwardingMethod(method, descriptor);
   }
@@ -109,7 +112,7 @@ public class ProfileRewritingCfPostProcessingDesugaringEventConsumer
   @Override
   public void acceptInterfaceMethodDesugaringForwardingMethod(
       ProgramMethod method, DexClassAndMethod baseMethod) {
-    additionsCollection.addMethodIfContextIsInProfile(method, baseMethod, emptyConsumer());
+    additionsCollection.addMethodIfContextIsInProfile(method, baseMethod);
     parent.acceptInterfaceMethodDesugaringForwardingMethod(method, baseMethod);
   }
 
@@ -128,7 +131,8 @@ public class ProfileRewritingCfPostProcessingDesugaringEventConsumer
           });
       if (seenMethodCausingError.isFalse()) {
         additionsCollection.applyIfContextIsInProfile(
-            method.getHolder(), additions -> additions.addMethodRule(method, emptyConsumer()));
+            method.getHolder(),
+            additionsBuilder -> additionsBuilder.addMethodRule(method.getReference()));
       }
     }
     parent.acceptThrowingMethod(method, errorType, resolutionResult);

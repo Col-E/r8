@@ -90,9 +90,29 @@ public abstract class ProfileAdditions<
     this.profile = profile;
   }
 
-  public void applyIfContextIsInProfile(DexType context, Consumer<? super Additions> fn) {
+  public void applyIfContextIsInProfile(
+      DexType context, Consumer<ProfileAdditionsBuilder> builderConsumer) {
     if (profile.containsClassRule(context) || classRuleAdditions.containsKey(context)) {
-      fn.accept(self());
+      builderConsumer.accept(
+          new ProfileAdditionsBuilder() {
+            @Override
+            public ProfileAdditionsBuilder addClassRule(DexType type) {
+              ProfileAdditions.this.addClassRule(type);
+              return this;
+            }
+
+            @Override
+            public ProfileAdditionsBuilder addMethodRule(DexMethod method) {
+              ProfileAdditions.this.addMethodRule(
+                  method, AbstractProfileMethodRule.Builder::setIsStartup);
+              return this;
+            }
+
+            @Override
+            public void removeMovedMethodRule(DexMethod oldMethod, ProgramMethod newMethod) {
+              ProfileAdditions.this.removeMovedMethodRule(oldMethod, newMethod);
+            }
+          });
     }
   }
 
@@ -167,7 +187,7 @@ public abstract class ProfileAdditions<
     return addMethodRule(method.getReference(), methodRuleBuilderConsumer);
   }
 
-  public Additions addMethodRule(
+  private Additions addMethodRule(
       DexMethod method, Consumer<? super MethodRuleBuilder> methodRuleBuilderConsumer) {
     // Create profile rule for method.
     MethodRuleBuilder methodRuleBuilder =

@@ -134,7 +134,13 @@ public class ExternalArtProfile {
     }
 
     public Builder addMethodRule(MethodReference methodReference) {
-      return addMethodRule(methodReference, ArtProfileMethodRuleInfoImpl.empty());
+      return addMethodRule(
+          methodReference,
+          ArtProfileMethodRuleInfoImpl.builder()
+              .setIsHot()
+              .setIsStartup()
+              .setIsPostStartup()
+              .build());
     }
 
     public Builder addMethodRule(

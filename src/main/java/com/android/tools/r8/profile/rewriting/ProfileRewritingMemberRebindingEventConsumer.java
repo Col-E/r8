@@ -4,8 +4,6 @@
 
 package com.android.tools.r8.profile.rewriting;
 
-import static com.android.tools.r8.utils.ConsumerUtils.emptyConsumer;
-
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.ProgramMethod;
@@ -37,7 +35,7 @@ public class ProfileRewritingMemberRebindingEventConsumer implements MemberRebin
   @Override
   public void acceptMemberRebindingBridgeMethod(
       ProgramMethod bridgeMethod, DexClassAndMethod targetMethod) {
-    additionsCollection.addMethodIfContextIsInProfile(bridgeMethod, targetMethod, emptyConsumer());
+    additionsCollection.addMethodIfContextIsInProfile(bridgeMethod, targetMethod);
     parent.acceptMemberRebindingBridgeMethod(bridgeMethod, targetMethod);
   }
 

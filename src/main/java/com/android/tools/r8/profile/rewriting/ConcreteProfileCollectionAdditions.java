@@ -65,14 +65,13 @@ public class ConcreteProfileCollectionAdditions extends ProfileCollectionAdditio
     applyIfContextIsInProfile(context, additionsBuilder -> additionsBuilder.addRule(method));
   }
 
-  public void addMethodIfContextIsInProfile(
-      ProgramMethod method,
-      DexClassAndMethod context,
-      Consumer<AbstractProfileMethodRule.Builder<?, ?>> methodRuleBuilderConsumer) {
+  public void addMethodIfContextIsInProfile(ProgramMethod method, DexClassAndMethod context) {
     if (context.isProgramMethod()) {
       addMethodIfContextIsInProfile(method, context.asProgramMethod());
     } else {
-      accept(additions -> additions.addMethodRule(method, methodRuleBuilderConsumer));
+      accept(
+          additions ->
+              additions.addMethodRule(method, AbstractProfileMethodRule.Builder::setIsStartup));
     }
   }
 
@@ -82,21 +81,18 @@ public class ConcreteProfileCollectionAdditions extends ProfileCollectionAdditio
   }
 
   void applyIfContextIsInProfile(
-      ProgramDefinition context,
-      Consumer<ProfileAdditions<?, ?, ?, ?, ?, ?, ?, ?>> additionsConsumer,
-      Consumer<ProfileAdditionsBuilder> additionsBuilderConsumer) {
+      ProgramDefinition context, Consumer<ProfileAdditionsBuilder> builderConsumer) {
     if (context.isProgramClass()) {
-      applyIfContextIsInProfile(context.asProgramClass(), additionsConsumer);
+      applyIfContextIsInProfile(context.asProgramClass(), builderConsumer);
     } else {
       assert context.isProgramMethod();
-      applyIfContextIsInProfile(context.asProgramMethod(), additionsBuilderConsumer);
+      applyIfContextIsInProfile(context.asProgramMethod(), builderConsumer);
     }
   }
 
   void applyIfContextIsInProfile(
-      DexProgramClass context,
-      Consumer<ProfileAdditions<?, ?, ?, ?, ?, ?, ?, ?>> additionsConsumer) {
-    accept(additions -> additions.applyIfContextIsInProfile(context.getType(), additionsConsumer));
+      DexProgramClass context, Consumer<ProfileAdditionsBuilder> builderConsumer) {
+    accept(additions -> additions.applyIfContextIsInProfile(context.getType(), builderConsumer));
   }
 
   public void applyIfContextIsInProfile(

@@ -4,8 +4,6 @@
 
 package com.android.tools.r8.profile.rewriting;
 
-import static com.android.tools.r8.utils.ConsumerUtils.emptyConsumer;
-
 import com.android.tools.r8.androidapi.ApiReferenceStubberEventConsumer;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexLibraryClass;
@@ -47,10 +45,10 @@ public class ProfileRewritingApiReferenceStubberEventConsumer
       DexProgramClass mockClass, DexLibraryClass libraryClass, DexProgramClass context) {
     collectionAdditions.applyIfContextIsInProfile(
         context,
-        additions ->
-            additions
-                .addClassRule(mockClass)
-                .addMethodRule(mockClass.getProgramClassInitializer(), emptyConsumer()));
+        additionsBuilder ->
+            additionsBuilder
+                .addClassRule(mockClass.getType())
+                .addMethodRule(mockClass.getProgramClassInitializer().getReference()));
     parent.acceptMockedLibraryClassContext(mockClass, libraryClass, context);
   }
 

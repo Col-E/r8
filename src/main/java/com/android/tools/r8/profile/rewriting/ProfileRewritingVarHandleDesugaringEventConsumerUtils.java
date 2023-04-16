@@ -4,8 +4,6 @@
 
 package com.android.tools.r8.profile.rewriting;
 
-import static com.android.tools.r8.utils.ConsumerUtils.emptyConsumer;
-
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.ProgramDefinition;
 import com.android.tools.r8.profile.art.ArtProfileOptions;
@@ -20,11 +18,6 @@ public class ProfileRewritingVarHandleDesugaringEventConsumerUtils {
     if (options.isIncludingVarHandleClasses()) {
       additionsCollection.applyIfContextIsInProfile(
           context,
-          additions -> {
-            additions.addClassRule(varHandleClass);
-            varHandleClass.forEachProgramMethod(
-                method -> additions.addMethodRule(method, emptyConsumer()));
-          },
           additionsBuilder -> {
             additionsBuilder.addRule(varHandleClass);
             varHandleClass.forEachProgramMethod(additionsBuilder::addRule);

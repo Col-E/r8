@@ -4,13 +4,12 @@
 
 package com.android.tools.r8.profile.rewriting;
 
-import static com.android.tools.r8.utils.ConsumerUtils.emptyConsumer;
-
 import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.ProgramField;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.desugar.nest.NestBasedAccessDesugaringEventConsumer;
+import com.android.tools.r8.profile.AbstractProfileMethodRule;
 
 public class ProfileRewritingNestBasedAccessDesugaringEventConsumer
     implements NestBasedAccessDesugaringEventConsumer {
@@ -48,7 +47,9 @@ public class ProfileRewritingNestBasedAccessDesugaringEventConsumer
     } else {
       additionsCollection.accept(
           additions ->
-              additions.addClassRule(argumentClass).addMethodRule(bridge, emptyConsumer()));
+              additions
+                  .addClassRule(argumentClass)
+                  .addMethodRule(bridge, AbstractProfileMethodRule.Builder::setIsStartup));
     }
     parent.acceptNestConstructorBridge(target, bridge, argumentClass, context);
   }
@@ -56,21 +57,21 @@ public class ProfileRewritingNestBasedAccessDesugaringEventConsumer
   @Override
   public void acceptNestFieldGetBridge(
       ProgramField target, ProgramMethod bridge, DexClassAndMethod context) {
-    additionsCollection.addMethodIfContextIsInProfile(bridge, context, emptyConsumer());
+    additionsCollection.addMethodIfContextIsInProfile(bridge, context);
     parent.acceptNestFieldGetBridge(target, bridge, context);
   }
 
   @Override
   public void acceptNestFieldPutBridge(
       ProgramField target, ProgramMethod bridge, DexClassAndMethod context) {
-    additionsCollection.addMethodIfContextIsInProfile(bridge, context, emptyConsumer());
+    additionsCollection.addMethodIfContextIsInProfile(bridge, context);
     parent.acceptNestFieldPutBridge(target, bridge, context);
   }
 
   @Override
   public void acceptNestMethodBridge(
       ProgramMethod target, ProgramMethod bridge, DexClassAndMethod context) {
-    additionsCollection.addMethodIfContextIsInProfile(bridge, context, emptyConsumer());
+    additionsCollection.addMethodIfContextIsInProfile(bridge, context);
     parent.acceptNestMethodBridge(target, bridge, context);
   }
 }

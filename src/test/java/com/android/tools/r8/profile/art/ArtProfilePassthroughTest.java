@@ -78,7 +78,11 @@ public class ArtProfilePassthroughTest extends TestBase {
       profileBuilder
           .addClassRule(classRuleBuilder -> classRuleBuilder.setClassReference(mainClassReference))
           .addMethodRule(
-              methodRuleBuilder -> methodRuleBuilder.setMethodReference(mainMethodReference));
+              methodRuleBuilder ->
+                  methodRuleBuilder
+                      .setMethodReference(mainMethodReference)
+                      .setMethodRuleInfo(
+                          methodRuleInfoBuilder -> methodRuleInfoBuilder.setIsStartup(true)));
       providerStatus = ProviderStatus.DONE;
     }
 

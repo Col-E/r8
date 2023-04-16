@@ -71,11 +71,20 @@ public class ArtProfileCollisionAfterClassMergingRewritingTest extends TestBase 
     return ExternalArtProfile.builder()
         .addRules(
             ExternalArtProfileClassRule.builder().setClassReference(mainClassReference).build(),
-            ExternalArtProfileMethodRule.builder().setMethodReference(mainMethodReference).build(),
+            ExternalArtProfileMethodRule.builder()
+                .setMethodReference(mainMethodReference)
+                .setMethodRuleInfo(ArtProfileMethodRuleInfoImpl.builder().setIsStartup().build())
+                .build(),
             ExternalArtProfileClassRule.builder().setClassReference(fooClassReference).build(),
-            ExternalArtProfileMethodRule.builder().setMethodReference(helloMethodReference).build(),
+            ExternalArtProfileMethodRule.builder()
+                .setMethodReference(helloMethodReference)
+                .setMethodRuleInfo(ArtProfileMethodRuleInfoImpl.builder().setIsStartup().build())
+                .build(),
             ExternalArtProfileClassRule.builder().setClassReference(barClassReference).build(),
-            ExternalArtProfileMethodRule.builder().setMethodReference(worldMethodReference).build())
+            ExternalArtProfileMethodRule.builder()
+                .setMethodReference(worldMethodReference)
+                .setMethodRuleInfo(ArtProfileMethodRuleInfoImpl.builder().setIsStartup().build())
+                .build())
         .build();
   }
 

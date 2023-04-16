@@ -21,6 +21,7 @@ public class ArtProfileMethodRule extends ArtProfileRule implements AbstractProf
   private final ArtProfileMethodRuleInfoImpl info;
 
   ArtProfileMethodRule(DexMethod method, ArtProfileMethodRuleInfoImpl info) {
+    assert info.getFlags() != 0;
     this.method = method;
     this.info = info;
   }
@@ -137,6 +138,12 @@ public class ArtProfileMethodRule extends ArtProfileRule implements AbstractProf
     @Override
     public Builder join(ArtProfileMethodRule methodRule) {
       methodRuleInfoBuilder.joinFlags(methodRule.getMethodRuleInfo());
+      return this;
+    }
+
+    @Override
+    public Builder setIsStartup() {
+      methodRuleInfoBuilder.setIsStartup();
       return this;
     }
 

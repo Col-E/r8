@@ -53,7 +53,12 @@ public abstract class ArtProfileCollection {
       clazz.forEachMethod(
           method ->
               artProfileBuilder.addMethodRule(
-                  ArtProfileMethodRule.builder().setMethod(method.getReference()).build()));
+                  ArtProfileMethodRule.builder()
+                      .setMethod(method.getReference())
+                      .acceptMethodRuleInfoBuilder(
+                          methodRuleInfoBuilder ->
+                              methodRuleInfoBuilder.setIsHot().setIsStartup().setIsPostStartup())
+                      .build()));
     }
     return artProfileBuilder.build();
   }
