@@ -264,9 +264,14 @@ public class ProguardMapReader implements AutoCloseable {
         if (!parseMappingInformation(
             info -> {
               assert info.isMapVersionMappingInformation()
-                  || info.isUnknownJsonMappingInformation();
+                  || info.isUnknownJsonMappingInformation()
+                  || info.isPartitionFileNameInformation();
               if (info.isMapVersionMappingInformation()) {
                 mapBuilder.setCurrentMapVersion(info.asMapVersionMappingInformation());
+              } else if (info.isPartitionFileNameInformation()) {
+                info.asPartitionFileNameInformation()
+                    .getTypeNameToFileNameMapping()
+                    .forEach(mapBuilder::addFileName);
               } else if (!seenClassMapping) {
                 mapBuilder.addPreambleLine(line);
               }

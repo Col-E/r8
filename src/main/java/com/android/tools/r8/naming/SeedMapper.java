@@ -74,6 +74,12 @@ public class SeedMapper implements ProguardMap {
     }
 
     @Override
+    ProguardMap.Builder addFileName(String originalName, String fileName) {
+      // Do nothing
+      return this;
+    }
+
+    @Override
     SeedMapper build() {
       reporter.failIfPendingErrors();
       return new SeedMapper(ImmutableMap.copyOf(map), mappedToDescriptorNames, reporter);

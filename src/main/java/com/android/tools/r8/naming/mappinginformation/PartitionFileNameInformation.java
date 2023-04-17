@@ -86,6 +86,10 @@ public class PartitionFileNameInformation extends ReferentialMappingInformation 
       return this;
     }
 
+    public boolean isEmpty() {
+      return typeNameToFileNameMapping.isEmpty();
+    }
+
     public PartitionFileNameInformation build() {
       return new PartitionFileNameInformation(typeNameToFileNameMapping);
     }

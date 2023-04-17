@@ -104,6 +104,12 @@ public class ClassNameMapper implements ProguardMap {
       }
       return this;
     }
+
+    @Override
+    ProguardMap.Builder addFileName(String originalName, String fileName) {
+      originalSourceFiles.put(originalName, fileName);
+      return this;
+    }
   }
 
   public static Builder builder() {

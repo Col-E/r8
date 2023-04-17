@@ -17,6 +17,8 @@ public interface ProguardMap {
 
     abstract Builder setCurrentMapVersion(MapVersionMappingInformation mapVersion);
 
+    abstract Builder addFileName(String originalName, String fileName);
+
     abstract ProguardMap build();
   }
 

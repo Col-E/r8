@@ -11,8 +11,8 @@ import com.android.tools.r8.naming.ClassNameMapper;
 import com.android.tools.r8.naming.ClassNamingForNameMapper;
 import com.android.tools.r8.naming.LineReader;
 import com.android.tools.r8.naming.MapVersion;
-import com.android.tools.r8.naming.mappinginformation.FileNameInformation;
 import com.android.tools.r8.naming.mappinginformation.MapVersionMappingInformation;
+import com.android.tools.r8.naming.mappinginformation.PartitionFileNameInformation;
 import com.android.tools.r8.retrace.MappingPartition;
 import com.android.tools.r8.retrace.MappingPartitionMetadata;
 import com.android.tools.r8.retrace.ProguardMapPartitioner;
@@ -133,24 +133,27 @@ public class ProguardMapPartitionerOnClassNameToText implements ProguardMapParti
         getPartitionsFromProguardMapProducer(
             (classNameMapper, classNamingForNameMapper, payload) -> {
               Set<String> seenMappings = new HashSet<>();
-              StringBuilder payloadWithClassReferences = new StringBuilder();
-              Map<String, String> lookupMap =
-                  classNameMapper.getObfuscatedToOriginalMapping().inverse;
+              PartitionFileNameInformation.Builder partitionFileNameBuilder =
+                  PartitionFileNameInformation.builder();
               classNamingForNameMapper.visitAllFullyQualifiedReferences(
                   holder -> {
-                    if (seenMappings.add(holder)) {
-                      payloadWithClassReferences.append(
-                          getSourceFileMapping(
-                              holder,
-                              lookupMap.get(holder),
-                              classNameMapper.getSourceFile(holder)));
+                    if (classNameMapper.getSourceFile(holder) != null && seenMappings.add(holder)) {
+                      partitionFileNameBuilder.addClassToFileNameMapping(
+                          holder, classNameMapper.getSourceFile(holder));
                     }
                   });
-              payloadWithClassReferences.append(payload);
+              StringBuilder payloadBuilder = new StringBuilder();
+              if (!partitionFileNameBuilder.isEmpty()) {
+                payloadBuilder
+                    .append("# ")
+                    .append(partitionFileNameBuilder.build().serialize())
+                    .append("\n");
+              }
+              payloadBuilder.append(payload);
               mappingPartitionConsumer.accept(
                   new MappingPartitionImpl(
                       classNamingForNameMapper.renamedName,
-                      payloadWithClassReferences.toString().getBytes(StandardCharsets.UTF_8)));
+                      payloadBuilder.toString().getBytes(StandardCharsets.UTF_8)));
               keys.add(classNamingForNameMapper.renamedName);
             });
     MapVersion mapVersion = MapVersion.MAP_VERSION_UNKNOWN;
@@ -172,20 +175,6 @@ public class ProguardMapPartitionerOnClassNameToText implements ProguardMapParti
       diagnosticsHandler.error(new ExceptionDiagnostic(retraceError));
       throw retraceError;
     }
-  }
-
-  private String getSourceFileMapping(
-      String className, String obfuscatedClassName, String sourceFile) {
-    if (sourceFile == null) {
-      return "";
-    }
-    return className
-        + " -> "
-        + (obfuscatedClassName == null ? className : obfuscatedClassName)
-        + ":"
-        + "\n  # "
-        + FileNameInformation.build(sourceFile).serialize()
-        + "\n";
   }
 
   public static class PartitionLineReader implements LineReader {
