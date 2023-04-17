@@ -10,6 +10,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Function;
+import java.util.function.IntFunction;
 import java.util.function.IntPredicate;
 import java.util.function.Predicate;
 
@@ -47,6 +48,13 @@ public class ArrayUtils {
       System.arraycopy(original, pos, results, pos, original.length - pos);
     }
     return results;
+  }
+
+  public static <T> T[] initialize(T[] array, IntFunction<T> fn) {
+    for (int i = 0; i < array.length; i++) {
+      array[i] = fn.apply(i);
+    }
+    return array;
   }
 
   public static <T> boolean isEmpty(T[] array) {

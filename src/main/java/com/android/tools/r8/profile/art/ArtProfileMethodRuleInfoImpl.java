@@ -4,16 +4,18 @@
 
 package com.android.tools.r8.profile.art;
 
+import com.android.tools.r8.utils.ArrayUtils;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
 
 public class ArtProfileMethodRuleInfoImpl implements ArtProfileMethodRuleInfo {
 
-  private static final ArtProfileMethodRuleInfoImpl EMPTY = new ArtProfileMethodRuleInfoImpl(0);
+  private static final ArtProfileMethodRuleInfoImpl[] INSTANCES =
+      ArrayUtils.initialize(new ArtProfileMethodRuleInfoImpl[8], ArtProfileMethodRuleInfoImpl::new);
 
   private final int flags;
 
-  ArtProfileMethodRuleInfoImpl(int flags) {
+  private ArtProfileMethodRuleInfoImpl(int flags) {
     this.flags = flags;
   }
 
@@ -22,7 +24,7 @@ public class ArtProfileMethodRuleInfoImpl implements ArtProfileMethodRuleInfo {
   }
 
   public static ArtProfileMethodRuleInfoImpl empty() {
-    return EMPTY;
+    return INSTANCES[0];
   }
 
   public int getFlags() {
@@ -163,7 +165,9 @@ public class ArtProfileMethodRuleInfoImpl implements ArtProfileMethodRuleInfo {
     }
 
     public ArtProfileMethodRuleInfoImpl build() {
-      return new ArtProfileMethodRuleInfoImpl(flags);
+      assert 0 <= flags;
+      assert flags < INSTANCES.length;
+      return INSTANCES[flags];
     }
   }
 }
