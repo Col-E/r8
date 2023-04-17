@@ -6,10 +6,11 @@ package com.android.tools.r8.ir.optimize;
 
 import com.android.tools.r8.androidapi.AndroidApiLevelCompute;
 import com.android.tools.r8.contexts.CompilationContext.MethodProcessingContext;
+import com.android.tools.r8.graph.AppServices;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedMethod;
-import com.android.tools.r8.graph.DexItemFactory;
+import com.android.tools.r8.graph.DexItemFactory.ServiceLoaderMethods;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexType;
@@ -24,9 +25,11 @@ import com.android.tools.r8.ir.code.InvokeVirtual;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.conversion.MethodProcessor;
 import com.android.tools.r8.ir.desugar.ServiceLoaderSourceCode;
+import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.BooleanBox;
 import com.android.tools.r8.utils.ListUtils;
+import com.android.tools.r8.utils.Reporter;
 import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
 import java.util.IdentityHashMap;
@@ -63,24 +66,34 @@ import java.util.Map;
 public class ServiceLoaderRewriter {
 
   private final AppView<AppInfoWithLiveness> appView;
-  private final List<ProgramMethod> serviceLoadMethods = new ArrayList<>();
   private final AndroidApiLevelCompute apiLevelCompute;
+  private final Reporter reporter;
+  private final ServiceLoaderMethods serviceLoaderMethods;
+
+  private final List<ProgramMethod> synthesizedServiceLoadMethods = new ArrayList<>();
 
   public ServiceLoaderRewriter(
       AppView<AppInfoWithLiveness> appView, AndroidApiLevelCompute apiLevelCompute) {
     this.appView = appView;
     this.apiLevelCompute = apiLevelCompute;
+    serviceLoaderMethods = appView.dexItemFactory().serviceLoaderMethods;
+    reporter = shouldReportWhyAreYouNotInliningServiceLoaderLoad() ? appView.reporter() : null;
   }
 
-  public List<ProgramMethod> getServiceLoadMethods() {
-    return serviceLoadMethods;
+  private boolean shouldReportWhyAreYouNotInliningServiceLoaderLoad() {
+    AppInfoWithLiveness appInfo = appView.appInfo();
+    return appInfo.isWhyAreYouNotInliningMethod(serviceLoaderMethods.load)
+        || appInfo.isWhyAreYouNotInliningMethod(serviceLoaderMethods.loadWithClassLoader);
+  }
+
+  public List<ProgramMethod> getSynthesizedServiceLoadMethods() {
+    return synthesizedServiceLoadMethods;
   }
 
   public void rewrite(
       IRCode code,
       MethodProcessor methodProcessor,
       MethodProcessingContext methodProcessingContext) {
-    DexItemFactory factory = appView.dexItemFactory();
     InstructionListIterator instructionIterator = code.instructionListIterator();
     // Create a map from service type to loader methods local to this context since two
     // service loader calls to the same type in different methods and in the same wave can race.
@@ -89,54 +102,82 @@ public class ServiceLoaderRewriter {
       Instruction instruction = instructionIterator.next();
 
       // Check if instruction is an invoke static on the desired form of ServiceLoader.load.
-      if (!instruction.isInvokeStatic()
-          || instruction.asInvokeStatic().getInvokedMethod()
-              != factory.serviceLoaderMethods.loadWithClassLoader) {
+      if (!instruction.isInvokeStatic()) {
         continue;
       }
 
       InvokeStatic serviceLoaderLoad = instruction.asInvokeStatic();
-      Value serviceLoaderLoadOut = serviceLoaderLoad.outValue();
-      if (serviceLoaderLoadOut.numberOfAllUsers() != 1 || serviceLoaderLoadOut.hasPhiUsers()) {
-        continue;
-      }
-
-      // Check that the only user is a call to iterator().
-      if (!serviceLoaderLoadOut.singleUniqueUser().isInvokeVirtual()
-          || serviceLoaderLoadOut.singleUniqueUser().asInvokeVirtual().getInvokedMethod()
-              != factory.serviceLoaderMethods.iterator) {
+      DexMethod invokedMethod = serviceLoaderLoad.getInvokedMethod();
+      if (!serviceLoaderMethods.isLoadMethod(invokedMethod)) {
         continue;
       }
 
       // Check that the first argument is a const class.
       Value argument = serviceLoaderLoad.inValues().get(0).getAliasedValue();
       if (argument.isPhi() || !argument.definition.isConstClass()) {
+        report(code.origin, null, "The service loader type could not be determined");
         continue;
       }
 
       ConstClass constClass = argument.getConstInstruction().asConstClass();
 
+      if (invokedMethod != serviceLoaderMethods.loadWithClassLoader) {
+        report(
+            code.origin,
+            constClass.getType(),
+            "Inlining is only support for `java.util.ServiceLoader.load(java.lang.Class,"
+                + " java.lang.ClassLoader)`");
+        continue;
+      }
+
+      String invalidUserMessage =
+          "The returned ServiceLoader instance must only be used in a call to `java.util.Iterator"
+              + " java.lang.ServiceLoader.iterator()`";
+      Value serviceLoaderLoadOut = serviceLoaderLoad.outValue();
+      if (serviceLoaderLoadOut.numberOfAllUsers() != 1 || serviceLoaderLoadOut.hasPhiUsers()) {
+        report(code.origin, constClass.getType(), invalidUserMessage);
+        continue;
+      }
+
+      // Check that the only user is a call to iterator().
+      if (!serviceLoaderLoadOut.singleUniqueUser().isInvokeVirtual()
+          || serviceLoaderLoadOut.singleUniqueUser().asInvokeVirtual().getInvokedMethod()
+              != serviceLoaderMethods.iterator) {
+        report(code.origin, constClass.getType(), invalidUserMessage + ", but found other usages");
+        continue;
+      }
+
       // Check that the service is not kept.
       if (appView.appInfo().isPinnedWithDefinitionLookup(constClass.getValue())) {
+        report(code.origin, constClass.getType(), "The service loader type is kept");
         continue;
       }
 
       // Check that the service is configured in the META-INF/services.
-      if (!appView.appServices().allServiceTypes().contains(constClass.getValue())) {
+      AppServices appServices = appView.appServices();
+      if (!appServices.allServiceTypes().contains(constClass.getValue())) {
         // Error already reported in the Enqueuer.
         continue;
       }
 
       // Check that we are not service loading anything from a feature into base.
-      if (appView
-          .appServices()
-          .hasServiceImplementationsInFeature(appView, constClass.getValue())) {
+      if (appServices.hasServiceImplementationsInFeature(appView, constClass.getValue())) {
+        report(
+            code.origin,
+            constClass.getType(),
+            "The service loader type has implementations in a feature split");
         continue;
       }
 
       // Check that ClassLoader used is the ClassLoader defined for the service configuration
       // that we are instantiating or NULL.
       if (serviceLoaderLoad.inValues().get(1).isPhi()) {
+        report(
+            code.origin,
+            constClass.getType(),
+            "The java.lang.ClassLoader argument must be defined locally as null or "
+                + constClass.getType()
+                + ".class.getClassLoader()");
         continue;
       }
       InvokeVirtual classLoaderInvoke =
@@ -154,19 +195,28 @@ public class ServiceLoaderRewriter {
                           .getValue()
                       == constClass.getValue());
       if (!isGetClassLoaderOnConstClassOrNull) {
+        report(
+            code.origin,
+            constClass.getType(),
+            "The java.lang.ClassLoader argument must be defined locally as null or "
+                + constClass.getType()
+                + ".class.getClassLoader()");
         continue;
       }
 
-      List<DexType> dexTypes =
-          appView.appServices().serviceImplementationsFor(constClass.getValue());
+      List<DexType> dexTypes = appServices.serviceImplementationsFor(constClass.getValue());
       List<DexClass> classes = new ArrayList<>(dexTypes.size());
       boolean seenNull = false;
       for (DexType serviceImpl : dexTypes) {
-        DexClass serviceImplClazz = appView.definitionFor(serviceImpl);
-        if (serviceImplClazz == null) {
+        DexClass serviceImplementation = appView.definitionFor(serviceImpl);
+        if (serviceImplementation == null) {
+          report(
+              code.origin,
+              constClass.getType(),
+              "Unable to find definition for service implementation " + serviceImpl.getTypeName());
           seenNull = true;
         }
-        classes.add(serviceImplClazz);
+        classes.add(serviceImplementation);
       }
 
       if (seenNull) {
@@ -190,6 +240,20 @@ public class ServiceLoaderRewriter {
 
       new Rewriter(code, instructionIterator, serviceLoaderLoad)
           .perform(classLoaderInvoke, synthesizedMethod.getReference());
+    }
+  }
+
+  private void report(Origin origin, DexType serviceLoaderType, String message) {
+    if (reporter != null) {
+      reporter.info(
+          new ServiceLoaderRewriterDiagnostic(
+              origin,
+              "Could not inline ServiceLoader.load"
+                  + (serviceLoaderType == null
+                      ? ""
+                      : (" of type " + serviceLoaderType.getTypeName()))
+                  + ": "
+                  + message));
     }
   }
 
@@ -218,8 +282,8 @@ public class ServiceLoaderRewriter {
                             m ->
                                 ServiceLoaderSourceCode.generate(
                                     serviceType, classes, appView.dexItemFactory())));
-    synchronized (serviceLoadMethods) {
-      serviceLoadMethods.add(method);
+    synchronized (synthesizedServiceLoadMethods) {
+      synthesizedServiceLoadMethods.add(method);
     }
     methodProcessor
         .getEventConsumer()

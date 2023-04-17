@@ -196,7 +196,7 @@ public class PrimaryR8IRConverter extends IRConverter {
 
     if (serviceLoaderRewriter != null) {
       processSimpleSynthesizeMethods(
-          serviceLoaderRewriter.getServiceLoadMethods(), executorService);
+          serviceLoaderRewriter.getSynthesizedServiceLoadMethods(), executorService);
     }
 
     if (instanceInitializerOutliner != null) {

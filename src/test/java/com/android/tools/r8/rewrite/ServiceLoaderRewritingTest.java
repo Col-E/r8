@@ -12,11 +12,13 @@ import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.DataEntryResource;
+import com.android.tools.r8.DiagnosticsMatcher;
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.ToolHelper.DexVm.Version;
+import com.android.tools.r8.ir.optimize.ServiceLoaderRewriterDiagnostic;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
@@ -251,12 +253,21 @@ public class ServiceLoaderRewritingTest extends TestBase {
             .addInnerClasses(ServiceLoaderRewritingTest.class)
             .addKeepMainRule(OtherRunner.class)
             .setMinApi(parameters)
+            .addKeepRules(
+                "-whyareyounotinlining class "
+                    + ServiceLoader.class.getTypeName()
+                    + " { *** load(...); }")
+            .enableExperimentalWhyAreYouNotInlining()
             .addDataEntryResources(
                 DataEntryResource.fromBytes(
                     StringUtils.lines(ServiceImpl.class.getTypeName()).getBytes(),
                     "META-INF/services/" + Service.class.getTypeName(),
                     Origin.unknown()))
+            .allowDiagnosticInfoMessages()
             .compile()
+            .assertAllInfosMatch(
+                DiagnosticsMatcher.diagnosticType(ServiceLoaderRewriterDiagnostic.class))
+            .assertAtLeastOneInfoMessage()
             .writeToZip(path)
             .run(parameters.getRuntime(), OtherRunner.class)
             .assertSuccessWithOutput(EXPECTED_OUTPUT)
@@ -282,13 +293,22 @@ public class ServiceLoaderRewritingTest extends TestBase {
             .addKeepMainRule(EscapingRunner.class)
             .enableInliningAnnotations()
             .setMinApi(parameters)
+            .addKeepRules(
+                "-whyareyounotinlining class "
+                    + ServiceLoader.class.getTypeName()
+                    + " { *** load(...); }")
+            .enableExperimentalWhyAreYouNotInlining()
             .addDontObfuscate()
             .addDataEntryResources(
                 DataEntryResource.fromBytes(
                     StringUtils.lines(ServiceImpl.class.getTypeName()).getBytes(),
                     "META-INF/services/" + Service.class.getTypeName(),
                     Origin.unknown()))
+            .allowDiagnosticInfoMessages()
             .compile()
+            .assertAllInfosMatch(
+                DiagnosticsMatcher.diagnosticType(ServiceLoaderRewriterDiagnostic.class))
+            .assertAtLeastOneInfoMessage()
             .writeToZip(path)
             .run(parameters.getRuntime(), EscapingRunner.class)
             .assertSuccessWithOutput(EXPECTED_OUTPUT)
@@ -314,12 +334,21 @@ public class ServiceLoaderRewritingTest extends TestBase {
             .addKeepMainRule(LoadWhereClassLoaderIsPhi.class)
             .enableInliningAnnotations()
             .setMinApi(parameters)
+            .addKeepRules(
+                "-whyareyounotinlining class "
+                    + ServiceLoader.class.getTypeName()
+                    + " { *** load(...); }")
+            .enableExperimentalWhyAreYouNotInlining()
             .addDataEntryResources(
                 DataEntryResource.fromBytes(
                     StringUtils.lines(ServiceImpl.class.getTypeName()).getBytes(),
                     "META-INF/services/" + Service.class.getTypeName(),
                     Origin.unknown()))
+            .allowDiagnosticInfoMessages()
             .compile()
+            .assertAllInfosMatch(
+                DiagnosticsMatcher.diagnosticType(ServiceLoaderRewriterDiagnostic.class))
+            .assertAtLeastOneInfoMessage()
             .writeToZip(path)
             .run(parameters.getRuntime(), LoadWhereClassLoaderIsPhi.class)
             .assertSuccessWithOutputLines("Hello World!")
@@ -350,12 +379,21 @@ public class ServiceLoaderRewritingTest extends TestBase {
             .addKeepMainRule(MainRunner.class)
             .addKeepClassRules(Service.class)
             .setMinApi(parameters)
+            .addKeepRules(
+                "-whyareyounotinlining class "
+                    + ServiceLoader.class.getTypeName()
+                    + " { *** load(...); }")
+            .enableExperimentalWhyAreYouNotInlining()
             .addDataEntryResources(
                 DataEntryResource.fromBytes(
                     StringUtils.lines(ServiceImpl.class.getTypeName()).getBytes(),
                     "META-INF/services/" + Service.class.getTypeName(),
                     Origin.unknown()))
+            .allowDiagnosticInfoMessages()
             .compile()
+            .assertAllInfosMatch(
+                DiagnosticsMatcher.diagnosticType(ServiceLoaderRewriterDiagnostic.class))
+            .assertAtLeastOneInfoMessage()
             .writeToZip(path)
             .run(parameters.getRuntime(), MainRunner.class)
             .assertSuccessWithOutput(EXPECTED_OUTPUT)
