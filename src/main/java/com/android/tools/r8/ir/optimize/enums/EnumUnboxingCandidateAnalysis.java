@@ -20,7 +20,6 @@ import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.KeepInfoCollection;
 import com.android.tools.r8.utils.InternalOptions;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 import java.util.IdentityHashMap;
 import java.util.Map;
@@ -129,14 +128,6 @@ class EnumUnboxingCandidateAnalysis {
     // TODO(b/271385332): Support subEnums with instance fields.
     if (!clazz.instanceFields().isEmpty()) {
       if (!enumUnboxer.reportFailure(clazz.superType, Reason.SUBENUM_INSTANCE_FIELDS)) {
-        return false;
-      }
-      result = false;
-    }
-    // TODO(b/271385332): Support subEnums with static members (JDK16+).
-    if (!clazz.staticFields().isEmpty()
-        || !Iterables.isEmpty(clazz.directMethods(DexEncodedMethod::isStatic))) {
-      if (!enumUnboxer.reportFailure(clazz.superType, Reason.SUBENUM_STATIC_MEMBER)) {
         return false;
       }
       result = false;

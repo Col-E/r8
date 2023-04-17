@@ -55,6 +55,15 @@ public class EnumDataMap {
     }
   }
 
+  public boolean isAssignableTo(DexType subtype, DexType superType) {
+    assert superType != null;
+    assert subtype != null;
+    if (superType == subtype) {
+      return true;
+    }
+    return superType == subEnumToSuperEnumMap.get(subtype);
+  }
+
   public DexType representativeType(DexType type) {
     return subEnumToSuperEnumMap.getOrDefault(type, type);
   }

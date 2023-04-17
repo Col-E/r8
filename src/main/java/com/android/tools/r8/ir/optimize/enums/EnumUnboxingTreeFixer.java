@@ -130,7 +130,7 @@ class EnumUnboxingTreeFixer {
     PrunedItems.Builder prunedItemsBuilder = PrunedItems.builder();
 
     // We do this before so that we can still perform lookup of definitions.
-    fixupEnumClassInitializers(converter, executorService);
+    fixupSuperEnumClassInitializers(converter, executorService);
 
     // Fix all methods and fields using enums to unbox.
     // TODO(b/191617665): Parallelize this fixup.
@@ -267,9 +267,8 @@ class EnumUnboxingTreeFixer {
     return checkNotNullToCheckNotZeroMapping;
   }
 
-
-  private void fixupEnumClassInitializers(IRConverter converter, ExecutorService executorService)
-      throws ExecutionException {
+  private void fixupSuperEnumClassInitializers(
+      IRConverter converter, ExecutorService executorService) throws ExecutionException {
     DexEncodedField ordinalField =
         appView
             .appInfo()
@@ -277,11 +276,11 @@ class EnumUnboxingTreeFixer {
             .getResolvedField();
     ThreadUtils.processItems(
         unboxedEnumHierarchy.keySet(),
-        unboxedEnum -> fixupEnumClassInitializer(converter, unboxedEnum, ordinalField),
+        unboxedEnum -> fixupSuperEnumClassInitializer(converter, unboxedEnum, ordinalField),
         executorService);
   }
 
-  private void fixupEnumClassInitializer(
+  private void fixupSuperEnumClassInitializer(
       IRConverter converter, DexProgramClass unboxedEnum, DexEncodedField ordinalField) {
     if (!unboxedEnum.hasClassInitializer()) {
       assert unboxedEnum.staticFields().isEmpty();
@@ -321,7 +320,7 @@ class EnumUnboxingTreeFixer {
           // LocalEnumUtility.class.desiredAssertionStatus() instead of
           // int.class.desiredAssertionStatus().
           ConstClass constClass = instruction.asConstClass();
-          if (constClass.getType() != unboxedEnum.getType()) {
+          if (!enumDataMap.isAssignableTo(constClass.getType(), unboxedEnum.getType())) {
             continue;
           }
 
@@ -353,7 +352,7 @@ class EnumUnboxingTreeFixer {
         } else if (instruction.isNewInstance()) {
           NewInstance newInstance = instruction.asNewInstance();
           DexType rewrittenType = appView.graphLens().lookupType(newInstance.getType());
-          if (rewrittenType == unboxedEnum.getType()) {
+          if (enumDataMap.isAssignableTo(rewrittenType, unboxedEnum.getType())) {
             InvokeDirect constructorInvoke =
                 newInstance.getUniqueConstructorInvoke(appView.dexItemFactory());
             assert constructorInvoke != null;
@@ -432,16 +431,15 @@ class EnumUnboxingTreeFixer {
             // the enum unboxing rewriter.
             instructionIterator.replaceCurrentInstruction(
                 new NewUnboxedEnumInstance(
-                    unboxedEnum.getType(),
+                    rewrittenType,
                     ordinal,
                     code.createValue(
-                        ClassTypeElement.create(
-                            unboxedEnum.getType(), definitelyNotNull(), appView))));
+                        ClassTypeElement.create(rewrittenType, definitelyNotNull(), appView))));
           }
         } else if (instruction.isStaticPut()) {
           StaticPut staticPut = instruction.asStaticPut();
           DexField rewrittenField = appView.graphLens().lookupField(staticPut.getField());
-          if (rewrittenField.getHolderType() != unboxedEnum.getType()) {
+          if (!enumDataMap.isAssignableTo(rewrittenField.getHolderType(), unboxedEnum.getType())) {
             continue;
           }
 
@@ -593,6 +591,11 @@ class EnumUnboxingTreeFixer {
           subEnum,
           prunedItemsBuilder,
           method -> {
+            if (method.getDefinition().isClassInitializer()) {
+              assert method.getDefinition().getCode().isEmptyVoidMethod();
+              prunedItemsBuilder.addRemovedMethod(method.getReference());
+              return;
+            }
             if (!methodsWithOverride.contains(method.getReference())) {
               DexEncodedMethod newLocalUtilityMethod =
                   installLocalUtilityMethod(localUtilityClass, localUtilityMethods, method);
