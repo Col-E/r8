@@ -62,6 +62,10 @@ public abstract class MappingInformation {
     return false;
   }
 
+  public boolean isPartitionFileNameInformation() {
+    return false;
+  }
+
   public MapVersionMappingInformation asMapVersionMappingInformation() {
     return null;
   }
@@ -99,6 +103,10 @@ public abstract class MappingInformation {
   }
 
   public ResidualFieldSignatureMappingInformation asResidualFieldSignatureMappingInformation() {
+    return null;
+  }
+
+  public PartitionFileNameInformation asPartitionFileNameInformation() {
     return null;
   }
 
@@ -175,6 +183,9 @@ public abstract class MappingInformation {
         return;
       case ResidualSignatureMappingInformation.ID:
         ResidualSignatureMappingInformation.deserialize(version, object, onMappingInfo);
+        return;
+      case PartitionFileNameInformation.ID:
+        PartitionFileNameInformation.deserialize(object, onMappingInfo);
         return;
       default:
         diagnosticsHandler.info(MappingInformationDiagnostics.noHandlerFor(lineNumber, id));
