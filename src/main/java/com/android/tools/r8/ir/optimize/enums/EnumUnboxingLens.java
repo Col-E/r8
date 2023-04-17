@@ -4,7 +4,6 @@
 
 package com.android.tools.r8.ir.optimize.enums;
 
-import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItemFactory;
@@ -103,10 +102,21 @@ public class EnumUnboxingLens extends NestedGraphLens {
     DexMethod result;
     if (previous.getType() == InvokeType.SUPER) {
       assert context != null;
-      DexType superEnum = unboxedEnums.representativeType(context.getHolderType());
-      if (superEnum != context.getHolderType()) {
-        // TODO(b/271385332): implement this.
-        throw new Unreachable();
+      DexMethod previousContext = getPreviousMethodSignature(context);
+      DexType superEnum = unboxedEnums.representativeType(previousContext.getHolderType());
+      if (unboxedEnums.isUnboxedEnum(superEnum)) {
+        if (superEnum != previousContext.getHolderType()) {
+          DexMethod reference = previous.getReference();
+          if (reference.getHolderType() != superEnum) {
+            // Rebind the reference to the superEnum if that is not the case.
+            reference = reference.withHolder(superEnum, dexItemFactory());
+          }
+          result = newMethodSignatures.getRepresentativeValue(reference);
+        } else {
+          // This is a super-invoke to a library method, not rewritten by the lens.
+          // This is rewritten by the EnumUnboxerRewriter.
+          return previous;
+        }
       } else {
         result = methodMap.apply(previous.getReference());
       }

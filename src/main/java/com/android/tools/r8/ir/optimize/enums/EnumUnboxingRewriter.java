@@ -78,7 +78,7 @@ public class EnumUnboxingRewriter {
   }
 
   private LocalEnumUnboxingUtilityClass getLocalUtilityClass(DexType enumType) {
-    return utilityClasses.getLocalUtilityClass(enumType);
+    return utilityClasses.getLocalUtilityClass(unboxedEnumsData.representativeType(enumType));
   }
 
   private SharedEnumUnboxingUtilityClass getSharedUtilityClass() {

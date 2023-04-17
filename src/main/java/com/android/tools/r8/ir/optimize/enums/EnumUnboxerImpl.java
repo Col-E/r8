@@ -1393,7 +1393,8 @@ public class EnumUnboxerImpl extends EnumUnboxer {
       // enum's type.
       for (int i = 0; i < singleTarget.getParameters().size(); i++) {
         if (invoke.getArgumentForParameter(i) == enumValue
-            && singleTarget.getParameter(i).toBaseType(factory) != enumClass.getType()) {
+            && !enumUnboxingCandidatesInfo.isAssignableTo(
+                singleTarget.getParameter(i).toBaseType(factory), enumClass.getType())) {
           return new IllegalInvokeWithImpreciseParameterTypeReason(singleTargetReference);
         }
       }
