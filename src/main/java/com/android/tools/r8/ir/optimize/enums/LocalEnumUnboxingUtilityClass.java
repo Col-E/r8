@@ -11,6 +11,7 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.ClassAccessFlags;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItemFactory;
+import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexString;
@@ -67,24 +68,35 @@ public class LocalEnumUnboxingUtilityClass extends EnumUnboxingUtilityClass {
     return method;
   }
 
+  private DexString computeGetInstanceFieldMethodName(DexField field, DexItemFactory factory) {
+    String fieldName = field.getName().toString();
+    if (field.getHolderType() == getSynthesizingContext().getType()) {
+      return factory.createString(
+          "get" + fieldName.substring(0, 1).toUpperCase() + fieldName.substring(1));
+    }
+    assert field == factory.enumMembers.nameField || field == factory.enumMembers.ordinalField;
+    return field.getName();
+  }
+
+  private DexProto computeGetInstanceFieldMethodProto(DexField field, DexItemFactory factory) {
+    return factory.createProto(field.getType(), factory.intType);
+  }
+
+  public DexMethod computeToStringUtilityMethod(DexItemFactory factory) {
+    DexField nameField = factory.enumMembers.nameField;
+    DexString name = computeGetInstanceFieldMethodName(nameField, factory);
+    DexProto proto = computeGetInstanceFieldMethodProto(nameField, factory);
+    return factory.createMethod(getDefinition().getType(), proto, name);
+  }
+
   private ProgramMethod ensureGetInstanceFieldMethod(
       AppView<AppInfoWithLiveness> appView, DexField field) {
     DexItemFactory dexItemFactory = appView.dexItemFactory();
-    String fieldName = field.getName().toString();
-    DexString methodName;
-    if (field.getHolderType() == getSynthesizingContext().getType()) {
-      methodName =
-          dexItemFactory.createString(
-              "get" + fieldName.substring(0, 1).toUpperCase() + fieldName.substring(1));
-    } else {
-      assert field == appView.dexItemFactory().enumMembers.nameField
-          || field == appView.dexItemFactory().enumMembers.ordinalField;
-      methodName = field.getName();
-    }
+    DexString methodName = computeGetInstanceFieldMethodName(field, dexItemFactory);
     return internalEnsureMethod(
         appView,
         methodName,
-        dexItemFactory.createProto(field.getType(), dexItemFactory.intType),
+        computeGetInstanceFieldMethodProto(field, dexItemFactory),
         method ->
             new EnumUnboxingCfCodeProvider.EnumUnboxingInstanceFieldCfCodeProvider(
                     appView, getType(), data, field)

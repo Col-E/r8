@@ -208,21 +208,31 @@ public class EnumUnboxingRewriter {
               rewriteNameMethod(iterator, invoke, enumType, context, eventConsumer);
               continue;
             } else if (invokedMethod.match(factory.enumMembers.toString)) {
+              DexMethod reboundMethod =
+                  invokedMethod.withHolder(unboxedEnumsData.representativeType(enumType), factory);
               DexMethod lookupMethod =
                   enumUnboxingLens
                       .lookupMethod(
-                          invokedMethod,
+                          reboundMethod,
                           context.getReference(),
                           invoke.getType(),
                           enumUnboxingLens.getPrevious())
                       .getReference();
-              // If the lookupMethod is different, then a toString method was on the enumType
-              // class, which was moved, and the lens code rewriter will rewrite the invoke to
-              // that method.
-              if (invoke.isInvokeSuper() || lookupMethod == invokedMethod) {
+              // If the SuperEnum had declared a toString() override, then the unboxer moves it to
+              // the local utility class method corresponding to that override.
+              // If a SubEnum had declared a toString() override, then the unboxer records a
+              // synthetic move from SuperEnum.toString() to the dispatch method on the local
+              // utility class.
+              // When they are the same, then there are no overrides of toString().
+              if (lookupMethod == reboundMethod) {
                 rewriteNameMethod(iterator, invoke, enumType, context, eventConsumer);
-                continue;
+              } else {
+                DexClassAndMethod dexClassAndMethod = appView.definitionFor(lookupMethod);
+                assert dexClassAndMethod != null;
+                assert dexClassAndMethod.isProgramMethod();
+                replaceEnumInvoke(iterator, invoke, dexClassAndMethod.asProgramMethod());
               }
+              continue;
             } else if (invokedMethod == factory.objectMembers.getClass) {
               rewriteNullCheck(iterator, invoke, context, eventConsumer);
               continue;

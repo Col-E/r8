@@ -108,7 +108,7 @@ public class EnumUnboxingLens extends NestedGraphLens {
         if (superEnum != previousContext.getHolderType()) {
           DexMethod reference = previous.getReference();
           if (reference.getHolderType() != superEnum) {
-            // Rebind the reference to the superEnum if that is not the case.
+            // We are in an enum subtype where super-invokes are rebound differently.
             reference = reference.withHolder(superEnum, dexItemFactory());
           }
           result = newMethodSignatures.getRepresentativeValue(reference);
