@@ -8,12 +8,13 @@ import static com.google.common.base.Predicates.alwaysTrue;
 
 import com.android.tools.r8.DiagnosticsHandler;
 import com.android.tools.r8.StringConsumer;
+import com.android.tools.r8.dex.CompatByteBuffer;
 import com.android.tools.r8.naming.ClassNameMapper;
 import com.android.tools.r8.naming.LineReader;
 import com.android.tools.r8.naming.MapVersion;
 import com.android.tools.r8.retrace.internal.MappingPartitionMetadataInternal;
+import com.android.tools.r8.retrace.internal.MetadataAdditionalInfo;
 import com.android.tools.r8.retrace.internal.ProguardMapReaderWithFiltering.ProguardMapReaderWithFilteringInputBuffer;
-import com.android.tools.r8.retrace.internal.RetracePartitionException;
 import com.android.tools.r8.utils.ChainableStringConsumer;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -39,12 +40,21 @@ public class PartitionedToProguardMappingConverter {
   public void run() throws RetracePartitionException {
     MappingPartitionMetadataInternal metadataInternal =
         MappingPartitionMetadataInternal.deserialize(
-            metadata, MapVersion.MAP_VERSION_UNKNOWN, diagnosticsHandler);
+            CompatByteBuffer.wrapOrNull(metadata),
+            MapVersion.MAP_VERSION_UNKNOWN,
+            diagnosticsHandler);
     if (!metadataInternal.canGetPartitionKeys()) {
       throw new RetracePartitionException("Cannot obtain all partition keys from metadata");
     }
-    // TODO(b/274893426): Account for preamble.
-    ClassNameMapper classNameMapper = ClassNameMapper.builder().build();
+    ClassNameMapper.Builder builder = ClassNameMapper.builder();
+    if (metadataInternal.canGetAdditionalInfo()) {
+      MetadataAdditionalInfo additionalInfo = metadataInternal.getAdditionalInfo();
+      if (additionalInfo.hasPreamble()) {
+        builder.setBuildPreamble(true);
+        additionalInfo.getPreamble().forEach(builder::addPreambleLine);
+      }
+    }
+    ClassNameMapper classNameMapper = builder.build();
     for (String partitionKey : metadataInternal.getPartitionKeys()) {
       LineReader reader =
           new ProguardMapReaderWithFilteringInputBuffer(
@@ -52,13 +62,22 @@ public class PartitionedToProguardMappingConverter {
       try {
         classNameMapper =
             ClassNameMapper.mapperFromLineReaderWithFiltering(
-                    reader, metadataInternal.getMapVersion(), diagnosticsHandler, true, true)
+                    reader,
+                    metadataInternal.getMapVersion(),
+                    diagnosticsHandler,
+                    true,
+                    true,
+                    partitionBuilder -> partitionBuilder.setBuildPreamble(true))
                 .combine(classNameMapper);
       } catch (IOException e) {
         throw new RetracePartitionException(e);
       }
     }
-    classNameMapper.sorted().write(new ProguardMapWriter(consumer, diagnosticsHandler));
+    ProguardMapWriter consumer = new ProguardMapWriter(this.consumer, diagnosticsHandler);
+    classNameMapper
+        .getPreamble()
+        .forEach(preambleLine -> consumer.accept(preambleLine).accept("\n"));
+    classNameMapper.sorted().write(consumer);
   }
 
   private static class ProguardMapWriter implements ChainableStringConsumer {

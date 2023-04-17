@@ -18,6 +18,7 @@ import com.android.tools.r8.retrace.MappingPartitionMetadata;
 import com.android.tools.r8.retrace.ProguardMapPartitioner;
 import com.android.tools.r8.retrace.ProguardMapPartitionerBuilder;
 import com.android.tools.r8.retrace.ProguardMapProducer;
+import com.android.tools.r8.retrace.RetracePartitionException;
 import com.android.tools.r8.retrace.internal.MappingPartitionMetadataInternal.ObfuscatedTypeNameAsKeyMetadata;
 import com.android.tools.r8.retrace.internal.MappingPartitionMetadataInternal.ObfuscatedTypeNameAsKeyMetadataWithPartitionNames;
 import com.android.tools.r8.retrace.internal.ProguardMapReaderWithFiltering.ProguardMapReaderWithFilteringInputBuffer;
@@ -100,7 +101,8 @@ public class ProguardMapPartitionerOnClassNameToText implements ProguardMapParti
             MapVersion.MAP_VERSION_UNKNOWN,
             diagnosticsHandler,
             allowEmptyMappedRanges,
-            allowExperimentalMapping);
+            allowExperimentalMapping,
+            builder -> builder.setBuildPreamble(true).setAddVersionAsPreamble(true));
     reader.forEachClassMapping(
         (classMapping, entries) -> {
           try {
@@ -161,7 +163,9 @@ public class ProguardMapPartitionerOnClassNameToText implements ProguardMapParti
     } else if (mappingPartitionKeyStrategy
         == MappingPartitionKeyStrategy.OBFUSCATED_TYPE_NAME_AS_KEY_WITH_PARTITIONS) {
       return ObfuscatedTypeNameAsKeyMetadataWithPartitionNames.create(
-          mapVersion, MetadataPartitionCollection.create(keys));
+          mapVersion,
+          MetadataPartitionCollection.create(keys),
+          MetadataAdditionalInfo.create(classMapper.getPreamble()));
     } else {
       RetracePartitionException retraceError =
           new RetracePartitionException("Unknown mapping partitioning strategy");

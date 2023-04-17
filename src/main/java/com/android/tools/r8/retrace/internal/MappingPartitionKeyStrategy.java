@@ -5,6 +5,7 @@
 package com.android.tools.r8.retrace.internal;
 
 public enum MappingPartitionKeyStrategy {
+  UNKNOWN(-1),
   OBFUSCATED_TYPE_NAME_AS_KEY(0),
   OBFUSCATED_TYPE_NAME_AS_KEY_WITH_PARTITIONS(1);
 
@@ -14,6 +15,17 @@ public enum MappingPartitionKeyStrategy {
 
   MappingPartitionKeyStrategy(int serializedKey) {
     this.serializedKey = serializedKey;
+  }
+
+  public static MappingPartitionKeyStrategy getByKey(int serializedKey) {
+    switch (serializedKey) {
+      case 0:
+        return OBFUSCATED_TYPE_NAME_AS_KEY;
+      case 1:
+        return OBFUSCATED_TYPE_NAME_AS_KEY_WITH_PARTITIONS;
+      default:
+        return UNKNOWN;
+    }
   }
 
   public int getSerializedKey() {

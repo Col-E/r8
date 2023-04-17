@@ -29,7 +29,6 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -40,6 +39,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Consumer;
 
 public class ClassNameMapper implements ProguardMap {
 
@@ -51,6 +51,7 @@ public class ClassNameMapper implements ProguardMap {
   public static class Builder extends ProguardMap.Builder {
 
     private boolean buildPreamble = false;
+    private boolean addVersionAsPreamble = false;
     private final List<String> preamble = new ArrayList<>();
     private final Map<String, ClassNamingForNameMapper.Builder> mapping = new HashMap<>();
     private final LinkedHashSet<MapVersionMappingInformation> mapVersions = new LinkedHashSet<>();
@@ -65,13 +66,18 @@ public class ClassNameMapper implements ProguardMap {
       return classNamingBuilder;
     }
 
-    Builder setBuildPreamble(boolean buildPreamble) {
+    public Builder setBuildPreamble(boolean buildPreamble) {
       this.buildPreamble = buildPreamble;
       return this;
     }
 
+    public Builder setAddVersionAsPreamble(boolean addVersionAsPreamble) {
+      this.addVersionAsPreamble = addVersionAsPreamble;
+      return this;
+    }
+
     @Override
-    void addPreambleLine(String line) {
+    public void addPreambleLine(String line) {
       if (buildPreamble) {
         preamble.add(line);
       }
@@ -93,6 +99,9 @@ public class ClassNameMapper implements ProguardMap {
     @Override
     public ProguardMap.Builder setCurrentMapVersion(MapVersionMappingInformation mapVersion) {
       mapVersions.add(mapVersion);
+      if (addVersionAsPreamble) {
+        addPreambleLine("# " + mapVersion.serialize());
+      }
       return this;
     }
   }
@@ -148,14 +157,15 @@ public class ClassNameMapper implements ProguardMap {
       DiagnosticsHandler diagnosticsHandler,
       boolean allowEmptyMappedRanges,
       boolean allowExperimentalMapping,
-      boolean readPreamble)
+      boolean buildPreamble)
       throws IOException {
-    return mapperFromLineReader(
+    return mapperFromLineReaderWithFiltering(
         LineReader.fromBufferedReader(CharSource.wrap(contents).openBufferedStream()),
+        MapVersion.MAP_VERSION_NONE,
         diagnosticsHandler,
         allowEmptyMappedRanges,
         allowExperimentalMapping,
-        readPreamble);
+        builder -> builder.setBuildPreamble(buildPreamble));
   }
 
   private static ClassNameMapper mapperFromBufferedReader(
@@ -170,31 +180,13 @@ public class ClassNameMapper implements ProguardMap {
       boolean allowExperimentalMapping,
       boolean buildPreamble)
       throws IOException {
-    return mapperFromLineReader(
+    return mapperFromLineReaderWithFiltering(
         LineReader.fromBufferedReader(reader),
+        MapVersion.MAP_VERSION_NONE,
         diagnosticsHandler,
         allowEmptyMappedRanges,
         allowExperimentalMapping,
-        buildPreamble);
-  }
-
-  public static ClassNameMapper mapperFromLineReader(
-      LineReader reader,
-      DiagnosticsHandler diagnosticsHandler,
-      boolean allowEmptyMappedRanges,
-      boolean allowExperimentalMapping,
-      boolean buildPreamble)
-      throws IOException {
-    try (ProguardMapReader proguardReader =
-        new ProguardMapReader(
-            reader,
-            diagnosticsHandler != null ? diagnosticsHandler : new Reporter(),
-            allowEmptyMappedRanges,
-            allowExperimentalMapping)) {
-      ClassNameMapper.Builder builder = ClassNameMapper.builder().setBuildPreamble(buildPreamble);
-      proguardReader.parse(builder);
-      return builder.build();
-    }
+        builder -> builder.setBuildPreamble(buildPreamble));
   }
 
   public static ClassNameMapper mapperFromLineReaderWithFiltering(
@@ -202,7 +194,8 @@ public class ClassNameMapper implements ProguardMap {
       MapVersion mapVersion,
       DiagnosticsHandler diagnosticsHandler,
       boolean allowEmptyMappedRanges,
-      boolean allowExperimentalMapping)
+      boolean allowExperimentalMapping,
+      Consumer<ClassNameMapper.Builder> builderConsumer)
       throws IOException {
     try (ProguardMapReader proguardReader =
         new ProguardMapReader(
@@ -212,6 +205,7 @@ public class ClassNameMapper implements ProguardMap {
             allowExperimentalMapping,
             mapVersion)) {
       ClassNameMapper.Builder builder = ClassNameMapper.builder();
+      builderConsumer.accept(builder);
       proguardReader.parse(builder);
       return builder.build();
     }
@@ -239,7 +233,7 @@ public class ClassNameMapper implements ProguardMap {
     return classNameMappings;
   }
 
-  public Collection<String> getPreamble() {
+  public List<String> getPreamble() {
     return preamble;
   }
 
@@ -350,7 +344,7 @@ public class ClassNameMapper implements ProguardMap {
   }
 
   public boolean isEmpty() {
-    return classNameMappings.isEmpty();
+    return classNameMappings.isEmpty() && preamble.isEmpty();
   }
 
   public ClassNameMapper sorted() {

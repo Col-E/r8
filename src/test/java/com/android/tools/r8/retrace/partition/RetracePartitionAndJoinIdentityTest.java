@@ -68,24 +68,6 @@ public class RetracePartitionAndJoinIdentityTest extends TestBase {
         .build()
         .run();
     List<String> joinedMapLines = StringUtils.splitLines(builder.toString());
-    // TODO(b/274735214): Partitioning does not capture the preamble of the mapping file yet, so we
-    //  discard it before checking equality.
-    List<String> lines = Files.readAllLines(mappingFile);
-    List<String> filteredLines = lines.subList(computeFirstLine(lines), lines.size());
-    assertListsAreEqual(filteredLines, joinedMapLines);
-  }
-
-  private int computeFirstLine(List<String> lines) {
-    int firstLine = 0;
-    for (int i = 0; i < lines.size(); i++) {
-      String currentLine = lines.get(i).trim();
-      if (!currentLine.startsWith("#")
-          && currentLine.contains(" -> ")
-          && currentLine.endsWith(":")) {
-        firstLine = i;
-        break;
-      }
-    }
-    return firstLine;
+    assertListsAreEqual(Files.readAllLines(mappingFile), joinedMapLines);
   }
 }

@@ -119,7 +119,12 @@ public class ProguardMappingSupplierImpl extends ProguardMappingSupplier {
                     proguardMapProducer.get(), buildForClass, readPreambleAndSourceFile);
         classNameMapper =
             ClassNameMapper.mapperFromLineReaderWithFiltering(
-                    reader, getMapVersion(), diagnosticsHandler, true, allowExperimental)
+                    reader,
+                    getMapVersion(),
+                    diagnosticsHandler,
+                    true,
+                    allowExperimental,
+                    builder -> builder.setBuildPreamble(true))
                 .combine(classNameMapper);
         builtClassMappings.addAll(pendingClassMappings);
         pendingClassMappings.clear();
