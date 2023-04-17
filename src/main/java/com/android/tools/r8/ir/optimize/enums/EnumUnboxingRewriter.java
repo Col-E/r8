@@ -19,6 +19,7 @@ import com.android.tools.r8.graph.proto.RewrittenTypeInfo;
 import com.android.tools.r8.ir.analysis.type.ArrayTypeElement;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.code.ArrayAccess;
+import com.android.tools.r8.ir.code.ArrayPut;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.BasicBlockIterator;
 import com.android.tools.r8.ir.code.ConstNumber;
@@ -364,6 +365,14 @@ public class EnumUnboxingRewriter {
             arrayAccess = arrayAccess.withMemberType(MemberType.INT);
             iterator.replaceCurrentInstruction(arrayAccess);
             convertedEnums.put(arrayAccess, enumType);
+            if (arrayAccess.isArrayPut()) {
+              ArrayPut arrayPut = arrayAccess.asArrayPut();
+              if (arrayPut.value().getType().isNullType()) {
+                iterator.previous();
+                arrayPut.replacePutValue(iterator.insertConstIntInstruction(code, options, 0));
+                iterator.next();
+              }
+            }
           }
           assert validateArrayAccess(arrayAccess);
         }

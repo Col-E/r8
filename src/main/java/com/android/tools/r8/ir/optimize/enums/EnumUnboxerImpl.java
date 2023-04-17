@@ -51,7 +51,6 @@ import com.android.tools.r8.ir.analysis.fieldvalueanalysis.StaticFieldValues.Enu
 import com.android.tools.r8.ir.analysis.type.ArrayTypeElement;
 import com.android.tools.r8.ir.analysis.type.ClassTypeElement;
 import com.android.tools.r8.ir.analysis.type.DynamicType;
-import com.android.tools.r8.ir.analysis.type.ReferenceTypeElement;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.analysis.value.AbstractValue;
 import com.android.tools.r8.ir.analysis.value.objectstate.EnumValuesObjectState;
@@ -1182,24 +1181,14 @@ public class EnumUnboxerImpl extends EnumUnboxer {
     return Reason.ELIGIBLE;
   }
 
-  private ReferenceTypeElement getValueBaseType(Value value, TypeElement arrayType) {
-    TypeElement valueBaseType = value.getType();
-    if (valueBaseType.isArrayType()) {
-      assert valueBaseType.asArrayType().getBaseType().isClassType();
-      assert valueBaseType.asArrayType().getNesting() == arrayType.asArrayType().getNesting() - 1;
-      valueBaseType = valueBaseType.asArrayType().getBaseType();
+  private boolean isAssignableToArray(Value value, ClassTypeElement arrayBaseType) {
+    TypeElement valueType = value.getType();
+    if (valueType.isNullType()) {
+      return true;
     }
-    assert valueBaseType.isClassType() || valueBaseType.isNullType();
-    return valueBaseType.asReferenceType();
-  }
-
-  private boolean areCompatibleArrayTypes(
-      ClassTypeElement arrayBaseType, ReferenceTypeElement valueBaseType) {
-    assert valueBaseType.isClassType() || valueBaseType.isNullType();
-    if (valueBaseType.isNullType()) {
-      // TODO(b/271385332): Allow nulls in enum arrays to be unboxed.
-      return false;
-    }
+    TypeElement valueBaseType =
+        valueType.isArrayType() ? valueType.asArrayType().getBaseType() : valueType;
+    assert valueBaseType.isClassType();
     return enumUnboxingCandidatesInfo.isAssignableTo(
         valueBaseType.asClassType().getClassType(), arrayBaseType.getClassType());
   }
@@ -1219,8 +1208,7 @@ public class EnumUnboxerImpl extends EnumUnboxer {
     assert arrayType.isArrayType();
     assert arrayType.asArrayType().getBaseType().isClassType();
     ClassTypeElement arrayBaseType = arrayType.asArrayType().getBaseType().asClassType();
-    ReferenceTypeElement valueBaseType = getValueBaseType(arrayPut.value(), arrayType);
-    if (areCompatibleArrayTypes(arrayBaseType, valueBaseType)) {
+    if (isAssignableToArray(arrayPut.value(), arrayBaseType)) {
       return Reason.ELIGIBLE;
     }
     return Reason.INVALID_ARRAY_PUT;
@@ -1247,8 +1235,7 @@ public class EnumUnboxerImpl extends EnumUnboxer {
     }
 
     for (Value value : invokeNewArray.inValues()) {
-      ReferenceTypeElement valueBaseType = getValueBaseType(value, arrayType);
-      if (!areCompatibleArrayTypes(arrayBaseType, valueBaseType)) {
+      if (!isAssignableToArray(value, arrayBaseType)) {
         return Reason.INVALID_INVOKE_NEW_ARRAY;
       }
     }

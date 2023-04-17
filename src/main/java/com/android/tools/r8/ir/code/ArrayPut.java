@@ -58,6 +58,10 @@ public class ArrayPut extends ArrayAccess {
     return inValues.get(VALUE_INDEX);
   }
 
+  public void replacePutValue(Value newValue) {
+    replaceValue(VALUE_INDEX, newValue);
+  }
+
   @Override
   public MemberType getMemberType() {
     return type;

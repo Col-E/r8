@@ -20,9 +20,12 @@ public class EnumUnboxingArrayTest extends EnumUnboxingTestBase {
   private static final Class<?>[] TESTS = {
     Enum2DimArrayReadWrite.class,
     EnumArrayNullRead.class,
-    EnumArrayReadWrite.class,
+    EnumArrayPutNull.class,
     EnumArrayReadWriteNoEscape.class,
     EnumVarArgs.class,
+    EnumArrayPutNull.class,
+    Enum2DimArrayPutNull.class,
+    Enum2DimArrayPutNullArray.class
   };
 
   private final TestParameters parameters;
@@ -51,14 +54,19 @@ public class EnumUnboxingArrayTest extends EnumUnboxingTestBase {
             .enableNeverClassInliningAnnotations()
             .addKeepRules(enumKeepRules.getKeepRules())
             .addOptionsModification(opt -> enableEnumOptions(opt, enumValueOptimization))
+            .addOptionsModification(opt -> opt.testing.enableEnumUnboxingDebugLogs = true)
+            .allowDiagnosticInfoMessages()
             .addEnumUnboxingInspector(
                 inspector ->
                     inspector.assertUnboxed(
                         Enum2DimArrayReadWrite.MyEnum.class,
                         EnumArrayNullRead.MyEnum.class,
-                        EnumArrayReadWrite.MyEnum.class,
+                        EnumArrayPutNull.MyEnum.class,
                         EnumArrayReadWriteNoEscape.MyEnum.class,
-                        EnumVarArgs.MyEnum.class))
+                        EnumVarArgs.MyEnum.class,
+                        EnumArrayPutNull.MyEnum.class,
+                        Enum2DimArrayPutNull.MyEnum.class,
+                        Enum2DimArrayPutNullArray.MyEnum.class))
             .setMinApi(parameters)
             .compile();
     for (Class<?> main : TESTS) {
@@ -110,6 +118,37 @@ public class EnumUnboxingArrayTest extends EnumUnboxingTestBase {
       A,
       B,
       C;
+    }
+  }
+
+  static class EnumArrayPutNull {
+
+    public static void main(String[] args) {
+      MyEnum[] myEnums = getArray();
+      System.out.println(myEnums[1].ordinal());
+      System.out.println(1);
+      setNull(myEnums);
+      System.out.println(myEnums[0] == null);
+      System.out.println("true");
+    }
+
+    @NeverInline
+    public static void setNull(MyEnum[] myEnums) {
+      myEnums[0] = null;
+    }
+
+    @NeverInline
+    public static MyEnum[] getArray() {
+      MyEnum[] myEnums = new MyEnum[2];
+      myEnums[1] = MyEnum.B;
+      myEnums[0] = MyEnum.A;
+      return myEnums;
+    }
+
+    @NeverClassInline
+    enum MyEnum {
+      A,
+      B;
     }
   }
 
@@ -191,6 +230,79 @@ public class EnumUnboxingArrayTest extends EnumUnboxingTestBase {
       A,
       B,
       C;
+    }
+  }
+
+  static class Enum2DimArrayPutNull {
+
+    public static void main(String[] args) {
+      MyEnum[][] myEnums = getArray();
+      System.out.println(myEnums[1][1].ordinal());
+      System.out.println(1);
+      setNull(myEnums);
+      System.out.println(myEnums[0] == null);
+      System.out.println("true");
+    }
+
+    @NeverInline
+    public static void setNull(MyEnum[][] myEnums) {
+      myEnums[0] = null;
+    }
+
+    @NeverInline
+    public static MyEnum[][] getArray() {
+      MyEnum[][] myEnums = new MyEnum[2][2];
+      myEnums[0][1] = MyEnum.B;
+      myEnums[0][0] = MyEnum.A;
+      myEnums[1][1] = MyEnum.B;
+      myEnums[1][0] = MyEnum.A;
+      return myEnums;
+    }
+
+    @NeverClassInline
+    enum MyEnum {
+      A,
+      B;
+    }
+  }
+
+  static class Enum2DimArrayPutNullArray {
+
+    public static void main(String[] args) {
+      MyEnum[][] myEnums = getArray();
+      System.out.println(myEnums[1][1].ordinal());
+      System.out.println(1);
+      setNull(myEnums);
+      System.out.println(myEnums[0][0] == null);
+      System.out.println("true");
+    }
+
+    @NeverInline
+    public static void setNull(MyEnum[][] myEnums) {
+      MyEnum[] myEnums1 = new MyEnum[1];
+      setNull(myEnums1);
+      myEnums[0] = myEnums1;
+    }
+
+    @NeverInline
+    public static void setNull(MyEnum[] myEnums1) {
+      myEnums1[0] = null;
+    }
+
+    @NeverInline
+    public static MyEnum[][] getArray() {
+      MyEnum[][] myEnums = new MyEnum[2][2];
+      myEnums[0][1] = MyEnum.B;
+      myEnums[0][0] = MyEnum.A;
+      myEnums[1][1] = MyEnum.B;
+      myEnums[1][0] = MyEnum.A;
+      return myEnums;
+    }
+
+    @NeverClassInline
+    enum MyEnum {
+      A,
+      B;
     }
   }
 }
