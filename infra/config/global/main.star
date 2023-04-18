@@ -302,7 +302,7 @@ r8_tester_with_default("linux-android-5.1.1",
 r8_tester_with_default("linux-android-6.0.1",
     ["--dex_vm=6.0.1", "--all_tests"])
 r8_tester_with_default("linux-android-7.0.0",
-    ["--dex_vm=7.0.0", "--all_tests", "--force-32-bit-art"])
+    ["--dex_vm=7.0.0", "--all_tests"])
 r8_tester_with_default("linux-android-8.1.0",
     ["--dex_vm=8.1.0", "--all_tests"])
 r8_tester_with_default("linux-android-9.0.0",
