@@ -523,6 +523,7 @@ public final class DefaultInliningOracle implements InliningOracle, InliningStra
     //       ...
     //     }
     //   }
+    // TODO(b/278679664): Relax requirement (3) when targeting DEX.
     Value thisValue = inlinee.entryBlock().entry().asArgument().outValue();
 
     List<InvokeDirect> initCallsOnThis = new ArrayList<>();
