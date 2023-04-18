@@ -660,9 +660,7 @@ public abstract class TestCompileResult<
             .add(out.toString())
             .build();
     Consumer<ArtCommandBuilder> commandConsumer =
-        withArt6Plus64BitsLib
-                && vm.getVersion().isNewerThanOrEqual(DexVm.Version.V6_0_1)
-                && !ToolHelper.force32BitArt()
+        withArt6Plus64BitsLib && vm.getVersion().isNewerThanOrEqual(DexVm.Version.V6_0_1)
             ? builder -> builder.appendArtOption("--64")
             : builder -> {};
     commandConsumer =
