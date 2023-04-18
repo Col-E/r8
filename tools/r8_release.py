@@ -804,7 +804,7 @@ def prepare_branch(args):
         # Rewrite the version, commit and validate.
         old_version = 'main'
         full_version = branch_version + '.0-dev'
-        version_prefix = 'LABEL = "'
+        version_prefix = 'public static final String LABEL = "'
         sed(version_prefix + old_version,
           version_prefix + full_version,
           R8_VERSION_FILE)
