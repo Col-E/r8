@@ -12,10 +12,13 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClassAndField;
 import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.DexField;
+import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.FieldResolutionResult.SingleFieldResolutionResult;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.classmerging.VerticallyMergedClasses;
+import com.android.tools.r8.ir.analysis.type.Nullability;
+import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.analysis.value.SingleFieldValue;
 import com.android.tools.r8.ir.analysis.value.SingleValue;
 import com.android.tools.r8.ir.analysis.value.objectstate.ObjectState;
@@ -105,6 +108,8 @@ public class RedundantFieldLoadAndStoreElimination {
     }
 
     void eliminateRedundantRead(InstructionListIterator it, Instruction redundant);
+
+    TypeElement getType(AppView<?> appView, TypeElement outType);
   }
 
   private class ExistingValue implements FieldValue {
@@ -126,6 +131,11 @@ public class RedundantFieldLoadAndStoreElimination {
       redundant.outValue().replaceUsers(value);
       it.removeOrReplaceByDebugLocalRead();
       value.uniquePhiUsers().forEach(Phi::removeTrivialPhi);
+    }
+
+    @Override
+    public TypeElement getType(AppView<?> appView, TypeElement outType) {
+      return value.getType();
     }
 
     public Value getValue() {
@@ -152,6 +162,27 @@ public class RedundantFieldLoadAndStoreElimination {
       affectedValues.addAll(redundant.outValue().affectedValues());
       it.replaceCurrentInstruction(
           value.createMaterializingInstruction(appView.withClassHierarchy(), code, redundant));
+    }
+
+    @Override
+    public TypeElement getType(AppView<?> appView, TypeElement outType) {
+      DexItemFactory dexItemFactory = appView.dexItemFactory();
+      if (value.isSingleStringValue() || value.isSingleDexItemBasedStringValue()) {
+        return dexItemFactory.stringType.toTypeElement(
+            RedundantFieldLoadAndStoreElimination.this.appView, Nullability.definitelyNotNull());
+      }
+      if (value.isSingleFieldValue()) {
+        return value.asSingleFieldValue().getField().getTypeElement(appView);
+      }
+      // For numbers (and null), we don't encode the type along with the value. Therefore, we
+      // fallback to the existing out type in this case.
+      assert value.isSingleNumberValue();
+      if (outType.isReferenceType()) {
+        assert value.isNull();
+        return TypeElement.getNull();
+      }
+      assert outType.isPrimitiveType();
+      return outType;
     }
   }
 
@@ -574,10 +605,12 @@ public class RedundantFieldLoadAndStoreElimination {
     ArraySlot arraySlot = ArraySlot.create(array, index, arrayGet.getMemberType());
     FieldValue replacement = activeState.getArraySlotValue(arraySlot);
     if (replacement != null) {
-      replacement.eliminateRedundantRead(it, arrayGet);
+      TypeElement outType = arrayGet.outValue().getType();
+      if (replacement.getType(appView, outType).lessThanOrEqual(outType, appView)) {
+        replacement.eliminateRedundantRead(it, arrayGet);
+      }
       return;
     }
-
     activeState.putArraySlotValue(arraySlot, new ExistingValue(arrayGet.outValue()));
   }
 

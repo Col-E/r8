@@ -70,8 +70,7 @@ public class ArrayGetTypePromotionTest extends TestBase {
         .setMinApi(parameters)
         .compile()
         .run(parameters.getRuntime(), Main.class)
-        // TODO(b/278573402): Disallow redundant array load elimination.
-        .assertFailureWithErrorThatThrows(VerifyError.class);
+        .assertSuccessWithOutputLines(EXPECTED_OUTPUT);
   }
 
   @Test
@@ -85,8 +84,7 @@ public class ArrayGetTypePromotionTest extends TestBase {
         .setMinApi(parameters)
         .compile()
         .run(parameters.getRuntime(), Main.class)
-        // TODO(b/278573402): Disallow redundant array load elimination.
-        .assertFailureWithErrorThatThrows(VerifyError.class);
+        .assertSuccessWithOutputLines(EXPECTED_OUTPUT);
   }
 
   static class Main {
