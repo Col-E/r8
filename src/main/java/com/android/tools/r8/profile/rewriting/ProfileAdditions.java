@@ -17,7 +17,6 @@ import com.android.tools.r8.profile.AbstractProfile;
 import com.android.tools.r8.profile.AbstractProfileClassRule;
 import com.android.tools.r8.profile.AbstractProfileMethodRule;
 import com.android.tools.r8.profile.AbstractProfileRule;
-import com.android.tools.r8.utils.SetUtils;
 import com.android.tools.r8.utils.WorkList;
 import com.google.common.collect.Sets;
 import java.util.ArrayList;
@@ -29,7 +28,6 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
 import java.util.function.Function;
-import java.util.stream.Collectors;
 
 /** Mutable extension of an existing profile. */
 public abstract class ProfileAdditions<
@@ -84,8 +82,8 @@ public abstract class ProfileAdditions<
   final Map<DexMethod, MethodRuleBuilder> methodRuleAdditions = new ConcurrentHashMap<>();
   private final Set<DexMethod> methodRuleRemovals = Sets.newConcurrentHashSet();
 
-  private final NestedMethodRuleAdditionsGraph nestedMethodRuleAdditionsGraph =
-      new NestedMethodRuleAdditionsGraph();
+  private final NestedMethodRuleAdditionsGraph<MethodRule, MethodRuleBuilder>
+      nestedMethodRuleAdditionsGraph = new NestedMethodRuleAdditionsGraph<>();
 
   protected ProfileAdditions(Profile profile) {
     this.profile = profile;
@@ -214,6 +212,11 @@ public abstract class ProfileAdditions<
       return profile;
     }
 
+    // Assert that there are no cycles in the propagation graph. If there are any cycles, this
+    // likely means that we have mutually recursive synthetics, which could be unintentional.
+    // Note that this algorithm correctly deals with cycles, and thus this assertion can simply be
+    // disabled to allow cycles.
+    assert nestedMethodRuleAdditionsGraph.verifyNoCycles();
     nestedMethodRuleAdditionsGraph.propagateMethodRuleInfoFlags(methodRuleAdditions);
 
     // Add existing rules to new profile.
@@ -289,12 +292,14 @@ public abstract class ProfileAdditions<
     this.profile = profile;
   }
 
-  private class NestedMethodRuleAdditionsGraph {
+  public static class NestedMethodRuleAdditionsGraph<
+      MethodRule extends AbstractProfileMethodRule,
+      MethodRuleBuilder extends AbstractProfileMethodRule.Builder<MethodRule, MethodRuleBuilder>> {
 
     private final Map<DexMethod, Set<DexMethod>> successors = new ConcurrentHashMap<>();
     private final Map<DexMethod, Set<DexMethod>> predecessors = new ConcurrentHashMap<>();
 
-    void recordMethodRuleInfoFlagsLargerThan(DexMethod largerFlags, DexMethod smallerFlags) {
+    public void recordMethodRuleInfoFlagsLargerThan(DexMethod largerFlags, DexMethod smallerFlags) {
       predecessors
           .computeIfAbsent(largerFlags, ignoreKey(Sets::newConcurrentHashSet))
           .add(smallerFlags);
@@ -303,59 +308,58 @@ public abstract class ProfileAdditions<
           .add(largerFlags);
     }
 
-    void propagateMethodRuleInfoFlags(Map<DexMethod, MethodRuleBuilder> methodRuleAdditions) {
-      List<DexMethod> leaves =
-          successors.keySet().stream()
-              .filter(method -> predecessors.getOrDefault(method, Collections.emptySet()).isEmpty())
-              .collect(Collectors.toList());
-      WorkList<DexMethod> worklist = WorkList.newIdentityWorkList(leaves);
-      while (worklist.hasNext()) {
-        DexMethod method = worklist.next();
-        MethodRuleBuilder methodRuleBuilder = methodRuleAdditions.get(method);
-        for (DexMethod successor : successors.getOrDefault(method, Collections.emptySet())) {
-          MethodRuleBuilder successorMethodRuleBuilder = methodRuleAdditions.get(successor);
-          // If this assertion fails, that means we have synthetics with multiple
-          // synthesizing contexts, which are not guaranteed to be processed before the
-          // synthetic itself. In that case this assertion should simply be removed.
-          assert successorMethodRuleBuilder.isGreaterThanOrEqualTo(methodRuleBuilder)
-              : getGraphString(methodRuleAdditions, method, successor);
-          successorMethodRuleBuilder.join(methodRuleBuilder);
-          // Note: no need to addIgnoringSeenSet() since the graph will not have cycles. Indeed, it
-          // should never be the case that a method m2(), which is synthesized from method context
-          // m1(), would itself be a synthesizing context for m1().
-          worklist.addIfNotSeen(successor);
-        }
-      }
+    public void propagateMethodRuleInfoFlags(
+        Map<DexMethod, MethodRuleBuilder> methodRuleAdditions) {
+      WorkList.newIdentityWorkList(successors.keySet())
+          .process(
+              (method, worklist) -> {
+                MethodRuleBuilder methodRuleBuilder = methodRuleAdditions.get(method);
+                for (DexMethod successor :
+                    successors.getOrDefault(method, Collections.emptySet())) {
+                  MethodRuleBuilder successorMethodRuleBuilder = methodRuleAdditions.get(successor);
+                  successorMethodRuleBuilder.join(
+                      methodRuleBuilder,
+                      // If the successor's flags changed, then reprocess the successor to propagate
+                      // its flags to the successors of the successor.
+                      () -> worklist.addIgnoringSeenSet(successor));
+                }
+              });
     }
 
-    // Return a string representation of the graph for diagnosing b/278524993.
-    private String getGraphString(
-        Map<DexMethod, MethodRuleBuilder> methodRuleAdditions,
-        DexMethod context,
-        DexMethod method) {
-      StringBuilder builder =
-          new StringBuilder("Error at edge: ")
-              .append(context.toSourceString())
-              .append(" -> ")
-              .append(method.toSourceString());
-      Set<DexMethod> nodes =
-          SetUtils.unionIdentityHashSet(predecessors.keySet(), successors.keySet());
-      for (DexMethod node : nodes) {
-        builder
-            .append(System.lineSeparator())
-            .append(System.lineSeparator())
-            .append(node.toSourceString());
-        for (DexMethod predecessor : predecessors.getOrDefault(node, Collections.emptySet())) {
-          builder
-              .append(System.lineSeparator())
-              .append("  <- ")
-              .append(predecessor.toSourceString());
-        }
-        for (DexMethod successor : successors.getOrDefault(node, Collections.emptySet())) {
-          builder.append(System.lineSeparator()).append("  -> ").append(successor.toSourceString());
+    public boolean verifyNoCycles() {
+      Set<DexMethod> seen = Sets.newIdentityHashSet();
+      for (DexMethod method : successors.keySet()) {
+        if (seen.add(method)) {
+          seen.addAll(verifyNoCyclesStartingFrom(method));
         }
       }
-      return builder.toString();
+      return true;
+    }
+
+    public Set<DexMethod> verifyNoCyclesStartingFrom(DexMethod root) {
+      Set<DexMethod> seen = Sets.newIdentityHashSet();
+      Set<DexMethod> stack = Sets.newIdentityHashSet();
+      WorkList<DexMethod> worklist = WorkList.newIdentityWorkList(root);
+      worklist.process(
+          current -> {
+            if (seen.add(current)) {
+              // Seen for the first time, append to stack and continue the search for a cycle from
+              // the successors.
+              stack.add(current);
+              worklist.addFirstIgnoringSeenSet(current);
+              for (DexMethod successor : successors.getOrDefault(current, Collections.emptySet())) {
+                assert !stack.contains(successor) : "Found a cycle";
+                worklist.addFirstIfNotSeen(successor);
+              }
+            } else {
+              // Backtracking, remove current method from stack since we are done exploring the
+              // (transitive) successors.
+              boolean removed = stack.remove(current);
+              assert removed;
+            }
+          });
+      assert stack.isEmpty();
+      return worklist.getSeenSet();
     }
   }
 }

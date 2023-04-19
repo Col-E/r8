@@ -136,6 +136,16 @@ public class ArtProfileMethodRule extends ArtProfileRule implements AbstractProf
     }
 
     @Override
+    public Builder join(Builder builder, Runnable onChangedHandler) {
+      int oldFlags = methodRuleInfoBuilder.getFlags();
+      join(builder);
+      if (methodRuleInfoBuilder.getFlags() != oldFlags) {
+        onChangedHandler.run();
+      }
+      return this;
+    }
+
+    @Override
     public Builder join(ArtProfileMethodRule methodRule) {
       methodRuleInfoBuilder.joinFlags(methodRule.getMethodRuleInfo());
       return this;

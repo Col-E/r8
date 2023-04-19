@@ -20,6 +20,8 @@ public interface AbstractProfileMethodRule extends AbstractProfileRule {
 
     MethodRuleBuilder join(MethodRuleBuilder methodRuleBuilder);
 
+    MethodRuleBuilder join(MethodRuleBuilder methodRuleBuilder, Runnable onChangedHandler);
+
     MethodRuleBuilder setIsStartup();
 
     MethodRuleBuilder setMethod(DexMethod method);

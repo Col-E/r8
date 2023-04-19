@@ -100,6 +100,11 @@ public class StartupProfileMethodRule extends StartupProfileRule
     }
 
     @Override
+    public Builder join(Builder builder, Runnable onChangedHandler) {
+      return this;
+    }
+
+    @Override
     public Builder join(StartupProfileMethodRule methodRule) {
       return this;
     }
