@@ -35,6 +35,7 @@ import com.android.tools.r8.ir.desugar.CfInstructionDesugaringEventConsumer;
 import com.android.tools.r8.ir.desugar.DesugarDescription;
 import com.android.tools.r8.ir.desugar.FreshLocalProvider;
 import com.android.tools.r8.ir.desugar.LocalStackAllocator;
+import com.android.tools.r8.utils.BitUtils;
 import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -46,6 +47,9 @@ import java.util.function.Predicate;
 import org.objectweb.asm.Opcodes;
 
 public class VarHandleDesugaring implements CfInstructionDesugaring, CfClassSynthesizerDesugaring {
+
+  private static final int SYNTHESIZED_METHOD_HANDLES_LOOKUP_CLASS = 1;
+  private static final int SYNTHESIZED_VAR_HANDLE_CLASS_FLAG = 2;
 
   private final AppView<?> appView;
   private final DexItemFactory factory;
@@ -70,26 +74,33 @@ public class VarHandleDesugaring implements CfInstructionDesugaring, CfClassSynt
       return;
     }
     CfCode cfCode = programMethod.getDefinition().getCode().asCfCode();
+    int synthesizedClasses = 0;
     for (CfInstruction instruction : cfCode.getInstructions()) {
-      scanInstruction(instruction, eventConsumer, programMethod);
+      synthesizedClasses =
+          scanInstruction(instruction, eventConsumer, programMethod, synthesizedClasses);
     }
   }
 
-  private void scanInstruction(
+  private int scanInstruction(
       CfInstruction instruction,
       CfInstructionDesugaringEventConsumer eventConsumer,
-      ProgramMethod context) {
+      ProgramMethod context,
+      int synthesizedClasses) {
     assert !instruction.isInitClass();
     if (instruction.isInvoke()) {
       CfInvoke cfInvoke = instruction.asInvoke();
-      if (refersToVarHandle(cfInvoke.getMethod(), factory)) {
+      if (BitUtils.isBitInMaskUnset(synthesizedClasses, SYNTHESIZED_VAR_HANDLE_CLASS_FLAG)
+          && refersToVarHandle(cfInvoke.getMethod(), factory)) {
         ensureVarHandleClass(eventConsumer, context);
+        synthesizedClasses |= SYNTHESIZED_VAR_HANDLE_CLASS_FLAG;
       }
-      if (refersToMethodHandlesLookup(cfInvoke.getMethod(), factory)) {
+      if (BitUtils.isBitInMaskUnset(synthesizedClasses, SYNTHESIZED_METHOD_HANDLES_LOOKUP_CLASS)
+          && refersToMethodHandlesLookup(cfInvoke.getMethod(), factory)) {
         ensureMethodHandlesLookupClass(eventConsumer, context);
+        synthesizedClasses |= SYNTHESIZED_METHOD_HANDLES_LOOKUP_CLASS;
       }
-      return;
     }
+    return synthesizedClasses;
   }
 
   private static boolean refersToVarHandle(DexType type, DexItemFactory factory) {
@@ -175,6 +186,7 @@ public class VarHandleDesugaring implements CfInstructionDesugaring, CfClassSynt
   private void ensureMethodHandlesLookupClass(
       VarHandleDesugaringEventConsumer eventConsumer,
       Collection<? extends ProgramDefinition> contexts) {
+    assert contexts.stream().allMatch(context -> context.getContextType() != factory.lookupType);
     DexProgramClass clazz =
         appView
             .getSyntheticItems()
@@ -201,6 +213,7 @@ public class VarHandleDesugaring implements CfInstructionDesugaring, CfClassSynt
   private void ensureVarHandleClass(
       VarHandleDesugaringEventConsumer eventConsumer,
       Collection<? extends ProgramDefinition> contexts) {
+    assert contexts.stream().allMatch(context -> context.getContextType() != factory.varHandleType);
     DexProgramClass clazz =
         appView
             .getSyntheticItems()
@@ -221,7 +234,9 @@ public class VarHandleDesugaring implements CfInstructionDesugaring, CfClassSynt
 
   private void ensureVarHandleClass(
       VarHandleDesugaringEventConsumer eventConsumer, ProgramDefinition context) {
-    ensureVarHandleClass(eventConsumer, ImmutableList.of(context));
+    if (context.getContextType() != factory.varHandleType) {
+      ensureVarHandleClass(eventConsumer, ImmutableList.of(context));
+    }
   }
 
   @Override

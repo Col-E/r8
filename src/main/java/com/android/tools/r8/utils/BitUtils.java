@@ -7,11 +7,15 @@ package com.android.tools.r8.utils;
 public class BitUtils {
 
   public static boolean isBitSet(int value, int which) {
-    return (value & (1 << (which - 1))) != 0;
+    return isBitInMaskSet(value, 1 << (which - 1));
   }
 
   public static boolean isBitInMaskSet(int value, int mask) {
     return (value & mask) != 0;
+  }
+
+  public static boolean isBitInMaskUnset(int value, int mask) {
+    return !isBitInMaskSet(value, mask);
   }
 
   public static boolean isAligned(int alignment, int value) {
