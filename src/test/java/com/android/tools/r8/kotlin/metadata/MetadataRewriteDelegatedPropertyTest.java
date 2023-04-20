@@ -122,30 +122,20 @@ public class MetadataRewriteDelegatedPropertyTest extends KotlinMetadataTestBase
             .addProgramFiles(libJars.getForConfiguration(kotlinc, targetVersion))
             .compile()
             .writeToZip();
-    Path outputPath = temp.newFolder().toPath();
     ProcessResult compileResult =
         kotlinc(parameters.getRuntime().asCf(), kotlinc, targetVersion)
             .addClasspathFiles(outputJar)
             .addSourceFiles(
                 getKotlinFileInTest(DescriptorUtils.getBinaryNameFromJavaType(PKG_APP), "main"))
-            .setOutputPath(outputPath)
+            .setOutputPath(temp.newFolder().toPath())
             .compileRaw();
-    if (kotlinParameters.isNewerThan(KOTLINC_1_8_0)) {
-      testForJvm(parameters)
-          .addRunClasspathFiles(
-              kotlinc.getKotlinStdlibJar(), kotlinc.getKotlinReflectJar(), outputJar)
-          .addClasspath(outputPath)
-          .run(parameters.getRuntime(), PKG_APP + ".MainKt")
-          .assertSuccessWithOutputLines(
-              "foobar", "property oldName (Kotlin reflection is not available)");
-    } else {
-      Assert.assertEquals(1, compileResult.exitCode);
-      assertThat(
-          compileResult.stderr,
-          containsString(
-              "unsupported [reference to the synthetic extension property for a Java get/set"
-                  + " method]"));
-    }
+    Assert.assertEquals(1, compileResult.exitCode);
+    assertThat(
+        compileResult.stderr,
+        containsString(
+            kotlinParameters.isNewerThan(KOTLINC_1_8_0)
+                ? "references to synthetic java properties"
+                : "reference to the synthetic extension property"));
   }
 
   private void inspectMetadata(CodeInspector inspector) {
