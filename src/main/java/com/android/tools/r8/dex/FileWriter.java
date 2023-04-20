@@ -825,9 +825,11 @@ public class FileWriter {
     dest.putInt(numberOfClasses);
     dest.putInt(numberOfClasses == 0 ? 0 : layout.classDefsOffset);
     if (layout.isContainerSection()) {
-      dest.putInt(0);
-      dest.putInt(0);
-      dest.putInt(layout.headerOffset);
+      // Fields data_size and data_off are zero for all sections in a container DEX.
+      dest.putInt(0); // data_size
+      dest.putInt(0); // data_off
+      dest.putInt(0); // container_size will be updated in final pass.
+      dest.putInt(layout.headerOffset); // container_off
     } else {
       dest.putInt(layout.getDataSectionSize());
       dest.putInt(layout.dataSectionOffset);

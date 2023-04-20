@@ -390,7 +390,7 @@ public class ApplicationReader {
         assert tmp.getDexVersion() == DexVersion.V41;
         assert dexReader.getUint(offset + Constants.HEADER_SIZE_OFFSET)
             == Constants.TYPE_HEADER_ITEM_SIZE_V41;
-        assert dexReader.getUint(offset + Constants.HEADER_OFF_OFFSET) == offset;
+        assert dexReader.getUint(offset + Constants.CONTAINER_OFF_OFFSET) == offset;
         int dataSize = dexReader.getUint(offset + Constants.DATA_SIZE_OFFSET);
         int dataOffset = dexReader.getUint(offset + Constants.DATA_OFF_OFFSET);
         int file_size = dexReader.getUint(offset + Constants.FILE_SIZE_OFFSET);

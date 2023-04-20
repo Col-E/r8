@@ -4,11 +4,12 @@
 package com.android.tools.r8.dex.container;
 
 import static com.android.tools.r8.dex.Constants.CHECKSUM_OFFSET;
+import static com.android.tools.r8.dex.Constants.CONTAINER_OFF_OFFSET;
+import static com.android.tools.r8.dex.Constants.CONTAINER_SIZE_OFFSET;
 import static com.android.tools.r8.dex.Constants.DATA_OFF_OFFSET;
 import static com.android.tools.r8.dex.Constants.DATA_SIZE_OFFSET;
 import static com.android.tools.r8.dex.Constants.DEX_MAGIC_SIZE;
 import static com.android.tools.r8.dex.Constants.FILE_SIZE_OFFSET;
-import static com.android.tools.r8.dex.Constants.HEADER_OFF_OFFSET;
 import static com.android.tools.r8.dex.Constants.HEADER_SIZE_OFFSET;
 import static com.android.tools.r8.dex.Constants.MAP_OFF_OFFSET;
 import static com.android.tools.r8.dex.Constants.SIGNATURE_OFFSET;
@@ -260,7 +261,8 @@ public class DexContainerFormatBasicTest extends TestBase {
       assertEquals(0, buffer.getInt(offset + DATA_SIZE_OFFSET));
       assertEquals(0, buffer.getInt(offset + DATA_OFF_OFFSET));
       // Additional header field from V41.
-      assertEquals(offset, buffer.getInt(offset + HEADER_OFF_OFFSET));
+      assertEquals(buffer.capacity(), buffer.getInt(offset + CONTAINER_SIZE_OFFSET));
+      assertEquals(offset, buffer.getInt(offset + CONTAINER_OFF_OFFSET));
     }
     assertEquals(stringIdsSize, getSizeFromMap(TYPE_STRING_ID_ITEM, buffer, offset));
     assertEquals(stringIdsOffset, getOffsetFromMap(TYPE_STRING_ID_ITEM, buffer, offset));

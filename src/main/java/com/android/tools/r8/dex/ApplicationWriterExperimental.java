@@ -183,7 +183,11 @@ class ApplicationWriterExperimental extends ApplicationWriter {
     DexContainerSection lastSection = ListUtils.last(sections);
     int stringIdsSize = lastSection.getFileWriter().getMixedSectionOffsets().getStringData().size();
     int stringIdsOffset = lastSection.getLayout().stringIdsOffset;
+    int containerSize = lastSection.getLayout().getEndOfFile();
     for (DexContainerSection section : sections) {
+      // Update container size in all sections.
+      dexOutputBuffer.moveTo(section.getLayout().headerOffset + Constants.CONTAINER_SIZE_OFFSET);
+      dexOutputBuffer.putInt(containerSize);
       if (section != lastSection) {
         // Update the string_ids size and offset in the header.
         dexOutputBuffer.moveTo(section.getLayout().headerOffset + Constants.STRING_IDS_SIZE_OFFSET);
