@@ -23,6 +23,7 @@ import com.android.tools.r8.retrace.ProguardMapProducer;
 import com.android.tools.r8.retrace.Retrace;
 import com.android.tools.r8.retrace.RetraceStackTraceContext;
 import com.android.tools.r8.retrace.RetraceStackTraceElementProxy;
+import com.android.tools.r8.retrace.RetracedMethodReference;
 import com.android.tools.r8.retrace.RetracedMethodReference.KnownRetracedMethodReference;
 import com.android.tools.r8.retrace.StackTraceElementProxy;
 import com.android.tools.r8.retrace.StackTraceLineParser;
@@ -221,14 +222,23 @@ public class RetracePartitionStackTraceTest extends TestBase {
     public StackTraceLine toRetracedItem(
         RetraceStackTraceElementProxy<StackTraceLine, StackTraceLineProxy> retracedProxy,
         boolean verbose) {
-      KnownRetracedMethodReference knownRetracedMethodReference =
-          retracedProxy.getRetracedMethod().asKnown();
-      return new StackTraceLine(
-          stackTraceLine.toString(),
-          knownRetracedMethodReference.getMethodReference().getHolderClass().getTypeName(),
-          knownRetracedMethodReference.getMethodName(),
-          retracedProxy.getSourceFile(),
-          knownRetracedMethodReference.getOriginalPositionOrDefault(0));
+      RetracedMethodReference retracedMethod = retracedProxy.getRetracedMethod();
+      if (retracedMethod == null) {
+        return new StackTraceLine(
+            stackTraceLine.toString(),
+            stackTraceLine.className,
+            stackTraceLine.methodName,
+            stackTraceLine.fileName,
+            stackTraceLine.lineNumber);
+      } else {
+        KnownRetracedMethodReference knownRetracedMethodReference = retracedMethod.asKnown();
+        return new StackTraceLine(
+            stackTraceLine.toString(),
+            knownRetracedMethodReference.getMethodReference().getHolderClass().getTypeName(),
+            knownRetracedMethodReference.getMethodName(),
+            retracedProxy.getSourceFile(),
+            knownRetracedMethodReference.getOriginalPositionOrDefault(0));
+      }
     }
   }
 }
