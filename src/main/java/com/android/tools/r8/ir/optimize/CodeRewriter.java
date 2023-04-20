@@ -3567,8 +3567,8 @@ public class CodeRewriter {
                   phiBlock.getInstructions().add(insertIndex++, cstToUse);
                 }
                 phi.replaceUsers(newOutValue);
-                Instruction newInstruction = new Xor(NumericType.INT, newOutValue, testValue,
-                    cstToUse.outValue());
+                Instruction newInstruction =
+                    Xor.create(NumericType.INT, newOutValue, testValue, cstToUse.outValue());
                 newInstruction.setBlock(phiBlock);
                 // The xor is replacing a phi so it does not have an actual position.
                 newInstruction.setPosition(phiPosition);

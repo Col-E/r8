@@ -344,7 +344,8 @@ public class Lir2IRConverter {
     @Override
     public void onAdd(NumericType type, EV leftValueIndex, EV rightValueIndex) {
       Value dest = getOutValueForNextInstruction(TypeElement.getInt());
-      addInstruction(new Add(type, dest, getValue(leftValueIndex), getValue(rightValueIndex)));
+      addInstruction(
+          Add.createNonNormalized(type, dest, getValue(leftValueIndex), getValue(rightValueIndex)));
     }
 
     @Override
@@ -356,7 +357,8 @@ public class Lir2IRConverter {
     @Override
     public void onMul(NumericType type, EV leftValueIndex, EV rightValueIndex) {
       Value dest = getOutValueForNextInstruction(TypeElement.getInt());
-      addInstruction(new Mul(type, dest, getValue(leftValueIndex), getValue(rightValueIndex)));
+      addInstruction(
+          Mul.createNonNormalized(type, dest, getValue(leftValueIndex), getValue(rightValueIndex)));
     }
 
     @Override

@@ -16,7 +16,7 @@ import java.util.function.Function;
 
 public abstract class LogicalBinop extends Binop {
 
-  public LogicalBinop(NumericType type, Value dest, Value left, Value right) {
+  LogicalBinop(NumericType type, Value dest, Value left, Value right) {
     super(type, dest, left, right);
   }
 

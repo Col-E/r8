@@ -300,10 +300,10 @@ public class OutlinerImpl extends Outliner {
       Instruction newInstruction = null;
       switch (type) {
         case ADD:
-          newInstruction = new Add(numericType, outValue, inValues.get(0), inValues.get(1));
+          newInstruction = Add.create(numericType, outValue, inValues.get(0), inValues.get(1));
           break;
         case MUL:
-          newInstruction = new Mul(numericType, outValue, inValues.get(0), inValues.get(1));
+          newInstruction = Mul.create(numericType, outValue, inValues.get(0), inValues.get(1));
           break;
         case SUB:
           newInstruction = new Sub(numericType, outValue, inValues.get(0), inValues.get(1));

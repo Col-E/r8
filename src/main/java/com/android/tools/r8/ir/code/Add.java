@@ -19,7 +19,17 @@ import com.android.tools.r8.dex.code.DexInstruction;
 
 public class Add extends ArithmeticBinop {
 
-  public Add(NumericType type, Value dest, Value left, Value right) {
+  public static Add create(NumericType type, Value dest, Value left, Value right) {
+    Add add = createNonNormalized(type, dest, left, right);
+    add.normalizeArgumentsForCommutativeBinop();
+    return add;
+  }
+
+  public static Add createNonNormalized(NumericType type, Value dest, Value left, Value right) {
+    return new Add(type, dest, left, right);
+  }
+
+  private Add(NumericType type, Value dest, Value left, Value right) {
     super(type, dest, left, right);
   }
 

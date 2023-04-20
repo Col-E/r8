@@ -380,7 +380,7 @@ public class SplitBlockTest extends IrInjectionTestBase {
       newReturnBlock.iterator().next().asReturn().returnValue().replaceUsers(newReturnValue);
       Instruction constInstruction = new ConstNumber(newConstValue, 10);
       Instruction addInstruction =
-          new Add(NumericType.INT, newReturnValue, oldReturnValue, newConstValue);
+          Add.create(NumericType.INT, newReturnValue, oldReturnValue, newConstValue);
       iterator.previous();
       iterator.add(constInstruction);
       iterator.add(addInstruction);

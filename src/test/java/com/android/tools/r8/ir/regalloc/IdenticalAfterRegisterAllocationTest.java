@@ -110,9 +110,9 @@ public class IdenticalAfterRegisterAllocationTest {
     Value value2 = new Value(2, TypeElement.getInt(), null);
     ConstNumber const2 = new ConstNumber(value2, 2);
     Value value3 = new Value(2, TypeElement.getInt(), null);
-    Add add0 = new Add(NumericType.INT, value3, value0, value1);
+    Add add0 = Add.create(NumericType.INT, value3, value0, value1);
     add0.setPosition(Position.none());
-    Add add1 = new Add(NumericType.INT, value3, value0, value2);
+    Add add1 = Add.create(NumericType.INT, value3, value0, value2);
     add1.setPosition(Position.none());
     value0.computeNeedsRegister();
     assertTrue(value0.needsRegister());

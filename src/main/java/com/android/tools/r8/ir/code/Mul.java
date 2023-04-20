@@ -19,7 +19,17 @@ import com.android.tools.r8.dex.code.DexMulLong2Addr;
 
 public class Mul extends ArithmeticBinop {
 
-  public Mul(NumericType type, Value dest, Value left, Value right) {
+  public static Mul create(NumericType type, Value dest, Value left, Value right) {
+    Mul mul = new Mul(type, dest, left, right);
+    mul.normalizeArgumentsForCommutativeBinop();
+    return mul;
+  }
+
+  public static Mul createNonNormalized(NumericType type, Value dest, Value left, Value right) {
+    return new Mul(type, dest, left, right);
+  }
+
+  private Mul(NumericType type, Value dest, Value left, Value right) {
     super(type, dest, left, right);
   }
 

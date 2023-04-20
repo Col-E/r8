@@ -17,7 +17,7 @@ import java.util.function.Function;
 
 public abstract class ArithmeticBinop extends Binop {
 
-  public ArithmeticBinop(NumericType type, Value dest, Value left, Value right) {
+  ArithmeticBinop(NumericType type, Value dest, Value left, Value right) {
     super(type, dest, left, right);
   }
 

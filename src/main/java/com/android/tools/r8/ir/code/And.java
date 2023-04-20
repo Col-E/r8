@@ -16,7 +16,17 @@ import java.util.Set;
 
 public class And extends LogicalBinop {
 
-  public And(NumericType type, Value dest, Value left, Value right) {
+  public static And create(NumericType type, Value dest, Value left, Value right) {
+    And and = new And(type, dest, left, right);
+    and.normalizeArgumentsForCommutativeBinop();
+    return and;
+  }
+
+  public static And createNonNormalized(NumericType type, Value dest, Value left, Value right) {
+    return new And(type, dest, left, right);
+  }
+
+  private And(NumericType type, Value dest, Value left, Value right) {
     super(type, dest, left, right);
   }
 

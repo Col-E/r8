@@ -321,7 +321,7 @@ public class CfBuilder {
 
         // Replace Not with Xor.
         it.replaceCurrentInstruction(
-            new Xor(current.asNot().type, current.outValue(), inValue, constValue));
+            Xor.create(current.asNot().type, current.outValue(), inValue, constValue));
       }
     }
   }

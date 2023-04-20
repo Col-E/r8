@@ -15,7 +15,17 @@ import java.util.Set;
 
 public class Xor extends LogicalBinop {
 
-  public Xor(NumericType type, Value dest, Value left, Value right) {
+  public static Xor create(NumericType type, Value dest, Value left, Value right) {
+    Xor xor = new Xor(type, dest, left, right);
+    xor.normalizeArgumentsForCommutativeBinop();
+    return xor;
+  }
+
+  public static Xor createNonNormalized(NumericType type, Value dest, Value left, Value right) {
+    return new Xor(type, dest, left, right);
+  }
+
+  private Xor(NumericType type, Value dest, Value left, Value right) {
     super(type, dest, left, right);
   }
 

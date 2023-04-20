@@ -1086,7 +1086,7 @@ public class IRBuilder {
     Value in1 = readNumericRegister(left, type);
     Value in2 = readNumericRegister(right, type);
     Value out = writeNumericRegister(dest, type, ThrowingInfo.NO_THROW);
-    Add instruction = new Add(type, out, in1, in2);
+    Add instruction = Add.create(type, out, in1, in2);
     assert !instruction.instructionTypeCanThrow();
     addInstruction(instruction);
   }
@@ -1096,7 +1096,7 @@ public class IRBuilder {
     Value in1 = readNumericRegister(value, type);
     Value in2 = readIntLiteral(constant);
     Value out = writeNumericRegister(dest, type, ThrowingInfo.NO_THROW);
-    Add instruction = new Add(type, out, in1, in2);
+    Add instruction = Add.create(type, out, in1, in2);
     assert !instruction.instructionTypeCanThrow();
     addInstruction(instruction);
   }
@@ -1106,7 +1106,7 @@ public class IRBuilder {
     Value in1 = readNumericRegister(left, type);
     Value in2 = readNumericRegister(right, type);
     Value out = writeNumericRegister(dest, type, ThrowingInfo.NO_THROW);
-    And instruction = new And(type, out, in1, in2);
+    And instruction = And.create(type, out, in1, in2);
     assert !instruction.instructionTypeCanThrow();
     addInstruction(instruction);
   }
@@ -1116,7 +1116,7 @@ public class IRBuilder {
     Value in1 = readNumericRegister(value, type);
     Value in2 = readIntLiteral(constant);
     Value out = writeNumericRegister(dest, type, ThrowingInfo.NO_THROW);
-    And instruction = new And(type, out, in1, in2);
+    And instruction = And.create(type, out, in1, in2);
     assert !instruction.instructionTypeCanThrow();
     addInstruction(instruction);
   }
@@ -1323,7 +1323,7 @@ public class IRBuilder {
     Value in1 = readNumericRegister(left, type);
     Value in2 = readNumericRegister(right, type);
     Value out = writeNumericRegister(dest, type, ThrowingInfo.NO_THROW);
-    Mul instruction = new Mul(type, out, in1, in2);
+    Mul instruction = Mul.create(type, out, in1, in2);
     assert !instruction.instructionTypeCanThrow();
     addInstruction(instruction);
   }
@@ -1333,7 +1333,7 @@ public class IRBuilder {
     Value in1 = readNumericRegister(value, type);
     Value in2 = readIntLiteral(constant);
     Value out = writeNumericRegister(dest, type, ThrowingInfo.NO_THROW);
-    Mul instruction = new Mul(type, out, in1, in2);
+    Mul instruction = Mul.create(type, out, in1, in2);
     assert !instruction.instructionTypeCanThrow();
     addInstruction(instruction);
   }
@@ -1774,7 +1774,7 @@ public class IRBuilder {
       instruction = new Not(type, out, in);
     } else {
       Value minusOne = readLiteral(ValueTypeConstraint.fromNumericType(type), -1);
-      instruction = new Xor(type, out, in, minusOne);
+      instruction = Xor.create(type, out, in, minusOne);
     }
     assert !instruction.instructionTypeCanThrow();
     addInstruction(instruction);
@@ -1991,7 +1991,7 @@ public class IRBuilder {
     Value in1 = readNumericRegister(left, type);
     Value in2 = readNumericRegister(right, type);
     Value out = writeNumericRegister(dest, type, ThrowingInfo.NO_THROW);
-    Or instruction = new Or(type, out, in1, in2);
+    Or instruction = Or.create(type, out, in1, in2);
     assert !instruction.instructionTypeCanThrow();
     addInstruction(instruction);
   }
@@ -2001,7 +2001,7 @@ public class IRBuilder {
     Value in1 = readNumericRegister(value, type);
     Value in2 = readIntLiteral(constant);
     Value out = writeNumericRegister(dest, type, ThrowingInfo.NO_THROW);
-    Or instruction = new Or(type, out, in1, in2);
+    Or instruction = Or.create(type, out, in1, in2);
     assert !instruction.instructionTypeCanThrow();
     addInstruction(instruction);
   }
@@ -2077,7 +2077,7 @@ public class IRBuilder {
         && in2.getConstInstruction().asConstNumber().isIntegerNegativeOne(type)) {
       instruction = new Not(type, out, in1);
     } else {
-      instruction = new Xor(type, out, in1, in2);
+      instruction = Xor.create(type, out, in1, in2);
     }
     assert !instruction.instructionTypeCanThrow();
     addInstruction(instruction);
@@ -2093,7 +2093,7 @@ public class IRBuilder {
     } else {
       Value in2 = readIntLiteral(constant);
       Value out = writeNumericRegister(dest, type, ThrowingInfo.NO_THROW);
-      instruction = new Xor(type, out, in1, in2);
+      instruction = Xor.create(type, out, in1, in2);
     }
     assert !instruction.instructionTypeCanThrow();
     addInstruction(instruction);

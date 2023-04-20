@@ -20,15 +20,19 @@ public abstract class Binop extends Instruction {
 
   protected final NumericType type;
 
-  public Binop(NumericType type, Value dest, Value left, Value right) {
+  Binop(NumericType type, Value dest, Value left, Value right) {
     super(dest);
     this.type = type;
-    if (isCommutative() && (!right.isConstNumber() && left.isConstNumber())) {
-      addInValue(right);
-      addInValue(left);
-    } else {
-      addInValue(left);
-      addInValue(right);
+    addInValue(left);
+    addInValue(right);
+  }
+
+  public void normalizeArgumentsForCommutativeBinop() {
+    assert isCommutative();
+    if (isCommutative() && !rightValue().isConstNumber() && leftValue().isConstNumber()) {
+      Value tmp = inValues.get(0);
+      inValues.set(0, inValues.get(1));
+      inValues.set(1, tmp);
     }
   }
 

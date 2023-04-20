@@ -15,7 +15,17 @@ import java.util.Set;
 
 public class Or extends LogicalBinop {
 
-  public Or(NumericType type, Value dest, Value left, Value right) {
+  public static Or create(NumericType type, Value dest, Value left, Value right) {
+    Or or = new Or(type, dest, left, right);
+    or.normalizeArgumentsForCommutativeBinop();
+    return or;
+  }
+
+  public static Or createNonNormalized(NumericType type, Value dest, Value left, Value right) {
+    return new Or(type, dest, left, right);
+  }
+
+  private Or(NumericType type, Value dest, Value left, Value right) {
     super(type, dest, left, right);
   }
 
