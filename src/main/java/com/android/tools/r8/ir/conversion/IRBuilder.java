@@ -1158,7 +1158,7 @@ public class IRBuilder {
     Value inValue = readRegister(value, ValueTypeConstraint.fromMemberType(type));
     Value inArray = readRegister(array, ValueTypeConstraint.OBJECT);
     Value inIndex = readRegister(index, ValueTypeConstraint.INT);
-    ArrayPut instruction = new ArrayPut(type, inArray, inIndex, inValue);
+    ArrayPut instruction = ArrayPut.create(type, inArray, inIndex, inValue);
     if (!type.isPrecise()) {
       addImpreciseInstruction(instruction);
     }

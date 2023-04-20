@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.lightir;
 
+import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexField;
@@ -11,10 +12,13 @@ import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.analysis.type.Nullability;
+import com.android.tools.r8.ir.analysis.type.PrimitiveTypeElement;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.code.Add;
 import com.android.tools.r8.ir.code.Argument;
+import com.android.tools.r8.ir.code.ArrayGet;
 import com.android.tools.r8.ir.code.ArrayLength;
+import com.android.tools.r8.ir.code.ArrayPut;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.CatchHandlers;
 import com.android.tools.r8.ir.code.Cmp;
@@ -36,6 +40,7 @@ import com.android.tools.r8.ir.code.InvokeInterface;
 import com.android.tools.r8.ir.code.InvokeStatic;
 import com.android.tools.r8.ir.code.InvokeSuper;
 import com.android.tools.r8.ir.code.InvokeVirtual;
+import com.android.tools.r8.ir.code.MemberType;
 import com.android.tools.r8.ir.code.Monitor;
 import com.android.tools.r8.ir.code.MonitorType;
 import com.android.tools.r8.ir.code.MoveException;
@@ -54,9 +59,12 @@ import com.android.tools.r8.ir.code.StaticGet;
 import com.android.tools.r8.ir.code.Sub;
 import com.android.tools.r8.ir.code.Throw;
 import com.android.tools.r8.ir.code.Value;
+import com.android.tools.r8.ir.code.ValueType;
+import com.android.tools.r8.ir.code.Xor;
 import com.android.tools.r8.ir.conversion.MethodConversionOptions.MutableMethodConversionOptions;
 import com.android.tools.r8.lightir.LirCode.PositionEntry;
 import com.android.tools.r8.utils.ListUtils;
+import com.google.common.collect.ImmutableList;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceMap;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceOpenHashMap;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
@@ -202,8 +210,7 @@ public class Lir2IRConverter {
         // LIR has no value-user info so after building is done, removed unused values.
         for (Instruction instruction : block.getInstructions()) {
           if (instruction.hasOutValue()
-              && !instruction.isArgument()
-              && !instruction.isMoveException()
+              && instruction.isInvoke()
               && instruction.hasUnusedOutValue()) {
             instruction.clearOutValue();
           }
@@ -330,6 +337,11 @@ public class Lir2IRConverter {
     }
 
     @Override
+    public void onInstruction() {
+      throw new Unimplemented("Missing IR conversion");
+    }
+
+    @Override
     public void onConstNull() {
       Value dest = getOutValueForNextInstruction(TypeElement.getNull());
       addInstruction(new ConstNumber(dest, 0));
@@ -342,35 +354,63 @@ public class Lir2IRConverter {
     }
 
     @Override
+    public void onConstFloat(int value) {
+      Value dest = getOutValueForNextInstruction(TypeElement.getFloat());
+      addInstruction(new ConstNumber(dest, value));
+    }
+
+    @Override
+    public void onConstLong(long value) {
+      Value dest = getOutValueForNextInstruction(TypeElement.getLong());
+      addInstruction(new ConstNumber(dest, value));
+    }
+
+    @Override
+    public void onConstDouble(long value) {
+      Value dest = getOutValueForNextInstruction(TypeElement.getDouble());
+      addInstruction(new ConstNumber(dest, value));
+    }
+
+    TypeElement valueTypeElement(NumericType type) {
+      return PrimitiveTypeElement.fromNumericType(type);
+    }
+
+    @Override
     public void onAdd(NumericType type, EV leftValueIndex, EV rightValueIndex) {
-      Value dest = getOutValueForNextInstruction(TypeElement.getInt());
+      Value dest = getOutValueForNextInstruction(valueTypeElement(type));
       addInstruction(
           Add.createNonNormalized(type, dest, getValue(leftValueIndex), getValue(rightValueIndex)));
     }
 
     @Override
     public void onSub(NumericType type, EV leftValueIndex, EV rightValueIndex) {
-      Value dest = getOutValueForNextInstruction(TypeElement.getInt());
+      Value dest = getOutValueForNextInstruction(valueTypeElement(type));
       addInstruction(new Sub(type, dest, getValue(leftValueIndex), getValue(rightValueIndex)));
     }
 
     @Override
     public void onMul(NumericType type, EV leftValueIndex, EV rightValueIndex) {
-      Value dest = getOutValueForNextInstruction(TypeElement.getInt());
+      Value dest = getOutValueForNextInstruction(valueTypeElement(type));
       addInstruction(
           Mul.createNonNormalized(type, dest, getValue(leftValueIndex), getValue(rightValueIndex)));
     }
 
     @Override
     public void onDiv(NumericType type, EV leftValueIndex, EV rightValueIndex) {
-      Value dest = getOutValueForNextInstruction(TypeElement.getInt());
+      Value dest = getOutValueForNextInstruction(valueTypeElement(type));
       addInstruction(new Div(type, dest, getValue(leftValueIndex), getValue(rightValueIndex)));
     }
 
     @Override
     public void onRem(NumericType type, EV leftValueIndex, EV rightValueIndex) {
-      Value dest = getOutValueForNextInstruction(TypeElement.getInt());
+      Value dest = getOutValueForNextInstruction(valueTypeElement(type));
       addInstruction(new Rem(type, dest, getValue(leftValueIndex), getValue(rightValueIndex)));
+    }
+
+    @Override
+    public void onXor(NumericType type, EV left, EV right) {
+      Value dest = getOutValueForNextInstruction(valueTypeElement(type));
+      addInstruction(Xor.createNonNormalized(type, dest, getValue(left), getValue(right)));
     }
 
     @Override
@@ -392,6 +432,17 @@ public class Lir2IRConverter {
       BasicBlock targetBlock = getBasicBlock(blockIndex);
       Value value = getValue(valueIndex);
       addInstruction(new If(ifKind, value));
+      currentBlock.link(targetBlock);
+      currentBlock.link(getBasicBlock(nextInstructionIndex));
+      closeCurrentBlock();
+    }
+
+    @Override
+    public void onIfCmp(IfType ifKind, int blockIndex, EV leftValueIndex, EV rightValueIndex) {
+      BasicBlock targetBlock = getBasicBlock(blockIndex);
+      Value leftValue = getValue(leftValueIndex);
+      Value rightValue = getValue(rightValueIndex);
+      addInstruction(new If(ifKind, ImmutableList.of(leftValue, rightValue)));
       currentBlock.link(targetBlock);
       currentBlock.link(getBasicBlock(nextInstructionIndex));
       closeCurrentBlock();
@@ -500,6 +551,12 @@ public class Lir2IRConverter {
     }
 
     @Override
+    public void onReturn(EV value) {
+      addInstruction(new Return(getValue(value)));
+      closeCurrentBlock();
+    }
+
+    @Override
     public void onArrayLength(EV arrayValueIndex) {
       Value dest = getOutValueForNextInstruction(TypeElement.getInt());
       Value arrayValue = getValue(arrayValueIndex);
@@ -579,6 +636,28 @@ public class Lir2IRConverter {
     @Override
     public void onMonitorExit(EV value) {
       addInstruction(new Monitor(MonitorType.EXIT, getValue(value)));
+    }
+
+    @Override
+    public void onArrayGetObject(DexType type, EV array, EV index) {
+      Value dest = getOutValueForNextInstruction(type.toTypeElement(appView));
+      addInstruction(new ArrayGet(MemberType.OBJECT, dest, getValue(array), getValue(index)));
+    }
+
+    @Override
+    public void onArrayGetPrimitive(MemberType type, EV array, EV index) {
+      // Convert the member type to a "stack value type", e.g., byte, char etc to int.
+      ValueType valueType = ValueType.fromMemberType(type);
+      DexType dexType = valueType.toDexType(appView.dexItemFactory());
+      Value dest = getOutValueForNextInstruction(dexType.toTypeElement(appView));
+      addInstruction(new ArrayGet(type, dest, getValue(array), getValue(index)));
+    }
+
+    @Override
+    public void onArrayPut(MemberType type, EV array, EV index, EV value) {
+      addInstruction(
+          ArrayPut.createWithoutVerification(
+              type, getValue(array), getValue(index), getValue(value)));
     }
   }
 }

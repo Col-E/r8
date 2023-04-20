@@ -106,6 +106,10 @@ public class CfLogicalBinop extends CfInstruction {
   }
 
   public int getAsmOpcode() {
+    return getAsmOpcode(opcode, type);
+  }
+
+  public static int getAsmOpcode(Opcode opcode, NumericType type) {
     switch (opcode) {
       case Shl:
         return type.isWide() ? Opcodes.LSHL : Opcodes.ISHL;

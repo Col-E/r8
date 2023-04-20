@@ -45,6 +45,7 @@ public abstract class ExamplesTestBase extends DebugTestBase {
   public void runTestR8() throws Exception {
     parameters.assumeR8TestParameters();
     testForR8(parameters.getBackend())
+        .addOptionsModification(o -> o.testing.roundtripThroughLir = true)
         .setMinApi(parameters)
         .addProgramClasses(getTestClasses())
         .addKeepMainRule(getMainClass())

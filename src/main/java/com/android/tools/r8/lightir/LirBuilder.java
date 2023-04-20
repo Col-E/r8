@@ -5,6 +5,7 @@ package com.android.tools.r8.lightir;
 
 import com.android.tools.r8.cf.code.CfArithmeticBinop;
 import com.android.tools.r8.cf.code.CfArithmeticBinop.Opcode;
+import com.android.tools.r8.cf.code.CfLogicalBinop;
 import com.android.tools.r8.cf.code.CfNumberConversion;
 import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.errors.Unreachable;
@@ -22,6 +23,7 @@ import com.android.tools.r8.ir.code.Cmp;
 import com.android.tools.r8.ir.code.Cmp.Bias;
 import com.android.tools.r8.ir.code.IRMetadata;
 import com.android.tools.r8.ir.code.IfType;
+import com.android.tools.r8.ir.code.MemberType;
 import com.android.tools.r8.ir.code.MonitorType;
 import com.android.tools.r8.ir.code.NumericType;
 import com.android.tools.r8.ir.code.Position;
@@ -88,6 +90,10 @@ public class LirBuilder<V, EV> {
     flushedPosition = currentPosition;
   }
 
+  public DexItemFactory factory() {
+    return factory;
+  }
+
   public boolean verifyCurrentValueIndex(int valueIndex) {
     assert instructionCount + argumentCount == valueIndex;
     return true;
@@ -109,7 +115,6 @@ public class LirBuilder<V, EV> {
 
   public LirBuilder<V, EV> setCurrentPosition(Position position) {
     assert position != null;
-    assert position != Position.none();
     currentPosition = position;
     return this;
   }
@@ -566,11 +571,22 @@ public class LirBuilder<V, EV> {
   }
 
   public LirBuilder<V, EV> addArithmeticBinop(
-      Opcode binop, NumericType type, V leftValue, V rightValue) {
+      CfArithmeticBinop.Opcode binop, NumericType type, V leftValue, V rightValue) {
     // The LIR and CF opcodes are the same values, check that the two endpoints match.
     assert LirOpcodes.IADD == CfArithmeticBinop.getAsmOpcode(Opcode.Add, NumericType.INT);
     assert LirOpcodes.DREM == CfArithmeticBinop.getAsmOpcode(Opcode.Rem, NumericType.DOUBLE);
     int opcode = CfArithmeticBinop.getAsmOpcode(binop, type);
+    return addTwoValueInstruction(opcode, leftValue, rightValue);
+  }
+
+  public LirBuilder<V, EV> addLogicalBinop(
+      CfLogicalBinop.Opcode binop, NumericType type, V leftValue, V rightValue) {
+    // The LIR and CF opcodes are the same values, check that the two endpoints match.
+    assert LirOpcodes.ISHL
+        == CfLogicalBinop.getAsmOpcode(CfLogicalBinop.Opcode.Shl, NumericType.INT);
+    assert LirOpcodes.LXOR
+        == CfLogicalBinop.getAsmOpcode(CfLogicalBinop.Opcode.Xor, NumericType.LONG);
+    int opcode = CfLogicalBinop.getAsmOpcode(binop, type);
     return addTwoValueInstruction(opcode, leftValue, rightValue);
   }
 
@@ -589,5 +605,74 @@ public class LirBuilder<V, EV> {
     assert LirOpcodes.I2L <= opcode;
     assert opcode <= LirOpcodes.I2S;
     return addOneValueInstruction(opcode, value);
+  }
+
+  public LirBuilder<V, EV> addArrayGetObject(DexType destType, V array, V index) {
+    return addInstructionTemplate(
+        LirOpcodes.AALOAD, Collections.singletonList(destType), ImmutableList.of(array, index));
+  }
+
+  public LirBuilder<V, EV> addArrayGetPrimitive(MemberType memberType, V array, V index) {
+    int opcode;
+    switch (memberType) {
+      case BOOLEAN_OR_BYTE:
+        opcode = LirOpcodes.BALOAD;
+        break;
+      case CHAR:
+        opcode = LirOpcodes.CALOAD;
+        break;
+      case SHORT:
+        opcode = LirOpcodes.SALOAD;
+        break;
+      case INT:
+        opcode = LirOpcodes.IALOAD;
+        break;
+      case FLOAT:
+        opcode = LirOpcodes.FALOAD;
+        break;
+      case LONG:
+        opcode = LirOpcodes.LALOAD;
+        break;
+      case DOUBLE:
+        opcode = LirOpcodes.DALOAD;
+        break;
+      default:
+        throw new Unreachable("Unexpected object or imprecise member type: " + memberType);
+    }
+    return addInstructionTemplate(opcode, Collections.emptyList(), ImmutableList.of(array, index));
+  }
+
+  public LirBuilder<V, EV> addArrayPut(MemberType memberType, V array, V index, V value) {
+    int opcode;
+    switch (memberType) {
+      case BOOLEAN_OR_BYTE:
+        opcode = LirOpcodes.BASTORE;
+        break;
+      case CHAR:
+        opcode = LirOpcodes.CASTORE;
+        break;
+      case SHORT:
+        opcode = LirOpcodes.SASTORE;
+        break;
+      case INT:
+        opcode = LirOpcodes.IASTORE;
+        break;
+      case FLOAT:
+        opcode = LirOpcodes.FASTORE;
+        break;
+      case LONG:
+        opcode = LirOpcodes.LASTORE;
+        break;
+      case DOUBLE:
+        opcode = LirOpcodes.DASTORE;
+        break;
+      case OBJECT:
+        opcode = LirOpcodes.AASTORE;
+        break;
+      default:
+        throw new Unreachable("Unexpected imprecise member type: " + memberType);
+    }
+    return addInstructionTemplate(
+        opcode, Collections.emptyList(), ImmutableList.of(array, index, value));
   }
 }

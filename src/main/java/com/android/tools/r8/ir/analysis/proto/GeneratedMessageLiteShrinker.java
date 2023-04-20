@@ -345,7 +345,7 @@ public class GeneratedMessageLiteShrinker {
         Instruction materializingInstruction = objects.get(i).buildIR(appView, code);
         instructionIterator.add(materializingInstruction);
         instructionIterator.add(
-            new ArrayPut(
+            ArrayPut.create(
                 MemberType.OBJECT,
                 newObjectsValue,
                 indexValue,

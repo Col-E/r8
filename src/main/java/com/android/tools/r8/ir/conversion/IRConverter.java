@@ -1041,6 +1041,7 @@ public class IRConverter {
       OptimizationFeedback feedback,
       BytecodeMetadataProvider bytecodeMetadataProvider,
       Timing timing) {
+    IRCode oldCode = code;
     if (options.testing.roundtripThroughLir) {
       code = roundtripThroughLir(code, feedback, bytecodeMetadataProvider, timing);
     }
@@ -1075,6 +1076,9 @@ public class IRConverter {
     LirCode<EV> lirCode =
         IR2LirConverter.translate(code, strategy.getEncodingStrategy(), appView.dexItemFactory());
     timing.end();
+    // Check that printing does not fail.
+    String lirString = lirCode.toString();
+    assert !lirString.isEmpty();
     timing.begin("LIR->IR (" + name + ")");
     IRCode irCode =
         Lir2IRConverter.translate(

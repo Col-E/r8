@@ -112,7 +112,7 @@ public class RecordFieldValuesRewriter {
       intConstantI.setPosition(constantPosition);
       iterator.add(intConstantI);
       ArrayPut arrayPut =
-          new ArrayPut(
+          ArrayPut.create(
               MemberType.OBJECT,
               newArrayEmpty.outValue(),
               intConstantI.outValue(),

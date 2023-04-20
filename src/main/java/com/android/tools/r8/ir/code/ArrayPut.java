@@ -27,6 +27,7 @@ import com.android.tools.r8.ir.optimize.DeadCodeRemover.DeadInstructionResult;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.InliningConstraints;
 import com.android.tools.r8.ir.regalloc.RegisterAllocator;
+import com.android.tools.r8.lightir.LirBuilder;
 import java.util.Arrays;
 
 public class ArrayPut extends ArrayAccess {
@@ -36,12 +37,27 @@ public class ArrayPut extends ArrayAccess {
 
   private MemberType type;
 
-  public ArrayPut(MemberType type, Value array, Value index, Value value) {
+  public static ArrayPut create(MemberType type, Value array, Value index, Value value) {
+    ArrayPut put = new ArrayPut(type, array, index, value);
+    assert put.verify();
+    return put;
+  }
+
+  public static ArrayPut createWithoutVerification(
+      MemberType type, Value array, Value index, Value value) {
+    return new ArrayPut(type, array, index, value);
+  }
+
+  private ArrayPut(MemberType type, Value array, Value index, Value value) {
     super(null, Arrays.asList(array, index, value));
-    assert type != null;
-    assert array.verifyCompatible(ValueType.OBJECT);
-    assert index.verifyCompatible(ValueType.INT);
     this.type = type;
+  }
+
+  private boolean verify() {
+    assert type != null;
+    assert array().verifyCompatible(ValueType.OBJECT);
+    assert index().verifyCompatible(ValueType.INT);
+    return true;
   }
 
   @Override
@@ -251,6 +267,11 @@ public class ArrayPut extends ArrayAccess {
 
   @Override
   public ArrayAccess withMemberType(MemberType newMemberType) {
-    return new ArrayPut(newMemberType, array(), index(), value());
+    return ArrayPut.create(newMemberType, array(), index(), value());
+  }
+
+  @Override
+  public void buildLir(LirBuilder<Value, ?> builder) {
+    builder.addArrayPut(getMemberType(), array(), index(), value());
   }
 }

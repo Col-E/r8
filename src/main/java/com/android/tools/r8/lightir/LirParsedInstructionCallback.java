@@ -5,12 +5,14 @@ package com.android.tools.r8.lightir;
 
 import com.android.tools.r8.cf.code.CfNumberConversion;
 import com.android.tools.r8.errors.Unimplemented;
+import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItem;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.code.IfType;
+import com.android.tools.r8.ir.code.MemberType;
 import com.android.tools.r8.ir.code.NumericType;
 import java.util.ArrayList;
 import java.util.List;
@@ -76,6 +78,38 @@ public abstract class LirParsedInstructionCallback<EV> implements LirInstruction
   }
 
   public void onConstString(DexString string) {
+    onInstruction();
+  }
+
+  private void onArrayGetInternal(MemberType type, LirInstructionView view) {
+    if (type.isObject()) {
+      DexType destType = (DexType) getConstantItem(view.getNextConstantOperand());
+      EV array = getNextValueOperand(view);
+      EV index = getNextValueOperand(view);
+      onArrayGetObject(destType, array, index);
+    } else {
+      EV array = getNextValueOperand(view);
+      EV index = getNextValueOperand(view);
+      onArrayGetPrimitive(type, array, index);
+    }
+  }
+
+  public void onArrayGetPrimitive(MemberType type, EV array, EV index) {
+    onInstruction();
+  }
+
+  public void onArrayGetObject(DexType type, EV array, EV index) {
+    onInstruction();
+  }
+
+  private void onArrayPutInternal(MemberType type, LirInstructionView view) {
+    EV array = getNextValueOperand(view);
+    EV index = getNextValueOperand(view);
+    EV value = getNextValueOperand(view);
+    onArrayPut(type, array, index, value);
+  }
+
+  public void onArrayPut(MemberType type, EV array, EV index, EV value) {
     onInstruction();
   }
 
@@ -179,6 +213,36 @@ public abstract class LirParsedInstructionCallback<EV> implements LirInstruction
     onRem(NumericType.DOUBLE, leftValueIndex, rightValueIndex);
   }
 
+  private void onLogicalBinopInternal(int opcode, LirInstructionView view) {
+    EV left = getNextValueOperand(view);
+    EV right = getNextValueOperand(view);
+    switch (opcode) {
+      case LirOpcodes.ISHL:
+      case LirOpcodes.LSHL:
+      case LirOpcodes.ISHR:
+      case LirOpcodes.LSHR:
+      case LirOpcodes.IUSHR:
+      case LirOpcodes.LUSHR:
+      case LirOpcodes.IAND:
+      case LirOpcodes.LAND:
+      case LirOpcodes.IOR:
+      case LirOpcodes.LOR:
+        throw new Unimplemented();
+      case LirOpcodes.IXOR:
+        onXor(NumericType.INT, left, right);
+        return;
+      case LirOpcodes.LXOR:
+        onXor(NumericType.INT, left, right);
+        return;
+      default:
+        throw new Unreachable("Unexpected logical binop: " + opcode);
+    }
+  }
+
+  public void onXor(NumericType type, EV left, EV right) {
+    onInstruction();
+  }
+
   public void onNumberConversion(int opcode, EV value) {
     assert LirOpcodes.I2L <= opcode;
     assert opcode <= LirOpcodes.I2S;
@@ -190,7 +254,24 @@ public abstract class LirParsedInstructionCallback<EV> implements LirInstruction
     onInstruction();
   }
 
+  private void onIfInternal(IfType ifKind, LirInstructionView view) {
+    int blockIndex = view.getNextBlockOperand();
+    EV valueIndex = getNextValueOperand(view);
+    onIf(ifKind, blockIndex, valueIndex);
+  }
+
   public void onIf(IfType ifKind, int blockIndex, EV valueIndex) {
+    onInstruction();
+  }
+
+  private void onIfCmpInternal(IfType ifKind, LirInstructionView view) {
+    int blockIndex = view.getNextBlockOperand();
+    EV leftValueIndex = getNextValueOperand(view);
+    EV rightValueIndex = getNextValueOperand(view);
+    onIfCmp(ifKind, blockIndex, leftValueIndex, rightValueIndex);
+  }
+
+  public void onIfCmp(IfType ifKind, int blockIndex, EV leftValueIndex, EV rightValueIndex) {
     onInstruction();
   }
 
@@ -255,6 +336,10 @@ public abstract class LirParsedInstructionCallback<EV> implements LirInstruction
   public abstract void onThrow(EV exception);
 
   public void onReturnVoid() {
+    onInstruction();
+  }
+
+  public void onReturn(EV value) {
     onInstruction();
   }
 
@@ -365,6 +450,92 @@ public abstract class LirParsedInstructionCallback<EV> implements LirInstruction
           onConstDouble(value);
           return;
         }
+      case LirOpcodes.IALOAD:
+        {
+          onArrayGetInternal(MemberType.INT, view);
+          break;
+        }
+      case LirOpcodes.LALOAD:
+        {
+          onArrayGetInternal(MemberType.LONG, view);
+          break;
+        }
+      case LirOpcodes.FALOAD:
+        {
+          onArrayGetInternal(MemberType.FLOAT, view);
+          break;
+        }
+      case LirOpcodes.DALOAD:
+        {
+          onArrayGetInternal(MemberType.DOUBLE, view);
+          break;
+        }
+      case LirOpcodes.AALOAD:
+        {
+          onArrayGetInternal(MemberType.OBJECT, view);
+          break;
+        }
+      case LirOpcodes.BALOAD:
+        {
+          onArrayGetInternal(MemberType.BOOLEAN_OR_BYTE, view);
+          break;
+        }
+      case LirOpcodes.CALOAD:
+        {
+          onArrayGetInternal(MemberType.CHAR, view);
+          break;
+        }
+      case LirOpcodes.SALOAD:
+        {
+          onArrayGetInternal(MemberType.SHORT, view);
+          break;
+        }
+      case LirOpcodes.IASTORE:
+        {
+          onArrayPutInternal(MemberType.INT, view);
+          break;
+        }
+      case LirOpcodes.LASTORE:
+        {
+          onArrayPutInternal(MemberType.LONG, view);
+          break;
+        }
+      case LirOpcodes.FASTORE:
+        {
+          onArrayPutInternal(MemberType.FLOAT, view);
+          break;
+        }
+
+      case LirOpcodes.DASTORE:
+        {
+          onArrayPutInternal(MemberType.DOUBLE, view);
+          break;
+        }
+
+      case LirOpcodes.AASTORE:
+        {
+          onArrayPutInternal(MemberType.OBJECT, view);
+          break;
+        }
+
+      case LirOpcodes.BASTORE:
+        {
+          onArrayPutInternal(MemberType.BOOLEAN_OR_BYTE, view);
+          break;
+        }
+
+      case LirOpcodes.CASTORE:
+        {
+          onArrayPutInternal(MemberType.CHAR, view);
+          break;
+        }
+
+      case LirOpcodes.SASTORE:
+        {
+          onArrayPutInternal(MemberType.SHORT, view);
+          break;
+        }
+
       case LirOpcodes.IADD:
         {
           EV leftValueIndex = getNextValueOperand(view);
@@ -505,6 +676,22 @@ public abstract class LirParsedInstructionCallback<EV> implements LirInstruction
           onRemDouble(leftValueIndex, rightValueIndex);
           return;
         }
+      case LirOpcodes.ISHL:
+      case LirOpcodes.LSHL:
+      case LirOpcodes.ISHR:
+      case LirOpcodes.LSHR:
+      case LirOpcodes.IUSHR:
+      case LirOpcodes.LUSHR:
+      case LirOpcodes.IAND:
+      case LirOpcodes.LAND:
+      case LirOpcodes.IOR:
+      case LirOpcodes.LOR:
+      case LirOpcodes.IXOR:
+      case LirOpcodes.LXOR:
+        {
+          onLogicalBinopInternal(opcode, view);
+          return;
+        }
       case LirOpcodes.I2L:
       case LirOpcodes.I2F:
       case LirOpcodes.I2D:
@@ -525,11 +712,84 @@ public abstract class LirParsedInstructionCallback<EV> implements LirInstruction
           onNumberConversion(opcode, value);
           return;
         }
+      case LirOpcodes.IFEQ:
+        {
+          onIfInternal(IfType.EQ, view);
+          return;
+        }
       case LirOpcodes.IFNE:
         {
-          int blockIndex = view.getNextBlockOperand();
-          EV valueIndex = getNextValueOperand(view);
-          onIf(IfType.NE, blockIndex, valueIndex);
+          onIfInternal(IfType.NE, view);
+          return;
+        }
+      case LirOpcodes.IFLT:
+        {
+          onIfInternal(IfType.LT, view);
+          return;
+        }
+      case LirOpcodes.IFGE:
+        {
+          onIfInternal(IfType.GE, view);
+          return;
+        }
+      case LirOpcodes.IFGT:
+        {
+          onIfInternal(IfType.GT, view);
+          return;
+        }
+      case LirOpcodes.IFLE:
+        {
+          onIfInternal(IfType.LE, view);
+          return;
+        }
+      case LirOpcodes.IFNULL:
+        {
+          onIfInternal(IfType.EQ, view);
+          return;
+        }
+      case LirOpcodes.IFNONNULL:
+        {
+          onIfInternal(IfType.NE, view);
+          return;
+        }
+      case LirOpcodes.IF_ICMPEQ:
+        {
+          onIfCmpInternal(IfType.EQ, view);
+          return;
+        }
+      case LirOpcodes.IF_ICMPNE:
+        {
+          onIfCmpInternal(IfType.NE, view);
+          return;
+        }
+      case LirOpcodes.IF_ICMPLT:
+        {
+          onIfCmpInternal(IfType.LT, view);
+          return;
+        }
+      case LirOpcodes.IF_ICMPGE:
+        {
+          onIfCmpInternal(IfType.GE, view);
+          return;
+        }
+      case LirOpcodes.IF_ICMPGT:
+        {
+          onIfCmpInternal(IfType.GT, view);
+          return;
+        }
+      case LirOpcodes.IF_ICMPLE:
+        {
+          onIfCmpInternal(IfType.LE, view);
+          return;
+        }
+      case LirOpcodes.IF_ACMPEQ:
+        {
+          onIfCmpInternal(IfType.EQ, view);
+          return;
+        }
+      case LirOpcodes.IF_ACMPNE:
+        {
+          onIfCmpInternal(IfType.NE, view);
           return;
         }
       case LirOpcodes.GOTO:
@@ -622,6 +882,12 @@ public abstract class LirParsedInstructionCallback<EV> implements LirInstruction
       case LirOpcodes.RETURN:
         {
           onReturnVoid();
+          return;
+        }
+      case LirOpcodes.ARETURN:
+        {
+          EV value = getNextValueOperand(view);
+          onReturn(value);
           return;
         }
       case LirOpcodes.ARRAYLENGTH:

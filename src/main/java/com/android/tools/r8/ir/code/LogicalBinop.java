@@ -12,6 +12,7 @@ import com.android.tools.r8.ir.analysis.constant.LatticeElement;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
+import com.android.tools.r8.lightir.LirBuilder;
 import java.util.function.Function;
 
 public abstract class LogicalBinop extends Binop {
@@ -142,5 +143,10 @@ public abstract class LogicalBinop extends Binop {
   @Override
   public void buildCf(CfBuilder builder) {
     builder.add(new CfLogicalBinop(getCfOpcode(), type), this);
+  }
+
+  @Override
+  public void buildLir(LirBuilder<Value, ?> builder) {
+    builder.addLogicalBinop(getCfOpcode(), type, leftValue(), rightValue());
   }
 }

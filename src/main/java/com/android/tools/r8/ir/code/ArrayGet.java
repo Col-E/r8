@@ -31,6 +31,7 @@ import com.android.tools.r8.ir.conversion.TypeConstraintResolver;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.InliningConstraints;
 import com.android.tools.r8.ir.regalloc.RegisterAllocator;
+import com.android.tools.r8.lightir.LirBuilder;
 import java.util.Arrays;
 import java.util.Set;
 
@@ -285,5 +286,15 @@ public class ArrayGet extends ArrayAccess {
     int newArraySize = abstractValue.getKnownArrayLength();
     int index = index().getConstInstruction().asConstNumber().getIntValue();
     return newArraySize <= 0 || index < 0 || newArraySize <= index;
+  }
+
+  @Override
+  public void buildLir(LirBuilder<Value, ?> builder) {
+    if (getMemberType().isObject()) {
+      DexType destType = dest().getType().asReferenceType().toDexType(builder.factory());
+      builder.addArrayGetObject(destType, array(), index());
+    } else {
+      builder.addArrayGetPrimitive(getMemberType(), array(), index());
+    }
   }
 }

@@ -9,6 +9,7 @@ import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.code.IfType;
+import com.android.tools.r8.ir.code.MemberType;
 import com.android.tools.r8.ir.code.NumericType;
 import com.android.tools.r8.utils.StringUtils;
 import java.util.Arrays;
@@ -129,18 +130,47 @@ public class LirPrinter<EV> extends LirParsedInstructionCallback<EV> {
   }
 
   @Override
+  public void onConstFloat(int value) {
+    appendOutValue().append(Float.intBitsToFloat(value));
+  }
+
+  @Override
+  public void onConstLong(long value) {
+    appendOutValue().append(value);
+  }
+
+  @Override
+  public void onConstDouble(long value) {
+    appendOutValue().append(Double.longBitsToDouble(value));
+  }
+
+  @Override
   public void onConstString(DexString string) {
     appendOutValue().append("str(").append(string).append(")");
   }
 
   @Override
+  public void onAdd(NumericType type, EV leftValueIndex, EV rightValueIndex) {
+    appendOutValue();
+    appendValueArguments(leftValueIndex, rightValueIndex);
+  }
+
+  @Override
+  public void onSub(NumericType type, EV leftValueIndex, EV rightValueIndex) {
+    appendOutValue();
+    appendValueArguments(leftValueIndex, rightValueIndex);
+  }
+
+  @Override
   public void onDiv(NumericType type, EV leftValueIndex, EV rightValueIndex) {
-    appendOutValue()
-        .append(fmtValueIndex(leftValueIndex))
-        .append(' ')
-        .append(fmtValueIndex(rightValueIndex))
-        .append(' ')
-        .append(type);
+    appendOutValue();
+    appendValueArguments(leftValueIndex, rightValueIndex);
+  }
+
+  @Override
+  public void onXor(NumericType type, EV leftValueIndex, EV rightValueIndex) {
+    appendOutValue();
+    appendValueArguments(leftValueIndex, rightValueIndex);
   }
 
   @Override
@@ -151,7 +181,14 @@ public class LirPrinter<EV> extends LirParsedInstructionCallback<EV> {
 
   @Override
   public void onIf(IfType ifKind, int blockIndex, EV valueIndex) {
-    builder.append(fmtValueIndex(valueIndex)).append(' ').append(fmtInsnIndex(blockIndex));
+    appendValueArguments(valueIndex);
+    builder.append(fmtInsnIndex(blockIndex));
+  }
+
+  @Override
+  public void onIfCmp(IfType ifKind, int blockIndex, EV leftValueIndex, EV rightValueIndex) {
+    appendValueArguments(leftValueIndex, rightValueIndex);
+    builder.append(fmtInsnIndex(blockIndex));
   }
 
   @Override
@@ -172,6 +209,12 @@ public class LirPrinter<EV> extends LirParsedInstructionCallback<EV> {
   @Override
   public void onDebugLocalWrite(EV srcIndex) {
     appendOutValue().append(fmtValueIndex(srcIndex));
+  }
+
+  @Override
+  public void onNewInstance(DexType clazz) {
+    appendOutValue();
+    builder.append(clazz);
   }
 
   @Override
@@ -225,8 +268,33 @@ public class LirPrinter<EV> extends LirParsedInstructionCallback<EV> {
   }
 
   @Override
+  public void onReturn(EV value) {
+    appendValueArguments(value);
+  }
+
+  @Override
   public void onArrayLength(EV arrayValueIndex) {
     appendOutValue().append(fmtValueIndex(arrayValueIndex));
+  }
+
+  @Override
+  public void onArrayGetPrimitive(MemberType type, EV array, EV index) {
+    appendOutValue();
+    appendValueArguments(array, index);
+    builder.append(type);
+  }
+
+  @Override
+  public void onArrayGetObject(DexType type, EV array, EV index) {
+    appendOutValue();
+    appendValueArguments(array, index);
+    builder.append(type);
+  }
+
+  @Override
+  public void onArrayPut(MemberType type, EV array, EV index, EV value) {
+    appendValueArguments(array, index, value);
+    builder.append(type);
   }
 
   @Override
