@@ -65,11 +65,6 @@ public class ExamplesDebugTest extends DebugTestBase {
   }
 
   @Test
-  public void testCommonSubexpressionElimination() throws Exception {
-    testDebugging("cse", "CommonSubexpressionElimination");
-  }
-
-  @Test
   public void testConstants() throws Exception {
     testDebugging("constants", "Constants");
   }

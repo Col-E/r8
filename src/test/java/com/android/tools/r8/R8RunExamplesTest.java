@@ -26,8 +26,6 @@ public class R8RunExamplesTest extends R8RunExamplesTestBase {
   public static Collection<String[]> data() {
     String[] tests = {
         "arithmetic.Arithmetic",
-        "catchhandleroverlap.CatchHandlerOverlap",
-        "cse.CommonSubexpressionElimination",
         "constants.Constants",
         "controlflow.ControlFlow",
         "conversions.Conversions",

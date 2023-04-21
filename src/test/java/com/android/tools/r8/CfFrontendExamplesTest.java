@@ -46,11 +46,6 @@ public class CfFrontendExamplesTest extends TestBase {
   }
 
   @Test
-  public void testCommonSubexpressionElimination() throws Exception {
-    runTest("cse.CommonSubexpressionElimination");
-  }
-
-  @Test
   public void testConstants() throws Exception {
     runTest("constants.Constants");
   }
