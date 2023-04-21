@@ -1,4 +1,4 @@
-// Copyright (c) 2020, the R8 project authors. Please see the AUTHORS file
+// Copyright (c) 2023, the R8 project authors. Please see the AUTHORS file
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
@@ -13,10 +13,10 @@ import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.DesugarTestConfiguration;
 import com.android.tools.r8.R8FullTestBuilder;
 import com.android.tools.r8.TestBase;
+import com.android.tools.r8.TestBuilder;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.TestRuntime.CfVm;
-import com.android.tools.r8.examples.jdk17.Sealed;
 import com.android.tools.r8.utils.StringUtils;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -30,11 +30,17 @@ public class SealedAttributeTest extends TestBase {
   @Parameter(0)
   public TestParameters parameters;
 
-  static final String EXPECTED = StringUtils.lines("R8 compiler", "D8 compiler");
+  static final String EXPECTED = StringUtils.lines("Success!");
 
   @Parameters(name = "{0}")
   public static TestParametersCollection data() {
     return getTestParameters().withAllRuntimes().withAllApiLevelsAlsoForCf().build();
+  }
+
+  private void addTestClasses(TestBuilder<?, ?> builder) throws Exception {
+    builder
+        .addProgramClasses(TestClass.class, Sub1.class, Sub2.class)
+        .addProgramClassFileData(getTransformedClasses());
   }
 
   @Test
@@ -42,16 +48,16 @@ public class SealedAttributeTest extends TestBase {
     parameters.assumeJvmTestParameters();
     assumeTrue(parameters.asCfRuntime().isNewerThanOrEqual(CfVm.JDK17));
     testForJvm(parameters)
-        .addRunClasspathFiles(Sealed.jar())
-        .run(parameters.getRuntime(), Sealed.Main.typeName())
+        .apply(this::addTestClasses)
+        .run(parameters.getRuntime(), TestClass.class)
         .assertSuccessWithOutput(EXPECTED);
   }
 
   @Test
   public void testDesugaring() throws Exception {
     testForDesugaring(parameters)
-        .addProgramFiles(Sealed.jar())
-        .run(parameters.getRuntime(), Sealed.Main.typeName())
+        .apply(this::addTestClasses)
+        .run(parameters.getRuntime(), TestClass.class)
         .applyIf(
             c ->
                 DesugarTestConfiguration.isNotJavac(c)
@@ -65,10 +71,11 @@ public class SealedAttributeTest extends TestBase {
     parameters.assumeR8TestParameters();
     R8FullTestBuilder builder =
         testForR8(parameters.getBackend())
-            .addProgramFiles(Sealed.jar())
+            .apply(this::addTestClasses)
             .setMinApi(parameters)
-            .addKeepMainRule(Sealed.Main.typeName());
+            .addKeepMainRule(TestClass.class);
     if (parameters.isCfRuntime()) {
+      // TODO(b/227160052): Support sealed classes for R( class file output.
       assertThrows(
           CompilationFailedException.class,
           () ->
@@ -79,9 +86,26 @@ public class SealedAttributeTest extends TestBase {
                               containsString(
                                   "Sealed classes are not supported as program classes")))));
     } else {
-      builder
-          .run(parameters.getRuntime(), Sealed.Main.typeName())
-          .assertSuccessWithOutput(EXPECTED);
+      builder.run(parameters.getRuntime(), TestClass.class).assertSuccessWithOutput(EXPECTED);
     }
   }
+
+  public byte[] getTransformedClasses() throws Exception {
+    return transformer(C.class).setPermittedSubclasses(C.class, Sub1.class, Sub2.class).transform();
+  }
+
+  static class TestClass {
+
+    public static void main(String[] args) {
+      new Sub1();
+      new Sub2();
+      System.out.println("Success!");
+    }
+  }
+
+  abstract static class C /* permits Sub1, Sub2 */ {}
+
+  static class Sub1 extends C {}
+
+  static class Sub2 extends C {}
 }
