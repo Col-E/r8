@@ -278,6 +278,13 @@ public class LirPrinter<EV> extends LirParsedInstructionCallback<EV> {
   }
 
   @Override
+  public void onCheckCast(DexType type, EV value) {
+    appendOutValue();
+    appendValueArguments(value);
+    builder.append(type);
+  }
+
+  @Override
   public void onArrayGetPrimitive(MemberType type, EV array, EV index) {
     appendOutValue();
     appendValueArguments(array, index);

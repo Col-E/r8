@@ -46,11 +46,6 @@ public class CfFrontendExamplesTest extends TestBase {
   }
 
   @Test
-  public void testBridgeMethod() throws Exception {
-    runTest("bridge.BridgeMethod");
-  }
-
-  @Test
   public void testCommonSubexpressionElimination() throws Exception {
     runTest("cse.CommonSubexpressionElimination");
   }

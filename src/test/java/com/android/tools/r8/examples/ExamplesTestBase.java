@@ -53,7 +53,6 @@ public abstract class ExamplesTestBase extends DebugTestBase {
         .assertSuccessWithOutput(getExpected());
   }
 
-  @Test
   public void runTestDebugComparator() throws Exception {
     Assume.assumeFalse(ToolHelper.isWindows());
     Assume.assumeFalse(

@@ -368,6 +368,11 @@ public class LirBuilder<V, EV> {
     return addOneValueInstruction(LirOpcodes.ARRAYLENGTH, array);
   }
 
+  public LirBuilder<V, EV> addCheckCast(DexType type, V value) {
+    return addInstructionTemplate(
+        LirOpcodes.CHECKCAST, Collections.singletonList(type), Collections.singletonList(value));
+  }
+
   public LirBuilder<V, EV> addStaticGet(DexField field) {
     return addOneItemInstruction(LirOpcodes.GETSTATIC, field);
   }

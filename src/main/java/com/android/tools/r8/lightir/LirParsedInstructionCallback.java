@@ -51,6 +51,10 @@ public abstract class LirParsedInstructionCallback<EV> implements LirInstruction
     return getActualValueIndex(view.getNextValueOperand());
   }
 
+  private DexType getNextDexTypeOperand(LirInstructionView view) {
+    return (DexType) getConstantItem(view.getNextConstantOperand());
+  }
+
   public void onInstruction() {}
 
   public void onConstNull() {
@@ -344,6 +348,10 @@ public abstract class LirParsedInstructionCallback<EV> implements LirInstruction
   }
 
   public void onArrayLength(EV arrayValueIndex) {
+    onInstruction();
+  }
+
+  public void onCheckCast(DexType type, EV value) {
     onInstruction();
   }
 
@@ -868,7 +876,7 @@ public abstract class LirParsedInstructionCallback<EV> implements LirInstruction
         }
       case LirOpcodes.NEWARRAY:
         {
-          DexType type = (DexType) getConstantItem(view.getNextConstantOperand());
+          DexType type = getNextDexTypeOperand(view);
           EV size = getNextValueOperand(view);
           onNewArrayEmpty(type, size);
           return;
@@ -895,6 +903,13 @@ public abstract class LirParsedInstructionCallback<EV> implements LirInstruction
           onArrayLength(getNextValueOperand(view));
           return;
         }
+      case LirOpcodes.CHECKCAST:
+        {
+          DexType type = getNextDexTypeOperand(view);
+          EV value = getNextValueOperand(view);
+          onCheckCast(type, value);
+          return;
+        }
       case LirOpcodes.DEBUGPOS:
         {
           onDebugPosition();
@@ -902,7 +917,7 @@ public abstract class LirParsedInstructionCallback<EV> implements LirInstruction
         }
       case LirOpcodes.PHI:
         {
-          DexType type = (DexType) getConstantItem(view.getNextConstantOperand());
+          DexType type = getNextDexTypeOperand(view);
           List<EV> operands = new ArrayList<>();
           while (view.hasMoreOperands()) {
             operands.add(getNextValueOperand(view));
@@ -917,7 +932,7 @@ public abstract class LirParsedInstructionCallback<EV> implements LirInstruction
         }
       case LirOpcodes.MOVEEXCEPTION:
         {
-          DexType type = (DexType) getConstantItem(view.getNextConstantOperand());
+          DexType type = getNextDexTypeOperand(view);
           onMoveException(type);
           return;
         }

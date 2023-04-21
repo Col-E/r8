@@ -21,6 +21,7 @@ import com.android.tools.r8.ir.code.ArrayLength;
 import com.android.tools.r8.ir.code.ArrayPut;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.CatchHandlers;
+import com.android.tools.r8.ir.code.CheckCast;
 import com.android.tools.r8.ir.code.Cmp;
 import com.android.tools.r8.ir.code.Cmp.Bias;
 import com.android.tools.r8.ir.code.ConstNumber;
@@ -561,6 +562,12 @@ public class Lir2IRConverter {
       Value dest = getOutValueForNextInstruction(TypeElement.getInt());
       Value arrayValue = getValue(arrayValueIndex);
       addInstruction(new ArrayLength(dest, arrayValue));
+    }
+
+    @Override
+    public void onCheckCast(DexType type, EV value) {
+      Value dest = getOutValueForNextInstruction(type.toTypeElement(appView));
+      addInstruction(new CheckCast(dest, getValue(value), type));
     }
 
     @Override
