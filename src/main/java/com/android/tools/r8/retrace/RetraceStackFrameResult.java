@@ -4,13 +4,20 @@
 
 package com.android.tools.r8.retrace;
 
-import com.android.tools.r8.DiagnosticsHandler;
 import com.android.tools.r8.Keep;
-import com.android.tools.r8.MappingSupplierInternal;
+import java.util.List;
+import java.util.function.Consumer;
 
 @Keep
-public interface MappingSupplier<T extends MappingSupplier<T>>
-    extends MappingSupplierBase<T>, MappingSupplierInternal {
+public interface RetraceStackFrameResult<T> {
 
-  Retracer createRetracer(DiagnosticsHandler diagnosticsHandler);
+  List<T> getResult();
+
+  void forEach(Consumer<T> consumer);
+
+  int size();
+
+  T get(int i);
+
+  boolean isEmpty();
 }

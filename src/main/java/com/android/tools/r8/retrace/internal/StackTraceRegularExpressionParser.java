@@ -300,7 +300,7 @@ public class StackTraceRegularExpressionParser
         boolean insertSeparatorForRetraced = false;
         // We need to include ':' in the group since we may want to rewrite '(SourceFile:0)` into
         // (SourceFile) and not (SourceFile:)
-        if (startOfGroup > 0 && builder.getLine().charAt(startOfGroup + -1) == ':') {
+        if (startOfGroup > 0 && builder.getLine().charAt(startOfGroup - 1) == ':') {
           startOfGroup = startOfGroup - 1;
           insertSeparatorForRetraced = true;
         }

@@ -46,7 +46,7 @@ public abstract class StackTraceElementProxy<T, ST extends StackTraceElementProx
       RetraceStackTraceElementProxy<T, ST> retracedProxy, boolean verbose);
 
   public void registerUses(
-      MappingSupplier<?> mappingSupplier, DiagnosticsHandler diagnosticsHandler) {
+      MappingSupplierBase<?> mappingSupplier, DiagnosticsHandler diagnosticsHandler) {
     if (hasClassName()) {
       mappingSupplier.registerClassUse(diagnosticsHandler, getClassReference());
     }
@@ -62,7 +62,9 @@ public abstract class StackTraceElementProxy<T, ST extends StackTraceElementProx
   }
 
   private static void registerUseFromTypeReference(
-      MappingSupplier<?> mappingSupplier, String typeName, DiagnosticsHandler diagnosticsHandler) {
+      MappingSupplierBase<?> mappingSupplier,
+      String typeName,
+      DiagnosticsHandler diagnosticsHandler) {
     TypeReference typeReference = Reference.typeFromTypeName(typeName);
     if (typeReference.isArray()) {
       typeReference = typeReference.asArray().getBaseType();

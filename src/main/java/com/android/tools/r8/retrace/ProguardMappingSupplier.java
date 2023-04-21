@@ -8,7 +8,7 @@ import com.android.tools.r8.Keep;
 import com.android.tools.r8.retrace.internal.ProguardMappingSupplierBuilderImpl;
 
 @Keep
-public abstract class ProguardMappingSupplier extends MappingSupplier<ProguardMappingSupplier> {
+public abstract class ProguardMappingSupplier implements MappingSupplier<ProguardMappingSupplier> {
 
   public static Builder builder() {
     return new ProguardMappingSupplierBuilderImpl();

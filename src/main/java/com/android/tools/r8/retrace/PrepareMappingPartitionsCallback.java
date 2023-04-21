@@ -15,5 +15,11 @@ import com.android.tools.r8.Keep;
 @Keep
 public interface PrepareMappingPartitionsCallback {
 
+  PrepareMappingPartitionsCallback EMPTY_INSTANCE = () -> {};
+
+  static PrepareMappingPartitionsCallback empty() {
+    return EMPTY_INSTANCE;
+  }
+
   void prepare();
 }

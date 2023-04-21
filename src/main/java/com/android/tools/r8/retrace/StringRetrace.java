@@ -8,9 +8,8 @@ import static com.android.tools.r8.retrace.internal.RetraceUtils.firstNonWhiteSp
 
 import com.android.tools.r8.DiagnosticsHandler;
 import com.android.tools.r8.Keep;
-import com.android.tools.r8.retrace.internal.ResultWithContextImpl;
+import com.android.tools.r8.retrace.internal.RetraceStackFrameResultWithContextImpl;
 import com.android.tools.r8.retrace.internal.StackTraceElementStringProxy;
-import com.android.tools.r8.utils.ListUtils;
 import com.android.tools.r8.utils.StringUtils;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -77,36 +76,26 @@ public class StringRetrace extends Retrace<String, StackTraceElementStringProxy>
    * @param context The context to retrace the stack trace in
    * @return the retraced stack trace
    */
-  public ResultWithContext<String> retrace(
+  public RetraceStackFrameResultWithContext<String> retrace(
       List<String> stackTrace, RetraceStackTraceContext context) {
-    ResultWithContext<List<List<String>>> listResultWithContext =
+    RetraceStackTraceResult<String> listRetraceStackTraceResult =
         retraceStackTrace(stackTrace, context);
     List<String> retracedStrings = new ArrayList<>();
-    for (List<List<String>> newLines : listResultWithContext.getLines()) {
-      ListUtils.forEachWithIndex(
-          newLines,
-          (inlineFrames, ambiguousIndex) -> {
-            for (int i = 0; i < inlineFrames.size(); i++) {
-              String stackTraceLine = inlineFrames.get(i);
-              if (i == 0 && ambiguousIndex > 0) {
-                // We are reporting an ambiguous frame. To support retracing tools that retrace line
-                // by line we have to emit <OR> at the point of the first 'at ' if we can find it.
-                int indexToInsertOr = stackTraceLine.indexOf("at ");
-                if (indexToInsertOr < 0) {
-                  indexToInsertOr =
-                      Math.max(StringUtils.firstNonWhitespaceCharacter(stackTraceLine), 0);
-                }
-                retracedStrings.add(
-                    stackTraceLine.substring(0, indexToInsertOr)
-                        + "<OR> "
-                        + stackTraceLine.substring(indexToInsertOr));
-              } else {
-                retracedStrings.add(stackTraceLine);
-              }
-            }
-          });
-    }
-    return ResultWithContextImpl.create(retracedStrings, listResultWithContext.getContext());
+    listRetraceStackTraceResult.forEach(
+        newLines ->
+            newLines.forEachWithIndex(
+                (inlineFrames, ambiguousIndex) -> {
+                  for (int i = 0; i < inlineFrames.size(); i++) {
+                    String stackTraceLine = inlineFrames.get(i);
+                    if (i == 0 && ambiguousIndex > 0) {
+                      insertOrIntoStackTraceLine(stackTraceLine, retracedStrings);
+                    } else {
+                      retracedStrings.add(stackTraceLine);
+                    }
+                  }
+                }));
+    return RetraceStackFrameResultWithContextImpl.create(
+        retracedStrings, listRetraceStackTraceResult.getContext());
   }
 
   /**
@@ -117,36 +106,40 @@ public class StringRetrace extends Retrace<String, StackTraceElementStringProxy>
    * @param context The context to retrace the stack trace in
    * @return the retraced stack trace
    */
-  public ResultWithContext<String> retraceParsed(
+  public RetraceStackFrameResultWithContext<String> retraceParsed(
       List<StackTraceElementStringProxy> stackTrace, RetraceStackTraceContext context) {
-    ResultWithContext<List<List<String>>> listResultWithContext =
+    RetraceStackTraceResult<String> listRetraceStackTraceResult =
         retraceStackTraceParsed(stackTrace, context);
     List<String> retracedStrings = new ArrayList<>();
-    for (List<List<String>> newLines : listResultWithContext.getLines()) {
-      ListUtils.forEachWithIndex(
-          newLines,
-          (inlineFrames, ambiguousIndex) -> {
-            for (int i = 0; i < inlineFrames.size(); i++) {
-              String stackTraceLine = inlineFrames.get(i);
-              if (i == 0 && ambiguousIndex > 0) {
-                // We are reporting an ambiguous frame. To support retracing tools that retrace line
-                // by line we have to emit <OR> at the point of the first 'at ' if we can find it.
-                int indexToInsertOr = stackTraceLine.indexOf("at ");
-                if (indexToInsertOr < 0) {
-                  indexToInsertOr =
-                      Math.max(StringUtils.firstNonWhitespaceCharacter(stackTraceLine), 0);
-                }
-                retracedStrings.add(
-                    stackTraceLine.substring(0, indexToInsertOr)
-                        + "<OR> "
-                        + stackTraceLine.substring(indexToInsertOr));
-              } else {
-                retracedStrings.add(stackTraceLine);
-              }
-            }
-          });
+    listRetraceStackTraceResult.forEach(
+        newLines ->
+            newLines.forEachWithIndex(
+                (inlineFrames, ambiguousIndex) -> {
+                  for (int i = 0; i < inlineFrames.size(); i++) {
+                    String stackTraceLine = inlineFrames.get(i);
+                    if (i == 0 && ambiguousIndex > 0) {
+                      insertOrIntoStackTraceLine(stackTraceLine, retracedStrings);
+                    } else {
+                      retracedStrings.add(stackTraceLine);
+                    }
+                  }
+                }));
+    return RetraceStackFrameResultWithContextImpl.create(
+        retracedStrings, listRetraceStackTraceResult.getContext());
+  }
+
+  private void insertOrIntoStackTraceLine(String stackTraceLine, List<String> retracedStrings) {
+    // We are reporting an ambiguous frame. To support retracing tools that
+    // retrace line by line we have to emit <OR> at the point of the first 'at '
+    // if we can find it.
+    int indexToInsertOr = stackTraceLine.indexOf("at ");
+    if (indexToInsertOr < 0) {
+      indexToInsertOr = Math.max(StringUtils.firstNonWhitespaceCharacter(stackTraceLine), 0);
     }
-    return ResultWithContextImpl.create(retracedStrings, listResultWithContext.getContext());
+    retracedStrings.add(
+        stackTraceLine.substring(0, indexToInsertOr)
+            + "<OR> "
+            + stackTraceLine.substring(indexToInsertOr));
   }
 
   /**
@@ -156,12 +149,14 @@ public class StringRetrace extends Retrace<String, StackTraceElementStringProxy>
    * @param context The context to retrace the stack trace in
    * @return the retraced frames
    */
-  public ResultWithContext<String> retrace(
+  public RetraceStackFrameResultWithContext<String> retrace(
       String stackTraceLine, RetraceStackTraceContext context) {
-    ResultWithContext<List<String>> listResultWithContext = retraceFrame(stackTraceLine, context);
+    RetraceStackFrameAmbiguousResultWithContext<String> listRetraceStackTraceResult =
+        retraceFrame(stackTraceLine, context);
     List<String> result = new ArrayList<>();
-    joinAmbiguousLines(listResultWithContext.getLines(), result::add);
-    return ResultWithContextImpl.create(result, listResultWithContext.getContext());
+    joinAmbiguousLines(listRetraceStackTraceResult.getAmbiguousResult(), result::add);
+    return RetraceStackFrameResultWithContextImpl.create(
+        result, listRetraceStackTraceResult.getContext());
   }
 
   /**
@@ -175,22 +170,21 @@ public class StringRetrace extends Retrace<String, StackTraceElementStringProxy>
     RetraceStackTraceContext context = RetraceStackTraceContext.empty();
     String retraceLine;
     while ((retraceLine = lineSupplier.getNext()) != null) {
-      ResultWithContext<String> result = retrace(retraceLine, context);
+      RetraceStackFrameResultWithContext<String> result = retrace(retraceLine, context);
       context = result.getContext();
       result.forEach(lineConsumer);
     }
   }
 
   private void joinAmbiguousLines(
-      List<List<String>> retracedResult, Consumer<String> joinedConsumer) {
+      List<RetraceStackFrameResult<String>> retracedResult, Consumer<String> joinedConsumer) {
     if (retracedResult.isEmpty()) {
       // The result is empty, likely it maps to compiler synthesized items.
       return;
     }
     Set<String> reportedFrames = new HashSet<>();
-    ListUtils.forEachWithIndex(
-        retracedResult,
-        (potentialResults, index) -> {
+    retracedResult.forEach(
+        potentialResults -> {
           assert !potentialResults.isEmpty();
           // Check if we already reported position.
           if (reportedFrames.add(potentialResults.get(0))) {

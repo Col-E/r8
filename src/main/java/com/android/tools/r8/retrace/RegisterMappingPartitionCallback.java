@@ -13,5 +13,11 @@ import com.android.tools.r8.Keep;
 @Keep
 public interface RegisterMappingPartitionCallback {
 
+  RegisterMappingPartitionCallback EMPTY_INSTANCE = key -> {};
+
+  static RegisterMappingPartitionCallback empty() {
+    return EMPTY_INSTANCE;
+  }
+
   void register(String key);
 }

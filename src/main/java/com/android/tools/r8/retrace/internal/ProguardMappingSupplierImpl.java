@@ -12,6 +12,8 @@ import com.android.tools.r8.naming.ProguardMapChecker;
 import com.android.tools.r8.naming.ProguardMapChecker.VerifyMappingFileHashResult;
 import com.android.tools.r8.naming.mappinginformation.MapVersionMappingInformation;
 import com.android.tools.r8.references.ClassReference;
+import com.android.tools.r8.references.FieldReference;
+import com.android.tools.r8.references.MethodReference;
 import com.android.tools.r8.retrace.InvalidMappingFileException;
 import com.android.tools.r8.retrace.ProguardMapProducer;
 import com.android.tools.r8.retrace.ProguardMappingSupplier;
@@ -69,6 +71,18 @@ public class ProguardMappingSupplierImpl extends ProguardMappingSupplier {
       pendingClassMappings.add(classReference.getTypeName());
     }
     return this;
+  }
+
+  @Override
+  public ProguardMappingSupplier registerMethodUse(
+      DiagnosticsHandler diagnosticsHandler, MethodReference methodReference) {
+    return registerClassUse(diagnosticsHandler, methodReference.getHolderClass());
+  }
+
+  @Override
+  public ProguardMappingSupplier registerFieldUse(
+      DiagnosticsHandler diagnosticsHandler, FieldReference fieldReference) {
+    return registerClassUse(diagnosticsHandler, fieldReference.getHolderClass());
   }
 
   @Override

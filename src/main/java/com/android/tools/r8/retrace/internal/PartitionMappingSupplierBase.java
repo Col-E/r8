@@ -1,4 +1,4 @@
-// Copyright (c) 2022, the R8 project authors. Please see the AUTHORS file
+// Copyright (c) 2023, the R8 project authors. Please see the AUTHORS file
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
@@ -13,9 +13,10 @@ import com.android.tools.r8.naming.LineReader;
 import com.android.tools.r8.naming.MapVersion;
 import com.android.tools.r8.naming.mappinginformation.MapVersionMappingInformation;
 import com.android.tools.r8.references.ClassReference;
+import com.android.tools.r8.references.FieldReference;
+import com.android.tools.r8.references.MethodReference;
 import com.android.tools.r8.retrace.InvalidMappingFileException;
 import com.android.tools.r8.retrace.MappingPartitionFromKeySupplier;
-import com.android.tools.r8.retrace.PartitionMappingSupplier;
 import com.android.tools.r8.retrace.PrepareMappingPartitionsCallback;
 import com.android.tools.r8.retrace.RegisterMappingPartitionCallback;
 import com.android.tools.r8.retrace.internal.ProguardMapReaderWithFiltering.ProguardMapReaderWithFilteringInputBuffer;
@@ -27,17 +28,12 @@ import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.Set;
 
-/**
- * IntelliJ highlights the class as being invalid because it cannot see getClassNameMapper is
- * defined on the class for some reason.
- */
-public class PartitionMappingSupplierImpl extends PartitionMappingSupplier {
+public abstract class PartitionMappingSupplierBase<T extends PartitionMappingSupplierBase<T>> {
 
-  private final byte[] metadata;
-  private final RegisterMappingPartitionCallback registerPartitionCallback;
-  private final PrepareMappingPartitionsCallback prepare;
-  private final MappingPartitionFromKeySupplier partitionSupplier;
+  private final RegisterMappingPartitionCallback registerCallback;
+  private final PrepareMappingPartitionsCallback prepareCallback;
   private final boolean allowExperimental;
+  private final byte[] metadata;
   private final MapVersion fallbackMapVersion;
 
   private ClassNameMapper classNameMapper;
@@ -46,22 +42,20 @@ public class PartitionMappingSupplierImpl extends PartitionMappingSupplier {
 
   private MappingPartitionMetadataInternal mappingPartitionMetadataCache;
 
-  PartitionMappingSupplierImpl(
-      byte[] metadata,
-      RegisterMappingPartitionCallback registerPartitionCallback,
-      PrepareMappingPartitionsCallback prepare,
-      MappingPartitionFromKeySupplier partitionSupplier,
+  protected PartitionMappingSupplierBase(
+      RegisterMappingPartitionCallback registerCallback,
+      PrepareMappingPartitionsCallback prepareCallback,
       boolean allowExperimental,
+      byte[] metadata,
       MapVersion fallbackMapVersion) {
-    this.metadata = metadata;
-    this.registerPartitionCallback = registerPartitionCallback;
-    this.prepare = prepare;
-    this.partitionSupplier = partitionSupplier;
+    this.registerCallback = registerCallback;
+    this.prepareCallback = prepareCallback;
     this.allowExperimental = allowExperimental;
+    this.metadata = metadata;
     this.fallbackMapVersion = fallbackMapVersion;
   }
 
-  private MappingPartitionMetadataInternal getMetadata(DiagnosticsHandler diagnosticsHandler) {
+  protected MappingPartitionMetadataInternal getMetadata(DiagnosticsHandler diagnosticsHandler) {
     if (mappingPartitionMetadataCache != null) {
       return mappingPartitionMetadataCache;
     }
@@ -70,38 +64,42 @@ public class PartitionMappingSupplierImpl extends PartitionMappingSupplier {
             CompatByteBuffer.wrapOrNull(metadata), fallbackMapVersion, diagnosticsHandler);
   }
 
-  @Override
-  public PartitionMappingSupplier registerClassUse(
-      DiagnosticsHandler diagnosticsHandler, ClassReference classReference) {
-    registerKeyUse(getMetadata(diagnosticsHandler).getKey(classReference));
-    return this;
+  public T registerClassUse(DiagnosticsHandler diagnosticsHandler, ClassReference classReference) {
+    return registerKeyUse(classReference.getTypeName());
   }
 
-  private void registerKeyUse(String key) {
+  public T registerMethodUse(
+      DiagnosticsHandler diagnosticsHandler, MethodReference methodReference) {
+    return registerClassUse(diagnosticsHandler, methodReference.getHolderClass());
+  }
+
+  public T registerFieldUse(DiagnosticsHandler diagnosticsHandler, FieldReference fieldReference) {
+    return registerClassUse(diagnosticsHandler, fieldReference.getHolderClass());
+  }
+
+  public T registerKeyUse(String key) {
     // TODO(b/274735214): only call the register partition if we have a partition for it.
     if (!builtKeys.contains(key) && pendingKeys.add(key)) {
-      registerPartitionCallback.register(key);
+      registerCallback.register(key);
     }
+    return self();
   }
 
-  @Override
   public void verifyMappingFileHash(DiagnosticsHandler diagnosticsHandler) {
     String errorMessage = "Cannot verify map file hash for partitions";
     diagnosticsHandler.error(new StringDiagnostic(errorMessage));
     throw new RuntimeException(errorMessage);
   }
 
-  @Override
   public Set<MapVersionMappingInformation> getMapVersions(DiagnosticsHandler diagnosticsHandler) {
     return Collections.singleton(
         getMetadata(diagnosticsHandler).getMapVersion().toMapVersionMappingInformation());
   }
 
-  @Override
-  public RetracerImpl createRetracer(DiagnosticsHandler diagnosticsHandler) {
-    MappingPartitionMetadataInternal metadata = getMetadata(diagnosticsHandler);
+  protected RetracerImpl createRetracerFromPartitionSupplier(
+      DiagnosticsHandler diagnosticsHandler, MappingPartitionFromKeySupplier partitionSupplier) {
     if (!pendingKeys.isEmpty()) {
-      prepare.prepare();
+      prepareCallback.prepare();
     }
     for (String pendingKey : pendingKeys) {
       try {
@@ -116,7 +114,7 @@ public class PartitionMappingSupplierImpl extends PartitionMappingSupplier {
         classNameMapper =
             ClassNameMapper.mapperFromLineReaderWithFiltering(
                     reader,
-                    metadata.getMapVersion(),
+                    getMetadata(diagnosticsHandler).getMapVersion(),
                     diagnosticsHandler,
                     true,
                     allowExperimental,
@@ -134,4 +132,6 @@ public class PartitionMappingSupplierImpl extends PartitionMappingSupplier {
     return RetracerImpl.createInternal(
         MappingSupplierInternalImpl.createInternal(classNameMapper), diagnosticsHandler);
   }
+
+  public abstract T self();
 }
