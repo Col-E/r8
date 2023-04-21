@@ -25,7 +25,7 @@ import org.junit.runners.Parameterized.Parameter;
 import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
-public class SealedAttributeJdk17CompiledTest extends TestBase {
+public class SealedClassesJdk17CompiledTest extends TestBase {
 
   @Parameter(0)
   public TestParameters parameters;

@@ -4,7 +4,6 @@
 
 package com.android.tools.r8.desugar.sealed;
 
-
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestCompilerBuilder;
 import com.android.tools.r8.TestParameters;
@@ -17,7 +16,7 @@ import org.junit.runners.Parameterized.Parameter;
 import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
-public class SealedAttributeClasspathTest extends TestBase {
+public class SealedClassesClasspathTest extends TestBase {
 
   @Parameter(0)
   public TestParameters parameters;

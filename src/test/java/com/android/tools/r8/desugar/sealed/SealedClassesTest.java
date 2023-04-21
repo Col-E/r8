@@ -13,10 +13,10 @@ import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.DesugarTestConfiguration;
 import com.android.tools.r8.R8FullTestBuilder;
 import com.android.tools.r8.TestBase;
+import com.android.tools.r8.TestBuilder;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.TestRuntime.CfVm;
-import com.android.tools.r8.examples.jdk17.EnumSealed;
 import com.android.tools.r8.utils.StringUtils;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -25,16 +25,22 @@ import org.junit.runners.Parameterized.Parameter;
 import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
-public class SealedEnumTest extends TestBase {
+public class SealedClassesTest extends TestBase {
 
   @Parameter(0)
   public TestParameters parameters;
 
-  static final String EXPECTED = StringUtils.lines("A", "a B");
+  static final String EXPECTED = StringUtils.lines("Success!");
 
   @Parameters(name = "{0}")
   public static TestParametersCollection data() {
     return getTestParameters().withAllRuntimes().withAllApiLevelsAlsoForCf().build();
+  }
+
+  private void addTestClasses(TestBuilder<?, ?> builder) throws Exception {
+    builder
+        .addProgramClasses(TestClass.class, Sub1.class, Sub2.class)
+        .addProgramClassFileData(getTransformedClasses());
   }
 
   @Test
@@ -42,16 +48,16 @@ public class SealedEnumTest extends TestBase {
     parameters.assumeJvmTestParameters();
     assumeTrue(parameters.asCfRuntime().isNewerThanOrEqual(CfVm.JDK17));
     testForJvm(parameters)
-        .addRunClasspathFiles(EnumSealed.jar())
-        .run(parameters.getRuntime(), EnumSealed.Main.typeName())
+        .apply(this::addTestClasses)
+        .run(parameters.getRuntime(), TestClass.class)
         .assertSuccessWithOutput(EXPECTED);
   }
 
   @Test
   public void testDesugaring() throws Exception {
     testForDesugaring(parameters)
-        .addProgramFiles(EnumSealed.jar())
-        .run(parameters.getRuntime(), EnumSealed.Main.typeName())
+        .apply(this::addTestClasses)
+        .run(parameters.getRuntime(), TestClass.class)
         .applyIf(
             c ->
                 DesugarTestConfiguration.isNotJavac(c)
@@ -65,10 +71,11 @@ public class SealedEnumTest extends TestBase {
     parameters.assumeR8TestParameters();
     R8FullTestBuilder builder =
         testForR8(parameters.getBackend())
-            .addProgramFiles(EnumSealed.jar())
+            .apply(this::addTestClasses)
             .setMinApi(parameters)
-            .addKeepMainRule(EnumSealed.Main.typeName());
+            .addKeepMainRule(TestClass.class);
     if (parameters.isCfRuntime()) {
+      // TODO(b/227160052): Support sealed classes for R8 class file output.
       assertThrows(
           CompilationFailedException.class,
           () ->
@@ -79,9 +86,26 @@ public class SealedEnumTest extends TestBase {
                               containsString(
                                   "Sealed classes are not supported as program classes")))));
     } else {
-      builder
-          .run(parameters.getRuntime(), EnumSealed.Main.typeName())
-          .assertSuccessWithOutput(EXPECTED);
+      builder.run(parameters.getRuntime(), TestClass.class).assertSuccessWithOutput(EXPECTED);
     }
   }
+
+  public byte[] getTransformedClasses() throws Exception {
+    return transformer(C.class).setPermittedSubclasses(C.class, Sub1.class, Sub2.class).transform();
+  }
+
+  static class TestClass {
+
+    public static void main(String[] args) {
+      new Sub1();
+      new Sub2();
+      System.out.println("Success!");
+    }
+  }
+
+  abstract static class C /* permits Sub1, Sub2 */ {}
+
+  static class Sub1 extends C {}
+
+  static class Sub2 extends C {}
 }

@@ -13,10 +13,10 @@ import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.DesugarTestConfiguration;
 import com.android.tools.r8.R8FullTestBuilder;
 import com.android.tools.r8.TestBase;
-import com.android.tools.r8.TestBuilder;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.TestRuntime.CfVm;
+import com.android.tools.r8.examples.jdk17.EnumSealed;
 import com.android.tools.r8.utils.StringUtils;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -25,22 +25,16 @@ import org.junit.runners.Parameterized.Parameter;
 import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
-public class SealedAttributeIllegalSubclassTest extends TestBase {
+public class SealedClassesEnumJdk17CompiledTest extends TestBase {
 
   @Parameter(0)
   public TestParameters parameters;
 
-  static final String EXPECTED = StringUtils.lines("Success!");
+  static final String EXPECTED = StringUtils.lines("A", "a B");
 
   @Parameters(name = "{0}")
   public static TestParametersCollection data() {
     return getTestParameters().withAllRuntimes().withAllApiLevelsAlsoForCf().build();
-  }
-
-  private void addTestClasses(TestBuilder<?, ?> builder) throws Exception {
-    builder
-        .addProgramClasses(TestClass.class, Sub1.class, Sub2.class, Sub3.class)
-        .addProgramClassFileData(getTransformedClasses());
   }
 
   @Test
@@ -48,23 +42,21 @@ public class SealedAttributeIllegalSubclassTest extends TestBase {
     parameters.assumeJvmTestParameters();
     assumeTrue(parameters.asCfRuntime().isNewerThanOrEqual(CfVm.JDK17));
     testForJvm(parameters)
-        .apply(this::addTestClasses)
-        .run(parameters.getRuntime(), TestClass.class)
-        .assertFailureWithErrorThatMatches(containsString("cannot inherit from sealed class"));
+        .addRunClasspathFiles(EnumSealed.jar())
+        .run(parameters.getRuntime(), EnumSealed.Main.typeName())
+        .assertSuccessWithOutput(EXPECTED);
   }
 
   @Test
   public void testDesugaring() throws Exception {
     testForDesugaring(parameters)
-        .apply(this::addTestClasses)
-        .run(parameters.getRuntime(), TestClass.class)
+        .addProgramFiles(EnumSealed.jar())
+        .run(parameters.getRuntime(), EnumSealed.Main.typeName())
         .applyIf(
-            DesugarTestConfiguration::isNotJavac,
+            c ->
+                DesugarTestConfiguration.isNotJavac(c)
+                    || parameters.getRuntime().asCf().isNewerThanOrEqual(CfVm.JDK17),
             r -> r.assertSuccessWithOutput(EXPECTED),
-            c -> parameters.getRuntime().asCf().isNewerThanOrEqual(CfVm.JDK17),
-            r ->
-                r.assertFailureWithErrorThatMatches(
-                    containsString("cannot inherit from sealed class")),
             r -> r.assertFailureWithErrorThatThrows(UnsupportedClassVersionError.class));
   }
 
@@ -73,11 +65,10 @@ public class SealedAttributeIllegalSubclassTest extends TestBase {
     parameters.assumeR8TestParameters();
     R8FullTestBuilder builder =
         testForR8(parameters.getBackend())
-            .apply(this::addTestClasses)
+            .addProgramFiles(EnumSealed.jar())
             .setMinApi(parameters)
-            .addKeepMainRule(TestClass.class);
+            .addKeepMainRule(EnumSealed.Main.typeName());
     if (parameters.isCfRuntime()) {
-      // TODO(b/227160052): Support sealed classes for R8 class file output.
       assertThrows(
           CompilationFailedException.class,
           () ->
@@ -89,30 +80,8 @@ public class SealedAttributeIllegalSubclassTest extends TestBase {
                                   "Sealed classes are not supported as program classes")))));
     } else {
       builder
-          .run(parameters.getRuntime(), TestClass.class)
-          .assertSuccessWithOutputLines("Success!");
+          .run(parameters.getRuntime(), EnumSealed.Main.typeName())
+          .assertSuccessWithOutput(EXPECTED);
     }
   }
-
-  public byte[] getTransformedClasses() throws Exception {
-    return transformer(C.class).setPermittedSubclasses(C.class, Sub1.class, Sub2.class).transform();
-  }
-
-  static class TestClass {
-
-    public static void main(String[] args) {
-      new Sub1();
-      new Sub2();
-      new Sub3();
-      System.out.println("Success!");
-    }
-  }
-
-  abstract static class C /* permits Sub1, Sub2 */ {}
-
-  static class Sub1 extends C {}
-
-  static class Sub2 extends C {}
-
-  static class Sub3 extends C {}
 }

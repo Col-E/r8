@@ -25,7 +25,7 @@ import org.junit.runners.Parameterized.Parameter;
 import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
-public class SealedAttributeTest extends TestBase {
+public class SealedClassesIllegalSubclassTest extends TestBase {
 
   @Parameter(0)
   public TestParameters parameters;
@@ -39,7 +39,7 @@ public class SealedAttributeTest extends TestBase {
 
   private void addTestClasses(TestBuilder<?, ?> builder) throws Exception {
     builder
-        .addProgramClasses(TestClass.class, Sub1.class, Sub2.class)
+        .addProgramClasses(TestClass.class, Sub1.class, Sub2.class, Sub3.class)
         .addProgramClassFileData(getTransformedClasses());
   }
 
@@ -50,7 +50,7 @@ public class SealedAttributeTest extends TestBase {
     testForJvm(parameters)
         .apply(this::addTestClasses)
         .run(parameters.getRuntime(), TestClass.class)
-        .assertSuccessWithOutput(EXPECTED);
+        .assertFailureWithErrorThatMatches(containsString("cannot inherit from sealed class"));
   }
 
   @Test
@@ -59,10 +59,12 @@ public class SealedAttributeTest extends TestBase {
         .apply(this::addTestClasses)
         .run(parameters.getRuntime(), TestClass.class)
         .applyIf(
-            c ->
-                DesugarTestConfiguration.isNotJavac(c)
-                    || parameters.getRuntime().asCf().isNewerThanOrEqual(CfVm.JDK17),
+            DesugarTestConfiguration::isNotJavac,
             r -> r.assertSuccessWithOutput(EXPECTED),
+            c -> parameters.getRuntime().asCf().isNewerThanOrEqual(CfVm.JDK17),
+            r ->
+                r.assertFailureWithErrorThatMatches(
+                    containsString("cannot inherit from sealed class")),
             r -> r.assertFailureWithErrorThatThrows(UnsupportedClassVersionError.class));
   }
 
@@ -86,7 +88,9 @@ public class SealedAttributeTest extends TestBase {
                               containsString(
                                   "Sealed classes are not supported as program classes")))));
     } else {
-      builder.run(parameters.getRuntime(), TestClass.class).assertSuccessWithOutput(EXPECTED);
+      builder
+          .run(parameters.getRuntime(), TestClass.class)
+          .assertSuccessWithOutputLines("Success!");
     }
   }
 
@@ -99,6 +103,7 @@ public class SealedAttributeTest extends TestBase {
     public static void main(String[] args) {
       new Sub1();
       new Sub2();
+      new Sub3();
       System.out.println("Success!");
     }
   }
@@ -108,4 +113,6 @@ public class SealedAttributeTest extends TestBase {
   static class Sub1 extends C {}
 
   static class Sub2 extends C {}
+
+  static class Sub3 extends C {}
 }
