@@ -694,9 +694,6 @@ public class FileWriter {
         dest.putUleb128(0);
       } else {
         dest.putUleb128(mixedSectionOffsets.getOffsetFor(method, code));
-        // Writing the methods starts to take up memory so we are going to flush the
-        // code objects since they are no longer necessary after this.
-        method.unsetCode();
       }
     }
   }
