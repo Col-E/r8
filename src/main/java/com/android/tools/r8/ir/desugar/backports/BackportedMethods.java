@@ -1124,7 +1124,7 @@ public final class BackportedMethods {
                       FrameType.initializedNonNullReference(factory.throwableType),
                       FrameType.initializedNonNullReference(factory.objectType)
                     })),
-                CfReturnVoid.INSTANCE,
+            CfReturnVoid.INSTANCE,
             label21),
         ImmutableList.of(
             new CfTryCatch(
@@ -7704,7 +7704,7 @@ public final class BackportedMethods {
                       FrameType.initializedNonNullReference(
                           factory.createType("Ljava/lang/Runnable;"))
                     })),
-                CfReturnVoid.INSTANCE,
+            CfReturnVoid.INSTANCE,
             label4),
         ImmutableList.of(),
         ImmutableList.of());
@@ -7782,7 +7782,7 @@ public final class BackportedMethods {
                       FrameType.initializedNonNullReference(
                           factory.createType("Ljava/lang/Runnable;"))
                     })),
-                CfReturnVoid.INSTANCE,
+            CfReturnVoid.INSTANCE,
             label4),
         ImmutableList.of(),
         ImmutableList.of());
@@ -7860,7 +7860,7 @@ public final class BackportedMethods {
                       FrameType.initializedNonNullReference(
                           factory.createType("Ljava/lang/Runnable;"))
                     })),
-                CfReturnVoid.INSTANCE,
+            CfReturnVoid.INSTANCE,
             label4),
         ImmutableList.of(),
         ImmutableList.of());
@@ -9664,7 +9664,7 @@ public final class BackportedMethods {
                       FrameType.initializedNonNullReference(factory.throwableType),
                       FrameType.initializedNonNullReference(factory.throwableType)
                     })),
-                CfReturnVoid.INSTANCE,
+            CfReturnVoid.INSTANCE,
             label5),
         ImmutableList.of(
             new CfTryCatch(

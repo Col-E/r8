@@ -35,6 +35,29 @@ import java.util.Map;
 
 public class CfStackInstruction extends CfInstruction {
 
+  private static final CfStackInstruction
+    POP = new CfStackInstruction(Opcode.Pop),
+    POP2 = new CfStackInstruction(Opcode.Pop2),
+    DUP = new CfStackInstruction(Opcode.Dup),
+    DUP_X1 = new CfStackInstruction(Opcode.DupX1),
+    DUP_X2 = new CfStackInstruction(Opcode.DupX2),
+    DUP2 = new CfStackInstruction(Opcode.Dup2),
+    DUP2_X1 = new CfStackInstruction(Opcode.Dup2X1),
+    DUP2_X2 = new CfStackInstruction(Opcode.Dup2X2),
+    SWAP = new CfStackInstruction(Opcode.Swap);
+
+  private static final CfStackInstruction[] INSTRUCTIONS = {
+          POP,
+          POP2,
+          DUP,
+          DUP_X1,
+          DUP_X2,
+          DUP2,
+          DUP2_X1,
+          DUP2_X2,
+          SWAP
+  };
+
   public enum Opcode {
     Pop(Opcodes.POP),
     Pop2(Opcodes.POP2),
@@ -56,28 +79,10 @@ public class CfStackInstruction extends CfInstruction {
   private final Opcode opcode;
 
   public static CfStackInstruction fromAsm(int opcode) {
-    switch (opcode) {
-      case Opcodes.POP:
-        return new CfStackInstruction(Opcode.Pop);
-      case Opcodes.POP2:
-        return new CfStackInstruction(Opcode.Pop2);
-      case Opcodes.DUP:
-        return new CfStackInstruction(Opcode.Dup);
-      case Opcodes.DUP_X1:
-        return new CfStackInstruction(Opcode.DupX1);
-      case Opcodes.DUP_X2:
-        return new CfStackInstruction(Opcode.DupX2);
-      case Opcodes.DUP2:
-        return new CfStackInstruction(Opcode.Dup2);
-      case Opcodes.DUP2_X1:
-        return new CfStackInstruction(Opcode.Dup2X1);
-      case Opcodes.DUP2_X2:
-        return new CfStackInstruction(Opcode.Dup2X2);
-      case Opcodes.SWAP:
-        return new CfStackInstruction(Opcode.Swap);
-      default:
-        throw new Unreachable("Invalid opcode for CfStackInstruction");
+    if (opcode >= Opcodes.POP && opcode <= Opcodes.SWAP) {
+      return INSTRUCTIONS[opcode - Opcodes.POP];
     }
+    throw new Unreachable("Invalid opcode for CfStackInstruction");
   }
 
   public static CfStackInstruction popType(ValueType type) {
