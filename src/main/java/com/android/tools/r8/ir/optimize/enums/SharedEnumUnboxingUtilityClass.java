@@ -314,7 +314,7 @@ public class SharedEnumUnboxingUtilityClass extends EnumUnboxingUtilityClass {
         instructions.add(new CfArrayStore(MemberType.INT));
       }
       instructions.add(new CfStaticFieldWrite(valuesField.getReference()));
-      instructions.add(new CfReturnVoid());
+      instructions.add(CfReturnVoid.INSTANCE);
 
       int maxStack = 4;
       int maxLocals = 0;
@@ -366,7 +366,7 @@ public class SharedEnumUnboxingUtilityClass extends EnumUnboxingUtilityClass {
                   Opcodes.INVOKESTATIC, dexItemFactory.javaLangSystemMembers.arraycopy, false),
               // return result
               new CfLoad(ValueType.OBJECT, resultLocalSlot),
-              new CfReturn(ValueType.OBJECT)));
+              CfReturn.forType(ValueType.OBJECT)));
     }
 
     private static DexProgramClass findDeterministicContextType(Set<DexProgramClass> contexts) {

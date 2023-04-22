@@ -32,6 +32,15 @@ import org.objectweb.asm.Opcodes;
 
 public class CfReturn extends CfJumpInstruction {
 
+  // Order must be in sync with the declarations in ValueType
+  private static final CfReturn[] RETURNS = {
+          create(ValueType.OBJECT),
+          create(ValueType.INT),
+          create(ValueType.FLOAT),
+          create(ValueType.LONG),
+          create(ValueType.DOUBLE)
+  };
+
   private final ValueType type;
 
   public CfReturn(ValueType type) {
@@ -134,5 +143,13 @@ public class CfReturn extends CfJumpInstruction {
     return frame
         .popInitialized(appView, config, config.getCurrentContext().getReturnType())
         .clear();
+  }
+
+  public static CfReturn forType(ValueType type) {
+    return RETURNS[type.ordinal()];
+  }
+
+  private static CfReturn create(ValueType type) {
+    return new CfReturn(type);
   }
 }

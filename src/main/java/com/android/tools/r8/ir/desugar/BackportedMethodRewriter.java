@@ -2059,7 +2059,7 @@ public final class BackportedMethodRewriter implements CfInstructionDesugaring {
               false));
       instructions.add(new CfLoad(ValueType.fromDexType(factory.supplierType), 1));
       instructions.add(new CfInstanceFieldWrite(supplierField));
-      instructions.add(new CfReturnVoid());
+      instructions.add(CfReturnVoid.INSTANCE);
 
       builder.setDirectMethods(
           ImmutableList.of(
@@ -2083,7 +2083,7 @@ public final class BackportedMethodRewriter implements CfInstructionDesugaring {
       instructions.add(new CfLoad(ValueType.OBJECT, 0));
       instructions.add(new CfInstanceFieldRead(supplierField));
       instructions.add(new CfInvoke(Opcodes.INVOKEINTERFACE, factory.supplierMembers.get, true));
-      instructions.add(new CfReturn(ValueType.OBJECT));
+      instructions.add(CfReturn.forType(ValueType.OBJECT));
 
       builder.setVirtualMethods(
           ImmutableList.of(

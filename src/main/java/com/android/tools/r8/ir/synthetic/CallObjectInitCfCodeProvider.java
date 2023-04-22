@@ -29,7 +29,7 @@ public class CallObjectInitCfCodeProvider extends SyntheticCfCodeProvider {
     List<CfInstruction> instructions = new ArrayList<>();
     instructions.add(new CfLoad(ValueType.OBJECT, 0));
     instructions.add(new CfInvoke(Opcodes.INVOKESPECIAL, factory.objectMembers.constructor, false));
-    instructions.add(new CfReturnVoid());
+    instructions.add(CfReturnVoid.INSTANCE);
     return standardCfCodeFromInstructions(instructions);
   }
 }

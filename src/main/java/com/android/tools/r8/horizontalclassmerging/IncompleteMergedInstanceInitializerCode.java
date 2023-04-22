@@ -171,7 +171,7 @@ public class IncompleteMergedInstanceInitializerCode extends IncompleteHorizonta
         lens);
 
     // Return.
-    instructionBuilder.add(new CfReturnVoid());
+    instructionBuilder.add(CfReturnVoid.INSTANCE);
 
     return new CfCode(
         originalMethodReference.getHolderType(),
@@ -257,7 +257,7 @@ public class IncompleteMergedInstanceInitializerCode extends IncompleteHorizonta
     } else if (singleConstValue.isSingleNumberValue()) {
       if (type.isReferenceType()) {
         assert singleConstValue.isNull();
-        instructionBuilder.add(new CfConstNull());
+        instructionBuilder.add(CfConstNull.INSTANCE);
         return 1;
       } else {
         instructionBuilder.add(

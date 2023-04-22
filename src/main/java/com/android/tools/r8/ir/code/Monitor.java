@@ -134,7 +134,7 @@ public class Monitor extends Instruction {
 
   @Override
   public void buildCf(CfBuilder builder) {
-    builder.add(new CfMonitor(type), this);
+    builder.add(CfMonitor.forType(type), this);
   }
 
   @Override

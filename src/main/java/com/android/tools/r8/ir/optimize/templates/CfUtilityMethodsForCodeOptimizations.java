@@ -61,13 +61,13 @@ public final class CfUtilityMethodsForCodeOptimizations {
                     factory.createProto(factory.voidType),
                     factory.createString("<init>")),
                 false),
-            new CfThrow(),
+            CfThrow.INSTANCE,
             label2,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0},
                     new FrameType[] {FrameType.initializedNonNullReference(factory.objectType)})),
-            new CfReturnVoid(),
+            CfReturnVoid.INSTANCE,
             label3),
         ImmutableList.of(),
         ImmutableList.of());
@@ -91,7 +91,7 @@ public final class CfUtilityMethodsForCodeOptimizations {
                     factory.createProto(factory.voidType),
                     factory.createString("<init>")),
                 false),
-            new CfThrow()),
+            CfThrow.INSTANCE),
         ImmutableList.of(),
         ImmutableList.of());
   }
@@ -115,7 +115,7 @@ public final class CfUtilityMethodsForCodeOptimizations {
                     factory.createProto(factory.voidType),
                     factory.createString("<init>")),
                 false),
-            new CfThrow()),
+            CfThrow.INSTANCE),
         ImmutableList.of(),
         ImmutableList.of());
   }
@@ -138,7 +138,7 @@ public final class CfUtilityMethodsForCodeOptimizations {
                     factory.createProto(factory.voidType),
                     factory.createString("<init>")),
                 false),
-            new CfThrow()),
+            CfThrow.INSTANCE),
         ImmutableList.of(),
         ImmutableList.of());
   }
@@ -164,7 +164,7 @@ public final class CfUtilityMethodsForCodeOptimizations {
                     factory.createProto(factory.voidType, factory.stringType),
                     factory.createString("<init>")),
                 false),
-            new CfThrow(),
+            CfThrow.INSTANCE,
             label1),
         ImmutableList.of(),
         ImmutableList.of());
@@ -199,7 +199,7 @@ public final class CfUtilityMethodsForCodeOptimizations {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0},
                     new FrameType[] {FrameType.initializedNonNullReference(factory.objectType)})),
-            new CfReturnVoid(),
+            CfReturnVoid.INSTANCE,
             label3),
         ImmutableList.of(),
         ImmutableList.of());

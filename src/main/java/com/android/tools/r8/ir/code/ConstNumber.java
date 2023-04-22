@@ -174,7 +174,7 @@ public class ConstNumber extends ConstInstruction {
   @Override
   public void buildCf(CfBuilder builder) {
     if (outType().isObject()) {
-      builder.add(new CfConstNull(), this);
+      builder.add(CfConstNull.INSTANCE, this);
     } else {
       builder.add(new CfConstNumber(value, outType()), this);
     }

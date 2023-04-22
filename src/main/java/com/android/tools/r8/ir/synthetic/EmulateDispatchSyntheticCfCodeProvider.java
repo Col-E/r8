@@ -113,9 +113,9 @@ public class EmulateDispatchSyntheticCfCodeProvider extends SyntheticCfCodeProvi
 
   private void addReturn(List<CfInstruction> instructions) {
     if (interfaceMethod.proto.returnType == appView.dexItemFactory().voidType) {
-      instructions.add(new CfReturnVoid());
+      instructions.add(CfReturnVoid.INSTANCE);
     } else {
-      instructions.add(new CfReturn(ValueType.fromDexType(interfaceMethod.proto.returnType)));
+      instructions.add(CfReturn.forType(ValueType.fromDexType(interfaceMethod.proto.returnType)));
     }
   }
 }

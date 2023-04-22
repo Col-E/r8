@@ -79,7 +79,7 @@ public class GenerateLintFiles extends AbstractGenerateFiles {
   }
 
   private CfCode buildEmptyThrowingCfCode(DexMethod method) {
-    CfInstruction insn[] = {new CfConstNull(), new CfThrow()};
+    CfInstruction insn[] = {CfConstNull.INSTANCE, CfThrow.INSTANCE};
     return new CfCode(method.holder, 1, method.proto.parameters.size() + 1, Arrays.asList(insn));
   }
 

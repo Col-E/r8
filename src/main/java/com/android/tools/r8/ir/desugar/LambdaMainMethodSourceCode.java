@@ -277,7 +277,7 @@ final class LambdaMainMethodSourceCode {
         instructions.add(
             new CfStackInstruction(methodToCallReturnType.isWideType() ? Opcode.Pop2 : Opcode.Pop));
       }
-      instructions.add(new CfReturnVoid());
+      instructions.add(CfReturnVoid.INSTANCE);
     } else {
       // Either the new instance or the called-method result is on top of stack.
       assert constructorTarget || !methodToCallReturnType.isVoidType();
@@ -290,7 +290,7 @@ final class LambdaMainMethodSourceCode {
                   constructorTarget ? methodToCall.holder : methodToCallReturnType,
                   instructions,
                   factory));
-      instructions.add(new CfReturn(ValueType.fromDexType(enforcedReturnType)));
+      instructions.add(CfReturn.forType(ValueType.fromDexType(enforcedReturnType)));
     }
 
     ImmutableList<CfTryCatch> tryCatchRanges = ImmutableList.of();
@@ -326,7 +326,7 @@ final class LambdaMainMethodSourceCode {
             new CfNew(exceptionType),
             new CfStackInstruction(Opcode.Dup),
             new CfInvoke(Opcodes.INVOKESPECIAL, initMethod, false),
-            new CfThrow()),
+            CfThrow.INSTANCE),
         tryCatchRanges,
         localVariables);
   }

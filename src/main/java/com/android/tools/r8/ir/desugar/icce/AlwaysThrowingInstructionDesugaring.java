@@ -165,7 +165,7 @@ public class AlwaysThrowingInstructionDesugaring implements CfInstructionDesugar
       replacement.add(
           returnType.isPrimitiveType()
               ? new CfConstNumber(0, ValueType.fromDexType(returnType))
-              : new CfConstNull());
+              : CfConstNull.INSTANCE);
     } else {
       // If the return type is void, the stack may need an extra slot to fit the return type of
       // the call to the throwing method.

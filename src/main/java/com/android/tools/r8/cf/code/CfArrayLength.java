@@ -28,6 +28,8 @@ import org.objectweb.asm.Opcodes;
 
 public class CfArrayLength extends CfInstruction {
 
+  public static final CfArrayLength INSTANCE = new CfArrayLength();
+
   @Override
   public void write(
       AppView<?> appView,

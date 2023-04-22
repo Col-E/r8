@@ -387,7 +387,7 @@ public class NestBasedAccessDesugaring implements CfInstructionDesugaring {
                 // Ensure room on the stack for the extra null argument.
                 localStackAllocator.allocateLocalStack(1);
                 return ImmutableList.of(
-                    new CfConstNull(),
+                    CfConstNull.INSTANCE,
                     new CfInvoke(Opcodes.INVOKESPECIAL, bridgeAndTarget.getBridge(), false));
               }
 

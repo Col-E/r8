@@ -81,7 +81,7 @@ public class ServiceLoaderSourceCode {
                 factory.createString("iterator")),
             true),
         tryCatchEnd,
-        new CfReturn(ValueType.OBJECT));
+        CfReturn.forType(ValueType.OBJECT));
 
     // Build the exception handler.
     CfLabel tryCatchHandler = new CfLabel();
@@ -103,7 +103,7 @@ public class ServiceLoaderSourceCode {
                 factory.createProto(factory.voidType, factory.stringType, factory.throwableType),
                 factory.constructorMethodName),
             false),
-        new CfThrow());
+        CfThrow.INSTANCE);
 
     CfTryCatch cfTryCatch =
         new CfTryCatch(

@@ -74,7 +74,7 @@ public final class EnumUnboxingCfMethods {
                     factory.createProto(factory.voidType),
                     factory.createString("<init>")),
                 false),
-            new CfThrow(),
+            CfThrow.INSTANCE,
             label2,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
@@ -82,7 +82,7 @@ public final class EnumUnboxingCfMethods {
             new CfLoad(ValueType.INT, 0),
             new CfLoad(ValueType.INT, 1),
             new CfArithmeticBinop(CfArithmeticBinop.Opcode.Sub, NumericType.INT),
-            new CfReturn(ValueType.INT),
+            CfReturn.forType(ValueType.INT),
             label3),
         ImmutableList.of(),
         ImmutableList.of());
@@ -113,7 +113,7 @@ public final class EnumUnboxingCfMethods {
                     factory.createProto(factory.voidType),
                     factory.createString("<init>")),
                 false),
-            new CfThrow(),
+            CfThrow.INSTANCE,
             label2,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
@@ -133,7 +133,7 @@ public final class EnumUnboxingCfMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1}, new FrameType[] {FrameType.intType(), FrameType.intType()}),
                 new ArrayDeque<>(Arrays.asList(FrameType.intType()))),
-            new CfReturn(ValueType.INT),
+            CfReturn.forType(ValueType.INT),
             label5),
         ImmutableList.of(),
         ImmutableList.of());
@@ -162,14 +162,14 @@ public final class EnumUnboxingCfMethods {
                     factory.createProto(factory.voidType),
                     factory.createString("<init>")),
                 false),
-            new CfThrow(),
+            CfThrow.INSTANCE,
             label2,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(new int[] {0}, new FrameType[] {FrameType.intType()})),
             new CfLoad(ValueType.INT, 0),
             new CfConstNumber(1, ValueType.INT),
             new CfArithmeticBinop(CfArithmeticBinop.Opcode.Sub, NumericType.INT),
-            new CfReturn(ValueType.INT),
+            CfReturn.forType(ValueType.INT),
             label3),
         ImmutableList.of(),
         ImmutableList.of());
@@ -206,7 +206,7 @@ public final class EnumUnboxingCfMethods {
                     })),
             new CfLoad(ValueType.INT, 2),
             new CfLoad(ValueType.OBJECT, 1),
-            new CfArrayLength(),
+            CfArrayLength.INSTANCE,
             new CfIfCmp(IfType.GE, ValueType.INT, label5),
             label3,
             new CfLoad(ValueType.OBJECT, 1),
@@ -227,7 +227,7 @@ public final class EnumUnboxingCfMethods {
                       FrameType.initializedNonNullReference(factory.intArrayType)
                     })),
             new CfLoad(ValueType.OBJECT, 1),
-            new CfReturn(ValueType.OBJECT),
+            CfReturn.forType(ValueType.OBJECT),
             label6),
         ImmutableList.of(),
         ImmutableList.of());
@@ -256,11 +256,11 @@ public final class EnumUnboxingCfMethods {
                     factory.createProto(factory.voidType),
                     factory.createString("<init>")),
                 false),
-            new CfThrow(),
+            CfThrow.INSTANCE,
             label2,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(new int[] {0}, new FrameType[] {FrameType.intType()})),
-            new CfReturnVoid(),
+            CfReturnVoid.INSTANCE,
             label3),
         ImmutableList.of(),
         ImmutableList.of());
@@ -291,7 +291,7 @@ public final class EnumUnboxingCfMethods {
                     factory.createProto(factory.voidType, factory.stringType),
                     factory.createString("<init>")),
                 false),
-            new CfThrow(),
+            CfThrow.INSTANCE,
             label2,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
@@ -299,7 +299,7 @@ public final class EnumUnboxingCfMethods {
                     new FrameType[] {
                       FrameType.intType(), FrameType.initializedNonNullReference(factory.stringType)
                     })),
-            new CfReturnVoid(),
+            CfReturnVoid.INSTANCE,
             label3),
         ImmutableList.of(),
         ImmutableList.of());

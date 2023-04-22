@@ -130,7 +130,7 @@ public class UnrepresentableInDexInstructionRemover implements CfInstructionDesu
         return new CfConstNumber(0, ValueType.fromDexType(type));
       }
       assert type.isReferenceType();
-      return new CfConstNull();
+      return CfConstNull.INSTANCE;
     }
   }
 
@@ -265,7 +265,7 @@ public class UnrepresentableInDexInstructionRemover implements CfInstructionDesu
                 report(context);
                 Builder<CfInstruction> replacement = ImmutableList.builder();
                 invokeThrowingStub(methodProcessingContext, eventConsumer, replacement);
-                return replacement.add(new CfConstNull()).build();
+                return replacement.add(CfConstNull.INSTANCE).build();
               })
           .build();
     }
@@ -305,7 +305,7 @@ public class UnrepresentableInDexInstructionRemover implements CfInstructionDesu
                 report(context);
                 Builder<CfInstruction> replacement = ImmutableList.builder();
                 invokeThrowingStub(methodProcessingContext, eventConsumer, replacement);
-                return replacement.add(new CfConstNull()).build();
+                return replacement.add(CfConstNull.INSTANCE).build();
               })
           .build();
     }

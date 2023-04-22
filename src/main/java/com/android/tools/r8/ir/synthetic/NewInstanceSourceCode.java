@@ -32,7 +32,7 @@ public final class NewInstanceSourceCode extends SyntheticCfCodeProvider {
   public CfCode generateCfCode() {
     List<CfInstruction> instructions = new ArrayList<>();
     instructions.add(new CfNew(newInstanceType));
-    instructions.add(new CfReturnVoid());
+    instructions.add(CfReturnVoid.INSTANCE);
     return standardCfCodeFromInstructions(instructions);
   }
 }

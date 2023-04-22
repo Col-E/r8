@@ -84,7 +84,7 @@ public class EqualsCfCodeProvider extends SyntheticCfCodeProvider {
     // equals.
     instructions.add(
         new CfInvoke(Opcodes.INVOKEVIRTUAL, appView.dexItemFactory().objectMembers.equals, false));
-    instructions.add(new CfReturn(ValueType.INT));
+    instructions.add(CfReturn.forType(ValueType.INT));
     return standardCfCodeFromInstructions(instructions);
   }
 }
