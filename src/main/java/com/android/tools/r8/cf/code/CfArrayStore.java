@@ -29,7 +29,7 @@ import java.util.Arrays;
 
 public class CfArrayStore extends CfArrayLoadOrStore {
   private static final CfArrayStore[] INSTRUCTIONS = Arrays.stream(MemberType.values())
-          .map(CfArrayStore::new)
+          .map(x -> x != MemberType.INT_OR_FLOAT && x != MemberType.LONG_OR_DOUBLE ? new CfArrayStore(x) : null)
           .toArray(CfArrayStore[]::new);
 
   public CfArrayStore(MemberType type) {
@@ -118,6 +118,8 @@ public class CfArrayStore extends CfArrayLoadOrStore {
   }
 
   public static CfArrayStore forType(MemberType type) {
-    return INSTRUCTIONS[type.ordinal()];
+    CfArrayStore store = INSTRUCTIONS[type.ordinal()];
+    assert store != null : type;
+    return store;
   }
 }
