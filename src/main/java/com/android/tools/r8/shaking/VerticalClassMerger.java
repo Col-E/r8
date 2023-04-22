@@ -95,6 +95,8 @@ import it.unimi.dsi.fastutil.ints.Int2IntOpenHashMap;
 import it.unimi.dsi.fastutil.objects.Reference2BooleanOpenHashMap;
 import it.unimi.dsi.fastutil.objects.Reference2IntMap;
 import it.unimi.dsi.fastutil.objects.Reference2IntOpenHashMap;
+import org.jetbrains.annotations.NotNull;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -2297,6 +2299,12 @@ public class VerticalClassMerger {
             throw new Unreachable("Unexpected invocation type: " + type);
         }
       };
+    }
+
+    @NotNull
+    @Override
+    public Code copySubtype() {
+      return this;
     }
   }
 

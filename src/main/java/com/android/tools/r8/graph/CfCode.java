@@ -46,26 +46,22 @@ import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.RetracerForCodePrinting;
-import com.android.tools.r8.utils.structural.CompareToVisitor;
-import com.android.tools.r8.utils.structural.HashingVisitor;
-import com.android.tools.r8.utils.structural.StructuralItem;
-import com.android.tools.r8.utils.structural.StructuralMapping;
+import com.android.tools.r8.utils.structural.*;
 import com.google.common.base.Strings;
 import com.google.common.collect.Sets;
 import it.unimi.dsi.fastutil.ints.Int2IntArrayMap;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceArrayMap;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceMap;
-import java.util.ArrayList;
-import java.util.BitSet;
-import java.util.Collections;
-import java.util.List;
-import java.util.ListIterator;
-import java.util.Set;
+
+import java.util.*;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
+
+import org.jetbrains.annotations.NotNull;
 import org.objectweb.asm.Label;
 import org.objectweb.asm.MethodVisitor;
 
-public class CfCode extends Code implements CfWritableCode, StructuralItem<CfCode> {
+public class CfCode extends Code implements CfWritableCode, StructuralItem<CfCode>, Copyable<CfCode> {
 
   public static class LocalVariableInfo {
 
@@ -209,6 +205,60 @@ public class CfCode extends Code implements CfWritableCode, StructuralItem<CfCod
   @Override
   public CfCode self() {
     return this;
+  }
+
+  @NotNull
+  @Override
+  public Code copySubtype() {
+    return copy();
+  }
+
+  @NotNull
+  @Override
+  public CfCode copy() {
+    Map<CfInstruction, CfInstruction> instructionMapping = new IdentityHashMap<>();
+    Map<CfLabel, CfLabel> labelMapping = new IdentityHashMap<>();
+    List<CfInstruction> instructionsCopy = instructions == null ? null : new ArrayList<>(instructions.size());
+    List<CfTryCatch> tryCatchRangesCopy = tryCatchRanges == null ? null : new ArrayList<>(tryCatchRanges.size());
+    List<LocalVariableInfo> variablesCopy = localVariables == null ? null : new ArrayList<>(localVariables.size());
+
+    if (instructions != null) {
+      for (CfInstruction instruction : instructions) {
+        if (instruction instanceof CfLabel) {
+          CfLabel label = (CfLabel) instruction;
+          labelMapping.put(label, new CfLabel());
+        }
+      }
+
+      for (CfInstruction instruction : instructions) {
+        CfInstruction copy = instruction.copy(labelMapping);
+        instructionMapping.put(instruction, copy);
+        instructionsCopy.add(copy);
+      }
+    }
+
+    if (tryCatchRanges != null) {
+      for (CfTryCatch range : tryCatchRanges) {
+        CfLabel start = labelMapping.get(range.start);
+        CfLabel end = labelMapping.get(range.end);
+        List<CfLabel> targets = range.targets.stream()
+                .map(labelMapping::get)
+                .collect(Collectors.toList());
+        tryCatchRangesCopy.add(new CfTryCatch(start, end, new ArrayList<>(range.guards), targets));
+      }
+    }
+
+    if (localVariables != null) {
+      for (LocalVariableInfo variable : localVariables) {
+        CfLabel start = labelMapping.get(variable.start);
+        CfLabel end = labelMapping.get(variable.end);
+        variablesCopy.add(new LocalVariableInfo(variable.index, variable.local, start, end));
+      }
+    }
+
+    BytecodeMetadata<CfInstruction> metadataCopy = metadata.copyWithMapping(instructionMapping::get);
+    return new CfCode(originalHolder, maxStack, maxLocals, instructionsCopy, tryCatchRangesCopy, variablesCopy,
+            diagnosticPosition, metadataCopy);
   }
 
   @Override

@@ -23,7 +23,10 @@ import com.android.tools.r8.optimize.interfaces.analysis.CfAnalysisConfig;
 import com.android.tools.r8.optimize.interfaces.analysis.CfFrameState;
 import com.android.tools.r8.utils.structural.CompareToVisitor;
 import com.android.tools.r8.utils.structural.HashingVisitor;
+import org.jetbrains.annotations.NotNull;
 import org.objectweb.asm.MethodVisitor;
+
+import java.util.Map;
 
 public class CfPosition extends CfInstruction {
 
@@ -78,6 +81,15 @@ public class CfPosition extends CfInstruction {
   @Override
   public void print(CfPrinter printer) {
     printer.print(this);
+  }
+
+  @NotNull
+  @Override
+  public CfInstruction copy(@NotNull Map<CfLabel, CfLabel> labelMap) {
+    // Technically we want a copy of the position too since it references DexMethod
+    // but that should just be the method prototype information.
+    // If it's a true copy operation, I guess it should be fine to just pass it along.
+    return new CfPosition(labelMap.get(label), position);
   }
 
   public Position getPosition() {

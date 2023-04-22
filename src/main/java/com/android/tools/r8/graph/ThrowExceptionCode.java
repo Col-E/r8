@@ -22,11 +22,14 @@ import com.android.tools.r8.ir.conversion.LensCodeRewriterUtils;
 import com.android.tools.r8.ir.conversion.MethodConversionOptions.MutableMethodConversionOptions;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.RetracerForCodePrinting;
+import com.android.tools.r8.utils.structural.Copyable;
 import com.android.tools.r8.utils.structural.HashingVisitor;
+import org.jetbrains.annotations.NotNull;
+
 import java.nio.ShortBuffer;
 import java.util.Objects;
 
-public class ThrowExceptionCode extends Code implements DexWritableCode {
+public class ThrowExceptionCode extends Code implements DexWritableCode, Copyable<ThrowExceptionCode> {
 
   private final DexType exceptionType;
 
@@ -242,5 +245,17 @@ public class ThrowExceptionCode extends Code implements DexWritableCode {
   @Override
   public String toString(DexEncodedMethod method, RetracerForCodePrinting retracer) {
     return "ThrowExceptionCode";
+  }
+
+  @NotNull
+  @Override
+  public ThrowExceptionCode copy() {
+    return this;
+  }
+
+  @NotNull
+  @Override
+  public Code copySubtype() {
+    return copy();
   }
 }

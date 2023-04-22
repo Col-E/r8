@@ -42,14 +42,11 @@ import com.android.tools.r8.utils.ArrayUtils;
 import com.android.tools.r8.utils.DexDebugUtils.PositionInfo;
 import com.android.tools.r8.utils.RetracerForCodePrinting;
 import com.android.tools.r8.utils.StringUtils;
-import com.android.tools.r8.utils.structural.Equatable;
-import com.android.tools.r8.utils.structural.HashCodeVisitor;
-import com.android.tools.r8.utils.structural.HashingVisitor;
-import com.android.tools.r8.utils.structural.StructuralItem;
-import com.android.tools.r8.utils.structural.StructuralMapping;
-import com.android.tools.r8.utils.structural.StructuralSpecification;
+import com.android.tools.r8.utils.structural.*;
 import com.google.common.base.Strings;
 import it.unimi.dsi.fastutil.ints.Int2IntMap;
+import org.jetbrains.annotations.NotNull;
+
 import java.nio.ShortBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -63,7 +60,7 @@ import java.util.Set;
 import java.util.function.Consumer;
 
 // DexCode corresponds to code item in dalvik/dex-format.html
-public class DexCode extends Code implements DexWritableCode, StructuralItem<DexCode> {
+public class DexCode extends Code implements DexWritableCode, StructuralItem<DexCode>, Copyable<DexCode> {
 
   public static final String FAKE_THIS_PREFIX = "_";
   public static final String FAKE_THIS_SUFFIX = "this";
@@ -846,6 +843,21 @@ public class DexCode extends Code implements DexWritableCode, StructuralItem<Dex
         positionConsumer.accept(event.asSetPositionFrame().getPosition());
       }
     }
+  }
+
+  @NotNull
+  @Override
+  public Code copySubtype() {
+    return copy();
+  }
+
+  @NotNull
+  @Override
+  public DexCode copy() {
+    // Unlike CfCode, dex instructions don't have managed labels.
+    // Instead, they all use int offsets. So there is no copy operation
+    // required for the DexInstruction types.
+    return new DexCode(this);
   }
 
   public static class Try extends DexItem implements StructuralItem<Try> {

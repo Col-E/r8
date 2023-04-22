@@ -23,12 +23,11 @@ import com.android.tools.r8.synthesis.SyntheticMarker;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.OptionalBool;
 import com.android.tools.r8.utils.TraversalContinuation;
-import com.android.tools.r8.utils.structural.Ordered;
-import com.android.tools.r8.utils.structural.StructuralItem;
-import com.android.tools.r8.utils.structural.StructuralMapping;
-import com.android.tools.r8.utils.structural.StructuralSpecification;
+import com.android.tools.r8.utils.structural.*;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
+import org.jetbrains.annotations.NotNull;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -151,6 +150,26 @@ public class DexProgramClass extends DexClass
         skipNameValidationForTesting,
         checksumSupplier,
         null);
+  }
+
+  @NotNull
+  public ProgramOrClasspathClass copyClass() {
+    return copy();
+  }
+
+  @NotNull
+  @Override
+  public DexProgramClass copy() {
+    DexEncodedField[] staticFieldsCopy = staticFields().toArray(DexEncodedField.EMPTY_ARRAY);
+    DexEncodedField[] instanceFieldsCopy = instanceFields().toArray(DexEncodedField.EMPTY_ARRAY);
+    DexEncodedMethod[] directMethodsCopy = Copyable.copyArray(Iterables.toArray(directMethods(), DexEncodedMethod.class), DexEncodedMethod[]::new);
+    DexEncodedMethod[] virtualMethodsCopy = Copyable.copyArray(Iterables.toArray(virtualMethods(), DexEncodedMethod.class), DexEncodedMethod[]::new);
+    MethodCollectionFactory methodCopyFactory = MethodCollectionFactory.fromMethods(directMethodsCopy, virtualMethodsCopy);
+    return new DexProgramClass(type, originKind, origin, accessFlags, superType, interfaces.copy(), sourceFile,
+            getNestHostClassAttribute(), getNestMembersClassAttributes(), getPermittedSubclassAttributes(),
+            getRecordComponents(), getEnclosingMethodAttribute(), getInnerClasses(), classSignature,
+            annotations().copy(), staticFieldsCopy, instanceFieldsCopy, methodCopyFactory, false,
+            checksumSupplier, syntheticMarker);
   }
 
   public static DexProgramClass createMockClassForTesting(DexItemFactory dexItemFactory) {

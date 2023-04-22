@@ -23,6 +23,8 @@ import com.android.tools.r8.ir.conversion.MethodConversionOptions.ThrowingMethod
 import com.android.tools.r8.ir.conversion.SourceCode;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.RetracerForCodePrinting;
+import org.jetbrains.annotations.NotNull;
+
 import java.util.function.Consumer;
 
 public abstract class AbstractSynthesizedCode extends Code {
@@ -38,6 +40,12 @@ public abstract class AbstractSynthesizedCode extends Code {
   @Override
   public boolean isEmptyVoidMethod() {
     return false;
+  }
+
+  @NotNull
+  @Override
+  public Code copySubtype() {
+    return this;
   }
 
   @Override

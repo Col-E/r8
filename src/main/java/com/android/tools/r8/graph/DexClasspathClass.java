@@ -13,9 +13,13 @@ import com.android.tools.r8.graph.GenericSignature.ClassSignature;
 import com.android.tools.r8.graph.MethodCollection.MethodCollectionFactory;
 import com.android.tools.r8.kotlin.KotlinClassLevelInfo;
 import com.android.tools.r8.origin.Origin;
+import com.android.tools.r8.utils.structural.Copyable;
 import com.android.tools.r8.utils.structural.StructuralItem;
 import com.android.tools.r8.utils.structural.StructuralMapping;
 import com.android.tools.r8.utils.structural.StructuralSpecification;
+import com.google.common.collect.Iterables;
+import org.jetbrains.annotations.NotNull;
+
 import java.util.List;
 import java.util.Set;
 import java.util.function.Consumer;
@@ -24,7 +28,6 @@ import java.util.function.Supplier;
 
 public class DexClasspathClass extends DexClass
     implements ClasspathClass, Supplier<DexClasspathClass>, StructuralItem<DexClasspathClass> {
-
   public DexClasspathClass(
       DexType type,
       ProgramResource.Kind kind,
@@ -67,9 +70,29 @@ public class DexClasspathClass extends DexClass
     assert kind == Kind.CF : "Invalid kind " + kind + " for class-path class " + type;
   }
 
+  @NotNull
+  @Override
+  public ProgramOrClasspathClass copyClass() {
+    return copy();
+  }
+
+  @NotNull
+  @Override
+  public DexClasspathClass copy() {
+    DexEncodedField[] staticFieldsCopy = staticFields().toArray(DexEncodedField.EMPTY_ARRAY);
+    DexEncodedField[] instanceFieldsCopy = instanceFields().toArray(DexEncodedField.EMPTY_ARRAY);
+    DexEncodedMethod[] directMethodsCopy = Copyable.copyArray(Iterables.toArray(directMethods(), DexEncodedMethod.class), DexEncodedMethod[]::new);
+    DexEncodedMethod[] virtualMethodsCopy = Copyable.copyArray(Iterables.toArray(virtualMethods(), DexEncodedMethod.class), DexEncodedMethod[]::new);
+    MethodCollectionFactory methodCopyFactory = MethodCollectionFactory.fromMethods(directMethodsCopy, virtualMethodsCopy);
+    return new DexClasspathClass(type, Kind.CF, origin, accessFlags, superType, interfaces.copy(), sourceFile,
+            getNestHostClassAttribute(), getNestMembersClassAttributes(), getPermittedSubclassAttributes(),
+            getRecordComponents(), getEnclosingMethodAttribute(), getInnerClasses(), classSignature,
+            annotations().copy(), staticFieldsCopy, instanceFieldsCopy, methodCopyFactory, false);
+  }
+
   @Override
   public void accept(
-      Consumer<DexProgramClass> programClassConsumer,
+          Consumer<DexProgramClass> programClassConsumer,
       Consumer<DexClasspathClass> classpathClassConsumer,
       Consumer<DexLibraryClass> libraryClassConsumer) {
     classpathClassConsumer.accept(this);

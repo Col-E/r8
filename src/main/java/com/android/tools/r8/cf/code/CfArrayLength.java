@@ -23,8 +23,11 @@ import com.android.tools.r8.optimize.interfaces.analysis.CfAnalysisConfig;
 import com.android.tools.r8.optimize.interfaces.analysis.CfFrameState;
 import com.android.tools.r8.utils.structural.CompareToVisitor;
 import com.android.tools.r8.utils.structural.HashingVisitor;
+import org.jetbrains.annotations.NotNull;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
+
+import java.util.Map;
 
 public class CfArrayLength extends CfInstruction {
 
@@ -65,6 +68,12 @@ public class CfArrayLength extends CfInstruction {
   @Override
   public void print(CfPrinter printer) {
     printer.print(this);
+  }
+
+  @NotNull
+  @Override
+  public CfInstruction copy(@NotNull Map<CfLabel, CfLabel> labelMap) {
+    return this;
   }
 
   @Override

@@ -6,9 +6,12 @@ package com.android.tools.r8.graph;
 import com.android.tools.r8.dex.IndexedItemCollection;
 import com.android.tools.r8.dex.MixedSectionCollection;
 import com.android.tools.r8.utils.ArrayUtils;
+import com.android.tools.r8.utils.structural.Copyable;
 import com.android.tools.r8.utils.structural.StructuralItem;
 import com.android.tools.r8.utils.structural.StructuralMapping;
 import com.android.tools.r8.utils.structural.StructuralSpecification;
+import org.jetbrains.annotations.NotNull;
+
 import java.util.Arrays;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -39,7 +42,7 @@ import java.util.function.Predicate;
  * is missing in the ParameterAnnotations attribute.
  */
 public class ParameterAnnotationsList extends DexItem
-    implements StructuralItem<ParameterAnnotationsList> {
+    implements StructuralItem<ParameterAnnotationsList>, Copyable<ParameterAnnotationsList> {
 
   private static final ParameterAnnotationsList EMPTY_PARAMETER_ANNOTATIONS_LIST =
       new ParameterAnnotationsList();
@@ -258,5 +261,11 @@ public class ParameterAnnotationsList extends DexItem
     return rewritten != values
         ? ParameterAnnotationsList.create(rewritten, missingParameterAnnotations)
         : this;
+  }
+
+  @NotNull
+  @Override
+  public ParameterAnnotationsList copy() {
+    return new ParameterAnnotationsList(Arrays.copyOf(values, values.length), missingParameterAnnotations);
   }
 }

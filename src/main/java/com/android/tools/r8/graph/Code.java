@@ -17,7 +17,10 @@ import com.android.tools.r8.ir.code.Position.PositionBuilder;
 import com.android.tools.r8.ir.conversion.MethodConversionOptions.MutableMethodConversionOptions;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.RetracerForCodePrinting;
+import com.android.tools.r8.utils.structural.Copyable;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceMap;
+
+import javax.annotation.Nonnull;
 import java.util.function.Consumer;
 
 public abstract class Code extends CachedHashValueDexItem {
@@ -210,6 +213,9 @@ public abstract class Code extends CachedHashValueDexItem {
     }
     return oldPosition.replacePosition(outermostCaller, positionBuilder.build());
   }
+
+  @Nonnull
+  public abstract Code copySubtype();
 
   @Deprecated()
   // TODO(b/261971803): When having complete control over the positions we should not need this.

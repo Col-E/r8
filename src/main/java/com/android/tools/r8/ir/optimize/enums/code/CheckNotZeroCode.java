@@ -22,6 +22,7 @@ import com.android.tools.r8.ir.optimize.enums.EnumUnboxerImpl;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.IteratorUtils;
 import com.android.tools.r8.utils.RetracerForCodePrinting;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * A special code object used by enum unboxing that supplies IR from an existing method
@@ -110,6 +111,12 @@ public class CheckNotZeroCode extends Code {
   @Override
   public boolean isEmptyVoidMethod() {
     throw new Unreachable();
+  }
+
+  @NotNull
+  @Override
+  public Code copySubtype() {
+    return this;
   }
 
   @Override

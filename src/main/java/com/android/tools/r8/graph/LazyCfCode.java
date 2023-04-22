@@ -90,6 +90,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.BiFunction;
 import java.util.function.Supplier;
+
+import org.jetbrains.annotations.NotNull;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.ConstantDynamic;
@@ -183,6 +185,12 @@ public class LazyCfCode extends Code {
   @Override
   public Code getCodeAsInlining(DexMethod caller, DexEncodedMethod callee, DexItemFactory factory) {
     return asCfCode().getCodeAsInlining(caller, callee, factory);
+  }
+
+  @NotNull
+  @Override
+  public Code copySubtype() {
+    return asCfCode().copySubtype();
   }
 
   public static class DebugParsingOptions {

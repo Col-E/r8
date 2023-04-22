@@ -81,6 +81,8 @@ import com.android.tools.r8.utils.collections.ProgramMethodSet;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
+import org.jetbrains.annotations.NotNull;
+
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -1795,6 +1797,12 @@ public class OutlinerImpl extends Outliner {
     @Override
     public boolean isEmptyVoidMethod() {
       return false;
+    }
+
+    @NotNull
+    @Override
+    public Code copySubtype() {
+      return this;
     }
 
     @Override

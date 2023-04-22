@@ -17,6 +17,7 @@ import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.conversion.MethodConversionOptions.MutableMethodConversionOptions;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.RetracerForCodePrinting;
+import org.jetbrains.annotations.NotNull;
 
 public abstract class IncompleteHorizontalClassMergerCode extends Code {
 
@@ -28,6 +29,12 @@ public abstract class IncompleteHorizontalClassMergerCode extends Code {
   @Override
   public boolean isIncompleteHorizontalClassMergerCode() {
     return true;
+  }
+
+  @NotNull
+  @Override
+  public Code copySubtype() {
+    return this;
   }
 
   public abstract CfCode toCfCode(

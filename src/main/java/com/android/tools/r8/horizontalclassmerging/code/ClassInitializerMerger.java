@@ -42,6 +42,8 @@ import com.android.tools.r8.utils.ListUtils;
 import com.android.tools.r8.utils.RetracerForCodePrinting;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Sets;
+import org.jetbrains.annotations.NotNull;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.ListIterator;
@@ -293,6 +295,12 @@ public class ClassInitializerMerger {
     @Override
     public boolean isEmptyVoidMethod() {
       throw new Unreachable();
+    }
+
+    @NotNull
+    @Override
+    public Code copySubtype() {
+      return this;
     }
 
     @Override

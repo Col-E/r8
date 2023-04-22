@@ -17,6 +17,8 @@ import com.android.tools.r8.utils.Timing;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Sets;
+import org.jetbrains.annotations.NotNull;
+
 import java.util.Objects;
 import java.util.List;
 import java.util.Map;
@@ -49,8 +51,23 @@ public class LazyLoadedDexApplication extends DexApplication {
     this.libraryClasses = libraryClasses;
   }
 
+  @NotNull
   @Override
-  List<DexProgramClass> programClasses() {
+  public LazyLoadedDexApplication copy() {
+    ProgramClassConflictResolver resolver =
+            options.programClassConflictResolver == null
+                    ? ProgramClassCollection.defaultConflictResolver(options.reporter)
+                    : options.programClassConflictResolver;
+    ProgramClassCollection programClassesCopy = ProgramClassCollection.create(programClasses.getAllClasses().stream()
+            .map(DexProgramClass::copy)
+            .collect(Collectors.toList()), resolver);
+    return new LazyLoadedDexApplication(getProguardMap(), getFlags(),
+            programClassesCopy, dataResourceProviders, classpathClasses, libraryClasses,
+            options, highestSortingString, timing);
+  }
+
+  @Override
+  public List<DexProgramClass> programClasses() {
     programClasses.forceLoad(t -> true);
     return programClasses.getAllClasses();
   }

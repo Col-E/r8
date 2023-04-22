@@ -21,11 +21,8 @@ import com.android.tools.r8.ir.conversion.IRBuilder;
 import com.android.tools.r8.ir.conversion.LensCodeRewriterUtils;
 import com.android.tools.r8.utils.RetracerForCodePrinting;
 import com.android.tools.r8.utils.StringUtils;
-import com.android.tools.r8.utils.structural.CompareToVisitor;
-import com.android.tools.r8.utils.structural.Equatable;
-import com.android.tools.r8.utils.structural.HashingVisitor;
-import com.android.tools.r8.utils.structural.StructuralItem;
-import com.android.tools.r8.utils.structural.StructuralMapping;
+import com.android.tools.r8.utils.structural.*;
+
 import java.nio.ShortBuffer;
 import java.util.function.BiPredicate;
 

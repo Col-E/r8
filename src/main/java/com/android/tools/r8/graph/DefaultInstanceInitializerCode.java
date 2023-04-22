@@ -41,6 +41,8 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
+
+import org.jetbrains.annotations.NotNull;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 
@@ -290,6 +292,12 @@ public class DefaultInstanceInitializerCode extends Code
   @Override
   public boolean isEmptyVoidMethod() {
     return false;
+  }
+
+  @NotNull
+  @Override
+  public Code copySubtype() {
+    return this;
   }
 
   @Override

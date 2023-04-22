@@ -31,6 +31,8 @@ import com.google.common.collect.ImmutableList;
 import java.nio.ShortBuffer;
 import java.util.List;
 import java.util.function.Consumer;
+
+import org.jetbrains.annotations.NotNull;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 
@@ -190,6 +192,12 @@ public class ThrowNullCode extends Code implements CfWritableCode, DexWritableCo
   @Override
   public boolean isEmptyVoidMethod() {
     return false;
+  }
+
+  @NotNull
+  @Override
+  public Code copySubtype() {
+    return this;
   }
 
   @Override

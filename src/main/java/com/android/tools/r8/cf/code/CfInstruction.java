@@ -30,9 +30,12 @@ import com.android.tools.r8.utils.TraversalContinuation;
 import com.android.tools.r8.utils.structural.CompareToVisitor;
 import com.android.tools.r8.utils.structural.HashingVisitor;
 import java.util.ListIterator;
+import java.util.Map;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import org.objectweb.asm.MethodVisitor;
+
+import javax.annotation.Nonnull;
 
 public abstract class CfInstruction implements CfOrDexInstruction {
 
@@ -47,6 +50,9 @@ public abstract class CfInstruction implements CfOrDexInstruction {
       MethodVisitor visitor);
 
   public abstract void print(CfPrinter printer);
+
+  @Nonnull
+  public abstract CfInstruction copy(@Nonnull Map<CfLabel, CfLabel> labelMap);
 
   /**
    * Base compare id for each instruction.

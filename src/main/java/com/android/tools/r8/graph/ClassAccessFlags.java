@@ -6,6 +6,8 @@ package com.android.tools.r8.graph;
 import com.android.tools.r8.cf.CfVersion;
 import com.android.tools.r8.dex.Constants;
 import com.google.common.collect.ImmutableList;
+import org.jetbrains.annotations.NotNull;
+
 import java.util.List;
 import java.util.function.BooleanSupplier;
 
@@ -77,6 +79,7 @@ public class ClassAccessFlags extends AccessFlags<ClassAccessFlags> {
     return new ClassAccessFlags(access & CF_FLAGS);
   }
 
+  @NotNull
   @Override
   public ClassAccessFlags copy() {
     return new ClassAccessFlags(originalFlags, modifiedFlags);

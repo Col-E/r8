@@ -20,6 +20,9 @@ import com.android.tools.r8.ir.optimize.InliningConstraints;
 import com.android.tools.r8.optimize.interfaces.analysis.CfAnalysisConfig;
 import com.android.tools.r8.optimize.interfaces.analysis.CfFrameState;
 import java.util.ListIterator;
+import java.util.Map;
+
+import org.jetbrains.annotations.NotNull;
 import org.objectweb.asm.Opcodes;
 
 public class CfInstanceFieldRead extends CfFieldInstruction implements CfOrDexInstanceFieldRead {
@@ -55,6 +58,12 @@ public class CfInstanceFieldRead extends CfFieldInstruction implements CfOrDexIn
   @Override
   public CfFieldInstruction createWithField(DexField otherField) {
     return new CfInstanceFieldRead(otherField);
+  }
+
+  @NotNull
+  @Override
+  public CfInstruction copy(@NotNull Map<CfLabel, CfLabel> labelMap) {
+    return this;
   }
 
   @Override

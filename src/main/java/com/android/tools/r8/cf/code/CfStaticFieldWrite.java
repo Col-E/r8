@@ -19,6 +19,9 @@ import com.android.tools.r8.ir.optimize.InliningConstraints;
 import com.android.tools.r8.optimize.interfaces.analysis.CfAnalysisConfig;
 import com.android.tools.r8.optimize.interfaces.analysis.CfFrameState;
 import java.util.ListIterator;
+import java.util.Map;
+
+import org.jetbrains.annotations.NotNull;
 import org.objectweb.asm.Opcodes;
 
 public class CfStaticFieldWrite extends CfFieldInstruction {
@@ -53,6 +56,12 @@ public class CfStaticFieldWrite extends CfFieldInstruction {
 
   @Override
   public CfStaticFieldWrite asStaticFieldPut() {
+    return this;
+  }
+
+  @NotNull
+  @Override
+  public CfInstruction copy(@NotNull Map<CfLabel, CfLabel> labelMap) {
     return this;
   }
 

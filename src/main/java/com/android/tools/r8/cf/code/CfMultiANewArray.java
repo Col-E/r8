@@ -28,6 +28,9 @@ import com.android.tools.r8.utils.structural.CompareToVisitor;
 import com.android.tools.r8.utils.structural.HashingVisitor;
 import com.android.tools.r8.utils.structural.StructuralSpecification;
 import java.util.ListIterator;
+import java.util.Map;
+
+import org.jetbrains.annotations.NotNull;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 
@@ -107,6 +110,12 @@ public class CfMultiANewArray extends CfInstruction implements CfTypeInstruction
   @Override
   public void print(CfPrinter printer) {
     printer.print(this);
+  }
+
+  @NotNull
+  @Override
+  public CfInstruction copy(@NotNull Map<CfLabel, CfLabel> labelMap) {
+    return this;
   }
 
   @Override

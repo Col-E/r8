@@ -12,10 +12,13 @@ import com.android.tools.r8.graph.DexValue.DexValueInt;
 import com.android.tools.r8.graph.DexValue.DexValueString;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.utils.ArrayUtils;
+import com.android.tools.r8.utils.structural.Copyable;
 import com.android.tools.r8.utils.structural.StructuralItem;
 import com.android.tools.r8.utils.structural.StructuralMapping;
 import com.android.tools.r8.utils.structural.StructuralSpecification;
 import com.google.common.collect.Sets;
+import org.jetbrains.annotations.NotNull;
+
 import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
@@ -25,7 +28,7 @@ import java.util.function.Predicate;
 import java.util.stream.Stream;
 
 public class DexAnnotationSet extends CachedHashValueDexItem
-    implements StructuralItem<DexAnnotationSet> {
+    implements StructuralItem<DexAnnotationSet>, Copyable<DexAnnotationSet> {
 
   public static final DexAnnotationSet[] EMPTY_ARRAY = {};
 
@@ -258,5 +261,13 @@ public class DexAnnotationSet extends CachedHashValueDexItem
   @Override
   public String toString() {
     return Arrays.toString(annotations);
+  }
+
+  @NotNull
+  @Override
+  public DexAnnotationSet copy() {
+    DexAnnotationSet copy = new DexAnnotationSet(Arrays.copyOf(annotations, annotations.length));
+    copy.sorted = sorted;
+    return copy;
   }
 }

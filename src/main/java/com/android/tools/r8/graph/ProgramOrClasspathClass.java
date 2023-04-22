@@ -4,7 +4,13 @@
 
 package com.android.tools.r8.graph;
 
+import javax.annotation.Nonnull;
+
 public interface ProgramOrClasspathClass
     extends ClassDefinition, ProgramOrClasspathDefinition, ClassResolutionResult {
+
+  @Nonnull
+  ProgramOrClasspathClass copyClass();
+
   DexClass asDexClass();
 }

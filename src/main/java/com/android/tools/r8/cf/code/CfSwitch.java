@@ -28,7 +28,11 @@ import com.android.tools.r8.utils.structural.CompareToVisitor;
 import com.android.tools.r8.utils.structural.HashingVisitor;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.function.BiFunction;
+import java.util.stream.Collectors;
+
+import org.jetbrains.annotations.NotNull;
 import org.objectweb.asm.Label;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
@@ -162,6 +166,15 @@ public class CfSwitch extends CfJumpInstruction {
   @Override
   public void print(CfPrinter printer) {
     printer.print(this);
+  }
+
+  @NotNull
+  @Override
+  public CfInstruction copy(@NotNull Map<CfLabel, CfLabel> labelMap) {
+    List<CfLabel> targetsCopy = targets.stream()
+            .map(labelMap::get)
+            .collect(Collectors.toList());
+    return new CfSwitch(kind, labelMap.get(defaultTarget), keys, targetsCopy);
   }
 
   @Override

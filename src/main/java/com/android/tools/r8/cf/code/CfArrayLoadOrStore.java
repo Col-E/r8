@@ -11,6 +11,9 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.code.MemberType;
 import com.android.tools.r8.utils.structural.CompareToVisitor;
 import com.android.tools.r8.utils.structural.HashingVisitor;
+import org.jetbrains.annotations.NotNull;
+
+import java.util.Map;
 
 public abstract class CfArrayLoadOrStore extends CfInstruction {
 
@@ -29,6 +32,12 @@ public abstract class CfArrayLoadOrStore extends CfInstruction {
   @Override
   public boolean canThrow() {
     return true;
+  }
+
+  @NotNull
+  @Override
+  public CfInstruction copy(@NotNull Map<CfLabel, CfLabel> labelMap) {
+    return this;
   }
 
   DexType getExpectedArrayType(DexItemFactory dexItemFactory) {

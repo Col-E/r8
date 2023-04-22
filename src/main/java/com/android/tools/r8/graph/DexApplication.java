@@ -12,8 +12,10 @@ import com.android.tools.r8.naming.ClassNameMapper;
 import com.android.tools.r8.synthesis.SyntheticDefinitionsProvider;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.Timing;
+import com.android.tools.r8.utils.structural.Copyable;
 import com.google.common.collect.ImmutableList;
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -24,7 +26,7 @@ import java.util.HashMap;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 
-public abstract class DexApplication implements DexDefinitionSupplier {
+public abstract class DexApplication implements DexDefinitionSupplier, Copyable<DexApplication> {
 
   public final ImmutableList<DataResourceProvider> dataResourceProviders;
 
@@ -221,6 +223,13 @@ public abstract class DexApplication implements DexDefinitionSupplier {
     public synchronized T setProguardMap(ClassNameMapper proguardMap) {
       assert this.proguardMap == null;
       this.proguardMap = proguardMap;
+      return self();
+    }
+
+    public synchronized T removeProgramClasses(@Nonnull Collection<String> typeNames) {
+      for (String type : typeNames) {
+        this.programClasses.remove(type);
+      }
       return self();
     }
 

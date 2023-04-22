@@ -18,6 +18,8 @@ import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Sets;
+import org.jetbrains.annotations.NotNull;
+
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.IdentityHashMap;
@@ -26,6 +28,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Consumer;
+import java.util.stream.Collector;
+import java.util.stream.Collectors;
 
 public class DirectMappedDexApplication extends DexApplication {
 
@@ -57,6 +61,22 @@ public class DirectMappedDexApplication extends DexApplication {
     this.libraryClasses = libraryClasses;
     this.programClasses = programClasses;
     this.classpathClasses = classpathClasses;
+  }
+
+  @NotNull
+  @Override
+  public DirectMappedDexApplication copy() {
+    ImmutableMap<DexType, ProgramOrClasspathClass> programOrClasspathClassesCopy = ImmutableMap.copyOf(programOrClasspathClasses.entrySet().stream()
+            .collect(Collectors.toMap(Map.Entry::getKey, e -> e.getValue().copyClass())));
+    ImmutableMap<DexType, DexLibraryClass> libraryClassesCopy = ImmutableMap.copyOf(libraryClasses.entrySet().stream()
+            .collect(Collectors.toMap(Map.Entry::getKey, e -> e.getValue().copy())));
+    ImmutableCollection<DexProgramClass> programClassesCopy = ImmutableList.copyOf(programClasses.stream()
+            .map(DexProgramClass::copy).collect(Collectors.toList()));
+    ImmutableCollection<DexClasspathClass> classpathClassesCopy = ImmutableList.copyOf(classpathClasses.stream()
+            .map(DexClasspathClass::copy).collect(Collectors.toList()));
+    return new DirectMappedDexApplication(getProguardMap(), getFlags(),
+            programOrClasspathClassesCopy, libraryClassesCopy, programClassesCopy, classpathClassesCopy,
+            dataResourceProviders, options, highestSortingString, timing);
   }
 
   public Collection<DexClasspathClass> classpathClasses() {

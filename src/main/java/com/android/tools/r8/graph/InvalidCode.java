@@ -8,6 +8,7 @@ import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.conversion.MethodConversionOptions.MutableMethodConversionOptions;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.RetracerForCodePrinting;
+import org.jetbrains.annotations.NotNull;
 
 public class InvalidCode extends Code {
 
@@ -64,6 +65,12 @@ public class InvalidCode extends Code {
   @Override
   public boolean isEmptyVoidMethod() {
     throw new Unreachable();
+  }
+
+  @NotNull
+  @Override
+  public Code copySubtype() {
+    return this;
   }
 
   @Override

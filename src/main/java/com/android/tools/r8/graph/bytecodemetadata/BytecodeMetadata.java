@@ -5,10 +5,10 @@
 package com.android.tools.r8.graph.bytecodemetadata;
 
 import com.android.tools.r8.ir.code.Instruction;
-import java.util.Collections;
-import java.util.IdentityHashMap;
-import java.util.Map;
-import java.util.Objects;
+
+import javax.annotation.Nonnull;
+import java.util.*;
+import java.util.function.Function;
 
 /**
  * A collection of information that pertains to the instructions in a piece of {@link
@@ -23,6 +23,15 @@ public class BytecodeMetadata<I> {
   BytecodeMetadata(Map<I, BytecodeInstructionMetadata> backing) {
     assert backing.values().stream().noneMatch(Objects::isNull);
     this.backing = backing;
+  }
+
+  @Nonnull
+  public BytecodeMetadata<I> copyWithMapping(@Nonnull Function<I, I> keyMapper) {
+    Map<I, BytecodeInstructionMetadata> map = new HashMap<>();
+    for (Map.Entry<I, BytecodeInstructionMetadata> entry : backing.entrySet()) {
+      map.put(keyMapper.apply(entry.getKey()), entry.getValue());
+    }
+    return new BytecodeMetadata<>(map);
   }
 
   public static <I> Builder<I> builder(BytecodeMetadataProvider bytecodeMetadataProvider) {

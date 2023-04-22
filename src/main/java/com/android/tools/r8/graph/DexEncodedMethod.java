@@ -65,12 +65,7 @@ import com.android.tools.r8.utils.ConsumerUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.OptionalBool;
 import com.android.tools.r8.utils.RetracerForCodePrinting;
-import com.android.tools.r8.utils.structural.CompareToVisitor;
-import com.android.tools.r8.utils.structural.HashingVisitor;
-import com.android.tools.r8.utils.structural.Ordered;
-import com.android.tools.r8.utils.structural.StructuralItem;
-import com.android.tools.r8.utils.structural.StructuralMapping;
-import com.android.tools.r8.utils.structural.StructuralSpecification;
+import com.android.tools.r8.utils.structural.*;
 import com.google.common.collect.ImmutableList;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceArrayMap;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceMap;
@@ -81,10 +76,12 @@ import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
+
+import org.jetbrains.annotations.NotNull;
 import org.objectweb.asm.Opcodes;
 
 public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMethod>
-    implements StructuralItem<DexEncodedMethod> {
+    implements StructuralItem<DexEncodedMethod>, Copyable<DexEncodedMethod> {
 
   public static final String CONFIGURATION_DEBUGGING_PREFIX = "Shaking error: Missing method in ";
 
@@ -220,6 +217,18 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
    */
   public void unsetObsolete() {
     obsolete = false;
+  }
+
+  @NotNull
+  @Override
+  public DexEncodedMethod copy() {
+    // Some elements need to be copied, like code
+    Code codeCopy = code == null ? null : code.copySubtype();
+    ParameterAnnotationsList paramAnnoCopy = parameterAnnotationsList == null ? null : parameterAnnotationsList.copy();
+    return new DexEncodedMethod(getReference(), accessFlags, genericSignature,
+            annotations().copy(), paramAnnoCopy, codeCopy, isD8R8Synthesized(),
+            getApiLevelForDefinition(), getApiLevelForCode(), classFileVersion, optimizationInfo,
+            deprecated);
   }
 
   private DexEncodedMethod(

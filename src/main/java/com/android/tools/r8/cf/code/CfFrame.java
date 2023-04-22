@@ -37,12 +37,12 @@ import it.unimi.dsi.fastutil.ints.Int2ObjectAVLTreeMap;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import it.unimi.dsi.fastutil.ints.Int2ObjectSortedMap;
 import it.unimi.dsi.fastutil.ints.Int2ObjectSortedMaps;
-import java.util.ArrayDeque;
-import java.util.Deque;
-import java.util.ListIterator;
-import java.util.Objects;
+
+import java.util.*;
 import java.util.function.Consumer;
 import java.util.function.Function;
+
+import org.jetbrains.annotations.NotNull;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 
@@ -292,6 +292,12 @@ public class CfFrame extends CfInstruction implements Cloneable {
   @Override
   public void print(CfPrinter printer) {
     printer.print(this);
+  }
+
+  @NotNull
+  @Override
+  public CfInstruction copy(@NotNull Map<CfLabel, CfLabel> labelMap) {
+    return clone();
   }
 
   @Override

@@ -23,6 +23,9 @@ import com.android.tools.r8.optimize.interfaces.analysis.CfAnalysisConfig;
 import com.android.tools.r8.optimize.interfaces.analysis.CfFrameState;
 import com.android.tools.r8.optimize.interfaces.analysis.ErroneousCfFrameState;
 import java.util.ListIterator;
+import java.util.Map;
+
+import org.jetbrains.annotations.NotNull;
 import org.objectweb.asm.Opcodes;
 
 public class CfInstanceFieldWrite extends CfFieldInstruction {
@@ -57,6 +60,12 @@ public class CfInstanceFieldWrite extends CfFieldInstruction {
 
   @Override
   public CfInstanceFieldWrite asInstanceFieldPut() {
+    return this;
+  }
+
+  @NotNull
+  @Override
+  public CfInstruction copy(@NotNull Map<CfLabel, CfLabel> labelMap) {
     return this;
   }
 

@@ -11,7 +11,11 @@ import com.android.tools.r8.graph.GenericSignature.ClassSignature;
 import com.android.tools.r8.graph.MethodCollection.MethodCollectionFactory;
 import com.android.tools.r8.kotlin.KotlinClassLevelInfo;
 import com.android.tools.r8.origin.Origin;
+import com.android.tools.r8.utils.structural.Copyable;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Streams;
+import org.jetbrains.annotations.NotNull;
+
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -22,7 +26,6 @@ import java.util.function.Predicate;
 import java.util.function.Supplier;
 
 public class DexLibraryClass extends DexClass implements LibraryClass, Supplier<DexLibraryClass> {
-
   public DexLibraryClass(
       DexType type,
       ProgramResource.Kind kind,
@@ -71,6 +74,20 @@ public class DexLibraryClass extends DexClass implements LibraryClass, Supplier<
       staticField.clearStaticValue();
     }
     assert kind == Kind.CF : "Invalid kind " + kind + " for library-path class " + type;
+  }
+
+  @NotNull
+  @Override
+  public DexLibraryClass copy() {
+    DexEncodedField[] staticFieldsCopy = staticFields().toArray(DexEncodedField.EMPTY_ARRAY);
+    DexEncodedField[] instanceFieldsCopy = instanceFields().toArray(DexEncodedField.EMPTY_ARRAY);
+    DexEncodedMethod[] directMethodsCopy = Copyable.copyArray(Iterables.toArray(directMethods(), DexEncodedMethod.class), DexEncodedMethod[]::new);
+    DexEncodedMethod[] virtualMethodsCopy = Copyable.copyArray(Iterables.toArray(virtualMethods(), DexEncodedMethod.class), DexEncodedMethod[]::new);
+    MethodCollectionFactory methodCopyFactory = MethodCollectionFactory.fromMethods(directMethodsCopy, virtualMethodsCopy);
+    return new DexLibraryClass(type, Kind.CF, origin, accessFlags, superType, interfaces.copy(), sourceFile,
+            getNestHostClassAttribute(), getNestMembersClassAttributes(), getPermittedSubclassAttributes(),
+            getRecordComponents(), getEnclosingMethodAttribute(), getInnerClasses(), classSignature,
+            annotations().copy(), staticFieldsCopy, instanceFieldsCopy, methodCopyFactory, false);
   }
 
   public static Builder builder(DexItemFactory dexItemFactory) {
