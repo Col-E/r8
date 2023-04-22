@@ -35,7 +35,7 @@ import javax.annotation.Nonnull;
 import java.util.Map;
 
 public class CfLoad extends CfInstruction {
-  public static final CfLoad ALOAD_0 = CfLoad.ALOAD_0;
+  public static final CfLoad ALOAD_0 = new CfLoad(ValueType.OBJECT, 0);
   public static final CfLoad ALOAD_1 = new CfLoad(ValueType.OBJECT, 1);
   public static final CfLoad ALOAD_2 = new CfLoad(ValueType.OBJECT, 2);
   public static final CfLoad ALOAD_3 = new CfLoad(ValueType.OBJECT, 3);
