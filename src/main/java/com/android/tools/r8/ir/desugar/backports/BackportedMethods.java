@@ -1124,7 +1124,7 @@ public final class BackportedMethods {
                       FrameType.initializedNonNullReference(factory.throwableType),
                       FrameType.initializedNonNullReference(factory.objectType)
                     })),
-            CfReturn.forTypeVoid(),
+            CfReturnVoid.INSTANCE,
             label21),
         ImmutableList.of(
             new CfTryCatch(
@@ -7626,7 +7626,7 @@ public final class BackportedMethods {
                       FrameType.initializedNonNullReference(
                           factory.createType("Ljava/lang/Runnable;"))
                     })),
-            CfReturn.forTypeVoid(),
+            CfReturnVoid.INSTANCE,
             label4),
         ImmutableList.of(),
         ImmutableList.of());
@@ -7704,7 +7704,7 @@ public final class BackportedMethods {
                       FrameType.initializedNonNullReference(
                           factory.createType("Ljava/lang/Runnable;"))
                     })),
-            CfReturn.forTypeVoid(),
+            CfReturnVoid.INSTANCE,
             label4),
         ImmutableList.of(),
         ImmutableList.of());
@@ -7782,7 +7782,7 @@ public final class BackportedMethods {
                       FrameType.initializedNonNullReference(
                           factory.createType("Ljava/lang/Runnable;"))
                     })),
-            CfReturn.forTypeVoid(),
+            CfReturnVoid.INSTANCE,
             label4),
         ImmutableList.of(),
         ImmutableList.of());
@@ -7860,7 +7860,7 @@ public final class BackportedMethods {
                       FrameType.initializedNonNullReference(
                           factory.createType("Ljava/lang/Runnable;"))
                     })),
-            CfReturn.forTypeVoid(),
+            CfReturnVoid.INSTANCE,
             label4),
         ImmutableList.of(),
         ImmutableList.of());
@@ -9664,7 +9664,7 @@ public final class BackportedMethods {
                       FrameType.initializedNonNullReference(factory.throwableType),
                       FrameType.initializedNonNullReference(factory.throwableType)
                     })),
-            CfReturn.forTypeVoid(),
+            CfReturnVoid.INSTANCE,
             label5),
         ImmutableList.of(
             new CfTryCatch(
