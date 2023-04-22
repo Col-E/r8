@@ -6,7 +6,9 @@ package com.android.tools.r8.graph;
 import com.android.tools.r8.graph.DexDebugEvent.SetPositionFrame;
 import com.android.tools.r8.graph.DexDebugInfo.EventBasedDebugInfo;
 import com.android.tools.r8.ir.code.ValueType;
-import com.google.common.collect.ImmutableMap;
+import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
+import it.unimi.dsi.fastutil.ints.Int2ObjectMaps;
+import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceArrayMap;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceMap;
 import java.util.ArrayList;
@@ -14,6 +16,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 
 /**
  * Builder to construct a "per position" representation of the debug information.
@@ -206,15 +209,19 @@ public class DexDebugEntryBuilder implements DexDebugEventVisitor {
     return entry;
   }
 
-  private ImmutableMap<Integer, DebugLocalInfo> getLocals() {
-    ImmutableMap.Builder<Integer, DebugLocalInfo> builder = ImmutableMap.builder();
-    for (Entry<Integer, LocalEntry> mapEntry : locals.entrySet()) {
-      Integer register = mapEntry.getKey();
+  private Int2ObjectMap<DebugLocalInfo> getLocals() {
+    Set<Entry<Integer, LocalEntry>> entries = locals.entrySet();
+    if (entries.isEmpty()) {
+      return Int2ObjectMaps.emptyMap();
+    }
+    Int2ObjectMap<DebugLocalInfo> map = new Int2ObjectOpenHashMap<>(entries.size());
+    for (Entry<Integer, LocalEntry> mapEntry : entries) {
+      int register = mapEntry.getKey();
       LocalEntry entry = mapEntry.getValue();
       if (entry.current != null) {
-        builder.put(register, entry.current);
+        map.put(register, entry.current);
       }
     }
-    return builder.build();
+    return Int2ObjectMaps.unmodifiable(map);
   }
 }

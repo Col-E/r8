@@ -13,6 +13,8 @@ import com.android.tools.r8.utils.structural.HashCodeVisitor;
 import com.android.tools.r8.utils.structural.StructuralItem;
 import com.android.tools.r8.utils.structural.StructuralMapping;
 import com.android.tools.r8.utils.structural.StructuralSpecification;
+
+import java.util.Objects;
 import java.util.function.Predicate;
 
 public abstract class Position implements StructuralItem<Position> {
@@ -226,6 +228,8 @@ public abstract class Position implements StructuralItem<Position> {
         : this;
   }
 
+  // Too much overhead...
+  /*
   @Override
   public final boolean equals(Object other) {
     return Equatable.equalsImpl(this, other);
@@ -234,6 +238,25 @@ public abstract class Position implements StructuralItem<Position> {
   @Override
   public final int hashCode() {
     return HashCodeVisitor.run(this);
+  }
+  */
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) return true;
+    if (!(o instanceof Position)) return false;
+    Position position = (Position) o;
+    return line == position.line && removeInnerFramesIfThrowingNpe == position.removeInnerFramesIfThrowingNpe && isD8R8Synthesized == position.isD8R8Synthesized;
+  }
+
+  @Override
+  public int hashCode() {
+    int result = line;
+    result *= 31;
+    result += Boolean.hashCode(removeInnerFramesIfThrowingNpe);
+    result *= 31;
+    result += Boolean.hashCode(isD8R8Synthesized);
+    return result;
   }
 
   @Override
@@ -380,6 +403,19 @@ public abstract class Position implements StructuralItem<Position> {
     @Override
     public StructuralMapping<Position> getStructuralMapping() {
       return SourcePosition::specify;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+      if (o instanceof SourcePosition) {
+        return super.equals(o) && Objects.equals(file, ((SourcePosition) o).file);
+      }
+      return false;
+    }
+
+    @Override
+    public int hashCode() {
+      return super.hashCode() * 31 + Objects.hashCode(file);
     }
 
     public static SourcePositionBuilder builder() {

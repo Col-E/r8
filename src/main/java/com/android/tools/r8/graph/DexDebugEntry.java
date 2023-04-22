@@ -5,8 +5,8 @@ package com.android.tools.r8.graph;
 
 import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.utils.StringUtils;
-import com.google.common.collect.ImmutableMap;
-import java.util.Map;
+import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
+
 import java.util.SortedSet;
 import java.util.TreeSet;
 
@@ -17,7 +17,7 @@ public class DexDebugEntry {
   public final DexString sourceFile;
   public final boolean prologueEnd;
   public final boolean epilogueBegin;
-  public final Map<Integer, DebugLocalInfo> locals;
+  public final Int2ObjectMap<DebugLocalInfo> locals;
   private final Position position;
 
   public DexDebugEntry(
@@ -26,7 +26,7 @@ public class DexDebugEntry {
       DexString sourceFile,
       boolean prologueEnd,
       boolean epilogueBegin,
-      ImmutableMap<Integer, DebugLocalInfo> locals,
+      Int2ObjectMap<DebugLocalInfo> locals,
       Position position) {
     this.lineEntry = lineEntry;
     this.address = address;

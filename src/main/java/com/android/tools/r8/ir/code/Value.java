@@ -45,6 +45,7 @@ import it.unimi.dsi.fastutil.ints.IntList;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Consumer;
@@ -350,6 +351,10 @@ public class Value implements Comparable<Value> {
     return true;
   }
 
+  public List<Instruction> users() {
+    return users;
+  }
+
   public Set<Instruction> uniqueUsers() {
     if (uniqueUsers != null) {
       return uniqueUsers;
@@ -358,7 +363,7 @@ public class Value implements Comparable<Value> {
   }
 
   public boolean hasSingleUniqueUser() {
-    return uniqueUsers().size() == 1;
+    return users().size() == 1;
   }
 
   public Instruction singleUniqueUser() {
@@ -494,7 +499,7 @@ public class Value implements Comparable<Value> {
   }
 
   public boolean usedInMonitorOperation() {
-    for (Instruction instruction : uniqueUsers()) {
+    for (Instruction instruction : users()) {
       if (instruction.isMonitor()) {
         return true;
       }

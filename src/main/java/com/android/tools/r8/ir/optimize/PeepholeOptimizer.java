@@ -308,8 +308,9 @@ public class PeepholeOptimizer {
       ListIterator<BasicBlock> blockIterator = code.listIterator();
       while (blockIterator.hasNext()) {
         BasicBlock block = blockIterator.next();
-        if (newBlocks.containsKey(block)) {
-          blockIterator.add(newBlocks.get(block));
+        BasicBlock newBlock = newBlocks.get(block);
+        if (newBlock != null) {
+          blockIterator.add(newBlock);
         }
       }
       // Go through all the newly introduced blocks to find more common suffixes to share.

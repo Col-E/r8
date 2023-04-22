@@ -2850,18 +2850,16 @@ public class DexItemFactory {
   private DexType internalCreateType(DexString descriptor) {
     assert !sorted;
     assert descriptor != null;
-    DexType result = types.get(descriptor);
-    if (result == null) {
-      result = new DexType(descriptor);
+    return types.computeIfAbsent(descriptor, k -> {
+      DexType result = new DexType(k);
       assert result.isArrayType()
               || result.isClassType()
               || result.isPrimitiveType()
               || result.isVoidType()
-          : descriptor.toString();
+              : k.toString();
       assert !isInternalSentinel(result);
-      types.put(descriptor, result);
-    }
-    return result;
+      return result;
+    });
   }
 
   private DexType createStaticallyKnownType(String descriptor) {
