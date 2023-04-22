@@ -28,13 +28,8 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Sets;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Iterator;
-import java.util.List;
-import java.util.ListIterator;
-import java.util.Set;
+
+import java.util.*;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -1175,5 +1170,54 @@ public abstract class DexClass extends DexDefinition
       }
     }
     return false;
+  }
+
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) return true;
+    if (o == null || getClass() != o.getClass()) return false;
+
+    DexClass dexClass = (DexClass) o;
+
+    if (!Objects.equals(type, dexClass.type)) return false;
+    if (!Objects.equals(accessFlags, dexClass.accessFlags)) return false;
+    if (!Objects.equals(superType, dexClass.superType)) return false;
+    if (!Objects.equals(interfaces, dexClass.interfaces)) return false;
+    if (!Objects.equals(sourceFile, dexClass.sourceFile)) return false;
+    if (!Objects.equals(fieldCollection, dexClass.fieldCollection))
+      return false;
+    if (!Objects.equals(methodCollection, dexClass.methodCollection))
+      return false;
+    if (!Objects.equals(enclosingMethod, dexClass.enclosingMethod))
+      return false;
+    if (!Objects.equals(innerClasses, dexClass.innerClasses))
+      return false;
+    if (!Objects.equals(nestHost, dexClass.nestHost)) return false;
+    if (!Objects.equals(nestMembers, dexClass.nestMembers)) return false;
+    if (!Objects.equals(permittedSubclasses, dexClass.permittedSubclasses))
+      return false;
+    if (!Objects.equals(recordComponents, dexClass.recordComponents))
+      return false;
+    return Objects.equals(classSignature, dexClass.classSignature);
+  }
+
+  @Override
+  public int hashCode() {
+    int result = type != null ? type.hashCode() : 0;
+    result = 31 * result + (accessFlags != null ? accessFlags.hashCode() : 0);
+    result = 31 * result + (superType != null ? superType.hashCode() : 0);
+    result = 31 * result + (interfaces != null ? interfaces.hashCode() : 0);
+    result = 31 * result + (sourceFile != null ? sourceFile.hashCode() : 0);
+    result = 31 * result + (fieldCollection != null ? fieldCollection.hashCode() : 0);
+    result = 31 * result + (methodCollection != null ? methodCollection.hashCode() : 0);
+    result = 31 * result + (enclosingMethod != null ? enclosingMethod.hashCode() : 0);
+    result = 31 * result + (innerClasses != null ? innerClasses.hashCode() : 0);
+    result = 31 * result + (nestHost != null ? nestHost.hashCode() : 0);
+    result = 31 * result + (nestMembers != null ? nestMembers.hashCode() : 0);
+    result = 31 * result + (permittedSubclasses != null ? permittedSubclasses.hashCode() : 0);
+    result = 31 * result + (recordComponents != null ? recordComponents.hashCode() : 0);
+    result = 31 * result + (classSignature != null ? classSignature.hashCode() : 0);
+    return result;
   }
 }

@@ -8,6 +8,7 @@ import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.utils.structural.CompareToVisitor;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.function.Consumer;
 
 public class DexAnnotationDirectory extends DexItem {
@@ -111,17 +112,20 @@ public class DexAnnotationDirectory extends DexItem {
    */
   @Override
   public final boolean equals(Object obj) {
+    if (this == obj) return true;
     if (!(obj instanceof DexAnnotationDirectory)) {
       return false;
     }
+    DexAnnotationDirectory other = (DexAnnotationDirectory) obj;
+    if (!clazz.getTypeName().equals(other.clazz.getTypeName()))
+      return false; // Must target same type
     if (classHasOnlyInternalizableAnnotations) {
-      DexAnnotationDirectory other = (DexAnnotationDirectory) obj;
       if (!other.clazz.hasOnlyInternalizableAnnotations()) {
         return false;
       }
       return clazz.annotations().equals(other.clazz.annotations());
     }
-    return super.equals(obj);
+    return false;
   }
 
   @Override
@@ -129,7 +133,11 @@ public class DexAnnotationDirectory extends DexItem {
     if (classHasOnlyInternalizableAnnotations) {
       return clazz.annotations().hashCode();
     }
-    return super.hashCode();
+    // Dummy fallback hash
+    return clazz.getTypeName().hashCode() * 31 +
+            methodAnnotations.size() * 31 +
+            fieldAnnotations.size() * 31 +
+            parameterAnnotations.size();
   }
 
   @Override

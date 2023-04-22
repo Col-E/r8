@@ -51,4 +51,10 @@ public abstract class DexItem {
   static <T extends DexItem> Stream<T> filter(Stream<DexItem> stream, Class<T> clazz) {
     return stream.filter(clazz::isInstance).map(clazz::cast);
   }
+
+  @Override
+  public abstract boolean equals(Object o);
+
+  @Override
+  public abstract int hashCode();
 }

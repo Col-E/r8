@@ -17,6 +17,7 @@ import com.android.tools.r8.utils.Timing;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Sets;
+import java.util.Objects;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -125,6 +126,25 @@ public class LazyLoadedDexApplication extends DexApplication {
   public DexLibraryClass libraryDefinitionFor(DexType type) {
     assert type.isClassType() : "Cannot lookup library definition for type: " + type;
     return libraryClasses.get(type);
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) return true;
+    if (o instanceof LazyLoadedDexApplication) {
+      LazyLoadedDexApplication that = (LazyLoadedDexApplication) o;
+      return Objects.equals(programClasses, that.programClasses) &&
+              Objects.equals(classpathClasses, that.classpathClasses) &&
+              Objects.equals(libraryClasses, that.libraryClasses);
+    }
+    return false;
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hashCode(programClasses) +
+            31 * Objects.hashCode(classpathClasses) +
+            31 * Objects.hashCode(libraryClasses);
   }
 
   static class AllClasses {

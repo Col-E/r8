@@ -21,6 +21,7 @@ import com.google.common.collect.Sets;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.IdentityHashMap;
+import java.util.Objects;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -208,6 +209,23 @@ public class DirectMappedDexApplication extends DexApplication {
       }
     }
     return true;
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) return true;
+    if (o instanceof DirectMappedDexApplication) {
+      DirectMappedDexApplication that = (DirectMappedDexApplication) o;
+      return Objects.equals(programClasses, that.programClasses) &&
+              Objects.equals(classpathClasses, that.classpathClasses);
+    }
+    return false;
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hashCode(programClasses) +
+            31 * Objects.hashCode(classpathClasses);
   }
 
   public static class Builder extends DexApplication.Builder<Builder> {
