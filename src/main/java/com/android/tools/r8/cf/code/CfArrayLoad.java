@@ -31,7 +31,7 @@ import java.util.Arrays;
 
 public class CfArrayLoad extends CfArrayLoadOrStore {
   private static final CfArrayLoad[] INSTRUCTIONS = Arrays.stream(MemberType.values())
-          .map(CfArrayLoad::new)
+          .map(x -> x != MemberType.INT_OR_FLOAT && x != MemberType.LONG_OR_DOUBLE ? new CfArrayLoad(x) : null)
           .toArray(CfArrayLoad[]::new);
 
   public CfArrayLoad(MemberType type) {
@@ -142,6 +142,8 @@ public class CfArrayLoad extends CfArrayLoadOrStore {
   }
 
   public static CfArrayLoad forType(MemberType type) {
-    return INSTRUCTIONS[type.ordinal()];
+    CfArrayLoad load = INSTRUCTIONS[type.ordinal()];
+    assert load != null : type;
+    return load;
   }
 }
