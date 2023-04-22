@@ -47,7 +47,7 @@ final class LambdaConstructorSourceCode {
       maxStack += type.requiredRegisters();
     }
     // Final return.
-    instructions.add(new CfReturnVoid());
+    instructions.add(CfReturnVoid.INSTANCE);
     return new CfCode(
         lambda.constructor.holder,
         maxStack,

@@ -57,7 +57,7 @@ public final class CollectionMethodGenerators {
                 factory.createProto(returnType, factory.objectArrayType),
                 factory.createString("of")),
             false),
-        new CfReturn(ValueType.OBJECT));
+        CfReturn.forType(ValueType.OBJECT));
 
     return new CfCode(method.holder, 4, formalCount, builder.build());
   }
@@ -96,7 +96,7 @@ public final class CollectionMethodGenerators {
                 factory.createProto(factory.mapType, mapEntryArray),
                 factory.createString("ofEntries")),
             false),
-        new CfReturn(ValueType.OBJECT));
+        CfReturn.forType(ValueType.OBJECT));
 
     return new CfCode(method.holder, 7, formalCount * 2, builder.build());
   }

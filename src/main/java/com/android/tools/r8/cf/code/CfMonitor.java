@@ -29,8 +29,13 @@ import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 
 import java.util.Map;
+import java.util.Objects;
 
 public class CfMonitor extends CfInstruction {
+
+  private static final CfMonitor
+    ENTER = new CfMonitor(MonitorType.ENTER),
+    EXIT = new CfMonitor(MonitorType.EXIT);
 
   private final MonitorType type;
 
@@ -113,5 +118,10 @@ public class CfMonitor extends CfInstruction {
     // ..., objectref →
     // ...
     return frame.popInitialized(appView, config, appView.dexItemFactory().objectType);
+  }
+
+  public static CfMonitor forType(MonitorType type) {
+	  Objects.requireNonNull(type);
+	  return type == MonitorType.ENTER ? ENTER : EXIT;
   }
 }

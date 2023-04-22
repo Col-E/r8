@@ -134,7 +134,7 @@ public final class InstrumentationServerFactory {
                     factory.createProto(factory.voidType),
                     factory.createString("<init>")),
                 false),
-            new CfReturnVoid(),
+            CfReturnVoid.INSTANCE,
             label1),
         ImmutableList.of(),
         ImmutableList.of());
@@ -157,7 +157,7 @@ public final class InstrumentationServerFactory {
                             "Lcom/android/tools/r8/startup/InstrumentationServerImpl;")),
                     factory.createString("getInstance")),
                 false),
-            new CfReturn(ValueType.OBJECT)),
+            CfReturn.forType(ValueType.OBJECT)),
         ImmutableList.of(),
         ImmutableList.of());
   }

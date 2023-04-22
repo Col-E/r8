@@ -145,7 +145,7 @@ public class ClassInitializerMerger {
       List<CfInstruction> newInstructions = new ArrayList<>();
       classInitializers.forEach(
           classInitializer -> addCfCode(newInstructions, classInitializer, callerPosition));
-      newInstructions.add(new CfReturnVoid());
+      newInstructions.add(CfReturnVoid.INSTANCE);
       return newInstructions;
     }
 

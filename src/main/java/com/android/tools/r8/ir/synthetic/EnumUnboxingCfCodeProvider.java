@@ -57,7 +57,7 @@ public abstract class EnumUnboxingCfCodeProvider extends SyntheticCfCodeProvider
     } else if (value.isSingleNumberValue()) {
       if (returnType.isReferenceType()) {
         assert value.isNull();
-        instructions.add(new CfConstNull());
+        instructions.add(CfConstNull.INSTANCE);
       } else {
         instructions.add(
             new CfConstNumber(
@@ -123,8 +123,8 @@ public abstract class EnumUnboxingCfCodeProvider extends SyntheticCfCodeProvider
       instructions.add(new CfInvoke(Opcodes.INVOKESTATIC, method, false));
       instructions.add(
           method.getReturnType().isVoidType()
-              ? new CfReturnVoid()
-              : new CfReturn(ValueType.fromDexType(method.getReturnType())));
+              ? CfReturnVoid.INSTANCE
+              : CfReturn.forType(ValueType.fromDexType(method.getReturnType())));
     }
 
     public static class CfCodeWithLens extends CfCode {
@@ -193,7 +193,7 @@ public abstract class EnumUnboxingCfCodeProvider extends SyntheticCfCodeProvider
             instructions.add(new CfConstNumber(unboxedEnumValue, ValueType.INT));
             instructions.add(new CfIfCmp(IfType.NE, ValueType.INT, dest));
             addCfInstructionsForAbstractValue(instructions, value, returnType);
-            instructions.add(new CfReturn(ValueType.fromDexType(returnType)));
+            instructions.add(CfReturn.forType(ValueType.fromDexType(returnType)));
             instructions.add(dest);
             instructions.add(frameBuilder.build());
           });
@@ -201,11 +201,11 @@ public abstract class EnumUnboxingCfCodeProvider extends SyntheticCfCodeProvider
       if (nullValue != null) {
         // return "null"
         addCfInstructionsForAbstractValue(instructions, nullValue, returnType);
-        instructions.add(new CfReturn(ValueType.fromDexType(returnType)));
+        instructions.add(CfReturn.forType(ValueType.fromDexType(returnType)));
       } else {
         // throw null;
-        instructions.add(new CfConstNull());
-        instructions.add(new CfThrow());
+        instructions.add(CfConstNull.INSTANCE);
+        instructions.add(CfThrow.INSTANCE);
       }
 
       return standardCfCodeFromInstructions(instructions);
@@ -251,7 +251,7 @@ public abstract class EnumUnboxingCfCodeProvider extends SyntheticCfCodeProvider
       instructions.add(new CfConstString(appView.dexItemFactory().createString("Name is null")));
       instructions.add(
           new CfInvoke(Opcodes.INVOKESPECIAL, factory.npeMethods.initWithMessage, false));
-      instructions.add(new CfThrow());
+      instructions.add(CfThrow.INSTANCE);
       instructions.add(nullDest);
       instructions.add(frame);
 
@@ -266,7 +266,7 @@ public abstract class EnumUnboxingCfCodeProvider extends SyntheticCfCodeProvider
                 new CfInvoke(Opcodes.INVOKEVIRTUAL, factory.stringMembers.equals, false));
             instructions.add(new CfIf(IfType.EQ, ValueType.INT, dest));
             instructions.add(new CfConstNumber(unboxedEnumValue, ValueType.INT));
-            instructions.add(new CfReturn(ValueType.INT));
+            instructions.add(CfReturn.forType(ValueType.INT));
             instructions.add(dest);
             instructions.add(frame.clone());
           });
@@ -287,7 +287,7 @@ public abstract class EnumUnboxingCfCodeProvider extends SyntheticCfCodeProvider
               Opcodes.INVOKESPECIAL,
               factory.illegalArgumentExceptionMethods.initWithMessage,
               false));
-      instructions.add(new CfThrow());
+      instructions.add(CfThrow.INSTANCE);
       return standardCfCodeFromInstructions(instructions);
     }
   }
@@ -331,7 +331,7 @@ public abstract class EnumUnboxingCfCodeProvider extends SyntheticCfCodeProvider
       instructions.add(nullDest);
       instructions.add(new CfFrame());
       instructions.add(new CfStaticFieldRead(utilityField, utilityField));
-      instructions.add(new CfReturn(ValueType.OBJECT));
+      instructions.add(CfReturn.forType(ValueType.OBJECT));
       return standardCfCodeFromInstructions(instructions);
     }
   }

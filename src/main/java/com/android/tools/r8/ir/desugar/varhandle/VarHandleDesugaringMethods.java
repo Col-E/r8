@@ -1017,7 +1017,7 @@ public final class VarHandleDesugaringMethods {
                     factory.createProto(factory.voidType),
                     factory.createString("<init>")),
                 false),
-            new CfReturnVoid(),
+            CfReturnVoid.INSTANCE,
             label1),
         ImmutableList.of(),
         ImmutableList.of());
@@ -1046,7 +1046,7 @@ public final class VarHandleDesugaringMethods {
                         factory.voidType, factory.classType, factory.stringType, factory.classType),
                     factory.createString("<init>")),
                 false),
-            new CfReturn(ValueType.OBJECT),
+            CfReturn.forType(ValueType.OBJECT),
             label1),
         ImmutableList.of(),
         ImmutableList.of());
@@ -1061,7 +1061,7 @@ public final class VarHandleDesugaringMethods {
         1,
         2,
         ImmutableList.of(
-            label0, new CfLoad(ValueType.OBJECT, 0), new CfReturn(ValueType.OBJECT), label1),
+            label0, new CfLoad(ValueType.OBJECT, 0), CfReturn.forType(ValueType.OBJECT), label1),
         ImmutableList.of(),
         ImmutableList.of());
   }
@@ -1124,7 +1124,7 @@ public final class VarHandleDesugaringMethods {
             label3,
             new CfLoad(ValueType.OBJECT, 0),
             new CfLoad(ValueType.OBJECT, 2),
-            new CfConstNull(),
+            CfConstNull.INSTANCE,
             new CfInvoke(
                 182,
                 factory.createMethod(
@@ -1197,7 +1197,7 @@ public final class VarHandleDesugaringMethods {
                     factory.createProto(factory.voidType, factory.stringType),
                     factory.createString("<init>")),
                 false),
-            new CfThrow(),
+            CfThrow.INSTANCE,
             label6,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
@@ -1279,7 +1279,7 @@ public final class VarHandleDesugaringMethods {
                     factory.createProto(factory.voidType, factory.stringType),
                     factory.createString("<init>")),
                 false),
-            new CfThrow(),
+            CfThrow.INSTANCE,
             label10,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
@@ -1389,7 +1389,7 @@ public final class VarHandleDesugaringMethods {
                     factory.createProto(factory.voidType, factory.stringType),
                     factory.createString("<init>")),
                 false),
-            new CfThrow(),
+            CfThrow.INSTANCE,
             label14,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
@@ -1479,7 +1479,7 @@ public final class VarHandleDesugaringMethods {
                     factory.longType,
                     factory.createString("arrayIndexScale"))),
             label18,
-            new CfReturnVoid(),
+            CfReturnVoid.INSTANCE,
             label19),
         ImmutableList.of(),
         ImmutableList.of());
@@ -1537,7 +1537,7 @@ public final class VarHandleDesugaringMethods {
             label3,
             new CfLoad(ValueType.OBJECT, 0),
             new CfLoad(ValueType.OBJECT, 4),
-            new CfConstNull(),
+            CfConstNull.INSTANCE,
             new CfInvoke(
                 182,
                 factory.createMethod(
@@ -1672,7 +1672,7 @@ public final class VarHandleDesugaringMethods {
                     factory.createProto(factory.voidType, factory.stringType),
                     factory.createString("<init>")),
                 false),
-            new CfThrow(),
+            CfThrow.INSTANCE,
             label10,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
@@ -1727,7 +1727,7 @@ public final class VarHandleDesugaringMethods {
                     factory.longType,
                     factory.createString("arrayIndexScale"))),
             label12,
-            new CfReturnVoid(),
+            CfReturnVoid.INSTANCE,
             label13),
         ImmutableList.of(),
         ImmutableList.of());
@@ -1748,7 +1748,7 @@ public final class VarHandleDesugaringMethods {
                     "requires native VarHandle support available from Android 13. VarHandle"
                         + " desugaring only supports single dimensional arrays of primitive"
                         + " typesint and long and reference types.")),
-            new CfReturn(ValueType.OBJECT),
+            CfReturn.forType(ValueType.OBJECT),
             label1),
         ImmutableList.of(),
         ImmutableList.of());
@@ -1782,7 +1782,7 @@ public final class VarHandleDesugaringMethods {
                     factory.createProto(factory.createType("Ljava/lang/Long;"), factory.longType),
                     factory.createString("valueOf")),
                 false),
-            new CfReturn(ValueType.OBJECT),
+            CfReturn.forType(ValueType.OBJECT),
             label2,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
@@ -1806,7 +1806,7 @@ public final class VarHandleDesugaringMethods {
                     factory.createProto(factory.createType("Ljava/lang/Float;"), factory.floatType),
                     factory.createString("valueOf")),
                 false),
-            new CfReturn(ValueType.OBJECT),
+            CfReturn.forType(ValueType.OBJECT),
             label4,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
@@ -1831,7 +1831,7 @@ public final class VarHandleDesugaringMethods {
                         factory.createType("Ljava/lang/Double;"), factory.doubleType),
                     factory.createString("valueOf")),
                 false),
-            new CfReturn(ValueType.OBJECT),
+            CfReturn.forType(ValueType.OBJECT),
             label6,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
@@ -1850,7 +1850,7 @@ public final class VarHandleDesugaringMethods {
                     factory.createProto(factory.createType("Ljava/lang/RuntimeException;")),
                     factory.createString("desugarWrongMethodTypeException")),
                 false),
-            new CfThrow(),
+            CfThrow.INSTANCE,
             label7),
         ImmutableList.of(),
         ImmutableList.of());
@@ -1883,7 +1883,7 @@ public final class VarHandleDesugaringMethods {
                     factory.createProto(factory.createType("Ljava/lang/Float;"), factory.floatType),
                     factory.createString("valueOf")),
                 false),
-            new CfReturn(ValueType.OBJECT),
+            CfReturn.forType(ValueType.OBJECT),
             label2,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
@@ -1909,7 +1909,7 @@ public final class VarHandleDesugaringMethods {
                         factory.createType("Ljava/lang/Double;"), factory.doubleType),
                     factory.createString("valueOf")),
                 false),
-            new CfReturn(ValueType.OBJECT),
+            CfReturn.forType(ValueType.OBJECT),
             label4,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
@@ -1929,7 +1929,7 @@ public final class VarHandleDesugaringMethods {
                     factory.createProto(factory.createType("Ljava/lang/RuntimeException;")),
                     factory.createString("desugarWrongMethodTypeException")),
                 false),
-            new CfThrow(),
+            CfThrow.INSTANCE,
             label5),
         ImmutableList.of(),
         ImmutableList.of());
@@ -2012,7 +2012,7 @@ public final class VarHandleDesugaringMethods {
                         factory.intType),
                     factory.createString("compareAndSwapInt")),
                 false),
-            new CfReturn(ValueType.INT),
+            CfReturn.forType(ValueType.INT),
             label4,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
@@ -2084,7 +2084,7 @@ public final class VarHandleDesugaringMethods {
                         factory.longType),
                     factory.createString("compareAndSwapLong")),
                 false),
-            new CfReturn(ValueType.INT),
+            CfReturn.forType(ValueType.INT),
             label8,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
@@ -2123,7 +2123,7 @@ public final class VarHandleDesugaringMethods {
                         factory.objectType),
                     factory.createString("compareAndSwapObject")),
                 false),
-            new CfReturn(ValueType.INT),
+            CfReturn.forType(ValueType.INT),
             label9),
         ImmutableList.of(),
         ImmutableList.of());
@@ -2202,7 +2202,7 @@ public final class VarHandleDesugaringMethods {
                     factory.createProto(factory.voidType),
                     factory.createString("<init>")),
                 false),
-            new CfThrow(),
+            CfThrow.INSTANCE,
             label2,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
@@ -2285,7 +2285,7 @@ public final class VarHandleDesugaringMethods {
                         factory.intType),
                     factory.createString("compareAndSwapInt")),
                 false),
-            new CfReturn(ValueType.INT),
+            CfReturn.forType(ValueType.INT),
             label8,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
@@ -2352,7 +2352,7 @@ public final class VarHandleDesugaringMethods {
                         factory.longType),
                     factory.createString("compareAndSwapLong")),
                 false),
-            new CfReturn(ValueType.INT),
+            CfReturn.forType(ValueType.INT),
             label13,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
@@ -2389,7 +2389,7 @@ public final class VarHandleDesugaringMethods {
                         factory.objectType),
                     factory.createString("compareAndSwapObject")),
                 false),
-            new CfReturn(ValueType.INT),
+            CfReturn.forType(ValueType.INT),
             label14),
         ImmutableList.of(),
         ImmutableList.of());
@@ -2426,7 +2426,7 @@ public final class VarHandleDesugaringMethods {
                     factory.createProto(factory.voidType),
                     factory.createString("<init>")),
                 false),
-            new CfThrow(),
+            CfThrow.INSTANCE,
             label2,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
@@ -2479,7 +2479,7 @@ public final class VarHandleDesugaringMethods {
                         factory.intType),
                     factory.createString("compareAndSwapInt")),
                 false),
-            new CfReturn(ValueType.INT),
+            CfReturn.forType(ValueType.INT),
             label4),
         ImmutableList.of(),
         ImmutableList.of());
@@ -2516,7 +2516,7 @@ public final class VarHandleDesugaringMethods {
                     factory.createProto(factory.voidType),
                     factory.createString("<init>")),
                 false),
-            new CfThrow(),
+            CfThrow.INSTANCE,
             label2,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
@@ -2571,7 +2571,7 @@ public final class VarHandleDesugaringMethods {
                         factory.longType),
                     factory.createString("compareAndSwapLong")),
                 false),
-            new CfReturn(ValueType.INT),
+            CfReturn.forType(ValueType.INT),
             label4),
         ImmutableList.of(),
         ImmutableList.of());
@@ -2630,7 +2630,7 @@ public final class VarHandleDesugaringMethods {
                         factory.intType),
                     factory.createString("compareAndSwapInt")),
                 false),
-            new CfReturn(ValueType.INT),
+            CfReturn.forType(ValueType.INT),
             label2,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
@@ -2684,7 +2684,7 @@ public final class VarHandleDesugaringMethods {
                         factory.longType),
                     factory.createString("compareAndSwapLong")),
                 false),
-            new CfReturn(ValueType.INT),
+            CfReturn.forType(ValueType.INT),
             label4,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
@@ -2725,7 +2725,7 @@ public final class VarHandleDesugaringMethods {
                         factory.objectType),
                     factory.createString("compareAndSet")),
                 false),
-            new CfReturn(ValueType.INT),
+            CfReturn.forType(ValueType.INT),
             label5),
         ImmutableList.of(),
         ImmutableList.of());
@@ -2783,7 +2783,7 @@ public final class VarHandleDesugaringMethods {
                         factory.longType),
                     factory.createString("compareAndSwapLong")),
                 false),
-            new CfReturn(ValueType.INT),
+            CfReturn.forType(ValueType.INT),
             label2,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
@@ -2826,7 +2826,7 @@ public final class VarHandleDesugaringMethods {
                         factory.objectType),
                     factory.createString("compareAndSet")),
                 false),
-            new CfReturn(ValueType.INT),
+            CfReturn.forType(ValueType.INT),
             label3),
         ImmutableList.of(),
         ImmutableList.of());
@@ -2852,7 +2852,7 @@ public final class VarHandleDesugaringMethods {
                     factory.createProto(factory.voidType, factory.stringType),
                     factory.createString("<init>")),
                 false),
-            new CfReturn(ValueType.OBJECT),
+            CfReturn.forType(ValueType.OBJECT),
             label1),
         ImmutableList.of(),
         ImmutableList.of());
@@ -2911,7 +2911,7 @@ public final class VarHandleDesugaringMethods {
                     factory.createProto(factory.createType("Ljava/lang/Integer;"), factory.intType),
                     factory.createString("valueOf")),
                 false),
-            new CfReturn(ValueType.OBJECT),
+            CfReturn.forType(ValueType.OBJECT),
             label2,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
@@ -2961,7 +2961,7 @@ public final class VarHandleDesugaringMethods {
                     factory.createProto(factory.createType("Ljava/lang/Long;"), factory.longType),
                     factory.createString("valueOf")),
                 false),
-            new CfReturn(ValueType.OBJECT),
+            CfReturn.forType(ValueType.OBJECT),
             label4,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
@@ -2991,7 +2991,7 @@ public final class VarHandleDesugaringMethods {
                     factory.createProto(factory.objectType, factory.objectType, factory.longType),
                     factory.createString("getObject")),
                 false),
-            new CfReturn(ValueType.OBJECT),
+            CfReturn.forType(ValueType.OBJECT),
             label5),
         ImmutableList.of(),
         ImmutableList.of());
@@ -3061,7 +3061,7 @@ public final class VarHandleDesugaringMethods {
                     factory.createProto(factory.voidType),
                     factory.createString("<init>")),
                 false),
-            new CfThrow(),
+            CfThrow.INSTANCE,
             label2,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
@@ -3125,7 +3125,7 @@ public final class VarHandleDesugaringMethods {
                     factory.createProto(factory.createType("Ljava/lang/Integer;"), factory.intType),
                     factory.createString("valueOf")),
                 false),
-            new CfReturn(ValueType.OBJECT),
+            CfReturn.forType(ValueType.OBJECT),
             label5,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
@@ -3174,7 +3174,7 @@ public final class VarHandleDesugaringMethods {
                     factory.createProto(factory.createType("Ljava/lang/Integer;"), factory.intType),
                     factory.createString("valueOf")),
                 false),
-            new CfReturn(ValueType.OBJECT),
+            CfReturn.forType(ValueType.OBJECT),
             label7,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
@@ -3202,7 +3202,7 @@ public final class VarHandleDesugaringMethods {
                     factory.createProto(factory.objectType, factory.objectType, factory.longType),
                     factory.createString("getObject")),
                 false),
-            new CfReturn(ValueType.OBJECT),
+            CfReturn.forType(ValueType.OBJECT),
             label8),
         ImmutableList.of(),
         ImmutableList.of());
@@ -3278,7 +3278,7 @@ public final class VarHandleDesugaringMethods {
                     factory.createProto(factory.voidType),
                     factory.createString("<init>")),
                 false),
-            new CfThrow(),
+            CfThrow.INSTANCE,
             label2,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
@@ -3345,7 +3345,7 @@ public final class VarHandleDesugaringMethods {
                     factory.createProto(factory.objectType, factory.intType, factory.classType),
                     factory.createString("boxIntIfPossible")),
                 false),
-            new CfReturn(ValueType.OBJECT),
+            CfReturn.forType(ValueType.OBJECT),
             label5,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
@@ -3396,7 +3396,7 @@ public final class VarHandleDesugaringMethods {
                     factory.createProto(factory.objectType, factory.longType, factory.classType),
                     factory.createString("boxLongIfPossible")),
                 false),
-            new CfReturn(ValueType.OBJECT),
+            CfReturn.forType(ValueType.OBJECT),
             label7,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
@@ -3452,7 +3452,7 @@ public final class VarHandleDesugaringMethods {
                     factory.createProto(factory.objectType, factory.intType, factory.classType),
                     factory.createString("boxIntIfPossible")),
                 false),
-            new CfReturn(ValueType.OBJECT),
+            CfReturn.forType(ValueType.OBJECT),
             label10,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
@@ -3492,7 +3492,7 @@ public final class VarHandleDesugaringMethods {
                     factory.createProto(factory.objectType, factory.longType, factory.classType),
                     factory.createString("boxLongIfPossible")),
                 false),
-            new CfReturn(ValueType.OBJECT),
+            CfReturn.forType(ValueType.OBJECT),
             label12,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
@@ -3508,7 +3508,7 @@ public final class VarHandleDesugaringMethods {
                       FrameType.initializedNonNullReference(factory.objectType)
                     })),
             new CfLoad(ValueType.OBJECT, 6),
-            new CfReturn(ValueType.OBJECT),
+            CfReturn.forType(ValueType.OBJECT),
             label13),
         ImmutableList.of(),
         ImmutableList.of());
@@ -3544,7 +3544,7 @@ public final class VarHandleDesugaringMethods {
                     factory.createProto(factory.voidType),
                     factory.createString("<init>")),
                 false),
-            new CfThrow(),
+            CfThrow.INSTANCE,
             label2,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
@@ -3588,7 +3588,7 @@ public final class VarHandleDesugaringMethods {
                     factory.createProto(factory.intType, factory.objectType, factory.longType),
                     factory.createString("getInt")),
                 false),
-            new CfReturn(ValueType.INT),
+            CfReturn.forType(ValueType.INT),
             label4),
         ImmutableList.of(),
         ImmutableList.of());
@@ -3624,7 +3624,7 @@ public final class VarHandleDesugaringMethods {
                     factory.createProto(factory.voidType),
                     factory.createString("<init>")),
                 false),
-            new CfThrow(),
+            CfThrow.INSTANCE,
             label2,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
@@ -3668,7 +3668,7 @@ public final class VarHandleDesugaringMethods {
                     factory.createProto(factory.longType, factory.objectType, factory.longType),
                     factory.createString("getLong")),
                 false),
-            new CfReturn(ValueType.LONG),
+            CfReturn.forType(ValueType.LONG),
             label4),
         ImmutableList.of(),
         ImmutableList.of());
@@ -3729,7 +3729,7 @@ public final class VarHandleDesugaringMethods {
                     factory.createProto(factory.objectType, factory.intType, factory.classType),
                     factory.createString("boxIntIfPossible")),
                 false),
-            new CfReturn(ValueType.OBJECT),
+            CfReturn.forType(ValueType.OBJECT),
             label2,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
@@ -3782,7 +3782,7 @@ public final class VarHandleDesugaringMethods {
                     factory.createProto(factory.objectType, factory.longType, factory.classType),
                     factory.createString("boxLongIfPossible")),
                 false),
-            new CfReturn(ValueType.OBJECT),
+            CfReturn.forType(ValueType.OBJECT),
             label4,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
@@ -3813,7 +3813,7 @@ public final class VarHandleDesugaringMethods {
                     factory.createProto(factory.objectType, factory.objectType, factory.longType),
                     factory.createString("getObject")),
                 false),
-            new CfReturn(ValueType.OBJECT),
+            CfReturn.forType(ValueType.OBJECT),
             label5),
         ImmutableList.of(),
         ImmutableList.of());
@@ -3865,7 +3865,7 @@ public final class VarHandleDesugaringMethods {
                     factory.createProto(factory.intType, factory.objectType, factory.longType),
                     factory.createString("getInt")),
                 false),
-            new CfReturn(ValueType.INT),
+            CfReturn.forType(ValueType.INT),
             label2,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
@@ -3896,7 +3896,7 @@ public final class VarHandleDesugaringMethods {
                     factory.createProto(factory.createType("Ljava/lang/RuntimeException;")),
                     factory.createString("desugarWrongMethodTypeException")),
                 false),
-            new CfThrow(),
+            CfThrow.INSTANCE,
             label4,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
@@ -3935,7 +3935,7 @@ public final class VarHandleDesugaringMethods {
                     factory.createProto(factory.intType, factory.objectType, factory.booleanType),
                     factory.createString("toIntIfPossible")),
                 false),
-            new CfReturn(ValueType.INT),
+            CfReturn.forType(ValueType.INT),
             label5),
         ImmutableList.of(),
         ImmutableList.of());
@@ -3987,7 +3987,7 @@ public final class VarHandleDesugaringMethods {
                     factory.createProto(factory.longType, factory.objectType, factory.longType),
                     factory.createString("getLong")),
                 false),
-            new CfReturn(ValueType.LONG),
+            CfReturn.forType(ValueType.LONG),
             label2,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
@@ -4031,7 +4031,7 @@ public final class VarHandleDesugaringMethods {
                     factory.createString("getInt")),
                 false),
             new CfNumberConversion(NumericType.INT, NumericType.LONG),
-            new CfReturn(ValueType.LONG),
+            CfReturn.forType(ValueType.LONG),
             label4,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
@@ -4070,7 +4070,7 @@ public final class VarHandleDesugaringMethods {
                     factory.createProto(factory.longType, factory.objectType, factory.booleanType),
                     factory.createString("toLongIfPossible")),
                 false),
-            new CfReturn(ValueType.LONG),
+            CfReturn.forType(ValueType.LONG),
             label5),
         ImmutableList.of(),
         ImmutableList.of());
@@ -4105,7 +4105,7 @@ public final class VarHandleDesugaringMethods {
                     factory.createString("getDeclaredField")),
                 false),
             label1,
-            new CfReturn(ValueType.OBJECT),
+            CfReturn.forType(ValueType.OBJECT),
             label2,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
@@ -4130,7 +4130,7 @@ public final class VarHandleDesugaringMethods {
                 false),
             new CfStore(ValueType.OBJECT, 2),
             new CfLoad(ValueType.OBJECT, 2),
-            new CfArrayLength(),
+            CfArrayLength.INSTANCE,
             new CfStore(ValueType.INT, 3),
             new CfConstNumber(0, ValueType.INT),
             new CfStore(ValueType.INT, 4),
@@ -4192,7 +4192,7 @@ public final class VarHandleDesugaringMethods {
             new CfIf(IfType.EQ, ValueType.INT, label8),
             label7,
             new CfLoad(ValueType.OBJECT, 5),
-            new CfReturn(ValueType.OBJECT),
+            CfReturn.forType(ValueType.OBJECT),
             label8,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
@@ -4231,7 +4231,7 @@ public final class VarHandleDesugaringMethods {
                         factory.voidType, factory.stringType, factory.throwableType),
                     factory.createString("<init>")),
                 false),
-            new CfThrow(),
+            CfThrow.INSTANCE,
             label10),
         ImmutableList.of(
             new CfTryCatch(
@@ -4295,7 +4295,7 @@ public final class VarHandleDesugaringMethods {
                     factory.createProto(factory.createType("Ljava/lang/Integer;"), factory.intType),
                     factory.createString("valueOf")),
                 false),
-            new CfReturn(ValueType.OBJECT),
+            CfReturn.forType(ValueType.OBJECT),
             label2,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
@@ -4345,7 +4345,7 @@ public final class VarHandleDesugaringMethods {
                     factory.createProto(factory.createType("Ljava/lang/Long;"), factory.longType),
                     factory.createString("valueOf")),
                 false),
-            new CfReturn(ValueType.OBJECT),
+            CfReturn.forType(ValueType.OBJECT),
             label4,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
@@ -4375,7 +4375,7 @@ public final class VarHandleDesugaringMethods {
                     factory.createProto(factory.objectType, factory.objectType, factory.longType),
                     factory.createString("getObjectVolatile")),
                 false),
-            new CfReturn(ValueType.OBJECT),
+            CfReturn.forType(ValueType.OBJECT),
             label5),
         ImmutableList.of(),
         ImmutableList.of());
@@ -4445,7 +4445,7 @@ public final class VarHandleDesugaringMethods {
                     factory.createProto(factory.voidType),
                     factory.createString("<init>")),
                 false),
-            new CfThrow(),
+            CfThrow.INSTANCE,
             label2,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
@@ -4509,7 +4509,7 @@ public final class VarHandleDesugaringMethods {
                     factory.createProto(factory.createType("Ljava/lang/Integer;"), factory.intType),
                     factory.createString("valueOf")),
                 false),
-            new CfReturn(ValueType.OBJECT),
+            CfReturn.forType(ValueType.OBJECT),
             label5,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
@@ -4558,7 +4558,7 @@ public final class VarHandleDesugaringMethods {
                     factory.createProto(factory.createType("Ljava/lang/Integer;"), factory.intType),
                     factory.createString("valueOf")),
                 false),
-            new CfReturn(ValueType.OBJECT),
+            CfReturn.forType(ValueType.OBJECT),
             label7,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
@@ -4586,7 +4586,7 @@ public final class VarHandleDesugaringMethods {
                     factory.createProto(factory.objectType, factory.objectType, factory.longType),
                     factory.createString("getObjectVolatile")),
                 false),
-            new CfReturn(ValueType.OBJECT),
+            CfReturn.forType(ValueType.OBJECT),
             label8),
         ImmutableList.of(),
         ImmutableList.of());
@@ -4663,7 +4663,7 @@ public final class VarHandleDesugaringMethods {
                     factory.createProto(factory.voidType),
                     factory.createString("<init>")),
                 false),
-            new CfThrow(),
+            CfThrow.INSTANCE,
             label2,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
@@ -4730,7 +4730,7 @@ public final class VarHandleDesugaringMethods {
                     factory.createProto(factory.objectType, factory.intType, factory.classType),
                     factory.createString("boxIntIfPossible")),
                 false),
-            new CfReturn(ValueType.OBJECT),
+            CfReturn.forType(ValueType.OBJECT),
             label5,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
@@ -4781,7 +4781,7 @@ public final class VarHandleDesugaringMethods {
                     factory.createProto(factory.objectType, factory.longType, factory.classType),
                     factory.createString("boxLongIfPossible")),
                 false),
-            new CfReturn(ValueType.OBJECT),
+            CfReturn.forType(ValueType.OBJECT),
             label7,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
@@ -4837,7 +4837,7 @@ public final class VarHandleDesugaringMethods {
                     factory.createProto(factory.objectType, factory.intType, factory.classType),
                     factory.createString("boxIntIfPossible")),
                 false),
-            new CfReturn(ValueType.OBJECT),
+            CfReturn.forType(ValueType.OBJECT),
             label10,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
@@ -4877,7 +4877,7 @@ public final class VarHandleDesugaringMethods {
                     factory.createProto(factory.objectType, factory.longType, factory.classType),
                     factory.createString("boxLongIfPossible")),
                 false),
-            new CfReturn(ValueType.OBJECT),
+            CfReturn.forType(ValueType.OBJECT),
             label12,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
@@ -4893,7 +4893,7 @@ public final class VarHandleDesugaringMethods {
                       FrameType.initializedNonNullReference(factory.objectType)
                     })),
             new CfLoad(ValueType.OBJECT, 6),
-            new CfReturn(ValueType.OBJECT),
+            CfReturn.forType(ValueType.OBJECT),
             label13),
         ImmutableList.of(),
         ImmutableList.of());
@@ -4930,7 +4930,7 @@ public final class VarHandleDesugaringMethods {
                     factory.createProto(factory.voidType),
                     factory.createString("<init>")),
                 false),
-            new CfThrow(),
+            CfThrow.INSTANCE,
             label2,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
@@ -4974,7 +4974,7 @@ public final class VarHandleDesugaringMethods {
                     factory.createProto(factory.intType, factory.objectType, factory.longType),
                     factory.createString("getIntVolatile")),
                 false),
-            new CfReturn(ValueType.INT),
+            CfReturn.forType(ValueType.INT),
             label4),
         ImmutableList.of(),
         ImmutableList.of());
@@ -5011,7 +5011,7 @@ public final class VarHandleDesugaringMethods {
                     factory.createProto(factory.voidType),
                     factory.createString("<init>")),
                 false),
-            new CfThrow(),
+            CfThrow.INSTANCE,
             label2,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
@@ -5055,7 +5055,7 @@ public final class VarHandleDesugaringMethods {
                     factory.createProto(factory.longType, factory.objectType, factory.longType),
                     factory.createString("getLongVolatile")),
                 false),
-            new CfReturn(ValueType.LONG),
+            CfReturn.forType(ValueType.LONG),
             label4),
         ImmutableList.of(),
         ImmutableList.of());
@@ -5116,7 +5116,7 @@ public final class VarHandleDesugaringMethods {
                     factory.createProto(factory.objectType, factory.intType, factory.classType),
                     factory.createString("boxIntIfPossible")),
                 false),
-            new CfReturn(ValueType.OBJECT),
+            CfReturn.forType(ValueType.OBJECT),
             label2,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
@@ -5169,7 +5169,7 @@ public final class VarHandleDesugaringMethods {
                     factory.createProto(factory.objectType, factory.longType, factory.classType),
                     factory.createString("boxLongIfPossible")),
                 false),
-            new CfReturn(ValueType.OBJECT),
+            CfReturn.forType(ValueType.OBJECT),
             label4,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
@@ -5200,7 +5200,7 @@ public final class VarHandleDesugaringMethods {
                     factory.createProto(factory.objectType, factory.objectType, factory.longType),
                     factory.createString("getObjectVolatile")),
                 false),
-            new CfReturn(ValueType.OBJECT),
+            CfReturn.forType(ValueType.OBJECT),
             label5),
         ImmutableList.of(),
         ImmutableList.of());
@@ -5252,7 +5252,7 @@ public final class VarHandleDesugaringMethods {
                     factory.createProto(factory.intType, factory.objectType, factory.longType),
                     factory.createString("getIntVolatile")),
                 false),
-            new CfReturn(ValueType.INT),
+            CfReturn.forType(ValueType.INT),
             label2,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
@@ -5283,7 +5283,7 @@ public final class VarHandleDesugaringMethods {
                     factory.createProto(factory.createType("Ljava/lang/RuntimeException;")),
                     factory.createString("desugarWrongMethodTypeException")),
                 false),
-            new CfThrow(),
+            CfThrow.INSTANCE,
             label4,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
@@ -5322,7 +5322,7 @@ public final class VarHandleDesugaringMethods {
                     factory.createProto(factory.intType, factory.objectType, factory.booleanType),
                     factory.createString("toIntIfPossible")),
                 false),
-            new CfReturn(ValueType.INT),
+            CfReturn.forType(ValueType.INT),
             label5),
         ImmutableList.of(),
         ImmutableList.of());
@@ -5374,7 +5374,7 @@ public final class VarHandleDesugaringMethods {
                     factory.createProto(factory.longType, factory.objectType, factory.longType),
                     factory.createString("getLongVolatile")),
                 false),
-            new CfReturn(ValueType.LONG),
+            CfReturn.forType(ValueType.LONG),
             label2,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
@@ -5418,7 +5418,7 @@ public final class VarHandleDesugaringMethods {
                     factory.createString("getIntVolatile")),
                 false),
             new CfNumberConversion(NumericType.INT, NumericType.LONG),
-            new CfReturn(ValueType.LONG),
+            CfReturn.forType(ValueType.LONG),
             label4,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
@@ -5457,7 +5457,7 @@ public final class VarHandleDesugaringMethods {
                     factory.createProto(factory.longType, factory.objectType, factory.booleanType),
                     factory.createString("toLongIfPossible")),
                 false),
-            new CfReturn(ValueType.LONG),
+            CfReturn.forType(ValueType.LONG),
             label5),
         ImmutableList.of(),
         ImmutableList.of());
@@ -5595,7 +5595,7 @@ public final class VarHandleDesugaringMethods {
                       FrameType.initializedNonNullReference(factory.objectType),
                       FrameType.initializedNonNullReference(factory.objectType)
                     })),
-            new CfReturnVoid(),
+            CfReturnVoid.INSTANCE,
             label6),
         ImmutableList.of(),
         ImmutableList.of());
@@ -5667,7 +5667,7 @@ public final class VarHandleDesugaringMethods {
                     factory.createProto(factory.voidType),
                     factory.createString("<init>")),
                 false),
-            new CfThrow(),
+            CfThrow.INSTANCE,
             label2,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
@@ -5825,7 +5825,7 @@ public final class VarHandleDesugaringMethods {
                       FrameType.longType(),
                       FrameType.longHighType()
                     })),
-            new CfReturnVoid(),
+            CfReturnVoid.INSTANCE,
             label9),
         ImmutableList.of(),
         ImmutableList.of());
@@ -5862,7 +5862,7 @@ public final class VarHandleDesugaringMethods {
                     factory.createProto(factory.voidType),
                     factory.createString("<init>")),
                 false),
-            new CfThrow(),
+            CfThrow.INSTANCE,
             label2,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
@@ -5910,7 +5910,7 @@ public final class VarHandleDesugaringMethods {
                     factory.createString("putInt")),
                 false),
             label4,
-            new CfReturnVoid(),
+            CfReturnVoid.INSTANCE,
             label5),
         ImmutableList.of(),
         ImmutableList.of());
@@ -5947,7 +5947,7 @@ public final class VarHandleDesugaringMethods {
                     factory.createProto(factory.voidType),
                     factory.createString("<init>")),
                 false),
-            new CfThrow(),
+            CfThrow.INSTANCE,
             label2,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
@@ -5996,7 +5996,7 @@ public final class VarHandleDesugaringMethods {
                     factory.createString("putLong")),
                 false),
             label4,
-            new CfReturnVoid(),
+            CfReturnVoid.INSTANCE,
             label5),
         ImmutableList.of(),
         ImmutableList.of());
@@ -6136,7 +6136,7 @@ public final class VarHandleDesugaringMethods {
                       FrameType.initializedNonNullReference(factory.objectType),
                       FrameType.intType()
                     })),
-            new CfReturnVoid(),
+            CfReturnVoid.INSTANCE,
             label6),
         ImmutableList.of(),
         ImmutableList.of());
@@ -6224,7 +6224,7 @@ public final class VarHandleDesugaringMethods {
                     factory.createProto(factory.createType("Ljava/lang/RuntimeException;")),
                     factory.createString("desugarWrongMethodTypeException")),
                 false),
-            new CfThrow(),
+            CfThrow.INSTANCE,
             label4,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
@@ -6276,7 +6276,7 @@ public final class VarHandleDesugaringMethods {
                       FrameType.longType(),
                       FrameType.longHighType()
                     })),
-            new CfReturnVoid(),
+            CfReturnVoid.INSTANCE,
             label6),
         ImmutableList.of(),
         ImmutableList.of());
@@ -6414,7 +6414,7 @@ public final class VarHandleDesugaringMethods {
                       FrameType.initializedNonNullReference(factory.objectType),
                       FrameType.initializedNonNullReference(factory.objectType)
                     })),
-            new CfReturnVoid(),
+            CfReturnVoid.INSTANCE,
             label6),
         ImmutableList.of(),
         ImmutableList.of());
@@ -6486,7 +6486,7 @@ public final class VarHandleDesugaringMethods {
                     factory.createProto(factory.voidType),
                     factory.createString("<init>")),
                 false),
-            new CfThrow(),
+            CfThrow.INSTANCE,
             label2,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
@@ -6644,7 +6644,7 @@ public final class VarHandleDesugaringMethods {
                       FrameType.longType(),
                       FrameType.longHighType()
                     })),
-            new CfReturnVoid(),
+            CfReturnVoid.INSTANCE,
             label9),
         ImmutableList.of(),
         ImmutableList.of());
@@ -6682,7 +6682,7 @@ public final class VarHandleDesugaringMethods {
                     factory.createProto(factory.voidType),
                     factory.createString("<init>")),
                 false),
-            new CfThrow(),
+            CfThrow.INSTANCE,
             label2,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
@@ -6730,7 +6730,7 @@ public final class VarHandleDesugaringMethods {
                     factory.createString("putOrderedInt")),
                 false),
             label4,
-            new CfReturnVoid(),
+            CfReturnVoid.INSTANCE,
             label5),
         ImmutableList.of(),
         ImmutableList.of());
@@ -6768,7 +6768,7 @@ public final class VarHandleDesugaringMethods {
                     factory.createProto(factory.voidType),
                     factory.createString("<init>")),
                 false),
-            new CfThrow(),
+            CfThrow.INSTANCE,
             label2,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
@@ -6817,7 +6817,7 @@ public final class VarHandleDesugaringMethods {
                     factory.createString("putOrderedLong")),
                 false),
             label4,
-            new CfReturnVoid(),
+            CfReturnVoid.INSTANCE,
             label5),
         ImmutableList.of(),
         ImmutableList.of());
@@ -6957,7 +6957,7 @@ public final class VarHandleDesugaringMethods {
                       FrameType.initializedNonNullReference(factory.objectType),
                       FrameType.intType()
                     })),
-            new CfReturnVoid(),
+            CfReturnVoid.INSTANCE,
             label6),
         ImmutableList.of(),
         ImmutableList.of());
@@ -7045,7 +7045,7 @@ public final class VarHandleDesugaringMethods {
                     factory.createProto(factory.createType("Ljava/lang/RuntimeException;")),
                     factory.createString("desugarWrongMethodTypeException")),
                 false),
-            new CfThrow(),
+            CfThrow.INSTANCE,
             label4,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
@@ -7097,7 +7097,7 @@ public final class VarHandleDesugaringMethods {
                       FrameType.longType(),
                       FrameType.longHighType()
                     })),
-            new CfReturnVoid(),
+            CfReturnVoid.INSTANCE,
             label6),
         ImmutableList.of(),
         ImmutableList.of());
@@ -7235,7 +7235,7 @@ public final class VarHandleDesugaringMethods {
                       FrameType.initializedNonNullReference(factory.objectType),
                       FrameType.initializedNonNullReference(factory.objectType)
                     })),
-            new CfReturnVoid(),
+            CfReturnVoid.INSTANCE,
             label6),
         ImmutableList.of(),
         ImmutableList.of());
@@ -7307,7 +7307,7 @@ public final class VarHandleDesugaringMethods {
                     factory.createProto(factory.voidType),
                     factory.createString("<init>")),
                 false),
-            new CfThrow(),
+            CfThrow.INSTANCE,
             label2,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
@@ -7465,7 +7465,7 @@ public final class VarHandleDesugaringMethods {
                       FrameType.longType(),
                       FrameType.longHighType()
                     })),
-            new CfReturnVoid(),
+            CfReturnVoid.INSTANCE,
             label9),
         ImmutableList.of(),
         ImmutableList.of());
@@ -7503,7 +7503,7 @@ public final class VarHandleDesugaringMethods {
                     factory.createProto(factory.voidType),
                     factory.createString("<init>")),
                 false),
-            new CfThrow(),
+            CfThrow.INSTANCE,
             label2,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
@@ -7551,7 +7551,7 @@ public final class VarHandleDesugaringMethods {
                     factory.createString("putIntVolatile")),
                 false),
             label4,
-            new CfReturnVoid(),
+            CfReturnVoid.INSTANCE,
             label5),
         ImmutableList.of(),
         ImmutableList.of());
@@ -7589,7 +7589,7 @@ public final class VarHandleDesugaringMethods {
                     factory.createProto(factory.voidType),
                     factory.createString("<init>")),
                 false),
-            new CfThrow(),
+            CfThrow.INSTANCE,
             label2,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
@@ -7638,7 +7638,7 @@ public final class VarHandleDesugaringMethods {
                     factory.createString("putLongVolatile")),
                 false),
             label4,
-            new CfReturnVoid(),
+            CfReturnVoid.INSTANCE,
             label5),
         ImmutableList.of(),
         ImmutableList.of());
@@ -7778,7 +7778,7 @@ public final class VarHandleDesugaringMethods {
                       FrameType.initializedNonNullReference(factory.objectType),
                       FrameType.intType()
                     })),
-            new CfReturnVoid(),
+            CfReturnVoid.INSTANCE,
             label6),
         ImmutableList.of(),
         ImmutableList.of());
@@ -7866,7 +7866,7 @@ public final class VarHandleDesugaringMethods {
                     factory.createProto(factory.createType("Ljava/lang/RuntimeException;")),
                     factory.createString("desugarWrongMethodTypeException")),
                 false),
-            new CfThrow(),
+            CfThrow.INSTANCE,
             label4,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
@@ -7918,7 +7918,7 @@ public final class VarHandleDesugaringMethods {
                       FrameType.longType(),
                       FrameType.longHighType()
                     })),
-            new CfReturnVoid(),
+            CfReturnVoid.INSTANCE,
             label6),
         ImmutableList.of(),
         ImmutableList.of());
@@ -7956,7 +7956,7 @@ public final class VarHandleDesugaringMethods {
                     factory.createProto(factory.intType),
                     factory.createString("intValue")),
                 false),
-            new CfReturn(ValueType.INT),
+            CfReturn.forType(ValueType.INT),
             label2,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
@@ -7980,7 +7980,7 @@ public final class VarHandleDesugaringMethods {
                     factory.createProto(factory.byteType),
                     factory.createString("byteValue")),
                 false),
-            new CfReturn(ValueType.INT),
+            CfReturn.forType(ValueType.INT),
             label4,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
@@ -8004,7 +8004,7 @@ public final class VarHandleDesugaringMethods {
                     factory.createProto(factory.charType),
                     factory.createString("charValue")),
                 false),
-            new CfReturn(ValueType.INT),
+            CfReturn.forType(ValueType.INT),
             label6,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
@@ -8028,7 +8028,7 @@ public final class VarHandleDesugaringMethods {
                     factory.createProto(factory.shortType),
                     factory.createString("shortValue")),
                 false),
-            new CfReturn(ValueType.INT),
+            CfReturn.forType(ValueType.INT),
             label8,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
@@ -8051,7 +8051,7 @@ public final class VarHandleDesugaringMethods {
                     factory.createProto(factory.voidType),
                     factory.createString("<init>")),
                 false),
-            new CfThrow(),
+            CfThrow.INSTANCE,
             label10,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
@@ -8070,7 +8070,7 @@ public final class VarHandleDesugaringMethods {
                     factory.createProto(factory.createType("Ljava/lang/RuntimeException;")),
                     factory.createString("desugarWrongMethodTypeException")),
                 false),
-            new CfThrow(),
+            CfThrow.INSTANCE,
             label11),
         ImmutableList.of(),
         ImmutableList.of());
@@ -8100,7 +8100,7 @@ public final class VarHandleDesugaringMethods {
                     factory.createProto(factory.longType),
                     factory.createString("longValue")),
                 false),
-            new CfReturn(ValueType.LONG),
+            CfReturn.forType(ValueType.LONG),
             label2,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
@@ -8122,7 +8122,7 @@ public final class VarHandleDesugaringMethods {
                     factory.createString("toIntIfPossible")),
                 false),
             new CfNumberConversion(NumericType.INT, NumericType.LONG),
-            new CfReturn(ValueType.LONG),
+            CfReturn.forType(ValueType.LONG),
             label3),
         ImmutableList.of(),
         ImmutableList.of());
@@ -8206,7 +8206,7 @@ public final class VarHandleDesugaringMethods {
                         factory.intType),
                     factory.createString("compareAndSwapInt")),
                 false),
-            new CfReturn(ValueType.INT),
+            CfReturn.forType(ValueType.INT),
             label4,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
@@ -8278,7 +8278,7 @@ public final class VarHandleDesugaringMethods {
                         factory.longType),
                     factory.createString("compareAndSwapLong")),
                 false),
-            new CfReturn(ValueType.INT),
+            CfReturn.forType(ValueType.INT),
             label8,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
@@ -8317,7 +8317,7 @@ public final class VarHandleDesugaringMethods {
                         factory.objectType),
                     factory.createString("compareAndSwapObject")),
                 false),
-            new CfReturn(ValueType.INT),
+            CfReturn.forType(ValueType.INT),
             label9),
         ImmutableList.of(),
         ImmutableList.of());
@@ -8396,7 +8396,7 @@ public final class VarHandleDesugaringMethods {
                     factory.createProto(factory.voidType),
                     factory.createString("<init>")),
                 false),
-            new CfThrow(),
+            CfThrow.INSTANCE,
             label2,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
@@ -8479,7 +8479,7 @@ public final class VarHandleDesugaringMethods {
                         factory.intType),
                     factory.createString("compareAndSwapInt")),
                 false),
-            new CfReturn(ValueType.INT),
+            CfReturn.forType(ValueType.INT),
             label8,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
@@ -8546,7 +8546,7 @@ public final class VarHandleDesugaringMethods {
                         factory.longType),
                     factory.createString("compareAndSwapLong")),
                 false),
-            new CfReturn(ValueType.INT),
+            CfReturn.forType(ValueType.INT),
             label13,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
@@ -8583,7 +8583,7 @@ public final class VarHandleDesugaringMethods {
                         factory.objectType),
                     factory.createString("compareAndSwapObject")),
                 false),
-            new CfReturn(ValueType.INT),
+            CfReturn.forType(ValueType.INT),
             label14),
         ImmutableList.of(),
         ImmutableList.of());
@@ -8620,7 +8620,7 @@ public final class VarHandleDesugaringMethods {
                     factory.createProto(factory.voidType),
                     factory.createString("<init>")),
                 false),
-            new CfThrow(),
+            CfThrow.INSTANCE,
             label2,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
@@ -8673,7 +8673,7 @@ public final class VarHandleDesugaringMethods {
                         factory.intType),
                     factory.createString("compareAndSwapInt")),
                 false),
-            new CfReturn(ValueType.INT),
+            CfReturn.forType(ValueType.INT),
             label4),
         ImmutableList.of(),
         ImmutableList.of());
@@ -8710,7 +8710,7 @@ public final class VarHandleDesugaringMethods {
                     factory.createProto(factory.voidType),
                     factory.createString("<init>")),
                 false),
-            new CfThrow(),
+            CfThrow.INSTANCE,
             label2,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
@@ -8765,7 +8765,7 @@ public final class VarHandleDesugaringMethods {
                         factory.longType),
                     factory.createString("compareAndSwapLong")),
                 false),
-            new CfReturn(ValueType.INT),
+            CfReturn.forType(ValueType.INT),
             label4),
         ImmutableList.of(),
         ImmutableList.of());
@@ -8825,7 +8825,7 @@ public final class VarHandleDesugaringMethods {
                         factory.intType),
                     factory.createString("compareAndSwapInt")),
                 false),
-            new CfReturn(ValueType.INT),
+            CfReturn.forType(ValueType.INT),
             label2,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
@@ -8879,7 +8879,7 @@ public final class VarHandleDesugaringMethods {
                         factory.longType),
                     factory.createString("compareAndSwapLong")),
                 false),
-            new CfReturn(ValueType.INT),
+            CfReturn.forType(ValueType.INT),
             label4,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
@@ -8920,7 +8920,7 @@ public final class VarHandleDesugaringMethods {
                         factory.objectType),
                     factory.createString("compareAndSet")),
                 false),
-            new CfReturn(ValueType.INT),
+            CfReturn.forType(ValueType.INT),
             label5),
         ImmutableList.of(),
         ImmutableList.of());
@@ -8978,7 +8978,7 @@ public final class VarHandleDesugaringMethods {
                         factory.longType),
                     factory.createString("compareAndSwapLong")),
                 false),
-            new CfReturn(ValueType.INT),
+            CfReturn.forType(ValueType.INT),
             label2,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
@@ -9021,7 +9021,7 @@ public final class VarHandleDesugaringMethods {
                         factory.objectType),
                     factory.createString("compareAndSet")),
                 false),
-            new CfReturn(ValueType.INT),
+            CfReturn.forType(ValueType.INT),
             label3),
         ImmutableList.of(),
         ImmutableList.of());

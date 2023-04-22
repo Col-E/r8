@@ -101,10 +101,10 @@ public class APIConversionCfCodeProvider extends SyntheticCfCodeProvider {
 
   private void generateReturn(List<CfInstruction> instructions) {
     if (forwardMethod.getReturnType().isVoidType()) {
-      instructions.add(new CfReturnVoid());
+      instructions.add(CfReturnVoid.INSTANCE);
     } else {
       ValueType valueType = valueTypeFromForwardMethod(forwardMethod.getReturnType());
-      instructions.add(new CfReturn(valueType));
+      instructions.add(CfReturn.forType(valueType));
     }
   }
 

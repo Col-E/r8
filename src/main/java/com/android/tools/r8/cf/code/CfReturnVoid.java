@@ -33,6 +33,8 @@ import org.objectweb.asm.Opcodes;
 
 public class CfReturnVoid extends CfJumpInstruction {
 
+  public static final CfReturnVoid INSTANCE = new CfReturnVoid();
+
   @Override
   public <BT, CT> TraversalContinuation<BT, CT> traverseNormalTargets(
       BiFunction<? super CfInstruction, ? super CT, TraversalContinuation<BT, CT>> fn,

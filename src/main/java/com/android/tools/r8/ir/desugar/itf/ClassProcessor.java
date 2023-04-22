@@ -993,7 +993,7 @@ final class ClassProcessor {
             new CfNew(exceptionType),
             new CfStackInstruction(Opcode.Dup),
             new CfInvoke(Opcodes.INVOKESPECIAL, instanceInitializer, false),
-            new CfThrow()));
+            CfThrow.INSTANCE));
   }
 
   // Note: The parameter 'target' may be a public method on a class in case of desugared

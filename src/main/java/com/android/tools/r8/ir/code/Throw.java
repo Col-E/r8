@@ -85,7 +85,7 @@ public class Throw extends JumpInstruction {
 
   @Override
   public void buildCf(CfBuilder builder) {
-    builder.add(new CfThrow(), this);
+    builder.add(CfThrow.INSTANCE, this);
   }
 
   @Override

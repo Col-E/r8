@@ -616,7 +616,7 @@ public class LazyCfCode extends Code {
           addInstruction(new CfNop());
           break;
         case Opcodes.ACONST_NULL:
-          addInstruction(new CfConstNull());
+          addInstruction(CfConstNull.INSTANCE);
           break;
         case Opcodes.ICONST_M1:
         case Opcodes.ICONST_0:
@@ -742,34 +742,34 @@ public class LazyCfCode extends Code {
           addInstruction(CfCmp.fromAsm(opcode));
           break;
         case Opcodes.IRETURN:
-          addInstruction(new CfReturn(ValueType.INT));
+          addInstruction(CfReturn.forType(ValueType.INT));
           break;
         case Opcodes.LRETURN:
-          addInstruction(new CfReturn(ValueType.LONG));
+          addInstruction(CfReturn.forType(ValueType.LONG));
           break;
         case Opcodes.FRETURN:
-          addInstruction(new CfReturn(ValueType.FLOAT));
+          addInstruction(CfReturn.forType(ValueType.FLOAT));
           break;
         case Opcodes.DRETURN:
-          addInstruction(new CfReturn(ValueType.DOUBLE));
+          addInstruction(CfReturn.forType(ValueType.DOUBLE));
           break;
         case Opcodes.ARETURN:
-          addInstruction(new CfReturn(ValueType.OBJECT));
+          addInstruction(CfReturn.forType(ValueType.OBJECT));
           break;
         case Opcodes.RETURN:
-          addInstruction(new CfReturnVoid());
+          addInstruction(CfReturnVoid.INSTANCE);
           break;
         case Opcodes.ARRAYLENGTH:
-          addInstruction(new CfArrayLength());
+          addInstruction(CfArrayLength.INSTANCE);
           break;
         case Opcodes.ATHROW:
-          addInstruction(new CfThrow());
+          addInstruction(CfThrow.INSTANCE);
           break;
         case Opcodes.MONITORENTER:
-          addInstruction(new CfMonitor(MonitorType.ENTER));
+          addInstruction(CfMonitor.forType(MonitorType.ENTER));
           break;
         case Opcodes.MONITOREXIT:
-          addInstruction(new CfMonitor(MonitorType.EXIT));
+          addInstruction(CfMonitor.forType(MonitorType.EXIT));
           break;
         default:
           throw new Unreachable("Unknown instruction");

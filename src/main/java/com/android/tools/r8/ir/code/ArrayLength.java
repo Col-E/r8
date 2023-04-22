@@ -120,7 +120,7 @@ public class ArrayLength extends Instruction {
 
   @Override
   public void buildCf(CfBuilder builder) {
-    builder.add(new CfArrayLength(), this);
+    builder.add(CfArrayLength.INSTANCE, this);
   }
 
   @Override

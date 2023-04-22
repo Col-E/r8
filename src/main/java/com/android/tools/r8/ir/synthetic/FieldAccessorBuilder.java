@@ -107,11 +107,11 @@ public class FieldAccessorBuilder {
 
     // Return.
     if (isSetter()) {
-      instructions.add(new CfReturnVoid());
+      instructions.add(CfReturnVoid.INSTANCE);
     } else {
       ValueType fieldType = ValueType.fromDexType(field.getType());
       maxStack = Math.max(fieldType.requiredRegisters(), maxStack);
-      instructions.add(new CfReturn(fieldType));
+      instructions.add(CfReturn.forType(fieldType));
     }
 
     ImmutableList<CfTryCatch> tryCatchRanges = ImmutableList.of();

@@ -351,7 +351,7 @@ public class DefaultInstanceInitializerCode extends Code
             new CfLoad(ValueType.OBJECT, 0),
             new CfInvoke(
                 Opcodes.INVOKESPECIAL, dexItemFactory.createInstanceInitializer(supertype), false),
-            new CfReturnVoid());
+            CfReturnVoid.INSTANCE);
     return new CfCode(method.getHolderType(), getMaxStack(), getMaxLocals(method), instructions);
   }
 

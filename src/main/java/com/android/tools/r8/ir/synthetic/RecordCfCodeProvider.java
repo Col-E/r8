@@ -97,7 +97,7 @@ public abstract class RecordCfCodeProvider {
       }
       // return fields;
       instructions.add(new CfLoad(ValueType.OBJECT, 1));
-      instructions.add(new CfReturn(ValueType.OBJECT));
+      instructions.add(CfReturn.forType(ValueType.OBJECT));
       return standardCfCodeFromInstructions(instructions);
     }
 
@@ -109,7 +109,7 @@ public abstract class RecordCfCodeProvider {
       }
       // return recordFieldValues(fields);
       instructions.add(new CfRecordFieldValues(fields));
-      instructions.add(new CfReturn(ValueType.OBJECT));
+      instructions.add(CfReturn.forType(ValueType.OBJECT));
       return standardCfCodeFromInstructions(instructions);
     }
 
@@ -170,7 +170,7 @@ public abstract class RecordCfCodeProvider {
       instructions.add(new CfInvoke(Opcodes.INVOKEVIRTUAL, factory.objectMembers.getClass, false));
       instructions.add(new CfIfCmp(IfType.EQ, ValueType.OBJECT, fieldCmp));
       instructions.add(new CfConstNumber(0, ValueType.INT));
-      instructions.add(new CfReturn(ValueType.INT));
+      instructions.add(CfReturn.forType(ValueType.INT));
       instructions.add(fieldCmp);
       instructions.add(
           CfFrame.builder()
@@ -185,7 +185,7 @@ public abstract class RecordCfCodeProvider {
       instructions.add(
           new CfInvoke(
               Opcodes.INVOKESTATIC, factory.javaUtilArraysMethods.equalsObjectArray, false));
-      instructions.add(new CfReturn(ValueType.INT));
+      instructions.add(CfReturn.forType(ValueType.INT));
       return standardCfCodeFromInstructions(instructions);
     }
   }

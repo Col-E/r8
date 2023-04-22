@@ -253,7 +253,7 @@ public class ConstantDynamicClass {
   private void invokeBootstrapMethod(ImmutableList.Builder<CfInstruction> instructions) {
     assert reference.getBootstrapMethod().type.isInvokeStatic();
     // TODO(b/178172809): Use MethodHandle.invokeWithArguments if supported.
-    instructions.add(new CfConstNull());
+    instructions.add(CfConstNull.INSTANCE);
     instructions.add(new CfConstString(reference.getName()));
     instructions.add(new CfConstClass(reference.getType()));
     instructions.add(
@@ -284,7 +284,7 @@ public class ConstantDynamicClass {
     instructions.add(new CfConstClass(builder.getType()));
     instructions.add(new CfStackInstruction(Opcode.Dup));
     instructions.add(new CfStore(ValueType.OBJECT, 0));
-    instructions.add(new CfMonitor(MonitorType.ENTER));
+    instructions.add(CfMonitor.forType(MonitorType.ENTER));
     instructions.add(tryCatchStart);
 
     instructions.add(new CfStaticFieldRead(initializedValueField));
@@ -301,7 +301,7 @@ public class ConstantDynamicClass {
             .appendLocal(FrameType.initializedNonNullReference(builder.getFactory().objectType))
             .build());
     instructions.add(new CfLoad(ValueType.OBJECT, 0));
-    instructions.add(new CfMonitor(MonitorType.EXIT));
+    instructions.add(CfMonitor.forType(MonitorType.EXIT));
     instructions.add(tryCatchEnd);
     instructions.add(new CfGoto(initializedTrue));
 
@@ -313,15 +313,15 @@ public class ConstantDynamicClass {
             .build());
     instructions.add(new CfStore(ValueType.OBJECT, 1));
     instructions.add(new CfLoad(ValueType.OBJECT, 0));
-    instructions.add(new CfMonitor(MonitorType.EXIT));
+    instructions.add(CfMonitor.forType(MonitorType.EXIT));
     instructions.add(tryCatchEndFinally);
     instructions.add(new CfLoad(ValueType.OBJECT, 1));
-    instructions.add(new CfThrow());
+    instructions.add(CfThrow.INSTANCE);
 
     instructions.add(initializedTrue);
     instructions.add(new CfFrame());
     instructions.add(new CfStaticFieldRead(constantValueField));
-    instructions.add(new CfReturn(ValueType.OBJECT));
+    instructions.add(CfReturn.forType(ValueType.OBJECT));
 
     List<CfTryCatch> tryCatchRanges =
         ImmutableList.of(

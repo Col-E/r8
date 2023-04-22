@@ -34,6 +34,8 @@ import org.objectweb.asm.Opcodes;
 
 public class CfThrow extends CfJumpInstruction {
 
+  public static final CfThrow INSTANCE = new CfThrow();
+ 
   @Override
   public <BT, CT> TraversalContinuation<BT, CT> traverseNormalTargets(
       BiFunction<? super CfInstruction, ? super CT, TraversalContinuation<BT, CT>> fn,

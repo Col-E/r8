@@ -31,6 +31,8 @@ import java.util.Map;
 
 public class CfConstNull extends CfInstruction {
 
+  public static final CfConstNull INSTANCE = new CfConstNull();
+
   @Override
   public void write(
       AppView<?> appView,

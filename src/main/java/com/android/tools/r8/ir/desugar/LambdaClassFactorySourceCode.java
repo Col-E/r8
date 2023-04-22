@@ -34,7 +34,7 @@ final class LambdaClassFactorySourceCode {
     }
     builder
         .add(new CfInvoke(Opcodes.INVOKESPECIAL, lambda.constructor, false))
-        .add(new CfReturn(ValueType.fromDexType(lambda.type)));
+        .add(CfReturn.forType(ValueType.fromDexType(lambda.type)));
     return new CfCode(lambda.type, maxStack, maxLocals, builder.build());
   }
 }

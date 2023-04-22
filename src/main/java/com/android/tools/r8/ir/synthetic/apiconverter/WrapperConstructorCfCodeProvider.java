@@ -46,7 +46,7 @@ public class WrapperConstructorCfCodeProvider extends SyntheticCfCodeProvider {
     instructions.add(new CfLoad(ValueType.fromDexType(wrapperField.holder), 0));
     instructions.add(new CfLoad(ValueType.fromDexType(wrapperField.type), 1));
     instructions.add(new CfInstanceFieldWrite(wrapperField));
-    instructions.add(new CfReturnVoid());
+    instructions.add(CfReturnVoid.INSTANCE);
     return standardCfCodeFromInstructions(instructions);
   }
 }

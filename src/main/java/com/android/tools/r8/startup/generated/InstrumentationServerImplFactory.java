@@ -267,7 +267,7 @@ public final class InstrumentationServerImplFactory {
                     factory.createType("Lcom/android/tools/r8/startup/InstrumentationServerImpl;"),
                     factory.createType("Lcom/android/tools/r8/startup/InstrumentationServerImpl;"),
                     factory.createString("INSTANCE"))),
-            new CfReturnVoid()),
+            CfReturnVoid.INSTANCE),
         ImmutableList.of(),
         ImmutableList.of());
   }
@@ -308,7 +308,7 @@ public final class InstrumentationServerImplFactory {
                     factory.createType("Ljava/util/LinkedHashSet;"),
                     factory.createString("lines"))),
             label2,
-            new CfReturnVoid(),
+            CfReturnVoid.INSTANCE,
             label3),
         ImmutableList.of(),
         ImmutableList.of());
@@ -341,7 +341,7 @@ public final class InstrumentationServerImplFactory {
                     factory.createString("lines"))),
             new CfStackInstruction(CfStackInstruction.Opcode.Dup),
             new CfStore(ValueType.OBJECT, 2),
-            new CfMonitor(MonitorType.ENTER),
+            CfMonitor.forType(MonitorType.ENTER),
             label1,
             new CfLoad(ValueType.OBJECT, 0),
             new CfInstanceFieldRead(
@@ -360,9 +360,9 @@ public final class InstrumentationServerImplFactory {
             new CfIf(IfType.NE, ValueType.INT, label4),
             label2,
             new CfLoad(ValueType.OBJECT, 2),
-            new CfMonitor(MonitorType.EXIT),
+            CfMonitor.forType(MonitorType.EXIT),
             label3,
-            new CfReturnVoid(),
+            CfReturnVoid.INSTANCE,
             label4,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
@@ -375,7 +375,7 @@ public final class InstrumentationServerImplFactory {
                       FrameType.initializedNonNullReference(factory.objectType)
                     })),
             new CfLoad(ValueType.OBJECT, 2),
-            new CfMonitor(MonitorType.EXIT),
+            CfMonitor.forType(MonitorType.EXIT),
             label5,
             new CfGoto(label8),
             label6,
@@ -393,10 +393,10 @@ public final class InstrumentationServerImplFactory {
                     Arrays.asList(FrameType.initializedNonNullReference(factory.throwableType)))),
             new CfStore(ValueType.OBJECT, 3),
             new CfLoad(ValueType.OBJECT, 2),
-            new CfMonitor(MonitorType.EXIT),
+            CfMonitor.forType(MonitorType.EXIT),
             label7,
             new CfLoad(ValueType.OBJECT, 3),
-            new CfThrow(),
+            CfThrow.INSTANCE,
             label8,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
@@ -433,7 +433,7 @@ public final class InstrumentationServerImplFactory {
                               "Lcom/android/tools/r8/startup/InstrumentationServerImpl;")),
                       FrameType.initializedNonNullReference(factory.stringType)
                     })),
-            new CfReturnVoid(),
+            CfReturnVoid.INSTANCE,
             label11),
         ImmutableList.of(
             new CfTryCatch(
@@ -473,7 +473,7 @@ public final class InstrumentationServerImplFactory {
                     factory.createString("addLine")),
                 false),
             label1,
-            new CfReturnVoid(),
+            CfReturnVoid.INSTANCE,
             label2),
         ImmutableList.of(),
         ImmutableList.of());
@@ -492,7 +492,7 @@ public final class InstrumentationServerImplFactory {
                     factory.createType("Lcom/android/tools/r8/startup/InstrumentationServerImpl;"),
                     factory.createType("Lcom/android/tools/r8/startup/InstrumentationServerImpl;"),
                     factory.createString("INSTANCE"))),
-            new CfReturn(ValueType.OBJECT)),
+            CfReturn.forType(ValueType.OBJECT)),
         ImmutableList.of(),
         ImmutableList.of());
   }
@@ -543,7 +543,7 @@ public final class InstrumentationServerImplFactory {
                     factory.createString("lines"))),
             new CfStackInstruction(CfStackInstruction.Opcode.Dup),
             new CfStore(ValueType.OBJECT, 3),
-            new CfMonitor(MonitorType.ENTER),
+            CfMonitor.forType(MonitorType.ENTER),
             label2,
             new CfLoad(ValueType.OBJECT, 0),
             new CfInstanceFieldRead(
@@ -619,7 +619,7 @@ public final class InstrumentationServerImplFactory {
                       FrameType.initializedNonNullReference(factory.objectType)
                     })),
             new CfLoad(ValueType.OBJECT, 3),
-            new CfMonitor(MonitorType.EXIT),
+            CfMonitor.forType(MonitorType.EXIT),
             label7,
             new CfGoto(label10),
             label8,
@@ -639,10 +639,10 @@ public final class InstrumentationServerImplFactory {
                     Arrays.asList(FrameType.initializedNonNullReference(factory.throwableType)))),
             new CfStore(ValueType.OBJECT, 6),
             new CfLoad(ValueType.OBJECT, 3),
-            new CfMonitor(MonitorType.EXIT),
+            CfMonitor.forType(MonitorType.EXIT),
             label9,
             new CfLoad(ValueType.OBJECT, 6),
-            new CfThrow(),
+            CfThrow.INSTANCE,
             label10,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
@@ -691,7 +691,7 @@ public final class InstrumentationServerImplFactory {
                 false),
             label14,
             new CfLoad(ValueType.OBJECT, 7),
-            new CfThrow(),
+            CfThrow.INSTANCE,
             label15,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
@@ -704,7 +704,7 @@ public final class InstrumentationServerImplFactory {
                       FrameType.initializedNonNullReference(
                           factory.createType("Ljava/io/PrintWriter;"))
                     })),
-            new CfReturnVoid(),
+            CfReturnVoid.INSTANCE,
             label16),
         ImmutableList.of(
             new CfTryCatch(
@@ -749,7 +749,7 @@ public final class InstrumentationServerImplFactory {
                 false),
             new CfStackInstruction(CfStackInstruction.Opcode.Pop),
             label1,
-            new CfReturnVoid(),
+            CfReturnVoid.INSTANCE,
             label2),
         ImmutableList.of(),
         ImmutableList.of());

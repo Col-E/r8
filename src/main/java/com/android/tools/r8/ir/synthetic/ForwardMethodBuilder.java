@@ -194,7 +194,7 @@ public class ForwardMethodBuilder {
     }
     if (isSourceReturnVoid()) {
       assert !isConstructorDelegate;
-      instructions.add(new CfReturnVoid());
+      instructions.add(CfReturnVoid.INSTANCE);
     } else {
       if (!isConstructorDelegate && sourceMethod.getReturnType() != targetMethod.getReturnType()) {
         assert castResult;
@@ -202,7 +202,7 @@ public class ForwardMethodBuilder {
           instructions.add(new CfCheckCast(sourceMethod.getReturnType()));
         }
       }
-      instructions.add(new CfReturn(getSourceReturnType()));
+      instructions.add(CfReturn.forType(getSourceReturnType()));
     }
     ImmutableList<CfTryCatch> tryCatchRanges = ImmutableList.of();
     ImmutableList<CfCode.LocalVariableInfo> localVariables = ImmutableList.of();

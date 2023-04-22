@@ -31,6 +31,8 @@ import java.util.Map;
 
 public class CfArrayLength extends CfInstruction {
 
+  public static final CfArrayLength INSTANCE = new CfArrayLength();
+
   @Override
   public void write(
       AppView<?> appView,

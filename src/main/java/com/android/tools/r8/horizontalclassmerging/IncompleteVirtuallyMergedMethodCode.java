@@ -122,9 +122,9 @@ public class IncompleteVirtuallyMergedMethodCode extends IncompleteHorizontalCla
       instructions.add(
           new CfInvoke(Opcodes.INVOKESPECIAL, target, method.getHolder().isInterface()));
       if (method.getReturnType().isVoidType()) {
-        instructions.add(new CfReturnVoid());
+        instructions.add(CfReturnVoid.INSTANCE);
       } else {
-        instructions.add(new CfReturn(ValueType.fromDexType(method.getReturnType())));
+        instructions.add(CfReturn.forType(ValueType.fromDexType(method.getReturnType())));
       }
     }
 
@@ -149,9 +149,9 @@ public class IncompleteVirtuallyMergedMethodCode extends IncompleteHorizontalCla
 
     // Emit return.
     if (method.getReturnType().isVoidType()) {
-      instructions.add(new CfReturnVoid());
+      instructions.add(CfReturnVoid.INSTANCE);
     } else {
-      instructions.add(new CfReturn(ValueType.fromDexType(method.getReturnType())));
+      instructions.add(CfReturn.forType(ValueType.fromDexType(method.getReturnType())));
     }
     return new CfCode(originalMethod.getHolderType(), maxStack, maxLocals, instructions) {
 

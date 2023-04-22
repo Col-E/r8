@@ -56,8 +56,8 @@ public abstract class NullableConversionCfCodeProvider extends SyntheticCfCodePr
     CfLabel nullDest = new CfLabel();
     instructions.add(new CfLoad(ValueType.OBJECT, 0));
     instructions.add(new CfIf(IfType.NE, ValueType.OBJECT, nullDest));
-    instructions.add(new CfConstNull());
-    instructions.add(new CfReturn(ValueType.OBJECT));
+    instructions.add(CfConstNull.INSTANCE);
+    instructions.add(CfReturn.forType(ValueType.OBJECT));
     instructions.add(nullDest);
   }
 
@@ -98,7 +98,7 @@ public abstract class NullableConversionCfCodeProvider extends SyntheticCfCodePr
 
       // int t1 = arg.length;
       instructions.add(new CfLoad(ValueType.fromDexType(typeArray), 0));
-      instructions.add(new CfArrayLength());
+      instructions.add(CfArrayLength.INSTANCE);
       instructions.add(new CfStore(ValueType.INT, 1));
       // ConvertedType[] t2 = new ConvertedType[t1];
       instructions.add(new CfLoad(ValueType.INT, 1));
@@ -133,7 +133,7 @@ public abstract class NullableConversionCfCodeProvider extends SyntheticCfCodePr
       instructions.add(returnLabel);
       instructions.add(frame.clone());
       instructions.add(new CfLoad(ValueType.fromDexType(convertedTypeArray), 2));
-      instructions.add(new CfReturn(ValueType.fromDexType(convertedTypeArray)));
+      instructions.add(CfReturn.forType(ValueType.fromDexType(convertedTypeArray)));
       return standardCfCodeFromInstructions(instructions);
     }
   }
@@ -181,7 +181,7 @@ public abstract class NullableConversionCfCodeProvider extends SyntheticCfCodePr
         instructions.add(
             new CfStaticFieldRead(
                 factory.createField(convertedType, convertedType, enumField.getName())));
-        instructions.add(new CfReturn(ValueType.fromDexType(convertedType)));
+        instructions.add(CfReturn.forType(ValueType.fromDexType(convertedType)));
         if (iterator.hasNext()) {
           instructions.add(notEqual);
           instructions.add(frame.clone());
@@ -229,7 +229,7 @@ public abstract class NullableConversionCfCodeProvider extends SyntheticCfCodePr
       instructions.add(new CfLoad(ValueType.fromDexType(argType), 0));
       instructions.add(new CfCheckCast(reverseWrapperField.holder));
       instructions.add(new CfInstanceFieldRead(reverseWrapperField));
-      instructions.add(new CfReturn(ValueType.fromDexType(reverseWrapperField.type)));
+      instructions.add(CfReturn.forType(ValueType.fromDexType(reverseWrapperField.type)));
       instructions.add(unwrapDest);
       instructions.add(frame.clone());
 
@@ -245,7 +245,7 @@ public abstract class NullableConversionCfCodeProvider extends SyntheticCfCodePr
         instructions.add(new CfLoad(ValueType.fromDexType(argType), 0));
         instructions.add(new CfCheckCast(convertArgType));
         instructions.add(new CfInvoke(Opcodes.INVOKESTATIC, convert, false));
-        instructions.add(new CfReturn(ValueType.fromDexType(reverseWrapperField.type)));
+        instructions.add(CfReturn.forType(ValueType.fromDexType(reverseWrapperField.type)));
         instructions.add(dest);
         instructions.add(frame.clone());
       }
@@ -262,7 +262,7 @@ public abstract class NullableConversionCfCodeProvider extends SyntheticCfCodePr
                   factory.createProto(factory.voidType, argType),
                   factory.constructorMethodName),
               false));
-      instructions.add(new CfReturn(ValueType.fromDexType(wrapperField.holder)));
+      instructions.add(CfReturn.forType(ValueType.fromDexType(wrapperField.holder)));
       return standardCfCodeFromInstructions(instructions);
     }
   }

@@ -411,7 +411,7 @@ public class DesugaredLibraryConversionCfProvider {
       }
       stackIndex++;
     }
-    cfInstructions.add(new CfReturn(ValueType.OBJECT));
+    cfInstructions.add(CfReturn.forType(ValueType.OBJECT));
     return new CfCode(holder, stackIndex + 4, stackIndex, cfInstructions);
   }
 

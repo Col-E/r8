@@ -974,7 +974,7 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
       instructions[i++] = new CfConstNumber(1, ValueType.INT);
       instructions[i++] = new CfLogicalBinop(CfLogicalBinop.Opcode.Xor, NumericType.INT);
     }
-    instructions[i] = new CfReturn(ValueType.INT);
+    instructions[i] = CfReturn.forType(ValueType.INT);
     return new CfCode(
         getReference().holder,
         1 + BooleanUtils.intValue(negate),
@@ -1096,7 +1096,7 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
         .add(new CfStackInstruction(Opcode.Dup))
         .add(new CfConstString(message))
         .add(new CfInvoke(Opcodes.INVOKESPECIAL, exceptionInitMethod, false))
-        .add(new CfThrow());
+        .add(CfThrow.INSTANCE);
     return new CfCode(getReference().holder, 3, locals, instructionBuilder.build());
   }
 
