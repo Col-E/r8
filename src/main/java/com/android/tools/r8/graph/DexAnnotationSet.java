@@ -266,6 +266,9 @@ public class DexAnnotationSet extends CachedHashValueDexItem
   @NotNull
   @Override
   public DexAnnotationSet copy() {
+    if (this == THE_EMPTY_ANNOTATIONS_SET) {
+      return this; // Special case (see private constructor)
+    }
     DexAnnotationSet copy = new DexAnnotationSet(Arrays.copyOf(annotations, annotations.length));
     copy.sorted = sorted;
     return copy;

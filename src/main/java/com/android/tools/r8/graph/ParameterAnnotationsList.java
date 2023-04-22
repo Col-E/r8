@@ -266,6 +266,9 @@ public class ParameterAnnotationsList extends DexItem
   @NotNull
   @Override
   public ParameterAnnotationsList copy() {
+    if (this == EMPTY_PARAMETER_ANNOTATIONS_LIST) {
+      return this; // Special case (see private constructor)
+    }
     return new ParameterAnnotationsList(Arrays.copyOf(values, values.length), missingParameterAnnotations);
   }
 }

@@ -188,6 +188,9 @@ public class DexTypeList extends DexItem implements Iterable<DexType>, Structura
   @NotNull
   @Override
   public DexTypeList copy() {
+    if (this == theEmptyTypeList) {
+      return this; // Special case (see private constructor)
+    }
     return new DexTypeList(Arrays.copyOf(values, values.length));
   }
 }
