@@ -66,7 +66,7 @@ public final class RecordCfMethods {
                     factory.createString("hashCode")),
                 false),
             new CfArithmeticBinop(CfArithmeticBinop.Opcode.Mul, NumericType.INT),
-            new CfLoad(ValueType.OBJECT, 0),
+            CfLoad.ALOAD_0,
             new CfInvoke(
                 182,
                 factory.createMethod(
@@ -227,7 +227,7 @@ public final class RecordCfMethods {
                     factory.createProto(factory.stringBuilderType, factory.stringType),
                     factory.createString("append")),
                 false),
-            new CfLoad(ValueType.OBJECT, 0),
+            CfLoad.ALOAD_0,
             new CfLoad(ValueType.INT, 5),
             new CfArrayLoad(MemberType.OBJECT),
             new CfInvoke(

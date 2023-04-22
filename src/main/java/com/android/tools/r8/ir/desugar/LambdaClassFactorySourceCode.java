@@ -27,7 +27,7 @@ final class LambdaClassFactorySourceCode {
     int local = 0;
     for (int i = 0; i < lambda.constructor.proto.getParameters().size(); i++) {
       ValueType parameterType = ValueType.fromDexType(lambda.constructor.proto.getParameter(i));
-      builder.add(new CfLoad(parameterType, local));
+      builder.add(CfLoad.load(parameterType, local));
       maxStack += parameterType.requiredRegisters();
       local += parameterType.requiredRegisters();
       maxLocals = local;

@@ -35,15 +35,23 @@ import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 
 public class CfReturn extends CfJumpInstruction {
-
+  public static final CfReturn ARETURN = create(ValueType.OBJECT);
+  public static final CfReturn IRETURN = create(ValueType.INT);
+  public static final CfReturn FRETURN = create(ValueType.FLOAT);
+  public static final CfReturn LRETURN = create(ValueType.LONG);
+  public static final CfReturn DRETURN = create(ValueType.DOUBLE);
   // Order must be in sync with the declarations in ValueType
-  private static final CfReturn[] RETURNS = {
-          create(ValueType.OBJECT),
-          create(ValueType.INT),
-          create(ValueType.FLOAT),
-          create(ValueType.LONG),
-          create(ValueType.DOUBLE)
-  };
+  private static final CfReturn[] RETURNS;
+
+  static {
+    RETURNS = new CfReturn[]{
+            ARETURN,
+            IRETURN,
+            FRETURN,
+            LRETURN,
+            DRETURN
+    };
+  }
 
   private final ValueType type;
 

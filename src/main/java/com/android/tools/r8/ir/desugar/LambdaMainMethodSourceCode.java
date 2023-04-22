@@ -231,7 +231,7 @@ final class LambdaMainMethodSourceCode {
     for (int i = 0; i < capturedValues; i++) {
       DexField field = lambda.getCaptureField(i);
       ValueType valueType = ValueType.fromDexType(field.type);
-      instructions.add(new CfLoad(ValueType.OBJECT, 0));
+      instructions.add(CfLoad.ALOAD_0);
       instructions.add(new CfInstanceFieldRead(field));
       maxStack += valueType.requiredRegisters();
     }
@@ -240,7 +240,7 @@ final class LambdaMainMethodSourceCode {
     int maxLocals = 1; // Local 0 is the lambda/receiver.
     for (int i = 0; i < erasedParams.length; i++) {
       ValueType valueType = ValueType.fromDexType(mainMethod.getParameters().values[i]);
-      instructions.add(new CfLoad(valueType, maxLocals));
+      instructions.add(CfLoad.load(valueType, maxLocals));
       maxLocals += valueType.requiredRegisters();
       DexType expectedParamType = implReceiverAndArgs.get(i + capturedValues);
       maxStack +=

@@ -348,7 +348,7 @@ public class DefaultInstanceInitializerCode extends Code
   public CfCode toCfCode(ProgramMethod method, DexItemFactory dexItemFactory, DexType supertype) {
     List<CfInstruction> instructions =
         Arrays.asList(
-            new CfLoad(ValueType.OBJECT, 0),
+            CfLoad.ALOAD_0,
             new CfInvoke(
                 Opcodes.INVOKESPECIAL, dexItemFactory.createInstanceInitializer(supertype), false),
             CfReturnVoid.INSTANCE);

@@ -31,16 +31,134 @@ import org.jetbrains.annotations.NotNull;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 
+import javax.annotation.Nonnull;
 import java.util.Map;
 
 public class CfLoad extends CfInstruction {
-
+  public static final CfLoad ALOAD_0 = CfLoad.ALOAD_0;
+  public static final CfLoad ALOAD_1 = new CfLoad(ValueType.OBJECT, 1);
+  public static final CfLoad ALOAD_2 = new CfLoad(ValueType.OBJECT, 2);
+  public static final CfLoad ALOAD_3 = new CfLoad(ValueType.OBJECT, 3);
+  public static final CfLoad ALOAD_4 = new CfLoad(ValueType.OBJECT, 4);
+  public static final CfLoad ALOAD_5 = new CfLoad(ValueType.OBJECT, 5);
+  public static final CfLoad ILOAD_0 = new CfLoad(ValueType.INT, 0);
+  public static final CfLoad ILOAD_1 = new CfLoad(ValueType.INT, 1);
+  public static final CfLoad ILOAD_2 = new CfLoad(ValueType.INT, 2);
+  public static final CfLoad ILOAD_3 = new CfLoad(ValueType.INT, 3);
+  public static final CfLoad ILOAD_4 = new CfLoad(ValueType.INT, 4);
+  public static final CfLoad ILOAD_5 = new CfLoad(ValueType.INT, 5);
+  public static final CfLoad FLOAD_0 = new CfLoad(ValueType.FLOAT, 0);
+  public static final CfLoad FLOAD_1 = new CfLoad(ValueType.FLOAT, 1);
+  public static final CfLoad FLOAD_2 = new CfLoad(ValueType.FLOAT, 2);
+  public static final CfLoad FLOAD_3 = new CfLoad(ValueType.FLOAT, 3);
+  public static final CfLoad FLOAD_4 = new CfLoad(ValueType.FLOAT, 4);
+  public static final CfLoad FLOAD_5 = new CfLoad(ValueType.FLOAT, 5);
+  public static final CfLoad LLOAD_0 = new CfLoad(ValueType.LONG, 0);
+  public static final CfLoad LLOAD_1 = new CfLoad(ValueType.LONG, 1);
+  public static final CfLoad LLOAD_2 = new CfLoad(ValueType.LONG, 2);
+  public static final CfLoad LLOAD_3 = new CfLoad(ValueType.LONG, 3);
+  public static final CfLoad LLOAD_4 = new CfLoad(ValueType.LONG, 4);
+  public static final CfLoad LLOAD_5 = new CfLoad(ValueType.LONG, 5);
+  public static final CfLoad DLOAD_0 = new CfLoad(ValueType.DOUBLE, 0);
+  public static final CfLoad DLOAD_1 = new CfLoad(ValueType.DOUBLE, 1);
+  public static final CfLoad DLOAD_2 = new CfLoad(ValueType.DOUBLE, 2);
+  public static final CfLoad DLOAD_3 = new CfLoad(ValueType.DOUBLE, 3);
+  public static final CfLoad DLOAD_4 = new CfLoad(ValueType.DOUBLE, 4);
+  public static final CfLoad DLOAD_5 = new CfLoad(ValueType.DOUBLE, 5);
   private final int var;
   private final ValueType type;
 
   public CfLoad(ValueType type, int var) {
     this.var = var;
     this.type = type;
+  }
+
+  @Nonnull
+  public static CfLoad load(ValueType type, int var) {
+   switch (type) {
+     case OBJECT: 
+       return loadObject(var);
+     case INT:
+       return loadInt(var);
+     case FLOAT:
+       return loadFloat(var);
+     case LONG:
+       return loadLong(var);
+     case DOUBLE:
+       return loadDouble(var);
+     default:
+       throw new IllegalStateException("Unknown value type: " + type);
+   }
+  }
+
+  @Nonnull
+  public static CfLoad loadObject(int var) {
+    switch (var) {
+      case 0: return ALOAD_0;
+      case 1: return ALOAD_1;
+      case 2: return ALOAD_2;
+      case 3: return ALOAD_3;
+      case 4: return ALOAD_4;
+      case 5: return ALOAD_5;
+      default:
+        return new CfLoad(ValueType.OBJECT, var);
+    }
+  }
+
+  @Nonnull
+  public static CfLoad loadInt(int var) {
+    switch (var) {
+      case 0: return ILOAD_0;
+      case 1: return ILOAD_1;
+      case 2: return ILOAD_2;
+      case 3: return ILOAD_3;
+      case 4: return ILOAD_4;
+      case 5: return ILOAD_5;
+      default:
+        return new CfLoad(ValueType.INT, var);
+    }
+  }
+
+  @Nonnull
+  public static CfLoad loadFloat(int var) {
+    switch (var) {
+      case 0: return FLOAD_0;
+      case 1: return FLOAD_1;
+      case 2: return FLOAD_2;
+      case 3: return FLOAD_3;
+      case 4: return FLOAD_4;
+      case 5: return FLOAD_5;
+      default:
+        return new CfLoad(ValueType.FLOAT, var);
+    }
+  }
+
+  @Nonnull
+  public static CfLoad loadLong(int var) {
+    switch (var) {
+      case 0: return LLOAD_0;
+      case 1: return LLOAD_1;
+      case 2: return LLOAD_2;
+      case 3: return LLOAD_3;
+      case 4: return LLOAD_4;
+      case 5: return LLOAD_5;
+      default:
+        return new CfLoad(ValueType.LONG, var);
+    }
+  }
+
+  @Nonnull
+  public static CfLoad loadDouble(int var) {
+    switch (var) {
+      case 0: return DLOAD_0;
+      case 1: return DLOAD_1;
+      case 2: return DLOAD_2;
+      case 3: return DLOAD_3;
+      case 4: return DLOAD_4;
+      case 5: return DLOAD_5;
+      default:
+        return new CfLoad(ValueType.DOUBLE, var);
+    }
   }
 
   @Override

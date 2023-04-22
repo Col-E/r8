@@ -49,7 +49,7 @@ public final class CfUtilityMethodsForCodeOptimizations {
         1,
         ImmutableList.of(
             label0,
-            new CfLoad(ValueType.OBJECT, 0),
+            CfLoad.ALOAD_0,
             new CfIf(IfType.EQ, ValueType.OBJECT, label2),
             label1,
             new CfNew(factory.createType("Ljava/lang/ClassCastException;")),
@@ -156,7 +156,7 @@ public final class CfUtilityMethodsForCodeOptimizations {
             label0,
             new CfNew(factory.createType("Ljava/lang/RuntimeException;")),
             new CfStackInstruction(CfStackInstruction.Opcode.Dup),
-            new CfLoad(ValueType.OBJECT, 0),
+            CfLoad.ALOAD_0,
             new CfInvoke(
                 183,
                 factory.createMethod(
@@ -182,10 +182,10 @@ public final class CfUtilityMethodsForCodeOptimizations {
         1,
         ImmutableList.of(
             label0,
-            new CfLoad(ValueType.OBJECT, 0),
+            CfLoad.ALOAD_0,
             new CfIf(IfType.EQ, ValueType.OBJECT, label2),
             label1,
-            new CfLoad(ValueType.OBJECT, 0),
+            CfLoad.ALOAD_0,
             new CfInvoke(
                 182,
                 factory.createMethod(

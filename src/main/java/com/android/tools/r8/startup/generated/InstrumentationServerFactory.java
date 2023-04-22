@@ -126,7 +126,7 @@ public final class InstrumentationServerFactory {
         1,
         ImmutableList.of(
             label0,
-            new CfLoad(ValueType.OBJECT, 0),
+            CfLoad.ALOAD_0,
             new CfInvoke(
                 183,
                 factory.createMethod(

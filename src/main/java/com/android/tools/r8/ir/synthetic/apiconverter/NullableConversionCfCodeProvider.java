@@ -54,7 +54,7 @@ public abstract class NullableConversionCfCodeProvider extends SyntheticCfCodePr
 
   void generateNullCheck(List<CfInstruction> instructions) {
     CfLabel nullDest = new CfLabel();
-    instructions.add(new CfLoad(ValueType.OBJECT, 0));
+    instructions.add(CfLoad.ALOAD_0);
     instructions.add(new CfIf(IfType.NE, ValueType.OBJECT, nullDest));
     instructions.add(CfConstNull.INSTANCE);
     instructions.add(CfReturn.forType(ValueType.OBJECT));

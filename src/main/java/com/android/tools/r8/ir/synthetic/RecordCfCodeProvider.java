@@ -115,7 +115,7 @@ public abstract class RecordCfCodeProvider {
 
     private void loadFieldAsObject(List<CfInstruction> instructions, DexField field) {
       DexItemFactory factory = appView.dexItemFactory();
-      instructions.add(new CfLoad(ValueType.OBJECT, 0));
+      instructions.add(CfLoad.ALOAD_0);
       instructions.add(new CfInstanceFieldRead(field));
       if (field.type.isPrimitiveType()) {
         factory.primitiveToBoxed.forEach(

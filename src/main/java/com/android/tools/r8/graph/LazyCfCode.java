@@ -879,7 +879,7 @@ public class LazyCfCode extends Code {
           throw new Unreachable("Unexpected VarInsn opcode: " + opcode);
       }
       if (Opcodes.ILOAD <= opcode && opcode <= Opcodes.ALOAD) {
-        addInstruction(new CfLoad(type, var));
+        addInstruction(CfLoad.load(type, var));
       } else {
         addInstruction(new CfStore(type, var));
       }

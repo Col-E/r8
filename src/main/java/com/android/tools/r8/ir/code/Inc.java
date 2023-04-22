@@ -94,7 +94,7 @@ public class Inc extends Unop {
     } else {
       assert inValue.outType() == ValueType.INT;
       builder.add(
-          new CfLoad(ValueType.INT, inRegister),
+              CfLoad.loadInt(inRegister),
           new CfConstNumber(increment, ValueType.INT),
           new CfArithmeticBinop(Opcode.Add, NumericType.INT),
           new CfStore(ValueType.INT, outRegister));

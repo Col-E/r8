@@ -133,7 +133,7 @@ public class APIConversionCfCodeProvider extends SyntheticCfCodeProvider {
 
   private void generatePushReceiver(List<CfInstruction> instructions, boolean isStatic) {
     if (!isStatic) {
-      instructions.add(new CfLoad(ValueType.OBJECT, 0));
+      instructions.add(CfLoad.ALOAD_0);
       if (forwardFieldOrNull != null) {
         instructions.add(new CfInstanceFieldRead(forwardFieldOrNull));
       }

@@ -2047,7 +2047,7 @@ public final class BackportedMethodRewriter implements CfInstructionDesugaring {
       //    this.supplier = supplier;
       //  }
       List<CfInstruction> instructions = new ArrayList<>();
-      instructions.add(new CfLoad(ValueType.OBJECT, 0));
+      instructions.add(CfLoad.ALOAD_0);
       instructions.add(new CfStackInstruction(Opcode.Dup));
       instructions.add(
           new CfInvoke(
@@ -2057,7 +2057,7 @@ public final class BackportedMethodRewriter implements CfInstructionDesugaring {
                   factory.createProto(factory.voidType),
                   factory.constructorMethodName),
               false));
-      instructions.add(new CfLoad(ValueType.fromDexType(factory.supplierType), 1));
+      instructions.add(CfLoad.load(ValueType.fromDexType(factory.supplierType), 1));
       instructions.add(new CfInstanceFieldWrite(supplierField));
       instructions.add(CfReturnVoid.INSTANCE);
 
@@ -2080,7 +2080,7 @@ public final class BackportedMethodRewriter implements CfInstructionDesugaring {
       //   return supplier.get();
       // }
       List<CfInstruction> instructions = new ArrayList<>();
-      instructions.add(new CfLoad(ValueType.OBJECT, 0));
+      instructions.add(CfLoad.ALOAD_0);
       instructions.add(new CfInstanceFieldRead(supplierField));
       instructions.add(new CfInvoke(Opcodes.INVOKEINTERFACE, factory.supplierMembers.get, true));
       instructions.add(CfReturn.forType(ValueType.OBJECT));

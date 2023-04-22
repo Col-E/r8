@@ -27,7 +27,7 @@ final class LambdaConstructorSourceCode {
     ImmutableList<CfCode.LocalVariableInfo> localVariables = ImmutableList.of();
     Builder<CfInstruction> instructions = ImmutableList.builder();
     // Super constructor call (always java.lang.Object.<init>()).
-    instructions.add(new CfLoad(ValueType.OBJECT, 0));
+    instructions.add(CfLoad.ALOAD_0);
     instructions.add(
         new CfInvoke(
             Opcodes.INVOKESPECIAL,
@@ -40,8 +40,8 @@ final class LambdaConstructorSourceCode {
       DexField field = lambda.getCaptureField(i);
       assert field.type == capturedTypes[i];
       ValueType type = ValueType.fromDexType(field.type);
-      instructions.add(new CfLoad(ValueType.OBJECT, 0));
-      instructions.add(new CfLoad(type, maxLocals));
+      instructions.add(CfLoad.ALOAD_0);
+      instructions.add(CfLoad.load(type, maxLocals));
       instructions.add(new CfInstanceFieldWrite(field));
       maxLocals += type.requiredRegisters();
       maxStack += type.requiredRegisters();

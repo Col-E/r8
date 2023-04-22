@@ -93,9 +93,9 @@ public class ServiceLoaderSourceCode {
         new CfStore(ValueType.OBJECT, 0),
         new CfNew(factory.serviceLoaderConfigurationErrorType),
         new CfStackInstruction(CfStackInstruction.Opcode.Dup),
-        new CfLoad(ValueType.OBJECT, 0),
+        CfLoad.ALOAD_0,
         new CfInvoke(INVOKEVIRTUAL, factory.throwableMethods.getMessage, false),
-        new CfLoad(ValueType.OBJECT, 0),
+        CfLoad.ALOAD_0,
         new CfInvoke(
             INVOKESPECIAL,
             factory.createMethod(

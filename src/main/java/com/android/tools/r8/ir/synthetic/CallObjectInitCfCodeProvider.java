@@ -27,7 +27,7 @@ public class CallObjectInitCfCodeProvider extends SyntheticCfCodeProvider {
   public CfCode generateCfCode() {
     DexItemFactory factory = appView.dexItemFactory();
     List<CfInstruction> instructions = new ArrayList<>();
-    instructions.add(new CfLoad(ValueType.OBJECT, 0));
+    instructions.add(CfLoad.ALOAD_0);
     instructions.add(new CfInvoke(Opcodes.INVOKESPECIAL, factory.objectMembers.constructor, false));
     instructions.add(CfReturnVoid.INSTANCE);
     return standardCfCodeFromInstructions(instructions);

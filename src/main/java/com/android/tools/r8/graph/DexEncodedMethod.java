@@ -968,7 +968,7 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
   public CfCode buildInstanceOfCfCode(DexType type, boolean negate) {
     CfInstruction[] instructions = new CfInstruction[3 + BooleanUtils.intValue(negate) * 2];
     int i = 0;
-    instructions[i++] = new CfLoad(ValueType.OBJECT, 0);
+    instructions[i++] = CfLoad.ALOAD_0;
     instructions[i++] = new CfInstanceOf(type);
     if (negate) {
       instructions[i++] = new CfConstNumber(1, ValueType.INT);
@@ -1089,7 +1089,7 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
         .add(new CfConstString(tag))
         .add(new CfInvoke(Opcodes.INVOKESTATIC, getLogger, false))
         .add(new CfStore(ValueType.OBJECT, locals - 1))
-        .add(new CfLoad(ValueType.OBJECT, locals - 1))
+        .add(CfLoad.loadObject(locals - 1))
         .add(new CfConstString(message))
         .add(new CfInvoke(Opcodes.INVOKEVIRTUAL, severe, false))
         .add(new CfNew(exceptionType))

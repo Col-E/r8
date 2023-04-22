@@ -33,7 +33,7 @@ public final class InstanceOfSourceCode extends SyntheticCfCodeProvider {
   @Override
   public CfCode generateCfCode() {
     List<CfInstruction> instructions = new ArrayList<>();
-    instructions.add(new CfLoad(ValueType.OBJECT, 0));
+    instructions.add(CfLoad.ALOAD_0);
     instructions.add(new CfInstanceOf(instanceOfType));
     instructions.add(CfReturn.forType(ValueType.INT));
     return standardCfCodeFromInstructions(instructions);

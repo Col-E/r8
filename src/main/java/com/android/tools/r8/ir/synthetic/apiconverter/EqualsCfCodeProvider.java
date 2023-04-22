@@ -51,7 +51,7 @@ public class EqualsCfCodeProvider extends SyntheticCfCodeProvider {
     CfLabel label2 = new CfLabel();
     // this.wrapperField
     List<CfInstruction> instructions = new ArrayList<>();
-    instructions.add(new CfLoad(ValueType.OBJECT, 0));
+    instructions.add(CfLoad.ALOAD_0);
     instructions.add(new CfInstanceFieldRead(wrapperField));
 
     // other instanceof WrapperType

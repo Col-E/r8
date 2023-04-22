@@ -106,8 +106,8 @@ public class IncompleteMergedInstanceInitializerCode extends IncompleteHorizonta
     // Assign class id.
     if (classIdField != null) {
       int classIdLocalIndex = maxLocals - 1 - extraNulls;
-      instructionBuilder.add(new CfLoad(ValueType.OBJECT, 0));
-      instructionBuilder.add(new CfLoad(ValueType.INT, classIdLocalIndex));
+      instructionBuilder.add(CfLoad.ALOAD_0);
+      instructionBuilder.add(CfLoad.loadInt(classIdLocalIndex));
       instructionBuilder.add(
           new CfInstanceFieldWrite(
               lens.getRenamedFieldSignature(classIdField, lens.getPrevious())));
@@ -126,7 +126,7 @@ public class IncompleteMergedInstanceInitializerCode extends IncompleteHorizonta
 
     // Load receiver for parent constructor call.
     int stackHeightForParentConstructorCall = 1;
-    instructionBuilder.add(new CfLoad(ValueType.OBJECT, 0));
+    instructionBuilder.add(CfLoad.ALOAD_0);
 
     // Load constructor arguments.
     MethodLookupResult parentConstructorLookup = lens.lookupInvokeDirect(parentConstructor, method);
@@ -197,7 +197,7 @@ public class IncompleteMergedInstanceInitializerCode extends IncompleteHorizonta
     instanceFieldAssignments.forEach(
         (field, initializationInfo) -> {
           // Load the receiver, the field value, and then set the field.
-          instructionBuilder.add(new CfLoad(ValueType.OBJECT, 0));
+          instructionBuilder.add(CfLoad.ALOAD_0);
           int stackSizeForInitializationInfo =
               addCfInstructionsForInitializationInfo(
                   instructionBuilder, initializationInfo, argumentToLocalIndex, field.getType());
@@ -235,7 +235,7 @@ public class IncompleteMergedInstanceInitializerCode extends IncompleteHorizonta
     if (initializationInfo.isArgumentInitializationInfo()) {
       int argumentIndex = initializationInfo.asArgumentInitializationInfo().getArgumentIndex();
       instructionBuilder.add(
-          new CfLoad(ValueType.fromDexType(type), argumentToLocalIndex[argumentIndex]));
+              CfLoad.load(ValueType.fromDexType(type), argumentToLocalIndex[argumentIndex]));
       return type.getRequiredRegisters();
     }
 

@@ -103,13 +103,13 @@ public class IncompleteVirtuallyMergedMethodCode extends IncompleteHorizontalCla
     CfLabel fallthroughLabel = new CfLabel();
 
     // Add instructions.
-    instructions.add(new CfLoad(ValueType.OBJECT, 0));
+    instructions.add(CfLoad.ALOAD_0);
     int localIndex = 1;
     for (DexType parameter : method.getParameters()) {
-      instructions.add(new CfLoad(ValueType.fromDexType(parameter), localIndex));
+      instructions.add(CfLoad.load(ValueType.fromDexType(parameter), localIndex));
       localIndex += parameter.getRequiredRegisters();
     }
-    instructions.add(new CfLoad(ValueType.OBJECT, 0));
+    instructions.add(CfLoad.ALOAD_0);
     instructions.add(new CfInstanceFieldRead(classIdField));
 
     // Emit switch.

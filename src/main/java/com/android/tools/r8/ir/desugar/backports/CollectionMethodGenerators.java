@@ -45,7 +45,7 @@ public final class CollectionMethodGenerators {
       builder.add(
           new CfStackInstruction(CfStackInstruction.Opcode.Dup),
           new CfConstNumber(i, ValueType.INT),
-          new CfLoad(ValueType.OBJECT, i),
+          CfLoad.loadObject(i),
           new CfArrayStore(MemberType.OBJECT));
     }
 
@@ -82,8 +82,8 @@ public final class CollectionMethodGenerators {
           new CfConstNumber(i, ValueType.INT),
           new CfNew(simpleEntry),
           new CfStackInstruction(CfStackInstruction.Opcode.Dup),
-          new CfLoad(ValueType.OBJECT, i * 2),
-          new CfLoad(ValueType.OBJECT, i * 2 + 1),
+          CfLoad.loadObject(i * 2),
+          CfLoad.loadObject(i * 2 + 1),
           new CfInvoke(Opcodes.INVOKESPECIAL, simpleEntryConstructor, false),
           new CfArrayStore(MemberType.OBJECT));
     }

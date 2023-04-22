@@ -31,7 +31,7 @@ public class HashCodeCfCodeProvider extends SyntheticCfCodeProvider {
   @Override
   public CfCode generateCfCode() {
     List<CfInstruction> instructions = new ArrayList<>();
-    instructions.add(new CfLoad(ValueType.OBJECT, 0));
+    instructions.add(CfLoad.ALOAD_0);
     instructions.add(new CfInstanceFieldRead(wrapperField));
     instructions.add(
         new CfInvoke(
