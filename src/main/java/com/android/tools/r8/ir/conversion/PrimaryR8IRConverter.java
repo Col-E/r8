@@ -39,9 +39,11 @@ public class PrimaryR8IRConverter extends IRConverter {
     try {
       DexApplication application =
           internalOptimize(appView.withLiveness(), executorService).asDirect();
+      AppInfoWithLiveness oldInfo = appView.appInfo();
       AppInfoWithClassHierarchy newAppInfo =
-          appView.appInfo().rebuildWithClassHierarchy(previous -> application);
+          oldInfo.rebuildWithClassHierarchy(previous -> application);
       appView.withClassHierarchy().setAppInfo(newAppInfo);
+      appView.appInfo().setFilter(oldInfo.getFilter());
     } finally {
       timing.end();
     }

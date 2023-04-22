@@ -170,6 +170,7 @@ public class SyntheticFinalization {
     assert !appView.appInfo().hasLiveness();
     appView.options().testing.checkDeterminism(appView);
     Result result = appView.getSyntheticItems().computeFinalSynthetics(appView, timing);
+    AppInfo oldInfo = appView.appInfo();
     appView.setAppInfo(new AppInfo(result.commit, result.mainDexInfo));
     if (result.lens != null) {
       appView.setAppInfo(
@@ -183,20 +184,23 @@ public class SyntheticFinalization {
       appView.rewriteWithD8Lens(result.lens);
     }
     appView.pruneItems(result.prunedItems, executorService);
+    appView.appInfo().setFilter(oldInfo.getFilter());
   }
 
   public static void finalizeWithClassHierarchy(
       AppView<AppInfoWithClassHierarchy> appView, ExecutorService executorService, Timing timing)
       throws ExecutionException {
-    assert !appView.appInfo().hasLiveness();
+    AppInfoWithClassHierarchy info = appView.appInfo();
+    assert !info.hasLiveness();
     appView.options().testing.checkDeterminism(appView);
     Result result = appView.getSyntheticItems().computeFinalSynthetics(appView, timing);
-    appView.setAppInfo(appView.appInfo().rebuildWithClassHierarchy(result.commit));
-    appView.setAppInfo(appView.appInfo().rebuildWithMainDexInfo(result.mainDexInfo));
+    appView.setAppInfo(info.rebuildWithClassHierarchy(result.commit));
+    appView.setAppInfo(info.rebuildWithMainDexInfo(result.mainDexInfo));
     if (result.lens != null) {
       appView.rewriteWithLens(result.lens);
     }
     appView.pruneItems(result.prunedItems, executorService);
+    appView.appInfo().setFilter(info.getFilter());
   }
 
   public static void finalizeWithLiveness(

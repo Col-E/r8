@@ -12,11 +12,15 @@ import com.android.tools.r8.synthesis.CommittedItems;
 import com.android.tools.r8.synthesis.SyntheticItems;
 import com.android.tools.r8.synthesis.SyntheticItems.GlobalSyntheticsStrategy;
 import com.android.tools.r8.utils.BooleanBox;
+import com.android.tools.r8.utils.ClassFilter;
 import com.android.tools.r8.utils.InternalOptions;
+
+import javax.annotation.Nonnull;
 import java.util.Collection;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
 
 public class AppInfo implements DexDefinitionSupplier {
 
@@ -28,6 +32,8 @@ public class AppInfo implements DexDefinitionSupplier {
   // Set when a new AppInfo replaces a previous one. All public methods should verify that the
   // current instance is not obsolete, to ensure that we almost use the most recent AppInfo.
   private final BooleanBox obsolete;
+
+  private ClassFilter filter = ClassFilter.PASS_ALL;
 
   public static AppInfo createInitialAppInfo(
       DexApplication application, GlobalSyntheticsStrategy globalSyntheticsStrategy) {
@@ -92,6 +98,15 @@ public class AppInfo implements DexDefinitionSupplier {
     return app.options;
   }
 
+  @Nonnull
+  public ClassFilter getFilter() {
+    return filter;
+  }
+
+  public void setFilter(@Nonnull ClassFilter filter) {
+    this.filter = filter;
+  }
+
   public boolean isObsolete() {
     return obsolete.get();
   }
@@ -130,14 +145,29 @@ public class AppInfo implements DexDefinitionSupplier {
     return syntheticItems;
   }
 
+  /**
+   * @return All classes, bypassing the current {@link #getFilter() filter}.
+   */
+  public Collection<DexProgramClass> allClasses() {
+    return app.classes();
+  }
+
   public Collection<DexProgramClass> classes() {
     assert checkIfObsolete();
-    return app.classes();
+    if (filter == ClassFilter.PASS_ALL)
+      return app.classes();
+    return app.classes().stream()
+            .filter(c -> filter.test(c))
+            .collect(Collectors.toList());
   }
 
   public Collection<DexProgramClass> classesWithDeterministicOrder() {
     assert checkIfObsolete();
-    return app.classesWithDeterministicOrder();
+    if (filter == ClassFilter.PASS_ALL)
+      return app.classesWithDeterministicOrder();
+    return app.classesWithDeterministicOrder().stream()
+            .filter(c -> filter.test(c))
+            .collect(Collectors.toList());
   }
 
   public void forEachMethod(Consumer<ProgramMethod> consumer) {

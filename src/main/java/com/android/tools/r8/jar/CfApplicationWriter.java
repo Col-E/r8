@@ -47,14 +47,8 @@ import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.naming.ProguardMapSupplier.ProguardMapId;
 import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.synthesis.SyntheticNaming;
-import com.android.tools.r8.utils.AndroidApp;
-import com.android.tools.r8.utils.AsmUtils;
-import com.android.tools.r8.utils.ComparatorUtils;
-import com.android.tools.r8.utils.ExceptionUtils;
+import com.android.tools.r8.utils.*;
 import com.android.tools.r8.utils.InternalGlobalSyntheticsProgramConsumer.InternalGlobalSyntheticsCfConsumer;
-import com.android.tools.r8.utils.InternalOptions;
-import com.android.tools.r8.utils.OriginalSourceFiles;
-import com.android.tools.r8.utils.PredicateUtils;
 import com.android.tools.r8.utils.structural.Ordered;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMap.Builder;
@@ -90,21 +84,21 @@ public class CfApplicationWriter {
   // pool index #1 and a String entry to #2, referencing #1.
   public static final int MARKER_STRING_CONSTANT_POOL_INDEX = 2;
 
-  private final DexApplication application;
   private final AppView<?> appView;
   private final InternalOptions options;
   private final Optional<Marker> marker;
   private final Predicate<DexType> isTypeMissing;
+  private final Timing timing;
 
   private static final CfVersion MIN_VERSION_FOR_COMPILER_GENERATED_CODE = CfVersion.V1_6;
 
   public CfApplicationWriter(AppView<?> appView, Marker marker) {
-    this.application = appView.appInfo().app();
     this.appView = appView;
     this.options = appView.options();
     this.marker = Optional.ofNullable(marker);
     this.isTypeMissing =
         PredicateUtils.isNull(appView.appInfo()::definitionForWithoutExistenceAssert);
+    timing = appView.app().timing;
   }
 
   private NamingLens getNamingLens() {
@@ -117,11 +111,11 @@ public class CfApplicationWriter {
   }
 
   public void write(ClassFileConsumer consumer, AndroidApp inputApp) {
-    application.timing.begin("CfApplicationWriter.write");
+    timing.begin("CfApplicationWriter.write");
     try {
       writeApplication(inputApp, consumer);
     } finally {
-      application.timing.end();
+      timing.end();
     }
   }
 
@@ -144,7 +138,7 @@ public class CfApplicationWriter {
           runAndWriteMap(
               inputApp,
               appView,
-              application.timing,
+              timing,
               OriginalSourceFiles.fromClasses(),
               DebugRepresentation.none(options));
       marker.get().setPgMapId(proguardMapId.getId());
@@ -155,7 +149,7 @@ public class CfApplicationWriter {
       sourceFileEnvironment = ApplicationWriter.createSourceFileEnvironment(proguardMapId);
     }
     LensCodeRewriterUtils rewriter = new LensCodeRewriterUtils(appView);
-    Collection<DexProgramClass> classes = application.classes();
+    Collection<DexProgramClass> classes = appView.appInfo().classes();
     Collection<DexProgramClass> globalSyntheticClasses = new ArrayList<>();
     if (options.intermediate && options.hasGlobalSyntheticsConsumer()) {
       Collection<DexProgramClass> allClasses = classes;
@@ -401,7 +395,7 @@ public class CfApplicationWriter {
   private String getSourceDebugExtension(DexAnnotationSet annotations) {
     DexValue debugExtensions =
         getSystemAnnotationValue(
-            annotations, application.dexItemFactory.annotationSourceDebugExtension);
+            annotations, appView.dexItemFactory().annotationSourceDebugExtension);
     if (debugExtensions == null) {
       return null;
     }
@@ -410,7 +404,7 @@ public class CfApplicationWriter {
 
   private ImmutableMap<DexString, DexValue> getAnnotationDefaults(DexAnnotationSet annotations) {
     DexValue value =
-        getSystemAnnotationValue(annotations, application.dexItemFactory.annotationDefault);
+        getSystemAnnotationValue(annotations, appView.dexItemFactory().annotationDefault);
     if (value == null) {
       return ImmutableMap.of();
     }
@@ -424,7 +418,7 @@ public class CfApplicationWriter {
 
   private String[] getExceptions(DexAnnotationSet annotations) {
     DexValue value =
-        getSystemAnnotationValue(annotations, application.dexItemFactory.annotationThrows);
+        getSystemAnnotationValue(annotations, appView.dexItemFactory().annotationThrows);
     if (value == null) {
       return null;
     }

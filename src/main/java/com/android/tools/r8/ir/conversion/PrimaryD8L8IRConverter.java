@@ -56,7 +56,8 @@ public class PrimaryD8L8IRConverter extends IRConverter {
       throws ExecutionException, IOException {
     LambdaDeserializationMethodRemover.run(appView);
     workaroundAbstractMethodOnNonAbstractClassVerificationBug(executorService);
-    DexApplication application = appView.appInfo().app();
+    AppInfo appInfo = appView.appInfo();
+    DexApplication application = appInfo.app();
     ProfileCollectionAdditions profileCollectionAdditions =
         ProfileCollectionAdditions.create(appView);
     D8MethodProcessor methodProcessor =
@@ -100,9 +101,9 @@ public class PrimaryD8L8IRConverter extends IRConverter {
     application = builder.build();
     appView.setAppInfo(
         new AppInfo(
-            appView.appInfo().getSyntheticItems().commit(application),
-            appView.appInfo().getMainDexInfo()));
-
+            appInfo.getSyntheticItems().commit(application),
+            appInfo.getMainDexInfo()));
+    appView.appInfo().setFilter(appInfo.getFilter());
     profileCollectionAdditions.commit(appView);
   }
 
@@ -273,11 +274,13 @@ public class PrimaryD8L8IRConverter extends IRConverter {
   private DexApplication commitPendingSyntheticItems(
       AppView<AppInfo> appView, DexApplication application) {
     if (appView.getSyntheticItems().hasPendingSyntheticClasses()) {
+      AppInfo info = appView.appInfo();
       appView.setAppInfo(
           new AppInfo(
-              appView.appInfo().getSyntheticItems().commit(application),
-              appView.appInfo().getMainDexInfo()));
-      application = appView.appInfo().app();
+              info.getSyntheticItems().commit(application),
+              info.getMainDexInfo()));
+      appView.appInfo().setFilter(info.getFilter());
+      application = info.app();
     }
     return application;
   }

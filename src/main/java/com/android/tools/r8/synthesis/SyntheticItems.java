@@ -301,12 +301,12 @@ public class SyntheticItems implements SyntheticDefinitionsProvider {
     assert synthetics.pending.isEmpty();
     CommittedSyntheticsCollection.Builder builder = synthetics.committed.builder();
     // TODO(b/158159959): Consider populating the input synthetics when identified.
-    for (DexProgramClass clazz : appView.appInfo().classes()) {
+    AppInfo info = appView.appInfo();
+    for (DexProgramClass clazz : info.classes()) {
       SyntheticMarker marker = SyntheticMarker.stripMarkerFromClass(clazz, appView);
       if (!appView.options().intermediate && marker.getContext() != null) {
         DexClass contextClass =
-            appView
-                .appInfo()
+            info
                 .definitionForWithoutExistenceAssert(
                     marker.getContext().getSynthesizingContextType());
         if (contextClass == null || contextClass.isNotProgramClass()) {
@@ -335,19 +335,20 @@ public class SyntheticItems implements SyntheticDefinitionsProvider {
     CommittedItems commit =
         new CommittedItems(
             synthetics.state,
-            appView.appInfo().app(),
+            info.app(),
             committed,
             ImmutableList.of(),
             synthetics.globalSyntheticsStrategy);
-    if (appView.appInfo().hasClassHierarchy()) {
+    if (info.hasClassHierarchy()) {
       appView
           .withClassHierarchy()
-          .setAppInfo(appView.appInfo().withClassHierarchy().rebuildWithClassHierarchy(commit));
+          .setAppInfo(info.withClassHierarchy().rebuildWithClassHierarchy(commit));
     } else {
       appView
           .withoutClassHierarchy()
-          .setAppInfo(new AppInfo(commit, appView.appInfo().getMainDexInfo()));
+          .setAppInfo(new AppInfo(commit, info.getMainDexInfo()));
     }
+    appView.appInfo().setFilter(info.getFilter());
   }
 
   // Predicates and accessors.

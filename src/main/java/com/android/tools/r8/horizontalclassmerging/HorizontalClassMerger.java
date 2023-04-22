@@ -174,7 +174,9 @@ public class HorizontalClassMerger {
           horizontalClassMergerGraphLens, newApplication.toDirect());
     } else {
       assert mode.isFinal();
-      SyntheticItems syntheticItems = appView.appInfo().getSyntheticItems();
+      AppInfo info = appView
+              .appInfo();
+      SyntheticItems syntheticItems = info.getSyntheticItems();
       assert !syntheticItems.hasPendingSyntheticClasses();
       appView
           .withoutClassHierarchy()
@@ -182,10 +184,10 @@ public class HorizontalClassMerger {
               new AppInfo(
                   syntheticItems.commitRewrittenWithLens(
                       newApplication, horizontalClassMergerGraphLens),
-                  appView
-                      .appInfo()
+                  info
                       .getMainDexInfo()
                       .rewrittenWithLens(syntheticItems, horizontalClassMergerGraphLens)));
+      appView.appInfo().setFilter(info.getFilter());
       appView.rewriteWithD8Lens(horizontalClassMergerGraphLens);
     }
     codeProvider.setGraphLens(horizontalClassMergerGraphLens);

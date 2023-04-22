@@ -3946,8 +3946,10 @@ public class Enqueuer {
     }
 
     // Commit the pending synthetics and recompute subtypes.
+    AppInfoWithClassHierarchy oldInfo = appInfo;
     appInfo = appInfo.rebuildWithClassHierarchy(app -> app);
     appView.setAppInfo(appInfo);
+    appView.appInfo().setFilter(oldInfo.getFilter());
     subtypingInfo = SubtypingInfo.create(appView);
 
     // Finally once all synthesized items "exist" it is now safe to continue tracing. The new work
@@ -4512,8 +4514,10 @@ public class Enqueuer {
     }
 
     // Commit the pending synthetics and recompute subtypes.
+    AppInfoWithClassHierarchy oldInfo = appInfo;
     appInfo = appInfo.rebuildWithClassHierarchy(app -> app);
     appView.setAppInfo(appInfo);
+    appView.appInfo().setFilter(oldInfo.getFilter());
     subtypingInfo = SubtypingInfo.create(appView);
 
     syntheticAdditions.enqueueWorkItems(this);

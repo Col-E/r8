@@ -84,18 +84,23 @@ public class ApiReferenceStubber {
         AppView<AppInfoWithLiveness> appInfoWithLivenessAppView = appView.withLiveness();
         appInfoWithLivenessAppView.setAppInfo(
             appInfoWithLivenessAppView.appInfo().rebuildWithLiveness(committedItems));
-      } else if (appView.hasClassHierarchy()) {
-        appView
-            .withClassHierarchy()
-            .setAppInfo(
-                appView.appInfo().withClassHierarchy().rebuildWithClassHierarchy(committedItems));
       } else {
-        appView
-            .withoutClassHierarchy()
-            .setAppInfo(
-                new AppInfo(
-                    appView.appInfo().getSyntheticItems().commit(appView.app()),
-                    appView.appInfo().getMainDexInfo()));
+        AppInfo info = appView.appInfo();
+        if (appView.hasClassHierarchy()) {
+          appView
+              .withClassHierarchy()
+              .setAppInfo(
+                  info.withClassHierarchy().rebuildWithClassHierarchy(committedItems));
+        } else {
+          appView
+              .withoutClassHierarchy()
+              .setAppInfo(
+                  new AppInfo(
+                      info.getSyntheticItems().commit(appView.app()),
+                      info.getMainDexInfo()));
+
+        }
+        appView.appInfo().setFilter(info.getFilter());
       }
     }
     eventConsumer.finished(appView);

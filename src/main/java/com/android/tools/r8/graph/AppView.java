@@ -843,10 +843,14 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
     }
     if (appInfo.hasLiveness()) {
       AppView<AppInfoWithLiveness> self = withLiveness();
-      self.setAppInfo(self.appInfo().prunedCopyFrom(prunedItems, executorService));
+      AppInfoWithLiveness info = self.appInfo();
+      self.setAppInfo(info.prunedCopyFrom(prunedItems, executorService));
+      self.appInfo.setFilter(info.getFilter());
     } else if (appInfo.hasClassHierarchy()) {
       AppView<AppInfoWithClassHierarchy> self = withClassHierarchy();
-      self.setAppInfo(self.appInfo().prunedCopyFrom(prunedItems, executorService));
+      AppInfoWithClassHierarchy info = self.appInfo();
+      self.setAppInfo(info.prunedCopyFrom(prunedItems, executorService));
+      self.appInfo.setFilter(info.getFilter());
     } else {
       pruneAppInfo(prunedItems, this, executorService);
     }
