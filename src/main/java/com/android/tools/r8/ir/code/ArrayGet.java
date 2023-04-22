@@ -180,7 +180,7 @@ public class ArrayGet extends ArrayAccess {
 
   @Override
   public void buildCf(CfBuilder builder) {
-    builder.add(new CfArrayLoad(type), this);
+    builder.add(CfArrayLoad.forType(type), this);
   }
 
   @Override

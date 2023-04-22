@@ -120,9 +120,9 @@ public abstract class NullableConversionCfCodeProvider extends SyntheticCfCodePr
       instructions.add(new CfLoad(ValueType.INT, 3));
       instructions.add(new CfLoad(ValueType.fromDexType(typeArray), 0));
       instructions.add(new CfLoad(ValueType.INT, 3));
-      instructions.add(new CfArrayLoad(MemberType.OBJECT));
+      instructions.add(CfArrayLoad.forType(MemberType.OBJECT));
       instructions.add(new CfInvoke(Opcodes.INVOKESTATIC, conversion, false));
-      instructions.add(new CfArrayStore(MemberType.OBJECT));
+      instructions.add(CfArrayStore.forType(MemberType.OBJECT));
       // t3 = t3 + 1; }
       instructions.add(new CfLoad(ValueType.INT, 3));
       instructions.add(new CfConstNumber(1, ValueType.INT));

@@ -375,7 +375,7 @@ public class DesugaredLibraryConversionCfProvider {
           parameterConversions[i] != null
               ? parameterConversions[i].getReturnType()
               : invokedMethod.getParameter(i);
-      cfInstructions.add(new CfArrayLoad(MemberType.OBJECT));
+      cfInstructions.add(CfArrayLoad.forType(MemberType.OBJECT));
       if (parameterType.isPrimitiveType()) {
         cfInstructions.add(new CfCheckCast(factory.getBoxedForPrimitiveType(parameterType)));
         DexMethod method = appView.dexItemFactory().getUnboxPrimitiveMethod(parameterType);
@@ -404,7 +404,7 @@ public class DesugaredLibraryConversionCfProvider {
         DexMethod method = appView.dexItemFactory().getBoxPrimitiveMethod(param);
         cfInstructions.add(new CfInvoke(Opcodes.INVOKESTATIC, method, false));
       }
-      cfInstructions.add(new CfArrayStore(MemberType.OBJECT));
+      cfInstructions.add(CfArrayStore.forType(MemberType.OBJECT));
       if (param == appView.dexItemFactory().longType
           || param == appView.dexItemFactory().doubleType) {
         stackIndex++;

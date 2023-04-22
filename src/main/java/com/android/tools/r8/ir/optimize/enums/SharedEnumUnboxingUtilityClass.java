@@ -311,7 +311,7 @@ public class SharedEnumUnboxingUtilityClass extends EnumUnboxingUtilityClass {
         instructions.add(new CfConstNumber(i, ValueType.INT));
         // i + 1 because 0 represents the null value.
         instructions.add(new CfConstNumber(i + 1, ValueType.INT));
-        instructions.add(new CfArrayStore(MemberType.INT));
+        instructions.add(CfArrayStore.forType(MemberType.INT));
       }
       instructions.add(new CfStaticFieldWrite(valuesField.getReference()));
       instructions.add(CfReturnVoid.INSTANCE);

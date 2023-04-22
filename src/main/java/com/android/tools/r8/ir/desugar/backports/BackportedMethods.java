@@ -140,11 +140,11 @@ public final class BackportedMethods {
             new CfStackInstruction(CfStackInstruction.Opcode.Dup),
             new CfConstNumber(0, ValueType.INT),
             new CfConstClass(factory.stringType),
-            new CfArrayStore(MemberType.OBJECT),
+            CfArrayStore.forType(MemberType.OBJECT),
             new CfStackInstruction(CfStackInstruction.Opcode.Dup),
             new CfConstNumber(1, ValueType.INT),
             new CfConstClass(factory.throwableType),
-            new CfArrayStore(MemberType.OBJECT),
+            CfArrayStore.forType(MemberType.OBJECT),
             label1,
             new CfInvoke(
                 182,
@@ -163,11 +163,11 @@ public final class BackportedMethods {
             new CfStackInstruction(CfStackInstruction.Opcode.Dup),
             new CfConstNumber(0, ValueType.INT),
             CfLoad.ALOAD_0,
-            new CfArrayStore(MemberType.OBJECT),
+            CfArrayStore.forType(MemberType.OBJECT),
             new CfStackInstruction(CfStackInstruction.Opcode.Dup),
             new CfConstNumber(1, ValueType.INT),
             CfLoad.ALOAD_1,
-            new CfArrayStore(MemberType.OBJECT),
+            CfArrayStore.forType(MemberType.OBJECT),
             new CfInvoke(
                 182,
                 factory.createMethod(
@@ -1046,7 +1046,7 @@ public final class BackportedMethods {
             new CfStackInstruction(CfStackInstruction.Opcode.Dup),
             new CfConstNumber(0, ValueType.INT),
             new CfConstClass(factory.throwableType),
-            new CfArrayStore(MemberType.OBJECT),
+            CfArrayStore.forType(MemberType.OBJECT),
             new CfInvoke(
                 182,
                 factory.createMethod(
@@ -1066,7 +1066,7 @@ public final class BackportedMethods {
             new CfStackInstruction(CfStackInstruction.Opcode.Dup),
             new CfConstNumber(0, ValueType.INT),
             CfLoad.ALOAD_2,
-            new CfArrayStore(MemberType.OBJECT),
+            CfArrayStore.forType(MemberType.OBJECT),
             new CfInvoke(
                 182,
                 factory.createMethod(
@@ -1224,7 +1224,7 @@ public final class BackportedMethods {
             new CfIfCmp(IfType.GE, ValueType.INT, label5),
             CfLoad.ALOAD_2,
             CfLoad.ILOAD_4,
-            new CfArrayLoad(MemberType.OBJECT),
+            CfArrayLoad.forType(MemberType.OBJECT),
             new CfStore(ValueType.OBJECT, 5),
             label3,
             CfLoad.ALOAD_1,
@@ -1375,7 +1375,7 @@ public final class BackportedMethods {
             new CfIfCmp(IfType.GE, ValueType.INT, label8),
             CfLoad.ALOAD_2,
             CfLoad.ILOAD_4,
-            new CfArrayLoad(MemberType.OBJECT),
+            CfArrayLoad.forType(MemberType.OBJECT),
             new CfStore(ValueType.OBJECT, 5),
             label3,
             CfLoad.ALOAD_5,
@@ -1562,7 +1562,7 @@ public final class BackportedMethods {
             new CfIfCmp(IfType.GE, ValueType.INT, label6),
             CfLoad.ALOAD_2,
             CfLoad.ILOAD_4,
-            new CfArrayLoad(MemberType.OBJECT),
+            CfArrayLoad.forType(MemberType.OBJECT),
             new CfStore(ValueType.OBJECT, 5),
             label3,
             CfLoad.ALOAD_1,
@@ -3994,7 +3994,7 @@ public final class BackportedMethods {
                     factory.createProto(factory.charType, factory.intType, factory.intType),
                     factory.createString("forDigit")),
                 false),
-            new CfArrayStore(MemberType.CHAR),
+            CfArrayStore.forType(MemberType.CHAR),
             label12,
             CfLoad.LLOAD_0,
             CfLoad.ILOAD_5,
@@ -4090,7 +4090,7 @@ public final class BackportedMethods {
                     factory.createProto(factory.charType, factory.intType, factory.intType),
                     factory.createString("forDigit")),
                 false),
-            new CfArrayStore(MemberType.CHAR),
+            CfArrayStore.forType(MemberType.CHAR),
             label21,
             new CfLoad(ValueType.LONG, 5),
             new CfStore(ValueType.LONG, 0),
@@ -4130,7 +4130,7 @@ public final class BackportedMethods {
                     factory.createProto(factory.charType, factory.intType, factory.intType),
                     factory.createString("forDigit")),
                 false),
-            new CfArrayStore(MemberType.CHAR),
+            CfArrayStore.forType(MemberType.CHAR),
             label24,
             CfLoad.LLOAD_0,
             CfLoad.ILOAD_2,
@@ -8665,7 +8665,7 @@ public final class BackportedMethods {
             CfLoad.ALOAD_2,
             CfLoad.ALOAD_1,
             new CfConstNumber(0, ValueType.INT),
-            new CfArrayLoad(MemberType.OBJECT),
+            CfArrayLoad.forType(MemberType.OBJECT),
             new CfInvoke(
                 182,
                 factory.createMethod(
@@ -8707,7 +8707,7 @@ public final class BackportedMethods {
             CfLoad.ALOAD_2,
             CfLoad.ALOAD_1,
             CfLoad.ILOAD_3,
-            new CfArrayLoad(MemberType.OBJECT),
+            CfArrayLoad.forType(MemberType.OBJECT),
             new CfInvoke(
                 182,
                 factory.createMethod(
@@ -9609,7 +9609,7 @@ public final class BackportedMethods {
             new CfStackInstruction(CfStackInstruction.Opcode.Dup),
             new CfConstNumber(0, ValueType.INT),
             new CfConstClass(factory.throwableType),
-            new CfArrayStore(MemberType.OBJECT),
+            CfArrayStore.forType(MemberType.OBJECT),
             new CfInvoke(
                 182,
                 factory.createMethod(
@@ -9629,7 +9629,7 @@ public final class BackportedMethods {
             new CfStackInstruction(CfStackInstruction.Opcode.Dup),
             new CfConstNumber(0, ValueType.INT),
             CfLoad.ALOAD_1,
-            new CfArrayStore(MemberType.OBJECT),
+            CfArrayStore.forType(MemberType.OBJECT),
             new CfInvoke(
                 182,
                 factory.createMethod(

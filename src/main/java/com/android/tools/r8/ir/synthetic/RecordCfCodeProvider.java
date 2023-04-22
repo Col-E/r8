@@ -93,7 +93,7 @@ public abstract class RecordCfCodeProvider {
         instructions.add(new CfLoad(ValueType.OBJECT, 1));
         instructions.add(new CfConstNumber(i, ValueType.INT));
         loadFieldAsObject(instructions, field);
-        instructions.add(new CfArrayStore(MemberType.OBJECT));
+        instructions.add(CfArrayStore.forType(MemberType.OBJECT));
       }
       // return fields;
       instructions.add(new CfLoad(ValueType.OBJECT, 1));

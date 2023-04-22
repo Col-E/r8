@@ -27,7 +27,12 @@ import com.android.tools.r8.optimize.interfaces.analysis.CfFrameState;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 
+import java.util.Arrays;
+
 public class CfArrayLoad extends CfArrayLoadOrStore {
+  private static final CfArrayLoad[] INSTRUCTIONS = Arrays.stream(MemberType.values())
+          .map(CfArrayLoad::new)
+          .toArray(CfArrayLoad[]::new);
 
   public CfArrayLoad(MemberType type) {
     super(type);
@@ -134,5 +139,9 @@ public class CfArrayLoad extends CfArrayLoadOrStore {
                         .toArrayElementType(dexItemFactory));
               }
             });
+  }
+
+  public static CfArrayLoad forType(MemberType type) {
+    return INSTRUCTIONS[type.ordinal()];
   }
 }

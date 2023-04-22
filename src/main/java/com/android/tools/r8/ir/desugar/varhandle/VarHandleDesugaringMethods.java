@@ -4153,7 +4153,7 @@ public final class VarHandleDesugaringMethods {
             new CfIfCmp(IfType.GE, ValueType.INT, label9),
             new CfLoad(ValueType.OBJECT, 2),
             new CfLoad(ValueType.INT, 4),
-            new CfArrayLoad(MemberType.OBJECT),
+            CfArrayLoad.forType(MemberType.OBJECT),
             new CfStore(ValueType.OBJECT, 5),
             label5,
             new CfLoad(ValueType.OBJECT, 5),

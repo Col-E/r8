@@ -652,7 +652,7 @@ public class LazyCfCode extends Code {
         case Opcodes.BALOAD:
         case Opcodes.CALOAD:
         case Opcodes.SALOAD:
-          addInstruction(new CfArrayLoad(getMemberTypeForOpcode(opcode)));
+          addInstruction(CfArrayLoad.forType(getMemberTypeForOpcode(opcode)));
           break;
         case Opcodes.IASTORE:
         case Opcodes.LASTORE:
@@ -662,7 +662,7 @@ public class LazyCfCode extends Code {
         case Opcodes.BASTORE:
         case Opcodes.CASTORE:
         case Opcodes.SASTORE:
-          addInstruction(new CfArrayStore(getMemberTypeForOpcode(opcode)));
+          addInstruction(CfArrayStore.forType(getMemberTypeForOpcode(opcode)));
           break;
         case Opcodes.POP:
         case Opcodes.POP2:

@@ -214,7 +214,7 @@ public final class EnumUnboxingCfMethods {
             new CfLoad(ValueType.INT, 2),
             new CfConstNumber(1, ValueType.INT),
             new CfArithmeticBinop(CfArithmeticBinop.Opcode.Add, NumericType.INT),
-            new CfArrayStore(MemberType.INT),
+            CfArrayStore.forType(MemberType.INT),
             label4,
             new CfIinc(2, 1),
             new CfGoto(label2),

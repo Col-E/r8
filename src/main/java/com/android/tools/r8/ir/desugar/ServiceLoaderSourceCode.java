@@ -68,7 +68,7 @@ public class ServiceLoaderSourceCode {
                   factory.createProto(factory.voidType),
                   factory.constructorMethodName),
               false),
-          new CfArrayStore(MemberType.OBJECT));
+          CfArrayStore.forType(MemberType.OBJECT));
     }
 
     builder.add(

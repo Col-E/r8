@@ -211,7 +211,7 @@ public final class RecordCfMethods {
             new CfLoad(ValueType.OBJECT, 4),
             new CfLoad(ValueType.OBJECT, 3),
             new CfLoad(ValueType.INT, 5),
-            new CfArrayLoad(MemberType.OBJECT),
+            CfArrayLoad.forType(MemberType.OBJECT),
             new CfInvoke(
                 182,
                 factory.createMethod(
@@ -229,7 +229,7 @@ public final class RecordCfMethods {
                 false),
             CfLoad.ALOAD_0,
             new CfLoad(ValueType.INT, 5),
-            new CfArrayLoad(MemberType.OBJECT),
+            CfArrayLoad.forType(MemberType.OBJECT),
             new CfInvoke(
                 182,
                 factory.createMethod(
