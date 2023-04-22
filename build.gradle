@@ -1,9 +1,10 @@
 plugins {
     id 'java'
+    id 'maven-publish'
 }
 
-group 'dev.xdark'
-version '1.0'
+group 'com.android.tools'
+version '8.2.2'
 
 repositories {
     mavenCentral()
@@ -16,7 +17,7 @@ java {
 }
 
 compileJava {
-    options.compilerArgs << "-Xlint:unchecked" << "-Xlint:deprecation"
+    // options.compilerArgs << "-Xlint:unchecked" << "-Xlint:deprecation"
     options.encoding = 'UTF-8'
     options.incremental = true
 }
@@ -72,3 +73,24 @@ sourceSets {
         }
     }
 }
+
+publishing {
+    publications {
+        maven(MavenPublication) {
+            groupId = project.group
+            version = project.version
+            artifactId = "r8"
+
+            from components.java
+        }
+    }
+}
+
+// TODO: Configure templating plugin of some kind to update Version#MAIN_LABEL & Version#LABEL
+
+// TODO: Determine how we want to distribute our mirror of R8
+//  - Can use shadowJar to make similar fatJar like google does, then have local jar artifacts in consuming repos
+//     - Kinda cringe, also sucks when updating libs you waste space each update
+//  - Host on JitPack or some other maven host (I don't think it'd be wise to toss up this mirror on central)
+//     - Allows build tool of consumer to pull transitive dependencies themselves
+//     - Easier configuration for us here
