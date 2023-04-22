@@ -29,7 +29,17 @@ public abstract class DexApplication implements DexDefinitionSupplier {
 
   public final Timing timing;
 
-  public final InternalOptions options;
+  /**
+   * The options used to read the contents of this application.
+   */
+  public final InternalOptions readOptions;
+  /**
+   * Initially set to {@link #readOptions}, but can be retargeted to support different operations
+   * in consuming APIs since many tools extract behavior from this value.
+   * <br>
+   * Allowing the options to change can allow the application to be reused across multiple operations.
+   */
+  public InternalOptions options;
   public final DexItemFactory dexItemFactory;
   private final DexApplicationReadFlags flags;
 
@@ -51,6 +61,7 @@ public abstract class DexApplication implements DexDefinitionSupplier {
     this.dexItemFactory = options.itemFactory;
     this.highestSortingString = highestSortingString;
     this.timing = timing;
+    readOptions = options;
   }
 
   public abstract Builder<?> builder();
