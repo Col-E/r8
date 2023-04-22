@@ -13,11 +13,14 @@ import com.android.tools.r8.synthesis.SyntheticDefinitionsProvider;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.Timing;
 import com.google.common.collect.ImmutableList;
+import javax.annotation.Nonnull;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
+import java.util.HashMap;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 
@@ -169,7 +172,7 @@ public abstract class DexApplication implements DexDefinitionSupplier {
 
   public abstract static class Builder<T extends Builder<T>> {
 
-    private final List<DexProgramClass> programClasses = new ArrayList<>();
+    private final Map<String, DexProgramClass> programClasses = new HashMap<>();
 
     final List<DataResourceProvider> dataResourceProviders = new ArrayList<>();
 
@@ -193,7 +196,7 @@ public abstract class DexApplication implements DexDefinitionSupplier {
 
     public Builder(DexApplication application) {
       flags = application.flags;
-      programClasses.addAll(application.programClasses());
+      addProgramClasses(application.programClasses());
       dataResourceProviders.addAll(application.dataResourceProviders);
       proguardMap = application.getProguardMap();
       timing = application.timing;
@@ -222,19 +225,18 @@ public abstract class DexApplication implements DexDefinitionSupplier {
     }
 
     public synchronized T removeProgramClasses(Predicate<DexProgramClass> predicate) {
-      this.programClasses.removeIf(predicate);
+      this.programClasses.entrySet().removeIf(e -> predicate.test(e.getValue()));
       return self();
     }
 
-    public synchronized T replaceProgramClasses(Collection<DexProgramClass> newProgramClasses) {
-      assert newProgramClasses != null;
+    public synchronized T replaceProgramClasses(@Nonnull Collection<DexProgramClass> newProgramClasses) {
       this.programClasses.clear();
-      this.programClasses.addAll(newProgramClasses);
+      addProgramClasses(newProgramClasses);
 
       DexApplicationReadFlags.Builder builder = DexApplicationReadFlags.builder();
       builder.setHasReadProgramClassFromDex(this.flags.hasReadProgramClassFromDex());
       builder.setHasReadProgramClassFromCf(this.flags.hasReadProgramClassFromCf());
-      this.programClasses.forEach(
+      this.programClasses.values().forEach(
           clazz -> {
             DexType type = clazz.getType();
             if (flags.getRecordWitnesses().contains(type)) {
@@ -263,14 +265,26 @@ public abstract class DexApplication implements DexDefinitionSupplier {
     }
 
     public synchronized T addProgramClass(DexProgramClass clazz) {
-      programClasses.add(clazz);
+      programClasses.put(clazz.getTypeName(), clazz);
+      return self();
+    }
+
+    public synchronized T removeProgramClass(@Nonnull DexProgramClass clazz) {
+      programClasses.remove(clazz.getTypeName());
+      return self();
+    }
+
+    public synchronized T removeProgramClass(@Nonnull String typeName) {
+      programClasses.remove(typeName);
       return self();
     }
 
     public abstract void addProgramClassPotentiallyOverridingNonProgramClass(DexProgramClass clazz);
 
     public synchronized T addProgramClasses(Collection<DexProgramClass> classes) {
-      programClasses.addAll(classes);
+      for (DexProgramClass dexClass : classes) {
+        addProgramClass(dexClass);
+      }
       return self();
     }
 
@@ -281,8 +295,16 @@ public abstract class DexApplication implements DexDefinitionSupplier {
       return self();
     }
 
-    public List<DexProgramClass> getProgramClasses() {
+    /**
+     * @return Map of type names to program classes.
+     */
+    @Nonnull
+    public Map<String, DexProgramClass> getProgramClassMap() {
       return programClasses;
+    }
+
+    public List<DexProgramClass> getProgramClasses() {
+      return new ArrayList<>(programClasses.values());
     }
 
     public Collection<DexProgramClass> getSynthesizedClasses() {
