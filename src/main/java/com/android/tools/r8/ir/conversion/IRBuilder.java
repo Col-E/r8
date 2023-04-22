@@ -1622,9 +1622,8 @@ public class IRBuilder {
       registerIndex += constraint.requiredRegisters();
     }
     checkInvokeArgumentRegisters(registerIndex, argumentRegisterCount);
-    // Note: We only call this register variant from DEX inputs where isInterface does not matter.
-    assert appView.options().isGeneratingDex();
-    addInvoke(type, method, callSiteProto, arguments, false /* isInterface */);
+    boolean isInterface = type.isInterface() && !appView.options().isGeneratingDex();
+    addInvoke(type, method, callSiteProto, arguments, isInterface);
   }
 
   public void addInvokeNewArray(DexType type, int argumentCount, int[] argumentRegisters) {
