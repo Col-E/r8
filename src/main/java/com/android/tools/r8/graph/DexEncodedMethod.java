@@ -77,7 +77,7 @@ import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
-import org.jetbrains.annotations.NotNull;
+import javax.annotation.Nonnull;
 import org.objectweb.asm.Opcodes;
 
 public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMethod>
@@ -219,7 +219,7 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
     obsolete = false;
   }
 
-  @NotNull
+  @Nonnull
   @Override
   public DexEncodedMethod copy() {
     // Some elements need to be copied, like code
@@ -971,10 +971,10 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
     instructions[i++] = CfLoad.ALOAD_0;
     instructions[i++] = new CfInstanceOf(type);
     if (negate) {
-      instructions[i++] = new CfConstNumber(1, ValueType.INT);
-      instructions[i++] = new CfLogicalBinop(CfLogicalBinop.Opcode.Xor, NumericType.INT);
+      instructions[i++] = CfConstNumber.ICONST_1;
+      instructions[i++] = CfLogicalBinop.IXOR;
     }
-    instructions[i] = CfReturn.forType(ValueType.INT);
+    instructions[i] = CfReturn.IRETURN;
     return new CfCode(
         getReference().holder,
         1 + BooleanUtils.intValue(negate),
@@ -1088,12 +1088,12 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
     instructionBuilder
         .add(new CfConstString(tag))
         .add(new CfInvoke(Opcodes.INVOKESTATIC, getLogger, false))
-        .add(new CfStore(ValueType.OBJECT, locals - 1))
+        .add(CfStore.storeObject(locals - 1))
         .add(CfLoad.loadObject(locals - 1))
         .add(new CfConstString(message))
         .add(new CfInvoke(Opcodes.INVOKEVIRTUAL, severe, false))
         .add(new CfNew(exceptionType))
-        .add(new CfStackInstruction(Opcode.Dup))
+        .add(CfStackInstruction.DUP)
         .add(new CfConstString(message))
         .add(new CfInvoke(Opcodes.INVOKESPECIAL, exceptionInitMethod, false))
         .add(CfThrow.INSTANCE);

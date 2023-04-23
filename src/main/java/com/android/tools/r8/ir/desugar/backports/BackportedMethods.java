@@ -135,14 +135,14 @@ public final class BackportedMethods {
         ImmutableList.of(
             label0,
             new CfConstClass(factory.createType("Ljava/lang/AssertionError;")),
-            new CfConstNumber(2, ValueType.INT),
+            CfConstNumber.ICONST_2,
             new CfNewArray(factory.createType("[Ljava/lang/Class;")),
-            new CfStackInstruction(CfStackInstruction.Opcode.Dup),
-            new CfConstNumber(0, ValueType.INT),
+            CfStackInstruction.DUP,
+            CfConstNumber.ICONST_0,
             new CfConstClass(factory.stringType),
             CfArrayStore.forType(MemberType.OBJECT),
-            new CfStackInstruction(CfStackInstruction.Opcode.Dup),
-            new CfConstNumber(1, ValueType.INT),
+            CfStackInstruction.DUP,
+            CfConstNumber.ICONST_1,
             new CfConstClass(factory.throwableType),
             CfArrayStore.forType(MemberType.OBJECT),
             label1,
@@ -155,17 +155,17 @@ public final class BackportedMethods {
                         factory.createType("[Ljava/lang/Class;")),
                     factory.createString("getDeclaredConstructor")),
                 false),
-            new CfStore(ValueType.OBJECT, 2),
+            CfStore.ASTORE_2,
             label2,
             CfLoad.ALOAD_2,
-            new CfConstNumber(2, ValueType.INT),
+            CfConstNumber.ICONST_2,
             new CfNewArray(factory.createType("[Ljava/lang/Object;")),
-            new CfStackInstruction(CfStackInstruction.Opcode.Dup),
-            new CfConstNumber(0, ValueType.INT),
+            CfStackInstruction.DUP,
+            CfConstNumber.ICONST_0,
             CfLoad.ALOAD_0,
             CfArrayStore.forType(MemberType.OBJECT),
-            new CfStackInstruction(CfStackInstruction.Opcode.Dup),
-            new CfConstNumber(1, ValueType.INT),
+            CfStackInstruction.DUP,
+            CfConstNumber.ICONST_1,
             CfLoad.ALOAD_1,
             CfArrayStore.forType(MemberType.OBJECT),
             new CfInvoke(
@@ -178,7 +178,7 @@ public final class BackportedMethods {
                 false),
             new CfCheckCast(factory.createType("Ljava/lang/AssertionError;")),
             label3,
-            CfReturn.forType(ValueType.OBJECT),
+            CfReturn.ARETURN,
             label4,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
@@ -191,10 +191,10 @@ public final class BackportedMethods {
                     Arrays.asList(
                         FrameType.initializedNonNullReference(
                             factory.createType("Ljava/lang/Exception;"))))),
-            new CfStore(ValueType.OBJECT, 2),
+            CfStore.ASTORE_2,
             label5,
             new CfNew(factory.createType("Ljava/lang/AssertionError;")),
-            new CfStackInstruction(CfStackInstruction.Opcode.Dup),
+            CfStackInstruction.DUP,
             CfLoad.ALOAD_0,
             new CfInvoke(
                 183,
@@ -203,7 +203,7 @@ public final class BackportedMethods {
                     factory.createProto(factory.voidType, factory.objectType),
                     factory.createString("<init>")),
                 false),
-            CfReturn.forType(ValueType.OBJECT),
+            CfReturn.ARETURN,
             label6),
         ImmutableList.of(
             new CfTryCatch(
@@ -254,8 +254,8 @@ public final class BackportedMethods {
                 false),
             new CfIf(IfType.EQ, ValueType.INT, label2),
             label1,
-            new CfConstNumber(1, ValueType.INT),
-            CfReturn.forType(ValueType.INT),
+            CfConstNumber.ICONST_1,
+            CfReturn.IRETURN,
             label2,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
@@ -279,8 +279,8 @@ public final class BackportedMethods {
             CfLoad.ALOAD_2,
             new CfIfCmp(IfType.EQ, ValueType.OBJECT, label0),
             label3,
-            new CfConstNumber(0, ValueType.INT),
-            CfReturn.forType(ValueType.INT),
+            CfConstNumber.ICONST_0,
+            CfReturn.IRETURN,
             label4),
         ImmutableList.of(),
         ImmutableList.of());
@@ -327,8 +327,8 @@ public final class BackportedMethods {
                 false),
             new CfIf(IfType.EQ, ValueType.INT, label2),
             label1,
-            new CfConstNumber(1, ValueType.INT),
-            CfReturn.forType(ValueType.INT),
+            CfConstNumber.ICONST_1,
+            CfReturn.IRETURN,
             label2,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
@@ -353,8 +353,8 @@ public final class BackportedMethods {
             CfLoad.ALOAD_2,
             new CfIfCmp(IfType.EQ, ValueType.OBJECT, label0),
             label3,
-            new CfConstNumber(0, ValueType.INT),
-            CfReturn.forType(ValueType.INT),
+            CfConstNumber.ICONST_0,
+            CfReturn.IRETURN,
             label4),
         ImmutableList.of(),
         ImmutableList.of());
@@ -395,8 +395,8 @@ public final class BackportedMethods {
                 false),
             new CfIf(IfType.EQ, ValueType.INT, label2),
             label1,
-            new CfConstNumber(1, ValueType.INT),
-            CfReturn.forType(ValueType.INT),
+            CfConstNumber.ICONST_1,
+            CfReturn.IRETURN,
             label2,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
@@ -418,8 +418,8 @@ public final class BackportedMethods {
             CfLoad.ALOAD_1,
             new CfIfCmp(IfType.EQ, ValueType.OBJECT, label0),
             label3,
-            new CfConstNumber(0, ValueType.INT),
-            CfReturn.forType(ValueType.INT),
+            CfConstNumber.ICONST_0,
+            CfReturn.IRETURN,
             label4),
         ImmutableList.of(),
         ImmutableList.of());
@@ -440,7 +440,7 @@ public final class BackportedMethods {
             CfLoad.ILOAD_0,
             CfLoad.ILOAD_1,
             new CfIfCmp(IfType.NE, ValueType.INT, label1),
-            new CfConstNumber(0, ValueType.INT),
+            CfConstNumber.ICONST_0,
             new CfGoto(label3),
             label1,
             new CfFrame(
@@ -448,19 +448,19 @@ public final class BackportedMethods {
                     new int[] {0, 1}, new FrameType[] {FrameType.intType(), FrameType.intType()})),
             CfLoad.ILOAD_0,
             new CfIf(IfType.EQ, ValueType.INT, label2),
-            new CfConstNumber(1, ValueType.INT),
+            CfConstNumber.ICONST_1,
             new CfGoto(label3),
             label2,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1}, new FrameType[] {FrameType.intType(), FrameType.intType()})),
-            new CfConstNumber(-1, ValueType.INT),
+            CfConstNumber.ICONST_M1,
             label3,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1}, new FrameType[] {FrameType.intType(), FrameType.intType()}),
                 new ArrayDeque<>(Arrays.asList(FrameType.intType()))),
-            CfReturn.forType(ValueType.INT),
+            CfReturn.IRETURN,
             label4),
         ImmutableList.of(),
         ImmutableList.of());
@@ -479,17 +479,17 @@ public final class BackportedMethods {
             label0,
             CfLoad.ILOAD_0,
             new CfIf(IfType.EQ, ValueType.INT, label1),
-            new CfConstNumber(1231, ValueType.INT),
+            CfConstNumber.constNumber(1231, ValueType.INT),
             new CfGoto(label2),
             label1,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(new int[] {0}, new FrameType[] {FrameType.intType()})),
-            new CfConstNumber(1237, ValueType.INT),
+            CfConstNumber.constNumber(1237, ValueType.INT),
             label2,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(new int[] {0}, new FrameType[] {FrameType.intType()}),
                 new ArrayDeque<>(Arrays.asList(FrameType.intType()))),
-            CfReturn.forType(ValueType.INT),
+            CfReturn.IRETURN,
             label3),
         ImmutableList.of(),
         ImmutableList.of());
@@ -506,8 +506,8 @@ public final class BackportedMethods {
             label0,
             CfLoad.ILOAD_0,
             CfLoad.ILOAD_1,
-            new CfArithmeticBinop(CfArithmeticBinop.Opcode.Sub, NumericType.INT),
-            CfReturn.forType(ValueType.INT),
+            CfArithmeticBinop.ISUB,
+            CfReturn.IRETURN,
             label1),
         ImmutableList.of(),
         ImmutableList.of());
@@ -523,13 +523,13 @@ public final class BackportedMethods {
         ImmutableList.of(
             label0,
             CfLoad.ILOAD_0,
-            new CfConstNumber(255, ValueType.INT),
-            new CfLogicalBinop(CfLogicalBinop.Opcode.And, NumericType.INT),
+            CfConstNumber.constNumber(255, ValueType.INT),
+            CfLogicalBinop.IAND,
             CfLoad.ILOAD_1,
-            new CfConstNumber(255, ValueType.INT),
-            new CfLogicalBinop(CfLogicalBinop.Opcode.And, NumericType.INT),
-            new CfArithmeticBinop(CfArithmeticBinop.Opcode.Sub, NumericType.INT),
-            CfReturn.forType(ValueType.INT),
+            CfConstNumber.constNumber(255, ValueType.INT),
+            CfLogicalBinop.IAND,
+            CfArithmeticBinop.ISUB,
+            CfReturn.IRETURN,
             label1),
         ImmutableList.of(),
         ImmutableList.of());
@@ -545,9 +545,9 @@ public final class BackportedMethods {
         ImmutableList.of(
             label0,
             CfLoad.ILOAD_0,
-            new CfConstNumber(255, ValueType.INT),
-            new CfLogicalBinop(CfLogicalBinop.Opcode.And, NumericType.INT),
-            CfReturn.forType(ValueType.INT),
+            CfConstNumber.constNumber(255, ValueType.INT),
+            CfLogicalBinop.IAND,
+            CfReturn.IRETURN,
             label1),
         ImmutableList.of(),
         ImmutableList.of());
@@ -563,10 +563,10 @@ public final class BackportedMethods {
         ImmutableList.of(
             label0,
             CfLoad.ILOAD_0,
-            new CfNumberConversion(NumericType.INT, NumericType.LONG),
-            new CfConstNumber(255, ValueType.LONG),
-            new CfLogicalBinop(CfLogicalBinop.Opcode.And, NumericType.LONG),
-            CfReturn.forType(ValueType.LONG),
+            CfNumberConversion.I2L,
+            CfConstNumber.constNumber(255, ValueType.LONG),
+            CfLogicalBinop.LAND,
+            CfReturn.LRETURN,
             label1),
         ImmutableList.of(),
         ImmutableList.of());
@@ -601,7 +601,7 @@ public final class BackportedMethods {
                     factory.createProto(factory.intType),
                     factory.createString("length")),
                 true),
-            new CfStore(ValueType.INT, 2),
+             CfStore.ISTORE_2,
             label1,
             CfLoad.ALOAD_1,
             new CfInvoke(
@@ -611,14 +611,14 @@ public final class BackportedMethods {
                     factory.createProto(factory.intType),
                     factory.createString("length")),
                 true),
-            new CfStore(ValueType.INT, 3),
+             CfStore.ISTORE_3,
             label2,
             CfLoad.ALOAD_0,
             CfLoad.ALOAD_1,
             new CfIfCmp(IfType.NE, ValueType.OBJECT, label4),
             label3,
-            new CfConstNumber(0, ValueType.INT),
-            CfReturn.forType(ValueType.INT),
+            CfConstNumber.ICONST_0,
+            CfReturn.IRETURN,
             label4,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
@@ -629,8 +629,8 @@ public final class BackportedMethods {
                       FrameType.intType(),
                       FrameType.intType()
                     })),
-            new CfConstNumber(0, ValueType.INT),
-            new CfStore(ValueType.INT, 4),
+            CfConstNumber.ICONST_0,
+             CfStore.ISTORE_4,
             label5,
             CfLoad.ILOAD_2,
             CfLoad.ILOAD_3,
@@ -641,7 +641,7 @@ public final class BackportedMethods {
                     factory.createProto(factory.intType, factory.intType, factory.intType),
                     factory.createString("min")),
                 false),
-            new CfStore(ValueType.INT, 5),
+             CfStore.ISTORE_5,
             label6,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
@@ -667,7 +667,7 @@ public final class BackportedMethods {
                     factory.createProto(factory.charType, factory.intType),
                     factory.createString("charAt")),
                 true),
-            new CfStore(ValueType.INT, 6),
+             CfStore.ISTORE_6,
             label8,
             CfLoad.ALOAD_1,
             CfLoad.ILOAD_4,
@@ -678,16 +678,16 @@ public final class BackportedMethods {
                     factory.createProto(factory.charType, factory.intType),
                     factory.createString("charAt")),
                 true),
-            new CfStore(ValueType.INT, 7),
+             CfStore.ISTORE_7,
             label9,
-            new CfLoad(ValueType.INT, 6),
-            new CfLoad(ValueType.INT, 7),
+            CfLoad.ILOAD_6,
+            CfLoad.ILOAD_7,
             new CfIfCmp(IfType.EQ, ValueType.INT, label11),
             label10,
-            new CfLoad(ValueType.INT, 6),
-            new CfLoad(ValueType.INT, 7),
-            new CfArithmeticBinop(CfArithmeticBinop.Opcode.Sub, NumericType.INT),
-            CfReturn.forType(ValueType.INT),
+            CfLoad.ILOAD_6,
+            CfLoad.ILOAD_7,
+            CfArithmeticBinop.ISUB,
+            CfReturn.IRETURN,
             label11,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
@@ -714,8 +714,8 @@ public final class BackportedMethods {
                     })),
             CfLoad.ILOAD_2,
             CfLoad.ILOAD_3,
-            new CfArithmeticBinop(CfArithmeticBinop.Opcode.Sub, NumericType.INT),
-            CfReturn.forType(ValueType.INT),
+            CfArithmeticBinop.ISUB,
+            CfReturn.IRETURN,
             label13),
         ImmutableList.of(),
         ImmutableList.of());
@@ -732,8 +732,8 @@ public final class BackportedMethods {
             label0,
             CfLoad.ILOAD_0,
             CfLoad.ILOAD_1,
-            new CfArithmeticBinop(CfArithmeticBinop.Opcode.Sub, NumericType.INT),
-            CfReturn.forType(ValueType.INT),
+            CfArithmeticBinop.ISUB,
+            CfReturn.IRETURN,
             label1),
         ImmutableList.of(),
         ImmutableList.of());
@@ -750,7 +750,7 @@ public final class BackportedMethods {
         ImmutableList.of(
             label0,
             new CfNew(factory.stringType),
-            new CfStackInstruction(CfStackInstruction.Opcode.Dup),
+            CfStackInstruction.DUP,
             CfLoad.ILOAD_0,
             new CfInvoke(
                 184,
@@ -766,7 +766,7 @@ public final class BackportedMethods {
                     factory.createProto(factory.voidType, factory.charArrayType),
                     factory.createString("<init>")),
                 false),
-            CfReturn.forType(ValueType.OBJECT),
+            CfReturn.ARETURN,
             label1),
         ImmutableList.of(),
         ImmutableList.of());
@@ -833,7 +833,7 @@ public final class BackportedMethods {
                     factory.createString("getClass")),
                 false),
             new CfConstString(factory.createString("close")),
-            new CfConstNumber(0, ValueType.INT),
+            CfConstNumber.ICONST_0,
             new CfNewArray(factory.createType("[Ljava/lang/Class;")),
             new CfInvoke(
                 182,
@@ -845,11 +845,11 @@ public final class BackportedMethods {
                         factory.createType("[Ljava/lang/Class;")),
                     factory.createString("getMethod")),
                 false),
-            new CfStore(ValueType.OBJECT, 2),
+            CfStore.ASTORE_2,
             label3,
             CfLoad.ALOAD_2,
             CfLoad.ALOAD_1,
-            new CfConstNumber(0, ValueType.INT),
+            CfConstNumber.ICONST_0,
             new CfNewArray(factory.createType("[Ljava/lang/Object;")),
             new CfInvoke(
                 182,
@@ -861,7 +861,7 @@ public final class BackportedMethods {
                         factory.createType("[Ljava/lang/Object;")),
                     factory.createString("invoke")),
                 false),
-            new CfStackInstruction(CfStackInstruction.Opcode.Pop),
+            CfStackInstruction.POP,
             label4,
             new CfGoto(label11),
             label5,
@@ -876,12 +876,12 @@ public final class BackportedMethods {
                     Arrays.asList(
                         FrameType.initializedNonNullReference(
                             factory.createType("Ljava/lang/Exception;"))))),
-            new CfStore(ValueType.OBJECT, 2),
+            CfStore.ASTORE_2,
             label6,
             new CfNew(factory.createType("Ljava/lang/RuntimeException;")),
-            new CfStackInstruction(CfStackInstruction.Opcode.Dup),
+            CfStackInstruction.DUP,
             new CfNew(factory.stringBuilderType),
-            new CfStackInstruction(CfStackInstruction.Opcode.Dup),
+            CfStackInstruction.DUP,
             new CfInvoke(
                 183,
                 factory.createMethod(
@@ -939,12 +939,12 @@ public final class BackportedMethods {
                     }),
                 new ArrayDeque<>(
                     Arrays.asList(FrameType.initializedNonNullReference(factory.throwableType)))),
-            new CfStore(ValueType.OBJECT, 2),
+            CfStore.ASTORE_2,
             label8,
             new CfNew(factory.createType("Ljava/lang/RuntimeException;")),
-            new CfStackInstruction(CfStackInstruction.Opcode.Dup),
+            CfStackInstruction.DUP,
             new CfNew(factory.stringBuilderType),
-            new CfStackInstruction(CfStackInstruction.Opcode.Dup),
+            CfStackInstruction.DUP,
             new CfInvoke(
                 183,
                 factory.createMethod(
@@ -1004,7 +1004,7 @@ public final class BackportedMethods {
                     Arrays.asList(
                         FrameType.initializedNonNullReference(
                             factory.createType("Ljava/lang/reflect/InvocationTargetException;"))))),
-            new CfStore(ValueType.OBJECT, 2),
+            CfStore.ASTORE_2,
             label10,
             CfLoad.ALOAD_2,
             new CfInvoke(
@@ -1034,17 +1034,17 @@ public final class BackportedMethods {
                     }),
                 new ArrayDeque<>(
                     Arrays.asList(FrameType.initializedNonNullReference(factory.throwableType)))),
-            new CfStore(ValueType.OBJECT, 2),
+            CfStore.ASTORE_2,
             label13,
             CfLoad.ALOAD_0,
             new CfIf(IfType.EQ, ValueType.OBJECT, label19),
             label14,
             new CfConstClass(factory.throwableType),
             new CfConstString(factory.createString("addSuppressed")),
-            new CfConstNumber(1, ValueType.INT),
+            CfConstNumber.ICONST_1,
             new CfNewArray(factory.createType("[Ljava/lang/Class;")),
-            new CfStackInstruction(CfStackInstruction.Opcode.Dup),
-            new CfConstNumber(0, ValueType.INT),
+            CfStackInstruction.DUP,
+            CfConstNumber.ICONST_0,
             new CfConstClass(factory.throwableType),
             CfArrayStore.forType(MemberType.OBJECT),
             new CfInvoke(
@@ -1057,14 +1057,14 @@ public final class BackportedMethods {
                         factory.createType("[Ljava/lang/Class;")),
                     factory.createString("getDeclaredMethod")),
                 false),
-            new CfStore(ValueType.OBJECT, 3),
+             CfStore.ASTORE_3,
             label15,
             CfLoad.ALOAD_3,
             CfLoad.ALOAD_0,
-            new CfConstNumber(1, ValueType.INT),
+            CfConstNumber.ICONST_1,
             new CfNewArray(factory.createType("[Ljava/lang/Object;")),
-            new CfStackInstruction(CfStackInstruction.Opcode.Dup),
-            new CfConstNumber(0, ValueType.INT),
+            CfStackInstruction.DUP,
+            CfConstNumber.ICONST_0,
             CfLoad.ALOAD_2,
             CfArrayStore.forType(MemberType.OBJECT),
             new CfInvoke(
@@ -1077,7 +1077,7 @@ public final class BackportedMethods {
                         factory.createType("[Ljava/lang/Object;")),
                     factory.createString("invoke")),
                 false),
-            new CfStackInstruction(CfStackInstruction.Opcode.Pop),
+            CfStackInstruction.POP,
             label16,
             new CfGoto(label18),
             label17,
@@ -1093,7 +1093,7 @@ public final class BackportedMethods {
                     Arrays.asList(
                         FrameType.initializedNonNullReference(
                             factory.createType("Ljava/lang/Exception;"))))),
-            new CfStore(ValueType.OBJECT, 3),
+             CfStore.ASTORE_3,
             label18,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
@@ -1186,7 +1186,7 @@ public final class BackportedMethods {
         ImmutableList.of(
             label0,
             new CfNew(factory.createType("Ljava/util/ArrayList;")),
-            new CfStackInstruction(CfStackInstruction.Opcode.Dup),
+            CfStackInstruction.DUP,
             CfLoad.ALOAD_0,
             CfArrayLength.INSTANCE,
             new CfInvoke(
@@ -1196,15 +1196,15 @@ public final class BackportedMethods {
                     factory.createProto(factory.voidType, factory.intType),
                     factory.createString("<init>")),
                 false),
-            new CfStore(ValueType.OBJECT, 1),
+            CfStore.ASTORE_1,
             label1,
             CfLoad.ALOAD_0,
-            new CfStore(ValueType.OBJECT, 2),
+            CfStore.ASTORE_2,
             CfLoad.ALOAD_2,
             CfArrayLength.INSTANCE,
-            new CfStore(ValueType.INT, 3),
-            new CfConstNumber(0, ValueType.INT),
-            new CfStore(ValueType.INT, 4),
+             CfStore.ISTORE_3,
+            CfConstNumber.ICONST_0,
+             CfStore.ISTORE_4,
             label2,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
@@ -1225,7 +1225,7 @@ public final class BackportedMethods {
             CfLoad.ALOAD_2,
             CfLoad.ILOAD_4,
             CfArrayLoad.forType(MemberType.OBJECT),
-            new CfStore(ValueType.OBJECT, 5),
+             CfStore.ASTORE_5,
             label3,
             CfLoad.ALOAD_1,
             CfLoad.ALOAD_5,
@@ -1243,7 +1243,7 @@ public final class BackportedMethods {
                     factory.createProto(factory.booleanType, factory.objectType),
                     factory.createString("add")),
                 false),
-            new CfStackInstruction(CfStackInstruction.Opcode.Pop),
+            CfStackInstruction.POP,
             label4,
             new CfIinc(4, 1),
             new CfGoto(label2),
@@ -1267,7 +1267,7 @@ public final class BackportedMethods {
                         factory.createType("Ljava/util/List;")),
                     factory.createString("unmodifiableList")),
                 false),
-            CfReturn.forType(ValueType.OBJECT),
+            CfReturn.ARETURN,
             label6),
         ImmutableList.of(),
         ImmutableList.of());
@@ -1286,7 +1286,7 @@ public final class BackportedMethods {
         ImmutableList.of(
             label0,
             new CfNew(factory.createType("Ljava/util/AbstractMap$SimpleImmutableEntry;")),
-            new CfStackInstruction(CfStackInstruction.Opcode.Dup),
+            CfStackInstruction.DUP,
             CfLoad.ALOAD_0,
             label1,
             new CfInvoke(
@@ -1313,7 +1313,7 @@ public final class BackportedMethods {
                     factory.createString("<init>")),
                 false),
             label3,
-            CfReturn.forType(ValueType.OBJECT),
+            CfReturn.ARETURN,
             label4),
         ImmutableList.of(),
         ImmutableList.of());
@@ -1337,7 +1337,7 @@ public final class BackportedMethods {
         ImmutableList.of(
             label0,
             new CfNew(factory.createType("Ljava/util/HashMap;")),
-            new CfStackInstruction(CfStackInstruction.Opcode.Dup),
+            CfStackInstruction.DUP,
             CfLoad.ALOAD_0,
             CfArrayLength.INSTANCE,
             new CfInvoke(
@@ -1347,15 +1347,15 @@ public final class BackportedMethods {
                     factory.createProto(factory.voidType, factory.intType),
                     factory.createString("<init>")),
                 false),
-            new CfStore(ValueType.OBJECT, 1),
+            CfStore.ASTORE_1,
             label1,
             CfLoad.ALOAD_0,
-            new CfStore(ValueType.OBJECT, 2),
+            CfStore.ASTORE_2,
             CfLoad.ALOAD_2,
             CfArrayLength.INSTANCE,
-            new CfStore(ValueType.INT, 3),
-            new CfConstNumber(0, ValueType.INT),
-            new CfStore(ValueType.INT, 4),
+             CfStore.ISTORE_3,
+            CfConstNumber.ICONST_0,
+             CfStore.ISTORE_4,
             label2,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
@@ -1376,7 +1376,7 @@ public final class BackportedMethods {
             CfLoad.ALOAD_2,
             CfLoad.ILOAD_4,
             CfArrayLoad.forType(MemberType.OBJECT),
-            new CfStore(ValueType.OBJECT, 5),
+             CfStore.ASTORE_5,
             label3,
             CfLoad.ALOAD_5,
             new CfInvoke(
@@ -1393,7 +1393,7 @@ public final class BackportedMethods {
                     factory.createProto(factory.objectType, factory.objectType),
                     factory.createString("requireNonNull")),
                 false),
-            new CfStore(ValueType.OBJECT, 6),
+             CfStore.ASTORE_6,
             label4,
             CfLoad.ALOAD_5,
             new CfInvoke(
@@ -1410,11 +1410,11 @@ public final class BackportedMethods {
                     factory.createProto(factory.objectType, factory.objectType),
                     factory.createString("requireNonNull")),
                 false),
-            new CfStore(ValueType.OBJECT, 7),
+             CfStore.ASTORE_7,
             label5,
             CfLoad.ALOAD_1,
-            new CfLoad(ValueType.OBJECT, 6),
-            new CfLoad(ValueType.OBJECT, 7),
+            CfLoad.ALOAD_6,
+            CfLoad.ALOAD_7,
             new CfInvoke(
                 182,
                 factory.createMethod(
@@ -1425,9 +1425,9 @@ public final class BackportedMethods {
             new CfIf(IfType.EQ, ValueType.OBJECT, label7),
             label6,
             new CfNew(factory.createType("Ljava/lang/IllegalArgumentException;")),
-            new CfStackInstruction(CfStackInstruction.Opcode.Dup),
+            CfStackInstruction.DUP,
             new CfNew(factory.stringBuilderType),
-            new CfStackInstruction(CfStackInstruction.Opcode.Dup),
+            CfStackInstruction.DUP,
             new CfInvoke(
                 183,
                 factory.createMethod(
@@ -1443,7 +1443,7 @@ public final class BackportedMethods {
                     factory.createProto(factory.stringBuilderType, factory.stringType),
                     factory.createString("append")),
                 false),
-            new CfLoad(ValueType.OBJECT, 6),
+            CfLoad.ALOAD_6,
             new CfInvoke(
                 182,
                 factory.createMethod(
@@ -1502,7 +1502,7 @@ public final class BackportedMethods {
                         factory.createType("Ljava/util/Map;")),
                     factory.createString("unmodifiableMap")),
                 false),
-            CfReturn.forType(ValueType.OBJECT),
+            CfReturn.ARETURN,
             label9),
         ImmutableList.of(),
         ImmutableList.of());
@@ -1524,7 +1524,7 @@ public final class BackportedMethods {
         ImmutableList.of(
             label0,
             new CfNew(factory.createType("Ljava/util/HashSet;")),
-            new CfStackInstruction(CfStackInstruction.Opcode.Dup),
+            CfStackInstruction.DUP,
             CfLoad.ALOAD_0,
             CfArrayLength.INSTANCE,
             new CfInvoke(
@@ -1534,15 +1534,15 @@ public final class BackportedMethods {
                     factory.createProto(factory.voidType, factory.intType),
                     factory.createString("<init>")),
                 false),
-            new CfStore(ValueType.OBJECT, 1),
+            CfStore.ASTORE_1,
             label1,
             CfLoad.ALOAD_0,
-            new CfStore(ValueType.OBJECT, 2),
+            CfStore.ASTORE_2,
             CfLoad.ALOAD_2,
             CfArrayLength.INSTANCE,
-            new CfStore(ValueType.INT, 3),
-            new CfConstNumber(0, ValueType.INT),
-            new CfStore(ValueType.INT, 4),
+             CfStore.ISTORE_3,
+            CfConstNumber.ICONST_0,
+             CfStore.ISTORE_4,
             label2,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
@@ -1563,7 +1563,7 @@ public final class BackportedMethods {
             CfLoad.ALOAD_2,
             CfLoad.ILOAD_4,
             CfArrayLoad.forType(MemberType.OBJECT),
-            new CfStore(ValueType.OBJECT, 5),
+             CfStore.ASTORE_5,
             label3,
             CfLoad.ALOAD_1,
             CfLoad.ALOAD_5,
@@ -1584,9 +1584,9 @@ public final class BackportedMethods {
             new CfIf(IfType.NE, ValueType.INT, label5),
             label4,
             new CfNew(factory.createType("Ljava/lang/IllegalArgumentException;")),
-            new CfStackInstruction(CfStackInstruction.Opcode.Dup),
+            CfStackInstruction.DUP,
             new CfNew(factory.stringBuilderType),
-            new CfStackInstruction(CfStackInstruction.Opcode.Dup),
+            CfStackInstruction.DUP,
             new CfInvoke(
                 183,
                 factory.createMethod(
@@ -1661,7 +1661,7 @@ public final class BackportedMethods {
                         factory.createType("Ljava/util/Set;")),
                     factory.createString("unmodifiableSet")),
                 false),
-            CfReturn.forType(ValueType.OBJECT),
+            CfReturn.ARETURN,
             label7),
         ImmutableList.of(),
         ImmutableList.of());
@@ -1682,7 +1682,7 @@ public final class BackportedMethods {
         ImmutableList.of(
             label0,
             new CfNew(factory.createType("Ljava/util/ArrayList;")),
-            new CfStackInstruction(CfStackInstruction.Opcode.Dup),
+            CfStackInstruction.DUP,
             CfLoad.ALOAD_0,
             new CfInvoke(
                 185,
@@ -1698,7 +1698,7 @@ public final class BackportedMethods {
                     factory.createProto(factory.voidType, factory.intType),
                     factory.createString("<init>")),
                 false),
-            new CfStore(ValueType.OBJECT, 1),
+            CfStore.ASTORE_1,
             label1,
             CfLoad.ALOAD_0,
             new CfInvoke(
@@ -1708,7 +1708,7 @@ public final class BackportedMethods {
                     factory.createProto(factory.createType("Ljava/util/Iterator;")),
                     factory.createString("iterator")),
                 true),
-            new CfStore(ValueType.OBJECT, 2),
+            CfStore.ASTORE_2,
             label2,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
@@ -1738,7 +1738,7 @@ public final class BackportedMethods {
                     factory.createProto(factory.objectType),
                     factory.createString("next")),
                 true),
-            new CfStore(ValueType.OBJECT, 3),
+             CfStore.ASTORE_3,
             label3,
             CfLoad.ALOAD_1,
             CfLoad.ALOAD_3,
@@ -1756,7 +1756,7 @@ public final class BackportedMethods {
                     factory.createProto(factory.booleanType, factory.objectType),
                     factory.createString("add")),
                 false),
-            new CfStackInstruction(CfStackInstruction.Opcode.Pop),
+            CfStackInstruction.POP,
             label4,
             new CfGoto(label2),
             label5,
@@ -1779,7 +1779,7 @@ public final class BackportedMethods {
                         factory.createType("Ljava/util/List;")),
                     factory.createString("unmodifiableList")),
                 false),
-            CfReturn.forType(ValueType.OBJECT),
+            CfReturn.ARETURN,
             label6),
         ImmutableList.of(),
         ImmutableList.of());
@@ -1803,7 +1803,7 @@ public final class BackportedMethods {
         ImmutableList.of(
             label0,
             new CfNew(factory.createType("Ljava/util/HashMap;")),
-            new CfStackInstruction(CfStackInstruction.Opcode.Dup),
+            CfStackInstruction.DUP,
             CfLoad.ALOAD_0,
             new CfInvoke(
                 185,
@@ -1819,7 +1819,7 @@ public final class BackportedMethods {
                     factory.createProto(factory.voidType, factory.intType),
                     factory.createString("<init>")),
                 false),
-            new CfStore(ValueType.OBJECT, 1),
+            CfStore.ASTORE_1,
             label1,
             CfLoad.ALOAD_0,
             new CfInvoke(
@@ -1836,7 +1836,7 @@ public final class BackportedMethods {
                     factory.createProto(factory.createType("Ljava/util/Iterator;")),
                     factory.createString("iterator")),
                 true),
-            new CfStore(ValueType.OBJECT, 2),
+            CfStore.ASTORE_2,
             label2,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
@@ -1866,7 +1866,7 @@ public final class BackportedMethods {
                     factory.createString("next")),
                 true),
             new CfCheckCast(factory.createType("Ljava/util/Map$Entry;")),
-            new CfStore(ValueType.OBJECT, 3),
+             CfStore.ASTORE_3,
             label3,
             CfLoad.ALOAD_1,
             CfLoad.ALOAD_3,
@@ -1909,7 +1909,7 @@ public final class BackportedMethods {
                     factory.createProto(factory.objectType, factory.objectType, factory.objectType),
                     factory.createString("put")),
                 false),
-            new CfStackInstruction(CfStackInstruction.Opcode.Pop),
+            CfStackInstruction.POP,
             label7,
             new CfGoto(label2),
             label8,
@@ -1931,7 +1931,7 @@ public final class BackportedMethods {
                         factory.createType("Ljava/util/Map;")),
                     factory.createString("unmodifiableMap")),
                 false),
-            CfReturn.forType(ValueType.OBJECT),
+            CfReturn.ARETURN,
             label9),
         ImmutableList.of(),
         ImmutableList.of());
@@ -1952,7 +1952,7 @@ public final class BackportedMethods {
         ImmutableList.of(
             label0,
             new CfNew(factory.createType("Ljava/util/HashSet;")),
-            new CfStackInstruction(CfStackInstruction.Opcode.Dup),
+            CfStackInstruction.DUP,
             CfLoad.ALOAD_0,
             new CfInvoke(
                 185,
@@ -1968,7 +1968,7 @@ public final class BackportedMethods {
                     factory.createProto(factory.voidType, factory.intType),
                     factory.createString("<init>")),
                 false),
-            new CfStore(ValueType.OBJECT, 1),
+            CfStore.ASTORE_1,
             label1,
             CfLoad.ALOAD_0,
             new CfInvoke(
@@ -1978,7 +1978,7 @@ public final class BackportedMethods {
                     factory.createProto(factory.createType("Ljava/util/Iterator;")),
                     factory.createString("iterator")),
                 true),
-            new CfStore(ValueType.OBJECT, 2),
+            CfStore.ASTORE_2,
             label2,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
@@ -2008,7 +2008,7 @@ public final class BackportedMethods {
                     factory.createProto(factory.objectType),
                     factory.createString("next")),
                 true),
-            new CfStore(ValueType.OBJECT, 3),
+             CfStore.ASTORE_3,
             label3,
             CfLoad.ALOAD_1,
             CfLoad.ALOAD_3,
@@ -2026,7 +2026,7 @@ public final class BackportedMethods {
                     factory.createProto(factory.booleanType, factory.objectType),
                     factory.createString("add")),
                 false),
-            new CfStackInstruction(CfStackInstruction.Opcode.Pop),
+            CfStackInstruction.POP,
             label4,
             new CfGoto(label2),
             label5,
@@ -2049,7 +2049,7 @@ public final class BackportedMethods {
                         factory.createType("Ljava/util/Set;")),
                     factory.createString("unmodifiableSet")),
                 false),
-            CfReturn.forType(ValueType.OBJECT),
+            CfReturn.ARETURN,
             label6),
         ImmutableList.of(),
         ImmutableList.of());
@@ -2080,7 +2080,7 @@ public final class BackportedMethods {
                         factory.createType("Ljava/util/Collection;")),
                     factory.createString("enumeration")),
                 false),
-            CfReturn.forType(ValueType.OBJECT)),
+            CfReturn.ARETURN),
         ImmutableList.of(),
         ImmutableList.of());
   }
@@ -2107,7 +2107,7 @@ public final class BackportedMethods {
                     factory.createProto(factory.createType("Ljava/util/Iterator;")),
                     factory.createString("iterator")),
                 true),
-            CfReturn.forType(ValueType.OBJECT)),
+            CfReturn.ARETURN),
         ImmutableList.of(),
         ImmutableList.of());
   }
@@ -2135,7 +2135,7 @@ public final class BackportedMethods {
                     factory.createProto(factory.createType("Ljava/util/ListIterator;")),
                     factory.createString("listIterator")),
                 true),
-            CfReturn.forType(ValueType.OBJECT)),
+            CfReturn.ARETURN),
         ImmutableList.of(),
         ImmutableList.of());
   }
@@ -2158,15 +2158,15 @@ public final class BackportedMethods {
                     factory.createProto(factory.longType, factory.doubleType),
                     factory.createString("doubleToLongBits")),
                 false),
-            new CfStore(ValueType.LONG, 2),
+             CfStore.LSTORE_2,
             label1,
             CfLoad.LLOAD_2,
             CfLoad.LLOAD_2,
-            new CfConstNumber(32, ValueType.INT),
-            new CfLogicalBinop(CfLogicalBinop.Opcode.Ushr, NumericType.LONG),
-            new CfLogicalBinop(CfLogicalBinop.Opcode.Xor, NumericType.LONG),
-            new CfNumberConversion(NumericType.LONG, NumericType.INT),
-            CfReturn.forType(ValueType.INT),
+            CfConstNumber.constNumber(32, ValueType.INT),
+            CfLogicalBinop.LUSHR,
+            CfLogicalBinop.LXOR,
+            CfNumberConversion.L2I,
+            CfReturn.IRETURN,
             label2),
         ImmutableList.of(),
         ImmutableList.of());
@@ -2201,21 +2201,21 @@ public final class BackportedMethods {
                     factory.createString("isNaN")),
                 false),
             new CfIf(IfType.NE, ValueType.INT, label1),
-            new CfConstNumber(1, ValueType.INT),
+            CfConstNumber.ICONST_1,
             new CfGoto(label2),
             label1,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1},
                     new FrameType[] {FrameType.doubleType(), FrameType.doubleHighType()})),
-            new CfConstNumber(0, ValueType.INT),
+            CfConstNumber.ICONST_0,
             label2,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1},
                     new FrameType[] {FrameType.doubleType(), FrameType.doubleHighType()}),
                 new ArrayDeque<>(Arrays.asList(FrameType.intType()))),
-            CfReturn.forType(ValueType.INT),
+            CfReturn.IRETURN,
             label3),
         ImmutableList.of(),
         ImmutableList.of());
@@ -2250,17 +2250,17 @@ public final class BackportedMethods {
                     factory.createString("isNaN")),
                 false),
             new CfIf(IfType.NE, ValueType.INT, label1),
-            new CfConstNumber(1, ValueType.INT),
+            CfConstNumber.ICONST_1,
             new CfGoto(label2),
             label1,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(new int[] {0}, new FrameType[] {FrameType.floatType()})),
-            new CfConstNumber(0, ValueType.INT),
+            CfConstNumber.ICONST_0,
             label2,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(new int[] {0}, new FrameType[] {FrameType.floatType()}),
                 new ArrayDeque<>(Arrays.asList(FrameType.intType()))),
-            CfReturn.forType(ValueType.INT),
+            CfReturn.IRETURN,
             label3),
         ImmutableList.of(),
         ImmutableList.of());
@@ -2281,7 +2281,7 @@ public final class BackportedMethods {
             CfLoad.ILOAD_0,
             CfLoad.ILOAD_1,
             new CfIfCmp(IfType.NE, ValueType.INT, label1),
-            new CfConstNumber(0, ValueType.INT),
+            CfConstNumber.ICONST_0,
             new CfGoto(label3),
             label1,
             new CfFrame(
@@ -2290,19 +2290,19 @@ public final class BackportedMethods {
             CfLoad.ILOAD_0,
             CfLoad.ILOAD_1,
             new CfIfCmp(IfType.GE, ValueType.INT, label2),
-            new CfConstNumber(-1, ValueType.INT),
+            CfConstNumber.ICONST_M1,
             new CfGoto(label3),
             label2,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1}, new FrameType[] {FrameType.intType(), FrameType.intType()})),
-            new CfConstNumber(1, ValueType.INT),
+            CfConstNumber.ICONST_1,
             label3,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1}, new FrameType[] {FrameType.intType(), FrameType.intType()}),
                 new ArrayDeque<>(Arrays.asList(FrameType.intType()))),
-            CfReturn.forType(ValueType.INT),
+            CfReturn.IRETURN,
             label4),
         ImmutableList.of(),
         ImmutableList.of());
@@ -2320,14 +2320,14 @@ public final class BackportedMethods {
         ImmutableList.of(
             label0,
             CfLoad.ILOAD_0,
-            new CfConstNumber(-2147483648, ValueType.INT),
-            new CfLogicalBinop(CfLogicalBinop.Opcode.Xor, NumericType.INT),
-            new CfStore(ValueType.INT, 2),
+            CfConstNumber.constNumber(-2147483648, ValueType.INT),
+            CfLogicalBinop.IXOR,
+             CfStore.ISTORE_2,
             label1,
             CfLoad.ILOAD_1,
-            new CfConstNumber(-2147483648, ValueType.INT),
-            new CfLogicalBinop(CfLogicalBinop.Opcode.Xor, NumericType.INT),
-            new CfStore(ValueType.INT, 3),
+            CfConstNumber.constNumber(-2147483648, ValueType.INT),
+            CfLogicalBinop.IXOR,
+             CfStore.ISTORE_3,
             label2,
             CfLoad.ILOAD_2,
             CfLoad.ILOAD_3,
@@ -2338,7 +2338,7 @@ public final class BackportedMethods {
                     factory.createProto(factory.intType, factory.intType, factory.intType),
                     factory.createString("compare")),
                 false),
-            CfReturn.forType(ValueType.INT),
+            CfReturn.IRETURN,
             label3),
         ImmutableList.of(),
         ImmutableList.of());
@@ -2356,22 +2356,22 @@ public final class BackportedMethods {
         ImmutableList.of(
             label0,
             CfLoad.ILOAD_0,
-            new CfNumberConversion(NumericType.INT, NumericType.LONG),
-            new CfConstNumber(4294967295L, ValueType.LONG),
-            new CfLogicalBinop(CfLogicalBinop.Opcode.And, NumericType.LONG),
-            new CfStore(ValueType.LONG, 2),
+            CfNumberConversion.I2L,
+            CfConstNumber.constNumber(4294967295L, ValueType.LONG),
+            CfLogicalBinop.LAND,
+             CfStore.LSTORE_2,
             label1,
             CfLoad.ILOAD_1,
-            new CfNumberConversion(NumericType.INT, NumericType.LONG),
-            new CfConstNumber(4294967295L, ValueType.LONG),
-            new CfLogicalBinop(CfLogicalBinop.Opcode.And, NumericType.LONG),
-            new CfStore(ValueType.LONG, 4),
+            CfNumberConversion.I2L,
+            CfConstNumber.constNumber(4294967295L, ValueType.LONG),
+            CfLogicalBinop.LAND,
+             CfStore.LSTORE_4,
             label2,
             CfLoad.LLOAD_2,
             CfLoad.LLOAD_4,
-            new CfArithmeticBinop(CfArithmeticBinop.Opcode.Div, NumericType.LONG),
-            new CfNumberConversion(NumericType.LONG, NumericType.INT),
-            CfReturn.forType(ValueType.INT),
+            CfArithmeticBinop.LDIV,
+            CfNumberConversion.L2I,
+            CfReturn.IRETURN,
             label3),
         ImmutableList.of(),
         ImmutableList.of());
@@ -2412,7 +2412,7 @@ public final class BackportedMethods {
                     factory.createProto(factory.intType, factory.stringType, factory.intType),
                     factory.createString("parseInt")),
                 false),
-            CfReturn.forType(ValueType.INT),
+            CfReturn.IRETURN,
             label1),
         ImmutableList.of(),
         ImmutableList.of());
@@ -2434,8 +2434,8 @@ public final class BackportedMethods {
             label0,
             CfLoad.ILOAD_2,
             CfLoad.ILOAD_1,
-            new CfArithmeticBinop(CfArithmeticBinop.Opcode.Sub, NumericType.INT),
-            new CfConstNumber(2, ValueType.INT),
+            CfArithmeticBinop.ISUB,
+            CfConstNumber.ICONST_2,
             new CfIfCmp(IfType.LT, ValueType.INT, label4),
             CfLoad.ALOAD_0,
             CfLoad.ILOAD_1,
@@ -2447,12 +2447,12 @@ public final class BackportedMethods {
                     factory.createProto(factory.charType, factory.intType),
                     factory.createString("charAt")),
                 true),
-            new CfConstNumber(43, ValueType.INT),
+            CfConstNumber.constNumber(43, ValueType.INT),
             new CfIfCmp(IfType.NE, ValueType.INT, label4),
             CfLoad.ALOAD_0,
             CfLoad.ILOAD_1,
-            new CfConstNumber(1, ValueType.INT),
-            new CfArithmeticBinop(CfArithmeticBinop.Opcode.Add, NumericType.INT),
+            CfConstNumber.ICONST_1,
+            CfArithmeticBinop.IADD,
             label2,
             new CfInvoke(
                 185,
@@ -2507,7 +2507,7 @@ public final class BackportedMethods {
                     factory.createProto(factory.intType, factory.stringType, factory.intType),
                     factory.createString("parseInt")),
                 false),
-            CfReturn.forType(ValueType.INT),
+            CfReturn.IRETURN,
             label5),
         ImmutableList.of(),
         ImmutableList.of());
@@ -2523,7 +2523,7 @@ public final class BackportedMethods {
         ImmutableList.of(
             label0,
             CfLoad.ALOAD_0,
-            new CfConstNumber(10, ValueType.INT),
+            CfConstNumber.constNumber(10, ValueType.INT),
             new CfInvoke(
                 184,
                 factory.createMethod(
@@ -2531,7 +2531,7 @@ public final class BackportedMethods {
                     factory.createProto(factory.intType, factory.stringType, factory.intType),
                     factory.createString("parseUnsignedInt")),
                 false),
-            CfReturn.forType(ValueType.INT),
+            CfReturn.IRETURN,
             label1),
         ImmutableList.of(),
         ImmutableList.of());
@@ -2572,7 +2572,7 @@ public final class BackportedMethods {
                     factory.createProto(factory.intType, factory.stringType, factory.intType),
                     factory.createString("parseUnsignedInt")),
                 false),
-            CfReturn.forType(ValueType.INT),
+            CfReturn.IRETURN,
             label1),
         ImmutableList.of(),
         ImmutableList.of());
@@ -2601,10 +2601,10 @@ public final class BackportedMethods {
                     factory.createProto(factory.intType),
                     factory.createString("length")),
                 false),
-            new CfConstNumber(1, ValueType.INT),
+            CfConstNumber.ICONST_1,
             new CfIfCmp(IfType.LE, ValueType.INT, label2),
             CfLoad.ALOAD_0,
-            new CfConstNumber(0, ValueType.INT),
+            CfConstNumber.ICONST_0,
             new CfInvoke(
                 182,
                 factory.createMethod(
@@ -2612,11 +2612,11 @@ public final class BackportedMethods {
                     factory.createProto(factory.charType, factory.intType),
                     factory.createString("charAt")),
                 false),
-            new CfConstNumber(43, ValueType.INT),
+            CfConstNumber.constNumber(43, ValueType.INT),
             new CfIfCmp(IfType.NE, ValueType.INT, label2),
             label1,
             CfLoad.ALOAD_0,
-            new CfConstNumber(1, ValueType.INT),
+            CfConstNumber.ICONST_1,
             new CfInvoke(
                 182,
                 factory.createMethod(
@@ -2624,7 +2624,7 @@ public final class BackportedMethods {
                     factory.createProto(factory.stringType, factory.intType),
                     factory.createString("substring")),
                 false),
-            new CfStore(ValueType.OBJECT, 0),
+            CfStore.ASTORE_0,
             label2,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
@@ -2641,19 +2641,19 @@ public final class BackportedMethods {
                     factory.createProto(factory.longType, factory.stringType, factory.intType),
                     factory.createString("parseLong")),
                 false),
-            new CfStore(ValueType.LONG, 2),
+             CfStore.LSTORE_2,
             label3,
             CfLoad.LLOAD_2,
-            new CfConstNumber(4294967295L, ValueType.LONG),
-            new CfLogicalBinop(CfLogicalBinop.Opcode.And, NumericType.LONG),
+            CfConstNumber.constNumber(4294967295L, ValueType.LONG),
+            CfLogicalBinop.LAND,
             CfLoad.LLOAD_2,
-            new CfCmp(Cmp.Bias.NONE, NumericType.LONG),
+            CfCmp.LCMP,
             new CfIf(IfType.EQ, ValueType.INT, label5),
             label4,
             new CfNew(factory.createType("Ljava/lang/NumberFormatException;")),
-            new CfStackInstruction(CfStackInstruction.Opcode.Dup),
+            CfStackInstruction.DUP,
             new CfNew(factory.stringBuilderType),
-            new CfStackInstruction(CfStackInstruction.Opcode.Dup),
+            CfStackInstruction.DUP,
             new CfInvoke(
                 183,
                 factory.createMethod(
@@ -2727,8 +2727,8 @@ public final class BackportedMethods {
                       FrameType.longHighType()
                     })),
             CfLoad.LLOAD_2,
-            new CfNumberConversion(NumericType.LONG, NumericType.INT),
-            CfReturn.forType(ValueType.INT),
+            CfNumberConversion.L2I,
+            CfReturn.IRETURN,
             label6),
         ImmutableList.of(),
         ImmutableList.of());
@@ -2746,22 +2746,22 @@ public final class BackportedMethods {
         ImmutableList.of(
             label0,
             CfLoad.ILOAD_0,
-            new CfNumberConversion(NumericType.INT, NumericType.LONG),
-            new CfConstNumber(4294967295L, ValueType.LONG),
-            new CfLogicalBinop(CfLogicalBinop.Opcode.And, NumericType.LONG),
-            new CfStore(ValueType.LONG, 2),
+            CfNumberConversion.I2L,
+            CfConstNumber.constNumber(4294967295L, ValueType.LONG),
+            CfLogicalBinop.LAND,
+             CfStore.LSTORE_2,
             label1,
             CfLoad.ILOAD_1,
-            new CfNumberConversion(NumericType.INT, NumericType.LONG),
-            new CfConstNumber(4294967295L, ValueType.LONG),
-            new CfLogicalBinop(CfLogicalBinop.Opcode.And, NumericType.LONG),
-            new CfStore(ValueType.LONG, 4),
+            CfNumberConversion.I2L,
+            CfConstNumber.constNumber(4294967295L, ValueType.LONG),
+            CfLogicalBinop.LAND,
+             CfStore.LSTORE_4,
             label2,
             CfLoad.LLOAD_2,
             CfLoad.LLOAD_4,
-            new CfArithmeticBinop(CfArithmeticBinop.Opcode.Rem, NumericType.LONG),
-            new CfNumberConversion(NumericType.LONG, NumericType.INT),
-            CfReturn.forType(ValueType.INT),
+            CfArithmeticBinop.LREM,
+            CfNumberConversion.L2I,
+            CfReturn.IRETURN,
             label3),
         ImmutableList.of(),
         ImmutableList.of());
@@ -2777,10 +2777,10 @@ public final class BackportedMethods {
         ImmutableList.of(
             label0,
             CfLoad.ILOAD_0,
-            new CfNumberConversion(NumericType.INT, NumericType.LONG),
-            new CfConstNumber(4294967295L, ValueType.LONG),
-            new CfLogicalBinop(CfLogicalBinop.Opcode.And, NumericType.LONG),
-            CfReturn.forType(ValueType.LONG),
+            CfNumberConversion.I2L,
+            CfConstNumber.constNumber(4294967295L, ValueType.LONG),
+            CfLogicalBinop.LAND,
+            CfReturn.LRETURN,
             label1),
         ImmutableList.of(),
         ImmutableList.of());
@@ -2796,7 +2796,7 @@ public final class BackportedMethods {
         ImmutableList.of(
             label0,
             CfLoad.ILOAD_0,
-            new CfConstNumber(10, ValueType.INT),
+            CfConstNumber.constNumber(10, ValueType.INT),
             new CfInvoke(
                 184,
                 factory.createMethod(
@@ -2804,7 +2804,7 @@ public final class BackportedMethods {
                     factory.createProto(factory.stringType, factory.intType, factory.intType),
                     factory.createString("toUnsignedString")),
                 false),
-            CfReturn.forType(ValueType.OBJECT),
+            CfReturn.ARETURN,
             label1),
         ImmutableList.of(),
         ImmutableList.of());
@@ -2822,10 +2822,10 @@ public final class BackportedMethods {
         ImmutableList.of(
             label0,
             CfLoad.ILOAD_0,
-            new CfNumberConversion(NumericType.INT, NumericType.LONG),
-            new CfConstNumber(4294967295L, ValueType.LONG),
-            new CfLogicalBinop(CfLogicalBinop.Opcode.And, NumericType.LONG),
-            new CfStore(ValueType.LONG, 2),
+            CfNumberConversion.I2L,
+            CfConstNumber.constNumber(4294967295L, ValueType.LONG),
+            CfLogicalBinop.LAND,
+             CfStore.LSTORE_2,
             label1,
             CfLoad.LLOAD_2,
             CfLoad.ILOAD_1,
@@ -2836,7 +2836,7 @@ public final class BackportedMethods {
                     factory.createProto(factory.stringType, factory.longType, factory.intType),
                     factory.createString("toString")),
                 false),
-            CfReturn.forType(ValueType.OBJECT),
+            CfReturn.ARETURN,
             label2),
         ImmutableList.of(),
         ImmutableList.of());
@@ -2854,17 +2854,17 @@ public final class BackportedMethods {
         ImmutableList.of(
             label0,
             CfLoad.LLOAD_0,
-            new CfConstNumber(-9223372036854775808L, ValueType.LONG),
-            new CfLogicalBinop(CfLogicalBinop.Opcode.Xor, NumericType.LONG),
-            new CfStore(ValueType.LONG, 4),
+            CfConstNumber.constNumber(-9223372036854775808L, ValueType.LONG),
+            CfLogicalBinop.LXOR,
+             CfStore.LSTORE_4,
             label1,
             CfLoad.LLOAD_2,
-            new CfConstNumber(-9223372036854775808L, ValueType.LONG),
-            new CfLogicalBinop(CfLogicalBinop.Opcode.Xor, NumericType.LONG),
-            new CfStore(ValueType.LONG, 6),
+            CfConstNumber.constNumber(-9223372036854775808L, ValueType.LONG),
+            CfLogicalBinop.LXOR,
+             CfStore.storeLong(6),
             label2,
             CfLoad.LLOAD_4,
-            new CfLoad(ValueType.LONG, 6),
+            CfLoad.loadLong(6),
             new CfInvoke(
                 184,
                 factory.createMethod(
@@ -2872,7 +2872,7 @@ public final class BackportedMethods {
                     factory.createProto(factory.intType, factory.longType, factory.longType),
                     factory.createString("compare")),
                 false),
-            CfReturn.forType(ValueType.INT),
+            CfReturn.IRETURN,
             label3),
         ImmutableList.of(),
         ImmutableList.of());
@@ -2902,27 +2902,27 @@ public final class BackportedMethods {
         ImmutableList.of(
             label0,
             CfLoad.LLOAD_2,
-            new CfConstNumber(0, ValueType.LONG),
-            new CfCmp(Cmp.Bias.NONE, NumericType.LONG),
+            CfConstNumber.LCONST_0,
+            CfCmp.LCMP,
             new CfIf(IfType.GE, ValueType.INT, label6),
             label1,
             CfLoad.LLOAD_0,
-            new CfConstNumber(-9223372036854775808L, ValueType.LONG),
-            new CfLogicalBinop(CfLogicalBinop.Opcode.Xor, NumericType.LONG),
-            new CfStore(ValueType.LONG, 4),
+            CfConstNumber.constNumber(-9223372036854775808L, ValueType.LONG),
+            CfLogicalBinop.LXOR,
+             CfStore.LSTORE_4,
             label2,
             CfLoad.LLOAD_2,
-            new CfConstNumber(-9223372036854775808L, ValueType.LONG),
-            new CfLogicalBinop(CfLogicalBinop.Opcode.Xor, NumericType.LONG),
-            new CfStore(ValueType.LONG, 6),
+            CfConstNumber.constNumber(-9223372036854775808L, ValueType.LONG),
+            CfLogicalBinop.LXOR,
+             CfStore.storeLong(6),
             label3,
             CfLoad.LLOAD_4,
-            new CfLoad(ValueType.LONG, 6),
-            new CfCmp(Cmp.Bias.NONE, NumericType.LONG),
+            CfLoad.loadLong(6),
+            CfCmp.LCMP,
             new CfIf(IfType.GE, ValueType.INT, label5),
             label4,
-            new CfConstNumber(0, ValueType.LONG),
-            CfReturn.forType(ValueType.LONG),
+            CfConstNumber.LCONST_0,
+            CfReturn.LRETURN,
             label5,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
@@ -2937,8 +2937,8 @@ public final class BackportedMethods {
                       FrameType.longType(),
                       FrameType.longHighType()
                     })),
-            new CfConstNumber(1, ValueType.LONG),
-            CfReturn.forType(ValueType.LONG),
+            CfConstNumber.LCONST_1,
+            CfReturn.LRETURN,
             label6,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
@@ -2950,14 +2950,14 @@ public final class BackportedMethods {
                       FrameType.longHighType()
                     })),
             CfLoad.LLOAD_0,
-            new CfConstNumber(0, ValueType.LONG),
-            new CfCmp(Cmp.Bias.NONE, NumericType.LONG),
+            CfConstNumber.LCONST_0,
+            CfCmp.LCMP,
             new CfIf(IfType.LT, ValueType.INT, label8),
             label7,
             CfLoad.LLOAD_0,
             CfLoad.LLOAD_2,
-            new CfArithmeticBinop(CfArithmeticBinop.Opcode.Div, NumericType.LONG),
-            CfReturn.forType(ValueType.LONG),
+            CfArithmeticBinop.LDIV,
+            CfReturn.LRETURN,
             label8,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
@@ -2969,37 +2969,37 @@ public final class BackportedMethods {
                       FrameType.longHighType()
                     })),
             CfLoad.LLOAD_0,
-            new CfConstNumber(1, ValueType.INT),
-            new CfLogicalBinop(CfLogicalBinop.Opcode.Ushr, NumericType.LONG),
+            CfConstNumber.ICONST_1,
+            CfLogicalBinop.LUSHR,
             CfLoad.LLOAD_2,
-            new CfArithmeticBinop(CfArithmeticBinop.Opcode.Div, NumericType.LONG),
-            new CfConstNumber(1, ValueType.INT),
-            new CfLogicalBinop(CfLogicalBinop.Opcode.Shl, NumericType.LONG),
-            new CfStore(ValueType.LONG, 4),
+            CfArithmeticBinop.LDIV,
+            CfConstNumber.ICONST_1,
+            CfLogicalBinop.LSHL,
+             CfStore.LSTORE_4,
             label9,
             CfLoad.LLOAD_0,
             CfLoad.LLOAD_4,
             CfLoad.LLOAD_2,
-            new CfArithmeticBinop(CfArithmeticBinop.Opcode.Mul, NumericType.LONG),
-            new CfArithmeticBinop(CfArithmeticBinop.Opcode.Sub, NumericType.LONG),
-            new CfStore(ValueType.LONG, 6),
+            CfArithmeticBinop.LMUL,
+            CfArithmeticBinop.LSUB,
+             CfStore.storeLong(6),
             label10,
-            new CfLoad(ValueType.LONG, 6),
-            new CfConstNumber(-9223372036854775808L, ValueType.LONG),
-            new CfLogicalBinop(CfLogicalBinop.Opcode.Xor, NumericType.LONG),
-            new CfStore(ValueType.LONG, 8),
+            CfLoad.loadLong(6),
+            CfConstNumber.constNumber(-9223372036854775808L, ValueType.LONG),
+            CfLogicalBinop.LXOR,
+             CfStore.storeLong(8),
             label11,
             CfLoad.LLOAD_2,
-            new CfConstNumber(-9223372036854775808L, ValueType.LONG),
-            new CfLogicalBinop(CfLogicalBinop.Opcode.Xor, NumericType.LONG),
-            new CfStore(ValueType.LONG, 10),
+            CfConstNumber.constNumber(-9223372036854775808L, ValueType.LONG),
+            CfLogicalBinop.LXOR,
+             CfStore.storeLong(10),
             label12,
             CfLoad.LLOAD_4,
-            new CfLoad(ValueType.LONG, 8),
-            new CfLoad(ValueType.LONG, 10),
-            new CfCmp(Cmp.Bias.NONE, NumericType.LONG),
+            CfLoad.loadLong(8),
+            CfLoad.loadLong(10),
+            CfCmp.LCMP,
             new CfIf(IfType.LT, ValueType.INT, label13),
-            new CfConstNumber(1, ValueType.INT),
+            CfConstNumber.ICONST_1,
             new CfGoto(label14),
             label13,
             new CfFrame(
@@ -3020,7 +3020,7 @@ public final class BackportedMethods {
                       FrameType.longHighType()
                     }),
                 new ArrayDeque<>(Arrays.asList(FrameType.longType()))),
-            new CfConstNumber(0, ValueType.INT),
+            CfConstNumber.ICONST_0,
             label14,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
@@ -3040,9 +3040,9 @@ public final class BackportedMethods {
                       FrameType.longHighType()
                     }),
                 new ArrayDeque<>(Arrays.asList(FrameType.longType(), FrameType.intType()))),
-            new CfNumberConversion(NumericType.INT, NumericType.LONG),
-            new CfArithmeticBinop(CfArithmeticBinop.Opcode.Add, NumericType.LONG),
-            CfReturn.forType(ValueType.LONG),
+            CfNumberConversion.I2L,
+            CfArithmeticBinop.LADD,
+            CfReturn.LRETURN,
             label15),
         ImmutableList.of(),
         ImmutableList.of());
@@ -3059,11 +3059,11 @@ public final class BackportedMethods {
             label0,
             CfLoad.LLOAD_0,
             CfLoad.LLOAD_0,
-            new CfConstNumber(32, ValueType.INT),
-            new CfLogicalBinop(CfLogicalBinop.Opcode.Ushr, NumericType.LONG),
-            new CfLogicalBinop(CfLogicalBinop.Opcode.Xor, NumericType.LONG),
-            new CfNumberConversion(NumericType.LONG, NumericType.INT),
-            CfReturn.forType(ValueType.INT),
+            CfConstNumber.constNumber(32, ValueType.INT),
+            CfLogicalBinop.LUSHR,
+            CfLogicalBinop.LXOR,
+            CfNumberConversion.L2I,
+            CfReturn.IRETURN,
             label1),
         ImmutableList.of(),
         ImmutableList.of());
@@ -3104,7 +3104,7 @@ public final class BackportedMethods {
                     factory.createProto(factory.longType, factory.stringType, factory.intType),
                     factory.createString("parseLong")),
                 false),
-            CfReturn.forType(ValueType.LONG),
+            CfReturn.LRETURN,
             label1),
         ImmutableList.of(),
         ImmutableList.of());
@@ -3126,8 +3126,8 @@ public final class BackportedMethods {
             label0,
             CfLoad.ILOAD_2,
             CfLoad.ILOAD_1,
-            new CfArithmeticBinop(CfArithmeticBinop.Opcode.Sub, NumericType.INT),
-            new CfConstNumber(2, ValueType.INT),
+            CfArithmeticBinop.ISUB,
+            CfConstNumber.ICONST_2,
             new CfIfCmp(IfType.LT, ValueType.INT, label4),
             CfLoad.ALOAD_0,
             CfLoad.ILOAD_1,
@@ -3139,12 +3139,12 @@ public final class BackportedMethods {
                     factory.createProto(factory.charType, factory.intType),
                     factory.createString("charAt")),
                 true),
-            new CfConstNumber(43, ValueType.INT),
+            CfConstNumber.constNumber(43, ValueType.INT),
             new CfIfCmp(IfType.NE, ValueType.INT, label4),
             CfLoad.ALOAD_0,
             CfLoad.ILOAD_1,
-            new CfConstNumber(1, ValueType.INT),
-            new CfArithmeticBinop(CfArithmeticBinop.Opcode.Add, NumericType.INT),
+            CfConstNumber.ICONST_1,
+            CfArithmeticBinop.IADD,
             label2,
             new CfInvoke(
                 185,
@@ -3199,7 +3199,7 @@ public final class BackportedMethods {
                     factory.createProto(factory.longType, factory.stringType, factory.intType),
                     factory.createString("parseLong")),
                 false),
-            CfReturn.forType(ValueType.LONG),
+            CfReturn.LRETURN,
             label5),
         ImmutableList.of(),
         ImmutableList.of());
@@ -3215,7 +3215,7 @@ public final class BackportedMethods {
         ImmutableList.of(
             label0,
             CfLoad.ALOAD_0,
-            new CfConstNumber(10, ValueType.INT),
+            CfConstNumber.constNumber(10, ValueType.INT),
             new CfInvoke(
                 184,
                 factory.createMethod(
@@ -3223,7 +3223,7 @@ public final class BackportedMethods {
                     factory.createProto(factory.longType, factory.stringType, factory.intType),
                     factory.createString("parseUnsignedLong")),
                 false),
-            CfReturn.forType(ValueType.LONG),
+            CfReturn.LRETURN,
             label1),
         ImmutableList.of(),
         ImmutableList.of());
@@ -3261,14 +3261,14 @@ public final class BackportedMethods {
             label0,
             CfLoad.ILOAD_2,
             CfLoad.ILOAD_1,
-            new CfArithmeticBinop(CfArithmeticBinop.Opcode.Sub, NumericType.INT),
-            new CfStore(ValueType.INT, 4),
+            CfArithmeticBinop.ISUB,
+             CfStore.ISTORE_4,
             label1,
             CfLoad.ILOAD_4,
             new CfIf(IfType.NE, ValueType.INT, label3),
             label2,
             new CfNew(factory.createType("Ljava/lang/NumberFormatException;")),
-            new CfStackInstruction(CfStackInstruction.Opcode.Dup),
+            CfStackInstruction.DUP,
             new CfConstString(factory.createString("empty string")),
             new CfInvoke(
                 183,
@@ -3290,10 +3290,10 @@ public final class BackportedMethods {
                       FrameType.intType()
                     })),
             CfLoad.ILOAD_3,
-            new CfConstNumber(2, ValueType.INT),
+            CfConstNumber.ICONST_2,
             new CfIfCmp(IfType.LT, ValueType.INT, label4),
             CfLoad.ILOAD_3,
-            new CfConstNumber(36, ValueType.INT),
+            CfConstNumber.constNumber(36, ValueType.INT),
             new CfIfCmp(IfType.LE, ValueType.INT, label5),
             label4,
             new CfFrame(
@@ -3307,7 +3307,7 @@ public final class BackportedMethods {
                       FrameType.intType()
                     })),
             new CfNew(factory.createType("Ljava/lang/NumberFormatException;")),
-            new CfStackInstruction(CfStackInstruction.Opcode.Dup),
+            CfStackInstruction.DUP,
             new CfConstString(factory.createString("illegal radix: ")),
             CfLoad.ILOAD_3,
             new CfInvoke(
@@ -3343,9 +3343,9 @@ public final class BackportedMethods {
                       FrameType.intType(),
                       FrameType.intType()
                     })),
-            new CfConstNumber(-1, ValueType.LONG),
+            CfConstNumber.constNumber(-1, ValueType.LONG),
             CfLoad.ILOAD_3,
-            new CfNumberConversion(NumericType.INT, NumericType.LONG),
+            CfNumberConversion.I2L,
             new CfInvoke(
                 184,
                 factory.createMethod(
@@ -3353,7 +3353,7 @@ public final class BackportedMethods {
                     factory.createProto(factory.longType, factory.longType, factory.longType),
                     factory.createString("divideUnsigned")),
                 false),
-            new CfStore(ValueType.LONG, 5),
+             CfStore.LSTORE_5,
             label6,
             CfLoad.ALOAD_0,
             CfLoad.ILOAD_1,
@@ -3364,14 +3364,14 @@ public final class BackportedMethods {
                     factory.createProto(factory.charType, factory.intType),
                     factory.createString("charAt")),
                 true),
-            new CfConstNumber(43, ValueType.INT),
+            CfConstNumber.constNumber(43, ValueType.INT),
             new CfIfCmp(IfType.NE, ValueType.INT, label7),
             CfLoad.ILOAD_4,
-            new CfConstNumber(1, ValueType.INT),
+            CfConstNumber.ICONST_1,
             new CfIfCmp(IfType.LE, ValueType.INT, label7),
             CfLoad.ILOAD_1,
-            new CfConstNumber(1, ValueType.INT),
-            new CfArithmeticBinop(CfArithmeticBinop.Opcode.Add, NumericType.INT),
+            CfConstNumber.ICONST_1,
+            CfArithmeticBinop.IADD,
             new CfGoto(label8),
             label7,
             new CfFrame(
@@ -3401,13 +3401,13 @@ public final class BackportedMethods {
                       FrameType.longHighType()
                     }),
                 new ArrayDeque<>(Arrays.asList(FrameType.intType()))),
-            new CfStore(ValueType.INT, 7),
+             CfStore.ISTORE_7,
             label9,
-            new CfConstNumber(0, ValueType.LONG),
-            new CfStore(ValueType.LONG, 8),
+            CfConstNumber.LCONST_0,
+             CfStore.storeLong(8),
             label10,
-            new CfLoad(ValueType.INT, 7),
-            new CfStore(ValueType.INT, 10),
+            CfLoad.ILOAD_7,
+             CfStore.storeInt(10),
             label11,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
@@ -3425,12 +3425,12 @@ public final class BackportedMethods {
                       FrameType.longHighType(),
                       FrameType.intType()
                     })),
-            new CfLoad(ValueType.INT, 10),
+            CfLoad.loadInt(10),
             CfLoad.ILOAD_2,
             new CfIfCmp(IfType.GE, ValueType.INT, label20),
             label12,
             CfLoad.ALOAD_0,
-            new CfLoad(ValueType.INT, 10),
+            CfLoad.loadInt(10),
             new CfInvoke(
                 185,
                 factory.createMethod(
@@ -3446,14 +3446,14 @@ public final class BackportedMethods {
                     factory.createProto(factory.intType, factory.charType, factory.intType),
                     factory.createString("digit")),
                 false),
-            new CfStore(ValueType.INT, 11),
+             CfStore.storeInt(11),
             label13,
-            new CfLoad(ValueType.INT, 11),
-            new CfConstNumber(-1, ValueType.INT),
+            CfLoad.loadInt(11),
+            CfConstNumber.ICONST_M1,
             new CfIfCmp(IfType.NE, ValueType.INT, label15),
             label14,
             new CfNew(factory.createType("Ljava/lang/NumberFormatException;")),
-            new CfStackInstruction(CfStackInstruction.Opcode.Dup),
+            CfStackInstruction.DUP,
             CfLoad.ALOAD_0,
             new CfInvoke(
                 185,
@@ -3488,22 +3488,22 @@ public final class BackportedMethods {
                       FrameType.intType(),
                       FrameType.intType()
                     })),
-            new CfLoad(ValueType.LONG, 8),
-            new CfConstNumber(0, ValueType.LONG),
-            new CfCmp(Cmp.Bias.NONE, NumericType.LONG),
+            CfLoad.loadLong(8),
+            CfConstNumber.LCONST_0,
+            CfCmp.LCMP,
             new CfIf(IfType.LT, ValueType.INT, label17),
-            new CfLoad(ValueType.LONG, 8),
-            new CfLoad(ValueType.LONG, 5),
-            new CfCmp(Cmp.Bias.NONE, NumericType.LONG),
+            CfLoad.loadLong(8),
+            CfLoad.LLOAD_5,
+            CfCmp.LCMP,
             new CfIf(IfType.GT, ValueType.INT, label17),
-            new CfLoad(ValueType.LONG, 8),
-            new CfLoad(ValueType.LONG, 5),
-            new CfCmp(Cmp.Bias.NONE, NumericType.LONG),
+            CfLoad.loadLong(8),
+            CfLoad.LLOAD_5,
+            CfCmp.LCMP,
             new CfIf(IfType.NE, ValueType.INT, label18),
-            new CfLoad(ValueType.INT, 11),
-            new CfConstNumber(-1, ValueType.LONG),
+            CfLoad.loadInt(11),
+            CfConstNumber.constNumber(-1, ValueType.LONG),
             CfLoad.ILOAD_3,
-            new CfNumberConversion(NumericType.INT, NumericType.LONG),
+            CfNumberConversion.I2L,
             label16,
             new CfInvoke(
                 184,
@@ -3512,7 +3512,7 @@ public final class BackportedMethods {
                     factory.createProto(factory.longType, factory.longType, factory.longType),
                     factory.createString("remainderUnsigned")),
                 false),
-            new CfNumberConversion(NumericType.LONG, NumericType.INT),
+            CfNumberConversion.L2I,
             new CfIfCmp(IfType.LE, ValueType.INT, label18),
             label17,
             new CfFrame(
@@ -3533,7 +3533,7 @@ public final class BackportedMethods {
                       FrameType.intType()
                     })),
             new CfNew(factory.createType("Ljava/lang/NumberFormatException;")),
-            new CfStackInstruction(CfStackInstruction.Opcode.Dup),
+            CfStackInstruction.DUP,
             new CfConstString(factory.createString("Too large for unsigned long: ")),
             CfLoad.ALOAD_0,
             new CfInvoke(
@@ -3576,14 +3576,14 @@ public final class BackportedMethods {
                       FrameType.intType(),
                       FrameType.intType()
                     })),
-            new CfLoad(ValueType.LONG, 8),
+            CfLoad.loadLong(8),
             CfLoad.ILOAD_3,
-            new CfNumberConversion(NumericType.INT, NumericType.LONG),
-            new CfArithmeticBinop(CfArithmeticBinop.Opcode.Mul, NumericType.LONG),
-            new CfLoad(ValueType.INT, 11),
-            new CfNumberConversion(NumericType.INT, NumericType.LONG),
-            new CfArithmeticBinop(CfArithmeticBinop.Opcode.Add, NumericType.LONG),
-            new CfStore(ValueType.LONG, 8),
+            CfNumberConversion.I2L,
+            CfArithmeticBinop.LMUL,
+            CfLoad.loadInt(11),
+            CfNumberConversion.I2L,
+            CfArithmeticBinop.LADD,
+             CfStore.storeLong(8),
             label19,
             new CfIinc(10, 1),
             new CfGoto(label11),
@@ -3603,8 +3603,8 @@ public final class BackportedMethods {
                       FrameType.longType(),
                       FrameType.longHighType()
                     })),
-            new CfLoad(ValueType.LONG, 8),
-            CfReturn.forType(ValueType.LONG),
+            CfLoad.loadLong(8),
+            CfReturn.LRETURN,
             label21),
         ImmutableList.of(),
         ImmutableList.of());
@@ -3621,7 +3621,7 @@ public final class BackportedMethods {
         ImmutableList.of(
             label0,
             CfLoad.ALOAD_0,
-            new CfConstNumber(0, ValueType.INT),
+            CfConstNumber.ICONST_0,
             CfLoad.ALOAD_0,
             new CfInvoke(
                 182,
@@ -3643,7 +3643,7 @@ public final class BackportedMethods {
                         factory.intType),
                     factory.createString("parseUnsignedLong")),
                 false),
-            CfReturn.forType(ValueType.LONG),
+            CfReturn.LRETURN,
             label1),
         ImmutableList.of(),
         ImmutableList.of());
@@ -3673,27 +3673,27 @@ public final class BackportedMethods {
         ImmutableList.of(
             label0,
             CfLoad.LLOAD_2,
-            new CfConstNumber(0, ValueType.LONG),
-            new CfCmp(Cmp.Bias.NONE, NumericType.LONG),
+            CfConstNumber.LCONST_0,
+            CfCmp.LCMP,
             new CfIf(IfType.GE, ValueType.INT, label6),
             label1,
             CfLoad.LLOAD_0,
-            new CfConstNumber(-9223372036854775808L, ValueType.LONG),
-            new CfLogicalBinop(CfLogicalBinop.Opcode.Xor, NumericType.LONG),
-            new CfStore(ValueType.LONG, 4),
+            CfConstNumber.constNumber(-9223372036854775808L, ValueType.LONG),
+            CfLogicalBinop.LXOR,
+             CfStore.LSTORE_4,
             label2,
             CfLoad.LLOAD_2,
-            new CfConstNumber(-9223372036854775808L, ValueType.LONG),
-            new CfLogicalBinop(CfLogicalBinop.Opcode.Xor, NumericType.LONG),
-            new CfStore(ValueType.LONG, 6),
+            CfConstNumber.constNumber(-9223372036854775808L, ValueType.LONG),
+            CfLogicalBinop.LXOR,
+             CfStore.storeLong(6),
             label3,
             CfLoad.LLOAD_4,
-            new CfLoad(ValueType.LONG, 6),
-            new CfCmp(Cmp.Bias.NONE, NumericType.LONG),
+            CfLoad.loadLong(6),
+            CfCmp.LCMP,
             new CfIf(IfType.GE, ValueType.INT, label5),
             label4,
             CfLoad.LLOAD_0,
-            CfReturn.forType(ValueType.LONG),
+            CfReturn.LRETURN,
             label5,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
@@ -3710,8 +3710,8 @@ public final class BackportedMethods {
                     })),
             CfLoad.LLOAD_0,
             CfLoad.LLOAD_2,
-            new CfArithmeticBinop(CfArithmeticBinop.Opcode.Sub, NumericType.LONG),
-            CfReturn.forType(ValueType.LONG),
+            CfArithmeticBinop.LSUB,
+            CfReturn.LRETURN,
             label6,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
@@ -3723,14 +3723,14 @@ public final class BackportedMethods {
                       FrameType.longHighType()
                     })),
             CfLoad.LLOAD_0,
-            new CfConstNumber(0, ValueType.LONG),
-            new CfCmp(Cmp.Bias.NONE, NumericType.LONG),
+            CfConstNumber.LCONST_0,
+            CfCmp.LCMP,
             new CfIf(IfType.LT, ValueType.INT, label8),
             label7,
             CfLoad.LLOAD_0,
             CfLoad.LLOAD_2,
-            new CfArithmeticBinop(CfArithmeticBinop.Opcode.Rem, NumericType.LONG),
-            CfReturn.forType(ValueType.LONG),
+            CfArithmeticBinop.LREM,
+            CfReturn.LRETURN,
             label8,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
@@ -3742,35 +3742,35 @@ public final class BackportedMethods {
                       FrameType.longHighType()
                     })),
             CfLoad.LLOAD_0,
-            new CfConstNumber(1, ValueType.INT),
-            new CfLogicalBinop(CfLogicalBinop.Opcode.Ushr, NumericType.LONG),
+            CfConstNumber.ICONST_1,
+            CfLogicalBinop.LUSHR,
             CfLoad.LLOAD_2,
-            new CfArithmeticBinop(CfArithmeticBinop.Opcode.Div, NumericType.LONG),
-            new CfConstNumber(1, ValueType.INT),
-            new CfLogicalBinop(CfLogicalBinop.Opcode.Shl, NumericType.LONG),
-            new CfStore(ValueType.LONG, 4),
+            CfArithmeticBinop.LDIV,
+            CfConstNumber.ICONST_1,
+            CfLogicalBinop.LSHL,
+             CfStore.LSTORE_4,
             label9,
             CfLoad.LLOAD_0,
             CfLoad.LLOAD_4,
             CfLoad.LLOAD_2,
-            new CfArithmeticBinop(CfArithmeticBinop.Opcode.Mul, NumericType.LONG),
-            new CfArithmeticBinop(CfArithmeticBinop.Opcode.Sub, NumericType.LONG),
-            new CfStore(ValueType.LONG, 6),
+            CfArithmeticBinop.LMUL,
+            CfArithmeticBinop.LSUB,
+             CfStore.storeLong(6),
             label10,
-            new CfLoad(ValueType.LONG, 6),
-            new CfConstNumber(-9223372036854775808L, ValueType.LONG),
-            new CfLogicalBinop(CfLogicalBinop.Opcode.Xor, NumericType.LONG),
-            new CfStore(ValueType.LONG, 8),
+            CfLoad.loadLong(6),
+            CfConstNumber.constNumber(-9223372036854775808L, ValueType.LONG),
+            CfLogicalBinop.LXOR,
+             CfStore.storeLong(8),
             label11,
             CfLoad.LLOAD_2,
-            new CfConstNumber(-9223372036854775808L, ValueType.LONG),
-            new CfLogicalBinop(CfLogicalBinop.Opcode.Xor, NumericType.LONG),
-            new CfStore(ValueType.LONG, 10),
+            CfConstNumber.constNumber(-9223372036854775808L, ValueType.LONG),
+            CfLogicalBinop.LXOR,
+             CfStore.storeLong(10),
             label12,
-            new CfLoad(ValueType.LONG, 6),
-            new CfLoad(ValueType.LONG, 8),
-            new CfLoad(ValueType.LONG, 10),
-            new CfCmp(Cmp.Bias.NONE, NumericType.LONG),
+            CfLoad.loadLong(6),
+            CfLoad.loadLong(8),
+            CfLoad.loadLong(10),
+            CfCmp.LCMP,
             new CfIf(IfType.LT, ValueType.INT, label13),
             CfLoad.LLOAD_2,
             new CfGoto(label14),
@@ -3793,7 +3793,7 @@ public final class BackportedMethods {
                       FrameType.longHighType()
                     }),
                 new ArrayDeque<>(Arrays.asList(FrameType.longType()))),
-            new CfConstNumber(0, ValueType.LONG),
+            CfConstNumber.LCONST_0,
             label14,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
@@ -3813,8 +3813,8 @@ public final class BackportedMethods {
                       FrameType.longHighType()
                     }),
                 new ArrayDeque<>(Arrays.asList(FrameType.longType(), FrameType.longType()))),
-            new CfArithmeticBinop(CfArithmeticBinop.Opcode.Sub, NumericType.LONG),
-            CfReturn.forType(ValueType.LONG),
+            CfArithmeticBinop.LSUB,
+            CfReturn.LRETURN,
             label15),
         ImmutableList.of(),
         ImmutableList.of());
@@ -3830,7 +3830,7 @@ public final class BackportedMethods {
         ImmutableList.of(
             label0,
             CfLoad.LLOAD_0,
-            new CfConstNumber(10, ValueType.INT),
+            CfConstNumber.constNumber(10, ValueType.INT),
             new CfInvoke(
                 184,
                 factory.createMethod(
@@ -3838,7 +3838,7 @@ public final class BackportedMethods {
                     factory.createProto(factory.stringType, factory.longType, factory.intType),
                     factory.createString("toUnsignedString")),
                 false),
-            CfReturn.forType(ValueType.OBJECT),
+            CfReturn.ARETURN,
             label1),
         ImmutableList.of(),
         ImmutableList.of());
@@ -3880,12 +3880,12 @@ public final class BackportedMethods {
         ImmutableList.of(
             label0,
             CfLoad.LLOAD_0,
-            new CfConstNumber(0, ValueType.LONG),
-            new CfCmp(Cmp.Bias.NONE, NumericType.LONG),
+            CfConstNumber.LCONST_0,
+            CfCmp.LCMP,
             new CfIf(IfType.NE, ValueType.INT, label2),
             label1,
             new CfConstString(factory.createString("0")),
-            CfReturn.forType(ValueType.OBJECT),
+            CfReturn.ARETURN,
             label2,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
@@ -3894,8 +3894,8 @@ public final class BackportedMethods {
                       FrameType.longType(), FrameType.longHighType(), FrameType.intType()
                     })),
             CfLoad.LLOAD_0,
-            new CfConstNumber(0, ValueType.LONG),
-            new CfCmp(Cmp.Bias.NONE, NumericType.LONG),
+            CfConstNumber.LCONST_0,
+            CfCmp.LCMP,
             new CfIf(IfType.LE, ValueType.INT, label4),
             label3,
             CfLoad.LLOAD_0,
@@ -3907,7 +3907,7 @@ public final class BackportedMethods {
                     factory.createProto(factory.stringType, factory.longType, factory.intType),
                     factory.createString("toString")),
                 false),
-            CfReturn.forType(ValueType.OBJECT),
+            CfReturn.ARETURN,
             label4,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
@@ -3916,10 +3916,10 @@ public final class BackportedMethods {
                       FrameType.longType(), FrameType.longHighType(), FrameType.intType()
                     })),
             CfLoad.ILOAD_2,
-            new CfConstNumber(2, ValueType.INT),
+            CfConstNumber.ICONST_2,
             new CfIfCmp(IfType.LT, ValueType.INT, label5),
             CfLoad.ILOAD_2,
-            new CfConstNumber(36, ValueType.INT),
+            CfConstNumber.constNumber(36, ValueType.INT),
             new CfIfCmp(IfType.LE, ValueType.INT, label6),
             label5,
             new CfFrame(
@@ -3928,8 +3928,8 @@ public final class BackportedMethods {
                     new FrameType[] {
                       FrameType.longType(), FrameType.longHighType(), FrameType.intType()
                     })),
-            new CfConstNumber(10, ValueType.INT),
-            new CfStore(ValueType.INT, 2),
+            CfConstNumber.constNumber(10, ValueType.INT),
+             CfStore.ISTORE_2,
             label6,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
@@ -3937,19 +3937,19 @@ public final class BackportedMethods {
                     new FrameType[] {
                       FrameType.longType(), FrameType.longHighType(), FrameType.intType()
                     })),
-            new CfConstNumber(64, ValueType.INT),
+            CfConstNumber.constNumber(64, ValueType.INT),
             new CfNewArray(factory.charArrayType),
-            new CfStore(ValueType.OBJECT, 3),
+             CfStore.ASTORE_3,
             label7,
             CfLoad.ALOAD_3,
             CfArrayLength.INSTANCE,
-            new CfStore(ValueType.INT, 4),
+             CfStore.ISTORE_4,
             label8,
             CfLoad.ILOAD_2,
             CfLoad.ILOAD_2,
-            new CfConstNumber(1, ValueType.INT),
-            new CfArithmeticBinop(CfArithmeticBinop.Opcode.Sub, NumericType.INT),
-            new CfLogicalBinop(CfLogicalBinop.Opcode.And, NumericType.INT),
+            CfConstNumber.ICONST_1,
+            CfArithmeticBinop.ISUB,
+            CfLogicalBinop.IAND,
             new CfIf(IfType.NE, ValueType.INT, label15),
             label9,
             CfLoad.ILOAD_2,
@@ -3960,12 +3960,12 @@ public final class BackportedMethods {
                     factory.createProto(factory.intType, factory.intType),
                     factory.createString("numberOfTrailingZeros")),
                 false),
-            new CfStore(ValueType.INT, 5),
+             CfStore.ISTORE_5,
             label10,
             CfLoad.ILOAD_2,
-            new CfConstNumber(1, ValueType.INT),
-            new CfArithmeticBinop(CfArithmeticBinop.Opcode.Sub, NumericType.INT),
-            new CfStore(ValueType.INT, 6),
+            CfConstNumber.ICONST_1,
+            CfArithmeticBinop.ISUB,
+             CfStore.ISTORE_6,
             label11,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
@@ -3983,9 +3983,9 @@ public final class BackportedMethods {
             new CfIinc(4, -1),
             CfLoad.ILOAD_4,
             CfLoad.LLOAD_0,
-            new CfNumberConversion(NumericType.LONG, NumericType.INT),
-            new CfLoad(ValueType.INT, 6),
-            new CfLogicalBinop(CfLogicalBinop.Opcode.And, NumericType.INT),
+            CfNumberConversion.L2I,
+            CfLoad.ILOAD_6,
+            CfLogicalBinop.IAND,
             CfLoad.ILOAD_2,
             new CfInvoke(
                 184,
@@ -3998,12 +3998,12 @@ public final class BackportedMethods {
             label12,
             CfLoad.LLOAD_0,
             CfLoad.ILOAD_5,
-            new CfLogicalBinop(CfLogicalBinop.Opcode.Ushr, NumericType.LONG),
-            new CfStore(ValueType.LONG, 0),
+            CfLogicalBinop.LUSHR,
+             CfStore.LSTORE_0,
             label13,
             CfLoad.LLOAD_0,
-            new CfConstNumber(0, ValueType.LONG),
-            new CfCmp(Cmp.Bias.NONE, NumericType.LONG),
+            CfConstNumber.LCONST_0,
+            CfCmp.LCMP,
             new CfIf(IfType.NE, ValueType.INT, label11),
             label14,
             new CfGoto(label25),
@@ -4019,19 +4019,19 @@ public final class BackportedMethods {
                       FrameType.intType()
                     })),
             CfLoad.ILOAD_2,
-            new CfConstNumber(1, ValueType.INT),
-            new CfLogicalBinop(CfLogicalBinop.Opcode.And, NumericType.INT),
+            CfConstNumber.ICONST_1,
+            CfLogicalBinop.IAND,
             new CfIf(IfType.NE, ValueType.INT, label18),
             label16,
             CfLoad.LLOAD_0,
-            new CfConstNumber(1, ValueType.INT),
-            new CfLogicalBinop(CfLogicalBinop.Opcode.Ushr, NumericType.LONG),
+            CfConstNumber.ICONST_1,
+            CfLogicalBinop.LUSHR,
             CfLoad.ILOAD_2,
-            new CfConstNumber(1, ValueType.INT),
-            new CfLogicalBinop(CfLogicalBinop.Opcode.Ushr, NumericType.INT),
-            new CfNumberConversion(NumericType.INT, NumericType.LONG),
-            new CfArithmeticBinop(CfArithmeticBinop.Opcode.Div, NumericType.LONG),
-            new CfStore(ValueType.LONG, 5),
+            CfConstNumber.ICONST_1,
+            CfLogicalBinop.IUSHR,
+            CfNumberConversion.I2L,
+            CfArithmeticBinop.LDIV,
+             CfStore.LSTORE_5,
             label17,
             new CfGoto(label19),
             label18,
@@ -4047,7 +4047,7 @@ public final class BackportedMethods {
                     })),
             CfLoad.LLOAD_0,
             CfLoad.ILOAD_2,
-            new CfNumberConversion(NumericType.INT, NumericType.LONG),
+            CfNumberConversion.I2L,
             new CfInvoke(
                 184,
                 factory.createMethod(
@@ -4055,7 +4055,7 @@ public final class BackportedMethods {
                     factory.createProto(factory.longType, factory.longType, factory.longType),
                     factory.createString("divideUnsigned")),
                 false),
-            new CfStore(ValueType.LONG, 5),
+             CfStore.LSTORE_5,
             label19,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
@@ -4070,18 +4070,18 @@ public final class BackportedMethods {
                       FrameType.longHighType()
                     })),
             CfLoad.LLOAD_0,
-            new CfLoad(ValueType.LONG, 5),
+            CfLoad.LLOAD_5,
             CfLoad.ILOAD_2,
-            new CfNumberConversion(NumericType.INT, NumericType.LONG),
-            new CfArithmeticBinop(CfArithmeticBinop.Opcode.Mul, NumericType.LONG),
-            new CfArithmeticBinop(CfArithmeticBinop.Opcode.Sub, NumericType.LONG),
-            new CfStore(ValueType.LONG, 7),
+            CfNumberConversion.I2L,
+            CfArithmeticBinop.LMUL,
+            CfArithmeticBinop.LSUB,
+             CfStore.storeLong(7),
             label20,
             CfLoad.ALOAD_3,
             new CfIinc(4, -1),
             CfLoad.ILOAD_4,
-            new CfLoad(ValueType.LONG, 7),
-            new CfNumberConversion(NumericType.LONG, NumericType.INT),
+            CfLoad.loadLong(7),
+            CfNumberConversion.L2I,
             CfLoad.ILOAD_2,
             new CfInvoke(
                 184,
@@ -4092,8 +4092,8 @@ public final class BackportedMethods {
                 false),
             CfArrayStore.forType(MemberType.CHAR),
             label21,
-            new CfLoad(ValueType.LONG, 5),
-            new CfStore(ValueType.LONG, 0),
+            CfLoad.LLOAD_5,
+             CfStore.LSTORE_0,
             label22,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
@@ -4110,8 +4110,8 @@ public final class BackportedMethods {
                       FrameType.longHighType()
                     })),
             CfLoad.LLOAD_0,
-            new CfConstNumber(0, ValueType.LONG),
-            new CfCmp(Cmp.Bias.NONE, NumericType.LONG),
+            CfConstNumber.LCONST_0,
+            CfCmp.LCMP,
             new CfIf(IfType.LE, ValueType.INT, label25),
             label23,
             CfLoad.ALOAD_3,
@@ -4119,9 +4119,9 @@ public final class BackportedMethods {
             CfLoad.ILOAD_4,
             CfLoad.LLOAD_0,
             CfLoad.ILOAD_2,
-            new CfNumberConversion(NumericType.INT, NumericType.LONG),
-            new CfArithmeticBinop(CfArithmeticBinop.Opcode.Rem, NumericType.LONG),
-            new CfNumberConversion(NumericType.LONG, NumericType.INT),
+            CfNumberConversion.I2L,
+            CfArithmeticBinop.LREM,
+            CfNumberConversion.L2I,
             CfLoad.ILOAD_2,
             new CfInvoke(
                 184,
@@ -4134,9 +4134,9 @@ public final class BackportedMethods {
             label24,
             CfLoad.LLOAD_0,
             CfLoad.ILOAD_2,
-            new CfNumberConversion(NumericType.INT, NumericType.LONG),
-            new CfArithmeticBinop(CfArithmeticBinop.Opcode.Div, NumericType.LONG),
-            new CfStore(ValueType.LONG, 0),
+            CfNumberConversion.I2L,
+            CfArithmeticBinop.LDIV,
+             CfStore.LSTORE_0,
             new CfGoto(label22),
             label25,
             new CfFrame(
@@ -4150,13 +4150,13 @@ public final class BackportedMethods {
                       FrameType.intType()
                     })),
             new CfNew(factory.stringType),
-            new CfStackInstruction(CfStackInstruction.Opcode.Dup),
+            CfStackInstruction.DUP,
             CfLoad.ALOAD_3,
             CfLoad.ILOAD_4,
             CfLoad.ALOAD_3,
             CfArrayLength.INSTANCE,
             CfLoad.ILOAD_4,
-            new CfArithmeticBinop(CfArithmeticBinop.Opcode.Sub, NumericType.INT),
+            CfArithmeticBinop.ISUB,
             new CfInvoke(
                 183,
                 factory.createMethod(
@@ -4165,7 +4165,7 @@ public final class BackportedMethods {
                         factory.voidType, factory.charArrayType, factory.intType, factory.intType),
                     factory.createString("<init>")),
                 false),
-            CfReturn.forType(ValueType.OBJECT),
+            CfReturn.ARETURN,
             label26),
         ImmutableList.of(),
         ImmutableList.of());
@@ -4183,11 +4183,11 @@ public final class BackportedMethods {
         ImmutableList.of(
             label0,
             CfLoad.ILOAD_0,
-            new CfConstNumber(-2147483648, ValueType.INT),
+            CfConstNumber.constNumber(-2147483648, ValueType.INT),
             new CfIfCmp(IfType.NE, ValueType.INT, label2),
             label1,
             new CfNew(factory.createType("Ljava/lang/ArithmeticException;")),
-            new CfStackInstruction(CfStackInstruction.Opcode.Dup),
+            CfStackInstruction.DUP,
             new CfInvoke(
                 183,
                 factory.createMethod(
@@ -4207,7 +4207,7 @@ public final class BackportedMethods {
                     factory.createProto(factory.intType, factory.intType),
                     factory.createString("abs")),
                 false),
-            CfReturn.forType(ValueType.INT),
+            CfReturn.IRETURN,
             label3),
         ImmutableList.of(),
         ImmutableList.of());
@@ -4225,12 +4225,12 @@ public final class BackportedMethods {
         ImmutableList.of(
             label0,
             CfLoad.LLOAD_0,
-            new CfConstNumber(-9223372036854775808L, ValueType.LONG),
-            new CfCmp(Cmp.Bias.NONE, NumericType.LONG),
+            CfConstNumber.constNumber(-9223372036854775808L, ValueType.LONG),
+            CfCmp.LCMP,
             new CfIf(IfType.NE, ValueType.INT, label2),
             label1,
             new CfNew(factory.createType("Ljava/lang/ArithmeticException;")),
-            new CfStackInstruction(CfStackInstruction.Opcode.Dup),
+            CfStackInstruction.DUP,
             new CfInvoke(
                 183,
                 factory.createMethod(
@@ -4252,7 +4252,7 @@ public final class BackportedMethods {
                     factory.createProto(factory.longType, factory.longType),
                     factory.createString("abs")),
                 false),
-            CfReturn.forType(ValueType.LONG),
+            CfReturn.LRETURN,
             label3),
         ImmutableList.of(),
         ImmutableList.of());
@@ -4272,24 +4272,24 @@ public final class BackportedMethods {
         ImmutableList.of(
             label0,
             CfLoad.ILOAD_0,
-            new CfNumberConversion(NumericType.INT, NumericType.LONG),
+            CfNumberConversion.I2L,
             CfLoad.ILOAD_1,
-            new CfNumberConversion(NumericType.INT, NumericType.LONG),
-            new CfArithmeticBinop(CfArithmeticBinop.Opcode.Add, NumericType.LONG),
-            new CfStore(ValueType.LONG, 2),
+            CfNumberConversion.I2L,
+            CfArithmeticBinop.LADD,
+             CfStore.LSTORE_2,
             label1,
             CfLoad.LLOAD_2,
-            new CfNumberConversion(NumericType.LONG, NumericType.INT),
-            new CfStore(ValueType.INT, 4),
+            CfNumberConversion.L2I,
+             CfStore.ISTORE_4,
             label2,
             CfLoad.LLOAD_2,
             CfLoad.ILOAD_4,
-            new CfNumberConversion(NumericType.INT, NumericType.LONG),
-            new CfCmp(Cmp.Bias.NONE, NumericType.LONG),
+            CfNumberConversion.I2L,
+            CfCmp.LCMP,
             new CfIf(IfType.NE, ValueType.INT, label4),
             label3,
             CfLoad.ILOAD_4,
-            CfReturn.forType(ValueType.INT),
+            CfReturn.IRETURN,
             label4,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
@@ -4302,7 +4302,7 @@ public final class BackportedMethods {
                       FrameType.intType()
                     })),
             new CfNew(factory.createType("Ljava/lang/ArithmeticException;")),
-            new CfStackInstruction(CfStackInstruction.Opcode.Dup),
+            CfStackInstruction.DUP,
             new CfInvoke(
                 183,
                 factory.createMethod(
@@ -4334,16 +4334,16 @@ public final class BackportedMethods {
             label0,
             CfLoad.LLOAD_0,
             CfLoad.LLOAD_2,
-            new CfArithmeticBinop(CfArithmeticBinop.Opcode.Add, NumericType.LONG),
-            new CfStore(ValueType.LONG, 4),
+            CfArithmeticBinop.LADD,
+             CfStore.LSTORE_4,
             label1,
             CfLoad.LLOAD_0,
             CfLoad.LLOAD_2,
-            new CfLogicalBinop(CfLogicalBinop.Opcode.Xor, NumericType.LONG),
-            new CfConstNumber(0, ValueType.LONG),
-            new CfCmp(Cmp.Bias.NONE, NumericType.LONG),
+            CfLogicalBinop.LXOR,
+            CfConstNumber.LCONST_0,
+            CfCmp.LCMP,
             new CfIf(IfType.GE, ValueType.INT, label2),
-            new CfConstNumber(1, ValueType.INT),
+            CfConstNumber.ICONST_1,
             new CfGoto(label3),
             label2,
             new CfFrame(
@@ -4357,7 +4357,7 @@ public final class BackportedMethods {
                       FrameType.longType(),
                       FrameType.longHighType()
                     })),
-            new CfConstNumber(0, ValueType.INT),
+            CfConstNumber.ICONST_0,
             label3,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
@@ -4373,11 +4373,11 @@ public final class BackportedMethods {
                 new ArrayDeque<>(Arrays.asList(FrameType.intType()))),
             CfLoad.LLOAD_0,
             CfLoad.LLOAD_4,
-            new CfLogicalBinop(CfLogicalBinop.Opcode.Xor, NumericType.LONG),
-            new CfConstNumber(0, ValueType.LONG),
-            new CfCmp(Cmp.Bias.NONE, NumericType.LONG),
+            CfLogicalBinop.LXOR,
+            CfConstNumber.LCONST_0,
+            CfCmp.LCMP,
             new CfIf(IfType.LT, ValueType.INT, label4),
-            new CfConstNumber(1, ValueType.INT),
+            CfConstNumber.ICONST_1,
             new CfGoto(label5),
             label4,
             new CfFrame(
@@ -4392,7 +4392,7 @@ public final class BackportedMethods {
                       FrameType.longHighType()
                     }),
                 new ArrayDeque<>(Arrays.asList(FrameType.intType()))),
-            new CfConstNumber(0, ValueType.INT),
+            CfConstNumber.ICONST_0,
             label5,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
@@ -4406,11 +4406,11 @@ public final class BackportedMethods {
                       FrameType.longHighType()
                     }),
                 new ArrayDeque<>(Arrays.asList(FrameType.intType(), FrameType.intType()))),
-            new CfLogicalBinop(CfLogicalBinop.Opcode.Or, NumericType.INT),
+            CfLogicalBinop.IOR,
             new CfIf(IfType.EQ, ValueType.INT, label7),
             label6,
             CfLoad.LLOAD_4,
-            CfReturn.forType(ValueType.LONG),
+            CfReturn.LRETURN,
             label7,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
@@ -4424,7 +4424,7 @@ public final class BackportedMethods {
                       FrameType.longHighType()
                     })),
             new CfNew(factory.createType("Ljava/lang/ArithmeticException;")),
-            new CfStackInstruction(CfStackInstruction.Opcode.Dup),
+            CfStackInstruction.DUP,
             new CfInvoke(
                 183,
                 factory.createMethod(
@@ -4450,11 +4450,11 @@ public final class BackportedMethods {
         ImmutableList.of(
             label0,
             CfLoad.ILOAD_0,
-            new CfConstNumber(-2147483648, ValueType.INT),
+            CfConstNumber.constNumber(-2147483648, ValueType.INT),
             new CfIfCmp(IfType.NE, ValueType.INT, label2),
             label1,
             new CfNew(factory.createType("Ljava/lang/ArithmeticException;")),
-            new CfStackInstruction(CfStackInstruction.Opcode.Dup),
+            CfStackInstruction.DUP,
             new CfInvoke(
                 183,
                 factory.createMethod(
@@ -4467,9 +4467,9 @@ public final class BackportedMethods {
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(new int[] {0}, new FrameType[] {FrameType.intType()})),
             CfLoad.ILOAD_0,
-            new CfConstNumber(1, ValueType.INT),
-            new CfArithmeticBinop(CfArithmeticBinop.Opcode.Sub, NumericType.INT),
-            CfReturn.forType(ValueType.INT),
+            CfConstNumber.ICONST_1,
+            CfArithmeticBinop.ISUB,
+            CfReturn.IRETURN,
             label3),
         ImmutableList.of(),
         ImmutableList.of());
@@ -4487,12 +4487,12 @@ public final class BackportedMethods {
         ImmutableList.of(
             label0,
             CfLoad.LLOAD_0,
-            new CfConstNumber(-9223372036854775808L, ValueType.LONG),
-            new CfCmp(Cmp.Bias.NONE, NumericType.LONG),
+            CfConstNumber.constNumber(-9223372036854775808L, ValueType.LONG),
+            CfCmp.LCMP,
             new CfIf(IfType.NE, ValueType.INT, label2),
             label1,
             new CfNew(factory.createType("Ljava/lang/ArithmeticException;")),
-            new CfStackInstruction(CfStackInstruction.Opcode.Dup),
+            CfStackInstruction.DUP,
             new CfInvoke(
                 183,
                 factory.createMethod(
@@ -4507,9 +4507,9 @@ public final class BackportedMethods {
                     new int[] {0, 1},
                     new FrameType[] {FrameType.longType(), FrameType.longHighType()})),
             CfLoad.LLOAD_0,
-            new CfConstNumber(1, ValueType.LONG),
-            new CfArithmeticBinop(CfArithmeticBinop.Opcode.Sub, NumericType.LONG),
-            CfReturn.forType(ValueType.LONG),
+            CfConstNumber.LCONST_1,
+            CfArithmeticBinop.LSUB,
+            CfReturn.LRETURN,
             label3),
         ImmutableList.of(),
         ImmutableList.of());
@@ -4533,21 +4533,21 @@ public final class BackportedMethods {
             label0,
             CfLoad.ILOAD_0,
             CfLoad.ILOAD_1,
-            new CfArithmeticBinop(CfArithmeticBinop.Opcode.Div, NumericType.INT),
-            new CfStore(ValueType.INT, 2),
+            CfArithmeticBinop.IDIV,
+             CfStore.ISTORE_2,
             label1,
             CfLoad.ILOAD_0,
             CfLoad.ILOAD_1,
             CfLoad.ILOAD_2,
-            new CfArithmeticBinop(CfArithmeticBinop.Opcode.Mul, NumericType.INT),
-            new CfArithmeticBinop(CfArithmeticBinop.Opcode.Sub, NumericType.INT),
-            new CfStore(ValueType.INT, 3),
+            CfArithmeticBinop.IMUL,
+            CfArithmeticBinop.ISUB,
+             CfStore.ISTORE_3,
             label2,
             CfLoad.ILOAD_3,
             new CfIf(IfType.NE, ValueType.INT, label4),
             label3,
             CfLoad.ILOAD_2,
-            CfReturn.forType(ValueType.INT),
+            CfReturn.IRETURN,
             label4,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
@@ -4558,20 +4558,20 @@ public final class BackportedMethods {
                       FrameType.intType(),
                       FrameType.intType()
                     })),
-            new CfConstNumber(1, ValueType.INT),
+            CfConstNumber.ICONST_1,
             CfLoad.ILOAD_0,
             CfLoad.ILOAD_1,
-            new CfLogicalBinop(CfLogicalBinop.Opcode.Xor, NumericType.INT),
-            new CfConstNumber(31, ValueType.INT),
-            new CfLogicalBinop(CfLogicalBinop.Opcode.Shr, NumericType.INT),
-            new CfLogicalBinop(CfLogicalBinop.Opcode.Or, NumericType.INT),
-            new CfStore(ValueType.INT, 4),
+            CfLogicalBinop.IXOR,
+            CfConstNumber.constNumber(31, ValueType.INT),
+            CfLogicalBinop.ISHR,
+            CfLogicalBinop.IOR,
+             CfStore.ISTORE_4,
             label5,
             CfLoad.ILOAD_4,
             new CfIf(IfType.GE, ValueType.INT, label6),
             CfLoad.ILOAD_2,
-            new CfConstNumber(1, ValueType.INT),
-            new CfArithmeticBinop(CfArithmeticBinop.Opcode.Sub, NumericType.INT),
+            CfConstNumber.ICONST_1,
+            CfArithmeticBinop.ISUB,
             new CfGoto(label7),
             label6,
             new CfFrame(
@@ -4597,7 +4597,7 @@ public final class BackportedMethods {
                       FrameType.intType()
                     }),
                 new ArrayDeque<>(Arrays.asList(FrameType.intType()))),
-            CfReturn.forType(ValueType.INT),
+            CfReturn.IRETURN,
             label8),
         ImmutableList.of(),
         ImmutableList.of());
@@ -4621,23 +4621,23 @@ public final class BackportedMethods {
             label0,
             CfLoad.LLOAD_0,
             CfLoad.LLOAD_2,
-            new CfArithmeticBinop(CfArithmeticBinop.Opcode.Div, NumericType.LONG),
-            new CfStore(ValueType.LONG, 4),
+            CfArithmeticBinop.LDIV,
+             CfStore.LSTORE_4,
             label1,
             CfLoad.LLOAD_0,
             CfLoad.LLOAD_2,
             CfLoad.LLOAD_4,
-            new CfArithmeticBinop(CfArithmeticBinop.Opcode.Mul, NumericType.LONG),
-            new CfArithmeticBinop(CfArithmeticBinop.Opcode.Sub, NumericType.LONG),
-            new CfStore(ValueType.LONG, 6),
+            CfArithmeticBinop.LMUL,
+            CfArithmeticBinop.LSUB,
+             CfStore.storeLong(6),
             label2,
-            new CfLoad(ValueType.LONG, 6),
-            new CfConstNumber(0, ValueType.LONG),
-            new CfCmp(Cmp.Bias.NONE, NumericType.LONG),
+            CfLoad.loadLong(6),
+            CfConstNumber.LCONST_0,
+            CfCmp.LCMP,
             new CfIf(IfType.NE, ValueType.INT, label4),
             label3,
             CfLoad.LLOAD_4,
-            CfReturn.forType(ValueType.LONG),
+            CfReturn.LRETURN,
             label4,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
@@ -4652,22 +4652,22 @@ public final class BackportedMethods {
                       FrameType.longType(),
                       FrameType.longHighType()
                     })),
-            new CfConstNumber(1, ValueType.LONG),
+            CfConstNumber.LCONST_1,
             CfLoad.LLOAD_0,
             CfLoad.LLOAD_2,
-            new CfLogicalBinop(CfLogicalBinop.Opcode.Xor, NumericType.LONG),
-            new CfConstNumber(63, ValueType.INT),
-            new CfLogicalBinop(CfLogicalBinop.Opcode.Shr, NumericType.LONG),
-            new CfLogicalBinop(CfLogicalBinop.Opcode.Or, NumericType.LONG),
-            new CfStore(ValueType.LONG, 8),
+            CfLogicalBinop.LXOR,
+            CfConstNumber.constNumber(63, ValueType.INT),
+            CfLogicalBinop.LSHR,
+            CfLogicalBinop.LOR,
+             CfStore.storeLong(8),
             label5,
-            new CfLoad(ValueType.LONG, 8),
-            new CfConstNumber(0, ValueType.LONG),
-            new CfCmp(Cmp.Bias.NONE, NumericType.LONG),
+            CfLoad.loadLong(8),
+            CfConstNumber.LCONST_0,
+            CfCmp.LCMP,
             new CfIf(IfType.GE, ValueType.INT, label6),
             CfLoad.LLOAD_4,
-            new CfConstNumber(1, ValueType.LONG),
-            new CfArithmeticBinop(CfArithmeticBinop.Opcode.Sub, NumericType.LONG),
+            CfConstNumber.LCONST_1,
+            CfArithmeticBinop.LSUB,
             new CfGoto(label7),
             label6,
             new CfFrame(
@@ -4703,7 +4703,7 @@ public final class BackportedMethods {
                       FrameType.longHighType()
                     }),
                 new ArrayDeque<>(Arrays.asList(FrameType.longType()))),
-            CfReturn.forType(ValueType.LONG),
+            CfReturn.LRETURN,
             label8),
         ImmutableList.of(),
         ImmutableList.of());
@@ -4720,7 +4720,7 @@ public final class BackportedMethods {
             label0,
             CfLoad.LLOAD_0,
             CfLoad.ILOAD_2,
-            new CfNumberConversion(NumericType.INT, NumericType.LONG),
+            CfNumberConversion.I2L,
             new CfInvoke(
                 184,
                 factory.createMethod(
@@ -4728,7 +4728,7 @@ public final class BackportedMethods {
                     factory.createProto(factory.longType, factory.longType, factory.longType),
                     factory.createString("floorDiv")),
                 false),
-            CfReturn.forType(ValueType.LONG),
+            CfReturn.LRETURN,
             label1),
         ImmutableList.of(),
         ImmutableList.of());
@@ -4751,14 +4751,14 @@ public final class BackportedMethods {
             label0,
             CfLoad.ILOAD_0,
             CfLoad.ILOAD_1,
-            new CfArithmeticBinop(CfArithmeticBinop.Opcode.Rem, NumericType.INT),
-            new CfStore(ValueType.INT, 2),
+            CfArithmeticBinop.IREM,
+             CfStore.ISTORE_2,
             label1,
             CfLoad.ILOAD_2,
             new CfIf(IfType.NE, ValueType.INT, label3),
             label2,
-            new CfConstNumber(0, ValueType.INT),
-            CfReturn.forType(ValueType.INT),
+            CfConstNumber.ICONST_0,
+            CfReturn.IRETURN,
             label3,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
@@ -4766,14 +4766,14 @@ public final class BackportedMethods {
                     new FrameType[] {
                       FrameType.intType(), FrameType.intType(), FrameType.intType()
                     })),
-            new CfConstNumber(1, ValueType.INT),
+            CfConstNumber.ICONST_1,
             CfLoad.ILOAD_0,
             CfLoad.ILOAD_1,
-            new CfLogicalBinop(CfLogicalBinop.Opcode.Xor, NumericType.INT),
-            new CfConstNumber(31, ValueType.INT),
-            new CfLogicalBinop(CfLogicalBinop.Opcode.Shr, NumericType.INT),
-            new CfLogicalBinop(CfLogicalBinop.Opcode.Or, NumericType.INT),
-            new CfStore(ValueType.INT, 3),
+            CfLogicalBinop.IXOR,
+            CfConstNumber.constNumber(31, ValueType.INT),
+            CfLogicalBinop.ISHR,
+            CfLogicalBinop.IOR,
+             CfStore.ISTORE_3,
             label4,
             CfLoad.ILOAD_3,
             new CfIf(IfType.LE, ValueType.INT, label5),
@@ -4791,7 +4791,7 @@ public final class BackportedMethods {
                     })),
             CfLoad.ILOAD_2,
             CfLoad.ILOAD_1,
-            new CfArithmeticBinop(CfArithmeticBinop.Opcode.Add, NumericType.INT),
+            CfArithmeticBinop.IADD,
             label6,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
@@ -4803,7 +4803,7 @@ public final class BackportedMethods {
                       FrameType.intType()
                     }),
                 new ArrayDeque<>(Arrays.asList(FrameType.intType()))),
-            CfReturn.forType(ValueType.INT),
+            CfReturn.IRETURN,
             label7),
         ImmutableList.of(),
         ImmutableList.of());
@@ -4826,16 +4826,16 @@ public final class BackportedMethods {
             label0,
             CfLoad.LLOAD_0,
             CfLoad.LLOAD_2,
-            new CfArithmeticBinop(CfArithmeticBinop.Opcode.Rem, NumericType.LONG),
-            new CfStore(ValueType.LONG, 4),
+            CfArithmeticBinop.LREM,
+             CfStore.LSTORE_4,
             label1,
             CfLoad.LLOAD_4,
-            new CfConstNumber(0, ValueType.LONG),
-            new CfCmp(Cmp.Bias.NONE, NumericType.LONG),
+            CfConstNumber.LCONST_0,
+            CfCmp.LCMP,
             new CfIf(IfType.NE, ValueType.INT, label3),
             label2,
-            new CfConstNumber(0, ValueType.LONG),
-            CfReturn.forType(ValueType.LONG),
+            CfConstNumber.LCONST_0,
+            CfReturn.LRETURN,
             label3,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
@@ -4848,18 +4848,18 @@ public final class BackportedMethods {
                       FrameType.longType(),
                       FrameType.longHighType()
                     })),
-            new CfConstNumber(1, ValueType.LONG),
+            CfConstNumber.LCONST_1,
             CfLoad.LLOAD_0,
             CfLoad.LLOAD_2,
-            new CfLogicalBinop(CfLogicalBinop.Opcode.Xor, NumericType.LONG),
-            new CfConstNumber(63, ValueType.INT),
-            new CfLogicalBinop(CfLogicalBinop.Opcode.Shr, NumericType.LONG),
-            new CfLogicalBinop(CfLogicalBinop.Opcode.Or, NumericType.LONG),
-            new CfStore(ValueType.LONG, 6),
+            CfLogicalBinop.LXOR,
+            CfConstNumber.constNumber(63, ValueType.INT),
+            CfLogicalBinop.LSHR,
+            CfLogicalBinop.LOR,
+             CfStore.storeLong(6),
             label4,
-            new CfLoad(ValueType.LONG, 6),
-            new CfConstNumber(0, ValueType.LONG),
-            new CfCmp(Cmp.Bias.NONE, NumericType.LONG),
+            CfLoad.loadLong(6),
+            CfConstNumber.LCONST_0,
+            CfCmp.LCMP,
             new CfIf(IfType.LE, ValueType.INT, label5),
             CfLoad.LLOAD_4,
             new CfGoto(label6),
@@ -4879,7 +4879,7 @@ public final class BackportedMethods {
                     })),
             CfLoad.LLOAD_4,
             CfLoad.LLOAD_2,
-            new CfArithmeticBinop(CfArithmeticBinop.Opcode.Add, NumericType.LONG),
+            CfArithmeticBinop.LADD,
             label6,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
@@ -4895,7 +4895,7 @@ public final class BackportedMethods {
                       FrameType.longHighType()
                     }),
                 new ArrayDeque<>(Arrays.asList(FrameType.longType()))),
-            CfReturn.forType(ValueType.LONG),
+            CfReturn.LRETURN,
             label7),
         ImmutableList.of(),
         ImmutableList.of());
@@ -4912,7 +4912,7 @@ public final class BackportedMethods {
             label0,
             CfLoad.LLOAD_0,
             CfLoad.ILOAD_2,
-            new CfNumberConversion(NumericType.INT, NumericType.LONG),
+            CfNumberConversion.I2L,
             new CfInvoke(
                 184,
                 factory.createMethod(
@@ -4920,8 +4920,8 @@ public final class BackportedMethods {
                     factory.createProto(factory.longType, factory.longType, factory.longType),
                     factory.createString("floorMod")),
                 false),
-            new CfNumberConversion(NumericType.LONG, NumericType.INT),
-            CfReturn.forType(ValueType.INT),
+            CfNumberConversion.L2I,
+            CfReturn.IRETURN,
             label1),
         ImmutableList.of(),
         ImmutableList.of());
@@ -4939,11 +4939,11 @@ public final class BackportedMethods {
         ImmutableList.of(
             label0,
             CfLoad.ILOAD_0,
-            new CfConstNumber(2147483647, ValueType.INT),
+            CfConstNumber.constNumber(2147483647, ValueType.INT),
             new CfIfCmp(IfType.NE, ValueType.INT, label2),
             label1,
             new CfNew(factory.createType("Ljava/lang/ArithmeticException;")),
-            new CfStackInstruction(CfStackInstruction.Opcode.Dup),
+            CfStackInstruction.DUP,
             new CfInvoke(
                 183,
                 factory.createMethod(
@@ -4956,9 +4956,9 @@ public final class BackportedMethods {
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(new int[] {0}, new FrameType[] {FrameType.intType()})),
             CfLoad.ILOAD_0,
-            new CfConstNumber(1, ValueType.INT),
-            new CfArithmeticBinop(CfArithmeticBinop.Opcode.Add, NumericType.INT),
-            CfReturn.forType(ValueType.INT),
+            CfConstNumber.ICONST_1,
+            CfArithmeticBinop.IADD,
+            CfReturn.IRETURN,
             label3),
         ImmutableList.of(),
         ImmutableList.of());
@@ -4976,12 +4976,12 @@ public final class BackportedMethods {
         ImmutableList.of(
             label0,
             CfLoad.LLOAD_0,
-            new CfConstNumber(9223372036854775807L, ValueType.LONG),
-            new CfCmp(Cmp.Bias.NONE, NumericType.LONG),
+            CfConstNumber.constNumber(9223372036854775807L, ValueType.LONG),
+            CfCmp.LCMP,
             new CfIf(IfType.NE, ValueType.INT, label2),
             label1,
             new CfNew(factory.createType("Ljava/lang/ArithmeticException;")),
-            new CfStackInstruction(CfStackInstruction.Opcode.Dup),
+            CfStackInstruction.DUP,
             new CfInvoke(
                 183,
                 factory.createMethod(
@@ -4996,9 +4996,9 @@ public final class BackportedMethods {
                     new int[] {0, 1},
                     new FrameType[] {FrameType.longType(), FrameType.longHighType()})),
             CfLoad.LLOAD_0,
-            new CfConstNumber(1, ValueType.LONG),
-            new CfArithmeticBinop(CfArithmeticBinop.Opcode.Add, NumericType.LONG),
-            CfReturn.forType(ValueType.LONG),
+            CfConstNumber.LCONST_1,
+            CfArithmeticBinop.LADD,
+            CfReturn.LRETURN,
             label3),
         ImmutableList.of(),
         ImmutableList.of());
@@ -5018,24 +5018,24 @@ public final class BackportedMethods {
         ImmutableList.of(
             label0,
             CfLoad.ILOAD_0,
-            new CfNumberConversion(NumericType.INT, NumericType.LONG),
+            CfNumberConversion.I2L,
             CfLoad.ILOAD_1,
-            new CfNumberConversion(NumericType.INT, NumericType.LONG),
-            new CfArithmeticBinop(CfArithmeticBinop.Opcode.Mul, NumericType.LONG),
-            new CfStore(ValueType.LONG, 2),
+            CfNumberConversion.I2L,
+            CfArithmeticBinop.LMUL,
+             CfStore.LSTORE_2,
             label1,
             CfLoad.LLOAD_2,
-            new CfNumberConversion(NumericType.LONG, NumericType.INT),
-            new CfStore(ValueType.INT, 4),
+            CfNumberConversion.L2I,
+             CfStore.ISTORE_4,
             label2,
             CfLoad.LLOAD_2,
             CfLoad.ILOAD_4,
-            new CfNumberConversion(NumericType.INT, NumericType.LONG),
-            new CfCmp(Cmp.Bias.NONE, NumericType.LONG),
+            CfNumberConversion.I2L,
+            CfCmp.LCMP,
             new CfIf(IfType.NE, ValueType.INT, label4),
             label3,
             CfLoad.ILOAD_4,
-            CfReturn.forType(ValueType.INT),
+            CfReturn.IRETURN,
             label4,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
@@ -5048,7 +5048,7 @@ public final class BackportedMethods {
                       FrameType.intType()
                     })),
             new CfNew(factory.createType("Ljava/lang/ArithmeticException;")),
-            new CfStackInstruction(CfStackInstruction.Opcode.Dup),
+            CfStackInstruction.DUP,
             new CfInvoke(
                 183,
                 factory.createMethod(
@@ -5096,8 +5096,8 @@ public final class BackportedMethods {
                     factory.createString("numberOfLeadingZeros")),
                 false),
             CfLoad.LLOAD_0,
-            new CfConstNumber(-1, ValueType.LONG),
-            new CfLogicalBinop(CfLogicalBinop.Opcode.Xor, NumericType.LONG),
+            CfConstNumber.constNumber(-1, ValueType.LONG),
+            CfLogicalBinop.LXOR,
             label2,
             new CfInvoke(
                 184,
@@ -5106,7 +5106,7 @@ public final class BackportedMethods {
                     factory.createProto(factory.intType, factory.longType),
                     factory.createString("numberOfLeadingZeros")),
                 false),
-            new CfArithmeticBinop(CfArithmeticBinop.Opcode.Add, NumericType.INT),
+            CfArithmeticBinop.IADD,
             CfLoad.LLOAD_2,
             label3,
             new CfInvoke(
@@ -5116,10 +5116,10 @@ public final class BackportedMethods {
                     factory.createProto(factory.intType, factory.longType),
                     factory.createString("numberOfLeadingZeros")),
                 false),
-            new CfArithmeticBinop(CfArithmeticBinop.Opcode.Add, NumericType.INT),
+            CfArithmeticBinop.IADD,
             CfLoad.LLOAD_2,
-            new CfConstNumber(-1, ValueType.LONG),
-            new CfLogicalBinop(CfLogicalBinop.Opcode.Xor, NumericType.LONG),
+            CfConstNumber.constNumber(-1, ValueType.LONG),
+            CfLogicalBinop.LXOR,
             label4,
             new CfInvoke(
                 184,
@@ -5128,17 +5128,17 @@ public final class BackportedMethods {
                     factory.createProto(factory.intType, factory.longType),
                     factory.createString("numberOfLeadingZeros")),
                 false),
-            new CfArithmeticBinop(CfArithmeticBinop.Opcode.Add, NumericType.INT),
-            new CfStore(ValueType.INT, 4),
+            CfArithmeticBinop.IADD,
+             CfStore.ISTORE_4,
             label5,
             CfLoad.ILOAD_4,
-            new CfConstNumber(65, ValueType.INT),
+            CfConstNumber.constNumber(65, ValueType.INT),
             new CfIfCmp(IfType.LE, ValueType.INT, label7),
             label6,
             CfLoad.LLOAD_0,
             CfLoad.LLOAD_2,
-            new CfArithmeticBinop(CfArithmeticBinop.Opcode.Mul, NumericType.LONG),
-            CfReturn.forType(ValueType.LONG),
+            CfArithmeticBinop.LMUL,
+            CfReturn.LRETURN,
             label7,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
@@ -5151,13 +5151,13 @@ public final class BackportedMethods {
                       FrameType.intType()
                     })),
             CfLoad.ILOAD_4,
-            new CfConstNumber(64, ValueType.INT),
+            CfConstNumber.constNumber(64, ValueType.INT),
             new CfIfCmp(IfType.LT, ValueType.INT, label15),
             CfLoad.LLOAD_0,
-            new CfConstNumber(0, ValueType.LONG),
-            new CfCmp(Cmp.Bias.NONE, NumericType.LONG),
+            CfConstNumber.LCONST_0,
+            CfCmp.LCMP,
             new CfIf(IfType.LT, ValueType.INT, label8),
-            new CfConstNumber(1, ValueType.INT),
+            CfConstNumber.ICONST_1,
             new CfGoto(label9),
             label8,
             new CfFrame(
@@ -5170,7 +5170,7 @@ public final class BackportedMethods {
                       FrameType.longHighType(),
                       FrameType.intType()
                     })),
-            new CfConstNumber(0, ValueType.INT),
+            CfConstNumber.ICONST_0,
             label9,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
@@ -5184,10 +5184,10 @@ public final class BackportedMethods {
                     }),
                 new ArrayDeque<>(Arrays.asList(FrameType.intType()))),
             CfLoad.LLOAD_2,
-            new CfConstNumber(-9223372036854775808L, ValueType.LONG),
-            new CfCmp(Cmp.Bias.NONE, NumericType.LONG),
+            CfConstNumber.constNumber(-9223372036854775808L, ValueType.LONG),
+            CfCmp.LCMP,
             new CfIf(IfType.EQ, ValueType.INT, label10),
-            new CfConstNumber(1, ValueType.INT),
+            CfConstNumber.ICONST_1,
             new CfGoto(label11),
             label10,
             new CfFrame(
@@ -5201,7 +5201,7 @@ public final class BackportedMethods {
                       FrameType.intType()
                     }),
                 new ArrayDeque<>(Arrays.asList(FrameType.intType()))),
-            new CfConstNumber(0, ValueType.INT),
+            CfConstNumber.ICONST_0,
             label11,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
@@ -5214,23 +5214,23 @@ public final class BackportedMethods {
                       FrameType.intType()
                     }),
                 new ArrayDeque<>(Arrays.asList(FrameType.intType(), FrameType.intType()))),
-            new CfLogicalBinop(CfLogicalBinop.Opcode.Or, NumericType.INT),
+            CfLogicalBinop.IOR,
             new CfIf(IfType.EQ, ValueType.INT, label15),
             label12,
             CfLoad.LLOAD_0,
             CfLoad.LLOAD_2,
-            new CfArithmeticBinop(CfArithmeticBinop.Opcode.Mul, NumericType.LONG),
-            new CfStore(ValueType.LONG, 5),
+            CfArithmeticBinop.LMUL,
+             CfStore.LSTORE_5,
             label13,
             CfLoad.LLOAD_0,
-            new CfConstNumber(0, ValueType.LONG),
-            new CfCmp(Cmp.Bias.NONE, NumericType.LONG),
+            CfConstNumber.LCONST_0,
+            CfCmp.LCMP,
             new CfIf(IfType.EQ, ValueType.INT, label14),
-            new CfLoad(ValueType.LONG, 5),
+            CfLoad.LLOAD_5,
             CfLoad.LLOAD_0,
-            new CfArithmeticBinop(CfArithmeticBinop.Opcode.Div, NumericType.LONG),
+            CfArithmeticBinop.LDIV,
             CfLoad.LLOAD_2,
-            new CfCmp(Cmp.Bias.NONE, NumericType.LONG),
+            CfCmp.LCMP,
             new CfIf(IfType.NE, ValueType.INT, label15),
             label14,
             new CfFrame(
@@ -5245,8 +5245,8 @@ public final class BackportedMethods {
                       FrameType.longType(),
                       FrameType.longHighType()
                     })),
-            new CfLoad(ValueType.LONG, 5),
-            CfReturn.forType(ValueType.LONG),
+            CfLoad.LLOAD_5,
+            CfReturn.LRETURN,
             label15,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
@@ -5259,7 +5259,7 @@ public final class BackportedMethods {
                       FrameType.intType()
                     })),
             new CfNew(factory.createType("Ljava/lang/ArithmeticException;")),
-            new CfStackInstruction(CfStackInstruction.Opcode.Dup),
+            CfStackInstruction.DUP,
             new CfInvoke(
                 183,
                 factory.createMethod(
@@ -5284,7 +5284,7 @@ public final class BackportedMethods {
             label0,
             CfLoad.LLOAD_0,
             CfLoad.ILOAD_2,
-            new CfNumberConversion(NumericType.INT, NumericType.LONG),
+            CfNumberConversion.I2L,
             new CfInvoke(
                 184,
                 factory.createMethod(
@@ -5292,7 +5292,7 @@ public final class BackportedMethods {
                     factory.createProto(factory.longType, factory.longType, factory.longType),
                     factory.createString("multiplyExact")),
                 false),
-            CfReturn.forType(ValueType.LONG),
+            CfReturn.LRETURN,
             label1),
         ImmutableList.of(),
         ImmutableList.of());
@@ -5308,11 +5308,11 @@ public final class BackportedMethods {
         ImmutableList.of(
             label0,
             CfLoad.ILOAD_0,
-            new CfNumberConversion(NumericType.INT, NumericType.LONG),
+            CfNumberConversion.I2L,
             CfLoad.ILOAD_1,
-            new CfNumberConversion(NumericType.INT, NumericType.LONG),
-            new CfArithmeticBinop(CfArithmeticBinop.Opcode.Mul, NumericType.LONG),
-            CfReturn.forType(ValueType.LONG),
+            CfNumberConversion.I2L,
+            CfArithmeticBinop.LMUL,
+            CfReturn.LRETURN,
             label1),
         ImmutableList.of(),
         ImmutableList.of());
@@ -5342,81 +5342,81 @@ public final class BackportedMethods {
         ImmutableList.of(
             label0,
             CfLoad.LLOAD_0,
-            new CfConstNumber(4294967295L, ValueType.LONG),
-            new CfLogicalBinop(CfLogicalBinop.Opcode.And, NumericType.LONG),
-            new CfStore(ValueType.LONG, 4),
+            CfConstNumber.constNumber(4294967295L, ValueType.LONG),
+            CfLogicalBinop.LAND,
+             CfStore.LSTORE_4,
             label1,
             CfLoad.LLOAD_0,
-            new CfConstNumber(32, ValueType.INT),
-            new CfLogicalBinop(CfLogicalBinop.Opcode.Shr, NumericType.LONG),
-            new CfStore(ValueType.LONG, 6),
+            CfConstNumber.constNumber(32, ValueType.INT),
+            CfLogicalBinop.LSHR,
+             CfStore.storeLong(6),
             label2,
             CfLoad.LLOAD_2,
-            new CfConstNumber(4294967295L, ValueType.LONG),
-            new CfLogicalBinop(CfLogicalBinop.Opcode.And, NumericType.LONG),
-            new CfStore(ValueType.LONG, 8),
+            CfConstNumber.constNumber(4294967295L, ValueType.LONG),
+            CfLogicalBinop.LAND,
+             CfStore.storeLong(8),
             label3,
             CfLoad.LLOAD_2,
-            new CfConstNumber(32, ValueType.INT),
-            new CfLogicalBinop(CfLogicalBinop.Opcode.Shr, NumericType.LONG),
-            new CfStore(ValueType.LONG, 10),
+            CfConstNumber.constNumber(32, ValueType.INT),
+            CfLogicalBinop.LSHR,
+             CfStore.storeLong(10),
             label4,
             CfLoad.LLOAD_4,
-            new CfLoad(ValueType.LONG, 8),
-            new CfArithmeticBinop(CfArithmeticBinop.Opcode.Mul, NumericType.LONG),
-            new CfStore(ValueType.LONG, 12),
+            CfLoad.loadLong(8),
+            CfArithmeticBinop.LMUL,
+             CfStore.storeLong(12),
             label5,
-            new CfLoad(ValueType.LONG, 12),
-            new CfConstNumber(32, ValueType.INT),
-            new CfLogicalBinop(CfLogicalBinop.Opcode.Ushr, NumericType.LONG),
-            new CfStore(ValueType.LONG, 14),
+            CfLoad.loadLong(12),
+            CfConstNumber.constNumber(32, ValueType.INT),
+            CfLogicalBinop.LUSHR,
+             CfStore.storeLong(14),
             label6,
-            new CfLoad(ValueType.LONG, 6),
-            new CfLoad(ValueType.LONG, 8),
-            new CfArithmeticBinop(CfArithmeticBinop.Opcode.Mul, NumericType.LONG),
-            new CfStore(ValueType.LONG, 16),
+            CfLoad.loadLong(6),
+            CfLoad.loadLong(8),
+            CfArithmeticBinop.LMUL,
+             CfStore.storeLong(16),
             label7,
-            new CfLoad(ValueType.LONG, 16),
-            new CfLoad(ValueType.LONG, 14),
-            new CfArithmeticBinop(CfArithmeticBinop.Opcode.Add, NumericType.LONG),
-            new CfStore(ValueType.LONG, 18),
+            CfLoad.loadLong(16),
+            CfLoad.loadLong(14),
+            CfArithmeticBinop.LADD,
+             CfStore.storeLong(18),
             label8,
-            new CfLoad(ValueType.LONG, 18),
-            new CfConstNumber(4294967295L, ValueType.LONG),
-            new CfLogicalBinop(CfLogicalBinop.Opcode.And, NumericType.LONG),
-            new CfStore(ValueType.LONG, 20),
+            CfLoad.loadLong(18),
+            CfConstNumber.constNumber(4294967295L, ValueType.LONG),
+            CfLogicalBinop.LAND,
+             CfStore.storeLong(20),
             label9,
-            new CfLoad(ValueType.LONG, 18),
-            new CfConstNumber(32, ValueType.INT),
-            new CfLogicalBinop(CfLogicalBinop.Opcode.Shr, NumericType.LONG),
-            new CfStore(ValueType.LONG, 22),
+            CfLoad.loadLong(18),
+            CfConstNumber.constNumber(32, ValueType.INT),
+            CfLogicalBinop.LSHR,
+             CfStore.storeLong(22),
             label10,
             CfLoad.LLOAD_4,
-            new CfLoad(ValueType.LONG, 10),
-            new CfArithmeticBinop(CfArithmeticBinop.Opcode.Mul, NumericType.LONG),
-            new CfStore(ValueType.LONG, 24),
+            CfLoad.loadLong(10),
+            CfArithmeticBinop.LMUL,
+             CfStore.storeLong(24),
             label11,
-            new CfLoad(ValueType.LONG, 24),
-            new CfLoad(ValueType.LONG, 20),
-            new CfArithmeticBinop(CfArithmeticBinop.Opcode.Add, NumericType.LONG),
-            new CfStore(ValueType.LONG, 26),
+            CfLoad.loadLong(24),
+            CfLoad.loadLong(20),
+            CfArithmeticBinop.LADD,
+             CfStore.storeLong(26),
             label12,
-            new CfLoad(ValueType.LONG, 26),
-            new CfConstNumber(32, ValueType.INT),
-            new CfLogicalBinop(CfLogicalBinop.Opcode.Shr, NumericType.LONG),
-            new CfStore(ValueType.LONG, 28),
+            CfLoad.loadLong(26),
+            CfConstNumber.constNumber(32, ValueType.INT),
+            CfLogicalBinop.LSHR,
+             CfStore.storeLong(28),
             label13,
-            new CfLoad(ValueType.LONG, 6),
-            new CfLoad(ValueType.LONG, 10),
-            new CfArithmeticBinop(CfArithmeticBinop.Opcode.Mul, NumericType.LONG),
-            new CfStore(ValueType.LONG, 30),
+            CfLoad.loadLong(6),
+            CfLoad.loadLong(10),
+            CfArithmeticBinop.LMUL,
+             CfStore.storeLong(30),
             label14,
-            new CfLoad(ValueType.LONG, 30),
-            new CfLoad(ValueType.LONG, 22),
-            new CfArithmeticBinop(CfArithmeticBinop.Opcode.Add, NumericType.LONG),
-            new CfLoad(ValueType.LONG, 28),
-            new CfArithmeticBinop(CfArithmeticBinop.Opcode.Add, NumericType.LONG),
-            CfReturn.forType(ValueType.LONG),
+            CfLoad.loadLong(30),
+            CfLoad.loadLong(22),
+            CfArithmeticBinop.LADD,
+            CfLoad.loadLong(28),
+            CfArithmeticBinop.LADD,
+            CfReturn.LRETURN,
             label15),
         ImmutableList.of(),
         ImmutableList.of());
@@ -5434,11 +5434,11 @@ public final class BackportedMethods {
         ImmutableList.of(
             label0,
             CfLoad.ILOAD_0,
-            new CfConstNumber(-2147483648, ValueType.INT),
+            CfConstNumber.constNumber(-2147483648, ValueType.INT),
             new CfIfCmp(IfType.NE, ValueType.INT, label2),
             label1,
             new CfNew(factory.createType("Ljava/lang/ArithmeticException;")),
-            new CfStackInstruction(CfStackInstruction.Opcode.Dup),
+            CfStackInstruction.DUP,
             new CfInvoke(
                 183,
                 factory.createMethod(
@@ -5451,8 +5451,8 @@ public final class BackportedMethods {
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(new int[] {0}, new FrameType[] {FrameType.intType()})),
             CfLoad.ILOAD_0,
-            new CfNeg(NumericType.INT),
-            CfReturn.forType(ValueType.INT),
+            CfNeg.neg(NumericType.INT),
+            CfReturn.IRETURN,
             label3),
         ImmutableList.of(),
         ImmutableList.of());
@@ -5470,12 +5470,12 @@ public final class BackportedMethods {
         ImmutableList.of(
             label0,
             CfLoad.LLOAD_0,
-            new CfConstNumber(-9223372036854775808L, ValueType.LONG),
-            new CfCmp(Cmp.Bias.NONE, NumericType.LONG),
+            CfConstNumber.constNumber(-9223372036854775808L, ValueType.LONG),
+            CfCmp.LCMP,
             new CfIf(IfType.NE, ValueType.INT, label2),
             label1,
             new CfNew(factory.createType("Ljava/lang/ArithmeticException;")),
-            new CfStackInstruction(CfStackInstruction.Opcode.Dup),
+            CfStackInstruction.DUP,
             new CfInvoke(
                 183,
                 factory.createMethod(
@@ -5490,8 +5490,8 @@ public final class BackportedMethods {
                     new int[] {0, 1},
                     new FrameType[] {FrameType.longType(), FrameType.longHighType()})),
             CfLoad.LLOAD_0,
-            new CfNeg(NumericType.LONG),
-            CfReturn.forType(ValueType.LONG),
+            CfNeg.neg(NumericType.LONG),
+            CfReturn.LRETURN,
             label3),
         ImmutableList.of(),
         ImmutableList.of());
@@ -5507,7 +5507,7 @@ public final class BackportedMethods {
         ImmutableList.of(
             label0,
             CfLoad.DLOAD_0,
-            new CfNeg(NumericType.DOUBLE),
+            CfNeg.neg(NumericType.DOUBLE),
             new CfInvoke(
                 184,
                 factory.createMethod(
@@ -5515,8 +5515,8 @@ public final class BackportedMethods {
                     factory.createProto(factory.doubleType, factory.doubleType),
                     factory.createString("nextUp")),
                 false),
-            new CfNeg(NumericType.DOUBLE),
-            CfReturn.forType(ValueType.DOUBLE),
+            CfNeg.neg(NumericType.DOUBLE),
+            CfReturn.DRETURN,
             label1),
         ImmutableList.of(),
         ImmutableList.of());
@@ -5532,7 +5532,7 @@ public final class BackportedMethods {
         ImmutableList.of(
             label0,
             CfLoad.FLOAD_0,
-            new CfNeg(NumericType.FLOAT),
+            CfNeg.neg(NumericType.FLOAT),
             new CfInvoke(
                 184,
                 factory.createMethod(
@@ -5540,8 +5540,8 @@ public final class BackportedMethods {
                     factory.createProto(factory.floatType, factory.floatType),
                     factory.createString("nextUp")),
                 false),
-            new CfNeg(NumericType.FLOAT),
-            CfReturn.forType(ValueType.FLOAT),
+            CfNeg.neg(NumericType.FLOAT),
+            CfReturn.FRETURN,
             label1),
         ImmutableList.of(),
         ImmutableList.of());
@@ -5561,24 +5561,24 @@ public final class BackportedMethods {
         ImmutableList.of(
             label0,
             CfLoad.ILOAD_0,
-            new CfNumberConversion(NumericType.INT, NumericType.LONG),
+            CfNumberConversion.I2L,
             CfLoad.ILOAD_1,
-            new CfNumberConversion(NumericType.INT, NumericType.LONG),
-            new CfArithmeticBinop(CfArithmeticBinop.Opcode.Sub, NumericType.LONG),
-            new CfStore(ValueType.LONG, 2),
+            CfNumberConversion.I2L,
+            CfArithmeticBinop.LSUB,
+             CfStore.LSTORE_2,
             label1,
             CfLoad.LLOAD_2,
-            new CfNumberConversion(NumericType.LONG, NumericType.INT),
-            new CfStore(ValueType.INT, 4),
+            CfNumberConversion.L2I,
+             CfStore.ISTORE_4,
             label2,
             CfLoad.LLOAD_2,
             CfLoad.ILOAD_4,
-            new CfNumberConversion(NumericType.INT, NumericType.LONG),
-            new CfCmp(Cmp.Bias.NONE, NumericType.LONG),
+            CfNumberConversion.I2L,
+            CfCmp.LCMP,
             new CfIf(IfType.NE, ValueType.INT, label4),
             label3,
             CfLoad.ILOAD_4,
-            CfReturn.forType(ValueType.INT),
+            CfReturn.IRETURN,
             label4,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
@@ -5591,7 +5591,7 @@ public final class BackportedMethods {
                       FrameType.intType()
                     })),
             new CfNew(factory.createType("Ljava/lang/ArithmeticException;")),
-            new CfStackInstruction(CfStackInstruction.Opcode.Dup),
+            CfStackInstruction.DUP,
             new CfInvoke(
                 183,
                 factory.createMethod(
@@ -5623,16 +5623,16 @@ public final class BackportedMethods {
             label0,
             CfLoad.LLOAD_0,
             CfLoad.LLOAD_2,
-            new CfArithmeticBinop(CfArithmeticBinop.Opcode.Sub, NumericType.LONG),
-            new CfStore(ValueType.LONG, 4),
+            CfArithmeticBinop.LSUB,
+             CfStore.LSTORE_4,
             label1,
             CfLoad.LLOAD_0,
             CfLoad.LLOAD_2,
-            new CfLogicalBinop(CfLogicalBinop.Opcode.Xor, NumericType.LONG),
-            new CfConstNumber(0, ValueType.LONG),
-            new CfCmp(Cmp.Bias.NONE, NumericType.LONG),
+            CfLogicalBinop.LXOR,
+            CfConstNumber.LCONST_0,
+            CfCmp.LCMP,
             new CfIf(IfType.LT, ValueType.INT, label2),
-            new CfConstNumber(1, ValueType.INT),
+            CfConstNumber.ICONST_1,
             new CfGoto(label3),
             label2,
             new CfFrame(
@@ -5646,7 +5646,7 @@ public final class BackportedMethods {
                       FrameType.longType(),
                       FrameType.longHighType()
                     })),
-            new CfConstNumber(0, ValueType.INT),
+            CfConstNumber.ICONST_0,
             label3,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
@@ -5662,11 +5662,11 @@ public final class BackportedMethods {
                 new ArrayDeque<>(Arrays.asList(FrameType.intType()))),
             CfLoad.LLOAD_0,
             CfLoad.LLOAD_4,
-            new CfLogicalBinop(CfLogicalBinop.Opcode.Xor, NumericType.LONG),
-            new CfConstNumber(0, ValueType.LONG),
-            new CfCmp(Cmp.Bias.NONE, NumericType.LONG),
+            CfLogicalBinop.LXOR,
+            CfConstNumber.LCONST_0,
+            CfCmp.LCMP,
             new CfIf(IfType.LT, ValueType.INT, label4),
-            new CfConstNumber(1, ValueType.INT),
+            CfConstNumber.ICONST_1,
             new CfGoto(label5),
             label4,
             new CfFrame(
@@ -5681,7 +5681,7 @@ public final class BackportedMethods {
                       FrameType.longHighType()
                     }),
                 new ArrayDeque<>(Arrays.asList(FrameType.intType()))),
-            new CfConstNumber(0, ValueType.INT),
+            CfConstNumber.ICONST_0,
             label5,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
@@ -5695,11 +5695,11 @@ public final class BackportedMethods {
                       FrameType.longHighType()
                     }),
                 new ArrayDeque<>(Arrays.asList(FrameType.intType(), FrameType.intType()))),
-            new CfLogicalBinop(CfLogicalBinop.Opcode.Or, NumericType.INT),
+            CfLogicalBinop.IOR,
             new CfIf(IfType.EQ, ValueType.INT, label7),
             label6,
             CfLoad.LLOAD_4,
-            CfReturn.forType(ValueType.LONG),
+            CfReturn.LRETURN,
             label7,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
@@ -5713,7 +5713,7 @@ public final class BackportedMethods {
                       FrameType.longHighType()
                     })),
             new CfNew(factory.createType("Ljava/lang/ArithmeticException;")),
-            new CfStackInstruction(CfStackInstruction.Opcode.Dup),
+            CfStackInstruction.DUP,
             new CfInvoke(
                 183,
                 factory.createMethod(
@@ -5740,17 +5740,17 @@ public final class BackportedMethods {
         ImmutableList.of(
             label0,
             CfLoad.LLOAD_0,
-            new CfNumberConversion(NumericType.LONG, NumericType.INT),
-            new CfStore(ValueType.INT, 2),
+            CfNumberConversion.L2I,
+             CfStore.ISTORE_2,
             label1,
             CfLoad.LLOAD_0,
             CfLoad.ILOAD_2,
-            new CfNumberConversion(NumericType.INT, NumericType.LONG),
-            new CfCmp(Cmp.Bias.NONE, NumericType.LONG),
+            CfNumberConversion.I2L,
+            CfCmp.LCMP,
             new CfIf(IfType.EQ, ValueType.INT, label3),
             label2,
             new CfNew(factory.createType("Ljava/lang/ArithmeticException;")),
-            new CfStackInstruction(CfStackInstruction.Opcode.Dup),
+            CfStackInstruction.DUP,
             new CfInvoke(
                 183,
                 factory.createMethod(
@@ -5767,7 +5767,7 @@ public final class BackportedMethods {
                       FrameType.longType(), FrameType.longHighType(), FrameType.intType()
                     })),
             CfLoad.ILOAD_2,
-            CfReturn.forType(ValueType.INT),
+            CfReturn.IRETURN,
             label4),
         ImmutableList.of(),
         ImmutableList.of());
@@ -5791,7 +5791,7 @@ public final class BackportedMethods {
                     factory.createString("getParameterTypes")),
                 false),
             CfArrayLength.INSTANCE,
-            CfReturn.forType(ValueType.INT),
+            CfReturn.IRETURN,
             label1),
         ImmutableList.of(),
         ImmutableList.of());
@@ -5817,7 +5817,7 @@ public final class BackportedMethods {
             CfLoad.ILOAD_0,
             CfLoad.ILOAD_2,
             CfLoad.ILOAD_1,
-            new CfArithmeticBinop(CfArithmeticBinop.Opcode.Sub, NumericType.INT),
+            CfArithmeticBinop.ISUB,
             new CfIfCmp(IfType.LE, ValueType.INT, label2),
             label1,
             new CfFrame(
@@ -5827,9 +5827,9 @@ public final class BackportedMethods {
                       FrameType.intType(), FrameType.intType(), FrameType.intType()
                     })),
             new CfNew(factory.createType("Ljava/lang/IndexOutOfBoundsException;")),
-            new CfStackInstruction(CfStackInstruction.Opcode.Dup),
+            CfStackInstruction.DUP,
             new CfNew(factory.stringBuilderType),
-            new CfStackInstruction(CfStackInstruction.Opcode.Dup),
+            CfStackInstruction.DUP,
             new CfInvoke(
                 183,
                 factory.createMethod(
@@ -5924,7 +5924,7 @@ public final class BackportedMethods {
                       FrameType.intType(), FrameType.intType(), FrameType.intType()
                     })),
             CfLoad.ILOAD_0,
-            CfReturn.forType(ValueType.INT),
+            CfReturn.IRETURN,
             label3),
         ImmutableList.of(),
         ImmutableList.of());
@@ -5943,22 +5943,22 @@ public final class BackportedMethods {
         ImmutableList.of(
             label0,
             CfLoad.LLOAD_0,
-            new CfConstNumber(0, ValueType.LONG),
-            new CfCmp(Cmp.Bias.NONE, NumericType.LONG),
+            CfConstNumber.LCONST_0,
+            CfCmp.LCMP,
             new CfIf(IfType.LT, ValueType.INT, label1),
             CfLoad.LLOAD_2,
-            new CfConstNumber(0, ValueType.LONG),
-            new CfCmp(Cmp.Bias.NONE, NumericType.LONG),
+            CfConstNumber.LCONST_0,
+            CfCmp.LCMP,
             new CfIf(IfType.LT, ValueType.INT, label1),
             CfLoad.LLOAD_4,
-            new CfConstNumber(0, ValueType.LONG),
-            new CfCmp(Cmp.Bias.NONE, NumericType.LONG),
+            CfConstNumber.LCONST_0,
+            CfCmp.LCMP,
             new CfIf(IfType.LT, ValueType.INT, label1),
             CfLoad.LLOAD_0,
             CfLoad.LLOAD_4,
             CfLoad.LLOAD_2,
-            new CfArithmeticBinop(CfArithmeticBinop.Opcode.Sub, NumericType.LONG),
-            new CfCmp(Cmp.Bias.NONE, NumericType.LONG),
+            CfArithmeticBinop.LSUB,
+            CfCmp.LCMP,
             new CfIf(IfType.LE, ValueType.INT, label2),
             label1,
             new CfFrame(
@@ -5973,9 +5973,9 @@ public final class BackportedMethods {
                       FrameType.longHighType()
                     })),
             new CfNew(factory.createType("Ljava/lang/IndexOutOfBoundsException;")),
-            new CfStackInstruction(CfStackInstruction.Opcode.Dup),
+            CfStackInstruction.DUP,
             new CfNew(factory.stringBuilderType),
-            new CfStackInstruction(CfStackInstruction.Opcode.Dup),
+            CfStackInstruction.DUP,
             new CfInvoke(
                 183,
                 factory.createMethod(
@@ -6075,7 +6075,7 @@ public final class BackportedMethods {
                       FrameType.longHighType()
                     })),
             CfLoad.LLOAD_0,
-            CfReturn.forType(ValueType.LONG),
+            CfReturn.LRETURN,
             label3),
         ImmutableList.of(),
         ImmutableList.of());
@@ -6108,9 +6108,9 @@ public final class BackportedMethods {
                       FrameType.intType(), FrameType.intType(), FrameType.intType()
                     })),
             new CfNew(factory.createType("Ljava/lang/IndexOutOfBoundsException;")),
-            new CfStackInstruction(CfStackInstruction.Opcode.Dup),
+            CfStackInstruction.DUP,
             new CfNew(factory.stringBuilderType),
-            new CfStackInstruction(CfStackInstruction.Opcode.Dup),
+            CfStackInstruction.DUP,
             new CfInvoke(
                 183,
                 factory.createMethod(
@@ -6189,7 +6189,7 @@ public final class BackportedMethods {
                       FrameType.intType(), FrameType.intType(), FrameType.intType()
                     })),
             CfLoad.ILOAD_0,
-            CfReturn.forType(ValueType.INT),
+            CfReturn.IRETURN,
             label3),
         ImmutableList.of(),
         ImmutableList.of());
@@ -6208,16 +6208,16 @@ public final class BackportedMethods {
         ImmutableList.of(
             label0,
             CfLoad.LLOAD_0,
-            new CfConstNumber(0, ValueType.LONG),
-            new CfCmp(Cmp.Bias.NONE, NumericType.LONG),
+            CfConstNumber.LCONST_0,
+            CfCmp.LCMP,
             new CfIf(IfType.LT, ValueType.INT, label1),
             CfLoad.LLOAD_0,
             CfLoad.LLOAD_2,
-            new CfCmp(Cmp.Bias.NONE, NumericType.LONG),
+            CfCmp.LCMP,
             new CfIf(IfType.GT, ValueType.INT, label1),
             CfLoad.LLOAD_2,
             CfLoad.LLOAD_4,
-            new CfCmp(Cmp.Bias.NONE, NumericType.LONG),
+            CfCmp.LCMP,
             new CfIf(IfType.LE, ValueType.INT, label2),
             label1,
             new CfFrame(
@@ -6232,9 +6232,9 @@ public final class BackportedMethods {
                       FrameType.longHighType()
                     })),
             new CfNew(factory.createType("Ljava/lang/IndexOutOfBoundsException;")),
-            new CfStackInstruction(CfStackInstruction.Opcode.Dup),
+            CfStackInstruction.DUP,
             new CfNew(factory.stringBuilderType),
-            new CfStackInstruction(CfStackInstruction.Opcode.Dup),
+            CfStackInstruction.DUP,
             new CfInvoke(
                 183,
                 factory.createMethod(
@@ -6318,7 +6318,7 @@ public final class BackportedMethods {
                       FrameType.longHighType()
                     })),
             CfLoad.LLOAD_0,
-            CfReturn.forType(ValueType.LONG),
+            CfReturn.LRETURN,
             label3),
         ImmutableList.of(),
         ImmutableList.of());
@@ -6345,9 +6345,9 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1}, new FrameType[] {FrameType.intType(), FrameType.intType()})),
             new CfNew(factory.createType("Ljava/lang/IndexOutOfBoundsException;")),
-            new CfStackInstruction(CfStackInstruction.Opcode.Dup),
+            CfStackInstruction.DUP,
             new CfNew(factory.stringBuilderType),
-            new CfStackInstruction(CfStackInstruction.Opcode.Dup),
+            CfStackInstruction.DUP,
             new CfInvoke(
                 183,
                 factory.createMethod(
@@ -6407,7 +6407,7 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1}, new FrameType[] {FrameType.intType(), FrameType.intType()})),
             CfLoad.ILOAD_0,
-            CfReturn.forType(ValueType.INT),
+            CfReturn.IRETURN,
             label3),
         ImmutableList.of(),
         ImmutableList.of());
@@ -6425,12 +6425,12 @@ public final class BackportedMethods {
         ImmutableList.of(
             label0,
             CfLoad.LLOAD_0,
-            new CfConstNumber(0, ValueType.LONG),
-            new CfCmp(Cmp.Bias.NONE, NumericType.LONG),
+            CfConstNumber.LCONST_0,
+            CfCmp.LCMP,
             new CfIf(IfType.LT, ValueType.INT, label1),
             CfLoad.LLOAD_0,
             CfLoad.LLOAD_2,
-            new CfCmp(Cmp.Bias.NONE, NumericType.LONG),
+            CfCmp.LCMP,
             new CfIf(IfType.LT, ValueType.INT, label2),
             label1,
             new CfFrame(
@@ -6443,9 +6443,9 @@ public final class BackportedMethods {
                       FrameType.longHighType()
                     })),
             new CfNew(factory.createType("Ljava/lang/IndexOutOfBoundsException;")),
-            new CfStackInstruction(CfStackInstruction.Opcode.Dup),
+            CfStackInstruction.DUP,
             new CfNew(factory.stringBuilderType),
-            new CfStackInstruction(CfStackInstruction.Opcode.Dup),
+            CfStackInstruction.DUP,
             new CfInvoke(
                 183,
                 factory.createMethod(
@@ -6511,7 +6511,7 @@ public final class BackportedMethods {
                       FrameType.longHighType()
                     })),
             CfLoad.LLOAD_0,
-            CfReturn.forType(ValueType.LONG),
+            CfReturn.LRETURN,
             label3),
         ImmutableList.of(),
         ImmutableList.of());
@@ -6531,7 +6531,7 @@ public final class BackportedMethods {
             CfLoad.ALOAD_0,
             CfLoad.ALOAD_1,
             new CfIfCmp(IfType.NE, ValueType.OBJECT, label1),
-            new CfConstNumber(0, ValueType.INT),
+            CfConstNumber.ICONST_0,
             new CfGoto(label2),
             label1,
             new CfFrame(
@@ -6564,7 +6564,7 @@ public final class BackportedMethods {
                           factory.createType("Ljava/util/Comparator;"))
                     }),
                 new ArrayDeque<>(Arrays.asList(FrameType.intType()))),
-            CfReturn.forType(ValueType.INT),
+            CfReturn.IRETURN,
             label3),
         ImmutableList.of(),
         ImmutableList.of());
@@ -6620,8 +6620,8 @@ public final class BackportedMethods {
             CfLoad.ALOAD_0,
             CfLoad.ALOAD_1,
             new CfIfCmp(IfType.NE, ValueType.OBJECT, label1),
-            new CfConstNumber(1, ValueType.INT),
-            CfReturn.forType(ValueType.INT),
+            CfConstNumber.ICONST_1,
+            CfReturn.IRETURN,
             label1,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
@@ -6632,8 +6632,8 @@ public final class BackportedMethods {
                     })),
             CfLoad.ALOAD_0,
             new CfIf(IfType.NE, ValueType.OBJECT, label2),
-            new CfConstNumber(0, ValueType.INT),
-            CfReturn.forType(ValueType.INT),
+            CfConstNumber.ICONST_0,
+            CfReturn.IRETURN,
             label2,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
@@ -6662,7 +6662,7 @@ public final class BackportedMethods {
                     factory.createString("equals")),
                 false),
             new CfIf(IfType.EQ, ValueType.INT, label4),
-            new CfConstNumber(1, ValueType.INT),
+            CfConstNumber.ICONST_1,
             new CfGoto(label5),
             label4,
             new CfFrame(
@@ -6672,7 +6672,7 @@ public final class BackportedMethods {
                       FrameType.initializedNonNullReference(factory.objectType),
                       FrameType.initializedNonNullReference(factory.objectType)
                     })),
-            new CfConstNumber(0, ValueType.INT),
+            CfConstNumber.ICONST_0,
             label5,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
@@ -6682,7 +6682,7 @@ public final class BackportedMethods {
                       FrameType.initializedNonNullReference(factory.objectType)
                     }),
                 new ArrayDeque<>(Arrays.asList(FrameType.intType()))),
-            CfReturn.forType(ValueType.INT),
+            CfReturn.IRETURN,
             label6,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
@@ -6711,7 +6711,7 @@ public final class BackportedMethods {
                     factory.createString("equals")),
                 false),
             new CfIf(IfType.EQ, ValueType.INT, label8),
-            new CfConstNumber(1, ValueType.INT),
+            CfConstNumber.ICONST_1,
             new CfGoto(label9),
             label8,
             new CfFrame(
@@ -6721,7 +6721,7 @@ public final class BackportedMethods {
                       FrameType.initializedNonNullReference(factory.objectType),
                       FrameType.initializedNonNullReference(factory.objectType)
                     })),
-            new CfConstNumber(0, ValueType.INT),
+            CfConstNumber.ICONST_0,
             label9,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
@@ -6731,7 +6731,7 @@ public final class BackportedMethods {
                       FrameType.initializedNonNullReference(factory.objectType)
                     }),
                 new ArrayDeque<>(Arrays.asList(FrameType.intType()))),
-            CfReturn.forType(ValueType.INT),
+            CfReturn.IRETURN,
             label10,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
@@ -6760,7 +6760,7 @@ public final class BackportedMethods {
                     factory.createString("equals")),
                 false),
             new CfIf(IfType.EQ, ValueType.INT, label12),
-            new CfConstNumber(1, ValueType.INT),
+            CfConstNumber.ICONST_1,
             new CfGoto(label13),
             label12,
             new CfFrame(
@@ -6770,7 +6770,7 @@ public final class BackportedMethods {
                       FrameType.initializedNonNullReference(factory.objectType),
                       FrameType.initializedNonNullReference(factory.objectType)
                     })),
-            new CfConstNumber(0, ValueType.INT),
+            CfConstNumber.ICONST_0,
             label13,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
@@ -6780,7 +6780,7 @@ public final class BackportedMethods {
                       FrameType.initializedNonNullReference(factory.objectType)
                     }),
                 new ArrayDeque<>(Arrays.asList(FrameType.intType()))),
-            CfReturn.forType(ValueType.INT),
+            CfReturn.IRETURN,
             label14,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
@@ -6809,7 +6809,7 @@ public final class BackportedMethods {
                     factory.createString("equals")),
                 false),
             new CfIf(IfType.EQ, ValueType.INT, label16),
-            new CfConstNumber(1, ValueType.INT),
+            CfConstNumber.ICONST_1,
             new CfGoto(label17),
             label16,
             new CfFrame(
@@ -6819,7 +6819,7 @@ public final class BackportedMethods {
                       FrameType.initializedNonNullReference(factory.objectType),
                       FrameType.initializedNonNullReference(factory.objectType)
                     })),
-            new CfConstNumber(0, ValueType.INT),
+            CfConstNumber.ICONST_0,
             label17,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
@@ -6829,7 +6829,7 @@ public final class BackportedMethods {
                       FrameType.initializedNonNullReference(factory.objectType)
                     }),
                 new ArrayDeque<>(Arrays.asList(FrameType.intType()))),
-            CfReturn.forType(ValueType.INT),
+            CfReturn.IRETURN,
             label18,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
@@ -6858,7 +6858,7 @@ public final class BackportedMethods {
                     factory.createString("equals")),
                 false),
             new CfIf(IfType.EQ, ValueType.INT, label20),
-            new CfConstNumber(1, ValueType.INT),
+            CfConstNumber.ICONST_1,
             new CfGoto(label21),
             label20,
             new CfFrame(
@@ -6868,7 +6868,7 @@ public final class BackportedMethods {
                       FrameType.initializedNonNullReference(factory.objectType),
                       FrameType.initializedNonNullReference(factory.objectType)
                     })),
-            new CfConstNumber(0, ValueType.INT),
+            CfConstNumber.ICONST_0,
             label21,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
@@ -6878,7 +6878,7 @@ public final class BackportedMethods {
                       FrameType.initializedNonNullReference(factory.objectType)
                     }),
                 new ArrayDeque<>(Arrays.asList(FrameType.intType()))),
-            CfReturn.forType(ValueType.INT),
+            CfReturn.IRETURN,
             label22,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
@@ -6907,7 +6907,7 @@ public final class BackportedMethods {
                     factory.createString("equals")),
                 false),
             new CfIf(IfType.EQ, ValueType.INT, label24),
-            new CfConstNumber(1, ValueType.INT),
+            CfConstNumber.ICONST_1,
             new CfGoto(label25),
             label24,
             new CfFrame(
@@ -6917,7 +6917,7 @@ public final class BackportedMethods {
                       FrameType.initializedNonNullReference(factory.objectType),
                       FrameType.initializedNonNullReference(factory.objectType)
                     })),
-            new CfConstNumber(0, ValueType.INT),
+            CfConstNumber.ICONST_0,
             label25,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
@@ -6927,7 +6927,7 @@ public final class BackportedMethods {
                       FrameType.initializedNonNullReference(factory.objectType)
                     }),
                 new ArrayDeque<>(Arrays.asList(FrameType.intType()))),
-            CfReturn.forType(ValueType.INT),
+            CfReturn.IRETURN,
             label26,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
@@ -6956,7 +6956,7 @@ public final class BackportedMethods {
                     factory.createString("equals")),
                 false),
             new CfIf(IfType.EQ, ValueType.INT, label28),
-            new CfConstNumber(1, ValueType.INT),
+            CfConstNumber.ICONST_1,
             new CfGoto(label29),
             label28,
             new CfFrame(
@@ -6966,7 +6966,7 @@ public final class BackportedMethods {
                       FrameType.initializedNonNullReference(factory.objectType),
                       FrameType.initializedNonNullReference(factory.objectType)
                     })),
-            new CfConstNumber(0, ValueType.INT),
+            CfConstNumber.ICONST_0,
             label29,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
@@ -6976,7 +6976,7 @@ public final class BackportedMethods {
                       FrameType.initializedNonNullReference(factory.objectType)
                     }),
                 new ArrayDeque<>(Arrays.asList(FrameType.intType()))),
-            CfReturn.forType(ValueType.INT),
+            CfReturn.IRETURN,
             label30,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
@@ -7005,7 +7005,7 @@ public final class BackportedMethods {
                     factory.createString("equals")),
                 false),
             new CfIf(IfType.EQ, ValueType.INT, label32),
-            new CfConstNumber(1, ValueType.INT),
+            CfConstNumber.ICONST_1,
             new CfGoto(label33),
             label32,
             new CfFrame(
@@ -7015,7 +7015,7 @@ public final class BackportedMethods {
                       FrameType.initializedNonNullReference(factory.objectType),
                       FrameType.initializedNonNullReference(factory.objectType)
                     })),
-            new CfConstNumber(0, ValueType.INT),
+            CfConstNumber.ICONST_0,
             label33,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
@@ -7025,7 +7025,7 @@ public final class BackportedMethods {
                       FrameType.initializedNonNullReference(factory.objectType)
                     }),
                 new ArrayDeque<>(Arrays.asList(FrameType.intType()))),
-            CfReturn.forType(ValueType.INT),
+            CfReturn.IRETURN,
             label34,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
@@ -7056,7 +7056,7 @@ public final class BackportedMethods {
                     factory.createString("deepEquals")),
                 false),
             new CfIf(IfType.EQ, ValueType.INT, label36),
-            new CfConstNumber(1, ValueType.INT),
+            CfConstNumber.ICONST_1,
             new CfGoto(label37),
             label36,
             new CfFrame(
@@ -7066,7 +7066,7 @@ public final class BackportedMethods {
                       FrameType.initializedNonNullReference(factory.objectType),
                       FrameType.initializedNonNullReference(factory.objectType)
                     })),
-            new CfConstNumber(0, ValueType.INT),
+            CfConstNumber.ICONST_0,
             label37,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
@@ -7076,7 +7076,7 @@ public final class BackportedMethods {
                       FrameType.initializedNonNullReference(factory.objectType)
                     }),
                 new ArrayDeque<>(Arrays.asList(FrameType.intType()))),
-            CfReturn.forType(ValueType.INT),
+            CfReturn.IRETURN,
             label38,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
@@ -7094,7 +7094,7 @@ public final class BackportedMethods {
                     factory.createProto(factory.booleanType, factory.objectType),
                     factory.createString("equals")),
                 false),
-            CfReturn.forType(ValueType.INT),
+            CfReturn.IRETURN,
             label39),
         ImmutableList.of(),
         ImmutableList.of());
@@ -7135,7 +7135,7 @@ public final class BackportedMethods {
                       FrameType.initializedNonNullReference(factory.objectType),
                       FrameType.initializedNonNullReference(factory.objectType)
                     })),
-            new CfConstNumber(1, ValueType.INT),
+            CfConstNumber.ICONST_1,
             new CfGoto(label3),
             label2,
             new CfFrame(
@@ -7145,7 +7145,7 @@ public final class BackportedMethods {
                       FrameType.initializedNonNullReference(factory.objectType),
                       FrameType.initializedNonNullReference(factory.objectType)
                     })),
-            new CfConstNumber(0, ValueType.INT),
+            CfConstNumber.ICONST_0,
             label3,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
@@ -7155,7 +7155,7 @@ public final class BackportedMethods {
                       FrameType.initializedNonNullReference(factory.objectType)
                     }),
                 new ArrayDeque<>(Arrays.asList(FrameType.intType()))),
-            CfReturn.forType(ValueType.INT),
+            CfReturn.IRETURN,
             label4),
         ImmutableList.of(),
         ImmutableList.of());
@@ -7174,7 +7174,7 @@ public final class BackportedMethods {
             label0,
             CfLoad.ALOAD_0,
             new CfIf(IfType.NE, ValueType.OBJECT, label1),
-            new CfConstNumber(0, ValueType.INT),
+            CfConstNumber.ICONST_0,
             new CfGoto(label2),
             label1,
             new CfFrame(
@@ -7195,7 +7195,7 @@ public final class BackportedMethods {
                     new int[] {0},
                     new FrameType[] {FrameType.initializedNonNullReference(factory.objectType)}),
                 new ArrayDeque<>(Arrays.asList(FrameType.intType()))),
-            CfReturn.forType(ValueType.INT),
+            CfReturn.IRETURN,
             label3),
         ImmutableList.of(),
         ImmutableList.of());
@@ -7214,21 +7214,21 @@ public final class BackportedMethods {
             label0,
             CfLoad.ALOAD_0,
             new CfIf(IfType.NE, ValueType.OBJECT, label1),
-            new CfConstNumber(1, ValueType.INT),
+            CfConstNumber.ICONST_1,
             new CfGoto(label2),
             label1,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0},
                     new FrameType[] {FrameType.initializedNonNullReference(factory.objectType)})),
-            new CfConstNumber(0, ValueType.INT),
+            CfConstNumber.ICONST_0,
             label2,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0},
                     new FrameType[] {FrameType.initializedNonNullReference(factory.objectType)}),
                 new ArrayDeque<>(Arrays.asList(FrameType.intType()))),
-            CfReturn.forType(ValueType.INT),
+            CfReturn.IRETURN,
             label3),
         ImmutableList.of(),
         ImmutableList.of());
@@ -7247,21 +7247,21 @@ public final class BackportedMethods {
             label0,
             CfLoad.ALOAD_0,
             new CfIf(IfType.EQ, ValueType.OBJECT, label1),
-            new CfConstNumber(1, ValueType.INT),
+            CfConstNumber.ICONST_1,
             new CfGoto(label2),
             label1,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0},
                     new FrameType[] {FrameType.initializedNonNullReference(factory.objectType)})),
-            new CfConstNumber(0, ValueType.INT),
+            CfConstNumber.ICONST_0,
             label2,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0},
                     new FrameType[] {FrameType.initializedNonNullReference(factory.objectType)}),
                 new ArrayDeque<>(Arrays.asList(FrameType.intType()))),
-            CfReturn.forType(ValueType.INT),
+            CfReturn.IRETURN,
             label3),
         ImmutableList.of(),
         ImmutableList.of());
@@ -7280,7 +7280,7 @@ public final class BackportedMethods {
             CfLoad.ALOAD_0,
             new CfIf(IfType.EQ, ValueType.OBJECT, label1),
             CfLoad.ALOAD_0,
-            CfReturn.forType(ValueType.OBJECT),
+            CfReturn.ARETURN,
             label1,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
@@ -7298,7 +7298,7 @@ public final class BackportedMethods {
                     factory.createProto(factory.objectType, factory.objectType, factory.stringType),
                     factory.createString("requireNonNull")),
                 false),
-            CfReturn.forType(ValueType.OBJECT),
+            CfReturn.ARETURN,
             label2),
         ImmutableList.of(),
         ImmutableList.of());
@@ -7319,7 +7319,7 @@ public final class BackportedMethods {
             CfLoad.ALOAD_0,
             new CfIf(IfType.EQ, ValueType.OBJECT, label1),
             CfLoad.ALOAD_0,
-            CfReturn.forType(ValueType.OBJECT),
+            CfReturn.ARETURN,
             label1,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
@@ -7346,7 +7346,7 @@ public final class BackportedMethods {
                     factory.createProto(factory.objectType),
                     factory.createString("get")),
                 true),
-            new CfStore(ValueType.OBJECT, 2),
+            CfStore.ASTORE_2,
             label2,
             CfLoad.ALOAD_2,
             new CfConstString(factory.createString("supplier.get()")),
@@ -7357,7 +7357,7 @@ public final class BackportedMethods {
                     factory.createProto(factory.objectType, factory.objectType, factory.stringType),
                     factory.createString("requireNonNull")),
                 false),
-            CfReturn.forType(ValueType.OBJECT),
+            CfReturn.ARETURN,
             label3),
         ImmutableList.of(),
         ImmutableList.of());
@@ -7379,7 +7379,7 @@ public final class BackportedMethods {
             new CfIf(IfType.NE, ValueType.OBJECT, label2),
             label1,
             new CfNew(factory.createType("Ljava/lang/NullPointerException;")),
-            new CfStackInstruction(CfStackInstruction.Opcode.Dup),
+            CfStackInstruction.DUP,
             CfLoad.ALOAD_1,
             new CfInvoke(
                 183,
@@ -7398,7 +7398,7 @@ public final class BackportedMethods {
                       FrameType.initializedNonNullReference(factory.stringType)
                     })),
             CfLoad.ALOAD_0,
-            CfReturn.forType(ValueType.OBJECT),
+            CfReturn.ARETURN,
             label3),
         ImmutableList.of(),
         ImmutableList.of());
@@ -7455,10 +7455,10 @@ public final class BackportedMethods {
                     }),
                 new ArrayDeque<>(
                     Arrays.asList(FrameType.initializedNonNullReference(factory.stringType)))),
-            new CfStore(ValueType.OBJECT, 2),
+            CfStore.ASTORE_2,
             label4,
             new CfNew(factory.createType("Ljava/lang/NullPointerException;")),
-            new CfStackInstruction(CfStackInstruction.Opcode.Dup),
+            CfStackInstruction.DUP,
             CfLoad.ALOAD_2,
             new CfInvoke(
                 183,
@@ -7478,7 +7478,7 @@ public final class BackportedMethods {
                           factory.createType("Ljava/util/function/Supplier;"))
                     })),
             CfLoad.ALOAD_0,
-            CfReturn.forType(ValueType.OBJECT),
+            CfReturn.ARETURN,
             label6),
         ImmutableList.of(),
         ImmutableList.of());
@@ -7502,7 +7502,7 @@ public final class BackportedMethods {
                     factory.createProto(factory.stringType, factory.objectType, factory.stringType),
                     factory.createString("toString")),
                 false),
-            CfReturn.forType(ValueType.OBJECT),
+            CfReturn.ARETURN,
             label1),
         ImmutableList.of(),
         ImmutableList.of());
@@ -7549,7 +7549,7 @@ public final class BackportedMethods {
                     }),
                 new ArrayDeque<>(
                     Arrays.asList(FrameType.initializedNonNullReference(factory.stringType)))),
-            CfReturn.forType(ValueType.OBJECT),
+            CfReturn.ARETURN,
             label3),
         ImmutableList.of(),
         ImmutableList.of());
@@ -7886,7 +7886,7 @@ public final class BackportedMethods {
                     factory.createString("isPresent")),
                 false),
             new CfIf(IfType.NE, ValueType.INT, label1),
-            new CfConstNumber(1, ValueType.INT),
+            CfConstNumber.ICONST_1,
             new CfGoto(label2),
             label1,
             new CfFrame(
@@ -7896,7 +7896,7 @@ public final class BackportedMethods {
                       FrameType.initializedNonNullReference(
                           factory.createType("Ljava/util/Optional;"))
                     })),
-            new CfConstNumber(0, ValueType.INT),
+            CfConstNumber.ICONST_0,
             label2,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
@@ -7906,7 +7906,7 @@ public final class BackportedMethods {
                           factory.createType("Ljava/util/Optional;"))
                     }),
                 new ArrayDeque<>(Arrays.asList(FrameType.intType()))),
-            CfReturn.forType(ValueType.INT),
+            CfReturn.IRETURN,
             label3),
         ImmutableList.of(),
         ImmutableList.of());
@@ -7932,7 +7932,7 @@ public final class BackportedMethods {
                     factory.createString("isPresent")),
                 false),
             new CfIf(IfType.NE, ValueType.INT, label1),
-            new CfConstNumber(1, ValueType.INT),
+            CfConstNumber.ICONST_1,
             new CfGoto(label2),
             label1,
             new CfFrame(
@@ -7942,7 +7942,7 @@ public final class BackportedMethods {
                       FrameType.initializedNonNullReference(
                           factory.createType("Ljava/util/OptionalDouble;"))
                     })),
-            new CfConstNumber(0, ValueType.INT),
+            CfConstNumber.ICONST_0,
             label2,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
@@ -7952,7 +7952,7 @@ public final class BackportedMethods {
                           factory.createType("Ljava/util/OptionalDouble;"))
                     }),
                 new ArrayDeque<>(Arrays.asList(FrameType.intType()))),
-            CfReturn.forType(ValueType.INT),
+            CfReturn.IRETURN,
             label3),
         ImmutableList.of(),
         ImmutableList.of());
@@ -7978,7 +7978,7 @@ public final class BackportedMethods {
                     factory.createString("isPresent")),
                 false),
             new CfIf(IfType.NE, ValueType.INT, label1),
-            new CfConstNumber(1, ValueType.INT),
+            CfConstNumber.ICONST_1,
             new CfGoto(label2),
             label1,
             new CfFrame(
@@ -7988,7 +7988,7 @@ public final class BackportedMethods {
                       FrameType.initializedNonNullReference(
                           factory.createType("Ljava/util/OptionalInt;"))
                     })),
-            new CfConstNumber(0, ValueType.INT),
+            CfConstNumber.ICONST_0,
             label2,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
@@ -7998,7 +7998,7 @@ public final class BackportedMethods {
                           factory.createType("Ljava/util/OptionalInt;"))
                     }),
                 new ArrayDeque<>(Arrays.asList(FrameType.intType()))),
-            CfReturn.forType(ValueType.INT),
+            CfReturn.IRETURN,
             label3),
         ImmutableList.of(),
         ImmutableList.of());
@@ -8024,7 +8024,7 @@ public final class BackportedMethods {
                     factory.createString("isPresent")),
                 false),
             new CfIf(IfType.NE, ValueType.INT, label1),
-            new CfConstNumber(1, ValueType.INT),
+            CfConstNumber.ICONST_1,
             new CfGoto(label2),
             label1,
             new CfFrame(
@@ -8034,7 +8034,7 @@ public final class BackportedMethods {
                       FrameType.initializedNonNullReference(
                           factory.createType("Ljava/util/OptionalLong;"))
                     })),
-            new CfConstNumber(0, ValueType.INT),
+            CfConstNumber.ICONST_0,
             label2,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
@@ -8044,7 +8044,7 @@ public final class BackportedMethods {
                           factory.createType("Ljava/util/OptionalLong;"))
                     }),
                 new ArrayDeque<>(Arrays.asList(FrameType.intType()))),
-            CfReturn.forType(ValueType.INT),
+            CfReturn.IRETURN,
             label3),
         ImmutableList.of(),
         ImmutableList.of());
@@ -8071,7 +8071,7 @@ public final class BackportedMethods {
                     factory.createProto(factory.objectType, factory.objectType),
                     factory.createString("requireNonNull")),
                 false),
-            new CfStackInstruction(CfStackInstruction.Opcode.Pop),
+            CfStackInstruction.POP,
             label1,
             CfLoad.ALOAD_0,
             new CfInvoke(
@@ -8084,7 +8084,7 @@ public final class BackportedMethods {
             new CfIf(IfType.EQ, ValueType.INT, label3),
             label2,
             CfLoad.ALOAD_0,
-            CfReturn.forType(ValueType.OBJECT),
+            CfReturn.ARETURN,
             label3,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
@@ -8104,7 +8104,7 @@ public final class BackportedMethods {
                     factory.createString("get")),
                 true),
             new CfCheckCast(factory.createType("Ljava/util/Optional;")),
-            new CfStore(ValueType.OBJECT, 2),
+            CfStore.ASTORE_2,
             label4,
             CfLoad.ALOAD_2,
             new CfInvoke(
@@ -8115,7 +8115,7 @@ public final class BackportedMethods {
                     factory.createString("requireNonNull")),
                 false),
             new CfCheckCast(factory.createType("Ljava/util/Optional;")),
-            CfReturn.forType(ValueType.OBJECT),
+            CfReturn.ARETURN,
             label5),
         ImmutableList.of(),
         ImmutableList.of());
@@ -8158,7 +8158,7 @@ public final class BackportedMethods {
                         factory.createType("Ljava/util/stream/Stream;"), factory.objectType),
                     factory.createString("of")),
                 true),
-            CfReturn.forType(ValueType.OBJECT),
+            CfReturn.ARETURN,
             label2,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
@@ -8174,7 +8174,7 @@ public final class BackportedMethods {
                     factory.createProto(factory.createType("Ljava/util/stream/Stream;")),
                     factory.createString("empty")),
                 true),
-            CfReturn.forType(ValueType.OBJECT),
+            CfReturn.ARETURN,
             label3),
         ImmutableList.of(),
         ImmutableList.of());
@@ -8217,7 +8217,7 @@ public final class BackportedMethods {
                         factory.createType("Ljava/util/stream/DoubleStream;"), factory.doubleType),
                     factory.createString("of")),
                 true),
-            CfReturn.forType(ValueType.OBJECT),
+            CfReturn.ARETURN,
             label2,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
@@ -8233,7 +8233,7 @@ public final class BackportedMethods {
                     factory.createProto(factory.createType("Ljava/util/stream/DoubleStream;")),
                     factory.createString("empty")),
                 true),
-            CfReturn.forType(ValueType.OBJECT),
+            CfReturn.ARETURN,
             label3),
         ImmutableList.of(),
         ImmutableList.of());
@@ -8276,7 +8276,7 @@ public final class BackportedMethods {
                         factory.createType("Ljava/util/stream/IntStream;"), factory.intType),
                     factory.createString("of")),
                 true),
-            CfReturn.forType(ValueType.OBJECT),
+            CfReturn.ARETURN,
             label2,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
@@ -8292,7 +8292,7 @@ public final class BackportedMethods {
                     factory.createProto(factory.createType("Ljava/util/stream/IntStream;")),
                     factory.createString("empty")),
                 true),
-            CfReturn.forType(ValueType.OBJECT),
+            CfReturn.ARETURN,
             label3),
         ImmutableList.of(),
         ImmutableList.of());
@@ -8335,7 +8335,7 @@ public final class BackportedMethods {
                         factory.createType("Ljava/util/stream/LongStream;"), factory.longType),
                     factory.createString("of")),
                 true),
-            CfReturn.forType(ValueType.OBJECT),
+            CfReturn.ARETURN,
             label2,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
@@ -8351,7 +8351,7 @@ public final class BackportedMethods {
                     factory.createProto(factory.createType("Ljava/util/stream/LongStream;")),
                     factory.createString("empty")),
                 true),
-            CfReturn.forType(ValueType.OBJECT),
+            CfReturn.ARETURN,
             label3),
         ImmutableList.of(),
         ImmutableList.of());
@@ -8374,7 +8374,7 @@ public final class BackportedMethods {
                     factory.createProto(factory.createType("Ljava/util/function/Predicate;")),
                     factory.createString("negate")),
                 true),
-            CfReturn.forType(ValueType.OBJECT),
+            CfReturn.ARETURN,
             label1),
         ImmutableList.of(),
         ImmutableList.of());
@@ -8391,8 +8391,8 @@ public final class BackportedMethods {
             label0,
             CfLoad.ILOAD_0,
             CfLoad.ILOAD_1,
-            new CfArithmeticBinop(CfArithmeticBinop.Opcode.Sub, NumericType.INT),
-            CfReturn.forType(ValueType.INT),
+            CfArithmeticBinop.ISUB,
+            CfReturn.IRETURN,
             label1),
         ImmutableList.of(),
         ImmutableList.of());
@@ -8408,13 +8408,13 @@ public final class BackportedMethods {
         ImmutableList.of(
             label0,
             CfLoad.ILOAD_0,
-            new CfConstNumber(65535, ValueType.INT),
-            new CfLogicalBinop(CfLogicalBinop.Opcode.And, NumericType.INT),
+            CfConstNumber.constNumber(65535, ValueType.INT),
+            CfLogicalBinop.IAND,
             CfLoad.ILOAD_1,
-            new CfConstNumber(65535, ValueType.INT),
-            new CfLogicalBinop(CfLogicalBinop.Opcode.And, NumericType.INT),
-            new CfArithmeticBinop(CfArithmeticBinop.Opcode.Sub, NumericType.INT),
-            CfReturn.forType(ValueType.INT),
+            CfConstNumber.constNumber(65535, ValueType.INT),
+            CfLogicalBinop.IAND,
+            CfArithmeticBinop.ISUB,
+            CfReturn.IRETURN,
             label1),
         ImmutableList.of(),
         ImmutableList.of());
@@ -8430,9 +8430,9 @@ public final class BackportedMethods {
         ImmutableList.of(
             label0,
             CfLoad.ILOAD_0,
-            new CfConstNumber(65535, ValueType.INT),
-            new CfLogicalBinop(CfLogicalBinop.Opcode.And, NumericType.INT),
-            CfReturn.forType(ValueType.INT),
+            CfConstNumber.constNumber(65535, ValueType.INT),
+            CfLogicalBinop.IAND,
+            CfReturn.IRETURN,
             label1),
         ImmutableList.of(),
         ImmutableList.of());
@@ -8448,10 +8448,10 @@ public final class BackportedMethods {
         ImmutableList.of(
             label0,
             CfLoad.ILOAD_0,
-            new CfNumberConversion(NumericType.INT, NumericType.LONG),
-            new CfConstNumber(65535, ValueType.LONG),
-            new CfLogicalBinop(CfLogicalBinop.Opcode.And, NumericType.LONG),
-            CfReturn.forType(ValueType.LONG),
+            CfNumberConversion.I2L,
+            CfConstNumber.constNumber(65535, ValueType.LONG),
+            CfLogicalBinop.LAND,
+            CfReturn.LRETURN,
             label1),
         ImmutableList.of(),
         ImmutableList.of());
@@ -8501,7 +8501,7 @@ public final class BackportedMethods {
                     Arrays.asList(
                         FrameType.initializedNonNullReference(
                             factory.createType("Ljava/util/stream/Stream;"))))),
-            CfReturn.forType(ValueType.OBJECT),
+            CfReturn.ARETURN,
             label3),
         ImmutableList.of(),
         ImmutableList.of());
@@ -8524,8 +8524,8 @@ public final class BackportedMethods {
         4,
         ImmutableList.of(
             label0,
-            new CfConstNumber(0, ValueType.INT),
-            new CfStore(ValueType.INT, 1),
+            CfConstNumber.ICONST_0,
+             CfStore.ISTORE_1,
             label1,
             CfLoad.ALOAD_0,
             new CfInvoke(
@@ -8535,7 +8535,7 @@ public final class BackportedMethods {
                     factory.createProto(factory.intType),
                     factory.createString("length")),
                 false),
-            new CfStore(ValueType.INT, 2),
+             CfStore.ISTORE_2,
             label2,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
@@ -8558,7 +8558,7 @@ public final class BackportedMethods {
                     factory.createProto(factory.intType, factory.intType),
                     factory.createString("codePointAt")),
                 false),
-            new CfStore(ValueType.INT, 3),
+             CfStore.ISTORE_3,
             label4,
             CfLoad.ILOAD_3,
             new CfInvoke(
@@ -8570,8 +8570,8 @@ public final class BackportedMethods {
                 false),
             new CfIf(IfType.NE, ValueType.INT, label6),
             label5,
-            new CfConstNumber(0, ValueType.INT),
-            CfReturn.forType(ValueType.INT),
+            CfConstNumber.ICONST_0,
+            CfReturn.IRETURN,
             label6,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
@@ -8591,8 +8591,8 @@ public final class BackportedMethods {
                     factory.createProto(factory.intType, factory.intType),
                     factory.createString("charCount")),
                 false),
-            new CfArithmeticBinop(CfArithmeticBinop.Opcode.Add, NumericType.INT),
-            new CfStore(ValueType.INT, 1),
+            CfArithmeticBinop.IADD,
+             CfStore.ISTORE_1,
             label7,
             new CfGoto(label2),
             label8,
@@ -8600,8 +8600,8 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0},
                     new FrameType[] {FrameType.initializedNonNullReference(factory.stringType)})),
-            new CfConstNumber(1, ValueType.INT),
-            CfReturn.forType(ValueType.INT),
+            CfConstNumber.ICONST_1,
+            CfReturn.IRETURN,
             label9),
         ImmutableList.of(),
         ImmutableList.of());
@@ -8628,7 +8628,7 @@ public final class BackportedMethods {
             CfLoad.ALOAD_0,
             new CfIf(IfType.NE, ValueType.OBJECT, label1),
             new CfNew(factory.createType("Ljava/lang/NullPointerException;")),
-            new CfStackInstruction(CfStackInstruction.Opcode.Dup),
+            CfStackInstruction.DUP,
             new CfConstString(factory.createString("delimiter")),
             new CfInvoke(
                 183,
@@ -8648,7 +8648,7 @@ public final class BackportedMethods {
                           factory.createType("[Ljava/lang/CharSequence;"))
                     })),
             new CfNew(factory.stringBuilderType),
-            new CfStackInstruction(CfStackInstruction.Opcode.Dup),
+            CfStackInstruction.DUP,
             new CfInvoke(
                 183,
                 factory.createMethod(
@@ -8656,7 +8656,7 @@ public final class BackportedMethods {
                     factory.createProto(factory.voidType),
                     factory.createString("<init>")),
                 false),
-            new CfStore(ValueType.OBJECT, 2),
+            CfStore.ASTORE_2,
             label2,
             CfLoad.ALOAD_1,
             CfArrayLength.INSTANCE,
@@ -8664,7 +8664,7 @@ public final class BackportedMethods {
             label3,
             CfLoad.ALOAD_2,
             CfLoad.ALOAD_1,
-            new CfConstNumber(0, ValueType.INT),
+            CfConstNumber.ICONST_0,
             CfArrayLoad.forType(MemberType.OBJECT),
             new CfInvoke(
                 182,
@@ -8673,10 +8673,10 @@ public final class BackportedMethods {
                     factory.createProto(factory.stringBuilderType, factory.charSequenceType),
                     factory.createString("append")),
                 false),
-            new CfStackInstruction(CfStackInstruction.Opcode.Pop),
+            CfStackInstruction.POP,
             label4,
-            new CfConstNumber(1, ValueType.INT),
-            new CfStore(ValueType.INT, 3),
+            CfConstNumber.ICONST_1,
+             CfStore.ISTORE_3,
             label5,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
@@ -8702,7 +8702,7 @@ public final class BackportedMethods {
                     factory.createProto(factory.stringBuilderType, factory.charSequenceType),
                     factory.createString("append")),
                 false),
-            new CfStackInstruction(CfStackInstruction.Opcode.Pop),
+            CfStackInstruction.POP,
             label7,
             CfLoad.ALOAD_2,
             CfLoad.ALOAD_1,
@@ -8715,7 +8715,7 @@ public final class BackportedMethods {
                     factory.createProto(factory.stringBuilderType, factory.charSequenceType),
                     factory.createString("append")),
                 false),
-            new CfStackInstruction(CfStackInstruction.Opcode.Pop),
+            CfStackInstruction.POP,
             label8,
             new CfIinc(3, 1),
             new CfGoto(label5),
@@ -8737,7 +8737,7 @@ public final class BackportedMethods {
                     factory.createProto(factory.stringType),
                     factory.createString("toString")),
                 false),
-            CfReturn.forType(ValueType.OBJECT),
+            CfReturn.ARETURN,
             label10),
         ImmutableList.of(),
         ImmutableList.of());
@@ -8763,7 +8763,7 @@ public final class BackportedMethods {
             CfLoad.ALOAD_0,
             new CfIf(IfType.NE, ValueType.OBJECT, label1),
             new CfNew(factory.createType("Ljava/lang/NullPointerException;")),
-            new CfStackInstruction(CfStackInstruction.Opcode.Dup),
+            CfStackInstruction.DUP,
             new CfConstString(factory.createString("delimiter")),
             new CfInvoke(
                 183,
@@ -8783,7 +8783,7 @@ public final class BackportedMethods {
                           factory.createType("Ljava/lang/Iterable;"))
                     })),
             new CfNew(factory.stringBuilderType),
-            new CfStackInstruction(CfStackInstruction.Opcode.Dup),
+            CfStackInstruction.DUP,
             new CfInvoke(
                 183,
                 factory.createMethod(
@@ -8791,7 +8791,7 @@ public final class BackportedMethods {
                     factory.createProto(factory.voidType),
                     factory.createString("<init>")),
                 false),
-            new CfStore(ValueType.OBJECT, 2),
+            CfStore.ASTORE_2,
             label2,
             CfLoad.ALOAD_1,
             new CfInvoke(
@@ -8801,7 +8801,7 @@ public final class BackportedMethods {
                     factory.createProto(factory.createType("Ljava/util/Iterator;")),
                     factory.createString("iterator")),
                 true),
-            new CfStore(ValueType.OBJECT, 3),
+             CfStore.ASTORE_3,
             label3,
             CfLoad.ALOAD_3,
             new CfInvoke(
@@ -8830,7 +8830,7 @@ public final class BackportedMethods {
                     factory.createProto(factory.stringBuilderType, factory.charSequenceType),
                     factory.createString("append")),
                 false),
-            new CfStackInstruction(CfStackInstruction.Opcode.Pop),
+            CfStackInstruction.POP,
             label5,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
@@ -8862,7 +8862,7 @@ public final class BackportedMethods {
                     factory.createProto(factory.stringBuilderType, factory.charSequenceType),
                     factory.createString("append")),
                 false),
-            new CfStackInstruction(CfStackInstruction.Opcode.Pop),
+            CfStackInstruction.POP,
             label7,
             CfLoad.ALOAD_2,
             CfLoad.ALOAD_3,
@@ -8881,7 +8881,7 @@ public final class BackportedMethods {
                     factory.createProto(factory.stringBuilderType, factory.charSequenceType),
                     factory.createString("append")),
                 false),
-            new CfStackInstruction(CfStackInstruction.Opcode.Pop),
+            CfStackInstruction.POP,
             new CfGoto(label5),
             label8,
             new CfFrame(
@@ -8903,7 +8903,7 @@ public final class BackportedMethods {
                     factory.createProto(factory.stringType),
                     factory.createString("toString")),
                 false),
-            CfReturn.forType(ValueType.OBJECT),
+            CfReturn.ARETURN,
             label9),
         ImmutableList.of(),
         ImmutableList.of());
@@ -8937,9 +8937,9 @@ public final class BackportedMethods {
             new CfIf(IfType.GE, ValueType.INT, label2),
             label1,
             new CfNew(factory.createType("Ljava/lang/IllegalArgumentException;")),
-            new CfStackInstruction(CfStackInstruction.Opcode.Dup),
+            CfStackInstruction.DUP,
             new CfNew(factory.stringBuilderType),
-            new CfStackInstruction(CfStackInstruction.Opcode.Dup),
+            CfStackInstruction.DUP,
             new CfInvoke(
                 183,
                 factory.createMethod(
@@ -8993,7 +8993,7 @@ public final class BackportedMethods {
                     factory.createProto(factory.intType),
                     factory.createString("length")),
                 false),
-            new CfStore(ValueType.INT, 2),
+             CfStore.ISTORE_2,
             label3,
             CfLoad.ILOAD_1,
             new CfIf(IfType.EQ, ValueType.INT, label4),
@@ -9009,7 +9009,7 @@ public final class BackportedMethods {
                       FrameType.intType()
                     })),
             new CfConstString(factory.createString("")),
-            CfReturn.forType(ValueType.OBJECT),
+            CfReturn.ARETURN,
             label5,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
@@ -9020,11 +9020,11 @@ public final class BackportedMethods {
                       FrameType.intType()
                     })),
             CfLoad.ILOAD_1,
-            new CfConstNumber(1, ValueType.INT),
+            CfConstNumber.ICONST_1,
             new CfIfCmp(IfType.NE, ValueType.INT, label7),
             label6,
             CfLoad.ALOAD_0,
-            CfReturn.forType(ValueType.OBJECT),
+            CfReturn.ARETURN,
             label7,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
@@ -9042,15 +9042,15 @@ public final class BackportedMethods {
                     factory.createProto(factory.intType),
                     factory.createString("length")),
                 false),
-            new CfConstNumber(2147483647, ValueType.INT),
+            CfConstNumber.constNumber(2147483647, ValueType.INT),
             CfLoad.ILOAD_1,
-            new CfArithmeticBinop(CfArithmeticBinop.Opcode.Div, NumericType.INT),
+            CfArithmeticBinop.IDIV,
             new CfIfCmp(IfType.LE, ValueType.INT, label10),
             label8,
             new CfNew(factory.createType("Ljava/lang/OutOfMemoryError;")),
-            new CfStackInstruction(CfStackInstruction.Opcode.Dup),
+            CfStackInstruction.DUP,
             new CfNew(factory.stringBuilderType),
-            new CfStackInstruction(CfStackInstruction.Opcode.Dup),
+            CfStackInstruction.DUP,
             new CfInvoke(
                 183,
                 factory.createMethod(
@@ -9132,10 +9132,10 @@ public final class BackportedMethods {
                       FrameType.intType()
                     })),
             new CfNew(factory.stringBuilderType),
-            new CfStackInstruction(CfStackInstruction.Opcode.Dup),
+            CfStackInstruction.DUP,
             CfLoad.ILOAD_2,
             CfLoad.ILOAD_1,
-            new CfArithmeticBinop(CfArithmeticBinop.Opcode.Mul, NumericType.INT),
+            CfArithmeticBinop.IMUL,
             new CfInvoke(
                 183,
                 factory.createMethod(
@@ -9143,10 +9143,10 @@ public final class BackportedMethods {
                     factory.createProto(factory.voidType, factory.intType),
                     factory.createString("<init>")),
                 false),
-            new CfStore(ValueType.OBJECT, 3),
+             CfStore.ASTORE_3,
             label11,
-            new CfConstNumber(0, ValueType.INT),
-            new CfStore(ValueType.INT, 4),
+            CfConstNumber.ICONST_0,
+             CfStore.ISTORE_4,
             label12,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
@@ -9171,7 +9171,7 @@ public final class BackportedMethods {
                     factory.createProto(factory.stringBuilderType, factory.stringType),
                     factory.createString("append")),
                 false),
-            new CfStackInstruction(CfStackInstruction.Opcode.Pop),
+            CfStackInstruction.POP,
             label14,
             new CfIinc(4, 1),
             new CfGoto(label12),
@@ -9193,7 +9193,7 @@ public final class BackportedMethods {
                     factory.createProto(factory.stringType),
                     factory.createString("toString")),
                 false),
-            CfReturn.forType(ValueType.OBJECT),
+            CfReturn.ARETURN,
             label16),
         ImmutableList.of(),
         ImmutableList.of());
@@ -9222,8 +9222,8 @@ public final class BackportedMethods {
         4,
         ImmutableList.of(
             label0,
-            new CfConstNumber(0, ValueType.INT),
-            new CfStore(ValueType.INT, 1),
+            CfConstNumber.ICONST_0,
+             CfStore.ISTORE_1,
             label1,
             CfLoad.ALOAD_0,
             new CfInvoke(
@@ -9233,7 +9233,7 @@ public final class BackportedMethods {
                     factory.createProto(factory.intType),
                     factory.createString("length")),
                 false),
-            new CfStore(ValueType.INT, 2),
+             CfStore.ISTORE_2,
             label2,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
@@ -9256,7 +9256,7 @@ public final class BackportedMethods {
                     factory.createProto(factory.intType, factory.intType),
                     factory.createString("codePointAt")),
                 false),
-            new CfStore(ValueType.INT, 3),
+             CfStore.ISTORE_3,
             label4,
             CfLoad.ILOAD_3,
             new CfInvoke(
@@ -9288,8 +9288,8 @@ public final class BackportedMethods {
                     factory.createProto(factory.intType, factory.intType),
                     factory.createString("charCount")),
                 false),
-            new CfArithmeticBinop(CfArithmeticBinop.Opcode.Add, NumericType.INT),
-            new CfStore(ValueType.INT, 1),
+            CfArithmeticBinop.IADD,
+             CfStore.ISTORE_1,
             label7,
             new CfGoto(label2),
             label8,
@@ -9314,7 +9314,7 @@ public final class BackportedMethods {
                     factory.createProto(factory.intType, factory.charSequenceType, factory.intType),
                     factory.createString("codePointBefore")),
                 false),
-            new CfStore(ValueType.INT, 3),
+             CfStore.ISTORE_3,
             label10,
             CfLoad.ILOAD_3,
             new CfInvoke(
@@ -9346,8 +9346,8 @@ public final class BackportedMethods {
                     factory.createProto(factory.intType, factory.intType),
                     factory.createString("charCount")),
                 false),
-            new CfArithmeticBinop(CfArithmeticBinop.Opcode.Sub, NumericType.INT),
-            new CfStore(ValueType.INT, 2),
+            CfArithmeticBinop.ISUB,
+             CfStore.ISTORE_2,
             label13,
             new CfGoto(label8),
             label14,
@@ -9369,7 +9369,7 @@ public final class BackportedMethods {
                     factory.createProto(factory.stringType, factory.intType, factory.intType),
                     factory.createString("substring")),
                 false),
-            CfReturn.forType(ValueType.OBJECT),
+            CfReturn.ARETURN,
             label15),
         ImmutableList.of(),
         ImmutableList.of());
@@ -9392,8 +9392,8 @@ public final class BackportedMethods {
         4,
         ImmutableList.of(
             label0,
-            new CfConstNumber(0, ValueType.INT),
-            new CfStore(ValueType.INT, 1),
+            CfConstNumber.ICONST_0,
+             CfStore.ISTORE_1,
             label1,
             CfLoad.ALOAD_0,
             new CfInvoke(
@@ -9403,7 +9403,7 @@ public final class BackportedMethods {
                     factory.createProto(factory.intType),
                     factory.createString("length")),
                 false),
-            new CfStore(ValueType.INT, 2),
+             CfStore.ISTORE_2,
             label2,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
@@ -9426,7 +9426,7 @@ public final class BackportedMethods {
                     factory.createProto(factory.intType, factory.intType),
                     factory.createString("codePointAt")),
                 false),
-            new CfStore(ValueType.INT, 3),
+             CfStore.ISTORE_3,
             label4,
             CfLoad.ILOAD_3,
             new CfInvoke(
@@ -9458,8 +9458,8 @@ public final class BackportedMethods {
                     factory.createProto(factory.intType, factory.intType),
                     factory.createString("charCount")),
                 false),
-            new CfArithmeticBinop(CfArithmeticBinop.Opcode.Add, NumericType.INT),
-            new CfStore(ValueType.INT, 1),
+            CfArithmeticBinop.IADD,
+             CfStore.ISTORE_1,
             label7,
             new CfGoto(label2),
             label8,
@@ -9481,7 +9481,7 @@ public final class BackportedMethods {
                     factory.createProto(factory.stringType, factory.intType, factory.intType),
                     factory.createString("substring")),
                 false),
-            CfReturn.forType(ValueType.OBJECT),
+            CfReturn.ARETURN,
             label9),
         ImmutableList.of(),
         ImmutableList.of());
@@ -9511,7 +9511,7 @@ public final class BackportedMethods {
                     factory.createProto(factory.intType),
                     factory.createString("length")),
                 false),
-            new CfStore(ValueType.INT, 1),
+             CfStore.ISTORE_1,
             label1,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
@@ -9531,7 +9531,7 @@ public final class BackportedMethods {
                     factory.createProto(factory.intType, factory.charSequenceType, factory.intType),
                     factory.createString("codePointBefore")),
                 false),
-            new CfStore(ValueType.INT, 2),
+             CfStore.ISTORE_2,
             label3,
             CfLoad.ILOAD_2,
             new CfInvoke(
@@ -9562,8 +9562,8 @@ public final class BackportedMethods {
                     factory.createProto(factory.intType, factory.intType),
                     factory.createString("charCount")),
                 false),
-            new CfArithmeticBinop(CfArithmeticBinop.Opcode.Sub, NumericType.INT),
-            new CfStore(ValueType.INT, 1),
+            CfArithmeticBinop.ISUB,
+             CfStore.ISTORE_1,
             label6,
             new CfGoto(label1),
             label7,
@@ -9574,7 +9574,7 @@ public final class BackportedMethods {
                       FrameType.initializedNonNullReference(factory.stringType), FrameType.intType()
                     })),
             CfLoad.ALOAD_0,
-            new CfConstNumber(0, ValueType.INT),
+            CfConstNumber.ICONST_0,
             CfLoad.ILOAD_1,
             new CfInvoke(
                 182,
@@ -9583,7 +9583,7 @@ public final class BackportedMethods {
                     factory.createProto(factory.stringType, factory.intType, factory.intType),
                     factory.createString("substring")),
                 false),
-            CfReturn.forType(ValueType.OBJECT),
+            CfReturn.ARETURN,
             label8),
         ImmutableList.of(),
         ImmutableList.of());
@@ -9604,10 +9604,10 @@ public final class BackportedMethods {
             label0,
             new CfConstClass(factory.throwableType),
             new CfConstString(factory.createString("addSuppressed")),
-            new CfConstNumber(1, ValueType.INT),
+            CfConstNumber.ICONST_1,
             new CfNewArray(factory.createType("[Ljava/lang/Class;")),
-            new CfStackInstruction(CfStackInstruction.Opcode.Dup),
-            new CfConstNumber(0, ValueType.INT),
+            CfStackInstruction.DUP,
+            CfConstNumber.ICONST_0,
             new CfConstClass(factory.throwableType),
             CfArrayStore.forType(MemberType.OBJECT),
             new CfInvoke(
@@ -9620,14 +9620,14 @@ public final class BackportedMethods {
                         factory.createType("[Ljava/lang/Class;")),
                     factory.createString("getDeclaredMethod")),
                 false),
-            new CfStore(ValueType.OBJECT, 2),
+            CfStore.ASTORE_2,
             label1,
             CfLoad.ALOAD_2,
             CfLoad.ALOAD_0,
-            new CfConstNumber(1, ValueType.INT),
+            CfConstNumber.ICONST_1,
             new CfNewArray(factory.createType("[Ljava/lang/Object;")),
-            new CfStackInstruction(CfStackInstruction.Opcode.Dup),
-            new CfConstNumber(0, ValueType.INT),
+            CfStackInstruction.DUP,
+            CfConstNumber.ICONST_0,
             CfLoad.ALOAD_1,
             CfArrayStore.forType(MemberType.OBJECT),
             new CfInvoke(
@@ -9640,7 +9640,7 @@ public final class BackportedMethods {
                         factory.createType("[Ljava/lang/Object;")),
                     factory.createString("invoke")),
                 false),
-            new CfStackInstruction(CfStackInstruction.Opcode.Pop),
+            CfStackInstruction.POP,
             label2,
             new CfGoto(label4),
             label3,
@@ -9655,7 +9655,7 @@ public final class BackportedMethods {
                     Arrays.asList(
                         FrameType.initializedNonNullReference(
                             factory.createType("Ljava/lang/Exception;"))))),
-            new CfStore(ValueType.OBJECT, 2),
+            CfStore.ASTORE_2,
             label4,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
@@ -9690,7 +9690,7 @@ public final class BackportedMethods {
             label0,
             new CfConstClass(factory.throwableType),
             new CfConstString(factory.createString("getSuppressed")),
-            new CfConstNumber(0, ValueType.INT),
+            CfConstNumber.ICONST_0,
             new CfNewArray(factory.createType("[Ljava/lang/Class;")),
             new CfInvoke(
                 182,
@@ -9702,11 +9702,11 @@ public final class BackportedMethods {
                         factory.createType("[Ljava/lang/Class;")),
                     factory.createString("getDeclaredMethod")),
                 false),
-            new CfStore(ValueType.OBJECT, 1),
+            CfStore.ASTORE_1,
             label1,
             CfLoad.ALOAD_1,
             CfLoad.ALOAD_0,
-            new CfConstNumber(0, ValueType.INT),
+            CfConstNumber.ICONST_0,
             new CfNewArray(factory.createType("[Ljava/lang/Object;")),
             new CfInvoke(
                 182,
@@ -9720,7 +9720,7 @@ public final class BackportedMethods {
                 false),
             new CfCheckCast(factory.createType("[Ljava/lang/Throwable;")),
             label2,
-            CfReturn.forType(ValueType.OBJECT),
+            CfReturn.ARETURN,
             label3,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
@@ -9730,11 +9730,11 @@ public final class BackportedMethods {
                     Arrays.asList(
                         FrameType.initializedNonNullReference(
                             factory.createType("Ljava/lang/Exception;"))))),
-            new CfStore(ValueType.OBJECT, 1),
+            CfStore.ASTORE_1,
             label4,
-            new CfConstNumber(0, ValueType.INT),
+            CfConstNumber.ICONST_0,
             new CfNewArray(factory.createType("[Ljava/lang/Throwable;")),
-            CfReturn.forType(ValueType.OBJECT),
+            CfReturn.ARETURN,
             label5),
         ImmutableList.of(
             new CfTryCatch(
@@ -9789,8 +9789,8 @@ public final class BackportedMethods {
                 false),
             new CfIf(IfType.EQ, ValueType.INT, label2),
             label1,
-            new CfConstNumber(1, ValueType.INT),
-            CfReturn.forType(ValueType.INT),
+            CfConstNumber.ICONST_1,
+            CfReturn.IRETURN,
             label2,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
@@ -9817,8 +9817,8 @@ public final class BackportedMethods {
             CfLoad.ALOAD_4,
             new CfIfCmp(IfType.EQ, ValueType.OBJECT, label0),
             label3,
-            new CfConstNumber(0, ValueType.INT),
-            CfReturn.forType(ValueType.INT),
+            CfConstNumber.ICONST_0,
+            CfReturn.IRETURN,
             label4),
         ImmutableList.of(),
         ImmutableList.of());

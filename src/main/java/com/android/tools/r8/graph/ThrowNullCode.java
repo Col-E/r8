@@ -32,7 +32,7 @@ import java.nio.ShortBuffer;
 import java.util.List;
 import java.util.function.Consumer;
 
-import org.jetbrains.annotations.NotNull;
+import javax.annotation.Nonnull;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 
@@ -194,7 +194,7 @@ public class ThrowNullCode extends Code implements CfWritableCode, DexWritableCo
     return false;
   }
 
-  @NotNull
+  @Nonnull
   @Override
   public Code copySubtype() {
     return this;

@@ -27,18 +27,24 @@ import com.android.tools.r8.optimize.interfaces.analysis.CfAnalysisConfig;
 import com.android.tools.r8.optimize.interfaces.analysis.CfFrameState;
 import com.android.tools.r8.utils.structural.CompareToVisitor;
 import com.android.tools.r8.utils.structural.HashingVisitor;
-import org.jetbrains.annotations.NotNull;
+import javax.annotation.Nonnull;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 
+import javax.annotation.Nonnull;
 import java.util.Map;
 
 public class CfCmp extends CfInstruction {
+  public static final CfCmp LCMP = new CfCmp(Bias.NONE, NumericType.LONG);
+  public static final CfCmp FCMPL = new CfCmp(Bias.LT, NumericType.FLOAT);
+  public static final CfCmp FCMPG = new CfCmp(Bias.GT, NumericType.FLOAT);
+  public static final CfCmp DCMPL = new CfCmp(Bias.LT, NumericType.DOUBLE);
+  public static final CfCmp DCMPG = new CfCmp(Bias.GT, NumericType.DOUBLE);
 
   private final Bias bias;
   private final NumericType type;
 
-  public CfCmp(Bias bias, NumericType type) {
+  private CfCmp(Bias bias, NumericType type) {
     assert bias != null;
     assert type != null;
     assert type == NumericType.LONG || type == NumericType.FLOAT || type == NumericType.DOUBLE;
@@ -46,6 +52,20 @@ public class CfCmp extends CfInstruction {
     assert type == NumericType.LONG || bias != Cmp.Bias.NONE;
     this.bias = bias;
     this.type = type;
+  }
+
+  @Nonnull
+  public static CfInstruction compare(@Nonnull Bias bias, @Nonnull NumericType type) {
+    if (bias == Bias.NONE) {
+      if (type == NumericType.LONG) return LCMP;
+    } else if (bias == Bias.LT) {
+      if (type == NumericType.FLOAT) return FCMPL;
+      else if (type == NumericType.DOUBLE) return DCMPL;
+    } else if (bias == Bias.GT) {
+      if (type == NumericType.FLOAT) return FCMPG;
+      else if (type == NumericType.DOUBLE) return DCMPG;
+    }
+    return new CfCmp(bias, type);
   }
 
   @Override
@@ -74,16 +94,11 @@ public class CfCmp extends CfInstruction {
 
   public static CfCmp fromAsm(int opcode) {
     switch (opcode) {
-      case Opcodes.LCMP:
-        return new CfCmp(Bias.NONE, NumericType.LONG);
-      case Opcodes.FCMPL:
-        return new CfCmp(Bias.LT, NumericType.FLOAT);
-      case Opcodes.FCMPG:
-        return new CfCmp(Bias.GT, NumericType.FLOAT);
-      case Opcodes.DCMPL:
-        return new CfCmp(Bias.LT, NumericType.DOUBLE);
-      case Opcodes.DCMPG:
-        return new CfCmp(Bias.GT, NumericType.DOUBLE);
+      case Opcodes.LCMP:  return LCMP;
+      case Opcodes.FCMPL: return FCMPL;
+      case Opcodes.FCMPG: return FCMPG;
+      case Opcodes.DCMPL: return DCMPL;
+      case Opcodes.DCMPG: return DCMPG;
       default:
         throw new Unreachable("Wrong ASM opcode for CfCmp " + opcode);
     }
@@ -107,9 +122,9 @@ public class CfCmp extends CfInstruction {
     printer.print(this);
   }
 
-  @NotNull
+  @Nonnull
   @Override
-  public CfInstruction copy(@NotNull Map<CfLabel, CfLabel> labelMap) {
+  public CfInstruction copy(@Nonnull Map<CfLabel, CfLabel> labelMap) {
     return this;
   }
 

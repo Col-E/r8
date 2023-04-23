@@ -1,7 +1,7 @@
 package com.android.tools.r8.utils;
 
 import com.android.tools.r8.graph.ProgramClass;
-import org.jetbrains.annotations.NotNull;
+import javax.annotation.Nonnull;
 
 import javax.annotation.Nonnull;
 import java.util.Collection;
@@ -9,7 +9,7 @@ import java.util.Collection;
 public interface ClassFilter {
 	ClassFilter PASS_ALL = new ClassFilter() {
 		@Override
-		public boolean test(@NotNull ProgramClass cls) {
+		public boolean test(@Nonnull ProgramClass cls) {
 			return true;
 		}
 
@@ -20,7 +20,7 @@ public interface ClassFilter {
 	};
 	ClassFilter PASS_NONE = new ClassFilter() {
 		@Override
-		public boolean test(@NotNull ProgramClass cls) {
+		public boolean test(@Nonnull ProgramClass cls) {
 			return false;
 		}
 
@@ -40,7 +40,7 @@ public interface ClassFilter {
 	static ClassFilter forType(@Nonnull String internalName) {
 		return new ClassFilter() {
 			@Override
-			public boolean test(@NotNull ProgramClass cls) {
+			public boolean test(@Nonnull ProgramClass cls) {
 				return internalName.equals(cls.getType().getTypeName());
 			}
 
@@ -61,7 +61,7 @@ public interface ClassFilter {
 	static ClassFilter forTypes(@Nonnull Collection<String> internalNames) {
 		return new ClassFilter() {
 			@Override
-			public boolean test(@NotNull ProgramClass cls) {
+			public boolean test(@Nonnull ProgramClass cls) {
 				return internalNames.contains(cls.getType().getTypeName());
 			}
 

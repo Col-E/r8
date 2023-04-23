@@ -33,7 +33,7 @@ public final class ContentProviderClientMethodRewrites {
                 Opcodes.INVOKEVIRTUAL,
                 factory.androidContentContentProviderClientMembers.release,
                 false),
-            new CfStackInstruction(Opcode.Pop));
+            CfStackInstruction.POP);
       }
     };
   }

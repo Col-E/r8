@@ -18,7 +18,7 @@ import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Sets;
-import org.jetbrains.annotations.NotNull;
+import javax.annotation.Nonnull;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -63,7 +63,7 @@ public class DirectMappedDexApplication extends DexApplication {
     this.classpathClasses = classpathClasses;
   }
 
-  @NotNull
+  @Nonnull
   @Override
   public DirectMappedDexApplication copy() {
     ImmutableMap<DexType, ProgramOrClasspathClass> programOrClasspathClassesCopy = ImmutableMap.copyOf(programOrClasspathClasses.entrySet().stream()

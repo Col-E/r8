@@ -29,7 +29,7 @@ import com.android.tools.r8.utils.structural.HashingVisitor;
 import java.util.ListIterator;
 import java.util.Map;
 
-import org.jetbrains.annotations.NotNull;
+import javax.annotation.Nonnull;
 import org.objectweb.asm.MethodVisitor;
 
 public class CfInitClass extends CfInstruction {
@@ -101,9 +101,9 @@ public class CfInitClass extends CfInstruction {
     printer.print(this);
   }
 
-  @NotNull
+  @Nonnull
   @Override
-  public CfInstruction copy(@NotNull Map<CfLabel, CfLabel> labelMap) {
+  public CfInstruction copy(@Nonnull Map<CfLabel, CfLabel> labelMap) {
     return this;
   }
 

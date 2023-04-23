@@ -24,7 +24,7 @@ import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.RetracerForCodePrinting;
 import com.android.tools.r8.utils.structural.Copyable;
 import com.android.tools.r8.utils.structural.HashingVisitor;
-import org.jetbrains.annotations.NotNull;
+import javax.annotation.Nonnull;
 
 import java.nio.ShortBuffer;
 import java.util.Objects;
@@ -247,13 +247,13 @@ public class ThrowExceptionCode extends Code implements DexWritableCode, Copyabl
     return "ThrowExceptionCode";
   }
 
-  @NotNull
+  @Nonnull
   @Override
   public ThrowExceptionCode copy() {
     return this;
   }
 
-  @NotNull
+  @Nonnull
   @Override
   public Code copySubtype() {
     return copy();

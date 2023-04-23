@@ -93,7 +93,7 @@ public class UnrepresentableInDexInstructionRemover implements CfInstructionDesu
       builder.add(
           createMessageString(),
           new CfInvoke(Opcodes.INVOKESTATIC, throwMethod.getReference(), false),
-          new CfStackInstruction(Opcode.Pop));
+          CfStackInstruction.POP);
     }
 
     CfConstString createMessageString() {
@@ -109,7 +109,7 @@ public class UnrepresentableInDexInstructionRemover implements CfInstructionDesu
 
     static void pop(DexType type, Builder<CfInstruction> builder) {
       assert !type.isVoidType();
-      builder.add(new CfStackInstruction(type.isWideType() ? Opcode.Pop2 : Opcode.Pop));
+      builder.add(CfStackInstruction.popType(type));
     }
 
     static void pop(DexProto proto, Builder<CfInstruction> builder) {
@@ -127,7 +127,7 @@ public class UnrepresentableInDexInstructionRemover implements CfInstructionDesu
     static CfInstruction createDefaultValueForType(DexType type) {
       assert !type.isVoidType();
       if (type.isPrimitiveType()) {
-        return new CfConstNumber(0, ValueType.fromDexType(type));
+        return CfConstNumber.constNumber(0, ValueType.fromDexType(type));
       }
       assert type.isReferenceType();
       return CfConstNull.INSTANCE;

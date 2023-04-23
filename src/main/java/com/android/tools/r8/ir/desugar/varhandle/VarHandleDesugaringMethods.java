@@ -1034,10 +1034,10 @@ public final class VarHandleDesugaringMethods {
         ImmutableList.of(
             label0,
             new CfNew(factory.createType("Ljava/lang/invoke/VarHandle;")),
-            new CfStackInstruction(CfStackInstruction.Opcode.Dup),
-            new CfLoad(ValueType.OBJECT, 1),
-            new CfLoad(ValueType.OBJECT, 2),
-            new CfLoad(ValueType.OBJECT, 3),
+            CfStackInstruction.DUP,
+            CfLoad.ALOAD_1,
+            CfLoad.ALOAD_2,
+            CfLoad.ALOAD_3,
             new CfInvoke(
                 183,
                 factory.createMethod(
@@ -1046,7 +1046,7 @@ public final class VarHandleDesugaringMethods {
                         factory.voidType, factory.classType, factory.stringType, factory.classType),
                     factory.createString("<init>")),
                 false),
-            CfReturn.forType(ValueType.OBJECT),
+            CfReturn.ARETURN,
             label1),
         ImmutableList.of(),
         ImmutableList.of());
@@ -1061,7 +1061,7 @@ public final class VarHandleDesugaringMethods {
         1,
         2,
         ImmutableList.of(
-            label0, CfLoad.ALOAD_0, CfReturn.forType(ValueType.OBJECT), label1),
+            label0, CfLoad.ALOAD_0, CfReturn.ARETURN, label1),
         ImmutableList.of(),
         ImmutableList.of());
   }
@@ -1110,10 +1110,10 @@ public final class VarHandleDesugaringMethods {
                     factory.createProto(factory.createType("Ljava/lang/reflect/Field;")),
                     factory.createString("getUnsafeField")),
                 false),
-            new CfStore(ValueType.OBJECT, 2),
+            CfStore.ASTORE_2,
             label2,
-            new CfLoad(ValueType.OBJECT, 2),
-            new CfConstNumber(1, ValueType.INT),
+            CfLoad.ALOAD_2,
+            CfConstNumber.ICONST_1,
             new CfInvoke(
                 182,
                 factory.createMethod(
@@ -1123,7 +1123,7 @@ public final class VarHandleDesugaringMethods {
                 false),
             label3,
             CfLoad.ALOAD_0,
-            new CfLoad(ValueType.OBJECT, 2),
+            CfLoad.ALOAD_2,
             CfConstNull.INSTANCE,
             new CfInvoke(
                 182,
@@ -1139,7 +1139,7 @@ public final class VarHandleDesugaringMethods {
                     factory.createType("Lsun/misc/Unsafe;"),
                     factory.createString("U"))),
             label4,
-            new CfLoad(ValueType.OBJECT, 1),
+            CfLoad.ALOAD_1,
             new CfInvoke(
                 182,
                 factory.createMethod(
@@ -1150,9 +1150,9 @@ public final class VarHandleDesugaringMethods {
             new CfIf(IfType.NE, ValueType.INT, label6),
             label5,
             new CfNew(factory.createType("Ljava/lang/IllegalArgumentException;")),
-            new CfStackInstruction(CfStackInstruction.Opcode.Dup),
+            CfStackInstruction.DUP,
             new CfNew(factory.stringBuilderType),
-            new CfStackInstruction(CfStackInstruction.Opcode.Dup),
+            CfStackInstruction.DUP,
             new CfInvoke(
                 183,
                 factory.createMethod(
@@ -1168,7 +1168,7 @@ public final class VarHandleDesugaringMethods {
                     factory.createProto(factory.stringBuilderType, factory.stringType),
                     factory.createString("append")),
                 false),
-            new CfLoad(ValueType.OBJECT, 1),
+            CfLoad.ALOAD_1,
             new CfInvoke(
                 182,
                 factory.createMethod(
@@ -1209,7 +1209,7 @@ public final class VarHandleDesugaringMethods {
                       FrameType.initializedNonNullReference(
                           factory.createType("Ljava/lang/reflect/Field;"))
                     })),
-            new CfLoad(ValueType.OBJECT, 1),
+            CfLoad.ALOAD_1,
             new CfInvoke(
                 182,
                 factory.createMethod(
@@ -1217,9 +1217,9 @@ public final class VarHandleDesugaringMethods {
                     factory.createProto(factory.classType),
                     factory.createString("getComponentType")),
                 false),
-            new CfStore(ValueType.OBJECT, 3),
+             CfStore.ASTORE_3,
             label7,
-            new CfLoad(ValueType.OBJECT, 3),
+            CfLoad.ALOAD_3,
             new CfInvoke(
                 182,
                 factory.createMethod(
@@ -1230,9 +1230,9 @@ public final class VarHandleDesugaringMethods {
             new CfIf(IfType.EQ, ValueType.INT, label10),
             label8,
             new CfNew(factory.createType("Ljava/lang/UnsupportedOperationException;")),
-            new CfStackInstruction(CfStackInstruction.Opcode.Dup),
+            CfStackInstruction.DUP,
             new CfNew(factory.stringBuilderType),
-            new CfStackInstruction(CfStackInstruction.Opcode.Dup),
+            CfStackInstruction.DUP,
             new CfInvoke(
                 183,
                 factory.createMethod(
@@ -1292,7 +1292,7 @@ public final class VarHandleDesugaringMethods {
                           factory.createType("Ljava/lang/reflect/Field;")),
                       FrameType.initializedNonNullReference(factory.classType)
                     })),
-            new CfLoad(ValueType.OBJECT, 3),
+            CfLoad.ALOAD_3,
             new CfInvoke(
                 182,
                 factory.createMethod(
@@ -1301,14 +1301,14 @@ public final class VarHandleDesugaringMethods {
                     factory.createString("isPrimitive")),
                 false),
             new CfIf(IfType.EQ, ValueType.INT, label14),
-            new CfLoad(ValueType.OBJECT, 3),
+            CfLoad.ALOAD_3,
             new CfStaticFieldRead(
                 factory.createField(
                     factory.createType("Ljava/lang/Integer;"),
                     factory.classType,
                     factory.createString("TYPE"))),
             new CfIfCmp(IfType.EQ, ValueType.OBJECT, label14),
-            new CfLoad(ValueType.OBJECT, 3),
+            CfLoad.ALOAD_3,
             new CfStaticFieldRead(
                 factory.createField(
                     factory.createType("Ljava/lang/Long;"),
@@ -1317,9 +1317,9 @@ public final class VarHandleDesugaringMethods {
             new CfIfCmp(IfType.EQ, ValueType.OBJECT, label14),
             label11,
             new CfNew(factory.createType("Ljava/lang/UnsupportedOperationException;")),
-            new CfStackInstruction(CfStackInstruction.Opcode.Dup),
+            CfStackInstruction.DUP,
             new CfNew(factory.stringBuilderType),
-            new CfStackInstruction(CfStackInstruction.Opcode.Dup),
+            CfStackInstruction.DUP,
             new CfInvoke(
                 183,
                 factory.createMethod(
@@ -1335,7 +1335,7 @@ public final class VarHandleDesugaringMethods {
                     factory.createProto(factory.stringBuilderType, factory.stringType),
                     factory.createString("append")),
                 false),
-            new CfLoad(ValueType.OBJECT, 3),
+            CfLoad.ALOAD_3,
             label12,
             new CfInvoke(
                 182,
@@ -1403,7 +1403,7 @@ public final class VarHandleDesugaringMethods {
                       FrameType.initializedNonNullReference(factory.classType)
                     })),
             CfLoad.ALOAD_0,
-            new CfLoad(ValueType.OBJECT, 1),
+            CfLoad.ALOAD_1,
             new CfInstanceFieldWrite(
                 factory.createField(
                     factory.createType("Ljava/lang/invoke/VarHandle;"),
@@ -1411,7 +1411,7 @@ public final class VarHandleDesugaringMethods {
                     factory.createString("recv"))),
             label15,
             CfLoad.ALOAD_0,
-            new CfLoad(ValueType.OBJECT, 1),
+            CfLoad.ALOAD_1,
             new CfInvoke(
                 182,
                 factory.createMethod(
@@ -1445,7 +1445,7 @@ public final class VarHandleDesugaringMethods {
                     factory.createProto(factory.intType, factory.classType),
                     factory.createString("arrayBaseOffset")),
                 false),
-            new CfNumberConversion(NumericType.INT, NumericType.LONG),
+            CfNumberConversion.I2L,
             new CfInstanceFieldWrite(
                 factory.createField(
                     factory.createType("Ljava/lang/invoke/VarHandle;"),
@@ -1472,7 +1472,7 @@ public final class VarHandleDesugaringMethods {
                     factory.createProto(factory.intType, factory.classType),
                     factory.createString("arrayIndexScale")),
                 false),
-            new CfNumberConversion(NumericType.INT, NumericType.LONG),
+            CfNumberConversion.I2L,
             new CfInstanceFieldWrite(
                 factory.createField(
                     factory.createType("Ljava/lang/invoke/VarHandle;"),
@@ -1523,10 +1523,10 @@ public final class VarHandleDesugaringMethods {
                     factory.createProto(factory.createType("Ljava/lang/reflect/Field;")),
                     factory.createString("getUnsafeField")),
                 false),
-            new CfStore(ValueType.OBJECT, 4),
+             CfStore.ASTORE_4,
             label2,
-            new CfLoad(ValueType.OBJECT, 4),
-            new CfConstNumber(1, ValueType.INT),
+            CfLoad.ALOAD_4,
+            CfConstNumber.ICONST_1,
             new CfInvoke(
                 182,
                 factory.createMethod(
@@ -1536,7 +1536,7 @@ public final class VarHandleDesugaringMethods {
                 false),
             label3,
             CfLoad.ALOAD_0,
-            new CfLoad(ValueType.OBJECT, 4),
+            CfLoad.ALOAD_4,
             CfConstNull.INSTANCE,
             new CfInvoke(
                 182,
@@ -1553,15 +1553,15 @@ public final class VarHandleDesugaringMethods {
                     factory.createString("U"))),
             label4,
             CfLoad.ALOAD_0,
-            new CfLoad(ValueType.OBJECT, 1),
+            CfLoad.ALOAD_1,
             new CfInstanceFieldWrite(
                 factory.createField(
                     factory.createType("Ljava/lang/invoke/VarHandle;"),
                     factory.classType,
                     factory.createString("recv"))),
             label5,
-            new CfLoad(ValueType.OBJECT, 1),
-            new CfLoad(ValueType.OBJECT, 2),
+            CfLoad.ALOAD_1,
+            CfLoad.ALOAD_2,
             new CfInvoke(
                 182,
                 factory.createMethod(
@@ -1570,10 +1570,10 @@ public final class VarHandleDesugaringMethods {
                         factory.createType("Ljava/lang/reflect/Field;"), factory.stringType),
                     factory.createString("getDeclaredField")),
                 false),
-            new CfStore(ValueType.OBJECT, 5),
+             CfStore.ASTORE_5,
             label6,
             CfLoad.ALOAD_0,
-            new CfLoad(ValueType.OBJECT, 5),
+            CfLoad.ALOAD_5,
             new CfInvoke(
                 182,
                 factory.createMethod(
@@ -1587,7 +1587,7 @@ public final class VarHandleDesugaringMethods {
                     factory.classType,
                     factory.createString("type"))),
             label7,
-            new CfLoad(ValueType.OBJECT, 3),
+            CfLoad.ALOAD_3,
             new CfInvoke(
                 182,
                 factory.createMethod(
@@ -1596,14 +1596,14 @@ public final class VarHandleDesugaringMethods {
                     factory.createString("isPrimitive")),
                 false),
             new CfIf(IfType.EQ, ValueType.INT, label10),
-            new CfLoad(ValueType.OBJECT, 3),
+            CfLoad.ALOAD_3,
             new CfStaticFieldRead(
                 factory.createField(
                     factory.createType("Ljava/lang/Integer;"),
                     factory.classType,
                     factory.createString("TYPE"))),
             new CfIfCmp(IfType.EQ, ValueType.OBJECT, label10),
-            new CfLoad(ValueType.OBJECT, 3),
+            CfLoad.ALOAD_3,
             new CfStaticFieldRead(
                 factory.createField(
                     factory.createType("Ljava/lang/Long;"),
@@ -1612,9 +1612,9 @@ public final class VarHandleDesugaringMethods {
             new CfIfCmp(IfType.EQ, ValueType.OBJECT, label10),
             label8,
             new CfNew(factory.createType("Ljava/lang/UnsupportedOperationException;")),
-            new CfStackInstruction(CfStackInstruction.Opcode.Dup),
+            CfStackInstruction.DUP,
             new CfNew(factory.stringBuilderType),
-            new CfStackInstruction(CfStackInstruction.Opcode.Dup),
+            CfStackInstruction.DUP,
             new CfInvoke(
                 183,
                 factory.createMethod(
@@ -1630,7 +1630,7 @@ public final class VarHandleDesugaringMethods {
                     factory.createProto(factory.stringBuilderType, factory.stringType),
                     factory.createString("append")),
                 false),
-            new CfLoad(ValueType.OBJECT, 3),
+            CfLoad.ALOAD_3,
             label9,
             new CfInvoke(
                 182,
@@ -1695,8 +1695,8 @@ public final class VarHandleDesugaringMethods {
                     factory.createType("Ljava/lang/invoke/VarHandle;"),
                     factory.createType("Lsun/misc/Unsafe;"),
                     factory.createString("U"))),
-            new CfLoad(ValueType.OBJECT, 1),
-            new CfLoad(ValueType.OBJECT, 2),
+            CfLoad.ALOAD_1,
+            CfLoad.ALOAD_2,
             new CfInvoke(
                 182,
                 factory.createMethod(
@@ -1720,7 +1720,7 @@ public final class VarHandleDesugaringMethods {
                     factory.createString("offset"))),
             label11,
             CfLoad.ALOAD_0,
-            new CfConstNumber(0, ValueType.LONG),
+            CfConstNumber.LCONST_0,
             new CfInstanceFieldWrite(
                 factory.createField(
                     factory.createType("Ljava/lang/invoke/VarHandle;"),
@@ -1748,7 +1748,7 @@ public final class VarHandleDesugaringMethods {
                     "requires native VarHandle support available from Android 13. VarHandle"
                         + " desugaring only supports single dimensional arrays of primitive"
                         + " typesint and long and reference types.")),
-            CfReturn.forType(ValueType.OBJECT),
+            CfReturn.ARETURN,
             label1),
         ImmutableList.of(),
         ImmutableList.of());
@@ -1769,12 +1769,12 @@ public final class VarHandleDesugaringMethods {
         3,
         ImmutableList.of(
             label0,
-            new CfLoad(ValueType.OBJECT, 2),
+            CfLoad.ALOAD_2,
             new CfConstClass(factory.createType("Ljava/lang/Long;")),
             new CfIfCmp(IfType.NE, ValueType.OBJECT, label2),
             label1,
-            new CfLoad(ValueType.INT, 1),
-            new CfNumberConversion(NumericType.INT, NumericType.LONG),
+            CfLoad.ILOAD_1,
+            CfNumberConversion.I2L,
             new CfInvoke(
                 184,
                 factory.createMethod(
@@ -1782,7 +1782,7 @@ public final class VarHandleDesugaringMethods {
                     factory.createProto(factory.createType("Ljava/lang/Long;"), factory.longType),
                     factory.createString("valueOf")),
                 false),
-            CfReturn.forType(ValueType.OBJECT),
+            CfReturn.ARETURN,
             label2,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
@@ -1793,12 +1793,12 @@ public final class VarHandleDesugaringMethods {
                       FrameType.intType(),
                       FrameType.initializedNonNullReference(factory.classType)
                     })),
-            new CfLoad(ValueType.OBJECT, 2),
+            CfLoad.ALOAD_2,
             new CfConstClass(factory.createType("Ljava/lang/Float;")),
             new CfIfCmp(IfType.NE, ValueType.OBJECT, label4),
             label3,
-            new CfLoad(ValueType.INT, 1),
-            new CfNumberConversion(NumericType.INT, NumericType.FLOAT),
+            CfLoad.ILOAD_1,
+            CfNumberConversion.I2F,
             new CfInvoke(
                 184,
                 factory.createMethod(
@@ -1806,7 +1806,7 @@ public final class VarHandleDesugaringMethods {
                     factory.createProto(factory.createType("Ljava/lang/Float;"), factory.floatType),
                     factory.createString("valueOf")),
                 false),
-            CfReturn.forType(ValueType.OBJECT),
+            CfReturn.ARETURN,
             label4,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
@@ -1817,12 +1817,12 @@ public final class VarHandleDesugaringMethods {
                       FrameType.intType(),
                       FrameType.initializedNonNullReference(factory.classType)
                     })),
-            new CfLoad(ValueType.OBJECT, 2),
+            CfLoad.ALOAD_2,
             new CfConstClass(factory.createType("Ljava/lang/Double;")),
             new CfIfCmp(IfType.NE, ValueType.OBJECT, label6),
             label5,
-            new CfLoad(ValueType.INT, 1),
-            new CfNumberConversion(NumericType.INT, NumericType.DOUBLE),
+            CfLoad.ILOAD_1,
+            CfNumberConversion.I2D,
             new CfInvoke(
                 184,
                 factory.createMethod(
@@ -1831,7 +1831,7 @@ public final class VarHandleDesugaringMethods {
                         factory.createType("Ljava/lang/Double;"), factory.doubleType),
                     factory.createString("valueOf")),
                 false),
-            CfReturn.forType(ValueType.OBJECT),
+            CfReturn.ARETURN,
             label6,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
@@ -1870,12 +1870,12 @@ public final class VarHandleDesugaringMethods {
         4,
         ImmutableList.of(
             label0,
-            new CfLoad(ValueType.OBJECT, 3),
+            CfLoad.ALOAD_3,
             new CfConstClass(factory.createType("Ljava/lang/Float;")),
             new CfIfCmp(IfType.NE, ValueType.OBJECT, label2),
             label1,
-            new CfLoad(ValueType.LONG, 1),
-            new CfNumberConversion(NumericType.LONG, NumericType.FLOAT),
+            CfLoad.LLOAD_1,
+            CfNumberConversion.L2F,
             new CfInvoke(
                 184,
                 factory.createMethod(
@@ -1883,7 +1883,7 @@ public final class VarHandleDesugaringMethods {
                     factory.createProto(factory.createType("Ljava/lang/Float;"), factory.floatType),
                     factory.createString("valueOf")),
                 false),
-            CfReturn.forType(ValueType.OBJECT),
+            CfReturn.ARETURN,
             label2,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
@@ -1895,12 +1895,12 @@ public final class VarHandleDesugaringMethods {
                       FrameType.longHighType(),
                       FrameType.initializedNonNullReference(factory.classType)
                     })),
-            new CfLoad(ValueType.OBJECT, 3),
+            CfLoad.ALOAD_3,
             new CfConstClass(factory.createType("Ljava/lang/Double;")),
             new CfIfCmp(IfType.NE, ValueType.OBJECT, label4),
             label3,
-            new CfLoad(ValueType.LONG, 1),
-            new CfNumberConversion(NumericType.LONG, NumericType.DOUBLE),
+            CfLoad.LLOAD_1,
+            CfNumberConversion.L2D,
             new CfInvoke(
                 184,
                 factory.createMethod(
@@ -1909,7 +1909,7 @@ public final class VarHandleDesugaringMethods {
                         factory.createType("Ljava/lang/Double;"), factory.doubleType),
                     factory.createString("valueOf")),
                 false),
-            CfReturn.forType(ValueType.OBJECT),
+            CfReturn.ARETURN,
             label4,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
@@ -1971,7 +1971,7 @@ public final class VarHandleDesugaringMethods {
                     factory.createType("Ljava/lang/invoke/VarHandle;"),
                     factory.createType("Lsun/misc/Unsafe;"),
                     factory.createString("U"))),
-            new CfLoad(ValueType.OBJECT, 1),
+            CfLoad.ALOAD_1,
             CfLoad.ALOAD_0,
             new CfInstanceFieldRead(
                 factory.createField(
@@ -1979,8 +1979,8 @@ public final class VarHandleDesugaringMethods {
                     factory.longType,
                     factory.createString("offset"))),
             CfLoad.ALOAD_0,
-            new CfLoad(ValueType.OBJECT, 2),
-            new CfConstNumber(0, ValueType.INT),
+            CfLoad.ALOAD_2,
+            CfConstNumber.ICONST_0,
             label2,
             new CfInvoke(
                 182,
@@ -1990,8 +1990,8 @@ public final class VarHandleDesugaringMethods {
                     factory.createString("toIntIfPossible")),
                 false),
             CfLoad.ALOAD_0,
-            new CfLoad(ValueType.OBJECT, 3),
-            new CfConstNumber(0, ValueType.INT),
+            CfLoad.ALOAD_3,
+            CfConstNumber.ICONST_0,
             new CfInvoke(
                 182,
                 factory.createMethod(
@@ -2012,7 +2012,7 @@ public final class VarHandleDesugaringMethods {
                         factory.intType),
                     factory.createString("compareAndSwapInt")),
                 false),
-            CfReturn.forType(ValueType.INT),
+            CfReturn.IRETURN,
             label4,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
@@ -2043,7 +2043,7 @@ public final class VarHandleDesugaringMethods {
                     factory.createType("Ljava/lang/invoke/VarHandle;"),
                     factory.createType("Lsun/misc/Unsafe;"),
                     factory.createString("U"))),
-            new CfLoad(ValueType.OBJECT, 1),
+            CfLoad.ALOAD_1,
             CfLoad.ALOAD_0,
             new CfInstanceFieldRead(
                 factory.createField(
@@ -2051,8 +2051,8 @@ public final class VarHandleDesugaringMethods {
                     factory.longType,
                     factory.createString("offset"))),
             CfLoad.ALOAD_0,
-            new CfLoad(ValueType.OBJECT, 2),
-            new CfConstNumber(0, ValueType.INT),
+            CfLoad.ALOAD_2,
+            CfConstNumber.ICONST_0,
             label6,
             new CfInvoke(
                 182,
@@ -2062,8 +2062,8 @@ public final class VarHandleDesugaringMethods {
                     factory.createString("toLongIfPossible")),
                 false),
             CfLoad.ALOAD_0,
-            new CfLoad(ValueType.OBJECT, 3),
-            new CfConstNumber(0, ValueType.INT),
+            CfLoad.ALOAD_3,
+            CfConstNumber.ICONST_0,
             new CfInvoke(
                 182,
                 factory.createMethod(
@@ -2084,7 +2084,7 @@ public final class VarHandleDesugaringMethods {
                         factory.longType),
                     factory.createString("compareAndSwapLong")),
                 false),
-            CfReturn.forType(ValueType.INT),
+            CfReturn.IRETURN,
             label8,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
@@ -2102,15 +2102,15 @@ public final class VarHandleDesugaringMethods {
                     factory.createType("Ljava/lang/invoke/VarHandle;"),
                     factory.createType("Lsun/misc/Unsafe;"),
                     factory.createString("U"))),
-            new CfLoad(ValueType.OBJECT, 1),
+            CfLoad.ALOAD_1,
             CfLoad.ALOAD_0,
             new CfInstanceFieldRead(
                 factory.createField(
                     factory.createType("Ljava/lang/invoke/VarHandle;"),
                     factory.longType,
                     factory.createString("offset"))),
-            new CfLoad(ValueType.OBJECT, 2),
-            new CfLoad(ValueType.OBJECT, 3),
+            CfLoad.ALOAD_2,
+            CfLoad.ALOAD_3,
             new CfInvoke(
                 182,
                 factory.createMethod(
@@ -2123,7 +2123,7 @@ public final class VarHandleDesugaringMethods {
                         factory.objectType),
                     factory.createString("compareAndSwapObject")),
                 false),
-            CfReturn.forType(ValueType.INT),
+            CfReturn.IRETURN,
             label9),
         ImmutableList.of(),
         ImmutableList.of());
@@ -2172,7 +2172,7 @@ public final class VarHandleDesugaringMethods {
                     factory.createType("Ljava/lang/invoke/VarHandle;"),
                     factory.classType,
                     factory.createString("recv"))),
-            new CfLoad(ValueType.OBJECT, 1),
+            CfLoad.ALOAD_1,
             new CfInvoke(
                 182,
                 factory.createMethod(
@@ -2194,7 +2194,7 @@ public final class VarHandleDesugaringMethods {
                       FrameType.initializedNonNullReference(factory.objectType)
                     })),
             new CfNew(factory.createType("Ljava/lang/UnsupportedOperationException;")),
-            new CfStackInstruction(CfStackInstruction.Opcode.Dup),
+            CfStackInstruction.DUP,
             new CfInvoke(
                 183,
                 factory.createMethod(
@@ -2221,17 +2221,17 @@ public final class VarHandleDesugaringMethods {
                     factory.createType("Ljava/lang/invoke/VarHandle;"),
                     factory.longType,
                     factory.createString("offset"))),
-            new CfLoad(ValueType.INT, 2),
-            new CfNumberConversion(NumericType.INT, NumericType.LONG),
+            CfLoad.ILOAD_2,
+            CfNumberConversion.I2L,
             CfLoad.ALOAD_0,
             new CfInstanceFieldRead(
                 factory.createField(
                     factory.createType("Ljava/lang/invoke/VarHandle;"),
                     factory.longType,
                     factory.createString("arrayIndexScale"))),
-            new CfArithmeticBinop(CfArithmeticBinop.Opcode.Mul, NumericType.LONG),
-            new CfArithmeticBinop(CfArithmeticBinop.Opcode.Add, NumericType.LONG),
-            new CfStore(ValueType.LONG, 5),
+            CfArithmeticBinop.LMUL,
+            CfArithmeticBinop.LADD,
+             CfStore.LSTORE_5,
             label3,
             CfLoad.ALOAD_0,
             new CfInstanceFieldRead(
@@ -2248,11 +2248,11 @@ public final class VarHandleDesugaringMethods {
                     factory.createType("Ljava/lang/invoke/VarHandle;"),
                     factory.createType("Lsun/misc/Unsafe;"),
                     factory.createString("U"))),
-            new CfLoad(ValueType.OBJECT, 1),
-            new CfLoad(ValueType.LONG, 5),
+            CfLoad.ALOAD_1,
+            CfLoad.LLOAD_5,
             CfLoad.ALOAD_0,
-            new CfLoad(ValueType.OBJECT, 3),
-            new CfConstNumber(0, ValueType.INT),
+            CfLoad.ALOAD_3,
+            CfConstNumber.ICONST_0,
             label5,
             new CfInvoke(
                 182,
@@ -2262,8 +2262,8 @@ public final class VarHandleDesugaringMethods {
                     factory.createString("toIntIfPossible")),
                 false),
             CfLoad.ALOAD_0,
-            new CfLoad(ValueType.OBJECT, 4),
-            new CfConstNumber(0, ValueType.INT),
+            CfLoad.ALOAD_4,
+            CfConstNumber.ICONST_0,
             label6,
             new CfInvoke(
                 182,
@@ -2285,7 +2285,7 @@ public final class VarHandleDesugaringMethods {
                         factory.intType),
                     factory.createString("compareAndSwapInt")),
                 false),
-            CfReturn.forType(ValueType.INT),
+            CfReturn.IRETURN,
             label8,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
@@ -2315,11 +2315,11 @@ public final class VarHandleDesugaringMethods {
                     factory.createType("Ljava/lang/invoke/VarHandle;"),
                     factory.createType("Lsun/misc/Unsafe;"),
                     factory.createString("U"))),
-            new CfLoad(ValueType.OBJECT, 1),
-            new CfLoad(ValueType.LONG, 5),
+            CfLoad.ALOAD_1,
+            CfLoad.LLOAD_5,
             CfLoad.ALOAD_0,
-            new CfLoad(ValueType.OBJECT, 3),
-            new CfConstNumber(0, ValueType.INT),
+            CfLoad.ALOAD_3,
+            CfConstNumber.ICONST_0,
             label10,
             new CfInvoke(
                 182,
@@ -2329,8 +2329,8 @@ public final class VarHandleDesugaringMethods {
                     factory.createString("toLongIfPossible")),
                 false),
             CfLoad.ALOAD_0,
-            new CfLoad(ValueType.OBJECT, 4),
-            new CfConstNumber(0, ValueType.INT),
+            CfLoad.ALOAD_4,
+            CfConstNumber.ICONST_0,
             label11,
             new CfInvoke(
                 182,
@@ -2352,7 +2352,7 @@ public final class VarHandleDesugaringMethods {
                         factory.longType),
                     factory.createString("compareAndSwapLong")),
                 false),
-            CfReturn.forType(ValueType.INT),
+            CfReturn.IRETURN,
             label13,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
@@ -2373,10 +2373,10 @@ public final class VarHandleDesugaringMethods {
                     factory.createType("Ljava/lang/invoke/VarHandle;"),
                     factory.createType("Lsun/misc/Unsafe;"),
                     factory.createString("U"))),
-            new CfLoad(ValueType.OBJECT, 1),
-            new CfLoad(ValueType.LONG, 5),
-            new CfLoad(ValueType.OBJECT, 3),
-            new CfLoad(ValueType.OBJECT, 4),
+            CfLoad.ALOAD_1,
+            CfLoad.LLOAD_5,
+            CfLoad.ALOAD_3,
+            CfLoad.ALOAD_4,
             new CfInvoke(
                 182,
                 factory.createMethod(
@@ -2389,7 +2389,7 @@ public final class VarHandleDesugaringMethods {
                         factory.objectType),
                     factory.createString("compareAndSwapObject")),
                 false),
-            CfReturn.forType(ValueType.INT),
+            CfReturn.IRETURN,
             label14),
         ImmutableList.of(),
         ImmutableList.of());
@@ -2418,7 +2418,7 @@ public final class VarHandleDesugaringMethods {
             new CfIfCmp(IfType.EQ, ValueType.OBJECT, label2),
             label1,
             new CfNew(factory.createType("Ljava/lang/UnsupportedOperationException;")),
-            new CfStackInstruction(CfStackInstruction.Opcode.Dup),
+            CfStackInstruction.DUP,
             new CfInvoke(
                 183,
                 factory.createMethod(
@@ -2445,17 +2445,17 @@ public final class VarHandleDesugaringMethods {
                     factory.createType("Ljava/lang/invoke/VarHandle;"),
                     factory.longType,
                     factory.createString("offset"))),
-            new CfLoad(ValueType.INT, 2),
-            new CfNumberConversion(NumericType.INT, NumericType.LONG),
+            CfLoad.ILOAD_2,
+            CfNumberConversion.I2L,
             CfLoad.ALOAD_0,
             new CfInstanceFieldRead(
                 factory.createField(
                     factory.createType("Ljava/lang/invoke/VarHandle;"),
                     factory.longType,
                     factory.createString("arrayIndexScale"))),
-            new CfArithmeticBinop(CfArithmeticBinop.Opcode.Mul, NumericType.LONG),
-            new CfArithmeticBinop(CfArithmeticBinop.Opcode.Add, NumericType.LONG),
-            new CfStore(ValueType.LONG, 5),
+            CfArithmeticBinop.LMUL,
+            CfArithmeticBinop.LADD,
+             CfStore.LSTORE_5,
             label3,
             CfLoad.ALOAD_0,
             new CfInstanceFieldRead(
@@ -2463,10 +2463,10 @@ public final class VarHandleDesugaringMethods {
                     factory.createType("Ljava/lang/invoke/VarHandle;"),
                     factory.createType("Lsun/misc/Unsafe;"),
                     factory.createString("U"))),
-            new CfLoad(ValueType.OBJECT, 1),
-            new CfLoad(ValueType.LONG, 5),
-            new CfLoad(ValueType.INT, 3),
-            new CfLoad(ValueType.INT, 4),
+            CfLoad.ALOAD_1,
+            CfLoad.LLOAD_5,
+            CfLoad.ILOAD_3,
+            CfLoad.ILOAD_4,
             new CfInvoke(
                 182,
                 factory.createMethod(
@@ -2479,7 +2479,7 @@ public final class VarHandleDesugaringMethods {
                         factory.intType),
                     factory.createString("compareAndSwapInt")),
                 false),
-            CfReturn.forType(ValueType.INT),
+            CfReturn.IRETURN,
             label4),
         ImmutableList.of(),
         ImmutableList.of());
@@ -2508,7 +2508,7 @@ public final class VarHandleDesugaringMethods {
             new CfIfCmp(IfType.EQ, ValueType.OBJECT, label2),
             label1,
             new CfNew(factory.createType("Ljava/lang/UnsupportedOperationException;")),
-            new CfStackInstruction(CfStackInstruction.Opcode.Dup),
+            CfStackInstruction.DUP,
             new CfInvoke(
                 183,
                 factory.createMethod(
@@ -2537,17 +2537,17 @@ public final class VarHandleDesugaringMethods {
                     factory.createType("Ljava/lang/invoke/VarHandle;"),
                     factory.longType,
                     factory.createString("offset"))),
-            new CfLoad(ValueType.INT, 2),
-            new CfNumberConversion(NumericType.INT, NumericType.LONG),
+            CfLoad.ILOAD_2,
+            CfNumberConversion.I2L,
             CfLoad.ALOAD_0,
             new CfInstanceFieldRead(
                 factory.createField(
                     factory.createType("Ljava/lang/invoke/VarHandle;"),
                     factory.longType,
                     factory.createString("arrayIndexScale"))),
-            new CfArithmeticBinop(CfArithmeticBinop.Opcode.Mul, NumericType.LONG),
-            new CfArithmeticBinop(CfArithmeticBinop.Opcode.Add, NumericType.LONG),
-            new CfStore(ValueType.LONG, 7),
+            CfArithmeticBinop.LMUL,
+            CfArithmeticBinop.LADD,
+             CfStore.storeLong(7),
             label3,
             CfLoad.ALOAD_0,
             new CfInstanceFieldRead(
@@ -2555,10 +2555,10 @@ public final class VarHandleDesugaringMethods {
                     factory.createType("Ljava/lang/invoke/VarHandle;"),
                     factory.createType("Lsun/misc/Unsafe;"),
                     factory.createString("U"))),
-            new CfLoad(ValueType.OBJECT, 1),
-            new CfLoad(ValueType.LONG, 7),
-            new CfLoad(ValueType.LONG, 3),
-            new CfLoad(ValueType.LONG, 5),
+            CfLoad.ALOAD_1,
+            CfLoad.loadLong(7),
+            CfLoad.LLOAD_3,
+            CfLoad.LLOAD_5,
             new CfInvoke(
                 182,
                 factory.createMethod(
@@ -2571,7 +2571,7 @@ public final class VarHandleDesugaringMethods {
                         factory.longType),
                     factory.createString("compareAndSwapLong")),
                 false),
-            CfReturn.forType(ValueType.INT),
+            CfReturn.IRETURN,
             label4),
         ImmutableList.of(),
         ImmutableList.of());
@@ -2609,15 +2609,15 @@ public final class VarHandleDesugaringMethods {
                     factory.createType("Ljava/lang/invoke/VarHandle;"),
                     factory.createType("Lsun/misc/Unsafe;"),
                     factory.createString("U"))),
-            new CfLoad(ValueType.OBJECT, 1),
+            CfLoad.ALOAD_1,
             CfLoad.ALOAD_0,
             new CfInstanceFieldRead(
                 factory.createField(
                     factory.createType("Ljava/lang/invoke/VarHandle;"),
                     factory.longType,
                     factory.createString("offset"))),
-            new CfLoad(ValueType.INT, 2),
-            new CfLoad(ValueType.INT, 3),
+            CfLoad.ILOAD_2,
+            CfLoad.ILOAD_3,
             new CfInvoke(
                 182,
                 factory.createMethod(
@@ -2630,7 +2630,7 @@ public final class VarHandleDesugaringMethods {
                         factory.intType),
                     factory.createString("compareAndSwapInt")),
                 false),
-            CfReturn.forType(ValueType.INT),
+            CfReturn.IRETURN,
             label2,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
@@ -2661,17 +2661,17 @@ public final class VarHandleDesugaringMethods {
                     factory.createType("Ljava/lang/invoke/VarHandle;"),
                     factory.createType("Lsun/misc/Unsafe;"),
                     factory.createString("U"))),
-            new CfLoad(ValueType.OBJECT, 1),
+            CfLoad.ALOAD_1,
             CfLoad.ALOAD_0,
             new CfInstanceFieldRead(
                 factory.createField(
                     factory.createType("Ljava/lang/invoke/VarHandle;"),
                     factory.longType,
                     factory.createString("offset"))),
-            new CfLoad(ValueType.INT, 2),
-            new CfNumberConversion(NumericType.INT, NumericType.LONG),
-            new CfLoad(ValueType.INT, 3),
-            new CfNumberConversion(NumericType.INT, NumericType.LONG),
+            CfLoad.ILOAD_2,
+            CfNumberConversion.I2L,
+            CfLoad.ILOAD_3,
+            CfNumberConversion.I2L,
             new CfInvoke(
                 182,
                 factory.createMethod(
@@ -2684,7 +2684,7 @@ public final class VarHandleDesugaringMethods {
                         factory.longType),
                     factory.createString("compareAndSwapLong")),
                 false),
-            CfReturn.forType(ValueType.INT),
+            CfReturn.IRETURN,
             label4,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
@@ -2697,8 +2697,8 @@ public final class VarHandleDesugaringMethods {
                       FrameType.intType()
                     })),
             CfLoad.ALOAD_0,
-            new CfLoad(ValueType.OBJECT, 1),
-            new CfLoad(ValueType.INT, 2),
+            CfLoad.ALOAD_1,
+            CfLoad.ILOAD_2,
             new CfInvoke(
                 184,
                 factory.createMethod(
@@ -2706,7 +2706,7 @@ public final class VarHandleDesugaringMethods {
                     factory.createProto(factory.createType("Ljava/lang/Integer;"), factory.intType),
                     factory.createString("valueOf")),
                 false),
-            new CfLoad(ValueType.INT, 3),
+            CfLoad.ILOAD_3,
             new CfInvoke(
                 184,
                 factory.createMethod(
@@ -2725,7 +2725,7 @@ public final class VarHandleDesugaringMethods {
                         factory.objectType),
                     factory.createString("compareAndSet")),
                 false),
-            CfReturn.forType(ValueType.INT),
+            CfReturn.IRETURN,
             label5),
         ImmutableList.of(),
         ImmutableList.of());
@@ -2762,15 +2762,15 @@ public final class VarHandleDesugaringMethods {
                     factory.createType("Ljava/lang/invoke/VarHandle;"),
                     factory.createType("Lsun/misc/Unsafe;"),
                     factory.createString("U"))),
-            new CfLoad(ValueType.OBJECT, 1),
+            CfLoad.ALOAD_1,
             CfLoad.ALOAD_0,
             new CfInstanceFieldRead(
                 factory.createField(
                     factory.createType("Ljava/lang/invoke/VarHandle;"),
                     factory.longType,
                     factory.createString("offset"))),
-            new CfLoad(ValueType.LONG, 2),
-            new CfLoad(ValueType.LONG, 4),
+            CfLoad.LLOAD_2,
+            CfLoad.LLOAD_4,
             new CfInvoke(
                 182,
                 factory.createMethod(
@@ -2783,7 +2783,7 @@ public final class VarHandleDesugaringMethods {
                         factory.longType),
                     factory.createString("compareAndSwapLong")),
                 false),
-            CfReturn.forType(ValueType.INT),
+            CfReturn.IRETURN,
             label2,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
@@ -2798,8 +2798,8 @@ public final class VarHandleDesugaringMethods {
                       FrameType.longHighType()
                     })),
             CfLoad.ALOAD_0,
-            new CfLoad(ValueType.OBJECT, 1),
-            new CfLoad(ValueType.LONG, 2),
+            CfLoad.ALOAD_1,
+            CfLoad.LLOAD_2,
             new CfInvoke(
                 184,
                 factory.createMethod(
@@ -2807,7 +2807,7 @@ public final class VarHandleDesugaringMethods {
                     factory.createProto(factory.createType("Ljava/lang/Long;"), factory.longType),
                     factory.createString("valueOf")),
                 false),
-            new CfLoad(ValueType.LONG, 4),
+            CfLoad.LLOAD_4,
             new CfInvoke(
                 184,
                 factory.createMethod(
@@ -2826,7 +2826,7 @@ public final class VarHandleDesugaringMethods {
                         factory.objectType),
                     factory.createString("compareAndSet")),
                 false),
-            CfReturn.forType(ValueType.INT),
+            CfReturn.IRETURN,
             label3),
         ImmutableList.of(),
         ImmutableList.of());
@@ -2843,7 +2843,7 @@ public final class VarHandleDesugaringMethods {
         ImmutableList.of(
             label0,
             new CfNew(factory.createType("Ljava/lang/RuntimeException;")),
-            new CfStackInstruction(CfStackInstruction.Opcode.Dup),
+            CfStackInstruction.DUP,
             new CfConstString(factory.createString("java.lang.invoke.WrongMethodTypeException")),
             new CfInvoke(
                 183,
@@ -2852,7 +2852,7 @@ public final class VarHandleDesugaringMethods {
                     factory.createProto(factory.voidType, factory.stringType),
                     factory.createString("<init>")),
                 false),
-            CfReturn.forType(ValueType.OBJECT),
+            CfReturn.ARETURN,
             label1),
         ImmutableList.of(),
         ImmutableList.of());
@@ -2890,7 +2890,7 @@ public final class VarHandleDesugaringMethods {
                     factory.createType("Ljava/lang/invoke/VarHandle;"),
                     factory.createType("Lsun/misc/Unsafe;"),
                     factory.createString("U"))),
-            new CfLoad(ValueType.OBJECT, 1),
+            CfLoad.ALOAD_1,
             CfLoad.ALOAD_0,
             new CfInstanceFieldRead(
                 factory.createField(
@@ -2911,7 +2911,7 @@ public final class VarHandleDesugaringMethods {
                     factory.createProto(factory.createType("Ljava/lang/Integer;"), factory.intType),
                     factory.createString("valueOf")),
                 false),
-            CfReturn.forType(ValueType.OBJECT),
+            CfReturn.ARETURN,
             label2,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
@@ -2940,7 +2940,7 @@ public final class VarHandleDesugaringMethods {
                     factory.createType("Ljava/lang/invoke/VarHandle;"),
                     factory.createType("Lsun/misc/Unsafe;"),
                     factory.createString("U"))),
-            new CfLoad(ValueType.OBJECT, 1),
+            CfLoad.ALOAD_1,
             CfLoad.ALOAD_0,
             new CfInstanceFieldRead(
                 factory.createField(
@@ -2961,7 +2961,7 @@ public final class VarHandleDesugaringMethods {
                     factory.createProto(factory.createType("Ljava/lang/Long;"), factory.longType),
                     factory.createString("valueOf")),
                 false),
-            CfReturn.forType(ValueType.OBJECT),
+            CfReturn.ARETURN,
             label4,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
@@ -2977,7 +2977,7 @@ public final class VarHandleDesugaringMethods {
                     factory.createType("Ljava/lang/invoke/VarHandle;"),
                     factory.createType("Lsun/misc/Unsafe;"),
                     factory.createString("U"))),
-            new CfLoad(ValueType.OBJECT, 1),
+            CfLoad.ALOAD_1,
             CfLoad.ALOAD_0,
             new CfInstanceFieldRead(
                 factory.createField(
@@ -2991,7 +2991,7 @@ public final class VarHandleDesugaringMethods {
                     factory.createProto(factory.objectType, factory.objectType, factory.longType),
                     factory.createString("getObject")),
                 false),
-            CfReturn.forType(ValueType.OBJECT),
+            CfReturn.ARETURN,
             label5),
         ImmutableList.of(),
         ImmutableList.of());
@@ -3033,7 +3033,7 @@ public final class VarHandleDesugaringMethods {
                     factory.createType("Ljava/lang/invoke/VarHandle;"),
                     factory.classType,
                     factory.createString("recv"))),
-            new CfLoad(ValueType.OBJECT, 1),
+            CfLoad.ALOAD_1,
             new CfInvoke(
                 182,
                 factory.createMethod(
@@ -3053,7 +3053,7 @@ public final class VarHandleDesugaringMethods {
                       FrameType.intType()
                     })),
             new CfNew(factory.createType("Ljava/lang/UnsupportedOperationException;")),
-            new CfStackInstruction(CfStackInstruction.Opcode.Dup),
+            CfStackInstruction.DUP,
             new CfInvoke(
                 183,
                 factory.createMethod(
@@ -3078,17 +3078,17 @@ public final class VarHandleDesugaringMethods {
                     factory.createType("Ljava/lang/invoke/VarHandle;"),
                     factory.longType,
                     factory.createString("offset"))),
-            new CfLoad(ValueType.INT, 2),
-            new CfNumberConversion(NumericType.INT, NumericType.LONG),
+            CfLoad.ILOAD_2,
+            CfNumberConversion.I2L,
             CfLoad.ALOAD_0,
             new CfInstanceFieldRead(
                 factory.createField(
                     factory.createType("Ljava/lang/invoke/VarHandle;"),
                     factory.longType,
                     factory.createString("arrayIndexScale"))),
-            new CfArithmeticBinop(CfArithmeticBinop.Opcode.Mul, NumericType.LONG),
-            new CfArithmeticBinop(CfArithmeticBinop.Opcode.Add, NumericType.LONG),
-            new CfStore(ValueType.LONG, 3),
+            CfArithmeticBinop.LMUL,
+            CfArithmeticBinop.LADD,
+             CfStore.LSTORE_3,
             label3,
             CfLoad.ALOAD_0,
             new CfInstanceFieldRead(
@@ -3109,8 +3109,8 @@ public final class VarHandleDesugaringMethods {
                     factory.createType("Ljava/lang/invoke/VarHandle;"),
                     factory.createType("Lsun/misc/Unsafe;"),
                     factory.createString("U"))),
-            new CfLoad(ValueType.OBJECT, 1),
-            new CfLoad(ValueType.LONG, 3),
+            CfLoad.ALOAD_1,
+            CfLoad.LLOAD_3,
             new CfInvoke(
                 182,
                 factory.createMethod(
@@ -3125,7 +3125,7 @@ public final class VarHandleDesugaringMethods {
                     factory.createProto(factory.createType("Ljava/lang/Integer;"), factory.intType),
                     factory.createString("valueOf")),
                 false),
-            CfReturn.forType(ValueType.OBJECT),
+            CfReturn.ARETURN,
             label5,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
@@ -3157,8 +3157,8 @@ public final class VarHandleDesugaringMethods {
                     factory.createType("Ljava/lang/invoke/VarHandle;"),
                     factory.createType("Lsun/misc/Unsafe;"),
                     factory.createString("U"))),
-            new CfLoad(ValueType.OBJECT, 1),
-            new CfLoad(ValueType.LONG, 3),
+            CfLoad.ALOAD_1,
+            CfLoad.LLOAD_3,
             new CfInvoke(
                 182,
                 factory.createMethod(
@@ -3166,7 +3166,7 @@ public final class VarHandleDesugaringMethods {
                     factory.createProto(factory.longType, factory.objectType, factory.longType),
                     factory.createString("getLong")),
                 false),
-            new CfNumberConversion(NumericType.LONG, NumericType.INT),
+            CfNumberConversion.L2I,
             new CfInvoke(
                 184,
                 factory.createMethod(
@@ -3174,7 +3174,7 @@ public final class VarHandleDesugaringMethods {
                     factory.createProto(factory.createType("Ljava/lang/Integer;"), factory.intType),
                     factory.createString("valueOf")),
                 false),
-            CfReturn.forType(ValueType.OBJECT),
+            CfReturn.ARETURN,
             label7,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
@@ -3193,8 +3193,8 @@ public final class VarHandleDesugaringMethods {
                     factory.createType("Ljava/lang/invoke/VarHandle;"),
                     factory.createType("Lsun/misc/Unsafe;"),
                     factory.createString("U"))),
-            new CfLoad(ValueType.OBJECT, 1),
-            new CfLoad(ValueType.LONG, 3),
+            CfLoad.ALOAD_1,
+            CfLoad.LLOAD_3,
             new CfInvoke(
                 182,
                 factory.createMethod(
@@ -3202,7 +3202,7 @@ public final class VarHandleDesugaringMethods {
                     factory.createProto(factory.objectType, factory.objectType, factory.longType),
                     factory.createString("getObject")),
                 false),
-            CfReturn.forType(ValueType.OBJECT),
+            CfReturn.ARETURN,
             label8),
         ImmutableList.of(),
         ImmutableList.of());
@@ -3249,7 +3249,7 @@ public final class VarHandleDesugaringMethods {
                     factory.createType("Ljava/lang/invoke/VarHandle;"),
                     factory.classType,
                     factory.createString("recv"))),
-            new CfLoad(ValueType.OBJECT, 1),
+            CfLoad.ALOAD_1,
             new CfInvoke(
                 182,
                 factory.createMethod(
@@ -3270,7 +3270,7 @@ public final class VarHandleDesugaringMethods {
                       FrameType.initializedNonNullReference(factory.classType)
                     })),
             new CfNew(factory.createType("Ljava/lang/UnsupportedOperationException;")),
-            new CfStackInstruction(CfStackInstruction.Opcode.Dup),
+            CfStackInstruction.DUP,
             new CfInvoke(
                 183,
                 factory.createMethod(
@@ -3296,17 +3296,17 @@ public final class VarHandleDesugaringMethods {
                     factory.createType("Ljava/lang/invoke/VarHandle;"),
                     factory.longType,
                     factory.createString("offset"))),
-            new CfLoad(ValueType.INT, 2),
-            new CfNumberConversion(NumericType.INT, NumericType.LONG),
+            CfLoad.ILOAD_2,
+            CfNumberConversion.I2L,
             CfLoad.ALOAD_0,
             new CfInstanceFieldRead(
                 factory.createField(
                     factory.createType("Ljava/lang/invoke/VarHandle;"),
                     factory.longType,
                     factory.createString("arrayIndexScale"))),
-            new CfArithmeticBinop(CfArithmeticBinop.Opcode.Mul, NumericType.LONG),
-            new CfArithmeticBinop(CfArithmeticBinop.Opcode.Add, NumericType.LONG),
-            new CfStore(ValueType.LONG, 4),
+            CfArithmeticBinop.LMUL,
+            CfArithmeticBinop.LADD,
+             CfStore.LSTORE_4,
             label3,
             CfLoad.ALOAD_0,
             new CfInstanceFieldRead(
@@ -3328,8 +3328,8 @@ public final class VarHandleDesugaringMethods {
                     factory.createType("Ljava/lang/invoke/VarHandle;"),
                     factory.createType("Lsun/misc/Unsafe;"),
                     factory.createString("U"))),
-            new CfLoad(ValueType.OBJECT, 1),
-            new CfLoad(ValueType.LONG, 4),
+            CfLoad.ALOAD_1,
+            CfLoad.LLOAD_4,
             new CfInvoke(
                 182,
                 factory.createMethod(
@@ -3337,7 +3337,7 @@ public final class VarHandleDesugaringMethods {
                     factory.createProto(factory.intType, factory.objectType, factory.longType),
                     factory.createString("getInt")),
                 false),
-            new CfLoad(ValueType.OBJECT, 3),
+            CfLoad.ALOAD_3,
             new CfInvoke(
                 182,
                 factory.createMethod(
@@ -3345,7 +3345,7 @@ public final class VarHandleDesugaringMethods {
                     factory.createProto(factory.objectType, factory.intType, factory.classType),
                     factory.createString("boxIntIfPossible")),
                 false),
-            CfReturn.forType(ValueType.OBJECT),
+            CfReturn.ARETURN,
             label5,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
@@ -3379,8 +3379,8 @@ public final class VarHandleDesugaringMethods {
                     factory.createType("Ljava/lang/invoke/VarHandle;"),
                     factory.createType("Lsun/misc/Unsafe;"),
                     factory.createString("U"))),
-            new CfLoad(ValueType.OBJECT, 1),
-            new CfLoad(ValueType.LONG, 4),
+            CfLoad.ALOAD_1,
+            CfLoad.LLOAD_4,
             new CfInvoke(
                 182,
                 factory.createMethod(
@@ -3388,7 +3388,7 @@ public final class VarHandleDesugaringMethods {
                     factory.createProto(factory.longType, factory.objectType, factory.longType),
                     factory.createString("getLong")),
                 false),
-            new CfLoad(ValueType.OBJECT, 3),
+            CfLoad.ALOAD_3,
             new CfInvoke(
                 182,
                 factory.createMethod(
@@ -3396,7 +3396,7 @@ public final class VarHandleDesugaringMethods {
                     factory.createProto(factory.objectType, factory.longType, factory.classType),
                     factory.createString("boxLongIfPossible")),
                 false),
-            CfReturn.forType(ValueType.OBJECT),
+            CfReturn.ARETURN,
             label7,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
@@ -3416,8 +3416,8 @@ public final class VarHandleDesugaringMethods {
                     factory.createType("Ljava/lang/invoke/VarHandle;"),
                     factory.createType("Lsun/misc/Unsafe;"),
                     factory.createString("U"))),
-            new CfLoad(ValueType.OBJECT, 1),
-            new CfLoad(ValueType.LONG, 4),
+            CfLoad.ALOAD_1,
+            CfLoad.LLOAD_4,
             new CfInvoke(
                 182,
                 factory.createMethod(
@@ -3425,17 +3425,17 @@ public final class VarHandleDesugaringMethods {
                     factory.createProto(factory.objectType, factory.objectType, factory.longType),
                     factory.createString("getObject")),
                 false),
-            new CfStore(ValueType.OBJECT, 6),
+             CfStore.ASTORE_6,
             label8,
-            new CfLoad(ValueType.OBJECT, 6),
+            CfLoad.ALOAD_6,
             new CfInstanceOf(factory.createType("Ljava/lang/Integer;")),
             new CfIf(IfType.EQ, ValueType.INT, label10),
-            new CfLoad(ValueType.OBJECT, 3),
+            CfLoad.ALOAD_3,
             new CfConstClass(factory.createType("Ljava/lang/Integer;")),
             new CfIfCmp(IfType.EQ, ValueType.OBJECT, label10),
             label9,
             CfLoad.ALOAD_0,
-            new CfLoad(ValueType.OBJECT, 6),
+            CfLoad.ALOAD_6,
             new CfCheckCast(factory.createType("Ljava/lang/Integer;")),
             new CfInvoke(
                 182,
@@ -3444,7 +3444,7 @@ public final class VarHandleDesugaringMethods {
                     factory.createProto(factory.intType),
                     factory.createString("intValue")),
                 false),
-            new CfLoad(ValueType.OBJECT, 3),
+            CfLoad.ALOAD_3,
             new CfInvoke(
                 182,
                 factory.createMethod(
@@ -3452,7 +3452,7 @@ public final class VarHandleDesugaringMethods {
                     factory.createProto(factory.objectType, factory.intType, factory.classType),
                     factory.createString("boxIntIfPossible")),
                 false),
-            CfReturn.forType(ValueType.OBJECT),
+            CfReturn.ARETURN,
             label10,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
@@ -3467,15 +3467,15 @@ public final class VarHandleDesugaringMethods {
                       FrameType.longHighType(),
                       FrameType.initializedNonNullReference(factory.objectType)
                     })),
-            new CfLoad(ValueType.OBJECT, 6),
+            CfLoad.ALOAD_6,
             new CfInstanceOf(factory.createType("Ljava/lang/Long;")),
             new CfIf(IfType.EQ, ValueType.INT, label12),
-            new CfLoad(ValueType.OBJECT, 3),
+            CfLoad.ALOAD_3,
             new CfConstClass(factory.createType("Ljava/lang/Long;")),
             new CfIfCmp(IfType.EQ, ValueType.OBJECT, label12),
             label11,
             CfLoad.ALOAD_0,
-            new CfLoad(ValueType.OBJECT, 6),
+            CfLoad.ALOAD_6,
             new CfCheckCast(factory.createType("Ljava/lang/Long;")),
             new CfInvoke(
                 182,
@@ -3484,7 +3484,7 @@ public final class VarHandleDesugaringMethods {
                     factory.createProto(factory.longType),
                     factory.createString("longValue")),
                 false),
-            new CfLoad(ValueType.OBJECT, 3),
+            CfLoad.ALOAD_3,
             new CfInvoke(
                 182,
                 factory.createMethod(
@@ -3492,7 +3492,7 @@ public final class VarHandleDesugaringMethods {
                     factory.createProto(factory.objectType, factory.longType, factory.classType),
                     factory.createString("boxLongIfPossible")),
                 false),
-            CfReturn.forType(ValueType.OBJECT),
+            CfReturn.ARETURN,
             label12,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
@@ -3507,8 +3507,8 @@ public final class VarHandleDesugaringMethods {
                       FrameType.longHighType(),
                       FrameType.initializedNonNullReference(factory.objectType)
                     })),
-            new CfLoad(ValueType.OBJECT, 6),
-            CfReturn.forType(ValueType.OBJECT),
+            CfLoad.ALOAD_6,
+            CfReturn.ARETURN,
             label13),
         ImmutableList.of(),
         ImmutableList.of());
@@ -3536,7 +3536,7 @@ public final class VarHandleDesugaringMethods {
             new CfIfCmp(IfType.EQ, ValueType.OBJECT, label2),
             label1,
             new CfNew(factory.createType("Ljava/lang/UnsupportedOperationException;")),
-            new CfStackInstruction(CfStackInstruction.Opcode.Dup),
+            CfStackInstruction.DUP,
             new CfInvoke(
                 183,
                 factory.createMethod(
@@ -3561,17 +3561,17 @@ public final class VarHandleDesugaringMethods {
                     factory.createType("Ljava/lang/invoke/VarHandle;"),
                     factory.longType,
                     factory.createString("offset"))),
-            new CfLoad(ValueType.INT, 2),
-            new CfNumberConversion(NumericType.INT, NumericType.LONG),
+            CfLoad.ILOAD_2,
+            CfNumberConversion.I2L,
             CfLoad.ALOAD_0,
             new CfInstanceFieldRead(
                 factory.createField(
                     factory.createType("Ljava/lang/invoke/VarHandle;"),
                     factory.longType,
                     factory.createString("arrayIndexScale"))),
-            new CfArithmeticBinop(CfArithmeticBinop.Opcode.Mul, NumericType.LONG),
-            new CfArithmeticBinop(CfArithmeticBinop.Opcode.Add, NumericType.LONG),
-            new CfStore(ValueType.LONG, 3),
+            CfArithmeticBinop.LMUL,
+            CfArithmeticBinop.LADD,
+             CfStore.LSTORE_3,
             label3,
             CfLoad.ALOAD_0,
             new CfInstanceFieldRead(
@@ -3579,8 +3579,8 @@ public final class VarHandleDesugaringMethods {
                     factory.createType("Ljava/lang/invoke/VarHandle;"),
                     factory.createType("Lsun/misc/Unsafe;"),
                     factory.createString("U"))),
-            new CfLoad(ValueType.OBJECT, 1),
-            new CfLoad(ValueType.LONG, 3),
+            CfLoad.ALOAD_1,
+            CfLoad.LLOAD_3,
             new CfInvoke(
                 182,
                 factory.createMethod(
@@ -3588,7 +3588,7 @@ public final class VarHandleDesugaringMethods {
                     factory.createProto(factory.intType, factory.objectType, factory.longType),
                     factory.createString("getInt")),
                 false),
-            CfReturn.forType(ValueType.INT),
+            CfReturn.IRETURN,
             label4),
         ImmutableList.of(),
         ImmutableList.of());
@@ -3616,7 +3616,7 @@ public final class VarHandleDesugaringMethods {
             new CfIfCmp(IfType.EQ, ValueType.OBJECT, label2),
             label1,
             new CfNew(factory.createType("Ljava/lang/UnsupportedOperationException;")),
-            new CfStackInstruction(CfStackInstruction.Opcode.Dup),
+            CfStackInstruction.DUP,
             new CfInvoke(
                 183,
                 factory.createMethod(
@@ -3641,17 +3641,17 @@ public final class VarHandleDesugaringMethods {
                     factory.createType("Ljava/lang/invoke/VarHandle;"),
                     factory.longType,
                     factory.createString("offset"))),
-            new CfLoad(ValueType.INT, 2),
-            new CfNumberConversion(NumericType.INT, NumericType.LONG),
+            CfLoad.ILOAD_2,
+            CfNumberConversion.I2L,
             CfLoad.ALOAD_0,
             new CfInstanceFieldRead(
                 factory.createField(
                     factory.createType("Ljava/lang/invoke/VarHandle;"),
                     factory.longType,
                     factory.createString("arrayIndexScale"))),
-            new CfArithmeticBinop(CfArithmeticBinop.Opcode.Mul, NumericType.LONG),
-            new CfArithmeticBinop(CfArithmeticBinop.Opcode.Add, NumericType.LONG),
-            new CfStore(ValueType.LONG, 3),
+            CfArithmeticBinop.LMUL,
+            CfArithmeticBinop.LADD,
+             CfStore.LSTORE_3,
             label3,
             CfLoad.ALOAD_0,
             new CfInstanceFieldRead(
@@ -3659,8 +3659,8 @@ public final class VarHandleDesugaringMethods {
                     factory.createType("Ljava/lang/invoke/VarHandle;"),
                     factory.createType("Lsun/misc/Unsafe;"),
                     factory.createString("U"))),
-            new CfLoad(ValueType.OBJECT, 1),
-            new CfLoad(ValueType.LONG, 3),
+            CfLoad.ALOAD_1,
+            CfLoad.LLOAD_3,
             new CfInvoke(
                 182,
                 factory.createMethod(
@@ -3668,7 +3668,7 @@ public final class VarHandleDesugaringMethods {
                     factory.createProto(factory.longType, factory.objectType, factory.longType),
                     factory.createString("getLong")),
                 false),
-            CfReturn.forType(ValueType.LONG),
+            CfReturn.LRETURN,
             label4),
         ImmutableList.of(),
         ImmutableList.of());
@@ -3707,7 +3707,7 @@ public final class VarHandleDesugaringMethods {
                     factory.createType("Ljava/lang/invoke/VarHandle;"),
                     factory.createType("Lsun/misc/Unsafe;"),
                     factory.createString("U"))),
-            new CfLoad(ValueType.OBJECT, 1),
+            CfLoad.ALOAD_1,
             CfLoad.ALOAD_0,
             new CfInstanceFieldRead(
                 factory.createField(
@@ -3721,7 +3721,7 @@ public final class VarHandleDesugaringMethods {
                     factory.createProto(factory.intType, factory.objectType, factory.longType),
                     factory.createString("getInt")),
                 false),
-            new CfLoad(ValueType.OBJECT, 2),
+            CfLoad.ALOAD_2,
             new CfInvoke(
                 182,
                 factory.createMethod(
@@ -3729,7 +3729,7 @@ public final class VarHandleDesugaringMethods {
                     factory.createProto(factory.objectType, factory.intType, factory.classType),
                     factory.createString("boxIntIfPossible")),
                 false),
-            CfReturn.forType(ValueType.OBJECT),
+            CfReturn.ARETURN,
             label2,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
@@ -3760,7 +3760,7 @@ public final class VarHandleDesugaringMethods {
                     factory.createType("Ljava/lang/invoke/VarHandle;"),
                     factory.createType("Lsun/misc/Unsafe;"),
                     factory.createString("U"))),
-            new CfLoad(ValueType.OBJECT, 1),
+            CfLoad.ALOAD_1,
             CfLoad.ALOAD_0,
             new CfInstanceFieldRead(
                 factory.createField(
@@ -3774,7 +3774,7 @@ public final class VarHandleDesugaringMethods {
                     factory.createProto(factory.longType, factory.objectType, factory.longType),
                     factory.createString("getLong")),
                 false),
-            new CfLoad(ValueType.OBJECT, 2),
+            CfLoad.ALOAD_2,
             new CfInvoke(
                 182,
                 factory.createMethod(
@@ -3782,7 +3782,7 @@ public final class VarHandleDesugaringMethods {
                     factory.createProto(factory.objectType, factory.longType, factory.classType),
                     factory.createString("boxLongIfPossible")),
                 false),
-            CfReturn.forType(ValueType.OBJECT),
+            CfReturn.ARETURN,
             label4,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
@@ -3799,7 +3799,7 @@ public final class VarHandleDesugaringMethods {
                     factory.createType("Ljava/lang/invoke/VarHandle;"),
                     factory.createType("Lsun/misc/Unsafe;"),
                     factory.createString("U"))),
-            new CfLoad(ValueType.OBJECT, 1),
+            CfLoad.ALOAD_1,
             CfLoad.ALOAD_0,
             new CfInstanceFieldRead(
                 factory.createField(
@@ -3813,7 +3813,7 @@ public final class VarHandleDesugaringMethods {
                     factory.createProto(factory.objectType, factory.objectType, factory.longType),
                     factory.createString("getObject")),
                 false),
-            CfReturn.forType(ValueType.OBJECT),
+            CfReturn.ARETURN,
             label5),
         ImmutableList.of(),
         ImmutableList.of());
@@ -3851,7 +3851,7 @@ public final class VarHandleDesugaringMethods {
                     factory.createType("Ljava/lang/invoke/VarHandle;"),
                     factory.createType("Lsun/misc/Unsafe;"),
                     factory.createString("U"))),
-            new CfLoad(ValueType.OBJECT, 1),
+            CfLoad.ALOAD_1,
             CfLoad.ALOAD_0,
             new CfInstanceFieldRead(
                 factory.createField(
@@ -3865,7 +3865,7 @@ public final class VarHandleDesugaringMethods {
                     factory.createProto(factory.intType, factory.objectType, factory.longType),
                     factory.createString("getInt")),
                 false),
-            CfReturn.forType(ValueType.INT),
+            CfReturn.IRETURN,
             label2,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
@@ -3913,7 +3913,7 @@ public final class VarHandleDesugaringMethods {
                     factory.createType("Ljava/lang/invoke/VarHandle;"),
                     factory.createType("Lsun/misc/Unsafe;"),
                     factory.createString("U"))),
-            new CfLoad(ValueType.OBJECT, 1),
+            CfLoad.ALOAD_1,
             CfLoad.ALOAD_0,
             new CfInstanceFieldRead(
                 factory.createField(
@@ -3927,7 +3927,7 @@ public final class VarHandleDesugaringMethods {
                     factory.createProto(factory.objectType, factory.objectType, factory.longType),
                     factory.createString("getObject")),
                 false),
-            new CfConstNumber(1, ValueType.INT),
+            CfConstNumber.ICONST_1,
             new CfInvoke(
                 182,
                 factory.createMethod(
@@ -3935,7 +3935,7 @@ public final class VarHandleDesugaringMethods {
                     factory.createProto(factory.intType, factory.objectType, factory.booleanType),
                     factory.createString("toIntIfPossible")),
                 false),
-            CfReturn.forType(ValueType.INT),
+            CfReturn.IRETURN,
             label5),
         ImmutableList.of(),
         ImmutableList.of());
@@ -3973,7 +3973,7 @@ public final class VarHandleDesugaringMethods {
                     factory.createType("Ljava/lang/invoke/VarHandle;"),
                     factory.createType("Lsun/misc/Unsafe;"),
                     factory.createString("U"))),
-            new CfLoad(ValueType.OBJECT, 1),
+            CfLoad.ALOAD_1,
             CfLoad.ALOAD_0,
             new CfInstanceFieldRead(
                 factory.createField(
@@ -3987,7 +3987,7 @@ public final class VarHandleDesugaringMethods {
                     factory.createProto(factory.longType, factory.objectType, factory.longType),
                     factory.createString("getLong")),
                 false),
-            CfReturn.forType(ValueType.LONG),
+            CfReturn.LRETURN,
             label2,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
@@ -4016,7 +4016,7 @@ public final class VarHandleDesugaringMethods {
                     factory.createType("Ljava/lang/invoke/VarHandle;"),
                     factory.createType("Lsun/misc/Unsafe;"),
                     factory.createString("U"))),
-            new CfLoad(ValueType.OBJECT, 1),
+            CfLoad.ALOAD_1,
             CfLoad.ALOAD_0,
             new CfInstanceFieldRead(
                 factory.createField(
@@ -4030,8 +4030,8 @@ public final class VarHandleDesugaringMethods {
                     factory.createProto(factory.intType, factory.objectType, factory.longType),
                     factory.createString("getInt")),
                 false),
-            new CfNumberConversion(NumericType.INT, NumericType.LONG),
-            CfReturn.forType(ValueType.LONG),
+            CfNumberConversion.I2L,
+            CfReturn.LRETURN,
             label4,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
@@ -4048,7 +4048,7 @@ public final class VarHandleDesugaringMethods {
                     factory.createType("Ljava/lang/invoke/VarHandle;"),
                     factory.createType("Lsun/misc/Unsafe;"),
                     factory.createString("U"))),
-            new CfLoad(ValueType.OBJECT, 1),
+            CfLoad.ALOAD_1,
             CfLoad.ALOAD_0,
             new CfInstanceFieldRead(
                 factory.createField(
@@ -4062,7 +4062,7 @@ public final class VarHandleDesugaringMethods {
                     factory.createProto(factory.objectType, factory.objectType, factory.longType),
                     factory.createString("getObject")),
                 false),
-            new CfConstNumber(1, ValueType.INT),
+            CfConstNumber.ICONST_1,
             new CfInvoke(
                 182,
                 factory.createMethod(
@@ -4070,7 +4070,7 @@ public final class VarHandleDesugaringMethods {
                     factory.createProto(factory.longType, factory.objectType, factory.booleanType),
                     factory.createString("toLongIfPossible")),
                 false),
-            CfReturn.forType(ValueType.LONG),
+            CfReturn.LRETURN,
             label5),
         ImmutableList.of(),
         ImmutableList.of());
@@ -4105,7 +4105,7 @@ public final class VarHandleDesugaringMethods {
                     factory.createString("getDeclaredField")),
                 false),
             label1,
-            CfReturn.forType(ValueType.OBJECT),
+            CfReturn.ARETURN,
             label2,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
@@ -4118,7 +4118,7 @@ public final class VarHandleDesugaringMethods {
                     Arrays.asList(
                         FrameType.initializedNonNullReference(
                             factory.createType("Ljava/lang/NoSuchFieldException;"))))),
-            new CfStore(ValueType.OBJECT, 1),
+            CfStore.ASTORE_1,
             label3,
             new CfConstClass(factory.createType("Lsun/misc/Unsafe;")),
             new CfInvoke(
@@ -4128,12 +4128,12 @@ public final class VarHandleDesugaringMethods {
                     factory.createProto(factory.createType("[Ljava/lang/reflect/Field;")),
                     factory.createString("getDeclaredFields")),
                 false),
-            new CfStore(ValueType.OBJECT, 2),
-            new CfLoad(ValueType.OBJECT, 2),
+            CfStore.ASTORE_2,
+            CfLoad.ALOAD_2,
             CfArrayLength.INSTANCE,
-            new CfStore(ValueType.INT, 3),
-            new CfConstNumber(0, ValueType.INT),
-            new CfStore(ValueType.INT, 4),
+             CfStore.ISTORE_3,
+            CfConstNumber.ICONST_0,
+             CfStore.ISTORE_4,
             label4,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
@@ -4148,15 +4148,15 @@ public final class VarHandleDesugaringMethods {
                       FrameType.intType(),
                       FrameType.intType()
                     })),
-            new CfLoad(ValueType.INT, 4),
-            new CfLoad(ValueType.INT, 3),
+            CfLoad.ILOAD_4,
+            CfLoad.ILOAD_3,
             new CfIfCmp(IfType.GE, ValueType.INT, label9),
-            new CfLoad(ValueType.OBJECT, 2),
-            new CfLoad(ValueType.INT, 4),
+            CfLoad.ALOAD_2,
+            CfLoad.ILOAD_4,
             CfArrayLoad.forType(MemberType.OBJECT),
-            new CfStore(ValueType.OBJECT, 5),
+             CfStore.ASTORE_5,
             label5,
-            new CfLoad(ValueType.OBJECT, 5),
+            CfLoad.ALOAD_5,
             new CfInvoke(
                 182,
                 factory.createMethod(
@@ -4173,7 +4173,7 @@ public final class VarHandleDesugaringMethods {
                 false),
             new CfIf(IfType.EQ, ValueType.INT, label8),
             new CfConstClass(factory.createType("Lsun/misc/Unsafe;")),
-            new CfLoad(ValueType.OBJECT, 5),
+            CfLoad.ALOAD_5,
             label6,
             new CfInvoke(
                 182,
@@ -4191,8 +4191,8 @@ public final class VarHandleDesugaringMethods {
                 false),
             new CfIf(IfType.EQ, ValueType.INT, label8),
             label7,
-            new CfLoad(ValueType.OBJECT, 5),
-            CfReturn.forType(ValueType.OBJECT),
+            CfLoad.ALOAD_5,
+            CfReturn.ARETURN,
             label8,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
@@ -4220,9 +4220,9 @@ public final class VarHandleDesugaringMethods {
                           factory.createType("Ljava/lang/NoSuchFieldException;"))
                     })),
             new CfNew(factory.createType("Ljava/lang/UnsupportedOperationException;")),
-            new CfStackInstruction(CfStackInstruction.Opcode.Dup),
+            CfStackInstruction.DUP,
             new CfConstString(factory.createString("Couldn't find the Unsafe")),
-            new CfLoad(ValueType.OBJECT, 1),
+            CfLoad.ALOAD_1,
             new CfInvoke(
                 183,
                 factory.createMethod(
@@ -4274,7 +4274,7 @@ public final class VarHandleDesugaringMethods {
                     factory.createType("Ljava/lang/invoke/VarHandle;"),
                     factory.createType("Lsun/misc/Unsafe;"),
                     factory.createString("U"))),
-            new CfLoad(ValueType.OBJECT, 1),
+            CfLoad.ALOAD_1,
             CfLoad.ALOAD_0,
             new CfInstanceFieldRead(
                 factory.createField(
@@ -4295,7 +4295,7 @@ public final class VarHandleDesugaringMethods {
                     factory.createProto(factory.createType("Ljava/lang/Integer;"), factory.intType),
                     factory.createString("valueOf")),
                 false),
-            CfReturn.forType(ValueType.OBJECT),
+            CfReturn.ARETURN,
             label2,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
@@ -4324,7 +4324,7 @@ public final class VarHandleDesugaringMethods {
                     factory.createType("Ljava/lang/invoke/VarHandle;"),
                     factory.createType("Lsun/misc/Unsafe;"),
                     factory.createString("U"))),
-            new CfLoad(ValueType.OBJECT, 1),
+            CfLoad.ALOAD_1,
             CfLoad.ALOAD_0,
             new CfInstanceFieldRead(
                 factory.createField(
@@ -4345,7 +4345,7 @@ public final class VarHandleDesugaringMethods {
                     factory.createProto(factory.createType("Ljava/lang/Long;"), factory.longType),
                     factory.createString("valueOf")),
                 false),
-            CfReturn.forType(ValueType.OBJECT),
+            CfReturn.ARETURN,
             label4,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
@@ -4361,7 +4361,7 @@ public final class VarHandleDesugaringMethods {
                     factory.createType("Ljava/lang/invoke/VarHandle;"),
                     factory.createType("Lsun/misc/Unsafe;"),
                     factory.createString("U"))),
-            new CfLoad(ValueType.OBJECT, 1),
+            CfLoad.ALOAD_1,
             CfLoad.ALOAD_0,
             new CfInstanceFieldRead(
                 factory.createField(
@@ -4375,7 +4375,7 @@ public final class VarHandleDesugaringMethods {
                     factory.createProto(factory.objectType, factory.objectType, factory.longType),
                     factory.createString("getObjectVolatile")),
                 false),
-            CfReturn.forType(ValueType.OBJECT),
+            CfReturn.ARETURN,
             label5),
         ImmutableList.of(),
         ImmutableList.of());
@@ -4417,7 +4417,7 @@ public final class VarHandleDesugaringMethods {
                     factory.createType("Ljava/lang/invoke/VarHandle;"),
                     factory.classType,
                     factory.createString("recv"))),
-            new CfLoad(ValueType.OBJECT, 1),
+            CfLoad.ALOAD_1,
             new CfInvoke(
                 182,
                 factory.createMethod(
@@ -4437,7 +4437,7 @@ public final class VarHandleDesugaringMethods {
                       FrameType.intType()
                     })),
             new CfNew(factory.createType("Ljava/lang/UnsupportedOperationException;")),
-            new CfStackInstruction(CfStackInstruction.Opcode.Dup),
+            CfStackInstruction.DUP,
             new CfInvoke(
                 183,
                 factory.createMethod(
@@ -4462,17 +4462,17 @@ public final class VarHandleDesugaringMethods {
                     factory.createType("Ljava/lang/invoke/VarHandle;"),
                     factory.longType,
                     factory.createString("offset"))),
-            new CfLoad(ValueType.INT, 2),
-            new CfNumberConversion(NumericType.INT, NumericType.LONG),
+            CfLoad.ILOAD_2,
+            CfNumberConversion.I2L,
             CfLoad.ALOAD_0,
             new CfInstanceFieldRead(
                 factory.createField(
                     factory.createType("Ljava/lang/invoke/VarHandle;"),
                     factory.longType,
                     factory.createString("arrayIndexScale"))),
-            new CfArithmeticBinop(CfArithmeticBinop.Opcode.Mul, NumericType.LONG),
-            new CfArithmeticBinop(CfArithmeticBinop.Opcode.Add, NumericType.LONG),
-            new CfStore(ValueType.LONG, 3),
+            CfArithmeticBinop.LMUL,
+            CfArithmeticBinop.LADD,
+             CfStore.LSTORE_3,
             label3,
             CfLoad.ALOAD_0,
             new CfInstanceFieldRead(
@@ -4493,8 +4493,8 @@ public final class VarHandleDesugaringMethods {
                     factory.createType("Ljava/lang/invoke/VarHandle;"),
                     factory.createType("Lsun/misc/Unsafe;"),
                     factory.createString("U"))),
-            new CfLoad(ValueType.OBJECT, 1),
-            new CfLoad(ValueType.LONG, 3),
+            CfLoad.ALOAD_1,
+            CfLoad.LLOAD_3,
             new CfInvoke(
                 182,
                 factory.createMethod(
@@ -4509,7 +4509,7 @@ public final class VarHandleDesugaringMethods {
                     factory.createProto(factory.createType("Ljava/lang/Integer;"), factory.intType),
                     factory.createString("valueOf")),
                 false),
-            CfReturn.forType(ValueType.OBJECT),
+            CfReturn.ARETURN,
             label5,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
@@ -4541,8 +4541,8 @@ public final class VarHandleDesugaringMethods {
                     factory.createType("Ljava/lang/invoke/VarHandle;"),
                     factory.createType("Lsun/misc/Unsafe;"),
                     factory.createString("U"))),
-            new CfLoad(ValueType.OBJECT, 1),
-            new CfLoad(ValueType.LONG, 3),
+            CfLoad.ALOAD_1,
+            CfLoad.LLOAD_3,
             new CfInvoke(
                 182,
                 factory.createMethod(
@@ -4550,7 +4550,7 @@ public final class VarHandleDesugaringMethods {
                     factory.createProto(factory.longType, factory.objectType, factory.longType),
                     factory.createString("getLongVolatile")),
                 false),
-            new CfNumberConversion(NumericType.LONG, NumericType.INT),
+            CfNumberConversion.L2I,
             new CfInvoke(
                 184,
                 factory.createMethod(
@@ -4558,7 +4558,7 @@ public final class VarHandleDesugaringMethods {
                     factory.createProto(factory.createType("Ljava/lang/Integer;"), factory.intType),
                     factory.createString("valueOf")),
                 false),
-            CfReturn.forType(ValueType.OBJECT),
+            CfReturn.ARETURN,
             label7,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
@@ -4577,8 +4577,8 @@ public final class VarHandleDesugaringMethods {
                     factory.createType("Ljava/lang/invoke/VarHandle;"),
                     factory.createType("Lsun/misc/Unsafe;"),
                     factory.createString("U"))),
-            new CfLoad(ValueType.OBJECT, 1),
-            new CfLoad(ValueType.LONG, 3),
+            CfLoad.ALOAD_1,
+            CfLoad.LLOAD_3,
             new CfInvoke(
                 182,
                 factory.createMethod(
@@ -4586,7 +4586,7 @@ public final class VarHandleDesugaringMethods {
                     factory.createProto(factory.objectType, factory.objectType, factory.longType),
                     factory.createString("getObjectVolatile")),
                 false),
-            CfReturn.forType(ValueType.OBJECT),
+            CfReturn.ARETURN,
             label8),
         ImmutableList.of(),
         ImmutableList.of());
@@ -4634,7 +4634,7 @@ public final class VarHandleDesugaringMethods {
                     factory.createType("Ljava/lang/invoke/VarHandle;"),
                     factory.classType,
                     factory.createString("recv"))),
-            new CfLoad(ValueType.OBJECT, 1),
+            CfLoad.ALOAD_1,
             new CfInvoke(
                 182,
                 factory.createMethod(
@@ -4655,7 +4655,7 @@ public final class VarHandleDesugaringMethods {
                       FrameType.initializedNonNullReference(factory.classType)
                     })),
             new CfNew(factory.createType("Ljava/lang/UnsupportedOperationException;")),
-            new CfStackInstruction(CfStackInstruction.Opcode.Dup),
+            CfStackInstruction.DUP,
             new CfInvoke(
                 183,
                 factory.createMethod(
@@ -4681,17 +4681,17 @@ public final class VarHandleDesugaringMethods {
                     factory.createType("Ljava/lang/invoke/VarHandle;"),
                     factory.longType,
                     factory.createString("offset"))),
-            new CfLoad(ValueType.INT, 2),
-            new CfNumberConversion(NumericType.INT, NumericType.LONG),
+            CfLoad.ILOAD_2,
+            CfNumberConversion.I2L,
             CfLoad.ALOAD_0,
             new CfInstanceFieldRead(
                 factory.createField(
                     factory.createType("Ljava/lang/invoke/VarHandle;"),
                     factory.longType,
                     factory.createString("arrayIndexScale"))),
-            new CfArithmeticBinop(CfArithmeticBinop.Opcode.Mul, NumericType.LONG),
-            new CfArithmeticBinop(CfArithmeticBinop.Opcode.Add, NumericType.LONG),
-            new CfStore(ValueType.LONG, 4),
+            CfArithmeticBinop.LMUL,
+            CfArithmeticBinop.LADD,
+             CfStore.LSTORE_4,
             label3,
             CfLoad.ALOAD_0,
             new CfInstanceFieldRead(
@@ -4713,8 +4713,8 @@ public final class VarHandleDesugaringMethods {
                     factory.createType("Ljava/lang/invoke/VarHandle;"),
                     factory.createType("Lsun/misc/Unsafe;"),
                     factory.createString("U"))),
-            new CfLoad(ValueType.OBJECT, 1),
-            new CfLoad(ValueType.LONG, 4),
+            CfLoad.ALOAD_1,
+            CfLoad.LLOAD_4,
             new CfInvoke(
                 182,
                 factory.createMethod(
@@ -4722,7 +4722,7 @@ public final class VarHandleDesugaringMethods {
                     factory.createProto(factory.intType, factory.objectType, factory.longType),
                     factory.createString("getIntVolatile")),
                 false),
-            new CfLoad(ValueType.OBJECT, 3),
+            CfLoad.ALOAD_3,
             new CfInvoke(
                 182,
                 factory.createMethod(
@@ -4730,7 +4730,7 @@ public final class VarHandleDesugaringMethods {
                     factory.createProto(factory.objectType, factory.intType, factory.classType),
                     factory.createString("boxIntIfPossible")),
                 false),
-            CfReturn.forType(ValueType.OBJECT),
+            CfReturn.ARETURN,
             label5,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
@@ -4764,8 +4764,8 @@ public final class VarHandleDesugaringMethods {
                     factory.createType("Ljava/lang/invoke/VarHandle;"),
                     factory.createType("Lsun/misc/Unsafe;"),
                     factory.createString("U"))),
-            new CfLoad(ValueType.OBJECT, 1),
-            new CfLoad(ValueType.LONG, 4),
+            CfLoad.ALOAD_1,
+            CfLoad.LLOAD_4,
             new CfInvoke(
                 182,
                 factory.createMethod(
@@ -4773,7 +4773,7 @@ public final class VarHandleDesugaringMethods {
                     factory.createProto(factory.longType, factory.objectType, factory.longType),
                     factory.createString("getLongVolatile")),
                 false),
-            new CfLoad(ValueType.OBJECT, 3),
+            CfLoad.ALOAD_3,
             new CfInvoke(
                 182,
                 factory.createMethod(
@@ -4781,7 +4781,7 @@ public final class VarHandleDesugaringMethods {
                     factory.createProto(factory.objectType, factory.longType, factory.classType),
                     factory.createString("boxLongIfPossible")),
                 false),
-            CfReturn.forType(ValueType.OBJECT),
+            CfReturn.ARETURN,
             label7,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
@@ -4801,8 +4801,8 @@ public final class VarHandleDesugaringMethods {
                     factory.createType("Ljava/lang/invoke/VarHandle;"),
                     factory.createType("Lsun/misc/Unsafe;"),
                     factory.createString("U"))),
-            new CfLoad(ValueType.OBJECT, 1),
-            new CfLoad(ValueType.LONG, 4),
+            CfLoad.ALOAD_1,
+            CfLoad.LLOAD_4,
             new CfInvoke(
                 182,
                 factory.createMethod(
@@ -4810,17 +4810,17 @@ public final class VarHandleDesugaringMethods {
                     factory.createProto(factory.objectType, factory.objectType, factory.longType),
                     factory.createString("getObjectVolatile")),
                 false),
-            new CfStore(ValueType.OBJECT, 6),
+             CfStore.ASTORE_6,
             label8,
-            new CfLoad(ValueType.OBJECT, 6),
+            CfLoad.ALOAD_6,
             new CfInstanceOf(factory.createType("Ljava/lang/Integer;")),
             new CfIf(IfType.EQ, ValueType.INT, label10),
-            new CfLoad(ValueType.OBJECT, 3),
+            CfLoad.ALOAD_3,
             new CfConstClass(factory.createType("Ljava/lang/Integer;")),
             new CfIfCmp(IfType.EQ, ValueType.OBJECT, label10),
             label9,
             CfLoad.ALOAD_0,
-            new CfLoad(ValueType.OBJECT, 6),
+            CfLoad.ALOAD_6,
             new CfCheckCast(factory.createType("Ljava/lang/Integer;")),
             new CfInvoke(
                 182,
@@ -4829,7 +4829,7 @@ public final class VarHandleDesugaringMethods {
                     factory.createProto(factory.intType),
                     factory.createString("intValue")),
                 false),
-            new CfLoad(ValueType.OBJECT, 3),
+            CfLoad.ALOAD_3,
             new CfInvoke(
                 182,
                 factory.createMethod(
@@ -4837,7 +4837,7 @@ public final class VarHandleDesugaringMethods {
                     factory.createProto(factory.objectType, factory.intType, factory.classType),
                     factory.createString("boxIntIfPossible")),
                 false),
-            CfReturn.forType(ValueType.OBJECT),
+            CfReturn.ARETURN,
             label10,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
@@ -4852,15 +4852,15 @@ public final class VarHandleDesugaringMethods {
                       FrameType.longHighType(),
                       FrameType.initializedNonNullReference(factory.objectType)
                     })),
-            new CfLoad(ValueType.OBJECT, 6),
+            CfLoad.ALOAD_6,
             new CfInstanceOf(factory.createType("Ljava/lang/Long;")),
             new CfIf(IfType.EQ, ValueType.INT, label12),
-            new CfLoad(ValueType.OBJECT, 3),
+            CfLoad.ALOAD_3,
             new CfConstClass(factory.createType("Ljava/lang/Long;")),
             new CfIfCmp(IfType.EQ, ValueType.OBJECT, label12),
             label11,
             CfLoad.ALOAD_0,
-            new CfLoad(ValueType.OBJECT, 6),
+            CfLoad.ALOAD_6,
             new CfCheckCast(factory.createType("Ljava/lang/Long;")),
             new CfInvoke(
                 182,
@@ -4869,7 +4869,7 @@ public final class VarHandleDesugaringMethods {
                     factory.createProto(factory.longType),
                     factory.createString("longValue")),
                 false),
-            new CfLoad(ValueType.OBJECT, 3),
+            CfLoad.ALOAD_3,
             new CfInvoke(
                 182,
                 factory.createMethod(
@@ -4877,7 +4877,7 @@ public final class VarHandleDesugaringMethods {
                     factory.createProto(factory.objectType, factory.longType, factory.classType),
                     factory.createString("boxLongIfPossible")),
                 false),
-            CfReturn.forType(ValueType.OBJECT),
+            CfReturn.ARETURN,
             label12,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
@@ -4892,8 +4892,8 @@ public final class VarHandleDesugaringMethods {
                       FrameType.longHighType(),
                       FrameType.initializedNonNullReference(factory.objectType)
                     })),
-            new CfLoad(ValueType.OBJECT, 6),
-            CfReturn.forType(ValueType.OBJECT),
+            CfLoad.ALOAD_6,
+            CfReturn.ARETURN,
             label13),
         ImmutableList.of(),
         ImmutableList.of());
@@ -4922,7 +4922,7 @@ public final class VarHandleDesugaringMethods {
             new CfIfCmp(IfType.EQ, ValueType.OBJECT, label2),
             label1,
             new CfNew(factory.createType("Ljava/lang/UnsupportedOperationException;")),
-            new CfStackInstruction(CfStackInstruction.Opcode.Dup),
+            CfStackInstruction.DUP,
             new CfInvoke(
                 183,
                 factory.createMethod(
@@ -4947,17 +4947,17 @@ public final class VarHandleDesugaringMethods {
                     factory.createType("Ljava/lang/invoke/VarHandle;"),
                     factory.longType,
                     factory.createString("offset"))),
-            new CfLoad(ValueType.INT, 2),
-            new CfNumberConversion(NumericType.INT, NumericType.LONG),
+            CfLoad.ILOAD_2,
+            CfNumberConversion.I2L,
             CfLoad.ALOAD_0,
             new CfInstanceFieldRead(
                 factory.createField(
                     factory.createType("Ljava/lang/invoke/VarHandle;"),
                     factory.longType,
                     factory.createString("arrayIndexScale"))),
-            new CfArithmeticBinop(CfArithmeticBinop.Opcode.Mul, NumericType.LONG),
-            new CfArithmeticBinop(CfArithmeticBinop.Opcode.Add, NumericType.LONG),
-            new CfStore(ValueType.LONG, 3),
+            CfArithmeticBinop.LMUL,
+            CfArithmeticBinop.LADD,
+             CfStore.LSTORE_3,
             label3,
             CfLoad.ALOAD_0,
             new CfInstanceFieldRead(
@@ -4965,8 +4965,8 @@ public final class VarHandleDesugaringMethods {
                     factory.createType("Ljava/lang/invoke/VarHandle;"),
                     factory.createType("Lsun/misc/Unsafe;"),
                     factory.createString("U"))),
-            new CfLoad(ValueType.OBJECT, 1),
-            new CfLoad(ValueType.LONG, 3),
+            CfLoad.ALOAD_1,
+            CfLoad.LLOAD_3,
             new CfInvoke(
                 182,
                 factory.createMethod(
@@ -4974,7 +4974,7 @@ public final class VarHandleDesugaringMethods {
                     factory.createProto(factory.intType, factory.objectType, factory.longType),
                     factory.createString("getIntVolatile")),
                 false),
-            CfReturn.forType(ValueType.INT),
+            CfReturn.IRETURN,
             label4),
         ImmutableList.of(),
         ImmutableList.of());
@@ -5003,7 +5003,7 @@ public final class VarHandleDesugaringMethods {
             new CfIfCmp(IfType.EQ, ValueType.OBJECT, label2),
             label1,
             new CfNew(factory.createType("Ljava/lang/UnsupportedOperationException;")),
-            new CfStackInstruction(CfStackInstruction.Opcode.Dup),
+            CfStackInstruction.DUP,
             new CfInvoke(
                 183,
                 factory.createMethod(
@@ -5028,17 +5028,17 @@ public final class VarHandleDesugaringMethods {
                     factory.createType("Ljava/lang/invoke/VarHandle;"),
                     factory.longType,
                     factory.createString("offset"))),
-            new CfLoad(ValueType.INT, 2),
-            new CfNumberConversion(NumericType.INT, NumericType.LONG),
+            CfLoad.ILOAD_2,
+            CfNumberConversion.I2L,
             CfLoad.ALOAD_0,
             new CfInstanceFieldRead(
                 factory.createField(
                     factory.createType("Ljava/lang/invoke/VarHandle;"),
                     factory.longType,
                     factory.createString("arrayIndexScale"))),
-            new CfArithmeticBinop(CfArithmeticBinop.Opcode.Mul, NumericType.LONG),
-            new CfArithmeticBinop(CfArithmeticBinop.Opcode.Add, NumericType.LONG),
-            new CfStore(ValueType.LONG, 3),
+            CfArithmeticBinop.LMUL,
+            CfArithmeticBinop.LADD,
+             CfStore.LSTORE_3,
             label3,
             CfLoad.ALOAD_0,
             new CfInstanceFieldRead(
@@ -5046,8 +5046,8 @@ public final class VarHandleDesugaringMethods {
                     factory.createType("Ljava/lang/invoke/VarHandle;"),
                     factory.createType("Lsun/misc/Unsafe;"),
                     factory.createString("U"))),
-            new CfLoad(ValueType.OBJECT, 1),
-            new CfLoad(ValueType.LONG, 3),
+            CfLoad.ALOAD_1,
+            CfLoad.LLOAD_3,
             new CfInvoke(
                 182,
                 factory.createMethod(
@@ -5055,7 +5055,7 @@ public final class VarHandleDesugaringMethods {
                     factory.createProto(factory.longType, factory.objectType, factory.longType),
                     factory.createString("getLongVolatile")),
                 false),
-            CfReturn.forType(ValueType.LONG),
+            CfReturn.LRETURN,
             label4),
         ImmutableList.of(),
         ImmutableList.of());
@@ -5094,7 +5094,7 @@ public final class VarHandleDesugaringMethods {
                     factory.createType("Ljava/lang/invoke/VarHandle;"),
                     factory.createType("Lsun/misc/Unsafe;"),
                     factory.createString("U"))),
-            new CfLoad(ValueType.OBJECT, 1),
+            CfLoad.ALOAD_1,
             CfLoad.ALOAD_0,
             new CfInstanceFieldRead(
                 factory.createField(
@@ -5108,7 +5108,7 @@ public final class VarHandleDesugaringMethods {
                     factory.createProto(factory.intType, factory.objectType, factory.longType),
                     factory.createString("getIntVolatile")),
                 false),
-            new CfLoad(ValueType.OBJECT, 2),
+            CfLoad.ALOAD_2,
             new CfInvoke(
                 182,
                 factory.createMethod(
@@ -5116,7 +5116,7 @@ public final class VarHandleDesugaringMethods {
                     factory.createProto(factory.objectType, factory.intType, factory.classType),
                     factory.createString("boxIntIfPossible")),
                 false),
-            CfReturn.forType(ValueType.OBJECT),
+            CfReturn.ARETURN,
             label2,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
@@ -5147,7 +5147,7 @@ public final class VarHandleDesugaringMethods {
                     factory.createType("Ljava/lang/invoke/VarHandle;"),
                     factory.createType("Lsun/misc/Unsafe;"),
                     factory.createString("U"))),
-            new CfLoad(ValueType.OBJECT, 1),
+            CfLoad.ALOAD_1,
             CfLoad.ALOAD_0,
             new CfInstanceFieldRead(
                 factory.createField(
@@ -5161,7 +5161,7 @@ public final class VarHandleDesugaringMethods {
                     factory.createProto(factory.longType, factory.objectType, factory.longType),
                     factory.createString("getLongVolatile")),
                 false),
-            new CfLoad(ValueType.OBJECT, 2),
+            CfLoad.ALOAD_2,
             new CfInvoke(
                 182,
                 factory.createMethod(
@@ -5169,7 +5169,7 @@ public final class VarHandleDesugaringMethods {
                     factory.createProto(factory.objectType, factory.longType, factory.classType),
                     factory.createString("boxLongIfPossible")),
                 false),
-            CfReturn.forType(ValueType.OBJECT),
+            CfReturn.ARETURN,
             label4,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
@@ -5186,7 +5186,7 @@ public final class VarHandleDesugaringMethods {
                     factory.createType("Ljava/lang/invoke/VarHandle;"),
                     factory.createType("Lsun/misc/Unsafe;"),
                     factory.createString("U"))),
-            new CfLoad(ValueType.OBJECT, 1),
+            CfLoad.ALOAD_1,
             CfLoad.ALOAD_0,
             new CfInstanceFieldRead(
                 factory.createField(
@@ -5200,7 +5200,7 @@ public final class VarHandleDesugaringMethods {
                     factory.createProto(factory.objectType, factory.objectType, factory.longType),
                     factory.createString("getObjectVolatile")),
                 false),
-            CfReturn.forType(ValueType.OBJECT),
+            CfReturn.ARETURN,
             label5),
         ImmutableList.of(),
         ImmutableList.of());
@@ -5238,7 +5238,7 @@ public final class VarHandleDesugaringMethods {
                     factory.createType("Ljava/lang/invoke/VarHandle;"),
                     factory.createType("Lsun/misc/Unsafe;"),
                     factory.createString("U"))),
-            new CfLoad(ValueType.OBJECT, 1),
+            CfLoad.ALOAD_1,
             CfLoad.ALOAD_0,
             new CfInstanceFieldRead(
                 factory.createField(
@@ -5252,7 +5252,7 @@ public final class VarHandleDesugaringMethods {
                     factory.createProto(factory.intType, factory.objectType, factory.longType),
                     factory.createString("getIntVolatile")),
                 false),
-            CfReturn.forType(ValueType.INT),
+            CfReturn.IRETURN,
             label2,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
@@ -5300,7 +5300,7 @@ public final class VarHandleDesugaringMethods {
                     factory.createType("Ljava/lang/invoke/VarHandle;"),
                     factory.createType("Lsun/misc/Unsafe;"),
                     factory.createString("U"))),
-            new CfLoad(ValueType.OBJECT, 1),
+            CfLoad.ALOAD_1,
             CfLoad.ALOAD_0,
             new CfInstanceFieldRead(
                 factory.createField(
@@ -5314,7 +5314,7 @@ public final class VarHandleDesugaringMethods {
                     factory.createProto(factory.objectType, factory.objectType, factory.longType),
                     factory.createString("getObjectVolatile")),
                 false),
-            new CfConstNumber(1, ValueType.INT),
+            CfConstNumber.ICONST_1,
             new CfInvoke(
                 182,
                 factory.createMethod(
@@ -5322,7 +5322,7 @@ public final class VarHandleDesugaringMethods {
                     factory.createProto(factory.intType, factory.objectType, factory.booleanType),
                     factory.createString("toIntIfPossible")),
                 false),
-            CfReturn.forType(ValueType.INT),
+            CfReturn.IRETURN,
             label5),
         ImmutableList.of(),
         ImmutableList.of());
@@ -5360,7 +5360,7 @@ public final class VarHandleDesugaringMethods {
                     factory.createType("Ljava/lang/invoke/VarHandle;"),
                     factory.createType("Lsun/misc/Unsafe;"),
                     factory.createString("U"))),
-            new CfLoad(ValueType.OBJECT, 1),
+            CfLoad.ALOAD_1,
             CfLoad.ALOAD_0,
             new CfInstanceFieldRead(
                 factory.createField(
@@ -5374,7 +5374,7 @@ public final class VarHandleDesugaringMethods {
                     factory.createProto(factory.longType, factory.objectType, factory.longType),
                     factory.createString("getLongVolatile")),
                 false),
-            CfReturn.forType(ValueType.LONG),
+            CfReturn.LRETURN,
             label2,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
@@ -5403,7 +5403,7 @@ public final class VarHandleDesugaringMethods {
                     factory.createType("Ljava/lang/invoke/VarHandle;"),
                     factory.createType("Lsun/misc/Unsafe;"),
                     factory.createString("U"))),
-            new CfLoad(ValueType.OBJECT, 1),
+            CfLoad.ALOAD_1,
             CfLoad.ALOAD_0,
             new CfInstanceFieldRead(
                 factory.createField(
@@ -5417,8 +5417,8 @@ public final class VarHandleDesugaringMethods {
                     factory.createProto(factory.intType, factory.objectType, factory.longType),
                     factory.createString("getIntVolatile")),
                 false),
-            new CfNumberConversion(NumericType.INT, NumericType.LONG),
-            CfReturn.forType(ValueType.LONG),
+            CfNumberConversion.I2L,
+            CfReturn.LRETURN,
             label4,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
@@ -5435,7 +5435,7 @@ public final class VarHandleDesugaringMethods {
                     factory.createType("Ljava/lang/invoke/VarHandle;"),
                     factory.createType("Lsun/misc/Unsafe;"),
                     factory.createString("U"))),
-            new CfLoad(ValueType.OBJECT, 1),
+            CfLoad.ALOAD_1,
             CfLoad.ALOAD_0,
             new CfInstanceFieldRead(
                 factory.createField(
@@ -5449,7 +5449,7 @@ public final class VarHandleDesugaringMethods {
                     factory.createProto(factory.objectType, factory.objectType, factory.longType),
                     factory.createString("getObjectVolatile")),
                 false),
-            new CfConstNumber(1, ValueType.INT),
+            CfConstNumber.ICONST_1,
             new CfInvoke(
                 182,
                 factory.createMethod(
@@ -5457,7 +5457,7 @@ public final class VarHandleDesugaringMethods {
                     factory.createProto(factory.longType, factory.objectType, factory.booleanType),
                     factory.createString("toLongIfPossible")),
                 false),
-            CfReturn.forType(ValueType.LONG),
+            CfReturn.LRETURN,
             label5),
         ImmutableList.of(),
         ImmutableList.of());
@@ -5491,10 +5491,10 @@ public final class VarHandleDesugaringMethods {
             new CfIfCmp(IfType.NE, ValueType.OBJECT, label2),
             label1,
             CfLoad.ALOAD_0,
-            new CfLoad(ValueType.OBJECT, 1),
+            CfLoad.ALOAD_1,
             CfLoad.ALOAD_0,
-            new CfLoad(ValueType.OBJECT, 2),
-            new CfConstNumber(0, ValueType.INT),
+            CfLoad.ALOAD_2,
+            CfConstNumber.ICONST_0,
             new CfInvoke(
                 182,
                 factory.createMethod(
@@ -5534,10 +5534,10 @@ public final class VarHandleDesugaringMethods {
             new CfIfCmp(IfType.NE, ValueType.OBJECT, label4),
             label3,
             CfLoad.ALOAD_0,
-            new CfLoad(ValueType.OBJECT, 1),
+            CfLoad.ALOAD_1,
             CfLoad.ALOAD_0,
-            new CfLoad(ValueType.OBJECT, 2),
-            new CfConstNumber(0, ValueType.INT),
+            CfLoad.ALOAD_2,
+            CfConstNumber.ICONST_0,
             new CfInvoke(
                 182,
                 factory.createMethod(
@@ -5569,14 +5569,14 @@ public final class VarHandleDesugaringMethods {
                     factory.createType("Ljava/lang/invoke/VarHandle;"),
                     factory.createType("Lsun/misc/Unsafe;"),
                     factory.createString("U"))),
-            new CfLoad(ValueType.OBJECT, 1),
+            CfLoad.ALOAD_1,
             CfLoad.ALOAD_0,
             new CfInstanceFieldRead(
                 factory.createField(
                     factory.createType("Ljava/lang/invoke/VarHandle;"),
                     factory.longType,
                     factory.createString("offset"))),
-            new CfLoad(ValueType.OBJECT, 2),
+            CfLoad.ALOAD_2,
             new CfInvoke(
                 182,
                 factory.createMethod(
@@ -5638,7 +5638,7 @@ public final class VarHandleDesugaringMethods {
                     factory.createType("Ljava/lang/invoke/VarHandle;"),
                     factory.classType,
                     factory.createString("recv"))),
-            new CfLoad(ValueType.OBJECT, 1),
+            CfLoad.ALOAD_1,
             new CfInvoke(
                 182,
                 factory.createMethod(
@@ -5659,7 +5659,7 @@ public final class VarHandleDesugaringMethods {
                       FrameType.initializedNonNullReference(factory.objectType)
                     })),
             new CfNew(factory.createType("Ljava/lang/UnsupportedOperationException;")),
-            new CfStackInstruction(CfStackInstruction.Opcode.Dup),
+            CfStackInstruction.DUP,
             new CfInvoke(
                 183,
                 factory.createMethod(
@@ -5685,17 +5685,17 @@ public final class VarHandleDesugaringMethods {
                     factory.createType("Ljava/lang/invoke/VarHandle;"),
                     factory.longType,
                     factory.createString("offset"))),
-            new CfLoad(ValueType.INT, 2),
-            new CfNumberConversion(NumericType.INT, NumericType.LONG),
+            CfLoad.ILOAD_2,
+            CfNumberConversion.I2L,
             CfLoad.ALOAD_0,
             new CfInstanceFieldRead(
                 factory.createField(
                     factory.createType("Ljava/lang/invoke/VarHandle;"),
                     factory.longType,
                     factory.createString("arrayIndexScale"))),
-            new CfArithmeticBinop(CfArithmeticBinop.Opcode.Mul, NumericType.LONG),
-            new CfArithmeticBinop(CfArithmeticBinop.Opcode.Add, NumericType.LONG),
-            new CfStore(ValueType.LONG, 4),
+            CfArithmeticBinop.LMUL,
+            CfArithmeticBinop.LADD,
+             CfStore.LSTORE_4,
             label3,
             CfLoad.ALOAD_0,
             new CfInstanceFieldRead(
@@ -5712,11 +5712,11 @@ public final class VarHandleDesugaringMethods {
                     factory.createType("Ljava/lang/invoke/VarHandle;"),
                     factory.createType("Lsun/misc/Unsafe;"),
                     factory.createString("U"))),
-            new CfLoad(ValueType.OBJECT, 1),
-            new CfLoad(ValueType.LONG, 4),
+            CfLoad.ALOAD_1,
+            CfLoad.LLOAD_4,
             CfLoad.ALOAD_0,
-            new CfLoad(ValueType.OBJECT, 3),
-            new CfConstNumber(0, ValueType.INT),
+            CfLoad.ALOAD_3,
+            CfConstNumber.ICONST_0,
             new CfInvoke(
                 182,
                 factory.createMethod(
@@ -5761,11 +5761,11 @@ public final class VarHandleDesugaringMethods {
                     factory.createType("Ljava/lang/invoke/VarHandle;"),
                     factory.createType("Lsun/misc/Unsafe;"),
                     factory.createString("U"))),
-            new CfLoad(ValueType.OBJECT, 1),
-            new CfLoad(ValueType.LONG, 4),
+            CfLoad.ALOAD_1,
+            CfLoad.LLOAD_4,
             CfLoad.ALOAD_0,
-            new CfLoad(ValueType.OBJECT, 3),
-            new CfConstNumber(0, ValueType.INT),
+            CfLoad.ALOAD_3,
+            CfConstNumber.ICONST_0,
             new CfInvoke(
                 182,
                 factory.createMethod(
@@ -5801,9 +5801,9 @@ public final class VarHandleDesugaringMethods {
                     factory.createType("Ljava/lang/invoke/VarHandle;"),
                     factory.createType("Lsun/misc/Unsafe;"),
                     factory.createString("U"))),
-            new CfLoad(ValueType.OBJECT, 1),
-            new CfLoad(ValueType.LONG, 4),
-            new CfLoad(ValueType.OBJECT, 3),
+            CfLoad.ALOAD_1,
+            CfLoad.LLOAD_4,
+            CfLoad.ALOAD_3,
             new CfInvoke(
                 182,
                 factory.createMethod(
@@ -5854,7 +5854,7 @@ public final class VarHandleDesugaringMethods {
             new CfIfCmp(IfType.EQ, ValueType.OBJECT, label2),
             label1,
             new CfNew(factory.createType("Ljava/lang/UnsupportedOperationException;")),
-            new CfStackInstruction(CfStackInstruction.Opcode.Dup),
+            CfStackInstruction.DUP,
             new CfInvoke(
                 183,
                 factory.createMethod(
@@ -5880,17 +5880,17 @@ public final class VarHandleDesugaringMethods {
                     factory.createType("Ljava/lang/invoke/VarHandle;"),
                     factory.longType,
                     factory.createString("offset"))),
-            new CfLoad(ValueType.INT, 2),
-            new CfNumberConversion(NumericType.INT, NumericType.LONG),
+            CfLoad.ILOAD_2,
+            CfNumberConversion.I2L,
             CfLoad.ALOAD_0,
             new CfInstanceFieldRead(
                 factory.createField(
                     factory.createType("Ljava/lang/invoke/VarHandle;"),
                     factory.longType,
                     factory.createString("arrayIndexScale"))),
-            new CfArithmeticBinop(CfArithmeticBinop.Opcode.Mul, NumericType.LONG),
-            new CfArithmeticBinop(CfArithmeticBinop.Opcode.Add, NumericType.LONG),
-            new CfStore(ValueType.LONG, 4),
+            CfArithmeticBinop.LMUL,
+            CfArithmeticBinop.LADD,
+             CfStore.LSTORE_4,
             label3,
             CfLoad.ALOAD_0,
             new CfInstanceFieldRead(
@@ -5898,9 +5898,9 @@ public final class VarHandleDesugaringMethods {
                     factory.createType("Ljava/lang/invoke/VarHandle;"),
                     factory.createType("Lsun/misc/Unsafe;"),
                     factory.createString("U"))),
-            new CfLoad(ValueType.OBJECT, 1),
-            new CfLoad(ValueType.LONG, 4),
-            new CfLoad(ValueType.INT, 3),
+            CfLoad.ALOAD_1,
+            CfLoad.LLOAD_4,
+            CfLoad.ILOAD_3,
             new CfInvoke(
                 182,
                 factory.createMethod(
@@ -5939,7 +5939,7 @@ public final class VarHandleDesugaringMethods {
             new CfIfCmp(IfType.EQ, ValueType.OBJECT, label2),
             label1,
             new CfNew(factory.createType("Ljava/lang/UnsupportedOperationException;")),
-            new CfStackInstruction(CfStackInstruction.Opcode.Dup),
+            CfStackInstruction.DUP,
             new CfInvoke(
                 183,
                 factory.createMethod(
@@ -5966,17 +5966,17 @@ public final class VarHandleDesugaringMethods {
                     factory.createType("Ljava/lang/invoke/VarHandle;"),
                     factory.longType,
                     factory.createString("offset"))),
-            new CfLoad(ValueType.INT, 2),
-            new CfNumberConversion(NumericType.INT, NumericType.LONG),
+            CfLoad.ILOAD_2,
+            CfNumberConversion.I2L,
             CfLoad.ALOAD_0,
             new CfInstanceFieldRead(
                 factory.createField(
                     factory.createType("Ljava/lang/invoke/VarHandle;"),
                     factory.longType,
                     factory.createString("arrayIndexScale"))),
-            new CfArithmeticBinop(CfArithmeticBinop.Opcode.Mul, NumericType.LONG),
-            new CfArithmeticBinop(CfArithmeticBinop.Opcode.Add, NumericType.LONG),
-            new CfStore(ValueType.LONG, 5),
+            CfArithmeticBinop.LMUL,
+            CfArithmeticBinop.LADD,
+             CfStore.LSTORE_5,
             label3,
             CfLoad.ALOAD_0,
             new CfInstanceFieldRead(
@@ -5984,9 +5984,9 @@ public final class VarHandleDesugaringMethods {
                     factory.createType("Ljava/lang/invoke/VarHandle;"),
                     factory.createType("Lsun/misc/Unsafe;"),
                     factory.createString("U"))),
-            new CfLoad(ValueType.OBJECT, 1),
-            new CfLoad(ValueType.LONG, 5),
-            new CfLoad(ValueType.LONG, 3),
+            CfLoad.ALOAD_1,
+            CfLoad.LLOAD_5,
+            CfLoad.LLOAD_3,
             new CfInvoke(
                 182,
                 factory.createMethod(
@@ -6035,14 +6035,14 @@ public final class VarHandleDesugaringMethods {
                     factory.createType("Ljava/lang/invoke/VarHandle;"),
                     factory.createType("Lsun/misc/Unsafe;"),
                     factory.createString("U"))),
-            new CfLoad(ValueType.OBJECT, 1),
+            CfLoad.ALOAD_1,
             CfLoad.ALOAD_0,
             new CfInstanceFieldRead(
                 factory.createField(
                     factory.createType("Ljava/lang/invoke/VarHandle;"),
                     factory.longType,
                     factory.createString("offset"))),
-            new CfLoad(ValueType.INT, 2),
+            CfLoad.ILOAD_2,
             new CfInvoke(
                 182,
                 factory.createMethod(
@@ -6081,15 +6081,15 @@ public final class VarHandleDesugaringMethods {
                     factory.createType("Ljava/lang/invoke/VarHandle;"),
                     factory.createType("Lsun/misc/Unsafe;"),
                     factory.createString("U"))),
-            new CfLoad(ValueType.OBJECT, 1),
+            CfLoad.ALOAD_1,
             CfLoad.ALOAD_0,
             new CfInstanceFieldRead(
                 factory.createField(
                     factory.createType("Ljava/lang/invoke/VarHandle;"),
                     factory.longType,
                     factory.createString("offset"))),
-            new CfLoad(ValueType.INT, 2),
-            new CfNumberConversion(NumericType.INT, NumericType.LONG),
+            CfLoad.ILOAD_2,
+            CfNumberConversion.I2L,
             new CfInvoke(
                 182,
                 factory.createMethod(
@@ -6110,8 +6110,8 @@ public final class VarHandleDesugaringMethods {
                       FrameType.intType()
                     })),
             CfLoad.ALOAD_0,
-            new CfLoad(ValueType.OBJECT, 1),
-            new CfLoad(ValueType.INT, 2),
+            CfLoad.ALOAD_1,
+            CfLoad.ILOAD_2,
             new CfInvoke(
                 184,
                 factory.createMethod(
@@ -6175,14 +6175,14 @@ public final class VarHandleDesugaringMethods {
                     factory.createType("Ljava/lang/invoke/VarHandle;"),
                     factory.createType("Lsun/misc/Unsafe;"),
                     factory.createString("U"))),
-            new CfLoad(ValueType.OBJECT, 1),
+            CfLoad.ALOAD_1,
             CfLoad.ALOAD_0,
             new CfInstanceFieldRead(
                 factory.createField(
                     factory.createType("Ljava/lang/invoke/VarHandle;"),
                     factory.longType,
                     factory.createString("offset"))),
-            new CfLoad(ValueType.LONG, 2),
+            CfLoad.LLOAD_2,
             new CfInvoke(
                 182,
                 factory.createMethod(
@@ -6242,14 +6242,14 @@ public final class VarHandleDesugaringMethods {
                     factory.createType("Ljava/lang/invoke/VarHandle;"),
                     factory.createType("Lsun/misc/Unsafe;"),
                     factory.createString("U"))),
-            new CfLoad(ValueType.OBJECT, 1),
+            CfLoad.ALOAD_1,
             CfLoad.ALOAD_0,
             new CfInstanceFieldRead(
                 factory.createField(
                     factory.createType("Ljava/lang/invoke/VarHandle;"),
                     factory.longType,
                     factory.createString("offset"))),
-            new CfLoad(ValueType.LONG, 2),
+            CfLoad.LLOAD_2,
             new CfInvoke(
                 184,
                 factory.createMethod(
@@ -6310,10 +6310,10 @@ public final class VarHandleDesugaringMethods {
             new CfIfCmp(IfType.NE, ValueType.OBJECT, label2),
             label1,
             CfLoad.ALOAD_0,
-            new CfLoad(ValueType.OBJECT, 1),
+            CfLoad.ALOAD_1,
             CfLoad.ALOAD_0,
-            new CfLoad(ValueType.OBJECT, 2),
-            new CfConstNumber(0, ValueType.INT),
+            CfLoad.ALOAD_2,
+            CfConstNumber.ICONST_0,
             new CfInvoke(
                 182,
                 factory.createMethod(
@@ -6353,10 +6353,10 @@ public final class VarHandleDesugaringMethods {
             new CfIfCmp(IfType.NE, ValueType.OBJECT, label4),
             label3,
             CfLoad.ALOAD_0,
-            new CfLoad(ValueType.OBJECT, 1),
+            CfLoad.ALOAD_1,
             CfLoad.ALOAD_0,
-            new CfLoad(ValueType.OBJECT, 2),
-            new CfConstNumber(0, ValueType.INT),
+            CfLoad.ALOAD_2,
+            CfConstNumber.ICONST_0,
             new CfInvoke(
                 182,
                 factory.createMethod(
@@ -6388,14 +6388,14 @@ public final class VarHandleDesugaringMethods {
                     factory.createType("Ljava/lang/invoke/VarHandle;"),
                     factory.createType("Lsun/misc/Unsafe;"),
                     factory.createString("U"))),
-            new CfLoad(ValueType.OBJECT, 1),
+            CfLoad.ALOAD_1,
             CfLoad.ALOAD_0,
             new CfInstanceFieldRead(
                 factory.createField(
                     factory.createType("Ljava/lang/invoke/VarHandle;"),
                     factory.longType,
                     factory.createString("offset"))),
-            new CfLoad(ValueType.OBJECT, 2),
+            CfLoad.ALOAD_2,
             new CfInvoke(
                 182,
                 factory.createMethod(
@@ -6457,7 +6457,7 @@ public final class VarHandleDesugaringMethods {
                     factory.createType("Ljava/lang/invoke/VarHandle;"),
                     factory.classType,
                     factory.createString("recv"))),
-            new CfLoad(ValueType.OBJECT, 1),
+            CfLoad.ALOAD_1,
             new CfInvoke(
                 182,
                 factory.createMethod(
@@ -6478,7 +6478,7 @@ public final class VarHandleDesugaringMethods {
                       FrameType.initializedNonNullReference(factory.objectType)
                     })),
             new CfNew(factory.createType("Ljava/lang/UnsupportedOperationException;")),
-            new CfStackInstruction(CfStackInstruction.Opcode.Dup),
+            CfStackInstruction.DUP,
             new CfInvoke(
                 183,
                 factory.createMethod(
@@ -6504,17 +6504,17 @@ public final class VarHandleDesugaringMethods {
                     factory.createType("Ljava/lang/invoke/VarHandle;"),
                     factory.longType,
                     factory.createString("offset"))),
-            new CfLoad(ValueType.INT, 2),
-            new CfNumberConversion(NumericType.INT, NumericType.LONG),
+            CfLoad.ILOAD_2,
+            CfNumberConversion.I2L,
             CfLoad.ALOAD_0,
             new CfInstanceFieldRead(
                 factory.createField(
                     factory.createType("Ljava/lang/invoke/VarHandle;"),
                     factory.longType,
                     factory.createString("arrayIndexScale"))),
-            new CfArithmeticBinop(CfArithmeticBinop.Opcode.Mul, NumericType.LONG),
-            new CfArithmeticBinop(CfArithmeticBinop.Opcode.Add, NumericType.LONG),
-            new CfStore(ValueType.LONG, 4),
+            CfArithmeticBinop.LMUL,
+            CfArithmeticBinop.LADD,
+             CfStore.LSTORE_4,
             label3,
             CfLoad.ALOAD_0,
             new CfInstanceFieldRead(
@@ -6531,11 +6531,11 @@ public final class VarHandleDesugaringMethods {
                     factory.createType("Ljava/lang/invoke/VarHandle;"),
                     factory.createType("Lsun/misc/Unsafe;"),
                     factory.createString("U"))),
-            new CfLoad(ValueType.OBJECT, 1),
-            new CfLoad(ValueType.LONG, 4),
+            CfLoad.ALOAD_1,
+            CfLoad.LLOAD_4,
             CfLoad.ALOAD_0,
-            new CfLoad(ValueType.OBJECT, 3),
-            new CfConstNumber(0, ValueType.INT),
+            CfLoad.ALOAD_3,
+            CfConstNumber.ICONST_0,
             new CfInvoke(
                 182,
                 factory.createMethod(
@@ -6580,11 +6580,11 @@ public final class VarHandleDesugaringMethods {
                     factory.createType("Ljava/lang/invoke/VarHandle;"),
                     factory.createType("Lsun/misc/Unsafe;"),
                     factory.createString("U"))),
-            new CfLoad(ValueType.OBJECT, 1),
-            new CfLoad(ValueType.LONG, 4),
+            CfLoad.ALOAD_1,
+            CfLoad.LLOAD_4,
             CfLoad.ALOAD_0,
-            new CfLoad(ValueType.OBJECT, 3),
-            new CfConstNumber(0, ValueType.INT),
+            CfLoad.ALOAD_3,
+            CfConstNumber.ICONST_0,
             new CfInvoke(
                 182,
                 factory.createMethod(
@@ -6620,9 +6620,9 @@ public final class VarHandleDesugaringMethods {
                     factory.createType("Ljava/lang/invoke/VarHandle;"),
                     factory.createType("Lsun/misc/Unsafe;"),
                     factory.createString("U"))),
-            new CfLoad(ValueType.OBJECT, 1),
-            new CfLoad(ValueType.LONG, 4),
-            new CfLoad(ValueType.OBJECT, 3),
+            CfLoad.ALOAD_1,
+            CfLoad.LLOAD_4,
+            CfLoad.ALOAD_3,
             new CfInvoke(
                 182,
                 factory.createMethod(
@@ -6674,7 +6674,7 @@ public final class VarHandleDesugaringMethods {
             new CfIfCmp(IfType.EQ, ValueType.OBJECT, label2),
             label1,
             new CfNew(factory.createType("Ljava/lang/UnsupportedOperationException;")),
-            new CfStackInstruction(CfStackInstruction.Opcode.Dup),
+            CfStackInstruction.DUP,
             new CfInvoke(
                 183,
                 factory.createMethod(
@@ -6700,17 +6700,17 @@ public final class VarHandleDesugaringMethods {
                     factory.createType("Ljava/lang/invoke/VarHandle;"),
                     factory.longType,
                     factory.createString("offset"))),
-            new CfLoad(ValueType.INT, 2),
-            new CfNumberConversion(NumericType.INT, NumericType.LONG),
+            CfLoad.ILOAD_2,
+            CfNumberConversion.I2L,
             CfLoad.ALOAD_0,
             new CfInstanceFieldRead(
                 factory.createField(
                     factory.createType("Ljava/lang/invoke/VarHandle;"),
                     factory.longType,
                     factory.createString("arrayIndexScale"))),
-            new CfArithmeticBinop(CfArithmeticBinop.Opcode.Mul, NumericType.LONG),
-            new CfArithmeticBinop(CfArithmeticBinop.Opcode.Add, NumericType.LONG),
-            new CfStore(ValueType.LONG, 4),
+            CfArithmeticBinop.LMUL,
+            CfArithmeticBinop.LADD,
+             CfStore.LSTORE_4,
             label3,
             CfLoad.ALOAD_0,
             new CfInstanceFieldRead(
@@ -6718,9 +6718,9 @@ public final class VarHandleDesugaringMethods {
                     factory.createType("Ljava/lang/invoke/VarHandle;"),
                     factory.createType("Lsun/misc/Unsafe;"),
                     factory.createString("U"))),
-            new CfLoad(ValueType.OBJECT, 1),
-            new CfLoad(ValueType.LONG, 4),
-            new CfLoad(ValueType.INT, 3),
+            CfLoad.ALOAD_1,
+            CfLoad.LLOAD_4,
+            CfLoad.ILOAD_3,
             new CfInvoke(
                 182,
                 factory.createMethod(
@@ -6760,7 +6760,7 @@ public final class VarHandleDesugaringMethods {
             new CfIfCmp(IfType.EQ, ValueType.OBJECT, label2),
             label1,
             new CfNew(factory.createType("Ljava/lang/UnsupportedOperationException;")),
-            new CfStackInstruction(CfStackInstruction.Opcode.Dup),
+            CfStackInstruction.DUP,
             new CfInvoke(
                 183,
                 factory.createMethod(
@@ -6787,17 +6787,17 @@ public final class VarHandleDesugaringMethods {
                     factory.createType("Ljava/lang/invoke/VarHandle;"),
                     factory.longType,
                     factory.createString("offset"))),
-            new CfLoad(ValueType.INT, 2),
-            new CfNumberConversion(NumericType.INT, NumericType.LONG),
+            CfLoad.ILOAD_2,
+            CfNumberConversion.I2L,
             CfLoad.ALOAD_0,
             new CfInstanceFieldRead(
                 factory.createField(
                     factory.createType("Ljava/lang/invoke/VarHandle;"),
                     factory.longType,
                     factory.createString("arrayIndexScale"))),
-            new CfArithmeticBinop(CfArithmeticBinop.Opcode.Mul, NumericType.LONG),
-            new CfArithmeticBinop(CfArithmeticBinop.Opcode.Add, NumericType.LONG),
-            new CfStore(ValueType.LONG, 5),
+            CfArithmeticBinop.LMUL,
+            CfArithmeticBinop.LADD,
+             CfStore.LSTORE_5,
             label3,
             CfLoad.ALOAD_0,
             new CfInstanceFieldRead(
@@ -6805,9 +6805,9 @@ public final class VarHandleDesugaringMethods {
                     factory.createType("Ljava/lang/invoke/VarHandle;"),
                     factory.createType("Lsun/misc/Unsafe;"),
                     factory.createString("U"))),
-            new CfLoad(ValueType.OBJECT, 1),
-            new CfLoad(ValueType.LONG, 5),
-            new CfLoad(ValueType.LONG, 3),
+            CfLoad.ALOAD_1,
+            CfLoad.LLOAD_5,
+            CfLoad.LLOAD_3,
             new CfInvoke(
                 182,
                 factory.createMethod(
@@ -6856,14 +6856,14 @@ public final class VarHandleDesugaringMethods {
                     factory.createType("Ljava/lang/invoke/VarHandle;"),
                     factory.createType("Lsun/misc/Unsafe;"),
                     factory.createString("U"))),
-            new CfLoad(ValueType.OBJECT, 1),
+            CfLoad.ALOAD_1,
             CfLoad.ALOAD_0,
             new CfInstanceFieldRead(
                 factory.createField(
                     factory.createType("Ljava/lang/invoke/VarHandle;"),
                     factory.longType,
                     factory.createString("offset"))),
-            new CfLoad(ValueType.INT, 2),
+            CfLoad.ILOAD_2,
             new CfInvoke(
                 182,
                 factory.createMethod(
@@ -6902,15 +6902,15 @@ public final class VarHandleDesugaringMethods {
                     factory.createType("Ljava/lang/invoke/VarHandle;"),
                     factory.createType("Lsun/misc/Unsafe;"),
                     factory.createString("U"))),
-            new CfLoad(ValueType.OBJECT, 1),
+            CfLoad.ALOAD_1,
             CfLoad.ALOAD_0,
             new CfInstanceFieldRead(
                 factory.createField(
                     factory.createType("Ljava/lang/invoke/VarHandle;"),
                     factory.longType,
                     factory.createString("offset"))),
-            new CfLoad(ValueType.INT, 2),
-            new CfNumberConversion(NumericType.INT, NumericType.LONG),
+            CfLoad.ILOAD_2,
+            CfNumberConversion.I2L,
             new CfInvoke(
                 182,
                 factory.createMethod(
@@ -6931,8 +6931,8 @@ public final class VarHandleDesugaringMethods {
                       FrameType.intType()
                     })),
             CfLoad.ALOAD_0,
-            new CfLoad(ValueType.OBJECT, 1),
-            new CfLoad(ValueType.INT, 2),
+            CfLoad.ALOAD_1,
+            CfLoad.ILOAD_2,
             new CfInvoke(
                 184,
                 factory.createMethod(
@@ -6996,14 +6996,14 @@ public final class VarHandleDesugaringMethods {
                     factory.createType("Ljava/lang/invoke/VarHandle;"),
                     factory.createType("Lsun/misc/Unsafe;"),
                     factory.createString("U"))),
-            new CfLoad(ValueType.OBJECT, 1),
+            CfLoad.ALOAD_1,
             CfLoad.ALOAD_0,
             new CfInstanceFieldRead(
                 factory.createField(
                     factory.createType("Ljava/lang/invoke/VarHandle;"),
                     factory.longType,
                     factory.createString("offset"))),
-            new CfLoad(ValueType.LONG, 2),
+            CfLoad.LLOAD_2,
             new CfInvoke(
                 182,
                 factory.createMethod(
@@ -7063,14 +7063,14 @@ public final class VarHandleDesugaringMethods {
                     factory.createType("Ljava/lang/invoke/VarHandle;"),
                     factory.createType("Lsun/misc/Unsafe;"),
                     factory.createString("U"))),
-            new CfLoad(ValueType.OBJECT, 1),
+            CfLoad.ALOAD_1,
             CfLoad.ALOAD_0,
             new CfInstanceFieldRead(
                 factory.createField(
                     factory.createType("Ljava/lang/invoke/VarHandle;"),
                     factory.longType,
                     factory.createString("offset"))),
-            new CfLoad(ValueType.LONG, 2),
+            CfLoad.LLOAD_2,
             new CfInvoke(
                 184,
                 factory.createMethod(
@@ -7131,10 +7131,10 @@ public final class VarHandleDesugaringMethods {
             new CfIfCmp(IfType.NE, ValueType.OBJECT, label2),
             label1,
             CfLoad.ALOAD_0,
-            new CfLoad(ValueType.OBJECT, 1),
+            CfLoad.ALOAD_1,
             CfLoad.ALOAD_0,
-            new CfLoad(ValueType.OBJECT, 2),
-            new CfConstNumber(0, ValueType.INT),
+            CfLoad.ALOAD_2,
+            CfConstNumber.ICONST_0,
             new CfInvoke(
                 182,
                 factory.createMethod(
@@ -7174,10 +7174,10 @@ public final class VarHandleDesugaringMethods {
             new CfIfCmp(IfType.NE, ValueType.OBJECT, label4),
             label3,
             CfLoad.ALOAD_0,
-            new CfLoad(ValueType.OBJECT, 1),
+            CfLoad.ALOAD_1,
             CfLoad.ALOAD_0,
-            new CfLoad(ValueType.OBJECT, 2),
-            new CfConstNumber(0, ValueType.INT),
+            CfLoad.ALOAD_2,
+            CfConstNumber.ICONST_0,
             new CfInvoke(
                 182,
                 factory.createMethod(
@@ -7209,14 +7209,14 @@ public final class VarHandleDesugaringMethods {
                     factory.createType("Ljava/lang/invoke/VarHandle;"),
                     factory.createType("Lsun/misc/Unsafe;"),
                     factory.createString("U"))),
-            new CfLoad(ValueType.OBJECT, 1),
+            CfLoad.ALOAD_1,
             CfLoad.ALOAD_0,
             new CfInstanceFieldRead(
                 factory.createField(
                     factory.createType("Ljava/lang/invoke/VarHandle;"),
                     factory.longType,
                     factory.createString("offset"))),
-            new CfLoad(ValueType.OBJECT, 2),
+            CfLoad.ALOAD_2,
             new CfInvoke(
                 182,
                 factory.createMethod(
@@ -7278,7 +7278,7 @@ public final class VarHandleDesugaringMethods {
                     factory.createType("Ljava/lang/invoke/VarHandle;"),
                     factory.classType,
                     factory.createString("recv"))),
-            new CfLoad(ValueType.OBJECT, 1),
+            CfLoad.ALOAD_1,
             new CfInvoke(
                 182,
                 factory.createMethod(
@@ -7299,7 +7299,7 @@ public final class VarHandleDesugaringMethods {
                       FrameType.initializedNonNullReference(factory.objectType)
                     })),
             new CfNew(factory.createType("Ljava/lang/UnsupportedOperationException;")),
-            new CfStackInstruction(CfStackInstruction.Opcode.Dup),
+            CfStackInstruction.DUP,
             new CfInvoke(
                 183,
                 factory.createMethod(
@@ -7325,17 +7325,17 @@ public final class VarHandleDesugaringMethods {
                     factory.createType("Ljava/lang/invoke/VarHandle;"),
                     factory.longType,
                     factory.createString("offset"))),
-            new CfLoad(ValueType.INT, 2),
-            new CfNumberConversion(NumericType.INT, NumericType.LONG),
+            CfLoad.ILOAD_2,
+            CfNumberConversion.I2L,
             CfLoad.ALOAD_0,
             new CfInstanceFieldRead(
                 factory.createField(
                     factory.createType("Ljava/lang/invoke/VarHandle;"),
                     factory.longType,
                     factory.createString("arrayIndexScale"))),
-            new CfArithmeticBinop(CfArithmeticBinop.Opcode.Mul, NumericType.LONG),
-            new CfArithmeticBinop(CfArithmeticBinop.Opcode.Add, NumericType.LONG),
-            new CfStore(ValueType.LONG, 4),
+            CfArithmeticBinop.LMUL,
+            CfArithmeticBinop.LADD,
+             CfStore.LSTORE_4,
             label3,
             CfLoad.ALOAD_0,
             new CfInstanceFieldRead(
@@ -7352,11 +7352,11 @@ public final class VarHandleDesugaringMethods {
                     factory.createType("Ljava/lang/invoke/VarHandle;"),
                     factory.createType("Lsun/misc/Unsafe;"),
                     factory.createString("U"))),
-            new CfLoad(ValueType.OBJECT, 1),
-            new CfLoad(ValueType.LONG, 4),
+            CfLoad.ALOAD_1,
+            CfLoad.LLOAD_4,
             CfLoad.ALOAD_0,
-            new CfLoad(ValueType.OBJECT, 3),
-            new CfConstNumber(0, ValueType.INT),
+            CfLoad.ALOAD_3,
+            CfConstNumber.ICONST_0,
             new CfInvoke(
                 182,
                 factory.createMethod(
@@ -7401,11 +7401,11 @@ public final class VarHandleDesugaringMethods {
                     factory.createType("Ljava/lang/invoke/VarHandle;"),
                     factory.createType("Lsun/misc/Unsafe;"),
                     factory.createString("U"))),
-            new CfLoad(ValueType.OBJECT, 1),
-            new CfLoad(ValueType.LONG, 4),
+            CfLoad.ALOAD_1,
+            CfLoad.LLOAD_4,
             CfLoad.ALOAD_0,
-            new CfLoad(ValueType.OBJECT, 3),
-            new CfConstNumber(0, ValueType.INT),
+            CfLoad.ALOAD_3,
+            CfConstNumber.ICONST_0,
             new CfInvoke(
                 182,
                 factory.createMethod(
@@ -7441,9 +7441,9 @@ public final class VarHandleDesugaringMethods {
                     factory.createType("Ljava/lang/invoke/VarHandle;"),
                     factory.createType("Lsun/misc/Unsafe;"),
                     factory.createString("U"))),
-            new CfLoad(ValueType.OBJECT, 1),
-            new CfLoad(ValueType.LONG, 4),
-            new CfLoad(ValueType.OBJECT, 3),
+            CfLoad.ALOAD_1,
+            CfLoad.LLOAD_4,
+            CfLoad.ALOAD_3,
             new CfInvoke(
                 182,
                 factory.createMethod(
@@ -7495,7 +7495,7 @@ public final class VarHandleDesugaringMethods {
             new CfIfCmp(IfType.EQ, ValueType.OBJECT, label2),
             label1,
             new CfNew(factory.createType("Ljava/lang/UnsupportedOperationException;")),
-            new CfStackInstruction(CfStackInstruction.Opcode.Dup),
+            CfStackInstruction.DUP,
             new CfInvoke(
                 183,
                 factory.createMethod(
@@ -7521,17 +7521,17 @@ public final class VarHandleDesugaringMethods {
                     factory.createType("Ljava/lang/invoke/VarHandle;"),
                     factory.longType,
                     factory.createString("offset"))),
-            new CfLoad(ValueType.INT, 2),
-            new CfNumberConversion(NumericType.INT, NumericType.LONG),
+            CfLoad.ILOAD_2,
+            CfNumberConversion.I2L,
             CfLoad.ALOAD_0,
             new CfInstanceFieldRead(
                 factory.createField(
                     factory.createType("Ljava/lang/invoke/VarHandle;"),
                     factory.longType,
                     factory.createString("arrayIndexScale"))),
-            new CfArithmeticBinop(CfArithmeticBinop.Opcode.Mul, NumericType.LONG),
-            new CfArithmeticBinop(CfArithmeticBinop.Opcode.Add, NumericType.LONG),
-            new CfStore(ValueType.LONG, 4),
+            CfArithmeticBinop.LMUL,
+            CfArithmeticBinop.LADD,
+             CfStore.LSTORE_4,
             label3,
             CfLoad.ALOAD_0,
             new CfInstanceFieldRead(
@@ -7539,9 +7539,9 @@ public final class VarHandleDesugaringMethods {
                     factory.createType("Ljava/lang/invoke/VarHandle;"),
                     factory.createType("Lsun/misc/Unsafe;"),
                     factory.createString("U"))),
-            new CfLoad(ValueType.OBJECT, 1),
-            new CfLoad(ValueType.LONG, 4),
-            new CfLoad(ValueType.INT, 3),
+            CfLoad.ALOAD_1,
+            CfLoad.LLOAD_4,
+            CfLoad.ILOAD_3,
             new CfInvoke(
                 182,
                 factory.createMethod(
@@ -7581,7 +7581,7 @@ public final class VarHandleDesugaringMethods {
             new CfIfCmp(IfType.EQ, ValueType.OBJECT, label2),
             label1,
             new CfNew(factory.createType("Ljava/lang/UnsupportedOperationException;")),
-            new CfStackInstruction(CfStackInstruction.Opcode.Dup),
+            CfStackInstruction.DUP,
             new CfInvoke(
                 183,
                 factory.createMethod(
@@ -7608,17 +7608,17 @@ public final class VarHandleDesugaringMethods {
                     factory.createType("Ljava/lang/invoke/VarHandle;"),
                     factory.longType,
                     factory.createString("offset"))),
-            new CfLoad(ValueType.INT, 2),
-            new CfNumberConversion(NumericType.INT, NumericType.LONG),
+            CfLoad.ILOAD_2,
+            CfNumberConversion.I2L,
             CfLoad.ALOAD_0,
             new CfInstanceFieldRead(
                 factory.createField(
                     factory.createType("Ljava/lang/invoke/VarHandle;"),
                     factory.longType,
                     factory.createString("arrayIndexScale"))),
-            new CfArithmeticBinop(CfArithmeticBinop.Opcode.Mul, NumericType.LONG),
-            new CfArithmeticBinop(CfArithmeticBinop.Opcode.Add, NumericType.LONG),
-            new CfStore(ValueType.LONG, 5),
+            CfArithmeticBinop.LMUL,
+            CfArithmeticBinop.LADD,
+             CfStore.LSTORE_5,
             label3,
             CfLoad.ALOAD_0,
             new CfInstanceFieldRead(
@@ -7626,9 +7626,9 @@ public final class VarHandleDesugaringMethods {
                     factory.createType("Ljava/lang/invoke/VarHandle;"),
                     factory.createType("Lsun/misc/Unsafe;"),
                     factory.createString("U"))),
-            new CfLoad(ValueType.OBJECT, 1),
-            new CfLoad(ValueType.LONG, 5),
-            new CfLoad(ValueType.LONG, 3),
+            CfLoad.ALOAD_1,
+            CfLoad.LLOAD_5,
+            CfLoad.LLOAD_3,
             new CfInvoke(
                 182,
                 factory.createMethod(
@@ -7677,14 +7677,14 @@ public final class VarHandleDesugaringMethods {
                     factory.createType("Ljava/lang/invoke/VarHandle;"),
                     factory.createType("Lsun/misc/Unsafe;"),
                     factory.createString("U"))),
-            new CfLoad(ValueType.OBJECT, 1),
+            CfLoad.ALOAD_1,
             CfLoad.ALOAD_0,
             new CfInstanceFieldRead(
                 factory.createField(
                     factory.createType("Ljava/lang/invoke/VarHandle;"),
                     factory.longType,
                     factory.createString("offset"))),
-            new CfLoad(ValueType.INT, 2),
+            CfLoad.ILOAD_2,
             new CfInvoke(
                 182,
                 factory.createMethod(
@@ -7723,15 +7723,15 @@ public final class VarHandleDesugaringMethods {
                     factory.createType("Ljava/lang/invoke/VarHandle;"),
                     factory.createType("Lsun/misc/Unsafe;"),
                     factory.createString("U"))),
-            new CfLoad(ValueType.OBJECT, 1),
+            CfLoad.ALOAD_1,
             CfLoad.ALOAD_0,
             new CfInstanceFieldRead(
                 factory.createField(
                     factory.createType("Ljava/lang/invoke/VarHandle;"),
                     factory.longType,
                     factory.createString("offset"))),
-            new CfLoad(ValueType.INT, 2),
-            new CfNumberConversion(NumericType.INT, NumericType.LONG),
+            CfLoad.ILOAD_2,
+            CfNumberConversion.I2L,
             new CfInvoke(
                 182,
                 factory.createMethod(
@@ -7752,8 +7752,8 @@ public final class VarHandleDesugaringMethods {
                       FrameType.intType()
                     })),
             CfLoad.ALOAD_0,
-            new CfLoad(ValueType.OBJECT, 1),
-            new CfLoad(ValueType.INT, 2),
+            CfLoad.ALOAD_1,
+            CfLoad.ILOAD_2,
             new CfInvoke(
                 184,
                 factory.createMethod(
@@ -7817,14 +7817,14 @@ public final class VarHandleDesugaringMethods {
                     factory.createType("Ljava/lang/invoke/VarHandle;"),
                     factory.createType("Lsun/misc/Unsafe;"),
                     factory.createString("U"))),
-            new CfLoad(ValueType.OBJECT, 1),
+            CfLoad.ALOAD_1,
             CfLoad.ALOAD_0,
             new CfInstanceFieldRead(
                 factory.createField(
                     factory.createType("Ljava/lang/invoke/VarHandle;"),
                     factory.longType,
                     factory.createString("offset"))),
-            new CfLoad(ValueType.LONG, 2),
+            CfLoad.LLOAD_2,
             new CfInvoke(
                 182,
                 factory.createMethod(
@@ -7884,14 +7884,14 @@ public final class VarHandleDesugaringMethods {
                     factory.createType("Ljava/lang/invoke/VarHandle;"),
                     factory.createType("Lsun/misc/Unsafe;"),
                     factory.createString("U"))),
-            new CfLoad(ValueType.OBJECT, 1),
+            CfLoad.ALOAD_1,
             CfLoad.ALOAD_0,
             new CfInstanceFieldRead(
                 factory.createField(
                     factory.createType("Ljava/lang/invoke/VarHandle;"),
                     factory.longType,
                     factory.createString("offset"))),
-            new CfLoad(ValueType.LONG, 2),
+            CfLoad.LLOAD_2,
             new CfInvoke(
                 184,
                 factory.createMethod(
@@ -7943,11 +7943,11 @@ public final class VarHandleDesugaringMethods {
         3,
         ImmutableList.of(
             label0,
-            new CfLoad(ValueType.OBJECT, 1),
+            CfLoad.ALOAD_1,
             new CfInstanceOf(factory.createType("Ljava/lang/Integer;")),
             new CfIf(IfType.EQ, ValueType.INT, label2),
             label1,
-            new CfLoad(ValueType.OBJECT, 1),
+            CfLoad.ALOAD_1,
             new CfCheckCast(factory.createType("Ljava/lang/Integer;")),
             new CfInvoke(
                 182,
@@ -7956,7 +7956,7 @@ public final class VarHandleDesugaringMethods {
                     factory.createProto(factory.intType),
                     factory.createString("intValue")),
                 false),
-            CfReturn.forType(ValueType.INT),
+            CfReturn.IRETURN,
             label2,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
@@ -7967,11 +7967,11 @@ public final class VarHandleDesugaringMethods {
                       FrameType.initializedNonNullReference(factory.objectType),
                       FrameType.intType()
                     })),
-            new CfLoad(ValueType.OBJECT, 1),
+            CfLoad.ALOAD_1,
             new CfInstanceOf(factory.createType("Ljava/lang/Byte;")),
             new CfIf(IfType.EQ, ValueType.INT, label4),
             label3,
-            new CfLoad(ValueType.OBJECT, 1),
+            CfLoad.ALOAD_1,
             new CfCheckCast(factory.createType("Ljava/lang/Byte;")),
             new CfInvoke(
                 182,
@@ -7980,7 +7980,7 @@ public final class VarHandleDesugaringMethods {
                     factory.createProto(factory.byteType),
                     factory.createString("byteValue")),
                 false),
-            CfReturn.forType(ValueType.INT),
+            CfReturn.IRETURN,
             label4,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
@@ -7991,11 +7991,11 @@ public final class VarHandleDesugaringMethods {
                       FrameType.initializedNonNullReference(factory.objectType),
                       FrameType.intType()
                     })),
-            new CfLoad(ValueType.OBJECT, 1),
+            CfLoad.ALOAD_1,
             new CfInstanceOf(factory.boxedCharType),
             new CfIf(IfType.EQ, ValueType.INT, label6),
             label5,
-            new CfLoad(ValueType.OBJECT, 1),
+            CfLoad.ALOAD_1,
             new CfCheckCast(factory.boxedCharType),
             new CfInvoke(
                 182,
@@ -8004,7 +8004,7 @@ public final class VarHandleDesugaringMethods {
                     factory.createProto(factory.charType),
                     factory.createString("charValue")),
                 false),
-            CfReturn.forType(ValueType.INT),
+            CfReturn.IRETURN,
             label6,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
@@ -8015,11 +8015,11 @@ public final class VarHandleDesugaringMethods {
                       FrameType.initializedNonNullReference(factory.objectType),
                       FrameType.intType()
                     })),
-            new CfLoad(ValueType.OBJECT, 1),
+            CfLoad.ALOAD_1,
             new CfInstanceOf(factory.createType("Ljava/lang/Short;")),
             new CfIf(IfType.EQ, ValueType.INT, label8),
             label7,
-            new CfLoad(ValueType.OBJECT, 1),
+            CfLoad.ALOAD_1,
             new CfCheckCast(factory.createType("Ljava/lang/Short;")),
             new CfInvoke(
                 182,
@@ -8028,7 +8028,7 @@ public final class VarHandleDesugaringMethods {
                     factory.createProto(factory.shortType),
                     factory.createString("shortValue")),
                 false),
-            CfReturn.forType(ValueType.INT),
+            CfReturn.IRETURN,
             label8,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
@@ -8039,11 +8039,11 @@ public final class VarHandleDesugaringMethods {
                       FrameType.initializedNonNullReference(factory.objectType),
                       FrameType.intType()
                     })),
-            new CfLoad(ValueType.INT, 2),
+            CfLoad.ILOAD_2,
             new CfIf(IfType.EQ, ValueType.INT, label10),
             label9,
             new CfNew(factory.createType("Ljava/lang/ClassCastException;")),
-            new CfStackInstruction(CfStackInstruction.Opcode.Dup),
+            CfStackInstruction.DUP,
             new CfInvoke(
                 183,
                 factory.createMethod(
@@ -8087,11 +8087,11 @@ public final class VarHandleDesugaringMethods {
         3,
         ImmutableList.of(
             label0,
-            new CfLoad(ValueType.OBJECT, 1),
+            CfLoad.ALOAD_1,
             new CfInstanceOf(factory.createType("Ljava/lang/Long;")),
             new CfIf(IfType.EQ, ValueType.INT, label2),
             label1,
-            new CfLoad(ValueType.OBJECT, 1),
+            CfLoad.ALOAD_1,
             new CfCheckCast(factory.createType("Ljava/lang/Long;")),
             new CfInvoke(
                 182,
@@ -8100,7 +8100,7 @@ public final class VarHandleDesugaringMethods {
                     factory.createProto(factory.longType),
                     factory.createString("longValue")),
                 false),
-            CfReturn.forType(ValueType.LONG),
+            CfReturn.LRETURN,
             label2,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
@@ -8112,8 +8112,8 @@ public final class VarHandleDesugaringMethods {
                       FrameType.intType()
                     })),
             CfLoad.ALOAD_0,
-            new CfLoad(ValueType.OBJECT, 1),
-            new CfLoad(ValueType.INT, 2),
+            CfLoad.ALOAD_1,
+            CfLoad.ILOAD_2,
             new CfInvoke(
                 182,
                 factory.createMethod(
@@ -8121,8 +8121,8 @@ public final class VarHandleDesugaringMethods {
                     factory.createProto(factory.intType, factory.objectType, factory.booleanType),
                     factory.createString("toIntIfPossible")),
                 false),
-            new CfNumberConversion(NumericType.INT, NumericType.LONG),
-            CfReturn.forType(ValueType.LONG),
+            CfNumberConversion.I2L,
+            CfReturn.LRETURN,
             label3),
         ImmutableList.of(),
         ImmutableList.of());
@@ -8165,7 +8165,7 @@ public final class VarHandleDesugaringMethods {
                     factory.createType("Ljava/lang/invoke/VarHandle;"),
                     factory.createType("Lsun/misc/Unsafe;"),
                     factory.createString("U"))),
-            new CfLoad(ValueType.OBJECT, 1),
+            CfLoad.ALOAD_1,
             CfLoad.ALOAD_0,
             new CfInstanceFieldRead(
                 factory.createField(
@@ -8173,8 +8173,8 @@ public final class VarHandleDesugaringMethods {
                     factory.longType,
                     factory.createString("offset"))),
             CfLoad.ALOAD_0,
-            new CfLoad(ValueType.OBJECT, 2),
-            new CfConstNumber(0, ValueType.INT),
+            CfLoad.ALOAD_2,
+            CfConstNumber.ICONST_0,
             label2,
             new CfInvoke(
                 182,
@@ -8184,8 +8184,8 @@ public final class VarHandleDesugaringMethods {
                     factory.createString("toIntIfPossible")),
                 false),
             CfLoad.ALOAD_0,
-            new CfLoad(ValueType.OBJECT, 3),
-            new CfConstNumber(0, ValueType.INT),
+            CfLoad.ALOAD_3,
+            CfConstNumber.ICONST_0,
             new CfInvoke(
                 182,
                 factory.createMethod(
@@ -8206,7 +8206,7 @@ public final class VarHandleDesugaringMethods {
                         factory.intType),
                     factory.createString("compareAndSwapInt")),
                 false),
-            CfReturn.forType(ValueType.INT),
+            CfReturn.IRETURN,
             label4,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
@@ -8237,7 +8237,7 @@ public final class VarHandleDesugaringMethods {
                     factory.createType("Ljava/lang/invoke/VarHandle;"),
                     factory.createType("Lsun/misc/Unsafe;"),
                     factory.createString("U"))),
-            new CfLoad(ValueType.OBJECT, 1),
+            CfLoad.ALOAD_1,
             CfLoad.ALOAD_0,
             new CfInstanceFieldRead(
                 factory.createField(
@@ -8245,8 +8245,8 @@ public final class VarHandleDesugaringMethods {
                     factory.longType,
                     factory.createString("offset"))),
             CfLoad.ALOAD_0,
-            new CfLoad(ValueType.OBJECT, 2),
-            new CfConstNumber(0, ValueType.INT),
+            CfLoad.ALOAD_2,
+            CfConstNumber.ICONST_0,
             label6,
             new CfInvoke(
                 182,
@@ -8256,8 +8256,8 @@ public final class VarHandleDesugaringMethods {
                     factory.createString("toLongIfPossible")),
                 false),
             CfLoad.ALOAD_0,
-            new CfLoad(ValueType.OBJECT, 3),
-            new CfConstNumber(0, ValueType.INT),
+            CfLoad.ALOAD_3,
+            CfConstNumber.ICONST_0,
             new CfInvoke(
                 182,
                 factory.createMethod(
@@ -8278,7 +8278,7 @@ public final class VarHandleDesugaringMethods {
                         factory.longType),
                     factory.createString("compareAndSwapLong")),
                 false),
-            CfReturn.forType(ValueType.INT),
+            CfReturn.IRETURN,
             label8,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
@@ -8296,15 +8296,15 @@ public final class VarHandleDesugaringMethods {
                     factory.createType("Ljava/lang/invoke/VarHandle;"),
                     factory.createType("Lsun/misc/Unsafe;"),
                     factory.createString("U"))),
-            new CfLoad(ValueType.OBJECT, 1),
+            CfLoad.ALOAD_1,
             CfLoad.ALOAD_0,
             new CfInstanceFieldRead(
                 factory.createField(
                     factory.createType("Ljava/lang/invoke/VarHandle;"),
                     factory.longType,
                     factory.createString("offset"))),
-            new CfLoad(ValueType.OBJECT, 2),
-            new CfLoad(ValueType.OBJECT, 3),
+            CfLoad.ALOAD_2,
+            CfLoad.ALOAD_3,
             new CfInvoke(
                 182,
                 factory.createMethod(
@@ -8317,7 +8317,7 @@ public final class VarHandleDesugaringMethods {
                         factory.objectType),
                     factory.createString("compareAndSwapObject")),
                 false),
-            CfReturn.forType(ValueType.INT),
+            CfReturn.IRETURN,
             label9),
         ImmutableList.of(),
         ImmutableList.of());
@@ -8366,7 +8366,7 @@ public final class VarHandleDesugaringMethods {
                     factory.createType("Ljava/lang/invoke/VarHandle;"),
                     factory.classType,
                     factory.createString("recv"))),
-            new CfLoad(ValueType.OBJECT, 1),
+            CfLoad.ALOAD_1,
             new CfInvoke(
                 182,
                 factory.createMethod(
@@ -8388,7 +8388,7 @@ public final class VarHandleDesugaringMethods {
                       FrameType.initializedNonNullReference(factory.objectType)
                     })),
             new CfNew(factory.createType("Ljava/lang/UnsupportedOperationException;")),
-            new CfStackInstruction(CfStackInstruction.Opcode.Dup),
+            CfStackInstruction.DUP,
             new CfInvoke(
                 183,
                 factory.createMethod(
@@ -8415,17 +8415,17 @@ public final class VarHandleDesugaringMethods {
                     factory.createType("Ljava/lang/invoke/VarHandle;"),
                     factory.longType,
                     factory.createString("offset"))),
-            new CfLoad(ValueType.INT, 2),
-            new CfNumberConversion(NumericType.INT, NumericType.LONG),
+            CfLoad.ILOAD_2,
+            CfNumberConversion.I2L,
             CfLoad.ALOAD_0,
             new CfInstanceFieldRead(
                 factory.createField(
                     factory.createType("Ljava/lang/invoke/VarHandle;"),
                     factory.longType,
                     factory.createString("arrayIndexScale"))),
-            new CfArithmeticBinop(CfArithmeticBinop.Opcode.Mul, NumericType.LONG),
-            new CfArithmeticBinop(CfArithmeticBinop.Opcode.Add, NumericType.LONG),
-            new CfStore(ValueType.LONG, 5),
+            CfArithmeticBinop.LMUL,
+            CfArithmeticBinop.LADD,
+             CfStore.LSTORE_5,
             label3,
             CfLoad.ALOAD_0,
             new CfInstanceFieldRead(
@@ -8442,11 +8442,11 @@ public final class VarHandleDesugaringMethods {
                     factory.createType("Ljava/lang/invoke/VarHandle;"),
                     factory.createType("Lsun/misc/Unsafe;"),
                     factory.createString("U"))),
-            new CfLoad(ValueType.OBJECT, 1),
-            new CfLoad(ValueType.LONG, 5),
+            CfLoad.ALOAD_1,
+            CfLoad.LLOAD_5,
             CfLoad.ALOAD_0,
-            new CfLoad(ValueType.OBJECT, 3),
-            new CfConstNumber(0, ValueType.INT),
+            CfLoad.ALOAD_3,
+            CfConstNumber.ICONST_0,
             label5,
             new CfInvoke(
                 182,
@@ -8456,8 +8456,8 @@ public final class VarHandleDesugaringMethods {
                     factory.createString("toIntIfPossible")),
                 false),
             CfLoad.ALOAD_0,
-            new CfLoad(ValueType.OBJECT, 4),
-            new CfConstNumber(0, ValueType.INT),
+            CfLoad.ALOAD_4,
+            CfConstNumber.ICONST_0,
             label6,
             new CfInvoke(
                 182,
@@ -8479,7 +8479,7 @@ public final class VarHandleDesugaringMethods {
                         factory.intType),
                     factory.createString("compareAndSwapInt")),
                 false),
-            CfReturn.forType(ValueType.INT),
+            CfReturn.IRETURN,
             label8,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
@@ -8509,11 +8509,11 @@ public final class VarHandleDesugaringMethods {
                     factory.createType("Ljava/lang/invoke/VarHandle;"),
                     factory.createType("Lsun/misc/Unsafe;"),
                     factory.createString("U"))),
-            new CfLoad(ValueType.OBJECT, 1),
-            new CfLoad(ValueType.LONG, 5),
+            CfLoad.ALOAD_1,
+            CfLoad.LLOAD_5,
             CfLoad.ALOAD_0,
-            new CfLoad(ValueType.OBJECT, 3),
-            new CfConstNumber(0, ValueType.INT),
+            CfLoad.ALOAD_3,
+            CfConstNumber.ICONST_0,
             label10,
             new CfInvoke(
                 182,
@@ -8523,8 +8523,8 @@ public final class VarHandleDesugaringMethods {
                     factory.createString("toLongIfPossible")),
                 false),
             CfLoad.ALOAD_0,
-            new CfLoad(ValueType.OBJECT, 4),
-            new CfConstNumber(0, ValueType.INT),
+            CfLoad.ALOAD_4,
+            CfConstNumber.ICONST_0,
             label11,
             new CfInvoke(
                 182,
@@ -8546,7 +8546,7 @@ public final class VarHandleDesugaringMethods {
                         factory.longType),
                     factory.createString("compareAndSwapLong")),
                 false),
-            CfReturn.forType(ValueType.INT),
+            CfReturn.IRETURN,
             label13,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
@@ -8567,10 +8567,10 @@ public final class VarHandleDesugaringMethods {
                     factory.createType("Ljava/lang/invoke/VarHandle;"),
                     factory.createType("Lsun/misc/Unsafe;"),
                     factory.createString("U"))),
-            new CfLoad(ValueType.OBJECT, 1),
-            new CfLoad(ValueType.LONG, 5),
-            new CfLoad(ValueType.OBJECT, 3),
-            new CfLoad(ValueType.OBJECT, 4),
+            CfLoad.ALOAD_1,
+            CfLoad.LLOAD_5,
+            CfLoad.ALOAD_3,
+            CfLoad.ALOAD_4,
             new CfInvoke(
                 182,
                 factory.createMethod(
@@ -8583,7 +8583,7 @@ public final class VarHandleDesugaringMethods {
                         factory.objectType),
                     factory.createString("compareAndSwapObject")),
                 false),
-            CfReturn.forType(ValueType.INT),
+            CfReturn.IRETURN,
             label14),
         ImmutableList.of(),
         ImmutableList.of());
@@ -8612,7 +8612,7 @@ public final class VarHandleDesugaringMethods {
             new CfIfCmp(IfType.EQ, ValueType.OBJECT, label2),
             label1,
             new CfNew(factory.createType("Ljava/lang/UnsupportedOperationException;")),
-            new CfStackInstruction(CfStackInstruction.Opcode.Dup),
+            CfStackInstruction.DUP,
             new CfInvoke(
                 183,
                 factory.createMethod(
@@ -8639,17 +8639,17 @@ public final class VarHandleDesugaringMethods {
                     factory.createType("Ljava/lang/invoke/VarHandle;"),
                     factory.longType,
                     factory.createString("offset"))),
-            new CfLoad(ValueType.INT, 2),
-            new CfNumberConversion(NumericType.INT, NumericType.LONG),
+            CfLoad.ILOAD_2,
+            CfNumberConversion.I2L,
             CfLoad.ALOAD_0,
             new CfInstanceFieldRead(
                 factory.createField(
                     factory.createType("Ljava/lang/invoke/VarHandle;"),
                     factory.longType,
                     factory.createString("arrayIndexScale"))),
-            new CfArithmeticBinop(CfArithmeticBinop.Opcode.Mul, NumericType.LONG),
-            new CfArithmeticBinop(CfArithmeticBinop.Opcode.Add, NumericType.LONG),
-            new CfStore(ValueType.LONG, 5),
+            CfArithmeticBinop.LMUL,
+            CfArithmeticBinop.LADD,
+             CfStore.LSTORE_5,
             label3,
             CfLoad.ALOAD_0,
             new CfInstanceFieldRead(
@@ -8657,10 +8657,10 @@ public final class VarHandleDesugaringMethods {
                     factory.createType("Ljava/lang/invoke/VarHandle;"),
                     factory.createType("Lsun/misc/Unsafe;"),
                     factory.createString("U"))),
-            new CfLoad(ValueType.OBJECT, 1),
-            new CfLoad(ValueType.LONG, 5),
-            new CfLoad(ValueType.INT, 3),
-            new CfLoad(ValueType.INT, 4),
+            CfLoad.ALOAD_1,
+            CfLoad.LLOAD_5,
+            CfLoad.ILOAD_3,
+            CfLoad.ILOAD_4,
             new CfInvoke(
                 182,
                 factory.createMethod(
@@ -8673,7 +8673,7 @@ public final class VarHandleDesugaringMethods {
                         factory.intType),
                     factory.createString("compareAndSwapInt")),
                 false),
-            CfReturn.forType(ValueType.INT),
+            CfReturn.IRETURN,
             label4),
         ImmutableList.of(),
         ImmutableList.of());
@@ -8702,7 +8702,7 @@ public final class VarHandleDesugaringMethods {
             new CfIfCmp(IfType.EQ, ValueType.OBJECT, label2),
             label1,
             new CfNew(factory.createType("Ljava/lang/UnsupportedOperationException;")),
-            new CfStackInstruction(CfStackInstruction.Opcode.Dup),
+            CfStackInstruction.DUP,
             new CfInvoke(
                 183,
                 factory.createMethod(
@@ -8731,17 +8731,17 @@ public final class VarHandleDesugaringMethods {
                     factory.createType("Ljava/lang/invoke/VarHandle;"),
                     factory.longType,
                     factory.createString("offset"))),
-            new CfLoad(ValueType.INT, 2),
-            new CfNumberConversion(NumericType.INT, NumericType.LONG),
+            CfLoad.ILOAD_2,
+            CfNumberConversion.I2L,
             CfLoad.ALOAD_0,
             new CfInstanceFieldRead(
                 factory.createField(
                     factory.createType("Ljava/lang/invoke/VarHandle;"),
                     factory.longType,
                     factory.createString("arrayIndexScale"))),
-            new CfArithmeticBinop(CfArithmeticBinop.Opcode.Mul, NumericType.LONG),
-            new CfArithmeticBinop(CfArithmeticBinop.Opcode.Add, NumericType.LONG),
-            new CfStore(ValueType.LONG, 7),
+            CfArithmeticBinop.LMUL,
+            CfArithmeticBinop.LADD,
+             CfStore.storeLong(7),
             label3,
             CfLoad.ALOAD_0,
             new CfInstanceFieldRead(
@@ -8749,10 +8749,10 @@ public final class VarHandleDesugaringMethods {
                     factory.createType("Ljava/lang/invoke/VarHandle;"),
                     factory.createType("Lsun/misc/Unsafe;"),
                     factory.createString("U"))),
-            new CfLoad(ValueType.OBJECT, 1),
-            new CfLoad(ValueType.LONG, 7),
-            new CfLoad(ValueType.LONG, 3),
-            new CfLoad(ValueType.LONG, 5),
+            CfLoad.ALOAD_1,
+            CfLoad.loadLong(7),
+            CfLoad.LLOAD_3,
+            CfLoad.LLOAD_5,
             new CfInvoke(
                 182,
                 factory.createMethod(
@@ -8765,7 +8765,7 @@ public final class VarHandleDesugaringMethods {
                         factory.longType),
                     factory.createString("compareAndSwapLong")),
                 false),
-            CfReturn.forType(ValueType.INT),
+            CfReturn.IRETURN,
             label4),
         ImmutableList.of(),
         ImmutableList.of());
@@ -8804,15 +8804,15 @@ public final class VarHandleDesugaringMethods {
                     factory.createType("Ljava/lang/invoke/VarHandle;"),
                     factory.createType("Lsun/misc/Unsafe;"),
                     factory.createString("U"))),
-            new CfLoad(ValueType.OBJECT, 1),
+            CfLoad.ALOAD_1,
             CfLoad.ALOAD_0,
             new CfInstanceFieldRead(
                 factory.createField(
                     factory.createType("Ljava/lang/invoke/VarHandle;"),
                     factory.longType,
                     factory.createString("offset"))),
-            new CfLoad(ValueType.INT, 2),
-            new CfLoad(ValueType.INT, 3),
+            CfLoad.ILOAD_2,
+            CfLoad.ILOAD_3,
             new CfInvoke(
                 182,
                 factory.createMethod(
@@ -8825,7 +8825,7 @@ public final class VarHandleDesugaringMethods {
                         factory.intType),
                     factory.createString("compareAndSwapInt")),
                 false),
-            CfReturn.forType(ValueType.INT),
+            CfReturn.IRETURN,
             label2,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
@@ -8856,17 +8856,17 @@ public final class VarHandleDesugaringMethods {
                     factory.createType("Ljava/lang/invoke/VarHandle;"),
                     factory.createType("Lsun/misc/Unsafe;"),
                     factory.createString("U"))),
-            new CfLoad(ValueType.OBJECT, 1),
+            CfLoad.ALOAD_1,
             CfLoad.ALOAD_0,
             new CfInstanceFieldRead(
                 factory.createField(
                     factory.createType("Ljava/lang/invoke/VarHandle;"),
                     factory.longType,
                     factory.createString("offset"))),
-            new CfLoad(ValueType.INT, 2),
-            new CfNumberConversion(NumericType.INT, NumericType.LONG),
-            new CfLoad(ValueType.INT, 3),
-            new CfNumberConversion(NumericType.INT, NumericType.LONG),
+            CfLoad.ILOAD_2,
+            CfNumberConversion.I2L,
+            CfLoad.ILOAD_3,
+            CfNumberConversion.I2L,
             new CfInvoke(
                 182,
                 factory.createMethod(
@@ -8879,7 +8879,7 @@ public final class VarHandleDesugaringMethods {
                         factory.longType),
                     factory.createString("compareAndSwapLong")),
                 false),
-            CfReturn.forType(ValueType.INT),
+            CfReturn.IRETURN,
             label4,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
@@ -8892,8 +8892,8 @@ public final class VarHandleDesugaringMethods {
                       FrameType.intType()
                     })),
             CfLoad.ALOAD_0,
-            new CfLoad(ValueType.OBJECT, 1),
-            new CfLoad(ValueType.INT, 2),
+            CfLoad.ALOAD_1,
+            CfLoad.ILOAD_2,
             new CfInvoke(
                 184,
                 factory.createMethod(
@@ -8901,7 +8901,7 @@ public final class VarHandleDesugaringMethods {
                     factory.createProto(factory.createType("Ljava/lang/Integer;"), factory.intType),
                     factory.createString("valueOf")),
                 false),
-            new CfLoad(ValueType.INT, 3),
+            CfLoad.ILOAD_3,
             new CfInvoke(
                 184,
                 factory.createMethod(
@@ -8920,7 +8920,7 @@ public final class VarHandleDesugaringMethods {
                         factory.objectType),
                     factory.createString("compareAndSet")),
                 false),
-            CfReturn.forType(ValueType.INT),
+            CfReturn.IRETURN,
             label5),
         ImmutableList.of(),
         ImmutableList.of());
@@ -8957,15 +8957,15 @@ public final class VarHandleDesugaringMethods {
                     factory.createType("Ljava/lang/invoke/VarHandle;"),
                     factory.createType("Lsun/misc/Unsafe;"),
                     factory.createString("U"))),
-            new CfLoad(ValueType.OBJECT, 1),
+            CfLoad.ALOAD_1,
             CfLoad.ALOAD_0,
             new CfInstanceFieldRead(
                 factory.createField(
                     factory.createType("Ljava/lang/invoke/VarHandle;"),
                     factory.longType,
                     factory.createString("offset"))),
-            new CfLoad(ValueType.LONG, 2),
-            new CfLoad(ValueType.LONG, 4),
+            CfLoad.LLOAD_2,
+            CfLoad.LLOAD_4,
             new CfInvoke(
                 182,
                 factory.createMethod(
@@ -8978,7 +8978,7 @@ public final class VarHandleDesugaringMethods {
                         factory.longType),
                     factory.createString("compareAndSwapLong")),
                 false),
-            CfReturn.forType(ValueType.INT),
+            CfReturn.IRETURN,
             label2,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
@@ -8993,8 +8993,8 @@ public final class VarHandleDesugaringMethods {
                       FrameType.longHighType()
                     })),
             CfLoad.ALOAD_0,
-            new CfLoad(ValueType.OBJECT, 1),
-            new CfLoad(ValueType.LONG, 2),
+            CfLoad.ALOAD_1,
+            CfLoad.LLOAD_2,
             new CfInvoke(
                 184,
                 factory.createMethod(
@@ -9002,7 +9002,7 @@ public final class VarHandleDesugaringMethods {
                     factory.createProto(factory.createType("Ljava/lang/Long;"), factory.longType),
                     factory.createString("valueOf")),
                 false),
-            new CfLoad(ValueType.LONG, 4),
+            CfLoad.LLOAD_4,
             new CfInvoke(
                 184,
                 factory.createMethod(
@@ -9021,7 +9021,7 @@ public final class VarHandleDesugaringMethods {
                         factory.objectType),
                     factory.createString("compareAndSet")),
                 false),
-            CfReturn.forType(ValueType.INT),
+            CfReturn.IRETURN,
             label3),
         ImmutableList.of(),
         ImmutableList.of());

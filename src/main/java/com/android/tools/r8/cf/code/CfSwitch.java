@@ -32,7 +32,7 @@ import java.util.Map;
 import java.util.function.BiFunction;
 import java.util.stream.Collectors;
 
-import org.jetbrains.annotations.NotNull;
+import javax.annotation.Nonnull;
 import org.objectweb.asm.Label;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
@@ -168,9 +168,9 @@ public class CfSwitch extends CfJumpInstruction {
     printer.print(this);
   }
 
-  @NotNull
+  @Nonnull
   @Override
-  public CfInstruction copy(@NotNull Map<CfLabel, CfLabel> labelMap) {
+  public CfInstruction copy(@Nonnull Map<CfLabel, CfLabel> labelMap) {
     List<CfLabel> targetsCopy = targets.stream()
             .map(labelMap::get)
             .collect(Collectors.toList());

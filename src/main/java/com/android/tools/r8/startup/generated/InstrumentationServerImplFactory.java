@@ -254,7 +254,7 @@ public final class InstrumentationServerImplFactory {
             label0,
             new CfNew(
                 factory.createType("Lcom/android/tools/r8/startup/InstrumentationServerImpl;")),
-            new CfStackInstruction(CfStackInstruction.Opcode.Dup),
+            CfStackInstruction.DUP,
             new CfInvoke(
                 183,
                 factory.createMethod(
@@ -294,7 +294,7 @@ public final class InstrumentationServerImplFactory {
             label1,
             CfLoad.ALOAD_0,
             new CfNew(factory.createType("Ljava/util/LinkedHashSet;")),
-            new CfStackInstruction(CfStackInstruction.Opcode.Dup),
+            CfStackInstruction.DUP,
             new CfInvoke(
                 183,
                 factory.createMethod(
@@ -339,9 +339,9 @@ public final class InstrumentationServerImplFactory {
                     factory.createType("Lcom/android/tools/r8/startup/InstrumentationServerImpl;"),
                     factory.createType("Ljava/util/LinkedHashSet;"),
                     factory.createString("lines"))),
-            new CfStackInstruction(CfStackInstruction.Opcode.Dup),
-            new CfStore(ValueType.OBJECT, 2),
-            CfMonitor.forType(MonitorType.ENTER),
+            CfStackInstruction.DUP,
+            CfStore.ASTORE_2,
+            CfMonitor.ENTER,
             label1,
             CfLoad.ALOAD_0,
             new CfInstanceFieldRead(
@@ -349,7 +349,7 @@ public final class InstrumentationServerImplFactory {
                     factory.createType("Lcom/android/tools/r8/startup/InstrumentationServerImpl;"),
                     factory.createType("Ljava/util/LinkedHashSet;"),
                     factory.createString("lines"))),
-            new CfLoad(ValueType.OBJECT, 1),
+            CfLoad.ALOAD_1,
             new CfInvoke(
                 182,
                 factory.createMethod(
@@ -359,8 +359,8 @@ public final class InstrumentationServerImplFactory {
                 false),
             new CfIf(IfType.NE, ValueType.INT, label4),
             label2,
-            new CfLoad(ValueType.OBJECT, 2),
-            CfMonitor.forType(MonitorType.EXIT),
+            CfLoad.ALOAD_2,
+            CfMonitor.EXIT,
             label3,
             CfReturnVoid.INSTANCE,
             label4,
@@ -374,8 +374,8 @@ public final class InstrumentationServerImplFactory {
                       FrameType.initializedNonNullReference(factory.stringType),
                       FrameType.initializedNonNullReference(factory.objectType)
                     })),
-            new CfLoad(ValueType.OBJECT, 2),
-            CfMonitor.forType(MonitorType.EXIT),
+            CfLoad.ALOAD_2,
+            CfMonitor.EXIT,
             label5,
             new CfGoto(label8),
             label6,
@@ -391,11 +391,11 @@ public final class InstrumentationServerImplFactory {
                     }),
                 new ArrayDeque<>(
                     Arrays.asList(FrameType.initializedNonNullReference(factory.throwableType)))),
-            new CfStore(ValueType.OBJECT, 3),
-            new CfLoad(ValueType.OBJECT, 2),
-            CfMonitor.forType(MonitorType.EXIT),
+             CfStore.ASTORE_3,
+            CfLoad.ALOAD_2,
+            CfMonitor.EXIT,
             label7,
-            new CfLoad(ValueType.OBJECT, 3),
+            CfLoad.ALOAD_3,
             CfThrow.INSTANCE,
             label8,
             new CfFrame(
@@ -415,7 +415,7 @@ public final class InstrumentationServerImplFactory {
             new CfIf(IfType.EQ, ValueType.INT, label10),
             label9,
             CfLoad.ALOAD_0,
-            new CfLoad(ValueType.OBJECT, 1),
+            CfLoad.ALOAD_1,
             new CfInvoke(
                 183,
                 factory.createMethod(
@@ -492,7 +492,7 @@ public final class InstrumentationServerImplFactory {
                     factory.createType("Lcom/android/tools/r8/startup/InstrumentationServerImpl;"),
                     factory.createType("Lcom/android/tools/r8/startup/InstrumentationServerImpl;"),
                     factory.createString("INSTANCE"))),
-            CfReturn.forType(ValueType.OBJECT)),
+            CfReturn.ARETURN),
         ImmutableList.of(),
         ImmutableList.of());
   }
@@ -522,8 +522,8 @@ public final class InstrumentationServerImplFactory {
         ImmutableList.of(
             label0,
             new CfNew(factory.createType("Ljava/io/PrintWriter;")),
-            new CfStackInstruction(CfStackInstruction.Opcode.Dup),
-            new CfLoad(ValueType.OBJECT, 1),
+            CfStackInstruction.DUP,
+            CfLoad.ALOAD_1,
             new CfConstString(factory.createString("UTF-8")),
             new CfInvoke(
                 183,
@@ -533,7 +533,7 @@ public final class InstrumentationServerImplFactory {
                         factory.voidType, factory.createType("Ljava/io/File;"), factory.stringType),
                     factory.createString("<init>")),
                 false),
-            new CfStore(ValueType.OBJECT, 2),
+            CfStore.ASTORE_2,
             label1,
             CfLoad.ALOAD_0,
             new CfInstanceFieldRead(
@@ -541,9 +541,9 @@ public final class InstrumentationServerImplFactory {
                     factory.createType("Lcom/android/tools/r8/startup/InstrumentationServerImpl;"),
                     factory.createType("Ljava/util/LinkedHashSet;"),
                     factory.createString("lines"))),
-            new CfStackInstruction(CfStackInstruction.Opcode.Dup),
-            new CfStore(ValueType.OBJECT, 3),
-            CfMonitor.forType(MonitorType.ENTER),
+            CfStackInstruction.DUP,
+             CfStore.ASTORE_3,
+            CfMonitor.ENTER,
             label2,
             CfLoad.ALOAD_0,
             new CfInstanceFieldRead(
@@ -558,7 +558,7 @@ public final class InstrumentationServerImplFactory {
                     factory.createProto(factory.createType("Ljava/util/Iterator;")),
                     factory.createString("iterator")),
                 false),
-            new CfStore(ValueType.OBJECT, 4),
+             CfStore.ASTORE_4,
             label3,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
@@ -574,7 +574,7 @@ public final class InstrumentationServerImplFactory {
                       FrameType.initializedNonNullReference(
                           factory.createType("Ljava/util/Iterator;"))
                     })),
-            new CfLoad(ValueType.OBJECT, 4),
+            CfLoad.ALOAD_4,
             new CfInvoke(
                 185,
                 factory.createMethod(
@@ -583,7 +583,7 @@ public final class InstrumentationServerImplFactory {
                     factory.createString("hasNext")),
                 true),
             new CfIf(IfType.EQ, ValueType.INT, label6),
-            new CfLoad(ValueType.OBJECT, 4),
+            CfLoad.ALOAD_4,
             new CfInvoke(
                 185,
                 factory.createMethod(
@@ -592,10 +592,10 @@ public final class InstrumentationServerImplFactory {
                     factory.createString("next")),
                 true),
             new CfCheckCast(factory.stringType),
-            new CfStore(ValueType.OBJECT, 5),
+             CfStore.ASTORE_5,
             label4,
-            new CfLoad(ValueType.OBJECT, 2),
-            new CfLoad(ValueType.OBJECT, 5),
+            CfLoad.ALOAD_2,
+            CfLoad.ALOAD_5,
             new CfInvoke(
                 182,
                 factory.createMethod(
@@ -618,8 +618,8 @@ public final class InstrumentationServerImplFactory {
                           factory.createType("Ljava/io/PrintWriter;")),
                       FrameType.initializedNonNullReference(factory.objectType)
                     })),
-            new CfLoad(ValueType.OBJECT, 3),
-            CfMonitor.forType(MonitorType.EXIT),
+            CfLoad.ALOAD_3,
+            CfMonitor.EXIT,
             label7,
             new CfGoto(label10),
             label8,
@@ -637,11 +637,11 @@ public final class InstrumentationServerImplFactory {
                     }),
                 new ArrayDeque<>(
                     Arrays.asList(FrameType.initializedNonNullReference(factory.throwableType)))),
-            new CfStore(ValueType.OBJECT, 6),
-            new CfLoad(ValueType.OBJECT, 3),
-            CfMonitor.forType(MonitorType.EXIT),
+             CfStore.ASTORE_6,
+            CfLoad.ALOAD_3,
+            CfMonitor.EXIT,
             label9,
-            new CfLoad(ValueType.OBJECT, 6),
+            CfLoad.ALOAD_6,
             CfThrow.INSTANCE,
             label10,
             new CfFrame(
@@ -655,7 +655,7 @@ public final class InstrumentationServerImplFactory {
                       FrameType.initializedNonNullReference(
                           factory.createType("Ljava/io/PrintWriter;"))
                     })),
-            new CfLoad(ValueType.OBJECT, 2),
+            CfLoad.ALOAD_2,
             new CfInvoke(
                 182,
                 factory.createMethod(
@@ -679,9 +679,9 @@ public final class InstrumentationServerImplFactory {
                     }),
                 new ArrayDeque<>(
                     Arrays.asList(FrameType.initializedNonNullReference(factory.throwableType)))),
-            new CfStore(ValueType.OBJECT, 7),
+             CfStore.ASTORE_7,
             label13,
-            new CfLoad(ValueType.OBJECT, 2),
+            CfLoad.ALOAD_2,
             new CfInvoke(
                 182,
                 factory.createMethod(
@@ -690,7 +690,7 @@ public final class InstrumentationServerImplFactory {
                     factory.createString("close")),
                 false),
             label14,
-            new CfLoad(ValueType.OBJECT, 7),
+            CfLoad.ALOAD_7,
             CfThrow.INSTANCE,
             label15,
             new CfFrame(
@@ -739,7 +739,7 @@ public final class InstrumentationServerImplFactory {
                     factory.createType("Lcom/android/tools/r8/startup/InstrumentationServerImpl;"),
                     factory.stringType,
                     factory.createString("logcatTag"))),
-            new CfLoad(ValueType.OBJECT, 1),
+            CfLoad.ALOAD_1,
             new CfInvoke(
                 184,
                 factory.createMethod(
@@ -747,7 +747,7 @@ public final class InstrumentationServerImplFactory {
                     factory.createProto(factory.intType, factory.stringType, factory.stringType),
                     factory.createString("i")),
                 false),
-            new CfStackInstruction(CfStackInstruction.Opcode.Pop),
+            CfStackInstruction.POP,
             label1,
             CfReturnVoid.INSTANCE,
             label2),

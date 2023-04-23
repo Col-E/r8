@@ -84,20 +84,20 @@ public abstract class RecordCfCodeProvider {
       DexItemFactory factory = appView.dexItemFactory();
       List<CfInstruction> instructions = new ArrayList<>();
       // Object[] fields = new Object[*length*];
-      instructions.add(new CfConstNumber(fields.length, ValueType.INT));
+      instructions.add(CfConstNumber.constNumber(fields.length, ValueType.INT));
       instructions.add(new CfNewArray(factory.objectArrayType));
-      instructions.add(new CfStore(ValueType.OBJECT, 1));
+      instructions.add(CfStore.ASTORE_1);
       // fields[*i*] = this.*field* || *PrimitiveWrapper*.valueOf(this.*field*);
       for (int i = 0; i < fields.length; i++) {
         DexField field = fields[i];
-        instructions.add(new CfLoad(ValueType.OBJECT, 1));
-        instructions.add(new CfConstNumber(i, ValueType.INT));
+        instructions.add(CfLoad.ALOAD_1);
+        instructions.add(CfConstNumber.constNumber(i, ValueType.INT));
         loadFieldAsObject(instructions, field);
         instructions.add(CfArrayStore.forType(MemberType.OBJECT));
       }
       // return fields;
-      instructions.add(new CfLoad(ValueType.OBJECT, 1));
-      instructions.add(CfReturn.forType(ValueType.OBJECT));
+      instructions.add(CfLoad.ALOAD_1);
+      instructions.add(CfReturn.ARETURN);
       return standardCfCodeFromInstructions(instructions);
     }
 
@@ -109,7 +109,7 @@ public abstract class RecordCfCodeProvider {
       }
       // return recordFieldValues(fields);
       instructions.add(new CfRecordFieldValues(fields));
-      instructions.add(CfReturn.forType(ValueType.OBJECT));
+      instructions.add(CfReturn.ARETURN);
       return standardCfCodeFromInstructions(instructions);
     }
 
@@ -164,28 +164,28 @@ public abstract class RecordCfCodeProvider {
       CfLabel fieldCmp = new CfLabel();
       ValueType recordType = ValueType.fromDexType(getHolder());
       ValueType objectType = ValueType.fromDexType(factory.objectType);
-      instructions.add(new CfLoad(recordType, 0));
+      instructions.add(CfLoad.load(recordType, 0));
       instructions.add(new CfInvoke(Opcodes.INVOKEVIRTUAL, factory.objectMembers.getClass, false));
-      instructions.add(new CfLoad(objectType, 1));
+      instructions.add(CfLoad.load(objectType, 1));
       instructions.add(new CfInvoke(Opcodes.INVOKEVIRTUAL, factory.objectMembers.getClass, false));
       instructions.add(new CfIfCmp(IfType.EQ, ValueType.OBJECT, fieldCmp));
-      instructions.add(new CfConstNumber(0, ValueType.INT));
-      instructions.add(CfReturn.forType(ValueType.INT));
+      instructions.add(CfConstNumber.ICONST_0);
+      instructions.add(CfReturn.IRETURN);
       instructions.add(fieldCmp);
       instructions.add(
           CfFrame.builder()
               .appendLocal(FrameType.initialized(getHolder()))
               .appendLocal(FrameType.initialized(appView.dexItemFactory().objectType))
               .build());
-      instructions.add(new CfLoad(recordType, 0));
+      instructions.add(CfLoad.load(recordType, 0));
       instructions.add(new CfInvoke(Opcodes.INVOKESPECIAL, getFieldsAsObjects, false));
-      instructions.add(new CfLoad(objectType, 1));
+      instructions.add(CfLoad.load(objectType, 1));
       instructions.add(new CfCheckCast(getHolder(), true));
       instructions.add(new CfInvoke(Opcodes.INVOKESPECIAL, getFieldsAsObjects, false));
       instructions.add(
           new CfInvoke(
               Opcodes.INVOKESTATIC, factory.javaUtilArraysMethods.equalsObjectArray, false));
-      instructions.add(CfReturn.forType(ValueType.INT));
+      instructions.add(CfReturn.IRETURN);
       return standardCfCodeFromInstructions(instructions);
     }
   }

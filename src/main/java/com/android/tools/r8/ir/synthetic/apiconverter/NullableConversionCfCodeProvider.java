@@ -57,7 +57,7 @@ public abstract class NullableConversionCfCodeProvider extends SyntheticCfCodePr
     instructions.add(CfLoad.ALOAD_0);
     instructions.add(new CfIf(IfType.NE, ValueType.OBJECT, nullDest));
     instructions.add(CfConstNull.INSTANCE);
-    instructions.add(CfReturn.forType(ValueType.OBJECT));
+    instructions.add(CfReturn.ARETURN);
     instructions.add(nullDest);
   }
 
@@ -97,42 +97,42 @@ public abstract class NullableConversionCfCodeProvider extends SyntheticCfCodePr
               .build();
 
       // int t1 = arg.length;
-      instructions.add(new CfLoad(ValueType.fromDexType(typeArray), 0));
+      instructions.add(CfLoad.load(ValueType.fromDexType(typeArray), 0));
       instructions.add(CfArrayLength.INSTANCE);
-      instructions.add(new CfStore(ValueType.INT, 1));
+      instructions.add(CfStore.ISTORE_1);
       // ConvertedType[] t2 = new ConvertedType[t1];
-      instructions.add(new CfLoad(ValueType.INT, 1));
+      instructions.add(CfLoad.ILOAD_1);
       instructions.add(new CfNewArray(convertedTypeArray));
-      instructions.add(new CfStore(ValueType.fromDexType(convertedTypeArray), 2));
+      instructions.add(CfStore.store(ValueType.fromDexType(convertedTypeArray), 2));
       // int t3 = 0;
-      instructions.add(new CfConstNumber(0, ValueType.INT));
-      instructions.add(new CfStore(ValueType.INT, 3));
+      instructions.add(CfConstNumber.ICONST_0);
+      instructions.add(CfStore.ISTORE_3);
       // while (t3 < t1) {
       CfLabel returnLabel = new CfLabel();
       CfLabel loopLabel = new CfLabel();
       instructions.add(loopLabel);
       instructions.add(frame);
-      instructions.add(new CfLoad(ValueType.INT, 3));
-      instructions.add(new CfLoad(ValueType.INT, 1));
+      instructions.add(CfLoad.ILOAD_3);
+      instructions.add(CfLoad.ILOAD_1);
       instructions.add(new CfIfCmp(IfType.GE, ValueType.INT, returnLabel));
       // t2[t3] = convert(arg[t3]);
-      instructions.add(new CfLoad(ValueType.fromDexType(convertedTypeArray), 2));
-      instructions.add(new CfLoad(ValueType.INT, 3));
-      instructions.add(new CfLoad(ValueType.fromDexType(typeArray), 0));
-      instructions.add(new CfLoad(ValueType.INT, 3));
+      instructions.add(CfLoad.load(ValueType.fromDexType(convertedTypeArray), 2));
+      instructions.add(CfLoad.ILOAD_3);
+      instructions.add(CfLoad.load(ValueType.fromDexType(typeArray), 0));
+      instructions.add(CfLoad.ILOAD_3);
       instructions.add(CfArrayLoad.forType(MemberType.OBJECT));
       instructions.add(new CfInvoke(Opcodes.INVOKESTATIC, conversion, false));
       instructions.add(CfArrayStore.forType(MemberType.OBJECT));
       // t3 = t3 + 1; }
-      instructions.add(new CfLoad(ValueType.INT, 3));
-      instructions.add(new CfConstNumber(1, ValueType.INT));
-      instructions.add(new CfArithmeticBinop(Opcode.Add, NumericType.INT));
-      instructions.add(new CfStore(ValueType.INT, 3));
+      instructions.add(CfLoad.ILOAD_3);
+      instructions.add(CfConstNumber.ICONST_1);
+      instructions.add(CfArithmeticBinop.IADD);
+      instructions.add(CfStore.ISTORE_3);
       instructions.add(new CfGoto(loopLabel));
       // return t2;
       instructions.add(returnLabel);
       instructions.add(frame.clone());
-      instructions.add(new CfLoad(ValueType.fromDexType(convertedTypeArray), 2));
+      instructions.add(CfLoad.load(ValueType.fromDexType(convertedTypeArray), 2));
       instructions.add(CfReturn.forType(ValueType.fromDexType(convertedTypeArray)));
       return standardCfCodeFromInstructions(instructions);
     }
@@ -173,7 +173,7 @@ public abstract class NullableConversionCfCodeProvider extends SyntheticCfCodePr
         DexEncodedField enumField = iterator.next();
         CfLabel notEqual = new CfLabel();
         if (iterator.hasNext()) {
-          instructions.add(new CfLoad(ValueType.fromDexType(enumType), 0));
+          instructions.add(CfLoad.load(ValueType.fromDexType(enumType), 0));
           instructions.add(
               new CfStaticFieldRead(factory.createField(enumType, enumType, enumField.getName())));
           instructions.add(new CfIfCmp(IfType.NE, ValueType.OBJECT, notEqual));
@@ -223,10 +223,10 @@ public abstract class NullableConversionCfCodeProvider extends SyntheticCfCodePr
       // if (arg instanceOf ReverseWrapper) { return ((ReverseWrapper) arg).wrapperField};
       assert reverseWrapperField != null;
       CfLabel unwrapDest = new CfLabel();
-      instructions.add(new CfLoad(ValueType.fromDexType(argType), 0));
+      instructions.add(CfLoad.load(ValueType.fromDexType(argType), 0));
       instructions.add(new CfInstanceOf(reverseWrapperField.holder));
       instructions.add(new CfIf(IfType.EQ, ValueType.INT, unwrapDest));
-      instructions.add(new CfLoad(ValueType.fromDexType(argType), 0));
+      instructions.add(CfLoad.load(ValueType.fromDexType(argType), 0));
       instructions.add(new CfCheckCast(reverseWrapperField.holder));
       instructions.add(new CfInstanceFieldRead(reverseWrapperField));
       instructions.add(CfReturn.forType(ValueType.fromDexType(reverseWrapperField.type)));
@@ -239,10 +239,10 @@ public abstract class NullableConversionCfCodeProvider extends SyntheticCfCodePr
       for (DexMethod convert : subwrapperConvertList) {
         CfLabel dest = new CfLabel();
         DexType convertArgType = convert.getArgumentType(0, true);
-        instructions.add(new CfLoad(ValueType.fromDexType(argType), 0));
+        instructions.add(CfLoad.load(ValueType.fromDexType(argType), 0));
         instructions.add(new CfInstanceOf(convertArgType));
         instructions.add(new CfIf(IfType.EQ, ValueType.INT, dest));
-        instructions.add(new CfLoad(ValueType.fromDexType(argType), 0));
+        instructions.add(CfLoad.load(ValueType.fromDexType(argType), 0));
         instructions.add(new CfCheckCast(convertArgType));
         instructions.add(new CfInvoke(Opcodes.INVOKESTATIC, convert, false));
         instructions.add(CfReturn.forType(ValueType.fromDexType(reverseWrapperField.type)));
@@ -253,7 +253,7 @@ public abstract class NullableConversionCfCodeProvider extends SyntheticCfCodePr
       // return new Wrapper(wrappedValue);
       instructions.add(new CfNew(wrapperField.holder));
       instructions.add(CfStackInstruction.fromAsm(Opcodes.DUP));
-      instructions.add(new CfLoad(ValueType.fromDexType(argType), 0));
+      instructions.add(CfLoad.load(ValueType.fromDexType(argType), 0));
       instructions.add(
           new CfInvoke(
               Opcodes.INVOKESPECIAL,

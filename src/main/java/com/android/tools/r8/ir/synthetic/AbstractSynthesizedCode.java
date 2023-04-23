@@ -23,7 +23,7 @@ import com.android.tools.r8.ir.conversion.MethodConversionOptions.ThrowingMethod
 import com.android.tools.r8.ir.conversion.SourceCode;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.RetracerForCodePrinting;
-import org.jetbrains.annotations.NotNull;
+import javax.annotation.Nonnull;
 
 import java.util.function.Consumer;
 
@@ -42,7 +42,7 @@ public abstract class AbstractSynthesizedCode extends Code {
     return false;
   }
 
-  @NotNull
+  @Nonnull
   @Override
   public Code copySubtype() {
     return this;

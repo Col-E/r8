@@ -631,21 +631,20 @@ public class InterfaceDesugaringSyntheticHelper {
                     0,
                     ImmutableList.of(
                         new CfInitClass(iface.getType()),
-                        new CfStackInstruction(Opcode.Pop),
+                        CfStackInstruction.POP,
                         CfReturnVoid.INSTANCE));
               }
               DexEncodedField clinitField =
                   ensureStaticClinitFieldToTriggerInterfaceInitialization(iface);
-              boolean isWide = clinitField.getType().isWideType();
+              DexType fieldType = clinitField.getType();
+              boolean isWide = fieldType.isWideType();
               return new CfCode(
                   method.holder,
                   isWide ? 2 : 1,
                   0,
                   ImmutableList.of(
                       new CfStaticFieldRead(clinitField.getReference(), clinitField.getReference()),
-                      isWide
-                          ? new CfStackInstruction(Opcode.Pop2)
-                          : new CfStackInstruction(Opcode.Pop),
+                          CfStackInstruction.popType(fieldType),
                       CfReturnVoid.INSTANCE));
             });
   }

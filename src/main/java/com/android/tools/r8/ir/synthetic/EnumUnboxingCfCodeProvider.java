@@ -60,7 +60,7 @@ public abstract class EnumUnboxingCfCodeProvider extends SyntheticCfCodeProvider
         instructions.add(CfConstNull.INSTANCE);
       } else {
         instructions.add(
-            new CfConstNumber(
+            CfConstNumber.constNumber(
                 value.asSingleNumberValue().getValue(), ValueType.fromDexType(returnType)));
       }
     } else {
@@ -102,8 +102,8 @@ public abstract class EnumUnboxingCfCodeProvider extends SyntheticCfCodeProvider
       methodMap.forEach(
           (unboxedEnumValue, method) -> {
             CfLabel dest = new CfLabel();
-            instructions.add(new CfLoad(ValueType.fromDexType(factory.intType), 0));
-            instructions.add(new CfConstNumber(unboxedEnumValue, ValueType.INT));
+            instructions.add(CfLoad.load(ValueType.fromDexType(factory.intType), 0));
+            instructions.add(CfConstNumber.constNumber(unboxedEnumValue, ValueType.INT));
             instructions.add(new CfIfCmp(IfType.NE, ValueType.INT, dest));
             addReturnInvoke(instructions, method);
             instructions.add(dest);
@@ -117,7 +117,7 @@ public abstract class EnumUnboxingCfCodeProvider extends SyntheticCfCodeProvider
     private void addReturnInvoke(List<CfInstruction> instructions, DexMethod method) {
       int localIndex = 0;
       for (DexType parameterType : method.getParameters()) {
-        instructions.add(new CfLoad(ValueType.fromDexType(parameterType), localIndex));
+        instructions.add(CfLoad.load(ValueType.fromDexType(parameterType), localIndex));
         localIndex += parameterType.getRequiredRegisters();
       }
       instructions.add(new CfInvoke(Opcodes.INVOKESTATIC, method, false));
@@ -189,8 +189,8 @@ public abstract class EnumUnboxingCfCodeProvider extends SyntheticCfCodeProvider
       fieldDataMap.forEach(
           (unboxedEnumValue, value) -> {
             CfLabel dest = new CfLabel();
-            instructions.add(new CfLoad(ValueType.fromDexType(factory.intType), 0));
-            instructions.add(new CfConstNumber(unboxedEnumValue, ValueType.INT));
+            instructions.add(CfLoad.load(ValueType.fromDexType(factory.intType), 0));
+            instructions.add(CfConstNumber.constNumber(unboxedEnumValue, ValueType.INT));
             instructions.add(new CfIfCmp(IfType.NE, ValueType.INT, dest));
             addCfInstructionsForAbstractValue(instructions, value, returnType);
             instructions.add(CfReturn.forType(ValueType.fromDexType(returnType)));
@@ -244,10 +244,10 @@ public abstract class EnumUnboxingCfCodeProvider extends SyntheticCfCodeProvider
 
       // if (s == null) { throw npe("Name is null"); }
       CfLabel nullDest = new CfLabel();
-      instructions.add(new CfLoad(ValueType.fromDexType(factory.stringType), 0));
+      instructions.add(CfLoad.load(ValueType.fromDexType(factory.stringType), 0));
       instructions.add(new CfIf(IfType.NE, ValueType.OBJECT, nullDest));
       instructions.add(new CfNew(factory.npeType));
-      instructions.add(new CfStackInstruction(Opcode.Dup));
+      instructions.add(CfStackInstruction.DUP);
       instructions.add(new CfConstString(appView.dexItemFactory().createString("Name is null")));
       instructions.add(
           new CfInvoke(Opcodes.INVOKESPECIAL, factory.npeMethods.initWithMessage, false));
@@ -260,27 +260,27 @@ public abstract class EnumUnboxingCfCodeProvider extends SyntheticCfCodeProvider
       fieldDataMap.forEach(
           (unboxedEnumValue, value) -> {
             CfLabel dest = new CfLabel();
-            instructions.add(new CfLoad(ValueType.fromDexType(factory.stringType), 0));
+            instructions.add(CfLoad.load(ValueType.fromDexType(factory.stringType), 0));
             addCfInstructionsForAbstractValue(instructions, value, factory.stringType);
             instructions.add(
                 new CfInvoke(Opcodes.INVOKEVIRTUAL, factory.stringMembers.equals, false));
             instructions.add(new CfIf(IfType.EQ, ValueType.INT, dest));
-            instructions.add(new CfConstNumber(unboxedEnumValue, ValueType.INT));
-            instructions.add(CfReturn.forType(ValueType.INT));
+            instructions.add(CfConstNumber.constNumber(unboxedEnumValue, ValueType.INT));
+            instructions.add(CfReturn.IRETURN);
             instructions.add(dest);
             instructions.add(frame.clone());
           });
 
       // throw new IllegalArgumentException("No enum constant com.x.MyEnum." + s);
       instructions.add(new CfNew(factory.illegalArgumentExceptionType));
-      instructions.add(new CfStackInstruction(Opcode.Dup));
+      instructions.add(CfStackInstruction.DUP);
       instructions.add(
           new CfConstString(
               appView
                   .dexItemFactory()
                   .createString(
                       "No enum constant " + enumType.toSourceString().replace('$', '.') + ".")));
-      instructions.add(new CfLoad(ValueType.fromDexType(factory.stringType), 0));
+      instructions.add(CfLoad.load(ValueType.fromDexType(factory.stringType), 0));
       instructions.add(new CfInvoke(Opcodes.INVOKEVIRTUAL, factory.stringMembers.concat, false));
       instructions.add(
           new CfInvoke(
@@ -324,14 +324,14 @@ public abstract class EnumUnboxingCfCodeProvider extends SyntheticCfCodeProvider
       CfLabel nullDest = new CfLabel();
       instructions.add(new CfStaticFieldRead(utilityField, utilityField));
       instructions.add(new CfIf(IfType.NE, ValueType.OBJECT, nullDest));
-      instructions.add((new CfConstNumber(numEnumInstances, ValueType.INT)));
+      instructions.add((CfConstNumber.constNumber(numEnumInstances, ValueType.INT)));
       assert initializationMethod.getArity() == 1;
       instructions.add(new CfInvoke(Opcodes.INVOKESTATIC, initializationMethod, false));
       instructions.add(new CfStaticFieldWrite(utilityField, utilityField));
       instructions.add(nullDest);
       instructions.add(new CfFrame());
       instructions.add(new CfStaticFieldRead(utilityField, utilityField));
-      instructions.add(CfReturn.forType(ValueType.OBJECT));
+      instructions.add(CfReturn.ARETURN);
       return standardCfCodeFromInstructions(instructions);
     }
   }

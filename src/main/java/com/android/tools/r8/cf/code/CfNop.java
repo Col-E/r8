@@ -22,7 +22,7 @@ import com.android.tools.r8.optimize.interfaces.analysis.CfAnalysisConfig;
 import com.android.tools.r8.optimize.interfaces.analysis.CfFrameState;
 import com.android.tools.r8.utils.structural.CompareToVisitor;
 import com.android.tools.r8.utils.structural.HashingVisitor;
-import org.jetbrains.annotations.NotNull;
+import javax.annotation.Nonnull;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 
@@ -69,9 +69,9 @@ public class CfNop extends CfInstruction {
     printer.print(this);
   }
 
-  @NotNull
+  @Nonnull
   @Override
-  public CfInstruction copy(@NotNull Map<CfLabel, CfLabel> labelMap) {
+  public CfInstruction copy(@Nonnull Map<CfLabel, CfLabel> labelMap) {
     return this;
   }
 

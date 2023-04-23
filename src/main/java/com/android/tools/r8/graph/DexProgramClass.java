@@ -26,7 +26,7 @@ import com.android.tools.r8.utils.TraversalContinuation;
 import com.android.tools.r8.utils.structural.*;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
-import org.jetbrains.annotations.NotNull;
+import javax.annotation.Nonnull;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -152,12 +152,12 @@ public class DexProgramClass extends DexClass
         null);
   }
 
-  @NotNull
+  @Nonnull
   public ProgramOrClasspathClass copyClass() {
     return copy();
   }
 
-  @NotNull
+  @Nonnull
   @Override
   public DexProgramClass copy() {
     DexEncodedField[] staticFieldsCopy = staticFields().toArray(DexEncodedField.EMPTY_ARRAY);

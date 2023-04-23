@@ -25,18 +25,42 @@ import com.android.tools.r8.optimize.interfaces.analysis.CfAnalysisConfig;
 import com.android.tools.r8.optimize.interfaces.analysis.CfFrameState;
 import com.android.tools.r8.utils.structural.CompareToVisitor;
 import com.android.tools.r8.utils.structural.HashingVisitor;
-import org.jetbrains.annotations.NotNull;
+import javax.annotation.Nonnull;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 
+import javax.annotation.Nonnull;
 import java.util.Map;
 
 public class CfNeg extends CfInstruction {
-
+  public static final CfNeg INEG = new CfNeg(NumericType.INT);
+  public static final CfNeg LNEG = new CfNeg(NumericType.LONG);
+  public static final CfNeg FNEG = new CfNeg(NumericType.FLOAT);
+  public static final CfNeg DNEG = new CfNeg(NumericType.DOUBLE);
+  
   private final NumericType type;
 
-  public CfNeg(NumericType type) {
+  private CfNeg(NumericType type) {
     this.type = type;
+  }
+  
+  @Nonnull
+  public static CfNeg neg(@Nonnull NumericType type) {
+    switch (type) {
+      case BYTE:
+      case CHAR:
+      case SHORT:
+      case INT:
+        return INEG;
+      case LONG:
+        return LNEG;
+      case FLOAT:
+        return FNEG;
+      case DOUBLE:
+        return DNEG;
+      default:
+        throw new Unreachable("Invalid type for CfNeg " + type);
+    }
   }
 
   public NumericType getType() {
@@ -82,9 +106,9 @@ public class CfNeg extends CfInstruction {
     printer.print(this);
   }
 
-  @NotNull
+  @Nonnull
   @Override
-  public CfInstruction copy(@NotNull Map<CfLabel, CfLabel> labelMap) {
+  public CfInstruction copy(@Nonnull Map<CfLabel, CfLabel> labelMap) {
     return this;
   }
 
@@ -108,14 +132,10 @@ public class CfNeg extends CfInstruction {
 
   public static CfNeg fromAsm(int opcode) {
     switch (opcode) {
-      case Opcodes.INEG:
-        return new CfNeg(NumericType.INT);
-      case Opcodes.LNEG:
-        return new CfNeg(NumericType.LONG);
-      case Opcodes.FNEG:
-        return new CfNeg(NumericType.FLOAT);
-      case Opcodes.DNEG:
-        return new CfNeg(NumericType.DOUBLE);
+      case Opcodes.INEG: return INEG;
+      case Opcodes.LNEG: return LNEG;
+      case Opcodes.FNEG: return FNEG;
+      case Opcodes.DNEG: return DNEG;
       default:
         throw new Unreachable("Invalid opcode for CfNeg " + opcode);
     }

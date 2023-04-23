@@ -27,7 +27,7 @@ final class LambdaClassConstructorSourceCode {
         maxLocals,
         ImmutableList.of(
             new CfNew(lambda.type),
-            new CfStackInstruction(Opcode.Dup),
+            CfStackInstruction.DUP,
             new CfInvoke(Opcodes.INVOKESPECIAL, lambda.constructor, false),
             new CfStaticFieldWrite(lambda.lambdaField, lambda.lambdaField),
             CfReturnVoid.INSTANCE));

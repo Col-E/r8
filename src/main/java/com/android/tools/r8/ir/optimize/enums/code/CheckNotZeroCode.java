@@ -22,7 +22,7 @@ import com.android.tools.r8.ir.optimize.enums.EnumUnboxerImpl;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.IteratorUtils;
 import com.android.tools.r8.utils.RetracerForCodePrinting;
-import org.jetbrains.annotations.NotNull;
+import javax.annotation.Nonnull;
 
 /**
  * A special code object used by enum unboxing that supplies IR from an existing method
@@ -113,7 +113,7 @@ public class CheckNotZeroCode extends Code {
     throw new Unreachable();
   }
 
-  @NotNull
+  @Nonnull
   @Override
   public Code copySubtype() {
     return this;

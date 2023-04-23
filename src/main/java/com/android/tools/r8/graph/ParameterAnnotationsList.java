@@ -10,7 +10,7 @@ import com.android.tools.r8.utils.structural.Copyable;
 import com.android.tools.r8.utils.structural.StructuralItem;
 import com.android.tools.r8.utils.structural.StructuralMapping;
 import com.android.tools.r8.utils.structural.StructuralSpecification;
-import org.jetbrains.annotations.NotNull;
+import javax.annotation.Nonnull;
 
 import java.util.Arrays;
 import java.util.function.Consumer;
@@ -263,7 +263,7 @@ public class ParameterAnnotationsList extends DexItem
         : this;
   }
 
-  @NotNull
+  @Nonnull
   @Override
   public ParameterAnnotationsList copy() {
     if (this == EMPTY_PARAMETER_ANNOTATIONS_LIST) {

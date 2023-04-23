@@ -74,7 +74,7 @@ public class DebugLocalWrite extends Move {
 
   @Override
   public void buildCf(CfBuilder builder) {
-    builder.add(new CfStore(outType(), builder.getLocalRegister(outValue())), this);
+    builder.add(CfStore.store(outType(), builder.getLocalRegister(outValue())), this);
   }
 
   @Override

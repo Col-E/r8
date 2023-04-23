@@ -293,18 +293,18 @@ public class StringConcatInstructionDesugaring implements CfInstructionDesugarin
         if (chunk.isArgumentChunk()) {
           ArgumentChunk argumentChunk = chunk.asArgumentChunk();
           replacement.addFirst(
-              new CfStore(argumentChunk.getValueType(), argumentChunk.getVariableIndex()));
+              CfStore.store(argumentChunk.getValueType(), argumentChunk.getVariableIndex()));
         }
       }
       replacement.add(new CfNew(factory.stringBuilderType));
-      replacement.add(new CfStackInstruction(Opcode.Dup));
+      replacement.add(CfStackInstruction.DUP);
       replacement.add(
           new CfInvoke(Opcodes.INVOKESPECIAL, stringBuilderMethods.defaultConstructor, false));
       for (Chunk chunk : chunks) {
         if (chunk.isArgumentChunk()) {
           ArgumentChunk argumentChunk = chunk.asArgumentChunk();
           replacement.add(
-              new CfLoad(argumentChunk.getValueType(), argumentChunk.getVariableIndex()));
+              CfLoad.load(argumentChunk.getValueType(), argumentChunk.getVariableIndex()));
         } else {
           assert chunk.isConstantChunk();
           replacement.add(new CfConstString(chunk.asConstantChunk().getStringConstant()));

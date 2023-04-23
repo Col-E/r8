@@ -8,7 +8,7 @@ import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.conversion.MethodConversionOptions.MutableMethodConversionOptions;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.RetracerForCodePrinting;
-import org.jetbrains.annotations.NotNull;
+import javax.annotation.Nonnull;
 
 public class InvalidCode extends Code {
 
@@ -67,7 +67,7 @@ public class InvalidCode extends Code {
     throw new Unreachable();
   }
 
-  @NotNull
+  @Nonnull
   @Override
   public Code copySubtype() {
     return this;

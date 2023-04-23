@@ -17,7 +17,7 @@ import com.android.tools.r8.utils.structural.StructuralItem;
 import com.android.tools.r8.utils.structural.StructuralMapping;
 import com.android.tools.r8.utils.structural.StructuralSpecification;
 import com.google.common.collect.Sets;
-import org.jetbrains.annotations.NotNull;
+import javax.annotation.Nonnull;
 
 import java.util.Arrays;
 import java.util.List;
@@ -263,7 +263,7 @@ public class DexAnnotationSet extends CachedHashValueDexItem
     return Arrays.toString(annotations);
   }
 
-  @NotNull
+  @Nonnull
   @Override
   public DexAnnotationSet copy() {
     if (this == THE_EMPTY_ANNOTATIONS_SET) {

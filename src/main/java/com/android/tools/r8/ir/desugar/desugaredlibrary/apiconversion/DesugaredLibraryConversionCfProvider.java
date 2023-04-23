@@ -367,10 +367,10 @@ public class DesugaredLibraryConversionCfProvider {
     cfInstructions.add(
         new CfInvoke(Opcodes.INVOKESTATIC, parameterConversion.getReference(), false));
     int arrayLocal = freshLocalProvider.getFreshLocal(ValueType.OBJECT.requiredRegisters());
-    cfInstructions.add(new CfStore(ValueType.OBJECT, arrayLocal));
+    cfInstructions.add(CfStore.storeObject(arrayLocal));
     for (int i = 0; i < parameterConversions.length; i++) {
-      cfInstructions.add(new CfLoad(ValueType.OBJECT, arrayLocal));
-      cfInstructions.add(new CfConstNumber(i, ValueType.INT));
+      cfInstructions.add(CfLoad.loadObject(arrayLocal));
+      cfInstructions.add(CfConstNumber.constNumber(i, ValueType.INT));
       DexType parameterType =
           parameterConversions[i] != null
               ? parameterConversions[i].getReturnType()
@@ -389,14 +389,14 @@ public class DesugaredLibraryConversionCfProvider {
   private CfCode computeParameterConversionCfCode(
       DexType holder, DexMethod invokedMethod, DexMethod[] parameterConversions) {
     ArrayList<CfInstruction> cfInstructions = new ArrayList<>();
-    cfInstructions.add(new CfConstNumber(parameterConversions.length, ValueType.INT));
+    cfInstructions.add(CfConstNumber.constNumber(parameterConversions.length, ValueType.INT));
     cfInstructions.add(new CfNewArray(factory.objectArrayType));
     int stackIndex = 0;
     for (int i = 0; i < invokedMethod.getArity(); i++) {
-      cfInstructions.add(new CfStackInstruction(Opcode.Dup));
-      cfInstructions.add(new CfConstNumber(i, ValueType.INT));
+      cfInstructions.add(CfStackInstruction.DUP);
+      cfInstructions.add(CfConstNumber.constNumber(i, ValueType.INT));
       DexType param = invokedMethod.getParameter(i);
-      cfInstructions.add(new CfLoad(ValueType.fromDexType(param), stackIndex));
+      cfInstructions.add(CfLoad.load(ValueType.fromDexType(param), stackIndex));
       if (parameterConversions[i] != null) {
         cfInstructions.add(new CfInvoke(Opcodes.INVOKESTATIC, parameterConversions[i], false));
       }
@@ -411,7 +411,7 @@ public class DesugaredLibraryConversionCfProvider {
       }
       stackIndex++;
     }
-    cfInstructions.add(CfReturn.forType(ValueType.OBJECT));
+    cfInstructions.add(CfReturn.ARETURN);
     return new CfCode(holder, stackIndex + 4, stackIndex, cfInstructions);
   }
 
@@ -431,11 +431,11 @@ public class DesugaredLibraryConversionCfProvider {
           .getParameters()
           .get(invokedMethod.getParameters().size() - 1)
           .isWideType();
-      cfInstructions.add(new CfStackInstruction(Opcode.Swap));
+      cfInstructions.add(CfStackInstruction.SWAP);
       cfInstructions.add(
           new CfInvoke(
               Opcodes.INVOKESTATIC, parameterConversions[parameterConversions.length - 2], false));
-      cfInstructions.add(new CfStackInstruction(Opcode.Swap));
+      cfInstructions.add(CfStackInstruction.SWAP);
     }
   }
 

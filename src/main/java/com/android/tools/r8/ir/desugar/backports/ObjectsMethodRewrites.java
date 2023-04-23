@@ -38,9 +38,9 @@ public final class ObjectsMethodRewrites {
         // requireNonNull returns the operand, so dup top-of-stack, do getClass and pop the class.
         localStackAllocator.allocateLocalStack(1);
         return ImmutableList.of(
-            new CfStackInstruction(Opcode.Dup),
+            CfStackInstruction.DUP,
             new CfInvoke(Opcodes.INVOKEVIRTUAL, factory.objectMembers.getClass, false),
-            new CfStackInstruction(Opcode.Pop));
+            CfStackInstruction.POP);
       }
     };
   }

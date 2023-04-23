@@ -143,14 +143,10 @@ public class AlwaysThrowingInstructionDesugaring implements CfInstructionDesugar
     ArrayList<CfInstruction> replacement = new ArrayList<>();
     DexTypeList parameters = invoke.getMethod().getParameters();
     for (int i = parameters.values.length - 1; i >= 0; i--) {
-      replacement.add(
-          new CfStackInstruction(
-              parameters.get(i).isWideType()
-                  ? CfStackInstruction.Opcode.Pop2
-                  : CfStackInstruction.Opcode.Pop));
+      replacement.add(CfStackInstruction.popType(parameters.get(i)));
     }
     if (!invoke.isInvokeStatic()) {
-      replacement.add(new CfStackInstruction(CfStackInstruction.Opcode.Pop));
+      replacement.add(CfStackInstruction.POP);
     }
 
     CfInvoke throwInvoke =
@@ -158,13 +154,13 @@ public class AlwaysThrowingInstructionDesugaring implements CfInstructionDesugar
             org.objectweb.asm.Opcodes.INVOKESTATIC, throwProgramMethod.getReference(), false);
     assert throwInvoke.getMethod().getReturnType().isClassType();
     replacement.add(throwInvoke);
-    replacement.add(new CfStackInstruction(CfStackInstruction.Opcode.Pop));
+    replacement.add(CfStackInstruction.POP);
 
     DexType returnType = invoke.getMethod().getReturnType();
     if (!returnType.isVoidType()) {
       replacement.add(
           returnType.isPrimitiveType()
-              ? new CfConstNumber(0, ValueType.fromDexType(returnType))
+              ? CfConstNumber.constNumber(0, ValueType.fromDexType(returnType))
               : CfConstNull.INSTANCE);
     } else {
       // If the return type is void, the stack may need an extra slot to fit the return type of

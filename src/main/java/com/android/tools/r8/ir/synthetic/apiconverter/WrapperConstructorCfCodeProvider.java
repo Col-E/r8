@@ -36,15 +36,15 @@ public class WrapperConstructorCfCodeProvider extends SyntheticCfCodeProvider {
   public CfCode generateCfCode() {
     DexItemFactory factory = appView.dexItemFactory();
     List<CfInstruction> instructions = new ArrayList<>();
-    instructions.add(new CfLoad(ValueType.fromDexType(wrapperField.holder), 0));
+    instructions.add(CfLoad.load(ValueType.fromDexType(wrapperField.holder), 0));
     instructions.add(
         new CfInvoke(
             Opcodes.INVOKESPECIAL,
             factory.createMethod(
                 superType, factory.createProto(factory.voidType), factory.constructorMethodName),
             false));
-    instructions.add(new CfLoad(ValueType.fromDexType(wrapperField.holder), 0));
-    instructions.add(new CfLoad(ValueType.fromDexType(wrapperField.type), 1));
+    instructions.add(CfLoad.load(ValueType.fromDexType(wrapperField.holder), 0));
+    instructions.add(CfLoad.load(ValueType.fromDexType(wrapperField.type), 1));
     instructions.add(new CfInstanceFieldWrite(wrapperField));
     instructions.add(CfReturnVoid.INSTANCE);
     return standardCfCodeFromInstructions(instructions);

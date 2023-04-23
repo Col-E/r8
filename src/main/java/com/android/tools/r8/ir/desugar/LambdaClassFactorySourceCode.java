@@ -22,7 +22,7 @@ final class LambdaClassFactorySourceCode {
     int maxStack = 0;
     int maxLocals = 0;
     ImmutableList.Builder<CfInstruction> builder = ImmutableList.builder();
-    builder.add(new CfNew(lambda.type)).add(new CfStackInstruction(Opcode.Dup));
+    builder.add(new CfNew(lambda.type)).add(CfStackInstruction.DUP);
     maxStack += 2;
     int local = 0;
     for (int i = 0; i < lambda.constructor.proto.getParameters().size(); i++) {

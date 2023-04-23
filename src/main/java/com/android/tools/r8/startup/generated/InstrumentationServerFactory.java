@@ -157,7 +157,7 @@ public final class InstrumentationServerFactory {
                             "Lcom/android/tools/r8/startup/InstrumentationServerImpl;")),
                     factory.createString("getInstance")),
                 false),
-            CfReturn.forType(ValueType.OBJECT)),
+            CfReturn.ARETURN),
         ImmutableList.of(),
         ImmutableList.of());
   }

@@ -28,7 +28,7 @@ public final class NumericMethodRewrites {
   public static MethodInvokeRewriter rewriteToAddInstruction() {
     return (invoke, factory) -> {
       NumericType numericType = NumericType.fromDexType(invoke.getMethod().getReturnType());
-      return new CfArithmeticBinop(CfArithmeticBinop.Opcode.Add, numericType);
+      return CfArithmeticBinop.operation(CfArithmeticBinop.Opcode.Add, numericType);
     };
   }
 

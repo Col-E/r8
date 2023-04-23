@@ -14,7 +14,7 @@ import com.android.tools.r8.utils.structural.StructuralItem;
 import com.android.tools.r8.utils.structural.StructuralMapping;
 import com.android.tools.r8.utils.structural.StructuralSpecification;
 import com.google.common.collect.Iterators;
-import org.jetbrains.annotations.NotNull;
+import javax.annotation.Nonnull;
 
 import java.util.Arrays;
 import java.util.Collection;
@@ -185,7 +185,7 @@ public class DexTypeList extends DexItem implements Iterable<DexType>, Structura
     return new DexTypeList(newValues);
   }
 
-  @NotNull
+  @Nonnull
   @Override
   public DexTypeList copy() {
     if (this == theEmptyTypeList) {

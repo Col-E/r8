@@ -17,7 +17,7 @@ import com.android.tools.r8.utils.Timing;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Sets;
-import org.jetbrains.annotations.NotNull;
+import javax.annotation.Nonnull;
 
 import java.util.Objects;
 import java.util.List;
@@ -51,7 +51,7 @@ public class LazyLoadedDexApplication extends DexApplication {
     this.libraryClasses = libraryClasses;
   }
 
-  @NotNull
+  @Nonnull
   @Override
   public LazyLoadedDexApplication copy() {
     ProgramClassConflictResolver resolver =

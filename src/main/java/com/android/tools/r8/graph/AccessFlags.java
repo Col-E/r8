@@ -8,7 +8,7 @@ import com.android.tools.r8.utils.structural.StructuralItem;
 import com.android.tools.r8.utils.structural.StructuralMapping;
 import com.android.tools.r8.utils.structural.StructuralSpecification;
 import com.google.common.collect.ImmutableList;
-import org.jetbrains.annotations.NotNull;
+import javax.annotation.Nonnull;
 
 import java.util.List;
 import java.util.function.BooleanSupplier;
@@ -67,7 +67,7 @@ public abstract class AccessFlags<T extends AccessFlags<T>> implements Structura
     return AccessFlags::specify;
   }
 
-  @NotNull
+  @Nonnull
   public abstract T copy();
 
   @Override

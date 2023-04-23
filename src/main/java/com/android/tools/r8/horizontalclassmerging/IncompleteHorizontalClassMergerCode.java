@@ -17,7 +17,7 @@ import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.conversion.MethodConversionOptions.MutableMethodConversionOptions;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.RetracerForCodePrinting;
-import org.jetbrains.annotations.NotNull;
+import javax.annotation.Nonnull;
 
 public abstract class IncompleteHorizontalClassMergerCode extends Code {
 
@@ -31,7 +31,7 @@ public abstract class IncompleteHorizontalClassMergerCode extends Code {
     return true;
   }
 
-  @NotNull
+  @Nonnull
   @Override
   public Code copySubtype() {
     return this;

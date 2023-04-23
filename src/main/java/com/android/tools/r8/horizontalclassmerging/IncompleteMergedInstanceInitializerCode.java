@@ -261,7 +261,7 @@ public class IncompleteMergedInstanceInitializerCode extends IncompleteHorizonta
         return 1;
       } else {
         instructionBuilder.add(
-            new CfConstNumber(
+            CfConstNumber.constNumber(
                 singleConstValue.asSingleNumberValue().getValue(), ValueType.fromDexType(type)));
         return type.getRequiredRegisters();
       }

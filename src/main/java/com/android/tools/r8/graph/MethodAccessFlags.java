@@ -5,7 +5,7 @@ package com.android.tools.r8.graph;
 
 import com.android.tools.r8.dex.Constants;
 import com.google.common.collect.ImmutableList;
-import org.jetbrains.annotations.NotNull;
+import javax.annotation.Nonnull;
 
 import java.util.List;
 import java.util.function.BooleanSupplier;
@@ -75,7 +75,7 @@ public class MethodAccessFlags extends AccessFlags<MethodAccessFlags> {
     return !belongsToDirectPool();
   }
 
-  @NotNull
+  @Nonnull
   @Override
   public MethodAccessFlags copy() {
     return new MethodAccessFlags(originalFlags, modifiedFlags);

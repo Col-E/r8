@@ -606,7 +606,7 @@ public class LirBuilder<V, EV> {
   }
 
   public LirBuilder<V, EV> addNumberConversion(NumericType from, NumericType to, V value) {
-    int opcode = new CfNumberConversion(from, to).getAsmOpcode();
+    int opcode = CfNumberConversion.getAsmOpcode(from, to);
     assert LirOpcodes.I2L <= opcode;
     assert opcode <= LirOpcodes.I2S;
     return addOneValueInstruction(opcode, value);

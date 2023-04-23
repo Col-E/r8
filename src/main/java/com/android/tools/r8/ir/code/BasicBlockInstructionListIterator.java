@@ -219,7 +219,7 @@ public class BasicBlockInstructionListIterator implements InstructionListIterato
     if (current.getDebugValues().isEmpty()) {
       remove();
     } else {
-      replaceCurrentInstruction(new DebugLocalRead());
+      replaceCurrentInstruction(DebugLocalRead.INSTANCE);
     }
   }
 

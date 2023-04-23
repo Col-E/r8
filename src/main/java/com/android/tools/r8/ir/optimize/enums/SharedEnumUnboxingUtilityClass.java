@@ -304,13 +304,13 @@ public class SharedEnumUnboxingUtilityClass extends EnumUnboxingUtilityClass {
       int maxValuesArraySize = enumDataMap.getMaxValuesSize();
       int numberOfInstructions = 4 + maxValuesArraySize * 4;
       List<CfInstruction> instructions = new ArrayList<>(numberOfInstructions);
-      instructions.add(new CfConstNumber(maxValuesArraySize, ValueType.INT));
+      instructions.add(CfConstNumber.constNumber(maxValuesArraySize, ValueType.INT));
       instructions.add(new CfNewArray(dexItemFactory.intArrayType));
       for (int i = 0; i < maxValuesArraySize; i++) {
-        instructions.add(new CfStackInstruction(Opcode.Dup));
-        instructions.add(new CfConstNumber(i, ValueType.INT));
+        instructions.add(CfStackInstruction.DUP);
+        instructions.add(CfConstNumber.constNumber(i, ValueType.INT));
         // i + 1 because 0 represents the null value.
-        instructions.add(new CfConstNumber(i + 1, ValueType.INT));
+        instructions.add(CfConstNumber.constNumber(i + 1, ValueType.INT));
         instructions.add(CfArrayStore.forType(MemberType.INT));
       }
       instructions.add(new CfStaticFieldWrite(valuesField.getReference()));
@@ -353,20 +353,20 @@ public class SharedEnumUnboxingUtilityClass extends EnumUnboxingUtilityClass {
           maxLocals,
           ImmutableList.of(
               // int[] result = new int[size];
-              new CfLoad(ValueType.INT, argumentLocalSlot),
+              CfLoad.loadInt(argumentLocalSlot),
               new CfNewArray(dexItemFactory.intArrayType),
-              new CfStore(ValueType.OBJECT, resultLocalSlot),
+               CfStore.storeObject(resultLocalSlot),
               // System.arraycopy(SharedUtilityClass.$VALUES, 0, result, 0, size);
               new CfStaticFieldRead(valuesField.getReference()),
-              new CfConstNumber(0, ValueType.INT),
-              new CfLoad(ValueType.OBJECT, resultLocalSlot),
-              new CfConstNumber(0, ValueType.INT),
-              new CfLoad(ValueType.INT, argumentLocalSlot),
+              CfConstNumber.ICONST_0,
+              CfLoad.loadObject(resultLocalSlot),
+              CfConstNumber.ICONST_0,
+              CfLoad.loadInt(argumentLocalSlot),
               new CfInvoke(
                   Opcodes.INVOKESTATIC, dexItemFactory.javaLangSystemMembers.arraycopy, false),
               // return result
-              new CfLoad(ValueType.OBJECT, resultLocalSlot),
-              CfReturn.forType(ValueType.OBJECT)));
+              CfLoad.loadObject(resultLocalSlot),
+              CfReturn.ARETURN));
     }
 
     private static DexProgramClass findDeterministicContextType(Set<DexProgramClass> contexts) {

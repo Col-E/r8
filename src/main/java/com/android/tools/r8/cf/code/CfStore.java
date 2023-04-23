@@ -25,20 +25,142 @@ import com.android.tools.r8.optimize.interfaces.analysis.CfAnalysisConfig;
 import com.android.tools.r8.optimize.interfaces.analysis.CfFrameState;
 import com.android.tools.r8.utils.structural.CompareToVisitor;
 import com.android.tools.r8.utils.structural.HashingVisitor;
-import org.jetbrains.annotations.NotNull;
+import javax.annotation.Nonnull;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 
+import javax.annotation.Nonnull;
 import java.util.Map;
 
 public class CfStore extends CfInstruction {
+  public static final CfStore ASTORE_0 = new CfStore(ValueType.OBJECT, 0);
+  public static final CfStore ASTORE_1 = new CfStore(ValueType.OBJECT, 1);
+  public static final CfStore ASTORE_2 = new CfStore(ValueType.OBJECT, 2);
+  public static final CfStore ASTORE_3 = new CfStore(ValueType.OBJECT, 3);
+  public static final CfStore ASTORE_4 = new CfStore(ValueType.OBJECT, 4);
+  public static final CfStore ASTORE_5 = new CfStore(ValueType.OBJECT, 5);
+  public static final CfStore ASTORE_6 = new CfStore(ValueType.OBJECT, 6);
+  public static final CfStore ASTORE_7 = new CfStore(ValueType.OBJECT, 7);
+  public static final CfStore ISTORE_0 = new CfStore(ValueType.INT, 0);
+  public static final CfStore ISTORE_1 = new CfStore(ValueType.INT, 1);
+  public static final CfStore ISTORE_2 = new CfStore(ValueType.INT, 2);
+  public static final CfStore ISTORE_3 = new CfStore(ValueType.INT, 3);
+  public static final CfStore ISTORE_4 = new CfStore(ValueType.INT, 4);
+  public static final CfStore ISTORE_5 = new CfStore(ValueType.INT, 5);
+  public static final CfStore ISTORE_6 = new CfStore(ValueType.INT, 6);
+  public static final CfStore ISTORE_7 = new CfStore(ValueType.INT, 7);
+  public static final CfStore FSTORE_0 = new CfStore(ValueType.FLOAT, 0);
+  public static final CfStore FSTORE_1 = new CfStore(ValueType.FLOAT, 1);
+  public static final CfStore FSTORE_2 = new CfStore(ValueType.FLOAT, 2);
+  public static final CfStore FSTORE_3 = new CfStore(ValueType.FLOAT, 3);
+  public static final CfStore FSTORE_4 = new CfStore(ValueType.FLOAT, 4);
+  public static final CfStore FSTORE_5 = new CfStore(ValueType.FLOAT, 5);
+  public static final CfStore LSTORE_0 = new CfStore(ValueType.LONG, 0);
+  public static final CfStore LSTORE_1 = new CfStore(ValueType.LONG, 1);
+  public static final CfStore LSTORE_2 = new CfStore(ValueType.LONG, 2);
+  public static final CfStore LSTORE_3 = new CfStore(ValueType.LONG, 3);
+  public static final CfStore LSTORE_4 = new CfStore(ValueType.LONG, 4);
+  public static final CfStore LSTORE_5 = new CfStore(ValueType.LONG, 5);
+  public static final CfStore DSTORE_0 = new CfStore(ValueType.DOUBLE, 0);
+  public static final CfStore DSTORE_1 = new CfStore(ValueType.DOUBLE, 1);
+  public static final CfStore DSTORE_2 = new CfStore(ValueType.DOUBLE, 2);
+  public static final CfStore DSTORE_3 = new CfStore(ValueType.DOUBLE, 3);
+  public static final CfStore DSTORE_4 = new CfStore(ValueType.DOUBLE, 4);
+  public static final CfStore DSTORE_5 = new CfStore(ValueType.DOUBLE, 5);
 
   private final int var;
   private final ValueType type;
 
-  public CfStore(ValueType type, int var) {
+  private CfStore(ValueType type, int var) {
     this.var = var;
     this.type = type;
+  }
+
+  @Nonnull
+  public static CfStore store(ValueType type, int var) {
+    switch (type) {
+      case OBJECT: return storeObject(var);
+      case INT:    return storeInt(var);
+      case FLOAT:  return storeFloat(var);
+      case LONG:   return storeLong(var);
+      case DOUBLE: return storeDouble(var);
+      default:
+        throw new IllegalStateException("Unknown value type: " + type);
+    }
+  }
+
+  @Nonnull
+  public static CfStore storeObject(int var) {
+    switch (var) {
+      case 0: return ASTORE_0;
+      case 1: return ASTORE_1;
+      case 2: return ASTORE_2;
+      case 3: return ASTORE_3;
+      case 4: return ASTORE_4;
+      case 5: return ASTORE_5;
+      case 6: return ASTORE_6;
+      case 7: return ASTORE_7;
+      default:
+        return new CfStore(ValueType.OBJECT, var);
+    }
+  }
+
+  @Nonnull
+  public static CfStore storeInt(int var) {
+    switch (var) {
+      case 0: return ISTORE_0;
+      case 1: return ISTORE_1;
+      case 2: return ISTORE_2;
+      case 3: return ISTORE_3;
+      case 4: return ISTORE_4;
+      case 5: return ISTORE_5;
+      case 6: return ISTORE_6;
+      case 7: return ISTORE_7;
+      default:
+        return new CfStore(ValueType.INT, var);
+    }
+  }
+
+  @Nonnull
+  public static CfStore storeFloat(int var) {
+    switch (var) {
+      case 0: return FSTORE_0;
+      case 1: return FSTORE_1;
+      case 2: return FSTORE_2;
+      case 3: return FSTORE_3;
+      case 4: return FSTORE_4;
+      case 5: return FSTORE_5;
+      default:
+        return new CfStore(ValueType.FLOAT, var);
+    }
+  }
+
+  @Nonnull
+  public static CfStore storeLong(int var) {
+    switch (var) {
+      case 0: return LSTORE_0;
+      case 1: return LSTORE_1;
+      case 2: return LSTORE_2;
+      case 3: return LSTORE_3;
+      case 4: return LSTORE_4;
+      case 5: return LSTORE_5;
+      default:
+        return new CfStore(ValueType.LONG, var);
+    }
+  }
+
+  @Nonnull
+  public static CfStore storeDouble(int var) {
+    switch (var) {
+      case 0: return DSTORE_0;
+      case 1: return DSTORE_1;
+      case 2: return DSTORE_2;
+      case 3: return DSTORE_3;
+      case 4: return DSTORE_4;
+      case 5: return DSTORE_5;
+      default:
+        return new CfStore(ValueType.DOUBLE, var);
+    }
   }
 
   @Override
@@ -108,9 +230,9 @@ public class CfStore extends CfInstruction {
     printer.print(this);
   }
 
-  @NotNull
+  @Nonnull
   @Override
-  public CfInstruction copy(@NotNull Map<CfLabel, CfLabel> labelMap) {
+  public CfInstruction copy(@Nonnull Map<CfLabel, CfLabel> labelMap) {
     return this;
   }
 

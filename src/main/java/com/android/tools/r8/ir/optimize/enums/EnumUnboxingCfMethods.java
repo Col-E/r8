@@ -57,16 +57,16 @@ public final class EnumUnboxingCfMethods {
         2,
         ImmutableList.of(
             label0,
-            new CfLoad(ValueType.INT, 0),
+            CfLoad.ILOAD_0,
             new CfIf(IfType.EQ, ValueType.INT, label1),
-            new CfLoad(ValueType.INT, 1),
+            CfLoad.ILOAD_1,
             new CfIf(IfType.NE, ValueType.INT, label2),
             label1,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1}, new FrameType[] {FrameType.intType(), FrameType.intType()})),
             new CfNew(factory.createType("Ljava/lang/NullPointerException;")),
-            new CfStackInstruction(CfStackInstruction.Opcode.Dup),
+            CfStackInstruction.DUP,
             new CfInvoke(
                 183,
                 factory.createMethod(
@@ -79,10 +79,10 @@ public final class EnumUnboxingCfMethods {
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1}, new FrameType[] {FrameType.intType(), FrameType.intType()})),
-            new CfLoad(ValueType.INT, 0),
-            new CfLoad(ValueType.INT, 1),
-            new CfArithmeticBinop(CfArithmeticBinop.Opcode.Sub, NumericType.INT),
-            CfReturn.forType(ValueType.INT),
+            CfLoad.ILOAD_0,
+            CfLoad.ILOAD_1,
+            CfArithmeticBinop.ISUB,
+            CfReturn.IRETURN,
             label3),
         ImmutableList.of(),
         ImmutableList.of());
@@ -101,11 +101,11 @@ public final class EnumUnboxingCfMethods {
         2,
         ImmutableList.of(
             label0,
-            new CfLoad(ValueType.INT, 0),
+            CfLoad.ILOAD_0,
             new CfIf(IfType.NE, ValueType.INT, label2),
             label1,
             new CfNew(factory.createType("Ljava/lang/NullPointerException;")),
-            new CfStackInstruction(CfStackInstruction.Opcode.Dup),
+            CfStackInstruction.DUP,
             new CfInvoke(
                 183,
                 factory.createMethod(
@@ -118,22 +118,22 @@ public final class EnumUnboxingCfMethods {
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1}, new FrameType[] {FrameType.intType(), FrameType.intType()})),
-            new CfLoad(ValueType.INT, 0),
-            new CfLoad(ValueType.INT, 1),
+            CfLoad.ILOAD_0,
+            CfLoad.ILOAD_1,
             new CfIfCmp(IfType.NE, ValueType.INT, label3),
-            new CfConstNumber(1, ValueType.INT),
+            CfConstNumber.ICONST_1,
             new CfGoto(label4),
             label3,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1}, new FrameType[] {FrameType.intType(), FrameType.intType()})),
-            new CfConstNumber(0, ValueType.INT),
+            CfConstNumber.ICONST_0,
             label4,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1}, new FrameType[] {FrameType.intType(), FrameType.intType()}),
                 new ArrayDeque<>(Arrays.asList(FrameType.intType()))),
-            CfReturn.forType(ValueType.INT),
+            CfReturn.IRETURN,
             label5),
         ImmutableList.of(),
         ImmutableList.of());
@@ -150,11 +150,11 @@ public final class EnumUnboxingCfMethods {
         1,
         ImmutableList.of(
             label0,
-            new CfLoad(ValueType.INT, 0),
+            CfLoad.ILOAD_0,
             new CfIf(IfType.NE, ValueType.INT, label2),
             label1,
             new CfNew(factory.createType("Ljava/lang/NullPointerException;")),
-            new CfStackInstruction(CfStackInstruction.Opcode.Dup),
+            CfStackInstruction.DUP,
             new CfInvoke(
                 183,
                 factory.createMethod(
@@ -166,10 +166,10 @@ public final class EnumUnboxingCfMethods {
             label2,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(new int[] {0}, new FrameType[] {FrameType.intType()})),
-            new CfLoad(ValueType.INT, 0),
-            new CfConstNumber(1, ValueType.INT),
-            new CfArithmeticBinop(CfArithmeticBinop.Opcode.Sub, NumericType.INT),
-            CfReturn.forType(ValueType.INT),
+            CfLoad.ILOAD_0,
+            CfConstNumber.ICONST_1,
+            CfArithmeticBinop.ISUB,
+            CfReturn.IRETURN,
             label3),
         ImmutableList.of(),
         ImmutableList.of());
@@ -189,12 +189,12 @@ public final class EnumUnboxingCfMethods {
         3,
         ImmutableList.of(
             label0,
-            new CfLoad(ValueType.INT, 0),
+            CfLoad.ILOAD_0,
             new CfNewArray(factory.intArrayType),
-            new CfStore(ValueType.OBJECT, 1),
+            CfStore.ASTORE_1,
             label1,
-            new CfConstNumber(0, ValueType.INT),
-            new CfStore(ValueType.INT, 2),
+            CfConstNumber.ICONST_0,
+             CfStore.ISTORE_2,
             label2,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
@@ -204,16 +204,16 @@ public final class EnumUnboxingCfMethods {
                       FrameType.initializedNonNullReference(factory.intArrayType),
                       FrameType.intType()
                     })),
-            new CfLoad(ValueType.INT, 2),
-            new CfLoad(ValueType.OBJECT, 1),
+            CfLoad.ILOAD_2,
+            CfLoad.ALOAD_1,
             CfArrayLength.INSTANCE,
             new CfIfCmp(IfType.GE, ValueType.INT, label5),
             label3,
-            new CfLoad(ValueType.OBJECT, 1),
-            new CfLoad(ValueType.INT, 2),
-            new CfLoad(ValueType.INT, 2),
-            new CfConstNumber(1, ValueType.INT),
-            new CfArithmeticBinop(CfArithmeticBinop.Opcode.Add, NumericType.INT),
+            CfLoad.ALOAD_1,
+            CfLoad.ILOAD_2,
+            CfLoad.ILOAD_2,
+            CfConstNumber.ICONST_1,
+            CfArithmeticBinop.IADD,
             CfArrayStore.forType(MemberType.INT),
             label4,
             new CfIinc(2, 1),
@@ -226,8 +226,8 @@ public final class EnumUnboxingCfMethods {
                       FrameType.intType(),
                       FrameType.initializedNonNullReference(factory.intArrayType)
                     })),
-            new CfLoad(ValueType.OBJECT, 1),
-            CfReturn.forType(ValueType.OBJECT),
+            CfLoad.ALOAD_1,
+            CfReturn.ARETURN,
             label6),
         ImmutableList.of(),
         ImmutableList.of());
@@ -244,11 +244,11 @@ public final class EnumUnboxingCfMethods {
         1,
         ImmutableList.of(
             label0,
-            new CfLoad(ValueType.INT, 0),
+            CfLoad.ILOAD_0,
             new CfIf(IfType.NE, ValueType.INT, label2),
             label1,
             new CfNew(factory.createType("Ljava/lang/NullPointerException;")),
-            new CfStackInstruction(CfStackInstruction.Opcode.Dup),
+            CfStackInstruction.DUP,
             new CfInvoke(
                 183,
                 factory.createMethod(
@@ -278,12 +278,12 @@ public final class EnumUnboxingCfMethods {
         2,
         ImmutableList.of(
             label0,
-            new CfLoad(ValueType.INT, 0),
+            CfLoad.ILOAD_0,
             new CfIf(IfType.NE, ValueType.INT, label2),
             label1,
             new CfNew(factory.createType("Ljava/lang/NullPointerException;")),
-            new CfStackInstruction(CfStackInstruction.Opcode.Dup),
-            new CfLoad(ValueType.OBJECT, 1),
+            CfStackInstruction.DUP,
+            CfLoad.ALOAD_1,
             new CfInvoke(
                 183,
                 factory.createMethod(

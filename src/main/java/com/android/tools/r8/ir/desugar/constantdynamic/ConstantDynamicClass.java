@@ -282,9 +282,9 @@ public class ConstantDynamicClass {
     instructions.add(new CfIf(IfType.NE, ValueType.INT, initializedTrue));
 
     instructions.add(new CfConstClass(builder.getType()));
-    instructions.add(new CfStackInstruction(Opcode.Dup));
-    instructions.add(new CfStore(ValueType.OBJECT, 0));
-    instructions.add(CfMonitor.forType(MonitorType.ENTER));
+    instructions.add(CfStackInstruction.DUP);
+    instructions.add(CfStore.ASTORE_0);
+    instructions.add(CfMonitor.ENTER);
     instructions.add(tryCatchStart);
 
     instructions.add(new CfStaticFieldRead(initializedValueField));
@@ -292,7 +292,7 @@ public class ConstantDynamicClass {
 
     invokeBootstrapMethod(instructions);
     instructions.add(new CfStaticFieldWrite(constantValueField));
-    instructions.add(new CfConstNumber(1, ValueType.INT));
+    instructions.add(CfConstNumber.ICONST_1);
     instructions.add(new CfStaticFieldWrite(initializedValueField));
 
     instructions.add(initializedTrueSecond);
@@ -301,7 +301,7 @@ public class ConstantDynamicClass {
             .appendLocal(FrameType.initializedNonNullReference(builder.getFactory().objectType))
             .build());
     instructions.add(CfLoad.ALOAD_0);
-    instructions.add(CfMonitor.forType(MonitorType.EXIT));
+    instructions.add(CfMonitor.EXIT);
     instructions.add(tryCatchEnd);
     instructions.add(new CfGoto(initializedTrue));
 
@@ -311,17 +311,17 @@ public class ConstantDynamicClass {
             .appendLocal(FrameType.initializedNonNullReference(builder.getFactory().objectType))
             .push(FrameType.initializedNonNullReference(builder.getFactory().throwableType))
             .build());
-    instructions.add(new CfStore(ValueType.OBJECT, 1));
+    instructions.add(CfStore.ASTORE_1);
     instructions.add(CfLoad.ALOAD_0);
-    instructions.add(CfMonitor.forType(MonitorType.EXIT));
+    instructions.add(CfMonitor.EXIT);
     instructions.add(tryCatchEndFinally);
-    instructions.add(new CfLoad(ValueType.OBJECT, 1));
+    instructions.add(CfLoad.ALOAD_1);
     instructions.add(CfThrow.INSTANCE);
 
     instructions.add(initializedTrue);
     instructions.add(new CfFrame());
     instructions.add(new CfStaticFieldRead(constantValueField));
-    instructions.add(CfReturn.forType(ValueType.OBJECT));
+    instructions.add(CfReturn.ARETURN);
 
     List<CfTryCatch> tryCatchRanges =
         ImmutableList.of(

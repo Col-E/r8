@@ -21,7 +21,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 import org.checkerframework.checker.nullness.qual.Nullable;
-import org.jetbrains.annotations.NotNull;
+import javax.annotation.Nonnull;
 import org.junit.Assume;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -146,15 +146,15 @@ public class GuavaMultiSetSpliteratorTest extends DesugaredLibraryTestBase {
       return null;
     }
 
-    @NotNull
+    @Nonnull
     @Override
     public Object[] toArray() {
       return new Object[0];
     }
 
-    @NotNull
+    @Nonnull
     @Override
-    public <T> T[] toArray(@NotNull T[] ts) {
+    public <T> T[] toArray(@Nonnull T[] ts) {
       return null;
     }
 
@@ -169,7 +169,7 @@ public class GuavaMultiSetSpliteratorTest extends DesugaredLibraryTestBase {
     }
 
     @Override
-    public boolean addAll(@NotNull Collection<? extends E> collection) {
+    public boolean addAll(@Nonnull Collection<? extends E> collection) {
       return false;
     }
 

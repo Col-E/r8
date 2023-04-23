@@ -53,7 +53,7 @@ public final class CfUtilityMethodsForCodeOptimizations {
             new CfIf(IfType.EQ, ValueType.OBJECT, label2),
             label1,
             new CfNew(factory.createType("Ljava/lang/ClassCastException;")),
-            new CfStackInstruction(CfStackInstruction.Opcode.Dup),
+            CfStackInstruction.DUP,
             new CfInvoke(
                 183,
                 factory.createMethod(
@@ -83,7 +83,7 @@ public final class CfUtilityMethodsForCodeOptimizations {
         ImmutableList.of(
             label0,
             new CfNew(factory.createType("Ljava/lang/IllegalAccessError;")),
-            new CfStackInstruction(CfStackInstruction.Opcode.Dup),
+            CfStackInstruction.DUP,
             new CfInvoke(
                 183,
                 factory.createMethod(
@@ -107,7 +107,7 @@ public final class CfUtilityMethodsForCodeOptimizations {
         ImmutableList.of(
             label0,
             new CfNew(factory.createType("Ljava/lang/IncompatibleClassChangeError;")),
-            new CfStackInstruction(CfStackInstruction.Opcode.Dup),
+            CfStackInstruction.DUP,
             new CfInvoke(
                 183,
                 factory.createMethod(
@@ -130,7 +130,7 @@ public final class CfUtilityMethodsForCodeOptimizations {
         ImmutableList.of(
             label0,
             new CfNew(factory.createType("Ljava/lang/NoSuchMethodError;")),
-            new CfStackInstruction(CfStackInstruction.Opcode.Dup),
+            CfStackInstruction.DUP,
             new CfInvoke(
                 183,
                 factory.createMethod(
@@ -155,7 +155,7 @@ public final class CfUtilityMethodsForCodeOptimizations {
         ImmutableList.of(
             label0,
             new CfNew(factory.createType("Ljava/lang/RuntimeException;")),
-            new CfStackInstruction(CfStackInstruction.Opcode.Dup),
+            CfStackInstruction.DUP,
             CfLoad.ALOAD_0,
             new CfInvoke(
                 183,
@@ -193,7 +193,7 @@ public final class CfUtilityMethodsForCodeOptimizations {
                     factory.createProto(factory.stringType),
                     factory.createString("toString")),
                 false),
-            new CfStackInstruction(CfStackInstruction.Opcode.Pop),
+            CfStackInstruction.POP,
             label2,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(

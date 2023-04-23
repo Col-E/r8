@@ -25,13 +25,28 @@ import com.android.tools.r8.optimize.interfaces.analysis.CfAnalysisConfig;
 import com.android.tools.r8.optimize.interfaces.analysis.CfFrameState;
 import com.android.tools.r8.utils.structural.CompareToVisitor;
 import com.android.tools.r8.utils.structural.HashingVisitor;
-import org.jetbrains.annotations.NotNull;
+import javax.annotation.Nonnull;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 
 import java.util.Map;
 
 public class CfNumberConversion extends CfInstruction {
+  public static final CfNumberConversion I2L = new CfNumberConversion( NumericType.INT, NumericType.LONG);
+  public static final CfNumberConversion I2F = new CfNumberConversion( NumericType.INT, NumericType.FLOAT);
+  public static final CfNumberConversion I2D = new CfNumberConversion( NumericType.INT, NumericType.DOUBLE);
+  public static final CfNumberConversion L2I = new CfNumberConversion( NumericType.LONG, NumericType.INT);
+  public static final CfNumberConversion L2F = new CfNumberConversion( NumericType.LONG, NumericType.FLOAT);
+  public static final CfNumberConversion L2D = new CfNumberConversion( NumericType.LONG, NumericType.DOUBLE);
+  public static final CfNumberConversion F2I = new CfNumberConversion( NumericType.FLOAT, NumericType.INT);
+  public static final CfNumberConversion F2L = new CfNumberConversion( NumericType.FLOAT, NumericType.LONG);
+  public static final CfNumberConversion F2D = new CfNumberConversion( NumericType.FLOAT, NumericType.DOUBLE);
+  public static final CfNumberConversion D2I = new CfNumberConversion( NumericType.DOUBLE, NumericType.INT);
+  public static final CfNumberConversion D2L = new CfNumberConversion( NumericType.DOUBLE, NumericType.LONG);
+  public static final CfNumberConversion D2F = new CfNumberConversion( NumericType.DOUBLE, NumericType.FLOAT);
+  public static final CfNumberConversion I2B = new CfNumberConversion( NumericType.INT, NumericType.BYTE);
+  public static final CfNumberConversion I2C = new CfNumberConversion( NumericType.INT, NumericType.CHAR);
+  public static final CfNumberConversion I2S = new CfNumberConversion( NumericType.INT, NumericType.SHORT);
 
   private final NumericType from;
   private final NumericType to;
@@ -43,6 +58,10 @@ public class CfNumberConversion extends CfInstruction {
         || from == NumericType.INT;
     this.from = from;
     this.to = to;
+  }
+
+  public static CfInstruction convert(NumericType from, NumericType to) {
+    return fromAsm(getAsmOpcode(from, to));
   }
 
   @Override
@@ -92,13 +111,17 @@ public class CfNumberConversion extends CfInstruction {
     printer.print(this);
   }
 
-  @NotNull
+  @Nonnull
   @Override
-  public CfInstruction copy(@NotNull Map<CfLabel, CfLabel> labelMap) {
+  public CfInstruction copy(@Nonnull Map<CfLabel, CfLabel> labelMap) {
     return this;
   }
 
   public int getAsmOpcode() {
+    return getAsmOpcode(from, to);
+  }
+
+  public static int getAsmOpcode(NumericType from, NumericType to) {
     switch (from) {
       case INT:
         switch (to) {
@@ -155,38 +178,24 @@ public class CfNumberConversion extends CfInstruction {
     }
   }
 
+  @Nonnull
   public static CfNumberConversion fromAsm(int opcode) {
     switch (opcode) {
-      case Opcodes.I2L:
-        return new CfNumberConversion(NumericType.INT, NumericType.LONG);
-      case Opcodes.I2F:
-        return new CfNumberConversion(NumericType.INT, NumericType.FLOAT);
-      case Opcodes.I2D:
-        return new CfNumberConversion(NumericType.INT, NumericType.DOUBLE);
-      case Opcodes.L2I:
-        return new CfNumberConversion(NumericType.LONG, NumericType.INT);
-      case Opcodes.L2F:
-        return new CfNumberConversion(NumericType.LONG, NumericType.FLOAT);
-      case Opcodes.L2D:
-        return new CfNumberConversion(NumericType.LONG, NumericType.DOUBLE);
-      case Opcodes.F2I:
-        return new CfNumberConversion(NumericType.FLOAT, NumericType.INT);
-      case Opcodes.F2L:
-        return new CfNumberConversion(NumericType.FLOAT, NumericType.LONG);
-      case Opcodes.F2D:
-        return new CfNumberConversion(NumericType.FLOAT, NumericType.DOUBLE);
-      case Opcodes.D2I:
-        return new CfNumberConversion(NumericType.DOUBLE, NumericType.INT);
-      case Opcodes.D2L:
-        return new CfNumberConversion(NumericType.DOUBLE, NumericType.LONG);
-      case Opcodes.D2F:
-        return new CfNumberConversion(NumericType.DOUBLE, NumericType.FLOAT);
-      case Opcodes.I2B:
-        return new CfNumberConversion(NumericType.INT, NumericType.BYTE);
-      case Opcodes.I2C:
-        return new CfNumberConversion(NumericType.INT, NumericType.CHAR);
-      case Opcodes.I2S:
-        return new CfNumberConversion(NumericType.INT, NumericType.SHORT);
+      case Opcodes.I2L: return I2L;
+      case Opcodes.I2F: return I2F;
+      case Opcodes.I2D: return I2D;
+      case Opcodes.L2I: return L2I;
+      case Opcodes.L2F: return L2F;
+      case Opcodes.L2D: return L2D;
+      case Opcodes.F2I: return F2I;
+      case Opcodes.F2L: return F2L;
+      case Opcodes.F2D: return F2D;
+      case Opcodes.D2I: return D2I;
+      case Opcodes.D2L: return D2L;
+      case Opcodes.D2F: return D2F;
+      case Opcodes.I2B: return I2B;
+      case Opcodes.I2C: return I2C;
+      case Opcodes.I2S: return I2S;
       default:
         throw new Unreachable("Unexpected CfNumberConversion opcode " + opcode);
     }

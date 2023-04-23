@@ -52,15 +52,15 @@ public class ServiceLoaderSourceCode {
 
     builder.add(
         tryCatchStart,
-        new CfConstNumber(classes.size(), ValueType.INT),
+        CfConstNumber.constNumber(classes.size(), ValueType.INT),
         new CfNewArray(factory.createArrayType(1, serviceType)));
 
     for (int i = 0; i < classes.size(); i++) {
       builder.add(
-          new CfStackInstruction(CfStackInstruction.Opcode.Dup),
-          new CfConstNumber(i, ValueType.INT),
+          CfStackInstruction.DUP,
+          CfConstNumber.constNumber(i, ValueType.INT),
           new CfNew(classes.get(i).type),
-          new CfStackInstruction(CfStackInstruction.Opcode.Dup),
+          CfStackInstruction.DUP,
           new CfInvoke(
               INVOKESPECIAL,
               factory.createMethod(
@@ -81,7 +81,7 @@ public class ServiceLoaderSourceCode {
                 factory.createString("iterator")),
             true),
         tryCatchEnd,
-        CfReturn.forType(ValueType.OBJECT));
+        CfReturn.ARETURN);
 
     // Build the exception handler.
     CfLabel tryCatchHandler = new CfLabel();
@@ -90,9 +90,9 @@ public class ServiceLoaderSourceCode {
         CfFrame.builder()
             .push(FrameType.initializedNonNullReference(factory.throwableType))
             .build(),
-        new CfStore(ValueType.OBJECT, 0),
+        CfStore.ASTORE_0,
         new CfNew(factory.serviceLoaderConfigurationErrorType),
-        new CfStackInstruction(CfStackInstruction.Opcode.Dup),
+        CfStackInstruction.DUP,
         CfLoad.ALOAD_0,
         new CfInvoke(INVOKEVIRTUAL, factory.throwableMethods.getMessage, false),
         CfLoad.ALOAD_0,

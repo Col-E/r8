@@ -162,11 +162,11 @@ public class ForwardMethodBuilder {
       assert isStaticSource();
       assert invokeType == InvokeType.SPECIAL;
       instructions.add(new CfNew(targetMethod.getHolderType()));
-      instructions.add(new CfStackInstruction(Opcode.Dup));
+      instructions.add(CfStackInstruction.DUP);
       maxStack += 2;
     } else if (!isStaticSource()) {
       // If source is not static, load the receiver.
-      instructions.add(new CfLoad(ValueType.OBJECT, maxLocals));
+      instructions.add(CfLoad.loadObject(maxLocals));
       maybeInsertArgumentCast(-1, sourceMethod.holder, instructions);
       maxStack += 1;
       maxLocals += 1;
@@ -178,7 +178,7 @@ public class ForwardMethodBuilder {
       if (!(sourceMethodHasExtraUnusedParameter && i == sourceParameters.length - 1)) {
         // We do not need to load the last parameter if it is unused.
         // We still need to increase the maxStack/maxLocals values for the method to verify.
-        instructions.add(new CfLoad(parameterType, maxLocals));
+        instructions.add(CfLoad.load(parameterType, maxLocals));
         maybeInsertArgumentCast(i, parameter, instructions);
       }
       maxStack += parameterType.requiredRegisters();

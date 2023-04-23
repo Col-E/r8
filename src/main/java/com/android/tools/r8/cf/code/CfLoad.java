@@ -27,7 +27,7 @@ import com.android.tools.r8.optimize.interfaces.analysis.CfFrameState;
 import com.android.tools.r8.optimize.interfaces.analysis.ErroneousCfFrameState;
 import com.android.tools.r8.utils.structural.CompareToVisitor;
 import com.android.tools.r8.utils.structural.HashingVisitor;
-import org.jetbrains.annotations.NotNull;
+import javax.annotation.Nonnull;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 
@@ -41,12 +41,16 @@ public class CfLoad extends CfInstruction {
   public static final CfLoad ALOAD_3 = new CfLoad(ValueType.OBJECT, 3);
   public static final CfLoad ALOAD_4 = new CfLoad(ValueType.OBJECT, 4);
   public static final CfLoad ALOAD_5 = new CfLoad(ValueType.OBJECT, 5);
+  public static final CfLoad ALOAD_6 = new CfLoad(ValueType.OBJECT, 6);
+  public static final CfLoad ALOAD_7 = new CfLoad(ValueType.OBJECT, 7);
   public static final CfLoad ILOAD_0 = new CfLoad(ValueType.INT, 0);
   public static final CfLoad ILOAD_1 = new CfLoad(ValueType.INT, 1);
   public static final CfLoad ILOAD_2 = new CfLoad(ValueType.INT, 2);
   public static final CfLoad ILOAD_3 = new CfLoad(ValueType.INT, 3);
   public static final CfLoad ILOAD_4 = new CfLoad(ValueType.INT, 4);
   public static final CfLoad ILOAD_5 = new CfLoad(ValueType.INT, 5);
+  public static final CfLoad ILOAD_6 = new CfLoad(ValueType.INT, 6);
+  public static final CfLoad ILOAD_7 = new CfLoad(ValueType.INT, 7);
   public static final CfLoad FLOAD_0 = new CfLoad(ValueType.FLOAT, 0);
   public static final CfLoad FLOAD_1 = new CfLoad(ValueType.FLOAT, 1);
   public static final CfLoad FLOAD_2 = new CfLoad(ValueType.FLOAT, 2);
@@ -68,27 +72,22 @@ public class CfLoad extends CfInstruction {
   private final int var;
   private final ValueType type;
 
-  public CfLoad(ValueType type, int var) {
+  private CfLoad(ValueType type, int var) {
     this.var = var;
     this.type = type;
   }
 
   @Nonnull
   public static CfLoad load(ValueType type, int var) {
-   switch (type) {
-     case OBJECT: 
-       return loadObject(var);
-     case INT:
-       return loadInt(var);
-     case FLOAT:
-       return loadFloat(var);
-     case LONG:
-       return loadLong(var);
-     case DOUBLE:
-       return loadDouble(var);
-     default:
-       throw new IllegalStateException("Unknown value type: " + type);
-   }
+    switch (type) {
+      case OBJECT: return loadObject(var);
+      case INT:    return loadInt(var);
+      case FLOAT:  return loadFloat(var);
+      case LONG:   return loadLong(var);
+      case DOUBLE: return loadDouble(var);
+      default:
+        throw new IllegalStateException("Unknown value type: " + type);
+    }
   }
 
   @Nonnull
@@ -100,6 +99,8 @@ public class CfLoad extends CfInstruction {
       case 3: return ALOAD_3;
       case 4: return ALOAD_4;
       case 5: return ALOAD_5;
+      case 6: return ALOAD_6;
+      case 7: return ALOAD_7;
       default:
         return new CfLoad(ValueType.OBJECT, var);
     }
@@ -114,6 +115,8 @@ public class CfLoad extends CfInstruction {
       case 3: return ILOAD_3;
       case 4: return ILOAD_4;
       case 5: return ILOAD_5;
+      case 6: return ILOAD_6;
+      case 7: return ILOAD_7;
       default:
         return new CfLoad(ValueType.INT, var);
     }
@@ -179,18 +182,12 @@ public class CfLoad extends CfInstruction {
 
   private int getLoadType() {
     switch (type) {
-      case OBJECT:
-        return Opcodes.ALOAD;
-      case INT:
-        return Opcodes.ILOAD;
-      case FLOAT:
-        return Opcodes.FLOAD;
-      case LONG:
-        return Opcodes.LLOAD;
-      case DOUBLE:
-        return Opcodes.DLOAD;
-      default:
-        throw new Unreachable("Unexpected type " + type);
+      case OBJECT: return Opcodes.ALOAD;
+      case INT:    return Opcodes.ILOAD;
+      case FLOAT:  return Opcodes.FLOAD;
+      case LONG:   return Opcodes.LLOAD;
+      case DOUBLE: return Opcodes.DLOAD;
+      default: throw new Unreachable("Unexpected type " + type);
     }
   }
 
@@ -228,9 +225,9 @@ public class CfLoad extends CfInstruction {
     printer.print(this);
   }
 
-  @NotNull
+  @Nonnull
   @Override
-  public CfInstruction copy(@NotNull Map<CfLabel, CfLabel> labelMap) {
+  public CfInstruction copy(@Nonnull Map<CfLabel, CfLabel> labelMap) {
     return this;
   }
 
@@ -270,7 +267,7 @@ public class CfLoad extends CfInstruction {
         getLocalIndex(),
         type,
         (state, frameType) ->
-            frameType.isPrecise() ? state.push(config, frameType.asPrecise()) : error(frameType));
+            frameType.isPrecise() ? state.push(config, frameType.asPrecise()): error(frameType));
   }
 
   private ErroneousCfFrameState error(FrameType frameType) {

@@ -28,14 +28,16 @@ import com.android.tools.r8.utils.structural.HashingVisitor;
 import java.util.Map;
 import java.util.function.BiFunction;
 
-import org.jetbrains.annotations.NotNull;
+import javax.annotation.Nonnull;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 
 public class CfThrow extends CfJumpInstruction {
 
   public static final CfThrow INSTANCE = new CfThrow();
- 
+
+  private CfThrow() {}
+
   @Override
   public <BT, CT> TraversalContinuation<BT, CT> traverseNormalTargets(
       BiFunction<? super CfInstruction, ? super CT, TraversalContinuation<BT, CT>> fn,
@@ -93,9 +95,9 @@ public class CfThrow extends CfJumpInstruction {
     printer.print(this);
   }
 
-  @NotNull
+  @Nonnull
   @Override
-  public CfInstruction copy(@NotNull Map<CfLabel, CfLabel> labelMap) {
+  public CfInstruction copy(@Nonnull Map<CfLabel, CfLabel> labelMap) {
     return this;
   }
 

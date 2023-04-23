@@ -18,7 +18,7 @@ import com.android.tools.r8.utils.structural.StructuralItem;
 import com.android.tools.r8.utils.structural.StructuralMapping;
 import com.android.tools.r8.utils.structural.StructuralSpecification;
 import com.google.common.collect.Iterables;
-import org.jetbrains.annotations.NotNull;
+import javax.annotation.Nonnull;
 
 import java.util.List;
 import java.util.Set;
@@ -70,13 +70,13 @@ public class DexClasspathClass extends DexClass
     assert kind == Kind.CF : "Invalid kind " + kind + " for class-path class " + type;
   }
 
-  @NotNull
+  @Nonnull
   @Override
   public ProgramOrClasspathClass copyClass() {
     return copy();
   }
 
-  @NotNull
+  @Nonnull
   @Override
   public DexClasspathClass copy() {
     DexEncodedField[] staticFieldsCopy = staticFields().toArray(DexEncodedField.EMPTY_ARRAY);

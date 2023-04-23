@@ -77,7 +77,7 @@ public class Store extends Instruction {
 
   @Override
   public void buildCf(CfBuilder builder) {
-    builder.add(new CfStore(outType(), builder.getLocalRegister(outValue)), this);
+    builder.add(CfStore.store(outType(), builder.getLocalRegister(outValue)), this);
   }
 
   @Override

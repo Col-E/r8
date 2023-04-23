@@ -44,7 +44,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.stream.Collectors;
-import org.jetbrains.annotations.NotNull;
+import javax.annotation.Nonnull;
 import org.junit.Assume;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -194,7 +194,7 @@ public class Jdk11NioFileTests extends DesugaredLibraryTestBase {
     assert !TEST_PROGRAM_CLASS_DATA.isEmpty();
   }
 
-  @NotNull
+  @Nonnull
   private static Map<String, List<Path>> getSourceFileBuckets() throws IOException {
     Map<String, List<Path>> nioTestFileBuckets =
         Files.walk(JDK_11_NIO_TEST_FILES_DIR)

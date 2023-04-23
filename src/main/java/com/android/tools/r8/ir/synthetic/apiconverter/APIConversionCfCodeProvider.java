@@ -123,7 +123,7 @@ public class APIConversionCfCodeProvider extends SyntheticCfCodeProvider {
     int localIndex = BooleanUtils.intValue(!isStatic);
     for (int i = 0; i < forwardMethod.getArity(); i++) {
       ValueType valueType = valueTypeFromForwardMethod(forwardMethod.getParameter(i));
-      instructions.add(new CfLoad(valueType, localIndex));
+      instructions.add(CfLoad.load(valueType, localIndex));
       if (parameterConversions[i] != null) {
         instructions.add(new CfInvoke(Opcodes.INVOKESTATIC, parameterConversions[i], false));
       }

@@ -87,7 +87,7 @@ public class FieldAccessorBuilder {
     Builder<CfInstruction> instructions = ImmutableList.builder();
     if (isInstanceField()) {
       // Load the receiver.
-      instructions.add(new CfLoad(ValueType.OBJECT, maxLocals));
+      instructions.add(CfLoad.loadObject(maxLocals));
       maxStack += 1;
       maxLocals += 1;
     }
@@ -95,7 +95,7 @@ public class FieldAccessorBuilder {
     if (isSetter()) {
       // Load the argument.
       ValueType fieldType = ValueType.fromDexType(field.getType());
-      instructions.add(new CfLoad(fieldType, maxLocals));
+      instructions.add(CfLoad.load(fieldType, maxLocals));
       maxStack += fieldType.requiredRegisters();
       maxLocals += fieldType.requiredRegisters();
     }

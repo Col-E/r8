@@ -25,13 +25,36 @@ import com.android.tools.r8.optimize.interfaces.analysis.CfAnalysisConfig;
 import com.android.tools.r8.optimize.interfaces.analysis.CfFrameState;
 import com.android.tools.r8.utils.structural.CompareToVisitor;
 import com.android.tools.r8.utils.structural.HashingVisitor;
-import org.jetbrains.annotations.NotNull;
+import javax.annotation.Nonnull;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 
 import java.util.Map;
 
 public class CfArithmeticBinop extends CfInstruction {
+  public static final CfArithmeticBinop IADD = new CfArithmeticBinop(Opcode.Add, NumericType.INT);
+  public static final CfArithmeticBinop ISUB = new CfArithmeticBinop(Opcode.Sub, NumericType.INT);
+  public static final CfArithmeticBinop IMUL = new CfArithmeticBinop(Opcode.Mul, NumericType.INT);
+  public static final CfArithmeticBinop IDIV = new CfArithmeticBinop(Opcode.Div, NumericType.INT);
+  public static final CfArithmeticBinop IREM = new CfArithmeticBinop(Opcode.Rem, NumericType.INT);
+
+  public static final CfArithmeticBinop LADD = new CfArithmeticBinop(Opcode.Add, NumericType.LONG);
+  public static final CfArithmeticBinop LSUB = new CfArithmeticBinop(Opcode.Sub, NumericType.LONG);
+  public static final CfArithmeticBinop LMUL = new CfArithmeticBinop(Opcode.Mul, NumericType.LONG);
+  public static final CfArithmeticBinop LDIV = new CfArithmeticBinop(Opcode.Div, NumericType.LONG);
+  public static final CfArithmeticBinop LREM = new CfArithmeticBinop(Opcode.Rem, NumericType.LONG);
+
+  public static final CfArithmeticBinop FADD = new CfArithmeticBinop(Opcode.Add, NumericType.FLOAT);
+  public static final CfArithmeticBinop FSUB = new CfArithmeticBinop(Opcode.Sub, NumericType.FLOAT);
+  public static final CfArithmeticBinop FMUL = new CfArithmeticBinop(Opcode.Mul, NumericType.FLOAT);
+  public static final CfArithmeticBinop FDIV = new CfArithmeticBinop(Opcode.Div, NumericType.FLOAT);
+  public static final CfArithmeticBinop FREM = new CfArithmeticBinop(Opcode.Rem, NumericType.FLOAT);
+
+  public static final CfArithmeticBinop DADD = new CfArithmeticBinop(Opcode.Add, NumericType.DOUBLE);
+  public static final CfArithmeticBinop DSUB = new CfArithmeticBinop(Opcode.Sub, NumericType.DOUBLE);
+  public static final CfArithmeticBinop DMUL = new CfArithmeticBinop(Opcode.Mul, NumericType.DOUBLE);
+  public static final CfArithmeticBinop DDIV = new CfArithmeticBinop(Opcode.Div, NumericType.DOUBLE);
+  public static final CfArithmeticBinop DREM = new CfArithmeticBinop(Opcode.Rem, NumericType.DOUBLE);
 
   public enum Opcode {
     Add,
@@ -50,6 +73,89 @@ public class CfArithmeticBinop extends CfInstruction {
     this.opcode = opcode;
     this.type = type;
   }
+
+  @Nonnull
+  public static CfArithmeticBinop operation(Opcode opcode, NumericType type) {
+    switch (opcode) {
+      case Add:
+        switch (type) {
+          case BYTE:
+          case CHAR:
+          case SHORT:
+          case INT:
+            return IADD;
+          case LONG:
+           return LADD;
+          case FLOAT:
+            return FADD;
+          case DOUBLE:
+            return DADD;
+        }
+        break;
+      case Sub:
+        switch (type) {
+          case BYTE:
+          case CHAR:
+          case SHORT:
+          case INT:
+            return ISUB;
+          case LONG:
+            return LSUB;
+          case FLOAT:
+            return FSUB;
+          case DOUBLE:
+            return DSUB;
+        }
+        break;
+      case Mul:
+        switch (type) {
+          case BYTE:
+          case CHAR:
+          case SHORT:
+          case INT:
+            return IMUL;
+          case LONG:
+            return LMUL;
+          case FLOAT:
+            return FMUL;
+          case DOUBLE:
+            return DMUL;
+        }
+        break;
+      case Div:
+        switch (type) {
+          case BYTE:
+          case CHAR:
+          case SHORT:
+          case INT:
+            return IDIV;
+          case LONG:
+            return LDIV;
+          case FLOAT:
+            return FDIV;
+          case DOUBLE:
+            return DDIV;
+        }
+        break;
+      case Rem:
+        switch (type) {
+          case BYTE:
+          case CHAR:
+          case SHORT:
+          case INT:
+            return IREM;
+          case LONG:
+            return LREM;
+          case FLOAT:
+            return FREM;
+          case DOUBLE:
+            return DREM;
+        }
+        break;
+    }
+    throw new Unreachable("Unsupported operation: " + opcode.name() + " - " + type.name());
+  }
+
 
   @Override
   public int getCompareToId() {
@@ -75,50 +181,30 @@ public class CfArithmeticBinop extends CfInstruction {
     return type;
   }
 
+  @Nonnull
   public static CfArithmeticBinop fromAsm(int opcode) {
     switch (opcode) {
-      case Opcodes.IADD:
-        return new CfArithmeticBinop(Opcode.Add, NumericType.INT);
-      case Opcodes.LADD:
-        return new CfArithmeticBinop(Opcode.Add, NumericType.LONG);
-      case Opcodes.FADD:
-        return new CfArithmeticBinop(Opcode.Add, NumericType.FLOAT);
-      case Opcodes.DADD:
-        return new CfArithmeticBinop(Opcode.Add, NumericType.DOUBLE);
-      case Opcodes.ISUB:
-        return new CfArithmeticBinop(Opcode.Sub, NumericType.INT);
-      case Opcodes.LSUB:
-        return new CfArithmeticBinop(Opcode.Sub, NumericType.LONG);
-      case Opcodes.FSUB:
-        return new CfArithmeticBinop(Opcode.Sub, NumericType.FLOAT);
-      case Opcodes.DSUB:
-        return new CfArithmeticBinop(Opcode.Sub, NumericType.DOUBLE);
-      case Opcodes.IMUL:
-        return new CfArithmeticBinop(Opcode.Mul, NumericType.INT);
-      case Opcodes.LMUL:
-        return new CfArithmeticBinop(Opcode.Mul, NumericType.LONG);
-      case Opcodes.FMUL:
-        return new CfArithmeticBinop(Opcode.Mul, NumericType.FLOAT);
-      case Opcodes.DMUL:
-        return new CfArithmeticBinop(Opcode.Mul, NumericType.DOUBLE);
-      case Opcodes.IDIV:
-        return new CfArithmeticBinop(Opcode.Div, NumericType.INT);
-      case Opcodes.LDIV:
-        return new CfArithmeticBinop(Opcode.Div, NumericType.LONG);
-      case Opcodes.FDIV:
-        return new CfArithmeticBinop(Opcode.Div, NumericType.FLOAT);
-      case Opcodes.DDIV:
-        return new CfArithmeticBinop(Opcode.Div, NumericType.DOUBLE);
-      case Opcodes.IREM:
-        return new CfArithmeticBinop(Opcode.Rem, NumericType.INT);
-      case Opcodes.LREM:
-        return new CfArithmeticBinop(Opcode.Rem, NumericType.LONG);
-      case Opcodes.FREM:
-        return new CfArithmeticBinop(Opcode.Rem, NumericType.FLOAT);
-      case Opcodes.DREM:
-        return new CfArithmeticBinop(Opcode.Rem, NumericType.DOUBLE);
-      default:
-        throw new Unreachable("Wrong ASM opcode for CfArithmeticBinop " + opcode);
+      case Opcodes.IADD: return IADD;
+      case Opcodes.LADD: return LADD;
+      case Opcodes.FADD: return FADD;
+      case Opcodes.DADD: return DADD;
+      case Opcodes.ISUB: return ISUB;
+      case Opcodes.LSUB: return LSUB;
+      case Opcodes.FSUB: return FSUB;
+      case Opcodes.DSUB: return DSUB;
+      case Opcodes.IMUL: return IMUL;
+      case Opcodes.LMUL: return LMUL;
+      case Opcodes.FMUL: return FMUL;
+      case Opcodes.DMUL: return DMUL;
+      case Opcodes.IDIV: return IDIV;
+      case Opcodes.LDIV: return LDIV;
+      case Opcodes.FDIV: return FDIV;
+      case Opcodes.DDIV: return DDIV;
+      case Opcodes.IREM: return IREM;
+      case Opcodes.LREM: return LREM;
+      case Opcodes.FREM: return FREM;
+      case Opcodes.DREM: return DREM;
+      default: throw new Unreachable("Wrong ASM opcode for CfArithmeticBinop " + opcode);
     }
   }
 
@@ -129,31 +215,21 @@ public class CfArithmeticBinop extends CfInstruction {
   public static int getAsmOpcode(Opcode opcode, NumericType type) {
     int typeOffset = getAsmOpcodeTypeOffset(type);
     switch (opcode) {
-      case Add:
-        return Opcodes.IADD + typeOffset;
-      case Sub:
-        return Opcodes.ISUB + typeOffset;
-      case Mul:
-        return Opcodes.IMUL + typeOffset;
-      case Div:
-        return Opcodes.IDIV + typeOffset;
-      case Rem:
-        return Opcodes.IREM + typeOffset;
-      default:
-        throw new Unreachable("CfArithmeticBinop has unknown opcode " + opcode);
+      case Add: return Opcodes.IADD + typeOffset;
+      case Sub: return Opcodes.ISUB + typeOffset;
+      case Mul: return Opcodes.IMUL + typeOffset;
+      case Div: return Opcodes.IDIV + typeOffset;
+      case Rem: return Opcodes.IREM + typeOffset;
+      default: throw new Unreachable("CfArithmeticBinop has unknown opcode " + opcode);
     }
   }
 
   private static int getAsmOpcodeTypeOffset(NumericType type) {
     switch (type) {
-      case LONG:
-        return Opcodes.LADD - Opcodes.IADD;
-      case FLOAT:
-        return Opcodes.FADD - Opcodes.IADD;
-      case DOUBLE:
-        return Opcodes.DADD - Opcodes.IADD;
-      default:
-        return 0;
+      case LONG:   return Opcodes.LADD - Opcodes.IADD;
+      case FLOAT:  return Opcodes.FADD - Opcodes.IADD;
+      case DOUBLE: return Opcodes.DADD - Opcodes.IADD;
+      default: return 0;
     }
   }
 
@@ -162,9 +238,9 @@ public class CfArithmeticBinop extends CfInstruction {
     printer.print(this);
   }
 
-  @NotNull
+  @Nonnull
   @Override
-  public CfInstruction copy(@NotNull Map<CfLabel, CfLabel> labelMap) {
+  public CfInstruction copy(@Nonnull Map<CfLabel, CfLabel> labelMap) {
     return this;
   }
 

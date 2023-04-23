@@ -24,7 +24,7 @@ import com.android.tools.r8.optimize.interfaces.analysis.CfAnalysisConfig;
 import com.android.tools.r8.optimize.interfaces.analysis.CfFrameState;
 import com.android.tools.r8.utils.structural.CompareToVisitor;
 import com.android.tools.r8.utils.structural.HashingVisitor;
-import org.jetbrains.annotations.NotNull;
+import javax.annotation.Nonnull;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 
@@ -33,13 +33,13 @@ import java.util.Objects;
 
 public class CfMonitor extends CfInstruction {
 
-  private static final CfMonitor
+  public static final CfMonitor
     ENTER = new CfMonitor(MonitorType.ENTER),
     EXIT = new CfMonitor(MonitorType.EXIT);
 
   private final MonitorType type;
 
-  public CfMonitor(MonitorType type) {
+  private CfMonitor(MonitorType type) {
     this.type = type;
   }
 
@@ -90,9 +90,9 @@ public class CfMonitor extends CfInstruction {
     printer.print(this);
   }
 
-  @NotNull
+  @Nonnull
   @Override
-  public CfInstruction copy(@NotNull Map<CfLabel, CfLabel> labelMap) {
+  public CfInstruction copy(@Nonnull Map<CfLabel, CfLabel> labelMap) {
     return this;
   }
 

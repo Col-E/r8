@@ -15,8 +15,9 @@ import com.android.tools.r8.ir.optimize.InliningConstraints;
 
 public class DebugLocalRead extends Instruction {
   private static final String ERROR_MESSAGE = "Unexpected attempt to emit debug-local read.";
+  public static final DebugLocalRead INSTANCE = new DebugLocalRead();
 
-  public DebugLocalRead() {
+  private DebugLocalRead() {
     super(null);
   }
 

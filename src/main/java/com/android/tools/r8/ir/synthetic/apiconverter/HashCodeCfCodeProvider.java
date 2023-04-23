@@ -36,7 +36,7 @@ public class HashCodeCfCodeProvider extends SyntheticCfCodeProvider {
     instructions.add(
         new CfInvoke(
             Opcodes.INVOKEVIRTUAL, appView.dexItemFactory().objectMembers.hashCode, false));
-    instructions.add(CfReturn.forType(ValueType.INT));
+    instructions.add(CfReturn.IRETURN);
     return standardCfCodeFromInstructions(instructions);
   }
 }

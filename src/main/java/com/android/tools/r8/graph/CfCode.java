@@ -57,7 +57,7 @@ import java.util.*;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
-import org.jetbrains.annotations.NotNull;
+import javax.annotation.Nonnull;
 import org.objectweb.asm.Label;
 import org.objectweb.asm.MethodVisitor;
 
@@ -207,13 +207,13 @@ public class CfCode extends Code implements CfWritableCode, StructuralItem<CfCod
     return this;
   }
 
-  @NotNull
+  @Nonnull
   @Override
   public Code copySubtype() {
     return copy();
   }
 
-  @NotNull
+  @Nonnull
   @Override
   public CfCode copy() {
     Map<CfInstruction, CfInstruction> instructionMapping = new IdentityHashMap<>();

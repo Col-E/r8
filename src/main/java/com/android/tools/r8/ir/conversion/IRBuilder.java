@@ -901,7 +901,7 @@ public class IRBuilder {
         } else if (!debugLocalEnds.isEmpty()) {
           // Otherwise, if some locals ended, insert a read so it takes place at the
           // predecessor position.
-          addInstruction(new DebugLocalRead());
+          addInstruction(DebugLocalRead.INSTANCE);
         }
       }
       // Build IR for each dex instruction in the block.
@@ -1067,7 +1067,7 @@ public class IRBuilder {
       if (!debugLocalEnds.isEmpty()) {
         // If there are pending local ends, end them before changing the line.
         if (currentBlock.getInstructions().isEmpty()) {
-          addInstruction(new DebugLocalRead());
+          addInstruction(DebugLocalRead.INSTANCE);
         } else {
           // We do not want to add the out value of an instructions as a debug value for
           // the same instruction. Debug values are there to keep values alive until that
@@ -1313,7 +1313,7 @@ public class IRBuilder {
       // If this move ends locals, add a DebugLocalRead to make sure the end point
       // is registered in the right place.
       if (!debugLocalEnds.isEmpty()) {
-        addInstruction(new DebugLocalRead());
+        addInstruction(DebugLocalRead.INSTANCE);
       }
     }
     currentBlock.writeCurrentDefinition(dest, in, ThrowingInfo.NO_THROW);
@@ -1343,7 +1343,7 @@ public class IRBuilder {
     // This avoids situations where the end of the local could be the instruction
     // that introduced it when the local only spans a nop in the input.
     if (!debugLocalEnds.isEmpty()) {
-      addInstruction(new DebugLocalRead());
+      addInstruction(DebugLocalRead.INSTANCE);
     }
   }
 

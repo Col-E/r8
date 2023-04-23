@@ -66,12 +66,12 @@ public class EmulateDispatchSyntheticCfCodeProvider extends SyntheticCfCodeProvi
                 })
             .build();
 
-    instructions.add(new CfLoad(ValueType.fromDexType(receiverType), 0));
+    instructions.add(CfLoad.load(ValueType.fromDexType(receiverType), 0));
     instructions.add(new CfInstanceOf(interfaceMethod.holder));
     instructions.add(new CfIf(IfType.EQ, ValueType.INT, labels[nextLabel]));
 
     // Branch with library call.
-    instructions.add(new CfLoad(ValueType.fromDexType(receiverType), 0));
+    instructions.add(CfLoad.load(ValueType.fromDexType(receiverType), 0));
     instructions.add(new CfCheckCast(interfaceMethod.holder));
     loadExtraParameters(instructions);
     instructions.add(new CfInvoke(Opcodes.INVOKEINTERFACE, interfaceMethod, true));
@@ -82,12 +82,12 @@ public class EmulateDispatchSyntheticCfCodeProvider extends SyntheticCfCodeProvi
       // Type check basic block.
       instructions.add(labels[nextLabel++]);
       instructions.add(frame);
-      instructions.add(new CfLoad(ValueType.fromDexType(receiverType), 0));
+      instructions.add(CfLoad.load(ValueType.fromDexType(receiverType), 0));
       instructions.add(new CfInstanceOf(dispatch.getKey()));
       instructions.add(new CfIf(IfType.EQ, ValueType.INT, labels[nextLabel]));
 
       // Call basic block.
-      instructions.add(new CfLoad(ValueType.fromDexType(receiverType), 0));
+      instructions.add(CfLoad.load(ValueType.fromDexType(receiverType), 0));
       instructions.add(new CfCheckCast(dispatch.getKey()));
       loadExtraParameters(instructions);
       instructions.add(new CfInvoke(Opcodes.INVOKESTATIC, dispatch.getValue(), false));
@@ -97,7 +97,7 @@ public class EmulateDispatchSyntheticCfCodeProvider extends SyntheticCfCodeProvi
     // Branch with companion call.
     instructions.add(labels[nextLabel]);
     instructions.add(frame.clone());
-    instructions.add(new CfLoad(ValueType.fromDexType(receiverType), 0));
+    instructions.add(CfLoad.load(ValueType.fromDexType(receiverType), 0));
     loadExtraParameters(instructions);
     instructions.add(new CfInvoke(Opcodes.INVOKESTATIC, forwardingMethod, false));
     addReturn(instructions);
@@ -107,7 +107,7 @@ public class EmulateDispatchSyntheticCfCodeProvider extends SyntheticCfCodeProvi
   private void loadExtraParameters(List<CfInstruction> instructions) {
     int index = 1;
     for (DexType type : interfaceMethod.proto.parameters.values) {
-      instructions.add(new CfLoad(ValueType.fromDexType(type), index++));
+      instructions.add(CfLoad.load(ValueType.fromDexType(type), index++));
     }
   }
 

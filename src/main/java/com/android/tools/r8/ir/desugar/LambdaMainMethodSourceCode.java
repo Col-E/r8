@@ -222,7 +222,7 @@ final class LambdaMainMethodSourceCode {
     // This instance will be the first argument to the call and the dup will be on stack at return.
     if (constructorTarget) {
       instructions.add(new CfNew(methodToCall.holder));
-      instructions.add(new CfStackInstruction(Opcode.Dup));
+      instructions.add(CfStackInstruction.DUP);
       maxStack += 2;
     }
 
@@ -274,8 +274,7 @@ final class LambdaMainMethodSourceCode {
 
     if (enforcedReturnType.isVoidType()) {
       if (!methodToCallReturnType.isVoidType()) {
-        instructions.add(
-            new CfStackInstruction(methodToCallReturnType.isWideType() ? Opcode.Pop2 : Opcode.Pop));
+        instructions.add(CfStackInstruction.popType(methodToCallReturnType));
       }
       instructions.add(CfReturnVoid.INSTANCE);
     } else {
@@ -324,7 +323,7 @@ final class LambdaMainMethodSourceCode {
         maxLocals,
         ImmutableList.of(
             new CfNew(exceptionType),
-            new CfStackInstruction(Opcode.Dup),
+            CfStackInstruction.DUP,
             new CfInvoke(Opcodes.INVOKESPECIAL, initMethod, false),
             CfThrow.INSTANCE),
         tryCatchRanges,
@@ -493,7 +492,7 @@ final class LambdaMainMethodSourceCode {
           if (from != NumericType.BYTE) {
             break; // Only BYTE can be converted to SHORT via widening conversion.
           }
-            instructions.add(new CfNumberConversion(NumericType.INT, to));
+            instructions.add(CfNumberConversion.convert(NumericType.INT, to));
             return;
         }
 
@@ -507,7 +506,7 @@ final class LambdaMainMethodSourceCode {
           if (from == NumericType.FLOAT || from == NumericType.DOUBLE) {
             break; // Not a widening conversion.
           }
-            instructions.add(new CfNumberConversion(NumericType.INT, to));
+            instructions.add(CfNumberConversion.convert(NumericType.INT, to));
             return;
         }
 
@@ -516,14 +515,14 @@ final class LambdaMainMethodSourceCode {
             break; // Not a widening conversion.
           }
           NumericType type = (from == NumericType.LONG) ? NumericType.LONG : NumericType.INT;
-            instructions.add(new CfNumberConversion(type, to));
+            instructions.add(CfNumberConversion.convert(type, to));
             return;
         }
 
         case DOUBLE: {
           NumericType type = (from == NumericType.FLOAT || from == NumericType.LONG)
               ? from : NumericType.INT;
-            instructions.add(new CfNumberConversion(type, to));
+            instructions.add(CfNumberConversion.convert(type, to));
             return;
         }
         default:

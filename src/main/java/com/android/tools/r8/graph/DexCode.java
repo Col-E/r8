@@ -45,7 +45,7 @@ import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.structural.*;
 import com.google.common.base.Strings;
 import it.unimi.dsi.fastutil.ints.Int2IntMap;
-import org.jetbrains.annotations.NotNull;
+import javax.annotation.Nonnull;
 
 import java.nio.ShortBuffer;
 import java.util.ArrayList;
@@ -845,13 +845,13 @@ public class DexCode extends Code implements DexWritableCode, StructuralItem<Dex
     }
   }
 
-  @NotNull
+  @Nonnull
   @Override
   public Code copySubtype() {
     return copy();
   }
 
-  @NotNull
+  @Nonnull
   @Override
   public DexCode copy() {
     // Unlike CfCode, dex instructions don't have managed labels.

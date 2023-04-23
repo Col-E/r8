@@ -42,7 +42,7 @@ import com.android.tools.r8.utils.ListUtils;
 import com.android.tools.r8.utils.RetracerForCodePrinting;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Sets;
-import org.jetbrains.annotations.NotNull;
+import javax.annotation.Nonnull;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -297,7 +297,7 @@ public class ClassInitializerMerger {
       throw new Unreachable();
     }
 
-    @NotNull
+    @Nonnull
     @Override
     public Code copySubtype() {
       return this;

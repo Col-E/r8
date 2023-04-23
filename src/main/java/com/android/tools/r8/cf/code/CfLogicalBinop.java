@@ -25,14 +25,13 @@ import com.android.tools.r8.optimize.interfaces.analysis.CfAnalysisConfig;
 import com.android.tools.r8.optimize.interfaces.analysis.CfFrameState;
 import com.android.tools.r8.utils.structural.CompareToVisitor;
 import com.android.tools.r8.utils.structural.HashingVisitor;
-import org.jetbrains.annotations.NotNull;
+import javax.annotation.Nonnull;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 
 import java.util.Map;
 
 public class CfLogicalBinop extends CfInstruction {
-
   public enum Opcode {
     Shl,
     Shr,
@@ -42,15 +41,59 @@ public class CfLogicalBinop extends CfInstruction {
     Xor,
   }
 
+  public static final CfLogicalBinop ISHL = new CfLogicalBinop( Opcode.Shl, NumericType.INT);
+  public static final CfLogicalBinop LSHL = new CfLogicalBinop( Opcode.Shl, NumericType.LONG);
+  public static final CfLogicalBinop ISHR = new CfLogicalBinop( Opcode.Shr, NumericType.INT);
+  public static final CfLogicalBinop LSHR = new CfLogicalBinop( Opcode.Shr, NumericType.LONG);
+  public static final CfLogicalBinop IUSHR = new CfLogicalBinop( Opcode.Ushr, NumericType.INT);
+  public static final CfLogicalBinop LUSHR = new CfLogicalBinop( Opcode.Ushr, NumericType.LONG);
+  public static final CfLogicalBinop IAND = new CfLogicalBinop( Opcode.And, NumericType.INT);
+  public static final CfLogicalBinop LAND = new CfLogicalBinop( Opcode.And, NumericType.LONG);
+  public static final CfLogicalBinop IOR = new CfLogicalBinop( Opcode.Or, NumericType.INT);
+  public static final CfLogicalBinop LOR = new CfLogicalBinop( Opcode.Or, NumericType.LONG);
+  public static final CfLogicalBinop IXOR = new CfLogicalBinop( Opcode.Xor, NumericType.INT);
+  public static final CfLogicalBinop LXOR = new CfLogicalBinop( Opcode.Xor, NumericType.LONG);
+
   private final Opcode opcode;
   private final NumericType type;
 
-  public CfLogicalBinop(Opcode opcode, NumericType type) {
+  private CfLogicalBinop(Opcode opcode, NumericType type) {
     assert opcode != null;
     assert type != null;
     assert type != NumericType.FLOAT && type != NumericType.DOUBLE;
     this.opcode = opcode;
     this.type = type;
+  }
+
+  @Nonnull
+  public static CfLogicalBinop operation(@Nonnull Opcode op, @Nonnull NumericType type) {
+    switch (op) {
+      case Shl:
+        if (type == NumericType.INT) return ISHL;
+        else if (type == NumericType.LONG) return ISHL;
+        break;
+      case Shr:
+        if (type == NumericType.INT) return ISHR;
+        else if (type == NumericType.LONG) return ISHR;
+        break;
+      case Ushr:
+        if (type == NumericType.INT) return IUSHR;
+        else if (type == NumericType.LONG) return LUSHR;
+        break;
+      case And:
+        if (type == NumericType.INT) return IAND;
+        else if (type == NumericType.LONG) return LAND;
+        break;
+      case Or:
+        if (type == NumericType.INT) return IOR;
+        else if (type == NumericType.LONG) return LOR;
+        break;
+      case Xor:
+        if (type == NumericType.INT) return IXOR;
+        else if (type == NumericType.LONG) return LXOR;
+        break;
+    }
+    return new CfLogicalBinop(op, type);
   }
 
   @Override
@@ -79,30 +122,18 @@ public class CfLogicalBinop extends CfInstruction {
 
   public static CfLogicalBinop fromAsm(int opcode) {
     switch (opcode) {
-      case Opcodes.ISHL:
-        return new CfLogicalBinop(Opcode.Shl, NumericType.INT);
-      case Opcodes.LSHL:
-        return new CfLogicalBinop(Opcode.Shl, NumericType.LONG);
-      case Opcodes.ISHR:
-        return new CfLogicalBinop(Opcode.Shr, NumericType.INT);
-      case Opcodes.LSHR:
-        return new CfLogicalBinop(Opcode.Shr, NumericType.LONG);
-      case Opcodes.IUSHR:
-        return new CfLogicalBinop(Opcode.Ushr, NumericType.INT);
-      case Opcodes.LUSHR:
-        return new CfLogicalBinop(Opcode.Ushr, NumericType.LONG);
-      case Opcodes.IAND:
-        return new CfLogicalBinop(Opcode.And, NumericType.INT);
-      case Opcodes.LAND:
-        return new CfLogicalBinop(Opcode.And, NumericType.LONG);
-      case Opcodes.IOR:
-        return new CfLogicalBinop(Opcode.Or, NumericType.INT);
-      case Opcodes.LOR:
-        return new CfLogicalBinop(Opcode.Or, NumericType.LONG);
-      case Opcodes.IXOR:
-        return new CfLogicalBinop(Opcode.Xor, NumericType.INT);
-      case Opcodes.LXOR:
-        return new CfLogicalBinop(Opcode.Xor, NumericType.LONG);
+      case Opcodes.ISHL:  return ISHL;
+      case Opcodes.LSHL:  return LSHL;
+      case Opcodes.ISHR:  return ISHR;
+      case Opcodes.LSHR:  return LSHR;
+      case Opcodes.IUSHR: return IUSHR;
+      case Opcodes.LUSHR: return LUSHR;
+      case Opcodes.IAND:  return IAND;
+      case Opcodes.LAND:  return LAND;
+      case Opcodes.IOR:   return IOR;
+      case Opcodes.LOR:   return LOR;
+      case Opcodes.IXOR:  return IXOR;
+      case Opcodes.LXOR:  return LXOR;
       default:
         throw new Unreachable("Wrong ASM opcode for CfLogicalBinop " + opcode);
     }
@@ -136,9 +167,9 @@ public class CfLogicalBinop extends CfInstruction {
     printer.print(this);
   }
 
-  @NotNull
+  @Nonnull
   @Override
-  public CfInstruction copy(@NotNull Map<CfLabel, CfLabel> labelMap) {
+  public CfInstruction copy(@Nonnull Map<CfLabel, CfLabel> labelMap) {
     return this;
   }
 

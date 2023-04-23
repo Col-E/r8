@@ -14,7 +14,7 @@ import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.structural.Copyable;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Streams;
-import org.jetbrains.annotations.NotNull;
+import javax.annotation.Nonnull;
 
 import java.util.Arrays;
 import java.util.Collection;
@@ -76,7 +76,7 @@ public class DexLibraryClass extends DexClass implements LibraryClass, Supplier<
     assert kind == Kind.CF : "Invalid kind " + kind + " for library-path class " + type;
   }
 
-  @NotNull
+  @Nonnull
   @Override
   public DexLibraryClass copy() {
     DexEncodedField[] staticFieldsCopy = staticFields().toArray(DexEncodedField.EMPTY_ARRAY);

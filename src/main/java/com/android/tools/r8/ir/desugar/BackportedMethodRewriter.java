@@ -1985,8 +1985,8 @@ public final class BackportedMethodRewriter implements CfInstructionDesugaring {
           // Massage the stack with dup_x1 and swap:
           //   ..., SomeSupplier, ThreadLocalSubClass ->
           //      ..., ThreadLocalSubClass, ThreadLocalSubClass, SomeSupplier
-          new CfStackInstruction(Opcode.DupX1),
-          new CfStackInstruction(Opcode.Swap),
+          CfStackInstruction.DUP_X1,
+          CfStackInstruction.SWAP,
           new CfInvoke(
               Opcodes.INVOKESPECIAL,
               factory.createMethod(
@@ -2048,7 +2048,7 @@ public final class BackportedMethodRewriter implements CfInstructionDesugaring {
       //  }
       List<CfInstruction> instructions = new ArrayList<>();
       instructions.add(CfLoad.ALOAD_0);
-      instructions.add(new CfStackInstruction(Opcode.Dup));
+      instructions.add(CfStackInstruction.DUP);
       instructions.add(
           new CfInvoke(
               Opcodes.INVOKESPECIAL,
@@ -2083,7 +2083,7 @@ public final class BackportedMethodRewriter implements CfInstructionDesugaring {
       instructions.add(CfLoad.ALOAD_0);
       instructions.add(new CfInstanceFieldRead(supplierField));
       instructions.add(new CfInvoke(Opcodes.INVOKEINTERFACE, factory.supplierMembers.get, true));
-      instructions.add(CfReturn.forType(ValueType.OBJECT));
+      instructions.add(CfReturn.ARETURN);
 
       builder.setVirtualMethods(
           ImmutableList.of(

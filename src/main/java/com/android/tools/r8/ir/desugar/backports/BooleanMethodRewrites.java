@@ -12,7 +12,7 @@ import com.android.tools.r8.ir.desugar.BackportedMethodRewriter.MethodInvokeRewr
 public final class BooleanMethodRewrites {
 
   private static MethodInvokeRewriter createRewriter(CfLogicalBinop.Opcode op) {
-    return (invoke, factory) -> new CfLogicalBinop(op, NumericType.INT);
+    return (invoke, factory) -> CfLogicalBinop.operation(op, NumericType.INT);
   }
 
   public static MethodInvokeRewriter rewriteLogicalAnd() {

@@ -33,7 +33,7 @@ public final class ConstClassSourceCode extends SyntheticCfCodeProvider {
   public CfCode generateCfCode() {
     List<CfInstruction> instructions = new ArrayList<>();
     instructions.add(new CfConstClass(constClassType));
-    instructions.add(CfReturn.forType(ValueType.OBJECT));
+    instructions.add(CfReturn.ARETURN);
     return standardCfCodeFromInstructions(instructions);
   }
 }

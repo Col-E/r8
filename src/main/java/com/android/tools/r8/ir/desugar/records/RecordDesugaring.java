@@ -362,9 +362,9 @@ public class RecordDesugaring
     DexMethod getFieldsAsObjects = getFieldsAsObjectsMethod(recordInvokeDynamic.getRecordType());
     assert recordInvokeDynamic.getRecordClass().lookupProgramMethod(getFieldsAsObjects) != null;
     ArrayList<CfInstruction> instructions = new ArrayList<>();
-    instructions.add(new CfStackInstruction(Dup));
+    instructions.add(CfStackInstruction.DUP);
     instructions.add(new CfInvoke(Opcodes.INVOKEVIRTUAL, factory.objectMembers.getClass, false));
-    instructions.add(new CfStackInstruction(Swap));
+    instructions.add(CfStackInstruction.SWAP);
     instructions.add(new CfInvoke(Opcodes.INVOKESPECIAL, getFieldsAsObjects, false));
     ProgramMethod programMethod =
         synthesizeRecordHelper(

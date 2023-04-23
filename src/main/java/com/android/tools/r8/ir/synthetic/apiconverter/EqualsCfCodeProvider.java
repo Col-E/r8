@@ -55,12 +55,12 @@ public class EqualsCfCodeProvider extends SyntheticCfCodeProvider {
     instructions.add(new CfInstanceFieldRead(wrapperField));
 
     // other instanceof WrapperType
-    instructions.add(new CfLoad(ValueType.OBJECT, 1));
+    instructions.add(CfLoad.ALOAD_1);
     instructions.add(new CfInstanceOf(wrapperType));
     instructions.add(new CfIf(IfType.EQ, ValueType.INT, label1));
 
     // ((WrapperType) other).wrapperField
-    instructions.add(new CfLoad(ValueType.OBJECT, 1));
+    instructions.add(CfLoad.ALOAD_1);
     instructions.add(new CfCheckCast(wrapperType));
     instructions.add(new CfInstanceFieldRead(wrapperField));
     instructions.add(new CfGoto(label2));
@@ -71,7 +71,7 @@ public class EqualsCfCodeProvider extends SyntheticCfCodeProvider {
             new ArrayDeque<>(Arrays.asList(FrameType.initialized(wrapperField.type)))));
 
     // other
-    instructions.add(new CfLoad(ValueType.OBJECT, 1));
+    instructions.add(CfLoad.ALOAD_1);
     instructions.add(label2);
     instructions.add(
         new CfFrame(
@@ -84,7 +84,7 @@ public class EqualsCfCodeProvider extends SyntheticCfCodeProvider {
     // equals.
     instructions.add(
         new CfInvoke(Opcodes.INVOKEVIRTUAL, appView.dexItemFactory().objectMembers.equals, false));
-    instructions.add(CfReturn.forType(ValueType.INT));
+    instructions.add(CfReturn.IRETURN);
     return standardCfCodeFromInstructions(instructions);
   }
 }

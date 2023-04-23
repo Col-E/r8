@@ -91,7 +91,7 @@ import java.util.Map;
 import java.util.function.BiFunction;
 import java.util.function.Supplier;
 
-import org.jetbrains.annotations.NotNull;
+import javax.annotation.Nonnull;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.ConstantDynamic;
@@ -187,7 +187,7 @@ public class LazyCfCode extends Code {
     return asCfCode().getCodeAsInlining(caller, callee, factory);
   }
 
-  @NotNull
+  @Nonnull
   @Override
   public Code copySubtype() {
     return asCfCode().copySubtype();
@@ -625,23 +625,23 @@ public class LazyCfCode extends Code {
         case Opcodes.ICONST_3:
         case Opcodes.ICONST_4:
         case Opcodes.ICONST_5:
-          addInstruction(new CfConstNumber(opcode - Opcodes.ICONST_0, ValueType.INT));
+          addInstruction(CfConstNumber.constNumber(opcode - Opcodes.ICONST_0, ValueType.INT));
           break;
         case Opcodes.LCONST_0:
         case Opcodes.LCONST_1:
-          addInstruction(new CfConstNumber(opcode - Opcodes.LCONST_0, ValueType.LONG));
+          addInstruction(CfConstNumber.constNumber(opcode - Opcodes.LCONST_0, ValueType.LONG));
           break;
         case Opcodes.FCONST_0:
         case Opcodes.FCONST_1:
         case Opcodes.FCONST_2:
           addInstruction(
-              new CfConstNumber(
+              CfConstNumber.constNumber(
                   Float.floatToRawIntBits(opcode - Opcodes.FCONST_0), ValueType.FLOAT));
           break;
         case Opcodes.DCONST_0:
         case Opcodes.DCONST_1:
           addInstruction(
-              new CfConstNumber(
+              CfConstNumber.constNumber(
                   Double.doubleToRawLongBits(opcode - Opcodes.DCONST_0), ValueType.DOUBLE));
           break;
         case Opcodes.IALOAD:
@@ -742,19 +742,19 @@ public class LazyCfCode extends Code {
           addInstruction(CfCmp.fromAsm(opcode));
           break;
         case Opcodes.IRETURN:
-          addInstruction(CfReturn.forType(ValueType.INT));
+          addInstruction(CfReturn.IRETURN);
           break;
         case Opcodes.LRETURN:
-          addInstruction(CfReturn.forType(ValueType.LONG));
+          addInstruction(CfReturn.LRETURN);
           break;
         case Opcodes.FRETURN:
-          addInstruction(CfReturn.forType(ValueType.FLOAT));
+          addInstruction(CfReturn.FRETURN);
           break;
         case Opcodes.DRETURN:
-          addInstruction(CfReturn.forType(ValueType.DOUBLE));
+          addInstruction(CfReturn.DRETURN);
           break;
         case Opcodes.ARETURN:
-          addInstruction(CfReturn.forType(ValueType.OBJECT));
+          addInstruction(CfReturn.ARETURN);
           break;
         case Opcodes.RETURN:
           addInstruction(CfReturnVoid.INSTANCE);
@@ -766,10 +766,10 @@ public class LazyCfCode extends Code {
           addInstruction(CfThrow.INSTANCE);
           break;
         case Opcodes.MONITORENTER:
-          addInstruction(CfMonitor.forType(MonitorType.ENTER));
+          addInstruction(CfMonitor.ENTER);
           break;
         case Opcodes.MONITOREXIT:
-          addInstruction(CfMonitor.forType(MonitorType.EXIT));
+          addInstruction(CfMonitor.EXIT);
           break;
         default:
           throw new Unreachable("Unknown instruction");
@@ -812,7 +812,7 @@ public class LazyCfCode extends Code {
       switch (opcode) {
         case Opcodes.SIPUSH:
         case Opcodes.BIPUSH:
-          addInstruction(new CfConstNumber(operand, ValueType.INT));
+          addInstruction(CfConstNumber.constNumber(operand, ValueType.INT));
           break;
         case Opcodes.NEWARRAY:
           addInstruction(
@@ -881,7 +881,7 @@ public class LazyCfCode extends Code {
       if (Opcodes.ILOAD <= opcode && opcode <= Opcodes.ALOAD) {
         addInstruction(CfLoad.load(type, var));
       } else {
-        addInstruction(new CfStore(type, var));
+        addInstruction(CfStore.store(type, var));
       }
     }
 
@@ -1020,15 +1020,15 @@ public class LazyCfCode extends Code {
       } else if (cst instanceof String) {
         addInstruction(new CfConstString(factory.createString((String) cst)));
       } else if (cst instanceof Long) {
-        addInstruction(new CfConstNumber((Long) cst, ValueType.LONG));
+        addInstruction(CfConstNumber.constNumber((Long) cst, ValueType.LONG));
       } else if (cst instanceof Double) {
         long l = Double.doubleToRawLongBits((Double) cst);
-        addInstruction(new CfConstNumber(l, ValueType.DOUBLE));
+        addInstruction(CfConstNumber.constNumber(l, ValueType.DOUBLE));
       } else if (cst instanceof Integer) {
-        addInstruction(new CfConstNumber((Integer) cst, ValueType.INT));
+        addInstruction(CfConstNumber.constNumber((Integer) cst, ValueType.INT));
       } else if (cst instanceof Float) {
         long i = Float.floatToRawIntBits((Float) cst);
-        addInstruction(new CfConstNumber(i, ValueType.FLOAT));
+        addInstruction(CfConstNumber.constNumber(i, ValueType.FLOAT));
       } else if (cst instanceof Handle) {
         addInstruction(
             new CfConstMethodHandle(

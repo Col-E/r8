@@ -138,13 +138,13 @@ public class LambdaInstructionDesugaring implements CfInstructionDesugaring {
     DexTypeList captureTypes = lambdaClass.descriptor.captures;
     Deque<CfInstruction> replacement = new ArrayDeque<>(3 + captureTypes.size() * 2);
     replacement.add(new CfNew(lambdaClass.getType()));
-    replacement.add(new CfStackInstruction(Opcode.Dup));
+    replacement.add(CfStackInstruction.DUP);
     captureTypes.forEach(
         captureType -> {
           ValueType valueType = ValueType.fromDexType(captureType);
           int freshLocal = freshLocalProvider.getFreshLocal(valueType.requiredRegisters());
-          replacement.addFirst(new CfStore(valueType, freshLocal));
-          replacement.addLast(new CfLoad(valueType, freshLocal));
+          replacement.addFirst(CfStore.store(valueType, freshLocal));
+          replacement.addLast(CfLoad.load(valueType, freshLocal));
         });
     replacement.add(new CfInvoke(Opcodes.INVOKESPECIAL, lambdaClass.constructor, false));
 

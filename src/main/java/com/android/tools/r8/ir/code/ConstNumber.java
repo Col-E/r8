@@ -176,7 +176,7 @@ public class ConstNumber extends ConstInstruction {
     if (outType().isObject()) {
       builder.add(CfConstNull.INSTANCE, this);
     } else {
-      builder.add(new CfConstNumber(value, outType()), this);
+      builder.add(CfConstNumber.constNumber(value, outType()), this);
     }
   }
 

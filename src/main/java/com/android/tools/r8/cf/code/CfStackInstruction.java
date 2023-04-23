@@ -6,11 +6,7 @@ package com.android.tools.r8.cf.code;
 import com.android.tools.r8.cf.CfPrinter;
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.errors.Unreachable;
-import com.android.tools.r8.graph.AppView;
-import com.android.tools.r8.graph.CfCode;
-import com.android.tools.r8.graph.CfCompareHelper;
-import com.android.tools.r8.graph.DexItemFactory;
-import com.android.tools.r8.graph.ProgramMethod;
+import com.android.tools.r8.graph.*;
 import com.android.tools.r8.graph.lens.GraphLens;
 import com.android.tools.r8.graph.lens.InitClassLens;
 import com.android.tools.r8.ir.code.ValueType;
@@ -27,7 +23,7 @@ import com.android.tools.r8.optimize.interfaces.analysis.CfFrameState;
 import com.android.tools.r8.utils.FunctionUtils;
 import com.android.tools.r8.utils.structural.CompareToVisitor;
 import com.android.tools.r8.utils.structural.HashingVisitor;
-import org.jetbrains.annotations.NotNull;
+import javax.annotation.Nonnull;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 
@@ -35,7 +31,7 @@ import java.util.Map;
 
 public class CfStackInstruction extends CfInstruction {
 
-  private static final CfStackInstruction
+  public static final CfStackInstruction
     POP = new CfStackInstruction(Opcode.Pop),
     POP2 = new CfStackInstruction(Opcode.Pop2),
     DUP = new CfStackInstruction(Opcode.Dup),
@@ -86,10 +82,14 @@ public class CfStackInstruction extends CfInstruction {
   }
 
   public static CfStackInstruction popType(ValueType type) {
-    return new CfStackInstruction(type.isWide() ? Opcode.Pop2 : Opcode.Pop);
+    return type.isWide() ? POP2 : POP;
   }
 
-  public CfStackInstruction(Opcode opcode) {
+  public static CfStackInstruction popType(DexType type) {
+    return type.isWideType() ? POP2 : POP;
+  }
+
+  private CfStackInstruction(Opcode opcode) {
     this.opcode = opcode;
   }
 
@@ -132,9 +132,9 @@ public class CfStackInstruction extends CfInstruction {
     printer.print(this);
   }
 
-  @NotNull
+  @Nonnull
   @Override
-  public CfInstruction copy(@NotNull Map<CfLabel, CfLabel> labelMap) {
+  public CfInstruction copy(@Nonnull Map<CfLabel, CfLabel> labelMap) {
     return this;
   }
 

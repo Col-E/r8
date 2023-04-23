@@ -81,7 +81,7 @@ import com.android.tools.r8.utils.collections.ProgramMethodSet;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
-import org.jetbrains.annotations.NotNull;
+import javax.annotation.Nonnull;
 
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -1799,7 +1799,7 @@ public class OutlinerImpl extends Outliner {
       return false;
     }
 
-    @NotNull
+    @Nonnull
     @Override
     public Code copySubtype() {
       return this;

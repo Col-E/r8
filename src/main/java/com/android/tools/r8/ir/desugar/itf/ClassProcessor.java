@@ -991,7 +991,7 @@ final class ClassProcessor {
         maxLocals,
         ImmutableList.of(
             new CfNew(exceptionType),
-            new CfStackInstruction(Opcode.Dup),
+            CfStackInstruction.DUP,
             new CfInvoke(Opcodes.INVOKESPECIAL, instanceInitializer, false),
             CfThrow.INSTANCE));
   }

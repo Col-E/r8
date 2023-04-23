@@ -69,9 +69,9 @@ public class Dup extends Instruction {
   @Override
   public void buildCf(CfBuilder builder) {
     if (this.inValues.get(0).getType().isWidePrimitive()) {
-      builder.add(new CfStackInstruction(Opcode.Dup2), this);
+      builder.add(CfStackInstruction.DUP2, this);
     } else {
-      builder.add(new CfStackInstruction(Opcode.Dup), this);
+      builder.add(CfStackInstruction.DUP, this);
     }
   }
 

@@ -25,14 +25,29 @@ import com.android.tools.r8.optimize.interfaces.analysis.CfFrameState;
 import com.android.tools.r8.utils.structural.CompareToVisitor;
 import com.android.tools.r8.utils.structural.HashingVisitor;
 import com.android.tools.r8.utils.structural.StructuralSpecification;
-import org.jetbrains.annotations.NotNull;
+import javax.annotation.Nonnull;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 
 import java.util.Map;
 
 public class CfConstNumber extends CfInstruction {
-
+  public static final CfConstNumber ICONST_M1 = new CfConstNumber(-1, ValueType.INT);
+  public static final CfConstNumber ICONST_0 = new CfConstNumber(0, ValueType.INT);
+  public static final CfConstNumber ICONST_1 = new CfConstNumber(1, ValueType.INT);
+  public static final CfConstNumber ICONST_2 = new CfConstNumber(2, ValueType.INT);
+  public static final CfConstNumber ICONST_3 = new CfConstNumber(3, ValueType.INT);
+  public static final CfConstNumber ICONST_4 = new CfConstNumber(4, ValueType.INT);
+  public static final CfConstNumber ICONST_5 = new CfConstNumber(5, ValueType.INT);
+  public static final CfConstNumber FCONST_0 = new CfConstNumber(0, ValueType.FLOAT);
+  public static final CfConstNumber FCONST_1 = new CfConstNumber(1, ValueType.FLOAT);
+  public static final CfConstNumber FCONST_M1 = new CfConstNumber(-1, ValueType.FLOAT);
+  public static final CfConstNumber LCONST_0 = new CfConstNumber(0, ValueType.LONG);
+  public static final CfConstNumber LCONST_1 = new CfConstNumber(1, ValueType.LONG);
+  public static final CfConstNumber LCONST_M1 = new CfConstNumber(-1, ValueType.LONG);
+  public static final CfConstNumber DCONST_0 = new CfConstNumber(0, ValueType.DOUBLE);
+  public static final CfConstNumber DCONST_1 = new CfConstNumber(1, ValueType.DOUBLE);
+  public static final CfConstNumber DCONST_M1 = new CfConstNumber(-1, ValueType.DOUBLE);
   private final long value;
   private final ValueType type;
 
@@ -40,10 +55,45 @@ public class CfConstNumber extends CfInstruction {
     spec.withLong(CfConstNumber::getRawValue).withItem(CfConstNumber::getType);
   }
 
-  public CfConstNumber(long value, ValueType type) {
+  private CfConstNumber(long value, ValueType type) {
     assert !type.isObject() : "Should use CfConstNull";
     this.value = value;
     this.type = type;
+  }
+
+  @Nonnull
+  public static CfConstNumber constNumber(long value, ValueType type) {
+    if (value <= 5 && value >= -1) {
+      switch (type) {
+        case INT:
+          if (value == 0) return ICONST_0;
+          else if (value == 1) return ICONST_1;
+          else if (value == 2) return ICONST_2;
+          else if (value == 3) return ICONST_3;
+          else if (value == 4) return ICONST_4;
+          else if (value == 5) return ICONST_5;
+          else if (value == -1) return ICONST_M1;
+          break;
+        case FLOAT:
+          if (value == 0) return FCONST_0;
+          else if (value == 1) return FCONST_1;
+          else if (value == -1) return FCONST_M1;
+          break;
+        case LONG:
+          if (value == 0) return LCONST_0;
+          else if (value == 1) return LCONST_1;
+          else if (value == -1) return LCONST_M1;
+          break;
+        case DOUBLE:
+          if (value == 0) return DCONST_0;
+          else if (value == 1) return DCONST_1;
+          else if (value == -1) return DCONST_M1;
+          break;
+        case OBJECT:
+          throw new IllegalStateException("Cannot use object type in const-number");
+      }
+    }
+    return new CfConstNumber(value, type);
   }
 
   @Override
@@ -227,9 +277,9 @@ public class CfConstNumber extends CfInstruction {
     printer.print(this);
   }
 
-  @NotNull
+  @Nonnull
   @Override
-  public CfInstruction copy(@NotNull Map<CfLabel, CfLabel> labelMap) {
+  public CfInstruction copy(@Nonnull Map<CfLabel, CfLabel> labelMap) {
     return this;
   }
 

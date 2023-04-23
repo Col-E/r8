@@ -14,6 +14,6 @@ public final class LongMethodRewrites {
   private LongMethodRewrites() {}
 
   public static MethodInvokeRewriter rewriteCompare() {
-    return (invoke, factory) -> new CfCmp(Bias.NONE, NumericType.LONG);
+    return (invoke, factory) -> CfCmp.LCMP;
   }
 }

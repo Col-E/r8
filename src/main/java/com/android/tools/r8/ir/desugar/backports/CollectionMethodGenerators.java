@@ -39,12 +39,12 @@ public final class CollectionMethodGenerators {
       DexItemFactory factory, DexMethod method, int formalCount, DexType returnType) {
     Builder<CfInstruction> builder = ImmutableList.builder();
     builder.add(
-        new CfConstNumber(formalCount, ValueType.INT), new CfNewArray(factory.objectArrayType));
+        CfConstNumber.constNumber(formalCount, ValueType.INT), new CfNewArray(factory.objectArrayType));
 
     for (int i = 0; i < formalCount; i++) {
       builder.add(
-          new CfStackInstruction(CfStackInstruction.Opcode.Dup),
-          new CfConstNumber(i, ValueType.INT),
+          CfStackInstruction.DUP,
+          CfConstNumber.constNumber(i, ValueType.INT),
           CfLoad.loadObject(i),
           CfArrayStore.forType(MemberType.OBJECT));
     }
@@ -57,7 +57,7 @@ public final class CollectionMethodGenerators {
                 factory.createProto(returnType, factory.objectArrayType),
                 factory.createString("of")),
             false),
-        CfReturn.forType(ValueType.OBJECT));
+        CfReturn.ARETURN);
 
     return new CfCode(method.holder, 4, formalCount, builder.build());
   }
@@ -73,15 +73,15 @@ public final class CollectionMethodGenerators {
 
     Builder<CfInstruction> builder = ImmutableList.builder();
     builder.add(
-        new CfConstNumber(formalCount, ValueType.INT),
+        CfConstNumber.constNumber(formalCount, ValueType.INT),
         new CfNewArray(mapEntryArray));
 
     for (int i = 0; i < formalCount; i++) {
       builder.add(
-          new CfStackInstruction(CfStackInstruction.Opcode.Dup),
-          new CfConstNumber(i, ValueType.INT),
+          CfStackInstruction.DUP,
+          CfConstNumber.constNumber(i, ValueType.INT),
           new CfNew(simpleEntry),
-          new CfStackInstruction(CfStackInstruction.Opcode.Dup),
+          CfStackInstruction.DUP,
           CfLoad.loadObject(i * 2),
           CfLoad.loadObject(i * 2 + 1),
           new CfInvoke(Opcodes.INVOKESPECIAL, simpleEntryConstructor, false),
@@ -96,7 +96,7 @@ public final class CollectionMethodGenerators {
                 factory.createProto(factory.mapType, mapEntryArray),
                 factory.createString("ofEntries")),
             false),
-        CfReturn.forType(ValueType.OBJECT));
+        CfReturn.ARETURN);
 
     return new CfCode(method.holder, 7, formalCount * 2, builder.build());
   }

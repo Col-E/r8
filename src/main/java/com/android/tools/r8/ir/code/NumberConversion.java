@@ -161,7 +161,7 @@ public class NumberConversion extends Unop {
 
   @Override
   public void buildCf(CfBuilder builder) {
-    builder.add(new CfNumberConversion(from, to), this);
+    builder.add(CfNumberConversion.convert(from, to), this);
   }
 
   @Override

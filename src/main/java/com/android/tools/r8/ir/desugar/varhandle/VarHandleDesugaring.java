@@ -322,7 +322,7 @@ public class VarHandleDesugaring implements CfInstructionDesugaring, CfClassSynt
               localStackAllocator.allocateLocalStack(2);
               return ImmutableList.of(
                   new CfNew(factory.lookupType),
-                  new CfStackInstruction(Opcode.Dup),
+                  CfStackInstruction.DUP,
                   new CfInvoke(
                       Opcodes.INVOKESPECIAL,
                       factory.createMethod(
@@ -348,7 +348,7 @@ public class VarHandleDesugaring implements CfInstructionDesugaring, CfClassSynt
               // Rewrite MethodHandles.privateLookupIn(class, lookup) to
               // lookup.toPrivateLookupIn(class).
               return ImmutableList.of(
-                  new CfStackInstruction(Opcode.Swap),
+                  CfStackInstruction.SWAP,
                   new CfInvoke(
                       Opcodes.INVOKEVIRTUAL,
                       factory.createMethod(
@@ -373,8 +373,8 @@ public class VarHandleDesugaring implements CfInstructionDesugaring, CfClassSynt
               localStackAllocator.allocateLocalStack(2);
               return ImmutableList.of(
                   new CfNew(factory.varHandleType),
-                  new CfStackInstruction(Opcode.DupX1),
-                  new CfStackInstruction(Opcode.Swap),
+                  CfStackInstruction.DUP_X1,
+                  CfStackInstruction.SWAP,
                   new CfInvoke(
                       Opcodes.INVOKESPECIAL,
                       factory.createMethod(
@@ -519,9 +519,9 @@ public class VarHandleDesugaring implements CfInstructionDesugaring, CfClassSynt
           if (hasWideArgument) {
             local = freshLocalProvider.getFreshLocal(2);
             localStackAllocator.allocateLocalStack(1);
-            builder.add(new CfStore(ValueType.fromDexType(proto.parameters.get(i + 1)), local));
+            builder.add(CfStore.store(ValueType.fromDexType(proto.parameters.get(i + 1)), local));
           } else {
-            builder.add(new CfStackInstruction(Opcode.Swap));
+            builder.add(CfStackInstruction.SWAP);
           }
         }
         localStackAllocator.allocateLocalStack(1);
@@ -535,9 +535,9 @@ public class VarHandleDesugaring implements CfInstructionDesugaring, CfClassSynt
         if (!lastArgument) {
           if (hasWideArgument) {
             assert local != -1;
-            builder.add(new CfLoad(ValueType.fromDexType(proto.parameters.get(i + 1)), local));
+            builder.add(CfLoad.load(ValueType.fromDexType(proto.parameters.get(i + 1)), local));
           } else {
-            builder.add(new CfStackInstruction(Opcode.Swap));
+            builder.add(CfStackInstruction.SWAP);
           }
         }
       }
@@ -556,7 +556,7 @@ public class VarHandleDesugaring implements CfInstructionDesugaring, CfClassSynt
     builder.add(new CfInvoke(Opcodes.INVOKEVIRTUAL, newMethod, false));
     if (popReturnValue) {
       localStackAllocator.allocateLocalStack(1);
-      builder.add(new CfStackInstruction(Opcode.Pop));
+      builder.add(CfStackInstruction.POP);
     } else if (proto.returnType.isPrimitiveType() && !newProto.returnType.isPrimitiveType()) {
       assert newProto.returnType == factory.objectType;
       localStackAllocator.allocateLocalStack(2);

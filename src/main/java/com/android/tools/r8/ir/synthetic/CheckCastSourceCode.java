@@ -35,7 +35,7 @@ public final class CheckCastSourceCode extends SyntheticCfCodeProvider {
     List<CfInstruction> instructions = new ArrayList<>();
     instructions.add(CfLoad.ALOAD_0);
     instructions.add(new CfCheckCast(checkCastType));
-    instructions.add(CfReturn.forType(ValueType.OBJECT));
+    instructions.add(CfReturn.ARETURN);
     return standardCfCodeFromInstructions(instructions);
   }
 }
