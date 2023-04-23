@@ -347,6 +347,14 @@ public class CfCode extends Code implements CfWritableCode, StructuralItem<CfCod
     return Collections.unmodifiableList(localVariables);
   }
 
+  public void addLocalVariable(@Nonnull LocalVariableInfo variable) {
+    localVariables.add(variable);
+  }
+
+  public boolean removeLocalVariable(@Nonnull LocalVariableInfo variable) {
+    return localVariables.remove(variable);
+  }
+
   @Override
   public int estimatedSizeForInlining() {
     return countNonStackOperations(Integer.MAX_VALUE);
