@@ -172,6 +172,14 @@ public abstract class DexApplication implements DexDefinitionSupplier, Copyable<
     return proguardMap;
   }
 
+  @Nonnull
+  public static DexApplication fromClasses(@Nonnull InternalOptions options,
+                                           @Nonnull Map<String, DexProgramClass> map) {
+    return new LazyLoadedDexApplication.Builder(options, Timing.empty())
+            .setProgramClasses(map)
+            .build();
+  }
+
   public abstract static class Builder<T extends Builder<T>> {
 
     private final Map<String, DexProgramClass> programClasses = new HashMap<>();
@@ -285,6 +293,12 @@ public abstract class DexApplication implements DexDefinitionSupplier, Copyable<
 
     public synchronized T removeProgramClass(@Nonnull String typeName) {
       programClasses.remove(typeName);
+      return self();
+    }
+
+    public synchronized T setProgramClasses(@Nonnull Map<String, DexProgramClass> classes) {
+      programClasses.clear();
+      programClasses.putAll(classes);
       return self();
     }
 
