@@ -373,7 +373,7 @@ public class FileWriter {
               holder.getOrigin(), MethodPosition.create(method)));
     }
 
-    if (!method.accessFlags.isPublic()) {
+    if (!method.accessFlags.isPublic() && !method.getName().toString().equals("<clinit>")) {
       throw new CompilationError(
           "Interface methods must not be "
               + "protected or package private: "
