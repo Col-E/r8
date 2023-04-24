@@ -201,7 +201,7 @@ public class EnumUnboxingLens extends NestedGraphLens {
         newMethodSignatures = new BidirectionalOneToManyRepresentativeHashMap<>();
     private final Map<DexMethod, DexMethod> methodMap = new IdentityHashMap<>();
 
-    private Map<DexMethod, RewrittenPrototypeDescription> prototypeChangesPerMethod =
+    private final Map<DexMethod, RewrittenPrototypeDescription> prototypeChangesPerMethod =
         new IdentityHashMap<>();
 
     Builder(AppView<AppInfoWithLiveness> appView) {
@@ -219,41 +219,31 @@ public class EnumUnboxingLens extends NestedGraphLens {
       if (from == to) {
         return;
       }
-      newFieldSignatures.put(from, to);
-    }
-
-    private RewrittenPrototypeDescription recordPrototypeChanges(
-        DexMethod from,
-        DexMethod to,
-        boolean fromStatic,
-        boolean toStatic,
-        boolean virtualReceiverAlreadyRemapped,
-        List<ExtraUnusedNullParameter> extraUnusedNullParameters) {
-      assert from != to;
-      RewrittenPrototypeDescription prototypeChanges =
-          computePrototypeChanges(
-              from,
-              to,
-              fromStatic,
-              toStatic,
-              virtualReceiverAlreadyRemapped,
-              extraUnusedNullParameters);
-      prototypeChangesPerMethod.put(to, prototypeChanges);
-      return prototypeChanges;
+      synchronized (this) {
+        newFieldSignatures.put(from, to);
+      }
     }
 
     public void moveAndMap(DexMethod from, DexMethod to, boolean fromStatic) {
       moveAndMap(from, to, fromStatic, true, Collections.emptyList());
     }
 
-    public RewrittenPrototypeDescription moveVirtual(DexMethod from, DexMethod to) {
-      newMethodSignatures.put(from, to);
-      return recordPrototypeChanges(from, to, false, true, false, Collections.emptyList());
+    public void moveVirtual(DexMethod from, DexMethod to) {
+      RewrittenPrototypeDescription prototypeChanges =
+          computePrototypeChanges(from, to, false, true, false, Collections.emptyList());
+      synchronized (this) {
+        newMethodSignatures.put(from, to);
+        prototypeChangesPerMethod.put(to, prototypeChanges);
+      }
     }
 
-    public RewrittenPrototypeDescription mapToDispatch(DexMethod from, DexMethod to) {
-      methodMap.put(from, to);
-      return recordPrototypeChanges(from, to, false, true, true, Collections.emptyList());
+    public void mapToDispatch(DexMethod from, DexMethod to) {
+      RewrittenPrototypeDescription prototypeChanges =
+          computePrototypeChanges(from, to, false, true, true, Collections.emptyList());
+      synchronized (this) {
+        methodMap.put(from, to);
+        prototypeChangesPerMethod.put(to, prototypeChanges);
+      }
     }
 
     public RewrittenPrototypeDescription moveAndMap(
@@ -262,10 +252,14 @@ public class EnumUnboxingLens extends NestedGraphLens {
         boolean fromStatic,
         boolean toStatic,
         List<ExtraUnusedNullParameter> extraUnusedNullParameters) {
-      newMethodSignatures.put(from, to);
-      methodMap.put(from, to);
-      return recordPrototypeChanges(
-          from, to, fromStatic, toStatic, false, extraUnusedNullParameters);
+      RewrittenPrototypeDescription prototypeChanges =
+          computePrototypeChanges(from, to, fromStatic, toStatic, false, extraUnusedNullParameters);
+      synchronized (this) {
+        newMethodSignatures.put(from, to);
+        methodMap.put(from, to);
+        prototypeChangesPerMethod.put(to, prototypeChanges);
+      }
+      return prototypeChanges;
     }
 
     private RewrittenPrototypeDescription computePrototypeChanges(
@@ -275,6 +269,7 @@ public class EnumUnboxingLens extends NestedGraphLens {
         boolean toStatic,
         boolean virtualReceiverAlreadyRemapped,
         List<ExtraUnusedNullParameter> extraUnusedNullParameters) {
+      assert from != to;
       int offsetDiff = 0;
       int toOffset = BooleanUtils.intValue(!toStatic);
       ArgumentInfoCollection.Builder builder =

@@ -48,9 +48,7 @@ public class BasicEnumMergingTest extends EnumUnboxingTestBase {
                     .assertNotUnboxed(EnumWithVirtualOverrideAndPrivateField.class))
         .enableInliningAnnotations()
         .addOptionsModification(opt -> enableEnumOptions(opt, enumValueOptimization))
-        .addOptionsModification(opt -> opt.testing.enableEnumUnboxingDebugLogs = true)
         .setMinApi(parameters)
-        .allowDiagnosticInfoMessages()
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines("a", "B", "a", "B", "a", "B", "A 1 1.0 A", "B");
   }
