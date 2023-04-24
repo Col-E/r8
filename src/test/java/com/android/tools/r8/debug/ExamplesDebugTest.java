@@ -60,21 +60,6 @@ public class ExamplesDebugTest extends DebugTestBase {
   }
 
   @Test
-  public void testConstants() throws Exception {
-    testDebugging("constants", "Constants");
-  }
-
-  @Test
-  public void testControlFlow() throws Exception {
-    testDebugging("controlflow", "ControlFlow");
-  }
-
-  @Test
-  public void testConversions() throws Exception {
-    testDebugging("conversions", "Conversions");
-  }
-
-  @Test
   public void testFloatingPointValuedAnnotation() throws Exception {
     testDebugging("floating_point_annotations", "FloatingPointValuedAnnotationTest");
   }
