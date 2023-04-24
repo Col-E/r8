@@ -408,8 +408,11 @@ class EnumUnboxingTreeFixer implements ProgramClassFixer {
               instructionsToRemove.put(constructorInvoke, Optional.empty());
             }
 
-            ProgramMethod constructor =
-                unboxedEnum.lookupProgramMethod(lookupResult.getReference());
+            DexProgramClass holder =
+                newInstance.getType() == unboxedEnum.getType()
+                    ? unboxedEnum
+                    : appView.programDefinitionFor(newInstance.getType(), classInitializer);
+            ProgramMethod constructor = holder.lookupProgramMethod(lookupResult.getReference());
             assert constructor != null;
 
             InstanceFieldInitializationInfo ordinalInitializationInfo =
@@ -646,8 +649,7 @@ class EnumUnboxingTreeFixer implements ProgramClassFixer {
     if (superMethod.isProgramMethod()) {
       superUtilityMethod =
           installLocalUtilityMethod(
-                  localUtilityClass, localUtilityMethods, superMethod.asProgramMethod())
-              .getReference();
+              localUtilityClass, localUtilityMethods, superMethod.asProgramMethod());
     } else {
       // All methods but toString() are final or non-virtual.
       // We could support other cases by setting correctly the superUtilityMethod here.
@@ -656,10 +658,10 @@ class EnumUnboxingTreeFixer implements ProgramClassFixer {
     }
     Map<DexMethod, DexMethod> overrideToUtilityMethods = new IdentityHashMap<>();
     for (ProgramMethod subMethod : subimplementations) {
-      DexEncodedMethod subEnumLocalUtilityMethod =
+      DexMethod subEnumLocalUtilityMethod =
           installLocalUtilityMethod(localUtilityClass, localUtilityMethods, subMethod);
-      overrideToUtilityMethods.put(
-          subMethod.getReference(), subEnumLocalUtilityMethod.getReference());
+      assert subEnumLocalUtilityMethod != null;
+      overrideToUtilityMethods.put(subMethod.getReference(), subEnumLocalUtilityMethod);
     }
     DexMethod dispatch =
         installDispatchMethod(
@@ -687,16 +689,20 @@ class EnumUnboxingTreeFixer implements ProgramClassFixer {
       LocalEnumUnboxingUtilityClass localUtilityClass,
       Map<DexMethod, DexEncodedMethod> localUtilityMethods,
       ProgramMethod method) {
-    DexEncodedMethod utilityMethod =
+    DexMethod utilityMethod =
         installLocalUtilityMethod(localUtilityClass, localUtilityMethods, method);
-    lensBuilder.moveAndMap(
-        method.getReference(), utilityMethod.getReference(), method.getDefinition().isStatic());
+    assert utilityMethod != null;
+    lensBuilder.moveAndMap(method.getReference(), utilityMethod, method.getDefinition().isStatic());
   }
 
   public void recordEmulatedDispatch(DexMethod from, DexMethod move, DexMethod dispatch) {
     // Move is used for getRenamedSignature and to remap invoke-super.
     // Map is used to remap all the other invokes.
-    lensBuilder.moveVirtual(from, move);
+    assert from != null;
+    assert dispatch != null;
+    if (move != null) {
+      lensBuilder.moveVirtual(from, move);
+    }
     lensBuilder.mapToDispatch(from, dispatch);
   }
 
@@ -749,10 +755,13 @@ class EnumUnboxingTreeFixer implements ProgramClassFixer {
     return newLocalUtilityMethod;
   }
 
-  private DexEncodedMethod installLocalUtilityMethod(
+  private DexMethod installLocalUtilityMethod(
       LocalEnumUnboxingUtilityClass localUtilityClass,
       Map<DexMethod, DexEncodedMethod> localUtilityMethods,
       ProgramMethod method) {
+    if (method.getAccessFlags().isAbstract()) {
+      return null;
+    }
     DexEncodedMethod newLocalUtilityMethod =
         createLocalUtilityMethod(
             method,
@@ -760,7 +769,7 @@ class EnumUnboxingTreeFixer implements ProgramClassFixer {
             newMethodSignature -> !localUtilityMethods.containsKey(newMethodSignature));
     assert !localUtilityMethods.containsKey(newLocalUtilityMethod.getReference());
     localUtilityMethods.put(newLocalUtilityMethod.getReference(), newLocalUtilityMethod);
-    return newLocalUtilityMethod;
+    return newLocalUtilityMethod.getReference();
   }
 
   private DexEncodedMethod createLocalUtilityMethod(
