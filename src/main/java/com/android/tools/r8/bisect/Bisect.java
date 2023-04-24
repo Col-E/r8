@@ -5,7 +5,6 @@ package com.android.tools.r8.bisect;
 
 import com.android.tools.r8.OutputMode;
 import com.android.tools.r8.ProgramConsumer;
-import com.android.tools.r8.ProguardMapConsumer;
 import com.android.tools.r8.bisect.BisectOptions.Result;
 import com.android.tools.r8.dex.ApplicationReader;
 import com.android.tools.r8.dex.ApplicationWriter;
@@ -14,6 +13,7 @@ import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexProgramClass;
+import com.android.tools.r8.naming.MapConsumer;
 import com.android.tools.r8.synthesis.SyntheticItems.GlobalSyntheticsStrategy;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.AndroidAppConsumers;
@@ -184,7 +184,7 @@ public class Bisect {
     InternalOptions options = app.options;
     // Save the original consumers, so they can be unwrapped after write.
     ProgramConsumer programConsumer = options.programConsumer;
-    ProguardMapConsumer proguardMapConsumer = options.proguardMapConsumer;
+    MapConsumer mapConsumer = options.mapConsumer;
     AndroidAppConsumers compatSink = new AndroidAppConsumers(options);
     ApplicationWriter writer =
         ApplicationWriter.create(
@@ -196,7 +196,7 @@ public class Bisect {
     compatSink.build().writeToDirectory(output, OutputMode.DexIndexed);
     // Restore original consumers.
     options.programConsumer = programConsumer;
-    options.proguardMapConsumer = proguardMapConsumer;
+    options.mapConsumer = mapConsumer;
   }
 
   public static DexProgramClass run(BisectOptions options) throws Exception {

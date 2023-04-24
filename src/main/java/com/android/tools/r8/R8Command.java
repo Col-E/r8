@@ -4,6 +4,7 @@
 package com.android.tools.r8;
 
 import static com.android.tools.r8.utils.InternalOptions.DETERMINISTIC_DEBUGGING;
+import static com.android.tools.r8.utils.MapConsumerUtils.wrapExistingMapConsumerIfNotNull;
 
 import com.android.tools.r8.ProgramResource.Kind;
 import com.android.tools.r8.dex.Marker.Tool;
@@ -18,6 +19,7 @@ import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibrarySpecific
 import com.android.tools.r8.keepanno.asm.KeepEdgeReader;
 import com.android.tools.r8.keepanno.ast.KeepEdge;
 import com.android.tools.r8.keepanno.keeprules.KeepRuleExtractor;
+import com.android.tools.r8.naming.MapConsumer;
 import com.android.tools.r8.naming.ProguardMapStringConsumer;
 import com.android.tools.r8.naming.SourceFileRewriter;
 import com.android.tools.r8.origin.Origin;
@@ -296,6 +298,34 @@ public final class R8Command extends BaseCompilerCommand {
     @Override
     public Builder setProguardMapConsumer(StringConsumer proguardMapConsumer) {
       return super.setProguardMapConsumer(proguardMapConsumer);
+    }
+
+    /**
+     * Set an output destination to which r8-map content should be written.
+     *
+     * <p>This is a short-hand for setting a {@link MapConsumerToPartitionMapConsumer} using {@link
+     * #setPartitionMapConsumer}. Note that any subsequent call to this method or {@link
+     * #setPartitionMapConsumer} will override the previous setting.
+     *
+     * @param partitionMapOutput File-system path to write output at.
+     */
+    @Override
+    public Builder setPartitionMapOutputPath(Path partitionMapOutput) {
+      assert partitionMapOutput != null;
+      return super.setPartitionMapOutputPath(partitionMapOutput);
+    }
+
+    /**
+     * Set a consumer for receiving the r8-map content.
+     *
+     * <p>Note that any subsequent call to this method or {@link #setPartitionMapOutputPath} will
+     * override the previous setting.
+     *
+     * @param partitionMapConsumer Consumer to receive the content once produced.
+     */
+    @Override
+    public Builder setPartitionMapConsumer(PartitionMapConsumer partitionMapConsumer) {
+      return super.setPartitionMapConsumer(partitionMapConsumer);
     }
 
     /**
@@ -632,6 +662,7 @@ public final class R8Command extends BaseCompilerCommand {
               forceProguardCompatibility,
               includeDataResources,
               proguardMapConsumer,
+              partitionMapConsumer,
               proguardUsageConsumer,
               proguardSeedsConsumer,
               proguardConfigurationConsumer,
@@ -832,6 +863,7 @@ public final class R8Command extends BaseCompilerCommand {
   private final boolean forceProguardCompatibility;
   private final Optional<Boolean> includeDataResources;
   private final StringConsumer proguardMapConsumer;
+  private final PartitionMapConsumer partitionMapConsumer;
   private final StringConsumer proguardUsageConsumer;
   private final StringConsumer proguardSeedsConsumer;
   private final StringConsumer proguardConfigurationConsumer;
@@ -912,6 +944,7 @@ public final class R8Command extends BaseCompilerCommand {
       boolean forceProguardCompatibility,
       Optional<Boolean> includeDataResources,
       StringConsumer proguardMapConsumer,
+      PartitionMapConsumer partitionMapConsumer,
       StringConsumer proguardUsageConsumer,
       StringConsumer proguardSeedsConsumer,
       StringConsumer proguardConfigurationConsumer,
@@ -969,6 +1002,7 @@ public final class R8Command extends BaseCompilerCommand {
     this.forceProguardCompatibility = forceProguardCompatibility;
     this.includeDataResources = includeDataResources;
     this.proguardMapConsumer = proguardMapConsumer;
+    this.partitionMapConsumer = partitionMapConsumer;
     this.proguardUsageConsumer = proguardUsageConsumer;
     this.proguardSeedsConsumer = proguardSeedsConsumer;
     this.proguardConfigurationConsumer = proguardConfigurationConsumer;
@@ -992,6 +1026,7 @@ public final class R8Command extends BaseCompilerCommand {
     forceProguardCompatibility = false;
     includeDataResources = null;
     proguardMapConsumer = null;
+    partitionMapConsumer = null;
     proguardUsageConsumer = null;
     proguardSeedsConsumer = null;
     proguardConfigurationConsumer = null;
@@ -1070,13 +1105,15 @@ public final class R8Command extends BaseCompilerCommand {
             proguardMapConsumer,
             proguardConfiguration.isPrintMapping(),
             proguardConfiguration.getPrintMappingFile());
-    internal.proguardMapConsumer =
-        stringConsumer == null
-            ? null
-            : ProguardMapStringConsumer.builder()
-                .setStringConsumer(stringConsumer)
-                .setDiagnosticsHandler(getReporter())
-                .build();
+    MapConsumer mapConsumer =
+        wrapExistingMapConsumerIfNotNull(
+            internal.mapConsumer, partitionMapConsumer, MapConsumerToPartitionMapConsumer::new);
+    internal.mapConsumer =
+        wrapExistingMapConsumerIfNotNull(
+            mapConsumer,
+            stringConsumer,
+            nonNullStringConsumer ->
+                ProguardMapStringConsumer.builder().setStringConsumer(stringConsumer).build());
 
     // Amend the usage information consumer with options from the proguard configuration.
     internal.usageInformationConsumer =

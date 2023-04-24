@@ -5,7 +5,6 @@ package com.android.tools.r8.naming;
 
 import com.android.tools.r8.MapIdEnvironment;
 import com.android.tools.r8.MapIdProvider;
-import com.android.tools.r8.ProguardMapConsumer;
 import com.android.tools.r8.dex.Marker.Tool;
 import com.android.tools.r8.utils.ChainableStringConsumer;
 import com.android.tools.r8.utils.ExceptionUtils;
@@ -44,7 +43,7 @@ public class ProguardMapSupplier {
 
   private final ClassNameMapper classNameMapper;
   private final InternalOptions options;
-  private final ProguardMapConsumer consumer;
+  private final MapConsumer consumer;
   private final Reporter reporter;
   private final Tool compiler;
 
@@ -53,7 +52,7 @@ public class ProguardMapSupplier {
     this.classNameMapper = classNameMapper.sorted();
     // TODO(b/217111432): Validate Proguard using ProguardMapChecker without building the entire
     //  Proguard map in memory.
-    this.consumer = options.proguardMapConsumer;
+    this.consumer = options.mapConsumer;
     this.options = options;
     this.reporter = options.reporter;
     this.compiler = tool;
@@ -68,6 +67,7 @@ public class ProguardMapSupplier {
   public ProguardMapId writeProguardMap() {
     ProguardMapId proguardMapId = computeProguardMapId();
     consumer.accept(
+        reporter,
         ProguardMapMarkerInfo.builder()
             .setCompilerName(compiler.name())
             .setProguardMapId(proguardMapId)

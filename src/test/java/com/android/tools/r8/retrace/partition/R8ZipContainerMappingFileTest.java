@@ -9,14 +9,15 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.DiagnosticsHandler;
-import com.android.tools.r8.ProguardMapConsumer;
+import com.android.tools.r8.PartitionMapConsumer;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestDiagnosticMessagesImpl;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
-import com.android.tools.r8.naming.ProguardMapPartitionConsumer;
 import com.android.tools.r8.naming.retrace.StackTrace;
 import com.android.tools.r8.naming.retrace.StackTrace.StackTraceLine;
+import com.android.tools.r8.retrace.MappingPartition;
+import com.android.tools.r8.retrace.MappingPartitionMetadata;
 import com.android.tools.r8.retrace.PartitionMappingSupplier;
 import com.android.tools.r8.retrace.partition.testclasses.R8ZipContainerMappingFileTestClasses;
 import com.android.tools.r8.retrace.partition.testclasses.R8ZipContainerMappingFileTestClasses.Main;
@@ -79,8 +80,6 @@ public class R8ZipContainerMappingFileTest extends TestBase {
   public void testR8() throws Exception {
     Path pgMapFile = temp.newFile("mapping.zip").toPath();
     DiagnosticsHandler diagnosticsHandler = new TestDiagnosticMessagesImpl();
-    ProguardMapConsumer partitionZipConsumer =
-        createPartitionZipConsumer(pgMapFile, diagnosticsHandler);
     StackTrace originalStackTrace =
         testForR8(parameters.getBackend())
             .addInnerClasses(R8ZipContainerMappingFileTestClasses.class)
@@ -88,7 +87,7 @@ public class R8ZipContainerMappingFileTest extends TestBase {
             .addKeepMainRule(Main.class)
             .addKeepAttributeSourceFile()
             .addKeepAttributeLineNumberTable()
-            .addOptionsModification(options -> options.proguardMapConsumer = partitionZipConsumer)
+            .setPartitionMapConsumer(createPartitionZipConsumer(pgMapFile))
             .run(parameters.getRuntime(), Main.class)
             .assertFailureWithErrorThatThrows(RuntimeException.class)
             .getOriginalStackTrace();
@@ -99,36 +98,37 @@ public class R8ZipContainerMappingFileTest extends TestBase {
         isSame(EXPECTED));
   }
 
-  private ProguardMapConsumer createPartitionZipConsumer(
-      Path pgMapFile, DiagnosticsHandler diagnosticsHandler) throws IOException {
+  private PartitionMapConsumer createPartitionZipConsumer(Path pgMapFile) throws IOException {
     ZipBuilder zipBuilder = ZipBuilder.builder(pgMapFile);
-    return ProguardMapPartitionConsumer.builder()
-        .setMappingPartitionConsumer(
-            mappingPartition -> {
-              try {
-                zipBuilder.addBytes(mappingPartition.getKey(), mappingPartition.getPayload());
-              } catch (IOException e) {
-                throw new RuntimeException(e);
-              }
-            })
-        .setMetadataConsumer(
-            metadata -> {
-              try {
-                zipBuilder.addBytes("METADATA", metadata.getBytes());
-              } catch (IOException e) {
-                throw new RuntimeException(e);
-              }
-            })
-        .setFinishedConsumer(
-            () -> {
-              try {
-                zipBuilder.build();
-              } catch (IOException e) {
-                throw new RuntimeException(e);
-              }
-            })
-        .setDiagnosticsHandler(diagnosticsHandler)
-        .build();
+    return new PartitionMapConsumer() {
+      @Override
+      public void acceptMappingPartition(MappingPartition mappingPartition) {
+        try {
+          zipBuilder.addBytes(mappingPartition.getKey(), mappingPartition.getPayload());
+        } catch (IOException e) {
+          throw new RuntimeException(e);
+        }
+      }
+
+      @Override
+      public void acceptMappingPartitionMetadata(
+          MappingPartitionMetadata mappingPartitionMetadata) {
+        try {
+          zipBuilder.addBytes("METADATA", mappingPartitionMetadata.getBytes());
+        } catch (IOException e) {
+          throw new RuntimeException(e);
+        }
+      }
+
+      @Override
+      public void finished(DiagnosticsHandler handler) {
+        try {
+          zipBuilder.build();
+        } catch (IOException e) {
+          throw new RuntimeException(e);
+        }
+      }
+    };
   }
 
   private PartitionMappingSupplier createMappingSupplierFromPartitionZip(Path pgMapFile)

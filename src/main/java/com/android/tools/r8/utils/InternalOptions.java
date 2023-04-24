@@ -17,7 +17,6 @@ import com.android.tools.r8.FeatureSplit;
 import com.android.tools.r8.GlobalSyntheticsConsumer;
 import com.android.tools.r8.MapIdProvider;
 import com.android.tools.r8.ProgramConsumer;
-import com.android.tools.r8.ProguardMapConsumer;
 import com.android.tools.r8.SourceFileProvider;
 import com.android.tools.r8.StringConsumer;
 import com.android.tools.r8.SyntheticInfoConsumer;
@@ -72,6 +71,7 @@ import com.android.tools.r8.ir.optimize.Inliner;
 import com.android.tools.r8.ir.optimize.Inliner.Reason;
 import com.android.tools.r8.ir.optimize.enums.EnumDataMap;
 import com.android.tools.r8.naming.ClassNameMapper;
+import com.android.tools.r8.naming.MapConsumer;
 import com.android.tools.r8.naming.MapVersion;
 import com.android.tools.r8.optimize.argumentpropagation.ArgumentPropagatorEventConsumer;
 import com.android.tools.r8.optimize.redundantbridgeremoval.RedundantBridgeRemovalOptions;
@@ -1051,7 +1051,7 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
 
   // If null, no proguard map needs to be computed.
   // If non null it must be and passed to the consumer.
-  public ProguardMapConsumer proguardMapConsumer = null;
+  public MapConsumer mapConsumer = null;
 
   // If null, no usage information needs to be computed.
   // If non-null, it must be and is passed to the consumer.
