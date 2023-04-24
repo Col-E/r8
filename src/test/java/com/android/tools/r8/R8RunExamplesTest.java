@@ -26,7 +26,6 @@ public class R8RunExamplesTest extends R8RunExamplesTestBase {
   public static Collection<String[]> data() {
     String[] tests = {
         "arithmetic.Arithmetic",
-        "floating_point_annotations.FloatingPointValuedAnnotationTest",
         "filledarray.FilledArray",
         "hello.Hello",
         "ifstatements.IfStatements",

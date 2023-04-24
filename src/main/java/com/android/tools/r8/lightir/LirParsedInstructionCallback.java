@@ -85,6 +85,10 @@ public abstract class LirParsedInstructionCallback<EV> implements LirInstruction
     onInstruction();
   }
 
+  public void onConstClass(DexType type) {
+    onInstruction();
+  }
+
   private void onArrayGetInternal(MemberType type, LirInstructionView view) {
     if (type.isObject()) {
       DexType destType = (DexType) getConstantItem(view.getNextConstantOperand());
@@ -390,6 +394,10 @@ public abstract class LirParsedInstructionCallback<EV> implements LirInstruction
           DexItem item = getConstantItem(view.getNextConstantOperand());
           if (item instanceof DexString) {
             onConstString((DexString) item);
+            return;
+          }
+          if (item instanceof DexType) {
+            onConstClass((DexType) item);
             return;
           }
           throw new Unimplemented();

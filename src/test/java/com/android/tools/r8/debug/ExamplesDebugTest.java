@@ -60,11 +60,6 @@ public class ExamplesDebugTest extends DebugTestBase {
   }
 
   @Test
-  public void testFloatingPointValuedAnnotation() throws Exception {
-    testDebugging("floating_point_annotations", "FloatingPointValuedAnnotationTest");
-  }
-
-  @Test
   public void testFilledArray() throws Exception {
     testDebugging("filledarray", "FilledArray");
   }

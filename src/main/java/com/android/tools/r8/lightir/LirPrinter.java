@@ -150,6 +150,11 @@ public class LirPrinter<EV> extends LirParsedInstructionCallback<EV> {
   }
 
   @Override
+  public void onConstClass(DexType type) {
+    appendOutValue().append("class(").append(type).append(")");
+  }
+
+  @Override
   public void onAdd(NumericType type, EV leftValueIndex, EV rightValueIndex) {
     appendOutValue();
     appendValueArguments(leftValueIndex, rightValueIndex);

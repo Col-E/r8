@@ -4,6 +4,7 @@
 package com.android.tools.r8.examples;
 
 import com.android.tools.r8.CompilationFailedException;
+import com.android.tools.r8.R8FullTestBuilder;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestRuntime.CfRuntime;
 import com.android.tools.r8.ToolHelper;
@@ -16,8 +17,8 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Collections;
 import java.util.List;
+import java.util.function.Consumer;
 import org.junit.Assume;
-import org.junit.Test;
 
 public abstract class ExamplesTestBase extends DebugTestBase {
 
@@ -43,12 +44,17 @@ public abstract class ExamplesTestBase extends DebugTestBase {
   }
 
   public void runTestR8() throws Exception {
+    runTestR8(unused -> {});
+  }
+
+  public void runTestR8(Consumer<R8FullTestBuilder> modifier) throws Exception {
     parameters.assumeR8TestParameters();
     testForR8(parameters.getBackend())
         .addOptionsModification(o -> o.testing.roundtripThroughLir = true)
         .setMinApi(parameters)
         .addProgramClasses(getTestClasses())
         .addKeepMainRule(getMainClass())
+        .apply(modifier::accept)
         .run(parameters.getRuntime(), getMainClass())
         .assertSuccessWithOutput(getExpected());
   }

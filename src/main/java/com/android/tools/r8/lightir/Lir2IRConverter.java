@@ -24,6 +24,7 @@ import com.android.tools.r8.ir.code.CatchHandlers;
 import com.android.tools.r8.ir.code.CheckCast;
 import com.android.tools.r8.ir.code.Cmp;
 import com.android.tools.r8.ir.code.Cmp.Bias;
+import com.android.tools.r8.ir.code.ConstClass;
 import com.android.tools.r8.ir.code.ConstNumber;
 import com.android.tools.r8.ir.code.ConstString;
 import com.android.tools.r8.ir.code.DebugLocalWrite;
@@ -418,6 +419,14 @@ public class Lir2IRConverter {
     public void onConstString(DexString string) {
       Value dest = getOutValueForNextInstruction(TypeElement.stringClassType(appView));
       addInstruction(new ConstString(dest, string));
+    }
+
+    @Override
+    public void onConstClass(DexType type) {
+      Value dest =
+          getOutValueForNextInstruction(
+              type.toTypeElement(appView, Nullability.definitelyNotNull()));
+      addInstruction(new ConstClass(dest, type));
     }
 
     @Override

@@ -331,6 +331,10 @@ public class LirBuilder<V, EV> {
     return addOneItemInstruction(LirOpcodes.LDC, string);
   }
 
+  public LirBuilder<V, EV> addConstClass(DexType type) {
+    return addOneItemInstruction(LirOpcodes.LDC, type);
+  }
+
   public LirBuilder<V, EV> addDiv(NumericType type, V leftValue, V rightValue) {
     int opcode;
     switch (type) {

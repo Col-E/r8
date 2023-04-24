@@ -25,6 +25,7 @@ import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.InliningConstraints;
+import com.android.tools.r8.lightir.LirBuilder;
 
 public class ConstClass extends ConstInstruction {
 
@@ -218,6 +219,11 @@ public class ConstClass extends ConstInstruction {
   @Override
   void internalRegisterUse(UseRegistry<?> registry, DexClassAndMethod context) {
     registry.registerConstClass(clazz, null, ignoreCompatRules);
+  }
+
+  @Override
+  public void buildLir(LirBuilder<Value, ?> builder) {
+    builder.addConstClass(getType());
   }
 
   public static class Builder extends BuilderBase<Builder, ConstClass> {
