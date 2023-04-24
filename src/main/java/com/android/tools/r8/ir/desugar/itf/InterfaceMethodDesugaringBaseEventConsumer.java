@@ -7,7 +7,7 @@ import com.android.tools.r8.graph.ProgramMethod;
 
 public interface InterfaceMethodDesugaringBaseEventConsumer {
 
-  void acceptCompanionClassClinit(ProgramMethod method);
+  void acceptCompanionClassClinit(ProgramMethod method, ProgramMethod companionMethod);
 
   void acceptDefaultAsCompanionMethod(ProgramMethod method, ProgramMethod companionMethod);
 

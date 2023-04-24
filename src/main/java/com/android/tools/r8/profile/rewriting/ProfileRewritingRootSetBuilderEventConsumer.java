@@ -28,8 +28,9 @@ public class ProfileRewritingRootSetBuilderEventConsumer implements RootSetBuild
   }
 
   @Override
-  public void acceptCompanionClassClinit(ProgramMethod method) {
-    parent.acceptCompanionClassClinit(method);
+  public void acceptCompanionClassClinit(ProgramMethod method, ProgramMethod companionMethod) {
+    additionsCollection.addMethodAndHolderIfContextIsInProfile(companionMethod, method);
+    parent.acceptCompanionClassClinit(method, companionMethod);
   }
 
   @Override

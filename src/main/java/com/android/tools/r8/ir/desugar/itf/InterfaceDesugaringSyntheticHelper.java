@@ -565,7 +565,9 @@ public class InterfaceDesugaringSyntheticHelper {
         appView.dexItemFactory().createProto(appView.dexItemFactory().voidType),
         appView,
         methodBuilder -> createCompanionClassInitializer(iface, methodBuilder),
-        eventConsumer::acceptCompanionClassClinit);
+        companionMethod ->
+            eventConsumer.acceptCompanionClassClinit(
+                iface.getProgramClassInitializer(), companionMethod));
   }
 
   private DexEncodedField ensureStaticClinitFieldToTriggerInterfaceInitialization(

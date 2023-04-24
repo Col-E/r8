@@ -91,8 +91,9 @@ public class ProfileRewritingCfInstructionDesugaringEventConsumer
   }
 
   @Override
-  public void acceptCompanionClassClinit(ProgramMethod method) {
-    parent.acceptCompanionClassClinit(method);
+  public void acceptCompanionClassClinit(ProgramMethod method, ProgramMethod companionMethod) {
+    additionsCollection.addMethodAndHolderIfContextIsInProfile(companionMethod, method);
+    parent.acceptCompanionClassClinit(method, companionMethod);
   }
 
   @Override
