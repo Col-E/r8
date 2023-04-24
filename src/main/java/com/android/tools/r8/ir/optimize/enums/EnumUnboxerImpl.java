@@ -1333,76 +1333,102 @@ public class EnumUnboxerImpl extends EnumUnboxer {
       }
       return Reason.INVALID_INVOKE_ON_ARRAY;
     }
-    DexClassAndMethod singleTarget = invoke.lookupSingleTarget(appView, code.context());
-    if (singleTarget == null) {
+
+    DexClassAndMethod resolvedMethod =
+        appView
+            .appInfo()
+            .resolveMethod(invoke.getInvokedMethod(), invoke.getInterfaceBit())
+            .getResolutionPair();
+    if (resolvedMethod == null) {
       return Reason.INVALID_INVOKE;
     }
-    DexMethod singleTargetReference = singleTarget.getReference();
-    DexClass targetHolder = singleTarget.getHolder();
-    if (targetHolder.isProgramClass()) {
-      if (targetHolder.isEnum() && singleTarget.getDefinition().isInstanceInitializer()) {
+    // The single target may be null if for example this is a virtual invoke into an abstract
+    // method.
+    DexClassAndMethod singleTarget = invoke.lookupSingleTarget(appView, code.context());
+    DexClassAndMethod mostAccurateTarget = singleTarget == null ? resolvedMethod : singleTarget;
+
+    if (mostAccurateTarget.isProgramMethod()) {
+      if (mostAccurateTarget.getHolder().isEnum()
+          && resolvedMethod.getDefinition().isInstanceInitializer()) {
         // The enum instance initializer is only allowed to be called from an initializer of the
         // enum itself.
-        if (getEnumUnboxingCandidateOrNull(code.context().getHolder().getType())
-                != getEnumUnboxingCandidateOrNull(targetHolder.getType())
+        if (getEnumUnboxingCandidateOrNull(code.context().getHolderType())
+                != getEnumUnboxingCandidateOrNull(mostAccurateTarget.getHolderType())
             || !context.getDefinition().isInitializer()) {
           return Reason.INVALID_INIT;
         }
-        if (code.method().isInstanceInitializer() && !invoke.getFirstArgument().isThis()) {
+        if (context.getDefinition().isInstanceInitializer()
+            && !invoke.getFirstArgument().isThis()) {
           return Reason.INVALID_INIT;
         }
       }
 
       // Check if this is a checkNotNull() user. In this case, we can create a copy of the method
       // that takes an int instead of java.lang.Object and call that method instead.
-      EnumUnboxerMethodClassification classification =
-          singleTarget.getOptimizationInfo().getEnumUnboxerMethodClassification();
-      if (classification.isCheckNotNullClassification()) {
-        CheckNotNullEnumUnboxerMethodClassification checkNotNullClassification =
-            classification.asCheckNotNullClassification();
-        if (checkNotNullClassification.isUseEligibleForUnboxing(
-            invoke.asInvokeStatic(), enumValue)) {
-          GraphLens graphLens = appView.graphLens();
-          checkNotNullMethodsBuilder
-              .computeIfAbsent(
-                  singleTarget.asProgramMethod(),
-                  ignoreKey(
-                      () ->
-                          LongLivedClassSetBuilder.createConcurrentBuilderForIdentitySet(
-                              graphLens)),
-                  graphLens)
-              .add(enumClass, graphLens);
-          return Reason.ELIGIBLE;
+      if (singleTarget != null) {
+        EnumUnboxerMethodClassification classification =
+            singleTarget.getOptimizationInfo().getEnumUnboxerMethodClassification();
+        if (classification.isCheckNotNullClassification()) {
+          assert singleTarget.getDefinition().isStatic();
+          CheckNotNullEnumUnboxerMethodClassification checkNotNullClassification =
+              classification.asCheckNotNullClassification();
+          if (checkNotNullClassification.isUseEligibleForUnboxing(
+              invoke.asInvokeStatic(), enumValue)) {
+            GraphLens graphLens = appView.graphLens();
+            checkNotNullMethodsBuilder
+                .computeIfAbsent(
+                    singleTarget.asProgramMethod(),
+                    ignoreKey(
+                        () ->
+                            LongLivedClassSetBuilder.createConcurrentBuilderForIdentitySet(
+                                graphLens)),
+                    graphLens)
+                .add(enumClass, graphLens);
+            return Reason.ELIGIBLE;
+          }
         }
       }
 
       // Check that the enum-value only flows into parameters whose type exactly matches the
       // enum's type.
-      for (int i = 0; i < singleTarget.getParameters().size(); i++) {
+      for (int i = 0; i < mostAccurateTarget.getParameters().size(); i++) {
         if (invoke.getArgumentForParameter(i) == enumValue
             && !enumUnboxingCandidatesInfo.isAssignableTo(
-                singleTarget.getParameter(i).toBaseType(factory), enumClass.getType())) {
-          return new IllegalInvokeWithImpreciseParameterTypeReason(singleTargetReference);
+                mostAccurateTarget.getParameter(i).toBaseType(factory), enumClass.getType())) {
+          return new IllegalInvokeWithImpreciseParameterTypeReason(
+              mostAccurateTarget.getReference());
         }
       }
       if (invoke.isInvokeMethodWithReceiver()) {
         Value receiver = invoke.asInvokeMethodWithReceiver().getReceiver();
-        if (receiver == enumValue && targetHolder.isInterface()) {
+        if (receiver == enumValue && mostAccurateTarget.getHolder().isInterface()) {
           return Reason.DEFAULT_METHOD_INVOKE;
+
         }
       }
       return Reason.ELIGIBLE;
     }
 
-    if (targetHolder.isClasspathClass()) {
+    if (mostAccurateTarget.getHolder().isClasspathClass()) {
       return Reason.INVALID_INVOKE_CLASSPATH;
     }
 
-    assert targetHolder.isLibraryClass();
+    assert mostAccurateTarget.getHolder().isLibraryClass();
+
+    if (singleTarget == null) {
+      // We don't attempt library modeling if we don't have a single target.
+      return Reason.INVALID_INVOKE;
+    }
 
     Reason reason =
         analyzeLibraryInvoke(
-            invoke, code, context, enumClass, enumValue, singleTargetReference, targetHolder);
+            invoke,
+            code,
+            context,
+            enumClass,
+            enumValue,
+            singleTarget.getReference(),
+            singleTarget.getHolder());
 
     if (reason == Reason.ELIGIBLE) {
       markMethodDependsOnLibraryModelisation(context);
