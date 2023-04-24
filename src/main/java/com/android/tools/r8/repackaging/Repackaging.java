@@ -20,7 +20,7 @@ import com.android.tools.r8.graph.InnerClassAttribute;
 import com.android.tools.r8.graph.ProgramPackage;
 import com.android.tools.r8.graph.ProgramPackageCollection;
 import com.android.tools.r8.graph.SortedProgramPackageCollection;
-import com.android.tools.r8.graph.TreeFixerBase;
+import com.android.tools.r8.graph.fixup.TreeFixerBase;
 import com.android.tools.r8.graph.lens.NestedGraphLens;
 import com.android.tools.r8.naming.Minifier.MinificationPackageNamingStrategy;
 import com.android.tools.r8.repackaging.RepackagingLens.Builder;

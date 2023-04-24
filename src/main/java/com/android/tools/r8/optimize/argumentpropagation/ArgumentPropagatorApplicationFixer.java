@@ -18,7 +18,7 @@ import com.android.tools.r8.graph.GenericSignature.FieldTypeSignature;
 import com.android.tools.r8.graph.GenericSignature.MethodTypeSignature;
 import com.android.tools.r8.graph.MethodCollection;
 import com.android.tools.r8.graph.PrunedItems;
-import com.android.tools.r8.graph.TreeFixerBase;
+import com.android.tools.r8.graph.fixup.TreeFixerBase;
 import com.android.tools.r8.graph.lens.GraphLens;
 import com.android.tools.r8.graph.proto.RewrittenPrototypeDescription;
 import com.android.tools.r8.ir.optimize.info.MethodOptimizationInfoFixer;

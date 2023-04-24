@@ -32,6 +32,10 @@ public class PrunedItems {
     this.removedMethods = removedMethods;
   }
 
+  public static Builder concurrentBuilder() {
+    return new ConcurrentBuilder();
+  }
+
   public static Builder builder() {
     return new Builder();
   }
@@ -111,21 +115,32 @@ public class PrunedItems {
 
     private DexApplication prunedApp;
 
-    private final Set<DexReference> additionalPinnedItems = Sets.newIdentityHashSet();
-    private final Set<DexType> noLongerSyntheticItems = Sets.newIdentityHashSet();
-    private Set<DexType> removedClasses = Sets.newIdentityHashSet();
-    private final Set<DexField> removedFields = Sets.newIdentityHashSet();
-    private Set<DexMethod> removedMethods = Sets.newIdentityHashSet();
+    private final Set<DexReference> additionalPinnedItems;
+    private final Set<DexType> noLongerSyntheticItems;
+    private Set<DexType> removedClasses;
+    private final Set<DexField> removedFields;
+    private Set<DexMethod> removedMethods;
 
-    Builder() {}
+    Builder() {
+      additionalPinnedItems = newEmptySet();
+      noLongerSyntheticItems = newEmptySet();
+      removedClasses = newEmptySet();
+      removedFields = newEmptySet();
+      removedMethods = newEmptySet();
+    }
 
     Builder(PrunedItems prunedItems) {
+      this();
       additionalPinnedItems.addAll(prunedItems.getAdditionalPinnedItems());
       noLongerSyntheticItems.addAll(prunedItems.getNoLongerSyntheticItems());
       prunedApp = prunedItems.getPrunedApp();
       removedClasses.addAll(prunedItems.getRemovedClasses());
       removedFields.addAll(prunedItems.getRemovedFields());
       removedMethods.addAll(prunedItems.getRemovedMethods());
+    }
+
+    <T> Set<T> newEmptySet() {
+      return Sets.newIdentityHashSet();
     }
 
     public Builder setPrunedApp(DexApplication prunedApp) {
@@ -194,6 +209,24 @@ public class PrunedItems {
           removedClasses,
           removedFields,
           removedMethods);
+    }
+  }
+
+  public static class ConcurrentBuilder extends Builder {
+
+    @Override
+    <T> Set<T> newEmptySet() {
+      return Sets.newConcurrentHashSet();
+    }
+
+    @Override
+    public Builder setRemovedClasses(Set<DexType> removedClasses) {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public Builder setRemovedMethods(Set<DexMethod> removedMethods) {
+      throw new UnsupportedOperationException();
     }
   }
 }

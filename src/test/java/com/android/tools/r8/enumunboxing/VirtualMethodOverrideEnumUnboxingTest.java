@@ -6,7 +6,7 @@ package com.android.tools.r8.enumunboxing;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.KeepConstantArguments;
 import com.android.tools.r8.NeverClassInline;
@@ -67,8 +67,7 @@ public class VirtualMethodOverrideEnumUnboxingTest extends EnumUnboxingTestBase 
     MethodSubject methodOnB =
         inspector.clazz(B.class).uniqueMethodWithFinalName(methodOnA.getFinalName());
     assertThat(methodOnB, isPresent());
-    // TODO(b/171784168): Should be true.
-    assertFalse(methodOnB.streamInstructions().anyMatch(x -> x.asDexInstruction().isInvokeSuper()));
+    assertTrue(methodOnB.streamInstructions().anyMatch(x -> x.asDexInstruction().isInvokeSuper()));
   }
 
   static class TestClass {

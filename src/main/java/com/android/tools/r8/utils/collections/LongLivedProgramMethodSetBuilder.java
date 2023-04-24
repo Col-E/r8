@@ -168,7 +168,7 @@ public class LongLivedProgramMethodSetBuilder<T extends ProgramMethodSet> {
           appView.graphLens().getRenamedMethodSignature(method, appliedGraphLens);
       DexProgramClass holder = appView.definitionForHolder(rewrittenMethod).asProgramClass();
       DexEncodedMethod definition = holder.lookupMethod(rewrittenMethod);
-      assert definition != null;
+      assert definition != null : "Missing method: " + rewrittenMethod;
       result.createAndAdd(holder, definition);
     }
     return result;
