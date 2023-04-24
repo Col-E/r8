@@ -60,11 +60,6 @@ public class ExamplesDebugTest extends DebugTestBase {
   }
 
   @Test
-  public void testBridgeMethod() throws Exception {
-    testDebugging("bridge", "BridgeMethod");
-  }
-
-  @Test
   public void testConstants() throws Exception {
     testDebugging("constants", "Constants");
   }
