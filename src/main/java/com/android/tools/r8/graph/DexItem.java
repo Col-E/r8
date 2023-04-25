@@ -6,7 +6,6 @@ package com.android.tools.r8.graph;
 import com.android.tools.r8.dex.MixedSectionCollection;
 import java.util.Collection;
 import java.util.function.Consumer;
-import java.util.stream.Stream;
 
 public abstract class DexItem {
 
@@ -34,7 +33,7 @@ public abstract class DexItem {
     }
   }
 
-  abstract void collectMixedSectionItems(MixedSectionCollection collection);
+  protected abstract void collectMixedSectionItems(MixedSectionCollection collection);
 
   protected void flushCachedValues() {
     // Overwritten in subclasses.
@@ -48,7 +47,4 @@ public abstract class DexItem {
     return toString();
   }
 
-  static <T extends DexItem> Stream<T> filter(Stream<DexItem> stream, Class<T> clazz) {
-    return stream.filter(clazz::isInstance).map(clazz::cast);
-  }
 }

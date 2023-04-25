@@ -471,7 +471,7 @@ public class DexProgramClass extends DexClass
   }
 
   @Override
-  void collectMixedSectionItems(MixedSectionCollection mixedItems) {
+  protected void collectMixedSectionItems(MixedSectionCollection mixedItems) {
     assert getEnclosingMethodAttribute() == null;
     assert getInnerClasses().isEmpty();
     assert !classSignature.hasSignature();

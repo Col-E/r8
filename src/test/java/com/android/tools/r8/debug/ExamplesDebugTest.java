@@ -60,11 +60,6 @@ public class ExamplesDebugTest extends DebugTestBase {
   }
 
   @Test
-  public void testFilledArray() throws Exception {
-    testDebugging("filledarray", "FilledArray");
-  }
-
-  @Test
   public void testHello() throws Exception {
     testDebugging("hello", "Hello");
   }

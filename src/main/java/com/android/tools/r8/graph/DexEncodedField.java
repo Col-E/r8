@@ -145,7 +145,7 @@ public class DexEncodedField extends DexEncodedMember<DexEncodedField, DexField>
   }
 
   @Override
-  void collectMixedSectionItems(MixedSectionCollection mixedItems) {
+  protected void collectMixedSectionItems(MixedSectionCollection mixedItems) {
     annotations().collectMixedSectionItems(mixedItems);
   }
 

@@ -38,7 +38,7 @@ public class DexTypeAnnotation extends DexAnnotation {
   }
 
   @Override
-  void collectMixedSectionItems(MixedSectionCollection mixedItems) {
+  protected void collectMixedSectionItems(MixedSectionCollection mixedItems) {
     throw new Unreachable("Should not collect type annotation in DEX");
   }
 

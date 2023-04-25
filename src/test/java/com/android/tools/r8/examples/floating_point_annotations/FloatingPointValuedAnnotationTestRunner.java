@@ -5,10 +5,12 @@ package com.android.tools.r8.examples.floating_point_annotations;
 
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
+import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.examples.ExamplesTestBase;
 import com.android.tools.r8.utils.StringUtils;
 import com.google.common.collect.ImmutableList;
 import java.util.List;
+import org.junit.Assume;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -67,6 +69,10 @@ public class FloatingPointValuedAnnotationTestRunner extends ExamplesTestBase {
 
   @Test
   public void testDebug() throws Exception {
+    Assume.assumeFalse(
+        "VMs 13 and 14 step-out to the continuation (line 28) and not the call-site (line 25).",
+        parameters.isDexRuntimeVersion(Version.V13_0_0)
+            || parameters.isDexRuntimeVersion(Version.V14_0_0));
     runTestDebugComparator();
   }
 }

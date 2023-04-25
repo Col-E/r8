@@ -17,7 +17,7 @@ public class DexMemberAnnotation<R extends DexMember<?, R>, S extends DexItem> e
   }
 
   @Override
-  void collectMixedSectionItems(MixedSectionCollection mixedItems) {
+  protected void collectMixedSectionItems(MixedSectionCollection mixedItems) {
     annotations.collectMixedSectionItems(mixedItems);
   }
 

@@ -194,6 +194,8 @@ public interface LirOpcodes {
   int FALLTHROUGH = 211;
   int MOVEEXCEPTION = 212;
   int DEBUGLOCALWRITE = 213;
+  int INVOKENEWARRAY = 214;
+  int NEWARRAYFILLEDDATA = 215;
 
   static String toString(int opcode) {
     switch (opcode) {
@@ -506,6 +508,10 @@ public interface LirOpcodes {
         return "MOVEEXCEPTION";
       case DEBUGLOCALWRITE:
         return "DEBUGLOCALWRITE";
+      case INVOKENEWARRAY:
+        return "INVOKENEWARRAY";
+      case NEWARRAYFILLEDDATA:
+        return "NEWARRAYFILLEDDATA";
 
       default:
         throw new Unreachable("Unexpected LIR opcode: " + opcode);

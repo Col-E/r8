@@ -105,6 +105,8 @@ public abstract class ExamplesTestBase extends DebugTestBase {
         .setMinApi(parameters)
         .addProgramClasses(getTestClasses())
         .addKeepMainRule(getMainClass())
+        .addKeepRules("-keep,allowshrinking class *")
+        .addKeepAllAttributes()
         .debug()
         .compile()
         .debugConfig(parameters.getRuntime());

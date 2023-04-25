@@ -14,6 +14,7 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.code.IfType;
 import com.android.tools.r8.ir.code.MemberType;
 import com.android.tools.r8.ir.code.NumericType;
+import com.android.tools.r8.lightir.LirBuilder.FillArrayPayload;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -299,6 +300,14 @@ public abstract class LirParsedInstructionCallback<EV> implements LirInstruction
     onInstruction();
   }
 
+  public void onInvokeNewArray(DexType type, List<EV> arguments) {
+    onInstruction();
+  }
+
+  public void onNewArrayFilledData(int elementWidth, long size, short[] data, EV src) {
+    onInstruction();
+  }
+
   public void onInvokeMethodInstruction(DexMethod method, List<EV> arguments) {
     onInstruction();
   }
@@ -332,6 +341,10 @@ public abstract class LirParsedInstructionCallback<EV> implements LirInstruction
   }
 
   public void onStaticGet(DexField field) {
+    onFieldInstruction(field);
+  }
+
+  public void onStaticPut(DexField field, EV value) {
     onFieldInstruction(field);
   }
 
@@ -867,6 +880,13 @@ public abstract class LirParsedInstructionCallback<EV> implements LirInstruction
           onStaticGet(field);
           return;
         }
+      case LirOpcodes.PUTSTATIC:
+        {
+          DexField field = (DexField) getConstantItem(view.getNextConstantOperand());
+          EV value = getNextValueOperand(view);
+          onStaticPut(field, value);
+          return;
+        }
       case LirOpcodes.GETFIELD:
         {
           DexField field = (DexField) getConstantItem(view.getNextConstantOperand());
@@ -960,6 +980,21 @@ public abstract class LirParsedInstructionCallback<EV> implements LirInstruction
         {
           EV srcIndex = getNextValueOperand(view);
           onDebugLocalWrite(srcIndex);
+          return;
+        }
+      case LirOpcodes.INVOKENEWARRAY:
+        {
+          DexType type = getNextDexTypeOperand(view);
+          List<EV> arguments = getInvokeInstructionArguments(view);
+          onInvokeNewArray(type, arguments);
+          return;
+        }
+      case LirOpcodes.NEWARRAYFILLEDDATA:
+        {
+          FillArrayPayload payload =
+              (FillArrayPayload) getConstantItem(view.getNextConstantOperand());
+          EV src = getNextValueOperand(view);
+          onNewArrayFilledData(payload.element_width, payload.size, payload.data, src);
           return;
         }
       case LirOpcodes.LCMP:
