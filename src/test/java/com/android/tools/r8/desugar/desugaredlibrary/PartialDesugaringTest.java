@@ -129,9 +129,12 @@ public class PartialDesugaringTest extends DesugaredLibraryTestBase {
 
   @Test
   public void test() throws Exception {
+    InternalOptions options = new InternalOptions();
+    options
+        .getArtProfileOptions()
+        .setAllowReadingEmptyArtProfileProvidersMultipleTimesForTesting(true);
     SupportedClasses supportedClasses =
-        new SupportedClassesGenerator(
-                new InternalOptions(), ToolHelper.getAndroidJar(AndroidApiLevel.U))
+        new SupportedClassesGenerator(options, ToolHelper.getAndroidJar(AndroidApiLevel.U))
             .run(librarySpecification.getDesugarJdkLibs(), librarySpecification.getSpecification());
 
     for (AndroidApiLevel api : getRelevantApiLevels()) {
