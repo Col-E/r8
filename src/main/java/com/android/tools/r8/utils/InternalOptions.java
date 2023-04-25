@@ -348,6 +348,9 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
     }
   }
 
+  // Flag to enable fallback lookup in ObjectToOffsetMapping when identity based matches cannot be found.
+  public boolean enableIdentityLookupFailureFallback;
+
   // Flag to toggle if the prefix based merge restriction should be enforced.
   public boolean enableNeverMergePrefixes = true;
   public NeverMergeGroup<String> neverMerge =

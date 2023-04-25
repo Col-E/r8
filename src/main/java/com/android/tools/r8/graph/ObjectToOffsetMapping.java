@@ -334,6 +334,12 @@ public class ObjectToOffsetMapping {
 
   private <T extends IndexedDexItem> int getOffsetFor(T item, Reference2IntMap<T> map) {
     int index = map.getInt(item);
+    if (index == NOT_FOUND && appView.options().enableIdentityLookupFailureFallback) {
+      for (T key : map.keySet()) {
+        if (key.equals(item))
+          return map.getInt(key);
+      }
+    }
     assert index != NOT_FOUND : "Missing dependency: " + item;
     return index;
   }
