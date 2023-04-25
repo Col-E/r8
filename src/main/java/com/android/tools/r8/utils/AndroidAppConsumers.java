@@ -71,30 +71,32 @@ public class AndroidAppConsumers {
 
   public MapConsumer wrapProguardMapConsumer(MapConsumer consumer) {
     assert mapConsumer == null;
-    mapConsumer =
-        wrapExistingMapConsumer(
-            consumer,
-            ProguardMapStringConsumer.builder()
-                .setStringConsumer(
-                    new StringConsumer() {
-                      StringBuilder stringBuilder = null;
+    if (consumer != null) {
+      mapConsumer =
+          wrapExistingMapConsumer(
+              consumer,
+              ProguardMapStringConsumer.builder()
+                  .setStringConsumer(
+                      new StringConsumer() {
+                        StringBuilder stringBuilder = null;
 
-                      @Override
-                      public void accept(String string, DiagnosticsHandler handler) {
-                        if (stringBuilder == null) {
-                          stringBuilder = new StringBuilder();
+                        @Override
+                        public void accept(String string, DiagnosticsHandler handler) {
+                          if (stringBuilder == null) {
+                            stringBuilder = new StringBuilder();
+                          }
+                          stringBuilder.append(string);
                         }
-                        stringBuilder.append(string);
-                      }
 
-                      @Override
-                      public void finished(DiagnosticsHandler handler) {
-                        if (stringBuilder != null) {
-                          builder.setProguardMapOutputData(stringBuilder.toString());
+                        @Override
+                        public void finished(DiagnosticsHandler handler) {
+                          if (stringBuilder != null) {
+                            builder.setProguardMapOutputData(stringBuilder.toString());
+                          }
                         }
-                      }
-                    })
-                .build());
+                      })
+                  .build());
+    }
     return mapConsumer;
   }
 
