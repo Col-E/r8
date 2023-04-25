@@ -1011,6 +1011,20 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
     }
   }
 
+  public static void setDebugInfoWithExtraParameters(
+      Code code, int arity, int extraParameters, AppView<?> appView) {
+    if (code.isDexCode()) {
+      DexCode dexCode = code.asDexCode();
+      DexDebugInfo newDebugInfo =
+          dexCode.debugInfoWithExtraParameters(appView.dexItemFactory(), extraParameters);
+      assert (newDebugInfo == null) || (arity == newDebugInfo.getParameterCount());
+      dexCode.setDebugInfo(newDebugInfo);
+    } else {
+      assert code.isCfCode();
+      // We don't have anything to do for Cf.
+    }
+  }
+
   private DexCode toDexCodeThatLogsError(DexItemFactory itemFactory) {
     checkIfObsolete();
     Signature signature = MethodSignature.fromDexMethod(getReference());
