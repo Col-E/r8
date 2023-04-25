@@ -309,7 +309,7 @@ public final class L8Command extends BaseCompilerCommand {
      * @param proguardMapOutput File-system path to write output at.
      */
     @Override
-    public L8Command.Builder setProguardMapOutputPath(Path proguardMapOutput) {
+    public Builder setProguardMapOutputPath(Path proguardMapOutput) {
       return super.setProguardMapOutputPath(proguardMapOutput);
     }
 
@@ -322,7 +322,7 @@ public final class L8Command extends BaseCompilerCommand {
      * @param proguardMapConsumer Consumer to receive the content once produced.
      */
     @Override
-    public L8Command.Builder setProguardMapConsumer(StringConsumer proguardMapConsumer) {
+    public Builder setProguardMapConsumer(StringConsumer proguardMapConsumer) {
       return super.setProguardMapConsumer(proguardMapConsumer);
     }
 
@@ -351,7 +351,7 @@ public final class L8Command extends BaseCompilerCommand {
       if (isShrinking() && getProgramConsumer() instanceof ClassFileConsumer) {
         reporter.error("L8 does not support shrinking when generating class files");
       }
-      if (!isShrinking() && proguardMapConsumer != null) {
+      if (!isShrinking() && (proguardMapConsumer != null || partitionMapConsumer != null)) {
         reporter.error("L8 does not support defining a map consumer when not shrinking");
       }
       super.validate();
@@ -402,6 +402,9 @@ public final class L8Command extends BaseCompilerCommand {
         }
         if (proguardMapConsumer != null) {
           r8Builder.setProguardMapConsumer(proguardMapConsumer);
+        }
+        if (partitionMapConsumer != null) {
+          r8Builder.setPartitionMapConsumer(partitionMapConsumer);
         }
         r8Builder.addProguardConfiguration(
             desugaredLibrarySpecification.getExtraKeepRules(), Origin.unknown());

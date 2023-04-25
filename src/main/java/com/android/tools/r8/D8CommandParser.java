@@ -34,6 +34,7 @@ public class D8CommandParser extends BaseCompilerCommandParser<D8Command, D8Comm
           "--classpath",
           "--pg-map",
           "--pg-map-output",
+          "--partition-map-output",
           MIN_API_FLAG,
           "--main-dex-rules",
           "--main-dex-list",
@@ -60,6 +61,8 @@ public class D8CommandParser extends BaseCompilerCommandParser<D8Command, D8Comm
                 "--pg-map", "<file>", "Use <file> as a mapping file for distribution."))
         // TODO(b/183125319): Add help info once supported.
         // "  --pg-map-output <file>  # Enable line optimization and output mapping to <file>.",
+        // "  --partition-map-output <file>  # Enable line optimization and output mapping to
+        //   <file>.",
         .add(
             ParseFlagInfoImpl.flag0(
                 "--intermediate", "Compile an intermediate result intended for later", "merging."))
@@ -265,6 +268,8 @@ public class D8CommandParser extends BaseCompilerCommandParser<D8Command, D8Comm
         builder.setProguardInputMapFile(Paths.get(nextArg));
       } else if (arg.equals("--pg-map-output")) {
         builder.setProguardMapOutputPath(Paths.get(nextArg));
+      } else if (arg.equals("--partition-map-output")) {
+        builder.setPartitionMapOutputPath(Paths.get(nextArg));
       } else if (arg.equals("--output")) {
         if (outputPath != null) {
           builder.error(
