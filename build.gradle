@@ -1027,6 +1027,7 @@ def r8CfCommandLine(input, output, pgConfs = [], args = ["--release"], libs = []
             input,
             "--output", output,
             "--pg-map-output", output + ".map",
+            "--partition-map-output", output + "_map.zip",
             "--lib", org.gradle.internal.jvm.Jvm.current().javaHome,
     ] + args + libs.collectMany { ["--lib", it] } + pgConfs.collectMany { ["--pg-conf", it] }
     return baseR8CommandLine(allArgs)
