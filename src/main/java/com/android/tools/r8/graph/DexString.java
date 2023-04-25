@@ -24,6 +24,7 @@ public class DexString extends IndexedDexItem implements NamingLensComparable<De
 
   public final int size;  // size of this string, in UTF-16
   public final byte[] content;
+  private String decoded;
 
   DexString(int size, byte[] content) {
     this.size = size;
@@ -33,6 +34,7 @@ public class DexString extends IndexedDexItem implements NamingLensComparable<De
   DexString(String string) {
     this.size = string.length();
     this.content = encodeToMutf8(string);
+    decoded = string;
   }
 
   public char getFirstByteAsChar() {
@@ -146,9 +148,10 @@ public class DexString extends IndexedDexItem implements NamingLensComparable<De
   }
 
   private String decode() throws UTFDataFormatException {
+    if (decoded != null) return decoded;
     char[] out = new char[size];
     int decodedLength = decodePrefix(out);
-    return new String(out, 0, decodedLength);
+    return decoded = new String(out, 0, decodedLength);
   }
 
   // Inspired from /dex/src/main/java/com/android/dex/Mutf8.java
