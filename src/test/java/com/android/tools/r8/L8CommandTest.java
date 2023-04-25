@@ -192,9 +192,9 @@ public class L8CommandTest extends CommandTestBase<L8Command> {
     assertNotNull(parsedCommand.getR8Command());
     InternalOptions internalOptions = parsedCommand.getR8Command().getInternalOptions();
     assertNotNull(internalOptions);
-    assertTrue(internalOptions.proguardMapConsumer instanceof ProguardMapStringConsumer);
+    assertTrue(internalOptions.mapConsumer instanceof ProguardMapStringConsumer);
     ProguardMapStringConsumer mapStringConsumer =
-        (ProguardMapStringConsumer) internalOptions.proguardMapConsumer;
+        (ProguardMapStringConsumer) internalOptions.mapConsumer;
     FileConsumer proguardMapConsumer = (FileConsumer) mapStringConsumer.getStringConsumer();
     assertEquals(pgMap, proguardMapConsumer.getOutputPath());
   }

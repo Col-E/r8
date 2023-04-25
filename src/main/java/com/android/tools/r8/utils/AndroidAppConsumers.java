@@ -3,6 +3,8 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.utils;
 
+import static com.android.tools.r8.utils.MapConsumerUtils.wrapExistingMapConsumer;
+
 import com.android.tools.r8.BaseCompilerCommand;
 import com.android.tools.r8.ByteDataView;
 import com.android.tools.r8.ClassFileConsumer;
@@ -14,10 +16,9 @@ import com.android.tools.r8.DexIndexedConsumer;
 import com.android.tools.r8.DexIndexedConsumer.ForwardingConsumer;
 import com.android.tools.r8.DiagnosticsHandler;
 import com.android.tools.r8.ProgramConsumer;
-import com.android.tools.r8.ProguardMapConsumer;
 import com.android.tools.r8.ResourceException;
 import com.android.tools.r8.StringConsumer;
-import com.android.tools.r8.naming.MultiProguardMapConsumer;
+import com.android.tools.r8.naming.MapConsumer;
 import com.android.tools.r8.naming.ProguardMapStringConsumer;
 import com.android.tools.r8.origin.Origin;
 import com.google.common.io.ByteStreams;
@@ -36,20 +37,19 @@ public class AndroidAppConsumers {
   private boolean closed = false;
 
   private ProgramConsumer programConsumer = null;
-  private ProguardMapConsumer proguardMapConsumer = null;
+  private MapConsumer mapConsumer = null;
 
   public AndroidAppConsumers() {
     // Nothing to do.
   }
 
-  public AndroidAppConsumers(BaseCompilerCommand.Builder builder) {
+  public AndroidAppConsumers(BaseCompilerCommand.Builder<?, ?> builder) {
     builder.setProgramConsumer(wrapProgramConsumer(builder.getProgramConsumer()));
   }
 
   public AndroidAppConsumers(InternalOptions options) {
     options.programConsumer = wrapProgramConsumer(options.programConsumer);
-    options.proguardMapConsumer =
-        wrapProguardMapConsumer(options.proguardMapConsumer, options.reporter);
+    options.mapConsumer = wrapProguardMapConsumer(options.mapConsumer);
   }
 
   public ProgramConsumer wrapProgramConsumer(ProgramConsumer consumer) {
@@ -69,39 +69,35 @@ public class AndroidAppConsumers {
     return programConsumer;
   }
 
-  public ProguardMapConsumer wrapProguardMapConsumer(
-      ProguardMapConsumer consumer, DiagnosticsHandler diagnosticsHandler) {
-    assert proguardMapConsumer == null;
+  public MapConsumer wrapProguardMapConsumer(MapConsumer consumer) {
+    assert mapConsumer == null;
     if (consumer != null) {
-      proguardMapConsumer =
-          MultiProguardMapConsumer.builder()
-              .addProguardMapConsumer(consumer)
-              .addProguardMapConsumer(
-                  ProguardMapStringConsumer.builder()
-                      .setStringConsumer(
-                          new StringConsumer() {
-                            StringBuilder stringBuilder = null;
+      mapConsumer =
+          wrapExistingMapConsumer(
+              consumer,
+              ProguardMapStringConsumer.builder()
+                  .setStringConsumer(
+                      new StringConsumer() {
+                        StringBuilder stringBuilder = null;
 
-                            @Override
-                            public void accept(String string, DiagnosticsHandler handler) {
-                              if (stringBuilder == null) {
-                                stringBuilder = new StringBuilder();
-                              }
-                              stringBuilder.append(string);
-                            }
+                        @Override
+                        public void accept(String string, DiagnosticsHandler handler) {
+                          if (stringBuilder == null) {
+                            stringBuilder = new StringBuilder();
+                          }
+                          stringBuilder.append(string);
+                        }
 
-                            @Override
-                            public void finished(DiagnosticsHandler handler) {
-                              if (stringBuilder != null) {
-                                builder.setProguardMapOutputData(stringBuilder.toString());
-                              }
-                            }
-                          })
-                      .setDiagnosticsHandler(diagnosticsHandler)
-                      .build())
-              .build();
+                        @Override
+                        public void finished(DiagnosticsHandler handler) {
+                          if (stringBuilder != null) {
+                            builder.setProguardMapOutputData(stringBuilder.toString());
+                          }
+                        }
+                      })
+                  .build());
     }
-    return proguardMapConsumer;
+    return mapConsumer;
   }
 
   public DexIndexedConsumer wrapDexIndexedConsumer(DexIndexedConsumer consumer) {

@@ -309,6 +309,17 @@ public class DexCode extends Code implements DexWritableCode, StructuralItem<Dex
     return new EventBasedDebugInfo(eventBasedInfo.startLine, newParameters, eventBasedInfo.events);
   }
 
+  public DexDebugInfo debugInfoWithExtraParameters(DexItemFactory factory, int extraParameters) {
+    EventBasedDebugInfo eventBasedInfo = DexDebugInfo.convertToEventBased(this, factory);
+    if (eventBasedInfo == null) {
+      return eventBasedInfo;
+    }
+    DexString[] parameters = eventBasedInfo.parameters;
+    DexString[] newParameters = new DexString[parameters.length + extraParameters];
+    System.arraycopy(parameters, 0, newParameters, 0, parameters.length);
+    return new EventBasedDebugInfo(eventBasedInfo.startLine, newParameters, eventBasedInfo.events);
+  }
+
   @Override
   public Code getCodeAsInlining(
       DexMethod caller, DexMethod callee, DexItemFactory factory, boolean isCalleeD8R8Synthesized) {

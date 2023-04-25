@@ -665,13 +665,10 @@ public final class D8Command extends BaseCompilerCommand {
     internal.setSyntheticInfoConsumer(syntheticInfoConsumer);
     internal.desugarGraphConsumer = desugarGraphConsumer;
     internal.mainDexKeepRules = mainDexKeepRules;
-    internal.proguardMapConsumer =
+    internal.mapConsumer =
         proguardMapConsumer == null
             ? null
-            : ProguardMapStringConsumer.builder()
-                .setStringConsumer(proguardMapConsumer)
-                .setDiagnosticsHandler(getReporter())
-                .build();
+            : ProguardMapStringConsumer.builder().setStringConsumer(proguardMapConsumer).build();
     internal.lineNumberOptimization =
         !internal.debug && proguardMapConsumer != null
             ? LineNumberOptimization.ON

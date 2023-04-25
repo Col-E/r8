@@ -22,6 +22,7 @@ import com.android.tools.r8.utils.DumpInputFlags;
 import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.InternalOptions.DesugarState;
 import com.android.tools.r8.utils.ListUtils;
+import com.android.tools.r8.utils.MapConsumerUtils;
 import com.android.tools.r8.utils.ProgramConsumerUtils;
 import com.android.tools.r8.utils.Reporter;
 import com.android.tools.r8.utils.ThreadUtils;
@@ -281,27 +282,24 @@ public abstract class BaseCompilerCommand extends BaseCommand {
     private int minApiLevel = 0;
     private int threadCount = ThreadUtils.NOT_SPECIFIED;
     protected DesugarState desugarState = DesugarState.ON;
-    private List<StringResource> desugaredLibrarySpecificationResources = new ArrayList<>();
+    private final List<StringResource> desugaredLibrarySpecificationResources = new ArrayList<>();
     private boolean includeClassesChecksum = false;
     private boolean optimizeMultidexForLinearAlloc = false;
     private BiPredicate<String, Long> dexClassChecksumFilter = (name, checksum) -> true;
-    private List<AssertionsConfiguration> assertionsConfiguration = new ArrayList<>();
-    private List<Consumer<Inspector>> outputInspections = new ArrayList<>();
+    private final List<AssertionsConfiguration> assertionsConfiguration = new ArrayList<>();
+    private final List<Consumer<Inspector>> outputInspections = new ArrayList<>();
     protected StringConsumer proguardMapConsumer = null;
+    protected PartitionMapConsumer partitionMapConsumer = null;
     private DumpInputFlags dumpInputFlags = DumpInputFlags.getDefault();
     private MapIdProvider mapIdProvider = null;
     private SourceFileProvider sourceFileProvider = null;
     private boolean isAndroidPlatformBuild = false;
-    private List<ArtProfileForRewriting> artProfilesForRewriting = new ArrayList<>();
-    private List<StartupProfileProvider> startupProfileProviders = new ArrayList<>();
+    private final List<ArtProfileForRewriting> artProfilesForRewriting = new ArrayList<>();
+    private final List<StartupProfileProvider> startupProfileProviders = new ArrayList<>();
     private ClassConflictResolver classConflictResolver = null;
     private CancelCompilationChecker cancelCompilationChecker = null;
 
     abstract CompilationMode defaultCompilationMode();
-
-    Builder() {
-      mode = defaultCompilationMode();
-    }
 
     Builder(DiagnosticsHandler diagnosticsHandler) {
       super(diagnosticsHandler);
@@ -391,6 +389,33 @@ public abstract class BaseCompilerCommand extends BaseCommand {
      */
     B setProguardMapConsumer(StringConsumer proguardMapConsumer) {
       this.proguardMapConsumer = proguardMapConsumer;
+      return self();
+    }
+
+    /**
+     * Set an output destination to which partition-map content should be written.
+     *
+     * <p>This is a short-hand for setting a {@link PartitionMapConsumer} using {@link
+     * #setPartitionMapConsumer}. Note that any subsequent call to this method or {@link
+     * #setPartitionMapConsumer} will override the previous setting.
+     *
+     * @param partitionMapOutput File-system path to write output at.
+     */
+    B setPartitionMapOutputPath(Path partitionMapOutput) {
+      assert partitionMapOutput != null;
+      return setPartitionMapConsumer(MapConsumerUtils.createZipConsumer(partitionMapOutput));
+    }
+
+    /**
+     * Set a consumer for receiving the partition map content.
+     *
+     * <p>Note that any subsequent call to this method or {@link #setPartitionMapOutputPath} will
+     * override the previous setting.
+     *
+     * @param partitionMapConsumer Consumer to receive the content once produced.
+     */
+    B setPartitionMapConsumer(PartitionMapConsumer partitionMapConsumer) {
+      this.partitionMapConsumer = partitionMapConsumer;
       return self();
     }
 

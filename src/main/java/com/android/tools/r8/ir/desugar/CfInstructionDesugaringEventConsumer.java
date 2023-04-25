@@ -359,8 +359,8 @@ public abstract class CfInstructionDesugaringEventConsumer
     }
 
     @Override
-    public void acceptCompanionClassClinit(ProgramMethod method) {
-      methodProcessor.scheduleDesugaredMethodForProcessing(method);
+    public void acceptCompanionClassClinit(ProgramMethod method, ProgramMethod companionMethod) {
+      methodProcessor.scheduleDesugaredMethodForProcessing(companionMethod);
     }
 
     @Override
@@ -496,7 +496,7 @@ public abstract class CfInstructionDesugaringEventConsumer
     }
 
     @Override
-    public void acceptCompanionClassClinit(ProgramMethod method) {
+    public void acceptCompanionClassClinit(ProgramMethod method, ProgramMethod companionMethod) {
       // Intentionally empty. The method will be hit by tracing if required.
     }
 

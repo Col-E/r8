@@ -96,6 +96,9 @@ public class SyntheticInitializerConverter {
   }
 
   private AppView<AppInfo> createAppViewForConversion() {
+    assert appView.enableWholeProgramOptimizations();
+    assert appView.hasClassHierarchy();
+
     // At this point the code rewritings described by repackaging and synthetic finalization have
     // not been applied to the code objects. These code rewritings will be applied in the
     // application writer. We therefore simulate that we are in D8, to allow building IR for each of
@@ -106,7 +109,7 @@ public class SyntheticInitializerConverter {
     appView.dexItemFactory().clearTypeElementsCache();
 
     AppView<AppInfo> appViewForConversion =
-        AppView.createForD8(
+        AppView.createForSimulatingD8InR8(
             AppInfo.createInitialAppInfo(
                 appView.appInfo().app(), GlobalSyntheticsStrategy.forNonSynthesizing()));
     appViewForConversion.setGraphLens(appView.graphLens());

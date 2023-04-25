@@ -42,10 +42,7 @@ public class ConstClassCanonicalizationMonitorTest extends TestBase {
         .enableInliningAnnotations()
         .addKeepAttributeLineNumberTable()
         .addKeepAttributeSourceFile()
-        .addOptionsModification(
-            options -> {
-              options.proguardMapConsumer = null;
-            })
+        .addOptionsModification(options -> options.mapConsumer = null)
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines("Hello World!")
         .inspect(

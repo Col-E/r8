@@ -822,15 +822,24 @@ class EnumUnboxingTreeFixer implements ProgramClassFixer {
     RewrittenPrototypeDescription prototypeChanges =
         lensBuilder.moveAndMap(
             method.getReference(), newMethod, isStatic, isStatic, extraUnusedNullParameters);
-    return method.toTypeSubstitutedMethod(
-        newMethod,
-        builder ->
-            builder
-                .fixupOptimizationInfo(
-                    appView, prototypeChanges.createMethodOptimizationInfoFixer())
-                .setCompilationState(method.getCompilationState())
-                .setIsLibraryMethodOverrideIf(
-                    method.isNonPrivateVirtualMethod(), OptionalBool.FALSE));
+    DexEncodedMethod newEncodedMethod =
+        method.toTypeSubstitutedMethod(
+            newMethod,
+            builder ->
+                builder
+                    .fixupOptimizationInfo(
+                        appView, prototypeChanges.createMethodOptimizationInfoFixer())
+                    .setCompilationState(method.getCompilationState())
+                    .setIsLibraryMethodOverrideIf(
+                        method.isNonPrivateVirtualMethod(), OptionalBool.FALSE));
+    if (!extraUnusedNullParameters.isEmpty() && method.getCode() != null) {
+      DexEncodedMethod.setDebugInfoWithExtraParameters(
+          newEncodedMethod.getCode(),
+          newMethod.getArity(),
+          extraUnusedNullParameters.size(),
+          appView);
+    }
+    return newEncodedMethod;
   }
 
   private DexEncodedField fixupEncodedField(DexEncodedField encodedField) {

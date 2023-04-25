@@ -222,7 +222,7 @@ public class ClassNameMapper implements ProguardMap {
   private final Map<Signature, Signature> signatureMap = new ConcurrentHashMap<>();
   private final LinkedHashSet<MapVersionMappingInformation> mapVersions;
   private final Map<String, String> originalSourceFiles;
-  private final List<String> preamble;
+  private List<String> preamble;
 
   private ClassNameMapper(
       ImmutableMap<String, ClassNamingForNameMapper> classNameMappings,
@@ -241,6 +241,10 @@ public class ClassNameMapper implements ProguardMap {
 
   public List<String> getPreamble() {
     return preamble;
+  }
+
+  public void setPreamble(List<String> preamble) {
+    this.preamble = preamble;
   }
 
   private Signature canonicalizeSignature(Signature signature) {

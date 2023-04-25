@@ -33,7 +33,11 @@ public abstract class AbstractGenerateFiles {
 
   private final DexItemFactory factory = new DexItemFactory();
   private final Reporter reporter = new Reporter();
-  final InternalOptions options = new InternalOptions(factory, reporter);
+  final InternalOptions options =
+      new InternalOptions(factory, reporter)
+          .getArtProfileOptions()
+          .setAllowReadingEmptyArtProfileProvidersMultipleTimesForTesting(true)
+          .getOptions();
 
   final MachineDesugaredLibrarySpecification desugaredLibrarySpecification;
   final Path desugaredLibrarySpecificationPath;

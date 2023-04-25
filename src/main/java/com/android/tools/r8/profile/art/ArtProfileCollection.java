@@ -22,18 +22,15 @@ public abstract class ArtProfileCollection {
   public static ArtProfileCollection createInitialArtProfileCollection(
       AppInfo appInfo, InternalOptions options) {
     ArtProfileOptions artProfileOptions = options.getArtProfileOptions();
-    Collection<ArtProfileForRewriting> artProfilesForRewriting =
-        artProfileOptions.getArtProfilesForRewriting();
+    Collection<ArtProfileProvider> artProfileProviders = artProfileOptions.getArtProfileProviders();
     List<ArtProfile> artProfiles =
         new ArrayList<>(
-            artProfilesForRewriting.size()
+            artProfileProviders.size()
                 + BooleanUtils.intValue(artProfileOptions.isCompletenessCheckForTestingEnabled()));
-    for (ArtProfileForRewriting artProfileForRewriting :
-        options.getArtProfileOptions().getArtProfilesForRewriting()) {
-      ArtProfileProvider artProfileProvider = artProfileForRewriting.getArtProfileProvider();
+    for (ArtProfileProvider artProfileProvider : artProfileProviders) {
       ArtProfile.Builder artProfileBuilder =
           ArtProfile.builderForInitialArtProfile(artProfileProvider, options);
-      artProfileForRewriting.getArtProfileProvider().getArtProfile(artProfileBuilder);
+      artProfileProvider.getArtProfile(artProfileBuilder);
       artProfiles.add(artProfileBuilder.build());
     }
     if (artProfileOptions.isCompletenessCheckForTestingEnabled()) {

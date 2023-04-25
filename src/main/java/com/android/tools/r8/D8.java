@@ -302,9 +302,7 @@ public final class D8 {
         timing.begin("Generate main-dex list");
         appView.dexItemFactory().clearTypeElementsCache();
         MainDexInfo mainDexInfo =
-            new GenerateMainDexList(options)
-                .traceMainDex(
-                    executor, appView.appInfo().app(), appView.appInfo().getMainDexInfo());
+            new GenerateMainDexList(options).traceMainDexForD8(appView, executor);
         appView.setAppInfo(appView.appInfo().rebuildWithMainDexInfo(mainDexInfo));
         timing.end();
       }

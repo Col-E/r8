@@ -79,6 +79,7 @@ public abstract class R8TestBuilder<T extends R8TestBuilder<T>>
   private final List<Path> mainDexRulesFiles = new ArrayList<>();
   private final List<String> applyMappingMaps = new ArrayList<>();
   private final List<Path> features = new ArrayList<>();
+  private PartitionMapConsumer partitionMapConsumer = null;
 
   @Override
   public boolean isR8TestBuilder() {
@@ -120,6 +121,7 @@ public abstract class R8TestBuilder<T extends R8TestBuilder<T>>
             // Nothing to do.
           }
         });
+    builder.setPartitionMapConsumer(partitionMapConsumer);
 
     if (!applyMappingMaps.isEmpty()) {
       try {
@@ -827,6 +829,11 @@ public abstract class R8TestBuilder<T extends R8TestBuilder<T>>
 
   public T setFakeCompilerVersion(SemanticVersion version) {
     getBuilder().setFakeCompilerVersion(version);
+    return self();
+  }
+
+  public T setPartitionMapConsumer(PartitionMapConsumer partitionMapConsumer) {
+    this.partitionMapConsumer = partitionMapConsumer;
     return self();
   }
 }

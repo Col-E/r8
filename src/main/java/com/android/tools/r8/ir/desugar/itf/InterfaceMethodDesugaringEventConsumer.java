@@ -24,7 +24,7 @@ public interface InterfaceMethodDesugaringEventConsumer
     private EmptyInterfaceMethodDesugaringEventConsumer() {}
 
     @Override
-    public void acceptCompanionClassClinit(ProgramMethod method) {
+    public void acceptCompanionClassClinit(ProgramMethod method, ProgramMethod companionMethod) {
       // Intentionally empty.
     }
 

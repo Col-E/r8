@@ -31,7 +31,7 @@ public interface RootSetBuilderEventConsumer extends InterfaceMethodDesugaringBa
     }
 
     @Override
-    public void acceptCompanionClassClinit(ProgramMethod method) {
+    public void acceptCompanionClassClinit(ProgramMethod method, ProgramMethod companionMethod) {
       // Intentionally empty.
     }
 

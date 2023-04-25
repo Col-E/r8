@@ -32,6 +32,13 @@ public class Box<T> extends BoxBase<T> {
     return super.computeIfAbsent(supplier);
   }
 
+  public <E extends Exception> T computeIfAbsentThrowing(ThrowingSupplier<T, E> supplier) throws E {
+    if (!isSet()) {
+      set(supplier.get());
+    }
+    return get();
+  }
+
   @Override
   public T get() {
     return super.get();

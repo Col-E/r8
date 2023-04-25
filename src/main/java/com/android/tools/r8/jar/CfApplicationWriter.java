@@ -106,7 +106,7 @@ public class CfApplicationWriter {
   }
 
   public void write(ClassFileConsumer consumer) {
-    assert options.proguardMapConsumer == null;
+    assert options.mapConsumer == null;
     write(consumer, null);
   }
 
@@ -132,7 +132,7 @@ public class CfApplicationWriter {
 
   private void writeApplication(AndroidApp inputApp, ClassFileConsumer consumer) {
     ProguardMapId proguardMapId = null;
-    if (options.proguardMapConsumer != null) {
+    if (options.mapConsumer != null) {
       assert marker.isPresent();
       proguardMapId =
           runAndWriteMap(
