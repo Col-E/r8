@@ -91,6 +91,12 @@ public class EnumValuesObjectState extends ObjectState {
   @Override
   public ObjectState rewrittenWithLens(
       AppView<AppInfoWithLiveness> appView, GraphLens lens, GraphLens codeLens) {
+    if (objectClassForOrdinal.enumHasBeenUnboxed(appView)) {
+      // It does not make sense to keep outdated data on unboxed enums.
+      // We have the exact content of the array but this is not modeled at this point so we simply
+      // return a KnownLengthArrayState.
+      return appView.abstractValueFactory().createKnownLengthArrayState(state.length);
+    }
     ObjectState[] newState = new ObjectState[state.length];
     for (int i = 0; i < state.length; i++) {
       newState[i] = state[i].rewrittenWithLens(appView, lens, codeLens);
@@ -147,6 +153,8 @@ public class EnumValuesObjectState extends ObjectState {
 
     @Override
     public abstract boolean equals(Object obj);
+
+    public abstract boolean enumHasBeenUnboxed(AppView<?> appView);
   }
 
   static class UniformObjectClassForOrdinal extends ObjectClassForOrdinal {
@@ -182,6 +190,11 @@ public class EnumValuesObjectState extends ObjectState {
       }
       UniformObjectClassForOrdinal other = (UniformObjectClassForOrdinal) obj;
       return type == other.type;
+    }
+
+    @Override
+    public boolean enumHasBeenUnboxed(AppView<?> appView) {
+      return appView.unboxedEnums().isUnboxedEnum(type);
     }
   }
 
@@ -226,6 +239,12 @@ public class EnumValuesObjectState extends ObjectState {
       }
       VariableObjectClassForOrdinal other = (VariableObjectClassForOrdinal) obj;
       return Arrays.equals(types, other.types);
+    }
+
+    @Override
+    public boolean enumHasBeenUnboxed(AppView<?> appView) {
+      assert types.length > 0;
+      return appView.unboxedEnums().isUnboxedEnum(types[0]);
     }
   }
 }

@@ -626,7 +626,7 @@ class EnumUnboxingTreeFixer implements ProgramClassFixer {
     }
     if (superMethod == null || subimplementations.isEmpty()) {
       // No emulated dispatch is required, just move everything.
-      if (superMethod != null) {
+      if (superMethod != null && !superMethod.getAccessFlags().isAbstract()) {
         assert superMethod.isProgramMethod();
         directMoveAndMap(localUtilityClass, localUtilityMethods, superMethod.asProgramMethod());
       }
@@ -692,6 +692,7 @@ class EnumUnboxingTreeFixer implements ProgramClassFixer {
       LocalEnumUnboxingUtilityClass localUtilityClass,
       Map<DexMethod, DexEncodedMethod> localUtilityMethods,
       ProgramMethod method) {
+    assert !method.getAccessFlags().isAbstract();
     DexMethod utilityMethod =
         installLocalUtilityMethod(localUtilityClass, localUtilityMethods, method);
     assert utilityMethod != null;
