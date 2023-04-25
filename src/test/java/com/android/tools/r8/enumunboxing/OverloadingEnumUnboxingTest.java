@@ -45,7 +45,6 @@ public class OverloadingEnumUnboxingTest extends EnumUnboxingTestBase {
         .enableInliningAnnotations()
         .addOptionsModification(opt -> enableEnumOptions(opt, enumValueOptimization))
         .setMinApi(parameters)
-        .compile()
         .run(parameters.getRuntime(), classToTest)
         .assertSuccess()
         .inspectStdOut(this::assertLines2By2Correct);
@@ -83,119 +82,143 @@ public class OverloadingEnumUnboxingTest extends EnumUnboxingTestBase {
 
     @NeverInline
     private static void constructorTest() {
-      new TestClass(42);
-      System.out.println("42");
+      constructorOutline();
       new TestClass(MyEnum1.A);
-      System.out.println("0");
+      System.out.println("1");
       new TestClass(MyEnum1.B);
-      System.out.println("1");
+      System.out.println("2");
       new TestClass(MyEnum2.A);
-      System.out.println("0");
+      System.out.println("2");
       new TestClass(MyEnum2.B);
-      System.out.println("1");
+      System.out.println("3");
       new TestClass(MyEnum3.A);
-      System.out.println("0");
+      System.out.println("3");
       new TestClass(MyEnum3.B);
-      System.out.println("1");
+      System.out.println("4");
+    }
+
+    @NeverInline
+    private static void constructorOutline() {
+      // This method is outlined so it is not reprocessed in the second round of IR processing.
+      new TestClass(38);
+      System.out.println("42");
+      new TestClass(40);
+      System.out.println("44");
     }
 
     @NeverInline
     private static void staticTest() {
-      staticMethod(42);
-      System.out.println("42");
+      staticOutline();
       staticMethod(MyEnum1.A);
-      System.out.println("0");
+      System.out.println("1");
       staticMethod(MyEnum1.B);
-      System.out.println("1");
+      System.out.println("2");
       staticMethod(MyEnum2.A);
-      System.out.println("0");
+      System.out.println("2");
       staticMethod(MyEnum2.B);
-      System.out.println("1");
+      System.out.println("3");
       staticMethod(MyEnum3.A);
-      System.out.println("0");
+      System.out.println("3");
       staticMethod(MyEnum3.B);
-      System.out.println("1");
+      System.out.println("4");
+    }
+
+    @NeverInline
+    private static void staticOutline() {
+      // This method is outlined so it is not reprocessed in the second round of IR processing.
+      staticMethod(38);
+      System.out.println("42");
+      staticMethod(40);
+      System.out.println("44");
     }
 
     @NeverInline
     private static void virtualTest() {
       TestClass testClass = new TestClass();
-      testClass.virtualMethod(42);
-      System.out.println("42");
+      virtualOutline(testClass);
       testClass.virtualMethod(MyEnum1.A);
-      System.out.println("0");
+      System.out.println("1");
       testClass.virtualMethod(MyEnum1.B);
-      System.out.println("1");
+      System.out.println("2");
       testClass.virtualMethod(MyEnum2.A);
-      System.out.println("0");
+      System.out.println("2");
       testClass.virtualMethod(MyEnum2.B);
-      System.out.println("1");
+      System.out.println("3");
       testClass.virtualMethod(MyEnum3.A);
-      System.out.println("0");
+      System.out.println("3");
       testClass.virtualMethod(MyEnum3.B);
-      System.out.println("1");
+      System.out.println("4");
+    }
+
+    @NeverInline
+    private static void virtualOutline(TestClass testClass) {
+      // This method is outlined so it is not reprocessed in the second round of IR processing.
+      testClass.virtualMethod(38);
+      System.out.println("42");
+      testClass.virtualMethod(40);
+      System.out.println("44");
     }
 
     public TestClass() {}
 
     @NeverInline
     public TestClass(MyEnum1 e1) {
-      System.out.println(e1.ordinal());
+      System.out.println(e1.ordinal() + 1);
     }
 
     @NeverInline
     public TestClass(MyEnum2 e2) {
-      System.out.println(e2.ordinal());
+      System.out.println(e2.ordinal() + 2);
     }
 
     @NeverInline
     public TestClass(MyEnum3 e3) {
-      System.out.println(e3.ordinal());
+      System.out.println(e3.ordinal() + 3);
     }
 
     @NeverInline
     public TestClass(int i) {
-      System.out.println(i);
+      System.out.println(i + 4);
     }
 
     @NeverInline
     public void virtualMethod(MyEnum1 e1) {
-      System.out.println(e1.ordinal());
+      System.out.println(e1.ordinal() + 1);
     }
 
     @NeverInline
     public void virtualMethod(MyEnum2 e2) {
-      System.out.println(e2.ordinal());
+      System.out.println(e2.ordinal() + 2);
     }
 
     @NeverInline
     public void virtualMethod(MyEnum3 e3) {
-      System.out.println(e3.ordinal());
+      System.out.println(e3.ordinal() + 3);
     }
 
     @NeverInline
     public void virtualMethod(int i) {
-      System.out.println(i);
+      System.out.println(i + 4);
     }
 
     @NeverInline
     public static void staticMethod(MyEnum1 e1) {
-      System.out.println(e1.ordinal());
+      System.out.println(e1.ordinal() + 1);
     }
 
     @NeverInline
     public static void staticMethod(MyEnum2 e2) {
-      System.out.println(e2.ordinal());
+      System.out.println(e2.ordinal() + 2);
     }
 
     @NeverInline
     public static void staticMethod(MyEnum3 e3) {
-      System.out.println(e3.ordinal());
+      System.out.println(e3.ordinal() + 3);
     }
 
     @NeverInline
     public static void staticMethod(int i) {
-      System.out.println(i);
+      System.out.println(i + 4);
     }
   }
 }

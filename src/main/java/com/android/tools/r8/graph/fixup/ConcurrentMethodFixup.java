@@ -15,6 +15,7 @@ import com.android.tools.r8.graph.DexMethodSignature;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ImmediateProgramSubtypingInfo;
+import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.optimize.argumentpropagation.utils.ProgramClassesBidirectedGraph;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.KeepMethodInfo;
@@ -71,6 +72,9 @@ public class ConcurrentMethodFixup {
     // When a class is fixed-up, it is guaranteed that its supertype and interfaces were processed
     // before. In addition, all interfaces are processed before any class is processed.
     void fixupProgramClass(DexProgramClass clazz, MethodNamingUtility namingUtility);
+
+    // Answers true if the method should be reserved as itself.
+    boolean shouldReserveAsIfPinned(ProgramMethod method);
   }
 
   private void processConnectedProgramComponents(Set<DexProgramClass> classes) {
@@ -148,14 +152,19 @@ public class ConcurrentMethodFixup {
     programClassFixer.fixupProgramClass(clazz, utility);
   }
 
+  private boolean shouldReserveAsPinned(ProgramMethod method) {
+    KeepMethodInfo keepInfo = appView.getKeepInfo(method);
+    return !keepInfo.isOptimizationAllowed(appView.options())
+        || !keepInfo.isShrinkingAllowed(appView.options())
+        || programClassFixer.shouldReserveAsIfPinned(method);
+  }
+
   private MethodNamingUtility createMethodNamingUtility(
       BiMap<DexMethodSignature, DexMethodSignature> inheritedSignatures, DexProgramClass clazz) {
     BiMap<DexMethod, DexMethod> localSignatures = HashBiMap.create();
     clazz.forEachProgramInstanceInitializer(
         method -> {
-          KeepMethodInfo keepInfo = appView.getKeepInfo(method);
-          if (!keepInfo.isOptimizationAllowed(appView.options())
-              || !keepInfo.isShrinkingAllowed(appView.options())) {
+          if (shouldReserveAsPinned(method)) {
             localSignatures.put(method.getReference(), method.getReference());
           }
         });
@@ -172,9 +181,7 @@ public class ConcurrentMethodFixup {
       clazz.forEachProgramMethodMatching(
           m -> !m.isInstanceInitializer(),
           method -> {
-            KeepMethodInfo keepInfo = appView.getKeepInfo(method);
-            if (!keepInfo.isOptimizationAllowed(appView.options())
-                || !keepInfo.isShrinkingAllowed(appView.options())) {
+            if (shouldReserveAsPinned(method)) {
               componentSignatures.put(method.getMethodSignature(), method.getMethodSignature());
             }
           });

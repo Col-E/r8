@@ -171,6 +171,15 @@ class EnumUnboxingTreeFixer implements ProgramClassFixer {
   }
 
   @Override
+  public boolean shouldReserveAsIfPinned(ProgramMethod method) {
+    DexProto oldProto = method.getProto();
+    DexProto newProto = fixupProto(oldProto);
+    // We don't track nor reprocess dependencies of unchanged methods so we have to maintain them
+    // with the same signature.
+    return oldProto == newProto;
+  }
+
+  @Override
   public void fixupProgramClass(DexProgramClass clazz, MethodNamingUtility utility) {
     if (enumDataMap.isSuperUnboxedEnum(clazz.getType())) {
       // Clear the initializers and move the other methods to the new location.
@@ -804,14 +813,17 @@ class EnumUnboxingTreeFixer implements ProgramClassFixer {
       DexEncodedMethod method, MethodNamingUtility utility) {
     DexProto oldProto = method.getProto();
     DexProto newProto = fixupProto(oldProto);
-    // Even if the protos are identical, we may generate collisions and decide to rename the
-    // unchanged method. In most cases this is a no-op if the proto are identical.
+    if (oldProto == newProto) {
+      assert method.getReference()
+          == utility.nextUniqueMethod(
+              method, newProto, utilityClasses.getSharedUtilityClass().getType());
+      return method;
+    }
+
     DexMethod newMethod =
         utility.nextUniqueMethod(
             method, newProto, utilityClasses.getSharedUtilityClass().getType());
-    if (newMethod == method.getReference()) {
-      return method;
-    }
+    assert newMethod != method.getReference();
     assert !method.isClassInitializer();
     assert !method.isLibraryMethodOverride().isTrue()
         : "Enum unboxing is changing the signature of a library override in a non unboxed class.";
@@ -822,24 +834,15 @@ class EnumUnboxingTreeFixer implements ProgramClassFixer {
     RewrittenPrototypeDescription prototypeChanges =
         lensBuilder.moveAndMap(
             method.getReference(), newMethod, isStatic, isStatic, extraUnusedNullParameters);
-    DexEncodedMethod newEncodedMethod =
-        method.toTypeSubstitutedMethod(
-            newMethod,
-            builder ->
-                builder
-                    .fixupOptimizationInfo(
-                        appView, prototypeChanges.createMethodOptimizationInfoFixer())
-                    .setCompilationState(method.getCompilationState())
-                    .setIsLibraryMethodOverrideIf(
-                        method.isNonPrivateVirtualMethod(), OptionalBool.FALSE));
-    if (!extraUnusedNullParameters.isEmpty() && method.getCode() != null) {
-      DexEncodedMethod.setDebugInfoWithExtraParameters(
-          newEncodedMethod.getCode(),
-          newMethod.getArity(),
-          extraUnusedNullParameters.size(),
-          appView);
-    }
-    return newEncodedMethod;
+    return method.toTypeSubstitutedMethod(
+        newMethod,
+        builder ->
+            builder
+                .fixupOptimizationInfo(
+                    appView, prototypeChanges.createMethodOptimizationInfoFixer())
+                .setCompilationState(method.getCompilationState())
+                .setIsLibraryMethodOverrideIf(
+                    method.isNonPrivateVirtualMethod(), OptionalBool.FALSE));
   }
 
   private DexEncodedField fixupEncodedField(DexEncodedField encodedField) {
