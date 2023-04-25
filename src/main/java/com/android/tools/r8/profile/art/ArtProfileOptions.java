@@ -7,6 +7,7 @@ package com.android.tools.r8.profile.art;
 import static com.android.tools.r8.utils.SystemPropertyUtils.parseSystemPropertyOrDefault;
 
 import com.android.tools.r8.utils.InternalOptions;
+import com.android.tools.r8.utils.ListUtils;
 import java.util.Collection;
 import java.util.Collections;
 
@@ -18,6 +19,8 @@ public class ArtProfileOptions {
   private Collection<ArtProfileForRewriting> artProfilesForRewriting = Collections.emptyList();
   private boolean enableCompletenessCheckForTesting =
       parseSystemPropertyOrDefault(COMPLETENESS_PROPERTY_KEY, false);
+  private boolean hasReadArtProfileProviders = false;
+  private boolean allowReadingEmptyArtProfileProvidersMultipleTimesForTesting = false;
 
   private final InternalOptions options;
 
@@ -27,6 +30,18 @@ public class ArtProfileOptions {
 
   public Collection<ArtProfileForRewriting> getArtProfilesForRewriting() {
     return artProfilesForRewriting;
+  }
+
+  public Collection<ArtProfileProvider> getArtProfileProviders() {
+    assert !hasReadArtProfileProviders
+        || (allowReadingEmptyArtProfileProvidersMultipleTimesForTesting
+            && artProfilesForRewriting.isEmpty());
+    hasReadArtProfileProviders = true;
+    return ListUtils.map(artProfilesForRewriting, ArtProfileForRewriting::getArtProfileProvider);
+  }
+
+  public InternalOptions getOptions() {
+    return options;
   }
 
   public boolean isCompletenessCheckForTestingEnabled() {
@@ -71,6 +86,13 @@ public class ArtProfileOptions {
     // since the classes synthesized by var handle desugaring are fairly large and may not be that
     // important for runtime performance.
     return enableCompletenessCheckForTesting;
+  }
+
+  public ArtProfileOptions setAllowReadingEmptyArtProfileProvidersMultipleTimesForTesting(
+      boolean allowReadingEmptyArtProfileProvidersMultipleTimesForTesting) {
+    this.allowReadingEmptyArtProfileProvidersMultipleTimesForTesting =
+        allowReadingEmptyArtProfileProvidersMultipleTimesForTesting;
+    return this;
   }
 
   public ArtProfileOptions setArtProfilesForRewriting(Collection<ArtProfileForRewriting> inputs) {

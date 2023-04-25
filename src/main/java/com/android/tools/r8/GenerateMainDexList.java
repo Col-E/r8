@@ -8,6 +8,7 @@ import static com.android.tools.r8.utils.ExceptionUtils.unwrapExecutionException
 import com.android.tools.r8.StringConsumer.ForwardingConsumer;
 import com.android.tools.r8.dex.ApplicationReader;
 import com.android.tools.r8.experimental.graphinfo.GraphConsumer;
+import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppServices;
 import com.android.tools.r8.graph.AppView;
@@ -47,7 +48,7 @@ public class GenerateMainDexList {
       throws IOException {
     try {
       DexApplication application = new ApplicationReader(app, options, timing).read(executor);
-      traceMainDex(executor, application, MainDexInfo.none())
+      traceMainDexForGenerateMainDexList(executor, application)
           .forEach(type -> consumer.accept(type.toBinaryName() + ".class", options.reporter));
       consumer.finished(options.reporter);
     } catch (ExecutionException e) {
@@ -55,11 +56,22 @@ public class GenerateMainDexList {
     }
   }
 
-  public MainDexInfo traceMainDex(
-      ExecutorService executor, DexApplication application, MainDexInfo existingMainDexInfo)
+  public MainDexInfo traceMainDexForD8(AppView<AppInfo> appView, ExecutorService executor)
       throws ExecutionException {
-    AppView<? extends AppInfoWithClassHierarchy> appView =
-        AppView.createForR8(application.toDirect(), existingMainDexInfo);
+    return traceMainDex(
+        AppView.createForSimulatingR8InD8(
+            appView.app().toDirect(), appView.appInfo().getMainDexInfo()),
+        executor);
+  }
+
+  public MainDexInfo traceMainDexForGenerateMainDexList(
+      ExecutorService executor, DexApplication application) throws ExecutionException {
+    return traceMainDex(AppView.createForR8(application.toDirect()), executor);
+  }
+
+  private MainDexInfo traceMainDex(
+      AppView<? extends AppInfoWithClassHierarchy> appView, ExecutorService executor)
+      throws ExecutionException {
     appView.setAppServices(AppServices.builder(appView).build());
 
     MainDexListBuilder.checkForAssumedLibraryTypes(appView.appInfo());

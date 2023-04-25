@@ -34,6 +34,7 @@ import com.android.tools.r8.naming.mappinginformation.MappingInformation;
 import com.android.tools.r8.naming.signature.GenericSignatureAction;
 import com.android.tools.r8.naming.signature.GenericSignatureParser;
 import com.android.tools.r8.origin.Origin;
+import com.android.tools.r8.profile.art.ArtProfileOptions;
 import com.android.tools.r8.references.ClassReference;
 import com.android.tools.r8.references.FieldReference;
 import com.android.tools.r8.references.MethodReference;
@@ -123,6 +124,7 @@ public class CodeInspector {
     dexItemFactory = options.itemFactory;
     AndroidApp input = AndroidApp.builder().addProgramFiles(files).build();
     application = new ApplicationReader(input, options, timing).read();
+    configureOptions();
   }
 
   public CodeInspector(AndroidApp app) throws IOException {
@@ -184,6 +186,12 @@ public class CodeInspector {
       obfuscatedToOriginalMapping = nameMapping.original;
       originalToObfuscatedMapping = nameMapping.inverse;
     }
+    configureOptions();
+  }
+
+  private void configureOptions() {
+    ArtProfileOptions artProfileOptions = application.options.getArtProfileOptions();
+    artProfileOptions.setAllowReadingEmptyArtProfileProvidersMultipleTimesForTesting(true);
   }
 
   public DexApplication getApplication() {
