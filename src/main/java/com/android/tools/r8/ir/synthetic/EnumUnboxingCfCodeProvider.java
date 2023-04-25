@@ -36,8 +36,7 @@ import com.android.tools.r8.ir.code.IfType;
 import com.android.tools.r8.ir.code.ValueType;
 import com.android.tools.r8.ir.optimize.enums.EnumDataMap.EnumData;
 import com.android.tools.r8.ir.optimize.enums.EnumInstanceFieldData.EnumInstanceFieldMappingData;
-import com.android.tools.r8.utils.IntBox;
-import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
+import it.unimi.dsi.fastutil.ints.Int2ObjectSortedMap;
 import java.util.ArrayList;
 import java.util.List;
 import org.objectweb.asm.Opcodes;
@@ -73,13 +72,13 @@ public abstract class EnumUnboxingCfCodeProvider extends SyntheticCfCodeProvider
 
     private final GraphLens codeLens;
     private final DexMethod superEnumMethod;
-    private final Int2ObjectMap<DexMethod> methodMap;
+    private final Int2ObjectSortedMap<DexMethod> methodMap;
 
     public EnumUnboxingMethodDispatchCfCodeProvider(
         AppView<?> appView,
         DexType holder,
         DexMethod superEnumMethod,
-        Int2ObjectMap<DexMethod> methodMap) {
+        Int2ObjectSortedMap<DexMethod> methodMap) {
       super(appView, holder);
       this.codeLens = appView.codeLens();
       this.superEnumMethod = superEnumMethod;
@@ -107,10 +106,9 @@ public abstract class EnumUnboxingCfCodeProvider extends SyntheticCfCodeProvider
       for (DexType parameter : representative.getParameters()) {
         frameBuilder.appendLocal(FrameType.initialized(parameter));
       }
-      IntBox index = new IntBox();
       methodMap.forEach(
           (unboxedEnumValue, method) -> {
-            boolean lastCase = index.incrementAndGet() == methodMap.size() && !hasDefaultCase;
+            boolean lastCase = methodMap.lastIntKey() == unboxedEnumValue && !hasDefaultCase;
             if (!lastCase) {
               CfLabel dest = new CfLabel();
               instructions.add(new CfLoad(ValueType.fromDexType(factory.intType), 0));

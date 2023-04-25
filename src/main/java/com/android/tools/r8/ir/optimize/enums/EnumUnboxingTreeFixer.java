@@ -68,10 +68,11 @@ import com.android.tools.r8.utils.collections.ProgramMethodSet;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 import com.google.common.collect.Sets;
-import it.unimi.dsi.fastutil.ints.Int2ObjectArrayMap;
-import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
+import it.unimi.dsi.fastutil.ints.Int2ObjectLinkedOpenHashMap;
+import it.unimi.dsi.fastutil.ints.Int2ObjectSortedMap;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Comparator;
 import java.util.IdentityHashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -643,8 +644,8 @@ class EnumUnboxingTreeFixer implements ProgramClassFixer {
       LocalEnumUnboxingUtilityClass localUtilityClass,
       Map<DexMethod, DexEncodedMethod> localUtilityMethods,
       DexClassAndMethod superMethod,
-      ProgramMethodSet subimplementations) {
-    assert !subimplementations.isEmpty();
+      ProgramMethodSet unorderedSubimplementations) {
+    assert !unorderedSubimplementations.isEmpty();
     DexMethod superUtilityMethod;
     if (superMethod.isProgramMethod()) {
       superUtilityMethod =
@@ -657,7 +658,9 @@ class EnumUnboxingTreeFixer implements ProgramClassFixer {
       superUtilityMethod = localUtilityClass.computeToStringUtilityMethod(factory);
     }
     Map<DexMethod, DexMethod> overrideToUtilityMethods = new IdentityHashMap<>();
-    for (ProgramMethod subMethod : subimplementations) {
+    List<ProgramMethod> sortedSubimplementations = new ArrayList<>(unorderedSubimplementations);
+    sortedSubimplementations.sort(Comparator.comparing(ProgramMethod::getHolderType));
+    for (ProgramMethod subMethod : sortedSubimplementations) {
       DexMethod subEnumLocalUtilityMethod =
           installLocalUtilityMethod(localUtilityClass, localUtilityMethods, subMethod);
       assert subEnumLocalUtilityMethod != null;
@@ -667,7 +670,7 @@ class EnumUnboxingTreeFixer implements ProgramClassFixer {
         installDispatchMethod(
                 localUtilityClass,
                 localUtilityMethods,
-                subimplementations.iterator().next(),
+                sortedSubimplementations.iterator().next(),
                 superUtilityMethod,
                 overrideToUtilityMethods)
             .getReference();
@@ -719,7 +722,7 @@ class EnumUnboxingTreeFixer implements ProgramClassFixer {
             fixupProto(factory.prependHolderToProto(representative.getReference())),
             localUtilityClass.getType(),
             newMethodSignature -> !localUtilityMethods.containsKey(newMethodSignature));
-    Int2ObjectMap<DexMethod> methodMap = new Int2ObjectArrayMap<>();
+    Int2ObjectSortedMap<DexMethod> methodMap = new Int2ObjectLinkedOpenHashMap<>();
     IdentityHashMap<DexType, DexMethod> typeToMethod = new IdentityHashMap<>();
     map.forEach(
         (methodReference, newMethodReference) ->
