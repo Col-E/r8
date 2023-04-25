@@ -7,7 +7,7 @@ package com.android.tools.r8.debug;
 import static com.android.tools.r8.ir.desugar.itf.InterfaceDesugaringForTesting.getCompanionClassNameSuffix;
 import static com.android.tools.r8.ir.desugar.itf.InterfaceDesugaringForTesting.getDefaultMethodPrefix;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assume.assumeTrue;
+import static org.junit.Assume.assumeFalse;
 
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
@@ -47,12 +47,10 @@ public class InterfaceMethodTest extends DebugTestBase {
 
   @Test
   public void testDefaultMethod() throws Throwable {
-    // TODO(b/244683447): This test fails on Art 13 and Art 14 when checking current method in
-    //  doSomething.
-    assumeTrue(
-        parameters.isCfRuntime()
-            || !(parameters.getDexRuntimeVersion().isEqualTo(Version.V13_0_0)
-                || parameters.getDexRuntimeVersion().isEqualTo(Version.V14_0_0)));
+    assumeFalse(
+        "b/244683447: Incorrect behavior on Art 13 and 14",
+        parameters.isDexRuntimeVersion(Version.V13_0_0)
+            || parameters.isDexRuntimeVersion(Version.V14_0_0));
     testForRuntime(parameters)
         .addProgramFiles(JAR)
         .run(parameters.getRuntime(), debuggeeClass)
