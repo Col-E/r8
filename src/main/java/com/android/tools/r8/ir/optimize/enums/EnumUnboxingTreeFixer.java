@@ -56,6 +56,7 @@ import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackIgnore;
 import com.android.tools.r8.ir.optimize.info.field.InstanceFieldInitializationInfo;
 import com.android.tools.r8.ir.synthetic.EnumUnboxingCfCodeProvider.EnumUnboxingMethodDispatchCfCodeProvider;
 import com.android.tools.r8.ir.synthetic.EnumUnboxingCfCodeProvider.EnumUnboxingMethodDispatchCfCodeProvider.CfCodeWithLens;
+import com.android.tools.r8.profile.rewriting.ProfileCollectionAdditions;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.ImmutableArrayUtils;
 import com.android.tools.r8.utils.OptionalBool;
@@ -100,6 +101,7 @@ class EnumUnboxingTreeFixer implements ProgramClassFixer {
   private final ProgramMethodMap<CfCodeWithLens> dispatchMethods =
       ProgramMethodMap.createConcurrent();
   private final PrunedItems.Builder prunedItemsBuilder;
+  private final ProfileCollectionAdditions profileCollectionAdditions;
 
   EnumUnboxingTreeFixer(
       AppView<AppInfoWithLiveness> appView,
@@ -116,6 +118,7 @@ class EnumUnboxingTreeFixer implements ProgramClassFixer {
         EnumUnboxingLens.enumUnboxingLensBuilder(appView).mapUnboxedEnums(getUnboxedEnums());
     this.utilityClasses = utilityClasses;
     this.prunedItemsBuilder = PrunedItems.concurrentBuilder();
+    this.profileCollectionAdditions = ProfileCollectionAdditions.create(appView);
   }
 
   private Set<DexProgramClass> computeUnboxedEnumClasses() {
@@ -159,6 +162,10 @@ class EnumUnboxingTreeFixer implements ProgramClassFixer {
           dispatchMethodSet.add(method);
           code.setCodeLens(lens);
         });
+
+    profileCollectionAdditions
+        .setArtProfileCollection(appView.getArtProfileCollection())
+        .commit(appView);
 
     return new Result(
         checkNotNullToCheckNotZeroMapping, dispatchMethodSet, lens, prunedItemsBuilder.build());
@@ -666,11 +673,14 @@ class EnumUnboxingTreeFixer implements ProgramClassFixer {
       assert subEnumLocalUtilityMethod != null;
       overrideToUtilityMethods.put(subMethod.getReference(), subEnumLocalUtilityMethod);
     }
+    if (superMethod.isProgramMethod()) {
+      sortedSubimplementations.add(superMethod.asProgramMethod());
+    }
     DexMethod dispatch =
         installDispatchMethod(
                 localUtilityClass,
                 localUtilityMethods,
-                sortedSubimplementations.iterator().next(),
+                sortedSubimplementations,
                 superUtilityMethod,
                 overrideToUtilityMethods)
             .getReference();
@@ -713,10 +723,11 @@ class EnumUnboxingTreeFixer implements ProgramClassFixer {
   private DexEncodedMethod installDispatchMethod(
       LocalEnumUnboxingUtilityClass localUtilityClass,
       Map<DexMethod, DexEncodedMethod> localUtilityMethods,
-      ProgramMethod representative,
+      List<ProgramMethod> contexts,
       DexMethod superUtilityMethod,
       Map<DexMethod, DexMethod> map) {
     assert !map.isEmpty();
+    ProgramMethod representative = contexts.iterator().next();
     DexMethod newLocalUtilityMethodReference =
         factory.createFreshMethodNameWithoutHolder(
             "_dispatch_" + representative.getName().toString(),
@@ -752,8 +763,12 @@ class EnumUnboxingTreeFixer implements ProgramClassFixer {
             .setApiLevelForDefinition(representative.getDefinition().getApiLevelForDefinition())
             .setApiLevelForCode(representative.getDefinition().getApiLevelForCode())
             .build();
-    dispatchMethods.put(
-        newLocalUtilityMethod.asProgramMethod(localUtilityClass.getDefinition()), codeWithLens);
+    ProgramMethod dispatchMethod =
+        newLocalUtilityMethod.asProgramMethod(localUtilityClass.getDefinition());
+    dispatchMethods.put(dispatchMethod, codeWithLens);
+    for (ProgramMethod context : contexts) {
+      profileCollectionAdditions.addMethodIfContextIsInProfile(dispatchMethod, context);
+    }
     assert !localUtilityMethods.containsKey(newLocalUtilityMethodReference);
     localUtilityMethods.put(newLocalUtilityMethodReference, newLocalUtilityMethod);
     return newLocalUtilityMethod;
