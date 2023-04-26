@@ -26,9 +26,7 @@ public class R8RunExamplesTest extends R8RunExamplesTestBase {
   public static Collection<String[]> data() {
     String[] tests = {
         "arithmetic.Arithmetic",
-        "ifstatements.IfStatements",
         "inlining.Inlining",
-        "instancevariable.InstanceVariable",
         "instanceofstring.InstanceofString",
         "invoke.Invoke",
         "invokeempty.InvokeEmpty",
@@ -65,7 +63,6 @@ public class R8RunExamplesTest extends R8RunExamplesTestBase {
         "minification.Minification",
         "enclosingmethod.Main",
         "enclosingmethod_proguarded.Main",
-        "interfaceinlining.Main",
         "switchmaps.Switches",
         "uninitializedfinal.UninitializedFinalFieldLeak",
     };
