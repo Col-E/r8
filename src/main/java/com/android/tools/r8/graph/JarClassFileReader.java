@@ -36,7 +36,6 @@ import com.android.tools.r8.graph.GenericSignature.FieldTypeSignature;
 import com.android.tools.r8.graph.GenericSignature.MethodTypeSignature;
 import com.android.tools.r8.jar.CfApplicationWriter;
 import com.android.tools.r8.origin.Origin;
-import com.android.tools.r8.shaking.ProguardKeepAttributes;
 import com.android.tools.r8.synthesis.SyntheticMarker;
 import com.android.tools.r8.utils.AsmUtils;
 import com.android.tools.r8.utils.DescriptorUtils;
@@ -116,16 +115,6 @@ public class JarClassFileReader<T extends DexClass> {
     ClassReader reader = new ClassReader(bytes);
 
     int parsingOptions = SKIP_FRAMES | SKIP_CODE;
-
-    // If the source-file and source-debug-extension attributes are not kept we can skip all debug
-    // related attributes when parsing the class structure.
-    if (application.options.getProguardConfiguration() != null) {
-      ProguardKeepAttributes keep =
-          application.options.getProguardConfiguration().getKeepAttributes();
-      if (!keep.sourceFile && !keep.sourceDebugExtension && !keep.methodParameters) {
-        parsingOptions |= SKIP_DEBUG;
-      }
-    }
     if (classKind != ClassKind.PROGRAM) {
       parsingOptions |= SKIP_DEBUG;
     }

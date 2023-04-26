@@ -4,9 +4,9 @@
 package com.android.tools.r8.naming;
 
 import static org.hamcrest.CoreMatchers.containsString;
-import static org.hamcrest.CoreMatchers.startsWith;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import com.android.tools.r8.DexIndexedConsumer;
 import com.android.tools.r8.DiagnosticsHandler;
@@ -51,11 +51,20 @@ public class IdentityMappingFileTest extends TestBase {
     assertThat(mapping, containsString("# {\"id\":\"com.android.tools.r8.mapping\",\"version\":"));
     assertThat(mapping, containsString("# pg_map_id: "));
     assertThat(mapping, containsString("# pg_map_hash: SHA-256 "));
-    // Check the mapping is the identity, e.g., only comments are defined.
-    // Note, this could change if the mapping is ever changed to be complete, in which case the
-    // mapping will have actual identity mappings.
+    // Check the mapping is the identity, e.g., only comments and identity entries are defined.
     for (String line : StringUtils.splitLines(mapping)) {
-      assertThat(line, startsWith("#"));
+      if (line.startsWith("#")) {
+        continue;
+      }
+      String[] parts = line.split(" -> ");
+      if (parts.length == 2 && line.endsWith(":")) {
+        String left = parts[0];
+        String right = parts[1];
+        if (left.equals(right.substring(0, right.length() - 1))) {
+          continue;
+        }
+      }
+      fail("Expected comment or identity, got: " + line);
     }
   }
 
