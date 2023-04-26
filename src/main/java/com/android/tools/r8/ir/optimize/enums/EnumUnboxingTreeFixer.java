@@ -115,7 +115,8 @@ class EnumUnboxingTreeFixer implements ProgramClassFixer {
     this.factory = appView.dexItemFactory();
     this.unboxedEnumHierarchy = unboxedEnums;
     this.lensBuilder =
-        EnumUnboxingLens.enumUnboxingLensBuilder(appView).mapUnboxedEnums(getUnboxedEnums());
+        EnumUnboxingLens.enumUnboxingLensBuilder(appView, enumDataMap)
+            .mapUnboxedEnums(getUnboxedEnums());
     this.utilityClasses = utilityClasses;
     this.prunedItemsBuilder = PrunedItems.concurrentBuilder();
     this.profileCollectionAdditions = ProfileCollectionAdditions.create(appView);
@@ -146,7 +147,9 @@ class EnumUnboxingTreeFixer implements ProgramClassFixer {
         .fixupClassesConcurrentlyByConnectedProgramComponents(Timing.empty(), executorService);
 
     // Install the new graph lens before processing any checkNotZero() methods.
-    EnumUnboxingLens lens = lensBuilder.build(appView);
+    Set<DexMethod> dispatchMethodReferences = Sets.newIdentityHashSet();
+    dispatchMethods.forEach((method, code) -> dispatchMethodReferences.add(method.getReference()));
+    EnumUnboxingLens lens = lensBuilder.build(appView, dispatchMethodReferences);
     appView.rewriteWithLens(lens);
 
     // Rewrite outliner with lens.

@@ -4,6 +4,8 @@
 
 package com.android.tools.r8.ir.optimize.enums;
 
+import static com.android.tools.r8.ir.optimize.enums.EnumUnboxerImpl.unboxedIntToOrdinal;
+
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItemFactory;
@@ -16,8 +18,10 @@ import com.android.tools.r8.graph.lens.NestedGraphLens;
 import com.android.tools.r8.graph.proto.ArgumentInfoCollection;
 import com.android.tools.r8.graph.proto.RewrittenPrototypeDescription;
 import com.android.tools.r8.graph.proto.RewrittenTypeInfo;
+import com.android.tools.r8.ir.analysis.value.AbstractValue;
 import com.android.tools.r8.ir.analysis.value.AbstractValueFactory;
 import com.android.tools.r8.ir.analysis.value.SingleFieldValue;
+import com.android.tools.r8.ir.analysis.value.SingleNumberValue;
 import com.android.tools.r8.ir.analysis.value.SingleValue;
 import com.android.tools.r8.ir.code.InvokeType;
 import com.android.tools.r8.ir.conversion.ExtraUnusedNullParameter;
@@ -41,6 +45,7 @@ public class EnumUnboxingLens extends NestedGraphLens {
   private final AbstractValueFactory abstractValueFactory;
   private final Map<DexMethod, RewrittenPrototypeDescription> prototypeChangesPerMethod;
   private final EnumDataMap unboxedEnums;
+  private final Set<DexMethod> dispatchMethods;
 
   EnumUnboxingLens(
       AppView<?> appView,
@@ -48,12 +53,14 @@ public class EnumUnboxingLens extends NestedGraphLens {
       BidirectionalOneToManyRepresentativeMap<DexMethod, DexMethod> renamedSignatures,
       Map<DexType, DexType> typeMap,
       Map<DexMethod, DexMethod> methodMap,
-      Map<DexMethod, RewrittenPrototypeDescription> prototypeChangesPerMethod) {
+      Map<DexMethod, RewrittenPrototypeDescription> prototypeChangesPerMethod,
+      Set<DexMethod> dispatchMethods) {
     super(appView, fieldMap, methodMap, typeMap, renamedSignatures);
     assert !appView.unboxedEnums().isEmpty();
     this.abstractValueFactory = appView.abstractValueFactory();
     this.prototypeChangesPerMethod = prototypeChangesPerMethod;
     this.unboxedEnums = appView.unboxedEnums();
+    this.dispatchMethods = dispatchMethods;
   }
 
   @Override
@@ -92,6 +99,35 @@ public class EnumUnboxingLens extends NestedGraphLens {
             .getReference();
     assert unboxedEnums.representativeType(previous.getHolderType()) == previous.getHolderType();
     return true;
+  }
+
+  public DexMethod lookupRefinedDispatchMethod(
+      DexMethod method,
+      DexMethod context,
+      InvokeType type,
+      GraphLens codeLens,
+      AbstractValue unboxedEnumValue,
+      DexType enumType) {
+    assert codeLens == getPrevious();
+    DexMethod reference = lookupMethod(method, context, type, codeLens).getReference();
+    if (!dispatchMethods.contains(reference) || !unboxedEnumValue.isSingleNumberValue()) {
+      return null;
+    }
+    // We know the exact type of enum, so there is no need to go for the dispatch method. Instead,
+    // we compute the exact target from the enum instance.
+    int unboxedEnum = unboxedEnumValue.asSingleNumberValue().getIntValue();
+    DexType instanceType =
+        unboxedEnums
+            .get(enumType)
+            .valuesTypes
+            .getOrDefault(unboxedIntToOrdinal(unboxedEnum), enumType);
+    DexMethod specializedMethod = method.withHolder(instanceType, dexItemFactory());
+    DexMethod superEnumMethod = method.withHolder(enumType, dexItemFactory());
+    DexMethod refined =
+        newMethodSignatures.getRepresentativeValueOrDefault(
+            specializedMethod, newMethodSignatures.getRepresentativeValue(superEnumMethod));
+    assert refined != null;
+    return refined;
   }
 
   @Override
@@ -187,13 +223,15 @@ public class EnumUnboxingLens extends NestedGraphLens {
     return type;
   }
 
-  public static Builder enumUnboxingLensBuilder(AppView<AppInfoWithLiveness> appView) {
-    return new Builder(appView);
+  public static Builder enumUnboxingLensBuilder(
+      AppView<AppInfoWithLiveness> appView, EnumDataMap enumDataMap) {
+    return new Builder(appView, enumDataMap);
   }
 
   static class Builder {
 
     private final DexItemFactory dexItemFactory;
+    private final AbstractValueFactory abstractValueFactory;
     private final Map<DexType, DexType> typeMap = new IdentityHashMap<>();
     private final MutableBidirectionalOneToOneMap<DexField, DexField> newFieldSignatures =
         new BidirectionalOneToOneHashMap<>();
@@ -204,8 +242,12 @@ public class EnumUnboxingLens extends NestedGraphLens {
     private final Map<DexMethod, RewrittenPrototypeDescription> prototypeChangesPerMethod =
         new IdentityHashMap<>();
 
-    Builder(AppView<AppInfoWithLiveness> appView) {
+    private final EnumDataMap enumDataMap;
+
+    Builder(AppView<AppInfoWithLiveness> appView, EnumDataMap enumDataMap) {
       this.dexItemFactory = appView.dexItemFactory();
+      this.abstractValueFactory = appView.abstractValueFactory();
+      this.enumDataMap = enumDataMap;
     }
 
     public Builder mapUnboxedEnums(Set<DexType> enumsToUnbox) {
@@ -279,14 +321,17 @@ public class EnumUnboxingLens extends NestedGraphLens {
         assert toStatic;
         offsetDiff = 1;
         if (!virtualReceiverAlreadyRemapped) {
-          builder
-              .addArgumentInfo(
-                  0,
-                  RewrittenTypeInfo.builder()
-                      .setOldType(from.getHolderType())
-                      .setNewType(to.getParameter(0))
-                      .build())
-              .setIsConvertedToStaticMethod();
+          RewrittenTypeInfo.Builder typeInfoBuilder =
+              RewrittenTypeInfo.builder()
+                  .setOldType(from.getHolderType())
+                  .setNewType(to.getParameter(0));
+          SingleNumberValue singleValue =
+              enumDataMap.getSingleNumberValueFromEnumType(
+                  abstractValueFactory, from.getHolderType());
+          if (singleValue != null) {
+            typeInfoBuilder.setSingleValue(singleValue);
+          }
+          builder.addArgumentInfo(0, typeInfoBuilder.build()).setIsConvertedToStaticMethod();
         } else {
           assert to.getParameter(0).isIntType();
           assert !fromStatic;
@@ -327,7 +372,7 @@ public class EnumUnboxingLens extends NestedGraphLens {
           originalCheckNotNullMethodSignature, checkNotNullMethod.getReference());
     }
 
-    public EnumUnboxingLens build(AppView<?> appView) {
+    public EnumUnboxingLens build(AppView<?> appView, Set<DexMethod> dispatchMethods) {
       assert !typeMap.isEmpty();
       return new EnumUnboxingLens(
           appView,
@@ -335,7 +380,8 @@ public class EnumUnboxingLens extends NestedGraphLens {
           newMethodSignatures,
           typeMap,
           methodMap,
-          ImmutableMap.copyOf(prototypeChangesPerMethod));
+          ImmutableMap.copyOf(prototypeChangesPerMethod),
+          dispatchMethods);
     }
   }
 }

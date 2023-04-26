@@ -37,6 +37,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
@@ -885,6 +886,34 @@ public class ClassFileTransformer {
             }
           }
         });
+  }
+
+  public ClassFileTransformer changeFieldType(
+      Predicate<String> fieldPredicate,
+      BiFunction<String, String, String> newDescriptorTransformer) {
+    return addClassTransformer(
+            new ClassTransformer() {
+              @Override
+              public FieldVisitor visitField(
+                  int access, String name, String descriptor, String signature, Object value) {
+                String newDescriptor =
+                    fieldPredicate.test(name)
+                        ? newDescriptorTransformer.apply(name, descriptor)
+                        : descriptor;
+                return super.visitField(access, name, newDescriptor, signature, value);
+              }
+            })
+        .addMethodTransformer(
+            new MethodTransformer() {
+              @Override
+              public void visitFieldInsn(int opcode, String owner, String name, String descriptor) {
+                String newDescriptor =
+                    fieldPredicate.test(name)
+                        ? newDescriptorTransformer.apply(name, descriptor)
+                        : descriptor;
+                super.visitFieldInsn(opcode, owner, name, newDescriptor);
+              }
+            });
   }
 
   public ClassFileTransformer renameAndRemapField(String oldName, String newName) {

@@ -4,18 +4,23 @@
 
 package com.android.tools.r8.ir.optimize.enums;
 
+import static com.android.tools.r8.ir.optimize.enums.EnumUnboxerImpl.ordinalToUnboxedInt;
+
 import com.android.tools.r8.errors.CheckEnumUnboxedDiagnostic;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ProgramField;
+import com.android.tools.r8.ir.analysis.value.AbstractValueFactory;
+import com.android.tools.r8.ir.analysis.value.SingleNumberValue;
 import com.android.tools.r8.ir.optimize.enums.EnumInstanceFieldData.EnumInstanceFieldKnownData;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceMap;
+import it.unimi.dsi.fastutil.ints.Int2ReferenceMap.Entry;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
@@ -76,6 +81,15 @@ public class EnumDataMap {
     return map.containsKey(type);
   }
 
+  public SingleNumberValue getSingleNumberValueFromEnumType(
+      AbstractValueFactory factory, DexType enumType) {
+    assert isUnboxedEnum(enumType);
+    EnumData enumData = get(enumType);
+    return isSuperUnboxedEnum(enumType)
+        ? enumData.superEnumTypeSingleValue(factory, enumType)
+        : enumData.subEnumTypeSingleValue(factory, enumType);
+  }
+
   public boolean isUnboxedEnum(DexProgramClass clazz) {
     return isUnboxedEnum(clazz.getType());
   }
@@ -84,7 +98,7 @@ public class EnumDataMap {
     return map.containsKey(representativeType(type));
   }
 
-  private EnumData get(DexType type) {
+  public EnumData get(DexType type) {
     EnumData enumData = map.get(representativeType(type));
     assert enumData != null;
     return enumData;
@@ -112,17 +126,19 @@ public class EnumDataMap {
   }
 
   public boolean hasUnboxedValueFor(DexField enumStaticField) {
-    return isUnboxedEnum(enumStaticField.getHolderType())
-        && get(enumStaticField.getHolderType()).hasUnboxedValueFor(enumStaticField);
+    DexType representative = representativeType(enumStaticField.getHolderType());
+    return isSuperUnboxedEnum(representative)
+        && get(representative).hasUnboxedValueFor(enumStaticField);
   }
 
   public int getUnboxedValue(DexField enumStaticField) {
     assert isUnboxedEnum(enumStaticField.getHolderType());
-    return get(enumStaticField.getHolderType()).getUnboxedValue(enumStaticField);
+    return get(representativeType(enumStaticField.getHolderType()))
+        .getUnboxedValue(enumStaticField);
   }
 
   public int getValuesSize(DexType enumType) {
-    assert isUnboxedEnum(enumType);
+    assert isSuperUnboxedEnum(enumType);
     return get(enumType).getValuesSize();
   }
 
@@ -137,7 +153,7 @@ public class EnumDataMap {
   }
 
   public boolean matchesValuesField(DexField staticField) {
-    assert isUnboxedEnum(staticField.getHolderType());
+    assert isSuperUnboxedEnum(staticField.getHolderType());
     return get(staticField.getHolderType()).matchesValuesField(staticField);
   }
 
@@ -201,6 +217,29 @@ public class EnumDataMap {
     public int getValuesSize() {
       assert hasValues();
       return valuesSize;
+    }
+
+    public SingleNumberValue superEnumTypeSingleValue(AbstractValueFactory factory, DexType type) {
+      // If there is a single live enum instance, then return the unboxed value for this one.
+      if (hasValues()) {
+        if (valuesSize == 1) {
+          return factory.createSingleNumberValue(ordinalToUnboxedInt(0));
+        }
+      } else if (unboxedValues.size() == 1) {
+        Integer next = unboxedValues.values().iterator().next();
+        return factory.createSingleNumberValue(ordinalToUnboxedInt(next));
+      }
+      return null;
+    }
+
+    public SingleNumberValue subEnumTypeSingleValue(AbstractValueFactory factory, DexType type) {
+      assert valuesTypes.values().stream().filter(t -> t == type).count() <= 1;
+      for (Entry<DexType> entry : valuesTypes.int2ReferenceEntrySet()) {
+        if (entry.getValue() == type) {
+          return factory.createSingleNumberValue(ordinalToUnboxedInt(entry.getIntKey()));
+        }
+      }
+      return null;
     }
   }
 }
