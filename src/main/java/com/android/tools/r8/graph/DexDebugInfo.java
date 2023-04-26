@@ -60,7 +60,7 @@ public abstract class DexDebugInfo extends CachedHashValueDexItem
   }
 
   @Override
-  abstract void collectMixedSectionItems(MixedSectionCollection collection);
+  protected abstract void collectMixedSectionItems(MixedSectionCollection collection);
 
   @Override
   public abstract DexDebugInfo self();
@@ -275,7 +275,7 @@ public abstract class DexDebugInfo extends CachedHashValueDexItem
     }
 
     @Override
-    void collectMixedSectionItems(MixedSectionCollection collection) {
+    protected void collectMixedSectionItems(MixedSectionCollection collection) {
       // Only writable info should be iterated for collection.
       throw new Unreachable();
     }

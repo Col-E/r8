@@ -26,6 +26,7 @@ import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.InliningConstraints;
+import com.android.tools.r8.lightir.LirBuilder;
 import java.util.List;
 
 public class InvokeNewArray extends Invoke {
@@ -225,5 +226,10 @@ public class InvokeNewArray extends Invoke {
   // Returns the number of elements in the array.
   public int size() {
     return inValues.size();
+  }
+
+  @Override
+  public void buildLir(LirBuilder<Value, ?> builder) {
+    builder.addInvokeNewArray(getArrayType(), arguments());
   }
 }

@@ -23,6 +23,7 @@ import com.android.tools.r8.compilerapi.mapid.CustomMapIdTest;
 import com.android.tools.r8.compilerapi.mockdata.MockClass;
 import com.android.tools.r8.compilerapi.mockdata.MockClassWithAssertion;
 import com.android.tools.r8.compilerapi.mockdata.PostStartupMockClass;
+import com.android.tools.r8.compilerapi.partitionmap.PartitionMapCommandTest;
 import com.android.tools.r8.compilerapi.sourcefile.CustomSourceFileTest;
 import com.android.tools.r8.compilerapi.startupprofile.StartupProfileApiTest;
 import com.android.tools.r8.compilerapi.syntheticscontexts.SyntheticContextsConsumerTest;
@@ -60,7 +61,8 @@ public class CompilerApiTestCollection extends BinaryCompatibilityTestCollection
           ClassConflictResolverTest.ApiTest.class,
           ProguardKeepRuleDiagnosticsApiTest.ApiTest.class,
           SyntheticContextsConsumerTest.ApiTest.class,
-          ExtractMarkerApiTest.ApiTest.class);
+          ExtractMarkerApiTest.ApiTest.class,
+          PartitionMapCommandTest.ApiTest.class);
 
   private static final List<Class<? extends CompilerApiTest>> CLASSES_PENDING_BINARY_COMPATIBILITY =
       ImmutableList.of(CancelCompilationCheckerTest.ApiTest.class);

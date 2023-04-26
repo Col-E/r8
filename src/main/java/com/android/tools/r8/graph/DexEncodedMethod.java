@@ -795,7 +795,7 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
   }
 
   @Override
-  void collectMixedSectionItems(MixedSectionCollection mixedItems) {
+  protected void collectMixedSectionItems(MixedSectionCollection mixedItems) {
     mixedItems.visit(this);
   }
 

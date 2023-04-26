@@ -36,7 +36,7 @@ import com.android.tools.r8.ir.code.IfType;
 import com.android.tools.r8.ir.code.ValueType;
 import com.android.tools.r8.ir.optimize.enums.EnumDataMap.EnumData;
 import com.android.tools.r8.ir.optimize.enums.EnumInstanceFieldData.EnumInstanceFieldMappingData;
-import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
+import it.unimi.dsi.fastutil.ints.Int2ObjectSortedMap;
 import java.util.ArrayList;
 import java.util.List;
 import org.objectweb.asm.Opcodes;
@@ -72,13 +72,13 @@ public abstract class EnumUnboxingCfCodeProvider extends SyntheticCfCodeProvider
 
     private final GraphLens codeLens;
     private final DexMethod superEnumMethod;
-    private final Int2ObjectMap<DexMethod> methodMap;
+    private final Int2ObjectSortedMap<DexMethod> methodMap;
 
     public EnumUnboxingMethodDispatchCfCodeProvider(
         AppView<?> appView,
         DexType holder,
         DexMethod superEnumMethod,
-        Int2ObjectMap<DexMethod> methodMap) {
+        Int2ObjectSortedMap<DexMethod> methodMap) {
       super(appView, holder);
       this.codeLens = appView.codeLens();
       this.superEnumMethod = superEnumMethod;
@@ -90,27 +90,42 @@ public abstract class EnumUnboxingCfCodeProvider extends SyntheticCfCodeProvider
       // TODO(b/167942775): Should use a table-switch for large enums (maybe same threshold in the
       //  rewriter of switchmaps).
 
+      assert !methodMap.isEmpty();
       DexItemFactory factory = appView.dexItemFactory();
-      int returnInvokeSize = superEnumMethod.getParameters().size() + 2;
-      List<CfInstruction> instructions =
-          new ArrayList<>(methodMap.size() * (returnInvokeSize + 5) + returnInvokeSize);
+      boolean hasDefaultCase = superEnumMethod != null;
+      DexMethod representative = methodMap.values().iterator().next();
+
+      int invokeSize = representative.getParameters().size() + 2;
+      int branchSize = 5;
+      int instructionsSize =
+          methodMap.size() * (invokeSize + branchSize)
+              + (hasDefaultCase ? invokeSize : -branchSize);
+      List<CfInstruction> instructions = new ArrayList<>(instructionsSize);
 
       CfFrame.Builder frameBuilder = CfFrame.builder();
-      for (DexType parameter : superEnumMethod.getParameters()) {
+      for (DexType parameter : representative.getParameters()) {
         frameBuilder.appendLocal(FrameType.initialized(parameter));
       }
       methodMap.forEach(
           (unboxedEnumValue, method) -> {
-            CfLabel dest = new CfLabel();
-            instructions.add(CfLoad.load(ValueType.fromDexType(factory.intType), 0));
-            instructions.add(CfConstNumber.constNumber(unboxedEnumValue, ValueType.INT));
-            instructions.add(new CfIfCmp(IfType.NE, ValueType.INT, dest));
-            addReturnInvoke(instructions, method);
-            instructions.add(dest);
-            instructions.add(frameBuilder.build());
+            boolean lastCase = methodMap.lastIntKey() == unboxedEnumValue && !hasDefaultCase;
+            if (!lastCase) {
+              CfLabel dest = new CfLabel();
+              instructions.add(CfLoad.load(ValueType.fromDexType(factory.intType), 0));
+              instructions.add(CfConstNumber.constNumber(unboxedEnumValue, ValueType.INT));
+              instructions.add(new CfIfCmp(IfType.NE, ValueType.INT, dest));
+              addReturnInvoke(instructions, method);
+              instructions.add(dest);
+              instructions.add(frameBuilder.build());
+            } else {
+              addReturnInvoke(instructions, method);
+            }
           });
 
-      addReturnInvoke(instructions, superEnumMethod);
+      if (hasDefaultCase) {
+        addReturnInvoke(instructions, superEnumMethod);
+      }
+      assert instructions.size() == instructionsSize;
       return new CfCodeWithLens(getHolder(), defaultMaxStack(), defaultMaxLocals(), instructions);
     }
 

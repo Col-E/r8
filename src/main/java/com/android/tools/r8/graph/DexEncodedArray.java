@@ -22,7 +22,7 @@ public class DexEncodedArray extends DexItem {
   }
 
   @Override
-  void collectMixedSectionItems(MixedSectionCollection mixedItems) {
+  protected void collectMixedSectionItems(MixedSectionCollection mixedItems) {
     mixedItems.add(this);
   }
 

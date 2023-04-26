@@ -4,6 +4,7 @@
 package com.android.tools.r8;
 
 import static com.android.tools.r8.utils.InternalOptions.DETERMINISTIC_DEBUGGING;
+import static com.android.tools.r8.utils.MapConsumerUtils.wrapExistingMapConsumerIfNotNull;
 
 import com.android.tools.r8.dex.Marker.Tool;
 import com.android.tools.r8.dump.DumpOptions;
@@ -12,6 +13,7 @@ import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.inspector.Inspector;
 import com.android.tools.r8.inspector.internal.InspectorImpl;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibrarySpecification;
+import com.android.tools.r8.naming.MapConsumer;
 import com.android.tools.r8.naming.ProguardMapStringConsumer;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.profile.art.ArtProfileForRewriting;
@@ -88,7 +90,7 @@ public final class D8Command extends BaseCompilerCommand {
 
     private boolean intermediate = false;
     private GlobalSyntheticsConsumer globalSyntheticsConsumer = null;
-    private List<GlobalSyntheticsResourceProvider> globalSyntheticsResourceProviders =
+    private final List<GlobalSyntheticsResourceProvider> globalSyntheticsResourceProviders =
         new ArrayList<>();
     private DesugarGraphConsumer desugarGraphConsumer = null;
     private SyntheticInfoConsumer syntheticInfoConsumer = null;
@@ -183,6 +185,43 @@ public final class D8Command extends BaseCompilerCommand {
     @Override
     public Builder setProguardMapOutputPath(Path proguardMapOutput) {
       return super.setProguardMapOutputPath(proguardMapOutput);
+    }
+
+    /**
+     * Set an output destination to which partition-map content should be written.
+     *
+     * <p>Note that when a proguard-map output is specified for a release build, the compiler will
+     * optimize the line-number information and obtaining a source-level stacktrace will require the
+     * use of a retrace tool exactly as is needed for programs built by R8.
+     *
+     * <p>This is a short-hand for setting a {@link PartitionMapConsumer} using {@link
+     * #setPartitionMapConsumer}. Note that any subsequent call to this method or {@link
+     * #setPartitionMapConsumer} will override the previous setting.
+     *
+     * @param partitionMapOutput File-system path to write output at.
+     */
+    @Override
+    public Builder setPartitionMapOutputPath(Path partitionMapOutput) {
+      assert partitionMapOutput != null;
+      return super.setPartitionMapOutputPath(partitionMapOutput);
+    }
+
+    /**
+     * Set a consumer for receiving the partition map content.
+     *
+     * <p>Note that when a proguard-map output is specified for a release build, the compiler will
+     * optimize the line-number information and obtaining a source-level stacktrace will require the
+     * use of a retrace tool exactly as is needed for programs built by R8.
+     *
+     * <p>Note that any subsequent call to this method or {@link #setPartitionMapOutputPath} will
+     * override the previous setting.
+     *
+     * @param partitionMapConsumer Consumer to receive the content once produced.
+     */
+    @Override
+    public Builder setPartitionMapConsumer(PartitionMapConsumer partitionMapConsumer) {
+      assert partitionMapConsumer != null;
+      return super.setPartitionMapConsumer(partitionMapConsumer);
     }
 
     /**
@@ -482,6 +521,7 @@ public final class D8Command extends BaseCompilerCommand {
           getDumpInputFlags(),
           getMapIdProvider(),
           proguardMapConsumer,
+          partitionMapConsumer,
           enableMissingLibraryApiModeling,
           getAndroidPlatformBuild(),
           getArtProfilesForRewriting(),
@@ -503,6 +543,7 @@ public final class D8Command extends BaseCompilerCommand {
   private final boolean minimalMainDex;
   private final ImmutableList<ProguardConfigurationRule> mainDexKeepRules;
   private final StringConsumer proguardMapConsumer;
+  private final PartitionMapConsumer partitionMapConsumer;
   private final boolean enableMissingLibraryApiModeling;
   private final DexItemFactory factory;
 
@@ -578,6 +619,7 @@ public final class D8Command extends BaseCompilerCommand {
       DumpInputFlags dumpInputFlags,
       MapIdProvider mapIdProvider,
       StringConsumer proguardMapConsumer,
+      PartitionMapConsumer partitionMapConsumer,
       boolean enableMissingLibraryApiModeling,
       boolean isAndroidPlatformBuild,
       List<ArtProfileForRewriting> artProfilesForRewriting,
@@ -618,6 +660,7 @@ public final class D8Command extends BaseCompilerCommand {
     this.minimalMainDex = minimalMainDex;
     this.mainDexKeepRules = mainDexKeepRules;
     this.proguardMapConsumer = proguardMapConsumer;
+    this.partitionMapConsumer = partitionMapConsumer;
     this.enableMissingLibraryApiModeling = enableMissingLibraryApiModeling;
     this.factory = factory;
   }
@@ -635,6 +678,7 @@ public final class D8Command extends BaseCompilerCommand {
     minimalMainDex = false;
     mainDexKeepRules = null;
     proguardMapConsumer = null;
+    partitionMapConsumer = null;
     enableMissingLibraryApiModeling = false;
     factory = null;
   }
@@ -665,10 +709,15 @@ public final class D8Command extends BaseCompilerCommand {
     internal.setSyntheticInfoConsumer(syntheticInfoConsumer);
     internal.desugarGraphConsumer = desugarGraphConsumer;
     internal.mainDexKeepRules = mainDexKeepRules;
+    MapConsumer mapConsumer =
+        wrapExistingMapConsumerIfNotNull(
+            internal.mapConsumer, partitionMapConsumer, MapConsumerToPartitionMapConsumer::new);
     internal.mapConsumer =
-        proguardMapConsumer == null
-            ? null
-            : ProguardMapStringConsumer.builder().setStringConsumer(proguardMapConsumer).build();
+        wrapExistingMapConsumerIfNotNull(
+            mapConsumer,
+            proguardMapConsumer,
+            nonNullStringConsumer ->
+                ProguardMapStringConsumer.builder().setStringConsumer(proguardMapConsumer).build());
     internal.lineNumberOptimization =
         !internal.debug && proguardMapConsumer != null
             ? LineNumberOptimization.ON

@@ -104,6 +104,11 @@ public class ParseFlagInfoImpl implements ParseFlagInfo {
         "--pg-map-output", "<file>", "Output the resulting name and line mapping to <file>.");
   }
 
+  public static ParseFlagInfoImpl getPartitionMapOutput() {
+    return ParseFlagInfoImpl.flag1(
+        "--partition-map-output", "<file>", "Output the resulting mapping to <file>.");
+  }
+
   public static List<ParseFlagInfoImpl> getAssertionsFlags() {
     return ImmutableList.of(
         flag0a1(

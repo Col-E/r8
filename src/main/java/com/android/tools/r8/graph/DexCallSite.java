@@ -172,7 +172,7 @@ public final class DexCallSite extends IndexedDexItem implements StructuralItem<
   }
 
   @Override
-  void collectMixedSectionItems(MixedSectionCollection mixedItems) {
+  protected void collectMixedSectionItems(MixedSectionCollection mixedItems) {
     getEncodedArray().collectMixedSectionItems(mixedItems);
   }
 

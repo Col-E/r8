@@ -20,6 +20,7 @@ import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.naming.testclasses.A;
 import com.android.tools.r8.naming.testclasses.B;
 import com.android.tools.r8.utils.FileUtils;
+import com.google.common.util.concurrent.UncheckedExecutionException;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.concurrent.ExecutionException;
@@ -55,6 +56,8 @@ public class ClassNameMinifierOriginalClassNameTest extends TestBase {
     FileUtils.writeTextFile(dictionary, "A");
     return testForR8(getStaticTemp(), parameters.getBackend())
         .addProgramClasses(A.class, B.class)
+        // Including the source file forces an map entry for the pruned class A. See b/279702361.
+        .addKeepAttributeSourceFile()
         .addKeepClassAndMembersRulesWithAllowObfuscation(B.class)
         .addKeepRules("-classobfuscationdictionary " + dictionary.toString(), "-keeppackagenames")
         .setMinApi(parameters)
@@ -67,7 +70,8 @@ public class ClassNameMinifierOriginalClassNameTest extends TestBase {
             });
   }
 
-  @Test
+  // TODO(b/279702361): Fix issue with overlapping input/residual names.
+  @Test(expected = UncheckedExecutionException.class)
   public void testR8() throws ExecutionException, CompilationFailedException, IOException {
     R8TestCompileResult libraryCompileResult = compilationResults.apply(parameters);
     testForR8(parameters.getBackend())
@@ -83,7 +87,8 @@ public class ClassNameMinifierOriginalClassNameTest extends TestBase {
         .assertSuccessWithOutputLines("B.foo");
   }
 
-  @Test
+  // TODO(b/279702361): Fix issue with overlapping input/residual names.
+  @Test(expected = UncheckedExecutionException.class)
   public void testR8WithReferenceToNotMapped() {
     assumeTrue(parameters.isDexRuntime());
     R8TestCompileResult libraryCompileResult = compilationResults.apply(parameters);

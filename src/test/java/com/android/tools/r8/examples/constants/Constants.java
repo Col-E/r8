@@ -4,7 +4,7 @@
 
 // This code is not run directly. It needs to be compiled to dex code.
 // 'constants.dex' is what is run.
-package constants;
+package com.android.tools.r8.examples.constants;
 
 class Constants {
 

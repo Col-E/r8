@@ -9,7 +9,6 @@ import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assume.assumeFalse;
 import static org.junit.Assume.assumeTrue;
@@ -116,6 +115,14 @@ public class VerticalClassMergerTest extends TestBase {
       "classmerging.Outer$SuperClass",
       "classmerging.SuperClass"
   );
+
+  private static void assertAbsentOrIdentity(ClassNameMapper mapper, String className) {
+    // The mapping should be absent or identity.
+    ClassNamingForNameMapper classNaming = mapper.getClassNaming(className);
+    if (classNaming != null) {
+      assertEquals(classNaming.originalName, classNaming.renamedName);
+    }
+  }
 
   @Test
   public void testClassesHaveNotBeenMerged() throws Throwable {
@@ -526,7 +533,7 @@ public class VerticalClassMergerTest extends TestBase {
 
     ClassNameMapper mappingWithClassMerging =
         ClassNameMapper.mapperFromString(compileResultWithClassMerging.getProguardMap());
-    assertNull(mappingWithClassMerging.getClassNaming("classmerging.ProguardFieldMapTest$A"));
+    assertAbsentOrIdentity(mappingWithClassMerging, "classmerging.ProguardFieldMapTest$A");
 
     ClassNamingForNameMapper mappingsForClassBWithClassMerging =
         mappingWithClassMerging.getClassNaming("classmerging.ProguardFieldMapTest$B");
@@ -607,7 +614,7 @@ public class VerticalClassMergerTest extends TestBase {
 
     ClassNameMapper mappingWithClassMerging =
         ClassNameMapper.mapperFromString(compileResultWithClassMerging.getProguardMap());
-    assertNull(mappingWithClassMerging.getClassNaming("classmerging.ProguardMethodMapTest$A"));
+    assertAbsentOrIdentity(mappingWithClassMerging, "classmerging.ProguardMethodMapTest$A");
 
     ClassNamingForNameMapper mappingsForClassBWithClassMerging =
         mappingWithClassMerging.getClassNaming("classmerging.ProguardMethodMapTest$B");

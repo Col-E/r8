@@ -147,7 +147,6 @@ luci.console_view(
     refs = ["refs/heads/.*"]
 )
 
-
 view_builders = []
 
 def builder_view(name, category, short_name):
@@ -169,7 +168,7 @@ common_test_options = [
     "--archive_failures"
 ]
 
-def get_dimensions(windows=False, internal=False, normal=False):
+def get_dimensions(windows=False, internal=False, normal=False, smali=False):
   dimensions = {
     "cores" : "2" if internal else "8",
     "cpu" : "x86-64",
@@ -410,6 +409,24 @@ r8_builder(
     }
 )
 
+r8_builder(
+    "smali",
+    category = "aux",
+    trigger = False,
+    dimensions = get_dimensions(smali=True),
+    triggering_policy = scheduler.policy(
+        kind = scheduler.GREEDY_BATCHING_KIND,
+        max_concurrent_invocations = 1,
+        max_batch_size = 1,
+    ),
+    properties = {
+        "test_wrapper" : "tools/archive_smali.py",
+        "builder_group" : "internal.client.smali"
+    },
+    execution_timeout = time.hour * 12,
+    expiration_timeout = time.hour * 35,
+)
+
 order_of_categories = [
   "archive",
   "R8",
@@ -418,9 +435,15 @@ order_of_categories = [
   "Release|R8",
 ]
 
+categories_with_no_console = [
+  "aux",
+]
+
 def add_view_entries():
   # Ensure that all categories are ordered
   for v in view_builders:
+    if v[1] in categories_with_no_console:
+      continue
     if not v[1] in order_of_categories:
       fail()
   for category in order_of_categories:

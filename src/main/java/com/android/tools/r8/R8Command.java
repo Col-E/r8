@@ -301,34 +301,6 @@ public final class R8Command extends BaseCompilerCommand {
     }
 
     /**
-     * Set an output destination to which r8-map content should be written.
-     *
-     * <p>This is a short-hand for setting a {@link MapConsumerToPartitionMapConsumer} using {@link
-     * #setPartitionMapConsumer}. Note that any subsequent call to this method or {@link
-     * #setPartitionMapConsumer} will override the previous setting.
-     *
-     * @param partitionMapOutput File-system path to write output at.
-     */
-    @Override
-    public Builder setPartitionMapOutputPath(Path partitionMapOutput) {
-      assert partitionMapOutput != null;
-      return super.setPartitionMapOutputPath(partitionMapOutput);
-    }
-
-    /**
-     * Set a consumer for receiving the r8-map content.
-     *
-     * <p>Note that any subsequent call to this method or {@link #setPartitionMapOutputPath} will
-     * override the previous setting.
-     *
-     * @param partitionMapConsumer Consumer to receive the content once produced.
-     */
-    @Override
-    public Builder setPartitionMapConsumer(PartitionMapConsumer partitionMapConsumer) {
-      return super.setPartitionMapConsumer(partitionMapConsumer);
-    }
-
-    /**
      * Set a consumer for receiving the keep rules to use when compiling the desugared library for
      * the program being compiled in this compilation.
      *

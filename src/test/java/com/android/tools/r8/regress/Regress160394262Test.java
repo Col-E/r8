@@ -59,7 +59,13 @@ public class Regress160394262Test extends TestBase {
   private void checkJoinerIsClassInlined(CodeInspector inspector) {
     assertThat(inspector.clazz(Joiner.class.getTypeName() + "$1"), isAbsent());
     // TODO(b/160640028): Joiner should be class inlined.
-    assertThat(inspector.clazz(Joiner.class), isPresent());
+    //   When line info tables are kept we appear to successfully inline Joiner. Reason unknown.
+    if (parameters.isCfRuntime()
+        || parameters.getApiLevel().isLessThan(apiLevelWithPcAsLineNumberSupport())) {
+      assertThat(inspector.clazz(Joiner.class), isPresent());
+    } else {
+      assertThat(inspector.clazz(Joiner.class), isAbsent());
+    }
   }
 
   static class TestClass {

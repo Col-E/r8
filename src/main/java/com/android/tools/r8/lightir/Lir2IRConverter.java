@@ -24,6 +24,7 @@ import com.android.tools.r8.ir.code.CatchHandlers;
 import com.android.tools.r8.ir.code.CheckCast;
 import com.android.tools.r8.ir.code.Cmp;
 import com.android.tools.r8.ir.code.Cmp.Bias;
+import com.android.tools.r8.ir.code.ConstClass;
 import com.android.tools.r8.ir.code.ConstNumber;
 import com.android.tools.r8.ir.code.ConstString;
 import com.android.tools.r8.ir.code.DebugLocalWrite;
@@ -38,6 +39,7 @@ import com.android.tools.r8.ir.code.InstancePut;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InvokeDirect;
 import com.android.tools.r8.ir.code.InvokeInterface;
+import com.android.tools.r8.ir.code.InvokeNewArray;
 import com.android.tools.r8.ir.code.InvokeStatic;
 import com.android.tools.r8.ir.code.InvokeSuper;
 import com.android.tools.r8.ir.code.InvokeVirtual;
@@ -47,6 +49,7 @@ import com.android.tools.r8.ir.code.MonitorType;
 import com.android.tools.r8.ir.code.MoveException;
 import com.android.tools.r8.ir.code.Mul;
 import com.android.tools.r8.ir.code.NewArrayEmpty;
+import com.android.tools.r8.ir.code.NewArrayFilledData;
 import com.android.tools.r8.ir.code.NewInstance;
 import com.android.tools.r8.ir.code.NumberConversion;
 import com.android.tools.r8.ir.code.NumberGenerator;
@@ -57,6 +60,7 @@ import com.android.tools.r8.ir.code.Position.SyntheticPosition;
 import com.android.tools.r8.ir.code.Rem;
 import com.android.tools.r8.ir.code.Return;
 import com.android.tools.r8.ir.code.StaticGet;
+import com.android.tools.r8.ir.code.StaticPut;
 import com.android.tools.r8.ir.code.Sub;
 import com.android.tools.r8.ir.code.Throw;
 import com.android.tools.r8.ir.code.Value;
@@ -421,6 +425,14 @@ public class Lir2IRConverter {
     }
 
     @Override
+    public void onConstClass(DexType type) {
+      Value dest =
+          getOutValueForNextInstruction(
+              type.toTypeElement(appView, Nullability.definitelyNotNull()));
+      addInstruction(new ConstClass(dest, type));
+    }
+
+    @Override
     public void onNumberConversion(NumericType from, NumericType to, EV value) {
       Value dest =
           getOutValueForNextInstruction(
@@ -523,6 +535,11 @@ public class Lir2IRConverter {
     }
 
     @Override
+    public void onStaticPut(DexField field, EV value) {
+      addInstruction(new StaticPut(getValue(value), field));
+    }
+
+    @Override
     public void onInstanceGet(DexField field, EV object) {
       Value dest = getOutValueForNextInstruction(field.getTypeElement(appView));
       addInstruction(new InstanceGet(dest, getValue(object), field));
@@ -599,6 +616,19 @@ public class Lir2IRConverter {
       TypeElement type = dest.getLocalInfo().type.toTypeElement(appView);
       dest.setType(type);
       addInstruction(new DebugLocalWrite(dest, src));
+    }
+
+    @Override
+    public void onInvokeNewArray(DexType type, List<EV> arguments) {
+      Value dest =
+          getOutValueForNextInstruction(
+              type.toTypeElement(appView, Nullability.definitelyNotNull()));
+      addInstruction(new InvokeNewArray(type, dest, getValues(arguments)));
+    }
+
+    @Override
+    public void onNewArrayFilledData(int elementWidth, long size, short[] data, EV src) {
+      addInstruction(new NewArrayFilledData(getValue(src), elementWidth, size, data));
     }
 
     @Override

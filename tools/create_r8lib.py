@@ -96,6 +96,7 @@ def main():
   cmd.extend(['--source-file-template', source_file_template])
   cmd.extend(['--output', args.output])
   cmd.extend(['--pg-map-output', args.output + '.map'])
+  cmd.extend(['--partition-map-output', args.output + '_map.zip'])
   cmd.extend(['--lib', jdk.GetJdkHome()])
   if args.pg_conf:
     for pgconf in args.pg_conf:

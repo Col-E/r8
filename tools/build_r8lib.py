@@ -58,6 +58,7 @@ def build_r8lib(target, exclude_deps, no_relocate, keep_rules_path,
   if output_path is None:
     output_path = target + 'lib.jar'
   output_map_path = output_path + '.map'
+  r8_output_map_path = output_path + '_map.zip'
   toolhelper.run(
       'r8',
       ('--release',
@@ -67,7 +68,8 @@ def build_r8lib(target, exclude_deps, no_relocate, keep_rules_path,
        temp_lib,
        '--output', output_path,
        '--pg-conf', keep_rules_path,
-       '--pg-map-output', output_map_path),
+       '--pg-map-output', output_map_path,
+       '--partition-map-output', r8_output_map_path),
       **kwargs)
   if exclude_deps:
     return [output_path, temp_deps]

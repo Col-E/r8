@@ -29,6 +29,7 @@ public class L8CommandParser extends BaseCompilerCommandParser<L8Command, L8Comm
           THREAD_COUNT_FLAG,
           "--pg-conf",
           "--pg-map-output",
+          "--partition-map-output",
           ART_PROFILE_FLAG);
 
   // Note: this must be a subset of OPTIONS_WITH_ONE_PARAMETER.
@@ -64,6 +65,7 @@ public class L8CommandParser extends BaseCompilerCommandParser<L8Command, L8Comm
         .add(ParseFlagInfoImpl.getMinApi())
         .add(ParseFlagInfoImpl.getPgConf())
         .add(ParseFlagInfoImpl.getPgMapOutput())
+        .add(ParseFlagInfoImpl.getPartitionMapOutput())
         .add(ParseFlagInfoImpl.getDesugaredLib())
         .addAll(ParseFlagInfoImpl.getAssertionsFlags())
         .add(ParseFlagInfoImpl.getThreadCount())
@@ -175,6 +177,8 @@ public class L8CommandParser extends BaseCompilerCommandParser<L8Command, L8Comm
         builder.addProguardConfigurationFiles(Paths.get(nextArg));
       } else if (arg.equals("--pg-map-output")) {
         builder.setProguardMapOutputPath(Paths.get(nextArg));
+      } else if (arg.equals("--partition-map-output")) {
+        builder.setPartitionMapOutputPath(Paths.get(nextArg));
       } else if (arg.equals("--desugared-lib")) {
         builder.addDesugaredLibraryConfiguration(StringResource.fromFile(Paths.get(nextArg)));
       } else if (arg.equals("--classfile")) {

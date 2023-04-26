@@ -401,7 +401,7 @@ public abstract class BaseCompilerCommand extends BaseCommand {
      *
      * @param partitionMapOutput File-system path to write output at.
      */
-    B setPartitionMapOutputPath(Path partitionMapOutput) {
+    public B setPartitionMapOutputPath(Path partitionMapOutput) {
       assert partitionMapOutput != null;
       return setPartitionMapConsumer(MapConsumerUtils.createZipConsumer(partitionMapOutput));
     }
@@ -414,7 +414,7 @@ public abstract class BaseCompilerCommand extends BaseCommand {
      *
      * @param partitionMapConsumer Consumer to receive the content once produced.
      */
-    B setPartitionMapConsumer(PartitionMapConsumer partitionMapConsumer) {
+    public B setPartitionMapConsumer(PartitionMapConsumer partitionMapConsumer) {
       this.partitionMapConsumer = partitionMapConsumer;
       return self();
     }

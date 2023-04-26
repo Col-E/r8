@@ -132,7 +132,7 @@ public class DexAnnotationSet extends CachedHashValueDexItem
   }
 
   @Override
-  void collectMixedSectionItems(MixedSectionCollection mixedItems) {
+  protected void collectMixedSectionItems(MixedSectionCollection mixedItems) {
     mixedItems.add(this);
     collectAll(mixedItems, annotations);
   }

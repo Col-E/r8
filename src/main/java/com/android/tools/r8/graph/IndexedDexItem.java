@@ -9,7 +9,7 @@ import com.android.tools.r8.dex.MixedSectionCollection;
 public abstract class IndexedDexItem extends CachedHashValueDexItem {
 
   @Override
-  void collectMixedSectionItems(MixedSectionCollection mixedItems) {
+  protected void collectMixedSectionItems(MixedSectionCollection mixedItems) {
     // Should never be visited.
     assert false;
   }

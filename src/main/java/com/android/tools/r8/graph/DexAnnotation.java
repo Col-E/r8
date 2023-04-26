@@ -128,7 +128,7 @@ public class DexAnnotation extends DexItem implements StructuralItem<DexAnnotati
   }
 
   @Override
-  void collectMixedSectionItems(MixedSectionCollection mixedItems) {
+  protected void collectMixedSectionItems(MixedSectionCollection mixedItems) {
     mixedItems.add(this);
   }
 

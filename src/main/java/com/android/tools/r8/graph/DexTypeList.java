@@ -133,7 +133,7 @@ public class DexTypeList extends DexItem implements Iterable<DexType>, Structura
   }
 
   @Override
-  void collectMixedSectionItems(MixedSectionCollection mixedItems) {
+  protected void collectMixedSectionItems(MixedSectionCollection mixedItems) {
     mixedItems.add(this);
   }
 

@@ -7,6 +7,7 @@ import com.android.tools.r8.cf.code.CfArithmeticBinop;
 import com.android.tools.r8.cf.code.CfArithmeticBinop.Opcode;
 import com.android.tools.r8.cf.code.CfLogicalBinop;
 import com.android.tools.r8.cf.code.CfNumberConversion;
+import com.android.tools.r8.dex.MixedSectionCollection;
 import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.DebugLocalInfo;
@@ -78,8 +79,31 @@ public class LirBuilder<V, EV> {
 
   // TODO(b/225838009): Reconsider this fixed space as the operand count for phis is much larger.
   // Pre-allocated space for caching value indexes when writing instructions.
-  private static final int MAX_VALUE_COUNT = 10;
+  private static final int MAX_VALUE_COUNT = 256;
   private int[] valueIndexBuffer = new int[MAX_VALUE_COUNT];
+
+  /**
+   * Internal "DexItem" for the fill-array payloads such that they can be put in the pool.
+   *
+   * <p>The instruction encoding assumes the instruction operand payload size is u1, so the data
+   * payload is stored in the constant pool instead.
+   */
+  public static class FillArrayPayload extends DexItem {
+    public final int element_width;
+    public final long size;
+    public final short[] data;
+
+    public FillArrayPayload(int element_width, long size, short[] data) {
+      this.element_width = element_width;
+      this.size = size;
+      this.data = data;
+    }
+
+    @Override
+    protected void collectMixedSectionItems(MixedSectionCollection collection) {
+      throw new Unreachable();
+    }
+  }
 
   public LirBuilder(DexMethod method, LirEncodingStrategy<V, EV> strategy, DexItemFactory factory) {
     this.factory = factory;
@@ -331,6 +355,10 @@ public class LirBuilder<V, EV> {
     return addOneItemInstruction(LirOpcodes.LDC, string);
   }
 
+  public LirBuilder<V, EV> addConstClass(DexType type) {
+    return addOneItemInstruction(LirOpcodes.LDC, type);
+  }
+
   public LirBuilder<V, EV> addDiv(NumericType type, V leftValue, V rightValue) {
     int opcode;
     switch (type) {
@@ -375,6 +403,11 @@ public class LirBuilder<V, EV> {
 
   public LirBuilder<V, EV> addStaticGet(DexField field) {
     return addOneItemInstruction(LirOpcodes.GETSTATIC, field);
+  }
+
+  public LirBuilder<V, EV> addStaticPut(DexField field, V value) {
+    return addInstructionTemplate(
+        LirOpcodes.PUTSTATIC, Collections.singletonList(field), ImmutableList.of(value));
   }
 
   public LirBuilder<V, EV> addInstanceGet(DexField field, V object) {
@@ -603,6 +636,19 @@ public class LirBuilder<V, EV> {
   public LirBuilder<V, EV> addNewArrayEmpty(V size, DexType type) {
     return addInstructionTemplate(
         LirOpcodes.NEWARRAY, Collections.singletonList(type), Collections.singletonList(size));
+  }
+
+  public LirBuilder<V, EV> addInvokeNewArray(DexType type, List<V> arguments) {
+    return addInstructionTemplate(
+        LirOpcodes.INVOKENEWARRAY, Collections.singletonList(type), arguments);
+  }
+
+  public LirBuilder<V, EV> addNewArrayFilledData(int elementWidth, long size, short[] data, V src) {
+    FillArrayPayload payloadConstant = new FillArrayPayload(elementWidth, size, data);
+    return addInstructionTemplate(
+        LirOpcodes.NEWARRAYFILLEDDATA,
+        Collections.singletonList(payloadConstant),
+        Collections.singletonList(src));
   }
 
   public LirBuilder<V, EV> addNumberConversion(NumericType from, NumericType to, V value) {

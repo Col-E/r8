@@ -150,6 +150,11 @@ public class LirPrinter<EV> extends LirParsedInstructionCallback<EV> {
   }
 
   @Override
+  public void onConstClass(DexType type) {
+    appendOutValue().append("class(").append(type).append(")");
+  }
+
+  @Override
   public void onAdd(NumericType type, EV leftValueIndex, EV rightValueIndex) {
     appendOutValue();
     appendValueArguments(leftValueIndex, rightValueIndex);
@@ -212,6 +217,19 @@ public class LirPrinter<EV> extends LirParsedInstructionCallback<EV> {
   }
 
   @Override
+  public void onInvokeNewArray(DexType type, List<EV> arguments) {
+    appendOutValue();
+    appendValueArguments(arguments);
+    builder.append(type);
+  }
+
+  @Override
+  public void onNewArrayFilledData(int elementWidth, long size, short[] data, EV src) {
+    appendValueArguments(src);
+    builder.append("w:").append(elementWidth).append(",s:").append(size);
+  }
+
+  @Override
   public void onNewInstance(DexType clazz) {
     appendOutValue();
     builder.append(clazz);
@@ -227,14 +245,15 @@ public class LirPrinter<EV> extends LirParsedInstructionCallback<EV> {
   }
 
   @Override
-  public void onFieldInstruction(DexField field) {
-    builder.append(field);
+  public void onStaticGet(DexField field) {
+    appendOutValue();
+    builder.append(field).append(' ');
   }
 
   @Override
-  public void onStaticGet(DexField field) {
-    appendOutValue();
-    super.onStaticGet(field);
+  public void onStaticPut(DexField field, EV value) {
+    builder.append(field).append(' ');
+    appendValueArguments(value);
   }
 
   @Override

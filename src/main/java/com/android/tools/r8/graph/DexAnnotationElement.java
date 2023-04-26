@@ -66,7 +66,7 @@ public class DexAnnotationElement extends DexItem implements StructuralItem<DexA
   }
 
   @Override
-  void collectMixedSectionItems(MixedSectionCollection mixedItems) {
+  protected void collectMixedSectionItems(MixedSectionCollection mixedItems) {
     // Should never be visited.
     assert false;
   }

@@ -249,7 +249,7 @@ public abstract class DexClass extends DexDefinition
   }
 
   @Override
-  void collectMixedSectionItems(MixedSectionCollection mixedItems) {
+  protected void collectMixedSectionItems(MixedSectionCollection mixedItems) {
     throw new Unreachable();
   }
 

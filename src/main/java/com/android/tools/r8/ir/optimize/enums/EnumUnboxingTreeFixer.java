@@ -68,10 +68,11 @@ import com.android.tools.r8.utils.collections.ProgramMethodSet;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 import com.google.common.collect.Sets;
-import it.unimi.dsi.fastutil.ints.Int2ObjectArrayMap;
-import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
+import it.unimi.dsi.fastutil.ints.Int2ObjectLinkedOpenHashMap;
+import it.unimi.dsi.fastutil.ints.Int2ObjectSortedMap;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Comparator;
 import java.util.IdentityHashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -168,6 +169,15 @@ class EnumUnboxingTreeFixer implements ProgramClassFixer {
     clazz.clearStaticFields();
     clazz.getMethodCollection().clearDirectMethods();
     clazz.getMethodCollection().clearVirtualMethods();
+  }
+
+  @Override
+  public boolean shouldReserveAsIfPinned(ProgramMethod method) {
+    DexProto oldProto = method.getProto();
+    DexProto newProto = fixupProto(oldProto);
+    // We don't track nor reprocess dependencies of unchanged methods so we have to maintain them
+    // with the same signature.
+    return oldProto == newProto;
   }
 
   @Override
@@ -399,8 +409,11 @@ class EnumUnboxingTreeFixer implements ProgramClassFixer {
               instructionsToRemove.put(constructorInvoke, Optional.empty());
             }
 
-            ProgramMethod constructor =
-                unboxedEnum.lookupProgramMethod(lookupResult.getReference());
+            DexProgramClass holder =
+                newInstance.getType() == unboxedEnum.getType()
+                    ? unboxedEnum
+                    : appView.programDefinitionFor(newInstance.getType(), classInitializer);
+            ProgramMethod constructor = holder.lookupProgramMethod(lookupResult.getReference());
             assert constructor != null;
 
             InstanceFieldInitializationInfo ordinalInitializationInfo =
@@ -613,7 +626,7 @@ class EnumUnboxingTreeFixer implements ProgramClassFixer {
     }
     if (superMethod == null || subimplementations.isEmpty()) {
       // No emulated dispatch is required, just move everything.
-      if (superMethod != null) {
+      if (superMethod != null && !superMethod.getAccessFlags().isAbstract()) {
         assert superMethod.isProgramMethod();
         directMoveAndMap(localUtilityClass, localUtilityMethods, superMethod.asProgramMethod());
       }
@@ -631,14 +644,13 @@ class EnumUnboxingTreeFixer implements ProgramClassFixer {
       LocalEnumUnboxingUtilityClass localUtilityClass,
       Map<DexMethod, DexEncodedMethod> localUtilityMethods,
       DexClassAndMethod superMethod,
-      ProgramMethodSet subimplementations) {
-    assert !subimplementations.isEmpty();
+      ProgramMethodSet unorderedSubimplementations) {
+    assert !unorderedSubimplementations.isEmpty();
     DexMethod superUtilityMethod;
     if (superMethod.isProgramMethod()) {
       superUtilityMethod =
           installLocalUtilityMethod(
-                  localUtilityClass, localUtilityMethods, superMethod.asProgramMethod())
-              .getReference();
+              localUtilityClass, localUtilityMethods, superMethod.asProgramMethod());
     } else {
       // All methods but toString() are final or non-virtual.
       // We could support other cases by setting correctly the superUtilityMethod here.
@@ -646,17 +658,19 @@ class EnumUnboxingTreeFixer implements ProgramClassFixer {
       superUtilityMethod = localUtilityClass.computeToStringUtilityMethod(factory);
     }
     Map<DexMethod, DexMethod> overrideToUtilityMethods = new IdentityHashMap<>();
-    for (ProgramMethod subMethod : subimplementations) {
-      DexEncodedMethod subEnumLocalUtilityMethod =
+    List<ProgramMethod> sortedSubimplementations = new ArrayList<>(unorderedSubimplementations);
+    sortedSubimplementations.sort(Comparator.comparing(ProgramMethod::getHolderType));
+    for (ProgramMethod subMethod : sortedSubimplementations) {
+      DexMethod subEnumLocalUtilityMethod =
           installLocalUtilityMethod(localUtilityClass, localUtilityMethods, subMethod);
-      overrideToUtilityMethods.put(
-          subMethod.getReference(), subEnumLocalUtilityMethod.getReference());
+      assert subEnumLocalUtilityMethod != null;
+      overrideToUtilityMethods.put(subMethod.getReference(), subEnumLocalUtilityMethod);
     }
     DexMethod dispatch =
         installDispatchMethod(
                 localUtilityClass,
                 localUtilityMethods,
-                subimplementations.iterator().next(),
+                sortedSubimplementations.iterator().next(),
                 superUtilityMethod,
                 overrideToUtilityMethods)
             .getReference();
@@ -678,16 +692,21 @@ class EnumUnboxingTreeFixer implements ProgramClassFixer {
       LocalEnumUnboxingUtilityClass localUtilityClass,
       Map<DexMethod, DexEncodedMethod> localUtilityMethods,
       ProgramMethod method) {
-    DexEncodedMethod utilityMethod =
+    assert !method.getAccessFlags().isAbstract();
+    DexMethod utilityMethod =
         installLocalUtilityMethod(localUtilityClass, localUtilityMethods, method);
-    lensBuilder.moveAndMap(
-        method.getReference(), utilityMethod.getReference(), method.getDefinition().isStatic());
+    assert utilityMethod != null;
+    lensBuilder.moveAndMap(method.getReference(), utilityMethod, method.getDefinition().isStatic());
   }
 
   public void recordEmulatedDispatch(DexMethod from, DexMethod move, DexMethod dispatch) {
     // Move is used for getRenamedSignature and to remap invoke-super.
     // Map is used to remap all the other invokes.
-    lensBuilder.moveVirtual(from, move);
+    assert from != null;
+    assert dispatch != null;
+    if (move != null) {
+      lensBuilder.moveVirtual(from, move);
+    }
     lensBuilder.mapToDispatch(from, dispatch);
   }
 
@@ -704,7 +723,7 @@ class EnumUnboxingTreeFixer implements ProgramClassFixer {
             fixupProto(factory.prependHolderToProto(representative.getReference())),
             localUtilityClass.getType(),
             newMethodSignature -> !localUtilityMethods.containsKey(newMethodSignature));
-    Int2ObjectMap<DexMethod> methodMap = new Int2ObjectArrayMap<>();
+    Int2ObjectSortedMap<DexMethod> methodMap = new Int2ObjectLinkedOpenHashMap<>();
     IdentityHashMap<DexType, DexMethod> typeToMethod = new IdentityHashMap<>();
     map.forEach(
         (methodReference, newMethodReference) ->
@@ -740,10 +759,13 @@ class EnumUnboxingTreeFixer implements ProgramClassFixer {
     return newLocalUtilityMethod;
   }
 
-  private DexEncodedMethod installLocalUtilityMethod(
+  private DexMethod installLocalUtilityMethod(
       LocalEnumUnboxingUtilityClass localUtilityClass,
       Map<DexMethod, DexEncodedMethod> localUtilityMethods,
       ProgramMethod method) {
+    if (method.getAccessFlags().isAbstract()) {
+      return null;
+    }
     DexEncodedMethod newLocalUtilityMethod =
         createLocalUtilityMethod(
             method,
@@ -751,7 +773,7 @@ class EnumUnboxingTreeFixer implements ProgramClassFixer {
             newMethodSignature -> !localUtilityMethods.containsKey(newMethodSignature));
     assert !localUtilityMethods.containsKey(newLocalUtilityMethod.getReference());
     localUtilityMethods.put(newLocalUtilityMethod.getReference(), newLocalUtilityMethod);
-    return newLocalUtilityMethod;
+    return newLocalUtilityMethod.getReference();
   }
 
   private DexEncodedMethod createLocalUtilityMethod(
@@ -804,14 +826,17 @@ class EnumUnboxingTreeFixer implements ProgramClassFixer {
       DexEncodedMethod method, MethodNamingUtility utility) {
     DexProto oldProto = method.getProto();
     DexProto newProto = fixupProto(oldProto);
-    // Even if the protos are identical, we may generate collisions and decide to rename the
-    // unchanged method. In most cases this is a no-op if the proto are identical.
+    if (oldProto == newProto) {
+      assert method.getReference()
+          == utility.nextUniqueMethod(
+              method, newProto, utilityClasses.getSharedUtilityClass().getType());
+      return method;
+    }
+
     DexMethod newMethod =
         utility.nextUniqueMethod(
             method, newProto, utilityClasses.getSharedUtilityClass().getType());
-    if (newMethod == method.getReference()) {
-      return method;
-    }
+    assert newMethod != method.getReference();
     assert !method.isClassInitializer();
     assert !method.isLibraryMethodOverride().isTrue()
         : "Enum unboxing is changing the signature of a library override in a non unboxed class.";
@@ -822,24 +847,15 @@ class EnumUnboxingTreeFixer implements ProgramClassFixer {
     RewrittenPrototypeDescription prototypeChanges =
         lensBuilder.moveAndMap(
             method.getReference(), newMethod, isStatic, isStatic, extraUnusedNullParameters);
-    DexEncodedMethod newEncodedMethod =
-        method.toTypeSubstitutedMethod(
-            newMethod,
-            builder ->
-                builder
-                    .fixupOptimizationInfo(
-                        appView, prototypeChanges.createMethodOptimizationInfoFixer())
-                    .setCompilationState(method.getCompilationState())
-                    .setIsLibraryMethodOverrideIf(
-                        method.isNonPrivateVirtualMethod(), OptionalBool.FALSE));
-    if (!extraUnusedNullParameters.isEmpty() && method.getCode() != null) {
-      DexEncodedMethod.setDebugInfoWithExtraParameters(
-          newEncodedMethod.getCode(),
-          newMethod.getArity(),
-          extraUnusedNullParameters.size(),
-          appView);
-    }
-    return newEncodedMethod;
+    return method.toTypeSubstitutedMethod(
+        newMethod,
+        builder ->
+            builder
+                .fixupOptimizationInfo(
+                    appView, prototypeChanges.createMethodOptimizationInfoFixer())
+                .setCompilationState(method.getCompilationState())
+                .setIsLibraryMethodOverrideIf(
+                    method.isNonPrivateVirtualMethod(), OptionalBool.FALSE));
   }
 
   private DexEncodedField fixupEncodedField(DexEncodedField encodedField) {

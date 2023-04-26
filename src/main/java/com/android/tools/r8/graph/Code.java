@@ -172,7 +172,7 @@ public abstract class Code extends CachedHashValueDexItem {
   }
 
   @Override
-  void collectMixedSectionItems(MixedSectionCollection collection) {
+  protected void collectMixedSectionItems(MixedSectionCollection collection) {
     throw new Unreachable();
   }
 

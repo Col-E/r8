@@ -931,7 +931,7 @@ public class DexCode extends Code implements DexWritableCode, StructuralItem<Dex
     }
 
     @Override
-    void collectMixedSectionItems(MixedSectionCollection mixedItems) {
+    protected void collectMixedSectionItems(MixedSectionCollection mixedItems) {
       // Should never be visited.
       assert false;
     }
@@ -983,7 +983,7 @@ public class DexCode extends Code implements DexWritableCode, StructuralItem<Dex
     }
 
     @Override
-    void collectMixedSectionItems(MixedSectionCollection mixedItems) {
+    protected void collectMixedSectionItems(MixedSectionCollection mixedItems) {
       // Should never be visited.
       assert false;
     }
@@ -1046,7 +1046,7 @@ public class DexCode extends Code implements DexWritableCode, StructuralItem<Dex
       }
 
       @Override
-      void collectMixedSectionItems(MixedSectionCollection mixedItems) {
+      protected void collectMixedSectionItems(MixedSectionCollection mixedItems) {
         // Should never be visited.
         assert false;
       }

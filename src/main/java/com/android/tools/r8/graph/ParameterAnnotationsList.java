@@ -129,7 +129,7 @@ public class ParameterAnnotationsList extends DexItem
   }
 
   @Override
-  void collectMixedSectionItems(MixedSectionCollection mixedItems) {
+  protected void collectMixedSectionItems(MixedSectionCollection mixedItems) {
     // Collect values first so that the annotation sets have sorted themselves before adding this.
     collectAll(mixedItems, values);
     mixedItems.add(this);

@@ -34,7 +34,7 @@ public abstract class DexItem {
     }
   }
 
-  abstract void collectMixedSectionItems(MixedSectionCollection collection);
+  protected abstract void collectMixedSectionItems(MixedSectionCollection collection);
 
   protected void flushCachedValues() {
     // Overwritten in subclasses.

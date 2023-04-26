@@ -43,6 +43,7 @@ public class R8CommandParser extends BaseCompilerCommandParser<R8Command, R8Comm
           "--pg-conf",
           "--pg-conf-output",
           "--pg-map-output",
+          "--partition-map-output",
           "--desugared-lib",
           "--desugared-lib-pg-conf-output",
           "--map-id-template",
@@ -71,6 +72,7 @@ public class R8CommandParser extends BaseCompilerCommandParser<R8Command, R8Comm
         .add(ParseFlagInfoImpl.getPgConf())
         .add(flag1("--pg-conf-output", "<file>", "Output the collective configuration to <file>."))
         .add(ParseFlagInfoImpl.getPgMapOutput())
+        .add(ParseFlagInfoImpl.getPartitionMapOutput())
         .add(ParseFlagInfoImpl.getDesugaredLib())
         .add(
             flag1(
@@ -294,6 +296,8 @@ public class R8CommandParser extends BaseCompilerCommandParser<R8Command, R8Comm
         builder.setProguardConfigurationConsumer(consumer);
       } else if (arg.equals("--pg-map-output")) {
         builder.setProguardMapOutputPath(Paths.get(nextArg));
+      } else if (arg.equals("--partition-map-output")) {
+        builder.setPartitionMapOutputPath(Paths.get(nextArg));
       } else if (arg.equals("--desugared-lib")) {
         builder.addDesugaredLibraryConfiguration(StringResource.fromFile(Paths.get(nextArg)));
       } else if (arg.equals("--desugared-lib-pg-conf-output")) {

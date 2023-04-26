@@ -63,7 +63,7 @@ public class DexEncodedAnnotation extends DexItem implements StructuralItem<DexE
   }
 
   @Override
-  void collectMixedSectionItems(MixedSectionCollection mixedItems) {
+  protected void collectMixedSectionItems(MixedSectionCollection mixedItems) {
     // Should never be called.
     assert false;
   }

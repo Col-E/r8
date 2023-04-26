@@ -355,7 +355,7 @@ public abstract class DexValue extends DexItem implements StructuralItem<DexValu
   }
 
   @Override
-  void collectMixedSectionItems(MixedSectionCollection mixedItems) {
+  protected void collectMixedSectionItems(MixedSectionCollection mixedItems) {
     // Should never be visited.
     throw new Unreachable();
   }

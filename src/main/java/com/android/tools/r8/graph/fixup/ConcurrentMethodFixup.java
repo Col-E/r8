@@ -15,20 +15,18 @@ import com.android.tools.r8.graph.DexMethodSignature;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ImmediateProgramSubtypingInfo;
+import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.optimize.argumentpropagation.utils.ProgramClassesBidirectedGraph;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.KeepMethodInfo;
-import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.ThreadUtils;
 import com.android.tools.r8.utils.Timing;
 import com.android.tools.r8.utils.collections.DexMethodSignatureSet;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
-import com.google.common.collect.ImmutableBiMap;
 import com.google.common.collect.Sets;
 import java.util.ArrayList;
 import java.util.Comparator;
-import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -71,6 +69,9 @@ public class ConcurrentMethodFixup {
     // When a class is fixed-up, it is guaranteed that its supertype and interfaces were processed
     // before. In addition, all interfaces are processed before any class is processed.
     void fixupProgramClass(DexProgramClass clazz, MethodNamingUtility namingUtility);
+
+    // Answers true if the method should be reserved as itself.
+    boolean shouldReserveAsIfPinned(ProgramMethod method);
   }
 
   private void processConnectedProgramComponents(Set<DexProgramClass> classes) {
@@ -91,39 +92,30 @@ public class ConcurrentMethodFixup {
 
     // 3) Map all classes top-down propagating the inherited signatures.
     // The componentSignatures are already fully computed and should not be updated anymore.
-    BiMap<DexMethodSignature, DexMethodSignature> immutableComponentSignaturesForTesting =
-        InternalOptions.assertionsEnabled()
-            ? ImmutableBiMap.copyOf(componentSignatures)
-            : componentSignatures;
-    Map<DexProgramClass, BiMap<DexMethodSignature, DexMethodSignature>> processedClasses =
-        new IdentityHashMap<>();
+    // TODO(b/279707790): Consider changing the processing to have a different componentSignatures
+    //  per subtree.
+    Set<DexProgramClass> processedClasses = Sets.newIdentityHashSet();
     for (DexProgramClass clazz : sorted) {
       if (!clazz.isInterface()) {
-        processClass(clazz, processedClasses, immutableComponentSignaturesForTesting);
+        processClass(clazz, processedClasses, componentSignatures);
       }
     }
   }
 
   private void processClass(
       DexProgramClass clazz,
-      Map<DexProgramClass, BiMap<DexMethodSignature, DexMethodSignature>> processedClasses,
+      Set<DexProgramClass> processedClasses,
       BiMap<DexMethodSignature, DexMethodSignature> componentSignatures) {
     assert !clazz.isInterface();
-    if (processedClasses.containsKey(clazz)) {
+    if (!processedClasses.add(clazz)) {
       return;
     }
     // We need to process first the super-type for the top-down propagation of inherited signatures.
-    DexClass superClass = appView.definitionFor(clazz.superType);
-    BiMap<DexMethodSignature, DexMethodSignature> inheritedSignatures;
-    if (superClass == null || !superClass.isProgramClass()) {
-      inheritedSignatures = HashBiMap.create(componentSignatures);
-    } else {
-      DexProgramClass superProgramClass = superClass.asProgramClass();
-      processClass(superProgramClass, processedClasses, componentSignatures);
-      inheritedSignatures = HashBiMap.create(processedClasses.get(superProgramClass));
+    DexProgramClass superClass = asProgramClassOrNull(appView.definitionFor(clazz.superType));
+    if (superClass != null) {
+      processClass(superClass, processedClasses, componentSignatures);
     }
-    processedClasses.put(clazz, inheritedSignatures);
-    MethodNamingUtility utility = createMethodNamingUtility(inheritedSignatures, clazz);
+    MethodNamingUtility utility = createMethodNamingUtility(componentSignatures, clazz);
     programClassFixer.fixupProgramClass(clazz, utility);
   }
 
@@ -148,14 +140,19 @@ public class ConcurrentMethodFixup {
     programClassFixer.fixupProgramClass(clazz, utility);
   }
 
+  private boolean shouldReserveAsPinned(ProgramMethod method) {
+    KeepMethodInfo keepInfo = appView.getKeepInfo(method);
+    return !keepInfo.isOptimizationAllowed(appView.options())
+        || !keepInfo.isShrinkingAllowed(appView.options())
+        || programClassFixer.shouldReserveAsIfPinned(method);
+  }
+
   private MethodNamingUtility createMethodNamingUtility(
       BiMap<DexMethodSignature, DexMethodSignature> inheritedSignatures, DexProgramClass clazz) {
     BiMap<DexMethod, DexMethod> localSignatures = HashBiMap.create();
     clazz.forEachProgramInstanceInitializer(
         method -> {
-          KeepMethodInfo keepInfo = appView.getKeepInfo(method);
-          if (!keepInfo.isOptimizationAllowed(appView.options())
-              || !keepInfo.isShrinkingAllowed(appView.options())) {
+          if (shouldReserveAsPinned(method)) {
             localSignatures.put(method.getReference(), method.getReference());
           }
         });
@@ -172,9 +169,7 @@ public class ConcurrentMethodFixup {
       clazz.forEachProgramMethodMatching(
           m -> !m.isInstanceInitializer(),
           method -> {
-            KeepMethodInfo keepInfo = appView.getKeepInfo(method);
-            if (!keepInfo.isOptimizationAllowed(appView.options())
-                || !keepInfo.isShrinkingAllowed(appView.options())) {
+            if (shouldReserveAsPinned(method)) {
               componentSignatures.put(method.getMethodSignature(), method.getMethodSignature());
             }
           });

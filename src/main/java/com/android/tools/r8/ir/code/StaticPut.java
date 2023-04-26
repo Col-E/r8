@@ -32,6 +32,7 @@ import com.android.tools.r8.ir.conversion.MethodConversionOptions;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.InliningConstraints;
 import com.android.tools.r8.ir.regalloc.RegisterAllocator;
+import com.android.tools.r8.lightir.LirBuilder;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 
 public class StaticPut extends FieldInstruction implements FieldPut, StaticFieldInstruction {
@@ -232,6 +233,11 @@ public class StaticPut extends FieldInstruction implements FieldPut, StaticField
   @Override
   public void buildCf(CfBuilder builder) {
     builder.add(new CfStaticFieldWrite(getField(), builder.resolveField(getField())), this);
+  }
+
+  @Override
+  public void buildLir(LirBuilder<Value, ?> builder) {
+    builder.addStaticPut(getField(), value());
   }
 
   @Override
