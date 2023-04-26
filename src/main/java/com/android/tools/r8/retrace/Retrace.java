@@ -9,6 +9,9 @@ import static com.android.tools.r8.utils.ExceptionUtils.failWithFakeEntry;
 import com.android.tools.r8.Diagnostic;
 import com.android.tools.r8.DiagnosticsHandler;
 import com.android.tools.r8.Keep;
+import com.android.tools.r8.ParseFlagInfo;
+import com.android.tools.r8.ParseFlagInfoImpl;
+import com.android.tools.r8.ParseFlagPrinter;
 import com.android.tools.r8.Version;
 import com.android.tools.r8.retrace.internal.RetraceAbortException;
 import com.android.tools.r8.retrace.internal.RetraceBase;
@@ -21,6 +24,7 @@ import com.android.tools.r8.utils.StringDiagnostic;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.Timing;
 import com.google.common.base.Charsets;
+import com.google.common.collect.ImmutableList;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintStream;
@@ -42,11 +46,29 @@ import java.util.Scanner;
 @Keep
 public class Retrace<T, ST extends StackTraceElementProxy<T, ST>> extends RetraceBase<T, ST> {
 
-  public static final String USAGE_MESSAGE =
+  private static final String USAGE_MESSAGE =
       StringUtils.lines(
-          "Usage: retrace <proguard-map> [stack-trace-file] "
-              + "[--regex <regexp>, --verbose, --info, --quiet, --verify-mapping-file-hash]",
-          "  where <proguard-map> is an r8 generated mapping file.");
+          "Usage: retrace [options] <proguard-map> [stack-trace-file] "
+              + "where <proguard-map> is a generated mapping file and options are:");
+
+  public static List<ParseFlagInfo> getFlags() {
+    return ImmutableList.<ParseFlagInfo>builder()
+        .add(
+            ParseFlagInfoImpl.flag1(
+                "--regex", "<regexp>", "Regular expression for parsing stack-trace-file as lines"))
+        .add(ParseFlagInfoImpl.flag0("--verbose", "Get verbose retraced output"))
+        .add(ParseFlagInfoImpl.flag0("--info", "Write information messages to stdout"))
+        .add(ParseFlagInfoImpl.flag0("--quiet", "Silence ordinary messages printed to stdout"))
+        .add(ParseFlagInfoImpl.flag0("--verify-mapping-file-hash", "Verify the mapping file hash"))
+        .build();
+  }
+
+  static String getUsageMessage() {
+    StringBuilder builder = new StringBuilder();
+    StringUtils.appendLines(builder, USAGE_MESSAGE);
+    new ParseFlagPrinter().addFlags(getFlags()).appendLinesToBuilder(builder);
+    return builder.toString();
+  }
 
   private static RetraceCommand.Builder parseArguments(
       String[] args, DiagnosticsHandler diagnosticsHandler) {
@@ -102,7 +124,7 @@ public class Retrace<T, ST extends StackTraceElementProxy<T, ST>> extends Retrac
         diagnosticsHandler.error(
             new StringDiagnostic(
                 String.format("Too many arguments specified for builder at '%s'", context.head())));
-        diagnosticsHandler.error(new StringDiagnostic(USAGE_MESSAGE));
+        diagnosticsHandler.error(new StringDiagnostic(getUsageMessage()));
         throw new RetraceAbortException();
       }
     }
@@ -323,7 +345,7 @@ public class Retrace<T, ST extends StackTraceElementProxy<T, ST>> extends Retrac
       }
       assert Arrays.asList(args).contains("--help");
       System.out.println("Retrace " + Version.getVersionString());
-      System.out.print(USAGE_MESSAGE);
+      System.out.print(getUsageMessage());
       return;
     }
     builder.setRetracedStackTraceConsumer(
