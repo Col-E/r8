@@ -60,11 +60,6 @@ public class ExamplesDebugTest extends DebugTestBase {
   }
 
   @Test
-  public void testHello() throws Exception {
-    testDebugging("hello", "Hello");
-  }
-
-  @Test
   public void testIfStatements() throws Exception {
     testDebugging("ifstatements", "IfStatements");
   }

@@ -1,1 +1,0 @@
--keep class hello.Hello { public static void main(...);}
