@@ -212,8 +212,11 @@ public class NonNullParamTest extends TestBase {
   private boolean canSharePrintCallInSuccessorBlock() {
     // With API level >= Q we get a register assignment that allows us to share the print call in a
     // successor block. See also InternalOptions.canHaveThisJitCodeDebuggingBug().
+    // Due to including line-info (b/279555568) this is always false. Keeping the conflicting
+    // predicates here for documentation of the previously witnessed difference.
     return parameters.isDexRuntime()
-        && parameters.getApiLevel().getLevel() >= AndroidApiLevel.Q.getLevel();
+        && parameters.getApiLevel().getLevel() >= AndroidApiLevel.Q.getLevel()
+        && parameters.getApiLevel().isLessThan(apiLevelWithPcAsLineNumberSupport());
   }
 
   @Test
@@ -241,6 +244,7 @@ public class NonNullParamTest extends TestBase {
                                     NonNullParamAfterInvokeInterface.class,
                                     NonNullParamInterfaceImpl.class))
                     .addOptionsModification(this::disableDevirtualization)
+                    .addKeepAttributeLineNumberTable()
                     .enableAlwaysInliningAnnotations()
                     .enableInliningAnnotations()
                     .enableNeverClassInliningAnnotations()
@@ -252,8 +256,7 @@ public class NonNullParamTest extends TestBase {
     MethodSubject checkViaCall = mainSubject.uniqueMethodWithOriginalName("checkViaCall");
     assertThat(checkViaCall, isPresent());
     assertEquals(0, countActCall(checkViaCall));
-    // The DEX backend reuses the System.out.println invoke.
-    assertEquals(parameters.isCfRuntime() ? 2 : 1, countPrintCall(checkViaCall));
+    assertEquals(2, countPrintCall(checkViaCall));
   }
 
   private long countCallToParamNullCheck(MethodSubject method) {

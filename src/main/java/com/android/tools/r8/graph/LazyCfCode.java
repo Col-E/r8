@@ -1195,7 +1195,8 @@ public class LazyCfCode extends Code {
             || keep.localVariableTable
             || keep.localVariableTypeTable
             || reachabilitySensitive;
-    boolean lineInfo = keep.lineNumberTable;
+    boolean lineInfo =
+        (keep.lineNumberTable || application.options.canUseNativeDexPcInsteadOfDebugInfo());
     boolean methodParaeters = keep.methodParameters;
 
     if (!localsInfo && !lineInfo && !methodParaeters) {
