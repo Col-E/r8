@@ -22,7 +22,6 @@ import com.android.tools.r8.compilerapi.partitionmap.PartitionMapCommandTest.Api
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.retrace.MappingPartition;
 import com.android.tools.r8.retrace.MappingPartitionMetadata;
-import com.android.tools.r8.utils.BooleanBox;
 import java.util.ArrayList;
 import java.util.List;
 import org.junit.Test;
@@ -60,10 +59,7 @@ public class PartitionMapCommandTest extends CompilerApiTestRunner {
 
   private void runTest(Runner test) throws Exception {
     EnsurePartitionMapOutputConsumer partitionConsumer = EnsurePartitionMapOutputConsumer.get();
-    test.run(
-        DexIndexedConsumer.emptyConsumer(),
-        StringConsumer.emptyConsumer(),
-        partitionConsumer.getConsumer());
+    test.run(DexIndexedConsumer.emptyConsumer(), StringConsumer.emptyConsumer(), partitionConsumer);
     assertTrue(partitionConsumer.hasOutput());
   }
 
@@ -114,7 +110,7 @@ public class PartitionMapCommandTest extends CompilerApiTestRunner {
       runR8(
           DexIndexedConsumer.emptyConsumer(),
           StringConsumer.emptyConsumer(),
-          ensurePartitionMapOutputConsumer.getConsumer());
+          ensurePartitionMapOutputConsumer);
     }
 
     @Test
@@ -124,53 +120,38 @@ public class PartitionMapCommandTest extends CompilerApiTestRunner {
       runD8(
           DexIndexedConsumer.emptyConsumer(),
           StringConsumer.emptyConsumer(),
-          ensurePartitionMapOutputConsumer.getConsumer());
+          ensurePartitionMapOutputConsumer);
     }
 
-    public static class EnsurePartitionMapOutputConsumer {
+    public static class EnsurePartitionMapOutputConsumer implements PartitionMapConsumer {
 
-      private final List<String> keys;
-      private final BooleanBox finished;
-      private final PartitionMapConsumer consumer;
+      private final List<String> keys = new ArrayList<>();
+      private boolean finished = false;
 
-      private EnsurePartitionMapOutputConsumer(
-          List<String> keys, BooleanBox finished, PartitionMapConsumer consumer) {
-        this.keys = keys;
-        this.finished = finished;
-        this.consumer = consumer;
-      }
-
-      private PartitionMapConsumer getConsumer() {
-        return consumer;
-      }
+      private EnsurePartitionMapOutputConsumer() {}
 
       private boolean hasOutput() {
-        return finished.get() && !keys.isEmpty();
+        return finished && !keys.isEmpty();
       }
 
       public static EnsurePartitionMapOutputConsumer get() {
-        List<String> keys = new ArrayList<>();
-        BooleanBox finished = new BooleanBox();
-        return new EnsurePartitionMapOutputConsumer(
-            keys,
-            finished,
-            new PartitionMapConsumer() {
-              @Override
-              public void acceptMappingPartition(MappingPartition mappingPartition) {
-                keys.add(mappingPartition.getKey());
-              }
+        return new EnsurePartitionMapOutputConsumer();
+      }
 
-              @Override
-              public void acceptMappingPartitionMetadata(
-                  MappingPartitionMetadata mappingPartitionMetadata) {
-                keys.add("METADATA");
-              }
+      @Override
+      public void acceptMappingPartition(MappingPartition mappingPartition) {
+        keys.add(mappingPartition.getKey());
+      }
 
-              @Override
-              public void finished(DiagnosticsHandler handler) {
-                finished.set();
-              }
-            });
+      @Override
+      public void acceptMappingPartitionMetadata(
+          MappingPartitionMetadata mappingPartitionMetadata) {
+        keys.add("METADATA");
+      }
+
+      @Override
+      public void finished(DiagnosticsHandler handler) {
+        finished = true;
       }
     }
   }
