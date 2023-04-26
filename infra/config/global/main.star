@@ -169,7 +169,7 @@ common_test_options = [
     "--archive_failures"
 ]
 
-def get_dimensions(windows=False, internal=False, normal=False):
+def get_dimensions(windows=False, internal=False, normal=False, smali=False):
   dimensions = {
     "cores" : "2" if internal else "8",
     "cpu" : "x86-64",
@@ -408,6 +408,22 @@ r8_builder(
       "builder_group" : "internal.client.r8",
       "test_options" : ["--runtimes=dex-default:jdk11", "--kotlin-compiler-old", "--one_line_per_test", "--archive_failures", "--no-internal", "*kotlin*", "*debug*"]
     }
+)
+
+r8_builder(
+    "smali",
+    dimensions = get_dimensions(smali=True),
+    triggering_policy = scheduler.policy(
+        kind = scheduler.GREEDY_BATCHING_KIND,
+        max_concurrent_invocations = 1,
+        max_batch_size = 1,
+    ),
+    properties = {
+        "test_wrapper" : "tools/archive_smali.py",
+        "builder_group" : "internal.client.smali"
+    },
+    execution_timeout = time.hour * 12,
+    expiration_timeout = time.hour * 35,
 )
 
 order_of_categories = [

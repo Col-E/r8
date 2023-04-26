@@ -25,6 +25,7 @@ TRIGGERS_RE = r'^  triggers: "(\w.*)"'
 DESUGAR_JDK11_BOT = 'lib_desugar-archive-jdk11'
 DESUGAR_JDK11_LEGACY_BOT = 'lib_desugar-archive-jdk11-legacy'
 DESUGAR_JDK8_BOT = 'lib_desugar-archive-jdk8'
+SMALI_BOT = 'smali'
 
 def ParseOptions():
   result = optparse.OptionParser()
@@ -32,6 +33,7 @@ def ParseOptions():
                     help='Run on the release branch builders.',
                     default=False, action='store_true')
   result.add_option('--cl',
+                    metavar=('<url>'),
                     help='Run the specified cl on the bots. This should be '
                     'the full url, e.g., '
                     'https://r8-review.googlesource.com/c/r8/+/37420/1')
@@ -44,6 +46,9 @@ def ParseOptions():
   result.add_option('--desugar-jdk8',
                     help='Run the jdk8 library desugar and archiving bot.',
                     default=False, action='store_true')
+  result.add_option('--smali',
+                    metavar=('<version>'),
+                    help='Build smali version <version>.')
 
   result.add_option('--builder', help='Trigger specific builder')
   return result.parse_args()
@@ -72,6 +77,7 @@ def get_builders():
   print('Desugar jdk11 builder:\n  ' + DESUGAR_JDK11_BOT)
   print('Desugar jdk11 legacy builder:\n  ' + DESUGAR_JDK11_LEGACY_BOT)
   print('Desugar jdk8 builder:\n  ' + DESUGAR_JDK8_BOT)
+  print('Smali builder:\n  ' + SMALI_BOT)
   print('Main builders:\n  ' + '\n  '.join(main_builders))
   print('Release builders:\n  ' + '\n  '.join(release_builders))
   return (main_builders, release_builders)
@@ -88,6 +94,20 @@ def trigger_builders(builders, commit):
     cmd = ['bb', 'add', 'r8/ci/%s' % builder , '-commit', commit_url]
     subprocess.check_call(cmd)
 
+def trigger_smali_builder(version):
+  utils.check_basic_semver_version(
+    version,
+    'use semantic version of the smali version to built (pre-releases are not supported)',
+    allowPrerelease = False)
+  cmd = [
+      'bb',
+      'add',
+      'r8/ci/%s' % SMALI_BOT,
+      '-p',
+      '\'test_options=["--version", "%s"]\'' % version
+  ]
+  subprocess.check_call(cmd)
+
 def trigger_cl(builders, cl_url):
   for builder in builders:
     cmd = ['bb', 'add', 'r8/ci/%s' % builder , '-cl', cl_url]
@@ -96,7 +116,8 @@ def trigger_cl(builders, cl_url):
 def Main():
   (options, args) = ParseOptions()
   desugar = options.desugar_jdk11 or options.desugar_jdk11_legacy or options.desugar_jdk8
-  if len(args) != 1 and not options.cl and not desugar:
+  requires_commit = not options.cl and not desugar and not options.smali
+  if len(args) != 1 and requires_commit:
     print('Takes exactly one argument, the commit to run')
     return 1
 
@@ -108,7 +129,19 @@ def Main():
     print('You can\'t run cls on the desugar bot')
     return 1
 
-  commit = None if (options.cl or desugar)  else args[0]
+  if options.cl and options.smali:
+    print('You can\'t run cls on the smali bot')
+    return 1
+
+  if options.smali:
+    if not options.release:
+      print('Only release versions of smali can be built')
+      return 1
+
+    trigger_smali_builder(options.smali)
+    return
+
+  commit = None if not requires_commit else args[0]
   (main_builders, release_builders) = get_builders()
   builders = release_builders if options.release else main_builders
   if options.builder:
