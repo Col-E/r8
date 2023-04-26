@@ -147,7 +147,6 @@ luci.console_view(
     refs = ["refs/heads/.*"]
 )
 
-
 view_builders = []
 
 def builder_view(name, category, short_name):
@@ -412,6 +411,8 @@ r8_builder(
 
 r8_builder(
     "smali",
+    category = "aux",
+    trigger = False,
     dimensions = get_dimensions(smali=True),
     triggering_policy = scheduler.policy(
         kind = scheduler.GREEDY_BATCHING_KIND,
@@ -434,9 +435,15 @@ order_of_categories = [
   "Release|R8",
 ]
 
+categories_with_no_console = [
+  "aux",
+]
+
 def add_view_entries():
   # Ensure that all categories are ordered
   for v in view_builders:
+    if v[1] in categories_with_no_console:
+      continue
     if not v[1] in order_of_categories:
       fail()
   for category in order_of_categories:

@@ -104,7 +104,7 @@ def trigger_smali_builder(version):
       'add',
       'r8/ci/%s' % SMALI_BOT,
       '-p',
-      '\'test_options=["--version", "%s"]\'' % version
+      'test_options=["--version", "%s"]' % version
   ]
   subprocess.check_call(cmd)
 
