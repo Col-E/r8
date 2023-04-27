@@ -44,6 +44,7 @@ import com.android.tools.r8.references.MethodReference;
 import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.synthesis.SyntheticItems;
 import com.android.tools.r8.utils.DescriptorUtils;
+import com.android.tools.r8.utils.IntBox;
 import com.android.tools.r8.utils.InternalOptions.LineNumberOptimization;
 import com.android.tools.r8.utils.ListUtils;
 import com.android.tools.r8.utils.OneShotCollectionConsumer;
@@ -65,6 +66,7 @@ import java.util.function.Function;
 public class MappedPositionToClassNameMapperBuilder {
 
   private static final int MAX_LINE_NUMBER = 65535;
+  private static final String PRUNED_INLINED_CLASS_OBFUSCATED_PREFIX = "R8$$REMOVED$$CLASS$$";
 
   private final OriginalSourceFiles originalSourceFiles;
   private final AppView<?> appView;
@@ -87,6 +89,10 @@ public class MappedPositionToClassNameMapperBuilder {
         appView.options().getMapFileVersion().toMapVersionMappingInformation());
   }
 
+  public static String getPrunedInlinedClassObfuscatedPrefix() {
+    return PRUNED_INLINED_CLASS_OBFUSCATED_PREFIX;
+  }
+
   public static int getMaxLineNumber() {
     return MAX_LINE_NUMBER;
   }
@@ -106,16 +112,24 @@ public class MappedPositionToClassNameMapperBuilder {
   private void addSourceFileLinesForPrunedClasses() {
     // Add all pruned inline classes to the mapping to recover source files.
     List<Entry<DexType, String>> prunedEntries = new ArrayList<>(prunedInlinedClasses.entrySet());
+    IntBox counter = new IntBox();
     prunedEntries.sort(Entry.comparingByKey());
     prunedEntries.forEach(
         entry -> {
           DexType holder = entry.getKey();
-          assert appView.appInfo().definitionForWithoutExistenceAssert(holder) == null;
+          assert appView.appInfo().definitionForWithoutExistenceAssert(holder) == null
+              || !appView.appInfo().definitionForWithoutExistenceAssert(holder).isProgramClass();
           String typeName = holder.toSourceString();
           String sourceFile = entry.getValue();
+          // We have to pick a right-hand side destination that does not overlap with an existing
+          // mapping.
+          String renamedName;
+          do {
+            renamedName = PRUNED_INLINED_CLASS_OBFUSCATED_PREFIX + counter.getAndIncrement();
+          } while (classNameMapperBuilder.hasMapping(renamedName));
           classNameMapperBuilder
               .classNamingBuilder(
-                  typeName, typeName, com.android.tools.r8.position.Position.UNKNOWN)
+                  renamedName, typeName, com.android.tools.r8.position.Position.UNKNOWN)
               .addMappingInformation(FileNameInformation.build(sourceFile), Unreachable::raise);
         });
   }

@@ -6,6 +6,7 @@ package com.android.tools.r8.naming;
 import static com.android.tools.r8.utils.DescriptorUtils.descriptorToInternalName;
 import static com.android.tools.r8.utils.DescriptorUtils.descriptorToJavaType;
 import static com.android.tools.r8.utils.DescriptorUtils.javaTypeToDescriptor;
+import static com.android.tools.r8.utils.positions.MappedPositionToClassNameMapperBuilder.getPrunedInlinedClassObfuscatedPrefix;
 
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.naming.MemberNaming.Signature;
@@ -56,8 +57,11 @@ public class SeedMapper implements ProguardMap {
       ClassNamingForMapApplier.Builder classNamingBuilder =
           ClassNamingForMapApplier.builder(
               renamedDescriptorName, originalDescriptor, position, reporter);
-      if (map.put(originalDescriptor, classNamingBuilder) != null) {
-        reporter.error(ProguardMapError.duplicateSourceClass(originalDescriptor, position));
+      // Disallow renaming to a synthetic chosen name for pruned classes.
+      if (!renamedName.startsWith(getPrunedInlinedClassObfuscatedPrefix())) {
+        if (map.put(originalDescriptor, classNamingBuilder) != null) {
+          reporter.error(ProguardMapError.duplicateSourceClass(originalDescriptor, position));
+        }
       }
       return classNamingBuilder;
     }

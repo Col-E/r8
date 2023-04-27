@@ -20,7 +20,6 @@ import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.naming.testclasses.A;
 import com.android.tools.r8.naming.testclasses.B;
 import com.android.tools.r8.utils.FileUtils;
-import com.google.common.util.concurrent.UncheckedExecutionException;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.concurrent.ExecutionException;
@@ -70,8 +69,7 @@ public class ClassNameMinifierOriginalClassNameTest extends TestBase {
             });
   }
 
-  // TODO(b/279702361): Fix issue with overlapping input/residual names.
-  @Test(expected = UncheckedExecutionException.class)
+  @Test()
   public void testR8() throws ExecutionException, CompilationFailedException, IOException {
     R8TestCompileResult libraryCompileResult = compilationResults.apply(parameters);
     testForR8(parameters.getBackend())
@@ -87,8 +85,7 @@ public class ClassNameMinifierOriginalClassNameTest extends TestBase {
         .assertSuccessWithOutputLines("B.foo");
   }
 
-  // TODO(b/279702361): Fix issue with overlapping input/residual names.
-  @Test(expected = UncheckedExecutionException.class)
+  @Test()
   public void testR8WithReferenceToNotMapped() {
     assumeTrue(parameters.isDexRuntime());
     R8TestCompileResult libraryCompileResult = compilationResults.apply(parameters);

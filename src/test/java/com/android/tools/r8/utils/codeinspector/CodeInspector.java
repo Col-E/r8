@@ -359,15 +359,17 @@ public class CodeInspector {
     String name = DescriptorUtils.descriptorToJavaType(descriptor);
     ClassNamingForNameMapper naming = null;
     if (mapping != null) {
-      String obfuscated = originalToObfuscatedMapping.get(name);
-      if (obfuscated != null) {
-        naming = mapping.getClassNaming(obfuscated);
-        name = obfuscated;
+      // Figure out if the name is an already obfuscated name. It is important to look up by
+      // residual name first to ensure that we do not accidentally find a class that has been
+      // pruned.
+      String original = obfuscatedToOriginalMapping.get(name);
+      if (original != null) {
+        naming = mapping.getClassNaming(name);
       } else {
-        // Figure out if the name is an already obfuscated name.
-        String original = obfuscatedToOriginalMapping.get(name);
-        if (original != null) {
-          naming = mapping.getClassNaming(name);
+        String obfuscated = originalToObfuscatedMapping.get(name);
+        if (obfuscated != null) {
+          naming = mapping.getClassNaming(obfuscated);
+          name = obfuscated;
         }
       }
     }
@@ -423,7 +425,7 @@ public class CodeInspector {
     return clazz.method(method);
   }
 
-  String getObfuscatedTypeName(String originalTypeName) {
+  public String getObfuscatedTypeName(String originalTypeName) {
     String obfuscatedTypeName = null;
     if (mapping != null) {
       obfuscatedTypeName = mapType(originalToObfuscatedMapping, originalTypeName);
@@ -431,7 +433,7 @@ public class CodeInspector {
     return obfuscatedTypeName != null ? obfuscatedTypeName : originalTypeName;
   }
 
-  String getOriginalTypeName(String minifiedTypeName) {
+  public String getOriginalTypeName(String minifiedTypeName) {
     String originalTypeName = null;
     if (mapping != null) {
       originalTypeName = mapType(obfuscatedToOriginalMapping, minifiedTypeName);

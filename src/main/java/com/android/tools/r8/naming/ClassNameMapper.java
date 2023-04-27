@@ -83,6 +83,10 @@ public class ClassNameMapper implements ProguardMap {
       }
     }
 
+    public boolean hasMapping(String obfuscatedName) {
+      return mapping.containsKey(obfuscatedName);
+    }
+
     @Override
     public ClassNameMapper build() {
       return new ClassNameMapper(

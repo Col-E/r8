@@ -139,7 +139,7 @@ public class PackageNamingTest extends TestBase {
   private static void verifyUniqueNaming(CodeInspector inspector, List<String> klasses) {
     Set<String> renamedNames = Sets.newHashSet();
     for (String klass : klasses) {
-      String finalName = inspector.clazz(klass).getFinalName();
+      String finalName = inspector.getObfuscatedTypeName(klass);
       assertFalse(renamedNames.contains(finalName));
       renamedNames.add(finalName);
     }

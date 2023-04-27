@@ -27,7 +27,6 @@ import java.nio.file.Path;
 import java.util.HashSet;
 import java.util.Set;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -137,9 +136,6 @@ public class MaximallySpecificMultiplePathsSuccessTest extends TestBase {
             parameters.canUseDefaultAndStaticInterfaceMethods(), EXPECTED);
   }
 
-  // TODO(b/279702361): This fails in an internal assert that looks related to having remaining
-  //  references to the pruned class.
-  @Ignore("TODO(b/279702361)")
   @Test
   public void testR8() throws Exception {
     // TODO(b/230289235): Extend resolution to support multiple definition results.
