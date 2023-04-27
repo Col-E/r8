@@ -55,7 +55,6 @@ public class EnumMergingInstantiatingTest extends EnumUnboxingTestBase {
         .addProgramClassFileData(PROGRAM_CLASSES_DATA)
         .addKeepMainRule(Main.class)
         .addKeepRules(enumKeepRules.getKeepRules())
-        .addOptionsModification(opt -> opt.testing.enableEnumWithSubtypesUnboxing = true)
         .addEnumUnboxingInspector(inspector -> inspector.assertUnboxed(InstantiatingEnum.class))
         .enableInliningAnnotations()
         .enableAlwaysInliningAnnotations()
