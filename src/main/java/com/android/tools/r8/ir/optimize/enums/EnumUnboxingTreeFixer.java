@@ -100,6 +100,7 @@ class EnumUnboxingTreeFixer implements ProgramClassFixer {
   private final EnumUnboxingUtilityClasses utilityClasses;
   private final ProgramMethodMap<CfCodeWithLens> dispatchMethods =
       ProgramMethodMap.createConcurrent();
+  private final ProgramMethodSet methodsToProcess = ProgramMethodSet.createConcurrent();
   private final PrunedItems.Builder prunedItemsBuilder;
   private final ProfileCollectionAdditions profileCollectionAdditions;
 
@@ -159,19 +160,13 @@ class EnumUnboxingTreeFixer implements ProgramClassFixer {
     BiMap<DexMethod, DexMethod> checkNotNullToCheckNotZeroMapping =
         duplicateCheckNotNullMethods(converter, executorService);
 
-    ProgramMethodSet dispatchMethodSet = ProgramMethodSet.create();
-    dispatchMethods.forEach(
-        (method, code) -> {
-          dispatchMethodSet.add(method);
-          code.setCodeLens(lens);
-        });
-
+    dispatchMethods.forEach((method, code) -> code.setCodeLens(lens));
     profileCollectionAdditions
         .setArtProfileCollection(appView.getArtProfileCollection())
         .commit(appView);
 
     return new Result(
-        checkNotNullToCheckNotZeroMapping, dispatchMethodSet, lens, prunedItemsBuilder.build());
+        checkNotNullToCheckNotZeroMapping, methodsToProcess, lens, prunedItemsBuilder.build());
   }
 
   private void cleanUpOldClass(DexProgramClass clazz) {
@@ -657,6 +652,8 @@ class EnumUnboxingTreeFixer implements ProgramClassFixer {
       ProgramMethodSet unorderedSubimplementations) {
     assert !unorderedSubimplementations.isEmpty();
     DexMethod superUtilityMethod;
+    List<ProgramMethod> sortedSubimplementations = new ArrayList<>(unorderedSubimplementations);
+    sortedSubimplementations.sort(Comparator.comparing(ProgramMethod::getHolderType));
     if (superMethod.isProgramMethod()) {
       superUtilityMethod =
           installLocalUtilityMethod(
@@ -664,12 +661,17 @@ class EnumUnboxingTreeFixer implements ProgramClassFixer {
     } else {
       // All methods but toString() are final or non-virtual.
       // We could support other cases by setting correctly the superUtilityMethod here.
-      assert superMethod.getReference() == factory.enumMembers.toString;
-      superUtilityMethod = localUtilityClass.computeToStringUtilityMethod(factory);
+      assert superMethod.getReference().match(factory.enumMembers.toString);
+      ProgramMethod toString = localUtilityClass.ensureToStringMethod(appView);
+      superUtilityMethod = toString.getReference();
+      for (ProgramMethod context : sortedSubimplementations) {
+        // If the utility method is used only from the dispatch method, we have to process it and
+        // add it to the ArtProfile.
+        methodsToProcess.add(toString);
+        profileCollectionAdditions.addMethodIfContextIsInProfile(toString, context);
+      }
     }
     Map<DexMethod, DexMethod> overrideToUtilityMethods = new IdentityHashMap<>();
-    List<ProgramMethod> sortedSubimplementations = new ArrayList<>(unorderedSubimplementations);
-    sortedSubimplementations.sort(Comparator.comparing(ProgramMethod::getHolderType));
     for (ProgramMethod subMethod : sortedSubimplementations) {
       DexMethod subEnumLocalUtilityMethod =
           installLocalUtilityMethod(localUtilityClass, localUtilityMethods, subMethod);
@@ -769,6 +771,7 @@ class EnumUnboxingTreeFixer implements ProgramClassFixer {
     ProgramMethod dispatchMethod =
         newLocalUtilityMethod.asProgramMethod(localUtilityClass.getDefinition());
     dispatchMethods.put(dispatchMethod, codeWithLens);
+    methodsToProcess.add(dispatchMethod);
     for (ProgramMethod context : contexts) {
       profileCollectionAdditions.addMethodIfContextIsInProfile(dispatchMethod, context);
     }
@@ -923,17 +926,17 @@ class EnumUnboxingTreeFixer implements ProgramClassFixer {
   public static class Result {
 
     private final BiMap<DexMethod, DexMethod> checkNotNullToCheckNotZeroMapping;
-    private final ProgramMethodSet dispatchMethods;
+    private final ProgramMethodSet methodsToProcess;
     private final EnumUnboxingLens lens;
     private final PrunedItems prunedItems;
 
     Result(
         BiMap<DexMethod, DexMethod> checkNotNullToCheckNotZeroMapping,
-        ProgramMethodSet dispatchMethods,
+        ProgramMethodSet methodsToProcess,
         EnumUnboxingLens lens,
         PrunedItems prunedItems) {
       this.checkNotNullToCheckNotZeroMapping = checkNotNullToCheckNotZeroMapping;
-      this.dispatchMethods = dispatchMethods;
+      this.methodsToProcess = methodsToProcess;
       this.lens = lens;
       this.prunedItems = prunedItems;
     }
@@ -942,8 +945,8 @@ class EnumUnboxingTreeFixer implements ProgramClassFixer {
       return checkNotNullToCheckNotZeroMapping;
     }
 
-    public ProgramMethodSet getDispatchMethods() {
-      return dispatchMethods;
+    public ProgramMethodSet getMethodsToProcess() {
+      return methodsToProcess;
     }
 
     EnumUnboxingLens getLens() {

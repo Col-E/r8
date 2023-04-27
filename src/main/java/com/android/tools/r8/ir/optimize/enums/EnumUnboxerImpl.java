@@ -736,7 +736,7 @@ public class EnumUnboxerImpl extends EnumUnboxer {
             methodsDependingOnLibraryModelisation
                 .rewrittenWithLens(appView)
                 .removeAll(treeFixerResult.getPrunedItems().getRemovedMethods()))
-        .addAll(treeFixerResult.getDispatchMethods(), appView.graphLens());
+        .addAll(treeFixerResult.getMethodsToProcess(), appView.graphLens());
     methodsDependingOnLibraryModelisation.clear();
 
     updateOptimizationInfos(executorService, feedback, treeFixerResult, previousLens);

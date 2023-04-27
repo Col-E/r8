@@ -11,7 +11,6 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.ClassAccessFlags;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItemFactory;
-import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexString;
@@ -82,11 +81,8 @@ public class LocalEnumUnboxingUtilityClass extends EnumUnboxingUtilityClass {
     return factory.createProto(field.getType(), factory.intType);
   }
 
-  public DexMethod computeToStringUtilityMethod(DexItemFactory factory) {
-    DexField nameField = factory.enumMembers.nameField;
-    DexString name = computeGetInstanceFieldMethodName(nameField, factory);
-    DexProto proto = computeGetInstanceFieldMethodProto(nameField, factory);
-    return factory.createMethod(getDefinition().getType(), proto, name);
+  public ProgramMethod ensureToStringMethod(AppView<AppInfoWithLiveness> appView) {
+    return ensureGetInstanceFieldMethod(appView, appView.dexItemFactory().enumMembers.nameField);
   }
 
   private ProgramMethod ensureGetInstanceFieldMethod(
