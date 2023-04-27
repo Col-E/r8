@@ -419,24 +419,18 @@ public class CfCode extends Code implements CfWritableCode, StructuralItem<CfCod
 
   private static class PrunePreambleMethodVisitor extends MethodVisitor {
 
-    private final AppView<?> appView;
     private boolean inPreamble = true;
 
-    public PrunePreambleMethodVisitor(MethodVisitor methodVisitor, AppView<?> appView) {
+    public PrunePreambleMethodVisitor(MethodVisitor methodVisitor) {
       super(InternalOptions.ASM_VERSION, methodVisitor);
-      this.appView = appView;
     }
 
     @Override
     public void visitLineNumber(int line, Label start) {
-      if (line == 0) {
-        if (inPreamble) {
-          inPreamble = false;
-          return;
-        }
-        // We must be in R8 if inserting a zero-line entry outside the method preamble.
-        assert appView.enableWholeProgramOptimizations();
+      if (line == 0 && inPreamble) {
+        return;
       }
+      inPreamble = false;
       super.visitLineNumber(line, start);
     }
   }
@@ -466,8 +460,7 @@ public class CfCode extends Code implements CfWritableCode, StructuralItem<CfCod
             || (appView.enableWholeProgramOptimizations()
                 && classFileVersion.isEqualTo(CfVersion.V1_6)
                 && !options.shouldKeepStackMapTable());
-    PrunePreambleMethodVisitor prunePreambleVisitor =
-        new PrunePreambleMethodVisitor(visitor, appView);
+    PrunePreambleMethodVisitor prunePreambleVisitor = new PrunePreambleMethodVisitor(visitor);
     for (CfInstruction instruction : instructions) {
       if (discardFrames && instruction instanceof CfFrame) {
         continue;

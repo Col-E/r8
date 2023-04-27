@@ -24,9 +24,7 @@ public class TextPosition implements Position {
   private final int column;
 
   public TextPosition(long offset, int line, int column) {
-    assert (offset >= 0)
-        && (line >= 1)
-        && (column >= 1 || column == UNKNOWN_COLUMN);
+    assert (offset >= 0) && (line >= 0) && (column >= 1 || column == UNKNOWN_COLUMN);
     this.offset = offset;
     this.line = line;
     this.column = column;
