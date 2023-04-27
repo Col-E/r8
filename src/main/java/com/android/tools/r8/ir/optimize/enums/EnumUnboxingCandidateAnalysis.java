@@ -60,12 +60,12 @@ class EnumUnboxingCandidateAnalysis {
       }
     }
     removeIneligibleCandidates();
+    setEnumSubclassesOnCandidates();
     removeEnumsInAnnotations();
     removePinnedCandidates();
     if (appView.options().protoShrinking().isProtoShrinkingEnabled()) {
       enumToUnboxCandidates.removeCandidate(appView.protoShrinker().references.methodToInvokeType);
     }
-    setEnumSubclassesOnCandidates();
     assert enumToUnboxCandidates.verifyAllSubtypesAreSet();
     return enumToUnboxCandidates;
   }
