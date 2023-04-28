@@ -9,12 +9,11 @@ import static com.google.common.base.Predicates.alwaysTrue;
 import com.android.tools.r8.DiagnosticsHandler;
 import com.android.tools.r8.Finishable;
 import com.android.tools.r8.StringConsumer;
-import com.android.tools.r8.dex.CompatByteBuffer;
 import com.android.tools.r8.naming.ClassNameMapper;
 import com.android.tools.r8.naming.LineReader;
-import com.android.tools.r8.naming.MapVersion;
 import com.android.tools.r8.retrace.internal.MappingPartitionMetadataInternal;
 import com.android.tools.r8.retrace.internal.MetadataAdditionalInfo;
+import com.android.tools.r8.retrace.internal.PartitionMappingSupplierBase;
 import com.android.tools.r8.retrace.internal.ProguardMapReaderWithFiltering.ProguardMapReaderWithFilteringInputBuffer;
 import com.android.tools.r8.utils.ChainableStringConsumer;
 import java.io.ByteArrayInputStream;
@@ -23,30 +22,37 @@ import java.io.IOException;
 public class PartitionedToProguardMappingConverter {
 
   private final StringConsumer consumer;
-  private final MappingPartitionFromKeySupplier partitionSupplier;
-  private final byte[] metadata;
+  private final PartitionMappingSupplierBase<?> partitionMappingSupplier;
   private final DiagnosticsHandler diagnosticsHandler;
 
   private PartitionedToProguardMappingConverter(
       StringConsumer consumer,
-      MappingPartitionFromKeySupplier partitionSupplier,
-      byte[] metadata,
+      PartitionMappingSupplierBase<?> partitionMappingSupplier,
       DiagnosticsHandler diagnosticsHandler) {
     this.consumer = consumer;
-    this.partitionSupplier = partitionSupplier;
-    this.metadata = metadata;
+    this.partitionMappingSupplier = partitionMappingSupplier;
     this.diagnosticsHandler = diagnosticsHandler;
   }
 
-  public void run() throws RetracePartitionException {
+  private MappingPartitionMetadataInternal getMetadata() {
     MappingPartitionMetadataInternal metadataInternal =
-        MappingPartitionMetadataInternal.deserialize(
-            CompatByteBuffer.wrapOrNull(metadata),
-            MapVersion.MAP_VERSION_UNKNOWN,
-            diagnosticsHandler);
-    if (!metadataInternal.canGetPartitionKeys()) {
+        partitionMappingSupplier.getMetadata(diagnosticsHandler);
+    if (metadataInternal == null || !metadataInternal.canGetPartitionKeys()) {
       throw new RetracePartitionException("Cannot obtain all partition keys from metadata");
     }
+    return metadataInternal;
+  }
+
+  private void requestKeys(MappingPartitionMetadataInternal metadataInternal) {
+    for (String partitionKey : metadataInternal.getPartitionKeys()) {
+      partitionMappingSupplier.registerKeyUse(partitionKey);
+    }
+  }
+
+  private void run(
+      MappingPartitionMetadataInternal metadataInternal,
+      MappingPartitionFromKeySupplier partitionSupplier)
+      throws RetracePartitionException {
     ProguardMapWriter consumer = new ProguardMapWriter(this.consumer, diagnosticsHandler);
     if (metadataInternal.canGetAdditionalInfo()) {
       MetadataAdditionalInfo additionalInfo = metadataInternal.getAdditionalInfo();
@@ -72,6 +78,25 @@ public class PartitionedToProguardMappingConverter {
       }
     }
     consumer.finished(diagnosticsHandler);
+    partitionMappingSupplier.finished(diagnosticsHandler);
+  }
+
+  public void run() throws RetracePartitionException {
+    MappingPartitionMetadataInternal metadata = getMetadata();
+    PartitionMappingSupplier syncSupplier = partitionMappingSupplier.getPartitionMappingSupplier();
+    if (syncSupplier == null) {
+      throw new RetracePartitionException(
+          "Running synchronously requires a synchronous partition mapping provider. Use runAsync()"
+              + " if you have an asynchronous provider.");
+    }
+    requestKeys(metadata);
+    run(metadata, syncSupplier.getMappingPartitionFromKeySupplier());
+  }
+
+  public RetraceAsyncAction runAsync() throws RetracePartitionException {
+    MappingPartitionMetadataInternal metadata = getMetadata();
+    requestKeys(metadata);
+    return supplier -> run(metadata, supplier);
   }
 
   private static class ProguardMapWriter implements ChainableStringConsumer, Finishable {
@@ -103,8 +128,7 @@ public class PartitionedToProguardMappingConverter {
   public static class Builder {
 
     private StringConsumer consumer;
-    private MappingPartitionFromKeySupplier partitionSupplier;
-    private byte[] metadata;
+    private PartitionMappingSupplierBase<?> partitionSupplier;
     private DiagnosticsHandler diagnosticsHandler;
 
     public Builder setConsumer(StringConsumer consumer) {
@@ -112,13 +136,8 @@ public class PartitionedToProguardMappingConverter {
       return this;
     }
 
-    public Builder setPartitionSupplier(MappingPartitionFromKeySupplier partitionSupplier) {
+    public Builder setPartitionMappingSupplier(PartitionMappingSupplierBase<?> partitionSupplier) {
       this.partitionSupplier = partitionSupplier;
-      return this;
-    }
-
-    public Builder setMetadata(byte[] metadata) {
-      this.metadata = metadata;
       return this;
     }
 
@@ -129,7 +148,7 @@ public class PartitionedToProguardMappingConverter {
 
     public PartitionedToProguardMappingConverter build() {
       return new PartitionedToProguardMappingConverter(
-          consumer, partitionSupplier, metadata, diagnosticsHandler);
+          consumer, partitionSupplier, diagnosticsHandler);
     }
   }
 }

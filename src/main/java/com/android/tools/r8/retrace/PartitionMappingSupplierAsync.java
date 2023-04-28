@@ -21,10 +21,17 @@ public class PartitionMappingSupplierAsync
   private PartitionMappingSupplierAsync(
       RegisterMappingPartitionCallback registerCallback,
       PrepareMappingPartitionsCallback prepareCallback,
+      FinishedPartitionMappingCallback finishedCallback,
       boolean allowExperimental,
       byte[] metadata,
       MapVersion fallbackMapVersion) {
-    super(registerCallback, prepareCallback, allowExperimental, metadata, fallbackMapVersion);
+    super(
+        registerCallback,
+        prepareCallback,
+        finishedCallback,
+        allowExperimental,
+        metadata,
+        fallbackMapVersion);
   }
 
   /***
@@ -107,7 +114,12 @@ public class PartitionMappingSupplierAsync
         throw new RuntimeException("Cannot build without providing metadata.");
       }
       return new PartitionMappingSupplierAsync(
-          registerCallback, prepareCallback, allowExperimental, metadata, fallbackMapVersion);
+          registerCallback,
+          prepareCallback,
+          finishedCallback,
+          allowExperimental,
+          metadata,
+          fallbackMapVersion);
     }
   }
 }

@@ -12,6 +12,7 @@ import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.retrace.MappingPartitionMetadata;
+import com.android.tools.r8.retrace.PartitionMappingSupplier;
 import com.android.tools.r8.retrace.PartitionedToProguardMappingConverter;
 import com.android.tools.r8.retrace.ProguardMapProducer;
 import com.android.tools.r8.retrace.internal.MappingPartitionKeyStrategy;
@@ -61,10 +62,13 @@ public class RetracePartitionAndJoinIdentityTest extends TestBase {
 
     StringBuilder builder = new StringBuilder();
     PartitionedToProguardMappingConverter.builder()
-        .setMetadata(metadataData.getBytes())
         .setDiagnosticsHandler(diagnosticsHandler)
+        .setPartitionMappingSupplier(
+            PartitionMappingSupplier.builder()
+                .setMetadata(metadataData.getBytes())
+                .setMappingPartitionFromKeySupplier(partitions::get)
+                .build())
         .setConsumer((string, handler) -> builder.append(string))
-        .setPartitionSupplier(partitions::get)
         .build()
         .run();
     List<String> joinedMapLines = StringUtils.splitLines(builder.toString());

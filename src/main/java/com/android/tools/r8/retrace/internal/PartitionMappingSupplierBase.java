@@ -7,6 +7,7 @@ package com.android.tools.r8.retrace.internal;
 import static com.google.common.base.Predicates.alwaysTrue;
 
 import com.android.tools.r8.DiagnosticsHandler;
+import com.android.tools.r8.Finishable;
 import com.android.tools.r8.dex.CompatByteBuffer;
 import com.android.tools.r8.naming.ClassNameMapper;
 import com.android.tools.r8.naming.LineReader;
@@ -15,8 +16,10 @@ import com.android.tools.r8.naming.mappinginformation.MapVersionMappingInformati
 import com.android.tools.r8.references.ClassReference;
 import com.android.tools.r8.references.FieldReference;
 import com.android.tools.r8.references.MethodReference;
+import com.android.tools.r8.retrace.FinishedPartitionMappingCallback;
 import com.android.tools.r8.retrace.InvalidMappingFileException;
 import com.android.tools.r8.retrace.MappingPartitionFromKeySupplier;
+import com.android.tools.r8.retrace.PartitionMappingSupplier;
 import com.android.tools.r8.retrace.PrepareMappingPartitionsCallback;
 import com.android.tools.r8.retrace.RegisterMappingPartitionCallback;
 import com.android.tools.r8.retrace.internal.ProguardMapReaderWithFiltering.ProguardMapReaderWithFilteringInputBuffer;
@@ -28,10 +31,12 @@ import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.Set;
 
-public abstract class PartitionMappingSupplierBase<T extends PartitionMappingSupplierBase<T>> {
+public abstract class PartitionMappingSupplierBase<T extends PartitionMappingSupplierBase<T>>
+    implements Finishable {
 
   private final RegisterMappingPartitionCallback registerCallback;
   private final PrepareMappingPartitionsCallback prepareCallback;
+  private final FinishedPartitionMappingCallback finishedCallback;
   private final boolean allowExperimental;
   private final byte[] metadata;
   private final MapVersion fallbackMapVersion;
@@ -45,17 +50,19 @@ public abstract class PartitionMappingSupplierBase<T extends PartitionMappingSup
   protected PartitionMappingSupplierBase(
       RegisterMappingPartitionCallback registerCallback,
       PrepareMappingPartitionsCallback prepareCallback,
+      FinishedPartitionMappingCallback finishedCallback,
       boolean allowExperimental,
       byte[] metadata,
       MapVersion fallbackMapVersion) {
     this.registerCallback = registerCallback;
     this.prepareCallback = prepareCallback;
+    this.finishedCallback = finishedCallback;
     this.allowExperimental = allowExperimental;
     this.metadata = metadata;
     this.fallbackMapVersion = fallbackMapVersion;
   }
 
-  protected MappingPartitionMetadataInternal getMetadata(DiagnosticsHandler diagnosticsHandler) {
+  public MappingPartitionMetadataInternal getMetadata(DiagnosticsHandler diagnosticsHandler) {
     if (mappingPartitionMetadataCache != null) {
       return mappingPartitionMetadataCache;
     }
@@ -94,6 +101,10 @@ public abstract class PartitionMappingSupplierBase<T extends PartitionMappingSup
   public Set<MapVersionMappingInformation> getMapVersions(DiagnosticsHandler diagnosticsHandler) {
     return Collections.singleton(
         getMetadata(diagnosticsHandler).getMapVersion().toMapVersionMappingInformation());
+  }
+
+  public PartitionMappingSupplier getPartitionMappingSupplier() {
+    return null;
   }
 
   protected RetracerImpl createRetracerFromPartitionSupplier(

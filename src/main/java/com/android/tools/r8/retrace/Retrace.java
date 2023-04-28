@@ -297,6 +297,7 @@ public class Retrace<T, ST extends StackTraceElementProxy<T, ST>> extends Retrac
                       RetraceUnknownMapVersionDiagnostic.create(mapVersionInfo.getValue()));
                 }
               });
+      mappingSupplier.finished(diagnosticsHandler);
     } catch (InvalidMappingFileException e) {
       command.getOptions().getDiagnosticsHandler().error(new ExceptionDiagnostic(e));
       throw e;

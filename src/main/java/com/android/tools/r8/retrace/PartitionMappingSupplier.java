@@ -22,10 +22,17 @@ public class PartitionMappingSupplier extends PartitionMappingSupplierBase<Parti
       RegisterMappingPartitionCallback registerCallback,
       PrepareMappingPartitionsCallback prepareCallback,
       MappingPartitionFromKeySupplier partitionSupplier,
+      FinishedPartitionMappingCallback finishedCallback,
       boolean allowExperimental,
       byte[] metadata,
       MapVersion fallbackMapVersion) {
-    super(registerCallback, prepareCallback, allowExperimental, metadata, fallbackMapVersion);
+    super(
+        registerCallback,
+        prepareCallback,
+        finishedCallback,
+        allowExperimental,
+        metadata,
+        fallbackMapVersion);
     this.partitionSupplier = partitionSupplier;
   }
 
@@ -68,6 +75,15 @@ public class PartitionMappingSupplier extends PartitionMappingSupplierBase<Parti
   @Override
   public Retracer createRetracer(DiagnosticsHandler diagnosticsHandler) {
     return createRetracerFromPartitionSupplier(diagnosticsHandler, partitionSupplier);
+  }
+
+  public MappingPartitionFromKeySupplier getMappingPartitionFromKeySupplier() {
+    return partitionSupplier;
+  }
+
+  @Override
+  public PartitionMappingSupplier getPartitionMappingSupplier() {
+    return this;
   }
 
   @Override
@@ -124,6 +140,7 @@ public class PartitionMappingSupplier extends PartitionMappingSupplierBase<Parti
           registerCallback,
           prepareCallback,
           partitionSupplier,
+          finishedCallback,
           allowExperimental,
           null,
           fallbackMapVersion);
@@ -165,6 +182,7 @@ public class PartitionMappingSupplier extends PartitionMappingSupplierBase<Parti
           registerCallback,
           prepareCallback,
           partitionSupplier,
+          finishedCallback,
           allowExperimental,
           metadata,
           fallbackMapVersion);

@@ -5,13 +5,14 @@
 package com.android.tools.r8.retrace;
 
 import com.android.tools.r8.DiagnosticsHandler;
+import com.android.tools.r8.Finishable;
 import com.android.tools.r8.Keep;
 import com.android.tools.r8.references.ClassReference;
 import com.android.tools.r8.references.FieldReference;
 import com.android.tools.r8.references.MethodReference;
 
 @Keep
-public interface MappingSupplierBase<T extends MappingSupplierBase<T>> {
+public interface MappingSupplierBase<T extends MappingSupplierBase<T>> extends Finishable {
 
   /***
    * Register an allowed mapping lookup to allow for prefetching of resources.
