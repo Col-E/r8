@@ -1282,7 +1282,7 @@ public class ClassFileTransformer {
   }
 
   public ClassFileTransformer setPredictiveLineNumbering(MethodPredicate predicate) {
-    return setPredictiveLineNumbering(predicate, 0);
+    return setPredictiveLineNumbering(predicate, 100);
   }
 
   public interface LineTranslation {
@@ -1306,7 +1306,8 @@ public class ClassFileTransformer {
         int nextLine = lines.getOrDefault(method, startingLineNumber);
         // Increment the actual line content by 100 so that each one is clearly distinct
         // from a PC value for any of the methods.
-        lines.put(method, nextLine + 100);
+        int nextNextLine = nextLine == -1 ? 100 : nextLine + 100;
+        lines.put(method, nextNextLine);
         return nextLine;
       }
       return line;

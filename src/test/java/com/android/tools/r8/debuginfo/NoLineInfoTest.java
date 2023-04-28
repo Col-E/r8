@@ -13,6 +13,7 @@ import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.graph.DexDebugInfo;
 import com.android.tools.r8.naming.retrace.StackTrace;
 import com.android.tools.r8.naming.retrace.StackTrace.StackTraceLine;
+import com.android.tools.r8.transformers.ClassFileTransformer.MethodPredicate;
 import com.android.tools.r8.utils.BooleanUtils;
 import java.io.IOException;
 import java.util.Collections;
@@ -48,7 +49,7 @@ public class NoLineInfoTest extends TestBase {
   private byte[] getTestClassTransformed() throws IOException {
     return transformer(TestClass.class)
         .setSourceFile(INPUT_SOURCE_FILE)
-        .setPredictiveLineNumbering()
+        .setPredictiveLineNumbering(MethodPredicate.all(), -1 /* start with no line */)
         .transform();
   }
 

@@ -789,6 +789,9 @@ public class IRBuilder {
       while (it.hasNext()) {
         Instruction instruction = it.next();
         Position position = instruction.getPosition();
+        if (instruction.isArgument()) {
+          continue;
+        }
         if (instruction.isMoveException()) {
           assert current == null;
           current = position;
