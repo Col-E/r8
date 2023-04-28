@@ -25,7 +25,7 @@ import com.android.tools.r8.graph.GenericSignature.MethodTypeSignature;
 import com.android.tools.r8.graph.GenericSignature.TypeSignature;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibrarySpecification;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibrarySpecificationParser;
-import com.android.tools.r8.ir.desugar.desugaredlibrary.lint.GenerateLintFiles;
+import com.android.tools.r8.ir.desugar.desugaredlibrary.lint.GenerateDesugaredLibraryLintFiles;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.machinespecification.MachineDesugaredLibrarySpecification;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.machinespecification.WrapperDescriptor;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
@@ -512,8 +512,8 @@ public class ExtractWrapperTypesTest extends DesugaredLibraryTestBase {
 
   private CodeInspector getDesugaredApiJar() throws Exception {
     Path out = temp.newFolder().toPath();
-    GenerateLintFiles desugaredApi =
-        GenerateLintFiles.createForTesting(
+    GenerateDesugaredLibraryLintFiles desugaredApi =
+        GenerateDesugaredLibraryLintFiles.createForTesting(
             libraryDesugaringSpecification.getSpecification(),
             libraryDesugaringSpecification.getDesugarJdkLibs(),
             out,

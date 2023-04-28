@@ -20,8 +20,8 @@ import com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpeci
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibrarySpecification;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibrarySpecificationParser;
+import com.android.tools.r8.ir.desugar.desugaredlibrary.lint.GenerateDesugaredLibraryLintFiles;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.lint.GenerateHtmlDoc;
-import com.android.tools.r8.ir.desugar.desugaredlibrary.lint.GenerateLintFiles;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.InternalOptions;
@@ -166,7 +166,7 @@ public class LintFilesTest extends DesugaredLibraryTestBase {
         libraryDesugaringSpecification == JDK8
             ? ToolHelper.DESUGARED_JDK_8_LIB_JAR
             : LibraryDesugaringSpecification.getTempLibraryJDK11Undesugar();
-    GenerateLintFiles.main(
+    GenerateDesugaredLibraryLintFiles.main(
         new String[] {
           libraryDesugaringSpecification.getSpecification().toString(),
           jdkLibJar.toString(),
@@ -192,12 +192,10 @@ public class LintFilesTest extends DesugaredLibraryTestBase {
           "desugared_apis_" + requiredCompilationApiLevel.getLevel() + "_" + minApiLevel.getLevel();
       if (minApiLevel == AndroidApiLevel.L || minApiLevel == AndroidApiLevel.B) {
         assertTrue(Files.exists(compileApiLevelDirectory.resolve(desugaredApisBaseName + ".txt")));
-        assertTrue(Files.exists(compileApiLevelDirectory.resolve(desugaredApisBaseName + ".jar")));
         checkFileContent(
             minApiLevel, compileApiLevelDirectory.resolve(desugaredApisBaseName + ".txt"));
       } else {
         assertFalse(Files.exists(compileApiLevelDirectory.resolve(desugaredApisBaseName + ".txt")));
-        assertFalse(Files.exists(compileApiLevelDirectory.resolve(desugaredApisBaseName + ".jar")));
       }
     }
   }
@@ -247,7 +245,7 @@ public class LintFilesTest extends DesugaredLibraryTestBase {
           .run(spec + ".html");
       Path lint = top.resolve("lint_" + spec);
       Files.createDirectories(lint);
-      new GenerateLintFiles(
+      new GenerateDesugaredLibraryLintFiles(
               spec.getSpecification().toString(),
               jdkLibJar.toString(),
               lint.toString(),

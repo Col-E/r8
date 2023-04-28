@@ -553,8 +553,7 @@ public class GenerateHtmlDoc extends AbstractGenerateFiles {
   }
 
   public AndroidApiLevel run(String outputFileName) throws Exception {
-    PrintStream ps =
-        new PrintStream(Files.newOutputStream(outputDirectory.resolve(outputFileName)));
+    PrintStream ps = new PrintStream(Files.newOutputStream(output.resolve(outputFileName)));
 
     SupportedClasses supportedClasses =
         new SupportedClassesGenerator(options, androidJar)
@@ -566,6 +565,18 @@ public class GenerateHtmlDoc extends AbstractGenerateFiles {
   }
 
   public static void main(String[] args) throws Exception {
-    AbstractGenerateFiles.main(args);
+    if (args[0].equals("--generate-api-docs")) {
+      if (args.length == 4 || args.length == 5) {
+        new GenerateHtmlDoc(args[1], args[2], args[3], getAndroidJarPath(args, 5)).run();
+        return;
+      }
+    }
+    throw new RuntimeException(
+        StringUtils.joinLines(
+            "Invalid invocation.",
+            "Usage: GenerateHtmlDoc --generate-api-docs <desugar configuration> "
+                + "<desugar implementation> <output directory> [<android jar path for Android "
+                + MAX_TESTED_ANDROID_API_LEVEL
+                + " or higher>]"));
   }
 }
