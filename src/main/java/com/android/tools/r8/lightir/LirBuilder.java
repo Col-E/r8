@@ -39,13 +39,8 @@ import it.unimi.dsi.fastutil.ints.Int2ReferenceMap;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceOpenHashMap;
 import it.unimi.dsi.fastutil.objects.Reference2IntMap;
 import it.unimi.dsi.fastutil.objects.Reference2IntOpenHashMap;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+
+import java.util.*;
 
 /** Builder for constructing LIR code from IR. */
 public class LirBuilder<V, EV> {
@@ -102,6 +97,26 @@ public class LirBuilder<V, EV> {
     @Override
     protected void collectMixedSectionItems(MixedSectionCollection collection) {
       throw new Unreachable();
+    }
+
+    @Override
+    public boolean equals(Object o) {
+      if (this == o) return true;
+      if (o == null || getClass() != o.getClass()) return false;
+
+      FillArrayPayload that = (FillArrayPayload) o;
+
+      if (element_width != that.element_width) return false;
+      if (size != that.size) return false;
+      return Arrays.equals(data, that.data);
+    }
+
+    @Override
+    public int hashCode() {
+      int result = element_width;
+      result = 31 * result + (int) (size ^ (size >>> 32));
+      result = 31 * result + Arrays.hashCode(data);
+      return result;
     }
   }
 
