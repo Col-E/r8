@@ -391,6 +391,12 @@ public class PrimaryD8L8IRConverter extends IRConverter {
     if (!method.getDefinition().getCode().isCfCode()) {
       return false;
     }
+
+    // No need to desugar if the target isn't dex.
+    if (!options.isGeneratingDex()) {
+      return false;
+    }
+
     instructionDesugaring.scan(method, desugaringEventConsumer);
     if (instructionDesugaring.needsDesugaring(method)) {
       instructionDesugaring.desugar(method, methodProcessingContext, desugaringEventConsumer);
