@@ -41,7 +41,7 @@ public interface ClassFilter {
 		return new ClassFilter() {
 			@Override
 			public boolean test(@Nonnull ProgramClass cls) {
-				return internalName.equals(cls.getType().getTypeName());
+				return internalName.equals(cls.getType().getTypeName().replace('.', '/'));
 			}
 
 			@Override
@@ -62,7 +62,7 @@ public interface ClassFilter {
 		return new ClassFilter() {
 			@Override
 			public boolean test(@Nonnull ProgramClass cls) {
-				return internalNames.contains(cls.getType().getTypeName());
+				return internalNames.contains(cls.getType().getTypeName().replace('.', '/'));
 			}
 
 			@Override
