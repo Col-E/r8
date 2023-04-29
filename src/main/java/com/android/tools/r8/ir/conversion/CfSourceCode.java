@@ -17,6 +17,7 @@ import com.android.tools.r8.cf.code.CfThrow;
 import com.android.tools.r8.cf.code.CfTryCatch;
 import com.android.tools.r8.cf.code.frame.FrameType;
 import com.android.tools.r8.cf.code.frame.PreciseFrameType;
+import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.errors.InvalidDebugInfoException;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppView;
@@ -42,6 +43,7 @@ import com.android.tools.r8.ir.conversion.CfState.Slot;
 import com.android.tools.r8.ir.conversion.CfState.Snapshot;
 import com.android.tools.r8.ir.conversion.IRBuilder.BlockInfo;
 import com.android.tools.r8.origin.Origin;
+import com.android.tools.r8.position.CfCodePosition;
 import com.android.tools.r8.utils.InternalOutputMode;
 import it.unimi.dsi.fastutil.ints.Int2ObjectSortedMap;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceMap;
@@ -514,12 +516,18 @@ public class CfSourceCode implements SourceCode {
     assert currentBlockInfo != null;
     setLocalVariableLists();
 
-    if (instruction.canThrow()) {
-      Snapshot exceptionTransfer =
-          state.getSnapshot().exceptionTransfer(builder.appView.dexItemFactory().throwableType);
-      for (int target : currentBlockInfo.exceptionalSuccessors) {
-        recordStateForTarget(target, exceptionTransfer);
+    int currentTarget = -1;
+    try {
+      if (instruction.canThrow()) {
+        Snapshot exceptionTransfer =
+                state.getSnapshot().exceptionTransfer(builder.appView.dexItemFactory().throwableType);
+        for (int target : currentBlockInfo.exceptionalSuccessors) {
+          currentTarget = target;
+          recordStateForTarget(target, exceptionTransfer);
+        }
       }
+    } catch (CompilationError ce) {
+      throw new CompilationError(ce.getMessage(), ce, ce.getOrigin(), new CfCodePosition(method, code, currentTarget));
     }
 
     boolean localsChanged = localsChanged();
@@ -552,12 +560,18 @@ public class CfSourceCode implements SourceCode {
     build(instruction, builder);
     if (!hasNextInstructionInCurrentBlock) {
       Snapshot stateSnapshot = state.getSnapshot();
-      if (isControlFlow(instruction)) {
-        for (int target : getTargets(instructionIndex)) {
-          recordStateForTarget(target, stateSnapshot);
+      try {
+        if (isControlFlow(instruction)) {
+          for (int target : getTargets(instructionIndex)) {
+            currentTarget = target;
+            recordStateForTarget(target, stateSnapshot);
+          }
+        } else {
+          currentTarget = instructionIndex + 1;
+          recordStateForTarget(instructionIndex + 1, stateSnapshot);
         }
-      } else {
-        recordStateForTarget(instructionIndex + 1, stateSnapshot);
+      } catch (CompilationError ce) {
+        throw new CompilationError(ce.getMessage(), ce, ce.getOrigin(), new CfCodePosition(method, code, currentTarget));
       }
     } else if (localsChanged) {
       startLocals(builder);
