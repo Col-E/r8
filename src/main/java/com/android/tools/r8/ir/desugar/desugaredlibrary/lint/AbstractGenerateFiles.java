@@ -15,7 +15,6 @@ import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.Reporter;
-import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.ThreadUtils;
 import com.android.tools.r8.utils.Timing;
 import com.google.common.collect.ImmutableList;
@@ -42,26 +41,26 @@ public abstract class AbstractGenerateFiles {
   final MachineDesugaredLibrarySpecification desugaredLibrarySpecification;
   final Path desugaredLibrarySpecificationPath;
   final Collection<Path> desugaredLibraryImplementation;
-  final Path outputDirectory;
+  final Path output;
   final Path androidJar;
 
   AbstractGenerateFiles(
       String desugarConfigurationPath,
       String desugarImplementationPath,
-      String outputDirectory,
+      String output,
       String androidJarPath)
       throws Exception {
     this(
         Paths.get(desugarConfigurationPath),
         ImmutableList.of(Paths.get(desugarImplementationPath)),
-        Paths.get(outputDirectory),
+        Paths.get(output),
         Paths.get(androidJarPath));
   }
 
   AbstractGenerateFiles(
       Path desugarConfigurationPath,
       Collection<Path> desugarImplementationPath,
-      Path outputDirectory,
+      Path output,
       Path androidJar)
       throws Exception {
     assert androidJar != null;
@@ -72,10 +71,7 @@ public abstract class AbstractGenerateFiles {
     DexApplication app = createApp(androidJar, options);
     this.desugaredLibrarySpecification = specification.toMachineSpecification(app, Timing.empty());
     this.desugaredLibraryImplementation = desugarImplementationPath;
-    this.outputDirectory = outputDirectory;
-    if (!Files.isDirectory(this.outputDirectory)) {
-      throw new Exception("Output directory " + outputDirectory + " is not a directory");
-    }
+    this.output = output;
   }
 
   private DesugaredLibrarySpecification readDesugaredLibraryConfiguration(
@@ -118,28 +114,9 @@ public abstract class AbstractGenerateFiles {
     return jar;
   }
 
-  private static String getAndroidJarPath(String[] args, int fullLength) {
+  static String getAndroidJarPath(String[] args, int fullLength) {
     return args.length == fullLength
         ? args[fullLength - 1]
         : getFallBackAndroidJarPath(MAX_TESTED_ANDROID_API_LEVEL);
-  }
-
-  public static void main(String[] args) throws Exception {
-    if (args[0].equals("--generate-api-docs")) {
-      if (args.length == 4 || args.length == 5) {
-        new GenerateHtmlDoc(args[1], args[2], args[3], getAndroidJarPath(args, 5)).run();
-        return;
-      }
-    } else if (args.length == 3 || args.length == 4) {
-      new GenerateLintFiles(args[0], args[1], args[2], getAndroidJarPath(args, 4)).run();
-      return;
-    }
-    throw new RuntimeException(
-        StringUtils.joinLines(
-            "Invalid invocation.",
-            "Usage: AbstractGenerateFiles [--generate-api-docs] <desugar configuration> <desugar"
-                + " implementation> <output directory> [<android jar path for Android "
-                + MAX_TESTED_ANDROID_API_LEVEL
-                + " or higher>]"));
   }
 }

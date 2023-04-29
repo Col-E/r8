@@ -181,6 +181,10 @@ public class EnumUnboxerImpl extends EnumUnboxer {
         appView.appInfo().resolveField(factory.enumMembers.ordinalField).getResolutionPair();
   }
 
+  public static int unboxedIntToOrdinal(int unboxedInt) {
+    return unboxedInt - 1;
+  }
+
   public static int ordinalToUnboxedInt(int ordinal) {
     return ordinal + 1;
   }
@@ -732,7 +736,7 @@ public class EnumUnboxerImpl extends EnumUnboxer {
             methodsDependingOnLibraryModelisation
                 .rewrittenWithLens(appView)
                 .removeAll(treeFixerResult.getPrunedItems().getRemovedMethods()))
-        .addAll(treeFixerResult.getDispatchMethods(), appView.graphLens());
+        .addAll(treeFixerResult.getMethodsToProcess(), appView.graphLens());
     methodsDependingOnLibraryModelisation.clear();
 
     updateOptimizationInfos(executorService, feedback, treeFixerResult, previousLens);
@@ -1280,7 +1284,8 @@ public class EnumUnboxerImpl extends EnumUnboxer {
           : Reason.ASSIGNMENT_OUTSIDE_INIT;
     }
     // The put value has to be of the field type.
-    if (field.getReference().type.toBaseType(factory) != enumClass.type) {
+    if (!enumUnboxingCandidatesInfo.isAssignableTo(
+        field.getReference().type.toBaseType(factory), enumClass.type)) {
       return Reason.TYPE_MISMATCH_FIELD_PUT;
     }
     return Reason.ELIGIBLE;

@@ -37,6 +37,7 @@ import com.android.tools.r8.ir.code.MemberType;
 import com.android.tools.r8.ir.code.NewUnboxedEnumInstance;
 import com.android.tools.r8.ir.code.Phi;
 import com.android.tools.r8.ir.code.StaticGet;
+import com.android.tools.r8.ir.code.TypeAndLocalInfoSupplier;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.conversion.MethodProcessor;
 import com.android.tools.r8.ir.optimize.enums.EnumInstanceFieldData.EnumInstanceFieldKnownData;
@@ -46,9 +47,9 @@ import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.InternalOptions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Sets;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.IdentityHashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -87,9 +88,10 @@ public class EnumUnboxingRewriter {
   }
 
   private Map<Instruction, DexType> createInitialConvertedEnums(
-      IRCode code, RewrittenPrototypeDescription prototypeChanges) {
+      IRCode code, RewrittenPrototypeDescription prototypeChanges, Set<Phi> affectedPhis) {
     Map<Instruction, DexType> convertedEnums = new IdentityHashMap<>();
-    Iterator<Instruction> iterator = code.entryBlock().iterator();
+    List<Instruction> extraConstants = new ArrayList<>();
+    InstructionListIterator iterator = code.entryBlock().listIterator(code);
     int originalNumberOfArguments =
         code.getNumberOfArguments()
             + prototypeChanges.getArgumentInfoCollection().numberOfRemovedArguments();
@@ -105,9 +107,34 @@ public class EnumUnboxingRewriter {
         RewrittenTypeInfo rewrittenTypeInfo = argumentInfo.asRewrittenTypeInfo();
         DexType enumType =
             getEnumClassTypeOrNull(rewrittenTypeInfo.getOldType().toBaseType(factory));
-        if (enumType != null) {
+        if (rewrittenTypeInfo.hasSingleValue()
+            && rewrittenTypeInfo.getSingleValue().isSingleNumberValue()) {
+          assert rewrittenTypeInfo
+              .getSingleValue()
+              .isMaterializableInContext(appView, code.context());
+          Instruction materializingInstruction =
+              rewrittenTypeInfo
+                  .getSingleValue()
+                  .createMaterializingInstruction(
+                      appView,
+                      code,
+                      TypeAndLocalInfoSupplier.create(
+                          rewrittenTypeInfo.getNewType().toTypeElement(appView),
+                          next.getLocalInfo()));
+          materializingInstruction.setPosition(next.getPosition());
+          extraConstants.add(materializingInstruction);
+          affectedPhis.addAll(next.outValue().uniquePhiUsers());
+          next.outValue().replaceUsers(materializingInstruction.outValue());
+          convertedEnums.put(materializingInstruction, enumType);
+        } else if (enumType != null) {
           convertedEnums.put(next, enumType);
         }
+      }
+    }
+    if (!extraConstants.isEmpty()) {
+      assert extraConstants.size() == 1; // So far this is used only for unboxed enums "this".
+      for (Instruction extraConstant : extraConstants) {
+        iterator.add(extraConstant);
       }
     }
     return convertedEnums;
@@ -125,8 +152,9 @@ public class EnumUnboxingRewriter {
     assert code.isConsistentSSABeforeTypesAreCorrect(appView);
     ProgramMethod context = code.context();
     EnumUnboxerMethodProcessorEventConsumer eventConsumer = methodProcessor.getEventConsumer();
-    Map<Instruction, DexType> convertedEnums = createInitialConvertedEnums(code, prototypeChanges);
     Set<Phi> affectedPhis = Sets.newIdentityHashSet();
+    Map<Instruction, DexType> convertedEnums =
+        createInitialConvertedEnums(code, prototypeChanges, affectedPhis);
     BasicBlockIterator blocks = code.listIterator();
     Set<BasicBlock> seenBlocks = Sets.newIdentityHashSet();
     Set<Instruction> instructionsToRemove = Sets.newIdentityHashSet();
@@ -236,6 +264,23 @@ public class EnumUnboxingRewriter {
               continue;
             } else if (invokedMethod == factory.objectMembers.getClass) {
               rewriteNullCheck(iterator, invoke, context, eventConsumer);
+              continue;
+            } else if (invoke.isInvokeVirtual() || invoke.isInvokeInterface()) {
+              DexMethod refinedDispatchMethodReference =
+                  enumUnboxingLens.lookupRefinedDispatchMethod(
+                      invokedMethod,
+                      context.getReference(),
+                      invoke.getType(),
+                      enumUnboxingLens.getPrevious(),
+                      invoke.getArgument(0).getAbstractValue(appView, context),
+                      enumType);
+              if (refinedDispatchMethodReference != null) {
+                DexClassAndMethod refinedDispatchMethod =
+                    appView.definitionFor(refinedDispatchMethodReference);
+                assert refinedDispatchMethod != null;
+                assert refinedDispatchMethod.isProgramMethod();
+                replaceEnumInvoke(iterator, invoke, refinedDispatchMethod.asProgramMethod());
+              }
               continue;
             }
           } else if (invokedMethod == factory.stringBuilderMethods.appendObject

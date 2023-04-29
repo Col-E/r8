@@ -5,7 +5,6 @@
 package com.android.tools.r8.desugar.r8bootstrap;
 
 import static com.android.tools.r8.desugar.r8bootstrap.JavaBootstrapUtils.MAIN_KEEP;
-import static com.android.tools.r8.utils.FileUtils.JAR_EXTENSION;
 import static junit.framework.TestCase.assertEquals;
 
 import com.android.tools.r8.Jdk11TestUtils;
@@ -15,9 +14,9 @@ import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.TestRuntime.CfVm;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.cf.bootstrap.BootstrapCurrentEqualityTest;
+import com.android.tools.r8.examples.hello.HelloTestRunner;
 import com.google.common.collect.ImmutableList;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import org.junit.Assume;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -35,8 +34,9 @@ import org.junit.runners.Parameterized.Parameters;
 @RunWith(Parameterized.class)
 public class Java17R8BootstrapTest extends TestBase {
 
+  private static final Class<?> HELLO_CLASS = HelloTestRunner.getHelloClass();
   private static final String[] HELLO_KEEP = {
-    "-keep class hello.Hello {  public static void main(...);}"
+    "-keep class " + HELLO_CLASS.getTypeName() + " {  public static void main(...);}"
   };
 
   private static Path r8Lib17NoDesugar;
@@ -85,17 +85,20 @@ public class Java17R8BootstrapTest extends TestBase {
     Assume.assumeTrue(supportsSealedClassesWhenGeneratingCf());
     Path prevGeneratedJar = null;
     String prevRunResult = null;
+    Path helloJar = HelloTestRunner.writeHelloProgramJar(temp);
     for (Path jar : jarsToCompare()) {
       Path generatedJar =
           testForExternalR8(Backend.CF, parameters.getRuntime())
               .useProvidedR8(jar)
-              .addProgramFiles(Paths.get(ToolHelper.EXAMPLES_BUILD_DIR, "hello" + JAR_EXTENSION))
+              .addProgramFiles(helloJar)
               .addKeepRules(HELLO_KEEP)
               .compile()
               .outputJar();
       String runResult =
           ToolHelper.runJava(
-                  parameters.getRuntime().asCf(), ImmutableList.of(generatedJar), "hello.Hello")
+                  parameters.getRuntime().asCf(),
+                  ImmutableList.of(generatedJar),
+                  HELLO_CLASS.getTypeName())
               .toString();
       if (prevRunResult != null) {
         assertEquals(prevRunResult, runResult);
@@ -117,11 +120,12 @@ public class Java17R8BootstrapTest extends TestBase {
     Assume.assumeTrue(JavaBootstrapUtils.exists(ToolHelper.R8_WITH_RELOCATED_DEPS_17_JAR));
     Assume.assumeTrue(supportsSealedClassesWhenGeneratingCf());
     Path prevGeneratedJar = null;
+    Path helloJar = HelloTestRunner.writeHelloProgramJar(temp);
     for (Path jar : jarsToCompare()) {
       Path generatedJar =
           testForExternalR8(Backend.CF, parameters.getRuntime())
               .useProvidedR8(jar)
-              .addProgramFiles(Paths.get(ToolHelper.EXAMPLES_BUILD_DIR, "hello" + JAR_EXTENSION))
+              .addProgramFiles(helloJar)
               .addKeepRuleFiles(MAIN_KEEP)
               .compile()
               .outputJar();

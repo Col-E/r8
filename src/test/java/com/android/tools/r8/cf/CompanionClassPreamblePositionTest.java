@@ -16,9 +16,11 @@ import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
+import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import it.unimi.dsi.fastutil.ints.Int2IntMap;
 import it.unimi.dsi.fastutil.ints.Int2IntOpenHashMap;
 import java.nio.file.Path;
+import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -70,14 +72,21 @@ public class CompanionClassPreamblePositionTest extends TestBase {
   }
 
   private void checkZeroLineIsPresent(CodeInspector inspector) throws Exception {
-    // ASM skips zero lines so use javap to check the presence of a zero line.
+    // Until version 9.5, ASM skips zero lines so use javap to check the presence of a zero line.
     ClassSubject itf = inspector.clazz(I.class);
     assertThat(itf.javap(true), containsString("line 0: 0"));
+    // Having updated to ASM 9.5 we can also check using code inspector.
+    Assert.assertTrue(itf.uniqueMethod().getLineNumberTable().getLines().contains(0));
   }
 
   private void checkZeroLineNotPresent(CodeInspector inspector) throws Exception {
+    // Until version 9.5, ASM skips zero lines so use javap to check the absence of a zero line.
     ClassSubject companion = inspector.companionClassFor(I.class);
     assertThat(companion.javap(true), not(containsString("line 0: 0")));
+    // Having updated to ASM 9.5 we can also check using code inspector.
+    MethodSubject method = companion.uniqueMethod();
+    Assert.assertTrue(method.hasLineNumberTable());
+    Assert.assertFalse(method.getLineNumberTable().getLines().contains(0));
   }
 
   private byte[] getTransformedI(boolean includeZero) throws Exception {

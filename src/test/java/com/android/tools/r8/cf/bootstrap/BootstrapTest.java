@@ -12,8 +12,8 @@ import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.ProcessResult;
+import com.android.tools.r8.examples.hello.HelloTestRunner;
 import com.android.tools.r8.utils.FileUtils;
-import com.android.tools.r8.utils.StringUtils;
 import com.google.common.base.Charsets;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -30,7 +30,8 @@ public class BootstrapTest extends TestBase {
   private static final Path R8_STABLE_JAR =
       Paths.get("third_party", "r8-releases", "3.2.54", "r8.jar");
 
-  private static final String HELLO_EXPECTED = StringUtils.lines("Hello World!");
+  private static final Class<?> HELLO_CLASS = HelloTestRunner.getHelloClass();
+  private static final String HELLO_EXPECTED = HelloTestRunner.getExpectedOutput();
 
   private static class R8Result {
 
@@ -59,18 +60,18 @@ public class BootstrapTest extends TestBase {
   }
 
   private Path getHelloInputs() {
-    return ToolHelper.getClassFileForTestClass(Hello.class);
+    return ToolHelper.getClassFileForTestClass(HELLO_CLASS);
   }
 
   private String getHelloKeepRules() {
-    return TestBase.keepMainProguardConfiguration(Hello.class);
+    return TestBase.keepMainProguardConfiguration(HELLO_CLASS);
   }
 
   @Test
   public void reference() throws Exception {
     testForJvm(parameters)
         .addProgramFiles(getHelloInputs())
-        .run(parameters.getRuntime(), Hello.class)
+        .run(parameters.getRuntime(), HELLO_CLASS)
         .assertSuccessWithOutput(HELLO_EXPECTED);
   }
 
@@ -90,7 +91,7 @@ public class BootstrapTest extends TestBase {
         runExternalR8(R8_STABLE_JAR, getHelloInputs(), getHelloKeepRules(), mode);
     testForJvm(parameters)
         .addProgramFiles(helloCompiledWithR8.outputJar)
-        .run(parameters.getRuntime(), Hello.class)
+        .run(parameters.getRuntime(), HELLO_CLASS)
         .assertSuccessWithOutput(HELLO_EXPECTED);
 
     compareR8(helloCompiledWithR8, mode);
@@ -150,12 +151,5 @@ public class BootstrapTest extends TestBase {
     assertEquals(processResult.toString(), 0, processResult.exitCode);
     String pgMap = FileUtils.readTextFile(pgMapFile, Charsets.UTF_8);
     return new R8Result(processResult, outputJar, pgMap);
-  }
-
-  public static class Hello {
-
-    public static void main(String[] args) {
-      System.out.println("Hello World!");
-    }
   }
 }

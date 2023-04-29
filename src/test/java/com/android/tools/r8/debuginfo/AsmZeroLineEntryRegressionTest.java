@@ -62,8 +62,8 @@ public class AsmZeroLineEntryRegressionTest extends TestBase {
                 getClassWithZeroLineEntry(), Reference.classFromClass(TestClass.class)))
         .run(parameters.getRuntime(), TestClass.class)
         .assertFailureWithErrorThatThrows(RuntimeException.class)
-        // If this becomes zero ASM has been updated to not assign line zero a special meaning.
-        .inspectOriginalStackTrace(st -> checkLineNumber(st, 1));
+        // From version 9.5 ASM was updated to not assign line zero a special meaning.
+        .inspectOriginalStackTrace(st -> checkLineNumber(st, 0));
   }
 
   private void checkLineNumber(StackTrace st, int lineNumber) {

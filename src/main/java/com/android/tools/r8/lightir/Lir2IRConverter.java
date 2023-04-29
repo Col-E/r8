@@ -35,6 +35,7 @@ import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.If;
 import com.android.tools.r8.ir.code.IfType;
 import com.android.tools.r8.ir.code.InstanceGet;
+import com.android.tools.r8.ir.code.InstanceOf;
 import com.android.tools.r8.ir.code.InstancePut;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InvokeDirect;
@@ -585,6 +586,12 @@ public class Lir2IRConverter {
     public void onCheckCast(DexType type, EV value) {
       Value dest = getOutValueForNextInstruction(type.toTypeElement(appView));
       addInstruction(new CheckCast(dest, getValue(value), type));
+    }
+
+    @Override
+    public void onInstanceOf(DexType type, EV value) {
+      Value dest = getOutValueForNextInstruction(TypeElement.getInt());
+      addInstruction(new InstanceOf(dest, getValue(value), type));
     }
 
     @Override

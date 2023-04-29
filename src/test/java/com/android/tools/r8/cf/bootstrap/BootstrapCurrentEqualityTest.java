@@ -4,7 +4,6 @@
 package com.android.tools.r8.cf.bootstrap;
 
 import static com.android.tools.r8.graph.GenericSignatureIdentityTest.testParseSignaturesInJar;
-import static com.android.tools.r8.utils.FileUtils.JAR_EXTENSION;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -22,6 +21,7 @@ import com.android.tools.r8.TestRuntime;
 import com.android.tools.r8.TestRuntime.CfVm;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.ProcessResult;
+import com.android.tools.r8.examples.hello.HelloTestRunner;
 import com.android.tools.r8.retrace.ProguardMapProducer;
 import com.android.tools.r8.retrace.ProguardMappingSupplier;
 import com.android.tools.r8.retrace.Retrace;
@@ -51,14 +51,14 @@ public class BootstrapCurrentEqualityTest extends TestBase {
 
   private static final Path MAIN_KEEP = Paths.get("src/main/keep.txt");
 
-  private static final String HELLO_NAME = "hello.Hello";
+  private static final String HELLO_NAME = HelloTestRunner.getHelloClass().getTypeName();
   private static final String[] KEEP_HELLO = {
     "-keep class " + HELLO_NAME + " {",
     "  public static void main(...);",
     "}",
     "-allowaccessmodification"
   };
-  private static String HELLO_EXPECTED = StringUtils.lines("Hello, world");
+  private static String HELLO_EXPECTED = HelloTestRunner.getExpectedOutput();
 
   private static Pair<Path, Path> r8R8Debug;
   private static Pair<Path, Path> r8R8Release;
@@ -199,7 +199,7 @@ public class BootstrapCurrentEqualityTest extends TestBase {
 
   @Test
   public void test() throws Exception {
-    Path program = Paths.get(ToolHelper.EXAMPLES_BUILD_DIR, "hello" + JAR_EXTENSION);
+    Path program = HelloTestRunner.writeHelloProgramJar(temp);
     testForJvm(parameters)
         .addProgramFiles(program)
         .run(parameters.getRuntime(), HELLO_NAME)

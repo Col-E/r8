@@ -5,7 +5,7 @@
 // This code is not run directly. It needs to be compiled to dex code.
 // 'hello.dex' is what is run.
 
-package hello;
+package com.android.tools.r8.examples.hello;
 
 class Hello {
   public static void main(String[] args) {

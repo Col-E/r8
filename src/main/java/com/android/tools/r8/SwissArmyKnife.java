@@ -6,6 +6,7 @@ package com.android.tools.r8;
 import com.android.tools.r8.bisect.Bisect;
 import com.android.tools.r8.cf.CfVerifierTool;
 import com.android.tools.r8.compatproguard.CompatProguard;
+import com.android.tools.r8.ir.desugar.desugaredlibrary.lint.DesugaredMethodsList;
 import com.android.tools.r8.relocator.RelocatorCommandLine;
 import com.android.tools.r8.tracereferences.TraceReferences;
 import java.util.Arrays;
@@ -63,6 +64,9 @@ public class SwissArmyKnife {
         break;
       case "backportedmethods":
         BackportedMethodList.main(shift(args));
+        break;
+      case "desugaredmethods":
+        DesugaredMethodsList.main(shift(args));
         break;
       case "relocator":
         RelocatorCommandLine.main(shift(args));

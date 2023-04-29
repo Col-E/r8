@@ -8,7 +8,6 @@ import static com.android.tools.r8.graph.DexCode.FAKE_THIS_SUFFIX;
 
 import com.android.tools.r8.cf.CfPrinter;
 import com.android.tools.r8.cf.CfVersion;
-import com.android.tools.r8.cf.code.CfFrame;
 import com.android.tools.r8.cf.code.CfFrameVerifier;
 import com.android.tools.r8.cf.code.CfFrameVerifier.StackMapStatus;
 import com.android.tools.r8.cf.code.CfFrameVerifierEventConsumer;
@@ -475,30 +474,6 @@ public class CfCode extends Code implements CfWritableCode, StructuralItem<CfCod
     return preamble;
   }
 
-  private static class PrunePreambleMethodVisitor extends MethodVisitor {
-
-    private final AppView<?> appView;
-    private boolean inPreamble = true;
-
-    public PrunePreambleMethodVisitor(MethodVisitor methodVisitor, AppView<?> appView) {
-      super(InternalOptions.ASM_VERSION, methodVisitor);
-      this.appView = appView;
-    }
-
-    @Override
-    public void visitLineNumber(int line, Label start) {
-      if (line == 0) {
-        if (inPreamble) {
-          inPreamble = false;
-          return;
-        }
-        // We must be in R8 if inserting a zero-line entry outside the method preamble.
-        assert appView.enableWholeProgramOptimizations();
-      }
-      super.visitLineNumber(line, start);
-    }
-  }
-
   @Override
   public void writeCf(
       ProgramMethod method,
@@ -524,21 +499,20 @@ public class CfCode extends Code implements CfWritableCode, StructuralItem<CfCod
             || (appView.enableWholeProgramOptimizations()
                 && classFileVersion.isEqualTo(CfVersion.V1_6)
                 && !options.shouldKeepStackMapTable());
-    PrunePreambleMethodVisitor prunePreambleVisitor =
-        new PrunePreambleMethodVisitor(visitor, appView);
+    Position preamblePosition = getPreamblePosition();
+    boolean discardPreamble = preamblePosition != null && preamblePosition.isSyntheticPosition();
     for (CfInstruction instruction : instructions) {
-      if (discardFrames && instruction instanceof CfFrame) {
+      if (discardFrames && instruction.isFrame()) {
+        continue;
+      }
+      if (discardPreamble
+          && instruction.isPosition()
+          && instruction.asPosition().getPosition().equals(preamblePosition)) {
+        discardPreamble = false;
         continue;
       }
       instruction.write(
-          appView,
-          method,
-          dexItemFactory,
-          graphLens,
-          initClassLens,
-          namingLens,
-          rewriter,
-          prunePreambleVisitor);
+          appView, method, dexItemFactory, graphLens, initClassLens, namingLens, rewriter, visitor);
     }
     visitor.visitEnd();
     visitor.visitMaxs(maxStack, maxLocals);

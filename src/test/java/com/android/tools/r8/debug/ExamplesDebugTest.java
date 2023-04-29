@@ -60,21 +60,6 @@ public class ExamplesDebugTest extends DebugTestBase {
   }
 
   @Test
-  public void testHello() throws Exception {
-    testDebugging("hello", "Hello");
-  }
-
-  @Test
-  public void testIfStatements() throws Exception {
-    testDebugging("ifstatements", "IfStatements");
-  }
-
-  @Test
-  public void testInstanceVariable() throws Exception {
-    testDebugging("instancevariable", "InstanceVariable");
-  }
-
-  @Test
   public void testInstanceofString() throws Exception {
     testDebugging("instanceofstring", "InstanceofString");
   }
@@ -254,11 +239,6 @@ public class ExamplesDebugTest extends DebugTestBase {
   public void testEnclosingmethod_proguarded() throws Exception {
     // TODO(b/79671093): We don't match JVM's behavior on this example.
     testDebuggingJvmOutputOnly("enclosingmethod_proguarded", "Main");
-  }
-
-  @Test
-  public void testInterfaceinlining() throws Exception {
-    testDebugging("interfaceinlining", "Main");
   }
 
   @Test

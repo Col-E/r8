@@ -1991,8 +1991,9 @@ public class DexItemFactory {
       return field == nameField || field == ordinalField;
     }
 
-    public boolean isEnumField(DexEncodedField staticField, DexType enumType) {
-      return isEnumField(staticField, enumType, ImmutableSet.of());
+    public boolean isEnumFieldCandidate(DexEncodedField staticField) {
+      assert staticField.isStatic();
+      return staticField.isEnum() && staticField.isFinal();
     }
 
     // In some case, the enum field may be respecialized to an enum subtype. In this case, one
@@ -2001,8 +2002,7 @@ public class DexItemFactory {
         DexEncodedField staticField, DexType enumType, Set<DexType> subtypes) {
       assert staticField.isStatic();
       return (staticField.getType() == enumType || subtypes.contains(staticField.getType()))
-          && staticField.isEnum()
-          && staticField.isFinal();
+          && isEnumFieldCandidate(staticField);
     }
 
     public boolean isValuesFieldCandidate(DexEncodedField staticField, DexType enumType) {

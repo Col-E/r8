@@ -47,6 +47,7 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
@@ -55,17 +56,30 @@ public class SupportedClassesGenerator {
 
   private final InternalOptions options;
   private final DirectMappedDexApplication appForMax;
+  private final AndroidApiLevel minApi;
   private final SupportedClasses.Builder builder = SupportedClasses.builder();
+  private final boolean addBackports;
 
   public SupportedClassesGenerator(InternalOptions options, Path androidJar) throws IOException {
     this.options = options;
     this.appForMax = createAppForMax(androidJar);
+    this.minApi = AndroidApiLevel.B;
+    this.addBackports = false;
+  }
+
+  public SupportedClassesGenerator(
+      InternalOptions options, Path androidJar, AndroidApiLevel minApi, boolean addBackports)
+      throws IOException {
+    this.options = options;
+    this.appForMax = createAppForMax(androidJar);
+    this.minApi = minApi;
+    this.addBackports = addBackports;
   }
 
   public SupportedClasses run(Collection<Path> desugaredLibraryImplementation, Path specification)
       throws IOException {
     // First analyze everything which is supported when desugaring for api 1.
-    collectSupportedMembersInB(desugaredLibraryImplementation, specification);
+    collectSupportedMembersInMinApi(desugaredLibraryImplementation, specification);
     // Second annotate all apis which are partially and/or fully supported.
     annotateMethodsNotOnLatestAndroidJar();
     annotateParallelMethods();
@@ -237,13 +251,13 @@ public class SupportedClassesGenerator {
         });
   }
 
-  private void collectSupportedMembersInB(
+  private void collectSupportedMembersInMinApi(
       Collection<Path> desugaredLibraryImplementation, Path specification) throws IOException {
 
     MachineDesugaredLibrarySpecification machineSpecification =
-        getMachineSpecification(AndroidApiLevel.B, specification);
+        getMachineSpecification(minApi, specification);
 
-    options.setMinApiLevel(AndroidApiLevel.B);
+    options.setMinApiLevel(minApi);
     options.resetDesugaredLibrarySpecificationForTesting();
     options.setDesugaredLibrarySpecification(machineSpecification);
 
@@ -304,22 +318,7 @@ public class SupportedClassesGenerator {
 
     // All retargeted methods are supported.
     machineSpecification.forEachRetargetMethod(
-        method -> {
-          DexClass dexClass = implementationApplication.definitionFor(method.getHolderType());
-          if (dexClass != null) {
-            DexEncodedMethod dexEncodedMethod = dexClass.lookupMethod(method);
-            if (dexEncodedMethod != null) {
-              builder.addSupportedMethod(dexClass, dexEncodedMethod);
-              builder.annotateClass(dexClass.type, ClassAnnotation.getAdditionnalMembersOnClass());
-              return;
-            }
-          }
-          dexClass = appForMax.definitionFor(method.getHolderType());
-          DexEncodedMethod dexEncodedMethod = dexClass.lookupMethod(method);
-          assert dexEncodedMethod != null;
-          builder.addSupportedMethod(dexClass, dexEncodedMethod);
-          builder.annotateClass(dexClass.type, ClassAnnotation.getAdditionnalMembersOnClass());
-        });
+        method -> registerMethod(method, implementationApplication));
 
     machineSpecification
         .getStaticFieldRetarget()
@@ -341,42 +340,84 @@ public class SupportedClassesGenerator {
               builder.addSupportedField(dexClass, dexEncodedField);
               builder.annotateClass(dexClass.type, ClassAnnotation.getAdditionnalMembersOnClass());
             });
+
+    if (addBackports) {
+      List<DexMethod> extraMethods = new ArrayList<>();
+      for (DexMethod backport : backports) {
+        if (implementationApplication.definitionFor(backport.getHolderType()) == null) {
+          extraMethods.add(backport);
+        }
+      }
+      extraMethods.sort(Comparator.naturalOrder());
+      builder.setExtraMethods(extraMethods);
+    }
+  }
+
+  private void registerMethod(DexMethod method, DexApplication implementationApplication) {
+    DexClass dexClass = implementationApplication.definitionFor(method.getHolderType());
+    if (dexClass != null) {
+      DexEncodedMethod dexEncodedMethod = dexClass.lookupMethod(method);
+      if (dexEncodedMethod != null) {
+        builder.addSupportedMethod(dexClass, dexEncodedMethod);
+        builder.annotateClass(dexClass.type, ClassAnnotation.getAdditionnalMembersOnClass());
+        return;
+      }
+    }
+    dexClass = appForMax.definitionFor(method.getHolderType());
+    DexEncodedMethod dexEncodedMethod = lookupBackportMethod(dexClass, method);
+    if (dexEncodedMethod != null) {
+      builder.addSupportedMethod(dexClass, dexEncodedMethod);
+      builder.annotateClass(dexClass.getType(), ClassAnnotation.getAdditionnalMembersOnClass());
+    }
+  }
+
+  private DexEncodedMethod lookupBackportMethod(DexClass maxClass, DexMethod backport) {
+    if (maxClass == null) {
+      throw new Error(
+          "Missing class from Android "
+              + MAX_TESTED_ANDROID_API_LEVEL
+              + ": "
+              + backport.getHolderType());
+    }
+    DexEncodedMethod dexEncodedMethod = maxClass.lookupMethod(backport);
+    // Some backports are not in amendedAppForMax, such as Stream#ofNullable and recent ones
+    // introduced in U.
+    if (dexEncodedMethod == null) {
+      ImmutableSet<DexType> allStaticPublicMethods =
+          ImmutableSet.of(
+              options.dexItemFactory().mathType,
+              options.dexItemFactory().strictMathType,
+              options.dexItemFactory().objectsType);
+      if (backport
+              .toString()
+              .equals(
+                  "java.util.stream.Stream"
+                      + " java.util.stream.Stream.ofNullable(java.lang.Object)")
+          || allStaticPublicMethods.contains(backport.getHolderType())) {
+        dexEncodedMethod =
+            DexEncodedMethod.builder()
+                .setMethod(backport)
+                .setAccessFlags(
+                    MethodAccessFlags.fromSharedAccessFlags(
+                        Constants.ACC_PUBLIC | Constants.ACC_STATIC, false))
+                .build();
+      } else {
+        throw new Error(
+            "Unexpected backport missing from Android "
+                + MAX_TESTED_ANDROID_API_LEVEL
+                + ": "
+                + backport);
+      }
+    }
+    assert dexEncodedMethod != null;
+    return dexEncodedMethod;
   }
 
   private void addBackports(DexProgramClass clazz, List<DexMethod> backports) {
     for (DexMethod backport : backports) {
       if (clazz.type == backport.getHolderType()) {
         DexClass maxClass = appForMax.definitionFor(clazz.type);
-        DexEncodedMethod dexEncodedMethod = maxClass.lookupMethod(backport);
-        // Some backports are not in amendedAppForMax, such as Stream#ofNullable and recent ones
-        // introduced in U.
-        if (dexEncodedMethod == null) {
-          ImmutableSet<DexType> allStaticPublicMethods =
-              ImmutableSet.of(
-                  options.dexItemFactory().mathType,
-                  options.dexItemFactory().strictMathType,
-                  options.dexItemFactory().objectsType);
-          if (backport
-                  .toString()
-                  .equals(
-                      "java.util.stream.Stream"
-                          + " java.util.stream.Stream.ofNullable(java.lang.Object)")
-              || allStaticPublicMethods.contains(backport.getHolderType())) {
-            dexEncodedMethod =
-                DexEncodedMethod.builder()
-                    .setMethod(backport)
-                    .setAccessFlags(
-                        MethodAccessFlags.fromSharedAccessFlags(
-                            Constants.ACC_PUBLIC | Constants.ACC_STATIC, false))
-                    .build();
-          } else {
-            throw new Error(
-                "Unexpected backport missing from Android "
-                    + MAX_TESTED_ANDROID_API_LEVEL
-                    + ": "
-                    + backport);
-          }
-        }
+        DexEncodedMethod dexEncodedMethod = lookupBackportMethod(maxClass, backport);
         builder.addSupportedMethod(clazz, dexEncodedMethod);
       }
     }

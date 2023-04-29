@@ -67,11 +67,11 @@ public class EnumUnboxingCandidateInfoCollection {
   }
 
   public void removeCandidate(DexType enumType) {
-    enumTypeToInfo.remove(enumType);
+    enumTypeToInfo.remove(subEnumToSuperEnumMap.getOrDefault(enumType, enumType));
   }
 
   public boolean isCandidate(DexType enumType) {
-    return enumTypeToInfo.containsKey(enumType);
+    return enumTypeToInfo.containsKey(subEnumToSuperEnumMap.getOrDefault(enumType, enumType));
   }
 
   public boolean isEmpty() {

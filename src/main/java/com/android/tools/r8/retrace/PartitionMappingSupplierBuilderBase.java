@@ -15,6 +15,8 @@ public abstract class PartitionMappingSupplierBuilderBase<
       RegisterMappingPartitionCallback.empty();
   protected PrepareMappingPartitionsCallback prepareCallback =
       PrepareMappingPartitionsCallback.empty();
+  protected FinishedPartitionMappingCallback finishedCallback =
+      FinishedPartitionMappingCallback.empty();
   protected final MapVersion fallbackMapVersion;
   protected boolean allowExperimental = false;
 
@@ -24,6 +26,11 @@ public abstract class PartitionMappingSupplierBuilderBase<
 
   public T setRegisterMappingPartitionCallback(RegisterMappingPartitionCallback registerCallback) {
     this.registerCallback = registerCallback;
+    return self();
+  }
+
+  public T setFinishedPartitionMappingCallback(FinishedPartitionMappingCallback finishedCallback) {
+    this.finishedCallback = finishedCallback;
     return self();
   }
 

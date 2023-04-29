@@ -79,7 +79,7 @@ public abstract class StaticFieldValues {
             enumObjectStateBuilder.put(
                 staticField.getReference(), value.asSingleFieldValue().getObjectState());
           }
-        } else if (factory.enumMembers.isEnumField(staticField, staticField.getHolderType())) {
+        } else if (factory.enumMembers.isEnumFieldCandidate(staticField)) {
           if (value.isSingleFieldValue()
               && !value.asSingleFieldValue().getObjectState().isEmpty()) {
             enumObjectStateBuilder.put(

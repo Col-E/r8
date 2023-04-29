@@ -31,13 +31,19 @@ import java.util.function.Consumer;
  */
 public class SupportedClasses {
   private final Map<DexType, SupportedClass> supportedClasses;
+  private final List<DexMethod> extraMethods;
+
+  SupportedClasses(Map<DexType, SupportedClass> supportedClasses, List<DexMethod> extraMethods) {
+    this.supportedClasses = supportedClasses;
+    this.extraMethods = extraMethods;
+  }
 
   public void forEachClass(Consumer<SupportedClass> consumer) {
     supportedClasses.values().forEach(consumer);
   }
 
-  SupportedClasses(Map<DexType, SupportedClass> supportedClasses) {
-    this.supportedClasses = supportedClasses;
+  public List<DexMethod> getExtraMethods() {
+    return extraMethods;
   }
 
   public static class SupportedClass {
@@ -188,6 +194,7 @@ public class SupportedClasses {
   static class Builder {
 
     Map<DexType, SupportedClass.Builder> supportedClassBuilders = new IdentityHashMap<>();
+    private List<DexMethod> extraMethods = ImmutableList.of();
 
     ClassAnnotation getClassAnnotation(DexType type) {
       SupportedClass.Builder builder = supportedClassBuilders.get(type);
@@ -267,13 +274,17 @@ public class SupportedClasses {
       return classBuilder.methodAnnotations;
     }
 
+    public void setExtraMethods(List<DexMethod> extraMethods) {
+      this.extraMethods = extraMethods;
+    }
+
     SupportedClasses build() {
       Map<DexType, SupportedClass> map = new IdentityHashMap<>();
       supportedClassBuilders.forEach(
           (type, classBuilder) -> {
             map.put(type, classBuilder.build());
           });
-      return new SupportedClasses(ImmutableSortedMap.copyOf(map));
+      return new SupportedClasses(ImmutableSortedMap.copyOf(map), extraMethods);
     }
   }
 

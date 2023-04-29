@@ -372,6 +372,10 @@ public abstract class LirParsedInstructionCallback<EV> implements LirInstruction
     onInstruction();
   }
 
+  public void onInstanceOf(DexType type, EV value) {
+    onInstruction();
+  }
+
   public void onDebugPosition() {
     onInstruction();
   }
@@ -936,6 +940,13 @@ public abstract class LirParsedInstructionCallback<EV> implements LirInstruction
           DexType type = getNextDexTypeOperand(view);
           EV value = getNextValueOperand(view);
           onCheckCast(type, value);
+          return;
+        }
+      case LirOpcodes.INSTANCEOF:
+        {
+          DexType type = getNextDexTypeOperand(view);
+          EV value = getNextValueOperand(view);
+          onInstanceOf(type, value);
           return;
         }
       case LirOpcodes.DEBUGPOS:

@@ -30,6 +30,20 @@ is specified. The weakest rule that will keep annotations and attributes is
 Additionally, for attributes describing a relationship such as `InnerClass` and
 `EnclosingMethod`, non-compat mode requires both endpoints being kept.
 
+## Stack traces and retracing
+When compiling with R8, a mapping file can be produced to support mapping stack
+traces of the R8 optimized program back to the original source information.
+
+Starting with R8 version 8.2, the compiler will retain full original source file
+names in the mapping information without the need to specify
+`-keepattributes SourceFile`.
+
+In addition, builds that target API level 26 or above (and don't specify custom
+source-file information) will also retain mapping information for all lines
+without the need to specify `-keepattributes LineNumberTable`.
+
+More information on R8 mapping files can be found in the [retrace doc](doc/retrace.md).
+
 # Troubleshooting
 
 The rest of this document describes known issues with libraries that use

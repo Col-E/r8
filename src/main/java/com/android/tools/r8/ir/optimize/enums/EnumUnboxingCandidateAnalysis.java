@@ -60,12 +60,12 @@ class EnumUnboxingCandidateAnalysis {
       }
     }
     removeIneligibleCandidates();
+    setEnumSubclassesOnCandidates();
     removeEnumsInAnnotations();
     removePinnedCandidates();
     if (appView.options().protoShrinking().isProtoShrinkingEnabled()) {
       enumToUnboxCandidates.removeCandidate(appView.protoShrinker().references.methodToInvokeType);
     }
-    setEnumSubclassesOnCandidates();
     assert enumToUnboxCandidates.verifyAllSubtypesAreSet();
     return enumToUnboxCandidates;
   }
@@ -86,18 +86,13 @@ class EnumUnboxingCandidateAnalysis {
   }
 
   private void analyzeEnum(GraphLens graphLensForPrimaryOptimizationPass, DexProgramClass clazz) {
-    if (!appView.options().testing.enableEnumWithSubtypesUnboxing) {
-      if (legacyIsEnumUnboxingCandidate(clazz)) {
-        enumToUnboxCandidates.addCandidate(appView, clazz, graphLensForPrimaryOptimizationPass);
-      }
-      return;
-    }
     if (clazz.superType == factory.enumType) {
       if (isSuperEnumUnboxingCandidate(clazz)) {
         enumToUnboxCandidates.addCandidate(appView, clazz, graphLensForPrimaryOptimizationPass);
       }
     } else {
-      if (isSubEnumUnboxingCandidate(clazz)) {
+      if (isSubEnumUnboxingCandidate(clazz)
+          && appView.options().testing.enableEnumWithSubtypesUnboxing) {
         enumSubclasses
             .computeIfAbsent(clazz.superType, ignoreKey(Sets::newIdentityHashSet))
             .add(clazz);
@@ -133,23 +128,6 @@ class EnumUnboxingCandidateAnalysis {
       result = false;
     }
     return result;
-  }
-
-  private boolean legacyIsEnumUnboxingCandidate(DexProgramClass clazz) {
-    assert clazz.isEnum();
-
-    // This is used in debug mode, where we don't do quick returns to log all the reasons an enum
-    // is not unboxed.
-    boolean result = true;
-
-    if (!clazz.isEffectivelyFinal(appView)) {
-      if (!enumUnboxer.reportFailure(clazz, Reason.SUBTYPES)) {
-        return false;
-      }
-      result = false;
-    }
-
-    return isSuperEnumUnboxingCandidate(clazz) && result;
   }
 
   private boolean isSuperEnumUnboxingCandidate(DexProgramClass clazz) {
