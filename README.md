@@ -90,9 +90,9 @@ Debug mode build:
 Release mode build:
 
     $ java -cp build/libs/r8.jar com.android.tools.r8.D8
-           --release
+           --release \
            --min-api <min-api> \
-           --output out
+           --output out \
            --lib <android.jar/rt.jar> \
            input.jar
 
