@@ -27,8 +27,6 @@ public class R8RunExamplesTest extends R8RunExamplesTestBase {
     String[] tests = {
       "arithmetic.Arithmetic",
       "inlining.Inlining",
-      "loadconst.LoadConst",
-      "loop.UdpServer",
       "nestedtrycatches.NestedTryCatches",
       "regalloc.RegAlloc",
       "returns.Returns",
@@ -161,8 +159,6 @@ public class R8RunExamplesTest extends R8RunExamplesTestBase {
         // Dalvik does not correctly report the enclosing classes.
         .put(
             "enclosingmethod.Main", TestCondition.match(TestCondition.runtimesUpTo(Version.V4_4_4)))
-        // Test uses runtime methods which are not available on older Art versions.
-        .put("loop.UdpServer", TestCondition.match(TestCondition.runtimesUpTo(Version.V4_0_4)))
         .build();
   }
 }

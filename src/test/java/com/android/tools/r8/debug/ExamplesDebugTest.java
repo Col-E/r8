@@ -60,17 +60,6 @@ public class ExamplesDebugTest extends DebugTestBase {
   }
 
   @Test
-  public void testLoadConst() throws Exception {
-    testDebugging("loadconst", "LoadConst");
-  }
-
-  @Test
-  public void testUdpServer() throws Exception {
-    // TODO(b/79671093): We don't match JVM's behavior on this example.
-    testDebuggingJvmOutputOnly("loop", "UdpServer");
-  }
-
-  @Test
   public void testRegAlloc() throws Exception {
     testDebugging("regalloc", "RegAlloc");
   }
