@@ -61,6 +61,7 @@ public class Retrace<T, ST extends StackTraceElementProxy<T, ST>> extends Retrac
         .add(ParseFlagInfoImpl.flag0("--info", "Write information messages to stdout"))
         .add(ParseFlagInfoImpl.flag0("--quiet", "Silence ordinary messages printed to stdout"))
         .add(ParseFlagInfoImpl.flag0("--verify-mapping-file-hash", "Verify the mapping file hash"))
+        .add(ParseFlagInfoImpl.getHelp())
         .build();
   }
 

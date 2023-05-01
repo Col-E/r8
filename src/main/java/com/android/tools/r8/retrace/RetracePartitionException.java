@@ -16,4 +16,8 @@ public class RetracePartitionException extends RuntimeException {
   public RetracePartitionException(Exception e) {
     super(e);
   }
+
+  public RetracePartitionException(String message, Throwable cause) {
+    super(message, cause);
+  }
 }
