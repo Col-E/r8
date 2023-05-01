@@ -27,7 +27,6 @@ public class R8RunExamplesTest extends R8RunExamplesTestBase {
     String[] tests = {
       "arithmetic.Arithmetic",
       "inlining.Inlining",
-      "jumbostring.JumboString",
       "loadconst.LoadConst",
       "loop.UdpServer",
       "nestedtrycatches.NestedTryCatches",

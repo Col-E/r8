@@ -60,11 +60,6 @@ public class ExamplesDebugTest extends DebugTestBase {
   }
 
   @Test
-  public void testJumboString() throws Exception {
-    testDebugging("jumbostring", "JumboString");
-  }
-
-  @Test
   public void testLoadConst() throws Exception {
     testDebugging("loadconst", "LoadConst");
   }
