@@ -81,36 +81,74 @@ Typical invocations of D8 to produce dex file(s) in the out directoy:
 
 Debug mode build:
 
-    $ java -cp build/libs/r8.jar com.android.tools.r8.D8  --output out input.jar
+    $ java -cp build/libs/r8.jar com.android.tools.r8.D8 \
+           --min-api <min-api> \
+           --output out \
+           --lib <android.jar/rt.jar> \
+           input.jar
 
 Release mode build:
 
-    $ java -cp build/libs/r8.jar com.android.tools.r8.D8 --release --output out input.jar
+    $ java -cp build/libs/r8.jar com.android.tools.r8.D8
+           --release
+           --min-api <min-api> \
+           --output out
+           --lib <android.jar/rt.jar> \
+           input.jar
+
+See [Running R8](#running-r8) for information on options `--min-api` and `--lib`.
 
 The full set of D8 options can be obtained by running the command line tool with
 the `--help` option.
 
 ## <a name="running-r8"></a>Running R8
 
-R8 is a [ProGuard](https://www.guardsquare.com/en/proguard) replacement for
-whole-program optimization, shrinking and minification. R8 uses the ProGuard
-keep rule format for specifying the entry points for an application.
+R8 is a whole-program optimizing compiler with focus on shrinking the size of
+programs. R8 uses the
+[ProGuard configuration format](https://www.guardsquare.com/manual/configuration/usage)
+for configuring the whole-program optimization including specifying the entry points
+for an application.
 
 R8 consumes class files and can output either DEX for Android apps or class files
 for Java apps.
 
 Typical invocations of R8 to produce optimized DEX file(s) in the `out` directory:
 
-    $ java -cp build/libs/r8.jar com.android.tools.r8.R8 --release --output out --pg-conf proguard.cfg input.jar
+    $ java -cp build/libs/r8.jar com.android.tools.r8.R8 \
+           --release \
+           --min-api <min-api> \
+           --output out \
+           --pg-conf proguard.cfg \
+           --lib <android.jar/rt.jar> \
+           input.jar
 
- The default is to produce DEX. To produce class files pass the option `--classfile`. This invocation will provide optimized Java classfiles in `output.jar`:
+This produce DEX targeting Android devices with a API level of `<min-api>` and above.
 
-    $ java -cp build/libs/r8.jar com.android.tools.r8.R8 --classfile --release --output output.jar --pg-conf proguard.cfg input.jar
+The option `--lib` is passing the bootclasspath for the targeted runtime.
+For targeting Android use an `android.jar` from the Android Platform SDK, typically
+located in `~/Android/Sdk/platforms/android-XX`, where `XX` should be the latest
+Android version.
+
+To produce class files pass the option `--classfile` and leave out `--min-api <min-api>`.
+This invocation will provide optimized Java classfiles in `output.jar`:
+
+    $ java -cp build/libs/r8.jar com.android.tools.r8.R8 \
+           --release \
+           --classfile \
+           --output output.jar \
+           --pg-conf proguard.cfg \
+           --lib <android.jar/rt.jar> \
+           input.jar
+
+
+When producing output targeted for the JVM one can pass `$JAVA_HOME` to `-lib`.
+R8 will then locate the Java bootclasspath from there.
 
 The full set of R8 options can be obtained by running the command line tool with
 the `--help` option.
 
-R8 is not command line compatible with ProGuard, for instance keep rules cannot be passed on the command line, but have to be passed in a file using the `--pg-conf` option.
+R8 is not command line compatible with ProGuard, for instance keep rules cannot be passed
+on the command line, but have to be passed in a file using the `--pg-conf` option.
 
 ## Testing
 
