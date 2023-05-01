@@ -15,6 +15,7 @@ import com.android.tools.r8.ir.code.IfType;
 import com.android.tools.r8.ir.code.MemberType;
 import com.android.tools.r8.ir.code.NumericType;
 import com.android.tools.r8.lightir.LirBuilder.FillArrayPayload;
+import com.android.tools.r8.lightir.LirBuilder.IntSwitchPayload;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -285,6 +286,10 @@ public abstract class LirParsedInstructionCallback<EV> implements LirInstruction
   }
 
   public void onGoto(int blockIndex) {
+    onInstruction();
+  }
+
+  public void onIntSwitch(EV value, IntSwitchPayload payload) {
     onInstruction();
   }
 
@@ -829,6 +834,14 @@ public abstract class LirParsedInstructionCallback<EV> implements LirInstruction
         {
           int blockIndex = view.getNextBlockOperand();
           onGoto(blockIndex);
+          return;
+        }
+      case LirOpcodes.TABLESWITCH:
+        {
+          IntSwitchPayload payload =
+              (IntSwitchPayload) getConstantItem(view.getNextConstantOperand());
+          EV value = getNextValueOperand(view);
+          onIntSwitch(value, payload);
           return;
         }
       case LirOpcodes.INVOKEDIRECT:

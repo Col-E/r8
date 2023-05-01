@@ -2,13 +2,13 @@
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
-package invokeempty;
+package com.android.tools.r8.examples.invokeempty;
 
-public class ClassB {
+public class ClassA {
 
   // This class has no constructor, by design.
 
   public void aMethod() {
-    System.out.print("B");
+    System.out.print("A");
   }
 }

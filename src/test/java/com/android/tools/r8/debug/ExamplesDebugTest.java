@@ -60,16 +60,6 @@ public class ExamplesDebugTest extends DebugTestBase {
   }
 
   @Test
-  public void testInstanceofString() throws Exception {
-    testDebugging("instanceofstring", "InstanceofString");
-  }
-
-  @Test
-  public void testInvoke() throws Exception {
-    testDebugging("invoke", "Invoke");
-  }
-
-  @Test
   public void testJumboString() throws Exception {
     testDebugging("jumbostring", "JumboString");
   }

@@ -5,7 +5,7 @@
 // This code is not run directly. It needs to be compiled to dex code.
 // 'invoke.dex' is what is run.
 
-package invoke;
+package com.android.tools.r8.examples.invoke;
 
 public class Invoke extends SuperClass implements InvokeInterface {
 
