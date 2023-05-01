@@ -22,7 +22,7 @@ import com.android.tools.r8.utils.DumpInputFlags;
 import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.InternalOptions.DesugarState;
 import com.android.tools.r8.utils.ListUtils;
-import com.android.tools.r8.utils.MapConsumerUtils;
+import com.android.tools.r8.utils.PartitionMapZipContainer;
 import com.android.tools.r8.utils.ProgramConsumerUtils;
 import com.android.tools.r8.utils.Reporter;
 import com.android.tools.r8.utils.ThreadUtils;
@@ -403,7 +403,8 @@ public abstract class BaseCompilerCommand extends BaseCommand {
      */
     public B setPartitionMapOutputPath(Path partitionMapOutput) {
       assert partitionMapOutput != null;
-      return setPartitionMapConsumer(MapConsumerUtils.createZipConsumer(partitionMapOutput));
+      return setPartitionMapConsumer(
+          PartitionMapZipContainer.createPartitionMapZipContainerConsumer(partitionMapOutput));
     }
 
     /**
