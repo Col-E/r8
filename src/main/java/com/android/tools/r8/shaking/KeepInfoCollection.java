@@ -318,8 +318,7 @@ public abstract class KeepInfoCollection {
           (type, info) -> {
             DexType newType = lens.lookupType(type);
             if (newType == options.dexItemFactory().intType) {
-              // If the enum has been unboxed, then the keep info is no longer valid. This
-              // typically happens for conditional keep rules such as -keepclassmembers.
+              assert !info.isPinned(options);
               return;
             }
             assert newType == type
