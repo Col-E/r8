@@ -471,7 +471,6 @@ public abstract class ObjectAllocationInfoCollectionImpl implements ObjectAlloca
           clazz -> {
             DexType type = lens.lookupType(clazz.type);
             if (type.isPrimitiveType()) {
-              assert !objectAllocationInfos.hasInstantiatedStrictSubtype(clazz);
               return;
             }
             DexProgramClass rewrittenClass = asProgramClassOrNull(definitions.definitionFor(type));
