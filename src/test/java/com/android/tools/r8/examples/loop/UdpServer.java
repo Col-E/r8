@@ -15,18 +15,19 @@ public class UdpServer {
   private static final String PREFIX = "RANDOM_DATA_PREFIX_";
   public static void main(String[] args) throws Exception {
     ExecutorService service = Executors.newWorkStealingPool(2);
-    Callable c = new Callable() {
-      @Override
-      public Object call() throws Exception {
-        int counter = 0;
-        byte[] receiveData = new byte[1024];
-        while (true) {
-          // Mimic receiving data via socket. (A use of actual socket is IO blocking.)
-          receiveData = (PREFIX + counter++).getBytes();
-        }
-      }
-    };
-    Future<?> f = service.submit(c);
+    Callable<Object> c =
+        new Callable<Object>() {
+          @Override
+          public Object call() throws Exception {
+            int counter = 0;
+            byte[] receiveData = new byte[1024];
+            while (true) {
+              // Mimic receiving data via socket. (A use of actual socket is IO blocking.)
+              receiveData = (PREFIX + counter++).getBytes();
+            }
+          }
+        };
+    Future<Object> f = service.submit(c);
     try {
       f.get(1, TimeUnit.NANOSECONDS);
     } catch (ExecutionException | InterruptedException | TimeoutException e) {

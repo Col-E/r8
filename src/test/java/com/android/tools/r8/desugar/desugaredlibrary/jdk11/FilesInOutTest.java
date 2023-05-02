@@ -183,12 +183,13 @@ public class FilesInOutTest extends DesugaredLibraryTestBase {
     this.compilationSpecification = compilationSpecification;
   }
 
+  @SuppressWarnings("RedundantCast")
   private String getExpectedResult() {
     if (parameters.isCfRuntime()
         || libraryDesugaringSpecification.usesPlatformFileSystem(parameters)) {
-      return String.format(EXPECTED_RESULT, EXPECTED_RESULT_NO_DESUGARING);
+      return String.format(EXPECTED_RESULT, (Object[]) EXPECTED_RESULT_NO_DESUGARING);
     }
-    return String.format(EXPECTED_RESULT, EXPECTED_RESULT_DESUGARING);
+    return String.format(EXPECTED_RESULT, (Object[]) EXPECTED_RESULT_DESUGARING);
   }
 
   @Test
