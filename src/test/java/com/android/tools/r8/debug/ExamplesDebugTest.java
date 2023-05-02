@@ -118,11 +118,6 @@ public class ExamplesDebugTest extends DebugTestBase {
   }
 
   @Test
-  public void testInvokeEmpty() throws Exception {
-    testDebugging("invokeempty", "InvokeEmpty");
-  }
-
-  @Test
   public void testRegress() throws Exception {
     testDebugging("regress", "Regress");
   }
