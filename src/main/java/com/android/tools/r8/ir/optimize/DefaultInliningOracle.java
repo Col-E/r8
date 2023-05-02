@@ -15,7 +15,6 @@ import com.android.tools.r8.features.FeatureSplitBoundaryOptimizationUtils;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.Code;
 import com.android.tools.r8.graph.DexEncodedField;
-import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
@@ -47,6 +46,7 @@ import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.AssumeInfoCollection;
 import com.android.tools.r8.shaking.MainDexInfo;
 import com.android.tools.r8.utils.BooleanUtils;
+import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.InternalOptions.InlinerOptions;
 import com.google.common.collect.Sets;
 import java.util.ArrayList;
@@ -57,6 +57,7 @@ import java.util.Set;
 public final class DefaultInliningOracle implements InliningOracle, InliningStrategy {
 
   private final AppView<AppInfoWithLiveness> appView;
+  private final InternalOptions options;
   private final InlinerOptions inlinerOptions;
   private final MainDexInfo mainDexInfo;
   private final ProgramMethod method;
@@ -71,7 +72,8 @@ public final class DefaultInliningOracle implements InliningOracle, InliningStra
       MethodProcessor methodProcessor,
       int inliningInstructionAllowance) {
     this.appView = appView;
-    this.inlinerOptions = appView.options().inlinerOptions();
+    this.options = appView.options();
+    this.inlinerOptions = options.inlinerOptions();
     this.reasonStrategy = inliningReasonStrategy;
     this.mainDexInfo = appView.appInfo().getMainDexInfo();
     this.method = method;
@@ -132,15 +134,14 @@ public final class DefaultInliningOracle implements InliningOracle, InliningStra
     // Do not inline if the inlinee is greater than the api caller level.
     // TODO(b/188498051): We should not force inline lower api method calls.
     if (reason != Reason.FORCE
-        && !isApiSafeForInlining(
-            method, singleTarget, appView.options(), whyAreYouNotInliningReporter)) {
+        && !isApiSafeForInlining(method, singleTarget, options, whyAreYouNotInliningReporter)) {
       return false;
     }
 
     // We don't inline into constructors when producing class files since this can mess up
     // the stackmap, see b/136250031
     if (method.getDefinition().isInstanceInitializer()
-        && appView.options().isGeneratingClassFiles()
+        && options.isGeneratingClassFiles()
         && reason != Reason.FORCE) {
       whyAreYouNotInliningReporter.reportNoInliningIntoConstructorsWhenGeneratingClassFiles();
       return false;
@@ -205,19 +206,15 @@ public final class DefaultInliningOracle implements InliningOracle, InliningStra
   }
 
   private boolean canHaveIssuesWithMonitors(ProgramMethod singleTarget, ProgramMethod context) {
-    if (appView.options().canHaveIssueWithInlinedMonitors()) {
-      if (hasMonitorsOrIsSynchronized(singleTarget.getDefinition())) {
-        if (context.getOptimizationInfo().forceInline()
-            || hasMonitorsOrIsSynchronized(context.getDefinition())) {
-          return true;
-        }
-      }
+    if (options.canHaveIssueWithInlinedMonitors() && hasMonitorsOrIsSynchronized(singleTarget)) {
+      return context.getOptimizationInfo().forceInline() || hasMonitorsOrIsSynchronized(context);
     }
     return false;
   }
 
-  public static boolean hasMonitorsOrIsSynchronized(DexEncodedMethod definition) {
-    return definition.isSynchronized() || definition.getCode().hasMonitorInstructions();
+  public static boolean hasMonitorsOrIsSynchronized(ProgramMethod method) {
+    return method.getAccessFlags().isSynchronized()
+        || method.getDefinition().getCode().hasMonitorInstructions();
   }
 
   public boolean satisfiesRequirementsForSimpleInlining(InvokeMethod invoke, ProgramMethod target) {
@@ -257,9 +254,7 @@ public final class DefaultInliningOracle implements InliningOracle, InliningStra
         }
       }
     }
-    if (appView.options().isGeneratingDex()
-        && invoke.hasOutValue()
-        && invoke.outValue().hasNonDebugUsers()) {
+    if (options.isGeneratingDex() && invoke.hasOutValue() && invoke.outValue().hasNonDebugUsers()) {
       assert DexMoveResult.SIZE == DexMoveResultObject.SIZE;
       assert DexMoveResult.SIZE == DexMoveResultWide.SIZE;
       instructionLimit += DexMoveResult.SIZE;
@@ -327,10 +322,9 @@ public final class DefaultInliningOracle implements InliningOracle, InliningStra
     // Ensure that we don't introduce several monitors in the same method on old device that can
     // choke on this. If a context is forceinline, e.g., from class merging, don't ever inline
     // monitors, since that may conflict with a similar other constructor.
-    if (appView.options().canHaveIssueWithInlinedMonitors()) {
-      if (hasMonitorsOrIsSynchronized(singleTarget.getDefinition())
-          && (context.getOptimizationInfo().forceInline()
-              || code.metadata().mayHaveMonitorInstruction())) {
+    if (options.canHaveIssueWithInlinedMonitors() && hasMonitorsOrIsSynchronized(singleTarget)) {
+      if (context.getOptimizationInfo().forceInline()
+          || code.metadata().mayHaveMonitorInstruction()) {
         return null;
       }
     }
@@ -366,7 +360,7 @@ public final class DefaultInliningOracle implements InliningOracle, InliningStra
       ProgramMethod singleTarget,
       WhyAreYouNotInliningReporter whyAreYouNotInliningReporter) {
     DexMethod singleTargetReference = singleTarget.getReference();
-    if (!appView.getKeepInfo(singleTarget).isInliningAllowed(appView.options())) {
+    if (!appView.getKeepInfo(singleTarget).isInliningAllowed(options)) {
       whyAreYouNotInliningReporter.reportPinned();
       return true;
     }
