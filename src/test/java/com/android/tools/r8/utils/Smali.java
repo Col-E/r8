@@ -13,6 +13,13 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.synthesis.SyntheticItems.GlobalSyntheticsStrategy;
+import com.android.tools.smali.dexlib2.Opcodes;
+import com.android.tools.smali.dexlib2.writer.builder.DexBuilder;
+import com.android.tools.smali.dexlib2.writer.io.MemoryDataStore;
+import com.android.tools.smali.smali.LexerErrorInterface;
+import com.android.tools.smali.smali.smaliFlexLexer;
+import com.android.tools.smali.smali.smaliParser;
+import com.android.tools.smali.smali.smaliTreeWalker;
 import com.google.common.collect.ImmutableList;
 import java.io.IOException;
 import java.io.Reader;
@@ -27,13 +34,6 @@ import org.antlr.runtime.RecognitionException;
 import org.antlr.runtime.TokenSource;
 import org.antlr.runtime.tree.CommonTree;
 import org.antlr.runtime.tree.CommonTreeNodeStream;
-import org.jf.dexlib2.Opcodes;
-import org.jf.dexlib2.writer.builder.DexBuilder;
-import org.jf.dexlib2.writer.io.MemoryDataStore;
-import org.jf.smali.LexerErrorInterface;
-import org.jf.smali.smaliFlexLexer;
-import org.jf.smali.smaliParser;
-import org.jf.smali.smaliTreeWalker;
 
 // Adapted from org.jf.smali.SmaliTestUtils.
 public class Smali {
@@ -65,7 +65,7 @@ public class Smali {
     for (String smaliText : smaliTexts) {
       Reader reader = new StringReader(smaliText);
 
-      LexerErrorInterface lexer = new smaliFlexLexer(reader);
+      LexerErrorInterface lexer = new smaliFlexLexer(reader, apiLevel);
       CommonTokenStream tokens = new CommonTokenStream((TokenSource) lexer);
 
       smaliParser parser = new smaliParser(tokens);

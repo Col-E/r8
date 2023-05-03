@@ -22,7 +22,7 @@ import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.OffOrAuto;
 import com.android.tools.r8.utils.StringUtils;
-import com.beust.jcommander.internal.Lists;
+import com.google.common.collect.Lists;
 import com.google.common.io.ByteStreams;
 import java.io.File;
 import java.io.IOException;

@@ -13,9 +13,9 @@ import tasks.GetJarsFromConfiguration
 
 buildscript {
     repositories {
+        google()
         mavenCentral()
         gradlePluginPortal()
-        jcenter()
     }
 }
 
@@ -41,7 +41,7 @@ ext {
     // all kotlin compilations are done in tests.
     kotlinVersion = '1.8.0'
     kotlinExtMetadataJVMVersion = '0.6.0'
-    smaliVersion = '2.2b4'
+    smaliVersion = '3.0.3'
     errorproneVersion = '2.18.0'
     testngVersion = '6.10'
 }
@@ -259,7 +259,7 @@ dependencies {
     testCompile "com.google.guava:guava:$guavaVersion"
     testCompile "org.jetbrains.kotlin:kotlin-stdlib:$kotlinVersion"
     testCompile "org.jetbrains.kotlin:kotlin-reflect:$kotlinVersion"
-    testCompile group: 'org.smali', name: 'smali', version: smaliVersion
+    testCompile group: 'com.android.tools.smali', name: 'smali', version: smaliVersion
     testCompile files('third_party/jasmin/jasmin-2.4.jar')
     testCompile files('third_party/jdwp-tests/apache-harmony-jdwp-tests-host.jar')
     testCompile files('third_party/ddmlib/ddmlib.jar')
