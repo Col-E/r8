@@ -108,6 +108,10 @@ public abstract class EnumInstanceFieldData {
       return mapping.get(unboxedEnumValue);
     }
 
+    public ImmutableInt2ReferenceSortedMap<AbstractValue> getMapping() {
+      return mapping;
+    }
+
     public void forEach(BiConsumer<? super Integer, ? super AbstractValue> consumer) {
       mapping.forEach(consumer);
     }
