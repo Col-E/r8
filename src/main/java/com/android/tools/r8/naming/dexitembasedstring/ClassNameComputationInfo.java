@@ -15,7 +15,6 @@ import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.naming.NamingLens;
-import com.google.common.base.Strings;
 
 public class ClassNameComputationInfo extends NameComputationInfo<DexType> {
 
@@ -45,7 +44,7 @@ public class ClassNameComputationInfo extends NameComputationInfo<DexType> {
         case NAME:
           name = getClassNameFromDescriptor(descriptor);
           if (arrayDepth > 0) {
-            name = Strings.repeat("[", arrayDepth) + "L" + name + ";";
+            name = "[".repeat(arrayDepth) + "L" + name + ";";
           }
           break;
 
@@ -60,7 +59,7 @@ public class ClassNameComputationInfo extends NameComputationInfo<DexType> {
         case CANONICAL_NAME:
           name = getCanonicalNameFromDescriptor(descriptor);
           if (arrayDepth > 0) {
-            name = name + Strings.repeat("[]", arrayDepth);
+            name = name + "[]".repeat(arrayDepth);
           }
           break;
 
@@ -74,7 +73,7 @@ public class ClassNameComputationInfo extends NameComputationInfo<DexType> {
             name = getUnqualifiedClassNameFromDescriptor(descriptor);
           }
           if (arrayDepth > 0) {
-            name = name + Strings.repeat("[]", arrayDepth);
+            name = name + "[]".repeat(arrayDepth);
           }
           break;
 

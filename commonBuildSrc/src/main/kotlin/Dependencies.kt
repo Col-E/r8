@@ -38,7 +38,7 @@ object Versions {
   const val asmVersion = "9.4"
   const val fastUtilVersion = "7.2.0"
   const val gsonVersion = "2.7"
-  const val guavaVersion = "30.1.1-jre"
+  const val guavaVersion = "31.1-jre"
   const val joptSimpleVersion = "4.6"
   const val junitVersion = "4.13-beta-2"
   const val kotlinVersion = "1.8.0"

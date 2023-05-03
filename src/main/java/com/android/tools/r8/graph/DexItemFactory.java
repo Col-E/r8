@@ -41,7 +41,6 @@ import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.LRUCacheTable;
 import com.android.tools.r8.utils.ListUtils;
 import com.android.tools.r8.utils.SetUtils;
-import com.google.common.base.Strings;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 import com.google.common.collect.ImmutableList;
@@ -2932,7 +2931,7 @@ public class DexItemFactory {
 
   public DexType createArrayType(int nesting, DexType baseType) {
     assert nesting > 0;
-    return createType(Strings.repeat("[", nesting) + baseType.toDescriptorString());
+    return createType("[".repeat(nesting) + baseType.toDescriptorString());
   }
 
   public DexField createField(DexType clazz, DexType type, DexString name) {

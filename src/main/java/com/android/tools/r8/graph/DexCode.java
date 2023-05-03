@@ -48,7 +48,6 @@ import com.android.tools.r8.utils.structural.HashingVisitor;
 import com.android.tools.r8.utils.structural.StructuralItem;
 import com.android.tools.r8.utils.structural.StructuralMapping;
 import com.android.tools.r8.utils.structural.StructuralSpecification;
-import com.google.common.base.Strings;
 import it.unimi.dsi.fastutil.ints.Int2IntMap;
 import java.nio.ShortBuffer;
 import java.util.ArrayList;
@@ -304,7 +303,7 @@ public class DexCode extends Code implements DexWritableCode, StructuralItem<Dex
       }
     }
 
-    String fakeThisName = Strings.repeat(FAKE_THIS_PREFIX, largestPrefix + 1) + FAKE_THIS_SUFFIX;
+    String fakeThisName = FAKE_THIS_PREFIX.repeat(largestPrefix + 1) + FAKE_THIS_SUFFIX;
     DexString[] parameters = eventBasedInfo.parameters;
     DexString[] newParameters = new DexString[parameters.length + 1];
     newParameters[0] = factory.createString(fakeThisName);

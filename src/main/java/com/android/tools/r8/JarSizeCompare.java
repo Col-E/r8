@@ -21,7 +21,6 @@ import com.android.tools.r8.utils.AndroidAppConsumers;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.Timing;
-import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableMap;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -119,8 +118,8 @@ public class JarSizeCompare {
       }
     }
     for (Entry<String, Map<String, InputClass[]>> library : byLibrary(inputClasses)) {
-      System.out.println("");
-      System.out.println(Strings.repeat("=", 100));
+      System.out.println();
+      System.out.println("=".repeat(100));
       String commonPrefix = getCommonPrefix(library.getValue().keySet());
       if (library.getKey().isEmpty()) {
         System.out.println("PROGRAM (" + commonPrefix + ")");

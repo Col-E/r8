@@ -1,3 +1,4 @@
 # TODO(b/176783536): Avoid need to use -dontwarn.
 -dontwarn com.google.errorprone.annotations.**
 -dontwarn com.google.j2objc.annotations.*
+-dontwarn javax.annotation.CheckForNull
