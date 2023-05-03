@@ -29,7 +29,7 @@ public class Partition {
 
   private static final String USAGE_MESSAGE =
       StringUtils.lines(
-          "Usage: partition [options] <proguard-map>"
+          "Usage: partition [options] <proguard-map> "
               + "where <proguard-map> is a generated mapping file and options are:");
 
   public static List<ParseFlagInfo> getFlags() {
