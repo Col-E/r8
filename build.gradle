@@ -89,10 +89,3 @@ publishing {
 }
 
 // TODO: Configure templating plugin of some kind to update Version#MAIN_LABEL & Version#LABEL
-
-// TODO: Determine how we want to distribute our mirror of R8
-//  - Can use shadowJar to make similar fatJar like google does, then have local jar artifacts in consuming repos
-//     - Kinda cringe, also sucks when updating libs you waste space each update
-//  - Host on JitPack or some other maven host (I don't think it'd be wise to toss up this mirror on central)
-//     - Allows build tool of consumer to pull transitive dependencies themselves
-//     - Easier configuration for us here
