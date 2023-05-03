@@ -43,7 +43,6 @@ public class SuperEnumMergingTest extends EnumUnboxingTestBase {
         .addInnerClasses(SuperEnumMergingTest.class)
         .addKeepMainRule(Main.class)
         .addKeepRules(enumKeepRules.getKeepRules())
-        .addOptionsModification(opt -> opt.testing.enableEnumWithSubtypesUnboxing = true)
         .addEnumUnboxingInspector(inspector -> inspector.assertUnboxed(EnumWithSuper.class))
         .enableInliningAnnotations()
         .enableMemberValuePropagationAnnotations()

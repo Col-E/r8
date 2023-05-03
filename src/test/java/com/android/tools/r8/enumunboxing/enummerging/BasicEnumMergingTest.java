@@ -37,7 +37,6 @@ public class BasicEnumMergingTest extends EnumUnboxingTestBase {
         .addInnerClasses(BasicEnumMergingTest.class)
         .addKeepMainRule(Main.class)
         .addKeepRules(enumKeepRules.getKeepRules())
-        .addOptionsModification(opt -> opt.testing.enableEnumWithSubtypesUnboxing = true)
         .addEnumUnboxingInspector(
             inspector ->
                 inspector

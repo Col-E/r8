@@ -9,7 +9,6 @@ import com.android.tools.r8.cf.code.CfConstNumber;
 import com.android.tools.r8.cf.code.CfConstString;
 import com.android.tools.r8.cf.code.CfFrame;
 import com.android.tools.r8.cf.code.CfIf;
-import com.android.tools.r8.cf.code.CfIfCmp;
 import com.android.tools.r8.cf.code.CfInstruction;
 import com.android.tools.r8.cf.code.CfInvoke;
 import com.android.tools.r8.cf.code.CfLabel;
@@ -21,6 +20,8 @@ import com.android.tools.r8.cf.code.CfStackInstruction;
 import com.android.tools.r8.cf.code.CfStackInstruction.Opcode;
 import com.android.tools.r8.cf.code.CfStaticFieldRead;
 import com.android.tools.r8.cf.code.CfStaticFieldWrite;
+import com.android.tools.r8.cf.code.CfSwitch;
+import com.android.tools.r8.cf.code.CfSwitch.Kind;
 import com.android.tools.r8.cf.code.CfThrow;
 import com.android.tools.r8.cf.code.frame.FrameType;
 import com.android.tools.r8.errors.Unreachable;
@@ -36,9 +37,12 @@ import com.android.tools.r8.ir.code.IfType;
 import com.android.tools.r8.ir.code.ValueType;
 import com.android.tools.r8.ir.optimize.enums.EnumDataMap.EnumData;
 import com.android.tools.r8.ir.optimize.enums.EnumInstanceFieldData.EnumInstanceFieldMappingData;
-import it.unimi.dsi.fastutil.ints.Int2ObjectSortedMap;
+import com.android.tools.r8.utils.ArrayUtils;
+import com.android.tools.r8.utils.BooleanUtils;
+import it.unimi.dsi.fastutil.ints.Int2ReferenceSortedMap;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.BiConsumer;
 import org.objectweb.asm.Opcodes;
 
 public abstract class EnumUnboxingCfCodeProvider extends SyntheticCfCodeProvider {
@@ -68,17 +72,66 @@ public abstract class EnumUnboxingCfCodeProvider extends SyntheticCfCodeProvider
     }
   }
 
+  <T> void addCfSwitch(
+      List<CfInstruction> instructions,
+      BiConsumer<List<CfInstruction>, T> generateCase,
+      Int2ReferenceSortedMap<T> cases,
+      T defaultCase,
+      CfFrame.Builder frameBuilder,
+      boolean defaultThrows) {
+    // The switch is *always* going to be converted to IR then either to dex or back to cf. The IR
+    // representation does not differentiate table and look-up switches, and generates the most
+    // appropriate one in the back-end.
+    // The keys should however be sorted in natural order for packing to table switch to be
+    // generated, which should be implicitly the case with the Int2ObjectSortedMap.
+    assert defaultCase == null || !defaultThrows;
+    boolean hasDefaultCase = defaultCase != null || defaultThrows;
+    assert cases.size() + BooleanUtils.intValue(hasDefaultCase) >= 2;
+    int[] keys = new int[cases.size() - BooleanUtils.intValue(!hasDefaultCase)];
+    List<CfLabel> targets = new ArrayList<>(keys.length);
+    int index = 0;
+    for (int key : cases.keySet()) {
+      if (index < keys.length) {
+        keys[index++] = key;
+        targets.add(new CfLabel());
+      }
+    }
+    CfLabel defaultLabel = new CfLabel();
+    T actualDefaultCase = hasDefaultCase ? defaultCase : cases.get(cases.lastIntKey());
+    assert ArrayUtils.isSorted(keys);
+    assert keys.length == targets.size();
+    // We expect the value to switch on to be in local slot 0.
+    instructions.add(CfLoad.load(ValueType.fromDexType(appView.dexItemFactory().intType), 0));
+    instructions.add(new CfSwitch(Kind.LOOKUP, defaultLabel, keys, targets));
+    for (int i = 0; i < keys.length; i++) {
+      instructions.add(targets.get(i));
+      instructions.add(frameBuilder.build());
+      generateCase.accept(instructions, cases.get(keys[i]));
+      assert instructions.get(instructions.size() - 1).isReturn();
+    }
+    instructions.add(defaultLabel);
+    instructions.add(frameBuilder.build());
+    if (defaultThrows) {
+      // default: throw null;
+      instructions.add(CfConstNull.INSTANCE);
+      instructions.add(CfThrow.INSTANCE);
+    } else {
+      generateCase.accept(instructions, actualDefaultCase);
+      assert instructions.get(instructions.size() - 1).isReturn();
+    }
+  }
+
   public static class EnumUnboxingMethodDispatchCfCodeProvider extends EnumUnboxingCfCodeProvider {
 
     private final GraphLens codeLens;
     private final DexMethod superEnumMethod;
-    private final Int2ObjectSortedMap<DexMethod> methodMap;
+    private final Int2ReferenceSortedMap<DexMethod> methodMap;
 
     public EnumUnboxingMethodDispatchCfCodeProvider(
         AppView<?> appView,
         DexType holder,
         DexMethod superEnumMethod,
-        Int2ObjectSortedMap<DexMethod> methodMap) {
+        Int2ReferenceSortedMap<DexMethod> methodMap) {
       super(appView, holder);
       this.codeLens = appView.codeLens();
       this.superEnumMethod = superEnumMethod;
@@ -87,45 +140,15 @@ public abstract class EnumUnboxingCfCodeProvider extends SyntheticCfCodeProvider
 
     @Override
     public CfCodeWithLens generateCfCode() {
-      // TODO(b/167942775): Should use a table-switch for large enums (maybe same threshold in the
-      //  rewriter of switchmaps).
-
       assert !methodMap.isEmpty();
-      DexItemFactory factory = appView.dexItemFactory();
-      boolean hasDefaultCase = superEnumMethod != null;
+      List<CfInstruction> instructions = new ArrayList<>();
       DexMethod representative = methodMap.values().iterator().next();
-
-      int invokeSize = representative.getParameters().size() + 2;
-      int branchSize = 5;
-      int instructionsSize =
-          methodMap.size() * (invokeSize + branchSize)
-              + (hasDefaultCase ? invokeSize : -branchSize);
-      List<CfInstruction> instructions = new ArrayList<>(instructionsSize);
-
       CfFrame.Builder frameBuilder = CfFrame.builder();
       for (DexType parameter : representative.getParameters()) {
         frameBuilder.appendLocal(FrameType.initialized(parameter));
       }
-      methodMap.forEach(
-          (unboxedEnumValue, method) -> {
-            boolean lastCase = methodMap.lastIntKey() == unboxedEnumValue && !hasDefaultCase;
-            if (!lastCase) {
-              CfLabel dest = new CfLabel();
-              instructions.add(CfLoad.load(ValueType.fromDexType(factory.intType), 0));
-              instructions.add(CfConstNumber.constNumber(unboxedEnumValue, ValueType.INT));
-              instructions.add(new CfIfCmp(IfType.NE, ValueType.INT, dest));
-              addReturnInvoke(instructions, method);
-              instructions.add(dest);
-              instructions.add(frameBuilder.build());
-            } else {
-              addReturnInvoke(instructions, method);
-            }
-          });
-
-      if (hasDefaultCase) {
-        addReturnInvoke(instructions, superEnumMethod);
-      }
-      assert instructions.size() == instructionsSize;
+      addCfSwitch(
+          instructions, this::addReturnInvoke, methodMap, superEnumMethod, frameBuilder, false);
       return new CfCodeWithLens(getHolder(), defaultMaxStack(), defaultMaxLocals(), instructions);
     }
 
@@ -187,43 +210,31 @@ public abstract class EnumUnboxingCfCodeProvider extends SyntheticCfCodeProvider
 
     @Override
     public CfCode generateCfCode() {
-      // TODO(b/167942775): Should use a table-switch for large enums (maybe same threshold in the
-      //  rewriter of switchmaps).
       // Generated static method, for class com.x.MyEnum {A(10),B(20);} would look like:
       // String UtilityClass#com.x.MyEnum_toString(int i) {
-      // if (i == 1) { return 10;}
-      // if (i == 2) { return 20;}
-      // throw null;
+      //   switch (i) {
+      //     case 1: return 10;
+      //     case 2: return 20;
+      //     default: throw null; // or throw default value.
+      //   }
+      // }
       DexItemFactory factory = appView.dexItemFactory();
       List<CfInstruction> instructions = new ArrayList<>();
-
-      // if (i == 1) { return 10;}
-      // if (i == 2) { return 20;}
       CfFrame.Builder frameBuilder =
           CfFrame.builder().appendLocal(FrameType.initialized(factory.intType));
-      fieldDataMap.forEach(
-          (unboxedEnumValue, value) -> {
-            CfLabel dest = new CfLabel();
-            instructions.add(CfLoad.load(ValueType.fromDexType(factory.intType), 0));
-            instructions.add(CfConstNumber.constNumber(unboxedEnumValue, ValueType.INT));
-            instructions.add(new CfIfCmp(IfType.NE, ValueType.INT, dest));
-            addCfInstructionsForAbstractValue(instructions, value, returnType);
-            instructions.add(CfReturn.forType(ValueType.fromDexType(returnType)));
-            instructions.add(dest);
-            instructions.add(frameBuilder.build());
-          });
-
-      if (nullValue != null) {
-        // return "null"
-        addCfInstructionsForAbstractValue(instructions, nullValue, returnType);
-        instructions.add(CfReturn.forType(ValueType.fromDexType(returnType)));
-      } else {
-        // throw null;
-        instructions.add(CfConstNull.INSTANCE);
-        instructions.add(CfThrow.INSTANCE);
-      }
-
+      addCfSwitch(
+          instructions,
+          this::addReturnValue,
+          fieldDataMap.getMapping(),
+          nullValue,
+          frameBuilder,
+          nullValue == null);
       return standardCfCodeFromInstructions(instructions);
+    }
+
+    private void addReturnValue(List<CfInstruction> instructions, AbstractValue value) {
+      addCfInstructionsForAbstractValue(instructions, value, returnType);
+      instructions.add(new CfReturn(ValueType.fromDexType(returnType)));
     }
   }
 

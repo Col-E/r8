@@ -280,8 +280,8 @@ public class BaseCompilerCommandParser<
   }
 
   /**
-   * This method must match the lookup in
-   * {@link com.android.tools.r8.JdkClassFileProvider#fromJdkHome}.
+   * This method must match the lookup in {@link
+   * com.android.tools.r8.JdkClassFileProvider#fromJdkHome}.
    */
   private static boolean isJdkHome(Path home) {
     Path jrtFsJar = home.resolve("lib").resolve("jrt-fs.jar");
@@ -295,10 +295,7 @@ public class BaseCompilerCommandParser<
     }
     // JRE has rt.jar in lib/rt.jar.
     rtJar = home.resolve("lib").resolve("rt.jar");
-    if (Files.exists(rtJar)) {
-      return true;
-    }
-    return false;
+    return Files.exists(rtJar);
   }
 
   static void addLibraryArgument(BaseCommand.Builder builder, Origin origin, String arg) {

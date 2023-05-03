@@ -37,6 +37,7 @@ import com.android.tools.r8.utils.ListUtils;
 import com.google.common.collect.ImmutableList;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceMap;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceOpenHashMap;
+import it.unimi.dsi.fastutil.ints.Int2ReferenceSortedMap;
 import it.unimi.dsi.fastutil.objects.Reference2IntMap;
 import it.unimi.dsi.fastutil.objects.Reference2IntOpenHashMap;
 
@@ -78,12 +79,25 @@ public class LirBuilder<V, EV> {
   private int[] valueIndexBuffer = new int[MAX_VALUE_COUNT];
 
   /**
+   * Internal "DexItem" for the instruction payloads such that they can be put in the pool.
+   *
+   * <p>The instruction encoding assumes the instruction operand payload size is u1, so this allows
+   * the data payload to be stored in the constant pool instead.
+   */
+  public abstract static class InstructionPayload extends DexItem {
+    @Override
+    protected final void collectMixedSectionItems(MixedSectionCollection collection) {
+      throw new Unreachable();
+    }
+  }
+
+  /**
    * Internal "DexItem" for the fill-array payloads such that they can be put in the pool.
    *
    * <p>The instruction encoding assumes the instruction operand payload size is u1, so the data
    * payload is stored in the constant pool instead.
    */
-  public static class FillArrayPayload extends DexItem {
+  public static class FillArrayPayload extends InstructionPayload {
     public final int element_width;
     public final long size;
     public final short[] data;
@@ -93,10 +107,16 @@ public class LirBuilder<V, EV> {
       this.size = size;
       this.data = data;
     }
+  }
 
-    @Override
-    protected void collectMixedSectionItems(MixedSectionCollection collection) {
-      throw new Unreachable();
+  public static class IntSwitchPayload extends InstructionPayload {
+    public final int[] keys;
+    public final int[] targets;
+
+    public IntSwitchPayload(int[] keys, int[] targets) {
+      assert keys.length == targets.length;
+      this.keys = keys;
+      this.targets = targets;
     }
 
     @Override
@@ -502,6 +522,22 @@ public class LirBuilder<V, EV> {
     writer.writeInstruction(LirOpcodes.GOTO, operandSize);
     writeBlockIndex(targetIndex);
     return this;
+  }
+
+  public LirBuilder<V, EV> addIntSwitch(
+      V value,
+      int[] keys,
+      Int2ReferenceSortedMap<BasicBlock> keyToTargetMap,
+      BasicBlock fallthroughBlock) {
+    int[] targets = new int[keys.length];
+    for (int i = 0; i < keys.length; i++) {
+      targets[i] = getBlockIndex(keyToTargetMap.get(keys[i]));
+    }
+    IntSwitchPayload payload = new IntSwitchPayload(keys, targets);
+    return addInstructionTemplate(
+        LirOpcodes.TABLESWITCH,
+        Collections.singletonList(payload),
+        Collections.singletonList(value));
   }
 
   public LirBuilder<V, EV> addIf(

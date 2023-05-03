@@ -227,10 +227,10 @@ public class ExtractWrapperTypesTest extends DesugaredLibraryTestBase {
 
   @Test
   public void test() throws Exception {
-    CodeInspector desugaredApiJar = getDesugaredApiJar();
     Set<ClassReference> preDesugarTypes = getPreDesugarTypes();
 
-    DexItemFactory factory = new DexItemFactory();
+    CodeInspector nonDesugaredJar = new CodeInspector(ToolHelper.getAndroidJar(targetApi));
+    DexItemFactory factory = nonDesugaredJar.getFactory();
     DesugaredLibrarySpecification spec =
         DesugaredLibrarySpecificationParser.parseDesugaredLibrarySpecification(
             StringResource.fromFile(libraryDesugaringSpecification.getSpecification()),
@@ -270,11 +270,10 @@ public class ExtractWrapperTypesTest extends DesugaredLibraryTestBase {
               genericConversionsInSpec.put(method.toString(), indexes);
             });
 
-    CodeInspector nonDesugaredJar = new CodeInspector(ToolHelper.getAndroidJar(targetApi));
     Set<DexEncodedMethod> genericDependencies = new HashSet<>();
     Map<ClassReference, Set<MethodReference>> directWrappers =
         getDirectlyReferencedWrapperTypes(
-            desugaredApiJar,
+            specification,
             preDesugarTypes,
             nonDesugaredJar,
             customConversionsOnly,
@@ -365,7 +364,7 @@ public class ExtractWrapperTypesTest extends DesugaredLibraryTestBase {
   }
 
   private Map<ClassReference, Set<MethodReference>> getDirectlyReferencedWrapperTypes(
-      CodeInspector desugaredApiJar,
+      MachineDesugaredLibrarySpecification specification,
       Set<ClassReference> preDesugarTypes,
       CodeInspector nonDesugaredJar,
       Set<String> customConversions,
@@ -374,37 +373,29 @@ public class ExtractWrapperTypesTest extends DesugaredLibraryTestBase {
       Set<DexEncodedMethod> genericDependencies) {
     Map<ClassReference, Set<MethodReference>> directWrappers = new HashMap<>();
     nonDesugaredJar.forAllClasses(
-        clazz -> {
-          clazz.forAllMethods(
-              method -> {
-                if (!method.isPublic() && !method.isProtected()) {
-                  return;
-                }
-                // We check the holder type to avoid dealing with methods on desugared types which
-                // are present in Android.jar and not in the desugared library, specifically on
-                // JDK 8 desugared library.
-                if (desugaredApiJar
-                    .clazz(method.getMethod().getHolderType().asClassReference())
-                    .isPresent()) {
-                  return;
-                }
-                Consumer<ClassReference> adder =
-                    t -> {
-                      if (t.toString().contains("HexFormat")
-                          || t.toString().contains("IsoCountryCode")) {
-                        System.out.println("x");
-                      }
-                      directWrappers
-                          .computeIfAbsent(t, k -> new HashSet<>())
-                          .add(method.asMethodReference());
-                    };
-                forEachType(
-                    method,
-                    t -> addType(adder, t, preDesugarTypes, customConversions, maintainType),
-                    genericConversionsInSpec,
-                    genericDependencies);
-              });
-        });
+        clazz ->
+            clazz.forAllMethods(
+                method -> {
+                  if (!method.isPublic() && !method.isProtected()) {
+                    return;
+                  }
+                  // We check the holder type to avoid dealing with methods on desugared types which
+                  // are present in Android.jar and not in the desugared library, specifically on
+                  // JDK 8 desugared library.
+                  if (specification.isSupported(method.getMethod().getReference())) {
+                    return;
+                  }
+                  Consumer<ClassReference> adder =
+                      t ->
+                          directWrappers
+                              .computeIfAbsent(t, k -> new HashSet<>())
+                              .add(method.asMethodReference());
+                  forEachType(
+                      method,
+                      t -> addType(adder, t, preDesugarTypes, customConversions, maintainType),
+                      genericConversionsInSpec,
+                      genericDependencies);
+                }));
     return directWrappers;
   }
 

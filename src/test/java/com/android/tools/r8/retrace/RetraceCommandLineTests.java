@@ -9,8 +9,10 @@ import static org.hamcrest.core.StringContains.containsString;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assume.assumeFalse;
 import static org.junit.Assume.assumeTrue;
 
+import com.android.tools.r8.TestBase;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.Version;
@@ -20,6 +22,7 @@ import com.android.tools.r8.retrace.stacktraces.FoundMethodVerboseStackTrace;
 import com.android.tools.r8.retrace.stacktraces.PGStackTrace;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.StringUtils;
+import com.android.tools.r8.utils.ThrowingConsumer;
 import com.google.common.base.Charsets;
 import com.google.common.collect.ImmutableList;
 import java.io.ByteArrayOutputStream;
@@ -44,9 +47,9 @@ import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
-public class RetraceCommandLineTests {
+public class RetraceCommandLineTests extends TestBase {
 
-  private static String SMILEY_EMOJI = "\uD83D\uDE00";
+  private static final String SMILEY_EMOJI = "\uD83D\uDE00";
 
   private static final String WAITING_MESSAGE =
       "Waiting for stack-trace input..." + StringUtils.LINE_SEPARATOR;
@@ -54,14 +57,16 @@ public class RetraceCommandLineTests {
   @Rule public TemporaryFolder folder = new TemporaryFolder();
 
   private final boolean testExternal;
+  private final boolean testPartition;
 
-  @Parameters(name = "external: {0}")
-  public static Boolean[] data() {
-    return BooleanUtils.values();
+  @Parameters(name = "external: {0}, partition: {1}")
+  public static List<Object[]> data() {
+    return buildParameters(BooleanUtils.values(), BooleanUtils.values());
   }
 
-  public RetraceCommandLineTests(boolean testExternal) {
+  public RetraceCommandLineTests(boolean testExternal, boolean testPartition) {
     this.testExternal = testExternal;
+    this.testPartition = testPartition;
   }
 
   @Test
@@ -207,6 +212,7 @@ public class RetraceCommandLineTests {
 
   @Test
   public void testHelpMessageOnStdIn() throws IOException {
+    assumeFalse(testPartition);
     ProcessResult processResult = runRetrace("", "", true);
     assertTrue(processResult.stdout.startsWith(WAITING_MESSAGE));
   }
@@ -290,10 +296,16 @@ public class RetraceCommandLineTests {
       throws IOException {
     Path mappingFile = folder.newFile("mapping.txt").toPath();
     Files.write(mappingFile, mapping.getBytes());
+    if (testPartition) {
+      mappingFile = runPartitionCommandLine(mappingFile);
+    }
     File stackTraceFile = folder.newFile("stacktrace.txt");
     Files.write(stackTraceFile.toPath(), stackTrace.getBytes(StandardCharsets.UTF_8));
 
     Collection<String> args = new ArrayList<>();
+    if (testPartition) {
+      args.add("--partition-map");
+    }
     args.add(mappingFile.toString());
     if (!stacktraceStdIn) {
       args.add(stackTraceFile.toPath().toString());
@@ -302,7 +314,28 @@ public class RetraceCommandLineTests {
     return runRetraceCommandLine(stacktraceStdIn ? stackTraceFile : null, args);
   }
 
+  private Path runPartitionCommandLine(Path mappingFile) throws IOException {
+    Path partitionOutput = folder.newFile("partition.txt").toPath();
+    ProcessResult processResult =
+        runCommandLine(
+            null,
+            "com.android.tools.r8.retrace.Partition",
+            Partition::run,
+            ImmutableList.of("--output", partitionOutput.toString(), mappingFile.toString()));
+    assertEquals(0, processResult.exitCode);
+    return partitionOutput;
+  }
+
   private ProcessResult runRetraceCommandLine(File stdInput, Collection<String> args)
+      throws IOException {
+    return runCommandLine(stdInput, "com.android.tools.r8.retrace.Retrace", Retrace::run, args);
+  }
+
+  private <E extends Exception> ProcessResult runCommandLine(
+      File stdInput,
+      String mainEntryPointExternal,
+      ThrowingConsumer<String[], E> mainEntryPointInternal,
+      Collection<String> args)
       throws IOException {
     if (testExternal) {
       // The external dependency is built on top of R8Lib. If test.py is run with
@@ -314,7 +347,7 @@ public class RetraceCommandLineTests {
       command.add("-ea");
       command.add("-cp");
       command.add(ToolHelper.R8_RETRACE_JAR.toString());
-      command.add("com.android.tools.r8.retrace.Retrace");
+      command.add(mainEntryPointExternal);
       command.addAll(args);
       ProcessBuilder builder = new ProcessBuilder(command);
       if (stdInput != null) {
@@ -336,7 +369,7 @@ public class RetraceCommandLineTests {
       try {
         String[] strArgs = new String[0];
         strArgs = args.toArray(strArgs);
-        Retrace.run(strArgs);
+        mainEntryPointInternal.accept(strArgs);
       } catch (Throwable t) {
         exitCode = 1;
       }

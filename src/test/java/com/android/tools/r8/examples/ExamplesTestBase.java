@@ -3,7 +3,6 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.examples;
 
-import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.R8FullTestBuilder;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestRuntime.CfRuntime;
@@ -13,7 +12,6 @@ import com.android.tools.r8.debug.CfDebugTestConfig;
 import com.android.tools.r8.debug.DebugStreamComparator;
 import com.android.tools.r8.debug.DebugTestBase;
 import com.android.tools.r8.debug.DebugTestConfig;
-import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Collections;
 import java.util.List;
@@ -32,7 +30,7 @@ public abstract class ExamplesTestBase extends DebugTestBase {
 
   public abstract Class<?> getMainClass();
 
-  public List<Class<?>> getTestClasses() {
+  public List<Class<?>> getTestClasses() throws Exception {
     return Collections.singletonList(getMainClass());
   }
 
@@ -83,7 +81,7 @@ public abstract class ExamplesTestBase extends DebugTestBase {
     comparator.compare();
   }
 
-  private CfDebugTestConfig getJvmConfig() throws IOException {
+  private CfDebugTestConfig getJvmConfig() throws Exception {
     // We can't use `testForJvm` as we want to build the reference even for non-representative API.
     CfRuntime cfRuntime =
         parameters.isCfRuntime() ? parameters.asCfRuntime() : CfRuntime.getDefaultCfRuntime();
@@ -92,7 +90,7 @@ public abstract class ExamplesTestBase extends DebugTestBase {
     return new CfDebugTestConfig(cfRuntime, Collections.singletonList(jar));
   }
 
-  private DebugTestConfig getD8Config() throws CompilationFailedException {
+  private DebugTestConfig getD8Config() throws Exception {
     return testForD8(parameters.getBackend())
         .addProgramClasses(getTestClasses())
         .setMinApi(parameters)
@@ -100,7 +98,7 @@ public abstract class ExamplesTestBase extends DebugTestBase {
         .debugConfig(parameters.getRuntime());
   }
 
-  private DebugTestConfig getR8Config() throws CompilationFailedException {
+  private DebugTestConfig getR8Config() throws Exception {
     return testForR8(parameters.getBackend())
         .setMinApi(parameters)
         .addProgramClasses(getTestClasses())

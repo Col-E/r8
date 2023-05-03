@@ -317,6 +317,10 @@ public abstract class KeepInfoCollection {
       keepClassInfo.forEach(
           (type, info) -> {
             DexType newType = lens.lookupType(type);
+            if (newType == options.dexItemFactory().intType) {
+              assert !info.isPinned(options);
+              return;
+            }
             assert newType == type
                 || !info.isPinned(options)
                 || info.isMinificationAllowed(options)

@@ -5,15 +5,9 @@
 package com.android.tools.r8.utils;
 
 import com.android.tools.r8.DiagnosticsHandler;
-import com.android.tools.r8.PartitionMapConsumer;
 import com.android.tools.r8.naming.ClassNameMapper;
 import com.android.tools.r8.naming.MapConsumer;
 import com.android.tools.r8.naming.ProguardMapMarkerInfo;
-import com.android.tools.r8.retrace.MappingPartition;
-import com.android.tools.r8.retrace.MappingPartitionMetadata;
-import com.android.tools.r8.utils.ZipUtils.ZipBuilder;
-import java.io.IOException;
-import java.nio.file.Path;
 import java.util.function.Function;
 
 public class MapConsumerUtils {
@@ -47,44 +41,5 @@ public class MapConsumerUtils {
       return existingMapConsumer;
     }
     return wrapExistingMapConsumer(existingMapConsumer, producer.apply(object));
-  }
-
-  public static PartitionMapConsumer createZipConsumer(Path path) {
-    return new PartitionMapConsumer() {
-
-      private final Box<ZipBuilder> zipBuilderBox = new Box<>();
-
-      @Override
-      public void acceptMappingPartition(MappingPartition mappingPartition) {
-        try {
-          zipBuilderBox
-              .computeIfAbsentThrowing(() -> ZipBuilder.builder(path))
-              .addBytes(mappingPartition.getKey(), mappingPartition.getPayload());
-        } catch (IOException e) {
-          throw new RuntimeException(e);
-        }
-      }
-
-      @Override
-      public void acceptMappingPartitionMetadata(
-          MappingPartitionMetadata mappingPartitionMetadata) {
-        try {
-          zipBuilderBox
-              .computeIfAbsentThrowing(() -> ZipBuilder.builder(path))
-              .addBytes("METADATA", mappingPartitionMetadata.getBytes());
-        } catch (IOException e) {
-          throw new RuntimeException(e);
-        }
-      }
-
-      @Override
-      public void finished(DiagnosticsHandler handler) {
-        try {
-          zipBuilderBox.computeIfAbsentThrowing(() -> ZipBuilder.builder(path)).build();
-        } catch (IOException e) {
-          throw new RuntimeException(e);
-        }
-      }
-    };
   }
 }

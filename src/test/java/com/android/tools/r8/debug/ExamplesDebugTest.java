@@ -60,32 +60,6 @@ public class ExamplesDebugTest extends DebugTestBase {
   }
 
   @Test
-  public void testInstanceofString() throws Exception {
-    testDebugging("instanceofstring", "InstanceofString");
-  }
-
-  @Test
-  public void testInvoke() throws Exception {
-    testDebugging("invoke", "Invoke");
-  }
-
-  @Test
-  public void testJumboString() throws Exception {
-    testDebugging("jumbostring", "JumboString");
-  }
-
-  @Test
-  public void testLoadConst() throws Exception {
-    testDebugging("loadconst", "LoadConst");
-  }
-
-  @Test
-  public void testUdpServer() throws Exception {
-    // TODO(b/79671093): We don't match JVM's behavior on this example.
-    testDebuggingJvmOutputOnly("loop", "UdpServer");
-  }
-
-  @Test
   public void testRegAlloc() throws Exception {
     testDebugging("regalloc", "RegAlloc");
   }
@@ -141,11 +115,6 @@ public class ExamplesDebugTest extends DebugTestBase {
   @Test
   public void testTryCatchMany() throws Exception {
     testDebugging("trycatchmany", "TryCatchMany");
-  }
-
-  @Test
-  public void testInvokeEmpty() throws Exception {
-    testDebugging("invokeempty", "InvokeEmpty");
   }
 
   @Test

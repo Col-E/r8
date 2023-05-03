@@ -69,8 +69,8 @@ import com.android.tools.r8.utils.collections.ProgramMethodSet;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 import com.google.common.collect.Sets;
-import it.unimi.dsi.fastutil.ints.Int2ObjectLinkedOpenHashMap;
-import it.unimi.dsi.fastutil.ints.Int2ObjectSortedMap;
+import it.unimi.dsi.fastutil.ints.Int2ReferenceLinkedOpenHashMap;
+import it.unimi.dsi.fastutil.ints.Int2ReferenceSortedMap;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
@@ -739,7 +739,7 @@ class EnumUnboxingTreeFixer implements ProgramClassFixer {
             fixupProto(factory.prependHolderToProto(representative.getReference())),
             localUtilityClass.getType(),
             newMethodSignature -> !localUtilityMethods.containsKey(newMethodSignature));
-    Int2ObjectSortedMap<DexMethod> methodMap = new Int2ObjectLinkedOpenHashMap<>();
+    Int2ReferenceSortedMap<DexMethod> methodMap = new Int2ReferenceLinkedOpenHashMap<>();
     IdentityHashMap<DexType, DexMethod> typeToMethod = new IdentityHashMap<>();
     map.forEach(
         (methodReference, newMethodReference) ->

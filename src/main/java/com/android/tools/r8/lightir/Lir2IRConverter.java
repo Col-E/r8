@@ -38,6 +38,7 @@ import com.android.tools.r8.ir.code.InstanceGet;
 import com.android.tools.r8.ir.code.InstanceOf;
 import com.android.tools.r8.ir.code.InstancePut;
 import com.android.tools.r8.ir.code.Instruction;
+import com.android.tools.r8.ir.code.IntSwitch;
 import com.android.tools.r8.ir.code.InvokeDirect;
 import com.android.tools.r8.ir.code.InvokeInterface;
 import com.android.tools.r8.ir.code.InvokeNewArray;
@@ -68,9 +69,12 @@ import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.code.ValueType;
 import com.android.tools.r8.ir.code.Xor;
 import com.android.tools.r8.ir.conversion.MethodConversionOptions.MutableMethodConversionOptions;
+import com.android.tools.r8.lightir.LirBuilder.IntSwitchPayload;
 import com.android.tools.r8.lightir.LirCode.PositionEntry;
 import com.android.tools.r8.utils.ListUtils;
 import com.google.common.collect.ImmutableList;
+import it.unimi.dsi.fastutil.ints.Int2IntMap;
+import it.unimi.dsi.fastutil.ints.Int2IntOpenHashMap;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceMap;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceOpenHashMap;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
@@ -473,6 +477,39 @@ public class Lir2IRConverter {
       BasicBlock targetBlock = getBasicBlock(blockIndex);
       addInstruction(new Goto());
       currentBlock.link(targetBlock);
+      closeCurrentBlock();
+    }
+
+    @Override
+    public void onIntSwitch(EV value, IntSwitchPayload payload) {
+      // keys is the 'value' -> 'target index' mapping.
+      int[] keys = payload.keys;
+      // successorIndices is the 'target index' to 'IR successor index'.
+      int[] successorIndices = new int[keys.length];
+      List<BasicBlock> successorBlocks = new ArrayList<>();
+      {
+        // The mapping from instruction to successor is a temp mapping to track if any targets
+        // point to the same block.
+        Int2IntMap instructionToSuccessor = new Int2IntOpenHashMap();
+        for (int i = 0; i < successorIndices.length; i++) {
+          int instructionIndex = payload.targets[i];
+          if (instructionToSuccessor.containsKey(instructionIndex)) {
+            successorIndices[i] = instructionToSuccessor.get(instructionIndex);
+          } else {
+            int successorIndex = successorBlocks.size();
+            successorIndices[i] = successorIndex;
+            instructionToSuccessor.put(instructionIndex, successorIndex);
+            successorBlocks.add(getBasicBlock(instructionIndex));
+          }
+        }
+      }
+      int fallthrough = successorBlocks.size();
+      addInstruction(new IntSwitch(getValue(value), keys, successorIndices, fallthrough));
+      // The call to addInstruction will ensure the current block so don't amend to it before here.
+      // If the block has successors then the index mappings are not valid / need to be offset.
+      assert currentBlock.getSuccessors().isEmpty();
+      successorBlocks.forEach(currentBlock::link);
+      currentBlock.link(getBasicBlock(nextInstructionIndex));
       closeCurrentBlock();
     }
 

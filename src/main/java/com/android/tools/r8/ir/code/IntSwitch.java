@@ -17,6 +17,7 @@ import com.android.tools.r8.dex.code.DexSparseSwitchPayload;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
+import com.android.tools.r8.lightir.LirBuilder;
 import com.android.tools.r8.utils.IntObjConsumer;
 import com.android.tools.r8.utils.InternalOutputMode;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceAVLTreeMap;
@@ -32,6 +33,11 @@ public class IntSwitch extends Switch {
     super(value, targetBlockIndices, fallthroughBlockIndex);
     this.keys = keys;
     assert valid();
+  }
+
+  @Override
+  public void buildLir(LirBuilder<Value, ?> builder) {
+    builder.addIntSwitch(value(), getKeys(), getKeyToTargetMap(), fallthroughBlock());
   }
 
   @Override

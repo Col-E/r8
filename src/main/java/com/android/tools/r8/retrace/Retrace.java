@@ -20,6 +20,7 @@ import com.android.tools.r8.retrace.internal.StackTraceRegularExpressionParser;
 import com.android.tools.r8.utils.ExceptionDiagnostic;
 import com.android.tools.r8.utils.OptionsParsing;
 import com.android.tools.r8.utils.OptionsParsing.ParseContext;
+import com.android.tools.r8.utils.PartitionMapZipContainer;
 import com.android.tools.r8.utils.StringDiagnostic;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.Timing;
@@ -60,6 +61,7 @@ public class Retrace<T, ST extends StackTraceElementProxy<T, ST>> extends Retrac
         .add(ParseFlagInfoImpl.flag0("--info", "Write information messages to stdout"))
         .add(ParseFlagInfoImpl.flag0("--quiet", "Silence ordinary messages printed to stdout"))
         .add(ParseFlagInfoImpl.flag0("--verify-mapping-file-hash", "Verify the mapping file hash"))
+        .add(ParseFlagInfoImpl.getHelp())
         .build();
   }
 
@@ -101,7 +103,7 @@ public class Retrace<T, ST extends StackTraceElementProxy<T, ST>> extends Retrac
         hasSetQuiet = true;
         continue;
       }
-      String regex = OptionsParsing.tryParseSingle(context, "--regex", "r");
+      String regex = OptionsParsing.tryParseSingle(context, "--regex", "--r");
       if (regex != null && !regex.isEmpty()) {
         builder.setRegularExpression(regex);
         continue;
@@ -110,6 +112,12 @@ public class Retrace<T, ST extends StackTraceElementProxy<T, ST>> extends Retrac
       if (verify != null) {
         builder.setVerifyMappingFileHash(true);
         hasSetStackTrace = true;
+        continue;
+      }
+      String partitionMap = OptionsParsing.tryParseSingle(context, "--partition-map", "--p");
+      if (partitionMap != null && !partitionMap.isEmpty()) {
+        builder.setMappingSupplier(getPartitionMappingSupplier(partitionMap, diagnosticsHandler));
+        hasSetProguardMap = true;
         continue;
       }
       if (!hasSetProguardMap) {
@@ -136,6 +144,22 @@ public class Retrace<T, ST extends StackTraceElementProxy<T, ST>> extends Retrac
       builder.setStackTrace(getStackTraceFromStandardInput(hasSetQuiet));
     }
     return builder;
+  }
+
+  private static MappingSupplier<?> getPartitionMappingSupplier(
+      String partitionMap, DiagnosticsHandler diagnosticsHandler) {
+    Path path = Paths.get(partitionMap);
+    if (!Files.exists(path)) {
+      diagnosticsHandler.error(
+          new StringDiagnostic(String.format("Could not find mapping file '%s'.", partitionMap)));
+      throw new RetraceAbortException();
+    }
+    try {
+      return PartitionMapZipContainer.createPartitionMapZipContainerSupplier(path);
+    } catch (Exception e) {
+      diagnosticsHandler.error(new ExceptionDiagnostic(e));
+      throw new RetraceAbortException();
+    }
   }
 
   private static ProguardMappingSupplier getMappingSupplier(

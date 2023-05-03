@@ -47,7 +47,6 @@ public class StaticEnumMergingTest extends EnumUnboxingTestBase {
         .addProgramFiles(JDK17_JAR)
         .addKeepMainRule(MAIN)
         .addKeepRules(enumKeepRules.getKeepRules())
-        .addOptionsModification(opt -> opt.testing.enableEnumWithSubtypesUnboxing = true)
         .addOptionsModification(opt -> enableEnumOptions(opt, enumValueOptimization))
         .addOptionsModification(opt -> opt.testing.enableEnumUnboxingDebugLogs = true)
         .setMinApi(parameters)

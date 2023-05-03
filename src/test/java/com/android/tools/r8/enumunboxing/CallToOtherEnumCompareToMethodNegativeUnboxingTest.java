@@ -56,6 +56,7 @@ public class CallToOtherEnumCompareToMethodNegativeUnboxingTest extends EnumUnbo
 
   static class Main {
 
+    @SuppressWarnings("unchecked")
     public static void main(String[] args) {
       Enum<?> fooEnum = Foo.A;
       Enum<Bar> fooEnumInDisguise = (Enum<Bar>) fooEnum;
