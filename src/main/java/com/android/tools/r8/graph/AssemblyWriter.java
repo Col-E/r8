@@ -7,6 +7,7 @@ import static com.android.tools.r8.utils.StringUtils.LINE_SEPARATOR;
 
 import com.android.tools.r8.ClassFileConsumer;
 import com.android.tools.r8.contexts.CompilationContext;
+import com.android.tools.r8.graph.GenericSignature.ClassSignature;
 import com.android.tools.r8.ir.conversion.IRConverter;
 import com.android.tools.r8.ir.conversion.MethodProcessorEventConsumer;
 import com.android.tools.r8.ir.conversion.OneTimeMethodProcessor;
@@ -78,6 +79,10 @@ public class AssemblyWriter extends DexByteCodeWriter {
     ps.println("# Bytecode for");
     ps.println("# Class: '" + clazzName + "'");
     if (writeAllClassInfo) {
+      ClassSignature signature = clazz.getClassSignature();
+      if (signature != null && signature.hasSignature()) {
+        ps.println("# Signature: " + signature);
+      }
       writeAnnotations(clazz, clazz.annotations(), ps);
       ps.println("# Flags: '" + clazz.accessFlags + "'");
       if (clazz.superType != application.dexItemFactory.objectType) {
