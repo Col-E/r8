@@ -175,6 +175,34 @@ keep rules from the Retrofit library.
 See also https://github.com/square/retrofit/issues/3005 ("Insufficient keep
 rules for R8 in full mode").
 
+### Return type must be parameterized
+
+Consider a service as the following:
+```
+interface Api {
+
+    @GET("<uri>")
+    fun getData(): Observable<Data>
+
+}
+```
+
+Retrofit instantiate a return type by inspecting the generic signature, here
+`Observable` from `io.reactivex.rxjava3.core`. Those classes are not guarded by
+keep rules prior to https://github.com/square/retrofit/pull/3886 so one has to
+manually add keep rules to prevent R8 in full mode stripping the generic
+signature. The proposed rule in https://github.com/square/retrofit/pull/3886 is:
+```
+-if interface * { @retrofit2.http.* public *** *(...); }
+-keep,allowoptimization,allowshrinking,allowobfuscation class <3>
+```
+After https://github.com/square/retrofit/pull/3886 is merged, the above rule
+is automatically included in your build. You can add the rule to your build
+until then.
+
+Note, the `Data` class probably also needs to be kept if used since this is
+also constructed reflectively.
+
 ### Kotlin suspend functions and generic signatures
 
 For Kotlin suspend functions the generic signature is reflectively read.
