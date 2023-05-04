@@ -61,7 +61,6 @@ public class JarSizeCompare {
           .put("com.google.common", "com.android.tools.r8.com.google.common")
           .put("com.google.gson", "com.android.tools.r8.com.google.gson")
           .put("com.google.thirdparty", "com.android.tools.r8.com.google.thirdparty")
-          .put("joptsimple", "com.android.tools.r8.joptsimple")
           .put("org.apache.commons", "com.android.tools.r8.org.apache.commons")
           .put("org.objectweb.asm", "com.android.tools.r8.org.objectweb.asm")
           .put("it.unimi.dsi.fastutil", "com.android.tools.r8.it.unimi.dsi.fastutil")

@@ -5,23 +5,20 @@ package com.android.tools.r8.bisect;
 
 import com.android.tools.r8.errors.CompilationError;
 import java.io.IOException;
-import java.io.OutputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import joptsimple.OptionParser;
-import joptsimple.OptionSet;
-import joptsimple.OptionSpec;
 
 public class BisectOptions {
-  private static final String HELP_FLAG = "help";
-  public static final String BUILD_GOOD_FLAG = "good";
-  public static final String BUILD_BAD_FLAG = "bad";
-  public static final String RESULT_GOOD_FLAG = "result-good";
-  public static final String RESULT_BAD_FLAG = "result-bad";
-  public static final String STATE_FLAG = "state";
-  public static final String OUTPUT_FLAG = "output";
-  public static final String COMMAND_FLAG = "command";
+
+  private static final String HELP_FLAG = "--help";
+  public static final String BUILD_GOOD_FLAG = "--good";
+  public static final String BUILD_BAD_FLAG = "--bad";
+  public static final String RESULT_GOOD_FLAG = "--result-good";
+  public static final String RESULT_BAD_FLAG = "--result-bad";
+  public static final String STATE_FLAG = "--state";
+  public static final String OUTPUT_FLAG = "--output";
+  public static final String COMMAND_FLAG = "--command";
 
   public final Path goodBuild;
   public final Path badBuild;
@@ -30,52 +27,10 @@ public class BisectOptions {
   public final Path output;
   public final Result result;
 
-  public enum Result { UNKNOWN, GOOD, BAD }
-
-  private static class ParserSpec {
-    OptionSpec<String> goodBuild;
-    OptionSpec<String> badBuild;
-    OptionSpec<String> command;
-    OptionSpec<String> stateFile;
-    OptionSpec<String> output;
-    OptionSpec<Void> resultGood;
-    OptionSpec<Void> resultBad;
-    OptionSpec<Void> help;
-
-    void init(OptionParser parser) {
-      help = parser.accepts(HELP_FLAG).forHelp();
-      resultGood = parser.accepts(RESULT_GOOD_FLAG, "Bisect again assuming previous run was good.");
-      resultBad = parser.accepts(RESULT_BAD_FLAG, "Bisect again assuming previous run was bad.");
-      goodBuild = parser.accepts(BUILD_GOOD_FLAG, "Known good APK.")
-          .withRequiredArg()
-          .describedAs("apk");
-      badBuild = parser.accepts(BUILD_BAD_FLAG, "Known bad APK.")
-          .withRequiredArg()
-          .describedAs("apk");
-      stateFile = parser.accepts(STATE_FLAG, "Bisection state.")
-          .requiredIf(resultGood, resultBad)
-          .withRequiredArg()
-          .describedAs("file");
-      output = parser.accepts(OUTPUT_FLAG, "Output directory.")
-          .withRequiredArg()
-          .describedAs("dir");
-      command = parser.accepts(COMMAND_FLAG, "Command to run after each bisection.")
-          .requiredUnless(stateFile)
-          .withRequiredArg()
-          .describedAs("file");
-    }
-
-    OptionSet parse(String[] args) {
-      OptionParser parser = new OptionParser();
-      init(parser);
-      return parser.parse(args);
-    }
-
-    static void printHelp(OutputStream out) throws IOException {
-      OptionParser parser = new OptionParser();
-      new ParserSpec().init(parser);
-      parser.printHelpOn(out);
-    }
+  public enum Result {
+    UNKNOWN,
+    GOOD,
+    BAD
   }
 
   private BisectOptions(
@@ -89,65 +44,100 @@ public class BisectOptions {
   }
 
   public static BisectOptions parse(String[] args) throws IOException {
-    ParserSpec parser = new ParserSpec();
-    OptionSet options = parser.parse(args);
-    if (options.has(parser.help)) {
-      printHelp(System.out);
-      return null;
-    }
-    Path goodBuild = exists(require(options, parser.goodBuild, BUILD_GOOD_FLAG), BUILD_GOOD_FLAG);
-    Path badBuild = exists(require(options, parser.badBuild, BUILD_BAD_FLAG), BUILD_BAD_FLAG);
+    Path badBuild = null;
+    Path goodBuild = null;
     Path stateFile = null;
-    if (options.valueOf(parser.stateFile) != null) {
-      stateFile = exists(options.valueOf(parser.stateFile), STATE_FLAG);
-    }
     Path command = null;
-    if (options.valueOf(parser.command) != null) {
-      command = exists(options.valueOf(parser.command), COMMAND_FLAG);
-    }
     Path output = null;
-    if (options.valueOf(parser.output) != null) {
-      output = directoryExists(options.valueOf(parser.output), OUTPUT_FLAG);
-    }
     Result result = Result.UNKNOWN;
-    if (options.has(parser.resultGood)) {
-      result = Result.GOOD;
-    }
-    if (options.has(parser.resultBad)) {
-      if (result == Result.GOOD) {
-        throw new CompilationError("Cannot specify --" + RESULT_GOOD_FLAG
-            + " and --" + RESULT_BAD_FLAG + " simultaneously");
+
+    for (int i = 0; i < args.length; i++) {
+      String arg = args[i].trim();
+      if (arg.equals(HELP_FLAG)) {
+        printHelp();
+        return null;
+      } else if (arg.equals(BUILD_BAD_FLAG)) {
+        i = nextArg(i, args, BUILD_BAD_FLAG);
+        badBuild = Paths.get(args[i]);
+      } else if (arg.equals(BUILD_GOOD_FLAG)) {
+        i = nextArg(i, args, BUILD_GOOD_FLAG);
+        goodBuild = Paths.get(args[i]);
+      } else if (arg.equals(COMMAND_FLAG)) {
+        i = nextArg(i, args, COMMAND_FLAG);
+        command = Paths.get(args[i]);
+      } else if (arg.equals(OUTPUT_FLAG)) {
+        i = nextArg(i, args, OUTPUT_FLAG);
+        output = Paths.get(args[i]);
+      } else if (arg.equals(RESULT_BAD_FLAG)) {
+        result = checkSingleResult(result, Result.BAD);
+      } else if (arg.equals(RESULT_GOOD_FLAG)) {
+        result = checkSingleResult(result, Result.GOOD);
+      } else if (arg.equals(STATE_FLAG)) {
+        i = nextArg(i, args, STATE_FLAG);
+        stateFile = Paths.get(args[i]);
       }
-      result = Result.BAD;
     }
+    exists(require(badBuild, BUILD_BAD_FLAG), BUILD_BAD_FLAG);
+    exists(require(goodBuild, BUILD_GOOD_FLAG), BUILD_GOOD_FLAG);
+    if (stateFile != null) {
+      exists(stateFile, STATE_FLAG);
+    }
+    if (command != null) {
+      exists(command, COMMAND_FLAG);
+    }
+    if (output != null) {
+      directoryExists(output, OUTPUT_FLAG);
+    }
+
     return new BisectOptions(goodBuild, badBuild, stateFile, command, output, result);
   }
 
-  private static <T> T require(OptionSet options, OptionSpec<T> option, String flag) {
-    T value = options.valueOf(option);
-    if (value != null) {
-      return value;
+  private static int nextArg(int index, String[] args, String flag) {
+    if (args.length == index + 1) {
+      throw new CompilationError("Missing argument for: " + flag);
     }
-    throw new CompilationError("Missing required option: --" + flag);
+    return index + 1;
   }
 
-  private static Path exists(String path, String flag) {
-    Path file = Paths.get(path);
-    if (Files.exists(file)) {
-      return file;
+  private static Path require(Path value, String flag) {
+    if (value == null) {
+      throw new CompilationError("Missing required option: " + flag);
     }
-    throw new CompilationError("File --" + flag + ": " + file + " does not exist");
+    return value;
   }
 
-  private static Path directoryExists(String path, String flag) {
-    Path file = Paths.get(path);
-    if (Files.exists(file) && Files.isDirectory(file)) {
-      return file;
+  private static Path exists(Path path, String flag) {
+    if (Files.exists(path)) {
+      return path;
     }
-    throw new CompilationError("File --" + flag + ": " + file + " is not a valid directory");
+    throw new CompilationError("File " + flag + ": " + path + " does not exist");
   }
 
-  public static void printHelp(OutputStream out) throws IOException {
-    ParserSpec.printHelp(out);
+  private static Path directoryExists(Path path, String flag) {
+    if (Files.exists(path) && Files.isDirectory(path)) {
+      return path;
+    }
+    throw new CompilationError("File " + flag + ": " + path + " is not a valid directory");
+  }
+
+  private static Result checkSingleResult(Result current, Result result) {
+    if (current != Result.UNKNOWN) {
+      throw new CompilationError(
+          "Cannot specify " + RESULT_GOOD_FLAG + " and " + RESULT_BAD_FLAG + " simultaneously");
+    }
+    return result;
+  }
+
+  public static void printHelp() throws IOException {
+    System.out.println("--bad <apk>       Known bad APK.");
+    System.out.println("--command <file>  Command to run after each bisection.");
+    System.out.println("--good <apk>      Known good APK.");
+    System.out.println("--help");
+    System.out.println("--output <dir>    Output directory.");
+    System.out.println(
+        "--result-bad      Bisect again assuming previous run was\n" + "        bad.");
+    System.out.println(
+        "--result-good     Bisect again assuming previous run was\n" + "        good.");
+    System.out.println("--state <file>    Bisection state.");
   }
 }

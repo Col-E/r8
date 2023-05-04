@@ -33,7 +33,6 @@ ext {
     espressoVersion = '3.0.0'
     fastutilVersion = '7.2.1'
     guavaVersion = '31.1-jre'
-    joptSimpleVersion = '4.6'
     gsonVersion = '2.7'
     junitVersion = '4.13-beta-2'
     mockitoVersion = '2.10.0'
@@ -214,7 +213,6 @@ configurations {
 }
 
 dependencies {
-    implementation "net.sf.jopt-simple:jopt-simple:$joptSimpleVersion"
     implementation "com.google.code.gson:gson:$gsonVersion"
     // Include all of guava when compiling the code, but exclude annotations that we don't
     // need from the packaging.
@@ -233,7 +231,6 @@ dependencies {
     implementation group: 'org.ow2.asm', name: 'asm-analysis', version: asmVersion
     implementation group: 'org.ow2.asm', name: 'asm-util', version: asmVersion
 
-    main17Implementation "net.sf.jopt-simple:jopt-simple:$joptSimpleVersion"
     main17Implementation "com.google.code.gson:gson:$gsonVersion"
     // Include all of guava when compiling the code, but exclude annotations that we don't
     // need from the packaging.
@@ -875,8 +872,6 @@ def r8RelocateTask(r8Task, output) {
                 "com.google.gson->com.android.tools.r8.com.google.gson",
                 "--map",
                 "com.google.thirdparty->com.android.tools.r8.com.google.thirdparty",
-                "--map",
-                "joptsimple->com.android.tools.r8.joptsimple",
                 "--map",
                 "org.objectweb.asm->com.android.tools.r8.org.objectweb.asm",
                 "--map",
