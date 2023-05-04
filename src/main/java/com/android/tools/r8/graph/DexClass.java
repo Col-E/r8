@@ -31,6 +31,7 @@ import com.google.common.collect.Sets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.ListIterator;
@@ -817,8 +818,8 @@ public abstract class DexClass extends DexDefinition
   }
 
   public boolean validInterfaceSignatures() {
-    return getClassSignature().superInterfaceSignatures().isEmpty()
-        || interfaces.values.length == getClassSignature().superInterfaceSignatures.size();
+    return getClassSignature().getSuperInterfaceSignatures().isEmpty()
+        || interfaces.values.length == getClassSignature().getSuperInterfaceSignatures().size();
   }
 
   public void forEachImmediateInterfaceWithSignature(
@@ -826,7 +827,7 @@ public abstract class DexClass extends DexDefinition
     assert validInterfaceSignatures();
 
     // If there is no generic signature information don't pass any type arguments.
-    if (getClassSignature().superInterfaceSignatures().isEmpty()) {
+    if (getClassSignature().getSuperInterfaceSignatures().isEmpty()) {
       forEachImmediateInterface(
           superInterface ->
               consumer.accept(superInterface, new ClassTypeSignature(superInterface)));
@@ -835,7 +836,7 @@ public abstract class DexClass extends DexDefinition
 
     Iterator<DexType> interfaceIterator = Arrays.asList(interfaces.values).iterator();
     Iterator<ClassTypeSignature> interfaceSignatureIterator =
-        getClassSignature().superInterfaceSignatures().iterator();
+        getClassSignature().getSuperInterfaceSignatures().iterator();
 
     while (interfaceIterator.hasNext()) {
       assert interfaceSignatureIterator.hasNext();
@@ -846,9 +847,9 @@ public abstract class DexClass extends DexDefinition
   }
 
   public void forEachImmediateSupertypeWithSignature(
-      BiConsumer<DexType, ClassTypeSignature> consumer) {
+      DexItemFactory factory, BiConsumer<DexType, ClassTypeSignature> consumer) {
     if (superType != null) {
-      consumer.accept(superType, classSignature.superClassSignature);
+      consumer.accept(superType, classSignature.getSuperClassSignatureOrObject(factory));
     }
     forEachImmediateInterfaceWithSignature(consumer);
   }
@@ -859,7 +860,7 @@ public abstract class DexClass extends DexDefinition
     assert validInterfaceSignatures();
 
     // If there is no generic signature information don't pass any type arguments.
-    if (getClassSignature().superInterfaceSignatures().size() == 0) {
+    if (getClassSignature().getSuperInterfaceSignatures().isEmpty()) {
       forEachImmediateInterface(
           superInterface -> consumer.accept(superInterface, ImmutableList.of()));
       return;
@@ -867,7 +868,7 @@ public abstract class DexClass extends DexDefinition
 
     Iterator<DexType> interfaceIterator = Arrays.asList(interfaces.values).iterator();
     Iterator<ClassTypeSignature> interfaceSignatureIterator =
-        getClassSignature().superInterfaceSignatures().iterator();
+        getClassSignature().getSuperInterfaceSignatures().iterator();
 
     while (interfaceIterator.hasNext()) {
       assert interfaceSignatureIterator.hasNext();
@@ -890,17 +891,18 @@ public abstract class DexClass extends DexDefinition
       BiConsumer<DexType, List<FieldTypeSignature>> consumer) {
     if (superType != null) {
       consumer.accept(
-          superType, applyTypeArguments(getClassSignature().superClassSignature, typeArguments));
+          superType,
+          applyTypeArguments(getClassSignature().getSuperClassSignatureOrNull(), typeArguments));
     }
     forEachImmediateInterfaceWithAppliedTypeArguments(typeArguments, consumer);
   }
 
   private List<FieldTypeSignature> applyTypeArguments(
       ClassTypeSignature superInterfaceSignatures, List<FieldTypeSignature> appliedTypeArguments) {
-    ImmutableList.Builder<FieldTypeSignature> superTypeArgumentsBuilder = ImmutableList.builder();
-    if (superInterfaceSignatures.type.toSourceString().equals("java.util.Map")) {
-      System.currentTimeMillis();
+    if (superInterfaceSignatures == null) {
+      return Collections.emptyList();
     }
+    ImmutableList.Builder<FieldTypeSignature> superTypeArgumentsBuilder = ImmutableList.builder();
     superInterfaceSignatures
         .typeArguments()
         .forEach(

@@ -1208,12 +1208,12 @@ public class VerticalClassMerger {
       builder.addFormalTypeParameters(targetSignature.getFormalTypeParameters());
       if (!source.isInterface()) {
         if (rewrittenSource.hasSignature()) {
-          builder.setSuperClassSignature(rewrittenSource.superClassSignature());
+          builder.setSuperClassSignature(rewrittenSource.getSuperClassSignatureOrNull());
         } else {
           builder.setSuperClassSignature(new ClassTypeSignature(source.superType));
         }
       } else {
-        builder.setSuperClassSignature(targetSignature.superClassSignature());
+        builder.setSuperClassSignature(targetSignature.getSuperClassSignatureOrNull());
       }
       // Compute the seen set for interfaces to add. This is similar to the merging of interfaces
       // but allow us to maintain the type arguments.
@@ -1221,26 +1221,26 @@ public class VerticalClassMerger {
       if (source.isInterface()) {
         seenInterfaces.add(source.type);
       }
-      for (ClassTypeSignature iFace : targetSignature.superInterfaceSignatures()) {
+      for (ClassTypeSignature iFace : targetSignature.getSuperInterfaceSignatures()) {
         if (seenInterfaces.add(iFace.type())) {
-          builder.addInterface(iFace);
+          builder.addSuperInterfaceSignature(iFace);
         }
       }
       if (rewrittenSource.hasSignature()) {
-        for (ClassTypeSignature iFace : rewrittenSource.superInterfaceSignatures()) {
+        for (ClassTypeSignature iFace : rewrittenSource.getSuperInterfaceSignatures()) {
           if (!seenInterfaces.contains(iFace.type())) {
-            builder.addInterface(iFace);
+            builder.addSuperInterfaceSignature(iFace);
           }
         }
       } else {
         // Synthesize raw uses of interfaces to align with the actual class
         for (DexType iFace : source.interfaces) {
           if (!seenInterfaces.contains(iFace)) {
-            builder.addInterface(new ClassTypeSignature(iFace));
+            builder.addSuperInterfaceSignature(new ClassTypeSignature(iFace));
           }
         }
       }
-      target.setClassSignature(builder.build());
+      target.setClassSignature(builder.build(appView.dexItemFactory()));
 
       // Go through all type-variable references for members and update them.
       CollectionUtils.forEach(
@@ -1273,7 +1273,9 @@ public class VerticalClassMerger {
       // We can assert proper structure below because the generic signature validator has run
       // before and pruned invalid signatures.
       List<FieldTypeSignature> genericArgumentsToSuperType =
-          target.getClassSignature().getGenericArgumentsToSuperType(source.type);
+          target
+              .getClassSignature()
+              .getGenericArgumentsToSuperType(source.type, appView.dexItemFactory());
       if (genericArgumentsToSuperType == null) {
         assert false : "Type should be present in generic signature";
         return null;

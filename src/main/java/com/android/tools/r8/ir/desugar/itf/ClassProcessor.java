@@ -529,7 +529,7 @@ final class ClassProcessor {
               eventConsumer.acceptEmulatedInterfaceMarkerInterface(
                   clazz, helper.ensureEmulatedInterfaceMarkerInterface(signature.type()));
             }
-            clazz.addExtraInterfaces(extraInterfaceSignatures);
+            clazz.addExtraInterfaces(extraInterfaceSignatures, appView.dexItemFactory());
           }
         });
   }
@@ -698,6 +698,7 @@ final class ClassProcessor {
     // TODO(b/182329331): Only handle type arguments for Cf to Cf desugar.
     if (appView.options().isCfDesugaring() && clazz.validInterfaceSignatures()) {
       clazz.forEachImmediateSupertypeWithSignature(
+          appView.dexItemFactory(),
           (type, signature) -> {
             if (emulatesInterfaces.contains(type)) {
               extraInterfaceSignatures.put(

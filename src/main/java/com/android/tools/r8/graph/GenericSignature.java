@@ -9,6 +9,7 @@ import static com.google.common.base.Predicates.alwaysTrue;
 
 import com.android.tools.r8.DiagnosticsHandler;
 import com.android.tools.r8.errors.Unreachable;
+import com.android.tools.r8.graph.GenericSignature.ClassSignature.ClassSignatureBuilder;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.DescriptorUtils;
@@ -17,6 +18,7 @@ import java.lang.reflect.GenericSignatureFormatError;
 import java.nio.CharBuffer;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Consumer;
 import java.util.function.Predicate;
 
 /**
@@ -207,35 +209,44 @@ public class GenericSignature {
   public static class ClassSignature implements DexDefinitionSignature<DexClass> {
 
     private static final ClassSignature NO_CLASS_SIGNATURE =
-        new ClassSignature(EMPTY_TYPE_PARAMS, NO_FIELD_TYPE_SIGNATURE, EMPTY_SUPER_INTERFACES);
+        new ClassSignature(EMPTY_TYPE_PARAMS, null, EMPTY_SUPER_INTERFACES);
 
-    final List<FormalTypeParameter> formalTypeParameters;
-    final ClassTypeSignature superClassSignature;
-    final List<ClassTypeSignature> superInterfaceSignatures;
+    public static ClassSignature noSignature() {
+      return NO_CLASS_SIGNATURE;
+    }
+
+    private final List<FormalTypeParameter> formalTypeParameters;
+    private final ClassTypeSignature superClassSignatureOrNullForObject;
+    private final List<ClassTypeSignature> superInterfaceSignatures;
 
     ClassSignature(
         List<FormalTypeParameter> formalTypeParameters,
         ClassTypeSignature superClassSignature,
         List<ClassTypeSignature> superInterfaceSignatures) {
       assert formalTypeParameters != null;
-      assert superClassSignature != null;
       assert superInterfaceSignatures != null;
       this.formalTypeParameters = formalTypeParameters;
-      this.superClassSignature = superClassSignature;
+      this.superClassSignatureOrNullForObject = superClassSignature;
       this.superInterfaceSignatures = superInterfaceSignatures;
     }
 
-    public ClassTypeSignature superClassSignature() {
-      return superClassSignature;
+    public ClassTypeSignature getSuperClassSignatureOrNull() {
+      return superClassSignatureOrNullForObject;
     }
 
-    public List<ClassTypeSignature> superInterfaceSignatures() {
+    public ClassTypeSignature getSuperClassSignatureOrObject(DexItemFactory factory) {
+      return superClassSignatureOrNullForObject != null
+          ? superClassSignatureOrNullForObject
+          : new ClassTypeSignature(factory.objectType);
+    }
+
+    public List<ClassTypeSignature> getSuperInterfaceSignatures() {
       return superInterfaceSignatures;
     }
 
     @Override
     public boolean hasSignature() {
-      return this != NO_CLASS_SIGNATURE;
+      return this != noSignature();
     }
 
     @Override
@@ -258,21 +269,32 @@ public class GenericSignature {
       return formalTypeParameters;
     }
 
-    public ClassSignature visit(GenericSignatureVisitor visitor) {
+    public ClassSignature visit(GenericSignatureVisitor visitor, DexItemFactory factory) {
       if (hasNoSignature()) {
         return this;
       }
       List<FormalTypeParameter> rewrittenParameters =
           visitor.visitFormalTypeParameters(formalTypeParameters);
-      ClassTypeSignature rewrittenSuperClass = visitor.visitSuperClass(superClassSignature);
+      ClassTypeSignature rewrittenSuperClass =
+          visitor.visitSuperClass(superClassSignatureOrNullForObject);
       List<ClassTypeSignature> rewrittenInterfaces =
           visitor.visitSuperInterfaces(superInterfaceSignatures);
       if (formalTypeParameters == rewrittenParameters
-          && superClassSignature == rewrittenSuperClass
+          && superClassSignatureOrNullForObject == rewrittenSuperClass
           && superInterfaceSignatures == rewrittenInterfaces) {
         return this;
       }
-      return new ClassSignature(rewrittenParameters, rewrittenSuperClass, rewrittenInterfaces);
+      return ClassSignature.builder()
+          .addFormalTypeParameters(rewrittenParameters)
+          .setSuperClassSignature(rewrittenSuperClass)
+          .addSuperInterfaceSignatures(rewrittenInterfaces)
+          .build(factory);
+    }
+
+    public void visitWithoutRewrite(GenericSignatureVisitor visitor) {
+      visitor.visitFormalTypeParameters(formalTypeParameters);
+      visitor.visitSuperClass(superClassSignatureOrNullForObject);
+      visitor.visitSuperInterfaces(superInterfaceSignatures);
     }
 
     public String toRenamedString(NamingLens namingLens, Predicate<DexType> isTypeMissing) {
@@ -290,14 +312,12 @@ public class GenericSignature {
       return toRenamedString(NamingLens.getIdentityLens(), alwaysTrue());
     }
 
-    public static ClassSignature noSignature() {
-      return NO_CLASS_SIGNATURE;
-    }
-
-    public List<FieldTypeSignature> getGenericArgumentsToSuperType(DexType type) {
+    public List<FieldTypeSignature> getGenericArgumentsToSuperType(
+        DexType type, DexItemFactory factory) {
       assert hasSignature();
-      if (superClassSignature.type == type) {
-        return superClassSignature.typeArguments;
+      ClassTypeSignature superClassSig = getSuperClassSignatureOrObject(factory);
+      if (superClassSig.type == type) {
+        return superClassSig.typeArguments;
       }
       for (ClassTypeSignature superInterfaceSignature : superInterfaceSignatures) {
         if (superInterfaceSignature.type == type) {
@@ -319,6 +339,11 @@ public class GenericSignature {
 
       private ClassSignatureBuilder() {}
 
+      public ClassSignatureBuilder addFormalTypeParameter(FormalTypeParameter formal) {
+        formalTypeParameters.add(formal);
+        return this;
+      }
+
       public ClassSignatureBuilder addFormalTypeParameters(List<FormalTypeParameter> formals) {
         formalTypeParameters.addAll(formals);
         return this;
@@ -329,12 +354,32 @@ public class GenericSignature {
         return this;
       }
 
-      public ClassSignatureBuilder addInterface(ClassTypeSignature iface) {
+      public ClassSignatureBuilder addSuperInterfaceSignature(ClassTypeSignature iface) {
         superInterfaceSignatures.add(iface);
         return this;
       }
 
-      public ClassSignature build() {
+      public ClassSignatureBuilder addSuperInterfaceSignatures(List<ClassTypeSignature> ifaces) {
+        superInterfaceSignatures.addAll(ifaces);
+        return this;
+      }
+
+      public ClassSignature build(DexItemFactory factory) {
+        // Any trivial super class signature is always represented by the null value.
+        if (superClassSignature != null) {
+          if (superClassSignature.type() == factory.objectType) {
+            assert !superClassSignature.hasTypeVariableArguments();
+            superClassSignature = null;
+          } else if (superClassSignature.hasNoSignature()) {
+            superClassSignature = null;
+          }
+        }
+        // Any trivial class signature is represented by the "no signature" singleton.
+        if (superClassSignature == null
+            && formalTypeParameters.isEmpty()
+            && superInterfaceSignatures.isEmpty()) {
+          return ClassSignature.noSignature();
+        }
         return new ClassSignature(
             formalTypeParameters, superClassSignature, superInterfaceSignatures);
       }
@@ -346,7 +391,7 @@ public class GenericSignature {
     private final String genericSignatureString;
 
     InvalidClassSignature(String genericSignatureString) {
-      super(EMPTY_TYPE_PARAMS, NO_FIELD_TYPE_SIGNATURE, EMPTY_SUPER_INTERFACES);
+      super(EMPTY_TYPE_PARAMS, null, EMPTY_SUPER_INTERFACES);
       this.genericSignatureString = genericSignatureString;
     }
 
@@ -367,9 +412,14 @@ public class GenericSignature {
     }
 
     @Override
-    public ClassSignature visit(GenericSignatureVisitor visitor) {
+    public ClassSignature visit(GenericSignatureVisitor visitor, DexItemFactory factory) {
       assert false : "Should not visit an invalid signature";
       return this;
+    }
+
+    @Override
+    public void visitWithoutRewrite(GenericSignatureVisitor visitor) {
+      assert false : "Should not visit an invalid signature";
     }
 
     @Override
@@ -943,7 +993,7 @@ public class GenericSignature {
       DexItemFactory factory,
       DiagnosticsHandler diagnosticsHandler) {
     if (signature == null || signature.isEmpty()) {
-      return ClassSignature.NO_CLASS_SIGNATURE;
+      return ClassSignature.noSignature();
     }
     Parser parser = new Parser(factory);
     try {
@@ -951,7 +1001,7 @@ public class GenericSignature {
     } catch (GenericSignatureFormatError e) {
       diagnosticsHandler.warning(
           GenericSignatureFormatDiagnostic.invalidClassSignature(signature, className, origin, e));
-      return ClassSignature.NO_CLASS_SIGNATURE;
+      return ClassSignature.noSignature();
     }
   }
 
@@ -1100,34 +1150,28 @@ public class GenericSignature {
 
     private ClassSignature parseClassSignature() {
       // ClassSignature ::= FormalTypeParameters? SuperclassSignature SuperinterfaceSignature*.
-
-      List<FormalTypeParameter> formalTypeParameters = parseOptFormalTypeParameters();
-
+      ClassSignatureBuilder signatureBuilder = ClassSignature.builder();
+      parseOptFormalTypeParameters(signatureBuilder::addFormalTypeParameter);
       // SuperclassSignature ::= ClassTypeSignature.
-      ClassTypeSignature superClassSignature = parseClassTypeSignature();
-
-      ImmutableList.Builder<ClassTypeSignature> builder = ImmutableList.builder();
+      signatureBuilder.setSuperClassSignature(parseClassTypeSignature());
       while (symbol > 0) {
         // SuperinterfaceSignature ::= ClassTypeSignature.
-        builder.add(parseClassTypeSignature());
+        signatureBuilder.addSuperInterfaceSignature(parseClassTypeSignature());
       }
-
-      return new ClassSignature(formalTypeParameters, superClassSignature, builder.build());
+      return signatureBuilder.build(factory);
     }
 
-    private List<FormalTypeParameter> parseOptFormalTypeParameters() {
+    private void parseOptFormalTypeParameters(Consumer<FormalTypeParameter> consumer) {
       // FormalTypeParameters ::= "<" FormalTypeParameter+ ">".
       if (symbol != '<') {
-        return EMPTY_TYPE_PARAMS;
+        return;
       }
       scanSymbol();
 
-      ImmutableList.Builder<FormalTypeParameter> builder = ImmutableList.builder();
       while ((symbol != '>') && (symbol > 0)) {
-        builder.add(updateFormalTypeParameter());
+        consumer.accept(updateFormalTypeParameter());
       }
       expect('>');
-      return builder.build();
     }
 
     private FormalTypeParameter updateFormalTypeParameter() {
@@ -1288,7 +1332,8 @@ public class GenericSignature {
     private MethodTypeSignature parseMethodTypeSignature() {
       // MethodTypeSignature ::=
       //     FormalTypeParameters? "(" TypeSignature* ")" ReturnType ThrowsSignature*.
-      List<FormalTypeParameter> formalTypeParameters = parseOptFormalTypeParameters();
+      ImmutableList.Builder<FormalTypeParameter> formalsBuilder = ImmutableList.builder();
+      parseOptFormalTypeParameters(formalsBuilder::add);
 
       expect('(');
 
@@ -1315,7 +1360,7 @@ public class GenericSignature {
       }
 
       return new MethodTypeSignature(
-          formalTypeParameters,
+          formalsBuilder.build(),
           parameterSignatureBuilder.build(),
           returnType,
           throwsSignatureBuilder.build());

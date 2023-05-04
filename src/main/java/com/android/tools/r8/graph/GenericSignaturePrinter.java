@@ -31,7 +31,8 @@ public class GenericSignaturePrinter implements GenericSignatureVisitor {
 
   @Override
   public ClassSignature visitClassSignature(ClassSignature classSignature) {
-    return classSignature.visit(this);
+    classSignature.visitWithoutRewrite(this);
+    return classSignature;
   }
 
   @Override
@@ -108,9 +109,13 @@ public class GenericSignaturePrinter implements GenericSignatureVisitor {
   }
 
   @Override
-  public ClassTypeSignature visitSuperClass(ClassTypeSignature classTypeSignature) {
-    printFieldTypeSignature(classTypeSignature, false);
-    return classTypeSignature;
+  public ClassTypeSignature visitSuperClass(ClassTypeSignature classTypeSignatureOrNullForObject) {
+    if (classTypeSignatureOrNullForObject == null) {
+      sb.append("Ljava/lang/Object;");
+    } else {
+      printFieldTypeSignature(classTypeSignatureOrNullForObject, false);
+    }
+    return classTypeSignatureOrNullForObject;
   }
 
   @Override

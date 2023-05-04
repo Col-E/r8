@@ -27,7 +27,6 @@ import com.android.tools.r8.utils.structural.Ordered;
 import com.android.tools.r8.utils.structural.StructuralItem;
 import com.android.tools.r8.utils.structural.StructuralMapping;
 import com.android.tools.r8.utils.structural.StructuralSpecification;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -732,12 +731,12 @@ public class DexProgramClass extends DexClass
     methodCollection.replaceVirtualMethod(virtualMethod, replacement);
   }
 
-  public void addExtraInterfaces(List<ClassTypeSignature> extraInterfaces) {
+  public void addExtraInterfaces(List<ClassTypeSignature> extraInterfaces, DexItemFactory factory) {
     if (extraInterfaces.isEmpty()) {
       return;
     }
     addExtraInterfacesToInterfacesArray(extraInterfaces);
-    addExtraInterfacesToSignatureIfPresent(extraInterfaces);
+    addExtraInterfacesToSignatureIfPresent(extraInterfaces, factory);
   }
 
   private void addExtraInterfacesToInterfacesArray(List<ClassTypeSignature> extraInterfaces) {
@@ -749,21 +748,20 @@ public class DexProgramClass extends DexClass
     interfaces = new DexTypeList(newInterfaces);
   }
 
-  private void addExtraInterfacesToSignatureIfPresent(List<ClassTypeSignature> extraInterfaces) {
+  private void addExtraInterfacesToSignatureIfPresent(
+      List<ClassTypeSignature> extraInterfaces, DexItemFactory factory) {
+    assert !extraInterfaces.isEmpty();
     // We introduce the extra interfaces to the generic signature.
-    if (classSignature.hasNoSignature() || extraInterfaces.isEmpty()) {
+    if (classSignature.hasNoSignature()) {
       return;
     }
-    ImmutableList.Builder<ClassTypeSignature> interfacesBuilder =
-        ImmutableList.<ClassTypeSignature>builder().addAll(classSignature.superInterfaceSignatures);
-    for (ClassTypeSignature extraInterface : extraInterfaces) {
-      interfacesBuilder.add(extraInterface);
-    }
     classSignature =
-        new ClassSignature(
-            classSignature.formalTypeParameters,
-            classSignature.superClassSignature,
-            interfacesBuilder.build());
+        ClassSignature.builder()
+            .addSuperInterfaceSignatures(classSignature.getSuperInterfaceSignatures())
+            .addSuperInterfaceSignatures(extraInterfaces)
+            .setSuperClassSignature(classSignature.getSuperClassSignatureOrNull())
+            .addFormalTypeParameters(classSignature.getFormalTypeParameters())
+            .build(factory);
   }
 
   @Override

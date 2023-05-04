@@ -250,26 +250,24 @@ public class GenericSignatureCorrectnessHelper {
         return VALID;
       }
       SignatureEvaluationResult signatureEvaluationResult =
-          evaluateFormalTypeParameters(classSignature.formalTypeParameters, typeParameterContext);
+          evaluateFormalTypeParameters(
+              classSignature.getFormalTypeParameters(), typeParameterContext);
       if (signatureEvaluationResult.isInvalid()) {
         return signatureEvaluationResult;
       }
-      if (context.superType == appView.dexItemFactory().objectType
-          && classSignature.superClassSignature().hasNoSignature()) {
-        // We represent no signature as object.
-      } else if (context.superType != classSignature.superClassSignature().type()) {
+      ClassTypeSignature superClassSignature =
+          classSignature.getSuperClassSignatureOrObject(appView.dexItemFactory());
+      if (context.superType != superClassSignature.type()) {
         assert mode.doNotVerify() : "Super type inconsistency in generic signature";
         return INVALID_SUPER_TYPE;
       }
       signatureEvaluationResult =
           evaluateTypeArgumentsAppliedToType(
-              classSignature.superClassSignature().typeArguments(),
-              context.superType,
-              typeParameterContext);
+              superClassSignature.typeArguments(), context.superType, typeParameterContext);
       if (signatureEvaluationResult.isInvalid()) {
         return signatureEvaluationResult;
       }
-      List<ClassTypeSignature> superInterfaces = classSignature.superInterfaceSignatures();
+      List<ClassTypeSignature> superInterfaces = classSignature.getSuperInterfaceSignatures();
       if (context.interfaces.size() != superInterfaces.size()) {
         assert mode.doNotVerify();
         return INVALID_INTERFACE_COUNT;

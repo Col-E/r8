@@ -128,7 +128,8 @@ public class DesugaredLibraryRetargeterPostProcessor implements CfPostProcessing
         continue;
       }
       clazz.addExtraInterfaces(
-          Collections.singletonList(new ClassTypeSignature(newInterface.type)));
+          Collections.singletonList(new ClassTypeSignature(newInterface.type)),
+          appView.dexItemFactory());
       eventConsumer.acceptInterfaceInjection(clazz, newInterface);
       DexMethod itfMethod =
           syntheticHelper.emulatedInterfaceDispatchMethod(newInterface, descriptor);

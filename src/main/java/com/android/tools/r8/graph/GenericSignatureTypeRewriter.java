@@ -61,7 +61,7 @@ public class GenericSignatureTypeRewriter {
     if (classSignature.hasNoSignature() || classSignature.isInvalid()) {
       return classSignature;
     }
-    return new GenericSignatureRewriter().visitClassSignature(classSignature);
+    return new GenericSignatureRewriter(factory).visitClassSignature(classSignature);
   }
 
   public FieldTypeSignature rewrite(FieldTypeSignature fieldTypeSignature) {
@@ -69,7 +69,7 @@ public class GenericSignatureTypeRewriter {
       return fieldTypeSignature;
     }
     FieldTypeSignature rewrittenSignature =
-        new GenericSignatureRewriter().visitFieldTypeSignature(fieldTypeSignature);
+        new GenericSignatureRewriter(factory).visitFieldTypeSignature(fieldTypeSignature);
     return rewrittenSignature == null ? FieldTypeSignature.noSignature() : rewrittenSignature;
   }
 
@@ -77,20 +77,20 @@ public class GenericSignatureTypeRewriter {
     if (methodTypeSignature.hasNoSignature() || methodTypeSignature.isInvalid()) {
       return methodTypeSignature;
     }
-    return new GenericSignatureRewriter().visitMethodSignature(methodTypeSignature);
+    return new GenericSignatureRewriter(factory).visitMethodSignature(methodTypeSignature);
   }
 
   private class GenericSignatureRewriter implements GenericSignatureVisitor {
 
+    private final DexItemFactory factory;
+
+    GenericSignatureRewriter(DexItemFactory factory) {
+      this.factory = factory;
+    }
+
     @Override
     public ClassSignature visitClassSignature(ClassSignature classSignature) {
-      ClassSignature rewritten = classSignature.visit(this);
-      if (rewritten.getFormalTypeParameters().isEmpty()
-          && rewritten.superInterfaceSignatures.isEmpty()
-          && rewritten.superClassSignature.type == factory.objectType) {
-        return ClassSignature.noSignature();
-      }
-      return rewritten;
+      return classSignature.visit(this, factory);
     }
 
     @Override
@@ -142,14 +142,12 @@ public class GenericSignatureTypeRewriter {
     }
 
     @Override
-    public ClassTypeSignature visitSuperClass(ClassTypeSignature classTypeSignature) {
-      if (context.superType == factory.objectType) {
-        return classTypeSignature.type == factory.objectType
-            ? classTypeSignature
-            : objectTypeSignature;
+    public ClassTypeSignature visitSuperClass(
+        ClassTypeSignature classTypeSignatureOrNullForObject) {
+      if (classTypeSignatureOrNullForObject == null) {
+        return classTypeSignatureOrNullForObject;
       }
-      ClassTypeSignature rewritten = classTypeSignature.visit(this);
-      return rewritten == null ? objectTypeSignature : rewritten;
+      return classTypeSignatureOrNullForObject.visit(this);
     }
 
     @Override
