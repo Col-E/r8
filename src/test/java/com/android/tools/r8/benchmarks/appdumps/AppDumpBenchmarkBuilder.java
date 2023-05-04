@@ -159,6 +159,7 @@ public class AppDumpBenchmarkBuilder {
                       .addLibraryFiles(dump.getLibraryArchive())
                       .addKeepRuleFiles(dump.getProguardConfigFile())
                       .setMinApi(dumpProperties.getMinApi())
+                      .allowUnnecessaryDontWarnWildcards()
                       .allowUnusedDontWarnPatterns()
                       .allowUnusedProguardConfigurationRules()
                       // TODO(b/222228826): Disallow unrecognized diagnostics and open interfaces.

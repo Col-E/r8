@@ -203,6 +203,9 @@ public class DumpOptions {
       case BACKEND_KEY:
         builder.setBackend(Backend.valueOf(value));
         return;
+      case ENABLE_MISSING_LIBRARY_API_MODELING:
+        builder.setEnableMissingLibraryApiModeling(Boolean.parseBoolean(value));
+        return;
       case TOOL_KEY:
         builder.setTool(Tool.valueOf(value));
         return;
