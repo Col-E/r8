@@ -215,6 +215,7 @@ public class AppDumpBenchmarkBuilder {
                     programOutputs.add(
                         TestBase.testForD8(environment.getTemp(), Backend.DEX)
                             .addProgramFiles(programFile)
+                            .addClasspathFiles(dump.getProgramArchive())
                             .addLibraryFiles(dump.getLibraryArchive())
                             .setMinApi(dumpProperties.getMinApi())
                             .setIntermediate(true)
