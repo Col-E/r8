@@ -259,6 +259,9 @@ public class GenericSignature {
     }
 
     public ClassSignature visit(GenericSignatureVisitor visitor) {
+      if (hasNoSignature()) {
+        return this;
+      }
       List<FormalTypeParameter> rewrittenParameters =
           visitor.visitFormalTypeParameters(formalTypeParameters);
       ClassTypeSignature rewrittenSuperClass = visitor.visitSuperClass(superClassSignature);
@@ -291,10 +294,6 @@ public class GenericSignature {
       return NO_CLASS_SIGNATURE;
     }
 
-    public ClassSignature toObjectBoundWithSameFormals(ClassTypeSignature objectBound) {
-      return new ClassSignature(formalTypeParameters, objectBound, getEmptySuperInterfaces());
-    }
-
     public List<FieldTypeSignature> getGenericArgumentsToSuperType(DexType type) {
       assert hasSignature();
       if (superClassSignature.type == type) {
@@ -314,9 +313,9 @@ public class GenericSignature {
 
     public static class ClassSignatureBuilder {
 
-      private List<FormalTypeParameter> formalTypeParameters = new ArrayList<>();
+      private final List<FormalTypeParameter> formalTypeParameters = new ArrayList<>();
       private ClassTypeSignature superClassSignature = null;
-      private List<ClassTypeSignature> superInterfaceSignatures = new ArrayList<>();
+      private final List<ClassTypeSignature> superInterfaceSignatures = new ArrayList<>();
 
       private ClassSignatureBuilder() {}
 
@@ -336,9 +335,8 @@ public class GenericSignature {
       }
 
       public ClassSignature build() {
-        ClassSignature classSignature =
-            new ClassSignature(formalTypeParameters, superClassSignature, superInterfaceSignatures);
-        return classSignature;
+        return new ClassSignature(
+            formalTypeParameters, superClassSignature, superInterfaceSignatures);
       }
     }
   }
@@ -628,6 +626,9 @@ public class GenericSignature {
     }
 
     public ClassTypeSignature visit(GenericSignatureVisitor visitor) {
+      if (hasNoSignature()) {
+        return this;
+      }
       DexType visitedType = visitor.visitType(type);
       if (visitedType == null) {
         return null;
@@ -855,6 +856,9 @@ public class GenericSignature {
     }
 
     public MethodTypeSignature visit(GenericSignatureVisitor visitor) {
+      if (hasNoSignature()) {
+        return this;
+      }
       List<FormalTypeParameter> rewrittenParameters =
           visitor.visitFormalTypeParameters(formalTypeParameters);
       List<TypeSignature> rewrittenSignatures = visitor.visitMethodTypeSignatures(typeSignatures);

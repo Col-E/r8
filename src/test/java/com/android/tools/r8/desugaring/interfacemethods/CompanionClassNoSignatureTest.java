@@ -4,12 +4,13 @@
 
 package com.android.tools.r8.desugaring.interfacemethods;
 
+import static org.junit.Assert.assertTrue;
+
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.graph.GenericSignature.ClassSignature;
 import com.android.tools.r8.utils.StringUtils;
-import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -44,10 +45,9 @@ public class CompanionClassNoSignatureTest extends TestBase {
                   .isLessThan(apiLevelWithDefaultInterfaceMethodsSupport())) {
                 ClassSignature signature =
                     inspector.companionClassFor(I.class).getDexProgramClass().getClassSignature();
-                // TODO(b/280356274): There should be no signature on I$-CC.
-                Assert.assertTrue(
+                assertTrue(
                     "Expected no signature, got: " + signature.toString(),
-                    signature.hasSignature());
+                    signature.hasNoSignature());
               }
             });
   }

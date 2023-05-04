@@ -41,8 +41,7 @@ public class CompanionClassWithSignatureTest extends TestBase {
     assumeFalse(
         "Art 7 crashes when resolving the default method on I.",
         parameters.isDexRuntimeVersion(Version.V7_0_0) && !isDesugaring());
-    // TODO(b/280356274): There should be no signature on I$-CC.
-    boolean resolvedBug280356274 = false;
+    boolean resolvedBug280356274 = true;
     String expected = StringUtils.lines(resolvedBug280356274 && isDesugaring() ? "[]" : "[T]");
     testForD8(parameters.getBackend())
         .setMinApi(parameters)
@@ -58,10 +57,9 @@ public class CompanionClassWithSignatureTest extends TestBase {
               if (isDesugaring()) {
                 ClassSignature signature =
                     inspector.companionClassFor(I.class).getDexProgramClass().getClassSignature();
-                // TODO(b/280356274): There should be no signature on I$-CC.
                 assertTrue(
                     "Expected no signature, got: " + signature.toString(),
-                    signature.hasSignature());
+                    signature.hasNoSignature());
               }
             });
   }
