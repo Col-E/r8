@@ -22,7 +22,6 @@ import com.android.tools.r8.graph.DexDebugEvent.Default;
 import com.android.tools.r8.graph.DexDebugEvent.SetPositionFrame;
 import com.android.tools.r8.graph.DexDebugEvent.StartLocal;
 import com.android.tools.r8.graph.DexDebugInfo.EventBasedDebugInfo;
-import com.android.tools.r8.graph.DexWritableCode.DexWritableCacheKey;
 import com.android.tools.r8.graph.bytecodemetadata.BytecodeInstructionMetadata;
 import com.android.tools.r8.graph.bytecodemetadata.BytecodeMetadata;
 import com.android.tools.r8.graph.lens.GraphLens;
@@ -63,8 +62,7 @@ import java.util.Set;
 import java.util.function.Consumer;
 
 // DexCode corresponds to code item in dalvik/dex-format.html
-public class DexCode extends Code
-    implements DexWritableCode, StructuralItem<DexCode>, DexWritableCacheKey {
+public class DexCode extends Code implements DexWritableCode, StructuralItem<DexCode> {
 
   public static final String FAKE_THIS_PREFIX = "_";
   public static final String FAKE_THIS_SUFFIX = "this";
@@ -285,7 +283,6 @@ public class DexCode extends Code
     if (debugInfoForWriting != null) {
       debugInfoForWriting = null;
     }
-    flushCachedValues();
   }
 
   public DexDebugInfo debugInfoWithFakeThisParameter(DexItemFactory factory) {
@@ -859,11 +856,6 @@ public class DexCode extends Code
         positionConsumer.accept(event.asSetPositionFrame().getPosition());
       }
     }
-  }
-
-  @Override
-  public DexWritableCacheKey getCacheLookupKey(ProgramMethod method, DexItemFactory factory) {
-    return this;
   }
 
   public static class Try extends DexItem implements StructuralItem<Try> {

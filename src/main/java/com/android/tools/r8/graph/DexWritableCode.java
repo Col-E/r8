@@ -92,8 +92,6 @@ public interface DexWritableCode {
     return null;
   }
 
-  DexWritableCacheKey getCacheLookupKey(ProgramMethod method, DexItemFactory factory);
-
   /** Rewrites the code to have JumboString bytecode if required by mapping. */
   DexWritableCode rewriteCodeWithJumboStrings(
       ProgramMethod method, ObjectToOffsetMapping mapping, DexItemFactory factory, boolean force);
@@ -107,65 +105,4 @@ public interface DexWritableCode {
       GraphLens codeLens,
       LensCodeRewriterUtils lensCodeRewriter,
       ObjectToOffsetMapping mapping);
-
-  interface DexWritableCacheKey {}
-
-  class DexWritableCodeKey implements DexWritableCacheKey {
-
-    private final DexWritableCode code;
-    private final int incomingRegisterSize;
-    private final int registerSize;
-
-    public DexWritableCodeKey(DexWritableCode code, int incomingRegisterSize, int registerSize) {
-      this.code = code;
-      this.incomingRegisterSize = incomingRegisterSize;
-      this.registerSize = registerSize;
-    }
-
-    @Override
-    public int hashCode() {
-      return code.hashCode() + incomingRegisterSize * 13 + registerSize * 17;
-    }
-
-    @Override
-    public boolean equals(Object other) {
-      if (this == other) {
-        return true;
-      }
-      if (!(other instanceof DexWritableCodeKey)) {
-        return false;
-      }
-      DexWritableCodeKey that = (DexWritableCodeKey) other;
-      return code.equals(that.code)
-          && incomingRegisterSize == that.incomingRegisterSize
-          && registerSize == that.registerSize;
-    }
-  }
-
-  class AmendedDexWritableCodeKey<S> extends DexWritableCodeKey {
-    private final S extra;
-
-    public AmendedDexWritableCodeKey(
-        DexWritableCode code, S extra, int incomingRegisterSize, int registerSize) {
-      super(code, incomingRegisterSize, registerSize);
-      this.extra = extra;
-    }
-
-    @Override
-    public int hashCode() {
-      return super.hashCode() + extra.hashCode() * 7;
-    }
-
-    @Override
-    public boolean equals(Object other) {
-      if (this == other) {
-        return true;
-      }
-      if (!(other instanceof AmendedDexWritableCodeKey)) {
-        return false;
-      }
-      AmendedDexWritableCodeKey that = (AmendedDexWritableCodeKey) other;
-      return super.equals(other) && extra.equals(that.extra);
-    }
-  }
 }

@@ -235,12 +235,6 @@ public class ThrowExceptionCode extends Code implements DexWritableCode {
   }
 
   @Override
-  public DexWritableCacheKey getCacheLookupKey(ProgramMethod method, DexItemFactory factory) {
-    return new AmendedDexWritableCodeKey<DexType>(
-        this, exceptionType, getIncomingRegisterSize(method), getRegisterSize(method));
-  }
-
-  @Override
   public String toString() {
     return "ThrowExceptionCode";
   }

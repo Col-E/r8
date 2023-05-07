@@ -2541,10 +2541,6 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
     return hasFeaturePresentFrom(AndroidApiLevel.K);
   }
 
-  public boolean canUseCanonicalizedCodeObjects() {
-    return hasFeaturePresentFrom(AndroidApiLevel.S);
-  }
-
   public CfVersion classFileVersionAfterDesugaring(CfVersion version) {
     assert isGeneratingClassFiles();
     if (!isDesugaring()) {

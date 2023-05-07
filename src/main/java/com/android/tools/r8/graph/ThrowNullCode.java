@@ -274,12 +274,6 @@ public class ThrowNullCode extends Code implements CfWritableCode, DexWritableCo
     return "ThrowNullCode";
   }
 
-  @Override
-  public DexWritableCacheKey getCacheLookupKey(ProgramMethod method, DexItemFactory factory) {
-    return new AmendedDexWritableCodeKey<DexWritableCode>(
-        this, this, getIncomingRegisterSize(method), getRegisterSize(method));
-  }
-
   static class ThrowNullSourceCode extends SyntheticStraightLineSourceCode {
 
     ThrowNullSourceCode(ProgramMethod method) {

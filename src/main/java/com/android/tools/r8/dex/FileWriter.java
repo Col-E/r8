@@ -40,7 +40,6 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DexTypeList;
 import com.android.tools.r8.graph.DexValue;
 import com.android.tools.r8.graph.DexWritableCode;
-import com.android.tools.r8.graph.DexWritableCode.DexWritableCacheKey;
 import com.android.tools.r8.graph.IndexedDexItem;
 import com.android.tools.r8.graph.ObjectToOffsetMapping;
 import com.android.tools.r8.graph.ParameterAnnotationsList;
@@ -57,7 +56,6 @@ import com.android.tools.r8.utils.DexVersion;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.IterableUtils;
 import com.android.tools.r8.utils.LebUtils;
-import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import it.unimi.dsi.fastutil.objects.Object2IntLinkedOpenHashMap;
 import it.unimi.dsi.fastutil.objects.Object2IntMap;
@@ -69,7 +67,6 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.IdentityHashMap;
 import java.util.List;
@@ -226,8 +223,7 @@ public class FileWriter {
     Collection<ProgramMethod> codes = mixedSectionLayoutStrategy.getCodeLayout();
 
     // Output the debug_info_items first, as they have no dependencies.
-    SizeAndCount sizeAndCountOfCodeItems = sizeAndCountOfCodeItems(codes);
-    dest.moveTo(layout.getCodesOffset() + sizeAndCountOfCodeItems.size);
+    dest.moveTo(layout.getCodesOffset() + sizeOfCodeItems(codes));
     if (mixedSectionOffsets.getDebugInfos().isEmpty()) {
       layout.setDebugInfosOffset(0);
     } else {
@@ -249,25 +245,7 @@ public class FileWriter {
     // Now output the code.
     dest.moveTo(layout.getCodesOffset());
     assert dest.isAligned(4);
-    Map<DexWritableCacheKey, Integer> offsetCache = new HashMap<>();
-    for (ProgramMethod method : codes) {
-      DexWritableCode dexWritableCode = method.getDefinition().getCode().asDexWritableCode();
-      if (!options.canUseCanonicalizedCodeObjects()) {
-        writeCodeItem(method, dexWritableCode);
-      } else {
-        DexWritableCacheKey cacheLookupKey =
-            dexWritableCode.getCacheLookupKey(method, appView.dexItemFactory());
-        Integer offsetOrNull = offsetCache.get(cacheLookupKey);
-        if (offsetOrNull != null) {
-          mixedSectionOffsets.setOffsetFor(method.getDefinition(), offsetOrNull);
-        } else {
-          offsetCache.put(cacheLookupKey, writeCodeItem(method, dexWritableCode));
-        }
-      }
-    }
-    assert sizeAndCountOfCodeItems.getCount()
-        == ImmutableSet.copyOf(mixedSectionOffsets.codes.values()).size();
-    layout.setCodeCount(sizeAndCountOfCodeItems.getCount());
+    writeItems(codes, layout::alreadySetOffset, this::writeCodeItem, 4);
     assert layout.getDebugInfosOffset() == 0 || dest.position() == layout.getDebugInfosOffset();
 
     // Now the type lists and rest.
@@ -456,32 +434,13 @@ public class FileWriter {
     }
   }
 
-  static class SizeAndCount {
-
-    private int size = 0;
-    private int count = 0;
-
-    public int getCount() {
-      return count;
-    }
-
-    public int getSize() {
-      return size;
-    }
-  }
-
-  private SizeAndCount sizeAndCountOfCodeItems(Iterable<ProgramMethod> methods) {
-    SizeAndCount sizeAndCount = new SizeAndCount();
-    Set<DexWritableCacheKey> cache = new HashSet<>();
+  private int sizeOfCodeItems(Iterable<ProgramMethod> methods) {
+    int size = 0;
     for (ProgramMethod method : methods) {
-      DexWritableCode code = method.getDefinition().getCode().asDexWritableCode();
-      if (!options.canUseCanonicalizedCodeObjects()
-          || cache.add(code.getCacheLookupKey(method, appView.dexItemFactory()))) {
-        sizeAndCount.count++;
-        sizeAndCount.size = alignSize(4, sizeAndCount.size) + sizeOfCodeItem(code);
-      }
+      size = alignSize(4, size);
+      size += sizeOfCodeItem(method.getDefinition().getCode().asDexWritableCode());
     }
-    return sizeAndCount;
+    return size;
   }
 
   private int sizeOfCodeItem(DexWritableCode code) {
@@ -566,9 +525,12 @@ public class FileWriter {
     dest.putBytes(new DebugBytecodeWriter(debugInfo, mapping, graphLens).generate());
   }
 
-  private int writeCodeItem(ProgramMethod method, DexWritableCode code) {
-    int codeOffset = dest.align(4);
-    mixedSectionOffsets.setOffsetFor(method.getDefinition(), codeOffset);
+  private void writeCodeItem(ProgramMethod method) {
+    writeCodeItem(method, method.getDefinition().getCode().asDexWritableCode());
+  }
+
+  private void writeCodeItem(ProgramMethod method, DexWritableCode code) {
+    mixedSectionOffsets.setOffsetFor(method.getDefinition(), code, dest.align(4));
     // Fixed size header information.
     dest.putShort((short) code.getRegisterSize(method));
     dest.putShort((short) code.getIncomingRegisterSize(method));
@@ -618,7 +580,6 @@ public class FileWriter {
       // And move to the end.
       dest.moveTo(endOfCodeOffset);
     }
-    return codeOffset;
   }
 
   private void writeTypeList(DexTypeList list) {
@@ -982,7 +943,6 @@ public class FileWriter {
     private int encodedArraysOffset = NOT_SET;
     private int mapOffset = NOT_SET;
     private int endOfFile = NOT_SET;
-    private int codeCount = NOT_SET;
 
     private Layout(
         int headerOffset,
@@ -1062,15 +1022,6 @@ public class FileWriter {
     public void setCodesOffset(int codesOffset) {
       assert this.codesOffset == NOT_SET;
       this.codesOffset = codesOffset;
-    }
-
-    public void setCodeCount(int codeCount) {
-      assert this.codeCount == NOT_SET;
-      this.codeCount = codeCount;
-    }
-
-    public int getCodeCount() {
-      return codeCount;
     }
 
     public int getDebugInfosOffset() {
@@ -1234,7 +1185,11 @@ public class FileWriter {
               Constants.TYPE_METHOD_HANDLE_ITEM,
               methodHandleIdsOffset,
               fileWriter.mapping.getMethodHandles().size()));
-      mapItems.add(new MapItem(Constants.TYPE_CODE_ITEM, getCodesOffset(), codeCount));
+      mapItems.add(
+          new MapItem(
+              Constants.TYPE_CODE_ITEM,
+              getCodesOffset(),
+              fileWriter.mixedSectionOffsets.getCodes().size()));
       mapItems.add(
           new MapItem(
               Constants.TYPE_DEBUG_INFO_ITEM,
@@ -1646,7 +1601,7 @@ public class FileWriter {
       setOffsetFor(debugInfo, offset, debugInfos);
     }
 
-    void setOffsetFor(DexEncodedMethod method, int offset) {
+    void setOffsetFor(DexEncodedMethod method, DexWritableCode code, int offset) {
       setOffsetFor(method, offset, codes);
     }
 
