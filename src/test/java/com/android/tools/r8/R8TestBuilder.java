@@ -28,6 +28,7 @@ import com.android.tools.r8.shaking.NoHorizontalClassMergingRule;
 import com.android.tools.r8.shaking.NoMethodStaticizingRule;
 import com.android.tools.r8.shaking.NoParameterReorderingRule;
 import com.android.tools.r8.shaking.NoParameterTypeStrengtheningRule;
+import com.android.tools.r8.shaking.NoRedundantFieldLoadEliminationRule;
 import com.android.tools.r8.shaking.NoReturnTypeStrengtheningRule;
 import com.android.tools.r8.shaking.NoUnusedInterfaceRemovalRule;
 import com.android.tools.r8.shaking.NoVerticalClassMergingRule;
@@ -571,6 +572,12 @@ public abstract class R8TestBuilder<T extends R8TestBuilder<T>>
     return addNoParameterTypeStrengtheningAnnotation()
         .addInternalMatchAnnotationOnMethodRule(
             NoParameterTypeStrengtheningRule.RULE_NAME, NoParameterTypeStrengthening.class);
+  }
+
+  public T enableNoRedundantFieldLoadEliminationAnnotations() {
+    return addNoRedundantFieldLoadEliminationAnnotation()
+        .addInternalMatchAnnotationOnFieldRule(
+            NoRedundantFieldLoadEliminationRule.RULE_NAME, NoRedundantFieldLoadElimination.class);
   }
 
   public T enableNoReturnTypeStrengtheningAnnotations() {

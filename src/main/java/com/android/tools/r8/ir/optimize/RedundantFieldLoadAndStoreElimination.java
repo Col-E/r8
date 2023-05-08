@@ -648,14 +648,25 @@ public class RedundantFieldLoadAndStoreElimination {
     FieldAndObject fieldAndObject = new FieldAndObject(field.getReference(), object);
     FieldValue replacement = activeState.getInstanceFieldValue(fieldAndObject);
     if (replacement != null) {
-      markAssumeDynamicTypeUsersForRemoval(instanceGet, replacement, assumeRemover);
-      replacement.eliminateRedundantRead(it, instanceGet);
+      if (isRedundantFieldLoadEliminationAllowed(field)) {
+        markAssumeDynamicTypeUsersForRemoval(instanceGet, replacement, assumeRemover);
+        replacement.eliminateRedundantRead(it, instanceGet);
+      }
       return;
     }
 
     activeState.putNonFinalInstanceField(fieldAndObject, new ExistingValue(instanceGet.value()));
     activeState.clearMostRecentInitClass();
     clearMostRecentInstanceFieldWrite(instanceGet, field);
+  }
+
+  private boolean isRedundantFieldLoadEliminationAllowed(DexClassAndField field) {
+    // Always allowed in D8 since D8 does not support @NoRedundantFieldLoadElimination.
+    return !appView.enableWholeProgramOptimizations()
+        || !field.isProgramField()
+        || appView
+            .getKeepInfo(field.asProgramField())
+            .isRedundantFieldLoadEliminationAllowed(appView.options());
   }
 
   private void handleNewInstance(NewInstance newInstance) {

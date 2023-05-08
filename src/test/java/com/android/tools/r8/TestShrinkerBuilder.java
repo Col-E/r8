@@ -532,6 +532,10 @@ public abstract class TestShrinkerBuilder<
     return addTestingAnnotation(NoParameterTypeStrengthening.class);
   }
 
+  public final T addNoRedundantFieldLoadEliminationAnnotation() {
+    return addTestingAnnotation(NoRedundantFieldLoadElimination.class);
+  }
+
   public final T addNoReturnTypeStrengtheningAnnotation() {
     return addTestingAnnotation(NoReturnTypeStrengthening.class);
   }
