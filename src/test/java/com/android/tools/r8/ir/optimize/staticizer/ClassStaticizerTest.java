@@ -56,6 +56,8 @@ import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Streams;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
@@ -211,19 +213,26 @@ public class ClassStaticizerTest extends TestBase {
     assertThat(simpleWithThrowingGetter, isAbsent());
 
     // TODO(b/143389508): add support for lazy init in singleton instance getter.
+    List<String> expectedReferencesInTestSimpleWithLazyInit = new ArrayList<>();
+    if (!parameters.canHaveNonReboundConstructorInvoke()) {
+      Collections.addAll(
+          expectedReferencesInTestSimpleWithLazyInit,
+          "DIRECT: void SimpleWithLazyInit.<init>()",
+          "DIRECT: void SimpleWithLazyInit.<init>()");
+    }
+    Collections.addAll(
+        expectedReferencesInTestSimpleWithLazyInit,
+        "STATIC: String SimpleWithLazyInit.bar(String)",
+        "STATIC: String SimpleWithLazyInit.foo()",
+        "STATIC: String TrivialTestClass.next()",
+        "SimpleWithLazyInit SimpleWithLazyInit.INSTANCE",
+        "SimpleWithLazyInit SimpleWithLazyInit.INSTANCE",
+        "SimpleWithLazyInit SimpleWithLazyInit.INSTANCE",
+        "SimpleWithLazyInit SimpleWithLazyInit.INSTANCE",
+        "SimpleWithLazyInit SimpleWithLazyInit.INSTANCE",
+        "SimpleWithLazyInit SimpleWithLazyInit.INSTANCE");
     assertEquals(
-        Lists.newArrayList(
-            "DIRECT: void SimpleWithLazyInit.<init>()",
-            "DIRECT: void SimpleWithLazyInit.<init>()",
-            "STATIC: String SimpleWithLazyInit.bar(String)",
-            "STATIC: String SimpleWithLazyInit.foo()",
-            "STATIC: String TrivialTestClass.next()",
-            "SimpleWithLazyInit SimpleWithLazyInit.INSTANCE",
-            "SimpleWithLazyInit SimpleWithLazyInit.INSTANCE",
-            "SimpleWithLazyInit SimpleWithLazyInit.INSTANCE",
-            "SimpleWithLazyInit SimpleWithLazyInit.INSTANCE",
-            "SimpleWithLazyInit SimpleWithLazyInit.INSTANCE",
-            "SimpleWithLazyInit SimpleWithLazyInit.INSTANCE"),
+        expectedReferencesInTestSimpleWithLazyInit,
         references(clazz, "testSimpleWithLazyInit", "void"));
 
     ClassSubject simpleWithLazyInit = inspector.clazz(SimpleWithLazyInit.class);
@@ -330,13 +339,19 @@ public class ClassStaticizerTest extends TestBase {
     assertThat(inspector.clazz(HostConflictMethod.class), isPresent());
     assertThat(inspector.clazz(CandidateConflictMethod.class), isPresent());
 
+    List<String> expectedReferencesInTestConflictField = new ArrayList<>();
+    if (!parameters.canHaveNonReboundConstructorInvoke()) {
+      Collections.addAll(
+          expectedReferencesInTestConflictField,
+          "DIRECT: void movetohost.HostConflictField.<init>()");
+    }
+    Collections.addAll(
+        expectedReferencesInTestConflictField,
+        "STATIC: String movetohost.CandidateConflictField.bar(String)",
+        "STATIC: String movetohost.CandidateConflictField.foo()",
+        "STATIC: String movetohost.MoveToHostTestClass.next()");
     assertEquals(
-        Lists.newArrayList(
-            "DIRECT: void movetohost.HostConflictField.<init>()",
-            "STATIC: String movetohost.CandidateConflictField.bar(String)",
-            "STATIC: String movetohost.CandidateConflictField.foo()",
-            "STATIC: String movetohost.MoveToHostTestClass.next()"),
-        references(clazz, "testConflictField", "void"));
+        expectedReferencesInTestConflictField, references(clazz, "testConflictField", "void"));
 
     assertThat(inspector.clazz(CandidateConflictMethod.class), isPresent());
   }
