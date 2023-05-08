@@ -5,7 +5,7 @@
 package com.android.tools.r8.ir.optimize.info.initializer;
 
 import com.android.tools.r8.graph.AppView;
-import com.android.tools.r8.graph.DexEncodedField;
+import com.android.tools.r8.graph.DexClassAndField;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.PrunedItems;
 import com.android.tools.r8.graph.lens.GraphLens;
@@ -149,12 +149,12 @@ public final class NonTrivialInstanceInitializerInfo extends InstanceInitializer
           && parent == null;
     }
 
-    public Builder markFieldAsRead(DexEncodedField field) {
+    public Builder markFieldAsRead(DexClassAndField field) {
       if (readSet.isKnownFieldSet()) {
         if (readSet.isBottom()) {
-          readSet = new ConcreteMutableFieldSet(field);
+          readSet = new ConcreteMutableFieldSet(field.getDefinition());
         } else {
-          readSet.asConcreteFieldSet().add(field);
+          readSet.asConcreteFieldSet().add(field.getDefinition());
         }
       }
       assert readSet.contains(field);

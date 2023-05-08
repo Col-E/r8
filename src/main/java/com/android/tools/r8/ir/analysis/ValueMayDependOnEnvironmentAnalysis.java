@@ -8,6 +8,7 @@ import static com.android.tools.r8.graph.DexProgramClass.asProgramClassOrNull;
 
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
+import com.android.tools.r8.graph.DexClassAndField;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
@@ -333,7 +334,7 @@ public class ValueMayDependOnEnvironmentAnalysis {
     InstanceInitializerInfo initializerInfo =
         constructor.getOptimizationInfo().getInstanceInitializerInfo(constructorInvoke);
 
-    List<DexEncodedField> fields = clazz.getDirectAndIndirectInstanceFields(appView);
+    List<DexClassAndField> fields = clazz.getDirectAndIndirectInstanceFields(appView);
     if (!fields.isEmpty()) {
       if (initializerInfo.instanceFieldInitializationMayDependOnEnvironment()) {
         return false;
@@ -348,8 +349,8 @@ public class ValueMayDependOnEnvironmentAnalysis {
 
       // Mark this value as mutable if it has a non-final field.
       boolean hasNonFinalField = false;
-      for (DexEncodedField field : fields) {
-        if (!field.isFinal()) {
+      for (DexClassAndField field : fields) {
+        if (!field.getAccessFlags().isFinal()) {
           hasNonFinalField = true;
           break;
         }

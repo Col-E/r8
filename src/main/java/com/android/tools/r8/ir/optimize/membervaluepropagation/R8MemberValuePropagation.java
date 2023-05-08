@@ -271,7 +271,7 @@ public class R8MemberValuePropagation extends MemberValuePropagation<AppInfoWith
     AbstractValue abstractValue;
     if (field.getType().isAlwaysNull(appView)) {
       abstractValue = appView.abstractValueFactory().createSingleNumberValue(0);
-    } else if (appView.appInfo().isFieldWrittenByFieldPutInstruction(definition)) {
+    } else if (appView.appInfo().isFieldWrittenByFieldPutInstruction(target)) {
       abstractValue = definition.getOptimizationInfo().getAbstractValue();
       if (abstractValue.isUnknown() && !definition.isStatic()) {
         AbstractValue abstractReceiverValue =
@@ -350,8 +350,7 @@ public class R8MemberValuePropagation extends MemberValuePropagation<AppInfoWith
     // If the field is read, we can't remove the instance-put unless the value of the field is known
     // to be null (in which case the instance-put is a no-op because it assigns the field the same
     // value as its default value).
-    if (field.getType().isAlwaysNull(appView)
-        || !appView.appInfo().isFieldRead(field.getDefinition())) {
+    if (field.getType().isAlwaysNull(appView) || !appView.appInfo().isFieldRead(field)) {
       iterator.replaceCurrentInstructionByNullCheckIfPossible(appView, code.context());
       return;
     }
@@ -376,8 +375,7 @@ public class R8MemberValuePropagation extends MemberValuePropagation<AppInfoWith
     // If the field is read, we can't remove the static-put unless the value of the field is known
     // to be null (in which case the static-put is a no-op because it assigns the field the same
     // value as its default value).
-    if (field.getType().isAlwaysNull(appView)
-        || !appView.appInfo().isFieldRead(field.getDefinition())) {
+    if (field.getType().isAlwaysNull(appView) || !appView.appInfo().isFieldRead(field)) {
       iterator.removeOrReplaceCurrentInstructionByInitClassIfPossible(
           appView, code, field.getHolderType());
       return;

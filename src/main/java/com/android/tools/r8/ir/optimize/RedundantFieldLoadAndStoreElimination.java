@@ -514,7 +514,7 @@ public class RedundantFieldLoadAndStoreElimination {
                 invoke.getArgument(info.asArgumentInitializationInfo().getArgumentIndex());
             Value object = invoke.getReceiver().getAliasedValue();
             FieldAndObject fieldAndObject = new FieldAndObject(field.getReference(), object);
-            if (field.isFinal()) {
+            if (field.getAccessFlags().isFinal()) {
               activeState.putFinalInstanceField(fieldAndObject, new ExistingValue(value));
             } else {
               activeState.putNonFinalInstanceField(fieldAndObject, new ExistingValue(value));
@@ -524,7 +524,7 @@ public class RedundantFieldLoadAndStoreElimination {
             if (value.isMaterializableInContext(appViewWithLiveness, method)) {
               Value object = invoke.getReceiver().getAliasedValue();
               FieldAndObject fieldAndObject = new FieldAndObject(field.getReference(), object);
-              if (field.isFinal()) {
+              if (field.getAccessFlags().isFinal()) {
                 activeState.putFinalInstanceField(fieldAndObject, new MaterializableValue(value));
               } else {
                 activeState.putNonFinalInstanceField(

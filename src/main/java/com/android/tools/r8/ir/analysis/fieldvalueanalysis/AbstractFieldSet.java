@@ -5,6 +5,7 @@
 package com.android.tools.r8.ir.analysis.fieldvalueanalysis;
 
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.DexClassAndField;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.PrunedItems;
 import com.android.tools.r8.graph.lens.GraphLens;
@@ -45,7 +46,7 @@ public abstract class AbstractFieldSet {
     return null;
   }
 
-  public abstract boolean contains(DexEncodedField field);
+  public abstract boolean contains(DexClassAndField field);
 
   public abstract boolean isEmpty();
 

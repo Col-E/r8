@@ -2011,9 +2011,9 @@ public class RootSetUtils {
                 if (field != null
                     && (field.getAccessFlags().isStatic()
                         || isKeptDirectlyOrIndirectly(field.getHolderType(), appView))) {
-                  assert appView.appInfo().isFieldRead(field.getDefinition())
+                  assert appView.appInfo().isFieldRead(field)
                       : "Expected kept field `" + fieldReference.toSourceString() + "` to be read";
-                  assert appView.appInfo().isFieldWritten(field.getDefinition())
+                  assert appView.appInfo().isFieldWritten(field)
                       : "Expected kept field `"
                           + fieldReference.toSourceString()
                           + "` to be written";

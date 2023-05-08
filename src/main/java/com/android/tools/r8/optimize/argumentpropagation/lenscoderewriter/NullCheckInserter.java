@@ -199,7 +199,7 @@ public abstract class NullCheckInserter {
         DexField rewrittenField = appView.graphLens().lookupField(field, graphLens);
         FieldResolutionResult resolutionResult = appView.appInfo().resolveField(rewrittenField);
         return resolutionResult.isSingleFieldResolutionResult()
-            && !appView.appInfo().isFieldRead(resolutionResult.getResolvedField());
+            && !appView.appInfo().isFieldRead(resolutionResult.getResolutionPair());
       }
       return false;
     }

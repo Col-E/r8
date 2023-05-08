@@ -12,6 +12,7 @@ import com.android.tools.r8.cf.CfVersion;
 import com.android.tools.r8.features.ClassToFeatureSplitMap;
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.Definition;
 import com.android.tools.r8.graph.DexCallSite;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexClassAndField;
@@ -873,38 +874,36 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
     return false;
   }
 
-  public boolean isFieldRead(DexEncodedField encodedField) {
+  public boolean isFieldRead(DexClassAndField field) {
     assert checkIfObsolete();
-    DexField field = encodedField.getReference();
-    FieldAccessInfo info = getFieldAccessInfoCollection().get(field);
+    FieldAccessInfo info = getFieldAccessInfoCollection().get(field.getReference());
     if (info != null && info.isRead()) {
       return true;
     }
-    if (isPinned(encodedField)) {
+    if (isPinned(field)) {
       return true;
     }
-    // For library classes we don't know whether a field is read.
-    return isLibraryOrClasspathField(encodedField);
+    // For non-program classes we don't know whether a field is read.
+    return !field.isProgramField();
   }
 
-  public boolean isFieldWritten(DexEncodedField encodedField) {
+  public boolean isFieldWritten(DexClassAndField field) {
     assert checkIfObsolete();
-    return isFieldWrittenByFieldPutInstruction(encodedField) || isPinned(encodedField);
+    return isFieldWrittenByFieldPutInstruction(field) || isPinned(field);
   }
 
-  public boolean isFieldWrittenByFieldPutInstruction(DexEncodedField encodedField) {
+  public boolean isFieldWrittenByFieldPutInstruction(DexClassAndField field) {
     assert checkIfObsolete();
-    DexField field = encodedField.getReference();
-    FieldAccessInfo info = getFieldAccessInfoCollection().get(field);
+    FieldAccessInfo info = getFieldAccessInfoCollection().get(field.getReference());
     if (info != null && info.isWritten()) {
       // The field is written directly by the program itself.
       return true;
     }
-    // For library classes we don't know whether a field is rewritten.
-    return isLibraryOrClasspathField(encodedField);
+    // For non-program classes we don't know whether a field is rewritten.
+    return !field.isProgramField();
   }
 
-  public boolean isFieldOnlyWrittenInMethod(DexEncodedField field, DexEncodedMethod method) {
+  public boolean isFieldOnlyWrittenInMethod(DexClassAndField field, DexEncodedMethod method) {
     assert checkIfObsolete();
     assert isFieldWritten(field) : "Expected field `" + field.toSourceString() + "` to be written";
     if (isPinned(field)) {
@@ -914,7 +913,7 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
   }
 
   public boolean isFieldOnlyWrittenInMethodIgnoringPinning(
-      DexEncodedField field, DexEncodedMethod method) {
+      DexClassAndField field, DexEncodedMethod method) {
     assert checkIfObsolete();
     assert isFieldWritten(field) : "Expected field `" + field.toSourceString() + "` to be written";
     FieldAccessInfo fieldAccessInfo = getFieldAccessInfoCollection().get(field.getReference());
@@ -924,10 +923,6 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
   }
 
   public boolean isInstanceFieldWrittenOnlyInInstanceInitializers(DexClassAndField field) {
-    return isInstanceFieldWrittenOnlyInInstanceInitializers(field.getDefinition());
-  }
-
-  public boolean isInstanceFieldWrittenOnlyInInstanceInitializers(DexEncodedField field) {
     assert checkIfObsolete();
     assert isFieldWritten(field) : "Expected field `" + field.toSourceString() + "` to be written";
     if (isPinned(field)) {
@@ -946,20 +941,12 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
                     .isOrWillBeInlinedIntoInstanceInitializer(dexItemFactory()));
   }
 
-  public boolean isStaticFieldWrittenOnlyInEnclosingStaticInitializer(DexEncodedField field) {
+  public boolean isStaticFieldWrittenOnlyInEnclosingStaticInitializer(DexClassAndField field) {
     assert checkIfObsolete();
     assert isFieldWritten(field) : "Expected field `" + field.toSourceString() + "` to be written";
     DexEncodedMethod staticInitializer =
         definitionFor(field.getHolderType()).asProgramClass().getClassInitializer();
     return staticInitializer != null && isFieldOnlyWrittenInMethod(field, staticInitializer);
-  }
-
-  public boolean mayPropagateArgumentsTo(ProgramMethod method) {
-    DexMethod reference = method.getReference();
-    return method.getDefinition().hasCode()
-        && !method.getDefinition().isLibraryMethodOverride().isPossiblyTrue()
-        && !neverReprocess.contains(reference)
-        && !keepInfo.getMethodInfo(method).isPinned(options());
   }
 
   public boolean mayPropagateValueFor(
@@ -995,11 +982,6 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
       return false;
     }
     return true;
-  }
-
-  private boolean isLibraryOrClasspathField(DexEncodedField field) {
-    DexClass holder = definitionFor(field.getHolderType());
-    return holder == null || holder.isLibraryClass() || holder.isClasspathClass();
   }
 
   public boolean isInstantiatedInterface(DexProgramClass clazz) {
@@ -1075,9 +1057,10 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
     return keepInfo.isPinned(clazz, options());
   }
 
-  public boolean isPinned(ProgramDefinition definition) {
+  public boolean isPinned(Definition definition) {
     assert definition != null;
-    return keepInfo.isPinned(definition, options());
+    return definition.isProgramDefinition()
+        && keepInfo.isPinned(definition.asProgramDefinition(), options());
   }
 
   public boolean hasPinnedInstanceInitializer(DexType type) {

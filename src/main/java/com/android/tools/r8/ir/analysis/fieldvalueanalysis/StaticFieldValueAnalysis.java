@@ -11,6 +11,7 @@ import static com.android.tools.r8.ir.code.Opcodes.STATIC_PUT;
 
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
+import com.android.tools.r8.graph.DexClassAndField;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DexValue;
@@ -113,19 +114,20 @@ public class StaticFieldValueAnalysis extends FieldValueAnalysis {
           } else {
             assert false : value.getClass().getName();
           }
-        });
+        },
+        appView);
   }
 
   @Override
-  boolean isSubjectToOptimization(DexEncodedField field) {
-    return field.isStatic()
+  boolean isSubjectToOptimization(DexClassAndField field) {
+    return field.getAccessFlags().isStatic()
         && field.getHolderType() == context.getHolderType()
         && appView.appInfo().isFieldOnlyWrittenInMethod(field, context.getDefinition());
   }
 
   @Override
-  boolean isSubjectToOptimizationIgnoringPinning(DexEncodedField field) {
-    return field.isStatic()
+  boolean isSubjectToOptimizationIgnoringPinning(DexClassAndField field) {
+    return field.getAccessFlags().isStatic()
         && field.getHolderType() == context.getHolderType()
         && appView
             .appInfo()
@@ -133,13 +135,13 @@ public class StaticFieldValueAnalysis extends FieldValueAnalysis {
   }
 
   @Override
-  void updateFieldOptimizationInfo(DexEncodedField field, FieldInstruction fieldPut, Value value) {
+  void updateFieldOptimizationInfo(DexClassAndField field, FieldInstruction fieldPut, Value value) {
     AbstractValue abstractValue = getOrComputeAbstractValue(value, field);
     updateFieldOptimizationInfo(field, value, abstractValue, false);
   }
 
   void updateFieldOptimizationInfo(
-      DexEncodedField field, Value value, AbstractValue abstractValue, boolean maybeNull) {
+      DexClassAndField field, Value value, AbstractValue abstractValue, boolean maybeNull) {
     builder.recordStaticField(field, abstractValue, appView.dexItemFactory());
 
     // We cannot modify FieldOptimizationInfo of pinned fields.
@@ -165,7 +167,7 @@ public class StaticFieldValueAnalysis extends FieldValueAnalysis {
   }
 
   public void updateFieldOptimizationInfoWith2Values(
-      DexEncodedField field, Value valuePut, DexValue valueBeforePut) {
+      DexClassAndField field, Value valuePut, DexValue valueBeforePut) {
     // We are interested in the AbstractValue only if it's null or a value, so we can use the value
     // if the code is protected by a null check.
     if (valueBeforePut != DexValueNull.NULL) {
@@ -177,7 +179,7 @@ public class StaticFieldValueAnalysis extends FieldValueAnalysis {
     updateFieldOptimizationInfo(field, valuePut, abstractValue, true);
   }
 
-  private AbstractValue getOrComputeAbstractValue(Value value, DexEncodedField field) {
+  private AbstractValue getOrComputeAbstractValue(Value value, DexClassAndField field) {
     Value root = value.getAliasedValue();
     AbstractValue abstractValue = root.getAbstractValue(appView, context);
     if (!abstractValue.isSingleValue()) {
@@ -186,7 +188,7 @@ public class StaticFieldValueAnalysis extends FieldValueAnalysis {
     return abstractValue;
   }
 
-  private SingleFieldValue computeSingleFieldValue(DexEncodedField field, Value value) {
+  private SingleFieldValue computeSingleFieldValue(DexClassAndField field, Value value) {
     assert !value.hasAliasedValue();
     SingleFieldValue result = computeSingleEnumFieldValue(value);
     if (result != null) {

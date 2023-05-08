@@ -107,6 +107,7 @@ import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.KeepInfoCollection;
 import com.android.tools.r8.utils.Reporter;
 import com.android.tools.r8.utils.StringDiagnostic;
+import com.android.tools.r8.utils.TraversalContinuation;
 import com.android.tools.r8.utils.collections.ImmutableInt2ReferenceSortedMap;
 import com.android.tools.r8.utils.collections.LongLivedClassSetBuilder;
 import com.android.tools.r8.utils.collections.LongLivedProgramMethodMapBuilder;
@@ -860,89 +861,102 @@ public class EnumUnboxerImpl extends EnumUnboxer {
     // This maps the ordinal to the object state, note that some fields may have been removed,
     // hence the entry is in this map but not the enumToOrdinalMap.
     Int2ReferenceMap<ObjectState> ordinalToObjectState = new Int2ReferenceArrayMap<>();
-    // Any fields matching the expected $VALUES content can be recorded here, they have however
-    // all the same content.
-    ImmutableSet.Builder<DexField> valuesField = ImmutableSet.builder();
-    EnumValuesObjectState valuesContents = null;
 
-    EnumStaticFieldValues enumStaticFieldValues = staticFieldValuesMap.get(enumClass.type);
-    if (enumStaticFieldValues == null) {
+    if (!staticFieldValuesMap.containsKey(enumClass.getType())) {
       reportFailure(enumClass, new MissingEnumStaticFieldValuesReason());
       return null;
     }
 
-    enumStaticFieldValues =
-        enumStaticFieldValues.rewrittenWithLens(appView, appView.graphLens(), appView.codeLens());
+    EnumStaticFieldValues enumStaticFieldValues =
+        staticFieldValuesMap
+            .get(enumClass.getType())
+            .rewrittenWithLens(appView, appView.graphLens(), appView.codeLens());
     Set<DexType> enumSubtypes = enumUnboxingCandidatesInfo.getSubtypes(enumClass.getType());
 
     // Step 1: We iterate over the field to find direct enum instance information and the values
     // fields.
-    for (DexEncodedField staticField : enumClass.staticFields()) {
-      // The field might be specialized while the data was recorded without the specialization.
-      if (factory.enumMembers.isEnumField(staticField, enumClass.type, enumSubtypes)) {
-        ObjectState enumState =
-            enumStaticFieldValues.getObjectStateForPossiblyPinnedField(staticField.getReference());
-        if (enumState == null) {
-          assert enumStaticFieldValues.getObjectStateForPossiblyPinnedField(
-                  staticField.getReference().withType(enumClass.type, factory))
-              == null;
-          if (staticField.getOptimizationInfo().isDead()) {
-            // We don't care about unused field data.
-            continue;
-          }
-          // We could not track the content of that field. We bail out.
-          reportFailure(
-              enumClass, new MissingObjectStateForEnumInstanceReason(staticField.getReference()));
-          return null;
-        }
-        OptionalInt optionalOrdinal = getOrdinal(enumState);
-        if (!optionalOrdinal.isPresent()) {
-          reportFailure(
-              enumClass,
-              new MissingInstanceFieldValueForEnumInstanceReason(
-                  factory.enumMembers.ordinalField, staticField.getReference()));
-          return null;
-        }
-        int ordinal = optionalOrdinal.getAsInt();
-        unboxedValues.put(staticField.getReference(), ordinalToUnboxedInt(ordinal));
-        ordinalToObjectState.put(ordinal, enumState);
-        if (isEnumWithSubtypes) {
-          DynamicType dynamicType = staticField.getOptimizationInfo().getDynamicType();
-          if (dynamicType.isExactClassType()) {
-            valueTypes.put(ordinal, dynamicType.getExactClassType().getClassType());
-          } else {
-            reportFailure(
-                enumClass,
-                new MissingExactDynamicEnumTypeForEnumWithSubtypesReason(
-                    staticField.getReference()));
-            return null;
-          }
-        }
-      } else if (factory.enumMembers.isValuesFieldCandidate(staticField, enumClass.type)) {
-        ObjectState valuesState =
-            enumStaticFieldValues.getObjectStateForPossiblyPinnedField(staticField.getReference());
-        if (valuesState == null) {
-          if (staticField.getOptimizationInfo().isDead()) {
-            // We don't care about unused field data.
-            continue;
-          }
-          // We could not track the content of that field. We bail out.
-          // We could not track the content of that field, and the field could be a values field.
-          // We conservatively bail out.
-          reportFailure(
-              enumClass, new MissingContentsForEnumValuesArrayReason(staticField.getReference()));
-          return null;
-        }
-        assert valuesState.isEnumValuesObjectState();
-        assert valuesContents == null
-            || valuesContents.equals(valuesState.asEnumValuesObjectState());
-        valuesContents = valuesState.asEnumValuesObjectState();
-        valuesField.add(staticField.getReference());
-      }
+    ImmutableSet.Builder<DexField> valuesField = ImmutableSet.builder();
+    TraversalContinuation<?, EnumValuesObjectState> traversalContinuation =
+        enumClass.traverseProgramFields(
+            (field, valuesContents) -> {
+              if (!field.getAccessFlags().isStatic()) {
+                return TraversalContinuation.doContinue(valuesContents);
+              }
+              // The field might be specialized while the data was recorded without the
+              // specialization.
+              if (factory.enumMembers.isEnumField(field, enumClass.type, enumSubtypes)) {
+                ObjectState enumState =
+                    enumStaticFieldValues.getObjectStateForPossiblyPinnedField(
+                        field.getReference());
+                if (enumState == null) {
+                  assert enumStaticFieldValues.getObjectStateForPossiblyPinnedField(
+                          field.getReference().withType(enumClass.type, factory))
+                      == null;
+                  if (field.getOptimizationInfo().isDead()) {
+                    // We don't care about unused field data.
+                    return TraversalContinuation.doContinue(valuesContents);
+                  }
+                  // We could not track the content of that field. We bail out.
+                  reportFailure(
+                      enumClass, new MissingObjectStateForEnumInstanceReason(field.getReference()));
+                  return TraversalContinuation.doBreak();
+                }
+                OptionalInt optionalOrdinal = getOrdinal(enumState);
+                if (!optionalOrdinal.isPresent()) {
+                  reportFailure(
+                      enumClass,
+                      new MissingInstanceFieldValueForEnumInstanceReason(
+                          factory.enumMembers.ordinalField, field.getReference()));
+                  return TraversalContinuation.doBreak();
+                }
+                int ordinal = optionalOrdinal.getAsInt();
+                unboxedValues.put(field.getReference(), ordinalToUnboxedInt(ordinal));
+                ordinalToObjectState.put(ordinal, enumState);
+                if (isEnumWithSubtypes) {
+                  DynamicType dynamicType = field.getOptimizationInfo().getDynamicType();
+                  if (dynamicType.isExactClassType()) {
+                    valueTypes.put(ordinal, dynamicType.getExactClassType().getClassType());
+                  } else {
+                    reportFailure(
+                        enumClass,
+                        new MissingExactDynamicEnumTypeForEnumWithSubtypesReason(
+                            field.getReference()));
+                    return TraversalContinuation.doBreak();
+                  }
+                }
+              } else if (factory.enumMembers.isValuesFieldCandidate(field, enumClass.type)) {
+                ObjectState valuesState =
+                    enumStaticFieldValues.getObjectStateForPossiblyPinnedField(
+                        field.getReference());
+                if (valuesState == null) {
+                  if (field.getOptimizationInfo().isDead()) {
+                    // We don't care about unused field data.
+                    return TraversalContinuation.doContinue(valuesContents);
+                  }
+                  // We could not track the content of that field. We bail out.
+                  // We could not track the content of that field, and the field could be a values
+                  // field.
+                  // We conservatively bail out.
+                  reportFailure(
+                      enumClass, new MissingContentsForEnumValuesArrayReason(field.getReference()));
+                  return TraversalContinuation.doBreak();
+                }
+                assert valuesState.isEnumValuesObjectState();
+                assert valuesContents == null
+                    || valuesContents.equals(valuesState.asEnumValuesObjectState());
+                valuesContents = valuesState.asEnumValuesObjectState();
+                valuesField.add(field.getReference());
+              }
+              return TraversalContinuation.doContinue(valuesContents);
+            },
+            null);
+    if (traversalContinuation.shouldBreak()) {
+      return null;
     }
 
     // Step 2: We complete the information based on the values content, since some enum instances
     // may be reachable only though the $VALUES field.
+    EnumValuesObjectState valuesContents = traversalContinuation.asContinue().getValue();
     if (valuesContents != null) {
       for (int ordinal = 0; ordinal < valuesContents.getEnumValuesSize(); ordinal++) {
         if (!ordinalToObjectState.containsKey(ordinal)) {

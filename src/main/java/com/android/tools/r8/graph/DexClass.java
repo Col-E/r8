@@ -1152,11 +1152,11 @@ public abstract class DexClass extends DexDefinition
     return fieldCollection.hasInstanceFields();
   }
 
-  public List<DexEncodedField> getDirectAndIndirectInstanceFields(AppView<?> appView) {
-    List<DexEncodedField> result = new ArrayList<>();
+  public List<DexClassAndField> getDirectAndIndirectInstanceFields(AppView<?> appView) {
+    List<DexClassAndField> result = new ArrayList<>();
     DexClass current = this;
     while (current != null && current.type != appView.dexItemFactory().objectType) {
-      result.addAll(current.instanceFields());
+      current.forEachClassFieldMatching(DexEncodedField::isInstance, result::add);
       current = appView.definitionFor(current.superType);
     }
     return result;

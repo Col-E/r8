@@ -11,6 +11,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.SortedMap;
+import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
@@ -46,14 +47,34 @@ public class FieldMapBacking extends FieldCollectionBacking {
   }
 
   @Override
-  TraversalContinuation<?, ?> traverse(Function<DexEncodedField, TraversalContinuation<?, ?>> fn) {
-    for (DexEncodedField field : fieldMap.values()) {
-      TraversalContinuation<?, ?> result = fn.apply(field);
-      if (result.shouldBreak()) {
-        return result;
+  <BT, CT> TraversalContinuation<BT, CT> traverse(
+      DexClass holder, Function<? super DexClassAndField, TraversalContinuation<BT, CT>> fn) {
+    TraversalContinuation<BT, CT> traversalContinuation = TraversalContinuation.doContinue();
+    for (DexEncodedField definition : fieldMap.values()) {
+      DexClassAndField field = DexClassAndField.create(holder, definition);
+      traversalContinuation = fn.apply(field);
+      if (traversalContinuation.shouldBreak()) {
+        return traversalContinuation;
       }
     }
-    return TraversalContinuation.doContinue();
+    return traversalContinuation;
+  }
+
+  @Override
+  <BT, CT> TraversalContinuation<BT, CT> traverse(
+      DexClass holder,
+      BiFunction<? super DexClassAndField, ? super CT, TraversalContinuation<BT, CT>> fn,
+      CT initialValue) {
+    TraversalContinuation<BT, CT> traversalContinuation =
+        TraversalContinuation.doContinue(initialValue);
+    for (DexEncodedField definition : fieldMap.values()) {
+      DexClassAndField field = DexClassAndField.create(holder, definition);
+      traversalContinuation = fn.apply(field, traversalContinuation.asContinue().getValue());
+      if (traversalContinuation.shouldBreak()) {
+        return traversalContinuation;
+      }
+    }
+    return traversalContinuation;
   }
 
   @Override

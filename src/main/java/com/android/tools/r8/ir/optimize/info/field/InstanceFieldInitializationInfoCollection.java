@@ -30,11 +30,11 @@ public abstract class InstanceFieldInitializationInfoCollection {
 
   public abstract void forEach(
       DexDefinitionSupplier definitions,
-      BiConsumer<DexEncodedField, InstanceFieldInitializationInfo> consumer);
+      BiConsumer<DexClassAndField, InstanceFieldInitializationInfo> consumer);
 
   public abstract void forEachWithDeterministicOrder(
       DexDefinitionSupplier definitions,
-      BiConsumer<DexEncodedField, InstanceFieldInitializationInfo> consumer);
+      BiConsumer<DexClassAndField, InstanceFieldInitializationInfo> consumer);
 
   public abstract InstanceFieldInitializationInfo get(DexEncodedField field);
 
@@ -55,7 +55,7 @@ public abstract class InstanceFieldInitializationInfoCollection {
     TreeMap<DexField, InstanceFieldInitializationInfo> infos = new TreeMap<>(DexField::compareTo);
 
     public void recordInitializationInfo(
-        DexEncodedField field, InstanceFieldInitializationInfo info) {
+        DexClassAndField field, InstanceFieldInitializationInfo info) {
       recordInitializationInfo(field.getReference(), info);
     }
 

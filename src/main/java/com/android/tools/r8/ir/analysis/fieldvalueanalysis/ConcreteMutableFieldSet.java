@@ -6,6 +6,7 @@ package com.android.tools.r8.ir.analysis.fieldvalueanalysis;
 
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
+import com.android.tools.r8.graph.DexClassAndField;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.PrunedItems;
@@ -69,6 +70,11 @@ public class ConcreteMutableFieldSet extends AbstractFieldSet implements KnownFi
   @Override
   public boolean contains(DexEncodedField field) {
     return fields.contains(field);
+  }
+
+  @Override
+  public boolean contains(DexClassAndField field) {
+    return contains(field.getDefinition());
   }
 
   @Override

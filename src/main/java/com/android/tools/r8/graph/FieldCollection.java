@@ -8,6 +8,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.List;
+import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
@@ -49,8 +50,8 @@ public class FieldCollection {
     return backing.size();
   }
 
-  public void forEachField(Consumer<DexEncodedField> fn) {
-    backing.traverse(
+  public void forEachField(Consumer<DexClassAndField> fn) {
+    traverse(
         field -> {
           fn.accept(field);
           return TraversalContinuation.doContinue();
@@ -61,12 +62,28 @@ public class FieldCollection {
     return backing.fields(predicate);
   }
 
+  public <BT, CT> TraversalContinuation<BT, CT> traverse(
+      Function<? super DexClassAndField, TraversalContinuation<BT, CT>> fn) {
+    return backing.traverse(holder, fn);
+  }
+
+  public <BT, CT> TraversalContinuation<BT, CT> traverse(
+      BiFunction<? super DexClassAndField, ? super CT, TraversalContinuation<BT, CT>> fn,
+      CT initialValue) {
+    return backing.traverse(holder, fn, initialValue);
+  }
+
   public boolean verify() {
     forEachField(
         field -> {
           assert verifyCorrectnessOfFieldHolder(field);
         });
     assert backing.verify();
+    return true;
+  }
+
+  private boolean verifyCorrectnessOfFieldHolder(DexClassAndField field) {
+    assert verifyCorrectnessOfFieldHolder(field.getDefinition());
     return true;
   }
 
@@ -163,18 +180,13 @@ public class FieldCollection {
 
   public List<DexEncodedField> allFieldsSorted() {
     List<DexEncodedField> sorted = new ArrayList<>(size());
-    forEachField(sorted::add);
+    forEachField(field -> sorted.add(field.getDefinition()));
     sorted.sort(Comparator.comparing(DexEncodedMember::getReference));
     return sorted;
   }
 
   public boolean hasAnnotations() {
-    return backing
-        .traverse(
-            field ->
-                field.hasAnnotations()
-                    ? TraversalContinuation.doBreak()
-                    : TraversalContinuation.doContinue())
+    return traverse(field -> TraversalContinuation.breakIf(field.getDefinition().hasAnnotations()))
         .shouldBreak();
   }
 }

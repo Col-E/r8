@@ -1990,26 +1990,28 @@ public class DexItemFactory {
       return field == nameField || field == ordinalField;
     }
 
-    public boolean isEnumFieldCandidate(DexEncodedField staticField) {
-      assert staticField.isStatic();
-      return staticField.isEnum() && staticField.isFinal();
+    public boolean isEnumFieldCandidate(DexClassAndField staticField) {
+      FieldAccessFlags accessFlags = staticField.getAccessFlags();
+      assert accessFlags.isStatic();
+      return accessFlags.isEnum() && accessFlags.isFinal();
     }
 
     // In some case, the enum field may be respecialized to an enum subtype. In this case, one
     // can pass the encoded field as well as the field with the super enum type for the checks.
     public boolean isEnumField(
-        DexEncodedField staticField, DexType enumType, Set<DexType> subtypes) {
-      assert staticField.isStatic();
+        DexClassAndField staticField, DexType enumType, Set<DexType> subtypes) {
+      assert staticField.getAccessFlags().isStatic();
       return (staticField.getType() == enumType || subtypes.contains(staticField.getType()))
           && isEnumFieldCandidate(staticField);
     }
 
-    public boolean isValuesFieldCandidate(DexEncodedField staticField, DexType enumType) {
-      assert staticField.isStatic();
+    public boolean isValuesFieldCandidate(DexClassAndField staticField, DexType enumType) {
+      FieldAccessFlags accessFlags = staticField.getAccessFlags();
+      assert accessFlags.isStatic();
       return staticField.getType().isArrayType()
           && staticField.getType().toArrayElementType(DexItemFactory.this) == enumType
-          && staticField.isSynthetic()
-          && staticField.isFinal();
+          && accessFlags.isSynthetic()
+          && accessFlags.isFinal();
     }
   }
 

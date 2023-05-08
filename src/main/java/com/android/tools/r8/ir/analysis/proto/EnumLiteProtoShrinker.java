@@ -6,7 +6,7 @@ package com.android.tools.r8.ir.analysis.proto;
 
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.graph.AppView;
-import com.android.tools.r8.graph.DexEncodedField;
+import com.android.tools.r8.graph.DexClassAndField;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexMethod;
@@ -84,8 +84,8 @@ public class EnumLiteProtoShrinker {
     if (clazz.getInterfaces().contains(references.enumLiteMapType)) {
       DexProgramClass enumLite = computeCorrespondingEnumLite(clazz);
       if (enumLite != null) {
-        DexEncodedField field =
-            enumLite.lookupField(createInternalValueMapField(enumLite.getType()));
+        DexClassAndField field =
+            enumLite.lookupClassField(createInternalValueMapField(enumLite.getType()));
         if (field == null) {
           return false;
         }

@@ -5,6 +5,7 @@
 package com.android.tools.r8.ir.analysis.fieldvalueanalysis;
 
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.DexClassAndField;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexValue;
@@ -26,12 +27,13 @@ import com.android.tools.r8.ir.optimize.info.field.UnknownInstanceFieldInitializ
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.DequeUtils;
 import com.android.tools.r8.utils.ListUtils;
+import com.android.tools.r8.utils.collections.DexClassAndFieldMap;
+import com.google.common.collect.Iterables;
 import java.util.ArrayList;
 import java.util.Deque;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 
 public abstract class FieldValueAnalysis {
 
@@ -55,7 +57,8 @@ public abstract class FieldValueAnalysis {
   private DominatorTree dominatorTree;
   private Map<BasicBlock, AbstractFieldSet> fieldsMaybeReadBeforeBlockInclusiveCache;
 
-  final Map<DexEncodedField, List<FieldInitializationInfo>> putsPerField = new IdentityHashMap<>();
+  final DexClassAndFieldMap<List<FieldInitializationInfo>> putsPerField =
+      DexClassAndFieldMap.create();
 
   FieldValueAnalysis(
       AppView<AppInfoWithLiveness> appView, IRCode code, OptimizationFeedback feedback) {
@@ -95,16 +98,16 @@ public abstract class FieldValueAnalysis {
     return null;
   }
 
-  abstract boolean isSubjectToOptimizationIgnoringPinning(DexEncodedField field);
+  abstract boolean isSubjectToOptimizationIgnoringPinning(DexClassAndField field);
 
-  abstract boolean isSubjectToOptimization(DexEncodedField field);
+  abstract boolean isSubjectToOptimization(DexClassAndField field);
 
-  void recordFieldPut(DexEncodedField field, Instruction instruction) {
+  void recordFieldPut(DexClassAndField field, Instruction instruction) {
     recordFieldPut(field, instruction, UnknownInstanceFieldInitializationInfo.getInstance());
   }
 
   void recordFieldPut(
-      DexEncodedField field, Instruction instruction, InstanceFieldInitializationInfo info) {
+      DexClassAndField field, Instruction instruction, InstanceFieldInitializationInfo info) {
     putsPerField
         .computeIfAbsent(field, ignore -> new ArrayList<>())
         .add(new FieldInitializationInfo(instruction, info));
@@ -116,24 +119,19 @@ public abstract class FieldValueAnalysis {
 
     // Find all the static-put instructions that assign a field in the enclosing class which is
     // guaranteed to be assigned only in the current initializer.
-    boolean isStraightLineCode = true;
-    for (BasicBlock block : code.blocks) {
-      if (block.getSuccessors().size() >= 2) {
-        isStraightLineCode = false;
-      }
+    for (BasicBlock block : code.getBlocks()) {
       for (Instruction instruction : block.getInstructions()) {
         if (instruction.isFieldPut()) {
           FieldInstruction fieldPut = instruction.asFieldInstruction();
-          DexField field = fieldPut.getField();
-          ProgramField programField = appInfo.resolveField(field).getProgramField();
-          if (programField != null) {
-            DexEncodedField encodedField = programField.getDefinition();
-            if (isSubjectToOptimization(encodedField)) {
-              recordFieldPut(encodedField, fieldPut);
+          DexField fieldReference = fieldPut.getField();
+          ProgramField field = appInfo.resolveField(fieldReference).getProgramField();
+          if (field != null) {
+            if (isSubjectToOptimization(field)) {
+              recordFieldPut(field, fieldPut);
             } else if (isStaticFieldValueAnalysis()
-                && programField.getHolder().isEnum()
-                && isSubjectToOptimizationIgnoringPinning(encodedField)) {
-              recordFieldPut(encodedField, fieldPut);
+                && field.getHolder().isEnum()
+                && isSubjectToOptimizationIgnoringPinning(field)) {
+              recordFieldPut(field, fieldPut);
             }
           }
         } else if (isInstanceFieldValueAnalysis()
@@ -144,51 +142,52 @@ public abstract class FieldValueAnalysis {
       }
     }
 
+    boolean isStraightLineCode =
+        Iterables.all(code.getBlocks(), block -> block.getSuccessors().size() <= 1);
     List<BasicBlock> normalExitBlocks = code.computeNormalExitBlocks();
-    for (Entry<DexEncodedField, List<FieldInitializationInfo>> entry : putsPerField.entrySet()) {
-      DexEncodedField field = entry.getKey();
-      List<FieldInitializationInfo> fieldPuts = entry.getValue();
-      if (fieldPuts.size() > 1) {
-        continue;
-      }
-      FieldInitializationInfo info = ListUtils.first(fieldPuts);
-      Instruction instruction = info.instruction;
-      if (instruction.isInvokeDirect()) {
-        asInstanceFieldValueAnalysis()
-            .recordInstanceFieldIsInitializedWithInfo(field, info.instanceFieldInitializationInfo);
-        continue;
-      }
-      FieldInstruction fieldPut = instruction.asFieldInstruction();
-      if (!isStraightLineCode) {
-        if (!getOrCreateDominatorTree().dominatesAllOf(fieldPut.getBlock(), normalExitBlocks)) {
-          continue;
-        }
-      }
-      boolean priorReadsWillReadSameValue =
-          !classInitializerDefaultsResult.hasStaticValue(field) && fieldPut.value().isZero();
-      if (!priorReadsWillReadSameValue && fieldMaybeReadBeforeInstruction(field, fieldPut)) {
-        // TODO(b/172528424): Generalize to InstanceFieldValueAnalysis.
-        if (isStaticFieldValueAnalysis()) {
-          // At this point the value read in the field can be only the default static value, if read
-          // prior to the put, or the value put, if read after the put. We still want to record it
-          // because the default static value is typically null/0, so code present after a null/0
-          // check can take advantage of the optimization.
-          DexValue valueBeforePut = classInitializerDefaultsResult.getStaticValue(field);
-          asStaticFieldValueAnalysis()
-              .updateFieldOptimizationInfoWith2Values(field, fieldPut.value(), valueBeforePut);
-        }
-        continue;
-      }
-      updateFieldOptimizationInfo(field, fieldPut, fieldPut.value());
-    }
+    putsPerField.forEach(
+        (field, fieldPuts) -> {
+          if (fieldPuts.size() > 1) {
+            return;
+          }
+          FieldInitializationInfo info = ListUtils.first(fieldPuts);
+          Instruction instruction = info.instruction;
+          if (instruction.isInvokeDirect()) {
+            asInstanceFieldValueAnalysis()
+                .recordInstanceFieldIsInitializedWithInfo(
+                    field, info.instanceFieldInitializationInfo);
+            return;
+          }
+          FieldInstruction fieldPut = instruction.asFieldInstruction();
+          if (!isStraightLineCode) {
+            if (!getOrCreateDominatorTree().dominatesAllOf(fieldPut.getBlock(), normalExitBlocks)) {
+              return;
+            }
+          }
+          boolean priorReadsWillReadSameValue =
+              !classInitializerDefaultsResult.hasStaticValue(field) && fieldPut.value().isZero();
+          if (!priorReadsWillReadSameValue && fieldMaybeReadBeforeInstruction(field, fieldPut)) {
+            // TODO(b/172528424): Generalize to InstanceFieldValueAnalysis.
+            if (isStaticFieldValueAnalysis()) {
+              // At this point the value read in the field can be only the default static value, if
+              // read prior to the put, or the value put, if read after the put. We still want to
+              // record it because the default static value is typically null/0, so code present
+              // after a null/0 check can take advantage of the optimization.
+              DexValue valueBeforePut = classInitializerDefaultsResult.getStaticValue(field);
+              asStaticFieldValueAnalysis()
+                  .updateFieldOptimizationInfoWith2Values(field, fieldPut.value(), valueBeforePut);
+            }
+            return;
+          }
+          updateFieldOptimizationInfo(field, fieldPut, fieldPut.value());
+        });
   }
 
-  private boolean fieldMaybeReadBeforeInstruction(
-      DexEncodedField encodedField, Instruction instruction) {
+  private boolean fieldMaybeReadBeforeInstruction(DexClassAndField field, Instruction instruction) {
     BasicBlock block = instruction.getBlock();
 
     // First check if the field may be read in any of the (transitive) predecessor blocks.
-    if (fieldMaybeReadBeforeBlock(encodedField, block)) {
+    if (fieldMaybeReadBeforeBlock(field, block)) {
       return true;
     }
 
@@ -200,7 +199,7 @@ public abstract class FieldValueAnalysis {
       if (current == instruction) {
         break;
       }
-      if (current.readSet(appView, context).contains(encodedField)) {
+      if (current.readSet(appView, context).contains(field)) {
         return true;
       }
     }
@@ -209,18 +208,17 @@ public abstract class FieldValueAnalysis {
     return false;
   }
 
-  private boolean fieldMaybeReadBeforeBlock(DexEncodedField encodedField, BasicBlock block) {
+  private boolean fieldMaybeReadBeforeBlock(DexClassAndField field, BasicBlock block) {
     for (BasicBlock predecessor : block.getPredecessors()) {
-      if (fieldMaybeReadBeforeBlockInclusive(encodedField, predecessor)) {
+      if (fieldMaybeReadBeforeBlockInclusive(field, predecessor)) {
         return true;
       }
     }
     return false;
   }
 
-  private boolean fieldMaybeReadBeforeBlockInclusive(
-      DexEncodedField encodedField, BasicBlock block) {
-    return getOrCreateFieldsMaybeReadBeforeBlockInclusive().get(block).contains(encodedField);
+  private boolean fieldMaybeReadBeforeBlockInclusive(DexClassAndField field, BasicBlock block) {
+    return getOrCreateFieldsMaybeReadBeforeBlockInclusive().get(block).contains(field);
   }
 
   /**
@@ -327,5 +325,5 @@ public abstract class FieldValueAnalysis {
   }
 
   abstract void updateFieldOptimizationInfo(
-      DexEncodedField field, FieldInstruction fieldPut, Value value);
+      DexClassAndField field, FieldInstruction fieldPut, Value value);
 }

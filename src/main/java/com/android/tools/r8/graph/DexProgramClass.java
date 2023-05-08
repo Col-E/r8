@@ -34,6 +34,7 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
+import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
@@ -405,7 +406,13 @@ public class DexProgramClass extends DexClass
 
   public TraversalContinuation<?, ?> traverseProgramFields(
       Function<? super ProgramField, TraversalContinuation<?, ?>> fn) {
-    return traverseFields(field -> fn.apply(new ProgramField(this, field)));
+    return getFieldCollection().traverse(field -> fn.apply(field.asProgramField()));
+  }
+
+  public <BT, CT> TraversalContinuation<BT, CT> traverseProgramFields(
+      BiFunction<? super ProgramField, CT, TraversalContinuation<BT, CT>> fn, CT initialValue) {
+    return getFieldCollection()
+        .traverse((field, value) -> fn.apply(field.asProgramField(), value), initialValue);
   }
 
   public TraversalContinuation<?, ?> traverseProgramMethods(
@@ -488,7 +495,7 @@ public class DexProgramClass extends DexClass
     if (hasMethodsOrFields()) {
       collector.add(this);
       methodCollection.forEachMethod(m -> m.collectMixedSectionItems(collector));
-      fieldCollection.forEachField(f -> f.collectMixedSectionItems(collector));
+      fieldCollection.forEachField(f -> f.getDefinition().collectMixedSectionItems(collector));
     }
     annotations().collectMixedSectionItems(collector);
     if (interfaces != null) {
