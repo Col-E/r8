@@ -4,7 +4,7 @@
 
 package com.android.tools.r8.utils.collections;
 
-import com.android.tools.r8.graph.ProgramMember;
+import com.android.tools.r8.graph.DexClassAndMember;
 import com.google.common.base.Equivalence.Wrapper;
 import java.util.Map;
 import java.util.function.BiConsumer;
@@ -13,15 +13,15 @@ import java.util.function.BiPredicate;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
-public abstract class ProgramMemberMap<K extends ProgramMember<?, ?>, V> {
+public abstract class DexClassAndMemberMap<K extends DexClassAndMember<?, ?>, V> {
 
   private final Map<Wrapper<K>, V> backing;
 
-  ProgramMemberMap(Supplier<Map<Wrapper<K>, V>> backingFactory) {
+  DexClassAndMemberMap(Supplier<Map<Wrapper<K>, V>> backingFactory) {
     this.backing = backingFactory.get();
   }
 
-  ProgramMemberMap(Map<Wrapper<K>, V> backing) {
+  DexClassAndMemberMap(Map<Wrapper<K>, V> backing) {
     this.backing = backing;
   }
 

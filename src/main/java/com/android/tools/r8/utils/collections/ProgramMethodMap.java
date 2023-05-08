@@ -13,7 +13,7 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Supplier;
 
-public class ProgramMethodMap<V> extends ProgramMemberMap<ProgramMethod, V> {
+public class ProgramMethodMap<V> extends DexClassAndMemberMap<ProgramMethod, V> {
 
   private static final ProgramMethodMap<?> EMPTY = new ProgramMethodMap<>(ImmutableMap::of);
 

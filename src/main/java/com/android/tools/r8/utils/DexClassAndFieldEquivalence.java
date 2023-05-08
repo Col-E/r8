@@ -4,26 +4,26 @@
 
 package com.android.tools.r8.utils;
 
-import com.android.tools.r8.graph.ProgramField;
+import com.android.tools.r8.graph.DexClassAndField;
 import com.google.common.base.Equivalence;
 
-public class ProgramFieldEquivalence extends Equivalence<ProgramField> {
+public class DexClassAndFieldEquivalence extends Equivalence<DexClassAndField> {
 
-  private static final ProgramFieldEquivalence INSTANCE = new ProgramFieldEquivalence();
+  private static final DexClassAndFieldEquivalence INSTANCE = new DexClassAndFieldEquivalence();
 
-  private ProgramFieldEquivalence() {}
+  private DexClassAndFieldEquivalence() {}
 
-  public static ProgramFieldEquivalence get() {
+  public static DexClassAndFieldEquivalence get() {
     return INSTANCE;
   }
 
   @Override
-  protected boolean doEquivalent(ProgramField field, ProgramField other) {
+  protected boolean doEquivalent(DexClassAndField field, DexClassAndField other) {
     return field.getDefinition() == other.getDefinition();
   }
 
   @Override
-  protected int doHash(ProgramField field) {
+  protected int doHash(DexClassAndField field) {
     return field.getReference().hashCode();
   }
 }
