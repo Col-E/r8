@@ -410,6 +410,10 @@ public abstract class LirParsedInstructionCallback<EV> implements LirInstruction
 
   public abstract void onMonitorExit(EV value);
 
+  public void onNewUnboxedEnumInstance(DexType type, int ordinal) {
+    onInstruction();
+  }
+
   private DexItem getConstantItem(int index) {
     return code.getConstantItem(index);
   }
@@ -1057,6 +1061,13 @@ public abstract class LirParsedInstructionCallback<EV> implements LirInstruction
           NameComputationPayload payload =
               (NameComputationPayload) getConstantItem(view.getNextConstantOperand());
           onDexItemBasedConstString(item, payload.nameComputationInfo);
+          return;
+        }
+      case LirOpcodes.NEWUNBOXEDENUMINSTANCE:
+        {
+          DexType type = getNextDexTypeOperand(view);
+          int ordinal = view.getNextIntegerOperand();
+          onNewUnboxedEnumInstance(type, ordinal);
           return;
         }
       default:

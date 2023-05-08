@@ -379,4 +379,9 @@ public class LirPrinter<EV> extends LirParsedInstructionCallback<EV> {
   public void onMonitorExit(EV value) {
     appendValueArguments(value);
   }
+
+  @Override
+  public void onNewUnboxedEnumInstance(DexType type, int ordinal) {
+    appendOutValue().append("type(").append(type).append(") ordinal(").append(ordinal).append(")");
+  }
 }

@@ -60,16 +60,6 @@ public class ExamplesDebugTest extends DebugTestBase {
   }
 
   @Test
-  public void testStringBuilding() throws Exception {
-    testDebugging("stringbuilding", "StringBuilding");
-  }
-
-  @Test
-  public void testSwitches() throws Exception {
-    testDebugging("switches", "Switches");
-  }
-
-  @Test
   public void testSync() throws Exception {
     // TODO(b/79671093): Line number mismatch in D8.
     testDebuggingJvmOnly("sync", "Sync");
@@ -177,12 +167,6 @@ public class ExamplesDebugTest extends DebugTestBase {
   public void testEnclosingmethod_proguarded() throws Exception {
     // TODO(b/79671093): We don't match JVM's behavior on this example.
     testDebuggingJvmOutputOnly("enclosingmethod_proguarded", "Main");
-  }
-
-  @Test
-  public void testSwitchmaps() throws Exception {
-    // TODO(b/79671093): D8 has different line number info during stepping.
-    testDebuggingJvmOnly("switchmaps", "Switches");
   }
 
   private void testDebugging(String pkg, String clazz) throws Exception {

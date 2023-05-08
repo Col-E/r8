@@ -789,4 +789,13 @@ public class LirBuilder<V, EV> {
     return addInstructionTemplate(
         LirOpcodes.ITEMBASEDCONSTSTRING, ImmutableList.of(item, payload), Collections.emptyList());
   }
+
+  public LirBuilder<V, EV> addNewUnboxedEnumInstance(DexType clazz, int ordinal) {
+    advanceInstructionState();
+    int operandSize = constantIndexSize(clazz) + ByteUtils.intEncodingSize(ordinal);
+    writer.writeInstruction(LirOpcodes.NEWUNBOXEDENUMINSTANCE, operandSize);
+    writeConstantIndex(clazz);
+    ByteUtils.writeEncodedInt(ordinal, writer::writeOperand);
+    return this;
+  }
 }

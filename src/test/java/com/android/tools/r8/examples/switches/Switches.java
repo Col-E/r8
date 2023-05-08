@@ -5,7 +5,7 @@
 // This code is not run directly. It needs to be compiled to dex code.
 // 'switches.dex' is what is run.
 
-package switches;
+package com.android.tools.r8.examples.switches;
 
 class Switches {
 

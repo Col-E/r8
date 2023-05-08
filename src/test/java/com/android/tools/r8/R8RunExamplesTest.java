@@ -27,8 +27,6 @@ public class R8RunExamplesTest extends R8RunExamplesTestBase {
     String[] tests = {
       "arithmetic.Arithmetic",
       "inlining.Inlining",
-      "stringbuilding.StringBuilding",
-      "switches.Switches",
       "sync.Sync",
       "throwing.Throwing",
       "trivial.Trivial",
@@ -51,7 +49,6 @@ public class R8RunExamplesTest extends R8RunExamplesTestBase {
       "minification.Minification",
       "enclosingmethod.Main",
       "enclosingmethod_proguarded.Main",
-      "switchmaps.Switches",
       "uninitializedfinal.UninitializedFinalFieldLeak",
     };
 

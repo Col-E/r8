@@ -5,7 +5,7 @@
 // This code is not run directly. It needs to be compiled to dex code.
 // 'stringbuilding.dex' is what is run.
 
-package stringbuilding;
+package com.android.tools.r8.examples.stringbuilding;
 
 class StringBuilding {
 

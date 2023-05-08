@@ -56,6 +56,7 @@ import com.android.tools.r8.ir.code.Mul;
 import com.android.tools.r8.ir.code.NewArrayEmpty;
 import com.android.tools.r8.ir.code.NewArrayFilledData;
 import com.android.tools.r8.ir.code.NewInstance;
+import com.android.tools.r8.ir.code.NewUnboxedEnumInstance;
 import com.android.tools.r8.ir.code.NumberConversion;
 import com.android.tools.r8.ir.code.NumberGenerator;
 import com.android.tools.r8.ir.code.NumericType;
@@ -762,6 +763,13 @@ public class Lir2IRConverter {
       addInstruction(
           ArrayPut.createWithoutVerification(
               type, getValue(array), getValue(index), getValue(value)));
+    }
+
+    @Override
+    public void onNewUnboxedEnumInstance(DexType clazz, int ordinal) {
+      TypeElement type = TypeElement.fromDexType(clazz, Nullability.definitelyNotNull(), appView);
+      Value dest = getOutValueForNextInstruction(type);
+      addInstruction(new NewUnboxedEnumInstance(clazz, ordinal, dest));
     }
   }
 }
