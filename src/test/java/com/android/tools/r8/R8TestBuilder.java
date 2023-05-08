@@ -556,6 +556,14 @@ public abstract class R8TestBuilder<T extends R8TestBuilder<T>>
             NoFieldTypeStrengtheningRule.RULE_NAME, NoFieldTypeStrengthening.class);
   }
 
+  public T enableNoInliningOfDefaultInitializerAnnotations() {
+    return addNoInliningOfDefaultInitializerAnnotation()
+        .addInternalKeepRules(
+            "-neverinline @"
+                + NoInliningOfDefaultInitializer.class.getTypeName()
+                + " class * { <init>(); }");
+  }
+
   public T enableNoMethodStaticizingAnnotations() {
     return addNoMethodStaticizingAnnotation()
         .addInternalMatchAnnotationOnMethodRule(
