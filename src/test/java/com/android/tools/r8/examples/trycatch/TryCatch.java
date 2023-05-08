@@ -5,12 +5,11 @@
 // This code is not run directly. It needs to be compiled to dex code.
 // 'trycatch.dex' is what is run.
 
-package trycatch;
+package com.android.tools.r8.examples.trycatch;
 
 class TryCatch {
 
-
-  private static class Thrower {
+  static class Thrower {
 
     private boolean shouldThrow;
 

@@ -27,7 +27,6 @@ public class R8RunExamplesTest extends R8RunExamplesTestBase {
     String[] tests = {
       "arithmetic.Arithmetic",
       "inlining.Inlining",
-      "nestedtrycatches.NestedTryCatches",
       "regalloc.RegAlloc",
       "returns.Returns",
       "staticfield.StaticField",
@@ -36,8 +35,6 @@ public class R8RunExamplesTest extends R8RunExamplesTestBase {
       "sync.Sync",
       "throwing.Throwing",
       "trivial.Trivial",
-      "trycatch.TryCatch",
-      "trycatchmany.TryCatchMany",
       "regress.Regress",
       "regress2.Regress2",
       "regress_37726195.Regress",

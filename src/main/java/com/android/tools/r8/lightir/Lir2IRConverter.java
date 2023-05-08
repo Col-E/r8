@@ -41,6 +41,7 @@ import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.IntSwitch;
 import com.android.tools.r8.ir.code.InvokeDirect;
 import com.android.tools.r8.ir.code.InvokeInterface;
+import com.android.tools.r8.ir.code.InvokeMultiNewArray;
 import com.android.tools.r8.ir.code.InvokeNewArray;
 import com.android.tools.r8.ir.code.InvokeStatic;
 import com.android.tools.r8.ir.code.InvokeSuper;
@@ -660,6 +661,14 @@ public class Lir2IRConverter {
       TypeElement type = dest.getLocalInfo().type.toTypeElement(appView);
       dest.setType(type);
       addInstruction(new DebugLocalWrite(dest, src));
+    }
+
+    @Override
+    public void onInvokeMultiNewArray(DexType type, List<EV> arguments) {
+      Value dest =
+          getOutValueForNextInstruction(
+              type.toTypeElement(appView, Nullability.definitelyNotNull()));
+      addInstruction(new InvokeMultiNewArray(type, dest, getValues(arguments)));
     }
 
     @Override

@@ -21,6 +21,7 @@ import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.InliningConstraints;
+import com.android.tools.r8.lightir.LirBuilder;
 import com.android.tools.r8.utils.LongInterval;
 import java.util.List;
 
@@ -112,6 +113,11 @@ public class InvokeMultiNewArray extends Invoke {
   @Override
   public void buildDex(DexBuilder builder) {
     throw new Unreachable("InvokeNewArray (non-empty) not supported when compiling to dex files.");
+  }
+
+  @Override
+  public void buildLir(LirBuilder<Value, ?> builder) {
+    builder.addInvokeMultiNewArray(type, arguments());
   }
 
   @Override

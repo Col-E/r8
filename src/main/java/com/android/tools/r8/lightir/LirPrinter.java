@@ -224,6 +224,13 @@ public class LirPrinter<EV> extends LirParsedInstructionCallback<EV> {
   }
 
   @Override
+  public void onInvokeMultiNewArray(DexType type, List<EV> arguments) {
+    appendOutValue();
+    appendValueArguments(arguments);
+    builder.append(type);
+  }
+
+  @Override
   public void onInvokeNewArray(DexType type, List<EV> arguments) {
     appendOutValue();
     appendValueArguments(arguments);

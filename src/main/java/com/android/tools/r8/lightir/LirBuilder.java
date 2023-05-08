@@ -679,6 +679,11 @@ public class LirBuilder<V, EV> {
         LirOpcodes.NEWARRAY, Collections.singletonList(type), Collections.singletonList(size));
   }
 
+  public LirBuilder<V, EV> addInvokeMultiNewArray(DexType type, List<V> arguments) {
+    return addInstructionTemplate(
+        LirOpcodes.MULTIANEWARRAY, Collections.singletonList(type), arguments);
+  }
+
   public LirBuilder<V, EV> addInvokeNewArray(DexType type, List<V> arguments) {
     return addInstructionTemplate(
         LirOpcodes.INVOKENEWARRAY, Collections.singletonList(type), arguments);

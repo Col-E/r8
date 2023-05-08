@@ -103,21 +103,6 @@ public class ExamplesDebugTest extends DebugTestBase {
   }
 
   @Test
-  public void testTryCatch() throws Exception {
-    testDebugging("trycatch", "TryCatch");
-  }
-
-  @Test
-  public void testNestedTryCatches() throws Exception {
-    testDebugging("nestedtrycatches", "NestedTryCatches");
-  }
-
-  @Test
-  public void testTryCatchMany() throws Exception {
-    testDebugging("trycatchmany", "TryCatchMany");
-  }
-
-  @Test
   public void testRegress() throws Exception {
     testDebugging("regress", "Regress");
   }
