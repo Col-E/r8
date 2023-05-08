@@ -8,6 +8,7 @@ import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexMethod;
+import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ProgramMethod;
@@ -29,6 +30,7 @@ import com.android.tools.r8.ir.code.ConstNumber;
 import com.android.tools.r8.ir.code.ConstString;
 import com.android.tools.r8.ir.code.DebugLocalWrite;
 import com.android.tools.r8.ir.code.DebugPosition;
+import com.android.tools.r8.ir.code.DexItemBasedConstString;
 import com.android.tools.r8.ir.code.Div;
 import com.android.tools.r8.ir.code.Goto;
 import com.android.tools.r8.ir.code.IRCode;
@@ -72,6 +74,7 @@ import com.android.tools.r8.ir.code.Xor;
 import com.android.tools.r8.ir.conversion.MethodConversionOptions.MutableMethodConversionOptions;
 import com.android.tools.r8.lightir.LirBuilder.IntSwitchPayload;
 import com.android.tools.r8.lightir.LirCode.PositionEntry;
+import com.android.tools.r8.naming.dexitembasedstring.NameComputationInfo;
 import com.android.tools.r8.utils.ListUtils;
 import com.google.common.collect.ImmutableList;
 import it.unimi.dsi.fastutil.ints.Int2IntMap;
@@ -426,8 +429,19 @@ public class Lir2IRConverter {
 
     @Override
     public void onConstString(DexString string) {
-      Value dest = getOutValueForNextInstruction(TypeElement.stringClassType(appView));
+      Value dest =
+          getOutValueForNextInstruction(
+              TypeElement.stringClassType(appView, Nullability.definitelyNotNull()));
       addInstruction(new ConstString(dest, string));
+    }
+
+    @Override
+    public void onDexItemBasedConstString(
+        DexReference item, NameComputationInfo<?> nameComputationInfo) {
+      Value dest =
+          getOutValueForNextInstruction(
+              TypeElement.stringClassType(appView, Nullability.definitelyNotNull()));
+      addInstruction(new DexItemBasedConstString(dest, item, nameComputationInfo));
     }
 
     @Override

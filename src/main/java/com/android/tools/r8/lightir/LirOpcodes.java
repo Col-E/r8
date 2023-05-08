@@ -196,6 +196,7 @@ public interface LirOpcodes {
   int DEBUGLOCALWRITE = 213;
   int INVOKENEWARRAY = 214;
   int NEWARRAYFILLEDDATA = 215;
+  int ITEMBASEDCONSTSTRING = 216;
 
   static String toString(int opcode) {
     switch (opcode) {
@@ -512,6 +513,8 @@ public interface LirOpcodes {
         return "INVOKENEWARRAY";
       case NEWARRAYFILLEDDATA:
         return "NEWARRAYFILLEDDATA";
+      case ITEMBASEDCONSTSTRING:
+        return "ITEMBASEDCONSTSTRING";
 
       default:
         throw new Unreachable("Unexpected LIR opcode: " + opcode);

@@ -6,12 +6,14 @@ package com.android.tools.r8.lightir;
 import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexMethod;
+import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.code.IfType;
 import com.android.tools.r8.ir.code.MemberType;
 import com.android.tools.r8.ir.code.NumericType;
 import com.android.tools.r8.lightir.LirBuilder.IntSwitchPayload;
+import com.android.tools.r8.naming.dexitembasedstring.NameComputationInfo;
 import com.android.tools.r8.utils.StringUtils;
 import java.util.Arrays;
 import java.util.List;
@@ -148,6 +150,12 @@ public class LirPrinter<EV> extends LirParsedInstructionCallback<EV> {
   @Override
   public void onConstString(DexString string) {
     appendOutValue().append("str(").append(string).append(")");
+  }
+
+  @Override
+  public void onDexItemBasedConstString(
+      DexReference item, NameComputationInfo<?> nameComputationInfo) {
+    appendOutValue().append("item(").append(item).append(")");
   }
 
   @Override

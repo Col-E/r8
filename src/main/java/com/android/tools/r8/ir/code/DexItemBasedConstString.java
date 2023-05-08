@@ -22,6 +22,7 @@ import com.android.tools.r8.ir.conversion.DexBuilder;
 import com.android.tools.r8.ir.optimize.DeadCodeRemover.DeadInstructionResult;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.InliningConstraints;
+import com.android.tools.r8.lightir.LirBuilder;
 import com.android.tools.r8.naming.dexitembasedstring.NameComputationInfo;
 
 public class DexItemBasedConstString extends ConstInstruction {
@@ -86,6 +87,11 @@ public class DexItemBasedConstString extends ConstInstruction {
     builder.add(
         this,
         new com.android.tools.r8.dex.code.DexItemBasedConstString(dest, item, nameComputationInfo));
+  }
+
+  @Override
+  public void buildLir(LirBuilder<Value, ?> builder) {
+    builder.addDexItemBasedConstString(item, nameComputationInfo);
   }
 
   @Override

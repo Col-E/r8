@@ -15,6 +15,7 @@ import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItem;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
+import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
@@ -33,6 +34,7 @@ import com.android.tools.r8.ir.code.ValueType;
 import com.android.tools.r8.lightir.LirCode.DebugLocalInfoTable;
 import com.android.tools.r8.lightir.LirCode.PositionEntry;
 import com.android.tools.r8.lightir.LirCode.TryCatchTable;
+import com.android.tools.r8.naming.dexitembasedstring.NameComputationInfo;
 import com.android.tools.r8.utils.ListUtils;
 import com.google.common.collect.ImmutableList;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceMap;
@@ -122,6 +124,14 @@ public class LirBuilder<V, EV> {
       assert keys.length == targets.length;
       this.keys = keys;
       this.targets = targets;
+    }
+  }
+
+  public static class NameComputationPayload extends InstructionPayload {
+    public final NameComputationInfo<?> nameComputationInfo;
+
+    public NameComputationPayload(NameComputationInfo<?> nameComputationInfo) {
+      this.nameComputationInfo = nameComputationInfo;
     }
   }
 
@@ -771,5 +781,12 @@ public class LirBuilder<V, EV> {
     }
     return addInstructionTemplate(
         opcode, Collections.emptyList(), ImmutableList.of(array, index, value));
+  }
+
+  public LirBuilder<V, EV> addDexItemBasedConstString(
+      DexReference item, NameComputationInfo<?> nameComputationInfo) {
+    NameComputationPayload payload = new NameComputationPayload(nameComputationInfo);
+    return addInstructionTemplate(
+        LirOpcodes.ITEMBASEDCONSTSTRING, ImmutableList.of(item, payload), Collections.emptyList());
   }
 }
