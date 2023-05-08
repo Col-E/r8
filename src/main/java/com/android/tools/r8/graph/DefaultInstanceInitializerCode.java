@@ -397,6 +397,15 @@ public class DefaultInstanceInitializerCode extends Code
     return toString();
   }
 
+  @Override
+  public DexWritableCacheKey getCacheLookupKey(ProgramMethod method, DexItemFactory factory) {
+    return new AmendedDexWritableCodeKey<DexMethod>(
+        this,
+        getParentConstructor(method, factory),
+        getIncomingRegisterSize(method),
+        getRegisterSize(method));
+  }
+
   static class DefaultInstanceInitializerSourceCode extends SyntheticStraightLineSourceCode {
 
     DefaultInstanceInitializerSourceCode(DexMethod method) {

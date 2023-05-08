@@ -163,6 +163,7 @@ class IdentifierMinifier {
     assert code != null;
     if (code.isDexCode()) {
       DexInstruction[] instructions = code.asDexCode().instructions;
+      boolean updated = false;
       for (int i = 0; i < instructions.length; ++i) {
         DexInstruction instruction = instructions[i];
         if (instruction.isDexItemBasedConstString()) {
@@ -173,7 +174,11 @@ class IdentifierMinifier {
           DexConstString constString = new DexConstString(cnst.AA, replacement);
           constString.setOffset(instruction.getOffset());
           instructions[i] = constString;
+          updated = true;
         }
+      }
+      if (updated) {
+        code.asDexCode().flushCachedValues();
       }
     } else if (code.isCfCode()) {
       List<CfInstruction> instructions = code.asCfCode().getInstructions();
