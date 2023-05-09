@@ -883,12 +883,17 @@ final class InlineCandidateProcessor {
       }
     }
 
-    // Must be a constructor of the exact same class.
+    // Must be a constructor of the exact same class except when targeting ART, where constructors
+    // in the superclass hierarchy are also allowed.
     DexMethod init = invoke.getInvokedMethod();
-    if (init.holder != eligibleClass.type) {
-      // Calling a constructor on a class that is different from the type of the instance.
-      // Gracefully abort class inlining (see the test B116282409).
-      return null;
+    if (appView.options().canInitNewInstanceUsingSuperclassConstructor()) {
+      if (!appView.appInfo().isSubtype(eligibleClass.getType(), init.getHolderType())) {
+        return null;
+      }
+    } else {
+      if (eligibleClass.getType() != init.getHolderType()) {
+        return null;
+      }
     }
 
     // Check that the `eligibleInstance` does not escape via the constructor.
