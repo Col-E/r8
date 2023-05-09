@@ -8,6 +8,8 @@ import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.Code;
+import com.android.tools.r8.graph.DefaultInstanceInitializerCode;
+import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
@@ -948,7 +950,19 @@ public class IRConverter {
     }
     Code code = method.getDefinition().getCode();
     assert !code.isThrowNullCode();
-    return code.isDefaultInstanceInitializerCode();
+    if (code.isDefaultInstanceInitializerCode()) {
+      // Passthrough unless the parent constructor may be inlineable.
+      if (options.canInitNewInstanceUsingSuperclassConstructor()) {
+        DexMethod parentConstructorReference =
+            DefaultInstanceInitializerCode.getParentConstructor(method, appView.dexItemFactory());
+        DexClassAndMethod parentConstructor = appView.definitionFor(parentConstructorReference);
+        if (parentConstructor != null && parentConstructor.isProgramMethod()) {
+          return false;
+        }
+      }
+      return true;
+    }
+    return false;
   }
 
   // Compute optimization info summary for the current method unless it is pinned
