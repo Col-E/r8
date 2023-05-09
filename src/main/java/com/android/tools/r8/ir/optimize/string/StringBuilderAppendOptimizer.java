@@ -177,15 +177,17 @@ public class StringBuilderAppendOptimizer {
             previousState = result.asAbstractState();
             for (Phi phi : block.getPhis()) {
               if (previousState.isLiveStringBuilder(phi)) {
-                visitAllAliasing(
-                    phi,
-                    previousState,
-                    value -> {},
-                    alias -> {
-                      EscapeNode escapeNode = new EscapeNode();
-                      currentRoots.put(alias, escapeNode);
-                      currentTails.put(alias, escapeNode);
-                    });
+                boolean seenEscaped =
+                    visitAllAliasing(
+                        phi,
+                        previousState,
+                        value -> {},
+                        alias ->
+                            addNodeToRootAndTail(
+                                currentRoots, currentTails, alias, EscapeNode.empty()));
+                if (seenEscaped) {
+                  addNodeToRootAndTail(currentRoots, currentTails, phi, EscapeNode.empty());
+                }
               }
             }
             for (Instruction instruction : block.getInstructions()) {
@@ -198,16 +200,8 @@ public class StringBuilderAppendOptimizer {
               createNodesForInstruction(
                   instruction,
                   previousState,
-                  (value, sbNode) -> {
-                    StringBuilderNode currentTail = currentTails.get(value);
-                    if (currentTail == null) {
-                      currentRoots.put(value, sbNode);
-                      currentTails.put(value, sbNode);
-                    } else if (shouldAddNodeToGraph(currentTail, sbNode)) {
-                      currentTail.addSuccessor(sbNode);
-                      currentTails.put(value, sbNode);
-                    }
-                  });
+                  (value, sbNode) ->
+                      addNodeToRootAndTail(currentRoots, currentTails, value, sbNode));
             }
             assert currentRoots.keySet().equals(currentTails.keySet());
             assert previousState.getLiveStringBuilders().containsAll(currentRoots.keySet())
@@ -219,6 +213,21 @@ public class StringBuilderAppendOptimizer {
             return TraversalContinuation.doContinue();
           }
 
+          private void addNodeToRootAndTail(
+              Map<Value, StringBuilderNode> currentRoots,
+              Map<Value, StringBuilderNode> currentTails,
+              Value value,
+              StringBuilderNode node) {
+            StringBuilderNode currentTail = currentTails.get(value);
+            if (currentTail == null) {
+              currentRoots.put(value, node);
+              currentTails.put(value, node);
+            } else if (shouldAddNodeToGraph(currentTail, node)) {
+              currentTail.addSuccessor(node);
+              currentTails.put(value, node);
+            }
+          }
+
           private boolean shouldAddNodeToGraph(
               StringBuilderNode insertedNode, StringBuilderNode newNode) {
             // No need for multiple mutating nodes or inspecting nodes.
@@ -226,6 +235,8 @@ public class StringBuilderAppendOptimizer {
               return !newNode.isMutateNode() && !newNode.isInspectingNode();
             } else if (insertedNode.isInspectingNode()) {
               return !newNode.isInspectingNode();
+            } else if (insertedNode.isEscapeNode()) {
+              return !newNode.isEscapeNode();
             }
             return true;
           }
