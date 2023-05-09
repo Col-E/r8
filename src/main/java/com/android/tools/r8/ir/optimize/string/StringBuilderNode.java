@@ -218,12 +218,6 @@ class StringBuilderNode {
   /** EscapeNode is used to explicitly define an escape point for a StringBuilder. */
   static class EscapeNode extends StringBuilderNode {
 
-    private static EscapeNode EMPTY = new EscapeNode();
-
-    public static EscapeNode empty() {
-      return EMPTY;
-    }
-
     @Override
     boolean isEscapeNode() {
       return true;
