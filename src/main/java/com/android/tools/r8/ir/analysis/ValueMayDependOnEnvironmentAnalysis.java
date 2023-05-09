@@ -9,8 +9,8 @@ import static com.android.tools.r8.graph.DexProgramClass.asProgramClassOrNull;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexClassAndField;
+import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.DexEncodedField;
-import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexProgramClass;
@@ -33,6 +33,7 @@ import com.android.tools.r8.ir.code.NewInstance;
 import com.android.tools.r8.ir.code.StaticPut;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.optimize.info.initializer.InstanceInitializerInfo;
+import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.SetUtils;
 import com.android.tools.r8.utils.WorkList;
@@ -80,12 +81,12 @@ import java.util.Set;
  */
 public class ValueMayDependOnEnvironmentAnalysis {
 
-  private final AppView<?> appView;
+  private final AppView<AppInfoWithLiveness> appView;
   private final ProgramMethod context;
   private final DexItemFactory dexItemFactory;
   private final InternalOptions options;
 
-  public ValueMayDependOnEnvironmentAnalysis(AppView<?> appView, IRCode code) {
+  public ValueMayDependOnEnvironmentAnalysis(AppView<AppInfoWithLiveness> appView, IRCode code) {
     this.appView = appView;
     this.context = code.context();
     this.dexItemFactory = appView.dexItemFactory();
@@ -320,14 +321,24 @@ public class ValueMayDependOnEnvironmentAnalysis {
 
     // Find the single constructor invocation.
     InvokeDirect constructorInvoke = newInstance.getUniqueConstructorInvoke(dexItemFactory);
-    if (constructorInvoke == null || constructorInvoke.getInvokedMethod().holder != clazz.type) {
-      // Didn't find a (valid) constructor invocation, give up.
+    if (constructorInvoke == null) {
+      // Didn't find a constructor invocation, give up.
       return false;
     }
 
     // Check that it is a trivial initializer (otherwise, the constructor could do anything).
-    DexEncodedMethod constructor = clazz.lookupMethod(constructorInvoke.getInvokedMethod());
+    DexClassAndMethod constructor =
+        appView
+            .appInfo()
+            .resolveMethod(
+                constructorInvoke.getInvokedMethod(), constructorInvoke.getInterfaceBit())
+            .getResolutionPair();
     if (constructor == null) {
+      return false;
+    }
+
+    if (!options.canInitNewInstanceUsingSuperclassConstructor()
+        && constructor.getHolder() != clazz) {
       return false;
     }
 
