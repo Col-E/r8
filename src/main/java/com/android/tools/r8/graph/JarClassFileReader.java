@@ -899,7 +899,13 @@ public class JarClassFileReader<T extends DexClass> {
         parameterNames = new ArrayList<>(parameterCount);
         parameterFlags = new ArrayList<>(parameterCount);
       }
-      parameterNames.add(new DexValueString(parent.application.getFactory().createString(name)));
+      if (name == null) {
+        // The JVM spec defines a null entry as valid and indicating no parameter name.
+        // https://docs.oracle.com/javase/specs/jvms/se9/html/jvms-4.html#jvms-4.7.24
+        parameterNames.add(DexValueNull.NULL);
+      } else {
+        parameterNames.add(new DexValueString(parent.application.getFactory().createString(name)));
+      }
       parameterFlags.add(DexValueInt.create(access));
       super.visitParameter(name, access);
     }
