@@ -2141,6 +2141,8 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
 
     public Consumer<DebugRepresentation> debugRepresentationCallback = null;
 
+    public Consumer<DexProgramClass> globalSyntheticCreatedCallback = null;
+
     /**
      * If this flag is enabled, we will also compute the set of possible targets for invoke-
      * interface and invoke-virtual instructions that target a library method, and add the

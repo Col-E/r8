@@ -2044,4 +2044,12 @@ public class TestBase {
           "", expected.size() > actual.size() ? expected.get(minLines) : actual.get(minLines));
     }
   }
+
+  public void runGlobalSyntheticsGenerator(
+      GlobalSyntheticsGeneratorCommand command, Consumer<InternalOptions> internalOptionsConsumer)
+      throws CompilationFailedException {
+    InternalOptions internalOptions = command.getInternalOptions();
+    internalOptionsConsumer.accept(internalOptions);
+    GlobalSyntheticsGenerator.runForTesting(command.getInputApp(), internalOptions);
+  }
 }
