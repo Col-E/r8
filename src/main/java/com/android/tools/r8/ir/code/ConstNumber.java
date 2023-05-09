@@ -54,6 +54,10 @@ public class ConstNumber extends ConstInstruction {
     return instruction.asConstNumber();
   }
 
+  public static Builder builder() {
+    return new Builder();
+  }
+
   @Override
   public int opcode() {
     return Opcodes.CONST_NUMBER;
@@ -348,5 +352,25 @@ public class ConstNumber extends ConstInstruction {
   @Override
   public void buildLir(LirBuilder<Value, ?> builder) {
     builder.addConstNumber(outType(), value);
+  }
+
+  public static class Builder extends BuilderBase<Builder, ConstNumber> {
+
+    private long value;
+
+    public Builder setValue(long value) {
+      this.value = value;
+      return this;
+    }
+
+    @Override
+    public ConstNumber build() {
+      return amend(new ConstNumber(outValue, value));
+    }
+
+    @Override
+    public Builder self() {
+      return this;
+    }
   }
 }
