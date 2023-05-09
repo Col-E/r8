@@ -63,7 +63,7 @@ public class ApiModelAndroidxApiImplTest extends TestBase {
         .setMinApi(parameters)
         .addAndroidBuildVersion(getMaxSupportedApiLevel())
         .apply(ApiModelingTestHelper::enableOutliningOfMethods)
-        .apply(ApiModelingTestHelper::enableStubbingOfClasses)
+        .apply(ApiModelingTestHelper::enableStubbingOfClassesAndDisableGlobalSyntheticCheck)
         .apply(setMockApiLevelForClass(LibraryClass23.class, AndroidApiLevel.M))
         .apply(setMockApiLevelForClass(LibraryClass26.class, AndroidApiLevel.O))
         .apply(setMockApiLevelForClass(LibraryClass30.class, AndroidApiLevel.R))

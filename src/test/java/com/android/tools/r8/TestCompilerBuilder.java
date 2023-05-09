@@ -25,6 +25,7 @@ import com.android.tools.r8.utils.codeinspector.EnumUnboxingInspector;
 import com.android.tools.r8.utils.codeinspector.HorizontallyMergedClassesInspector;
 import com.android.tools.r8.utils.codeinspector.VerticallyMergedClassesInspector;
 import com.google.common.base.Suppliers;
+import com.google.common.collect.Sets;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.PrintStream;
@@ -33,8 +34,10 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -87,6 +90,9 @@ public abstract class TestCompilerBuilder<
   protected OutputMode outputMode = OutputMode.DexIndexed;
 
   private Optional<Integer> isAndroidBuildVersionAdded = null;
+
+  private static final Map<Integer, Set<String>> allowedGlobalSynthetics =
+      new ConcurrentHashMap<>();
 
   LibraryDesugaringTestConfiguration libraryDesugaringTestConfiguration =
       LibraryDesugaringTestConfiguration.DISABLED;
@@ -258,6 +264,25 @@ public abstract class TestCompilerBuilder<
               ? ToolHelper.getMinApiLevelForDexVm().getLevel()
               : getMinApiLevel();
       builder.setMinApiLevel(minApi);
+    }
+    if (!noMinApiLevel && backend.isDex() && (isD8TestBuilder() || isR8TestBuilder())) {
+      int minApiLevel = builder.getMinApiLevel();
+      allowedGlobalSynthetics.computeIfAbsent(
+          minApiLevel, TestCompilerBuilder::computeAllGlobalSynthetics);
+      Consumer<InternalOptions> previousConsumer = optionsConsumer;
+      optionsConsumer =
+          options -> {
+            options.testing.globalSyntheticCreatedCallback =
+                programClass -> {
+                  assertTrue(
+                      allowedGlobalSynthetics
+                          .get(minApiLevel)
+                          .contains(programClass.getType().toDescriptorString()));
+                };
+            if (previousConsumer != null) {
+              previousConsumer.accept(options);
+            }
+          };
     }
     builder.setOptimizeMultidexForLinearAlloc(optimizeMultidexForLinearAlloc);
     if (useDefaultRuntimeLibrary) {
@@ -532,6 +557,26 @@ public abstract class TestCompilerBuilder<
           assertionsConfigurationGenerator) {
     builder.addAssertionsConfiguration(assertionsConfigurationGenerator);
     return self();
+  }
+
+  private static Set<String> computeAllGlobalSynthetics(int minApiLevel) {
+    try {
+      Set<String> generatedGlobalSynthetics = Sets.newConcurrentHashSet();
+      GlobalSyntheticsGeneratorCommand command =
+          GlobalSyntheticsGeneratorCommand.builder()
+              .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.API_DATABASE_LEVEL))
+              .setMinApiLevel(minApiLevel)
+              .setProgramConsumer(DexIndexedConsumer.emptyConsumer())
+              .build();
+      InternalOptions internalOptions = command.getInternalOptions();
+      internalOptions.testing.globalSyntheticCreatedCallback =
+          programClass ->
+              generatedGlobalSynthetics.add(programClass.getType().toDescriptorString());
+      GlobalSyntheticsGenerator.runForTesting(command.getInputApp(), internalOptions);
+      return generatedGlobalSynthetics;
+    } catch (Exception e) {
+      throw new RuntimeException(e);
+    }
   }
 
   private static class ChainedStringConsumer implements StringConsumer {

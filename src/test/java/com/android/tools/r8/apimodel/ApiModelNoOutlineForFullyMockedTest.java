@@ -54,7 +54,7 @@ public class ApiModelNoOutlineForFullyMockedTest extends TestBase {
         .apply(setMockApiLevelForDefaultInstanceInitializer(LibraryClass.class, libraryApiLevel))
         .apply(setMockApiLevelForMethod(methodOn23, libraryApiLevel))
         .apply(ApiModelingTestHelper::enableOutliningOfMethods)
-        .apply(ApiModelingTestHelper::enableStubbingOfClasses);
+        .apply(ApiModelingTestHelper::enableStubbingOfClassesAndDisableGlobalSyntheticCheck);
   }
 
   private boolean addToBootClasspath() {

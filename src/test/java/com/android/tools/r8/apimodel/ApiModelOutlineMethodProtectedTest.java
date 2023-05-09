@@ -72,8 +72,8 @@ public class ApiModelOutlineMethodProtectedTest extends TestBase {
                 .transform())
         .setMinApi(AndroidApiLevel.B)
         .addAndroidBuildVersion(runApiLevel())
-        // TODO(b/213552119): Remove when enabled by default.
         .apply(ApiModelingTestHelper::enableApiCallerIdentification)
+        .apply(ApiModelingTestHelper::disableStubbingOfClasses)
         .apply(setMockApiLevelForClass(LibraryClass.class, classApiLevel))
         .apply(setMockApiLevelForDefaultInstanceInitializer(LibraryClass.class, classApiLevel))
         .apply(

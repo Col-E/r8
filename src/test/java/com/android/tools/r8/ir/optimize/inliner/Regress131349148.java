@@ -70,7 +70,7 @@ public class Regress131349148 extends TestBase {
     setupR8TestBuilder(
         b ->
             b.apply(ApiModelingTestHelper::enableOutliningOfMethods)
-                .apply(ApiModelingTestHelper::enableStubbingOfClasses)
+                .apply(ApiModelingTestHelper::enableStubbingOfClassesAndDisableGlobalSyntheticCheck)
                 .apply(ApiModelingTestHelper::enableApiCallerIdentification),
         inspector -> {
           ClassSubject classSubject = inspector.clazz(TestClassCallingMethodWithNonExisting.class);

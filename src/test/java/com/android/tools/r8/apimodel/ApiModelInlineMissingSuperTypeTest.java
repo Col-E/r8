@@ -47,6 +47,7 @@ public class ApiModelInlineMissingSuperTypeTest extends TestBase {
         .apply(
             setMockApiLevelForDefaultInstanceInitializer(
                 LibraryClass.class, libraryAdditionApiLevel))
+        .apply(ApiModelingTestHelper::disableStubbingOfClasses)
         .setMinApi(parameters)
         .addKeepMainRule(Main.class)
         .enableInliningAnnotations()

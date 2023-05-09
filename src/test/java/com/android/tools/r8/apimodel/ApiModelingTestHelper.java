@@ -134,6 +134,18 @@ public abstract class ApiModelingTestHelper {
         });
   }
 
+  public static void enableStubbingOfClassesAndDisableGlobalSyntheticCheck(
+      TestCompilerBuilder<?, ?, ?, ?, ?> compilerBuilder) {
+    compilerBuilder.addOptionsModification(
+        options -> {
+          options.apiModelingOptions().enableLibraryApiModeling = true;
+          options.apiModelingOptions().enableStubbingOfClasses = true;
+          // Our tests rely on us amending the library path with additional classes that are not
+          // in the library.
+          options.testing.globalSyntheticCreatedCallback = null;
+        });
+  }
+
   public static void enableStubbingOfClasses(TestCompilerBuilder<?, ?, ?, ?, ?> compilerBuilder) {
     compilerBuilder.addOptionsModification(
         options -> {

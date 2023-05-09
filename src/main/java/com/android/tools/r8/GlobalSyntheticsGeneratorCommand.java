@@ -141,6 +141,8 @@ public final class GlobalSyntheticsGeneratorCommand {
     internal.desugarState = DesugarState.ON;
     internal.enableVarHandleDesugaring = true;
 
+    internal.getArtProfileOptions().setEnableCompletenessCheckForTesting(false);
+
     return internal;
   }
 

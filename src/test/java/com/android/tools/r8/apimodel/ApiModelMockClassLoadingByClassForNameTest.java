@@ -48,7 +48,7 @@ public class ApiModelMockClassLoadingByClassForNameTest extends TestBase {
         .addLibraryClasses(LibraryClass.class)
         .addDefaultRuntimeLibrary(parameters)
         .setMinApi(parameters)
-        .apply(ApiModelingTestHelper::enableStubbingOfClasses)
+        .apply(ApiModelingTestHelper::enableStubbingOfClassesAndDisableGlobalSyntheticCheck)
         .apply(setMockApiLevelForClass(LibraryClass.class, mockLevel));
   }
 

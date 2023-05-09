@@ -46,7 +46,7 @@ public class ApiModelOutlineConstClassTest extends TestBase {
         .apply(setMockApiLevelForClass(LibraryClass.class, classApiLevel))
         .apply(ApiModelingTestHelper::enableApiCallerIdentification)
         .apply(ApiModelingTestHelper::enableOutliningOfMethods)
-        .apply(ApiModelingTestHelper::enableStubbingOfClasses);
+        .apply(ApiModelingTestHelper::enableStubbingOfClassesAndDisableGlobalSyntheticCheck);
   }
 
   public AndroidApiLevel getApiLevelForRuntime() {

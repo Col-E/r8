@@ -49,7 +49,7 @@ public class ApiModelMockSuperChainClassTest extends TestBase {
         .addDefaultRuntimeLibrary(parameters)
         .setMinApi(parameters)
         .addAndroidBuildVersion()
-        .apply(ApiModelingTestHelper::enableStubbingOfClasses)
+        .apply(ApiModelingTestHelper::enableStubbingOfClassesAndDisableGlobalSyntheticCheck)
         .apply(setMockApiLevelForClass(LibraryClass.class, lowerMockApiLevel))
         .apply(setMockApiLevelForDefaultInstanceInitializer(LibraryClass.class, lowerMockApiLevel))
         .apply(setMockApiLevelForClass(OtherLibraryClass.class, mockApiLevel))
