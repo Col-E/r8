@@ -30,8 +30,13 @@ import com.android.tools.r8.graph.EnclosingMethodAttribute;
 import com.android.tools.r8.graph.GenericSignature.ClassSignature;
 import com.android.tools.r8.graph.MethodCollection.MethodCollectionFactory;
 import com.android.tools.r8.graph.NestHostClassAttribute;
+import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.ThrowExceptionCode;
+import com.android.tools.r8.ir.conversion.IRConverter;
 import com.android.tools.r8.ir.desugar.TypeRewriter;
+import com.android.tools.r8.ir.desugar.records.RecordDesugaring;
+import com.android.tools.r8.naming.NamingLens;
+import com.android.tools.r8.naming.RecordRewritingNamingLens;
 import com.android.tools.r8.origin.CommandLineOrigin;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.shaking.MainDexInfo;
@@ -47,7 +52,9 @@ import com.android.tools.r8.utils.ThreadUtils;
 import com.android.tools.r8.utils.Timing;
 import com.google.common.collect.ImmutableSet;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -154,10 +161,21 @@ public class GlobalSyntheticsGenerator {
     Set<DexProgramClass> synthesizingContext =
         ImmutableSet.of(createSynthesizingContext(appView.dexItemFactory()));
 
-    // TODO(b/280016114): Create record tag
+    List<ProgramMethod> methodsToProcess = new ArrayList<>();
+    RecordDesugaring.ensureRecordClassHelper(
+        appView,
+        synthesizingContext,
+        recordTagClass -> recordTagClass.programMethods().forEach(methodsToProcess::add));
+    NamingLens namingLens = RecordRewritingNamingLens.createRecordRewritingNamingLens(appView);
+
     // TODO(b/280016114): Create Var Handle
     // TODO(b/280016114): Create MethodHandlesLookup
+
     createAllApiStubs(appView, synthesizingContext, executorService);
+
+    appView.setNamingLens(namingLens);
+    IRConverter converter = new IRConverter(appView);
+    converter.processSimpleSynthesizeMethods(methodsToProcess, executorService);
 
     appView
         .withoutClassHierarchy()

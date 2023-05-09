@@ -18,6 +18,7 @@ import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.FoundClassSubject;
 import com.google.common.collect.Sets;
 import java.nio.file.Path;
+import java.util.HashSet;
 import java.util.Set;
 import java.util.stream.Collectors;
 import org.junit.Test;
@@ -47,7 +48,7 @@ public class GlobalSyntheticsEnsureClassesOutputTest extends TestBase {
             .setProgramConsumer(new DexIndexedConsumer.ArchiveConsumer(output))
             .build());
     CodeInspector inspector = new CodeInspector(output);
-    assertEquals(1023, inspector.allClasses().size());
+    assertEquals(1024, inspector.allClasses().size());
   }
 
   @Test
@@ -59,9 +60,16 @@ public class GlobalSyntheticsEnsureClassesOutputTest extends TestBase {
             .setMinApiLevel(AndroidApiLevel.LATEST.getLevel())
             .setProgramConsumer(new DexIndexedConsumer.ArchiveConsumer(output))
             .build());
-    CodeInspector inspector = new CodeInspector(output);
-    // TODO(b/280016114): This will change when we have record tag.
-    assertEquals(0, inspector.allClasses().size());
+    Set<String> expectedInOutput = new HashSet<>();
+    // The output contains a RecordTag type that is mapped back to the original java.lang.Record by
+    // our codeinspector.
+    expectedInOutput.add("Ljava/lang/Record;");
+    assertEquals(
+        expectedInOutput,
+        new CodeInspector(output)
+            .allClasses().stream()
+                .map(FoundClassSubject::getFinalDescriptor)
+                .collect(Collectors.toSet()));
   }
 
   @Test

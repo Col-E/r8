@@ -349,14 +349,13 @@ public class IRConverter {
     return onWaveDoneActions != null;
   }
 
-  protected void processSimpleSynthesizeMethods(
-      List<ProgramMethod> serviceLoadMethods, ExecutorService executorService)
-      throws ExecutionException {
+  public void processSimpleSynthesizeMethods(
+      List<ProgramMethod> methods, ExecutorService executorService) throws ExecutionException {
     ThreadUtils.processItems(
-        serviceLoadMethods, this::processAndFinalizeSimpleSynthesiedMethod, executorService);
+        methods, this::processAndFinalizeSimpleSynthesizedMethod, executorService);
   }
 
-  private void processAndFinalizeSimpleSynthesiedMethod(ProgramMethod method) {
+  private void processAndFinalizeSimpleSynthesizedMethod(ProgramMethod method) {
     IRCode code = method.buildIR(appView);
     assert code != null;
     codeRewriter.rewriteMoveResult(code);

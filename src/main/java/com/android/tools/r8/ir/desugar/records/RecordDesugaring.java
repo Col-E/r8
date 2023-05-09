@@ -442,16 +442,23 @@ public class RecordDesugaring
       Collection<? extends ProgramDefinition> contexts) {
     DexItemFactory factory = appView.dexItemFactory();
     checkRecordTagNotPresent(factory);
+    return ensureRecordClassHelper(appView, contexts, eventConsumer);
+  }
+
+  public static DexProgramClass ensureRecordClassHelper(
+      AppView<?> appView,
+      Collection<? extends ProgramDefinition> contexts,
+      RecordDesugaringEventConsumer eventConsumer) {
     return appView
         .getSyntheticItems()
         .ensureGlobalClass(
             () -> new MissingGlobalSyntheticsConsumerDiagnostic("Record desugaring"),
             kinds -> kinds.RECORD_TAG,
-            factory.recordType,
+            appView.dexItemFactory().recordType,
             contexts,
             appView,
             builder -> {
-              DexEncodedMethod init = synthesizeRecordInitMethod();
+              DexEncodedMethod init = synthesizeRecordInitMethod(appView);
               builder.setAbstract().setDirectMethods(ImmutableList.of(init));
             },
             eventConsumer::acceptRecordClass);
@@ -532,14 +539,16 @@ public class RecordDesugaring
     return factory.objectMembers.toString;
   }
 
-  private DexEncodedMethod synthesizeRecordInitMethod() {
+  private static DexEncodedMethod synthesizeRecordInitMethod(AppView<?> appView) {
     MethodAccessFlags methodAccessFlags =
         MethodAccessFlags.fromSharedAccessFlags(
             Constants.ACC_SYNTHETIC | Constants.ACC_PROTECTED, true);
     return DexEncodedMethod.syntheticBuilder()
-        .setMethod(factory.recordMembers.constructor)
+        .setMethod(appView.dexItemFactory().recordMembers.constructor)
         .setAccessFlags(methodAccessFlags)
-        .setCode(new CallObjectInitCfCodeProvider(appView, factory.recordTagType).generateCfCode())
+        .setCode(
+            new CallObjectInitCfCodeProvider(appView, appView.dexItemFactory().recordTagType)
+                .generateCfCode())
         // Will be traced by the enqueuer.
         .disableAndroidApiLevelCheck()
         .build();
