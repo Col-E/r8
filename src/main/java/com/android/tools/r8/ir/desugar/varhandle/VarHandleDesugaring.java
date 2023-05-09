@@ -183,17 +183,21 @@ public class VarHandleDesugaring implements CfInstructionDesugaring, CfClassSynt
     return refersToMethodHandlesLookup(field.type, factory);
   }
 
-  private void ensureMethodHandlesLookupClass(
+  @SuppressWarnings("InconsistentOverloads")
+  public static void ensureMethodHandlesLookupClass(
+      AppView<?> appView,
       VarHandleDesugaringEventConsumer eventConsumer,
       Collection<? extends ProgramDefinition> contexts) {
-    assert contexts.stream().allMatch(context -> context.getContextType() != factory.lookupType);
+    assert contexts.stream()
+        .allMatch(context -> context.getContextType() != appView.dexItemFactory().lookupType);
     DexProgramClass clazz =
         appView
             .getSyntheticItems()
             .ensureGlobalClass(
-                () -> new MissingGlobalSyntheticsConsumerDiagnostic("VarHandle desugaring"),
+                () ->
+                    new MissingGlobalSyntheticsConsumerDiagnostic("MethodHandlesLookup desugaring"),
                 kinds -> kinds.METHOD_HANDLES_LOOKUP,
-                factory.lookupType,
+                appView.dexItemFactory().lookupType,
                 contexts,
                 appView,
                 builder ->
@@ -207,7 +211,7 @@ public class VarHandleDesugaring implements CfInstructionDesugaring, CfClassSynt
 
   private void ensureMethodHandlesLookupClass(
       VarHandleDesugaringEventConsumer eventConsumer, ProgramDefinition context) {
-    ensureMethodHandlesLookupClass(eventConsumer, ImmutableList.of(context));
+    ensureMethodHandlesLookupClass(appView, eventConsumer, ImmutableList.of(context));
   }
 
   @SuppressWarnings("InconsistentOverloads")
@@ -593,7 +597,7 @@ public class VarHandleDesugaring implements CfInstructionDesugaring, CfClassSynt
         flags,
         DexApplicationReadFlags::hasReadMethodHandlesLookupReferenceFromProgramClass,
         DexApplicationReadFlags::getMethodHandlesLookupWitnesses,
-        classes -> ensureMethodHandlesLookupClass(eventConsumer, classes));
+        classes -> ensureMethodHandlesLookupClass(appView, eventConsumer, classes));
     synthesizeClassIfReferenced(
         flags,
         DexApplicationReadFlags::hasReadVarHandleReferenceFromProgramClass,

@@ -50,7 +50,7 @@ public class GlobalSyntheticsEnsureClassesOutputTest extends TestBase {
             .setProgramConsumer(new DexIndexedConsumer.ArchiveConsumer(output))
             .build());
     CodeInspector inspector = new CodeInspector(output);
-    assertEquals(1025, inspector.allClasses().size());
+    assertEquals(1026, inspector.allClasses().size());
   }
 
   @Test
@@ -67,6 +67,7 @@ public class GlobalSyntheticsEnsureClassesOutputTest extends TestBase {
     // our codeinspector.
     expectedInOutput.add("Ljava/lang/Record;");
     expectedInOutput.add("Ljava/lang/invoke/VarHandle;");
+    expectedInOutput.add("Ljava/lang/invoke/MethodHandles$Lookup;");
     assertEquals(
         expectedInOutput,
         new CodeInspector(output)
@@ -97,6 +98,16 @@ public class GlobalSyntheticsEnsureClassesOutputTest extends TestBase {
                     generatedGlobalSynthetics.add(
                         Reference.classFromDescriptor(
                                 DexItemFactory.desugarVarHandleDescriptorString)
+                            .getTypeName());
+                  } else if (programClass
+                      .getClassReference()
+                      .getDescriptor()
+                      .equals(DexItemFactory.methodHandlesLookupDescriptorString)) {
+                    // We emit a desugared var handle. Rewrite it here to allow checking for final
+                    // type names.
+                    generatedGlobalSynthetics.add(
+                        Reference.classFromDescriptor(
+                                DexItemFactory.desugarMethodHandlesLookupDescriptorString)
                             .getTypeName());
                   } else {
                     generatedGlobalSynthetics.add(programClass.getTypeName());

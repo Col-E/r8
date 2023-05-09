@@ -170,12 +170,13 @@ public class GlobalSyntheticsGenerator {
         ImmutableSet.of(createSynthesizingContext(appView.dexItemFactory()));
 
     List<ProgramMethod> methodsToProcess = new ArrayList<>();
+    // Add global synthetic class for records.
     RecordDesugaring.ensureRecordClassHelper(
         appView,
         synthesizingContext,
         recordTagClass -> recordTagClass.programMethods().forEach(methodsToProcess::add));
-    VarHandleDesugaring.ensureVarHandleClass(
-        appView,
+
+    VarHandleDesugaringEventConsumer varHandleEventConsumer =
         new VarHandleDesugaringEventConsumer() {
           @Override
           public void acceptVarHandleDesugaringClass(DexProgramClass clazz) {
@@ -185,8 +186,14 @@ public class GlobalSyntheticsGenerator {
           @Override
           public void acceptVarHandleDesugaringClassContext(
               DexProgramClass clazz, ProgramDefinition context) {}
-        },
-        synthesizingContext);
+        };
+
+    // Add global synthetic class for var handles.
+    VarHandleDesugaring.ensureVarHandleClass(appView, varHandleEventConsumer, synthesizingContext);
+
+    // Add global synthetic class for method handles lookup.
+    VarHandleDesugaring.ensureMethodHandlesLookupClass(
+        appView, varHandleEventConsumer, synthesizingContext);
 
     IRConverter converter = new IRConverter(appView);
     converter.processSimpleSynthesizeMethods(methodsToProcess, executorService);
@@ -207,6 +214,7 @@ public class GlobalSyntheticsGenerator {
         VarHandleDesugaringRewritingNamingLens.createVarHandleDesugaringRewritingNamingLens(
             appView));
 
+    // Add global synthetic classes for api stubs.
     createAllApiStubs(appView, synthesizingContext, executorService);
 
     appView
