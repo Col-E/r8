@@ -9,9 +9,21 @@ import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.utils.AndroidApiLevel;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.function.BiConsumer;
 
-class AndroidApiLevelDatabaseHelper {
+public class AndroidApiLevelDatabaseHelper {
+
+  public static Set<String> notModeledTypes() {
+    // The below types are known not to be modeled by any api-versions.
+    Set<String> notModeledTypes = new HashSet<>();
+    notModeledTypes.add("androidx.annotation.RecentlyNullable");
+    notModeledTypes.add("androidx.annotation.RecentlyNonNull");
+    notModeledTypes.add("android.annotation.Nullable");
+    notModeledTypes.add("android.annotation.NonNull");
+    return notModeledTypes;
+  }
 
   static void visitAdditionalKnownApiReferences(
       DexItemFactory factory, BiConsumer<DexReference, AndroidApiLevel> apiLevelConsumer) {

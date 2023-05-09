@@ -159,7 +159,11 @@ public class DexItemFactory {
   public final DexString shortDescriptor = createString("S");
   public final DexString voidDescriptor = createString("V");
   public final DexString descriptorSeparator = createString("/");
+  public final DexString comSunDescriptorPrefix = createString("Lcom/sun/");
   public final DexString javaDescriptorPrefix = createString("Ljava/");
+  public final DexString javaxDescriptorPrefix = createString("Ljavax/");
+  public final DexString jdkDescriptorPrefix = createString("Ljdk/");
+  public final DexString sunDescriptorPrefix = createString("Lsun/");
   public final DexString jDollarDescriptorPrefix = createString("Lj$/");
 
   private final DexString booleanArrayDescriptor = createString("[Z");

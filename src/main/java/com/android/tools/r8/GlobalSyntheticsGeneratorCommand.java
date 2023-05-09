@@ -4,6 +4,7 @@
 package com.android.tools.r8;
 
 import com.android.tools.r8.BaseCommand.LibraryInputOrigin;
+import com.android.tools.r8.dex.Marker.Tool;
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.errors.DexFileOverflowDiagnostic;
 import com.android.tools.r8.graph.DexItemFactory;
@@ -135,6 +136,8 @@ public final class GlobalSyntheticsGeneratorCommand {
     assert !internal.isMinifying();
     assert !internal.passthroughDexCode;
 
+    internal.tool = Tool.GlobalSyntheticsGenerator;
+
     return internal;
   }
 
@@ -231,7 +234,8 @@ public final class GlobalSyntheticsGeneratorCommand {
         return;
       }
       if (!(programConsumer instanceof DexIndexedConsumer)) {
-        reporter.error("G8 does not support compiling to dex per class or class files");
+        reporter.error(
+            "GlobalSyntheticsGenerator does not support compiling to dex per class or class files");
       }
     }
 
