@@ -210,17 +210,20 @@ public class VarHandleDesugaring implements CfInstructionDesugaring, CfClassSynt
     ensureMethodHandlesLookupClass(eventConsumer, ImmutableList.of(context));
   }
 
-  private void ensureVarHandleClass(
+  @SuppressWarnings("InconsistentOverloads")
+  public static void ensureVarHandleClass(
+      AppView<?> appView,
       VarHandleDesugaringEventConsumer eventConsumer,
       Collection<? extends ProgramDefinition> contexts) {
-    assert contexts.stream().allMatch(context -> context.getContextType() != factory.varHandleType);
+    assert contexts.stream()
+        .allMatch(context -> context.getContextType() != appView.dexItemFactory().varHandleType);
     DexProgramClass clazz =
         appView
             .getSyntheticItems()
             .ensureGlobalClass(
                 () -> new MissingGlobalSyntheticsConsumerDiagnostic("VarHandle desugaring"),
                 kinds -> kinds.VAR_HANDLE,
-                factory.varHandleType,
+                appView.dexItemFactory().varHandleType,
                 contexts,
                 appView,
                 builder ->
@@ -235,7 +238,7 @@ public class VarHandleDesugaring implements CfInstructionDesugaring, CfClassSynt
   private void ensureVarHandleClass(
       VarHandleDesugaringEventConsumer eventConsumer, ProgramDefinition context) {
     if (context.getContextType() != factory.varHandleType) {
-      ensureVarHandleClass(eventConsumer, ImmutableList.of(context));
+      ensureVarHandleClass(appView, eventConsumer, ImmutableList.of(context));
     }
   }
 
@@ -595,7 +598,7 @@ public class VarHandleDesugaring implements CfInstructionDesugaring, CfClassSynt
         flags,
         DexApplicationReadFlags::hasReadVarHandleReferenceFromProgramClass,
         DexApplicationReadFlags::getVarHandleWitnesses,
-        classes -> ensureVarHandleClass(eventConsumer, classes));
+        classes -> ensureVarHandleClass(appView, eventConsumer, classes));
   }
 
   private void synthesizeClassIfReferenced(

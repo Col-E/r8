@@ -13,6 +13,8 @@ import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.ToolHelper;
+import com.android.tools.r8.graph.DexItemFactory;
+import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.FoundClassSubject;
@@ -48,7 +50,7 @@ public class GlobalSyntheticsEnsureClassesOutputTest extends TestBase {
             .setProgramConsumer(new DexIndexedConsumer.ArchiveConsumer(output))
             .build());
     CodeInspector inspector = new CodeInspector(output);
-    assertEquals(1024, inspector.allClasses().size());
+    assertEquals(1025, inspector.allClasses().size());
   }
 
   @Test
@@ -64,6 +66,7 @@ public class GlobalSyntheticsEnsureClassesOutputTest extends TestBase {
     // The output contains a RecordTag type that is mapped back to the original java.lang.Record by
     // our codeinspector.
     expectedInOutput.add("Ljava/lang/Record;");
+    expectedInOutput.add("Ljava/lang/invoke/VarHandle;");
     assertEquals(
         expectedInOutput,
         new CodeInspector(output)
@@ -84,7 +87,21 @@ public class GlobalSyntheticsEnsureClassesOutputTest extends TestBase {
             .build(),
         options ->
             options.testing.globalSyntheticCreatedCallback =
-                programClass -> generatedGlobalSynthetics.add(programClass.getTypeName()));
+                programClass -> {
+                  if (programClass
+                      .getClassReference()
+                      .getDescriptor()
+                      .equals(DexItemFactory.varHandleDescriptorString)) {
+                    // We emit a desugared var handle. Rewrite it here to allow checking for final
+                    // type names.
+                    generatedGlobalSynthetics.add(
+                        Reference.classFromDescriptor(
+                                DexItemFactory.desugarVarHandleDescriptorString)
+                            .getTypeName());
+                  } else {
+                    generatedGlobalSynthetics.add(programClass.getTypeName());
+                  }
+                });
     Set<String> readGlobalSynthetics =
         new CodeInspector(output)
             .allClasses().stream().map(FoundClassSubject::getFinalName).collect(Collectors.toSet());

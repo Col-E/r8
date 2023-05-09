@@ -14,6 +14,7 @@ import com.android.tools.r8.androidapi.ApiReferenceStubberEventConsumer;
 import com.android.tools.r8.androidapi.ComputedApiLevel.KnownApiLevel;
 import com.android.tools.r8.dex.ApplicationReader;
 import com.android.tools.r8.dex.ApplicationWriter;
+import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.ClassAccessFlags;
@@ -30,16 +31,20 @@ import com.android.tools.r8.graph.EnclosingMethodAttribute;
 import com.android.tools.r8.graph.GenericSignature.ClassSignature;
 import com.android.tools.r8.graph.MethodCollection.MethodCollectionFactory;
 import com.android.tools.r8.graph.NestHostClassAttribute;
+import com.android.tools.r8.graph.ProgramDefinition;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.ThrowExceptionCode;
 import com.android.tools.r8.ir.conversion.IRConverter;
 import com.android.tools.r8.ir.desugar.TypeRewriter;
 import com.android.tools.r8.ir.desugar.records.RecordDesugaring;
-import com.android.tools.r8.naming.NamingLens;
+import com.android.tools.r8.ir.desugar.varhandle.VarHandleDesugaring;
+import com.android.tools.r8.ir.desugar.varhandle.VarHandleDesugaringEventConsumer;
 import com.android.tools.r8.naming.RecordRewritingNamingLens;
+import com.android.tools.r8.naming.VarHandleDesugaringRewritingNamingLens;
 import com.android.tools.r8.origin.CommandLineOrigin;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.shaking.MainDexInfo;
+import com.android.tools.r8.synthesis.SyntheticFinalization;
 import com.android.tools.r8.synthesis.SyntheticItems.GlobalSyntheticsStrategy;
 import com.android.tools.r8.synthesis.SyntheticNaming;
 import com.android.tools.r8.synthesis.SyntheticNaming.SyntheticKind;
@@ -116,13 +121,15 @@ public class GlobalSyntheticsGenerator {
               AppView<AppInfo> appView = readApp(app, options, executorService, timing);
               timing.end();
 
-              timing.time(
-                  "Create global synthetics",
-                  () -> createGlobalSynthetics(appView, executorService));
+              timing.begin("Create global synthetics");
+              createGlobalSynthetics(appView, timing, executorService);
+              timing.end();
 
               ApplicationWriter.create(appView, options.getMarker()).write(executorService, app);
             } catch (ExecutionException e) {
               throw unwrapExecutionException(e);
+            } catch (IOException e) {
+              throw new CompilationError(e.getMessage(), e);
             } finally {
               options.signalFinishedToConsumers();
               // Dump timings.
@@ -156,7 +163,8 @@ public class GlobalSyntheticsGenerator {
   }
 
   private static void createGlobalSynthetics(
-      AppView<AppInfo> appView, ExecutorService executorService) throws ExecutionException {
+      AppView<AppInfo> appView, Timing timing, ExecutorService executorService)
+      throws ExecutionException, IOException {
     assert ensureAllGlobalSyntheticsModeled(appView.getSyntheticItems().getNaming());
     Set<DexProgramClass> synthesizingContext =
         ImmutableSet.of(createSynthesizingContext(appView.dexItemFactory()));
@@ -166,16 +174,40 @@ public class GlobalSyntheticsGenerator {
         appView,
         synthesizingContext,
         recordTagClass -> recordTagClass.programMethods().forEach(methodsToProcess::add));
-    NamingLens namingLens = RecordRewritingNamingLens.createRecordRewritingNamingLens(appView);
+    VarHandleDesugaring.ensureVarHandleClass(
+        appView,
+        new VarHandleDesugaringEventConsumer() {
+          @Override
+          public void acceptVarHandleDesugaringClass(DexProgramClass clazz) {
+            clazz.programMethods().forEach(methodsToProcess::add);
+          }
 
-    // TODO(b/280016114): Create Var Handle
-    // TODO(b/280016114): Create MethodHandlesLookup
+          @Override
+          public void acceptVarHandleDesugaringClassContext(
+              DexProgramClass clazz, ProgramDefinition context) {}
+        },
+        synthesizingContext);
 
-    createAllApiStubs(appView, synthesizingContext, executorService);
-
-    appView.setNamingLens(namingLens);
     IRConverter converter = new IRConverter(appView);
     converter.processSimpleSynthesizeMethods(methodsToProcess, executorService);
+
+    appView
+        .withoutClassHierarchy()
+        .setAppInfo(
+            new AppInfo(
+                appView.appInfo().getSyntheticItems().commit(appView.app()),
+                appView.appInfo().getMainDexInfo()));
+
+    timing.time(
+        "Finalize synthetics",
+        () -> SyntheticFinalization.finalize(appView, timing, executorService));
+
+    appView.setNamingLens(RecordRewritingNamingLens.createRecordRewritingNamingLens(appView));
+    appView.setNamingLens(
+        VarHandleDesugaringRewritingNamingLens.createVarHandleDesugaringRewritingNamingLens(
+            appView));
+
+    createAllApiStubs(appView, synthesizingContext, executorService);
 
     appView
         .withoutClassHierarchy()

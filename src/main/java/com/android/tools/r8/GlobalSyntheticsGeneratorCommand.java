@@ -15,6 +15,7 @@ import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.ExceptionDiagnostic;
 import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.InternalOptions;
+import com.android.tools.r8.utils.InternalOptions.DesugarState;
 import com.android.tools.r8.utils.Reporter;
 import com.android.tools.r8.utils.StringDiagnostic;
 import java.nio.file.Path;
@@ -137,6 +138,8 @@ public final class GlobalSyntheticsGeneratorCommand {
     assert !internal.passthroughDexCode;
 
     internal.tool = Tool.GlobalSyntheticsGenerator;
+    internal.desugarState = DesugarState.ON;
+    internal.enableVarHandleDesugaring = true;
 
     return internal;
   }
