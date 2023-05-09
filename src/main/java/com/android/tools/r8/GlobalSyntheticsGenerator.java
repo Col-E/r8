@@ -51,6 +51,7 @@ public class GlobalSyntheticsGenerator {
       ExceptionUtils.withD8CompilationHandler(
           options.reporter,
           () -> {
+            // TODO(b/280016114): Implement
             throw new RuntimeException("Implement GlobalSyntheticsGenerator");
           });
     } finally {
@@ -67,7 +68,7 @@ public class GlobalSyntheticsGenerator {
       return;
     }
     if (command.isPrintVersion()) {
-      System.out.println("GlobalSynthetics " + Version.getVersionString());
+      System.out.println("GlobalSyntheticsGenerator " + Version.getVersionString());
       return;
     }
     run(command);
@@ -77,7 +78,7 @@ public class GlobalSyntheticsGenerator {
    * Command-line entry to GlobalSynthetics.
    *
    * <p>See {@link GlobalSyntheticsGeneratorCommandParser#getUsageMessage()} or run {@code
-   * globalsynthetics --help} for usage information.
+   * globalsyntheticsgenerator --help} for usage information.
    */
   public static void main(String[] args) {
     if (args.length == 0) {
