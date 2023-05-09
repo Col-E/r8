@@ -1040,7 +1040,7 @@ public class EnumUnboxerImpl extends EnumUnboxer {
     boolean canBeOrdinal = instanceField.type.isIntType();
     ImmutableInt2ReferenceSortedMap.Builder<AbstractValue> data =
         ImmutableInt2ReferenceSortedMap.builder();
-    for (Integer ordinal : ordinalToObjectState.keySet()) {
+    for (int ordinal : ordinalToObjectState.keySet()) {
       ObjectState state = ordinalToObjectState.get(ordinal);
       AbstractValue fieldValue = state.getAbstractFieldValue(encodedInstanceField);
       if (!fieldValue.isSingleValue()) {
@@ -1500,9 +1500,27 @@ public class EnumUnboxerImpl extends EnumUnboxer {
       } else if (singleTargetReference == factory.enumMembers.hashCode) {
         return Reason.ELIGIBLE;
       } else if (singleTargetReference == factory.enumMembers.constructor) {
-        // Enum constructor call is allowed only if called from an enum initializer.
-        if (code.method().isInstanceInitializer() && code.context().getHolder() == enumClass) {
-          return Reason.ELIGIBLE;
+        assert invoke.getFirstArgument() == enumValue;
+        if (appView.options().canInitNewInstanceUsingSuperclassConstructor()) {
+          // Enum constructor call is allowed if called from any enum initializer.
+          DexProgramClass representativeContext =
+              enumUnboxingCandidatesInfo.getCandidateClassOrNull(context.getHolderType());
+          if (context.getDefinition().isInstanceInitializer()
+              && representativeContext == enumClass) {
+            return Reason.ELIGIBLE;
+          }
+          // Otherwise must be called from the class initializer of a root enum initializer.
+          if (context.isStructurallyEqualTo(enumClass.getProgramClassInitializer())) {
+            assert enumUnboxingCandidatesInfo.verifyIsSuperEnumUnboxingCandidate(enumClass);
+            assert context.getHolder() == representativeContext;
+            return Reason.ELIGIBLE;
+          }
+        } else {
+          // Enum constructor call is allowed only if called from a root enum initializer.
+          if (context.getDefinition().isInstanceInitializer() && context.getHolder() == enumClass) {
+            assert enumUnboxingCandidatesInfo.verifyIsSuperEnumUnboxingCandidate(enumClass);
+            return Reason.ELIGIBLE;
+          }
         }
       }
       return new UnsupportedLibraryInvokeReason(singleTargetReference);

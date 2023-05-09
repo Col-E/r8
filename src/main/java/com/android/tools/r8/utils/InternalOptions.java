@@ -2976,4 +2976,9 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
   public boolean canHaveVerifyErrorForUnknownUnusedReturnValue() {
     return isGeneratingDex() && canHaveBugPresentUntil(AndroidApiLevel.T);
   }
+
+  public boolean canInitNewInstanceUsingSuperclassConstructor() {
+    // TODO(b/278973259): Enable this when compiling to API level >= L.
+    return false;
+  }
 }

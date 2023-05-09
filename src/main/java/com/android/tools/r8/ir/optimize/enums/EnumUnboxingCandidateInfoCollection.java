@@ -158,6 +158,11 @@ public class EnumUnboxingCandidateInfoCollection {
     return true;
   }
 
+  public boolean verifyIsSuperEnumUnboxingCandidate(DexProgramClass clazz) {
+    assert enumTypeToInfo.containsKey(clazz.getType());
+    return true;
+  }
+
   public static class EnumUnboxingCandidateInfo {
 
     private final DexProgramClass enumClass;
