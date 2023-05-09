@@ -17,7 +17,6 @@ import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
-import com.android.tools.r8.utils.codeinspector.FoundMethodSubject;
 import com.android.tools.r8.utils.codeinspector.HorizontallyMergedClassesInspector;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -59,9 +58,12 @@ public class MemberRebindingRemoveVirtualBridgeTest extends TestBase {
             inspector -> {
               ClassSubject clazz = inspector.clazz(B.class);
               assertThat(clazz, isPresent());
-              assertEquals(1, clazz.allMethods().size());
-              FoundMethodSubject foundMethodSubject = clazz.allMethods().get(0);
-              assertThat(foundMethodSubject, isInstanceInitializer());
+              if (parameters.canHaveNonReboundConstructorInvoke()) {
+                assertEquals(0, clazz.allMethods().size());
+              } else {
+                assertEquals(1, clazz.allMethods().size());
+                assertThat(clazz.allMethods().get(0), isInstanceInitializer());
+              }
             });
   }
 

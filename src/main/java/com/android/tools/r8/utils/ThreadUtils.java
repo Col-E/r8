@@ -3,6 +3,8 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.utils;
 
+import static com.google.common.base.Predicates.alwaysTrue;
+
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.utils.ListUtils.ReferenceAndIntConsumer;
@@ -18,6 +20,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.Future;
 import java.util.function.Consumer;
+import java.util.function.Predicate;
 
 public class ThreadUtils {
 
@@ -71,12 +74,31 @@ public class ThreadUtils {
     return processItemsWithResults(items, (item, i) -> consumer.apply(item), executorService);
   }
 
+  public static <T, R, E extends Exception> Collection<R> processItemsWithResultsThatMatches(
+      Iterable<T> items,
+      ThrowingFunction<T, R, E> consumer,
+      Predicate<R> predicate,
+      ExecutorService executorService)
+      throws ExecutionException {
+    return processItemsWithResultsThatMatches(
+        items, (item, i) -> consumer.apply(item), predicate, executorService);
+  }
+
   public static <T, R, E extends Exception> Collection<R> processItemsWithResults(
       Iterable<T> items,
       ThrowingReferenceIntFunction<T, R, E> consumer,
       ExecutorService executorService)
       throws ExecutionException {
     return processItemsWithResults(items::forEach, consumer, executorService);
+  }
+
+  public static <T, R, E extends Exception> Collection<R> processItemsWithResultsThatMatches(
+      Iterable<T> items,
+      ThrowingReferenceIntFunction<T, R, E> consumer,
+      Predicate<R> predicate,
+      ExecutorService executorService)
+      throws ExecutionException {
+    return processItemsWithResultsThatMatches(items::forEach, consumer, predicate, executorService);
   }
 
   public static <T, R, E extends Exception> Collection<R> processItemsWithResults(
@@ -97,7 +119,23 @@ public class ThreadUtils {
           int index = indexSupplier.getAndIncrement();
           futures.add(executorService.submit(() -> consumer.apply(item, index)));
         });
-    return awaitFuturesWithResults(futures);
+    return awaitFuturesWithResults(futures, alwaysTrue());
+  }
+
+  public static <T, R, E extends Exception> Collection<R> processItemsWithResultsThatMatches(
+      ForEachable<T> items,
+      ThrowingReferenceIntFunction<T, R, E> consumer,
+      Predicate<R> predicate,
+      ExecutorService executorService)
+      throws ExecutionException {
+    IntBox indexSupplier = new IntBox();
+    List<Future<R>> futures = new ArrayList<>();
+    items.forEach(
+        item -> {
+          int index = indexSupplier.getAndIncrement();
+          futures.add(executorService.submit(() -> consumer.apply(item, index)));
+        });
+    return awaitFuturesWithResults(futures, predicate);
   }
 
   public static <T> void processItems(
@@ -195,13 +233,17 @@ public class ThreadUtils {
     }
   }
 
-  public static <R> Collection<R> awaitFuturesWithResults(Collection<? extends Future<R>> futures)
-      throws ExecutionException {
-    List<R> results = new ArrayList<>(futures.size());
+  public static <R> Collection<R> awaitFuturesWithResults(
+      Collection<? extends Future<R>> futures, Predicate<R> predicate) throws ExecutionException {
+    List<R> results =
+        predicate == alwaysTrue() ? new ArrayList<>(futures.size()) : new ArrayList<>();
     Iterator<? extends Future<R>> futureIterator = futures.iterator();
     try {
       while (futureIterator.hasNext()) {
-        results.add(futureIterator.next().get());
+        R result = futureIterator.next().get();
+        if (predicate.test(result)) {
+          results.add(result);
+        }
       }
     } catch (InterruptedException e) {
       throw new RuntimeException("Interrupted while waiting for future.", e);
