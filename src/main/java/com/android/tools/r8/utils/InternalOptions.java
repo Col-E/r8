@@ -1626,6 +1626,8 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
 
   public static class InlinerOptions {
 
+    public boolean enableConstructorInlining = true;
+
     public boolean enableInlining =
         !parseSystemPropertyForDevelopmentOrDefault("com.android.tools.r8.disableinlining", false);
 
@@ -1681,6 +1683,14 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
       // Allow the size of the dex code to be up to 5 bytes.
       assert options.isGeneratingDex();
       return 5;
+    }
+
+    public boolean isConstructorInliningEnabled() {
+      return enableConstructorInlining;
+    }
+
+    public void setEnableConstructorInlining(boolean enableConstructorInlining) {
+      this.enableConstructorInlining = enableConstructorInlining;
     }
 
     public boolean shouldApplyInliningToInlinee(

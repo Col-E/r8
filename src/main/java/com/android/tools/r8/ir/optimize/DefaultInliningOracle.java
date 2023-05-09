@@ -478,6 +478,10 @@ public final class DefaultInliningOracle implements InliningOracle, InliningStra
       ProgramMethod singleTarget,
       InliningIRProvider inliningIRProvider,
       WhyAreYouNotInliningReporter whyAreYouNotInliningReporter) {
+    if (!inlinerOptions.isConstructorInliningEnabled()) {
+      return false;
+    }
+
     IRCode inlinee = inliningIRProvider.getInliningIR(invoke, singleTarget);
 
     // In the Java VM Specification section "4.10.2.4. Instance Initialization Methods and
@@ -517,7 +521,6 @@ public final class DefaultInliningOracle implements InliningOracle, InliningStra
     //       ...
     //     }
     //   }
-    // TODO(b/278679664): Relax requirement (3) when targeting DEX.
     Value thisValue = inlinee.entryBlock().entry().asArgument().outValue();
 
     List<InvokeDirect> initCallsOnThis = new ArrayList<>();
@@ -526,8 +529,10 @@ public final class DefaultInliningOracle implements InliningOracle, InliningStra
         InvokeDirect initCall = instruction.asInvokeDirect();
         Value receiver = initCall.getReceiver().getAliasedValue();
         if (receiver == thisValue) {
-          // The <init>() call of the constructor must be on the same class.
-          if (calleeMethodHolder != initCall.getInvokedMethod().getHolderType()) {
+          // The <init>() call of the constructor must be on the same class when targeting the JVM
+          // and Dalvik.
+          if (!options.canInitNewInstanceUsingSuperclassConstructor()
+              && calleeMethodHolder != initCall.getInvokedMethod().getHolderType()) {
             whyAreYouNotInliningReporter
                 .reportUnsafeConstructorInliningDueToIndirectConstructorCall(initCall);
             return false;
