@@ -15,8 +15,8 @@ import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.analysis.type.DynamicType;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.analysis.value.AbstractValue;
-import com.android.tools.r8.ir.conversion.IRConverter;
 import com.android.tools.r8.ir.conversion.PostMethodProcessor;
+import com.android.tools.r8.ir.conversion.PrimaryR8IRConverter;
 import com.android.tools.r8.ir.optimize.info.ConcreteCallSiteOptimizationInfo;
 import com.android.tools.r8.ir.optimize.info.MethodOptimizationInfo;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedback;
@@ -38,6 +38,7 @@ import com.android.tools.r8.utils.ListUtils;
 import com.android.tools.r8.utils.OptionalBool;
 import com.android.tools.r8.utils.ThreadUtils;
 import com.android.tools.r8.utils.Timing;
+import com.android.tools.r8.utils.collections.ProgramMethodSet;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
@@ -52,7 +53,7 @@ import java.util.function.BiConsumer;
 public class ArgumentPropagatorOptimizationInfoPopulator {
 
   private final AppView<AppInfoWithLiveness> appView;
-  private final IRConverter converter;
+  private final PrimaryR8IRConverter converter;
   private final MethodStateCollectionByReference methodStates;
   private final InternalOptions options;
   private final PostMethodProcessor.Builder postMethodProcessorBuilder;
@@ -65,7 +66,7 @@ public class ArgumentPropagatorOptimizationInfoPopulator {
 
   ArgumentPropagatorOptimizationInfoPopulator(
       AppView<AppInfoWithLiveness> appView,
-      IRConverter converter,
+      PrimaryR8IRConverter converter,
       ImmediateProgramSubtypingInfo immediateSubtypingInfo,
       MethodStateCollectionByReference methodStates,
       PostMethodProcessor.Builder postMethodProcessorBuilder,
@@ -148,18 +149,42 @@ public class ArgumentPropagatorOptimizationInfoPopulator {
   }
 
   private void setOptimizationInfo(ExecutorService executorService) throws ExecutionException {
+    ProgramMethodSet prunedMethods = ProgramMethodSet.createConcurrent();
     ThreadUtils.processItems(
-        appView.appInfo().classes(), this::setOptimizationInfo, executorService);
+        appView.appInfo().classes(),
+        clazz -> prunedMethods.addAll(setOptimizationInfo(clazz)),
+        executorService);
+    for (ProgramMethod prunedMethod : prunedMethods) {
+      converter.onMethodPruned(prunedMethod);
+      postMethodProcessorBuilder.remove(prunedMethod, appView.graphLens());
+    }
+    converter.waveDone(ProgramMethodSet.empty(), executorService);
   }
 
-  private void setOptimizationInfo(DexProgramClass clazz) {
-    clazz.forEachProgramMethod(this::setOptimizationInfo);
+  private ProgramMethodSet setOptimizationInfo(DexProgramClass clazz) {
+    ProgramMethodSet prunedMethods = ProgramMethodSet.create();
+    clazz.forEachProgramMethod(method -> setOptimizationInfo(method, prunedMethods));
+    clazz.getMethodCollection().removeMethods(prunedMethods.toDefinitionSet());
+    return prunedMethods;
   }
 
-  private void setOptimizationInfo(ProgramMethod method) {
+  private void setOptimizationInfo(ProgramMethod method, ProgramMethodSet prunedMethods) {
     MethodState methodState = methodStates.remove(method);
     if (methodState.isBottom()) {
-      if (method.getDefinition().hasCode() && !method.getDefinition().isClassInitializer()) {
+      if (method.getDefinition().isClassInitializer()) {
+        return;
+      }
+      // If all uses of a direct method have been removed, we can remove the method. However, if its
+      // return value has been propagated, then we retain it for correct evaluation of -if rules in
+      // the final round of tree shaking.
+      // TODO(b/203188583): Enable pruning of methods with generic signatures. For this to
+      //  work we need to pass in a seed to GenericSignatureContextBuilder.create in R8.
+      if (method.getDefinition().belongsToDirectPool()
+          && !method.getOptimizationInfo().returnValueHasBeenPropagated()
+          && !method.getDefinition().getGenericSignature().hasSignature()
+          && !appView.appInfo().isFailedResolutionTarget(method.getReference())) {
+        prunedMethods.add(method);
+      } else if (method.getDefinition().hasCode()) {
         method.convertToAbstractOrThrowNullMethod(appView);
         converter.onMethodCodePruned(method);
         postMethodProcessorBuilder.remove(method, appView.graphLens());

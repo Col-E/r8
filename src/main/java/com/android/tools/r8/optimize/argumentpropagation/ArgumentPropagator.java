@@ -13,6 +13,7 @@ import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.conversion.IRConverter;
 import com.android.tools.r8.ir.conversion.MethodProcessor;
 import com.android.tools.r8.ir.conversion.PostMethodProcessor;
+import com.android.tools.r8.ir.conversion.PrimaryR8IRConverter;
 import com.android.tools.r8.optimize.argumentpropagation.codescanner.MethodState;
 import com.android.tools.r8.optimize.argumentpropagation.codescanner.MethodStateCollectionByReference;
 import com.android.tools.r8.optimize.argumentpropagation.codescanner.VirtualRootMethodsAnalysis;
@@ -139,7 +140,7 @@ public class ArgumentPropagator {
   }
 
   public void tearDownCodeScanner(
-      IRConverter converter,
+      PrimaryR8IRConverter converter,
       PostMethodProcessor.Builder postMethodProcessorBuilder,
       ExecutorService executorService,
       Timing timing)
@@ -205,7 +206,7 @@ public class ArgumentPropagator {
    * optimization info.
    */
   private void populateParameterOptimizationInfo(
-      IRConverter converter,
+      PrimaryR8IRConverter converter,
       ImmediateProgramSubtypingInfo immediateSubtypingInfo,
       List<Set<DexProgramClass>> stronglyConnectedProgramComponents,
       BiConsumer<Set<DexProgramClass>, DexMethodSignature> interfaceDispatchOutsideProgram,
@@ -250,15 +251,17 @@ public class ArgumentPropagator {
    * <p>Therefore, we assert that we only find a method state for direct methods.
    */
   public void onMethodPruned(ProgramMethod method) {
-    assert codeScanner != null;
-    MethodState methodState = codeScanner.getMethodStates().removeOrElse(method, null);
-    assert methodState == null || method.getDefinition().belongsToDirectPool();
+    if (codeScanner != null) {
+      MethodState methodState = codeScanner.getMethodStates().removeOrElse(method, null);
+      assert methodState == null || method.getDefinition().belongsToDirectPool();
+    }
 
     assert effectivelyUnusedArgumentsAnalysis != null;
     effectivelyUnusedArgumentsAnalysis.onMethodPruned(method);
   }
 
   public void onMethodCodePruned(ProgramMethod method) {
-    // Intentionally empty.
+    assert effectivelyUnusedArgumentsAnalysis != null;
+    effectivelyUnusedArgumentsAnalysis.onMethodCodePruned(method);
   }
 }

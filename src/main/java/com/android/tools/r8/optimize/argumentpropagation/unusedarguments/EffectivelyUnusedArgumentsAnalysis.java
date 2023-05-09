@@ -217,6 +217,10 @@ public class EffectivelyUnusedArgumentsAnalysis {
   }
 
   public void onMethodPruned(ProgramMethod method) {
+    onMethodCodePruned(method);
+  }
+
+  public void onMethodCodePruned(ProgramMethod method) {
     for (int argumentIndex = 0;
         argumentIndex < method.getDefinition().getNumberOfArguments();
         argumentIndex++) {
