@@ -2127,15 +2127,18 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
       int otherCandidate =
           getLargestValidCandidate(
               unhandledInterval, registerConstraint, needsRegisterPair, usePositions, Type.OTHER);
-      if (otherCandidate == Integer.MAX_VALUE || candidate == REGISTER_CANDIDATE_NOT_FOUND) {
-        candidate = otherCandidate;
-      } else {
-        int largestConstUsePosition =
-            getLargestPosition(usePositions, candidate, needsRegisterPair);
-        if (largestConstUsePosition - MIN_CONSTANT_FREE_FOR_POSITIONS <
-            unhandledInterval.getStart()) {
-          // The candidate that can be rematerialized has a live range too short to use it.
+      if (otherCandidate != REGISTER_CANDIDATE_NOT_FOUND) {
+        // There is a potential other candidate, check if that should be used instead.
+        if (otherCandidate == Integer.MAX_VALUE || candidate == REGISTER_CANDIDATE_NOT_FOUND) {
           candidate = otherCandidate;
+        } else {
+          int largestConstUsePosition =
+              getLargestPosition(usePositions, candidate, needsRegisterPair);
+          if (largestConstUsePosition - MIN_CONSTANT_FREE_FOR_POSITIONS
+              < unhandledInterval.getStart()) {
+            // The candidate that can be rematerialized has a live range too short to use it.
+            candidate = otherCandidate;
+          }
         }
       }
 
