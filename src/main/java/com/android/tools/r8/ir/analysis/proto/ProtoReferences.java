@@ -13,6 +13,9 @@ import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ProgramMethod;
+import com.android.tools.r8.ir.code.Instruction;
+import com.android.tools.r8.ir.code.InvokeMethod;
+import com.android.tools.r8.ir.code.NewInstance;
 import com.android.tools.r8.ir.code.Value;
 import java.util.function.Consumer;
 
@@ -59,6 +62,8 @@ public class ProtoReferences {
   public final DexMethod dynamicMethod;
   public final DexMethod newMessageInfoMethod;
   public final DexMethod rawMessageInfoConstructor;
+  public final DexField rawMessageInfoInfoField;
+  public final DexField rawMessageInfoObjectsField;
 
   public ProtoReferences(DexItemFactory factory) {
     dexItemFactory = factory;
@@ -122,12 +127,21 @@ public class ProtoReferences {
                 factory.voidType, messageLiteType, factory.stringType, factory.objectArrayType),
             factory.constructorMethodName);
 
+    // Fields.
+    rawMessageInfoInfoField = factory.createField(rawMessageInfoType, factory.stringType, "info");
+    rawMessageInfoObjectsField =
+        factory.createField(rawMessageInfoType, factory.objectArrayType, "objects");
+
     generatedExtensionMethods = new GeneratedExtensionMethods(factory);
     generatedMessageLiteMethods = new GeneratedMessageLiteMethods(factory);
     generatedMessageLiteBuilderMethods = new GeneratedMessageLiteBuilderMethods(factory);
     generatedMessageLiteExtendableBuilderMethods =
         new GeneratedMessageLiteExtendableBuilderMethods(factory);
     methodToInvokeMembers = new MethodToInvokeMembers(factory);
+  }
+
+  public DexItemFactory dexItemFactory() {
+    return dexItemFactory;
   }
 
   public void forEachMethodReference(Consumer<DexMethod> consumer) {
@@ -195,8 +209,18 @@ public class ProtoReferences {
         && !isAbstractGeneratedMessageLiteBuilder(clazz);
   }
 
-  public boolean isMessageInfoConstructionMethod(DexMethod method) {
-    return method.match(newMessageInfoMethod) || method == rawMessageInfoConstructor;
+  public boolean isMessageInfoConstruction(InvokeMethod invoke) {
+    if (invoke.getInvokedMethod().match(newMessageInfoMethod)) {
+      return true;
+    }
+    if (invoke.isInvokeConstructor(dexItemFactory)) {
+      Value receiver = invoke.asInvokeDirect().getReceiver();
+      if (receiver.isDefinedByInstructionSatisfying(Instruction::isNewInstance)) {
+        NewInstance newInstance = receiver.getDefinition().asNewInstance();
+        return newInstance.getType() == rawMessageInfoType;
+      }
+    }
+    return false;
   }
 
   public boolean isProtoLibraryClass(DexProgramClass clazz) {

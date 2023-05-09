@@ -79,7 +79,7 @@ public class RawMessageInfoDecoder {
   }
 
   public ProtoMessageInfo run(ProgramMethod dynamicMethod, InvokeMethod invoke) {
-    assert references.isMessageInfoConstructionMethod(invoke.getInvokedMethod());
+    assert references.isMessageInfoConstruction(invoke);
     Value infoValue = getInfoValueFromMessageInfoConstructionInvoke(invoke, references);
     Value objectsValue = getObjectsValueFromMessageInfoConstructionInvoke(invoke, references);
     return run(dynamicMethod, infoValue, objectsValue);

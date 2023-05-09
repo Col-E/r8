@@ -363,7 +363,7 @@ public class GeneratedMessageLiteShrinker {
     for (Instruction instruction : code.instructions()) {
       if (instruction.isInvokeMethod()) {
         InvokeMethod invoke = instruction.asInvokeMethod();
-        if (references.isMessageInfoConstructionMethod(invoke.getInvokedMethod())) {
+        if (references.isMessageInfoConstruction(invoke)) {
           return invoke;
         }
       }

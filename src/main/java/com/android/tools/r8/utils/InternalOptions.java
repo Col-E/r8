@@ -2034,9 +2034,19 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
 
     public boolean shouldApplyInliningToInlinee(
         AppView<?> appView, ProgramMethod inlinee, int inliningDepth) {
-      if (isProtoShrinkingEnabled() && inliningDepth == 1) {
-        ProtoReferences protoReferences = appView.protoShrinker().getProtoReferences();
-        return inlinee.getHolderType() == protoReferences.generatedMessageLiteType;
+      if (isProtoShrinkingEnabled()) {
+        if (appView.protoShrinker().getProtoReferences().isDynamicMethodBridge(inlinee)) {
+          return true;
+        }
+        if (inliningDepth <= 1) {
+          ProtoReferences protoReferences = appView.protoShrinker().getProtoReferences();
+          if (inlinee.getHolderType() == protoReferences.generatedMessageLiteType) {
+            return true;
+          }
+          if (inlinee.getHolder().getSuperType() == protoReferences.generatedMessageLiteType) {
+            return true;
+          }
+        }
       }
       return false;
     }
