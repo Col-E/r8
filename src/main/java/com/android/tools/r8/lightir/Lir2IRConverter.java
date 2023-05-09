@@ -16,6 +16,7 @@ import com.android.tools.r8.ir.analysis.type.Nullability;
 import com.android.tools.r8.ir.analysis.type.PrimitiveTypeElement;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.code.Add;
+import com.android.tools.r8.ir.code.And;
 import com.android.tools.r8.ir.code.Argument;
 import com.android.tools.r8.ir.code.ArrayGet;
 import com.android.tools.r8.ir.code.ArrayLength;
@@ -65,6 +66,7 @@ import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.code.Position.SyntheticPosition;
 import com.android.tools.r8.ir.code.Rem;
 import com.android.tools.r8.ir.code.Return;
+import com.android.tools.r8.ir.code.Shr;
 import com.android.tools.r8.ir.code.StaticGet;
 import com.android.tools.r8.ir.code.StaticPut;
 import com.android.tools.r8.ir.code.Sub;
@@ -420,6 +422,18 @@ public class Lir2IRConverter {
     public void onRem(NumericType type, EV leftValueIndex, EV rightValueIndex) {
       Value dest = getOutValueForNextInstruction(valueTypeElement(type));
       addInstruction(new Rem(type, dest, getValue(leftValueIndex), getValue(rightValueIndex)));
+    }
+
+    @Override
+    public void onShr(NumericType type, EV left, EV right) {
+      Value dest = getOutValueForNextInstruction(valueTypeElement(type));
+      addInstruction(new Shr(type, dest, getValue(left), getValue(right)));
+    }
+
+    @Override
+    public void onAnd(NumericType type, EV left, EV right) {
+      Value dest = getOutValueForNextInstruction(valueTypeElement(type));
+      addInstruction(And.createNonNormalized(type, dest, getValue(left), getValue(right)));
     }
 
     @Override

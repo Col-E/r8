@@ -176,7 +176,25 @@ public class LirPrinter<EV> extends LirParsedInstructionCallback<EV> {
   }
 
   @Override
+  public void onMul(NumericType type, EV leftValueIndex, EV rightValueIndex) {
+    appendOutValue();
+    appendValueArguments(leftValueIndex, rightValueIndex);
+  }
+
+  @Override
   public void onDiv(NumericType type, EV leftValueIndex, EV rightValueIndex) {
+    appendOutValue();
+    appendValueArguments(leftValueIndex, rightValueIndex);
+  }
+
+  @Override
+  public void onShr(NumericType type, EV left, EV right) {
+    appendOutValue();
+    appendValueArguments(left, right);
+  }
+
+  @Override
+  public void onAnd(NumericType type, EV leftValueIndex, EV rightValueIndex) {
     appendOutValue();
     appendValueArguments(leftValueIndex, rightValueIndex);
   }

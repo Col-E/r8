@@ -5,7 +5,7 @@
 // This code is not run directly. It needs to be compiled to dex code.
 // 'throwing.dex' is what is run.
 
-package throwing;
+package com.android.tools.r8.examples.throwing;
 
 import java.util.Collections;
 import java.util.List;

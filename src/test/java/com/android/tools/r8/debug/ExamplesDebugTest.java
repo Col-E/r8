@@ -60,18 +60,6 @@ public class ExamplesDebugTest extends DebugTestBase {
   }
 
   @Test
-  public void testSync() throws Exception {
-    // TODO(b/79671093): Line number mismatch in D8.
-    testDebuggingJvmOnly("sync", "Sync");
-  }
-
-  @Test
-  public void testThrowing() throws Exception {
-    // TODO(b/79671093): D8 has unexpected variables (this in throwing.c <init>).
-    testDebuggingJvmOnly("throwing", "Throwing");
-  }
-
-  @Test
   public void testTrivial() throws Exception {
     testDebugging("trivial", "Trivial");
   }

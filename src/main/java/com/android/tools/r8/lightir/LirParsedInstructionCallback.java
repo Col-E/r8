@@ -237,15 +237,21 @@ public abstract class LirParsedInstructionCallback<EV> implements LirInstruction
     switch (opcode) {
       case LirOpcodes.ISHL:
       case LirOpcodes.LSHL:
+        throw new Unimplemented(LirOpcodes.toString(opcode));
       case LirOpcodes.ISHR:
+        onShr(NumericType.INT, left, right);
+        return;
       case LirOpcodes.LSHR:
       case LirOpcodes.IUSHR:
       case LirOpcodes.LUSHR:
+        throw new Unimplemented(LirOpcodes.toString(opcode));
       case LirOpcodes.IAND:
+        onAnd(NumericType.INT, left, right);
+        return;
       case LirOpcodes.LAND:
       case LirOpcodes.IOR:
       case LirOpcodes.LOR:
-        throw new Unimplemented();
+        throw new Unimplemented(LirOpcodes.toString(opcode));
       case LirOpcodes.IXOR:
         onXor(NumericType.INT, left, right);
         return;
@@ -255,6 +261,14 @@ public abstract class LirParsedInstructionCallback<EV> implements LirInstruction
       default:
         throw new Unreachable("Unexpected logical binop: " + opcode);
     }
+  }
+
+  public void onShr(NumericType type, EV left, EV right) {
+    onInstruction();
+  }
+
+  public void onAnd(NumericType type, EV left, EV right) {
+    onInstruction();
   }
 
   public void onXor(NumericType type, EV left, EV right) {
