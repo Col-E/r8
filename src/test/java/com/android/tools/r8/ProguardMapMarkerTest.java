@@ -14,6 +14,7 @@ import com.android.tools.r8.naming.ProguardMapSupplier;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.ExtractMarkerUtils;
 import com.android.tools.r8.utils.VersionProperties;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Collection;
 import java.util.HashSet;
@@ -26,10 +27,16 @@ import org.junit.runners.Parameterized.Parameters;
 @RunWith(Parameterized.class)
 public class ProguardMapMarkerTest extends TestBase {
 
+  static class TestClass {
+
+    public static void main(String[] args) {
+
+    }
+  }
+
   private static final int EXPECTED_NUMBER_OF_KEYS_DEX = 6;
   private static final int EXPECTED_NUMBER_OF_KEYS_CF = 5;
-  private static final String CLASS_FILE =
-      ToolHelper.EXAMPLES_BUILD_DIR + "classes/trivial/Trivial.class";
+  private static final Path CLASS_FILE = ToolHelper.getClassFileForTestClass(TestClass.class);
 
   @Parameters(name = "{0}")
   public static TestParametersCollection data() {
@@ -60,7 +67,7 @@ public class ProguardMapMarkerTest extends TestBase {
     ProguardMapIds proguardMapIds = new ProguardMapIds();
     R8.run(
         R8Command.builder()
-            .addProgramFiles(Paths.get(CLASS_FILE))
+            .addProgramFiles(CLASS_FILE)
             .setDisableTreeShaking(true)
             .setProgramConsumer(
                 new DexIndexedConsumer.ForwardingConsumer(null) {
@@ -107,7 +114,7 @@ public class ProguardMapMarkerTest extends TestBase {
     ProguardMapIds buildIds = new ProguardMapIds();
     R8.run(
         R8Command.builder()
-            .addProgramFiles(Paths.get(CLASS_FILE))
+            .addProgramFiles(CLASS_FILE)
             .setDisableTreeShaking(true)
             .setProgramConsumer(
                 new ClassFileConsumer.ForwardingConsumer(null) {

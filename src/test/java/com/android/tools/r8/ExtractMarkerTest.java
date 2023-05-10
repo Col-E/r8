@@ -13,6 +13,7 @@ import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.ExtractMarkerUtils;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Collection;
 import java.util.Set;
@@ -23,8 +24,15 @@ import org.junit.runners.Parameterized;
 
 @RunWith(Parameterized.class)
 public class ExtractMarkerTest extends TestBase {
-  private static final String CLASS_FILE =
-      ToolHelper.EXAMPLES_BUILD_DIR + "classes/trivial/Trivial.class";
+
+  static class TestClass {
+
+    public static void main(String[] args) {
+
+    }
+  }
+
+  private static final Path CLASS_FILE = ToolHelper.getClassFileForTestClass(TestClass.class);
 
   private final TestParameters parameters;
   private boolean includeClassesChecksum;
@@ -55,7 +63,7 @@ public class ExtractMarkerTest extends TestBase {
     boolean[] testExecuted = {false};
     D8.run(
         D8Command.builder()
-            .addProgramFiles(Paths.get(CLASS_FILE))
+            .addProgramFiles(CLASS_FILE)
             .setMinApiLevel(parameters.getApiLevel().getLevel())
             .setIncludeClassesChecksum(includeClassesChecksum)
             .setProgramConsumer(
@@ -98,7 +106,7 @@ public class ExtractMarkerTest extends TestBase {
     boolean[] testExecuted = {false};
     R8.run(
         R8Command.builder()
-            .addProgramFiles(Paths.get(CLASS_FILE))
+            .addProgramFiles(CLASS_FILE)
             .addLibraryFiles(ToolHelper.getJava8RuntimeJar())
             .setMode(CompilationMode.DEBUG)
             .setDisableTreeShaking(true)
