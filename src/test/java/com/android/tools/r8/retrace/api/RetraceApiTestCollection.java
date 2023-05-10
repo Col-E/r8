@@ -47,7 +47,8 @@ public class RetraceApiTestCollection
   public static List<Class<? extends RetraceApiBinaryTest>> CLASSES_PENDING_BINARY_COMPATIBILITY =
       ImmutableList.of(
           RetraceApiResidualSignatureTest.ApiTest.class,
-          RetracePartitionEmptyMappingTest.ApiTest.class);
+          RetracePartitionEmptyMappingTest.ApiTest.class,
+          RetraceApiProxyFrameWithSourceFileTest.ApiTest.class);
 
   private final TemporaryFolder temp;
 
