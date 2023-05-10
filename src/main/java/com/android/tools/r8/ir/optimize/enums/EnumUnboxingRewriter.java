@@ -501,6 +501,16 @@ public class EnumUnboxingRewriter {
         }
       } else if (invokedMethod == factory.objectsMethods.toStringWithObject) {
         rewriteStringValueOf(invoke, context, convertedEnums, instructionIterator, eventConsumer);
+      } else if (invokedMethod == factory.objectsMethods.equals) {
+        assert invoke.arguments().size() == 2;
+        Value argument = invoke.getFirstArgument();
+        DexType enumType = getEnumClassTypeOrNull(argument, convertedEnums);
+        if (enumType != null) {
+          replaceEnumInvoke(
+              instructionIterator,
+              invoke,
+              getSharedUtilityClass().ensureObjectsEqualsMethod(appView, context, eventConsumer));
+        }
       }
       return;
     }

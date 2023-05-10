@@ -1560,6 +1560,9 @@ public class EnumUnboxerImpl extends EnumUnboxer {
         addRequiredNameData(enumClass);
         return Reason.ELIGIBLE;
       }
+      if (singleTargetReference == factory.objectsMethods.equals) {
+        return comparableAsUnboxedValues(invoke);
+      }
       return new UnsupportedLibraryInvokeReason(singleTargetReference);
     }
 

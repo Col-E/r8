@@ -5,8 +5,10 @@
 package com.android.tools.r8.enumunboxing;
 
 import com.android.tools.r8.NeverClassInline;
+import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.TestParameters;
 import java.util.List;
+import java.util.Objects;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -40,6 +42,7 @@ public class EqualsCompareToEnumUnboxingTest extends EnumUnboxingTestBase {
         .addEnumUnboxingInspector(
             inspector -> inspector.assertUnboxed(EnumEqualscompareTo.MyEnum.class))
         .enableNeverClassInliningAnnotations()
+        .enableInliningAnnotations()
         .addKeepRules(enumKeepRules.getKeepRules())
         .addOptionsModification(opt -> enableEnumOptions(opt, enumValueOptimization))
         .setMinApi(parameters)
@@ -59,9 +62,31 @@ public class EqualsCompareToEnumUnboxingTest extends EnumUnboxingTestBase {
 
     public static void main(String[] args) {
       equalsTest();
+      objectsEqualsTest();
       compareToTest();
     }
 
+    @NeverInline
+    @SuppressWarnings({"ConstantConditions", "EqualsWithItself", "ResultOfMethodCallIgnored"})
+    private static void objectsEqualsTest() {
+      System.out.println(performObjectsEquals(MyEnum.A, MyEnum.B));
+      System.out.println(false);
+      System.out.println(performObjectsEquals(MyEnum.A, MyEnum.A));
+      System.out.println(true);
+      System.out.println(performObjectsEquals(MyEnum.A, null));
+      System.out.println(false);
+      System.out.println(performObjectsEquals(null, MyEnum.A));
+      System.out.println(false);
+      System.out.println(performObjectsEquals(null, null));
+      System.out.println(true);
+    }
+
+    @NeverInline
+    private static boolean performObjectsEquals(MyEnum a, MyEnum b) {
+      return Objects.equals(a, b);
+    }
+
+    @NeverInline
     @SuppressWarnings({"ConstantConditions", "EqualsWithItself", "ResultOfMethodCallIgnored"})
     private static void equalsTest() {
       System.out.println(MyEnum.A.equals(MyEnum.B));
@@ -78,6 +103,7 @@ public class EqualsCompareToEnumUnboxingTest extends EnumUnboxingTestBase {
       }
     }
 
+    @NeverInline
     @SuppressWarnings({"ConstantConditions", "EqualsWithItself", "ResultOfMethodCallIgnored"})
     private static void compareToTest() {
       System.out.println(MyEnum.B.compareTo(MyEnum.A) > 0);

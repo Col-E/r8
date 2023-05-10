@@ -139,6 +139,38 @@ public final class EnumUnboxingCfMethods {
         ImmutableList.of());
   }
 
+  public static CfCode EnumUnboxingMethods_objectEquals(DexItemFactory factory, DexMethod method) {
+    CfLabel label0 = new CfLabel();
+    CfLabel label1 = new CfLabel();
+    CfLabel label2 = new CfLabel();
+    CfLabel label3 = new CfLabel();
+    return new CfCode(
+        method.holder,
+        2,
+        2,
+        ImmutableList.of(
+            label0,
+            new CfLoad(ValueType.INT, 0),
+            new CfLoad(ValueType.INT, 1),
+            new CfIfCmp(IfType.NE, ValueType.INT, label1),
+            new CfConstNumber(1, ValueType.INT),
+            new CfGoto(label2),
+            label1,
+            new CfFrame(
+                new Int2ObjectAVLTreeMap<>(
+                    new int[] {0, 1}, new FrameType[] {FrameType.intType(), FrameType.intType()})),
+            new CfConstNumber(0, ValueType.INT),
+            label2,
+            new CfFrame(
+                new Int2ObjectAVLTreeMap<>(
+                    new int[] {0, 1}, new FrameType[] {FrameType.intType(), FrameType.intType()}),
+                new ArrayDeque<>(Arrays.asList(FrameType.intType()))),
+            new CfReturn(ValueType.INT),
+            label3),
+        ImmutableList.of(),
+        ImmutableList.of());
+  }
+
   public static CfCode EnumUnboxingMethods_ordinal(DexItemFactory factory, DexMethod method) {
     CfLabel label0 = new CfLabel();
     CfLabel label1 = new CfLabel();
