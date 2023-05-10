@@ -43,8 +43,7 @@ public class ArrayPutsToArrayAliasTest extends TestBase {
         .enableInliningAnnotations()
         .setMinApi(parameters)
         .run(parameters.getRuntime(), Main.class)
-        // TODO(b/280659987): Should succeed with "Hello, world!".
-        .assertSuccessWithOutputLines("Hellonull");
+        .assertSuccessWithOutputLines("Hello, world!");
   }
 
   static class Main {
