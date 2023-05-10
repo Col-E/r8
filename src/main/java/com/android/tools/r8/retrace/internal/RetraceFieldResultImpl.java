@@ -64,7 +64,8 @@ public class RetraceFieldResultImpl implements RetraceFieldResult {
                                 ? RetracedClassReferenceImpl.create(
                                     Reference.classFromDescriptor(
                                         DescriptorUtils.javaTypeToDescriptor(
-                                            fieldSignature.toHolderFromQualified())))
+                                            fieldSignature.toHolderFromQualified())),
+                                    true)
                                 : classElement.getRetracedClass();
                         return new ElementImpl(
                             this,

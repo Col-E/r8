@@ -50,7 +50,7 @@ public class RetraceApiProxyFrameWithSourceFileTest extends RetraceApiTestBase {
               .getResult()
               .get(0)
               .get(0);
-      assertEquals("com.android.tools.R8.a(Unknown Source)", stringRetraceStackFrameResult.get(0));
+      assertEquals("com.android.tools.R8.a(R8.java)", stringRetraceStackFrameResult.get(0));
     }
 
     public static class TestProxy extends StackTraceElementProxy<String, TestProxy> {
@@ -133,7 +133,7 @@ public class RetraceApiProxyFrameWithSourceFileTest extends RetraceApiTestBase {
             + "."
             + getMethodName()
             + "("
-            + retracedProxy.getSourceFile()
+            + retracedProxy.getRetracedSourceFile().getOrInferSourceFile()
             + ")";
       }
     }

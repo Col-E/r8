@@ -43,9 +43,8 @@ public class RetraceThrownExceptionResultImpl implements RetraceThrownExceptionR
     return new RetraceThrownExceptionElementImpl(
         this,
         RetracedClassReferenceImpl.create(
-            mapper == null
-                ? obfuscatedReference
-                : Reference.classFromTypeName(mapper.originalName)),
+            mapper == null ? obfuscatedReference : Reference.classFromTypeName(mapper.originalName),
+            mapper != null),
         mapper,
         obfuscatedReference);
   }

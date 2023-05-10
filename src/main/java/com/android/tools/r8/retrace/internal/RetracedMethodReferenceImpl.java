@@ -99,7 +99,7 @@ public abstract class RetracedMethodReferenceImpl implements RetracedMethodRefer
 
     @Override
     public RetracedClassReferenceImpl getHolderClass() {
-      return RetracedClassReferenceImpl.create(methodReference.getHolderClass());
+      return RetracedClassReferenceImpl.create(methodReference.getHolderClass(), true);
     }
 
     @Override
@@ -153,7 +153,7 @@ public abstract class RetracedMethodReferenceImpl implements RetracedMethodRefer
 
     @Override
     public RetracedClassReferenceImpl getHolderClass() {
-      return RetracedClassReferenceImpl.create(methodDefinition.getHolderClass());
+      return RetracedClassReferenceImpl.create(methodDefinition.getHolderClass(), false);
     }
 
     @Override

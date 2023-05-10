@@ -49,7 +49,7 @@ public abstract class RetracedFieldReferenceImpl implements RetracedFieldReferen
 
     @Override
     public RetracedClassReferenceImpl getHolderClass() {
-      return RetracedClassReferenceImpl.create(fieldReference.getHolderClass());
+      return RetracedClassReferenceImpl.create(fieldReference.getHolderClass(), true);
     }
 
     @Override
@@ -95,7 +95,7 @@ public abstract class RetracedFieldReferenceImpl implements RetracedFieldReferen
 
     @Override
     public RetracedClassReferenceImpl getHolderClass() {
-      return RetracedClassReferenceImpl.create(fieldDefinition.getHolderClass());
+      return RetracedClassReferenceImpl.create(fieldDefinition.getHolderClass(), false);
     }
 
     @Override

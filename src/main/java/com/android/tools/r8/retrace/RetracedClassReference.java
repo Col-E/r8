@@ -10,6 +10,10 @@ import com.android.tools.r8.references.ClassReference;
 @Keep
 public interface RetracedClassReference {
 
+  boolean isUnknown();
+
+  boolean isKnown();
+
   String getTypeName();
 
   String getDescriptor();
