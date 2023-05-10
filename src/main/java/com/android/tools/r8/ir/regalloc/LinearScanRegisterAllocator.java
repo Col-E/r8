@@ -2122,38 +2122,36 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
             needsRegisterPair,
             usePositions,
             Type.CONST_NUMBER);
-    if (candidate != Integer.MAX_VALUE) {
-      // Look for a non-const, non-monitor candidate.
-      int otherCandidate =
-          getLargestValidCandidate(
-              unhandledInterval, registerConstraint, needsRegisterPair, usePositions, Type.OTHER);
-      if (otherCandidate != REGISTER_CANDIDATE_NOT_FOUND) {
-        // There is a potential other candidate, check if that should be used instead.
-        if (otherCandidate == Integer.MAX_VALUE || candidate == REGISTER_CANDIDATE_NOT_FOUND) {
+    // Look for a non-const, non-monitor candidate.
+    int otherCandidate =
+        getLargestValidCandidate(
+            unhandledInterval, registerConstraint, needsRegisterPair, usePositions, Type.OTHER);
+    if (otherCandidate != REGISTER_CANDIDATE_NOT_FOUND) {
+      // There is a potential other candidate, check if that should be used instead.
+      if (candidate == REGISTER_CANDIDATE_NOT_FOUND) {
+        candidate = otherCandidate;
+      } else {
+        int largestConstUsePosition =
+            getLargestPosition(usePositions, candidate, needsRegisterPair);
+        if (largestConstUsePosition - MIN_CONSTANT_FREE_FOR_POSITIONS
+            < unhandledInterval.getStart()) {
+          // The candidate that can be rematerialized has a live range too short to use it.
           candidate = otherCandidate;
-        } else {
-          int largestConstUsePosition =
-              getLargestPosition(usePositions, candidate, needsRegisterPair);
-          if (largestConstUsePosition - MIN_CONSTANT_FREE_FOR_POSITIONS
-              < unhandledInterval.getStart()) {
-            // The candidate that can be rematerialized has a live range too short to use it.
-            candidate = otherCandidate;
-          }
         }
       }
+    }
 
-      // If looking at constants and non-monitor registers did not find a valid spill candidate
-      // we allow ourselves to look at monitor spill candidates as well. Registers holding objects
-      // used as monitors should not be spilled if we can avoid it. Spilling them can lead
-      // to Art lock verification issues.
-      // Also, at this point we still don't allow splitting any string new-instance instructions
-      // that have been explicitly blocked. Doing so could lead to a behavioral bug on some ART
-      // runtimes (b/80118070). To remove this restriction, we would need to know when the call to
-      // <init> has definitely happened, and would be safe to split the value after that point.
-      if (candidate == REGISTER_CANDIDATE_NOT_FOUND) {
-        candidate = getLargestValidCandidate(
-            unhandledInterval, registerConstraint, needsRegisterPair, usePositions, Type.MONITOR);
-      }
+    // If looking at constants and non-monitor registers did not find a valid spill candidate
+    // we allow ourselves to look at monitor spill candidates as well. Registers holding objects
+    // used as monitors should not be spilled if we can avoid it. Spilling them can lead
+    // to Art lock verification issues.
+    // Also, at this point we still don't allow splitting any string new-instance instructions
+    // that have been explicitly blocked. Doing so could lead to a behavioral bug on some ART
+    // runtimes (b/80118070). To remove this restriction, we would need to know when the call to
+    // <init> has definitely happened, and would be safe to split the value after that point.
+    if (candidate == REGISTER_CANDIDATE_NOT_FOUND) {
+      candidate = getLargestValidCandidate(
+          unhandledInterval, registerConstraint, needsRegisterPair, usePositions, Type.MONITOR);
     }
 
     int largestUsePosition = getLargestPosition(usePositions, candidate, needsRegisterPair);
