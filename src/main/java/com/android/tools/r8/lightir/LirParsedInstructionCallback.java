@@ -9,6 +9,7 @@ import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItem;
 import com.android.tools.r8.graph.DexMethod;
+import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.code.IfType;
@@ -16,6 +17,8 @@ import com.android.tools.r8.ir.code.MemberType;
 import com.android.tools.r8.ir.code.NumericType;
 import com.android.tools.r8.lightir.LirBuilder.FillArrayPayload;
 import com.android.tools.r8.lightir.LirBuilder.IntSwitchPayload;
+import com.android.tools.r8.lightir.LirBuilder.NameComputationPayload;
+import com.android.tools.r8.naming.dexitembasedstring.NameComputationInfo;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -84,6 +87,11 @@ public abstract class LirParsedInstructionCallback<EV> implements LirInstruction
   }
 
   public void onConstString(DexString string) {
+    onInstruction();
+  }
+
+  public void onDexItemBasedConstString(
+      DexReference item, NameComputationInfo<?> nameComputationInfo) {
     onInstruction();
   }
 
@@ -302,6 +310,10 @@ public abstract class LirParsedInstructionCallback<EV> implements LirInstruction
   }
 
   public void onDebugLocalWrite(EV srcIndex) {
+    onInstruction();
+  }
+
+  public void onInvokeMultiNewArray(DexType type, List<EV> arguments) {
     onInstruction();
   }
 
@@ -1006,6 +1018,13 @@ public abstract class LirParsedInstructionCallback<EV> implements LirInstruction
           onDebugLocalWrite(srcIndex);
           return;
         }
+      case LirOpcodes.MULTIANEWARRAY:
+        {
+          DexType type = getNextDexTypeOperand(view);
+          List<EV> arguments = getInvokeInstructionArguments(view);
+          onInvokeMultiNewArray(type, arguments);
+          return;
+        }
       case LirOpcodes.INVOKENEWARRAY:
         {
           DexType type = getNextDexTypeOperand(view);
@@ -1030,6 +1049,14 @@ public abstract class LirParsedInstructionCallback<EV> implements LirInstruction
           EV leftValue = getNextValueOperand(view);
           EV rightValue = getNextValueOperand(view);
           onCmpInstruction(opcode, leftValue, rightValue);
+          return;
+        }
+      case LirOpcodes.ITEMBASEDCONSTSTRING:
+        {
+          DexReference item = (DexReference) getConstantItem(view.getNextConstantOperand());
+          NameComputationPayload payload =
+              (NameComputationPayload) getConstantItem(view.getNextConstantOperand());
+          onDexItemBasedConstString(item, payload.nameComputationInfo);
           return;
         }
       default:

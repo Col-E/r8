@@ -478,6 +478,10 @@ public final class DefaultInliningOracle implements InliningOracle, InliningStra
       ProgramMethod singleTarget,
       InliningIRProvider inliningIRProvider,
       WhyAreYouNotInliningReporter whyAreYouNotInliningReporter) {
+    if (!inlinerOptions.isConstructorInliningEnabled()) {
+      return false;
+    }
+
     IRCode inlinee = inliningIRProvider.getInliningIR(invoke, singleTarget);
 
     // In the Java VM Specification section "4.10.2.4. Instance Initialization Methods and
@@ -517,32 +521,30 @@ public final class DefaultInliningOracle implements InliningOracle, InliningStra
     //       ...
     //     }
     //   }
-    // TODO(b/278679664): Relax requirement (3) when targeting DEX.
     Value thisValue = inlinee.entryBlock().entry().asArgument().outValue();
 
     List<InvokeDirect> initCallsOnThis = new ArrayList<>();
     for (Instruction instruction : inlinee.instructions()) {
-      if (instruction.isInvokeDirect()) {
+      if (instruction.isInvokeConstructor(appView.dexItemFactory())) {
         InvokeDirect initCall = instruction.asInvokeDirect();
-        DexMethod invokedMethod = initCall.getInvokedMethod();
-        if (appView.dexItemFactory().isConstructor(invokedMethod)) {
-          Value receiver = initCall.getReceiver().getAliasedValue();
-          if (receiver == thisValue) {
-            // The <init>() call of the constructor must be on the same class.
-            if (calleeMethodHolder != invokedMethod.holder) {
-              whyAreYouNotInliningReporter
-                  .reportUnsafeConstructorInliningDueToIndirectConstructorCall(initCall);
-              return false;
-            }
-            initCallsOnThis.add(initCall);
+        Value receiver = initCall.getReceiver().getAliasedValue();
+        if (receiver == thisValue) {
+          // The <init>() call of the constructor must be on the same class when targeting the JVM
+          // and Dalvik.
+          if (!options.canInitNewInstanceUsingSuperclassConstructor()
+              && calleeMethodHolder != initCall.getInvokedMethod().getHolderType()) {
+            whyAreYouNotInliningReporter
+                .reportUnsafeConstructorInliningDueToIndirectConstructorCall(initCall);
+            return false;
           }
+          initCallsOnThis.add(initCall);
         }
       } else if (instruction.isInstancePut()) {
         // Final fields may not be initialized outside of a constructor in the enclosing class.
         InstancePut instancePut = instruction.asInstancePut();
         DexField field = instancePut.getField();
         DexEncodedField target = appView.appInfo().lookupInstanceTarget(field);
-        if (target == null || target.accessFlags.isFinal()) {
+        if (target == null || target.isFinal()) {
           whyAreYouNotInliningReporter.reportUnsafeConstructorInliningDueToFinalFieldAssignment(
               instancePut);
           return false;
@@ -550,29 +552,22 @@ public final class DefaultInliningOracle implements InliningOracle, InliningStra
       }
     }
 
-    // Check that there are no uses of the uninitialized object before it gets initialized.
-    int markingColor = inlinee.reserveMarkingColor();
-    for (InvokeDirect initCallOnThis : initCallsOnThis) {
-      BasicBlock block = initCallOnThis.getBlock();
-      for (Instruction instruction : block.instructionsBefore(initCallOnThis)) {
-        for (Value inValue : instruction.inValues()) {
-          Value root = inValue.getAliasedValue();
-          if (root == thisValue) {
-            inlinee.returnMarkingColor(markingColor);
-            whyAreYouNotInliningReporter.reportUnsafeConstructorInliningDueToUninitializedObjectUse(
-                instruction);
-            return false;
-          }
+    if (initCallsOnThis.isEmpty()) {
+      // In the unusual case where there is no parent/forwarding constructor call, there must be no
+      // instance-put instructions that assign fields on the receiver.
+      for (Instruction user : thisValue.uniqueUsers()) {
+        if (user.isInstancePut() && user.asInstancePut().object().getAliasedValue() == thisValue) {
+          whyAreYouNotInliningReporter.reportUnsafeConstructorInliningDueToUninitializedObjectUse(
+              user);
+          return false;
         }
       }
-      for (BasicBlock predecessor : block.getPredecessors()) {
-        inlinee.markTransitivePredecessors(predecessor, markingColor);
-      }
-    }
-
-    for (BasicBlock block : inlinee.blocks) {
-      if (block.isMarked(markingColor)) {
-        for (Instruction instruction : block.getInstructions()) {
+    } else {
+      // Check that there are no uses of the uninitialized object before it gets initialized.
+      int markingColor = inlinee.reserveMarkingColor();
+      for (InvokeDirect initCallOnThis : initCallsOnThis) {
+        BasicBlock block = initCallOnThis.getBlock();
+        for (Instruction instruction : block.instructionsBefore(initCallOnThis)) {
           for (Value inValue : instruction.inValues()) {
             Value root = inValue.getAliasedValue();
             if (root == thisValue) {
@@ -583,10 +578,29 @@ public final class DefaultInliningOracle implements InliningOracle, InliningStra
             }
           }
         }
+        for (BasicBlock predecessor : block.getPredecessors()) {
+          inlinee.markTransitivePredecessors(predecessor, markingColor);
+        }
       }
+
+      for (BasicBlock block : inlinee.getBlocks()) {
+        if (block.isMarked(markingColor)) {
+          for (Instruction instruction : block.getInstructions()) {
+            for (Value inValue : instruction.inValues()) {
+              Value root = inValue.getAliasedValue();
+              if (root == thisValue) {
+                inlinee.returnMarkingColor(markingColor);
+                whyAreYouNotInliningReporter
+                    .reportUnsafeConstructorInliningDueToUninitializedObjectUse(instruction);
+                return false;
+              }
+            }
+          }
+        }
+      }
+      inlinee.returnMarkingColor(markingColor);
     }
 
-    inlinee.returnMarkingColor(markingColor);
     inliningIRProvider.cacheInliningIR(invoke, inlinee);
     return true;
   }

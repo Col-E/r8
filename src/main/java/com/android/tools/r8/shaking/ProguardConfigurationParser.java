@@ -599,6 +599,12 @@ public class ProguardConfigurationParser {
           configurationBuilder.addRule(rule);
           return true;
         }
+        if (acceptString(NoRedundantFieldLoadEliminationRule.RULE_NAME)) {
+          ProguardConfigurationRule rule =
+              parseNoOptimizationRule(optionStart, NoRedundantFieldLoadEliminationRule.builder());
+          configurationBuilder.addRule(rule);
+          return true;
+        }
         if (acceptString(NoReturnTypeStrengtheningRule.RULE_NAME)) {
           ProguardConfigurationRule rule =
               parseNoOptimizationRule(optionStart, NoReturnTypeStrengtheningRule.builder());

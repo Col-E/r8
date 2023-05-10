@@ -507,7 +507,8 @@ public class CfApplicationWriter {
         for (int i = 0; i < names.getValues().length; i++) {
           DexValueString name = names.getValues()[i].asDexValueString();
           DexValueInt access = accessFlags.getValues()[i].asDexValueInt();
-          visitor.visitParameter(name.value.toString(), access.value);
+          String nameString = name != null ? name.value.toString() : null;
+          visitor.visitParameter(nameString, access.value);
         }
       }
     }

@@ -34,6 +34,10 @@ public class ConstString extends ConstInstruction {
     this.value = value;
   }
 
+  public static Builder builder() {
+    return new Builder();
+  }
+
   @Override
   public int opcode() {
     return Opcodes.CONST_STRING;
@@ -184,5 +188,25 @@ public class ConstString extends ConstInstruction {
   @Override
   public void buildLir(LirBuilder<Value, ?> builder) {
     builder.addConstString(value);
+  }
+
+  public static class Builder extends BuilderBase<Builder, ConstString> {
+
+    private DexString value;
+
+    public Builder setValue(DexString value) {
+      this.value = value;
+      return this;
+    }
+
+    @Override
+    public ConstString build() {
+      return amend(new ConstString(outValue, value));
+    }
+
+    @Override
+    public Builder self() {
+      return this;
+    }
   }
 }

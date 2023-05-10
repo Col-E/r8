@@ -22,6 +22,7 @@ import com.android.tools.r8.graph.DexDebugEvent.Default;
 import com.android.tools.r8.graph.DexDebugEvent.SetPositionFrame;
 import com.android.tools.r8.graph.DexDebugEvent.StartLocal;
 import com.android.tools.r8.graph.DexDebugInfo.EventBasedDebugInfo;
+import com.android.tools.r8.graph.DexWritableCode.DexWritableCacheKey;
 import com.android.tools.r8.graph.bytecodemetadata.BytecodeInstructionMetadata;
 import com.android.tools.r8.graph.bytecodemetadata.BytecodeMetadata;
 import com.android.tools.r8.graph.lens.GraphLens;
@@ -43,8 +44,14 @@ import com.android.tools.r8.utils.DexDebugUtils.PositionInfo;
 import com.android.tools.r8.utils.RetracerForCodePrinting;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.structural.*;
-import com.google.common.base.Strings;
+import com.android.tools.r8.utils.structural.Equatable;
+import com.android.tools.r8.utils.structural.HashCodeVisitor;
+import com.android.tools.r8.utils.structural.HashingVisitor;
+import com.android.tools.r8.utils.structural.StructuralItem;
+import com.android.tools.r8.utils.structural.StructuralMapping;
+import com.android.tools.r8.utils.structural.StructuralSpecification;
 import it.unimi.dsi.fastutil.ints.Int2IntMap;
+
 import javax.annotation.Nonnull;
 
 import java.nio.ShortBuffer;
@@ -60,7 +67,8 @@ import java.util.Set;
 import java.util.function.Consumer;
 
 // DexCode corresponds to code item in dalvik/dex-format.html
-public class DexCode extends Code implements DexWritableCode, StructuralItem<DexCode>, Copyable<DexCode> {
+public class DexCode extends Code
+    implements DexWritableCode, StructuralItem<DexCode>, DexWritableCacheKey, Copyable<DexCode> {
 
   public static final String FAKE_THIS_PREFIX = "_";
   public static final String FAKE_THIS_SUFFIX = "this";
@@ -281,6 +289,7 @@ public class DexCode extends Code implements DexWritableCode, StructuralItem<Dex
     if (debugInfoForWriting != null) {
       debugInfoForWriting = null;
     }
+    flushCachedValues();
   }
 
   public DexDebugInfo debugInfoWithFakeThisParameter(DexItemFactory factory) {
@@ -301,7 +310,7 @@ public class DexCode extends Code implements DexWritableCode, StructuralItem<Dex
       }
     }
 
-    String fakeThisName = Strings.repeat(FAKE_THIS_PREFIX, largestPrefix + 1) + FAKE_THIS_SUFFIX;
+    String fakeThisName = FAKE_THIS_PREFIX.repeat(largestPrefix + 1) + FAKE_THIS_SUFFIX;
     DexString[] parameters = eventBasedInfo.parameters;
     DexString[] newParameters = new DexString[parameters.length + 1];
     newParameters[0] = factory.createString(fakeThisName);
@@ -869,6 +878,11 @@ public class DexCode extends Code implements DexWritableCode, StructuralItem<Dex
     // Instead, they all use int offsets. So there is no copy operation
     // required for the DexInstruction types.
     return new DexCode(this);
+  }
+
+  @Override
+  public DexWritableCacheKey getCacheLookupKey(ProgramMethod method, DexItemFactory factory) {
+    return this;
   }
 
   public static class Try extends DexItem implements StructuralItem<Try> {

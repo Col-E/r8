@@ -5,7 +5,7 @@
 package com.android.tools.r8.ir.analysis.fieldvalueanalysis;
 
 import com.android.tools.r8.graph.AppView;
-import com.android.tools.r8.graph.DexEncodedField;
+import com.android.tools.r8.graph.DexClassAndField;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexProgramClass;
@@ -32,7 +32,7 @@ public abstract class StaticFieldValues {
   public abstract static class Builder {
 
     public abstract void recordStaticField(
-        DexEncodedField staticField, AbstractValue value, DexItemFactory factory);
+        DexClassAndField staticField, AbstractValue value, DexItemFactory factory);
 
     public abstract StaticFieldValues build();
   }
@@ -69,7 +69,7 @@ public abstract class StaticFieldValues {
 
       @Override
       public void recordStaticField(
-          DexEncodedField staticField, AbstractValue value, DexItemFactory factory) {
+          DexClassAndField staticField, AbstractValue value, DexItemFactory factory) {
         if (factory.enumMembers.isValuesFieldCandidate(staticField, staticField.getHolderType())) {
           if (value.isSingleFieldValue()
               && value.asSingleFieldValue().getObjectState().isEnumValuesObjectState()) {
@@ -131,7 +131,7 @@ public abstract class StaticFieldValues {
 
       @Override
       public void recordStaticField(
-          DexEncodedField staticField, AbstractValue value, DexItemFactory factory) {
+          DexClassAndField staticField, AbstractValue value, DexItemFactory factory) {
         // Do nothing.
       }
 

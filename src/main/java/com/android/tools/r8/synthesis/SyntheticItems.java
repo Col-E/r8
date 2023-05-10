@@ -1019,6 +1019,11 @@ public class SyntheticItems implements SyntheticDefinitionsProvider {
     SynthesizingContext outerContext = SynthesizingContext.fromType(globalType);
     DexProgramClass globalSynthetic =
         internalEnsureFixedProgramClass(kind, fn, onCreationConsumer, outerContext, appView);
+    Consumer<DexProgramClass> globalSyntheticCreatedCallback =
+        appView.options().testing.globalSyntheticCreatedCallback;
+    if (globalSyntheticCreatedCallback != null) {
+      globalSyntheticCreatedCallback.accept(globalSynthetic);
+    }
     addGlobalContexts(globalSynthetic.getType(), contexts);
     return globalSynthetic;
   }

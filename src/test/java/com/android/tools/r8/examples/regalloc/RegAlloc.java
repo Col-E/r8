@@ -5,7 +5,7 @@
 // This code is not run directly. It needs to be compiled to dex code.
 // 'regalloc.dex' is what is run.
 
-package regalloc;
+package com.android.tools.r8.examples.regalloc;
 
 // Various test cases that are challenging for the register allocator.
 public class RegAlloc {

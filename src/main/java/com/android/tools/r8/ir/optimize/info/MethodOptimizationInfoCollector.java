@@ -46,6 +46,7 @@ import static com.android.tools.r8.ir.code.Opcodes.XOR;
 
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
+import com.android.tools.r8.graph.DexClassAndField;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexItemFactory;
@@ -339,8 +340,8 @@ public class MethodOptimizationInfoCollector {
           case STATIC_GET:
             {
               FieldInstruction fieldGet = instruction.asFieldInstruction();
-              DexEncodedField field =
-                  appView.appInfo().resolveField(fieldGet.getField()).getResolvedField();
+              DexClassAndField field =
+                  appView.appInfo().resolveField(fieldGet.getField()).getResolutionPair();
               if (field == null) {
                 return null;
               }

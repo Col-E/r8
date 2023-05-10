@@ -21,7 +21,6 @@ import com.android.tools.r8.shaking.ProguardKeepRuleType;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.Pair;
 import com.android.tools.r8.utils.TriFunction;
-import com.google.common.base.Strings;
 import java.util.List;
 import java.util.function.Consumer;
 import kotlin.Metadata;
@@ -106,9 +105,7 @@ public class KotlinMetadataUtils {
       JvmMethodSignature methodSignature, int intArguments) {
     return new JvmMethodSignature(
         methodSignature.getName() + "$default",
-        methodSignature
-            .getDesc()
-            .replace(")", Strings.repeat("I", intArguments) + "Ljava/lang/Object;)"));
+        methodSignature.getDesc().replace(")", "I".repeat(intArguments) + "Ljava/lang/Object;)"));
   }
 
   static class KmPropertyProcessor {

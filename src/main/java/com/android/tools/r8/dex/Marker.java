@@ -26,13 +26,13 @@ public class Marker {
   public static final String BACKEND = "backend";
   public static final String PG_MAP_ID = "pg-map-id";
   public static final String R8_MODE = "r8-mode";
-  private static final String NO_LIBRARY_DESUGARING = "<no-library-desugaring>";
   private static final String ANDROID_PLATFORM_BUILD = "platform";
 
   public enum Tool {
     D8,
-    R8,
+    GlobalSyntheticsGenerator,
     L8,
+    R8,
     Relocator,
     TraceReferences;
 

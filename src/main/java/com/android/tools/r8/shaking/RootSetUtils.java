@@ -288,7 +288,8 @@ public class RootSetUtils {
           markMatchingOverriddenMethods(clazz, memberKeepRules, rule, null, true, ifRule);
           markMatchingVisibleFields(clazz, memberKeepRules, rule, null, true, ifRule);
         }
-      } else if (rule instanceof NoFieldTypeStrengtheningRule) {
+      } else if (rule instanceof NoFieldTypeStrengtheningRule
+          || rule instanceof NoRedundantFieldLoadEliminationRule) {
         markMatchingFields(clazz, memberKeepRules, rule, null, ifRule);
       } else if (rule instanceof InlineRule
           || rule instanceof KeepConstantArgumentRule
@@ -1237,6 +1238,13 @@ public class RootSetUtils {
             .asFieldJoiner()
             .disallowFieldTypeStrengthening();
         context.markAsUsed();
+      } else if (context instanceof NoRedundantFieldLoadEliminationRule) {
+        assert item.isProgramField();
+        dependentMinimumKeepInfo
+            .getOrCreateUnconditionalMinimumKeepInfoFor(item.getReference())
+            .asFieldJoiner()
+            .disallowRedundantFieldLoadElimination();
+        context.markAsUsed();
       } else if (context instanceof NoUnusedInterfaceRemovalRule) {
         noUnusedInterfaceRemoval.add(item.asClass().type);
         context.markAsUsed();
@@ -2003,9 +2011,9 @@ public class RootSetUtils {
                 if (field != null
                     && (field.getAccessFlags().isStatic()
                         || isKeptDirectlyOrIndirectly(field.getHolderType(), appView))) {
-                  assert appView.appInfo().isFieldRead(field.getDefinition())
+                  assert appView.appInfo().isFieldRead(field)
                       : "Expected kept field `" + fieldReference.toSourceString() + "` to be read";
-                  assert appView.appInfo().isFieldWritten(field.getDefinition())
+                  assert appView.appInfo().isFieldWritten(field)
                       : "Expected kept field `"
                           + fieldReference.toSourceString()
                           + "` to be written";

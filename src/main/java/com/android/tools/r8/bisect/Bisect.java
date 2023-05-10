@@ -209,7 +209,7 @@ public class Bisect {
       options = BisectOptions.parse(args);
     } catch (CompilationError e) {
       System.err.println(e.getMessage());
-      BisectOptions.printHelp(System.err);
+      BisectOptions.printHelp();
       return;
     }
     if (options == null) {

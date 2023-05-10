@@ -118,8 +118,8 @@ public class GenericSignatureTest extends TestBase {
     classSignature = clazz.classSignature;
     assertNotNull(classSignature);
 
-    assertEquals(1, classSignature.formalTypeParameters.size());
-    FormalTypeParameter formalTypeParameter = classSignature.formalTypeParameters.get(0);
+    assertEquals(1, classSignature.getFormalTypeParameters().size());
+    FormalTypeParameter formalTypeParameter = classSignature.getFormalTypeParameters().get(0);
     assertEquals("T", formalTypeParameter.name);
     assertTrue(formalTypeParameter.interfaceBounds.isEmpty());
     assertTrue(formalTypeParameter.classBound.isClassTypeSignature());
@@ -135,8 +135,8 @@ public class GenericSignatureTest extends TestBase {
             .asTypeVariableSignature()
             .typeVariable);
 
-    assertTrue(classSignature.superInterfaceSignatures.isEmpty());
-    classTypeSignature = classSignature.superClassSignature;
+    assertTrue(classSignature.getSuperInterfaceSignatures().isEmpty());
+    classTypeSignature = classSignature.getSuperClassSignatureOrNull();
     assertEquals(cy.getDexProgramClass().type, classTypeSignature.type);
     typeArguments = classTypeSignature.typeArguments;
     assertEquals(1, typeArguments.size());

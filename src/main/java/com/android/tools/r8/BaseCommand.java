@@ -89,7 +89,7 @@ public abstract class BaseCommand {
     }
   }
 
-  private static class LibraryInputOrigin extends InputFileOrigin {
+  static class LibraryInputOrigin extends InputFileOrigin {
 
     public LibraryInputOrigin(Path file) {
       super("library input", file);

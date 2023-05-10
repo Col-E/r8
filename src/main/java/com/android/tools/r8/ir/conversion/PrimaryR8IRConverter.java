@@ -247,7 +247,7 @@ public class PrimaryR8IRConverter extends IRConverter {
     onWaveDoneActions = Collections.synchronizedList(new ArrayList<>());
   }
 
-  private void waveDone(ProgramMethodSet wave, ExecutorService executorService)
+  public void waveDone(ProgramMethodSet wave, ExecutorService executorService)
       throws ExecutionException {
     delayedOptimizationFeedback.refineAppInfoWithLiveness(appView.appInfo().withLiveness());
     delayedOptimizationFeedback.updateVisibleOptimizationInfo();
@@ -258,8 +258,10 @@ public class PrimaryR8IRConverter extends IRConverter {
     }
     enumUnboxer.updateEnumUnboxingCandidatesInfo();
     assert delayedOptimizationFeedback.noUpdatesLeft();
-    onWaveDoneActions.forEach(com.android.tools.r8.utils.Action::execute);
-    onWaveDoneActions = null;
+    if (onWaveDoneActions != null) {
+      onWaveDoneActions.forEach(com.android.tools.r8.utils.Action::execute);
+      onWaveDoneActions = null;
+    }
     if (!prunedMethodsInWave.isEmpty()) {
       appView.pruneItems(
           PrunedItems.builder()

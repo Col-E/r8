@@ -167,7 +167,7 @@ public abstract class FieldInstruction extends Instruction {
    * since that could change the lifetime of the value.
    */
   boolean isStoringObjectWithFinalizer(
-      AppView<AppInfoWithLiveness> appView, DexEncodedField field) {
+      AppView<AppInfoWithLiveness> appView, DexClassAndField field) {
     assert isFieldPut();
 
     TypeElement type = value().getType();

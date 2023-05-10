@@ -90,7 +90,7 @@ public final class EmulatedInterfaceApplicationRewriter {
             false,
             emulatedInterface.getChecksumSupplier());
     newEmulatedInterface.addExtraInterfaces(
-        getRewrittenInterfacesOfEmulatedInterface(emulatedInterface));
+        getRewrittenInterfacesOfEmulatedInterface(emulatedInterface), appView.dexItemFactory());
     return newEmulatedInterface;
   }
 
@@ -106,7 +106,7 @@ public final class EmulatedInterfaceApplicationRewriter {
           typeArguments = Collections.emptyList();
         } else {
           GenericSignature.ClassTypeSignature classTypeSignature =
-              classSignature.superInterfaceSignatures().get(i);
+              classSignature.getSuperInterfaceSignatures().get(i);
           assert itf == classTypeSignature.type();
           typeArguments = classTypeSignature.typeArguments();
         }

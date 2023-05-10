@@ -8,8 +8,8 @@ import static com.android.tools.r8.ir.analysis.type.Nullability.maybeNull;
 
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.DexClassAndField;
 import com.android.tools.r8.graph.DexClassAndMethod;
-import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.analysis.type.ClassTypeElement;
@@ -119,17 +119,17 @@ public class InstanceFieldValueAnalysis extends FieldValueAnalysis {
   }
 
   @Override
-  boolean isSubjectToOptimization(DexEncodedField field) {
-    return !field.isStatic() && field.getHolderType() == context.getHolderType();
+  boolean isSubjectToOptimization(DexClassAndField field) {
+    return !field.getAccessFlags().isStatic() && field.getHolderType() == context.getHolderType();
   }
 
   @Override
-  boolean isSubjectToOptimizationIgnoringPinning(DexEncodedField field) {
+  boolean isSubjectToOptimizationIgnoringPinning(DexClassAndField field) {
     throw new Unreachable("Used by static analysis only.");
   }
 
   @Override
-  void updateFieldOptimizationInfo(DexEncodedField field, FieldInstruction fieldPut, Value value) {
+  void updateFieldOptimizationInfo(DexClassAndField field, FieldInstruction fieldPut, Value value) {
     if (fieldNeverWrittenBetweenInstancePutAndMethodExit(field, fieldPut.asInstancePut())) {
       recordInstanceFieldIsInitializedWithValue(field, value);
     }
@@ -154,7 +154,7 @@ public class InstanceFieldValueAnalysis extends FieldValueAnalysis {
             .getOptimizationInfo()
             .getInstanceInitializerInfo(invoke)
             .fieldInitializationInfos();
-    for (DexEncodedField field :
+    for (DexClassAndField field :
         singleTarget.getHolder().getDirectAndIndirectInstanceFields(appView)) {
       InstanceFieldInitializationInfo info = infos.get(field);
       if (info.isArgumentInitializationInfo()) {
@@ -193,7 +193,7 @@ public class InstanceFieldValueAnalysis extends FieldValueAnalysis {
   }
 
   private InstanceFieldInitializationInfo getInstanceFieldInitializationInfo(
-      DexEncodedField field, Value value) {
+      DexClassAndField field, Value value) {
     Value root = value.getAliasedValue();
     if (root.isDefinedByInstructionSatisfying(Instruction::isArgument)) {
       Argument argument = root.definition.asArgument();
@@ -203,7 +203,7 @@ public class InstanceFieldValueAnalysis extends FieldValueAnalysis {
     if (abstractValue.isSingleValue()) {
       return abstractValue.asSingleValue();
     }
-    DexType fieldType = field.type();
+    DexType fieldType = field.getType();
     if (fieldType.isClassType()) {
       ClassTypeElement dynamicLowerBoundType = value.getDynamicLowerBoundType(appView);
       TypeElement dynamicUpperBoundType = value.getDynamicUpperBoundType(appView);
@@ -216,20 +216,20 @@ public class InstanceFieldValueAnalysis extends FieldValueAnalysis {
   }
 
   void recordInstanceFieldIsInitializedWithInfo(
-      DexEncodedField field, InstanceFieldInitializationInfo info) {
+      DexClassAndField field, InstanceFieldInitializationInfo info) {
     if (!info.isUnknown()) {
       builder.recordInitializationInfo(field, info);
     }
   }
 
-  void recordInstanceFieldIsInitializedWithValue(DexEncodedField field, Value value) {
+  void recordInstanceFieldIsInitializedWithValue(DexClassAndField field, Value value) {
     recordInstanceFieldIsInitializedWithInfo(
         field, getInstanceFieldInitializationInfo(field, value));
   }
 
   private boolean fieldNeverWrittenBetweenInstancePutAndMethodExit(
-      DexEncodedField field, InstancePut instancePut) {
-    if (field.isFinal()) {
+      DexClassAndField field, InstancePut instancePut) {
+    if (field.getAccessFlags().isFinal()) {
       return true;
     }
 
@@ -273,8 +273,8 @@ public class InstanceFieldValueAnalysis extends FieldValueAnalysis {
   }
 
   private boolean fieldNeverWrittenBetweenParentConstructorCallAndMethodExit(
-      DexEncodedField field) {
-    if (field.isFinal()) {
+      DexClassAndField field) {
+    if (field.getAccessFlags().isFinal()) {
       return true;
     }
     if (appView.appInfo().isFieldOnlyWrittenInMethod(field, parentConstructor.getDefinition())) {

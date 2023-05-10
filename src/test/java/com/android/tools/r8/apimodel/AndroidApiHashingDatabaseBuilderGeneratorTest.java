@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.apimodel;
 
+import static com.android.tools.r8.androidapi.AndroidApiLevelDatabaseHelper.notModeledTypes;
 import static java.nio.file.StandardCopyOption.REPLACE_EXISTING;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
@@ -33,7 +34,6 @@ import com.google.common.collect.ImmutableList;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import org.junit.Test;
@@ -133,12 +133,7 @@ public class AndroidApiHashingDatabaseBuilderGeneratorTest extends TestBase {
 
   private static void ensureAllPublicMethodsAreMapped(
       AppView<AppInfoWithClassHierarchy> appView, AndroidApiLevelCompute apiLevelCompute) {
-    Set<String> notModeledTypes = new HashSet<>();
-    notModeledTypes.add("androidx.annotation.RecentlyNullable");
-    notModeledTypes.add("androidx.annotation.RecentlyNonNull");
-    notModeledTypes.add("android.annotation.Nullable");
-    notModeledTypes.add("android.annotation.NonNull");
-    DexItemFactory factory = appView.dexItemFactory();
+    Set<String> notModeledTypes = notModeledTypes();
     for (DexLibraryClass clazz : appView.app().asDirect().libraryClasses()) {
       if (notModeledTypes.contains(clazz.getClassReference().getTypeName())) {
         continue;

@@ -5,14 +5,13 @@
 package com.android.tools.r8.utils.collections;
 
 import com.android.tools.r8.graph.ProgramField;
-import com.android.tools.r8.utils.ProgramFieldEquivalence;
 import com.google.common.base.Equivalence.Wrapper;
 import com.google.common.collect.ImmutableMap;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Supplier;
 
-public class ProgramFieldMap<V> extends ProgramMemberMap<ProgramField, V> {
+public class ProgramFieldMap<V> extends DexClassAndFieldMapBase<ProgramField, V> {
 
   private static final ProgramFieldMap<?> EMPTY = new ProgramFieldMap<>(ImmutableMap::of);
 
@@ -27,10 +26,5 @@ public class ProgramFieldMap<V> extends ProgramMemberMap<ProgramField, V> {
   @SuppressWarnings("unchecked")
   public static <V> ProgramFieldMap<V> empty() {
     return (ProgramFieldMap<V>) EMPTY;
-  }
-
-  @Override
-  Wrapper<ProgramField> wrap(ProgramField method) {
-    return ProgramFieldEquivalence.get().wrap(method);
   }
 }

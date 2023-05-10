@@ -5,7 +5,7 @@
 // This code is not run directly. It needs to be compiled to dex code.
 // 'trycatchmany.dex' is what is run.
 
-package trycatchmany;
+package com.android.tools.r8.examples.trycatchmany;
 
 class TryCatchMany {
   public static void main(String[] args) {

@@ -60,22 +60,6 @@ public class ExamplesDebugTest extends DebugTestBase {
   }
 
   @Test
-  public void testRegAlloc() throws Exception {
-    testDebugging("regalloc", "RegAlloc");
-  }
-
-  @Test
-  public void testReturns() throws Exception {
-    testDebugging("returns", "Returns");
-  }
-
-  @Test
-  public void testStaticField() throws Exception {
-    // TODO(b/79671093): D8 has different line number info during stepping.
-    testDebuggingJvmOnly("staticfield", "StaticField");
-  }
-
-  @Test
   public void testStringBuilding() throws Exception {
     testDebugging("stringbuilding", "StringBuilding");
   }
@@ -100,21 +84,6 @@ public class ExamplesDebugTest extends DebugTestBase {
   @Test
   public void testTrivial() throws Exception {
     testDebugging("trivial", "Trivial");
-  }
-
-  @Test
-  public void testTryCatch() throws Exception {
-    testDebugging("trycatch", "TryCatch");
-  }
-
-  @Test
-  public void testNestedTryCatches() throws Exception {
-    testDebugging("nestedtrycatches", "NestedTryCatches");
-  }
-
-  @Test
-  public void testTryCatchMany() throws Exception {
-    testDebugging("trycatchmany", "TryCatchMany");
   }
 
   @Test

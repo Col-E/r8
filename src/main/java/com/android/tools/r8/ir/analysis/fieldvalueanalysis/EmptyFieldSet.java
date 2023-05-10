@@ -5,6 +5,7 @@
 package com.android.tools.r8.ir.analysis.fieldvalueanalysis;
 
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.DexClassAndField;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.PrunedItems;
 import com.android.tools.r8.graph.lens.GraphLens;
@@ -34,6 +35,11 @@ public class EmptyFieldSet extends AbstractFieldSet implements KnownFieldSet {
 
   @Override
   public boolean contains(DexEncodedField field) {
+    return false;
+  }
+
+  @Override
+  public boolean contains(DexClassAndField field) {
     return false;
   }
 

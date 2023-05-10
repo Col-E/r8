@@ -1743,6 +1743,10 @@ public class TestBase {
     return AndroidApiLevel.O;
   }
 
+  public static AndroidApiLevel apiLevelWithMethodParametersSupport() {
+    return AndroidApiLevel.O;
+  }
+
   public static boolean canUseJavaUtilObjects(TestParameters parameters) {
     return parameters.isCfRuntime()
         || parameters.getApiLevel().isGreaterThanOrEqualTo(AndroidApiLevel.K);
@@ -2039,5 +2043,13 @@ public class TestBase {
       assertEquals(
           "", expected.size() > actual.size() ? expected.get(minLines) : actual.get(minLines));
     }
+  }
+
+  public void runGlobalSyntheticsGenerator(
+      GlobalSyntheticsGeneratorCommand command, Consumer<InternalOptions> internalOptionsConsumer)
+      throws CompilationFailedException {
+    InternalOptions internalOptions = command.getInternalOptions();
+    internalOptionsConsumer.accept(internalOptions);
+    GlobalSyntheticsGenerator.runForTesting(command.getInputApp(), internalOptions);
   }
 }

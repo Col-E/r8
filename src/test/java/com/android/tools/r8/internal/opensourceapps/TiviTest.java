@@ -6,8 +6,9 @@ package com.android.tools.r8.internal.opensourceapps;
 
 import static org.junit.Assume.assumeTrue;
 
+import com.android.tools.r8.LibraryDesugaringTestConfiguration;
 import com.android.tools.r8.R8TestBuilder;
-import com.android.tools.r8.R8TestCompileResult;
+import com.android.tools.r8.StringResource;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
@@ -53,37 +54,9 @@ public class TiviTest extends TestBase {
   }
 
   @Test
-  public void testR8Recompilation() throws Exception {
-    R8TestCompileResult compileResult =
-        testForR8(Backend.CF)
-            .addProgramFiles(outDirectory.resolve("program.jar"))
-            .apply(this::configure)
-            .apply(this::configureCf)
-            .compile();
-    testForR8(Backend.DEX)
-        .addProgramFiles(compileResult.writeToZip())
-        .apply(this::configure)
-        .compile();
-  }
-
-  @Test
   public void testR8Compat() throws Exception {
     testForR8Compat(Backend.DEX)
         .addProgramFiles(outDirectory.resolve("program.jar"))
-        .apply(this::configure)
-        .compile();
-  }
-
-  @Test
-  public void testR8CompatRecompilation() throws Exception {
-    R8TestCompileResult compileResult =
-        testForR8Compat(Backend.CF)
-            .addProgramFiles(outDirectory.resolve("program.jar"))
-            .apply(this::configure)
-            .apply(this::configureCf)
-            .compile();
-    testForR8Compat(Backend.DEX)
-        .addProgramFiles(compileResult.writeToZip())
         .apply(this::configure)
         .compile();
   }
@@ -99,10 +72,11 @@ public class TiviTest extends TestBase {
         .allowDiagnosticMessages()
         .allowUnnecessaryDontWarnWildcards()
         .allowUnusedDontWarnPatterns()
-        .allowUnusedProguardConfigurationRules();
-  }
-
-  private void configureCf(R8TestBuilder<?> testBuilder) {
-    testBuilder.addOptionsModification(options -> options.horizontalClassMergerOptions().disable());
+        .allowUnusedProguardConfigurationRules()
+        .enableCoreLibraryDesugaring(
+            LibraryDesugaringTestConfiguration.builder()
+                .addDesugaredLibraryConfiguration(
+                    StringResource.fromFile(outDirectory.resolve("desugared-library.json")))
+                .build());
   }
 }

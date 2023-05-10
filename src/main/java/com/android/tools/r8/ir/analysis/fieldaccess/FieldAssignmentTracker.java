@@ -349,11 +349,11 @@ public class FieldAssignmentTracker {
         assert WideningUtils.widenDynamicNonReceiverType(appView, dynamicType, field.getType())
             == dynamicType;
         if (dynamicType.isNotNullType()) {
-          feedback.markFieldHasDynamicType(field.getDefinition(), dynamicType);
+          feedback.markFieldHasDynamicType(field, dynamicType);
         } else {
           DynamicTypeWithUpperBound staticType = field.getType().toDynamicType(appView);
           if (dynamicType.asDynamicTypeWithUpperBound().strictlyLessThan(staticType, appView)) {
-            feedback.markFieldHasDynamicType(field.getDefinition(), dynamicType);
+            feedback.markFieldHasDynamicType(field, dynamicType);
           }
         }
       }

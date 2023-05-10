@@ -1629,6 +1629,8 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
 
   public static class InlinerOptions {
 
+    public boolean enableConstructorInlining = true;
+
     public boolean enableInlining =
         !parseSystemPropertyForDevelopmentOrDefault("com.android.tools.r8.disableinlining", false);
 
@@ -1684,6 +1686,14 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
       // Allow the size of the dex code to be up to 5 bytes.
       assert options.isGeneratingDex();
       return 5;
+    }
+
+    public boolean isConstructorInliningEnabled() {
+      return enableConstructorInlining;
+    }
+
+    public void setEnableConstructorInlining(boolean enableConstructorInlining) {
+      this.enableConstructorInlining = enableConstructorInlining;
     }
 
     public boolean shouldApplyInliningToInlinee(
@@ -2037,9 +2047,19 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
 
     public boolean shouldApplyInliningToInlinee(
         AppView<?> appView, ProgramMethod inlinee, int inliningDepth) {
-      if (isProtoShrinkingEnabled() && inliningDepth == 1) {
-        ProtoReferences protoReferences = appView.protoShrinker().getProtoReferences();
-        return inlinee.getHolderType() == protoReferences.generatedMessageLiteType;
+      if (isProtoShrinkingEnabled()) {
+        if (appView.protoShrinker().getProtoReferences().isDynamicMethodBridge(inlinee)) {
+          return true;
+        }
+        if (inliningDepth <= 1) {
+          ProtoReferences protoReferences = appView.protoShrinker().getProtoReferences();
+          if (inlinee.getHolderType() == protoReferences.generatedMessageLiteType) {
+            return true;
+          }
+          if (inlinee.getHolder().getSuperType() == protoReferences.generatedMessageLiteType) {
+            return true;
+          }
+        }
       }
       return false;
     }
@@ -2143,6 +2163,8 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
     public Consumer<Deque<ProgramMethodSet>> waveModifier = waves -> {};
 
     public Consumer<DebugRepresentation> debugRepresentationCallback = null;
+
+    public Consumer<DexProgramClass> globalSyntheticCreatedCallback = null;
 
     /**
      * If this flag is enabled, we will also compute the set of possible targets for invoke-
@@ -2542,6 +2564,10 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
 
   public boolean canUseAssertionErrorTwoArgumentConstructor() {
     return hasFeaturePresentFrom(AndroidApiLevel.K);
+  }
+
+  public boolean canUseCanonicalizedCodeObjects() {
+    return hasFeaturePresentFrom(AndroidApiLevel.S);
   }
 
   public CfVersion classFileVersionAfterDesugaring(CfVersion version) {
@@ -2962,5 +2988,10 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
   // subtype relationship when no other verification issues exists in code.
   public boolean canHaveVerifyErrorForUnknownUnusedReturnValue() {
     return isGeneratingDex() && canHaveBugPresentUntil(AndroidApiLevel.T);
+  }
+
+  public boolean canInitNewInstanceUsingSuperclassConstructor() {
+    // TODO(b/278973259): Enable this when compiling to API level >= L.
+    return false;
   }
 }

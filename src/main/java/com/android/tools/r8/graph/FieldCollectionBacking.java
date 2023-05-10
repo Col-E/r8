@@ -6,6 +6,7 @@ package com.android.tools.r8.graph;
 import com.android.tools.r8.utils.TraversalContinuation;
 import java.util.Collection;
 import java.util.List;
+import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
@@ -25,8 +26,13 @@ public abstract class FieldCollectionBacking {
 
   // Traversal methods.
 
-  abstract TraversalContinuation<?, ?> traverse(
-      Function<DexEncodedField, TraversalContinuation<?, ?>> fn);
+  abstract <BT, CT> TraversalContinuation<BT, CT> traverse(
+      DexClass holder, Function<? super DexClassAndField, TraversalContinuation<BT, CT>> fn);
+
+  abstract <BT, CT> TraversalContinuation<BT, CT> traverse(
+      DexClass holder,
+      BiFunction<? super DexClassAndField, ? super CT, TraversalContinuation<BT, CT>> fn,
+      CT initialValue);
 
   // Collection methods.
 

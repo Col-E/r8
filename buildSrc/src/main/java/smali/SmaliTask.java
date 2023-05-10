@@ -5,6 +5,8 @@ package smali;
 
 import static java.util.stream.Collectors.toList;
 
+import com.android.tools.smali.smali.Smali;
+import com.android.tools.smali.smali.SmaliOptions;
 import java.io.File;
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -20,8 +22,6 @@ import org.gradle.api.tasks.TaskAction;
 import org.gradle.workers.WorkAction;
 import org.gradle.workers.WorkParameters;
 import org.gradle.workers.WorkerExecutor;
-import org.jf.smali.Smali;
-import org.jf.smali.SmaliOptions;
 
 public class SmaliTask extends DefaultTask {
 

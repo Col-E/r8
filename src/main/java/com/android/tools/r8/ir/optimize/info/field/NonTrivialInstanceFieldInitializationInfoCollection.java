@@ -6,7 +6,7 @@ package com.android.tools.r8.ir.optimize.info.field;
 
 
 import com.android.tools.r8.graph.AppView;
-import com.android.tools.r8.graph.DexClass;
+import com.android.tools.r8.graph.DexClassAndField;
 import com.android.tools.r8.graph.DexDefinitionSupplier;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexField;
@@ -35,11 +35,10 @@ public class NonTrivialInstanceFieldInitializationInfoCollection
   @Override
   public void forEach(
       DexDefinitionSupplier definitions,
-      BiConsumer<DexEncodedField, InstanceFieldInitializationInfo> consumer) {
+      BiConsumer<DexClassAndField, InstanceFieldInitializationInfo> consumer) {
     infos.forEach(
         (field, info) -> {
-          DexClass holder = definitions.definitionForHolder(field);
-          DexEncodedField definition = field.lookupOnClass(holder);
+          DexClassAndField definition = definitions.definitionFor(field);
           if (definition != null) {
             consumer.accept(definition, info);
           } else {
@@ -51,7 +50,7 @@ public class NonTrivialInstanceFieldInitializationInfoCollection
   @Override
   public void forEachWithDeterministicOrder(
       DexDefinitionSupplier definitions,
-      BiConsumer<DexEncodedField, InstanceFieldInitializationInfo> consumer) {
+      BiConsumer<DexClassAndField, InstanceFieldInitializationInfo> consumer) {
     // We currently use a sorted backing and can therefore simply use forEach().
     forEach(definitions, consumer);
   }

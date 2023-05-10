@@ -49,7 +49,7 @@ public interface GenericSignatureVisitor {
     throw new Unreachable("Implement if visited");
   }
 
-  default ClassTypeSignature visitSuperClass(ClassTypeSignature classTypeSignature) {
+  default ClassTypeSignature visitSuperClass(ClassTypeSignature classTypeSignatureOrNullForObject) {
     throw new Unreachable("Implement if visited");
   }
 

@@ -11,6 +11,7 @@ import static com.android.tools.r8.naming.dexitembasedstring.ClassNameComputatio
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
+import com.android.tools.r8.graph.DexClassAndField;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItemFactory;
@@ -82,21 +83,28 @@ public class ClassInitializerDefaultsOptimization {
       }
     }
 
-    public boolean hasStaticValue(DexEncodedField field) {
-      if (field.isStatic()) {
-        return (fieldsWithStaticValues != null && fieldsWithStaticValues.containsKey(field))
-            || field.getStaticValue() != null;
+    public void forEachOptimizedField(
+        BiConsumer<DexClassAndField, DexValue> consumer, AppView<?> appView) {
+      forEachOptimizedField((field, value) -> consumer.accept(field.asClassField(appView), value));
+    }
+
+    public boolean hasStaticValue(DexClassAndField field) {
+      if (field.getAccessFlags().isStatic()) {
+        return (fieldsWithStaticValues != null
+                && fieldsWithStaticValues.containsKey(field.getDefinition()))
+            || field.getDefinition().getStaticValue() != null;
       }
       return false;
     }
 
-    public DexValue getStaticValue(DexEncodedField field) {
+    public DexValue getStaticValue(DexClassAndField field) {
       assert hasStaticValue(field);
-      assert field.isStatic();
-      if (fieldsWithStaticValues != null && fieldsWithStaticValues.containsKey(field)) {
-        return fieldsWithStaticValues.get(field);
+      assert field.getAccessFlags().isStatic();
+      if (fieldsWithStaticValues != null
+          && fieldsWithStaticValues.containsKey(field.getDefinition())) {
+        return fieldsWithStaticValues.get(field.getDefinition());
       }
-      return field.getStaticValue();
+      return field.getDefinition().getStaticValue();
     }
   }
 
@@ -251,7 +259,7 @@ public class ClassInitializerDefaultsOptimization {
                 .filter(unnecessaryStaticPuts::contains)
                 .map(FieldInstruction::getField)
                 .map(appInfoWithLiveness::resolveField)
-                .map(FieldResolutionResult::getResolvedField)
+                .map(FieldResolutionResult::getResolutionPair)
                 .filter(appInfoWithLiveness::isStaticFieldWrittenOnlyInEnclosingStaticInitializer)
                 .map(field -> field.getReference())
                 .collect(Collectors.toSet());

@@ -70,7 +70,7 @@ public class GenericSignaturePartialTypeArgumentApplier implements GenericSignat
     if (classSignature.hasNoSignature() || classSignature.isInvalid()) {
       return classSignature;
     }
-    return classSignature.visit(this);
+    return classSignature.visit(this, appView.dexItemFactory());
   }
 
   @Override
@@ -206,8 +206,11 @@ public class GenericSignaturePartialTypeArgumentApplier implements GenericSignat
   }
 
   @Override
-  public ClassTypeSignature visitSuperClass(ClassTypeSignature classTypeSignature) {
-    return classTypeSignature.visit(this);
+  public ClassTypeSignature visitSuperClass(ClassTypeSignature classTypeSignatureOrNullForObject) {
+    if (classTypeSignatureOrNullForObject == null) {
+      return classTypeSignatureOrNullForObject;
+    }
+    return classTypeSignatureOrNullForObject.visit(this);
   }
 
   @Override

@@ -35,15 +35,15 @@ object JvmCompatibility {
 }
 
 object Versions {
-  const val asmVersion = "9.4"
+  const val asmVersion = "9.5"
   const val fastUtilVersion = "7.2.0"
   const val gsonVersion = "2.7"
-  const val guavaVersion = "30.1.1-jre"
+  const val guavaVersion = "31.1-jre"
   const val joptSimpleVersion = "4.6"
   const val junitVersion = "4.13-beta-2"
   const val kotlinVersion = "1.8.0"
   const val kotlinMetadataVersion = "0.6.0"
-  const val smaliVersion = "2.2b4"
+  const val smaliVersion = "3.0.3"
   const val errorproneVersion = "2.18.0"
 }
 
@@ -60,6 +60,6 @@ object Deps {
     "org.jetbrains.kotlinx:kotlinx-metadata-jvm:${Versions.kotlinMetadataVersion}" }
   val kotlinStdLib by lazy { "org.jetbrains.kotlin:kotlin-stdlib:${Versions.kotlinVersion}" }
   val kotlinReflect by lazy { "org.jetbrains.kotlin:kotlin-reflect:${Versions.kotlinVersion}" }
-  val smali by lazy { "org.smali:smali:${Versions.smaliVersion}" }
+  val smali by lazy { "com.android.tools.smali:smali:${Versions.smaliVersion}" }
   val errorprone by lazy { "com.google.errorprone:error_prone_core:${Versions.errorproneVersion}" }
 }

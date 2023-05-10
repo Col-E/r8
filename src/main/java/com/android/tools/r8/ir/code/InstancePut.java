@@ -155,8 +155,8 @@ public class InstancePut extends FieldInstruction implements FieldPut, InstanceF
         return false;
       }
 
-      return appInfoWithLiveness.isFieldRead(field.getDefinition())
-          || isStoringObjectWithFinalizer(appViewWithLiveness, field.getDefinition());
+      return appInfoWithLiveness.isFieldRead(field)
+          || isStoringObjectWithFinalizer(appViewWithLiveness, field);
     }
 
     // In D8, we always have to assume that the field can be read, and thus have side effects.

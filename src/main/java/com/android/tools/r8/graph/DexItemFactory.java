@@ -41,7 +41,6 @@ import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.LRUCacheTable;
 import com.android.tools.r8.utils.ListUtils;
 import com.android.tools.r8.utils.SetUtils;
-import com.google.common.base.Strings;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 import com.google.common.collect.ImmutableList;
@@ -160,7 +159,11 @@ public class DexItemFactory {
   public final DexString shortDescriptor = createString("S");
   public final DexString voidDescriptor = createString("V");
   public final DexString descriptorSeparator = createString("/");
+  public final DexString comSunDescriptorPrefix = createString("Lcom/sun/");
   public final DexString javaDescriptorPrefix = createString("Ljava/");
+  public final DexString javaxDescriptorPrefix = createString("Ljavax/");
+  public final DexString jdkDescriptorPrefix = createString("Ljdk/");
+  public final DexString sunDescriptorPrefix = createString("Lsun/");
   public final DexString jDollarDescriptorPrefix = createString("Lj$/");
 
   private final DexString booleanArrayDescriptor = createString("[Z");
@@ -1991,26 +1994,28 @@ public class DexItemFactory {
       return field == nameField || field == ordinalField;
     }
 
-    public boolean isEnumFieldCandidate(DexEncodedField staticField) {
-      assert staticField.isStatic();
-      return staticField.isEnum() && staticField.isFinal();
+    public boolean isEnumFieldCandidate(DexClassAndField staticField) {
+      FieldAccessFlags accessFlags = staticField.getAccessFlags();
+      assert accessFlags.isStatic();
+      return accessFlags.isEnum() && accessFlags.isFinal();
     }
 
     // In some case, the enum field may be respecialized to an enum subtype. In this case, one
     // can pass the encoded field as well as the field with the super enum type for the checks.
     public boolean isEnumField(
-        DexEncodedField staticField, DexType enumType, Set<DexType> subtypes) {
-      assert staticField.isStatic();
+        DexClassAndField staticField, DexType enumType, Set<DexType> subtypes) {
+      assert staticField.getAccessFlags().isStatic();
       return (staticField.getType() == enumType || subtypes.contains(staticField.getType()))
           && isEnumFieldCandidate(staticField);
     }
 
-    public boolean isValuesFieldCandidate(DexEncodedField staticField, DexType enumType) {
-      assert staticField.isStatic();
+    public boolean isValuesFieldCandidate(DexClassAndField staticField, DexType enumType) {
+      FieldAccessFlags accessFlags = staticField.getAccessFlags();
+      assert accessFlags.isStatic();
       return staticField.getType().isArrayType()
           && staticField.getType().toArrayElementType(DexItemFactory.this) == enumType
-          && staticField.isSynthetic()
-          && staticField.isFinal();
+          && accessFlags.isSynthetic()
+          && accessFlags.isFinal();
     }
   }
 
@@ -2930,7 +2935,7 @@ public class DexItemFactory {
 
   public DexType createArrayType(int nesting, DexType baseType) {
     assert nesting > 0;
-    return createType(Strings.repeat("[", nesting) + baseType.toDescriptorString());
+    return createType("[".repeat(nesting) + baseType.toDescriptorString());
   }
 
   public DexField createField(DexType clazz, DexType type, DexString name) {

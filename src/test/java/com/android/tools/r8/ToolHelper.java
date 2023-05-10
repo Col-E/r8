@@ -1434,22 +1434,6 @@ public class ToolHelper {
     return compatSink.build();
   }
 
-  public static void runD8WithoutResult(
-      D8Command command, Consumer<InternalOptions> optionsConsumer)
-      throws CompilationFailedException {
-    InternalOptions internalOptions = command.getInternalOptions();
-    optionsConsumer.accept(internalOptions);
-    D8.runForTesting(command.getInputApp(), internalOptions);
-  }
-
-  public static List<String> runGenerateMainDexList(
-      GenerateMainDexListCommand command, Consumer<InternalOptions> optionsConsumer)
-      throws CompilationFailedException {
-    InternalOptions internalOptions = command.getInternalOptions();
-    optionsConsumer.accept(internalOptions);
-    return GenerateMainDexList.runForTesting(command.getInputApp(), internalOptions);
-  }
-
   @Deprecated
   public static ProcessResult runJava(Class clazz) throws Exception {
     String main = clazz.getTypeName();

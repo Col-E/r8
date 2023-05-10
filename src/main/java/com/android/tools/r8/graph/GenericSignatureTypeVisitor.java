@@ -30,7 +30,8 @@ class GenericSignatureTypeVisitor implements GenericSignatureVisitor {
     if (classSignature.hasNoSignature()) {
       return classSignature;
     }
-    return classSignature.visit(this);
+    classSignature.visitWithoutRewrite(this);
+    return classSignature;
   }
 
   @Override
@@ -87,16 +88,16 @@ class GenericSignatureTypeVisitor implements GenericSignatureVisitor {
   }
 
   @Override
-  public ClassTypeSignature visitSuperClass(ClassTypeSignature classTypeSignature) {
-    return classTypeSignature.visit(this);
+  public ClassTypeSignature visitSuperClass(ClassTypeSignature classTypeSignatureOrNullForObject) {
+    if (classTypeSignatureOrNullForObject == null) {
+      return classTypeSignatureOrNullForObject;
+    }
+    return classTypeSignatureOrNullForObject.visit(this);
   }
 
   @Override
   public List<ClassTypeSignature> visitSuperInterfaces(
       List<ClassTypeSignature> interfaceSignatures) {
-    if (interfaceSignatures == null) {
-      return null;
-    }
     interfaceSignatures.forEach(this::visitSuperInterface);
     return interfaceSignatures;
   }

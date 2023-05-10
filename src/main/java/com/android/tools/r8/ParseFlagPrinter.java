@@ -4,7 +4,6 @@
 package com.android.tools.r8;
 
 import com.android.tools.r8.utils.StringUtils;
-import com.google.common.base.Strings;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -101,7 +100,7 @@ public class ParseFlagPrinter {
 
   /** Convenience method to set the prefix to be 'indent' number of spaces. */
   public ParseFlagPrinter setIndent(int indent) {
-    return setPrefix(Strings.repeat(" ", indent));
+    return setPrefix(" ".repeat(indent));
   }
 
   /**

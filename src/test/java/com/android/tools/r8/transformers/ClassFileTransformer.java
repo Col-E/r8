@@ -783,6 +783,30 @@ public class ClassFileTransformer {
         });
   }
 
+  public ClassFileTransformer setMethodParameters(
+      MethodPredicate predicate, String... parameterNames) {
+    return addClassTransformer(
+        new ClassTransformer() {
+          @Override
+          public MethodVisitor visitMethod(
+              int access, String name, String descriptor, String signature, String[] exceptions) {
+            MethodVisitor mv = super.visitMethod(access, name, descriptor, signature, exceptions);
+            if (predicate.test(access, name, descriptor, signature, exceptions)) {
+              for (String parameterName : parameterNames) {
+                mv.visitParameter(parameterName, 0);
+              }
+              return new MethodVisitor(ASM_VERSION, mv) {
+                @Override
+                public void visitParameter(String name, int access) {
+                  // Ignore all existing method parameter.
+                }
+              };
+            }
+            return mv;
+          }
+        });
+  }
+
   public ClassFileTransformer setFieldType(FieldPredicate predicate, String newFieldType) {
     return addClassTransformer(
         new ClassTransformer() {

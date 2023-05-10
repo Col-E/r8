@@ -447,13 +447,18 @@ public class ProtoEnqueuerExtension extends EnqueuerAnalysis {
         if (newlyLiveField != null) {
           // Mark hazzer and one-of proto fields as read from dynamicMethod() if they are written in
           // the app. This is needed to ensure that field writes are not removed from the app.
-          ProgramMethod defaultInitializer =
-              dynamicMethod.getHolder().getProgramDefaultInitializer();
-          assert defaultInitializer != null;
           Predicate<ProgramMethod> neitherDefaultConstructorNorDynamicMethod =
-              writer ->
-                  !writer.isStructurallyEqualTo(defaultInitializer)
-                      && !writer.isStructurallyEqualTo(dynamicMethod);
+              writer -> {
+                if (dynamicMethod.getHolder().hasDefaultInitializer()
+                    && writer.isStructurallyEqualTo(
+                        dynamicMethod.getHolder().getProgramDefaultInitializer())) {
+                  return false;
+                }
+                if (writer.isStructurallyEqualTo(dynamicMethod)) {
+                  return false;
+                }
+                return true;
+              };
           if (enqueuer.isFieldWrittenInMethodSatisfying(
               newlyLiveField, neitherDefaultConstructorNorDynamicMethod)) {
             worklist.enqueueTraceReflectiveFieldReadAction(newlyLiveField, dynamicMethod);

@@ -159,6 +159,7 @@ public class AppDumpBenchmarkBuilder {
                       .addLibraryFiles(dump.getLibraryArchive())
                       .addKeepRuleFiles(dump.getProguardConfigFile())
                       .setMinApi(dumpProperties.getMinApi())
+                      .allowUnnecessaryDontWarnWildcards()
                       .allowUnusedDontWarnPatterns()
                       .allowUnusedProguardConfigurationRules()
                       // TODO(b/222228826): Disallow unrecognized diagnostics and open interfaces.
@@ -215,6 +216,7 @@ public class AppDumpBenchmarkBuilder {
                     programOutputs.add(
                         TestBase.testForD8(environment.getTemp(), Backend.DEX)
                             .addProgramFiles(programFile)
+                            .addClasspathFiles(dump.getProgramArchive())
                             .addLibraryFiles(dump.getLibraryArchive())
                             .setMinApi(dumpProperties.getMinApi())
                             .setIntermediate(true)

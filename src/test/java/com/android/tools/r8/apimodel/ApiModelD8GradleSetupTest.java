@@ -73,7 +73,7 @@ public class ApiModelD8GradleSetupTest extends TestBase {
                 LibraryClassThree.class.getDeclaredMethod("baz"), mockApiLevelThree))
         .apply(ApiModelingTestHelper::enableApiCallerIdentification)
         .apply(ApiModelingTestHelper::enableOutliningOfMethods)
-        .apply(ApiModelingTestHelper::enableStubbingOfClasses);
+        .apply(ApiModelingTestHelper::enableStubbingOfClassesAndDisableGlobalSyntheticCheck);
   }
 
   private boolean willHorizontallyMergeOutlines() {

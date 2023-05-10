@@ -4,7 +4,6 @@
 package com.android.tools.r8.graph;
 
 import static com.android.tools.r8.graph.DexProgramClass.asProgramClassOrNull;
-import static com.android.tools.r8.ir.analysis.type.Nullability.maybeNull;
 import static com.android.tools.r8.kotlin.KotlinMetadataUtils.getNoKotlinInfo;
 
 import com.android.tools.r8.androidapi.ComputedApiLevel;
@@ -12,18 +11,12 @@ import com.android.tools.r8.dex.MixedSectionCollection;
 import com.android.tools.r8.graph.GenericSignature.FieldTypeSignature;
 import com.android.tools.r8.ir.analysis.type.DynamicType;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
-import com.android.tools.r8.ir.analysis.value.AbstractValue;
-import com.android.tools.r8.ir.analysis.value.SingleValue;
-import com.android.tools.r8.ir.code.IRCode;
-import com.android.tools.r8.ir.code.Instruction;
-import com.android.tools.r8.ir.code.TypeAndLocalInfoSupplier;
 import com.android.tools.r8.ir.optimize.info.DefaultFieldOptimizationInfo;
 import com.android.tools.r8.ir.optimize.info.FieldOptimizationInfo;
 import com.android.tools.r8.ir.optimize.info.MutableFieldOptimizationInfo;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackSimple;
 import com.android.tools.r8.kotlin.KotlinFieldLevelInfo;
 import com.android.tools.r8.kotlin.KotlinMetadataUtils;
-import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.ConsumerUtils;
 import com.android.tools.r8.utils.structural.StructuralItem;
 import com.android.tools.r8.utils.structural.StructuralMapping;
@@ -193,6 +186,15 @@ public class DexEncodedField extends DexEncodedMember<DexEncodedField, DexField>
     return fieldConsumer.apply(this);
   }
 
+  public DexClassAndField asClassField(DexDefinitionSupplier definitions) {
+    assert getHolderType().isClassType();
+    DexProgramClass clazz = asProgramClassOrNull(definitions.definitionForHolder(getReference()));
+    if (clazz != null) {
+      return DexClassAndField.create(clazz, this);
+    }
+    return null;
+  }
+
   public ProgramField asProgramField(DexDefinitionSupplier definitions) {
     assert getHolderType().isClassType();
     DexProgramClass clazz = asProgramClassOrNull(definitions.definitionForHolder(getReference()));
@@ -208,6 +210,10 @@ public class DexEncodedField extends DexEncodedMember<DexEncodedField, DexField>
 
   public boolean isFinal() {
     return accessFlags.isFinal();
+  }
+
+  public boolean isInstance() {
+    return !isStatic();
   }
 
   @Override
@@ -255,51 +261,6 @@ public class DexEncodedField extends DexEncodedMember<DexEncodedField, DexField>
   public DexValue getStaticValue() {
     assert accessFlags.isStatic();
     return staticValue == null ? DexValue.defaultForType(getReference().type) : staticValue;
-  }
-
-  /**
-   * Returns a const instructions if this field is a compile time final const.
-   *
-   * <p>NOTE: It is the responsibility of the caller to check if this field is pinned or not.
-   */
-  public Instruction valueAsConstInstruction(
-      IRCode code, DebugLocalInfo local, AppView<AppInfoWithLiveness> appView) {
-    boolean isWritten = appView.appInfo().isFieldWrittenByFieldPutInstruction(this);
-    if (!isWritten) {
-      // Since the field is not written, we can simply return the default value for the type.
-      DexValue value = isStatic() ? getStaticValue() : DexValue.defaultForType(getReference().type);
-      return value.asConstInstruction(appView, code, local);
-    }
-
-    // Check if we have a single value for the field according to the field optimization info.
-    AbstractValue abstractValue = getOptimizationInfo().getAbstractValue();
-    if (abstractValue.isSingleValue()) {
-      SingleValue singleValue = abstractValue.asSingleValue();
-      if (singleValue.isSingleFieldValue()
-          && singleValue.asSingleFieldValue().getField() == getReference()) {
-        return null;
-      }
-      if (singleValue.isMaterializableInContext(appView, code.context())) {
-        TypeElement type = TypeElement.fromDexType(getReference().type, maybeNull(), appView);
-        return singleValue.createMaterializingInstruction(
-            appView, code, TypeAndLocalInfoSupplier.create(type, local));
-      }
-    }
-
-    // The only way to figure out whether the static value contains the final value is ensure the
-    // value is not the default or check that <clinit> is not present.
-    if (accessFlags.isFinal() && isStatic()) {
-      DexClass clazz = appView.definitionFor(getReference().holder);
-      if (clazz == null || clazz.hasClassInitializer()) {
-        return null;
-      }
-      DexValue staticValue = getStaticValue();
-      if (!staticValue.isDefault(getReference().type)) {
-        return staticValue.asConstInstruction(appView, code, local);
-      }
-    }
-
-    return null;
   }
 
   public DexEncodedField toTypeSubstitutedField(AppView<?> appView, DexField field) {
@@ -440,14 +401,6 @@ public class DexEncodedField extends DexEncodedMember<DexEncodedField, DexField>
     public Builder modifyAccessFlags(Consumer<FieldAccessFlags> consumer) {
       consumer.accept(accessFlags);
       return this;
-    }
-
-    public Builder setAbstractValue(
-        AbstractValue abstractValue, AppView<AppInfoWithLiveness> appView) {
-      return addBuildConsumer(
-          fixedUpField ->
-              OptimizationFeedbackSimple.getInstance()
-                  .recordFieldHasAbstractValue(fixedUpField, appView, abstractValue));
     }
 
     public Builder clearDynamicType() {

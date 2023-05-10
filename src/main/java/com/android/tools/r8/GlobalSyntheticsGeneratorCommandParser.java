@@ -19,7 +19,7 @@ import java.util.Set;
 
 public class GlobalSyntheticsGeneratorCommandParser {
 
-  private static final String LOWER_CASE_NAME = "globalsynthetics";
+  private static final String LOWER_CASE_NAME = "globalsyntheticsgenerator";
   private static final String MIN_API_FLAG = "--min-api";
 
   private static final String USAGE_MESSAGE =
@@ -30,9 +30,6 @@ public class GlobalSyntheticsGeneratorCommandParser {
         .add(ParseFlagInfoImpl.getMinApi())
         .add(ParseFlagInfoImpl.getLib())
         .add(ParseFlagInfoImpl.flag1("--output", "<dex-file>", "Output result in <dex-file>."))
-        .add(
-            ParseFlagInfoImpl.flag1(
-                "--classes-list-output", "<file>", "Output list of generated classes in <file>"))
         .add(ParseFlagInfoImpl.getVersion(LOWER_CASE_NAME))
         .add(ParseFlagInfoImpl.getHelp())
         .build();
@@ -46,7 +43,7 @@ public class GlobalSyntheticsGeneratorCommandParser {
   }
 
   private static final Set<String> OPTIONS_WITH_ONE_PARAMETER =
-      ImmutableSet.of("--output", "--lib", MIN_API_FLAG, "---classes-list-output");
+      ImmutableSet.of("--output", "--lib", MIN_API_FLAG);
 
   public static GlobalSyntheticsGeneratorCommand.Builder parse(String[] args, Origin origin) {
     return new GlobalSyntheticsGeneratorCommandParser()
@@ -101,8 +98,6 @@ public class GlobalSyntheticsGeneratorCommandParser {
         }
       } else if (arg.equals("--lib")) {
         builder.addLibraryFiles(Paths.get(nextArg));
-      } else if (arg.equals("--classes-list-output")) {
-        builder.setGlobalSyntheticClassesListOutput(Paths.get(nextArg));
       } else if (arg.startsWith("--")) {
         builder.error(new StringDiagnostic("Unknown option: " + arg, origin));
       }

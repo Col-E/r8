@@ -4,7 +4,7 @@ plugins {
 }
 
 group 'com.android.tools'
-version '8.2.2'
+version '8.2.6'
 
 repositories {
     mavenCentral()
@@ -30,7 +30,7 @@ ext {
     javassistVersion = '3.29.2-GA'
     espressoVersion = '3.0.0'
     fastutilVersion = '8.5.11'
-    guavaVersion = '30.1.1-jre'
+    guavaVersion = '31.1-jre'
     joptSimpleVersion = '4.6'
     gsonVersion = '2.7'
     junitVersion = '4.13-beta-2'
@@ -39,7 +39,7 @@ ext {
     // all kotlin compilations are done in tests.
     kotlinVersion = '1.8.0'
     kotlinExtMetadataJVMVersion = '0.6.0'
-    smaliVersion = '2.2b4'
+    smaliVersion = '3.0.3'
     errorproneVersion = '2.18.0'
     testngVersion = '6.10'
 }

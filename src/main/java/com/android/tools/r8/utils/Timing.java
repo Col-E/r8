@@ -13,7 +13,6 @@ package com.android.tools.r8.utils;
 // Finally a report is printed by:
 //     t.report();
 
-import com.google.common.base.Strings;
 import java.util.ArrayDeque;
 import java.util.Collection;
 import java.util.Deque;
@@ -251,7 +250,7 @@ public class Timing {
 
     void printPrefix(int depth) {
       if (depth > 0) {
-        System.out.print(Strings.repeat("  ", depth));
+        System.out.print("  ".repeat(depth));
         System.out.print("- ");
       }
     }

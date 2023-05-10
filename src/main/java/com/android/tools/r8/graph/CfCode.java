@@ -46,7 +46,6 @@ import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.RetracerForCodePrinting;
 import com.android.tools.r8.utils.structural.*;
-import com.google.common.base.Strings;
 import com.google.common.collect.Sets;
 import it.unimi.dsi.fastutil.ints.Int2IntArrayMap;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceArrayMap;
@@ -938,7 +937,7 @@ public class CfCode extends Code implements CfWritableCode, StructuralItem<CfCod
     if (existingThisIndex < 0) {
       return;
     }
-    String fakeThisName = Strings.repeat(FAKE_THIS_PREFIX, largestPrefix + 1) + FAKE_THIS_SUFFIX;
+    String fakeThisName = FAKE_THIS_PREFIX.repeat(largestPrefix + 1) + FAKE_THIS_SUFFIX;
     DebugLocalInfo debugLocalInfo =
         new DebugLocalInfo(factory.createString(fakeThisName), this.originalHolder, null);
     LocalVariableInfo thisLocalInfo = localVariables.get(existingThisIndex);

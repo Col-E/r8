@@ -29,9 +29,9 @@ public class MethodParametersTest extends TestBase {
 
   @Parameterized.Parameters(name = "{0}")
   public static TestParametersCollection data() {
-    // java.lang.reflect.Method.getParameters() supported from Android 8.1.
+    // java.lang.reflect.Method.getParameters() supported from Android 8.
     return getTestParameters()
-        .withDexRuntimesStartingFromIncluding(Version.V8_1_0)
+        .withDexRuntimesStartingFromExcluding(Version.V7_0_0)
         .withCfRuntimes()
         .withAllApiLevelsAlsoForCf()
         .build();

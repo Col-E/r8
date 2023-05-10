@@ -16,7 +16,7 @@ public class RedundantBridgeRemovalOptions {
 
   private final InternalOptions options;
 
-  private boolean enableRetargetingOfConstructorBridgeCalls = false;
+  private boolean enableRetargetingOfConstructorBridgeCalls = true;
   private Set<DexType> noConstructorShrinkingHierarchies;
 
   public RedundantBridgeRemovalOptions(InternalOptions options) {

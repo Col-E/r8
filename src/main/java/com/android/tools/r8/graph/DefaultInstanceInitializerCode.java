@@ -238,7 +238,8 @@ public class DefaultInstanceInitializerCode extends Code
     return getMaxLocals(method);
   }
 
-  static DexMethod getParentConstructor(DexClassAndMethod method, DexItemFactory dexItemFactory) {
+  public static DexMethod getParentConstructor(
+      DexClassAndMethod method, DexItemFactory dexItemFactory) {
     return dexItemFactory.createInstanceInitializer(method.getHolder().getSuperType());
   }
 
@@ -403,6 +404,15 @@ public class DefaultInstanceInitializerCode extends Code
   @Override
   public String toString(DexEncodedMethod method, RetracerForCodePrinting retracer) {
     return toString();
+  }
+
+  @Override
+  public DexWritableCacheKey getCacheLookupKey(ProgramMethod method, DexItemFactory factory) {
+    return new AmendedDexWritableCodeKey<DexMethod>(
+        this,
+        getParentConstructor(method, factory),
+        getIncomingRegisterSize(method),
+        getRegisterSize(method));
   }
 
   static class DefaultInstanceInitializerSourceCode extends SyntheticStraightLineSourceCode {

@@ -91,6 +91,11 @@ public interface DexDefinitionSupplier {
     return definitionFor(type) != null;
   }
 
+  default DexClassAndField definitionFor(DexField field) {
+    DexClass holder = definitionFor(field.getHolderType());
+    return holder != null ? holder.lookupClassField(field) : null;
+  }
+
   default DexClassAndMethod definitionFor(DexMethod method) {
     DexClass holder = definitionFor(method.getHolderType());
     return holder != null ? holder.lookupClassMethod(method) : null;

@@ -15,6 +15,7 @@ import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItem;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
+import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
@@ -33,6 +34,7 @@ import com.android.tools.r8.ir.code.ValueType;
 import com.android.tools.r8.lightir.LirCode.DebugLocalInfoTable;
 import com.android.tools.r8.lightir.LirCode.PositionEntry;
 import com.android.tools.r8.lightir.LirCode.TryCatchTable;
+import com.android.tools.r8.naming.dexitembasedstring.NameComputationInfo;
 import com.android.tools.r8.utils.ListUtils;
 import com.google.common.collect.ImmutableList;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceMap;
@@ -107,17 +109,6 @@ public class LirBuilder<V, EV> {
       this.size = size;
       this.data = data;
     }
-  }
-
-  public static class IntSwitchPayload extends InstructionPayload {
-    public final int[] keys;
-    public final int[] targets;
-
-    public IntSwitchPayload(int[] keys, int[] targets) {
-      assert keys.length == targets.length;
-      this.keys = keys;
-      this.targets = targets;
-    }
 
     @Override
     public boolean equals(Object o) {
@@ -137,6 +128,58 @@ public class LirBuilder<V, EV> {
       result = 31 * result + (int) (size ^ (size >>> 32));
       result = 31 * result + Arrays.hashCode(data);
       return result;
+    }
+  }
+
+  public static class IntSwitchPayload extends InstructionPayload {
+    public final int[] keys;
+    public final int[] targets;
+
+    public IntSwitchPayload(int[] keys, int[] targets) {
+      assert keys.length == targets.length;
+      this.keys = keys;
+      this.targets = targets;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+      if (this == o) return true;
+      if (o == null || getClass() != o.getClass()) return false;
+
+      IntSwitchPayload that = (IntSwitchPayload) o;
+
+      if (!Arrays.equals(keys, that.keys)) return false;
+      return Arrays.equals(targets, that.targets);
+    }
+
+    @Override
+    public int hashCode() {
+      int result = Arrays.hashCode(keys);
+      result = 31 * result + Arrays.hashCode(targets);
+      return result;
+    }
+  }
+
+  public static class NameComputationPayload extends InstructionPayload {
+    public final NameComputationInfo<?> nameComputationInfo;
+
+    public NameComputationPayload(NameComputationInfo<?> nameComputationInfo) {
+      this.nameComputationInfo = nameComputationInfo;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+      if (this == o) return true;
+      if (o == null || getClass() != o.getClass()) return false;
+
+      NameComputationPayload that = (NameComputationPayload) o;
+
+      return Objects.equals(nameComputationInfo, that.nameComputationInfo);
+    }
+
+    @Override
+    public int hashCode() {
+      return nameComputationInfo != null ? nameComputationInfo.hashCode() : 0;
     }
   }
 
@@ -694,6 +737,11 @@ public class LirBuilder<V, EV> {
         LirOpcodes.NEWARRAY, Collections.singletonList(type), Collections.singletonList(size));
   }
 
+  public LirBuilder<V, EV> addInvokeMultiNewArray(DexType type, List<V> arguments) {
+    return addInstructionTemplate(
+        LirOpcodes.MULTIANEWARRAY, Collections.singletonList(type), arguments);
+  }
+
   public LirBuilder<V, EV> addInvokeNewArray(DexType type, List<V> arguments) {
     return addInstructionTemplate(
         LirOpcodes.INVOKENEWARRAY, Collections.singletonList(type), arguments);
@@ -781,5 +829,12 @@ public class LirBuilder<V, EV> {
     }
     return addInstructionTemplate(
         opcode, Collections.emptyList(), ImmutableList.of(array, index, value));
+  }
+
+  public LirBuilder<V, EV> addDexItemBasedConstString(
+      DexReference item, NameComputationInfo<?> nameComputationInfo) {
+    NameComputationPayload payload = new NameComputationPayload(nameComputationInfo);
+    return addInstructionTemplate(
+        LirOpcodes.ITEMBASEDCONSTSTRING, ImmutableList.of(item, payload), Collections.emptyList());
   }
 }

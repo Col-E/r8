@@ -5,6 +5,7 @@
 package com.android.tools.r8.ir.optimize.info.field;
 
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.DexClassAndField;
 import com.android.tools.r8.graph.DexDefinitionSupplier;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.lens.GraphLens;
@@ -31,14 +32,14 @@ public class EmptyInstanceFieldInitializationInfoCollection
   @Override
   public void forEach(
       DexDefinitionSupplier definitions,
-      BiConsumer<DexEncodedField, InstanceFieldInitializationInfo> consumer) {
+      BiConsumer<DexClassAndField, InstanceFieldInitializationInfo> consumer) {
     // Intentionally empty.
   }
 
   @Override
   public void forEachWithDeterministicOrder(
       DexDefinitionSupplier definitions,
-      BiConsumer<DexEncodedField, InstanceFieldInitializationInfo> consumer) {
+      BiConsumer<DexClassAndField, InstanceFieldInitializationInfo> consumer) {
     // Intentionally empty.
   }
 

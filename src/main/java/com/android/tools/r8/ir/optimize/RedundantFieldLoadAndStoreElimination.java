@@ -514,7 +514,7 @@ public class RedundantFieldLoadAndStoreElimination {
                 invoke.getArgument(info.asArgumentInitializationInfo().getArgumentIndex());
             Value object = invoke.getReceiver().getAliasedValue();
             FieldAndObject fieldAndObject = new FieldAndObject(field.getReference(), object);
-            if (field.isFinal()) {
+            if (field.getAccessFlags().isFinal()) {
               activeState.putFinalInstanceField(fieldAndObject, new ExistingValue(value));
             } else {
               activeState.putNonFinalInstanceField(fieldAndObject, new ExistingValue(value));
@@ -524,7 +524,7 @@ public class RedundantFieldLoadAndStoreElimination {
             if (value.isMaterializableInContext(appViewWithLiveness, method)) {
               Value object = invoke.getReceiver().getAliasedValue();
               FieldAndObject fieldAndObject = new FieldAndObject(field.getReference(), object);
-              if (field.isFinal()) {
+              if (field.getAccessFlags().isFinal()) {
                 activeState.putFinalInstanceField(fieldAndObject, new MaterializableValue(value));
               } else {
                 activeState.putNonFinalInstanceField(
@@ -648,14 +648,25 @@ public class RedundantFieldLoadAndStoreElimination {
     FieldAndObject fieldAndObject = new FieldAndObject(field.getReference(), object);
     FieldValue replacement = activeState.getInstanceFieldValue(fieldAndObject);
     if (replacement != null) {
-      markAssumeDynamicTypeUsersForRemoval(instanceGet, replacement, assumeRemover);
-      replacement.eliminateRedundantRead(it, instanceGet);
+      if (isRedundantFieldLoadEliminationAllowed(field)) {
+        markAssumeDynamicTypeUsersForRemoval(instanceGet, replacement, assumeRemover);
+        replacement.eliminateRedundantRead(it, instanceGet);
+      }
       return;
     }
 
     activeState.putNonFinalInstanceField(fieldAndObject, new ExistingValue(instanceGet.value()));
     activeState.clearMostRecentInitClass();
     clearMostRecentInstanceFieldWrite(instanceGet, field);
+  }
+
+  private boolean isRedundantFieldLoadEliminationAllowed(DexClassAndField field) {
+    // Always allowed in D8 since D8 does not support @NoRedundantFieldLoadElimination.
+    return !appView.enableWholeProgramOptimizations()
+        || !field.isProgramField()
+        || appView
+            .getKeepInfo(field.asProgramField())
+            .isRedundantFieldLoadEliminationAllowed(appView.options());
   }
 
   private void handleNewInstance(NewInstance newInstance) {

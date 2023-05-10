@@ -6,6 +6,7 @@ package com.android.tools.r8.ir.analysis.value.objectstate;
 
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.DexClassAndField;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.ProgramMethod;
@@ -80,7 +81,7 @@ public abstract class ObjectState {
 
     private final Map<DexField, AbstractValue> state = new IdentityHashMap<>();
 
-    public void recordFieldHasValue(DexEncodedField field, AbstractValue abstractValue) {
+    public void recordFieldHasValue(DexClassAndField field, AbstractValue abstractValue) {
       if (!abstractValue.isUnknown()) {
         assert !state.containsKey(field.getReference());
         state.put(field.getReference(), abstractValue);

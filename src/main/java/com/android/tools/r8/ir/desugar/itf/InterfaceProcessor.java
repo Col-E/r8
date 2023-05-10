@@ -23,7 +23,6 @@ import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
-import com.android.tools.r8.graph.GenericSignature.ClassTypeSignature;
 import com.android.tools.r8.graph.InvalidCode;
 import com.android.tools.r8.graph.MethodCollection;
 import com.android.tools.r8.graph.ProgramMethod;
@@ -139,14 +138,7 @@ public final class InterfaceProcessor {
             kinds -> kinds.COMPANION_CLASS,
             iface,
             appView,
-            builder ->
-                builder
-                    .setSourceFile(iface.sourceFile)
-                    .setGenericSignature(
-                        iface
-                            .getClassSignature()
-                            .toObjectBoundWithSameFormals(
-                                new ClassTypeSignature(appView.dexItemFactory().objectType))),
+            builder -> builder.setSourceFile(iface.sourceFile),
             methodBuilderCallback,
             newMethodCallback);
   }

@@ -14,9 +14,11 @@ import static com.android.tools.r8.ir.analysis.type.Nullability.definitelyNotNul
 import com.android.tools.r8.graph.AccessControl;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexItemFactory;
+import com.android.tools.r8.graph.DexMember;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.ProgramMember;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.analysis.proto.schema.ProtoMessageInfo;
 import com.android.tools.r8.ir.analysis.proto.schema.ProtoObject;
@@ -110,6 +112,16 @@ public class GeneratedMessageLiteShrinker {
             }
           });
     }
+
+    DexProgramClass rawMessageInfoClass =
+        asProgramClassOrNull(
+            appView.appInfo().definitionForWithoutExistenceAssert(references.rawMessageInfoType));
+    if (rawMessageInfoClass != null) {
+      disallowOptimization(
+          rawMessageInfoClass, references.rawMessageInfoInfoField, dependentMinimumKeepInfo);
+      disallowOptimization(
+          rawMessageInfoClass, references.rawMessageInfoObjectsField, dependentMinimumKeepInfo);
+    }
   }
 
   private void disallowSignatureOptimizations(KeepMethodInfo.Joiner methodJoiner) {
@@ -122,6 +134,18 @@ public class GeneratedMessageLiteShrinker {
         .disallowReturnTypeStrengthening()
         .disallowUnusedArgumentOptimization()
         .disallowUnusedReturnValueOptimization();
+  }
+
+  private void disallowOptimization(
+      DexProgramClass clazz,
+      DexMember<?, ?> reference,
+      DependentMinimumKeepInfoCollection dependentMinimumKeepInfo) {
+    ProgramMember<?, ?> member = clazz.lookupProgramMember(reference);
+    if (member != null) {
+      dependentMinimumKeepInfo
+          .getOrCreateUnconditionalMinimumKeepInfoFor(reference)
+          .disallowOptimization();
+    }
   }
 
   public void run(IRCode code) {
@@ -363,7 +387,7 @@ public class GeneratedMessageLiteShrinker {
     for (Instruction instruction : code.instructions()) {
       if (instruction.isInvokeMethod()) {
         InvokeMethod invoke = instruction.asInvokeMethod();
-        if (references.isMessageInfoConstructionMethod(invoke.getInvokedMethod())) {
+        if (references.isMessageInfoConstruction(invoke)) {
           return invoke;
         }
       }

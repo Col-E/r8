@@ -54,7 +54,7 @@ public class ApiModelOutlineMethodAndStubClassTest extends TestBase {
         .addAndroidBuildVersion()
         // TODO(b/213552119): Remove when enabled by default.
         .apply(ApiModelingTestHelper::enableApiCallerIdentification)
-        .apply(ApiModelingTestHelper::enableStubbingOfClasses)
+        .apply(ApiModelingTestHelper::enableStubbingOfClassesAndDisableGlobalSyntheticCheck)
         .apply(ApiModelingTestHelper::enableOutliningOfMethods)
         // We only model the class and not the default initializer, otherwise we outline the new
         // instance call and remove the last reference in non-outlined code.
