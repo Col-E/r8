@@ -18,15 +18,10 @@ public class AmbiguousInlineFramesStackTrace implements StackTraceForTest {
 
   @Override
   public List<String> retracedStackTrace() {
-    // TODO(b/281468612): Change ambiguous reporting to only report <OR> on the inner most frame.
     return Arrays.asList(
         "com.android.tools.r8.CompilationException:",
         "    at com.android.tools.r8.R8.foo(R8.java:42)",
-        "    at com.android.tools.r8.R8.bar(R8.java:32)",
-        "    at com.android.tools.r8.R8.baz(R8.java:10)",
         "    <OR> at com.android.tools.r8.R8.foo(R8.java:43)",
-        "    at com.android.tools.r8.R8.bar(R8.java:32)",
-        "    at com.android.tools.r8.R8.baz(R8.java:10)",
         "    <OR> at com.android.tools.r8.R8.foo(R8.java:44)",
         "    at com.android.tools.r8.R8.bar(R8.java:32)",
         "    at com.android.tools.r8.R8.baz(R8.java:10)");
@@ -34,15 +29,10 @@ public class AmbiguousInlineFramesStackTrace implements StackTraceForTest {
 
   @Override
   public List<String> retraceVerboseStackTrace() {
-    // TODO(b/281468612): Change ambiguous reporting to only report <OR> on the inner most frame.
     return Arrays.asList(
         "com.android.tools.r8.CompilationException:",
         "    at com.android.tools.r8.R8.void foo(int)(R8.java:42)",
-        "    at com.android.tools.r8.R8.void bar(int,int)(R8.java:32)",
-        "    at com.android.tools.r8.R8.void baz(int,int)(R8.java:10)",
         "    <OR> at com.android.tools.r8.R8.void foo(int)(R8.java:43)",
-        "    at com.android.tools.r8.R8.void bar(int,int)(R8.java:32)",
-        "    at com.android.tools.r8.R8.void baz(int,int)(R8.java:10)",
         "    <OR> at com.android.tools.r8.R8.void foo(int)(R8.java:44)",
         "    at com.android.tools.r8.R8.void bar(int,int)(R8.java:32)",
         "    at com.android.tools.r8.R8.void baz(int,int)(R8.java:10)");
