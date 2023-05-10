@@ -86,6 +86,7 @@ public class UnusedArgumentsInstanceConstructorTest extends TestBase {
   @NoHorizontalClassMerging
   static class A {
 
+    @NeverInline
     public A(B uninstantiated, C unused) {
       System.out.print("Hello");
       if (uninstantiated != null) {

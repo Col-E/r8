@@ -458,6 +458,7 @@ public class ForceProguardCompatibilityTest extends TestBase {
                   "}",
                   keepRules)
               .addOptionsModification(options -> options.enableClassInlining = false)
+              .enableInliningAnnotations()
               .enableSideEffectAnnotations()
               .setMinApi(parameters)
               .run(parameters.getRuntime(), TestKeepAttributes.class)

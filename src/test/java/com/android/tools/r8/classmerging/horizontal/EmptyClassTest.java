@@ -6,6 +6,7 @@ package com.android.tools.r8.classmerging.horizontal;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isAbsent;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
+import static com.android.tools.r8.utils.codeinspector.Matchers.notIf;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.android.tools.r8.NeverClassInline;
@@ -30,7 +31,9 @@ public class EmptyClassTest extends HorizontalClassMergingTestBase {
         .assertSuccessWithOutputLines("a", "b: foo")
         .inspect(
             codeInspector -> {
-              assertThat(codeInspector.clazz(A.class), isPresent());
+              assertThat(
+                  codeInspector.clazz(A.class),
+                  notIf(isPresent(), parameters.canInitNewInstanceUsingSuperclassConstructor()));
               assertThat(codeInspector.clazz(B.class), isAbsent());
             });
   }

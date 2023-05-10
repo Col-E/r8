@@ -93,6 +93,7 @@ public class RepackageFeatureWithSyntheticsTest extends RepackageTestBase {
                 Reference.methodFromMethod(TestClass.class.getDeclaredMethod("run", I.class)))
             .addKeepAttributeInnerClassesAndEnclosingMethod()
             .apply(this::configureRepackaging)
+            .enableInliningAnnotations()
             .enableNeverClassInliningAnnotations()
             .setMinApi(parameters)
             .compile();

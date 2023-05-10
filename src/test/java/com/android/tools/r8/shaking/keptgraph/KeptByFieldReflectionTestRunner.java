@@ -74,6 +74,7 @@ public class KeptByFieldReflectionTestRunner extends TestBase {
             .addProgramClasses(CLASSES)
             .addKeepAnnotation()
             .addKeepMainRule(CLASS)
+            .enableNoInliningOfDefaultInitializerAnnotations()
             .setMinApi(parameters)
             .run(parameters.getRuntime(), CLASS)
             .assertSuccessWithOutput(EXPECTED_STDOUT)

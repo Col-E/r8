@@ -4,6 +4,7 @@
 package com.android.tools.r8.ir.optimize.switches;
 
 import com.android.tools.r8.NeverClassInline;
+import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
@@ -45,6 +46,7 @@ public class SwitchMapInvalidOrdinalTest extends TestBase {
                 + "com.android.tools.r8.ir.optimize.switches.SwitchMapInvalidOrdinalTest$MyEnum {"
                 + " static <fields>; }")
         .addInnerClasses(SwitchMapInvalidOrdinalTest.class)
+        .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
         .setMinApi(parameters)
         .compile()
@@ -61,6 +63,9 @@ public class SwitchMapInvalidOrdinalTest extends TestBase {
     B,
     C,
     D;
+
+    @NeverInline
+    MyEnum() {}
   }
 
   public static class Main {

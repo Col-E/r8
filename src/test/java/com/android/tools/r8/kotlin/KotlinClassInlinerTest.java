@@ -250,7 +250,14 @@ public class KotlinClassInlinerTest extends AbstractR8KotlinTestBase {
   @Test
   public void testDataClass() throws Exception {
     String mainClassName = "class_inliner_data_class.MainKt";
-    runTest("class_inliner_data_class", mainClassName)
+    runTest(
+            "class_inliner_data_class",
+            mainClassName,
+            testBuilder ->
+                testBuilder.addKeepRules(
+                    "-neverinline class kotlin.jvm.internal.Intrinsics {",
+                    "  *** checkNotNullParameter(...);",
+                    "}"))
         .inspect(
             inspector -> {
               ClassSubject clazz = inspector.clazz(mainClassName);

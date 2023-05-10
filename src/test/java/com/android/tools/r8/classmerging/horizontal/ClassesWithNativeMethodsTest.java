@@ -45,6 +45,7 @@ public class ClassesWithNativeMethodsTest extends HorizontalClassMergingTestBase
 
   @NeverClassInline
   public static class A {
+    @NeverInline
     public A() {
       System.out.println("a");
     }

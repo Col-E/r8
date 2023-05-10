@@ -24,6 +24,11 @@ public class TreeFixerConstructorCollisionTest extends HorizontalClassMergingTes
     testForR8(parameters.getBackend())
         .addInnerClasses(getClass())
         .addKeepMainRule(Main.class)
+        .addHorizontallyMergedClassesInspector(
+            inspector ->
+                inspector.assertIsCompleteMergeGroup(A.class, B.class).assertNoOtherClassesMerged())
+        .addOptionsModification(
+            options -> options.inlinerOptions().setEnableConstructorInlining(false))
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
         .enableNoHorizontalClassMergingAnnotations()

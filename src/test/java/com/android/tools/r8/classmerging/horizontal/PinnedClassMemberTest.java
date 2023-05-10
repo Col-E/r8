@@ -8,6 +8,7 @@ import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.android.tools.r8.NeverClassInline;
+import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.TestParameters;
 import org.junit.Test;
 
@@ -22,6 +23,7 @@ public class PinnedClassMemberTest extends HorizontalClassMergingTestBase {
         .addInnerClasses(getClass())
         .addKeepMainRule(Main.class)
         .addKeepRules("-keepclassmembers class " + B.class.getTypeName() + " { void foo(); }")
+        .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
         .setMinApi(parameters)
         .run(parameters.getRuntime(), Main.class)
@@ -35,6 +37,7 @@ public class PinnedClassMemberTest extends HorizontalClassMergingTestBase {
 
   @NeverClassInline
   public static class A {
+    @NeverInline
     public A() {
       System.out.println("a");
     }

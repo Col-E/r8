@@ -8,6 +8,7 @@ import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.android.tools.r8.NeverClassInline;
+import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.NoHorizontalClassMerging;
 import com.android.tools.r8.TestParameters;
 import org.junit.Test;
@@ -22,6 +23,7 @@ public class NoHorizontalClassMergingTest extends HorizontalClassMergingTestBase
     testForR8(parameters.getBackend())
         .addInnerClasses(getClass())
         .addKeepMainRule(Main.class)
+        .enableInliningAnnotations()
         .enableNoHorizontalClassMergingAnnotations()
         .enableNeverClassInliningAnnotations()
         .setMinApi(parameters)
@@ -36,6 +38,7 @@ public class NoHorizontalClassMergingTest extends HorizontalClassMergingTestBase
 
   @NeverClassInline
   public static class A {
+    @NeverInline
     public A() {
       System.out.println("a");
     }
@@ -44,6 +47,7 @@ public class NoHorizontalClassMergingTest extends HorizontalClassMergingTestBase
   @NeverClassInline
   @NoHorizontalClassMerging
   public static class B {
+    @NeverInline
     public B(String v) {
       System.out.println(v);
     }

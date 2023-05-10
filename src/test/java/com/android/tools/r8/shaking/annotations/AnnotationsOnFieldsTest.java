@@ -8,6 +8,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.android.tools.r8.AssumeMayHaveSideEffects;
 import com.android.tools.r8.NeverClassInline;
+import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.NoHorizontalClassMerging;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
@@ -54,6 +55,7 @@ public class AnnotationsOnFieldsTest extends TestBase {
             "-keep @interface **.*Annotation { *; }",
             "-keepclassmembers class * { @**.*Annotation <fields>; }",
             "-keepattributes *Annotation*")
+        .enableInliningAnnotations()
         .enableSideEffectAnnotations()
         .enableNoHorizontalClassMergingAnnotations()
         .setMinApi(parameters)
@@ -102,6 +104,7 @@ class StaticFieldAnnotationUse {}
 class TestClass {
 
   @AssumeMayHaveSideEffects
+  @NeverInline
   public TestClass() {}
 
   @StaticFieldAnnotation(clazz = StaticFieldAnnotationUse.class)

@@ -11,6 +11,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 
 import com.android.tools.r8.NeverClassInline;
+import com.android.tools.r8.NoRedundantFieldLoadElimination;
 import com.android.tools.r8.R8FullTestBuilder;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
@@ -51,7 +52,7 @@ public class MergedFieldTypeTest extends MergedTypeBaseTest {
 
     static class SuperTestClass {
 
-      private A field = new B();
+      @NoRedundantFieldLoadElimination private A field = new B();
 
       public A get() {
         return field;
@@ -84,7 +85,9 @@ public class MergedFieldTypeTest extends MergedTypeBaseTest {
 
     @Override
     public void configure(R8FullTestBuilder builder) {
-      builder.enableNeverClassInliningAnnotations();
+      builder
+          .enableNeverClassInliningAnnotations()
+          .enableNoRedundantFieldLoadEliminationAnnotations();
     }
 
     @Override

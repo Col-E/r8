@@ -7,6 +7,7 @@ package com.android.tools.r8.optimize.proto;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.MatcherAssert.assertThat;
 
+import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.NoHorizontalClassMerging;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
@@ -36,6 +37,7 @@ public class ProtoNormalizationWithInstanceInitializerCollisionTest extends Test
     testForR8(parameters.getBackend())
         .addInnerClasses(getClass())
         .addKeepMainRule(Main.class)
+        .enableInliningAnnotations()
         .enableNoHorizontalClassMergingAnnotations()
         .setMinApi(parameters)
         .compile()
@@ -74,11 +76,13 @@ public class ProtoNormalizationWithInstanceInitializerCollisionTest extends Test
       new Main(new B(), new A());
     }
 
+    @NeverInline
     Main(A a, B b) {
       System.out.println(a);
       System.out.println(b);
     }
 
+    @NeverInline
     Main(B b, A a) {
       System.out.println(a);
       System.out.println(b);

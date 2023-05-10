@@ -4,6 +4,9 @@
 
 package adaptresourcefilenames.pkg;
 
+import adaptresourcefilenames.NoInliningOfDefaultInitializer;
+
+@NoInliningOfDefaultInitializer
 public class C {
 
   public void method() {

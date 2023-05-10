@@ -8,6 +8,7 @@ import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 
+import com.android.tools.r8.NoInliningOfDefaultInitializer;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
@@ -35,6 +36,7 @@ public class InstanceGetOnNewInstanceCanonicalizationTest extends TestBase {
     testForR8(parameters.getBackend())
         .addInnerClasses(getClass())
         .addKeepMainRule(Main.class)
+        .enableNoInliningOfDefaultInitializerAnnotations()
         .setMinApi(parameters)
         .compile()
         .inspect(
@@ -52,6 +54,7 @@ public class InstanceGetOnNewInstanceCanonicalizationTest extends TestBase {
         .assertSuccessWithOutputLines("Hello, world!");
   }
 
+  @NoInliningOfDefaultInitializer
   static class Main {
 
     final String field = System.currentTimeMillis() > 0 ? ", " : null;

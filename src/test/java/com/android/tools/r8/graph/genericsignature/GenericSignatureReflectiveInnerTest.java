@@ -7,6 +7,7 @@ package com.android.tools.r8.graph.genericsignature;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.MatcherAssert.assertThat;
 
+import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
@@ -50,6 +51,7 @@ public class GenericSignatureReflectiveInnerTest extends TestBase {
         .addKeepAttributeSignature()
         .addKeepClassRules(Foo.Bar.class)
         .enableInliningAnnotations()
+        .enableNeverClassInliningAnnotations()
         .setMinApi(parameters)
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines(EXPECTED)
@@ -60,6 +62,7 @@ public class GenericSignatureReflectiveInnerTest extends TestBase {
             });
   }
 
+  @NeverClassInline
   public static class Foo<T> {
 
     public class Bar<S> {

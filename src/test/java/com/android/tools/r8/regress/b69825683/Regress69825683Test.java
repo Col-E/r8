@@ -5,6 +5,7 @@
 package com.android.tools.r8.regress.b69825683;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
+import static com.android.tools.r8.utils.codeinspector.Matchers.notIf;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.startsWith;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -47,6 +48,7 @@ public class Regress69825683Test extends TestBase {
         testForR8(parameters.getBackend())
             .addProgramFiles(ToolHelper.getClassFilesForTestPackage(outer.getPackage()))
             .addKeepMainRule(outer)
+            .enableInliningAnnotations()
             .enableSideEffectAnnotations()
             .addKeepRules(
                 "-assumemayhavesideeffects class " + inner.getName() + " {",
@@ -95,8 +97,10 @@ public class Regress69825683Test extends TestBase {
             .inspector();
 
     List<FoundClassSubject> classes = inspector.allClasses();
-    assertEquals(2, classes.size());
+    assertEquals(parameters.canInitNewInstanceUsingSuperclassConstructor() ? 1 : 2, classes.size());
     assertThat(inspector.clazz(clazz), isPresent());
-    assertThat(inspector.clazz(innerClass), isPresent());
+    assertThat(
+        inspector.clazz(innerClass),
+        notIf(isPresent(), parameters.canInitNewInstanceUsingSuperclassConstructor()));
   }
 }

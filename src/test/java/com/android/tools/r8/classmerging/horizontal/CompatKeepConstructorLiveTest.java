@@ -8,6 +8,7 @@ import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.android.tools.r8.NeverClassInline;
+import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.NoHorizontalClassMerging;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
@@ -23,6 +24,7 @@ public class CompatKeepConstructorLiveTest extends HorizontalClassMergingTestBas
     testForR8Compat(parameters.getBackend())
         .addInnerClasses(getClass())
         .addKeepMainRule(Main.class)
+        .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
         .enableNoHorizontalClassMergingAnnotations()
         .setMinApi(parameters)
@@ -47,6 +49,7 @@ public class CompatKeepConstructorLiveTest extends HorizontalClassMergingTestBas
   @NeverClassInline
   @NoHorizontalClassMerging
   public static class B {
+    @NeverInline
     public B(String v) {
       System.out.println("b: " + v);
     }

@@ -10,7 +10,9 @@ import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.ir.optimize.Inliner.Reason;
 import com.android.tools.r8.utils.BooleanUtils;
+import com.google.common.collect.ImmutableSet;
 import java.util.List;
 import org.junit.Test;
 import org.junit.runners.Parameterized;
@@ -37,6 +39,8 @@ public class InnerOuterClassesTest extends HorizontalClassMergingTestBase {
         .addKeepMainRule(Main.class)
         .enableNeverClassInliningAnnotations()
         .addKeepAttributeInnerClassesAndEnclosingMethod()
+        .addOptionsModification(
+            options -> options.testing.validInliningReasons = ImmutableSet.of(Reason.FORCE))
         .setMinApi(parameters)
         .addOptionsModification(
             options ->

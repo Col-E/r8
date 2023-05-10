@@ -60,6 +60,7 @@ public class InstantiatedAndUninstantiatedClassMergingTest extends HorizontalCla
   @NeverClassInline
   public static final class Instantiated {
 
+    @NeverInline
     Instantiated() {
       System.out.println("Instantiated");
     }

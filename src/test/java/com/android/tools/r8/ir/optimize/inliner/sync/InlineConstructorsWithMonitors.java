@@ -5,15 +5,14 @@
 package com.android.tools.r8.ir.optimize.inliner.sync;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.hasDefaultConstructor;
+import static com.android.tools.r8.utils.codeinspector.Matchers.isAbsent;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
+import static com.android.tools.r8.utils.codeinspector.Matchers.notIf;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
-import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import org.junit.Test;
@@ -40,6 +39,13 @@ public class InlineConstructorsWithMonitors extends TestBase {
     testForR8(parameters.getBackend())
         .addInnerClasses(InlineConstructorsWithMonitors.class)
         .addKeepMainRule(TestClass.class)
+        .addHorizontallyMergedClassesInspector(
+            inspector ->
+                inspector
+                    .applyIf(
+                        !parameters.canHaveIssueWithInlinedMonitors(),
+                        i -> i.assertMergedInto(Foo.class, Bar.class))
+                    .assertNoOtherClassesMerged())
         .setMinApi(parameters)
         .compile()
         .run(parameters.getRuntime(), TestClass.class)
@@ -52,18 +58,21 @@ public class InlineConstructorsWithMonitors extends TestBase {
     assertThat(classSubject, isPresent());
     ClassSubject fooClassSubject = inspector.clazz(Foo.class);
     ClassSubject barClassSubject = inspector.clazz(Bar.class);
-    if (parameters.isCfRuntime()
-        || parameters.getApiLevel().isLessThanOrEqualTo(AndroidApiLevel.M)) {
+    if (parameters.canHaveIssueWithInlinedMonitors()) {
       // On M and below we don't want to merge constructors when both have monitors. See b/238399429
-      assertThat(fooClassSubject, hasDefaultConstructor());
+      assertThat(
+          fooClassSubject,
+          notIf(isPresent(), parameters.canInitNewInstanceUsingSuperclassConstructor()));
+      assertThat(
+          fooClassSubject,
+          notIf(
+              hasDefaultConstructor(), parameters.canInitNewInstanceUsingSuperclassConstructor()));
+      assertThat(barClassSubject, isPresent());
       assertThat(barClassSubject, hasDefaultConstructor());
     } else {
-      assertTrue(
-          fooClassSubject.uniqueInstanceInitializer().isPresent()
-              || barClassSubject.uniqueInstanceInitializer().isPresent());
-      assertFalse(
-          fooClassSubject.uniqueInstanceInitializer().isPresent()
-              && barClassSubject.uniqueInstanceInitializer().isPresent());
+      assertThat(fooClassSubject, isAbsent());
+      assertThat(barClassSubject, isPresent());
+      assertThat(barClassSubject.uniqueInstanceInitializer(), isPresent());
     }
   }
 

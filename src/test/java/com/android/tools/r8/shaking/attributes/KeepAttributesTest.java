@@ -117,6 +117,7 @@ public class KeepAttributesTest extends TestBase {
         .addProgramClassesAndInnerClasses(CLASS)
         .addKeepAllClassesRule()
         .addKeepRules(keepRules)
+        .enableInliningAnnotations()
         .enableSideEffectAnnotations()
         .setMinApi(parameters)
         .run(parameters.getRuntime(), CLASS)

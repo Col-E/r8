@@ -82,6 +82,7 @@ public class FinalFieldWithDefaultValueAssignmentPropagationTest extends TestBas
 
     final boolean alwaysFalse;
 
+    @NeverInline
     Config() {
       // An instruction that causes alwaysFalse to be read.
       System.out.println(this);

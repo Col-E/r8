@@ -13,6 +13,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
+import com.android.tools.r8.NoInliningOfDefaultInitializer;
 import com.android.tools.r8.NoMethodStaticizing;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
@@ -55,6 +56,7 @@ public class ApiModelNoVerticalMergingTest extends TestBase {
         .apply(ApiModelingTestHelper::disableOutliningAndStubbing)
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
+        .enableNoInliningOfDefaultInitializerAnnotations()
         .enableNoMethodStaticizingAnnotations()
         .addVerticallyMergedClassesInspector(
             inspector -> {
@@ -104,6 +106,7 @@ public class ApiModelNoVerticalMergingTest extends TestBase {
   }
 
   @NeverClassInline
+  @NoInliningOfDefaultInitializer
   public static class Sub extends Base {
 
     @NeverInline

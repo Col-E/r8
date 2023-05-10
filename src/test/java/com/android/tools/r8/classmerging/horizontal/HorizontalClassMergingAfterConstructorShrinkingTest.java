@@ -81,6 +81,7 @@ public class HorizontalClassMergingAfterConstructorShrinkingTest extends TestBas
 
     Object field;
 
+    @NeverInline
     A() {
       System.out.println("Ouch!");
     }
@@ -103,6 +104,7 @@ public class HorizontalClassMergingAfterConstructorShrinkingTest extends TestBas
     Object field;
 
     // Removed by constructor shrinking.
+    @NeverInline
     B() {}
 
     @NeverInline

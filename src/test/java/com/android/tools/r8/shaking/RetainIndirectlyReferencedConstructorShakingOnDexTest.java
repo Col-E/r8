@@ -9,6 +9,7 @@ import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 
+import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.NoVerticalClassMerging;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
@@ -52,6 +53,7 @@ public class RetainIndirectlyReferencedConstructorShakingOnDexTest extends TestB
                     .getRedundantBridgeRemovalOptions()
                     .setEnableRetargetingOfConstructorBridgeCalls(
                         enableRetargetingOfConstructorBridgeCalls))
+        .enableInliningAnnotations()
         .enableNoVerticalClassMergingAnnotations()
         .setMinApi(parameters)
         .compile()
@@ -102,6 +104,7 @@ public class RetainIndirectlyReferencedConstructorShakingOnDexTest extends TestB
   @NoVerticalClassMerging
   public abstract static class A {
 
+    @NeverInline
     public A() {
       System.out.println("A");
     }

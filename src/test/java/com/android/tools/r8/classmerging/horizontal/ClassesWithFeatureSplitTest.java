@@ -9,6 +9,7 @@ import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.android.tools.r8.NeverClassInline;
+import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.R8TestCompileResult;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
@@ -40,6 +41,7 @@ public class ClassesWithFeatureSplitTest extends HorizontalClassMergingTestBase 
             .addFeatureSplit(Feature2Class.class, Feature2Main.class)
             .addKeepFeatureMainRule(Feature1Main.class)
             .addKeepFeatureMainRule(Feature2Main.class)
+            .enableInliningAnnotations()
             .enableNeverClassInliningAnnotations()
             .setMinApi(parameters)
             .compile()
@@ -100,6 +102,7 @@ public class ClassesWithFeatureSplitTest extends HorizontalClassMergingTestBase 
 
   @NeverClassInline
   public static class Feature2Class {
+    @NeverInline
     public Feature2Class() {
       System.out.println("feature 2");
     }
