@@ -62,10 +62,11 @@ public class CompilerApiTestCollection extends BinaryCompatibilityTestCollection
           ProguardKeepRuleDiagnosticsApiTest.ApiTest.class,
           SyntheticContextsConsumerTest.ApiTest.class,
           ExtractMarkerApiTest.ApiTest.class,
-          PartitionMapCommandTest.ApiTest.class);
+          PartitionMapCommandTest.ApiTest.class,
+          CancelCompilationCheckerTest.ApiTest.class);
 
   private static final List<Class<? extends CompilerApiTest>> CLASSES_PENDING_BINARY_COMPATIBILITY =
-      ImmutableList.of(CancelCompilationCheckerTest.ApiTest.class);
+      ImmutableList.of();
 
   private final TemporaryFolder temp;
 
