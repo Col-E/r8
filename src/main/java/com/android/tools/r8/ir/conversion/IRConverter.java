@@ -26,6 +26,7 @@ import com.android.tools.r8.ir.analysis.fieldvalueanalysis.StaticFieldValues;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Value;
+import com.android.tools.r8.ir.conversion.passes.ParentConstructorHoistingCodeRewriter;
 import com.android.tools.r8.ir.desugar.CfInstructionDesugaringCollection;
 import com.android.tools.r8.ir.desugar.CovariantReturnTypeAnnotationTransformer;
 import com.android.tools.r8.ir.optimize.AssertionErrorTwoArgsConstructorRewriter;
@@ -894,6 +895,8 @@ public class IRConverter {
     assert code.verifyTypes(appView);
 
     deadCodeRemover.run(code, timing);
+
+    new ParentConstructorHoistingCodeRewriter(appView).run(context, code, timing);
 
     BytecodeMetadataProvider.Builder bytecodeMetadataProviderBuilder =
         BytecodeMetadataProvider.builder();

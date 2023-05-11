@@ -29,6 +29,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.Set;
@@ -166,6 +167,14 @@ public class BasicBlockInstructionListIterator implements InstructionListIterato
     assert instruction.getBlock() == block;
     listIterator.set(instruction);
     metadata.record(instruction);
+  }
+
+  @Override
+  public void set(Collection<Instruction> instructions) {
+    for (Instruction instruction : instructions) {
+      set(instruction);
+      next();
+    }
   }
 
   /**

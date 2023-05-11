@@ -14,6 +14,7 @@ import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.utils.InternalOptions;
 import com.google.common.collect.Sets;
+import java.util.Collection;
 import java.util.ListIterator;
 import java.util.Set;
 import java.util.function.Consumer;
@@ -291,5 +292,10 @@ public class LinearFlowInstructionListIterator implements InstructionListIterato
   @Override
   public void set(Instruction instruction) {
     currentBlockIterator.set(instruction);
+  }
+
+  @Override
+  public void set(Collection<Instruction> instructions) {
+    currentBlockIterator.set(instructions);
   }
 }

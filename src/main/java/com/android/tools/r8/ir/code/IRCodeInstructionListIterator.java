@@ -14,6 +14,7 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.utils.InternalOptions;
+import java.util.Collection;
 import java.util.ListIterator;
 import java.util.NoSuchElementException;
 import java.util.Set;
@@ -224,6 +225,11 @@ public class IRCodeInstructionListIterator implements InstructionListIterator {
   @Override
   public void set(Instruction instruction) {
     instructionIterator.set(instruction);
+  }
+
+  @Override
+  public void set(Collection<Instruction> instructions) {
+    instructionIterator.set(instructions);
   }
 
   @Override

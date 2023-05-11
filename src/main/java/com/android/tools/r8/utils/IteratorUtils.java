@@ -156,8 +156,14 @@ public class IteratorUtils {
   }
 
   public static void skip(InstructionIterator iterator, int times) {
-    for (int i = 0; i < times; i++) {
-      iterator.next();
+    if (times >= 0) {
+      for (int i = 0; i < times; i++) {
+        iterator.next();
+      }
+    } else {
+      for (int i = 0; i > times; i--) {
+        iterator.previous();
+      }
     }
   }
 

@@ -48,6 +48,19 @@ public class IterableUtils {
     return false;
   }
 
+  public static <T> boolean anyBefore(
+      Iterable<T> iterable, Predicate<T> predicate, Predicate<T> stoppingCriterion) {
+    for (T element : iterable) {
+      if (stoppingCriterion.test(element)) {
+        return false;
+      }
+      if (predicate.test(element)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
   public static <T> Iterable<T> append(Iterable<T> iterable, T element) {
     return Iterables.concat(iterable, singleton(element));
   }

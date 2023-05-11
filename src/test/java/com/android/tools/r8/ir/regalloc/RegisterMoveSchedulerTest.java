@@ -30,6 +30,7 @@ import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.code.ValueType;
 import com.android.tools.r8.synthesis.SyntheticItems.GlobalSyntheticsStrategy;
 import com.android.tools.r8.utils.InternalOptions;
+import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.ListIterator;
@@ -183,6 +184,11 @@ public class RegisterMoveSchedulerTest {
     @Override
     public void set(Instruction instruction) {
       it.set(instruction);
+    }
+
+    @Override
+    public void set(Collection<Instruction> instructions) {
+      throw new Unimplemented();
     }
 
     @Override
