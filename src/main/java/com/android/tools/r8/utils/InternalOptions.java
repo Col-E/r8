@@ -2988,7 +2988,6 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
   }
 
   public boolean canInitNewInstanceUsingSuperclassConstructor() {
-    // TODO(b/278973259): Enable this when compiling to API level >= L.
-    return false;
+    return canHaveNonReboundConstructorInvoke();
   }
 }
