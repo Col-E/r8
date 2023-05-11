@@ -116,6 +116,9 @@ public class RedundantBridgeRemover {
     if (kind == InvokeKind.STATIC) {
       return appView.appInfo().isStrictSubtypeOf(method.getHolderType(), target.holder);
     }
+    if (kind == InvokeKind.VIRTUAL) {
+      return false;
+    }
     assert false : "Unexpected invoke-kind for visibility bridge: " + kind;
     return false;
   }

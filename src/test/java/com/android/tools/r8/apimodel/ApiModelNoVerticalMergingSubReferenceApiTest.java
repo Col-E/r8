@@ -6,6 +6,7 @@ package com.android.tools.r8.apimodel;
 
 import static com.android.tools.r8.apimodel.ApiModelingTestHelper.setMockApiLevelForMethod;
 import static com.android.tools.r8.utils.AndroidApiLevel.L_MR1;
+import static com.android.tools.r8.utils.codeinspector.Matchers.isAbsentIf;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static junit.framework.TestCase.assertEquals;
 import static org.hamcrest.CoreMatchers.not;
@@ -77,7 +78,9 @@ public class ApiModelNoVerticalMergingSubReferenceApiTest extends TestBase {
                 assertThat(base, not(isPresent()));
                 ClassSubject sub = inspector.clazz(Sub.class);
                 assertThat(sub, isPresent());
-                assertThat(sub.uniqueInstanceInitializer(), isPresent());
+                assertThat(
+                    sub.uniqueInstanceInitializer(),
+                    isAbsentIf(parameters.canHaveNonReboundConstructorInvoke()));
                 assertEquals(1, sub.virtualMethods().size());
                 FoundMethodSubject callCallApi = sub.virtualMethods().get(0);
                 assertEquals("callCallApi", callCallApi.getOriginalName());

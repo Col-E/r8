@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.ir.optimize.membervaluepropagation.fields.singleton;
 
+import static com.android.tools.r8.utils.codeinspector.Matchers.isAbsent;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
@@ -36,6 +37,10 @@ public class SingletonFieldValuePropagationEnumWithSubclassTest extends TestBase
     testForR8(parameters.getBackend())
         .addInnerClasses(SingletonFieldValuePropagationEnumWithSubclassTest.class)
         .addKeepMainRule(TestClass.class)
+        .addEnumUnboxingInspector(
+            inspector ->
+                inspector.assertUnboxedIf(
+                    parameters.canInitNewInstanceUsingSuperclassConstructor(), Characters.class))
         .setMinApi(parameters)
         .compile()
         .inspect(this::inspect)
@@ -44,10 +49,14 @@ public class SingletonFieldValuePropagationEnumWithSubclassTest extends TestBase
   }
 
   private void inspect(CodeInspector inspector) {
-    ClassSubject charactersClassSubject = inspector.clazz(Characters.class);
-    assertThat(charactersClassSubject, isPresent());
-    // TODO(b/150368955): Field value propagation should cause Characters.value to become dead.
-    assertEquals(1, charactersClassSubject.allInstanceFields().size());
+    if (parameters.canInitNewInstanceUsingSuperclassConstructor()) {
+      assertThat(inspector.clazz(Characters.class), isAbsent());
+    } else {
+      ClassSubject charactersClassSubject = inspector.clazz(Characters.class);
+      assertThat(charactersClassSubject, isPresent());
+      // TODO(b/150368955): Field value propagation should cause Characters.value to become dead.
+      assertEquals(1, charactersClassSubject.allInstanceFields().size());
+    }
   }
 
   static class TestClass {

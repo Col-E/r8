@@ -48,11 +48,13 @@ public class RetainIndirectlyReferencedConstructorShakingOnDexTest extends TestB
         .addInnerClasses(getClass())
         .addKeepMainRule(Main.class)
         .addOptionsModification(
-            options ->
-                options
-                    .getRedundantBridgeRemovalOptions()
-                    .setEnableRetargetingOfConstructorBridgeCalls(
-                        enableRetargetingOfConstructorBridgeCalls))
+            options -> {
+              options.inlinerOptions().setEnableConstructorInlining(false);
+              options
+                  .getRedundantBridgeRemovalOptions()
+                  .setEnableRetargetingOfConstructorBridgeCalls(
+                      enableRetargetingOfConstructorBridgeCalls);
+            })
         .enableInliningAnnotations()
         .enableNoVerticalClassMergingAnnotations()
         .setMinApi(parameters)

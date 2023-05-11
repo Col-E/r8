@@ -10,6 +10,7 @@ import static com.android.tools.r8.utils.codeinspector.Matchers.onlyIf;
 import static org.hamcrest.CoreMatchers.allOf;
 import static org.hamcrest.MatcherAssert.assertThat;
 
+import com.android.tools.r8.NoRedundantFieldLoadElimination;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.utils.BooleanUtils;
@@ -42,6 +43,7 @@ public class EffectiveFinalFieldMarkedFinalTest extends TestBase {
         .addInnerClasses(getClass())
         .addKeepMainRule(Main.class)
         .allowAccessModification(allowAccessModification)
+        .enableNoRedundantFieldLoadEliminationAnnotations()
         .setMinApi(parameters)
         .compile()
         .inspect(
@@ -63,6 +65,7 @@ public class EffectiveFinalFieldMarkedFinalTest extends TestBase {
 
     static String staticField = System.currentTimeMillis() > 0 ? "Hello" : null;
 
+    @NoRedundantFieldLoadElimination
     String instanceField = System.currentTimeMillis() > 0 ? ", world!" : null;
 
     public static void main(String[] args) {

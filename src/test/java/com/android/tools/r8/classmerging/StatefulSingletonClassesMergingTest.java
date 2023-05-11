@@ -85,7 +85,7 @@ public class StatefulSingletonClassesMergingTest extends TestBase {
 
     static final B INSTANCE = new B("B");
 
-    @NeverPropagateValue private final String data;
+    @NeverPropagateValue private String data;
 
     // TODO(b/198758663): With argument propagation the constructors end up not being equivalent,
     //  which prevents merging in the final round of horizontal class merging.
