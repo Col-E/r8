@@ -17,6 +17,34 @@ import org.junit.runners.Parameterized;
 @RunWith(Parameterized.class)
 public class SwitchMapsTestRunner extends ExamplesTestBase {
 
+  public static final String EXPECTED =
+      StringUtils.lines(
+          "other",
+          "1, 3 or 4",
+          "2 or 5",
+          "other",
+          "2 or 5",
+          "3 or 5",
+          "1, 3 or 4",
+          "2 or 5",
+          "other",
+          "1, 3 or 4",
+          "2 or 5",
+          "3 or 5",
+          "2 or 5",
+          "other",
+          "6",
+          "7",
+          "7",
+          "rar",
+          "colorful",
+          "blew",
+          "colorful",
+          "soylent",
+          "sooo green",
+          "fifty",
+          "not really");
+
   @Parameterized.Parameters(name = "{0}")
   public static TestParametersCollection data() {
     return getTestParameters().withAllRuntimesAndApiLevels().enableApiLevelsForCf().build();
@@ -42,32 +70,7 @@ public class SwitchMapsTestRunner extends ExamplesTestBase {
 
   @Override
   public String getExpected() {
-    return StringUtils.lines(
-        "other",
-        "1, 3 or 4",
-        "2 or 5",
-        "other",
-        "2 or 5",
-        "3 or 5",
-        "1, 3 or 4",
-        "2 or 5",
-        "other",
-        "1, 3 or 4",
-        "2 or 5",
-        "3 or 5",
-        "2 or 5",
-        "other",
-        "6",
-        "7",
-        "7",
-        "rar",
-        "colorful",
-        "blew",
-        "colorful",
-        "soylent",
-        "sooo green",
-        "fifty",
-        "not really");
+    return EXPECTED;
   }
 
   @Test
