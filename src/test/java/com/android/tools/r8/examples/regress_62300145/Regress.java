@@ -1,7 +1,7 @@
 // Copyright (c) 2017, the R8 project authors. Please see the AUTHORS file
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
-package regress_62300145;
+package com.android.tools.r8.examples.regress_62300145;
 
 import static java.lang.annotation.RetentionPolicy.CLASS;
 
@@ -32,12 +32,6 @@ public class Regress {
     Annotation[][] annotations = constructor.getParameterAnnotations();
     int index = 0;
     for (int i = 0; i < annotations.length; i++) {
-      // TODO(b/67936230): Java 8 and Java 9 runtime does not have the same behavior regarding
-      // implicit parameter such as 'outer this' for instance. Disable this test on Java 9 runtime
-      // due to this divergence.
-      if (System.getProperty("java.specification.version").equals("9") && i == 0) {
-        continue;
-      }
       // On 9 and below, annotations are also printed for the Regress.class (first argument to the
       // getDeclaredConstructor). b/120402200
       if (i != 0 || annotations[i].length != 0) {
