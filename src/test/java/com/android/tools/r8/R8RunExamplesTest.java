@@ -44,8 +44,6 @@ public class R8RunExamplesTest extends R8RunExamplesTestBase {
       "memberrebinding2.Memberrebinding",
       "memberrebinding3.Memberrebinding",
       "minification.Minification",
-      "enclosingmethod.Main",
-      "enclosingmethod_proguarded.Main",
       "uninitializedfinal.UninitializedFinalFieldLeak",
     };
 

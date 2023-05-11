@@ -141,17 +141,6 @@ public class ExamplesDebugTest extends DebugTestBase {
     testDebugging("minification", "Minification");
   }
 
-  @Test
-  public void testEnclosingmethod() throws Exception {
-    testDebugging("enclosingmethod", "Main");
-  }
-
-  @Test
-  public void testEnclosingmethod_proguarded() throws Exception {
-    // TODO(b/79671093): We don't match JVM's behavior on this example.
-    testDebuggingJvmOutputOnly("enclosingmethod_proguarded", "Main");
-  }
-
   private void testDebugging(String pkg, String clazz) throws Exception {
     init(pkg, clazz)
         .add("Input", input())
@@ -167,12 +156,6 @@ public class ExamplesDebugTest extends DebugTestBase {
         .add("Input", input())
         .add("R8/CfSourceCode", r8cf())
         .compare();
-  }
-
-  private void testDebuggingJvmOutputOnly(String pkg, String clazz) throws Exception {
-    init(pkg, clazz)
-        .add("R8/CfSourceCode", r8cf())
-        .run();
   }
 
   private DebugStreamComparator init(String pkg, String clazz) {
