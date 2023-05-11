@@ -471,10 +471,8 @@ public class StringBuilderAppendOptimizer {
                     }
                     assert currentTail != null;
                     // Link next node from successor
-                    if (childStates.size() != 1 || shouldAddNodeToGraph(currentTail, sbNode)) {
-                      currentTail.addSuccessor(sbNode);
-                      sbNode.addPredecessor(currentTail);
-                    }
+                    currentTail.addSuccessor(sbNode);
+                    sbNode.addPredecessor(currentTail);
                   });
               if (childState.seenAndNotProcessed()) {
                 childGraphState.isPartOfLoop = true;
