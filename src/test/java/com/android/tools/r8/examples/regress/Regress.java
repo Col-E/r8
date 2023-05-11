@@ -5,7 +5,7 @@
 // This code is not run directly. It needs to be compiled to dex code.
 // 'arithmetic.dex' is what is run.
 
-package regress;
+package com.android.tools.r8.examples.regress;
 
 public class Regress {
 

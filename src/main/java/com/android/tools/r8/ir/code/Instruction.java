@@ -225,6 +225,11 @@ public abstract class Instruction
 
   public abstract void buildCf(CfBuilder builder);
 
+  // TODO(b/225838009): Make this abstract.
+  public void buildLir(LirBuilder<Value, ?> builder) {
+    throw new Unimplemented("Missing impl for " + getClass().getSimpleName());
+  }
+
   public void replaceValue(Value oldValue, Value newValue) {
     for (int i = 0; i < inValues.size(); i++) {
       if (oldValue == inValues.get(i)) {
@@ -1533,10 +1538,6 @@ public abstract class Instruction
 
   public boolean outTypeKnownToBeBoolean(Set<Phi> seen) {
     return false;
-  }
-
-  public void buildLir(LirBuilder<Value, ?> builder) {
-    throw new Unimplemented("Missing impl for " + getClass().getSimpleName());
   }
 
   public void registerUse(UseRegistry registry, ProgramMethod context) {

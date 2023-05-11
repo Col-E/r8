@@ -131,8 +131,16 @@ public abstract class LirParsedInstructionCallback<EV> implements LirInstruction
     onInstruction();
   }
 
-  public void onAdd(NumericType type, EV leftValueIndex, EV rightValueIndex) {
+  public void onBinop(NumericType type, EV left, EV right) {
     onInstruction();
+  }
+
+  public void onArithmeticBinop(NumericType type, EV left, EV right) {
+    onBinop(type, left, right);
+  }
+
+  public void onAdd(NumericType type, EV leftValueIndex, EV rightValueIndex) {
+    onArithmeticBinop(type, leftValueIndex, rightValueIndex);
   }
 
   public void onAddInt(EV leftValueIndex, EV rightValueIndex) {
@@ -152,7 +160,7 @@ public abstract class LirParsedInstructionCallback<EV> implements LirInstruction
   }
 
   public void onSub(NumericType type, EV leftValueIndex, EV rightValueIndex) {
-    onInstruction();
+    onArithmeticBinop(type, leftValueIndex, rightValueIndex);
   }
 
   public void onSubInt(EV leftValueIndex, EV rightValueIndex) {
@@ -172,7 +180,7 @@ public abstract class LirParsedInstructionCallback<EV> implements LirInstruction
   }
 
   public void onMul(NumericType type, EV leftValueIndex, EV rightValueIndex) {
-    onInstruction();
+    onArithmeticBinop(type, leftValueIndex, rightValueIndex);
   }
 
   public void onMulInt(EV leftValueIndex, EV rightValueIndex) {
@@ -192,7 +200,7 @@ public abstract class LirParsedInstructionCallback<EV> implements LirInstruction
   }
 
   public void onDiv(NumericType type, EV leftValueIndex, EV rightValueIndex) {
-    onInstruction();
+    onArithmeticBinop(type, leftValueIndex, rightValueIndex);
   }
 
   public void onDivInt(EV leftValueIndex, EV rightValueIndex) {
@@ -212,7 +220,7 @@ public abstract class LirParsedInstructionCallback<EV> implements LirInstruction
   }
 
   public void onRem(NumericType type, EV leftValueIndex, EV rightValueIndex) {
-    onInstruction();
+    onArithmeticBinop(type, leftValueIndex, rightValueIndex);
   }
 
   public void onRemInt(EV leftValueIndex, EV rightValueIndex) {
@@ -249,7 +257,10 @@ public abstract class LirParsedInstructionCallback<EV> implements LirInstruction
         onAnd(NumericType.INT, left, right);
         return;
       case LirOpcodes.LAND:
+        throw new Unimplemented(LirOpcodes.toString(opcode));
       case LirOpcodes.IOR:
+        onOr(NumericType.INT, left, right);
+        return;
       case LirOpcodes.LOR:
         throw new Unimplemented(LirOpcodes.toString(opcode));
       case LirOpcodes.IXOR:
@@ -263,16 +274,24 @@ public abstract class LirParsedInstructionCallback<EV> implements LirInstruction
     }
   }
 
+  public void onLogicalBinop(NumericType type, EV left, EV right) {
+    onBinop(type, left, right);
+  }
+
   public void onShr(NumericType type, EV left, EV right) {
-    onInstruction();
+    onLogicalBinop(type, left, right);
   }
 
   public void onAnd(NumericType type, EV left, EV right) {
-    onInstruction();
+    onLogicalBinop(type, left, right);
+  }
+
+  public void onOr(NumericType type, EV left, EV right) {
+    onLogicalBinop(type, left, right);
   }
 
   public void onXor(NumericType type, EV left, EV right) {
-    onInstruction();
+    onLogicalBinop(type, left, right);
   }
 
   public void onNumberConversion(int opcode, EV value) {

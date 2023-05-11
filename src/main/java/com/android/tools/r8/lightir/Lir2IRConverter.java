@@ -61,6 +61,7 @@ import com.android.tools.r8.ir.code.NewUnboxedEnumInstance;
 import com.android.tools.r8.ir.code.NumberConversion;
 import com.android.tools.r8.ir.code.NumberGenerator;
 import com.android.tools.r8.ir.code.NumericType;
+import com.android.tools.r8.ir.code.Or;
 import com.android.tools.r8.ir.code.Phi;
 import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.code.Position.SyntheticPosition;
@@ -434,6 +435,12 @@ public class Lir2IRConverter {
     public void onAnd(NumericType type, EV left, EV right) {
       Value dest = getOutValueForNextInstruction(valueTypeElement(type));
       addInstruction(And.createNonNormalized(type, dest, getValue(left), getValue(right)));
+    }
+
+    @Override
+    public void onOr(NumericType type, EV left, EV right) {
+      Value dest = getOutValueForNextInstruction(valueTypeElement(type));
+      addInstruction(Or.createNonNormalized(type, dest, getValue(left), getValue(right)));
     }
 
     @Override
