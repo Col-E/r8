@@ -54,6 +54,7 @@ import com.android.tools.r8.ir.code.Monitor;
 import com.android.tools.r8.ir.code.MonitorType;
 import com.android.tools.r8.ir.code.MoveException;
 import com.android.tools.r8.ir.code.Mul;
+import com.android.tools.r8.ir.code.Neg;
 import com.android.tools.r8.ir.code.NewArrayEmpty;
 import com.android.tools.r8.ir.code.NewArrayFilledData;
 import com.android.tools.r8.ir.code.NewInstance;
@@ -67,11 +68,13 @@ import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.code.Position.SyntheticPosition;
 import com.android.tools.r8.ir.code.Rem;
 import com.android.tools.r8.ir.code.Return;
+import com.android.tools.r8.ir.code.Shl;
 import com.android.tools.r8.ir.code.Shr;
 import com.android.tools.r8.ir.code.StaticGet;
 import com.android.tools.r8.ir.code.StaticPut;
 import com.android.tools.r8.ir.code.Sub;
 import com.android.tools.r8.ir.code.Throw;
+import com.android.tools.r8.ir.code.Ushr;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.code.ValueType;
 import com.android.tools.r8.ir.code.Xor;
@@ -426,9 +429,27 @@ public class Lir2IRConverter {
     }
 
     @Override
+    public void onNeg(NumericType type, EV value) {
+      Value dest = getOutValueForNextInstruction(valueTypeElement(type));
+      addInstruction(new Neg(type, dest, getValue(value)));
+    }
+
+    @Override
+    public void onShl(NumericType type, EV left, EV right) {
+      Value dest = getOutValueForNextInstruction(valueTypeElement(type));
+      addInstruction(new Shl(type, dest, getValue(left), getValue(right)));
+    }
+
+    @Override
     public void onShr(NumericType type, EV left, EV right) {
       Value dest = getOutValueForNextInstruction(valueTypeElement(type));
       addInstruction(new Shr(type, dest, getValue(left), getValue(right)));
+    }
+
+    @Override
+    public void onUshr(NumericType type, EV left, EV right) {
+      Value dest = getOutValueForNextInstruction(valueTypeElement(type));
+      addInstruction(new Ushr(type, dest, getValue(left), getValue(right)));
     }
 
     @Override

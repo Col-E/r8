@@ -60,22 +60,6 @@ public class ExamplesDebugTest extends DebugTestBase {
   }
 
   @Test
-  public void testRegress65104300() throws Exception {
-    testDebugging("regress_65104300", "Regress");
-  }
-
-  @Ignore("TODO(b/79671093): This test seems to take forever")
-  @Test
-  public void testRegress70703087() throws Exception {
-    testDebugging("regress_70703087", "Test");
-  }
-
-  @Test
-  public void testRegress70736958() throws Exception {
-    testDebugging("regress_70736958", "Test");
-  }
-
-  @Test
   public void testRegress70737019() throws Exception {
     testDebugging("regress_70737019", "Test");
   }

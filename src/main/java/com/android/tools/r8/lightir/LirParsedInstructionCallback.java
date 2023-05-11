@@ -239,18 +239,28 @@ public abstract class LirParsedInstructionCallback<EV> implements LirInstruction
     onRem(NumericType.DOUBLE, leftValueIndex, rightValueIndex);
   }
 
+  public void onNeg(NumericType type, EV value) {
+    onInstruction();
+  }
+
   private void onLogicalBinopInternal(int opcode, LirInstructionView view) {
     EV left = getNextValueOperand(view);
     EV right = getNextValueOperand(view);
     switch (opcode) {
       case LirOpcodes.ISHL:
-      case LirOpcodes.LSHL:
         throw new Unimplemented(LirOpcodes.toString(opcode));
+      case LirOpcodes.LSHL:
+        onShl(NumericType.LONG, left, right);
+        return;
       case LirOpcodes.ISHR:
         onShr(NumericType.INT, left, right);
         return;
       case LirOpcodes.LSHR:
+        onShr(NumericType.LONG, left, right);
+        return;
       case LirOpcodes.IUSHR:
+        onUshr(NumericType.INT, left, right);
+        return;
       case LirOpcodes.LUSHR:
         throw new Unimplemented(LirOpcodes.toString(opcode));
       case LirOpcodes.IAND:
@@ -278,7 +288,15 @@ public abstract class LirParsedInstructionCallback<EV> implements LirInstruction
     onBinop(type, left, right);
   }
 
+  public void onShl(NumericType type, EV left, EV right) {
+    onLogicalBinop(type, left, right);
+  }
+
   public void onShr(NumericType type, EV left, EV right) {
+    onLogicalBinop(type, left, right);
+  }
+
+  public void onUshr(NumericType type, EV left, EV right) {
     onLogicalBinop(type, left, right);
   }
 
@@ -763,6 +781,22 @@ public abstract class LirParsedInstructionCallback<EV> implements LirInstruction
           onRemDouble(leftValueIndex, rightValueIndex);
           return;
         }
+      case LirOpcodes.INEG:
+        {
+          EV value = getNextValueOperand(view);
+          onNeg(NumericType.INT, value);
+          return;
+        }
+      case LirOpcodes.LNEG:
+        throw new Unimplemented("missing opcode: " + LirOpcodes.toString(opcode));
+      case LirOpcodes.FNEG:
+        {
+          EV value = getNextValueOperand(view);
+          onNeg(NumericType.FLOAT, value);
+          return;
+        }
+      case LirOpcodes.DNEG:
+        throw new Unimplemented("missing opcode: " + LirOpcodes.toString(opcode));
       case LirOpcodes.ISHL:
       case LirOpcodes.LSHL:
       case LirOpcodes.ISHR:

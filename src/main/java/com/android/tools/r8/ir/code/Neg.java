@@ -17,6 +17,7 @@ import com.android.tools.r8.ir.analysis.type.PrimitiveTypeElement;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
+import com.android.tools.r8.lightir.LirBuilder;
 import java.util.function.Function;
 
 public class Neg extends Unop {
@@ -110,5 +111,10 @@ public class Neg extends Unop {
   @Override
   public void buildCf(CfBuilder builder) {
     builder.add(new CfNeg(type), this);
+  }
+
+  @Override
+  public void buildLir(LirBuilder<Value, ?> builder) {
+    builder.addNeg(type, source());
   }
 }

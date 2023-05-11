@@ -389,6 +389,30 @@ public class LirBuilder<V, EV> {
     return addOneItemInstruction(LirOpcodes.LDC, type);
   }
 
+  public LirBuilder<V, EV> addNeg(NumericType type, V source) {
+    int opcode;
+    switch (type) {
+      case BYTE:
+      case CHAR:
+      case SHORT:
+      case INT:
+        opcode = LirOpcodes.INEG;
+        break;
+      case LONG:
+        opcode = LirOpcodes.LNEG;
+        break;
+      case FLOAT:
+        opcode = LirOpcodes.FNEG;
+        break;
+      case DOUBLE:
+        opcode = LirOpcodes.DNEG;
+        break;
+      default:
+        throw new Unreachable("Unexpected type: " + type);
+    }
+    return addOneValueInstruction(opcode, source);
+  }
+
   public LirBuilder<V, EV> addDiv(NumericType type, V leftValue, V rightValue) {
     int opcode;
     switch (type) {

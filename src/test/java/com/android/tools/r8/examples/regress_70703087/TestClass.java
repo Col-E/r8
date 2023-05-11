@@ -1,7 +1,7 @@
 // Copyright (c) 2017, the R8 project authors. Please see the AUTHORS file
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
-package regress_70703087;
+package com.android.tools.r8.examples.regress_70703087;
 
 /**
  * AOSP JFuzz Tester.
@@ -11,7 +11,7 @@ package regress_70703087;
 
 import java.util.Arrays;
 
-public class Test {
+public class TestClass {
 
   private interface X {
     int x();
@@ -58,7 +58,7 @@ public class Test {
 
   private double[] mArray = new double[700];
 
-  private Test() {
+  private TestClass() {
     double a = 1796354926.0;
     for (int i0 = 0; i0 < 700; i0++) {
       mArray[i0] = a;
@@ -161,7 +161,7 @@ public class Test {
   }
 
   public static void main(String[] args) {
-    Test t = new Test();
+    TestClass t = new TestClass();
     float r = 1753285454.0f;
     try {
       r = t.testMethod();

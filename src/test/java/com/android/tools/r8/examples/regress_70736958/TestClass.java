@@ -2,7 +2,7 @@
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
-package regress_70736958;
+package com.android.tools.r8.examples.regress_70736958;
 
 /**
  * AOSP JFuzz Tester.
@@ -12,7 +12,7 @@ package regress_70736958;
 
 import java.util.Arrays;
 
-public class Test {
+public class TestClass {
 
   private interface X {
     int x();
@@ -59,7 +59,7 @@ public class Test {
 
   private float[] mArray = new float[504];
 
-  private Test() {
+  private TestClass() {
     float a = 1610188871.0f;
     for (int i0 = 0; i0 < 504; i0++) {
       mArray[i0] = a;
@@ -74,7 +74,7 @@ public class Test {
     switch (360) {
       case 180: {
         mJ &= (mJ++);
-        mZ &= (this instanceof Test);
+        mZ &= (this instanceof TestClass);
         {
           boolean lZ0 = (((false & mZ) | true) & false);
           switch (96) {
@@ -91,7 +91,7 @@ public class Test {
                       } else {
                         lZ0 = (Double.isNaN(lD0));
                       }
-                      mZ = (this instanceof Test);
+                      mZ = (this instanceof TestClass);
                       mJ /= (mJ | 513583530L);
                     } catch (IllegalStateException ex1_0) {
                       switch (354) {
@@ -117,7 +117,7 @@ public class Test {
                         {
                           int i2 = -1;
                           while (++i2 < 168) {
-                            mZ ^= (this instanceof Test);
+                            mZ ^= (this instanceof TestClass);
                           }
                         }
                         nop();
@@ -165,7 +165,7 @@ public class Test {
   public static void nop() {}
 
   public static void main(String[] args) {
-    Test t = new Test();
+    TestClass t = new TestClass();
     boolean r = true;
     try {
       r = t.testMethod();
