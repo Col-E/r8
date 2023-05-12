@@ -27,8 +27,8 @@ public class Jdk8272564Test extends TestBase {
 
   @Parameters(name = "{0}")
   public static TestParametersCollection data() {
-    // TODO(b/218293990): Right now the JDK 18 tests are built with -target 17, as our Gradle
-    //  version does not know of -target 18.
+    // TODO(b/218293990): Right now the JDK 20 tests are built with -target 17, as our Gradle
+    //  version does not know of -target 20.
     return getTestParameters()
         .withCfRuntimesStartingFromIncluding(CfVm.JDK17)
         .withDexRuntimes()

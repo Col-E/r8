@@ -59,6 +59,7 @@ VALID_RUNTIMES = [
   'jdk9',
   'jdk11',
   'jdk17',
+  'jdk20',
 ] + [ 'dex-%s' % dexvm for dexvm in ALL_ART_VMS ]
 
 def ParseOptions():

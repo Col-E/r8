@@ -140,9 +140,9 @@ sourceSets {
             srcDirs = ['src/test/examplesJava17']
         }
     }
-    examplesJava18 {
+    examplesJava20 {
         java {
-            srcDirs = ['src/test/examplesJava18']
+            srcDirs = ['src/test/examplesJava20']
         }
     }
     examplesTestNGRunner {
@@ -402,20 +402,20 @@ def cloudSystemDependencies = [
                                 "openjdk/jdk8/linux-x86",
                                 "openjdk/jdk-11/linux",
                                 "openjdk/jdk-17/linux",
-                                "openjdk/jdk-18/linux"],
+                                "openjdk/jdk-20/linux"],
         ],
         osx: [
                 "third_party": ["openjdk/openjdk-9.0.4/osx",
                                 "openjdk/jdk8/darwin-x86",
                                 "openjdk/jdk-11/osx",
                                 "openjdk/jdk-17/osx",
-                                "openjdk/jdk-18/osx"],
+                                "openjdk/jdk-20/osx"],
         ],
         windows: [
                 "third_party": ["openjdk/openjdk-9.0.4/windows",
                                 "openjdk/jdk-11/windows",
                                 "openjdk/jdk-17/windows",
-                                "openjdk/jdk-18/windows"],
+                                "openjdk/jdk-20/windows"],
         ],
 ]
 
@@ -639,8 +639,8 @@ setJdkCompilationWithCompatibility(
         JavaVersion.VERSION_17,
         false)
 setJdkCompilationWithCompatibility(
-        sourceSets.examplesJava18.compileJavaTaskName,
-        'jdk-18',
+        sourceSets.examplesJava20.compileJavaTaskName,
+        'jdk-20',
         // TODO(b/218293990): Update Gradle to get JavaVersion.VERSION_18.
         JavaVersion.VERSION_17,
         false)
@@ -1562,7 +1562,7 @@ buildExampleJarsCreateTask("Java9", sourceSets.examplesJava9)
 buildExampleJarsCreateTask("Java10", sourceSets.examplesJava10)
 buildExampleJarsCreateTask("Java11", sourceSets.examplesJava11)
 buildExampleJarsCreateTask("Java17", sourceSets.examplesJava17)
-buildExampleJarsCreateTask("Java18", sourceSets.examplesJava18)
+buildExampleJarsCreateTask("Java20", sourceSets.examplesJava20)
 
 task provideArtFrameworksDependencies {
     cloudDependencies.tools.forEach({ art ->
@@ -1624,7 +1624,7 @@ task buildExamples {
     dependsOn buildExampleJava10Jars
     dependsOn buildExampleJava11Jars
     dependsOn buildExampleJava17Jars
-    dependsOn buildExampleJava18Jars
+    dependsOn buildExampleJava20Jars
     dependsOn buildExampleAndroidApi
     def examplesDir = file("src/test/examples")
     examplesDir.eachDir { dir ->

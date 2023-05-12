@@ -18,7 +18,7 @@ exit -1
 
 # Now run script with fingers crossed!
 
-JDK_VERSION="18"
+JDK_VERSION="20.0.1"
 JDK_VERSION_FULL=${JDK_VERSION}
 # For ea versions the full version name has a postfix.
 # JDK_VERSION_FULL="${JDK_VERSION}-ea+33"

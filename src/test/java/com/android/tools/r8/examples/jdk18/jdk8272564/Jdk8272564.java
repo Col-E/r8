@@ -9,7 +9,7 @@ import java.nio.file.Path;
 
 public class Jdk8272564 {
 
-  private static final String EXAMPLE_FILE = "examplesJava18/jdk8272564";
+  private static final String EXAMPLE_FILE = "examplesJava20/jdk8272564";
 
   public static final JavaExampleClassProxy A =
       new JavaExampleClassProxy(EXAMPLE_FILE, "jdk8272564/A");
