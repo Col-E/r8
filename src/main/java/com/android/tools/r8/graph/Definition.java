@@ -155,4 +155,12 @@ public interface Definition {
   default ProgramMethod asProgramMethod() {
     return null;
   }
+
+  default boolean isSamePackage(Definition definition) {
+    return isSamePackage(definition.getReference());
+  }
+
+  default boolean isSamePackage(DexReference reference) {
+    return getReference().isSamePackage(reference);
+  }
 }

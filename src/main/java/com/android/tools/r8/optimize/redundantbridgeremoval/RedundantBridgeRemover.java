@@ -11,6 +11,7 @@ import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ImmediateProgramSubtypingInfo;
+import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.graph.MethodResolutionResult;
 import com.android.tools.r8.graph.MethodResolutionResult.FailedResolutionResult;
 import com.android.tools.r8.graph.MethodResolutionResult.SingleResolutionResult;
@@ -279,14 +280,7 @@ public class RedundantBridgeRemover {
               bridgesToRemoveForClass.add(method);
 
               // Rewrite invokes to the bridge to the target if it is accessible.
-              // TODO(b/245882297): Refine these visibility checks so that we also rewrite when
-              //  the target is not public, but still accessible to call sites.
-              boolean isEligibleForRetargeting =
-                  redundantBridgeRemovalOptions.isRetargetingOfConstructorBridgeCallsEnabled()
-                      || !method.getDefinition().isInstanceInitializer();
-              if (isEligibleForRetargeting
-                  && target.getAccessFlags().isPublic()
-                  && target.getHolder().isPublic()) {
+              if (canRetargetInvokesToTargetMethod(method, target)) {
                 lensBuilder.map(method, target);
               }
             }
@@ -295,6 +289,39 @@ public class RedundantBridgeRemover {
         clazz.getMethodCollection().removeMethods(bridgesToRemoveForClass.toDefinitionSet());
         removedBridges.addAll(bridgesToRemoveForClass);
       }
+    }
+
+    private boolean canRetargetInvokesToTargetMethod(
+        ProgramMethod method, DexClassAndMethod target) {
+      // Check if constructor retargeting is enabled.
+      if (method.getDefinition().isInstanceInitializer()
+          && !redundantBridgeRemovalOptions.isRetargetingOfConstructorBridgeCallsEnabled()) {
+        return false;
+      }
+      // Check if all possible contexts that have access to the holder of the redundant bridge
+      // method also have access to the holder of the target method.
+      DexProgramClass methodHolder = method.getHolder();
+      DexClass targetHolder = target.getHolder();
+      if (!targetHolder.getAccessFlags().isPublic()) {
+        if (methodHolder.getAccessFlags().isPublic() || !method.isSamePackage(target)) {
+          return false;
+        }
+      }
+      // Check if all possible contexts that have access to the redundant bridge method also have
+      // access to the target method.
+      if (target.getAccessFlags().isPublic()) {
+        return true;
+      }
+      MethodAccessFlags methodAccessFlags = method.getAccessFlags();
+      MethodAccessFlags targetAccessFlags = target.getAccessFlags();
+      if (methodAccessFlags.isPackagePrivate()
+          && !targetAccessFlags.isPrivate()
+          && method.isSamePackage(target)) {
+        return true;
+      }
+      return methodAccessFlags.isProtected()
+          && targetAccessFlags.isProtected()
+          && method.isSamePackage(target);
     }
 
     @Override
