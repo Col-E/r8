@@ -2,7 +2,7 @@
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
-package regress_72361252;
+package com.android.tools.r8.examples.regress_72361252;
 
 /**
  * AOSP JFuzz Tester.
@@ -12,7 +12,7 @@ package regress_72361252;
 
 import java.util.Arrays;
 
-public class Test {
+public class TestClass {
 
   private interface X {
     int x();
@@ -59,7 +59,7 @@ public class Test {
 
   private float[][][][][][][][][] mArray = new float[1][1][1][1][1][1][1][1][1];
 
-  private Test() {
+  private TestClass() {
     float a = 1786185107.0f;
     for (int i0 = 0; i0 < 1; i0++) {
       for (int i1 = 0; i1 < 1; i1++) {
@@ -104,7 +104,7 @@ public class Test {
               while (++i2 < 1) {
                 try {
                   mD *= ((double) (++mArray[i1][0][i0][0][0][i0][i0][0][0]));
-                  mD -= ((this instanceof Test) ? 110559916.0 : mD);
+                  mD -= ((this instanceof TestClass) ? 110559916.0 : mD);
                   lJ0 -= (- (+ 417176163L));
                   lJ0 /= (+ -491731430L);
                   mI /= (-651651736 * ((int)(byte)(int) mI));
@@ -284,7 +284,7 @@ public class Test {
   public static void nop() {}
 
   public static void main(String[] args) {
-    Test t = new Test();
+    TestClass t = new TestClass();
     double r = -437780077.0;
     try {
       r = t.testMethod();

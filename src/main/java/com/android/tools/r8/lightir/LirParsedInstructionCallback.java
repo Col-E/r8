@@ -266,7 +266,8 @@ public abstract class LirParsedInstructionCallback<EV> implements LirInstruction
         onUshr(NumericType.INT, left, right);
         return;
       case LirOpcodes.LUSHR:
-        throw new Unimplemented(LirOpcodes.toString(opcode));
+        onUshr(NumericType.LONG, left, right);
+        return;
       case LirOpcodes.IAND:
         onAnd(NumericType.INT, left, right);
         return;
@@ -276,7 +277,8 @@ public abstract class LirParsedInstructionCallback<EV> implements LirInstruction
         onOr(NumericType.INT, left, right);
         return;
       case LirOpcodes.LOR:
-        throw new Unimplemented(LirOpcodes.toString(opcode));
+        onOr(NumericType.LONG, left, right);
+        return;
       case LirOpcodes.IXOR:
         onXor(NumericType.INT, left, right);
         return;
@@ -792,7 +794,11 @@ public abstract class LirParsedInstructionCallback<EV> implements LirInstruction
           return;
         }
       case LirOpcodes.LNEG:
-        throw new Unimplemented("missing opcode: " + LirOpcodes.toString(opcode));
+        {
+          EV value = getNextValueOperand(view);
+          onNeg(NumericType.LONG, value);
+          return;
+        }
       case LirOpcodes.FNEG:
         {
           EV value = getNextValueOperand(view);
