@@ -18,6 +18,16 @@ public class ProguardKeepRuleModifiers {
 
     private Builder() {}
 
+    public Builder setAllowsAll() {
+      setAllowsAccessModification(true);
+      setAllowsAnnotationRemoval(true);
+      setAllowsObfuscation(true);
+      setAllowsOptimization(true);
+      setAllowsRepackaging(true);
+      setAllowsShrinking(true);
+      return this;
+    }
+
     public Builder setAllowsAccessModification(boolean allowsAccessModification) {
       this.allowsAccessModification = allowsAccessModification;
       return this;

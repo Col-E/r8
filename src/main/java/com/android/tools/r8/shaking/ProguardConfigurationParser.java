@@ -2384,6 +2384,10 @@ public class ProguardConfigurationParser {
       this.wildcards = wildcards;
     }
 
+    static IdentifierPatternWithWildcards init() {
+      return withoutWildcards("<init>");
+    }
+
     static IdentifierPatternWithWildcards withoutWildcards(String pattern) {
       return new IdentifierPatternWithWildcards(pattern, ImmutableList.of());
     }

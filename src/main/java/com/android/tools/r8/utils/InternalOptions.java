@@ -890,7 +890,7 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
       new OpenClosedInterfacesOptions();
   private final ProtoShrinkingOptions protoShrinking = new ProtoShrinkingOptions();
   private final RedundantBridgeRemovalOptions redundantBridgeRemovalOptions =
-      new RedundantBridgeRemovalOptions(this);
+      new RedundantBridgeRemovalOptions();
   private final KotlinOptimizationOptions kotlinOptimizationOptions =
       new KotlinOptimizationOptions();
   private final ApiModelTestingOptions apiModelTestingOptions = new ApiModelTestingOptions();

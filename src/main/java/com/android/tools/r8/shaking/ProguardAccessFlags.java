@@ -132,8 +132,9 @@ public class ProguardAccessFlags {
     return isSet(Constants.ACC_FINAL);
   }
 
-  public void setAbstract() {
+  public ProguardAccessFlags setAbstract() {
     set(Constants.ACC_ABSTRACT);
+    return this;
   }
 
   public boolean isAbstract() {

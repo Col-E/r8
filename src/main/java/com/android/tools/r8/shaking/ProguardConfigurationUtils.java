@@ -4,17 +4,53 @@
 
 package com.android.tools.r8.shaking;
 
+import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.shaking.ProguardConfigurationParser.IdentifierPatternWithWildcards;
 import com.android.tools.r8.utils.AndroidApiLevel;
+import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.LongInterval;
 import com.google.common.collect.ImmutableList;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 public class ProguardConfigurationUtils {
 
-  public static ProguardAssumeNoSideEffectRule buildAssumeNoSideEffectsRuleForApiLevel(
+  public static List<ProguardConfigurationRule> synthesizeRules(AppView<?> appView) {
+    List<ProguardConfigurationRule> synthesizedRules = new ArrayList<>();
+    DexItemFactory factory = appView.dexItemFactory();
+    InternalOptions options = appView.options();
+    // Add synthesized -assumenosideeffects from min api if relevant.
+    if (options.isGeneratingDex()) {
+      if (!hasExplicitAssumeValuesOrAssumeNoSideEffectsRuleForMinSdk(
+          factory, options.getProguardConfiguration().getRules())) {
+        synthesizedRules.add(
+            buildAssumeNoSideEffectsRuleForApiLevel(factory, options.getMinApiLevel()));
+      }
+    }
+    // Add synthesized -keepclassmembers rules for the default initializer of classes that inherit
+    // from android.app.Fragment and android.app.ZygotePreload. This is needed since the Android
+    // Platform may reflectively access these instance initializers.
+    DexClass androidAppFragment =
+        appView.appInfo().definitionForWithoutExistenceAssert(factory.androidAppFragment);
+    if (androidAppFragment != null) {
+      synthesizedRules.add(
+          buildKeepClassMembersNoShrinkingOfInitializerOnSubclasses(factory, androidAppFragment));
+    }
+    DexClass androidAppZygotePreload =
+        appView.appInfo().definitionForWithoutExistenceAssert(factory.androidAppZygotePreload);
+    if (androidAppZygotePreload != null) {
+      synthesizedRules.add(
+          buildKeepClassMembersNoShrinkingOfInitializerOnSubclasses(
+              factory, androidAppZygotePreload));
+    }
+    return synthesizedRules;
+  }
+
+  private static ProguardAssumeNoSideEffectRule buildAssumeNoSideEffectsRuleForApiLevel(
       DexItemFactory factory, AndroidApiLevel apiLevel) {
     Origin synthesizedFromApiLevel =
         new Origin(Origin.root()) {
@@ -53,7 +89,7 @@ public class ProguardConfigurationUtils {
    * Check if an explicit rule matching the field public static final int
    * android.os.Build$VERSION.SDK_INT is present.
    */
-  public static boolean hasExplicitAssumeValuesOrAssumeNoSideEffectsRuleForMinSdk(
+  private static boolean hasExplicitAssumeValuesOrAssumeNoSideEffectsRuleForMinSdk(
       DexItemFactory factory, List<ProguardConfigurationRule> rules) {
     for (ProguardConfigurationRule rule : rules) {
       if (!(rule instanceof ProguardAssumeValuesRule
@@ -107,5 +143,29 @@ public class ProguardConfigurationUtils {
       }
     }
     return false;
+  }
+
+  // -keepclassmembers,allow* !abstract class * extends T { void <init>(); }
+  private static ProguardKeepRule buildKeepClassMembersNoShrinkingOfInitializerOnSubclasses(
+      DexItemFactory factory, DexClass clazz) {
+    return ProguardKeepRule.builder()
+        .setClassNames(ProguardClassNameList.singletonList(ProguardTypeMatcher.allClassesMatcher()))
+        .setClassType(ProguardClassType.CLASS)
+        .setInheritanceClassName(ProguardTypeMatcher.create(clazz.getType()))
+        .setInheritanceIsExtends(!clazz.isInterface())
+        .setMemberRules(
+            Collections.singletonList(
+                ProguardMemberRule.builder()
+                    .setRuleType(ProguardMemberType.INIT)
+                    .setName(IdentifierPatternWithWildcards.init())
+                    .setArguments(Collections.emptyList())
+                    .setTypeMatcher(ProguardTypeMatcher.create(factory.voidType))
+                    .build()))
+        .setNegatedClassAccessFlags(new ProguardAccessFlags().setAbstract())
+        .setOrigin(clazz.getOrigin())
+        .setType(ProguardKeepRuleType.KEEP_CLASS_MEMBERS)
+        .updateModifiers(
+            modifiersBuilder -> modifiersBuilder.setAllowsAll().setAllowsShrinking(false).build())
+        .build();
   }
 }

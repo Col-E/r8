@@ -317,21 +317,13 @@ public class R8 {
                     appView.getSyntheticItems().commit(appView.appInfo().app())));
       }
 
-      List<ProguardConfigurationRule> synthesizedProguardRules = new ArrayList<>();
       timing.begin("Strip unused code");
       timing.begin("Before enqueuer");
       RuntimeTypeCheckInfo.Builder classMergingEnqueuerExtensionBuilder =
           new RuntimeTypeCheckInfo.Builder(appView);
+      List<ProguardConfigurationRule> synthesizedProguardRules;
       try {
-        // Add synthesized -assumenosideeffects from min api if relevant.
-        if (options.isGeneratingDex()) {
-          if (!ProguardConfigurationUtils.hasExplicitAssumeValuesOrAssumeNoSideEffectsRuleForMinSdk(
-              options.itemFactory, options.getProguardConfiguration().getRules())) {
-            synthesizedProguardRules.add(
-                ProguardConfigurationUtils.buildAssumeNoSideEffectsRuleForApiLevel(
-                    options.itemFactory, options.getMinApiLevel()));
-          }
-        }
+        synthesizedProguardRules = ProguardConfigurationUtils.synthesizeRules(appView);
         ProfileCollectionAdditions profileCollectionAdditions =
             ProfileCollectionAdditions.create(appView);
         AssumeInfoCollection.Builder assumeInfoCollectionBuilder = AssumeInfoCollection.builder();
