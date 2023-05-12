@@ -37,6 +37,7 @@ import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.collections.ProgramMethodSet;
 import com.google.common.collect.ImmutableList;
+import java.util.Arrays;
 import java.util.BitSet;
 import java.util.Collections;
 import java.util.List;
@@ -281,6 +282,10 @@ public abstract class InvokeMethod extends Invoke {
 
     protected DexMethod method;
     protected List<Value> arguments = Collections.emptyList();
+
+    public B setArguments(Value... arguments) {
+      return setArguments(Arrays.asList(arguments));
+    }
 
     public B setArguments(List<Value> arguments) {
       assert arguments != null;
