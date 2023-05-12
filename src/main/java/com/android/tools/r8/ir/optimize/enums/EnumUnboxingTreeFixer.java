@@ -33,6 +33,7 @@ import com.android.tools.r8.graph.lens.MethodLookupResult;
 import com.android.tools.r8.graph.proto.RewrittenPrototypeDescription;
 import com.android.tools.r8.ir.analysis.type.ClassTypeElement;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
+import com.android.tools.r8.ir.analysis.value.SingleNumberValue;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.ConstClass;
 import com.android.tools.r8.ir.code.IRCode;
@@ -42,8 +43,11 @@ import com.android.tools.r8.ir.code.InvokeDirect;
 import com.android.tools.r8.ir.code.InvokeVirtual;
 import com.android.tools.r8.ir.code.NewInstance;
 import com.android.tools.r8.ir.code.NewUnboxedEnumInstance;
+import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.code.StaticPut;
+import com.android.tools.r8.ir.code.TypeAndLocalInfoSupplier;
 import com.android.tools.r8.ir.code.Value;
+import com.android.tools.r8.ir.conversion.ExtraParameter;
 import com.android.tools.r8.ir.conversion.ExtraUnusedNullParameter;
 import com.android.tools.r8.ir.conversion.IRConverter;
 import com.android.tools.r8.ir.conversion.MethodProcessorEventConsumer;
@@ -378,7 +382,8 @@ class EnumUnboxingTreeFixer implements ProgramClassFixer {
             // find the ordinal of the current enum instance.
             MethodLookupResult lookupResult =
                 appView.graphLens().lookupInvokeDirect(invokedMethod, classInitializer);
-            if (lookupResult.getReference() != invokedMethod) {
+            if (lookupResult.getReference() != invokedMethod
+                || !lookupResult.getPrototypeChanges().isEmpty()) {
               List<Value> rewrittenArguments =
                   new ArrayList<>(constructorInvoke.arguments().size());
               for (int i = 0; i < constructorInvoke.arguments().size(); i++) {
@@ -389,6 +394,23 @@ class EnumUnboxingTreeFixer implements ProgramClassFixer {
                     .isArgumentRemoved(i)) {
                   rewrittenArguments.add(argument);
                 }
+              }
+              for (ExtraParameter extraParameter :
+                  lookupResult.getPrototypeChanges().getExtraParameters()) {
+                SingleNumberValue singleNumberValue = extraParameter.getValue(appView);
+                Instruction materializingInstruction =
+                    singleNumberValue.createMaterializingInstruction(
+                        appView,
+                        code,
+                        TypeAndLocalInfoSupplier.create(
+                            extraParameter.getType(appView.dexItemFactory()).toTypeElement(appView),
+                            null));
+                materializingInstruction.setPosition(Position.none());
+                instructionIterator.previous();
+                instructionIterator.add(materializingInstruction);
+                rewrittenArguments.add(materializingInstruction.outValue());
+                Instruction next = instructionIterator.next();
+                assert next == newInstance;
               }
               InvokeDirect originalConstructorInvoke = constructorInvoke;
               constructorInvoke =
@@ -405,7 +427,6 @@ class EnumUnboxingTreeFixer implements ProgramClassFixer {
               // then remove the rewritten constructor invoke from the IR.
               instructionsToRemove.put(originalConstructorInvoke, Optional.of(constructorInvoke));
             } else {
-              assert lookupResult.getPrototypeChanges().isEmpty();
               // Record that the constructor invoke needs to be removed.
               instructionsToRemove.put(constructorInvoke, Optional.empty());
             }
