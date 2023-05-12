@@ -8,6 +8,7 @@ import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 
+import com.android.tools.r8.NoRedundantFieldLoadElimination;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.utils.AndroidApiLevel;
@@ -49,12 +50,13 @@ public class IfRuleWithClassInlining extends TestBase {
             "-keep class " + Unused.class.getTypeName());
     CodeInspector inspector =
         testForR8(parameters.getBackend())
-            .addInnerClasses(IfRuleWithClassInlining.class)
+            .addInnerClasses(getClass())
             .addKeepMainRule(TestClass.class)
             .addKeepRules(enableIfRule ? ifRule : "")
             .addOptionsModification(options -> options.enableClassInlining = enableClassInlining)
             // TODO(b/120061431): Should not be needed for this example.
             .allowAccessModification()
+            .enableNoRedundantFieldLoadEliminationAnnotations()
             .setMinApi(parameters)
             .compile()
             .inspector();
@@ -80,7 +82,7 @@ public class IfRuleWithClassInlining extends TestBase {
 
     static class Builder {
 
-      private String string = null;
+      @NoRedundantFieldLoadElimination private String string = null;
 
       public Builder setString(String string) {
         this.string = string;

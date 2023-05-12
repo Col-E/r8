@@ -68,6 +68,7 @@ import com.android.tools.r8.optimize.MemberRebindingAnalysis;
 import com.android.tools.r8.optimize.MemberRebindingIdentityLens;
 import com.android.tools.r8.optimize.MemberRebindingIdentityLensFactory;
 import com.android.tools.r8.optimize.bridgehoisting.BridgeHoisting;
+import com.android.tools.r8.optimize.fields.FieldFinalizer;
 import com.android.tools.r8.optimize.interfaces.analysis.CfOpenClosedInterfacesAnalysis;
 import com.android.tools.r8.optimize.proto.ProtoNormalizer;
 import com.android.tools.r8.optimize.redundantbridgeremoval.RedundantBridgeRemover;
@@ -640,6 +641,9 @@ public class R8 {
 
             // Synthesize fields for triggering class initializers.
             new ClassInitFieldSynthesizer(appViewWithLiveness).run(executorService);
+
+            // Finalize fields.
+            FieldFinalizer.run(appViewWithLiveness, executorService, timing);
           }
         } finally {
           timing.end();

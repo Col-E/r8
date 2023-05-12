@@ -6,6 +6,7 @@ package com.android.tools.r8.graph;
 
 import com.android.tools.r8.ir.optimize.info.FieldOptimizationInfo;
 import com.android.tools.r8.references.FieldReference;
+import com.android.tools.r8.shaking.AppInfoWithLiveness;
 
 public abstract class DexClassAndField extends DexClassAndMember<DexEncodedField, DexField> {
 
@@ -58,5 +59,14 @@ public abstract class DexClassAndField extends DexClassAndMember<DexEncodedField
   @Override
   public DexClassAndField asMember() {
     return this;
+  }
+
+  public final boolean isFinalOrEffectivelyFinal(AppView<?> appView) {
+    return getAccessFlags().isFinal()
+        || (appView.hasLiveness() && isEffectivelyFinal(appView.withLiveness()));
+  }
+
+  public boolean isEffectivelyFinal(AppView<AppInfoWithLiveness> appView) {
+    return false;
   }
 }

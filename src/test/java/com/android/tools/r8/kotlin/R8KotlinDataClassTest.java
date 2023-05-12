@@ -30,16 +30,8 @@ public class R8KotlinDataClassTest extends AbstractR8KotlinTestBase {
       .addProperty("name", "java.lang.String", Visibility.PUBLIC)
       .addProperty("age", "int", Visibility.PUBLIC);
 
-  private static final MethodSignature NAME_GETTER_METHOD =
-      TEST_DATA_CLASS.getGetterForProperty("name");
-  private static final MethodSignature AGE_GETTER_METHOD =
-      TEST_DATA_CLASS.getGetterForProperty("age");
-
-  private static final MethodSignature COMPONENT1_METHOD =
-      TEST_DATA_CLASS.getComponentNFunctionForProperty("name");
   private static final MethodSignature COMPONENT2_METHOD =
       TEST_DATA_CLASS.getComponentNFunctionForProperty("age");
-  private static final MethodSignature COPY_METHOD = TEST_DATA_CLASS.getCopySignature();
   private static final MethodSignature COPY_DEFAULT_METHOD =
       TEST_DATA_CLASS.getCopyDefaultSignature();
 
@@ -73,28 +65,7 @@ public class R8KotlinDataClassTest extends AbstractR8KotlinTestBase {
                 testBuilder
                     .addKeepRules(keepClassMethod(mainClassName, testMethodSignature))
                     .addOptionsModification(disableClassInliner))
-        .inspect(
-            inspector -> {
-              if (allowAccessModification) {
-                checkClassIsRemoved(inspector, TEST_DATA_CLASS.getClassName());
-              } else {
-                ClassSubject dataClass =
-                    checkClassIsKept(inspector, TEST_DATA_CLASS.getClassName());
-
-                // Getters should be removed after inlining, which is possible only if access is
-                // relaxed.
-                checkMethodIsKept(dataClass, NAME_GETTER_METHOD);
-                checkMethodIsKept(dataClass, AGE_GETTER_METHOD);
-
-                // No use of componentN functions.
-                checkMethodIsRemoved(dataClass, COMPONENT1_METHOD);
-                checkMethodIsRemoved(dataClass, COMPONENT2_METHOD);
-
-                // No use of copy functions.
-                checkMethodIsRemoved(dataClass, COPY_METHOD);
-                checkMethodIsRemoved(dataClass, COPY_DEFAULT_METHOD);
-              }
-            });
+        .inspect(inspector -> checkClassIsRemoved(inspector, TEST_DATA_CLASS.getClassName()));
   }
 
   @Test
@@ -109,28 +80,7 @@ public class R8KotlinDataClassTest extends AbstractR8KotlinTestBase {
                 testBuilder
                     .addKeepRules(keepClassMethod(mainClassName, testMethodSignature))
                     .addOptionsModification(disableClassInliner))
-        .inspect(
-            inspector -> {
-              if (allowAccessModification) {
-                checkClassIsRemoved(inspector, TEST_DATA_CLASS.getClassName());
-              } else {
-                ClassSubject dataClass =
-                    checkClassIsKept(inspector, TEST_DATA_CLASS.getClassName());
-
-                // ComponentN functions should be removed after inlining, which is possible only if
-                // access is relaxed.
-                checkMethodIsKept(dataClass, COMPONENT1_METHOD);
-                checkMethodIsKept(dataClass, COMPONENT2_METHOD);
-
-                // No use of getter.
-                checkMethodIsRemoved(dataClass, NAME_GETTER_METHOD);
-                checkMethodIsRemoved(dataClass, AGE_GETTER_METHOD);
-
-                // No use of copy functions.
-                checkMethodIsRemoved(dataClass, COPY_METHOD);
-                checkMethodIsRemoved(dataClass, COPY_DEFAULT_METHOD);
-              }
-            });
+        .inspect(inspector -> checkClassIsRemoved(inspector, TEST_DATA_CLASS.getClassName()));
   }
 
   @Test
@@ -147,32 +97,11 @@ public class R8KotlinDataClassTest extends AbstractR8KotlinTestBase {
                     .addOptionsModification(disableClassInliner))
         .inspect(
             inspector -> {
-              if (allowAccessModification) {
-                checkClassIsRemoved(inspector, TEST_DATA_CLASS.getClassName());
-              } else {
-                ClassSubject dataClass =
-                    checkClassIsKept(inspector, TEST_DATA_CLASS.getClassName());
-                checkMethodIsKept(dataClass, COMPONENT2_METHOD);
-
-                // Function component1 is not used.
-                checkMethodIsRemoved(dataClass, COMPONENT1_METHOD);
-
-                // No use of getter.
-                checkMethodIsRemoved(dataClass, NAME_GETTER_METHOD);
-                checkMethodIsRemoved(dataClass, AGE_GETTER_METHOD);
-
-                // No use of copy functions.
-                checkMethodIsRemoved(dataClass, COPY_METHOD);
-                checkMethodIsRemoved(dataClass, COPY_DEFAULT_METHOD);
-              }
+              checkClassIsRemoved(inspector, TEST_DATA_CLASS.getClassName());
 
               ClassSubject classSubject = checkClassIsKept(inspector, mainClassName);
               MethodSubject testMethod = checkMethodIsKept(classSubject, testMethodSignature);
-              if (allowAccessModification) {
-                checkMethodIsNeverInvoked(testMethod, COMPONENT2_METHOD);
-              } else {
-                checkMethodIsInvokedAtLeastOnce(testMethod, COMPONENT2_METHOD);
-              }
+              checkMethodIsNeverInvoked(testMethod, COMPONENT2_METHOD);
             });
   }
 
@@ -188,17 +117,7 @@ public class R8KotlinDataClassTest extends AbstractR8KotlinTestBase {
                 testBuilder
                     .addKeepRules(keepClassMethod(mainClassName, testMethodSignature))
                     .addOptionsModification(disableClassInliner))
-        .inspect(
-            inspector -> {
-              if (allowAccessModification) {
-                checkClassIsRemoved(inspector, TEST_DATA_CLASS.getClassName());
-              } else {
-                ClassSubject dataClass =
-                    checkClassIsKept(inspector, TEST_DATA_CLASS.getClassName());
-                checkMethodIsRemoved(dataClass, COPY_METHOD);
-                checkMethodIsRemoved(dataClass, COPY_DEFAULT_METHOD);
-              }
-            });
+        .inspect(inspector -> checkClassIsRemoved(inspector, TEST_DATA_CLASS.getClassName()));
   }
 
   @Test
