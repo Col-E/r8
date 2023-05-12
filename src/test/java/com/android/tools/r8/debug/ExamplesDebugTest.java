@@ -60,11 +60,6 @@ public class ExamplesDebugTest extends DebugTestBase {
   }
 
   @Test
-  public void testRegress70737019() throws Exception {
-    testDebugging("regress_70737019", "Test");
-  }
-
-  @Test
   public void testRegress72361252() throws Exception {
     testDebugging("regress_72361252", "Test");
   }

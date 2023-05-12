@@ -59,6 +59,7 @@ import com.android.tools.r8.ir.code.NewArrayEmpty;
 import com.android.tools.r8.ir.code.NewArrayFilledData;
 import com.android.tools.r8.ir.code.NewInstance;
 import com.android.tools.r8.ir.code.NewUnboxedEnumInstance;
+import com.android.tools.r8.ir.code.Not;
 import com.android.tools.r8.ir.code.NumberConversion;
 import com.android.tools.r8.ir.code.NumberGenerator;
 import com.android.tools.r8.ir.code.NumericType;
@@ -435,6 +436,12 @@ public class Lir2IRConverter {
     }
 
     @Override
+    public void onNot(NumericType type, EV value) {
+      Value dest = getOutValueForNextInstruction(valueTypeElement(type));
+      addInstruction(new Not(type, dest, getValue(value)));
+    }
+
+    @Override
     public void onShl(NumericType type, EV left, EV right) {
       Value dest = getOutValueForNextInstruction(valueTypeElement(type));
       addInstruction(new Shl(type, dest, getValue(left), getValue(right)));
@@ -643,7 +650,8 @@ public class Lir2IRConverter {
 
     @Override
     public void onInstancePut(DexField field, EV object, EV value) {
-      addInstruction(new InstancePut(field, getValue(object), getValue(value)));
+      addInstruction(
+          InstancePut.createPotentiallyInvalid(field, getValue(object), getValue(value)));
     }
 
     @Override

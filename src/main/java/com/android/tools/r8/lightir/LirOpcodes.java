@@ -198,6 +198,8 @@ public interface LirOpcodes {
   int NEWARRAYFILLEDDATA = 215;
   int ITEMBASEDCONSTSTRING = 216;
   int NEWUNBOXEDENUMINSTANCE = 217;
+  int INOT = 218;
+  int LNOT = 219;
 
   static String toString(int opcode) {
     switch (opcode) {
@@ -518,6 +520,10 @@ public interface LirOpcodes {
         return "ITEMBASEDCONSTSTRING";
       case NEWUNBOXEDENUMINSTANCE:
         return "NEWUNBOXEDENUMINSTANCE";
+      case INOT:
+        return "INOT";
+      case LNOT:
+        return "LNOT";
 
       default:
         throw new Unreachable("Unexpected LIR opcode: " + opcode);

@@ -15,6 +15,7 @@ import com.android.tools.r8.ir.analysis.type.PrimitiveTypeElement;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
+import com.android.tools.r8.lightir.LirBuilder;
 import java.util.function.Function;
 
 public class Not extends Unop {
@@ -104,5 +105,10 @@ public class Not extends Unop {
   public void buildCf(CfBuilder builder) {
     // JVM has no Not instruction, they should be replaced by "Load -1, Xor" before building CF.
     throw new Unreachable();
+  }
+
+  @Override
+  public void buildLir(LirBuilder<Value, ?> builder) {
+    builder.addNot(type, source());
   }
 }

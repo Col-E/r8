@@ -2,7 +2,7 @@
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
-package regress_70737019;
+package com.android.tools.r8.examples.regress_70737019;
 
 /**
  * AOSP JFuzz Tester.
@@ -12,7 +12,7 @@ package regress_70737019;
 
 import java.util.Arrays;
 
-public class Test {
+public class TestClass {
 
   private interface X {
     int x();
@@ -63,7 +63,7 @@ public class Test {
     return a && b;
   }
 
-  private Test() {
+  private TestClass() {
     float a = 107750002.0f;
     for (int i0 = 0; i0 < 1; i0++) {
       for (int i1 = 0; i1 < 1; i1++) {
@@ -131,7 +131,7 @@ public class Test {
                   mArray = tmp;
                 }
               }
-              mZ &= ((mI != 820389954) ? mZ : (this instanceof Test));
+              mZ &= ((mI != 820389954) ? mZ : (this instanceof TestClass));
               break;
             }
           }
@@ -168,7 +168,7 @@ public class Test {
           mI %= (~ 1326172655);
           switch (i0) {
             case 0: {
-              mZ |= (true | ((logicalAnd(mZ, (this instanceof Test))) && mZ));
+              mZ |= (true | ((logicalAnd(mZ, (this instanceof TestClass))) && mZ));
               if ((((boolean) new Boolean(true)) || (((boolean) new Boolean((false | (! mZ)))) | (! true)))) {
                 mI /= ((int)(byte)(int) (((mI / mI) >> 265234301) | 188234363));
                 {
@@ -193,7 +193,7 @@ public class Test {
                   }
                 }
               }
-              mZ |= (this instanceof Test);
+              mZ |= (this instanceof TestClass);
               break;
             }
             default: {
@@ -232,7 +232,7 @@ public class Test {
   public static void nop() {}
 
   public static void main(String[] args) {
-    Test t = new Test();
+    TestClass t = new TestClass();
     float r = 1457261414.0f;
     try {
       r = t.testMethod();

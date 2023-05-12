@@ -176,6 +176,12 @@ public class LirPrinter<EV> extends LirParsedInstructionCallback<EV> {
   }
 
   @Override
+  public void onNot(NumericType type, EV value) {
+    appendOutValue();
+    appendValueArguments(value);
+  }
+
+  @Override
   public void onNumberConversion(int opcode, EV value) {
     appendOutValue();
     appendValueArguments(value);

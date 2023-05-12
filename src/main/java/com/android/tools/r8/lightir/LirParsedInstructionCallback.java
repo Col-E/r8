@@ -243,6 +243,10 @@ public abstract class LirParsedInstructionCallback<EV> implements LirInstruction
     onInstruction();
   }
 
+  public void onNot(NumericType type, EV value) {
+    onInstruction();
+  }
+
   private void onLogicalBinopInternal(int opcode, LirInstructionView view) {
     EV left = getNextValueOperand(view);
     EV right = getNextValueOperand(view);
@@ -277,7 +281,7 @@ public abstract class LirParsedInstructionCallback<EV> implements LirInstruction
         onXor(NumericType.INT, left, right);
         return;
       case LirOpcodes.LXOR:
-        onXor(NumericType.INT, left, right);
+        onXor(NumericType.LONG, left, right);
         return;
       default:
         throw new Unreachable("Unexpected logical binop: " + opcode);
@@ -1135,6 +1139,13 @@ public abstract class LirParsedInstructionCallback<EV> implements LirInstruction
           DexType type = getNextDexTypeOperand(view);
           int ordinal = view.getNextIntegerOperand();
           onNewUnboxedEnumInstance(type, ordinal);
+          return;
+        }
+      case LirOpcodes.INOT:
+      case LirOpcodes.LNOT:
+        {
+          EV value = getNextValueOperand(view);
+          onNot(opcode == LirOpcodes.INOT ? NumericType.INT : NumericType.LONG, value);
           return;
         }
       default:

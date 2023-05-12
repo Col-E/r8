@@ -27,7 +27,6 @@ public class R8RunExamplesTest extends R8RunExamplesTestBase {
     String[] tests = {
       "arithmetic.Arithmetic",
       "inlining.Inlining",
-      "regress_70737019.Test",
       "regress_72361252.Test",
       "regress_110373181.Regress",
       "memberrebinding2.Memberrebinding",
