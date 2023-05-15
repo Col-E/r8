@@ -60,10 +60,15 @@ public class ApiModelMockRetraceTest extends TestBase {
   }
 
   private void inspect(CodeInspector inspector) {
-    verifyThat(inspector, parameters, LibraryClass.class).stubbedUntil(mockLevel);
+    verifyThat(inspector, parameters, LibraryClass.class)
+        .stubbedBetween(AndroidApiLevel.L_MR1, mockLevel);
   }
 
   private void checkOutput(SingleTestRunResult<?> runResult) {
+    if (!addToBootClasspath()) {
+      runResult.assertFailureWithErrorThatThrows(NoClassDefFoundError.class);
+      return;
+    }
     StackTraceLine clinitFrame =
         StackTraceLine.builder()
             .setClassName(typeName(LibraryClass.class))
