@@ -84,13 +84,6 @@ public class ExamplesDebugTest extends DebugTestBase {
         .compare();
   }
 
-  private void testDebuggingJvmOnly(String pkg, String clazz) throws Exception {
-    init(pkg, clazz)
-        .add("Input", input())
-        .add("R8/CfSourceCode", r8cf())
-        .compare();
-  }
-
   private DebugStreamComparator init(String pkg, String clazz) {
     // TODO(b/199700280): Reenable on 12.0.0 when we have the libjdwp.so file include and the flags
     // fixed.

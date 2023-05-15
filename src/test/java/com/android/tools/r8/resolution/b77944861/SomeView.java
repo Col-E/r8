@@ -1,10 +1,10 @@
 // Copyright (c) 2018, the R8 project authors. Please see the AUTHORS file
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
-package regress_77944861;
+package com.android.tools.r8.resolution.b77944861;
 
-import regress_77944861.inner.TopLevelPolicy;
-import regress_77944861.inner.TopLevelPolicy.MobileIconState;
+import com.android.tools.r8.resolution.b77944861.inner.TopLevelPolicy;
+import com.android.tools.r8.resolution.b77944861.inner.TopLevelPolicy.MobileIconState;
 
 public class SomeView {
 
