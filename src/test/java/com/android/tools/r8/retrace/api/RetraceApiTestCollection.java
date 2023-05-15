@@ -42,13 +42,13 @@ public class RetraceApiTestCollection
           RetracePartitionJoinNoMetadataTest.ApiTest.class,
           RetracePartitionSerializedObfuscatedKeyTest.ApiTest.class,
           RetracePartitionRoundTripInlineTest.ApiTest.class,
-          RetraceApiTypeResultTest.ApiTest.class);
-
-  public static List<Class<? extends RetraceApiBinaryTest>> CLASSES_PENDING_BINARY_COMPATIBILITY =
-      ImmutableList.of(
+          RetraceApiTypeResultTest.ApiTest.class,
           RetraceApiResidualSignatureTest.ApiTest.class,
           RetracePartitionEmptyMappingTest.ApiTest.class,
           RetraceApiProxyFrameWithSourceFileTest.ApiTest.class);
+
+  public static List<Class<? extends RetraceApiBinaryTest>> CLASSES_PENDING_BINARY_COMPATIBILITY =
+      ImmutableList.of();
 
   private final TemporaryFolder temp;
 
