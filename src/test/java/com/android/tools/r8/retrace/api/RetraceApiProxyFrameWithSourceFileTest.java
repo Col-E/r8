@@ -133,7 +133,7 @@ public class RetraceApiProxyFrameWithSourceFileTest extends RetraceApiTestBase {
             + "."
             + getMethodName()
             + "("
-            + retracedProxy.getRetracedSourceFile().getOrInferSourceFile()
+            + retracedProxy.getRetracedSourceFile().getOrInferSourceFile(getSourceFile())
             + ")";
       }
     }

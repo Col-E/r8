@@ -437,13 +437,12 @@ public class StackTraceElementProxyRetracerImpl<T, ST extends StackTraceElementP
 
     @Override
     public String getSourceFile() {
-      if (sourceFile != null && sourceFile.hasRetraceResult()) {
-        return sourceFile.getSourceFile();
+      if (sourceFile == null) {
+        assert originalItem.getSourceFile() == null;
+        return null;
       }
-      String originalSourceFile =
-          originalItem.getSourceFile() == null ? "" : originalItem.getSourceFile();
-      return RetraceUtils.inferSourceFile(
-          retracedClass.getTypeName(), originalSourceFile, retracedClass.isKnown());
+      return sourceFile.getOrInferSourceFile(
+          originalItem.getSourceFile() == null ? "" : originalItem.getSourceFile());
     }
 
     @Override

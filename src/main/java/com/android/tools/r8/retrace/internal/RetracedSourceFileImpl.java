@@ -4,15 +4,15 @@
 
 package com.android.tools.r8.retrace.internal;
 
-import com.android.tools.r8.references.ClassReference;
+import com.android.tools.r8.retrace.RetracedClassReference;
 import com.android.tools.r8.retrace.RetracedSourceFile;
 
 public class RetracedSourceFileImpl implements RetracedSourceFile {
 
-  private final ClassReference classReference;
+  private final RetracedClassReference classReference;
   private final String filename;
 
-  RetracedSourceFileImpl(ClassReference classReference, String filename) {
+  RetracedSourceFileImpl(RetracedClassReference classReference, String filename) {
     assert classReference != null;
     this.classReference = classReference;
     this.filename = filename;
@@ -29,10 +29,13 @@ public class RetracedSourceFileImpl implements RetracedSourceFile {
   }
 
   @Override
-  public String getOrInferSourceFile() {
-    String sourceFile = getSourceFile();
+  public String getOrInferSourceFile(String original) {
+    String sourceFile = filename;
     return sourceFile != null
         ? sourceFile
-        : RetraceUtils.inferSourceFile(classReference.getTypeName(), "", true);
+        : RetraceUtils.inferSourceFile(
+            classReference.getTypeName(),
+            original == null ? "" : original,
+            classReference.isKnown());
   }
 }

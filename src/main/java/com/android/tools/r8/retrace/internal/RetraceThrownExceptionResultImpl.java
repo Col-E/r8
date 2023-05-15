@@ -88,7 +88,7 @@ public class RetraceThrownExceptionResultImpl implements RetraceThrownExceptionR
           }
         }
       }
-      return new RetracedSourceFileImpl(getRetracedClass().getClassReference(), sourceFile);
+      return new RetracedSourceFileImpl(getRetracedClass(), sourceFile);
     }
 
     @Override

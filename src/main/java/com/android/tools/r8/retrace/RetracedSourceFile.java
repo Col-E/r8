@@ -13,5 +13,5 @@ public interface RetracedSourceFile {
 
   String getSourceFile();
 
-  String getOrInferSourceFile();
+  String getOrInferSourceFile(String original);
 }

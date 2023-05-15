@@ -111,7 +111,7 @@ public class RetracePartitionRoundTripInlineTest extends RetraceApiTestBase {
       // Check that visiting all frames report all source files.
       List<String> allSourceFiles =
           retraceFrameElement.stream()
-              .map(x -> x.getSourceFile().getOrInferSourceFile())
+              .map(x -> x.getSourceFile().getOrInferSourceFile(""))
               .collect(Collectors.toList());
       assertEquals(Arrays.asList("InlineeClass.kt", "CallerClass.kt"), allSourceFiles);
     }
