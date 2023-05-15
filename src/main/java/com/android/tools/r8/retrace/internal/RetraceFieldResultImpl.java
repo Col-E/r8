@@ -10,7 +10,6 @@ import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.retrace.RetraceFieldElement;
 import com.android.tools.r8.retrace.RetraceFieldResult;
 import com.android.tools.r8.retrace.RetracedSourceFile;
-import com.android.tools.r8.retrace.Retracer;
 import com.android.tools.r8.retrace.internal.RetraceClassResultImpl.RetraceClassElementImpl;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.Pair;
@@ -22,13 +21,13 @@ public class RetraceFieldResultImpl implements RetraceFieldResult {
   private final RetraceClassResultImpl classResult;
   private final List<Pair<RetraceClassElementImpl, List<MemberNaming>>> memberNamings;
   private final FieldDefinition fieldDefinition;
-  private final Retracer retracer;
+  private final RetracerImpl retracer;
 
   RetraceFieldResultImpl(
       RetraceClassResultImpl classResult,
       List<Pair<RetraceClassElementImpl, List<MemberNaming>>> memberNamings,
       FieldDefinition fieldDefinition,
-      Retracer retracer) {
+      RetracerImpl retracer) {
     this.classResult = classResult;
     this.memberNamings = memberNamings;
     this.fieldDefinition = fieldDefinition;
@@ -145,7 +144,8 @@ public class RetraceFieldResultImpl implements RetraceFieldResult {
 
     @Override
     public RetracedSourceFile getSourceFile() {
-      return classElement.getSourceFile();
+      return RetraceUtils.getSourceFile(
+          fieldReference.getHolderClass(), retraceFieldResult.retracer);
     }
   }
 }
