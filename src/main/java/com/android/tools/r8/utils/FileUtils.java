@@ -109,12 +109,14 @@ public class FileUtils {
     return Files.readAllLines(file);
   }
 
-  public static void writeTextFile(Path file, List<String> lines) throws IOException {
+  public static Path writeTextFile(Path file, List<String> lines) throws IOException {
     Files.write(file, lines);
+    return file;
   }
 
-  public static void writeTextFile(Path file, String... lines) throws IOException {
+  public static Path writeTextFile(Path file, String... lines) throws IOException {
     Files.write(file, Arrays.asList(lines));
+    return file;
   }
 
   public static Path validateOutputFile(Path path, Reporter reporter) {
