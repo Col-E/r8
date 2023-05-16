@@ -7,6 +7,7 @@ import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.graph.DexCallSite;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexMethod;
+import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
@@ -270,6 +271,12 @@ public class LirPrinter<EV> extends LirParsedInstructionCallback<EV> {
   public void onInvokeCustom(DexCallSite callSite, List<EV> arguments) {
     appendValueArguments(arguments);
     builder.append(callSite);
+  }
+
+  @Override
+  public void onInvokePolymorphic(DexMethod target, DexProto proto, List<EV> arguments) {
+    appendValueArguments(arguments);
+    builder.append(target).append(' ').append(proto);
   }
 
   @Override

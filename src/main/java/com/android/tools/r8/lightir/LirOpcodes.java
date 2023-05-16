@@ -206,6 +206,7 @@ public interface LirOpcodes {
   int LNOT = 219;
   int DEBUGLOCALREAD = 220;
   int INITCLASS = 221;
+  int INVOKEPOLYMORPHIC = 222;
 
   static String toString(int opcode) {
     switch (opcode) {
@@ -534,6 +535,8 @@ public interface LirOpcodes {
         return "DEBUGLOCALREAD";
       case INITCLASS:
         return "INITCLASS";
+      case INVOKEPOLYMORPHIC:
+        return "INVOKEPOLYMORPHIC";
 
       default:
         throw new Unreachable("Unexpected LIR opcode: " + opcode);

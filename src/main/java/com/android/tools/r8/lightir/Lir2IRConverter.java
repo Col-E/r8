@@ -51,6 +51,7 @@ import com.android.tools.r8.ir.code.InvokeDirect;
 import com.android.tools.r8.ir.code.InvokeInterface;
 import com.android.tools.r8.ir.code.InvokeMultiNewArray;
 import com.android.tools.r8.ir.code.InvokeNewArray;
+import com.android.tools.r8.ir.code.InvokePolymorphic;
 import com.android.tools.r8.ir.code.InvokeStatic;
 import com.android.tools.r8.ir.code.InvokeSuper;
 import com.android.tools.r8.ir.code.InvokeVirtual;
@@ -628,6 +629,14 @@ public class Lir2IRConverter {
       Value dest = getInvokeInstructionOutputValue(callSite.methodProto);
       List<Value> ssaArgumentValues = getValues(arguments);
       InvokeCustom instruction = new InvokeCustom(callSite, dest, ssaArgumentValues);
+      addInstruction(instruction);
+    }
+
+    @Override
+    public void onInvokePolymorphic(DexMethod target, DexProto proto, List<EV> arguments) {
+      Value dest = getInvokeInstructionOutputValue(target);
+      List<Value> ssaArgumentValues = getValues(arguments);
+      InvokePolymorphic instruction = new InvokePolymorphic(target, proto, dest, ssaArgumentValues);
       addInstruction(instruction);
     }
 

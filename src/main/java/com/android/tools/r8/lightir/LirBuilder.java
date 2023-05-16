@@ -16,6 +16,7 @@ import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItem;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
+import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
@@ -530,6 +531,12 @@ public class LirBuilder<V, EV> {
 
   public LirBuilder<V, EV> addInvokeCustom(DexCallSite callSite, List<V> arguments) {
     return addInvokeInstruction(LirOpcodes.INVOKEDYNAMIC, callSite, arguments);
+  }
+
+  public LirBuilder<V, EV> addInvokePolymorphic(
+      DexMethod invokedMethod, DexProto proto, List<V> arguments) {
+    return addInstructionTemplate(
+        LirOpcodes.INVOKEPOLYMORPHIC, ImmutableList.of(invokedMethod, proto), arguments);
   }
 
   public LirBuilder<V, EV> addNewInstance(DexType clazz) {

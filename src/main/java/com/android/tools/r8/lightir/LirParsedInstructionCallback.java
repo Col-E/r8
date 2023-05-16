@@ -10,6 +10,7 @@ import com.android.tools.r8.graph.DexCallSite;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItem;
 import com.android.tools.r8.graph.DexMethod;
+import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
@@ -414,6 +415,10 @@ public abstract class LirParsedInstructionCallback<EV> implements LirInstruction
   }
 
   public void onInvokeCustom(DexCallSite callSite, List<EV> arguments) {
+    onInstruction();
+  }
+
+  public void onInvokePolymorphic(DexMethod target, DexProto proto, List<EV> arguments) {
     onInstruction();
   }
 
@@ -999,6 +1004,14 @@ public abstract class LirParsedInstructionCallback<EV> implements LirInstruction
           DexCallSite callSite = (DexCallSite) getConstantItem(view.getNextConstantOperand());
           List<EV> arguments = getInvokeInstructionArguments(view);
           onInvokeCustom(callSite, arguments);
+          return;
+        }
+      case LirOpcodes.INVOKEPOLYMORPHIC:
+        {
+          DexMethod target = getInvokeInstructionTarget(view);
+          DexProto proto = (DexProto) getConstantItem(view.getNextConstantOperand());
+          List<EV> arguments = getInvokeInstructionArguments(view);
+          onInvokePolymorphic(target, proto, arguments);
           return;
         }
       case LirOpcodes.NEW:
