@@ -164,7 +164,7 @@ public class Lir2IRConverter {
       // Control instructions must close the block, thus the current block is null iff the
       // instruction denotes a new block.
       if (currentBlock == null) {
-        currentBlock = blocks.computeIfAbsent(nextInstructionIndex, k -> new BasicBlock());
+        currentBlock = getBasicBlock(nextInstructionIndex);
         CatchHandlers<Integer> handlers =
             code.getTryCatchTable().getHandlersForBlock(nextInstructionIndex);
         if (handlers != null) {

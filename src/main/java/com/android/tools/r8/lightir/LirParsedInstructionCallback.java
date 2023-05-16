@@ -253,7 +253,8 @@ public abstract class LirParsedInstructionCallback<EV> implements LirInstruction
     EV right = getNextValueOperand(view);
     switch (opcode) {
       case LirOpcodes.ISHL:
-        throw new Unimplemented(LirOpcodes.toString(opcode));
+        onShl(NumericType.INT, left, right);
+        return;
       case LirOpcodes.LSHL:
         onShl(NumericType.LONG, left, right);
         return;
@@ -273,7 +274,8 @@ public abstract class LirParsedInstructionCallback<EV> implements LirInstruction
         onAnd(NumericType.INT, left, right);
         return;
       case LirOpcodes.LAND:
-        throw new Unimplemented(LirOpcodes.toString(opcode));
+        onAnd(NumericType.LONG, left, right);
+        return;
       case LirOpcodes.IOR:
         onOr(NumericType.INT, left, right);
         return;
