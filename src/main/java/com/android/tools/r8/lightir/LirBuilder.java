@@ -849,4 +849,8 @@ public class LirBuilder<V, EV> {
     ByteUtils.writeEncodedInt(ordinal, writer::writeOperand);
     return this;
   }
+
+  public LirBuilder<V, EV> addInitClass(DexType clazz) {
+    return addOneItemInstruction(LirOpcodes.INITCLASS, clazz);
+  }
 }

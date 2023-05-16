@@ -482,6 +482,10 @@ public abstract class LirParsedInstructionCallback<EV> implements LirInstruction
     onInstruction();
   }
 
+  public void onInitClass(DexType clazz) {
+    onInstruction();
+  }
+
   private DexItem getConstantItem(int index) {
     return code.getConstantItem(index);
   }
@@ -1175,6 +1179,12 @@ public abstract class LirParsedInstructionCallback<EV> implements LirInstruction
         {
           EV value = getNextValueOperand(view);
           onNot(opcode == LirOpcodes.INOT ? NumericType.INT : NumericType.LONG, value);
+          return;
+        }
+      case LirOpcodes.INITCLASS:
+        {
+          DexType clazz = getNextDexTypeOperand(view);
+          onInitClass(clazz);
           return;
         }
       default:

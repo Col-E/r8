@@ -205,6 +205,7 @@ public interface LirOpcodes {
   int INOT = 218;
   int LNOT = 219;
   int DEBUGLOCALREAD = 220;
+  int INITCLASS = 221;
 
   static String toString(int opcode) {
     switch (opcode) {
@@ -531,6 +532,8 @@ public interface LirOpcodes {
         return "LNOT";
       case DEBUGLOCALREAD:
         return "DEBUGLOCALREAD";
+      case INITCLASS:
+        return "INITCLASS";
 
       default:
         throw new Unreachable("Unexpected LIR opcode: " + opcode);

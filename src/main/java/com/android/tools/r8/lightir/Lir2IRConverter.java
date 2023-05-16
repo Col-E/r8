@@ -40,6 +40,7 @@ import com.android.tools.r8.ir.code.Goto;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.If;
 import com.android.tools.r8.ir.code.IfType;
+import com.android.tools.r8.ir.code.InitClass;
 import com.android.tools.r8.ir.code.InstanceGet;
 import com.android.tools.r8.ir.code.InstanceOf;
 import com.android.tools.r8.ir.code.InstancePut;
@@ -842,6 +843,12 @@ public class Lir2IRConverter {
       TypeElement type = TypeElement.fromDexType(clazz, Nullability.definitelyNotNull(), appView);
       Value dest = getOutValueForNextInstruction(type);
       addInstruction(new NewUnboxedEnumInstance(clazz, ordinal, dest));
+    }
+
+    @Override
+    public void onInitClass(DexType clazz) {
+      Value dest = getOutValueForNextInstruction(TypeElement.getInt());
+      addInstruction(new InitClass(dest, clazz));
     }
   }
 }

@@ -390,4 +390,9 @@ public class LirPrinter<EV> extends LirParsedInstructionCallback<EV> {
   public void onNewUnboxedEnumInstance(DexType type, int ordinal) {
     appendOutValue().append("type(").append(type).append(") ordinal(").append(ordinal).append(")");
   }
+
+  @Override
+  public void onInitClass(DexType clazz) {
+    builder.append(clazz);
+  }
 }
