@@ -29,6 +29,11 @@ public class RetracedSourceFileImpl implements RetracedSourceFile {
   }
 
   @Override
+  public String getOrInferSourceFile() {
+    return getOrInferSourceFile(null);
+  }
+
+  @Override
   public String getOrInferSourceFile(String original) {
     String sourceFile = filename;
     return sourceFile != null
