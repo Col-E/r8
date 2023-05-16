@@ -168,7 +168,8 @@ public class ProguardMapPartitionerOnClassNameToText implements ProguardMapParti
       return ObfuscatedTypeNameAsKeyMetadataWithPartitionNames.create(
           mapVersion,
           MetadataPartitionCollection.create(keys),
-          MetadataAdditionalInfo.create(classMapper.getPreamble()));
+          MetadataAdditionalInfo.create(
+              classMapper.getPreamble(), classMapper.getObfuscatedPackages()));
     } else {
       RetracePartitionException retraceError =
           new RetracePartitionException("Unknown mapping partitioning strategy");
