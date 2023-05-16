@@ -14,7 +14,11 @@ public interface LirOpcodes {
 
   static boolean isOneByteInstruction(int opcode) {
     assert opcode >= ACONST_NULL;
-    return opcode <= DCONST_1 || opcode == RETURN || opcode == DEBUGPOS || opcode == FALLTHROUGH;
+    return opcode <= DCONST_1
+        || opcode == RETURN
+        || opcode == DEBUGPOS
+        || opcode == FALLTHROUGH
+        || opcode == DEBUGLOCALREAD;
   }
 
   // Instructions maintaining the same opcode as defined in CF.
@@ -200,6 +204,7 @@ public interface LirOpcodes {
   int NEWUNBOXEDENUMINSTANCE = 217;
   int INOT = 218;
   int LNOT = 219;
+  int DEBUGLOCALREAD = 220;
 
   static String toString(int opcode) {
     switch (opcode) {
@@ -524,6 +529,8 @@ public interface LirOpcodes {
         return "INOT";
       case LNOT:
         return "LNOT";
+      case DEBUGLOCALREAD:
+        return "DEBUGLOCALREAD";
 
       default:
         throw new Unreachable("Unexpected LIR opcode: " + opcode);

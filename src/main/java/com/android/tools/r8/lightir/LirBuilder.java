@@ -670,6 +670,10 @@ public class LirBuilder<V, EV> {
     return addOneValueInstruction(LirOpcodes.DEBUGLOCALWRITE, src);
   }
 
+  public LirBuilder<V, EV> addDebugLocalRead() {
+    return addNoOperandInstruction(LirOpcodes.DEBUGLOCALREAD);
+  }
+
   public LirCode<EV> build() {
     assert metadata != null;
     int constantsCount = constants.size();

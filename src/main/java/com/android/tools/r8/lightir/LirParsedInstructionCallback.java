@@ -371,6 +371,10 @@ public abstract class LirParsedInstructionCallback<EV> implements LirInstruction
     onInstruction();
   }
 
+  public void onDebugLocalRead() {
+    onInstruction();
+  }
+
   public void onInvokeMultiNewArray(DexType type, List<EV> arguments) {
     onInstruction();
   }
@@ -1109,6 +1113,11 @@ public abstract class LirParsedInstructionCallback<EV> implements LirInstruction
         {
           EV srcIndex = getNextValueOperand(view);
           onDebugLocalWrite(srcIndex);
+          return;
+        }
+      case LirOpcodes.DEBUGLOCALREAD:
+        {
+          onDebugLocalRead();
           return;
         }
       case LirOpcodes.MULTIANEWARRAY:

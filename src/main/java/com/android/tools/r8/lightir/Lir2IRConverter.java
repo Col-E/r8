@@ -31,6 +31,7 @@ import com.android.tools.r8.ir.code.Cmp.Bias;
 import com.android.tools.r8.ir.code.ConstClass;
 import com.android.tools.r8.ir.code.ConstNumber;
 import com.android.tools.r8.ir.code.ConstString;
+import com.android.tools.r8.ir.code.DebugLocalRead;
 import com.android.tools.r8.ir.code.DebugLocalWrite;
 import com.android.tools.r8.ir.code.DebugPosition;
 import com.android.tools.r8.ir.code.DexItemBasedConstString;
@@ -742,6 +743,11 @@ public class Lir2IRConverter {
       TypeElement type = dest.getLocalInfo().type.toTypeElement(appView);
       dest.setType(type);
       addInstruction(new DebugLocalWrite(dest, src));
+    }
+
+    @Override
+    public void onDebugLocalRead() {
+      addInstruction(new DebugLocalRead());
     }
 
     @Override
