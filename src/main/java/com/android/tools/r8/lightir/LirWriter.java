@@ -25,9 +25,15 @@ public class LirWriter {
   }
 
   public void writeInstruction(int opcode, int operandsSizeInBytes) {
+    assert operandsSizeInBytes > 0;
     assert pendingOperandBytes == 0;
     writer.put(ByteUtils.ensureU1(opcode));
-    writer.put(ByteUtils.ensureU1(operandsSizeInBytes));
+    if (operandsSizeInBytes <= ByteUtils.MAX_U1) {
+      writer.put(ByteUtils.ensureU1(operandsSizeInBytes));
+    } else {
+      writer.put(0);
+      ByteUtils.writeEncodedInt(operandsSizeInBytes, writer);
+    }
     pendingOperandBytes = operandsSizeInBytes;
   }
 

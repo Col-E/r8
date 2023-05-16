@@ -821,7 +821,11 @@ public abstract class LirParsedInstructionCallback<EV> implements LirInstruction
           return;
         }
       case LirOpcodes.DNEG:
-        throw new Unimplemented("missing opcode: " + LirOpcodes.toString(opcode));
+        {
+          EV value = getNextValueOperand(view);
+          onNeg(NumericType.DOUBLE, value);
+          return;
+        }
       case LirOpcodes.ISHL:
       case LirOpcodes.LSHL:
       case LirOpcodes.ISHR:

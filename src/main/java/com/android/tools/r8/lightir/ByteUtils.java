@@ -8,17 +8,20 @@ import it.unimi.dsi.fastutil.bytes.ByteIterator;
 /** Simple utilities for byte encodings. */
 public class ByteUtils {
 
+  public static final int MAX_U1 = 0xFF;
+  public static final int MAX_U2 = 0xFFFF;
+
   public static boolean isU1(int value) {
-    return (0 <= value) && (value <= 0xFF);
+    return (0 <= value) && (value <= MAX_U1);
   }
 
   // Lossy truncation of an integer value to its lowest byte.
   private static int truncateToU1(int value) {
-    return value & 0xFF;
+    return value & MAX_U1;
   }
 
   private static int truncateToU1(long value) {
-    return (int) value & 0xFF;
+    return (int) value & MAX_U1;
   }
 
   public static int ensureU1(int value) {
@@ -27,7 +30,7 @@ public class ByteUtils {
   }
 
   public static int fromU1(byte value) {
-    return value & 0xFF;
+    return value & MAX_U1;
   }
 
   public static int intEncodingSize(int value) {
@@ -81,11 +84,11 @@ public class ByteUtils {
   }
 
   public static boolean isU2(int value) {
-    return (value >= 0) && (value <= 0xFFFF);
+    return (value >= 0) && (value <= MAX_U2);
   }
 
   private static int truncateToU2(int value) {
-    return value & 0xFFFF;
+    return value & MAX_U2;
   }
 
   public static int ensureU2(int value) {
