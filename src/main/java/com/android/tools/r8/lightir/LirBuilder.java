@@ -11,6 +11,7 @@ import com.android.tools.r8.dex.MixedSectionCollection;
 import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.DebugLocalInfo;
+import com.android.tools.r8.graph.DexCallSite;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItem;
 import com.android.tools.r8.graph.DexItemFactory;
@@ -497,7 +498,7 @@ public class LirBuilder<V, EV> {
         LirOpcodes.PUTFIELD, Collections.singletonList(field), ImmutableList.of(object, value));
   }
 
-  public LirBuilder<V, EV> addInvokeInstruction(int opcode, DexMethod method, List<V> arguments) {
+  public LirBuilder<V, EV> addInvokeInstruction(int opcode, DexItem method, List<V> arguments) {
     return addInstructionTemplate(opcode, Collections.singletonList(method), arguments);
   }
 
@@ -525,6 +526,10 @@ public class LirBuilder<V, EV> {
 
   public LirBuilder<V, EV> addInvokeInterface(DexMethod method, List<V> arguments) {
     return addInvokeInstruction(LirOpcodes.INVOKEINTERFACE, method, arguments);
+  }
+
+  public LirBuilder<V, EV> addInvokeCustom(DexCallSite callSite, List<V> arguments) {
+    return addInvokeInstruction(LirOpcodes.INVOKEDYNAMIC, callSite, arguments);
   }
 
   public LirBuilder<V, EV> addNewInstance(DexType clazz) {

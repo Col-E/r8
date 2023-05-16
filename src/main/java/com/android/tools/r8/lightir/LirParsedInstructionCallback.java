@@ -6,6 +6,7 @@ package com.android.tools.r8.lightir;
 import com.android.tools.r8.cf.code.CfNumberConversion;
 import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.errors.Unreachable;
+import com.android.tools.r8.graph.DexCallSite;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItem;
 import com.android.tools.r8.graph.DexMethod;
@@ -404,6 +405,10 @@ public abstract class LirParsedInstructionCallback<EV> implements LirInstruction
 
   public void onInvokeInterface(DexMethod method, List<EV> arguments) {
     onInvokeMethodInstruction(method, arguments);
+  }
+
+  public void onInvokeCustom(DexCallSite callSite, List<EV> arguments) {
+    onInstruction();
   }
 
   public void onNewInstance(DexType clazz) {
@@ -973,6 +978,13 @@ public abstract class LirParsedInstructionCallback<EV> implements LirInstruction
           DexMethod target = getInvokeInstructionTarget(view);
           List<EV> arguments = getInvokeInstructionArguments(view);
           onInvokeInterface(target, arguments);
+          return;
+        }
+      case LirOpcodes.INVOKEDYNAMIC:
+        {
+          DexCallSite callSite = (DexCallSite) getConstantItem(view.getNextConstantOperand());
+          List<EV> arguments = getInvokeInstructionArguments(view);
+          onInvokeCustom(callSite, arguments);
           return;
         }
       case LirOpcodes.NEW:

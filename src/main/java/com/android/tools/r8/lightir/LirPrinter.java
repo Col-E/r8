@@ -4,6 +4,7 @@
 package com.android.tools.r8.lightir;
 
 import com.android.tools.r8.errors.Unimplemented;
+import com.android.tools.r8.graph.DexCallSite;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexReference;
@@ -258,6 +259,12 @@ public class LirPrinter<EV> extends LirParsedInstructionCallback<EV> {
     }
     appendValueArguments(arguments);
     builder.append(method);
+  }
+
+  @Override
+  public void onInvokeCustom(DexCallSite callSite, List<EV> arguments) {
+    appendValueArguments(arguments);
+    builder.append(callSite);
   }
 
   @Override

@@ -6,8 +6,10 @@ package com.android.tools.r8.lightir;
 import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.DexCallSite;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexMethod;
+import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
@@ -42,6 +44,7 @@ import com.android.tools.r8.ir.code.InstanceOf;
 import com.android.tools.r8.ir.code.InstancePut;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.IntSwitch;
+import com.android.tools.r8.ir.code.InvokeCustom;
 import com.android.tools.r8.ir.code.InvokeDirect;
 import com.android.tools.r8.ir.code.InvokeInterface;
 import com.android.tools.r8.ir.code.InvokeMultiNewArray;
@@ -618,10 +621,23 @@ public class Lir2IRConverter {
       addInstruction(instruction);
     }
 
+    @Override
+    public void onInvokeCustom(DexCallSite callSite, List<EV> arguments) {
+      Value dest = getInvokeInstructionOutputValue(callSite.methodProto);
+      List<Value> ssaArgumentValues = getValues(arguments);
+      InvokeCustom instruction = new InvokeCustom(callSite, dest, ssaArgumentValues);
+      addInstruction(instruction);
+    }
+
     private Value getInvokeInstructionOutputValue(DexMethod target) {
-      return target.getReturnType().isVoidType()
+      return getInvokeInstructionOutputValue(target.getProto());
+    }
+
+    private Value getInvokeInstructionOutputValue(DexProto target) {
+      DexType returnType = target.getReturnType();
+      return returnType.isVoidType()
           ? null
-          : getOutValueForNextInstruction(target.getReturnType().toTypeElement(appView));
+          : getOutValueForNextInstruction(returnType.toTypeElement(appView));
     }
 
     @Override
