@@ -656,7 +656,7 @@ public class Lir2IRConverter {
 
     @Override
     public void onInvokePolymorphic(DexMethod target, DexProto proto, List<EV> arguments) {
-      Value dest = getInvokeInstructionOutputValue(target);
+      Value dest = getInvokeInstructionOutputValue(proto);
       List<Value> ssaArgumentValues = getValues(arguments);
       InvokePolymorphic instruction = new InvokePolymorphic(target, proto, dest, ssaArgumentValues);
       addInstruction(instruction);
