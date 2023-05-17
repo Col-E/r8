@@ -82,11 +82,6 @@ public class LirBuilder<V, EV> {
   // Mapping from instruction to the end usage of SSA values with debug local info.
   private final Int2ReferenceMap<int[]> debugLocalEnds = new Int2ReferenceOpenHashMap<>();
 
-  // TODO(b/225838009): Reconsider this fixed space as the operand count for phis is much larger.
-  // Pre-allocated space for caching value indexes when writing instructions.
-  private static final int MAX_VALUE_COUNT = 256;
-  private int[] valueIndexBuffer = new int[MAX_VALUE_COUNT];
-
   /**
    * Internal "DexItem" for the instruction payloads such that they can be put in the pool.
    *
@@ -287,7 +282,6 @@ public class LirBuilder<V, EV> {
 
   private LirBuilder<V, EV> addInstructionTemplate(
       int opcode, List<DexItem> items, List<V> values) {
-    assert values.size() < MAX_VALUE_COUNT;
     int instructionIndex = advanceInstructionState();
     int operandSize = 0;
     for (DexItem item : items) {
@@ -297,14 +291,16 @@ public class LirBuilder<V, EV> {
       EV value = getEncodedValue(values.get(i));
       int encodedValueIndex = getEncodedValueIndex(value, instructionIndex);
       operandSize += encodedValueIndexSize(encodedValueIndex);
-      valueIndexBuffer[i] = encodedValueIndex;
     }
     writer.writeInstruction(opcode, operandSize);
     for (DexItem item : items) {
       writeConstantIndex(item);
     }
     for (int i = 0; i < values.size(); i++) {
-      writeEncodedValueIndex(valueIndexBuffer[i]);
+      // TODO(b/225838009): Consider backpatching operand size to avoid recomputing value indexes.
+      EV value = getEncodedValue(values.get(i));
+      int encodedValueIndex = getEncodedValueIndex(value, instructionIndex);
+      writeEncodedValueIndex(encodedValueIndex);
     }
     return this;
   }
