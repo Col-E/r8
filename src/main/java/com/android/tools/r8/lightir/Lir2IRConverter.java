@@ -79,6 +79,7 @@ import com.android.tools.r8.ir.code.Position.SyntheticPosition;
 import com.android.tools.r8.ir.code.RecordFieldValues;
 import com.android.tools.r8.ir.code.Rem;
 import com.android.tools.r8.ir.code.Return;
+import com.android.tools.r8.ir.code.SafeCheckCast;
 import com.android.tools.r8.ir.code.Shl;
 import com.android.tools.r8.ir.code.Shr;
 import com.android.tools.r8.ir.code.StaticGet;
@@ -738,6 +739,12 @@ public class Lir2IRConverter {
     public void onCheckCast(DexType type, EV value) {
       Value dest = getOutValueForNextInstruction(type.toTypeElement(appView));
       addInstruction(new CheckCast(dest, getValue(value), type));
+    }
+
+    @Override
+    public void onSafeCheckCast(DexType type, EV value) {
+      Value dest = getOutValueForNextInstruction(type.toTypeElement(appView));
+      addInstruction(new SafeCheckCast(dest, getValue(value), type));
     }
 
     @Override

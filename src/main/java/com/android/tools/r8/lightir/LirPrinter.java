@@ -350,6 +350,11 @@ public class LirPrinter<EV> extends LirParsedInstructionCallback<EV> {
   }
 
   @Override
+  public void onSafeCheckCast(DexType type, EV value) {
+    onCheckCast(type, value);
+  }
+
+  @Override
   public void onInstanceOf(DexType type, EV value) {
     appendOutValue();
     appendValueArguments(value);

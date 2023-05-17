@@ -488,6 +488,13 @@ public class LirBuilder<V, EV> {
         LirOpcodes.CHECKCAST, Collections.singletonList(type), Collections.singletonList(value));
   }
 
+  public LirBuilder<V, EV> addSafeCheckCast(DexType type, V value) {
+    return addInstructionTemplate(
+        LirOpcodes.CHECKCAST_SAFE,
+        Collections.singletonList(type),
+        Collections.singletonList(value));
+  }
+
   public LirBuilder<V, EV> addInstanceOf(DexType type, V value) {
     return addInstructionTemplate(
         LirOpcodes.INSTANCEOF, Collections.singletonList(type), Collections.singletonList(value));
