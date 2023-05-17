@@ -133,6 +133,14 @@ public class LirBuilder<V, EV> {
     }
   }
 
+  public static class RecordFieldValuesPayload extends InstructionPayload {
+    public final DexField[] fields;
+
+    public RecordFieldValuesPayload(DexField[] fields) {
+      this.fields = fields;
+    }
+  }
+
   public LirBuilder(DexMethod method, LirEncodingStrategy<V, EV> strategy, DexItemFactory factory) {
     this.factory = factory;
     constants = new Reference2IntOpenHashMap<>();
@@ -864,5 +872,11 @@ public class LirBuilder<V, EV> {
 
   public LirBuilder<V, EV> addInitClass(DexType clazz) {
     return addOneItemInstruction(LirOpcodes.INITCLASS, clazz);
+  }
+
+  public LirBuilder<V, EV> addRecordFieldValues(DexField[] fields, List<V> values) {
+    RecordFieldValuesPayload payload = new RecordFieldValuesPayload(fields);
+    return addInstructionTemplate(
+        LirOpcodes.RECORDFIELDVALUES, Collections.singletonList(payload), values);
   }
 }

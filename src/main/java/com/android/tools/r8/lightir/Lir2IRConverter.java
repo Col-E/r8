@@ -76,6 +76,7 @@ import com.android.tools.r8.ir.code.Or;
 import com.android.tools.r8.ir.code.Phi;
 import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.code.Position.SyntheticPosition;
+import com.android.tools.r8.ir.code.RecordFieldValues;
 import com.android.tools.r8.ir.code.Rem;
 import com.android.tools.r8.ir.code.Return;
 import com.android.tools.r8.ir.code.Shl;
@@ -879,6 +880,15 @@ public class Lir2IRConverter {
     public void onInitClass(DexType clazz) {
       Value dest = getOutValueForNextInstruction(TypeElement.getInt());
       addInstruction(new InitClass(dest, clazz));
+    }
+
+    @Override
+    public void onRecordFieldValues(DexField[] fields, List<EV> values) {
+      TypeElement typeElement =
+          TypeElement.fromDexType(
+              appView.dexItemFactory().objectArrayType, Nullability.definitelyNotNull(), appView);
+      Value dest = getOutValueForNextInstruction(typeElement);
+      addInstruction(new RecordFieldValues(fields, dest, getValues(values)));
     }
   }
 }

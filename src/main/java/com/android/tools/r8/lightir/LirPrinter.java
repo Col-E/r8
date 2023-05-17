@@ -413,4 +413,9 @@ public class LirPrinter<EV> extends LirParsedInstructionCallback<EV> {
   public void onInitClass(DexType clazz) {
     builder.append(clazz);
   }
+
+  @Override
+  public void onRecordFieldValues(DexField[] fields, List<EV> values) {
+    appendValueArguments(values);
+  }
 }

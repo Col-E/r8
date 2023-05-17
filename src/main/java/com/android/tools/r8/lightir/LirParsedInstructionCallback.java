@@ -21,6 +21,7 @@ import com.android.tools.r8.ir.code.NumericType;
 import com.android.tools.r8.lightir.LirBuilder.FillArrayPayload;
 import com.android.tools.r8.lightir.LirBuilder.IntSwitchPayload;
 import com.android.tools.r8.lightir.LirBuilder.NameComputationPayload;
+import com.android.tools.r8.lightir.LirBuilder.RecordFieldValuesPayload;
 import com.android.tools.r8.naming.dexitembasedstring.NameComputationInfo;
 import java.util.ArrayList;
 import java.util.List;
@@ -497,6 +498,10 @@ public abstract class LirParsedInstructionCallback<EV> implements LirInstruction
   }
 
   public void onInitClass(DexType clazz) {
+    onInstruction();
+  }
+
+  public void onRecordFieldValues(DexField[] fields, List<EV> values) {
     onInstruction();
   }
 
@@ -1219,6 +1224,14 @@ public abstract class LirParsedInstructionCallback<EV> implements LirInstruction
         {
           DexType clazz = getNextDexTypeOperand(view);
           onInitClass(clazz);
+          return;
+        }
+      case LirOpcodes.RECORDFIELDVALUES:
+        {
+          RecordFieldValuesPayload payload =
+              (RecordFieldValuesPayload) getConstantItem(view.getNextConstantOperand());
+          List<EV> values = getInvokeInstructionArguments(view);
+          onRecordFieldValues(payload.fields, values);
           return;
         }
       default:
