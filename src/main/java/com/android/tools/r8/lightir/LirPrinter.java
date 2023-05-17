@@ -7,6 +7,7 @@ import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.graph.DexCallSite;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexMethod;
+import com.android.tools.r8.graph.DexMethodHandle;
 import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexString;
@@ -163,6 +164,16 @@ public class LirPrinter<EV> extends LirParsedInstructionCallback<EV> {
   @Override
   public void onConstClass(DexType type) {
     appendOutValue().append("class(").append(type).append(")");
+  }
+
+  @Override
+  public void onConstMethodHandle(DexMethodHandle methodHandle) {
+    appendOutValue().append("methodHandle(").append(methodHandle).append(")");
+  }
+
+  @Override
+  public void onConstMethodType(DexProto methodType) {
+    appendOutValue().append("methodType(").append(methodType).append(")");
   }
 
   @Override

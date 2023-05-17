@@ -9,6 +9,7 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexCallSite;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexMethod;
+import com.android.tools.r8.graph.DexMethodHandle;
 import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexString;
@@ -29,6 +30,8 @@ import com.android.tools.r8.ir.code.CheckCast;
 import com.android.tools.r8.ir.code.Cmp;
 import com.android.tools.r8.ir.code.Cmp.Bias;
 import com.android.tools.r8.ir.code.ConstClass;
+import com.android.tools.r8.ir.code.ConstMethodHandle;
+import com.android.tools.r8.ir.code.ConstMethodType;
 import com.android.tools.r8.ir.code.ConstNumber;
 import com.android.tools.r8.ir.code.ConstString;
 import com.android.tools.r8.ir.code.DebugLocalRead;
@@ -506,6 +509,24 @@ public class Lir2IRConverter {
           getOutValueForNextInstruction(
               type.toTypeElement(appView, Nullability.definitelyNotNull()));
       addInstruction(new ConstClass(dest, type));
+    }
+
+    @Override
+    public void onConstMethodHandle(DexMethodHandle methodHandle) {
+      TypeElement handleType =
+          TypeElement.fromDexType(
+              appView.dexItemFactory().methodHandleType, Nullability.definitelyNotNull(), appView);
+      Value dest = getOutValueForNextInstruction(handleType);
+      addInstruction(new ConstMethodHandle(dest, methodHandle));
+    }
+
+    @Override
+    public void onConstMethodType(DexProto methodType) {
+      TypeElement typeElement =
+          TypeElement.fromDexType(
+              appView.dexItemFactory().methodTypeType, Nullability.definitelyNotNull(), appView);
+      Value dest = getOutValueForNextInstruction(typeElement);
+      addInstruction(new ConstMethodType(dest, methodType));
     }
 
     @Override

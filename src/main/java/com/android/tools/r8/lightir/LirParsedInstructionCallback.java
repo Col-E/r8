@@ -10,6 +10,7 @@ import com.android.tools.r8.graph.DexCallSite;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItem;
 import com.android.tools.r8.graph.DexMethod;
+import com.android.tools.r8.graph.DexMethodHandle;
 import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexString;
@@ -98,6 +99,14 @@ public abstract class LirParsedInstructionCallback<EV> implements LirInstruction
   }
 
   public void onConstClass(DexType type) {
+    onInstruction();
+  }
+
+  public void onConstMethodHandle(DexMethodHandle methodHandle) {
+    onInstruction();
+  }
+
+  public void onConstMethodType(DexProto methodType) {
     onInstruction();
   }
 
@@ -513,6 +522,14 @@ public abstract class LirParsedInstructionCallback<EV> implements LirInstruction
           }
           if (item instanceof DexType) {
             onConstClass((DexType) item);
+            return;
+          }
+          if (item instanceof DexMethodHandle) {
+            onConstMethodHandle((DexMethodHandle) item);
+            return;
+          }
+          if (item instanceof DexProto) {
+            onConstMethodType((DexProto) item);
             return;
           }
           throw new Unimplemented();

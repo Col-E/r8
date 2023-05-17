@@ -16,6 +16,7 @@ import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItem;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
+import com.android.tools.r8.graph.DexMethodHandle;
 import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexString;
@@ -385,6 +386,14 @@ public class LirBuilder<V, EV> {
 
   public LirBuilder<V, EV> addConstClass(DexType type) {
     return addOneItemInstruction(LirOpcodes.LDC, type);
+  }
+
+  public LirBuilder<V, EV> addConstMethodHandle(DexMethodHandle methodHandle) {
+    return addOneItemInstruction(LirOpcodes.LDC, methodHandle);
+  }
+
+  public LirBuilder<V, EV> addConstMethodType(DexProto methodType) {
+    return addOneItemInstruction(LirOpcodes.LDC, methodType);
   }
 
   public LirBuilder<V, EV> addNeg(NumericType type, V value) {
