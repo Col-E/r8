@@ -38,17 +38,17 @@ public class FileUtils {
       System.getProperty("java.vm.name").equalsIgnoreCase("Dalvik");
 
   public static boolean isDexFile(Path path) {
-    String name = path.getFileName().toString().toLowerCase();
+    String name = StringUtils.toLowerCase(path.getFileName().toString());
     return name.endsWith(DEX_EXTENSION);
   }
 
   public static boolean isVDexFile(Path path) {
-    String name = path.getFileName().toString().toLowerCase();
+    String name = StringUtils.toLowerCase(path.getFileName().toString());
     return name.endsWith(VDEX_EXTENSION);
   }
 
   public static boolean isClassFile(String path) {
-    String name = path.toLowerCase();
+    String name = StringUtils.toLowerCase(path);
     // Android does not support Java 9 module, thus skip module-info.
     if (name.equals(MODULE_INFO_CLASS)) {
       return false;
@@ -61,32 +61,32 @@ public class FileUtils {
   }
 
   public static boolean isJarFile(Path path) {
-    String name = path.getFileName().toString().toLowerCase();
+    String name = StringUtils.toLowerCase(path.getFileName().toString());
     return name.endsWith(JAR_EXTENSION);
   }
 
   public static boolean isZipFile(Path path) {
-    String name = path.getFileName().toString().toLowerCase();
+    String name = StringUtils.toLowerCase(path.getFileName().toString());
     return name.endsWith(ZIP_EXTENSION);
   }
 
   public static boolean isApkFile(Path path) {
-    String name = path.getFileName().toString().toLowerCase();
+    String name = StringUtils.toLowerCase(path.getFileName().toString());
     return name.endsWith(APK_EXTENSION);
   }
 
   public static boolean isAarFile(Path path) {
-    String name = path.getFileName().toString().toLowerCase();
+    String name = StringUtils.toLowerCase(path.getFileName().toString());
     return name.endsWith(AAR_EXTENSION);
   }
 
   public static boolean isJavaFile(Path path) {
-    String name = path.getFileName().toString().toLowerCase();
+    String name = StringUtils.toLowerCase(path.getFileName().toString());
     return name.endsWith(JAVA_EXTENSION);
   }
 
   public static boolean isArchive(Path path) {
-    String name = path.getFileName().toString().toLowerCase();
+    String name = StringUtils.toLowerCase(path.getFileName().toString());
     return name.endsWith(APK_EXTENSION)
         || name.endsWith(JAR_EXTENSION)
         || name.endsWith(ZIP_EXTENSION)
@@ -159,7 +159,7 @@ public class FileUtils {
   }
 
   public static boolean isClassesDexFile(Path file) {
-    String name = file.getFileName().toString().toLowerCase();
+    String name = StringUtils.toLowerCase(file.getFileName().toString());
     if (!name.startsWith("classes") || !name.endsWith(DEX_EXTENSION)) {
       return false;
     }

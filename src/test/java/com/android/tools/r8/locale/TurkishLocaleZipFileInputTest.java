@@ -3,8 +3,6 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.locale;
 
-import static org.hamcrest.CoreMatchers.containsString;
-import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.D8;
@@ -13,9 +11,11 @@ import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.ToolHelper;
+import com.android.tools.r8.ToolHelper.ArtCommandBuilder;
 import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.FileUtils;
+import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.ZipUtils.ZipBuilder;
 import com.google.common.collect.ImmutableList;
 import java.nio.file.Path;
@@ -51,7 +51,8 @@ public class TurkishLocaleZipFileInputTest extends TestBase {
                 "--lib",
                 ToolHelper.getAndroidJar(AndroidApiLevel.U).toAbsolutePath().toString(),
                 buildZipWithUpperCaseExtension(workingDir).toString()));
-    checkResult(result);
+    assertEquals(0, result.exitCode);
+    runArtOnClassesDotDex(workingDir);
   }
 
   @Test
@@ -78,7 +79,8 @@ public class TurkishLocaleZipFileInputTest extends TestBase {
             ImmutableList.of("-Duser.language=tr"),
             R8.class,
             builder.build());
-    checkResult(result);
+    assertEquals(0, result.exitCode);
+    runArtOnClassesDotDex(workingDir);
   }
 
   private Path buildZipWithUpperCaseExtension(Path dir) throws Exception {
@@ -91,9 +93,15 @@ public class TurkishLocaleZipFileInputTest extends TestBase {
     return jar;
   }
 
-  private void checkResult(ProcessResult result) {
-    assertEquals(1, result.exitCode);
-    assertThat(result.stderr, containsString("Unsupported source file type"));
+  private void runArtOnClassesDotDex(Path dir) throws Exception {
+    if (parameters.getRuntime().isCf()) {
+      return;
+    }
+    ArtCommandBuilder builder = new ArtCommandBuilder(parameters.getRuntime().asDex().getVm());
+    builder.appendClasspath(dir.resolve("classes.dex").toAbsolutePath().toString());
+    builder.setMainClass(TestClass.class.getTypeName());
+    String stdout = ToolHelper.runArt(builder);
+    assertEquals(StringUtils.lines("Hello, world!"), stdout);
   }
 
   static class TestClass {
