@@ -25,6 +25,7 @@ import com.android.tools.r8.ir.analysis.fieldvalueanalysis.StaticFieldValueAnaly
 import com.android.tools.r8.ir.analysis.fieldvalueanalysis.StaticFieldValues;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.IRCode;
+import com.android.tools.r8.ir.code.InstructionIterator;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.conversion.passes.ParentConstructorHoistingCodeRewriter;
 import com.android.tools.r8.ir.desugar.CfInstructionDesugaringCollection;
@@ -1083,7 +1084,18 @@ public class IRConverter {
         doRoundtripWithStrategy(code, new ExternalPhisStrategy(), "indirect phis", timing);
     IRCode round2 =
         doRoundtripWithStrategy(round1, new PhiInInstructionsStrategy(), "inline phis", timing);
+    remapBytecodeMetadataProvider(code, round2, bytecodeMetadataProvider);
     return round2;
+  }
+
+  private static void remapBytecodeMetadataProvider(
+      IRCode oldCode, IRCode newCode, BytecodeMetadataProvider bytecodeMetadataProvider) {
+    InstructionIterator it1 = oldCode.instructionIterator();
+    InstructionIterator it2 = newCode.instructionIterator();
+    while (it1.hasNext() && it2.hasNext()) {
+      bytecodeMetadataProvider.remap(it1.next(), it2.next());
+    }
+    assert !it1.hasNext() && !it2.hasNext();
   }
 
   private <EV, S extends LirStrategy<Value, EV>> IRCode doRoundtripWithStrategy(
@@ -1175,8 +1187,11 @@ public class IRConverter {
   }
 
   public String printMethod(IRCode code, String title, String previous) {
-    if (options.extensiveLoggingFilter.size() > 0
-        && options.extensiveLoggingFilter.contains(code.method().getReference().toSourceString())) {
+    if (options.extensiveLoggingFilter.isEmpty()) {
+      return previous;
+    }
+    String methodString = code.method().getReference().toSourceString();
+    if (options.extensiveLoggingFilter.contains(methodString)) {
       String current = code.toString();
       System.out.println();
       System.out.println("-----------------------------------------------------------------------");

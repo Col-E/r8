@@ -43,6 +43,13 @@ public class BytecodeMetadataProvider {
     return backing.get(instruction);
   }
 
+  public void remap(Instruction oldKey, Instruction newKey) {
+    BytecodeInstructionMetadata value = backing.remove(oldKey);
+    if (value != null) {
+      backing.put(newKey, value);
+    }
+  }
+
   public static class Builder {
 
     private final Map<Instruction, BytecodeInstructionMetadata.Builder> builders =

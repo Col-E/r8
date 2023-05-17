@@ -27,7 +27,7 @@ public class FieldReadForWriteTest extends TestBase {
 
   @Parameters(name = "{0}")
   public static TestParametersCollection parameters() {
-    return getTestParameters().withAllRuntimesAndApiLevels().build();
+    return getTestParameters().withDefaultRuntimes().withAllApiLevels().build();
   }
 
   @Test
@@ -39,7 +39,9 @@ public class FieldReadForWriteTest extends TestBase {
             HorizontallyMergedClassesInspector::assertNoClassesMerged)
         .enableNoHorizontalClassMergingAnnotations()
         .setMinApi(parameters)
-        .compile()
+        .addOptionsModification(o -> o.testing.roundtripThroughLir = true)
+        .run(parameters.getRuntime(), Main.class)
+        .assertSuccessWithOutputLines("42")
         .inspect(inspector -> assertThat(inspector.clazz(anim.class), isAbsent()));
   }
 
@@ -86,6 +88,7 @@ public class FieldReadForWriteTest extends TestBase {
       anim.abc_fade_in ^= packageIdTransform;
       // Unop (number conversion, but also: inc, neg, not).
       anim.abc_fade_in = (int) ((long) anim.abc_fade_in);
+      System.out.println("42");
     }
   }
 }
