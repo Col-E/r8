@@ -104,6 +104,7 @@ public class CfFrameVerifier {
 
     // Linear scan over instructions.
     CfFrameState state = initialState.asContinue().getValue();
+    int actualInstructionIndexForReporting = 0;
     for (int i = 0; i < code.getInstructions().size(); i++) {
       CfInstruction instruction = code.getInstruction(i);
       assert !state.isError();
@@ -120,7 +121,11 @@ public class CfFrameVerifier {
           if (state.isError()) {
             return fail(
                 CfCodeStackMapValidatingException.invalidStackMapForInstruction(
-                    method, i, instruction, state.asError().getMessage(), appView));
+                    method,
+                    actualInstructionIndexForReporting,
+                    instruction,
+                    state.asError().getMessage(),
+                    appView));
           }
         }
       }
@@ -143,7 +148,8 @@ public class CfFrameVerifier {
         state = traversalContinuation.asContinue().getValue();
       }
       TraversalContinuation<CfCodeDiagnostics, CfFrameState> traversalContinuation =
-          computeStateForNextInstruction(instruction, i, state, labelToFrameMap);
+          computeStateForNextInstruction(
+              instruction, i, actualInstructionIndexForReporting, state, labelToFrameMap);
       if (traversalContinuation.isContinue()) {
         state = traversalContinuation.asContinue().getValue();
       } else {
@@ -152,10 +158,21 @@ public class CfFrameVerifier {
       if (state.isError()) {
         return fail(
             CfCodeStackMapValidatingException.invalidStackMapForInstruction(
-                method, i, instruction, state.asError().getMessage(), appView));
+                method,
+                actualInstructionIndexForReporting,
+                instruction,
+                state.asError().getMessage(),
+                appView));
+      }
+      if (isActualCfInstruction(instruction)) {
+        ++actualInstructionIndexForReporting;
       }
     }
     return StackMapStatus.VALID;
+  }
+
+  private static boolean isActualCfInstruction(CfInstruction instruction) {
+    return !instruction.isLabel() && !instruction.isFrame() && !instruction.isPosition();
   }
 
   private TraversalContinuation<CfCodeDiagnostics, Map<CfLabel, CfFrame>> buildLabelToFrameMap() {
@@ -319,6 +336,7 @@ public class CfFrameVerifier {
   private TraversalContinuation<CfCodeDiagnostics, CfFrameState> computeStateForNextInstruction(
       CfInstruction instruction,
       int instructionIndex,
+      int actualInstructionIndexForReporting,
       CfFrameState state,
       Map<CfLabel, CfFrame> labelToFrameMap) {
     if (!instruction.isJump()) {
@@ -334,8 +352,7 @@ public class CfFrameVerifier {
     if (instruction.asJump().hasFallthrough()) {
       return TraversalContinuation.doContinue(state);
     }
-    int nextInstructionIndex = instructionIndex + 1;
-    CfInstruction nextInstruction = code.getInstruction(nextInstructionIndex);
+    CfInstruction nextInstruction = code.getInstruction(instructionIndex + 1);
     CfFrame nextFrame = null;
     if (nextInstruction.isFrame()) {
       nextFrame = nextInstruction.asFrame();
@@ -352,7 +369,11 @@ public class CfFrameVerifier {
     }
     return TraversalContinuation.doBreak(
         CfCodeStackMapValidatingException.invalidStackMapForInstruction(
-            method, nextInstructionIndex, nextInstruction, "Expected frame instruction", appView));
+            method,
+            actualInstructionIndexForReporting + 1,
+            nextInstruction,
+            "Expected frame instruction",
+            appView));
   }
 
   private boolean isFinalAndExitInstruction(CfInstruction instruction) {
