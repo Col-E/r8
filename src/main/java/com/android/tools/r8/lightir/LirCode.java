@@ -45,7 +45,7 @@ public class LirCode<EV> implements Iterable<LirInstructionView> {
     public DebugLocalInfoTable(
         Map<EV, DebugLocalInfo> valueToLocalMap, Int2ReferenceMap<int[]> instructionToEndUseMap) {
       assert !valueToLocalMap.isEmpty();
-      assert !instructionToEndUseMap.isEmpty();
+      // TODO(b/283049198): Debug ends may not be maintained so we can't assume they are non-empty.
       this.valueToLocalMap = valueToLocalMap;
       this.instructionToEndUseMap = instructionToEndUseMap;
     }
