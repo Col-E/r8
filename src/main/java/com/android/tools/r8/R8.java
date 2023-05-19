@@ -68,6 +68,7 @@ import com.android.tools.r8.optimize.MemberRebindingAnalysis;
 import com.android.tools.r8.optimize.MemberRebindingIdentityLens;
 import com.android.tools.r8.optimize.MemberRebindingIdentityLensFactory;
 import com.android.tools.r8.optimize.bridgehoisting.BridgeHoisting;
+import com.android.tools.r8.optimize.fields.FieldFinalizer;
 import com.android.tools.r8.optimize.interfaces.analysis.CfOpenClosedInterfacesAnalysis;
 import com.android.tools.r8.optimize.proto.ProtoNormalizer;
 import com.android.tools.r8.optimize.redundantbridgeremoval.RedundantBridgeRemover;
@@ -316,21 +317,13 @@ public class R8 {
                     appView.getSyntheticItems().commit(appView.appInfo().app())));
       }
 
-      List<ProguardConfigurationRule> synthesizedProguardRules = new ArrayList<>();
       timing.begin("Strip unused code");
       timing.begin("Before enqueuer");
       RuntimeTypeCheckInfo.Builder classMergingEnqueuerExtensionBuilder =
           new RuntimeTypeCheckInfo.Builder(appView);
+      List<ProguardConfigurationRule> synthesizedProguardRules;
       try {
-        // Add synthesized -assumenosideeffects from min api if relevant.
-        if (options.isGeneratingDex()) {
-          if (!ProguardConfigurationUtils.hasExplicitAssumeValuesOrAssumeNoSideEffectsRuleForMinSdk(
-              options.itemFactory, options.getProguardConfiguration().getRules())) {
-            synthesizedProguardRules.add(
-                ProguardConfigurationUtils.buildAssumeNoSideEffectsRuleForApiLevel(
-                    options.itemFactory, options.getMinApiLevel()));
-          }
-        }
+        synthesizedProguardRules = ProguardConfigurationUtils.synthesizeRules(appView);
         ProfileCollectionAdditions profileCollectionAdditions =
             ProfileCollectionAdditions.create(appView);
         AssumeInfoCollection.Builder assumeInfoCollectionBuilder = AssumeInfoCollection.builder();
@@ -640,6 +633,9 @@ public class R8 {
 
             // Synthesize fields for triggering class initializers.
             new ClassInitFieldSynthesizer(appViewWithLiveness).run(executorService);
+
+            // Finalize fields.
+            FieldFinalizer.run(appViewWithLiveness, executorService, timing);
           }
         } finally {
           timing.end();

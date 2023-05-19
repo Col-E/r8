@@ -43,6 +43,8 @@ public interface RetraceStackTraceElementProxy<T, ST extends StackTraceElementPr
 
   String getSourceFile();
 
+  RetracedSourceFile getRetracedSourceFile();
+
   int getLineNumber();
 
   RetraceStackTraceContext getContext();

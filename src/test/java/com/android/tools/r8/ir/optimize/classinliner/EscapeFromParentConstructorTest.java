@@ -5,6 +5,7 @@
 package com.android.tools.r8.ir.optimize.classinliner;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
+import static com.android.tools.r8.utils.codeinspector.Matchers.notIf;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.android.tools.r8.NeverInline;
@@ -47,10 +48,14 @@ public class EscapeFromParentConstructorTest extends TestBase {
   }
 
   private void inspect(CodeInspector inspector) {
-    // The receiver escapes from BuilderBase.<init>(), and therefore, Builder is not considered
-    // eligible for class inlining.
-    assertThat(inspector.clazz(BuilderBase.class), isPresent());
-    assertThat(inspector.clazz(Builder.class), isPresent());
+    // The receiver escapes from BuilderBase.<init>() (except when inlined) and therefore Builder is
+    // not considered eligible for class inlining.
+    assertThat(
+        inspector.clazz(BuilderBase.class),
+        notIf(isPresent(), parameters.canInitNewInstanceUsingSuperclassConstructor()));
+    assertThat(
+        inspector.clazz(Builder.class),
+        notIf(isPresent(), parameters.canInitNewInstanceUsingSuperclassConstructor()));
   }
 
   static class TestClass {

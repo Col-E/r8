@@ -68,8 +68,7 @@ public class RetraceUtils {
 
   public static RetracedSourceFile getSourceFile(
       RetracedClassReference holder, RetracerImpl retracer) {
-    ClassReference holderReference = holder.getClassReference();
-    return new RetracedSourceFileImpl(holderReference, retracer.getSourceFile(holderReference));
+    return new RetracedSourceFileImpl(holder, retracer.getSourceFile(holder.getClassReference()));
   }
 
   public static String inferSourceFile(

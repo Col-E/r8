@@ -6,6 +6,9 @@ package com.android.tools.r8.graph;
 
 import com.android.tools.r8.dex.IndexedItemCollection;
 import com.android.tools.r8.kotlin.KotlinFieldLevelInfo;
+import com.android.tools.r8.shaking.AppInfoWithLiveness;
+import com.android.tools.r8.shaking.KeepFieldInfo;
+import com.android.tools.r8.utils.InternalOptions;
 
 public class ProgramField extends DexClassAndField
     implements ProgramMember<DexEncodedField, DexField> {
@@ -21,6 +24,24 @@ public class ProgramField extends DexClassAndField
     if (definition.isStatic() && definition.hasExplicitStaticValue()) {
       definition.getStaticValue().collectIndexedItems(appView, indexedItems);
     }
+  }
+
+  @Override
+  public boolean isEffectivelyFinal(AppView<AppInfoWithLiveness> appView) {
+    FieldAccessFlags accessFlags = getAccessFlags();
+    FieldAccessInfo accessInfo =
+        appView.appInfo().getFieldAccessInfoCollection().get(getReference());
+    KeepFieldInfo keepInfo = appView.getKeepInfo(this);
+    InternalOptions options = appView.options();
+    return keepInfo.isOptimizationAllowed(options)
+        && keepInfo.isShrinkingAllowed(options)
+        && !accessInfo.hasReflectiveWrite()
+        && !accessInfo.isWrittenFromMethodHandle()
+        && accessInfo.isWrittenOnlyInMethodSatisfying(
+            method ->
+                method.getDefinition().isInitializer()
+                    && method.getAccessFlags().isStatic() == accessFlags.isStatic()
+                    && method.getHolder() == getHolder());
   }
 
   public boolean isStructurallyEqualTo(ProgramField other) {

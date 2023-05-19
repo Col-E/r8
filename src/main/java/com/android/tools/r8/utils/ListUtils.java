@@ -55,12 +55,14 @@ public class ListUtils {
     return result;
   }
 
-  public static <T> List<T> filter(Collection<T> list, Predicate<? super T> predicate) {
+  @SuppressWarnings("unchecked")
+  public static <S, T extends S> List<T> filter(
+      Collection<S> list, Predicate<? super S> predicate) {
     ArrayList<T> filtered = new ArrayList<>(list.size());
     list.forEach(
-        t -> {
-          if (predicate.test(t)) {
-            filtered.add(t);
+        s -> {
+          if (predicate.test(s)) {
+            filtered.add((T) s);
           }
         });
     return filtered;

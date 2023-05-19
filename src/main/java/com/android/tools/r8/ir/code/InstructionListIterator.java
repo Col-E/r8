@@ -17,6 +17,7 @@ import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.ConsumerUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.google.common.collect.Sets;
+import java.util.Collection;
 import java.util.ListIterator;
 import java.util.Set;
 import java.util.function.Consumer;
@@ -83,6 +84,8 @@ public interface InstructionListIterator
    */
   void removeOrReplaceByDebugLocalRead();
 
+  void set(Collection<Instruction> instructions);
+
   default boolean hasInsertionPosition() {
     return false;
   }
@@ -124,6 +127,10 @@ public interface InstructionListIterator
   default Instruction positionAfterPreviousInstruction(Predicate<Instruction> predicate) {
     previousUntil(predicate);
     return next();
+  }
+
+  default Instruction positionBeforeNextInstruction(Instruction instruction) {
+    return positionBeforeNextInstructionThatMatches(i -> i == instruction);
   }
 
   default Instruction positionBeforeNextInstructionThatMatches(Predicate<Instruction> predicate) {

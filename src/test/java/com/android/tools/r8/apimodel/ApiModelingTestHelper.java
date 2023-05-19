@@ -289,6 +289,16 @@ public abstract class ApiModelingTestHelper {
                   || parameters.getApiLevel().isGreaterThanOrEqualTo(finalApiLevel)));
     }
 
+    public void stubbedBetween(AndroidApiLevel startingApilevel, AndroidApiLevel endingApiLevel) {
+      assertThat(
+          inspector.clazz(classOfInterest),
+          notIf(
+              isPresent(),
+              parameters.isCfRuntime()
+                  || parameters.getApiLevel().isLessThan(startingApilevel)
+                  || parameters.getApiLevel().isGreaterThanOrEqualTo(endingApiLevel)));
+    }
+
     void hasCheckCastOutlinedFromUntil(Method method, AndroidApiLevel apiLevel) {
       if (parameters.isDexRuntime() && parameters.getApiLevel().isLessThan(apiLevel)) {
         hasCheckCastOutlinedFrom(method);

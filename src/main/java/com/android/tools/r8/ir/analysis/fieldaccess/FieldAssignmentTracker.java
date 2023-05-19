@@ -77,7 +77,7 @@ public class FieldAssignmentTracker {
   private final Map<DexEncodedField, FieldState> fieldStates = new ConcurrentHashMap<>();
 
   private final Map<DexProgramClass, Map<DexEncodedField, AbstractValue>>
-      abstractInstanceFieldValues = new ConcurrentHashMap<>();
+      abstractFinalInstanceFieldValues = new ConcurrentHashMap<>();
 
   FieldAssignmentTracker(AppView<AppInfoWithLiveness> appView) {
     this.abstractValueFactory = appView.abstractValueFactory();
@@ -97,8 +97,8 @@ public class FieldAssignmentTracker {
    * For each class with known allocation sites, adds a mapping from clazz -> instance field ->
    * bottom.
    *
-   * <p>If an entry (clazz, instance field) is missing in {@link #abstractInstanceFieldValues}, it
-   * is interpreted as if we known nothing about the value of the field.
+   * <p>If an entry (clazz, instance field) is missing in {@link #abstractFinalInstanceFieldValues},
+   * it is interpreted as if we known nothing about the value of the field.
    */
   private void initializeAbstractInstanceFieldValues() {
     FieldAccessInfoCollection<?> fieldAccessInfos =
@@ -116,15 +116,21 @@ public class FieldAssignmentTracker {
             // No instance fields to track.
             return;
           }
-          Map<DexEncodedField, AbstractValue> abstractInstanceFieldValuesForClass =
+          Map<DexEncodedField, AbstractValue> abstractFinalInstanceFieldValuesForClass =
               new IdentityHashMap<>();
-          for (DexEncodedField field : clazz.instanceFields()) {
-            FieldAccessInfo fieldAccessInfo = fieldAccessInfos.get(field.getReference());
-            if (fieldAccessInfo != null && !fieldAccessInfo.hasReflectiveAccess()) {
-              abstractInstanceFieldValuesForClass.put(field, BottomValue.getInstance());
-            }
+          clazz.forEachProgramInstanceField(
+              field -> {
+                if (field.isFinalOrEffectivelyFinal(appView)) {
+                  FieldAccessInfo fieldAccessInfo = fieldAccessInfos.get(field.getReference());
+                  if (fieldAccessInfo != null && !fieldAccessInfo.hasReflectiveAccess()) {
+                    abstractFinalInstanceFieldValuesForClass.put(
+                        field.getDefinition(), BottomValue.getInstance());
+                  }
+                }
+              });
+          if (!abstractFinalInstanceFieldValuesForClass.isEmpty()) {
+            abstractFinalInstanceFieldValues.put(clazz, abstractFinalInstanceFieldValuesForClass);
           }
-          abstractInstanceFieldValues.put(clazz, abstractInstanceFieldValuesForClass);
         });
     for (DexProgramClass clazz : appView.appInfo().classes()) {
       clazz.forEachProgramField(
@@ -237,7 +243,7 @@ public class FieldAssignmentTracker {
 
   void recordAllocationSite(NewInstance instruction, DexProgramClass clazz, ProgramMethod context) {
     Map<DexEncodedField, AbstractValue> abstractInstanceFieldValuesForClass =
-        abstractInstanceFieldValues.get(clazz);
+        abstractFinalInstanceFieldValues.get(clazz);
     if (abstractInstanceFieldValuesForClass == null) {
       // We are not tracking the value of any of clazz' instance fields.
       return;
@@ -246,14 +252,14 @@ public class FieldAssignmentTracker {
     InvokeDirect invoke = instruction.getUniqueConstructorInvoke(dexItemFactory);
     if (invoke == null) {
       // We just lost track.
-      abstractInstanceFieldValues.remove(clazz);
+      abstractFinalInstanceFieldValues.remove(clazz);
       return;
     }
 
     DexClassAndMethod singleTarget = invoke.lookupSingleTarget(appView, context);
     if (singleTarget == null) {
       // We just lost track.
-      abstractInstanceFieldValues.remove(clazz);
+      abstractFinalInstanceFieldValues.remove(clazz);
       return;
     }
 
@@ -408,7 +414,7 @@ public class FieldAssignmentTracker {
   private void recordAllAllocationsSitesProcessed(
       DexProgramClass clazz, OptimizationFeedbackDelayed feedback) {
     Map<DexEncodedField, AbstractValue> abstractInstanceFieldValuesForClass =
-        abstractInstanceFieldValues.get(clazz);
+        abstractFinalInstanceFieldValues.get(clazz);
     if (abstractInstanceFieldValuesForClass == null) {
       return;
     }

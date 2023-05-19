@@ -11,10 +11,13 @@ import com.android.tools.r8.dex.MixedSectionCollection;
 import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.DebugLocalInfo;
+import com.android.tools.r8.graph.DexCallSite;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItem;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
+import com.android.tools.r8.graph.DexMethodHandle;
+import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
@@ -74,11 +77,6 @@ public class LirBuilder<V, EV> {
   private final Map<EV, DebugLocalInfo> debugLocals = new HashMap<>();
   // Mapping from instruction to the end usage of SSA values with debug local info.
   private final Int2ReferenceMap<int[]> debugLocalEnds = new Int2ReferenceOpenHashMap<>();
-
-  // TODO(b/225838009): Reconsider this fixed space as the operand count for phis is much larger.
-  // Pre-allocated space for caching value indexes when writing instructions.
-  private static final int MAX_VALUE_COUNT = 256;
-  private int[] valueIndexBuffer = new int[MAX_VALUE_COUNT];
 
   /**
    * Internal "DexItem" for the instruction payloads such that they can be put in the pool.
@@ -180,6 +178,14 @@ public class LirBuilder<V, EV> {
     @Override
     public int hashCode() {
       return nameComputationInfo != null ? nameComputationInfo.hashCode() : 0;
+    }
+  }
+
+  public static class RecordFieldValuesPayload extends InstructionPayload {
+    public final DexField[] fields;
+
+    public RecordFieldValuesPayload(DexField[] fields) {
+      this.fields = fields;
     }
   }
 
@@ -333,7 +339,6 @@ public class LirBuilder<V, EV> {
 
   private LirBuilder<V, EV> addInstructionTemplate(
       int opcode, List<DexItem> items, List<V> values) {
-    assert values.size() < MAX_VALUE_COUNT;
     int instructionIndex = advanceInstructionState();
     int operandSize = 0;
     for (DexItem item : items) {
@@ -343,14 +348,16 @@ public class LirBuilder<V, EV> {
       EV value = getEncodedValue(values.get(i));
       int encodedValueIndex = getEncodedValueIndex(value, instructionIndex);
       operandSize += encodedValueIndexSize(encodedValueIndex);
-      valueIndexBuffer[i] = encodedValueIndex;
     }
     writer.writeInstruction(opcode, operandSize);
     for (DexItem item : items) {
       writeConstantIndex(item);
     }
     for (int i = 0; i < values.size(); i++) {
-      writeEncodedValueIndex(valueIndexBuffer[i]);
+      // TODO(b/225838009): Consider backpatching operand size to avoid recomputing value indexes.
+      EV value = getEncodedValue(values.get(i));
+      int encodedValueIndex = getEncodedValueIndex(value, instructionIndex);
+      writeEncodedValueIndex(encodedValueIndex);
     }
     return this;
   }
@@ -437,6 +444,56 @@ public class LirBuilder<V, EV> {
     return addOneItemInstruction(LirOpcodes.LDC, type);
   }
 
+  public LirBuilder<V, EV> addConstMethodHandle(DexMethodHandle methodHandle) {
+    return addOneItemInstruction(LirOpcodes.LDC, methodHandle);
+  }
+
+  public LirBuilder<V, EV> addConstMethodType(DexProto methodType) {
+    return addOneItemInstruction(LirOpcodes.LDC, methodType);
+  }
+
+  public LirBuilder<V, EV> addNeg(NumericType type, V value) {
+    int opcode;
+    switch (type) {
+      case BYTE:
+      case CHAR:
+      case SHORT:
+      case INT:
+        opcode = LirOpcodes.INEG;
+        break;
+      case LONG:
+        opcode = LirOpcodes.LNEG;
+        break;
+      case FLOAT:
+        opcode = LirOpcodes.FNEG;
+        break;
+      case DOUBLE:
+        opcode = LirOpcodes.DNEG;
+        break;
+      default:
+        throw new Unreachable("Unexpected type: " + type);
+    }
+    return addOneValueInstruction(opcode, value);
+  }
+
+  public LirBuilder<V, EV> addNot(NumericType type, V value) {
+    int opcode;
+    switch (type) {
+      case BYTE:
+      case CHAR:
+      case SHORT:
+      case INT:
+        opcode = LirOpcodes.INOT;
+        break;
+      case LONG:
+        opcode = LirOpcodes.LNOT;
+        break;
+      default:
+        throw new Unreachable("Unexpected type: " + type);
+    }
+    return addOneValueInstruction(opcode, value);
+  }
+
   public LirBuilder<V, EV> addDiv(NumericType type, V leftValue, V rightValue) {
     int opcode;
     switch (type) {
@@ -479,6 +536,13 @@ public class LirBuilder<V, EV> {
         LirOpcodes.CHECKCAST, Collections.singletonList(type), Collections.singletonList(value));
   }
 
+  public LirBuilder<V, EV> addSafeCheckCast(DexType type, V value) {
+    return addInstructionTemplate(
+        LirOpcodes.CHECKCAST_SAFE,
+        Collections.singletonList(type),
+        Collections.singletonList(value));
+  }
+
   public LirBuilder<V, EV> addInstanceOf(DexType type, V value) {
     return addInstructionTemplate(
         LirOpcodes.INSTANCEOF, Collections.singletonList(type), Collections.singletonList(value));
@@ -503,7 +567,7 @@ public class LirBuilder<V, EV> {
         LirOpcodes.PUTFIELD, Collections.singletonList(field), ImmutableList.of(object, value));
   }
 
-  public LirBuilder<V, EV> addInvokeInstruction(int opcode, DexMethod method, List<V> arguments) {
+  public LirBuilder<V, EV> addInvokeInstruction(int opcode, DexItem method, List<V> arguments) {
     return addInstructionTemplate(opcode, Collections.singletonList(method), arguments);
   }
 
@@ -531,6 +595,16 @@ public class LirBuilder<V, EV> {
 
   public LirBuilder<V, EV> addInvokeInterface(DexMethod method, List<V> arguments) {
     return addInvokeInstruction(LirOpcodes.INVOKEINTERFACE, method, arguments);
+  }
+
+  public LirBuilder<V, EV> addInvokeCustom(DexCallSite callSite, List<V> arguments) {
+    return addInvokeInstruction(LirOpcodes.INVOKEDYNAMIC, callSite, arguments);
+  }
+
+  public LirBuilder<V, EV> addInvokePolymorphic(
+      DexMethod invokedMethod, DexProto proto, List<V> arguments) {
+    return addInstructionTemplate(
+        LirOpcodes.INVOKEPOLYMORPHIC, ImmutableList.of(invokedMethod, proto), arguments);
   }
 
   public LirBuilder<V, EV> addNewInstance(DexType clazz) {
@@ -669,6 +743,10 @@ public class LirBuilder<V, EV> {
 
   public LirBuilder<V, EV> addDebugLocalWrite(V src) {
     return addOneValueInstruction(LirOpcodes.DEBUGLOCALWRITE, src);
+  }
+
+  public LirBuilder<V, EV> addDebugLocalRead() {
+    return addNoOperandInstruction(LirOpcodes.DEBUGLOCALREAD);
   }
 
   public LirCode<EV> build() {
@@ -836,5 +914,24 @@ public class LirBuilder<V, EV> {
     NameComputationPayload payload = new NameComputationPayload(nameComputationInfo);
     return addInstructionTemplate(
         LirOpcodes.ITEMBASEDCONSTSTRING, ImmutableList.of(item, payload), Collections.emptyList());
+  }
+
+  public LirBuilder<V, EV> addNewUnboxedEnumInstance(DexType clazz, int ordinal) {
+    advanceInstructionState();
+    int operandSize = constantIndexSize(clazz) + ByteUtils.intEncodingSize(ordinal);
+    writer.writeInstruction(LirOpcodes.NEWUNBOXEDENUMINSTANCE, operandSize);
+    writeConstantIndex(clazz);
+    ByteUtils.writeEncodedInt(ordinal, writer::writeOperand);
+    return this;
+  }
+
+  public LirBuilder<V, EV> addInitClass(DexType clazz) {
+    return addOneItemInstruction(LirOpcodes.INITCLASS, clazz);
+  }
+
+  public LirBuilder<V, EV> addRecordFieldValues(DexField[] fields, List<V> values) {
+    RecordFieldValuesPayload payload = new RecordFieldValuesPayload(fields);
+    return addInstructionTemplate(
+        LirOpcodes.RECORDFIELDVALUES, Collections.singletonList(payload), values);
   }
 }

@@ -101,6 +101,7 @@ public class AdaptResourceFileNamesTest extends ProguardCompatibilityTestBase {
         "  void <init>();",
         "}",
         "-neverclassinline class *",
+        "-neverinline @adaptresourcefilenames.NoInliningOfDefaultInitializer class * { <init>(); }",
         "-nohorizontalclassmerging class adaptresourcefilenames.pkg.C",
         "-nohorizontalclassmerging class adaptresourcefilenames.pkg.innerpkg.D");
   }

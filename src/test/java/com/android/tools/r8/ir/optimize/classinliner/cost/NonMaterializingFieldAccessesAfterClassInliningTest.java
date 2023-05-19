@@ -93,6 +93,7 @@ public class NonMaterializingFieldAccessesAfterClassInliningTest extends TestBas
     final char c11;
     final char c12;
 
+    @NeverInline
     Greeter(
         char c1,
         char c2,

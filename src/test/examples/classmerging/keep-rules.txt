@@ -74,3 +74,4 @@
 }
 -neverpropagatevalue class * { @classmerging.NeverPropagateValue *; }
 -nohorizontalclassmerging @classmerging.NoHorizontalClassMerging class *
+-noredundantfieldloadelimination class * { @classmerging.NoRedundantFieldLoadElimination *; }

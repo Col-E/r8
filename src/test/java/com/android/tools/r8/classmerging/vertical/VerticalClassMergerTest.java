@@ -256,6 +256,7 @@ public class VerticalClassMergerTest extends TestBase {
     Path[] programFiles =
         new Path[] {
           CF_DIR.resolve("NeverPropagateValue.class"),
+          CF_DIR.resolve("NoRedundantFieldLoadElimination.class"),
           CF_DIR.resolve("ConflictInGeneratedNameTest.class"),
           CF_DIR.resolve("ConflictInGeneratedNameTest$A.class"),
           CF_DIR.resolve("ConflictInGeneratedNameTest$B.class")

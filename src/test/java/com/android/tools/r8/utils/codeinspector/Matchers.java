@@ -143,6 +143,10 @@ public class Matchers {
     return not(isPresent());
   }
 
+  public static Matcher<Subject> isAbsentIf(boolean condition) {
+    return onlyIf(condition, isAbsent());
+  }
+
   public static Matcher<Subject> isPresent() {
     return new TypeSafeMatcher<Subject>() {
       @Override
@@ -167,6 +171,10 @@ public class Matchers {
         }
       }
     };
+  }
+
+  public static Matcher<Subject> isPresentIf(boolean condition) {
+    return onlyIf(condition, isPresent());
   }
 
   public static Matcher<Subject> isPresentAndRenamed() {

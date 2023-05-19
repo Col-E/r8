@@ -86,6 +86,7 @@ public class ConstructorWithNonTrivialControlFlowTest extends TestBase {
     Object x;
     int y;
 
+    @NeverInline
     Candidate(Object x, int y) {
       if (x == null || x.toString().isEmpty()) {
         throw new RuntimeException(

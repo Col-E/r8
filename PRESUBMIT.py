@@ -111,6 +111,7 @@ def CopyRightInContents(f, contents):
 def CheckChange(input_api, output_api):
   branch = (
       check_output(['git', 'cl', 'upstream'])
+          .decode('utf-8')
           .strip()
           .replace('refs/heads/', ''))
   results = []

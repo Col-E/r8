@@ -6,9 +6,12 @@ package com.android.tools.r8.lightir;
 import com.android.tools.r8.cf.code.CfNumberConversion;
 import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.errors.Unreachable;
+import com.android.tools.r8.graph.DexCallSite;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItem;
 import com.android.tools.r8.graph.DexMethod;
+import com.android.tools.r8.graph.DexMethodHandle;
+import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
@@ -18,6 +21,7 @@ import com.android.tools.r8.ir.code.NumericType;
 import com.android.tools.r8.lightir.LirBuilder.FillArrayPayload;
 import com.android.tools.r8.lightir.LirBuilder.IntSwitchPayload;
 import com.android.tools.r8.lightir.LirBuilder.NameComputationPayload;
+import com.android.tools.r8.lightir.LirBuilder.RecordFieldValuesPayload;
 import com.android.tools.r8.naming.dexitembasedstring.NameComputationInfo;
 import java.util.ArrayList;
 import java.util.List;
@@ -99,6 +103,14 @@ public abstract class LirParsedInstructionCallback<EV> implements LirInstruction
     onInstruction();
   }
 
+  public void onConstMethodHandle(DexMethodHandle methodHandle) {
+    onInstruction();
+  }
+
+  public void onConstMethodType(DexProto methodType) {
+    onInstruction();
+  }
+
   private void onArrayGetInternal(MemberType type, LirInstructionView view) {
     if (type.isObject()) {
       DexType destType = (DexType) getConstantItem(view.getNextConstantOperand());
@@ -131,8 +143,16 @@ public abstract class LirParsedInstructionCallback<EV> implements LirInstruction
     onInstruction();
   }
 
-  public void onAdd(NumericType type, EV leftValueIndex, EV rightValueIndex) {
+  public void onBinop(NumericType type, EV left, EV right) {
     onInstruction();
+  }
+
+  public void onArithmeticBinop(NumericType type, EV left, EV right) {
+    onBinop(type, left, right);
+  }
+
+  public void onAdd(NumericType type, EV leftValueIndex, EV rightValueIndex) {
+    onArithmeticBinop(type, leftValueIndex, rightValueIndex);
   }
 
   public void onAddInt(EV leftValueIndex, EV rightValueIndex) {
@@ -152,7 +172,7 @@ public abstract class LirParsedInstructionCallback<EV> implements LirInstruction
   }
 
   public void onSub(NumericType type, EV leftValueIndex, EV rightValueIndex) {
-    onInstruction();
+    onArithmeticBinop(type, leftValueIndex, rightValueIndex);
   }
 
   public void onSubInt(EV leftValueIndex, EV rightValueIndex) {
@@ -172,7 +192,7 @@ public abstract class LirParsedInstructionCallback<EV> implements LirInstruction
   }
 
   public void onMul(NumericType type, EV leftValueIndex, EV rightValueIndex) {
-    onInstruction();
+    onArithmeticBinop(type, leftValueIndex, rightValueIndex);
   }
 
   public void onMulInt(EV leftValueIndex, EV rightValueIndex) {
@@ -192,7 +212,7 @@ public abstract class LirParsedInstructionCallback<EV> implements LirInstruction
   }
 
   public void onDiv(NumericType type, EV leftValueIndex, EV rightValueIndex) {
-    onInstruction();
+    onArithmeticBinop(type, leftValueIndex, rightValueIndex);
   }
 
   public void onDivInt(EV leftValueIndex, EV rightValueIndex) {
@@ -212,7 +232,7 @@ public abstract class LirParsedInstructionCallback<EV> implements LirInstruction
   }
 
   public void onRem(NumericType type, EV leftValueIndex, EV rightValueIndex) {
-    onInstruction();
+    onArithmeticBinop(type, leftValueIndex, rightValueIndex);
   }
 
   public void onRemInt(EV leftValueIndex, EV rightValueIndex) {
@@ -231,34 +251,85 @@ public abstract class LirParsedInstructionCallback<EV> implements LirInstruction
     onRem(NumericType.DOUBLE, leftValueIndex, rightValueIndex);
   }
 
+  public void onNeg(NumericType type, EV value) {
+    onInstruction();
+  }
+
+  public void onNot(NumericType type, EV value) {
+    onInstruction();
+  }
+
   private void onLogicalBinopInternal(int opcode, LirInstructionView view) {
     EV left = getNextValueOperand(view);
     EV right = getNextValueOperand(view);
     switch (opcode) {
       case LirOpcodes.ISHL:
+        onShl(NumericType.INT, left, right);
+        return;
       case LirOpcodes.LSHL:
+        onShl(NumericType.LONG, left, right);
+        return;
       case LirOpcodes.ISHR:
+        onShr(NumericType.INT, left, right);
+        return;
       case LirOpcodes.LSHR:
+        onShr(NumericType.LONG, left, right);
+        return;
       case LirOpcodes.IUSHR:
+        onUshr(NumericType.INT, left, right);
+        return;
       case LirOpcodes.LUSHR:
+        onUshr(NumericType.LONG, left, right);
+        return;
       case LirOpcodes.IAND:
+        onAnd(NumericType.INT, left, right);
+        return;
       case LirOpcodes.LAND:
+        onAnd(NumericType.LONG, left, right);
+        return;
       case LirOpcodes.IOR:
+        onOr(NumericType.INT, left, right);
+        return;
       case LirOpcodes.LOR:
-        throw new Unimplemented();
+        onOr(NumericType.LONG, left, right);
+        return;
       case LirOpcodes.IXOR:
         onXor(NumericType.INT, left, right);
         return;
       case LirOpcodes.LXOR:
-        onXor(NumericType.INT, left, right);
+        onXor(NumericType.LONG, left, right);
         return;
       default:
         throw new Unreachable("Unexpected logical binop: " + opcode);
     }
   }
 
+  public void onLogicalBinop(NumericType type, EV left, EV right) {
+    onBinop(type, left, right);
+  }
+
+  public void onShl(NumericType type, EV left, EV right) {
+    onLogicalBinop(type, left, right);
+  }
+
+  public void onShr(NumericType type, EV left, EV right) {
+    onLogicalBinop(type, left, right);
+  }
+
+  public void onUshr(NumericType type, EV left, EV right) {
+    onLogicalBinop(type, left, right);
+  }
+
+  public void onAnd(NumericType type, EV left, EV right) {
+    onLogicalBinop(type, left, right);
+  }
+
+  public void onOr(NumericType type, EV left, EV right) {
+    onLogicalBinop(type, left, right);
+  }
+
   public void onXor(NumericType type, EV left, EV right) {
-    onInstruction();
+    onLogicalBinop(type, left, right);
   }
 
   public void onNumberConversion(int opcode, EV value) {
@@ -313,6 +384,10 @@ public abstract class LirParsedInstructionCallback<EV> implements LirInstruction
     onInstruction();
   }
 
+  public void onDebugLocalRead() {
+    onInstruction();
+  }
+
   public void onInvokeMultiNewArray(DexType type, List<EV> arguments) {
     onInstruction();
   }
@@ -347,6 +422,14 @@ public abstract class LirParsedInstructionCallback<EV> implements LirInstruction
 
   public void onInvokeInterface(DexMethod method, List<EV> arguments) {
     onInvokeMethodInstruction(method, arguments);
+  }
+
+  public void onInvokeCustom(DexCallSite callSite, List<EV> arguments) {
+    onInstruction();
+  }
+
+  public void onInvokePolymorphic(DexMethod target, DexProto proto, List<EV> arguments) {
+    onInstruction();
   }
 
   public void onNewInstance(DexType clazz) {
@@ -389,6 +472,10 @@ public abstract class LirParsedInstructionCallback<EV> implements LirInstruction
     onInstruction();
   }
 
+  public void onSafeCheckCast(DexType type, EV value) {
+    onInstruction();
+  }
+
   public void onInstanceOf(DexType type, EV value) {
     onInstruction();
   }
@@ -409,6 +496,18 @@ public abstract class LirParsedInstructionCallback<EV> implements LirInstruction
   public abstract void onMonitorEnter(EV value);
 
   public abstract void onMonitorExit(EV value);
+
+  public void onNewUnboxedEnumInstance(DexType type, int ordinal) {
+    onInstruction();
+  }
+
+  public void onInitClass(DexType clazz) {
+    onInstruction();
+  }
+
+  public void onRecordFieldValues(DexField[] fields, List<EV> values) {
+    onInstruction();
+  }
 
   private DexItem getConstantItem(int index) {
     return code.getConstantItem(index);
@@ -432,6 +531,14 @@ public abstract class LirParsedInstructionCallback<EV> implements LirInstruction
           }
           if (item instanceof DexType) {
             onConstClass((DexType) item);
+            return;
+          }
+          if (item instanceof DexMethodHandle) {
+            onConstMethodHandle((DexMethodHandle) item);
+            return;
+          }
+          if (item instanceof DexProto) {
+            onConstMethodType((DexProto) item);
             return;
           }
           throw new Unimplemented();
@@ -726,6 +833,30 @@ public abstract class LirParsedInstructionCallback<EV> implements LirInstruction
           onRemDouble(leftValueIndex, rightValueIndex);
           return;
         }
+      case LirOpcodes.INEG:
+        {
+          EV value = getNextValueOperand(view);
+          onNeg(NumericType.INT, value);
+          return;
+        }
+      case LirOpcodes.LNEG:
+        {
+          EV value = getNextValueOperand(view);
+          onNeg(NumericType.LONG, value);
+          return;
+        }
+      case LirOpcodes.FNEG:
+        {
+          EV value = getNextValueOperand(view);
+          onNeg(NumericType.FLOAT, value);
+          return;
+        }
+      case LirOpcodes.DNEG:
+        {
+          EV value = getNextValueOperand(view);
+          onNeg(NumericType.DOUBLE, value);
+          return;
+        }
       case LirOpcodes.ISHL:
       case LirOpcodes.LSHL:
       case LirOpcodes.ISHR:
@@ -894,6 +1025,21 @@ public abstract class LirParsedInstructionCallback<EV> implements LirInstruction
           onInvokeInterface(target, arguments);
           return;
         }
+      case LirOpcodes.INVOKEDYNAMIC:
+        {
+          DexCallSite callSite = (DexCallSite) getConstantItem(view.getNextConstantOperand());
+          List<EV> arguments = getInvokeInstructionArguments(view);
+          onInvokeCustom(callSite, arguments);
+          return;
+        }
+      case LirOpcodes.INVOKEPOLYMORPHIC:
+        {
+          DexMethod target = getInvokeInstructionTarget(view);
+          DexProto proto = (DexProto) getConstantItem(view.getNextConstantOperand());
+          List<EV> arguments = getInvokeInstructionArguments(view);
+          onInvokePolymorphic(target, proto, arguments);
+          return;
+        }
       case LirOpcodes.NEW:
         {
           DexItem item = getConstantItem(view.getNextConstantOperand());
@@ -967,6 +1113,13 @@ public abstract class LirParsedInstructionCallback<EV> implements LirInstruction
           onCheckCast(type, value);
           return;
         }
+      case LirOpcodes.CHECKCAST_SAFE:
+        {
+          DexType type = getNextDexTypeOperand(view);
+          EV value = getNextValueOperand(view);
+          onSafeCheckCast(type, value);
+          return;
+        }
       case LirOpcodes.INSTANCEOF:
         {
           DexType type = getNextDexTypeOperand(view);
@@ -1018,6 +1171,11 @@ public abstract class LirParsedInstructionCallback<EV> implements LirInstruction
           onDebugLocalWrite(srcIndex);
           return;
         }
+      case LirOpcodes.DEBUGLOCALREAD:
+        {
+          onDebugLocalRead();
+          return;
+        }
       case LirOpcodes.MULTIANEWARRAY:
         {
           DexType type = getNextDexTypeOperand(view);
@@ -1057,6 +1215,34 @@ public abstract class LirParsedInstructionCallback<EV> implements LirInstruction
           NameComputationPayload payload =
               (NameComputationPayload) getConstantItem(view.getNextConstantOperand());
           onDexItemBasedConstString(item, payload.nameComputationInfo);
+          return;
+        }
+      case LirOpcodes.NEWUNBOXEDENUMINSTANCE:
+        {
+          DexType type = getNextDexTypeOperand(view);
+          int ordinal = view.getNextIntegerOperand();
+          onNewUnboxedEnumInstance(type, ordinal);
+          return;
+        }
+      case LirOpcodes.INOT:
+      case LirOpcodes.LNOT:
+        {
+          EV value = getNextValueOperand(view);
+          onNot(opcode == LirOpcodes.INOT ? NumericType.INT : NumericType.LONG, value);
+          return;
+        }
+      case LirOpcodes.INITCLASS:
+        {
+          DexType clazz = getNextDexTypeOperand(view);
+          onInitClass(clazz);
+          return;
+        }
+      case LirOpcodes.RECORDFIELDVALUES:
+        {
+          RecordFieldValuesPayload payload =
+              (RecordFieldValuesPayload) getConstantItem(view.getNextConstantOperand());
+          List<EV> values = getInvokeInstructionArguments(view);
+          onRecordFieldValues(payload.fields, values);
           return;
         }
       default:

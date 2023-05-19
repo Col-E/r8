@@ -82,7 +82,8 @@ public class ApiModelD8GradleSetupTest extends TestBase {
   }
 
   private boolean willStubLibraryClassThree() {
-    return parameters.getApiLevel().isLessThan(mockApiLevelThree);
+    return parameters.getApiLevel().isGreaterThan(AndroidApiLevel.L)
+        && parameters.getApiLevel().isLessThan(mockApiLevelThree);
   }
 
   public AndroidApiLevel getApiLevelForRuntime() {
@@ -222,7 +223,9 @@ public class ApiModelD8GradleSetupTest extends TestBase {
     // classes. Depending on the api a number of synthetic classes.
     int numberOfClasses =
         4
-            + (willStubLibraryClassThree() ? 2 : 0)
+            + (willStubLibraryClassThree()
+                ? 2
+                : (BooleanUtils.intValue(parameters.getApiLevel().isLessThan(mockApiLevelThree))))
             + BooleanUtils.intValue(parameters.getApiLevel().isLessThan(mockApiLevelTwo))
             + BooleanUtils.intValue(parameters.getApiLevel().isLessThan(mockApiLevelOne));
     assertEquals(numberOfClasses, inspector.allClasses().size());

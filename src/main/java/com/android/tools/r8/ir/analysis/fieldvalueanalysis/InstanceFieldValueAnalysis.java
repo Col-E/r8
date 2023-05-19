@@ -22,6 +22,7 @@ import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.IRCodeUtils;
 import com.android.tools.r8.ir.code.InstancePut;
 import com.android.tools.r8.ir.code.Instruction;
+import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.ir.code.InvokeDirect;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.optimize.ClassInitializerDefaultsOptimization.ClassInitializerDefaultsResult;
@@ -217,7 +218,8 @@ public class InstanceFieldValueAnalysis extends FieldValueAnalysis {
 
   void recordInstanceFieldIsInitializedWithInfo(
       DexClassAndField field, InstanceFieldInitializationInfo info) {
-    if (!info.isUnknown()) {
+    if (!info.isUnknown()
+        && appView.appInfo().mayPropagateValueFor(appView, field.getReference())) {
       builder.recordInitializationInfo(field, info);
     }
   }
@@ -238,7 +240,7 @@ public class InstanceFieldValueAnalysis extends FieldValueAnalysis {
     }
 
     if (appView.appInfo().isInstanceFieldWrittenOnlyInInstanceInitializers(field)) {
-      if (parentConstructorCall.getInvokedMethod().holder != context.getHolderType()) {
+      if (parentConstructorCall.getInvokedMethod().getHolderType() != context.getHolderType()) {
         // The field is only written in instance initializers of the enclosing class, and the
         // constructor call targets a constructor in the super class.
         return true;
@@ -268,13 +270,27 @@ public class InstanceFieldValueAnalysis extends FieldValueAnalysis {
       throw new Unreachable();
     }
 
+    // Analyze all subsequent instructions.
+    // TODO(b/279877113): Extend this analysis to analyze the full remainder of this method.
+    if (instancePut.getBlock().getSuccessors().isEmpty()) {
+      InstructionListIterator instructionIterator =
+          instancePut.getBlock().listIterator(code, instancePut);
+      while (instructionIterator.hasNext()) {
+        Instruction instruction = instructionIterator.next();
+        if (instruction.readSet(appView, context).contains(field)) {
+          return false;
+        }
+      }
+      return true;
+    }
+
     // Otherwise, conservatively return false.
     return false;
   }
 
   private boolean fieldNeverWrittenBetweenParentConstructorCallAndMethodExit(
       DexClassAndField field) {
-    if (field.getAccessFlags().isFinal()) {
+    if (field.isFinalOrEffectivelyFinal(appView)) {
       return true;
     }
     if (appView.appInfo().isFieldOnlyWrittenInMethod(field, parentConstructor.getDefinition())) {

@@ -72,6 +72,7 @@ public class SharedEnumUnboxingUtilityClass extends EnumUnboxingUtilityClass {
     ensureCheckNotZeroWithMessageMethod(appView);
     ensureCompareToMethod(appView);
     ensureEqualsMethod(appView);
+    ensureObjectsEqualsMethod(appView);
     ensureOrdinalMethod(appView);
   }
 
@@ -149,6 +150,25 @@ public class SharedEnumUnboxingUtilityClass extends EnumUnboxingUtilityClass {
         dexItemFactory.createProto(
             dexItemFactory.booleanType, dexItemFactory.intType, dexItemFactory.intType),
         method -> EnumUnboxingCfMethods.EnumUnboxingMethods_equals(dexItemFactory, method));
+  }
+
+  public ProgramMethod ensureObjectsEqualsMethod(
+      AppView<AppInfoWithLiveness> appView,
+      ProgramMethod context,
+      EnumUnboxerMethodProcessorEventConsumer eventConsumer) {
+    ProgramMethod method = ensureObjectsEqualsMethod(appView);
+    eventConsumer.acceptEnumUnboxerSharedUtilityClassMethodContext(method, context);
+    return method;
+  }
+
+  private ProgramMethod ensureObjectsEqualsMethod(AppView<AppInfoWithLiveness> appView) {
+    DexItemFactory dexItemFactory = appView.dexItemFactory();
+    return internalEnsureMethod(
+        appView,
+        dexItemFactory.createString("objects$equals"),
+        dexItemFactory.createProto(
+            dexItemFactory.booleanType, dexItemFactory.intType, dexItemFactory.intType),
+        method -> EnumUnboxingCfMethods.EnumUnboxingMethods_objectEquals(dexItemFactory, method));
   }
 
   public ProgramMethod ensureOrdinalMethod(

@@ -9,6 +9,7 @@ import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.android.tools.r8.NeverClassInline;
+import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.NoHorizontalClassMerging;
 import com.android.tools.r8.NoVerticalClassMerging;
 import com.android.tools.r8.TestBase;
@@ -42,6 +43,7 @@ public class LibraryMethodOverrideTest extends TestBase {
         .addInnerClasses(LibraryMethodOverrideTest.class)
         .addKeepMainRule(TestClass.class)
         .addOptionsModification(options -> options.enableTreeShakingOfLibraryMethodOverrides = true)
+        .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
         .enableNoVerticalClassMergingAnnotations()
         .enableNoHorizontalClassMergingAnnotations()
@@ -129,6 +131,7 @@ public class LibraryMethodOverrideTest extends TestBase {
   @NoHorizontalClassMerging
   static class DoesNotEscape {
 
+    @NeverInline
     DoesNotEscape() {
       // Side effect to ensure that the constructor is not removed from main().
       System.out.print("");

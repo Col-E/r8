@@ -60,100 +60,6 @@ public class ExamplesDebugTest extends DebugTestBase {
   }
 
   @Test
-  public void testStringBuilding() throws Exception {
-    testDebugging("stringbuilding", "StringBuilding");
-  }
-
-  @Test
-  public void testSwitches() throws Exception {
-    testDebugging("switches", "Switches");
-  }
-
-  @Test
-  public void testSync() throws Exception {
-    // TODO(b/79671093): Line number mismatch in D8.
-    testDebuggingJvmOnly("sync", "Sync");
-  }
-
-  @Test
-  public void testThrowing() throws Exception {
-    // TODO(b/79671093): D8 has unexpected variables (this in throwing.c <init>).
-    testDebuggingJvmOnly("throwing", "Throwing");
-  }
-
-  @Test
-  public void testTrivial() throws Exception {
-    testDebugging("trivial", "Trivial");
-  }
-
-  @Test
-  public void testRegress() throws Exception {
-    testDebugging("regress", "Regress");
-  }
-
-  @Test
-  public void testRegress2() throws Exception {
-    testDebugging("regress2", "Regress2");
-  }
-
-  @Test
-  public void testRegress37726195() throws Exception {
-    testDebugging("regress_37726195", "Regress");
-  }
-
-  @Test
-  public void testRegress37658666() throws Exception {
-    testDebugging("regress_37658666", "Regress");
-  }
-
-  @Test
-  public void testRegress37875803() throws Exception {
-    testDebugging("regress_37875803", "Regress");
-  }
-
-  @Test
-  public void testRegress37955340() throws Exception {
-    testDebugging("regress_37955340", "Regress");
-  }
-
-  @Test
-  public void testRegress62300145() throws Exception {
-    // TODO(b/67936230): Executes differently for Java 8 and 9, so don't compare to DEX output.
-    testDebuggingJvmOnly("regress_62300145", "Regress");
-  }
-
-  @Test
-  public void testRegress64881691() throws Exception {
-    testDebugging("regress_64881691", "Regress");
-  }
-
-  @Test
-  public void testRegress65104300() throws Exception {
-    testDebugging("regress_65104300", "Regress");
-  }
-
-  @Ignore("TODO(b/79671093): This test seems to take forever")
-  @Test
-  public void testRegress70703087() throws Exception {
-    testDebugging("regress_70703087", "Test");
-  }
-
-  @Test
-  public void testRegress70736958() throws Exception {
-    testDebugging("regress_70736958", "Test");
-  }
-
-  @Test
-  public void testRegress70737019() throws Exception {
-    testDebugging("regress_70737019", "Test");
-  }
-
-  @Test
-  public void testRegress72361252() throws Exception {
-    testDebugging("regress_72361252", "Test");
-  }
-
-  @Test
   public void testMemberrebinding2() throws Exception {
     testDebugging("memberrebinding2", "Memberrebinding");
   }
@@ -168,23 +74,6 @@ public class ExamplesDebugTest extends DebugTestBase {
     testDebugging("minification", "Minification");
   }
 
-  @Test
-  public void testEnclosingmethod() throws Exception {
-    testDebugging("enclosingmethod", "Main");
-  }
-
-  @Test
-  public void testEnclosingmethod_proguarded() throws Exception {
-    // TODO(b/79671093): We don't match JVM's behavior on this example.
-    testDebuggingJvmOutputOnly("enclosingmethod_proguarded", "Main");
-  }
-
-  @Test
-  public void testSwitchmaps() throws Exception {
-    // TODO(b/79671093): D8 has different line number info during stepping.
-    testDebuggingJvmOnly("switchmaps", "Switches");
-  }
-
   private void testDebugging(String pkg, String clazz) throws Exception {
     init(pkg, clazz)
         .add("Input", input())
@@ -193,19 +82,6 @@ public class ExamplesDebugTest extends DebugTestBase {
         // When running on CF and DEX runtimes, filter down to states within the test package.
         .setFilter(state -> state.getClassName().startsWith(pkg))
         .compare();
-  }
-
-  private void testDebuggingJvmOnly(String pkg, String clazz) throws Exception {
-    init(pkg, clazz)
-        .add("Input", input())
-        .add("R8/CfSourceCode", r8cf())
-        .compare();
-  }
-
-  private void testDebuggingJvmOutputOnly(String pkg, String clazz) throws Exception {
-    init(pkg, clazz)
-        .add("R8/CfSourceCode", r8cf())
-        .run();
   }
 
   private DebugStreamComparator init(String pkg, String clazz) {

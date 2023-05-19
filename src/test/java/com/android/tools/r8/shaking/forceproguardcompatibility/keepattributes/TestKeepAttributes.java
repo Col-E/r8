@@ -5,11 +5,13 @@
 package com.android.tools.r8.shaking.forceproguardcompatibility.keepattributes;
 
 import com.android.tools.r8.AssumeMayHaveSideEffects;
+import com.android.tools.r8.NeverInline;
 
 public class TestKeepAttributes {
   public static class InnerClass {
 
     @AssumeMayHaveSideEffects
+    @NeverInline
     InnerClass() {}
   }
 
@@ -17,6 +19,7 @@ public class TestKeepAttributes {
     class MemberClass {
 
       @AssumeMayHaveSideEffects
+      @NeverInline
       private MemberClass() {}
     }
 

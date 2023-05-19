@@ -48,6 +48,10 @@ public class TestParameters {
     return builder().withNoneRuntime().build();
   }
 
+  public boolean canHaveIssueWithInlinedMonitors() {
+    return isCfRuntime() || getApiLevel().isLessThanOrEqualTo(AndroidApiLevel.M);
+  }
+
   /**
    * Returns true if the runtime uses resolution to lookup the constructor targeted by a given
    * invoke, so that it is valid to have non-rebound constructor invokes.
@@ -59,6 +63,10 @@ public class TestParameters {
    */
   public boolean canHaveNonReboundConstructorInvoke() {
     return isDexRuntime() && getApiLevel().isGreaterThanOrEqualTo(AndroidApiLevel.L);
+  }
+
+  public boolean canInitNewInstanceUsingSuperclassConstructor() {
+    return canHaveNonReboundConstructorInvoke();
   }
 
   public boolean canUseDefaultAndStaticInterfaceMethods() {

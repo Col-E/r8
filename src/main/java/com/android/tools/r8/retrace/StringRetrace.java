@@ -133,26 +133,33 @@ public class StringRetrace extends Retrace<String, StackTraceElementStringProxy>
   private List<String> joinAmbiguousLines(
       List<RetraceStackFrameAmbiguousResult<String>> retracedResult) {
     List<String> result = new ArrayList<>();
-    retracedResult.forEach(
-        potentialResults -> {
-          Set<String> reportedFrames = new HashSet<>();
-          potentialResults.forEachWithIndex(
-              (inlineFrames, index) -> {
-                // Check if we already reported position.
-                String topFrame = inlineFrames.get(0);
-                if (reportedFrames.add(topFrame)) {
-                  inlineFrames.forEach(
-                      inlineFrame -> {
-                        boolean isAmbiguous = index > 0 && topFrame.equals(inlineFrame);
-                        if (isAmbiguous) {
-                          result.add(insertOrIntoStackTraceLine(inlineFrame));
-                        } else {
-                          result.add(inlineFrame);
-                        }
-                      });
-                }
-              });
-        });
+    for (RetraceStackFrameAmbiguousResult<String> ambiguousResult : retracedResult) {
+      boolean addedLines = true;
+      int lineIndex = 0;
+      while (addedLines) {
+        addedLines = false;
+        Set<String> reportedFrames = new HashSet<>();
+        RetraceStackFrameResult<String> firstResult = null;
+        for (RetraceStackFrameResult<String> inlineFrames : ambiguousResult.getAmbiguousResult()) {
+          if (firstResult == null) {
+            firstResult = inlineFrames;
+          }
+          if (lineIndex < inlineFrames.size()) {
+            addedLines = true;
+            String frameToAdd = inlineFrames.get(lineIndex);
+            if (reportedFrames.add(frameToAdd)) {
+              boolean isAmbiguous = inlineFrames != firstResult;
+              if (isAmbiguous) {
+                result.add(insertOrIntoStackTraceLine(frameToAdd));
+              } else {
+                result.add(frameToAdd);
+              }
+            }
+          }
+        }
+        lineIndex += 1;
+      }
+    }
     return result;
   }
 

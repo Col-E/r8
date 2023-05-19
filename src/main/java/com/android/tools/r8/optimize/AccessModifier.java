@@ -15,7 +15,6 @@ import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.FieldAccessFlags;
-import com.android.tools.r8.graph.FieldAccessInfo;
 import com.android.tools.r8.graph.InnerClassAttribute;
 import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.graph.ProgramDefinition;
@@ -134,26 +133,7 @@ public final class AccessModifier {
 
   private void processField(ProgramField field) {
     if (appView.appInfo().isAccessModificationAllowed(field)) {
-      finalizeField(field);
       publicizeField(field);
-    }
-  }
-
-  private void finalizeField(ProgramField field) {
-    FieldAccessFlags flags = field.getAccessFlags();
-    FieldAccessInfo accessInfo =
-        appView.appInfo().getFieldAccessInfoCollection().get(field.getReference());
-    if (!appView.getKeepInfo(field).isPinned(options)
-        && !accessInfo.hasReflectiveWrite()
-        && !accessInfo.isWrittenFromMethodHandle()
-        && accessInfo.isWrittenOnlyInMethodSatisfying(
-            method ->
-                method.getDefinition().isInitializer()
-                    && method.getAccessFlags().isStatic() == flags.isStatic()
-                    && method.getHolder() == field.getHolder())
-        && !flags.isFinal()
-        && !flags.isVolatile()) {
-      flags.promoteToFinal();
     }
   }
 

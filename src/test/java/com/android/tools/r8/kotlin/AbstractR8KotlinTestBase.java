@@ -263,7 +263,7 @@ public abstract class AbstractR8KotlinTestBase extends KotlinTestBase {
         .allowDiagnosticWarningMessages()
         .enableProguardTestOptions()
         .addDontObfuscate()
-        .setMinApi(testParameters.getApiLevel())
+        .setMinApi(testParameters)
         .apply(configuration)
         .compile()
         .assertAllWarningMessagesMatch(

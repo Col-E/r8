@@ -6,6 +6,7 @@ package com.android.tools.r8.apimodel;
 
 import static com.android.tools.r8.apimodel.ApiModelingTestHelper.setMockApiLevelForMethod;
 import static com.android.tools.r8.utils.AndroidApiLevel.L_MR1;
+import static com.android.tools.r8.utils.codeinspector.Matchers.isAbsentIf;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static junit.framework.TestCase.assertEquals;
 import static org.hamcrest.CoreMatchers.not;
@@ -13,6 +14,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
+import com.android.tools.r8.NoInliningOfDefaultInitializer;
 import com.android.tools.r8.NoMethodStaticizing;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
@@ -55,6 +57,7 @@ public class ApiModelNoVerticalMergingTest extends TestBase {
         .apply(ApiModelingTestHelper::disableOutliningAndStubbing)
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
+        .enableNoInliningOfDefaultInitializerAnnotations()
         .enableNoMethodStaticizingAnnotations()
         .addVerticallyMergedClassesInspector(
             inspector -> {
@@ -74,7 +77,9 @@ public class ApiModelNoVerticalMergingTest extends TestBase {
                 assertThat(base, not(isPresent()));
                 ClassSubject sub = inspector.clazz(Sub.class);
                 assertThat(sub, isPresent());
-                assertThat(sub.uniqueInstanceInitializer(), isPresent());
+                assertThat(
+                    sub.uniqueInstanceInitializer(),
+                    isAbsentIf(parameters.canHaveNonReboundConstructorInvoke()));
                 assertEquals(1, sub.virtualMethods().size());
                 FoundMethodSubject callCallApi = sub.virtualMethods().get(0);
                 assertEquals("callCallApi", callCallApi.getOriginalName());
@@ -104,6 +109,7 @@ public class ApiModelNoVerticalMergingTest extends TestBase {
   }
 
   @NeverClassInline
+  @NoInliningOfDefaultInitializer
   public static class Sub extends Base {
 
     @NeverInline

@@ -103,11 +103,7 @@ public class StackTraceElementProxyRetracerImpl<T, ST extends StackTraceElementP
         .joinAmbiguous(classResult.isAmbiguous())
         .setTopFrame(true)
         .setContext(thrownExceptionElement.getContext())
-        .apply(
-            setSourceFileOnProxy(
-                thrownExceptionElement::getSourceFile,
-                thrownExceptionElement.getRetracedClass(),
-                classResult))
+        .apply(setSourceFileOnProxy(thrownExceptionElement::getSourceFile))
         .build();
   }
 
@@ -143,11 +139,7 @@ public class StackTraceElementProxyRetracerImpl<T, ST extends StackTraceElementP
                                         .applyIf(
                                             element.hasLineNumber(),
                                             b -> b.setLineNumber(element.getLineNumber()))
-                                        .apply(
-                                            setSourceFileOnProxy(
-                                                classElement::getSourceFile,
-                                                classElement.getRetracedClass(),
-                                                classResult))
+                                        .apply(setSourceFileOnProxy(classElement::getSourceFile))
                                         .build());
                       }
                       return frameResult.stream()
@@ -160,7 +152,6 @@ public class StackTraceElementProxyRetracerImpl<T, ST extends StackTraceElementP
                                         singleFrame ->
                                             buildProxyForRewrittenFrameElement(
                                                 element,
-                                                classResult,
                                                 proxy,
                                                 frameResult,
                                                 frameElement,
@@ -172,7 +163,6 @@ public class StackTraceElementProxyRetracerImpl<T, ST extends StackTraceElementP
 
   private RetraceStackTraceElementProxyImpl<T, ST> buildProxyForRewrittenFrameElement(
       ST element,
-      RetraceClassResult classResult,
       RetraceStackTraceElementProxyImpl<T, ST> proxy,
       RetraceFrameResult frameResult,
       RetraceFrameElement frameElement,
@@ -188,12 +178,9 @@ public class StackTraceElementProxyRetracerImpl<T, ST extends StackTraceElementP
         .setContext(frameElement.getRetraceStackTraceContext())
         .applyIf(
             element.hasLineNumber(),
-            builder -> {
-              builder.setLineNumber(method.getOriginalPositionOrDefault(element.getLineNumber()));
-            })
-        .apply(
-            setSourceFileOnProxy(
-                () -> frameElement.getSourceFile(method), method.getHolderClass(), classResult))
+            builder ->
+                builder.setLineNumber(method.getOriginalPositionOrDefault(element.getLineNumber())))
+        .apply(setSourceFileOnProxy(() -> frameElement.getSourceFile(method)))
         .build();
   }
 
@@ -213,13 +200,12 @@ public class StackTraceElementProxyRetracerImpl<T, ST extends StackTraceElementP
                           .map(
                               fieldElement ->
                                   buildProxyForRewrittenFieldElement(
-                                      classResult, proxy, retraceFieldResult, fieldElement));
+                                      proxy, retraceFieldResult, fieldElement));
                     }))
         .build();
   }
 
   private RetraceStackTraceElementProxyImpl<T, ST> buildProxyForRewrittenFieldElement(
-      RetraceClassResult classResult,
       RetraceStackTraceElementProxyImpl<T, ST> proxy,
       RetraceFieldResult retraceFieldResult,
       RetraceFieldElement fieldElement) {
@@ -229,27 +215,18 @@ public class StackTraceElementProxyRetracerImpl<T, ST extends StackTraceElementP
         .setRetracedField(fieldElement.getField())
         .joinAmbiguous(retraceFieldResult.isAmbiguous())
         .setTopFrame(true)
-        .apply(
-            setSourceFileOnProxy(
-                fieldElement::getSourceFile, fieldElement.getField().getHolderClass(), classResult))
+        .apply(setSourceFileOnProxy(fieldElement::getSourceFile))
         .build();
   }
 
   private Consumer<RetraceStackTraceElementProxyImpl.Builder<T, ST>> setSourceFileOnProxy(
-      Supplier<RetracedSourceFile> sourceFile,
-      RetracedClassReference classReference,
-      RetraceClassResult classResult) {
+      Supplier<RetracedSourceFile> sourceFile) {
     return proxy -> {
       ST original = proxy.originalElement;
       if (!original.hasSourceFile()) {
         return;
       }
-      RetracedSourceFile retracedSourceFile = sourceFile.get();
-      proxy.setSourceFile(
-          retracedSourceFile.hasRetraceResult()
-              ? retracedSourceFile.getSourceFile()
-              : RetraceUtils.inferSourceFile(
-                  classReference.getTypeName(), original.getSourceFile(), classResult.isEmpty()));
+      proxy.setSourceFile(sourceFile.get());
     };
   }
 
@@ -351,7 +328,7 @@ public class StackTraceElementProxyRetracerImpl<T, ST extends StackTraceElementP
     private final RetracedFieldReference retracedField;
     private final RetracedTypeReference fieldOrReturnType;
     private final List<RetracedTypeReference> methodArguments;
-    private final String sourceFile;
+    private final RetracedSourceFile sourceFile;
     private final int lineNumber;
     private final boolean isAmbiguous;
     private final boolean isTopFrame;
@@ -364,7 +341,7 @@ public class StackTraceElementProxyRetracerImpl<T, ST extends StackTraceElementP
         RetracedFieldReference retracedField,
         RetracedTypeReference fieldOrReturnType,
         List<RetracedTypeReference> methodArguments,
-        String sourceFile,
+        RetracedSourceFile sourceFile,
         int lineNumber,
         boolean isAmbiguous,
         boolean isTopFrame,
@@ -460,6 +437,16 @@ public class StackTraceElementProxyRetracerImpl<T, ST extends StackTraceElementP
 
     @Override
     public String getSourceFile() {
+      if (sourceFile == null) {
+        assert originalItem.getSourceFile() == null;
+        return null;
+      }
+      return sourceFile.getOrInferSourceFile(
+          originalItem.getSourceFile() == null ? "" : originalItem.getSourceFile());
+    }
+
+    @Override
+    public RetracedSourceFile getRetracedSourceFile() {
       return sourceFile;
     }
 
@@ -549,7 +536,7 @@ public class StackTraceElementProxyRetracerImpl<T, ST extends StackTraceElementP
       private RetracedFieldReference retracedField;
       private RetracedTypeReference fieldOrReturnType;
       private List<RetracedTypeReference> methodArguments;
-      private String sourceFile;
+      private RetracedSourceFile sourceFile;
       private int lineNumber = -1;
       private boolean isAmbiguous;
       private boolean isTopFrame;
@@ -584,7 +571,8 @@ public class StackTraceElementProxyRetracerImpl<T, ST extends StackTraceElementP
         return this;
       }
 
-      private Builder<T, ST> setSourceFile(String sourceFile) {
+      private Builder<T, ST> setSourceFile(RetracedSourceFile sourceFile) {
+        assert sourceFile != null;
         this.sourceFile = sourceFile;
         return this;
       }

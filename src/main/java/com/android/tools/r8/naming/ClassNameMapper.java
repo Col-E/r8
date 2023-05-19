@@ -18,6 +18,7 @@ import com.android.tools.r8.naming.mappinginformation.MapVersionMappingInformati
 import com.android.tools.r8.position.Position;
 import com.android.tools.r8.utils.BiMapContainer;
 import com.android.tools.r8.utils.ChainableStringConsumer;
+import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.Reporter;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.ImmutableBiMap;
@@ -32,6 +33,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -245,6 +247,14 @@ public class ClassNameMapper implements ProguardMap {
 
   public List<String> getPreamble() {
     return preamble;
+  }
+
+  public Set<String> getObfuscatedPackages() {
+    Set<String> packages = new HashSet<>();
+    classNameMappings.forEach(
+        (s, classNamingForNameMapper) ->
+            packages.add(DescriptorUtils.getPackageNameFromTypeName(s)));
+    return packages;
   }
 
   public void setPreamble(List<String> preamble) {

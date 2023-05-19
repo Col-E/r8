@@ -212,9 +212,8 @@ public class RetraceClassResultImpl implements RetraceClassResult {
     return new RetraceClassElementImpl(
         this,
         RetracedClassReferenceImpl.create(
-            mapper == null
-                ? obfuscatedReference
-                : Reference.classFromTypeName(mapper.originalName)),
+            mapper == null ? obfuscatedReference : Reference.classFromTypeName(mapper.originalName),
+            mapper != null),
         mapper);
   }
 

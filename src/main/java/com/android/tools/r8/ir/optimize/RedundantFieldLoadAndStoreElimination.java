@@ -514,8 +514,9 @@ public class RedundantFieldLoadAndStoreElimination {
                 invoke.getArgument(info.asArgumentInitializationInfo().getArgumentIndex());
             Value object = invoke.getReceiver().getAliasedValue();
             FieldAndObject fieldAndObject = new FieldAndObject(field.getReference(), object);
-            if (field.getAccessFlags().isFinal()) {
-              activeState.putFinalInstanceField(fieldAndObject, new ExistingValue(value));
+            if (field.isFinalOrEffectivelyFinal(appViewWithLiveness)) {
+              activeState.putFinalOrEffectivelyFinalInstanceField(
+                  fieldAndObject, new ExistingValue(value));
             } else {
               activeState.putNonFinalInstanceField(fieldAndObject, new ExistingValue(value));
             }
@@ -524,8 +525,9 @@ public class RedundantFieldLoadAndStoreElimination {
             if (value.isMaterializableInContext(appViewWithLiveness, method)) {
               Value object = invoke.getReceiver().getAliasedValue();
               FieldAndObject fieldAndObject = new FieldAndObject(field.getReference(), object);
-              if (field.getAccessFlags().isFinal()) {
-                activeState.putFinalInstanceField(fieldAndObject, new MaterializableValue(value));
+              if (field.isFinalOrEffectivelyFinal(appViewWithLiveness)) {
+                activeState.putFinalOrEffectivelyFinalInstanceField(
+                    fieldAndObject, new MaterializableValue(value));
               } else {
                 activeState.putNonFinalInstanceField(
                     fieldAndObject, new MaterializableValue(value));
@@ -717,24 +719,24 @@ public class RedundantFieldLoadAndStoreElimination {
     Value object = instancePut.object().getAliasedValue();
     FieldAndObject fieldAndObject = new FieldAndObject(field.getReference(), object);
     ExistingValue value = new ExistingValue(instancePut.value());
-    if (isFinal(field)) {
+    if (field.isFinalOrEffectivelyFinal(appView)) {
       assert !field.getDefinition().isFinal()
           || method.getDefinition().isInstanceInitializer()
           || verifyWasInstanceInitializer();
-      activeState.putFinalInstanceField(fieldAndObject, value);
+      activeState.putFinalOrEffectivelyFinalInstanceField(fieldAndObject, value);
     } else {
       activeState.putNonFinalInstanceField(fieldAndObject, value);
+    }
 
-      // Record that this field is now most recently written by the current instruction.
-      if (release) {
-        InstancePut mostRecentInstanceFieldWrite =
-            activeState.putMostRecentInstanceFieldWrite(fieldAndObject, instancePut);
-        if (mostRecentInstanceFieldWrite != null) {
-          instructionsToRemove
-              .computeIfAbsent(
-                  mostRecentInstanceFieldWrite.getBlock(), ignoreKey(Sets::newIdentityHashSet))
-              .add(mostRecentInstanceFieldWrite);
-        }
+    // Record that this field is now most recently written by the current instruction.
+    if (release) {
+      InstancePut mostRecentInstanceFieldWrite =
+          activeState.putMostRecentInstanceFieldWrite(fieldAndObject, instancePut);
+      if (mostRecentInstanceFieldWrite != null) {
+        instructionsToRemove
+            .computeIfAbsent(
+                mostRecentInstanceFieldWrite.getBlock(), ignoreKey(Sets::newIdentityHashSet))
+            .add(mostRecentInstanceFieldWrite);
       }
     }
 
@@ -766,7 +768,7 @@ public class RedundantFieldLoadAndStoreElimination {
     clearMostRecentStaticFieldWrite(staticGet, field);
 
     FieldValue value = new ExistingValue(staticGet.value());
-    if (isFinal(field)) {
+    if (field.isFinalOrEffectivelyFinal(appView)) {
       activeState.putFinalStaticField(field.getReference(), value);
     } else {
       activeState.putNonFinalStaticField(field.getReference(), value);
@@ -807,7 +809,7 @@ public class RedundantFieldLoadAndStoreElimination {
     }
 
     ExistingValue value = new ExistingValue(staticPut.value());
-    if (isFinal(field)) {
+    if (field.isFinalOrEffectivelyFinal(appView)) {
       assert appView.checkForTesting(
           () -> !field.getDefinition().isFinal() || method.getDefinition().isClassInitializer());
       activeState.putFinalStaticField(field.getReference(), value);
@@ -838,7 +840,7 @@ public class RedundantFieldLoadAndStoreElimination {
               && fieldValue.isSingleValue()) {
             SingleValue singleFieldValue = fieldValue.asSingleValue();
             if (singleFieldValue.isMaterializableInContext(appViewWithLiveness, method)) {
-              activeState.putFinalInstanceField(
+              activeState.putFinalOrEffectivelyFinalInstanceField(
                   new FieldAndObject(field, value), new MaterializableValue(singleFieldValue));
             }
           }
@@ -1336,7 +1338,7 @@ public class RedundantFieldLoadAndStoreElimination {
       arraySlotValues.put(arraySlot, value);
     }
 
-    public void putFinalInstanceField(FieldAndObject field, FieldValue value) {
+    public void putFinalOrEffectivelyFinalInstanceField(FieldAndObject field, FieldValue value) {
       ensureCapacityForNewElement();
       if (finalInstanceFieldValues == null) {
         finalInstanceFieldValues = new LinkedHashMap<>();

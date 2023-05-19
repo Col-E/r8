@@ -12,7 +12,9 @@ import com.android.tools.r8.KeepConstantArguments;
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.ir.optimize.Inliner.Reason;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
+import com.google.common.collect.ImmutableSet;
 import org.junit.Test;
 
 public class SynchronizedClassesTest extends HorizontalClassMergingTestBase {
@@ -31,6 +33,8 @@ public class SynchronizedClassesTest extends HorizontalClassMergingTestBase {
                     .assertMergedInto(C.class, A.class)
                     .assertMergedInto(D.class, B.class)
                     .assertNoOtherClassesMerged())
+        .addOptionsModification(
+            options -> options.testing.validInliningReasons = ImmutableSet.of(Reason.FORCE))
         .enableConstantArgumentAnnotations()
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()

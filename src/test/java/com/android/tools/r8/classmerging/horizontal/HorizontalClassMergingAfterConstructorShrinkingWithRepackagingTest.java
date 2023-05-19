@@ -138,6 +138,7 @@ public class HorizontalClassMergingAfterConstructorShrinkingWithRepackagingTest 
     Object field;
 
     @KeepConstantArguments
+    @NeverInline
     public A(Parent parent) {
       super(parent);
       System.out.println("Ouch!");
@@ -162,6 +163,7 @@ public class HorizontalClassMergingAfterConstructorShrinkingWithRepackagingTest 
 
     // Removed by constructor shrinking.
     @KeepConstantArguments
+    @NeverInline
     public B(Parent parent) {
       super(parent);
     }

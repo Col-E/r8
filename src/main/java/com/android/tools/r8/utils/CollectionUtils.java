@@ -20,6 +20,14 @@ public class CollectionUtils {
     return collection;
   }
 
+  public static <T> T getFirst(Collection<T> collection) {
+    return collection.iterator().next();
+  }
+
+  public static <T> T getFirstOrDefault(Collection<T> collection, T defaultValue) {
+    return collection.isEmpty() ? defaultValue : getFirst(collection);
+  }
+
   public static <T> Set<T> mergeSets(Collection<T> first, Collection<T> second) {
     ImmutableSet.Builder<T> builder = ImmutableSet.builder();
     builder.addAll(first);

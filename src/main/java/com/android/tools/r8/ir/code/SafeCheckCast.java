@@ -11,6 +11,7 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.conversion.CfBuilder;
+import com.android.tools.r8.lightir.LirBuilder;
 
 public class SafeCheckCast extends CheckCast {
 
@@ -25,6 +26,11 @@ public class SafeCheckCast extends CheckCast {
   @Override
   public void buildCf(CfBuilder builder) {
     builder.add(new CfSafeCheckCast(getType()), this);
+  }
+
+  @Override
+  public void buildLir(LirBuilder<Value, ?> builder) {
+    builder.addSafeCheckCast(getType(), object());
   }
 
   @Override

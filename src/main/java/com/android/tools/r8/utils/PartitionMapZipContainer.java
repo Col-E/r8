@@ -32,7 +32,6 @@ public class PartitionMapZipContainer {
         .setMappingPartitionFromKeySupplier(
             key -> {
               try {
-                // TODO(b/274735214): The key should exist.
                 ZipEntry entry = zipFile.getEntry(key);
                 return entry == null
                     ? EMPTY_RESULT

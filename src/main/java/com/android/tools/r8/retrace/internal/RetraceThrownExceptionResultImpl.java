@@ -43,9 +43,8 @@ public class RetraceThrownExceptionResultImpl implements RetraceThrownExceptionR
     return new RetraceThrownExceptionElementImpl(
         this,
         RetracedClassReferenceImpl.create(
-            mapper == null
-                ? obfuscatedReference
-                : Reference.classFromTypeName(mapper.originalName)),
+            mapper == null ? obfuscatedReference : Reference.classFromTypeName(mapper.originalName),
+            mapper != null),
         mapper,
         obfuscatedReference);
   }
@@ -89,7 +88,7 @@ public class RetraceThrownExceptionResultImpl implements RetraceThrownExceptionR
           }
         }
       }
-      return new RetracedSourceFileImpl(getRetracedClass().getClassReference(), sourceFile);
+      return new RetracedSourceFileImpl(getRetracedClass(), sourceFile);
     }
 
     @Override

@@ -22,6 +22,7 @@ import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.InliningConstraints;
 import com.android.tools.r8.ir.optimize.enums.EnumUnboxer;
 import com.android.tools.r8.ir.optimize.enums.EnumUnboxerImpl;
+import com.android.tools.r8.lightir.LirBuilder;
 
 /**
  * Special instruction used by {@link EnumUnboxerImpl}.
@@ -165,5 +166,10 @@ public class NewUnboxedEnumInstance extends Instruction {
   @Override
   void internalRegisterUse(UseRegistry<?> registry, DexClassAndMethod context) {
     registry.registerNewUnboxedEnumInstance(clazz);
+  }
+
+  @Override
+  public void buildLir(LirBuilder<Value, ?> builder) {
+    builder.addNewUnboxedEnumInstance(clazz, ordinal);
   }
 }

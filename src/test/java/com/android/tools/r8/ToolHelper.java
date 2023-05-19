@@ -1526,7 +1526,7 @@ public class ToolHelper {
   public static ProcessResult forkR8WithJavaOptions(
       Path dir, List<String> javaOptions, String... args) throws IOException {
     String r8Jar = R8_JAR.toAbsolutePath().toString();
-    return forkJavaWithJarAndJavaOptions(dir, r8Jar, Arrays.asList(args), javaOptions);
+    return forkJavaWithJarAndJavaOptions(dir, javaOptions, r8Jar, Arrays.asList(args));
   }
 
   public static ProcessResult forkR8Jar(Path dir, String... args) throws IOException {
@@ -1553,11 +1553,11 @@ public class ToolHelper {
 
   private static ProcessResult forkJavaWithJar(Path dir, String jarPath, List<String> args)
       throws IOException {
-    return forkJavaWithJarAndJavaOptions(dir, jarPath, args, ImmutableList.of());
+    return forkJavaWithJarAndJavaOptions(dir, ImmutableList.of(), jarPath, args);
   }
 
   private static ProcessResult forkJavaWithJarAndJavaOptions(
-      Path dir, String jarPath, List<String> args, List<String> javaOptions) throws IOException {
+      Path dir, List<String> javaOptions, String jarPath, List<String> args) throws IOException {
     List<String> command =
         new ImmutableList.Builder<String>()
             .add(getJavaExecutable())
@@ -1569,6 +1569,19 @@ public class ToolHelper {
     return runProcess(new ProcessBuilder(command).directory(dir.toFile()));
   }
 
+  public static ProcessResult forkJavaWithJavaOptions(
+      Path dir, List<String> javaOptions, Class clazz, List<String> args) throws IOException {
+    List<String> command =
+        new ImmutableList.Builder<String>()
+            .add(getJavaExecutable())
+            .addAll(javaOptions)
+            .add("-cp")
+            .add(System.getProperty("java.class.path"))
+            .add(clazz.getCanonicalName())
+            .addAll(args)
+            .build();
+    return runProcess(new ProcessBuilder(command).directory(dir.toFile()));
+  }
 
   private static ProcessResult forkJava(Path dir, Class clazz, List<String> args)
       throws IOException {

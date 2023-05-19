@@ -23,6 +23,8 @@ import com.android.tools.r8.retrace.PartitionMappingSupplier;
 import com.android.tools.r8.retrace.PrepareMappingPartitionsCallback;
 import com.android.tools.r8.retrace.RegisterMappingPartitionCallback;
 import com.android.tools.r8.retrace.internal.ProguardMapReaderWithFiltering.ProguardMapReaderWithFilteringInputBuffer;
+import com.android.tools.r8.utils.Box;
+import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.StringDiagnostic;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -30,6 +32,7 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.Set;
+import java.util.function.Predicate;
 
 public abstract class PartitionMappingSupplierBase<T extends PartitionMappingSupplierBase<T>>
     implements Finishable {
@@ -45,7 +48,8 @@ public abstract class PartitionMappingSupplierBase<T extends PartitionMappingSup
   private final Set<String> pendingKeys = new LinkedHashSet<>();
   private final Set<String> builtKeys = new HashSet<>();
 
-  private MappingPartitionMetadataInternal mappingPartitionMetadataCache;
+  private final Box<MappingPartitionMetadataInternal> mappingPartitionMetadataCache = new Box<>();
+  private final Box<Predicate<String>> typeNameCouldHavePartitionCache = new Box<>();
 
   protected PartitionMappingSupplierBase(
       RegisterMappingPartitionCallback registerCallback,
@@ -63,16 +67,49 @@ public abstract class PartitionMappingSupplierBase<T extends PartitionMappingSup
   }
 
   public MappingPartitionMetadataInternal getMetadata(DiagnosticsHandler diagnosticsHandler) {
-    if (mappingPartitionMetadataCache != null) {
-      return mappingPartitionMetadataCache;
+    if (mappingPartitionMetadataCache.isSet()) {
+      return mappingPartitionMetadataCache.get();
     }
-    return mappingPartitionMetadataCache =
-        MappingPartitionMetadataInternal.deserialize(
-            CompatByteBuffer.wrapOrNull(metadata), fallbackMapVersion, diagnosticsHandler);
+    synchronized (mappingPartitionMetadataCache) {
+      if (mappingPartitionMetadataCache.isSet()) {
+        return mappingPartitionMetadataCache.get();
+      }
+      MappingPartitionMetadataInternal data =
+          MappingPartitionMetadataInternal.deserialize(
+              CompatByteBuffer.wrapOrNull(metadata), fallbackMapVersion, diagnosticsHandler);
+      mappingPartitionMetadataCache.set(data);
+      return data;
+    }
   }
 
   public T registerClassUse(DiagnosticsHandler diagnosticsHandler, ClassReference classReference) {
-    return registerKeyUse(classReference.getTypeName());
+    // Check if the package name is registered before requesting the bytes for a partition.
+    String typeName = classReference.getTypeName();
+    if (isPotentialRetraceClass(diagnosticsHandler, typeName)) {
+      return registerKeyUse(typeName);
+    }
+    return self();
+  }
+
+  private boolean isPotentialRetraceClass(DiagnosticsHandler diagnosticsHandler, String typeName) {
+    if (typeNameCouldHavePartitionCache.isSet()) {
+      return typeNameCouldHavePartitionCache.get().test(typeName);
+    }
+    synchronized (typeNameCouldHavePartitionCache) {
+      if (typeNameCouldHavePartitionCache.isSet()) {
+        return typeNameCouldHavePartitionCache.get().test(typeName);
+      }
+      Predicate<String> typeNameCouldHavePartitionPredicate =
+          getPartitionPredicate(getPackagesWithClasses(diagnosticsHandler));
+      typeNameCouldHavePartitionCache.set(typeNameCouldHavePartitionPredicate);
+      return typeNameCouldHavePartitionPredicate.test(typeName);
+    }
+  }
+
+  private Predicate<String> getPartitionPredicate(Set<String> packagesWithClasses) {
+    return name ->
+        packagesWithClasses == null
+            || packagesWithClasses.contains(DescriptorUtils.getPackageNameFromTypeName(name));
   }
 
   public T registerMethodUse(
@@ -85,11 +122,22 @@ public abstract class PartitionMappingSupplierBase<T extends PartitionMappingSup
   }
 
   public T registerKeyUse(String key) {
-    // TODO(b/274735214): only call the register partition if we have a partition for it.
     if (!builtKeys.contains(key) && pendingKeys.add(key)) {
       registerCallback.register(key);
     }
     return self();
+  }
+
+  private Set<String> getPackagesWithClasses(DiagnosticsHandler diagnosticsHandler) {
+    MappingPartitionMetadataInternal metadata = getMetadata(diagnosticsHandler);
+    if (metadata == null || !metadata.canGetAdditionalInfo()) {
+      return null;
+    }
+    MetadataAdditionalInfo additionalInfo = metadata.getAdditionalInfo();
+    if (!additionalInfo.hasObfuscatedPackages()) {
+      return null;
+    }
+    return additionalInfo.getObfuscatedPackages();
   }
 
   public void verifyMappingFileHash(DiagnosticsHandler diagnosticsHandler) {
@@ -115,7 +163,6 @@ public abstract class PartitionMappingSupplierBase<T extends PartitionMappingSup
     for (String pendingKey : pendingKeys) {
       try {
         byte[] suppliedPartition = partitionSupplier.get(pendingKey);
-        // TODO(b/274735214): only expect a partition if have generated one for the key.
         if (suppliedPartition == null) {
           continue;
         }

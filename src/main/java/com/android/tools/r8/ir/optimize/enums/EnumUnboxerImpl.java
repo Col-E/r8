@@ -1556,6 +1556,13 @@ public class EnumUnboxerImpl extends EnumUnboxer {
           || singleTargetReference == factory.objectsMethods.requireNonNullWithMessage) {
         return Reason.ELIGIBLE;
       }
+      if (singleTargetReference == factory.objectsMethods.toStringWithObject) {
+        addRequiredNameData(enumClass);
+        return Reason.ELIGIBLE;
+      }
+      if (singleTargetReference == factory.objectsMethods.equals) {
+        return comparableAsUnboxedValues(invoke);
+      }
       return new UnsupportedLibraryInvokeReason(singleTargetReference);
     }
 

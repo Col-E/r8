@@ -11,9 +11,12 @@ import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.regex.Matcher;
@@ -273,14 +276,25 @@ public class StringUtils {
     return join(LINE_SEPARATOR, collection, BraceType.NONE);
   }
 
-
   public static List<String> splitLines(String content) {
     return splitLines(content, false);
   }
 
+  public static Set<String> splitLinesIntoSet(String content) {
+    Set<String> set = new HashSet<>();
+    splitLines(content, false, set::add);
+    return set;
+  }
+
   public static List<String> splitLines(String content, boolean includeTrailingEmptyLine) {
+    List<String> list = new ArrayList<>();
+    splitLines(content, includeTrailingEmptyLine, list::add);
+    return list;
+  }
+
+  private static void splitLines(
+      String content, boolean includeTrailingEmptyLine, Consumer<String> consumer) {
     int length = content.length();
-    List<String> lines = new ArrayList<>();
     int start = 0;
     for (int i = 0; i < length; i++) {
       char c = content.charAt(i);
@@ -290,16 +304,15 @@ public class StringUtils {
       } else if (c != '\n') {
         continue;
       }
-      lines.add(content.substring(start, end));
+      consumer.accept(content.substring(start, end));
       start = i + 1;
     }
     if (start < length) {
       String line = content.substring(start);
       if (includeTrailingEmptyLine || !line.isEmpty()) {
-        lines.add(line);
+        consumer.accept(line);
       }
     }
-    return lines;
   }
 
   public static String zeroPrefix(int i, int width) {
@@ -479,5 +492,9 @@ public class StringUtils {
     if (i1 == -1) return i2;
     if (i2 == -1) return i1;
     return Math.min(i1, i2);
+  }
+
+  public static String toLowerCase(String s) {
+    return s.toLowerCase(Locale.ROOT);
   }
 }

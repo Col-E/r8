@@ -26,6 +26,7 @@ import com.android.tools.r8.graph.ThrowExceptionCode;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.synthesis.CommittedItems;
 import com.android.tools.r8.synthesis.SyntheticItems;
+import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.ListUtils;
 import com.android.tools.r8.utils.ThreadUtils;
 import com.android.tools.r8.utils.WorkList;
@@ -131,9 +132,13 @@ public class ApiReferenceStubber {
     // We cannot reliably create a stub that will have the same throwing behavior for all VMs.
     // Only create stubs for exceptions to allow them being present in catch handlers and super
     // types of existing program classes. See b/258270051 and b/259076765 for more information.
-    clazz
-        .allImmediateSupertypes()
-        .forEach(superType -> findReferencedLibraryClasses(superType, clazz));
+    // Also, for L devices we can have verification issues if there are super invokes to missing
+    // members on stubbed classes. See b/279780940 for more information.
+    if (appView.options().getMinApiLevel().isGreaterThan(AndroidApiLevel.L)) {
+      clazz
+          .allImmediateSupertypes()
+          .forEach(superType -> findReferencedLibraryClasses(superType, clazz));
+    }
     clazz.forEachProgramMethodMatching(
         DexEncodedMethod::hasCode,
         method -> {

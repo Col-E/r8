@@ -83,6 +83,10 @@ public abstract class DexReference extends IndexedDexItem {
     return null;
   }
 
+  public boolean isSamePackage(DexReference reference) {
+    return getContextType().isSamePackage(reference.getContextType());
+  }
+
   public int referenceTypeOrder() {
     if (isDexType()) {
       return 1;

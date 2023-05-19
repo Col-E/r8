@@ -10,6 +10,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.NeverClassInline;
+import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.NoVerticalClassMerging;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
@@ -44,6 +45,7 @@ public class UnusedInterfaceRemovalPackageBoundaryTest extends TestBase {
         .addInnerClasses(getClass(), UnusedInterfaceRemovalPackageBoundaryTestClasses.class)
         .addKeepMainRule(TestClass.class)
         .addKeepClassRules(I_CLASS)
+        .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
         .enableNoVerticalClassMergingAnnotations()
         .setMinApi(parameters)
@@ -83,6 +85,7 @@ public class UnusedInterfaceRemovalPackageBoundaryTest extends TestBase {
   @NeverClassInline
   static class A implements K {
 
+    @NeverInline
     A() {
       System.out.println("A");
     }

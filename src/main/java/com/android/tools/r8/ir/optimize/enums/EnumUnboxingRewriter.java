@@ -499,6 +499,18 @@ public class EnumUnboxingRewriter {
               getSharedUtilityClass()
                   .ensureCheckNotZeroWithMessageMethod(appView, context, eventConsumer));
         }
+      } else if (invokedMethod == factory.objectsMethods.toStringWithObject) {
+        rewriteStringValueOf(invoke, context, convertedEnums, instructionIterator, eventConsumer);
+      } else if (invokedMethod == factory.objectsMethods.equals) {
+        assert invoke.arguments().size() == 2;
+        Value argument = invoke.getFirstArgument();
+        DexType enumType = getEnumClassTypeOrNull(argument, convertedEnums);
+        if (enumType != null) {
+          replaceEnumInvoke(
+              instructionIterator,
+              invoke,
+              getSharedUtilityClass().ensureObjectsEqualsMethod(appView, context, eventConsumer));
+        }
       }
       return;
     }
@@ -506,17 +518,7 @@ public class EnumUnboxingRewriter {
     // Calls to java.lang.String.
     if (invokedMethod.getHolderType() == factory.stringType) {
       if (invokedMethod == factory.stringMembers.valueOf) {
-        assert invoke.arguments().size() == 1;
-        Value argument = invoke.getFirstArgument();
-        DexType enumType = getEnumClassTypeOrNull(argument, convertedEnums);
-        if (enumType != null) {
-          ProgramMethod stringValueOfMethod =
-              getLocalUtilityClass(enumType)
-                  .ensureStringValueOfMethod(appView, context, eventConsumer);
-          instructionIterator.replaceCurrentInstruction(
-              new InvokeStatic(
-                  stringValueOfMethod.getReference(), invoke.outValue(), invoke.arguments()));
-        }
+        rewriteStringValueOf(invoke, context, convertedEnums, instructionIterator, eventConsumer);
       }
       return;
     }
@@ -571,6 +573,24 @@ public class EnumUnboxingRewriter {
       } else {
         assert false;
       }
+    }
+  }
+
+  private void rewriteStringValueOf(
+      InvokeStatic invoke,
+      ProgramMethod context,
+      Map<Instruction, DexType> convertedEnums,
+      InstructionListIterator instructionIterator,
+      EnumUnboxerMethodProcessorEventConsumer eventConsumer) {
+    assert invoke.arguments().size() == 1;
+    Value argument = invoke.getFirstArgument();
+    DexType enumType = getEnumClassTypeOrNull(argument, convertedEnums);
+    if (enumType != null) {
+      ProgramMethod stringValueOfMethod =
+          getLocalUtilityClass(enumType).ensureStringValueOfMethod(appView, context, eventConsumer);
+      instructionIterator.replaceCurrentInstruction(
+          new InvokeStatic(
+              stringValueOfMethod.getReference(), invoke.outValue(), invoke.arguments()));
     }
   }
 

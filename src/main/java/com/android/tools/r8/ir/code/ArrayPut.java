@@ -190,9 +190,13 @@ public class ArrayPut extends ArrayAccess {
 
   @Override
   public DeadInstructionResult canBeDeadCode(AppView<?> appView, IRCode code) {
-    return instructionInstanceCanThrow(appView, code.context())
-        ? DeadInstructionResult.notDead()
-        : DeadInstructionResult.deadIfInValueIsDead(array());
+    if (!instructionInstanceCanThrow(appView, code.context())) {
+      Value arrayRoot = array().getAliasedValue();
+      if (arrayRoot.isDefinedByInstructionSatisfying(Instruction::isCreatingArray)) {
+        return DeadInstructionResult.deadIfInValueIsDead(arrayRoot);
+      }
+    }
+    return DeadInstructionResult.notDead();
   }
 
   @Override

@@ -55,12 +55,8 @@ public class SingleLineNoLineNumberStackTrace implements StackTraceForTest {
         "\tat com.android.tools.r8.naming.retrace.Main.void main(java.lang.String[])(Main.java:28)",
         "\tat com.android.tools.r8.naming.retrace.Main.void"
             + " method2(java.lang.String)(Main.java:42)",
-        "\tat com.android.tools.r8.naming.retrace.Main.void"
-            + " main2(java.lang.String[])(Main.java:29)",
         "\t<OR> at com.android.tools.r8.naming.retrace.Main.void"
             + " method2(java.lang.String)(Main.java:43)",
-        "\tat com.android.tools.r8.naming.retrace.Main.void"
-            + " main2(java.lang.String[])(Main.java:29)",
         "\t<OR> at com.android.tools.r8.naming.retrace.Main.void"
             + " method2(java.lang.String)(Main.java:44)",
         "\tat com.android.tools.r8.naming.retrace.Main.void"

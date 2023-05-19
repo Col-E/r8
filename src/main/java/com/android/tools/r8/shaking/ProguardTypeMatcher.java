@@ -125,6 +125,10 @@ public abstract class ProguardTypeMatcher {
     return new MatchSpecificType(type);
   }
 
+  public static ProguardTypeMatcher allClassesMatcher() {
+    return MatchClassTypes.MATCH_CLASS_TYPES;
+  }
+
   public static ProguardTypeMatcher defaultAllMatcher() {
     return MatchAllTypes.MATCH_ALL_TYPES;
   }

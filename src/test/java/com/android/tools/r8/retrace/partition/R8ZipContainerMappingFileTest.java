@@ -26,7 +26,6 @@ import com.google.common.io.ByteStreams;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -140,11 +139,7 @@ public class R8ZipContainerMappingFileTest extends TestBase {
         .setMappingPartitionFromKeySupplier(
             key -> {
               try {
-                // TODO(b/274735214): The key should exist.
-                ZipEntry entry = zipFile.getEntry(key);
-                return entry == null
-                    ? null
-                    : ByteStreams.toByteArray(zipFile.getInputStream(entry));
+                return ByteStreams.toByteArray(zipFile.getInputStream(zipFile.getEntry(key)));
               } catch (IOException e) {
                 throw new RuntimeException(e);
               }

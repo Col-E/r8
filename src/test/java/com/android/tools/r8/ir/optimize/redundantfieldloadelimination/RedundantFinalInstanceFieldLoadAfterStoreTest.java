@@ -102,6 +102,7 @@ public class RedundantFinalInstanceFieldLoadAfterStoreTest extends TestBase {
     static volatile boolean read;
     static volatile boolean initialized;
 
+    @NeverInline
     A() {
       fork();
       waitUntilRead();

@@ -43,7 +43,7 @@ public interface MappingPartitionMetadataInternal extends MappingPartitionMetada
   }
 
   default MetadataAdditionalInfo getAdditionalInfo() {
-    return MetadataAdditionalInfo.create(null);
+    return MetadataAdditionalInfo.create(null, null);
   }
 
   // Magic byte put into the metadata

@@ -4,6 +4,9 @@
 
 package adaptresourcefilenames.pkg.innerpkg;
 
+import adaptresourcefilenames.NoInliningOfDefaultInitializer;
+
+@NoInliningOfDefaultInitializer
 public class D {
 
   public void method() {

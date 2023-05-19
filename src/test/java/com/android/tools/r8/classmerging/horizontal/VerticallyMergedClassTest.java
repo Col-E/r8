@@ -54,6 +54,8 @@ public class VerticallyMergedClassTest extends HorizontalClassMergingTestBase {
 
   @NeverClassInline
   public static class C {
+
+    @NeverInline
     public C() {
       System.out.println("c");
     }

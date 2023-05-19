@@ -41,6 +41,7 @@ public abstract class TestRuntime {
     JDK16("jdk16", 60),
     JDK17("jdk17", 61),
     JDK18("jdk18", 62),
+    JDK20("jdk20", 64),
     ;
 
     /** This should generally be the latest checked in CF runtime we fully support. */

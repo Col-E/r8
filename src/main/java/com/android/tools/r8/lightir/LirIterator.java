@@ -51,6 +51,10 @@ public class LirIterator implements Iterator<LirInstructionView>, LirInstruction
       // Any instruction that is not a single byte has a two-byte header. The second byte is the
       // size of the variable width operand payload.
       int operandSize = u1();
+      if (operandSize == 0) {
+        // Zero is used to indicate the operand size is larger than a u1 encoded value.
+        operandSize = u4();
+      }
       endOfCurrentInstruction = currentByteIndex + operandSize;
     }
     return this;

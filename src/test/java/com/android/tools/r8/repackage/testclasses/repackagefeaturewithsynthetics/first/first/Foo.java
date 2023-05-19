@@ -5,11 +5,13 @@
 package com.android.tools.r8.repackage.testclasses.repackagefeaturewithsynthetics.first.first;
 
 import com.android.tools.r8.NeverClassInline;
+import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.repackage.RepackageFeatureWithSyntheticsTest.TestClass;
 
 @NeverClassInline
 public class Foo {
 
+  @NeverInline
   public Foo() {
     TestClass.run(() -> PkgProtectedMethod.getStream().println("first.first.Foo"));
   }

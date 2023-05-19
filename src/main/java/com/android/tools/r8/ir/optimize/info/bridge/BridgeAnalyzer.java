@@ -6,14 +6,18 @@ package com.android.tools.r8.ir.optimize.info.bridge;
 import static com.android.tools.r8.ir.code.Opcodes.ARGUMENT;
 import static com.android.tools.r8.ir.code.Opcodes.ASSUME;
 import static com.android.tools.r8.ir.code.Opcodes.CHECK_CAST;
+import static com.android.tools.r8.ir.code.Opcodes.GOTO;
 import static com.android.tools.r8.ir.code.Opcodes.INVOKE_DIRECT;
 import static com.android.tools.r8.ir.code.Opcodes.INVOKE_VIRTUAL;
 import static com.android.tools.r8.ir.code.Opcodes.RETURN;
 
 import com.android.tools.r8.graph.DexEncodedMethod;
+import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.CheckCast;
+import com.android.tools.r8.ir.code.Goto;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
+import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.ir.code.InvokeMethod;
 import com.android.tools.r8.ir.code.InvokeMethodWithReceiver;
 import com.android.tools.r8.ir.code.Return;
@@ -24,17 +28,15 @@ public class BridgeAnalyzer {
 
   /** Returns a {@link BridgeInfo} object describing this method if it is recognized as a bridge. */
   public static BridgeInfo analyzeMethod(DexEncodedMethod method, IRCode code) {
-    if (code.blocks.size() > 1) {
-      return failure();
-    }
-
     // Scan through the instructions one-by-one. We expect a sequence of Argument instructions,
     // followed by a (possibly empty) sequence of CheckCast instructions, followed by a single
     // InvokeMethod instruction, followed by an optional CheckCast instruction, followed by a Return
     // instruction.
     InvokeMethodWithReceiver uniqueInvoke = null;
     CheckCast uniqueReturnCast = null;
-    for (Instruction instruction : code.entryBlock().getInstructions()) {
+    InstructionListIterator instructionIterator = code.entryBlock().listIterator(code);
+    while (instructionIterator.hasNext()) {
+      Instruction instruction = instructionIterator.next();
       switch (instruction.opcode()) {
         case ARGUMENT:
           break;
@@ -74,6 +76,17 @@ public class BridgeAnalyzer {
             break;
           }
 
+        case GOTO:
+          {
+            Goto gotoInstruction = instruction.asGoto();
+            BasicBlock targetBlock = gotoInstruction.getTarget();
+            if (targetBlock.hasCatchHandlers()) {
+              return failure();
+            }
+            instructionIterator = targetBlock.listIterator(code);
+            break;
+          }
+
         case RETURN:
           if (!analyzeReturn(instruction.asReturn(), uniqueInvoke, uniqueReturnCast)) {
             return failure();
@@ -107,8 +120,10 @@ public class BridgeAnalyzer {
     }
     int argumentIndex = object.definition.asArgument().getIndex();
     Value castValue = checkCast.outValue();
-    // The out value cannot have any phi users since there is only one block.
-    assert !castValue.hasPhiUsers();
+    // The out value should not have any phi users since we only allow linear control flow.
+    if (castValue.hasPhiUsers()) {
+      return false;
+    }
     // It is not allowed to have any other users than the invoke instruction.
     if (castValue.hasDebugUsers() || !castValue.hasSingleUniqueUser()) {
       return false;
@@ -142,8 +157,10 @@ public class BridgeAnalyzer {
     Value returnValue = invoke.outValue();
     Value uncastValue = checkCast.object().getAliasedValue();
     Value castValue = checkCast.outValue();
-    // The out value cannot have any phi users since there is only one block.
-    assert !castValue.hasPhiUsers();
+    // The out value should not have any phi users since we only allow linear control flow.
+    if (castValue.hasPhiUsers()) {
+      return false;
+    }
     // It must cast the result to the return type of the enclosing method and return the cast value.
     return uncastValue == returnValue
         && checkCast.getType() == method.returnType()

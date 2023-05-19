@@ -52,6 +52,12 @@ public class EnumUnboxingMethods {
     return unboxedEnum1 == unboxedEnum2;
   }
 
+  // Objects#equals is similar to equals without the NPE for null entries.
+  // Objects.equals(null,null) answers true.
+  public static boolean objectEquals(int unboxedEnum1, int unboxedEnum2) {
+    return unboxedEnum1 == unboxedEnum2;
+  }
+
   // Methods zeroCheck and zeroCheckMessage are used to replace null checks on unboxed enums.
   public static void zeroCheck(int unboxedEnum) {
     if (unboxedEnum == 0) {

@@ -10,14 +10,27 @@ import com.android.tools.r8.retrace.RetracedClassReference;
 public final class RetracedClassReferenceImpl implements RetracedClassReference {
 
   private final ClassReference classReference;
+  private final boolean hasResult;
 
-  private RetracedClassReferenceImpl(ClassReference classReference) {
+  private RetracedClassReferenceImpl(ClassReference classReference, boolean hasResult) {
     assert classReference != null;
     this.classReference = classReference;
+    this.hasResult = hasResult;
   }
 
-  public static RetracedClassReferenceImpl create(ClassReference classReference) {
-    return new RetracedClassReferenceImpl(classReference);
+  public static RetracedClassReferenceImpl create(
+      ClassReference classReference, boolean hasResult) {
+    return new RetracedClassReferenceImpl(classReference, hasResult);
+  }
+
+  @Override
+  public boolean isUnknown() {
+    return !isKnown();
+  }
+
+  @Override
+  public boolean isKnown() {
+    return hasResult;
   }
 
   @Override

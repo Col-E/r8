@@ -8,6 +8,7 @@ import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 
+import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.NoHorizontalClassMerging;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
@@ -45,6 +46,7 @@ public class HorizontalClassMergingOfInitArgumentTypesTest extends TestBase {
               options.callSiteOptimizationOptions().setForceSyntheticsForInstanceInitializers(true);
               options.horizontalClassMergerOptions().enableIf(enableHorizontalClassMerging);
             })
+        .enableInliningAnnotations()
         .enableNoHorizontalClassMergingAnnotations()
         .setMinApi(parameters)
         .compile()
@@ -85,9 +87,11 @@ public class HorizontalClassMergingOfInitArgumentTypesTest extends TestBase {
 
     boolean unused;
 
+    @NeverInline
     A() {}
 
     // Unused argument removal will rewrite this into A(A$$ExternalSynthetic$IA0)
+    @NeverInline
     A(Object unused) {
       this.unused = true;
     }
@@ -103,9 +107,11 @@ public class HorizontalClassMergingOfInitArgumentTypesTest extends TestBase {
 
     boolean unused;
 
+    @NeverInline
     B() {}
 
     // Unused argument removal will rewrite this into B(B$$ExternalSynthetic$IA0)
+    @NeverInline
     B(Object unused) {
       this.unused = true;
     }

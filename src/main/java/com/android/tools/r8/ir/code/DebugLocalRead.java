@@ -12,6 +12,7 @@ import com.android.tools.r8.ir.conversion.DexBuilder;
 import com.android.tools.r8.ir.optimize.DeadCodeRemover.DeadInstructionResult;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.InliningConstraints;
+import com.android.tools.r8.lightir.LirBuilder;
 
 public class DebugLocalRead extends Instruction {
   private static final String ERROR_MESSAGE = "Unexpected attempt to emit debug-local read.";
@@ -49,6 +50,11 @@ public class DebugLocalRead extends Instruction {
   @Override
   public void buildCf(CfBuilder builder) {
     throw new Unreachable(ERROR_MESSAGE);
+  }
+
+  @Override
+  public void buildLir(LirBuilder<Value, ?> builder) {
+    builder.addDebugLocalRead();
   }
 
   @Override

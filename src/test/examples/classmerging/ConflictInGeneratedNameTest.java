@@ -4,6 +4,7 @@
 
 package classmerging;
 
+
 public class ConflictInGeneratedNameTest {
   public static void main(String[] args) {
     B obj = new B();
@@ -11,7 +12,7 @@ public class ConflictInGeneratedNameTest {
   }
 
   public static class A {
-    @NeverPropagateValue private String name = "A";
+    @NeverPropagateValue @NoRedundantFieldLoadElimination private String name = "A";
 
     public A() {
       print("In A.<init>()");
@@ -56,8 +57,10 @@ public class ConflictInGeneratedNameTest {
   }
 
   public static class B extends A {
-    @NeverPropagateValue private String name = "B";
-    @NeverPropagateValue private String name$classmerging$ConflictInGeneratedNameTest$A = "C";
+    @NeverPropagateValue @NoRedundantFieldLoadElimination private String name = "B";
+
+    @NeverPropagateValue @NoRedundantFieldLoadElimination
+    private String name$classmerging$ConflictInGeneratedNameTest$A = "C";
 
     public B() {
       print("In B.<init>()");

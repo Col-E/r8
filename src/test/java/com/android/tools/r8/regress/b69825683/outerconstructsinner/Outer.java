@@ -5,10 +5,12 @@
 package com.android.tools.r8.regress.b69825683.outerconstructsinner;
 
 import com.android.tools.r8.AssumeMayHaveSideEffects;
+import com.android.tools.r8.NeverInline;
 
 public class Outer {
 
   @AssumeMayHaveSideEffects
+  @NeverInline
   public Outer() {
     new Inner();
   }
@@ -16,12 +18,13 @@ public class Outer {
   public class Inner {
 
     @AssumeMayHaveSideEffects
+    @NeverInline
     private Inner() {}
   }
 
-  public static void main(String args[]) {
+  public static void main(String[] args) {
     new Outer();
-    for (java.lang.reflect.Constructor m : Outer.Inner.class.getDeclaredConstructors()) {
+    for (java.lang.reflect.Constructor<?> m : Outer.Inner.class.getDeclaredConstructors()) {
       System.out.println(m.getName());
     }
   }

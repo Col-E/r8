@@ -11,6 +11,7 @@ import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.android.tools.r8.NeverClassInline;
+import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.desugar.desugaredlibrary.DesugaredLibraryTestBase;
 import com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification;
@@ -53,6 +54,7 @@ public class ForceInlineConstructorWithRetargetedLibMemberTest extends Desugared
         .addInnerClasses(getClass())
         .addKeepMainRule(TestClass.class)
         .enableNeverClassInliningAnnotations()
+        .enableInliningAnnotations()
         .addVerticallyMergedClassesInspector(
             inspector -> inspector.assertMergedIntoSubtype(A.class))
         .compile()
@@ -80,6 +82,7 @@ public class ForceInlineConstructorWithRetargetedLibMemberTest extends Desugared
   @NeverClassInline
   static class B extends A {
 
+    @NeverInline
     B(String[] args) {
       super(args);
     }

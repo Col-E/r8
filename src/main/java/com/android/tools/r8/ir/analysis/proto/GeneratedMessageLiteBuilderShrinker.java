@@ -43,11 +43,11 @@ import com.android.tools.r8.ir.optimize.inliner.FixedInliningReasonStrategy;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.Enqueuer;
 import com.android.tools.r8.shaking.EnqueuerWorklist;
+import com.android.tools.r8.utils.Box;
 import com.android.tools.r8.utils.ObjectUtils;
 import com.android.tools.r8.utils.PredicateSet;
 import com.android.tools.r8.utils.ThreadUtils;
 import com.android.tools.r8.utils.Timing;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Sets;
 import java.util.ArrayList;
 import java.util.IdentityHashMap;
@@ -220,11 +220,8 @@ public class GeneratedMessageLiteBuilderShrinker {
     assert builder.superType == references.generatedMessageLiteBuilderType
         || builder.superType == references.generatedMessageLiteExtendableBuilderType;
 
-    DexField defaultInstanceField = references.getDefaultInstanceField(dynamicMethod.getHolder());
     Value builderValue =
         code.createValue(ClassTypeElement.create(builder.superType, definitelyNotNull(), appView));
-    Value defaultInstanceValue =
-        code.createValue(ClassTypeElement.create(defaultInstanceField.type, maybeNull(), appView));
 
     // Replace `new Message.Builder()` by `new GeneratedMessageLite.Builder()`
     // (or `new GeneratedMessageLite.ExtendableBuilder()`).
@@ -239,23 +236,47 @@ public class GeneratedMessageLiteBuilderShrinker {
     //
     // We may also see an accessibility bridge constructor, because the Builder constructor is
     // private. The accessibility bridge takes null as an argument.
+    DexField defaultInstanceField = references.getDefaultInstanceField(dynamicMethod.getHolder());
+    Box<Value> existingDefaultInstanceValue = new Box<>();
     InvokeDirect constructorInvoke =
         instructionIterator.nextUntil(
             instruction -> {
+              // After constructor inlining we may see a load of the DEFAULT_INSTANCE field.
+              if (instruction.isStaticGet()) {
+                StaticGet staticGet = instruction.asStaticGet();
+                if (staticGet.getField() == defaultInstanceField) {
+                  existingDefaultInstanceValue.set(staticGet.outValue());
+                  return false;
+                }
+              }
               assert instruction.isInvokeDirect() || instruction.isConstNumber();
               return instruction.isInvokeDirect();
             });
     assert constructorInvoke != null;
-    instructionIterator.replaceCurrentInstruction(
-        new StaticGet(defaultInstanceValue, defaultInstanceField));
-    instructionIterator.setInsertionPosition(constructorInvoke.getPosition());
-    instructionIterator.add(
-        new InvokeDirect(
-            builder.superType == references.generatedMessageLiteBuilderType
-                ? references.generatedMessageLiteBuilderMethods.constructorMethod
-                : references.generatedMessageLiteExtendableBuilderMethods.constructorMethod,
-            null,
-            ImmutableList.of(builderValue, defaultInstanceValue)));
+
+    DexMethod constructorMethod =
+        builder.superType == references.generatedMessageLiteBuilderType
+            ? references.generatedMessageLiteBuilderMethods.constructorMethod
+            : references.generatedMessageLiteExtendableBuilderMethods.constructorMethod;
+    if (existingDefaultInstanceValue.isSet()) {
+      instructionIterator.replaceCurrentInstruction(
+          InvokeDirect.builder()
+              .setArguments(builderValue, existingDefaultInstanceValue.get())
+              .setMethod(constructorMethod)
+              .build());
+    } else {
+      Value defaultInstanceValue =
+          code.createValue(
+              ClassTypeElement.create(defaultInstanceField.type, maybeNull(), appView));
+      instructionIterator.replaceCurrentInstruction(
+          new StaticGet(defaultInstanceValue, defaultInstanceField));
+      instructionIterator.setInsertionPosition(constructorInvoke.getPosition());
+      instructionIterator.add(
+          InvokeDirect.builder()
+              .setArguments(builderValue, defaultInstanceValue)
+              .setMethod(constructorMethod)
+              .build());
+    }
 
     converter.removeDeadCodeAndFinalizeIR(
         code, OptimizationFeedbackSimple.getInstance(), Timing.empty());

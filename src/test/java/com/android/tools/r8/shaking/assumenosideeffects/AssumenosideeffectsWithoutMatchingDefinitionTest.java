@@ -8,6 +8,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.DexIndexedConsumer.ArchiveConsumer;
+import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.errors.Unreachable;
@@ -109,6 +110,7 @@ public class AssumenosideeffectsWithoutMatchingDefinitionTest extends TestBase {
         .addKeepMainRule(MAIN)
         .addKeepRules(config.getKeepRule())
         .addDontObfuscate()
+        .enableInliningAnnotations()
         .setMinApi(parameters)
         .compile()
         .addRunClasspathFiles(parameters.isDexRuntime() ? libDexPath : libJarPath)
@@ -128,6 +130,7 @@ public class AssumenosideeffectsWithoutMatchingDefinitionTest extends TestBase {
   static class ProgramClass extends LibrarySub {
     private final String test;
 
+    @NeverInline
     private ProgramClass() {
       if (isInEditMode()) {
         test = "test";

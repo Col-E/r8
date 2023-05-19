@@ -24,6 +24,7 @@ import com.android.tools.r8.ir.optimize.Inliner.InlineAction;
 import com.android.tools.r8.ir.optimize.Inliner.Reason;
 import com.android.tools.r8.ir.optimize.InliningConstraints;
 import com.android.tools.r8.ir.optimize.inliner.WhyAreYouNotInliningReporter;
+import com.android.tools.r8.lightir.LirBuilder;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.collections.ProgramMethodSet;
 import java.util.List;
@@ -109,6 +110,11 @@ public class InvokePolymorphic extends InvokeMethod {
     // that is stored in getProto().
     DexMethod method = factory.createMethod(dexMethod.holder, getProto(), dexMethod.name);
     builder.add(new CfInvoke(org.objectweb.asm.Opcodes.INVOKEVIRTUAL, method, false), this);
+  }
+
+  @Override
+  public void buildLir(LirBuilder<Value, ?> builder) {
+    builder.addInvokePolymorphic(getInvokedMethod(), getProto(), arguments());
   }
 
   @Override

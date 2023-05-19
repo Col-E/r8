@@ -121,9 +121,12 @@ public class ApiModelMockSuperChainClassTest extends TestBase {
   }
 
   private void inspect(CodeInspector inspector) {
-    verifyThat(inspector, parameters, LibraryClass.class).stubbedUntil(lowerMockApiLevel);
-    verifyThat(inspector, parameters, LibraryInterface.class).stubbedUntil(lowerMockApiLevel);
-    verifyThat(inspector, parameters, OtherLibraryClass.class).stubbedUntil(mockApiLevel);
+    verifyThat(inspector, parameters, LibraryClass.class)
+        .stubbedBetween(AndroidApiLevel.L_MR1, lowerMockApiLevel);
+    verifyThat(inspector, parameters, LibraryInterface.class)
+        .stubbedBetween(AndroidApiLevel.L_MR1, lowerMockApiLevel);
+    verifyThat(inspector, parameters, OtherLibraryClass.class)
+        .stubbedBetween(AndroidApiLevel.L_MR1, mockApiLevel);
   }
 
   private void checkOutput(SingleTestRunResult<?> runResult) {

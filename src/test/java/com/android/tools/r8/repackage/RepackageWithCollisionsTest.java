@@ -59,6 +59,8 @@ public class RepackageWithCollisionsTest extends RepackageTestBase {
         .addKeepMainRule(TestClass.class)
         .addKeepRules("-keep class " + getRepackagePackage() + ".** { *; }")
         .addKeepAttributeInnerClassesAndEnclosingMethod()
+        .addOptionsModification(
+            options -> options.inlinerOptions().setEnableConstructorInlining(false))
         .apply(this::configureRepackaging)
         .enableNeverClassInliningAnnotations()
         .setMinApi(parameters)

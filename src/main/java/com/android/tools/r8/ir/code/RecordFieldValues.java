@@ -17,6 +17,7 @@ import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.InliningConstraints;
+import com.android.tools.r8.lightir.LirBuilder;
 import java.util.Arrays;
 import java.util.List;
 
@@ -26,6 +27,7 @@ public class RecordFieldValues extends Instruction {
 
   public RecordFieldValues(DexField[] fields, Value outValue, List<Value> fieldValues) {
     super(outValue, fieldValues);
+    assert fields.length == fieldValues.size();
     this.fields = fields;
   }
 
@@ -74,6 +76,11 @@ public class RecordFieldValues extends Instruction {
   @Override
   public void buildCf(CfBuilder builder) {
     builder.add(new CfRecordFieldValues(fields), this);
+  }
+
+  @Override
+  public void buildLir(LirBuilder<Value, ?> builder) {
+    builder.addRecordFieldValues(getFields(), inValues());
   }
 
   @Override

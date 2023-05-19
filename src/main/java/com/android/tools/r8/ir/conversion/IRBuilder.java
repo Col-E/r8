@@ -1492,7 +1492,8 @@ public class IRBuilder {
   }
 
   public void addRecordFieldValues(DexField[] fields, IntList registers, int outValue) {
-    List<Value> arguments = new ArrayList<>();
+    assert fields.length == registers.size();
+    List<Value> arguments = new ArrayList<>(registers.size());
     for (int register : registers) {
       arguments.add(readRegister(register, ValueTypeConstraint.OBJECT));
     }

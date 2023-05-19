@@ -85,6 +85,7 @@ public class NonFinalFieldWithNonDefaultValueAssignmentPropagationTest extends T
 
     boolean alwaysTrue;
 
+    @NeverInline
     Config() {
       // An instruction that cannot read alwaysTrue, because the receiver has not escaped
       // (except into Object.<init>()).

@@ -5,12 +5,15 @@
 package com.android.tools.r8.ir.optimize.inliner;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
+import static com.android.tools.r8.utils.codeinspector.Matchers.notIf;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.android.tools.r8.AlwaysInline;
 import com.android.tools.r8.AssumeMayHaveSideEffects;
 import com.android.tools.r8.NeverClassInline;
+import com.android.tools.r8.NeverInline;
+import com.android.tools.r8.NeverReprocessMethod;
 import com.android.tools.r8.NoHorizontalClassMerging;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
@@ -48,9 +51,11 @@ public class SingleTargetAfterInliningTest extends TestBase {
         .addOptionsModification(
             options ->
                 options.inlinerOptions().applyInliningToInlineePredicateForTesting =
-                    (appView, inlinee, inliningDepth) -> true)
+                    (appView, inlinee, inliningDepth) -> inliningDepth <= maxInliningDepth)
         .enableAlwaysInliningAnnotations()
+        .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
+        .enableNeverReprocessMethodAnnotations()
         .enableNoHorizontalClassMergingAnnotations()
         .enableSideEffectAnnotations()
         .setMinApi(parameters)
@@ -67,18 +72,29 @@ public class SingleTargetAfterInliningTest extends TestBase {
     // The indirection() method should be inlined.
     assertThat(testClassSubject.uniqueMethodWithOriginalName("indirection"), not(isPresent()));
 
-    // A.foo() should be absent if the max inlining depth is 1, because indirection() has been
-    // inlined into main(), which makes A.foo() eligible for inlining into main().
     ClassSubject aClassSubject = inspector.clazz(A.class);
     assertThat(aClassSubject, isPresent());
-    assertThat(aClassSubject.uniqueMethodWithOriginalName("foo"), not(isPresent()));
 
-    // A.bar() should always be inlined because it is marked as @AlwaysInline.
-    assertThat(aClassSubject.uniqueMethodWithOriginalName("bar"), not(isPresent()));
+    // B.foo() should be absent if the max inlining depth is 1, because indirection() has been
+    // inlined into main(), which makes B.foo() eligible for inlining into main().
+    ClassSubject bClassSubject = inspector.clazz(B.class);
+    assertThat(bClassSubject, isPresent());
+    assertThat(
+        bClassSubject.uniqueMethodWithOriginalName("foo"),
+        notIf(isPresent(), maxInliningDepth == 1));
+
+    // B.bar() should always be inlined because it is marked as @AlwaysInline.
+    assertThat(
+        bClassSubject.uniqueMethodWithOriginalName("bar"),
+        notIf(isPresent(), maxInliningDepth == 1));
+
+    ClassSubject cClassSubject = inspector.clazz(C.class);
+    assertThat(cClassSubject, isPresent());
   }
 
   static class TestClass {
 
+    @NeverReprocessMethod
     public static void main(String[] args) {
       // Ensure C is instantiated, to prevent us from finding a single target in indirection().
       new C();
@@ -103,6 +119,7 @@ public class SingleTargetAfterInliningTest extends TestBase {
   static class B extends A {
 
     @AssumeMayHaveSideEffects // To ensure that new B() cannot be removed.
+    @NeverInline
     B() {}
 
     @Override
@@ -122,6 +139,7 @@ public class SingleTargetAfterInliningTest extends TestBase {
   static class C extends A {
 
     @AssumeMayHaveSideEffects // To ensure that new C() cannot be removed.
+    @NeverInline
     C() {}
 
     @Override

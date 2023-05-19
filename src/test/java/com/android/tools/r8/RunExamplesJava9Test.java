@@ -183,7 +183,7 @@ public abstract class RunExamplesJava9Test<B extends BaseCommand.Builder<? exten
             "desugared-private-interface-methods",
             "privateinterfacemethods",
             "PrivateInterfaceMethods")
-        .withMinApiLevel(AndroidApiLevel.M.getLevel())
+        .withMinApiLevel(AndroidApiLevel.K.getLevel())
         .withKeepAll()
         .withDexCheck(
             dexInspector -> {

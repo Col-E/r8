@@ -70,7 +70,7 @@ public class CfCodeStackMapValidatingException {
       String detailMessage,
       AppView<?> appView) {
     StringBuilder sb =
-        new StringBuilder("Invalid stack map table at instruction ")
+        new StringBuilder("Invalid stack map table at instruction index ")
             .append(instructionIndex)
             .append(": ")
             .append(instruction)

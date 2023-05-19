@@ -7,6 +7,7 @@ import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.TestParameters;
 import java.util.List;
+import java.util.Objects;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -60,7 +61,15 @@ public class StringValueOfEnumUnboxingTest extends EnumUnboxingTestBase {
       System.out.println(MyEnum.A.ordinal());
       System.out.println(0);
       stringValueOf();
+      objectsToString();
       stringBuilder();
+    }
+
+    private static void objectsToString() {
+      System.out.println(getStringThroughObjects(MyEnum.A));
+      System.out.println("A");
+      System.out.println(getStringThroughObjects(null));
+      System.out.println("null");
     }
 
     private static void stringValueOf() {
@@ -132,6 +141,11 @@ public class StringValueOfEnumUnboxingTest extends EnumUnboxingTestBase {
     @NeverInline
     private static String getString(MyEnum e) {
       return String.valueOf(e);
+    }
+
+    @NeverInline
+    private static String getStringThroughObjects(MyEnum e) {
+      return Objects.toString(e);
     }
   }
 }

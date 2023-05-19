@@ -5,15 +5,13 @@
 package com.android.tools.r8.shaking.constructor;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
-import static com.android.tools.r8.utils.codeinspector.Matchers.onlyIf;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.Assume.assumeFalse;
 
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.apimodel.ApiModelingTestHelper;
-import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
@@ -41,15 +39,11 @@ public class ForwardingConstructorUsedFromPlatformShakingOnDexTest extends TestB
   private static List<byte[]> transformedLibraryClassFileData;
 
   @Parameter(0)
-  public boolean enableModeling;
-
-  @Parameter(1)
   public TestParameters parameters;
 
-  @Parameters(name = "{1}, modeling: {0}")
-  public static List<Object[]> data() {
-    return buildParameters(
-        BooleanUtils.values(), getTestParameters().withAllRuntimesAndApiLevels().build());
+  @Parameters(name = "{0}")
+  public static TestParametersCollection data() {
+    return getTestParameters().withAllRuntimesAndApiLevels().build();
   }
 
   @BeforeClass
@@ -60,7 +54,6 @@ public class ForwardingConstructorUsedFromPlatformShakingOnDexTest extends TestB
 
   @Test
   public void testRuntime() throws Exception {
-    assumeFalse(enableModeling);
     testForRuntime(parameters)
         .addProgramClassFileData(transformedProgramClassFileData)
         .addProgramClassFileData(transformedLibraryClassFileData)
@@ -75,14 +68,6 @@ public class ForwardingConstructorUsedFromPlatformShakingOnDexTest extends TestB
         .addLibraryClassFileData(transformedLibraryClassFileData)
         .addLibraryFiles(parameters.getDefaultRuntimeLibrary())
         .addKeepMainRule(Main.class)
-        .applyIf(
-            !enableModeling,
-            testBuilder ->
-                testBuilder.addOptionsModification(
-                    options ->
-                        options
-                            .getRedundantBridgeRemovalOptions()
-                            .clearNoConstructorShrinkingHierarchiesForTesting()))
         // Since Fragment is first defined in API 11.
         .apply(ApiModelingTestHelper::disableStubbingOfClasses)
         .enableNeverClassInliningAnnotations()
@@ -91,10 +76,7 @@ public class ForwardingConstructorUsedFromPlatformShakingOnDexTest extends TestB
         .inspect(this::inspect)
         .addRunClasspathClassFileData(transformedLibraryClassFileData)
         .run(parameters.getRuntime(), Main.class)
-        .applyIf(
-            enableModeling || !parameters.canHaveNonReboundConstructorInvoke(),
-            runResult -> runResult.assertSuccessWithOutput(EXPECTED_OUTPUT),
-            runResult -> runResult.assertFailureWithErrorThatThrows(NoSuchMethodException.class));
+        .assertSuccessWithOutput(EXPECTED_OUTPUT);
   }
 
   private static List<byte[]> getTransformedProgramClasses() throws Exception {
@@ -144,15 +126,11 @@ public class ForwardingConstructorUsedFromPlatformShakingOnDexTest extends TestB
   private void inspect(CodeInspector inspector) {
     ClassSubject myFragmentClassSubject = inspector.clazz(MyFragment.class);
     assertThat(myFragmentClassSubject, isPresent());
-    assertThat(
-        myFragmentClassSubject.init(),
-        onlyIf(enableModeling || !parameters.canHaveNonReboundConstructorInvoke(), isPresent()));
+    assertThat(myFragmentClassSubject.init(), isPresent());
 
     ClassSubject myZygotePreloadClassSubject = inspector.clazz(MyZygotePreload.class);
     assertThat(myZygotePreloadClassSubject, isPresent());
-    assertThat(
-        myZygotePreloadClassSubject.init(),
-        onlyIf(enableModeling || !parameters.canHaveNonReboundConstructorInvoke(), isPresent()));
+    assertThat(myZygotePreloadClassSubject.init(), isPresent());
   }
 
   // Library classes.

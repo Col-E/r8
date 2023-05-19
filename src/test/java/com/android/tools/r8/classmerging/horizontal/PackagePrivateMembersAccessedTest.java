@@ -8,6 +8,7 @@ import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.android.tools.r8.NeverClassInline;
+import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.classmerging.horizontal.testclasses.C;
 import com.android.tools.r8.classmerging.horizontal.testclasses.D;
@@ -42,6 +43,7 @@ public class PackagePrivateMembersAccessedTest extends HorizontalClassMergingTes
 
   @NeverClassInline
   public static class E {
+    @NeverInline
     public E(int v) {
       System.out.println(v);
     }

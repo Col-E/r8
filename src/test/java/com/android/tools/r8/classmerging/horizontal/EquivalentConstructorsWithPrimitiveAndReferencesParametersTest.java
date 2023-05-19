@@ -53,7 +53,8 @@ public class EquivalentConstructorsWithPrimitiveAndReferencesParametersTest exte
               ClassSubject aClassSubject = inspector.clazz(A.class);
               assertThat(aClassSubject, isPresent());
               assertEquals(
-                  2, aClassSubject.allMethods(FoundMethodSubject::isInstanceInitializer).size());
+                  parameters.canInitNewInstanceUsingSuperclassConstructor() ? 0 : 2,
+                  aClassSubject.allMethods(FoundMethodSubject::isInstanceInitializer).size());
             })
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines("A", "B");

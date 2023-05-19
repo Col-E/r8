@@ -4,8 +4,10 @@
 package com.android.tools.r8.shaking.keptgraph;
 
 import com.android.tools.r8.Keep;
+import com.android.tools.r8.NoInliningOfDefaultInitializer;
 
 @Keep
+@NoInliningOfDefaultInitializer
 public class KeptByFieldReflectionTest {
 
   public int foo = 42;

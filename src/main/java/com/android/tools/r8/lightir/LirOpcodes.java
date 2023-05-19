@@ -14,7 +14,11 @@ public interface LirOpcodes {
 
   static boolean isOneByteInstruction(int opcode) {
     assert opcode >= ACONST_NULL;
-    return opcode <= DCONST_1 || opcode == RETURN || opcode == DEBUGPOS || opcode == FALLTHROUGH;
+    return opcode <= DCONST_1
+        || opcode == RETURN
+        || opcode == DEBUGPOS
+        || opcode == FALLTHROUGH
+        || opcode == DEBUGLOCALREAD;
   }
 
   // Instructions maintaining the same opcode as defined in CF.
@@ -197,6 +201,14 @@ public interface LirOpcodes {
   int INVOKENEWARRAY = 214;
   int NEWARRAYFILLEDDATA = 215;
   int ITEMBASEDCONSTSTRING = 216;
+  int NEWUNBOXEDENUMINSTANCE = 217;
+  int INOT = 218;
+  int LNOT = 219;
+  int DEBUGLOCALREAD = 220;
+  int INITCLASS = 221;
+  int INVOKEPOLYMORPHIC = 222;
+  int RECORDFIELDVALUES = 223;
+  int CHECKCAST_SAFE = 224;
 
   static String toString(int opcode) {
     switch (opcode) {
@@ -515,6 +527,22 @@ public interface LirOpcodes {
         return "NEWARRAYFILLEDDATA";
       case ITEMBASEDCONSTSTRING:
         return "ITEMBASEDCONSTSTRING";
+      case NEWUNBOXEDENUMINSTANCE:
+        return "NEWUNBOXEDENUMINSTANCE";
+      case INOT:
+        return "INOT";
+      case LNOT:
+        return "LNOT";
+      case DEBUGLOCALREAD:
+        return "DEBUGLOCALREAD";
+      case INITCLASS:
+        return "INITCLASS";
+      case INVOKEPOLYMORPHIC:
+        return "INVOKEPOLYMORPHIC";
+      case RECORDFIELDVALUES:
+        return "RECORDFIELDVALUES";
+      case CHECKCAST_SAFE:
+        return "CHECKCAST_SAFE";
 
       default:
         throw new Unreachable("Unexpected LIR opcode: " + opcode);

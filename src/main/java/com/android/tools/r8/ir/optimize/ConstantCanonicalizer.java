@@ -152,7 +152,7 @@ public class ConstantCanonicalizer {
   public ConstantCanonicalizer canonicalize() {
     Object2ObjectLinkedOpenCustomHashMap<Instruction, List<Instruction>> valuesDefinedByConstant =
         new Object2ObjectLinkedOpenCustomHashMap<>(
-            new Strategy<Instruction>() {
+            new Strategy<>() {
 
               @Override
               public int hashCode(Instruction candidate) {
@@ -428,7 +428,7 @@ public class ConstantCanonicalizer {
               return false;
             }
           }
-          if (!isReadOfFinalFieldOutsideInitializer(instanceGet)) {
+          if (!isReadOfEffectivelyFinalFieldOutsideInitializer(instanceGet)) {
             return false;
           }
           if (getOrComputeIneligibleInstanceGetInstructions().contains(instanceGet)) {
@@ -444,7 +444,7 @@ public class ConstantCanonicalizer {
           if (staticGet.instructionMayHaveSideEffects(appView, context)) {
             return false;
           }
-          if (!isReadOfFinalFieldOutsideInitializer(staticGet)
+          if (!isReadOfEffectivelyFinalFieldOutsideInitializer(staticGet)
               && !isEffectivelyFinalField(staticGet)) {
             return false;
           }
@@ -475,7 +475,7 @@ public class ConstantCanonicalizer {
     return true;
   }
 
-  private boolean isReadOfFinalFieldOutsideInitializer(FieldGet fieldGet) {
+  private boolean isReadOfEffectivelyFinalFieldOutsideInitializer(FieldGet fieldGet) {
     if (getOrComputeIsAccessingVolatileField()) {
       // A final field may be initialized concurrently. A requirement for this is that the field is
       // volatile. However, the reading or writing of another volatile field also allows for
@@ -500,9 +500,7 @@ public class ConstantCanonicalizer {
     ProgramField resolvedField = resolutionResult.getSingleProgramField();
     FieldAccessFlags accessFlags = resolvedField.getAccessFlags();
     assert !accessFlags.isVolatile();
-    // TODO(b/236661949): Add support for effectively final fields so that this also works well
-    //  without -allowaccessmodification.
-    if (!accessFlags.isFinal()) {
+    if (!resolvedField.isFinalOrEffectivelyFinal(appViewWithClassHierarchy)) {
       return false;
     }
     if (appView.getKeepInfo(resolvedField).isPinned(appView.options())) {

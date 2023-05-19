@@ -5,11 +5,8 @@
 package com.android.tools.r8.ir.analysis.sideeffect;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isAbsent;
-import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
-import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 
-import com.android.tools.r8.NeverPropagateValue;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
@@ -18,20 +15,18 @@ import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameter;
 import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
 public class SingletonClassInitializerPatternCanBePostponedTest extends TestBase {
 
-  private final TestParameters parameters;
+  @Parameter(0)
+  public TestParameters parameters;
 
   @Parameters(name = "{0}")
   public static TestParametersCollection data() {
     return getTestParameters().withAllRuntimesAndApiLevels().build();
-  }
-
-  public SingletonClassInitializerPatternCanBePostponedTest(TestParameters parameters) {
-    this.parameters = parameters;
   }
 
   @Test
@@ -39,7 +34,6 @@ public class SingletonClassInitializerPatternCanBePostponedTest extends TestBase
     testForR8(parameters.getBackend())
         .addInnerClasses(SingletonClassInitializerPatternCanBePostponedTest.class)
         .addKeepMainRule(TestClass.class)
-        .enableMemberValuePropagationAnnotations()
         .setMinApi(parameters)
         .compile()
         .inspect(this::inspect)
@@ -50,10 +44,6 @@ public class SingletonClassInitializerPatternCanBePostponedTest extends TestBase
   private void inspect(CodeInspector inspector) {
     ClassSubject classSubject = inspector.clazz(A.class);
     assertThat(classSubject, isAbsent());
-
-    // A.inlineable() should be inlined because we should be able to determine that A.<clinit>() can
-    // safely be postponed.
-    assertThat(classSubject.uniqueMethodWithOriginalName("inlineable"), not(isPresent()));
   }
 
   static class TestClass {
@@ -68,7 +58,7 @@ public class SingletonClassInitializerPatternCanBePostponedTest extends TestBase
 
     static A INSTANCE = new A(" world!");
 
-    @NeverPropagateValue final String message;
+    final String message;
 
     A(String message) {
       this.message = message;
