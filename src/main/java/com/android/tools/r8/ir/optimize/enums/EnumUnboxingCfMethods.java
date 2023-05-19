@@ -150,16 +150,16 @@ public final class EnumUnboxingCfMethods {
         2,
         ImmutableList.of(
             label0,
-            new CfLoad(ValueType.INT, 0),
-            new CfLoad(ValueType.INT, 1),
+            CfLoad.ILOAD_0,
+            CfLoad.ILOAD_1,
             new CfIfCmp(IfType.NE, ValueType.INT, label1),
-            new CfConstNumber(1, ValueType.INT),
+            CfConstNumber.ICONST_1,
             new CfGoto(label2),
             label1,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1}, new FrameType[] {FrameType.intType(), FrameType.intType()})),
-            new CfConstNumber(0, ValueType.INT),
+            CfConstNumber.ICONST_0,
             label2,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(

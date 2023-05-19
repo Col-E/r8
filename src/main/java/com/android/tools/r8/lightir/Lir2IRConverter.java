@@ -786,7 +786,7 @@ public class Lir2IRConverter {
 
     @Override
     public void onDebugLocalRead() {
-      addInstruction(new DebugLocalRead());
+      addInstruction(DebugLocalRead.INSTANCE);
     }
 
     @Override

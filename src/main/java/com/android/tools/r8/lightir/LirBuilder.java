@@ -187,6 +187,22 @@ public class LirBuilder<V, EV> {
     public RecordFieldValuesPayload(DexField[] fields) {
       this.fields = fields;
     }
+
+    @Override
+    public boolean equals(Object o) {
+      if (this == o) return true;
+      if (o == null || getClass() != o.getClass()) return false;
+
+      RecordFieldValuesPayload that = (RecordFieldValuesPayload) o;
+
+      // Probably incorrect - comparing Object[] arrays with Arrays.equals
+      return Arrays.equals(fields, that.fields);
+    }
+
+    @Override
+    public int hashCode() {
+      return Arrays.hashCode(fields);
+    }
   }
 
   public LirBuilder(DexMethod method, LirEncodingStrategy<V, EV> strategy, DexItemFactory factory) {
