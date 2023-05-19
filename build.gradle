@@ -32,7 +32,7 @@ ext {
     fastutilVersion = '8.5.11'
     guavaVersion = '31.1-jre'
     joptSimpleVersion = '4.6'
-    gsonVersion = '2.7'
+    gsonVersion = '2.10.1'
     junitVersion = '4.13-beta-2'
     mockitoVersion = '2.10.0'
     // The kotlin version is only here to specify the kotlin language level,
