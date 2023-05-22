@@ -4,13 +4,15 @@
 
 package com.android.tools.r8.internal.opensourceapps;
 
+import static org.junit.Assume.assumeTrue;
+
 import com.android.tools.r8.LibraryDesugaringTestConfiguration;
 import com.android.tools.r8.R8TestBuilder;
-import com.android.tools.r8.R8TestCompileResult;
 import com.android.tools.r8.StringResource;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
+import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.ZipUtils;
 import java.io.IOException;
@@ -38,19 +40,17 @@ public class TiviTest extends TestBase {
 
   @BeforeClass
   public static void setup() throws IOException {
-    // assumeTrue(ToolHelper.isLocalDevelopment());
+    assumeTrue(ToolHelper.isLocalDevelopment());
     outDirectory = getStaticTemp().newFolder().toPath();
     ZipUtils.unzip(Paths.get("third_party/opensource-apps/tivi/dump_app.zip"), outDirectory);
   }
 
   @Test
   public void testR8() throws Exception {
-    R8TestCompileResult compile =
-        testForR8(Backend.DEX)
-            .addProgramFiles(outDirectory.resolve("program.jar"))
-            .apply(this::configure)
-            .compile();
-    System.out.println(compile.app.applicationSize());
+    testForR8(Backend.DEX)
+        .addProgramFiles(outDirectory.resolve("program.jar"))
+        .apply(this::configure)
+        .compile();
   }
 
   @Test

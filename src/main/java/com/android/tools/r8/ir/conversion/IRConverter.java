@@ -27,6 +27,7 @@ import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.InstructionIterator;
 import com.android.tools.r8.ir.code.Value;
+import com.android.tools.r8.ir.conversion.passes.BinopRewriter;
 import com.android.tools.r8.ir.conversion.passes.ParentConstructorHoistingCodeRewriter;
 import com.android.tools.r8.ir.conversion.passes.SplitBranchOnKnownBoolean;
 import com.android.tools.r8.ir.desugar.CfInstructionDesugaringCollection;
@@ -125,6 +126,7 @@ public class IRConverter {
   private final TypeChecker typeChecker;
   protected final ServiceLoaderRewriter serviceLoaderRewriter;
   private final EnumValueOptimizer enumValueOptimizer;
+  private final BinopRewriter binopRewriter;
   protected final EnumUnboxer enumUnboxer;
   protected final InstanceInitializerOutliner instanceInitializerOutliner;
   protected final RemoveVerificationErrorForUnknownReturnedValues
@@ -213,6 +215,7 @@ public class IRConverter {
       this.serviceLoaderRewriter = null;
       this.methodOptimizationInfoCollector = null;
       this.enumValueOptimizer = null;
+      this.binopRewriter = null;
       this.enumUnboxer = EnumUnboxer.empty();
       this.assumeInserter = null;
       this.instanceInitializerOutliner = null;
@@ -275,6 +278,10 @@ public class IRConverter {
               : null;
       this.enumValueOptimizer =
           options.enableEnumValueOptimization ? new EnumValueOptimizer(appViewWithLiveness) : null;
+      this.binopRewriter =
+          options.testing.enableBinopOptimization && !options.debug
+              ? new BinopRewriter(appView)
+              : null;
     } else {
       AppView<AppInfo> appViewWithoutClassHierarchy = appView.withoutClassHierarchy();
       this.assumeInserter = null;
@@ -295,6 +302,7 @@ public class IRConverter {
       this.serviceLoaderRewriter = null;
       this.methodOptimizationInfoCollector = null;
       this.enumValueOptimizer = null;
+      this.binopRewriter = null;
       this.enumUnboxer = EnumUnboxer.empty();
     }
     this.stringSwitchRemover =
@@ -778,6 +786,9 @@ public class IRConverter {
       timing.begin("Remove field loads");
       new RedundantFieldLoadAndStoreElimination(appView, code).run();
       timing.end();
+    }
+    if (binopRewriter != null) {
+      binopRewriter.run(context, code, timing);
     }
 
     if (options.testing.invertConditionals) {
