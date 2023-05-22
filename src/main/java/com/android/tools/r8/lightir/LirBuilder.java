@@ -8,7 +8,6 @@ import com.android.tools.r8.cf.code.CfArithmeticBinop.Opcode;
 import com.android.tools.r8.cf.code.CfLogicalBinop;
 import com.android.tools.r8.cf.code.CfNumberConversion;
 import com.android.tools.r8.dex.MixedSectionCollection;
-import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.DebugLocalInfo;
 import com.android.tools.r8.graph.DexCallSite;
@@ -384,7 +383,7 @@ public class LirBuilder<V, EV> {
       case DOUBLE:
         return addConstDouble(value);
       default:
-        throw new Unimplemented();
+        throw new Unreachable();
     }
   }
 

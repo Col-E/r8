@@ -11,6 +11,7 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
+import com.android.tools.r8.lightir.LirBuilder;
 import com.android.tools.r8.utils.ThrowingBiConsumer;
 import com.android.tools.r8.utils.ThrowingConsumer;
 
@@ -92,6 +93,11 @@ public class StringSwitch extends Switch {
           .append(System.lineSeparator());
     }
     return builder.append("          F -> ").append(fallthroughBlock().getNumber()).toString();
+  }
+
+  @Override
+  public void buildLir(LirBuilder<Value, ?> builder) {
+    throw new Unreachable();
   }
 
   @Override

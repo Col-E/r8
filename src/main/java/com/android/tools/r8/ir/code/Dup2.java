@@ -14,6 +14,7 @@ import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.InliningConstraints;
+import com.android.tools.r8.lightir.LirBuilder;
 import com.google.common.collect.ImmutableList;
 
 public class Dup2 extends Instruction {
@@ -82,6 +83,11 @@ public class Dup2 extends Instruction {
   @Override
   public void buildDex(DexBuilder builder) {
     throw new Unreachable("This classfile-specific IR should not be inserted in the Dex backend.");
+  }
+
+  @Override
+  public void buildLir(LirBuilder<Value, ?> builder) {
+    throw new Unreachable("This classfile-specific IR should not be used before finalizing to CF.");
   }
 
   @Override
