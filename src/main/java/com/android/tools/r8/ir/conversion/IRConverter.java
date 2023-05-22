@@ -28,6 +28,7 @@ import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.InstructionIterator;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.conversion.passes.BinopRewriter;
+import com.android.tools.r8.ir.conversion.passes.CommonSubexpressionElimination;
 import com.android.tools.r8.ir.conversion.passes.ParentConstructorHoistingCodeRewriter;
 import com.android.tools.r8.ir.conversion.passes.SplitBranchOnKnownBoolean;
 import com.android.tools.r8.ir.desugar.CfInstructionDesugaringCollection;
@@ -113,6 +114,7 @@ public class IRConverter {
   private final ClassInliner classInliner;
   protected final InternalOptions options;
   public final CodeRewriter codeRewriter;
+  public final CommonSubexpressionElimination commonSubexpressionElimination;
   private final SplitBranchOnKnownBoolean splitBranchOnKnownBoolean;
   public final AssertionErrorTwoArgsConstructorRewriter assertionErrorTwoArgsConstructorRewriter;
   private final NaturalIntLoopRemover naturalIntLoopRemover = new NaturalIntLoopRemover();
@@ -164,6 +166,7 @@ public class IRConverter {
     this.appView = appView;
     this.options = appView.options();
     this.codeRewriter = new CodeRewriter(appView);
+    this.commonSubexpressionElimination = new CommonSubexpressionElimination(appView);
     this.splitBranchOnKnownBoolean = new SplitBranchOnKnownBoolean(appView);
     this.assertionErrorTwoArgsConstructorRewriter =
         appView.options().desugarState.isOn()
@@ -745,9 +748,7 @@ public class IRConverter {
           code, methodProcessor, methodProcessingContext);
       timing.end();
     }
-    timing.begin("Run CSE");
-    codeRewriter.commonSubexpressionElimination(code);
-    timing.end();
+    commonSubexpressionElimination.run(context, code, timing);
     timing.begin("Simplify arrays");
     codeRewriter.simplifyArrayConstruction(code);
     timing.end();
