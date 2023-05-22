@@ -97,9 +97,6 @@ public class BinopRewriter extends CodeRewriterPass<AppInfo> {
 
   @Override
   public void rewriteCode(ProgramMethod method, IRCode code) {
-    if (true) {
-      return;
-    }
     InstructionListIterator iterator = code.instructionListIterator();
     while (iterator.hasNext()) {
       Instruction next = iterator.next();
