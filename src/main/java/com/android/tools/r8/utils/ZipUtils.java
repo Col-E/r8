@@ -235,14 +235,15 @@ public class ZipUtils {
   }
 
   public static boolean isClassFile(String entry) {
-    String name = StringUtils.toLowerCase(entry);
-    if (name.endsWith(MODULE_INFO_CLASS)) {
+    if (entry.endsWith(MODULE_INFO_CLASS)) {
       return false;
     }
-    if (name.startsWith("meta-inf") || name.startsWith("/meta-inf")) {
+    // Only check for upper case META-INF. See JAR File Specification,
+    // https://docs.oracle.com/en/java/javase/17/docs/specs/jar/jar.html.
+    if (entry.startsWith("META-INF") || entry.startsWith("/META-INF")) {
       return false;
     }
-    return name.endsWith(CLASS_EXTENSION);
+    return entry.endsWith(CLASS_EXTENSION);
   }
 
   public static class ZipBuilder {
