@@ -63,7 +63,7 @@ public class CompileDumpCompatR8 extends CompileDumpBase {
       Arrays.asList("--art-profile", "--feature-jar");
 
   private static boolean FileUtils_isArchive(Path path) {
-    String name = path.getFileName().toString().toLowerCase();
+    String name = StringUtils.toLowerCase(path.getFileName().toString());
     return name.endsWith(".apk")
         || name.endsWith(".jar")
         || name.endsWith(".zip")

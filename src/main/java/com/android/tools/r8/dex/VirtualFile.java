@@ -37,6 +37,7 @@ import com.android.tools.r8.utils.IntBox;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.Reporter;
 import com.android.tools.r8.utils.SetUtils;
+import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.Timing;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -165,14 +166,14 @@ public class VirtualFile {
   public static String deriveCommonPrefixAndSanityCheck(List<String> fileNames) {
     Iterator<String> nameIterator = fileNames.iterator();
     String first = nameIterator.next();
-    if (!first.toLowerCase().endsWith(FileUtils.DEX_EXTENSION)) {
+    if (!StringUtils.toLowerCase(first).endsWith(FileUtils.DEX_EXTENSION)) {
       throw new RuntimeException("Illegal suffix for dex file: `" + first + "`.");
     }
     String prefix = first.substring(0, first.length() - FileUtils.DEX_EXTENSION.length());
     int index = 2;
     while (nameIterator.hasNext()) {
       String next = nameIterator.next();
-      if (!next.toLowerCase().endsWith(FileUtils.DEX_EXTENSION)) {
+      if (!StringUtils.toLowerCase(next).endsWith(FileUtils.DEX_EXTENSION)) {
         throw new RuntimeException("Illegal suffix for dex file: `" + first + "`.");
       }
       if (!next.startsWith(prefix)) {

@@ -12,6 +12,7 @@ import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.FileUtils;
+import com.android.tools.r8.utils.StringUtils;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.List;
@@ -58,7 +59,9 @@ public class DontUseMixedCaseClassNamesExistingClassTest extends TestBase {
         .inspect(
             inspector -> {
               String finalName = Main.class.getPackage().getName() + "." + FINAL_CLASS_NAME;
-              assertEquals(finalName.toLowerCase(), Main.class.getTypeName().toLowerCase());
+              assertEquals(
+                  StringUtils.toLowerCase(finalName),
+                  StringUtils.toLowerCase(Main.class.getTypeName()));
               if (dontUseMixedCase) {
                 assertNotEquals(finalName, inspector.clazz(A.class).getFinalName());
               } else {

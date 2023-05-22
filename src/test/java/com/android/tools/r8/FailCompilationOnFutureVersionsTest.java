@@ -9,6 +9,7 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import com.android.tools.r8.utils.InternalOptions;
+import com.android.tools.r8.utils.StringUtils;
 import java.io.IOException;
 import java.nio.file.Path;
 import org.junit.Test;
@@ -119,8 +120,7 @@ public class FailCompilationOnFutureVersionsTest extends TestBase {
                     diagnotics.getErrors().stream()
                         .allMatch(
                             s ->
-                                s.getDiagnosticMessage()
-                                    .toLowerCase()
+                                StringUtils.toLowerCase(s.getDiagnosticMessage())
                                     .contains("unsupported class file major version")));
               });
     } catch (CompilationFailedException e) {

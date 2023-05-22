@@ -394,11 +394,11 @@ public class StringUtils {
   }
 
   public static boolean isFalsy(String string) {
-    return string.equals("0") || string.toLowerCase().equals("false");
+    return string.equals("0") || StringUtils.toLowerCase(string).equals("false");
   }
 
   public static boolean isTruthy(String string) {
-    return string.equals("1") || string.toLowerCase().equals("true");
+    return string.equals("1") || StringUtils.toLowerCase(string).equals("true");
   }
 
   public static boolean isWhitespace(int codePoint) {
@@ -483,7 +483,7 @@ public class StringUtils {
     if (stringToCapitalize == null || stringToCapitalize.isEmpty()) {
       return stringToCapitalize;
     }
-    return stringToCapitalize.substring(0, 1).toUpperCase() + stringToCapitalize.substring(1);
+    return toUpperCase(stringToCapitalize.substring(0, 1)) + stringToCapitalize.substring(1);
   }
 
   public static int indexOf(String s, char ch1, char ch2) {
@@ -496,5 +496,9 @@ public class StringUtils {
 
   public static String toLowerCase(String s) {
     return s.toLowerCase(Locale.ROOT);
+  }
+
+  public static String toUpperCase(String s) {
+    return s.toUpperCase(Locale.ROOT);
   }
 }

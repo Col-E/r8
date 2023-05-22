@@ -11,6 +11,7 @@ import com.android.tools.r8.TestBase.Backend;
 import com.android.tools.r8.dex.Marker;
 import com.android.tools.r8.dex.Marker.Tool;
 import com.android.tools.r8.utils.AndroidApiLevel;
+import com.android.tools.r8.utils.StringUtils;
 import com.google.common.collect.ImmutableList;
 import java.util.Collection;
 import java.util.HashSet;
@@ -113,7 +114,7 @@ public abstract class MarkerMatcher extends TypeSafeMatcher<Marker> {
     return new MarkerMatcher() {
       @Override
       protected boolean eval(Marker marker) {
-        return marker.getCompilationMode().equals(compilationMode.name().toLowerCase());
+        return marker.getCompilationMode().equals(StringUtils.toLowerCase(compilationMode.name()));
       }
 
       @Override
@@ -127,12 +128,14 @@ public abstract class MarkerMatcher extends TypeSafeMatcher<Marker> {
     return new MarkerMatcher() {
       @Override
       protected boolean eval(Marker marker) {
-        return marker.getBackend().equals(backend.name().toLowerCase());
+        return marker.getBackend().equals(StringUtils.toLowerCase(backend.name()));
       }
 
       @Override
       protected void explain(Description description) {
-        description.appendText(Marker.BACKEND + " ").appendText(backend.name().toLowerCase());
+        description
+            .appendText(Marker.BACKEND + " ")
+            .appendText(StringUtils.toLowerCase(backend.name()));
       }
     };
   }

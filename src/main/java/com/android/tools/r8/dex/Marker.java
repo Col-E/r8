@@ -6,6 +6,7 @@ package com.android.tools.r8.dex;
 import com.android.tools.r8.CompilationMode;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexString;
+import com.android.tools.r8.utils.StringUtils;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
@@ -156,7 +157,7 @@ public class Marker {
 
   public Marker setCompilationMode(CompilationMode mode) {
     assert !jsonObject.has(COMPILATION_MODE);
-    jsonObject.addProperty(COMPILATION_MODE, mode.toString().toLowerCase());
+    jsonObject.addProperty(COMPILATION_MODE, StringUtils.toLowerCase(mode.toString()));
     return this;
   }
 
@@ -167,22 +168,24 @@ public class Marker {
   public String getBackend() {
     if (!hasBackend()) {
       // Before adding backend we would always compile to dex if min-api was specified.
-      return hasMinApi() ? Backend.DEX.name().toLowerCase() : Backend.CF.name().toLowerCase();
+      return hasMinApi()
+          ? StringUtils.toLowerCase(Backend.DEX.name())
+          : StringUtils.toLowerCase(Backend.CF.name());
     }
     return jsonObject.get(BACKEND).getAsString();
   }
 
   public boolean isCfBackend() {
-    return getBackend().equals(Backend.CF.name().toLowerCase());
+    return getBackend().equals(StringUtils.toLowerCase(Backend.CF.name()));
   }
 
   public boolean isDexBackend() {
-    return getBackend().equals(Backend.DEX.name().toLowerCase());
+    return getBackend().equals(StringUtils.toLowerCase(Backend.DEX.name()));
   }
 
   public Marker setBackend(Backend backend) {
     assert !hasBackend();
-    jsonObject.addProperty(BACKEND, backend.name().toLowerCase());
+    jsonObject.addProperty(BACKEND, StringUtils.toLowerCase(backend.name()));
     return this;
   }
 

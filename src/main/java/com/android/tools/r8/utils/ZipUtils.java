@@ -230,7 +230,7 @@ public class ZipUtils {
   }
 
   public static boolean isDexFile(String entry) {
-    String name = entry.toLowerCase();
+    String name = StringUtils.toLowerCase(entry);
     return name.endsWith(DEX_EXTENSION);
   }
 

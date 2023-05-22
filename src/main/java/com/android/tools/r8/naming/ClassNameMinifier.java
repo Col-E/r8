@@ -21,6 +21,7 @@ import com.android.tools.r8.graph.ProgramOrClasspathClass;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.InternalOptions;
+import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.Timing;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
@@ -62,7 +63,7 @@ class ClassNameMinifier {
 
     if (options.getProguardConfiguration().hasDontUseMixedCaseClassnames()) {
       allowMixedCaseNaming = false;
-      isUsed = candidate -> usedTypeNames.contains(candidate.toLowerCase());
+      isUsed = candidate -> usedTypeNames.contains(StringUtils.toLowerCase(candidate));
     } else {
       allowMixedCaseNaming = true;
       isUsed = usedTypeNames::contains;
@@ -70,7 +71,7 @@ class ClassNameMinifier {
   }
 
   private void setUsedTypeName(String typeName) {
-    usedTypeNames.add(allowMixedCaseNaming ? typeName : typeName.toLowerCase());
+    usedTypeNames.add(allowMixedCaseNaming ? typeName : StringUtils.toLowerCase(typeName));
   }
 
   static class ClassRenaming {

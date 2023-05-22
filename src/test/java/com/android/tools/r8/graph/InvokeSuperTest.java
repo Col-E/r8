@@ -362,7 +362,8 @@ public class InvokeSuperTest extends TestBase {
                   assertTrue(split > 0);
                   String targetMethodRaw = name.substring("invoke".length(), split);
                   String targetMethod =
-                      targetMethodRaw.substring(0, 1).toLowerCase() + targetMethodRaw.substring(1);
+                      StringUtils.toLowerCase(targetMethodRaw.substring(0, 1))
+                          + targetMethodRaw.substring(1);
                   String targetHolderRaw = name.substring(split + 2);
                   String targetHolderType =
                       InvokeSuperTest.class.getTypeName() + "$" + targetHolderRaw;

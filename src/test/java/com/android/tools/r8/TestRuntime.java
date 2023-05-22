@@ -10,6 +10,7 @@ import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.ListUtils;
+import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.structural.Ordered;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableList.Builder;
@@ -322,7 +323,7 @@ public abstract class TestRuntime {
 
     @Override
     public String name() {
-      return vm.name().toLowerCase();
+      return StringUtils.toLowerCase(vm.name());
     }
 
     public Path getJavaHome() {

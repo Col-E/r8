@@ -22,6 +22,7 @@ import com.android.tools.r8.utils.ExceptionDiagnostic;
 import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.StringDiagnostic;
+import com.android.tools.r8.utils.StringUtils;
 import com.google.common.io.ByteStreams;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.ints.IntStack;
@@ -95,7 +96,7 @@ public class ResourceAdapter {
     }
     ProguardPathFilter filter = getFilter.apply(proguardConfiguration);
     return filter.isEnabled()
-        && !file.getName().toLowerCase().endsWith(FileUtils.CLASS_EXTENSION)
+        && !StringUtils.toLowerCase(file.getName()).endsWith(FileUtils.CLASS_EXTENSION)
         && filter.matches(file.getName());
   }
 
