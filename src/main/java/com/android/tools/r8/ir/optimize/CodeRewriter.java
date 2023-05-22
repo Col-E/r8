@@ -499,6 +499,7 @@ public class CodeRewriter {
 
   // TODO(sgjesse); Move this somewhere else, and reuse it for some of the other switch rewritings.
   public abstract static class InstructionBuilder<T> {
+
     protected int blockNumber;
     protected final Position position;
 
@@ -515,6 +516,7 @@ public class CodeRewriter {
   }
 
   public static class SwitchBuilder extends InstructionBuilder<SwitchBuilder> {
+
     private Value value;
     private final Int2ReferenceSortedMap<BasicBlock> keyToTarget = new Int2ReferenceAVLTreeMap<>();
     private BasicBlock fallthrough;
@@ -530,7 +532,7 @@ public class CodeRewriter {
 
     public SwitchBuilder setValue(Value value) {
       this.value = value;
-      return  this;
+      return this;
     }
 
     public SwitchBuilder addKeyAndTarget(int key, BasicBlock target) {
@@ -575,6 +577,7 @@ public class CodeRewriter {
   }
 
   public static class IfBuilder extends InstructionBuilder<IfBuilder> {
+
     private final IRCode code;
     private Value left;
     private int right;
@@ -593,12 +596,12 @@ public class CodeRewriter {
 
     public IfBuilder setLeft(Value left) {
       this.left = left;
-      return  this;
+      return this;
     }
 
     public IfBuilder setRight(int right) {
       this.right = right;
-      return  this;
+      return this;
     }
 
     public IfBuilder setTarget(BasicBlock target) {
@@ -2242,6 +2245,7 @@ public class CodeRewriter {
   }
 
   private static class FilledArrayCandidate {
+
     final NewArrayEmpty newArrayEmpty;
     final int size;
     final boolean encodeAsFilledNewArray;
@@ -2707,6 +2711,7 @@ public class CodeRewriter {
   }
 
   static class ControlFlowSimplificationResult {
+
     private boolean anyAffectedValues;
     private boolean anySimplifications;
 
