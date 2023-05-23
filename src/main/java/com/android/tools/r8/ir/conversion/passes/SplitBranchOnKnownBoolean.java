@@ -120,7 +120,9 @@ public class SplitBranchOnKnownBoolean extends CodeRewriterPass<AppInfo> {
           }
         }
       }
-      for (Phi phi : foundPhis) {
+      List<Phi> sortedFoundPhis = new ArrayList<>(foundPhis);
+      sortedFoundPhis.sort(Phi::compareTo);
+      for (Phi phi : sortedFoundPhis) {
         BasicBlock phiBlock = phi.getBlock();
         for (int i = 0; i < phi.getOperands().size(); i++) {
           Value value = phi.getOperand(i);
