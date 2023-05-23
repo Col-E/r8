@@ -4,3 +4,16 @@
 
 rootProject.name = 'r8'
 
+// Bootstrap building by downloading dependencies.
+def dependencies_bucket = "r8-deps"
+def dependencies_sha1_file = "third_party/dependencies.tar.gz.sha1"
+def cmd =
+        ("download_from_google_storage.py --extract"
+                + " --bucket ${dependencies_bucket}"
+                + " --sha1_file ${dependencies_sha1_file}")
+def process = cmd.execute()
+process.waitFor()
+if (process.exitValue() != 0) {
+    throw new GradleException(
+            "Bootstrapping dependencies download failed:\n${process.err.text}")
+}

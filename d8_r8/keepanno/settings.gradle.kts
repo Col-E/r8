@@ -4,15 +4,24 @@
 
 pluginManagement {
     repositories {
-        gradlePluginPortal()
+        maven {
+            url = uri("file:../../third_party/dependencies")
+        }
+        maven {
+            url = uri("file:../../third_party/dependencies_new")
+        }
     }
 }
 
 dependencyResolutionManagement {
-    repositories {
-        mavenCentral()
-        gradlePluginPortal()
+  repositories {
+    maven {
+        url= uri("file:../../third_party/dependencies")
     }
+    maven {
+        url= uri("file:../../third_party/dependencies_new")
+    }
+  }
 }
 
 rootProject.name = "keepanno"

@@ -6,18 +6,66 @@
 
 pluginManagement {
     repositories {
-        gradlePluginPortal()
+        maven {
+            url = uri("file:../../third_party/dependencies")
+        }
+        maven {
+            url = uri("file:../../third_party/dependencies_new")
+        }
     }
 }
 
 dependencyResolutionManagement {
   repositories {
-    mavenCentral()
-    gradlePluginPortal()
+    maven {
+        url= uri("file:../third_party/dependencies")
+    }
+    maven {
+        url= uri("file:../third_party/dependencies_new")
+    }
   }
 }
 
 rootProject.name = "d8-r8"
+
+// Bootstrap building by downloading dependencies.
+fun String.execute() =
+    org.codehaus.groovy.runtime.ProcessGroovyMethods.execute(this)
+
+fun Process.out() =
+    String(
+        this.getInputStream().readAllBytes(),
+        java.nio.charset.StandardCharsets.UTF_8)
+fun Process.err() =
+    String(
+        this.getErrorStream().readAllBytes(),
+        java.nio.charset.StandardCharsets.UTF_8)
+
+val dependencies_bucket = "r8-deps"
+val dependencies_sha1_file = "third_party/dependencies.tar.gz.sha1"
+var cmd =
+        ("download_from_google_storage.py --extract"
+                + " --bucket ${dependencies_bucket}"
+                + " --sha1_file ${dependencies_sha1_file}")
+var process = cmd.execute()
+process.waitFor()
+if (process.exitValue() != 0) {
+    throw GradleException(
+            "Bootstrapping dependencies download failed:"
+            + "\n${process.err()}\n${process.out()}")
+}
+val dependencies_new_sha1_file = "third_party/dependencies_new.tar.gz.sha1"
+cmd =
+        ("download_from_google_storage.py --extract"
+                + " --bucket ${dependencies_bucket}"
+                + " --sha1_file ${dependencies_new_sha1_file}")
+process = cmd.execute()
+process.waitFor()
+if (process.exitValue() != 0) {
+    throw GradleException(
+            "Bootstrapping dependencies_new download failed:"
+            + "\n${process.err()}\n${process.out()}")
+}
 
 // This project is temporarily located in d8_r8. When moved to root, the parent
 // folder should just be removed.

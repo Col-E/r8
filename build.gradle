@@ -11,14 +11,6 @@ import smali.SmaliTask
 import tasks.DownloadDependency
 import tasks.GetJarsFromConfiguration
 
-buildscript {
-    repositories {
-        google()
-        mavenCentral()
-        gradlePluginPortal()
-    }
-}
-
 plugins {
   id "net.ltgt.errorprone" version "2.0.2"
 }
@@ -27,6 +19,8 @@ apply plugin: 'java'
 apply plugin: 'idea'
 
 ext {
+    // When updating dependencies also update and run
+    // tools/create_local_maven_with_dependencies.py
     androidSupportVersion = '25.4.0'
     asmVersion = '9.5'  // When updating update tools/asmifier.py, build.src and Toolhelper as well.
     javassistVersion = '3.29.2-GA'
@@ -46,8 +40,9 @@ ext {
 }
 
 repositories {
-    google()
-    mavenCentral()
+    maven {
+        url uri('file:third_party/dependencies')
+    }
 }
 
 if (project.hasProperty('with_code_coverage')) {

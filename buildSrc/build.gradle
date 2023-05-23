@@ -5,8 +5,9 @@ apply plugin: 'java'
 apply plugin: 'idea'
 
 repositories {
-    google()
-    mavenCentral()
+    maven {
+        url uri('file:../third_party/dependencies')
+    }
 }
 
 ext {
