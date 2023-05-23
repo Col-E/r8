@@ -50,7 +50,7 @@ public class TurkishLocaleZipFileInputTest extends TestBase {
                 Integer.toString(parameters.getApiLevel().getLevel()),
                 "--lib",
                 ToolHelper.getAndroidJar(AndroidApiLevel.U).toAbsolutePath().toString(),
-                buildZipWithUpperCaseExtension(workingDir).toString()));
+                buildZipWithUpperCaseExtension(workingDir).toAbsolutePath().toString()));
     assertEquals(0, result.exitCode);
     runArtOnClassesDotDex(workingDir);
   }
@@ -64,8 +64,9 @@ public class TurkishLocaleZipFileInputTest extends TestBase {
         ToolHelper.getAndroidJar(AndroidApiLevel.U).toAbsolutePath().toString(),
         "--pg-conf",
         FileUtils.writeTextFile(temp.newFile("test.pro").toPath(), "-keep class * { *; }")
+            .toAbsolutePath()
             .toString(),
-        buildZipWithUpperCaseExtension(workingDir).toString());
+        buildZipWithUpperCaseExtension(workingDir).toAbsolutePath().toString());
     if (parameters.isCfRuntime()) {
       builder.add("--classfile");
     } else {
