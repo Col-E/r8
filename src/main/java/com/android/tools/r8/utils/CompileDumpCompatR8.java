@@ -18,6 +18,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -63,7 +64,7 @@ public class CompileDumpCompatR8 extends CompileDumpBase {
       Arrays.asList("--art-profile", "--feature-jar");
 
   private static boolean FileUtils_isArchive(Path path) {
-    String name = StringUtils.toLowerCase(path.getFileName().toString());
+    String name = path.getFileName().toString().toLowerCase(Locale.ROOT);
     return name.endsWith(".apk")
         || name.endsWith(".jar")
         || name.endsWith(".zip")
