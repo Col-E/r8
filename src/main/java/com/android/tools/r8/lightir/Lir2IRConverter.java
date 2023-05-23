@@ -93,6 +93,7 @@ import com.android.tools.r8.ir.code.Xor;
 import com.android.tools.r8.ir.conversion.MethodConversionOptions.MutableMethodConversionOptions;
 import com.android.tools.r8.lightir.LirBuilder.IntSwitchPayload;
 import com.android.tools.r8.lightir.LirCode.PositionEntry;
+import com.android.tools.r8.lightir.LirCode.TryCatchTable;
 import com.android.tools.r8.naming.dexitembasedstring.NameComputationInfo;
 import com.android.tools.r8.utils.ListUtils;
 import com.google.common.collect.ImmutableList;
@@ -172,12 +173,14 @@ public class Lir2IRConverter {
       // instruction denotes a new block.
       if (currentBlock == null) {
         currentBlock = getBasicBlock(nextInstructionIndex);
-        CatchHandlers<Integer> handlers =
-            code.getTryCatchTable().getHandlersForBlock(nextInstructionIndex);
-        if (handlers != null) {
-          List<BasicBlock> targets = ListUtils.map(handlers.getAllTargets(), this::getBasicBlock);
-          targets.forEach(currentBlock::link);
-          currentBlock.linkCatchSuccessors(handlers.getGuards(), targets);
+        TryCatchTable tryCatchTable = code.getTryCatchTable();
+        if (tryCatchTable != null) {
+          CatchHandlers<Integer> handlers = tryCatchTable.getHandlersForBlock(nextInstructionIndex);
+          if (handlers != null) {
+            List<BasicBlock> targets = ListUtils.map(handlers.getAllTargets(), this::getBasicBlock);
+            targets.forEach(currentBlock::link);
+            currentBlock.linkCatchSuccessors(handlers.getGuards(), targets);
+          }
         }
       } else {
         assert !blocks.containsKey(nextInstructionIndex);

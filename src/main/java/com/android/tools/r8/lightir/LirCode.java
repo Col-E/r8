@@ -10,7 +10,9 @@ import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.ir.code.CatchHandlers;
 import com.android.tools.r8.ir.code.IRMetadata;
 import com.android.tools.r8.ir.code.Position;
+import com.google.common.collect.ImmutableMap;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceMap;
+import it.unimi.dsi.fastutil.ints.Int2ReferenceOpenHashMap;
 import java.util.Map;
 import java.util.function.BiConsumer;
 
@@ -30,7 +32,9 @@ public class LirCode<EV> implements Iterable<LirInstructionView> {
     final Int2ReferenceMap<CatchHandlers<Integer>> tryCatchHandlers;
 
     public TryCatchTable(Int2ReferenceMap<CatchHandlers<Integer>> tryCatchHandlers) {
-      this.tryCatchHandlers = tryCatchHandlers;
+      assert !tryCatchHandlers.isEmpty();
+      // Copy the map to ensure it has not over-allocated the backing store.
+      this.tryCatchHandlers = new Int2ReferenceOpenHashMap<>(tryCatchHandlers);
     }
 
     public CatchHandlers<Integer> getHandlersForBlock(int blockIndex) {
@@ -46,8 +50,19 @@ public class LirCode<EV> implements Iterable<LirInstructionView> {
         Map<EV, DebugLocalInfo> valueToLocalMap, Int2ReferenceMap<int[]> instructionToEndUseMap) {
       assert !valueToLocalMap.isEmpty();
       // TODO(b/283049198): Debug ends may not be maintained so we can't assume they are non-empty.
-      this.valueToLocalMap = valueToLocalMap;
-      this.instructionToEndUseMap = instructionToEndUseMap;
+      // Copy the maps to ensure they have not over-allocated the backing store.
+      this.valueToLocalMap = ImmutableMap.copyOf(valueToLocalMap);
+      this.instructionToEndUseMap =
+          instructionToEndUseMap.isEmpty()
+              ? null
+              : new Int2ReferenceOpenHashMap<>(instructionToEndUseMap);
+    }
+
+    public int[] getEnds(int index) {
+      if (instructionToEndUseMap == null) {
+        return null;
+      }
+      return instructionToEndUseMap.get(index);
     }
 
     public void forEachLocalDefinition(BiConsumer<EV, DebugLocalInfo> fn) {
@@ -73,7 +88,7 @@ public class LirCode<EV> implements Iterable<LirInstructionView> {
   /** Cached value for the number of logical instructions (excludes arguments, includes phis). */
   private final int instructionCount;
 
-  /** Table of try-catch handlers for each basic block. */
+  /** Table of try-catch handlers for each basic block (if present). */
   private final TryCatchTable tryCatchTable;
 
   /** Table of debug local information for each SSA value (if present). */
@@ -153,9 +168,7 @@ public class LirCode<EV> implements Iterable<LirInstructionView> {
   }
 
   public int[] getDebugLocalEnds(int instructionValueIndex) {
-    return debugLocalInfoTable == null
-        ? null
-        : debugLocalInfoTable.instructionToEndUseMap.get(instructionValueIndex);
+    return debugLocalInfoTable == null ? null : debugLocalInfoTable.getEnds(instructionValueIndex);
   }
 
   @Override

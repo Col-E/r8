@@ -181,6 +181,7 @@ public class LirBuilder<V, EV> {
   private void setPositionIndex(int instructionIndex, Position position) {
     assert positionTable.isEmpty()
         || ListUtils.last(positionTable).fromInstructionIndex < instructionIndex;
+    assert positionTable.isEmpty() || !ListUtils.last(positionTable).position.equals(position);
     positionTable.add(new PositionEntry(instructionIndex, position));
   }
 
@@ -707,6 +708,8 @@ public class LirBuilder<V, EV> {
     constants.forEach((item, index) -> constantTable[index] = item);
     DebugLocalInfoTable<EV> debugTable =
         debugLocals.isEmpty() ? null : new DebugLocalInfoTable<>(debugLocals, debugLocalEnds);
+    TryCatchTable tryCatchTable =
+        tryCatchRanges.isEmpty() ? null : new TryCatchTable(tryCatchRanges);
     return new LirCode<>(
         metadata,
         constantTable,
@@ -714,7 +717,7 @@ public class LirBuilder<V, EV> {
         argumentCount,
         byteWriter.toByteArray(),
         instructionCount,
-        new TryCatchTable(tryCatchRanges),
+        tryCatchTable,
         debugTable,
         strategy.getStrategyInfo());
   }
