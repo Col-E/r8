@@ -72,6 +72,7 @@ import com.android.tools.r8.retrace.stacktraces.OutsideLineRangeStackTraceTest;
 import com.android.tools.r8.retrace.stacktraces.OverloadSameLineTest;
 import com.android.tools.r8.retrace.stacktraces.OverloadedWithAndWithoutRangeStackTrace;
 import com.android.tools.r8.retrace.stacktraces.PreambleLineNumberStackTrace;
+import com.android.tools.r8.retrace.stacktraces.ResidualSignatureOnOuterFrameStackTrace;
 import com.android.tools.r8.retrace.stacktraces.RetraceAssertionErrorStackTrace;
 import com.android.tools.r8.retrace.stacktraces.SingleLineNoLineNumberStackTrace;
 import com.android.tools.r8.retrace.stacktraces.SourceFileNameSynthesizeStackTrace;
@@ -434,6 +435,14 @@ public class RetraceTests extends TestBase {
   @Test
   public void testPreambleLineNumberStackTrace() throws Exception {
     runRetraceTest(new PreambleLineNumberStackTrace());
+  }
+
+  @Test
+  public void testResidualSignatureOnOuterFrameStackTrace() {
+    // TODO(b/283837159): Disregard residual signatures placed incorrectly.
+    assumeFalse(external);
+    assertThrows(
+        AssertionError.class, () -> runRetraceTest(new ResidualSignatureOnOuterFrameStackTrace()));
   }
 
   @Test
