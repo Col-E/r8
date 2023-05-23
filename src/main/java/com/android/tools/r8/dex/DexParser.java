@@ -121,7 +121,6 @@ public class DexParser<T extends DexClass> {
   public void close() {
     // This close behavior is needed to reduce peak memory usage of D8/R8.
     indexedItems = null;
-    codes = null;
     offsetMap = null;
     dexReader = null;
     stringIDs = null;
@@ -129,9 +128,6 @@ public class DexParser<T extends DexClass> {
 
   // Mapping from indexes to indexable dex items.
   private OffsetToObjectMapping indexedItems = new OffsetToObjectMapping();
-
-  // Mapping from offset to code item;
-  private Int2ReferenceMap<DexCode> codes = new Int2ReferenceOpenHashMap<>();
 
   // Mapping from offset to dex item;
   private Int2ReferenceMap<Object> offsetMap = new Int2ReferenceOpenHashMap<>();
@@ -172,32 +168,28 @@ public class DexParser<T extends DexClass> {
     this.options = options;
   }
 
-  private void ensureCodesInited(int offset) {
+  // We explicitly reread the code objects even if they are deduplicated in the input (i.e., two
+  // methods point to the same code object) to allow us to change code objects in our pipeline.
+  private DexCode readCodeObject(int offset) {
     if (offset == 0) {
-      return;
-    }
-
-    if (codes == null) {
-      codes = new Int2ReferenceOpenHashMap<>();
+      return null;
     }
 
     if (classKind == ClassKind.LIBRARY) {
       // Ignore contents of library files.
-      return;
+      return null;
     }
     DexSection dexSection = lookupSection(Constants.TYPE_CODE_ITEM);
     if (dexSection.length == 0) {
-      return;
+      return null;
     }
 
-    if (!codes.containsKey(offset)) {
-      int currentPos = dexReader.position();
-      dexReader.position(offset);
-      dexReader.align(4);
-      DexCode code = parseCodeItem();
-      codes.put(offset, code); // Update the file local offset to code mapping.
-      dexReader.position(currentPos);
-    }
+    int currentPos = dexReader.position();
+    dexReader.position(offset);
+    dexReader.align(4);
+    DexCode code = parseCodeItem();
+    dexReader.position(currentPos);
+    return code;
   }
 
   private DexTypeList parseTypeList() {
@@ -758,9 +750,7 @@ public class DexParser<T extends DexClass> {
       int codeOff = dexReader.getUleb128();
       DexCode code = null;
       if (!skipCodes) {
-        ensureCodesInited(codeOff);
-        assert codeOff == 0 || codes.get(codeOff) != null;
-        code = codes.get(codeOff);
+        code = readCodeObject(codeOff);
       }
       DexMethod method = indexedItems.getMethod(methodIndex);
       accessFlags.setConstructor(method, dexItemFactory);
