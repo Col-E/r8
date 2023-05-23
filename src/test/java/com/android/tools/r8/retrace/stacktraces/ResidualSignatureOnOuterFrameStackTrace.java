@@ -31,12 +31,13 @@ public class ResidualSignatureOnOuterFrameStackTrace implements StackTraceForTes
 
   @Override
   public List<String> retracedStackTrace() {
-    return Collections.singletonList("\tat mapping.g(SourceFile)");
+    return Collections.singletonList("\tat pruned.class.method(class.java)");
   }
 
   @Override
   public List<String> retraceVerboseStackTrace() {
-    return Collections.singletonList("\tat mapping.g(SourceFile)");
+    return Collections.singletonList(
+        "\tat pruned.class.void method(kotlinx.coroutines.CoroutineScope)(class.java)");
   }
 
   @Override

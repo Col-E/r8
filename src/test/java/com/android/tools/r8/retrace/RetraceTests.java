@@ -438,11 +438,8 @@ public class RetraceTests extends TestBase {
   }
 
   @Test
-  public void testResidualSignatureOnOuterFrameStackTrace() {
-    // TODO(b/283837159): Disregard residual signatures placed incorrectly.
-    assumeFalse(external);
-    assertThrows(
-        AssertionError.class, () -> runRetraceTest(new ResidualSignatureOnOuterFrameStackTrace()));
+  public void testResidualSignatureOnOuterFrameStackTrace() throws Exception {
+    runRetraceTest(new ResidualSignatureOnOuterFrameStackTrace());
   }
 
   @Test

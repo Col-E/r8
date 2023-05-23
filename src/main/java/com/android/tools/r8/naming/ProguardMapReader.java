@@ -358,6 +358,7 @@ public class ProguardMapReader implements AutoCloseable {
       if (isCommentLineWithJsonBrace()) {
         final String currentRenamedNameFinal = previousRenamedName;
         final MappedRange currentRange = activeMappedRange;
+        final MemberNaming lastAddedNamingFinal = lastAddedNaming;
         // Reading global info should cause member mapping to return since we are now reading
         // headers pertaining to what could be a concatinated file.
         BooleanBox readGlobalInfo = new BooleanBox(false);
@@ -414,8 +415,10 @@ public class ProguardMapReader implements AutoCloseable {
                       currentResidualSignature.clear();
                       return;
                     }
-                    currentRange.setResidualSignatureInternal(
-                        residualSignature.asMethodSignature());
+                    if (!isMappedRangeLastAddedNaming(lastAddedNamingFinal, currentRange)) {
+                      currentRange.setResidualSignatureInternal(
+                          residualSignature.asMethodSignature());
+                    }
                   }
                 }
               }
@@ -477,10 +480,7 @@ public class ProguardMapReader implements AutoCloseable {
         if (activeMappedRange != null) {
           if (residualSignature != null) {
             activeMappedRange.setResidualSignatureInternal(residualSignature);
-          } else if (lastAddedNaming != null
-              && lastAddedNaming
-                  .getOriginalSignature()
-                  .equals(activeMappedRange.getOriginalSignature())) {
+          } else if (isMappedRangeLastAddedNaming(lastAddedNaming, activeMappedRange)) {
             // If we already parsed a residual signature for the newly read mapped range and have
             // lost the information about the residual signature we re-create it again.
             activeMappedRange.setResidualSignatureInternal(
@@ -525,6 +525,12 @@ public class ProguardMapReader implements AutoCloseable {
           previousRange,
           classNamingBuilder);
     }
+  }
+
+  private boolean isMappedRangeLastAddedNaming(
+      MemberNaming lastAddedNaming, MappedRange activeMappedRange) {
+    return lastAddedNaming != null
+        && lastAddedNaming.getOriginalSignature().equals(activeMappedRange.getOriginalSignature());
   }
 
   private MemberNaming addMemberEntryOrCopyInformation(
