@@ -166,6 +166,7 @@ def Main():
           utils.R8RETRACE,
           utils.R8RETRACE_NO_DEPS,
           utils.LIBRARY_DESUGAR_CONVERSIONS,
+          utils.KEEPANNO_ANNOTATIONS_TARGET,
           '-Pno_internal'
       ])
 
@@ -238,6 +239,7 @@ def Main():
       utils.DESUGAR_CONFIGURATION_JDK11_MINIMAL_MAVEN_ZIP,
       utils.DESUGAR_CONFIGURATION_JDK11_MAVEN_ZIP,
       utils.DESUGAR_CONFIGURATION_JDK11_NIO_MAVEN_ZIP,
+      utils.KEEPANNO_ANNOTATIONS_JAR,
       utils.GENERATED_LICENSE,
     ]:
       file_name = os.path.basename(file)

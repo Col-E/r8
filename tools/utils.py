@@ -51,6 +51,7 @@ R8_TESTS_TARGET = 'TestJar'
 R8_TESTS_DEPS_TARGET = 'RepackageTestDeps'
 R8LIB_TESTS_TARGET = 'configureTestForR8Lib'
 R8LIB_TESTS_DEPS_TARGET = R8_TESTS_DEPS_TARGET
+KEEPANNO_ANNOTATIONS_TARGET = 'keepAnnoJar'
 
 ALL_DEPS_JAR = os.path.join(LIBS, 'deps_all.jar')
 R8_JAR = os.path.join(LIBS, 'r8.jar')
@@ -70,6 +71,7 @@ MAVEN_ZIP = os.path.join(LIBS, 'r8.zip')
 MAVEN_ZIP_LIB = os.path.join(LIBS, 'r8lib.zip')
 LIBRARY_DESUGAR_CONVERSIONS_LEGACY_ZIP = os.path.join(LIBS, 'library_desugar_conversions_legacy.jar')
 LIBRARY_DESUGAR_CONVERSIONS_ZIP = os.path.join(LIBS, 'library_desugar_conversions.jar')
+KEEPANNO_ANNOTATIONS_JAR = os.path.join(LIBS, 'keepanno-annotations.jar')
 
 DESUGAR_CONFIGURATION = os.path.join(
       'src', 'library_desugar', 'desugar_jdk_libs.json')
