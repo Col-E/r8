@@ -60,7 +60,6 @@ public abstract class TestCompilerBuilder<
         options.testing.allowUnnecessaryDontWarnWildcards = false;
         options.horizontalClassMergerOptions().enable();
         options.horizontalClassMergerOptions().setEnableInterfaceMerging();
-        options.getArtProfileOptions().setEnableCompletenessCheckForTesting(true);
         options
             .getCfCodeAnalysisOptions()
             .setAllowUnreachableCfBlocks(false)
@@ -88,6 +87,7 @@ public abstract class TestCompilerBuilder<
   private ByteArrayOutputStream stderr = null;
   private PrintStream oldStderr = null;
   protected OutputMode outputMode = OutputMode.DexIndexed;
+  private boolean isBenchmarkRunner = false;
 
   private Optional<Integer> isAndroidBuildVersionAdded = null;
 
@@ -225,6 +225,7 @@ public abstract class TestCompilerBuilder<
     if (System.getProperty("com.android.tools.r8.printtimes") != null) {
       allowStdoutMessages();
     }
+    isBenchmarkRunner = true;
     return internalCompileAndBenchmark(results);
   }
 
@@ -265,7 +266,10 @@ public abstract class TestCompilerBuilder<
               : getMinApiLevel();
       builder.setMinApiLevel(minApi);
     }
-    if (!noMinApiLevel && backend.isDex() && (isD8TestBuilder() || isR8TestBuilder())) {
+    if (!noMinApiLevel
+        && backend.isDex()
+        && (isD8TestBuilder() || isR8TestBuilder())
+        && !isBenchmarkRunner) {
       int minApiLevel = builder.getMinApiLevel();
       allowedGlobalSynthetics.computeIfAbsent(
           minApiLevel, TestCompilerBuilder::computeAllGlobalSynthetics);
@@ -284,6 +288,12 @@ public abstract class TestCompilerBuilder<
             }
           };
     }
+
+    if ((isD8TestBuilder() || isR8TestBuilder()) && !isBenchmarkRunner) {
+      addOptionsModification(
+          o -> o.getArtProfileOptions().setEnableCompletenessCheckForTesting(true));
+    }
+
     builder.setOptimizeMultidexForLinearAlloc(optimizeMultidexForLinearAlloc);
     if (useDefaultRuntimeLibrary) {
       builder.addLibraryFiles(getDefaultLibraryFiles());
