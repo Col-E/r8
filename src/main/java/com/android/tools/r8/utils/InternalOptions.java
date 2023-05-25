@@ -1519,6 +1519,13 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
       return hasFeaturePresentFrom(AndroidApiLevel.N);
     }
 
+    // When adding support for emitting filled-new-array for sub-types, ART 13 (Api-level 33) had
+    // issues. See b/283715197.
+    public boolean canUseSubTypesInFilledNewArray() {
+      assert isGeneratingDex();
+      return !canHaveBugPresentUntil(AndroidApiLevel.U);
+    }
+
     // Dalvik doesn't handle new-filled-array with arrays as values. It fails with:
     // W(629880) VFY: [Ljava/lang/Integer; is not instance of Ljava/lang/Integer;  (dalvikvm)
     public boolean canUseFilledNewArrayOfArrays() {

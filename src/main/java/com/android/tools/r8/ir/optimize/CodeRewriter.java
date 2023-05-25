@@ -2263,7 +2263,7 @@ public class CodeRewriter {
     }
   }
 
-  private FilledArrayCandidate computeFilledArrayCandiate(
+  private FilledArrayCandidate computeFilledArrayCandidate(
       Instruction instruction, RewriteArrayOptions options) {
     NewArrayEmpty newArrayEmpty = instruction.asNewArrayEmpty();
     if (newArrayEmpty == null) {
@@ -2283,6 +2283,18 @@ public class CodeRewriter {
     boolean encodeAsFilledNewArray = canUseFilledNewArray(arrayType, size, options);
     if (!encodeAsFilledNewArray && !canUseFilledArrayData(arrayType, size, options)) {
       return null;
+    }
+    // Check that all arguments to the array is the array type or that the array is type Object[].
+    if (!options.canUseSubTypesInFilledNewArray()
+        && arrayType != dexItemFactory.objectArrayType
+        && !arrayType.isPrimitiveArrayType()) {
+      DexType baseType = arrayType.toBaseType(dexItemFactory);
+      for (Instruction uniqueUser : newArrayEmpty.outValue().uniqueUsers()) {
+        if (uniqueUser.isArrayPut()
+            && !uniqueUser.asArrayPut().value().getType().isClassType(baseType)) {
+          return null;
+        }
+      }
     }
     return new FilledArrayCandidate(newArrayEmpty, size, encodeAsFilledNewArray);
   }
@@ -2393,7 +2405,7 @@ public class CodeRewriter {
     RewriteArrayOptions rewriteOptions = options.rewriteArrayOptions();
     InstructionListIterator it = block.listIterator(code);
     while (it.hasNext()) {
-      FilledArrayCandidate candidate = computeFilledArrayCandiate(it.next(), rewriteOptions);
+      FilledArrayCandidate candidate = computeFilledArrayCandidate(it.next(), rewriteOptions);
       if (candidate == null) {
         continue;
       }

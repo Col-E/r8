@@ -68,9 +68,9 @@ public class FilledArrayDataRemoveCheckCastTest extends TestBase {
               assertEquals(
                   parameters.canUseFilledNewArrayOnNonStringObjects(),
                   filledNewArrayInIterateBaseClasses.isPresent());
-              // TODO(b/283715197): It should not be present.
               assertEquals(
-                  parameters.canUseFilledNewArrayOnNonStringObjects(),
+                  parameters.canUseFilledNewArrayOnNonStringObjects()
+                      && parameters.canUseSubTypesInFilledNewArray(),
                   filledNewArrayInIterateSubClasses.isPresent());
             });
   }
