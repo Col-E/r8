@@ -32,7 +32,8 @@ def CheckFormatting(input_api, output_api, branch):
     if not path.endswith('.java'):
       continue
     diff = check_output(
-        ['git', 'diff', '--no-prefix', '-U0', branch, '--', path])
+        ['git', 'diff', '--no-prefix', '-U0', branch, '--', path]).decode('utf-8')
+
     proc = Popen(FMT_CMD, stdin=PIPE, stdout=PIPE, stderr=STDOUT)
     (stdout, stderr) = proc.communicate(input=diff)
     if len(stdout) > 0:
@@ -69,7 +70,7 @@ def CheckDeterministicDebuggingChanged(input_api, output_api, branch):
     if not path.endswith('InternalOptions.java'):
       continue
     diff = check_output(
-        ['git', 'diff', '--no-prefix', '-U0', branch, '--', path])
+        ['git', 'diff', '--no-prefix', '-U0', branch, '--', path]).decode('utf-8')
     if 'DETERMINISTIC_DEBUGGING' in diff:
       return [output_api.PresubmitError(diff)]
   return []
