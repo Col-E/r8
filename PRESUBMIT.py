@@ -32,12 +32,12 @@ def CheckFormatting(input_api, output_api, branch):
     if not path.endswith('.java'):
       continue
     diff = check_output(
-        ['git', 'diff', '--no-prefix', '-U0', branch, '--', path]).decode('utf-8')
+        ['git', 'diff', '--no-prefix', '-U0', branch, '--', path])
 
     proc = Popen(FMT_CMD, stdin=PIPE, stdout=PIPE, stderr=STDOUT)
     (stdout, stderr) = proc.communicate(input=diff)
     if len(stdout) > 0:
-      results.append(output_api.PresubmitError(stdout))
+      results.append(output_api.PresubmitError(stdout.decode('utf-8')))
   if len(results) > 0:
     results.append(output_api.PresubmitError(
         """Please fix the formatting by running:
