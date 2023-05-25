@@ -193,7 +193,8 @@ def release_studio_or_aosp(r8_checkout, path, options, git_message):
       # Don't upload if requested not to, or if changes are not committed due
       # to --use-existing-work-branch
       if not options.no_upload and not options.use_existing_work_branch:
-        process = subprocess.Popen(['repo', 'upload', '.', '--verify'],
+        process = subprocess.Popen(['repo', 'upload', '.', '--verify',
+                                    '--current-branch'],
                                    stdin=subprocess.PIPE)
         return process.communicate(input=b'y\n')[0]
 
