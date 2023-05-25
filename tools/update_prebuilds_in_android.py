@@ -21,6 +21,7 @@ JAR_TARGETS_MAP = {
 }
 
 OTHER_TARGETS = ["LICENSE"]
+KEEPANNO_JAR = 'keepanno-annotations.jar'
 
 def parse_arguments():
   parser = argparse.ArgumentParser(
@@ -40,6 +41,11 @@ def parse_arguments():
     '--maps',
     action='store_true',
     help="Download proguard maps for jars, use only with '--target lib'.",
+  )
+  parser.add_argument(
+    '--keepanno',
+    action='store_true',
+    help="Download keepanno-annotations library.",
   )
   parser.add_argument(
     '--java-max-memory-size',
@@ -86,7 +92,7 @@ def download_target(root, target, hash_or_version, is_hash, quiet=False):
     print('Downloading: ' + url + ' -> ' + download_path)
   utils.download_file_from_cloud_storage(url, download_path, quiet=quiet)
 
-def main_download(hash, maps, targets, target_root, version):
+def main_download(hash, maps, targets, target_root, version, keepanno=False):
   jar_targets = JAR_TARGETS_MAP[targets]
   final_targets = list(map((lambda t: t[0] + '.jar'), jar_targets)) + OTHER_TARGETS
   with utils.TempDir() as root:
@@ -95,13 +101,19 @@ def main_download(hash, maps, targets, target_root, version):
         download_hash(root, hash, target)
         if maps and target not in OTHER_TARGETS:
           download_hash(root, hash, target + '.map')
+        if keepanno:
+          download_hash(root, hash, KEEPANNO_JAR)
       else:
         assert version
         download_version(root, version, target)
         if maps and target not in OTHER_TARGETS:
           download_version(root, version, target + '.map')
+        if keepanno:
+          download_version(root, version, KEEPANNO_JAR)
     copy_jar_targets(root, target_root, jar_targets, maps)
     copy_other_targets(root, target_root)
+    if keepanno:
+      copy_targets(root, target_root, [KEEPANNO_JAR], [KEEPANNO_JAR])
 
 def main_build(maps, max_memory_size, targets, target_root):
   jar_targets = JAR_TARGETS_MAP[targets]
@@ -120,7 +132,8 @@ def main(args):
     main_build(args.maps, args.java_max_memory_size, args.targets, target_root)
   else:
     assert args.commit_hash == None or args.version == None
-    main_download(args.commit_hash, args.maps, args.targets, target_root, args.version)
+    main_download(
+      args.commit_hash, args.maps, args.targets, target_root, args.version, args.keepanno)
 
 if __name__ == '__main__':
   sys.exit(main(parse_arguments()))
