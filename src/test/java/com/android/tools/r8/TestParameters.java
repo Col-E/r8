@@ -112,6 +112,10 @@ public class TestParameters {
     return false;
   }
 
+  public boolean canUseFilledNewArrayOnNonStringObjects() {
+    return isDexRuntime() && getApiLevel().isGreaterThanOrEqualTo(AndroidApiLevel.N);
+  }
+
   public boolean runtimeWithClassValue() {
     assert isCfRuntime() || isDexRuntime();
     return isCfRuntime() || getDexRuntimeVersion().isNewerThanOrEqual(DexVm.Version.V14_0_0);

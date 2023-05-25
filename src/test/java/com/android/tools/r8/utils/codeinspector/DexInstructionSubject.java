@@ -49,6 +49,7 @@ import com.android.tools.r8.dex.code.DexDivIntLit16;
 import com.android.tools.r8.dex.code.DexDivIntLit8;
 import com.android.tools.r8.dex.code.DexDivLong;
 import com.android.tools.r8.dex.code.DexDivLong2Addr;
+import com.android.tools.r8.dex.code.DexFilledNewArray;
 import com.android.tools.r8.dex.code.DexGoto;
 import com.android.tools.r8.dex.code.DexIfEq;
 import com.android.tools.r8.dex.code.DexIfEqz;
@@ -621,6 +622,11 @@ public class DexInstructionSubject implements InstructionSubject {
   @Override
   public boolean isMonitorExit() {
     return instruction instanceof DexMonitorExit;
+  }
+
+  @Override
+  public boolean isFilledNewArray() {
+    return instruction instanceof DexFilledNewArray;
   }
 
   @Override

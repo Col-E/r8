@@ -158,6 +158,8 @@ public interface InstructionSubject {
 
   boolean isMonitorExit();
 
+  boolean isFilledNewArray();
+
   int size();
 
   InstructionOffsetSubject getOffset(MethodSubject methodSubject);

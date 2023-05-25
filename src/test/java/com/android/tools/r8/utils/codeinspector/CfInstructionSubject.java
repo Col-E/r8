@@ -380,6 +380,11 @@ public class CfInstructionSubject implements InstructionSubject {
   }
 
   @Override
+  public boolean isFilledNewArray() {
+    return false;
+  }
+
+  @Override
   public boolean isNewArray() {
     return instruction instanceof CfNewArray;
   }
