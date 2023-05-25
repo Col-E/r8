@@ -9,6 +9,7 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.analysis.type.TypeAnalysis;
 import com.android.tools.r8.ir.code.BasicBlock;
+import com.android.tools.r8.ir.code.ConstNumber;
 import com.android.tools.r8.ir.code.Goto;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.If;
@@ -23,17 +24,17 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-public class SplitBranchOnKnownBoolean extends CodeRewriterPass<AppInfo> {
+public class SplitBranch extends CodeRewriterPass<AppInfo> {
 
   private static final boolean ALLOW_PARTIAL_REWRITE = true;
 
-  public SplitBranchOnKnownBoolean(AppView<?> appView) {
+  public SplitBranch(AppView<?> appView) {
     super(appView);
   }
 
   @Override
   String getTimingId() {
-    return "SplitBranchOnKnownBoolean";
+    return "SplitBranch";
   }
 
   @Override
@@ -89,17 +90,31 @@ public class SplitBranchOnKnownBoolean extends CodeRewriterPass<AppInfo> {
   private Map<Goto, BasicBlock> findGotosToRetarget(List<BasicBlock> candidates) {
     Map<Goto, BasicBlock> newTargets = new LinkedHashMap<>();
     for (BasicBlock block : candidates) {
-      // We need to verify any instruction in between the if and the chain of phis is empty (we
-      // could duplicate instruction, but the common case is empty).
+      // We need to verify any instruction in between the if and the chain of phis is empty or just
+      // a constant used in the If instruction (we could duplicate instruction, but the common case
+      // is empty).
       // Then we can redirect any known value. This can lead to dead code.
       If theIf = block.exit().asIf();
-      Set<Phi> allowedPhis = getAllowedPhis(theIf.lhs().asPhi());
+      Set<Phi> allowedPhis = getAllowedPhis(nonConstNumberOperand(theIf).asPhi());
       Set<Phi> foundPhis = Sets.newIdentityHashSet();
       WorkList.newIdentityWorkList(block)
           .process(
               (current, workList) -> {
                 if (current.getInstructions().size() > 1) {
-                  return;
+                  // We allow a single instruction, which is the constant used exclusively in the
+                  // if. This is run before constant canonicalization.
+                  if (theIf.isZeroTest()
+                      || current.getInstructions().size() != 2
+                      || !current.entry().isConstNumber()) {
+                    return;
+                  }
+                  Value value = current.entry().outValue();
+                  if (value.hasPhiUsers()
+                      || value.uniqueUsers().size() > 1
+                      || (value.uniqueUsers().size() == 1
+                          && value.uniqueUsers().iterator().next() != theIf)) {
+                    return;
+                  }
                 }
                 if (current != block && !current.exit().isGoto()) {
                   return;
@@ -135,19 +150,52 @@ public class SplitBranchOnKnownBoolean extends CodeRewriterPass<AppInfo> {
     return newTargets;
   }
 
+  private boolean isNumberAgainstConstNumberIf(If theIf) {
+    if (!(theIf.lhs().getType().isInt() || theIf.lhs().getType().isFloat())) {
+      return false;
+    }
+    if (theIf.isZeroTest()) {
+      return true;
+    }
+    assert theIf.lhs().getType() == theIf.rhs().getType();
+    return theIf.lhs().isConstNumber() || theIf.rhs().isConstNumber();
+  }
+
+  private Value nonConstNumberOperand(If theIf) {
+    return theIf.isZeroTest()
+        ? theIf.lhs()
+        : (theIf.lhs().isConstNumber() ? theIf.rhs() : theIf.lhs());
+  }
+
   private List<BasicBlock> computeCandidates(IRCode code) {
     List<BasicBlock> candidates = new ArrayList<>();
-    for (BasicBlock block : ListUtils.filter(code.blocks, block -> block.entry().isIf())) {
+    for (BasicBlock block : ListUtils.filter(code.blocks, block -> block.exit().isIf())) {
       If theIf = block.exit().asIf();
-      if (theIf.isZeroTest()
-          && theIf.lhs().getType().isInt()
-          && theIf.lhs().isPhi()
-          && theIf.lhs().hasSingleUniqueUser()
-          && !theIf.lhs().hasPhiUsers()) {
+      if (!isNumberAgainstConstNumberIf(theIf)) {
+        continue;
+      }
+      Value nonConstNumberOperand = nonConstNumberOperand(theIf);
+      if (isNumberAgainstConstNumberIf(theIf)
+          && nonConstNumberOperand.isPhi()
+          && nonConstNumberOperand.hasSingleUniqueUser()
+          && !nonConstNumberOperand.hasPhiUsers()) {
         candidates.add(block);
       }
     }
     return candidates;
+  }
+
+  private BasicBlock targetFromCondition(If theIf, ConstNumber constForPhi) {
+    if (theIf.isZeroTest()) {
+      return theIf.targetFromCondition(constForPhi);
+    }
+    if (theIf.lhs().isConstNumber()) {
+      return theIf.targetFromCondition(
+          theIf.lhs().getConstInstruction().asConstNumber(), constForPhi);
+    }
+    assert theIf.rhs().isConstNumber();
+    return theIf.targetFromCondition(
+        constForPhi, theIf.rhs().getConstInstruction().asConstNumber());
   }
 
   private void recordNewTargetForGoto(
@@ -156,9 +204,7 @@ public class SplitBranchOnKnownBoolean extends CodeRewriterPass<AppInfo> {
     // the correct if destination.
     assert basicBlock.exit().isGoto();
     assert value.isConstant();
-    assert value.getType().isInt();
-    assert theIf.isZeroTest();
-    BasicBlock newTarget = theIf.targetFromCondition(value.getConstInstruction().asConstNumber());
+    BasicBlock newTarget = targetFromCondition(theIf, value.getConstInstruction().asConstNumber());
     Goto aGoto = basicBlock.exit().asGoto();
     newTargets.put(aGoto, newTarget);
   }

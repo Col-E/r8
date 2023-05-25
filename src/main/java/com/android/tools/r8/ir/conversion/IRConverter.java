@@ -30,7 +30,7 @@ import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.conversion.passes.BinopRewriter;
 import com.android.tools.r8.ir.conversion.passes.CommonSubexpressionElimination;
 import com.android.tools.r8.ir.conversion.passes.ParentConstructorHoistingCodeRewriter;
-import com.android.tools.r8.ir.conversion.passes.SplitBranchOnKnownBoolean;
+import com.android.tools.r8.ir.conversion.passes.SplitBranch;
 import com.android.tools.r8.ir.desugar.CfInstructionDesugaringCollection;
 import com.android.tools.r8.ir.desugar.CovariantReturnTypeAnnotationTransformer;
 import com.android.tools.r8.ir.optimize.AssertionErrorTwoArgsConstructorRewriter;
@@ -115,7 +115,7 @@ public class IRConverter {
   protected final InternalOptions options;
   public final CodeRewriter codeRewriter;
   public final CommonSubexpressionElimination commonSubexpressionElimination;
-  private final SplitBranchOnKnownBoolean splitBranchOnKnownBoolean;
+  private final SplitBranch splitBranch;
   public final AssertionErrorTwoArgsConstructorRewriter assertionErrorTwoArgsConstructorRewriter;
   private final NaturalIntLoopRemover naturalIntLoopRemover = new NaturalIntLoopRemover();
   public final MemberValuePropagation<?> memberValuePropagation;
@@ -167,7 +167,7 @@ public class IRConverter {
     this.options = appView.options();
     this.codeRewriter = new CodeRewriter(appView);
     this.commonSubexpressionElimination = new CommonSubexpressionElimination(appView);
-    this.splitBranchOnKnownBoolean = new SplitBranchOnKnownBoolean(appView);
+    this.splitBranch = new SplitBranch(appView);
     this.assertionErrorTwoArgsConstructorRewriter =
         appView.options().desugarState.isOn()
             ? new AssertionErrorTwoArgsConstructorRewriter(appView)
@@ -777,7 +777,7 @@ public class IRConverter {
       timing.end();
     }
     timing.end();
-    splitBranchOnKnownBoolean.run(code.context(), code, timing);
+    splitBranch.run(code.context(), code, timing);
     if (options.enableRedundantConstNumberOptimization) {
       timing.begin("Remove const numbers");
       codeRewriter.redundantConstNumberRemoval(code);
