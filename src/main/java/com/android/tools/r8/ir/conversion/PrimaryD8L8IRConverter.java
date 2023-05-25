@@ -195,62 +195,66 @@ public class PrimaryD8L8IRConverter extends IRConverter {
       // TODO(b/168001352): Consider requiring that no 'never merge' prefix is ever seen as a
       //  passthrough object.
       if (seenNeverMergePrefix.get() && seenNotNeverMergePrefix.get()) {
-        StringBuilder message = new StringBuilder();
-        message
-            .append("Merging DEX file containing classes with prefix")
-            .append(neverMerge.getPrefixes().size() > 1 ? "es " : " ");
-        for (int i = 0; i < neverMerge.getPrefixes().size(); i++) {
-          message
-              .append("'")
-              .append(neverMerge.getPrefixes().get(i).toString().substring(1).replace('/', '.'))
-              .append("'")
-              .append(i < neverMerge.getPrefixes().size() - 1 ? ", " : "");
-        }
-        if (!neverMerge.getExceptionPrefixes().isEmpty()) {
-          message
-              .append(" with other classes, except classes with prefix")
-              .append(neverMerge.getExceptionPrefixes().size() > 1 ? "es " : " ");
-          for (int i = 0; i < neverMerge.getExceptionPrefixes().size(); i++) {
-            message
-                .append("'")
-                .append(
-                    neverMerge
-                        .getExceptionPrefixes()
-                        .get(i)
-                        .toString()
-                        .substring(1)
-                        .replace('/', '.'))
-                .append("'")
-                .append(i < neverMerge.getExceptionPrefixes().size() - 1 ? ", " : "");
-          }
-          message.append(",");
-        } else {
-          message.append(" with classes with any other prefixes");
-        }
-        message.append(" is not allowed: ");
-        boolean first = true;
-        int limit = 11;
-        for (DexProgramClass clazz : appView.appInfo().classesWithDeterministicOrder()) {
-          if (!clazz.type.descriptor.startsWith(neverMergePrefix)) {
-            if (hasExceptionPrefix(clazz)) {
-              continue;
-            }
-            if (limit-- < 0) {
-              message.append("..");
-              break;
-            }
-            if (first) {
-              first = false;
-            } else {
-              message.append(", ");
-            }
-            message.append(clazz.type);
-          }
-        }
-        message.append(".");
-        throw new CompilationError(message.toString());
+        throw new CompilationError(getOrComputeConflictingPrefixesErrorMessage(neverMergePrefix));
       }
     }
+  }
+
+  private synchronized String getOrComputeConflictingPrefixesErrorMessage(
+      DexString neverMergePrefix) {
+    if (conflictingPrefixesErrorMessage != null) {
+      return conflictingPrefixesErrorMessage;
+    }
+    StringBuilder message = new StringBuilder();
+    message
+        .append("Merging DEX file containing classes with prefix")
+        .append(neverMerge.getPrefixes().size() > 1 ? "es " : " ");
+    for (int i = 0; i < neverMerge.getPrefixes().size(); i++) {
+      message
+          .append("'")
+          .append(neverMerge.getPrefixes().get(i).toString().substring(1).replace('/', '.'))
+          .append("'")
+          .append(i < neverMerge.getPrefixes().size() - 1 ? ", " : "");
+    }
+    if (!neverMerge.getExceptionPrefixes().isEmpty()) {
+      message
+          .append(" with other classes, except classes with prefix")
+          .append(neverMerge.getExceptionPrefixes().size() > 1 ? "es " : " ");
+      for (int i = 0; i < neverMerge.getExceptionPrefixes().size(); i++) {
+        message
+            .append("'")
+            .append(
+                neverMerge.getExceptionPrefixes().get(i).toString().substring(1).replace('/', '.'))
+            .append("'")
+            .append(i < neverMerge.getExceptionPrefixes().size() - 1 ? ", " : "");
+      }
+      message.append(",");
+    } else {
+      message.append(" with classes with any other prefixes");
+    }
+    message.append(" is not allowed: ");
+    boolean first = true;
+    int limit = 11;
+    for (DexProgramClass clazz : appView.appInfo().classesWithDeterministicOrder()) {
+      if (!clazz.type.descriptor.startsWith(neverMergePrefix)) {
+        if (hasExceptionPrefix(clazz)) {
+          continue;
+        }
+        if (limit-- < 0) {
+          message.append("..");
+          break;
+        }
+        if (first) {
+          first = false;
+        } else {
+          message.append(", ");
+        }
+        message.append(clazz.type);
+      }
+    }
+    message.append(".");
+    conflictingPrefixesErrorMessage = message.toString();
+    return conflictingPrefixesErrorMessage;
   }
 
   private boolean hasExceptionPrefix(DexProgramClass clazz) {

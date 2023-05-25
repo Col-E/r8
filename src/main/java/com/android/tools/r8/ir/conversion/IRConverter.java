@@ -155,6 +155,7 @@ public class IRConverter {
   // Use AtomicBoolean to satisfy TSAN checking (see b/153714743).
   AtomicBoolean seenNotNeverMergePrefix = new AtomicBoolean();
   AtomicBoolean seenNeverMergePrefix = new AtomicBoolean();
+  String conflictingPrefixesErrorMessage = null;
 
   /**
    * The argument `appView` is used to determine if whole program optimizations are allowed or not
