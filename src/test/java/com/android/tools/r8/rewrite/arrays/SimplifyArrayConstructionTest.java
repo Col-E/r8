@@ -170,6 +170,8 @@ public class SimplifyArrayConstructionTest extends TestBase {
         mainClass.uniqueMethodWithOriginalName("referenceArraysNoCasts");
     MethodSubject referenceArraysWithSubclasses =
         mainClass.uniqueMethodWithOriginalName("referenceArraysWithSubclasses");
+    MethodSubject referenceArraysWithInterfaceImplementations =
+        mainClass.uniqueMethodWithOriginalName("referenceArraysWithInterfaceImplementations");
     MethodSubject interfaceArrayWithRawObject =
         mainClass.uniqueMethodWithOriginalName("interfaceArrayWithRawObject");
 
@@ -220,17 +222,22 @@ public class SimplifyArrayConstructionTest extends TestBase {
     if (parameters.getApiLevel().isLessThan(AndroidApiLevel.N)) {
       assertArrayTypes(referenceArraysNoCasts, DexNewArray.class);
       assertArrayTypes(referenceArraysWithSubclasses, DexNewArray.class);
+      assertArrayTypes(referenceArraysWithInterfaceImplementations, DexNewArray.class);
       assertArrayTypes(phiFilledNewArray, DexNewArray.class);
       assertArrayTypes(objectArraysFilledNewArrayRange, DexNewArray.class);
       assertArrayTypes(twoDimensionalArrays, DexNewArray.class);
       assertArrayTypes(assumedValues, DexNewArray.class);
     } else {
       assertArrayTypes(referenceArraysNoCasts, DexFilledNewArray.class);
-      // TODO(b/246971330): Add support for arrays with subtypes.
-      if (isR8) {
+      if (isR8 && parameters.canUseSubTypesInFilledNewArray()) {
         assertArrayTypes(referenceArraysWithSubclasses, DexFilledNewArray.class);
       } else {
         assertArrayTypes(referenceArraysWithSubclasses, DexNewArray.class);
+      }
+      if (isR8) {
+        assertArrayTypes(referenceArraysWithInterfaceImplementations, DexFilledNewArray.class);
+      } else {
+        assertArrayTypes(referenceArraysWithInterfaceImplementations, DexNewArray.class);
       }
 
       // TODO(b/246971330): Add support for arrays whose values have conditionals.
@@ -298,6 +305,7 @@ public class SimplifyArrayConstructionTest extends TestBase {
       stringArrays();
       referenceArraysNoCasts();
       referenceArraysWithSubclasses();
+      referenceArraysWithInterfaceImplementations();
       interfaceArrayWithRawObject();
       phiFilledNewArray();
       intsThatUseFilledNewArray();
@@ -338,9 +346,13 @@ public class SimplifyArrayConstructionTest extends TestBase {
     }
 
     @NeverInline
-    private static void referenceArraysWithSubclasses() {
+    private static void referenceArraysWithInterfaceImplementations() {
       Serializable[] interfaceArr = {1, null, 2};
       System.out.println(Arrays.toString(interfaceArr));
+    }
+
+    @NeverInline
+    private static void referenceArraysWithSubclasses() {
       Number[] objArray = {1, null, 2};
       System.out.println(Arrays.toString(objArray));
     }

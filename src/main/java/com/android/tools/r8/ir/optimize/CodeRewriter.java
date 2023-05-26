@@ -36,6 +36,7 @@ import com.android.tools.r8.graph.FieldResolutionResult.SingleProgramFieldResolu
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.horizontalclassmerging.HorizontalClassMergerUtils;
 import com.android.tools.r8.ir.analysis.equivalence.BasicBlockBehavioralSubsumption;
+import com.android.tools.r8.ir.analysis.type.ArrayTypeElement;
 import com.android.tools.r8.ir.analysis.type.DynamicTypeWithUpperBound;
 import com.android.tools.r8.ir.analysis.type.Nullability;
 import com.android.tools.r8.ir.analysis.type.TypeAnalysis;
@@ -2288,15 +2289,51 @@ public class CodeRewriter {
     if (!options.canUseSubTypesInFilledNewArray()
         && arrayType != dexItemFactory.objectArrayType
         && !arrayType.isPrimitiveArrayType()) {
-      DexType baseType = arrayType.toBaseType(dexItemFactory);
+      DexType elementType = arrayType.toArrayElementType(dexItemFactory);
       for (Instruction uniqueUser : newArrayEmpty.outValue().uniqueUsers()) {
         if (uniqueUser.isArrayPut()
-            && !uniqueUser.asArrayPut().value().getType().isClassType(baseType)) {
+            && uniqueUser.asArrayPut().array() == newArrayEmpty.outValue()
+            && !checkTypeOfArrayPut(uniqueUser.asArrayPut(), elementType)) {
           return null;
         }
       }
     }
     return new FilledArrayCandidate(newArrayEmpty, size, encodeAsFilledNewArray);
+  }
+
+  private boolean checkTypeOfArrayPut(ArrayPut arrayPut, DexType elementType) {
+    TypeElement valueType = arrayPut.value().getType();
+    if (!valueType.isPrimitiveType() && elementType == dexItemFactory.objectType) {
+      return true;
+    }
+    if (valueType.isNullType() && !elementType.isPrimitiveType()) {
+      return true;
+    }
+    if (elementType.isArrayType()) {
+      if (valueType.isNullType()) {
+        return true;
+      }
+      ArrayTypeElement arrayTypeElement = valueType.asArrayType();
+      if (arrayTypeElement == null
+          || arrayTypeElement.getNesting() != elementType.getNumberOfLeadingSquareBrackets()) {
+        return false;
+      }
+      valueType = arrayTypeElement.getBaseType();
+      elementType = elementType.toBaseType(dexItemFactory);
+    }
+    assert !valueType.isArrayType();
+    assert !elementType.isArrayType();
+    if (valueType.isPrimitiveType() && !elementType.isPrimitiveType()) {
+      return false;
+    }
+    if (valueType.isPrimitiveType()) {
+      return true;
+    }
+    DexClass clazz = appView.definitionFor(elementType);
+    if (clazz == null) {
+      return false;
+    }
+    return clazz.isInterface() || valueType.isClassType(elementType);
   }
 
   private boolean canUseFilledNewArray(DexType arrayType, int size, RewriteArrayOptions options) {
