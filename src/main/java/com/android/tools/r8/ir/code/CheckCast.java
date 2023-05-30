@@ -288,7 +288,7 @@ public class CheckCast extends Instruction {
 
   @Override
   public void buildLir(LirBuilder<Value, ?> builder) {
-    builder.addCheckCast(type, object());
+    builder.addCheckCast(type, object(), ignoreCompatRules);
   }
 
   public static class Builder extends BuilderBase<Builder, CheckCast> {

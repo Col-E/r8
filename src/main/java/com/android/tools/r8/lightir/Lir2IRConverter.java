@@ -509,11 +509,11 @@ public class Lir2IRConverter {
     }
 
     @Override
-    public void onConstClass(DexType type) {
+    public void onConstClass(DexType type, boolean ignoreCompatRules) {
       Value dest =
           getOutValueForNextInstruction(
               type.toTypeElement(appView, Nullability.definitelyNotNull()));
-      addInstruction(new ConstClass(dest, type));
+      addInstruction(new ConstClass(dest, type, ignoreCompatRules));
     }
 
     @Override
@@ -739,9 +739,9 @@ public class Lir2IRConverter {
     }
 
     @Override
-    public void onCheckCast(DexType type, EV value) {
+    public void onCheckCast(DexType type, EV value, boolean ignoreCompatRules) {
       Value dest = getOutValueForNextInstruction(type.toTypeElement(appView));
-      addInstruction(new CheckCast(dest, getValue(value), type));
+      addInstruction(new CheckCast(dest, getValue(value), type, ignoreCompatRules));
     }
 
     @Override

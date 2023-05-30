@@ -223,7 +223,7 @@ public class ConstClass extends ConstInstruction {
 
   @Override
   public void buildLir(LirBuilder<Value, ?> builder) {
-    builder.addConstClass(getType());
+    builder.addConstClass(getType(), ignoreCompatRules);
   }
 
   public static class Builder extends BuilderBase<Builder, ConstClass> {

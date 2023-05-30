@@ -99,7 +99,7 @@ public abstract class LirParsedInstructionCallback<EV> implements LirInstruction
     onInstruction();
   }
 
-  public void onConstClass(DexType type) {
+  public void onConstClass(DexType type, boolean ignoreCompatRules) {
     onInstruction();
   }
 
@@ -468,7 +468,7 @@ public abstract class LirParsedInstructionCallback<EV> implements LirInstruction
     onInstruction();
   }
 
-  public void onCheckCast(DexType type, EV value) {
+  public void onCheckCast(DexType type, EV value, boolean ignoreCompatRules) {
     onInstruction();
   }
 
@@ -530,7 +530,7 @@ public abstract class LirParsedInstructionCallback<EV> implements LirInstruction
             return;
           }
           if (item instanceof DexType) {
-            onConstClass((DexType) item);
+            onConstClass((DexType) item, false);
             return;
           }
           if (item instanceof DexMethodHandle) {
@@ -542,6 +542,12 @@ public abstract class LirParsedInstructionCallback<EV> implements LirInstruction
             return;
           }
           throw new Unimplemented();
+        }
+      case LirOpcodes.CONSTCLASS_IGNORE_COMPAT:
+        {
+          DexItem item = getConstantItem(view.getNextConstantOperand());
+          onConstClass((DexType) item, true);
+          return;
         }
       case LirOpcodes.ICONST_M1:
       case LirOpcodes.ICONST_0:
@@ -1110,7 +1116,14 @@ public abstract class LirParsedInstructionCallback<EV> implements LirInstruction
         {
           DexType type = getNextDexTypeOperand(view);
           EV value = getNextValueOperand(view);
-          onCheckCast(type, value);
+          onCheckCast(type, value, false);
+          return;
+        }
+      case LirOpcodes.CHECKCAST_IGNORE_COMPAT:
+        {
+          DexType type = getNextDexTypeOperand(view);
+          EV value = getNextValueOperand(view);
+          onCheckCast(type, value, true);
           return;
         }
       case LirOpcodes.CHECKCAST_SAFE:

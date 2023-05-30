@@ -392,8 +392,9 @@ public class LirBuilder<V, EV> {
     return addOneItemInstruction(LirOpcodes.LDC, string);
   }
 
-  public LirBuilder<V, EV> addConstClass(DexType type) {
-    return addOneItemInstruction(LirOpcodes.LDC, type);
+  public LirBuilder<V, EV> addConstClass(DexType type, boolean ignoreCompatRules) {
+    int opcode = ignoreCompatRules ? LirOpcodes.CONSTCLASS_IGNORE_COMPAT : LirOpcodes.LDC;
+    return addOneItemInstruction(opcode, type);
   }
 
   public LirBuilder<V, EV> addConstMethodHandle(DexMethodHandle methodHandle) {
@@ -483,9 +484,10 @@ public class LirBuilder<V, EV> {
     return addOneValueInstruction(LirOpcodes.ARRAYLENGTH, array);
   }
 
-  public LirBuilder<V, EV> addCheckCast(DexType type, V value) {
+  public LirBuilder<V, EV> addCheckCast(DexType type, V value, boolean ignoreCompatRules) {
+    int opcode = ignoreCompatRules ? LirOpcodes.CHECKCAST_IGNORE_COMPAT : LirOpcodes.CHECKCAST;
     return addInstructionTemplate(
-        LirOpcodes.CHECKCAST, Collections.singletonList(type), Collections.singletonList(value));
+        opcode, Collections.singletonList(type), Collections.singletonList(value));
   }
 
   public LirBuilder<V, EV> addSafeCheckCast(DexType type, V value) {
