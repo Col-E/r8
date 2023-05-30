@@ -20,6 +20,7 @@ import com.android.tools.r8.utils.WorkList;
 import com.google.common.collect.Sets;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -96,7 +97,7 @@ public class SplitBranch extends CodeRewriterPass<AppInfo> {
       // Then we can redirect any known value. This can lead to dead code.
       If theIf = block.exit().asIf();
       Set<Phi> allowedPhis = getAllowedPhis(nonConstNumberOperand(theIf).asPhi());
-      Set<Phi> foundPhis = Sets.newIdentityHashSet();
+      Set<Phi> foundPhis = new LinkedHashSet<>();
       WorkList.newIdentityWorkList(block)
           .process(
               (current, workList) -> {
@@ -135,9 +136,7 @@ public class SplitBranch extends CodeRewriterPass<AppInfo> {
           }
         }
       }
-      List<Phi> sortedFoundPhis = new ArrayList<>(foundPhis);
-      sortedFoundPhis.sort(Phi::compareTo);
-      for (Phi phi : sortedFoundPhis) {
+      for (Phi phi : foundPhis) {
         BasicBlock phiBlock = phi.getBlock();
         for (int i = 0; i < phi.getOperands().size(); i++) {
           Value value = phi.getOperand(i);
