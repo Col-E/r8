@@ -45,8 +45,7 @@ public class ArgumentPropagationUpperBoundWithInterfacesTest extends TestBase {
         .setMinApi(parameters)
         .compile()
         .run(parameters.getRuntime(), Main.class)
-        // TODO(b/284188592): Should succeed with "42".
-        .assertFailureWithErrorThatThrows(NullPointerException.class);
+        .assertSuccessWithOutputLines("42");
   }
 
   static class Main {

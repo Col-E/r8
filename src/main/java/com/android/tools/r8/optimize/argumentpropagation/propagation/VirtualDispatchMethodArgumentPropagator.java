@@ -170,7 +170,14 @@ public class VirtualDispatchMethodArgumentPropagator extends MethodArgumentPropa
           && currentClass.getSuperType() != appView.dexItemFactory().objectType) {
         return classType.lessThanOrEqualUpToNullability(upperBound, appView);
       }
-      return classType.equalUpToNullability(upperBound);
+      // If the upper bound does not have any interfaces we simply activate the method state when
+      // meeting the upper bound class type in the downwards traversal over the class hierarchy.
+      if (classType.getInterfaces().isEmpty()) {
+        return classType.equalUpToNullability(upperBound);
+      }
+      // If the upper bound has interfaces, we check if the current class is a subtype of *both* the
+      // upper bound class type and the upper bound interface types.
+      return classType.lessThanOrEqualUpToNullability(upperBound, appView);
     }
   }
 
