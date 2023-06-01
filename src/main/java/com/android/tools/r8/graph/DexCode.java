@@ -170,6 +170,17 @@ public class DexCode extends Code
     };
   }
 
+  public DexCode withNewInstructions(DexInstruction[] newInstructions) {
+    return new DexCode(
+        this.registerSize,
+        this.incomingRegisterSize,
+        this.outgoingRegisterSize,
+        newInstructions,
+        this.tries,
+        this.handlers,
+        this.getDebugInfo());
+  }
+
   @Override
   public DexCode self() {
     return this;
