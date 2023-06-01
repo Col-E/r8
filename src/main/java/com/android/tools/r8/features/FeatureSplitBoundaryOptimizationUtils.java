@@ -66,20 +66,23 @@ public class FeatureSplitBoundaryOptimizationUtils {
     }
 
     // Next perform startup checks.
-    StartupProfile startupProfile = appView.getStartupProfile();
-    OptionalBool callerIsStartupMethod = isStartupMethod(caller, startupProfile);
-    if (callerIsStartupMethod.isTrue()) {
-      // If the caller is a startup method, then only allow inlining if the callee is also a startup
-      // method.
-      if (isStartupMethod(callee, startupProfile).isFalse()) {
-        return false;
-      }
-    } else if (callerIsStartupMethod.isFalse()) {
-      // If the caller is not a startup method, then only allow inlining if the caller is not a
-      // startup class or the callee is a startup class.
-      if (startupProfile.isStartupClass(caller.getHolderType())
-          && !startupProfile.isStartupClass(callee.getHolderType())) {
-        return false;
+    if (!callee.getOptimizationInfo().forceInline()) {
+      StartupProfile startupProfile = appView.getStartupProfile();
+      OptionalBool callerIsStartupMethod = isStartupMethod(caller, startupProfile);
+      if (callerIsStartupMethod.isTrue()) {
+        // If the caller is a startup method, then only allow inlining if the callee is also a
+        // startup
+        // method.
+        if (isStartupMethod(callee, startupProfile).isFalse()) {
+          return false;
+        }
+      } else if (callerIsStartupMethod.isFalse()) {
+        // If the caller is not a startup method, then only allow inlining if the caller is not a
+        // startup class or the callee is a startup class.
+        if (startupProfile.isStartupClass(caller.getHolderType())
+            && !startupProfile.isStartupClass(callee.getHolderType())) {
+          return false;
+        }
       }
     }
     return true;

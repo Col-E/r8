@@ -4,14 +4,10 @@
 
 package com.android.tools.r8.startup;
 
-import static org.junit.Assert.assertTrue;
 
-import com.android.tools.r8.CompilationFailedException;
-import com.android.tools.r8.R8TestCompileResult;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
-import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.startup.profile.ExternalStartupClass;
 import com.android.tools.r8.startup.profile.ExternalStartupItem;
@@ -54,32 +50,16 @@ public class ForceInlineAfterVerticalClassMergingStartupTest extends TestBase {
             ExternalStartupMethod.builder()
                 .setMethodReference(MethodReferenceUtils.instanceConstructor(B.class))
                 .build());
-
-    // TODO(b/284334258): Test should always succeed with "B".
-    R8TestCompileResult compileResult;
-    try {
-      compileResult =
-          testForR8(parameters.getBackend())
-              .addInnerClasses(getClass())
-              .addKeepMainRule(Main.class)
-              .addVerticallyMergedClassesInspector(
-                  inspector -> inspector.assertMergedIntoSubtype(A.class))
-              .apply(
-                  testBuilder -> StartupTestingUtils.addStartupProfile(testBuilder, startupProfile))
-              .setMinApi(parameters)
-              .compile();
-    } catch (CompilationFailedException e) {
-      assertTrue(parameters.isCfRuntime());
-      return;
-    }
-
-    assertTrue(parameters.isDexRuntime());
-    compileResult
+    testForR8(parameters.getBackend())
+        .addInnerClasses(getClass())
+        .addKeepMainRule(Main.class)
+        .addVerticallyMergedClassesInspector(
+            inspector -> inspector.assertMergedIntoSubtype(A.class))
+        .apply(testBuilder -> StartupTestingUtils.addStartupProfile(testBuilder, startupProfile))
+        .setMinApi(parameters)
+        .compile()
         .run(parameters.getRuntime(), Main.class)
-        .applyIf(
-            parameters.getDexRuntimeVersion().isEqualToOneOf(Version.V5_1_1, Version.V6_0_1),
-            runResult -> runResult.assertSuccessWithOutputLines("B"),
-            runResult -> runResult.assertFailureWithErrorThatThrows(VerifyError.class));
+        .assertSuccessWithOutputLines("B");
   }
 
   static class Main {
