@@ -212,7 +212,7 @@ public class DexCode extends Code
 
   @Override
   public DexWritableCode rewriteCodeWithJumboStrings(
-      ProgramMethod method, ObjectToOffsetMapping mapping, DexItemFactory factory, boolean force) {
+      ProgramMethod method, ObjectToOffsetMapping mapping, AppView<?> appView, boolean force) {
     DexString firstJumboString = null;
     if (force) {
       firstJumboString = mapping.getFirstString();
@@ -226,7 +226,12 @@ public class DexCode extends Code
       }
     }
     return firstJumboString != null
-        ? new JumboStringRewriter(method.getDefinition(), firstJumboString, factory).rewrite()
+        ? new JumboStringRewriter(
+                method.getDefinition(),
+                firstJumboString,
+                () -> appView.options().shouldMaterializeLineInfoForNativePcEncoding(method),
+                appView.dexItemFactory())
+            .rewrite()
         : this;
   }
 

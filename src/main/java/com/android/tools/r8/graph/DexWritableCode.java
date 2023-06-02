@@ -96,7 +96,7 @@ public interface DexWritableCode {
 
   /** Rewrites the code to have JumboString bytecode if required by mapping. */
   DexWritableCode rewriteCodeWithJumboStrings(
-      ProgramMethod method, ObjectToOffsetMapping mapping, DexItemFactory factory, boolean force);
+      ProgramMethod method, ObjectToOffsetMapping mapping, AppView<?> appView, boolean force);
 
   void setCallSiteContexts(ProgramMethod method);
 

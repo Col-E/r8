@@ -53,6 +53,7 @@ import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.function.BooleanSupplier;
 
 public class JumboStringRewriter {
 
@@ -92,6 +93,7 @@ public class JumboStringRewriter {
 
   private final DexEncodedMethod method;
   private final DexString firstJumboString;
+  private final BooleanSupplier materializeInfoForNativePc;
   private final DexItemFactory factory;
   private final Map<DexInstruction, List<DexInstruction>> instructionTargets =
       new IdentityHashMap<>();
@@ -105,10 +107,18 @@ public class JumboStringRewriter {
   private final Map<TryHandler, List<DexInstruction>> handlerTargets = new IdentityHashMap<>();
 
   public JumboStringRewriter(
-      DexEncodedMethod method, DexString firstJumboString, DexItemFactory factory) {
+      DexEncodedMethod method,
+      DexString firstJumboString,
+      BooleanSupplier materializeInfoForNativePc,
+      DexItemFactory factory) {
     this.method = method;
     this.firstJumboString = firstJumboString;
+    this.materializeInfoForNativePc = materializeInfoForNativePc;
     this.factory = factory;
+  }
+
+  private DexCode getCode() {
+    return method.getCode().asDexCode();
   }
 
   public DexCode rewrite() {
@@ -124,7 +134,7 @@ public class JumboStringRewriter {
     TryHandler[] newHandlers = rewriteHandlerOffsets();
     DexDebugInfo newDebugInfo = rewriteDebugInfoOffsets();
     // Set the new code on the method.
-    DexCode oldCode = method.getCode().asDexCode();
+    DexCode oldCode = getCode();
     DexCode newCode =
         new DexCode(
             oldCode.registerSize,
@@ -185,7 +195,7 @@ public class JumboStringRewriter {
   }
 
   private Try[] rewriteTryOffsets() {
-    DexCode code = method.getCode().asDexCode();
+    DexCode code = getCode();
     Try[] result = new Try[code.tries.length];
     for (int i = 0; i < code.tries.length; i++) {
       Try theTry = code.tries[i];
@@ -197,7 +207,7 @@ public class JumboStringRewriter {
   }
 
   private TryHandler[] rewriteHandlerOffsets() {
-    DexCode code = method.getCode().asDexCode();
+    DexCode code = getCode();
     TryHandler[] result = new TryHandler[code.handlers.length];
     for (int i = 0; i < code.handlers.length; i++) {
       TryHandler handler = code.handlers[i];
@@ -218,7 +228,7 @@ public class JumboStringRewriter {
   }
 
   private DexDebugInfo rewriteDebugInfoOffsets() {
-    DexCode code = method.getCode().asDexCode();
+    DexCode code = getCode();
     if (!debugEventTargets.isEmpty()) {
       assert debugEventBasedInfo != null;
       int lastOriginalOffset = 0;
@@ -256,7 +266,7 @@ public class JumboStringRewriter {
   @SuppressWarnings("JdkObsolete")
   private List<DexInstruction> expandCode() {
     LinkedList<DexInstruction> instructions = new LinkedList<>();
-    Collections.addAll(instructions, method.getCode().asDexCode().instructions);
+    Collections.addAll(instructions, getCode().instructions);
     int offsetDelta;
     do {
       ListIterator<DexInstruction> it = instructions.listIterator();
@@ -436,7 +446,7 @@ public class JumboStringRewriter {
   }
 
   private void recordInstructionTargets(Int2ReferenceMap<DexInstruction> offsetToInstruction) {
-    DexInstruction[] instructions = method.getCode().asDexCode().instructions;
+    DexInstruction[] instructions = getCode().instructions;
     for (DexInstruction instruction : instructions) {
       if (instruction instanceof DexFormat22t) { // IfEq, IfGe, IfGt, IfLe, IfLt, IfNe
         DexFormat22t condition = (DexFormat22t) instruction;
@@ -486,14 +496,15 @@ public class JumboStringRewriter {
   }
 
   private void recordDebugEventTargets(Int2ReferenceMap<DexInstruction> offsetToInstruction) {
-    // TODO(b/213411850): Merging pc based D8 builds will map out of PC for any jumbo processed
-    //  method. Instead we should rather retain the PC encoding by bumping the max-pc and recording
-    //  the line number translation. We actually need to do so to support merging with native PC
-    //  support as in that case we can't reflect the change in the line table, only in the mapping.
-    EventBasedDebugInfo eventBasedInfo =
-        DexDebugInfo.convertToEventBased(method.getCode().asDexCode(), factory);
+    EventBasedDebugInfo eventBasedInfo = DexDebugInfo.convertToEventBased(getCode(), factory);
     if (eventBasedInfo == null) {
-      return;
+      if (materializeInfoForNativePc.getAsBoolean()) {
+        eventBasedInfo =
+            DexDebugInfo.createEventBasedDebugInfoForNativePc(
+                method.getParameters().size(), getCode(), factory);
+      } else {
+        return;
+      }
     }
     debugEventBasedInfo = eventBasedInfo;
     int address = 0;
@@ -516,7 +527,7 @@ public class JumboStringRewriter {
 
   private void recordTryAndHandlerTargets(
       Int2ReferenceMap<DexInstruction> offsetToInstruction, DexInstruction lastInstruction) {
-    DexCode code = method.getCode().asDexCode();
+    DexCode code = getCode();
     for (Try theTry : code.tries) {
       DexInstruction start = offsetToInstruction.get(theTry.startAddress);
       DexInstruction end = null;
@@ -553,7 +564,7 @@ public class JumboStringRewriter {
 
   private void recordTargets() {
     Int2ReferenceMap<DexInstruction> offsetToInstruction = new Int2ReferenceOpenHashMap<>();
-    DexInstruction[] instructions = method.getCode().asDexCode().instructions;
+    DexInstruction[] instructions = getCode().instructions;
     boolean containsPayloads = false;
     for (DexInstruction instruction : instructions) {
       offsetToInstruction.put(instruction.getOffset(), instruction);

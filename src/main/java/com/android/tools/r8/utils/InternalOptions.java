@@ -52,6 +52,7 @@ import com.android.tools.r8.graph.DexLibraryClass;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexReference;
+import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.classmerging.VerticallyMergedClasses;
@@ -2515,6 +2516,10 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
     throw new Unreachable();
   }
 
+  public boolean canUseDexPc2PcAsDebugInformation() {
+    return isGeneratingDex() && lineNumberOptimization == LineNumberOptimization.ON;
+  }
+
   // Debug entries may be dropped only if the source file content allows being omitted from
   // stack traces, or if the VM will report the source file even with a null valued debug info.
   public boolean allowDiscardingResidualDebugInfo() {
@@ -2522,14 +2527,29 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
     return sourceFileProvider != null && sourceFileProvider.allowDiscardingSourceFile();
   }
 
-  public boolean canUseDexPc2PcAsDebugInformation() {
-    return isGeneratingDex() && lineNumberOptimization == LineNumberOptimization.ON;
+  public boolean allowDiscardingResidualDebugInfo(ProgramMethod method) {
+    // TODO(b/146565491): We can drop debug info once fixed at a known min-api.
+    DexString sourceFile = method.getHolder().getSourceFile();
+    return sourceFile == null || sourceFile.equals(itemFactory.defaultSourceFileAttribute);
   }
 
   public boolean canUseNativeDexPcInsteadOfDebugInfo() {
     return canUseDexPc2PcAsDebugInformation()
         && hasMinApi(AndroidApiLevel.O)
         && allowDiscardingResidualDebugInfo();
+  }
+
+  public boolean canUseNativeDexPcInsteadOfDebugInfo(ProgramMethod method) {
+    return canUseDexPc2PcAsDebugInformation()
+        && hasMinApi(AndroidApiLevel.O)
+        && allowDiscardingResidualDebugInfo(method);
+  }
+
+  public boolean shouldMaterializeLineInfoForNativePcEncoding(ProgramMethod method) {
+    assert method.getDefinition().getCode().asDexCode() != null;
+    assert method.getDefinition().getCode().asDexCode().getDebugInfo() == null;
+    return method.getHolder().originatesFromDexResource()
+        && canUseNativeDexPcInsteadOfDebugInfo(method);
   }
 
   public boolean isInterfaceMethodDesugaringEnabled() {
