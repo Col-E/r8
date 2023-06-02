@@ -17,7 +17,6 @@ import com.android.tools.r8.dex.code.DexIfNe;
 import com.android.tools.r8.dex.code.DexIfNez;
 import com.android.tools.r8.dex.code.DexInstruction;
 import com.android.tools.r8.dex.code.DexReturnVoid;
-import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.DexCode;
 import com.android.tools.r8.graph.DexCode.Try;
 import com.android.tools.r8.graph.DexCode.TryHandler;
@@ -159,13 +158,6 @@ public class JumboStringProcessing extends TestBase {
             .disableMethodNotNullCheck()
             .disableAndroidApiLevelCheck()
             .build();
-    return new JumboStringRewriter(
-            method,
-            string,
-            () -> {
-              throw new Unreachable();
-            },
-            factory)
-        .rewrite();
+    return new JumboStringRewriter(method, string, () -> false, factory).rewrite();
   }
 }
