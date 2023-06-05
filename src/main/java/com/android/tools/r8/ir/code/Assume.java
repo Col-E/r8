@@ -16,6 +16,7 @@ import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.InliningConstraints;
+import com.android.tools.r8.lightir.LirBuilder;
 import java.util.Objects;
 import java.util.Set;
 
@@ -169,6 +170,11 @@ public class Assume extends Instruction {
 
   @Override
   public void buildCf(CfBuilder builder) {
+    throw new Unreachable(ERROR_MESSAGE);
+  }
+
+  @Override
+  public void buildLir(LirBuilder<Value, ?> builder) {
     throw new Unreachable(ERROR_MESSAGE);
   }
 

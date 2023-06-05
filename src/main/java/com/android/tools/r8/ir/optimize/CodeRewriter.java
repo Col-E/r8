@@ -36,6 +36,7 @@ import com.android.tools.r8.graph.FieldResolutionResult.SingleProgramFieldResolu
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.horizontalclassmerging.HorizontalClassMergerUtils;
 import com.android.tools.r8.ir.analysis.equivalence.BasicBlockBehavioralSubsumption;
+import com.android.tools.r8.ir.analysis.type.ArrayTypeElement;
 import com.android.tools.r8.ir.analysis.type.DynamicTypeWithUpperBound;
 import com.android.tools.r8.ir.analysis.type.Nullability;
 import com.android.tools.r8.ir.analysis.type.TypeAnalysis;
@@ -113,13 +114,9 @@ import com.android.tools.r8.utils.LazyBox;
 import com.android.tools.r8.utils.LongInterval;
 import com.android.tools.r8.utils.SetUtils;
 import com.android.tools.r8.utils.WorkList;
-import com.google.common.base.Equivalence;
-import com.google.common.base.Equivalence.Wrapper;
-import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
-import com.google.common.collect.ListMultimap;
 import com.google.common.collect.Sets;
 import com.google.common.collect.Streams;
 import it.unimi.dsi.fastutil.ints.Int2IntMap;
@@ -499,6 +496,7 @@ public class CodeRewriter {
 
   // TODO(sgjesse); Move this somewhere else, and reuse it for some of the other switch rewritings.
   public abstract static class InstructionBuilder<T> {
+
     protected int blockNumber;
     protected final Position position;
 
@@ -515,6 +513,7 @@ public class CodeRewriter {
   }
 
   public static class SwitchBuilder extends InstructionBuilder<SwitchBuilder> {
+
     private Value value;
     private final Int2ReferenceSortedMap<BasicBlock> keyToTarget = new Int2ReferenceAVLTreeMap<>();
     private BasicBlock fallthrough;
@@ -530,7 +529,7 @@ public class CodeRewriter {
 
     public SwitchBuilder setValue(Value value) {
       this.value = value;
-      return  this;
+      return this;
     }
 
     public SwitchBuilder addKeyAndTarget(int key, BasicBlock target) {
@@ -575,6 +574,7 @@ public class CodeRewriter {
   }
 
   public static class IfBuilder extends InstructionBuilder<IfBuilder> {
+
     private final IRCode code;
     private Value left;
     private int right;
@@ -593,12 +593,12 @@ public class CodeRewriter {
 
     public IfBuilder setLeft(Value left) {
       this.left = left;
-      return  this;
+      return this;
     }
 
     public IfBuilder setRight(int right) {
       this.right = right;
-      return  this;
+      return this;
     }
 
     public IfBuilder setTarget(BasicBlock target) {
@@ -2242,6 +2242,7 @@ public class CodeRewriter {
   }
 
   private static class FilledArrayCandidate {
+
     final NewArrayEmpty newArrayEmpty;
     final int size;
     final boolean encodeAsFilledNewArray;
@@ -2263,7 +2264,7 @@ public class CodeRewriter {
     }
   }
 
-  private FilledArrayCandidate computeFilledArrayCandiate(
+  private FilledArrayCandidate computeFilledArrayCandidate(
       Instruction instruction, RewriteArrayOptions options) {
     NewArrayEmpty newArrayEmpty = instruction.asNewArrayEmpty();
     if (newArrayEmpty == null) {
@@ -2284,7 +2285,55 @@ public class CodeRewriter {
     if (!encodeAsFilledNewArray && !canUseFilledArrayData(arrayType, size, options)) {
       return null;
     }
+    // Check that all arguments to the array is the array type or that the array is type Object[].
+    if (!options.canUseSubTypesInFilledNewArray()
+        && arrayType != dexItemFactory.objectArrayType
+        && !arrayType.isPrimitiveArrayType()) {
+      DexType elementType = arrayType.toArrayElementType(dexItemFactory);
+      for (Instruction uniqueUser : newArrayEmpty.outValue().uniqueUsers()) {
+        if (uniqueUser.isArrayPut()
+            && uniqueUser.asArrayPut().array() == newArrayEmpty.outValue()
+            && !checkTypeOfArrayPut(uniqueUser.asArrayPut(), elementType)) {
+          return null;
+        }
+      }
+    }
     return new FilledArrayCandidate(newArrayEmpty, size, encodeAsFilledNewArray);
+  }
+
+  private boolean checkTypeOfArrayPut(ArrayPut arrayPut, DexType elementType) {
+    TypeElement valueType = arrayPut.value().getType();
+    if (!valueType.isPrimitiveType() && elementType == dexItemFactory.objectType) {
+      return true;
+    }
+    if (valueType.isNullType() && !elementType.isPrimitiveType()) {
+      return true;
+    }
+    if (elementType.isArrayType()) {
+      if (valueType.isNullType()) {
+        return true;
+      }
+      ArrayTypeElement arrayTypeElement = valueType.asArrayType();
+      if (arrayTypeElement == null
+          || arrayTypeElement.getNesting() != elementType.getNumberOfLeadingSquareBrackets()) {
+        return false;
+      }
+      valueType = arrayTypeElement.getBaseType();
+      elementType = elementType.toBaseType(dexItemFactory);
+    }
+    assert !valueType.isArrayType();
+    assert !elementType.isArrayType();
+    if (valueType.isPrimitiveType() && !elementType.isPrimitiveType()) {
+      return false;
+    }
+    if (valueType.isPrimitiveType()) {
+      return true;
+    }
+    DexClass clazz = appView.definitionFor(elementType);
+    if (clazz == null) {
+      return false;
+    }
+    return clazz.isInterface() || valueType.isClassType(elementType);
   }
 
   private boolean canUseFilledNewArray(DexType arrayType, int size, RewriteArrayOptions options) {
@@ -2393,7 +2442,7 @@ public class CodeRewriter {
     RewriteArrayOptions rewriteOptions = options.rewriteArrayOptions();
     InstructionListIterator it = block.listIterator(code);
     while (it.hasNext()) {
-      FilledArrayCandidate candidate = computeFilledArrayCandiate(it.next(), rewriteOptions);
+      FilledArrayCandidate candidate = computeFilledArrayCandidate(it.next(), rewriteOptions);
       if (candidate == null) {
         continue;
       }
@@ -2548,165 +2597,8 @@ public class CodeRewriter {
     }
   }
 
-  private static class CSEExpressionEquivalence extends Equivalence<Instruction> {
-
-    private final InternalOptions options;
-
-    private CSEExpressionEquivalence(InternalOptions options) {
-      this.options = options;
-    }
-
-    @Override
-    protected boolean doEquivalent(Instruction a, Instruction b) {
-      // Some Dalvik VMs incorrectly handle Cmp instructions which leads to a requirement
-      // that we do not perform common subexpression elimination for them. See comment on
-      // canHaveCmpLongBug for details.
-      if (a.isCmp() && options.canHaveCmpLongBug()) {
-        return false;
-      }
-      // Note that we don't consider positions because CSE can at most remove an instruction.
-      if (!a.identicalNonValueNonPositionParts(b)) {
-        return false;
-      }
-      // For commutative binary operations any order of in-values are equal.
-      if (a.isBinop() && a.asBinop().isCommutative()) {
-        Value a0 = a.inValues().get(0);
-        Value a1 = a.inValues().get(1);
-        Value b0 = b.inValues().get(0);
-        Value b1 = b.inValues().get(1);
-        return (identicalValue(a0, b0) && identicalValue(a1, b1))
-            || (identicalValue(a0, b1) && identicalValue(a1, b0));
-      } else {
-        // Compare all in-values.
-        assert a.inValues().size() == b.inValues().size();
-        for (int i = 0; i < a.inValues().size(); i++) {
-          if (!identicalValue(a.inValues().get(i), b.inValues().get(i))) {
-            return false;
-          }
-        }
-        return true;
-      }
-    }
-
-    @Override
-    protected int doHash(Instruction instruction) {
-      final int prime = 29;
-      int hash = instruction.getClass().hashCode();
-      if (instruction.isBinop()) {
-        Binop binop = instruction.asBinop();
-        Value in0 = instruction.inValues().get(0);
-        Value in1 = instruction.inValues().get(1);
-        if (binop.isCommutative()) {
-          hash += hash * prime + getHashCode(in0) * getHashCode(in1);
-        } else {
-          hash += hash * prime + getHashCode(in0);
-          hash += hash * prime + getHashCode(in1);
-        }
-        return hash;
-      } else {
-        for (Value value : instruction.inValues()) {
-          hash += hash * prime + getHashCode(value);
-        }
-      }
-      return hash;
-    }
-
-    private static boolean identicalValue(Value a, Value b) {
-      if (a.equals(b)) {
-        return true;
-      }
-      if (a.isConstNumber() && b.isConstNumber()) {
-        // Do not take assumption that constants are canonicalized.
-        return a.definition.identicalNonValueNonPositionParts(b.definition);
-      }
-      return false;
-    }
-
-    private static int getHashCode(Value a) {
-      if (a.isConstNumber()) {
-        // Do not take assumption that constants are canonicalized.
-        return Long.hashCode(a.definition.asConstNumber().getRawValue());
-      }
-      return a.hashCode();
-    }
-  }
-
-  private boolean shareCatchHandlers(Instruction i0, Instruction i1) {
-    if (!i0.instructionTypeCanThrow()) {
-      assert !i1.instructionTypeCanThrow();
-      return true;
-    }
-    assert i1.instructionTypeCanThrow();
-    // TODO(sgjesse): This could be even better by checking for the exceptions thrown, e.g. div
-    // and rem only ever throw ArithmeticException.
-    CatchHandlers<BasicBlock> ch0 = i0.getBlock().getCatchHandlers();
-    CatchHandlers<BasicBlock> ch1 = i1.getBlock().getCatchHandlers();
-    return ch0.equals(ch1);
-  }
-
-  private boolean isCSEInstructionCandidate(Instruction instruction) {
-    return (instruction.isBinop()
-        || instruction.isUnop()
-        || instruction.isInstanceOf()
-        || instruction.isCheckCast())
-        && instruction.getLocalInfo() == null
-        && !instruction.hasInValueWithLocalInfo();
-  }
-
-  private boolean hasCSECandidate(IRCode code, int noCandidate) {
-    for (BasicBlock block : code.blocks) {
-      for (Instruction instruction : block.getInstructions()) {
-        if (isCSEInstructionCandidate(instruction)) {
-          return true;
-        }
-      }
-      block.mark(noCandidate);
-    }
-    return false;
-  }
-
-  public void commonSubexpressionElimination(IRCode code) {
-    int noCandidate = code.reserveMarkingColor();
-    if (hasCSECandidate(code, noCandidate)) {
-      final ListMultimap<Wrapper<Instruction>, Value> instructionToValue =
-          ArrayListMultimap.create();
-      final CSEExpressionEquivalence equivalence = new CSEExpressionEquivalence(options);
-      final DominatorTree dominatorTree = new DominatorTree(code);
-      for (int i = 0; i < dominatorTree.getSortedBlocks().length; i++) {
-        BasicBlock block = dominatorTree.getSortedBlocks()[i];
-        if (block.isMarked(noCandidate)) {
-          continue;
-        }
-        InstructionListIterator iterator = block.listIterator(code);
-        while (iterator.hasNext()) {
-          Instruction instruction = iterator.next();
-          if (isCSEInstructionCandidate(instruction)) {
-            List<Value> candidates = instructionToValue.get(equivalence.wrap(instruction));
-            boolean eliminated = false;
-            if (candidates.size() > 0) {
-              for (Value candidate : candidates) {
-                if (dominatorTree.dominatedBy(block, candidate.definition.getBlock())
-                    && shareCatchHandlers(instruction, candidate.definition)) {
-                  instruction.outValue().replaceUsers(candidate);
-                  candidate.uniquePhiUsers().forEach(Phi::removeTrivialPhi);
-                  eliminated = true;
-                  iterator.removeOrReplaceByDebugLocalRead();
-                  break;  // Don't try any more candidates.
-                }
-              }
-            }
-            if (!eliminated) {
-              instructionToValue.put(equivalence.wrap(instruction), instruction.outValue());
-            }
-          }
-        }
-      }
-    }
-    code.returnMarkingColor(noCandidate);
-    assert code.isConsistentSSA(appView);
-  }
-
   static class ControlFlowSimplificationResult {
+
     private boolean anyAffectedValues;
     private boolean anySimplifications;
 

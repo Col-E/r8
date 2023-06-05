@@ -26,11 +26,6 @@
   license: Apache License, Version 2.0
   licenseUrl: http://www.apache.org/licenses/LICENSE-2.0.html
   url: http://fasutil.di.unimi.it/
-- artifact: net.sf.jopt-simple:jopt-simple:+
-  name: JOpt Simple
-  license: The MIT License
-  licenseUrl: http://www.opensource.org/licenses/mit-license.php
-  url: http://pholser.github.com/jopt-simple
 - artifact: org.ow2.asm:asm-commons:+
   name: ASM Commons
   copyrightHolder: INRIA, France Telecom

@@ -44,6 +44,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -1888,7 +1889,8 @@ public abstract class R8RunArtTestsTest extends TestBase {
       fileNames.add(file.getCanonicalPath());
     }
 
-    File resultDir = temp.newFolder(firstCompilerUnderTest.toString().toLowerCase() + "-output");
+    File resultDir =
+        temp.newFolder(firstCompilerUnderTest.toString().toLowerCase(Locale.ROOT) + "-output");
 
     runArtTestDoRunOnArt(
         dexVm, firstCompilerUnderTest, specification, fileNames, resultDir, compilationMode);

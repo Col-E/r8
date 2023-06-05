@@ -13,6 +13,7 @@ import com.android.tools.r8.ir.conversion.DexBuilder;
 import com.android.tools.r8.ir.optimize.DeadCodeRemover.DeadInstructionResult;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.InliningConstraints;
+import com.android.tools.r8.lightir.LirBuilder;
 
 public class Pop extends Instruction {
 
@@ -82,6 +83,11 @@ public class Pop extends Instruction {
   public ConstraintWithTarget inliningConstraint(
       InliningConstraints inliningConstraints, ProgramMethod context) {
     return inliningConstraints.forPop();
+  }
+
+  @Override
+  public void buildLir(LirBuilder<Value, ?> builder) {
+    throw new Unreachable("This classfile-specific IR should not be used in LIR.");
   }
 
   @Override

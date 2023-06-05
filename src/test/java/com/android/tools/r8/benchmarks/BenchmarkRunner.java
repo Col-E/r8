@@ -3,6 +3,8 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.benchmarks;
 
+import com.android.tools.r8.utils.StringUtils;
+
 public class BenchmarkRunner {
 
   public interface BenchmarkRunnerFunction {
@@ -15,7 +17,7 @@ public class BenchmarkRunner {
 
     @Override
     public String toString() {
-      return name().toLowerCase();
+      return StringUtils.toLowerCase(name());
     }
   }
 

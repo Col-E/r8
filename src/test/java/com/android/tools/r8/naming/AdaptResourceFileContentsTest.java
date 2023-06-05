@@ -24,6 +24,7 @@ import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.ArchiveResourceProvider;
 import com.android.tools.r8.utils.DataResourceConsumerForTesting;
 import com.android.tools.r8.utils.FileUtils;
+import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.google.common.collect.ImmutableList;
 import com.google.common.io.ByteStreams;
@@ -173,9 +174,8 @@ public class AdaptResourceFileContentsTest extends ProguardCompatibilityTestBase
             AdaptResourceFileContentsTestClass.B.class),
         getProguardConfig(true, null),
         null,
-        getDataResources()
-            .stream()
-            .filter(x -> !x.getName().toLowerCase().endsWith(FileUtils.CLASS_EXTENSION))
+        getDataResources().stream()
+            .filter(x -> !StringUtils.toLowerCase(x.getName()).endsWith(FileUtils.CLASS_EXTENSION))
             .collect(Collectors.toList()));
 
     // Visit each of the resources in the jar and check that their contents are as expected.

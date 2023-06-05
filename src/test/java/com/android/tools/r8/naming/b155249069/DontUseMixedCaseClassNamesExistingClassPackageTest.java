@@ -14,6 +14,7 @@ import com.android.tools.r8.naming.b155249069.package_b.A;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.FileUtils;
+import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import java.io.IOException;
 import java.nio.file.Path;
@@ -76,10 +77,12 @@ public class DontUseMixedCaseClassNamesExistingClassPackageTest extends TestBase
               ClassSubject bSubject = inspector.clazz(A.class);
               if (dontUseMixedCase) {
                 assertNotEquals(
-                    aSubject.getFinalName().toLowerCase(), bSubject.getFinalName().toLowerCase());
+                    StringUtils.toLowerCase(aSubject.getFinalName()),
+                    StringUtils.toLowerCase(bSubject.getFinalName()));
               } else {
                 assertEquals(
-                    aSubject.getFinalName().toLowerCase(), bSubject.getFinalName().toLowerCase());
+                    StringUtils.toLowerCase(aSubject.getFinalName()),
+                    StringUtils.toLowerCase(bSubject.getFinalName()));
               }
             });
   }

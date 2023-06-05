@@ -21,6 +21,7 @@ import com.android.tools.r8.origin.ArchiveEntryOrigin;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.origin.PathOrigin;
 import com.android.tools.r8.utils.StringDiagnostic;
+import com.android.tools.r8.utils.StringUtils;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -534,7 +535,7 @@ public class D8ApiUsageSample {
   }
 
   private static boolean isClassFile(String file) {
-    file = file.toLowerCase();
+    file = StringUtils.toLowerCase(file);
     return file.endsWith(".class");
   }
 
@@ -543,7 +544,7 @@ public class D8ApiUsageSample {
   }
 
   private static boolean isDexFile(String file) {
-    file = file.toLowerCase();
+    file = StringUtils.toLowerCase(file);
     return file.endsWith(".dex");
   }
 
@@ -552,7 +553,7 @@ public class D8ApiUsageSample {
   }
 
   private static boolean isArchive(String file) {
-    file = file.toLowerCase();
+    file = StringUtils.toLowerCase(file);
     return file.endsWith(".zip") || file.endsWith(".jar");
   }
 

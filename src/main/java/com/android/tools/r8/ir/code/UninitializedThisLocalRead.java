@@ -14,6 +14,7 @@ import com.android.tools.r8.ir.conversion.DexBuilder;
 import com.android.tools.r8.ir.optimize.DeadCodeRemover.DeadInstructionResult;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.InliningConstraints;
+import com.android.tools.r8.lightir.LirBuilder;
 
 /**
  * To preserve stack-map table information regarding uninitializedThis flags the
@@ -46,6 +47,11 @@ public class UninitializedThisLocalRead extends Instruction {
 
   @Override
   public void buildCf(CfBuilder builder) {
+    throw new Unreachable(ERROR_MESSAGE);
+  }
+
+  @Override
+  public void buildLir(LirBuilder<Value, ?> builder) {
     throw new Unreachable(ERROR_MESSAGE);
   }
 

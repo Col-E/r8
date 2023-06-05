@@ -947,10 +947,7 @@ public class ApplicationWriter {
             DexWritableCode code = method.getDefinition().getCode().asDexWritableCode();
             DexWritableCode rewrittenCode =
                 code.rewriteCodeWithJumboStrings(
-                    method,
-                    mapping,
-                    application.dexItemFactory,
-                    options.testing.forceJumboStringProcessing);
+                    method, mapping, appView, options.testing.forceJumboStringProcessing);
             method.setCode(rewrittenCode.asCode(), appView);
           });
     }

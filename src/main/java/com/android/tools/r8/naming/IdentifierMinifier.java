@@ -25,6 +25,7 @@ import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.desugar.records.RecordCfToCfRewriter;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.ProguardClassFilter;
+import com.android.tools.r8.utils.ArrayUtils;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.ListUtils;
 import com.android.tools.r8.utils.ThreadUtils;
@@ -91,11 +92,28 @@ class IdentifierMinifier {
       return;
     }
     if (code.isDexCode()) {
-      for (DexInstruction instruction : code.asDexCode().instructions) {
-        if (instruction.isConstString()) {
-          DexConstString cnst = instruction.asConstString();
-          cnst.BBBB = getRenamedStringLiteral(cnst.getString());
-        }
+      DexInstruction[] instructions = code.asDexCode().instructions;
+      DexInstruction[] newInstructions =
+          ArrayUtils.map(
+              instructions,
+              (DexInstruction instruction) -> {
+                if (instruction.isConstString()) {
+                  DexConstString cnst = instruction.asConstString();
+                  DexString renamedStringLiteral = getRenamedStringLiteral(cnst.getString());
+                  if (!renamedStringLiteral.equals(cnst.getString())) {
+                    DexConstString dexConstString =
+                        new DexConstString(instruction.asConstString().AA, renamedStringLiteral);
+                    dexConstString.setOffset(instruction.getOffset());
+                    return dexConstString;
+                  }
+                }
+                return instruction;
+              },
+              DexInstruction.EMPTY_ARRAY);
+      if (instructions != newInstructions) {
+        encodedMethod.setCode(
+            code.asDexCode().withNewInstructions(newInstructions),
+            encodedMethod.getParameterInfo());
       }
     } else if (code.isCfCode()) {
       for (CfInstruction instruction : code.asCfCode().getInstructions()) {
@@ -163,22 +181,24 @@ class IdentifierMinifier {
     assert code != null;
     if (code.isDexCode()) {
       DexInstruction[] instructions = code.asDexCode().instructions;
-      boolean updated = false;
-      for (int i = 0; i < instructions.length; ++i) {
-        DexInstruction instruction = instructions[i];
-        if (instruction.isDexItemBasedConstString()) {
-          DexItemBasedConstString cnst = instruction.asDexItemBasedConstString();
-          DexString replacement =
-              cnst.getNameComputationInfo()
-                  .computeNameFor(cnst.getItem(), appView, appView.graphLens(), lens);
-          DexConstString constString = new DexConstString(cnst.AA, replacement);
-          constString.setOffset(instruction.getOffset());
-          instructions[i] = constString;
-          updated = true;
-        }
-      }
-      if (updated) {
-        code.asDexCode().flushCachedValues();
+      DexInstruction[] newInstructions =
+          ArrayUtils.map(
+              instructions,
+              (DexInstruction instruction) -> {
+                if (instruction.isDexItemBasedConstString()) {
+                  DexItemBasedConstString cnst = instruction.asDexItemBasedConstString();
+                  DexString replacement =
+                      cnst.getNameComputationInfo()
+                          .computeNameFor(cnst.getItem(), appView, appView.graphLens(), lens);
+                  DexConstString constString = new DexConstString(cnst.AA, replacement);
+                  constString.setOffset(instruction.getOffset());
+                  return constString;
+                }
+                return instruction;
+              },
+              DexInstruction.EMPTY_ARRAY);
+      if (newInstructions != instructions) {
+        programMethod.setCode(code.asDexCode().withNewInstructions(newInstructions), appView);
       }
     } else if (code.isCfCode()) {
       List<CfInstruction> instructions = code.asCfCode().getInstructions();

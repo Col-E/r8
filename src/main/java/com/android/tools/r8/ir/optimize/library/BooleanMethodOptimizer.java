@@ -19,6 +19,7 @@ import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.ir.code.InvokeMethod;
 import com.android.tools.r8.ir.code.StaticGet;
 import com.android.tools.r8.ir.code.Value;
+import com.android.tools.r8.utils.StringUtils;
 import java.util.Set;
 
 public class BooleanMethodOptimizer extends StatelessLibraryMethodModelCollection {
@@ -79,7 +80,7 @@ public class BooleanMethodOptimizer extends StatelessLibraryMethodModelCollectio
       if (definition.isConstString()) {
         ConstString constString = definition.asConstString();
         if (!constString.instructionInstanceCanThrow()) {
-          String value = constString.getValue().toString().toLowerCase();
+          String value = StringUtils.toLowerCase(constString.getValue().toString());
           if (value.equals("true")) {
             instructionIterator.replaceCurrentInstructionWithConstInt(code, 1);
           } else if (value.equals("false")) {

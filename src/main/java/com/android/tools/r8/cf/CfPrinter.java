@@ -77,6 +77,7 @@ import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.code.ValueType;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.RetracerForCodePrinting;
+import com.android.tools.r8.utils.StringUtils;
 import it.unimi.dsi.fastutil.ints.IntList;
 import it.unimi.dsi.fastutil.objects.Reference2IntMap;
 import it.unimi.dsi.fastutil.objects.Reference2IntOpenHashMap;
@@ -597,7 +598,7 @@ public class CfPrinter {
   }
 
   private String ifPostfix(IfType kind) {
-    return kind.toString().toLowerCase();
+    return StringUtils.toLowerCase(kind.toString());
   }
 
   public void print(CfIf conditional) {
@@ -797,7 +798,7 @@ public class CfPrinter {
   }
 
   private String opcodeName(int opcode) {
-    return Printer.OPCODES[opcode].toLowerCase();
+    return StringUtils.toLowerCase(Printer.OPCODES[opcode]);
   }
 
   @Override

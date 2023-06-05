@@ -392,15 +392,6 @@ public class BridgeHoisting {
         newInstructions[i] = instruction;
       }
     }
-    return modified
-        ? new DexCode(
-            code.registerSize,
-            code.incomingRegisterSize,
-            code.outgoingRegisterSize,
-            newInstructions,
-            code.tries,
-            code.handlers,
-            code.getDebugInfo())
-        : code;
+    return modified ? code.withNewInstructions(newInstructions) : code;
   }
 }

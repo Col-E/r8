@@ -8,7 +8,6 @@ import com.android.tools.r8.cf.code.CfArithmeticBinop.Opcode;
 import com.android.tools.r8.cf.code.CfLogicalBinop;
 import com.android.tools.r8.cf.code.CfNumberConversion;
 import com.android.tools.r8.dex.MixedSectionCollection;
-import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.DebugLocalInfo;
 import com.android.tools.r8.graph.DexCallSite;
@@ -246,6 +245,7 @@ public class LirBuilder<V, EV> {
   private void setPositionIndex(int instructionIndex, Position position) {
     assert positionTable.isEmpty()
         || ListUtils.last(positionTable).fromInstructionIndex < instructionIndex;
+    assert positionTable.isEmpty() || !ListUtils.last(positionTable).position.equals(position);
     positionTable.add(new PositionEntry(instructionIndex, position));
   }
 
@@ -448,7 +448,7 @@ public class LirBuilder<V, EV> {
       case DOUBLE:
         return addConstDouble(value);
       default:
-        throw new Unimplemented();
+        throw new Unreachable();
     }
   }
 
@@ -456,8 +456,9 @@ public class LirBuilder<V, EV> {
     return addOneItemInstruction(LirOpcodes.LDC, string);
   }
 
-  public LirBuilder<V, EV> addConstClass(DexType type) {
-    return addOneItemInstruction(LirOpcodes.LDC, type);
+  public LirBuilder<V, EV> addConstClass(DexType type, boolean ignoreCompatRules) {
+    int opcode = ignoreCompatRules ? LirOpcodes.CONSTCLASS_IGNORE_COMPAT : LirOpcodes.LDC;
+    return addOneItemInstruction(opcode, type);
   }
 
   public LirBuilder<V, EV> addConstMethodHandle(DexMethodHandle methodHandle) {
@@ -547,9 +548,10 @@ public class LirBuilder<V, EV> {
     return addOneValueInstruction(LirOpcodes.ARRAYLENGTH, array);
   }
 
-  public LirBuilder<V, EV> addCheckCast(DexType type, V value) {
+  public LirBuilder<V, EV> addCheckCast(DexType type, V value, boolean ignoreCompatRules) {
+    int opcode = ignoreCompatRules ? LirOpcodes.CHECKCAST_IGNORE_COMPAT : LirOpcodes.CHECKCAST;
     return addInstructionTemplate(
-        LirOpcodes.CHECKCAST, Collections.singletonList(type), Collections.singletonList(value));
+        opcode, Collections.singletonList(type), Collections.singletonList(value));
   }
 
   public LirBuilder<V, EV> addSafeCheckCast(DexType type, V value) {
@@ -772,6 +774,8 @@ public class LirBuilder<V, EV> {
     constants.forEach((item, index) -> constantTable[index] = item);
     DebugLocalInfoTable<EV> debugTable =
         debugLocals.isEmpty() ? null : new DebugLocalInfoTable<>(debugLocals, debugLocalEnds);
+    TryCatchTable tryCatchTable =
+        tryCatchRanges.isEmpty() ? null : new TryCatchTable(tryCatchRanges);
     return new LirCode<>(
         metadata,
         constantTable,
@@ -779,7 +783,7 @@ public class LirBuilder<V, EV> {
         argumentCount,
         byteWriter.toByteArray(),
         instructionCount,
-        new TryCatchTable(tryCatchRanges),
+        tryCatchTable,
         debugTable,
         strategy.getStrategyInfo());
   }

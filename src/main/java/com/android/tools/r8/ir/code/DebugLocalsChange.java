@@ -13,6 +13,7 @@ import com.android.tools.r8.ir.conversion.DexBuilder;
 import com.android.tools.r8.ir.optimize.DeadCodeRemover.DeadInstructionResult;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.InliningConstraints;
+import com.android.tools.r8.lightir.LirBuilder;
 import com.android.tools.r8.utils.StringUtils;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceMap;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceMap.Entry;
@@ -132,6 +133,11 @@ public class DebugLocalsChange extends Instruction {
 
   @Override
   public void buildCf(CfBuilder builder) {
+    throw new Unreachable();
+  }
+
+  @Override
+  public void buildLir(LirBuilder<Value, ?> builder) {
     throw new Unreachable();
   }
 

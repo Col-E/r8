@@ -2,11 +2,26 @@
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
-dependencyResolutionManagement {
+pluginManagement {
     repositories {
-        mavenCentral()
-        gradlePluginPortal()
+        maven {
+            url = uri("file:../../third_party/dependencies")
+        }
+        maven {
+            url = uri("file:../../third_party/dependencies_new")
+        }
     }
+}
+
+dependencyResolutionManagement {
+  repositories {
+    maven {
+        url= uri("file:../third_party/dependencies")
+    }
+    maven {
+        url= uri("file:../third_party/dependencies_new")
+    }
+  }
 }
 
 rootProject.name = "r8-tests"

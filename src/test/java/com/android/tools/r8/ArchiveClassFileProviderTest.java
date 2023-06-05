@@ -48,9 +48,9 @@ public class ArchiveClassFileProviderTest {
   public void testMultiReleaseJars() throws IOException {
     Path jar = temporaryFolder.getRoot().toPath().resolve("classes.jar");
     try (ZipOutputStream output = new ZipOutputStream(Files.newOutputStream(jar))) {
-      output.putNextEntry(new ZipEntry("meta-inf/9/Test.class"));
+      output.putNextEntry(new ZipEntry("META-INF/9/Test.class"));
       output.closeEntry();
-      output.putNextEntry(new ZipEntry("/meta-inf/9/Test.class"));
+      output.putNextEntry(new ZipEntry("/META-INF/9/Test.class"));
       output.closeEntry();
     }
     ArchiveClassFileProvider provider = new ArchiveClassFileProvider(jar);

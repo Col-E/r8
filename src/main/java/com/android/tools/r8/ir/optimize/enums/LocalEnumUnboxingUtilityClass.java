@@ -22,6 +22,7 @@ import com.android.tools.r8.ir.optimize.enums.EnumDataMap.EnumData;
 import com.android.tools.r8.ir.synthetic.EnumUnboxingCfCodeProvider;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.synthesis.SyntheticMethodBuilder.SyntheticCodeGenerator;
+import com.android.tools.r8.utils.StringUtils;
 
 public class LocalEnumUnboxingUtilityClass extends EnumUnboxingUtilityClass {
 
@@ -71,7 +72,7 @@ public class LocalEnumUnboxingUtilityClass extends EnumUnboxingUtilityClass {
     String fieldName = field.getName().toString();
     if (field.getHolderType() == getSynthesizingContext().getType()) {
       return factory.createString(
-          "get" + fieldName.substring(0, 1).toUpperCase() + fieldName.substring(1));
+          "get" + StringUtils.toUpperCase(fieldName.substring(0, 1)) + fieldName.substring(1));
     }
     assert field == factory.enumMembers.nameField || field == factory.enumMembers.ordinalField;
     return field.getName();

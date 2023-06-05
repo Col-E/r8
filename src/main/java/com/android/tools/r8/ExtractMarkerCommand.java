@@ -55,6 +55,9 @@ public class ExtractMarkerCommand {
     /**
      * Add program files to extract marker information from.
      *
+     * <p>Each file added here will result in exactly one callback to {@link
+     * MarkerInfoConsumer#acceptMarkerInfo}.
+     *
      * <p>All program files supported by the input and output of D8/R8 can be passed here.
      */
     public Builder addProgramFiles(Collection<Path> programFiles) {
@@ -62,13 +65,23 @@ public class ExtractMarkerCommand {
       return this;
     }
 
-    /** Add dex encoded bytes to extract marker information from. */
+    /**
+     * Add dex encoded bytes to extract marker information from.
+     *
+     * <p>Each data & origin pair added here will result in exactly one callback to {@link
+     * MarkerInfoConsumer#acceptMarkerInfo}.
+     */
     public Builder addDexProgramData(byte[] data, Origin origin) {
       dexData.add(new Pair<>(origin, data));
       return this;
     }
 
-    /** Add classfile encoded bytes to extract marker information from. */
+    /**
+     * Add classfile encoded bytes to extract marker information from.
+     *
+     * <p>Each data & origin pair added here will result in exactly one callback to {@link
+     * MarkerInfoConsumer#acceptMarkerInfo}.
+     */
     public Builder addClassProgramData(byte[] data, Origin origin) {
       cfData.add(new Pair<>(origin, data));
       return this;

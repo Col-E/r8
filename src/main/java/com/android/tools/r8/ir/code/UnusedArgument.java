@@ -15,6 +15,7 @@ import com.android.tools.r8.ir.conversion.DexBuilder;
 import com.android.tools.r8.ir.optimize.DeadCodeRemover.DeadInstructionResult;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.InliningConstraints;
+import com.android.tools.r8.lightir.LirBuilder;
 
 /**
  * A special instruction to load the value of an argument that has been removed as a result of code
@@ -38,6 +39,11 @@ public class UnusedArgument extends Instruction {
 
   @Override
   public void buildDex(DexBuilder builder) {
+    throw new Unreachable();
+  }
+
+  @Override
+  public void buildLir(LirBuilder<Value, ?> builder) {
     throw new Unreachable();
   }
 

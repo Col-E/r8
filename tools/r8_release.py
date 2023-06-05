@@ -161,13 +161,16 @@ def maybe_check_call(args, cmd):
     return subprocess.check_call(cmd)
 
 
-def update_prebuilds(r8_checkout, version, checkout):
+def update_prebuilds(r8_checkout, version, checkout, keepanno=False):
   path = os.path.join(r8_checkout, 'tools', 'update_prebuilds_in_android.py')
   commit_arg = '--commit_hash=' if len(version) == 40 else '--version='
-  subprocess.check_call([path, '--targets=lib', '--maps', commit_arg + version, checkout])
+  cmd = [path, '--targets=lib', '--maps', commit_arg + version, checkout]
+  if keepanno:
+    cmd.append("--keepanno")
+  subprocess.check_call(cmd)
 
 
-def release_studio_or_aosp(r8_checkout, path, options, git_message):
+def release_studio_or_aosp(r8_checkout, path, options, git_message, keepanno=False):
   with utils.ChangedWorkingDirectory(path):
     if not options.use_existing_work_branch:
       subprocess.call(['repo', 'abandon', 'update-r8'])
@@ -180,7 +183,7 @@ def release_studio_or_aosp(r8_checkout, path, options, git_message):
       with utils.ChangedWorkingDirectory(prebuilts_r8):
         subprocess.check_call(['repo', 'start', 'update-r8'])
 
-    update_prebuilds(r8_checkout, options.version, path)
+    update_prebuilds(r8_checkout, options.version, path, keepanno)
 
     with utils.ChangedWorkingDirectory(prebuilts_r8):
       if not options.use_existing_work_branch:
@@ -193,7 +196,8 @@ def release_studio_or_aosp(r8_checkout, path, options, git_message):
       # Don't upload if requested not to, or if changes are not committed due
       # to --use-existing-work-branch
       if not options.no_upload and not options.use_existing_work_branch:
-        process = subprocess.Popen(['repo', 'upload', '.', '--verify'],
+        process = subprocess.Popen(['repo', 'upload', '.', '--verify',
+                                    '--current-branch'],
                                    stdin=subprocess.PIPE)
         return process.communicate(input=b'y\n')[0]
 
@@ -217,7 +221,7 @@ Built here: go/r8-releases/raw/%s
 Test: TARGET_PRODUCT=aosp_arm64 m -j core-oj"""
                    % (args.version, args.version, args.version))
     return release_studio_or_aosp(
-      utils.REPO_ROOT, args.aosp, options, git_message)
+      utils.REPO_ROOT, args.aosp, options, git_message, keepanno=True)
 
   return release_aosp
 

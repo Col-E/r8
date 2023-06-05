@@ -7,7 +7,19 @@ package com.android.tools.r8;
 @Keep
 public interface MarkerInfoConsumer {
 
+  /**
+   * Callback that provides the marker information of a resource.
+   *
+   * <p>This callback is called exactly once for each resource in the {@link ExtractMarkerCommand},
+   * also when no marker information is present in that resource.
+   */
   void acceptMarkerInfo(MarkerInfoConsumerData data);
 
+  /**
+   * Callback to inform the extraction of marker information is complete.
+   *
+   * <p>After the callback is invoked no further calls to {@link
+   * MarkerInfoConsumer#acceptMarkerInfo} will occur.
+   */
   void finished();
 }

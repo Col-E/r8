@@ -55,6 +55,8 @@ dependencies {
         exclude group: 'com.google.code.findbugs'
         exclude group: 'com.google.j2objc'
         exclude group: 'org.codehaus.mojo'
+        exclude group: 'com.google.guava', module: 'listenablefuture'
+        exclude group: 'com.google.guava', module: 'failureaccess'
     })
     implementation group: 'it.unimi.dsi', name: 'fastutil', version: fastutilVersion
     implementation "org.jetbrains.kotlinx:kotlinx-metadata-jvm:$kotlinExtMetadataJVMVersion"

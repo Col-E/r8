@@ -7,6 +7,7 @@ package com.android.tools.r8.smali;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
+import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.dex.code.DexConst16;
 import com.android.tools.r8.dex.code.DexFormat22b;
@@ -14,6 +15,7 @@ import com.android.tools.r8.dex.code.DexFormat22s;
 import com.android.tools.r8.dex.code.DexReturn;
 import com.android.tools.r8.graph.DexCode;
 import com.android.tools.r8.graph.DexEncodedMethod;
+import com.android.tools.r8.utils.AndroidApp;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -45,6 +47,11 @@ public class BinopLiteralTest extends SmaliTestBase {
       Short.MAX_VALUE - 1,
       Short.MAX_VALUE,
   };
+
+  protected AndroidApp processApplication(AndroidApp application)
+      throws CompilationFailedException {
+    return processApplication(application, opt -> opt.testing.enableBinopOptimization = false);
+  }
 
   @Test
   public void lit8PassthroughTest() {

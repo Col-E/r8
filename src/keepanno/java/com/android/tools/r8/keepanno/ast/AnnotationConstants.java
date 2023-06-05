@@ -70,6 +70,23 @@ public final class AnnotationConstants {
     public static final String additionalPreconditions = "additionalPreconditions";
   }
 
+  public static final class UsedByReflection {
+    public static final Class<com.android.tools.r8.keepanno.annotations.UsedByReflection> CLASS =
+        com.android.tools.r8.keepanno.annotations.UsedByReflection.class;
+    public static final String DESCRIPTOR = getDescriptor(CLASS);
+    public static final String description = "description";
+    public static final String preconditions = "preconditions";
+    public static final String additionalTargets = "additionalTargets";
+    public static final String memberAccess = "memberAccess";
+  }
+
+  public static final class UsedByNative {
+    public static final Class<com.android.tools.r8.keepanno.annotations.UsedByNative> CLASS =
+        com.android.tools.r8.keepanno.annotations.UsedByNative.class;
+    public static final String DESCRIPTOR = getDescriptor(CLASS);
+    // Content is the same as UsedByReflection.
+  }
+
   // Implicit hidden item which is "super type" of Condition and Target.
   public static final class Item {
     public static final String classFromBinding = "classFromBinding";

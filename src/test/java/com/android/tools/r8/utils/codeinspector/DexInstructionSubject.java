@@ -4,6 +4,12 @@
 
 package com.android.tools.r8.utils.codeinspector;
 
+import com.android.tools.r8.dex.code.DexAddInt;
+import com.android.tools.r8.dex.code.DexAddInt2Addr;
+import com.android.tools.r8.dex.code.DexAddIntLit16;
+import com.android.tools.r8.dex.code.DexAddIntLit8;
+import com.android.tools.r8.dex.code.DexAddLong;
+import com.android.tools.r8.dex.code.DexAddLong2Addr;
 import com.android.tools.r8.dex.code.DexAget;
 import com.android.tools.r8.dex.code.DexAgetBoolean;
 import com.android.tools.r8.dex.code.DexAgetByte;
@@ -11,6 +17,12 @@ import com.android.tools.r8.dex.code.DexAgetChar;
 import com.android.tools.r8.dex.code.DexAgetObject;
 import com.android.tools.r8.dex.code.DexAgetShort;
 import com.android.tools.r8.dex.code.DexAgetWide;
+import com.android.tools.r8.dex.code.DexAndInt;
+import com.android.tools.r8.dex.code.DexAndInt2Addr;
+import com.android.tools.r8.dex.code.DexAndIntLit16;
+import com.android.tools.r8.dex.code.DexAndIntLit8;
+import com.android.tools.r8.dex.code.DexAndLong;
+import com.android.tools.r8.dex.code.DexAndLong2Addr;
 import com.android.tools.r8.dex.code.DexAput;
 import com.android.tools.r8.dex.code.DexAputBoolean;
 import com.android.tools.r8.dex.code.DexAputByte;
@@ -31,6 +43,13 @@ import com.android.tools.r8.dex.code.DexConstWide;
 import com.android.tools.r8.dex.code.DexConstWide16;
 import com.android.tools.r8.dex.code.DexConstWide32;
 import com.android.tools.r8.dex.code.DexConstWideHigh16;
+import com.android.tools.r8.dex.code.DexDivInt;
+import com.android.tools.r8.dex.code.DexDivInt2Addr;
+import com.android.tools.r8.dex.code.DexDivIntLit16;
+import com.android.tools.r8.dex.code.DexDivIntLit8;
+import com.android.tools.r8.dex.code.DexDivLong;
+import com.android.tools.r8.dex.code.DexDivLong2Addr;
+import com.android.tools.r8.dex.code.DexFilledNewArray;
 import com.android.tools.r8.dex.code.DexGoto;
 import com.android.tools.r8.dex.code.DexIfEq;
 import com.android.tools.r8.dex.code.DexIfEqz;
@@ -87,7 +106,19 @@ import com.android.tools.r8.dex.code.DexMulLong2Addr;
 import com.android.tools.r8.dex.code.DexNewArray;
 import com.android.tools.r8.dex.code.DexNewInstance;
 import com.android.tools.r8.dex.code.DexNop;
+import com.android.tools.r8.dex.code.DexOrInt;
+import com.android.tools.r8.dex.code.DexOrInt2Addr;
+import com.android.tools.r8.dex.code.DexOrIntLit16;
+import com.android.tools.r8.dex.code.DexOrIntLit8;
+import com.android.tools.r8.dex.code.DexOrLong;
+import com.android.tools.r8.dex.code.DexOrLong2Addr;
 import com.android.tools.r8.dex.code.DexPackedSwitch;
+import com.android.tools.r8.dex.code.DexRemInt;
+import com.android.tools.r8.dex.code.DexRemInt2Addr;
+import com.android.tools.r8.dex.code.DexRemIntLit16;
+import com.android.tools.r8.dex.code.DexRemIntLit8;
+import com.android.tools.r8.dex.code.DexRemLong;
+import com.android.tools.r8.dex.code.DexRemLong2Addr;
 import com.android.tools.r8.dex.code.DexReturn;
 import com.android.tools.r8.dex.code.DexReturnObject;
 import com.android.tools.r8.dex.code.DexReturnVoid;
@@ -98,6 +129,16 @@ import com.android.tools.r8.dex.code.DexSgetChar;
 import com.android.tools.r8.dex.code.DexSgetObject;
 import com.android.tools.r8.dex.code.DexSgetShort;
 import com.android.tools.r8.dex.code.DexSgetWide;
+import com.android.tools.r8.dex.code.DexShlInt;
+import com.android.tools.r8.dex.code.DexShlInt2Addr;
+import com.android.tools.r8.dex.code.DexShlIntLit8;
+import com.android.tools.r8.dex.code.DexShlLong;
+import com.android.tools.r8.dex.code.DexShlLong2Addr;
+import com.android.tools.r8.dex.code.DexShrInt;
+import com.android.tools.r8.dex.code.DexShrInt2Addr;
+import com.android.tools.r8.dex.code.DexShrIntLit8;
+import com.android.tools.r8.dex.code.DexShrLong;
+import com.android.tools.r8.dex.code.DexShrLong2Addr;
 import com.android.tools.r8.dex.code.DexSparseSwitch;
 import com.android.tools.r8.dex.code.DexSput;
 import com.android.tools.r8.dex.code.DexSputBoolean;
@@ -106,7 +147,22 @@ import com.android.tools.r8.dex.code.DexSputChar;
 import com.android.tools.r8.dex.code.DexSputObject;
 import com.android.tools.r8.dex.code.DexSputShort;
 import com.android.tools.r8.dex.code.DexSputWide;
+import com.android.tools.r8.dex.code.DexSubInt;
+import com.android.tools.r8.dex.code.DexSubInt2Addr;
+import com.android.tools.r8.dex.code.DexSubLong;
+import com.android.tools.r8.dex.code.DexSubLong2Addr;
 import com.android.tools.r8.dex.code.DexThrow;
+import com.android.tools.r8.dex.code.DexUshrInt;
+import com.android.tools.r8.dex.code.DexUshrInt2Addr;
+import com.android.tools.r8.dex.code.DexUshrIntLit8;
+import com.android.tools.r8.dex.code.DexUshrLong;
+import com.android.tools.r8.dex.code.DexUshrLong2Addr;
+import com.android.tools.r8.dex.code.DexXorInt;
+import com.android.tools.r8.dex.code.DexXorInt2Addr;
+import com.android.tools.r8.dex.code.DexXorIntLit16;
+import com.android.tools.r8.dex.code.DexXorIntLit8;
+import com.android.tools.r8.dex.code.DexXorLong;
+import com.android.tools.r8.dex.code.DexXorLong2Addr;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.ir.code.SingleConstant;
@@ -445,6 +501,73 @@ public class DexInstructionSubject implements InstructionSubject {
     return instruction instanceof DexSparseSwitch;
   }
 
+  public boolean isIntOrLongArithmeticBinop() {
+    return instruction instanceof DexMulInt
+        || instruction instanceof DexMulIntLit8
+        || instruction instanceof DexMulIntLit16
+        || instruction instanceof DexMulInt2Addr
+        || instruction instanceof DexMulLong
+        || instruction instanceof DexMulLong2Addr
+        || instruction instanceof DexAddInt
+        || instruction instanceof DexAddIntLit8
+        || instruction instanceof DexAddIntLit16
+        || instruction instanceof DexAddInt2Addr
+        || instruction instanceof DexAddLong
+        || instruction instanceof DexAddLong2Addr
+        || instruction instanceof DexSubInt
+        || instruction instanceof DexSubInt2Addr
+        || instruction instanceof DexSubLong
+        || instruction instanceof DexSubLong2Addr
+        || instruction instanceof DexDivInt
+        || instruction instanceof DexDivIntLit8
+        || instruction instanceof DexDivIntLit16
+        || instruction instanceof DexDivInt2Addr
+        || instruction instanceof DexDivLong
+        || instruction instanceof DexDivLong2Addr
+        || instruction instanceof DexRemInt
+        || instruction instanceof DexRemIntLit8
+        || instruction instanceof DexRemIntLit16
+        || instruction instanceof DexRemInt2Addr
+        || instruction instanceof DexRemLong
+        || instruction instanceof DexRemLong2Addr;
+  }
+
+  public boolean isIntOrLongLogicalBinop() {
+    return instruction instanceof DexAndInt
+        || instruction instanceof DexAndIntLit8
+        || instruction instanceof DexAndIntLit16
+        || instruction instanceof DexAndInt2Addr
+        || instruction instanceof DexAndLong
+        || instruction instanceof DexAndLong2Addr
+        || instruction instanceof DexOrInt
+        || instruction instanceof DexOrIntLit8
+        || instruction instanceof DexOrIntLit16
+        || instruction instanceof DexOrInt2Addr
+        || instruction instanceof DexOrLong
+        || instruction instanceof DexOrLong2Addr
+        || instruction instanceof DexXorInt
+        || instruction instanceof DexXorIntLit8
+        || instruction instanceof DexXorIntLit16
+        || instruction instanceof DexXorInt2Addr
+        || instruction instanceof DexXorLong
+        || instruction instanceof DexXorLong2Addr
+        || instruction instanceof DexShrInt
+        || instruction instanceof DexShrIntLit8
+        || instruction instanceof DexShrInt2Addr
+        || instruction instanceof DexShrLong
+        || instruction instanceof DexShrLong2Addr
+        || instruction instanceof DexShlInt
+        || instruction instanceof DexShlIntLit8
+        || instruction instanceof DexShlInt2Addr
+        || instruction instanceof DexShlLong
+        || instruction instanceof DexShlLong2Addr
+        || instruction instanceof DexUshrInt
+        || instruction instanceof DexUshrIntLit8
+        || instruction instanceof DexUshrInt2Addr
+        || instruction instanceof DexUshrLong
+        || instruction instanceof DexUshrLong2Addr;
+  }
+
   @Override
   public boolean isMultiplication() {
     return instruction instanceof DexMulInt
@@ -499,6 +622,11 @@ public class DexInstructionSubject implements InstructionSubject {
   @Override
   public boolean isMonitorExit() {
     return instruction instanceof DexMonitorExit;
+  }
+
+  @Override
+  public boolean isFilledNewArray() {
+    return instruction instanceof DexFilledNewArray;
   }
 
   @Override

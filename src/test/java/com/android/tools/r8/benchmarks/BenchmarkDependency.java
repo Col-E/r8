@@ -5,6 +5,7 @@ package com.android.tools.r8.benchmarks;
 
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Locale;
 
 public class BenchmarkDependency {
 
@@ -34,7 +35,7 @@ public class BenchmarkDependency {
     this.directoryName = directoryName;
     this.location = location;
     String firstChar = name.substring(0, 1);
-    if (!firstChar.equals(firstChar.toLowerCase()) || name.contains("_")) {
+    if (!firstChar.equals(firstChar.toLowerCase(Locale.ROOT)) || name.contains("_")) {
       throw new BenchmarkConfigError("Benchmark name should use lowerCamelCase, found: " + name);
     }
   }

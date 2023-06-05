@@ -209,6 +209,8 @@ public interface LirOpcodes {
   int INVOKEPOLYMORPHIC = 222;
   int RECORDFIELDVALUES = 223;
   int CHECKCAST_SAFE = 224;
+  int CHECKCAST_IGNORE_COMPAT = 225;
+  int CONSTCLASS_IGNORE_COMPAT = 226;
 
   static String toString(int opcode) {
     switch (opcode) {
@@ -543,6 +545,10 @@ public interface LirOpcodes {
         return "RECORDFIELDVALUES";
       case CHECKCAST_SAFE:
         return "CHECKCAST_SAFE";
+      case CHECKCAST_IGNORE_COMPAT:
+        return "CHECKCAST_IGNORE_COMPAT";
+      case CONSTCLASS_IGNORE_COMPAT:
+        return "CONSTCLASS_IGNORE_COMPAT";
 
       default:
         throw new Unreachable("Unexpected LIR opcode: " + opcode);

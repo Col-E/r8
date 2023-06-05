@@ -322,7 +322,7 @@ public final class BackportedMethodRewriter implements CfInstructionDesugaring {
                     .contextIndependentDefinitionForWithResolutionResult(type)
                     .toSingleClassWithProgramOverLibrary();
             assert theApi.equals(api.max(appView.options().getMinApiLevel()))
-                || (clazz != null && clazz.isProgramClass());
+                || (clazz != null && !clazz.isLibraryClass());
           });
       return true;
     }

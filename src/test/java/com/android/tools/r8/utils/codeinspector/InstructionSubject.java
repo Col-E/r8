@@ -140,6 +140,10 @@ public interface InstructionSubject {
 
   boolean isSparseSwitch();
 
+  boolean isIntOrLongArithmeticBinop();
+
+  boolean isIntOrLongLogicalBinop();
+
   boolean isMultiplication();
 
   boolean isNewArray();
@@ -153,6 +157,8 @@ public interface InstructionSubject {
   boolean isMonitorEnter();
 
   boolean isMonitorExit();
+
+  boolean isFilledNewArray();
 
   int size();
 

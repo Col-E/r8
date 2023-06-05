@@ -12,6 +12,7 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
 import com.android.tools.r8.ir.optimize.DeadCodeRemover.DeadInstructionResult;
+import com.android.tools.r8.lightir.LirBuilder;
 
 public class AlwaysMaterializingDefinition extends ConstInstruction {
 
@@ -45,6 +46,11 @@ public class AlwaysMaterializingDefinition extends ConstInstruction {
 
   @Override
   public void buildCf(CfBuilder builder) {
+    throw new Unreachable();
+  }
+
+  @Override
+  public void buildLir(LirBuilder<Value, ?> builder) {
     throw new Unreachable();
   }
 

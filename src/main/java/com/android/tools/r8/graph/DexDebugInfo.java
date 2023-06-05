@@ -314,11 +314,18 @@ public abstract class DexDebugInfo extends CachedHashValueDexItem
         code, pcBasedDebugInfo.maxPc);
     // Generate a line event at each throwing instruction.
     DexInstruction[] instructions = code.instructions;
-    return forceConvertToEventBasedDebugInfo(pcBasedDebugInfo, instructions, factory);
+    return forceConvertToEventBasedDebugInfo(
+        PcBasedDebugInfo.START_LINE, pcBasedDebugInfo.getParameterCount(), instructions, factory);
   }
 
-  public static EventBasedDebugInfo forceConvertToEventBasedDebugInfo(
-      PcBasedDebugInfo pcBasedDebugInfo, DexInstruction[] instructions, DexItemFactory factory) {
+  public static EventBasedDebugInfo createEventBasedDebugInfoForNativePc(
+      int parameterCount, DexCode code, DexItemFactory factory) {
+    assert code.getDebugInfo() == null;
+    return forceConvertToEventBasedDebugInfo(0, parameterCount, code.instructions, factory);
+  }
+
+  private static EventBasedDebugInfo forceConvertToEventBasedDebugInfo(
+      int startLine, int parameterCount, DexInstruction[] instructions, DexItemFactory factory) {
     List<DexDebugEvent> events = new ArrayList<>(instructions.length);
     int delta = 0;
     for (DexInstruction instruction : instructions) {
@@ -329,9 +336,7 @@ public abstract class DexDebugInfo extends CachedHashValueDexItem
       delta += instruction.getSize();
     }
     return new EventBasedDebugInfo(
-        PcBasedDebugInfo.START_LINE,
-        new DexString[pcBasedDebugInfo.getParameterCount()],
-        events.toArray(DexDebugEvent.EMPTY_ARRAY));
+        startLine, new DexString[parameterCount], events.toArray(DexDebugEvent.EMPTY_ARRAY));
   }
 
   public static DexDebugInfoForWriting convertToWritable(DexDebugInfo debugInfo) {

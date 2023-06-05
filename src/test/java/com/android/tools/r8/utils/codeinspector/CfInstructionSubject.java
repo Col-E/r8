@@ -24,6 +24,7 @@ import com.android.tools.r8.cf.code.CfInvoke;
 import com.android.tools.r8.cf.code.CfInvokeDynamic;
 import com.android.tools.r8.cf.code.CfLabel;
 import com.android.tools.r8.cf.code.CfLoad;
+import com.android.tools.r8.cf.code.CfLogicalBinop;
 import com.android.tools.r8.cf.code.CfMonitor;
 import com.android.tools.r8.cf.code.CfNew;
 import com.android.tools.r8.cf.code.CfNewArray;
@@ -39,6 +40,7 @@ import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.ir.code.MonitorType;
+import com.android.tools.r8.ir.code.NumericType;
 import com.android.tools.r8.ir.code.ValueType;
 import java.util.Iterator;
 import org.objectweb.asm.Opcodes;
@@ -337,6 +339,20 @@ public class CfInstructionSubject implements InstructionSubject {
   }
 
   @Override
+  public boolean isIntOrLongArithmeticBinop() {
+    return instruction instanceof CfArithmeticBinop
+        && (((CfArithmeticBinop) instruction).getType() == NumericType.INT
+            || ((CfArithmeticBinop) instruction).getType() == NumericType.LONG);
+  }
+
+  @Override
+  public boolean isIntOrLongLogicalBinop() {
+    return instruction instanceof CfLogicalBinop
+        && (((CfLogicalBinop) instruction).getType() == NumericType.INT
+            || ((CfLogicalBinop) instruction).getType() == NumericType.LONG);
+  }
+
+  @Override
   public boolean isMultiplication() {
     if (!(instruction instanceof CfArithmeticBinop)) {
       return false;
@@ -361,6 +377,11 @@ public class CfInstructionSubject implements InstructionSubject {
     }
     CfMonitor monitor = (CfMonitor) instruction;
     return monitor.getType() == MonitorType.EXIT;
+  }
+
+  @Override
+  public boolean isFilledNewArray() {
+    return false;
   }
 
   @Override

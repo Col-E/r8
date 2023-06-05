@@ -27,7 +27,10 @@ import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.InstructionIterator;
 import com.android.tools.r8.ir.code.Value;
+import com.android.tools.r8.ir.conversion.passes.BinopRewriter;
+import com.android.tools.r8.ir.conversion.passes.CommonSubexpressionElimination;
 import com.android.tools.r8.ir.conversion.passes.ParentConstructorHoistingCodeRewriter;
+import com.android.tools.r8.ir.conversion.passes.SplitBranch;
 import com.android.tools.r8.ir.desugar.CfInstructionDesugaringCollection;
 import com.android.tools.r8.ir.desugar.CovariantReturnTypeAnnotationTransformer;
 import com.android.tools.r8.ir.optimize.AssertionErrorTwoArgsConstructorRewriter;
@@ -111,6 +114,8 @@ public class IRConverter {
   private final ClassInliner classInliner;
   protected final InternalOptions options;
   public final CodeRewriter codeRewriter;
+  public final CommonSubexpressionElimination commonSubexpressionElimination;
+  private final SplitBranch splitBranch;
   public final AssertionErrorTwoArgsConstructorRewriter assertionErrorTwoArgsConstructorRewriter;
   private final NaturalIntLoopRemover naturalIntLoopRemover = new NaturalIntLoopRemover();
   public final MemberValuePropagation<?> memberValuePropagation;
@@ -123,6 +128,7 @@ public class IRConverter {
   private final TypeChecker typeChecker;
   protected final ServiceLoaderRewriter serviceLoaderRewriter;
   private final EnumValueOptimizer enumValueOptimizer;
+  private final BinopRewriter binopRewriter;
   protected final EnumUnboxer enumUnboxer;
   protected final InstanceInitializerOutliner instanceInitializerOutliner;
   protected final RemoveVerificationErrorForUnknownReturnedValues
@@ -149,6 +155,7 @@ public class IRConverter {
   // Use AtomicBoolean to satisfy TSAN checking (see b/153714743).
   AtomicBoolean seenNotNeverMergePrefix = new AtomicBoolean();
   AtomicBoolean seenNeverMergePrefix = new AtomicBoolean();
+  String conflictingPrefixesErrorMessage = null;
 
   /**
    * The argument `appView` is used to determine if whole program optimizations are allowed or not
@@ -160,6 +167,8 @@ public class IRConverter {
     this.appView = appView;
     this.options = appView.options();
     this.codeRewriter = new CodeRewriter(appView);
+    this.commonSubexpressionElimination = new CommonSubexpressionElimination(appView);
+    this.splitBranch = new SplitBranch(appView);
     this.assertionErrorTwoArgsConstructorRewriter =
         appView.options().desugarState.isOn()
             ? new AssertionErrorTwoArgsConstructorRewriter(appView)
@@ -210,6 +219,7 @@ public class IRConverter {
       this.serviceLoaderRewriter = null;
       this.methodOptimizationInfoCollector = null;
       this.enumValueOptimizer = null;
+      this.binopRewriter = null;
       this.enumUnboxer = EnumUnboxer.empty();
       this.assumeInserter = null;
       this.instanceInitializerOutliner = null;
@@ -272,6 +282,10 @@ public class IRConverter {
               : null;
       this.enumValueOptimizer =
           options.enableEnumValueOptimization ? new EnumValueOptimizer(appViewWithLiveness) : null;
+      this.binopRewriter =
+          options.testing.enableBinopOptimization && !options.debug
+              ? new BinopRewriter(appView)
+              : null;
     } else {
       AppView<AppInfo> appViewWithoutClassHierarchy = appView.withoutClassHierarchy();
       this.assumeInserter = null;
@@ -292,6 +306,7 @@ public class IRConverter {
       this.serviceLoaderRewriter = null;
       this.methodOptimizationInfoCollector = null;
       this.enumValueOptimizer = null;
+      this.binopRewriter = null;
       this.enumUnboxer = EnumUnboxer.empty();
     }
     this.stringSwitchRemover =
@@ -734,9 +749,7 @@ public class IRConverter {
           code, methodProcessor, methodProcessingContext);
       timing.end();
     }
-    timing.begin("Run CSE");
-    codeRewriter.commonSubexpressionElimination(code);
-    timing.end();
+    commonSubexpressionElimination.run(context, code, timing);
     timing.begin("Simplify arrays");
     codeRewriter.simplifyArrayConstruction(code);
     timing.end();
@@ -765,6 +778,7 @@ public class IRConverter {
       timing.end();
     }
     timing.end();
+    splitBranch.run(code.context(), code, timing);
     if (options.enableRedundantConstNumberOptimization) {
       timing.begin("Remove const numbers");
       codeRewriter.redundantConstNumberRemoval(code);
@@ -774,6 +788,9 @@ public class IRConverter {
       timing.begin("Remove field loads");
       new RedundantFieldLoadAndStoreElimination(appView, code).run();
       timing.end();
+    }
+    if (binopRewriter != null) {
+      binopRewriter.run(context, code, timing);
     }
 
     if (options.testing.invertConditionals) {

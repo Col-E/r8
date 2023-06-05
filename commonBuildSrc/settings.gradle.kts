@@ -4,15 +4,23 @@
 
 pluginManagement {
     repositories {
-        gradlePluginPortal()
+        maven {
+            url = uri("file:../third_party/dependencies_new")
+        }
+        maven {
+            url = uri("file:../third_party/dependencies")
+        }
     }
 }
 
 dependencyResolutionManagement {
     repositories {
-        google()
-        mavenCentral()
-        gradlePluginPortal()
+        maven {
+            url = uri("file:../third_party/dependencies_new")
+        }
+        maven {
+            url = uri("file:../third_party/dependencies")
+        }
     }
 }
 

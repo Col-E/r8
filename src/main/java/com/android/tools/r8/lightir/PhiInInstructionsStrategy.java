@@ -72,12 +72,21 @@ public class PhiInInstructionsStrategy extends LirStrategy<Value, Integer> {
 
     @Override
     public LirStrategyInfo<Integer> getStrategyInfo() {
-      return new LirStrategyInfo<Integer>() {
-        @Override
-        public LirSsaValueStrategy<Integer> getReferenceStrategy() {
-          return referenceStrategy;
-        }
-      };
+      return new StrategyInfo(referenceStrategy);
+    }
+  }
+
+  private static class StrategyInfo extends LirStrategyInfo<Integer> {
+
+    private final LirSsaValueStrategy<Integer> referenceStrategy;
+
+    public StrategyInfo(LirSsaValueStrategy<Integer> referenceStrategy) {
+      this.referenceStrategy = referenceStrategy;
+    }
+
+    @Override
+    public LirSsaValueStrategy<Integer> getReferenceStrategy() {
+      return referenceStrategy;
     }
   }
 

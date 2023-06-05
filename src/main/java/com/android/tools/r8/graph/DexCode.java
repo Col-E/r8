@@ -174,6 +174,17 @@ public class DexCode extends Code
     };
   }
 
+  public DexCode withNewInstructions(DexInstruction[] newInstructions) {
+    return new DexCode(
+        this.registerSize,
+        this.incomingRegisterSize,
+        this.outgoingRegisterSize,
+        newInstructions,
+        this.tries,
+        this.handlers,
+        this.getDebugInfo());
+  }
+
   @Override
   public DexCode self() {
     return this;
@@ -205,7 +216,7 @@ public class DexCode extends Code
 
   @Override
   public DexWritableCode rewriteCodeWithJumboStrings(
-      ProgramMethod method, ObjectToOffsetMapping mapping, DexItemFactory factory, boolean force) {
+      ProgramMethod method, ObjectToOffsetMapping mapping, AppView<?> appView, boolean force) {
     DexString firstJumboString = null;
     if (force) {
       firstJumboString = mapping.getFirstString();
@@ -219,7 +230,12 @@ public class DexCode extends Code
       }
     }
     return firstJumboString != null
-        ? new JumboStringRewriter(method.getDefinition(), firstJumboString, factory).rewrite()
+        ? new JumboStringRewriter(
+                method.getDefinition(),
+                firstJumboString,
+                () -> appView.options().shouldMaterializeLineInfoForNativePcEncoding(method),
+                appView.dexItemFactory())
+            .rewrite()
         : this;
   }
 

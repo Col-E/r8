@@ -102,7 +102,7 @@ public class D8CommandParser extends BaseCompilerCommandParser<D8Command, D8Comm
   private static final String ZIP_EXTENSION = ".zip";
 
   private static boolean isArchive(Path path) {
-    String name = path.getFileName().toString().toLowerCase();
+    String name = StringUtils.toLowerCase(path.getFileName().toString());
     return name.endsWith(APK_EXTENSION)
         || name.endsWith(JAR_EXTENSION)
         || name.endsWith(ZIP_EXTENSION);

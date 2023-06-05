@@ -38,7 +38,7 @@ public class TypeConstraintOnTrivialPhiTest extends AnalysisTestBase {
     }
 
     public String getTestName() {
-      return toString().toLowerCase() + "ConstraintOnTrivialPhiTest";
+      return StringUtils.toLowerCase(toString()) + "ConstraintOnTrivialPhiTest";
     }
 
     public String getConstInstruction() {

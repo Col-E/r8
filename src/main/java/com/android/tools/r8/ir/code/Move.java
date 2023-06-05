@@ -15,6 +15,7 @@ import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.InliningConstraints;
+import com.android.tools.r8.lightir.LirBuilder;
 
 public class Move extends Instruction {
   private static final String ERROR_MESSAGE =
@@ -54,6 +55,11 @@ public class Move extends Instruction {
 
   @Override
   public void buildCf(CfBuilder builder) {
+    throw new Unreachable(ERROR_MESSAGE);
+  }
+
+  @Override
+  public void buildLir(LirBuilder<Value, ?> builder) {
     throw new Unreachable(ERROR_MESSAGE);
   }
 

@@ -13,8 +13,8 @@ import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.ExtractMarkerUtils;
+import com.android.tools.r8.utils.StringUtils;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.Collection;
 import java.util.Set;
 import org.junit.Assume;
@@ -51,7 +51,8 @@ public class ExtractMarkerTest extends TestBase {
   private void verifyMarkerDex(Marker marker, Tool tool) {
     assertEquals(tool, marker.getTool());
     assertEquals(Version.LABEL, marker.getVersion());
-    assertEquals(CompilationMode.DEBUG.toString().toLowerCase(), marker.getCompilationMode());
+    assertEquals(
+        StringUtils.toLowerCase(CompilationMode.DEBUG.toString()), marker.getCompilationMode());
     assertEquals(parameters.getApiLevel().getLevel(), marker.getMinApi().intValue());
     assertEquals(includeClassesChecksum, marker.getHasChecksums());
   }
@@ -94,7 +95,8 @@ public class ExtractMarkerTest extends TestBase {
   private static void verifyMarkerCf(Marker marker, Tool tool) {
     assertEquals(tool, marker.getTool());
     assertEquals(Version.LABEL, marker.getVersion());
-    assertEquals(CompilationMode.DEBUG.toString().toLowerCase(), marker.getCompilationMode());
+    assertEquals(
+        StringUtils.toLowerCase(CompilationMode.DEBUG.toString()), marker.getCompilationMode());
     assertFalse(marker.getHasChecksums());
   }
 

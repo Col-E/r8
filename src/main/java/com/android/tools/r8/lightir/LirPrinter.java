@@ -162,7 +162,7 @@ public class LirPrinter<EV> extends LirParsedInstructionCallback<EV> {
   }
 
   @Override
-  public void onConstClass(DexType type) {
+  public void onConstClass(DexType type, boolean ignoreCompatRules) {
     appendOutValue().append("class(").append(type).append(")");
   }
 
@@ -343,7 +343,7 @@ public class LirPrinter<EV> extends LirParsedInstructionCallback<EV> {
   }
 
   @Override
-  public void onCheckCast(DexType type, EV value) {
+  public void onCheckCast(DexType type, EV value, boolean ignoreCompatRules) {
     appendOutValue();
     appendValueArguments(value);
     builder.append(type);
@@ -351,7 +351,7 @@ public class LirPrinter<EV> extends LirParsedInstructionCallback<EV> {
 
   @Override
   public void onSafeCheckCast(DexType type, EV value) {
-    onCheckCast(type, value);
+    onCheckCast(type, value, true);
   }
 
   @Override

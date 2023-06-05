@@ -16,6 +16,7 @@ import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.diagnostic.MissingDefinitionsDiagnostic;
 import com.android.tools.r8.utils.AndroidApiLevel;
+import com.android.tools.r8.utils.StringUtils;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.StringReader;
@@ -119,7 +120,7 @@ public class TreeShakingSpecificTest extends TestBase {
                           Paths.get(
                               EXAMPLES_DIR,
                               "shaking1",
-                              "print-mapping-" + backend.name().toLowerCase() + ".ref")),
+                              "print-mapping-" + StringUtils.toLowerCase(backend.name()) + ".ref")),
                       StandardCharsets.UTF_8);
               assertEquals(sorted(refMapping), sorted(actualMapping));
             });

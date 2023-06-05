@@ -332,7 +332,7 @@ public class DefaultInstanceInitializerCode extends Code
 
   @Override
   public DexWritableCode rewriteCodeWithJumboStrings(
-      ProgramMethod method, ObjectToOffsetMapping mapping, DexItemFactory factory, boolean force) {
+      ProgramMethod method, ObjectToOffsetMapping mapping, AppView<?> appView, boolean force) {
     // Intentionally empty. This piece of code does not have any const-string instructions.
     return this;
   }

@@ -86,7 +86,7 @@ public class KeptSingletonIsNotCyclicTest extends TestBase {
     ByteArrayOutputStream baos = new ByteArrayOutputStream();
     whyAreYouKeepingConsumer.printWhyAreYouKeeping(fooClassRef, new PrintStream(baos));
     assertThat(
-        baos.toString().replace(getClass().getTypeName(), "<test>").toLowerCase(),
+        StringUtils.toLowerCase(baos.toString().replace(getClass().getTypeName(), "<test>")),
         not(anyOf(containsString("cyclic"), containsString("cycle"))));
 
     // The only root should be the keep main-method rule.

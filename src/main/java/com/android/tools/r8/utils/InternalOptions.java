@@ -52,6 +52,7 @@ import com.android.tools.r8.graph.DexLibraryClass;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexReference;
+import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.classmerging.VerticallyMergedClasses;
@@ -1522,6 +1523,13 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
       return hasFeaturePresentFrom(AndroidApiLevel.N);
     }
 
+    // When adding support for emitting filled-new-array for sub-types, ART 13 (Api-level 33) had
+    // issues. See b/283715197.
+    public boolean canUseSubTypesInFilledNewArray() {
+      assert isGeneratingDex();
+      return !canHaveBugPresentUntil(AndroidApiLevel.U);
+    }
+
     // Dalvik doesn't handle new-filled-array with arrays as values. It fails with:
     // W(629880) VFY: [Ljava/lang/Integer; is not instance of Ljava/lang/Integer;  (dalvikvm)
     public boolean canUseFilledNewArrayOfArrays() {
@@ -2085,6 +2093,8 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
     public boolean calculateItemUseCountInDex = false;
     public boolean calculateItemUseCountInDexDumpSingleUseStrings = false;
 
+    public boolean enableBinopOptimization = true;
+
     private DeterminismChecker getDeterminismChecker() {
       // Lazily read the env-var so that it can be set after options init.
       if (determinismChecker == null && !hasReadCheckDeterminism) {
@@ -2509,6 +2519,10 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
     throw new Unreachable();
   }
 
+  public boolean canUseDexPc2PcAsDebugInformation() {
+    return isGeneratingDex() && lineNumberOptimization == LineNumberOptimization.ON;
+  }
+
   // Debug entries may be dropped only if the source file content allows being omitted from
   // stack traces, or if the VM will report the source file even with a null valued debug info.
   public boolean allowDiscardingResidualDebugInfo() {
@@ -2516,14 +2530,29 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
     return sourceFileProvider != null && sourceFileProvider.allowDiscardingSourceFile();
   }
 
-  public boolean canUseDexPc2PcAsDebugInformation() {
-    return isGeneratingDex() && lineNumberOptimization == LineNumberOptimization.ON;
+  public boolean allowDiscardingResidualDebugInfo(ProgramMethod method) {
+    // TODO(b/146565491): We can drop debug info once fixed at a known min-api.
+    DexString sourceFile = method.getHolder().getSourceFile();
+    return sourceFile == null || sourceFile.equals(itemFactory.defaultSourceFileAttribute);
   }
 
   public boolean canUseNativeDexPcInsteadOfDebugInfo() {
     return canUseDexPc2PcAsDebugInformation()
         && hasMinApi(AndroidApiLevel.O)
         && allowDiscardingResidualDebugInfo();
+  }
+
+  public boolean canUseNativeDexPcInsteadOfDebugInfo(ProgramMethod method) {
+    return canUseDexPc2PcAsDebugInformation()
+        && hasMinApi(AndroidApiLevel.O)
+        && allowDiscardingResidualDebugInfo(method);
+  }
+
+  public boolean shouldMaterializeLineInfoForNativePcEncoding(ProgramMethod method) {
+    assert method.getDefinition().getCode().asDexCode() != null;
+    assert method.getDefinition().getCode().asDexCode().getDebugInfo() == null;
+    return method.getHolder().originatesFromDexResource()
+        && canUseNativeDexPcInsteadOfDebugInfo(method);
   }
 
   public boolean isInterfaceMethodDesugaringEnabled() {
