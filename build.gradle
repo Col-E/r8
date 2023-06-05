@@ -30,7 +30,7 @@ ext {
     javassistVersion = '3.29.2-GA'
     espressoVersion = '3.0.0'
     fastutilVersion = '8.5.11'
-    guavaVersion = '31.1-jre'
+    guavaVersion = '32.0.0-jre'
     joptSimpleVersion = '4.6'
     gsonVersion = '2.10.1'
     junitVersion = '4.13-beta-2'
