@@ -629,7 +629,8 @@ public class ComposingBuilder {
                             + firstPositionOfOriginalRange);
                   }
                 }
-                assert minified.hasValue();
+                assert minified.hasValue()
+                    || (mappedRange.minifiedRange == null && mappedRange.originalRange == null);
               } else {
                 MappedRange existingMappedRange =
                     existingClassBuilder.methodsWithoutPosition.get(signature);

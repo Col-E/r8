@@ -4,7 +4,8 @@
 
 package com.android.tools.r8.mappingcompose;
 
-import static org.junit.Assert.assertThrows;
+import static com.android.tools.r8.mappingcompose.ComposeTestHelpers.doubleToSingleQuote;
+import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
@@ -52,12 +53,23 @@ public class ComposeMethodWithLineNumberRemovedTest extends TestBase {
           "    package.internal.Th a() -> b",
           "    # {'id':'com.android.tools.r8.residualsignature',"
               + "'signature':'()Lpackage/retrace_internal/F1;'}");
+  private static final String mappingResult =
+      StringUtils.unixLines(
+          "# {'id':'com.android.tools.r8.mapping','version':'2.2'}",
+          "package.ClassReference -> package.ClassReference:",
+          "package.FieldDefinition -> package.other_internal.M1:",
+          "# {'id':'sourceFile','fileName':'FieldDefinition.java'}",
+          "    package.internal.Th a() -> b",
+          "    # {'id':'com.android.tools.r8.residualsignature',"
+              + "'signature':'()Lpackage/retrace_internal/F1;'}",
+          "    1:1:void <init>() -> <init>",
+          "package.FieldDefinition$FullFieldDefinition -> package.other_internal.F1:");
 
   @Test
   public void testCompose() throws Exception {
     ClassNameMapper mappingForFoo = ClassNameMapper.mapperFromString(mappingFoo);
     ClassNameMapper mappingForBar = ClassNameMapper.mapperFromString(mappingBar);
-    // TODO(b/284925475): We should relax the assertion that line numbers can be removed.
-    assertThrows(AssertionError.class, () -> MappingComposer.compose(mappingForFoo, mappingForBar));
+    String composed = MappingComposer.compose(mappingForFoo, mappingForBar);
+    assertEquals(mappingResult, doubleToSingleQuote(composed));
   }
 }
