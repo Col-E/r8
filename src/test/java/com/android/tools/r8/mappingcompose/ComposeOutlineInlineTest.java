@@ -62,22 +62,10 @@ public class ComposeOutlineInlineTest extends TestBase {
           "package.Class -> package.new_internal.Y:",
           "# {'id':'sourceFile','fileName':'FieldDefinition.java'}",
           "    1:6:void foo():21:26 -> b",
-          // TODO(b/284925475): We should put in the inline positions here instead of a reference to
-          //  the outline
-          "    7:8:long package.Int2IntLinkedOpenHashMap$$InternalSyntheticOutline$HASH$0"
-              + ".m(long,long,long):0:1 -> b",
-          // TODO(b/284925475): This is not synthesized.
-          "    # {'id':'com.android.tools.r8.synthesized'}",
-          "    7:8:void foo():0:0 -> b",
-          "    # {'id':'com.android.tools.r8.outlineCallsite',"
-              + "'positions':{'1':11,'2':12},"
-              + "'outline':'Lpackage/internal/X;a(JJJ)J'}",
+          "    7:7:void inlineeInOutline():1337:1337 -> b",
+          "    7:7:void foo():42 -> b",
+          "    8:8:void foo():44:44 -> b",
           "    9:10:void foo():38:39 -> b",
-          // TODO(b/284925475): This is not an outline or outline call site.
-          "    # {'id':'com.android.tools.r8.outline'}",
-          "    11:11:void inlineeInOutline():1337:1337 -> a",
-          "    11:11:void foo():42 -> b",
-          "    12:12:void foo():44:44 -> b",
           "package.Class$$ExternalSyntheticOutline0 -> package.internal.X:",
           "# {'id':'sourceFile','fileName':'R8$$SyntheticClass'}",
           "# {'id':'com.android.tools.r8.synthesized'}");

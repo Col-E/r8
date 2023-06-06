@@ -58,9 +58,9 @@ public class ComposeInlineFollowedByInlineTest extends TestBase {
       StringUtils.unixLines(
           "# {'id':'com.android.tools.r8.mapping','version':'experimental'}",
           "com.bar -> c:",
-          "    2:2:void inlinee1():43:43 -> y",
+          "    2:2:void com.foo.inlinee1():43:43 -> y",
           "    2:2:void foo.bar.baz.inlinee1():41 -> y",
-          "    2:2:void caller():40 -> y",
+          "    2:2:void com.foo.caller():40 -> y",
           "    2:2:void inlinee2():42:42 -> y",
           "    2:2:void foo.bar.baz.inlinee1():41 -> y",
           "    2:2:void caller():40 -> y",

@@ -510,6 +510,10 @@ public class MemberNaming implements MappingWithResidualInfo, Comparable<MemberN
       return new MethodSignature(toUnqualifiedName(), type, parameters);
     }
 
+    public Signature toUnqualifiedSignatureIfQualified() {
+      return isQualified() ? new MethodSignature(toUnqualifiedName(), type, parameters) : this;
+    }
+
     @Override
     public Signature toQualifiedSignature(String holder) {
       return new MethodSignature(holder + "." + name, type, parameters);

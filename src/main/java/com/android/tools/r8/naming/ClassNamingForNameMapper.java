@@ -11,6 +11,7 @@ import com.android.tools.r8.naming.MemberNaming.Signature;
 import com.android.tools.r8.naming.MemberNaming.Signature.SignatureKind;
 import com.android.tools.r8.naming.mappinginformation.MappingInformation;
 import com.android.tools.r8.naming.mappinginformation.OutlineCallsiteMappingInformation;
+import com.android.tools.r8.naming.mappinginformation.OutlineMappingInformation;
 import com.android.tools.r8.naming.mappinginformation.RewriteFrameMappingInformation;
 import com.android.tools.r8.utils.ChainableStringConsumer;
 import com.android.tools.r8.utils.CollectionUtils;
@@ -632,6 +633,15 @@ public class ClassNamingForNameMapper implements ClassNaming {
           MappingInformation::asRewriteFrameMappingInformation);
     }
 
+    public OutlineMappingInformation getOutlineMappingInformation() {
+      List<OutlineMappingInformation> outlineMappingInformation =
+          filter(
+              MappingInformation::isOutlineMappingInformation,
+              MappingInformation::asOutlineMappingInformation);
+      assert outlineMappingInformation.size() <= 1;
+      return outlineMappingInformation.isEmpty() ? null : outlineMappingInformation.get(0);
+    }
+
     public int getOriginalLineNumber(int lineNumberAfterMinification) {
       if (minifiedRange == null) {
         // General mapping without concrete line numbers: "a() -> b"
@@ -765,6 +775,11 @@ public class ClassNamingForNameMapper implements ClassNaming {
       return Collections.unmodifiableList(additionalMappingInformation);
     }
 
+    public void setAdditionalMappingInformationInternal(
+        List<MappingInformation> mappingInformation) {
+      this.additionalMappingInformation = mappingInformation;
+    }
+
     public MappedRange partitionOnMinifiedRange(Range minifiedRange) {
       if (minifiedRange.equals(this.minifiedRange)) {
         return this;
@@ -783,6 +798,12 @@ public class ClassNamingForNameMapper implements ClassNaming {
 
     public boolean isOriginalRangePreamble() {
       return originalRange != null && originalRange.isPreamble();
+    }
+
+    public MappedRange withMinifiedRange(Range newMinifiedRange) {
+      return newMinifiedRange.equals(minifiedRange)
+          ? this
+          : new MappedRange(newMinifiedRange, signature, originalRange, renamedName);
     }
   }
 }

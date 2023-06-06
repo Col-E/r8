@@ -27,6 +27,7 @@ import com.android.tools.r8.references.TypeReference;
 import com.android.tools.r8.utils.Box;
 import com.android.tools.r8.utils.ChainableStringConsumer;
 import com.android.tools.r8.utils.ConsumerUtils;
+import com.android.tools.r8.utils.IntBox;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.ListUtils;
 import com.android.tools.r8.utils.Pair;
@@ -42,12 +43,14 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Set;
 import java.util.TreeMap;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
 public class ComposingBuilder {
@@ -640,7 +643,10 @@ public class ComposingBuilder {
             if (composedInlineFrames.isEmpty()) {
               splitOnNewMinifiedRange(
                   composeMappedRangesForMethod(
-                      existingMappedRanges, mappedRange, computedOutlineInformation),
+                      existingClassBuilder,
+                      existingMappedRanges,
+                      mappedRange,
+                      computedOutlineInformation),
                   Collections.emptyList(),
                   newComposedInlineFrames::add);
             } else {
@@ -649,7 +655,10 @@ public class ComposingBuilder {
                     mappedRange.partitionOnMinifiedRange(composedInlineFrame.get(0).minifiedRange);
                 splitOnNewMinifiedRange(
                     composeMappedRangesForMethod(
-                        existingMappedRanges, splitMappedRange, computedOutlineInformation),
+                        existingClassBuilder,
+                        existingMappedRanges,
+                        splitMappedRange,
+                        computedOutlineInformation),
                     composedInlineFrame,
                     newComposedInlineFrames::add);
               }
@@ -662,86 +671,195 @@ public class ComposingBuilder {
               composedInlineFrames = Collections.emptyList();
             }
           }
-          MappedRange lastComposedRange = ListUtils.last(composedRanges);
-          if (computedOutlineInformation.seenOutlineMappingInformation != null) {
+          // Check if we could have inlined an outline which is true if we see both an outline and
+          // call site to patch up.
+          if (!computedOutlineInformation.seenOutlineMappingInformation.isEmpty()
+              && !computedOutlineInformation.outlineCallsiteMappingInformationToPatchUp.isEmpty()) {
+            Set<OutlineCallsiteMappingInformation> outlineCallSitesToRemove =
+                Sets.newIdentityHashSet();
+            Set<OutlineMappingInformation> outlinesToRemove = Sets.newIdentityHashSet();
+            // We patch up all ranges from top to bottom with the invariant that all at a given
+            // index, all above have been updated correctly. We will do expansion of frames
+            // when separating out single minified lines, but we keep the outline information
+            // present such that we can fix them when seeing them later.
+            int composedRangeIndex = 0;
+            while (composedRangeIndex < composedRanges.size() - 1) {
+              MappedRange outline = composedRanges.get(composedRangeIndex++);
+              if (outline.isOutlineFrame()
+                  && outline.minifiedRange.equals(
+                      composedRanges.get(composedRangeIndex).minifiedRange)) {
+                // We should replace the inlined outline frame positions with the synthesized
+                // positions from the outline call site.
+                MappedRange outlineCallSite = composedRanges.get(composedRangeIndex);
+                if (outlineCallSite.getOutlineCallsiteInformation().size() != 1) {
+                  // If we have an inlined outline it must be such that the outer frame is an
+                  // outline callsite.
+                  throw new MappingComposeException(
+                      "Expected exactly one outline call site for a mapped range with signature '"
+                          + outlineCallSite.getOriginalSignature()
+                          + "'.");
+                }
+                OutlineCallsiteMappingInformation outlineCallSiteInformation =
+                    outlineCallSite.getOutlineCallsiteInformation().get(0);
+                // The original positions in the outline callsite have been composed, so we have to
+                // find the existing mapped range and iterate the original positions for that range.
+                ComputedMappedRangeForOutline computedInformationForCallSite =
+                    computedOutlineInformation.getComputedRange(
+                        outlineCallSiteInformation, outlineCallSite);
+                if (computedInformationForCallSite == null) {
+                  continue;
+                }
+                Map<Integer, List<MappedRange>> mappedRangesForOutline =
+                    new HashMap<>(outlineCallSiteInformation.getPositions().size());
+                visitOutlineMappedPositions(
+                    outlineCallSiteInformation,
+                    computedInformationForCallSite
+                        .current
+                        .getOriginalSignature()
+                        .asMethodSignature(),
+                    mappedRangesForOutline::put);
+                List<MappedRange> newComposedRanges = new ArrayList<>();
+                // Copy all previous handled mapped ranges into a new list.
+                for (MappedRange previousMappedRanges : composedRanges) {
+                  if (previousMappedRanges == outline) {
+                    break;
+                  }
+                  newComposedRanges.add(previousMappedRanges);
+                }
+                // The original positions in the outline have been composed, so we have to find the
+                // existing mapped range and iterate the original positions for that range.
+                ComputedMappedRangeForOutline computedInformationForOutline =
+                    computedOutlineInformation.getComputedRange(
+                        outline.getOutlineMappingInformation(), outline);
+                if (computedInformationForOutline == null) {
+                  continue;
+                }
+                // The outline could have additional inlined positions in it, but we should be
+                // guaranteed to find call site information on all original line numbers. We
+                // therefore iterate one by one and amend the subsequent outer frames as well.
+                MappedRange current = computedInformationForOutline.current;
+                int minifiedLine = outline.minifiedRange.from;
+                for (int originalLine = current.getOriginalRangeOrIdentity().from;
+                    originalLine <= current.getOriginalRangeOrIdentity().to;
+                    originalLine++) {
+                  // If the outline is itself an inline frame it is bound to only have one original
+                  // position and we can simply insert all inline frames on that position with the
+                  // existing minified range.
+                  Range newMinifiedRange =
+                      outline.originalRange.isCardinal
+                          ? outline.minifiedRange
+                          : new Range(minifiedLine, minifiedLine);
+                  List<MappedRange> outlineMappedRanges = mappedRangesForOutline.get(originalLine);
+                  if (outlineMappedRanges != null) {
+                    outlineMappedRanges.forEach(
+                        range -> {
+                          if (range != ListUtils.last(outlineMappedRanges)) {
+                            newComposedRanges.add(
+                                new MappedRange(
+                                    newMinifiedRange,
+                                    range.getOriginalSignature().asMethodSignature(),
+                                    range.originalRange,
+                                    outlineCallSite.getRenamedName()));
+                          }
+                        });
+                    newComposedRanges.add(
+                        new MappedRange(
+                            newMinifiedRange,
+                            outlineCallSite.getOriginalSignature().asMethodSignature(),
+                            ListUtils.last(outlineMappedRanges).originalRange,
+                            outlineCallSite.getRenamedName()));
+                  }
+                  for (int tailInlineFrameIndex = composedRangeIndex + 1;
+                      tailInlineFrameIndex < composedRanges.size();
+                      tailInlineFrameIndex++) {
+                    MappedRange originalMappedRange = composedRanges.get(tailInlineFrameIndex);
+                    if (!originalMappedRange.minifiedRange.equals(outlineCallSite.minifiedRange)) {
+                      break;
+                    }
+                    MappedRange newMappedRange =
+                        originalMappedRange.withMinifiedRange(newMinifiedRange);
+                    newMappedRange.setAdditionalMappingInformationInternal(
+                        originalMappedRange.getAdditionalMappingInformation());
+                    newComposedRanges.add(newMappedRange);
+                  }
+                  minifiedLine++;
+                }
+                // We have patched up the the inlined outline and all subsequent inline frames
+                // (although some of the subsequent frames above could also be inlined outlines). We
+                // therefore need to copy the remaining frames.
+                boolean seenMinifiedRange = false;
+                for (MappedRange range : composedRanges) {
+                  if (range.minifiedRange.equals(outline.minifiedRange)) {
+                    seenMinifiedRange = true;
+                  } else if (seenMinifiedRange) {
+                    newComposedRanges.add(range);
+                  }
+                }
+                composedRanges = newComposedRanges;
+                outlineCallSitesToRemove.add(outlineCallSiteInformation);
+                outlinesToRemove.add(outline.getOutlineMappingInformation());
+              }
+            }
+            // If we removed any outlines or call site, remove the processing of them.
+            outlineCallSitesToRemove.forEach(
+                computedOutlineInformation.outlineCallsiteMappingInformationToPatchUp::remove);
+            outlinesToRemove.forEach(
+                computedOutlineInformation.seenOutlineMappingInformation::remove);
+          }
+          if (!computedOutlineInformation.seenOutlineMappingInformation.isEmpty()) {
+            MappedRange lastComposedRange = ListUtils.last(composedRanges);
             current
                 .getUpdateOutlineCallsiteInformation(
                     committedPreviousClassBuilder.getRenamedName(),
                     ListUtils.last(newMappedRanges).signature.getName(),
                     lastComposedRange.getRenamedName())
                 .setNewMappedRanges(newMappedRanges);
-            lastComposedRange.addMappingInformation(
-                computedOutlineInformation.seenOutlineMappingInformation,
-                ConsumerUtils.emptyConsumer());
           }
           if (!computedOutlineInformation.outlineCallsiteMappingInformationToPatchUp.isEmpty()) {
+            MappedRange lastComposedRange = ListUtils.last(composedRanges);
+            List<MappedRange> composedRangesFinal = composedRanges;
             // Outline positions are synthetic positions and they have no position in the residual
             // program. We therefore have to find the original positions and copy all inline frames
             // and amend the outermost frame with the residual signature and the next free position.
             List<OutlineCallsiteMappingInformation> outlineCallSites =
                 new ArrayList<>(
-                    computedOutlineInformation.outlineCallsiteMappingInformationToPatchUp);
+                    computedOutlineInformation.outlineCallsiteMappingInformationToPatchUp.keySet());
             outlineCallSites.sort(Comparator.comparing(mapping -> mapping.getOutline().toString()));
-            int firstAvailableRange = lastComposedRange.minifiedRange.to + 1;
+            IntBox firstAvailableRange = new IntBox(lastComposedRange.minifiedRange.to + 1);
             for (OutlineCallsiteMappingInformation outlineCallSite : outlineCallSites) {
-              Int2IntSortedMap positionMap = outlineCallSite.getPositions();
-              MethodSignature originalSignature =
-                  memberNaming.getOriginalSignature().asMethodSignature();
-              ComposingClassBuilder existingClassBuilderForOutline =
-                  getExistingClassBuilder(originalSignature);
-              if (existingClassBuilderForOutline == null) {
-                assert false;
-                continue;
-              }
-              SegmentTree<List<MappedRange>> outlineSegmentTree =
-                  existingClassBuilderForOutline.methodsWithPosition.get(originalSignature);
-              if (outlineSegmentTree == null) {
-                assert false;
-                continue;
-              }
-              Int2IntSortedMap newPositionMap = new Int2IntLinkedOpenHashMap(positionMap.size());
-              for (Integer keyPosition : positionMap.keySet()) {
-                int keyPositionInt = keyPosition;
-                int originalDestination = positionMap.get(keyPositionInt);
-                ExistingMapping existingMapping =
-                    computeExistingMapping(outlineSegmentTree.find(originalDestination));
-                List<MappedRange> mappedRangesForOutlinePosition =
-                    existingMapping.getMappedRangesForPosition(originalDestination);
-                if (mappedRangesForOutlinePosition == null) {
-                  assert false;
-                  continue;
-                }
-                MappedRange outerMostOutlineFrame = ListUtils.last(mappedRangesForOutlinePosition);
-                assert outerMostOutlineFrame.minifiedRange.span() == 1;
-                Range newMinifiedRange = new Range(firstAvailableRange, firstAvailableRange);
-                for (MappedRange inlineMappedRangeInOutlinePosition :
-                    mappedRangesForOutlinePosition) {
-                  if (inlineMappedRangeInOutlinePosition != outerMostOutlineFrame) {
-                    composedRanges.add(
+              Int2IntSortedMap newPositionMap =
+                  new Int2IntLinkedOpenHashMap(outlineCallSite.getPositions().size());
+              visitOutlineMappedPositions(
+                  outlineCallSite,
+                  memberNaming.getOriginalSignature().asMethodSignature(),
+                  (originalPosition, mappedRangesForOutlinePosition) -> {
+                    int newIndex = firstAvailableRange.getAndIncrement();
+                    Range newMinifiedRange = new Range(newIndex, newIndex);
+                    MappedRange outerMostOutlineFrame =
+                        ListUtils.last(mappedRangesForOutlinePosition);
+                    for (MappedRange inlineMappedRangeInOutlinePosition :
+                        mappedRangesForOutlinePosition) {
+                      if (inlineMappedRangeInOutlinePosition != outerMostOutlineFrame) {
+                        composedRangesFinal.add(
+                            inlineMappedRangeInOutlinePosition.withMinifiedRange(newMinifiedRange));
+                      }
+                    }
+                    composedRangesFinal.add(
                         new MappedRange(
                             newMinifiedRange,
-                            inlineMappedRangeInOutlinePosition.signature,
-                            inlineMappedRangeInOutlinePosition.getOriginalRangeOrIdentity(),
-                            inlineMappedRangeInOutlinePosition.getRenamedName()));
-                  }
-                }
-                composedRanges.add(
-                    new MappedRange(
-                        newMinifiedRange,
-                        lastComposedRange.signature,
-                        outerMostOutlineFrame.originalRange,
-                        lastComposedRange.getRenamedName()));
-                newPositionMap.put(keyPositionInt, firstAvailableRange);
-                firstAvailableRange = newMinifiedRange.to + 1;
-              }
-              outlineCallSite.setPositionsInternal(newPositionMap);
+                            lastComposedRange.signature,
+                            outerMostOutlineFrame.originalRange,
+                            lastComposedRange.getRenamedName()));
+                    newPositionMap.put((int) originalPosition, newIndex);
+                    outlineCallSite.setPositionsInternal(newPositionMap);
+                  });
             }
           }
           MethodSignature residualSignature =
               memberNaming
                   .computeResidualSignature(type -> inverseClassMapping.getOrDefault(type, type))
                   .asMethodSignature();
-          if (lastComposedRange.minifiedRange != null) {
+          if (ListUtils.last(composedRanges).minifiedRange != null) {
             SegmentTree<List<MappedRange>> listSegmentTree =
                 methodsWithPosition.computeIfAbsent(
                     residualSignature, ignored -> new SegmentTree<>(false));
@@ -749,9 +867,54 @@ public class ComposingBuilder {
                 minified.getStartOrNoRangeFrom(), minified.getEndOrNoRangeFrom(), composedRanges);
           } else {
             assert composedRanges.size() == 1;
-            methodsWithoutPosition.put(residualSignature, lastComposedRange);
+            methodsWithoutPosition.put(residualSignature, ListUtils.last(composedRanges));
           }
         }
+      }
+    }
+
+    private void visitOutlineMappedPositions(
+        OutlineCallsiteMappingInformation outlineCallSite,
+        MethodSignature originalSignature,
+        BiConsumer<Integer, List<MappedRange>> outlinePositionConsumer)
+        throws MappingComposeException {
+      Int2IntSortedMap positionMap = outlineCallSite.getPositions();
+      ComposingClassBuilder existingClassBuilder = getExistingClassBuilder(originalSignature);
+      if (existingClassBuilder == null) {
+        throw new MappingComposeException(
+            "Could not find builder with original signature '" + originalSignature + "'.");
+      }
+      SegmentTree<List<MappedRange>> outlineSegmentTree =
+          existingClassBuilder.methodsWithPosition.get(
+              originalSignature.toUnqualifiedSignatureIfQualified().asMethodSignature());
+      if (outlineSegmentTree == null) {
+        throw new MappingComposeException(
+            "Could not find method positions for original signature '" + originalSignature + "'.");
+      }
+      for (Integer keyPosition : positionMap.keySet()) {
+        int keyPositionInt = keyPosition;
+        int originalDestination = positionMap.get(keyPositionInt);
+        List<MappedRange> mappedRanges = outlineSegmentTree.find(originalDestination);
+        if (mappedRanges == null) {
+          throw new MappingComposeException(
+              "Could not find ranges for outline position '"
+                  + keyPosition
+                  + "' with original signature '"
+                  + originalSignature
+                  + "'.");
+        }
+        ExistingMapping existingMapping = computeExistingMapping(mappedRanges);
+        List<MappedRange> mappedRangesForOutlinePosition =
+            existingMapping.getMappedRangesForPosition(originalDestination);
+        if (mappedRangesForOutlinePosition == null) {
+          throw new MappingComposeException(
+              "Could not find ranges for outline position '"
+                  + keyPosition
+                  + "' with original signature '"
+                  + originalSignature
+                  + "'.");
+        }
+        outlinePositionConsumer.accept(keyPositionInt, mappedRangesForOutlinePosition);
       }
     }
 
@@ -822,6 +985,7 @@ public class ComposingBuilder {
     }
 
     private List<MappedRange> composeMappedRangesForMethod(
+        ComposingClassBuilder existingClassBuilder,
         List<MappedRange> existingRanges,
         MappedRange newRange,
         ComputedOutlineInformation computedOutlineInformation)
@@ -834,7 +998,13 @@ public class ComposingBuilder {
       if (newRange.getOriginalRangeOrIdentity() == null) {
         MappedRange newComposedRange =
             new MappedRange(
-                newRange.minifiedRange, lastExistingRange.signature, null, newRange.renamedName);
+                newRange.minifiedRange,
+                potentiallyQualifySignature(
+                    newRange.signature,
+                    lastExistingRange.signature,
+                    existingClassBuilder.getOriginalName()),
+                null,
+                newRange.renamedName);
         composeMappingInformation(
             newComposedRange.getAdditionalMappingInformation(),
             lastExistingRange.getAdditionalMappingInformation(),
@@ -858,7 +1028,10 @@ public class ComposingBuilder {
           return Collections.singletonList(
               new MappedRange(
                   newRange.minifiedRange,
-                  lastExistingRange.signature,
+                  potentiallyQualifySignature(
+                      newRange.signature,
+                      lastExistingRange.signature,
+                      existingClassBuilder.getOriginalName()),
                   lastExistingRange.originalRange != null
                           && lastExistingRange.originalRange.span() == 1
                       ? lastExistingRange.originalRange
@@ -882,6 +1055,7 @@ public class ComposingBuilder {
       // then we have a perfect mapping that we can translate directly.
       if (lastExistingMappedRange.minifiedRange.equals(newRange.getOriginalRangeOrIdentity())) {
         computeComposedMappedRange(
+            existingClassBuilder,
             newComposedRanges,
             newRange,
             existingMappedRanges,
@@ -907,6 +1081,7 @@ public class ComposingBuilder {
                 lastExistingMappedRangeForPosition.minifiedRange)) {
           // We have seen an existing range we have to compute a splitting for.
           computeComposedMappedRange(
+              existingClassBuilder,
               newComposedRanges,
               newRange,
               existingMappedRanges,
@@ -949,6 +1124,7 @@ public class ComposingBuilder {
         }
       }
       computeComposedMappedRange(
+          existingClassBuilder,
           newComposedRanges,
           newRange,
           existingMappedRanges,
@@ -1038,6 +1214,7 @@ public class ComposingBuilder {
     }
 
     private void computeComposedMappedRange(
+        ComposingClassBuilder existingClassBuilder,
         List<MappedRange> newComposedRanges,
         MappedRange newMappedRange,
         List<MappedRange> existingMappedRanges,
@@ -1071,7 +1248,10 @@ public class ComposingBuilder {
         MappedRange computedRange =
             new MappedRange(
                 newMinifiedRange,
-                existingMappedRange.signature,
+                potentiallyQualifySignature(
+                    newMappedRange.signature,
+                    existingMappedRange.signature,
+                    existingClassBuilder.getOriginalName()),
                 newOriginalRange,
                 newMappedRange.renamedName);
         List<MappingInformation> mappingInformationToCompose = new ArrayList<>();
@@ -1080,13 +1260,17 @@ public class ComposingBuilder {
             .forEach(
                 info -> {
                   if (info.isOutlineMappingInformation()) {
-                    computedOutlineInformation.seenOutlineMappingInformation =
-                        info.asOutlineMappingInformation();
-                    return;
-                  }
-                  if (info.isOutlineCallsiteInformation()) {
-                    computedOutlineInformation.outlineCallsiteMappingInformationToPatchUp.add(
-                        info.asOutlineCallsiteInformation());
+                    computedOutlineInformation
+                        .seenOutlineMappingInformation
+                        .computeIfAbsent(
+                            info.asOutlineMappingInformation(), ignoreArgument(ArrayList::new))
+                        .add(new ComputedMappedRangeForOutline(newMappedRange, computedRange));
+                  } else if (info.isOutlineCallsiteInformation()) {
+                    computedOutlineInformation
+                        .outlineCallsiteMappingInformationToPatchUp
+                        .computeIfAbsent(
+                            info.asOutlineCallsiteInformation(), ignoreArgument(ArrayList::new))
+                        .add(new ComputedMappedRangeForOutline(newMappedRange, computedRange));
                   }
                   mappingInformationToCompose.add(info);
                 });
@@ -1229,6 +1413,14 @@ public class ComposingBuilder {
       }
     }
 
+    private MethodSignature potentiallyQualifySignature(
+        MethodSignature newSignature, MethodSignature signature, String originalHolder) {
+      return !newSignature.isQualified() || signature.isQualified()
+          ? signature
+          : new MethodSignature(
+              originalHolder + "." + signature.name, signature.type, signature.parameters);
+    }
+
     private static class RangeBuilder {
 
       private int start = Integer.MAX_VALUE;
@@ -1256,9 +1448,35 @@ public class ComposingBuilder {
     }
 
     private static class ComputedOutlineInformation {
-      private final Set<OutlineCallsiteMappingInformation>
-          outlineCallsiteMappingInformationToPatchUp = Sets.newIdentityHashSet();
-      private OutlineMappingInformation seenOutlineMappingInformation = null;
+      private final Map<OutlineCallsiteMappingInformation, List<ComputedMappedRangeForOutline>>
+          outlineCallsiteMappingInformationToPatchUp = new IdentityHashMap<>();
+      private final Map<OutlineMappingInformation, List<ComputedMappedRangeForOutline>>
+          seenOutlineMappingInformation = new IdentityHashMap<>();
+
+      private ComputedMappedRangeForOutline getComputedRange(
+          MappingInformation outline, MappedRange current) {
+        List<ComputedMappedRangeForOutline> outlineMappingInformations =
+            outline.isOutlineMappingInformation()
+                ? seenOutlineMappingInformation.get(outline.asOutlineMappingInformation())
+                : outlineCallsiteMappingInformationToPatchUp.get(
+                    outline.asOutlineCallsiteInformation());
+        if (outlineMappingInformations == null) {
+          return null;
+        }
+        return ListUtils.firstMatching(
+            outlineMappingInformations,
+            pair -> pair.composed.minifiedRange.contains(current.minifiedRange.from));
+      }
+    }
+
+    private static class ComputedMappedRangeForOutline {
+      private final MappedRange current;
+      private final MappedRange composed;
+
+      private ComputedMappedRangeForOutline(MappedRange current, MappedRange composed) {
+        this.current = current;
+        this.composed = composed;
+      }
     }
   }
 }

@@ -1,4 +1,4 @@
-// Copyright (c) 2022, the R8 project authors. Please see the AUTHORS file
+// Copyright (c) 2023, the R8 project authors. Please see the AUTHORS file
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
@@ -20,7 +20,7 @@ import org.junit.runners.Parameterized.Parameter;
 import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
-public class ComposeMovedMethodTest extends TestBase {
+public class ComposeInlineResidualQualifiedTest extends TestBase {
 
   @Parameter() public TestParameters parameters;
 
@@ -31,23 +31,26 @@ public class ComposeMovedMethodTest extends TestBase {
 
   private static final String mappingFoo =
       StringUtils.unixLines(
-          "# {'id':'com.android.tools.r8.mapping','version':'experimental'}",
-          "com.foo -> a:",
-          "    int some.other.Class.f1() -> g1",
-          "    void f2() -> g2");
+          "# {'id':'com.android.tools.r8.mapping','version':'2.2'}",
+          "com.foo -> A:",
+          "    1:3:void method1():42:44 -> x",
+          "com.bar -> B:",
+          "    4:6:void method2():104:106 -> x");
   private static final String mappingBar =
       StringUtils.unixLines(
-          "# {'id':'com.android.tools.r8.mapping','version':'experimental'}",
-          "com.bar -> b:",
-          "    int a.g1() -> h1",
-          "    void a.g2() -> h2");
+          "# {'id':'com.android.tools.r8.mapping','version':'2.2'}",
+          "B -> C:",
+          "    1:3:void A.x():2:2 -> y",
+          "    1:3:void x():4 -> y",
+          "    2:3:void x():5:6 -> y");
   private static final String mappingResult =
       StringUtils.unixLines(
-          "# {'id':'com.android.tools.r8.mapping','version':'experimental'}",
-          "com.bar -> b:",
-          "    int some.other.Class.f1() -> h1",
-          "    void com.foo.f2() -> h2",
-          "com.foo -> a:");
+          "# {'id':'com.android.tools.r8.mapping','version':'2.2'}",
+          "com.bar -> C:",
+          "    1:3:void com.foo.method1():43:43 -> y",
+          "    1:3:void method2():104:104 -> y",
+          "    2:3:void method2():105:106 -> y",
+          "com.foo -> A:");
 
   @Test
   public void testCompose() throws Exception {
