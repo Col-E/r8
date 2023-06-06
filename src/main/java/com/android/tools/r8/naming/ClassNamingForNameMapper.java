@@ -659,6 +659,10 @@ public class ClassNamingForNameMapper implements ClassNaming {
       }
     }
 
+    public Range getOriginalRangeOrIdentity() {
+      return originalRange != null ? originalRange : minifiedRange;
+    }
+
     @Override
     public Signature getOriginalSignature() {
       return signature;
@@ -775,6 +779,10 @@ public class ClassNamingForNameMapper implements ClassNaming {
             new ArrayList<>(this.additionalMappingInformation);
       }
       return splitMappedRange;
+    }
+
+    public boolean isOriginalRangePreamble() {
+      return originalRange != null && originalRange.isPreamble();
     }
   }
 }

@@ -62,7 +62,7 @@ public class ComposeMethodWithLineNumberRemovedTest extends TestBase {
           "    package.internal.Th a() -> b",
           "    # {'id':'com.android.tools.r8.residualsignature',"
               + "'signature':'()Lpackage/retrace_internal/F1;'}",
-          "    1:1:void <init>() -> <init>",
+          "    1:1:void <init>():13:13 -> <init>",
           "package.FieldDefinition$FullFieldDefinition -> package.other_internal.F1:");
 
   @Test
