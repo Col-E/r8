@@ -420,11 +420,6 @@ public class ComposingBuilder {
       return new MappedRangeOriginalToMinifiedMap(positionMap);
     }
 
-    public int lookupFirst(int originalPosition) {
-      List<Integer> minifiedPositions = originalToMinified.get(originalPosition);
-      return minifiedPositions == null ? 0 : minifiedPositions.get(0);
-    }
-
     public void visitMinified(int originalPosition, Consumer<Integer> consumer) {
       List<Integer> minifiedPositions = originalToMinified.get(originalPosition);
       if (minifiedPositions != null) {
