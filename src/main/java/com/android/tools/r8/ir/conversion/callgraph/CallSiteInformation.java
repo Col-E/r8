@@ -13,8 +13,6 @@ import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.classhierarchy.MethodOverridesCollector;
 import com.android.tools.r8.utils.collections.ProgramMethodSet;
 import com.google.common.collect.Sets;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.Set;
 
 public abstract class CallSiteInformation {
@@ -24,14 +22,6 @@ public abstract class CallSiteInformation {
    *
    * <p>For pinned methods (methods kept through Proguard keep rules) this will always answer <code>
    * false</code>.
-   */
-  public abstract boolean hasSingleCallSite(ProgramMethod context, ProgramMethod method);
-
-  /**
-   * Checks if the given method only has a single call without considering context.
-   *
-   * <p>For pinned methods (methods kept through Proguard keep rules) and methods that override a
-   * library method this always returns false.
    */
   public abstract boolean hasSingleCallSite(ProgramMethod method);
 
@@ -46,11 +36,6 @@ public abstract class CallSiteInformation {
   private static class EmptyCallSiteInformation extends CallSiteInformation {
 
     private static final EmptyCallSiteInformation EMPTY_INFO = new EmptyCallSiteInformation();
-
-    @Override
-    public boolean hasSingleCallSite(ProgramMethod context, ProgramMethod method) {
-      return false;
-    }
 
     @Override
     public boolean hasSingleCallSite(ProgramMethod method) {
@@ -70,9 +55,7 @@ public abstract class CallSiteInformation {
 
   static class CallGraphBasedCallSiteInformation extends CallSiteInformation {
 
-    // Single callers track their calling context to ensure that the predicate is stable after
-    // inlining of the caller.
-    private final Map<DexMethod, DexMethod> singleCallerMethods = new HashMap<>();
+    private final Set<DexMethod> singleCallerMethods = Sets.newIdentityHashSet();
     private final Set<DexMethod> multiCallerInlineCandidates = Sets.newIdentityHashSet();
 
     CallGraphBasedCallSiteInformation(AppView<AppInfoWithLiveness> appView, CallGraph graph) {
@@ -111,10 +94,7 @@ public abstract class CallSiteInformation {
 
         int numberOfCallSites = node.getNumberOfCallSites();
         if (numberOfCallSites == 1) {
-          Node caller = node.getCallersWithDeterministicOrder().iterator().next();
-          DexMethod existing =
-              singleCallerMethods.put(reference, caller.getMethod().getReference());
-          assert existing == null;
+          singleCallerMethods.add(reference);
         } else if (numberOfCallSites > 1) {
           multiCallerInlineCandidates.add(reference);
         }
@@ -122,25 +102,14 @@ public abstract class CallSiteInformation {
     }
 
     /**
-     * Checks if the given method only has a single call site with the given context.
-     *
-     * <p>For pinned methods (methods kept through Proguard keep rules) and methods that override a
-     * library method this always returns false.
-     */
-    @Override
-    public boolean hasSingleCallSite(ProgramMethod context, ProgramMethod method) {
-      return singleCallerMethods.get(method.getReference()) == context.getReference();
-    }
-
-    /**
-     * Checks if the given method only has a single call without considering context.
+     * Checks if the given method only has a single call site.
      *
      * <p>For pinned methods (methods kept through Proguard keep rules) and methods that override a
      * library method this always returns false.
      */
     @Override
     public boolean hasSingleCallSite(ProgramMethod method) {
-      return singleCallerMethods.containsKey(method.getReference());
+      return singleCallerMethods.contains(method.getReference());
     }
 
     /**

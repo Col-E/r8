@@ -147,11 +147,12 @@ public class MultiCallerInliner {
     // We track up to n call sites, where n is the size of multiCallerInliningInstructionLimits.
     if (callers.size() > multiCallerInliningInstructionLimits.length) {
       stopTrackingCallSitesForMethodIfDefinitelyIneligibleForMultiCallerInlining(
-          singleTarget, methodProcessor, callers);
+          method, singleTarget, methodProcessor, callers);
     }
   }
 
   private void stopTrackingCallSitesForMethodIfDefinitelyIneligibleForMultiCallerInlining(
+      ProgramMethod method,
       ProgramMethod singleTarget,
       MethodProcessor methodProcessor,
       ProgramMethodMultiset callers) {
