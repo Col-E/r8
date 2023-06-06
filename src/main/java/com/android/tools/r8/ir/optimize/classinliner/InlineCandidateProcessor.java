@@ -80,7 +80,6 @@ import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.TreeSet;
 import java.util.function.Function;
 
 final class InlineCandidateProcessor {
@@ -695,8 +694,7 @@ final class InlineCandidateProcessor {
 
   private void removeFieldReadsFromNewInstance(
       IRCode code, Set<Value> affectedValues, AssumeRemover assumeRemover) {
-    TreeSet<InstanceGet> uniqueInstanceGetUsersWithDeterministicOrder =
-        new TreeSet<>(Comparator.comparingInt(x -> x.outValue().getNumber()));
+    List<InstanceGet> uniqueInstanceGetUsersWithDeterministicOrder = new ArrayList<>();
     for (Instruction user : eligibleInstance.uniqueUsers()) {
       if (user.isInstanceGet()) {
         assumeRemover.markAssumeDynamicTypeUsersForRemoval(user.outValue());
@@ -722,6 +720,7 @@ final class InlineCandidateProcessor {
               + user);
     }
 
+    uniqueInstanceGetUsersWithDeterministicOrder.sort(Comparator.comparing(Instruction::outValue));
     Map<DexField, FieldValueHelper> fieldHelpers = new IdentityHashMap<>();
     for (InstanceGet user : uniqueInstanceGetUsersWithDeterministicOrder) {
       // Replace a field read with appropriate value.

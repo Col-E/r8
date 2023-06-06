@@ -9,7 +9,9 @@ import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.ir.conversion.callgraph.CallSiteInformation.CallGraphBasedCallSiteInformation;
 import com.android.tools.r8.ir.conversion.callgraph.CycleEliminator.CycleEliminationResult;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
+import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.collections.ProgramMethodSet;
+import com.android.tools.r8.utils.collections.SortedProgramMethodSet;
 import com.google.common.collect.Sets;
 import java.util.Collection;
 import java.util.Iterator;
@@ -77,7 +79,10 @@ public class CallGraph extends CallGraphBase<Node> {
   }
 
   private ProgramMethodSet extractNodes(Predicate<Node> predicate, Consumer<Node> clean) {
-    ProgramMethodSet result = ProgramMethodSet.create();
+    ProgramMethodSet result =
+        InternalOptions.DETERMINISTIC_DEBUGGING
+            ? SortedProgramMethodSet.create()
+            : ProgramMethodSet.create();
     Set<Node> removed = Sets.newIdentityHashSet();
     Iterator<Node> nodeIterator = nodes.values().iterator();
     while (nodeIterator.hasNext()) {

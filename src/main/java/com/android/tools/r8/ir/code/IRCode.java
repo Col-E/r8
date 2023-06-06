@@ -42,6 +42,8 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 import com.google.common.collect.Streams;
+import it.unimi.dsi.fastutil.ints.Int2ReferenceMap;
+import it.unimi.dsi.fastutil.ints.Int2ReferenceOpenHashMap;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -692,18 +694,25 @@ public class IRCode implements IRControlFlowGraph, ValueFactory {
     return false;
   }
 
-  private boolean consistentDefUseChains() {
-    Set<Value> values = Sets.newIdentityHashSet();
+  private static void addValueAndCheckUniqueNumber(Int2ReferenceMap<Value> values, Value value) {
+    assert value != null;
+    int number = value.getNumber();
+    Value old = values.put(number, value);
+    assert old == null || old == value || (number == -1 && value.isValueOnStack())
+        : "Multiple value definitions with number " + number + ": " + value + " and " + old;
+  }
 
+  private boolean consistentDefUseChains() {
+    Int2ReferenceMap<Value> values = new Int2ReferenceOpenHashMap<>();
     for (BasicBlock block : blocks) {
       int predecessorCount = block.getPredecessors().size();
       // Check that all phi uses are consistent.
       for (Phi phi : block.getPhis()) {
         assert !phi.isTrivialPhi();
         assert phi.getOperands().size() == predecessorCount;
-        values.add(phi);
+        addValueAndCheckUniqueNumber(values, phi);
         for (Value value : phi.getOperands()) {
-          values.add(value);
+          addValueAndCheckUniqueNumber(values, value);
           assert value.uniquePhiUsers().contains(phi);
           assert !phi.hasLocalInfo() || phi.getLocalInfo() == value.getLocalInfo();
           assert value.isPhi() || value.definition.hasBlock();
@@ -713,21 +722,21 @@ public class IRCode implements IRControlFlowGraph, ValueFactory {
         assert instruction.getBlock() == block;
         Value outValue = instruction.outValue();
         if (outValue != null) {
-          values.add(outValue);
+          addValueAndCheckUniqueNumber(values, outValue);
           assert outValue.definition == instruction;
         }
         for (Value value : instruction.inValues()) {
-          values.add(value);
+          addValueAndCheckUniqueNumber(values, value);
           assert value.uniqueUsers().contains(instruction);
         }
         for (Value value : instruction.getDebugValues()) {
-          values.add(value);
+          addValueAndCheckUniqueNumber(values, value);
           assert value.debugUsers().contains(instruction);
         }
       }
     }
 
-    for (Value value : values) {
+    for (Value value : values.values()) {
       assert verifyValue(value);
       assert consistentValueUses(value);
     }
