@@ -8,6 +8,8 @@ import static com.android.tools.r8.DiagnosticsMatcher.diagnosticMessage;
 import static com.android.tools.r8.utils.AndroidApiLevel.LATEST;
 import static org.hamcrest.CoreMatchers.containsString;
 
+import com.android.tools.r8.D8TestCompileResult;
+import com.android.tools.r8.OutputMode;
 import com.android.tools.r8.TestDiagnosticMessages;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
@@ -51,6 +53,24 @@ public class ThreadLocalBackportTest extends DesugaredLibraryTestBase {
         .addInnerClasses(getClass())
         .setMinApi(parameters)
         .compileWithExpectedDiagnostics(this::checkDiagnostics)
+        .run(parameters.getRuntime(), TestClass.class)
+        .apply(this::checkExpected);
+  }
+
+  @Test
+  public void testIntermediateD8() throws Exception {
+    D8TestCompileResult intermediate =
+        testForD8(parameters.getBackend())
+            .addInnerClasses(getClass())
+            .setOutputMode(
+                parameters.isCfRuntime() ? OutputMode.ClassFile : OutputMode.DexFilePerClass)
+            .setMinApi(parameters)
+            .compileWithExpectedDiagnostics(this::checkDiagnostics);
+
+    testForD8(parameters.getBackend())
+        .addProgramFiles(intermediate.writeToZip())
+        .setMinApi(parameters)
+        .compile()
         .run(parameters.getRuntime(), TestClass.class)
         .apply(this::checkExpected);
   }
