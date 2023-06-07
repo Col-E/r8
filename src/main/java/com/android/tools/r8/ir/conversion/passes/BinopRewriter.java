@@ -275,25 +275,26 @@ public class BinopRewriter extends CodeRewriterPass<AppInfo> {
     if (binop.outValue().hasDebugUsers()) {
       return;
     }
-    ConstNumber constLeft = getConstNumber(binop.leftValue());
-    ConstNumber constRight = getConstNumber(binop.rightValue());
-    if ((constLeft != null && constRight != null) || (constLeft == null && constRight == null)) {
+    ConstNumber constBLeft = getConstNumber(binop.leftValue());
+    ConstNumber constBRight = getConstNumber(binop.rightValue());
+    if ((constBLeft != null && constBRight != null)
+        || (constBLeft == null && constBRight == null)) {
       return;
     }
-    Value otherValue = constLeft == null ? binop.leftValue() : binop.rightValue();
+    Value otherValue = constBLeft == null ? binop.leftValue() : binop.rightValue();
     if (otherValue.isPhi() || !otherValue.getDefinition().isBinop()) {
       return;
     }
     Binop prevBinop = otherValue.getDefinition().asBinop();
-    ConstNumber prevConstLeft = getConstNumber(prevBinop.leftValue());
-    ConstNumber prevConstRight = getConstNumber(prevBinop.rightValue());
-    if ((prevConstLeft != null && prevConstRight != null)
-        || (prevConstLeft == null && prevConstRight == null)) {
+    ConstNumber constALeft = getConstNumber(prevBinop.leftValue());
+    ConstNumber constARight = getConstNumber(prevBinop.rightValue());
+    if ((constALeft != null && constARight != null)
+        || (constALeft == null && constARight == null)) {
       return;
     }
-    ConstNumber constB = constLeft == null ? constRight : constLeft;
-    ConstNumber constA = prevConstLeft == null ? prevConstRight : prevConstLeft;
-    Value input = prevConstLeft == null ? prevBinop.leftValue() : prevBinop.rightValue();
+    ConstNumber constB = constBLeft == null ? constBRight : constBLeft;
+    ConstNumber constA = constALeft == null ? constARight : constALeft;
+    Value input = constALeft == null ? prevBinop.leftValue() : prevBinop.rightValue();
     // We have two successive binops so that a,b constants, x the input and a * x * b.
     if (prevBinop.getClass() == binop.getClass()) {
       if (binopDescriptor.associativeAndCommutative) {
@@ -304,15 +305,16 @@ public class BinopRewriter extends CodeRewriterPass<AppInfo> {
             instantiateBinop(code, input, newConst, binopDescriptor));
       } else if (binopDescriptor.isShift()) {
         // x shift: a shift: b => x shift: (a + b) where a + b is a constant.
-        if (constRight != null && prevConstRight != null) {
+        if (constBRight != null && constARight != null) {
           Value newConst = addNewConstNumber(code, iterator, constB, constA, BinopDescriptor.ADD);
           iterator.replaceCurrentInstruction(
               instantiateBinop(code, input, newConst, binopDescriptor));
         }
-      } else if (binop.isSub()) {
+      } else if (binop.isSub() && constBRight != null) {
         // a - x - b => (a - b) - x where (a - b) is a constant.
         // x - a - b => x - (a + b) where (a + b) is a constant.
-        if (prevConstRight == null) {
+        // We ignore b - (x - a) and b - (a - x) with constBRight != null.
+        if (constARight == null) {
           Value newConst = addNewConstNumber(code, iterator, constA, constB, BinopDescriptor.SUB);
           iterator.replaceCurrentInstruction(
               instantiateBinop(code, newConst, input, BinopDescriptor.SUB));
@@ -323,16 +325,17 @@ public class BinopRewriter extends CodeRewriterPass<AppInfo> {
         }
       }
     } else {
-      if (binop.isSub() && prevBinop.isAdd()) {
+      if (binop.isSub() && prevBinop.isAdd() && constBRight != null) {
         // x + a - b => x + (a - b) where (a - b) is a constant.
         // a + x - b => x + (a - b) where (a - b) is a constant.
+        // We ignore b - (x + a) and b - (a + x) with constBRight != null.
         Value newConst = addNewConstNumber(code, iterator, constA, constB, BinopDescriptor.SUB);
         iterator.replaceCurrentInstruction(
             instantiateBinop(code, newConst, input, BinopDescriptor.ADD));
       } else if (binop.isAdd() && prevBinop.isSub()) {
         // x - a + b => x - (a - b) where (a - b) is a constant.
         // a - x + b => (a + b) - x where (a + b) is a constant.
-        if (prevConstLeft == null) {
+        if (constALeft == null) {
           Value newConst = addNewConstNumber(code, iterator, constA, constB, BinopDescriptor.SUB);
           iterator.replaceCurrentInstruction(
               instantiateBinop(code, input, newConst, BinopDescriptor.SUB));

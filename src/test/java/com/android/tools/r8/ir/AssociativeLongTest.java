@@ -155,7 +155,7 @@ public class AssociativeLongTest extends TestBase {
           1,
           method
               .streamInstructions()
-              .filter(i -> i.isIntArithmeticBinop() || i.isLongLogicalBinop())
+              .filter(i -> i.isLongArithmeticBinop() || i.isLongLogicalBinop())
               .count());
     }
   }

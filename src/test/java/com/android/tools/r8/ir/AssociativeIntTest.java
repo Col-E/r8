@@ -75,6 +75,18 @@ public class AssociativeIntTest extends TestBase {
           "-37",
           "-2147483642",
           "-2147483643",
+          "-1",
+          "-41",
+          "-2147483646",
+          "-2147483647",
+          "25",
+          "-15",
+          "-2147483620",
+          "-2147483621",
+          "3",
+          "43",
+          "-2147483648",
+          "-2147483647",
           "3",
           "43",
           "-2147483648",
@@ -152,7 +164,7 @@ public class AssociativeIntTest extends TestBase {
     for (FoundMethodSubject method :
         clazz.allMethods(m -> m.getParameters().size() > 0 && m.getParameter(0).is("int"))) {
       assertEquals(
-          1,
+          method.getOriginalName().contains("NotSimplified") ? 2 : 1,
           method
               .streamInstructions()
               .filter(i -> i.isIntArithmeticBinop() || i.isIntLogicalBinop())
@@ -228,6 +240,18 @@ public class AssociativeIntTest extends TestBase {
       subAdd(42);
       subAdd(Integer.MAX_VALUE);
       subAdd(Integer.MIN_VALUE);
+      addSubNotSimplified_1(2);
+      addSubNotSimplified_1(42);
+      addSubNotSimplified_1(Integer.MAX_VALUE);
+      addSubNotSimplified_1(Integer.MIN_VALUE);
+      addSubNotSimplified_2(2);
+      addSubNotSimplified_2(42);
+      addSubNotSimplified_2(Integer.MAX_VALUE);
+      addSubNotSimplified_2(Integer.MIN_VALUE);
+      addSubNotSimplified_3(2);
+      addSubNotSimplified_3(42);
+      addSubNotSimplified_3(Integer.MAX_VALUE);
+      addSubNotSimplified_3(Integer.MIN_VALUE);
       addSub2(2);
       addSub2(42);
       addSub2(Integer.MAX_VALUE);
@@ -339,6 +363,21 @@ public class AssociativeIntTest extends TestBase {
     @NeverInline
     public static void addSub2(int x) {
       System.out.println(x + 3 - 2);
+    }
+
+    @NeverInline
+    public static void addSubNotSimplified_1(int x) {
+      System.out.println(14 - (x + 13));
+    }
+
+    @NeverInline
+    public static void addSubNotSimplified_2(int x) {
+      System.out.println(14 - (x - 13));
+    }
+
+    @NeverInline
+    public static void addSubNotSimplified_3(int x) {
+      System.out.println(14 - (13 - x));
     }
 
     @NeverInline
