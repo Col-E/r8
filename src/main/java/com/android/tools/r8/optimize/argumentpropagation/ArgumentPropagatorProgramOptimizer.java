@@ -9,7 +9,6 @@ import static com.android.tools.r8.utils.MapUtils.ignoreKey;
 import com.android.tools.r8.contexts.CompilationContext.ProcessorContext;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
-import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
@@ -36,6 +35,8 @@ import com.android.tools.r8.ir.optimize.info.CallSiteOptimizationInfo;
 import com.android.tools.r8.ir.optimize.info.ConcreteCallSiteOptimizationInfo;
 import com.android.tools.r8.optimize.argumentpropagation.ArgumentPropagatorGraphLens.Builder;
 import com.android.tools.r8.optimize.argumentpropagation.utils.ParameterRemovalUtils;
+import com.android.tools.r8.optimize.utils.ConcurrentNonProgramMethodsCollection;
+import com.android.tools.r8.optimize.utils.NonProgramMethodsCollection;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.KeepFieldInfo;
 import com.android.tools.r8.shaking.KeepMethodInfo;
@@ -73,7 +74,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.function.Consumer;
@@ -173,9 +173,7 @@ public class ArgumentPropagatorProgramOptimizer {
   private final AppView<AppInfoWithLiveness> appView;
   private final ImmediateProgramSubtypingInfo immediateSubtypingInfo;
   private final Map<Set<DexProgramClass>, DexMethodSignatureSet> interfaceDispatchOutsideProgram;
-
-  private final Map<DexClass, DexMethodSignatureSet> libraryVirtualMethods =
-      new ConcurrentHashMap<>();
+  private final NonProgramMethodsCollection nonProgramMethodsCollection;
 
   public ArgumentPropagatorProgramOptimizer(
       AppView<AppInfoWithLiveness> appView,
@@ -184,6 +182,8 @@ public class ArgumentPropagatorProgramOptimizer {
     this.appView = appView;
     this.immediateSubtypingInfo = immediateSubtypingInfo;
     this.interfaceDispatchOutsideProgram = interfaceDispatchOutsideProgram;
+    this.nonProgramMethodsCollection =
+        ConcurrentNonProgramMethodsCollection.createVirtualMethodsCollection(appView);
   }
 
   public ArgumentPropagatorGraphLens run(
@@ -219,28 +219,6 @@ public class ArgumentPropagatorProgramOptimizer {
     timing.end();
 
     return graphLens;
-  }
-
-  private DexMethodSignatureSet getOrComputeLibraryVirtualMethods(DexClass clazz) {
-    DexMethodSignatureSet libraryMethodsOnClass = libraryVirtualMethods.get(clazz);
-    if (libraryMethodsOnClass != null) {
-      return libraryMethodsOnClass;
-    }
-    return computeLibraryVirtualMethods(clazz);
-  }
-
-  private DexMethodSignatureSet computeLibraryVirtualMethods(DexClass clazz) {
-    DexMethodSignatureSet libraryMethodsOnClass = DexMethodSignatureSet.create();
-    immediateSubtypingInfo.forEachImmediateSuperClassMatching(
-        clazz,
-        (supertype, superclass) -> superclass != null,
-        (supertype, superclass) ->
-            libraryMethodsOnClass.addAll(getOrComputeLibraryVirtualMethods(superclass)));
-    clazz.forEachClassMethodMatching(
-        DexEncodedMethod::belongsToVirtualPool,
-        method -> libraryMethodsOnClass.add(method.getMethodSignature()));
-    libraryVirtualMethods.put(clazz, libraryMethodsOnClass);
-    return libraryMethodsOnClass;
   }
 
   public class StronglyConnectedComponentOptimizer {
@@ -325,7 +303,7 @@ public class ArgumentPropagatorProgramOptimizer {
     private void reservePinnedMethodSignatures(
         Set<DexProgramClass> stronglyConnectedProgramClasses) {
       DexMethodSignatureSet pinnedMethodSignatures = DexMethodSignatureSet.create();
-      Set<DexClass> seenLibraryClasses = Sets.newIdentityHashSet();
+      Set<DexClass> seenNonProgramClasses = Sets.newIdentityHashSet();
       for (DexProgramClass clazz : stronglyConnectedProgramClasses) {
         clazz.forEachProgramMethodMatching(
             method -> !method.isInstanceInitializer(),
@@ -341,9 +319,11 @@ public class ArgumentPropagatorProgramOptimizer {
             (supertype, superclass) ->
                 superclass != null
                     && !superclass.isProgramClass()
-                    && seenLibraryClasses.add(superclass),
+                    && seenNonProgramClasses.add(superclass),
             (supertype, superclass) ->
-                pinnedMethodSignatures.addAll(getOrComputeLibraryVirtualMethods(superclass)));
+                pinnedMethodSignatures.addAll(
+                    nonProgramMethodsCollection.getOrComputeNonProgramMethods(
+                        superclass.asClasspathOrLibraryClass())));
       }
       pinnedMethodSignatures.forEach(
           signature ->

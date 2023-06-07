@@ -37,6 +37,7 @@ import java.util.List;
 import java.util.ListIterator;
 import java.util.Set;
 import java.util.function.BiConsumer;
+import java.util.function.BiPredicate;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
@@ -801,6 +802,20 @@ public abstract class DexClass extends DexDefinition
     for (DexType iface : interfaces.values) {
       fn.accept(iface);
     }
+  }
+
+  @Override
+  public void forEachImmediateSuperClassMatching(
+      DexDefinitionSupplier definitions,
+      BiPredicate<? super DexType, ? super DexClass> predicate,
+      BiConsumer<? super DexType, ? super DexClass> consumer) {
+    forEachImmediateSupertype(
+        supertype -> {
+          DexClass superclass = definitions.definitionFor(supertype);
+          if (predicate.test(supertype, superclass)) {
+            consumer.accept(supertype, superclass);
+          }
+        });
   }
 
   public void forEachImmediateSupertype(Consumer<DexType> fn) {

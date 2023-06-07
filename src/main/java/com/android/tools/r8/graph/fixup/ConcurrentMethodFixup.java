@@ -9,7 +9,6 @@ import static com.android.tools.r8.graph.DexProgramClass.asProgramClassOrNull;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.ClasspathOrLibraryClass;
 import com.android.tools.r8.graph.DexClass;
-import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexMethodSignature;
 import com.android.tools.r8.graph.DexProgramClass;
@@ -17,33 +16,33 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ImmediateProgramSubtypingInfo;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.optimize.argumentpropagation.utils.ProgramClassesBidirectedGraph;
+import com.android.tools.r8.optimize.utils.ConcurrentNonProgramMethodsCollection;
+import com.android.tools.r8.optimize.utils.NonProgramMethodsCollection;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.KeepMethodInfo;
 import com.android.tools.r8.utils.ThreadUtils;
 import com.android.tools.r8.utils.Timing;
-import com.android.tools.r8.utils.collections.DexMethodSignatureSet;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 import com.google.common.collect.Sets;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 
 public class ConcurrentMethodFixup {
 
   private final AppView<AppInfoWithLiveness> appView;
-  private final Map<ClasspathOrLibraryClass, DexMethodSignatureSet> nonProgramVirtualMethods =
-      new ConcurrentHashMap<>();
+  private final NonProgramMethodsCollection nonProgramVirtualMethods;
   private final ProgramClassFixer programClassFixer;
 
   public ConcurrentMethodFixup(
       AppView<AppInfoWithLiveness> appView, ProgramClassFixer programClassFixer) {
     this.appView = appView;
+    this.nonProgramVirtualMethods =
+        ConcurrentNonProgramMethodsCollection.createVirtualMethodsCollection(appView);
     this.programClassFixer = programClassFixer;
   }
 
@@ -173,47 +172,19 @@ public class ConcurrentMethodFixup {
               componentSignatures.put(method.getMethodSignature(), method.getMethodSignature());
             }
           });
-      clazz.forEachImmediateSupertype(
-          supertype -> {
-            DexClass superclass = appView.definitionFor(supertype);
-            if (superclass != null
-                && !superclass.isProgramClass()
-                && seenNonProgramClasses.add(superclass.asClasspathOrLibraryClass())) {
-              for (DexMethodSignature vMethod :
-                  getOrComputeNonProgramVirtualMethods(superclass.asClasspathOrLibraryClass())) {
-                componentSignatures.put(vMethod, vMethod);
-              }
+      clazz.forEachImmediateSuperClassMatching(
+          appView,
+          (supertype, superclass) ->
+              superclass != null
+                  && !superclass.isProgramClass()
+                  && seenNonProgramClasses.add(superclass.asClasspathOrLibraryClass()),
+          (supertype, superclass) -> {
+            for (DexMethodSignature vMethod :
+                nonProgramVirtualMethods.getOrComputeNonProgramMethods(
+                    superclass.asClasspathOrLibraryClass())) {
+              componentSignatures.put(vMethod, vMethod);
             }
           });
     }
-  }
-
-  private DexMethodSignatureSet getOrComputeNonProgramVirtualMethods(
-      ClasspathOrLibraryClass clazz) {
-    DexMethodSignatureSet libraryMethodsOnClass = nonProgramVirtualMethods.get(clazz);
-    if (libraryMethodsOnClass != null) {
-      return libraryMethodsOnClass;
-    }
-    return computeNonProgramVirtualMethods(clazz);
-  }
-
-  private DexMethodSignatureSet computeNonProgramVirtualMethods(
-      ClasspathOrLibraryClass classpathOrLibraryClass) {
-    DexClass clazz = classpathOrLibraryClass.asDexClass();
-    DexMethodSignatureSet libraryMethodsOnClass = DexMethodSignatureSet.create();
-    clazz.forEachImmediateSupertype(
-        supertype -> {
-          DexClass superclass = appView.definitionFor(supertype);
-          if (superclass != null) {
-            assert !superclass.isProgramClass();
-            libraryMethodsOnClass.addAll(
-                getOrComputeNonProgramVirtualMethods(superclass.asClasspathOrLibraryClass()));
-          }
-        });
-    clazz.forEachClassMethodMatching(
-        DexEncodedMethod::belongsToVirtualPool,
-        method -> libraryMethodsOnClass.add(method.getMethodSignature()));
-    nonProgramVirtualMethods.put(classpathOrLibraryClass, libraryMethodsOnClass);
-    return libraryMethodsOnClass;
   }
 }
