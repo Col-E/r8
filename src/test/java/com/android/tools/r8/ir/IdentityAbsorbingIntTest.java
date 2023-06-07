@@ -17,7 +17,7 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
 @RunWith(Parameterized.class)
-public class IdentityAbsorbingTest extends TestBase {
+public class IdentityAbsorbingIntTest extends TestBase {
 
   private static final String EXPECTED_RESULT =
       StringUtils.lines(
@@ -78,6 +78,9 @@ public class IdentityAbsorbingTest extends TestBase {
           "0",
           "0",
           "0",
+          "2147483647",
+          "2147483647",
+          "2147483647",
           "2147483646",
           "2147483646",
           "2147483646",
@@ -135,6 +138,9 @@ public class IdentityAbsorbingTest extends TestBase {
           "0",
           "0",
           "0",
+          "2147483646",
+          "2147483646",
+          "2147483646",
           "-2147483648",
           "-2147483648",
           "-2147483648",
@@ -192,6 +198,9 @@ public class IdentityAbsorbingTest extends TestBase {
           "0",
           "0",
           "0",
+          "-2147483648",
+          "-2147483648",
+          "-2147483648",
           "-2147483647",
           "-2147483647",
           "-2147483647",
@@ -249,6 +258,9 @@ public class IdentityAbsorbingTest extends TestBase {
           "0",
           "0",
           "0",
+          "-2147483647",
+          "-2147483647",
+          "-2147483647",
           "0",
           "0",
           "0",
@@ -306,6 +318,9 @@ public class IdentityAbsorbingTest extends TestBase {
           "0",
           "0",
           "0",
+          "0",
+          "0",
+          "0",
           "1",
           "1",
           "1",
@@ -350,412 +365,51 @@ public class IdentityAbsorbingTest extends TestBase {
           "1",
           "1",
           "1",
-          "0",
-          "0",
-          "0",
-          "0",
-          "0",
-          "0",
-          "-1",
-          "-1",
-          "-1",
-          "0",
-          "0",
-          "0",
-          "0",
-          "-1",
-          "-1",
-          "-1",
-          "-1",
-          "-1",
-          "-1",
-          "-1",
-          "-1",
-          "-1",
-          "-1",
-          "-1",
-          "-1",
-          "-1",
-          "-1",
-          "-1",
-          "0",
-          "0",
-          "0",
-          "0",
-          "-1",
-          "-1",
-          "0",
-          "0",
-          "0",
-          "-1",
-          "-1",
-          "-1",
-          "-1",
-          "-1",
-          "-1",
-          "-1",
-          "-1",
-          "-1",
-          "-1",
-          "-1",
-          "-1",
-          "-1",
-          "-1",
-          "-1",
-          "-1",
-          "-1",
-          "-1",
-          "-1",
-          "-1",
-          "0",
-          "0",
-          "0",
           "0",
           "0",
           "0",
-          "-1",
-          "-1",
-          "-1",
-          "0",
-          "0",
-          "0",
-          "0",
-          "9223372036854775807",
-          "9223372036854775807",
-          "9223372036854775807",
-          "9223372036854775807",
-          "9223372036854775807",
-          "9223372036854775807",
-          "9223372036854775807",
-          "9223372036854775807",
-          "9223372036854775807",
-          "9223372036854775807",
-          "9223372036854775807",
-          "9223372036854775807",
-          "9223372036854775807",
-          "9223372036854775807",
-          "9223372036854775807",
-          "0",
-          "0",
-          "0",
-          "0",
-          "-1",
-          "-1",
-          "0",
-          "0",
-          "0",
-          "9223372036854775807",
-          "9223372036854775807",
-          "9223372036854775807",
-          "9223372036854775807",
-          "9223372036854775807",
-          "9223372036854775807",
-          "9223372036854775807",
-          "9223372036854775807",
-          "9223372036854775807",
-          "9223372036854775807",
-          "9223372036854775807",
-          "9223372036854775807",
-          "9223372036854775807",
-          "9223372036854775807",
-          "9223372036854775807",
-          "9223372036854775807",
-          "9223372036854775807",
-          "9223372036854775807",
-          "9223372036854775807",
-          "9223372036854775807",
           "0",
           "0",
           "0",
-          "0",
-          "0",
-          "0",
-          "-1",
           "-1",
-          "-1",
-          "0",
-          "0",
-          "0",
-          "9223372036854775806",
-          "9223372036854775806",
-          "9223372036854775806",
-          "9223372036854775806",
-          "9223372036854775806",
-          "9223372036854775806",
-          "9223372036854775806",
-          "9223372036854775806",
-          "9223372036854775806",
-          "9223372036854775806",
-          "9223372036854775806",
-          "9223372036854775806",
-          "9223372036854775806",
-          "9223372036854775806",
-          "9223372036854775806",
-          "0",
-          "0",
-          "0",
-          "0",
           "-1",
           "-1",
-          "0",
-          "0",
-          "0",
-          "9223372036854775806",
-          "9223372036854775806",
-          "9223372036854775806",
-          "9223372036854775806",
-          "9223372036854775806",
-          "9223372036854775806",
-          "9223372036854775806",
-          "9223372036854775806",
-          "9223372036854775806",
-          "9223372036854775806",
-          "9223372036854775806",
-          "9223372036854775806",
-          "9223372036854775806",
-          "9223372036854775806",
-          "9223372036854775806",
-          "9223372036854775806",
-          "9223372036854775806",
-          "9223372036854775806",
-          "9223372036854775806",
-          "9223372036854775806",
-          "0",
           "0",
           "0",
           "0",
           "0",
-          "0",
+          "1",
+          "1",
+          "1",
           "-1",
           "-1",
           "-1",
-          "0",
-          "0",
-          "0",
-          "-9223372036854775808",
-          "-9223372036854775808",
-          "-9223372036854775808",
-          "-9223372036854775808",
-          "-9223372036854775808",
-          "-9223372036854775808",
-          "-9223372036854775808",
-          "-9223372036854775808",
-          "-9223372036854775808",
-          "-9223372036854775808",
-          "-9223372036854775808",
-          "-9223372036854775808",
-          "-9223372036854775808",
-          "-9223372036854775808",
-          "-9223372036854775808",
-          "0",
-          "0",
-          "0",
-          "0",
           "-1",
           "-1",
-          "0",
-          "0",
-          "0",
-          "-9223372036854775808",
-          "-9223372036854775808",
-          "-9223372036854775808",
-          "-9223372036854775808",
-          "-9223372036854775808",
-          "-9223372036854775808",
-          "-9223372036854775808",
-          "-9223372036854775808",
-          "-9223372036854775808",
-          "-9223372036854775808",
-          "-9223372036854775808",
-          "-9223372036854775808",
-          "-9223372036854775808",
-          "-9223372036854775808",
-          "-9223372036854775808",
-          "-9223372036854775808",
-          "-9223372036854775808",
-          "-9223372036854775808",
-          "-9223372036854775808",
-          "-9223372036854775808",
-          "0",
-          "0",
-          "0",
-          "0",
-          "0",
-          "0",
           "-1",
           "-1",
           "-1",
-          "0",
-          "0",
-          "0",
-          "-9223372036854775807",
-          "-9223372036854775807",
-          "-9223372036854775807",
-          "-9223372036854775807",
-          "-9223372036854775807",
-          "-9223372036854775807",
-          "-9223372036854775807",
-          "-9223372036854775807",
-          "-9223372036854775807",
-          "-9223372036854775807",
-          "-9223372036854775807",
-          "-9223372036854775807",
-          "-9223372036854775807",
-          "-9223372036854775807",
-          "-9223372036854775807",
-          "0",
-          "0",
-          "0",
-          "0",
           "-1",
           "-1",
-          "0",
-          "0",
-          "0",
-          "-9223372036854775807",
-          "-9223372036854775807",
-          "-9223372036854775807",
-          "-9223372036854775807",
-          "-9223372036854775807",
-          "-9223372036854775807",
-          "-9223372036854775807",
-          "-9223372036854775807",
-          "-9223372036854775807",
-          "-9223372036854775807",
-          "-9223372036854775807",
-          "-9223372036854775807",
-          "-9223372036854775807",
-          "-9223372036854775807",
-          "-9223372036854775807",
-          "-9223372036854775807",
-          "-9223372036854775807",
-          "-9223372036854775807",
-          "-9223372036854775807",
-          "-9223372036854775807",
-          "0",
-          "0",
-          "0",
-          "0",
-          "0",
-          "0",
           "-1",
           "-1",
           "-1",
-          "0",
-          "0",
-          "0",
-          "0",
-          "0",
-          "0",
-          "0",
-          "0",
-          "0",
-          "0",
-          "0",
-          "0",
-          "0",
-          "0",
-          "0",
-          "0",
-          "0",
-          "0",
-          "0",
-          "0",
-          "0",
-          "0",
           "-1",
           "-1",
-          "0",
-          "0",
-          "0",
-          "0",
-          "0",
-          "0",
           "0",
           "0",
           "0",
           "0",
-          "0",
-          "0",
-          "0",
-          "0",
-          "0",
-          "0",
-          "0",
-          "0",
-          "0",
-          "0",
-          "0",
-          "0",
-          "0",
-          "0",
-          "0",
-          "0",
-          "0",
-          "0",
-          "0",
-          "-1",
           "-1",
           "-1",
-          "0",
-          "0",
-          "0",
-          "1",
-          "1",
-          "1",
-          "1",
-          "1",
-          "1",
-          "1",
-          "1",
-          "1",
-          "1",
-          "1",
-          "1",
-          "1",
-          "1",
-          "1",
           "0",
           "0",
           "0",
-          "0",
           "-1",
           "-1",
-          "0",
-          "0",
-          "0",
-          "1",
-          "1",
-          "1",
-          "1",
-          "1",
-          "1",
-          "1",
-          "1",
-          "1",
-          "1",
-          "1",
-          "1",
-          "1",
-          "1",
-          "1",
-          "1",
-          "1",
-          "1",
-          "1",
-          "1",
-          "0",
-          "0",
-          "0",
-          "0",
-          "0",
-          "0",
           "-1",
           "-1",
           "-1",
-          "0",
-          "0",
-          "0",
           "-1",
           "-1",
           "-1",
@@ -771,47 +425,22 @@ public class IdentityAbsorbingTest extends TestBase {
           "-1",
           "-1",
           "-1",
-          "0",
           "0",
           "0",
           "0",
-          "-1",
-          "-1",
           "0",
           "0",
           "0",
-          "-1",
-          "-1",
-          "-1",
-          "-1",
-          "-1",
-          "-1",
           "-1",
           "-1",
           "-1",
-          "-1",
-          "-1",
-          "-1",
-          "-1",
-          "-1",
-          "-1",
-          "-1",
-          "-1",
-          "-1",
-          "-1",
-          "-1",
-          "0",
           "0",
           "0",
           "0",
           "0",
-          "0",
-          "-1",
           "-1",
           "-1",
-          "0",
-          "0",
-          "0");
+          "-1");
 
   private final TestParameters parameters;
 
@@ -820,7 +449,7 @@ public class IdentityAbsorbingTest extends TestBase {
     return getTestParameters().withCfRuntimes().withDexRuntimes().withAllApiLevels().build();
   }
 
-  public IdentityAbsorbingTest(TestParameters parameters) {
+  public IdentityAbsorbingIntTest(TestParameters parameters) {
     this.parameters = parameters;
   }
 
@@ -852,12 +481,7 @@ public class IdentityAbsorbingTest extends TestBase {
             m ->
                 assertTrue(
                     m.streamInstructions()
-                        .noneMatch(
-                            i ->
-                                i.isIntLogicalBinop()
-                                    || i.isLongLogicalBinop()
-                                    || i.isIntArithmeticBinop()
-                                    || i.isLongArithmeticBinop())));
+                        .noneMatch(i -> i.isIntLogicalBinop() || i.isIntArithmeticBinop())));
   }
 
   static class Main {
@@ -870,21 +494,6 @@ public class IdentityAbsorbingTest extends TestBase {
       intTests(System.currentTimeMillis() > 0 ? 0 : 1);
       intTests(System.currentTimeMillis() > 0 ? 1 : 9);
       intTests(System.currentTimeMillis() > 0 ? -1 : 1);
-
-      longTests(Long.MAX_VALUE);
-      longTests(Long.MAX_VALUE - 1);
-      longTests(Long.MIN_VALUE);
-      longTests(Long.MIN_VALUE + 1);
-      longTests(System.currentTimeMillis() > 0 ? 0L : 1L);
-      longTests(System.currentTimeMillis() > 0 ? 1L : 9L);
-      longTests(System.currentTimeMillis() > 0 ? -1L : 1L);
-    }
-
-    private static void longTests(long val) {
-      identityLongTest(val);
-      absorbingLongTest(val);
-      identityDoubleLongTest(val);
-      absorbingDoubleLongTest(val);
     }
 
     private static void intTests(int val) {
@@ -893,6 +502,7 @@ public class IdentityAbsorbingTest extends TestBase {
       identityDoubleIntTest(val);
       absorbingDoubleIntTest(val);
       chainIntTest(val);
+      associativeIdentityIntTest(val);
     }
 
     @NeverInline
@@ -921,31 +531,6 @@ public class IdentityAbsorbingTest extends TestBase {
     }
 
     @NeverInline
-    private static void identityDoubleLongTest(long val) {
-      System.out.println(val + 0L + 0L);
-      System.out.println(0L + val + 0L);
-      System.out.println(0L + 0L + val);
-      System.out.println(val - 0L - 0L);
-      System.out.println(val * 1L * 1L);
-      System.out.println(1L * val * 1L);
-      System.out.println(1L * 1L * val);
-      System.out.println(val / 1L / 1L);
-
-      System.out.println(val & -1L & -1L);
-      System.out.println(-1L & val & -1L);
-      System.out.println(-1L & -1L & val);
-      System.out.println(val | 0L | 0L);
-      System.out.println(0L | val | 0L);
-      System.out.println(0L | 0L | val);
-      System.out.println(val ^ 0L ^ 0L);
-      System.out.println(0L ^ val ^ 0L);
-      System.out.println(0L ^ 0L ^ val);
-      System.out.println(val << 0L << 0L);
-      System.out.println(val >> 0L >> 0L);
-      System.out.println(val >>> 0L >>> 0L);
-    }
-
-    @NeverInline
     private static void identityIntTest(int val) {
       System.out.println(val + 0);
       System.out.println(0 + val);
@@ -966,23 +551,11 @@ public class IdentityAbsorbingTest extends TestBase {
     }
 
     @NeverInline
-    private static void identityLongTest(long val) {
-      System.out.println(val + 0L);
-      System.out.println(0L + val);
-      System.out.println(val - 0L);
-      System.out.println(val * 1L);
-      System.out.println(1L * val);
-      System.out.println(val / 1L);
-
-      System.out.println(val & -1L);
-      System.out.println(-1L & val);
-      System.out.println(val | 0L);
-      System.out.println(0L | val);
-      System.out.println(val ^ 0L);
-      System.out.println(0L ^ val);
-      System.out.println(val << 0L);
-      System.out.println(val >> 0L);
-      System.out.println(val >>> 0L);
+    private static void associativeIdentityIntTest(int val) {
+      int minusOne = -1;
+      System.out.println(val + 1 + minusOne);
+      System.out.println(val + 1 - 1);
+      System.out.println(val - 1 - minusOne);
     }
 
     @NeverInline
@@ -1006,26 +579,6 @@ public class IdentityAbsorbingTest extends TestBase {
     }
 
     @NeverInline
-    private static void absorbingDoubleLongTest(long val) {
-      System.out.println(val * 0L * 0L);
-      System.out.println(0L * val * 0L);
-      System.out.println(0L * 0L * val);
-      // val would need to be proven non zero.
-      // System.out.println(0L / val);
-      // System.out.println(0L % val);
-
-      System.out.println(0L & 0L & val);
-      System.out.println(0L & val & 0L);
-      System.out.println(val & 0L & 0L);
-      System.out.println(-1L | -1L | val);
-      System.out.println(-1L | val | -1L);
-      System.out.println(val | -1L | -1L);
-      System.out.println(0L << 0L << val);
-      System.out.println(0L >> 0L >> val);
-      System.out.println(0L >>> 0L >>> val);
-    }
-
-    @NeverInline
     private static void absorbingIntTest(int val) {
       System.out.println(val * 0);
       System.out.println(0 * val);
@@ -1040,23 +593,6 @@ public class IdentityAbsorbingTest extends TestBase {
       System.out.println(0 << val);
       System.out.println(0 >> val);
       System.out.println(0 >>> val);
-    }
-
-    @NeverInline
-    private static void absorbingLongTest(long val) {
-      System.out.println(val * 0L);
-      System.out.println(0L * val);
-      // val would need to be proven non zero.
-      // System.out.println(0L / val);
-      // System.out.println(0L % val);
-
-      System.out.println(0L & val);
-      System.out.println(val & 0L);
-      System.out.println(-1L | val);
-      System.out.println(val | -1L);
-      System.out.println(0L << val);
-      System.out.println(0L >> val);
-      System.out.println(0L >>> val);
     }
 
     private static void chainIntTest(int val) {

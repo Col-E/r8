@@ -301,14 +301,12 @@ public class BinopRewriter extends CodeRewriterPass<AppInfo> {
         // a * x * b => x * (a * b) where (a * b) is a constant.
         assert binop.isCommutative();
         Value newConst = addNewConstNumber(code, iterator, constB, constA, binopDescriptor);
-        iterator.replaceCurrentInstruction(
-            instantiateBinop(code, input, newConst, binopDescriptor));
+        replaceBinop(iterator, code, input, newConst, binopDescriptor);
       } else if (binopDescriptor.isShift()) {
         // x shift: a shift: b => x shift: (a + b) where a + b is a constant.
         if (constBRight != null && constARight != null) {
           Value newConst = addNewConstNumber(code, iterator, constB, constA, BinopDescriptor.ADD);
-          iterator.replaceCurrentInstruction(
-              instantiateBinop(code, input, newConst, binopDescriptor));
+          replaceBinop(iterator, code, input, newConst, binopDescriptor);
         }
       } else if (binop.isSub() && constBRight != null) {
         // a - x - b => (a - b) - x where (a - b) is a constant.
@@ -316,12 +314,10 @@ public class BinopRewriter extends CodeRewriterPass<AppInfo> {
         // We ignore b - (x - a) and b - (a - x) with constBRight != null.
         if (constARight == null) {
           Value newConst = addNewConstNumber(code, iterator, constA, constB, BinopDescriptor.SUB);
-          iterator.replaceCurrentInstruction(
-              instantiateBinop(code, newConst, input, BinopDescriptor.SUB));
+          replaceBinop(iterator, code, newConst, input, BinopDescriptor.SUB);
         } else {
           Value newConst = addNewConstNumber(code, iterator, constB, constA, BinopDescriptor.ADD);
-          iterator.replaceCurrentInstruction(
-              instantiateBinop(code, input, newConst, BinopDescriptor.SUB));
+          replaceBinop(iterator, code, input, newConst, BinopDescriptor.SUB);
         }
       }
     } else {
@@ -330,26 +326,37 @@ public class BinopRewriter extends CodeRewriterPass<AppInfo> {
         // a + x - b => x + (a - b) where (a - b) is a constant.
         // We ignore b - (x + a) and b - (a + x) with constBRight != null.
         Value newConst = addNewConstNumber(code, iterator, constA, constB, BinopDescriptor.SUB);
-        iterator.replaceCurrentInstruction(
-            instantiateBinop(code, newConst, input, BinopDescriptor.ADD));
+        replaceBinop(iterator, code, newConst, input, BinopDescriptor.ADD);
       } else if (binop.isAdd() && prevBinop.isSub()) {
         // x - a + b => x - (a - b) where (a - b) is a constant.
         // a - x + b => (a + b) - x where (a + b) is a constant.
         if (constALeft == null) {
           Value newConst = addNewConstNumber(code, iterator, constA, constB, BinopDescriptor.SUB);
-          iterator.replaceCurrentInstruction(
-              instantiateBinop(code, input, newConst, BinopDescriptor.SUB));
+          replaceBinop(iterator, code, input, newConst, BinopDescriptor.SUB);
         } else {
           Value newConst = addNewConstNumber(code, iterator, constB, constA, BinopDescriptor.ADD);
-          iterator.replaceCurrentInstruction(
-              instantiateBinop(code, newConst, input, BinopDescriptor.SUB));
+          replaceBinop(iterator, code, newConst, input, BinopDescriptor.SUB);
         }
       }
     }
   }
 
-  private Instruction instantiateBinop(
-      IRCode code, Value left, Value right, BinopDescriptor descriptor) {
+  private void replaceBinop(
+      InstructionListIterator iterator,
+      IRCode code,
+      Value left,
+      Value right,
+      BinopDescriptor binopDescriptor) {
+    Binop newBinop = instantiateBinop(code, left, right, binopDescriptor);
+    iterator.replaceCurrentInstruction(newBinop);
+    // We need to reset the iterator state after replaceCurrentInstruction so that Iterator#remove()
+    // can work in identityAbsorbingSimplification by calling previous then next.
+    iterator.previous();
+    iterator.next();
+    identityAbsorbingSimplification(iterator, newBinop, binopDescriptor);
+  }
+
+  private Binop instantiateBinop(IRCode code, Value left, Value right, BinopDescriptor descriptor) {
     TypeElement representative = left.getType().isInt() ? right.getType() : left.getType();
     Value newValue = code.createValue(representative);
     NumericType numericType = representative.isInt() ? NumericType.INT : NumericType.LONG;
