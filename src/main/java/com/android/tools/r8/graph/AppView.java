@@ -41,6 +41,7 @@ import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.AssumeInfoCollection;
 import com.android.tools.r8.shaking.KeepClassInfo;
 import com.android.tools.r8.shaking.KeepFieldInfo;
+import com.android.tools.r8.shaking.KeepInfo;
 import com.android.tools.r8.shaking.KeepInfoCollection;
 import com.android.tools.r8.shaking.KeepMethodInfo;
 import com.android.tools.r8.shaking.LibraryModeledPredicate;
@@ -677,6 +678,15 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
 
   public KeepInfoCollection getKeepInfo() {
     return keepInfo;
+  }
+
+  public KeepInfo<?, ?> getKeepInfo(ProgramDefinition definition) {
+    return definition
+        .getReference()
+        .apply(
+            clazz -> getKeepInfo(definition.asProgramClass()),
+            field -> getKeepInfo(definition.asProgramField()),
+            method -> getKeepInfo(definition.asProgramMethod()));
   }
 
   public KeepClassInfo getKeepInfo(DexProgramClass clazz) {

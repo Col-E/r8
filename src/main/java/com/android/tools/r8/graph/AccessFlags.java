@@ -236,6 +236,10 @@ public abstract class AccessFlags<T extends AccessFlags<T>> implements Structura
     return self();
   }
 
+  public boolean isPromotedFromPrivateToPublic() {
+    return isDemoted(Constants.ACC_PRIVATE) && isPromoted(Constants.ACC_PUBLIC);
+  }
+
   public boolean isPromotedToPublic() {
     return isPromoted(Constants.ACC_PUBLIC);
   }
@@ -275,6 +279,10 @@ public abstract class AccessFlags<T extends AccessFlags<T>> implements Structura
   protected void unset(int flag) {
     originalFlags &= ~flag;
     modifiedFlags &= ~flag;
+  }
+
+  protected boolean isDemoted(int flag) {
+    return wasSet(flag) && !isSet(flag);
   }
 
   protected boolean isPromoted(int flag) {

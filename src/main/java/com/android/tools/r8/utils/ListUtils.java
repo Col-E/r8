@@ -287,7 +287,7 @@ public class ListUtils {
     void accept(T item, int index);
   }
 
-  public static <T> List<T> sort(List<T> items, Comparator<T> comparator) {
+  public static <T> List<T> sort(Collection<T> items, Comparator<T> comparator) {
     List<T> sorted = new ArrayList<>(items);
     sorted.sort(comparator);
     return sorted;

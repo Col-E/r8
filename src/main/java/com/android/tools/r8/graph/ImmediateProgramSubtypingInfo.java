@@ -9,6 +9,7 @@ import static com.android.tools.r8.utils.MapUtils.ignoreKey;
 import static com.google.common.base.Predicates.alwaysTrue;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.IdentityHashMap;
 import java.util.List;
@@ -32,8 +33,18 @@ public class ImmediateProgramSubtypingInfo {
 
   public static ImmediateProgramSubtypingInfo create(
       AppView<? extends AppInfoWithClassHierarchy> appView) {
+    return internalCreate(appView, appView.appInfo().classes());
+  }
+
+  public static ImmediateProgramSubtypingInfo createWithDeterministicOrder(
+      AppView<? extends AppInfoWithClassHierarchy> appView) {
+    return internalCreate(appView, appView.appInfo().classesWithDeterministicOrder());
+  }
+
+  private static ImmediateProgramSubtypingInfo internalCreate(
+      AppView<? extends AppInfoWithClassHierarchy> appView, Collection<DexProgramClass> classes) {
     Map<DexProgramClass, List<DexProgramClass>> immediateSubtypes = new IdentityHashMap<>();
-    for (DexProgramClass clazz : appView.appInfo().classes()) {
+    for (DexProgramClass clazz : classes) {
       clazz.forEachImmediateSupertype(
           supertype -> {
             DexProgramClass superclass = asProgramClassOrNull(appView.definitionFor(supertype));

@@ -269,6 +269,13 @@ public class MethodCollection {
     backing.replaceMethods(replacement);
   }
 
+  @SuppressWarnings("unchecked")
+  public <T extends DexClassAndMethod> void replaceClassAndMethods(
+      Function<T, DexEncodedMethod> replacement) {
+    assert holder.isProgramClass();
+    replaceMethods(method -> replacement.apply((T) DexClassAndMethod.create(holder, method)));
+  }
+
   public void replaceDirectMethods(Function<DexEncodedMethod, DexEncodedMethod> replacement) {
     resetDirectMethodCaches();
     backing.replaceDirectMethods(replacement);
