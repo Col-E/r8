@@ -1124,15 +1124,22 @@ public class VirtualFile {
       protos.clear();
       types.clear();
       strings.clear();
+      callSites.clear();
+      methodHandles.clear();
 
       indexedItemsReferencedFromClassesInTransaction.clear();
     }
 
     public boolean isEmpty() {
-      return classes.isEmpty() && fields.isEmpty() && methods.isEmpty() && protos.isEmpty()
-          && types.isEmpty() && strings.isEmpty();
+      return classes.isEmpty()
+          && fields.isEmpty()
+          && methods.isEmpty()
+          && protos.isEmpty()
+          && types.isEmpty()
+          && strings.isEmpty()
+          && callSites.isEmpty()
+          && methodHandles.isEmpty();
     }
-
   }
 
   /**
