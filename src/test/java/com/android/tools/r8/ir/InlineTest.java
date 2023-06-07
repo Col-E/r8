@@ -72,6 +72,10 @@ public class InlineTest extends IrInjectionTestBase {
       MethodSubject method,
       List<IRCode> additionalCode)
       throws ExecutionException {
+    // Some tests play fast and loose with IR and the SSA value numbers are not generally unique.
+    if (additionalCode != null && !additionalCode.isEmpty()) {
+      options.testing.ignoreValueNumbering = true;
+    }
     AppView<AppInfoWithClassHierarchy> appView = AppView.createForR8(application.asDirect());
     appView.setAppServices(AppServices.builder(appView).build());
     ProfileCollectionAdditions profileCollectionAdditions = ProfileCollectionAdditions.nop();

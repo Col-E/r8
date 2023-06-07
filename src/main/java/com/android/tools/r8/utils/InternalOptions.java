@@ -2078,6 +2078,7 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
     public boolean roundtripThroughLir = false;
     public boolean checkReceiverAlwaysNullInCallSiteOptimization = true;
     public boolean forceInlineAPIConversions = false;
+    public boolean ignoreValueNumbering = false;
     private boolean hasReadCheckDeterminism = false;
     private DeterminismChecker determinismChecker = null;
     public boolean usePcEncodingInCfForTesting = false;

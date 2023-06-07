@@ -694,11 +694,14 @@ public class IRCode implements IRControlFlowGraph, ValueFactory {
     return false;
   }
 
-  private static void addValueAndCheckUniqueNumber(Int2ReferenceMap<Value> values, Value value) {
+  private void addValueAndCheckUniqueNumber(Int2ReferenceMap<Value> values, Value value) {
     assert value != null;
     int number = value.getNumber();
     Value old = values.put(number, value);
-    assert old == null || old == value || (number == -1 && value.isValueOnStack())
+    assert options.testing.ignoreValueNumbering
+            || old == null
+            || old == value
+            || (number == -1 && value.isValueOnStack())
         : "Multiple value definitions with number " + number + ": " + value + " and " + old;
   }
 
