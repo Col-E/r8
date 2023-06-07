@@ -22,6 +22,7 @@ import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.KeepMethodInfo;
 import com.android.tools.r8.utils.ThreadUtils;
 import com.android.tools.r8.utils.Timing;
+import com.android.tools.r8.utils.collections.DexMethodSignatureBiMap;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 import com.google.common.collect.Sets;
@@ -76,7 +77,8 @@ public class ConcurrentMethodFixup {
   private void processConnectedProgramComponents(Set<DexProgramClass> classes) {
     List<DexProgramClass> sorted = new ArrayList<>(classes);
     sorted.sort(Comparator.comparing(DexClass::getType));
-    BiMap<DexMethodSignature, DexMethodSignature> componentSignatures = HashBiMap.create();
+    DexMethodSignatureBiMap<DexMethodSignature> componentSignatures =
+        new DexMethodSignatureBiMap<>();
 
     // 1) Reserve all library overrides and pinned virtual methods.
     reserveComponentPinnedAndInterfaceMethodSignatures(sorted, componentSignatures);
@@ -104,7 +106,7 @@ public class ConcurrentMethodFixup {
   private void processClass(
       DexProgramClass clazz,
       Set<DexProgramClass> processedClasses,
-      BiMap<DexMethodSignature, DexMethodSignature> componentSignatures) {
+      DexMethodSignatureBiMap<DexMethodSignature> componentSignatures) {
     assert !clazz.isInterface();
     if (!processedClasses.add(clazz)) {
       return;
@@ -121,7 +123,7 @@ public class ConcurrentMethodFixup {
   private void processInterface(
       DexProgramClass clazz,
       Set<DexProgramClass> processedInterfaces,
-      BiMap<DexMethodSignature, DexMethodSignature> componentSignatures) {
+      DexMethodSignatureBiMap<DexMethodSignature> componentSignatures) {
     assert clazz.isInterface();
     if (!processedInterfaces.add(clazz)) {
       return;
@@ -147,7 +149,7 @@ public class ConcurrentMethodFixup {
   }
 
   private MethodNamingUtility createMethodNamingUtility(
-      BiMap<DexMethodSignature, DexMethodSignature> inheritedSignatures, DexProgramClass clazz) {
+      DexMethodSignatureBiMap<DexMethodSignature> componentSignatures, DexProgramClass clazz) {
     BiMap<DexMethod, DexMethod> localSignatures = HashBiMap.create();
     clazz.forEachProgramInstanceInitializer(
         method -> {
@@ -155,12 +157,12 @@ public class ConcurrentMethodFixup {
             localSignatures.put(method.getReference(), method.getReference());
           }
         });
-    return new MethodNamingUtility(appView.dexItemFactory(), inheritedSignatures, localSignatures);
+    return new MethodNamingUtility(appView.dexItemFactory(), componentSignatures, localSignatures);
   }
 
   private void reserveComponentPinnedAndInterfaceMethodSignatures(
       List<DexProgramClass> stronglyConnectedProgramClasses,
-      BiMap<DexMethodSignature, DexMethodSignature> componentSignatures) {
+      DexMethodSignatureBiMap<DexMethodSignature> componentSignatures) {
     Set<ClasspathOrLibraryClass> seenNonProgramClasses = Sets.newIdentityHashSet();
     for (DexProgramClass clazz : stronglyConnectedProgramClasses) {
       // If a private or static method is pinned, we need to reserve the mapping to avoid creating
@@ -178,13 +180,10 @@ public class ConcurrentMethodFixup {
               superclass != null
                   && !superclass.isProgramClass()
                   && seenNonProgramClasses.add(superclass.asClasspathOrLibraryClass()),
-          (supertype, superclass) -> {
-            for (DexMethodSignature vMethod :
-                nonProgramVirtualMethods.getOrComputeNonProgramMethods(
-                    superclass.asClasspathOrLibraryClass())) {
-              componentSignatures.put(vMethod, vMethod);
-            }
-          });
+          (supertype, superclass) ->
+              componentSignatures.putAllToIdentity(
+                  nonProgramVirtualMethods.getOrComputeNonProgramMethods(
+                      superclass.asClasspathOrLibraryClass())));
     }
   }
 }

@@ -10,18 +10,19 @@ import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexMethodSignature;
 import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.utils.collections.DexMethodSignatureBiMap;
 import com.google.common.collect.BiMap;
 import java.util.function.BiConsumer;
 
 public class MethodNamingUtility {
 
   private final DexItemFactory factory;
-  private final BiMap<DexMethodSignature, DexMethodSignature> inheritedSignatures;
+  private final DexMethodSignatureBiMap<DexMethodSignature> inheritedSignatures;
   private final BiMap<DexMethod, DexMethod> localSignatures;
 
   public MethodNamingUtility(
       DexItemFactory factory,
-      BiMap<DexMethodSignature, DexMethodSignature> inheritedSignatures,
+      DexMethodSignatureBiMap<DexMethodSignature> inheritedSignatures,
       BiMap<DexMethod, DexMethod> localSignatures) {
     this.factory = factory;
     this.inheritedSignatures = inheritedSignatures;

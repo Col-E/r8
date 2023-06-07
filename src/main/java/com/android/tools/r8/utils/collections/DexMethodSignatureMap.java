@@ -20,7 +20,7 @@ public class DexMethodSignatureMap<T> implements Map<DexMethodSignature, T> {
 
   private final Map<DexMethodSignature, T> backing;
 
-  private DexMethodSignatureMap(Map<DexMethodSignature, T> backing) {
+  DexMethodSignatureMap(Map<DexMethodSignature, T> backing) {
     this.backing = backing;
   }
 
@@ -189,7 +189,16 @@ public class DexMethodSignatureMap<T> implements Map<DexMethodSignature, T> {
   }
 
   @Override
-  public void putAll(Map<? extends DexMethodSignature, ? extends T> m) {}
+  public void putAll(Map<? extends DexMethodSignature, ? extends T> map) {
+    map.forEach(this::put);
+  }
+
+  @SuppressWarnings("unchecked")
+  public void putAllToIdentity(Collection<? extends DexMethodSignature> signatures) {
+    for (DexMethodSignature signature : signatures) {
+      put(signature, (T) signature);
+    }
+  }
 
   public T remove(DexMethodSignature signature) {
     return backing.remove(signature);
