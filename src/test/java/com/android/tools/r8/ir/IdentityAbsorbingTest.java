@@ -853,7 +853,11 @@ public class IdentityAbsorbingTest extends TestBase {
                 assertTrue(
                     m.streamInstructions()
                         .noneMatch(
-                            i -> i.isIntOrLongLogicalBinop() || i.isIntOrLongArithmeticBinop())));
+                            i ->
+                                i.isIntLogicalBinop()
+                                    || i.isLongLogicalBinop()
+                                    || i.isIntArithmeticBinop()
+                                    || i.isLongArithmeticBinop())));
   }
 
   static class Main {
