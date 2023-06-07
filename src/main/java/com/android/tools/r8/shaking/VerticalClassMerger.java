@@ -633,7 +633,7 @@ public class VerticalClassMerger {
     if (!profileCollectionAdditions.isNop()) {
       for (SynthesizedBridgeCode synthesizedBridge : synthesizedBridges) {
         profileCollectionAdditions.applyIfContextIsInProfile(
-            synthesizedBridge.originalMethod,
+            lens.getPreviousMethodSignature(synthesizedBridge.method),
             additionsBuilder -> additionsBuilder.addRule(synthesizedBridge.method));
       }
     }
