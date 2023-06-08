@@ -31,7 +31,7 @@ import java.util.stream.Collectors;
  * #mapInvocationType(DexMethod, DexMethod, InvokeType)} if the default name mapping applies, and
  * only invocation type might need to change.
  */
-public class NestedGraphLens extends NonIdentityGraphLens {
+public class NestedGraphLens extends DefaultNonIdentityGraphLens {
 
   protected static final EmptyBidirectionalOneToOneMap<DexField, DexField> EMPTY_FIELD_MAP =
       new EmptyBidirectionalOneToOneMap<>();
@@ -304,14 +304,6 @@ public class NestedGraphLens extends NonIdentityGraphLens {
       return newTargetClass.accessFlags.isInterface() ? InvokeType.INTERFACE : InvokeType.VIRTUAL;
     }
     return type;
-  }
-
-  @Override
-  public boolean isContextFreeForMethods(GraphLens codeLens) {
-    if (codeLens == this) {
-      return true;
-    }
-    return getPrevious().isContextFreeForMethods(codeLens);
   }
 
   @Override
