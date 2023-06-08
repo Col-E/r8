@@ -1,4 +1,4 @@
-// Copyright (c) 2022, the R8 project authors. Please see the AUTHORS file
+// Copyright (c) 2023, the R8 project authors. Please see the AUTHORS file
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
@@ -16,46 +16,42 @@ import com.android.tools.r8.utils.StringUtils;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameter;
 import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
-public class ComposePreambleSyntheticTest extends TestBase {
+public class ComposeWithHolesTest extends TestBase {
+
+  @Parameter() public TestParameters parameters;
 
   @Parameters(name = "{0}")
   public static TestParametersCollection data() {
     return getTestParameters().withNoneRuntime().build();
   }
 
-  public ComposePreambleSyntheticTest(TestParameters parameters) {
-    parameters.assertNoneRuntime();
-  }
-
   private static final String mappingFoo =
       StringUtils.unixLines(
           "# {'id':'com.android.tools.r8.mapping','version':'2.2'}",
-          "com.foo -> a:",
-          "    1:1:void lambda$0(boolean):355:355 ->" + " lambda$0");
+          "com.foo -> A:",
+          "    2:11:java.lang.String internalToDescriptor(java.lang.String,boolean):45:54 -> a",
+          "    72:72:java.lang.String internalToDescriptor(java.lang.String,boolean):56:56 -> a");
   private static final String mappingBar =
       StringUtils.unixLines(
           "# {'id':'com.android.tools.r8.mapping','version':'2.2'}",
-          "a -> b:",
-          "    1:2:void lambda$0(boolean):0:1 ->" + " lambda$0$com-r8-Base",
-          "    1:2:void lambda$0$com-r8-Base(boolean):0 -> lambda$0$com-r8-Base",
-          "    # {'id':'com.android.tools.r8.synthesized'}");
+          "A -> B:",
+          "    1:71:java.lang.String a(java.lang.String,boolean):2:72 -> e");
   private static final String mappingResult =
       StringUtils.unixLines(
           "# {'id':'com.android.tools.r8.mapping','version':'2.2'}",
-          "com.foo -> b:",
-          "    1:1:void lambda$0(boolean):0:0 -> lambda$0$com-r8-Base",
-          "    1:1:void lambda$0$com-r8-Base(boolean):0:0 -> lambda$0$com-r8-Base",
-          "    # {'id':'com.android.tools.r8.synthesized'}",
-          "    2:2:void lambda$0(boolean):355:355 -> lambda$0$com-r8-Base",
-          "    2:2:void lambda$0$com-r8-Base(boolean):0:0 -> lambda$0$com-r8-Base");
+          "com.foo -> B:",
+          "    1:10:java.lang.String internalToDescriptor(java.lang.String,boolean):45:54 -> e",
+          "    11:70:java.lang.String a(java.lang.String,boolean) -> e",
+          "    71:71:java.lang.String internalToDescriptor(java.lang.String,boolean):56:56 -> e");
 
   @Test
   public void testCompose() throws Exception {
-    ClassNameMapper mappingForFoo = ClassNameMapper.mapperFromString(mappingFoo);
-    ClassNameMapper mappingForBar = ClassNameMapper.mapperFromString(mappingBar);
+    ClassNameMapper mappingForFoo = ClassNameMapper.mapperFromStringWithPreamble(mappingFoo);
+    ClassNameMapper mappingForBar = ClassNameMapper.mapperFromStringWithPreamble(mappingBar);
     String composed = MappingComposer.compose(mappingForFoo, mappingForBar);
     assertEquals(mappingResult, doubleToSingleQuote(composed));
   }

@@ -674,7 +674,7 @@ public class ClassNamingForNameMapper implements ClassNaming {
     }
 
     @Override
-    public Signature getOriginalSignature() {
+    public MethodSignature getOriginalSignature() {
       return signature;
     }
 
@@ -787,9 +787,13 @@ public class ClassNamingForNameMapper implements ClassNaming {
       Range splitOriginalRange =
           new Range(
               getOriginalLineNumber(minifiedRange.from), getOriginalLineNumber(minifiedRange.to));
+      return copyWithNewRanges(minifiedRange, splitOriginalRange);
+    }
+
+    public MappedRange copyWithNewRanges(Range minifiedRange, Range originalRange) {
       MappedRange splitMappedRange =
-          new MappedRange(minifiedRange, signature, splitOriginalRange, renamedName);
-      if (minifiedRange.to >= this.minifiedRange.to) {
+          new MappedRange(minifiedRange, signature, originalRange, renamedName);
+      if (minifiedRange.from <= this.minifiedRange.from) {
         splitMappedRange.additionalMappingInformation =
             new ArrayList<>(this.additionalMappingInformation);
       }
