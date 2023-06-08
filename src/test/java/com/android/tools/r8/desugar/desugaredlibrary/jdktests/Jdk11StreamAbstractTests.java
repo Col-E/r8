@@ -115,10 +115,15 @@ public abstract class Jdk11StreamAbstractTests extends DesugaredLibraryTestBase 
   public static final String[] SUCCESSFUL_RUNNABLE_TESTS_ON_JDK11_AND_V7 =
       new String[] {
         // Require the virtual method isDefault() in class java/lang/reflect/Method.
-        "org/openjdk/tests/java/util/stream/WhileOpTest.java",
         "org/openjdk/tests/java/util/stream/WhileOpStatefulTest.java",
         // Require a Random method not present before Android 7 and not desugared.
         "org/openjdk/tests/java/util/stream/IntPrimitiveOpsTests.java"
+      };
+
+  public static final String[] LONG_RUNNING_SUCCESSFUL_RUNNABLE_TESTS_ON_JDK11_AND_V7 =
+      new String[] {
+        // Require the virtual method isDefault() in class java/lang/reflect/Method.
+        "org/openjdk/tests/java/util/stream/WhileOpTest.java",
       };
 
   // Disabled because time to run > 1 min for each test.
