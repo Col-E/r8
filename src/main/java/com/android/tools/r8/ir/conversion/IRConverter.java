@@ -32,6 +32,7 @@ import com.android.tools.r8.ir.conversion.passes.BranchSimplifier;
 import com.android.tools.r8.ir.conversion.passes.CommonSubexpressionElimination;
 import com.android.tools.r8.ir.conversion.passes.ParentConstructorHoistingCodeRewriter;
 import com.android.tools.r8.ir.conversion.passes.SplitBranch;
+import com.android.tools.r8.ir.conversion.passes.TrivialPhiSimplifier;
 import com.android.tools.r8.ir.desugar.CfInstructionDesugaringCollection;
 import com.android.tools.r8.ir.desugar.CovariantReturnTypeAnnotationTransformer;
 import com.android.tools.r8.ir.optimize.AssertionErrorTwoArgsConstructorRewriter;
@@ -539,7 +540,7 @@ public class IRConverter {
 
     if (options.canHaveArtStringNewInitBug()) {
       timing.begin("Check for new-init issue");
-      CodeRewriter.ensureDirectStringNewToInit(code, appView.dexItemFactory());
+      TrivialPhiSimplifier.ensureDirectStringNewToInit(code, appView.dexItemFactory());
       timing.end();
     }
 
