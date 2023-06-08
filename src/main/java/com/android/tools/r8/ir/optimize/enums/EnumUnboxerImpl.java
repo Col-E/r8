@@ -107,6 +107,7 @@ import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.KeepInfoCollection;
 import com.android.tools.r8.utils.Reporter;
 import com.android.tools.r8.utils.StringDiagnostic;
+import com.android.tools.r8.utils.Timing;
 import com.android.tools.r8.utils.TraversalContinuation;
 import com.android.tools.r8.utils.collections.ImmutableInt2ReferenceSortedMap;
 import com.android.tools.r8.utils.collections.LongLivedClassSetBuilder;
@@ -670,7 +671,8 @@ public class EnumUnboxerImpl extends EnumUnboxer {
       IRConverter converter,
       Builder postMethodProcessorBuilder,
       ExecutorService executorService,
-      OptimizationFeedbackDelayed feedback)
+      OptimizationFeedbackDelayed feedback,
+      Timing timing)
       throws ExecutionException {
     assert feedback.noUpdatesLeft();
 
@@ -718,7 +720,7 @@ public class EnumUnboxerImpl extends EnumUnboxer {
     EnumUnboxingTreeFixer.Result treeFixerResult =
         new EnumUnboxingTreeFixer(
                 appView, checkNotNullMethods, enumDataMap, enumClassesToUnbox, utilityClasses)
-            .fixupTypeReferences(converter, executorService);
+            .fixupTypeReferences(converter, executorService, timing);
     EnumUnboxingLens enumUnboxingLens = treeFixerResult.getLens();
 
     // Enqueue the (lens rewritten) methods that require reprocessing.

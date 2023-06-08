@@ -70,16 +70,19 @@ public class Repackaging {
         appView.options().testing.repackagingConfigurationFactory.apply(appView);
   }
 
-  public RepackagingLens run(
-      DirectMappedDexApplication.Builder appBuilder, ExecutorService executorService, Timing timing)
-      throws ExecutionException {
+  public void run(ExecutorService executorService, Timing timing) throws ExecutionException {
     timing.begin("Repackage classes");
-    RepackagingLens lens = run(appBuilder, executorService);
+    DirectMappedDexApplication.Builder appBuilder = appView.appInfo().app().asDirect().builder();
+    RepackagingLens lens = repackageClasses(appBuilder, executorService);
+    if (lens != null) {
+      appView.rewriteWithLensAndApplication(lens, appBuilder.build(), executorService, timing);
+    }
     timing.end();
-    return lens;
   }
 
-  public static boolean verifyIdentityRepackaging(AppView<AppInfoWithLiveness> appView) {
+  public static boolean verifyIdentityRepackaging(
+      AppView<AppInfoWithLiveness> appView, ExecutorService executorService)
+      throws ExecutionException {
     // Running the tree fixer with an identity mapping helps ensure that the fixup of items is
     // complete as the rewrite replaces all items regardless of repackaging.
     // The identity mapping should result in no move callbacks being called.
@@ -120,11 +123,12 @@ public class Repackaging {
             .builder()
             .replaceProgramClasses(new ArrayList<>(newProgramClasses))
             .build();
-    appView.rewriteWithLensAndApplication(emptyRepackagingLens, newApplication);
+    appView.rewriteWithLensAndApplication(
+        emptyRepackagingLens, newApplication, executorService, Timing.empty());
     return true;
   }
 
-  private RepackagingLens run(
+  private RepackagingLens repackageClasses(
       DirectMappedDexApplication.Builder appBuilder, ExecutorService executorService)
       throws ExecutionException {
     if (proguardConfiguration.getPackageObfuscationMode().isNone()) {

@@ -142,9 +142,8 @@ class EnumUnboxingTreeFixer implements ProgramClassFixer {
     return enumDataMap.computeAllUnboxedEnums();
   }
 
-  Result fixupTypeReferences(IRConverter converter, ExecutorService executorService)
+  Result fixupTypeReferences(IRConverter converter, ExecutorService executorService, Timing timing)
       throws ExecutionException {
-
     // We do this before so that we can still perform lookup of definitions.
     fixupSuperEnumClassInitializers(converter, executorService);
 
@@ -156,7 +155,7 @@ class EnumUnboxingTreeFixer implements ProgramClassFixer {
     Set<DexMethod> dispatchMethodReferences = Sets.newIdentityHashSet();
     dispatchMethods.forEach((method, code) -> dispatchMethodReferences.add(method.getReference()));
     EnumUnboxingLens lens = lensBuilder.build(appView, dispatchMethodReferences);
-    appView.rewriteWithLens(lens);
+    appView.rewriteWithLens(lens, executorService, timing);
 
     // Rewrite outliner with lens.
     converter.outliner.rewriteWithLens();

@@ -9,7 +9,6 @@ import static com.android.tools.r8.dex.Constants.ACC_PUBLIC;
 import static com.android.tools.r8.graph.DexProgramClass.asProgramClassOrNull;
 
 import com.android.tools.r8.graph.AppView;
-import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
@@ -21,12 +20,10 @@ import com.android.tools.r8.graph.ProgramDefinition;
 import com.android.tools.r8.graph.ProgramField;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.SubtypingInfo;
-import com.android.tools.r8.graph.lens.GraphLens;
 import com.android.tools.r8.ir.optimize.MemberPoolCollection.MemberPool;
 import com.android.tools.r8.ir.optimize.MethodPoolCollection;
 import com.android.tools.r8.optimize.PublicizerLens.PublicizedLensBuilder;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
-import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.MethodSignatureEquivalence;
 import com.android.tools.r8.utils.OptionalBool;
 import com.android.tools.r8.utils.Timing;
@@ -38,22 +35,15 @@ import java.util.concurrent.ExecutorService;
 
 public final class AccessModifier {
 
-  private final DexApplication application;
   private final AppView<AppInfoWithLiveness> appView;
-  private final InternalOptions options;
   private final SubtypingInfo subtypingInfo;
   private final MethodPoolCollection methodPoolCollection;
 
   private final PublicizedLensBuilder lensBuilder = PublicizerLens.createBuilder();
 
-  private AccessModifier(
-      DexApplication application,
-      AppView<AppInfoWithLiveness> appView,
-      SubtypingInfo subtypingInfo) {
-    this.application = application;
+  private AccessModifier(AppView<AppInfoWithLiveness> appView) {
     this.appView = appView;
-    this.options = appView.options();
-    this.subtypingInfo = subtypingInfo;
+    this.subtypingInfo = appView.appInfo().computeSubtypingInfo();
     this.methodPoolCollection =
         // We will add private instance methods when we promote them.
         new MethodPoolCollection(
@@ -66,17 +56,18 @@ public final class AccessModifier {
    *
    * <p>This will destructively update the DexApplication passed in as argument.
    */
-  public static GraphLens run(
-      ExecutorService executorService,
-      Timing timing,
-      DexApplication application,
-      AppView<AppInfoWithLiveness> appView,
-      SubtypingInfo subtypingInfo)
+  public static void run(
+      AppView<AppInfoWithLiveness> appView, ExecutorService executorService, Timing timing)
       throws ExecutionException {
-    return new AccessModifier(application, appView, subtypingInfo).run(executorService, timing);
+    if (appView.options().getProguardConfiguration().isAccessModificationAllowed()) {
+      timing.begin("Access modification");
+      new AccessModifier(appView).internalRun(executorService, timing);
+      timing.end();
+    }
   }
 
-  private GraphLens run(ExecutorService executorService, Timing timing) throws ExecutionException {
+  private void internalRun(ExecutorService executorService, Timing timing)
+      throws ExecutionException {
     // Phase 1: Collect methods to check if private instance methods don't have conflicts.
     methodPoolCollection.buildAll(executorService, timing);
 
@@ -86,7 +77,10 @@ public final class AccessModifier {
     processType(appView.dexItemFactory().objectType);
     timing.end();
 
-    return lensBuilder.build(appView);
+    PublicizerLens publicizerLens = lensBuilder.build(appView);
+    if (publicizerLens != null) {
+      appView.setGraphLens(publicizerLens);
+    }
   }
 
   private void doPublicize(ProgramDefinition definition) {
@@ -94,7 +88,7 @@ public final class AccessModifier {
   }
 
   private void processType(DexType type) {
-    DexProgramClass clazz = asProgramClassOrNull(application.definitionFor(type));
+    DexProgramClass clazz = asProgramClassOrNull(appView.definitionFor(type));
     if (clazz != null) {
       processClass(clazz);
     }

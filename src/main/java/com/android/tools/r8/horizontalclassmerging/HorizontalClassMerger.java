@@ -171,7 +171,7 @@ public class HorizontalClassMerger {
       keepInfo.mutate(mutator -> mutator.removeKeepInfoForMergedClasses(prunedItems));
       assert appView.hasClassHierarchy();
       appView.rewriteWithLensAndApplication(
-          horizontalClassMergerGraphLens, newApplication.toDirect());
+          horizontalClassMergerGraphLens, newApplication.toDirect(), executorService, timing);
     } else {
       assert mode.isFinal();
       SyntheticItems syntheticItems = appView.appInfo().getSyntheticItems();

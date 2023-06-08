@@ -598,7 +598,7 @@ public class VerticalClassMerger {
     }
   }
 
-  public VerticalClassMergerGraphLens run() {
+  public VerticalClassMergerGraphLens run() throws ExecutionException {
     timing.begin("merge");
     // Visit the program classes in a top-down order according to the class hierarchy.
     TopDownClassHierarchyTraversal.forProgramClasses(appView)
@@ -640,7 +640,7 @@ public class VerticalClassMerger {
     profileCollectionAdditions.commit(appView);
 
     // Rewrite collections using the lens.
-    appView.rewriteWithLens(lens);
+    appView.rewriteWithLens(lens, executorService, timing);
 
     // Copy keep info to newly synthesized methods.
     keepInfo.mutate(

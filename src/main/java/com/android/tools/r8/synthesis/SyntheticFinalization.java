@@ -194,7 +194,7 @@ public class SyntheticFinalization {
     appView.setAppInfo(appView.appInfo().rebuildWithClassHierarchy(result.commit));
     appView.setAppInfo(appView.appInfo().rebuildWithMainDexInfo(result.mainDexInfo));
     if (result.lens != null) {
-      appView.rewriteWithLens(result.lens);
+      appView.rewriteWithLens(result.lens, executorService, timing);
     }
     appView.pruneItems(result.prunedItems, executorService);
   }
@@ -206,7 +206,8 @@ public class SyntheticFinalization {
     Result result = appView.getSyntheticItems().computeFinalSynthetics(appView, timing);
     appView.setAppInfo(appView.appInfo().rebuildWithMainDexInfo(result.mainDexInfo));
     if (result.lens != null) {
-      appView.rewriteWithLensAndApplication(result.lens, result.commit.getApplication().asDirect());
+      appView.rewriteWithLensAndApplication(
+          result.lens, result.commit.getApplication().asDirect(), executorService, timing);
     } else {
       assert result.commit.getApplication() == appView.appInfo().app();
     }

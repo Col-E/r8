@@ -143,7 +143,8 @@ public class PrimaryR8IRConverter extends IRConverter {
     }
 
     outliner.rewriteWithLens();
-    enumUnboxer.unboxEnums(appView, this, postMethodProcessorBuilder, executorService, feedback);
+    enumUnboxer.unboxEnums(
+        appView, this, postMethodProcessorBuilder, executorService, feedback, timing);
     appView.unboxedEnums().checkEnumsUnboxed(appView);
 
     GraphLens graphLensForSecondaryOptimizationPass = appView.graphLens();

@@ -31,6 +31,7 @@ import com.android.tools.r8.ir.optimize.info.bridge.BridgeInfo;
 import com.android.tools.r8.ir.optimize.info.bridge.VirtualBridgeInfo;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.MethodSignatureEquivalence;
+import com.android.tools.r8.utils.Timing;
 import com.google.common.base.Equivalence;
 import com.google.common.base.Equivalence.Wrapper;
 import com.google.common.collect.Iterables;
@@ -43,6 +44,8 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
 
 /**
  * An optimization pass that hoists bridges upwards with the purpose of sharing redundant bridge
@@ -83,7 +86,8 @@ public class BridgeHoisting {
     this.result = new BridgeHoistingResult(appView);
   }
 
-  public void run() {
+  public void run(ExecutorService executorService, Timing timing) throws ExecutionException {
+    timing.begin("Bridge hoisting");
     SubtypingInfo subtypingInfo = appView.appInfo().computeSubtypingInfo();
     BottomUpClassHierarchyTraversal.forProgramClasses(appView, subtypingInfo)
         .excludeInterfaces()
@@ -95,7 +99,7 @@ public class BridgeHoisting {
       result.recordNonReboundMethodAccesses(bridgeMethodAccessInfoCollectionBuilder);
 
       BridgeHoistingLens lens = result.buildLens();
-      appView.rewriteWithLens(lens);
+      appView.rewriteWithLens(lens, executorService, timing);
 
       // Update method access info collection.
       MethodAccessInfoCollection.Modifier methodAccessInfoCollectionModifier =
@@ -118,6 +122,7 @@ public class BridgeHoisting {
             }
           });
     }
+    timing.end();
   }
 
   private void processClass(DexProgramClass clazz, SubtypingInfo subtypingInfo) {

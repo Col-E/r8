@@ -68,7 +68,7 @@ public class ArgumentPropagatorApplicationFixer extends TreeFixerBase {
     timing.time("Fixup optimization info", () -> fixupOptimizationInfos(executorService));
 
     timing.begin("Rewrite AppView");
-    appView.rewriteWithLens(graphLens);
+    appView.rewriteWithLens(graphLens, executorService, timing);
     timing.end();
   }
 

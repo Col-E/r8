@@ -906,32 +906,32 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
         .setAppInfo(appView.appInfo().prunedCopyFrom(prunedItems, executorService));
   }
 
-  public void rewriteWithLens(NonIdentityGraphLens lens) {
-    if (lens != null) {
-      rewriteWithLens(lens, appInfo().app().asDirect(), withClassHierarchy(), lens.getPrevious());
-    }
+  public void rewriteWithLens(
+      NonIdentityGraphLens lens, ExecutorService executorService, Timing timing)
+      throws ExecutionException {
+    rewriteWithLensAndApplication(lens, app().asDirect(), executorService, timing);
   }
 
   public void rewriteWithLensAndApplication(
-      NonIdentityGraphLens lens, DirectMappedDexApplication application) {
-    rewriteWithLensAndApplication(lens, application, lens.getPrevious());
-  }
-
-  public void rewriteWithLensAndApplication(
-      NonIdentityGraphLens lens, DirectMappedDexApplication application, GraphLens appliedLens) {
-    assert lens != null;
-    assert application != null;
-    rewriteWithLens(lens, application, withClassHierarchy(), appliedLens);
-  }
-
-  private static void rewriteWithLens(
       NonIdentityGraphLens lens,
       DirectMappedDexApplication application,
+      ExecutorService executorService,
+      Timing timing)
+      throws ExecutionException {
+    rewriteWithLensAndApplication(
+        lens, application, executorService, timing, withClassHierarchy(), lens.getPrevious());
+  }
+
+  private static void rewriteWithLensAndApplication(
+      NonIdentityGraphLens lens,
+      DirectMappedDexApplication application,
+      ExecutorService executorService,
+      Timing timing,
       AppView<? extends AppInfoWithClassHierarchy> appView,
-      GraphLens appliedLens) {
-    if (lens == null) {
-      return;
-    }
+      GraphLens appliedLens)
+      throws ExecutionException {
+    assert lens != null;
+    assert application != null;
 
     boolean changed = appView.setGraphLens(lens);
     assert changed;

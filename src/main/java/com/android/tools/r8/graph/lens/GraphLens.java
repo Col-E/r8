@@ -441,6 +441,10 @@ public abstract class GraphLens {
     return null;
   }
 
+  public boolean isPublicizerLens() {
+    return false;
+  }
+
   public boolean isVerticalClassMergerLens() {
     return false;
   }
