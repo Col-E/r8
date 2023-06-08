@@ -120,7 +120,7 @@ public class IRConverter {
   public final CodeRewriter codeRewriter;
   public final CommonSubexpressionElimination commonSubexpressionElimination;
   private final SplitBranch splitBranch;
-  public final AssertionErrorTwoArgsConstructorRewriter assertionErrorTwoArgsConstructorRewriter;
+  public AssertionErrorTwoArgsConstructorRewriter assertionErrorTwoArgsConstructorRewriter;
   private final NaturalIntLoopRemover naturalIntLoopRemover = new NaturalIntLoopRemover();
   public final MemberValuePropagation<?> memberValuePropagation;
   private final LensCodeRewriter lensCodeRewriter;
@@ -130,11 +130,11 @@ public class IRConverter {
   protected final CovariantReturnTypeAnnotationTransformer covariantReturnTypeAnnotationTransformer;
   private final StringSwitchRemover stringSwitchRemover;
   private final TypeChecker typeChecker;
-  protected final ServiceLoaderRewriter serviceLoaderRewriter;
+  protected ServiceLoaderRewriter serviceLoaderRewriter;
   private final EnumValueOptimizer enumValueOptimizer;
   private final BinopRewriter binopRewriter;
   protected final EnumUnboxer enumUnboxer;
-  protected final InstanceInitializerOutliner instanceInitializerOutliner;
+  protected InstanceInitializerOutliner instanceInitializerOutliner;
   protected final RemoveVerificationErrorForUnknownReturnedValues
       removeVerificationErrorForUnknownReturnedValues;
 

@@ -195,20 +195,6 @@ public class PrimaryR8IRConverter extends IRConverter {
     Builder<?> builder = appView.appInfo().app().builder();
     builder.setHighestSortingString(highestSortingString);
 
-    if (serviceLoaderRewriter != null) {
-      processSimpleSynthesizeMethods(
-          serviceLoaderRewriter.getSynthesizedServiceLoadMethods(), executorService);
-    }
-
-    if (instanceInitializerOutliner != null) {
-      processSimpleSynthesizeMethods(
-          instanceInitializerOutliner.getSynthesizedMethods(), executorService);
-    }
-    if (assertionErrorTwoArgsConstructorRewriter != null) {
-      processSimpleSynthesizeMethods(
-          assertionErrorTwoArgsConstructorRewriter.getSynthesizedMethods(), executorService);
-    }
-
     // Update optimization info for all synthesized methods at once.
     feedback.updateVisibleOptimizationInfo();
 
@@ -275,8 +261,20 @@ public class PrimaryR8IRConverter extends IRConverter {
   private void lastWaveDone(
       PostMethodProcessor.Builder postMethodProcessorBuilder, ExecutorService executorService)
       throws ExecutionException {
+    if (assertionErrorTwoArgsConstructorRewriter != null) {
+      assertionErrorTwoArgsConstructorRewriter.onLastWaveDone(postMethodProcessorBuilder);
+      assertionErrorTwoArgsConstructorRewriter = null;
+    }
     if (inliner != null) {
       inliner.onLastWaveDone(postMethodProcessorBuilder, executorService, timing);
+    }
+    if (instanceInitializerOutliner != null) {
+      instanceInitializerOutliner.onLastWaveDone(postMethodProcessorBuilder);
+      instanceInitializerOutliner = null;
+    }
+    if (serviceLoaderRewriter != null) {
+      serviceLoaderRewriter.onLastWaveDone(postMethodProcessorBuilder);
+      serviceLoaderRewriter = null;
     }
 
     // Ensure determinism of method-to-reprocess set.
