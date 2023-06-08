@@ -9,5 +9,12 @@ import com.android.tools.r8.Keep;
 @Keep
 public interface RetraceResultWithContext {
 
+  /**
+   * The current context after retracing stack trace lines.
+   *
+   * <p>Use this context as the next context when retracing additional frames.
+   *
+   * @return The stack trace context.
+   */
   RetraceStackTraceContext getContext();
 }
