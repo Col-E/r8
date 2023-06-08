@@ -831,7 +831,6 @@ public class IRConverter {
       assert options.inlinerOptions().enableInlining && inliner != null;
       classInliner.processMethodCode(
           appView.withLiveness(),
-          codeRewriter,
           stringOptimizer,
           enumValueOptimizer,
           code.context(),

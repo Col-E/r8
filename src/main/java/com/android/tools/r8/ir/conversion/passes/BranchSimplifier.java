@@ -20,6 +20,7 @@ import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.ConstNumber;
 import com.android.tools.r8.ir.code.Goto;
 import com.android.tools.r8.ir.code.IRCode;
+import com.android.tools.r8.ir.code.IRMetadata;
 import com.android.tools.r8.ir.code.If;
 import com.android.tools.r8.ir.code.IfType;
 import com.android.tools.r8.ir.code.InstanceGet;
@@ -34,8 +35,6 @@ import com.android.tools.r8.ir.code.Switch;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.code.ValueType;
 import com.android.tools.r8.ir.code.Xor;
-import com.android.tools.r8.ir.optimize.CodeRewriter.IfBuilder;
-import com.android.tools.r8.ir.optimize.CodeRewriter.SwitchBuilder;
 import com.android.tools.r8.ir.optimize.controlflow.SwitchCaseAnalyzer;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.BooleanUtils;
@@ -44,9 +43,13 @@ import com.android.tools.r8.utils.InternalOutputMode;
 import com.android.tools.r8.utils.LongInterval;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import it.unimi.dsi.fastutil.ints.Int2ReferenceAVLTreeMap;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceSortedMap;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
+import it.unimi.dsi.fastutil.ints.IntIterator;
 import it.unimi.dsi.fastutil.ints.IntList;
+import it.unimi.dsi.fastutil.objects.Object2IntLinkedOpenHashMap;
+import it.unimi.dsi.fastutil.objects.Object2IntMap;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
@@ -1086,5 +1089,143 @@ public class BranchSimplifier {
 
     // Finally add the blocks.
     newBlocks.forEach(blocksIterator::add);
+  }
+
+  // TODO(sgjesse); Move this somewhere else, and reuse it for some of the other switch rewritings.
+  private abstract static class InstructionBuilder<T> {
+
+    int blockNumber;
+    final Position position;
+
+    InstructionBuilder(Position position) {
+      this.position = position;
+    }
+
+    abstract T self();
+
+    T setBlockNumber(int blockNumber) {
+      this.blockNumber = blockNumber;
+      return self();
+    }
+  }
+
+  private static class SwitchBuilder extends InstructionBuilder<SwitchBuilder> {
+
+    private Value value;
+    private final Int2ReferenceSortedMap<BasicBlock> keyToTarget = new Int2ReferenceAVLTreeMap<>();
+    private BasicBlock fallthrough;
+
+    SwitchBuilder(Position position) {
+      super(position);
+    }
+
+    @Override
+    SwitchBuilder self() {
+      return this;
+    }
+
+    SwitchBuilder setValue(Value value) {
+      this.value = value;
+      return this;
+    }
+
+    SwitchBuilder addKeyAndTarget(int key, BasicBlock target) {
+      keyToTarget.put(key, target);
+      return this;
+    }
+
+    SwitchBuilder setFallthrough(BasicBlock fallthrough) {
+      this.fallthrough = fallthrough;
+      return this;
+    }
+
+    BasicBlock build(IRMetadata metadata) {
+      final int NOT_FOUND = -1;
+      Object2IntMap<BasicBlock> targetToSuccessorIndex = new Object2IntLinkedOpenHashMap<>();
+      targetToSuccessorIndex.defaultReturnValue(NOT_FOUND);
+
+      int[] keys = new int[keyToTarget.size()];
+      int[] targetBlockIndices = new int[keyToTarget.size()];
+      // Sort keys descending.
+      int count = 0;
+      IntIterator iter = keyToTarget.keySet().iterator();
+      while (iter.hasNext()) {
+        int key = iter.nextInt();
+        BasicBlock target = keyToTarget.get(key);
+        Integer targetIndex =
+            targetToSuccessorIndex.computeIfAbsent(target, b -> targetToSuccessorIndex.size());
+        keys[count] = key;
+        targetBlockIndices[count] = targetIndex;
+        count++;
+      }
+      Integer fallthroughIndex =
+          targetToSuccessorIndex.computeIfAbsent(fallthrough, b -> targetToSuccessorIndex.size());
+      IntSwitch newSwitch = new IntSwitch(value, keys, targetBlockIndices, fallthroughIndex);
+      newSwitch.setPosition(position);
+      BasicBlock newSwitchBlock = BasicBlock.createSwitchBlock(blockNumber, newSwitch, metadata);
+      for (BasicBlock successor : targetToSuccessorIndex.keySet()) {
+        newSwitchBlock.link(successor);
+      }
+      return newSwitchBlock;
+    }
+  }
+
+  private static class IfBuilder extends InstructionBuilder<IfBuilder> {
+
+    private final IRCode code;
+    private Value left;
+    private int right;
+    private BasicBlock target;
+    private BasicBlock fallthrough;
+
+    IfBuilder(Position position, IRCode code) {
+      super(position);
+      this.code = code;
+    }
+
+    @Override
+    IfBuilder self() {
+      return this;
+    }
+
+    IfBuilder setLeft(Value left) {
+      this.left = left;
+      return this;
+    }
+
+    IfBuilder setRight(int right) {
+      this.right = right;
+      return this;
+    }
+
+    IfBuilder setTarget(BasicBlock target) {
+      this.target = target;
+      return this;
+    }
+
+    IfBuilder setFallthrough(BasicBlock fallthrough) {
+      this.fallthrough = fallthrough;
+      return this;
+    }
+
+    BasicBlock build() {
+      assert target != null;
+      assert fallthrough != null;
+      If newIf;
+      BasicBlock ifBlock;
+      if (right != 0) {
+        ConstNumber rightConst = code.createIntConstant(right);
+        rightConst.setPosition(position);
+        newIf = new If(IfType.EQ, ImmutableList.of(left, rightConst.dest()));
+        ifBlock = BasicBlock.createIfBlock(blockNumber, newIf, code.metadata(), rightConst);
+      } else {
+        newIf = new If(IfType.EQ, left);
+        ifBlock = BasicBlock.createIfBlock(blockNumber, newIf, code.metadata());
+      }
+      newIf.setPosition(position);
+      ifBlock.link(target);
+      ifBlock.link(fallthrough);
+      return ifBlock;
+    }
   }
 }

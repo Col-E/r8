@@ -45,7 +45,6 @@ import com.android.tools.r8.ir.code.DexItemBasedConstString;
 import com.android.tools.r8.ir.code.DominatorTree;
 import com.android.tools.r8.ir.code.Goto;
 import com.android.tools.r8.ir.code.IRCode;
-import com.android.tools.r8.ir.code.IRMetadata;
 import com.android.tools.r8.ir.code.If;
 import com.android.tools.r8.ir.code.IfType;
 import com.android.tools.r8.ir.code.InstanceFieldInstruction;
@@ -55,7 +54,6 @@ import com.android.tools.r8.ir.code.Instruction.SideEffectAssumption;
 import com.android.tools.r8.ir.code.InstructionIterator;
 import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.ir.code.InstructionOrPhi;
-import com.android.tools.r8.ir.code.IntSwitch;
 import com.android.tools.r8.ir.code.Invoke;
 import com.android.tools.r8.ir.code.InvokeDirect;
 import com.android.tools.r8.ir.code.InvokeInterface;
@@ -80,18 +78,13 @@ import com.google.common.collect.Sets;
 import com.google.common.collect.Streams;
 import it.unimi.dsi.fastutil.ints.Int2IntMap;
 import it.unimi.dsi.fastutil.ints.Int2IntOpenHashMap;
-import it.unimi.dsi.fastutil.ints.Int2ReferenceAVLTreeMap;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceMap;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceMap.Entry;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceOpenHashMap;
-import it.unimi.dsi.fastutil.ints.Int2ReferenceSortedMap;
-import it.unimi.dsi.fastutil.ints.IntIterator;
 import it.unimi.dsi.fastutil.ints.IntOpenHashSet;
 import it.unimi.dsi.fastutil.ints.IntSet;
 import it.unimi.dsi.fastutil.longs.Long2ReferenceMap;
 import it.unimi.dsi.fastutil.longs.Long2ReferenceOpenHashMap;
-import it.unimi.dsi.fastutil.objects.Object2IntLinkedOpenHashMap;
-import it.unimi.dsi.fastutil.objects.Object2IntMap;
 import it.unimi.dsi.fastutil.objects.Reference2IntMap;
 import it.unimi.dsi.fastutil.objects.Reference2IntOpenHashMap;
 import java.util.ArrayList;
@@ -318,144 +311,6 @@ public class CodeRewriter {
       }
     }
     assert code.isConsistentSSA(appView);
-  }
-
-  // TODO(sgjesse); Move this somewhere else, and reuse it for some of the other switch rewritings.
-  public abstract static class InstructionBuilder<T> {
-
-    protected int blockNumber;
-    protected final Position position;
-
-    protected InstructionBuilder(Position position) {
-      this.position = position;
-    }
-
-    public abstract T self();
-
-    public T setBlockNumber(int blockNumber) {
-      this.blockNumber = blockNumber;
-      return self();
-    }
-  }
-
-  public static class SwitchBuilder extends InstructionBuilder<SwitchBuilder> {
-
-    private Value value;
-    private final Int2ReferenceSortedMap<BasicBlock> keyToTarget = new Int2ReferenceAVLTreeMap<>();
-    private BasicBlock fallthrough;
-
-    public SwitchBuilder(Position position) {
-      super(position);
-    }
-
-    @Override
-    public SwitchBuilder self() {
-      return this;
-    }
-
-    public SwitchBuilder setValue(Value value) {
-      this.value = value;
-      return this;
-    }
-
-    public SwitchBuilder addKeyAndTarget(int key, BasicBlock target) {
-      keyToTarget.put(key, target);
-      return this;
-    }
-
-    public SwitchBuilder setFallthrough(BasicBlock fallthrough) {
-      this.fallthrough = fallthrough;
-      return this;
-    }
-
-    public BasicBlock build(IRMetadata metadata) {
-      final int NOT_FOUND = -1;
-      Object2IntMap<BasicBlock> targetToSuccessorIndex = new Object2IntLinkedOpenHashMap<>();
-      targetToSuccessorIndex.defaultReturnValue(NOT_FOUND);
-
-      int[] keys = new int[keyToTarget.size()];
-      int[] targetBlockIndices = new int[keyToTarget.size()];
-      // Sort keys descending.
-      int count = 0;
-      IntIterator iter = keyToTarget.keySet().iterator();
-      while (iter.hasNext()) {
-        int key = iter.nextInt();
-        BasicBlock target = keyToTarget.get(key);
-        Integer targetIndex =
-            targetToSuccessorIndex.computeIfAbsent(target, b -> targetToSuccessorIndex.size());
-        keys[count] = key;
-        targetBlockIndices[count] = targetIndex;
-        count++;
-      }
-      Integer fallthroughIndex =
-          targetToSuccessorIndex.computeIfAbsent(fallthrough, b -> targetToSuccessorIndex.size());
-      IntSwitch newSwitch = new IntSwitch(value, keys, targetBlockIndices, fallthroughIndex);
-      newSwitch.setPosition(position);
-      BasicBlock newSwitchBlock = BasicBlock.createSwitchBlock(blockNumber, newSwitch, metadata);
-      for (BasicBlock successor : targetToSuccessorIndex.keySet()) {
-        newSwitchBlock.link(successor);
-      }
-      return newSwitchBlock;
-    }
-  }
-
-  public static class IfBuilder extends InstructionBuilder<IfBuilder> {
-
-    private final IRCode code;
-    private Value left;
-    private int right;
-    private BasicBlock target;
-    private BasicBlock fallthrough;
-
-    public IfBuilder(Position position, IRCode code) {
-      super(position);
-      this.code = code;
-    }
-
-    @Override
-    public IfBuilder self() {
-      return this;
-    }
-
-    public IfBuilder setLeft(Value left) {
-      this.left = left;
-      return this;
-    }
-
-    public IfBuilder setRight(int right) {
-      this.right = right;
-      return this;
-    }
-
-    public IfBuilder setTarget(BasicBlock target) {
-      this.target = target;
-      return this;
-    }
-
-    public IfBuilder setFallthrough(BasicBlock fallthrough) {
-      this.fallthrough = fallthrough;
-      return this;
-    }
-
-    public BasicBlock build() {
-      assert target != null;
-      assert fallthrough != null;
-      If newIf;
-      BasicBlock ifBlock;
-      if (right != 0) {
-        ConstNumber rightConst = code.createIntConstant(right);
-        rightConst.setPosition(position);
-        newIf = new If(IfType.EQ, ImmutableList.of(left, rightConst.dest()));
-        ifBlock = BasicBlock.createIfBlock(blockNumber, newIf, code.metadata(), rightConst);
-      } else {
-        newIf = new If(IfType.EQ, left);
-        ifBlock = BasicBlock.createIfBlock(blockNumber, newIf, code.metadata());
-      }
-      newIf.setPosition(position);
-      ifBlock.link(target);
-      ifBlock.link(fallthrough);
-      return ifBlock;
-    }
   }
 
   private boolean checkArgumentType(InvokeMethod invoke, int argumentIndex) {
@@ -1625,7 +1480,6 @@ public class CodeRewriter {
     }
     assert code.isConsistentSSA(appView);
   }
-
 
   private void insertNotNullCheck(
       BasicBlock block,

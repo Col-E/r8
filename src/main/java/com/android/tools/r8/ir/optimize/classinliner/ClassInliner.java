@@ -22,7 +22,6 @@ import com.android.tools.r8.ir.conversion.MethodProcessor;
 import com.android.tools.r8.ir.conversion.passes.BranchSimplifier;
 import com.android.tools.r8.ir.conversion.passes.TrivialCheckCastAndInstanceOfRemover;
 import com.android.tools.r8.ir.optimize.AssumeRemover;
-import com.android.tools.r8.ir.optimize.CodeRewriter;
 import com.android.tools.r8.ir.optimize.Inliner;
 import com.android.tools.r8.ir.optimize.InliningOracle;
 import com.android.tools.r8.ir.optimize.classinliner.InlineCandidateProcessor.IllegalClassInlinerStateException;
@@ -128,7 +127,6 @@ public final class ClassInliner {
   //
   public final void processMethodCode(
       AppView<AppInfoWithLiveness> appView,
-      CodeRewriter codeRewriter,
       StringOptimizer stringOptimizer,
       EnumValueOptimizer enumValueOptimizer,
       ProgramMethod method,
