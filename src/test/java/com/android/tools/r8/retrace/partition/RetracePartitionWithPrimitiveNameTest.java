@@ -4,16 +4,24 @@
 
 package com.android.tools.r8.retrace.partition;
 
-import static org.junit.Assert.assertThrows;
+import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestDiagnosticMessagesImpl;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
+import com.android.tools.r8.retrace.MappingPartitionMetadata;
+import com.android.tools.r8.retrace.PartitionMappingSupplier;
 import com.android.tools.r8.retrace.ProguardMapProducer;
+import com.android.tools.r8.retrace.RetraceOptions;
+import com.android.tools.r8.retrace.RetraceStackFrameAmbiguousResultWithContext;
+import com.android.tools.r8.retrace.RetraceStackTraceContext;
+import com.android.tools.r8.retrace.StringRetrace;
 import com.android.tools.r8.retrace.internal.MappingPartitionKeyStrategy;
 import com.android.tools.r8.retrace.internal.ProguardMapPartitionerOnClassNameToText.ProguardMapPartitionerBuilderImplInternal;
 import com.android.tools.r8.utils.StringUtils;
+import java.util.HashMap;
+import java.util.Map;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -36,21 +44,34 @@ public class RetracePartitionWithPrimitiveNameTest extends TestBase {
       StringUtils.unixLines(
           "# { id: 'com.android.tools.r8.mapping', version: '2.0' }",
           "some.class1 -> int:",
-          "  void field -> a");
+          "  void method() -> a");
 
   @Test
-  public void testPartitionAndRetrace() {
+  public void testPartitionAndRetrace() throws Exception {
     ProguardMapProducer proguardMapProducer = ProguardMapProducer.fromString(mapping);
     TestDiagnosticMessagesImpl diagnosticsHandler = new TestDiagnosticMessagesImpl();
-    // TODO(b/286001537): We need to handle minified names matching primitive types.
-    assertThrows(
-        AssertionError.class,
-        () ->
-            new ProguardMapPartitionerBuilderImplInternal(diagnosticsHandler)
-                .setMappingPartitionKeyStrategy(MappingPartitionKeyStrategy.getDefaultStrategy())
-                .setProguardMapProducer(proguardMapProducer)
-                .setPartitionConsumer(partition -> {})
-                .build()
-                .run());
+    Map<String, byte[]> partitions = new HashMap<>();
+    MappingPartitionMetadata metadata =
+        new ProguardMapPartitionerBuilderImplInternal(diagnosticsHandler)
+            .setMappingPartitionKeyStrategy(MappingPartitionKeyStrategy.getDefaultStrategy())
+            .setProguardMapProducer(proguardMapProducer)
+            .setPartitionConsumer(
+                partition -> partitions.put(partition.getKey(), partition.getPayload()))
+            .build()
+            .run();
+
+    PartitionMappingSupplier mappingSupplier =
+        PartitionMappingSupplier.builder()
+            .setMetadata(metadata.getBytes())
+            .setMappingPartitionFromKeySupplier(partitions::get)
+            .build();
+
+    StringRetrace retracer =
+        StringRetrace.create(RetraceOptions.builder().setMappingSupplier(mappingSupplier).build());
+    RetraceStackFrameAmbiguousResultWithContext<String> result =
+        retracer.retraceFrame("  at int.a()", RetraceStackTraceContext.empty());
+    StringBuilder sb = new StringBuilder();
+    result.forEach(frames -> frames.forEach(sb::append));
+    assertEquals("  at some.class1.method(class1.java)", sb.toString());
   }
 }

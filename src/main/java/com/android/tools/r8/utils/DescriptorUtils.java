@@ -456,8 +456,8 @@ public class DescriptorUtils {
    * @return java package name i.e. "java.lang"
    */
   public static String getPackageNameFromTypeName(String typeName) {
-    return getPackageNameFromBinaryName(
-        getClassBinaryNameFromDescriptor(javaTypeToDescriptor(typeName)));
+    int packageEndIndex = typeName.lastIndexOf(JAVA_PACKAGE_SEPARATOR);
+    return (packageEndIndex < 0) ? "" : typeName.substring(0, packageEndIndex);
   }
 
   /**
