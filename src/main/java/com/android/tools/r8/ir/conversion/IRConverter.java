@@ -33,6 +33,7 @@ import com.android.tools.r8.ir.conversion.passes.BranchSimplifier;
 import com.android.tools.r8.ir.conversion.passes.CommonSubexpressionElimination;
 import com.android.tools.r8.ir.conversion.passes.ParentConstructorHoistingCodeRewriter;
 import com.android.tools.r8.ir.conversion.passes.SplitBranch;
+import com.android.tools.r8.ir.conversion.passes.ThrowCatchOptimizer;
 import com.android.tools.r8.ir.conversion.passes.TrivialCheckCastAndInstanceOfRemover;
 import com.android.tools.r8.ir.conversion.passes.TrivialPhiSimplifier;
 import com.android.tools.r8.ir.desugar.CfInstructionDesugaringCollection;
@@ -770,7 +771,7 @@ public class IRConverter {
     new SparseConditionalConstantPropagation(appView, code).run();
     timing.end();
     timing.begin("Rewrite always throwing instructions");
-    codeRewriter.optimizeAlwaysThrowingInstructions(code);
+    new ThrowCatchOptimizer(appView).optimizeAlwaysThrowingInstructions(code);
     timing.end();
     timing.begin("Simplify control flow");
     if (new BranchSimplifier(appView).simplifyBranches(code)) {
@@ -801,7 +802,7 @@ public class IRConverter {
 
     if (!isDebugMode) {
       timing.begin("Rewrite throw NPE");
-      codeRewriter.rewriteThrowNullPointerException(code);
+      new ThrowCatchOptimizer(appView).rewriteThrowNullPointerException(code);
       timing.end();
       previous = printMethod(code, "IR after rewrite throw null (SSA)", previous);
     }
@@ -933,7 +934,7 @@ public class IRConverter {
     }
 
     timing.begin("Redundant catch/rethrow elimination");
-    codeRewriter.optimizeRedundantCatchRethrowInstructions(code);
+    new ThrowCatchOptimizer(appView).optimizeRedundantCatchRethrowInstructions(code);
     timing.end();
     previous = printMethod(code, "IR after redundant catch/rethrow elimination (SSA)", previous);
 
