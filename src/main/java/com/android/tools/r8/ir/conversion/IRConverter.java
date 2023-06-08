@@ -33,6 +33,7 @@ import com.android.tools.r8.ir.conversion.passes.BranchSimplifier;
 import com.android.tools.r8.ir.conversion.passes.CommonSubexpressionElimination;
 import com.android.tools.r8.ir.conversion.passes.ParentConstructorHoistingCodeRewriter;
 import com.android.tools.r8.ir.conversion.passes.SplitBranch;
+import com.android.tools.r8.ir.conversion.passes.TrivialCheckCastAndInstanceOfRemover;
 import com.android.tools.r8.ir.conversion.passes.TrivialPhiSimplifier;
 import com.android.tools.r8.ir.desugar.CfInstructionDesugaringCollection;
 import com.android.tools.r8.ir.desugar.CovariantReturnTypeAnnotationTransformer;
@@ -729,8 +730,8 @@ public class IRConverter {
     assert code.verifyTypes(appView);
 
     timing.begin("Remove trivial type checks/casts");
-    codeRewriter.removeTrivialCheckCastAndInstanceOfInstructions(
-        code, context, methodProcessor, methodProcessingContext);
+    new TrivialCheckCastAndInstanceOfRemover(appView)
+        .run(code, context, methodProcessor, methodProcessingContext);
     timing.end();
 
     if (enumValueOptimizer != null) {
@@ -774,8 +775,8 @@ public class IRConverter {
     timing.begin("Simplify control flow");
     if (new BranchSimplifier(appView).simplifyBranches(code)) {
       timing.begin("Remove trivial type checks/casts");
-      codeRewriter.removeTrivialCheckCastAndInstanceOfInstructions(
-          code, context, methodProcessor, methodProcessingContext);
+      new TrivialCheckCastAndInstanceOfRemover(appView)
+          .run(code, context, methodProcessor, methodProcessingContext);
       timing.end();
     }
     timing.end();
