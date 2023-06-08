@@ -800,10 +800,10 @@ public class VerticalClassMergerTest extends TestBase {
             "In referencedMethod on SuperClassWithReferencedMethod",
             "SuperClassWithReferencedMethod.referencedMethod()");
 
-    testForD8()
+    testForD8(parameters.getBackend())
         .addProgramFiles(programFiles)
         .addProgramDexFileData(smaliBuilder.compile())
-        .run(main)
+        .run(parameters.getRuntime(), main)
         .assertSuccessWithOutput(expectedOutput);
 
     testForR8(parameters.getBackend())
@@ -813,7 +813,7 @@ public class VerticalClassMergerTest extends TestBase {
         .addKeepRules("-keep class *")
         .addProgramFiles(programFiles)
         .addProgramDexFileData(smaliBuilder.compile())
-        .run(main)
+        .run(parameters.getRuntime(), main)
         .assertSuccessWithOutput(expectedOutput);
   }
 
@@ -1217,7 +1217,7 @@ public class VerticalClassMergerTest extends TestBase {
     String d8Result =
         testForD8()
             .addProgramResourceProviders(input.getProgramResourceProviders())
-            .run(main)
+            .run(parameters.getRuntime(), main)
             .assertSuccess()
             .getStdOut();
 

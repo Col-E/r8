@@ -175,7 +175,7 @@ public class KotlinIntrinsicsIdentifierTest extends AbstractR8KotlinNamingTestBa
             .compile()
             .assertAllWarningMessagesMatch(
                 equalTo("Resource 'META-INF/MANIFEST.MF' already exists."))
-            .run(mainClassName);
+            .run(testParameters.getRuntime(), mainClassName);
     CodeInspector codeInspector = result.inspector();
 
     MethodSubject main = codeInspector.clazz(testMain.getClassName()).mainMethod();

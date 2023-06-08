@@ -3,43 +3,53 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.debug;
 
-import com.android.tools.r8.ToolHelper;
+import com.android.tools.r8.CompilationFailedException;
+import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.ToolHelper.DexVm.Version;
-import java.util.Collections;
+import com.android.tools.r8.utils.AndroidApiLevel;
 import org.junit.Assume;
-import org.junit.BeforeClass;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameter;
+import org.junit.runners.Parameterized.Parameters;
 
-/**
- * Test single stepping behaviour across reordered blocks.
- */
+/** Test single stepping behaviour across reordered blocks. */
+@RunWith(Parameterized.class)
 public class BlockReorderingTest extends DebugTestBase {
 
   public static final String CLASS = "BlockReordering";
   public static final String FILE = "BlockReordering.java";
 
-  private static D8DebugTestConfig d8Config;
+  @Parameters(name = "{0}")
+  public static TestParametersCollection data() {
+    return TestParameters.builder().withDexRuntimes().withApiLevel(AndroidApiLevel.B).build();
+  }
 
-  @BeforeClass
-  public static void setup() {
-    // Force inversion of all conditionals to reliably construct a regression test for incorrect
-    // line information when reordering blocks.
-    d8Config =
-        new D8DebugTestConfig()
-            .compileAndAdd(
-                getStaticTemp(),
-                Collections.singletonList(DEBUGGEE_JAR),
-                options -> options.testing.invertConditionals = true);
+  @Parameter public TestParameters parameters;
+
+  public DebugTestConfig getDebugConfig() throws CompilationFailedException {
+    return testForD8()
+        .addProgramFiles(DEBUGGEE_JAR)
+        .setMinApi(parameters)
+        .addOptionsModification(options -> options.testing.invertConditionals = true)
+        .compile()
+        .debugConfig(parameters.getRuntime());
+  }
+
+  private void assumeValidTest() {
+    Assume.assumeFalse(
+        "Older runtimes incorrectly step out of function: b/67671565",
+        parameters.isDexRuntimeVersionOlderThanOrEqual(Version.V6_0_1));
   }
 
   @Test
   public void testConditionalReturn() throws Throwable {
-    Assume.assumeTrue(
-        "Older runtimes incorrectly step out of function: b/67671565",
-        ToolHelper.getDexVm().getVersion().isNewerThan(Version.V6_0_1));
+    assumeValidTest();
     final String method = "conditionalReturn";
     runDebugTest(
-        d8Config,
+        getDebugConfig(),
         CLASS,
         breakpoint(CLASS, method),
         run(),
@@ -57,12 +67,10 @@ public class BlockReorderingTest extends DebugTestBase {
 
   @Test
   public void testInvertConditionalReturn() throws Throwable {
-    Assume.assumeTrue(
-        "Older runtimes incorrectly step out of function: b/67671565",
-        ToolHelper.getDexVm().getVersion().isNewerThan(Version.V6_0_1));
+    assumeValidTest();
     final String method = "invertConditionalReturn";
     runDebugTest(
-        d8Config,
+        getDebugConfig(),
         CLASS,
         breakpoint(CLASS, method),
         run(),
@@ -80,12 +88,10 @@ public class BlockReorderingTest extends DebugTestBase {
 
   @Test
   public void testFallthroughReturn() throws Throwable {
-    Assume.assumeTrue(
-        "Older runtimes incorrectly step out of function: b/67671565",
-        ToolHelper.getDexVm().getVersion().isNewerThan(Version.V6_0_1));
+    assumeValidTest();
     final String method = "fallthroughReturn";
     runDebugTest(
-        d8Config,
+        getDebugConfig(),
         CLASS,
         breakpoint(CLASS, method),
         run(),
