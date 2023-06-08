@@ -178,8 +178,7 @@ public class PostMethodProcessor extends MethodProcessorWithWave {
       ExecutorService executorService,
       Timing timing)
       throws ExecutionException {
-    TimingMerger merger =
-        timing.beginMerger("secondary-processor", ThreadUtils.getNumberOfThreads(executorService));
+    TimingMerger merger = timing.beginMerger("secondary-processor", executorService);
     while (!waves.isEmpty()) {
       wave = waves.removeFirst();
       assert !wave.isEmpty();

@@ -19,6 +19,7 @@ import java.util.Deque;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.concurrent.ExecutorService;
 
 public class Timing {
 
@@ -371,6 +372,10 @@ public class Timing {
       merged.end();
       parent.children.put(merged.title, merged);
     }
+  }
+
+  public final TimingMerger beginMerger(String title, ExecutorService executorService) {
+    return beginMerger(title, ThreadUtils.getNumberOfThreads(executorService));
   }
 
   public TimingMerger beginMerger(String title, int numberOfThreads) {

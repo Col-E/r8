@@ -129,8 +129,7 @@ public class PrimaryMethodProcessor extends MethodProcessorWithWave {
       Timing timing,
       ExecutorService executorService)
       throws ExecutionException {
-    TimingMerger merger =
-        timing.beginMerger("primary-processor", ThreadUtils.getNumberOfThreads(executorService));
+    TimingMerger merger = timing.beginMerger("primary-processor", executorService);
     while (!waves.isEmpty()) {
       processorContext = appView.createProcessorContext();
       wave = waves.removeFirst();
