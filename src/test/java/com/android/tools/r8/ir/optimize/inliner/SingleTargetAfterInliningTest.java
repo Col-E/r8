@@ -75,13 +75,15 @@ public class SingleTargetAfterInliningTest extends TestBase {
     ClassSubject aClassSubject = inspector.clazz(A.class);
     assertThat(aClassSubject, isPresent());
 
-    // B.foo() should be absent if the max inlining depth is 1, because indirection() has been
-    // inlined into main(), which makes B.foo() eligible for inlining into main().
+    // B.foo() could potentially be absent if the max inlining depth is 1, because indirection() has
+    // been inlined into main(), which makes B.foo() eligible for inlining into main() since we can
+    // compute a single target. However, because indirection() can be inlined into multiple callers
+    // we cannot trust the single caller predicate. If indirection() also has a singler caller we
+    // could propagate the single call site property to B.foo().
     ClassSubject bClassSubject = inspector.clazz(B.class);
     assertThat(bClassSubject, isPresent());
-    assertThat(
-        bClassSubject.uniqueMethodWithOriginalName("foo"),
-        notIf(isPresent(), maxInliningDepth == 1));
+    // TODO(b/286058449): We could inline this.
+    assertThat(bClassSubject.uniqueMethodWithOriginalName("foo"), isPresent());
 
     // B.bar() should always be inlined because it is marked as @AlwaysInline.
     assertThat(

@@ -53,7 +53,7 @@ public class DefaultInliningReasonStrategy implements InliningReasonStrategy {
       // program.
       return Reason.SIMPLE;
     }
-    if (isSingleCallerInliningTarget(target)) {
+    if (isSingleCallerInliningTarget(target, context)) {
       return Reason.SINGLE_CALLER;
     }
     if (isMultiCallerInlineCandidate(invoke, target, oracle, methodProcessor)) {
@@ -64,8 +64,8 @@ public class DefaultInliningReasonStrategy implements InliningReasonStrategy {
     return Reason.SIMPLE;
   }
 
-  private boolean isSingleCallerInliningTarget(ProgramMethod method) {
-    if (!callSiteInformation.hasSingleCallSite(method)) {
+  private boolean isSingleCallerInliningTarget(ProgramMethod method, ProgramMethod context) {
+    if (!callSiteInformation.hasSingleCallSite(method, context)) {
       return false;
     }
     if (appView.appInfo().isNeverInlineDueToSingleCallerMethod(method)) {
