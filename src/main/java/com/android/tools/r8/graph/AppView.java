@@ -980,7 +980,8 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
           if (appView.hasLiveness()) {
             appView
                 .withLiveness()
-                .setAppInfo(appView.appInfoWithLiveness().rewrittenWithLens(application, lens));
+                .setAppInfo(
+                    appView.appInfoWithLiveness().rewrittenWithLens(application, lens, timing));
           } else {
             assert appView.hasClassHierarchy();
             AppView<AppInfoWithClassHierarchy> appViewWithClassHierarchy =

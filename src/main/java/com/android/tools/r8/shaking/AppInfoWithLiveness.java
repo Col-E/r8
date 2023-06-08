@@ -65,6 +65,7 @@ import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.ListUtils;
 import com.android.tools.r8.utils.PredicateSet;
 import com.android.tools.r8.utils.ThreadUtils;
+import com.android.tools.r8.utils.Timing;
 import com.android.tools.r8.utils.Visibility;
 import com.android.tools.r8.utils.WorkList;
 import com.android.tools.r8.utils.collections.ProgramMethodSet;
@@ -1113,7 +1114,7 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
   }
 
   public AppInfoWithLiveness rewrittenWithLens(
-      DirectMappedDexApplication application, NonIdentityGraphLens lens) {
+      DirectMappedDexApplication application, NonIdentityGraphLens lens, Timing timing) {
     assert checkIfObsolete();
 
     // Switchmap classes should never be affected by renaming.
@@ -1129,7 +1130,7 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
         committedItems.getApplication().getDefinitionsSupplier(committedItems);
     return new AppInfoWithLiveness(
         committedItems,
-        getClassToFeatureSplitMap().rewrittenWithLens(lens),
+        getClassToFeatureSplitMap().rewrittenWithLens(lens, timing),
         getMainDexInfo().rewrittenWithLens(getSyntheticItems(), lens),
         getMissingClasses(),
         deadProtoTypes,

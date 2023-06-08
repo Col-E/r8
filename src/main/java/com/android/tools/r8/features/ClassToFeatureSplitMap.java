@@ -21,6 +21,7 @@ import com.android.tools.r8.profile.startup.profile.StartupProfile;
 import com.android.tools.r8.synthesis.SyntheticItems;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.Reporter;
+import com.android.tools.r8.utils.Timing;
 import com.google.common.collect.Sets;
 import java.util.IdentityHashMap;
 import java.util.Map;
@@ -289,7 +290,11 @@ public class ClassToFeatureSplitMap {
         == getFeatureSplit(b, options, startupProfile, syntheticItems);
   }
 
-  public ClassToFeatureSplitMap rewrittenWithLens(GraphLens lens) {
+  public ClassToFeatureSplitMap rewrittenWithLens(GraphLens lens, Timing timing) {
+    return timing.time("Rewrite ClassToFeatureSplitMap", () -> rewrittenWithLens(lens));
+  }
+
+  private ClassToFeatureSplitMap rewrittenWithLens(GraphLens lens) {
     Map<DexType, FeatureSplit> rewrittenClassToFeatureSplitMap = new IdentityHashMap<>();
     classToFeatureSplitMap.forEach(
         (type, featureSplit) -> {
