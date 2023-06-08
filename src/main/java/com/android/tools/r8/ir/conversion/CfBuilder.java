@@ -52,7 +52,7 @@ import com.android.tools.r8.ir.code.StackValues;
 import com.android.tools.r8.ir.code.UninitializedThisLocalRead;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.code.Xor;
-import com.android.tools.r8.ir.optimize.CodeRewriter;
+import com.android.tools.r8.ir.conversion.passes.TrivialGotosCollapser;
 import com.android.tools.r8.ir.optimize.DeadCodeRemover;
 import com.android.tools.r8.ir.optimize.PeepholeOptimizer;
 import com.android.tools.r8.ir.optimize.PhiOptimizations;
@@ -193,10 +193,11 @@ public class CfBuilder {
     loadStoreHelper.insertPhiMoves(registerAllocator);
     timing.end();
 
+    TrivialGotosCollapser trivialGotosCollapser = new TrivialGotosCollapser(appView);
     timing.begin("BasicBlock peephole optimizations");
     if (code.getConversionOptions().isPeepholeOptimizationsEnabled()) {
       for (int i = 0; i < PEEPHOLE_OPTIMIZATION_PASSES; i++) {
-        CodeRewriter.collapseTrivialGotos(appView, code);
+        trivialGotosCollapser.run(code.context(), code, timing);
         PeepholeOptimizer.removeIdenticalPredecessorBlocks(code, registerAllocator);
         PeepholeOptimizer.shareIdenticalBlockSuffix(
             code, registerAllocator, SUFFIX_SHARING_OVERHEAD);
@@ -206,7 +207,7 @@ public class CfBuilder {
 
     timing.time("Rewrite Iinc patterns", this::rewriteIincPatterns);
 
-    CodeRewriter.collapseTrivialGotos(appView, code);
+    trivialGotosCollapser.run(code.context(), code, timing);
     timing.begin("Remove redundant debug positions");
     DexBuilder.removeRedundantDebugPositions(code);
     timing.end();

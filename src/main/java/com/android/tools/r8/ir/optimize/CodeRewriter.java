@@ -78,7 +78,6 @@ import com.android.tools.r8.ir.code.Phi;
 import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.code.Position.SyntheticPosition;
 import com.android.tools.r8.ir.code.StaticGet;
-import com.android.tools.r8.ir.code.Switch;
 import com.android.tools.r8.ir.code.Throw;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.conversion.MethodProcessor;
@@ -111,7 +110,6 @@ import it.unimi.dsi.fastutil.objects.Reference2IntOpenHashMap;
 import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.IdentityHashMap;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -199,28 +197,6 @@ public class CodeRewriter {
     }
 
     assert Streams.stream(code.instructions()).noneMatch(Instruction::isAssume);
-  }
-
-  private static boolean removedTrivialGotos(IRCode code) {
-    ListIterator<BasicBlock> iterator = code.listIterator();
-    assert iterator.hasNext();
-    BasicBlock block = iterator.next();
-    BasicBlock nextBlock;
-    do {
-      nextBlock = iterator.hasNext() ? iterator.next() : null;
-      // Trivial goto block are only kept if they are self-targeting or are targeted by
-      // fallthroughs.
-      BasicBlock blk = block;  // Additional local for lambda below.
-      assert !block.isTrivialGoto()
-          || block.exit().asGoto().getTarget() == block
-          || code.entryBlock() == block
-          || block.getPredecessors().stream().anyMatch((b) -> b.exit().fallthroughBlock() == blk);
-      // Trivial goto blocks never target the next block (in that case there should just be a
-      // fallthrough).
-      assert !block.isTrivialGoto() || block.exit().asGoto().getTarget() != nextBlock;
-      block = nextBlock;
-    } while (block != null);
-    return true;
   }
 
   // Rewrite 'throw new NullPointerException()' to 'throw null'.
@@ -363,105 +339,6 @@ public class CodeRewriter {
     assert code.isConsistentSSA(appView);
   }
 
-  public static boolean isFallthroughBlock(BasicBlock block) {
-    for (BasicBlock pred : block.getPredecessors()) {
-      if (pred.exit().fallthroughBlock() == block) {
-        return true;
-      }
-    }
-    return false;
-  }
-
-  private static void collapseTrivialGoto(
-      IRCode code, BasicBlock block, BasicBlock nextBlock, List<BasicBlock> blocksToRemove) {
-
-    // This is the base case for GOTO loops.
-    if (block.exit().asGoto().getTarget() == block) {
-      return;
-    }
-
-    BasicBlock target = block.endOfGotoChain();
-
-    boolean needed = false;
-
-    if (target == null) {
-      // This implies we are in a loop of GOTOs. In that case, we will iteratively remove each
-      // trivial GOTO one-by-one until the above base case (one block targeting itself) is left.
-      target = block.exit().asGoto().getTarget();
-    }
-
-    if (target != nextBlock) {
-      // Not targeting the fallthrough block, determine if we need this goto. We need it if
-      // a fallthrough can hit this block. That is the case if the block is the entry block
-      // or if one of the predecessors fall through to the block.
-      needed = code.entryBlock() == block || isFallthroughBlock(block);
-    }
-
-    if (!needed) {
-      blocksToRemove.add(block);
-      unlinkTrivialGotoBlock(block, target);
-    }
-  }
-
-  public static void unlinkTrivialGotoBlock(BasicBlock block, BasicBlock target) {
-    assert block.isTrivialGoto();
-    for (BasicBlock pred : block.getPredecessors()) {
-      pred.replaceSuccessor(block, target);
-    }
-    for (BasicBlock succ : block.getSuccessors()) {
-      succ.getMutablePredecessors().remove(block);
-    }
-    for (BasicBlock pred : block.getPredecessors()) {
-      if (!target.getPredecessors().contains(pred)) {
-        target.getMutablePredecessors().add(pred);
-      }
-    }
-  }
-
-  private static void collapseIfTrueTarget(BasicBlock block) {
-    If insn = block.exit().asIf();
-    BasicBlock target = insn.getTrueTarget();
-    BasicBlock newTarget = target.endOfGotoChain();
-    BasicBlock fallthrough = insn.fallthroughBlock();
-    BasicBlock newFallthrough = fallthrough.endOfGotoChain();
-    if (newTarget != null && target != newTarget) {
-      insn.getBlock().replaceSuccessor(target, newTarget);
-      target.getMutablePredecessors().remove(block);
-      if (!newTarget.getPredecessors().contains(block)) {
-        newTarget.getMutablePredecessors().add(block);
-      }
-    }
-    if (block.exit().isIf()) {
-      insn = block.exit().asIf();
-      if (insn.getTrueTarget() == newFallthrough) {
-        // Replace if with the same true and fallthrough target with a goto to the fallthrough.
-        block.replaceSuccessor(insn.getTrueTarget(), fallthrough);
-        assert block.exit().isGoto();
-        assert block.exit().asGoto().getTarget() == fallthrough;
-      }
-    }
-  }
-
-  private static void collapseNonFallthroughSwitchTargets(BasicBlock block) {
-    Switch insn = block.exit().asSwitch();
-    BasicBlock fallthroughBlock = insn.fallthroughBlock();
-    Set<BasicBlock> replacedBlocks = new HashSet<>();
-    for (int j = 0; j < insn.targetBlockIndices().length; j++) {
-      BasicBlock target = insn.targetBlock(j);
-      if (target != fallthroughBlock) {
-        BasicBlock newTarget = target.endOfGotoChain();
-        if (newTarget != null && target != newTarget && !replacedBlocks.contains(target)) {
-          insn.getBlock().replaceSuccessor(target, newTarget);
-          target.getMutablePredecessors().remove(block);
-          if (!newTarget.getPredecessors().contains(block)) {
-            newTarget.getMutablePredecessors().add(block);
-          }
-          replacedBlocks.add(target);
-        }
-      }
-    }
-  }
-
   // TODO(sgjesse); Move this somewhere else, and reuse it for some of the other switch rewritings.
   public abstract static class InstructionBuilder<T> {
 
@@ -598,53 +475,6 @@ public class CodeRewriter {
       ifBlock.link(fallthrough);
       return ifBlock;
     }
-  }
-
-  /**
-   * Rewrite all branch targets to the destination of trivial goto chains when possible. Does not
-   * rewrite fallthrough targets as that would require block reordering and the transformation only
-   * makes sense after SSA destruction where there are no phis.
-   */
-  public static void collapseTrivialGotos(AppView<?> appView, IRCode code) {
-    assert code.isConsistentGraph(appView);
-    List<BasicBlock> blocksToRemove = new ArrayList<>();
-    // Rewrite all non-fallthrough targets to the end of trivial goto chains and remove
-    // first round of trivial goto blocks.
-    ListIterator<BasicBlock> iterator = code.listIterator();
-    assert iterator.hasNext();
-    BasicBlock block = iterator.next();
-    BasicBlock nextBlock;
-
-    do {
-      nextBlock = iterator.hasNext() ? iterator.next() : null;
-      if (block.isTrivialGoto()) {
-        collapseTrivialGoto(code, block, nextBlock, blocksToRemove);
-      }
-      if (block.exit().isIf()) {
-        collapseIfTrueTarget(block);
-      }
-      if (block.exit().isSwitch()) {
-        collapseNonFallthroughSwitchTargets(block);
-      }
-      block = nextBlock;
-    } while (nextBlock != null);
-    code.removeBlocks(blocksToRemove);
-    // Get rid of gotos to the next block.
-    while (!blocksToRemove.isEmpty()) {
-      blocksToRemove = new ArrayList<>();
-      iterator = code.listIterator();
-      block = iterator.next();
-      do {
-        nextBlock = iterator.hasNext() ? iterator.next() : null;
-        if (block.isTrivialGoto()) {
-          collapseTrivialGoto(code, block, nextBlock, blocksToRemove);
-        }
-        block = nextBlock;
-      } while (block != null);
-      code.removeBlocks(blocksToRemove);
-    }
-    assert removedTrivialGotos(code);
-    assert code.isConsistentGraph(appView);
   }
 
   private boolean checkArgumentType(InvokeMethod invoke, int argumentIndex) {

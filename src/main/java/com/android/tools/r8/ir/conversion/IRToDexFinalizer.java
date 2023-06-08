@@ -9,6 +9,7 @@ import com.android.tools.r8.graph.DexCode;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.bytecodemetadata.BytecodeMetadataProvider;
 import com.android.tools.r8.ir.code.IRCode;
+import com.android.tools.r8.ir.conversion.passes.TrivialGotosCollapser;
 import com.android.tools.r8.ir.desugar.nest.D8NestBasedAccessDesugaring;
 import com.android.tools.r8.ir.optimize.CodeRewriter;
 import com.android.tools.r8.ir.optimize.DeadCodeRemover;
@@ -59,17 +60,18 @@ public class IRToDexFinalizer extends IRFinalizer<DexCode> {
     LinearScanRegisterAllocator registerAllocator = new LinearScanRegisterAllocator(appView, code);
     registerAllocator.allocateRegisters();
     timing.end();
+    TrivialGotosCollapser trivialGotosCollapser = new TrivialGotosCollapser(appView);
     if (code.getConversionOptions().isPeepholeOptimizationsEnabled()) {
       timing.begin("Peephole optimize");
       for (int i = 0; i < PEEPHOLE_OPTIMIZATION_PASSES; i++) {
-        CodeRewriter.collapseTrivialGotos(appView, code);
+        trivialGotosCollapser.run(code.context(), code, timing);
         PeepholeOptimizer.optimize(appView, code, registerAllocator);
       }
       timing.end();
     }
     timing.begin("Clean up");
     CodeRewriter.removeUnneededMovesOnExitingPaths(code, registerAllocator);
-    CodeRewriter.collapseTrivialGotos(appView, code);
+    trivialGotosCollapser.run(code.context(), code, timing);
     timing.end();
     return registerAllocator;
   }
