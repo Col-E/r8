@@ -31,6 +31,7 @@ import com.android.tools.r8.ir.conversion.passes.ArrayConstructionSimplifier;
 import com.android.tools.r8.ir.conversion.passes.BinopRewriter;
 import com.android.tools.r8.ir.conversion.passes.BranchSimplifier;
 import com.android.tools.r8.ir.conversion.passes.CommonSubexpressionElimination;
+import com.android.tools.r8.ir.conversion.passes.DexConstantOptimizer;
 import com.android.tools.r8.ir.conversion.passes.ParentConstructorHoistingCodeRewriter;
 import com.android.tools.r8.ir.conversion.passes.SplitBranch;
 import com.android.tools.r8.ir.conversion.passes.ThrowCatchOptimizer;
@@ -883,14 +884,8 @@ public class IRConverter {
       constantCanonicalizer.canonicalize();
       timing.end();
       previous = printMethod(code, "IR after constant canonicalization (SSA)", previous);
-      timing.begin("Create constants for literal instructions");
-      codeRewriter.useDedicatedConstantForLitInstruction(code);
-      timing.end();
-      previous = printMethod(code, "IR after constant literals (SSA)", previous);
-      timing.begin("Shorten live ranges");
-      codeRewriter.shortenLiveRanges(code, constantCanonicalizer);
-      timing.end();
-      previous = printMethod(code, "IR after shorten live ranges (SSA)", previous);
+      new DexConstantOptimizer(appView, constantCanonicalizer).run(context, code, timing);
+      previous = printMethod(code, "IR after dex constant optimization (SSA)", previous);
     }
 
     if (removeVerificationErrorForUnknownReturnedValues != null) {
