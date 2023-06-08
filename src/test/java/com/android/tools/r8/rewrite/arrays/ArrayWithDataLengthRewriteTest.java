@@ -13,7 +13,7 @@ import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
-import com.android.tools.r8.ir.optimize.CodeRewriter;
+import com.android.tools.r8.ir.conversion.passes.ArrayConstructionSimplifier;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.InstructionSubject;
@@ -64,7 +64,7 @@ public class ArrayWithDataLengthRewriteTest extends TestBase {
   }
 
   private void transformArray(IRCode irCode, AppView<?> appView) {
-      new CodeRewriter(appView).simplifyArrayConstruction(irCode);
+    new ArrayConstructionSimplifier(appView).run(irCode.context(), irCode);
     String name = irCode.context().getReference().getName().toString();
     if (name.contains("filledArrayData")) {
       assertTrue(irCode.streamInstructions().anyMatch(Instruction::isNewArrayFilledData));

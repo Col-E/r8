@@ -27,6 +27,7 @@ import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.InstructionIterator;
 import com.android.tools.r8.ir.code.Value;
+import com.android.tools.r8.ir.conversion.passes.ArrayConstructionSimplifier;
 import com.android.tools.r8.ir.conversion.passes.BinopRewriter;
 import com.android.tools.r8.ir.conversion.passes.BranchSimplifier;
 import com.android.tools.r8.ir.conversion.passes.CommonSubexpressionElimination;
@@ -752,9 +753,7 @@ public class IRConverter {
       timing.end();
     }
     commonSubexpressionElimination.run(context, code, timing);
-    timing.begin("Simplify arrays");
-    codeRewriter.simplifyArrayConstruction(code);
-    timing.end();
+    new ArrayConstructionSimplifier(appView).run(context, code, timing);
     timing.begin("Rewrite move result");
     codeRewriter.rewriteMoveResult(code);
     timing.end();
