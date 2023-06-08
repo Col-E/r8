@@ -53,8 +53,6 @@ public class ComposeSourceFileTest extends TestBase {
           "com.bar -> b:",
           "# {'id':'sourceFile','fileName':'Bar.kt'}",
           "com.baz -> c:",
-          // TODO(b/286023274): We should not insert 'sourceFile' on composed classes.
-          "# {'id':'sourceFile','fileName':'some-other-hash-inserted-into-source-file'}",
           "com.foo -> a:",
           "# {'id':'sourceFile','fileName':'Foo.kt'}",
           "com.qux -> d:",

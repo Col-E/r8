@@ -1306,7 +1306,7 @@ public class ComposingBuilder {
       }
       newMappingInformation.forEach(
           info -> {
-            if (!nonCompasableNewInfos.contains(info)) {
+            if (!nonCompasableNewInfos.contains(info) && !info.isFileNameInformation()) {
               consumer.accept(info);
             }
           });
