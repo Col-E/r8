@@ -833,7 +833,8 @@ public class IRCode implements IRControlFlowGraph, ValueFactory {
         .forEach(
             (key, value) -> {
               assert value == 1;
-              assert value <= basicBlockNumberGenerator.peek();
+              assert key >= 0;
+              assert key <= basicBlockNumberGenerator.peek();
             });
     return true;
   }
