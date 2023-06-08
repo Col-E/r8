@@ -41,6 +41,7 @@ import com.android.tools.r8.ir.code.Phi;
 import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.code.StaticGet;
 import com.android.tools.r8.ir.code.Value;
+import com.android.tools.r8.ir.conversion.passes.BranchSimplifier;
 import com.android.tools.r8.utils.OptionalBool;
 import com.android.tools.r8.utils.WorkList;
 import com.google.common.collect.Sets;
@@ -65,17 +66,16 @@ public class ConstantCanonicalizer {
   private static final int MAX_CANONICALIZED_CONSTANT = 22;
 
   private final AppView<?> appView;
-  private final CodeRewriter codeRewriter;
+  private final BranchSimplifier branchSimplifier;
   private final ProgramMethod context;
   private final IRCode code;
 
   private OptionalBool isAccessingVolatileField = OptionalBool.unknown();
   private Set<InstanceGet> ineligibleInstanceGetInstructions;
 
-  public ConstantCanonicalizer(
-      AppView<?> appView, CodeRewriter codeRewriter, ProgramMethod context, IRCode code) {
+  public ConstantCanonicalizer(AppView<?> appView, ProgramMethod context, IRCode code) {
     this.appView = appView;
-    this.codeRewriter = codeRewriter;
+    this.branchSimplifier = new BranchSimplifier(appView);
     this.context = context;
     this.code = code;
   }
@@ -288,7 +288,7 @@ public class ConstantCanonicalizer {
     shouldSimplifyIfs |= code.removeAllDeadAndTrivialPhis();
 
     if (shouldSimplifyIfs) {
-      codeRewriter.simplifyIf(code);
+      branchSimplifier.simplifyIf(code);
     }
 
     assert code.isConsistentSSA(appView);

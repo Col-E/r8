@@ -22,13 +22,11 @@ import com.android.tools.r8.utils.Timing;
 public class IRToDexFinalizer extends IRFinalizer<DexCode> {
 
   private static final int PEEPHOLE_OPTIMIZATION_PASSES = 2;
-
-  private final CodeRewriter codeRewriter;
+  
   private final InternalOptions options;
 
   public IRToDexFinalizer(AppView<?> appView, DeadCodeRemover deadCodeRemover) {
     super(appView, deadCodeRemover);
-    this.codeRewriter = deadCodeRemover.getCodeRewriter();
     this.options = appView.options();
   }
 
@@ -44,7 +42,7 @@ public class IRToDexFinalizer extends IRFinalizer<DexCode> {
     // Workaround massive dex2oat memory use for self-recursive methods.
     RuntimeWorkaroundCodeRewriter.workaroundDex2OatInliningIssue(appView, code);
     // Workaround MAX_INT switch issue.
-    RuntimeWorkaroundCodeRewriter.workaroundSwitchMaxIntBug(code, codeRewriter, options);
+    RuntimeWorkaroundCodeRewriter.workaroundSwitchMaxIntBug(code, appView);
     RuntimeWorkaroundCodeRewriter.workaroundDex2OatLinkedListBug(code, options);
     RuntimeWorkaroundCodeRewriter.workaroundForwardingInitializerBug(code, options);
     RuntimeWorkaroundCodeRewriter.workaroundExceptionTargetingLoopHeaderBug(code, options);

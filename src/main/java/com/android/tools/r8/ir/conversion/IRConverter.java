@@ -28,6 +28,7 @@ import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.InstructionIterator;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.conversion.passes.BinopRewriter;
+import com.android.tools.r8.ir.conversion.passes.BranchSimplifier;
 import com.android.tools.r8.ir.conversion.passes.CommonSubexpressionElimination;
 import com.android.tools.r8.ir.conversion.passes.ParentConstructorHoistingCodeRewriter;
 import com.android.tools.r8.ir.conversion.passes.SplitBranch;
@@ -771,7 +772,7 @@ public class IRConverter {
     codeRewriter.optimizeAlwaysThrowingInstructions(code);
     timing.end();
     timing.begin("Simplify control flow");
-    if (codeRewriter.simplifyControlFlow(code)) {
+    if (new BranchSimplifier(appView).simplifyBranches(code)) {
       timing.begin("Remove trivial type checks/casts");
       codeRewriter.removeTrivialCheckCastAndInstanceOfInstructions(
           code, context, methodProcessor, methodProcessingContext);
@@ -877,7 +878,7 @@ public class IRConverter {
     if (!options.isGeneratingClassFiles()) {
       timing.begin("Canonicalize constants");
       ConstantCanonicalizer constantCanonicalizer =
-          new ConstantCanonicalizer(appView, codeRewriter, context, code);
+          new ConstantCanonicalizer(appView, context, code);
       constantCanonicalizer.canonicalize();
       timing.end();
       previous = printMethod(code, "IR after constant canonicalization (SSA)", previous);

@@ -20,6 +20,7 @@ import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.ir.code.Phi;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.code.ValueIsDeadAnalysis;
+import com.android.tools.r8.ir.conversion.passes.BranchSimplifier;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.Box;
 import com.android.tools.r8.utils.IterableUtils;
@@ -50,6 +51,8 @@ public class DeadCodeRemover {
 
     codeRewriter.rewriteMoveResult(code);
 
+    BranchSimplifier branchSimplifier = new BranchSimplifier(appView);
+
     // We may encounter unneeded catch handlers after each iteration, e.g., if a dead instruction
     // is the only throwing instruction in a block. Removing unneeded catch handlers can lead to
     // more dead instructions.
@@ -62,7 +65,7 @@ public class DeadCodeRemover {
         removeDeadInstructions(worklist, code, block, valueIsDeadAnalysis);
         removeDeadPhis(worklist, block, valueIsDeadAnalysis);
       }
-    } while (codeRewriter.simplifyIf(code).anySimplifications()
+    } while (branchSimplifier.simplifyIf(code).anySimplifications()
         || removeUnneededCatchHandlers(code));
     assert code.isConsistentSSA(appView);
 

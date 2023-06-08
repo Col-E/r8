@@ -19,6 +19,7 @@ import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionOrPhi;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.conversion.MethodProcessor;
+import com.android.tools.r8.ir.conversion.passes.BranchSimplifier;
 import com.android.tools.r8.ir.optimize.AssumeRemover;
 import com.android.tools.r8.ir.optimize.CodeRewriter;
 import com.android.tools.r8.ir.optimize.Inliner;
@@ -250,7 +251,7 @@ public final class ClassInliner {
       codeRewriter.removeTrivialCheckCastAndInstanceOfInstructions(
           code, method, methodProcessor, methodProcessingContext);
       // If a method was inlined we may be able to prune additional branches.
-      codeRewriter.simplifyControlFlow(code);
+      new BranchSimplifier(appView).simplifyBranches(code);
       // If a method was inlined we may see more trivial computation/conversion of String.
       boolean isDebugMode =
           appView.options().debug || method.getOrComputeReachabilitySensitive(appView);
