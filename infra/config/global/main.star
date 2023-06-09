@@ -283,6 +283,24 @@ def archivers():
     )
 archivers()
 
+r8_builder(
+  "check_release",
+  category = "archive",
+  dimensions = get_dimensions(),
+  triggering_policy = scheduler.policy(
+      kind = scheduler.GREEDY_BATCHING_KIND,
+      max_batch_size = 1,
+      max_concurrent_invocations = 3
+  ),
+  priority = 25,
+  properties = {
+      "test_wrapper" : "tools/check-cherry-picks.py",
+      "builder_group" : "internal.client.r8"
+  },
+  execution_timeout = time.minute * 30,
+  expiration_timeout = time.hour * 35,
+)
+
 r8_tester_with_default("linux-dex_default", ["--runtimes=dex-default"])
 r8_tester_with_default("linux-none", ["--runtimes=none"])
 r8_tester_with_default("linux-jdk8", ["--runtimes=jdk8"])
