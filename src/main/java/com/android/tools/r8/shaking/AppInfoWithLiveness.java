@@ -331,7 +331,7 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
         previous.fieldAccessInfoCollection,
         previous.methodAccessInfoCollection.withoutPrunedItems(prunedItems),
         previous.objectAllocationInfoCollection.withoutPrunedItems(prunedItems),
-        previous.callSites,
+        pruneCallSites(previous.callSites, prunedItems),
         extendPinnedItems(previous, prunedItems.getAdditionalPinnedItems()),
         previous.mayHaveSideEffects,
         pruneMethods(previous.alwaysInline, prunedItems, executorService, futures),
@@ -353,6 +353,23 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
         pruneClasses(previous.lockCandidates, prunedItems, executorService, futures),
         pruneMapFromClasses(previous.initClassReferences, prunedItems, executorService, futures),
         previous.recordFieldValuesReferences);
+  }
+
+  private static Map<DexCallSite, ProgramMethodSet> pruneCallSites(
+      Map<DexCallSite, ProgramMethodSet> callSites, PrunedItems prunedItems) {
+    callSites
+        .entrySet()
+        .removeIf(
+            entry -> {
+              ProgramMethodSet contexts = entry.getValue();
+              ProgramMethodSet prunedContexts = contexts.withoutPrunedItems(prunedItems);
+              if (prunedContexts.isEmpty()) {
+                return true;
+              }
+              entry.setValue(prunedContexts);
+              return false;
+            });
+    return callSites;
   }
 
   private static Set<DexType> pruneClasses(

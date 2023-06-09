@@ -232,7 +232,9 @@ class TreeFixer extends TreeFixerBase {
     DexMethod newMethodReference =
         newMethodSignature.withHolder(originalMethodReference, dexItemFactory);
     lensBuilder.fixupMethod(originalMethodReference, newMethodReference);
-    return method.toTypeSubstitutedMethod(newMethodReference);
+    return newMethodReference != originalMethodReference
+        ? method.toTypeSubstitutedMethod(newMethodReference)
+        : method;
   }
 
   private void fixupInterfaceClass(DexProgramClass iface) {

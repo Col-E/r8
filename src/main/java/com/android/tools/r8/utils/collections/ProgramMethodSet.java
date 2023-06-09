@@ -9,6 +9,7 @@ import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.ProgramMethod;
+import com.android.tools.r8.graph.PrunedItems;
 import com.android.tools.r8.graph.lens.GraphLens;
 import com.android.tools.r8.utils.ForEachable;
 import com.google.common.collect.ImmutableMap;
@@ -94,6 +95,11 @@ public abstract class ProgramMethodSet extends DexClassAndMethodSetBase<ProgramM
         });
     rewritten.trimCapacityIfSizeLessThan(size());
     return rewritten;
+  }
+
+  public ProgramMethodSet withoutPrunedItems(PrunedItems prunedItems) {
+    removeIf(method -> prunedItems.isRemoved(method.getReference()));
+    return this;
   }
 
   private static class ConcurrentProgramMethodSet extends ProgramMethodSet {
