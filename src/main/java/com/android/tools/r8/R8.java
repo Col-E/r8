@@ -495,6 +495,7 @@ public class R8 {
         HorizontalClassMerger.createForInitialClassMerging(appViewWithLiveness)
             .runIfNecessary(executorService, timing, runtimeTypeCheckInfo);
       }
+      appView.appInfo().notifyHorizontalClassMergerFinished(HorizontalClassMerger.Mode.INITIAL);
 
       new ProtoNormalizer(appViewWithLiveness).run(executorService, timing);
 
@@ -723,6 +724,7 @@ public class R8 {
               classMergingEnqueuerExtensionBuilder != null
                   ? classMergingEnqueuerExtensionBuilder.build(appView.graphLens())
                   : null);
+      appView.appInfo().notifyHorizontalClassMergerFinished(HorizontalClassMerger.Mode.FINAL);
 
       // Perform minification.
       if (options.getProguardConfiguration().hasApplyMappingFile()) {
@@ -737,6 +739,7 @@ public class R8 {
         appView.setNamingLens(new Minifier(appView.withLiveness()).run(executorService, timing));
         timing.end();
       }
+      appView.appInfo().notifyMinifierFinished();
 
       if (!options.isMinifying()
           && appView.options().testing.enableRecordModeling

@@ -27,6 +27,8 @@ public class MethodAccessInfoCollection {
   private final Map<DexMethod, ProgramMethodSet> superInvokes;
   private final Map<DexMethod, ProgramMethodSet> virtualInvokes;
 
+  private boolean destroyed = false;
+
   private MethodAccessInfoCollection(
       Map<DexMethod, ProgramMethodSet> directInvokes,
       Map<DexMethod, ProgramMethodSet> interfaceInvokes,
@@ -48,12 +50,24 @@ public class MethodAccessInfoCollection {
     return new IdentityBuilder();
   }
 
+  public void destroy() {
+    assert !destroyed;
+    directInvokes.clear();
+    interfaceInvokes.clear();
+    staticInvokes.clear();
+    superInvokes.clear();
+    virtualInvokes.clear();
+    destroyed = true;
+  }
+
   public Modifier modifier() {
+    assert !destroyed;
     return new Modifier(
         directInvokes, interfaceInvokes, staticInvokes, superInvokes, virtualInvokes);
   }
 
   public void forEachMethodReference(Consumer<DexMethod> method) {
+    assert !destroyed;
     Set<DexMethod> seen = Sets.newIdentityHashSet();
     directInvokes.keySet().forEach(ConsumerUtils.acceptIfNotSeen(method, seen));
     interfaceInvokes.keySet().forEach(ConsumerUtils.acceptIfNotSeen(method, seen));
@@ -63,43 +77,55 @@ public class MethodAccessInfoCollection {
   }
 
   public void forEachDirectInvoke(BiConsumer<DexMethod, ProgramMethodSet> consumer) {
+    assert !destroyed;
     directInvokes.forEach(consumer);
   }
 
   public void forEachInterfaceInvoke(BiConsumer<DexMethod, ProgramMethodSet> consumer) {
+    assert !destroyed;
     interfaceInvokes.forEach(consumer);
   }
 
   public void forEachStaticInvoke(BiConsumer<DexMethod, ProgramMethodSet> consumer) {
+    assert !destroyed;
     staticInvokes.forEach(consumer);
   }
 
   public void forEachSuperInvoke(BiConsumer<DexMethod, ProgramMethodSet> consumer) {
+    assert !destroyed;
     superInvokes.forEach(consumer);
   }
 
   public void forEachSuperInvokeContext(DexMethod method, Consumer<ProgramMethod> consumer) {
+    assert !destroyed;
     superInvokes.getOrDefault(method, ProgramMethodSet.empty()).forEach(consumer);
   }
 
   public void forEachVirtualInvoke(BiConsumer<DexMethod, ProgramMethodSet> consumer) {
+    assert !destroyed;
     virtualInvokes.forEach(consumer);
   }
 
   public void forEachVirtualInvokeContext(DexMethod method, Consumer<ProgramMethod> consumer) {
+    assert !destroyed;
     virtualInvokes.getOrDefault(method, ProgramMethodSet.empty()).forEach(consumer);
   }
 
   public MethodAccessInfoCollection rewrittenWithLens(
       DexDefinitionSupplier definitions, GraphLens lens, Timing timing) {
     timing.begin("Rewrite MethodAccessInfoCollection");
-    MethodAccessInfoCollection.Builder<?> builder = identityBuilder();
-    rewriteInvokesWithLens(builder, directInvokes, definitions, lens, InvokeType.DIRECT);
-    rewriteInvokesWithLens(builder, interfaceInvokes, definitions, lens, InvokeType.INTERFACE);
-    rewriteInvokesWithLens(builder, staticInvokes, definitions, lens, InvokeType.STATIC);
-    rewriteInvokesWithLens(builder, superInvokes, definitions, lens, InvokeType.SUPER);
-    rewriteInvokesWithLens(builder, virtualInvokes, definitions, lens, InvokeType.VIRTUAL);
-    MethodAccessInfoCollection result = builder.build();
+    MethodAccessInfoCollection result;
+    if (destroyed) {
+      result = this;
+    } else {
+      MethodAccessInfoCollection.Builder<?> builder = identityBuilder();
+      rewriteInvokesWithLens(builder, directInvokes, definitions, lens, InvokeType.DIRECT);
+      rewriteInvokesWithLens(builder, interfaceInvokes, definitions, lens, InvokeType.INTERFACE);
+      rewriteInvokesWithLens(builder, staticInvokes, definitions, lens, InvokeType.STATIC);
+      rewriteInvokesWithLens(builder, superInvokes, definitions, lens, InvokeType.SUPER);
+      rewriteInvokesWithLens(builder, virtualInvokes, definitions, lens, InvokeType.VIRTUAL);
+      result = builder.build();
+    }
     timing.end();
     return result;
   }
@@ -121,6 +147,35 @@ public class MethodAccessInfoCollection {
             builder.registerInvokeInContext(newReference, newContext, newType);
           }
         });
+  }
+
+  public MethodAccessInfoCollection withoutPrunedItems(PrunedItems prunedItems) {
+    if (!destroyed) {
+      pruneItems(prunedItems, directInvokes);
+      pruneItems(prunedItems, interfaceInvokes);
+      pruneItems(prunedItems, staticInvokes);
+      pruneItems(prunedItems, superInvokes);
+      pruneItems(prunedItems, virtualInvokes);
+    }
+    return this;
+  }
+
+  private static void pruneItems(
+      PrunedItems prunedItems, Map<DexMethod, ProgramMethodSet> invokes) {
+    invokes
+        .values()
+        .removeIf(
+            contexts -> {
+              contexts.removeIf(
+                  context -> {
+                    if (prunedItems.isRemoved(context.getReference())) {
+                      return true;
+                    }
+                    assert prunedItems.getPrunedApp().definitionFor(context.getReference()) != null;
+                    return false;
+                  });
+              return contexts.isEmpty();
+            });
   }
 
   public abstract static class Builder<T extends Map<DexMethod, ProgramMethodSet>> {

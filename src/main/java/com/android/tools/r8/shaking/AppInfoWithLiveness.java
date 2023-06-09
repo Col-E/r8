@@ -48,6 +48,7 @@ import com.android.tools.r8.graph.PrunedItems;
 import com.android.tools.r8.graph.SubtypingInfo;
 import com.android.tools.r8.graph.lens.GraphLens;
 import com.android.tools.r8.graph.lens.NonIdentityGraphLens;
+import com.android.tools.r8.horizontalclassmerging.HorizontalClassMerger;
 import com.android.tools.r8.ir.analysis.type.ClassTypeElement;
 import com.android.tools.r8.ir.analysis.type.DynamicType;
 import com.android.tools.r8.ir.analysis.type.TypeAnalysis;
@@ -328,7 +329,7 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
             previous.virtualMethodsTargetedByInvokeDirect, prunedItems, executorService, futures),
         pruneMethods(previous.liveMethods, prunedItems, executorService, futures),
         previous.fieldAccessInfoCollection,
-        previous.methodAccessInfoCollection,
+        previous.methodAccessInfoCollection.withoutPrunedItems(prunedItems),
         previous.objectAllocationInfoCollection.withoutPrunedItems(prunedItems),
         previous.callSites,
         extendPinnedItems(previous, prunedItems.getAdditionalPinnedItems()),
@@ -466,6 +467,19 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
               executorService));
     }
     return map;
+  }
+
+  @Override
+  public void notifyHorizontalClassMergerFinished(
+      HorizontalClassMerger.Mode horizontalClassMergerMode) {
+    if (horizontalClassMergerMode.isInitial()) {
+      methodAccessInfoCollection.destroy();
+    }
+  }
+
+  @Override
+  public void notifyMinifierFinished() {
+    methodAccessInfoCollection.destroy();
   }
 
   private boolean verify() {
