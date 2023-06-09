@@ -20,6 +20,7 @@ import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.StringDiagnostic;
 import com.android.tools.r8.utils.StringUtils;
+import com.android.tools.r8.utils.Timing;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Sets;
@@ -129,7 +130,11 @@ public class AppServices {
     return false;
   }
 
-  public AppServices rewrittenWithLens(GraphLens graphLens) {
+  public AppServices rewrittenWithLens(GraphLens graphLens, Timing timing) {
+    return timing.time("Rewrite AppServices", () -> rewrittenWithLens(graphLens));
+  }
+
+  private AppServices rewrittenWithLens(GraphLens graphLens) {
     ImmutableMap.Builder<DexType, Map<FeatureSplit, List<DexType>>> rewrittenFeatureMappings =
         ImmutableMap.builder();
     for (Entry<DexType, Map<FeatureSplit, List<DexType>>> entry : services.entrySet()) {

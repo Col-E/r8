@@ -6,6 +6,7 @@ package com.android.tools.r8.graph.lens;
 
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.utils.Timing;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -25,7 +26,7 @@ public abstract class InitClassLens {
     return false;
   }
 
-  public abstract InitClassLens rewrittenWithLens(GraphLens lens);
+  public abstract InitClassLens rewrittenWithLens(GraphLens lens, Timing timing);
 
   public static class Builder {
 

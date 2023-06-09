@@ -13,6 +13,7 @@ import com.android.tools.r8.ir.analysis.type.DynamicType;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
+import com.android.tools.r8.utils.Timing;
 import java.util.function.Supplier;
 
 /**
@@ -93,7 +94,8 @@ public abstract class OpenClosedInterfacesCollection {
     return false;
   }
 
-  public abstract OpenClosedInterfacesCollection rewrittenWithLens(GraphLens graphLens);
+  public abstract OpenClosedInterfacesCollection rewrittenWithLens(
+      GraphLens graphLens, Timing timing);
 
   public abstract OpenClosedInterfacesCollection withoutPrunedItems(PrunedItems prunedItems);
 }

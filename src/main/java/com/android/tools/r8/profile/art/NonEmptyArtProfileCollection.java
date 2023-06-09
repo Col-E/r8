@@ -5,12 +5,12 @@
 package com.android.tools.r8.profile.art;
 
 import com.android.tools.r8.graph.AppView;
-import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.PrunedItems;
 import com.android.tools.r8.graph.lens.GraphLens;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.ListUtils;
+import com.android.tools.r8.utils.Timing;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
@@ -51,15 +51,20 @@ public class NonEmptyArtProfileCollection extends ArtProfileCollection
   }
 
   @Override
-  public NonEmptyArtProfileCollection rewrittenWithLens(AppView<?> appView, GraphLens lens) {
+  public NonEmptyArtProfileCollection rewrittenWithLens(
+      AppView<?> appView, GraphLens lens, Timing timing) {
+    return timing.time(
+        "Rewrite NonEmptyArtProfileCollection", () -> rewrittenWithLens(appView, lens));
+  }
+
+  private NonEmptyArtProfileCollection rewrittenWithLens(AppView<?> appView, GraphLens lens) {
     return map(artProfile -> artProfile.rewrittenWithLens(appView, lens));
   }
 
   @Override
-  public NonEmptyArtProfileCollection rewrittenWithLens(
-      NamingLens lens, DexItemFactory dexItemFactory) {
+  public NonEmptyArtProfileCollection rewrittenWithLens(AppView<?> appView, NamingLens lens) {
     assert !lens.isIdentityLens();
-    return map(artProfile -> artProfile.rewrittenWithLens(lens, dexItemFactory));
+    return map(artProfile -> artProfile.rewrittenWithLens(appView, lens));
   }
 
   @Override
@@ -75,7 +80,7 @@ public class NonEmptyArtProfileCollection extends ArtProfileCollection
     NonEmptyArtProfileCollection collection =
         appView.getNamingLens().isIdentityLens()
             ? this
-            : rewrittenWithLens(appView.getNamingLens(), appView.dexItemFactory());
+            : rewrittenWithLens(appView, appView.getNamingLens());
     InternalOptions options = appView.options();
     Collection<ArtProfileForRewriting> inputs =
         options.getArtProfileOptions().getArtProfilesForRewriting();

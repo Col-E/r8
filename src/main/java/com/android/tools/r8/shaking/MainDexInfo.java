@@ -19,6 +19,7 @@ import com.android.tools.r8.graph.PrunedItems;
 import com.android.tools.r8.graph.lens.GraphLens;
 import com.android.tools.r8.synthesis.SyntheticItems;
 import com.android.tools.r8.utils.ConsumerUtils;
+import com.android.tools.r8.utils.Timing;
 import com.google.common.collect.Sets;
 import java.util.Collections;
 import java.util.Set;
@@ -273,7 +274,12 @@ public class MainDexInfo {
     }
   }
 
-  public MainDexInfo rewrittenWithLens(SyntheticItems syntheticItems, GraphLens lens) {
+  public MainDexInfo rewrittenWithLens(
+      SyntheticItems syntheticItems, GraphLens lens, Timing timing) {
+    return timing.time("Rewrite MainDexInfo", () -> rewrittenWithLens(syntheticItems, lens));
+  }
+
+  private MainDexInfo rewrittenWithLens(SyntheticItems syntheticItems, GraphLens lens) {
     Set<DexType> modifiedClassList = Sets.newIdentityHashSet();
     classList.forEach(
         type -> rewriteAndApplyIfNotPrimitiveType(lens, type, modifiedClassList::add));

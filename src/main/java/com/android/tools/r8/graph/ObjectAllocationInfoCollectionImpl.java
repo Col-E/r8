@@ -14,6 +14,7 @@ import com.android.tools.r8.shaking.InstantiationReason;
 import com.android.tools.r8.shaking.KeepReason;
 import com.android.tools.r8.shaking.MissingClasses;
 import com.android.tools.r8.utils.LensUtils;
+import com.android.tools.r8.utils.Timing;
 import com.android.tools.r8.utils.TraversalContinuation;
 import com.android.tools.r8.utils.WorkList;
 import com.google.common.collect.Sets;
@@ -143,6 +144,12 @@ public abstract class ObjectAllocationInfoCollectionImpl implements ObjectAlloca
 
   @Override
   public ObjectAllocationInfoCollectionImpl rewrittenWithLens(
+      DexDefinitionSupplier definitions, GraphLens lens, Timing timing) {
+    return timing.time(
+        "Rewrite ObjectAllocationInfoCollectionImpl", () -> rewrittenWithLens(definitions, lens));
+  }
+
+  private ObjectAllocationInfoCollectionImpl rewrittenWithLens(
       DexDefinitionSupplier definitions, GraphLens lens) {
     return builder(true, null).rewrittenWithLens(this, definitions, lens).build(definitions);
   }

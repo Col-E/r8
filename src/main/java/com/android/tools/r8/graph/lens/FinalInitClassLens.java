@@ -7,6 +7,7 @@ package com.android.tools.r8.graph.lens;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.utils.Timing;
 import java.util.Map;
 
 public class FinalInitClassLens extends InitClassLens {
@@ -32,7 +33,11 @@ public class FinalInitClassLens extends InitClassLens {
   }
 
   @Override
-  public InitClassLens rewrittenWithLens(GraphLens lens) {
+  public InitClassLens rewrittenWithLens(GraphLens lens, Timing timing) {
+    return timing.time("Rewrite FinalInitClassLens", () -> rewrittenWithLens(lens));
+  }
+
+  private InitClassLens rewrittenWithLens(GraphLens lens) {
     InitClassLens.Builder builder = InitClassLens.builder();
     mapping.forEach(
         (type, field) -> {

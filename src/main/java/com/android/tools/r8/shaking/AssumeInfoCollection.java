@@ -15,6 +15,7 @@ import com.android.tools.r8.ir.analysis.type.DynamicType;
 import com.android.tools.r8.ir.analysis.value.AbstractValue;
 import com.android.tools.r8.ir.optimize.membervaluepropagation.assume.AssumeInfo;
 import com.android.tools.r8.utils.MapUtils;
+import com.android.tools.r8.utils.Timing;
 import java.util.IdentityHashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -61,6 +62,12 @@ public class AssumeInfoCollection {
   }
 
   public AssumeInfoCollection rewrittenWithLens(
+      AppView<?> appView, GraphLens graphLens, GraphLens appliedLens, Timing timing) {
+    return timing.time(
+        "Rewrite AssumeInfoCollection", () -> rewrittenWithLens(appView, graphLens, appliedLens));
+  }
+
+  private AssumeInfoCollection rewrittenWithLens(
       AppView<?> appView, GraphLens graphLens, GraphLens appliedLens) {
     Map<DexMember<?, ?>, AssumeInfo> rewrittenCollection = new IdentityHashMap<>();
     backing.forEach(

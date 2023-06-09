@@ -674,6 +674,7 @@ public class EnumUnboxerImpl extends EnumUnboxer {
       OptimizationFeedbackDelayed feedback,
       Timing timing)
       throws ExecutionException {
+    timing.begin("Unbox enums");
     assert feedback.noUpdatesLeft();
 
     assert candidatesToRemoveInWave.isEmpty();
@@ -687,6 +688,7 @@ public class EnumUnboxerImpl extends EnumUnboxer {
 
     if (enumUnboxingCandidatesInfo.isEmpty()) {
       assert enumDataMap.isEmpty();
+      timing.end();
       return;
     }
 
@@ -754,6 +756,8 @@ public class EnumUnboxerImpl extends EnumUnboxer {
 
     // Ensure determinism of method-to-reprocess set.
     appView.testing().checkDeterminism(postMethodProcessorBuilder::dump);
+
+    timing.end();
   }
 
   private void updateOptimizationInfos(

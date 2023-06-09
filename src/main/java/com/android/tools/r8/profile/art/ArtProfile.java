@@ -140,7 +140,8 @@ public class ArtProfile implements AbstractProfile<ArtProfileClassRule, ArtProfi
         });
   }
 
-  public ArtProfile rewrittenWithLens(NamingLens lens, DexItemFactory dexItemFactory) {
+  public ArtProfile rewrittenWithLens(AppView<?> appView, NamingLens lens) {
+    DexItemFactory dexItemFactory = appView.dexItemFactory();
     assert !lens.isIdentityLens();
     return transform(
         (classRule, classRuleBuilderFactory) ->

@@ -1125,13 +1125,14 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
             .map(FieldResolutionResult::getResolvedField)
             .collect(Collectors.toList()));
 
-    CommittedItems committedItems = getSyntheticItems().commitRewrittenWithLens(application, lens);
+    CommittedItems committedItems =
+        getSyntheticItems().commitRewrittenWithLens(application, lens, timing);
     DexDefinitionSupplier definitionSupplier =
         committedItems.getApplication().getDefinitionsSupplier(committedItems);
     return new AppInfoWithLiveness(
         committedItems,
         getClassToFeatureSplitMap().rewrittenWithLens(lens, timing),
-        getMainDexInfo().rewrittenWithLens(getSyntheticItems(), lens),
+        getMainDexInfo().rewrittenWithLens(getSyntheticItems(), lens, timing),
         getMissingClasses(),
         deadProtoTypes,
         lens.rewriteReferences(liveTypes),
@@ -1141,11 +1142,11 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
         lens.rewriteReferences(bootstrapMethods),
         lens.rewriteReferences(virtualMethodsTargetedByInvokeDirect),
         lens.rewriteReferences(liveMethods),
-        fieldAccessInfoCollection.rewrittenWithLens(definitionSupplier, lens),
-        methodAccessInfoCollection.rewrittenWithLens(definitionSupplier, lens),
-        objectAllocationInfoCollection.rewrittenWithLens(definitionSupplier, lens),
-        lens.rewriteCallSites(callSites, definitionSupplier),
-        keepInfo.rewrite(definitionSupplier, lens, application.options),
+        fieldAccessInfoCollection.rewrittenWithLens(definitionSupplier, lens, timing),
+        methodAccessInfoCollection.rewrittenWithLens(definitionSupplier, lens, timing),
+        objectAllocationInfoCollection.rewrittenWithLens(definitionSupplier, lens, timing),
+        lens.rewriteCallSites(callSites, definitionSupplier, timing),
+        keepInfo.rewrite(definitionSupplier, lens, application.options, timing),
         // Take any rule in case of collisions.
         lens.rewriteReferenceKeys(mayHaveSideEffects, (reference, rules) -> ListUtils.first(rules)),
         lens.rewriteReferences(alwaysInline),

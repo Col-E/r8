@@ -30,6 +30,7 @@ import com.android.tools.r8.shaking.KeepInfoCollection;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.ListUtils;
 import com.android.tools.r8.utils.SetUtils;
+import com.android.tools.r8.utils.Timing;
 import com.android.tools.r8.utils.collections.BidirectionalManyToOneRepresentativeHashMap;
 import com.android.tools.r8.utils.collections.MutableBidirectionalManyToOneRepresentativeMap;
 import com.android.tools.r8.utils.collections.ProgramMethodSet;
@@ -491,7 +492,10 @@ public abstract class GraphLens {
   }
 
   public Map<DexCallSite, ProgramMethodSet> rewriteCallSites(
-      Map<DexCallSite, ProgramMethodSet> callSites, DexDefinitionSupplier definitions) {
+      Map<DexCallSite, ProgramMethodSet> callSites,
+      DexDefinitionSupplier definitions,
+      Timing timing) {
+    timing.begin("Rewrite call sites");
     Map<DexCallSite, ProgramMethodSet> result = new IdentityHashMap<>();
     LensCodeRewriterUtils rewriter = new LensCodeRewriterUtils(definitions, this, null);
     callSites.forEach(
@@ -503,6 +507,7 @@ public abstract class GraphLens {
                 .add(context);
           }
         });
+    timing.end();
     return result;
   }
 

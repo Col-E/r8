@@ -7,6 +7,7 @@ package com.android.tools.r8.graph;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AbstractAccessContexts.ConcreteAccessContexts;
 import com.android.tools.r8.graph.lens.GraphLens;
+import com.android.tools.r8.utils.Timing;
 import com.android.tools.r8.utils.collections.ProgramMethodSet;
 import com.google.common.collect.Sets;
 import java.util.IdentityHashMap;
@@ -356,11 +357,14 @@ public class FieldAccessInfoImpl implements FieldAccessInfo {
     writesWithContexts = AbstractAccessContexts.empty();
   }
 
-  public FieldAccessInfoImpl rewrittenWithLens(DexDefinitionSupplier definitions, GraphLens lens) {
+  public FieldAccessInfoImpl rewrittenWithLens(
+      DexDefinitionSupplier definitions, GraphLens lens, Timing timing) {
+    timing.begin("Rewrite FieldAccessInfoImpl");
     FieldAccessInfoImpl rewritten = new FieldAccessInfoImpl(lens.lookupField(field));
     rewritten.flags = flags;
     rewritten.readsWithContexts = readsWithContexts.rewrittenWithLens(definitions, lens);
     rewritten.writesWithContexts = writesWithContexts.rewrittenWithLens(definitions, lens);
+    timing.end();
     return rewritten;
   }
 

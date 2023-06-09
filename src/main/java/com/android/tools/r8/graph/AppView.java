@@ -933,6 +933,8 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
     assert lens != null;
     assert application != null;
 
+    timing.begin("Rewrite AppView");
+
     boolean changed = appView.setGraphLens(lens);
     assert changed;
     assert application.verifyWithLens(appView.appInfo().app().asDirect(), lens);
@@ -940,6 +942,68 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
     // The application has already been rewritten with the given applied lens. Therefore, we
     // temporarily replace that lens with a lens that does not have any rewritings to avoid the
     // overhead of traversing the entire lens chain upon each lookup during the rewriting.
+    NonIdentityGraphLens firstUnappliedLens = computeFirstUnappliedLens(appView, lens, appliedLens);
+
+    // Insert a member rebinding lens above the first unapplied lens.
+    // TODO(b/182129249): Once the member rebinding phase has been removed, the MemberRebindingLens
+    //  should be removed and all uses of FieldRebindingIdentityLens should be replaced by
+    //  MemberRebindingIdentityLens.
+    GraphLens newMemberRebindingLens =
+        computeNewMemberRebindingLens(appView, appliedLens, firstUnappliedLens, timing);
+
+    firstUnappliedLens.withAlternativeParentLens(
+        newMemberRebindingLens,
+        () -> {
+          GraphLens appliedLensInModifiedLens = GraphLens.getIdentityLens();
+          if (appView.hasLiveness()) {
+            appView
+                .withLiveness()
+                .setAppInfo(
+                    appView.appInfoWithLiveness().rewrittenWithLens(application, lens, timing));
+          } else {
+            assert appView.hasClassHierarchy();
+            AppView<AppInfoWithClassHierarchy> appViewWithClassHierarchy =
+                appView.withClassHierarchy();
+            AppInfoWithClassHierarchy appInfo = appViewWithClassHierarchy.appInfo();
+            MainDexInfo rewrittenMainDexInfo =
+                appInfo
+                    .getMainDexInfo()
+                    .rewrittenWithLens(appView.getSyntheticItems(), lens, timing);
+            appViewWithClassHierarchy.setAppInfo(
+                appInfo.rebuildWithMainDexInfo(rewrittenMainDexInfo));
+          }
+          appView.setAppServices(appView.appServices().rewrittenWithLens(lens, timing));
+          appView.setArtProfileCollection(
+              appView.getArtProfileCollection().rewrittenWithLens(appView, lens, timing));
+          appView.setAssumeInfoCollection(
+              appView
+                  .getAssumeInfoCollection()
+                  .rewrittenWithLens(appView, lens, appliedLensInModifiedLens, timing));
+          if (appView.hasInitClassLens()) {
+            appView.setInitClassLens(appView.initClassLens().rewrittenWithLens(lens, timing));
+          }
+          if (appView.hasProguardCompatibilityActions()) {
+            appView.setProguardCompatibilityActions(
+                appView.getProguardCompatibilityActions().rewrittenWithLens(lens, timing));
+          }
+          if (appView.hasMainDexRootSet()) {
+            appView.setMainDexRootSet(appView.getMainDexRootSet().rewrittenWithLens(lens, timing));
+          }
+          appView.setOpenClosedInterfacesCollection(
+              appView.getOpenClosedInterfacesCollection().rewrittenWithLens(lens, timing));
+          if (appView.hasRootSet()) {
+            appView.setRootSet(appView.rootSet().rewrittenWithLens(lens, timing));
+          }
+          appView.setStartupProfile(appView.getStartupProfile().rewrittenWithLens(lens, timing));
+        });
+
+    timing.end(); // Rewrite AppView
+  }
+
+  private static NonIdentityGraphLens computeFirstUnappliedLens(
+      AppView<? extends AppInfoWithClassHierarchy> appView,
+      NonIdentityGraphLens lens,
+      GraphLens appliedLens) {
     NonIdentityGraphLens firstUnappliedLens = lens;
     while (firstUnappliedLens.getPrevious() != appliedLens) {
       GraphLens previousLens = firstUnappliedLens.getPrevious();
@@ -947,11 +1011,15 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
       assert previousLens != appView.codeLens();
       firstUnappliedLens = previousLens.asNonIdentityLens();
     }
+    return firstUnappliedLens;
+  }
 
-    // Insert a member rebinding lens above the first unapplied lens.
-    // TODO(b/182129249): Once the member rebinding phase has been removed, the MemberRebindingLens
-    //  should be removed and all uses of FieldRebindingIdentityLens should be replaced by
-    //  MemberRebindingIdentityLens.
+  private static GraphLens computeNewMemberRebindingLens(
+      AppView<? extends AppInfoWithClassHierarchy> appView,
+      GraphLens appliedLens,
+      NonIdentityGraphLens firstUnappliedLens,
+      Timing timing) {
+    timing.begin("Compute new member rebinding lens");
     GraphLens newMemberRebindingLens = GraphLens.getIdentityLens();
     if (!firstUnappliedLens.isMemberRebindingLens()
         && !firstUnappliedLens.isMemberRebindingIdentityLens()) {
@@ -972,62 +1040,21 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
                         appView, appliedLens, appliedMemberRebindingLens);
       }
     }
-
-    firstUnappliedLens.withAlternativeParentLens(
-        newMemberRebindingLens,
-        () -> {
-          GraphLens appliedLensInModifiedLens = GraphLens.getIdentityLens();
-          if (appView.hasLiveness()) {
-            appView
-                .withLiveness()
-                .setAppInfo(
-                    appView.appInfoWithLiveness().rewrittenWithLens(application, lens, timing));
-          } else {
-            assert appView.hasClassHierarchy();
-            AppView<AppInfoWithClassHierarchy> appViewWithClassHierarchy =
-                appView.withClassHierarchy();
-            AppInfoWithClassHierarchy appInfo = appViewWithClassHierarchy.appInfo();
-            MainDexInfo rewrittenMainDexInfo =
-                appInfo.getMainDexInfo().rewrittenWithLens(appView.getSyntheticItems(), lens);
-            appViewWithClassHierarchy.setAppInfo(
-                appInfo.rebuildWithMainDexInfo(rewrittenMainDexInfo));
-          }
-          appView.setAppServices(appView.appServices().rewrittenWithLens(lens));
-          appView.setArtProfileCollection(
-              appView.getArtProfileCollection().rewrittenWithLens(appView, lens));
-          appView.setAssumeInfoCollection(
-              appView
-                  .getAssumeInfoCollection()
-                  .rewrittenWithLens(appView, lens, appliedLensInModifiedLens));
-          if (appView.hasInitClassLens()) {
-            appView.setInitClassLens(appView.initClassLens().rewrittenWithLens(lens));
-          }
-          if (appView.hasProguardCompatibilityActions()) {
-            appView.setProguardCompatibilityActions(
-                appView.getProguardCompatibilityActions().rewrittenWithLens(lens));
-          }
-          if (appView.hasMainDexRootSet()) {
-            appView.setMainDexRootSet(appView.getMainDexRootSet().rewrittenWithLens(lens));
-          }
-          appView.setOpenClosedInterfacesCollection(
-              appView.getOpenClosedInterfacesCollection().rewrittenWithLens(lens));
-          if (appView.hasRootSet()) {
-            appView.setRootSet(appView.rootSet().rewrittenWithLens(lens));
-          }
-          appView.setStartupProfile(appView.getStartupProfile().rewrittenWithLens(lens));
-        });
+    timing.end();
+    return newMemberRebindingLens;
   }
 
-  public void rewriteWithD8Lens(NonIdentityGraphLens lens) {
-    rewriteWithD8Lens(lens, withoutClassHierarchy());
+  public void rewriteWithD8Lens(NonIdentityGraphLens lens, Timing timing) {
+    rewriteWithD8Lens(lens, timing, withoutClassHierarchy());
   }
 
-  private static void rewriteWithD8Lens(NonIdentityGraphLens lens, AppView<AppInfo> appView) {
+  private static void rewriteWithD8Lens(
+      NonIdentityGraphLens lens, Timing timing, AppView<AppInfo> appView) {
     boolean changed = appView.setGraphLens(lens);
     assert changed;
 
     appView.setArtProfileCollection(
-        appView.getArtProfileCollection().rewrittenWithLens(appView, lens));
+        appView.getArtProfileCollection().rewrittenWithLens(appView, lens, timing));
   }
 
   public void setAlreadyLibraryDesugared(Set<DexType> alreadyLibraryDesugared) {

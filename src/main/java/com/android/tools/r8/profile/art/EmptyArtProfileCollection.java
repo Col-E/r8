@@ -5,10 +5,10 @@
 package com.android.tools.r8.profile.art;
 
 import com.android.tools.r8.graph.AppView;
-import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.PrunedItems;
 import com.android.tools.r8.graph.lens.GraphLens;
 import com.android.tools.r8.naming.NamingLens;
+import com.android.tools.r8.utils.Timing;
 
 public class EmptyArtProfileCollection extends ArtProfileCollection {
 
@@ -36,12 +36,12 @@ public class EmptyArtProfileCollection extends ArtProfileCollection {
   }
 
   @Override
-  public ArtProfileCollection rewrittenWithLens(AppView<?> appView, GraphLens lens) {
+  public ArtProfileCollection rewrittenWithLens(AppView<?> appView, GraphLens lens, Timing timing) {
     return this;
   }
 
   @Override
-  public ArtProfileCollection rewrittenWithLens(NamingLens lens, DexItemFactory dexItemFactory) {
+  public ArtProfileCollection rewrittenWithLens(AppView<?> appView, NamingLens lens) {
     return this;
   }
 

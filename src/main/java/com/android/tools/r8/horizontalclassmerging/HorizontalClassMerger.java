@@ -181,12 +181,12 @@ public class HorizontalClassMerger {
           .setAppInfo(
               new AppInfo(
                   syntheticItems.commitRewrittenWithLens(
-                      newApplication, horizontalClassMergerGraphLens),
+                      newApplication, horizontalClassMergerGraphLens, timing),
                   appView
                       .appInfo()
                       .getMainDexInfo()
-                      .rewrittenWithLens(syntheticItems, horizontalClassMergerGraphLens)));
-      appView.rewriteWithD8Lens(horizontalClassMergerGraphLens);
+                      .rewrittenWithLens(syntheticItems, horizontalClassMergerGraphLens, timing)));
+      appView.rewriteWithD8Lens(horizontalClassMergerGraphLens, timing);
     }
     codeProvider.setGraphLens(horizontalClassMergerGraphLens);
 

@@ -20,6 +20,7 @@ import com.android.tools.r8.shaking.EnqueuerEvent.ClassEnqueuerEvent;
 import com.android.tools.r8.shaking.EnqueuerEvent.UnconditionalKeepInfoEvent;
 import com.android.tools.r8.shaking.KeepInfo.Joiner;
 import com.android.tools.r8.utils.MapUtils;
+import com.android.tools.r8.utils.Timing;
 import com.android.tools.r8.utils.TriConsumer;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -148,7 +149,8 @@ public class DependentMinimumKeepInfoCollection {
     return minimumKeepInfoForReference;
   }
 
-  public DependentMinimumKeepInfoCollection rewrittenWithLens(GraphLens graphLens) {
+  public DependentMinimumKeepInfoCollection rewrittenWithLens(GraphLens graphLens, Timing timing) {
+    timing.begin("Rewrite DependentMinimumKeepInfoCollection");
     DependentMinimumKeepInfoCollection rewrittenDependentMinimumKeepInfo =
         new DependentMinimumKeepInfoCollection();
     forEach(
@@ -160,6 +162,7 @@ public class DependentMinimumKeepInfoCollection {
                 .merge(minimumKeepInfo.rewrittenWithLens(graphLens));
           }
         });
+    timing.end();
     return rewrittenDependentMinimumKeepInfo;
   }
 }

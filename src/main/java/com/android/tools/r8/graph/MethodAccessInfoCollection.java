@@ -8,6 +8,7 @@ import com.android.tools.r8.graph.lens.GraphLens;
 import com.android.tools.r8.graph.lens.MethodLookupResult;
 import com.android.tools.r8.ir.code.InvokeType;
 import com.android.tools.r8.utils.ConsumerUtils;
+import com.android.tools.r8.utils.Timing;
 import com.android.tools.r8.utils.collections.ProgramMethodSet;
 import com.google.common.collect.Sets;
 import java.util.IdentityHashMap;
@@ -90,14 +91,17 @@ public class MethodAccessInfoCollection {
   }
 
   public MethodAccessInfoCollection rewrittenWithLens(
-      DexDefinitionSupplier definitions, GraphLens lens) {
+      DexDefinitionSupplier definitions, GraphLens lens, Timing timing) {
+    timing.begin("Rewrite MethodAccessInfoCollection");
     MethodAccessInfoCollection.Builder<?> builder = identityBuilder();
     rewriteInvokesWithLens(builder, directInvokes, definitions, lens, InvokeType.DIRECT);
     rewriteInvokesWithLens(builder, interfaceInvokes, definitions, lens, InvokeType.INTERFACE);
     rewriteInvokesWithLens(builder, staticInvokes, definitions, lens, InvokeType.STATIC);
     rewriteInvokesWithLens(builder, superInvokes, definitions, lens, InvokeType.SUPER);
     rewriteInvokesWithLens(builder, virtualInvokes, definitions, lens, InvokeType.VIRTUAL);
-    return builder.build();
+    MethodAccessInfoCollection result = builder.build();
+    timing.end();
+    return result;
   }
 
   private static void rewriteInvokesWithLens(

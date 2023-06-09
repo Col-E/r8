@@ -7,6 +7,7 @@ package com.android.tools.r8.graph;
 import com.android.tools.r8.graph.lens.GraphLens;
 import com.android.tools.r8.utils.ObjectUtils;
 import com.android.tools.r8.utils.SetUtils;
+import com.android.tools.r8.utils.Timing;
 import java.util.IdentityHashMap;
 import java.util.Map;
 import java.util.function.BiPredicate;
@@ -79,11 +80,12 @@ public class FieldAccessInfoCollectionImpl
   }
 
   public FieldAccessInfoCollectionImpl rewrittenWithLens(
-      DexDefinitionSupplier definitions, GraphLens lens) {
+      DexDefinitionSupplier definitions, GraphLens lens, Timing timing) {
+    timing.begin("Rewrite FieldAccessInfoCollectionImpl");
     FieldAccessInfoCollectionImpl collection = new FieldAccessInfoCollectionImpl();
     Consumer<FieldAccessInfoImpl> rewriteAndMergeFieldInfo =
         info -> {
-          FieldAccessInfoImpl rewrittenInfo = info.rewrittenWithLens(definitions, lens);
+          FieldAccessInfoImpl rewrittenInfo = info.rewrittenWithLens(definitions, lens, timing);
           DexField newField = rewrittenInfo.getField();
           collection.infos.compute(
               newField,
@@ -91,6 +93,7 @@ public class FieldAccessInfoCollectionImpl
                   ObjectUtils.mapNotNullOrDefault(oldInfo, rewrittenInfo, rewrittenInfo::join));
         };
     infos.values().forEach(rewriteAndMergeFieldInfo);
+    timing.end();
     return collection;
   }
 
