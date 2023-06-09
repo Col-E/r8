@@ -657,9 +657,9 @@ public class ComposingBuilder {
           composedRanges =
               fixupOutlineInformation(
                   computedOutlineInformation,
-                  memberNaming.getOriginalSignature().asMethodSignature(),
                   newRangesToCompose,
-                  composedRanges);
+                  composedRanges,
+                  memberNaming.getOriginalSignature().asMethodSignature());
           MethodSignature residualSignature =
               memberNaming
                   .computeResidualSignature(type -> inverseClassMapping.getOrDefault(type, type))
@@ -680,9 +680,9 @@ public class ComposingBuilder {
 
     private List<MappedRange> fixupOutlineInformation(
         ComputedOutlineInformation computedOutlineInformation,
-        MethodSignature originalSignature,
         List<MappedRange> newRangesToBeComposed,
-        List<MappedRange> composedRanges)
+        List<MappedRange> composedRanges,
+        MethodSignature originalSignature)
         throws MappingComposeException {
       composedRanges = fixupInlinedOutlines(computedOutlineInformation, composedRanges);
       fixupOutlineInformation(computedOutlineInformation, newRangesToBeComposed, composedRanges);
