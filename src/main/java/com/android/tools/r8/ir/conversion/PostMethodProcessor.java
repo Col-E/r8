@@ -152,6 +152,9 @@ public class PostMethodProcessor extends MethodProcessorWithWave {
         return null;
       }
       ProgramMethodSet methodsToReprocess = methodsToReprocessBuilder.build(appView);
+      assert !appView.options().debug
+          || methodsToReprocess.stream()
+              .allMatch(methodToReprocess -> methodToReprocess.getDefinition().isD8R8Synthesized());
       CallGraph callGraph =
           new PartialCallGraphBuilder(appView, methodsToReprocess).build(executorService, timing);
       return new PostMethodProcessor(appView, callGraph, eventConsumer);

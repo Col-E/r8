@@ -162,7 +162,6 @@ public class PrimaryR8IRConverter extends IRConverter {
                   postMethodProcessorBuilder.build(
                       appView, eventConsumer, executorService, timing));
       if (postMethodProcessor != null) {
-        assert !options.debug;
         assert appView.graphLens() == graphLensForSecondaryOptimizationPass;
         timing.begin("Process code");
         postMethodProcessor.forEachMethod(
