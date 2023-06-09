@@ -16,24 +16,28 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.IntFunction;
 import java.util.function.Predicate;
-import java.util.function.Supplier;
 import java.util.stream.Stream;
 
 public abstract class DexClassAndMethodSetBase<T extends DexClassAndMethod>
     implements Collection<T> {
 
-  protected final Map<DexMethod, T> backing;
-  protected final Supplier<? extends Map<DexMethod, T>> backingFactory;
+  Map<DexMethod, T> backing;
 
-  protected DexClassAndMethodSetBase(Supplier<? extends Map<DexMethod, T>> backingFactory) {
-    this(backingFactory, backingFactory.get());
+  DexClassAndMethodSetBase() {
+    this.backing = createBacking();
   }
 
-  protected DexClassAndMethodSetBase(
-      Supplier<? extends Map<DexMethod, T>> backingFactory, Map<DexMethod, T> backing) {
+  DexClassAndMethodSetBase(Map<DexMethod, T> backing) {
     this.backing = backing;
-    this.backingFactory = backingFactory;
   }
+
+  DexClassAndMethodSetBase(int capacity) {
+    this.backing = createBacking(capacity);
+  }
+
+  abstract Map<DexMethod, T> createBacking();
+
+  abstract Map<DexMethod, T> createBacking(int capacity);
 
   @Override
   public boolean add(T method) {
@@ -170,5 +174,13 @@ public abstract class DexClassAndMethodSetBase<T extends DexClassAndMethod>
     Set<DexEncodedMethod> definitions = factory.apply(size());
     forEach(method -> definitions.add(method.getDefinition()));
     return definitions;
+  }
+
+  public void trimCapacityIfSizeLessThan(int expectedSize) {
+    if (size() < expectedSize) {
+      Map<DexMethod, T> newBacking = createBacking(size());
+      newBacking.putAll(backing);
+      backing = newBacking;
+    }
   }
 }

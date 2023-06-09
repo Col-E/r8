@@ -11,49 +11,25 @@ import java.util.IdentityHashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.function.Supplier;
 
-public class DexClassAndMethodSet extends DexClassAndMethodSetBase<DexClassAndMethod> {
+public abstract class DexClassAndMethodSet extends DexClassAndMethodSetBase<DexClassAndMethod> {
 
-  private static final DexClassAndMethodSet EMPTY = new DexClassAndMethodSet(ImmutableMap::of);
+  private static final DexClassAndMethodSet EMPTY = new EmptyDexClassAndMethodSet();
 
-  protected DexClassAndMethodSet(
-      Supplier<? extends Map<DexMethod, DexClassAndMethod>> backingFactory) {
-    super(backingFactory);
-  }
-
-  protected DexClassAndMethodSet(
-      Supplier<? extends Map<DexMethod, DexClassAndMethod>> backingFactory,
-      Map<DexMethod, DexClassAndMethod> backing) {
-    super(backingFactory, backing);
+  DexClassAndMethodSet() {
+    super();
   }
 
   public static DexClassAndMethodSet create() {
-    return new DexClassAndMethodSet(IdentityHashMap::new);
-  }
-
-  public static DexClassAndMethodSet create(int capacity) {
-    return new DexClassAndMethodSet(IdentityHashMap::new, new IdentityHashMap<>(capacity));
-  }
-
-  public static DexClassAndMethodSet create(DexClassAndMethod element) {
-    DexClassAndMethodSet result = create();
-    result.add(element);
-    return result;
-  }
-
-  public static DexClassAndMethodSet create(DexClassAndMethodSet methodSet) {
-    DexClassAndMethodSet newMethodSet = create();
-    newMethodSet.addAll(methodSet);
-    return newMethodSet;
+    return new IdentityDexClassAndMethodSet();
   }
 
   public static DexClassAndMethodSet createConcurrent() {
-    return new DexClassAndMethodSet(ConcurrentHashMap::new);
+    return new ConcurrentDexClassAndMethodSet();
   }
 
   public static DexClassAndMethodSet createLinked() {
-    return new DexClassAndMethodSet(LinkedHashMap::new);
+    return new LinkedDexClassAndMethodSet();
   }
 
   public static DexClassAndMethodSet empty() {
@@ -62,5 +38,57 @@ public class DexClassAndMethodSet extends DexClassAndMethodSetBase<DexClassAndMe
 
   public void addAll(DexClassAndMethodSet methods) {
     backing.putAll(methods.backing);
+  }
+
+  private static class ConcurrentDexClassAndMethodSet extends DexClassAndMethodSet {
+
+    @Override
+    Map<DexMethod, DexClassAndMethod> createBacking() {
+      return new ConcurrentHashMap<>();
+    }
+
+    @Override
+    Map<DexMethod, DexClassAndMethod> createBacking(int capacity) {
+      return new ConcurrentHashMap<>(capacity);
+    }
+  }
+
+  private static class EmptyDexClassAndMethodSet extends DexClassAndMethodSet {
+
+    @Override
+    Map<DexMethod, DexClassAndMethod> createBacking() {
+      return ImmutableMap.of();
+    }
+
+    @Override
+    Map<DexMethod, DexClassAndMethod> createBacking(int capacity) {
+      return ImmutableMap.of();
+    }
+  }
+
+  private static class IdentityDexClassAndMethodSet extends DexClassAndMethodSet {
+
+    @Override
+    Map<DexMethod, DexClassAndMethod> createBacking() {
+      return new IdentityHashMap<>();
+    }
+
+    @Override
+    Map<DexMethod, DexClassAndMethod> createBacking(int capacity) {
+      return new IdentityHashMap<>(capacity);
+    }
+  }
+
+  private static class LinkedDexClassAndMethodSet extends DexClassAndMethodSet {
+
+    @Override
+    Map<DexMethod, DexClassAndMethod> createBacking() {
+      return new LinkedHashMap<>();
+    }
+
+    @Override
+    Map<DexMethod, DexClassAndMethod> createBacking(int capacity) {
+      return new LinkedHashMap<>(capacity);
+    }
   }
 }
