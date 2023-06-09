@@ -50,6 +50,11 @@ public class ArrayUtils {
     return results;
   }
 
+  public static <T> T[] filled(T[] array, T element) {
+    Arrays.fill(array, element);
+    return array;
+  }
+
   public static <T> T[] initialize(T[] array, IntFunction<T> fn) {
     for (int i = 0; i < array.length; i++) {
       array[i] = fn.apply(i);

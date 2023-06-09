@@ -57,6 +57,8 @@ import com.android.tools.r8.utils.OptionalBool;
 import com.android.tools.r8.utils.Reporter;
 import com.android.tools.r8.utils.ThrowingConsumer;
 import com.android.tools.r8.utils.Timing;
+import com.android.tools.r8.utils.threads.ThreadTask;
+import com.android.tools.r8.utils.threads.ThreadTaskUtils;
 import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableSet;
 import java.io.IOException;
@@ -958,46 +960,153 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
         newMemberRebindingLens,
         () -> {
           GraphLens appliedLensInModifiedLens = GraphLens.getIdentityLens();
-          if (appView.hasLiveness()) {
-            appView
-                .withLiveness()
-                .setAppInfo(
-                    appView.appInfoWithLiveness().rewrittenWithLens(application, lens, timing));
-          } else {
-            assert appView.hasClassHierarchy();
-            AppView<AppInfoWithClassHierarchy> appViewWithClassHierarchy =
-                appView.withClassHierarchy();
-            AppInfoWithClassHierarchy appInfo = appViewWithClassHierarchy.appInfo();
-            MainDexInfo rewrittenMainDexInfo =
-                appInfo
-                    .getMainDexInfo()
-                    .rewrittenWithLens(appView.getSyntheticItems(), lens, timing);
-            appViewWithClassHierarchy.setAppInfo(
-                appInfo.rebuildWithMainDexInfo(rewrittenMainDexInfo));
-          }
-          appView.setAppServices(appView.appServices().rewrittenWithLens(lens, timing));
-          appView.setArtProfileCollection(
-              appView.getArtProfileCollection().rewrittenWithLens(appView, lens, timing));
-          appView.setAssumeInfoCollection(
-              appView
-                  .getAssumeInfoCollection()
-                  .rewrittenWithLens(appView, lens, appliedLensInModifiedLens, timing));
-          if (appView.hasInitClassLens()) {
-            appView.setInitClassLens(appView.initClassLens().rewrittenWithLens(lens, timing));
-          }
-          if (appView.hasProguardCompatibilityActions()) {
-            appView.setProguardCompatibilityActions(
-                appView.getProguardCompatibilityActions().rewrittenWithLens(lens, timing));
-          }
-          if (appView.hasMainDexRootSet()) {
-            appView.setMainDexRootSet(appView.getMainDexRootSet().rewrittenWithLens(lens, timing));
-          }
-          appView.setOpenClosedInterfacesCollection(
-              appView.getOpenClosedInterfacesCollection().rewrittenWithLens(lens, timing));
-          if (appView.hasRootSet()) {
-            appView.setRootSet(appView.rootSet().rewrittenWithLens(lens, timing));
-          }
-          appView.setStartupProfile(appView.getStartupProfile().rewrittenWithLens(lens, timing));
+          ThreadTaskUtils.processTasks(
+              executorService,
+              appView.options(),
+              timing
+                  .beginMerger("Rewrite AppView concurrently", executorService)
+                  .disableSlowestReporting(),
+              new ThreadTask() {
+                @Override
+                public void run(Timing threadTiming) {
+                  if (appView.hasLiveness()) {
+                    appView
+                        .withLiveness()
+                        .setAppInfo(
+                            appView
+                                .appInfoWithLiveness()
+                                .rewrittenWithLens(application, lens, threadTiming));
+                  } else {
+                    assert appView.hasClassHierarchy();
+                    AppView<AppInfoWithClassHierarchy> appViewWithClassHierarchy =
+                        appView.withClassHierarchy();
+                    AppInfoWithClassHierarchy appInfo = appViewWithClassHierarchy.appInfo();
+                    MainDexInfo rewrittenMainDexInfo =
+                        appInfo
+                            .getMainDexInfo()
+                            .rewrittenWithLens(appView.getSyntheticItems(), lens, threadTiming);
+                    appViewWithClassHierarchy.setAppInfo(
+                        appInfo.rebuildWithMainDexInfo(rewrittenMainDexInfo));
+                  }
+                }
+              },
+              new ThreadTask() {
+                @Override
+                public void run(Timing threadTiming) {
+                  appView.setAppServices(
+                      appView.appServices().rewrittenWithLens(lens, threadTiming));
+                }
+
+                @Override
+                public boolean shouldRun() {
+                  return !appView.appServices().isEmpty();
+                }
+              },
+              new ThreadTask() {
+                @Override
+                public void run(Timing threadTiming) {
+                  appView.setArtProfileCollection(
+                      appView
+                          .getArtProfileCollection()
+                          .rewrittenWithLens(appView, lens, threadTiming));
+                }
+
+                @Override
+                public boolean shouldRun() {
+                  return !appView.getArtProfileCollection().isEmpty();
+                }
+              },
+              new ThreadTask() {
+                @Override
+                public void run(Timing threadTiming) {
+                  appView.setAssumeInfoCollection(
+                      appView
+                          .getAssumeInfoCollection()
+                          .rewrittenWithLens(
+                              appView, lens, appliedLensInModifiedLens, threadTiming));
+                }
+
+                @Override
+                public boolean shouldRun() {
+                  return !appView.getAssumeInfoCollection().isEmpty();
+                }
+              },
+              new ThreadTask() {
+                @Override
+                public void run(Timing threadTiming) {
+                  appView.setInitClassLens(
+                      appView.initClassLens().rewrittenWithLens(lens, threadTiming));
+                }
+
+                @Override
+                public boolean shouldRun() {
+                  return appView.hasInitClassLens();
+                }
+              },
+              new ThreadTask() {
+                @Override
+                public void run(Timing threadTiming) {
+                  appView.setProguardCompatibilityActions(
+                      appView
+                          .getProguardCompatibilityActions()
+                          .rewrittenWithLens(lens, threadTiming));
+                }
+
+                @Override
+                public boolean shouldRun() {
+                  return appView.hasProguardCompatibilityActions()
+                      && !appView.getProguardCompatibilityActions().isEmpty();
+                }
+              },
+              new ThreadTask() {
+                @Override
+                public void run(Timing threadTiming) {
+                  appView.setMainDexRootSet(
+                      appView.getMainDexRootSet().rewrittenWithLens(lens, threadTiming));
+                }
+
+                @Override
+                public boolean shouldRun() {
+                  return appView.hasMainDexRootSet();
+                }
+              },
+              new ThreadTask() {
+                @Override
+                public void run(Timing threadTiming) {
+                  appView.setOpenClosedInterfacesCollection(
+                      appView
+                          .getOpenClosedInterfacesCollection()
+                          .rewrittenWithLens(lens, threadTiming));
+                }
+
+                @Override
+                public boolean shouldRun() {
+                  return !appView.getOpenClosedInterfacesCollection().isEmpty();
+                }
+              },
+              new ThreadTask() {
+                @Override
+                public void run(Timing threadTiming) {
+                  appView.setRootSet(appView.rootSet().rewrittenWithLens(lens, threadTiming));
+                }
+
+                @Override
+                public boolean shouldRun() {
+                  return appView.hasRootSet();
+                }
+              },
+              new ThreadTask() {
+                @Override
+                public void run(Timing threadTiming) {
+                  appView.setStartupProfile(
+                      appView.getStartupProfile().rewrittenWithLens(lens, threadTiming));
+                }
+
+                @Override
+                public boolean shouldRun() {
+                  return !appView.getStartupProfile().isEmpty();
+                }
+              });
         });
 
     timing.end(); // Rewrite AppView

@@ -46,6 +46,10 @@ public class AssumeInfoCollection {
     return get(member.getReference());
   }
 
+  public boolean isEmpty() {
+    return backing.isEmpty();
+  }
+
   public boolean isMaterializableInAllContexts(
       AppView<AppInfoWithLiveness> appView, DexClassAndMember<?, ?> member) {
     AbstractValue assumeValue = get(member).getAssumeValue();

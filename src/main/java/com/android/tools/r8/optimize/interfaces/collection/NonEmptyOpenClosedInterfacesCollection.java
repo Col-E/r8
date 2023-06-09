@@ -27,6 +27,11 @@ public class NonEmptyOpenClosedInterfacesCollection extends OpenClosedInterfaces
   }
 
   @Override
+  public boolean isEmpty() {
+    return openInterfaceTypes.isEmpty();
+  }
+
+  @Override
   public OpenClosedInterfacesCollection rewrittenWithLens(GraphLens graphLens, Timing timing) {
     return timing.time(
         "Rewrite NonEmptyOpenClosedInterfacesCollection", () -> rewrittenWithLens(graphLens));

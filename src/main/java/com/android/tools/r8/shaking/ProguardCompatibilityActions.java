@@ -28,6 +28,10 @@ public class ProguardCompatibilityActions {
     return compatInstantiatedTypes.contains(clazz.getType());
   }
 
+  public boolean isEmpty() {
+    return compatInstantiatedTypes.isEmpty();
+  }
+
   public ProguardCompatibilityActions withoutPrunedItems(PrunedItems prunedItems) {
     Builder builder = builder();
     for (DexType compatInstantiatedType : compatInstantiatedTypes) {

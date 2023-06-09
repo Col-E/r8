@@ -27,6 +27,11 @@ public class DefaultOpenClosedInterfacesCollection extends OpenClosedInterfacesC
   }
 
   @Override
+  public boolean isEmpty() {
+    return true;
+  }
+
+  @Override
   public OpenClosedInterfacesCollection rewrittenWithLens(GraphLens graphLens, Timing timing) {
     return this;
   }

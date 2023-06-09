@@ -10,7 +10,7 @@ import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.code.InvokeType;
-import com.android.tools.r8.utils.Action;
+import com.android.tools.r8.utils.ThrowingAction;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Predicate;
@@ -68,7 +68,8 @@ public abstract class NonIdentityGraphLens extends GraphLens {
     return (found == null || stoppingCriterion.test(found)) ? null : found;
   }
 
-  public final void withAlternativeParentLens(GraphLens lens, Action action) {
+  public final <E extends Exception> void withAlternativeParentLens(
+      GraphLens lens, ThrowingAction<E> action) throws E {
     GraphLens oldParent = getPrevious();
     previousLens = lens;
     action.execute();

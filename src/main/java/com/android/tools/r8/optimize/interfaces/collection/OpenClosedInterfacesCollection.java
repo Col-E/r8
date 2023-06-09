@@ -33,6 +33,8 @@ public abstract class OpenClosedInterfacesCollection {
 
   public abstract boolean isDefinitelyClosed(DexClass clazz);
 
+  public abstract boolean isEmpty();
+
   public final boolean isMaybeOpen(DexClass clazz) {
     return !isDefinitelyClosed(clazz);
   }
