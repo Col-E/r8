@@ -75,9 +75,8 @@ public class ClassInitializerMerger {
   }
 
   public Code getCode(DexMethod syntheticMethodReference) {
-    assert !classInitializers.isEmpty();
-    ProgramMethod firstClassInitializer = ListUtils.first(classInitializers);
-    if (firstClassInitializer.getDefinition().getCode().isCfCode()) {
+    assert !isEmpty();
+    if (isTrivialMerge()) {
       assert IterableUtils.allIdentical(
           classInitializers,
           classInitializer -> classInitializer.getDefinition().getCode().isCfCode());
@@ -100,12 +99,21 @@ public class ClassInitializerMerger {
     return null;
   }
 
+  public boolean isTrivialMerge() {
+    ProgramMethod firstClassInitializer = ListUtils.first(classInitializers);
+    return firstClassInitializer.getDefinition().getCode().isCfCode();
+  }
+
   public ComputedApiLevel getApiReferenceLevel(AppView<?> appView) {
     assert !classInitializers.isEmpty();
     return ListUtils.fold(
         classInitializers,
         appView.computedMinApiLevel(),
         (accApiLevel, method) -> accApiLevel.max(method.getDefinition().getApiLevel()));
+  }
+
+  public void setObsolete() {
+    classInitializers.forEach(classInitializer -> classInitializer.getDefinition().setObsolete());
   }
 
   public static class Builder {
@@ -182,7 +190,7 @@ public class ClassInitializerMerger {
    * Provides a piece of {@link IRCode} that is the concatenation of a collection of class
    * initializers.
    */
-  private static class IRProvider extends Code {
+  static class IRProvider extends Code {
 
     private final ImmutableList<ProgramMethod> classInitializers;
     private final DexMethod syntheticMethodReference;
@@ -261,6 +269,7 @@ public class ClassInitializerMerger {
                     callerPosition,
                     classInitializer.getOrigin(),
                     RewrittenPrototypeDescription.none());
+        classInitializer.getDefinition().setObsolete();
 
         DexProgramClass downcast = null;
         instructionIterator.previous();

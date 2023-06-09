@@ -583,8 +583,10 @@ class EnumUnboxingTreeFixer implements ProgramClassFixer {
         && enumDataMap.representativeType(method.getHolderType()) != method.getHolderType()) {
       assert method.getDefinition().getCode().isEmptyVoidMethod();
       prunedItemsBuilder.addRemovedMethod(method.getReference());
+      method.getDefinition().setObsolete();
     } else if (method.getDefinition().isInstanceInitializer()) {
       prunedItemsBuilder.addRemovedMethod(method.getReference());
+      method.getDefinition().setObsolete();
     } else if (method.getDefinition().isNonPrivateVirtualMethod()) {
       nonPrivateVirtualMethods.add(method.getReference());
     } else {

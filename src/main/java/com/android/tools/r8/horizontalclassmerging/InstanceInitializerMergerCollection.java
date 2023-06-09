@@ -141,4 +141,8 @@ public class InstanceInitializerMergerCollection {
     instanceInitializerMergers.forEach(consumer);
     equivalentInstanceInitializerMergers.values().forEach(consumer);
   }
+
+  public void setObsolete() {
+    forEach(InstanceInitializerMerger::setObsolete);
+  }
 }

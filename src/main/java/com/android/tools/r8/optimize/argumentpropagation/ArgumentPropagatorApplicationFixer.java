@@ -100,23 +100,26 @@ public class ArgumentPropagatorApplicationFixer extends TreeFixerBase {
             return method;
           }
 
-          return method.toTypeSubstitutedMethod(
-              methodReferenceAfterParameterRemoval,
-              builder -> {
-                if (graphLens.hasPrototypeChanges(methodReferenceAfterParameterRemoval)) {
-                  RewrittenPrototypeDescription prototypeChanges =
-                      graphLens.getPrototypeChanges(methodReferenceAfterParameterRemoval);
-                  builder
-                      .apply(prototypeChanges.createParameterAnnotationsRemover(method))
-                      .setGenericSignature(MethodTypeSignature.noSignature());
-                  if (method.isInstance()
-                      && prototypeChanges.getArgumentInfoCollection().isArgumentRemoved(0)) {
-                    builder
-                        .modifyAccessFlags(flags -> flags.demoteFromFinal().promoteToStatic())
-                        .unsetIsLibraryMethodOverride();
-                  }
-                }
-              });
+          DexEncodedMethod replacement =
+              method.toTypeSubstitutedMethod(
+                  methodReferenceAfterParameterRemoval,
+                  builder -> {
+                    if (graphLens.hasPrototypeChanges(methodReferenceAfterParameterRemoval)) {
+                      RewrittenPrototypeDescription prototypeChanges =
+                          graphLens.getPrototypeChanges(methodReferenceAfterParameterRemoval);
+                      builder
+                          .apply(prototypeChanges.createParameterAnnotationsRemover(method))
+                          .setGenericSignature(MethodTypeSignature.noSignature());
+                      if (method.isInstance()
+                          && prototypeChanges.getArgumentInfoCollection().isArgumentRemoved(0)) {
+                        builder
+                            .modifyAccessFlags(flags -> flags.demoteFromFinal().promoteToStatic())
+                            .unsetIsLibraryMethodOverride();
+                      }
+                    }
+                  });
+          method.setObsolete();
+          return replacement;
         });
   }
 

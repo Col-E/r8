@@ -936,7 +936,10 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
     timing.begin("Rewrite AppView");
 
     boolean changed = appView.setGraphLens(lens);
-    assert changed;
+
+    // Verify that the lens changed, except in the horizontal class merger case, where we install
+    // the lens prior to lens rewriting AppView.
+    assert changed || lens.isHorizontalClassMergerGraphLens();
     assert application.verifyWithLens(appView.appInfo().app().asDirect(), lens);
 
     // The application has already been rewritten with the given applied lens. Therefore, we
@@ -1051,7 +1054,10 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
   private static void rewriteWithD8Lens(
       NonIdentityGraphLens lens, Timing timing, AppView<AppInfo> appView) {
     boolean changed = appView.setGraphLens(lens);
-    assert changed;
+
+    // Verify that the lens changed, except in the horizontal class merger case, where we install
+    // the lens prior to lens rewriting AppView.
+    assert changed || lens.isHorizontalClassMergerGraphLens();
 
     appView.setArtProfileCollection(
         appView.getArtProfileCollection().rewrittenWithLens(appView, lens, timing));
