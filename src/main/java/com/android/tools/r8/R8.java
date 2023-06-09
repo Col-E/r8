@@ -401,12 +401,13 @@ public class R8 {
               .run(appView.appInfo().classes());
 
           // TODO(b/226539525): Implement enum lite proto shrinking as deferred tracing.
+          PrunedItems.Builder prunedItemsBuilder = PrunedItems.builder();
           if (appView.options().protoShrinking().isEnumLiteProtoShrinkingEnabled()) {
-            appView.protoShrinker().enumLiteProtoShrinker.clearDeadEnumLiteMaps();
+            appView.protoShrinker().enumLiteProtoShrinker.clearDeadEnumLiteMaps(prunedItemsBuilder);
           }
 
           TreePruner pruner = new TreePruner(appViewWithLiveness);
-          PrunedItems prunedItems = pruner.run(executorService, timing);
+          PrunedItems prunedItems = pruner.run(executorService, timing, prunedItemsBuilder);
 
           // Recompute the subtyping information.
           appView.pruneItems(prunedItems, executorService);
@@ -576,7 +577,9 @@ public class R8 {
                 GenericSignatureContextBuilder.create(appView);
 
             TreePruner pruner = new TreePruner(appViewWithLiveness, treePrunerConfiguration);
-            PrunedItems prunedItems = pruner.run(executorService, timing, prunedTypes);
+            PrunedItems prunedItems =
+                pruner.run(
+                    executorService, timing, PrunedItems.builder().addRemovedClasses(prunedTypes));
 
             if (options.usageInformationConsumer != null) {
               ExceptionUtils.withFinishedResourceHandler(

@@ -12,6 +12,7 @@ import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.PrunedItems;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.google.common.collect.Sets;
 import java.util.Set;
@@ -55,7 +56,7 @@ public class EnumLiteProtoShrinker {
         .createField(holder, references.enumLiteMapType, references.internalValueMapFieldName);
   }
 
-  public void clearDeadEnumLiteMaps() {
+  public void clearDeadEnumLiteMaps(PrunedItems.Builder prunedItemsBuilder) {
     assert appView.options().protoShrinking().isEnumLiteProtoShrinkingEnabled();
     // The optimization only enables further enums to be unboxed, no point to run it if enum
     // unboxing is disabled.
@@ -67,14 +68,17 @@ public class EnumLiteProtoShrinker {
     if (!appView.options().isShrinking()) {
       return;
     }
-    internalClearDeadEnumLiteMaps();
+    internalClearDeadEnumLiteMaps(prunedItemsBuilder);
   }
 
-  private void internalClearDeadEnumLiteMaps() {
+  private void internalClearDeadEnumLiteMaps(PrunedItems.Builder prunedItemsBuilder) {
     for (DexProgramClass clazz : appView.appInfo().classes()) {
       if (isDeadEnumLiteMap(clazz)) {
         deadEnumLiteMaps.add(clazz.getType());
         // Clears the EnumLiteMap methods to avoid them being IR processed.
+        clazz
+            .virtualMethods()
+            .forEach(method -> prunedItemsBuilder.addRemovedMethod(method.getReference()));
         clazz.setVirtualMethods(DexEncodedMethod.EMPTY_ARRAY);
       }
     }
