@@ -116,7 +116,7 @@ public class RootSetUtils {
     private final DirectMappedDexApplication application;
     private final Iterable<? extends ProguardConfigurationRule> rules;
     private final DependentMinimumKeepInfoCollection dependentMinimumKeepInfo =
-        new DependentMinimumKeepInfoCollection();
+        DependentMinimumKeepInfoCollection.createConcurrent();
     private final LinkedHashMap<DexReference, DexReference> reasonAsked = new LinkedHashMap<>();
     private final Set<DexMethod> alwaysInline = Sets.newIdentityHashSet();
     private final Set<DexMethod> neverInlineDueToSingleCaller = Sets.newIdentityHashSet();

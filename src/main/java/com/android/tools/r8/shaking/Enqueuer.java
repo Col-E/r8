@@ -400,7 +400,7 @@ public class Enqueuer {
    * the outermost {@link EnqueuerEvent} is triggered during tracing (e.g., class X becomes live).
    */
   private final DependentMinimumKeepInfoCollection dependentMinimumKeepInfo =
-      new DependentMinimumKeepInfoCollection();
+      DependentMinimumKeepInfoCollection.createConcurrent();
 
   /**
    * A set of seen const-class references that serve as an initial lock-candidate set and will
