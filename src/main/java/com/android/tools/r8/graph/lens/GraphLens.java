@@ -3,12 +3,13 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.graph.lens;
 
-import static com.android.tools.r8.graph.DexProgramClass.asProgramClassOrNull;
+import static com.android.tools.r8.graph.DexClassAndMethod.asProgramMethodOrNull;
 
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexCallSite;
 import com.android.tools.r8.graph.DexClass;
+import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.DexDefinitionSupplier;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
@@ -199,8 +200,18 @@ public abstract class GraphLens {
   public ProgramMethod mapProgramMethod(
       ProgramMethod oldMethod, DexDefinitionSupplier definitions) {
     DexMethod newMethod = getRenamedMethodSignature(oldMethod.getReference());
-    DexProgramClass holder = asProgramClassOrNull(definitions.definitionForHolder(newMethod));
-    return newMethod.lookupOnProgramClass(holder);
+    if (newMethod == oldMethod.getReference() && !oldMethod.getDefinition().isObsolete()) {
+      assert verifyIsConsistentWithLookup(oldMethod, definitions);
+      return oldMethod;
+    }
+    return asProgramMethodOrNull(definitions.definitionFor(newMethod));
+  }
+
+  private static boolean verifyIsConsistentWithLookup(
+      ProgramMethod method, DexDefinitionSupplier definitions) {
+    DexClassAndMethod lookupMethod = definitions.definitionFor(method.getReference());
+    assert method.getDefinition() == lookupMethod.getDefinition();
+    return true;
   }
 
   // Predicate indicating if a rewritten reference is a simple renaming, meaning the move from one
