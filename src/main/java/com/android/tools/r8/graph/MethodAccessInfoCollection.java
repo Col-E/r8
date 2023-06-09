@@ -4,12 +4,15 @@
 
 package com.android.tools.r8.graph;
 
+import static com.android.tools.r8.utils.collections.ThrowingMap.isThrowingMap;
+
 import com.android.tools.r8.graph.lens.GraphLens;
 import com.android.tools.r8.graph.lens.MethodLookupResult;
 import com.android.tools.r8.ir.code.InvokeType;
 import com.android.tools.r8.utils.ConsumerUtils;
 import com.android.tools.r8.utils.Timing;
 import com.android.tools.r8.utils.collections.ProgramMethodSet;
+import com.android.tools.r8.utils.collections.ThrowingMap;
 import com.google.common.collect.Sets;
 import java.util.IdentityHashMap;
 import java.util.Map;
@@ -21,13 +24,13 @@ import java.util.function.Supplier;
 
 public class MethodAccessInfoCollection {
 
-  private final Map<DexMethod, ProgramMethodSet> directInvokes;
-  private final Map<DexMethod, ProgramMethodSet> interfaceInvokes;
-  private final Map<DexMethod, ProgramMethodSet> staticInvokes;
-  private final Map<DexMethod, ProgramMethodSet> superInvokes;
-  private final Map<DexMethod, ProgramMethodSet> virtualInvokes;
+  private Map<DexMethod, ProgramMethodSet> directInvokes;
+  private Map<DexMethod, ProgramMethodSet> interfaceInvokes;
+  private Map<DexMethod, ProgramMethodSet> staticInvokes;
+  private Map<DexMethod, ProgramMethodSet> superInvokes;
+  private Map<DexMethod, ProgramMethodSet> virtualInvokes;
 
-  private boolean destroyed = false;
+  private boolean fullyDestroyed = false;
 
   private MethodAccessInfoCollection(
       Map<DexMethod, ProgramMethodSet> directInvokes,
@@ -51,23 +54,28 @@ public class MethodAccessInfoCollection {
   }
 
   public void destroy() {
-    assert !destroyed;
-    directInvokes.clear();
-    interfaceInvokes.clear();
-    staticInvokes.clear();
-    superInvokes.clear();
-    virtualInvokes.clear();
-    destroyed = true;
+    assert !fullyDestroyed;
+    directInvokes = ThrowingMap.get();
+    interfaceInvokes = ThrowingMap.get();
+    staticInvokes = ThrowingMap.get();
+    superInvokes = ThrowingMap.get();
+    virtualInvokes = ThrowingMap.get();
+    fullyDestroyed = true;
+  }
+
+  public void destroyNonDirectInvokes() {
+    interfaceInvokes = ThrowingMap.get();
+    staticInvokes = ThrowingMap.get();
+    superInvokes = ThrowingMap.get();
+    virtualInvokes = ThrowingMap.get();
   }
 
   public Modifier modifier() {
-    assert !destroyed;
     return new Modifier(
         directInvokes, interfaceInvokes, staticInvokes, superInvokes, virtualInvokes);
   }
 
   public void forEachMethodReference(Consumer<DexMethod> method) {
-    assert !destroyed;
     Set<DexMethod> seen = Sets.newIdentityHashSet();
     directInvokes.keySet().forEach(ConsumerUtils.acceptIfNotSeen(method, seen));
     interfaceInvokes.keySet().forEach(ConsumerUtils.acceptIfNotSeen(method, seen));
@@ -77,37 +85,30 @@ public class MethodAccessInfoCollection {
   }
 
   public void forEachDirectInvoke(BiConsumer<DexMethod, ProgramMethodSet> consumer) {
-    assert !destroyed;
     directInvokes.forEach(consumer);
   }
 
   public void forEachInterfaceInvoke(BiConsumer<DexMethod, ProgramMethodSet> consumer) {
-    assert !destroyed;
     interfaceInvokes.forEach(consumer);
   }
 
   public void forEachStaticInvoke(BiConsumer<DexMethod, ProgramMethodSet> consumer) {
-    assert !destroyed;
     staticInvokes.forEach(consumer);
   }
 
   public void forEachSuperInvoke(BiConsumer<DexMethod, ProgramMethodSet> consumer) {
-    assert !destroyed;
     superInvokes.forEach(consumer);
   }
 
   public void forEachSuperInvokeContext(DexMethod method, Consumer<ProgramMethod> consumer) {
-    assert !destroyed;
     superInvokes.getOrDefault(method, ProgramMethodSet.empty()).forEach(consumer);
   }
 
   public void forEachVirtualInvoke(BiConsumer<DexMethod, ProgramMethodSet> consumer) {
-    assert !destroyed;
     virtualInvokes.forEach(consumer);
   }
 
   public void forEachVirtualInvokeContext(DexMethod method, Consumer<ProgramMethod> consumer) {
-    assert !destroyed;
     virtualInvokes.getOrDefault(method, ProgramMethodSet.empty()).forEach(consumer);
   }
 
@@ -115,8 +116,17 @@ public class MethodAccessInfoCollection {
       DexDefinitionSupplier definitions, GraphLens lens, Timing timing) {
     timing.begin("Rewrite MethodAccessInfoCollection");
     MethodAccessInfoCollection result;
-    if (destroyed) {
+    if (fullyDestroyed) {
       result = this;
+    } else if (isThrowingMap(interfaceInvokes)) {
+      assert !isThrowingMap(directInvokes);
+      assert isThrowingMap(staticInvokes);
+      assert isThrowingMap(superInvokes);
+      assert isThrowingMap(virtualInvokes);
+      MethodAccessInfoCollection.Builder<?> builder = identityBuilder();
+      rewriteInvokesWithLens(builder, directInvokes, definitions, lens, InvokeType.DIRECT);
+      result = builder.build();
+      result.destroyNonDirectInvokes();
     } else {
       MethodAccessInfoCollection.Builder<?> builder = identityBuilder();
       rewriteInvokesWithLens(builder, directInvokes, definitions, lens, InvokeType.DIRECT);
@@ -150,7 +160,7 @@ public class MethodAccessInfoCollection {
   }
 
   public MethodAccessInfoCollection withoutPrunedItems(PrunedItems prunedItems) {
-    if (!destroyed) {
+    if (!fullyDestroyed) {
       pruneItems(prunedItems, directInvokes);
       pruneItems(prunedItems, interfaceInvokes);
       pruneItems(prunedItems, staticInvokes);
@@ -162,6 +172,9 @@ public class MethodAccessInfoCollection {
 
   private static void pruneItems(
       PrunedItems prunedItems, Map<DexMethod, ProgramMethodSet> invokes) {
+    if (isThrowingMap(invokes)) {
+      return;
+    }
     invokes
         .values()
         .removeIf(
@@ -243,7 +256,7 @@ public class MethodAccessInfoCollection {
     }
 
     public void registerInvokeDirectInContexts(DexMethod invokedMethod, ProgramMethodSet contexts) {
-      contexts.forEach(context -> registerInvokeDirectInContext(invokedMethod, context));
+      registerInvokeMethodInContexts(invokedMethod, contexts, directInvokes);
     }
 
     public boolean registerInvokeInterfaceInContext(
@@ -253,7 +266,7 @@ public class MethodAccessInfoCollection {
 
     public void registerInvokeInterfaceInContexts(
         DexMethod invokedMethod, ProgramMethodSet contexts) {
-      contexts.forEach(context -> registerInvokeInterfaceInContext(invokedMethod, context));
+      registerInvokeMethodInContexts(invokedMethod, contexts, interfaceInvokes);
     }
 
     public boolean registerInvokeStaticInContext(DexMethod invokedMethod, ProgramMethod context) {
@@ -261,7 +274,7 @@ public class MethodAccessInfoCollection {
     }
 
     public void registerInvokeStaticInContexts(DexMethod invokedMethod, ProgramMethodSet contexts) {
-      contexts.forEach(context -> registerInvokeStaticInContext(invokedMethod, context));
+      registerInvokeMethodInContexts(invokedMethod, contexts, staticInvokes);
     }
 
     public boolean registerInvokeSuperInContext(DexMethod invokedMethod, ProgramMethod context) {
@@ -269,7 +282,7 @@ public class MethodAccessInfoCollection {
     }
 
     public void registerInvokeSuperInContexts(DexMethod invokedMethod, ProgramMethodSet contexts) {
-      contexts.forEach(context -> registerInvokeSuperInContext(invokedMethod, context));
+      registerInvokeMethodInContexts(invokedMethod, contexts, superInvokes);
     }
 
     public boolean registerInvokeVirtualInContext(DexMethod invokedMethod, ProgramMethod context) {
@@ -278,7 +291,7 @@ public class MethodAccessInfoCollection {
 
     public void registerInvokeVirtualInContexts(
         DexMethod invokedMethod, ProgramMethodSet contexts) {
-      contexts.forEach(context -> registerInvokeVirtualInContext(invokedMethod, context));
+      registerInvokeMethodInContexts(invokedMethod, contexts, virtualInvokes);
     }
 
     private static boolean registerInvokeMethodInContext(
@@ -286,6 +299,21 @@ public class MethodAccessInfoCollection {
       return invokes
           .computeIfAbsent(invokedMethod, ignore -> ProgramMethodSet.create())
           .add(context);
+    }
+
+    private static void registerInvokeMethodInContexts(
+        DexMethod invokedMethod,
+        ProgramMethodSet contexts,
+        Map<DexMethod, ProgramMethodSet> invokes) {
+      ProgramMethodSet existingContexts = invokes.put(invokedMethod, contexts);
+      if (existingContexts != null) {
+        if (existingContexts.size() > contexts.size()) {
+          invokes.put(invokedMethod, existingContexts);
+          existingContexts.addAll(contexts);
+        } else {
+          contexts.addAll(existingContexts);
+        }
+      }
     }
 
     public MethodAccessInfoCollection build() {

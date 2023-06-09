@@ -4,6 +4,7 @@
 package com.android.tools.r8.graph.lens;
 
 import static com.android.tools.r8.graph.DexClassAndMethod.asProgramMethodOrNull;
+import static com.android.tools.r8.utils.collections.ThrowingSet.isThrowingSet;
 
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexApplication;
@@ -537,6 +538,9 @@ public abstract class GraphLens {
   }
 
   public <T extends DexReference> Set<T> rewriteReferences(Set<T> references) {
+    if (isThrowingSet(references)) {
+      return references;
+    }
     Set<T> result = SetUtils.newIdentityHashSet(references.size());
     for (T reference : references) {
       result.add(rewriteReference(reference));

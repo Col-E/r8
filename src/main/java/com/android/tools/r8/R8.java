@@ -408,6 +408,9 @@ public class R8 {
 
           TreePruner pruner = new TreePruner(appViewWithLiveness);
           PrunedItems prunedItems = pruner.run(executorService, timing, prunedItemsBuilder);
+          appViewWithLiveness
+              .appInfo()
+              .notifyTreePrunerFinished(Enqueuer.Mode.INITIAL_TREE_SHAKING);
 
           // Recompute the subtyping information.
           appView.pruneItems(prunedItems, executorService);
@@ -459,7 +462,7 @@ public class R8 {
       new NestReducer(appViewWithLiveness).run(executorService, timing);
 
       new MemberRebindingAnalysis(appViewWithLiveness).run(executorService);
-      appView.appInfo().withLiveness().getFieldAccessInfoCollection().restrictToProgram(appView);
+      appViewWithLiveness.appInfo().notifyMemberRebindingFinished(appViewWithLiveness);
 
       boolean isKotlinLibraryCompilationWithInlinePassThrough =
           options.enableCfByteCodePassThrough && appView.hasCfByteCodePassThroughMethods();
@@ -495,7 +498,9 @@ public class R8 {
         HorizontalClassMerger.createForInitialClassMerging(appViewWithLiveness)
             .runIfNecessary(executorService, timing, runtimeTypeCheckInfo);
       }
-      appView.appInfo().notifyHorizontalClassMergerFinished(HorizontalClassMerger.Mode.INITIAL);
+      appViewWithLiveness
+          .appInfo()
+          .notifyHorizontalClassMergerFinished(HorizontalClassMerger.Mode.INITIAL);
 
       new ProtoNormalizer(appViewWithLiveness).run(executorService, timing);
 
@@ -581,6 +586,9 @@ public class R8 {
             PrunedItems prunedItems =
                 pruner.run(
                     executorService, timing, PrunedItems.builder().addRemovedClasses(prunedTypes));
+            appViewWithLiveness
+                .appInfo()
+                .notifyTreePrunerFinished(Enqueuer.Mode.FINAL_TREE_SHAKING);
 
             if (options.usageInformationConsumer != null) {
               ExceptionUtils.withFinishedResourceHandler(

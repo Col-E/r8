@@ -7,6 +7,7 @@ import static com.android.tools.r8.graph.DexEncodedMethod.asProgramMethodOrNull;
 import static com.android.tools.r8.graph.DexEncodedMethod.toMethodDefinitionOrNull;
 import static com.android.tools.r8.graph.DexProgramClass.asProgramClassOrNull;
 import static com.android.tools.r8.graph.MethodResolutionResult.SingleResolutionResult.isOverriding;
+import static com.android.tools.r8.utils.collections.ThrowingSet.isThrowingSet;
 
 import com.android.tools.r8.cf.CfVersion;
 import com.android.tools.r8.features.ClassToFeatureSplitMap;
@@ -70,6 +71,7 @@ import com.android.tools.r8.utils.Timing;
 import com.android.tools.r8.utils.Visibility;
 import com.android.tools.r8.utils.WorkList;
 import com.android.tools.r8.utils.collections.ProgramMethodSet;
+import com.android.tools.r8.utils.collections.ThrowingSet;
 import com.android.tools.r8.utils.structural.Ordered;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Sets;
@@ -105,7 +107,7 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
    * contained in {@link #liveMethods}, it may be marked as abstract and its implementation may be
    * removed.
    */
-  private final Set<DexMethod> targetedMethods;
+  private Set<DexMethod> targetedMethods;
 
   /** Method targets that lead to resolution errors such as non-existing or invalid targets. */
   private final Set<DexMethod> failedMethodResolutionTargets;
@@ -124,7 +126,7 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
    * Set of methods that belong to live classes and can be reached by invokes. These need to be
    * kept.
    */
-  private final Set<DexMethod> liveMethods;
+  private Set<DexMethod> liveMethods;
   /**
    * Information about all fields that are accessed by the program. The information includes whether
    * a given field is read/written by the program, and it also includes all indirect accesses to
@@ -425,8 +427,7 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
 
   private static <T> Set<T> pruneItems(
       Set<T> items, Set<T> removedItems, ExecutorService executorService, List<Future<?>> futures) {
-    if (!removedItems.isEmpty()) {
-
+    if (!isThrowingSet(items) && !removedItems.isEmpty()) {
       futures.add(
           ThreadUtils.processAsynchronously(
               () -> {
@@ -494,9 +495,22 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
     }
   }
 
+  public void notifyMemberRebindingFinished(AppView<AppInfoWithLiveness> appView) {
+    getFieldAccessInfoCollection().restrictToProgram(appView);
+    getMethodAccessInfoCollection().destroyNonDirectInvokes();
+  }
+
   @Override
   public void notifyMinifierFinished() {
+    liveMethods = ThrowingSet.get();
     methodAccessInfoCollection.destroy();
+  }
+
+  public void notifyTreePrunerFinished(Enqueuer.Mode mode) {
+    if (mode.isInitialTreeShaking()) {
+      liveMethods = ThrowingSet.get();
+    }
+    targetedMethods = ThrowingSet.get();
   }
 
   private boolean verify() {
