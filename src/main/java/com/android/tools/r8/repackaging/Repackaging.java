@@ -77,6 +77,7 @@ public class Repackaging {
     if (lens != null) {
       appView.rewriteWithLensAndApplication(lens, appBuilder.build(), executorService, timing);
     }
+    appView.notifyOptimizationFinishedForTesting();
     timing.end();
   }
 

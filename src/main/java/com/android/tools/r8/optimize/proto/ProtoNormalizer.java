@@ -153,6 +153,7 @@ public class ProtoNormalizer {
     if (!lensBuilder.isEmpty()) {
       appView.rewriteWithLens(lensBuilder.build(), executorService, timing);
     }
+    appView.notifyOptimizationFinishedForTesting();
     timing.end();
   }
 

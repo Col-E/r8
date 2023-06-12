@@ -1180,6 +1180,14 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
     this.alreadyLibraryDesugared = alreadyLibraryDesugared;
   }
 
+  /**
+   * Called when an optimization that changes the app has finished. This allows easier diagnosing
+   * some failures, e.g., finding which optimization pass that adds/removes a given method.
+   */
+  public void notifyOptimizationFinishedForTesting() {
+    // Intentionally empty.
+  }
+
   public boolean isAlreadyLibraryDesugared(DexProgramClass clazz) {
     if (!options().desugarSpecificOptions().allowAllDesugaredInput) {
       return false;

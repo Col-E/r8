@@ -35,6 +35,7 @@ public class ClassInitFieldSynthesizer {
     ThreadUtils.processMap(
         appView.appInfo().initClassReferences, this::synthesizeClassInitField, executorService);
     appView.setInitClassLens(lensBuilder.build());
+    appView.notifyOptimizationFinishedForTesting();
   }
 
   private void synthesizeClassInitField(DexType type, Visibility minimumRequiredVisibility) {

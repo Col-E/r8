@@ -157,6 +157,7 @@ public class ProguardMapMinifier {
     new IdentifierMinifier(appView, lens).run(executorService);
     timing.end();
 
+    appView.notifyOptimizationFinishedForTesting();
     return lens;
   }
 

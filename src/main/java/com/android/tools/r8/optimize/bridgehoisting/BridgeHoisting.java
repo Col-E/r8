@@ -122,6 +122,8 @@ public class BridgeHoisting {
             }
           });
     }
+
+    appView.notifyOptimizationFinishedForTesting();
     timing.end();
   }
 

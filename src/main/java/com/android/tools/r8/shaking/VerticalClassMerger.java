@@ -658,6 +658,7 @@ public class VerticalClassMerger {
           }
         });
 
+    appView.notifyOptimizationFinishedForTesting();
     return lens;
   }
 

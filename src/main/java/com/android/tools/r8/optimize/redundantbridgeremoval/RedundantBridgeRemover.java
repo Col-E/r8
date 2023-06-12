@@ -147,6 +147,7 @@ public class RedundantBridgeRemover {
       }
     }
 
+    appView.notifyOptimizationFinishedForTesting();
     timing.end();
   }
 

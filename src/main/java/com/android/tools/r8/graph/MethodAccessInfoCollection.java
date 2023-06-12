@@ -184,7 +184,9 @@ public class MethodAccessInfoCollection {
                     if (prunedItems.isRemoved(context.getReference())) {
                       return true;
                     }
-                    assert prunedItems.getPrunedApp().definitionFor(context.getReference()) != null;
+                    assert prunedItems.getPrunedApp().definitionFor(context.getReference()) != null
+                        : "Expected method to be present: "
+                            + context.getReference().toSourceString();
                     return false;
                   });
               return contexts.isEmpty();

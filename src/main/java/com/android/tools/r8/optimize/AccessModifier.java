@@ -81,6 +81,8 @@ public final class AccessModifier {
     if (publicizerLens != null) {
       appView.setGraphLens(publicizerLens);
     }
+
+    appView.notifyOptimizationFinishedForTesting();
   }
 
   private void doPublicize(ProgramDefinition definition) {
