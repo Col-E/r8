@@ -43,10 +43,13 @@ import com.android.tools.r8.utils.Reporter;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.Timing;
 import com.android.tools.r8.utils.ZipUtils;
+import com.google.common.base.Charsets;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
+import com.google.common.hash.Hasher;
+import com.google.common.hash.Hashing;
 import com.google.common.io.ByteStreams;
 import com.google.common.io.CharStreams;
 import com.google.gson.Gson;
@@ -64,6 +67,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.SimpleFileVisitor;
+import java.nio.file.StandardCopyOption;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -535,6 +539,7 @@ public class ToolHelper {
 
     private DexVm version;
     private boolean withArtFrameworks;
+    private ArtResultCacheLookupKey artResultCacheLookupKey;
 
     public ArtCommandBuilder() {
       this.version = getDexVm();
@@ -581,6 +586,169 @@ public class ToolHelper {
           .setBootClasspath(toFileList(bootClasspaths))
           .setMainClass(mainClass)
           .setProgramArguments(programArguments);
+    }
+
+    private boolean useCache() {
+      return CommandResultCache.getInstance() != null;
+    }
+
+    public void cacheResult(ProcessResult result) {
+      if (useCache()) {
+        assert artResultCacheLookupKey != null;
+        CommandResultCache.getInstance().putResult(result, artResultCacheLookupKey);
+      }
+    }
+
+    public ProcessResult getCachedResults() {
+      if (!useCache()) {
+        return null;
+      }
+      assert artResultCacheLookupKey == null;
+      // Reuse the key when storing results if this is not already cached.
+      artResultCacheLookupKey = new ArtResultCacheLookupKey(this::hashParts);
+      return CommandResultCache.getInstance().lookup(artResultCacheLookupKey);
+    }
+
+    private void hashParts(Hasher hasher) {
+      // Call getExecutable first, this will set executionDirectory if needed.
+      hasher.putString(this.getExecutable(), StandardCharsets.UTF_8);
+      if (this.executionDirectory != null) {
+        hasher.putString(this.executionDirectory, StandardCharsets.UTF_8);
+      }
+      hasher.putString(this.mainClass, StandardCharsets.UTF_8);
+      hasher.putBoolean(this.withArtFrameworks);
+      hashFilesFromList(hasher, classpaths);
+      hashFilesFromList(hasher, bootClasspaths);
+      systemProperties.forEach(
+          (s, t) ->
+              hasher.putString(s, StandardCharsets.UTF_8).putString(t, StandardCharsets.UTF_8));
+      programArguments.forEach(s -> hasher.putString(s, StandardCharsets.UTF_8));
+      options.forEach(s -> hasher.putString(s, StandardCharsets.UTF_8));
+    }
+
+    private static void hashFilesFromList(Hasher hasher, List<String> files) {
+      for (String file : files) {
+        try {
+          hasher.putBytes(Files.readAllBytes(Paths.get(file)));
+        } catch (IOException e) {
+          throw new RuntimeException(e);
+        }
+      }
+    }
+  }
+
+  private static class ArtResultCacheLookupKey {
+    private final Consumer<Hasher> hasherConsumer;
+    private String hash;
+
+    public ArtResultCacheLookupKey(Consumer<Hasher> hasherConsumer) {
+      this.hasherConsumer = hasherConsumer;
+    }
+
+    public String getHash() {
+      if (hash == null) {
+        Hasher hasher = Hashing.sha256().newHasher();
+        hasherConsumer.accept(hasher);
+        hash = hasher.hash().toString();
+      }
+      return hash;
+    }
+  }
+
+  private static class CommandResultCache {
+    private static CommandResultCache INSTANCE =
+        System.getProperty("art_cache_dir") != null
+            ? new CommandResultCache(Paths.get(System.getProperty("art_cache_dir")))
+            : null;
+    private final Path path;
+
+    public CommandResultCache(Path path) {
+      this.path = path;
+    }
+
+    public static CommandResultCache getInstance() {
+      return INSTANCE;
+    }
+
+    private Path getStdoutFile(ArtResultCacheLookupKey artResultCacheLookupKey) {
+      return path.resolve(artResultCacheLookupKey.getHash() + ".stdout");
+    }
+
+    private Path getStderrFile(ArtResultCacheLookupKey artResultCacheLookupKey) {
+      return path.resolve(artResultCacheLookupKey.getHash() + ".stderr");
+    }
+
+    private Path getExitCodeFile(ArtResultCacheLookupKey artResultCacheLookupKey) {
+      return path.resolve(artResultCacheLookupKey.getHash());
+    }
+
+    private Path getTempFile(Path path) {
+      return Paths.get(path.toString() + ".temp" + Thread.currentThread().getId());
+    }
+
+    private String getStringContent(Path path) {
+      assert path.toFile().exists();
+      if (path.toFile().length() > 0) {
+        try {
+          return FileUtils.readTextFile(path, Charsets.UTF_8);
+        } catch (IOException e) {
+          throw new RuntimeException(e);
+        }
+      }
+      return "";
+    }
+
+    public ProcessResult lookup(ArtResultCacheLookupKey artResultCacheLookupKey) {
+      // TODO Add concurrency handling!
+      Path exitCodeFile = getExitCodeFile(artResultCacheLookupKey);
+      if (exitCodeFile.toFile().exists()) {
+        int exitCode = Integer.parseInt(getStringContent(exitCodeFile));
+        // Because of the temp files and order of writing we should never get here with an
+        // inconsistent state. It is possible, although unlikely, that the stdout/stderr
+        // (and even exitcode if art is non deterministic) are from different, process ids etc,
+        // but this should have no impact.
+        return new ProcessResult(
+            exitCode,
+            getStringContent(getStdoutFile(artResultCacheLookupKey)),
+            getStringContent(getStderrFile(artResultCacheLookupKey)));
+      }
+      return null;
+    }
+
+    public void putResult(ProcessResult result, ArtResultCacheLookupKey artResultCacheLookupKey) {
+      try {
+        String exitCode = "" + result.exitCode;
+        // We avoid race conditions of writing vs reading by first writing all 3 files to temp
+        // files, then moving these to the result files, moving last the exitcode file (which is
+        // what we use as cache present check)
+        Path exitCodeFile = getExitCodeFile(artResultCacheLookupKey);
+        Path exitCodeTempFile = getTempFile(exitCodeFile);
+        Path stdoutFile = getStdoutFile(artResultCacheLookupKey);
+        Path stdoutTempFile = getTempFile(stdoutFile);
+        Path stderrFile = getStderrFile(artResultCacheLookupKey);
+        Path stderrTempFile = getTempFile(stderrFile);
+        Files.write(exitCodeTempFile, exitCode.getBytes(StandardCharsets.UTF_8));
+        Files.write(stdoutTempFile, result.stdout.getBytes(StandardCharsets.UTF_8));
+        Files.write(stderrTempFile, result.stderr.getBytes(StandardCharsets.UTF_8));
+        // Order is important, move exitcode file last!
+        Files.move(
+            stdoutTempFile,
+            stdoutFile,
+            StandardCopyOption.ATOMIC_MOVE,
+            StandardCopyOption.REPLACE_EXISTING);
+        Files.move(
+            stderrTempFile,
+            stderrFile,
+            StandardCopyOption.ATOMIC_MOVE,
+            StandardCopyOption.REPLACE_EXISTING);
+        Files.move(
+            exitCodeTempFile,
+            exitCodeFile,
+            StandardCopyOption.ATOMIC_MOVE,
+            StandardCopyOption.REPLACE_EXISTING);
+      } catch (IOException e) {
+        throw new RuntimeException(e);
+      }
     }
   }
 
@@ -1910,6 +2078,10 @@ public class ToolHelper {
 
   private static ProcessResult runArtProcessRaw(ArtCommandBuilder builder) throws IOException {
     Assume.assumeTrue(artSupported() || dealsWithGoldenFiles());
+    ProcessResult cachedResult = builder.getCachedResults();
+    if (cachedResult != null) {
+      return cachedResult;
+    }
     ProcessResult result;
     if (builder.isForDevice()) {
       try {
@@ -1920,6 +2092,7 @@ public class ToolHelper {
     } else {
       result = runProcess(builder.asProcessBuilder());
     }
+    builder.cacheResult(result);
     return result;
   }
 

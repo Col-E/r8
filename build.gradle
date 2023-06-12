@@ -2254,6 +2254,9 @@ test { task ->
     if (project.hasProperty('test_dir')) {
         systemProperty 'test_dir', project.property('test_dir')
     }
+    if (project.hasProperty('art_cache_dir')) {
+        systemProperty 'art_cache_dir', project.property('art_cache_dir')
+    }
     if (project.hasProperty('r8lib')) {
         dependsOn configureTestForR8Lib
         // R8lib should be used instead of the main output and all the tests in
