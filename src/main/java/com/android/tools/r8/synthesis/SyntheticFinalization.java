@@ -182,7 +182,7 @@ public class SyntheticFinalization {
                       .rewrittenWithLens(appView.getSyntheticItems(), result.lens, timing)));
       appView.rewriteWithD8Lens(result.lens, timing);
     }
-    appView.pruneItems(result.prunedItems, executorService);
+    appView.pruneItems(result.prunedItems, executorService, timing);
   }
 
   public static void finalizeWithClassHierarchy(
@@ -196,7 +196,7 @@ public class SyntheticFinalization {
     if (result.lens != null) {
       appView.rewriteWithLens(result.lens, executorService, timing);
     }
-    appView.pruneItems(result.prunedItems, executorService);
+    appView.pruneItems(result.prunedItems, executorService, timing);
   }
 
   public static void finalizeWithLiveness(
@@ -212,7 +212,7 @@ public class SyntheticFinalization {
       assert result.commit.getApplication() == appView.appInfo().app();
     }
     appView.setAppInfo(appView.appInfo().rebuildWithLiveness(result.commit));
-    appView.pruneItems(result.prunedItems, executorService);
+    appView.pruneItems(result.prunedItems, executorService, timing);
   }
 
   Result computeFinalSynthetics(AppView<?> appView, Timing timing) {

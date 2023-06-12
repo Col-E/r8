@@ -1132,13 +1132,15 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
    */
   @Override
   public AppInfoWithLiveness prunedCopyFrom(
-      PrunedItems prunedItems, ExecutorService executorService) throws ExecutionException {
+      PrunedItems prunedItems, ExecutorService executorService, Timing timing)
+      throws ExecutionException {
     assert getClass() == AppInfoWithLiveness.class;
     assert checkIfObsolete();
     if (prunedItems.isEmpty()) {
       assert app() == prunedItems.getPrunedApp();
       return this;
     }
+    timing.begin("Pruning AppInfoWithLiveness");
     if (prunedItems.hasRemovedClasses()) {
       // Rebuild the hierarchy.
       objectAllocationInfoCollection.mutate(
@@ -1151,6 +1153,7 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
     AppInfoWithLiveness appInfoWithLiveness =
         new AppInfoWithLiveness(this, prunedItems, executorService, futures);
     ThreadUtils.awaitFutures(futures);
+    timing.end();
     return appInfoWithLiveness;
   }
 

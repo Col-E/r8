@@ -77,7 +77,7 @@ public class EmptyStartupProfile extends StartupProfile {
 
   @Override
   public EmptyStartupProfile withoutPrunedItems(
-      PrunedItems prunedItems, SyntheticItems syntheticItems) {
+      PrunedItems prunedItems, SyntheticItems syntheticItems, Timing timing) {
     return this;
   }
 }

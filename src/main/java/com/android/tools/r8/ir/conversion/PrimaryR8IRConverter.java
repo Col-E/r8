@@ -252,7 +252,8 @@ public class PrimaryR8IRConverter extends IRConverter {
               .setRemovedMethods(prunedMethodsInWave)
               .setPrunedApp(appView.appInfo().app())
               .build(),
-          executorService);
+          executorService,
+          timing);
       prunedMethodsInWave.clear();
     }
   }

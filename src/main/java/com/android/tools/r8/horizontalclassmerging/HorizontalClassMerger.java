@@ -216,7 +216,7 @@ public class HorizontalClassMerger {
     }
 
     appView.pruneItems(
-        prunedItems.toBuilder().setPrunedApp(appView.app()).build(), executorService);
+        prunedItems.toBuilder().setPrunedApp(appView.app()).build(), executorService, timing);
 
     amendKeepInfo(horizontalClassMergerGraphLens, virtuallyMergedMethodsKeepInfos);
   }

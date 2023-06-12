@@ -1948,7 +1948,8 @@ public class RootSetUtils {
           });
     }
 
-    public void pruneItems(PrunedItems prunedItems) {
+    public void pruneItems(PrunedItems prunedItems, Timing timing) {
+      timing.begin("Prune RootSet");
       MinimumKeepInfoCollection unconditionalMinimumKeepInfo =
           getDependentMinimumKeepInfo().getUnconditionalMinimumKeepInfoOrDefault(null);
       if (unconditionalMinimumKeepInfo != null) {
@@ -1957,6 +1958,7 @@ public class RootSetUtils {
           getDependentMinimumKeepInfo().remove(UnconditionalKeepInfoEvent.get());
         }
       }
+      timing.end();
     }
 
     public RootSet rewrittenWithLens(GraphLens graphLens, Timing timing) {
@@ -2343,20 +2345,21 @@ public class RootSetUtils {
       return rewrittenMainDexRootSet;
     }
 
-    public MainDexRootSet withoutPrunedItems(PrunedItems prunedItems) {
+    public MainDexRootSet withoutPrunedItems(PrunedItems prunedItems, Timing timing) {
       if (prunedItems.isEmpty()) {
         return this;
       }
+      timing.begin("Prune MainDexRootSet");
       // TODO(b/164019179): If rules can now reference dead items. These should be pruned or
       //  rewritten.
       ifRules.forEach(ProguardIfRule::canReferenceDeadTypes);
       // All delayed root set actions should have been processed at this point.
       assert delayedRootSetActionItems.isEmpty();
-      return new MainDexRootSet(
-          getDependentMinimumKeepInfo(),
-          reasonAsked,
-          ifRules,
-          delayedRootSetActionItems);
+      MainDexRootSet result =
+          new MainDexRootSet(
+              getDependentMinimumKeepInfo(), reasonAsked, ifRules, delayedRootSetActionItems);
+      timing.end();
+      return result;
     }
   }
 }

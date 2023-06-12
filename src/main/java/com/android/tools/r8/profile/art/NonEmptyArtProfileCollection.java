@@ -99,8 +99,12 @@ public class NonEmptyArtProfileCollection extends ArtProfileCollection
   }
 
   @Override
-  public NonEmptyArtProfileCollection withoutPrunedItems(PrunedItems prunedItems) {
-    return map(artProfile -> artProfile.withoutPrunedItems(prunedItems));
+  public NonEmptyArtProfileCollection withoutPrunedItems(PrunedItems prunedItems, Timing timing) {
+    timing.begin("Prune NonEmptyArtProfileCollection");
+    NonEmptyArtProfileCollection result =
+        map(artProfile -> artProfile.withoutPrunedItems(prunedItems));
+    timing.end();
+    return result;
   }
 
   private NonEmptyArtProfileCollection map(Function<ArtProfile, ArtProfile> fn) {

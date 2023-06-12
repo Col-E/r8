@@ -13,6 +13,7 @@ import com.android.tools.r8.synthesis.SyntheticItems;
 import com.android.tools.r8.synthesis.SyntheticItems.GlobalSyntheticsStrategy;
 import com.android.tools.r8.utils.BooleanBox;
 import com.android.tools.r8.utils.InternalOptions;
+import com.android.tools.r8.utils.Timing;
 import java.util.Collection;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -70,7 +71,8 @@ public class AppInfo implements DexDefinitionSupplier {
     this.obsolete = obsolete;
   }
 
-  public AppInfo prunedCopyFrom(PrunedItems prunedItems, ExecutorService executorService)
+  public AppInfo prunedCopyFrom(
+      PrunedItems prunedItems, ExecutorService executorService, Timing timing)
       throws ExecutionException {
     assert getClass() == AppInfo.class;
     assert checkIfObsolete();
@@ -78,9 +80,13 @@ public class AppInfo implements DexDefinitionSupplier {
     if (prunedItems.isEmpty()) {
       return this;
     }
-    return new AppInfo(
-        getSyntheticItems().commitPrunedItems(prunedItems),
-        getMainDexInfo().withoutPrunedItems(prunedItems));
+    timing.begin("Pruning AppInfo");
+    AppInfo result =
+        new AppInfo(
+            getSyntheticItems().commitPrunedItems(prunedItems),
+            getMainDexInfo().withoutPrunedItems(prunedItems));
+    timing.end();
+    return result;
   }
 
   public AppInfo rebuildWithMainDexInfo(MainDexInfo mainDexInfo) {

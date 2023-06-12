@@ -156,7 +156,8 @@ public class AppServices {
     return new AppServices(appView, rewrittenFeatureMappings.build());
   }
 
-  public AppServices prunedCopy(PrunedItems prunedItems) {
+  public AppServices prunedCopy(PrunedItems prunedItems, Timing timing) {
+    timing.begin("Prune AppServices");
     ImmutableMap.Builder<DexType, Map<FeatureSplit, List<DexType>>> rewrittenServicesBuilder =
         ImmutableMap.builder();
     for (Entry<DexType, Map<FeatureSplit, List<DexType>>> entry : services.entrySet()) {
@@ -186,7 +187,9 @@ public class AppServices {
         rewrittenServicesBuilder.put(entry.getKey(), prunedServiceImplementations);
       }
     }
-    return new AppServices(appView, rewrittenServicesBuilder.build());
+    AppServices result = new AppServices(appView, rewrittenServicesBuilder.build());
+    timing.end();
+    return result;
   }
 
   public boolean verifyRewrittenWithLens() {

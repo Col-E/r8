@@ -79,5 +79,5 @@ public abstract class ArtProfileCollection {
 
   public abstract ArtProfileCollection withoutMissingItems(AppView<?> appView);
 
-  public abstract ArtProfileCollection withoutPrunedItems(PrunedItems prunedItems);
+  public abstract ArtProfileCollection withoutPrunedItems(PrunedItems prunedItems, Timing timing);
 }

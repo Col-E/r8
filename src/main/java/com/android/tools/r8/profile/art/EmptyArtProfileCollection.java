@@ -56,7 +56,7 @@ public class EmptyArtProfileCollection extends ArtProfileCollection {
   }
 
   @Override
-  public ArtProfileCollection withoutPrunedItems(PrunedItems prunedItems) {
+  public ArtProfileCollection withoutPrunedItems(PrunedItems prunedItems, Timing timing) {
     return this;
   }
 }

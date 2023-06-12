@@ -37,7 +37,7 @@ public class DefaultOpenClosedInterfacesCollection extends OpenClosedInterfacesC
   }
 
   @Override
-  public OpenClosedInterfacesCollection withoutPrunedItems(PrunedItems prunedItems) {
+  public OpenClosedInterfacesCollection withoutPrunedItems(PrunedItems prunedItems, Timing timing) {
     return this;
   }
 }

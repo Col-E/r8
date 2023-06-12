@@ -26,6 +26,7 @@ import com.android.tools.r8.optimize.argumentpropagation.utils.ProgramClassesBid
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.KeepMethodInfo;
 import com.android.tools.r8.utils.ThreadUtils;
+import com.android.tools.r8.utils.Timing;
 import com.android.tools.r8.utils.collections.ProgramMethodSet;
 import java.util.Collection;
 import java.util.List;
@@ -112,18 +113,23 @@ public class RedundantBridgeRemover {
   }
 
   public void run(
-      MemberRebindingIdentityLens memberRebindingIdentityLens, ExecutorService executorService)
+      MemberRebindingIdentityLens memberRebindingIdentityLens,
+      ExecutorService executorService,
+      Timing timing)
       throws ExecutionException {
     assert memberRebindingIdentityLens == null
         || memberRebindingIdentityLens == appView.graphLens();
 
+    timing.begin("Redundant bridge removal");
+
     // Collect all redundant bridges to remove.
     ProgramMethodSet bridgesToRemove = removeRedundantBridgesConcurrently(executorService);
     if (bridgesToRemove.isEmpty()) {
+      timing.end();
       return;
     }
 
-    pruneApp(bridgesToRemove, executorService);
+    pruneApp(bridgesToRemove, executorService, timing);
 
     if (!lensBuilder.isEmpty()) {
       appView.setGraphLens(lensBuilder.build(appView));
@@ -140,6 +146,8 @@ public class RedundantBridgeRemover {
             bridgeToRemove.getReference(), resolvedMethod.getReference());
       }
     }
+
+    timing.end();
   }
 
   private ProgramMethodSet removeRedundantBridgesConcurrently(ExecutorService executorService)
@@ -225,11 +233,12 @@ public class RedundantBridgeRemover {
     return true;
   }
 
-  private void pruneApp(ProgramMethodSet bridgesToRemove, ExecutorService executorService)
+  private void pruneApp(
+      ProgramMethodSet bridgesToRemove, ExecutorService executorService, Timing timing)
       throws ExecutionException {
     PrunedItems.Builder prunedItemsBuilder = PrunedItems.builder().setPrunedApp(appView.app());
     bridgesToRemove.forEach(method -> prunedItemsBuilder.addRemovedMethod(method.getReference()));
-    appView.pruneItems(prunedItemsBuilder.build(), executorService);
+    appView.pruneItems(prunedItemsBuilder.build(), executorService, timing);
   }
 
   class RedundantBridgeRemoverClassHierarchyTraversal

@@ -85,7 +85,8 @@ public class AssumeInfoCollection {
     return new AssumeInfoCollection(rewrittenCollection);
   }
 
-  public AssumeInfoCollection withoutPrunedItems(PrunedItems prunedItems) {
+  public AssumeInfoCollection withoutPrunedItems(PrunedItems prunedItems, Timing timing) {
+    timing.begin("Prune AssumeInfoCollection");
     Map<DexMember<?, ?>, AssumeInfo> rewrittenCollection = new IdentityHashMap<>();
     backing.forEach(
         (reference, info) -> {
@@ -96,7 +97,9 @@ public class AssumeInfoCollection {
             }
           }
         });
-    return new AssumeInfoCollection(rewrittenCollection);
+    AssumeInfoCollection result = new AssumeInfoCollection(rewrittenCollection);
+    timing.end();
+    return result;
   }
 
   public static class Builder {

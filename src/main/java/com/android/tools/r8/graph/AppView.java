@@ -865,47 +865,50 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
     return !cfByteCodePassThrough.isEmpty();
   }
 
-  public void pruneItems(PrunedItems prunedItems, ExecutorService executorService)
+  public void pruneItems(PrunedItems prunedItems, ExecutorService executorService, Timing timing)
       throws ExecutionException {
     if (prunedItems.isEmpty()) {
       assert appInfo().app() == prunedItems.getPrunedApp();
       return;
     }
+    timing.begin("Prune AppView");
     if (appInfo.hasLiveness()) {
       AppView<AppInfoWithLiveness> self = withLiveness();
-      self.setAppInfo(self.appInfo().prunedCopyFrom(prunedItems, executorService));
+      self.setAppInfo(self.appInfo().prunedCopyFrom(prunedItems, executorService, timing));
     } else if (appInfo.hasClassHierarchy()) {
       AppView<AppInfoWithClassHierarchy> self = withClassHierarchy();
-      self.setAppInfo(self.appInfo().prunedCopyFrom(prunedItems, executorService));
+      self.setAppInfo(self.appInfo().prunedCopyFrom(prunedItems, executorService, timing));
     } else {
-      pruneAppInfo(prunedItems, this, executorService);
+      pruneAppInfo(prunedItems, this, executorService, timing);
     }
     if (appServices() != null) {
-      setAppServices(appServices().prunedCopy(prunedItems));
+      setAppServices(appServices().prunedCopy(prunedItems, timing));
     }
-    setArtProfileCollection(getArtProfileCollection().withoutPrunedItems(prunedItems));
-    setAssumeInfoCollection(getAssumeInfoCollection().withoutPrunedItems(prunedItems));
+    setArtProfileCollection(getArtProfileCollection().withoutPrunedItems(prunedItems, timing));
+    setAssumeInfoCollection(getAssumeInfoCollection().withoutPrunedItems(prunedItems, timing));
     if (hasProguardCompatibilityActions()) {
       setProguardCompatibilityActions(
-          getProguardCompatibilityActions().withoutPrunedItems(prunedItems));
+          getProguardCompatibilityActions().withoutPrunedItems(prunedItems, timing));
     }
     if (hasRootSet()) {
-      rootSet.pruneItems(prunedItems);
+      rootSet.pruneItems(prunedItems, timing);
     }
-    setStartupProfile(getStartupProfile().withoutPrunedItems(prunedItems, getSyntheticItems()));
+    setStartupProfile(
+        getStartupProfile().withoutPrunedItems(prunedItems, getSyntheticItems(), timing));
     if (hasMainDexRootSet()) {
-      setMainDexRootSet(mainDexRootSet.withoutPrunedItems(prunedItems));
+      setMainDexRootSet(mainDexRootSet.withoutPrunedItems(prunedItems, timing));
     }
     setOpenClosedInterfacesCollection(
-        openClosedInterfacesCollection.withoutPrunedItems(prunedItems));
+        openClosedInterfacesCollection.withoutPrunedItems(prunedItems, timing));
+    timing.end();
   }
 
   @SuppressWarnings("unchecked")
   private static void pruneAppInfo(
-      PrunedItems prunedItems, AppView<?> appView, ExecutorService executorService)
+      PrunedItems prunedItems, AppView<?> appView, ExecutorService executorService, Timing timing)
       throws ExecutionException {
     ((AppView<AppInfo>) appView)
-        .setAppInfo(appView.appInfo().prunedCopyFrom(prunedItems, executorService));
+        .setAppInfo(appView.appInfo().prunedCopyFrom(prunedItems, executorService, timing));
   }
 
   public void rewriteWithLens(

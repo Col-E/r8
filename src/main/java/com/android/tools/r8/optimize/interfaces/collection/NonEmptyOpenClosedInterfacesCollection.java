@@ -47,16 +47,20 @@ public class NonEmptyOpenClosedInterfacesCollection extends OpenClosedInterfaces
   }
 
   @Override
-  public OpenClosedInterfacesCollection withoutPrunedItems(PrunedItems prunedItems) {
+  public OpenClosedInterfacesCollection withoutPrunedItems(PrunedItems prunedItems, Timing timing) {
     if (!prunedItems.hasRemovedClasses()) {
       return this;
     }
+    timing.begin("Prune NonEmptyOpenClosedInterfacesCollection");
     Set<DexType> prunedOpenInterfaceTypes = SetUtils.newIdentityHashSet(openInterfaceTypes.size());
     for (DexType openInterfaceType : openInterfaceTypes) {
       if (!prunedItems.isRemoved(openInterfaceType)) {
         prunedOpenInterfaceTypes.add(openInterfaceType);
       }
     }
-    return new NonEmptyOpenClosedInterfacesCollection(prunedOpenInterfaceTypes);
+    NonEmptyOpenClosedInterfacesCollection result =
+        new NonEmptyOpenClosedInterfacesCollection(prunedOpenInterfaceTypes);
+    timing.end();
+    return result;
   }
 }

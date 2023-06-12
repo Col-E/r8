@@ -18,6 +18,7 @@ import com.android.tools.r8.synthesis.CommittedItems;
 import com.android.tools.r8.synthesis.SyntheticItems;
 import com.android.tools.r8.synthesis.SyntheticItems.GlobalSyntheticsStrategy;
 import com.android.tools.r8.utils.Pair;
+import com.android.tools.r8.utils.Timing;
 import com.android.tools.r8.utils.TraversalContinuation;
 import com.android.tools.r8.utils.TriConsumer;
 import com.android.tools.r8.utils.TriFunction;
@@ -126,18 +127,23 @@ public class AppInfoWithClassHierarchy extends AppInfo {
 
   @Override
   public AppInfoWithClassHierarchy prunedCopyFrom(
-      PrunedItems prunedItems, ExecutorService executorService) throws ExecutionException {
+      PrunedItems prunedItems, ExecutorService executorService, Timing timing)
+      throws ExecutionException {
     assert getClass() == AppInfoWithClassHierarchy.class;
     assert checkIfObsolete();
     assert prunedItems.getPrunedApp() == app();
     if (prunedItems.isEmpty()) {
       return this;
     }
-    return new AppInfoWithClassHierarchy(
-        getSyntheticItems().commitPrunedItems(prunedItems),
-        getClassToFeatureSplitMap().withoutPrunedItems(prunedItems),
-        getMainDexInfo().withoutPrunedItems(prunedItems),
-        getMissingClasses());
+    timing.begin("Pruning AppInfoWithClassHierarchy");
+    AppInfoWithClassHierarchy result =
+        new AppInfoWithClassHierarchy(
+            getSyntheticItems().commitPrunedItems(prunedItems),
+            getClassToFeatureSplitMap().withoutPrunedItems(prunedItems),
+            getMainDexInfo().withoutPrunedItems(prunedItems),
+            getMissingClasses());
+    timing.end();
+    return result;
   }
 
   public ClassToFeatureSplitMap getClassToFeatureSplitMap() {

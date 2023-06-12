@@ -99,5 +99,6 @@ public abstract class OpenClosedInterfacesCollection {
   public abstract OpenClosedInterfacesCollection rewrittenWithLens(
       GraphLens graphLens, Timing timing);
 
-  public abstract OpenClosedInterfacesCollection withoutPrunedItems(PrunedItems prunedItems);
+  public abstract OpenClosedInterfacesCollection withoutPrunedItems(
+      PrunedItems prunedItems, Timing timing);
 }

@@ -32,14 +32,17 @@ public class ProguardCompatibilityActions {
     return compatInstantiatedTypes.isEmpty();
   }
 
-  public ProguardCompatibilityActions withoutPrunedItems(PrunedItems prunedItems) {
+  public ProguardCompatibilityActions withoutPrunedItems(PrunedItems prunedItems, Timing timing) {
+    timing.begin("Prune ProguardCompatibilityActions");
     Builder builder = builder();
     for (DexType compatInstantiatedType : compatInstantiatedTypes) {
       if (!prunedItems.isRemoved(compatInstantiatedType)) {
         builder.addCompatInstantiatedType(compatInstantiatedType);
       }
     }
-    return builder.build();
+    ProguardCompatibilityActions result = builder.build();
+    timing.end();
+    return result;
   }
 
   public ProguardCompatibilityActions rewrittenWithLens(GraphLens lens, Timing timing) {

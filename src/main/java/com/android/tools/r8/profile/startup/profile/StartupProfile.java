@@ -143,7 +143,7 @@ public abstract class StartupProfile
   public abstract StartupProfile withoutMissingItems(AppView<?> appView);
 
   public abstract StartupProfile withoutPrunedItems(
-      PrunedItems prunedItems, SyntheticItems syntheticItems);
+      PrunedItems prunedItems, SyntheticItems syntheticItems, Timing timing);
 
   public static class Builder
       implements AbstractProfile.Builder<

@@ -176,18 +176,23 @@ public class NonEmptyStartupProfile extends StartupProfile {
   }
 
   @Override
-  public StartupProfile withoutPrunedItems(PrunedItems prunedItems, SyntheticItems syntheticItems) {
-    return transform(
-        (classRule, builder) -> {
-          if (!prunedItems.isRemoved(classRule.getReference())) {
-            builder.addClassRule(classRule);
-          }
-        },
-        (methodRule, builder) -> {
-          if (!prunedItems.isRemoved(methodRule.getReference())) {
-            builder.addMethodRule(methodRule);
-          }
-        });
+  public StartupProfile withoutPrunedItems(
+      PrunedItems prunedItems, SyntheticItems syntheticItems, Timing timing) {
+    timing.begin("Prune NonEmptyStartupProfile");
+    StartupProfile result =
+        transform(
+            (classRule, builder) -> {
+              if (!prunedItems.isRemoved(classRule.getReference())) {
+                builder.addClassRule(classRule);
+              }
+            },
+            (methodRule, builder) -> {
+              if (!prunedItems.isRemoved(methodRule.getReference())) {
+                builder.addMethodRule(methodRule);
+              }
+            });
+    timing.end();
+    return result;
   }
 
   private StartupProfile transform(

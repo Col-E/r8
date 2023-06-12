@@ -76,13 +76,7 @@ public class TreePruner {
   public PrunedItems run(
       ExecutorService executorService, Timing timing, PrunedItems.Builder prunedItemsBuilder)
       throws ExecutionException {
-    return timing.time(
-        "Pruning application...", () -> internalRun(executorService, prunedItemsBuilder));
-  }
-
-  private PrunedItems internalRun(
-      ExecutorService executorService, PrunedItems.Builder prunedItemsBuilder)
-      throws ExecutionException {
+    timing.begin("Pruning application");
     DirectMappedDexApplication application = appView.appInfo().app().asDirect();
       DirectMappedDexApplication.Builder builder = removeUnused(application);
       DirectMappedDexApplication newApplication =
@@ -90,13 +84,17 @@ public class TreePruner {
               ? application
               : builder.build();
       fixupOptimizationInfo(newApplication, executorService);
-    return prunedItemsBuilder
-        .setPrunedApp(newApplication)
-        .addRemovedClasses(prunedTypes)
-        .addRemovedFields(prunedFields)
-        .addRemovedMethods(prunedMethods)
-        .addAdditionalPinnedItems(methodsToKeepForConfigurationDebugging)
-        .build();
+    PrunedItems prunedItems =
+        prunedItemsBuilder
+            .setPrunedApp(newApplication)
+            .addRemovedClasses(prunedTypes)
+            .addRemovedFields(prunedFields)
+            .addRemovedMethods(prunedMethods)
+            .addAdditionalPinnedItems(methodsToKeepForConfigurationDebugging)
+            .build();
+    appView.pruneItems(prunedItems, executorService, timing);
+    timing.end();
+    return prunedItems;
   }
 
   private DirectMappedDexApplication.Builder removeUnused(DirectMappedDexApplication application) {
