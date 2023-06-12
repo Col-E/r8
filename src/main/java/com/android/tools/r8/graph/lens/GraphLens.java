@@ -29,6 +29,7 @@ import com.android.tools.r8.ir.optimize.enums.EnumUnboxingLens;
 import com.android.tools.r8.optimize.MemberRebindingIdentityLens;
 import com.android.tools.r8.optimize.MemberRebindingLens;
 import com.android.tools.r8.shaking.KeepInfoCollection;
+import com.android.tools.r8.utils.CollectionUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.ListUtils;
 import com.android.tools.r8.utils.SetUtils;
@@ -42,6 +43,7 @@ import com.google.common.collect.Sets;
 import it.unimi.dsi.fastutil.objects.Object2BooleanArrayMap;
 import it.unimi.dsi.fastutil.objects.Object2BooleanMap;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
@@ -432,6 +434,8 @@ public abstract class GraphLens {
 
   public abstract boolean isIdentityLens();
 
+  public abstract boolean isIdentityLensForFields(GraphLens codeLens);
+
   public boolean isMemberRebindingLens() {
     return false;
   }
@@ -521,6 +525,51 @@ public abstract class GraphLens {
         });
     timing.end();
     return result;
+  }
+
+  public Set<DexField> rewriteFields(Set<DexField> fields, Timing timing) {
+    timing.begin("Rewrite fields");
+    GraphLens appliedLens = getIdentityLens();
+    Set<DexField> rewrittenFields;
+    if (isIdentityLensForFields(appliedLens)) {
+      assert verifyIsIdentityLensForFields(fields, appliedLens);
+      rewrittenFields = fields;
+    } else {
+      rewrittenFields = null;
+      for (DexField field : fields) {
+        DexField rewrittenField = getRenamedFieldSignature(field, appliedLens);
+        // If rewrittenFields is non-null we have previously seen a change and need to record the
+        // field no matter what.
+        if (rewrittenFields != null) {
+          rewrittenFields.add(rewrittenField);
+          continue;
+        }
+        // If the field has not been rewritten then we can reuse the input set.
+        if (rewrittenField == field) {
+          continue;
+        }
+        // Otherwise add the rewritten field and all previous fields to a new set.
+        rewrittenFields = SetUtils.newIdentityHashSet(fields.size());
+        CollectionUtils.forEachUntilExclusive(fields, rewrittenFields::add, field);
+        rewrittenFields.add(rewrittenField);
+      }
+      if (rewrittenFields == null) {
+        rewrittenFields = fields;
+      } else {
+        rewrittenFields =
+            SetUtils.trimCapacityOfIdentityHashSetIfSizeLessThan(rewrittenFields, fields.size());
+      }
+    }
+    timing.end();
+    return rewrittenFields;
+  }
+
+  private boolean verifyIsIdentityLensForFields(
+      Collection<DexField> fields, GraphLens appliedLens) {
+    for (DexField field : fields) {
+      assert lookupField(field, appliedLens) == field;
+    }
+    return true;
   }
 
   @SuppressWarnings("unchecked")

@@ -27,6 +27,11 @@ final class IdentityGraphLens extends GraphLens {
   }
 
   @Override
+  public boolean isIdentityLensForFields(GraphLens codeLens) {
+    return true;
+  }
+
+  @Override
   public boolean isNonIdentityLens() {
     return false;
   }

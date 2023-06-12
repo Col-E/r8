@@ -12,6 +12,7 @@ import java.util.Comparator;
 import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.function.Predicate;
 
 public class CollectionUtils {
 
@@ -39,6 +40,26 @@ public class CollectionUtils {
   public static <T> void forEach(Consumer<T> consumer, Collection<T>... collections) {
     for (Collection<T> collection : collections) {
       collection.forEach(consumer);
+    }
+  }
+
+  public static <T> void forEachUntilExclusive(
+      Collection<T> collection, Consumer<T> consumer, T stoppingCriterion) {
+    for (T element : collection) {
+      if (element.equals(stoppingCriterion)) {
+        break;
+      }
+      consumer.accept(element);
+    }
+  }
+
+  public static <T> void forEachUntilExclusive(
+      Collection<T> collection, Consumer<T> consumer, Predicate<? super T> stoppingCriterion) {
+    for (T element : collection) {
+      if (stoppingCriterion.test(element)) {
+        break;
+      }
+      consumer.accept(element);
     }
   }
 

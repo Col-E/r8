@@ -41,14 +41,25 @@ public class FieldAccessInfoImpl implements FieldAccessInfo {
 
   // Maps every direct and indirect reference in a read-context to the set of methods in which that
   // reference appears.
-  private AbstractAccessContexts readsWithContexts = AbstractAccessContexts.empty();
+  private AbstractAccessContexts readsWithContexts;
 
   // Maps every direct and indirect reference in a write-context to the set of methods in which that
   // reference appears.
-  private AbstractAccessContexts writesWithContexts = AbstractAccessContexts.empty();
+  private AbstractAccessContexts writesWithContexts;
 
   public FieldAccessInfoImpl(DexField field) {
+    this(field, 0, AbstractAccessContexts.empty(), AbstractAccessContexts.empty());
+  }
+
+  public FieldAccessInfoImpl(
+      DexField field,
+      int flags,
+      AbstractAccessContexts readsWithContexts,
+      AbstractAccessContexts writesWithContexts) {
     this.field = field;
+    this.flags = flags;
+    this.readsWithContexts = readsWithContexts;
+    this.writesWithContexts = writesWithContexts;
   }
 
   void destroyAccessContexts() {
@@ -360,10 +371,28 @@ public class FieldAccessInfoImpl implements FieldAccessInfo {
   public FieldAccessInfoImpl rewrittenWithLens(
       DexDefinitionSupplier definitions, GraphLens lens, Timing timing) {
     timing.begin("Rewrite FieldAccessInfoImpl");
-    FieldAccessInfoImpl rewritten = new FieldAccessInfoImpl(lens.lookupField(field));
-    rewritten.flags = flags;
-    rewritten.readsWithContexts = readsWithContexts.rewrittenWithLens(definitions, lens);
-    rewritten.writesWithContexts = writesWithContexts.rewrittenWithLens(definitions, lens);
+    AbstractAccessContexts rewrittenReadsWithContexts =
+        readsWithContexts.rewrittenWithLens(definitions, lens);
+    AbstractAccessContexts rewrittenWritesWithContexts =
+        writesWithContexts.rewrittenWithLens(definitions, lens);
+    FieldAccessInfoImpl rewritten;
+    if (lens.isIdentityLensForFields(GraphLens.getIdentityLens())) {
+      if (rewrittenReadsWithContexts == readsWithContexts
+          && rewrittenWritesWithContexts == writesWithContexts) {
+        rewritten = this;
+      } else {
+        rewritten =
+            new FieldAccessInfoImpl(
+                field, flags, rewrittenReadsWithContexts, rewrittenWritesWithContexts);
+      }
+    } else {
+      rewritten =
+          new FieldAccessInfoImpl(
+              lens.lookupField(field),
+              flags,
+              rewrittenReadsWithContexts,
+              rewrittenWritesWithContexts);
+    }
     timing.end();
     return rewritten;
   }

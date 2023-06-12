@@ -190,6 +190,11 @@ public abstract class NonIdentityGraphLens extends GraphLens {
   }
 
   @Override
+  public boolean isIdentityLensForFields(GraphLens codeLens) {
+    return this == codeLens;
+  }
+
+  @Override
   public final boolean isNonIdentityLens() {
     return true;
   }

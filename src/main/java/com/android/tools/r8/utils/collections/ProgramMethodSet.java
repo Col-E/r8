@@ -11,9 +11,12 @@ import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.PrunedItems;
 import com.android.tools.r8.graph.lens.GraphLens;
+import com.android.tools.r8.utils.CollectionUtils;
 import com.android.tools.r8.utils.ForEachable;
 import com.google.common.collect.ImmutableMap;
+import java.util.ArrayList;
 import java.util.IdentityHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -84,17 +87,48 @@ public abstract class ProgramMethodSet extends DexClassAndMethodSetBase<ProgramM
   }
 
   public ProgramMethodSet rewrittenWithLens(DexDefinitionSupplier definitions, GraphLens lens) {
-    ProgramMethodSet rewritten = ProgramMethodSet.create(size());
-    forEach(
-        method -> {
-          ProgramMethod newMethod = lens.mapProgramMethod(method, definitions);
-          if (newMethod != null) {
-            assert !newMethod.getDefinition().isObsolete();
-            rewritten.add(newMethod);
+    List<ProgramMethod> elementsToRemove = null;
+    ProgramMethodSet rewrittenMethods = null;
+    for (ProgramMethod method : this) {
+      ProgramMethod rewrittenMethod = lens.mapProgramMethod(method, definitions);
+      if (rewrittenMethod == null) {
+        assert lens.isEnumUnboxerLens();
+        // If everything has been unchanged up until now, then record that we should remove this
+        // method.
+        if (rewrittenMethods == null) {
+          if (elementsToRemove == null) {
+            elementsToRemove = new ArrayList<>();
           }
-        });
-    rewritten.trimCapacityIfSizeLessThan(size());
-    return rewritten;
+          elementsToRemove.add(method);
+        }
+        continue;
+      }
+      if (rewrittenMethod == method) {
+        if (rewrittenMethods != null) {
+          rewrittenMethods.add(rewrittenMethod);
+        }
+      } else {
+        if (rewrittenMethods == null) {
+          rewrittenMethods = ProgramMethodSet.create(size());
+          CollectionUtils.<ProgramMethod>forEachUntilExclusive(
+              this, rewrittenMethods::add, method::isStructurallyEqualTo);
+          if (elementsToRemove != null) {
+            rewrittenMethods.removeAll(elementsToRemove);
+            elementsToRemove = null;
+          }
+        }
+        rewrittenMethods.add(rewrittenMethod);
+      }
+    }
+    if (rewrittenMethods != null) {
+      rewrittenMethods.trimCapacityIfSizeLessThan(size());
+      return rewrittenMethods;
+    } else {
+      if (elementsToRemove != null) {
+        removeAll(elementsToRemove);
+      }
+      return this;
+    }
   }
 
   public ProgramMethodSet withoutPrunedItems(PrunedItems prunedItems) {

@@ -1186,7 +1186,7 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
         lens.rewriteReferences(liveTypes),
         lens.rewriteReferences(targetedMethods),
         lens.rewriteReferences(failedMethodResolutionTargets),
-        lens.rewriteReferences(failedFieldResolutionTargets),
+        lens.rewriteFields(failedFieldResolutionTargets, timing),
         lens.rewriteReferences(bootstrapMethods),
         lens.rewriteReferences(virtualMethodsTargetedByInvokeDirect),
         lens.rewriteReferences(liveMethods),
