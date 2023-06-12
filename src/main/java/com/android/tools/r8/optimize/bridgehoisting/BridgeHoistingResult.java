@@ -7,7 +7,6 @@ package com.android.tools.r8.optimize.bridgehoisting;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
-import com.android.tools.r8.graph.MethodAccessInfoCollection;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.optimize.info.bridge.BridgeInfo;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
@@ -59,27 +58,6 @@ class BridgeHoistingResult {
     assert originalFrom.contains(originalRepresentative);
     bridgeToHoistedBridgeMap.put(originalFrom, to);
     bridgeToHoistedBridgeMap.setRepresentative(to, originalRepresentative);
-  }
-
-  public void recordNonReboundMethodAccesses(
-      MethodAccessInfoCollection.IdentityBuilder bridgeMethodAccessInfoCollectionBuilder) {
-    MethodAccessInfoCollection methodAccessInfoCollection =
-        appView.appInfo().getMethodAccessInfoCollection();
-    bridgeToHoistedBridgeMap
-        .keySet()
-        .forEach(
-            from -> {
-              methodAccessInfoCollection.forEachSuperInvokeContext(
-                  from,
-                  context ->
-                      bridgeMethodAccessInfoCollectionBuilder.registerInvokeSuperInContext(
-                          from, context));
-              methodAccessInfoCollection.forEachVirtualInvokeContext(
-                  from,
-                  context ->
-                      bridgeMethodAccessInfoCollectionBuilder.registerInvokeVirtualInContext(
-                          from, context));
-            });
   }
 
   public BridgeHoistingLens buildLens() {
