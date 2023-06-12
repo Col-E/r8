@@ -403,6 +403,7 @@ public class VerticalClassMergerTest extends TestBase {
 
   @Test
   public void testNestedDefaultInterfaceMethodsWithCDumpTest() throws Throwable {
+    assumeFalse("Ignore on CF due to invalid invokespecial", parameters.isCfRuntime());
     String main = "classmerging.NestedDefaultInterfaceMethodsTest";
     Path[] programFiles =
         new Path[] {
@@ -801,12 +802,14 @@ public class VerticalClassMergerTest extends TestBase {
             "SuperClassWithReferencedMethod.referencedMethod()");
 
     testForD8(parameters.getBackend())
+        .applyIf(parameters.isDexRuntime(), b -> b.setMinApi(parameters))
         .addProgramFiles(programFiles)
         .addProgramDexFileData(smaliBuilder.compile())
         .run(parameters.getRuntime(), main)
         .assertSuccessWithOutput(expectedOutput);
 
     testForR8(parameters.getBackend())
+        .setMinApi(parameters)
         .addOptionsModification(this::configure)
         .addKeepMainRule(main)
         // Keep the classes to avoid merge, but don't keep methods which allows inlining.
@@ -1215,7 +1218,8 @@ public class VerticalClassMergerTest extends TestBase {
 
     // Check that the R8-generated code produces the same result as D8-generated code.
     String d8Result =
-        testForD8()
+        testForD8(parameters.getBackend())
+            .applyIf(parameters.isDexRuntime(), b -> b.setMinApi(parameters))
             .addProgramResourceProviders(input.getProgramResourceProviders())
             .run(parameters.getRuntime(), main)
             .assertSuccess()
