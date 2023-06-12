@@ -23,7 +23,9 @@ import java.util.concurrent.ExecutorService;
 
 public class Timing {
 
-  private static final int MINIMUM_REPORT_PERCENTAGE = 2;
+  private static final int MINIMUM_REPORT_PERCENTAGE =
+      SystemPropertyUtils.parseSystemPropertyOrDefault(
+          "com.android.tools.r8.printtimes.minvalue", 2);
 
   private static final Timing EMPTY =
       new Timing("<empty>", false) {
