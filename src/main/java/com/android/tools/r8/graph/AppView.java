@@ -963,29 +963,39 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
         newMemberRebindingLens,
         () -> {
           GraphLens appliedLensInModifiedLens = GraphLens.getIdentityLens();
-          if (appView.hasLiveness()) {
-            appView
-                .withLiveness()
-                .setAppInfo(
-                    appView.appInfoWithLiveness().rewrittenWithLens(application, lens, timing));
-          } else {
-            assert appView.hasClassHierarchy();
-            AppView<AppInfoWithClassHierarchy> appViewWithClassHierarchy =
-                appView.withClassHierarchy();
-            AppInfoWithClassHierarchy appInfo = appViewWithClassHierarchy.appInfo();
-            MainDexInfo rewrittenMainDexInfo =
-                appInfo
-                    .getMainDexInfo()
-                    .rewrittenWithLens(appView.getSyntheticItems(), lens, timing);
-            appViewWithClassHierarchy.setAppInfo(
-                appInfo.rebuildWithMainDexInfo(rewrittenMainDexInfo));
-          }
           ThreadTaskUtils.processTasks(
               executorService,
               appView.options(),
               timing
                   .beginMerger("Rewrite AppView concurrently", executorService)
                   .disableSlowestReporting(),
+              new ThreadTask() {
+
+                private AppInfoWithClassHierarchy result;
+
+                @Override
+                public void run(Timing timing) {
+                  if (appView.hasLiveness()) {
+                    result =
+                        appView.appInfoWithLiveness().rewrittenWithLens(application, lens, timing);
+                  } else {
+                    assert appView.hasClassHierarchy();
+                    AppView<AppInfoWithClassHierarchy> appViewWithClassHierarchy =
+                        appView.withClassHierarchy();
+                    AppInfoWithClassHierarchy appInfo = appViewWithClassHierarchy.appInfo();
+                    MainDexInfo rewrittenMainDexInfo =
+                        appInfo
+                            .getMainDexInfo()
+                            .rewrittenWithLens(appView.getSyntheticItems(), lens, timing);
+                    result = appInfo.rebuildWithMainDexInfo(rewrittenMainDexInfo);
+                  }
+                }
+
+                @Override
+                public void onJoin() {
+                  appView.withClassHierarchy().setAppInfo(result);
+                }
+              },
               new ThreadTask() {
                 @Override
                 public void run(Timing threadTiming) {

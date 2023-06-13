@@ -18,6 +18,8 @@ public interface ThreadTask {
     }
   }
 
+  default void onJoin() {}
+
   default boolean shouldRun() {
     return true;
   }

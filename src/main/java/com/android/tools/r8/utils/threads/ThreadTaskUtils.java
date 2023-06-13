@@ -46,6 +46,11 @@ public class ThreadTaskUtils {
       timingMerger.add(timings);
       timingMerger.end();
     }
+    for (ThreadTask task : tasks) {
+      if (task.shouldRun()) {
+        task.onJoin();
+      }
+    }
   }
 
   private static void processTask(
