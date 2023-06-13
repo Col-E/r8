@@ -64,14 +64,14 @@ public class IRToDexFinalizer extends IRFinalizer<DexCode> {
     if (code.getConversionOptions().isPeepholeOptimizationsEnabled()) {
       timing.begin("Peephole optimize");
       for (int i = 0; i < PEEPHOLE_OPTIMIZATION_PASSES; i++) {
-        trivialGotosCollapser.run(code.context(), code, timing);
+        trivialGotosCollapser.run(code, timing);
         PeepholeOptimizer.optimize(appView, code, registerAllocator);
       }
       timing.end();
     }
     timing.begin("Clean up");
     CodeRewriter.removeUnneededMovesOnExitingPaths(code, registerAllocator);
-    trivialGotosCollapser.run(code.context(), code, timing);
+    trivialGotosCollapser.run(code, timing);
     timing.end();
     return registerAllocator;
   }

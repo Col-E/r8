@@ -33,6 +33,7 @@ import com.android.tools.r8.ir.conversion.passes.TrivialGotosCollapser;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.InternalOptions;
+import com.android.tools.r8.utils.Timing;
 import com.google.common.collect.ImmutableList;
 import java.util.LinkedList;
 import org.junit.Test;
@@ -108,7 +109,7 @@ public class TrivialGotoEliminationTest extends TestBase {
             IRMetadata.unknown(),
             Origin.unknown(),
             new MutableMethodConversionOptions(options));
-    new TrivialGotosCollapser(appView).run(code.context(), code);
+    new TrivialGotosCollapser(appView).run(code, Timing.empty());
     assertTrue(code.entryBlock().isTrivialGoto());
     assertTrue(blocks.contains(block0));
     assertTrue(blocks.contains(block1));
@@ -197,7 +198,7 @@ public class TrivialGotoEliminationTest extends TestBase {
             IRMetadata.unknown(),
             Origin.unknown(),
             new MutableMethodConversionOptions(options));
-    new TrivialGotosCollapser(appView).run(code.context(), code);
+    new TrivialGotosCollapser(appView).run(code, Timing.empty());
     assertTrue(block0.getInstructions().get(1).isIf());
     assertEquals(block1, block0.getInstructions().get(1).asIf().fallthroughBlock());
     assertTrue(blocks.containsAll(ImmutableList.of(block0, block1, block2, block3)));

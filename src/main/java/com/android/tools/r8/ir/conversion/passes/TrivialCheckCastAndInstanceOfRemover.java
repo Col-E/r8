@@ -8,9 +8,9 @@ import static com.android.tools.r8.graph.DexProgramClass.asProgramClassOrNull;
 
 import com.android.tools.r8.contexts.CompilationContext.MethodProcessingContext;
 import com.android.tools.r8.graph.AccessControl;
+import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
-import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ProgramMethod;
@@ -22,7 +22,6 @@ import com.android.tools.r8.ir.analysis.type.TypeUtils;
 import com.android.tools.r8.ir.code.CheckCast;
 import com.android.tools.r8.ir.code.ConstNumber;
 import com.android.tools.r8.ir.code.IRCode;
-import com.android.tools.r8.ir.code.IRMetadata;
 import com.android.tools.r8.ir.code.InstanceOf;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionListIterator;
@@ -33,42 +32,34 @@ import com.android.tools.r8.ir.optimize.CodeRewriter;
 import com.android.tools.r8.ir.optimize.UtilityMethodsForCodeOptimizations;
 import com.android.tools.r8.ir.optimize.UtilityMethodsForCodeOptimizations.UtilityMethodForCodeOptimizations;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
-import com.android.tools.r8.utils.InternalOptions;
 import com.google.common.collect.Sets;
 import java.util.Set;
 
-public class TrivialCheckCastAndInstanceOfRemover {
-
-  private final AppView<?> appView;
-  private final InternalOptions options;
-  private final DexItemFactory dexItemFactory;
+public class TrivialCheckCastAndInstanceOfRemover extends CodeRewriterPass<AppInfo> {
 
   public TrivialCheckCastAndInstanceOfRemover(AppView<?> appView) {
-    this.appView = appView;
-    this.options = appView.options();
-    this.dexItemFactory = appView.dexItemFactory();
+    super(appView);
   }
 
-  public void run(
+  @Override
+  protected String getTimingId() {
+    return "TrivialCheckCastAndInstanceOfRemover";
+  }
+
+  @Override
+  protected boolean shouldRewriteCode(IRCode code) {
+    return appView.enableWholeProgramOptimizations()
+        && appView.options().testing.enableCheckCastAndInstanceOfRemoval
+        && (code.metadata().mayHaveCheckCast() || code.metadata().mayHaveInstanceOf());
+  }
+
+  @Override
+  protected void rewriteCode(
       IRCode code,
-      ProgramMethod context,
       MethodProcessor methodProcessor,
       MethodProcessingContext methodProcessingContext) {
-    if (!appView.enableWholeProgramOptimizations()) {
-      return;
-    }
-
     assert appView.appInfo().hasLiveness();
     AppView<AppInfoWithLiveness> appViewWithLiveness = appView.withLiveness();
-
-    if (!appView.options().testing.enableCheckCastAndInstanceOfRemoval) {
-      return;
-    }
-
-    IRMetadata metadata = code.metadata();
-    if (!metadata.mayHaveCheckCast() && !metadata.mayHaveInstanceOf()) {
-      return;
-    }
 
     // If we can remove a CheckCast it is due to us having at least as much information about the
     // type as the CheckCast gives. We then need to propagate that information to the users of
@@ -101,7 +92,7 @@ public class TrivialCheckCastAndInstanceOfRemover {
                 current.asCheckCast(),
                 it,
                 code,
-                context,
+                code.context(),
                 affectedValues,
                 methodProcessor,
                 methodProcessingContext);

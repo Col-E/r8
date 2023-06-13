@@ -31,6 +31,7 @@ import com.android.tools.r8.ir.optimize.inliner.InliningIRProvider;
 import com.android.tools.r8.ir.optimize.string.StringOptimizer;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.LazyBox;
+import com.android.tools.r8.utils.Timing;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import java.util.Iterator;
@@ -249,7 +250,7 @@ public final class ClassInliner {
       // have more information about the types of the arguments at the call site. This is
       // particularly important for bridge methods.
       new TrivialCheckCastAndInstanceOfRemover(appView)
-          .run(code, method, methodProcessor, methodProcessingContext);
+          .run(code, methodProcessor, methodProcessingContext, Timing.empty());
       // If a method was inlined we may be able to prune additional branches.
       new BranchSimplifier(appView).simplifyBranches(code);
       // If a method was inlined we may see more trivial computation/conversion of String.

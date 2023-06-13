@@ -14,6 +14,7 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.conversion.passes.ArrayConstructionSimplifier;
+import com.android.tools.r8.utils.Timing;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.InstructionSubject;
@@ -64,7 +65,7 @@ public class ArrayWithDataLengthRewriteTest extends TestBase {
   }
 
   private void transformArray(IRCode irCode, AppView<?> appView) {
-    new ArrayConstructionSimplifier(appView).run(irCode.context(), irCode);
+    new ArrayConstructionSimplifier(appView).run(irCode, Timing.empty());
     String name = irCode.context().getReference().getName().toString();
     if (name.contains("filledArrayData")) {
       assertTrue(irCode.streamInstructions().anyMatch(Instruction::isNewArrayFilledData));

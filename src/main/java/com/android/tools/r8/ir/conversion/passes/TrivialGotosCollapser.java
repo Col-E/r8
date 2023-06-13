@@ -6,7 +6,6 @@ package com.android.tools.r8.ir.conversion.passes;
 
 import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppView;
-import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.If;
@@ -34,7 +33,7 @@ public class TrivialGotosCollapser extends CodeRewriterPass<AppInfo> {
   }
 
   @Override
-  protected void rewriteCode(ProgramMethod method, IRCode code) {
+  protected void rewriteCode(IRCode code) {
     assert code.isConsistentGraph(appView);
     List<BasicBlock> blocksToRemove = new ArrayList<>();
     // Rewrite all non-fallthrough targets to the end of trivial goto chains and remove
@@ -77,7 +76,7 @@ public class TrivialGotosCollapser extends CodeRewriterPass<AppInfo> {
   }
 
   @Override
-  protected boolean shouldRewriteCode(ProgramMethod method, IRCode code) {
+  protected boolean shouldRewriteCode(IRCode code) {
     return true;
   }
 

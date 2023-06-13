@@ -7,7 +7,6 @@ package com.android.tools.r8.ir.conversion.passes;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppView;
-import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.Goto;
 import com.android.tools.r8.ir.code.IRCode;
@@ -41,7 +40,7 @@ public class NaturalIntLoopRemover extends CodeRewriterPass<AppInfo> {
   }
 
   @Override
-  protected void rewriteCode(ProgramMethod method, IRCode code) {
+  protected void rewriteCode(IRCode code) {
     boolean loopRemoved = false;
     for (BasicBlock comparisonBlockCandidate : code.blocks) {
       if (isComparisonBlock(comparisonBlockCandidate)) {
@@ -56,7 +55,7 @@ public class NaturalIntLoopRemover extends CodeRewriterPass<AppInfo> {
   }
 
   @Override
-  protected boolean shouldRewriteCode(ProgramMethod method, IRCode code) {
+  protected boolean shouldRewriteCode(IRCode code) {
     return appView.options().enableLoopUnrolling;
   }
 

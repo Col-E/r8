@@ -8,7 +8,6 @@ import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexType;
-import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.analysis.type.ArrayTypeElement;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.code.ArrayPut;
@@ -93,7 +92,7 @@ public class ArrayConstructionSimplifier extends CodeRewriterPass<AppInfo> {
   }
 
   @Override
-  protected void rewriteCode(ProgramMethod method, IRCode code) {
+  protected void rewriteCode(IRCode code) {
     WorkList<BasicBlock> worklist = WorkList.newIdentityWorkList(code.blocks);
     while (worklist.hasNext()) {
       BasicBlock block = worklist.next();
@@ -102,7 +101,7 @@ public class ArrayConstructionSimplifier extends CodeRewriterPass<AppInfo> {
   }
 
   @Override
-  protected boolean shouldRewriteCode(ProgramMethod method, IRCode code) {
+  protected boolean shouldRewriteCode(IRCode code) {
     return appView.options().isGeneratingDex();
   }
 

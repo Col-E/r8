@@ -14,7 +14,6 @@ import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
-import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.analysis.type.ClassTypeElement;
 import com.android.tools.r8.ir.analysis.type.TypeAnalysis;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
@@ -61,12 +60,12 @@ public class EnumValueOptimizer extends CodeRewriterPass<AppInfoWithLiveness> {
   }
 
   @Override
-  protected void rewriteCode(ProgramMethod method, IRCode code) {
+  protected void rewriteCode(IRCode code) {
     rewriteConstantEnumMethodCalls(code);
   }
 
   @Override
-  protected boolean shouldRewriteCode(ProgramMethod method, IRCode code) {
+  protected boolean shouldRewriteCode(IRCode code) {
     return code.metadata().mayHaveInvokeMethodWithReceiver();
   }
 
@@ -86,7 +85,7 @@ public class EnumValueOptimizer extends CodeRewriterPass<AppInfoWithLiveness> {
         InvokeMethodWithReceiver methodWithReceiver = current.asInvokeMethodWithReceiver();
         Value receiver = methodWithReceiver.getReceiver().getAliasedValue();
         if (!receiver.getType().isClassType()
-            || !appView
+            || !appView()
                 .appInfo()
                 .isSubtype(
                     receiver.getType().asClassType().getClassType(), dexItemFactory.enumType)) {
@@ -171,7 +170,7 @@ public class EnumValueOptimizer extends CodeRewriterPass<AppInfoWithLiveness> {
         }
 
         DexEncodedMethod singleTarget =
-            appView
+            appView()
                 .appInfo()
                 .resolveMethodOnClassLegacy(
                     enumFieldType.getClassType(), dexItemFactory.objectMembers.toString)
@@ -455,7 +454,7 @@ public class EnumValueOptimizer extends CodeRewriterPass<AppInfoWithLiveness> {
       return null;
     }
     StaticGet staticGet = array.asStaticGet();
-    Int2ReferenceMap<DexField> indexMap = appView.appInfo().getSwitchMap(staticGet.getField());
+    Int2ReferenceMap<DexField> indexMap = appView().appInfo().getSwitchMap(staticGet.getField());
     if (indexMap == null || indexMap.isEmpty()) {
       return null;
     }

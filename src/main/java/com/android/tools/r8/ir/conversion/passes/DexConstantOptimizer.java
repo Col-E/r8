@@ -14,7 +14,6 @@ import static com.android.tools.r8.ir.code.Opcodes.STATIC_GET;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppView;
-import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.BasicBlockIterator;
 import com.android.tools.r8.ir.code.Binop;
@@ -64,13 +63,13 @@ public class DexConstantOptimizer extends CodeRewriterPass<AppInfo> {
   }
 
   @Override
-  protected void rewriteCode(ProgramMethod method, IRCode code) {
+  protected void rewriteCode(IRCode code) {
     useDedicatedConstantForLitInstruction(code);
     shortenLiveRanges(code, constantCanonicalizer);
   }
 
   @Override
-  protected boolean shouldRewriteCode(ProgramMethod method, IRCode code) {
+  protected boolean shouldRewriteCode(IRCode code) {
     return true;
   }
 

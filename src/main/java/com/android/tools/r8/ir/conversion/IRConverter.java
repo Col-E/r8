@@ -731,28 +731,26 @@ public class IRConverter {
 
     assert code.verifyTypes(appView);
 
-    timing.begin("Remove trivial type checks/casts");
     new TrivialCheckCastAndInstanceOfRemover(appView)
-        .run(code, context, methodProcessor, methodProcessingContext);
-    timing.end();
+        .run(code, methodProcessor, methodProcessingContext, timing);
 
     if (enumValueOptimizer != null) {
       assert appView.enableWholeProgramOptimizations();
-      enumValueOptimizer.run(context, code, timing);
+      enumValueOptimizer.run(code, timing);
     }
 
     timing.begin("Rewrite array length");
     codeRewriter.rewriteKnownArrayLengthCalls(code);
     timing.end();
-    new NaturalIntLoopRemover(appView).run(context, code);
+    new NaturalIntLoopRemover(appView).run(code, timing);
     if (assertionErrorTwoArgsConstructorRewriter != null) {
       timing.begin("Rewrite AssertionError");
       assertionErrorTwoArgsConstructorRewriter.rewrite(
           code, methodProcessor, methodProcessingContext);
       timing.end();
     }
-    commonSubexpressionElimination.run(context, code, timing);
-    new ArrayConstructionSimplifier(appView).run(context, code, timing);
+    commonSubexpressionElimination.run(code, timing);
+    new ArrayConstructionSimplifier(appView).run(code, timing);
     timing.begin("Rewrite move result");
     codeRewriter.rewriteMoveResult(code);
     timing.end();
@@ -769,13 +767,11 @@ public class IRConverter {
     timing.end();
     timing.begin("Simplify control flow");
     if (new BranchSimplifier(appView).simplifyBranches(code)) {
-      timing.begin("Remove trivial type checks/casts");
       new TrivialCheckCastAndInstanceOfRemover(appView)
-          .run(code, context, methodProcessor, methodProcessingContext);
-      timing.end();
+          .run(code, methodProcessor, methodProcessingContext, timing);
     }
     timing.end();
-    splitBranch.run(code.context(), code, timing);
+    splitBranch.run(code, timing);
     if (options.enableRedundantConstNumberOptimization) {
       timing.begin("Remove const numbers");
       codeRewriter.redundantConstNumberRemoval(code);
@@ -787,7 +783,7 @@ public class IRConverter {
       timing.end();
     }
     if (binopRewriter != null) {
-      binopRewriter.run(context, code, timing);
+      binopRewriter.run(code, timing);
     }
 
     if (options.testing.invertConditionals) {
@@ -878,7 +874,7 @@ public class IRConverter {
       constantCanonicalizer.canonicalize();
       timing.end();
       previous = printMethod(code, "IR after constant canonicalization (SSA)", previous);
-      new DexConstantOptimizer(appView, constantCanonicalizer).run(context, code, timing);
+      new DexConstantOptimizer(appView, constantCanonicalizer).run(code, timing);
       previous = printMethod(code, "IR after dex constant optimization (SSA)", previous);
     }
 
@@ -905,7 +901,7 @@ public class IRConverter {
 
     deadCodeRemover.run(code, timing);
 
-    new ParentConstructorHoistingCodeRewriter(appView).run(context, code, timing);
+    new ParentConstructorHoistingCodeRewriter(appView).run(code, timing);
 
     BytecodeMetadataProvider.Builder bytecodeMetadataProviderBuilder =
         BytecodeMetadataProvider.builder();
