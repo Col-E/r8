@@ -21,8 +21,6 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.analysis.type.TypeAnalysis;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
-import com.android.tools.r8.ir.analysis.value.AbstractValue;
-import com.android.tools.r8.ir.code.ArrayLength;
 import com.android.tools.r8.ir.code.Assume;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.ConstNumber;
@@ -40,7 +38,6 @@ import com.android.tools.r8.ir.code.InvokeInterface;
 import com.android.tools.r8.ir.code.InvokeMethod;
 import com.android.tools.r8.ir.code.InvokeVirtual;
 import com.android.tools.r8.ir.code.Move;
-import com.android.tools.r8.ir.code.Phi;
 import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.code.Position.SyntheticPosition;
 import com.android.tools.r8.ir.code.StaticGet;
@@ -257,54 +254,6 @@ public class CodeRewriter {
       outValue.replaceUsers(inValue);
       it.removeOrReplaceByDebugLocalRead();
     }
-  }
-
-  public void rewriteKnownArrayLengthCalls(IRCode code) {
-    InstructionListIterator iterator = code.instructionListIterator();
-    while (iterator.hasNext()) {
-      Instruction current = iterator.next();
-      if (!current.isArrayLength()) {
-        continue;
-      }
-
-      ArrayLength arrayLength = current.asArrayLength();
-      if (arrayLength.hasOutValue() && arrayLength.outValue().hasLocalInfo()) {
-        continue;
-      }
-
-      Value array = arrayLength.array().getAliasedValue();
-      if (array.isPhi() || !arrayLength.array().isNeverNull() || array.hasLocalInfo()) {
-        continue;
-      }
-
-      AbstractValue abstractValue = array.getAbstractValue(appView, code.context());
-      if (!abstractValue.hasKnownArrayLength() && !array.isNeverNull()) {
-        continue;
-      }
-      Instruction arrayDefinition = array.getDefinition();
-      assert arrayDefinition != null;
-
-      Set<Phi> phiUsers = arrayLength.outValue().uniquePhiUsers();
-      if (arrayDefinition.isNewArrayEmpty()) {
-        Value size = arrayDefinition.asNewArrayEmpty().size();
-        arrayLength.outValue().replaceUsers(size);
-        iterator.removeOrReplaceByDebugLocalRead();
-      } else if (arrayDefinition.isNewArrayFilledData()) {
-        long size = arrayDefinition.asNewArrayFilledData().size;
-        if (size > Integer.MAX_VALUE) {
-          continue;
-        }
-        iterator.replaceCurrentInstructionWithConstInt(code, (int) size);
-      } else if (abstractValue.hasKnownArrayLength()) {
-        iterator.replaceCurrentInstructionWithConstInt(code, abstractValue.getKnownArrayLength());
-      } else {
-        continue;
-      }
-
-      phiUsers.forEach(Phi::removeTrivialPhi);
-    }
-    code.removeRedundantBlocks();
-    assert code.isConsistentSSA(appView);
   }
 
   // TODO(mikaelpeltier) Manage that from and to instruction do not belong to the same block.

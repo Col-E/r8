@@ -32,6 +32,7 @@ import com.android.tools.r8.ir.conversion.passes.BinopRewriter;
 import com.android.tools.r8.ir.conversion.passes.BranchSimplifier;
 import com.android.tools.r8.ir.conversion.passes.CommonSubexpressionElimination;
 import com.android.tools.r8.ir.conversion.passes.DexConstantOptimizer;
+import com.android.tools.r8.ir.conversion.passes.KnownArrayLengthRewriter;
 import com.android.tools.r8.ir.conversion.passes.NaturalIntLoopRemover;
 import com.android.tools.r8.ir.conversion.passes.ParentConstructorHoistingCodeRewriter;
 import com.android.tools.r8.ir.conversion.passes.SplitBranch;
@@ -739,9 +740,7 @@ public class IRConverter {
       enumValueOptimizer.run(code, timing);
     }
 
-    timing.begin("Rewrite array length");
-    codeRewriter.rewriteKnownArrayLengthCalls(code);
-    timing.end();
+    new KnownArrayLengthRewriter(appView).run(code, timing);
     new NaturalIntLoopRemover(appView).run(code, timing);
     if (assertionErrorTwoArgsConstructorRewriter != null) {
       timing.begin("Rewrite AssertionError");
