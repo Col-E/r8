@@ -105,6 +105,11 @@ public class ClassNamingForMapApplier implements ClassNaming {
         MappingInformation info, Consumer<MappingInformation> onProhibitedAddition) {
       // Intentionally empty.
     }
+
+    @Override
+    public boolean hasNoOverlappingRangesForSignature(MethodSignature residualSignature) {
+      return true;
+    }
   }
 
   static Builder builder(

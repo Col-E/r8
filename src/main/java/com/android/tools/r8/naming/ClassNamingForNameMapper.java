@@ -137,6 +137,28 @@ public class ClassNamingForNameMapper implements ClassNaming {
         originalSourceFileConsumer.accept(originalName, info.asFileNameInformation().getFileName());
       }
     }
+
+    @Override
+    public boolean hasNoOverlappingRangesForSignature(MethodSignature residualSignature) {
+      List<MappedRange> mappedRanges = mappedRangesByName.get(residualSignature.getName());
+      if (mappedRanges == null) {
+        return true;
+      }
+      List<MappedRange> nonEmptyMinifiedRanges =
+          ListUtils.filter(mappedRanges, range -> range.minifiedRange != null);
+      nonEmptyMinifiedRanges.sort(Comparator.comparing(range -> range.minifiedRange.from));
+      Range lastRange = new Range(-1, -1);
+      for (MappedRange range : nonEmptyMinifiedRanges) {
+        if (range.minifiedRange.equals(lastRange)) {
+          continue;
+        }
+        if (range.minifiedRange.from <= lastRange.to) {
+          return false;
+        }
+        lastRange = range.minifiedRange;
+      }
+      return true;
+    }
   }
 
   /** List of MappedRanges that belong to the same renamed name. */

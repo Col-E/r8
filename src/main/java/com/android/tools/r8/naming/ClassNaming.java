@@ -4,6 +4,7 @@
 package com.android.tools.r8.naming;
 
 import com.android.tools.r8.naming.ClassNamingForNameMapper.MappedRange;
+import com.android.tools.r8.naming.MemberNaming.MethodSignature;
 import com.android.tools.r8.naming.MemberNaming.Signature;
 import com.android.tools.r8.naming.mappinginformation.MappingInformation;
 import com.android.tools.r8.utils.ThrowingConsumer;
@@ -33,6 +34,8 @@ public interface ClassNaming {
 
     public abstract void addMappingInformation(
         MappingInformation info, Consumer<MappingInformation> onProhibitedAddition);
+
+    public abstract boolean hasNoOverlappingRangesForSignature(MethodSignature residualSignature);
   }
 
   MemberNaming lookup(Signature renamedSignature);

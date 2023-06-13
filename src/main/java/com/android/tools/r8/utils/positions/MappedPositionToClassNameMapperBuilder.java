@@ -384,6 +384,9 @@ public class MappedPositionToClassNameMapperBuilder {
         }
         i = j;
       }
+      assert mappedPositions.size() <= 1
+          || !appView.options().getTestingOptions().checkForOverlappingMinifiedRanges
+          || getBuilder().hasNoOverlappingRangesForSignature(residualSignature);
       return this;
     }
 
