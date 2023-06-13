@@ -766,9 +766,6 @@ public class IRConverter {
       StringBuilderAppendOptimizer.run(appView, code);
       timing.end();
     }
-    timing.begin("Split range invokes");
-    codeRewriter.splitRangeInvokeConstants(code);
-    timing.end();
     timing.begin("Propagate sparse conditionals");
     new SparseConditionalConstantPropagation(appView, code).run();
     timing.end();

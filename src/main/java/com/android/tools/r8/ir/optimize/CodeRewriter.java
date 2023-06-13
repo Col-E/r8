@@ -36,7 +36,6 @@ import com.android.tools.r8.ir.code.IfType;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionIterator;
 import com.android.tools.r8.ir.code.InstructionListIterator;
-import com.android.tools.r8.ir.code.Invoke;
 import com.android.tools.r8.ir.code.InvokeInterface;
 import com.android.tools.r8.ir.code.InvokeMethod;
 import com.android.tools.r8.ir.code.InvokeVirtual;
@@ -64,10 +63,8 @@ import it.unimi.dsi.fastutil.longs.Long2ReferenceMap;
 import it.unimi.dsi.fastutil.longs.Long2ReferenceOpenHashMap;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.ListIterator;
-import java.util.Map;
 import java.util.Set;
 
 public class CodeRewriter {
@@ -262,43 +259,6 @@ public class CodeRewriter {
     }
   }
 
-  // Split constants that flow into ranged invokes. This gives the register allocator more
-  // freedom in assigning register to ranged invokes which can greatly reduce the number
-  // of register needed (and thereby code size as well).
-  public void splitRangeInvokeConstants(IRCode code) {
-    for (BasicBlock block : code.blocks) {
-      InstructionListIterator it = block.listIterator(code);
-      while (it.hasNext()) {
-        Instruction current = it.next();
-        if (current.isInvoke() && current.asInvoke().requiredArgumentRegisters() > 5) {
-          Invoke invoke = current.asInvoke();
-          it.previous();
-          Map<ConstNumber, ConstNumber> oldToNew = new IdentityHashMap<>();
-          for (int i = 0; i < invoke.inValues().size(); i++) {
-            Value value = invoke.inValues().get(i);
-            if (value.isConstNumber() && value.numberOfUsers() > 1) {
-              ConstNumber definition = value.getConstInstruction().asConstNumber();
-              Value originalValue = definition.outValue();
-              ConstNumber newNumber = oldToNew.get(definition);
-              if (newNumber == null) {
-                newNumber = ConstNumber.copyOf(code, definition);
-                it.add(newNumber);
-                newNumber.setPosition(current.getPosition());
-                oldToNew.put(definition, newNumber);
-              }
-              invoke.inValues().set(i, newNumber.outValue());
-              originalValue.removeUser(invoke);
-              newNumber.outValue().addUser(invoke);
-            }
-          }
-          it.next();
-        }
-      }
-    }
-    code.removeRedundantBlocks();
-    assert code.isConsistentSSA(appView);
-  }
-
   public void rewriteKnownArrayLengthCalls(IRCode code) {
     InstructionListIterator iterator = code.instructionListIterator();
     while (iterator.hasNext()) {
@@ -346,10 +306,6 @@ public class CodeRewriter {
     code.removeRedundantBlocks();
     assert code.isConsistentSSA(appView);
   }
-
-
-
-
 
   // TODO(mikaelpeltier) Manage that from and to instruction do not belong to the same block.
   private static boolean hasLocalOrLineChangeBetween(
