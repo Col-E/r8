@@ -29,12 +29,12 @@ public class TrivialGotosCollapser extends CodeRewriterPass<AppInfo> {
   }
 
   @Override
-  String getTimingId() {
+  protected String getTimingId() {
     return "TrivialGotosCollapser";
   }
 
   @Override
-  void rewriteCode(ProgramMethod method, IRCode code) {
+  protected void rewriteCode(ProgramMethod method, IRCode code) {
     assert code.isConsistentGraph(appView);
     List<BasicBlock> blocksToRemove = new ArrayList<>();
     // Rewrite all non-fallthrough targets to the end of trivial goto chains and remove
@@ -77,7 +77,7 @@ public class TrivialGotosCollapser extends CodeRewriterPass<AppInfo> {
   }
 
   @Override
-  boolean shouldRewriteCode(ProgramMethod method, IRCode code) {
+  protected boolean shouldRewriteCode(ProgramMethod method, IRCode code) {
     return true;
   }
 

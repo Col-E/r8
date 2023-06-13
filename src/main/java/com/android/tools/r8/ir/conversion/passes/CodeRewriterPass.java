@@ -14,11 +14,11 @@ import com.android.tools.r8.utils.Timing;
 
 public abstract class CodeRewriterPass<T extends AppInfo> {
 
-  final AppView<?> appView;
-  final DexItemFactory dexItemFactory;
-  final InternalOptions options;
+  protected final AppView<?> appView;
+  protected final DexItemFactory dexItemFactory;
+  protected final InternalOptions options;
 
-  CodeRewriterPass(AppView<?> appView) {
+  protected CodeRewriterPass(AppView<?> appView) {
     this.appView = appView;
     this.dexItemFactory = appView.dexItemFactory();
     this.options = appView.options();
@@ -39,9 +39,9 @@ public abstract class CodeRewriterPass<T extends AppInfo> {
     }
   }
 
-  abstract String getTimingId();
+  protected abstract String getTimingId();
 
-  abstract void rewriteCode(ProgramMethod method, IRCode code);
+  protected abstract void rewriteCode(ProgramMethod method, IRCode code);
 
-  abstract boolean shouldRewriteCode(ProgramMethod method, IRCode code);
+  protected abstract boolean shouldRewriteCode(ProgramMethod method, IRCode code);
 }

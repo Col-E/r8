@@ -36,12 +36,12 @@ public class NaturalIntLoopRemover extends CodeRewriterPass<AppInfo> {
   }
 
   @Override
-  String getTimingId() {
+  protected String getTimingId() {
     return "NaturalIntLoopRemover";
   }
 
   @Override
-  void rewriteCode(ProgramMethod method, IRCode code) {
+  protected void rewriteCode(ProgramMethod method, IRCode code) {
     boolean loopRemoved = false;
     for (BasicBlock comparisonBlockCandidate : code.blocks) {
       if (isComparisonBlock(comparisonBlockCandidate)) {
@@ -56,7 +56,7 @@ public class NaturalIntLoopRemover extends CodeRewriterPass<AppInfo> {
   }
 
   @Override
-  boolean shouldRewriteCode(ProgramMethod method, IRCode code) {
+  protected boolean shouldRewriteCode(ProgramMethod method, IRCode code) {
     return appView.options().enableLoopUnrolling;
   }
 

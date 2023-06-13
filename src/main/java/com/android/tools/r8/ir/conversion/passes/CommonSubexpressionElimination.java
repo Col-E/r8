@@ -35,12 +35,12 @@ public class CommonSubexpressionElimination extends CodeRewriterPass<AppInfo> {
   }
 
   @Override
-  boolean shouldRewriteCode(ProgramMethod method, IRCode code) {
+  protected boolean shouldRewriteCode(ProgramMethod method, IRCode code) {
     return true;
   }
 
   @Override
-  void rewriteCode(ProgramMethod method, IRCode code) {
+  protected void rewriteCode(ProgramMethod method, IRCode code) {
     int noCandidate = code.reserveMarkingColor();
     if (hasCSECandidate(code, noCandidate)) {
       final ListMultimap<Wrapper<Instruction>, Value> instructionToValue =

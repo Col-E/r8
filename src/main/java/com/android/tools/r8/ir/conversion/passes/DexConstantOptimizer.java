@@ -59,18 +59,18 @@ public class DexConstantOptimizer extends CodeRewriterPass<AppInfo> {
   }
 
   @Override
-  String getTimingId() {
+  protected String getTimingId() {
     return "DexConstantOptimizer";
   }
 
   @Override
-  void rewriteCode(ProgramMethod method, IRCode code) {
+  protected void rewriteCode(ProgramMethod method, IRCode code) {
     useDedicatedConstantForLitInstruction(code);
     shortenLiveRanges(code, constantCanonicalizer);
   }
 
   @Override
-  boolean shouldRewriteCode(ProgramMethod method, IRCode code) {
+  protected boolean shouldRewriteCode(ProgramMethod method, IRCode code) {
     return true;
   }
 

@@ -332,7 +332,7 @@ public class GeneratedMessageLiteBuilderShrinker {
     // Run the enum optimization to optimize all Enum.ordinal() invocations. This is required to
     // get rid of the enum switch in dynamicMethod().
     if (enumValueOptimizer != null) {
-      enumValueOptimizer.rewriteConstantEnumMethodCalls(code);
+      enumValueOptimizer.run(code.context(), code);
     }
   }
 

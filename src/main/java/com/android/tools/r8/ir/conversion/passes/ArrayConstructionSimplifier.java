@@ -7,7 +7,6 @@ package com.android.tools.r8.ir.conversion.passes;
 import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
-import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.analysis.type.ArrayTypeElement;
@@ -84,20 +83,17 @@ import java.util.Set;
  */
 public class ArrayConstructionSimplifier extends CodeRewriterPass<AppInfo> {
 
-  private final DexItemFactory dexItemFactory;
-
   public ArrayConstructionSimplifier(AppView<?> appView) {
     super(appView);
-    this.dexItemFactory = appView.dexItemFactory();
   }
 
   @Override
-  String getTimingId() {
+  protected String getTimingId() {
     return "ArrayConstructionSimplifier";
   }
 
   @Override
-  void rewriteCode(ProgramMethod method, IRCode code) {
+  protected void rewriteCode(ProgramMethod method, IRCode code) {
     WorkList<BasicBlock> worklist = WorkList.newIdentityWorkList(code.blocks);
     while (worklist.hasNext()) {
       BasicBlock block = worklist.next();
@@ -106,7 +102,7 @@ public class ArrayConstructionSimplifier extends CodeRewriterPass<AppInfo> {
   }
 
   @Override
-  boolean shouldRewriteCode(ProgramMethod method, IRCode code) {
+  protected boolean shouldRewriteCode(ProgramMethod method, IRCode code) {
     return appView.options().isGeneratingDex();
   }
 

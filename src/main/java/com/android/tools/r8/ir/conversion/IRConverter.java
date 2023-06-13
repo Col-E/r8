@@ -738,9 +738,7 @@ public class IRConverter {
 
     if (enumValueOptimizer != null) {
       assert appView.enableWholeProgramOptimizations();
-      timing.begin("Rewrite constant enum methods");
-      enumValueOptimizer.rewriteConstantEnumMethodCalls(code);
-      timing.end();
+      enumValueOptimizer.run(context, code, timing);
     }
 
     timing.begin("Rewrite array length");

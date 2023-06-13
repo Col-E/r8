@@ -34,12 +34,12 @@ public class SplitBranch extends CodeRewriterPass<AppInfo> {
   }
 
   @Override
-  String getTimingId() {
+  protected String getTimingId() {
     return "SplitBranch";
   }
 
   @Override
-  boolean shouldRewriteCode(ProgramMethod method, IRCode code) {
+  protected boolean shouldRewriteCode(ProgramMethod method, IRCode code) {
     return true;
   }
 
@@ -54,7 +54,7 @@ public class SplitBranch extends CodeRewriterPass<AppInfo> {
    * known boolean values.
    */
   @Override
-  void rewriteCode(ProgramMethod method, IRCode code) {
+  protected void rewriteCode(ProgramMethod method, IRCode code) {
     List<BasicBlock> candidates = computeCandidates(code);
     if (candidates.isEmpty()) {
       return;

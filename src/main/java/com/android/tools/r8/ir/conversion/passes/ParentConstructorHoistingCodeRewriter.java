@@ -43,12 +43,12 @@ public class ParentConstructorHoistingCodeRewriter
   }
 
   @Override
-  String getTimingId() {
+  protected String getTimingId() {
     return "Parent constructor hoisting pass";
   }
 
   @Override
-  void rewriteCode(ProgramMethod method, IRCode code) {
+  protected void rewriteCode(ProgramMethod method, IRCode code) {
     for (InvokeDirect invoke : getOrComputeSideEffectFreeConstructorCalls(code)) {
       hoistSideEffectFreeConstructorCall(code, invoke);
     }
@@ -136,9 +136,8 @@ public class ParentConstructorHoistingCodeRewriter
 
   /** Only run this when the rewriting may actually enable more constructor inlining. */
   @Override
-  boolean shouldRewriteCode(ProgramMethod method, IRCode code) {
+  protected boolean shouldRewriteCode(ProgramMethod method, IRCode code) {
     if (!appView.hasClassHierarchy()) {
-      assert !appView.enableWholeProgramOptimizations();
       return false;
     }
     if (!method.getDefinition().isInstanceInitializer()
