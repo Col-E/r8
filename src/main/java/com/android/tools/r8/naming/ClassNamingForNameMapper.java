@@ -146,16 +146,26 @@ public class ClassNamingForNameMapper implements ClassNaming {
       }
       List<MappedRange> nonEmptyMinifiedRanges =
           ListUtils.filter(mappedRanges, range -> range.minifiedRange != null);
-      nonEmptyMinifiedRanges.sort(Comparator.comparing(range -> range.minifiedRange.from));
-      Range lastRange = new Range(-1, -1);
-      for (MappedRange range : nonEmptyMinifiedRanges) {
-        if (range.minifiedRange.equals(lastRange)) {
-          continue;
+      if (nonEmptyMinifiedRanges.isEmpty()) {
+        return true;
+      }
+      MappedRangesOfName mappedRangesOfName = new MappedRangesOfName(nonEmptyMinifiedRanges);
+      for (MappedRangesOfName partition : mappedRangesOfName.partitionOnMethodSignature()) {
+        List<MappedRange> mappedRangesForSignature =
+            ListUtils.sort(
+                partition.getMappedRanges(),
+                Comparator.comparing(range -> range.minifiedRange.from));
+        Range lastRange = new Range(-1, -1);
+        for (MappedRange range : mappedRangesForSignature) {
+          if (range.minifiedRange.equals(lastRange)) {
+            continue;
+          }
+          if (range.minifiedRange.from <= lastRange.to) {
+            assert false;
+            return false;
+          }
+          lastRange = range.minifiedRange;
         }
-        if (range.minifiedRange.from <= lastRange.to) {
-          return false;
-        }
-        lastRange = range.minifiedRange;
       }
       return true;
     }

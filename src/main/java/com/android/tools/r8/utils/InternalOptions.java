@@ -2092,8 +2092,6 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
     public boolean calculateItemUseCountInDexDumpSingleUseStrings = false;
 
     public boolean enableBinopOptimization = true;
-    // TODO(b/286781273): Set to true when fixed.
-    public boolean checkForOverlappingMinifiedRanges = false;
 
     private DeterminismChecker getDeterminismChecker() {
       // Lazily read the env-var so that it can be set after options init.

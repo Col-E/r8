@@ -4,9 +4,6 @@
 
 package com.android.tools.r8.naming;
 
-import static org.junit.Assert.assertThrows;
-
-import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
@@ -37,31 +34,25 @@ public class SameLineMappingTest extends TestBase {
     IntBox box = new IntBox(0);
     MethodReference main =
         Reference.methodFromMethod(Main.class.getDeclaredMethod("main", String[].class));
-    // TODO(b/286781273): We should not throw an exception here.
-    assertThrows(
-        CompilationFailedException.class,
-        () ->
-            testForR8(parameters.getBackend())
-                .addProgramClassFileData(
-                    transformer(Main.class)
-                        .setPredictiveLineNumbering(
-                            (context, line) -> {
-                              if (context.getReference().equals(main)) {
-                                return (box.getAndIncrement() % 2) + 1;
-                              }
-                              return line;
-                            })
-                        .transform())
-                .setMinApi(parameters)
-                .addKeepMainRule(Main.class)
-                .enableInliningAnnotations()
-                .addKeepAttributeLineNumberTable()
-                .addOptionsModification(
-                    options -> {
-                      options.lineNumberOptimization = LineNumberOptimization.OFF;
-                      options.getTestingOptions().checkForOverlappingMinifiedRanges = true;
+    testForR8(parameters.getBackend())
+        .addProgramClassFileData(
+            transformer(Main.class)
+                .setPredictiveLineNumbering(
+                    (context, line) -> {
+                      if (context.getReference().equals(main)) {
+                        return (box.getAndIncrement() % 2) + 1;
+                      }
+                      return line;
                     })
-                .compile());
+                .transform())
+        .setMinApi(parameters)
+        .addKeepMainRule(Main.class)
+        .enableInliningAnnotations()
+        .addKeepAttributeLineNumberTable()
+        .addOptionsModification(
+            options -> options.lineNumberOptimization = LineNumberOptimization.OFF)
+        .run(parameters.getRuntime(), Main.class)
+        .assertSuccessWithOutputLines("Hello World!", "Hello World!");
   }
 
   public static class Main {
