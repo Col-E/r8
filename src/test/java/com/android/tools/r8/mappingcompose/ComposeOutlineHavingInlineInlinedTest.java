@@ -58,7 +58,7 @@ public class ComposeOutlineHavingInlineInlinedTest extends TestBase {
           "    1:1:int some.inlinee():75:75 -> s",
           "    1:1:int outlineCaller(int):23 -> s",
           "    2:4:int another.inline():102:104 -> s",
-          "    2:4:int some.inlinee():76:76 -> s",
+          "    2:4:int some.inlinee():76 -> s",
           "    2:4:int foo.bar.baz.outlineCaller(int):98:98 -> s",
           "    2:4:int outlineCaller(int):24 -> s",
           "outline.Class -> A:");

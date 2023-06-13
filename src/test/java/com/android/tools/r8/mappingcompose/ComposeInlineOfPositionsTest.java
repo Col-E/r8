@@ -50,9 +50,9 @@ public class ComposeInlineOfPositionsTest extends TestBase {
           "# {'id':'com.android.tools.r8.mapping','version':'2.2'}",
           "com.foo -> b:",
           "    3:3:void m1():10 -> z",
-          "    3:3:void y():30:30 -> z",
+          "    3:3:void y():30 -> z",
           "    4:4:void m2(int):20 -> z",
-          "    4:4:void y():31:31 -> z");
+          "    4:4:void y():31 -> z");
 
   @Test
   public void testCompose() throws Exception {

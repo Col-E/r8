@@ -709,11 +709,10 @@ public class ComposingBuilder {
       int composedRangeIndex = 0;
       while (composedRangeIndex < composedRanges.size() - 1) {
         MappedRange outline = composedRanges.get(composedRangeIndex++);
-        if (outline.isOutlineFrame()
-            && outline.minifiedRange.equals(composedRanges.get(composedRangeIndex).minifiedRange)) {
+        MappedRange outlineCallSite = composedRanges.get(composedRangeIndex);
+        if (outline.isOutlineFrame() && isInlineMappedRange(outline, outlineCallSite)) {
           // We should replace the inlined outline frame positions with the synthesized
           // positions from the outline call site.
-          MappedRange outlineCallSite = composedRanges.get(composedRangeIndex);
           if (outlineCallSite.getOutlineCallsiteInformation().size() != 1) {
             // If we have an inlined outline it must be such that the outer frame is an
             // outline callsite.
@@ -1263,25 +1262,26 @@ public class ComposingBuilder {
         List<MappedRange> existingMappedRanges,
         ComputedOutlineInformation computedOutlineInformation,
         int lastStartingMinifiedFrom,
-        int position)
+        int lastEndingMinifiedTo)
         throws MappingComposeException {
       Range existingRange = existingMappedRanges.get(0).minifiedRange;
       assert existingMappedRanges.stream().allMatch(x -> x.minifiedRange.equals(existingRange));
-      Range newMinifiedRange = new Range(lastStartingMinifiedFrom, position);
-      boolean copyOriginalRange = existingRange.equals(newMappedRange.getOriginalRangeOrIdentity());
+      Range newMinifiedRange = new Range(lastStartingMinifiedFrom, lastEndingMinifiedTo);
       for (MappedRange existingMappedRange : existingMappedRanges) {
         Range existingOriginalRange = existingMappedRange.getOriginalRangeOrIdentity();
         Range newOriginalRange;
-        if (copyOriginalRange
-            || existingOriginalRange == null
-            || existingOriginalRange.span() == 1) {
+        if (canUseOriginalRange(
+            existingOriginalRange, newMappedRange.getOriginalRangeOrIdentity())) {
           newOriginalRange = existingOriginalRange;
         } else {
           // Find the window that the new range points to into the original range.
           int existingMinifiedPos = newMappedRange.getOriginalLineNumber(lastStartingMinifiedFrom);
           int newOriginalStart = existingMappedRange.getOriginalLineNumber(existingMinifiedPos);
           if (newMappedRange.getOriginalRangeOrIdentity().span() == 1) {
-            newOriginalRange = new Range(newOriginalStart, newOriginalStart);
+            newOriginalRange =
+                newMappedRange.getOriginalRangeOrIdentity().isCardinal
+                    ? new Range(newOriginalStart)
+                    : new Range(newOriginalStart, newOriginalStart);
           } else {
             assert newMinifiedRange.span() <= existingOriginalRange.span();
             newOriginalRange =
@@ -1323,6 +1323,16 @@ public class ComposingBuilder {
             info -> computedRange.addMappingInformation(info, ConsumerUtils.emptyConsumer()));
         newComposedRanges.add(computedRange);
       }
+    }
+
+    private boolean canUseOriginalRange(Range existingRange, Range newRange) {
+      if (newRange.equals(existingRange)) {
+        return true;
+      }
+      if (newRange.isCardinal) {
+        return false;
+      }
+      return existingRange == null || existingRange.span() == 1;
     }
 
     /***

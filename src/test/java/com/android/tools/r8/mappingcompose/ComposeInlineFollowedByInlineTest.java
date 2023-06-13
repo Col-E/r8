@@ -61,7 +61,7 @@ public class ComposeInlineFollowedByInlineTest extends TestBase {
           "    2:2:void com.foo.inlinee1():43:43 -> y",
           "    2:2:void foo.bar.baz.inlinee1():41 -> y",
           "    2:2:void com.foo.caller():40 -> y",
-          "    2:2:void inlinee2():42:42 -> y",
+          "    2:2:void inlinee2():42 -> y",
           "    2:2:void foo.bar.baz.inlinee1():41 -> y",
           "    2:2:void caller():40 -> y",
           "    2:2:void qux():1 -> y",
@@ -73,7 +73,7 @@ public class ComposeInlineFollowedByInlineTest extends TestBase {
           "    4:5:void inlinee1():43:44 -> z",
           "    4:5:void foo.bar.baz.inlinee1():41 -> z",
           "    4:5:void caller():40 -> z",
-          "    4:5:void inlinee2():49:49 -> z",
+          "    4:5:void inlinee2():49 -> z",
           "    4:5:void caller2():27 -> z");
 
   @Test

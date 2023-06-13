@@ -48,7 +48,7 @@ public class ComposeInlineResidualQualifiedTest extends TestBase {
           "# {'id':'com.android.tools.r8.mapping','version':'2.2'}",
           "com.bar -> C:",
           "    1:3:void com.foo.method1():43:43 -> y",
-          "    1:3:void method2():104:104 -> y",
+          "    1:3:void method2():104 -> y",
           "    2:3:void method2():105:106 -> y",
           "com.foo -> A:");
 

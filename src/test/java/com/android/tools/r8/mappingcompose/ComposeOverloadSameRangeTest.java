@@ -4,7 +4,8 @@
 
 package com.android.tools.r8.mappingcompose;
 
-import static org.junit.Assert.assertThrows;
+import static com.android.tools.r8.mappingcompose.ComposeTestHelpers.doubleToSingleQuote;
+import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
@@ -45,13 +46,21 @@ public class ComposeOverloadSameRangeTest extends TestBase {
           "a -> b:",
           "    1:3:void m():1:3 -> m",
           "    1:3:void m(int):1:3 -> m");
-  private static final String mappingResult = StringUtils.unixLines();
+  private static final String mappingResult =
+      StringUtils.unixLines(
+          "# {'id':'com.android.tools.r8.mapping','version':'2.2'}",
+          "com.foo -> b:",
+          "    1:2:void method():41:42 -> m",
+          "    3:3:void inlinee():20:20 -> m",
+          "    3:3:void method():43 -> m",
+          "    1:2:void method(int):111:112 -> m",
+          "    3:3:void method(int):113:113 -> m");
 
   @Test
   public void testCompose() throws Exception {
     ClassNameMapper mappingForFoo = ClassNameMapper.mapperFromStringWithPreamble(mappingFoo);
     ClassNameMapper mappingForBar = ClassNameMapper.mapperFromStringWithPreamble(mappingBar);
-    // TODO(b/286781273): Handle same range for overloaded methods.
-    assertThrows(AssertionError.class, () -> MappingComposer.compose(mappingForFoo, mappingForBar));
+    String composed = MappingComposer.compose(mappingForFoo, mappingForBar);
+    assertEquals(mappingResult, doubleToSingleQuote(composed));
   }
 }
