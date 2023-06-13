@@ -130,6 +130,7 @@ public class SparseConditionalConstantPropagation {
       new TypeAnalysis(appView).narrowing(affectedValues);
     }
     code.removeAllDeadAndTrivialPhis();
+    code.removeRedundantBlocks();
   }
 
   private LatticeElement getLatticeElement(Value value) {
