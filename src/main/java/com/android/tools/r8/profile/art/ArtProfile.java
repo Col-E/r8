@@ -176,21 +176,8 @@ public class ArtProfile implements AbstractProfile<ArtProfileClassRule, ArtProfi
   }
 
   public ArtProfile withoutPrunedItems(PrunedItems prunedItems) {
-    return transform(
-        (classRule, classRuleBuilderFactory) -> {
-          if (!prunedItems.isRemoved(classRule.getType())) {
-            classRuleBuilderFactory.accept(classRule.getType());
-          }
-        },
-        (methodRule, classRuleBuilderFactory, methodRuleBuilderFactory) -> {
-          if (!prunedItems.isRemoved(methodRule.getMethod())) {
-            methodRuleBuilderFactory
-                .apply(methodRule.getMethod())
-                .acceptMethodRuleInfoBuilder(
-                    methodRuleInfoBuilder ->
-                        methodRuleInfoBuilder.merge(methodRule.getMethodRuleInfo()));
-          }
-        });
+    rules.keySet().removeIf(prunedItems::isRemoved);
+    return this;
   }
 
   private ArtProfile transform(
