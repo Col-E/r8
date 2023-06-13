@@ -32,6 +32,7 @@ import com.android.tools.r8.ir.conversion.passes.BinopRewriter;
 import com.android.tools.r8.ir.conversion.passes.BranchSimplifier;
 import com.android.tools.r8.ir.conversion.passes.CommonSubexpressionElimination;
 import com.android.tools.r8.ir.conversion.passes.DexConstantOptimizer;
+import com.android.tools.r8.ir.conversion.passes.NaturalIntLoopRemover;
 import com.android.tools.r8.ir.conversion.passes.ParentConstructorHoistingCodeRewriter;
 import com.android.tools.r8.ir.conversion.passes.SplitBranch;
 import com.android.tools.r8.ir.conversion.passes.ThrowCatchOptimizer;
@@ -53,7 +54,6 @@ import com.android.tools.r8.ir.optimize.DynamicTypeOptimization;
 import com.android.tools.r8.ir.optimize.IdempotentFunctionCallCanonicalizer;
 import com.android.tools.r8.ir.optimize.Inliner;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
-import com.android.tools.r8.ir.optimize.NaturalIntLoopRemover;
 import com.android.tools.r8.ir.optimize.RedundantFieldLoadAndStoreElimination;
 import com.android.tools.r8.ir.optimize.ReflectionOptimizer;
 import com.android.tools.r8.ir.optimize.RemoveVerificationErrorForUnknownReturnedValues;
@@ -123,7 +123,6 @@ public class IRConverter {
   public final CommonSubexpressionElimination commonSubexpressionElimination;
   private final SplitBranch splitBranch;
   public AssertionErrorTwoArgsConstructorRewriter assertionErrorTwoArgsConstructorRewriter;
-  private final NaturalIntLoopRemover naturalIntLoopRemover = new NaturalIntLoopRemover();
   public final MemberValuePropagation<?> memberValuePropagation;
   private final LensCodeRewriter lensCodeRewriter;
   protected final Inliner inliner;
@@ -747,9 +746,7 @@ public class IRConverter {
     timing.begin("Rewrite array length");
     codeRewriter.rewriteKnownArrayLengthCalls(code);
     timing.end();
-    timing.begin("Natural Int Loop Remover");
-    naturalIntLoopRemover.run(appView, code);
-    timing.end();
+    new NaturalIntLoopRemover(appView).run(context, code);
     if (assertionErrorTwoArgsConstructorRewriter != null) {
       timing.begin("Rewrite AssertionError");
       assertionErrorTwoArgsConstructorRewriter.rewrite(
