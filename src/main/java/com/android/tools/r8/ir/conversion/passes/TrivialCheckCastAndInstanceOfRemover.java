@@ -131,6 +131,7 @@ public class TrivialCheckCastAndInstanceOfRemover {
         typeAnalysis.narrowing(affectedValues);
       }
     }
+    code.removeRedundantBlocks();
     assert code.isConsistentSSA(appView);
   }
 

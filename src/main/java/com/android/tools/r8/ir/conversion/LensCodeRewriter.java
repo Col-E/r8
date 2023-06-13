@@ -854,6 +854,7 @@ public class LensCodeRewriter {
     }
     nullCheckInserter.processWorklist();
     code.removeAllDeadAndTrivialPhis();
+    code.removeRedundantBlocks();
     removeUnusedArguments(method, code, unusedArguments);
 
     // Finalize cast and null check insertion.

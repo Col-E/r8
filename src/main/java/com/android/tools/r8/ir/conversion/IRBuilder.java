@@ -746,6 +746,7 @@ public class IRBuilder {
       StringSwitchConverter.convertToStringSwitchInstructions(ir, appView.dexItemFactory());
     }
 
+    ir.removeRedundantBlocks();
     assert ir.isConsistentSSA(appView);
 
     // Clear the code so we don't build multiple times.

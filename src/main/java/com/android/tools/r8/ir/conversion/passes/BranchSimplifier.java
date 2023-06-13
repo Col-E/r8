@@ -124,6 +124,7 @@ public class BranchSimplifier {
     if (!affectedValues.isEmpty()) {
       new TypeAnalysis(appView).narrowing(affectedValues);
     }
+    code.removeRedundantBlocks();
     assert code.isConsistentSSA(appView);
     return new ControlFlowSimplificationResult(!affectedValues.isEmpty(), simplified);
   }
@@ -623,6 +624,7 @@ public class BranchSimplifier {
     if (!affectedValues.isEmpty()) {
       new TypeAnalysis(appView).narrowing(affectedValues);
     }
+    code.removeRedundantBlocks();
     assert code.isConsistentSSA(appView);
     return !affectedValues.isEmpty();
   }

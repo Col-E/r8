@@ -67,6 +67,8 @@ public class DeadCodeRemover {
       }
     } while (branchSimplifier.simplifyIf(code).anySimplifications()
         || removeUnneededCatchHandlers(code));
+
+    code.removeRedundantBlocks();
     assert code.isConsistentSSA(appView);
 
     timing.end();

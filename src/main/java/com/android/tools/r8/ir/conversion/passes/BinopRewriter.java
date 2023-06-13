@@ -267,6 +267,7 @@ public class BinopRewriter extends CodeRewriterPass<AppInfo> {
       }
     }
     code.removeAllDeadAndTrivialPhis();
+    code.removeRedundantBlocks();
     assert code.isConsistentSSA(appView);
   }
 

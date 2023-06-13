@@ -291,6 +291,7 @@ public class ConstantCanonicalizer {
       branchSimplifier.simplifyIf(code);
     }
 
+    code.removeRedundantBlocks();
     assert code.isConsistentSSA(appView);
     return clear();
   }

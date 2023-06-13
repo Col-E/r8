@@ -316,6 +316,7 @@ public class DexConstantOptimizer extends CodeRewriterPass<AppInfo> {
       }
     }
 
+    code.removeRedundantBlocks();
     assert code.isConsistentSSA(appView);
   }
 

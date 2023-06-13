@@ -347,6 +347,7 @@ public class AssertionsRewriter {
       if (runInternal(method, code)) {
         deadCodeRemover.run(code, timing);
       }
+      code.removeRedundantBlocks();
       assert code.isConsistentSSA(appView);
       timing.end();
     }

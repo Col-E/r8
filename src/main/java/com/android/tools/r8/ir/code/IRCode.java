@@ -592,7 +592,19 @@ public class IRCode implements IRControlFlowGraph, ValueFactory {
     return true;
   }
 
+  public boolean isConsistentSSAAllowingRedundantBlocks(AppView<?> appView) {
+    isConsistentSSABeforeTypesAreCorrectAllowingRedundantBlocks(appView);
+    assert verifyNoImpreciseOrBottomTypes();
+    return true;
+  }
+
   public boolean isConsistentSSABeforeTypesAreCorrect(AppView<?> appView) {
+    assert isConsistentSSABeforeTypesAreCorrectAllowingRedundantBlocks(appView);
+    assert noRedundantBlocks();
+    return true;
+  }
+
+  public boolean isConsistentSSABeforeTypesAreCorrectAllowingRedundantBlocks(AppView<?> appView) {
     assert isConsistentGraph(appView, true);
     assert consistentBlockInstructions(appView, true);
     assert consistentDefUseChains();
@@ -836,6 +848,13 @@ public class IRCode implements IRControlFlowGraph, ValueFactory {
               assert key >= 0;
               assert key <= basicBlockNumberGenerator.peek();
             });
+    return true;
+  }
+
+  private boolean noRedundantBlocks() {
+    for (BasicBlock block : blocks) {
+      assert !isRedundantBlock(block);
+    }
     return true;
   }
 
@@ -1251,6 +1270,42 @@ public class IRCode implements IRControlFlowGraph, ValueFactory {
       }
     }
     return true;
+  }
+
+  private boolean isRedundantBlock(BasicBlock block) {
+    return block.hasUniqueSuccessorWithUniquePredecessor()
+        && block.getInstructions().size() == 1
+        && block.exit().isGoto()
+        && block.exit().getDebugValues().isEmpty()
+        && !block.isEntry();
+  }
+
+  public void removeRedundantBlocks() {
+    List<BasicBlock> blocksToRemove = new ArrayList<>();
+
+    for (BasicBlock block : blocks) {
+      // Check that there are no redundant blocks.
+      assert !blocksToRemove.contains(block);
+      if (isRedundantBlock(block)) {
+        assert block.getUniqueSuccessor().getMutablePredecessors().size() == 1;
+        assert block.getUniqueSuccessor().getMutablePredecessors().get(0) == block;
+        assert block.getUniqueSuccessor().getPhis().size() == 0;
+        // Let the successor consume this block.
+        BasicBlock successor = block.getUniqueSuccessor();
+        successor.getMutablePredecessors().clear();
+        successor.getMutablePredecessors().addAll(block.getPredecessors());
+        successor.getPhis().addAll(block.getPhis());
+        successor.getPhis().forEach(phi -> phi.setBlock(block.getUniqueSuccessor()));
+        block
+            .getPredecessors()
+            .forEach(predecessors -> predecessors.replaceSuccessor(block, successor));
+        block.getMutablePredecessors().clear();
+        block.getMutableSuccessors().clear();
+        block.getPhis().clear();
+        blocksToRemove.add(block);
+      }
+    }
+    blocks.removeAll(blocksToRemove);
   }
 
   public boolean removeAllDeadAndTrivialPhis() {

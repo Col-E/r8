@@ -716,6 +716,7 @@ public class IRConverter {
           .optimize(code, feedback, methodProcessor, methodProcessingContext);
       timing.end();
       previous = printMethod(code, "IR after class library method optimizer (SSA)", previous);
+      code.removeRedundantBlocks();
       assert code.isConsistentSSA(appView);
     }
 
@@ -850,6 +851,7 @@ public class IRConverter {
                       // always uses a force inlining oracle for inlining.
                       -1)));
       timing.end();
+      code.removeRedundantBlocks();
       assert code.isConsistentSSA(appView);
       assert code.verifyTypes(appView);
     }
@@ -936,6 +938,7 @@ public class IRConverter {
     if (assumeInserter != null) {
       timing.begin("Remove assume instructions");
       CodeRewriter.removeAssumeInstructions(appView, code);
+      code.removeRedundantBlocks();
       timing.end();
       assert code.isConsistentSSA(appView);
 

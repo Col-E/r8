@@ -37,6 +37,11 @@ public class HorizontallyMergedClassInliningTest extends TestBase {
             inspector -> inspector.assertIsCompleteMergeGroup(A.class, B.class, C.class))
         .allowAccessModification()
         .setMinApi(parameters)
+        .addOptionsModification(
+            options -> {
+              // With removal of redundant blocks this heuristic needs to be raised.
+              options.classInlinerOptions().classInliningInstructionAllowance = 66;
+            })
         .compile()
         .inspect(
             inspector -> {

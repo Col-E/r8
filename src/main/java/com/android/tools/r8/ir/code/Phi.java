@@ -39,7 +39,7 @@ public class Phi extends Value implements InstructionOrPhi {
     DEBUG,
   }
 
-  private final BasicBlock block;
+  private BasicBlock block;
   private final List<Value> operands = new ArrayList<>();
   private RegisterReadType readType;
   private boolean isStackPhi;
@@ -80,6 +80,10 @@ public class Phi extends Value implements InstructionOrPhi {
   @Override
   public BasicBlock getBlock() {
     return block;
+  }
+
+  public void setBlock(BasicBlock block) {
+    this.block = block;
   }
 
   @Override

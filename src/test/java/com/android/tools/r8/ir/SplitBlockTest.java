@@ -206,7 +206,7 @@ public class SplitBlockTest extends IrInjectionTestBase {
 
   private void runCatchHandlerTest(boolean codeThrows, boolean twoGuards) throws Exception {
     final int secondBlockInstructions = 4;
-    final int initialBlockCount = twoGuards ? 7 : 6;
+    final int initialBlockCount = twoGuards ? 7 : 5;
     // Try split between all instructions in second block.
     for (int i = 1; i < secondBlockInstructions; i++) {
       TestApplication test = codeWithCatchHandlers(codeThrows, twoGuards);
@@ -220,7 +220,7 @@ public class SplitBlockTest extends IrInjectionTestBase {
 
       InstructionListIterator iterator = test.listIteratorAt(block, i);
       BasicBlock newBlock = iterator.split(code);
-      assertTrue(code.isConsistentSSA(appView));
+      assertTrue(code.isConsistentSSAAllowingRedundantBlocks(appView));
 
       assertEquals(initialBlockCount + 1, code.blocks.size());
       assertEquals(i + 1, code.blocks.get(1).getInstructions().size());
@@ -246,7 +246,7 @@ public class SplitBlockTest extends IrInjectionTestBase {
   private void runCatchHandlerSplitThreeTest(boolean codeThrows, boolean twoGuards)
       throws Exception {
     final int secondBlockInstructions = 4;
-    final int initialBlockCount = twoGuards ? 7 : 6;
+    final int initialBlockCount = twoGuards ? 7 : 5;
     // Try split out all instructions in second block.
     for (int i = 1; i < secondBlockInstructions - 1; i++) {
       TestApplication test = codeWithCatchHandlers(codeThrows, twoGuards);
@@ -260,7 +260,7 @@ public class SplitBlockTest extends IrInjectionTestBase {
 
       InstructionListIterator iterator = test.listIteratorAt(block, i);
       BasicBlock newBlock = iterator.split(code, 1);
-      assertTrue(code.isConsistentSSA(appView));
+      assertTrue(code.isConsistentSSAAllowingRedundantBlocks(appView));
 
       assertEquals(initialBlockCount + 2, code.blocks.size());
       assertEquals(i + 1, code.blocks.get(1).getInstructions().size());

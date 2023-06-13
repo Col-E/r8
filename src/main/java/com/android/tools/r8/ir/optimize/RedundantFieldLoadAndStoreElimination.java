@@ -444,6 +444,7 @@ public class RedundantFieldLoadAndStoreElimination {
     }
     processInstructionsToRemove();
     assumeRemover.removeMarkedInstructions().finish();
+    code.removeRedundantBlocks();
     assert code.isConsistentSSA(appView);
   }
 

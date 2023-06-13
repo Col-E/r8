@@ -74,6 +74,7 @@ public class ReflectionOptimizer {
     if (!affectedValues.isEmpty()) {
       new TypeAnalysis(appView).narrowing(affectedValues);
     }
+    code.removeRedundantBlocks();
     assert code.isConsistentSSA(appView);
   }
 

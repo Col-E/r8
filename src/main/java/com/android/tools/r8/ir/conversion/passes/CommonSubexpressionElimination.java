@@ -78,6 +78,7 @@ public class CommonSubexpressionElimination extends CodeRewriterPass<AppInfo> {
       }
     }
     code.returnMarkingColor(noCandidate);
+    code.removeRedundantBlocks();
     assert code.isConsistentSSA(appView);
   }
 

@@ -241,6 +241,7 @@ public class CodeRewriter {
     if (!affectedValues.isEmpty()) {
       new TypeAnalysis(appView).narrowing(affectedValues);
     }
+    code.removeRedundantBlocks();
     assert code.isConsistentSSA(appView);
     return changed;
   }
@@ -294,6 +295,7 @@ public class CodeRewriter {
         }
       }
     }
+    code.removeRedundantBlocks();
     assert code.isConsistentSSA(appView);
   }
 
@@ -341,6 +343,7 @@ public class CodeRewriter {
 
       phiUsers.forEach(Phi::removeTrivialPhi);
     }
+    code.removeRedundantBlocks();
     assert code.isConsistentSSA(appView);
   }
 
