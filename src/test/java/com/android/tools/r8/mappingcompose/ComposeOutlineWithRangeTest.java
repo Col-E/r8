@@ -4,13 +4,13 @@
 
 package com.android.tools.r8.mappingcompose;
 
-import static org.junit.Assert.assertThrows;
+import static com.android.tools.r8.mappingcompose.ComposeTestHelpers.doubleToSingleQuote;
+import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.naming.ClassNameMapper;
-import com.android.tools.r8.naming.MappingComposeException;
 import com.android.tools.r8.naming.MappingComposer;
 import com.android.tools.r8.utils.StringUtils;
 import org.junit.Test;
@@ -50,13 +50,26 @@ public class ComposeOutlineWithRangeTest extends TestBase {
           "    4:5:int a():1:2 -> m",
           "x -> y:",
           "    42:42:int s(int):1:1 -> o");
+  private static final String mappingResult =
+      StringUtils.unixLines(
+          "# {'id':'com.android.tools.r8.mapping','version':'2.2'}",
+          "outline.Callsite -> y:",
+          "    42:42:int outlineCaller(int):0:0 -> o",
+          "    # {'id':'com.android.tools.r8.outlineCallsite',"
+              + "'positions':{'4':43,'5':44},"
+              + "'outline':'Lb;m()I'}",
+          "    43:43:int outlineCaller(int):23:23 -> o",
+          "    44:44:int outlineCaller(int):24:24 -> o",
+          "outline.Class -> b:",
+          "    4:5:int some.inlinee():75:76 -> m",
+          "    4:5:int outline():0 -> m",
+          "    # {'id':'com.android.tools.r8.outline'}");
 
   @Test
   public void testCompose() throws Exception {
     ClassNameMapper mappingForFoo = ClassNameMapper.mapperFromStringWithPreamble(mappingFoo);
     ClassNameMapper mappingForBar = ClassNameMapper.mapperFromStringWithPreamble(mappingBar);
-    // TODO(b/286781273): We should not throw an exception.
-    assertThrows(
-        MappingComposeException.class, () -> MappingComposer.compose(mappingForFoo, mappingForBar));
+    String composed = MappingComposer.compose(mappingForFoo, mappingForBar);
+    assertEquals(mappingResult, doubleToSingleQuote(composed));
   }
 }

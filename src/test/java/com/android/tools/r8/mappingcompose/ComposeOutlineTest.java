@@ -37,7 +37,7 @@ public class ComposeOutlineTest extends TestBase {
           "    1:2:int outline():0 -> a",
           "    # { 'id':'com.android.tools.r8.outline' }",
           "outline.Callsite -> x:",
-          "    4:4:int outlineCaller(int):23 -> s",
+          "    4:4:int outlineCaller(int):23:23 -> s",
           "    5:5:int foo.bar.baz.outlineCaller(int):98:98 -> s",
           "    5:5:int outlineCaller(int):24 -> s",
           "    27:27:int outlineCaller(int):0:0 -> s",
@@ -61,7 +61,7 @@ public class ComposeOutlineTest extends TestBase {
           "    # {'id':'com.android.tools.r8.outlineCallsite',"
               + "'positions':{'4':43,'5':44},"
               + "'outline':'Lc;m()I'}",
-          "    43:43:int outlineCaller(int):23 -> o",
+          "    43:43:int outlineCaller(int):23:23 -> o",
           "    44:44:int foo.bar.baz.outlineCaller(int):98:98 -> s",
           "    44:44:int outlineCaller(int):24 -> o",
           "outline.Class -> c:",

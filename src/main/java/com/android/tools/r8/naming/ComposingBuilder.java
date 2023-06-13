@@ -49,7 +49,6 @@ import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Set;
 import java.util.TreeMap;
-import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
 public class ComposingBuilder {
@@ -738,7 +737,9 @@ public class ComposingBuilder {
           visitOutlineMappedPositions(
               outlineCallSiteInformation,
               computedInformationForCallSite.current.getOriginalSignature(),
-              mappedRangesForOutline::put);
+              positionInfo ->
+                  mappedRangesForOutline.put(
+                      positionInfo.outlinePosition(), positionInfo.mappedRanges()));
           List<MappedRange> newComposedRanges = new ArrayList<>();
           // Copy all previous handled mapped ranges into a new list.
           for (MappedRange previousMappedRanges : composedRanges) {
@@ -866,33 +867,54 @@ public class ComposingBuilder {
         visitOutlineMappedPositions(
             outlineCallSite,
             originalSignature,
-            (originalPosition, mappedRangesForOutlinePosition) -> {
+            positionInfo -> {
               int newIndex = firstAvailableRange.getAndIncrement();
               Range newMinifiedRange = new Range(newIndex, newIndex);
-              MappedRange outerMostOutlineFrame = ListUtils.last(mappedRangesForOutlinePosition);
-              for (MappedRange inlineMappedRangeInOutlinePosition :
-                  mappedRangesForOutlinePosition) {
-                if (inlineMappedRangeInOutlinePosition != outerMostOutlineFrame) {
+              MappedRange outerMostOutlineCallsiteFrame =
+                  ListUtils.last(positionInfo.mappedRanges());
+              for (MappedRange inlineMappedRangeInOutlinePosition : positionInfo.mappedRanges()) {
+                if (inlineMappedRangeInOutlinePosition != outerMostOutlineCallsiteFrame) {
                   composedRanges.add(
                       inlineMappedRangeInOutlinePosition.withMinifiedRange(newMinifiedRange));
                 }
               }
+              int originalPosition =
+                  outerMostOutlineCallsiteFrame.getOriginalLineNumber(
+                      positionInfo.outlineCallsitePosition());
+              boolean hasInlineFrames = positionInfo.mappedRanges().size() > 1;
               composedRanges.add(
                   new MappedRange(
                       newMinifiedRange,
                       lastComposedRange.signature,
-                      outerMostOutlineFrame.originalRange,
+                      hasInlineFrames
+                          ? new Range(originalPosition)
+                          : new Range(originalPosition, originalPosition),
                       lastComposedRange.getRenamedName()));
-              newPositionMap.put((int) originalPosition, newIndex);
+              newPositionMap.put(positionInfo.outlinePosition(), newIndex);
               outlineCallSite.setPositionsInternal(newPositionMap);
             });
       }
     }
 
+    /**
+     * The class contains a list of mapped ranges for a single outline position.
+     *
+     * <p>Outline positions is a key-value map of positions in the outline to positions in the
+     * callsite. An instance of OutlineCallSitePositionWithMappedRanges contains the information
+     * about a single position.
+     */
+    public interface OutlineCallSitePositionWithMappedRanges {
+      int outlinePosition();
+
+      int outlineCallsitePosition();
+
+      List<MappedRange> mappedRanges();
+    }
+
     private void visitOutlineMappedPositions(
         OutlineCallsiteMappingInformation outlineCallSite,
         MethodSignature originalSignature,
-        BiConsumer<Integer, List<MappedRange>> outlinePositionConsumer)
+        Consumer<OutlineCallSitePositionWithMappedRanges> outlinePositionConsumer)
         throws MappingComposeException {
       Int2IntSortedMap positionMap = outlineCallSite.getPositions();
       ComposingClassBuilder existingClassBuilder = getExistingClassBuilder(originalSignature);
@@ -908,9 +930,9 @@ public class ComposingBuilder {
             "Could not find method positions for original signature '" + originalSignature + "'.");
       }
       for (Integer keyPosition : positionMap.keySet()) {
-        int keyPositionInt = keyPosition;
-        int originalDestination = positionMap.get(keyPositionInt);
-        List<MappedRange> mappedRanges = outlineSegmentTree.find(originalDestination);
+        int outlinePosition = keyPosition;
+        int callsitePosition = positionMap.get(outlinePosition);
+        List<MappedRange> mappedRanges = outlineSegmentTree.find(callsitePosition);
         if (mappedRanges == null) {
           throw new MappingComposeException(
               "Could not find ranges for outline position '"
@@ -921,10 +943,10 @@ public class ComposingBuilder {
         }
         ExistingMappings existingMappings = ExistingMappings.create(mappedRanges);
         List<MappedRange> mappedRangesForOutlinePosition =
-            existingMappings.getNextRanges(originalDestination);
+            existingMappings.getPreviousRanges(callsitePosition);
         if (mappedRangesForOutlinePosition == null
             || mappedRangesForOutlinePosition.isEmpty()
-            || !mappedRangesForOutlinePosition.get(0).minifiedRange.contains(originalDestination)) {
+            || !mappedRangesForOutlinePosition.get(0).minifiedRange.contains(callsitePosition)) {
           throw new MappingComposeException(
               "Could not find ranges for outline position '"
                   + keyPosition
@@ -932,7 +954,23 @@ public class ComposingBuilder {
                   + originalSignature
                   + "'.");
         }
-        outlinePositionConsumer.accept(keyPositionInt, mappedRangesForOutlinePosition);
+        outlinePositionConsumer.accept(
+            new OutlineCallSitePositionWithMappedRanges() {
+              @Override
+              public int outlinePosition() {
+                return outlinePosition;
+              }
+
+              @Override
+              public int outlineCallsitePosition() {
+                return callsitePosition;
+              }
+
+              @Override
+              public List<MappedRange> mappedRanges() {
+                return mappedRangesForOutlinePosition;
+              }
+            });
       }
     }
 
