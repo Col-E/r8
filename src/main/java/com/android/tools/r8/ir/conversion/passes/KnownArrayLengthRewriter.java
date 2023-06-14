@@ -76,6 +76,7 @@ public class KnownArrayLengthRewriter extends CodeRewriterPass<AppInfo> {
 
       phiUsers.forEach(Phi::removeTrivialPhi);
     }
+    code.removeRedundantBlocks();
     assert code.isConsistentSSA(appView);
   }
 }
