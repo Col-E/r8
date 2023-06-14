@@ -30,6 +30,7 @@ import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMember;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
+import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMember;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
@@ -68,8 +69,6 @@ import com.android.tools.r8.graph.proto.RewrittenPrototypeDescription;
 import com.android.tools.r8.ir.code.InvokeType;
 import com.android.tools.r8.ir.code.Position.SyntheticPosition;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
-import com.android.tools.r8.ir.optimize.MemberPoolCollection.MemberPool;
-import com.android.tools.r8.ir.optimize.MethodPoolCollection;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedback;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackSimple;
 import com.android.tools.r8.ir.synthetic.AbstractSynthesizedCode;
@@ -157,7 +156,6 @@ public class VerticalClassMerger {
   private final InternalOptions options;
   private final SubtypingInfo subtypingInfo;
   private final ExecutorService executorService;
-  private final MethodPoolCollection methodPoolCollection;
   private final Timing timing;
   private Collection<DexMethod> invokes;
   private final AndroidApiLevelCompute apiLevelCompute;
@@ -197,7 +195,6 @@ public class VerticalClassMerger {
     this.mainDexInfo = appInfo.getMainDexInfo();
     this.subtypingInfo = appInfo.computeSubtypingInfo();
     this.executorService = executorService;
-    this.methodPoolCollection = new MethodPoolCollection(appView, subtypingInfo);
     this.lensBuilder = new VerticalClassMergerGraphLens.Builder(appView.dexItemFactory());
     this.apiLevelCompute = appView.apiLevelCompute();
     this.timing = timing;
@@ -998,21 +995,17 @@ public class VerticalClassMerger {
           // due to the way invoke-super works on default interface methods. In order to be able
           // to hit this method directly after the merge, we need to make it public, and find a
           // method name that does not collide with one in the hierarchy of this class.
-          MemberPool<DexMethod> methodPoolForTarget =
-              methodPoolCollection.buildForHierarchy(target, executorService, timing);
-          resultingMethod =
-              renameMethod(
-                  virtualMethod,
-                  method ->
-                      availableMethodSignatures.test(method)
-                          && !methodPoolForTarget.hasSeen(
-                              MethodSignatureEquivalence.get().wrap(method)),
-                  Rename.ALWAYS,
-                  appView.dexItemFactory().prependHolderToProto(virtualMethod.getReference()));
+          DexItemFactory dexItemFactory = appView.dexItemFactory();
+          String resultingMethodBaseName =
+              virtualMethod.getName().toString() + '$' + source.getTypeName().replace('.', '$');
+          DexMethod resultingMethodReference =
+              dexItemFactory.createMethod(
+                  target.getType(),
+                  virtualMethod.getProto().prependParameter(source.getType(), dexItemFactory),
+                  dexItemFactory.createGloballyFreshMemberString(resultingMethodBaseName));
+          assert availableMethodSignatures.test(resultingMethodReference);
+          resultingMethod = virtualMethod.toTypeSubstitutedMethod(resultingMethodReference);
           makeStatic(resultingMethod);
-
-          // Update method pool collection now that we are adding a new public method.
-          methodPoolForTarget.seen(resultingMethod.getReference());
         } else {
           // This virtual method could be called directly from a sub class via an invoke-super in-
           // struction. Therefore, we translate this virtual method into an instance method with a
