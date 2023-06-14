@@ -63,7 +63,7 @@ public class AccessModifier {
       AppView<AppInfoWithLiveness> appView, ExecutorService executorService, Timing timing)
       throws ExecutionException {
     timing.begin("Access modification");
-    if (appView.options().getAccessModifierOptions().isExperimentalAccessModificationEnabled()) {
+    if (appView.options().getAccessModifierOptions().isAccessModificationEnabled()) {
       new AccessModifier(appView)
           .processStronglyConnectedComponents(executorService)
           .installLens(executorService, timing);
