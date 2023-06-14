@@ -74,6 +74,7 @@ import com.android.tools.r8.ir.optimize.enums.EnumDataMap;
 import com.android.tools.r8.naming.ClassNameMapper;
 import com.android.tools.r8.naming.MapConsumer;
 import com.android.tools.r8.naming.MapVersion;
+import com.android.tools.r8.optimize.accessmodification.AccessModifierOptions;
 import com.android.tools.r8.optimize.argumentpropagation.ArgumentPropagatorEventConsumer;
 import com.android.tools.r8.optimize.redundantbridgeremoval.RedundantBridgeRemovalOptions;
 import com.android.tools.r8.origin.Origin;
@@ -843,8 +844,7 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
 
   @Override
   public boolean isAccessModificationEnabled() {
-    return getProguardConfiguration() != null
-        && getProguardConfiguration().isAccessModificationAllowed();
+    return accessModifierOptions.isAccessModificationEnabled();
   }
 
   @Override
@@ -879,6 +879,7 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
 
   public boolean debug = false;
 
+  private final AccessModifierOptions accessModifierOptions = new AccessModifierOptions(this);
   private final RewriteArrayOptions rewriteArrayOptions = new RewriteArrayOptions();
   private final CallSiteOptimizationOptions callSiteOptimizationOptions =
       new CallSiteOptimizationOptions();
@@ -954,6 +955,10 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
 
   public DesugarSpecificOptions desugarSpecificOptions() {
     return desugarSpecificOptions;
+  }
+
+  public AccessModifierOptions getAccessModifierOptions() {
+    return accessModifierOptions;
   }
 
   public CfCodeAnalysisOptions getCfCodeAnalysisOptions() {

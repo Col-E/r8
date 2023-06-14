@@ -62,10 +62,11 @@ import com.android.tools.r8.naming.PrefixRewritingNamingLens;
 import com.android.tools.r8.naming.ProguardMapMinifier;
 import com.android.tools.r8.naming.RecordRewritingNamingLens;
 import com.android.tools.r8.naming.signature.GenericSignatureRewriter;
-import com.android.tools.r8.optimize.AccessModifier;
+import com.android.tools.r8.optimize.LegacyAccessModifier;
 import com.android.tools.r8.optimize.MemberRebindingAnalysis;
 import com.android.tools.r8.optimize.MemberRebindingIdentityLens;
 import com.android.tools.r8.optimize.MemberRebindingIdentityLensFactory;
+import com.android.tools.r8.optimize.accessmodification.AccessModifier;
 import com.android.tools.r8.optimize.bridgehoisting.BridgeHoisting;
 import com.android.tools.r8.optimize.fields.FieldFinalizer;
 import com.android.tools.r8.optimize.interfaces.analysis.CfOpenClosedInterfacesAnalysis;
@@ -448,7 +449,8 @@ public class R8 {
       // to clear the cache, so that we will recompute the type lattice elements.
       appView.dexItemFactory().clearTypeElementsCache();
 
-      AccessModifier.run(appViewWithLiveness, executorService, timing);
+      // TODO(b/132677331): Remove legacy access modifier.
+      LegacyAccessModifier.run(appViewWithLiveness, executorService, timing);
       if (appView.graphLens().isPublicizerLens()) {
         // We can now remove redundant bridges. Note that we do not need to update the
         // invoke-targets here, as the existing invokes will simply dispatch to the now
@@ -462,6 +464,10 @@ public class R8 {
 
       new MemberRebindingAnalysis(appViewWithLiveness).run(executorService);
       appViewWithLiveness.appInfo().notifyMemberRebindingFinished(appViewWithLiveness);
+
+      assert ArtProfileCompletenessChecker.verify(appView);
+
+      AccessModifier.run(appViewWithLiveness, executorService, timing);
 
       boolean isKotlinLibraryCompilationWithInlinePassThrough =
           options.enableCfByteCodePassThrough && appView.hasCfByteCodePassThroughMethods();

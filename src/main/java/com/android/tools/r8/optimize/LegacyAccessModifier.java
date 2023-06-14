@@ -24,6 +24,7 @@ import com.android.tools.r8.ir.optimize.MemberPoolCollection.MemberPool;
 import com.android.tools.r8.ir.optimize.MethodPoolCollection;
 import com.android.tools.r8.optimize.PublicizerLens.PublicizedLensBuilder;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
+import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.MethodSignatureEquivalence;
 import com.android.tools.r8.utils.OptionalBool;
 import com.android.tools.r8.utils.Timing;
@@ -33,7 +34,7 @@ import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 
-public final class AccessModifier {
+public final class LegacyAccessModifier {
 
   private final AppView<AppInfoWithLiveness> appView;
   private final SubtypingInfo subtypingInfo;
@@ -41,7 +42,7 @@ public final class AccessModifier {
 
   private final PublicizedLensBuilder lensBuilder = PublicizerLens.createBuilder();
 
-  private AccessModifier(AppView<AppInfoWithLiveness> appView) {
+  private LegacyAccessModifier(AppView<AppInfoWithLiveness> appView) {
     this.appView = appView;
     this.subtypingInfo = appView.appInfo().computeSubtypingInfo();
     this.methodPoolCollection =
@@ -59,9 +60,11 @@ public final class AccessModifier {
   public static void run(
       AppView<AppInfoWithLiveness> appView, ExecutorService executorService, Timing timing)
       throws ExecutionException {
-    if (appView.options().getProguardConfiguration().isAccessModificationAllowed()) {
+    InternalOptions options = appView.options();
+    if (options.isAccessModificationEnabled()
+        && !options.getAccessModifierOptions().isExperimentalAccessModificationEnabled()) {
       timing.begin("Access modification");
-      new AccessModifier(appView).internalRun(executorService, timing);
+      new LegacyAccessModifier(appView).internalRun(executorService, timing);
       timing.end();
     }
   }
