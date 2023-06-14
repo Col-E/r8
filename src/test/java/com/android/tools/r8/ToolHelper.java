@@ -657,9 +657,10 @@ public class ToolHelper {
 
   private static class CommandResultCache {
     private static CommandResultCache INSTANCE =
-        System.getProperty("art_cache_dir") != null
-            ? new CommandResultCache(Paths.get(System.getProperty("art_cache_dir")))
+        System.getProperty("command_cache_dir") != null
+            ? new CommandResultCache(Paths.get(System.getProperty("command_cache_dir")))
             : null;
+
     private final Path path;
 
     public CommandResultCache(Path path) {

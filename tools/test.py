@@ -113,8 +113,9 @@ def ParseOptions():
       help='Use a custom directory for the test artifacts instead of a'
           ' temporary (which is automatically removed after the test).'
           ' Note that the directory will not be cleared before the test.')
-  result.add_option('--art-cache-dir', '--art_cache_dir',
-      help='Cache art invocations to this directory, speeds up test runs')
+  result.add_option('--command-cache-dir', '--command_cache_dir',
+      help='Cache command invocations to this directory, speeds up test runs',
+      default=os.environ.get('COMMAND_CACHE_DIR'))
   result.add_option('--java-home', '--java_home',
       help='Use a custom java version to run tests.')
   result.add_option('--java-max-memory-size', '--java_max_memory_size',
@@ -318,10 +319,10 @@ def Main():
     gradle_args.append('-Ptest_dir=' + options.test_dir)
     if not os.path.exists(options.test_dir):
       os.makedirs(options.test_dir)
-  if options.art_cache_dir:
-    gradle_args.append('-Part_cache_dir=' + options.art_cache_dir)
-    if not os.path.exists(options.art_cache_dir):
-      os.makedirs(options.art_cache_dir)
+  if options.command_cache_dir:
+    gradle_args.append('-Pcommand_cache_dir=' + options.command_cache_dir)
+    if not os.path.exists(options.command_cache_dir):
+      os.makedirs(options.command_cache_dir)
   if options.java_home:
     gradle_args.append('-Dorg.gradle.java.home=' + options.java_home)
   if options.java_max_memory_size:
