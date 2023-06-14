@@ -54,7 +54,6 @@ def parse_options():
     help='The R8 jar to compile')
   parser.add_argument(
     '--r8compiler',
-    required=True,
     default='build/libs/r8_with_deps.jar',
     help='The R8 compiler to use')
   return parser.parse_args()
