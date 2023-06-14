@@ -5,10 +5,9 @@
 package com.android.tools.r8.accessrelaxation;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
-import static com.android.tools.r8.utils.codeinspector.Matchers.isPrivate;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPublic;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotEquals;
 
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
@@ -56,16 +55,16 @@ public class PrivateShadowOfPrivateMethodTest extends TestBase {
               assertThat(aMethodSubject, isPresent());
               assertThat(aMethodSubject, isPublic());
 
-              // Check that B.foo is still private.
+              // Check that B.foo is publicized.
               ClassSubject bClassSubject = inspector.clazz(B.class);
               assertThat(bClassSubject, isPresent());
 
               MethodSubject bMethodSubject = bClassSubject.uniqueMethodWithOriginalName("foo");
               assertThat(bMethodSubject, isPresent());
-              assertThat(bMethodSubject, isPrivate());
+              assertThat(bMethodSubject, isPublic());
 
-              // Verify that the two methods still have the same name.
-              assertEquals(aMethodSubject.getFinalName(), bMethodSubject.getFinalName());
+              // Verify that the two methods are given different names.
+              assertNotEquals(aMethodSubject.getFinalName(), bMethodSubject.getFinalName());
             })
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines("A", "B", "A", "A");

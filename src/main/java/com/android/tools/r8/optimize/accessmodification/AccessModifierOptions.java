@@ -8,8 +8,7 @@ import com.android.tools.r8.utils.InternalOptions;
 
 public class AccessModifierOptions {
 
-  // TODO(b/132677331): Enable new access modifier by default.
-  private boolean enableExperimentalAccessModification = false;
+  private boolean enableExperimentalAccessModification = true;
 
   private InternalOptions options;
 

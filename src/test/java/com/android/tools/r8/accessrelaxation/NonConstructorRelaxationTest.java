@@ -47,35 +47,17 @@ public final class NonConstructorRelaxationTest extends AccessRelaxationTestBase
   }
 
   @Test
-  public void testStaticMethodRelaxation() throws Exception {
-    String expectedOutput =
-        StringUtils.lines(
-            "A::baz()",
-            "A::bar()",
-            "A::bar(int)",
-            "A::blah(int)",
-            "B::blah(int)",
-            "BB::blah(int)",
-            "A::foo()A::baz()A::bar()A::bar(int)",
-            "B::bar() >> java.lang.IllegalAccessError",
-            "java.lang.IllegalAccessError",
-            "A::foo()A::baz()A::bar()A::bar(int)",
-            "B::blah(int)",
-            "A::foo()A::baz()A::bar()A::bar(int)",
-            "B::bar() >> java.lang.IllegalAccessError",
-            "C::bar(int)java.lang.IllegalAccessErrorB::bar() >> "
-                + "java.lang.IllegalAccessErrorB::bar() >> java.lang.IllegalAccessError",
-            "B::foo()A::foo()A::baz()A::bar()A::bar(int)",
-            "C::blah(int)");
-    Class<?> mainClass = C.class;
-    if (parameters.isCfRuntime()) {
-      // Only run JVM reference on CF runtimes.
-      testForJvm(parameters)
-          .addTestClasspath()
-          .run(parameters.getRuntime(), mainClass)
-          .assertSuccessWithOutput(expectedOutput);
-    }
+  public void testStaticMethodRelaxationJvm() throws Exception {
+    parameters.assumeJvmTestParameters();
+    testForJvm(parameters)
+        .addTestClasspath()
+        .run(parameters.getRuntime(), C.class)
+        .assertSuccessWithOutput(getExpectedOutputForStaticMethodRelaxationTest());
+  }
 
+  @Test
+  public void testStaticMethodRelaxation() throws Exception {
+    Class<?> mainClass = C.class;
     R8TestRunResult result =
         testForR8(parameters.getBackend())
             .addProgramFiles(ToolHelper.getClassFilesForTestPackage(mainClass.getPackage()))
@@ -105,9 +87,8 @@ public final class NonConstructorRelaxationTest extends AccessRelaxationTestBase
                 "}")
             .allowAccessModification()
             .setMinApi(parameters)
-            .run(parameters.getRuntime(), mainClass);
-
-    assertEquals(expectedOutput, result.getStdOut());
+            .run(parameters.getRuntime(), mainClass)
+            .assertSuccessWithOutput(getExpectedOutputForStaticMethodRelaxationTest());
 
     CodeInspector inspector = result.inspector();
 
@@ -121,11 +102,41 @@ public final class NonConstructorRelaxationTest extends AccessRelaxationTestBase
 
     MethodSignature blahMethodSignatureAfterArgumentRemoval =
         new MethodSignature(
-            "blah",
+            enableUnusedArgumentRemoval ? "blah$1" : "blah",
             STRING,
             enableUnusedArgumentRemoval ? ImmutableList.of() : ImmutableList.of("int"));
     assertPublic(inspector, A.class, blahMethodSignatureAfterArgumentRemoval);
     assertPublic(inspector, BB.class, blahMethodSignatureAfterArgumentRemoval);
+  }
+
+  private static String getExpectedOutputForStaticMethodRelaxationTest() {
+    return StringUtils.lines(
+        "A::baz()",
+        "A::bar()",
+        "A::bar(int)",
+        "A::blah(int)",
+        "B::blah(int)",
+        "BB::blah(int)",
+        "A::foo()A::baz()A::bar()A::bar(int)",
+        "B::bar() >> java.lang.IllegalAccessError",
+        "java.lang.IllegalAccessError",
+        "A::foo()A::baz()A::bar()A::bar(int)",
+        "B::blah(int)",
+        "A::foo()A::baz()A::bar()A::bar(int)",
+        "B::bar() >> java.lang.IllegalAccessError",
+        "C::bar(int)java.lang.IllegalAccessErrorB::bar() >> "
+            + "java.lang.IllegalAccessErrorB::bar() >> java.lang.IllegalAccessError",
+        "B::foo()A::foo()A::baz()A::bar()A::bar(int)",
+        "C::blah(int)");
+  }
+
+  @Test
+  public void testInstanceMethodRelaxationJvm() throws Exception {
+    parameters.assumeJvmTestParameters();
+    testForJvm(parameters)
+        .addTestClasspath()
+        .run(parameters.getRuntime(), TestMain.class)
+        .assertSuccessWithOutput(getExpectedOutputForInstanceMethodRelaxationTest());
   }
 
   @Test
@@ -139,29 +150,7 @@ public final class NonConstructorRelaxationTest extends AccessRelaxationTestBase
   }
 
   private void testInstanceMethodRelaxation(boolean enableVerticalClassMerging) throws Exception {
-    String expectedOutput =
-        StringUtils.lines(
-            "Base::foo()",
-            "Base::foo1()",
-            "Base::foo2()",
-            "Base::foo3()",
-            "Sub1::foo1()",
-            "Itf1::foo1(0) >> Sub1::foo1()",
-            "Sub1::bar1(0)",
-            "Sub1::foo3()",
-            "Sub2::foo2()",
-            "Itf2::foo2(0) >> Sub2::foo2()",
-            "Sub2::bar2(0)",
-            "Sub2::foo3()");
     Class<?> mainClass = TestMain.class;
-    if (parameters.isCfRuntime()) {
-      // Only run JVM reference on CF runtimes.
-      testForJvm(parameters)
-          .addTestClasspath()
-          .run(parameters.getRuntime(), mainClass)
-          .assertSuccessWithOutput(expectedOutput);
-    }
-
     R8TestRunResult result =
         testForR8(parameters.getBackend())
             .addProgramFiles(ToolHelper.getClassFilesForTestPackage(mainClass.getPackage()))
@@ -188,7 +177,7 @@ public final class NonConstructorRelaxationTest extends AccessRelaxationTestBase
             .run(parameters.getRuntime(), mainClass);
 
     assertEquals(
-        expectedOutput,
+        getExpectedOutputForInstanceMethodRelaxationTest(),
         result
             .getStdOut()
             .replace("java.lang.IncompatibleClassChangeError", "java.lang.IllegalAccessError"));
@@ -199,10 +188,10 @@ public final class NonConstructorRelaxationTest extends AccessRelaxationTestBase
     CodeInspector codeInspector = result.inspector();
     assertPublic(codeInspector, Base.class, new MethodSignature("foo", STRING, ImmutableList.of()));
 
-    // Base#foo?() can't be publicized due to Itf<1>#foo<1>().
-    assertNotPublic(
+    // Base#foo?() is publicized by renaming due to Itf<1>#foo<1>().
+    assertPublic(
         codeInspector, Base.class, new MethodSignature("foo1", STRING, ImmutableList.of()));
-    assertNotPublic(
+    assertPublic(
         codeInspector, Base.class, new MethodSignature("foo2", STRING, ImmutableList.of()));
 
     if (!enableVerticalClassMerging) {
@@ -216,5 +205,21 @@ public final class NonConstructorRelaxationTest extends AccessRelaxationTestBase
       assertPublic(
           codeInspector, Sub2.class, new MethodSignature("bar2", STRING, ImmutableList.of("int")));
     }
+  }
+
+  private static String getExpectedOutputForInstanceMethodRelaxationTest() {
+    return StringUtils.lines(
+        "Base::foo()",
+        "Base::foo1()",
+        "Base::foo2()",
+        "Base::foo3()",
+        "Sub1::foo1()",
+        "Itf1::foo1(0) >> Sub1::foo1()",
+        "Sub1::bar1(0)",
+        "Sub1::foo3()",
+        "Sub2::foo2()",
+        "Itf2::foo2(0) >> Sub2::foo2()",
+        "Sub2::bar2(0)",
+        "Sub2::foo3()");
   }
 }

@@ -4,11 +4,11 @@
 
 package com.android.tools.r8.naming.b72391662;
 
+import static com.android.tools.r8.utils.codeinspector.Matchers.isPackagePrivate;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
 
 import com.android.tools.r8.NeverPropagateValue;
 import com.android.tools.r8.ToolHelper;
@@ -144,20 +144,16 @@ public class B72391662 extends ProguardCompatibilityTestBase {
     // Test the totally unused method.
     MethodSubject staticMethod = testClass.uniqueMethodWithOriginalName("unused");
     assertThat(staticMethod, isPresent());
+    assertThat(staticMethod, isPackagePrivate());
     assertEquals(minify, staticMethod.isRenamed());
-    if (shrinker.isR8()) {
-      assertEquals(allowAccessModification, staticMethod.getMethod().accessFlags.isPublic());
-    } else {
-      assertFalse(staticMethod.getMethod().accessFlags.isPublic());
-    }
 
     // Test an indirectly referred method.
     staticMethod = testClass.uniqueMethodWithOriginalName("staticMethod");
     assertThat(staticMethod, isPresent());
     assertEquals(minify, staticMethod.isRenamed());
-    boolean publicizeCondition = shrinker.isR8() ? allowAccessModification
-        : minify && repackagePrefix != null && allowAccessModification;
-    assertEquals(publicizeCondition, staticMethod.getMethod().accessFlags.isPublic());
+    boolean publicizeCondition =
+        shrinker.isProguard() && minify && repackagePrefix != null && allowAccessModification;
+    assertEquals(publicizeCondition, staticMethod.getMethod().isPublic());
   }
 
   @Test
@@ -195,20 +191,16 @@ public class B72391662 extends ProguardCompatibilityTestBase {
     // Test the totally unused method.
     MethodSubject staticMethod = testClass.uniqueMethodWithOriginalName("unused");
     assertThat(staticMethod, isPresent());
+    assertThat(staticMethod, isPackagePrivate());
     assertEquals(minify, staticMethod.isRenamed());
-    if (shrinker.isR8()) {
-      assertEquals(allowAccessModification, staticMethod.getMethod().accessFlags.isPublic());
-    } else {
-      assertFalse(staticMethod.getMethod().accessFlags.isPublic());
-    }
 
     // Test an indirectly referred method.
     staticMethod = testClass.uniqueMethodWithOriginalName("staticMethod");
     assertThat(staticMethod, isPresent());
     assertEquals(minify, staticMethod.isRenamed());
-    boolean publicizeCondition = shrinker.isR8() ? allowAccessModification
-        : minify && repackagePrefix != null && allowAccessModification;
-    assertEquals(publicizeCondition, staticMethod.getMethod().accessFlags.isPublic());
+    boolean publicizeCondition =
+        shrinker.isProguard() && minify && repackagePrefix != null && allowAccessModification;
+    assertEquals(publicizeCondition, staticMethod.getMethod().isPublic());
   }
 
   @Test

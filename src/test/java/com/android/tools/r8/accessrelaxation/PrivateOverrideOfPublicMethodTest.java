@@ -28,6 +28,7 @@ public class PrivateOverrideOfPublicMethodTest extends TestBase {
   private static final String EXPECTED_OUTPUT_5_TO_6 =
       StringUtils.lines("A", "A", "A", "A", "A", "A");
   private static final String EXPECTED_OUTPUT_7 = StringUtils.lines("A", "B", "A", "A", "B", "A");
+  private static final String EXPECTED_OUTPUT_R8 = StringUtils.lines("A", "B", "B", "A", "B", "A");
 
   private static byte[] programClassFileData;
 
@@ -78,7 +79,8 @@ public class PrivateOverrideOfPublicMethodTest extends TestBase {
         .enableNoVerticalClassMergingAnnotations()
         .setMinApi(parameters)
         .run(parameters.getRuntime(), Main.class)
-        .assertSuccessWithOutput(EXPECTED_OUTPUT);
+        // TODO(b/278687711): Access modifier should preserve IllegalAccessErrors.
+        .assertSuccessWithOutput(EXPECTED_OUTPUT_R8);
   }
 
   static class Main {

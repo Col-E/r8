@@ -5,6 +5,7 @@
 package com.android.tools.r8.accessrelaxation;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
+import static com.android.tools.r8.utils.codeinspector.Matchers.isPublic;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -52,6 +53,7 @@ public class InnerClassAttributePublicizerTest extends TestBase {
   private void inspect(CodeInspector inspector) {
     ClassSubject classSubject = inspector.clazz(Outer.Inner.class);
     assertThat(classSubject, isPresent());
+    assertThat(classSubject, isPublic());
 
     InnerClassAttribute innerClassAttribute =
         classSubject.getDexProgramClass().getInnerClassAttributeForThisClass();
