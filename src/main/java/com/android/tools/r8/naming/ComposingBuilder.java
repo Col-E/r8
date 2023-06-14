@@ -4,7 +4,7 @@
 
 package com.android.tools.r8.naming;
 
-import static com.android.tools.r8.naming.MappedRangeUtils.isInlineMappedRange;
+import static com.android.tools.r8.naming.MappedRangeUtils.isInlineMappedRangeForComposition;
 import static com.android.tools.r8.utils.FunctionUtils.ignoreArgument;
 
 import com.android.tools.r8.naming.ClassNamingForNameMapper.MappedRange;
@@ -648,7 +648,7 @@ public class ComposingBuilder {
                     mappedRange,
                     computedOutlineInformation);
             composedInlineFrames = composeInlineFrames(newComposedRange, composedInlineFrames);
-            if (!isInlineMappedRange(newRangesToCompose, i)) {
+            if (!isInlineMappedRangeForComposition(newRangesToCompose, i)) {
               composedRanges.addAll(composedInlineFrames);
               composedInlineFrames = Collections.emptyList();
             }
@@ -710,7 +710,8 @@ public class ComposingBuilder {
       while (composedRangeIndex < composedRanges.size() - 1) {
         MappedRange outline = composedRanges.get(composedRangeIndex++);
         MappedRange outlineCallSite = composedRanges.get(composedRangeIndex);
-        if (outline.isOutlineFrame() && isInlineMappedRange(outline, outlineCallSite)) {
+        if (outline.isOutlineFrame()
+            && isInlineMappedRangeForComposition(outline, outlineCallSite)) {
           // We should replace the inlined outline frame positions with the synthesized
           // positions from the outline call site.
           if (outlineCallSite.getOutlineCallsiteInformation().size() != 1) {

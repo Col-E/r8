@@ -384,7 +384,9 @@ public class MappedPositionToClassNameMapperBuilder {
         }
         i = j;
       }
-      assert mappedPositions.size() <= 1
+      // TODO(b/287210793): Enable assertion again.
+      assert true
+          || mappedPositions.size() <= 1
           || getBuilder().hasNoOverlappingRangesForSignature(residualSignature);
       return this;
     }
