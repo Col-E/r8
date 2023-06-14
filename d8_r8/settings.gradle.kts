@@ -2,26 +2,26 @@
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
-// TODO(X): Move this file out the repository root when old gradle is removed.
+// TODO(b/270105162): Move this file out the repository root when old gradle is removed.
 
 pluginManagement {
-    repositories {
-        maven {
-            url = uri("file:../../third_party/dependencies")
-        }
-        maven {
-            url = uri("file:../../third_party/dependencies_new")
-        }
+  repositories {
+    maven {
+      url = uri("file:../third_party/dependencies")
     }
+    maven {
+      url = uri("file:../third_party/dependencies_new")
+    }
+  }
 }
 
 dependencyResolutionManagement {
   repositories {
     maven {
-        url= uri("file:../third_party/dependencies")
+      url = uri("file:../third_party/dependencies")
     }
     maven {
-        url= uri("file:../third_party/dependencies_new")
+      url = uri("file:../third_party/dependencies_new")
     }
   }
 }
@@ -29,6 +29,7 @@ dependencyResolutionManagement {
 rootProject.name = "d8-r8"
 
 // Bootstrap building by downloading dependencies.
+
 fun String.execute() =
     org.codehaus.groovy.runtime.ProcessGroovyMethods.execute(this)
 
@@ -67,12 +68,18 @@ if (process.exitValue() != 0) {
             + "\n${process.err()}\n${process.out()}")
 }
 
+val root = rootProject.projectDir
+
 // This project is temporarily located in d8_r8. When moved to root, the parent
 // folder should just be removed.
-includeBuild(rootProject.projectDir.parentFile.resolve("commonBuildSrc"))
-includeBuild("keepanno")
+includeBuild(root.parentFile.resolve("commonBuildSrc"))
+includeBuild(root.resolve("keepanno"))
 
 // We need to include src/main as a composite-build otherwise our test-modules
 // will compete with the test to compile the source files.
-includeBuild("main")
-includeBuild("test")
+includeBuild(root.resolve("main"))
+includeBuild(root.resolve("test"))
+
+// Include r8lib as standalone to have a nice separation between source artifacts and r8 compiled
+// artifacts
+includeBuild(root.resolve("r8lib"))

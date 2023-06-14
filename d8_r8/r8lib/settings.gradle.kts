@@ -24,4 +24,8 @@ dependencyResolutionManagement {
   }
 }
 
-rootProject.name = "keepanno"
+rootProject.name = "r8lib"
+
+val root = rootProject.projectDir.parentFile
+includeBuild(root.resolve("main"))
+includeBuild(root.resolve("test"))
