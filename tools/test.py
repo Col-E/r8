@@ -115,7 +115,7 @@ def ParseOptions():
           ' Note that the directory will not be cleared before the test.')
   result.add_option('--command-cache-dir', '--command_cache_dir',
       help='Cache command invocations to this directory, speeds up test runs',
-      default=os.environ.get('COMMAND_CACHE_DIR'))
+      default=os.environ.get('R8_COMMAND_CACHE_DIR'))
   result.add_option('--java-home', '--java_home',
       help='Use a custom java version to run tests.')
   result.add_option('--java-max-memory-size', '--java_max_memory_size',
