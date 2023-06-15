@@ -15,6 +15,7 @@ import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexTypeList;
 import com.android.tools.r8.graph.DexWritableCode;
+import com.android.tools.r8.graph.DexWritableCode.DexWritableCacheKey;
 import com.android.tools.r8.graph.ParameterAnnotationsList;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.naming.ClassNameMapper;
@@ -24,7 +25,9 @@ import com.android.tools.r8.utils.collections.ProgramMethodMap;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class DefaultMixedSectionLayoutStrategy extends MixedSectionLayoutStrategy {
 
@@ -67,9 +70,46 @@ public class DefaultMixedSectionLayoutStrategy extends MixedSectionLayoutStrateg
     return getCodeLayoutForClasses(mixedSectionOffsets.getClassesWithData());
   }
 
+  private static class DeduplicatedCodeCounts {
+    private Map<DexWritableCacheKey, Integer> counts;
+    private final AppView<?> appView;
+
+    private DeduplicatedCodeCounts(AppView<?> appView) {
+      this.appView = appView;
+    }
+
+    public void addCode(DexWritableCode dexWritableCode, ProgramMethod method) {
+      assert appView.options().canUseCanonicalizedCodeObjects();
+      if (counts == null) {
+        counts = new HashMap<>();
+      }
+      DexWritableCacheKey cacheKey =
+          dexWritableCode.getCacheLookupKey(method, appView.dexItemFactory());
+      if (!counts.containsKey(cacheKey)) {
+        counts.put(cacheKey, 1);
+      } else {
+        counts.put(cacheKey, counts.get(cacheKey) + 1);
+      }
+    }
+
+    public int getCount(ProgramMethod method) {
+      if (counts == null) {
+        assert !appView.options().canUseCanonicalizedCodeObjects()
+            || method.getDefinition().getDexWritableCodeOrNull() == null;
+        return 1;
+      }
+      DexWritableCode dexWritableCodeOrNull = method.getDefinition().getDexWritableCodeOrNull();
+      DexWritableCacheKey cacheLookupKey =
+          dexWritableCodeOrNull.getCacheLookupKey(method, appView.dexItemFactory());
+      assert counts.containsKey(cacheLookupKey);
+      return counts.get(cacheLookupKey);
+    }
+  }
+
   final Collection<ProgramMethod> getCodeLayoutForClasses(Collection<DexProgramClass> classes) {
-    ProgramMethodMap<String> codeToSignatureMap = ProgramMethodMap.create();
+    ProgramMethodMap<String> codeToDexSortingKeyMap = ProgramMethodMap.create();
     List<ProgramMethod> codesSorted = new ArrayList<>();
+    DeduplicatedCodeCounts codeCounts = new DeduplicatedCodeCounts(appView);
     for (DexProgramClass clazz : classes) {
       clazz.forEachProgramMethodMatching(
           DexEncodedMethod::hasCode,
@@ -77,13 +117,23 @@ public class DefaultMixedSectionLayoutStrategy extends MixedSectionLayoutStrateg
             DexWritableCode code = method.getDefinition().getDexWritableCodeOrNull();
             assert code != null || method.getDefinition().shouldNotHaveCode();
             if (code != null) {
+              if (appView.options().canUseCanonicalizedCodeObjects()) {
+                codeCounts.addCode(code, method);
+              }
               codesSorted.add(method);
-              codeToSignatureMap.put(
+              codeToDexSortingKeyMap.put(
                   method, getKeyForDexCodeSorting(method, appView.app().getProguardMap()));
             }
           });
     }
-    codesSorted.sort(Comparator.comparing(codeToSignatureMap::get));
+    Comparator<ProgramMethod> defaultCodeSorting =
+        Comparator.comparing(codeToDexSortingKeyMap::get);
+    if (appView.options().canUseCanonicalizedCodeObjects()) {
+      codesSorted.sort(
+          Comparator.comparingInt(codeCounts::getCount).thenComparing(defaultCodeSorting));
+    } else {
+      codesSorted.sort(defaultCodeSorting);
+    }
     return codesSorted;
   }
 
