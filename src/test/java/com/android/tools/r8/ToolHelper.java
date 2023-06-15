@@ -593,7 +593,9 @@ public class ToolHelper {
     }
 
     public void cacheResult(ProcessResult result) {
-      if (useCache()) {
+      // Only cache succeding runs, otherwise a flaky or killed art run can
+      // put invalid entries into the cache.
+      if (useCache() && result.exitCode == 0) {
         assert artResultCacheLookupKey != null;
         CommandResultCache.getInstance().putResult(result, artResultCacheLookupKey);
       }
