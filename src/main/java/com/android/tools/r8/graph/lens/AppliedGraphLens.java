@@ -112,34 +112,9 @@ public final class AppliedGraphLens extends DefaultNonIdentityGraphLens {
   }
 
   @Override
-  public DexType getOriginalType(DexType type) {
-    return renamedTypeNames.getRepresentativeKeyOrDefault(type, type);
-  }
-
-  @Override
   public Iterable<DexType> getOriginalTypes(DexType type) {
     Set<DexType> originalTypes = renamedTypeNames.getKeys(type);
     return originalTypes.isEmpty() ? ImmutableList.of(type) : originalTypes;
-  }
-
-  @Override
-  public DexField getOriginalFieldSignature(DexField field) {
-    return originalFieldSignatures.getOrDefault(field, field);
-  }
-
-  @Override
-  public DexField getRenamedFieldSignature(DexField originalField, GraphLens codeLens) {
-    if (this == codeLens) {
-      return originalField;
-    }
-    return originalFieldSignatures.inverse().getOrDefault(originalField, originalField);
-  }
-
-  @Override
-  public DexMethod getRenamedMethodSignature(DexMethod originalMethod, GraphLens applied) {
-    return this != applied
-        ? originalMethodSignatures.inverse().getOrDefault(originalMethod, originalMethod)
-        : originalMethod;
   }
 
   @Override
@@ -149,8 +124,23 @@ public final class AppliedGraphLens extends DefaultNonIdentityGraphLens {
   }
 
   @Override
-  public DexType internalDescribeLookupClassType(DexType previous) {
+  public DexType getPreviousClassType(DexType type) {
+    return renamedTypeNames.getRepresentativeKeyOrDefault(type, type);
+  }
+
+  @Override
+  public DexType getNextClassType(DexType previous) {
     return renamedTypeNames.getOrDefault(previous, previous);
+  }
+
+  @Override
+  public DexField getPreviousFieldSignature(DexField field) {
+    return originalFieldSignatures.getOrDefault(field, field);
+  }
+
+  @Override
+  public DexField getNextFieldSignature(DexField field) {
+    return originalFieldSignatures.inverse().getOrDefault(field, field);
   }
 
   @Override

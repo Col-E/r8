@@ -26,6 +26,10 @@ public class BidirectionalOneToOneHashMap<K, V>
     this.backing = backing;
   }
 
+  public BidirectionalOneToOneHashMap(Map<K, V> backing) {
+    this(HashBiMap.create(backing));
+  }
+
   @Override
   public void clear() {
     backing.clear();

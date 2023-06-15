@@ -230,7 +230,7 @@ public class ArgumentPropagatorMethodReprocessingEnqueuer {
 
       ProgramField resolvedField = resolutionResult.getSingleProgramField();
       DexField rewrittenFieldReference =
-          graphLens.internalGetNextFieldSignature(resolvedField.getReference());
+          graphLens.getNextFieldSignature(resolvedField.getReference());
       if (rewrittenFieldReference != resolvedField.getReference()) {
         markAffected();
       }

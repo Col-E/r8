@@ -8,19 +8,20 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.classmerging.MergedClasses;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
-import com.android.tools.r8.utils.collections.BidirectionalManyToOneHashMap;
-import com.android.tools.r8.utils.collections.BidirectionalManyToOneMap;
+import com.android.tools.r8.utils.collections.BidirectionalManyToOneRepresentativeHashMap;
+import com.android.tools.r8.utils.collections.BidirectionalManyToOneRepresentativeMap;
 import com.android.tools.r8.utils.collections.EmptyBidirectionalOneToOneMap;
-import com.android.tools.r8.utils.collections.MutableBidirectionalManyToOneMap;
+import com.android.tools.r8.utils.collections.MutableBidirectionalManyToOneRepresentativeMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.BiConsumer;
 
 public class HorizontallyMergedClasses implements MergedClasses {
 
-  private final BidirectionalManyToOneMap<DexType, DexType> mergedClasses;
+  private final BidirectionalManyToOneRepresentativeMap<DexType, DexType> mergedClasses;
 
-  public HorizontallyMergedClasses(BidirectionalManyToOneMap<DexType, DexType> mergedClasses) {
+  public HorizontallyMergedClasses(
+      BidirectionalManyToOneRepresentativeMap<DexType, DexType> mergedClasses) {
     this.mergedClasses = mergedClasses;
   }
 
@@ -89,6 +90,10 @@ public class HorizontallyMergedClasses implements MergedClasses {
     return this.hasBeenMergedIntoDifferentType(type) || isMergeTarget(type);
   }
 
+  BidirectionalManyToOneRepresentativeMap<DexType, DexType> getBidirectionalMap() {
+    return mergedClasses;
+  }
+
   Map<DexType, DexType> getForwardMap() {
     return mergedClasses.getForwardMap();
   }
@@ -106,8 +111,8 @@ public class HorizontallyMergedClasses implements MergedClasses {
 
   public static class Builder {
 
-    private final MutableBidirectionalManyToOneMap<DexType, DexType> mergedClasses =
-        BidirectionalManyToOneHashMap.newIdentityHashMap();
+    private final MutableBidirectionalManyToOneRepresentativeMap<DexType, DexType> mergedClasses =
+        BidirectionalManyToOneRepresentativeHashMap.newIdentityHashMap();
 
     void add(DexType source, DexType target) {
       assert !mergedClasses.containsKey(source);

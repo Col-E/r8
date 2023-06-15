@@ -86,21 +86,6 @@ public class ArgumentPropagatorGraphLens extends NestedGraphLens {
   }
 
   @Override
-  public DexMethod getPreviousMethodSignature(DexMethod method) {
-    return super.getPreviousMethodSignature(method);
-  }
-
-  @Override
-  public DexField internalGetNextFieldSignature(DexField field) {
-    return super.internalGetNextFieldSignature(field);
-  }
-
-  @Override
-  public DexMethod getNextMethodSignature(DexMethod method) {
-    return super.getNextMethodSignature(method);
-  }
-
-  @Override
   protected InvokeType mapInvocationType(
       DexMethod newMethod, DexMethod originalMethod, InvokeType type) {
     return hasPrototypeChanges(newMethod)

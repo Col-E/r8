@@ -37,28 +37,8 @@ final class IdentityGraphLens extends GraphLens {
   }
 
   @Override
-  public DexType getOriginalType(DexType type) {
-    return type;
-  }
-
-  @Override
   public Iterable<DexType> getOriginalTypes(DexType type) {
     return IterableUtils.singleton(type);
-  }
-
-  @Override
-  public DexField getOriginalFieldSignature(DexField field) {
-    return field;
-  }
-
-  @Override
-  public DexField getRenamedFieldSignature(DexField originalField, GraphLens codeLens) {
-    return originalField;
-  }
-
-  @Override
-  public DexMethod getRenamedMethodSignature(DexMethod originalMethod, GraphLens applied) {
-    return originalMethod;
   }
 
   @Override
@@ -68,12 +48,6 @@ final class IdentityGraphLens extends GraphLens {
 
   @Override
   public DexType lookupType(DexType type, GraphLens applied) {
-    return type;
-  }
-
-  @Override
-  public DexType lookupClassType(DexType type, GraphLens applied) {
-    assert type.isClassType();
     return type;
   }
 

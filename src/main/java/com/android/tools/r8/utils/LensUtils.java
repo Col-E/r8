@@ -99,9 +99,10 @@ public class LensUtils {
 
   public static Set<DexEncodedMethod> rewrittenWithRenamedSignature(
       Set<DexEncodedMethod> methods, DexDefinitionSupplier definitions, GraphLens lens) {
+    GraphLens appliedLens = GraphLens.getIdentityLens();
     Set<DexEncodedMethod> result = Sets.newIdentityHashSet();
     for (DexEncodedMethod method : methods) {
-      result.add(lens.mapDexEncodedMethod(method, definitions));
+      result.add(method.rewrittenWithLens(lens, appliedLens, definitions));
     }
     return result;
   }

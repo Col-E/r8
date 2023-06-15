@@ -42,7 +42,7 @@ public class HorizontalClassMergerGraphLens extends NestedGraphLens {
       BidirectionalManyToOneRepresentativeMap<DexField, DexField> fieldMap,
       Map<DexMethod, DexMethod> methodMap,
       BidirectionalManyToOneRepresentativeMap<DexMethod, DexMethod> newMethodSignatures) {
-    super(appView, fieldMap, methodMap, mergedClasses.getForwardMap(), newMethodSignatures);
+    super(appView, fieldMap, methodMap, mergedClasses.getBidirectionalMap(), newMethodSignatures);
     this.methodExtraParameters = methodExtraParameters;
     this.mergedClasses = mergedClasses;
   }
@@ -50,6 +50,11 @@ public class HorizontalClassMergerGraphLens extends NestedGraphLens {
   DexMethod getNextMethodToInvoke(DexMethod method) {
     DexMethod nextMethod = methodMap.apply(method);
     return nextMethod != null ? nextMethod : method;
+  }
+
+  @Override
+  public DexType getPreviousClassType(DexType type) {
+    return type;
   }
 
   @Override
@@ -94,7 +99,7 @@ public class HorizontalClassMergerGraphLens extends NestedGraphLens {
             lookup.getReference().getType() != previous.getReference().getType()
                 ? lookupType(previous.getReference().getType())
                 : null)
-        .setWriteCastType(previous.getRewrittenWriteCastType(this::internalDescribeLookupClassType))
+        .setWriteCastType(previous.getRewrittenWriteCastType(this::getNextClassType))
         .build();
   }
 

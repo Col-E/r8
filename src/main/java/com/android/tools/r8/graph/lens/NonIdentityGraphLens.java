@@ -98,33 +98,22 @@ public abstract class NonIdentityGraphLens extends GraphLens {
   }
 
   @Override
-  public final DexType lookupType(DexType type, GraphLens applied) {
-    if (this == applied) {
-      return type;
-    }
-    if (type.isPrimitiveType() || type.isVoidType() || type.isNullValueType()) {
-      return type;
+  public final DexType lookupType(DexType type, GraphLens appliedLens) {
+    if (type.isClassType()) {
+      return lookupClassType(type, appliedLens);
     }
     if (type.isArrayType()) {
       DexType result = arrayTypeCache.get(type);
       if (result == null) {
         DexType baseType = type.toBaseType(dexItemFactory);
-        DexType newType = lookupType(baseType);
+        DexType newType = lookupType(baseType, appliedLens);
         result = baseType == newType ? type : type.replaceBaseType(newType, dexItemFactory);
         arrayTypeCache.put(type, result);
       }
       return result;
     }
-    return lookupClassType(type);
-  }
-
-  @Override
-  public final DexType lookupClassType(DexType type, GraphLens applied) {
-    assert type.isClassType() : "Expected class type, but was `" + type.toSourceString() + "`";
-    if (this == applied) {
-      return type;
-    }
-    return internalDescribeLookupClassType(getPrevious().lookupClassType(type));
+    assert type.isNullValueType() || type.isPrimitiveType() || type.isVoidType();
+    return type;
   }
 
   @Override
@@ -169,9 +158,13 @@ public abstract class NonIdentityGraphLens extends GraphLens {
   protected abstract MethodLookupResult internalDescribeLookupMethod(
       MethodLookupResult previous, DexMethod context, GraphLens codeLens);
 
-  protected abstract DexType internalDescribeLookupClassType(DexType previous);
+  protected abstract DexType getNextClassType(DexType type);
+
+  public abstract DexField getPreviousFieldSignature(DexField field);
 
   public abstract DexMethod getPreviousMethodSignature(DexMethod method);
+
+  public abstract DexType getPreviousClassType(DexType type);
 
   /***
    * The previous mapping for a method often coincides with the previous method signature, but it
@@ -181,6 +174,8 @@ public abstract class NonIdentityGraphLens extends GraphLens {
   public DexMethod getPreviousMethodSignatureForMapping(DexMethod method) {
     return getPreviousMethodSignature(method);
   }
+
+  public abstract DexField getNextFieldSignature(DexField field);
 
   public abstract DexMethod getNextMethodSignature(DexMethod method);
 

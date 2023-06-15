@@ -16,20 +16,18 @@ import com.android.tools.r8.utils.IterableUtils;
 import com.android.tools.r8.utils.collections.BidirectionalOneToOneHashMap;
 import com.android.tools.r8.utils.collections.BidirectionalOneToOneMap;
 import com.android.tools.r8.utils.collections.MutableBidirectionalOneToOneMap;
-import com.google.common.collect.BiMap;
-import com.google.common.collect.HashBiMap;
 import java.util.Map;
 
 public class RepackagingLens extends NestedGraphLens {
 
-  private final BiMap<DexType, DexType> newTypes;
+  private final BidirectionalOneToOneMap<DexType, DexType> newTypes;
   private final Map<String, String> packageRenamings;
 
   private RepackagingLens(
       AppView<AppInfoWithLiveness> appView,
       BidirectionalOneToOneMap<DexField, DexField> newFieldSignatures,
       BidirectionalOneToOneMap<DexMethod, DexMethod> newMethodSignatures,
-      BiMap<DexType, DexType> newTypes,
+      BidirectionalOneToOneMap<DexType, DexType> newTypes,
       Map<String, String> packageRenamings) {
     super(appView, newFieldSignatures, newMethodSignatures, newTypes);
     this.newTypes = newTypes;
@@ -39,12 +37,6 @@ public class RepackagingLens extends NestedGraphLens {
   @Override
   public String lookupPackageName(String pkg) {
     return packageRenamings.getOrDefault(getPrevious().lookupPackageName(pkg), pkg);
-  }
-
-  @Override
-  public DexType getOriginalType(DexType type) {
-    DexType previous = newTypes.inverse().getOrDefault(type, type);
-    return getPrevious().getOriginalType(previous);
   }
 
   @Override
@@ -87,7 +79,8 @@ public class RepackagingLens extends NestedGraphLens {
 
   public static class Builder {
 
-    protected final BiMap<DexType, DexType> newTypes = HashBiMap.create();
+    protected final MutableBidirectionalOneToOneMap<DexType, DexType> newTypes =
+        new BidirectionalOneToOneHashMap<>();
     protected final MutableBidirectionalOneToOneMap<DexField, DexField> newFieldSignatures =
         new BidirectionalOneToOneHashMap<>();
     protected final MutableBidirectionalOneToOneMap<DexMethod, DexMethod> newMethodSignatures =

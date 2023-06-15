@@ -90,8 +90,13 @@ public class SyntheticFinalization {
         AppView<?> appView,
         BidirectionalManyToOneRepresentativeMap<DexField, DexField> fieldMap,
         BidirectionalManyToOneRepresentativeMap<DexMethod, DexMethod> methodMap,
-        Map<DexType, DexType> typeMap) {
+        BidirectionalManyToOneRepresentativeMap<DexType, DexType> typeMap) {
       super(appView, fieldMap, methodMap, typeMap);
+    }
+
+    @Override
+    public DexType getPreviousClassType(DexType type) {
+      return type;
     }
 
     @Override
@@ -111,7 +116,8 @@ public class SyntheticFinalization {
         BidirectionalManyToOneRepresentativeHashMap.newIdentityHashMap();
     private final MutableBidirectionalManyToOneRepresentativeMap<DexMethod, DexMethod> methodMap =
         BidirectionalManyToOneRepresentativeHashMap.newIdentityHashMap();
-    private final Map<DexType, DexType> typeMap = new IdentityHashMap<>();
+    private final MutableBidirectionalManyToOneRepresentativeMap<DexType, DexType> typeMap =
+        BidirectionalManyToOneRepresentativeHashMap.newIdentityHashMap();
 
     boolean isEmpty() {
       if (typeMap.isEmpty()) {

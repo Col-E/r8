@@ -32,18 +32,18 @@ public class DefaultNonIdentityGraphLens extends NonIdentityGraphLens {
   // Class lookup APIs.
 
   @Override
-  protected DexType internalDescribeLookupClassType(DexType previous) {
-    return previous;
-  }
-
-  @Override
-  public DexType getOriginalType(DexType type) {
-    return getPrevious().getOriginalType(type);
+  protected DexType getNextClassType(DexType type) {
+    return type;
   }
 
   @Override
   public Iterable<DexType> getOriginalTypes(DexType type) {
     return getPrevious().getOriginalTypes(type);
+  }
+
+  @Override
+  public DexType getPreviousClassType(DexType type) {
+    return type;
   }
 
   // Field lookup APIs.
@@ -54,16 +54,13 @@ public class DefaultNonIdentityGraphLens extends NonIdentityGraphLens {
   }
 
   @Override
-  public DexField getOriginalFieldSignature(DexField field) {
-    return getPrevious().getOriginalFieldSignature(field);
+  public DexField getPreviousFieldSignature(DexField field) {
+    return field;
   }
 
   @Override
-  public DexField getRenamedFieldSignature(DexField originalField, GraphLens codeLens) {
-    if (this == codeLens) {
-      return originalField;
-    }
-    return getPrevious().getRenamedFieldSignature(originalField);
+  public DexField getNextFieldSignature(DexField field) {
+    return field;
   }
 
   // Method lookup APIs.
@@ -82,14 +79,6 @@ public class DefaultNonIdentityGraphLens extends NonIdentityGraphLens {
   @Override
   public DexMethod getNextMethodSignature(DexMethod method) {
     return method;
-  }
-
-  @Override
-  public DexMethod getRenamedMethodSignature(DexMethod originalMethod, GraphLens codeLens) {
-    if (this == codeLens) {
-      return originalMethod;
-    }
-    return getNextMethodSignature(getPrevious().getRenamedMethodSignature(originalMethod));
   }
 
   // Prototype lookup APIs.

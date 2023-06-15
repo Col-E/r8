@@ -87,10 +87,11 @@ public abstract class ProgramMethodSet extends DexClassAndMethodSetBase<ProgramM
   }
 
   public ProgramMethodSet rewrittenWithLens(DexDefinitionSupplier definitions, GraphLens lens) {
+    GraphLens appliedLens = GraphLens.getIdentityLens();
     List<ProgramMethod> elementsToRemove = null;
     ProgramMethodSet rewrittenMethods = null;
     for (ProgramMethod method : this) {
-      ProgramMethod rewrittenMethod = lens.mapProgramMethod(method, definitions);
+      ProgramMethod rewrittenMethod = method.rewrittenWithLens(lens, appliedLens, definitions);
       if (rewrittenMethod == null) {
         assert lens.isEnumUnboxerLens();
         // If everything has been unchanged up until now, then record that we should remove this

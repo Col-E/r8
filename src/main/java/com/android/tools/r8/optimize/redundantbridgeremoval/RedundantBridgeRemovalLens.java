@@ -33,13 +33,8 @@ public class RedundantBridgeRemovalLens extends DefaultNonIdentityGraphLens {
   // Methods.
 
   @Override
-  public DexMethod getRenamedMethodSignature(DexMethod originalMethod, GraphLens applied) {
-    if (this == applied) {
-      return originalMethod;
-    }
-    DexMethod previousMethodSignature =
-        getPrevious().getRenamedMethodSignature(originalMethod, applied);
-    return methodMap.getOrDefault(previousMethodSignature, previousMethodSignature);
+  public DexMethod getNextMethodSignature(DexMethod method) {
+    return methodMap.getOrDefault(method, method);
   }
 
   @Override

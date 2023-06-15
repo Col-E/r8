@@ -160,7 +160,7 @@ public class ArgumentPropagatorApplicationFixer extends TreeFixerBase {
 
   @Override
   public DexField fixupFieldReference(DexField field) {
-    return graphLens.internalGetNextFieldSignature(field);
+    return graphLens.getNextFieldSignature(field);
   }
 
   @Override

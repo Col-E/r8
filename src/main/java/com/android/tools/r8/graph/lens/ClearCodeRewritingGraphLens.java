@@ -20,18 +20,6 @@ public class ClearCodeRewritingGraphLens extends DefaultNonIdentityGraphLens {
   }
 
   @Override
-  public DexField getRenamedFieldSignature(DexField originalField, GraphLens codeLens) {
-    return this != codeLens ? getPrevious().getRenamedFieldSignature(originalField) : originalField;
-  }
-
-  @Override
-  public DexMethod getRenamedMethodSignature(DexMethod originalMethod, GraphLens applied) {
-    return this != applied
-        ? getPrevious().getRenamedMethodSignature(originalMethod, applied)
-        : originalMethod;
-  }
-
-  @Override
   public boolean isClearCodeRewritingLens() {
     return true;
   }

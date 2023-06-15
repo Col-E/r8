@@ -58,8 +58,12 @@ public abstract class SortedProgramMethodSet extends ProgramMethodSet {
   @Override
   public SortedProgramMethodSet rewrittenWithLens(
       DexDefinitionSupplier definitions, GraphLens lens) {
+    GraphLens appliedLens = GraphLens.getIdentityLens();
     return create(
-        consumer -> forEach(method -> consumer.accept(lens.mapProgramMethod(method, definitions))));
+        consumer ->
+            forEach(
+                method ->
+                    consumer.accept(method.rewrittenWithLens(lens, appliedLens, definitions))));
   }
 
   @Override

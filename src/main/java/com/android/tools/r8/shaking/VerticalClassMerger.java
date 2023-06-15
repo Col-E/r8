@@ -83,7 +83,9 @@ import com.android.tools.r8.utils.OptionalBool;
 import com.android.tools.r8.utils.Timing;
 import com.android.tools.r8.utils.TraversalContinuation;
 import com.android.tools.r8.utils.collections.BidirectionalManyToOneHashMap;
+import com.android.tools.r8.utils.collections.BidirectionalManyToOneRepresentativeHashMap;
 import com.android.tools.r8.utils.collections.MutableBidirectionalManyToOneMap;
+import com.android.tools.r8.utils.collections.MutableBidirectionalManyToOneRepresentativeMap;
 import com.google.common.base.Equivalence;
 import com.google.common.base.Equivalence.Wrapper;
 import com.google.common.collect.Iterables;
@@ -166,8 +168,8 @@ public class VerticalClassMerger {
   private final Set<DexProgramClass> mergeCandidates = new LinkedHashSet<>();
 
   // Map from source class to target class.
-  private final MutableBidirectionalManyToOneMap<DexType, DexType> mergedClasses =
-      BidirectionalManyToOneHashMap.newIdentityHashMap();
+  private final MutableBidirectionalManyToOneRepresentativeMap<DexType, DexType> mergedClasses =
+      BidirectionalManyToOneRepresentativeHashMap.newIdentityHashMap();
 
   private final MutableBidirectionalManyToOneMap<DexType, DexType> mergedInterfaces =
       BidirectionalManyToOneHashMap.newIdentityHashMap();
@@ -1884,33 +1886,28 @@ public class VerticalClassMerger {
     }
 
     @Override
-    public DexType getOriginalType(DexType type) {
-      throw new Unreachable();
-    }
-
-    @Override
     public Iterable<DexType> getOriginalTypes(DexType type) {
       throw new Unreachable();
     }
 
     @Override
-    public DexField getOriginalFieldSignature(DexField field) {
+    public DexType getPreviousClassType(DexType type) {
       throw new Unreachable();
     }
 
     @Override
-    public DexField getRenamedFieldSignature(DexField originalField, GraphLens codeLens) {
+    public final DexType getNextClassType(DexType type) {
+      return type == source ? target.type : mergedClasses.getOrDefault(type, type);
+    }
+
+    @Override
+    public DexField getPreviousFieldSignature(DexField field) {
       throw new Unreachable();
     }
 
     @Override
-    public DexMethod getRenamedMethodSignature(DexMethod originalMethod, GraphLens applied) {
+    public DexField getNextFieldSignature(DexField field) {
       throw new Unreachable();
-    }
-
-    @Override
-    public final DexType internalDescribeLookupClassType(DexType previous) {
-      return previous == source ? target.type : mergedClasses.getOrDefault(previous, previous);
     }
 
     @Override

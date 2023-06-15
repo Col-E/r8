@@ -17,7 +17,6 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.Code;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedMethod;
-import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexProto;
@@ -429,11 +428,9 @@ public final class InterfaceProcessor {
 
     public InterfaceProcessorNestedGraphLens(
         AppView<?> appView,
-        BidirectionalManyToOneRepresentativeMap<DexField, DexField> fieldMap,
         BidirectionalManyToOneRepresentativeMap<DexMethod, DexMethod> methodMap,
-        Map<DexType, DexType> typeMap,
         BidirectionalOneToOneMap<DexMethod, DexMethod> extraNewMethodSignatures) {
-      super(appView, fieldMap, methodMap, typeMap);
+      super(appView, NestedGraphLens.EMPTY_FIELD_MAP, methodMap, NestedGraphLens.EMPTY_TYPE_MAP);
       this.extraNewMethodSignatures = extraNewMethodSignatures;
     }
 
@@ -474,11 +471,10 @@ public final class InterfaceProcessor {
 
       @Override
       public InterfaceProcessorNestedGraphLens build(AppView<?> appView) {
-        if (fieldMap.isEmpty() && methodMap.isEmpty() && extraNewMethodSignatures.isEmpty()) {
+        if (methodMap.isEmpty() && extraNewMethodSignatures.isEmpty()) {
           return null;
         }
-        return new InterfaceProcessorNestedGraphLens(
-            appView, fieldMap, methodMap, typeMap, extraNewMethodSignatures);
+        return new InterfaceProcessorNestedGraphLens(appView, methodMap, extraNewMethodSignatures);
       }
     }
   }
