@@ -33,6 +33,7 @@ import com.android.tools.r8.ir.conversion.passes.BranchSimplifier;
 import com.android.tools.r8.ir.conversion.passes.CommonSubexpressionElimination;
 import com.android.tools.r8.ir.conversion.passes.DexConstantOptimizer;
 import com.android.tools.r8.ir.conversion.passes.KnownArrayLengthRewriter;
+import com.android.tools.r8.ir.conversion.passes.MoveResultRewriter;
 import com.android.tools.r8.ir.conversion.passes.NaturalIntLoopRemover;
 import com.android.tools.r8.ir.conversion.passes.ParentConstructorHoistingCodeRewriter;
 import com.android.tools.r8.ir.conversion.passes.SplitBranch;
@@ -182,7 +183,7 @@ public class IRConverter {
     this.classInitializerDefaultsOptimization =
         new ClassInitializerDefaultsOptimization(appView, this);
     this.stringOptimizer = new StringOptimizer(appView);
-    this.deadCodeRemover = new DeadCodeRemover(appView, codeRewriter);
+    this.deadCodeRemover = new DeadCodeRemover(appView);
     this.assertionsRewriter = new AssertionsRewriter(appView);
     this.idempotentFunctionCallCanonicalizer = new IdempotentFunctionCallCanonicalizer(appView);
     this.neverMerge =
@@ -383,7 +384,7 @@ public class IRConverter {
   private void processAndFinalizeSimpleSynthesizedMethod(ProgramMethod method) {
     IRCode code = method.buildIR(appView);
     assert code != null;
-    codeRewriter.rewriteMoveResult(code);
+    new MoveResultRewriter(appView).run(code, Timing.empty());
     removeDeadCodeAndFinalizeIR(code, OptimizationFeedbackIgnore.getInstance(), Timing.empty());
   }
 
@@ -750,9 +751,7 @@ public class IRConverter {
     }
     commonSubexpressionElimination.run(code, timing);
     new ArrayConstructionSimplifier(appView).run(code, timing);
-    timing.begin("Rewrite move result");
-    codeRewriter.rewriteMoveResult(code);
-    timing.end();
+    new MoveResultRewriter(appView).run(code, timing);
     if (options.enableStringConcatenationOptimization && !isDebugMode) {
       timing.begin("Rewrite string concat");
       StringBuilderAppendOptimizer.run(appView, code);
@@ -930,7 +929,7 @@ public class IRConverter {
       assert code.isConsistentSSA(appView);
 
       // TODO(b/214496607): Remove when dynamic types are safe w.r.t. interface assignment rules.
-      codeRewriter.rewriteMoveResult(code);
+      new MoveResultRewriter(appView).run(code, timing);
     }
 
     // Assert that we do not have unremoved non-sense code in the output, e.g., v <- non-null NULL.

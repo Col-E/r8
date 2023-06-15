@@ -14,6 +14,7 @@ import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.ir.code.InvokeDirect;
 import com.android.tools.r8.ir.code.Value;
+import com.android.tools.r8.ir.conversion.passes.result.CodeRewriterResult;
 import com.android.tools.r8.shaking.KeepMethodInfo;
 import com.android.tools.r8.utils.CollectionUtils;
 import com.android.tools.r8.utils.IterableUtils;
@@ -48,10 +49,11 @@ public class ParentConstructorHoistingCodeRewriter
   }
 
   @Override
-  protected void rewriteCode(IRCode code) {
+  protected CodeRewriterResult rewriteCode(IRCode code) {
     for (InvokeDirect invoke : getOrComputeSideEffectFreeConstructorCalls(code)) {
       hoistSideEffectFreeConstructorCall(code, invoke);
     }
+    return CodeRewriterResult.NONE;
   }
 
   private void hoistSideEffectFreeConstructorCall(IRCode code, InvokeDirect invoke) {

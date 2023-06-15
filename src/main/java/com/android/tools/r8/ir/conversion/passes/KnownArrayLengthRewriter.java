@@ -13,6 +13,7 @@ import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.ir.code.Phi;
 import com.android.tools.r8.ir.code.Value;
+import com.android.tools.r8.ir.conversion.passes.result.CodeRewriterResult;
 import java.util.Set;
 
 public class KnownArrayLengthRewriter extends CodeRewriterPass<AppInfo> {
@@ -32,7 +33,7 @@ public class KnownArrayLengthRewriter extends CodeRewriterPass<AppInfo> {
   }
 
   @Override
-  protected void rewriteCode(IRCode code) {
+  protected CodeRewriterResult rewriteCode(IRCode code) {
     InstructionListIterator iterator = code.instructionListIterator();
     while (iterator.hasNext()) {
       Instruction current = iterator.next();
@@ -78,5 +79,6 @@ public class KnownArrayLengthRewriter extends CodeRewriterPass<AppInfo> {
     }
     code.removeRedundantBlocks();
     assert code.isConsistentSSA(appView);
+    return CodeRewriterResult.NONE;
   }
 }

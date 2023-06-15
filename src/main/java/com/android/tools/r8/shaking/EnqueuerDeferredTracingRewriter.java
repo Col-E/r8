@@ -47,7 +47,7 @@ public class EnqueuerDeferredTracingRewriter {
   EnqueuerDeferredTracingRewriter(AppView<? extends AppInfoWithClassHierarchy> appView) {
     this.appView = appView;
     this.codeRewriter = new CodeRewriter(appView);
-    this.deadCodeRemover = new DeadCodeRemover(appView, codeRewriter);
+    this.deadCodeRemover = new DeadCodeRemover(appView);
   }
 
   public CodeRewriter getCodeRewriter() {

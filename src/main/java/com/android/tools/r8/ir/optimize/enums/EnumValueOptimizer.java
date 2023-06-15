@@ -34,6 +34,7 @@ import com.android.tools.r8.ir.code.InvokeVirtual;
 import com.android.tools.r8.ir.code.StaticGet;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.conversion.passes.CodeRewriterPass;
+import com.android.tools.r8.ir.conversion.passes.result.CodeRewriterResult;
 import com.android.tools.r8.ir.optimize.info.FieldOptimizationInfo;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.ArrayUtils;
@@ -60,8 +61,9 @@ public class EnumValueOptimizer extends CodeRewriterPass<AppInfoWithLiveness> {
   }
 
   @Override
-  protected void rewriteCode(IRCode code) {
+  protected CodeRewriterResult rewriteCode(IRCode code) {
     rewriteConstantEnumMethodCalls(code);
+    return CodeRewriterResult.NONE;
   }
 
   @Override

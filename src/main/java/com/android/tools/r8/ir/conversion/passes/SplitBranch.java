@@ -14,6 +14,7 @@ import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.If;
 import com.android.tools.r8.ir.code.Phi;
 import com.android.tools.r8.ir.code.Value;
+import com.android.tools.r8.ir.conversion.passes.result.CodeRewriterResult;
 import com.android.tools.r8.utils.ListUtils;
 import com.android.tools.r8.utils.WorkList;
 import com.google.common.collect.Sets;
@@ -43,24 +44,22 @@ public class SplitBranch extends CodeRewriterPass<AppInfo> {
   }
 
   /**
-   * Simplify Boolean branches for example: <code>
-   * boolean b = i == j; if (b) { ... } else { ... }
+   * Simplify Boolean branches for example: <code> boolean b = i == j; if (b) { ... } else { ... }
    * </code> ends up first creating a branch for the boolean b, then a second branch on b. D8/R8
-   * rewrites to: <code>
-   * if (i == j) { ... } else { ... }
+   * rewrites to: <code> if (i == j) { ... } else { ... }
    * </code> More complex control flow are also supported to some extent, including cases where the
    * input of the second branch comes from a set of dependent phis, and a subset of the inputs are
    * known boolean values.
    */
   @Override
-  protected void rewriteCode(IRCode code) {
+  protected CodeRewriterResult rewriteCode(IRCode code) {
     List<BasicBlock> candidates = computeCandidates(code);
     if (candidates.isEmpty()) {
-      return;
+      return CodeRewriterResult.NONE;
     }
     Map<Goto, BasicBlock> newTargets = findGotosToRetarget(candidates);
     if (newTargets.isEmpty()) {
-      return;
+      return CodeRewriterResult.NONE;
     }
     retargetGotos(newTargets);
     Set<Value> affectedValues = Sets.newIdentityHashSet();
@@ -74,6 +73,7 @@ public class SplitBranch extends CodeRewriterPass<AppInfo> {
     }
     code.removeRedundantBlocks();
     assert code.isConsistentSSA(appView);
+    return CodeRewriterResult.NONE;
   }
 
   private void retargetGotos(Map<Goto, BasicBlock> newTargets) {

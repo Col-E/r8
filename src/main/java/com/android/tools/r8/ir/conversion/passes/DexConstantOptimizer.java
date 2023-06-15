@@ -31,6 +31,7 @@ import com.android.tools.r8.ir.code.Phi;
 import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.code.StaticGet;
 import com.android.tools.r8.ir.code.Value;
+import com.android.tools.r8.ir.conversion.passes.result.CodeRewriterResult;
 import com.android.tools.r8.ir.optimize.ConstantCanonicalizer;
 import com.android.tools.r8.utils.LazyBox;
 import com.google.common.collect.Iterables;
@@ -63,9 +64,10 @@ public class DexConstantOptimizer extends CodeRewriterPass<AppInfo> {
   }
 
   @Override
-  protected void rewriteCode(IRCode code) {
+  protected CodeRewriterResult rewriteCode(IRCode code) {
     useDedicatedConstantForLitInstruction(code);
     shortenLiveRanges(code, constantCanonicalizer);
+    return CodeRewriterResult.NONE;
   }
 
   @Override

@@ -11,6 +11,7 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.conversion.MethodProcessor;
+import com.android.tools.r8.ir.conversion.passes.result.CodeRewriterResult;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.Timing;
 
@@ -31,38 +32,43 @@ public abstract class CodeRewriterPass<T extends AppInfo> {
     return (AppView<? extends T>) appView;
   }
 
-  public final void run(
+  public final CodeRewriterResult run(
       IRCode code,
       MethodProcessor methodProcessor,
       MethodProcessingContext methodProcessingContext,
       Timing timing) {
-    timing.time(getTimingId(), () -> run(code, methodProcessor, methodProcessingContext));
+    return timing.time(getTimingId(), () -> run(code, methodProcessor, methodProcessingContext));
   }
 
-  public final void run(IRCode code, Timing timing) {
-    timing.time(getTimingId(), () -> run(code, null, null));
+  public final CodeRewriterResult run(IRCode code, Timing timing) {
+    return timing.time(getTimingId(), () -> run(code, null, null));
   }
 
-  private void run(
+  private CodeRewriterResult run(
       IRCode code,
       MethodProcessor methodProcessor,
       MethodProcessingContext methodProcessingContext) {
     if (shouldRewriteCode(code)) {
-      rewriteCode(code, methodProcessor, methodProcessingContext);
+      return rewriteCode(code, methodProcessor, methodProcessingContext);
     }
+    return noChange();
+  }
+
+  protected CodeRewriterResult noChange() {
+    return CodeRewriterResult.NO_CHANGE;
   }
 
   protected abstract String getTimingId();
 
-  protected void rewriteCode(IRCode code) {
+  protected CodeRewriterResult rewriteCode(IRCode code) {
     throw new Unreachable("Should Override or use overload");
   }
 
-  protected void rewriteCode(
+  protected CodeRewriterResult rewriteCode(
       IRCode code,
       MethodProcessor methodProcessor,
       MethodProcessingContext methodProcessingContext) {
-    rewriteCode(code);
+    return rewriteCode(code);
   }
 
   protected abstract boolean shouldRewriteCode(IRCode code);

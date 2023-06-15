@@ -15,6 +15,7 @@ import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.Phi;
 import com.android.tools.r8.ir.code.Sub;
 import com.android.tools.r8.ir.code.Value;
+import com.android.tools.r8.ir.conversion.passes.result.CodeRewriterResult;
 import com.android.tools.r8.utils.WorkList;
 import com.google.common.collect.Sets;
 import java.util.Set;
@@ -40,7 +41,7 @@ public class NaturalIntLoopRemover extends CodeRewriterPass<AppInfo> {
   }
 
   @Override
-  protected void rewriteCode(IRCode code) {
+  protected CodeRewriterResult rewriteCode(IRCode code) {
     boolean loopRemoved = false;
     for (BasicBlock comparisonBlockCandidate : code.blocks) {
       if (isComparisonBlock(comparisonBlockCandidate)) {
@@ -52,6 +53,7 @@ public class NaturalIntLoopRemover extends CodeRewriterPass<AppInfo> {
       code.removeRedundantBlocks();
       assert code.isConsistentSSA(appView);
     }
+    return CodeRewriterResult.NONE;
   }
 
   @Override

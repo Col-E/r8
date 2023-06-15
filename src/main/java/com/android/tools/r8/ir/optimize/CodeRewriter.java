@@ -5,13 +5,11 @@
 package com.android.tools.r8.ir.optimize;
 
 import static com.android.tools.r8.ir.analysis.type.Nullability.definitelyNotNull;
-import static com.android.tools.r8.ir.analysis.type.Nullability.maybeNull;
 
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DebugLocalInfo;
 import com.android.tools.r8.graph.DexClass;
-import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
@@ -35,14 +33,12 @@ import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionIterator;
 import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.ir.code.InvokeInterface;
-import com.android.tools.r8.ir.code.InvokeMethod;
 import com.android.tools.r8.ir.code.InvokeVirtual;
 import com.android.tools.r8.ir.code.Move;
 import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.code.Position.SyntheticPosition;
 import com.android.tools.r8.ir.code.StaticGet;
 import com.android.tools.r8.ir.code.Value;
-import com.android.tools.r8.ir.optimize.info.MethodOptimizationInfo;
 import com.android.tools.r8.ir.regalloc.LinearScanRegisterAllocator;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.LazyBox;
@@ -59,7 +55,6 @@ import it.unimi.dsi.fastutil.ints.IntSet;
 import it.unimi.dsi.fastutil.longs.Long2ReferenceMap;
 import it.unimi.dsi.fastutil.longs.Long2ReferenceOpenHashMap;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.Set;
@@ -68,11 +63,9 @@ public class CodeRewriter {
 
   private final AppView<?> appView;
   private final DexItemFactory dexItemFactory;
-  private final InternalOptions options;
 
   public CodeRewriter(AppView<?> appView) {
     this.appView = appView;
-    this.options = appView.options();
     this.dexItemFactory = appView.dexItemFactory();
   }
 
@@ -132,112 +125,6 @@ public class CodeRewriter {
     }
 
     assert Streams.stream(code.instructions()).noneMatch(Instruction::isAssume);
-  }
-
-  private boolean checkArgumentType(InvokeMethod invoke, int argumentIndex) {
-    // TODO(sgjesse): Insert cast if required.
-    TypeElement returnType =
-        TypeElement.fromDexType(invoke.getInvokedMethod().proto.returnType, maybeNull(), appView);
-    TypeElement argumentType =
-        TypeElement.fromDexType(getArgumentType(invoke, argumentIndex), maybeNull(), appView);
-    return appView.enableWholeProgramOptimizations()
-        ? argumentType.lessThanOrEqual(returnType, appView)
-        : argumentType.equals(returnType);
-  }
-
-  private DexType getArgumentType(InvokeMethod invoke, int argumentIndex) {
-    if (invoke.isInvokeStatic()) {
-      return invoke.getInvokedMethod().proto.parameters.values[argumentIndex];
-    }
-    if (argumentIndex == 0) {
-      return invoke.getInvokedMethod().holder;
-    }
-    return invoke.getInvokedMethod().proto.parameters.values[argumentIndex - 1];
-  }
-
-  // Replace result uses for methods where something is known about what is returned.
-  public boolean rewriteMoveResult(IRCode code) {
-    if (options.isGeneratingClassFiles() || !code.metadata().mayHaveInvokeMethod()) {
-      return false;
-    }
-
-    AssumeRemover assumeRemover = new AssumeRemover(appView, code);
-    boolean changed = false;
-    boolean mayHaveRemovedTrivialPhi = false;
-    Set<BasicBlock> blocksToBeRemoved = Sets.newIdentityHashSet();
-    ListIterator<BasicBlock> blockIterator = code.listIterator();
-    while (blockIterator.hasNext()) {
-      BasicBlock block = blockIterator.next();
-      if (blocksToBeRemoved.contains(block)) {
-        continue;
-      }
-
-      InstructionListIterator iterator = block.listIterator(code);
-      while (iterator.hasNext()) {
-        InvokeMethod invoke = iterator.next().asInvokeMethod();
-        if (invoke == null || !invoke.hasOutValue() || invoke.outValue().hasLocalInfo()) {
-          continue;
-        }
-
-        // Check if the invoked method is known to return one of its arguments.
-        DexClassAndMethod target = invoke.lookupSingleTarget(appView, code.context());
-        if (target == null) {
-          continue;
-        }
-
-        MethodOptimizationInfo optimizationInfo = target.getDefinition().getOptimizationInfo();
-        if (!optimizationInfo.returnsArgument()) {
-          continue;
-        }
-
-        int argumentIndex = optimizationInfo.getReturnedArgument();
-        // Replace the out value of the invoke with the argument and ignore the out value.
-        if (argumentIndex < 0 || !checkArgumentType(invoke, argumentIndex)) {
-          continue;
-        }
-
-        Value argument = invoke.arguments().get(argumentIndex);
-        Value outValue = invoke.outValue();
-        assert outValue.verifyCompatible(argument.outType());
-
-        // Make sure that we are only narrowing information here. Note, in cases where we cannot
-        // find the definition of types, computing lessThanOrEqual will return false unless it is
-        // object.
-        if (!argument.getType().lessThanOrEqual(outValue.getType(), appView)) {
-          continue;
-        }
-
-        Set<Value> affectedValues =
-            argument.getType().equals(outValue.getType())
-                ? Collections.emptySet()
-                : outValue.affectedValues();
-
-        assumeRemover.markAssumeDynamicTypeUsersForRemoval(outValue);
-        mayHaveRemovedTrivialPhi |= outValue.numberOfPhiUsers() > 0;
-        outValue.replaceUsers(argument);
-        invoke.setOutValue(null);
-        changed = true;
-
-        if (!affectedValues.isEmpty()) {
-          new TypeAnalysis(appView).narrowing(affectedValues);
-        }
-      }
-    }
-    assumeRemover.removeMarkedInstructions(blocksToBeRemoved).finish();
-    Set<Value> affectedValues = Sets.newIdentityHashSet();
-    if (!blocksToBeRemoved.isEmpty()) {
-      code.removeBlocks(blocksToBeRemoved);
-      code.removeAllDeadAndTrivialPhis(affectedValues);
-      assert code.getUnreachableBlocks().isEmpty();
-    } else if (mayHaveRemovedTrivialPhi || assumeRemover.mayHaveIntroducedTrivialPhi()) {
-      code.removeAllDeadAndTrivialPhis(affectedValues);
-    }
-    if (!affectedValues.isEmpty()) {
-      new TypeAnalysis(appView).narrowing(affectedValues);
-    }
-    code.removeRedundantBlocks();
-    assert code.isConsistentSSA(appView);
-    return changed;
   }
 
   public static void removeOrReplaceByDebugLocalWrite(

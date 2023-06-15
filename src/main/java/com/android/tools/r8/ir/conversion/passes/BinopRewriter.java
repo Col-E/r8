@@ -27,6 +27,7 @@ import com.android.tools.r8.ir.code.Sub;
 import com.android.tools.r8.ir.code.Ushr;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.code.Xor;
+import com.android.tools.r8.ir.conversion.passes.result.CodeRewriterResult;
 import com.android.tools.r8.utils.WorkList;
 import com.google.common.collect.ImmutableMap;
 import java.util.Map;
@@ -248,7 +249,7 @@ public class BinopRewriter extends CodeRewriterPass<AppInfo> {
   }
 
   @Override
-  public void rewriteCode(IRCode code) {
+  public CodeRewriterResult rewriteCode(IRCode code) {
     InstructionListIterator iterator = code.instructionListIterator();
     while (iterator.hasNext()) {
       Instruction next = iterator.next();
@@ -268,6 +269,7 @@ public class BinopRewriter extends CodeRewriterPass<AppInfo> {
     code.removeAllDeadAndTrivialPhis();
     code.removeRedundantBlocks();
     assert code.isConsistentSSA(appView);
+    return CodeRewriterResult.NONE;
   }
 
   private void successiveSimplification(

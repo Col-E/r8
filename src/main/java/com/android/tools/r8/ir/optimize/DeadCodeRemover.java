@@ -21,6 +21,7 @@ import com.android.tools.r8.ir.code.Phi;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.code.ValueIsDeadAnalysis;
 import com.android.tools.r8.ir.conversion.passes.BranchSimplifier;
+import com.android.tools.r8.ir.conversion.passes.MoveResultRewriter;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.Box;
 import com.android.tools.r8.utils.IterableUtils;
@@ -35,21 +36,15 @@ import java.util.Queue;
 public class DeadCodeRemover {
 
   private final AppView<?> appView;
-  private final CodeRewriter codeRewriter;
 
-  public DeadCodeRemover(AppView<?> appView, CodeRewriter codeRewriter) {
+  public DeadCodeRemover(AppView<?> appView) {
     this.appView = appView;
-    this.codeRewriter = codeRewriter;
-  }
-
-  public CodeRewriter getCodeRewriter() {
-    return codeRewriter;
   }
 
   public void run(IRCode code, Timing timing) {
     timing.begin("Remove dead code");
 
-    codeRewriter.rewriteMoveResult(code);
+    new MoveResultRewriter(appView).run(code, timing);
 
     BranchSimplifier branchSimplifier = new BranchSimplifier(appView);
 
@@ -75,7 +70,7 @@ public class DeadCodeRemover {
   }
 
   public boolean verifyNoDeadCode(IRCode code) {
-    assert !codeRewriter.rewriteMoveResult(code);
+    assert !new MoveResultRewriter(appView).run(code, Timing.empty()).hasChanged();
     assert !removeUnneededCatchHandlers(code);
     ValueIsDeadAnalysis valueIsDeadAnalysis = new ValueIsDeadAnalysis(appView, code);
     for (BasicBlock block : code.blocks) {
