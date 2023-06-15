@@ -43,5 +43,5 @@ public abstract class MethodOptimizationInfoFixer {
       SimpleInliningConstraint constraint,
       SimpleInliningConstraintFactory factory);
 
-  public abstract BitSet fixupUnusedArguments(BitSet unusedArguments);
+  public abstract BitSet fixupArguments(BitSet arguments);
 }

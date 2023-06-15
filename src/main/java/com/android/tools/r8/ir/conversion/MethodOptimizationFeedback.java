@@ -75,6 +75,9 @@ public interface MethodOptimizationFeedback {
 
   void classInitializerMayBePostponed(DexEncodedMethod method);
 
+  void setParametersWithBitwiseOperations(
+      ProgramMethod method, BitSet parametersWithBitwiseOperations);
+
   void setUnusedArguments(ProgramMethod method, BitSet unusedArguments);
 
   // Unset methods.

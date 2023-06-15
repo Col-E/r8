@@ -79,6 +79,7 @@ public class MutableMethodOptimizationInfo extends MethodOptimizationInfo
       NeverSimpleInliningConstraint.getInstance();
 
   private int maxRemovedAndroidLogLevel = MaximumRemovedAndroidLogLevelRule.NOT_SET;
+  private BitSet parametersWithBitwiseOperations = null;
   private BitSet unusedArguments = null;
 
   // To reduce the memory footprint of UpdatableMethodOptimizationInfo, all the boolean fields are
@@ -159,6 +160,7 @@ public class MutableMethodOptimizationInfo extends MethodOptimizationInfo
         .fixupNonNullParamOnNormalExits(fixer)
         .fixupNonNullParamOrThrow(fixer)
         .fixupReturnedArgumentIndex(fixer)
+        .fixupParametersWithBitwiseOperations(fixer)
         .fixupSimpleInliningConstraint(appView, fixer)
         .fixupUnusedArguments(fixer);
   }
@@ -435,13 +437,41 @@ public class MutableMethodOptimizationInfo extends MethodOptimizationInfo
   }
 
   @Override
+  public boolean hasParametersWithBitwiseOperations() {
+    return parametersWithBitwiseOperations != null;
+  }
+
+  @Override
+  public BitSet getParametersWithBitwiseOperations() {
+    return parametersWithBitwiseOperations;
+  }
+
+  public void setParametersWithBitwiseOperations(BitSet parametersWithBitwiseOperations) {
+    if (parametersWithBitwiseOperations != null && !parametersWithBitwiseOperations.isEmpty()) {
+      this.parametersWithBitwiseOperations = parametersWithBitwiseOperations;
+    } else {
+      this.parametersWithBitwiseOperations = null;
+    }
+  }
+
+  public MutableMethodOptimizationInfo fixupParametersWithBitwiseOperations(
+      MethodOptimizationInfoFixer fixer) {
+    return fixupParametersWithBitwiseOperations(fixer.fixupArguments(unusedArguments));
+  }
+
+  public MutableMethodOptimizationInfo fixupParametersWithBitwiseOperations(
+      BitSet parametersWithBitwiseOperations) {
+    setParametersWithBitwiseOperations(parametersWithBitwiseOperations);
+    return this;
+  }
+
+  @Override
   public BitSet getUnusedArguments() {
     return unusedArguments;
   }
 
   public MutableMethodOptimizationInfo fixupUnusedArguments(MethodOptimizationInfoFixer fixer) {
-    fixupUnusedArguments(fixer.fixupUnusedArguments(unusedArguments));
-    return this;
+    return fixupUnusedArguments(fixer.fixupArguments(unusedArguments));
   }
 
   public MutableMethodOptimizationInfo fixupUnusedArguments(BitSet unusedArguments) {

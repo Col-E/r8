@@ -149,12 +149,12 @@ public class RewrittenPrototypeDescriptionMethodOptimizationInfoFixer
   }
 
   /**
-   * Function for rewriting the unused arguments on a piece of method optimization info after
-   * prototype changes were made.
+   * Function for rewriting a BitSet that stores a bit per argument on a piece of method
+   * optimization info after prototype changes were made.
    */
   @Override
-  public BitSet fixupUnusedArguments(BitSet unusedArguments) {
-    return fixupArgumentInfo(unusedArguments);
+  public BitSet fixupArguments(BitSet arguments) {
+    return fixupArgumentInfo(arguments);
   }
 
   private BitSet fixupArgumentInfo(BitSet bitSet) {

@@ -126,6 +126,10 @@ public abstract class OptimizationFeedbackIgnore extends OptimizationFeedback {
   public void classInitializerMayBePostponed(DexEncodedMethod method) {}
 
   @Override
+  public void setParametersWithBitwiseOperations(
+      ProgramMethod method, BitSet parametersWithBitwiseOperations) {}
+
+  @Override
   public void setUnusedArguments(ProgramMethod method, BitSet unusedArguments) {}
 
   // Unset methods.

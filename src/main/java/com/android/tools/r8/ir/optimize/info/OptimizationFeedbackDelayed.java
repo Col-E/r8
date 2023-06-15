@@ -277,6 +277,13 @@ public class OptimizationFeedbackDelayed extends OptimizationFeedback {
   }
 
   @Override
+  public void setParametersWithBitwiseOperations(
+      ProgramMethod method, BitSet parametersWithBitwiseOperations) {
+    getMethodOptimizationInfoForUpdating(method)
+        .setParametersWithBitwiseOperations(parametersWithBitwiseOperations);
+  }
+
+  @Override
   public synchronized void setUnusedArguments(ProgramMethod method, BitSet unusedArguments) {
     getMethodOptimizationInfoForUpdating(method).setUnusedArguments(unusedArguments);
   }

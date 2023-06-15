@@ -148,6 +148,16 @@ public class DefaultMethodOptimizationInfo extends MethodOptimizationInfo {
   }
 
   @Override
+  public boolean hasParametersWithBitwiseOperations() {
+    return false;
+  }
+
+  @Override
+  public BitSet getParametersWithBitwiseOperations() {
+    return null;
+  }
+
+  @Override
   public BitSet getUnusedArguments() {
     return null;
   }
