@@ -755,9 +755,7 @@ public class IRConverter {
     if (options.enableStringConcatenationOptimization && !isDebugMode) {
       new StringBuilderAppendOptimizer(appView).run(code, timing);
     }
-    timing.begin("Propagate sparse conditionals");
-    new SparseConditionalConstantPropagation(appView, code).run();
-    timing.end();
+    new SparseConditionalConstantPropagation(appView, code).run(code, timing);
     timing.begin("Rewrite always throwing instructions");
     new ThrowCatchOptimizer(appView).optimizeAlwaysThrowingInstructions(code);
     timing.end();

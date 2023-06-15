@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.analysis.constant;
 
+import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.ir.analysis.type.TypeAnalysis;
 import com.android.tools.r8.ir.code.BasicBlock;
@@ -16,6 +17,8 @@ import com.android.tools.r8.ir.code.JumpInstruction;
 import com.android.tools.r8.ir.code.Phi;
 import com.android.tools.r8.ir.code.StringSwitch;
 import com.android.tools.r8.ir.code.Value;
+import com.android.tools.r8.ir.conversion.passes.CodeRewriterPass;
+import com.android.tools.r8.ir.conversion.passes.result.CodeRewriterResult;
 import com.google.common.collect.Sets;
 import java.util.ArrayList;
 import java.util.BitSet;
@@ -31,9 +34,8 @@ import java.util.Set;
  * "Constant Propagation with Conditional Branches".
  * https://www.cs.utexas.edu/users/lin/cs380c/wegman.pdf
  */
-public class SparseConditionalConstantPropagation {
+public class SparseConditionalConstantPropagation extends CodeRewriterPass<AppInfo> {
 
-  private final AppView<?> appView;
   private final IRCode code;
   private final Map<Value, LatticeElement> mapping = new HashMap<>();
   // TODO(b/270398965): Replace LinkedList.
@@ -43,19 +45,29 @@ public class SparseConditionalConstantPropagation {
   @SuppressWarnings("JdkObsolete")
   private final Deque<BasicBlock> flowEdges = new LinkedList<>();
 
-  private final int maxBlockNumber;
   private final BitSet[] executableFlowEdges;
   private final BitSet visitedBlocks;
 
   public SparseConditionalConstantPropagation(AppView<?> appView, IRCode code) {
-    this.appView = appView;
+    super(appView);
     this.code = code;
-    maxBlockNumber = code.getCurrentBlockNumber() + 1;
+    int maxBlockNumber = code.getCurrentBlockNumber() + 1;
     executableFlowEdges = new BitSet[maxBlockNumber];
     visitedBlocks = new BitSet(maxBlockNumber);
   }
 
-  public void run() {
+  @Override
+  protected String getTimingId() {
+    return "SparseConditionalConstantPropagation";
+  }
+
+  @Override
+  protected boolean shouldRewriteCode(IRCode code) {
+    return true;
+  }
+
+  @Override
+  protected CodeRewriterResult rewriteCode(IRCode code) {
     BasicBlock firstBlock = code.entryBlock();
     visitInstructions(firstBlock);
 
@@ -82,11 +94,12 @@ public class SparseConditionalConstantPropagation {
         }
       }
     }
-    rewriteCode();
+    rewriteConstants();
     assert code.isConsistentSSA(appView);
+    return CodeRewriterResult.NONE;
   }
 
-  private void rewriteCode() {
+  private void rewriteConstants() {
     Set<Value> affectedValues = Sets.newIdentityHashSet();
     List<BasicBlock> blockToAnalyze = new ArrayList<>();
     mapping.entrySet().stream()
@@ -258,7 +271,7 @@ public class SparseConditionalConstantPropagation {
   private void setExecutableEdge(int from, int to) {
     BitSet previousExecutable = executableFlowEdges[to];
     if (previousExecutable == null) {
-      previousExecutable = new BitSet(maxBlockNumber);
+      previousExecutable = new BitSet(executableFlowEdges.length);
       executableFlowEdges[to] = previousExecutable;
     }
     previousExecutable.set(from);
