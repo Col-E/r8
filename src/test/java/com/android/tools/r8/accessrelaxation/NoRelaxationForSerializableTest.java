@@ -151,8 +151,10 @@ public class NoRelaxationForSerializableTest extends AccessRelaxationTestBase {
                 || parameters.getDexRuntimeVersion().isEqualToOneOf(Version.V5_1_1, Version.V8_1_0)
                 || parameters.getDexRuntimeVersion().isNewerThanOrEqual(Version.V10_0_0),
             runResult -> runResult.assertSuccessWithOutput(EXPECTED_OUTPUT),
-            parameters.isDexRuntimeVersion(Version.V6_0_1)
-                || parameters.isDexRuntimeVersion(Version.V7_0_0),
+            parameters.isDexRuntimeVersion(Version.DEFAULT)
+                || parameters.isDexRuntimeVersion(Version.V6_0_1)
+                || parameters.isDexRuntimeVersion(Version.V7_0_0)
+                || parameters.isDexRuntimeVersion(Version.V9_0_0),
             runResult -> runResult.assertFailureWithErrorThatThrows(UnsatisfiedLinkError.class),
             runResult ->
                 runResult.assertFailureWithErrorThatThrows(NoSuchAlgorithmException.class));
@@ -192,8 +194,10 @@ public class NoRelaxationForSerializableTest extends AccessRelaxationTestBase {
             runResult ->
                 runResult.assertFailureWithErrorThatMatches(
                     containsString("Could not deserialize")),
-            parameters.isDexRuntimeVersion(Version.V6_0_1)
-                || parameters.isDexRuntimeVersion(Version.V7_0_0),
+            parameters.isDexRuntimeVersion(Version.DEFAULT)
+                || parameters.isDexRuntimeVersion(Version.V6_0_1)
+                || parameters.isDexRuntimeVersion(Version.V7_0_0)
+                || parameters.isDexRuntimeVersion(Version.V9_0_0),
             runResult -> runResult.assertFailureWithErrorThatThrows(UnsatisfiedLinkError.class),
             runResult ->
                 runResult.assertFailureWithErrorThatThrows(NoSuchAlgorithmException.class));
