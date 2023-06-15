@@ -280,6 +280,9 @@ public class ClassInitializerMerger {
       // Cleanup.
       code.removeBlocks(blocksToRemove);
       code.removeAllDeadAndTrivialPhis();
+      code.removeRedundantBlocks();
+
+      assert code.isConsistentSSA(appView);
 
       return code;
     }
