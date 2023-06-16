@@ -761,12 +761,13 @@ public class IRConverter {
     }
     new SparseConditionalConstantPropagation(appView, code).run(code, timing);
     new ThrowCatchOptimizer(appView, isDebugMode).run(code, timing);
-    timing.begin("Simplify control flow");
-    if (new BranchSimplifier(appView).simplifyBranches(code)) {
+    if (new BranchSimplifier(appView)
+        .run(code, timing)
+        .asControlFlowSimplificationResult()
+        .anyAffectedValues()) {
       new TrivialCheckCastAndInstanceOfRemover(appView)
           .run(code, methodProcessor, methodProcessingContext, timing);
     }
-    timing.end();
     splitBranch.run(code, timing);
     if (options.enableRedundantConstNumberOptimization) {
       timing.begin("Remove const numbers");
@@ -925,7 +926,6 @@ public class IRConverter {
 
     // Assert that we do not have unremoved non-sense code in the output, e.g., v <- non-null NULL.
     assert code.verifyNoNullabilityBottomTypes();
-
     assert code.verifyTypes(appView);
 
     previous =

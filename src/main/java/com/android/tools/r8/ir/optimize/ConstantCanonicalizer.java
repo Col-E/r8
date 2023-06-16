@@ -43,6 +43,7 @@ import com.android.tools.r8.ir.code.StaticGet;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.conversion.passes.BranchSimplifier;
 import com.android.tools.r8.utils.OptionalBool;
+import com.android.tools.r8.utils.Timing;
 import com.android.tools.r8.utils.WorkList;
 import com.google.common.collect.Sets;
 import it.unimi.dsi.fastutil.Hash.Strategy;
@@ -288,7 +289,7 @@ public class ConstantCanonicalizer {
     shouldSimplifyIfs |= code.removeAllDeadAndTrivialPhis();
 
     if (shouldSimplifyIfs) {
-      branchSimplifier.simplifyIf(code);
+      branchSimplifier.run(code, Timing.empty());
     }
 
     code.removeRedundantBlocks();
