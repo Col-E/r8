@@ -1,4 +1,3 @@
-// Copyright (c) 2022, the R8 project authors. Please see the AUTHORS file
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
@@ -45,7 +44,6 @@ import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.synthesis.SyntheticItems;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.IntBox;
-import com.android.tools.r8.utils.InternalOptions.LineNumberOptimization;
 import com.android.tools.r8.utils.ListUtils;
 import com.android.tools.r8.utils.OneShotCollectionConsumer;
 import com.android.tools.r8.utils.OriginalSourceFiles;
@@ -56,6 +54,7 @@ import it.unimi.dsi.fastutil.ints.Int2IntMap;
 import it.unimi.dsi.fastutil.ints.Int2IntSortedMap;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
@@ -79,7 +78,7 @@ public class MappedPositionToClassNameMapperBuilder {
       PositionRangeAllocator.createCardinalPositionRangeAllocator();
   private final NonCardinalPositionRangeAllocator nonCardinalRangeCache =
       PositionRangeAllocator.createNonCardinalPositionRangeAllocator();
-  private final int maxGap = 1000;
+  private final int maxGap;
 
   private MappedPositionToClassNameMapperBuilder(
       AppView<?> appView, OriginalSourceFiles originalSourceFiles) {
@@ -88,6 +87,7 @@ public class MappedPositionToClassNameMapperBuilder {
     classNameMapperBuilder = ClassNameMapper.builder();
     classNameMapperBuilder.setCurrentMapVersion(
         appView.options().getMapFileVersion().toMapVersionMappingInformation());
+    maxGap = appView.options().lineNumberOptimization.isOn() ? 1000 : 1;
   }
 
   public static String getPrunedInlinedClassObfuscatedPrefix() {
@@ -246,7 +246,7 @@ public class MappedPositionToClassNameMapperBuilder {
           residualMethod,
           originalMethod,
           originalType)) {
-        assert appView.options().lineNumberOptimization == LineNumberOptimization.OFF
+        assert appView.options().lineNumberOptimization.isOff()
             || hasAtMostOnePosition(appView, definition)
             || appView.isCfByteCodePassThrough(definition);
         return this;
@@ -290,6 +290,8 @@ public class MappedPositionToClassNameMapperBuilder {
         methodSpecificMappingInformation.add(OutlineMappingInformation.builder().build());
       }
 
+      mappedPositions.sort(Comparator.comparing(MappedPosition::getObfuscatedLine));
+
       // Update memberNaming with the collected positions, merging multiple positions into a
       // single region whenever possible.
       for (int i = 0; i < mappedPositions.size(); /* updated in body */ ) {
@@ -317,14 +319,7 @@ public class MappedPositionToClassNameMapperBuilder {
               || firstMappedPosition.getPosition().getOutlineCallee() != null) {
             break;
           }
-          // The mapped positions are not guaranteed to be in order, so maintain first and last
-          // position.
-          if (firstMappedPosition.getObfuscatedLine() > currentMappedPosition.getObfuscatedLine()) {
-            firstMappedPosition = currentMappedPosition;
-          }
-          if (lastMappedPosition.getObfuscatedLine() < currentMappedPosition.getObfuscatedLine()) {
-            lastMappedPosition = currentMappedPosition;
-          }
+          lastMappedPosition = currentMappedPosition;
         }
         Range obfuscatedRange =
             nonCardinalRangeCache.get(
@@ -385,9 +380,7 @@ public class MappedPositionToClassNameMapperBuilder {
         }
         i = j;
       }
-      // TODO(b/287210793): Enable assertion again.
-      assert true
-          || mappedPositions.size() <= 1
+      assert mappedPositions.size() <= 1
           || getBuilder().hasNoOverlappingRangesForSignature(residualSignature);
       return this;
     }
