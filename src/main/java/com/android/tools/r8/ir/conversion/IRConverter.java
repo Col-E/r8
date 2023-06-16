@@ -760,9 +760,7 @@ public class IRConverter {
       new StringBuilderAppendOptimizer(appView).run(code, timing);
     }
     new SparseConditionalConstantPropagation(appView, code).run(code, timing);
-    timing.begin("Rewrite always throwing instructions");
-    new ThrowCatchOptimizer(appView).optimizeAlwaysThrowingInstructions(code);
-    timing.end();
+    new ThrowCatchOptimizer(appView, isDebugMode).run(code, timing);
     timing.begin("Simplify control flow");
     if (new BranchSimplifier(appView).simplifyBranches(code)) {
       new TrivialCheckCastAndInstanceOfRemover(appView)
@@ -786,13 +784,6 @@ public class IRConverter {
 
     if (options.testing.invertConditionals) {
       invertConditionalsForTesting(code);
-    }
-
-    if (!isDebugMode) {
-      timing.begin("Rewrite throw NPE");
-      new ThrowCatchOptimizer(appView).rewriteThrowNullPointerException(code);
-      timing.end();
-      previous = printMethod(code, "IR after rewrite throw null (SSA)", previous);
     }
 
     timing.begin("Optimize class initializers");
