@@ -6,6 +6,8 @@ package com.android.tools.r8.utils;
 import static com.android.tools.r8.utils.AndroidApiLevel.B;
 import static com.android.tools.r8.utils.SystemPropertyUtils.parseSystemPropertyForDevelopmentOrDefault;
 
+import com.android.tools.r8.AndroidResourceConsumer;
+import com.android.tools.r8.AndroidResourceProvider;
 import com.android.tools.r8.CancelCompilationChecker;
 import com.android.tools.r8.ClassFileConsumer;
 import com.android.tools.r8.CompilationMode;
@@ -173,6 +175,8 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
   // The state can only ever transition from false to true.
   private final AtomicBoolean cancelled = new AtomicBoolean(false);
   public CancelCompilationChecker cancelCompilationChecker = null;
+  public AndroidResourceProvider androidResourceProvider = null;
+  public AndroidResourceConsumer androidResourceConsumer = null;
 
   public boolean checkIfCancelled() {
     if (cancelCompilationChecker == null) {

@@ -72,6 +72,7 @@ import com.android.tools.r8.optimize.interfaces.analysis.CfOpenClosedInterfacesA
 import com.android.tools.r8.optimize.proto.ProtoNormalizer;
 import com.android.tools.r8.optimize.redundantbridgeremoval.RedundantBridgeRemover;
 import com.android.tools.r8.origin.CommandLineOrigin;
+import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.profile.art.ArtProfileCompletenessChecker;
 import com.android.tools.r8.profile.rewriting.ProfileCollectionAdditions;
 import com.android.tools.r8.repackaging.Repackaging;
@@ -102,6 +103,7 @@ import com.android.tools.r8.shaking.WhyAreYouKeepingConsumer;
 import com.android.tools.r8.synthesis.SyntheticFinalization;
 import com.android.tools.r8.synthesis.SyntheticItems;
 import com.android.tools.r8.utils.AndroidApp;
+import com.android.tools.r8.utils.ExceptionDiagnostic;
 import com.android.tools.r8.utils.ExceptionUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.SelfRetraceTest;
@@ -804,6 +806,12 @@ public class R8 {
 
       new DesugaredLibraryKeepRuleGenerator(appView).runIfNecessary(timing);
 
+      if (options.androidResourceProvider != null && options.androidResourceConsumer != null) {
+        // Currently this is simply a pass through of all resources.
+        writeAndroidResources(
+            options.androidResourceProvider, options.androidResourceConsumer, appView.reporter());
+      }
+
       // Generate the resulting application resources.
       writeApplication(appView, inputApp, executorService);
 
@@ -819,6 +827,44 @@ public class R8 {
       if (options.printTimes) {
         timing.report();
       }
+    }
+  }
+
+  private void writeAndroidResources(
+      AndroidResourceProvider androidResourceProvider,
+      AndroidResourceConsumer androidResourceConsumer,
+      DiagnosticsHandler diagnosticsHandler) {
+    try {
+      for (AndroidResourceInput androidResource : androidResourceProvider.getAndroidResources()) {
+        androidResourceConsumer.accept(
+            new AndroidResourceOutput() {
+              @Override
+              public ResourcePath getPath() {
+                return androidResource.getPath();
+              }
+
+              @Override
+              public ByteDataView getByteDataView() {
+                try {
+                  return ByteDataView.of(ByteStreams.toByteArray(androidResource.getByteStream()));
+                } catch (IOException | ResourceException e) {
+                  diagnosticsHandler.error(new ExceptionDiagnostic(e, androidResource.getOrigin()));
+                }
+                return null;
+              }
+
+              @Override
+              public Origin getOrigin() {
+                return androidResource.getOrigin();
+              }
+            },
+            diagnosticsHandler);
+      }
+    } catch (ResourceException e) {
+      throw new RuntimeException("Cannot write android resources", e);
+    } finally {
+      androidResourceConsumer.finished(diagnosticsHandler);
+      androidResourceProvider.finished(diagnosticsHandler);
     }
   }
 
