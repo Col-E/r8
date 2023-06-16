@@ -829,19 +829,19 @@ public class ToolHelper {
           .put(DexVm.ART_6_0_1_HOST, "bin/art")
           .build();
 
-  private static final List<String> DALVIK_BOOT_LIBS =
-      ImmutableList.of(
-          "core-libart-hostdex.jar",
-          "core-hostdex.jar",
-          "apache-xml-hostdex.jar");
+  private static final List<String> DALVIK_4_0_BOOT_LIBS =
+      ImmutableList.of("core-hostdex.jar", "apache-xml-hostdex.jar");
 
-  private static final List<String> ART_BOOT_LIBS =
-      ImmutableList.of(
-          "core-libart-hostdex.jar",
-          "core-oj-hostdex.jar",
-          "apache-xml-hostdex.jar");
+  private static final List<String> DALVIK_4_4_BOOT_LIBS =
+      ImmutableList.of("core-libart-hostdex.jar", "core-hostdex.jar", "apache-xml-hostdex.jar");
 
-  private static final List<String> NEWER_ART_BOOT_LIBS =
+  private static final List<String> ART_5_TO_6_BOOT_LIBS =
+      ImmutableList.of("core-libart-hostdex.jar");
+
+  private static final List<String> ART_7_TO_10_BOOT_LIBS =
+      ImmutableList.of("core-libart-hostdex.jar", "core-oj-hostdex.jar", "apache-xml-hostdex.jar");
+
+  private static final List<String> ART_12_PLUS_BOOT_LIBS =
       ImmutableList.of(
           "core-libart-hostdex.jar",
           "core-oj-hostdex.jar",
@@ -853,18 +853,18 @@ public class ToolHelper {
   static {
     ImmutableMap.Builder<DexVm, List<String>> builder = ImmutableMap.builder();
     builder
-        .put(DexVm.ART_DEFAULT, ART_BOOT_LIBS)
-        .put(DexVm.ART_14_0_0_HOST, NEWER_ART_BOOT_LIBS)
-        .put(DexVm.ART_13_0_0_HOST, NEWER_ART_BOOT_LIBS)
-        .put(DexVm.ART_12_0_0_HOST, NEWER_ART_BOOT_LIBS)
-        .put(DexVm.ART_10_0_0_HOST, ART_BOOT_LIBS)
-        .put(DexVm.ART_9_0_0_HOST, ART_BOOT_LIBS)
-        .put(DexVm.ART_8_1_0_HOST, ART_BOOT_LIBS)
-        .put(DexVm.ART_7_0_0_HOST, ART_BOOT_LIBS)
-        .put(DexVm.ART_6_0_1_HOST, ART_BOOT_LIBS)
-        .put(DexVm.ART_5_1_1_HOST, ART_BOOT_LIBS)
-        .put(DexVm.ART_4_4_4_HOST, DALVIK_BOOT_LIBS)
-        .put(DexVm.ART_4_0_4_HOST, DALVIK_BOOT_LIBS);
+        .put(DexVm.ART_DEFAULT, ART_7_TO_10_BOOT_LIBS)
+        .put(DexVm.ART_14_0_0_HOST, ART_12_PLUS_BOOT_LIBS)
+        .put(DexVm.ART_13_0_0_HOST, ART_12_PLUS_BOOT_LIBS)
+        .put(DexVm.ART_12_0_0_HOST, ART_12_PLUS_BOOT_LIBS)
+        .put(DexVm.ART_10_0_0_HOST, ART_7_TO_10_BOOT_LIBS)
+        .put(DexVm.ART_9_0_0_HOST, ART_7_TO_10_BOOT_LIBS)
+        .put(DexVm.ART_8_1_0_HOST, ART_7_TO_10_BOOT_LIBS)
+        .put(DexVm.ART_7_0_0_HOST, ART_7_TO_10_BOOT_LIBS)
+        .put(DexVm.ART_6_0_1_HOST, ART_5_TO_6_BOOT_LIBS)
+        .put(DexVm.ART_5_1_1_HOST, ART_5_TO_6_BOOT_LIBS)
+        .put(DexVm.ART_4_4_4_HOST, DALVIK_4_4_BOOT_LIBS)
+        .put(DexVm.ART_4_0_4_HOST, DALVIK_4_0_BOOT_LIBS);
     BOOT_LIBS = builder.build();
   }
 
@@ -887,7 +887,6 @@ public class ToolHelper {
         .put(DexVm.ART_4_0_4_HOST, "<missing>");
     PRODUCT = builder.build();
   }
-
 
   private static Path getDexVmPath(DexVm vm) {
     DexVm.Version version = vm.getVersion();
