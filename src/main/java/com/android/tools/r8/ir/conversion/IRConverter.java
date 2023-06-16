@@ -36,6 +36,7 @@ import com.android.tools.r8.ir.conversion.passes.KnownArrayLengthRewriter;
 import com.android.tools.r8.ir.conversion.passes.MoveResultRewriter;
 import com.android.tools.r8.ir.conversion.passes.NaturalIntLoopRemover;
 import com.android.tools.r8.ir.conversion.passes.ParentConstructorHoistingCodeRewriter;
+import com.android.tools.r8.ir.conversion.passes.RedundantConstNumberRemover;
 import com.android.tools.r8.ir.conversion.passes.SplitBranch;
 import com.android.tools.r8.ir.conversion.passes.ThrowCatchOptimizer;
 import com.android.tools.r8.ir.conversion.passes.TrivialCheckCastAndInstanceOfRemover;
@@ -769,11 +770,7 @@ public class IRConverter {
           .run(code, methodProcessor, methodProcessingContext, timing);
     }
     splitBranch.run(code, timing);
-    if (options.enableRedundantConstNumberOptimization) {
-      timing.begin("Remove const numbers");
-      codeRewriter.redundantConstNumberRemoval(code);
-      timing.end();
-    }
+    new RedundantConstNumberRemover(appView).run(code, timing);
     if (RedundantFieldLoadAndStoreElimination.shouldRun(appView, code)) {
       timing.begin("Remove field loads");
       new RedundantFieldLoadAndStoreElimination(appView, code).run();
