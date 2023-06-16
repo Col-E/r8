@@ -26,6 +26,7 @@ import com.android.tools.r8.retrace.stacktraces.ActualRetraceBotStackTrace;
 import com.android.tools.r8.retrace.stacktraces.AmbiguousInlineFramesStackTrace;
 import com.android.tools.r8.retrace.stacktraces.AmbiguousMethodVerboseStackTrace;
 import com.android.tools.r8.retrace.stacktraces.AmbiguousMissingLineStackTrace;
+import com.android.tools.r8.retrace.stacktraces.AmbiguousMultipleInlineStackTrace;
 import com.android.tools.r8.retrace.stacktraces.AmbiguousStackTrace;
 import com.android.tools.r8.retrace.stacktraces.AmbiguousWithMultipleLineMappingsStackTrace;
 import com.android.tools.r8.retrace.stacktraces.AmbiguousWithSignatureStackTrace;
@@ -229,6 +230,11 @@ public class RetraceTests extends TestBase {
   @Test
   public void testAmbiguousWithSignatureStackTrace() throws Exception {
     runRetraceTest(new AmbiguousWithSignatureStackTrace());
+  }
+
+  @Test
+  public void testAmbiguousMultipleInlineStackTrace() throws Exception {
+    runRetraceTest(new AmbiguousMultipleInlineStackTrace());
   }
 
   @Test
