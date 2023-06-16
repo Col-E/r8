@@ -79,6 +79,7 @@ public class MappedPositionToClassNameMapperBuilder {
       PositionRangeAllocator.createCardinalPositionRangeAllocator();
   private final NonCardinalPositionRangeAllocator nonCardinalRangeCache =
       PositionRangeAllocator.createNonCardinalPositionRangeAllocator();
+  private final int maxGap = 1000;
 
   private MappedPositionToClassNameMapperBuilder(
       AppView<?> appView, OriginalSourceFiles originalSourceFiles) {
@@ -301,7 +302,7 @@ public class MappedPositionToClassNameMapperBuilder {
           MappedPosition currentMappedPosition = mappedPositions.get(j);
           mappedPositionRange =
               mappedPositionRange.canAddNextMappingToRange(
-                  lastMappedPosition, currentMappedPosition);
+                  lastMappedPosition, currentMappedPosition, maxGap);
           // Note that currentPosition.caller and lastPosition.class must be deep-compared since
           // multiple inlining passes lose the canonical property of the positions.
           Position currentPosition = currentMappedPosition.getPosition();
@@ -538,7 +539,7 @@ public class MappedPositionToClassNameMapperBuilder {
     }
 
     public MappedPositionRange canAddNextMappingToRange(
-        MappedPosition lastPosition, MappedPosition currentPosition) {
+        MappedPosition lastPosition, MappedPosition currentPosition, int maxGap) {
       if (isOutOfRange()) {
         return this;
       }
@@ -562,10 +563,12 @@ public class MappedPositionToClassNameMapperBuilder {
         // We cannot recover a delta encoding if we have had range to single encoding.
         return OUT_OF_RANGE;
       }
+      int gap = currentPosition.getObfuscatedLine() - lastPosition.getObfuscatedLine();
+      boolean gapLessThanMaxGap = gap >= 0 && gap <= maxGap;
       boolean sameDelta =
           currentOriginalLine - lastOriginalLine
               == currentPosition.getObfuscatedLine() - lastPosition.getObfuscatedLine();
-      return sameDelta ? SAME_DELTA : OUT_OF_RANGE;
+      return (gapLessThanMaxGap && sameDelta) ? SAME_DELTA : OUT_OF_RANGE;
     }
   }
 
