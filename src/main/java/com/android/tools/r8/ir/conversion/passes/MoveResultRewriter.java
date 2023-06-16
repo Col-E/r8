@@ -118,6 +118,9 @@ public class MoveResultRewriter extends CodeRewriterPass<AppInfo> {
     if (!affectedValues.isEmpty()) {
       new TypeAnalysis(appView).narrowing(affectedValues);
     }
+    if (changed) {
+      code.removeRedundantBlocks();
+    }
     assert code.isConsistentSSA(appView);
     return CodeRewriterResult.hasChanged(changed);
   }
