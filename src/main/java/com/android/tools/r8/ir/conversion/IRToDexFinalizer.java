@@ -38,6 +38,13 @@ public class IRToDexFinalizer extends IRFinalizer<DexCode> {
     }
     DexEncodedMethod method = code.method();
     code.traceBlocks();
+    workaroundBugs(code);
+    // Perform register allocation.
+    RegisterAllocator registerAllocator = performRegisterAllocation(code, method, timing);
+    return new DexBuilder(code, bytecodeMetadataProvider, registerAllocator, options).build();
+  }
+
+  private void workaroundBugs(IRCode code) {
     RuntimeWorkaroundCodeRewriter.workaroundNumberConversionRegisterAllocationBug(code, options);
     // Workaround massive dex2oat memory use for self-recursive methods.
     RuntimeWorkaroundCodeRewriter.workaroundDex2OatInliningIssue(appView, code);
@@ -46,9 +53,7 @@ public class IRToDexFinalizer extends IRFinalizer<DexCode> {
     RuntimeWorkaroundCodeRewriter.workaroundDex2OatLinkedListBug(code, options);
     RuntimeWorkaroundCodeRewriter.workaroundForwardingInitializerBug(code, options);
     RuntimeWorkaroundCodeRewriter.workaroundExceptionTargetingLoopHeaderBug(code, options);
-    // Perform register allocation.
-    RegisterAllocator registerAllocator = performRegisterAllocation(code, method, timing);
-    return new DexBuilder(code, bytecodeMetadataProvider, registerAllocator, options).build();
+    assert code.isConsistentSSA(appView);
   }
 
   private RegisterAllocator performRegisterAllocation(

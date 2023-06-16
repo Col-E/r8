@@ -66,6 +66,7 @@ public class RuntimeWorkaroundCodeRewriter {
       code.blocks.add(rethrowBlock);
       // Add catch handler to the block containing the last recursive call.
       newBlock.appendCatchHandler(rethrowBlock, guard);
+      code.removeRedundantBlocks();
     }
   }
 

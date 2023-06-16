@@ -99,6 +99,8 @@ public class ArrayConstructionSimplifier extends CodeRewriterPass<AppInfo> {
       BasicBlock block = worklist.next();
       simplifyArrayConstructionBlock(block, worklist, code, appView.options());
     }
+    // Do only when the rewriter pass has changed something.
+    code.removeRedundantBlocks();
     return CodeRewriterResult.NONE;
   }
 
