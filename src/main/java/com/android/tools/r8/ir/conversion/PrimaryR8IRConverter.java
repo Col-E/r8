@@ -16,6 +16,7 @@ import com.android.tools.r8.ir.analysis.fieldaccess.TrivialFieldAccessReprocesso
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackDelayed;
 import com.android.tools.r8.optimize.argumentpropagation.ArgumentPropagator;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
+import com.android.tools.r8.utils.ThreadUtils;
 import com.android.tools.r8.utils.Timing;
 import com.android.tools.r8.utils.collections.ProgramMethodSet;
 import java.io.IOException;
@@ -100,6 +101,7 @@ public class PrimaryR8IRConverter extends IRConverter {
       lastWaveDone(postMethodProcessorBuilder, executorService);
       eventConsumer.finished(appView);
       assert appView.graphLens() == graphLensForPrimaryOptimizationPass;
+      finalizeLirToOutputFormat(timing, executorService);
       timing.end();
     }
 
@@ -176,6 +178,7 @@ public class PrimaryR8IRConverter extends IRConverter {
         eventConsumer.finished(appView);
         assert appView.graphLens() == graphLensForSecondaryOptimizationPass;
       }
+      finalizeLirToOutputFormat(timing, executorService);
       timing.end();
     }
 
@@ -207,7 +210,26 @@ public class PrimaryR8IRConverter extends IRConverter {
 
     // Assure that no more optimization feedback left after post processing.
     assert feedback.noUpdatesLeft();
+    finalizeLirToOutputFormat(timing, executorService);
     return builder.build();
+  }
+
+  private void finalizeLirToOutputFormat(Timing timing, ExecutorService executorService)
+      throws ExecutionException {
+    if (!options.testing.canUseLir(appView)) {
+      return;
+    }
+    String output = options.isGeneratingClassFiles() ? "CF" : "DEX";
+    timing.begin("LIR->IR->" + output);
+    ThreadUtils.processItems(
+        appView.appInfo().classes(),
+        clazz -> clazz.forEachProgramMethod(this::finalizeLirMethodToOutputFormat),
+        executorService);
+    appView
+        .getSyntheticItems()
+        .getPendingSyntheticClasses()
+        .forEach(clazz -> clazz.forEachProgramMethod(this::finalizeLirMethodToOutputFormat));
+    timing.end();
   }
 
   private void clearDexMethodCompilationState() {

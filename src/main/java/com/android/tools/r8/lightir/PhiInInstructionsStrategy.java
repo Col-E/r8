@@ -6,6 +6,7 @@ package com.android.tools.r8.lightir;
 import com.android.tools.r8.graph.DebugLocalInfo;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.code.BasicBlock;
+import com.android.tools.r8.ir.code.NumberGenerator;
 import com.android.tools.r8.ir.code.Phi;
 import com.android.tools.r8.ir.code.Phi.RegisterReadType;
 import com.android.tools.r8.ir.code.Value;
@@ -23,8 +24,9 @@ public class PhiInInstructionsStrategy extends LirStrategy<Value, Integer> {
   }
 
   @Override
-  public LirDecodingStrategy<Value, Integer> getDecodingStrategy(LirCode<Integer> code) {
-    return new DecodingStrategy(code);
+  public LirDecodingStrategy<Value, Integer> getDecodingStrategy(
+      LirCode<Integer> code, NumberGenerator valueNumberGenerator) {
+    return new DecodingStrategy(code, valueNumberGenerator);
   }
 
   private static class EncodingStrategy extends LirEncodingStrategy<Value, Integer> {
@@ -94,7 +96,8 @@ public class PhiInInstructionsStrategy extends LirStrategy<Value, Integer> {
 
     private final Value[] values;
 
-    DecodingStrategy(LirCode<Integer> code) {
+    DecodingStrategy(LirCode<Integer> code, NumberGenerator valueNumberGenerator) {
+      super(valueNumberGenerator);
       values = new Value[code.getArgumentCount() + code.getInstructionCount()];
     }
 
@@ -103,7 +106,7 @@ public class PhiInInstructionsStrategy extends LirStrategy<Value, Integer> {
       int index = encodedValue;
       Value value = values[index];
       if (value == null) {
-        value = new Value(index, TypeElement.getBottom(), null);
+        value = new Value(getValueNumber(index), TypeElement.getBottom(), null);
         values[index] = value;
       }
       return value;
@@ -115,7 +118,7 @@ public class PhiInInstructionsStrategy extends LirStrategy<Value, Integer> {
       DebugLocalInfo localInfo = getLocalInfo.apply(index);
       Value value = values[index];
       if (value == null) {
-        value = new Value(index, type, localInfo);
+        value = new Value(getValueNumber(index), type, localInfo);
         values[index] = value;
       } else {
         value.setType(type);
@@ -138,7 +141,8 @@ public class PhiInInstructionsStrategy extends LirStrategy<Value, Integer> {
         LirStrategyInfo<Integer> strategyInfo) {
       BasicBlock block = getBlock.apply(valueIndex);
       DebugLocalInfo localInfo = getLocalInfo.apply(valueIndex);
-      Phi phi = new Phi(valueIndex, block, type, localInfo, RegisterReadType.NORMAL);
+      Phi phi =
+          new Phi(getValueNumber(valueIndex), block, type, localInfo, RegisterReadType.NORMAL);
       Value value = values[valueIndex];
       if (value != null) {
         // A fake ssa value has already been created, replace the users by the actual phi.

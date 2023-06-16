@@ -68,7 +68,7 @@ public class DaggerBasicNotSingletonUsingBindsTest extends DaggerBasicTestBase {
   }
 
   private void inspect(CodeInspector inspector) {
-    assertEquals(parameters.isCfRuntime() ? 1 : 2, inspector.allClasses().size());
+    assertEquals(1, inspector.allClasses().size());
   }
 
   @Test
@@ -77,6 +77,7 @@ public class DaggerBasicNotSingletonUsingBindsTest extends DaggerBasicTestBase {
         .addProgramFiles(getProgramFiles(target))
         .setMinApi(parameters)
         .addKeepMainRule(MAIN_CLASS)
+        .addOptionsModification(o -> o.testing.enableLir())
         .run(parameters.getRuntime(), MAIN_CLASS)
         .inspect(this::inspect)
         .assertSuccessWithOutputLines(EXPECTED_OUTPUT);

@@ -172,14 +172,14 @@ public class ClassInlinerPhiDirectUserAfterInlineTest extends TestBase {
       assertNotNull(argument);
       Value argumentValue = argument.outValue();
 
-      BasicBlock block1 = irCode.blocks.get(1);
+      BasicBlock block1 = irCode.blocks.stream().filter(b -> b.getNumber() == 1).findFirst().get();
       assertTrue(block1.exit().isIf());
 
-      BasicBlock block3 = irCode.blocks.get(3);
+      BasicBlock block3 = irCode.blocks.stream().filter(b -> b.getNumber() == 3).findFirst().get();
       assertTrue(block1.getSuccessors().contains(block3));
       assertTrue(block3.exit().isGoto());
 
-      BasicBlock block4 = irCode.blocks.get(4);
+      BasicBlock block4 = irCode.blocks.stream().filter(b -> b.getNumber() == 4).findFirst().get();
       assertSame(block3.getUniqueNormalSuccessor(), block4);
 
       Phi firstPhi =

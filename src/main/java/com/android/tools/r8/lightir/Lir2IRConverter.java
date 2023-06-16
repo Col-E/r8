@@ -15,6 +15,11 @@ import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ProgramMethod;
+import com.android.tools.r8.graph.proto.ArgumentInfo;
+import com.android.tools.r8.graph.proto.ArgumentInfoCollection;
+import com.android.tools.r8.graph.proto.RemovedArgumentInfo;
+import com.android.tools.r8.graph.proto.RewrittenPrototypeDescription;
+import com.android.tools.r8.graph.proto.RewrittenTypeInfo;
 import com.android.tools.r8.ir.analysis.type.Nullability;
 import com.android.tools.r8.ir.analysis.type.PrimitiveTypeElement;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
@@ -25,6 +30,7 @@ import com.android.tools.r8.ir.code.ArrayGet;
 import com.android.tools.r8.ir.code.ArrayLength;
 import com.android.tools.r8.ir.code.ArrayPut;
 import com.android.tools.r8.ir.code.BasicBlock;
+import com.android.tools.r8.ir.code.CanonicalPositions;
 import com.android.tools.r8.ir.code.CatchHandlers;
 import com.android.tools.r8.ir.code.CheckCast;
 import com.android.tools.r8.ir.code.Cmp;
@@ -116,7 +122,36 @@ public class Lir2IRConverter {
       LirCode<EV> lirCode,
       LirDecodingStrategy<Value, EV> strategy,
       AppView<?> appView) {
-    Parser<EV> parser = new Parser<>(lirCode, method.getReference(), appView, strategy);
+    return translate(
+        method,
+        lirCode,
+        strategy,
+        appView,
+        new NumberGenerator(),
+        null,
+        RewrittenPrototypeDescription.none(),
+        appView.graphLens().getOriginalMethodSignature(method.getReference()));
+  }
+
+  public static <EV> IRCode translate(
+      ProgramMethod method,
+      LirCode<EV> lirCode,
+      LirDecodingStrategy<Value, EV> strategy,
+      AppView<?> appView,
+      NumberGenerator valueNumberGenerator,
+      Position callerPosition,
+      RewrittenPrototypeDescription protoChanges,
+      DexMethod originalMethod) {
+    Parser<EV> parser =
+        new Parser<>(
+            lirCode,
+            originalMethod,
+            method.getDefinition().isD8R8Synthesized(),
+            appView,
+            strategy,
+            valueNumberGenerator,
+            callerPosition,
+            protoChanges);
     parser.parseArguments(method);
     parser.ensureDebugInfo();
     lirCode.forEach(view -> view.accept(parser));
@@ -134,8 +169,9 @@ public class Lir2IRConverter {
     private final AppView<?> appView;
     private final LirCode<EV> code;
     private final LirDecodingStrategy<Value, EV> strategy;
-    private final NumberGenerator valueNumberGenerator = new NumberGenerator();
+    private final NumberGenerator valueNumberGenerator;
     private final NumberGenerator basicBlockNumberGenerator = new NumberGenerator();
+    private final RewrittenPrototypeDescription protoChanges;
 
     private final Int2ReferenceMap<BasicBlock> blocks = new Int2ReferenceOpenHashMap<>();
 
@@ -145,18 +181,62 @@ public class Lir2IRConverter {
     private Position currentPosition;
     private PositionEntry nextPositionEntry = null;
     private int nextIndexInPositionsTable = 0;
+    private final PositionEntry[] positionTable;
+
+    private final boolean buildForInlining;
 
     public Parser(
         LirCode<EV> code,
         DexMethod method,
+        boolean isD8R8Synthesized,
         AppView<?> appView,
-        LirDecodingStrategy<Value, EV> strategy) {
+        LirDecodingStrategy<Value, EV> strategy,
+        NumberGenerator valueNumberGenerator,
+        Position callerPosition,
+        RewrittenPrototypeDescription protoChanges) {
       super(code);
       this.appView = appView;
       this.code = code;
       this.strategy = strategy;
-      // Recreate the preamble position. This is active for arguments and code with no positions.
-      currentPosition = SyntheticPosition.builder().setLine(0).setMethod(method).build();
+      this.valueNumberGenerator = valueNumberGenerator;
+      this.protoChanges = protoChanges;
+      assert protoChanges != null;
+      if (callerPosition == null) {
+        buildForInlining = false;
+        positionTable = code.getPositionTable();
+        // Recreate the preamble position. This is active for arguments and code with no positions.
+        currentPosition = SyntheticPosition.builder().setLine(0).setMethod(method).build();
+      } else {
+        buildForInlining = true;
+        PositionEntry[] inlineePositions = code.getPositionTable();
+        Position inlineePreamble = null;
+        if (inlineePositions.length > 0 && inlineePositions[0].fromInstructionIndex == 0) {
+          inlineePreamble = inlineePositions[0].position;
+        }
+        CanonicalPositions canonicalPositions =
+            new CanonicalPositions(
+                callerPosition,
+                inlineePositions.length,
+                method,
+                isD8R8Synthesized,
+                inlineePreamble);
+        currentPosition = canonicalPositions.getPreamblePosition();
+        positionTable = new PositionEntry[inlineePositions.length];
+        for (int i = 0; i < inlineePositions.length; i++) {
+          PositionEntry inlineeEntry = inlineePositions[i];
+          Position inlineePosition = inlineeEntry.position;
+          positionTable[i] =
+              new PositionEntry(
+                  inlineeEntry.fromInstructionIndex,
+                  canonicalPositions.getCanonical(
+                      inlineePosition
+                          .builderWithCopy()
+                          .setCallerPosition(
+                              canonicalPositions.canonicalizeCallerPosition(
+                                  inlineePosition.getCallerPosition()))
+                          .build()));
+        }
+      }
     }
 
     @Override
@@ -197,23 +277,47 @@ public class Lir2IRConverter {
 
     private void advanceNextPositionEntry() {
       nextPositionEntry =
-          nextIndexInPositionsTable < code.getPositionTable().length
-              ? code.getPositionTable()[nextIndexInPositionsTable++]
+          nextIndexInPositionsTable < positionTable.length
+              ? positionTable[nextIndexInPositionsTable++]
               : null;
     }
 
     public void parseArguments(ProgramMethod method) {
+      ArgumentInfoCollection argumentsInfo = protoChanges.getArgumentInfoCollection();
       currentBlock = getBasicBlock(ENTRY_BLOCK_INDEX);
       boolean hasReceiverArgument = !method.getDefinition().isStatic();
-      assert code.getArgumentCount()
-          == method.getParameters().size() + (hasReceiverArgument ? 1 : 0);
+
+      int index = 0;
       if (hasReceiverArgument) {
+        assert argumentsInfo.getNewArgumentIndex(0) == 0;
         addThisArgument(method.getHolderType());
+        index++;
       }
-      int index = hasReceiverArgument ? 1 : 0;
-      for (DexType parameter : method.getParameters()) {
-        addArgument(parameter, index++);
+
+      int originalNumberOfArguments =
+          method.getParameters().size()
+              + argumentsInfo.numberOfRemovedArguments()
+              + method.getDefinition().getFirstNonReceiverArgumentIndex()
+              - protoChanges.numberOfExtraParameters();
+
+      int numberOfRemovedArguments = 0;
+      while (index < originalNumberOfArguments) {
+        ArgumentInfo argumentInfo = argumentsInfo.getArgumentInfo(index);
+        if (argumentInfo.isRemovedArgumentInfo()) {
+          RemovedArgumentInfo removedArgumentInfo = argumentInfo.asRemovedArgumentInfo();
+          addArgument(removedArgumentInfo.getType(), index++);
+          numberOfRemovedArguments++;
+        } else if (argumentInfo.isRewrittenTypeInfo()) {
+          RewrittenTypeInfo rewrittenTypeInfo = argumentInfo.asRewrittenTypeInfo();
+          int newArgumentIndex = argumentsInfo.getNewArgumentIndex(index, numberOfRemovedArguments);
+          assert method.getArgumentType(newArgumentIndex) == rewrittenTypeInfo.getNewType();
+          addArgument(rewrittenTypeInfo.getOldType(), index++);
+        } else {
+          int newArgumentIndex = argumentsInfo.getNewArgumentIndex(index, numberOfRemovedArguments);
+          addArgument(method.getArgumentType(newArgumentIndex), index++);
+        }
       }
+
       // Set up position state after adding arguments.
       advanceNextPositionEntry();
     }
@@ -252,8 +356,14 @@ public class Lir2IRConverter {
           }
         }
       }
-      for (int i = 0; i < peekNextInstructionIndex(); ++i) {
-        valueNumberGenerator.next();
+      if (!buildForInlining) {
+        // The decoding strategy will increment this on demand when built for inlining.
+        // Not incrementing for normal building results in nice order of instruction index and
+        // value number.
+        int lastValueIndex = getCurrentValueIndex();
+        for (int i = 0; i < lastValueIndex; ++i) {
+          valueNumberGenerator.next();
+        }
       }
       return new IRCode(
           appView.options(),
@@ -262,7 +372,7 @@ public class Lir2IRConverter {
           blockList,
           valueNumberGenerator,
           basicBlockNumberGenerator,
-          code.getMetadata(),
+          code.getMetadataForIR(),
           method.getOrigin(),
           new MutableMethodConversionOptions(appView.options()));
     }
@@ -365,7 +475,7 @@ public class Lir2IRConverter {
               index, typeElement, code::getDebugLocalInfo);
       Argument argument = new Argument(dest, index, type.isBooleanType());
       assert currentBlock != null;
-      assert currentPosition.isSyntheticPosition();
+      assert currentPosition.isSyntheticPosition() || buildForInlining;
       argument.setPosition(currentPosition);
       currentBlock.getInstructions().add(argument);
       argument.setBlock(currentBlock);
@@ -512,7 +622,7 @@ public class Lir2IRConverter {
     public void onConstClass(DexType type, boolean ignoreCompatRules) {
       Value dest =
           getOutValueForNextInstruction(
-              type.toTypeElement(appView, Nullability.definitelyNotNull()));
+              TypeElement.classClassType(appView, Nullability.definitelyNotNull()));
       addInstruction(new ConstClass(dest, type, ignoreCompatRules));
     }
 
@@ -727,8 +837,12 @@ public class Lir2IRConverter {
 
     @Override
     public void onReturn(EV value) {
-      addInstruction(new Return(getValue(value)));
-      closeCurrentBlock();
+      if (protoChanges.hasBeenChangedToReturnVoid()) {
+        onReturnVoid();
+      } else {
+        addInstruction(new Return(getValue(value)));
+        closeCurrentBlock();
+      }
     }
 
     @Override

@@ -36,8 +36,14 @@ public class FieldAccessAnalysis {
     this.fieldBitAccessAnalysis =
         options.enableFieldBitAccessAnalysis ? new FieldBitAccessAnalysis() : null;
     this.fieldAssignmentTracker = new FieldAssignmentTracker(appView);
-    this.fieldReadForInvokeReceiverAnalysis = new FieldReadForInvokeReceiverAnalysis(appView);
-    this.fieldReadForWriteAnalysis = new FieldReadForWriteAnalysis(appView);
+    if (options.testing.canUseLir(appView)) {
+      // When using LIR the bytecode metadata is computed later during finalization via IR.
+      this.fieldReadForInvokeReceiverAnalysis = null;
+      this.fieldReadForWriteAnalysis = null;
+    } else {
+      this.fieldReadForInvokeReceiverAnalysis = new FieldReadForInvokeReceiverAnalysis(appView);
+      this.fieldReadForWriteAnalysis = new FieldReadForWriteAnalysis(appView);
+    }
   }
 
   @VisibleForTesting
@@ -110,5 +116,33 @@ public class FieldAccessAnalysis {
         }
       }
     }
+  }
+
+  public static BytecodeMetadataProvider computeBytecodeMetadata(
+      IRCode irCode, AppView<AppInfoWithLiveness> appView) {
+    // This rebuilding of metadata should only be used in the LIR pipeline where the info is
+    // discarded when translating from IR to LIR.
+    assert appView.options().testing.canUseLir(appView);
+    BytecodeMetadataProvider bytecodeMetadataProvider = BytecodeMetadataProvider.empty();
+    if (irCode.metadata().mayHaveFieldInstruction()) {
+      BytecodeMetadataProvider.Builder builder = BytecodeMetadataProvider.builder();
+      FieldReadForInvokeReceiverAnalysis fieldReadForInvokeReceiverAnalysis =
+          new FieldReadForInvokeReceiverAnalysis(appView);
+      FieldReadForWriteAnalysis fieldReadForWriteAnalysis = new FieldReadForWriteAnalysis(appView);
+      for (Instruction instruction : irCode.instructions()) {
+        if (instruction.isFieldInstruction()) {
+          FieldInstruction fieldInstruction = instruction.asFieldInstruction();
+          ProgramField field =
+              appView.appInfo().resolveField(fieldInstruction.getField()).getProgramField();
+          if (field != null) {
+            fieldReadForInvokeReceiverAnalysis.recordFieldAccess(
+                fieldInstruction, field, builder, irCode.context());
+            fieldReadForWriteAnalysis.recordFieldAccess(fieldInstruction, field, builder);
+          }
+        }
+      }
+      bytecodeMetadataProvider = builder.build();
+    }
+    return bytecodeMetadataProvider;
   }
 }

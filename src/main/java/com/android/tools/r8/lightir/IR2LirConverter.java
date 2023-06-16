@@ -3,7 +3,6 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.lightir;
 
-import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.BasicBlockIterator;
 import com.android.tools.r8.ir.code.CatchHandlers;
@@ -12,6 +11,7 @@ import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionIterator;
 import com.android.tools.r8.ir.code.Phi;
 import com.android.tools.r8.ir.code.Value;
+import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.ListUtils;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.ints.IntList;
@@ -24,24 +24,22 @@ import java.util.List;
 
 public class IR2LirConverter<EV> {
 
-  private final DexItemFactory factory;
   private final IRCode irCode;
   private final LirEncodingStrategy<Value, EV> strategy;
   private final LirBuilder<Value, EV> builder;
 
   private IR2LirConverter(
-      DexItemFactory factory, IRCode irCode, LirEncodingStrategy<Value, EV> strategy) {
-    this.factory = factory;
+      InternalOptions options, IRCode irCode, LirEncodingStrategy<Value, EV> strategy) {
     this.irCode = irCode;
     this.strategy = strategy;
     this.builder =
-        new LirBuilder<>(irCode.context().getReference(), strategy, factory)
+        new LirBuilder<>(irCode.context().getReference(), strategy, options)
             .setMetadata(irCode.metadata());
   }
 
   public static <EV> LirCode<EV> translate(
-      IRCode irCode, LirEncodingStrategy<Value, EV> strategy, DexItemFactory factory) {
-    return new IR2LirConverter<>(factory, irCode, strategy).internalTranslate();
+      IRCode irCode, LirEncodingStrategy<Value, EV> strategy, InternalOptions options) {
+    return new IR2LirConverter<>(options, irCode, strategy).internalTranslate();
   }
 
   private void recordBlock(BasicBlock block, int blockIndex) {

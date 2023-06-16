@@ -2077,10 +2077,24 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
 
   public static class TestingOptions {
 
+    public boolean roundtripThroughLir = false;
+    private boolean useLir = false;
+
+    public void enableLir() {
+      useLir = true;
+    }
+
+    public void disableLir() {
+      useLir = false;
+    }
+
+    public boolean canUseLir(AppView<?> appView) {
+      return useLir && appView.enableWholeProgramOptimizations();
+    }
+
     // If false, use the desugared library implementation when desugared library is enabled.
     public boolean alwaysBackportListSetMapMethods = true;
     public boolean neverReuseCfLocalRegisters = false;
-    public boolean roundtripThroughLir = false;
     public boolean checkReceiverAlwaysNullInCallSiteOptimization = true;
     public boolean forceInlineAPIConversions = false;
     public boolean ignoreValueNumbering = false;

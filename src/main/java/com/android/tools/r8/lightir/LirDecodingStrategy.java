@@ -6,12 +6,23 @@ package com.android.tools.r8.lightir;
 import com.android.tools.r8.graph.DebugLocalInfo;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.code.BasicBlock;
+import com.android.tools.r8.ir.code.NumberGenerator;
 import com.android.tools.r8.ir.code.Phi;
 import java.util.function.Function;
 import java.util.function.IntFunction;
 
 /** Abstraction for how to decode SSA values (and basic blocks) when reading LIR. */
 public abstract class LirDecodingStrategy<V, EV> {
+
+  private final NumberGenerator valueNumberGenerator;
+
+  public LirDecodingStrategy(NumberGenerator valueNumberGenerator) {
+    this.valueNumberGenerator = valueNumberGenerator;
+  }
+
+  public final int getValueNumber(int encodedValueIndex) {
+    return valueNumberGenerator == null ? encodedValueIndex : valueNumberGenerator.next();
+  }
 
   public abstract V getValue(EV encodedValue, LirStrategyInfo<EV> strategyInfo);
 

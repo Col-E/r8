@@ -136,7 +136,7 @@ class ClassInlinerCostAnalysis {
           break;
 
         case RETURN:
-          // Wil not materialize after class inlining.
+          // Will not materialize after class inlining.
           if (appView.options().isGeneratingClassFiles()) {
             result++;
           } else {

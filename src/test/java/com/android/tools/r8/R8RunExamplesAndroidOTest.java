@@ -132,10 +132,11 @@ public class R8RunExamplesAndroidOTest extends RunExamplesAndroidOTest<R8Command
         .run();
 
     test("lambdadesugaring", "lambdadesugaring", "LambdaDesugaring")
+        .withOptionConsumer(o -> o.testing.enableLir())
         .withMinApiLevel(ToolHelper.getMinApiLevelForDexVmNoHigherThan(AndroidApiLevel.K))
         .withBuilderTransformation(
             b -> b.addProguardConfiguration(PROGUARD_OPTIONS, Origin.unknown()))
-        .withDexCheck(inspector -> checkLambdaCount(inspector, 3, "lambdadesugaring"))
+        .withDexCheck(inspector -> checkLambdaCount(inspector, 1, "lambdadesugaring"))
         .run();
   }
 
@@ -172,9 +173,10 @@ public class R8RunExamplesAndroidOTest extends RunExamplesAndroidOTest<R8Command
 
     test("lambdadesugaring", "lambdadesugaring", "LambdaDesugaring")
         .withMinApiLevel(AndroidApiLevel.N)
+        .withOptionConsumer(opts -> opts.testing.enableLir())
         .withBuilderTransformation(
             b -> b.addProguardConfiguration(PROGUARD_OPTIONS, Origin.unknown()))
-        .withDexCheck(inspector -> checkLambdaCount(inspector, 3, "lambdadesugaring"))
+        .withDexCheck(inspector -> checkLambdaCount(inspector, 1, "lambdadesugaring"))
         .run();
   }
 

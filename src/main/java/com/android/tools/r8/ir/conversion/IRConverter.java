@@ -616,12 +616,14 @@ public class IRConverter {
 
     assertionsRewriter.run(method, code, deadCodeRemover, timing);
     CheckNotNullConverter.runIfNecessary(appView, code);
+    previous = printMethod(code, "IR after disable assertions (SSA)", previous);
 
     if (serviceLoaderRewriter != null) {
       assert appView.appInfo().hasLiveness();
       timing.begin("Rewrite service loaders");
       serviceLoaderRewriter.rewrite(code, methodProcessor, methodProcessingContext);
       timing.end();
+      previous = printMethod(code, "IR after service rewriting (SSA)", previous);
     }
 
     if (identifierNameStringMarker != null) {
@@ -629,12 +631,14 @@ public class IRConverter {
       identifierNameStringMarker.decoupleIdentifierNameStringsInMethod(code);
       timing.end();
       assert code.isConsistentSSA(appView);
+      previous = printMethod(code, "IR after identifier-name strings (SSA)", previous);
     }
 
     if (memberValuePropagation != null) {
       timing.begin("Propagate member values");
       memberValuePropagation.run(code);
       timing.end();
+      previous = printMethod(code, "IR after member-value propagation (SSA)", previous);
     }
 
     if (enumValueOptimizer != null) {
@@ -642,15 +646,15 @@ public class IRConverter {
       timing.begin("Remove switch maps");
       enumValueOptimizer.removeSwitchMaps(code);
       timing.end();
+      previous = printMethod(code, "IR after enum-value optimization (SSA)", previous);
     }
 
     if (instanceInitializerOutliner != null) {
       instanceInitializerOutliner.rewriteInstanceInitializers(
           code, context, methodProcessor, methodProcessingContext);
       assert code.verifyTypes(appView);
+      previous = printMethod(code, "IR after instance initializer outlining (SSA)", previous);
     }
-
-    previous = printMethod(code, "IR after disable assertions (SSA)", previous);
 
     // Update the IR code if collected call site optimization info has something useful.
     // While aggregation of parameter information at call sites would be more precise than static
@@ -1061,7 +1065,11 @@ public class IRConverter {
     if (options.testing.roundtripThroughLir) {
       code = roundtripThroughLir(code, feedback, bytecodeMetadataProvider, timing);
     }
-    if (options.isGeneratingClassFiles()) {
+    if (options.testing.canUseLir(appView)) {
+      timing.begin("IR->LIR");
+      finalizeToLir(code, feedback, bytecodeMetadataProvider, timing);
+      timing.end();
+    } else if (options.isGeneratingClassFiles()) {
       timing.begin("IR->CF");
       finalizeToCf(code, feedback, bytecodeMetadataProvider, timing);
       timing.end();
@@ -1101,7 +1109,7 @@ public class IRConverter {
       IRCode code, S strategy, String name, Timing timing) {
     timing.begin("IR->LIR (" + name + ")");
     LirCode<EV> lirCode =
-        IR2LirConverter.translate(code, strategy.getEncodingStrategy(), appView.dexItemFactory());
+        IR2LirConverter.translate(code, strategy.getEncodingStrategy(), appView.options());
     timing.end();
     // Check that printing does not fail.
     String lirString = lirCode.toString();
@@ -1109,9 +1117,24 @@ public class IRConverter {
     timing.begin("LIR->IR (" + name + ")");
     IRCode irCode =
         Lir2IRConverter.translate(
-            code.context(), lirCode, strategy.getDecodingStrategy(lirCode), appView);
+            code.context(), lirCode, strategy.getDecodingStrategy(lirCode, null), appView);
     timing.end();
     return irCode;
+  }
+
+  private void finalizeToLir(
+      IRCode code,
+      OptimizationFeedback feedback,
+      BytecodeMetadataProvider bytecodeMetadataProvider,
+      Timing timing) {
+    assert deadCodeRemover.verifyNoDeadCode(code);
+    assert BytecodeMetadataProvider.empty() == bytecodeMetadataProvider;
+    LirCode<Integer> lirCode =
+        IR2LirConverter.translate(
+            code, LirStrategy.getDefaultStrategy().getEncodingStrategy(), appView.options());
+    ProgramMethod method = code.context();
+    method.setCode(lirCode, appView);
+    markProcessed(code, feedback);
   }
 
   private void finalizeToCf(
@@ -1249,6 +1272,34 @@ public class IRConverter {
     outliner.onMethodCodePruned(method);
     if (inliner != null) {
       inliner.onMethodCodePruned(method);
+    }
+  }
+
+  public void finalizeLirMethodToOutputFormat(ProgramMethod method) {
+    Code code = method.getDefinition().getCode();
+    if (!(code instanceof LirCode)) {
+      return;
+    }
+    Timing onThreadTiming = Timing.empty();
+    IRCode irCode = method.buildIR(appView);
+    BytecodeMetadataProvider bytecodeMetadataProvider =
+        FieldAccessAnalysis.computeBytecodeMetadata(irCode, appView.withLiveness());
+    // During processing optimization info may cause previously live code to become dead.
+    // E.g., we may now have knowledge that an invoke does not have side effects.
+    // Thus, we re-run the dead-code remover now as it is assumed complete by CF/DEX finalization.
+    deadCodeRemover.run(irCode, onThreadTiming);
+    if (options.isGeneratingClassFiles()) {
+      method.setCode(
+          new IRToCfFinalizer(appView, deadCodeRemover)
+              .finalizeCode(irCode, bytecodeMetadataProvider, onThreadTiming),
+          appView);
+    } else {
+      assert options.isGeneratingDex();
+      method.setCode(
+          new IRToDexFinalizer(appView, deadCodeRemover)
+              .finalizeCode(irCode, bytecodeMetadataProvider, onThreadTiming),
+          appView);
+      updateHighestSortingStrings(method.getDefinition());
     }
   }
 }

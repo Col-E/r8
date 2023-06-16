@@ -15,6 +15,7 @@ import com.android.tools.r8.ir.code.NumberGenerator;
 import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.code.Position.PositionBuilder;
 import com.android.tools.r8.ir.conversion.MethodConversionOptions.MutableMethodConversionOptions;
+import com.android.tools.r8.lightir.LirCode;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.RetracerForCodePrinting;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceMap;
@@ -147,6 +148,14 @@ public abstract class Code extends CachedHashValueDexItem {
   }
 
   public abstract int estimatedDexCodeSizeUpperBoundInBytes();
+
+  public final boolean isLirCode() {
+    return asLirCode() != null;
+  }
+
+  public LirCode<Integer> asLirCode() {
+    return null;
+  }
 
   public CfCode asCfCode() {
     throw new Unreachable(getClass().getCanonicalName() + ".asCfCode()");

@@ -12,6 +12,7 @@ import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.ir.code.CatchHandlers.CatchHandler;
 import com.android.tools.r8.ir.code.IfType;
 import com.android.tools.r8.ir.code.MemberType;
 import com.android.tools.r8.ir.code.NumericType;
@@ -61,7 +62,7 @@ public class LirPrinter<EV> extends LirParsedInstructionCallback<EV> {
   }
 
   private String fmtValueIndex(EV valueIndex) {
-    return valueIndex.toString();
+    return "v" + valueIndex.toString();
   }
 
   private String fmtInsnIndex(int instructionIndex) {
@@ -86,6 +87,22 @@ public class LirPrinter<EV> extends LirParsedInstructionCallback<EV> {
       advanceToNextValueIndex();
     }
     code.forEach(this::onInstructionView);
+    if (code.getTryCatchTable() != null) {
+      builder.append("try-catch-handlers:\n");
+      code.getTryCatchTable()
+          .tryCatchHandlers
+          .forEach(
+              (index, handlers) -> {
+                builder.append(index).append(":\n");
+                for (CatchHandler<Integer> handler : handlers) {
+                  builder
+                      .append(handler.getGuard())
+                      .append(" -> ")
+                      .append(handler.getTarget())
+                      .append('\n');
+                }
+              });
+    }
     return builder.toString();
   }
 

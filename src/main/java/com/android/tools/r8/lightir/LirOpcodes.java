@@ -151,7 +151,7 @@ public interface LirOpcodes {
   // int JSR = 168;
   // int RET = 169;
   int TABLESWITCH = 170;
-  int LOOKUPSWITCH = 171;
+  // int LOOKUPSWITCH = 171;
   // int IRETURN = 172;
   // int LRETURN = 173;
   // int FRETURN = 174;
@@ -447,8 +447,7 @@ public interface LirOpcodes {
         // case RET: return "RET";
       case TABLESWITCH:
         return "TABLESWITCH";
-      case LOOKUPSWITCH:
-        return "LOOKUPSWITCH";
+        // case LOOKUPSWITCH:
       case ARETURN:
         return "ARETURN";
       case RETURN:

@@ -37,6 +37,7 @@ import com.android.tools.r8.lightir.LirCode.DebugLocalInfoTable;
 import com.android.tools.r8.lightir.LirCode.PositionEntry;
 import com.android.tools.r8.lightir.LirCode.TryCatchTable;
 import com.android.tools.r8.naming.dexitembasedstring.NameComputationInfo;
+import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.ListUtils;
 import com.google.common.collect.ImmutableList;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceMap;
@@ -60,6 +61,7 @@ public class LirBuilder<V, EV> {
   private static final long DOUBLE_0 = Double.doubleToRawLongBits(0);
   private static final long DOUBLE_1 = Double.doubleToRawLongBits(1);
 
+  private final boolean useDexEstimationStrategy;
   private final DexItemFactory factory;
   private final ByteArrayWriter byteWriter = new ByteArrayWriter();
   private final LirWriter writer = new LirWriter(byteWriter);
@@ -140,8 +142,10 @@ public class LirBuilder<V, EV> {
     }
   }
 
-  public LirBuilder(DexMethod method, LirEncodingStrategy<V, EV> strategy, DexItemFactory factory) {
-    this.factory = factory;
+  public LirBuilder(
+      DexMethod method, LirEncodingStrategy<V, EV> strategy, InternalOptions options) {
+    useDexEstimationStrategy = options.isGeneratingDex();
+    factory = options.dexItemFactory();
     constants = new Reference2IntOpenHashMap<>();
     positionTable = new ArrayList<>();
     this.strategy = strategy;
@@ -174,7 +178,9 @@ public class LirBuilder<V, EV> {
 
   public LirBuilder<V, EV> setCurrentPosition(Position position) {
     assert position != null;
-    currentPosition = position;
+    if (!position.isNone()) {
+      currentPosition = position;
+    }
     return this;
   }
 
@@ -721,7 +727,8 @@ public class LirBuilder<V, EV> {
         instructionCount,
         tryCatchTable,
         debugTable,
-        strategy.getStrategyInfo());
+        strategy.getStrategyInfo(),
+        useDexEstimationStrategy);
   }
 
   private int getCmpOpcode(NumericType type, Cmp.Bias bias) {
