@@ -10,10 +10,18 @@ import org.gradle.api.tasks.Exec
 import java.io.File
 import java.nio.file.Path
 import java.nio.file.Paths
+import java.net.URI
+
 class DependenciesPlugin: Plugin<Project> {
 
   override fun apply(target: Project) {
-    // Intentionally empty
+    val dependenciesPath = "file:" +
+      "${target.getRoot().resolve("third_party").resolve("dependencies").getAbsolutePath()}"
+    val dependenciesNewPath = "file:" +
+      "${target.getRoot().resolve("third_party").resolve("dependencies_new").getAbsolutePath()}"
+    val repositories = target.getRepositories()
+    repositories.maven { name = "LOCAL_MAVEN_REPO";  url = URI(dependenciesPath) }
+    repositories.maven { name = "LOCAL_MAVEN_REPO_NEW";  url = URI(dependenciesNewPath) }
   }
 }
 
