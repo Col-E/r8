@@ -5,10 +5,10 @@
 package com.android.tools.r8.ir.conversion.passes;
 
 import com.android.tools.r8.errors.Unreachable;
-import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClassAndMethod;
+import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.analysis.type.TypeAnalysis;
@@ -32,7 +32,6 @@ import com.android.tools.r8.ir.code.Phi;
 import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.code.Throw;
 import com.android.tools.r8.ir.code.Value;
-import com.android.tools.r8.ir.conversion.passes.result.CodeRewriterResult;
 import com.android.tools.r8.ir.optimize.info.MethodOptimizationInfo;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Sets;
@@ -41,41 +40,18 @@ import java.util.List;
 import java.util.ListIterator;
 import java.util.Set;
 
-public class ThrowCatchOptimizer extends CodeRewriterPass<AppInfo> {
+public class ThrowCatchOptimizer {
 
-  private final boolean rewriteThrowNull;
-
-  public ThrowCatchOptimizer(AppView<?> appView, boolean isDebug) {
-    super(appView);
-    this.rewriteThrowNull = !isDebug;
-  }
+  private final AppView<?> appView;
+  private final DexItemFactory dexItemFactory;
 
   public ThrowCatchOptimizer(AppView<?> appView) {
-    super(appView);
-    this.rewriteThrowNull = false;
-  }
-
-  @Override
-  protected String getTimingId() {
-    return "ThrowCatchOptimizer";
-  }
-
-  @Override
-  protected boolean shouldRewriteCode(IRCode code) {
-    return true;
-  }
-
-  @Override
-  protected CodeRewriterResult rewriteCode(IRCode code) {
-    optimizeAlwaysThrowingInstructions(code);
-    if (rewriteThrowNull) {
-      rewriteThrowNullPointerException(code);
-    }
-    return CodeRewriterResult.NONE;
+    this.appView = appView;
+    this.dexItemFactory = appView.dexItemFactory();
   }
 
   // Rewrite 'throw new NullPointerException()' to 'throw null'.
-  private void rewriteThrowNullPointerException(IRCode code) {
+  public void rewriteThrowNullPointerException(IRCode code) {
     boolean shouldRemoveUnreachableBlocks = false;
     for (BasicBlock block : code.blocks) {
       InstructionListIterator it = block.listIterator(code);
@@ -88,7 +64,7 @@ public class ThrowCatchOptimizer extends CodeRewriterPass<AppInfo> {
           if (appView
               .dexItemFactory()
               .objectsMethods
-              .isRequireNonNullMethod(code.context().getReference())) {
+              .isRequireNonNullMethod(code.method().getReference())) {
             continue;
           }
 
@@ -216,7 +192,7 @@ public class ThrowCatchOptimizer extends CodeRewriterPass<AppInfo> {
   // Find all instructions that always throw, split the block after each such instruction and follow
   // it with a block throwing a null value (which should result in NPE). Note that this throw is not
   // expected to be ever reached, but is intended to satisfy verifier.
-  private void optimizeAlwaysThrowingInstructions(IRCode code) {
+  public void optimizeAlwaysThrowingInstructions(IRCode code) {
     Set<Value> affectedValues = Sets.newIdentityHashSet();
     Set<BasicBlock> blocksToRemove = Sets.newIdentityHashSet();
     ListIterator<BasicBlock> blockIterator = code.listIterator();

@@ -4,10 +4,6 @@
 
 package com.android.tools.r8.ir.conversion.passes;
 
-import static com.android.tools.r8.ir.conversion.passes.BranchSimplifier.ControlFlowSimplificationResult.NO_CHANGE;
-import static com.android.tools.r8.ir.conversion.passes.BranchSimplifier.ControlFlowSimplificationResult.create;
-
-import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedField;
@@ -39,10 +35,10 @@ import com.android.tools.r8.ir.code.Switch;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.code.ValueType;
 import com.android.tools.r8.ir.code.Xor;
-import com.android.tools.r8.ir.conversion.passes.result.CodeRewriterResult;
 import com.android.tools.r8.ir.optimize.controlflow.SwitchCaseAnalyzer;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.BooleanUtils;
+import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.InternalOutputMode;
 import com.android.tools.r8.utils.LongInterval;
 import com.google.common.collect.ImmutableList;
@@ -63,36 +59,23 @@ import java.util.ListIterator;
 import java.util.PriorityQueue;
 import java.util.Set;
 
-public class BranchSimplifier extends CodeRewriterPass<AppInfo> {
+public class BranchSimplifier {
+
+  private final AppView<?> appView;
+  private final InternalOptions options;
 
   public BranchSimplifier(AppView<?> appView) {
-    super(appView);
+    this.appView = appView;
+    this.options = appView.options();
   }
 
-  @Override
-  protected String getTimingId() {
-    return "BranchSimplifier";
+  public boolean simplifyBranches(IRCode code) {
+    boolean anyAffectedValues = rewriteSwitch(code);
+    anyAffectedValues |= simplifyIf(code).anyAffectedValues();
+    return anyAffectedValues;
   }
 
-  @Override
-  protected boolean shouldRewriteCode(IRCode code) {
-    return true;
-  }
-
-  @Override
-  protected CodeRewriterResult rewriteCode(IRCode code) {
-    ControlFlowSimplificationResult switchResult = rewriteSwitch(code);
-    ControlFlowSimplificationResult ifResult = simplifyIf(code);
-    return switchResult.combine(ifResult);
-  }
-
-  public ControlFlowSimplificationResult simplifyBranches(IRCode code) {
-    ControlFlowSimplificationResult switchResult = rewriteSwitch(code);
-    ControlFlowSimplificationResult ifResult = simplifyIf(code);
-    return switchResult.combine(ifResult);
-  }
-
-  private ControlFlowSimplificationResult simplifyIf(IRCode code) {
+  public ControlFlowSimplificationResult simplifyIf(IRCode code) {
     BasicBlockBehavioralSubsumption behavioralSubsumption =
         new BasicBlockBehavioralSubsumption(appView, code);
     boolean simplified = false;
@@ -143,26 +126,10 @@ public class BranchSimplifier extends CodeRewriterPass<AppInfo> {
     }
     code.removeRedundantBlocks();
     assert code.isConsistentSSA(appView);
-    return create(!affectedValues.isEmpty(), simplified);
+    return new ControlFlowSimplificationResult(!affectedValues.isEmpty(), simplified);
   }
 
-  public static class ControlFlowSimplificationResult implements CodeRewriterResult {
-
-    static ControlFlowSimplificationResult create(
-        boolean anyAffectedValues, boolean anySimplifications) {
-      if (anyAffectedValues) {
-        assert anySimplifications;
-        return ALL_CHANGED;
-      }
-      return anySimplifications ? ONLY_SIMPLIFICATIONS : NO_CHANGE;
-    }
-
-    static final ControlFlowSimplificationResult ALL_CHANGED =
-        new ControlFlowSimplificationResult(true, true);
-    static final ControlFlowSimplificationResult ONLY_SIMPLIFICATIONS =
-        new ControlFlowSimplificationResult(false, true);
-    static final ControlFlowSimplificationResult NO_CHANGE =
-        new ControlFlowSimplificationResult(false, false);
+  public static class ControlFlowSimplificationResult {
 
     private final boolean anyAffectedValues;
     private final boolean anySimplifications;
@@ -173,29 +140,12 @@ public class BranchSimplifier extends CodeRewriterPass<AppInfo> {
       this.anySimplifications = anySimplifications;
     }
 
-    @Override
-    public ControlFlowSimplificationResult asControlFlowSimplificationResult() {
-      return this;
-    }
-
     public boolean anyAffectedValues() {
       return anyAffectedValues;
     }
 
     public boolean anySimplifications() {
       return anySimplifications;
-    }
-
-    @Override
-    public boolean hasChanged() {
-      assert !anyAffectedValues || anySimplifications;
-      return anySimplifications();
-    }
-
-    public ControlFlowSimplificationResult combine(ControlFlowSimplificationResult ifResult) {
-      return create(
-          anyAffectedValues || ifResult.anyAffectedValues,
-          anySimplifications || ifResult.anySimplifications);
     }
   }
 
@@ -617,25 +567,22 @@ public class BranchSimplifier extends CodeRewriterPass<AppInfo> {
     return true;
   }
 
-  private ControlFlowSimplificationResult rewriteSwitch(IRCode code) {
+  private boolean rewriteSwitch(IRCode code) {
     return rewriteSwitch(code, SwitchCaseAnalyzer.getInstance());
   }
 
-  private ControlFlowSimplificationResult rewriteSwitch(
-      IRCode code, SwitchCaseAnalyzer switchCaseAnalyzer) {
+  private boolean rewriteSwitch(IRCode code, SwitchCaseAnalyzer switchCaseAnalyzer) {
     if (!options.isSwitchRewritingEnabled()) {
-      return NO_CHANGE;
+      return false;
     }
     if (!code.metadata().mayHaveSwitch()) {
-      return NO_CHANGE;
+      return false;
     }
     return rewriteSwitchFull(code, switchCaseAnalyzer);
   }
 
-  private ControlFlowSimplificationResult rewriteSwitchFull(
-      IRCode code, SwitchCaseAnalyzer switchCaseAnalyzer) {
+  private boolean rewriteSwitchFull(IRCode code, SwitchCaseAnalyzer switchCaseAnalyzer) {
     boolean needToRemoveUnreachableBlocks = false;
-    boolean anySimplifications = false;
     ListIterator<BasicBlock> blocksIterator = code.listIterator();
     while (blocksIterator.hasNext()) {
       BasicBlock block = blocksIterator.next();
@@ -647,7 +594,6 @@ public class BranchSimplifier extends CodeRewriterPass<AppInfo> {
           if (options.testing.enableDeadSwitchCaseElimination) {
             SwitchCaseEliminator eliminator =
                 removeUnnecessarySwitchCases(code, theSwitch, iterator, switchCaseAnalyzer);
-            anySimplifications |= eliminator.canBeOptimized();
             if (eliminator.mayHaveIntroducedUnreachableBlocks()) {
               needToRemoveUnreachableBlocks = true;
             }
@@ -662,8 +608,7 @@ public class BranchSimplifier extends CodeRewriterPass<AppInfo> {
             theSwitch = instruction.asSwitch();
           }
           if (theSwitch.isIntSwitch()) {
-            anySimplifications |=
-                rewriteIntSwitch(code, blocksIterator, block, iterator, theSwitch.asIntSwitch());
+            rewriteIntSwitch(code, blocksIterator, block, iterator, theSwitch.asIntSwitch());
           }
         }
       }
@@ -676,13 +621,12 @@ public class BranchSimplifier extends CodeRewriterPass<AppInfo> {
 
     Set<Value> affectedValues =
         needToRemoveUnreachableBlocks ? code.removeUnreachableBlocks() : ImmutableSet.of();
-    boolean anyAffectedValues = !affectedValues.isEmpty();
-    if (anyAffectedValues) {
+    if (!affectedValues.isEmpty()) {
       new TypeAnalysis(appView).narrowing(affectedValues);
     }
     code.removeRedundantBlocks();
     assert code.isConsistentSSA(appView);
-    return create(anyAffectedValues, anySimplifications);
+    return !affectedValues.isEmpty();
   }
 
   public void rewriteSingleKeySwitchToIf(
@@ -708,19 +652,19 @@ public class BranchSimplifier extends CodeRewriterPass<AppInfo> {
     iterator.replaceCurrentInstruction(replacement);
   }
 
-  private boolean rewriteIntSwitch(
+  private void rewriteIntSwitch(
       IRCode code,
       ListIterator<BasicBlock> blockIterator,
       BasicBlock block,
       InstructionListIterator iterator,
       IntSwitch theSwitch) {
     if (disableSwitchToIfRewritingForClassIdComparisons(theSwitch)) {
-      return false;
+      return;
     }
 
     if (theSwitch.numberOfKeys() == 1) {
       rewriteSingleKeySwitchToIf(code, block, iterator, theSwitch);
-      return true;
+      return;
     }
 
     // If there are more than 1 key, we use the following algorithm to find keys to combine.
@@ -809,9 +753,7 @@ public class BranchSimplifier extends CodeRewriterPass<AppInfo> {
     if (newSwitchesSize + outliersAsIfSize + codeUnitMargin() < currentSize) {
       convertSwitchToSwitchAndIfs(
           code, blockIterator, block, iterator, theSwitch, newSwitchSequences, outliers);
-      return true;
     }
-    return false;
   }
 
   // TODO(b/181732463): We currently disable switch-to-if rewritings for switches on $r8$classId

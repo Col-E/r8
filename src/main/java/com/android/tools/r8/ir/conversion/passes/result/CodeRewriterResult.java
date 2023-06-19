@@ -5,7 +5,6 @@
 package com.android.tools.r8.ir.conversion.passes.result;
 
 import com.android.tools.r8.errors.Unreachable;
-import com.android.tools.r8.ir.conversion.passes.BranchSimplifier.ControlFlowSimplificationResult;
 
 public interface CodeRewriterResult {
 
@@ -38,8 +37,4 @@ public interface CodeRewriterResult {
   }
 
   boolean hasChanged();
-
-  default ControlFlowSimplificationResult asControlFlowSimplificationResult() {
-    throw new Unreachable("Not a control flow simplification result.");
-  }
 }
