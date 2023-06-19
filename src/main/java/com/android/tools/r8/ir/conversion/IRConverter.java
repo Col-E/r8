@@ -1048,6 +1048,7 @@ public class IRConverter {
     if (stringSwitchRemover != null) {
       stringSwitchRemover.run(code);
     }
+    code.removeRedundantBlocks();
     deadCodeRemover.run(code, timing);
     finalizeIR(
         code,
