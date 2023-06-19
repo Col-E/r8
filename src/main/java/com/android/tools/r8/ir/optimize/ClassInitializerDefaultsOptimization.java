@@ -301,6 +301,9 @@ public class ClassInitializerDefaultsOptimization {
       fieldsWithStaticValues.forEach(DexEncodedField::setStaticValue);
     }
 
+    if (!fieldsWithStaticValues.isEmpty()) {
+      code.removeRedundantBlocks();
+    }
     return new ClassInitializerDefaultsResult(fieldsWithStaticValues);
   }
 
