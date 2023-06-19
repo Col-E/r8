@@ -16,11 +16,12 @@ import java.io.InputStream;
 @Keep
 public interface AndroidResourceInput extends Resource {
   enum Kind {
-    // The AndroidManifest.xml file.
+    // The AndroidManifest.xml file in proto format.
     MANIFEST,
-    // The resource table, in either binary or proto format.
+    // The resource table, in proto format.
     RESOURCE_TABLE,
-    // An xml file within the res folder.
+    // An xml file within the res folder, in proto format if not inside res/raw, otherwise
+    // in UTF-8 format.
     XML_FILE,
     // Any other binary file withing the res folder.
     RES_FOLDER_FILE
