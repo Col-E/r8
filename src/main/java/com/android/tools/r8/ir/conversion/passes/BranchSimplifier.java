@@ -173,6 +173,7 @@ public class BranchSimplifier extends CodeRewriterPass<AppInfo> {
       this.anySimplifications = anySimplifications;
     }
 
+    @Override
     public ControlFlowSimplificationResult asControlFlowSimplificationResult() {
       return this;
     }
