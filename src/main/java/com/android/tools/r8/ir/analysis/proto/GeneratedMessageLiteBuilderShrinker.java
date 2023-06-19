@@ -346,7 +346,6 @@ public class GeneratedMessageLiteBuilderShrinker {
   public void inlineCallsToDynamicMethod(
       ProgramMethod method,
       IRCode code,
-      EnumValueOptimizer enumValueOptimizer,
       OptimizationFeedback feedback,
       MethodProcessor methodProcessor,
       Inliner inliner) {
@@ -359,9 +358,7 @@ public class GeneratedMessageLiteBuilderShrinker {
 
     // Run the enum optimization to optimize all Enum.ordinal() invocations. This is required to
     // get rid of the enum switch in dynamicMethod().
-    if (enumValueOptimizer != null) {
-      enumValueOptimizer.run(code, Timing.empty());
-    }
+    new EnumValueOptimizer(appView).run(code, Timing.empty());
   }
 
   /**

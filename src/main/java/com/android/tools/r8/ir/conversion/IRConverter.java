@@ -126,8 +126,6 @@ public class IRConverter {
   private final ClassInliner classInliner;
   protected final InternalOptions options;
   public final CodeRewriter codeRewriter;
-  public final CommonSubexpressionElimination commonSubexpressionElimination;
-  private final SplitBranch splitBranch;
   public AssertionErrorTwoArgsConstructorRewriter assertionErrorTwoArgsConstructorRewriter;
   public final MemberValuePropagation<?> memberValuePropagation;
   private final LensCodeRewriter lensCodeRewriter;
@@ -138,8 +136,6 @@ public class IRConverter {
   private final StringSwitchRemover stringSwitchRemover;
   private final TypeChecker typeChecker;
   protected ServiceLoaderRewriter serviceLoaderRewriter;
-  private final EnumValueOptimizer enumValueOptimizer;
-  private final BinopRewriter binopRewriter;
   protected final EnumUnboxer enumUnboxer;
   protected InstanceInitializerOutliner instanceInitializerOutliner;
   protected final RemoveVerificationErrorForUnknownReturnedValues
@@ -178,8 +174,6 @@ public class IRConverter {
     this.appView = appView;
     this.options = appView.options();
     this.codeRewriter = new CodeRewriter(appView);
-    this.commonSubexpressionElimination = new CommonSubexpressionElimination(appView);
-    this.splitBranch = new SplitBranch(appView);
     this.assertionErrorTwoArgsConstructorRewriter =
         appView.options().desugarState.isOn()
             ? new AssertionErrorTwoArgsConstructorRewriter(appView)
@@ -229,8 +223,6 @@ public class IRConverter {
       this.stringSwitchRemover = null;
       this.serviceLoaderRewriter = null;
       this.methodOptimizationInfoCollector = null;
-      this.enumValueOptimizer = null;
-      this.binopRewriter = null;
       this.enumUnboxer = EnumUnboxer.empty();
       this.assumeInserter = null;
       this.instanceInitializerOutliner = null;
@@ -291,12 +283,6 @@ public class IRConverter {
           options.enableServiceLoaderRewriting
               ? new ServiceLoaderRewriter(appViewWithLiveness, appView.apiLevelCompute())
               : null;
-      this.enumValueOptimizer =
-          options.enableEnumValueOptimization ? new EnumValueOptimizer(appViewWithLiveness) : null;
-      this.binopRewriter =
-          options.testing.enableBinopOptimization && !options.debug
-              ? new BinopRewriter(appView)
-              : null;
     } else {
       AppView<AppInfo> appViewWithoutClassHierarchy = appView.withoutClassHierarchy();
       this.assumeInserter = null;
@@ -316,8 +302,6 @@ public class IRConverter {
       this.typeChecker = null;
       this.serviceLoaderRewriter = null;
       this.methodOptimizationInfoCollector = null;
-      this.enumValueOptimizer = null;
-      this.binopRewriter = null;
       this.enumUnboxer = EnumUnboxer.empty();
     }
     this.stringSwitchRemover =
@@ -663,13 +647,10 @@ public class IRConverter {
       previous = printMethod(code, "IR after member-value propagation (SSA)", previous);
     }
 
-    if (enumValueOptimizer != null) {
-      assert appView.enableWholeProgramOptimizations();
-      timing.begin("Remove switch maps");
-      enumValueOptimizer.removeSwitchMaps(code);
-      timing.end();
-      previous = printMethod(code, "IR after enum-value optimization (SSA)", previous);
-    }
+    timing.begin("Remove switch maps");
+    new EnumValueOptimizer(appView).removeSwitchMaps(code);
+    timing.end();
+    previous = printMethod(code, "IR after enum-switch optimization (SSA)", previous);
 
     if (instanceInitializerOutliner != null) {
       instanceInitializerOutliner.rewriteInstanceInitializers(
@@ -759,30 +740,24 @@ public class IRConverter {
 
     assert code.verifyTypes(appView);
 
-    new TrivialCheckCastAndInstanceOfRemover(appView)
-        .run(code, methodProcessor, methodProcessingContext, timing);
-
-    if (enumValueOptimizer != null) {
-      assert appView.enableWholeProgramOptimizations();
-      enumValueOptimizer.run(code, timing);
-    }
-
-    new KnownArrayLengthRewriter(appView).run(code, timing);
-    new NaturalIntLoopRemover(appView).run(code, timing);
     if (assertionErrorTwoArgsConstructorRewriter != null) {
       timing.begin("Rewrite AssertionError");
       assertionErrorTwoArgsConstructorRewriter.rewrite(
           code, methodProcessor, methodProcessingContext);
       timing.end();
     }
-    commonSubexpressionElimination.run(code, timing);
+
+    new TrivialCheckCastAndInstanceOfRemover(appView)
+        .run(code, methodProcessor, methodProcessingContext, timing);
+    new EnumValueOptimizer(appView).run(code, timing);
+    new KnownArrayLengthRewriter(appView).run(code, timing);
+    new NaturalIntLoopRemover(appView).run(code, timing);
+    new CommonSubexpressionElimination(appView).run(code, timing);
     new ArrayConstructionSimplifier(appView).run(code, timing);
     new MoveResultRewriter(appView).run(code, timing);
-    if (options.enableStringConcatenationOptimization && !isDebugMode) {
-      new StringBuilderAppendOptimizer(appView).run(code, timing);
-    }
+    new StringBuilderAppendOptimizer(appView).run(code, timing);
     new SparseConditionalConstantPropagation(appView, code).run(code, timing);
-    new ThrowCatchOptimizer(appView, isDebugMode).run(code, timing);
+    new ThrowCatchOptimizer(appView).run(code, timing);
     if (new BranchSimplifier(appView)
         .run(code, timing)
         .asControlFlowSimplificationResult()
@@ -790,20 +765,14 @@ public class IRConverter {
       new TrivialCheckCastAndInstanceOfRemover(appView)
           .run(code, methodProcessor, methodProcessingContext, timing);
     }
-    splitBranch.run(code, timing);
+    new SplitBranch(appView).run(code, timing);
     new RedundantConstNumberRemover(appView).run(code, timing);
     if (RedundantFieldLoadAndStoreElimination.shouldRun(appView, code)) {
       timing.begin("Remove field loads");
       new RedundantFieldLoadAndStoreElimination(appView, code).run();
       timing.end();
     }
-    if (binopRewriter != null) {
-      binopRewriter.run(code, timing);
-    }
-
-    if (options.testing.invertConditionals) {
-      invertConditionalsForTesting(code);
-    }
+    new BinopRewriter(appView).run(code, timing);
 
     timing.begin("Optimize class initializers");
     ClassInitializerDefaultsResult classInitializerDefaultsResult =
@@ -816,6 +785,10 @@ public class IRConverter {
     // dead code which is removed right before register allocation in performRegisterAllocation.
     deadCodeRemover.run(code, timing);
     assert code.isConsistentSSA(appView);
+
+    if (options.testing.invertConditionals) {
+      invertConditionalsForTesting(code);
+    }
 
     previous = printMethod(code, "IR after dead code removal (SSA)", previous);
 
@@ -831,7 +804,6 @@ public class IRConverter {
       classInliner.processMethodCode(
           appView.withLiveness(),
           stringOptimizer,
-          enumValueOptimizer,
           code.context(),
           code,
           feedback,

@@ -43,16 +43,8 @@ import java.util.Set;
 
 public class ThrowCatchOptimizer extends CodeRewriterPass<AppInfo> {
 
-  private final boolean rewriteThrowNull;
-
-  public ThrowCatchOptimizer(AppView<?> appView, boolean isDebug) {
-    super(appView);
-    this.rewriteThrowNull = !isDebug;
-  }
-
   public ThrowCatchOptimizer(AppView<?> appView) {
     super(appView);
-    this.rewriteThrowNull = false;
   }
 
   @Override
@@ -68,7 +60,7 @@ public class ThrowCatchOptimizer extends CodeRewriterPass<AppInfo> {
   @Override
   protected CodeRewriterResult rewriteCode(IRCode code) {
     optimizeAlwaysThrowingInstructions(code);
-    if (rewriteThrowNull) {
+    if (!isDebugMode(code.context())) {
       rewriteThrowNullPointerException(code);
     }
     return CodeRewriterResult.NONE;

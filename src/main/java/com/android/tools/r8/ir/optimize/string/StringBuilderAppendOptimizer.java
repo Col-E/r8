@@ -95,8 +95,10 @@ public class StringBuilderAppendOptimizer extends CodeRewriterPass<AppInfo> {
 
   @Override
   protected boolean shouldRewriteCode(IRCode code) {
-    return code.metadata().mayHaveNewInstance()
-        || code.metadata().mayHaveInvokeMethodWithReceiver();
+    return options.enableStringConcatenationOptimization
+        && !isDebugMode(code.context())
+        && (code.metadata().mayHaveNewInstance()
+            || code.metadata().mayHaveInvokeMethodWithReceiver());
   }
 
   @Override

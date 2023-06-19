@@ -51,7 +51,7 @@ import java.util.Set;
 
 public class EnumValueOptimizer extends CodeRewriterPass<AppInfoWithLiveness> {
 
-  public EnumValueOptimizer(AppView<AppInfoWithLiveness> appView) {
+  public EnumValueOptimizer(AppView<?> appView) {
     super(appView);
   }
 
@@ -62,12 +62,16 @@ public class EnumValueOptimizer extends CodeRewriterPass<AppInfoWithLiveness> {
 
   @Override
   protected CodeRewriterResult rewriteCode(IRCode code) {
+    assert appView.enableWholeProgramOptimizations();
     rewriteConstantEnumMethodCalls(code);
     return CodeRewriterResult.NONE;
   }
 
   @Override
   protected boolean shouldRewriteCode(IRCode code) {
+    if (!options.enableEnumValueOptimization || !appView.hasLiveness()) {
+      return false;
+    }
     return code.metadata().mayHaveInvokeMethodWithReceiver();
   }
 
@@ -215,6 +219,10 @@ public class EnumValueOptimizer extends CodeRewriterPass<AppInfoWithLiveness> {
    * </blockquote>
    */
   public void removeSwitchMaps(IRCode code) {
+    if (!options.enableEnumValueOptimization || !appView.hasLiveness()) {
+      return;
+    }
+    assert appView.enableWholeProgramOptimizations();
     Set<Value> affectedValues = Sets.newIdentityHashSet();
     boolean mayHaveIntroducedUnreachableBlocks = false;
     for (BasicBlock block : code.blocks) {

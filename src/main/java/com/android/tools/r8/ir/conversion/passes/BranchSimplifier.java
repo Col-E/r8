@@ -80,6 +80,11 @@ public class BranchSimplifier extends CodeRewriterPass<AppInfo> {
   }
 
   @Override
+  protected CodeRewriterResult noChange() {
+    return NO_CHANGE;
+  }
+
+  @Override
   protected CodeRewriterResult rewriteCode(IRCode code) {
     ControlFlowSimplificationResult switchResult = rewriteSwitch(code);
     ControlFlowSimplificationResult ifResult = simplifyIf(code);
