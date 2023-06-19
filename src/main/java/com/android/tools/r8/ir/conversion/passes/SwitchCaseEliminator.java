@@ -45,7 +45,7 @@ class SwitchCaseEliminator {
         && switchCasesToBeRemoved.size() == theSwitch.numberOfKeys();
   }
 
-  private boolean canBeOptimized() {
+  boolean canBeOptimized() {
     assert switchCasesToBeRemoved == null || !switchCasesToBeRemoved.isEmpty();
     return switchCasesToBeRemoved != null || hasAlwaysHitCase() || !isFallthroughLive();
   }
@@ -96,7 +96,7 @@ class SwitchCaseEliminator {
     liveFallthrough = false;
   }
 
-  boolean optimize() {
+  void optimize() {
     if (canBeOptimized()) {
       int originalNumberOfSuccessors = block.getSuccessors().size();
       IntList removedSuccessorIndices = unlinkDeadSuccessors();
@@ -107,9 +107,7 @@ class SwitchCaseEliminator {
         // Replace switch by a new switch where the dead switch cases have been removed.
         replaceSwitchByOptimizedSwitch(originalNumberOfSuccessors, removedSuccessorIndices);
       }
-      return true;
     }
-    return false;
   }
 
   private IntList unlinkDeadSuccessors() {
