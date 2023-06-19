@@ -312,7 +312,8 @@ r8_builder(
   ),
   priority = 25,
   properties = {
-      "test_options" : ["--runtimes=dex-default", "--command_cache_dir=/tmp/ccache"],
+      "test_options" : ["--runtimes=dex-default",
+      "--command_cache_dir=/tmp/ccache"] + common_test_options,
       "builder_group" : "internal.client.r8"
   },
   execution_timeout = time.hour * 6,
