@@ -6,6 +6,7 @@ package com.android.tools.r8.graph;
 import com.android.tools.r8.dex.code.CfOrDexInstanceFieldRead;
 import com.android.tools.r8.dex.code.CfOrDexInstruction;
 import com.android.tools.r8.dex.code.CfOrDexStaticFieldRead;
+import com.android.tools.r8.graph.bytecodemetadata.BytecodeInstructionMetadata;
 import com.android.tools.r8.graph.lens.GraphLens;
 import com.android.tools.r8.ir.code.InvokeType;
 import com.android.tools.r8.utils.TraversalContinuation;
@@ -92,6 +93,11 @@ public abstract class UseRegistry<T extends Definition> {
 
   public abstract void registerInstanceFieldRead(DexField field);
 
+  public void registerInstanceFieldReadWithMetadata(
+      DexField field, BytecodeInstructionMetadata metadata) {
+    registerInstanceFieldRead(field);
+  }
+
   public void registerInstanceFieldReadInstruction(CfOrDexInstanceFieldRead instruction) {
     registerInstanceFieldRead(instruction.getField());
   }
@@ -119,6 +125,11 @@ public abstract class UseRegistry<T extends Definition> {
   }
 
   public abstract void registerStaticFieldRead(DexField field);
+
+  public void registerStaticFieldReadWithMetadata(
+      DexField field, BytecodeInstructionMetadata metadata) {
+    registerStaticFieldRead(field);
+  }
 
   public void registerStaticFieldReadInstruction(CfOrDexStaticFieldRead instruction) {
     registerStaticFieldRead(instruction.getField());

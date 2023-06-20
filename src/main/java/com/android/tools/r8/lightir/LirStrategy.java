@@ -253,6 +253,7 @@ public abstract class LirStrategy<V, EV> {
           }
         }
         this.firstPhiValueIndex = phiValueIndex;
+        reserveValueIndexes(values.length);
       }
 
       private int decode(PhiOrValue encodedValue, LirStrategyInfo<PhiOrValue> strategyInfo) {
@@ -283,6 +284,11 @@ public abstract class LirStrategy<V, EV> {
           values[index] = value;
         }
         return value;
+      }
+
+      @Override
+      Value internalGetFreshUnusedValue(int valueNumber, TypeElement type) {
+        return new Value(valueNumber, type, null);
       }
 
       @Override

@@ -235,7 +235,7 @@ public abstract class Code extends CachedHashValueDexItem {
     return calleePosition.withOutermostCallerPosition(callerPosition);
   }
 
-  public void forEachPosition(Consumer<Position> positionConsumer) {
+  public void forEachPosition(DexMethod method, Consumer<Position> positionConsumer) {
     // Intentionally empty. Override where we have fully build CF or DEX code.
   }
 }

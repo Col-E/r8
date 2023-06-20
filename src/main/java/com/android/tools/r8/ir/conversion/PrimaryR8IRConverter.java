@@ -101,7 +101,6 @@ public class PrimaryR8IRConverter extends IRConverter {
       lastWaveDone(postMethodProcessorBuilder, executorService);
       eventConsumer.finished(appView);
       assert appView.graphLens() == graphLensForPrimaryOptimizationPass;
-      finalizeLirToOutputFormat(timing, executorService);
       timing.end();
     }
 
@@ -178,7 +177,6 @@ public class PrimaryR8IRConverter extends IRConverter {
         eventConsumer.finished(appView);
         assert appView.graphLens() == graphLensForSecondaryOptimizationPass;
       }
-      finalizeLirToOutputFormat(timing, executorService);
       timing.end();
     }
 

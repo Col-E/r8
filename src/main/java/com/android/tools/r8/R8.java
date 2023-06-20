@@ -975,6 +975,7 @@ public class R8 {
   private static boolean verifyOriginalMethodInPosition(
       Code code, DexMethod originalMethod, ProgramMethod context) {
     code.forEachPosition(
+        originalMethod,
         position -> {
           if (position.isOutlineCaller()) {
             // Check the outlined positions for the original method

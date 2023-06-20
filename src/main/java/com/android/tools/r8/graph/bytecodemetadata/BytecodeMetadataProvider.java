@@ -35,6 +35,10 @@ public class BytecodeMetadataProvider {
     return EMPTY;
   }
 
+  public int size() {
+    return backing.size();
+  }
+
   /**
    * Returns the metadata for a given IR instruction that should be attached to the CF or DEX
    * instruction when finalizing the IR to CF or DEX.

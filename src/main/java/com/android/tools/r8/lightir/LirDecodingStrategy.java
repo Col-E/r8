@@ -14,15 +14,40 @@ import java.util.function.IntFunction;
 /** Abstraction for how to decode SSA values (and basic blocks) when reading LIR. */
 public abstract class LirDecodingStrategy<V, EV> {
 
+  private final boolean useValueIndex;
   private final NumberGenerator valueNumberGenerator;
 
   public LirDecodingStrategy(NumberGenerator valueNumberGenerator) {
+    assert valueNumberGenerator != null;
+    this.useValueIndex = valueNumberGenerator.peek() == 0;
     this.valueNumberGenerator = valueNumberGenerator;
   }
 
-  public final int getValueNumber(int encodedValueIndex) {
-    return valueNumberGenerator == null ? encodedValueIndex : valueNumberGenerator.next();
+  void reserveValueIndexes(int valuesCount) {
+    if (useValueIndex) {
+      for (int i = 0; i < valuesCount; i++) {
+        valueNumberGenerator.next();
+      }
+    }
   }
+
+  public NumberGenerator getValueNumberGenerator() {
+    return valueNumberGenerator;
+  }
+
+  public final int getValueNumber(int encodedValueIndex) {
+    if (useValueIndex) {
+      assert encodedValueIndex < valueNumberGenerator.peek();
+      return encodedValueIndex;
+    }
+    return valueNumberGenerator.next();
+  }
+
+  public final V getFreshUnusedValue(TypeElement type) {
+    return internalGetFreshUnusedValue(valueNumberGenerator.next(), type);
+  }
+
+  abstract V internalGetFreshUnusedValue(int valueNumber, TypeElement type);
 
   public abstract V getValue(EV encodedValue, LirStrategyInfo<EV> strategyInfo);
 

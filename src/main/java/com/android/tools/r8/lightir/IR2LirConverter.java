@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.lightir;
 
+import com.android.tools.r8.graph.bytecodemetadata.BytecodeMetadataProvider;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.BasicBlockIterator;
 import com.android.tools.r8.ir.code.CatchHandlers;
@@ -26,20 +27,30 @@ public class IR2LirConverter<EV> {
 
   private final IRCode irCode;
   private final LirEncodingStrategy<Value, EV> strategy;
+  BytecodeMetadataProvider bytecodeMetadataProvider;
   private final LirBuilder<Value, EV> builder;
 
   private IR2LirConverter(
-      InternalOptions options, IRCode irCode, LirEncodingStrategy<Value, EV> strategy) {
+      InternalOptions options,
+      IRCode irCode,
+      LirEncodingStrategy<Value, EV> strategy,
+      BytecodeMetadataProvider bytecodeMetadataProvider) {
     this.irCode = irCode;
     this.strategy = strategy;
+    this.bytecodeMetadataProvider = bytecodeMetadataProvider;
     this.builder =
         new LirBuilder<>(irCode.context().getReference(), strategy, options)
-            .setMetadata(irCode.metadata());
+            .setMetadata(irCode.metadata())
+            .prepareForBytecodeInstructionMetadata(bytecodeMetadataProvider.size());
   }
 
   public static <EV> LirCode<EV> translate(
-      IRCode irCode, LirEncodingStrategy<Value, EV> strategy, InternalOptions options) {
-    return new IR2LirConverter<>(options, irCode, strategy).internalTranslate();
+      IRCode irCode,
+      BytecodeMetadataProvider bytecodeMetadataProvider,
+      LirEncodingStrategy<Value, EV> strategy,
+      InternalOptions options) {
+    return new IR2LirConverter<>(options, irCode, strategy, bytecodeMetadataProvider)
+        .internalTranslate();
   }
 
   private void recordBlock(BasicBlock block, int blockIndex) {
@@ -89,6 +100,7 @@ public class IR2LirConverter<EV> {
         Instruction instruction = it.next();
         assert !instruction.hasOutValue()
             || strategy.verifyValueIndex(instruction.outValue(), currentValueIndex);
+        builder.setCurrentMetadata(bytecodeMetadataProvider.getMetadata(instruction));
         builder.setCurrentPosition(instruction.getPosition());
         if (!instruction.getDebugValues().isEmpty()) {
           builder.setDebugLocalEnds(currentValueIndex, instruction.getDebugValues());

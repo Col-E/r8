@@ -1693,6 +1693,10 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
       if (simpleInliningInstructionLimit >= 0) {
         return simpleInliningInstructionLimit;
       }
+      // Allow 2 instructions when using LIR regardless of backend.
+      if (options.testing.useLir) {
+        return 2;
+      }
       // Allow 3 instructions when generating to class files.
       if (options.isGeneratingClassFiles()) {
         return 3;
@@ -2082,7 +2086,7 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
   public static class TestingOptions {
 
     public boolean roundtripThroughLir = false;
-    private boolean useLir = false;
+    private boolean useLir = System.getProperty("com.android.tools.r8.uselir") != null;
 
     public void enableLir() {
       useLir = true;

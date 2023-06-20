@@ -13,16 +13,22 @@ import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.UseRegistry;
 import com.android.tools.r8.graph.UseRegistry.MethodHandleUse;
+import com.android.tools.r8.graph.bytecodemetadata.BytecodeInstructionMetadata;
 import com.android.tools.r8.naming.dexitembasedstring.NameComputationInfo;
 import java.util.List;
 
 public class LirUseRegistryCallback<EV> extends LirParsedInstructionCallback<EV> {
 
   private final UseRegistry registry;
+  private BytecodeInstructionMetadata currentMetadata;
 
   public LirUseRegistryCallback(LirCode<EV> code, UseRegistry registry) {
     super(code);
     this.registry = registry;
+  }
+
+  public void setCurrentMetadata(BytecodeInstructionMetadata metadata) {
+    currentMetadata = metadata;
   }
 
   @Override
@@ -73,7 +79,7 @@ public class LirUseRegistryCallback<EV> extends LirParsedInstructionCallback<EV>
 
   @Override
   public void onInstanceGet(DexField field, EV object) {
-    registry.registerInstanceFieldRead(field);
+    registry.registerInstanceFieldReadWithMetadata(field, currentMetadata);
   }
 
   @Override
@@ -83,7 +89,7 @@ public class LirUseRegistryCallback<EV> extends LirParsedInstructionCallback<EV>
 
   @Override
   public void onStaticGet(DexField field) {
-    registry.registerStaticFieldRead(field);
+    registry.registerStaticFieldReadWithMetadata(field, currentMetadata);
   }
 
   @Override

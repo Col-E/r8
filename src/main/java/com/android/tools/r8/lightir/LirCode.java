@@ -22,12 +22,12 @@ import com.android.tools.r8.graph.bytecodemetadata.BytecodeInstructionMetadata;
 import com.android.tools.r8.graph.bytecodemetadata.BytecodeMetadata;
 import com.android.tools.r8.graph.lens.GraphLens;
 import com.android.tools.r8.graph.proto.RewrittenPrototypeDescription;
-import com.android.tools.r8.ir.analysis.type.TypeAnalysis;
 import com.android.tools.r8.ir.code.CatchHandlers;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.IRMetadata;
 import com.android.tools.r8.ir.code.NumberGenerator;
 import com.android.tools.r8.ir.code.Position;
+import com.android.tools.r8.ir.code.Position.SourcePosition;
 import com.android.tools.r8.ir.conversion.MethodConversionOptions.MutableMethodConversionOptions;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.InternalOptions;
@@ -41,13 +41,50 @@ import java.util.function.Consumer;
 
 public class LirCode<EV> extends Code implements Iterable<LirInstructionView> {
 
-  public static class PositionEntry {
-    final int fromInstructionIndex;
-    final Position position;
+  public abstract static class PositionEntry {
 
-    public PositionEntry(int fromInstructionIndex, Position position) {
+    private final int fromInstructionIndex;
+
+    PositionEntry(int fromInstructionIndex) {
       this.fromInstructionIndex = fromInstructionIndex;
+    }
+
+    public int getFromInstructionIndex() {
+      return fromInstructionIndex;
+    }
+
+    public abstract Position getPosition(DexMethod method);
+  }
+
+  public static class LinePositionEntry extends PositionEntry {
+    private final int line;
+
+    public LinePositionEntry(int fromInstructionIndex, int line) {
+      super(fromInstructionIndex);
+      this.line = line;
+    }
+
+    public int getLine() {
+      return line;
+    }
+
+    @Override
+    public Position getPosition(DexMethod method) {
+      return SourcePosition.builder().setMethod(method).setLine(line).build();
+    }
+  }
+
+  public static class StructuredPositionEntry extends PositionEntry {
+    private final Position position;
+
+    public StructuredPositionEntry(int fromInstructionIndex, Position position) {
+      super(fromInstructionIndex);
       this.position = position;
+    }
+
+    @Override
+    public Position getPosition(DexMethod method) {
+      return position;
     }
   }
 
@@ -119,6 +156,9 @@ public class LirCode<EV> extends Code implements Iterable<LirInstructionView> {
   /** Table of debug local information for each SSA value (if present). */
   private final DebugLocalInfoTable<EV> debugLocalInfoTable;
 
+  /** Table of metadata for each instruction (if present). */
+  private final Int2ReferenceMap<BytecodeInstructionMetadata> metadataMap;
+
   public static <V, EV> LirBuilder<V, EV> builder(
       DexMethod method, LirEncodingStrategy<V, EV> strategy, InternalOptions options) {
     return new LirBuilder<>(method, strategy, options);
@@ -135,7 +175,8 @@ public class LirCode<EV> extends Code implements Iterable<LirInstructionView> {
       TryCatchTable tryCatchTable,
       DebugLocalInfoTable<EV> debugLocalInfoTable,
       LirStrategyInfo<EV> strategyInfo,
-      boolean useDexEstimationStrategy) {
+      boolean useDexEstimationStrategy,
+      Int2ReferenceMap<BytecodeInstructionMetadata> metadataMap) {
     this.irMetadata = irMetadata;
     this.constants = constants;
     this.positionTable = positions;
@@ -146,6 +187,7 @@ public class LirCode<EV> extends Code implements Iterable<LirInstructionView> {
     this.debugLocalInfoTable = debugLocalInfoTable;
     this.strategyInfo = strategyInfo;
     this.useDexEstimationStrategy = useDexEstimationStrategy;
+    this.metadataMap = metadataMap;
   }
 
   @SuppressWarnings("unchecked")
@@ -238,12 +280,9 @@ public class LirCode<EV> extends Code implements Iterable<LirInstructionView> {
       AppView<?> appView,
       Origin origin,
       MutableMethodConversionOptions conversionOptions) {
-    LirCode<Integer> typedLir = asLirCode();
-    return Lir2IRConverter.translate(
-        method,
-        typedLir,
-        LirStrategy.getDefaultStrategy().getDecodingStrategy(typedLir, null),
-        appView);
+    RewrittenPrototypeDescription protoChanges =
+        appView.graphLens().lookupPrototypeChangesForMethodDefinition(method.getReference());
+    return internalBuildIR(method, appView, new NumberGenerator(), null, protoChanges);
   }
 
   @Override
@@ -259,21 +298,24 @@ public class LirCode<EV> extends Code implements Iterable<LirInstructionView> {
     assert valueNumberGenerator != null;
     assert callerPosition != null;
     assert protoChanges != null;
+    return internalBuildIR(method, appView, valueNumberGenerator, callerPosition, protoChanges);
+  }
+
+  private IRCode internalBuildIR(
+      ProgramMethod method,
+      AppView<?> appView,
+      NumberGenerator valueNumberGenerator,
+      Position callerPosition,
+      RewrittenPrototypeDescription protoChanges) {
     LirCode<Integer> typedLir = asLirCode();
-    IRCode irCode =
-        Lir2IRConverter.translate(
-            method,
-            typedLir,
-            LirStrategy.getDefaultStrategy().getDecodingStrategy(typedLir, valueNumberGenerator),
-            appView,
-            valueNumberGenerator,
-            callerPosition,
-            protoChanges,
-            appView.graphLens().getOriginalMethodSignature(method.getReference()));
-    // TODO(b/225838009): Should we keep track of which code objects need to be narrowed?
-    //   In particular, the encoding of phis does not maintain interfaces.
-    new TypeAnalysis(appView).narrowing(irCode);
-    return irCode;
+    return Lir2IRConverter.translate(
+        method,
+        typedLir,
+        LirStrategy.getDefaultStrategy().getDecodingStrategy(typedLir, valueNumberGenerator),
+        appView,
+        callerPosition,
+        protoChanges,
+        appView.graphLens().getOriginalMethodSignature(method.getReference()));
   }
 
   @Override
@@ -281,6 +323,9 @@ public class LirCode<EV> extends Code implements Iterable<LirInstructionView> {
     assert registry.getTraversalContinuation().shouldContinue();
     LirUseRegistryCallback<EV> registryCallbacks = new LirUseRegistryCallback<>(this, registry);
     for (LirInstructionView view : this) {
+      if (metadataMap != null) {
+        registryCallbacks.setCurrentMetadata(metadataMap.get(view.getInstructionIndex()));
+      }
       registryCallbacks.onInstructionView(view);
       if (registry.getTraversalContinuation().shouldBreak()) {
         return;
@@ -391,9 +436,9 @@ public class LirCode<EV> extends Code implements Iterable<LirInstructionView> {
   }
 
   @Override
-  public void forEachPosition(Consumer<Position> positionConsumer) {
+  public void forEachPosition(DexMethod method, Consumer<Position> positionConsumer) {
     for (PositionEntry entry : positionTable) {
-      positionConsumer.accept(entry.position);
+      positionConsumer.accept(entry.getPosition(method));
     }
   }
 }

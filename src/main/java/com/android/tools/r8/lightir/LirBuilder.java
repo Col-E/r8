@@ -20,6 +20,7 @@ import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.bytecodemetadata.BytecodeInstructionMetadata;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.CatchHandlers;
@@ -34,7 +35,9 @@ import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.code.Position.SyntheticPosition;
 import com.android.tools.r8.ir.code.ValueType;
 import com.android.tools.r8.lightir.LirCode.DebugLocalInfoTable;
+import com.android.tools.r8.lightir.LirCode.LinePositionEntry;
 import com.android.tools.r8.lightir.LirCode.PositionEntry;
+import com.android.tools.r8.lightir.LirCode.StructuredPositionEntry;
 import com.android.tools.r8.lightir.LirCode.TryCatchTable;
 import com.android.tools.r8.naming.dexitembasedstring.NameComputationInfo;
 import com.android.tools.r8.utils.InternalOptions;
@@ -72,6 +75,9 @@ public class LirBuilder<V, EV> {
   private IRMetadata metadata = null;
 
   private final LirEncodingStrategy<V, EV> strategy;
+
+  private BytecodeInstructionMetadata currentMetadata;
+  private Int2ReferenceMap<BytecodeInstructionMetadata> metadataMap;
 
   private Position currentPosition;
   private Position flushedPosition;
@@ -176,6 +182,18 @@ public class LirBuilder<V, EV> {
     tryCatchRanges.put(blockIndex, handlers);
   }
 
+  public LirBuilder<V, EV> prepareForBytecodeInstructionMetadata(int expectedSize) {
+    if (expectedSize > 0) {
+      metadataMap = new Int2ReferenceOpenHashMap<>(expectedSize);
+    }
+    return this;
+  }
+
+  public LirBuilder<V, EV> setCurrentMetadata(BytecodeInstructionMetadata metadata) {
+    currentMetadata = metadata;
+    return this;
+  }
+
   public LirBuilder<V, EV> setCurrentPosition(Position position) {
     assert position != null;
     if (!position.isNone()) {
@@ -184,11 +202,37 @@ public class LirBuilder<V, EV> {
     return this;
   }
 
-  private void setPositionIndex(int instructionIndex, Position position) {
+  private boolean isSimpleLinePosition(Position position) {
+    return (position.isSourcePosition() || position.isSyntheticPosition())
+        && !position.hasCallerPosition();
+  }
+
+  private boolean setPositionIndex(int instructionIndex, Position position) {
     assert positionTable.isEmpty()
-        || ListUtils.last(positionTable).fromInstructionIndex < instructionIndex;
-    assert positionTable.isEmpty() || !ListUtils.last(positionTable).position.equals(position);
-    positionTable.add(new PositionEntry(instructionIndex, position));
+        || ListUtils.last(positionTable).getFromInstructionIndex() < instructionIndex;
+
+    if (!isSimpleLinePosition(position)) {
+      positionTable.add(new StructuredPositionEntry(instructionIndex, position));
+      return true;
+    }
+
+    // Don't emit simple preamble lines in the table.
+    if (positionTable.isEmpty() && position.getLine() == 0) {
+      return false;
+    }
+
+    // Due to source/synthetic lines we may have non-equal positions with the same simple lines.
+    if (!positionTable.isEmpty()) {
+      PositionEntry last = ListUtils.last(positionTable);
+      if (last instanceof LinePositionEntry) {
+        if (((LinePositionEntry) last).getLine() == position.getLine()) {
+          return false;
+        }
+      }
+    }
+
+    positionTable.add(new LinePositionEntry(instructionIndex, position.getLine()));
+    return true;
   }
 
   private int getConstantIndex(DexItem item) {
@@ -269,8 +313,13 @@ public class LirBuilder<V, EV> {
 
   private int advanceInstructionState() {
     if (!currentPosition.equals(flushedPosition)) {
-      setPositionIndex(instructionCount, currentPosition);
-      flushedPosition = currentPosition;
+      if (setPositionIndex(instructionCount, currentPosition)) {
+        flushedPosition = currentPosition;
+      }
+    }
+    if (currentMetadata != null) {
+      metadataMap.put(instructionCount, currentMetadata);
+      currentMetadata = null;
     }
     return instructionCount++;
   }
@@ -728,7 +777,8 @@ public class LirBuilder<V, EV> {
         tryCatchTable,
         debugTable,
         strategy.getStrategyInfo(),
-        useDexEstimationStrategy);
+        useDexEstimationStrategy,
+        metadataMap);
   }
 
   private int getCmpOpcode(NumericType type, Cmp.Bias bias) {

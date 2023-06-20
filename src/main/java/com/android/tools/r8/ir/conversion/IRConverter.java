@@ -16,6 +16,7 @@ import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.bytecodemetadata.BytecodeMetadataProvider;
+import com.android.tools.r8.graph.proto.RewrittenPrototypeDescription;
 import com.android.tools.r8.ir.analysis.TypeChecker;
 import com.android.tools.r8.ir.analysis.VerifyTypesHelper;
 import com.android.tools.r8.ir.analysis.constant.SparseConditionalConstantPropagation;
@@ -26,6 +27,7 @@ import com.android.tools.r8.ir.analysis.fieldvalueanalysis.StaticFieldValues;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.InstructionIterator;
+import com.android.tools.r8.ir.code.NumberGenerator;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.conversion.passes.ArrayConstructionSimplifier;
 import com.android.tools.r8.ir.conversion.passes.BinopRewriter;
@@ -566,6 +568,7 @@ public class IRConverter {
       timing.begin("Lens rewrite");
       lensCodeRewriter.rewrite(code, context, methodProcessor);
       timing.end();
+      previous = printMethod(code, "IR after disable assertions (SSA)", previous);
     }
 
     assert !method.isProcessed() || !isDebugMode
@@ -1098,7 +1101,11 @@ public class IRConverter {
       IRCode code, S strategy, String name, Timing timing) {
     timing.begin("IR->LIR (" + name + ")");
     LirCode<EV> lirCode =
-        IR2LirConverter.translate(code, strategy.getEncodingStrategy(), appView.options());
+        IR2LirConverter.translate(
+            code,
+            BytecodeMetadataProvider.empty(),
+            strategy.getEncodingStrategy(),
+            appView.options());
     timing.end();
     // Check that printing does not fail.
     String lirString = lirCode.toString();
@@ -1106,7 +1113,13 @@ public class IRConverter {
     timing.begin("LIR->IR (" + name + ")");
     IRCode irCode =
         Lir2IRConverter.translate(
-            code.context(), lirCode, strategy.getDecodingStrategy(lirCode, null), appView);
+            code.context(),
+            lirCode,
+            strategy.getDecodingStrategy(lirCode, new NumberGenerator()),
+            appView,
+            null,
+            RewrittenPrototypeDescription.none(),
+            appView.graphLens().getOriginalMethodSignature(code.context().getReference()));
     timing.end();
     return irCode;
   }
@@ -1117,10 +1130,12 @@ public class IRConverter {
       BytecodeMetadataProvider bytecodeMetadataProvider,
       Timing timing) {
     assert deadCodeRemover.verifyNoDeadCode(code);
-    assert BytecodeMetadataProvider.empty() == bytecodeMetadataProvider;
     LirCode<Integer> lirCode =
         IR2LirConverter.translate(
-            code, LirStrategy.getDefaultStrategy().getEncodingStrategy(), appView.options());
+            code,
+            bytecodeMetadataProvider,
+            LirStrategy.getDefaultStrategy().getEncodingStrategy(),
+            appView.options());
     ProgramMethod method = code.context();
     method.setCode(lirCode, appView);
     markProcessed(code, feedback);
@@ -1271,8 +1286,8 @@ public class IRConverter {
     }
     Timing onThreadTiming = Timing.empty();
     IRCode irCode = method.buildIR(appView);
-    BytecodeMetadataProvider bytecodeMetadataProvider =
-        FieldAccessAnalysis.computeBytecodeMetadata(irCode, appView.withLiveness());
+    // Processing is done and no further uses of the meta-data should arise.
+    BytecodeMetadataProvider bytecodeMetadataProvider = BytecodeMetadataProvider.empty();
     // During processing optimization info may cause previously live code to become dead.
     // E.g., we may now have knowledge that an invoke does not have side effects.
     // Thus, we re-run the dead-code remover now as it is assumed complete by CF/DEX finalization.

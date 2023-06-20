@@ -99,6 +99,7 @@ public class PhiInInstructionsStrategy extends LirStrategy<Value, Integer> {
     DecodingStrategy(LirCode<Integer> code, NumberGenerator valueNumberGenerator) {
       super(valueNumberGenerator);
       values = new Value[code.getArgumentCount() + code.getInstructionCount()];
+      reserveValueIndexes(values.length);
     }
 
     @Override
@@ -110,6 +111,11 @@ public class PhiInInstructionsStrategy extends LirStrategy<Value, Integer> {
         values[index] = value;
       }
       return value;
+    }
+
+    @Override
+    Value internalGetFreshUnusedValue(int valueNumber, TypeElement type) {
+      return new Value(valueNumber, type, null);
     }
 
     @Override
