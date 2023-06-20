@@ -38,7 +38,8 @@ public class EnumUnboxNullArgumentTest extends TestBase {
                 .addInnerClasses(getClass())
                 .setMinApi(parameters)
                 .addKeepMainRule(Main.class)
-                .enableInliningAnnotations()
+                // TODO(b/287193321): Using LIR avoids the issue, is it fixed or just hidden?
+                .addOptionsModification(options -> options.testing.disableLir())
                 .compileWithExpectedDiagnostics(
                     diagnostics -> {
                       if (parameters.isDexRuntime()) {

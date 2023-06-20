@@ -86,6 +86,12 @@ public class JavaTimeTest extends DesugaredLibraryTestBase {
         .addKeepMainRule(TestClass.class)
         .enableNoVerticalClassMergingAnnotations()
         .enableInliningAnnotations()
+        .addOptionsModification(
+            options -> {
+              // The check for $default$query relies on inlining.
+              options.testing.enableLir();
+              options.inlinerOptions().simpleInliningInstructionLimit = 5;
+            })
         .compile()
         .inspect(i -> checkRewrittenInvokes(i, compilationSpecification.isProgramShrink()))
         .run(parameters.getRuntime(), TestClass.class)
