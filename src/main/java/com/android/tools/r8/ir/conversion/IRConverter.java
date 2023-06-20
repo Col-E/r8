@@ -38,7 +38,6 @@ import com.android.tools.r8.ir.conversion.passes.KnownArrayLengthRewriter;
 import com.android.tools.r8.ir.conversion.passes.MoveResultRewriter;
 import com.android.tools.r8.ir.conversion.passes.NaturalIntLoopRemover;
 import com.android.tools.r8.ir.conversion.passes.ParentConstructorHoistingCodeRewriter;
-import com.android.tools.r8.ir.conversion.passes.RedundantConstNumberRemover;
 import com.android.tools.r8.ir.conversion.passes.SplitBranch;
 import com.android.tools.r8.ir.conversion.passes.ThrowCatchOptimizer;
 import com.android.tools.r8.ir.conversion.passes.TrivialCheckCastAndInstanceOfRemover;
@@ -764,16 +763,21 @@ public class IRConverter {
       new StringBuilderAppendOptimizer(appView).run(code, timing);
     }
     new SparseConditionalConstantPropagation(appView, code).run(code, timing);
-    new ThrowCatchOptimizer(appView, isDebugMode).run(code, timing);
-    if (new BranchSimplifier(appView)
-        .run(code, timing)
-        .asControlFlowSimplificationResult()
-        .anyAffectedValues()) {
+    timing.begin("Rewrite always throwing instructions");
+    new ThrowCatchOptimizer(appView).optimizeAlwaysThrowingInstructions(code);
+    timing.end();
+    timing.begin("Simplify control flow");
+    if (new BranchSimplifier(appView).simplifyBranches(code)) {
       new TrivialCheckCastAndInstanceOfRemover(appView)
           .run(code, methodProcessor, methodProcessingContext, timing);
     }
+    timing.end();
     splitBranch.run(code, timing);
-    new RedundantConstNumberRemover(appView).run(code, timing);
+    if (options.enableRedundantConstNumberOptimization) {
+      timing.begin("Remove const numbers");
+      codeRewriter.redundantConstNumberRemoval(code);
+      timing.end();
+    }
     if (RedundantFieldLoadAndStoreElimination.shouldRun(appView, code)) {
       timing.begin("Remove field loads");
       new RedundantFieldLoadAndStoreElimination(appView, code).run();
@@ -785,6 +789,13 @@ public class IRConverter {
 
     if (options.testing.invertConditionals) {
       invertConditionalsForTesting(code);
+    }
+
+    if (!isDebugMode) {
+      timing.begin("Rewrite throw NPE");
+      new ThrowCatchOptimizer(appView).rewriteThrowNullPointerException(code);
+      timing.end();
+      previous = printMethod(code, "IR after rewrite throw null (SSA)", previous);
     }
 
     timing.begin("Optimize class initializers");
@@ -926,6 +937,7 @@ public class IRConverter {
 
     // Assert that we do not have unremoved non-sense code in the output, e.g., v <- non-null NULL.
     assert code.verifyNoNullabilityBottomTypes();
+
     assert code.verifyTypes(appView);
 
     previous =

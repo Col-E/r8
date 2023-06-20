@@ -60,15 +60,11 @@ public class DeadCodeRemover {
         removeDeadInstructions(worklist, code, block, valueIsDeadAnalysis);
         removeDeadPhis(worklist, block, valueIsDeadAnalysis);
       }
-    } while (branchSimplifier
-            .simplifyIf(code)
-            .asControlFlowSimplificationResult()
-            .anySimplifications()
+    } while (branchSimplifier.simplifyIf(code).anySimplifications()
         || removeUnneededCatchHandlers(code));
 
     code.removeRedundantBlocks();
     assert code.isConsistentSSA(appView);
-    assert verifyNoDeadCode(code);
 
     timing.end();
   }
