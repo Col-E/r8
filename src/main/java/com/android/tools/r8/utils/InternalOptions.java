@@ -2097,7 +2097,9 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
     }
 
     public boolean canUseLir(AppView<?> appView) {
-      return useLir && appView.enableWholeProgramOptimizations();
+      return useLir
+          && appView.enableWholeProgramOptimizations()
+          && !appView.options().protoShrinking().isProtoShrinkingEnabled();
     }
 
     // If false, use the desugared library implementation when desugared library is enabled.
