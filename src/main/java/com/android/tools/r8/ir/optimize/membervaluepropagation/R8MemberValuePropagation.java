@@ -245,6 +245,10 @@ public class R8MemberValuePropagation extends MemberValuePropagation<AppInfoWith
       return;
     }
 
+    if (resolutionResult.isAccessibleFrom(code.context(), appView).isPossiblyFalse()) {
+      return;
+    }
+
     DexClassAndField target = resolutionResult.getResolutionPair();
     DexEncodedField definition = target.getDefinition();
     if (definition.isStatic() != current.isStaticGet()) {

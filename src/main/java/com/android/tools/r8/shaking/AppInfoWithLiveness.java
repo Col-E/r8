@@ -109,6 +109,9 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
    */
   private Set<DexMethod> targetedMethods;
 
+  /** Classes that lead to resolution errors such as non-existing or invalid targets. */
+  private final Set<DexType> failedClassResolutionTargets;
+
   /** Method targets that lead to resolution errors such as non-existing or invalid targets. */
   private final Set<DexMethod> failedMethodResolutionTargets;
 
@@ -209,6 +212,7 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
       Set<DexType> deadProtoTypes,
       Set<DexType> liveTypes,
       Set<DexMethod> targetedMethods,
+      Set<DexType> failedClassResolutionTargets,
       Set<DexMethod> failedMethodResolutionTargets,
       Set<DexField> failedFieldResolutionTargets,
       Set<DexMethod> bootstrapMethods,
@@ -241,6 +245,7 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
     this.deadProtoTypes = deadProtoTypes;
     this.liveTypes = liveTypes;
     this.targetedMethods = targetedMethods;
+    this.failedClassResolutionTargets = failedClassResolutionTargets;
     this.failedMethodResolutionTargets = failedMethodResolutionTargets;
     this.failedFieldResolutionTargets = failedFieldResolutionTargets;
     this.bootstrapMethods = bootstrapMethods;
@@ -281,6 +286,7 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
         previous.deadProtoTypes,
         CollectionUtils.addAll(previous.liveTypes, committedItems.getCommittedProgramTypes()),
         previous.targetedMethods,
+        previous.failedClassResolutionTargets,
         previous.failedMethodResolutionTargets,
         previous.failedFieldResolutionTargets,
         previous.bootstrapMethods,
@@ -324,6 +330,7 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
         previous.deadProtoTypes,
         pruneClasses(previous.liveTypes, prunedItems, executorService, futures),
         pruneMethods(previous.targetedMethods, prunedItems, executorService, futures),
+        pruneClasses(previous.failedClassResolutionTargets, prunedItems, executorService, futures),
         pruneMethods(previous.failedMethodResolutionTargets, prunedItems, executorService, futures),
         pruneFields(previous.failedFieldResolutionTargets, prunedItems, executorService, futures),
         pruneMethods(previous.bootstrapMethods, prunedItems, executorService, futures),
@@ -530,6 +537,7 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
         deadProtoTypes,
         liveTypes,
         targetedMethods,
+        failedClassResolutionTargets,
         failedMethodResolutionTargets,
         failedFieldResolutionTargets,
         bootstrapMethods,
@@ -607,6 +615,7 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
     this.deadProtoTypes = previous.deadProtoTypes;
     this.liveTypes = previous.liveTypes;
     this.targetedMethods = previous.targetedMethods;
+    this.failedClassResolutionTargets = previous.failedClassResolutionTargets;
     this.failedMethodResolutionTargets = previous.failedMethodResolutionTargets;
     this.failedFieldResolutionTargets = previous.failedFieldResolutionTargets;
     this.bootstrapMethods = previous.bootstrapMethods;
@@ -711,12 +720,20 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
     return targetedMethods.contains(method);
   }
 
-  public boolean isFailedResolutionTarget(DexMethod method) {
+  public boolean isFailedClassResolutionTarget(DexType type) {
+    return failedClassResolutionTargets.contains(type);
+  }
+
+  public boolean isFailedMethodResolutionTarget(DexMethod method) {
     return failedMethodResolutionTargets.contains(method);
   }
 
   public Set<DexMethod> getFailedMethodResolutionTargets() {
     return failedMethodResolutionTargets;
+  }
+
+  public boolean isFailedFieldResolutionTarget(DexField field) {
+    return failedFieldResolutionTargets.contains(field);
   }
 
   public Set<DexField> getFailedFieldResolutionTargets() {
@@ -1185,6 +1202,7 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
         deadProtoTypes,
         lens.rewriteReferences(liveTypes),
         lens.rewriteReferences(targetedMethods),
+        lens.rewriteReferences(failedClassResolutionTargets),
         lens.rewriteReferences(failedMethodResolutionTargets),
         lens.rewriteFields(failedFieldResolutionTargets, timing),
         lens.rewriteReferences(bootstrapMethods),

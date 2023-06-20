@@ -583,6 +583,11 @@ public abstract class DexClass extends DexDefinition
     return !isAbstract() && !isAnnotation() && !isInterface();
   }
 
+  public OptionalBool isAccessibleFrom(
+      ProgramDefinition context, AppView<? extends AppInfoWithClassHierarchy> appView) {
+    return AccessControl.isClassAccessible(this, context, appView);
+  }
+
   public boolean isAbstract() {
     return accessFlags.isAbstract();
   }

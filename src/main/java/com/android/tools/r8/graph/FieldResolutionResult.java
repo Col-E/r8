@@ -42,6 +42,10 @@ public abstract class FieldResolutionResult
     return null;
   }
 
+  public DexClass getResolvedHolder() {
+    return null;
+  }
+
   @Override
   public DexClassAndField getResolutionPair() {
     return null;

@@ -19,6 +19,7 @@ import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
+import com.android.tools.r8.graph.FieldResolutionResult;
 import com.android.tools.r8.graph.FieldResolutionResult.SingleProgramFieldResolutionResult;
 import com.android.tools.r8.graph.LibraryMethod;
 import com.android.tools.r8.graph.MethodResolutionResult;
@@ -255,11 +256,13 @@ final class InlineCandidateProcessor {
         }
 
         if (user.isInstanceGet()) {
-          DexEncodedField field =
-              appView
-                  .appInfo()
-                  .resolveField(user.asFieldInstruction().getField())
-                  .getResolvedField();
+          FieldResolutionResult resolutionResult =
+              appView.appInfo().resolveField(user.asFieldInstruction().getField());
+          if (!resolutionResult.isSingleFieldResolutionResult()
+              || resolutionResult.isAccessibleFrom(method, appView).isPossiblyFalse()) {
+            return user; // Not eligible.
+          }
+          DexEncodedField field = resolutionResult.getResolvedField();
           if (field == null || field.isStatic()) {
             return user; // Not eligible.
           }

@@ -91,6 +91,10 @@ public class EnqueuerDeferredTracingImpl extends EnqueuerDeferredTracing {
       return enqueueDeferredEnqueuerActions(field);
     }
 
+    if (resolutionResult.isAccessibleFrom(context, appView).isPossiblyFalse()) {
+      return enqueueDeferredEnqueuerActions(field);
+    }
+
     // If the access is from a reachability sensitive method, then bail out.
     if (context.getHolder().getOrComputeReachabilitySensitive(appView)) {
       return enqueueDeferredEnqueuerActions(field);

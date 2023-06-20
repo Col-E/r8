@@ -255,8 +255,17 @@ public class AccessModifier {
   }
 
   private boolean isAccessModificationAllowed(ProgramDefinition definition) {
-    // TODO(b/278687711): Also check that the definition does not have any illegal accesses to it.
-    return appView.getKeepInfo(definition).isAccessModificationAllowed(options);
+    if (!appView.getKeepInfo(definition).isAccessModificationAllowed(options)) {
+      return false;
+    }
+    if (definition.isClass()) {
+      return !appView.appInfo().isFailedClassResolutionTarget(definition.asClass().getType());
+    }
+    if (definition.isField()) {
+      return !appView.appInfo().isFailedFieldResolutionTarget(definition.asField().getReference());
+    }
+    assert definition.isMethod();
+    return !appView.appInfo().isFailedMethodResolutionTarget(definition.asMethod().getReference());
   }
 
   private boolean isRenamingAllowed(ProgramMethod method) {

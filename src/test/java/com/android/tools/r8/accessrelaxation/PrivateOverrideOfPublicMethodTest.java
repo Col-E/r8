@@ -79,8 +79,7 @@ public class PrivateOverrideOfPublicMethodTest extends TestBase {
         .enableNoVerticalClassMergingAnnotations()
         .setMinApi(parameters)
         .run(parameters.getRuntime(), Main.class)
-        // TODO(b/278687711): Access modifier should preserve IllegalAccessErrors.
-        .assertSuccessWithOutput(EXPECTED_OUTPUT_R8);
+        .assertSuccessWithOutput(EXPECTED_OUTPUT);
   }
 
   static class Main {

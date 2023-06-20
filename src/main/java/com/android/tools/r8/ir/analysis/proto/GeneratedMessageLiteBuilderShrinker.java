@@ -16,6 +16,7 @@ import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.SubtypingInfo;
 import com.android.tools.r8.graph.analysis.EnqueuerAnalysis;
@@ -135,10 +136,21 @@ public class GeneratedMessageLiteBuilderShrinker {
                 // This builder class is never used in the program except from dynamicMethod(),
                 // which creates an instance of the builder. Instead of creating an instance of the
                 // builder class, we just instantiate the parent builder class. For this to work,
-                // we make the parent builder non-abstract.
+                // we make the parent builder non-abstract and its constructor public.
                 DexProgramClass superClass =
                     asProgramClassOrNull(appView.definitionFor(builder.superType));
                 assert superClass != null;
+
+                ProgramMethod constructorMethod =
+                    superClass.lookupProgramMethod(
+                        references.generatedMessageLiteBuilderMethods.constructorMethod);
+                MethodAccessFlags constructorFlags = constructorMethod.getAccessFlags();
+                if (!constructorFlags.isPublic()) {
+                  constructorFlags.unsetPrivate();
+                  constructorFlags.unsetProtected();
+                  constructorFlags.setPublic();
+                }
+
                 superClass.accessFlags.demoteFromAbstract();
                 if (superClass.type == references.generatedMessageLiteBuilderType) {
                   // Manually trace `new GeneratedMessageLite.Builder(DEFAULT_INSTANCE)` since we

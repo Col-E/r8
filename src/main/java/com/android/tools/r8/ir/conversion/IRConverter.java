@@ -1065,7 +1065,6 @@ public class IRConverter {
       OptimizationFeedback feedback,
       BytecodeMetadataProvider bytecodeMetadataProvider,
       Timing timing) {
-    IRCode oldCode = code;
     if (options.testing.roundtripThroughLir) {
       code = roundtripThroughLir(code, feedback, bytecodeMetadataProvider, timing);
     }
