@@ -8,12 +8,12 @@ import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.position.Position;
 import java.util.List;
 
-public class KeepUnusedReturnValueRule extends NoOptimizationBaseRule<KeepUnusedReturnValueRule> {
+public class KeepUnusedReturnValueRule extends ProguardConfigurationRule {
 
   public static final String RULE_NAME = "keepunusedreturnvalue";
 
   public static class Builder
-      extends NoOptimizationBaseRule.Builder<KeepUnusedReturnValueRule, Builder> {
+      extends ProguardConfigurationRule.Builder<KeepUnusedReturnValueRule, Builder> {
 
     Builder() {
       super();

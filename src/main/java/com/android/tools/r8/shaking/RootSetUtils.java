@@ -273,7 +273,8 @@ public class RootSetUtils {
         evaluateCheckDiscardRule(clazz, rule.asProguardCheckDiscardRule());
       } else if (rule instanceof CheckEnumUnboxedRule) {
         evaluateCheckEnumUnboxedRule(clazz, (CheckEnumUnboxedRule) rule);
-      } else if (rule instanceof ProguardWhyAreYouKeepingRule) {
+      } else if (rule instanceof NoAccessModificationRule
+          || rule instanceof ProguardWhyAreYouKeepingRule) {
         markClass(clazz, rule, ifRule);
         markMatchingVisibleMethods(clazz, memberKeepRules, rule, null, true, ifRule);
         markMatchingVisibleFields(clazz, memberKeepRules, rule, null, true, ifRule);
@@ -311,7 +312,7 @@ public class RootSetUtils {
         if (allRulesSatisfied(memberKeepRules, clazz)) {
           markClass(clazz, rule, ifRule);
         }
-      } else if (rule instanceof MemberValuePropagationRule) {
+      } else if (rule instanceof NoValuePropagationRule) {
         markMatchingVisibleMethods(clazz, memberKeepRules, rule, null, true, ifRule);
         markMatchingVisibleFields(clazz, memberKeepRules, rule, null, true, ifRule);
       } else if (rule instanceof ProguardIdentifierNameStringRule) {
@@ -1231,6 +1232,12 @@ public class RootSetUtils {
             throw new Unreachable();
         }
         context.markAsUsed();
+      } else if (context instanceof NoAccessModificationRule) {
+        assert item.isProgramDefinition();
+        dependentMinimumKeepInfo
+            .getOrCreateUnconditionalMinimumKeepInfoFor(item.getReference())
+            .disallowAccessModification();
+        context.markAsUsed();
       } else if (context instanceof NoFieldTypeStrengtheningRule) {
         assert item.isProgramField();
         dependentMinimumKeepInfo
@@ -1282,27 +1289,21 @@ public class RootSetUtils {
             .asMethodJoiner()
             .disallowReturnTypeStrengthening();
         context.markAsUsed();
-      } else if (context instanceof MemberValuePropagationRule) {
-        switch (((MemberValuePropagationRule) context).getType()) {
-          case NEVER:
-            // Only add members from propgram classes to `neverPropagateValue` since class member
-            // values from library types are not propagated by default.
-            if (item.isField()) {
-              DexClassAndField field = item.asField();
-              if (field.isProgramField()) {
-                neverPropagateValue.add(field.getReference());
-                context.markAsUsed();
-              }
-            } else if (item.isMethod()) {
-              DexClassAndMethod method = item.asMethod();
-              if (method.isProgramMethod()) {
-                neverPropagateValue.add(method.getReference());
-                context.markAsUsed();
-              }
-            }
-            break;
-          default:
-            throw new Unreachable();
+      } else if (context instanceof NoValuePropagationRule) {
+        // Only add members from propgram classes to `neverPropagateValue` since class member values
+        // from library types are not propagated by default.
+        if (item.isField()) {
+          DexClassAndField field = item.asField();
+          if (field.isProgramField()) {
+            neverPropagateValue.add(field.getReference());
+            context.markAsUsed();
+          }
+        } else if (item.isMethod()) {
+          DexClassAndMethod method = item.asMethod();
+          if (method.isProgramMethod()) {
+            neverPropagateValue.add(method.getReference());
+            context.markAsUsed();
+          }
         }
       } else if (context instanceof ProguardIdentifierNameStringRule) {
         evaluateIdentifierNameStringRule(item, context, ifRule);

@@ -1,4 +1,4 @@
-// Copyright (c) 2022, the R8 project authors. Please see the AUTHORS file
+// Copyright (c) 2023, the R8 project authors. Please see the AUTHORS file
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
@@ -8,18 +8,42 @@ import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.position.Position;
 import java.util.List;
 
-public abstract class NoOptimizationBaseRule<R extends NoOptimizationBaseRule<R>>
-    extends ProguardConfigurationRule {
+public class NoAccessModificationRule extends ProguardConfigurationRule {
 
-  public abstract static class Builder<R extends NoOptimizationBaseRule<R>, B extends Builder<R, B>>
-      extends ProguardConfigurationRule.Builder<R, B> {
+  public static final String RULE_NAME = "noaccessmodification";
 
-    Builder() {
+  public static class Builder
+      extends ProguardConfigurationRule.Builder<NoAccessModificationRule, Builder> {
+
+    private Builder() {
       super();
+    }
+
+    @Override
+    public NoAccessModificationRule.Builder self() {
+      return this;
+    }
+
+    @Override
+    public NoAccessModificationRule build() {
+      return new NoAccessModificationRule(
+          origin,
+          getPosition(),
+          source,
+          buildClassAnnotations(),
+          classAccessFlags,
+          negatedClassAccessFlags,
+          classTypeNegated,
+          classType,
+          classNames,
+          buildInheritanceAnnotations(),
+          inheritanceClassName,
+          inheritanceIsExtends,
+          memberRules);
     }
   }
 
-  NoOptimizationBaseRule(
+  private NoAccessModificationRule(
       Origin origin,
       Position position,
       String source,
@@ -47,5 +71,14 @@ public abstract class NoOptimizationBaseRule<R extends NoOptimizationBaseRule<R>
         inheritanceClassName,
         inheritanceIsExtends,
         memberRules);
+  }
+
+  public static Builder builder() {
+    return new Builder();
+  }
+
+  @Override
+  String typeString() {
+    return RULE_NAME;
   }
 }

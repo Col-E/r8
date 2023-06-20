@@ -8,13 +8,12 @@ import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.position.Position;
 import java.util.List;
 
-public class NoRedundantFieldLoadEliminationRule
-    extends NoOptimizationBaseRule<NoRedundantFieldLoadEliminationRule> {
+public class NoRedundantFieldLoadEliminationRule extends ProguardConfigurationRule {
 
   public static final String RULE_NAME = "noredundantfieldloadelimination";
 
   public static class Builder
-      extends NoOptimizationBaseRule.Builder<NoRedundantFieldLoadEliminationRule, Builder> {
+      extends ProguardConfigurationRule.Builder<NoRedundantFieldLoadEliminationRule, Builder> {
 
     Builder() {
       super();

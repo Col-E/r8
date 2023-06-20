@@ -8,12 +8,12 @@ import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.position.Position;
 import java.util.List;
 
-public class NoParameterReorderingRule extends NoOptimizationBaseRule<NoParameterReorderingRule> {
+public class NoParameterReorderingRule extends ProguardConfigurationRule {
 
   public static final String RULE_NAME = "noparameterreordering";
 
   public static class Builder
-      extends NoOptimizationBaseRule.Builder<NoParameterReorderingRule, Builder> {
+      extends ProguardConfigurationRule.Builder<NoParameterReorderingRule, Builder> {
 
     Builder() {
       super();

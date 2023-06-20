@@ -3,39 +3,29 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.shaking;
 
-import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.position.Position;
 import java.util.List;
 
-public class MemberValuePropagationRule extends ProguardConfigurationRule {
+public class NoValuePropagationRule extends ProguardConfigurationRule {
 
-  public enum Type {
-    NEVER
-  }
+  public static final String RULE_NAME = "neverpropagatevalue";
 
   public static class Builder
-      extends ProguardConfigurationRule.Builder<MemberValuePropagationRule, Builder> {
+      extends ProguardConfigurationRule.Builder<NoValuePropagationRule, Builder> {
 
     private Builder() {
       super();
     }
-
-    Type type;
 
     @Override
     public Builder self() {
       return this;
     }
 
-    public Builder setType(Type type) {
-      this.type = type;
-      return this;
-    }
-
     @Override
-    public MemberValuePropagationRule build() {
-      return new MemberValuePropagationRule(
+    public NoValuePropagationRule build() {
+      return new NoValuePropagationRule(
           origin,
           getPosition(),
           source,
@@ -48,14 +38,11 @@ public class MemberValuePropagationRule extends ProguardConfigurationRule {
           buildInheritanceAnnotations(),
           inheritanceClassName,
           inheritanceIsExtends,
-          memberRules,
-          type);
+          memberRules);
     }
   }
 
-  private final Type type;
-
-  private MemberValuePropagationRule(
+  private NoValuePropagationRule(
       Origin origin,
       Position position,
       String source,
@@ -68,8 +55,7 @@ public class MemberValuePropagationRule extends ProguardConfigurationRule {
       List<ProguardTypeMatcher> inheritanceAnnotations,
       ProguardTypeMatcher inheritanceClassName,
       boolean inheritanceIsExtends,
-      List<ProguardMemberRule> memberRules,
-      Type type) {
+      List<ProguardMemberRule> memberRules) {
     super(
         origin,
         position,
@@ -84,24 +70,14 @@ public class MemberValuePropagationRule extends ProguardConfigurationRule {
         inheritanceClassName,
         inheritanceIsExtends,
         memberRules);
-    this.type = type;
   }
 
   public static Builder builder() {
     return new Builder();
   }
 
-  public Type getType() {
-    return type;
-  }
-
   @Override
   String typeString() {
-    switch (type) {
-      case NEVER:
-        return "neverpropagatevalue";
-    }
-    throw new Unreachable("Unknown member value propagation type " + type);
+    return RULE_NAME;
   }
-
 }

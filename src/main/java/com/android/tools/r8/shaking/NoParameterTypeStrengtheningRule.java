@@ -8,13 +8,12 @@ import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.position.Position;
 import java.util.List;
 
-public class NoParameterTypeStrengtheningRule
-    extends NoOptimizationBaseRule<NoParameterTypeStrengtheningRule> {
+public class NoParameterTypeStrengtheningRule extends ProguardConfigurationRule {
 
   public static final String RULE_NAME = "noparametertypestrengthening";
 
   public static class Builder
-      extends NoOptimizationBaseRule.Builder<NoParameterTypeStrengtheningRule, Builder> {
+      extends ProguardConfigurationRule.Builder<NoParameterTypeStrengtheningRule, Builder> {
 
     Builder() {
       super();
