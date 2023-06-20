@@ -2086,7 +2086,7 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
   public static class TestingOptions {
 
     public boolean roundtripThroughLir = false;
-    private boolean useLir = System.getProperty("com.android.tools.r8.uselir") != null;
+    private boolean useLir = System.getProperty("com.android.tools.r8.nolir") == null;
 
     public void enableLir() {
       useLir = true;
