@@ -325,7 +325,7 @@ public class DexMethod extends DexMember<DexEncodedMethod, DexMethod> {
 
   public DexMethod withExtraArgumentPrepended(DexType type, DexItemFactory dexItemFactory) {
     return dexItemFactory.createMethod(
-        holder, dexItemFactory.prependTypeToProto(type, proto), name);
+        holder, getProto().prependParameter(type, dexItemFactory), name);
   }
 
   public DexMethod withHolder(DexDefinition definition, DexItemFactory dexItemFactory) {

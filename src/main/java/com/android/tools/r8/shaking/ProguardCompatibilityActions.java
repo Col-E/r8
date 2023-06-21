@@ -8,6 +8,7 @@ import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.PrunedItems;
 import com.android.tools.r8.graph.lens.GraphLens;
+import com.android.tools.r8.utils.Timing;
 import com.google.common.collect.Sets;
 import java.util.Set;
 
@@ -27,17 +28,28 @@ public class ProguardCompatibilityActions {
     return compatInstantiatedTypes.contains(clazz.getType());
   }
 
-  public ProguardCompatibilityActions withoutPrunedItems(PrunedItems prunedItems) {
+  public boolean isEmpty() {
+    return compatInstantiatedTypes.isEmpty();
+  }
+
+  public ProguardCompatibilityActions withoutPrunedItems(PrunedItems prunedItems, Timing timing) {
+    timing.begin("Prune ProguardCompatibilityActions");
     Builder builder = builder();
     for (DexType compatInstantiatedType : compatInstantiatedTypes) {
       if (!prunedItems.isRemoved(compatInstantiatedType)) {
         builder.addCompatInstantiatedType(compatInstantiatedType);
       }
     }
-    return builder.build();
+    ProguardCompatibilityActions result = builder.build();
+    timing.end();
+    return result;
   }
 
-  public ProguardCompatibilityActions rewrittenWithLens(GraphLens lens) {
+  public ProguardCompatibilityActions rewrittenWithLens(GraphLens lens, Timing timing) {
+    return timing.time("Rewrite ProguardCompatibilityActions", () -> rewrittenWithLens(lens));
+  }
+
+  private ProguardCompatibilityActions rewrittenWithLens(GraphLens lens) {
     Builder builder = builder();
     for (DexType compatInstantiatedType : compatInstantiatedTypes) {
       builder.addCompatInstantiatedType(lens.lookupType(compatInstantiatedType));

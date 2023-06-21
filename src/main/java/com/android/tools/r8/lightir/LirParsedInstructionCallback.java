@@ -448,13 +448,21 @@ public abstract class LirParsedInstructionCallback<EV> implements LirInstruction
     onFieldInstruction(field);
   }
 
-  public abstract void onInstanceGet(DexField field, EV object);
+  public void onInstanceGet(DexField field, EV object) {
+    onFieldInstruction(field);
+  }
 
-  public abstract void onInstancePut(DexField field, EV object, EV value);
+  public void onInstancePut(DexField field, EV object, EV value) {
+    onFieldInstruction(field);
+  }
 
-  public abstract void onNewArrayEmpty(DexType type, EV size);
+  public void onNewArrayEmpty(DexType type, EV size) {
+    onInstruction();
+  }
 
-  public abstract void onThrow(EV exception);
+  public void onThrow(EV exception) {
+    onInstruction();
+  }
 
   public void onReturnVoid() {
     onInstruction();
@@ -493,9 +501,17 @@ public abstract class LirParsedInstructionCallback<EV> implements LirInstruction
     onInstruction();
   }
 
-  public abstract void onMonitorEnter(EV value);
+  public void onMonitorInstruction(EV value) {
+    onInstruction();
+  }
 
-  public abstract void onMonitorExit(EV value);
+  public void onMonitorEnter(EV value) {
+    onMonitorInstruction(value);
+  }
+
+  public void onMonitorExit(EV value) {
+    onMonitorInstruction(value);
+  }
 
   public void onNewUnboxedEnumInstance(DexType type, int ordinal) {
     onInstruction();

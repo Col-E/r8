@@ -56,10 +56,10 @@ public class ComposeInlineOfPositionsThatViolateNewRangeTest extends TestBase {
           "# {'id':'com.android.tools.r8.mapping','version':'2.2'}",
           "com.foo -> c:",
           "    10:10:void m1():10 -> w",
-          "    10:10:void y():30:30 -> w",
+          "    10:10:void y():30 -> w",
           "    10:10:void new_synthetic_method():0:0 -> w",
           "    11:11:void m2(int):20 -> w",
-          "    11:11:void y():31:31 -> w",
+          "    11:11:void y():31 -> w",
           "    11:11:void new_synthetic_method():0:0 -> w");
 
   @Test

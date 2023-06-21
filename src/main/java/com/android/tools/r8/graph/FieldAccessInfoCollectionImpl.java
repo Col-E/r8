@@ -5,8 +5,9 @@
 package com.android.tools.r8.graph;
 
 import com.android.tools.r8.graph.lens.GraphLens;
-import com.android.tools.r8.utils.ObjectUtils;
+import com.android.tools.r8.utils.LensUtils;
 import com.android.tools.r8.utils.SetUtils;
+import com.android.tools.r8.utils.Timing;
 import java.util.IdentityHashMap;
 import java.util.Map;
 import java.util.function.BiPredicate;
@@ -79,19 +80,20 @@ public class FieldAccessInfoCollectionImpl
   }
 
   public FieldAccessInfoCollectionImpl rewrittenWithLens(
-      DexDefinitionSupplier definitions, GraphLens lens) {
-    FieldAccessInfoCollectionImpl collection = new FieldAccessInfoCollectionImpl();
-    Consumer<FieldAccessInfoImpl> rewriteAndMergeFieldInfo =
-        info -> {
-          FieldAccessInfoImpl rewrittenInfo = info.rewrittenWithLens(definitions, lens);
-          DexField newField = rewrittenInfo.getField();
-          collection.infos.compute(
-              newField,
-              (ignore, oldInfo) ->
-                  ObjectUtils.mapNotNullOrDefault(oldInfo, rewrittenInfo, rewrittenInfo::join));
-        };
-    infos.values().forEach(rewriteAndMergeFieldInfo);
-    return collection;
+      DexDefinitionSupplier definitions, GraphLens lens, Timing timing) {
+    timing.begin("Rewrite FieldAccessInfoCollectionImpl");
+    Map<DexField, FieldAccessInfoImpl> newInfos =
+        LensUtils.mutableRewriteMap(
+            infos,
+            IdentityHashMap::new,
+            (field, info) -> info.rewrittenWithLens(definitions, lens, timing),
+            (field, info, rewrittenInfo) -> rewrittenInfo.getField(),
+            (field, info, rewrittenInfo) -> rewrittenInfo,
+            (field, info, otherInfo) -> info.join(otherInfo));
+    FieldAccessInfoCollectionImpl result =
+        newInfos != infos ? new FieldAccessInfoCollectionImpl(newInfos) : this;
+    timing.end();
+    return result;
   }
 
   // This is used to verify that the temporary mappings inserted into `infos` by the Enqueuer are

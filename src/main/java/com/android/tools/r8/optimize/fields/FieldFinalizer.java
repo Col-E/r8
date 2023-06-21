@@ -30,6 +30,7 @@ public class FieldFinalizer {
       AppView<AppInfoWithLiveness> appView, ExecutorService executorService, Timing timing)
       throws ExecutionException {
     timing.time("Finalize fields pass", () -> run(appView, executorService));
+    appView.notifyOptimizationFinishedForTesting();
   }
 
   private static void run(AppView<AppInfoWithLiveness> appView, ExecutorService executorService)

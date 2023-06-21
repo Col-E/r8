@@ -21,6 +21,7 @@ import com.android.tools.r8.graph.lens.GraphLens;
 import com.android.tools.r8.shaking.KeepInfo.Joiner;
 import com.android.tools.r8.utils.MapUtils;
 import java.util.Collections;
+import java.util.IdentityHashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BiConsumer;
@@ -34,12 +35,20 @@ public class MinimumKeepInfoCollection {
 
   private final Map<DexReference, KeepInfo.Joiner<?, ?, ?>> minimumKeepInfo;
 
-  public MinimumKeepInfoCollection() {
-    this(new ConcurrentHashMap<>());
-  }
-
   private MinimumKeepInfoCollection(Map<DexReference, KeepInfo.Joiner<?, ?, ?>> minimumKeepInfo) {
     this.minimumKeepInfo = minimumKeepInfo;
+  }
+
+  public static MinimumKeepInfoCollection create() {
+    return new MinimumKeepInfoCollection(new IdentityHashMap<>());
+  }
+
+  public static MinimumKeepInfoCollection create(int capacity) {
+    return new MinimumKeepInfoCollection(new IdentityHashMap<>(capacity));
+  }
+
+  public static MinimumKeepInfoCollection createConcurrent() {
+    return new MinimumKeepInfoCollection(new ConcurrentHashMap<>());
   }
 
   public static MinimumKeepInfoCollection empty() {
@@ -154,7 +163,7 @@ public class MinimumKeepInfoCollection {
   }
 
   public MinimumKeepInfoCollection rewrittenWithLens(GraphLens graphLens) {
-    MinimumKeepInfoCollection rewrittenMinimumKeepInfo = new MinimumKeepInfoCollection();
+    MinimumKeepInfoCollection rewrittenMinimumKeepInfo = create(size());
     forEach(
         (reference, minimumKeepInfoForReference) -> {
           DexReference rewrittenReference =
@@ -178,5 +187,9 @@ public class MinimumKeepInfoCollection {
           }
         });
     return rewrittenMinimumKeepInfo;
+  }
+
+  public int size() {
+    return minimumKeepInfo.size();
   }
 }

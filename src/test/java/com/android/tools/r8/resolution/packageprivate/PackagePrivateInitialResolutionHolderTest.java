@@ -95,10 +95,9 @@ public class PackagePrivateInitialResolutionHolderTest extends TestBase {
         .addProgramClassFileData(getRewrittenResources())
         .addKeepMainRule(Main.class)
         .setMinApi(parameters)
-        .compile()
         .run(parameters.getRuntime(), Main.class)
-        // TODO(b/264522833): Should be IllegalAccessError.
-        .assertFailureWithErrorThatThrows(AbstractMethodError.class);
+        // TODO(b/264522833): Should be IllegalAccessError, but member rebinding "fixes" the code.
+        .assertFailureWithErrorThatThrows(NullPointerException.class);
   }
 
   private Collection<byte[]> getRewrittenResources() throws Exception {

@@ -4,10 +4,12 @@
 
 package com.android.tools.r8.utils.collections;
 
+import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexMethodSignature;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -20,7 +22,7 @@ public class DexMethodSignatureMap<T> implements Map<DexMethodSignature, T> {
 
   private final Map<DexMethodSignature, T> backing;
 
-  private DexMethodSignatureMap(Map<DexMethodSignature, T> backing) {
+  DexMethodSignatureMap(Map<DexMethodSignature, T> backing) {
     this.backing = backing;
   }
 
@@ -28,8 +30,16 @@ public class DexMethodSignatureMap<T> implements Map<DexMethodSignature, T> {
     return new DexMethodSignatureMap<>(new HashMap<>());
   }
 
+  public static <T> DexMethodSignatureMap<T> create(DexMethodSignatureMap<T> map) {
+    return new DexMethodSignatureMap<>(new HashMap<>(map.backing));
+  }
+
   public static <T> DexMethodSignatureMap<T> createLinked() {
     return new DexMethodSignatureMap<>(new LinkedHashMap<>());
+  }
+
+  public static <T> DexMethodSignatureMap<T> empty() {
+    return new DexMethodSignatureMap<>(Collections.emptyMap());
   }
 
   @Override
@@ -98,6 +108,11 @@ public class DexMethodSignatureMap<T> implements Map<DexMethodSignature, T> {
   @Override
   public T replace(DexMethodSignature key, T value) {
     return backing.replace(key, value);
+  }
+
+  public T computeIfAbsent(
+      DexClassAndMethod key, Function<? super DexMethodSignature, ? extends T> mappingFunction) {
+    return computeIfAbsent(key.getMethodSignature(), mappingFunction);
   }
 
   @Override
@@ -189,7 +204,16 @@ public class DexMethodSignatureMap<T> implements Map<DexMethodSignature, T> {
   }
 
   @Override
-  public void putAll(Map<? extends DexMethodSignature, ? extends T> m) {}
+  public void putAll(Map<? extends DexMethodSignature, ? extends T> map) {
+    map.forEach(this::put);
+  }
+
+  @SuppressWarnings("unchecked")
+  public void putAllToIdentity(Collection<? extends DexMethodSignature> signatures) {
+    for (DexMethodSignature signature : signatures) {
+      put(signature, (T) signature);
+    }
+  }
 
   public T remove(DexMethodSignature signature) {
     return backing.remove(signature);

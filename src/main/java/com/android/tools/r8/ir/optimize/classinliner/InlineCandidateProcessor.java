@@ -19,6 +19,7 @@ import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
+import com.android.tools.r8.graph.FieldResolutionResult;
 import com.android.tools.r8.graph.FieldResolutionResult.SingleProgramFieldResolutionResult;
 import com.android.tools.r8.graph.LibraryMethod;
 import com.android.tools.r8.graph.MethodResolutionResult;
@@ -80,7 +81,6 @@ import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.TreeSet;
 import java.util.function.Function;
 
 final class InlineCandidateProcessor {
@@ -256,11 +256,13 @@ final class InlineCandidateProcessor {
         }
 
         if (user.isInstanceGet()) {
-          DexEncodedField field =
-              appView
-                  .appInfo()
-                  .resolveField(user.asFieldInstruction().getField())
-                  .getResolvedField();
+          FieldResolutionResult resolutionResult =
+              appView.appInfo().resolveField(user.asFieldInstruction().getField());
+          if (!resolutionResult.isSingleFieldResolutionResult()
+              || resolutionResult.isAccessibleFrom(method, appView).isPossiblyFalse()) {
+            return user; // Not eligible.
+          }
+          DexEncodedField field = resolutionResult.getResolvedField();
           if (field == null || field.isStatic()) {
             return user; // Not eligible.
           }
@@ -695,8 +697,7 @@ final class InlineCandidateProcessor {
 
   private void removeFieldReadsFromNewInstance(
       IRCode code, Set<Value> affectedValues, AssumeRemover assumeRemover) {
-    TreeSet<InstanceGet> uniqueInstanceGetUsersWithDeterministicOrder =
-        new TreeSet<>(Comparator.comparingInt(x -> x.outValue().getNumber()));
+    List<InstanceGet> uniqueInstanceGetUsersWithDeterministicOrder = new ArrayList<>();
     for (Instruction user : eligibleInstance.uniqueUsers()) {
       if (user.isInstanceGet()) {
         assumeRemover.markAssumeDynamicTypeUsersForRemoval(user.outValue());
@@ -722,6 +723,7 @@ final class InlineCandidateProcessor {
               + user);
     }
 
+    uniqueInstanceGetUsersWithDeterministicOrder.sort(Comparator.comparing(Instruction::outValue));
     Map<DexField, FieldValueHelper> fieldHelpers = new IdentityHashMap<>();
     for (InstanceGet user : uniqueInstanceGetUsersWithDeterministicOrder) {
       // Replace a field read with appropriate value.

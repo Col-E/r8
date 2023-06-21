@@ -15,6 +15,7 @@ import com.android.tools.r8.ir.analysis.type.DynamicType;
 import com.android.tools.r8.ir.analysis.value.AbstractValue;
 import com.android.tools.r8.ir.optimize.membervaluepropagation.assume.AssumeInfo;
 import com.android.tools.r8.utils.MapUtils;
+import com.android.tools.r8.utils.Timing;
 import java.util.IdentityHashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -45,6 +46,10 @@ public class AssumeInfoCollection {
     return get(member.getReference());
   }
 
+  public boolean isEmpty() {
+    return backing.isEmpty();
+  }
+
   public boolean isMaterializableInAllContexts(
       AppView<AppInfoWithLiveness> appView, DexClassAndMember<?, ?> member) {
     AbstractValue assumeValue = get(member).getAssumeValue();
@@ -61,6 +66,12 @@ public class AssumeInfoCollection {
   }
 
   public AssumeInfoCollection rewrittenWithLens(
+      AppView<?> appView, GraphLens graphLens, GraphLens appliedLens, Timing timing) {
+    return timing.time(
+        "Rewrite AssumeInfoCollection", () -> rewrittenWithLens(appView, graphLens, appliedLens));
+  }
+
+  private AssumeInfoCollection rewrittenWithLens(
       AppView<?> appView, GraphLens graphLens, GraphLens appliedLens) {
     Map<DexMember<?, ?>, AssumeInfo> rewrittenCollection = new IdentityHashMap<>();
     backing.forEach(
@@ -74,7 +85,8 @@ public class AssumeInfoCollection {
     return new AssumeInfoCollection(rewrittenCollection);
   }
 
-  public AssumeInfoCollection withoutPrunedItems(PrunedItems prunedItems) {
+  public AssumeInfoCollection withoutPrunedItems(PrunedItems prunedItems, Timing timing) {
+    timing.begin("Prune AssumeInfoCollection");
     Map<DexMember<?, ?>, AssumeInfo> rewrittenCollection = new IdentityHashMap<>();
     backing.forEach(
         (reference, info) -> {
@@ -85,7 +97,9 @@ public class AssumeInfoCollection {
             }
           }
         });
-    return new AssumeInfoCollection(rewrittenCollection);
+    AssumeInfoCollection result = new AssumeInfoCollection(rewrittenCollection);
+    timing.end();
+    return result;
   }
 
   public static class Builder {

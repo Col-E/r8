@@ -14,6 +14,7 @@ import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.ir.code.InvokeDirect;
 import com.android.tools.r8.ir.code.Value;
+import com.android.tools.r8.ir.conversion.passes.result.CodeRewriterResult;
 import com.android.tools.r8.shaking.KeepMethodInfo;
 import com.android.tools.r8.utils.CollectionUtils;
 import com.android.tools.r8.utils.IterableUtils;
@@ -43,15 +44,16 @@ public class ParentConstructorHoistingCodeRewriter
   }
 
   @Override
-  String getTimingId() {
+  protected String getTimingId() {
     return "Parent constructor hoisting pass";
   }
 
   @Override
-  void rewriteCode(ProgramMethod method, IRCode code) {
+  protected CodeRewriterResult rewriteCode(IRCode code) {
     for (InvokeDirect invoke : getOrComputeSideEffectFreeConstructorCalls(code)) {
       hoistSideEffectFreeConstructorCall(code, invoke);
     }
+    return CodeRewriterResult.NONE;
   }
 
   private void hoistSideEffectFreeConstructorCall(IRCode code, InvokeDirect invoke) {
@@ -136,16 +138,16 @@ public class ParentConstructorHoistingCodeRewriter
 
   /** Only run this when the rewriting may actually enable more constructor inlining. */
   @Override
-  boolean shouldRewriteCode(ProgramMethod method, IRCode code) {
+  protected boolean shouldRewriteCode(IRCode code) {
     if (!appView.hasClassHierarchy()) {
-      assert !appView.enableWholeProgramOptimizations();
       return false;
     }
-    if (!method.getDefinition().isInstanceInitializer()
+    ProgramMethod context = code.context();
+    if (!context.getDefinition().isInstanceInitializer()
         || !options.canInitNewInstanceUsingSuperclassConstructor()) {
       return false;
     }
-    KeepMethodInfo keepInfo = appView.getKeepInfo(method);
+    KeepMethodInfo keepInfo = appView.getKeepInfo(context);
     return keepInfo.isOptimizationAllowed(options)
         && keepInfo.isShrinkingAllowed(options)
         && hoistingMayRemoveInstancePutToUninitializedThis(code);

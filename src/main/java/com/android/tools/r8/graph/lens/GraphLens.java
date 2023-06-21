@@ -3,12 +3,12 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.graph.lens;
 
-import static com.android.tools.r8.graph.DexProgramClass.asProgramClassOrNull;
+import static com.android.tools.r8.utils.collections.ThrowingSet.isThrowingSet;
+import static com.google.common.base.Predicates.alwaysFalse;
 
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexCallSite;
-import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexDefinitionSupplier;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
@@ -27,9 +27,11 @@ import com.android.tools.r8.ir.optimize.enums.EnumUnboxingLens;
 import com.android.tools.r8.optimize.MemberRebindingIdentityLens;
 import com.android.tools.r8.optimize.MemberRebindingLens;
 import com.android.tools.r8.shaking.KeepInfoCollection;
+import com.android.tools.r8.utils.CollectionUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.ListUtils;
 import com.android.tools.r8.utils.SetUtils;
+import com.android.tools.r8.utils.Timing;
 import com.android.tools.r8.utils.collections.BidirectionalManyToOneRepresentativeHashMap;
 import com.android.tools.r8.utils.collections.MutableBidirectionalManyToOneRepresentativeMap;
 import com.android.tools.r8.utils.collections.ProgramMethodSet;
@@ -38,12 +40,16 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import it.unimi.dsi.fastutil.objects.Object2BooleanArrayMap;
 import it.unimi.dsi.fastutil.objects.Object2BooleanMap;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Deque;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.BiFunction;
+import java.util.function.Predicate;
 
 /**
  * A GraphLens implements a virtual view on top of the graph, used to delay global rewrites until
@@ -65,33 +71,16 @@ public abstract class GraphLens {
 
   public abstract static class Builder {
 
-    protected final MutableBidirectionalManyToOneRepresentativeMap<DexField, DexField> fieldMap =
-        BidirectionalManyToOneRepresentativeHashMap.newIdentityHashMap();
     protected final MutableBidirectionalManyToOneRepresentativeMap<DexMethod, DexMethod> methodMap =
         BidirectionalManyToOneRepresentativeHashMap.newIdentityHashMap();
-    protected final Map<DexType, DexType> typeMap = new IdentityHashMap<>();
 
     protected Builder() {}
-
-    public void map(DexType from, DexType to) {
-      if (from == to) {
-        return;
-      }
-      typeMap.put(from, to);
-    }
 
     public void move(DexMethod from, DexMethod to) {
       if (from == to) {
         return;
       }
       methodMap.put(from, to);
-    }
-
-    public void move(DexField from, DexField to) {
-      if (from == to) {
-        return;
-      }
-      fieldMap.put(from, to);
     }
 
     public abstract GraphLens build(AppView<?> appView);
@@ -107,41 +96,55 @@ public abstract class GraphLens {
     return false;
   }
 
-  public abstract DexType getOriginalType(DexType type);
+  @Deprecated
+  public final DexType getOriginalType(DexType type) {
+    GraphLens appliedLens = getIdentityLens();
+    return getOriginalType(type, appliedLens);
+  }
+
+  public final DexType getOriginalType(DexType type, GraphLens appliedLens) {
+    return getOriginalReference(type, appliedLens, NonIdentityGraphLens::getPreviousClassType);
+  }
 
   public abstract Iterable<DexType> getOriginalTypes(DexType type);
 
-  public abstract DexField getOriginalFieldSignature(DexField field);
-
-  public final DexMember<?, ?> getOriginalMemberSignature(DexMember<?, ?> member) {
-    return member.apply(this::getOriginalFieldSignature, this::getOriginalMethodSignature);
+  @Deprecated
+  public final DexField getOriginalFieldSignature(DexField field) {
+    GraphLens appliedLens = getIdentityLens();
+    return getOriginalFieldSignature(field, appliedLens);
   }
 
+  public final DexField getOriginalFieldSignature(DexField field, GraphLens appliedLens) {
+    return getOriginalReference(
+        field, appliedLens, NonIdentityGraphLens::getPreviousFieldSignature);
+  }
+
+  @Deprecated
   public final DexMethod getOriginalMethodSignature(DexMethod method) {
-    return getOriginalMethodSignature(method, null);
+    GraphLens appliedLens = getIdentityLens();
+    return getOriginalMethodSignature(method, appliedLens);
   }
 
-  public final DexMethod getOriginalMethodSignature(DexMethod method, GraphLens atGraphLens) {
-    GraphLens current = this;
-    DexMethod original = method;
-    while (current.isNonIdentityLens() && current != atGraphLens) {
-      NonIdentityGraphLens nonIdentityLens = current.asNonIdentityLens();
-      original = nonIdentityLens.getPreviousMethodSignature(original);
-      current = nonIdentityLens.getPrevious();
-    }
-    assert atGraphLens == null ? current.isIdentityLens() : (current == atGraphLens);
-    return original;
+  public final DexMethod getOriginalMethodSignature(DexMethod method, GraphLens appliedLens) {
+    return getOriginalReference(
+        method, appliedLens, NonIdentityGraphLens::getPreviousMethodSignature);
   }
 
   public final DexMethod getOriginalMethodSignatureForMapping(DexMethod method) {
+    GraphLens appliedLens = getIdentityLens();
+    return getOriginalReference(
+        method, appliedLens, NonIdentityGraphLens::getPreviousMethodSignatureForMapping);
+  }
+
+  private <T extends DexReference> T getOriginalReference(
+      T reference, GraphLens appliedLens, BiFunction<NonIdentityGraphLens, T, T> previousFn) {
     GraphLens current = this;
-    DexMethod original = method;
-    while (current.isNonIdentityLens()) {
+    T original = reference;
+    while (current.isNonIdentityLens() && current != appliedLens) {
       NonIdentityGraphLens nonIdentityLens = current.asNonIdentityLens();
-      original = nonIdentityLens.getPreviousMethodSignatureForMapping(original);
+      original = previousFn.apply(nonIdentityLens, original);
       current = nonIdentityLens.getPrevious();
     }
-    assert current.isIdentityLens();
     return original;
   }
 
@@ -153,11 +156,16 @@ public abstract class GraphLens {
         method -> getRenamedMethodSignature(method, codeLens));
   }
 
+  @Deprecated
   public final DexField getRenamedFieldSignature(DexField originalField) {
-    return getRenamedFieldSignature(originalField, null);
+    GraphLens appliedLens = getIdentityLens();
+    return getRenamedFieldSignature(originalField, appliedLens);
   }
 
-  public abstract DexField getRenamedFieldSignature(DexField originalField, GraphLens codeLens);
+  public final DexField getRenamedFieldSignature(DexField originalField, GraphLens appliedLens) {
+    return getRenamedReference(
+        originalField, appliedLens, NonIdentityGraphLens::getNextFieldSignature);
+  }
 
   public final DexMember<?, ?> getRenamedMemberSignature(
       DexMember<?, ?> originalMember, GraphLens codeLens) {
@@ -166,40 +174,41 @@ public abstract class GraphLens {
         : getRenamedMethodSignature(originalMember.asDexMethod(), codeLens);
   }
 
+  @Deprecated
   public final DexMethod getRenamedMethodSignature(DexMethod originalMethod) {
-    return getRenamedMethodSignature(originalMethod, null);
+    GraphLens appliedLens = getIdentityLens();
+    return getRenamedMethodSignature(originalMethod, appliedLens);
   }
 
-  public abstract DexMethod getRenamedMethodSignature(DexMethod originalMethod, GraphLens applied);
-
-  public DexEncodedMethod mapDexEncodedMethod(
-      DexEncodedMethod originalEncodedMethod, DexDefinitionSupplier definitions) {
-    return mapDexEncodedMethod(originalEncodedMethod, definitions, null);
+  public final DexMethod getRenamedMethodSignature(DexMethod method, GraphLens appliedLens) {
+    return getRenamedReference(method, appliedLens, NonIdentityGraphLens::getNextMethodSignature);
   }
 
-  public DexEncodedMethod mapDexEncodedMethod(
-      DexEncodedMethod originalEncodedMethod,
-      DexDefinitionSupplier definitions,
-      GraphLens applied) {
-    assert originalEncodedMethod != DexEncodedMethod.SENTINEL;
-    DexMethod newMethod = getRenamedMethodSignature(originalEncodedMethod.getReference(), applied);
-    // Note that:
-    // * Even if `newMethod` is the same as `originalEncodedMethod.method`, we still need to look it
-    //   up, since `originalEncodedMethod` may be obsolete.
-    // * We can't directly use AppInfo#definitionFor(DexMethod) since definitions may not be
-    //   updated either yet.
-    DexClass newHolder = definitions.definitionFor(newMethod.holder);
-    assert newHolder != null;
-    DexEncodedMethod newEncodedMethod = newHolder.lookupMethod(newMethod);
-    assert newEncodedMethod != null;
-    return newEncodedMethod;
+  private <T extends DexReference> T getRenamedReference(
+      T reference, GraphLens appliedLens, BiFunction<NonIdentityGraphLens, T, T> nextFn) {
+    return getRenamedReference(reference, appliedLens, nextFn, alwaysFalse());
   }
 
-  public ProgramMethod mapProgramMethod(
-      ProgramMethod oldMethod, DexDefinitionSupplier definitions) {
-    DexMethod newMethod = getRenamedMethodSignature(oldMethod.getReference());
-    DexProgramClass holder = asProgramClassOrNull(definitions.definitionForHolder(newMethod));
-    return newMethod.lookupOnProgramClass(holder);
+  private <T extends DexReference> T getRenamedReference(
+      T reference,
+      GraphLens appliedLens,
+      BiFunction<NonIdentityGraphLens, T, T> nextFn,
+      Predicate<T> stoppingCriterion) {
+    GraphLens current = this;
+    Deque<NonIdentityGraphLens> lenses = new ArrayDeque<>();
+    while (current.isNonIdentityLens() && current != appliedLens) {
+      NonIdentityGraphLens nonIdentityLens = current.asNonIdentityLens();
+      lenses.addLast(nonIdentityLens);
+      current = nonIdentityLens.getPrevious();
+    }
+    while (!lenses.isEmpty()) {
+      NonIdentityGraphLens lens = lenses.removeLast();
+      reference = nextFn.apply(lens, reference);
+      if (stoppingCriterion.test(reference)) {
+        break;
+      }
+    }
+    return reference;
   }
 
   // Predicate indicating if a rewritten reference is a simple renaming, meaning the move from one
@@ -233,17 +242,24 @@ public abstract class GraphLens {
 
   public abstract String lookupPackageName(String pkg);
 
-  public DexType lookupClassType(DexType type) {
-    return lookupClassType(type, getIdentityLens());
+  @Deprecated
+  public final DexType lookupClassType(DexType type) {
+    GraphLens appliedLens = getIdentityLens();
+    return lookupClassType(type, appliedLens);
   }
 
-  public abstract DexType lookupClassType(DexType type, GraphLens applied);
+  public final DexType lookupClassType(DexType type, GraphLens appliedLens) {
+    return getRenamedReference(
+        type, appliedLens, NonIdentityGraphLens::getNextClassType, DexType::isPrimitiveType);
+  }
 
+  @Deprecated
   public DexType lookupType(DexType type) {
-    return lookupType(type, getIdentityLens());
+    GraphLens appliedLens = getIdentityLens();
+    return lookupType(type, appliedLens);
   }
 
-  public abstract DexType lookupType(DexType type, GraphLens applied);
+  public abstract DexType lookupType(DexType type, GraphLens appliedLens);
 
   public final MethodLookupResult lookupInvokeDirect(DexMethod method, ProgramMethod context) {
     return lookupMethod(method, context.getReference(), InvokeType.DIRECT);
@@ -419,6 +435,8 @@ public abstract class GraphLens {
 
   public abstract boolean isIdentityLens();
 
+  public abstract boolean isIdentityLensForFields(GraphLens codeLens);
+
   public boolean isMemberRebindingLens() {
     return false;
   }
@@ -439,6 +457,10 @@ public abstract class GraphLens {
 
   public NonIdentityGraphLens asNonIdentityLens() {
     return null;
+  }
+
+  public boolean isPublicizerLens() {
+    return false;
   }
 
   public boolean isVerticalClassMergerLens() {
@@ -487,7 +509,10 @@ public abstract class GraphLens {
   }
 
   public Map<DexCallSite, ProgramMethodSet> rewriteCallSites(
-      Map<DexCallSite, ProgramMethodSet> callSites, DexDefinitionSupplier definitions) {
+      Map<DexCallSite, ProgramMethodSet> callSites,
+      DexDefinitionSupplier definitions,
+      Timing timing) {
+    timing.begin("Rewrite call sites");
     Map<DexCallSite, ProgramMethodSet> result = new IdentityHashMap<>();
     LensCodeRewriterUtils rewriter = new LensCodeRewriterUtils(definitions, this, null);
     callSites.forEach(
@@ -499,7 +524,53 @@ public abstract class GraphLens {
                 .add(context);
           }
         });
+    timing.end();
     return result;
+  }
+
+  public Set<DexField> rewriteFields(Set<DexField> fields, Timing timing) {
+    timing.begin("Rewrite fields");
+    GraphLens appliedLens = getIdentityLens();
+    Set<DexField> rewrittenFields;
+    if (isIdentityLensForFields(appliedLens)) {
+      assert verifyIsIdentityLensForFields(fields, appliedLens);
+      rewrittenFields = fields;
+    } else {
+      rewrittenFields = null;
+      for (DexField field : fields) {
+        DexField rewrittenField = getRenamedFieldSignature(field, appliedLens);
+        // If rewrittenFields is non-null we have previously seen a change and need to record the
+        // field no matter what.
+        if (rewrittenFields != null) {
+          rewrittenFields.add(rewrittenField);
+          continue;
+        }
+        // If the field has not been rewritten then we can reuse the input set.
+        if (rewrittenField == field) {
+          continue;
+        }
+        // Otherwise add the rewritten field and all previous fields to a new set.
+        rewrittenFields = SetUtils.newIdentityHashSet(fields.size());
+        CollectionUtils.forEachUntilExclusive(fields, rewrittenFields::add, field);
+        rewrittenFields.add(rewrittenField);
+      }
+      if (rewrittenFields == null) {
+        rewrittenFields = fields;
+      } else {
+        rewrittenFields =
+            SetUtils.trimCapacityOfIdentityHashSetIfSizeLessThan(rewrittenFields, fields.size());
+      }
+    }
+    timing.end();
+    return rewrittenFields;
+  }
+
+  private boolean verifyIsIdentityLensForFields(
+      Collection<DexField> fields, GraphLens appliedLens) {
+    for (DexField field : fields) {
+      assert lookupField(field, appliedLens) == field;
+    }
+    return true;
   }
 
   @SuppressWarnings("unchecked")
@@ -517,6 +588,9 @@ public abstract class GraphLens {
   }
 
   public <T extends DexReference> Set<T> rewriteReferences(Set<T> references) {
+    if (isThrowingSet(references)) {
+      return references;
+    }
     Set<T> result = SetUtils.newIdentityHashSet(references.size());
     for (T reference : references) {
       result.add(rewriteReference(reference));

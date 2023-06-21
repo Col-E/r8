@@ -213,6 +213,15 @@ public class OptimizationFeedbackSimple extends OptimizationFeedback {
   }
 
   @Override
+  public void setParametersWithBitwiseOperations(
+      ProgramMethod method, BitSet parametersWithBitwiseOperations) {
+    method
+        .getDefinition()
+        .getMutableOptimizationInfo()
+        .setParametersWithBitwiseOperations(parametersWithBitwiseOperations);
+  }
+
+  @Override
   public void setUnusedArguments(ProgramMethod method, BitSet unusedArguments) {
     method.getDefinition().getMutableOptimizationInfo().setUnusedArguments(unusedArguments);
   }

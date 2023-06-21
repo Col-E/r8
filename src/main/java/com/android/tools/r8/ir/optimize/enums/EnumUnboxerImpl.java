@@ -107,6 +107,7 @@ import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.KeepInfoCollection;
 import com.android.tools.r8.utils.Reporter;
 import com.android.tools.r8.utils.StringDiagnostic;
+import com.android.tools.r8.utils.Timing;
 import com.android.tools.r8.utils.TraversalContinuation;
 import com.android.tools.r8.utils.collections.ImmutableInt2ReferenceSortedMap;
 import com.android.tools.r8.utils.collections.LongLivedClassSetBuilder;
@@ -670,8 +671,10 @@ public class EnumUnboxerImpl extends EnumUnboxer {
       IRConverter converter,
       Builder postMethodProcessorBuilder,
       ExecutorService executorService,
-      OptimizationFeedbackDelayed feedback)
+      OptimizationFeedbackDelayed feedback,
+      Timing timing)
       throws ExecutionException {
+    timing.begin("Unbox enums");
     assert feedback.noUpdatesLeft();
 
     assert candidatesToRemoveInWave.isEmpty();
@@ -685,6 +688,7 @@ public class EnumUnboxerImpl extends EnumUnboxer {
 
     if (enumUnboxingCandidatesInfo.isEmpty()) {
       assert enumDataMap.isEmpty();
+      timing.end();
       return;
     }
 
@@ -718,7 +722,7 @@ public class EnumUnboxerImpl extends EnumUnboxer {
     EnumUnboxingTreeFixer.Result treeFixerResult =
         new EnumUnboxingTreeFixer(
                 appView, checkNotNullMethods, enumDataMap, enumClassesToUnbox, utilityClasses)
-            .fixupTypeReferences(converter, executorService);
+            .fixupTypeReferences(converter, executorService, timing);
     EnumUnboxingLens enumUnboxingLens = treeFixerResult.getLens();
 
     // Enqueue the (lens rewritten) methods that require reprocessing.
@@ -752,6 +756,9 @@ public class EnumUnboxerImpl extends EnumUnboxer {
 
     // Ensure determinism of method-to-reprocess set.
     appView.testing().checkDeterminism(postMethodProcessorBuilder::dump);
+
+    appView.notifyOptimizationFinishedForTesting();
+    timing.end();
   }
 
   private void updateOptimizationInfos(

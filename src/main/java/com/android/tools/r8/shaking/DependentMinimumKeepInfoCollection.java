@@ -20,19 +20,43 @@ import com.android.tools.r8.shaking.EnqueuerEvent.ClassEnqueuerEvent;
 import com.android.tools.r8.shaking.EnqueuerEvent.UnconditionalKeepInfoEvent;
 import com.android.tools.r8.shaking.KeepInfo.Joiner;
 import com.android.tools.r8.utils.MapUtils;
+import com.android.tools.r8.utils.Timing;
 import com.android.tools.r8.utils.TriConsumer;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
 
-public class DependentMinimumKeepInfoCollection {
+public abstract class DependentMinimumKeepInfoCollection {
 
-  private final Map<EnqueuerEvent, MinimumKeepInfoCollection> dependentMinimumKeepInfo;
+  private Map<EnqueuerEvent, MinimumKeepInfoCollection> dependentMinimumKeepInfo;
 
-  public DependentMinimumKeepInfoCollection() {
-    this.dependentMinimumKeepInfo = new ConcurrentHashMap<>();
+  DependentMinimumKeepInfoCollection() {
+    this.dependentMinimumKeepInfo = createBacking();
   }
+
+  DependentMinimumKeepInfoCollection(int capacity) {
+    this.dependentMinimumKeepInfo = createBacking(capacity);
+  }
+
+  public static DependentMinimumKeepInfoCollection create() {
+    return new HashDependentMinimumKeepInfoCollection();
+  }
+
+  public static DependentMinimumKeepInfoCollection create(int capacity) {
+    return new HashDependentMinimumKeepInfoCollection(capacity);
+  }
+
+  public static DependentMinimumKeepInfoCollection createConcurrent() {
+    return new ConcurrentDependentMinimumKeepInfoCollection();
+  }
+
+  public abstract Map<EnqueuerEvent, MinimumKeepInfoCollection> createBacking();
+
+  public abstract Map<EnqueuerEvent, MinimumKeepInfoCollection> createBacking(int capacity);
+
+  public abstract MinimumKeepInfoCollection createInnerBacking();
 
   public void forEach(BiConsumer<EnqueuerEvent, MinimumKeepInfoCollection> consumer) {
     dependentMinimumKeepInfo.forEach(consumer);
@@ -61,7 +85,7 @@ public class DependentMinimumKeepInfoCollection {
 
   public MinimumKeepInfoCollection getOrCreateMinimumKeepInfoFor(EnqueuerEvent preconditionEvent) {
     return dependentMinimumKeepInfo.computeIfAbsent(
-        preconditionEvent, ignoreKey(MinimumKeepInfoCollection::new));
+        preconditionEvent, ignoreKey(this::createInnerBacking));
   }
 
   public Joiner<?, ?, ?> getOrCreateMinimumKeepInfoFor(
@@ -148,9 +172,9 @@ public class DependentMinimumKeepInfoCollection {
     return minimumKeepInfoForReference;
   }
 
-  public DependentMinimumKeepInfoCollection rewrittenWithLens(GraphLens graphLens) {
-    DependentMinimumKeepInfoCollection rewrittenDependentMinimumKeepInfo =
-        new DependentMinimumKeepInfoCollection();
+  public DependentMinimumKeepInfoCollection rewrittenWithLens(GraphLens graphLens, Timing timing) {
+    timing.begin("Rewrite DependentMinimumKeepInfoCollection");
+    DependentMinimumKeepInfoCollection rewrittenDependentMinimumKeepInfo = create(size());
     forEach(
         (preconditionEvent, minimumKeepInfo) -> {
           EnqueuerEvent rewrittenPreconditionEvent = preconditionEvent.rewrittenWithLens(graphLens);
@@ -160,6 +184,57 @@ public class DependentMinimumKeepInfoCollection {
                 .merge(minimumKeepInfo.rewrittenWithLens(graphLens));
           }
         });
+    timing.end();
     return rewrittenDependentMinimumKeepInfo;
+  }
+
+  public int size() {
+    return dependentMinimumKeepInfo.size();
+  }
+
+  private static class ConcurrentDependentMinimumKeepInfoCollection
+      extends DependentMinimumKeepInfoCollection {
+
+    @Override
+    public Map<EnqueuerEvent, MinimumKeepInfoCollection> createBacking() {
+      return new ConcurrentHashMap<>();
+    }
+
+    @Override
+    public Map<EnqueuerEvent, MinimumKeepInfoCollection> createBacking(int capacity) {
+      return new ConcurrentHashMap<>(capacity);
+    }
+
+    @Override
+    public MinimumKeepInfoCollection createInnerBacking() {
+      return MinimumKeepInfoCollection.createConcurrent();
+    }
+  }
+
+  private static class HashDependentMinimumKeepInfoCollection
+      extends DependentMinimumKeepInfoCollection {
+
+    HashDependentMinimumKeepInfoCollection() {
+      super();
+    }
+
+    HashDependentMinimumKeepInfoCollection(int capacity) {
+      super(capacity);
+    }
+
+    @Override
+    public Map<EnqueuerEvent, MinimumKeepInfoCollection> createBacking() {
+      return new HashMap<>();
+    }
+
+    @Override
+    public Map<EnqueuerEvent, MinimumKeepInfoCollection> createBacking(int capacity) {
+      return new HashMap<>(capacity);
+    }
+
+    @Override
+    public MinimumKeepInfoCollection createInnerBacking() {
+      return MinimumKeepInfoCollection.create();
+    }
   }
 }

@@ -33,6 +33,8 @@ import com.android.tools.r8.ir.code.InvokeMethodWithReceiver;
 import com.android.tools.r8.ir.code.InvokeVirtual;
 import com.android.tools.r8.ir.code.StaticGet;
 import com.android.tools.r8.ir.code.Value;
+import com.android.tools.r8.ir.conversion.passes.CodeRewriterPass;
+import com.android.tools.r8.ir.conversion.passes.result.CodeRewriterResult;
 import com.android.tools.r8.ir.optimize.info.FieldOptimizationInfo;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.ArrayUtils;
@@ -47,21 +49,32 @@ import it.unimi.dsi.fastutil.ints.IntSet;
 import java.util.Arrays;
 import java.util.Set;
 
-public class EnumValueOptimizer {
-
-  private final AppView<AppInfoWithLiveness> appView;
-  private final DexItemFactory factory;
+public class EnumValueOptimizer extends CodeRewriterPass<AppInfoWithLiveness> {
 
   public EnumValueOptimizer(AppView<AppInfoWithLiveness> appView) {
-    this.appView = appView;
-    this.factory = appView.dexItemFactory();
+    super(appView);
+  }
+
+  @Override
+  protected String getTimingId() {
+    return "EnumValueOptimizer";
+  }
+
+  @Override
+  protected CodeRewriterResult rewriteCode(IRCode code) {
+    rewriteConstantEnumMethodCalls(code);
+    return CodeRewriterResult.NONE;
+  }
+
+  @Override
+  protected boolean shouldRewriteCode(IRCode code) {
+    return code.metadata().mayHaveInvokeMethodWithReceiver();
   }
 
   @SuppressWarnings("ConstantConditions")
-  public void rewriteConstantEnumMethodCalls(IRCode code) {
+  private void rewriteConstantEnumMethodCalls(IRCode code) {
     IRMetadata metadata = code.metadata();
-    if (!metadata.mayHaveInvokeMethodWithReceiver()
-        && !(metadata.mayHaveInvokeStatic() && metadata.mayHaveArrayLength())) {
+    if (!metadata.mayHaveInvokeMethodWithReceiver()) {
       return;
     }
 
@@ -74,16 +87,17 @@ public class EnumValueOptimizer {
         InvokeMethodWithReceiver methodWithReceiver = current.asInvokeMethodWithReceiver();
         Value receiver = methodWithReceiver.getReceiver().getAliasedValue();
         if (!receiver.getType().isClassType()
-            || !appView
+            || !appView()
                 .appInfo()
-                .isSubtype(receiver.getType().asClassType().getClassType(), factory.enumType)) {
+                .isSubtype(
+                    receiver.getType().asClassType().getClassType(), dexItemFactory.enumType)) {
           continue;
         }
 
         DexMethod invokedMethod = methodWithReceiver.getInvokedMethod();
-        boolean isOrdinalInvoke = invokedMethod.match(factory.enumMembers.ordinalMethod);
-        boolean isNameInvoke = invokedMethod.match(factory.enumMembers.nameMethod);
-        boolean isToStringInvoke = invokedMethod.match(factory.enumMembers.toString);
+        boolean isOrdinalInvoke = invokedMethod.match(dexItemFactory.enumMembers.ordinalMethod);
+        boolean isNameInvoke = invokedMethod.match(dexItemFactory.enumMembers.nameMethod);
+        boolean isToStringInvoke = invokedMethod.match(dexItemFactory.enumMembers.toString);
         if (!isOrdinalInvoke && !isNameInvoke && !isToStringInvoke) {
           continue;
         }
@@ -158,12 +172,13 @@ public class EnumValueOptimizer {
         }
 
         DexEncodedMethod singleTarget =
-            appView
+            appView()
                 .appInfo()
                 .resolveMethodOnClassLegacy(
-                    enumFieldType.getClassType(), factory.objectMembers.toString)
+                    enumFieldType.getClassType(), dexItemFactory.objectMembers.toString)
                 .getSingleTarget();
-        if (singleTarget != null && singleTarget.getReference() != factory.enumMembers.toString) {
+        if (singleTarget != null
+            && singleTarget.getReference() != dexItemFactory.enumMembers.toString) {
           continue;
         }
 
@@ -334,7 +349,7 @@ public class EnumValueOptimizer {
                       enumInstanceField,
                       appView
                           .appInfo()
-                          .resolveField(factory.enumMembers.ordinalField, code.context())
+                          .resolveField(dexItemFactory.enumMembers.ordinalField, code.context())
                           .getResolvedField());
         }
         if (ordinalValue == null) {
@@ -350,14 +365,14 @@ public class EnumValueOptimizer {
   private SingleStringValue getNameValue(
       IRCode code, AbstractValue abstractValue, boolean neverNull) {
     AbstractValue ordinalValue =
-        getEnumFieldValue(code, abstractValue, factory.enumMembers.nameField, neverNull);
+        getEnumFieldValue(code, abstractValue, dexItemFactory.enumMembers.nameField, neverNull);
     return ordinalValue == null ? null : ordinalValue.asSingleStringValue();
   }
 
   private SingleNumberValue getOrdinalValue(
       IRCode code, AbstractValue abstractValue, boolean neverNull) {
     AbstractValue ordinalValue =
-        getEnumFieldValue(code, abstractValue, factory.enumMembers.ordinalField, neverNull);
+        getEnumFieldValue(code, abstractValue, dexItemFactory.enumMembers.ordinalField, neverNull);
     return ordinalValue == null ? null : ordinalValue.asSingleNumberValue();
   }
 
@@ -441,7 +456,7 @@ public class EnumValueOptimizer {
       return null;
     }
     StaticGet staticGet = array.asStaticGet();
-    Int2ReferenceMap<DexField> indexMap = appView.appInfo().getSwitchMap(staticGet.getField());
+    Int2ReferenceMap<DexField> indexMap = appView().appInfo().getSwitchMap(staticGet.getField());
     if (indexMap == null || indexMap.isEmpty()) {
       return null;
     }

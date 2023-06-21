@@ -11,6 +11,7 @@ import com.android.tools.r8.graph.PrunedItems;
 import com.android.tools.r8.graph.lens.GraphLens;
 import com.android.tools.r8.synthesis.SyntheticItems;
 import com.android.tools.r8.utils.ThrowingConsumer;
+import com.android.tools.r8.utils.Timing;
 
 public class EmptyStartupProfile extends StartupProfile {
 
@@ -60,7 +61,7 @@ public class EmptyStartupProfile extends StartupProfile {
   }
 
   @Override
-  public EmptyStartupProfile rewrittenWithLens(GraphLens graphLens) {
+  public EmptyStartupProfile rewrittenWithLens(GraphLens graphLens, Timing timing) {
     return this;
   }
 
@@ -76,7 +77,7 @@ public class EmptyStartupProfile extends StartupProfile {
 
   @Override
   public EmptyStartupProfile withoutPrunedItems(
-      PrunedItems prunedItems, SyntheticItems syntheticItems) {
+      PrunedItems prunedItems, SyntheticItems syntheticItems, Timing timing) {
     return this;
   }
 }

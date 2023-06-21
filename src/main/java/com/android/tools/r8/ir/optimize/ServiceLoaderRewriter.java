@@ -24,6 +24,7 @@ import com.android.tools.r8.ir.code.InvokeStatic;
 import com.android.tools.r8.ir.code.InvokeVirtual;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.conversion.MethodProcessor;
+import com.android.tools.r8.ir.conversion.PostMethodProcessor;
 import com.android.tools.r8.ir.desugar.ServiceLoaderSourceCode;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
@@ -86,14 +87,11 @@ public class ServiceLoaderRewriter {
         || appInfo.isWhyAreYouNotInliningMethod(serviceLoaderMethods.loadWithClassLoader);
   }
 
-  public List<ProgramMethod> getSynthesizedServiceLoadMethods() {
-    return synthesizedServiceLoadMethods;
-  }
-
   public void rewrite(
       IRCode code,
       MethodProcessor methodProcessor,
       MethodProcessingContext methodProcessingContext) {
+    assert !methodProcessor.isPostMethodProcessor();
     InstructionListIterator instructionIterator = code.instructionListIterator();
     // Create a map from service type to loader methods local to this context since two
     // service loader calls to the same type in different methods and in the same wave can race.
@@ -241,6 +239,10 @@ public class ServiceLoaderRewriter {
       new Rewriter(code, instructionIterator, serviceLoaderLoad)
           .perform(classLoaderInvoke, synthesizedMethod.getReference());
     }
+  }
+
+  public void onLastWaveDone(PostMethodProcessor.Builder postMethodProcessorBuilder) {
+    postMethodProcessorBuilder.addAll(synthesizedServiceLoadMethods, appView.graphLens());
   }
 
   private void report(Origin origin, DexType serviceLoaderType, String message) {

@@ -46,7 +46,7 @@ public class ComposeDifferentMethodWithLineNumberTest extends TestBase {
           "# {'id':'com.android.tools.r8.mapping','version':'2.2'}",
           "com.foo -> b:",
           "    1:1:int f1(boolean) -> f2",
-          "    8:8:void f1(int) -> f3",
+          "    8:8:void f1(int):2:2 -> f3",
           "    # {'id':'com.android.tools.r8.residualsignature','signature':'(Z)V'}");
 
   @Test

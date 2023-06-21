@@ -28,6 +28,11 @@ public class InliningOptimize extends TestBase {
     testForR8(Backend.DEX)
         .addProgramClasses(Bar.class, Foobar.class)
         .addKeepRules("-keep,allowoptimization class ** {\n" + "*;\n" + "}")
+        .addOptionsModification(
+            options -> {
+              options.testing.enableLir();
+              options.inlinerOptions().simpleInliningInstructionLimit = 5;
+            })
         .compile()
         .inspect(
             inspector -> {

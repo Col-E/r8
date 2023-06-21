@@ -52,6 +52,10 @@ def parse_options():
     '--r8jar',
     required=True,
     help='The R8 jar to compile')
+  parser.add_argument(
+    '--r8compiler',
+    default='build/libs/r8_with_deps.jar',
+    help='The R8 compiler to use')
   return parser.parse_args()
 
 def get_r8_version(r8jar):
@@ -89,7 +93,7 @@ def main():
   cmd = [jdk.GetJavaExecutable(), '-Xmx8g', '-ea']
   if args.debug_agent:
     cmd.extend(['-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=*:5005'])
-  cmd.extend(['-cp', 'build/libs/r8_with_deps.jar', 'com.android.tools.r8.R8'])
+  cmd.extend(['-cp', args.r8compiler, 'com.android.tools.r8.R8'])
   cmd.append(args.r8jar)
   cmd.append('--classfile')
   cmd.extend(['--map-id-template', map_id_template])

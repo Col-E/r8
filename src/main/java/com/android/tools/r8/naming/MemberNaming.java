@@ -415,6 +415,10 @@ public class MemberNaming implements MappingWithResidualInfo, Comparable<MemberN
       return new MethodSignature(toUnqualifiedName(), type, parameters);
     }
 
+    public MethodSignature toUnqualifiedIfQualified() {
+      return isQualified() ? new MethodSignature(toUnqualifiedName(), type, parameters) : this;
+    }
+
     public DexMethod toDexMethod(DexItemFactory factory, DexType clazz) {
       DexType[] paramTypes = new DexType[parameters.length];
       for (int i = 0; i < parameters.length; i++) {
@@ -508,6 +512,10 @@ public class MemberNaming implements MappingWithResidualInfo, Comparable<MemberN
     @Override
     public Signature toUnqualifiedSignature() {
       return new MethodSignature(toUnqualifiedName(), type, parameters);
+    }
+
+    public Signature toUnqualifiedSignatureIfQualified() {
+      return isQualified() ? new MethodSignature(toUnqualifiedName(), type, parameters) : this;
     }
 
     @Override

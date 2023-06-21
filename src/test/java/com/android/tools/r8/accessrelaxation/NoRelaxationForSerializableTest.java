@@ -10,12 +10,12 @@ import static org.junit.Assume.assumeTrue;
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.NeverPropagateValue;
 import com.android.tools.r8.NoVerticalClassMerging;
-import com.android.tools.r8.R8TestCompileResult;
+import com.android.tools.r8.ProguardVersion;
 import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.BooleanUtils;
-import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.google.common.collect.ImmutableList;
@@ -25,12 +25,12 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.Serializable;
-import java.nio.file.Path;
+import java.security.NoSuchAlgorithmException;
 import java.util.List;
-import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
 @NoVerticalClassMerging
 class MySerializable implements Serializable {
@@ -99,9 +99,8 @@ public class NoRelaxationForSerializableTest extends AccessRelaxationTestBase {
   );
 
   private final boolean accessModification;
-  private Path configuration;
 
-  @Parameterized.Parameters(name = "{0}, access-modification: {1}")
+  @Parameters(name = "{0}, access-modification: {1}")
   public static List<Object[]> data() {
     return buildParameters(
         getTestParameters()
@@ -116,25 +115,17 @@ public class NoRelaxationForSerializableTest extends AccessRelaxationTestBase {
     this.accessModification = accessModification;
   }
 
-  @Before
-  public void setUpConfiguration() throws Exception {
-    configuration = temp.newFile("pg.conf").toPath().toAbsolutePath();
-    FileUtils.writeTextFile(configuration, StringUtils.lines(
-        keepMainProguardConfiguration(MAIN),
-        accessModification ? "-allowaccessmodification" : ""
-    ));
-  }
-
   @Test
   public void testProguard_withKeepRules() throws Exception {
     assumeTrue(parameters.isCfRuntime());
-    testForProguard()
+    testForProguard(ProguardVersion.getLatest())
         .addProgramClasses(CLASSES)
-        .addKeepRuleFiles(configuration)
+        .addKeepMainRule(MAIN)
         .addKeepRules(KEEPMEMBER_RULES)
         .addInliningAnnotations()
         .addMemberValuePropagationAnnotations()
         .addNoVerticalClassMergingAnnotations()
+        .allowAccessModification(accessModification)
         .compile()
         .run(parameters.getRuntime(), MAIN)
         .assertSuccessWithOutput(EXPECTED_OUTPUT)
@@ -143,34 +134,42 @@ public class NoRelaxationForSerializableTest extends AccessRelaxationTestBase {
 
   @Test
   public void testR8_withKeepRules() throws Exception {
-    R8TestCompileResult result =
-        testForR8(parameters.getBackend())
-            .addProgramClasses(CLASSES)
-            .addMemberValuePropagationAnnotations()
-            .addNoVerticalClassMergingAnnotations()
-            .enableInliningAnnotations()
-            .addKeepRuleFiles(configuration)
-            .addKeepRules(KEEPMEMBER_RULES)
-            .setMinApi(parameters)
-            .compile()
-            .inspect(this::inspect);
-    // TODO(b/117302947): Need to update ART binary.
-    if (parameters.isCfRuntime()) {
-      result
-          .run(parameters.getRuntime(), MAIN)
-          .assertSuccessWithOutput(EXPECTED_OUTPUT);
-    }
+    testForR8(parameters.getBackend())
+        .addProgramClasses(CLASSES)
+        .addMemberValuePropagationAnnotations()
+        .addNoVerticalClassMergingAnnotations()
+        .enableInliningAnnotations()
+        .addKeepMainRule(MAIN)
+        .addKeepRules(KEEPMEMBER_RULES)
+        .allowAccessModification(accessModification)
+        .setMinApi(parameters)
+        .compile()
+        .inspect(this::inspect)
+        .run(parameters.getRuntime(), MAIN)
+        .applyIf(
+            parameters.isCfRuntime()
+                || parameters.getDexRuntimeVersion().isEqualToOneOf(Version.V5_1_1, Version.V8_1_0)
+                || parameters.getDexRuntimeVersion().isNewerThanOrEqual(Version.V10_0_0),
+            runResult -> runResult.assertSuccessWithOutput(EXPECTED_OUTPUT),
+            parameters.isDexRuntimeVersion(Version.DEFAULT)
+                || parameters.isDexRuntimeVersion(Version.V6_0_1)
+                || parameters.isDexRuntimeVersion(Version.V7_0_0)
+                || parameters.isDexRuntimeVersion(Version.V9_0_0),
+            runResult -> runResult.assertFailureWithErrorThatThrows(UnsatisfiedLinkError.class),
+            runResult ->
+                runResult.assertFailureWithErrorThatThrows(NoSuchAlgorithmException.class));
   }
 
   @Test
   public void testProguard_withoutKeepRules() throws Exception {
     assumeTrue(parameters.isCfRuntime());
-    testForProguard()
+    testForProguard(ProguardVersion.getLatest())
         .addProgramClasses(CLASSES)
         .addInliningAnnotations()
         .addMemberValuePropagationAnnotations()
         .addNoVerticalClassMergingAnnotations()
-        .addKeepRuleFiles(configuration)
+        .addKeepMainRule(MAIN)
+        .allowAccessModification(accessModification)
         .compile()
         .run(parameters.getRuntime(), MAIN)
         .assertFailureWithErrorThatMatches(containsString("Could not deserialize"));
@@ -178,21 +177,30 @@ public class NoRelaxationForSerializableTest extends AccessRelaxationTestBase {
 
   @Test
   public void testR8_withoutKeepRules() throws Exception {
-    R8TestCompileResult result =
-        testForR8(parameters.getBackend())
-            .addProgramClasses(CLASSES)
-            .addNoVerticalClassMergingAnnotations()
-            .enableInliningAnnotations()
-            .enableMemberValuePropagationAnnotations()
-            .addKeepRuleFiles(configuration)
-            .setMinApi(parameters)
-            .compile();
-    // TODO(b/117302947): Need to update ART binary.
-    if (parameters.isCfRuntime()) {
-      result
-          .run(parameters.getRuntime(), MAIN)
-          .assertFailureWithErrorThatMatches(containsString("Could not deserialize"));
-    }
+    testForR8(parameters.getBackend())
+        .addProgramClasses(CLASSES)
+        .addNoVerticalClassMergingAnnotations()
+        .enableInliningAnnotations()
+        .enableMemberValuePropagationAnnotations()
+        .addKeepMainRule(MAIN)
+        .allowAccessModification(accessModification)
+        .setMinApi(parameters)
+        .compile()
+        .run(parameters.getRuntime(), MAIN)
+        .applyIf(
+            parameters.isCfRuntime()
+                || parameters.getDexRuntimeVersion().isEqualToOneOf(Version.V5_1_1, Version.V8_1_0)
+                || parameters.getDexRuntimeVersion().isNewerThanOrEqual(Version.V10_0_0),
+            runResult ->
+                runResult.assertFailureWithErrorThatMatches(
+                    containsString("Could not deserialize")),
+            parameters.isDexRuntimeVersion(Version.DEFAULT)
+                || parameters.isDexRuntimeVersion(Version.V6_0_1)
+                || parameters.isDexRuntimeVersion(Version.V7_0_0)
+                || parameters.isDexRuntimeVersion(Version.V9_0_0),
+            runResult -> runResult.assertFailureWithErrorThatThrows(UnsatisfiedLinkError.class),
+            runResult ->
+                runResult.assertFailureWithErrorThatThrows(NoSuchAlgorithmException.class));
   }
 
   private void inspect(CodeInspector inspector) {

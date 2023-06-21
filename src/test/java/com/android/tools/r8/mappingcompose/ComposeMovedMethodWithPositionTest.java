@@ -48,7 +48,7 @@ public class ComposeMovedMethodWithPositionTest extends TestBase {
           "com.bar -> b:",
           "    12:14:int some.other.Class.f1():102:104 -> h11",
           "    15:16:int some.other.Class.f1():102:103 -> h12",
-          "    22:23:void f2():114:114 -> h2",
+          "    22:23:void com.foo.f2():114:114 -> h2",
           "com.foo -> a:");
 
   @Test

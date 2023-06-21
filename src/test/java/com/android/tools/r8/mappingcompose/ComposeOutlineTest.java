@@ -37,12 +37,13 @@ public class ComposeOutlineTest extends TestBase {
           "    1:2:int outline():0 -> a",
           "    # { 'id':'com.android.tools.r8.outline' }",
           "outline.Callsite -> x:",
-          "    4:4:int outlineCaller(int):23 -> s",
+          "    4:4:int outlineCaller(int):23:23 -> s",
           "    5:5:int foo.bar.baz.outlineCaller(int):98:98 -> s",
           "    5:5:int outlineCaller(int):24 -> s",
           "    27:27:int outlineCaller(int):0:0 -> s",
-          "    # { 'id':'com.android.tools.r8.outlineCallsite', 'positions': { '1': 4, '2': 5 },"
-              + " 'outline':'La;a()I' }");
+          "    # { 'id':'com.android.tools.r8.outlineCallsite',"
+              + "'positions': { '1': 4, '2': 5 },"
+              + "'outline':'La;a()I' }");
   private static final String mappingBar =
       StringUtils.unixLines("# {'id':'com.android.tools.r8.mapping','version':'2.2'}", "a -> b:");
   private static final String mappingBaz =
@@ -51,18 +52,18 @@ public class ComposeOutlineTest extends TestBase {
           "b -> c:",
           "    4:5:int a():1:2 -> m",
           "x -> y:",
-          "    8:9:int s(int):4:5 -> o",
           "    42:42:int s(int):27:27 -> o");
   private static final String mappingResult =
       StringUtils.unixLines(
           "# {'id':'com.android.tools.r8.mapping','version':'2.2'}",
           "outline.Callsite -> y:",
-          "    8:8:int outlineCaller(int):23 -> o",
-          "    9:9:int foo.bar.baz.outlineCaller(int):98:98 -> o",
-          "    9:9:int outlineCaller(int):24 -> o",
           "    42:42:int outlineCaller(int):0:0 -> o",
-          "    #"
-              + " {'id':'com.android.tools.r8.outlineCallsite','positions':{'4':8,'5':9},'outline':'Lc;m()I'}",
+          "    # {'id':'com.android.tools.r8.outlineCallsite',"
+              + "'positions':{'4':43,'5':44},"
+              + "'outline':'Lc;m()I'}",
+          "    43:43:int outlineCaller(int):23:23 -> o",
+          "    44:44:int foo.bar.baz.outlineCaller(int):98:98 -> s",
+          "    44:44:int outlineCaller(int):24 -> o",
           "outline.Class -> c:",
           "    4:5:int some.inlinee():75:76 -> m",
           "    4:5:int outline():0 -> m",

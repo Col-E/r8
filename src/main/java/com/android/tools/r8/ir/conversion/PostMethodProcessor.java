@@ -152,6 +152,9 @@ public class PostMethodProcessor extends MethodProcessorWithWave {
         return null;
       }
       ProgramMethodSet methodsToReprocess = methodsToReprocessBuilder.build(appView);
+      assert !appView.options().debug
+          || methodsToReprocess.stream()
+              .allMatch(methodToReprocess -> methodToReprocess.getDefinition().isD8R8Synthesized());
       CallGraph callGraph =
           new PartialCallGraphBuilder(appView, methodsToReprocess).build(executorService, timing);
       return new PostMethodProcessor(appView, callGraph, eventConsumer);
@@ -178,8 +181,7 @@ public class PostMethodProcessor extends MethodProcessorWithWave {
       ExecutorService executorService,
       Timing timing)
       throws ExecutionException {
-    TimingMerger merger =
-        timing.beginMerger("secondary-processor", ThreadUtils.getNumberOfThreads(executorService));
+    TimingMerger merger = timing.beginMerger("secondary-processor", executorService);
     while (!waves.isEmpty()) {
       wave = waves.removeFirst();
       assert !wave.isEmpty();

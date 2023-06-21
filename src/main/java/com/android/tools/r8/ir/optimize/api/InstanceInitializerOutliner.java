@@ -29,6 +29,7 @@ import com.android.tools.r8.ir.code.NewInstance;
 import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.conversion.MethodProcessor;
+import com.android.tools.r8.ir.conversion.PostMethodProcessor;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedback;
 import com.android.tools.r8.ir.synthetic.ForwardMethodBuilder;
 import com.android.tools.r8.ir.synthetic.NewInstanceSourceCode;
@@ -66,6 +67,7 @@ public class InstanceInitializerOutliner {
       ProgramMethod context,
       MethodProcessor methodProcessor,
       MethodProcessingContext methodProcessingContext) {
+    assert !methodProcessor.isPostMethodProcessor();
     // Do not outline from already synthesized methods.
     if (context.getDefinition().isD8R8Synthesized()) {
       return;
@@ -173,6 +175,10 @@ public class InstanceInitializerOutliner {
     if (appView.enableWholeProgramOptimizations()) {
       recomputeApiLevel(context, code);
     }
+  }
+
+  public void onLastWaveDone(PostMethodProcessor.Builder postMethodProcessorBuilder) {
+    postMethodProcessorBuilder.addAll(synthesizedMethods, appView.graphLens());
   }
 
   private boolean canSkipClInit(

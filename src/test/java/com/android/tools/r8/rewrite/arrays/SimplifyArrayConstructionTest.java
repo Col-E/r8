@@ -228,22 +228,24 @@ public class SimplifyArrayConstructionTest extends TestBase {
       assertArrayTypes(twoDimensionalArrays, DexNewArray.class);
       assertArrayTypes(assumedValues, DexNewArray.class);
     } else {
-      assertArrayTypes(referenceArraysNoCasts, DexFilledNewArray.class);
+      if (parameters.canUseSubTypesInFilledNewArray()) {
+        assertArrayTypes(referenceArraysNoCasts, DexFilledNewArray.class);
+      } else {
+        assertArrayTypes(referenceArraysNoCasts, DexNewArray.class, DexFilledNewArray.class);
+      }
       if (isR8 && parameters.canUseSubTypesInFilledNewArray()) {
         assertArrayTypes(referenceArraysWithSubclasses, DexFilledNewArray.class);
-      } else {
-        assertArrayTypes(referenceArraysWithSubclasses, DexNewArray.class);
-      }
-      if (isR8) {
         assertArrayTypes(referenceArraysWithInterfaceImplementations, DexFilledNewArray.class);
       } else {
+        assertArrayTypes(referenceArraysWithSubclasses, DexNewArray.class);
         assertArrayTypes(referenceArraysWithInterfaceImplementations, DexNewArray.class);
       }
 
       // TODO(b/246971330): Add support for arrays whose values have conditionals.
       // assertArrayTypes(phiFilledNewArray, DexFilledNewArray.class);
 
-      assertArrayTypes(objectArraysFilledNewArrayRange, DexFilledNewArrayRange.class);
+      assertArrayTypes(
+          objectArraysFilledNewArrayRange, DexFilledNewArrayRange.class, DexNewArray.class);
 
       if (parameters.getApiLevel().isGreaterThanOrEqualTo(AndroidApiLevel.L)) {
         assertArrayTypes(twoDimensionalArrays, DexFilledNewArray.class);
@@ -274,12 +276,14 @@ public class SimplifyArrayConstructionTest extends TestBase {
     return isInstruction(Arrays.asList(clazz));
   }
 
-  private static void assertArrayTypes(MethodSubject method, Class<?> allowedArrayInst) {
+  private static void assertArrayTypes(MethodSubject method, Class<?>... allowedArrayInst) {
     assertTrue(method.isPresent());
     List<Class<?>> disallowedClasses = Lists.newArrayList(DEX_ARRAY_INSTRUCTIONS);
-    disallowedClasses.remove(allowedArrayInst);
-
-    assertTrue(method.streamInstructions().anyMatch(isInstruction(allowedArrayInst)));
+    for (Class<?> allowedArr : allowedArrayInst) {
+      disallowedClasses.remove(allowedArr);
+    }
+    assertTrue(
+        method.streamInstructions().anyMatch(isInstruction(Arrays.asList(allowedArrayInst))));
     assertTrue(method.streamInstructions().noneMatch(isInstruction(disallowedClasses)));
   }
 

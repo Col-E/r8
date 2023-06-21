@@ -4,44 +4,72 @@
 
 package com.android.tools.r8.ir.conversion.passes;
 
+import com.android.tools.r8.contexts.CompilationContext.MethodProcessingContext;
+import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexItemFactory;
-import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.code.IRCode;
+import com.android.tools.r8.ir.conversion.MethodProcessor;
+import com.android.tools.r8.ir.conversion.passes.result.CodeRewriterResult;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.Timing;
 
 public abstract class CodeRewriterPass<T extends AppInfo> {
 
-  final AppView<?> appView;
-  final DexItemFactory dexItemFactory;
-  final InternalOptions options;
+  protected final AppView<?> appView;
+  protected final DexItemFactory dexItemFactory;
+  protected final InternalOptions options;
 
-  CodeRewriterPass(AppView<?> appView) {
+  protected CodeRewriterPass(AppView<?> appView) {
     this.appView = appView;
     this.dexItemFactory = appView.dexItemFactory();
     this.options = appView.options();
   }
 
   @SuppressWarnings("unchecked")
-  AppView<? extends T> appView() {
+  protected AppView<? extends T> appView() {
     return (AppView<? extends T>) appView;
   }
 
-  public final void run(ProgramMethod method, IRCode code, Timing timing) {
-    timing.time(getTimingId(), () -> run(method, code));
+  public final CodeRewriterResult run(
+      IRCode code,
+      MethodProcessor methodProcessor,
+      MethodProcessingContext methodProcessingContext,
+      Timing timing) {
+    return timing.time(getTimingId(), () -> run(code, methodProcessor, methodProcessingContext));
   }
 
-  public final void run(ProgramMethod method, IRCode code) {
-    if (shouldRewriteCode(method, code)) {
-      rewriteCode(method, code);
+  public final CodeRewriterResult run(IRCode code, Timing timing) {
+    return timing.time(getTimingId(), () -> run(code, null, null));
+  }
+
+  private CodeRewriterResult run(
+      IRCode code,
+      MethodProcessor methodProcessor,
+      MethodProcessingContext methodProcessingContext) {
+    if (shouldRewriteCode(code)) {
+      return rewriteCode(code, methodProcessor, methodProcessingContext);
     }
+    return noChange();
   }
 
-  abstract String getTimingId();
+  protected CodeRewriterResult noChange() {
+    return CodeRewriterResult.NO_CHANGE;
+  }
 
-  abstract void rewriteCode(ProgramMethod method, IRCode code);
+  protected abstract String getTimingId();
 
-  abstract boolean shouldRewriteCode(ProgramMethod method, IRCode code);
+  protected CodeRewriterResult rewriteCode(IRCode code) {
+    throw new Unreachable("Should Override or use overload");
+  }
+
+  protected CodeRewriterResult rewriteCode(
+      IRCode code,
+      MethodProcessor methodProcessor,
+      MethodProcessingContext methodProcessingContext) {
+    return rewriteCode(code);
+  }
+
+  protected abstract boolean shouldRewriteCode(IRCode code);
 }

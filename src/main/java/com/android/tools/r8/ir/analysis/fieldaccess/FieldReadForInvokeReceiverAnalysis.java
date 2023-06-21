@@ -23,7 +23,7 @@ public class FieldReadForInvokeReceiverAnalysis {
 
   private final AppView<AppInfoWithLiveness> appView;
 
-  FieldReadForInvokeReceiverAnalysis(AppView<AppInfoWithLiveness> appView) {
+  public FieldReadForInvokeReceiverAnalysis(AppView<AppInfoWithLiveness> appView) {
     this.appView = appView;
   }
 

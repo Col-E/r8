@@ -431,6 +431,7 @@ public class EnumUnboxingRewriter {
         }
       }
     }
+    code.removeRedundantBlocks();
     assert code.isConsistentSSABeforeTypesAreCorrect(appView);
     return affectedPhis;
   }

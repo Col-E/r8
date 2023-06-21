@@ -47,7 +47,7 @@ build command. This can typically be done by amending the command-line gradle
 build-target command. Say your build target is `assembleRelease`, you would run:
 
 ```
-./gradlew assembleRelease -Dcom.android.tools.r8.dumpinputtofile=mydump.zip --no-daemon
+./gradlew assembleRelease -Dorg.gradle.caching=false -Dcom.android.tools.r8.dumpinputtofile=mydump.zip --no-daemon
 ```
 
 If the build is a debug build, such as `assembleDebug`, then it will likely be an
@@ -57,7 +57,7 @@ problematic compilation (if the compilation fails, the interesting dump will
 hopefully be the last dump):
 
 ```
-./gradlew assembleDebug -Dcom.android.tools.r8.dumpinputtodirectory=mydumps/ --no-daemon
+./gradlew assembleDebug -Dorg.gradle.caching=false -Dcom.android.tools.r8.dumpinputtodirectory=mydumps/ --no-daemon
 ```
 
 

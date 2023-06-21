@@ -112,6 +112,7 @@ public class SyntheticMarker {
       DexProgramClass clazz, SyntheticKind kind, AppView<?> appView) {
     // TODO(b/158159959): Consider moving this to the dex writer similar to the CF case.
     assert !appView.options().isGeneratingClassFiles();
+    assert !isDefinitelyNotSyntheticProgramClass(clazz);
     clazz.setAnnotations(
         clazz
             .annotations()
@@ -148,9 +149,6 @@ public class SyntheticMarker {
 
   private static SyntheticMarker internalStripMarkerFromClass(
       DexProgramClass clazz, AppView<?> appView) {
-    if (clazz.superType != appView.dexItemFactory().objectType) {
-      return NO_MARKER;
-    }
     if (isDefinitelyNotSyntheticProgramClass(clazz)) {
       return NO_MARKER;
     }

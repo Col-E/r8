@@ -85,6 +85,14 @@ public class MemberRebindingLens extends DefaultNonIdentityGraphLens {
         .build();
   }
 
+  @Override
+  public boolean isIdentityLensForFields(GraphLens codeLens) {
+    if (this == codeLens) {
+      return true;
+    }
+    return getPrevious().isIdentityLensForFields(codeLens);
+  }
+
   public FieldRebindingIdentityLens toRewrittenFieldRebindingLens(
       AppView<? extends AppInfoWithClassHierarchy> appView,
       GraphLens lens,

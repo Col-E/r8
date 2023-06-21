@@ -1910,8 +1910,8 @@ public final class BackportedMethodRewriter implements CfInstructionDesugaring {
     }
 
     @Override
-    public DexProto getProto(DexItemFactory itemFactory) {
-      return itemFactory.prependTypeToProto(receiverType, super.getProto(itemFactory));
+    public DexProto getProto(DexItemFactory factory) {
+      return method.getProto().prependParameter(receiverType, factory);
     }
   }
 

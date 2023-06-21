@@ -21,7 +21,7 @@ public class FieldReadForWriteAnalysis {
 
   private final AppView<AppInfoWithLiveness> appView;
 
-  FieldReadForWriteAnalysis(AppView<AppInfoWithLiveness> appView) {
+  public FieldReadForWriteAnalysis(AppView<AppInfoWithLiveness> appView) {
     this.appView = appView;
   }
 

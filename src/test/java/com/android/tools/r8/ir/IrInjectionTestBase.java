@@ -9,9 +9,11 @@ import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.IRCode;
+import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionIterator;
 import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.ir.code.NumberGenerator;
+import com.android.tools.r8.ir.code.Phi;
 import com.android.tools.r8.ir.conversion.IRConverter;
 import com.android.tools.r8.smali.SmaliBuilder.MethodSignature;
 import com.android.tools.r8.smali.SmaliTestBase;
@@ -67,8 +69,23 @@ public class IrInjectionTestBase extends SmaliTestBase {
       this.appView = appView;
       this.method = method.getMethod();
       this.code = method.buildIR();
+      code.removeRedundantBlocks();
       this.additionalCode = additionalCode;
       this.consumers = new AndroidAppConsumers(appView.options());
+      int largestValueNumber = -1;
+      for (BasicBlock block : code.blocks) {
+        for (Phi phi : block.getPhis()) {
+          largestValueNumber = Math.max(largestValueNumber, phi.getNumber());
+        }
+        for (Instruction instruction : block.getInstructions()) {
+          if (instruction.hasOutValue()) {
+            largestValueNumber = Math.max(largestValueNumber, instruction.outValue().getNumber());
+          }
+        }
+      }
+      while (valueNumberGenerator.peek() <= largestValueNumber) {
+        valueNumberGenerator.next();
+      }
     }
 
     public int countArgumentInstructions() {
@@ -102,6 +119,7 @@ public class IrInjectionTestBase extends SmaliTestBase {
     public String run() throws IOException {
       Timing timing = Timing.empty();
       IRConverter converter = new IRConverter(appView);
+      code.removeRedundantBlocks();
       converter.replaceCodeForTesting(code);
       AndroidApp app = writeDex();
       return runOnArtRaw(app, DEFAULT_MAIN_CLASS_NAME).stdout;

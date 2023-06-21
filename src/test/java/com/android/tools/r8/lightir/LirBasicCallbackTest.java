@@ -12,12 +12,12 @@ import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.errors.Unreachable;
-import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.IRMetadata;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.references.Reference;
+import com.android.tools.r8.utils.InternalOptions;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -74,10 +74,13 @@ public class LirBasicCallbackTest extends TestBase {
 
   @Test
   public void test() {
-    DexItemFactory factory = new DexItemFactory();
-    DexMethod method = factory.createMethod(Reference.methodFromDescriptor("LFoo;", "bar", "()V"));
+    InternalOptions options = new InternalOptions();
+    DexMethod method =
+        options
+            .dexItemFactory()
+            .createMethod(Reference.methodFromDescriptor("LFoo;", "bar", "()V"));
     LirCode<?> code =
-        LirCode.builder(method, new ThrowingStrategy(), factory)
+        LirCode.builder(method, new ThrowingStrategy(), options)
             .setMetadata(IRMetadata.unknown())
             .addConstNull()
             .addConstInt(42)

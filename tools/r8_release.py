@@ -220,8 +220,11 @@ Built here: go/r8-releases/raw/%s
 
 Test: TARGET_PRODUCT=aosp_arm64 m -j core-oj"""
                    % (args.version, args.version, args.version))
+    # Fixes to Android U branch is based of 8.2.2-dev where the keepanno library
+    # is not built.
+    keepanno = not args.version.startswith('8.2.2-udc')
     return release_studio_or_aosp(
-      utils.REPO_ROOT, args.aosp, options, git_message, keepanno=True)
+      utils.REPO_ROOT, args.aosp, options, git_message, keepanno=keepanno)
 
   return release_aosp
 

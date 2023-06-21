@@ -228,6 +228,7 @@ public class IdempotentFunctionCallCanonicalizer {
     }
 
     code.removeAllDeadAndTrivialPhis();
+    code.removeRedundantBlocks();
     assert code.isConsistentSSA(appView);
   }
 

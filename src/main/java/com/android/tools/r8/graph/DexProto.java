@@ -91,6 +91,13 @@ public class DexProto extends IndexedDexItem implements NamingLensComparable<Dex
     return parameters.size();
   }
 
+  public DexProto prependParameter(DexType parameter, DexItemFactory dexItemFactory) {
+    DexType[] parameterTypes = new DexType[getParameters().size() + 1];
+    parameterTypes[0] = parameter;
+    System.arraycopy(getParameters().getBacking(), 0, parameterTypes, 1, getParameters().size());
+    return dexItemFactory.createProto(getReturnType(), parameterTypes);
+  }
+
   @Override
   public String toString() {
     return "Proto " + shorty + " " + returnType + " " + parameters;

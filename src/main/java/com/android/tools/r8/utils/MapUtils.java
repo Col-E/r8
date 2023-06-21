@@ -12,6 +12,7 @@ import java.util.Collections;
 import java.util.IdentityHashMap;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
 import java.util.function.BiPredicate;
 import java.util.function.Consumer;
@@ -37,6 +38,17 @@ public class MapUtils {
 
   public static <K, V> V firstValue(Map<K, V> map) {
     return map.values().iterator().next();
+  }
+
+  public static <K, V> void forEachUntilExclusive(
+      Map<K, V> map, BiConsumer<K, V> consumer, K stoppingCriterion) {
+    for (Entry<K, V> entry : map.entrySet()) {
+      K key = entry.getKey();
+      if (key.equals(stoppingCriterion)) {
+        break;
+      }
+      consumer.accept(key, entry.getValue());
+    }
   }
 
   public static <T, R> Function<T, R> ignoreKey(Supplier<R> supplier) {
@@ -131,6 +143,28 @@ public class MapUtils {
       }
     }
     return true;
+  }
+
+  public static <K, V> Map<K, V> trimCapacity(Map<K, V> map, IntFunction<Map<K, V>> mapFactory) {
+    Map<K, V> newMap = mapFactory.apply(map.size());
+    newMap.putAll(map);
+    return newMap;
+  }
+
+  public static <K, V> Map<K, V> trimCapacityIfSizeLessThan(
+      Map<K, V> map, IntFunction<Map<K, V>> mapFactory, int expectedSize) {
+    if (map.size() < expectedSize) {
+      return trimCapacity(map, mapFactory);
+    }
+    return map;
+  }
+
+  public static <K, V> Map<K, V> trimCapacityOfIdentityHashMapIfSizeLessThan(
+      Map<K, V> map, int expectedSize) {
+    if (map.size() < expectedSize) {
+      return trimCapacity(map, IdentityHashMap::new);
+    }
+    return map;
   }
 
   public static <K, V> Map<K, V> unmodifiableForTesting(Map<K, V> map) {

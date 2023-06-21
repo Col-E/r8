@@ -17,6 +17,7 @@ import com.android.tools.r8.synthesis.SyntheticItems;
 import com.android.tools.r8.utils.MapUtils;
 import com.android.tools.r8.utils.SetUtils;
 import com.android.tools.r8.utils.ThrowingConsumer;
+import com.android.tools.r8.utils.Timing;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
@@ -82,7 +83,11 @@ public class NonEmptyStartupProfile extends StartupProfile {
   }
 
   @Override
-  public StartupProfile rewrittenWithLens(GraphLens graphLens) {
+  public StartupProfile rewrittenWithLens(GraphLens graphLens, Timing timing) {
+    return timing.time("Rewrite NonEmptyStartupProfile", () -> rewrittenWithLens(graphLens));
+  }
+
+  private StartupProfile rewrittenWithLens(GraphLens graphLens) {
     return transform(
         (classRule, builder) ->
             builder.addClassRule(
@@ -171,18 +176,23 @@ public class NonEmptyStartupProfile extends StartupProfile {
   }
 
   @Override
-  public StartupProfile withoutPrunedItems(PrunedItems prunedItems, SyntheticItems syntheticItems) {
-    return transform(
-        (classRule, builder) -> {
-          if (!prunedItems.isRemoved(classRule.getReference())) {
-            builder.addClassRule(classRule);
-          }
-        },
-        (methodRule, builder) -> {
-          if (!prunedItems.isRemoved(methodRule.getReference())) {
-            builder.addMethodRule(methodRule);
-          }
-        });
+  public StartupProfile withoutPrunedItems(
+      PrunedItems prunedItems, SyntheticItems syntheticItems, Timing timing) {
+    timing.begin("Prune NonEmptyStartupProfile");
+    StartupProfile result =
+        transform(
+            (classRule, builder) -> {
+              if (!prunedItems.isRemoved(classRule.getReference())) {
+                builder.addClassRule(classRule);
+              }
+            },
+            (methodRule, builder) -> {
+              if (!prunedItems.isRemoved(methodRule.getReference())) {
+                builder.addMethodRule(methodRule);
+              }
+            });
+    timing.end();
+    return result;
   }
 
   private StartupProfile transform(

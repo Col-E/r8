@@ -4,6 +4,7 @@
 package com.android.tools.r8.dex;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.D8TestCompileResult;
@@ -15,10 +16,14 @@ import com.android.tools.r8.ResourceException;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
+import com.android.tools.r8.graph.ProgramMethod;
+import com.android.tools.r8.startup.utils.MixedSectionLayoutInspector;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.google.common.collect.ImmutableList;
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import org.junit.Test;
@@ -30,6 +35,12 @@ import org.junit.runners.Parameterized.Parameters;
 public class DexCodeDeduppingTest extends TestBase {
   private final TestParameters parameters;
   private static final List<String> EXPECTED = ImmutableList.of("foo", "bar", "foo", "bar");
+
+  private static final int ONE_CLASS_COUNT = 4;
+  private static final int ONE_CLASS_DEDUPLICATED_COUNT = 3;
+
+  private static final int TWO_CLASS_COUNT = 6;
+  private static final int TWO_CLASS_DEDUPLICATED_COUNT = 3;
 
   @Parameters(name = "{0}")
   public static TestParametersCollection data() {
@@ -97,6 +108,14 @@ public class DexCodeDeduppingTest extends TestBase {
         testForR8(parameters.getBackend())
             .addProgramClasses(Foo.class, Bar.class)
             .setMinApi(parameters)
+            .addOptionsModification(
+                options ->
+                    options
+                        .getTestingOptions()
+                        .setMixedSectionLayoutStrategyInspector(
+                            codeLayoutInspector(
+                                parameters.getApiLevel().isGreaterThanOrEqualTo(AndroidApiLevel.S),
+                                true)))
             .addKeepAllClassesRule()
             .compile();
     compile.run(parameters.getRuntime(), Foo.class).assertSuccessWithOutputLines(EXPECTED);
@@ -110,6 +129,14 @@ public class DexCodeDeduppingTest extends TestBase {
             .addProgramClasses(Foo.class, Bar.class)
             .addKeepAttributeLineNumberTable()
             .setMinApi(parameters)
+            .addOptionsModification(
+                options ->
+                    options
+                        .getTestingOptions()
+                        .setMixedSectionLayoutStrategyInspector(
+                            codeLayoutInspector(
+                                parameters.getApiLevel().isGreaterThanOrEqualTo(AndroidApiLevel.S),
+                                true)))
             .addKeepAllClassesRule()
             .compile();
     compile.run(parameters.getRuntime(), Foo.class).assertSuccessWithOutputLines(EXPECTED);
@@ -122,6 +149,14 @@ public class DexCodeDeduppingTest extends TestBase {
         testForD8(parameters.getBackend())
             .addProgramClasses(Foo.class, Bar.class)
             .setMinApi(parameters)
+            .addOptionsModification(
+                options ->
+                    options
+                        .getTestingOptions()
+                        .setMixedSectionLayoutStrategyInspector(
+                            codeLayoutInspector(
+                                parameters.getApiLevel().isGreaterThanOrEqualTo(AndroidApiLevel.S),
+                                true)))
             .release()
             .internalEnableMappingOutput()
             .compile();
@@ -135,6 +170,11 @@ public class DexCodeDeduppingTest extends TestBase {
         testForD8(parameters.getBackend())
             .addProgramClasses(Foo.class, Bar.class)
             .setMinApi(parameters)
+            .addOptionsModification(
+                options ->
+                    options
+                        .getTestingOptions()
+                        .setMixedSectionLayoutStrategyInspector(codeLayoutInspector(false, true)))
             .release()
             .compile();
     compile.run(parameters.getRuntime(), Foo.class).assertSuccessWithOutputLines(EXPECTED);
@@ -142,12 +182,46 @@ public class DexCodeDeduppingTest extends TestBase {
     assertSizes(compile.writeToZip(), 6, 6);
   }
 
+  private MixedSectionLayoutInspector codeLayoutInspector(
+      boolean assumeDeduplicated, boolean twoClasses) {
+    return new MixedSectionLayoutInspector() {
+      @Override
+      public void inspectCodeLayout(int virtualFile, Collection<ProgramMethod> layout) {
+        // We have as many methods, the ones sharing code are just last.
+        assertTrue(layout.size() == (twoClasses ? TWO_CLASS_COUNT : ONE_CLASS_COUNT));
+
+        ArrayList<ProgramMethod> programMethods = new ArrayList<>(layout);
+        if (twoClasses) {
+          if (assumeDeduplicated) {
+            // The two init methods are shared.
+            // The two foo methods AND the bar method are shared, so they should be last.
+            // We sort by count, then fully qualified name.
+            assertTrue(programMethods.get(0).toString().contains("Foo.main"));
+            assertTrue(programMethods.get(1).toString().contains("Bar.<init>"));
+            assertTrue(programMethods.get(2).toString().contains("Foo.<init>"));
+            assertTrue(programMethods.get(3).toString().contains("Bar.foo"));
+            assertTrue(programMethods.get(4).toString().contains("Foo.bar"));
+            assertTrue(programMethods.get(5).toString().contains("Foo.foo"));
+          } else {
+            // We sort by name.
+            assertTrue(programMethods.get(0).toString().contains("Bar.<init>"));
+            assertTrue(programMethods.get(1).toString().contains("Bar.foo"));
+            assertTrue(programMethods.get(2).toString().contains("Foo.<init>"));
+            assertTrue(programMethods.get(3).toString().contains("Foo.bar"));
+            assertTrue(programMethods.get(4).toString().contains("Foo.foo"));
+            assertTrue(programMethods.get(5).toString().contains("Foo.main"));
+          }
+        }
+      }
+    };
+  }
+
   private void assertFooSizes(Path output) throws Exception {
-    assertSizes(output, 3, 4);
+    assertSizes(output, ONE_CLASS_DEDUPLICATED_COUNT, ONE_CLASS_COUNT);
   }
 
   private void assertFooAndBarSizes(Path output) throws Exception {
-    assertSizes(output, 3, 6);
+    assertSizes(output, TWO_CLASS_DEDUPLICATED_COUNT, TWO_CLASS_COUNT);
   }
 
   private void assertSizes(Path output, int deduppedSize, int originalSize)

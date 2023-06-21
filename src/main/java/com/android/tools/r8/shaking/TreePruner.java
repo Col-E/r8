@@ -30,7 +30,6 @@ import com.android.tools.r8.ir.optimize.info.OptimizationFeedback;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedback.OptimizationInfoFixer;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackSimple;
 import com.android.tools.r8.utils.ArrayUtils;
-import com.android.tools.r8.utils.CollectionUtils;
 import com.android.tools.r8.utils.ExceptionUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.IterableUtils;
@@ -39,7 +38,6 @@ import com.android.tools.r8.utils.Timing;
 import com.google.common.collect.Sets;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
@@ -75,18 +73,10 @@ public class TreePruner {
             : UnusedItemsPrinter.DONT_PRINT;
   }
 
-  public PrunedItems run(ExecutorService executorService, Timing timing) throws ExecutionException {
-    return run(executorService, timing, Collections.emptySet());
-  }
-
-  public PrunedItems run(ExecutorService executorService, Timing timing, Set<DexType> prunedTypes)
+  public PrunedItems run(
+      ExecutorService executorService, Timing timing, PrunedItems.Builder prunedItemsBuilder)
       throws ExecutionException {
-    return timing.time("Pruning application...", () -> internalRun(executorService, prunedTypes));
-  }
-
-  private PrunedItems internalRun(
-      ExecutorService executorService, Set<DexType> previouslyPrunedTypes)
-      throws ExecutionException {
+    timing.begin("Pruning application");
     DirectMappedDexApplication application = appView.appInfo().app().asDirect();
       DirectMappedDexApplication.Builder builder = removeUnused(application);
       DirectMappedDexApplication newApplication =
@@ -94,13 +84,18 @@ public class TreePruner {
               ? application
               : builder.build();
       fixupOptimizationInfo(newApplication, executorService);
-    return PrunedItems.builder()
-        .setPrunedApp(newApplication)
-        .addRemovedClasses(CollectionUtils.mergeSets(previouslyPrunedTypes, prunedTypes))
-        .addRemovedFields(prunedFields)
-        .addRemovedMethods(prunedMethods)
-        .addAdditionalPinnedItems(methodsToKeepForConfigurationDebugging)
-        .build();
+    PrunedItems prunedItems =
+        prunedItemsBuilder
+            .setPrunedApp(newApplication)
+            .addRemovedClasses(prunedTypes)
+            .addRemovedFields(prunedFields)
+            .addRemovedMethods(prunedMethods)
+            .addAdditionalPinnedItems(methodsToKeepForConfigurationDebugging)
+            .build();
+    appView.pruneItems(prunedItems, executorService, timing);
+    appView.notifyOptimizationFinishedForTesting();
+    timing.end();
+    return prunedItems;
   }
 
   private DirectMappedDexApplication.Builder removeUnused(DirectMappedDexApplication application) {

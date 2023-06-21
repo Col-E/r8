@@ -22,6 +22,7 @@ import com.android.tools.r8.ir.code.InvokeStatic;
 import com.android.tools.r8.ir.code.NewInstance;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.conversion.MethodProcessor;
+import com.android.tools.r8.ir.conversion.PostMethodProcessor;
 import com.android.tools.r8.ir.desugar.backports.BackportedMethods;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedback;
 import com.android.tools.r8.utils.InternalOptions;
@@ -47,6 +48,7 @@ public class AssertionErrorTwoArgsConstructorRewriter {
       IRCode code,
       MethodProcessor methodProcessor,
       MethodProcessingContext methodProcessingContext) {
+    assert !methodProcessor.isPostMethodProcessor();
     if (options.canUseAssertionErrorTwoArgumentConstructor()) {
       return;
     }
@@ -136,5 +138,9 @@ public class AssertionErrorTwoArgsConstructorRewriter {
         .getEventConsumer()
         .acceptAssertionErrorCreateMethod(method, methodProcessingContext.getMethodContext());
     return method;
+  }
+
+  public void onLastWaveDone(PostMethodProcessor.Builder postMethodProcessorBuilder) {
+    postMethodProcessorBuilder.addAll(synthesizedMethods, appView.graphLens());
   }
 }

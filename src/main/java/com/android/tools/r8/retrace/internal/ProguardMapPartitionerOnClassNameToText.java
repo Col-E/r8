@@ -273,7 +273,7 @@ public class ProguardMapPartitionerOnClassNameToText implements ProguardMapParti
       extends ProguardMapPartitionerBuilderImpl {
 
     private MappingPartitionKeyStrategy mappingPartitionKeyStrategy =
-        MappingPartitionKeyStrategy.OBFUSCATED_TYPE_NAME_AS_KEY_WITH_PARTITIONS;
+        MappingPartitionKeyStrategy.getDefaultStrategy();
 
     public ProguardMapPartitionerBuilderImplInternal(DiagnosticsHandler diagnosticsHandler) {
       super(diagnosticsHandler);

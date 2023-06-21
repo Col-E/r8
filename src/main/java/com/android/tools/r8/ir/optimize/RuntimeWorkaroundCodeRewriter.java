@@ -22,6 +22,7 @@ import com.android.tools.r8.ir.code.IntSwitch;
 import com.android.tools.r8.ir.code.InvokeStatic;
 import com.android.tools.r8.ir.code.NumericType;
 import com.android.tools.r8.ir.code.Value;
+import com.android.tools.r8.ir.conversion.passes.BranchSimplifier;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.LazyBox;
 import com.google.common.collect.ImmutableList;
@@ -65,6 +66,60 @@ public class RuntimeWorkaroundCodeRewriter {
       code.blocks.add(rethrowBlock);
       // Add catch handler to the block containing the last recursive call.
       newBlock.appendCatchHandler(rethrowBlock, guard);
+      code.removeRedundantBlocks();
+    }
+  }
+
+  public static void workaroundSwitchMaxIntBug(IRCode code, AppView<?> appView) {
+    if (appView.options().canHaveSwitchMaxIntBug() && code.metadata().mayHaveSwitch()) {
+      // Always rewrite for workaround switch bug.
+      rewriteSwitchForMaxIntOnly(code, appView);
+    }
+  }
+
+  private static void rewriteSwitchForMaxIntOnly(IRCode code, AppView<?> appView) {
+    boolean hasChanged = false;
+    BranchSimplifier branchSimplifier = new BranchSimplifier(appView);
+    ListIterator<BasicBlock> blocksIterator = code.listIterator();
+    while (blocksIterator.hasNext()) {
+      BasicBlock block = blocksIterator.next();
+      InstructionListIterator iterator = block.listIterator(code);
+      while (iterator.hasNext()) {
+        Instruction instruction = iterator.next();
+        assert !instruction.isStringSwitch();
+        if (instruction.isIntSwitch()) {
+          IntSwitch intSwitch = instruction.asIntSwitch();
+          if (intSwitch.getKey(intSwitch.numberOfKeys() - 1) == Integer.MAX_VALUE) {
+            if (intSwitch.numberOfKeys() == 1) {
+              branchSimplifier.rewriteSingleKeySwitchToIf(code, block, iterator, intSwitch);
+            } else {
+              IntList newSwitchSequences = new IntArrayList(intSwitch.numberOfKeys() - 1);
+              for (int i = 0; i < intSwitch.numberOfKeys() - 1; i++) {
+                newSwitchSequences.add(intSwitch.getKey(i));
+              }
+              IntList outliers = new IntArrayList(1);
+              outliers.add(Integer.MAX_VALUE);
+              branchSimplifier.convertSwitchToSwitchAndIfs(
+                  code,
+                  blocksIterator,
+                  block,
+                  iterator,
+                  intSwitch,
+                  ImmutableList.of(newSwitchSequences),
+                  outliers);
+            }
+            hasChanged = true;
+          }
+        }
+      }
+    }
+
+    // Rewriting of switches introduces new branching structure. It relies on critical edges
+    // being split on the way in but does not maintain this property. We therefore split
+    // critical edges at exit.
+    if (hasChanged) {
+      code.splitCriticalEdges();
+      code.removeRedundantBlocks();
     }
   }
 
@@ -189,58 +244,6 @@ public class RuntimeWorkaroundCodeRewriter {
         ensureInstructionBefore(code, superConstructorCall, it);
         break;
       }
-    }
-  }
-
-  public static void workaroundSwitchMaxIntBug(
-      IRCode code, CodeRewriter codeRewriter, InternalOptions options) {
-    if (options.canHaveSwitchMaxIntBug() && code.metadata().mayHaveSwitch()) {
-      // Always rewrite for workaround switch bug.
-      rewriteSwitchForMaxIntOnly(code, codeRewriter);
-    }
-  }
-
-  private static void rewriteSwitchForMaxIntOnly(IRCode code, CodeRewriter codeRewriter) {
-    boolean needToSplitCriticalEdges = false;
-    ListIterator<BasicBlock> blocksIterator = code.listIterator();
-    while (blocksIterator.hasNext()) {
-      BasicBlock block = blocksIterator.next();
-      InstructionListIterator iterator = block.listIterator(code);
-      while (iterator.hasNext()) {
-        Instruction instruction = iterator.next();
-        assert !instruction.isStringSwitch();
-        if (instruction.isIntSwitch()) {
-          IntSwitch intSwitch = instruction.asIntSwitch();
-          if (intSwitch.getKey(intSwitch.numberOfKeys() - 1) == Integer.MAX_VALUE) {
-            if (intSwitch.numberOfKeys() == 1) {
-              codeRewriter.rewriteSingleKeySwitchToIf(code, block, iterator, intSwitch);
-            } else {
-              IntList newSwitchSequences = new IntArrayList(intSwitch.numberOfKeys() - 1);
-              for (int i = 0; i < intSwitch.numberOfKeys() - 1; i++) {
-                newSwitchSequences.add(intSwitch.getKey(i));
-              }
-              IntList outliers = new IntArrayList(1);
-              outliers.add(Integer.MAX_VALUE);
-              codeRewriter.convertSwitchToSwitchAndIfs(
-                  code,
-                  blocksIterator,
-                  block,
-                  iterator,
-                  intSwitch,
-                  ImmutableList.of(newSwitchSequences),
-                  outliers);
-            }
-            needToSplitCriticalEdges = true;
-          }
-        }
-      }
-    }
-
-    // Rewriting of switches introduces new branching structure. It relies on critical edges
-    // being split on the way in but does not maintain this property. We therefore split
-    // critical edges at exit.
-    if (needToSplitCriticalEdges) {
-      code.splitCriticalEdges();
     }
   }
 

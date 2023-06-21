@@ -33,6 +33,10 @@ public class Inc extends Unop {
     return Opcodes.INC;
   }
 
+  public int getIncrement() {
+    return increment;
+  }
+
   @Override
   public <T> T accept(InstructionVisitor<T> visitor) {
     return visitor.visit(this);

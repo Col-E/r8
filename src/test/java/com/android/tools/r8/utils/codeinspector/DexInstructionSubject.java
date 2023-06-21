@@ -122,6 +122,8 @@ import com.android.tools.r8.dex.code.DexRemLong2Addr;
 import com.android.tools.r8.dex.code.DexReturn;
 import com.android.tools.r8.dex.code.DexReturnObject;
 import com.android.tools.r8.dex.code.DexReturnVoid;
+import com.android.tools.r8.dex.code.DexRsubInt;
+import com.android.tools.r8.dex.code.DexRsubIntLit8;
 import com.android.tools.r8.dex.code.DexSget;
 import com.android.tools.r8.dex.code.DexSgetBoolean;
 import com.android.tools.r8.dex.code.DexSgetByte;
@@ -501,69 +503,77 @@ public class DexInstructionSubject implements InstructionSubject {
     return instruction instanceof DexSparseSwitch;
   }
 
-  public boolean isIntOrLongArithmeticBinop() {
+  public boolean isIntArithmeticBinop() {
     return instruction instanceof DexMulInt
         || instruction instanceof DexMulIntLit8
         || instruction instanceof DexMulIntLit16
         || instruction instanceof DexMulInt2Addr
-        || instruction instanceof DexMulLong
-        || instruction instanceof DexMulLong2Addr
         || instruction instanceof DexAddInt
         || instruction instanceof DexAddIntLit8
         || instruction instanceof DexAddIntLit16
         || instruction instanceof DexAddInt2Addr
-        || instruction instanceof DexAddLong
-        || instruction instanceof DexAddLong2Addr
+        || instruction instanceof DexRsubInt
+        || instruction instanceof DexRsubIntLit8
         || instruction instanceof DexSubInt
         || instruction instanceof DexSubInt2Addr
-        || instruction instanceof DexSubLong
-        || instruction instanceof DexSubLong2Addr
         || instruction instanceof DexDivInt
         || instruction instanceof DexDivIntLit8
         || instruction instanceof DexDivIntLit16
         || instruction instanceof DexDivInt2Addr
-        || instruction instanceof DexDivLong
-        || instruction instanceof DexDivLong2Addr
         || instruction instanceof DexRemInt
         || instruction instanceof DexRemIntLit8
         || instruction instanceof DexRemIntLit16
-        || instruction instanceof DexRemInt2Addr
+        || instruction instanceof DexRemInt2Addr;
+  }
+
+  public boolean isLongArithmeticBinop() {
+    return instruction instanceof DexMulLong
+        || instruction instanceof DexMulLong2Addr
+        || instruction instanceof DexAddLong
+        || instruction instanceof DexAddLong2Addr
+        || instruction instanceof DexSubLong
+        || instruction instanceof DexSubLong2Addr
+        || instruction instanceof DexDivLong
+        || instruction instanceof DexDivLong2Addr
         || instruction instanceof DexRemLong
         || instruction instanceof DexRemLong2Addr;
   }
 
-  public boolean isIntOrLongLogicalBinop() {
+  public boolean isIntLogicalBinop() {
     return instruction instanceof DexAndInt
         || instruction instanceof DexAndIntLit8
         || instruction instanceof DexAndIntLit16
         || instruction instanceof DexAndInt2Addr
-        || instruction instanceof DexAndLong
-        || instruction instanceof DexAndLong2Addr
         || instruction instanceof DexOrInt
         || instruction instanceof DexOrIntLit8
         || instruction instanceof DexOrIntLit16
         || instruction instanceof DexOrInt2Addr
-        || instruction instanceof DexOrLong
-        || instruction instanceof DexOrLong2Addr
         || instruction instanceof DexXorInt
         || instruction instanceof DexXorIntLit8
         || instruction instanceof DexXorIntLit16
         || instruction instanceof DexXorInt2Addr
-        || instruction instanceof DexXorLong
-        || instruction instanceof DexXorLong2Addr
         || instruction instanceof DexShrInt
         || instruction instanceof DexShrIntLit8
         || instruction instanceof DexShrInt2Addr
-        || instruction instanceof DexShrLong
-        || instruction instanceof DexShrLong2Addr
         || instruction instanceof DexShlInt
         || instruction instanceof DexShlIntLit8
         || instruction instanceof DexShlInt2Addr
-        || instruction instanceof DexShlLong
-        || instruction instanceof DexShlLong2Addr
         || instruction instanceof DexUshrInt
         || instruction instanceof DexUshrIntLit8
-        || instruction instanceof DexUshrInt2Addr
+        || instruction instanceof DexUshrInt2Addr;
+  }
+
+  public boolean isLongLogicalBinop() {
+    return instruction instanceof DexAndLong
+        || instruction instanceof DexAndLong2Addr
+        || instruction instanceof DexOrLong
+        || instruction instanceof DexOrLong2Addr
+        || instruction instanceof DexXorLong
+        || instruction instanceof DexXorLong2Addr
+        || instruction instanceof DexShrLong
+        || instruction instanceof DexShrLong2Addr
+        || instruction instanceof DexShlLong
+        || instruction instanceof DexShlLong2Addr
         || instruction instanceof DexUshrLong
         || instruction instanceof DexUshrLong2Addr;
   }

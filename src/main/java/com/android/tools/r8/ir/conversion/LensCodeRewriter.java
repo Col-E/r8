@@ -104,7 +104,7 @@ import com.android.tools.r8.ir.code.TypeAndLocalInfoSupplier;
 import com.android.tools.r8.ir.code.UnusedArgument;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.code.ValueType;
-import com.android.tools.r8.ir.optimize.CodeRewriter;
+import com.android.tools.r8.ir.conversion.passes.TrivialPhiSimplifier;
 import com.android.tools.r8.ir.optimize.enums.EnumUnboxer;
 import com.android.tools.r8.optimize.MemberRebindingAnalysis;
 import com.android.tools.r8.optimize.argumentpropagation.lenscoderewriter.NullCheckInserter;
@@ -231,7 +231,7 @@ public class LensCodeRewriter {
         if (unusedArgument.outValue().hasPhiUsers()) {
           // See b/240282988: We can end up in situations where the second round of IR processing
           // introduce phis for irreducible control flow, we need to resolve them.
-          CodeRewriter.replaceUnusedArgumentTrivialPhis(unusedArgument);
+          TrivialPhiSimplifier.replaceUnusedArgumentTrivialPhis(unusedArgument);
         }
       }
     }
@@ -854,6 +854,7 @@ public class LensCodeRewriter {
     }
     nullCheckInserter.processWorklist();
     code.removeAllDeadAndTrivialPhis();
+    code.removeRedundantBlocks();
     removeUnusedArguments(method, code, unusedArguments);
 
     // Finalize cast and null check insertion.

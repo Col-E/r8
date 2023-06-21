@@ -46,7 +46,7 @@ public class ComposePreambleTest extends TestBase {
       StringUtils.unixLines(
           "# {'id':'com.android.tools.r8.mapping','version':'2.2'}",
           "com.foo -> b:",
-          "    1:1:int f1():0:0 -> h1",
+          "    1:1:int g1():0:0 -> h1",
           "    2:3:int f1():41:42 -> h1",
           "    0:65535:void f2():112:112 -> h2");
 

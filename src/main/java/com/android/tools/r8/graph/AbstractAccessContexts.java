@@ -6,9 +6,11 @@ package com.android.tools.r8.graph;
 
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.lens.GraphLens;
+import com.android.tools.r8.utils.MapUtils;
 import com.android.tools.r8.utils.collections.ProgramMethodSet;
 import java.util.IdentityHashMap;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
@@ -306,19 +308,50 @@ public abstract class AbstractAccessContexts {
 
     @Override
     ConcreteAccessContexts rewrittenWithLens(DexDefinitionSupplier definitions, GraphLens lens) {
-      Map<DexField, ProgramMethodSet> newAccessesWithContexts = new IdentityHashMap<>();
-      accessesWithContexts.forEach(
-          (access, contexts) -> {
-            ProgramMethodSet newContexts =
-                newAccessesWithContexts.computeIfAbsent(
-                    lens.lookupField(access), ignore -> ProgramMethodSet.create());
-            for (ProgramMethod context : contexts) {
-              ProgramMethod newContext = lens.mapProgramMethod(context, definitions);
-              assert newContext != null : "Unable to map context: " + context.toSourceString();
-              newContexts.add(newContext);
-            }
-          });
-      return new ConcreteAccessContexts(newAccessesWithContexts);
+      Map<DexField, ProgramMethodSet> rewrittenAccessesWithContexts = null;
+      for (Entry<DexField, ProgramMethodSet> entry : accessesWithContexts.entrySet()) {
+        DexField field = entry.getKey();
+        DexField rewrittenField = lens.lookupField(field);
+
+        ProgramMethodSet contexts = entry.getValue();
+        ProgramMethodSet rewrittenContexts = contexts.rewrittenWithLens(definitions, lens);
+
+        if (rewrittenField == field && rewrittenContexts == contexts) {
+          if (rewrittenAccessesWithContexts == null) {
+            continue;
+          }
+        } else {
+          if (rewrittenAccessesWithContexts == null) {
+            rewrittenAccessesWithContexts = new IdentityHashMap<>(accessesWithContexts.size());
+            MapUtils.forEachUntilExclusive(
+                accessesWithContexts, rewrittenAccessesWithContexts::put, field);
+          }
+        }
+        merge(rewrittenAccessesWithContexts, rewrittenField, rewrittenContexts);
+      }
+      if (rewrittenAccessesWithContexts != null) {
+        rewrittenAccessesWithContexts =
+            MapUtils.trimCapacityOfIdentityHashMapIfSizeLessThan(
+                rewrittenAccessesWithContexts, accessesWithContexts.size());
+        return new ConcreteAccessContexts(rewrittenAccessesWithContexts);
+      } else {
+        return this;
+      }
+    }
+
+    private static void merge(
+        Map<DexField, ProgramMethodSet> accessesWithContexts,
+        DexField field,
+        ProgramMethodSet contexts) {
+      ProgramMethodSet existingContexts = accessesWithContexts.put(field, contexts);
+      if (existingContexts != null) {
+        if (existingContexts.size() <= contexts.size()) {
+          contexts.addAll(existingContexts);
+        } else {
+          accessesWithContexts.put(field, existingContexts);
+          existingContexts.addAll(contexts);
+        }
+      }
     }
 
     @Override

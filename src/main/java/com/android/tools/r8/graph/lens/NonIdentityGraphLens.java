@@ -10,7 +10,7 @@ import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.code.InvokeType;
-import com.android.tools.r8.utils.Action;
+import com.android.tools.r8.utils.ThrowingAction;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Predicate;
@@ -68,7 +68,8 @@ public abstract class NonIdentityGraphLens extends GraphLens {
     return (found == null || stoppingCriterion.test(found)) ? null : found;
   }
 
-  public final void withAlternativeParentLens(GraphLens lens, Action action) {
+  public final <E extends Exception> void withAlternativeParentLens(
+      GraphLens lens, ThrowingAction<E> action) throws E {
     GraphLens oldParent = getPrevious();
     previousLens = lens;
     action.execute();
@@ -97,33 +98,22 @@ public abstract class NonIdentityGraphLens extends GraphLens {
   }
 
   @Override
-  public final DexType lookupType(DexType type, GraphLens applied) {
-    if (this == applied) {
-      return type;
-    }
-    if (type.isPrimitiveType() || type.isVoidType() || type.isNullValueType()) {
-      return type;
+  public final DexType lookupType(DexType type, GraphLens appliedLens) {
+    if (type.isClassType()) {
+      return lookupClassType(type, appliedLens);
     }
     if (type.isArrayType()) {
       DexType result = arrayTypeCache.get(type);
       if (result == null) {
         DexType baseType = type.toBaseType(dexItemFactory);
-        DexType newType = lookupType(baseType);
+        DexType newType = lookupType(baseType, appliedLens);
         result = baseType == newType ? type : type.replaceBaseType(newType, dexItemFactory);
         arrayTypeCache.put(type, result);
       }
       return result;
     }
-    return lookupClassType(type);
-  }
-
-  @Override
-  public final DexType lookupClassType(DexType type, GraphLens applied) {
-    assert type.isClassType() : "Expected class type, but was `" + type.toSourceString() + "`";
-    if (this == applied) {
-      return type;
-    }
-    return internalDescribeLookupClassType(getPrevious().lookupClassType(type));
+    assert type.isNullValueType() || type.isPrimitiveType() || type.isVoidType();
+    return type;
   }
 
   @Override
@@ -168,9 +158,13 @@ public abstract class NonIdentityGraphLens extends GraphLens {
   protected abstract MethodLookupResult internalDescribeLookupMethod(
       MethodLookupResult previous, DexMethod context, GraphLens codeLens);
 
-  protected abstract DexType internalDescribeLookupClassType(DexType previous);
+  protected abstract DexType getNextClassType(DexType type);
+
+  public abstract DexField getPreviousFieldSignature(DexField field);
 
   public abstract DexMethod getPreviousMethodSignature(DexMethod method);
+
+  public abstract DexType getPreviousClassType(DexType type);
 
   /***
    * The previous mapping for a method often coincides with the previous method signature, but it
@@ -181,11 +175,18 @@ public abstract class NonIdentityGraphLens extends GraphLens {
     return getPreviousMethodSignature(method);
   }
 
+  public abstract DexField getNextFieldSignature(DexField field);
+
   public abstract DexMethod getNextMethodSignature(DexMethod method);
 
   @Override
   public final boolean isIdentityLens() {
     return false;
+  }
+
+  @Override
+  public boolean isIdentityLensForFields(GraphLens codeLens) {
+    return this == codeLens;
   }
 
   @Override

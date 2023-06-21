@@ -40,7 +40,7 @@ public class ComposePreambleSyntheticTest extends TestBase {
           "# {'id':'com.android.tools.r8.mapping','version':'2.2'}",
           "a -> b:",
           "    1:2:void lambda$0(boolean):0:1 ->" + " lambda$0$com-r8-Base",
-          "    1:2:void" + " lambda$0$com-r8-Base(boolean):0" + " -> lambda$0$com-r8-Base",
+          "    1:2:void lambda$0$com-r8-Base(boolean):0 -> lambda$0$com-r8-Base",
           "    # {'id':'com.android.tools.r8.synthesized'}");
   private static final String mappingResult =
       StringUtils.unixLines(
@@ -48,9 +48,9 @@ public class ComposePreambleSyntheticTest extends TestBase {
           "com.foo -> b:",
           "    1:1:void lambda$0(boolean):0:0 -> lambda$0$com-r8-Base",
           "    1:1:void lambda$0$com-r8-Base(boolean):0:0 -> lambda$0$com-r8-Base",
+          "    # {'id':'com.android.tools.r8.synthesized'}",
           "    2:2:void lambda$0(boolean):355:355 -> lambda$0$com-r8-Base",
-          "    2:2:void lambda$0$com-r8-Base(boolean):0:0 -> lambda$0$com-r8-Base",
-          "    # {'id':'com.android.tools.r8.synthesized'}");
+          "    2:2:void lambda$0$com-r8-Base(boolean):0:0 -> lambda$0$com-r8-Base");
 
   @Test
   public void testCompose() throws Exception {

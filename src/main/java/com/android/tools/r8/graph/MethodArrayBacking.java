@@ -372,7 +372,7 @@ public class MethodArrayBacking extends MethodCollectionBacking {
       DexEncodedMethod method = directMethods[i];
       DexEncodedMethod newMethod = replacement.apply(method);
       assert newMethod != null;
-      if (method != newMethod) {
+      if (method != newMethod || !method.belongsToDirectPool()) {
         if (belongsToDirectPool(newMethod)) {
           directMethods[i] = newMethod;
         } else {
@@ -404,7 +404,7 @@ public class MethodArrayBacking extends MethodCollectionBacking {
     for (int i = 0; i < virtualMethods.length; i++) {
       DexEncodedMethod method = virtualMethods[i];
       DexEncodedMethod newMethod = replacement.apply(method);
-      if (method != newMethod) {
+      if (method != newMethod || !method.belongsToVirtualPool()) {
         if (belongsToVirtualPool(newMethod)) {
           virtualMethods[i] = newMethod;
         } else {

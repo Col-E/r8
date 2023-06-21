@@ -8,6 +8,7 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.collections.BidirectionalManyToOneMap;
+import com.android.tools.r8.utils.collections.BidirectionalManyToOneRepresentativeMap;
 import com.android.tools.r8.utils.collections.EmptyBidirectionalOneToOneMap;
 import java.util.Collection;
 import java.util.Map;
@@ -16,11 +17,11 @@ import java.util.function.BiConsumer;
 
 public class VerticallyMergedClasses implements MergedClasses {
 
-  private final BidirectionalManyToOneMap<DexType, DexType> mergedClasses;
+  private final BidirectionalManyToOneRepresentativeMap<DexType, DexType> mergedClasses;
   private final BidirectionalManyToOneMap<DexType, DexType> mergedInterfaces;
 
   public VerticallyMergedClasses(
-      BidirectionalManyToOneMap<DexType, DexType> mergedClasses,
+      BidirectionalManyToOneRepresentativeMap<DexType, DexType> mergedClasses,
       BidirectionalManyToOneMap<DexType, DexType> mergedInterfaces) {
     this.mergedClasses = mergedClasses;
     this.mergedInterfaces = mergedInterfaces;
@@ -35,6 +36,10 @@ public class VerticallyMergedClasses implements MergedClasses {
   @Override
   public void forEachMergeGroup(BiConsumer<Set<DexType>, DexType> consumer) {
     mergedClasses.forEachManyToOneMapping(consumer);
+  }
+
+  public BidirectionalManyToOneRepresentativeMap<DexType, DexType> getBidirectionalMap() {
+    return mergedClasses;
   }
 
   public Map<DexType, DexType> getForwardMap() {

@@ -705,6 +705,7 @@ public class Inliner {
       if (options.testing.inlineeIrModifier != null) {
         options.testing.inlineeIrModifier.accept(code);
       }
+      code.removeRedundantBlocks();
       assert code.isConsistentSSA(appView);
       return new InlineeWithReason(code, reason);
     }
@@ -1098,6 +1099,7 @@ public class Inliner {
     classInitializationAnalysis.finish();
     code.removeBlocks(blocksToRemove);
     code.removeAllDeadAndTrivialPhis();
+    code.removeRedundantBlocks();
     assert code.isConsistentSSA(appView);
   }
 

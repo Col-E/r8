@@ -42,6 +42,8 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 import com.google.common.collect.Streams;
+import it.unimi.dsi.fastutil.ints.Int2ReferenceMap;
+import it.unimi.dsi.fastutil.ints.Int2ReferenceOpenHashMap;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -590,7 +592,19 @@ public class IRCode implements IRControlFlowGraph, ValueFactory {
     return true;
   }
 
+  public boolean isConsistentSSAAllowingRedundantBlocks(AppView<?> appView) {
+    isConsistentSSABeforeTypesAreCorrectAllowingRedundantBlocks(appView);
+    assert verifyNoImpreciseOrBottomTypes();
+    return true;
+  }
+
   public boolean isConsistentSSABeforeTypesAreCorrect(AppView<?> appView) {
+    assert isConsistentSSABeforeTypesAreCorrectAllowingRedundantBlocks(appView);
+    assert noRedundantBlocks();
+    return true;
+  }
+
+  public boolean isConsistentSSABeforeTypesAreCorrectAllowingRedundantBlocks(AppView<?> appView) {
     assert isConsistentGraph(appView, true);
     assert consistentBlockInstructions(appView, true);
     assert consistentDefUseChains();
@@ -692,18 +706,28 @@ public class IRCode implements IRControlFlowGraph, ValueFactory {
     return false;
   }
 
-  private boolean consistentDefUseChains() {
-    Set<Value> values = Sets.newIdentityHashSet();
+  private void addValueAndCheckUniqueNumber(Int2ReferenceMap<Value> values, Value value) {
+    assert value != null;
+    int number = value.getNumber();
+    Value old = values.put(number, value);
+    assert options.testing.ignoreValueNumbering
+            || old == null
+            || old == value
+            || (number == -1 && value.isValueOnStack())
+        : "Multiple value definitions with number " + number + ": " + value + " and " + old;
+  }
 
+  private boolean consistentDefUseChains() {
+    Int2ReferenceMap<Value> values = new Int2ReferenceOpenHashMap<>();
     for (BasicBlock block : blocks) {
       int predecessorCount = block.getPredecessors().size();
       // Check that all phi uses are consistent.
       for (Phi phi : block.getPhis()) {
         assert !phi.isTrivialPhi();
         assert phi.getOperands().size() == predecessorCount;
-        values.add(phi);
+        addValueAndCheckUniqueNumber(values, phi);
         for (Value value : phi.getOperands()) {
-          values.add(value);
+          addValueAndCheckUniqueNumber(values, value);
           assert value.uniquePhiUsers().contains(phi);
           assert !phi.hasLocalInfo() || phi.getLocalInfo() == value.getLocalInfo();
           assert value.isPhi() || value.definition.hasBlock();
@@ -713,21 +737,21 @@ public class IRCode implements IRControlFlowGraph, ValueFactory {
         assert instruction.getBlock() == block;
         Value outValue = instruction.outValue();
         if (outValue != null) {
-          values.add(outValue);
+          addValueAndCheckUniqueNumber(values, outValue);
           assert outValue.definition == instruction;
         }
         for (Value value : instruction.inValues()) {
-          values.add(value);
+          addValueAndCheckUniqueNumber(values, value);
           assert value.uniqueUsers().contains(instruction);
         }
         for (Value value : instruction.getDebugValues()) {
-          values.add(value);
+          addValueAndCheckUniqueNumber(values, value);
           assert value.debugUsers().contains(instruction);
         }
       }
     }
 
-    for (Value value : values) {
+    for (Value value : values.values()) {
       assert verifyValue(value);
       assert consistentValueUses(value);
     }
@@ -821,8 +845,16 @@ public class IRCode implements IRControlFlowGraph, ValueFactory {
         .forEach(
             (key, value) -> {
               assert value == 1;
-              assert value <= basicBlockNumberGenerator.peek();
+              assert key >= 0;
+              assert key <= basicBlockNumberGenerator.peek();
             });
+    return true;
+  }
+
+  private boolean noRedundantBlocks() {
+    for (BasicBlock block : blocks) {
+      assert !isRedundantBlock(block);
+    }
     return true;
   }
 
@@ -1238,6 +1270,42 @@ public class IRCode implements IRControlFlowGraph, ValueFactory {
       }
     }
     return true;
+  }
+
+  private boolean isRedundantBlock(BasicBlock block) {
+    return block.hasUniqueSuccessorWithUniquePredecessor()
+        && block.getInstructions().size() == 1
+        && block.exit().isGoto()
+        && block.exit().getDebugValues().isEmpty()
+        && !block.isEntry();
+  }
+
+  public void removeRedundantBlocks() {
+    List<BasicBlock> blocksToRemove = new ArrayList<>();
+
+    for (BasicBlock block : blocks) {
+      // Check that there are no redundant blocks.
+      assert !blocksToRemove.contains(block);
+      if (isRedundantBlock(block)) {
+        assert block.getUniqueSuccessor().getMutablePredecessors().size() == 1;
+        assert block.getUniqueSuccessor().getMutablePredecessors().get(0) == block;
+        assert block.getUniqueSuccessor().getPhis().size() == 0;
+        // Let the successor consume this block.
+        BasicBlock successor = block.getUniqueSuccessor();
+        successor.getMutablePredecessors().clear();
+        successor.getMutablePredecessors().addAll(block.getPredecessors());
+        successor.getPhis().addAll(block.getPhis());
+        successor.getPhis().forEach(phi -> phi.setBlock(block.getUniqueSuccessor()));
+        block
+            .getPredecessors()
+            .forEach(predecessors -> predecessors.replaceSuccessor(block, successor));
+        block.getMutablePredecessors().clear();
+        block.getMutableSuccessors().clear();
+        block.getPhis().clear();
+        blocksToRemove.add(block);
+      }
+    }
+    blocks.removeAll(blocksToRemove);
   }
 
   public boolean removeAllDeadAndTrivialPhis() {

@@ -116,7 +116,7 @@ public class RootSetUtils {
     private final DirectMappedDexApplication application;
     private final Iterable<? extends ProguardConfigurationRule> rules;
     private final DependentMinimumKeepInfoCollection dependentMinimumKeepInfo =
-        new DependentMinimumKeepInfoCollection();
+        DependentMinimumKeepInfoCollection.createConcurrent();
     private final LinkedHashMap<DexReference, DexReference> reasonAsked = new LinkedHashMap<>();
     private final Set<DexMethod> alwaysInline = Sets.newIdentityHashSet();
     private final Set<DexMethod> neverInlineDueToSingleCaller = Sets.newIdentityHashSet();
@@ -273,7 +273,8 @@ public class RootSetUtils {
         evaluateCheckDiscardRule(clazz, rule.asProguardCheckDiscardRule());
       } else if (rule instanceof CheckEnumUnboxedRule) {
         evaluateCheckEnumUnboxedRule(clazz, (CheckEnumUnboxedRule) rule);
-      } else if (rule instanceof ProguardWhyAreYouKeepingRule) {
+      } else if (rule instanceof NoAccessModificationRule
+          || rule instanceof ProguardWhyAreYouKeepingRule) {
         markClass(clazz, rule, ifRule);
         markMatchingVisibleMethods(clazz, memberKeepRules, rule, null, true, ifRule);
         markMatchingVisibleFields(clazz, memberKeepRules, rule, null, true, ifRule);
@@ -311,7 +312,7 @@ public class RootSetUtils {
         if (allRulesSatisfied(memberKeepRules, clazz)) {
           markClass(clazz, rule, ifRule);
         }
-      } else if (rule instanceof MemberValuePropagationRule) {
+      } else if (rule instanceof NoValuePropagationRule) {
         markMatchingVisibleMethods(clazz, memberKeepRules, rule, null, true, ifRule);
         markMatchingVisibleFields(clazz, memberKeepRules, rule, null, true, ifRule);
       } else if (rule instanceof ProguardIdentifierNameStringRule) {
@@ -1231,6 +1232,12 @@ public class RootSetUtils {
             throw new Unreachable();
         }
         context.markAsUsed();
+      } else if (context instanceof NoAccessModificationRule) {
+        assert item.isProgramDefinition();
+        dependentMinimumKeepInfo
+            .getOrCreateUnconditionalMinimumKeepInfoFor(item.getReference())
+            .disallowAccessModification();
+        context.markAsUsed();
       } else if (context instanceof NoFieldTypeStrengtheningRule) {
         assert item.isProgramField();
         dependentMinimumKeepInfo
@@ -1282,27 +1289,21 @@ public class RootSetUtils {
             .asMethodJoiner()
             .disallowReturnTypeStrengthening();
         context.markAsUsed();
-      } else if (context instanceof MemberValuePropagationRule) {
-        switch (((MemberValuePropagationRule) context).getType()) {
-          case NEVER:
-            // Only add members from propgram classes to `neverPropagateValue` since class member
-            // values from library types are not propagated by default.
-            if (item.isField()) {
-              DexClassAndField field = item.asField();
-              if (field.isProgramField()) {
-                neverPropagateValue.add(field.getReference());
-                context.markAsUsed();
-              }
-            } else if (item.isMethod()) {
-              DexClassAndMethod method = item.asMethod();
-              if (method.isProgramMethod()) {
-                neverPropagateValue.add(method.getReference());
-                context.markAsUsed();
-              }
-            }
-            break;
-          default:
-            throw new Unreachable();
+      } else if (context instanceof NoValuePropagationRule) {
+        // Only add members from propgram classes to `neverPropagateValue` since class member values
+        // from library types are not propagated by default.
+        if (item.isField()) {
+          DexClassAndField field = item.asField();
+          if (field.isProgramField()) {
+            neverPropagateValue.add(field.getReference());
+            context.markAsUsed();
+          }
+        } else if (item.isMethod()) {
+          DexClassAndMethod method = item.asMethod();
+          if (method.isProgramMethod()) {
+            neverPropagateValue.add(method.getReference());
+            context.markAsUsed();
+          }
         }
       } else if (context instanceof ProguardIdentifierNameStringRule) {
         evaluateIdentifierNameStringRule(item, context, ifRule);
@@ -1948,7 +1949,8 @@ public class RootSetUtils {
           });
     }
 
-    public void pruneItems(PrunedItems prunedItems) {
+    public void pruneItems(PrunedItems prunedItems, Timing timing) {
+      timing.begin("Prune RootSet");
       MinimumKeepInfoCollection unconditionalMinimumKeepInfo =
           getDependentMinimumKeepInfo().getUnconditionalMinimumKeepInfoOrDefault(null);
       if (unconditionalMinimumKeepInfo != null) {
@@ -1957,36 +1959,43 @@ public class RootSetUtils {
           getDependentMinimumKeepInfo().remove(UnconditionalKeepInfoEvent.get());
         }
       }
+      timing.end();
     }
 
-    public RootSet rewrittenWithLens(GraphLens graphLens) {
+    public RootSet rewrittenWithLens(GraphLens graphLens, Timing timing) {
+      timing.begin("Rewrite RootSet");
+      RootSet rewrittenRootSet;
       if (graphLens.isIdentityLens()) {
-        return this;
+        rewrittenRootSet = this;
+      } else {
+        // TODO(b/164019179): If rules can now reference dead items. These should be pruned or
+        //  rewritten
+        ifRules.forEach(ProguardIfRule::canReferenceDeadTypes);
+        rewrittenRootSet =
+            new RootSet(
+                getDependentMinimumKeepInfo().rewrittenWithLens(graphLens, timing),
+                reasonAsked,
+                alwaysInline,
+                neverInlineDueToSingleCaller,
+                bypassClinitForInlining,
+                whyAreYouNotInlining,
+                reprocess,
+                neverReprocess,
+                alwaysClassInline,
+                neverClassInline,
+                noUnusedInterfaceRemoval,
+                noVerticalClassMerging,
+                noHorizontalClassMerging,
+                neverPropagateValue,
+                mayHaveSideEffects,
+                dependentKeepClassCompatRule,
+                identifierNameStrings,
+                ifRules,
+                delayedRootSetActionItems,
+                pendingMethodMoveInverse);
       }
-      // TODO(b/164019179): If rules can now reference dead items. These should be pruned or
-      //  rewritten
-      ifRules.forEach(ProguardIfRule::canReferenceDeadTypes);
-      return new RootSet(
-          getDependentMinimumKeepInfo().rewrittenWithLens(graphLens),
-          reasonAsked,
-          alwaysInline,
-          neverInlineDueToSingleCaller,
-          bypassClinitForInlining,
-          whyAreYouNotInlining,
-          reprocess,
-          neverReprocess,
-          alwaysClassInline,
-          neverClassInline,
-          noUnusedInterfaceRemoval,
-          noVerticalClassMerging,
-          noHorizontalClassMerging,
-          neverPropagateValue,
-          mayHaveSideEffects,
-          dependentKeepClassCompatRule,
-          identifierNameStrings,
-          ifRules,
-          delayedRootSetActionItems,
-          pendingMethodMoveInverse);
+      timing.end();
+      return rewrittenRootSet;
     }
 
     void shouldNotBeMinified(ProgramDefinition definition) {
@@ -2311,41 +2320,47 @@ public class RootSetUtils {
     }
 
     @Override
-    public MainDexRootSet rewrittenWithLens(GraphLens graphLens) {
+    public MainDexRootSet rewrittenWithLens(GraphLens graphLens, Timing timing) {
+      timing.begin("Rewrite MainDexRootSet");
+      MainDexRootSet rewrittenMainDexRootSet;
       if (graphLens.isIdentityLens()) {
-        return this;
+        rewrittenMainDexRootSet = this;
+      } else {
+        ImmutableList.Builder<DexReference> rewrittenReasonAsked = ImmutableList.builder();
+        reasonAsked.forEach(
+            reference ->
+                rewriteAndApplyIfNotPrimitiveType(graphLens, reference, rewrittenReasonAsked::add));
+        // TODO(b/164019179): If rules can now reference dead items. These should be pruned or
+        //  rewritten
+        ifRules.forEach(ProguardIfRule::canReferenceDeadTypes);
+        // All delayed root set actions should have been processed at this point.
+        assert delayedRootSetActionItems.isEmpty();
+        rewrittenMainDexRootSet =
+            new MainDexRootSet(
+                getDependentMinimumKeepInfo().rewrittenWithLens(graphLens, timing),
+                rewrittenReasonAsked.build(),
+                ifRules,
+                delayedRootSetActionItems);
       }
-
-      ImmutableList.Builder<DexReference> rewrittenReasonAsked = ImmutableList.builder();
-      reasonAsked.forEach(
-          reference ->
-              rewriteAndApplyIfNotPrimitiveType(graphLens, reference, rewrittenReasonAsked::add));
-      // TODO(b/164019179): If rules can now reference dead items. These should be pruned or
-      //  rewritten
-      ifRules.forEach(ProguardIfRule::canReferenceDeadTypes);
-      // All delayed root set actions should have been processed at this point.
-      assert delayedRootSetActionItems.isEmpty();
-      return new MainDexRootSet(
-          getDependentMinimumKeepInfo().rewrittenWithLens(graphLens),
-          rewrittenReasonAsked.build(),
-          ifRules,
-          delayedRootSetActionItems);
+      timing.end();
+      return rewrittenMainDexRootSet;
     }
 
-    public MainDexRootSet withoutPrunedItems(PrunedItems prunedItems) {
+    public MainDexRootSet withoutPrunedItems(PrunedItems prunedItems, Timing timing) {
       if (prunedItems.isEmpty()) {
         return this;
       }
+      timing.begin("Prune MainDexRootSet");
       // TODO(b/164019179): If rules can now reference dead items. These should be pruned or
       //  rewritten.
       ifRules.forEach(ProguardIfRule::canReferenceDeadTypes);
       // All delayed root set actions should have been processed at this point.
       assert delayedRootSetActionItems.isEmpty();
-      return new MainDexRootSet(
-          getDependentMinimumKeepInfo(),
-          reasonAsked,
-          ifRules,
-          delayedRootSetActionItems);
+      MainDexRootSet result =
+          new MainDexRootSet(
+              getDependentMinimumKeepInfo(), reasonAsked, ifRules, delayedRootSetActionItems);
+      timing.end();
+      return result;
     }
   }
 }

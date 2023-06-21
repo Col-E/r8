@@ -339,17 +339,27 @@ public class CfInstructionSubject implements InstructionSubject {
   }
 
   @Override
-  public boolean isIntOrLongArithmeticBinop() {
+  public boolean isIntArithmeticBinop() {
     return instruction instanceof CfArithmeticBinop
-        && (((CfArithmeticBinop) instruction).getType() == NumericType.INT
-            || ((CfArithmeticBinop) instruction).getType() == NumericType.LONG);
+        && ((CfArithmeticBinop) instruction).getType() == NumericType.INT;
   }
 
   @Override
-  public boolean isIntOrLongLogicalBinop() {
+  public boolean isIntLogicalBinop() {
     return instruction instanceof CfLogicalBinop
-        && (((CfLogicalBinop) instruction).getType() == NumericType.INT
-            || ((CfLogicalBinop) instruction).getType() == NumericType.LONG);
+        && ((CfLogicalBinop) instruction).getType() == NumericType.INT;
+  }
+
+  @Override
+  public boolean isLongArithmeticBinop() {
+    return instruction instanceof CfArithmeticBinop
+        && ((CfArithmeticBinop) instruction).getType() == NumericType.LONG;
+  }
+
+  @Override
+  public boolean isLongLogicalBinop() {
+    return instruction instanceof CfLogicalBinop
+        && ((CfLogicalBinop) instruction).getType() == NumericType.LONG;
   }
 
   @Override

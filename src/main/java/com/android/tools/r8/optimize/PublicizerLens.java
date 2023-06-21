@@ -12,6 +12,7 @@ import com.android.tools.r8.graph.lens.GraphLens;
 import com.android.tools.r8.graph.lens.MethodLookupResult;
 import com.android.tools.r8.graph.lens.NestedGraphLens;
 import com.android.tools.r8.ir.code.InvokeType;
+import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.google.common.collect.Sets;
 import java.util.Set;
 
@@ -30,6 +31,11 @@ final class PublicizerLens extends NestedGraphLens {
   protected boolean isLegitimateToHaveEmptyMappings() {
     // This lens does not map any DexItem's at all.
     // It will just tweak invoke type for publicized methods from invoke-direct to invoke-virtual.
+    return true;
+  }
+
+  @Override
+  public boolean isPublicizerLens() {
     return true;
   }
 
@@ -74,9 +80,9 @@ final class PublicizerLens extends NestedGraphLens {
 
     private PublicizedLensBuilder() {}
 
-    public GraphLens build(AppView appView) {
+    public PublicizerLens build(AppView<AppInfoWithLiveness> appView) {
       if (publicizedMethods.isEmpty()) {
-        return appView.graphLens();
+        return null;
       }
       return new PublicizerLens(appView, publicizedMethods);
     }

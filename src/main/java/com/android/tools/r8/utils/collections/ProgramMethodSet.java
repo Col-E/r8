@@ -9,38 +9,43 @@ import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.ProgramMethod;
+import com.android.tools.r8.graph.PrunedItems;
 import com.android.tools.r8.graph.lens.GraphLens;
+import com.android.tools.r8.utils.CollectionUtils;
 import com.android.tools.r8.utils.ForEachable;
 import com.google.common.collect.ImmutableMap;
+import java.util.ArrayList;
 import java.util.IdentityHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.function.Supplier;
 
-public class ProgramMethodSet extends DexClassAndMethodSetBase<ProgramMethod> {
+public abstract class ProgramMethodSet extends DexClassAndMethodSetBase<ProgramMethod> {
 
-  private static final ProgramMethodSet EMPTY = new ProgramMethodSet(ImmutableMap::of);
+  private static final ProgramMethodSet EMPTY = new EmptyProgramMethodSet();
 
-  protected ProgramMethodSet(Supplier<? extends Map<DexMethod, ProgramMethod>> backingFactory) {
-    super(backingFactory);
+  ProgramMethodSet() {
+    super();
   }
 
-  protected ProgramMethodSet(
-      Supplier<? extends Map<DexMethod, ProgramMethod>> backingFactory,
-      Map<DexMethod, ProgramMethod> backing) {
-    super(backingFactory, backing);
+  ProgramMethodSet(Map<DexMethod, ProgramMethod> backing) {
+    super(backing);
+  }
+
+  ProgramMethodSet(int capacity) {
+    super(capacity);
   }
 
   public static ProgramMethodSet create() {
-    return new ProgramMethodSet(IdentityHashMap::new);
+    return new IdentityProgramMethodSet();
   }
 
   public static ProgramMethodSet create(int capacity) {
-    return new ProgramMethodSet(IdentityHashMap::new, new IdentityHashMap<>(capacity));
+    return new IdentityProgramMethodSet(capacity);
   }
 
   public static ProgramMethodSet create(ProgramMethod element) {
-    ProgramMethodSet result = create();
+    ProgramMethodSet result = create(1);
     result.add(element);
     return result;
   }
@@ -52,13 +57,13 @@ public class ProgramMethodSet extends DexClassAndMethodSetBase<ProgramMethod> {
   }
 
   public static ProgramMethodSet create(ProgramMethodSet methodSet) {
-    ProgramMethodSet newMethodSet = create();
+    ProgramMethodSet newMethodSet = create(methodSet.size());
     newMethodSet.addAll(methodSet);
     return newMethodSet;
   }
 
   public static ProgramMethodSet createConcurrent() {
-    return new ProgramMethodSet(ConcurrentHashMap::new);
+    return new ConcurrentProgramMethodSet();
   }
 
   public static LinkedProgramMethodSet createLinked() {
@@ -82,14 +87,100 @@ public class ProgramMethodSet extends DexClassAndMethodSetBase<ProgramMethod> {
   }
 
   public ProgramMethodSet rewrittenWithLens(DexDefinitionSupplier definitions, GraphLens lens) {
-    ProgramMethodSet rewritten = new ProgramMethodSet(backingFactory);
-    forEach(
-        method -> {
-          ProgramMethod newMethod = lens.mapProgramMethod(method, definitions);
-          if (newMethod != null) {
-            rewritten.add(newMethod);
+    GraphLens appliedLens = GraphLens.getIdentityLens();
+    List<ProgramMethod> elementsToRemove = null;
+    ProgramMethodSet rewrittenMethods = null;
+    for (ProgramMethod method : this) {
+      ProgramMethod rewrittenMethod = method.rewrittenWithLens(lens, appliedLens, definitions);
+      if (rewrittenMethod == null) {
+        assert lens.isEnumUnboxerLens();
+        // If everything has been unchanged up until now, then record that we should remove this
+        // method.
+        if (rewrittenMethods == null) {
+          if (elementsToRemove == null) {
+            elementsToRemove = new ArrayList<>();
           }
-        });
-    return rewritten;
+          elementsToRemove.add(method);
+        }
+        continue;
+      }
+      if (rewrittenMethod == method) {
+        if (rewrittenMethods != null) {
+          rewrittenMethods.add(rewrittenMethod);
+        }
+      } else {
+        if (rewrittenMethods == null) {
+          rewrittenMethods = ProgramMethodSet.create(size());
+          CollectionUtils.<ProgramMethod>forEachUntilExclusive(
+              this, rewrittenMethods::add, method::isStructurallyEqualTo);
+          if (elementsToRemove != null) {
+            rewrittenMethods.removeAll(elementsToRemove);
+            elementsToRemove = null;
+          }
+        }
+        rewrittenMethods.add(rewrittenMethod);
+      }
+    }
+    if (rewrittenMethods != null) {
+      rewrittenMethods.trimCapacityIfSizeLessThan(size());
+      return rewrittenMethods;
+    } else {
+      if (elementsToRemove != null) {
+        removeAll(elementsToRemove);
+      }
+      return this;
+    }
+  }
+
+  public ProgramMethodSet withoutPrunedItems(PrunedItems prunedItems) {
+    removeIf(method -> prunedItems.isRemoved(method.getReference()));
+    return this;
+  }
+
+  private static class ConcurrentProgramMethodSet extends ProgramMethodSet {
+
+    @Override
+    Map<DexMethod, ProgramMethod> createBacking() {
+      return new ConcurrentHashMap<>();
+    }
+
+    @Override
+    Map<DexMethod, ProgramMethod> createBacking(int capacity) {
+      return new ConcurrentHashMap<>(capacity);
+    }
+  }
+
+  private static class EmptyProgramMethodSet extends ProgramMethodSet {
+
+    @Override
+    Map<DexMethod, ProgramMethod> createBacking() {
+      return ImmutableMap.of();
+    }
+
+    @Override
+    Map<DexMethod, ProgramMethod> createBacking(int capacity) {
+      return ImmutableMap.of();
+    }
+  }
+
+  private static class IdentityProgramMethodSet extends ProgramMethodSet {
+
+    IdentityProgramMethodSet() {
+      super();
+    }
+
+    IdentityProgramMethodSet(int capacity) {
+      super(capacity);
+    }
+
+    @Override
+    Map<DexMethod, ProgramMethod> createBacking() {
+      return new IdentityHashMap<>();
+    }
+
+    @Override
+    Map<DexMethod, ProgramMethod> createBacking(int capacity) {
+      return new IdentityHashMap<>(capacity);
+    }
   }
 }

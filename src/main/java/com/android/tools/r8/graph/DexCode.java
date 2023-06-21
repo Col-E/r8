@@ -870,7 +870,7 @@ public class DexCode extends Code
   }
 
   @Override
-  public void forEachPosition(Consumer<Position> positionConsumer) {
+  public void forEachPosition(DexMethod method, Consumer<Position> positionConsumer) {
     if (getDebugInfo() == null || getDebugInfo().isPcBasedInfo()) {
       return;
     }

@@ -23,6 +23,7 @@ import com.android.tools.r8.profile.art.utils.ArtProfileTestingUtils;
 import com.android.tools.r8.shaking.CheckEnumUnboxedRule;
 import com.android.tools.r8.shaking.CollectingGraphConsumer;
 import com.android.tools.r8.shaking.KeepUnusedReturnValueRule;
+import com.android.tools.r8.shaking.NoAccessModificationRule;
 import com.android.tools.r8.shaking.NoFieldTypeStrengtheningRule;
 import com.android.tools.r8.shaking.NoHorizontalClassMergingRule;
 import com.android.tools.r8.shaking.NoMethodStaticizingRule;
@@ -484,6 +485,10 @@ public abstract class R8TestBuilder<T extends R8TestBuilder<T>>
         "-" + name + " class * { @" + annotation.getTypeName() + " <fields>; }");
   }
 
+  T addInternalMatchAnnotationOnMemberRule(String name, Class<? extends Annotation> annotation) {
+    return addInternalKeepRules("-" + name + " class * { @" + annotation.getTypeName() + " *; }");
+  }
+
   T addInternalMatchAnnotationOnMethodRule(String name, Class<? extends Annotation> annotation) {
     return addInternalKeepRules(
         "-" + name + " class * { @" + annotation.getTypeName() + " <methods>; }");
@@ -548,6 +553,18 @@ public abstract class R8TestBuilder<T extends R8TestBuilder<T>>
     return addKeepUnusedReturnValueAnnotation()
         .addInternalMatchAnnotationOnMethodRule(
             KeepUnusedReturnValueRule.RULE_NAME, KeepUnusedReturnValue.class);
+  }
+
+  public T enableNoAccessModificationAnnotationsForClasses() {
+    return addNoAccessModificationAnnotation()
+        .addInternalMatchInterfaceRule(
+            NoAccessModificationRule.RULE_NAME, NoAccessModification.class);
+  }
+
+  public T enableNoAccessModificationAnnotationsForMembers() {
+    return addNoAccessModificationAnnotation()
+        .addInternalMatchAnnotationOnMemberRule(
+            NoAccessModificationRule.RULE_NAME, NoAccessModification.class);
   }
 
   public T enableNoFieldTypeStrengtheningAnnotations() {

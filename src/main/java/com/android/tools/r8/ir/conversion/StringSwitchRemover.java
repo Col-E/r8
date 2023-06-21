@@ -97,6 +97,7 @@ public class StringSwitchRemover {
       identifierNameStringMarker.decoupleIdentifierNameStringsInBlocks(code, newBlocksWithStrings);
     }
 
+    code.removeRedundantBlocks();
     assert code.isConsistentSSA(appView);
   }
 

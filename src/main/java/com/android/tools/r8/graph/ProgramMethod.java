@@ -85,7 +85,7 @@ public final class ProgramMethod extends DexClassAndMethod
         && !getAccessFlags().isPrivate()
         && !getAccessFlags().isStatic()
         && !getDefinition().isInstanceInitializer()
-        && !appView.appInfo().isFailedResolutionTarget(getReference());
+        && !appView.appInfo().isFailedMethodResolutionTarget(getReference());
   }
 
   public void convertToAbstractOrThrowNullMethod(AppView<AppInfoWithLiveness> appView) {
@@ -200,5 +200,21 @@ public final class ProgramMethod extends DexClassAndMethod
       return false;
     }
     return appView.options().debug || getOrComputeReachabilitySensitive(appView);
+  }
+
+  public ProgramMethod rewrittenWithLens(
+      GraphLens lens, GraphLens appliedLens, DexDefinitionSupplier definitions) {
+    DexMethod newMethod = lens.getRenamedMethodSignature(getReference(), appliedLens);
+    if (newMethod == getReference() && !getDefinition().isObsolete()) {
+      assert verifyIsConsistentWithLookup(definitions);
+      return this;
+    }
+    return asProgramMethodOrNull(definitions.definitionFor(newMethod));
+  }
+
+  private boolean verifyIsConsistentWithLookup(DexDefinitionSupplier definitions) {
+    DexClassAndMethod lookupMethod = definitions.definitionFor(getReference());
+    assert getDefinition() == lookupMethod.getDefinition();
+    return true;
   }
 }

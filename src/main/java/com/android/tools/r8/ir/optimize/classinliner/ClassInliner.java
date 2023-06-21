@@ -19,8 +19,9 @@ import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionOrPhi;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.conversion.MethodProcessor;
+import com.android.tools.r8.ir.conversion.passes.BranchSimplifier;
+import com.android.tools.r8.ir.conversion.passes.TrivialCheckCastAndInstanceOfRemover;
 import com.android.tools.r8.ir.optimize.AssumeRemover;
-import com.android.tools.r8.ir.optimize.CodeRewriter;
 import com.android.tools.r8.ir.optimize.Inliner;
 import com.android.tools.r8.ir.optimize.InliningOracle;
 import com.android.tools.r8.ir.optimize.classinliner.InlineCandidateProcessor.IllegalClassInlinerStateException;
@@ -30,6 +31,7 @@ import com.android.tools.r8.ir.optimize.inliner.InliningIRProvider;
 import com.android.tools.r8.ir.optimize.string.StringOptimizer;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.LazyBox;
+import com.android.tools.r8.utils.Timing;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import java.util.Iterator;
@@ -126,7 +128,6 @@ public final class ClassInliner {
   //
   public final void processMethodCode(
       AppView<AppInfoWithLiveness> appView,
-      CodeRewriter codeRewriter,
       StringOptimizer stringOptimizer,
       EnumValueOptimizer enumValueOptimizer,
       ProgramMethod method,
@@ -228,6 +229,7 @@ public final class ClassInliner {
         // Restore normality.
         assumeRemover.removeMarkedInstructions();
         code.removeAllDeadAndTrivialPhis(affectedValues);
+        code.removeRedundantBlocks();
         assumeRemover.finish();
         assert code.isConsistentSSA(appView);
         rootsIterator.remove();
@@ -247,10 +249,10 @@ public final class ClassInliner {
       // If a method was inlined we may be able to remove check-cast instructions because we may
       // have more information about the types of the arguments at the call site. This is
       // particularly important for bridge methods.
-      codeRewriter.removeTrivialCheckCastAndInstanceOfInstructions(
-          code, method, methodProcessor, methodProcessingContext);
+      new TrivialCheckCastAndInstanceOfRemover(appView)
+          .run(code, methodProcessor, methodProcessingContext, Timing.empty());
       // If a method was inlined we may be able to prune additional branches.
-      codeRewriter.simplifyControlFlow(code);
+      new BranchSimplifier(appView).simplifyBranches(code);
       // If a method was inlined we may see more trivial computation/conversion of String.
       boolean isDebugMode =
           appView.options().debug || method.getOrComputeReachabilitySensitive(appView);

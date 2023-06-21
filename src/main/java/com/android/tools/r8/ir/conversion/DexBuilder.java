@@ -63,7 +63,7 @@ import com.android.tools.r8.ir.code.NewArrayFilledData;
 import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.code.Return;
 import com.android.tools.r8.ir.code.Value;
-import com.android.tools.r8.ir.optimize.CodeRewriter;
+import com.android.tools.r8.ir.conversion.passes.TrivialGotosCollapser;
 import com.android.tools.r8.ir.regalloc.RegisterAllocator;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.InternalOutputMode;
@@ -401,7 +401,7 @@ public class DexBuilder {
       }
       if (allMatch) {
         currentBlock.removeInstruction(debugPosition);
-        CodeRewriter.unlinkTrivialGotoBlock(currentBlock, exit.getTarget());
+        TrivialGotosCollapser.unlinkTrivialGotoBlock(currentBlock, exit.getTarget());
         code.removeBlocks(Collections.singleton(currentBlock));
         // Having removed the block at blockIndex, the previous block may now be a trivial
         // fallthrough from an if/switch. Rewind to that point and retry. This avoids iterating to

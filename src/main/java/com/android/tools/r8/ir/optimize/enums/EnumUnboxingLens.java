@@ -27,10 +27,13 @@ import com.android.tools.r8.ir.code.InvokeType;
 import com.android.tools.r8.ir.conversion.ExtraUnusedNullParameter;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.BooleanUtils;
+import com.android.tools.r8.utils.collections.BidirectionalManyToOneRepresentativeHashMap;
+import com.android.tools.r8.utils.collections.BidirectionalManyToOneRepresentativeMap;
 import com.android.tools.r8.utils.collections.BidirectionalOneToManyRepresentativeHashMap;
 import com.android.tools.r8.utils.collections.BidirectionalOneToManyRepresentativeMap;
 import com.android.tools.r8.utils.collections.BidirectionalOneToOneHashMap;
 import com.android.tools.r8.utils.collections.BidirectionalOneToOneMap;
+import com.android.tools.r8.utils.collections.MutableBidirectionalManyToOneRepresentativeMap;
 import com.android.tools.r8.utils.collections.MutableBidirectionalOneToManyRepresentativeMap;
 import com.android.tools.r8.utils.collections.MutableBidirectionalOneToOneMap;
 import com.google.common.collect.ImmutableMap;
@@ -51,7 +54,7 @@ public class EnumUnboxingLens extends NestedGraphLens {
       AppView<?> appView,
       BidirectionalOneToOneMap<DexField, DexField> fieldMap,
       BidirectionalOneToManyRepresentativeMap<DexMethod, DexMethod> renamedSignatures,
-      Map<DexType, DexType> typeMap,
+      BidirectionalManyToOneRepresentativeMap<DexType, DexType> typeMap,
       Map<DexMethod, DexMethod> methodMap,
       Map<DexMethod, RewrittenPrototypeDescription> prototypeChangesPerMethod,
       Set<DexMethod> dispatchMethods) {
@@ -232,7 +235,8 @@ public class EnumUnboxingLens extends NestedGraphLens {
 
     private final DexItemFactory dexItemFactory;
     private final AbstractValueFactory abstractValueFactory;
-    private final Map<DexType, DexType> typeMap = new IdentityHashMap<>();
+    private final MutableBidirectionalManyToOneRepresentativeMap<DexType, DexType> typeMap =
+        BidirectionalManyToOneRepresentativeHashMap.newIdentityHashMap();
     private final MutableBidirectionalOneToOneMap<DexField, DexField> newFieldSignatures =
         new BidirectionalOneToOneHashMap<>();
     private final MutableBidirectionalOneToManyRepresentativeMap<DexMethod, DexMethod>

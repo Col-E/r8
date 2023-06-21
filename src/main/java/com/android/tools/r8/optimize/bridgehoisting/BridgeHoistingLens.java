@@ -7,7 +7,6 @@ package com.android.tools.r8.optimize.bridgehoisting;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.lens.DefaultNonIdentityGraphLens;
-import com.android.tools.r8.graph.lens.GraphLens;
 import com.android.tools.r8.utils.collections.BidirectionalManyToOneMap;
 import java.util.Set;
 
@@ -21,12 +20,6 @@ class BridgeHoistingLens extends DefaultNonIdentityGraphLens {
       BidirectionalManyToOneMap<DexMethod, DexMethod> bridgeToHoistedBridgeMap) {
     super(appView.dexItemFactory(), appView.graphLens());
     this.bridgeToHoistedBridgeMap = bridgeToHoistedBridgeMap;
-  }
-
-  @Override
-  public DexMethod getRenamedMethodSignature(DexMethod originalMethod, GraphLens applied) {
-    DexMethod renamedMethod = getPrevious().getRenamedMethodSignature(originalMethod, applied);
-    return getNextMethodSignature(renamedMethod);
   }
 
   @Override

@@ -88,10 +88,11 @@ public class LoadStoreHelper {
     return false;
   }
 
-  private static boolean canRemoveConstInstruction(ConstInstruction instr, BasicBlock block) {
+  private boolean canRemoveConstInstruction(ConstInstruction instr, BasicBlock block) {
     Value value = instr.outValue();
     return !hasLocalInfoOrUsersOutsideThisBlock(value, block)
-        && (value.numberOfUsers() <= 1 || !isConstInstructionAlwaysThreeBytes(instr));
+        && (value.numberOfUsers() <= 1 || !isConstInstructionAlwaysThreeBytes(instr))
+        && !instr.instructionInstanceCanThrow(appView, code.context());
   }
 
   public void insertLoadsAndStores() {
@@ -181,7 +182,9 @@ public class LoadStoreHelper {
         it.removeOrReplaceByDebugLocalRead();
         return;
       }
-      assert instruction.outValue().isUsed(); // Should have removed it above.
+      assert instruction.outValue().isUsed()
+              || instruction.instructionInstanceCanThrow(appView, code.context())
+          : "Expected instruction to be removed: " + instruction;
     }
     if (!instruction.outValue().isUsed()) {
       popOutValue(instruction.outValue(), instruction, it);

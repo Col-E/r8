@@ -15,6 +15,7 @@ import com.android.tools.r8.ir.code.NumberGenerator;
 import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.code.Position.PositionBuilder;
 import com.android.tools.r8.ir.conversion.MethodConversionOptions.MutableMethodConversionOptions;
+import com.android.tools.r8.lightir.LirCode;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.RetracerForCodePrinting;
 import com.android.tools.r8.utils.structural.Copyable;
@@ -151,6 +152,14 @@ public abstract class Code extends CachedHashValueDexItem {
 
   public abstract int estimatedDexCodeSizeUpperBoundInBytes();
 
+  public final boolean isLirCode() {
+    return asLirCode() != null;
+  }
+
+  public LirCode<Integer> asLirCode() {
+    return null;
+  }
+
   public CfCode asCfCode() {
     throw new Unreachable(getClass().getCanonicalName() + ".asCfCode()");
   }
@@ -232,7 +241,7 @@ public abstract class Code extends CachedHashValueDexItem {
     return calleePosition.withOutermostCallerPosition(callerPosition);
   }
 
-  public void forEachPosition(Consumer<Position> positionConsumer) {
+  public void forEachPosition(DexMethod method, Consumer<Position> positionConsumer) {
     // Intentionally empty. Override where we have fully build CF or DEX code.
   }
 }

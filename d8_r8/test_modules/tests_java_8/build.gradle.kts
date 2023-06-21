@@ -14,49 +14,24 @@ plugins {
 val root = getRoot()
 
 java {
-  sourceSets.main.configure {
+  sourceSets.test.configure {
     java.srcDir(root.resolveAll("src", "test", "java"))
   }
+  // We cannot use languageVersion.set(JavaLanguageVersion.of(8)) because gradle cannot figure
+  // out that the jdk is 1_8 and will try to download it.
   sourceCompatibility = JavaVersion.VERSION_1_8
   targetCompatibility = JavaVersion.VERSION_1_8
 }
 
-
-// We cannot use languageVersion.set(JavaLanguageVersion.of("8")) because gradle cannot figure
-// out that the jdk is 1_8 and will try to download it.
-tasks.withType<KotlinCompile> {
-  kotlinOptions {
-    jvmTarget = "1.8"
-  }
-}
-
-// The test module compilation depends on main and keep anno output, but we cannot directly
-// reference the task we only obtain a task reference. To obtain the actual reference by creating
-// a dummy.
-tasks.register("dummy-keepanno-reference") {
-  dependsOn(gradle.includedBuild("keepanno").task(":jar"))
-}
-val keepAnnoTask = tasks.getByName("dummy-keepanno-reference")
-  .taskDependencies
-  .getDependencies(tasks.getByName("dummy-keepanno-reference"))
-  .iterator()
-  .next()
-
-tasks.register("dummy-r8-reference") {
-  dependsOn(gradle.includedBuild("main").task(":jar"))
-}
-val r8Task = tasks.getByName("dummy-r8-reference")
-  .taskDependencies
-  .getDependencies(tasks.getByName("dummy-r8-reference"))
-  .iterator()
-  .next()
-
 dependencies {
-  implementation(keepAnnoTask.outputs.files)
-  implementation(r8Task.outputs.files)
+  // If we depend on keepanno by referencing the project source outputs we get an error regarding
+  // incompatible java class file version. By depending on the jar we circumvent that.
+  implementation(projectTask("keepanno", "jar").outputs.files)
+  implementation(projectTask("main", "jar").outputs.files)
   implementation(Deps.asm)
   implementation(Deps.gson)
   implementation(Deps.guava)
+  implementation(Deps.javassist)
   implementation(Deps.junit)
   implementation(Deps.kotlinStdLib)
   implementation(Deps.kotlinReflect)
@@ -71,18 +46,50 @@ dependencies {
   implementation(Deps.asmUtil)
 }
 
-tasks.withType<JavaCompile> {
-  dependsOn(keepAnnoTask)
-  dependsOn(r8Task)
-  options.setFork(true)
-  options.forkOptions.memoryMaximumSize = "3g"
-  options.forkOptions.jvmArgs = listOf(
-    "-Xss256m",
-    // Set the bootclass path so compilation is consistent with 1.8 target compatibility.
-    "-Xbootclasspath/a:third_party/openjdk/openjdk-rt-1.8/rt.jar")
+fun testDependencies() : FileCollection {
+  return sourceSets
+    .test
+    .get()
+    .compileClasspath
+    .filter({ "$it".contains("keepanno") ||
+      ("$it".contains("third_party")
+      && !"$it".contains("errorprone")
+      && !"$it".contains("gradle"))
+            })
 }
 
-tasks.withType<KotlinCompile> {
-    dependsOn(keepAnnoTask)
-    dependsOn(r8Task)
+tasks {
+  withType<JavaCompile> {
+    dependsOn(gradle.includedBuild("keepanno").task(":jar"))
+    dependsOn(gradle.includedBuild("main").task(":jar"))
+    options.setFork(true)
+    options.forkOptions.memoryMaximumSize = "3g"
+    options.forkOptions.jvmArgs = listOf(
+      "-Xss256m",
+      // Set the bootclass path so compilation is consistent with 1.8 target compatibility.
+      "-Xbootclasspath/a:third_party/openjdk/openjdk-rt-1.8/rt.jar")
+  }
+
+  withType<KotlinCompile> {
+    dependsOn(gradle.includedBuild("keepanno").task(":jar"))
+    dependsOn(gradle.includedBuild("main").task(":jar"))
+    kotlinOptions {
+      // We cannot use languageVersion.set(JavaLanguageVersion.of(8)) because gradle cannot figure
+      // out that the jdk is 1_8 and will try to download it.
+      jvmTarget = "1.8"
+    }
+  }
+
+  val testJar by registering(Jar::class) {
+    from(sourceSets.test.get().output)
+  }
+
+  val depsJar by registering(Jar::class) {
+    dependsOn(gradle.includedBuild("keepanno").task(":jar"))
+    println(header("Test Java 8 dependencies"))
+    testDependencies().forEach({ println(it) })
+    from(testDependencies().map(::zipTree))
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+    archiveFileName.set("deps.jar")
+  }
 }

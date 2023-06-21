@@ -30,6 +30,7 @@ import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMember;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
+import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMember;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
@@ -68,8 +69,6 @@ import com.android.tools.r8.graph.proto.RewrittenPrototypeDescription;
 import com.android.tools.r8.ir.code.InvokeType;
 import com.android.tools.r8.ir.code.Position.SyntheticPosition;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
-import com.android.tools.r8.ir.optimize.MemberPoolCollection.MemberPool;
-import com.android.tools.r8.ir.optimize.MethodPoolCollection;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedback;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackSimple;
 import com.android.tools.r8.ir.synthetic.AbstractSynthesizedCode;
@@ -84,7 +83,9 @@ import com.android.tools.r8.utils.OptionalBool;
 import com.android.tools.r8.utils.Timing;
 import com.android.tools.r8.utils.TraversalContinuation;
 import com.android.tools.r8.utils.collections.BidirectionalManyToOneHashMap;
+import com.android.tools.r8.utils.collections.BidirectionalManyToOneRepresentativeHashMap;
 import com.android.tools.r8.utils.collections.MutableBidirectionalManyToOneMap;
+import com.android.tools.r8.utils.collections.MutableBidirectionalManyToOneRepresentativeMap;
 import com.google.common.base.Equivalence;
 import com.google.common.base.Equivalence.Wrapper;
 import com.google.common.collect.Iterables;
@@ -159,7 +160,6 @@ public class VerticalClassMerger {
   private final InternalOptions options;
   private final SubtypingInfo subtypingInfo;
   private final ExecutorService executorService;
-  private final MethodPoolCollection methodPoolCollection;
   private final Timing timing;
   private Collection<DexMethod> invokes;
   private final AndroidApiLevelCompute apiLevelCompute;
@@ -170,8 +170,8 @@ public class VerticalClassMerger {
   private final Set<DexProgramClass> mergeCandidates = new LinkedHashSet<>();
 
   // Map from source class to target class.
-  private final MutableBidirectionalManyToOneMap<DexType, DexType> mergedClasses =
-      BidirectionalManyToOneHashMap.newIdentityHashMap();
+  private final MutableBidirectionalManyToOneRepresentativeMap<DexType, DexType> mergedClasses =
+      BidirectionalManyToOneRepresentativeHashMap.newIdentityHashMap();
 
   private final MutableBidirectionalManyToOneMap<DexType, DexType> mergedInterfaces =
       BidirectionalManyToOneHashMap.newIdentityHashMap();
@@ -199,7 +199,6 @@ public class VerticalClassMerger {
     this.mainDexInfo = appInfo.getMainDexInfo();
     this.subtypingInfo = appInfo.computeSubtypingInfo();
     this.executorService = executorService;
-    this.methodPoolCollection = new MethodPoolCollection(appView, subtypingInfo);
     this.lensBuilder = new VerticalClassMergerGraphLens.Builder(appView.dexItemFactory());
     this.apiLevelCompute = appView.apiLevelCompute();
     this.timing = timing;
@@ -600,7 +599,7 @@ public class VerticalClassMerger {
     }
   }
 
-  public VerticalClassMergerGraphLens run() {
+  public VerticalClassMergerGraphLens run() throws ExecutionException {
     timing.begin("merge");
     // Visit the program classes in a top-down order according to the class hierarchy.
     TopDownClassHierarchyTraversal.forProgramClasses(appView)
@@ -635,14 +634,14 @@ public class VerticalClassMerger {
     if (!profileCollectionAdditions.isNop()) {
       for (SynthesizedBridgeCode synthesizedBridge : synthesizedBridges) {
         profileCollectionAdditions.applyIfContextIsInProfile(
-            synthesizedBridge.originalMethod,
+            lens.getPreviousMethodSignature(synthesizedBridge.method),
             additionsBuilder -> additionsBuilder.addRule(synthesizedBridge.method));
       }
     }
     profileCollectionAdditions.commit(appView);
 
     // Rewrite collections using the lens.
-    appView.rewriteWithLens(lens);
+    appView.rewriteWithLens(lens, executorService, timing);
 
     // Copy keep info to newly synthesized methods.
     keepInfo.mutate(
@@ -660,6 +659,7 @@ public class VerticalClassMerger {
           }
         });
 
+    appView.notifyOptimizationFinishedForTesting();
     return lens;
   }
 
@@ -999,21 +999,17 @@ public class VerticalClassMerger {
           // due to the way invoke-super works on default interface methods. In order to be able
           // to hit this method directly after the merge, we need to make it public, and find a
           // method name that does not collide with one in the hierarchy of this class.
-          MemberPool<DexMethod> methodPoolForTarget =
-              methodPoolCollection.buildForHierarchy(target, executorService, timing);
-          resultingMethod =
-              renameMethod(
-                  virtualMethod,
-                  method ->
-                      availableMethodSignatures.test(method)
-                          && !methodPoolForTarget.hasSeen(
-                              MethodSignatureEquivalence.get().wrap(method)),
-                  Rename.ALWAYS,
-                  appView.dexItemFactory().prependHolderToProto(virtualMethod.getReference()));
+          DexItemFactory dexItemFactory = appView.dexItemFactory();
+          String resultingMethodBaseName =
+              virtualMethod.getName().toString() + '$' + source.getTypeName().replace('.', '$');
+          DexMethod resultingMethodReference =
+              dexItemFactory.createMethod(
+                  target.getType(),
+                  virtualMethod.getProto().prependParameter(source.getType(), dexItemFactory),
+                  dexItemFactory.createGloballyFreshMemberString(resultingMethodBaseName));
+          assert availableMethodSignatures.test(resultingMethodReference);
+          resultingMethod = virtualMethod.toTypeSubstitutedMethod(resultingMethodReference);
           makeStatic(resultingMethod);
-
-          // Update method pool collection now that we are adding a new public method.
-          methodPoolForTarget.seen(resultingMethod.getReference());
         } else {
           // This virtual method could be called directly from a sub class via an invoke-super in-
           // struction. Therefore, we translate this virtual method into an instance method with a
@@ -1892,33 +1888,28 @@ public class VerticalClassMerger {
     }
 
     @Override
-    public DexType getOriginalType(DexType type) {
-      throw new Unreachable();
-    }
-
-    @Override
     public Iterable<DexType> getOriginalTypes(DexType type) {
       throw new Unreachable();
     }
 
     @Override
-    public DexField getOriginalFieldSignature(DexField field) {
+    public DexType getPreviousClassType(DexType type) {
       throw new Unreachable();
     }
 
     @Override
-    public DexField getRenamedFieldSignature(DexField originalField, GraphLens codeLens) {
+    public final DexType getNextClassType(DexType type) {
+      return type == source ? target.type : mergedClasses.getOrDefault(type, type);
+    }
+
+    @Override
+    public DexField getPreviousFieldSignature(DexField field) {
       throw new Unreachable();
     }
 
     @Override
-    public DexMethod getRenamedMethodSignature(DexMethod originalMethod, GraphLens applied) {
+    public DexField getNextFieldSignature(DexField field) {
       throw new Unreachable();
-    }
-
-    @Override
-    public final DexType internalDescribeLookupClassType(DexType previous) {
-      return previous == source ? target.type : mergedClasses.getOrDefault(previous, previous);
     }
 
     @Override

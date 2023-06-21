@@ -6,7 +6,6 @@ package com.android.tools.r8.ir.conversion.passes;
 
 import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppView;
-import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.Binop;
 import com.android.tools.r8.ir.code.CatchHandlers;
@@ -16,6 +15,7 @@ import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.ir.code.Phi;
 import com.android.tools.r8.ir.code.Value;
+import com.android.tools.r8.ir.conversion.passes.result.CodeRewriterResult;
 import com.android.tools.r8.utils.InternalOptions;
 import com.google.common.base.Equivalence;
 import com.google.common.base.Equivalence.Wrapper;
@@ -35,12 +35,12 @@ public class CommonSubexpressionElimination extends CodeRewriterPass<AppInfo> {
   }
 
   @Override
-  boolean shouldRewriteCode(ProgramMethod method, IRCode code) {
+  protected boolean shouldRewriteCode(IRCode code) {
     return true;
   }
 
   @Override
-  void rewriteCode(ProgramMethod method, IRCode code) {
+  protected CodeRewriterResult rewriteCode(IRCode code) {
     int noCandidate = code.reserveMarkingColor();
     if (hasCSECandidate(code, noCandidate)) {
       final ListMultimap<Wrapper<Instruction>, Value> instructionToValue =
@@ -78,7 +78,9 @@ public class CommonSubexpressionElimination extends CodeRewriterPass<AppInfo> {
       }
     }
     code.returnMarkingColor(noCandidate);
+    code.removeRedundantBlocks();
     assert code.isConsistentSSA(appView);
+    return CodeRewriterResult.NONE;
   }
 
   private static class CSEExpressionEquivalence extends Equivalence<Instruction> {

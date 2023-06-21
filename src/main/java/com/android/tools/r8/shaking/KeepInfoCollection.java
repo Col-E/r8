@@ -29,6 +29,7 @@ import com.android.tools.r8.graph.lens.NonIdentityGraphLens;
 import com.android.tools.r8.shaking.KeepFieldInfo.Joiner;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.MapUtils;
+import com.android.tools.r8.utils.Timing;
 import com.google.common.collect.Streams;
 import java.util.IdentityHashMap;
 import java.util.Map;
@@ -243,7 +244,10 @@ public abstract class KeepInfoCollection {
   public abstract void forEachPinnedField(Consumer<DexField> consumer, InternalOptions options);
 
   public abstract KeepInfoCollection rewrite(
-      DexDefinitionSupplier definitions, NonIdentityGraphLens lens, InternalOptions options);
+      DexDefinitionSupplier definitions,
+      NonIdentityGraphLens lens,
+      InternalOptions options,
+      Timing timing);
 
   public abstract KeepInfoCollection mutate(Consumer<MutableKeepInfoCollection> mutator);
 
@@ -312,7 +316,45 @@ public abstract class KeepInfoCollection {
 
     @Override
     public KeepInfoCollection rewrite(
-        DexDefinitionSupplier definitions, NonIdentityGraphLens lens, InternalOptions options) {
+        DexDefinitionSupplier definitions,
+        NonIdentityGraphLens lens,
+        InternalOptions options,
+        Timing timing) {
+      timing.begin("Rewrite KeepInfoCollection");
+      Map<DexType, KeepClassInfo> newClassInfo = rewriteClassInfo(lens, options, timing);
+      Map<DexMethod, KeepMethodInfo> newMethodInfo = rewriteMethodInfo(lens, options, timing);
+      Map<DexField, KeepFieldInfo> newFieldInfo = rewriteFieldInfo(lens, options, timing);
+      MutableKeepInfoCollection result =
+          new MutableKeepInfoCollection(
+              newClassInfo,
+              newMethodInfo,
+              newFieldInfo,
+              rewriteRuleInstances(
+                  classRuleInstances,
+                  clazz -> {
+                    DexType rewritten = lens.lookupType(clazz);
+                    if (rewritten.isClassType()) {
+                      return rewritten;
+                    }
+                    assert rewritten.isIntType();
+                    return null;
+                  },
+                  KeepClassInfo::newEmptyJoiner),
+              rewriteRuleInstances(
+                  fieldRuleInstances,
+                  lens::getRenamedFieldSignature,
+                  KeepFieldInfo::newEmptyJoiner),
+              rewriteRuleInstances(
+                  methodRuleInstances,
+                  lens::getRenamedMethodSignature,
+                  KeepMethodInfo::newEmptyJoiner));
+      timing.end();
+      return result;
+    }
+
+    private Map<DexType, KeepClassInfo> rewriteClassInfo(
+        NonIdentityGraphLens lens, InternalOptions options, Timing timing) {
+      timing.begin("Rewrite class info");
       Map<DexType, KeepClassInfo> newClassInfo = new IdentityHashMap<>(keepClassInfo.size());
       keepClassInfo.forEach(
           (type, info) -> {
@@ -328,6 +370,30 @@ public abstract class KeepInfoCollection {
             KeepClassInfo previous = newClassInfo.put(newType, info);
             assert previous == null;
           });
+      timing.end();
+      return newClassInfo;
+    }
+
+    private Map<DexField, KeepFieldInfo> rewriteFieldInfo(
+        NonIdentityGraphLens lens, InternalOptions options, Timing timing) {
+      timing.begin("Rewrite field info");
+      Map<DexField, KeepFieldInfo> newFieldInfo = new IdentityHashMap<>(keepFieldInfo.size());
+      keepFieldInfo.forEach(
+          (field, info) -> {
+            DexField newField = lens.getRenamedFieldSignature(field);
+            assert newField.name == field.name
+                || !info.isPinned(options)
+                || info.isMinificationAllowed(options);
+            KeepFieldInfo previous = newFieldInfo.put(newField, info);
+            assert previous == null;
+          });
+      timing.end();
+      return newFieldInfo;
+    }
+
+    private Map<DexMethod, KeepMethodInfo> rewriteMethodInfo(
+        NonIdentityGraphLens lens, InternalOptions options, Timing timing) {
+      timing.begin("Rewrite method info");
       Map<DexMethod, KeepMethodInfo> newMethodInfo = new IdentityHashMap<>(keepMethodInfo.size());
       keepMethodInfo.forEach(
           (method, info) -> {
@@ -348,37 +414,8 @@ public abstract class KeepInfoCollection {
             // TODO(b/169927809): Avoid collisions.
             // assert previous == null;
           });
-      Map<DexField, KeepFieldInfo> newFieldInfo = new IdentityHashMap<>(keepFieldInfo.size());
-      keepFieldInfo.forEach(
-          (field, info) -> {
-            DexField newField = lens.getRenamedFieldSignature(field);
-            assert newField.name == field.name
-                || !info.isPinned(options)
-                || info.isMinificationAllowed(options);
-            KeepFieldInfo previous = newFieldInfo.put(newField, info);
-            assert previous == null;
-          });
-      return new MutableKeepInfoCollection(
-          newClassInfo,
-          newMethodInfo,
-          newFieldInfo,
-          rewriteRuleInstances(
-              classRuleInstances,
-              clazz -> {
-                DexType rewritten = lens.lookupType(clazz);
-                if (rewritten.isClassType()) {
-                  return rewritten;
-                }
-                assert rewritten.isIntType();
-                return null;
-              },
-              KeepClassInfo::newEmptyJoiner),
-          rewriteRuleInstances(
-              fieldRuleInstances, lens::getRenamedFieldSignature, KeepFieldInfo::newEmptyJoiner),
-          rewriteRuleInstances(
-              methodRuleInstances,
-              lens::getRenamedMethodSignature,
-              KeepMethodInfo::newEmptyJoiner));
+      timing.end();
+      return newMethodInfo;
     }
 
     private static <R, J extends KeepInfo.Joiner<J, ?, ?>> Map<R, J> rewriteRuleInstances(

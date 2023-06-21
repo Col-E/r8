@@ -80,6 +80,10 @@ public abstract class MethodOptimizationInfo
 
   public abstract SimpleInliningConstraint getSimpleInliningConstraint();
 
+  public abstract boolean hasParametersWithBitwiseOperations();
+
+  public abstract BitSet getParametersWithBitwiseOperations();
+
   public final boolean hasUnusedArguments() {
     assert getUnusedArguments() == null || !getUnusedArguments().isEmpty();
     return getUnusedArguments() != null;

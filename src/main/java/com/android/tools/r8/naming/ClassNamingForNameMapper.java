@@ -11,6 +11,7 @@ import com.android.tools.r8.naming.MemberNaming.Signature;
 import com.android.tools.r8.naming.MemberNaming.Signature.SignatureKind;
 import com.android.tools.r8.naming.mappinginformation.MappingInformation;
 import com.android.tools.r8.naming.mappinginformation.OutlineCallsiteMappingInformation;
+import com.android.tools.r8.naming.mappinginformation.OutlineMappingInformation;
 import com.android.tools.r8.naming.mappinginformation.RewriteFrameMappingInformation;
 import com.android.tools.r8.utils.ChainableStringConsumer;
 import com.android.tools.r8.utils.CollectionUtils;
@@ -135,6 +136,38 @@ public class ClassNamingForNameMapper implements ClassNaming {
       if (info.isFileNameInformation()) {
         originalSourceFileConsumer.accept(originalName, info.asFileNameInformation().getFileName());
       }
+    }
+
+    @Override
+    public boolean hasNoOverlappingRangesForSignature(MethodSignature residualSignature) {
+      List<MappedRange> mappedRanges = mappedRangesByName.get(residualSignature.getName());
+      if (mappedRanges == null) {
+        return true;
+      }
+      List<MappedRange> nonEmptyMinifiedRanges =
+          ListUtils.filter(mappedRanges, range -> range.minifiedRange != null);
+      if (nonEmptyMinifiedRanges.isEmpty()) {
+        return true;
+      }
+      MappedRangesOfName mappedRangesOfName = new MappedRangesOfName(nonEmptyMinifiedRanges);
+      for (MappedRangesOfName partition : mappedRangesOfName.partitionOnMethodSignature()) {
+        List<MappedRange> mappedRangesForSignature =
+            ListUtils.sort(
+                partition.getMappedRanges(),
+                Comparator.comparing(range -> range.minifiedRange.from));
+        Range lastRange = new Range(-1, -1);
+        for (MappedRange range : mappedRangesForSignature) {
+          if (range.minifiedRange.equals(lastRange)) {
+            continue;
+          }
+          if (range.minifiedRange.from <= lastRange.to) {
+            assert false;
+            return false;
+          }
+          lastRange = range.minifiedRange;
+        }
+      }
+      return true;
     }
   }
 
@@ -632,6 +665,15 @@ public class ClassNamingForNameMapper implements ClassNaming {
           MappingInformation::asRewriteFrameMappingInformation);
     }
 
+    public OutlineMappingInformation getOutlineMappingInformation() {
+      List<OutlineMappingInformation> outlineMappingInformation =
+          filter(
+              MappingInformation::isOutlineMappingInformation,
+              MappingInformation::asOutlineMappingInformation);
+      assert outlineMappingInformation.size() <= 1;
+      return outlineMappingInformation.isEmpty() ? null : outlineMappingInformation.get(0);
+    }
+
     public int getOriginalLineNumber(int lineNumberAfterMinification) {
       if (minifiedRange == null) {
         // General mapping without concrete line numbers: "a() -> b"
@@ -659,8 +701,12 @@ public class ClassNamingForNameMapper implements ClassNaming {
       }
     }
 
+    public Range getOriginalRangeOrIdentity() {
+      return originalRange != null ? originalRange : minifiedRange;
+    }
+
     @Override
-    public Signature getOriginalSignature() {
+    public MethodSignature getOriginalSignature() {
       return signature;
     }
 
@@ -761,6 +807,11 @@ public class ClassNamingForNameMapper implements ClassNaming {
       return Collections.unmodifiableList(additionalMappingInformation);
     }
 
+    public void setAdditionalMappingInformationInternal(
+        List<MappingInformation> mappingInformation) {
+      this.additionalMappingInformation = mappingInformation;
+    }
+
     public MappedRange partitionOnMinifiedRange(Range minifiedRange) {
       if (minifiedRange.equals(this.minifiedRange)) {
         return this;
@@ -768,13 +819,27 @@ public class ClassNamingForNameMapper implements ClassNaming {
       Range splitOriginalRange =
           new Range(
               getOriginalLineNumber(minifiedRange.from), getOriginalLineNumber(minifiedRange.to));
+      return copyWithNewRanges(minifiedRange, splitOriginalRange);
+    }
+
+    public MappedRange copyWithNewRanges(Range minifiedRange, Range originalRange) {
       MappedRange splitMappedRange =
-          new MappedRange(minifiedRange, signature, splitOriginalRange, renamedName);
-      if (minifiedRange.to >= this.minifiedRange.to) {
+          new MappedRange(minifiedRange, signature, originalRange, renamedName);
+      if (minifiedRange.from <= this.minifiedRange.from) {
         splitMappedRange.additionalMappingInformation =
             new ArrayList<>(this.additionalMappingInformation);
       }
       return splitMappedRange;
+    }
+
+    public boolean isOriginalRangePreamble() {
+      return originalRange != null && originalRange.isPreamble();
+    }
+
+    public MappedRange withMinifiedRange(Range newMinifiedRange) {
+      return newMinifiedRange.equals(minifiedRange)
+          ? this
+          : new MappedRange(newMinifiedRange, signature, originalRange, renamedName);
     }
   }
 }

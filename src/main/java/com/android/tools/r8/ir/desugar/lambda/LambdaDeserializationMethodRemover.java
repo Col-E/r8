@@ -6,6 +6,7 @@ package com.android.tools.r8.ir.desugar.lambda;
 
 import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import java.util.Collection;
@@ -24,7 +25,10 @@ public class LambdaDeserializationMethodRemover {
     assert appView.options().desugarState.isOn() || classes.isEmpty();
     DexMethod reference = appView.dexItemFactory().deserializeLambdaMethod;
     for (DexProgramClass clazz : classes) {
-      clazz.removeMethod(reference);
+      DexEncodedMethod method = clazz.lookupMethod(reference);
+      if (method != null && method.getAccessFlags().isPrivate()) {
+        clazz.removeMethod(reference);
+      }
     }
   }
 }

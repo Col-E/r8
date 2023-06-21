@@ -59,10 +59,7 @@ public class ProtoNormalizer {
   }
 
   public void run(ExecutorService executorService, Timing timing) throws ExecutionException {
-    timing.time("Proto normalization", () -> run(executorService));
-  }
-
-  private void run(ExecutorService executorService) throws ExecutionException {
+    timing.begin("Proto normalization");
     GlobalReservationState globalReservationState = computeGlobalReservationState(executorService);
 
     // To ensure we do not add collisions of method signatures when creating the new method
@@ -154,8 +151,10 @@ public class ProtoNormalizer {
     }.run(appView.appInfo().classesWithDeterministicOrder());
 
     if (!lensBuilder.isEmpty()) {
-      appView.rewriteWithLens(lensBuilder.build());
+      appView.rewriteWithLens(lensBuilder.build(), executorService, timing);
     }
+    appView.notifyOptimizationFinishedForTesting();
+    timing.end();
   }
 
   private GlobalReservationState computeGlobalReservationState(ExecutorService executorService)

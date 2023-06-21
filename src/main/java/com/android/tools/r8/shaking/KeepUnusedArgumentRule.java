@@ -7,12 +7,12 @@ import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.position.Position;
 import java.util.List;
 
-public class KeepUnusedArgumentRule extends NoOptimizationBaseRule<KeepUnusedArgumentRule> {
+public class KeepUnusedArgumentRule extends ProguardConfigurationRule {
 
   public static final String RULE_NAME = "keepunusedarguments";
 
   public static class Builder
-      extends NoOptimizationBaseRule.Builder<KeepUnusedArgumentRule, Builder> {
+      extends ProguardConfigurationRule.Builder<KeepUnusedArgumentRule, Builder> {
 
     private Builder() {
       super();

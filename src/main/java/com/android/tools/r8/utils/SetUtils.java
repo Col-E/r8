@@ -125,6 +125,16 @@ public class SetUtils {
     return element;
   }
 
+  public static <T> Set<T> trimCapacityOfIdentityHashSetIfSizeLessThan(
+      Set<T> set, int expectedSize) {
+    if (set.size() < expectedSize) {
+      Set<T> newSet = SetUtils.newIdentityHashSet(set.size());
+      newSet.addAll(set);
+      return newSet;
+    }
+    return set;
+  }
+
   public static <T> Set<T> unionIdentityHashSet(Set<T> one, Set<T> other) {
     Set<T> union = Sets.newIdentityHashSet();
     union.addAll(one);

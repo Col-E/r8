@@ -24,8 +24,36 @@ public class MappedRangeUtils {
     if (index + 1 >= mappedRanges.size()) {
       return false;
     }
-    MappedRange mappedRange = mappedRanges.get(index);
-    return mappedRange.minifiedRange != null
-        && mappedRange.minifiedRange.equals(mappedRanges.get(index + 1).minifiedRange);
+    return isInlineMappedRange(mappedRanges.get(index), mappedRanges.get(index + 1));
+  }
+
+  static boolean isInlineMappedRange(MappedRange previous, MappedRange next) {
+    if (previous.minifiedRange == null) {
+      return false;
+    }
+    return next.getOriginalRangeOrIdentity() != null
+        && previous.minifiedRange.equals(next.minifiedRange);
+  }
+
+  // TODO(b/286781273): Remove when fixed.
+  @Deprecated()
+  static boolean isInlineMappedRangeForComposition(List<MappedRange> mappedRanges, int index) {
+    // We are comparing against the next entry so we need a buffer of one.
+    if (index + 1 >= mappedRanges.size()) {
+      return false;
+    }
+    return isInlineMappedRangeForComposition(mappedRanges.get(index), mappedRanges.get(index + 1));
+  }
+
+  // TODO(b/286781273): Remove when fixed.
+  @Deprecated
+  static boolean isInlineMappedRangeForComposition(MappedRange previous, MappedRange next) {
+    if (previous.minifiedRange == null) {
+      return false;
+    }
+    return next.getOriginalRangeOrIdentity() != null
+        // TODO(b/286781273): As a temporary fix, we check for the original range being cardinal.
+        && next.getOriginalRangeOrIdentity().isCardinal
+        && previous.minifiedRange.equals(next.minifiedRange);
   }
 }

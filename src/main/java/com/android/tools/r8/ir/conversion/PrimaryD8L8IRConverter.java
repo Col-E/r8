@@ -38,7 +38,6 @@ import com.android.tools.r8.utils.ExceptionUtils;
 import com.android.tools.r8.utils.ListUtils;
 import com.android.tools.r8.utils.ThreadUtils;
 import com.android.tools.r8.utils.Timing;
-import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -53,7 +52,7 @@ public class PrimaryD8L8IRConverter extends IRConverter {
   }
 
   public void convert(AppView<AppInfo> appView, ExecutorService executorService)
-      throws ExecutionException, IOException {
+      throws ExecutionException {
     LambdaDeserializationMethodRemover.run(appView);
     workaroundAbstractMethodOnNonAbstractClassVerificationBug(executorService);
     AppInfo appInfo = appView.appInfo();

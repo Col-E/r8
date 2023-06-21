@@ -9,6 +9,7 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.PrunedItems;
 import com.android.tools.r8.graph.lens.GraphLens;
 import com.android.tools.r8.utils.SetUtils;
+import com.android.tools.r8.utils.Timing;
 import java.util.Set;
 
 public class NonEmptyOpenClosedInterfacesCollection extends OpenClosedInterfacesCollection {
@@ -26,7 +27,17 @@ public class NonEmptyOpenClosedInterfacesCollection extends OpenClosedInterfaces
   }
 
   @Override
-  public OpenClosedInterfacesCollection rewrittenWithLens(GraphLens graphLens) {
+  public boolean isEmpty() {
+    return openInterfaceTypes.isEmpty();
+  }
+
+  @Override
+  public OpenClosedInterfacesCollection rewrittenWithLens(GraphLens graphLens, Timing timing) {
+    return timing.time(
+        "Rewrite NonEmptyOpenClosedInterfacesCollection", () -> rewrittenWithLens(graphLens));
+  }
+
+  private OpenClosedInterfacesCollection rewrittenWithLens(GraphLens graphLens) {
     Set<DexType> rewrittenOpenInterfaceTypes =
         SetUtils.newIdentityHashSet(openInterfaceTypes.size());
     for (DexType openInterfaceType : openInterfaceTypes) {
@@ -36,16 +47,20 @@ public class NonEmptyOpenClosedInterfacesCollection extends OpenClosedInterfaces
   }
 
   @Override
-  public OpenClosedInterfacesCollection withoutPrunedItems(PrunedItems prunedItems) {
+  public OpenClosedInterfacesCollection withoutPrunedItems(PrunedItems prunedItems, Timing timing) {
     if (!prunedItems.hasRemovedClasses()) {
       return this;
     }
+    timing.begin("Prune NonEmptyOpenClosedInterfacesCollection");
     Set<DexType> prunedOpenInterfaceTypes = SetUtils.newIdentityHashSet(openInterfaceTypes.size());
     for (DexType openInterfaceType : openInterfaceTypes) {
       if (!prunedItems.isRemoved(openInterfaceType)) {
         prunedOpenInterfaceTypes.add(openInterfaceType);
       }
     }
-    return new NonEmptyOpenClosedInterfacesCollection(prunedOpenInterfaceTypes);
+    NonEmptyOpenClosedInterfacesCollection result =
+        new NonEmptyOpenClosedInterfacesCollection(prunedOpenInterfaceTypes);
+    timing.end();
+    return result;
   }
 }

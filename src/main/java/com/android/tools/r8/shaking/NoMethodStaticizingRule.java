@@ -8,12 +8,12 @@ import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.position.Position;
 import java.util.List;
 
-public class NoMethodStaticizingRule extends NoOptimizationBaseRule<NoMethodStaticizingRule> {
+public class NoMethodStaticizingRule extends ProguardConfigurationRule {
 
   public static final String RULE_NAME = "nomethodstaticizing";
 
   public static class Builder
-      extends NoOptimizationBaseRule.Builder<NoMethodStaticizingRule, Builder> {
+      extends ProguardConfigurationRule.Builder<NoMethodStaticizingRule, Builder> {
 
     Builder() {
       super();

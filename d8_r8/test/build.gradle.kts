@@ -2,54 +2,71 @@
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
+import java.nio.file.Paths
+import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
+
+
 plugins {
   `kotlin-dsl`
   id("dependencies-plugin")
 }
 
-val root = getRoot();
-
 java {
-  sourceSets.test.configure {
-    java.srcDir(root.resolveAll("src", "test", "java"))
+  sourceCompatibility = JavaVersion.VERSION_17
+  targetCompatibility = JavaVersion.VERSION_17
+}
+
+dependencies { }
+
+val r8WithRelocatedDepsTask = projectTask("main", "r8WithRelocatedDeps")
+val java8TestJarTask = projectTask("tests_java_8", "testJar")
+val java8DepsJarTask = projectTask("tests_java_8", "depsJar")
+
+tasks {
+  withType<JavaCompile> {
+    options.setFork(true)
+    options.forkOptions.executable = getCompilerPath(Jdk.JDK_17)
+    options.forkOptions.javaHome = getJavaHome(Jdk.JDK_17)
   }
-  sourceCompatibility = JvmCompatibility.sourceCompatibility
-  targetCompatibility = JvmCompatibility.targetCompatibility
-}
 
-// We cannot use languageVersion.set(JavaLanguageVersion.of("8")) because gradle cannot figure
-// out that the jdk is 1_8 and will try to download it.
-tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile> {
-  kotlinOptions {
-    jvmTarget = "11"
+  withType<KotlinCompile> {
+    kotlinOptions {
+      jvmTarget = "17"
+    }
   }
-}
 
+  val allTestsJar by registering(Jar::class) {
+    dependsOn(java8TestJarTask)
+    from(java8TestJarTask.outputs.getFiles().map(::zipTree))
+    exclude("META-INF/*.kotlin_module")
+    exclude("**/*.kotlin_metadata")
+    archiveFileName.set("all-tests.jar")
+  }
 
-dependencies {
-  implementation(":r8")
-  implementation(":keepanno")
-  implementation(Deps.asm)
-  implementation(Deps.gson)
-  implementation(Deps.guava)
-  implementation(Deps.junit)
-  implementation(Deps.kotlinStdLib)
-  implementation(Deps.kotlinReflect)
-  implementation(Deps.kotlinMetadata)
-  implementation(files(root.resolveAll("third_party", "ddmlib", "ddmlib.jar")))
-  implementation(
-    files(
-      root.resolveAll("third_party", "jdwp-tests", "apache-harmony-jdwp-tests-host.jar")))
-  implementation(files(root.resolveAll("third_party", "jasmin", "jasmin-2.4.jar")))
-  implementation(Deps.fastUtil)
-  implementation(Deps.smali)
-  implementation(Deps.asmUtil)
-}
+  val allDepsJar by registering(Jar::class) {
+    dependsOn(java8DepsJarTask)
+    from(java8DepsJarTask.outputs.getFiles().map(::zipTree))
+    exclude("META-INF/*.kotlin_module")
+    exclude("**/*.kotlin_metadata")
+    archiveFileName.set("all-deps.jar")
+  }
 
-tasks.named("test") {
-  dependsOn(gradle.includedBuild("tests_java_8").task(":compileJava"))
-}
-
-tasks.withType<Test> {
-  environment("USE_NEW_GRADLE_SETUP", "true")
+  val allTestsJarRelocated by registering(Exec::class) {
+    dependsOn(r8WithRelocatedDepsTask)
+    dependsOn(allTestsJar)
+    val r8 = r8WithRelocatedDepsTask.outputs.getFiles().getSingleFile()
+    val allTests = allTestsJar.get().outputs.files.getSingleFile()
+    inputs.files(listOf(r8, allTests))
+    val output = file(Paths.get("build", "libs", "all-tests-relocated.jar"))
+    outputs.file(output)
+    commandLine = baseCompilerCommandLine(
+      r8,
+      "relocator",
+      listOf("--input",
+             "$allTests",
+             "--output",
+             "$output",
+             "--map",
+             "kotlinx.metadata->com.android.tools.r8.jetbrains.kotlinx.metadata"))
+  }
 }

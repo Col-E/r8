@@ -114,6 +114,10 @@ public class ClassMerger {
         profileCollectionAdditions, syntheticArgumentClass, syntheticInitializerConverterBuilder);
     mergeStaticClassInitializers(syntheticInitializerConverterBuilder);
     group.forEach(this::mergeDirectMethods);
+    if (!classInitializerMerger.isEmpty() && classInitializerMerger.isTrivialMerge()) {
+      classInitializerMerger.setObsolete();
+    }
+    instanceInitializerMergers.setObsolete();
   }
 
   void mergeStaticClassInitializers(
@@ -165,7 +169,10 @@ public class ClassMerger {
             if (!classMethodsBuilder.isFresh(newMethod)) {
               newMethod = renameDirectMethod(method);
             }
-            classMethodsBuilder.addDirectMethod(definition.toTypeSubstitutedMethod(newMethod));
+            classMethodsBuilder.addDirectMethod(
+                newMethod != method.getReference()
+                    ? definition.toTypeSubstitutedMethod(newMethod)
+                    : method.getDefinition());
             if (definition.getReference() != newMethod) {
               lensBuilder.moveMethod(definition.getReference(), newMethod);
             }

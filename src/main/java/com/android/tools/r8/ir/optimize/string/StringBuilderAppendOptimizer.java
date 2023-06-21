@@ -16,6 +16,7 @@ import static com.android.tools.r8.ir.optimize.string.StringBuilderNode.createOt
 import static com.android.tools.r8.ir.optimize.string.StringBuilderNode.createToStringNode;
 import static com.android.tools.r8.utils.FunctionUtils.ignoreArgument;
 
+import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.ir.analysis.framework.intraprocedural.DataflowAnalysisResult.SuccessfulDataflowAnalysisResult;
 import com.android.tools.r8.ir.analysis.framework.intraprocedural.IntraProceduralDataflowAnalysisOptions;
@@ -30,6 +31,8 @@ import com.android.tools.r8.ir.code.InvokeMethodWithReceiver;
 import com.android.tools.r8.ir.code.InvokeStatic;
 import com.android.tools.r8.ir.code.Phi;
 import com.android.tools.r8.ir.code.Value;
+import com.android.tools.r8.ir.conversion.passes.CodeRewriterPass;
+import com.android.tools.r8.ir.conversion.passes.result.CodeRewriterResult;
 import com.android.tools.r8.ir.optimize.string.StringBuilderNode.AppendNode;
 import com.android.tools.r8.ir.optimize.string.StringBuilderNode.ImplicitToStringNode;
 import com.android.tools.r8.ir.optimize.string.StringBuilderNode.InitNode;
@@ -75,29 +78,33 @@ import java.util.function.Function;
  *
  * <p>Finally, based on all optimizations, the IR is updated to reflect the optimizations.
  */
-public class StringBuilderAppendOptimizer {
+public class StringBuilderAppendOptimizer extends CodeRewriterPass<AppInfo> {
 
-  private final AppView<?> appView;
   private final StringBuilderOracle oracle;
-  private final IRCode code;
-
   private static final int NUMBER_OF_MUNCHING_PASSES = 3;
 
-  private StringBuilderAppendOptimizer(AppView<?> appView, IRCode code) {
-    this.appView = appView;
-    this.code = code;
+  public StringBuilderAppendOptimizer(AppView<?> appView) {
+    super(appView);
     oracle = new DefaultStringBuilderOracle(appView.dexItemFactory());
   }
 
-  public static void run(AppView<?> appView, IRCode code) {
-    new StringBuilderAppendOptimizer(appView, code).run();
+  @Override
+  protected String getTimingId() {
+    return "StringBuilderAppendOptimizer";
   }
 
-  private void run() {
-    Map<Value, StringBuilderNode> stringBuilderGraphs = computeStringBuilderGraphs();
-    Map<Instruction, StringBuilderAction> actions = optimizeOnGraphs(stringBuilderGraphs);
+  @Override
+  protected boolean shouldRewriteCode(IRCode code) {
+    return code.metadata().mayHaveNewInstance()
+        || code.metadata().mayHaveInvokeMethodWithReceiver();
+  }
+
+  @Override
+  protected CodeRewriterResult rewriteCode(IRCode code) {
+    Map<Value, StringBuilderNode> stringBuilderGraphs = computeStringBuilderGraphs(code);
+    Map<Instruction, StringBuilderAction> actions = optimizeOnGraphs(code, stringBuilderGraphs);
     if (actions.isEmpty()) {
-      return;
+      return CodeRewriterResult.NO_CHANGE;
     }
     InstructionListIterator it = code.instructionListIterator();
     while (it.hasNext()) {
@@ -108,6 +115,7 @@ public class StringBuilderAppendOptimizer {
       }
     }
     code.removeAllDeadAndTrivialPhis();
+    return CodeRewriterResult.HAS_CHANGED;
   }
 
   private static class StringBuilderGraphState {
@@ -137,7 +145,7 @@ public class StringBuilderAppendOptimizer {
    * answer, for a given instruction, is a string builder value escaping and all escaped values
    * at the instruction.
    */
-  private Map<Value, StringBuilderNode> computeStringBuilderGraphs() {
+  private Map<Value, StringBuilderNode> computeStringBuilderGraphs(IRCode code) {
     StringBuilderEscapeTransferFunction transferFunction =
         new StringBuilderEscapeTransferFunction(oracle);
     IntraproceduralDataflowAnalysis<StringBuilderEscapeState> analysis =
@@ -516,7 +524,7 @@ public class StringBuilderAppendOptimizer {
    * the munching and care about performance.
    */
   private Map<Instruction, StringBuilderAction> optimizeOnGraphs(
-      Map<Value, StringBuilderNode> stringBuilderGraphs) {
+      IRCode code, Map<Value, StringBuilderNode> stringBuilderGraphs) {
     Map<Instruction, StringBuilderAction> actions = new IdentityHashMap<>();
     // Build state to allow munching over the string builder graphs.
     Map<StringBuilderNode, NewInstanceNode> newInstances = new IdentityHashMap<>();

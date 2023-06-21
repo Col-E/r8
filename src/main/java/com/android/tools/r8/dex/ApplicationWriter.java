@@ -325,8 +325,7 @@ public class ApplicationWriter {
       List<DexString> forcedStrings,
       Timing timing)
       throws ExecutionException {
-    TimingMerger merger =
-        timing.beginMerger("Write files", ThreadUtils.getNumberOfThreads(executorService));
+    TimingMerger merger = timing.beginMerger("Write files", executorService);
     Collection<Timing> timings =
         ThreadUtils.processItemsWithResults(
             virtualFiles,
@@ -395,8 +394,7 @@ public class ApplicationWriter {
 
       {
         // Compute offsets and rewrite jumbo strings so that code offsets are fixed.
-        TimingMerger merger =
-            timing.beginMerger("Pre-write phase", ThreadUtils.getNumberOfThreads(executorService));
+        TimingMerger merger = timing.beginMerger("Pre-write phase", executorService);
         Collection<Timing> timings =
             rewriteJumboStringsAndComputeDebugRepresentation(
                 executorService, virtualFiles, lazyDexStrings);

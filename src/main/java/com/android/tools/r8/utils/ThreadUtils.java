@@ -63,6 +63,11 @@ public class ThreadUtils {
         executorService);
   }
 
+  public static <T> void processAsynchronously(
+      Action action, ExecutorService executorService, Collection<Future<T>> futures) {
+    futures.add(processAsynchronously(action, executorService));
+  }
+
   public static <T> Future<T> processAsynchronously(
       Callable<T> callable, ExecutorService executorService) {
     return executorService.submit(callable);

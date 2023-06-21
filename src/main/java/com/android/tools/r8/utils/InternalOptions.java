@@ -6,6 +6,8 @@ package com.android.tools.r8.utils;
 import static com.android.tools.r8.utils.AndroidApiLevel.B;
 import static com.android.tools.r8.utils.SystemPropertyUtils.parseSystemPropertyForDevelopmentOrDefault;
 
+import com.android.tools.r8.AndroidResourceConsumer;
+import com.android.tools.r8.AndroidResourceProvider;
 import com.android.tools.r8.CancelCompilationChecker;
 import com.android.tools.r8.ClassFileConsumer;
 import com.android.tools.r8.CompilationMode;
@@ -74,6 +76,7 @@ import com.android.tools.r8.ir.optimize.enums.EnumDataMap;
 import com.android.tools.r8.naming.ClassNameMapper;
 import com.android.tools.r8.naming.MapConsumer;
 import com.android.tools.r8.naming.MapVersion;
+import com.android.tools.r8.optimize.accessmodification.AccessModifierOptions;
 import com.android.tools.r8.optimize.argumentpropagation.ArgumentPropagatorEventConsumer;
 import com.android.tools.r8.optimize.redundantbridgeremoval.RedundantBridgeRemovalOptions;
 import com.android.tools.r8.origin.Origin;
@@ -172,6 +175,8 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
   // The state can only ever transition from false to true.
   private final AtomicBoolean cancelled = new AtomicBoolean(false);
   public CancelCompilationChecker cancelCompilationChecker = null;
+  public AndroidResourceProvider androidResourceProvider = null;
+  public AndroidResourceConsumer androidResourceConsumer = null;
 
   public boolean checkIfCancelled() {
     if (cancelCompilationChecker == null) {
@@ -846,8 +851,7 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
 
   @Override
   public boolean isAccessModificationEnabled() {
-    return getProguardConfiguration() != null
-        && getProguardConfiguration().isAccessModificationAllowed();
+    return accessModifierOptions.isAccessModificationEnabled();
   }
 
   @Override
@@ -882,6 +886,7 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
 
   public boolean debug = false;
 
+  private final AccessModifierOptions accessModifierOptions = new AccessModifierOptions(this);
   private final RewriteArrayOptions rewriteArrayOptions = new RewriteArrayOptions();
   private final CallSiteOptimizationOptions callSiteOptimizationOptions =
       new CallSiteOptimizationOptions();
@@ -957,6 +962,10 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
 
   public DesugarSpecificOptions desugarSpecificOptions() {
     return desugarSpecificOptions;
+  }
+
+  public AccessModifierOptions getAccessModifierOptions() {
+    return accessModifierOptions;
   }
 
   public CfCodeAnalysisOptions getCfCodeAnalysisOptions() {
@@ -1687,6 +1696,10 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
       if (simpleInliningInstructionLimit >= 0) {
         return simpleInliningInstructionLimit;
       }
+      // Allow 2 instructions when using LIR regardless of backend.
+      if (options.testing.useLir) {
+        return 2;
+      }
       // Allow 3 instructions when generating to class files.
       if (options.isGeneratingClassFiles()) {
         return 3;
@@ -2075,12 +2088,29 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
 
   public static class TestingOptions {
 
+    public boolean roundtripThroughLir = false;
+    private boolean useLir = System.getProperty("com.android.tools.r8.nolir") == null;
+
+    public void enableLir() {
+      useLir = true;
+    }
+
+    public void disableLir() {
+      useLir = false;
+    }
+
+    public boolean canUseLir(AppView<?> appView) {
+      return useLir
+          && appView.enableWholeProgramOptimizations()
+          && !appView.options().protoShrinking().isProtoShrinkingEnabled();
+    }
+
     // If false, use the desugared library implementation when desugared library is enabled.
     public boolean alwaysBackportListSetMapMethods = true;
     public boolean neverReuseCfLocalRegisters = false;
-    public boolean roundtripThroughLir = false;
     public boolean checkReceiverAlwaysNullInCallSiteOptimization = true;
     public boolean forceInlineAPIConversions = false;
+    public boolean ignoreValueNumbering = false;
     private boolean hasReadCheckDeterminism = false;
     private DeterminismChecker determinismChecker = null;
     public boolean usePcEncodingInCfForTesting = false;

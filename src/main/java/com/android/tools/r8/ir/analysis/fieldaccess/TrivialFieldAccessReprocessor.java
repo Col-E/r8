@@ -442,37 +442,49 @@ public class TrivialFieldAccessReprocessor {
     }
 
     @Override
+    public void registerInstanceFieldReadWithMetadata(
+        DexField field, BytecodeInstructionMetadata metadata) {
+      registerFieldAccess(field, false, false, metadata);
+    }
+
+    @Override
     public void registerInstanceFieldRead(DexField field) {
-      registerFieldAccess(field, false, false, BytecodeInstructionMetadata.none());
+      registerInstanceFieldReadWithMetadata(field, BytecodeInstructionMetadata.none());
     }
 
     @Override
     public void registerInstanceFieldReadInstruction(CfOrDexInstanceFieldRead instruction) {
       BytecodeInstructionMetadata metadata =
           getContext().getDefinition().getCode().getMetadata(instruction);
-      registerFieldAccess(instruction.getField(), false, false, metadata);
+      registerInstanceFieldReadWithMetadata(instruction.getField(), metadata);
     }
 
     @Override
     public void registerInstanceFieldWrite(DexField field) {
-      registerFieldAccess(field, false, true, null);
+      registerFieldAccess(field, false, true, BytecodeInstructionMetadata.none());
+    }
+
+    @Override
+    public void registerStaticFieldReadWithMetadata(
+        DexField field, BytecodeInstructionMetadata metadata) {
+      registerFieldAccess(field, true, false, metadata);
     }
 
     @Override
     public void registerStaticFieldRead(DexField field) {
-      registerFieldAccess(field, true, false, BytecodeInstructionMetadata.none());
+      registerStaticFieldReadWithMetadata(field, BytecodeInstructionMetadata.none());
     }
 
     @Override
     public void registerStaticFieldReadInstruction(CfOrDexStaticFieldRead instruction) {
       BytecodeInstructionMetadata metadata =
           getContext().getDefinition().getCode().getMetadata(instruction);
-      registerFieldAccess(instruction.getField(), true, false, metadata);
+      registerStaticFieldReadWithMetadata(instruction.getField(), metadata);
     }
 
     @Override
     public void registerStaticFieldWrite(DexField field) {
-      registerFieldAccess(field, true, true, null);
+      registerFieldAccess(field, true, true, BytecodeInstructionMetadata.none());
     }
 
     @Override

@@ -16,14 +16,13 @@ import com.android.tools.r8.utils.IterableUtils;
 import com.android.tools.r8.utils.collections.BidirectionalManyToManyRepresentativeMap;
 import com.android.tools.r8.utils.collections.BidirectionalManyToOneRepresentativeMap;
 import com.android.tools.r8.utils.collections.EmptyBidirectionalOneToOneMap;
-import java.util.Collections;
 import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
 /**
- * GraphLens implementation with a parent lens using a simple mapping for type, method and field
- * mapping.
+ * GraphLens implementation with a parent lens where the mapping of types, methods and fields can be
+ * one-to-one, one-to-many, or many-to-one.
  *
  * <p>Subclasses can override the lookup methods.
  *
@@ -31,17 +30,18 @@ import java.util.stream.Collectors;
  * #mapInvocationType(DexMethod, DexMethod, InvokeType)} if the default name mapping applies, and
  * only invocation type might need to change.
  */
-public class NestedGraphLens extends NonIdentityGraphLens {
+public class NestedGraphLens extends DefaultNonIdentityGraphLens {
 
   protected static final EmptyBidirectionalOneToOneMap<DexField, DexField> EMPTY_FIELD_MAP =
       new EmptyBidirectionalOneToOneMap<>();
   protected static final EmptyBidirectionalOneToOneMap<DexMethod, DexMethod> EMPTY_METHOD_MAP =
       new EmptyBidirectionalOneToOneMap<>();
-  protected static final Map<DexType, DexType> EMPTY_TYPE_MAP = Collections.emptyMap();
+  protected static final EmptyBidirectionalOneToOneMap<DexType, DexType> EMPTY_TYPE_MAP =
+      new EmptyBidirectionalOneToOneMap<>();
 
   protected final BidirectionalManyToOneRepresentativeMap<DexField, DexField> fieldMap;
   protected final Function<DexMethod, DexMethod> methodMap;
-  protected final Map<DexType, DexType> typeMap;
+  protected final BidirectionalManyToManyRepresentativeMap<DexType, DexType> typeMap;
 
   // Map that stores the new signature of methods that have been affected by class merging, unused
   // argument removal, repackaging, synthetic finalization, etc. This is needed to generate a
@@ -81,7 +81,7 @@ public class NestedGraphLens extends NonIdentityGraphLens {
       AppView<?> appView,
       BidirectionalManyToOneRepresentativeMap<DexField, DexField> fieldMap,
       BidirectionalManyToOneRepresentativeMap<DexMethod, DexMethod> methodMap,
-      Map<DexType, DexType> typeMap) {
+      BidirectionalManyToManyRepresentativeMap<DexType, DexType> typeMap) {
     this(appView, fieldMap, methodMap.getForwardMap(), typeMap, methodMap);
   }
 
@@ -89,7 +89,7 @@ public class NestedGraphLens extends NonIdentityGraphLens {
       AppView<?> appView,
       BidirectionalManyToOneRepresentativeMap<DexField, DexField> fieldMap,
       Map<DexMethod, DexMethod> methodMap,
-      Map<DexType, DexType> typeMap,
+      BidirectionalManyToManyRepresentativeMap<DexType, DexType> typeMap,
       BidirectionalManyToManyRepresentativeMap<DexMethod, DexMethod> newMethodSignatures) {
     this(appView, fieldMap, methodMap::get, typeMap, newMethodSignatures);
     assert !typeMap.isEmpty()
@@ -102,7 +102,7 @@ public class NestedGraphLens extends NonIdentityGraphLens {
       AppView<?> appView,
       BidirectionalManyToOneRepresentativeMap<DexField, DexField> fieldMap,
       Function<DexMethod, DexMethod> methodMap,
-      Map<DexType, DexType> typeMap,
+      BidirectionalManyToManyRepresentativeMap<DexType, DexType> typeMap,
       BidirectionalManyToManyRepresentativeMap<DexMethod, DexMethod> newMethodSignatures) {
     super(appView);
     this.fieldMap = fieldMap;
@@ -111,51 +111,23 @@ public class NestedGraphLens extends NonIdentityGraphLens {
     this.newMethodSignatures = newMethodSignatures;
   }
 
-  protected DexType internalGetOriginalType(DexType previous) {
-    return previous;
-  }
-
-  protected Iterable<DexType> internalGetOriginalTypes(DexType previous) {
-    return IterableUtils.singleton(internalGetOriginalType(previous));
+  @Override
+  public DexType getPreviousClassType(DexType type) {
+    return typeMap.getRepresentativeKeyOrDefault(type, type);
   }
 
   @Override
-  public DexType getOriginalType(DexType type) {
-    return getPrevious().getOriginalType(internalGetOriginalType(type));
+  protected DexType getNextClassType(DexType type) {
+    return typeMap.getRepresentativeValueOrDefault(type, type);
+  }
+
+  protected Iterable<DexType> internalGetOriginalTypes(DexType type) {
+    return IterableUtils.singleton(getPreviousClassType(type));
   }
 
   @Override
   public Iterable<DexType> getOriginalTypes(DexType type) {
     return IterableUtils.flatMap(internalGetOriginalTypes(type), getPrevious()::getOriginalTypes);
-  }
-
-  @Override
-  public DexField getOriginalFieldSignature(DexField field) {
-    DexField originalField = fieldMap.getRepresentativeKeyOrDefault(field, field);
-    return getPrevious().getOriginalFieldSignature(originalField);
-  }
-
-  @Override
-  public DexField getRenamedFieldSignature(DexField originalField, GraphLens codeLens) {
-    if (this == codeLens) {
-      return originalField;
-    }
-    DexField renamedField = getPrevious().getRenamedFieldSignature(originalField, codeLens);
-    return internalGetNextFieldSignature(renamedField);
-  }
-
-  @Override
-  public DexMethod getRenamedMethodSignature(DexMethod originalMethod, GraphLens applied) {
-    if (this == applied) {
-      return originalMethod;
-    }
-    DexMethod renamedMethod = getPrevious().getRenamedMethodSignature(originalMethod, applied);
-    return getNextMethodSignature(renamedMethod);
-  }
-
-  @Override
-  protected DexType internalDescribeLookupClassType(DexType previous) {
-    return typeMap.getOrDefault(previous, previous);
   }
 
   @Override
@@ -167,14 +139,12 @@ public class NestedGraphLens extends NonIdentityGraphLens {
           previous.getReference() == previous.getReboundReference()
               ? rewrittenReboundReference
               : rewrittenReboundReference.withHolder(
-                  internalDescribeLookupClassType(previous.getReference().getHolderType()),
-                  dexItemFactory());
+                  getNextClassType(previous.getReference().getHolderType()), dexItemFactory());
       return FieldLookupResult.builder(this)
           .setReboundReference(rewrittenReboundReference)
           .setReference(rewrittenNonReboundReference)
-          .setReadCastType(previous.getRewrittenReadCastType(this::internalDescribeLookupClassType))
-          .setWriteCastType(
-              previous.getRewrittenWriteCastType(this::internalDescribeLookupClassType))
+          .setReadCastType(previous.getRewrittenReadCastType(this::getNextClassType))
+          .setWriteCastType(previous.getRewrittenWriteCastType(this::getNextClassType))
           .build();
     } else {
       // TODO(b/168282032): We should always have the rebound reference, so this should become
@@ -182,9 +152,8 @@ public class NestedGraphLens extends NonIdentityGraphLens {
       DexField rewrittenReference = previous.getRewrittenReference(fieldMap);
       return FieldLookupResult.builder(this)
           .setReference(rewrittenReference)
-          .setReadCastType(previous.getRewrittenReadCastType(this::internalDescribeLookupClassType))
-          .setWriteCastType(
-              previous.getRewrittenWriteCastType(this::internalDescribeLookupClassType))
+          .setReadCastType(previous.getRewrittenReadCastType(this::getNextClassType))
+          .setWriteCastType(previous.getRewrittenWriteCastType(this::getNextClassType))
           .build();
     }
   }
@@ -201,8 +170,7 @@ public class NestedGraphLens extends NonIdentityGraphLens {
               ? rewrittenReboundReference
               : // This assumes that the holder will always be moved in lock-step with the method!
               rewrittenReboundReference.withHolder(
-                  internalDescribeLookupClassType(previous.getReference().getHolderType()),
-                  dexItemFactory());
+                  getNextClassType(previous.getReference().getHolderType()), dexItemFactory());
       return MethodLookupResult.builder(this)
           .setReference(rewrittenReference)
           .setReboundReference(rewrittenReboundReference)
@@ -253,7 +221,13 @@ public class NestedGraphLens extends NonIdentityGraphLens {
     return prototypeChanges;
   }
 
-  protected DexField internalGetNextFieldSignature(DexField field) {
+  @Override
+  public DexField getPreviousFieldSignature(DexField field) {
+    return fieldMap.getRepresentativeKeyOrDefault(field, field);
+  }
+
+  @Override
+  public DexField getNextFieldSignature(DexField field) {
     return fieldMap.getOrDefault(field, field);
   }
 
@@ -304,14 +278,6 @@ public class NestedGraphLens extends NonIdentityGraphLens {
       return newTargetClass.accessFlags.isInterface() ? InvokeType.INTERFACE : InvokeType.VIRTUAL;
     }
     return type;
-  }
-
-  @Override
-  public boolean isContextFreeForMethods(GraphLens codeLens) {
-    if (codeLens == this) {
-      return true;
-    }
-    return getPrevious().isContextFreeForMethods(codeLens);
   }
 
   @Override

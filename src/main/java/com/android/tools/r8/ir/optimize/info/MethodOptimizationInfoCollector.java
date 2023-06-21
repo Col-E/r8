@@ -101,6 +101,7 @@ import com.android.tools.r8.ir.optimize.typechecks.CheckCastAndInstanceOfMethodS
 import com.android.tools.r8.kotlin.Kotlin;
 import com.android.tools.r8.kotlin.Kotlin.Intrinsics;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
+import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.Timing;
 import com.google.common.collect.Sets;
@@ -156,6 +157,7 @@ public class MethodOptimizationInfoCollector {
     computeReturnValueOnlyDependsOnArguments(feedback, definition, code, timing);
     BitSet nonNullParamOrThrow = computeNonNullParamOrThrow(feedback, definition, code, timing);
     computeNonNullParamOnNormalExits(feedback, code, nonNullParamOrThrow, timing);
+    computeParametersWithBitwiseOperations(method, code, feedback, timing);
     computeUnusedArguments(method, code, feedback, timing);
   }
 
@@ -1173,6 +1175,36 @@ public class MethodOptimizationInfoCollector {
     return true;
   }
 
+  private void computeParametersWithBitwiseOperations(
+      ProgramMethod method, IRCode code, OptimizationFeedback feedback, Timing timing) {
+    timing.begin("Compute parameters with bitwise operations");
+    computeParametersWithBitwiseOperations(method, code, feedback);
+    timing.end();
+  }
+
+  private void computeParametersWithBitwiseOperations(
+      ProgramMethod method, IRCode code, OptimizationFeedback feedback) {
+    BitSet parametersWithBitwiseOperations = new BitSet(method.getParameters().size());
+    InstructionIterator instructionIterator = code.entryBlock().iterator();
+    Argument argument = instructionIterator.next().asArgument();
+    while (argument != null) {
+      if (hasBitwiseOperation(argument)) {
+        int parameterIndex =
+            argument.getIndex() - BooleanUtils.intValue(method.getDefinition().isInstance());
+        parametersWithBitwiseOperations.set(parameterIndex);
+      }
+      argument = instructionIterator.next().asArgument();
+    }
+    if (!parametersWithBitwiseOperations.isEmpty()) {
+      feedback.setParametersWithBitwiseOperations(method, parametersWithBitwiseOperations);
+    }
+  }
+
+  private boolean hasBitwiseOperation(Argument argument) {
+    return argument.getOutType().isInt()
+        && argument.outValue().hasUserThatMatches(Instruction::isAnd);
+  }
+
   private void computeUnusedArguments(
       ProgramMethod method, IRCode code, OptimizationFeedback feedback, Timing timing) {
     timing.begin("Compute unused arguments");
@@ -1191,6 +1223,8 @@ public class MethodOptimizationInfoCollector {
       }
       argument = instructionIterator.next().asArgument();
     }
-    feedback.setUnusedArguments(method, unusedArguments);
+    if (!unusedArguments.isEmpty()) {
+      feedback.setUnusedArguments(method, unusedArguments);
+    }
   }
 }

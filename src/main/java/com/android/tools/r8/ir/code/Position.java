@@ -50,6 +50,10 @@ public abstract class Position implements StructuralItem<Position> {
     this.isD8R8Synthesized = isD8R8Synthesized;
   }
 
+  public boolean isSourcePosition() {
+    return false;
+  }
+
   public boolean isSyntheticPosition() {
     return false;
   }
@@ -372,6 +376,11 @@ public abstract class Position implements StructuralItem<Position> {
       super(line, method, callerPosition, removeInnerFramesIfThrowingNpe, isD8R8Synthesized);
       this.file = file;
       assert callerPosition == null || callerPosition.method != null;
+    }
+
+    @Override
+    public boolean isSourcePosition() {
+      return true;
     }
 
     @Override

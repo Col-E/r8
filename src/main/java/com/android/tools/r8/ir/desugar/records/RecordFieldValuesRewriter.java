@@ -85,6 +85,7 @@ public class RecordFieldValuesRewriter {
     assert done;
     irConverter.removeDeadCodeAndFinalizeIR(
         irCode, OptimizationFeedbackIgnore.getInstance(), Timing.empty());
+    irConverter.finalizeLirMethodToOutputFormat(programMethod);
   }
 
   public void rewriteRecordFieldArray(

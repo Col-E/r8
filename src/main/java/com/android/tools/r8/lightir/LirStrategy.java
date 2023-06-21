@@ -8,6 +8,7 @@ import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.DebugLocalInfo;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.code.BasicBlock;
+import com.android.tools.r8.ir.code.NumberGenerator;
 import com.android.tools.r8.ir.code.Phi;
 import com.android.tools.r8.ir.code.Phi.RegisterReadType;
 import com.android.tools.r8.ir.code.Value;
@@ -29,9 +30,15 @@ import java.util.function.IntFunction;
  *     the possible encoding for phi and non-phi values.
  */
 public abstract class LirStrategy<V, EV> {
+
+  public static LirStrategy<Value, Integer> getDefaultStrategy() {
+    return new PhiInInstructionsStrategy();
+  }
+
   public abstract LirEncodingStrategy<V, EV> getEncodingStrategy();
 
-  public abstract LirDecodingStrategy<V, EV> getDecodingStrategy(LirCode<EV> code);
+  public abstract LirDecodingStrategy<V, EV> getDecodingStrategy(
+      LirCode<EV> code, NumberGenerator valueNumberGenerator);
 
   /**
    * Encoding of a value with a phi-bit.
@@ -139,8 +146,9 @@ public abstract class LirStrategy<V, EV> {
     }
 
     @Override
-    public LirDecodingStrategy<Value, PhiOrValue> getDecodingStrategy(LirCode<PhiOrValue> code) {
-      return new DecodingStrategy(code);
+    public LirDecodingStrategy<Value, PhiOrValue> getDecodingStrategy(
+        LirCode<PhiOrValue> code, NumberGenerator valueNumberGenerator) {
+      return new DecodingStrategy(code, valueNumberGenerator);
     }
 
     private static class StrategyInfo extends LirStrategyInfo<PhiOrValue> {
@@ -234,7 +242,8 @@ public abstract class LirStrategy<V, EV> {
       private final Value[] values;
       private final int firstPhiValueIndex;
 
-      DecodingStrategy(LirCode<PhiOrValue> code) {
+      DecodingStrategy(LirCode<PhiOrValue> code, NumberGenerator valueNumberGenerator) {
+        super(valueNumberGenerator);
         values = new Value[code.getArgumentCount() + code.getInstructionCount()];
         int phiValueIndex = -1;
         for (LirInstructionView view : code) {
@@ -244,6 +253,7 @@ public abstract class LirStrategy<V, EV> {
           }
         }
         this.firstPhiValueIndex = phiValueIndex;
+        reserveValueIndexes(values.length);
       }
 
       private int decode(PhiOrValue encodedValue, LirStrategyInfo<PhiOrValue> strategyInfo) {
@@ -270,10 +280,15 @@ public abstract class LirStrategy<V, EV> {
         int index = decode(encodedValue, strategyInfo);
         Value value = values[index];
         if (value == null) {
-          value = new Value(index, TypeElement.getBottom(), null);
+          value = new Value(getValueNumber(index), TypeElement.getBottom(), null);
           values[index] = value;
         }
         return value;
+      }
+
+      @Override
+      Value internalGetFreshUnusedValue(int valueNumber, TypeElement type) {
+        return new Value(valueNumber, type, null);
       }
 
       @Override
@@ -284,7 +299,7 @@ public abstract class LirStrategy<V, EV> {
         DebugLocalInfo localInfo = getLocalInfo.apply(encodedValue);
         Value value = values[index];
         if (value == null) {
-          value = new Value(index, type, localInfo);
+          value = new Value(getValueNumber(index), type, localInfo);
           values[index] = value;
         } else {
           value.setType(type);
@@ -306,7 +321,8 @@ public abstract class LirStrategy<V, EV> {
         PhiOrValue encodedValue = getEncodedPhiForAbsoluteValueIndex(valueIndex, strategyInfo);
         BasicBlock block = getBlock.apply(encodedValue.getBlockIndex());
         DebugLocalInfo localInfo = getLocalInfo.apply(encodedValue);
-        Phi phi = new Phi(valueIndex, block, type, localInfo, RegisterReadType.NORMAL);
+        Phi phi =
+            new Phi(getValueNumber(valueIndex), block, type, localInfo, RegisterReadType.NORMAL);
         Value value = values[valueIndex];
         if (value != null) {
           // A fake ssa value has already been created, replace the users by the actual phi.

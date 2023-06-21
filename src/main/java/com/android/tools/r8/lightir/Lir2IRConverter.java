@@ -15,8 +15,14 @@ import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ProgramMethod;
+import com.android.tools.r8.graph.proto.ArgumentInfo;
+import com.android.tools.r8.graph.proto.ArgumentInfoCollection;
+import com.android.tools.r8.graph.proto.RemovedArgumentInfo;
+import com.android.tools.r8.graph.proto.RewrittenPrototypeDescription;
+import com.android.tools.r8.graph.proto.RewrittenTypeInfo;
 import com.android.tools.r8.ir.analysis.type.Nullability;
 import com.android.tools.r8.ir.analysis.type.PrimitiveTypeElement;
+import com.android.tools.r8.ir.analysis.type.TypeAnalysis;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.code.Add;
 import com.android.tools.r8.ir.code.And;
@@ -25,6 +31,7 @@ import com.android.tools.r8.ir.code.ArrayGet;
 import com.android.tools.r8.ir.code.ArrayLength;
 import com.android.tools.r8.ir.code.ArrayPut;
 import com.android.tools.r8.ir.code.BasicBlock;
+import com.android.tools.r8.ir.code.CanonicalPositions;
 import com.android.tools.r8.ir.code.CatchHandlers;
 import com.android.tools.r8.ir.code.CheckCast;
 import com.android.tools.r8.ir.code.Cmp;
@@ -90,9 +97,12 @@ import com.android.tools.r8.ir.code.Ushr;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.code.ValueType;
 import com.android.tools.r8.ir.code.Xor;
+import com.android.tools.r8.ir.conversion.ExtraParameter;
+import com.android.tools.r8.ir.conversion.ExtraUnusedNullParameter;
 import com.android.tools.r8.ir.conversion.MethodConversionOptions.MutableMethodConversionOptions;
 import com.android.tools.r8.lightir.LirBuilder.IntSwitchPayload;
 import com.android.tools.r8.lightir.LirCode.PositionEntry;
+import com.android.tools.r8.lightir.LirCode.StructuredPositionEntry;
 import com.android.tools.r8.lightir.LirCode.TryCatchTable;
 import com.android.tools.r8.naming.dexitembasedstring.NameComputationInfo;
 import com.android.tools.r8.utils.ListUtils;
@@ -115,12 +125,26 @@ public class Lir2IRConverter {
       ProgramMethod method,
       LirCode<EV> lirCode,
       LirDecodingStrategy<Value, EV> strategy,
-      AppView<?> appView) {
-    Parser<EV> parser = new Parser<>(lirCode, method.getReference(), appView, strategy);
+      AppView<?> appView,
+      Position callerPosition,
+      RewrittenPrototypeDescription protoChanges,
+      DexMethod originalMethod) {
+    Parser<EV> parser =
+        new Parser<>(
+            lirCode,
+            originalMethod,
+            method.getDefinition().isD8R8Synthesized(),
+            appView,
+            strategy,
+            callerPosition,
+            protoChanges);
     parser.parseArguments(method);
     parser.ensureDebugInfo();
     lirCode.forEach(view -> view.accept(parser));
-    return parser.getIRCode(method);
+    IRCode irCode = parser.getIRCode(method);
+    // Some instructions have bottom types (e.g., phis). Compute their actual types by widening.
+    new TypeAnalysis(appView).widening(irCode);
+    return irCode;
   }
 
   /**
@@ -133,9 +157,10 @@ public class Lir2IRConverter {
 
     private final AppView<?> appView;
     private final LirCode<EV> code;
+    private final DexMethod originalMethod;
     private final LirDecodingStrategy<Value, EV> strategy;
-    private final NumberGenerator valueNumberGenerator = new NumberGenerator();
     private final NumberGenerator basicBlockNumberGenerator = new NumberGenerator();
+    private final RewrittenPrototypeDescription protoChanges;
 
     private final Int2ReferenceMap<BasicBlock> blocks = new Int2ReferenceOpenHashMap<>();
 
@@ -145,18 +170,61 @@ public class Lir2IRConverter {
     private Position currentPosition;
     private PositionEntry nextPositionEntry = null;
     private int nextIndexInPositionsTable = 0;
+    private final PositionEntry[] positionTable;
+
+    private final boolean buildForInlining;
 
     public Parser(
         LirCode<EV> code,
-        DexMethod method,
+        DexMethod originalMethod,
+        boolean isD8R8Synthesized,
         AppView<?> appView,
-        LirDecodingStrategy<Value, EV> strategy) {
+        LirDecodingStrategy<Value, EV> strategy,
+        Position callerPosition,
+        RewrittenPrototypeDescription protoChanges) {
       super(code);
       this.appView = appView;
       this.code = code;
+      this.originalMethod = originalMethod;
       this.strategy = strategy;
-      // Recreate the preamble position. This is active for arguments and code with no positions.
-      currentPosition = SyntheticPosition.builder().setLine(0).setMethod(method).build();
+      this.protoChanges = protoChanges;
+      assert protoChanges != null;
+      if (callerPosition == null) {
+        buildForInlining = false;
+        positionTable = code.getPositionTable();
+        // Recreate the preamble position. This is active for arguments and code with no positions.
+        currentPosition = SyntheticPosition.builder().setLine(0).setMethod(originalMethod).build();
+      } else {
+        buildForInlining = true;
+        PositionEntry[] inlineePositions = code.getPositionTable();
+        Position inlineePreamble = null;
+        if (inlineePositions.length > 0 && inlineePositions[0].getFromInstructionIndex() == 0) {
+          inlineePreamble = inlineePositions[0].getPosition(originalMethod);
+        }
+        CanonicalPositions canonicalPositions =
+            new CanonicalPositions(
+                callerPosition,
+                inlineePositions.length,
+                originalMethod,
+                isD8R8Synthesized,
+                inlineePreamble);
+        currentPosition = canonicalPositions.getPreamblePosition();
+        positionTable = new PositionEntry[inlineePositions.length];
+        for (int i = 0; i < inlineePositions.length; i++) {
+          PositionEntry inlineeEntry = inlineePositions[i];
+          Position inlineePosition = inlineeEntry.getPosition(originalMethod);
+          positionTable[i] =
+              new StructuredPositionEntry(
+                  inlineeEntry.getFromInstructionIndex(),
+                  canonicalPositions.getCanonical(
+                      inlineePosition
+                          .builderWithCopy()
+                          .setCallerPosition(
+                              canonicalPositions.canonicalizeCallerPosition(
+                                  inlineePosition.getCallerPosition()))
+                          .build()));
+        }
+      }
     }
 
     @Override
@@ -189,31 +257,66 @@ public class Lir2IRConverter {
 
     private void ensureCurrentPosition() {
       if (nextPositionEntry != null
-          && nextPositionEntry.fromInstructionIndex <= nextInstructionIndex) {
-        currentPosition = nextPositionEntry.position;
+          && nextPositionEntry.getFromInstructionIndex() <= nextInstructionIndex) {
+        currentPosition = nextPositionEntry.getPosition(originalMethod);
         advanceNextPositionEntry();
       }
     }
 
     private void advanceNextPositionEntry() {
       nextPositionEntry =
-          nextIndexInPositionsTable < code.getPositionTable().length
-              ? code.getPositionTable()[nextIndexInPositionsTable++]
+          nextIndexInPositionsTable < positionTable.length
+              ? positionTable[nextIndexInPositionsTable++]
               : null;
     }
 
     public void parseArguments(ProgramMethod method) {
+      ArgumentInfoCollection argumentsInfo = protoChanges.getArgumentInfoCollection();
       currentBlock = getBasicBlock(ENTRY_BLOCK_INDEX);
       boolean hasReceiverArgument = !method.getDefinition().isStatic();
-      assert code.getArgumentCount()
-          == method.getParameters().size() + (hasReceiverArgument ? 1 : 0);
+
+      int index = 0;
       if (hasReceiverArgument) {
+        assert argumentsInfo.getNewArgumentIndex(0) == 0;
         addThisArgument(method.getHolderType());
+        index++;
       }
-      int index = hasReceiverArgument ? 1 : 0;
-      for (DexType parameter : method.getParameters()) {
-        addArgument(parameter, index++);
+
+      int originalNumberOfArguments =
+          method.getParameters().size()
+              + argumentsInfo.numberOfRemovedArguments()
+              + method.getDefinition().getFirstNonReceiverArgumentIndex()
+              - protoChanges.numberOfExtraParameters();
+
+      int numberOfRemovedArguments = 0;
+      while (index < originalNumberOfArguments) {
+        ArgumentInfo argumentInfo = argumentsInfo.getArgumentInfo(index);
+        if (argumentInfo.isRemovedArgumentInfo()) {
+          RemovedArgumentInfo removedArgumentInfo = argumentInfo.asRemovedArgumentInfo();
+          addNonThisArgument(removedArgumentInfo.getType(), index++);
+          numberOfRemovedArguments++;
+        } else if (argumentInfo.isRewrittenTypeInfo()) {
+          RewrittenTypeInfo rewrittenTypeInfo = argumentInfo.asRewrittenTypeInfo();
+          int newArgumentIndex = argumentsInfo.getNewArgumentIndex(index, numberOfRemovedArguments);
+          assert method.getArgumentType(newArgumentIndex) == rewrittenTypeInfo.getNewType();
+          addNonThisArgument(rewrittenTypeInfo.getOldType(), index++);
+        } else {
+          int newArgumentIndex = argumentsInfo.getNewArgumentIndex(index, numberOfRemovedArguments);
+          addNonThisArgument(method.getArgumentType(newArgumentIndex), index++);
+        }
       }
+
+      for (ExtraParameter extraParameter : protoChanges.getExtraParameters()) {
+        int newArgumentIndex = argumentsInfo.getNewArgumentIndex(index, numberOfRemovedArguments);
+        DexType extraArgumentType = method.getArgumentType(newArgumentIndex);
+        if (extraParameter instanceof ExtraUnusedNullParameter) {
+          // Note that we do *not* increment the index here as that would shift the SSA value map.
+          addUnusedArgument(extraArgumentType);
+        } else {
+          addNonThisArgument(extraArgumentType, index++);
+        }
+      }
+
       // Set up position state after adding arguments.
       advanceNextPositionEntry();
     }
@@ -252,17 +355,14 @@ public class Lir2IRConverter {
           }
         }
       }
-      for (int i = 0; i < peekNextInstructionIndex(); ++i) {
-        valueNumberGenerator.next();
-      }
       return new IRCode(
           appView.options(),
           method,
           Position.syntheticNone(),
           blockList,
-          valueNumberGenerator,
+          strategy.getValueNumberGenerator(),
           basicBlockNumberGenerator,
-          code.getMetadata(),
+          code.getMetadataForIR(),
           method.getOrigin(),
           new MutableMethodConversionOptions(appView.options()));
     }
@@ -352,20 +452,39 @@ public class Lir2IRConverter {
     }
 
     private void addThisArgument(DexType type) {
-      Argument argument = addArgument(type, 0);
+      boolean receiverCouldBeNull = buildForInlining;
+      Nullability nullability =
+          receiverCouldBeNull ? Nullability.maybeNull() : Nullability.definitelyNotNull();
+      TypeElement typeElement = type.toTypeElement(appView, nullability);
+      Value dest =
+          strategy.getValueDefinitionForInstructionIndex(0, typeElement, code::getDebugLocalInfo);
+      Argument argument = internalAddArgument(dest, false);
       argument.outValue().markAsThis();
     }
 
-    private Argument addArgument(DexType type, int index) {
-      // Arguments are not included in the "instructions" so this does not call "addInstruction"
-      // which would otherwise advance the state.
+    private void addNonThisArgument(DexType type, int index) {
       TypeElement typeElement = type.toTypeElement(appView);
       Value dest =
           strategy.getValueDefinitionForInstructionIndex(
               index, typeElement, code::getDebugLocalInfo);
-      Argument argument = new Argument(dest, index, type.isBooleanType());
+      internalAddArgument(dest, type.isBooleanType());
+    }
+
+    private void addUnusedArgument(DexType type) {
+      // Extra unused null arguments don't have valid indexes in LIR and must not adjust existing
+      // indexes.
+      TypeElement typeElement =
+          type.isReferenceType() ? TypeElement.getNull() : type.toTypeElement(appView);
+      Value dest = strategy.getFreshUnusedValue(typeElement);
+      internalAddArgument(dest, false);
+    }
+
+    private Argument internalAddArgument(Value dest, boolean isBooleanType) {
       assert currentBlock != null;
-      assert currentPosition.isSyntheticPosition();
+      assert currentPosition.isSyntheticPosition() || buildForInlining;
+      // Arguments are not included in the "instructions" so this does not call "addInstruction"
+      // which would otherwise advance the state.
+      Argument argument = new Argument(dest, currentBlock.size(), isBooleanType);
       argument.setPosition(currentPosition);
       currentBlock.getInstructions().add(argument);
       argument.setBlock(currentBlock);
@@ -512,7 +631,7 @@ public class Lir2IRConverter {
     public void onConstClass(DexType type, boolean ignoreCompatRules) {
       Value dest =
           getOutValueForNextInstruction(
-              type.toTypeElement(appView, Nullability.definitelyNotNull()));
+              TypeElement.classClassType(appView, Nullability.definitelyNotNull()));
       addInstruction(new ConstClass(dest, type, ignoreCompatRules));
     }
 
@@ -652,7 +771,8 @@ public class Lir2IRConverter {
 
     @Override
     public void onInvokeCustom(DexCallSite callSite, List<EV> arguments) {
-      Value dest = getInvokeInstructionOutputValue(callSite.methodProto);
+      // The actual type of invoke custom may have multiple interface types. Defer type to widening.
+      Value dest = getOutValueForNextInstruction(TypeElement.getBottom());
       List<Value> ssaArgumentValues = getValues(arguments);
       InvokeCustom instruction = new InvokeCustom(callSite, dest, ssaArgumentValues);
       addInstruction(instruction);
@@ -709,7 +829,9 @@ public class Lir2IRConverter {
 
     @Override
     public void onNewArrayEmpty(DexType type, EV size) {
-      Value dest = getOutValueForNextInstruction(type.toTypeElement(appView));
+      Value dest =
+          getOutValueForNextInstruction(
+              type.toTypeElement(appView, Nullability.definitelyNotNull()));
       addInstruction(new NewArrayEmpty(dest, getValue(size), type));
     }
 
@@ -727,8 +849,12 @@ public class Lir2IRConverter {
 
     @Override
     public void onReturn(EV value) {
-      addInstruction(new Return(getValue(value)));
-      closeCurrentBlock();
+      if (protoChanges.hasBeenChangedToReturnVoid()) {
+        onReturnVoid();
+      } else {
+        addInstruction(new Return(getValue(value)));
+        closeCurrentBlock();
+      }
     }
 
     @Override
@@ -740,13 +866,13 @@ public class Lir2IRConverter {
 
     @Override
     public void onCheckCast(DexType type, EV value, boolean ignoreCompatRules) {
-      Value dest = getOutValueForNextInstruction(type.toTypeElement(appView));
+      Value dest = getOutValueForNextInstruction(type.toTypeElement(appView, Nullability.bottom()));
       addInstruction(new CheckCast(dest, getValue(value), type, ignoreCompatRules));
     }
 
     @Override
     public void onSafeCheckCast(DexType type, EV value) {
-      Value dest = getOutValueForNextInstruction(type.toTypeElement(appView));
+      Value dest = getOutValueForNextInstruction(type.toTypeElement(appView, Nullability.bottom()));
       addInstruction(new SafeCheckCast(dest, getValue(value), type));
     }
 
@@ -763,7 +889,8 @@ public class Lir2IRConverter {
 
     @Override
     public void onPhi(DexType type, List<EV> operands) {
-      Phi phi = getPhiForNextInstructionAndAdvanceState(type.toTypeElement(appView));
+      // The type of the phi is determined by its operands during type widening.
+      Phi phi = getPhiForNextInstructionAndAdvanceState(TypeElement.getBottom());
       List<Value> values = new ArrayList<>(operands.size());
       for (int i = 0; i < operands.size(); i++) {
         values.add(getValue(operands.get(i)));
@@ -773,18 +900,17 @@ public class Lir2IRConverter {
 
     @Override
     public void onMoveException(DexType exceptionType) {
-      Value dest = getOutValueForNextInstruction(exceptionType.toTypeElement(appView));
+      Value dest =
+          getOutValueForNextInstruction(
+              exceptionType.toTypeElement(appView, Nullability.definitelyNotNull()));
       addInstruction(new MoveException(dest, exceptionType, appView.options()));
     }
 
     @Override
     public void onDebugLocalWrite(EV srcIndex) {
-      Value src = getValue(srcIndex);
-      // The type is in the local table, so initialize it with bottom and reset with the local info.
+      // The type is dependent on the source so type widening will determine it.
       Value dest = getOutValueForNextInstruction(TypeElement.getBottom());
-      TypeElement type = dest.getLocalInfo().type.toTypeElement(appView);
-      dest.setType(type);
-      addInstruction(new DebugLocalWrite(dest, src));
+      addInstruction(new DebugLocalWrite(dest, getValue(srcIndex)));
     }
 
     @Override
@@ -858,8 +984,10 @@ public class Lir2IRConverter {
     }
 
     @Override
-    public void onArrayGetObject(DexType type, EV array, EV index) {
-      Value dest = getOutValueForNextInstruction(type.toTypeElement(appView));
+    public void onArrayGetObject(DexType unusedType, EV array, EV index) {
+      // TODO(b/225838009): Remove type and unify object/primitive methods now that it is computed.
+      // The output type depends on its input array member type, so it is computed by widening.
+      Value dest = getOutValueForNextInstruction(TypeElement.getBottom());
       addInstruction(new ArrayGet(MemberType.OBJECT, dest, getValue(array), getValue(index)));
     }
 

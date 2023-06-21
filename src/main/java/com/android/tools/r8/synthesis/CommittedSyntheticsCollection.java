@@ -13,6 +13,7 @@ import com.android.tools.r8.synthesis.SyntheticItems.ContextsForGlobalSynthetics
 import com.android.tools.r8.synthesis.SyntheticNaming.SyntheticKind;
 import com.android.tools.r8.utils.IterableUtils;
 import com.android.tools.r8.utils.SetUtils;
+import com.android.tools.r8.utils.Timing;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
@@ -307,7 +308,7 @@ class CommittedSyntheticsCollection {
     return changed ? builder.build() : this;
   }
 
-  CommittedSyntheticsCollection rewriteWithLens(NonIdentityGraphLens lens) {
+  CommittedSyntheticsCollection rewriteWithLens(NonIdentityGraphLens lens, Timing timing) {
     ImmutableSet.Builder<DexType> syntheticInputsBuilder = ImmutableSet.builder();
     return new CommittedSyntheticsCollection(
         naming,

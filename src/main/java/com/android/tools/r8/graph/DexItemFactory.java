@@ -2977,26 +2977,12 @@ public class DexItemFactory {
     return createProto(returnType, parameters.toArray(DexType.EMPTY_ARRAY));
   }
 
-  public DexProto protoWithDifferentFirstParameter(DexProto proto, DexType firstParameter) {
-    DexType[] parameterTypes = proto.parameters.values.clone();
-    parameterTypes[0] = firstParameter;
-    return createProto(proto.returnType, parameterTypes);
-  }
-
   public DexProto prependHolderToProto(DexMethod method) {
-    return prependTypeToProto(method.holder, method.proto);
+    return method.getProto().prependParameter(method.getHolderType(), this);
   }
 
   public DexProto prependHolderToProtoIf(DexMethod method, boolean condition) {
     return condition ? prependHolderToProto(method) : method.getProto();
-  }
-
-  public DexProto prependTypeToProto(DexType extraFirstType, DexProto initialProto) {
-    DexType[] parameterTypes = new DexType[initialProto.parameters.size() + 1];
-    parameterTypes[0] = extraFirstType;
-    System.arraycopy(
-        initialProto.parameters.values, 0, parameterTypes, 1, initialProto.parameters.size());
-    return createProto(initialProto.returnType, parameterTypes);
   }
 
   public DexProto appendTypeToProto(DexProto initialProto, DexType extraLastType) {

@@ -412,6 +412,13 @@ public class InstanceInitializerMerger {
     }
   }
 
+  void setObsolete() {
+    if (hasInstanceInitializerDescription() || !useSyntheticMethod()) {
+      instanceInitializers.forEach(
+          instanceInitializer -> instanceInitializer.getDefinition().setObsolete());
+    }
+  }
+
   private boolean useSyntheticMethod() {
     return !isSingleton() || group.hasClassIdField();
   }

@@ -73,6 +73,7 @@ public class NonNullTrackerTest extends TestBase {
     }
 
     CodeRewriter.removeAssumeInstructions(appView, code);
+    code.removeRedundantBlocks();
     assertTrue(code.isConsistentSSA(appView));
     checkCountOfNonNull(code, 0);
   }

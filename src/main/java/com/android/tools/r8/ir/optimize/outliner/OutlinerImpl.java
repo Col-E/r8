@@ -62,6 +62,7 @@ import com.android.tools.r8.ir.conversion.IRConverter;
 import com.android.tools.r8.ir.conversion.MethodConversionOptions.MutableMethodConversionOptions;
 import com.android.tools.r8.ir.conversion.MethodProcessorEventConsumer;
 import com.android.tools.r8.ir.conversion.SourceCode;
+import com.android.tools.r8.ir.conversion.passes.MoveResultRewriter;
 import com.android.tools.r8.ir.optimize.CodeRewriter;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.InliningConstraints;
@@ -1370,7 +1371,7 @@ public class OutlinerImpl extends Outliner {
             applyOutliningCandidate(code);
             converter.printMethod(code, "IR after outlining (SSA)", null);
             converter.memberValuePropagation.run(code);
-            converter.codeRewriter.rewriteMoveResult(code);
+            new MoveResultRewriter(appView).run(code, Timing.empty());
             converter.removeDeadCodeAndFinalizeIR(
                 code, OptimizationFeedbackIgnore.getInstance(), Timing.empty());
           },
@@ -1380,6 +1381,7 @@ public class OutlinerImpl extends Outliner {
       outlineMethods.forEach(m -> m.getDefinition().markNotProcessed());
       eventConsumer.finished(appView);
     }
+    appView.notifyOptimizationFinishedForTesting();
     timing.end();
   }
 
@@ -1400,7 +1402,7 @@ public class OutlinerImpl extends Outliner {
           // optimizations needed for outlining: rewriteMoveResult() to remove out-values on
           // StringBuilder/StringBuffer method invocations, and removeDeadCode() to remove
           // unused out-values.
-          converter.codeRewriter.rewriteMoveResult(code);
+          new MoveResultRewriter(appView).run(code, Timing.empty());
           converter.deadCodeRemover.run(code, Timing.empty());
           CodeRewriter.removeAssumeInstructions(appView, code);
           consumer.accept(code);

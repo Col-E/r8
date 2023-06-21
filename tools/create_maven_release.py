@@ -124,6 +124,12 @@ def parse_options(argv):
                       help='Build desugar library configuration (original JDK-8)')
   group.add_argument('--desugar-configuration-jdk11-legacy', action='store_true',
                       help='Build desugar library configuration (JDK-11 legacy)')
+  group.add_argument('--desugar-configuration-jdk11-minimal', action='store_true',
+                      help='Build desugar library configuration (JDK-11 minimal)')
+  group.add_argument('--desugar-configuration-jdk11', action='store_true',
+                      help='Build desugar library configuration (JDK-11)')
+  group.add_argument('--desugar-configuration-jdk11-nio', action='store_true',
+                      help='Build desugar library configuration (JDK-11 nio)')
   return result.parse_args(argv)
 
 def determine_version():
@@ -369,7 +375,7 @@ def generate_jar_with_desugar_configuration(
     with zipfile.ZipFile(conversions, 'r') as conversions_zip:
       conversions_zip.extractall(tmp_dir)
 
-    # Add configuration
+    # Add configuration.
     configuration_dir = join(tmp_dir, 'META-INF', 'desugar', 'd8')
     makedirs(configuration_dir)
     copyfile(configuration, join(configuration_dir, 'desugar.json'))
@@ -387,6 +393,9 @@ def generate_jar_with_desugar_configuration(
         lint_dir]
     utils.PrintCmd(cmd)
     subprocess.check_call(cmd)
+
+    # Add LICENSE file.
+    copyfile(join(utils.REPO_ROOT, 'LICENSE'), join(tmp_dir, 'LICENSE'))
 
     make_archive(destination, 'zip', tmp_dir)
     move(destination + '.zip', destination)
@@ -435,11 +444,34 @@ def main(argv):
         'Need to supply output zip with --out.')
   if options.desugar_configuration or options.desugar_configuration_jdk8:
     generate_desugar_configuration_maven_zip(
-      options.out, utils.DESUGAR_CONFIGURATION, utils.DESUGAR_IMPLEMENTATION)
+      options.out,
+      utils.DESUGAR_CONFIGURATION,
+      utils.DESUGAR_IMPLEMENTATION,
+      utils.LIBRARY_DESUGAR_CONVERSIONS_LEGACY_ZIP)
   elif options.desugar_configuration_jdk11_legacy:
     generate_desugar_configuration_maven_zip(
-      options.out, utils.DESUGAR_CONFIGURATION_JDK11_LEGACY,
-      utils.DESUGAR_IMPLEMENTATION_JDK11)
+      options.out,
+      utils.DESUGAR_CONFIGURATION_JDK11_LEGACY,
+      utils.DESUGAR_IMPLEMENTATION_JDK11,
+      utils.LIBRARY_DESUGAR_CONVERSIONS_LEGACY_ZIP)
+  elif options.desugar_configuration_jdk11_minimal:
+    generate_desugar_configuration_maven_zip(
+      options.out,
+      utils.DESUGAR_CONFIGURATION_JDK11_MINIMAL,
+      utils.DESUGAR_IMPLEMENTATION_JDK11,
+      utils.LIBRARY_DESUGAR_CONVERSIONS_ZIP)
+  elif options.desugar_configuration_jdk11:
+    generate_desugar_configuration_maven_zip(
+      options.out,
+      utils.DESUGAR_CONFIGURATION_JDK11,
+      utils.DESUGAR_IMPLEMENTATION_JDK11,
+      utils.LIBRARY_DESUGAR_CONVERSIONS_ZIP)
+  elif options.desugar_configuration_jdk11_nio:
+    generate_desugar_configuration_maven_zip(
+      options.out,
+      utils.DESUGAR_CONFIGURATION_JDK11_NIO,
+      utils.DESUGAR_IMPLEMENTATION_JDK11,
+      utils.LIBRARY_DESUGAR_CONVERSIONS_ZIP)
   else:
     generate_r8_maven_zip(options.out, options.r8lib)
 

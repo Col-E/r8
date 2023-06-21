@@ -384,6 +384,10 @@ public class MappedPositionToClassNameMapperBuilder {
         }
         i = j;
       }
+      // TODO(b/287210793): Enable assertion again.
+      assert true
+          || mappedPositions.size() <= 1
+          || getBuilder().hasNoOverlappingRangesForSignature(residualSignature);
       return this;
     }
 
@@ -547,11 +551,11 @@ public class MappedPositionToClassNameMapperBuilder {
       int lastOriginalLine = lastPosition.getPosition().getLine();
       boolean hasSameRightHandSide = lastOriginalLine == currentOriginalLine;
       if (hasSameRightHandSide) {
-        if (isSameDelta()) {
-          return OUT_OF_RANGE;
-        }
         boolean hasSameLeftHandSide =
             lastPosition.getObfuscatedLine() == currentPosition.getObfuscatedLine();
+        if (isSameDelta()) {
+          return hasSameLeftHandSide ? SAME_DELTA : OUT_OF_RANGE;
+        }
         return (hasSameLeftHandSide && isSingleLine()) ? SINGLE_LINE : RANGE_TO_SINGLE;
       }
       if (isRangeToSingle()) {

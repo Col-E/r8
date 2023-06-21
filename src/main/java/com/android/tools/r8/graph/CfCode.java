@@ -1024,7 +1024,7 @@ public class CfCode extends Code implements CfWritableCode, StructuralItem<CfCod
   }
 
   @Override
-  public void forEachPosition(Consumer<Position> positionConsumer) {
+  public void forEachPosition(DexMethod method, Consumer<Position> positionConsumer) {
     for (CfInstruction instruction : getInstructions()) {
       if (instruction.isPosition()) {
         positionConsumer.accept(instruction.asPosition().getPosition());

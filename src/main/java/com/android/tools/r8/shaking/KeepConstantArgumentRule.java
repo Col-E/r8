@@ -7,12 +7,12 @@ import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.position.Position;
 import java.util.List;
 
-public class KeepConstantArgumentRule extends NoOptimizationBaseRule<KeepConstantArgumentRule> {
+public class KeepConstantArgumentRule extends ProguardConfigurationRule {
 
   public static final String RULE_NAME = "keepconstantarguments";
 
   public static class Builder
-      extends NoOptimizationBaseRule.Builder<KeepConstantArgumentRule, Builder> {
+      extends ProguardConfigurationRule.Builder<KeepConstantArgumentRule, Builder> {
 
     private Builder() {
       super();

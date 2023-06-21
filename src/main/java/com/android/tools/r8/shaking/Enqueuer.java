@@ -27,6 +27,7 @@ import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.errors.InterfaceDesugarMissingTypeDiagnostic;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.experimental.graphinfo.GraphConsumer;
+import com.android.tools.r8.graph.AccessControl;
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.ClassDefinition;
@@ -355,6 +356,9 @@ public class Enqueuer {
    */
   private final LiveMethodsSet targetedMethods;
 
+  /** Set of classes that have invalid resolutions or loookups. */
+  private final Set<DexType> failedClassResolutionTargets;
+
   /** Set of methods that have invalid resolutions or lookups. */
   private final Set<DexMethod> failedMethodResolutionTargets;
 
@@ -400,7 +404,7 @@ public class Enqueuer {
    * the outermost {@link EnqueuerEvent} is triggered during tracing (e.g., class X becomes live).
    */
   private final DependentMinimumKeepInfoCollection dependentMinimumKeepInfo =
-      new DependentMinimumKeepInfoCollection();
+      DependentMinimumKeepInfoCollection.createConcurrent();
 
   /**
    * A set of seen const-class references that serve as an initial lock-candidate set and will
@@ -505,6 +509,7 @@ public class Enqueuer {
     }
 
     targetedMethods = new LiveMethodsSet(graphReporter::registerMethod);
+    failedClassResolutionTargets = SetUtils.newIdentityHashSet(0);
     // This set is only populated in edge cases due to multiple default interface methods.
     // The set is generally expected to be empty and in the unlikely chance it is not, it will
     // likely contain two methods. Thus the default capacity of 2.
@@ -1290,18 +1295,15 @@ public class Enqueuer {
 
   private void internalTraceConstClassOrCheckCast(
       DexType type, ProgramMethod currentMethod, boolean ignoreCompatRules) {
+    DexProgramClass baseClass = resolveBaseType(type, currentMethod);
     traceTypeReference(type, currentMethod);
     if (!forceProguardCompatibility || ignoreCompatRules) {
       return;
     }
-    DexType baseType = type.toBaseType(appView.dexItemFactory());
-    if (baseType.isClassType()) {
-      DexProgramClass baseClass = getProgramClassOrNull(baseType, currentMethod);
-      if (baseClass != null) {
-        // Don't require any constructor, see b/112386012.
-        markClassAsInstantiatedWithCompatRule(
-            baseClass, () -> graphReporter.reportCompatInstantiated(baseClass, currentMethod));
-      }
+    if (baseClass != null) {
+      // Don't require any constructor, see b/112386012.
+      markClassAsInstantiatedWithCompatRule(
+          baseClass, () -> graphReporter.reportCompatInstantiated(baseClass, currentMethod));
     }
   }
 
@@ -1395,6 +1397,7 @@ public class Enqueuer {
 
   void traceInstanceOf(DexType type, ProgramMethod currentMethod) {
     instanceOfAnalyses.forEach(analysis -> analysis.traceInstanceOf(type, currentMethod));
+    resolveBaseType(type, currentMethod);
     traceTypeReference(type, currentMethod);
   }
 
@@ -2334,11 +2337,27 @@ public class Enqueuer {
         appView, annotatedItem, annotation, isLive, annotatedKind);
   }
 
+  private DexProgramClass resolveBaseType(DexType type, ProgramDefinition context) {
+    if (type.isArrayType()) {
+      return resolveBaseType(type.toBaseType(appView.dexItemFactory()), context);
+    }
+    if (type.isClassType()) {
+      DexProgramClass clazz =
+          asProgramClassOrNull(appView.definitionFor(type, context.getContextClass()));
+      if (clazz != null) {
+        checkAccess(clazz, context);
+      }
+      return clazz;
+    }
+    return null;
+  }
+
   private FieldResolutionResult resolveField(DexField field, ProgramDefinition context) {
     // Record the references in case they are not program types.
     FieldResolutionResult fieldResolutionResult = appInfo.resolveField(field);
     fieldResolutionResult.visitFieldResolutionResults(
         resolutionResult -> {
+          checkAccess(resolutionResult, context);
           recordFieldReference(
               field, resolutionResult.getResolutionPair().asProgramDerivedContext(context));
         },
@@ -2355,7 +2374,10 @@ public class Enqueuer {
     MethodResolutionResult resolutionResult =
         appInfo.unsafeResolveMethodDueToDexFormatLegacy(method);
     resolutionResult.visitMethodResolutionResults(
-        result -> recordMethodReference(method, context),
+        result -> {
+          checkAccess(resolutionResult, context);
+          recordMethodReference(method, context);
+        },
         failedResult -> {
           markFailedMethodResolutionTargets(
               method, resolutionResult.asFailedResolution(), context, reason);
@@ -2369,18 +2391,15 @@ public class Enqueuer {
     // Record the references in case they are not program types.
     MethodResolutionResult methodResolutionResult =
         appInfo.resolveMethodLegacy(method, interfaceInvoke);
-    methodResolutionResult.forEachMethodResolutionResult(
+    methodResolutionResult.visitMethodResolutionResults(
         resolutionResult -> {
-          if (resolutionResult.isSingleResolution()) {
-            recordMethodReference(
-                method, resolutionResult.getResolutionPair().asProgramDerivedContext(context));
-          } else {
-            assert resolutionResult.isFailedResolution();
-            markFailedMethodResolutionTargets(
-                method, resolutionResult.asFailedResolution(), context, reason);
-            recordMethodReference(
-                method, context, this::recordFoundClass, this::reportMissingClass);
-          }
+          checkAccess(resolutionResult, context);
+          recordMethodReference(
+              method, resolutionResult.getResolutionPair().asProgramDerivedContext(context));
+        },
+        failedResolutionResult -> {
+          markFailedMethodResolutionTargets(method, failedResolutionResult, context, reason);
+          recordMethodReference(method, context, this::recordFoundClass, this::reportMissingClass);
         });
     return methodResolutionResult;
   }
@@ -3162,6 +3181,11 @@ public class Enqueuer {
   }
 
   private void markDirectStaticOrConstructorMethodAsLive(ProgramMethod method, KeepReason reason) {
+    if (appView.options().isGeneratingDex()
+        && method.getReference().match(appView.dexItemFactory().deserializeLambdaMethod)
+        && method.getAccessFlags().isPrivate()) {
+      return;
+    }
     if (workList.enqueueMarkMethodLiveAction(method, method, reason)) {
       assert workList.enqueueAssertAction(
           () -> {
@@ -3421,6 +3445,29 @@ public class Enqueuer {
       workList.enqueueMarkMethodLiveAction(
           implementationMethod, implementationMethod, reason.apply(implementationMethod));
     }
+  }
+
+  private void checkAccess(DexClass clazz, ProgramDefinition context) {
+    if (clazz.isProgramClass()
+        && AccessControl.isClassAccessible(clazz, context, appView).isPossiblyFalse()) {
+      failedClassResolutionTargets.add(clazz.getType());
+    }
+  }
+
+  private void checkAccess(FieldResolutionResult resolutionResult, ProgramDefinition context) {
+    if (resolutionResult.getResolvedHolder().isProgramClass()
+        && resolutionResult.isAccessibleFrom(context, appView).isPossiblyFalse()) {
+      failedFieldResolutionTargets.add(resolutionResult.getResolvedField().getReference());
+    }
+    checkAccess(resolutionResult.getInitialResolutionHolder(), context);
+  }
+
+  private void checkAccess(MethodResolutionResult resolutionResult, ProgramDefinition context) {
+    if (resolutionResult.getResolvedHolder().isProgramClass()
+        && resolutionResult.isAccessibleFrom(context, appView).isPossiblyFalse()) {
+      failedMethodResolutionTargets.add(resolutionResult.getResolvedMethod().getReference());
+    }
+    checkAccess(resolutionResult.getInitialResolutionHolder(), context);
   }
 
   private void markFailedMethodResolutionTargets(
@@ -4221,6 +4268,7 @@ public class Enqueuer {
             deadProtoTypes,
             SetUtils.mapIdentityHashSet(liveTypes.getItems(), DexProgramClass::getType),
             Enqueuer.toDescriptorSet(targetedMethods.getItems()),
+            failedClassResolutionTargets,
             failedMethodResolutionTargets,
             failedFieldResolutionTargets,
             bootstrapMethods,

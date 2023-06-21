@@ -27,6 +27,7 @@ import com.android.tools.r8.synthesis.SyntheticItems;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.Reporter;
 import com.android.tools.r8.utils.ThrowingConsumer;
+import com.android.tools.r8.utils.Timing;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.LinkedHashMap;
@@ -135,14 +136,14 @@ public abstract class StartupProfile
 
   public abstract boolean isEmpty();
 
-  public abstract StartupProfile rewrittenWithLens(GraphLens graphLens);
+  public abstract StartupProfile rewrittenWithLens(GraphLens graphLens, Timing timing);
 
   public abstract StartupProfile toStartupProfileForWriting(AppView<?> appView);
 
   public abstract StartupProfile withoutMissingItems(AppView<?> appView);
 
   public abstract StartupProfile withoutPrunedItems(
-      PrunedItems prunedItems, SyntheticItems syntheticItems);
+      PrunedItems prunedItems, SyntheticItems syntheticItems, Timing timing);
 
   public static class Builder
       implements AbstractProfile.Builder<

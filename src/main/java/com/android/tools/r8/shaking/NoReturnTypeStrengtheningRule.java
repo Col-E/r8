@@ -8,13 +8,12 @@ import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.position.Position;
 import java.util.List;
 
-public class NoReturnTypeStrengtheningRule
-    extends NoOptimizationBaseRule<NoReturnTypeStrengtheningRule> {
+public class NoReturnTypeStrengtheningRule extends ProguardConfigurationRule {
 
   public static final String RULE_NAME = "noreturntypestrengthening";
 
   public static class Builder
-      extends NoOptimizationBaseRule.Builder<NoReturnTypeStrengtheningRule, Builder> {
+      extends ProguardConfigurationRule.Builder<NoReturnTypeStrengtheningRule, Builder> {
 
     Builder() {
       super();

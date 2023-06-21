@@ -126,6 +126,9 @@ public abstract class EnqueuerEvent {
     @Override
     public EnqueuerEvent rewrittenWithLens(GraphLens lens) {
       DexType rewrittenType = lens.lookupType(getType());
+      if (rewrittenType == getType()) {
+        return this;
+      }
       if (rewrittenType.isIntType()) {
         return NoSuchEnqueuerEvent.get();
       }
@@ -173,6 +176,9 @@ public abstract class EnqueuerEvent {
     @Override
     public EnqueuerEvent rewrittenWithLens(GraphLens lens) {
       DexType rewrittenType = lens.lookupType(getType());
+      if (rewrittenType == getType()) {
+        return this;
+      }
       if (rewrittenType.isIntType()) {
         return NoSuchEnqueuerEvent.get();
       }

@@ -31,22 +31,32 @@ public class ComposeSourceFileTest extends TestBase {
 
   private static final String mappingFoo =
       StringUtils.unixLines(
-          "# {'id':'com.android.tools.r8.mapping','version':'experimental'}",
-          "com.foo -> a:",
-          "    # {'id':'sourceFile','fileName':'Foo.kt'}");
+          "# {'id':'com.android.tools.r8.mapping','version':'2.2'}",
+          "com.foo -> A:",
+          "    # {'id':'sourceFile','fileName':'Foo.kt'}",
+          "com.bar -> B:",
+          "    # {'id':'sourceFile','fileName':'Bar.kt'}",
+          "com.baz -> C:");
   private static final String mappingBar =
       StringUtils.unixLines(
-          "# {'id':'com.android.tools.r8.mapping','version':'experimental'}",
-          "com.bar -> c:",
-          "    # {'id':'sourceFile','fileName':'Bar.kt'}",
-          "a -> b:");
+          "# {'id':'com.android.tools.r8.mapping','version':'2.2'}",
+          "A -> a:",
+          "    # {'id':'sourceFile','fileName':'some-hash-inserted-into-source-file'}",
+          "B -> b:",
+          "C -> c:",
+          "    # {'id':'sourceFile','fileName':'some-other-hash-inserted-into-source-file'}",
+          "com.qux -> d:",
+          "    # {'id':'sourceFile','fileName':'Qux.kt'}");
   private static final String mappingResult =
       StringUtils.unixLines(
-          "# {'id':'com.android.tools.r8.mapping','version':'experimental'}",
-          "com.bar -> c:",
+          "# {'id':'com.android.tools.r8.mapping','version':'2.2'}",
+          "com.bar -> b:",
           "# {'id':'sourceFile','fileName':'Bar.kt'}",
-          "com.foo -> b:",
-          "# {'id':'sourceFile','fileName':'Foo.kt'}");
+          "com.baz -> c:",
+          "com.foo -> a:",
+          "# {'id':'sourceFile','fileName':'Foo.kt'}",
+          "com.qux -> d:",
+          "# {'id':'sourceFile','fileName':'Qux.kt'}");
 
   @Test
   public void testCompose() throws Exception {

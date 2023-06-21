@@ -49,7 +49,7 @@ public class KotlinMetadataDiagnostic implements Diagnostic {
         "The companion object "
             + companionObjectName
             + " could not be found in class "
-            + clazz.type.getName());
+            + clazz.getTypeName());
   }
 
   static KotlinMetadataDiagnostic unknownClassifier(String classifier) {

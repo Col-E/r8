@@ -16,6 +16,7 @@ import com.android.tools.r8.ir.analysis.fieldaccess.TrivialFieldAccessReprocesso
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackDelayed;
 import com.android.tools.r8.optimize.argumentpropagation.ArgumentPropagator;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
+import com.android.tools.r8.utils.ThreadUtils;
 import com.android.tools.r8.utils.Timing;
 import com.android.tools.r8.utils.collections.ProgramMethodSet;
 import java.io.IOException;
@@ -145,7 +146,8 @@ public class PrimaryR8IRConverter extends IRConverter {
     }
 
     outliner.rewriteWithLens();
-    enumUnboxer.unboxEnums(appView, this, postMethodProcessorBuilder, executorService, feedback);
+    enumUnboxer.unboxEnums(
+        appView, this, postMethodProcessorBuilder, executorService, feedback, timing);
     appView.unboxedEnums().checkEnumsUnboxed(appView);
 
     GraphLens graphLensForSecondaryOptimizationPass = appView.graphLens();
@@ -163,7 +165,6 @@ public class PrimaryR8IRConverter extends IRConverter {
                   postMethodProcessorBuilder.build(
                       appView, eventConsumer, executorService, timing));
       if (postMethodProcessor != null) {
-        assert !options.debug;
         assert appView.graphLens() == graphLensForSecondaryOptimizationPass;
         timing.begin("Process code");
         postMethodProcessor.forEachMethod(
@@ -196,20 +197,6 @@ public class PrimaryR8IRConverter extends IRConverter {
     Builder<?> builder = appView.appInfo().app().builder();
     builder.setHighestSortingString(highestSortingString);
 
-    if (serviceLoaderRewriter != null) {
-      processSimpleSynthesizeMethods(
-          serviceLoaderRewriter.getSynthesizedServiceLoadMethods(), executorService);
-    }
-
-    if (instanceInitializerOutliner != null) {
-      processSimpleSynthesizeMethods(
-          instanceInitializerOutliner.getSynthesizedMethods(), executorService);
-    }
-    if (assertionErrorTwoArgsConstructorRewriter != null) {
-      processSimpleSynthesizeMethods(
-          assertionErrorTwoArgsConstructorRewriter.getSynthesizedMethods(), executorService);
-    }
-
     // Update optimization info for all synthesized methods at once.
     feedback.updateVisibleOptimizationInfo();
 
@@ -223,7 +210,26 @@ public class PrimaryR8IRConverter extends IRConverter {
 
     // Assure that no more optimization feedback left after post processing.
     assert feedback.noUpdatesLeft();
+    finalizeLirToOutputFormat(timing, executorService);
     return builder.build();
+  }
+
+  private void finalizeLirToOutputFormat(Timing timing, ExecutorService executorService)
+      throws ExecutionException {
+    if (!options.testing.canUseLir(appView)) {
+      return;
+    }
+    String output = options.isGeneratingClassFiles() ? "CF" : "DEX";
+    timing.begin("LIR->IR->" + output);
+    ThreadUtils.processItems(
+        appView.appInfo().classes(),
+        clazz -> clazz.forEachProgramMethod(this::finalizeLirMethodToOutputFormat),
+        executorService);
+    appView
+        .getSyntheticItems()
+        .getPendingSyntheticClasses()
+        .forEach(clazz -> clazz.forEachProgramMethod(this::finalizeLirMethodToOutputFormat));
+    timing.end();
   }
 
   private void clearDexMethodCompilationState() {
@@ -268,7 +274,8 @@ public class PrimaryR8IRConverter extends IRConverter {
               .setRemovedMethods(prunedMethodsInWave)
               .setPrunedApp(appView.appInfo().app())
               .build(),
-          executorService);
+          executorService,
+          timing);
       prunedMethodsInWave.clear();
     }
   }
@@ -276,8 +283,20 @@ public class PrimaryR8IRConverter extends IRConverter {
   private void lastWaveDone(
       PostMethodProcessor.Builder postMethodProcessorBuilder, ExecutorService executorService)
       throws ExecutionException {
+    if (assertionErrorTwoArgsConstructorRewriter != null) {
+      assertionErrorTwoArgsConstructorRewriter.onLastWaveDone(postMethodProcessorBuilder);
+      assertionErrorTwoArgsConstructorRewriter = null;
+    }
     if (inliner != null) {
       inliner.onLastWaveDone(postMethodProcessorBuilder, executorService, timing);
+    }
+    if (instanceInitializerOutliner != null) {
+      instanceInitializerOutliner.onLastWaveDone(postMethodProcessorBuilder);
+      instanceInitializerOutliner = null;
+    }
+    if (serviceLoaderRewriter != null) {
+      serviceLoaderRewriter.onLastWaveDone(postMethodProcessorBuilder);
+      serviceLoaderRewriter = null;
     }
 
     // Ensure determinism of method-to-reprocess set.

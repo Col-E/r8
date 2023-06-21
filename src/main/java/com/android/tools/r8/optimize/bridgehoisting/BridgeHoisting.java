@@ -31,6 +31,7 @@ import com.android.tools.r8.ir.optimize.info.bridge.BridgeInfo;
 import com.android.tools.r8.ir.optimize.info.bridge.VirtualBridgeInfo;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.MethodSignatureEquivalence;
+import com.android.tools.r8.utils.Timing;
 import com.google.common.base.Equivalence;
 import com.google.common.base.Equivalence.Wrapper;
 import com.google.common.collect.Iterables;
@@ -43,6 +44,8 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
 
 /**
  * An optimization pass that hoists bridges upwards with the purpose of sharing redundant bridge
@@ -83,31 +86,20 @@ public class BridgeHoisting {
     this.result = new BridgeHoistingResult(appView);
   }
 
-  public void run() {
+  public void run(ExecutorService executorService, Timing timing) throws ExecutionException {
+    timing.begin("Bridge hoisting");
     SubtypingInfo subtypingInfo = appView.appInfo().computeSubtypingInfo();
     BottomUpClassHierarchyTraversal.forProgramClasses(appView, subtypingInfo)
         .excludeInterfaces()
         .visit(appView.appInfo().classes(), clazz -> processClass(clazz, subtypingInfo));
     if (!result.isEmpty()) {
-      // Mapping from non-hoisted bridge methods to the set of contexts in which they are accessed.
-      MethodAccessInfoCollection.IdentityBuilder bridgeMethodAccessInfoCollectionBuilder =
-          MethodAccessInfoCollection.identityBuilder();
-      result.recordNonReboundMethodAccesses(bridgeMethodAccessInfoCollectionBuilder);
-
       BridgeHoistingLens lens = result.buildLens();
-      appView.rewriteWithLens(lens);
+      appView.rewriteWithLens(lens, executorService, timing);
 
-      // Update method access info collection.
+      // Record the invokes from the newly synthesized bridge methods in the method access info
+      // collection.
       MethodAccessInfoCollection.Modifier methodAccessInfoCollectionModifier =
           appView.appInfo().getMethodAccessInfoCollection().modifier();
-
-      // The bridge hoisting lens does not specify any code rewritings. Therefore references to the
-      // bridge methods are left as-is in the code, but they are rewritten to the hoisted bridges
-      // during the rewriting of AppInfoWithLiveness. Therefore, this conservatively records that
-      // there may be an invoke-virtual instruction that targets each of the removed bridges.
-      methodAccessInfoCollectionModifier.addAll(bridgeMethodAccessInfoCollectionBuilder.build());
-
-      // Additionally, we record the invokes from the newly synthesized bridge methods.
       result.forEachHoistedBridge(
           (bridge, bridgeInfo) -> {
             if (bridgeInfo.isVirtualBridgeInfo()) {
@@ -118,6 +110,9 @@ public class BridgeHoisting {
             }
           });
     }
+
+    appView.notifyOptimizationFinishedForTesting();
+    timing.end();
   }
 
   private void processClass(DexProgramClass clazz, SubtypingInfo subtypingInfo) {

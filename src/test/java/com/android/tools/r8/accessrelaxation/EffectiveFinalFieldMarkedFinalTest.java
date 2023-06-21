@@ -52,12 +52,7 @@ public class EffectiveFinalFieldMarkedFinalTest extends TestBase {
               assertThat(mainClassSubject, isPresent());
               assertThat(
                   mainClassSubject.uniqueFieldWithOriginalName("instanceField"),
-                  allOf(
-                      isPresent(),
-                      onlyIf(
-                          allowAccessModification
-                              && !parameters.canInitNewInstanceUsingSuperclassConstructor(),
-                          isFinal())));
+                  allOf(isPresent(), onlyIf(allowAccessModification, isFinal())));
               assertThat(
                   mainClassSubject.uniqueFieldWithOriginalName("staticField"),
                   allOf(isPresent(), onlyIf(allowAccessModification, isFinal())));

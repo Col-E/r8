@@ -225,10 +225,7 @@ public class DesugaredLibraryConversionCfProvider {
       ProgramMethod context,
       MethodProcessingContext methodProcessingContext) {
     DexMethod method = invoke.getMethod();
-    DexProto newProto =
-        invoke.isInvokeStatic()
-            ? method.proto
-            : factory.prependTypeToProto(method.getHolderType(), method.getProto());
+    DexProto newProto = factory.prependHolderToProtoIf(method, !invoke.isInvokeStatic());
     DexMethod returnConversion =
         computeReturnConversion(
             method, false, eventConsumer, context, methodProcessingContext::createUniqueContext);

@@ -46,7 +46,7 @@ public class ComposeMovedMethodTest extends TestBase {
           "# {'id':'com.android.tools.r8.mapping','version':'experimental'}",
           "com.bar -> b:",
           "    int some.other.Class.f1() -> h1",
-          "    void f2() -> h2",
+          "    void com.foo.f2() -> h2",
           "com.foo -> a:");
 
   @Test

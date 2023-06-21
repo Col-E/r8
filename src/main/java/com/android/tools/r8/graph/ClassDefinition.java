@@ -5,6 +5,8 @@
 package com.android.tools.r8.graph;
 
 import com.android.tools.r8.references.ClassReference;
+import java.util.function.BiConsumer;
+import java.util.function.BiPredicate;
 import java.util.function.Consumer;
 
 public interface ClassDefinition extends Definition {
@@ -14,6 +16,11 @@ public interface ClassDefinition extends Definition {
   void forEachClassField(Consumer<? super DexClassAndField> consumer);
 
   void forEachClassMethod(Consumer<? super DexClassAndMethod> consumer);
+
+  void forEachImmediateSuperClassMatching(
+      DexDefinitionSupplier definitions,
+      BiPredicate<? super DexType, ? super DexClass> predicate,
+      BiConsumer<? super DexType, ? super DexClass> consumer);
 
   MethodCollection getMethodCollection();
 

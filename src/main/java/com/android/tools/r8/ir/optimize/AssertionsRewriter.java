@@ -344,7 +344,9 @@ public class AssertionsRewriter {
       DexEncodedMethod method, IRCode code, DeadCodeRemover deadCodeRemover, Timing timing) {
     if (enabled) {
       timing.begin("Rewrite assertions");
-      if (runInternal(method, code)) {
+      boolean needsDeadCodeRemoval = runInternal(method, code);
+      code.removeRedundantBlocks();
+      if (needsDeadCodeRemoval) {
         deadCodeRemover.run(code, timing);
       }
       assert code.isConsistentSSA(appView);

@@ -90,8 +90,13 @@ public class SyntheticFinalization {
         AppView<?> appView,
         BidirectionalManyToOneRepresentativeMap<DexField, DexField> fieldMap,
         BidirectionalManyToOneRepresentativeMap<DexMethod, DexMethod> methodMap,
-        Map<DexType, DexType> typeMap) {
+        BidirectionalManyToOneRepresentativeMap<DexType, DexType> typeMap) {
       super(appView, fieldMap, methodMap, typeMap);
+    }
+
+    @Override
+    public DexType getPreviousClassType(DexType type) {
+      return type;
     }
 
     @Override
@@ -111,7 +116,8 @@ public class SyntheticFinalization {
         BidirectionalManyToOneRepresentativeHashMap.newIdentityHashMap();
     private final MutableBidirectionalManyToOneRepresentativeMap<DexMethod, DexMethod> methodMap =
         BidirectionalManyToOneRepresentativeHashMap.newIdentityHashMap();
-    private final Map<DexType, DexType> typeMap = new IdentityHashMap<>();
+    private final MutableBidirectionalManyToOneRepresentativeMap<DexType, DexType> typeMap =
+        BidirectionalManyToOneRepresentativeHashMap.newIdentityHashMap();
 
     boolean isEmpty() {
       if (typeMap.isEmpty()) {
@@ -180,11 +186,10 @@ public class SyntheticFinalization {
                   appView
                       .appInfo()
                       .getMainDexInfo()
-                      .rewrittenWithLens(appView.getSyntheticItems(), result.lens)));
-      appView.rewriteWithD8Lens(result.lens);
+                      .rewrittenWithLens(appView.getSyntheticItems(), result.lens, timing)));
+      appView.rewriteWithD8Lens(result.lens, timing);
     }
-    appView.pruneItems(result.prunedItems, executorService);
-    appView.appInfo().setFilter(oldInfo.getFilter());
+    appView.pruneItems(result.prunedItems, executorService, timing);
   }
 
   public static void finalizeWithClassHierarchy(
@@ -197,10 +202,10 @@ public class SyntheticFinalization {
     appView.setAppInfo(info.rebuildWithClassHierarchy(result.commit));
     appView.setAppInfo(info.rebuildWithMainDexInfo(result.mainDexInfo));
     if (result.lens != null) {
-      appView.rewriteWithLens(result.lens);
+      appView.rewriteWithLens(result.lens, executorService, timing);
     }
-    appView.pruneItems(result.prunedItems, executorService);
-    appView.appInfo().setFilter(info.getFilter());
+    appView.pruneItems(result.prunedItems, executorService, timing);
+    appView.notifyOptimizationFinishedForTesting();
   }
 
   public static void finalizeWithLiveness(
@@ -210,12 +215,14 @@ public class SyntheticFinalization {
     Result result = appView.getSyntheticItems().computeFinalSynthetics(appView, timing);
     appView.setAppInfo(appView.appInfo().rebuildWithMainDexInfo(result.mainDexInfo));
     if (result.lens != null) {
-      appView.rewriteWithLensAndApplication(result.lens, result.commit.getApplication().asDirect());
+      appView.rewriteWithLensAndApplication(
+          result.lens, result.commit.getApplication().asDirect(), executorService, timing);
     } else {
       assert result.commit.getApplication() == appView.appInfo().app();
     }
     appView.setAppInfo(appView.appInfo().rebuildWithLiveness(result.commit));
-    appView.pruneItems(result.prunedItems, executorService);
+    appView.pruneItems(result.prunedItems, executorService, timing);
+    appView.notifyOptimizationFinishedForTesting();
   }
 
   Result computeFinalSynthetics(AppView<?> appView, Timing timing) {

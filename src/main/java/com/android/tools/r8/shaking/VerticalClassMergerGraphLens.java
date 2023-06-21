@@ -83,7 +83,7 @@ public class VerticalClassMergerGraphLens extends NestedGraphLens {
       BidirectionalManyToOneRepresentativeMap<DexMethod, DexMethod> newMethodSignatures,
       Map<DexMethod, DexMethod> originalMethodSignaturesForBridges,
       Map<DexMethod, RewrittenPrototypeDescription> prototypeChanges) {
-    super(appView, fieldMap, methodMap, mergedClasses.getForwardMap(), newMethodSignatures);
+    super(appView, fieldMap, methodMap, mergedClasses.getBidirectionalMap(), newMethodSignatures);
     this.appView = appView;
     this.mergedClasses = mergedClasses;
     this.contextualVirtualToDirectMethodMaps = contextualVirtualToDirectMethodMaps;
@@ -95,6 +95,11 @@ public class VerticalClassMergerGraphLens extends NestedGraphLens {
   @Override
   public boolean isVerticalClassMergerLens() {
     return true;
+  }
+
+  @Override
+  public DexType getPreviousClassType(DexType type) {
+    return type;
   }
 
   @Override

@@ -96,8 +96,7 @@ class ApplicationWriterExperimental extends ApplicationWriter {
       List<VirtualFile> virtualFiles,
       List<DexString> forcedStrings,
       Timing timing) {
-    TimingMerger merger =
-        timing.beginMerger("Write files", ThreadUtils.getNumberOfThreads(executorService));
+    TimingMerger merger = timing.beginMerger("Write files", executorService);
     Collection<Timing> timings;
     // TODO(b/249922554): Current limitations for the experimental flag.
     assert globalsSyntheticsConsumer == null;

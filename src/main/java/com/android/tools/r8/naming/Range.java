@@ -58,6 +58,10 @@ public class Range {
     return (to - from) + 1;
   }
 
+  public boolean isSingleLine() {
+    return isCardinal || to == from;
+  }
+
   @Override
   public int hashCode() {
     return Objects.hash(from, to, isCardinal);

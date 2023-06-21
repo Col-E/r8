@@ -199,6 +199,8 @@ public class ArgumentPropagator {
 
     // Ensure determinism of method-to-reprocess set.
     appView.testing().checkDeterminism(postMethodProcessorBuilder::dump);
+
+    appView.notifyOptimizationFinishedForTesting();
   }
 
   /**

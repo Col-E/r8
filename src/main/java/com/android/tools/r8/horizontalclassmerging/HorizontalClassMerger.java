@@ -96,6 +96,7 @@ public class HorizontalClassMerger {
 
       // Clear type elements cache after IR building.
       appView.dexItemFactory().clearTypeElementsCache();
+      appView.notifyOptimizationFinishedForTesting();
 
       timing.end();
     } else {
@@ -162,6 +163,21 @@ public class HorizontalClassMerger {
 
     assert verifyNoCyclesInInterfaceHierarchies(appView, groups);
 
+    FieldAccessInfoCollectionModifier fieldAccessInfoCollectionModifier = null;
+    if (mode.isInitial()) {
+      fieldAccessInfoCollectionModifier = createFieldAccessInfoCollectionModifier(groups);
+    } else {
+      assert groups.stream().noneMatch(MergeGroup::hasClassIdField);
+    }
+
+    // Set the new graph lens before finalizing any synthetic code.
+    appView.setGraphLens(horizontalClassMergerGraphLens);
+    codeProvider.setGraphLens(horizontalClassMergerGraphLens);
+
+    // Finalize synthetic code.
+    transformIncompleteCode(groups, horizontalClassMergerGraphLens, executorService);
+    syntheticInitializerConverter.convertInstanceInitializers(executorService);
+
     // Must rewrite AppInfoWithLiveness before pruning the merged classes, to ensure that allocation
     // sites, fields accesses, etc. are correctly transferred to the target classes.
     DexApplication newApplication = getNewApplication(mergedClasses);
@@ -171,7 +187,7 @@ public class HorizontalClassMerger {
       keepInfo.mutate(mutator -> mutator.removeKeepInfoForMergedClasses(prunedItems));
       assert appView.hasClassHierarchy();
       appView.rewriteWithLensAndApplication(
-          horizontalClassMergerGraphLens, newApplication.toDirect());
+          horizontalClassMergerGraphLens, newApplication.toDirect(), executorService, timing);
     } else {
       assert mode.isFinal();
       AppInfo info = appView
@@ -183,14 +199,13 @@ public class HorizontalClassMerger {
           .setAppInfo(
               new AppInfo(
                   syntheticItems.commitRewrittenWithLens(
-                      newApplication, horizontalClassMergerGraphLens),
-                  info
+                      newApplication, horizontalClassMergerGraphLens, timing),
+                  appView
+                      .appInfo()
                       .getMainDexInfo()
-                      .rewrittenWithLens(syntheticItems, horizontalClassMergerGraphLens)));
-      appView.appInfo().setFilter(info.getFilter());
-      appView.rewriteWithD8Lens(horizontalClassMergerGraphLens);
+                      .rewrittenWithLens(syntheticItems, horizontalClassMergerGraphLens, timing)));
+      appView.rewriteWithD8Lens(horizontalClassMergerGraphLens, timing);
     }
-    codeProvider.setGraphLens(horizontalClassMergerGraphLens);
 
     // Amend art profile collection.
     profileCollectionAdditions
@@ -199,17 +214,12 @@ public class HorizontalClassMerger {
         .commit(appView);
 
     // Record where the synthesized $r8$classId fields are read and written.
-    if (mode.isInitial()) {
-      createFieldAccessInfoCollectionModifier(groups).modify(appView.withLiveness());
-    } else {
-      assert groups.stream().noneMatch(MergeGroup::hasClassIdField);
+    if (fieldAccessInfoCollectionModifier != null) {
+      fieldAccessInfoCollectionModifier.modify(appView.withLiveness());
     }
 
-    transformIncompleteCode(groups, horizontalClassMergerGraphLens, executorService);
-    syntheticInitializerConverter.convertInstanceInitializers(executorService);
-
     appView.pruneItems(
-        prunedItems.toBuilder().setPrunedApp(appView.app()).build(), executorService);
+        prunedItems.toBuilder().setPrunedApp(appView.app()).build(), executorService, timing);
 
     amendKeepInfo(horizontalClassMergerGraphLens, virtuallyMergedMethodsKeepInfos);
   }

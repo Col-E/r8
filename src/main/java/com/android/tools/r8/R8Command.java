@@ -135,6 +135,8 @@ public final class R8Command extends BaseCompilerCommand {
     private boolean enableMissingLibraryApiModeling = false;
     private boolean enableExperimentalKeepAnnotations = false;
     private SemanticVersion fakeCompilerVersion = null;
+    private AndroidResourceProvider androidResourceProvider = null;
+    private AndroidResourceConsumer androidResourceConsumer = null;
 
     private final ProguardConfigurationParserOptions.Builder parserOptionsBuilder =
         ProguardConfigurationParserOptions.builder().readEnvironment();
@@ -506,6 +508,28 @@ public final class R8Command extends BaseCompilerCommand {
       return super.addStartupProfileProviders(startupProfileProviders);
     }
 
+    /**
+     * Exprimental API for supporting android resource shrinking.
+     *
+     * <p>Add an android resource provider, providing the resource table, manifest and res table
+     * entries.
+     */
+    public Builder setAndroidResourceProvider(AndroidResourceProvider provider) {
+      this.androidResourceProvider = provider;
+      return this;
+    }
+
+    /**
+     * Exprimental API for supporting android resource shrinking.
+     *
+     * <p>Add an android resource consumer, consuming the resource table, manifest and res table
+     * entries.
+     */
+    public Builder setAndroidResourceConsumer(AndroidResourceConsumer consumer) {
+      this.androidResourceConsumer = consumer;
+      return this;
+    }
+
     @Override
     void validate() {
       if (isPrintHelp()) {
@@ -659,7 +683,9 @@ public final class R8Command extends BaseCompilerCommand {
               getArtProfilesForRewriting(),
               getStartupProfileProviders(),
               getClassConflictResolver(),
-              getCancelCompilationChecker());
+              getCancelCompilationChecker(),
+              androidResourceProvider,
+              androidResourceConsumer);
 
       if (inputDependencyGraphConsumer != null) {
         inputDependencyGraphConsumer.finished();
@@ -847,6 +873,8 @@ public final class R8Command extends BaseCompilerCommand {
   private final FeatureSplitConfiguration featureSplitConfiguration;
   private final String synthesizedClassPrefix;
   private final boolean enableMissingLibraryApiModeling;
+  private final AndroidResourceProvider androidResourceProvider;
+  private final AndroidResourceConsumer androidResourceConsumer;
 
   /** Get a new {@link R8Command.Builder}. */
   public static Builder builder() {
@@ -941,7 +969,9 @@ public final class R8Command extends BaseCompilerCommand {
       List<ArtProfileForRewriting> artProfilesForRewriting,
       List<StartupProfileProvider> startupProfileProviders,
       ClassConflictResolver classConflictResolver,
-      CancelCompilationChecker cancelCompilationChecker) {
+      CancelCompilationChecker cancelCompilationChecker,
+      AndroidResourceProvider androidResourceProvider,
+      AndroidResourceConsumer androidResourceConsumer) {
     super(
         inputApp,
         mode,
@@ -986,6 +1016,8 @@ public final class R8Command extends BaseCompilerCommand {
     this.featureSplitConfiguration = featureSplitConfiguration;
     this.synthesizedClassPrefix = synthesizedClassPrefix;
     this.enableMissingLibraryApiModeling = enableMissingLibraryApiModeling;
+    this.androidResourceProvider = androidResourceProvider;
+    this.androidResourceConsumer = androidResourceConsumer;
   }
 
   private R8Command(boolean printHelp, boolean printVersion) {
@@ -1010,6 +1042,8 @@ public final class R8Command extends BaseCompilerCommand {
     featureSplitConfiguration = null;
     synthesizedClassPrefix = null;
     enableMissingLibraryApiModeling = false;
+    androidResourceProvider = null;
+    androidResourceConsumer = null;
   }
 
   public DexItemFactory getDexItemFactory() {
@@ -1181,6 +1215,9 @@ public final class R8Command extends BaseCompilerCommand {
             getClassConflictResolver(), internal.reporter);
 
     internal.cancelCompilationChecker = getCancelCompilationChecker();
+
+    internal.androidResourceProvider = androidResourceProvider;
+    internal.androidResourceConsumer = androidResourceConsumer;
 
     if (!DETERMINISTIC_DEBUGGING) {
       assert internal.threadCount == ThreadUtils.NOT_SPECIFIED;

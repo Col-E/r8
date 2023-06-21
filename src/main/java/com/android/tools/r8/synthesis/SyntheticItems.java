@@ -1082,15 +1082,19 @@ public class SyntheticItems implements SyntheticDefinitionsProvider {
   }
 
   public CommittedItems commitRewrittenWithLens(
-      DexApplication application, NonIdentityGraphLens lens) {
+      DexApplication application, NonIdentityGraphLens lens, Timing timing) {
+    timing.begin("Rewrite SyntheticItems");
     assert pending.verifyNotRewritten(lens);
-    return commit(
-        PrunedItems.empty(application),
-        pending,
-        globalContexts,
-        committed.rewriteWithLens(lens),
-        state,
-        globalSyntheticsStrategy);
+    CommittedItems committedItems =
+        commit(
+            PrunedItems.empty(application),
+            pending,
+            globalContexts,
+            committed.rewriteWithLens(lens, timing),
+            state,
+            globalSyntheticsStrategy);
+    timing.end();
+    return committedItems;
   }
 
   private static CommittedItems commit(

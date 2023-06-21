@@ -182,7 +182,7 @@ public class ArgumentPropagatorOptimizationInfoPopulator {
       if (method.getDefinition().belongsToDirectPool()
           && !method.getOptimizationInfo().returnValueHasBeenPropagated()
           && !method.getDefinition().getGenericSignature().hasSignature()
-          && !appView.appInfo().isFailedResolutionTarget(method.getReference())) {
+          && !appView.appInfo().isFailedMethodResolutionTarget(method.getReference())) {
         prunedMethods.add(method);
       } else if (method.getDefinition().hasCode()) {
         method.convertToAbstractOrThrowNullMethod(appView);

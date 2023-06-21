@@ -7,6 +7,7 @@ package com.android.tools.r8.graph;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AbstractAccessContexts.ConcreteAccessContexts;
 import com.android.tools.r8.graph.lens.GraphLens;
+import com.android.tools.r8.utils.Timing;
 import com.android.tools.r8.utils.collections.ProgramMethodSet;
 import com.google.common.collect.Sets;
 import java.util.IdentityHashMap;
@@ -40,14 +41,25 @@ public class FieldAccessInfoImpl implements FieldAccessInfo {
 
   // Maps every direct and indirect reference in a read-context to the set of methods in which that
   // reference appears.
-  private AbstractAccessContexts readsWithContexts = AbstractAccessContexts.empty();
+  private AbstractAccessContexts readsWithContexts;
 
   // Maps every direct and indirect reference in a write-context to the set of methods in which that
   // reference appears.
-  private AbstractAccessContexts writesWithContexts = AbstractAccessContexts.empty();
+  private AbstractAccessContexts writesWithContexts;
 
   public FieldAccessInfoImpl(DexField field) {
+    this(field, 0, AbstractAccessContexts.empty(), AbstractAccessContexts.empty());
+  }
+
+  public FieldAccessInfoImpl(
+      DexField field,
+      int flags,
+      AbstractAccessContexts readsWithContexts,
+      AbstractAccessContexts writesWithContexts) {
     this.field = field;
+    this.flags = flags;
+    this.readsWithContexts = readsWithContexts;
+    this.writesWithContexts = writesWithContexts;
   }
 
   void destroyAccessContexts() {
@@ -356,11 +368,32 @@ public class FieldAccessInfoImpl implements FieldAccessInfo {
     writesWithContexts = AbstractAccessContexts.empty();
   }
 
-  public FieldAccessInfoImpl rewrittenWithLens(DexDefinitionSupplier definitions, GraphLens lens) {
-    FieldAccessInfoImpl rewritten = new FieldAccessInfoImpl(lens.lookupField(field));
-    rewritten.flags = flags;
-    rewritten.readsWithContexts = readsWithContexts.rewrittenWithLens(definitions, lens);
-    rewritten.writesWithContexts = writesWithContexts.rewrittenWithLens(definitions, lens);
+  public FieldAccessInfoImpl rewrittenWithLens(
+      DexDefinitionSupplier definitions, GraphLens lens, Timing timing) {
+    timing.begin("Rewrite FieldAccessInfoImpl");
+    AbstractAccessContexts rewrittenReadsWithContexts =
+        readsWithContexts.rewrittenWithLens(definitions, lens);
+    AbstractAccessContexts rewrittenWritesWithContexts =
+        writesWithContexts.rewrittenWithLens(definitions, lens);
+    FieldAccessInfoImpl rewritten;
+    if (lens.isIdentityLensForFields(GraphLens.getIdentityLens())) {
+      if (rewrittenReadsWithContexts == readsWithContexts
+          && rewrittenWritesWithContexts == writesWithContexts) {
+        rewritten = this;
+      } else {
+        rewritten =
+            new FieldAccessInfoImpl(
+                field, flags, rewrittenReadsWithContexts, rewrittenWritesWithContexts);
+      }
+    } else {
+      rewritten =
+          new FieldAccessInfoImpl(
+              lens.lookupField(field),
+              flags,
+              rewrittenReadsWithContexts,
+              rewrittenWritesWithContexts);
+    }
+    timing.end();
     return rewritten;
   }
 

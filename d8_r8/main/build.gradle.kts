@@ -2,6 +2,7 @@
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
+import java.nio.file.Paths
 import net.ltgt.gradle.errorprone.errorprone
 
 plugins {
@@ -21,15 +22,98 @@ java {
 
 dependencies {
   implementation(":keepanno")
-  implementation(Deps.asm)
-  implementation(Deps.asmUtil)
-  implementation(Deps.asmCommons)
-  implementation(Deps.fastUtil)
-  implementation(Deps.gson)
-  implementation(Deps.guava)
-  implementation(Deps.joptSimple)
-  implementation(Deps.kotlinMetadata)
+  compileOnly(Deps.asm)
+  compileOnly(Deps.asmUtil)
+  compileOnly(Deps.asmCommons)
+  compileOnly(Deps.fastUtil)
+  compileOnly(Deps.gson)
+  compileOnly(Deps.guava)
+  compileOnly(Deps.kotlinMetadata)
   errorprone(Deps.errorprone)
+}
+
+val keepAnnoJarTask = projectTask("keepanno", "jar")
+
+fun mainJarDependencies() : FileCollection {
+  return sourceSets
+    .main
+    .get()
+    .compileClasspath
+    .filter({ "$it".contains("third_party")
+              && "$it".contains("dependencies")
+              && !"$it".contains("errorprone")
+    })
+}
+
+tasks {
+  withType<Exec> {
+    doFirst {
+      println("Executing command: ${commandLine.joinToString(" ")}")
+    }
+  }
+
+  val swissArmyKnife by registering(Jar::class) {
+    from(sourceSets.main.get().output)
+    manifest {
+      attributes["Main-Class"] = "com.android.tools.r8.SwissArmyKnife"
+    }
+    exclude("META-INF/*.kotlin_module")
+    exclude("**/*.kotlin_metadata")
+    archiveFileName.set("r8-swissarmyknife.jar")
+  }
+
+  val depsJar by registering(Jar::class) {
+    dependsOn(keepAnnoJarTask)
+    println(header("R8 full dependencies"))
+    mainJarDependencies().forEach({ println(it) })
+    from(mainJarDependencies().map(::zipTree))
+    from(keepAnnoJarTask.outputs.files.map(::zipTree))
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+    archiveFileName.set("deps.jar")
+  }
+
+  val r8WithRelocatedDeps by registering(Exec::class) {
+    dependsOn(swissArmyKnife)
+    dependsOn(depsJar)
+    val swissArmy = swissArmyKnife.get().outputs.getFiles().getSingleFile()
+    val deps = depsJar.get().outputs.files.getSingleFile()
+    inputs.files(listOf(swissArmy, deps))
+    val output = file(Paths.get("build", "libs", "r8-deps-relocated.jar"))
+    outputs.file(output)
+    commandLine = baseCompilerCommandLine(
+      swissArmy,
+      deps,
+      "relocator",
+      listOf("--input",
+             "$swissArmy",
+             "--input",
+             "$deps",
+             "--output",
+             "$output",
+             "--map",
+             "com.google.common->com.android.tools.r8.com.google.common",
+             "--map",
+             "com.google.gson->com.android.tools.r8.com.google.gson",
+             "--map",
+             "com.google.thirdparty->com.android.tools.r8.com.google.thirdparty",
+             "--map",
+             "org.objectweb.asm->com.android.tools.r8.org.objectweb.asm",
+             "--map",
+             "it.unimi.dsi.fastutil->com.android.tools.r8.it.unimi.dsi.fastutil",
+             "--map",
+             "kotlin->com.android.tools.r8.jetbrains.kotlin",
+             "--map",
+             "kotlinx->com.android.tools.r8.jetbrains.kotlinx",
+             "--map",
+             "org.jetbrains->com.android.tools.r8.org.jetbrains",
+             "--map",
+             "org.intellij->com.android.tools.r8.org.intellij",
+             "--map",
+             "org.checkerframework->com.android.tools.r8.org.checkerframework",
+             "--map",
+             "com.google.j2objc->com.android.tools.r8.com.google.j2objc"
+      ))
+  }
 }
 
 tasks.withType<JavaCompile> {
@@ -101,5 +185,4 @@ tasks.withType<JavaCompile> {
   // Moving away from identity and canonical items is not planned.
   options.errorprone.disable("ReferenceEquality")
   options.errorprone.disable("IdentityHashMapUsage")
-
 }

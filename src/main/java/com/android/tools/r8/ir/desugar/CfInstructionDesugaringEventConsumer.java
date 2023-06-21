@@ -742,6 +742,7 @@ public abstract class CfInstructionDesugaringEventConsumer
           });
 
       // Remove all '$deserializeLambda$' methods which are not supported by desugaring.
+      assert appView.options().isGeneratingDex() || classesWithSerializableLambdas.isEmpty();
       LambdaDeserializationMethodRemover.run(appView, classesWithSerializableLambdas);
     }
 

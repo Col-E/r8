@@ -12,7 +12,6 @@ import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.SingleTestRunResult;
 import com.android.tools.r8.TestParameters;
@@ -42,7 +41,6 @@ import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.FoundClassSubject;
 import com.google.common.collect.Sets;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
 import java.util.stream.Collectors;
 import org.junit.Assume;
@@ -312,6 +310,8 @@ public class ClassInlinerTest extends ClassInlinerTestBase {
             .allowAccessModification()
             .enableInliningAnnotations()
             .addDontObfuscate()
+            // Using LIR changes the inlining heuristics so enable it consistently.
+            .addOptionsModification(o -> o.testing.enableLir())
             .setMinApi(parameters)
             .run(parameters.getRuntime(), main)
             .assertSuccessWithOutput(javaOutput);
@@ -324,16 +324,14 @@ public class ClassInlinerTest extends ClassInlinerTestBase {
             .filter(FoundClassSubject::isSynthesizedJavaLambdaClass)
             .map(FoundClassSubject::getFinalName)
             .collect(Collectors.toList());
+    assertEquals(Collections.emptyList(), synthesizedJavaLambdaClasses);
 
-    // TODO(b/120814598): Should only be "java.lang.StringBuilder".
     assertEquals(
-        new HashSet<>(synthesizedJavaLambdaClasses),
+        Collections.singleton("java.lang.StringBuilder"),
         collectTypes(clazz.uniqueMethodWithOriginalName("testStatelessLambda")));
-    assertTrue(
-        inspector.allClasses().stream().anyMatch(ClassSubject::isSynthesizedJavaLambdaClass));
 
     assertEquals(
-        Sets.newHashSet("java.lang.StringBuilder"),
+        Collections.singleton("java.lang.StringBuilder"),
         collectTypes(clazz.uniqueMethodWithOriginalName("testStatefulLambda")));
   }
 

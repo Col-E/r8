@@ -25,6 +25,7 @@ import com.android.tools.r8.ir.conversion.IRFinalizer;
 import com.android.tools.r8.ir.conversion.IRToCfFinalizer;
 import com.android.tools.r8.ir.conversion.IRToDexFinalizer;
 import com.android.tools.r8.ir.conversion.MethodConversionOptions.MutableMethodConversionOptions;
+import com.android.tools.r8.ir.conversion.passes.ThrowCatchOptimizer;
 import com.android.tools.r8.ir.optimize.membervaluepropagation.assume.AssumeInfo;
 import com.android.tools.r8.shaking.Enqueuer.FieldAccessKind;
 import com.android.tools.r8.shaking.Enqueuer.FieldAccessMetadata;
@@ -87,6 +88,10 @@ public class EnqueuerDeferredTracingImpl extends EnqueuerDeferredTracing {
 
     // Check if field access is consistent with the field access flags.
     if (field.getAccessFlags().isStatic() != accessKind.isStatic()) {
+      return enqueueDeferredEnqueuerActions(field);
+    }
+
+    if (resolutionResult.isAccessibleFrom(context, appView).isPossiblyFalse()) {
       return enqueueDeferredEnqueuerActions(field);
     }
 
@@ -269,7 +274,7 @@ public class EnqueuerDeferredTracingImpl extends EnqueuerDeferredTracing {
     rewriter.rewriteCode(ir, initializedClassesWithContexts, prunedFields);
 
     // Run dead code elimination.
-    rewriter.getCodeRewriter().optimizeAlwaysThrowingInstructions(ir);
+    new ThrowCatchOptimizer(appView).optimizeAlwaysThrowingInstructions(ir);
     rewriter.getDeadCodeRemover().run(ir, Timing.empty());
 
     // Finalize to class files or dex.

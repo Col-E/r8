@@ -6,13 +6,13 @@ package com.android.tools.r8.profile.art;
 
 import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppView;
-import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.PrunedItems;
 import com.android.tools.r8.graph.lens.GraphLens;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.InternalOptions;
+import com.android.tools.r8.utils.Timing;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -70,14 +70,14 @@ public abstract class ArtProfileCollection {
 
   public abstract NonEmptyArtProfileCollection asNonEmpty();
 
-  public abstract ArtProfileCollection rewrittenWithLens(AppView<?> appView, GraphLens lens);
-
   public abstract ArtProfileCollection rewrittenWithLens(
-      NamingLens lens, DexItemFactory dexItemFactory);
+      AppView<?> appView, GraphLens lens, Timing timing);
+
+  public abstract ArtProfileCollection rewrittenWithLens(AppView<?> appView, NamingLens lens);
 
   public abstract void supplyConsumers(AppView<?> appView);
 
   public abstract ArtProfileCollection withoutMissingItems(AppView<?> appView);
 
-  public abstract ArtProfileCollection withoutPrunedItems(PrunedItems prunedItems);
+  public abstract ArtProfileCollection withoutPrunedItems(PrunedItems prunedItems, Timing timing);
 }
