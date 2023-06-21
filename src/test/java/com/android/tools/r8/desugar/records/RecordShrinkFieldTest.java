@@ -69,7 +69,7 @@ public class RecordShrinkFieldTest extends TestBase {
         .addKeepMainRule(MAIN_TYPE)
         .minification(minifying)
         .compile()
-        .inspect(this::assertSingleField)
+        .inspect(inspector -> inspect(inspector, false))
         .run(parameters.getRuntime(), MAIN_TYPE)
         .assertSuccessWithOutput(
             minifying ? EXPECTED_RESULT_R8 : EXPECTED_RESULT_R8_NO_MINIFICATION);
@@ -92,17 +92,21 @@ public class RecordShrinkFieldTest extends TestBase {
         .addKeepMainRule(MAIN_TYPE)
         .minification(minifying)
         .compile()
-        .inspect(this::assertSingleField)
+        .inspect(inspector -> inspect(inspector, true))
         .run(parameters.getRuntime(), MAIN_TYPE)
         .assertSuccessWithOutput(
             minifying ? EXPECTED_RESULT_R8 : EXPECTED_RESULT_R8_NO_MINIFICATION);
   }
 
-  private void assertSingleField(CodeInspector inspector) {
+  private void inspect(CodeInspector inspector, boolean isCfThenDex) {
     ClassSubject recordClass =
         inspector.clazz(minifying ? "records.a" : "records.RecordShrinkField$Person");
-    assertEquals(1, recordClass.allInstanceFields().size());
-    assertEquals(
-        "java.lang.String", recordClass.allInstanceFields().get(0).getField().type().toString());
+    if (isCfThenDex || !minifying) {
+      assertEquals(1, recordClass.allInstanceFields().size());
+      assertEquals(
+          "java.lang.String", recordClass.allInstanceFields().get(0).getField().type().toString());
+    } else {
+      assertEquals(0, recordClass.allInstanceFields().size());
+    }
   }
 }

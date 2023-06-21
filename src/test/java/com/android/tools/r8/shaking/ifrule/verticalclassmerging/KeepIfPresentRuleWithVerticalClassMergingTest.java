@@ -10,6 +10,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.NeverInline;
+import com.android.tools.r8.NoAccessModification;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
@@ -41,6 +42,7 @@ public class KeepIfPresentRuleWithVerticalClassMergingTest extends TestBase {
         .addKeepRules(
             "-if class * extends " + A.class.getTypeName(), "-keep class <1> { <init>(...); }")
         .enableInliningAnnotations()
+        .enableNoAccessModificationAnnotationsForClasses()
         .setMinApi(parameters)
         .compile()
         .inspect(
@@ -65,6 +67,8 @@ public class KeepIfPresentRuleWithVerticalClassMergingTest extends TestBase {
     }
   }
 
+  // TODO(b/287891322): Allow vertical class merging even when A is made public.
+  @NoAccessModification
   static class A {}
 
   static class B extends A {

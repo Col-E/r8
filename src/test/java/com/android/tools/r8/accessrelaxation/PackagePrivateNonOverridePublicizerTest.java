@@ -5,7 +5,7 @@
 package com.android.tools.r8.accessrelaxation;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
-import static org.hamcrest.CoreMatchers.not;
+import static com.android.tools.r8.utils.codeinspector.Matchers.notIf;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.android.tools.r8.NeverClassInline;
@@ -65,14 +65,15 @@ public class PackagePrivateNonOverridePublicizerTest extends TestBase {
         .assertSuccessWithOutputLines(EXPECTED)
         .inspect(
             inspector -> {
-              ClassSubject clazz = inspector.clazz(ViewModel.class);
               // ViewModel.clear() is package private. When we publicize the method, we can inline
               // the clearBridge() into Main and thereby remove the ViewModel class entirely.
-              if (allowAccessModification) {
-                assertThat(clazz, not(isPresent()));
-              } else {
-                assertThat(clazz, isPresent());
-              }
+              ClassSubject clazz = inspector.clazz(ViewModel.class);
+              assertThat(
+                  clazz,
+                  notIf(
+                      isPresent(),
+                      allowAccessModification
+                          || parameters.isAccessModificationEnabledByDefault()));
             });
   }
 

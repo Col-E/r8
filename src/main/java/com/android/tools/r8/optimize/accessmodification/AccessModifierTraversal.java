@@ -14,6 +14,8 @@ import com.android.tools.r8.graph.ImmediateProgramSubtypingInfo;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.optimize.argumentpropagation.utils.DepthFirstTopDownClassHierarchyTraversal;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
+import com.android.tools.r8.shaking.KeepClassInfo;
+import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.MapUtils;
 import com.android.tools.r8.utils.collections.DexMethodSignatureMap;
 import com.google.common.collect.Iterables;
@@ -65,7 +67,11 @@ class AccessModifierTraversal extends DepthFirstTopDownClassHierarchyTraversal {
     states.remove(clazz.getType());
 
     // Remove and join the bottom up traversal states of the subclasses.
-    BottomUpTraversalState state = new BottomUpTraversalState();
+    KeepClassInfo keepInfo = appView.getKeepInfo(clazz);
+    InternalOptions options = appView.options();
+    BottomUpTraversalState state =
+        new BottomUpTraversalState(
+            !keepInfo.isMinificationAllowed(options) && !keepInfo.isShrinkingAllowed(options));
     forEachSubClass(
         clazz,
         subclass -> {
@@ -125,11 +131,14 @@ class AccessModifierTraversal extends DepthFirstTopDownClassHierarchyTraversal {
     private static final BottomUpTraversalState EMPTY =
         new BottomUpTraversalState(DexMethodSignatureMap.empty());
 
+    boolean isKeptOrHasKeptSubclass;
+
     // The set of non-private virtual methods below the current class.
     DexMethodSignatureMap<Set<String>> nonPrivateVirtualMethods;
 
-    BottomUpTraversalState() {
+    BottomUpTraversalState(boolean isKept) {
       this(DexMethodSignatureMap.create());
+      this.isKeptOrHasKeptSubclass = isKept;
     }
 
     BottomUpTraversalState(DexMethodSignatureMap<Set<String>> packagePrivateMethods) {
@@ -146,6 +155,7 @@ class AccessModifierTraversal extends DepthFirstTopDownClassHierarchyTraversal {
     }
 
     void add(BottomUpTraversalState backtrackingState) {
+      isKeptOrHasKeptSubclass |= backtrackingState.isKeptOrHasKeptSubclass;
       backtrackingState.nonPrivateVirtualMethods.forEach(
           (methodSignature, packageDescriptors) ->
               this.nonPrivateVirtualMethods
@@ -172,6 +182,10 @@ class AccessModifierTraversal extends DepthFirstTopDownClassHierarchyTraversal {
 
     boolean isEmpty() {
       return nonPrivateVirtualMethods.isEmpty();
+    }
+
+    void setIsKeptOrHasKeptSubclass() {
+      isKeptOrHasKeptSubclass = true;
     }
   }
 }

@@ -11,6 +11,7 @@ import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.android.tools.r8.NeverPropagateValue;
+import com.android.tools.r8.NoAccessModification;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
@@ -52,6 +53,7 @@ public class RepackageWithInitClassTest extends RepackageTestBase {
         .addMemberValuePropagationAnnotations()
         .apply(this::configureRepackaging)
         .enableMemberValuePropagationAnnotations(enableMemberValuePropagationAnnotations)
+        .enableNoAccessModificationAnnotationsForMembers()
         .addOptionsModification(options -> options.enableRedundantFieldLoadElimination = false)
         .setMinApi(parameters)
         .compile()
@@ -98,7 +100,7 @@ public class RepackageWithInitClassTest extends RepackageTestBase {
 
   public static class StaticMemberValuePropagation {
 
-    @NeverPropagateValue static String HELLO = "Hello";
+    @NeverPropagateValue @NoAccessModification static String HELLO = "Hello";
 
     public static String WORLD = " world!";
 

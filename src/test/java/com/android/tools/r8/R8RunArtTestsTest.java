@@ -1168,12 +1168,29 @@ public abstract class R8RunArtTestsTest extends TestBase {
           "958-methodhandle-stackframe",
           "1338-gc-no-los");
 
+  private static final String NO_CLASS_ACCESS_MODIFICATION_RULE =
+      "-keep,allowobfuscation,allowoptimization,allowshrinking class *";
+  private static final String NO_MEMBER_ACCESS_MODIFICATION_RULE =
+      "-keepclassmembers,allowobfuscation,allowoptimization,allowshrinking class * { *; }";
+
   private static Map<String, List<String>> keepRules =
       ImmutableMap.of(
+          "005-annotations",
+          ImmutableList.of(NO_MEMBER_ACCESS_MODIFICATION_RULE),
           "021-string2",
           ImmutableList.of("-dontwarn junit.framework.**"),
+          "042-new-instance",
+          ImmutableList.of(NO_MEMBER_ACCESS_MODIFICATION_RULE),
+          "046-reflect",
+          ImmutableList.of(NO_MEMBER_ACCESS_MODIFICATION_RULE),
+          "064-field-access",
+          ImmutableList.of(NO_MEMBER_ACCESS_MODIFICATION_RULE),
           "082-inline-execute",
           ImmutableList.of("-dontwarn junit.framework.**"),
+          "100-reflect2",
+          ImmutableList.of(NO_CLASS_ACCESS_MODIFICATION_RULE),
+          "435-new-instance",
+          ImmutableList.of(NO_CLASS_ACCESS_MODIFICATION_RULE),
           // Constructor MakeBoundType.<init>(int) is called using reflection.
           "476-checker-ctor-fence-redun-elim",
           ImmutableList.of(

@@ -63,11 +63,9 @@ public class AccessModifier {
       AppView<AppInfoWithLiveness> appView, ExecutorService executorService, Timing timing)
       throws ExecutionException {
     timing.begin("Access modification");
-    if (appView.options().getAccessModifierOptions().isAccessModificationEnabled()) {
-      new AccessModifier(appView)
-          .processStronglyConnectedComponents(executorService)
-          .installLens(executorService, timing);
-    }
+    new AccessModifier(appView)
+        .processStronglyConnectedComponents(executorService)
+        .installLens(executorService, timing);
     timing.end();
   }
 
@@ -106,15 +104,15 @@ public class AccessModifier {
       DexProgramClass clazz,
       AccessModifierNamingState namingState,
       BottomUpTraversalState traversalState) {
-    publicizeClass(clazz);
-    publicizeFields(clazz);
+    publicizeClass(clazz, traversalState);
+    publicizeFields(clazz, traversalState);
     publicizeMethods(clazz, namingState, traversalState);
     // TODO(b/278736230): Also finalize classes and methods here.
     finalizeFields(clazz);
   }
 
-  private void publicizeClass(DexProgramClass clazz) {
-    if (isAccessModificationAllowed(clazz) && !clazz.getAccessFlags().isPublic()) {
+  private void publicizeClass(DexProgramClass clazz, BottomUpTraversalState traversalState) {
+    if (isAccessModificationAllowed(clazz, traversalState) && !clazz.getAccessFlags().isPublic()) {
       clazz.getAccessFlags().promoteToPublic();
     }
 
@@ -130,12 +128,12 @@ public class AccessModifier {
     }
   }
 
-  private void publicizeFields(DexProgramClass clazz) {
-    clazz.forEachProgramField(this::publicizeField);
+  private void publicizeFields(DexProgramClass clazz, BottomUpTraversalState traversalState) {
+    clazz.forEachProgramField(field -> publicizeField(field, traversalState));
   }
 
-  private void publicizeField(ProgramField field) {
-    if (isAccessModificationAllowed(field) && !field.getAccessFlags().isPublic()) {
+  private void publicizeField(ProgramField field, BottomUpTraversalState traversalState) {
+    if (isAccessModificationAllowed(field, traversalState) && !field.getAccessFlags().isPublic()) {
       field.getAccessFlags().promoteToPublic();
     }
   }
@@ -165,7 +163,7 @@ public class AccessModifier {
       AccessModifierNamingState namingState,
       BottomUpTraversalState traversalState) {
     MethodAccessFlags accessFlags = method.getAccessFlags();
-    if (accessFlags.isPublic() || !isAccessModificationAllowed(method)) {
+    if (accessFlags.isPublic() || !isAccessModificationAllowed(method, traversalState)) {
       return commitMethod(method, localNamingState, namingState);
     }
 
@@ -254,18 +252,26 @@ public class AccessModifier {
     return newMethodReference;
   }
 
-  private boolean isAccessModificationAllowed(ProgramDefinition definition) {
-    if (!appView.getKeepInfo(definition).isAccessModificationAllowed(options)) {
+  private boolean isAccessModificationAllowed(
+      ProgramDefinition definition, BottomUpTraversalState traversalState) {
+    if (!appView.getKeepInfo(definition).isAccessModificationAllowed(options)
+        || isFailedResolutionTarget(definition)) {
       return false;
     }
+    return definition.isClass()
+        || options.getAccessModifierOptions().canPollutePublicApi()
+        || !traversalState.isKeptOrHasKeptSubclass;
+  }
+
+  private boolean isFailedResolutionTarget(ProgramDefinition definition) {
     if (definition.isClass()) {
-      return !appView.appInfo().isFailedClassResolutionTarget(definition.asClass().getType());
+      return appView.appInfo().isFailedClassResolutionTarget(definition.asClass().getType());
     }
     if (definition.isField()) {
-      return !appView.appInfo().isFailedFieldResolutionTarget(definition.asField().getReference());
+      return appView.appInfo().isFailedFieldResolutionTarget(definition.asField().getReference());
     }
     assert definition.isMethod();
-    return !appView.appInfo().isFailedMethodResolutionTarget(definition.asMethod().getReference());
+    return appView.appInfo().isFailedMethodResolutionTarget(definition.asMethod().getReference());
   }
 
   private boolean isRenamingAllowed(ProgramMethod method) {

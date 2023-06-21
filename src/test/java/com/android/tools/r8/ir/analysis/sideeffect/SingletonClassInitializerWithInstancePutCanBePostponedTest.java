@@ -12,6 +12,7 @@ import static org.junit.Assert.assertEquals;
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.NeverPropagateValue;
+import com.android.tools.r8.NoAccessModification;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
@@ -44,6 +45,7 @@ public class SingletonClassInitializerWithInstancePutCanBePostponedTest extends 
         .enableInliningAnnotations()
         .enableMemberValuePropagationAnnotations()
         .enableNeverClassInliningAnnotations()
+        .enableNoAccessModificationAnnotationsForMembers()
         .setMinApi(parameters)
         .compile()
         .inspect(this::inspect)
@@ -72,7 +74,7 @@ public class SingletonClassInitializerWithInstancePutCanBePostponedTest extends 
   @NeverClassInline
   static class A {
 
-    private static A INSTANCE;
+    @NoAccessModification private static A INSTANCE;
 
     static {
       A a = new A();

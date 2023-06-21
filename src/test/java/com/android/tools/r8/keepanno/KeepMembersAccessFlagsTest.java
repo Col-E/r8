@@ -91,13 +91,17 @@ public class KeepMembersAccessFlagsTest extends TestBase {
           memberAccess = {MemberAccessFlags.PUBLIC, MemberAccessFlags.NON_STATIC})
     })
     void foo() throws Exception {
-      for (Field field : getClass().getDeclaredFields()) {
+      String[] fieldNames = new String[] {"fieldA"};
+      for (String fieldName : fieldNames) {
+        Field field = getClass().getDeclaredField(fieldName);
         int modifiers = field.getModifiers();
         if (Modifier.isPublic(modifiers) && !Modifier.isStatic(modifiers)) {
           System.out.println(field.get(this));
         }
       }
-      for (Method method : getClass().getDeclaredMethods()) {
+      String[] methodNames = new String[] {"bar"};
+      for (String methodName : methodNames) {
+        Method method = getClass().getDeclaredMethod(methodName);
         int modifiers = method.getModifiers();
         if (Modifier.isPublic(modifiers) && !Modifier.isStatic(modifiers)) {
           System.out.println(method.getName());

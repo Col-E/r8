@@ -145,10 +145,9 @@ public class R8KotlinDataClassTest extends AbstractR8KotlinTestBase {
             inspector -> {
               // TODO(b/210828502): Investigate why Person is not removed with kotlin 1.7 and 1.8.
               //   It looks like this is related to size estimates as using LIR changes the result.
-              if (allowAccessModification
-                  && (kotlinc.isOneOf(KOTLINC_1_5_0, KOTLINC_1_6_0)
-                      || testParameters.isDexRuntime()
-                      || useLir)) {
+              if (kotlinc.isOneOf(KOTLINC_1_5_0, KOTLINC_1_6_0)
+                  || testParameters.isDexRuntime()
+                  || useLir) {
                 checkClassIsRemoved(inspector, TEST_DATA_CLASS.getClassName());
               } else {
                 ClassSubject dataClass =

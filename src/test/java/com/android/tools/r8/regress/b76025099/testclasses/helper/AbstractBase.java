@@ -3,12 +3,15 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.regress.b76025099.testclasses.helper;
 
+import com.android.tools.r8.NoAccessModification;
 import com.android.tools.r8.NoVerticalClassMerging;
 import com.android.tools.r8.regress.b76025099.testclasses.Logger;
 
+@NoAccessModification
 @NoVerticalClassMerging
 abstract class AbstractBase implements Logger {
-  protected String name;
+
+  @NoAccessModification protected String name;
 
   @Override
   public String getName() {

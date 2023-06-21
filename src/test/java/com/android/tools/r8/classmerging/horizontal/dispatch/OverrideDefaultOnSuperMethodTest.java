@@ -10,6 +10,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
+import com.android.tools.r8.NoAccessModification;
 import com.android.tools.r8.NoUnusedInterfaceRemoval;
 import com.android.tools.r8.NoVerticalClassMerging;
 import com.android.tools.r8.TestParameters;
@@ -29,6 +30,7 @@ public class OverrideDefaultOnSuperMethodTest extends HorizontalClassMergingTest
         .addKeepMainRule(Main.class)
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
+        .enableNoAccessModificationAnnotationsForMembers()
         .enableNoUnusedInterfaceRemovalAnnotations()
         .enableNoVerticalClassMergingAnnotations()
         .setMinApi(parameters)
@@ -69,6 +71,7 @@ public class OverrideDefaultOnSuperMethodTest extends HorizontalClassMergingTest
             });
   }
 
+  @NoAccessModification
   @NoVerticalClassMerging
   interface I {
     @NeverInline
@@ -92,6 +95,7 @@ public class OverrideDefaultOnSuperMethodTest extends HorizontalClassMergingTest
   }
 
   @NeverClassInline
+  @NoAccessModification
   @NoUnusedInterfaceRemoval
   @NoVerticalClassMerging
   interface J extends I {

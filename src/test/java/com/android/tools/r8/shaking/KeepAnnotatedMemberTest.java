@@ -233,7 +233,7 @@ public class KeepAnnotatedMemberTest extends TestBase {
             .apply(this::suppressZipFileAssignmentsToJavaLangAutoCloseable)
             .compile()
             .graphInspector();
-    assertRetainedClassesEqual(referenceInspector, ifThenKeepClassMembersInspector, true);
+    assertRetainedClassesEqual(referenceInspector, ifThenKeepClassMembersInspector, true, true);
 
     GraphInspector ifThenKeepClassesWithMembersInspector =
         testForR8(Backend.CF)
@@ -252,7 +252,8 @@ public class KeepAnnotatedMemberTest extends TestBase {
             .apply(this::suppressZipFileAssignmentsToJavaLangAutoCloseable)
             .compile()
             .graphInspector();
-    assertRetainedClassesEqual(referenceInspector, ifThenKeepClassesWithMembersInspector, true);
+    assertRetainedClassesEqual(
+        referenceInspector, ifThenKeepClassesWithMembersInspector, true, true);
 
     GraphInspector ifHasMemberThenKeepClassInspector =
         testForR8(Backend.CF)
@@ -273,7 +274,7 @@ public class KeepAnnotatedMemberTest extends TestBase {
             .apply(this::suppressZipFileAssignmentsToJavaLangAutoCloseable)
             .compile()
             .graphInspector();
-    assertRetainedClassesEqual(referenceInspector, ifHasMemberThenKeepClassInspector, true);
+    assertRetainedClassesEqual(referenceInspector, ifHasMemberThenKeepClassInspector, true, true);
   }
 
   private void configureHorizontalClassMerging(R8FullTestBuilder testBuilder) {
@@ -300,6 +301,15 @@ public class KeepAnnotatedMemberTest extends TestBase {
       GraphInspector referenceResult,
       GraphInspector conditionalResult,
       boolean expectConditionalIsLarger) {
+    assertRetainedClassesEqual(
+        referenceResult, conditionalResult, expectConditionalIsLarger, false);
+  }
+
+  private void assertRetainedClassesEqual(
+      GraphInspector referenceResult,
+      GraphInspector conditionalResult,
+      boolean expectConditionalIsLarger,
+      boolean expectNotConditionalIsLarger) {
     Set<String> referenceClasses =
         new TreeSet<>(
             referenceResult.codeInspector().allClasses().stream()
@@ -321,10 +331,15 @@ public class KeepAnnotatedMemberTest extends TestBase {
     }
     Set<String> notInConditional =
         new TreeSet<>(Sets.difference(referenceClasses, conditionalClasses));
-    assertEquals(
-        "Classes in -keepclassmembers rule that are not in -if rule",
-        Collections.emptySet(),
-        notInConditional);
+    if (expectNotConditionalIsLarger) {
+      assertFalse(
+          "Expected classes in -keepclassmembers rule to retain more", notInConditional.isEmpty());
+    } else {
+      assertEquals(
+          "Classes in -keepclassmembers rule that are not in -if rule",
+          Collections.emptySet(),
+          notInConditional);
+    }
   }
 
   private void suppressZipFileAssignmentsToJavaLangAutoCloseable(R8TestBuilder<?> testBuilder) {

@@ -5,6 +5,7 @@
 package com.android.tools.r8.classmerging.horizontal;
 
 import com.android.tools.r8.NeverInline;
+import com.android.tools.r8.NoAccessModification;
 import com.android.tools.r8.NoHorizontalClassMerging;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
@@ -49,6 +50,7 @@ public class InitClassToPackagePrivateFieldWithCrossPackageMergingTest extends T
         .addHorizontallyMergedClassesInspector(
             HorizontallyMergedClassesInspector::assertNoClassesMerged)
         .enableInliningAnnotations()
+        .enableNoAccessModificationAnnotationsForMembers()
         .enableNoHorizontalClassMergingAnnotations()
         .setMinApi(parameters)
         .compile()
@@ -88,13 +90,14 @@ public class InitClassToPackagePrivateFieldWithCrossPackageMergingTest extends T
   public static class A2 {
 
     // Will remain due to the use in Main.main.
-    static int f = (int) System.currentTimeMillis();
+    @NoAccessModification static int f = (int) System.currentTimeMillis();
 
     static {
       System.out.print("Hello");
     }
 
     // Will be inlined.
+    @NoAccessModification
     static void sayHello() {}
   }
 

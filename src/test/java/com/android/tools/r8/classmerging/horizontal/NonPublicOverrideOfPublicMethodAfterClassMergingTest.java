@@ -13,6 +13,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
+import com.android.tools.r8.NoAccessModification;
 import com.android.tools.r8.NoHorizontalClassMerging;
 import com.android.tools.r8.NoUnusedInterfaceRemoval;
 import com.android.tools.r8.NoVerticalClassMerging;
@@ -47,6 +48,7 @@ public class NonPublicOverrideOfPublicMethodAfterClassMergingTest extends TestBa
                 inspector.assertIsCompleteMergeGroup(I.class, J.class).assertNoOtherClassesMerged())
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
+        .enableNoAccessModificationAnnotationsForMembers()
         .enableNoHorizontalClassMergingAnnotations()
         .enableNoUnusedInterfaceRemovalAnnotations()
         .enableNoVerticalClassMergingAnnotations()
@@ -94,6 +96,7 @@ public class NonPublicOverrideOfPublicMethodAfterClassMergingTest extends TestBa
   static class A extends I {
 
     @NeverInline
+    @NoAccessModification
     void m() {
       System.out.println("A.m()");
     }

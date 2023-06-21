@@ -9,6 +9,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import com.android.tools.r8.KeepConstantArguments;
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
+import com.android.tools.r8.NoAccessModification;
 import com.android.tools.r8.NoMethodStaticizing;
 import com.android.tools.r8.NoVerticalClassMerging;
 import com.android.tools.r8.TestBase;
@@ -75,6 +76,7 @@ public class BridgeHoistingAccessibilityTest extends TestBase {
         .addKeepMainRule(TestClass.class)
         .enableConstantArgumentAnnotations()
         .enableInliningAnnotations()
+        .enableNoAccessModificationAnnotationsForMembers()
         .enableNoHorizontalClassMergingAnnotations()
         .enableNoMethodStaticizingAnnotations()
         .enableNoVerticalClassMergingAnnotations()
@@ -127,6 +129,7 @@ public class BridgeHoistingAccessibilityTest extends TestBase {
     // in TestClass.main().
     @KeepConstantArguments
     @NeverInline
+    @NoAccessModification
     @NoMethodStaticizing
     /*bridge*/ String bridgeB(Object o) {
       return (String) m((String) o);
@@ -154,6 +157,7 @@ public class BridgeHoistingAccessibilityTest extends TestBase {
     // in TestClass.main().
     @KeepConstantArguments
     @NeverInline
+    @NoAccessModification
     @NoMethodStaticizing
     /*bridge*/ String bridgeB(Object o, int a, int b, int c, int d, int e) {
       return (String) m((String) o, a, b, c, d, e);

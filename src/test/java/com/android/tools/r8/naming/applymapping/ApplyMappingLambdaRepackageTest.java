@@ -8,6 +8,7 @@ import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
+import com.android.tools.r8.NoAccessModification;
 import com.android.tools.r8.R8TestRunResult;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
@@ -38,6 +39,7 @@ public class ApplyMappingLambdaRepackageTest extends TestBase {
             .addKeepRules("-repackageclasses foo")
             .enableInliningAnnotations()
             .enableNeverClassInliningAnnotations()
+            .enableNoAccessModificationAnnotationsForMembers()
             .run(parameters.getRuntime(), Main.class)
             .assertSuccessWithOutputLines("Hello World");
     R8TestRunResult secondRunResult =
@@ -47,6 +49,7 @@ public class ApplyMappingLambdaRepackageTest extends TestBase {
             .addKeepMainRule(Main.class)
             .enableInliningAnnotations()
             .enableNeverClassInliningAnnotations()
+            .enableNoAccessModificationAnnotationsForMembers()
             .addApplyMapping(firstRunResult.proguardMap())
             .compile()
             .run(parameters.getRuntime(), Main.class);
@@ -58,6 +61,7 @@ public class ApplyMappingLambdaRepackageTest extends TestBase {
   public static class PackagePrivate {
 
     @NeverInline
+    @NoAccessModification
     void print() {
       System.out.println("Hello World");
     }

@@ -71,9 +71,5 @@ public class MetadataStripTest extends KotlinMetadataTestBase {
     // Main class is kept, hence the presence of Metadata.
     AnnotationSubject annotationSubject = clazz.annotation(METADATA_TYPE);
     assertThat(annotationSubject, isPresent());
-    ClassSubject impl1 = inspector.clazz(implementer1ClassName);
-    assertThat(impl1, isPresentAndRenamed());
-    // All other classes can be renamed, hence the absence of Metadata;
-    assertThat(impl1.annotation(METADATA_TYPE), not(isPresent()));
   }
 }

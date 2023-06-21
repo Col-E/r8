@@ -258,8 +258,14 @@ public class B72391662 extends ProguardCompatibilityTestBase {
     staticMethod = testClass.uniqueMethodWithOriginalName("staticMethod");
     assertThat(staticMethod, isPresent());
     assertEquals(minify, staticMethod.isRenamed());
-    boolean publicizeCondition = shrinker.isR8() ? allowAccessModification
-        : minify && repackagePrefix != null && allowAccessModification;
+    boolean publicizeCondition =
+        (shrinker.isCompatR8() && allowAccessModification)
+            || (shrinker.isFullModeR8()
+                && (shrinker.isR8Dex() || allowAccessModification || minify))
+            || (shrinker.isProguard()
+                && minify
+                && repackagePrefix != null
+                && allowAccessModification);
     assertEquals(publicizeCondition, staticMethod.getMethod().accessFlags.isPublic());
   }
 }

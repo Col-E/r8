@@ -10,6 +10,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.NeverPropagateValue;
+import com.android.tools.r8.NoAccessModification;
 import com.android.tools.r8.NoVerticalClassMerging;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
@@ -34,6 +35,7 @@ abstract class AbstractChecker {
   @NeverPropagateValue private String tag = "PrivateInitialTag_AbstractChecker";
 
   // check() -> x
+  @NoAccessModification
   private void check() {
     System.out.println("AbstractChecker#check:" + tag);
   }
@@ -56,6 +58,7 @@ class ConcreteChecker extends AbstractChecker {
 
   // This should not be conflict with AbstractChecker#check due to the access control.
   // check() -> y
+  @NoAccessModification
   private void check() {
     System.out.println("ConcreteChecker#check:" + tag);
   }
@@ -124,6 +127,7 @@ public class MemberResolutionTest extends TestBase {
             .addKeepMainRule(MemberResolutionTestMain.class)
             .addKeepRules("-applymapping " + mapPath)
             .enableMemberValuePropagationAnnotations()
+            .enableNoAccessModificationAnnotationsForMembers()
             .enableNoVerticalClassMergingAnnotations()
             .addOptionsModification(options -> options.inlinerOptions().enableInlining = false)
             .setMinApi(parameters)

@@ -10,6 +10,7 @@ import static com.android.tools.r8.apimodel.ApiModelingTestHelper.verifyThat;
 
 import com.android.tools.r8.KeepConstantArguments;
 import com.android.tools.r8.NeverInline;
+import com.android.tools.r8.NoAccessModification;
 import com.android.tools.r8.NoHorizontalClassMerging;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
@@ -48,6 +49,7 @@ public class ApiModelNoInliningOfHigherApiLevelInterfaceTest extends TestBase {
         .addKeepMainRule(Main.class)
         .enableConstantArgumentAnnotations()
         .enableInliningAnnotations()
+        .enableNoAccessModificationAnnotationsForClasses()
         .enableNoHorizontalClassMergingAnnotations()
         .apply(setMockApiLevelForClass(Api.class, AndroidApiLevel.L_MR1))
         .apply(setMockApiLevelForMethod(apiMethod, AndroidApiLevel.L_MR1))
@@ -92,15 +94,14 @@ public class ApiModelNoInliningOfHigherApiLevelInterfaceTest extends TestBase {
   public static class Main {
 
     public static void main(String[] args) {
-      A.noApiCall(
-          args.length > 0
-              ? new Api() {
-                @Override
-                public void apiLevel22() {
-                  throw new RuntimeException("Foo");
-                }
-              }
-              : null);
+      @NoAccessModification
+      class ApiImpl implements Api {
+        @Override
+        public void apiLevel22() {
+          throw new RuntimeException("Foo");
+        }
+      }
+      A.noApiCall(args.length > 0 ? new ApiImpl() : null);
     }
   }
 }

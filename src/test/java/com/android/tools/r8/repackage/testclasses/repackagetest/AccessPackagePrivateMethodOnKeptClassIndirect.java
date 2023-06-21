@@ -5,6 +5,7 @@
 package com.android.tools.r8.repackage.testclasses.repackagetest;
 
 import com.android.tools.r8.NeverInline;
+import com.android.tools.r8.NoAccessModification;
 import com.android.tools.r8.NoHorizontalClassMerging;
 
 @NoHorizontalClassMerging
@@ -19,6 +20,7 @@ public class AccessPackagePrivateMethodOnKeptClassIndirect {
   public static class Helper {
 
     @NeverInline
+    @NoAccessModification
     static void test() {
       KeptClass.packagePrivateMethod();
     }

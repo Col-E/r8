@@ -12,6 +12,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
+import com.android.tools.r8.NoAccessModification;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
@@ -29,6 +30,7 @@ public class ClassesWithOverlappingVisibilitiesTest extends HorizontalClassMergi
         .addKeepMainRule(Main.class)
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
+        .enableNoAccessModificationAnnotationsForMembers()
         .setMinApi(parameters)
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines("foo A", "FOO B", "FOO C", "foo D", "FOO E")
@@ -59,6 +61,7 @@ public class ClassesWithOverlappingVisibilitiesTest extends HorizontalClassMergi
   @NeverClassInline
   public static class A {
     @NeverInline
+    @NoAccessModification
     void foo() {
       System.out.println("foo A");
     }
@@ -72,6 +75,7 @@ public class ClassesWithOverlappingVisibilitiesTest extends HorizontalClassMergi
 
     @Override
     @NeverInline
+    @NoAccessModification
     void foo() {
       System.out.println("FOO B");
     }
@@ -86,6 +90,7 @@ public class ClassesWithOverlappingVisibilitiesTest extends HorizontalClassMergi
 
     @Override
     @NeverInline
+    @NoAccessModification
     void foo() {
       System.out.println("FOO C");
     }

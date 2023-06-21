@@ -9,6 +9,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.NeverInline;
+import com.android.tools.r8.NoAccessModification;
 import com.android.tools.r8.NoVerticalClassMerging;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
@@ -46,6 +47,7 @@ public class MemberRebindingRemoveStaticBridgeTest extends TestBase {
         .setMinApi(parameters)
         .addKeepMainRule(newMainTypeName)
         .enableInliningAnnotations()
+        .enableNoAccessModificationAnnotationsForClasses()
         .enableNoVerticalClassMergingAnnotations()
         .addHorizontallyMergedClassesInspector(
             HorizontallyMergedClassesInspector::assertNoClassesMerged)
@@ -59,6 +61,7 @@ public class MemberRebindingRemoveStaticBridgeTest extends TestBase {
             });
   }
 
+  @NoAccessModification
   @NoVerticalClassMerging
   static class A {
 

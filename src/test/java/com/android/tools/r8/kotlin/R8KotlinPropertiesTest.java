@@ -131,7 +131,7 @@ public class R8KotlinPropertiesTest extends AbstractR8KotlinTestBase {
             testBuilder -> testBuilder.addOptionsModification(disableAggressiveClassOptimizations))
         .inspect(
             inspector -> {
-              if (allowAccessModification) {
+              if (testParameters.isAccessModificationEnabled(allowAccessModification)) {
                 checkClassIsRemoved(inspector, MUTABLE_PROPERTY_CLASS.getClassName());
                 return;
               }
@@ -161,7 +161,7 @@ public class R8KotlinPropertiesTest extends AbstractR8KotlinTestBase {
             testBuilder -> testBuilder.addOptionsModification(disableAggressiveClassOptimizations))
         .inspect(
             inspector -> {
-              if (allowAccessModification) {
+              if (testParameters.isAccessModificationEnabled(allowAccessModification)) {
                 checkClassIsRemoved(inspector, MUTABLE_PROPERTY_CLASS.getClassName());
                 return;
               }
@@ -189,7 +189,7 @@ public class R8KotlinPropertiesTest extends AbstractR8KotlinTestBase {
             testBuilder -> testBuilder.addOptionsModification(disableAggressiveClassOptimizations))
         .inspect(
             inspector -> {
-              if (allowAccessModification) {
+              if (testParameters.isAccessModificationEnabled(allowAccessModification)) {
                 checkClassIsRemoved(inspector, MUTABLE_PROPERTY_CLASS.getClassName());
                 return;
               }
@@ -217,7 +217,7 @@ public class R8KotlinPropertiesTest extends AbstractR8KotlinTestBase {
             testBuilder -> testBuilder.addOptionsModification(disableAggressiveClassOptimizations))
         .inspect(
             inspector -> {
-              if (allowAccessModification) {
+              if (testParameters.isAccessModificationEnabled(allowAccessModification)) {
                 checkClassIsRemoved(inspector, MUTABLE_PROPERTY_CLASS.getClassName());
                 return;
               }
@@ -245,7 +245,7 @@ public class R8KotlinPropertiesTest extends AbstractR8KotlinTestBase {
             testBuilder -> testBuilder.addOptionsModification(disableAggressiveClassOptimizations))
         .inspect(
             inspector -> {
-              if (allowAccessModification) {
+              if (testParameters.isAccessModificationEnabled(allowAccessModification)) {
                 checkClassIsRemoved(inspector, MUTABLE_PROPERTY_CLASS.getClassName());
                 return;
               }
@@ -285,7 +285,7 @@ public class R8KotlinPropertiesTest extends AbstractR8KotlinTestBase {
             testBuilder -> testBuilder.addOptionsModification(disableAggressiveClassOptimizations))
         .inspect(
             inspector -> {
-              if (allowAccessModification) {
+              if (testParameters.isAccessModificationEnabled(allowAccessModification)) {
                 checkClassIsRemoved(inspector, LATE_INIT_PROPERTY_CLASS.getClassName());
                 return;
               }
@@ -364,7 +364,7 @@ public class R8KotlinPropertiesTest extends AbstractR8KotlinTestBase {
             testBuilder -> testBuilder.addOptionsModification(disableAggressiveClassOptimizations))
         .inspect(
             inspector -> {
-              if (allowAccessModification) {
+              if (testParameters.isAccessModificationEnabled(allowAccessModification)) {
                 checkClassIsRemoved(inspector, USER_DEFINED_PROPERTY_CLASS.getClassName());
                 return;
               }
@@ -397,7 +397,7 @@ public class R8KotlinPropertiesTest extends AbstractR8KotlinTestBase {
             inspector -> {
               checkClassIsRemoved(inspector, COMPANION_PROPERTY_CLASS.getClassName());
 
-              if (allowAccessModification) {
+              if (testParameters.isAccessModificationEnabled(allowAccessModification)) {
                 checkClassIsRemoved(inspector, "properties.CompanionProperties");
                 return;
               }
@@ -423,7 +423,7 @@ public class R8KotlinPropertiesTest extends AbstractR8KotlinTestBase {
             inspector -> {
               checkClassIsRemoved(inspector, COMPANION_PROPERTY_CLASS.getClassName());
 
-              if (allowAccessModification) {
+              if (testParameters.isAccessModificationEnabled(allowAccessModification)) {
                 checkClassIsRemoved(inspector, "properties.CompanionProperties");
                 return;
               }
@@ -454,7 +454,7 @@ public class R8KotlinPropertiesTest extends AbstractR8KotlinTestBase {
             testBuilder -> testBuilder.addOptionsModification(disableAggressiveClassOptimizations))
         .inspect(
             inspector -> {
-              if (allowAccessModification) {
+              if (testParameters.isAccessModificationEnabled(allowAccessModification)) {
                 checkClassIsRemoved(inspector, "properties.CompanionProperties");
                 return;
               }
@@ -482,7 +482,7 @@ public class R8KotlinPropertiesTest extends AbstractR8KotlinTestBase {
             inspector -> {
               checkClassIsRemoved(inspector, COMPANION_PROPERTY_CLASS.getClassName());
 
-              if (allowAccessModification) {
+              if (testParameters.isAccessModificationEnabled(allowAccessModification)) {
                 checkClassIsRemoved(inspector, "properties.CompanionProperties");
                 return;
               }
@@ -510,7 +510,7 @@ public class R8KotlinPropertiesTest extends AbstractR8KotlinTestBase {
             inspector -> {
               checkClassIsRemoved(inspector, testedClass.getClassName());
 
-              if (allowAccessModification
+              if (testParameters.isAccessModificationEnabled(allowAccessModification)
                   || (testParameters.isDexRuntime()
                       && testParameters.getApiLevel().isGreaterThan(AndroidApiLevel.B))) {
                 checkClassIsRemoved(inspector, testedClass.getOuterClassName());
@@ -572,7 +572,7 @@ public class R8KotlinPropertiesTest extends AbstractR8KotlinTestBase {
             testBuilder -> testBuilder.addOptionsModification(disableAggressiveClassOptimizations))
         .inspect(
             inspector -> {
-              if (allowAccessModification) {
+              if (testParameters.isAccessModificationEnabled(allowAccessModification)) {
                 checkClassIsRemoved(inspector, testedClass.getClassName());
                 return;
               }
@@ -601,7 +601,7 @@ public class R8KotlinPropertiesTest extends AbstractR8KotlinTestBase {
             testBuilder -> testBuilder.addOptionsModification(disableAggressiveClassOptimizations))
         .inspect(
             inspector -> {
-              if (allowAccessModification) {
+              if (testParameters.isAccessModificationEnabled(allowAccessModification)) {
                 checkClassIsRemoved(inspector, testedClass.getClassName());
                 return;
               }
@@ -634,7 +634,7 @@ public class R8KotlinPropertiesTest extends AbstractR8KotlinTestBase {
             testBuilder -> testBuilder.addOptionsModification(disableAggressiveClassOptimizations))
         .inspect(
             inspector -> {
-              if (allowAccessModification) {
+              if (testParameters.isAccessModificationEnabled(allowAccessModification)) {
                 checkClassIsRemoved(inspector, testedClass.getClassName());
                 return;
               }
@@ -666,7 +666,7 @@ public class R8KotlinPropertiesTest extends AbstractR8KotlinTestBase {
             testBuilder -> testBuilder.addOptionsModification(disableAggressiveClassOptimizations))
         .inspect(
             inspector -> {
-              if (allowAccessModification) {
+              if (testParameters.isAccessModificationEnabled(allowAccessModification)) {
                 checkClassIsRemoved(inspector, testedClass.getClassName());
                 return;
               }
@@ -698,7 +698,7 @@ public class R8KotlinPropertiesTest extends AbstractR8KotlinTestBase {
             testBuilder -> testBuilder.addOptionsModification(disableAggressiveClassOptimizations))
         .inspect(
             inspector -> {
-              if (allowAccessModification) {
+              if (testParameters.isAccessModificationEnabled(allowAccessModification)) {
                 checkClassIsRemoved(inspector, testedClass.getClassName());
                 return;
               }
@@ -755,7 +755,7 @@ public class R8KotlinPropertiesTest extends AbstractR8KotlinTestBase {
             testBuilder -> testBuilder.addOptionsModification(disableAggressiveClassOptimizations))
         .inspect(
             inspector -> {
-              if (allowAccessModification) {
+              if (testParameters.isAccessModificationEnabled(allowAccessModification)) {
                 checkClassIsRemoved(inspector, testedClass.getClassName());
                 return;
               }
@@ -785,7 +785,7 @@ public class R8KotlinPropertiesTest extends AbstractR8KotlinTestBase {
             testBuilder -> testBuilder.addOptionsModification(disableAggressiveClassOptimizations))
         .inspect(
             inspector -> {
-              if (allowAccessModification) {
+              if (testParameters.isAccessModificationEnabled(allowAccessModification)) {
                 checkClassIsRemoved(inspector, testedClass.getClassName());
                 return;
               }
@@ -817,7 +817,7 @@ public class R8KotlinPropertiesTest extends AbstractR8KotlinTestBase {
             testBuilder -> testBuilder.addOptionsModification(disableAggressiveClassOptimizations))
         .inspect(
             inspector -> {
-              if (allowAccessModification) {
+              if (testParameters.isAccessModificationEnabled(allowAccessModification)) {
                 checkClassIsRemoved(inspector, testedClass.getClassName());
                 return;
               }
@@ -850,7 +850,7 @@ public class R8KotlinPropertiesTest extends AbstractR8KotlinTestBase {
             testBuilder -> testBuilder.addOptionsModification(disableAggressiveClassOptimizations))
         .inspect(
             inspector -> {
-              if (allowAccessModification) {
+              if (testParameters.isAccessModificationEnabled(allowAccessModification)) {
                 checkClassIsRemoved(inspector, testedClass.getClassName());
                 return;
               }
@@ -882,7 +882,7 @@ public class R8KotlinPropertiesTest extends AbstractR8KotlinTestBase {
             testBuilder -> testBuilder.addOptionsModification(disableAggressiveClassOptimizations))
         .inspect(
             inspector -> {
-              if (allowAccessModification) {
+              if (testParameters.isAccessModificationEnabled(allowAccessModification)) {
                 checkClassIsRemoved(inspector, testedClass.getClassName());
                 return;
               }

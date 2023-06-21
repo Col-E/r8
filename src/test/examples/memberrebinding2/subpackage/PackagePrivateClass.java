@@ -3,6 +3,9 @@
 // BSD-style license that can be found in the LICENSE file.
 package memberrebinding2.subpackage;
 
+import memberrebinding2.NoAccessModification;
+
+@NoAccessModification
 abstract class PackagePrivateClass {
 
   public static int staticField;

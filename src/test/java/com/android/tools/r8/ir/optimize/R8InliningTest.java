@@ -317,29 +317,29 @@ public class R8InliningTest extends TestBase {
 
     // These constants describe the expected number of invoke instructions calling a possibly
     // inlined method.
-    final int ALWAYS_INLINABLE = 0;
-    final int INLINABLE = allowAccessModification ? 0 : 1;
-    final int NEVER_INLINABLE = 1;
+    int ALWAYS_INLINABLE = 0;
+    int INLINABLE_WHEN_DISABLED = allowAccessModification ? 1 : 0;
+    int NEVER_INLINABLE = 1;
 
     ClassSubject clazz = inspector.clazz(nullabilityClass);
     MethodSubject m;
 
     m = clazz.method("int", "inlinable", ImmutableList.of("inlining.A"));
-    assertCounters(INLINABLE, INLINABLE, countInvokes(inspector, m));
+    assertCounters(ALWAYS_INLINABLE, ALWAYS_INLINABLE, countInvokes(inspector, m));
 
     m =
         clazz.method(
             allowAccessModification ? "void" : "int",
             "notInlinable",
             ImmutableList.of("inlining." + (allowAccessModification ? "B" : "A")));
-    assertCounters(INLINABLE, NEVER_INLINABLE, countInvokes(inspector, m));
+    assertCounters(ALWAYS_INLINABLE, INLINABLE_WHEN_DISABLED, countInvokes(inspector, m));
 
     m = clazz.method("int", "notInlinableDueToMissingNpe", ImmutableList.of("inlining.A"));
-    assertCounters(INLINABLE, ALWAYS_INLINABLE, countInvokes(inspector, m));
+    assertCounters(ALWAYS_INLINABLE, ALWAYS_INLINABLE, countInvokes(inspector, m));
 
     m = clazz.method("int", "notInlinableDueToSideEffect", ImmutableList.of("inlining.A"));
     assertCounters(
-        parameters.isCfRuntime() ? INLINABLE : NEVER_INLINABLE,
+        parameters.isCfRuntime() ? ALWAYS_INLINABLE : NEVER_INLINABLE,
         NEVER_INLINABLE,
         countInvokes(inspector, m));
 

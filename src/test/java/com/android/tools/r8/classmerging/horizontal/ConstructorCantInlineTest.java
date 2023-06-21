@@ -10,6 +10,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
+import com.android.tools.r8.NoAccessModification;
 import com.android.tools.r8.TestParameters;
 import org.junit.Test;
 
@@ -25,6 +26,7 @@ public class ConstructorCantInlineTest extends HorizontalClassMergingTestBase {
         .addKeepMainRule(Main.class)
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
+        .enableNoAccessModificationAnnotationsForMembers()
         .setMinApi(parameters)
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines("c", "foo: foo")
@@ -48,16 +50,21 @@ public class ConstructorCantInlineTest extends HorizontalClassMergingTestBase {
 
   @NeverClassInline
   public static class C {
+
+    @NoAccessModification
     C() {
       System.out.println("c");
     }
   }
 
   public static class D {
+
+    @NoAccessModification
     D() {
       foo(new B());
     }
 
+    @NoAccessModification
     @NeverInline
     static void foo(A a) {
       System.out.println("foo: " + a.foo());

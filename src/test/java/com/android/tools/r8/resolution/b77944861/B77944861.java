@@ -65,6 +65,7 @@ public class B77944861 extends TestBase {
         .addKeepMainRule(MAIN)
         .addDontObfuscate()
         .addDontShrink()
+        .enableNoAccessModificationAnnotationsForClasses()
         .setMinApi(parameters)
         .compile()
         .inspect(

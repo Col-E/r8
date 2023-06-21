@@ -4,10 +4,12 @@
 
 package com.android.tools.r8.classmerging.vertical.testclasses;
 
+import com.android.tools.r8.NoAccessModification;
 import com.android.tools.r8.NoVerticalClassMerging;
 
 public class NonReboundFieldAccessOnMergedClassTestClasses {
 
+  @NoAccessModification
   @NoVerticalClassMerging
   static class A {
 

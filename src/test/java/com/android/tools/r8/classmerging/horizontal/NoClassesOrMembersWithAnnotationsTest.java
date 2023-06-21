@@ -12,6 +12,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import com.android.tools.r8.KeepConstantArguments;
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
+import com.android.tools.r8.NoAccessModification;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.shaking.ProguardKeepAttributes;
 import com.android.tools.r8.utils.BooleanUtils;
@@ -57,6 +58,7 @@ public class NoClassesOrMembersWithAnnotationsTest extends HorizontalClassMergin
             })
         .enableConstantArgumentAnnotations()
         .enableNeverClassInliningAnnotations()
+        .enableNoAccessModificationAnnotationsForClasses()
         .enableInliningAnnotations()
         .setMinApi(parameters)
         .compile()
@@ -135,13 +137,14 @@ public class NoClassesOrMembersWithAnnotationsTest extends HorizontalClassMergin
       C c = new C("c");
       c.foo();
       foo(null);
-      foo2(
-          new MethodAnnotation() {
-            @Override
-            public Class<? extends Annotation> annotationType() {
-              return null;
-            }
-          });
+      @NoAccessModification
+      class MethodAnnotationImpl implements MethodAnnotation {
+        @Override
+        public Class<? extends Annotation> annotationType() {
+          return null;
+        }
+      }
+      foo2(new MethodAnnotationImpl());
       if (b.getClass().getAnnotations().length > 0) {
         System.out.println(
             b.getClass().getAnnotations()[0].toString().replaceFirst(".*", "annotation 1"));

@@ -3,6 +3,8 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.resolution.b77944861.inner;
 
+import com.android.tools.r8.NoAccessModification;
+
 public class TopLevelPolicy {
 
   public static void set(MobileIconState state, String desc) {
@@ -11,6 +13,7 @@ public class TopLevelPolicy {
     state.description = desc;
   }
 
+  @NoAccessModification
   private static abstract class IconState {
     public String description;
   }

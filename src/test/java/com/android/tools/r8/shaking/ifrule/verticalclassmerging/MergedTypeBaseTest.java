@@ -9,6 +9,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.IsNot.not;
 import static org.junit.Assert.assertEquals;
 
+import com.android.tools.r8.NoAccessModification;
 import com.android.tools.r8.R8FullTestBuilder;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
@@ -29,12 +30,18 @@ public abstract class MergedTypeBaseTest extends TestBase {
 
   static class B extends A {}
 
+  // TODO(b/287891322): Allow vertical class merging even when C is made public.
+  @NoAccessModification
   static class C {}
 
+  // TODO(b/287891322): Allow vertical class merging even when I is made public.
+  @NoAccessModification
   interface I {}
 
   interface J extends I {}
 
+  // TODO(b/287891322): Allow vertical class merging even when K is made public.
+  @NoAccessModification
   interface K {}
 
   static class Unused {}
@@ -68,8 +75,10 @@ public abstract class MergedTypeBaseTest extends TestBase {
   }
 
   public void configure(R8FullTestBuilder builder) {
-    builder.addOptionsModification(
-        options -> options.enableVerticalClassMerging = enableVerticalClassMerging);
+    builder
+        .addOptionsModification(
+            options -> options.enableVerticalClassMerging = enableVerticalClassMerging)
+        .enableNoAccessModificationAnnotationsForClasses();
   }
 
   public abstract Class<?> getTestClass();

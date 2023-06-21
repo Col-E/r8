@@ -14,6 +14,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
+import com.android.tools.r8.NoAccessModification;
 import com.android.tools.r8.NoHorizontalClassMerging;
 import com.android.tools.r8.NoMethodStaticizing;
 import com.android.tools.r8.NoUnusedInterfaceRemoval;
@@ -49,6 +50,7 @@ public class IllegalSiblingAfterInterfaceMergingTest extends TestBase {
             HorizontallyMergedClassesInspector::assertNoClassesMerged)
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
+        .enableNoAccessModificationAnnotationsForMembers()
         .enableNoHorizontalClassMergingAnnotations()
         .enableNoMethodStaticizingAnnotations()
         .enableNoUnusedInterfaceRemovalAnnotations()
@@ -104,6 +106,7 @@ public class IllegalSiblingAfterInterfaceMergingTest extends TestBase {
     // Intentionally package private. If J is merged into I then this is an illegal override of
     // I.m().
     @NeverInline
+    @NoAccessModification
     @NoMethodStaticizing
     void m() {
       System.out.println("A.m()");

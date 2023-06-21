@@ -85,6 +85,8 @@ public class B76025099 extends TestBase {
     testForR8(parameters.getBackend())
         .addProgramFiles(ToolHelper.getClassFilesForTestPackage(Main.class.getPackage()))
         .addKeepMainRule(Main.class)
+        .enableNoAccessModificationAnnotationsForClasses()
+        .enableNoAccessModificationAnnotationsForMembers()
         .enableNoVerticalClassMergingAnnotations()
         .addDontObfuscate()
         .setMinApi(parameters)

@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.ir.optimize.inliner.testclasses;
 
+import com.android.tools.r8.NoAccessModification;
 import com.android.tools.r8.NoVerticalClassMerging;
 
 @NoVerticalClassMerging
@@ -14,8 +15,9 @@ public class Greeting extends GreetingBase {
   }
 }
 
+@NoAccessModification
 @NoVerticalClassMerging
 class GreetingBase {
 
-  protected String greeting;
+  @NoAccessModification protected String greeting;
 }

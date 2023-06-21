@@ -14,7 +14,22 @@ public class AccessModifierOptions {
     this.options = options;
   }
 
+  public boolean canPollutePublicApi() {
+    return isAccessModificationRulePresent() || options.isGeneratingDex();
+  }
+
   public boolean isAccessModificationEnabled() {
+    // TODO(b/288062771): Enable access modification for L8.
+    if (!options.synthesizedClassPrefix.isEmpty()) {
+      return false;
+    }
+    if (options.forceProguardCompatibility) {
+      return isAccessModificationRulePresent();
+    }
+    return true;
+  }
+
+  private boolean isAccessModificationRulePresent() {
     return options.hasProguardConfiguration()
         && options.getProguardConfiguration().isAccessModificationAllowed();
   }

@@ -12,6 +12,7 @@ import static org.junit.Assert.assertTrue;
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.NeverPropagateValue;
+import com.android.tools.r8.NoAccessModification;
 import com.android.tools.r8.NoHorizontalClassMerging;
 import com.android.tools.r8.NoUnusedInterfaceRemoval;
 import com.android.tools.r8.NoVerticalClassMerging;
@@ -35,6 +36,7 @@ public class MergingWithSafeCheckCastTest extends HorizontalClassMergingTestBase
         .enableInliningAnnotations()
         .enableMemberValuePropagationAnnotations()
         .enableNeverClassInliningAnnotations()
+        .enableNoAccessModificationAnnotationsForMembers()
         .enableNoHorizontalClassMergingAnnotations()
         .enableNoUnusedInterfaceRemovalAnnotations()
         .enableNoVerticalClassMergingAnnotations()
@@ -76,7 +78,7 @@ public class MergingWithSafeCheckCastTest extends HorizontalClassMergingTestBase
   @NeverClassInline
   public static class A {
 
-    @NeverPropagateValue I f;
+    @NeverPropagateValue @NoAccessModification I f;
 
     A(I f) {
       this.f = f;
@@ -86,7 +88,7 @@ public class MergingWithSafeCheckCastTest extends HorizontalClassMergingTestBase
   @NeverClassInline
   public static class B {
 
-    @NeverPropagateValue J f;
+    @NeverPropagateValue @NoAccessModification J f;
 
     B(J f) {
       this.f = f;

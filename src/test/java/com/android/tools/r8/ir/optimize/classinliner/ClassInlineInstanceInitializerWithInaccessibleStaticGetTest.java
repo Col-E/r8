@@ -41,6 +41,7 @@ public class ClassInlineInstanceInitializerWithInaccessibleStaticGetTest extends
             ClassInlineInstanceInitializerWithInaccessibleStaticGetTestClasses.class)
         .addKeepMainRule(TestClass.class)
         .enableInliningAnnotations()
+        .enableNoAccessModificationAnnotationsForMembers()
         .enableNoHorizontalClassMergingAnnotations()
         .setMinApi(parameters)
         .compile()

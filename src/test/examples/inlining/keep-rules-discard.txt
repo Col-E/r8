@@ -20,3 +20,5 @@
 -neverinline class * {
   @inlining.NeverInline <methods>;
 }
+
+-nohorizontalclassmerging @inlining.NoHorizontalClassMerging class *
