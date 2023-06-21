@@ -101,11 +101,14 @@ public class ToolHelper {
   }
 
   public static String getProjectRoot() {
-    String userDirProperty = System.getProperty("user.dir");
-    if (userDirProperty.endsWith("d8_r8/test")) {
-      return Paths.get(userDirProperty).getParent().getParent().toString() + "/";
+    String current = System.getProperty("user.dir");
+    if (!current.contains("test_modules")) {
+      return "";
     }
-    return "";
+    while (current.contains("test_modules")) {
+      current = Paths.get(current).getParent().toString();
+    }
+    return Paths.get(current).getParent().toString() + "/";
   }
 
   public static final String SOURCE_DIR = "src/main/java/";
@@ -972,7 +975,7 @@ public class ToolHelper {
     }
     if (isLinux() || isMac()) {
       // The Linux version is used on Mac, where it is run in a Docker container.
-      return TOOLS_DIR + "/linux/" + dir;
+      return TOOLS_DIR + "linux/" + dir;
     }
     fail("Unsupported platform, we currently only support mac and linux: " + getPlatform());
     return ""; //never here

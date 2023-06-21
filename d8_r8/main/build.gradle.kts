@@ -23,14 +23,18 @@ java {
 dependencies {
   implementation(":keepanno")
   compileOnly(Deps.asm)
-  compileOnly(Deps.asmUtil)
   compileOnly(Deps.asmCommons)
+  compileOnly(Deps.asmUtil)
   compileOnly(Deps.fastUtil)
   compileOnly(Deps.gson)
   compileOnly(Deps.guava)
   compileOnly(Deps.kotlinMetadata)
   errorprone(Deps.errorprone)
 }
+
+val thirdPartyResourceDependenciesTask = ensureThirdPartyDependencies(
+  "resourceDeps",
+  listOf(ThirdPartyDeps.apiDatabase))
 
 val keepAnnoJarTask = projectTask("keepanno", "jar")
 
@@ -50,6 +54,10 @@ tasks {
     doFirst {
       println("Executing command: ${commandLine.joinToString(" ")}")
     }
+  }
+
+  withType<ProcessResources> {
+    dependsOn(thirdPartyResourceDependenciesTask)
   }
 
   val swissArmyKnife by registering(Jar::class) {

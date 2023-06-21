@@ -29,7 +29,7 @@ fun downloadFromGoogleStorage(sha1File : File) {
   )
   println("Executing command: ${cmd.joinToString(" ")}")
   var process = ProcessBuilder().command(cmd).start()
-  process.waitFor(5, java.util.concurrent.TimeUnit.SECONDS)
+  process.waitFor()
   if (process.exitValue() != 0) {
     throw GradleException(
       "Bootstrapping dependencies_new download failed:\n"
