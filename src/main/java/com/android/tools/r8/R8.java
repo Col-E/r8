@@ -1063,12 +1063,13 @@ public class R8 {
             enqueuer.getGraphReporter().getGraphNode(reference), System.out);
       }
     }
-    if (appView.options().testing.dontReportFailingCheckDiscarded) {
-      return;
-    }
     DiscardedChecker discardedChecker =
         forMainDex ? DiscardedChecker.createForMainDex(appView) : DiscardedChecker.create(appView);
     List<ProgramDefinition> failed = discardedChecker.run(classes.get(), executorService);
+    if (appView.options().testing.dontReportFailingCheckDiscarded) {
+      assert !failed.isEmpty();
+      return;
+    }
     if (failed.isEmpty()) {
       return;
     }

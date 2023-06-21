@@ -205,7 +205,7 @@ public class YouTubeV1719Test extends YouTubeCompilationTestBase {
                         keepAllProtosRule(),
                         keepDynamicMethodSignatureRule(),
                         keepNewMessageInfoSignatureRule())
-                    .allowCheckDiscardedErrors(true));
+                    .allowCheckDiscardedErrors());
     assertRewrittenProtoSchemasMatch(
         new CodeInspector(getProgramFiles()), r8CompileResult.inspector());
   }

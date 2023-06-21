@@ -51,6 +51,7 @@ public class ChromeProtoRewritingTest extends ChromeCompilationBase {
         .addDontWarn("android.content.pm.IPackageManager")
         .addOptionsModification(
             options -> options.getOpenClosedInterfacesOptions().suppressAllOpenInterfaces())
+        .allowCheckDiscardedErrors()
         .allowUnusedDontWarnPatterns()
         .allowUnusedProguardConfigurationRules()
         .enableProtoShrinking(false)
