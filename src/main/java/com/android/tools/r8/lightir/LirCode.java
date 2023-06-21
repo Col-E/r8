@@ -35,6 +35,8 @@ import com.android.tools.r8.utils.RetracerForCodePrinting;
 import com.google.common.collect.ImmutableMap;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceMap;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceOpenHashMap;
+import org.jetbrains.annotations.NotNull;
+
 import java.util.Map;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
@@ -410,6 +412,13 @@ public class LirCode<EV> extends Code implements Iterable<LirInstructionView> {
 
   @Override
   public Code getCodeAsInlining(DexMethod caller, DexEncodedMethod callee, DexItemFactory factory) {
+    throw new Unimplemented();
+  }
+
+  @NotNull
+  @Override
+  public Code copySubtype() {
+    // Should not be any circumstance where this model needs to be cloned.
     throw new Unimplemented();
   }
 
