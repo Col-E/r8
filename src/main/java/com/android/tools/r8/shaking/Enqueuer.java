@@ -3495,7 +3495,11 @@ public class Enqueuer {
         DexProgramClass clazz = asProgramClassOrNull(definitionFor(referencedType, context));
         if (clazz != null) {
           applyMinimumKeepInfoWhenLive(
-              clazz, KeepClassInfo.newEmptyJoiner().disallowMinification().disallowOptimization());
+              clazz,
+              KeepClassInfo.newEmptyJoiner()
+                  .disallowMinification()
+                  .disallowOptimization()
+                  .disallowRepackaging());
         }
       }
     }

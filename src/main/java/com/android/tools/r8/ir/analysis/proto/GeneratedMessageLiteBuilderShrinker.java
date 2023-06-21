@@ -42,6 +42,7 @@ import com.android.tools.r8.ir.optimize.info.OptimizationFeedback;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackSimple;
 import com.android.tools.r8.ir.optimize.inliner.FixedInliningReasonStrategy;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
+import com.android.tools.r8.shaking.DependentMinimumKeepInfoCollection;
 import com.android.tools.r8.shaking.Enqueuer;
 import com.android.tools.r8.shaking.EnqueuerWorklist;
 import com.android.tools.r8.utils.Box;
@@ -312,6 +313,14 @@ public class GeneratedMessageLiteBuilderShrinker {
             alwaysInline,
             bypassClinitforInlining)
         .extend(subtypingInfo);
+  }
+
+  public void extendRootSet(DependentMinimumKeepInfoCollection dependentMinimumKeepInfo) {
+    dependentMinimumKeepInfo
+        .getOrCreateUnconditionalMinimumKeepInfoFor(
+            references.generatedMessageLiteBuilderMethods.constructorMethod)
+        .asMethodJoiner()
+        .disallowInlining();
   }
 
   public void preprocessCallGraphBeforeCycleElimination(Map<DexMethod, Node> nodes) {

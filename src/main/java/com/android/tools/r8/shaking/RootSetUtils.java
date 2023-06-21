@@ -385,6 +385,8 @@ public class RootSetUtils {
       }
       appView.withGeneratedMessageLiteShrinker(
           shrinker -> shrinker.extendRootSet(dependentMinimumKeepInfo));
+      appView.withGeneratedMessageLiteBuilderShrinker(
+          shrinker -> shrinker.extendRootSet(dependentMinimumKeepInfo));
       if (appView.options().protoShrinking().enableGeneratedMessageLiteBuilderShrinking) {
         GeneratedMessageLiteBuilderShrinker.addInliningHeuristicsForBuilderInlining(
             appView,
