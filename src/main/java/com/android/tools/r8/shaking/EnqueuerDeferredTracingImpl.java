@@ -24,6 +24,7 @@ import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.conversion.IRFinalizer;
 import com.android.tools.r8.ir.conversion.IRToCfFinalizer;
 import com.android.tools.r8.ir.conversion.IRToDexFinalizer;
+import com.android.tools.r8.ir.conversion.MethodConversionOptions;
 import com.android.tools.r8.ir.conversion.MethodConversionOptions.MutableMethodConversionOptions;
 import com.android.tools.r8.ir.conversion.passes.ThrowCatchOptimizer;
 import com.android.tools.r8.ir.optimize.membervaluepropagation.assume.AssumeInfo;
@@ -264,8 +265,8 @@ public class EnqueuerDeferredTracingImpl extends EnqueuerDeferredTracing {
     // Build IR.
     MutableMethodConversionOptions conversionOptions =
         mode.isInitialTreeShaking()
-            ? new MutableMethodConversionOptions(options).setIsGeneratingClassFiles(true)
-            : new MutableMethodConversionOptions(options);
+            ? MethodConversionOptions.forPreLirPhase(appView)
+            : MethodConversionOptions.forPostLirPhase(appView);
     conversionOptions.disableStringSwitchConversion();
 
     IRCode ir = method.buildIR(appView, conversionOptions);

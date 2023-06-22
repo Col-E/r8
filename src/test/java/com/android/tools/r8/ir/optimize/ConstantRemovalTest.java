@@ -5,6 +5,8 @@ package com.android.tools.r8.ir.optimize;
 
 import static org.junit.Assert.assertEquals;
 
+import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexApplication;
@@ -22,7 +24,7 @@ import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.code.Position.SyntheticPosition;
 import com.android.tools.r8.ir.code.Return;
 import com.android.tools.r8.ir.code.Value;
-import com.android.tools.r8.ir.conversion.MethodConversionOptions.MutableMethodConversionOptions;
+import com.android.tools.r8.ir.conversion.MethodConversionOptions;
 import com.android.tools.r8.ir.regalloc.LinearScanRegisterAllocator;
 import com.android.tools.r8.ir.regalloc.LiveIntervals;
 import com.android.tools.r8.origin.Origin;
@@ -30,8 +32,21 @@ import com.android.tools.r8.synthesis.SyntheticItems.GlobalSyntheticsStrategy;
 import com.android.tools.r8.utils.InternalOptions;
 import java.util.LinkedList;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
+@RunWith(Parameterized.class)
 public class ConstantRemovalTest {
+
+  @Parameters(name = "{0}")
+  public static TestParametersCollection data() {
+    return TestParameters.builder().withNoneRuntime().build();
+  }
+
+  public ConstantRemovalTest(TestParameters parameters) {
+    parameters.assertNoneRuntime();
+  }
 
   private static class MockLinearScanRegisterAllocator extends LinearScanRegisterAllocator {
     MockLinearScanRegisterAllocator(AppView<?> appView, IRCode code) {
@@ -152,7 +167,7 @@ public class ConstantRemovalTest {
             basicBlockNumberGenerator,
             IRMetadata.unknown(),
             Origin.unknown(),
-            new MutableMethodConversionOptions(options));
+            MethodConversionOptions.nonConverting());
     PeepholeOptimizer.optimize(appView, code, new MockLinearScanRegisterAllocator(appView, code));
 
     // Check that all four constant number instructions remain.

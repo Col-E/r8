@@ -28,6 +28,7 @@ import com.android.tools.r8.ir.code.IRMetadata;
 import com.android.tools.r8.ir.code.NumberGenerator;
 import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.code.Position.SourcePosition;
+import com.android.tools.r8.ir.conversion.MethodConversionOptions;
 import com.android.tools.r8.ir.conversion.MethodConversionOptions.MutableMethodConversionOptions;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.InternalOptions;
@@ -282,7 +283,8 @@ public class LirCode<EV> extends Code implements Iterable<LirInstructionView> {
       MutableMethodConversionOptions conversionOptions) {
     RewrittenPrototypeDescription protoChanges =
         appView.graphLens().lookupPrototypeChangesForMethodDefinition(method.getReference());
-    return internalBuildIR(method, appView, new NumberGenerator(), null, protoChanges);
+    return internalBuildIR(
+        method, appView, new NumberGenerator(), null, protoChanges, conversionOptions);
   }
 
   @Override
@@ -298,7 +300,13 @@ public class LirCode<EV> extends Code implements Iterable<LirInstructionView> {
     assert valueNumberGenerator != null;
     assert callerPosition != null;
     assert protoChanges != null;
-    return internalBuildIR(method, appView, valueNumberGenerator, callerPosition, protoChanges);
+    return internalBuildIR(
+        method,
+        appView,
+        valueNumberGenerator,
+        callerPosition,
+        protoChanges,
+        MethodConversionOptions.nonConverting());
   }
 
   private IRCode internalBuildIR(
@@ -306,7 +314,8 @@ public class LirCode<EV> extends Code implements Iterable<LirInstructionView> {
       AppView<?> appView,
       NumberGenerator valueNumberGenerator,
       Position callerPosition,
-      RewrittenPrototypeDescription protoChanges) {
+      RewrittenPrototypeDescription protoChanges,
+      MutableMethodConversionOptions conversionOptions) {
     LirCode<Integer> typedLir = asLirCode();
     return Lir2IRConverter.translate(
         method,
@@ -315,7 +324,8 @@ public class LirCode<EV> extends Code implements Iterable<LirInstructionView> {
         appView,
         callerPosition,
         protoChanges,
-        appView.graphLens().getOriginalMethodSignature(method.getReference()));
+        appView.graphLens().getOriginalMethodSignature(method.getReference()),
+        conversionOptions);
   }
 
   @Override

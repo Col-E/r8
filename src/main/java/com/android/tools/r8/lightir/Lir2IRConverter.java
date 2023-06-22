@@ -128,7 +128,8 @@ public class Lir2IRConverter {
       AppView<?> appView,
       Position callerPosition,
       RewrittenPrototypeDescription protoChanges,
-      DexMethod originalMethod) {
+      DexMethod originalMethod,
+      MutableMethodConversionOptions conversionOptions) {
     Parser<EV> parser =
         new Parser<>(
             lirCode,
@@ -141,7 +142,7 @@ public class Lir2IRConverter {
     parser.parseArguments(method);
     parser.ensureDebugInfo();
     lirCode.forEach(view -> view.accept(parser));
-    IRCode irCode = parser.getIRCode(method);
+    IRCode irCode = parser.getIRCode(method, conversionOptions);
     // Some instructions have bottom types (e.g., phis). Compute their actual types by widening.
     new TypeAnalysis(appView).widening(irCode);
     return irCode;
@@ -338,7 +339,8 @@ public class Lir2IRConverter {
 
     // TODO(b/270398965): Replace LinkedList.
     @SuppressWarnings("JdkObsolete")
-    public IRCode getIRCode(ProgramMethod method) {
+    public IRCode getIRCode(
+        ProgramMethod method, MutableMethodConversionOptions conversionOptions) {
       LinkedList<BasicBlock> blockList = new LinkedList<>();
       IntList blockIndices = new IntArrayList(blocks.keySet());
       blockIndices.sort(Integer::compare);
@@ -364,7 +366,7 @@ public class Lir2IRConverter {
           basicBlockNumberGenerator,
           code.getMetadataForIR(),
           method.getOrigin(),
-          new MutableMethodConversionOptions(appView.options()));
+          conversionOptions);
     }
 
     public BasicBlock getBasicBlock(int instructionIndex) {

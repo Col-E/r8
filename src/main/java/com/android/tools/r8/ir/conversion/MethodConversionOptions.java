@@ -5,15 +5,67 @@
 package com.android.tools.r8.ir.conversion;
 
 import com.android.tools.r8.errors.Unreachable;
+import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.utils.InternalOptions;
 
 public abstract class MethodConversionOptions {
 
+  public static MutableMethodConversionOptions forPreLirPhase(AppView<?> appView) {
+    if (!appView.enableWholeProgramOptimizations()) {
+      return forD8(appView);
+    }
+    assert appView.testing().isPreLirPhase();
+    return new MutableMethodConversionOptions(Target.CF, appView.options());
+  }
+
+  public static MutableMethodConversionOptions forPostLirPhase(AppView<?> appView) {
+    if (!appView.enableWholeProgramOptimizations()) {
+      return forD8(appView);
+    }
+    assert appView.testing().isPostLirPhase();
+    Target target = appView.options().isGeneratingClassFiles() ? Target.CF : Target.DEX;
+    return new MutableMethodConversionOptions(target, appView.options());
+  }
+
+  public static MutableMethodConversionOptions forLirPhase(AppView<?> appView) {
+    if (!appView.enableWholeProgramOptimizations()) {
+      return forD8(appView);
+    }
+    assert appView.testing().isSupportedLirPhase();
+    return new MutableMethodConversionOptions(determineTarget(appView), appView.options());
+  }
+
+  public static MutableMethodConversionOptions forD8(AppView<?> appView) {
+    assert !appView.enableWholeProgramOptimizations();
+    return new MutableMethodConversionOptions(determineTarget(appView), appView.options());
+  }
+
+  public static MutableMethodConversionOptions nonConverting() {
+    return new ThrowingMethodConversionOptions();
+  }
+
+  private enum Target {
+    CF,
+    DEX,
+    LIR
+  }
+
+  private static Target determineTarget(AppView<?> appView) {
+    if (appView.testing().canUseLir(appView)) {
+      return Target.LIR;
+    }
+    if (appView.options().isGeneratingClassFiles()) {
+      return Target.CF;
+    }
+    assert appView.options().isGeneratingDex();
+    return Target.DEX;
+  }
+
+  public abstract boolean isGeneratingLir();
+
   public abstract boolean isGeneratingClassFiles();
 
-  public final boolean isGeneratingDex() {
-    return !isGeneratingClassFiles();
-  }
+  public abstract boolean isGeneratingDex();
 
   public abstract boolean isPeepholeOptimizationsEnabled();
 
@@ -21,13 +73,17 @@ public abstract class MethodConversionOptions {
 
   public static class MutableMethodConversionOptions extends MethodConversionOptions {
 
+    private Target target;
     private boolean enablePeepholeOptimizations = true;
     private boolean enableStringSwitchConversion;
-    private boolean isGeneratingClassFiles;
 
-    public MutableMethodConversionOptions(InternalOptions options) {
-      this.enableStringSwitchConversion = options.isStringSwitchConversionEnabled();
-      this.isGeneratingClassFiles = options.isGeneratingClassFiles();
+    private MutableMethodConversionOptions(Target target, boolean enableStringSwitchConversion) {
+      this.target = target;
+      this.enableStringSwitchConversion = enableStringSwitchConversion;
+    }
+
+    private MutableMethodConversionOptions(Target target, InternalOptions options) {
+      this(target, options.isStringSwitchConversionEnabled());
     }
 
     public void disablePeepholeOptimizations(MethodProcessor methodProcessor) {
@@ -40,15 +96,19 @@ public abstract class MethodConversionOptions {
       return this;
     }
 
-    public MutableMethodConversionOptions setIsGeneratingClassFiles(
-        boolean isGeneratingClassFiles) {
-      this.isGeneratingClassFiles = isGeneratingClassFiles;
-      return this;
+    @Override
+    public boolean isGeneratingLir() {
+      return target == Target.LIR;
     }
 
     @Override
     public boolean isGeneratingClassFiles() {
-      return isGeneratingClassFiles;
+      return target == Target.CF;
+    }
+
+    @Override
+    public boolean isGeneratingDex() {
+      return target == Target.DEX;
     }
 
     @Override
@@ -64,12 +124,22 @@ public abstract class MethodConversionOptions {
 
   public static class ThrowingMethodConversionOptions extends MutableMethodConversionOptions {
 
-    public ThrowingMethodConversionOptions(InternalOptions options) {
-      super(options);
+    private ThrowingMethodConversionOptions() {
+      super(null, true);
+    }
+
+    @Override
+    public boolean isGeneratingLir() {
+      throw new Unreachable();
     }
 
     @Override
     public boolean isGeneratingClassFiles() {
+      throw new Unreachable();
+    }
+
+    @Override
+    public boolean isGeneratingDex() {
       throw new Unreachable();
     }
 

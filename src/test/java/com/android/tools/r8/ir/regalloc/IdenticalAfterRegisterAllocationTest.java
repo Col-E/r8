@@ -20,7 +20,7 @@ import com.android.tools.r8.ir.code.ConstNumber;
 import com.android.tools.r8.ir.code.NumericType;
 import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.code.Value;
-import com.android.tools.r8.ir.conversion.MethodConversionOptions.MutableMethodConversionOptions;
+import com.android.tools.r8.ir.conversion.MethodConversionOptions;
 import com.android.tools.r8.utils.InternalOptions;
 import java.util.List;
 import org.junit.Test;
@@ -126,6 +126,34 @@ public class IdenticalAfterRegisterAllocationTest {
     // not equivalent.
     assertFalse(
         add0.identicalAfterRegisterAllocation(
-            add1, allocator, new MutableMethodConversionOptions(allocator.options())));
+            add1,
+            allocator,
+            new MethodConversionOptions() {
+
+              @Override
+              public boolean isGeneratingDex() {
+                return true;
+              }
+
+              @Override
+              public boolean isGeneratingLir() {
+                return false;
+              }
+
+              @Override
+              public boolean isGeneratingClassFiles() {
+                return false;
+              }
+
+              @Override
+              public boolean isPeepholeOptimizationsEnabled() {
+                return false;
+              }
+
+              @Override
+              public boolean isStringSwitchConversionEnabled() {
+                return false;
+              }
+            }));
   }
 }

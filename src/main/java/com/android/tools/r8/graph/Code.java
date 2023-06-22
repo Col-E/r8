@@ -14,6 +14,7 @@ import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.NumberGenerator;
 import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.code.Position.PositionBuilder;
+import com.android.tools.r8.ir.conversion.MethodConversionOptions;
 import com.android.tools.r8.ir.conversion.MethodConversionOptions.MutableMethodConversionOptions;
 import com.android.tools.r8.lightir.LirCode;
 import com.android.tools.r8.origin.Origin;
@@ -24,7 +25,7 @@ import java.util.function.Consumer;
 public abstract class Code extends CachedHashValueDexItem {
 
   public final IRCode buildIR(ProgramMethod method, AppView<?> appView, Origin origin) {
-    return buildIR(method, appView, origin, new MutableMethodConversionOptions(appView.options()));
+    return buildIR(method, appView, origin, MethodConversionOptions.forLirPhase(appView));
   }
 
   public abstract IRCode buildIR(

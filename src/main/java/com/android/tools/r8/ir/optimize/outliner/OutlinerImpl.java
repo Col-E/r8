@@ -59,6 +59,7 @@ import com.android.tools.r8.ir.code.ValueType;
 import com.android.tools.r8.ir.code.ValueTypeConstraint;
 import com.android.tools.r8.ir.conversion.IRBuilder;
 import com.android.tools.r8.ir.conversion.IRConverter;
+import com.android.tools.r8.ir.conversion.MethodConversionOptions;
 import com.android.tools.r8.ir.conversion.MethodConversionOptions.MutableMethodConversionOptions;
 import com.android.tools.r8.ir.conversion.MethodProcessorEventConsumer;
 import com.android.tools.r8.ir.conversion.SourceCode;
@@ -1360,7 +1361,10 @@ public class OutlinerImpl extends Outliner {
       MethodProcessorEventConsumer methodProcessorEventConsumer =
           MethodProcessorEventConsumer.empty();
       converter.optimizeSynthesizedMethods(
-          outlineMethods, methodProcessorEventConsumer, executorService);
+          outlineMethods,
+          methodProcessorEventConsumer,
+          MethodConversionOptions.forLirPhase(appView),
+          executorService);
       feedback.updateVisibleOptimizationInfo();
       forEachSelectedOutliningMethod(
           converter,

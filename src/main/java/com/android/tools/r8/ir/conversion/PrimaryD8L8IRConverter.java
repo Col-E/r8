@@ -380,7 +380,12 @@ public class PrimaryD8L8IRConverter extends IRConverter {
       MethodProcessor methodProcessor,
       MethodProcessingContext methodProcessingContext) {
     boolean didDesugar = desugar(method, desugaringEventConsumer, methodProcessingContext);
-    return rewriteDesugaredCodeInternal(method, feedback, methodProcessor, methodProcessingContext);
+    return rewriteDesugaredCodeInternal(
+        method,
+        feedback,
+        methodProcessor,
+        methodProcessingContext,
+        MethodConversionOptions.forD8(appView));
   }
 
   private boolean desugar(

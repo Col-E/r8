@@ -17,6 +17,8 @@ import com.android.tools.r8.graph.PrunedItems;
 import com.android.tools.r8.graph.lens.MethodLookupResult;
 import com.android.tools.r8.horizontalclassmerging.code.SyntheticInitializerConverter;
 import com.android.tools.r8.ir.code.InvokeType;
+import com.android.tools.r8.ir.conversion.MethodConversionOptions;
+import com.android.tools.r8.ir.conversion.MethodConversionOptions.MutableMethodConversionOptions;
 import com.android.tools.r8.profile.art.ArtProfileCompletenessChecker;
 import com.android.tools.r8.profile.rewriting.ProfileCollectionAdditions;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
@@ -88,7 +90,7 @@ public class HorizontalClassMerger {
       timing.begin("HorizontalClassMerger (" + mode.toString() + ")");
       IRCodeProvider codeProvider =
           appView.hasClassHierarchy()
-              ? IRCodeProvider.create(appView.withClassHierarchy())
+              ? IRCodeProvider.create(appView.withClassHierarchy(), this::getConversionOptions)
               : IRCodeProvider.createThrowing();
       run(runtimeTypeCheckInfo, codeProvider, executorService, timing);
 
@@ -102,6 +104,12 @@ public class HorizontalClassMerger {
     } else {
       appView.setHorizontallyMergedClasses(HorizontallyMergedClasses.empty(), mode);
     }
+  }
+
+  private MutableMethodConversionOptions getConversionOptions() {
+    return mode == Mode.INITIAL
+        ? MethodConversionOptions.forPreLirPhase(appView)
+        : MethodConversionOptions.forPostLirPhase(appView);
   }
 
   private void run(

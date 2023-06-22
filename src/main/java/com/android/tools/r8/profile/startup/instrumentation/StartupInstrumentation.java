@@ -33,6 +33,7 @@ import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.conversion.IRConverter;
 import com.android.tools.r8.ir.conversion.IRToDexFinalizer;
+import com.android.tools.r8.ir.conversion.MethodConversionOptions;
 import com.android.tools.r8.ir.conversion.MethodConversionOptions.MutableMethodConversionOptions;
 import com.android.tools.r8.ir.conversion.MethodProcessorEventConsumer;
 import com.android.tools.r8.startup.generated.InstrumentationServerFactory;
@@ -99,7 +100,11 @@ public class StartupInstrumentation {
 
     List<DexProgramClass> extraProgramClasses = createStartupRuntimeLibraryClasses();
     MethodProcessorEventConsumer eventConsumer = MethodProcessorEventConsumer.empty();
-    converter.processClassesConcurrently(extraProgramClasses, eventConsumer, executorService);
+    converter.processClassesConcurrently(
+        extraProgramClasses,
+        eventConsumer,
+        MethodConversionOptions.forD8(appView),
+        executorService);
 
     DexApplication newApplication =
         appView.app().builder().addProgramClasses(extraProgramClasses).build();
@@ -167,7 +172,7 @@ public class StartupInstrumentation {
     // Disable StringSwitch conversion to avoid having to run the StringSwitchRemover before
     // finalizing the code.
     MutableMethodConversionOptions conversionOptions =
-        new MutableMethodConversionOptions(options).disableStringSwitchConversion();
+        MethodConversionOptions.forD8(appView).disableStringSwitchConversion();
     IRCode code = method.buildIR(appView, conversionOptions);
     InstructionListIterator instructionIterator = code.entryBlock().listIterator(code);
     instructionIterator.positionBeforeNextInstructionThatMatches(not(Instruction::isArgument));

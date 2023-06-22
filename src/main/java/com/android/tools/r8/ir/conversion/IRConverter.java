@@ -29,6 +29,7 @@ import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.InstructionIterator;
 import com.android.tools.r8.ir.code.NumberGenerator;
 import com.android.tools.r8.ir.code.Value;
+import com.android.tools.r8.ir.conversion.MethodConversionOptions.MutableMethodConversionOptions;
 import com.android.tools.r8.ir.conversion.passes.ArrayConstructionSimplifier;
 import com.android.tools.r8.ir.conversion.passes.BinopRewriter;
 import com.android.tools.r8.ir.conversion.passes.BranchSimplifier;
@@ -413,15 +414,18 @@ public class IRConverter {
   public void optimizeSynthesizedMethods(
       List<ProgramMethod> programMethods,
       MethodProcessorEventConsumer eventConsumer,
+      MutableMethodConversionOptions conversionOptions,
       ExecutorService executorService)
       throws ExecutionException {
     // Process the generated class, but don't apply any outlining.
     ProgramMethodSet methods = ProgramMethodSet.create(programMethods::forEach);
-    processMethodsConcurrently(methods, eventConsumer, executorService);
+    processMethodsConcurrently(methods, eventConsumer, conversionOptions, executorService);
   }
 
   public void optimizeSynthesizedMethod(
-      ProgramMethod synthesizedMethod, MethodProcessorEventConsumer eventConsumer) {
+      ProgramMethod synthesizedMethod,
+      MethodProcessorEventConsumer eventConsumer,
+      MutableMethodConversionOptions conversionOptions) {
     if (!synthesizedMethod.getDefinition().isProcessed()) {
       // Process the generated method, but don't apply any outlining.
       OneTimeMethodProcessor methodProcessor =
@@ -429,25 +433,31 @@ public class IRConverter {
       methodProcessor.forEachWaveWithExtension(
           (method, methodProcessingContext) ->
               processDesugaredMethod(
-                  method, delayedOptimizationFeedback, methodProcessor, methodProcessingContext));
+                  method,
+                  delayedOptimizationFeedback,
+                  methodProcessor,
+                  methodProcessingContext,
+                  conversionOptions));
     }
   }
 
   public void processClassesConcurrently(
       Collection<DexProgramClass> classes,
       MethodProcessorEventConsumer eventConsumer,
+      MutableMethodConversionOptions conversionOptions,
       ExecutorService executorService)
       throws ExecutionException {
     ProgramMethodSet wave = ProgramMethodSet.create();
     for (DexProgramClass clazz : classes) {
       clazz.forEachProgramMethod(wave::add);
     }
-    processMethodsConcurrently(wave, eventConsumer, executorService);
+    processMethodsConcurrently(wave, eventConsumer, conversionOptions, executorService);
   }
 
   public void processMethodsConcurrently(
       ProgramMethodSet wave,
       MethodProcessorEventConsumer eventConsumer,
+      MutableMethodConversionOptions conversionOptions,
       ExecutorService executorService)
       throws ExecutionException {
     if (!wave.isEmpty()) {
@@ -456,7 +466,11 @@ public class IRConverter {
       methodProcessor.forEachWaveWithExtension(
           (method, methodProcessingContext) ->
               processDesugaredMethod(
-                  method, delayedOptimizationFeedback, methodProcessor, methodProcessingContext),
+                  method,
+                  delayedOptimizationFeedback,
+                  methodProcessor,
+                  methodProcessingContext,
+                  conversionOptions),
           executorService);
     }
   }
@@ -466,12 +480,14 @@ public class IRConverter {
       ProgramMethod method,
       OptimizationFeedback feedback,
       MethodProcessor methodProcessor,
-      MethodProcessingContext methodProcessingContext) {
+      MethodProcessingContext methodProcessingContext,
+      MutableMethodConversionOptions conversionOptions) {
     DexEncodedMethod definition = method.getDefinition();
     Code code = definition.getCode();
     boolean matchesMethodFilter = options.methodMatchesFilter(definition);
     if (code != null && matchesMethodFilter) {
-      return rewriteDesugaredCode(method, feedback, methodProcessor, methodProcessingContext);
+      return rewriteDesugaredCode(
+          method, feedback, methodProcessor, methodProcessingContext, conversionOptions);
     } else {
       // Mark abstract methods as processed as well.
       definition.markProcessed(ConstraintWithTarget.NEVER);
@@ -491,20 +507,22 @@ public class IRConverter {
       ProgramMethod method,
       OptimizationFeedback feedback,
       MethodProcessor methodProcessor,
-      MethodProcessingContext methodProcessingContext) {
+      MethodProcessingContext methodProcessingContext,
+      MutableMethodConversionOptions conversionOptions) {
     return ExceptionUtils.withOriginAndPositionAttachmentHandler(
         method.getOrigin(),
         new MethodPosition(method.getReference().asMethodReference()),
         () ->
             rewriteDesugaredCodeInternal(
-                method, feedback, methodProcessor, methodProcessingContext));
+                method, feedback, methodProcessor, methodProcessingContext, conversionOptions));
   }
 
   protected Timing rewriteDesugaredCodeInternal(
       ProgramMethod method,
       OptimizationFeedback feedback,
       MethodProcessor methodProcessor,
-      MethodProcessingContext methodProcessingContext) {
+      MethodProcessingContext methodProcessingContext,
+      MutableMethodConversionOptions conversionOptions) {
     if (options.verbose) {
       options.reporter.info(
           new StringDiagnostic("Processing: " + method.toSourceString()));
@@ -518,7 +536,7 @@ public class IRConverter {
       return Timing.empty();
     }
 
-    IRCode code = method.buildIR(appView);
+    IRCode code = method.buildIR(appView, conversionOptions);
     if (code == null) {
       feedback.markProcessed(method.getDefinition(), ConstraintWithTarget.NEVER);
       return Timing.empty();
@@ -1068,16 +1086,17 @@ public class IRConverter {
     if (options.testing.roundtripThroughLir) {
       code = roundtripThroughLir(code, feedback, bytecodeMetadataProvider, timing);
     }
-    if (options.testing.canUseLir(appView)) {
+    MethodConversionOptions conversionOptions = code.getConversionOptions();
+    if (conversionOptions.isGeneratingLir()) {
       timing.begin("IR->LIR");
       finalizeToLir(code, feedback, bytecodeMetadataProvider, timing);
       timing.end();
-    } else if (options.isGeneratingClassFiles()) {
+    } else if (conversionOptions.isGeneratingClassFiles()) {
       timing.begin("IR->CF");
       finalizeToCf(code, feedback, bytecodeMetadataProvider, timing);
       timing.end();
     } else {
-      assert options.isGeneratingDex();
+      assert conversionOptions.isGeneratingDex();
       timing.begin("IR->DEX");
       finalizeToDex(code, feedback, bytecodeMetadataProvider, timing);
       timing.end();
@@ -1130,7 +1149,8 @@ public class IRConverter {
             appView,
             null,
             RewrittenPrototypeDescription.none(),
-            appView.graphLens().getOriginalMethodSignature(code.context().getReference()));
+            appView.graphLens().getOriginalMethodSignature(code.context().getReference()),
+            (MutableMethodConversionOptions) code.getConversionOptions());
     timing.end();
     return irCode;
   }
@@ -1287,34 +1307,6 @@ public class IRConverter {
     outliner.onMethodCodePruned(method);
     if (inliner != null) {
       inliner.onMethodCodePruned(method);
-    }
-  }
-
-  public void finalizeLirMethodToOutputFormat(ProgramMethod method) {
-    Code code = method.getDefinition().getCode();
-    if (!(code instanceof LirCode)) {
-      return;
-    }
-    Timing onThreadTiming = Timing.empty();
-    IRCode irCode = method.buildIR(appView);
-    // Processing is done and no further uses of the meta-data should arise.
-    BytecodeMetadataProvider bytecodeMetadataProvider = BytecodeMetadataProvider.empty();
-    // During processing optimization info may cause previously live code to become dead.
-    // E.g., we may now have knowledge that an invoke does not have side effects.
-    // Thus, we re-run the dead-code remover now as it is assumed complete by CF/DEX finalization.
-    deadCodeRemover.run(irCode, onThreadTiming);
-    if (options.isGeneratingClassFiles()) {
-      method.setCode(
-          new IRToCfFinalizer(appView, deadCodeRemover)
-              .finalizeCode(irCode, bytecodeMetadataProvider, onThreadTiming),
-          appView);
-    } else {
-      assert options.isGeneratingDex();
-      method.setCode(
-          new IRToDexFinalizer(appView, deadCodeRemover)
-              .finalizeCode(irCode, bytecodeMetadataProvider, onThreadTiming),
-          appView);
-      updateHighestSortingStrings(method.getDefinition());
     }
   }
 }

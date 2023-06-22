@@ -35,6 +35,7 @@ import com.android.tools.r8.ir.code.Phi;
 import com.android.tools.r8.ir.code.StaticGet;
 import com.android.tools.r8.ir.code.StaticPut;
 import com.android.tools.r8.ir.code.Value;
+import com.android.tools.r8.ir.conversion.MethodConversionOptions;
 import com.android.tools.r8.ir.optimize.info.FieldOptimizationInfo;
 import com.android.tools.r8.shaking.Enqueuer;
 import com.android.tools.r8.shaking.EnqueuerWorklist;
@@ -167,7 +168,7 @@ public class ProtoEnqueuerExtension extends EnqueuerAnalysis {
     DexType holder = dynamicMethod.getHolderType();
     assert !protos.containsKey(holder);
 
-    IRCode code = dynamicMethod.buildIR(appView);
+    IRCode code = dynamicMethod.buildIR(appView, MethodConversionOptions.nonConverting());
     InvokeMethod newMessageInfoInvoke =
         GeneratedMessageLiteShrinker.getNewMessageInfoInvoke(code, references);
     ProtoMessageInfo protoMessageInfo =
@@ -231,7 +232,7 @@ public class ProtoEnqueuerExtension extends EnqueuerAnalysis {
                 return;
               }
 
-              IRCode code = clinit.buildIR(appView);
+              IRCode code = clinit.buildIR(appView, MethodConversionOptions.nonConverting());
               Map<DexEncodedField, StaticPut> uniqueStaticPuts =
                   IRCodeUtils.findUniqueStaticPuts(appView, code, extensionFields);
               for (DexEncodedField extensionField : extensionFields) {
@@ -256,7 +257,8 @@ public class ProtoEnqueuerExtension extends EnqueuerAnalysis {
   private Map<DexProgramClass, Set<DexEncodedField>> collectExtensionFields() {
     Map<DexProgramClass, Set<DexEncodedField>> extensionFieldsByClass = new IdentityHashMap<>();
     for (ProgramMethod findLiteExtensionByNumberMethod : findLiteExtensionByNumberMethods) {
-      IRCode code = findLiteExtensionByNumberMethod.buildIR(appView);
+      IRCode code =
+          findLiteExtensionByNumberMethod.buildIR(appView, MethodConversionOptions.nonConverting());
       Set<Phi> seenPhis = Sets.newIdentityHashSet();
       for (BasicBlock block : code.blocks(BasicBlock::isReturnBlock)) {
         Value returnValue = block.exit().asReturn().returnValue();

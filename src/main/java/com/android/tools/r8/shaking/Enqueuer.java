@@ -108,6 +108,7 @@ import com.android.tools.r8.ir.code.InvokeNewArray;
 import com.android.tools.r8.ir.code.InvokeVirtual;
 import com.android.tools.r8.ir.code.NewArrayEmpty;
 import com.android.tools.r8.ir.code.Value;
+import com.android.tools.r8.ir.conversion.MethodConversionOptions;
 import com.android.tools.r8.ir.desugar.CfInstructionDesugaringCollection;
 import com.android.tools.r8.ir.desugar.CfInstructionDesugaringEventConsumer;
 import com.android.tools.r8.ir.desugar.CfPostProcessingDesugaringCollection;
@@ -4917,7 +4918,7 @@ public class Enqueuer {
   }
 
   private void handleReflectiveBehavior(ProgramMethod method) {
-    IRCode code = method.buildIR(appView);
+    IRCode code = method.buildIR(appView, MethodConversionOptions.nonConverting());
     InstructionIterator iterator = code.instructionIterator();
     while (iterator.hasNext()) {
       Instruction instruction = iterator.next();

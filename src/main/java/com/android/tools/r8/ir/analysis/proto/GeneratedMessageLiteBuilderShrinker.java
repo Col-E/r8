@@ -33,6 +33,7 @@ import com.android.tools.r8.ir.code.SafeCheckCast;
 import com.android.tools.r8.ir.code.StaticGet;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.conversion.IRConverter;
+import com.android.tools.r8.ir.conversion.MethodConversionOptions;
 import com.android.tools.r8.ir.conversion.MethodProcessor;
 import com.android.tools.r8.ir.conversion.callgraph.Node;
 import com.android.tools.r8.ir.optimize.Inliner;
@@ -229,7 +230,7 @@ public class GeneratedMessageLiteBuilderShrinker {
       DexProgramClass builder,
       ProgramMethod dynamicMethod,
       IRConverter converter) {
-    IRCode code = dynamicMethod.buildIR(appView);
+    IRCode code = dynamicMethod.buildIR(appView, MethodConversionOptions.forPreLirPhase(appView));
     InstructionListIterator instructionIterator = code.instructionListIterator();
 
     assert builder.superType == references.generatedMessageLiteBuilderType

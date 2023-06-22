@@ -6,14 +6,19 @@ package com.android.tools.r8.ir.conversion;
 
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.Code;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexApplication.Builder;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexProgramClass;
+import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.PrunedItems;
+import com.android.tools.r8.graph.bytecodemetadata.BytecodeMetadataProvider;
 import com.android.tools.r8.graph.lens.GraphLens;
 import com.android.tools.r8.ir.analysis.fieldaccess.TrivialFieldAccessReprocessor;
+import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackDelayed;
+import com.android.tools.r8.lightir.LirCode;
 import com.android.tools.r8.optimize.argumentpropagation.ArgumentPropagator;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.ThreadUtils;
@@ -51,6 +56,7 @@ public class PrimaryR8IRConverter extends IRConverter {
   private DexApplication internalOptimize(
       AppView<AppInfoWithLiveness> appView, ExecutorService executorService)
       throws ExecutionException {
+    appView.testing().enterLirSupportedPhase();
     // Desugaring happens in the enqueuer.
     assert instructionDesugaring.isEmpty();
 
@@ -93,7 +99,11 @@ public class PrimaryR8IRConverter extends IRConverter {
       primaryMethodProcessor.forEachMethod(
           (method, methodProcessingContext) ->
               processDesugaredMethod(
-                  method, feedback, primaryMethodProcessor, methodProcessingContext),
+                  method,
+                  feedback,
+                  primaryMethodProcessor,
+                  methodProcessingContext,
+                  MethodConversionOptions.forLirPhase(appView)),
           this::waveStart,
           this::waveDone,
           timing,
@@ -168,7 +178,11 @@ public class PrimaryR8IRConverter extends IRConverter {
         postMethodProcessor.forEachMethod(
             (method, methodProcessingContext) ->
                 processDesugaredMethod(
-                    method, feedback, postMethodProcessor, methodProcessingContext),
+                    method,
+                    feedback,
+                    postMethodProcessor,
+                    methodProcessingContext,
+                    MethodConversionOptions.forLirPhase(appView)),
             feedback,
             executorService,
             timing);
@@ -214,6 +228,7 @@ public class PrimaryR8IRConverter extends IRConverter {
 
   private void finalizeLirToOutputFormat(Timing timing, ExecutorService executorService)
       throws ExecutionException {
+    appView.testing().exitLirSupportedPhase();
     if (!options.testing.canUseLir(appView)) {
       return;
     }
@@ -228,6 +243,35 @@ public class PrimaryR8IRConverter extends IRConverter {
         .getPendingSyntheticClasses()
         .forEach(clazz -> clazz.forEachProgramMethod(this::finalizeLirMethodToOutputFormat));
     timing.end();
+  }
+
+  void finalizeLirMethodToOutputFormat(ProgramMethod method) {
+    Code code = method.getDefinition().getCode();
+    if (!(code instanceof LirCode)) {
+      return;
+    }
+    Timing onThreadTiming = Timing.empty();
+    IRCode irCode = method.buildIR(appView, MethodConversionOptions.forPostLirPhase(appView));
+    // Processing is done and no further uses of the meta-data should arise.
+    BytecodeMetadataProvider bytecodeMetadataProvider = BytecodeMetadataProvider.empty();
+    // During processing optimization info may cause previously live code to become dead.
+    // E.g., we may now have knowledge that an invoke does not have side effects.
+    // Thus, we re-run the dead-code remover now as it is assumed complete by CF/DEX finalization.
+    deadCodeRemover.run(irCode, onThreadTiming);
+    MethodConversionOptions conversionOptions = irCode.getConversionOptions();
+    if (conversionOptions.isGeneratingClassFiles()) {
+      method.setCode(
+          new IRToCfFinalizer(appView, deadCodeRemover)
+              .finalizeCode(irCode, bytecodeMetadataProvider, onThreadTiming),
+          appView);
+    } else {
+      assert conversionOptions.isGeneratingDex();
+      method.setCode(
+          new IRToDexFinalizer(appView, deadCodeRemover)
+              .finalizeCode(irCode, bytecodeMetadataProvider, onThreadTiming),
+          appView);
+      updateHighestSortingStrings(method.getDefinition());
+    }
   }
 
   private void clearDexMethodCompilationState() {

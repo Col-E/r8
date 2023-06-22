@@ -2105,9 +2105,39 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
     }
 
     public boolean canUseLir(AppView<?> appView) {
-      return useLir
-          && appView.enableWholeProgramOptimizations()
-          && !appView.options().protoShrinking().isProtoShrinkingEnabled();
+      return useLir && appView.enableWholeProgramOptimizations();
+    }
+
+    // As part of integrating LIR the compiler is split in three phases: pre, supported, and post.
+    // Any attempt at building IR must have conversion options consistent with the active phase.
+    private enum LirPhase {
+      PRE,
+      SUPPORTED,
+      POST
+    }
+
+    private LirPhase currentPhase = LirPhase.PRE;
+
+    public void enterLirSupportedPhase() {
+      assert isPreLirPhase();
+      currentPhase = LirPhase.SUPPORTED;
+    }
+
+    public void exitLirSupportedPhase() {
+      assert isSupportedLirPhase();
+      currentPhase = LirPhase.POST;
+    }
+
+    public boolean isPreLirPhase() {
+      return currentPhase == LirPhase.PRE;
+    }
+
+    public boolean isSupportedLirPhase() {
+      return currentPhase == LirPhase.SUPPORTED;
+    }
+
+    public boolean isPostLirPhase() {
+      return currentPhase == LirPhase.POST;
     }
 
     // If false, use the desugared library implementation when desugared library is enabled.
