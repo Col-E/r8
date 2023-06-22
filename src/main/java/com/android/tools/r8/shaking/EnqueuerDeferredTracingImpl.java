@@ -275,7 +275,7 @@ public class EnqueuerDeferredTracingImpl extends EnqueuerDeferredTracing {
     rewriter.rewriteCode(ir, initializedClassesWithContexts, prunedFields);
 
     // Run dead code elimination.
-    new ThrowCatchOptimizer(appView).optimizeAlwaysThrowingInstructions(ir);
+    new ThrowCatchOptimizer(appView).run(ir, Timing.empty());
     rewriter.getDeadCodeRemover().run(ir, Timing.empty());
 
     // Finalize to class files or dex.
