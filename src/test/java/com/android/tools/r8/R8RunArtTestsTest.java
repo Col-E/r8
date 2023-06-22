@@ -1189,6 +1189,11 @@ public abstract class R8RunArtTestsTest extends TestBase {
           ImmutableList.of("-dontwarn junit.framework.**"),
           "100-reflect2",
           ImmutableList.of(NO_CLASS_ACCESS_MODIFICATION_RULE),
+          "301-abstract-protected",
+          ImmutableList.of(
+              "-keepclassmembers,allowobfuscation,allowoptimization,allowshrinking class Abstract {"
+                  + "  protected abstract java.lang.String m();"
+                  + "}"),
           "435-new-instance",
           ImmutableList.of(NO_CLASS_ACCESS_MODIFICATION_RULE),
           // Constructor MakeBoundType.<init>(int) is called using reflection.

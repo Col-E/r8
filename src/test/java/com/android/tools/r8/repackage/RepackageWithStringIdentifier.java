@@ -8,6 +8,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
+import com.android.tools.r8.NoAccessModification;
 import com.android.tools.r8.TestParameters;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -47,6 +48,7 @@ public class RepackageWithStringIdentifier extends RepackageTestBase {
         .addKeepMainRule(Main.class)
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
+        .enableNoAccessModificationAnnotationsForClasses()
         .setMinApi(parameters)
         .compile()
         .inspect(inspector -> assertThat(A.class, isRepackaged(inspector)))
@@ -55,6 +57,7 @@ public class RepackageWithStringIdentifier extends RepackageTestBase {
   }
 
   @NeverClassInline
+  @NoAccessModification
   static class A {
 
     @NeverInline

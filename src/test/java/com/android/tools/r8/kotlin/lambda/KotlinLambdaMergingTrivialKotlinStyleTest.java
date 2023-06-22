@@ -93,7 +93,7 @@ public class KotlinLambdaMergingTrivialKotlinStyleTest extends KotlinTestBase {
     assertEquals(0, lambdasInInput.getNumberOfJStyleLambdas());
     assertEquals(28, lambdasInInput.getNumberOfKStyleLambdas());
 
-    if (!allowAccessModification) {
+    if (!parameters.isAccessModificationEnabled(allowAccessModification)) {
       // Only a subset of all K-style Kotlin lambdas are merged without -allowaccessmodification.
       Set<ClassReference> unmergedLambdas =
           ImmutableSet.of(

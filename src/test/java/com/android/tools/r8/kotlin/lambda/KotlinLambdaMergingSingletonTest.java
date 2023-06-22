@@ -107,7 +107,7 @@ public class KotlinLambdaMergingSingletonTest extends KotlinTestBase {
                 getTestName(), "MainKt$test2$$inlined$process$3"),
             lambdasInInput.getKStyleLambdaReferenceFromTypeName(
                 getTestName(), "MainKt$test2$$inlined$process$4"));
-    if (allowAccessModification) {
+    if (parameters.isAccessModificationEnabled(allowAccessModification)) {
       kStyleLambdaMergeGroup.add(
           lambdasInInput.getKStyleLambdaReferenceFromTypeName(
               getTestName(), "MainKt$test2$lambda$1"));
