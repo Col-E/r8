@@ -26,6 +26,7 @@ import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.code.Position.SourcePosition;
+import com.android.tools.r8.utils.InternalOptions.LineNumberOptimization;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -175,7 +176,7 @@ public class DexPositionToNoPcMappedRangeMapper {
 
   public DexPositionToNoPcMappedRangeMapper(AppView<?> appView) {
     this.appView = appView;
-    isIdentityMapping = appView.options().lineNumberOptimization.isOff();
+    isIdentityMapping = appView.options().lineNumberOptimization == LineNumberOptimization.OFF;
   }
 
   public List<MappedPosition> optimizeDexCodePositions(
