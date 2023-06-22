@@ -45,6 +45,10 @@ public class CompilerDump {
     return directory.resolve("proguard.config");
   }
 
+  public Path getDesugaredLibraryFile() {
+    return directory.resolve("desugared-library.json");
+  }
+
   public void sanitizeProguardConfig(ProguardConfigSanitizer sanitizer) throws IOException {
     try (BufferedReader reader = Files.newBufferedReader(getProguardConfigFile())) {
       String next = reader.readLine();

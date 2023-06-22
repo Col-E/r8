@@ -3,8 +3,10 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.benchmarks.appdumps;
 
+import com.android.tools.r8.LibraryDesugaringTestConfiguration;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestBase.Backend;
+import com.android.tools.r8.TestCompilerBuilder;
 import com.android.tools.r8.benchmarks.BenchmarkBase;
 import com.android.tools.r8.benchmarks.BenchmarkConfig;
 import com.android.tools.r8.benchmarks.BenchmarkConfigError;
@@ -17,6 +19,7 @@ import com.android.tools.r8.benchmarks.BenchmarkTarget;
 import com.android.tools.r8.dump.CompilerDump;
 import com.android.tools.r8.dump.DumpOptions;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -146,6 +149,15 @@ public class AppDumpBenchmarkBuilder {
     return CompilerDump.fromArchive(dump, environment.getTemp().newFolder().toPath());
   }
 
+  private static void addDesugaredLibrary(
+      TestCompilerBuilder<?, ?, ?, ?, ?> builder, CompilerDump dump) {
+    Path config = dump.getDesugaredLibraryFile();
+    if (Files.exists(config)) {
+      builder.enableCoreLibraryDesugaring(
+          LibraryDesugaringTestConfiguration.forSpecification(config));
+    }
+  }
+
   private static BenchmarkMethod runR8(AppDumpBenchmarkBuilder builder) {
     return environment ->
         BenchmarkBase.runner(environment.getConfig())
@@ -159,6 +171,7 @@ public class AppDumpBenchmarkBuilder {
                       .addLibraryFiles(dump.getLibraryArchive())
                       .addKeepRuleFiles(dump.getProguardConfigFile())
                       .setMinApi(dumpProperties.getMinApi())
+                      .apply(b -> addDesugaredLibrary(b, dump))
                       .allowUnnecessaryDontWarnWildcards()
                       .allowUnusedDontWarnPatterns()
                       .allowUnusedProguardConfigurationRules()
@@ -184,6 +197,7 @@ public class AppDumpBenchmarkBuilder {
                       .addProgramFiles(dump.getProgramArchive())
                       .addLibraryFiles(dump.getLibraryArchive())
                       .setMinApi(dumpProperties.getMinApi())
+                      .apply(b -> addDesugaredLibrary(b, dump))
                       .benchmarkCompile(results)
                       .benchmarkCodeSize(results);
                 });
@@ -219,6 +233,7 @@ public class AppDumpBenchmarkBuilder {
                             .addClasspathFiles(dump.getProgramArchive())
                             .addLibraryFiles(dump.getLibraryArchive())
                             .setMinApi(dumpProperties.getMinApi())
+                            .apply(b -> addDesugaredLibrary(b, dump))
                             .setIntermediate(true)
                             .benchmarkCompile(results.getSubResults(builder.nameForProgramPart()))
                             .writeToZip());
