@@ -10,6 +10,9 @@ import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.api.Task
 import org.gradle.api.file.ConfigurableFileCollection
+import org.gradle.api.plugins.JavaPluginExtension
+import org.gradle.api.tasks.SourceSet
+import org.gradle.jvm.tasks.Jar
 import org.gradle.kotlin.dsl.register
 import org.gradle.nativeplatform.platform.OperatingSystem
 import org.gradle.nativeplatform.platform.internal.DefaultNativePlatform
@@ -27,12 +30,12 @@ class DependenciesPlugin: Plugin<Project> {
   }
 }
 
-enum class Jdk(val name : String, val folder : String) {
-  JDK_8("jdk8", "jdk8"),
-  JDK_9("jdk9", "openjdk-9.0.4"),
-  JDK_11("jdk11", "jdk-11"),
-  JDK_17("jdk17", "jdk-17"),
-  JDK_20("jdk20", "jdk-20");
+enum class Jdk(val folder : String) {
+  JDK_8("jdk8"),
+  JDK_9("openjdk-9.0.4"),
+  JDK_11("jdk-11"),
+  JDK_17("jdk-17"),
+  JDK_20("jdk-20");
 
   fun isJdk8() : Boolean {
     return this == JDK_8
@@ -90,6 +93,49 @@ fun Project.ensureThirdPartyDependencies(name : String, deps : List<ThirdPartyDe
     dependsOn(depsTasks)
     outputs.files(outputFiles)
   }.get()
+}
+
+/**
+ * Builds a jar for each subfolder in an examples test source set.
+ *
+ * <p> As an example, src/test/examplesJava9 contains subfolders: backport, collectionof, ..., .
+ * These are compiled to individual jars and placed in <repo-root>/build/test/examplesJava9/ as:
+ * backport.jar, collectionof.jar, ..., .
+ *
+ * Calling this from a project will amend the task graph with the task named
+ * getExamplesJarsTaskName(examplesName) such that it can be referenced from the test runners.
+ */
+fun Project.buildJavaExamplesJars(examplesName : String) : Task {
+  val outputFiles : MutableList<File> = mutableListOf()
+  val jarTasks : MutableList<Task> = mutableListOf()
+  extensions
+    .getByType(JavaPluginExtension::class.java)
+    .sourceSets
+    // The TEST_SOURCE_SET_NAME is the source set defined by writing java { sourcesets.test { ... }}
+    .getByName(SourceSet.TEST_SOURCE_SET_NAME)
+    .output
+    .classesDirs
+    .files
+    .forEach { buildDir ->
+      buildDir.listFiles(File::isDirectory)?.forEach {
+        jarTasks.add(tasks.register<Jar>("jar-examples$examplesName-${it.name}") {
+          dependsOn("compileTestJava")
+          archiveFileName.set("${it.name}.jar")
+          destinationDirectory.set(getRoot().resolveAll("build", "test", "examples$examplesName"))
+          from(it) {
+            include("**/*.class")
+          }
+        }.get())
+      }
+    }
+  return tasks.register(getExamplesJarsTaskName(examplesName)) {
+    dependsOn(jarTasks)
+    outputs.files(outputFiles)
+  }.get()
+}
+
+fun Project.getExamplesJarsTaskName(name: String) : String {
+  return "build-example-jars-$name"
 }
 
 fun Project.resolve(thirdPartyDependency: ThirdPartyDependency) : ConfigurableFileCollection {

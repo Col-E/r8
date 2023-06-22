@@ -72,7 +72,9 @@ tasks {
 
   val depsJar by registering(Jar::class) {
     dependsOn(keepAnnoJarTask)
-    println(header("R8 full dependencies"))
+    doFirst {
+      println(header("R8 full dependencies"))
+    }
     mainJarDependencies().forEach({ println(it) })
     from(mainJarDependencies().map(::zipTree))
     from(keepAnnoJarTask.outputs.files.map(::zipTree))

@@ -17,8 +17,8 @@ java {
   sourceSets.test.configure {
     java.srcDir(root.resolveAll("src", "test", "java"))
   }
-  // We cannot use languageVersion.set(JavaLanguageVersion.of(8)) because gradle cannot figure
-  // out that the jdk is 1_8 and will try to download it.
+  // We are using a new JDK to compile to an older language version, which is not directly
+  // compatible with java toolchains.
   sourceCompatibility = JavaVersion.VERSION_1_8
   targetCompatibility = JavaVersion.VERSION_1_8
 }
@@ -60,6 +60,9 @@ val thirdPartyRuntimeDependenciesTask = ensureThirdPartyDependencies(
     + ThirdPartyDeps.androidVMs
     + ThirdPartyDeps.jdks)
 
+val sourceSetDependenciesTasks = listOf(
+  projectTask("tests_java_9", getExamplesJarsTaskName("Java9")))
+
 fun testDependencies() : FileCollection {
   return sourceSets
     .test
@@ -90,14 +93,15 @@ tasks {
     dependsOn(gradle.includedBuild("main").task(":jar"))
     dependsOn(thirdPartyCompileDependenciesTask)
     kotlinOptions {
-      // We cannot use languageVersion.set(JavaLanguageVersion.of(8)) because gradle cannot figure
-      // out that the jdk is 1_8 and will try to download it.
+      // We are using a new JDK to compile to an older language version, which is not directly
+      // compatible with java toolchains.
       jvmTarget = "1.8"
     }
   }
 
   withType<Test> {
     dependsOn(thirdPartyRuntimeDependenciesTask)
+    dependsOn(sourceSetDependenciesTasks)
     println("NOTE: Number of processors " + Runtime.getRuntime().availableProcessors())
     val userDefinedCoresPerFork = System.getenv("R8_GRADLE_CORES_PER_FORK")
     val processors = Runtime.getRuntime().availableProcessors()
@@ -122,7 +126,9 @@ tasks {
   val depsJar by registering(Jar::class) {
     dependsOn(gradle.includedBuild("keepanno").task(":jar"))
     dependsOn(thirdPartyCompileDependenciesTask)
-    println(header("Test Java 8 dependencies"))
+    doFirst {
+      println(header("Test Java 8 dependencies"))
+    }
     testDependencies().forEach({ println(it) })
     from(testDependencies().map(::zipTree))
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE
