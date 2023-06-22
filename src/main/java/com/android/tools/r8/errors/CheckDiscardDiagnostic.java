@@ -49,6 +49,10 @@ public class CheckDiscardDiagnostic implements Diagnostic {
     this.messages = messages;
   }
 
+  public int getNumberOfFailures() {
+    return messages.size();
+  }
+
   /** The origin of a -checkdiscarded failure is not unique. (The whole app is to blame.) */
   @Override
   public Origin getOrigin() {

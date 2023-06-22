@@ -17,7 +17,7 @@ import com.android.tools.r8.inspector.Inspector;
 import com.android.tools.r8.inspector.internal.InspectorImpl;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibrarySpecification;
 import com.android.tools.r8.keepanno.asm.KeepEdgeReader;
-import com.android.tools.r8.keepanno.ast.KeepEdge;
+import com.android.tools.r8.keepanno.ast.KeepDeclaration;
 import com.android.tools.r8.keepanno.keeprules.KeepRuleExtractor;
 import com.android.tools.r8.naming.MapConsumer;
 import com.android.tools.r8.naming.ProguardMapStringConsumer;
@@ -765,7 +765,7 @@ public final class R8Command extends BaseCompilerCommand {
         for (ProgramResourceProvider provider : getAppBuilder().getProgramResourceProviders()) {
           for (ProgramResource resource : provider.getProgramResources()) {
             if (resource.getKind() == Kind.CF) {
-              Set<KeepEdge> edges = KeepEdgeReader.readKeepEdges(resource.getBytes());
+              Set<KeepDeclaration> declarations = KeepEdgeReader.readKeepEdges(resource.getBytes());
               KeepRuleExtractor extractor =
                   new KeepRuleExtractor(
                       rule -> {
@@ -774,7 +774,7 @@ public final class R8Command extends BaseCompilerCommand {
                                 Collections.singletonList(rule), null, resource.getOrigin());
                         parser.parse(source);
                       });
-              edges.forEach(extractor::extract);
+              declarations.forEach(extractor::extract);
             }
           }
         }

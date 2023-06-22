@@ -87,6 +87,20 @@ public final class AnnotationConstants {
     // Content is the same as UsedByReflection.
   }
 
+  public static final class CheckRemoved {
+    public static final Class<com.android.tools.r8.keepanno.annotations.CheckRemoved> CLASS =
+        com.android.tools.r8.keepanno.annotations.CheckRemoved.class;
+    public static final String DESCRIPTOR = getDescriptor(CLASS);
+    public static final String description = "description";
+  }
+
+  public static final class CheckOptimizedOut {
+    public static final Class<com.android.tools.r8.keepanno.annotations.CheckOptimizedOut> CLASS =
+        com.android.tools.r8.keepanno.annotations.CheckOptimizedOut.class;
+    public static final String DESCRIPTOR = getDescriptor(CLASS);
+    public static final String description = "description";
+  }
+
   // Implicit hidden item which is "super type" of Condition and Target.
   public static final class Item {
     public static final String classFromBinding = "classFromBinding";

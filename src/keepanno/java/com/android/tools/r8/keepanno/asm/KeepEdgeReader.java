@@ -19,9 +19,12 @@ import com.android.tools.r8.keepanno.ast.AnnotationConstants.Target;
 import com.android.tools.r8.keepanno.ast.AnnotationConstants.UsedByReflection;
 import com.android.tools.r8.keepanno.ast.AnnotationConstants.UsesReflection;
 import com.android.tools.r8.keepanno.ast.KeepBindings;
+import com.android.tools.r8.keepanno.ast.KeepCheck;
+import com.android.tools.r8.keepanno.ast.KeepCheck.KeepCheckKind;
 import com.android.tools.r8.keepanno.ast.KeepClassReference;
 import com.android.tools.r8.keepanno.ast.KeepCondition;
 import com.android.tools.r8.keepanno.ast.KeepConsequences;
+import com.android.tools.r8.keepanno.ast.KeepDeclaration;
 import com.android.tools.r8.keepanno.ast.KeepEdge;
 import com.android.tools.r8.keepanno.ast.KeepEdgeException;
 import com.android.tools.r8.keepanno.ast.KeepEdgeMetaInfo;
@@ -67,18 +70,18 @@ public class KeepEdgeReader implements Opcodes {
 
   public static int ASM_VERSION = ASM9;
 
-  public static Set<KeepEdge> readKeepEdges(byte[] classFileBytes) {
+  public static Set<KeepDeclaration> readKeepEdges(byte[] classFileBytes) {
     ClassReader reader = new ClassReader(classFileBytes);
-    Set<KeepEdge> edges = new HashSet<>();
-    reader.accept(new KeepEdgeClassVisitor(edges::add), ClassReader.SKIP_CODE);
-    return edges;
+    Set<KeepDeclaration> declarations = new HashSet<>();
+    reader.accept(new KeepEdgeClassVisitor(declarations::add), ClassReader.SKIP_CODE);
+    return declarations;
   }
 
   private static class KeepEdgeClassVisitor extends ClassVisitor {
-    private final Parent<KeepEdge> parent;
+    private final Parent<KeepDeclaration> parent;
     private String className;
 
-    KeepEdgeClassVisitor(Parent<KeepEdge> parent) {
+    KeepEdgeClassVisitor(Parent<KeepDeclaration> parent) {
       super(ASM_VERSION);
       this.parent = parent;
     }
@@ -106,21 +109,30 @@ public class KeepEdgeReader implements Opcodes {
         return null;
       }
       if (descriptor.equals(Edge.DESCRIPTOR)) {
-        return new KeepEdgeVisitor(parent, this::setContext);
+        return new KeepEdgeVisitor(parent::accept, this::setContext);
       }
       if (descriptor.equals(AnnotationConstants.UsesReflection.DESCRIPTOR)) {
         KeepItemPattern classItem =
             KeepItemPattern.builder()
                 .setClassPattern(KeepQualifiedClassNamePattern.exact(className))
                 .build();
-        return new UsesReflectionVisitor(parent, this::setContext, classItem);
+        return new UsesReflectionVisitor(parent::accept, this::setContext, classItem);
       }
       if (descriptor.equals(AnnotationConstants.ForApi.DESCRIPTOR)) {
-        return new ForApiClassVisitor(parent, this::setContext, className);
+        return new ForApiClassVisitor(parent::accept, this::setContext, className);
       }
       if (descriptor.equals(AnnotationConstants.UsedByReflection.DESCRIPTOR)
           || descriptor.equals(AnnotationConstants.UsedByNative.DESCRIPTOR)) {
-        return new UsedByReflectionClassVisitor(descriptor, parent, this::setContext, className);
+        return new UsedByReflectionClassVisitor(
+            descriptor, parent::accept, this::setContext, className);
+      }
+      if (descriptor.equals(AnnotationConstants.CheckRemoved.DESCRIPTOR)) {
+        return new CheckRemovedClassVisitor(
+            descriptor, parent::accept, this::setContext, className, KeepCheckKind.REMOVED);
+      }
+      if (descriptor.equals(AnnotationConstants.CheckOptimizedOut.DESCRIPTOR)) {
+        return new CheckRemovedClassVisitor(
+            descriptor, parent::accept, this::setContext, className, KeepCheckKind.OPTIMIZED_OUT);
       }
       return null;
     }
@@ -132,24 +144,27 @@ public class KeepEdgeReader implements Opcodes {
     @Override
     public MethodVisitor visitMethod(
         int access, String name, String descriptor, String signature, String[] exceptions) {
-      return new KeepEdgeMethodVisitor(parent, className, name, descriptor);
+      return new KeepEdgeMethodVisitor(parent::accept, className, name, descriptor);
     }
 
     @Override
     public FieldVisitor visitField(
         int access, String name, String descriptor, String signature, Object value) {
-      return new KeepEdgeFieldVisitor(parent, className, name, descriptor);
+      return new KeepEdgeFieldVisitor(parent::accept, className, name, descriptor);
     }
   }
 
   private static class KeepEdgeMethodVisitor extends MethodVisitor {
-    private final Parent<KeepEdge> parent;
+    private final Parent<KeepDeclaration> parent;
     private final String className;
     private final String methodName;
     private final String methodDescriptor;
 
     KeepEdgeMethodVisitor(
-        Parent<KeepEdge> parent, String className, String methodName, String methodDescriptor) {
+        Parent<KeepDeclaration> parent,
+        String className,
+        String methodName,
+        String methodDescriptor) {
       super(ASM_VERSION);
       this.parent = parent;
       this.className = className;
@@ -187,18 +202,34 @@ public class KeepEdgeReader implements Opcodes {
         return null;
       }
       if (descriptor.equals(Edge.DESCRIPTOR)) {
-        return new KeepEdgeVisitor(parent, this::setContext);
+        return new KeepEdgeVisitor(parent::accept, this::setContext);
       }
       if (descriptor.equals(AnnotationConstants.UsesReflection.DESCRIPTOR)) {
-        return new UsesReflectionVisitor(parent, this::setContext, createItemContext());
+        return new UsesReflectionVisitor(parent::accept, this::setContext, createItemContext());
       }
       if (descriptor.equals(AnnotationConstants.ForApi.DESCRIPTOR)) {
-        return new ForApiMemberVisitor(parent, this::setContext, createItemContext());
+        return new ForApiMemberVisitor(parent::accept, this::setContext, createItemContext());
       }
       if (descriptor.equals(AnnotationConstants.UsedByReflection.DESCRIPTOR)
           || descriptor.equals(AnnotationConstants.UsedByNative.DESCRIPTOR)) {
         return new UsedByReflectionMemberVisitor(
-            descriptor, parent, this::setContext, createItemContext());
+            descriptor, parent::accept, this::setContext, createItemContext());
+      }
+      if (descriptor.equals(AnnotationConstants.CheckRemoved.DESCRIPTOR)) {
+        return new CheckRemovedMemberVisitor(
+            descriptor,
+            parent::accept,
+            this::setContext,
+            createItemContext(),
+            KeepCheckKind.REMOVED);
+      }
+      if (descriptor.equals(AnnotationConstants.CheckOptimizedOut.DESCRIPTOR)) {
+        return new CheckRemovedMemberVisitor(
+            descriptor,
+            parent::accept,
+            this::setContext,
+            createItemContext(),
+            KeepCheckKind.OPTIMIZED_OUT);
       }
       return null;
     }
@@ -827,6 +858,113 @@ public class KeepEdgeReader implements Opcodes {
     @Override
     public void visitEnd() {
       parent.accept(builder.build());
+    }
+  }
+
+  /** Parsing of @CheckRemoved and @CheckOptimizedOut on a class context. */
+  private static class CheckRemovedClassVisitor extends AnnotationVisitorBase {
+
+    private final String annotationDescriptor;
+    private final Parent<KeepCheck> parent;
+    private final KeepEdgeMetaInfo.Builder metaInfoBuilder = KeepEdgeMetaInfo.builder();
+    private final String className;
+    private final KeepCheckKind kind;
+
+    public CheckRemovedClassVisitor(
+        String annotationDescriptor,
+        Parent<KeepCheck> parent,
+        Consumer<KeepEdgeMetaInfo.Builder> addContext,
+        String className,
+        KeepCheckKind kind) {
+      this.annotationDescriptor = annotationDescriptor;
+      this.parent = parent;
+      this.className = className;
+      this.kind = kind;
+      addContext.accept(metaInfoBuilder);
+    }
+
+    @Override
+    public String getAnnotationName() {
+      int sep = annotationDescriptor.lastIndexOf('/');
+      return annotationDescriptor.substring(sep + 1, annotationDescriptor.length() - 1);
+    }
+
+    @Override
+    public void visit(String name, Object value) {
+      if (name.equals(Edge.description) && value instanceof String) {
+        metaInfoBuilder.setDescription((String) value);
+        return;
+      }
+      super.visit(name, value);
+    }
+
+    @Override
+    public void visitEnd() {
+      CheckRemovedClassVisitor superVisitor = this;
+      KeepItemVisitorBase itemVisitor =
+          new KeepItemVisitorBase() {
+            @Override
+            public String getAnnotationName() {
+              return superVisitor.getAnnotationName();
+            }
+          };
+      itemVisitor.visit(Item.className, className);
+      itemVisitor.visitEnd();
+      parent.accept(
+          KeepCheck.builder()
+              .setMetaInfo(metaInfoBuilder.build())
+              .setKind(kind)
+              .setItemPattern(itemVisitor.getItemReference().asItemPattern())
+              .build());
+    }
+  }
+
+  /** Parsing of @CheckRemoved and @CheckOptimizedOut on a class context. */
+  private static class CheckRemovedMemberVisitor extends AnnotationVisitorBase {
+
+    private final String annotationDescriptor;
+    private final Parent<KeepDeclaration> parent;
+    private final KeepItemPattern context;
+    private final KeepEdgeMetaInfo.Builder metaInfoBuilder = KeepEdgeMetaInfo.builder();
+    private final KeepCheckKind kind;
+
+    CheckRemovedMemberVisitor(
+        String annotationDescriptor,
+        Parent<KeepDeclaration> parent,
+        Consumer<KeepEdgeMetaInfo.Builder> addContext,
+        KeepItemPattern context,
+        KeepCheckKind kind) {
+      this.annotationDescriptor = annotationDescriptor;
+      this.parent = parent;
+      this.context = context;
+      this.kind = kind;
+      addContext.accept(metaInfoBuilder);
+    }
+
+    @Override
+    public String getAnnotationName() {
+      int sep = annotationDescriptor.lastIndexOf('/');
+      return annotationDescriptor.substring(sep + 1, annotationDescriptor.length() - 1);
+    }
+
+    @Override
+    public void visit(String name, Object value) {
+      if (name.equals(Edge.description) && value instanceof String) {
+        metaInfoBuilder.setDescription((String) value);
+        return;
+      }
+      super.visit(name, value);
+    }
+
+    @Override
+    public void visitEnd() {
+      super.visitEnd();
+      parent.accept(
+          KeepCheck.builder()
+              .setMetaInfo(metaInfoBuilder.build())
+              .setKind(kind)
+              .setItemPattern(context)
+              .build());
     }
   }
 

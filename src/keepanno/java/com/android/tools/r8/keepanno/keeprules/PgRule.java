@@ -24,7 +24,8 @@ public abstract class PgRule {
   public enum TargetKeepKind {
     JUST_MEMBERS(RulePrintingUtils.KEEP_CLASS_MEMBERS),
     CLASS_OR_MEMBERS(RulePrintingUtils.KEEP),
-    CLASS_AND_MEMBERS(RulePrintingUtils.KEEP_CLASSES_WITH_MEMBERS);
+    CLASS_AND_MEMBERS(RulePrintingUtils.KEEP_CLASSES_WITH_MEMBERS),
+    CHECK_DISCARD(RulePrintingUtils.CHECK_DISCARD);
 
     private final String ruleKind;
 
@@ -35,12 +36,19 @@ public abstract class PgRule {
     String getKeepRuleKind() {
       return ruleKind;
     }
+
+    boolean isKeepKind() {
+      return this != CHECK_DISCARD;
+    }
   }
 
-  private static void printNonEmptyMembersPatternAsDefaultInitWorkaround(StringBuilder builder) {
-    // If no members is given, compat R8 and legacy full mode will implicitly keep <init>().
-    // Add a keep of finalize which is a library method that would be kept in any case.
-    builder.append(" { void finalize(); }");
+  private static void printNonEmptyMembersPatternAsDefaultInitWorkaround(
+      StringBuilder builder, TargetKeepKind kind) {
+    if (kind.isKeepKind()) {
+      // If no members is given, compat R8 and legacy full mode will implicitly keep <init>().
+      // Add a keep of finalize which is a library method that would be kept in any case.
+      builder.append(" { void finalize(); }");
+    }
   }
 
   private final KeepEdgeMetaInfo metaInfo;
@@ -178,7 +186,7 @@ public abstract class PgRule {
     void printTargetHolder(StringBuilder builder) {
       printClassHeader(builder, holderPattern, classReferencePrinter(holderNamePattern));
       if (getTargetMembers().isEmpty()) {
-        printNonEmptyMembersPatternAsDefaultInitWorkaround(builder);
+        printNonEmptyMembersPatternAsDefaultInitWorkaround(builder, targetKeepKind);
       }
     }
 
@@ -251,7 +259,7 @@ public abstract class PgRule {
     void printTargetHolder(StringBuilder builder) {
       printClassHeader(builder, classTarget, this::printClassName);
       if (getTargetMembers().isEmpty()) {
-        PgRule.printNonEmptyMembersPatternAsDefaultInitWorkaround(builder);
+        PgRule.printNonEmptyMembersPatternAsDefaultInitWorkaround(builder, keepKind);
       }
     }
 
@@ -388,7 +396,7 @@ public abstract class PgRule {
             }
           });
       if (getTargetMembers().isEmpty()) {
-        PgRule.printNonEmptyMembersPatternAsDefaultInitWorkaround(builder);
+        PgRule.printNonEmptyMembersPatternAsDefaultInitWorkaround(builder, keepKind);
       }
     }
 

@@ -19,6 +19,7 @@ import com.android.tools.r8.keepanno.asm.KeepEdgeWriter;
 import com.android.tools.r8.keepanno.asm.KeepEdgeWriter.AnnotationVisitorInterface;
 import com.android.tools.r8.keepanno.ast.AnnotationConstants;
 import com.android.tools.r8.keepanno.ast.AnnotationConstants.Edge;
+import com.android.tools.r8.keepanno.ast.KeepDeclaration;
 import com.android.tools.r8.keepanno.ast.KeepEdge;
 import com.android.tools.r8.keepanno.processor.KeepEdgeProcessor;
 import com.android.tools.r8.keepanno.testsource.KeepClassAndDefaultConstructorSource;
@@ -221,9 +222,9 @@ public class KeepEdgeAnnotationsTest extends TestBase {
             .transform();
 
     // Read the edges from each version.
-    Set<KeepEdge> originalEdges = KeepEdgeReader.readKeepEdges(original);
-    Set<KeepEdge> strippedEdges = KeepEdgeReader.readKeepEdges(stripped);
-    Set<KeepEdge> readdedEdges = KeepEdgeReader.readKeepEdges(readded);
+    Set<KeepDeclaration> originalEdges = KeepEdgeReader.readKeepEdges(original);
+    Set<KeepDeclaration> strippedEdges = KeepEdgeReader.readKeepEdges(stripped);
+    Set<KeepDeclaration> readdedEdges = KeepEdgeReader.readKeepEdges(readded);
 
     // The edges are compared to the "expected" ast to ensure we don't hide failures in reading or
     // writing.
@@ -252,7 +253,7 @@ public class KeepEdgeAnnotationsTest extends TestBase {
     assertThat(synthesizedEdgesClass.annotation(Edge.CLASS.getTypeName()), isPresent());
     String entry = ZipUtils.zipEntryNameForClass(synthesizedEdgesClass.getFinalReference());
     byte[] bytes = ZipUtils.readSingleEntry(data, entry);
-    Set<KeepEdge> keepEdges = KeepEdgeReader.readKeepEdges(bytes);
+    Set<KeepDeclaration> keepEdges = KeepEdgeReader.readKeepEdges(bytes);
     assertEquals(KeepSourceEdges.getExpectedEdges(source), keepEdges);
   }
 }
