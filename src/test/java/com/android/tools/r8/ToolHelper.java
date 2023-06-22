@@ -1308,7 +1308,7 @@ public class ToolHelper {
 
   public static Path getClassPathForTests() {
     if (isNewGradleSetup()) {
-      return Paths.get(TEST_MODULE_DIR, "tests_java_8", "build", "classes", "java", "main");
+      return Paths.get(TEST_MODULE_DIR, "tests_java_8", "build", "classes", "java", "test");
     } else {
       return Paths.get(BUILD_DIR, "classes", "java", "test");
     }

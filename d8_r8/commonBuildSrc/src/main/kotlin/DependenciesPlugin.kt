@@ -108,21 +108,22 @@ fun Project.ensureThirdPartyDependencies(name : String, deps : List<ThirdPartyDe
 fun Project.buildJavaExamplesJars(examplesName : String) : Task {
   val outputFiles : MutableList<File> = mutableListOf()
   val jarTasks : MutableList<Task> = mutableListOf()
-  extensions
+  var testSourceSet = extensions
     .getByType(JavaPluginExtension::class.java)
     .sourceSets
     // The TEST_SOURCE_SET_NAME is the source set defined by writing java { sourcesets.test { ... }}
     .getByName(SourceSet.TEST_SOURCE_SET_NAME)
-    .output
-    .classesDirs
+  testSourceSet
+    .java
+    .sourceDirectories
     .files
-    .forEach { buildDir ->
-      buildDir.listFiles(File::isDirectory)?.forEach {
-        jarTasks.add(tasks.register<Jar>("jar-examples$examplesName-${it.name}") {
+    .forEach { srcDir ->
+      srcDir.listFiles(File::isDirectory)?.forEach { exampleDir ->
+        jarTasks.add(tasks.register<Jar>("jar-examples$examplesName-${exampleDir.name}") {
           dependsOn("compileTestJava")
-          archiveFileName.set("${it.name}.jar")
+          archiveFileName.set("${exampleDir.name}.jar")
           destinationDirectory.set(getRoot().resolveAll("build", "test", "examples$examplesName"))
-          from(it) {
+          from(testSourceSet.output.classesDirs.files.map{ it.resolve(exampleDir.name) }) {
             include("**/*.class")
           }
         }.get())
@@ -251,6 +252,7 @@ object Versions {
   const val junitVersion = "4.13-beta-2"
   const val kotlinVersion = "1.8.10"
   const val kotlinMetadataVersion = "0.6.2"
+  const val mockito = "2.10.0"
   const val smaliVersion = "3.0.3"
 }
 
@@ -267,6 +269,7 @@ object Deps {
     "org.jetbrains.kotlinx:kotlinx-metadata-jvm:${Versions.kotlinMetadataVersion}" }
   val kotlinStdLib by lazy { "org.jetbrains.kotlin:kotlin-stdlib:${Versions.kotlinVersion}" }
   val kotlinReflect by lazy { "org.jetbrains.kotlin:kotlin-reflect:${Versions.kotlinVersion}" }
+  val mockito by lazy { "org.mockito:mockito-core:${Versions.mockito}" }
   val smali by lazy { "com.android.tools.smali:smali:${Versions.smaliVersion}" }
   val errorprone by lazy { "com.google.errorprone:error_prone_core:${Versions.errorproneVersion}" }
 }

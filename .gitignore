@@ -12,10 +12,12 @@
 *~
 .#*
 .gradle/
+**/.gradle/
 .gradle_user_home
 .idea/
 android-data*/
 build/
+**/build/
 buildSrc/out/
 src/*/out
 d8_r8/*/out

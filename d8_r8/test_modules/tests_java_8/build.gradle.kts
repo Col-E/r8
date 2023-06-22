@@ -60,8 +60,16 @@ val thirdPartyRuntimeDependenciesTask = ensureThirdPartyDependencies(
     + ThirdPartyDeps.androidVMs
     + ThirdPartyDeps.jdks)
 
-val sourceSetDependenciesTasks = listOf(
-  projectTask("tests_java_9", getExamplesJarsTaskName("Java9")))
+val sourceSetDependenciesTasks = arrayOf(
+  projectTask("tests_java_examples", getExamplesJarsTaskName("")),
+  projectTask("tests_java_examplesAndroidN", getExamplesJarsTaskName("AndroidN")),
+  projectTask("tests_java_examplesAndroidO", getExamplesJarsTaskName("AndroidO")),
+  projectTask("tests_java_examplesAndroidP", getExamplesJarsTaskName("AndroidP")),
+  projectTask("tests_java_9", getExamplesJarsTaskName("Java9")),
+  projectTask("tests_java_10", getExamplesJarsTaskName("Java10")),
+  projectTask("tests_java_11", getExamplesJarsTaskName("Java11")),
+  projectTask("tests_java_17", getExamplesJarsTaskName("Java17")),
+  projectTask("tests_java_20", getExamplesJarsTaskName("Java20")))
 
 fun testDependencies() : FileCollection {
   return sourceSets
@@ -100,14 +108,15 @@ tasks {
   }
 
   withType<Test> {
+    environment.put("USE_NEW_GRADLE_SETUP", "true")
     dependsOn(thirdPartyRuntimeDependenciesTask)
-    dependsOn(sourceSetDependenciesTasks)
+    dependsOn(*sourceSetDependenciesTasks)
     println("NOTE: Number of processors " + Runtime.getRuntime().availableProcessors())
     val userDefinedCoresPerFork = System.getenv("R8_GRADLE_CORES_PER_FORK")
     val processors = Runtime.getRuntime().availableProcessors()
     // See https://docs.gradle.org/current/dsl/org.gradle.api.tasks.testing.Test.html.
     if (!userDefinedCoresPerFork.isNullOrEmpty()) {
-      maxParallelForks = userDefinedCoresPerFork.toInt()
+      maxParallelForks = processors / userDefinedCoresPerFork.toInt()
     } else {
       // On normal work machines this seems to give the best test execution time (without freezing)
       maxParallelForks = processors / 3
