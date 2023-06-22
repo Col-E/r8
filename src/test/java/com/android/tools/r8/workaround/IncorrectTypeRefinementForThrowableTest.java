@@ -4,13 +4,10 @@
 
 package com.android.tools.r8.workaround;
 
-import static org.junit.Assume.assumeFalse;
 
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.TestRunResult;
-import com.android.tools.r8.utils.BooleanUtils;
-import java.util.List;
+import com.android.tools.r8.TestParametersCollection;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -21,15 +18,11 @@ import org.junit.runners.Parameterized.Parameters;
 public class IncorrectTypeRefinementForThrowableTest extends TestBase {
 
   @Parameter(0)
-  public boolean enableCheckCastAndInstanceOfRemoval;
-
-  @Parameter(1)
   public TestParameters parameters;
 
-  @Parameters(name = "{1}, optimize: {0}")
-  public static List<Object[]> data() {
-    return buildParameters(
-        BooleanUtils.values(), getTestParameters().withAllRuntimesAndApiLevels().build());
+  @Parameters(name = "{0}")
+  public static TestParametersCollection data() {
+    return getTestParameters().withAllRuntimesAndApiLevels().build();
   }
 
   @Test
@@ -37,23 +30,14 @@ public class IncorrectTypeRefinementForThrowableTest extends TestBase {
     parameters.assumeDexRuntime();
     testForD8(parameters.getBackend())
         .addInnerClasses(getClass())
-        .addOptionsModification(
-            options ->
-                options.testing.enableCheckCastAndInstanceOfRemoval =
-                    enableCheckCastAndInstanceOfRemoval)
         .release()
         .setMinApi(parameters)
         .run(parameters.getRuntime(), Main.class)
-        // TODO(b/288273207): Should remove the instanceof check.
-        .applyIf(
-            parameters.getDexRuntimeVersion().isDalvik(),
-            TestRunResult::assertSuccessWithEmptyOutput,
-            runResult -> runResult.assertFailureWithErrorThatThrows(VerifyError.class));
+        .assertSuccessWithEmptyOutput();
   }
 
   @Test
   public void testJvm() throws Exception {
-    assumeFalse(enableCheckCastAndInstanceOfRemoval);
     parameters.assumeJvmTestParameters();
     testForJvm(parameters)
         .addInnerClasses(getClass())

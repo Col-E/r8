@@ -48,6 +48,7 @@ public class IRToDexFinalizer extends IRFinalizer<DexCode> {
     RuntimeWorkaroundCodeRewriter.workaroundNumberConversionRegisterAllocationBug(code, options);
     // Workaround massive dex2oat memory use for self-recursive methods.
     RuntimeWorkaroundCodeRewriter.workaroundDex2OatInliningIssue(appView, code);
+    RuntimeWorkaroundCodeRewriter.workaroundInstanceOfTypeWeakeningInVerifier(appView, code);
     // Workaround MAX_INT switch issue.
     RuntimeWorkaroundCodeRewriter.workaroundSwitchMaxIntBug(code, appView);
     RuntimeWorkaroundCodeRewriter.workaroundDex2OatLinkedListBug(code, options);
