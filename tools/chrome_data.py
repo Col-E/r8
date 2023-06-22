@@ -256,7 +256,8 @@ VERSIONS = {
         'inputs': [os.path.join(V200430_BASE, 'program.jar')],
         'pgconf': [os.path.join(V200430_BASE, 'proguard.config')],
         'libraries': [os.path.join(V200430_BASE, 'library.jar')],
-        'min-api': ANDROID_N_API
+        'min-api': ANDROID_N_API,
+        'system-properties': ['-Dcom.android.tools.r8.testing.dontReportFailingCheckDiscarded=1'],
     },
   },
   '200520-monochrome_public_minimal_apks': {

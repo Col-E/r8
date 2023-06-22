@@ -2226,7 +2226,6 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
      */
     public boolean addCallEdgesForLibraryInvokes = false;
 
-    public boolean allowCheckDiscardedErrors = false;
     public boolean allowClassInliningOfSynthetics = true;
     public boolean allowInjectedAnnotationMethods = false;
     public boolean allowInliningOfSynthetics = true;
@@ -2264,7 +2263,8 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
     public BiConsumer<IRCode, AppView<?>> irModifier = null;
     public Consumer<IRCode> inlineeIrModifier = null;
     public int basicBlockMuncherIterationLimit = NO_LIMIT;
-    public boolean dontReportFailingCheckDiscarded = false;
+    public boolean dontReportFailingCheckDiscarded =
+        System.getProperty("com.android.tools.r8.testing.dontReportFailingCheckDiscarded") != null;
     public boolean disableRecordApplicationReaderMap = false;
     public boolean trackDesugaredAPIConversions =
         System.getProperty("com.android.tools.r8.trackDesugaredAPIConversions") != null;
