@@ -4,8 +4,6 @@
 
 package com.android.tools.r8.kotlin;
 
-import static com.android.tools.r8.KotlinCompilerTool.KotlinCompilerVersion.KOTLINC_1_5_0;
-import static com.android.tools.r8.KotlinCompilerTool.KotlinCompilerVersion.KOTLINC_1_6_0;
 
 import com.android.tools.r8.KotlinTestParameters;
 import com.android.tools.r8.TestParameters;
@@ -122,7 +120,6 @@ public class R8KotlinDataClassTest extends AbstractR8KotlinTestBase {
 
   @Test
   public void testDataclassCopyDefaultIsRemovedIfNotUsed() throws Exception {
-    boolean useLir = true;
     String mainClassName = "dataclass.MainCopyKt";
     MethodSignature testMethodSignature =
         new MethodSignature("testDataClassCopyWithDefault", "void", Collections.emptyList());
@@ -132,28 +129,8 @@ public class R8KotlinDataClassTest extends AbstractR8KotlinTestBase {
             testBuilder ->
                 testBuilder
                     .addKeepRules(keepClassMethod(mainClassName, testMethodSignature))
-                    .addOptionsModification(
-                        o -> {
-                          if (useLir) {
-                            o.testing.enableLir();
-                          } else {
-                            o.testing.disableLir();
-                          }
-                        })
+                    .addOptionsModification(o -> o.testing.enableLir())
                     .addOptionsModification(disableClassInliner))
-        .inspect(
-            inspector -> {
-              // TODO(b/210828502): Investigate why Person is not removed with kotlin 1.7 and 1.8.
-              //   It looks like this is related to size estimates as using LIR changes the result.
-              if (kotlinc.isOneOf(KOTLINC_1_5_0, KOTLINC_1_6_0)
-                  || testParameters.isDexRuntime()
-                  || useLir) {
-                checkClassIsRemoved(inspector, TEST_DATA_CLASS.getClassName());
-              } else {
-                ClassSubject dataClass =
-                    checkClassIsKept(inspector, TEST_DATA_CLASS.getClassName());
-                checkMethodIsRemoved(dataClass, COPY_DEFAULT_METHOD);
-              }
-            });
+        .inspect(inspector -> checkClassIsRemoved(inspector, TEST_DATA_CLASS.getClassName()));
   }
 }
