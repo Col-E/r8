@@ -38,17 +38,19 @@ public class IRToDexFinalizer extends IRFinalizer<DexCode> {
     }
     DexEncodedMethod method = code.method();
     code.traceBlocks();
-    workaroundBugs(code);
+    workaroundBugs(code, timing);
     // Perform register allocation.
     RegisterAllocator registerAllocator = performRegisterAllocation(code, method, timing);
     return new DexBuilder(code, bytecodeMetadataProvider, registerAllocator, options).build();
   }
 
-  private void workaroundBugs(IRCode code) {
+  private void workaroundBugs(IRCode code, Timing timing) {
     RuntimeWorkaroundCodeRewriter.workaroundNumberConversionRegisterAllocationBug(code, options);
     // Workaround massive dex2oat memory use for self-recursive methods.
     RuntimeWorkaroundCodeRewriter.workaroundDex2OatInliningIssue(appView, code);
-    RuntimeWorkaroundCodeRewriter.workaroundInstanceOfTypeWeakeningInVerifier(appView, code);
+    if (RuntimeWorkaroundCodeRewriter.workaroundInstanceOfTypeWeakeningInVerifier(appView, code)) {
+      deadCodeRemover.run(code, timing);
+    }
     // Workaround MAX_INT switch issue.
     RuntimeWorkaroundCodeRewriter.workaroundSwitchMaxIntBug(code, appView);
     RuntimeWorkaroundCodeRewriter.workaroundDex2OatLinkedListBug(code, options);

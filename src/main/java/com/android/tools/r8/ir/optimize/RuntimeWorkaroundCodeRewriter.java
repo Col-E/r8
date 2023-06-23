@@ -71,17 +71,21 @@ public class RuntimeWorkaroundCodeRewriter {
     }
   }
 
-  public static void workaroundInstanceOfTypeWeakeningInVerifier(AppView<?> appView, IRCode code) {
+  public static boolean workaroundInstanceOfTypeWeakeningInVerifier(
+      AppView<?> appView, IRCode code) {
+    boolean didReplaceInstructions = false;
     for (BasicBlock block : code.getBlocks()) {
       InstructionListIterator instructionIterator = block.listIterator(code);
       while (instructionIterator.hasNext()) {
         InstanceOf instanceOf = instructionIterator.nextUntil(Instruction::isInstanceOf);
         if (instanceOf != null && instanceOf.value().getType().isNullType()) {
           instructionIterator.replaceCurrentInstructionWithConstFalse(code);
+          didReplaceInstructions = true;
         }
       }
     }
     assert code.isConsistentSSA(appView);
+    return didReplaceInstructions;
   }
 
   public static void workaroundSwitchMaxIntBug(IRCode code, AppView<?> appView) {
