@@ -764,11 +764,12 @@ public abstract class R8RunArtTestsTest extends TestBase {
           // by the program at runtime.
           .put("005-annotations", TestCondition.match(TestCondition.D8_COMPILER))
           // On Art 4.4.4 we have fewer refs than expected (except for d8 when compiled with dx).
-          .put("072-precise-gc",
+          .put(
+              "072-precise-gc",
               TestCondition.match(
-                  TestCondition.R8_COMPILER,
-                  TestCondition.runtimesUpTo(DexVm.Version.V4_4_4)))
-          .put("072-precise-gc",
+                  TestCondition.R8_COMPILER, TestCondition.runtimesUpTo(DexVm.Version.V4_4_4)))
+          .put(
+              "072-precise-gc",
               TestCondition.match(
                   TestCondition.tools(DexTool.NONE),
                   TestCondition.D8_COMPILER,
@@ -779,16 +780,23 @@ public abstract class R8RunArtTestsTest extends TestBase {
           .put("099-vmdebug", TestCondition.any())
           // This test relies on output on stderr, which we currently do not collect.
           .put("143-string-value", TestCondition.any())
-          .put("800-smali",
+          .put(
+              "800-smali",
               TestCondition.match(
                   TestCondition.D8_COMPILER,
                   TestCondition.runtimes(DexVm.Version.V5_1_1, DexVm.Version.V6_0_1)))
           // Triggers regression test in 6.0.1 when using R8/D8 in debug mode.
-          .put("474-fp-sub-neg",
+          .put(
+              "474-fp-sub-neg",
               TestCondition.match(
                   TestCondition.tools(DexTool.NONE),
                   TestCondition.D8_NOT_AFTER_R8CF_COMPILER,
                   TestCondition.runtimes(DexVm.Version.V6_0_1)))
+          .put(
+              "536-checker-needs-access-check",
+              // DEX VMs incorrectly check access before checking null-value in instanceof.
+              // See IllegalAccessDeadInstanceOfTest and b/288376353.
+              TestCondition.anyDexVm())
           .build();
 
   private static final TestCondition beforeAndroidN =

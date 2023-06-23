@@ -187,6 +187,22 @@ public class ClassFileTransformer {
     return classReference;
   }
 
+  public ClassFileTransformer setClassAccessFlags(int accessFlags) {
+    return addClassTransformer(
+        new ClassTransformer() {
+          @Override
+          public void visit(
+              int version,
+              int access,
+              String name,
+              String signature,
+              String superName,
+              String[] interfaces) {
+            super.visit(version, accessFlags, name, signature, superName, interfaces);
+          }
+        });
+  }
+
   /** Unconditionally replace the implements clause of a class. */
   public ClassFileTransformer setImplements(Class<?>... interfaces) {
     return setImplementsClassDescriptors(
