@@ -1693,9 +1693,11 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
       if (simpleInliningInstructionLimit >= 0) {
         return simpleInliningInstructionLimit;
       }
-      // Allow 2 instructions when using LIR regardless of backend.
+      // Allow 4 instructions when using LIR regardless of backend.
       if (options.testing.useLir) {
-        return 2;
+        // TODO(b/288226522): We should reevaluate this for size and other inputs as it regresses
+        //  compared to DEX code with limit 5. This is set to 4 to avoid discard errors in chrome.
+        return 4;
       }
       // Allow 3 instructions when generating to class files.
       if (options.isGeneratingClassFiles()) {

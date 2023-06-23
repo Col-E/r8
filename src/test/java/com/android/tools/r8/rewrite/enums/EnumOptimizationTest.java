@@ -159,6 +159,12 @@ public class EnumOptimizationTest extends TestBase {
         .enableMemberValuePropagationAnnotations()
         .enableSideEffectAnnotations()
         .addOptionsModification(this::configure)
+        .addOptionsModification(
+            o -> {
+              o.testing.enableLir();
+              // Not inlining toString depends on simple inlining limit.
+              o.inlinerOptions().simpleInliningInstructionLimit = 3;
+            })
         .setMinApi(parameters)
         .compile()
         .inspect(this::inspectToStrings)
