@@ -387,11 +387,15 @@ public class EnumUnboxingRewriter {
             Value rewrittenOutValue =
                 code.createValue(
                     TypeElement.fromDexType(fieldMethod.getReturnType(), maybeNull(), appView));
+            Value in = instanceGet.object();
+            if (in.getType().isNullType()) {
+              iterator.previous();
+              in = iterator.insertConstIntInstruction(code, options, 0);
+              iterator.next();
+            }
             InvokeStatic invoke =
                 new InvokeStatic(
-                    fieldMethod.getReference(),
-                    rewrittenOutValue,
-                    ImmutableList.of(instanceGet.object()));
+                    fieldMethod.getReference(), rewrittenOutValue, ImmutableList.of(in));
             iterator.replaceCurrentInstruction(invoke);
             if (unboxedEnumsData.isUnboxedEnum(instanceGet.getField().type)) {
               convertedEnums.put(invoke, instanceGet.getField().type);
@@ -529,6 +533,8 @@ public class EnumUnboxingRewriter {
       if (invokedMethod == factory.javaLangSystemMembers.arraycopy) {
         // Intentionally empty.
       } else if (invokedMethod == factory.javaLangSystemMembers.identityHashCode) {
+        // Note that System.identityHashCode(null) == 0, so it works even if the input is null
+        // and not rewritten.
         assert invoke.arguments().size() == 1;
         Value argument = invoke.getFirstArgument();
         DexType enumType = getEnumClassTypeOrNull(argument, convertedEnums);
