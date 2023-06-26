@@ -504,7 +504,13 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
 
   public void notifyMemberRebindingFinished(AppView<AppInfoWithLiveness> appView) {
     getFieldAccessInfoCollection().restrictToProgram(appView);
-    getMethodAccessInfoCollection().destroyNonDirectInvokes();
+    getMethodAccessInfoCollection().destroyNonDirectNonSuperInvokes();
+  }
+
+  public void notifyRedundantBridgeRemoverFinished(boolean initial) {
+    if (initial) {
+      getMethodAccessInfoCollection().destroySuperInvokes();
+    }
   }
 
   @Override

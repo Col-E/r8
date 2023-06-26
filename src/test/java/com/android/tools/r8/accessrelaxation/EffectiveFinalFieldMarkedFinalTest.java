@@ -54,14 +54,14 @@ public class EffectiveFinalFieldMarkedFinalTest extends TestBase {
               assertThat(
                   mainClassSubject.uniqueFieldWithOriginalName("instanceField"),
                   onlyIf(
-                      allowAccessModification || parameters.isAccessModificationEnabledByDefault(),
+                      parameters.isAccessModificationEnabled(allowAccessModification)
+                          && !parameters.canInitNewInstanceUsingSuperclassConstructor(),
                       isFinal()));
               assertThat(mainClassSubject.uniqueFieldWithOriginalName("staticField"), isPresent());
               assertThat(
                   mainClassSubject.uniqueFieldWithOriginalName("staticField"),
                   onlyIf(
-                      allowAccessModification || parameters.isAccessModificationEnabledByDefault(),
-                      isFinal()));
+                      parameters.isAccessModificationEnabled(allowAccessModification), isFinal()));
             })
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines("Hello, world!");

@@ -43,6 +43,7 @@ public class MemberRebindingBridgeRemovalTest extends TestBase {
             MemberRebindingBridgeRemovalTest.class, MemberRebindingBridgeRemovalTestClasses.class)
         .addKeepMainRule(TestClass.class)
         .enableInliningAnnotations()
+        .enableNoAccessModificationAnnotationsForClasses()
         .enableNoVerticalClassMergingAnnotations()
         .setMinApi(parameters)
         .compile()

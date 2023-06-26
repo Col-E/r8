@@ -4,6 +4,8 @@
 
 package com.android.tools.r8.shaking.librarymethodoverride;
 
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.TestBase;
@@ -62,9 +64,13 @@ public class LibraryMethodOverrideDefaultMethodTest extends TestBase {
         appInfo
             .definitionFor(dexItemFactory.createType(descriptor(ProgramI.class)))
             .asProgramClass();
-    DexEncodedMethod method =
-        clazz.lookupVirtualMethod(m -> m.getReference().name.toString().equals("foo"));
-    assertTrue(method.isLibraryMethodOverride().isTrue());
+    DexEncodedMethod method = clazz.lookupVirtualMethod(m -> m.getName().toString().equals("foo"));
+    if (appInfo.options().canUseDefaultAndStaticInterfaceMethods() || mode.isInitialTreeShaking()) {
+      assertNotNull(method);
+      assertTrue(method.isLibraryMethodOverride().isTrue());
+    } else {
+      assertNull(method);
+    }
   }
 
   public interface LibraryI {

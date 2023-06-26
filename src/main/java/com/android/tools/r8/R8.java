@@ -463,6 +463,10 @@ public class R8 {
 
       AccessModifier.run(appViewWithLiveness, executorService, timing);
 
+      new RedundantBridgeRemover(appViewWithLiveness)
+          .setMustRetargetInvokesToTargetMethod()
+          .run(executorService, timing);
+
       boolean isKotlinLibraryCompilationWithInlinePassThrough =
           options.enableCfByteCodePassThrough && appView.hasCfByteCodePassThroughMethods();
 
@@ -683,7 +687,7 @@ public class R8 {
       // This can only be done if we have AppInfoWithLiveness.
       if (appView.appInfo().hasLiveness()) {
         new RedundantBridgeRemover(appView.withLiveness())
-            .run(memberRebindingIdentityLens, executorService, timing);
+            .run(executorService, timing, memberRebindingIdentityLens);
       } else {
         // If we don't have AppInfoWithLiveness here, it must be because we are not shrinking. When
         // we are not shrinking, we can't move visibility bridges. In principle, though, it would be

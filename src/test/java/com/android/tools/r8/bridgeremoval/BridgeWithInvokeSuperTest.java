@@ -4,10 +4,10 @@
 
 package com.android.tools.r8.bridgeremoval;
 
-import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
-import static org.hamcrest.CoreMatchers.not;
+import static com.android.tools.r8.utils.codeinspector.Matchers.isPresentIf;
 import static org.hamcrest.MatcherAssert.assertThat;
 
+import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.NoVerticalClassMerging;
 import com.android.tools.r8.TestBase;
@@ -51,18 +51,20 @@ public class BridgeWithInvokeSuperTest extends TestBase {
         .addProgramClassFileData(getAWithBridgeAccessFlag())
         .setMinApi(parameters)
         .addKeepMainRule(Main.class)
-        .enableNoVerticalClassMergingAnnotations()
         .enableInliningAnnotations()
+        .enableNeverClassInliningAnnotations()
+        .enableNoVerticalClassMergingAnnotations()
         .compile()
         .inspect(
             inspector -> {
+              boolean canUseDefaultAndStaticInterfaceMethods =
+                  parameters.canUseDefaultAndStaticInterfaceMethods();
               // Check that we are removing the bridge if we support default methods.
-              if (parameters.canUseDefaultAndStaticInterfaceMethods()) {
-                ClassSubject A = inspector.clazz(A.class);
-                assertThat(A, isPresent());
-                MethodSubject fooMethod = A.uniqueMethodWithOriginalName("foo");
-                assertThat(fooMethod, not(isPresent()));
-              }
+              ClassSubject A = inspector.clazz(A.class);
+              assertThat(A, isPresentIf(!canUseDefaultAndStaticInterfaceMethods));
+
+              MethodSubject fooMethod = A.uniqueMethodWithOriginalName("foo");
+              assertThat(fooMethod, isPresentIf(!canUseDefaultAndStaticInterfaceMethods));
             })
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines(EXPECTED);
@@ -83,6 +85,7 @@ public class BridgeWithInvokeSuperTest extends TestBase {
     }
   }
 
+  @NeverClassInline
   public static class A implements I {
 
     @Override

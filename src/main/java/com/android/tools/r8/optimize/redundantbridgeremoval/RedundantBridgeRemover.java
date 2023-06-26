@@ -43,10 +43,17 @@ public class RedundantBridgeRemover {
   private final RedundantBridgeRemovalLens.Builder lensBuilder =
       new RedundantBridgeRemovalLens.Builder();
 
+  private boolean mustRetargetInvokesToTargetMethod = false;
+
   public RedundantBridgeRemover(AppView<AppInfoWithLiveness> appView) {
     this.appView = appView;
     this.immediateSubtypingInfo = ImmediateProgramSubtypingInfo.create(appView);
     this.redundantBridgeRemovalOptions = appView.options().getRedundantBridgeRemovalOptions();
+  }
+
+  public RedundantBridgeRemover setMustRetargetInvokesToTargetMethod() {
+    mustRetargetInvokesToTargetMethod = true;
+    return this;
   }
 
   private DexClassAndMethod getTargetForRedundantNonAbstractBridge(ProgramMethod method) {
@@ -112,10 +119,14 @@ public class RedundantBridgeRemover {
     return false;
   }
 
+  public void run(ExecutorService executorService, Timing timing) throws ExecutionException {
+    run(executorService, timing, null);
+  }
+
   public void run(
-      MemberRebindingIdentityLens memberRebindingIdentityLens,
       ExecutorService executorService,
-      Timing timing)
+      Timing timing,
+      MemberRebindingIdentityLens memberRebindingIdentityLens)
       throws ExecutionException {
     assert memberRebindingIdentityLens == null
         || memberRebindingIdentityLens == appView.graphLens();
@@ -148,6 +159,7 @@ public class RedundantBridgeRemover {
     }
 
     appView.notifyOptimizationFinishedForTesting();
+    appView.appInfo().notifyRedundantBridgeRemoverFinished(true);
     timing.end();
   }
 
@@ -285,6 +297,8 @@ public class RedundantBridgeRemover {
             // Rewrite invokes to the bridge to the target if it is accessible.
             if (canRetargetInvokesToTargetMethod(method, target)) {
               lensBuilder.map(method, target);
+            } else if (mustRetargetInvokesToTargetMethod) {
+              return;
             }
 
             // Record that the redundant bridge should be removed.
@@ -301,6 +315,14 @@ public class RedundantBridgeRemover {
       // Check if constructor retargeting is enabled.
       if (method.getDefinition().isInstanceInitializer()
           && !redundantBridgeRemovalOptions.isRetargetingOfConstructorBridgeCallsEnabled()) {
+        return false;
+      }
+      // Check if the current method is an interface method targeted by invoke-super.
+      if (method.getHolder().isInterface()
+          && appView
+              .appInfo()
+              .getMethodAccessInfoCollection()
+              .hasSuperInvoke(method.getReference())) {
         return false;
       }
       // Check if all possible contexts that have access to the holder of the redundant bridge

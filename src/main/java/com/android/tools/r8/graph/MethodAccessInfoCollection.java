@@ -63,11 +63,14 @@ public class MethodAccessInfoCollection {
     fullyDestroyed = true;
   }
 
-  public void destroyNonDirectInvokes() {
+  public void destroyNonDirectNonSuperInvokes() {
     interfaceInvokes = ThrowingMap.get();
     staticInvokes = ThrowingMap.get();
-    superInvokes = ThrowingMap.get();
     virtualInvokes = ThrowingMap.get();
+  }
+
+  public void destroySuperInvokes() {
+    superInvokes = ThrowingMap.get();
   }
 
   public Modifier modifier() {
@@ -100,6 +103,10 @@ public class MethodAccessInfoCollection {
     superInvokes.forEach(consumer);
   }
 
+  public boolean hasSuperInvoke(DexMethod method) {
+    return !superInvokes.getOrDefault(method, ProgramMethodSet.empty()).isEmpty();
+  }
+
   public void forEachSuperInvokeContext(DexMethod method, Consumer<ProgramMethod> consumer) {
     superInvokes.getOrDefault(method, ProgramMethodSet.empty()).forEach(consumer);
   }
@@ -119,14 +126,17 @@ public class MethodAccessInfoCollection {
     if (fullyDestroyed) {
       result = this;
     } else if (isThrowingMap(interfaceInvokes)) {
-      assert !isThrowingMap(directInvokes);
       assert isThrowingMap(staticInvokes);
-      assert isThrowingMap(superInvokes);
       assert isThrowingMap(virtualInvokes);
+      assert !isThrowingMap(directInvokes);
       MethodAccessInfoCollection.Builder<?> builder = identityBuilder();
       rewriteInvokesWithLens(builder, directInvokes, definitions, lens, InvokeType.DIRECT);
+      rewriteInvokesWithLens(builder, superInvokes, definitions, lens, InvokeType.DIRECT);
       result = builder.build();
-      result.destroyNonDirectInvokes();
+      result.destroyNonDirectNonSuperInvokes();
+      if (isThrowingMap(superInvokes)) {
+        result.destroySuperInvokes();
+      }
     } else {
       MethodAccessInfoCollection.Builder<?> builder = identityBuilder();
       rewriteInvokesWithLens(builder, directInvokes, definitions, lens, InvokeType.DIRECT);
@@ -146,17 +156,19 @@ public class MethodAccessInfoCollection {
       DexDefinitionSupplier definitions,
       GraphLens lens,
       InvokeType type) {
-    invokes.forEach(
-        (reference, contexts) -> {
-          ProgramMethodSet newContexts = contexts.rewrittenWithLens(definitions, lens);
-          for (ProgramMethod newContext : newContexts) {
-            MethodLookupResult methodLookupResult =
-                lens.lookupMethod(reference, newContext.getReference(), type);
-            DexMethod newReference = methodLookupResult.getReference();
-            InvokeType newType = methodLookupResult.getType();
-            builder.registerInvokeInContext(newReference, newContext, newType);
-          }
-        });
+    if (!isThrowingMap(invokes)) {
+      invokes.forEach(
+          (reference, contexts) -> {
+            ProgramMethodSet newContexts = contexts.rewrittenWithLens(definitions, lens);
+            for (ProgramMethod newContext : newContexts) {
+              MethodLookupResult methodLookupResult =
+                  lens.lookupMethod(reference, newContext.getReference(), type);
+              DexMethod newReference = methodLookupResult.getReference();
+              InvokeType newType = methodLookupResult.getType();
+              builder.registerInvokeInContext(newReference, newContext, newType);
+            }
+          });
+    }
   }
 
   public MethodAccessInfoCollection withoutPrunedItems(PrunedItems prunedItems) {

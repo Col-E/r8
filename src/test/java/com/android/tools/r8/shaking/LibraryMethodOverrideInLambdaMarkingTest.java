@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.shaking;
 
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.NoVerticalClassMerging;
@@ -16,8 +17,6 @@ import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.shaking.Enqueuer.Mode;
 import java.util.Iterator;
-import java.util.Spliterator;
-import java.util.function.Consumer;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -41,6 +40,8 @@ public class LibraryMethodOverrideInLambdaMarkingTest extends TestBase {
     testForR8(parameters.getBackend())
         .addInnerClasses(LibraryMethodOverrideInLambdaMarkingTest.class)
         .addKeepMainRule(TestClass.class)
+        // Keep J since redundant bridge removal will otherwise remove it.
+        .addKeepClassAndMembersRules(J.class)
         .addOptionsModification(
             options -> options.testing.enqueuerInspector = this::verifyLibraryOverrideInformation)
         .enableNoVerticalClassMergingAnnotations()
@@ -61,7 +62,8 @@ public class LibraryMethodOverrideInLambdaMarkingTest extends TestBase {
       AppInfoWithLiveness appInfo, DexType type) {
     DexProgramClass clazz = appInfo.definitionFor(type).asProgramClass();
     DexEncodedMethod method =
-        clazz.lookupVirtualMethod(m -> m.getReference().name.toString().equals("iterator"));
+        clazz.lookupVirtualMethod(m -> m.getName().toString().equals("iterator"));
+    assertNotNull(method);
     // TODO(b/149976493): Mark library overrides from lambda instances.
     if (parameters.isCfRuntime()) {
       assertTrue(method.isLibraryMethodOverride().isFalse());
@@ -98,15 +100,5 @@ public class LibraryMethodOverrideInLambdaMarkingTest extends TestBase {
 
     @Override
     Iterator<Object> iterator();
-
-    @Override
-    default void forEach(Consumer<? super Object> action) {
-      // Intentionally empty.
-    }
-
-    @Override
-    default Spliterator<Object> spliterator() {
-      return null;
-    }
   }
 }
