@@ -38,6 +38,8 @@ import com.android.tools.r8.graph.lens.AppliedGraphLens;
 import com.android.tools.r8.horizontalclassmerging.HorizontalClassMerger;
 import com.android.tools.r8.inspector.internal.InspectorImpl;
 import com.android.tools.r8.ir.conversion.IRConverter;
+import com.android.tools.r8.ir.conversion.MethodConversionOptions;
+import com.android.tools.r8.ir.conversion.MethodConversionOptions.MutableMethodConversionOptions;
 import com.android.tools.r8.ir.conversion.PrimaryR8IRConverter;
 import com.android.tools.r8.ir.desugar.BackportedMethodRewriter;
 import com.android.tools.r8.ir.desugar.CfClassSynthesizerDesugaringCollection;
@@ -563,10 +565,12 @@ public class R8 {
               enqueuer.traceApplication(appView.rootSet(), executorService, timing);
           appView.setAppInfo(enqueuerResult.getAppInfo());
           // Rerunning the enqueuer should not give rise to any method rewritings.
+          MutableMethodConversionOptions conversionOptions =
+              MethodConversionOptions.forPostLirPhase(appView);
           appView.withGeneratedMessageLiteBuilderShrinker(
               shrinker ->
                   shrinker.rewriteDeadBuilderReferencesFromDynamicMethods(
-                      appViewWithLiveness, executorService, timing));
+                      conversionOptions, appViewWithLiveness, executorService, timing));
 
           if (options.isShrinking()) {
             // Mark dead proto extensions fields as neither being read nor written. This step must
@@ -1038,10 +1042,12 @@ public class R8 {
           shrinker ->
               shrinker.setDeadProtoTypes(appViewWithLiveness.appInfo().getDeadProtoTypes()));
     }
+    MutableMethodConversionOptions conversionOptions =
+        MethodConversionOptions.forPreLirPhase(appView);
     appView.withGeneratedMessageLiteBuilderShrinker(
         shrinker ->
             shrinker.rewriteDeadBuilderReferencesFromDynamicMethods(
-                appViewWithLiveness, executorService, timing));
+                conversionOptions, appViewWithLiveness, executorService, timing));
     timing.end();
     return appViewWithLiveness;
   }

@@ -33,7 +33,7 @@ import com.android.tools.r8.ir.code.SafeCheckCast;
 import com.android.tools.r8.ir.code.StaticGet;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.conversion.IRConverter;
-import com.android.tools.r8.ir.conversion.MethodConversionOptions;
+import com.android.tools.r8.ir.conversion.MethodConversionOptions.MutableMethodConversionOptions;
 import com.android.tools.r8.ir.conversion.MethodProcessor;
 import com.android.tools.r8.ir.conversion.callgraph.Node;
 import com.android.tools.r8.ir.optimize.Inliner;
@@ -204,7 +204,10 @@ public class GeneratedMessageLiteBuilderShrinker {
    * references.
    */
   public void rewriteDeadBuilderReferencesFromDynamicMethods(
-      AppView<AppInfoWithLiveness> appView, ExecutorService executorService, Timing timing)
+      MutableMethodConversionOptions conversionOptions,
+      AppView<AppInfoWithLiveness> appView,
+      ExecutorService executorService,
+      Timing timing)
       throws ExecutionException {
     if (builders.isEmpty()) {
       return;
@@ -217,7 +220,7 @@ public class GeneratedMessageLiteBuilderShrinker {
         (builder, dynamicMethod) -> {
           if (!appInfo.isLiveProgramClass(builder)) {
             rewriteDeadBuilderReferencesFromDynamicMethod(
-                appView, builder, dynamicMethod, converter);
+                appView, builder, dynamicMethod, converter, conversionOptions);
           }
         },
         executorService);
@@ -229,8 +232,9 @@ public class GeneratedMessageLiteBuilderShrinker {
       AppView<AppInfoWithLiveness> appView,
       DexProgramClass builder,
       ProgramMethod dynamicMethod,
-      IRConverter converter) {
-    IRCode code = dynamicMethod.buildIR(appView, MethodConversionOptions.forPreLirPhase(appView));
+      IRConverter converter,
+      MutableMethodConversionOptions conversionOptions) {
+    IRCode code = dynamicMethod.buildIR(appView, conversionOptions);
     InstructionListIterator instructionIterator = code.instructionListIterator();
 
     assert builder.superType == references.generatedMessageLiteBuilderType
