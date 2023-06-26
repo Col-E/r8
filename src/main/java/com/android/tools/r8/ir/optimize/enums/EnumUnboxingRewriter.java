@@ -46,6 +46,7 @@ import com.android.tools.r8.ir.optimize.enums.classification.EnumUnboxerMethodCl
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.InternalOptions;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -508,13 +509,28 @@ public class EnumUnboxingRewriter {
         rewriteStringValueOf(invoke, context, convertedEnums, instructionIterator, eventConsumer);
       } else if (invokedMethod == factory.objectsMethods.equals) {
         assert invoke.arguments().size() == 2;
-        Value argument = invoke.getFirstArgument();
-        DexType enumType = getEnumClassTypeOrNull(argument, convertedEnums);
-        if (enumType != null) {
+        if (Iterables.any(
+            invoke.arguments(), arg -> getEnumClassTypeOrNull(arg, convertedEnums) != null)) {
+          // If any of the input is null, replace it by const 0.
+          // If both inputs are null, no rewriting happen here.
+          List<Value> newArguments = new ArrayList<>(invoke.arguments().size());
+          for (Value arg : invoke.arguments()) {
+            if (arg.getType().isNullType()) {
+              Value constZero = insertConstZero(code);
+              newArguments.add(constZero);
+            } else {
+              assert getEnumClassTypeOrNull(arg, convertedEnums) != null;
+              newArguments.add(arg);
+            }
+          }
           replaceEnumInvoke(
               instructionIterator,
               invoke,
-              getSharedUtilityClass().ensureObjectsEqualsMethod(appView, context, eventConsumer));
+              getSharedUtilityClass().ensureObjectsEqualsMethod(appView, context, eventConsumer),
+              newArguments);
+        } else {
+          assert invoke.getArgument(0).getType().isReferenceType();
+          assert invoke.getArgument(1).getType().isReferenceType();
         }
       }
       return;
@@ -687,11 +703,19 @@ public class EnumUnboxingRewriter {
 
   private void replaceEnumInvoke(
       InstructionListIterator iterator, InvokeMethod invoke, ProgramMethod method) {
+    replaceEnumInvoke(iterator, invoke, method, invoke.arguments());
+  }
+
+  private void replaceEnumInvoke(
+      InstructionListIterator iterator,
+      InvokeMethod invoke,
+      ProgramMethod method,
+      List<Value> arguments) {
     InvokeStatic replacement =
         new InvokeStatic(
             method.getReference(),
             invoke.hasUnusedOutValue() ? null : invoke.outValue(),
-            invoke.arguments());
+            arguments);
     assert !replacement.hasOutValue()
         || !replacement.getInvokedMethod().getReturnType().isVoidType();
     iterator.replaceCurrentInstruction(replacement);
