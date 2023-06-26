@@ -49,7 +49,7 @@ public class RedundantBridgeRemover {
     this.redundantBridgeRemovalOptions = appView.options().getRedundantBridgeRemovalOptions();
   }
 
-  private DexClassAndMethod getTargetForRedundantBridge(ProgramMethod method) {
+  private DexClassAndMethod getTargetForRedundantNonAbstractBridge(ProgramMethod method) {
     DexEncodedMethod definition = method.getDefinition();
     BridgeInfo bridgeInfo = definition.getOptimizationInfo().getBridgeInfo();
     boolean isBridge = definition.isBridge() || bridgeInfo != null;
@@ -185,38 +185,42 @@ public class RedundantBridgeRemover {
     return traversal.getRemovedBridges();
   }
 
-  private boolean isRedundantAbstractBridge(ProgramMethod method) {
+  private DexClassAndMethod getTargetForRedundantAbstractBridge(ProgramMethod method) {
     if (!method.getAccessFlags().isAbstract() || method.getDefinition().getCode() != null) {
-      return false;
+      return null;
     }
     DexProgramClass holder = method.getHolder();
     if (holder.getSuperType() == null) {
       assert holder.getType() == appView.dexItemFactory().objectType;
-      return false;
+      return null;
     }
     MethodResolutionResult superTypeResolution =
         appView.appInfo().resolveMethodOn(holder.getSuperType(), method.getReference(), false);
     if (superTypeResolution.isMultiMethodResolutionResult()) {
-      return false;
+      return null;
     }
     // Check if there is a definition in the super type hieararchy that is also abstract and has the
     // same visibility.
     if (superTypeResolution.isSingleResolution()) {
-      DexClassAndMethod resolutionPair =
+      DexClassAndMethod resolvedMethod =
           superTypeResolution.asSingleResolution().getResolutionPair();
-      return resolutionPair.getDefinition().isAbstract()
-          && resolutionPair
+      if (resolvedMethod.getDefinition().isAbstract()
+          && resolvedMethod
               .getDefinition()
               .isAtLeastAsVisibleAsOtherInSameHierarchy(method.getDefinition(), appView)
-          && (!resolutionPair.getHolder().isInterface() || holder.getInterfaces().isEmpty());
+          && (!resolvedMethod.getHolder().isInterface() || holder.getInterfaces().isEmpty())) {
+        return resolvedMethod;
+      }
+      return null;
     }
     // Only check for interfaces if resolving the method on super type causes NoSuchMethodError.
     FailedResolutionResult failedResolutionResult = superTypeResolution.asFailedResolution();
     if (failedResolutionResult == null
         || !failedResolutionResult.isNoSuchMethodErrorResult(holder, appView, appView.appInfo())
         || holder.getInterfaces().isEmpty()) {
-      return false;
+      return null;
     }
+    DexClassAndMethod representativeInterfaceMethod = null;
     for (DexType iface : holder.getInterfaces()) {
       SingleResolutionResult<?> singleIfaceResult =
           appView
@@ -228,10 +232,14 @@ public class RedundantBridgeRemover {
           || !singleIfaceResult
               .getResolvedMethod()
               .isAtLeastAsVisibleAsOtherInSameHierarchy(method.getDefinition(), appView)) {
-        return false;
+        return null;
+      }
+      if (representativeInterfaceMethod == null) {
+        representativeInterfaceMethod = singleIfaceResult.getResolutionPair();
       }
     }
-    return true;
+    assert representativeInterfaceMethod != null;
+    return representativeInterfaceMethod;
   }
 
   private void pruneApp(
@@ -266,21 +274,21 @@ public class RedundantBridgeRemover {
                 || !keepInfo.isOptimizationAllowed(appView.options())) {
               return;
             }
-            if (isRedundantAbstractBridge(method)) {
-              // Record that the redundant bridge should be removed.
-              bridgesToRemoveForClass.add(method);
-              return;
-            }
-            DexClassAndMethod target = getTargetForRedundantBridge(method);
-            if (target != null) {
-              // Record that the redundant bridge should be removed.
-              bridgesToRemoveForClass.add(method);
-
-              // Rewrite invokes to the bridge to the target if it is accessible.
-              if (canRetargetInvokesToTargetMethod(method, target)) {
-                lensBuilder.map(method, target);
+            DexClassAndMethod target = getTargetForRedundantAbstractBridge(method);
+            if (target == null) {
+              target = getTargetForRedundantNonAbstractBridge(method);
+              if (target == null) {
+                return;
               }
             }
+
+            // Rewrite invokes to the bridge to the target if it is accessible.
+            if (canRetargetInvokesToTargetMethod(method, target)) {
+              lensBuilder.map(method, target);
+            }
+
+            // Record that the redundant bridge should be removed.
+            bridgesToRemoveForClass.add(method);
           });
       if (!bridgesToRemoveForClass.isEmpty()) {
         clazz.getMethodCollection().removeMethods(bridgesToRemoveForClass.toDefinitionSet());
