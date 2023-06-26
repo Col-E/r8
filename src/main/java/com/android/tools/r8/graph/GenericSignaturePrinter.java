@@ -200,11 +200,13 @@ public class GenericSignaturePrinter implements GenericSignatureVisitor {
       } else {
         DexType enclosingType = classTypeSignature.enclosingTypeSignature.type;
         String outerDescriptor = namingLens.lookupDescriptor(enclosingType).toString();
-        String innerClassName = DescriptorUtils.getInnerClassName(outerDescriptor, renamedString);
+        String innerClassName =
+            DescriptorUtils.getInnerClassNameFromDescriptor(outerDescriptor, renamedString);
         if (innerClassName == null && isTypeMissing.test(classTypeSignature.type)) {
           assert renamedString.equals(classTypeSignature.type.toDescriptorString());
           innerClassName =
-              DescriptorUtils.getInnerClassName(enclosingType.toDescriptorString(), renamedString);
+              DescriptorUtils.getInnerClassNameFromDescriptor(
+                  enclosingType.toDescriptorString(), renamedString);
         }
         if (innerClassName == null) {
           // We can no longer encode the inner name in the generic signature.

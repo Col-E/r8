@@ -37,8 +37,17 @@ public class AccessRelaxationByDefaultTest extends TestBase {
   }
 
   @Test
-  public void test() throws Exception {
-    testForR8(parameters.getBackend())
+  public void testR8() throws Exception {
+    runTest(false);
+  }
+
+  @Test
+  public void testR8Compat() throws Exception {
+    runTest(true);
+  }
+
+  private void runTest(boolean isCompat) throws Exception {
+    testForR8Compat(parameters.getBackend(), isCompat)
         .addInnerClasses(getClass())
         .addKeepMainRule(Main.class)
         .addKeepClassRules(B.class)
@@ -52,11 +61,12 @@ public class AccessRelaxationByDefaultTest extends TestBase {
             inspector -> {
               ClassSubject aClassSubject = inspector.clazz(A.class);
               assertThat(aClassSubject, isPresent());
-              assertThat(aClassSubject, isPublic()); // Always publicized.
+              assertThat(aClassSubject, onlyIf(!isCompat, isPublic())); // Always publicized.
 
               MethodSubject fooMethodSubject = aClassSubject.uniqueMethodWithOriginalName("foo");
               assertThat(fooMethodSubject, isPresent());
-              assertThat(fooMethodSubject, onlyIf(parameters.isDexRuntime(), isPublic()));
+              assertThat(
+                  fooMethodSubject, onlyIf(parameters.isDexRuntime() && !isCompat, isPublic()));
 
               ClassSubject bClassSubject = inspector.clazz(B.class);
               assertThat(bClassSubject, isPresent());
@@ -64,15 +74,16 @@ public class AccessRelaxationByDefaultTest extends TestBase {
 
               MethodSubject barMethodSubject = bClassSubject.uniqueMethodWithOriginalName("bar");
               assertThat(barMethodSubject, isPresent());
-              assertThat(barMethodSubject, onlyIf(parameters.isDexRuntime(), isPublic()));
+              assertThat(
+                  barMethodSubject, onlyIf(parameters.isDexRuntime() && !isCompat, isPublic()));
 
               ClassSubject cClassSubject = inspector.clazz(C.class);
               assertThat(cClassSubject, isPresent());
-              assertThat(cClassSubject, isPublic()); // Always publicized.
+              assertThat(cClassSubject, onlyIf(!isCompat, isPublic())); // Always publicized.
 
               MethodSubject bazMethodSubject = cClassSubject.uniqueMethodWithOriginalName("baz");
               assertThat(bazMethodSubject, isPresent());
-              assertThat(bazMethodSubject, isPublic()); // Always publicized.
+              assertThat(bazMethodSubject, onlyIf(!isCompat, isPublic())); // Always publicized.
             })
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines("A.foo()", "B.bar()", "C.baz()");

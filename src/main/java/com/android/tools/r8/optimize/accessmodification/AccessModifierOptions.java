@@ -8,6 +8,9 @@ import com.android.tools.r8.utils.InternalOptions;
 
 public class AccessModifierOptions {
 
+  // TODO(b/131130038): Do not allow accessmodification when kept.
+  private boolean forceModifyPackagePrivateAndProtectedMethods = true;
+
   private InternalOptions options;
 
   public AccessModifierOptions(InternalOptions options) {
@@ -32,5 +35,15 @@ public class AccessModifierOptions {
   private boolean isAccessModificationRulePresent() {
     return options.hasProguardConfiguration()
         && options.getProguardConfiguration().isAccessModificationAllowed();
+  }
+
+  public boolean isForceModifyingPackagePrivateAndProtectedMethods() {
+    return forceModifyPackagePrivateAndProtectedMethods;
+  }
+
+  public void setForceModifyPackagePrivateAndProtectedMethods(
+      boolean forceModifyPackagePrivateAndProtectedMethods) {
+    this.forceModifyPackagePrivateAndProtectedMethods =
+        forceModifyPackagePrivateAndProtectedMethods;
   }
 }

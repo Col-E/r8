@@ -1597,6 +1597,7 @@ public abstract class R8RunArtTestsTest extends TestBase {
       if (configuration != null) {
         configuration.accept(options);
       }
+      options.getAccessModifierOptions().setForceModifyPackagePrivateAndProtectedMethods(false);
     }
 
     @Override

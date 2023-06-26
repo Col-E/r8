@@ -18,6 +18,7 @@ import java.util.function.Consumer;
 public abstract class KeepInfo<B extends Builder<B, K>, K extends KeepInfo<B, K>> {
 
   private final boolean allowAccessModification;
+  private final boolean allowAccessModificationForTesting;
   private final boolean allowAnnotationRemoval;
   private final boolean allowMinification;
   private final boolean allowOptimization;
@@ -27,6 +28,7 @@ public abstract class KeepInfo<B extends Builder<B, K>, K extends KeepInfo<B, K>
 
   private KeepInfo(
       boolean allowAccessModification,
+      boolean allowAccessModificationForTesting,
       boolean allowAnnotationRemoval,
       boolean allowMinification,
       boolean allowOptimization,
@@ -34,6 +36,7 @@ public abstract class KeepInfo<B extends Builder<B, K>, K extends KeepInfo<B, K>
       boolean allowSignatureRemoval,
       boolean checkDiscarded) {
     this.allowAccessModification = allowAccessModification;
+    this.allowAccessModificationForTesting = allowAccessModificationForTesting;
     this.allowAnnotationRemoval = allowAnnotationRemoval;
     this.allowMinification = allowMinification;
     this.allowOptimization = allowOptimization;
@@ -45,6 +48,7 @@ public abstract class KeepInfo<B extends Builder<B, K>, K extends KeepInfo<B, K>
   KeepInfo(B builder) {
     this(
         builder.isAccessModificationAllowed(),
+        builder.isAccessModificationAllowedForTesting(),
         builder.isAnnotationRemovalAllowed(),
         builder.isMinificationAllowed(),
         builder.isOptimizationAllowed(),
@@ -171,6 +175,15 @@ public abstract class KeepInfo<B extends Builder<B, K>, K extends KeepInfo<B, K>
     return allowAccessModification;
   }
 
+  public boolean isAccessModificationAllowedForTesting(GlobalKeepInfoConfiguration configuration) {
+    return internalIsAccessModificationAllowedForTesting();
+  }
+
+  // Internal accessor for the items access-modification bit.
+  boolean internalIsAccessModificationAllowedForTesting() {
+    return allowAccessModificationForTesting;
+  }
+
   public boolean isEnclosingMethodAttributeRemovalAllowed(
       GlobalKeepInfoConfiguration configuration,
       EnclosingMethodAttribute enclosingMethodAttribute,
@@ -213,6 +226,8 @@ public abstract class KeepInfo<B extends Builder<B, K>, K extends KeepInfo<B, K>
     // An item is less, aka, lower in the lattice, if each of its attributes is at least as
     // permissive of that on other.
     return (allowAccessModification || !other.internalIsAccessModificationAllowed())
+        && (allowAccessModificationForTesting
+            || !other.internalIsAccessModificationAllowedForTesting())
         && (allowAnnotationRemoval || !other.internalIsAnnotationRemovalAllowed())
         && (allowMinification || !other.internalIsMinificationAllowed())
         && (allowOptimization || !other.internalIsOptimizationAllowed())
@@ -236,6 +251,7 @@ public abstract class KeepInfo<B extends Builder<B, K>, K extends KeepInfo<B, K>
 
     protected K original;
     private boolean allowAccessModification;
+    private boolean allowAccessModificationForTesting;
     private boolean allowAnnotationRemoval;
     private boolean allowMinification;
     private boolean allowOptimization;
@@ -250,6 +266,7 @@ public abstract class KeepInfo<B extends Builder<B, K>, K extends KeepInfo<B, K>
     Builder(K original) {
       this.original = original;
       allowAccessModification = original.internalIsAccessModificationAllowed();
+      allowAccessModificationForTesting = original.internalIsAccessModificationAllowedForTesting();
       allowAnnotationRemoval = original.internalIsAnnotationRemovalAllowed();
       allowMinification = original.internalIsMinificationAllowed();
       allowOptimization = original.internalIsOptimizationAllowed();
@@ -260,6 +277,7 @@ public abstract class KeepInfo<B extends Builder<B, K>, K extends KeepInfo<B, K>
 
     B makeTop() {
       disallowAccessModification();
+      disallowAccessModificationForTesting();
       disallowAnnotationRemoval();
       disallowMinification();
       disallowOptimization();
@@ -271,6 +289,7 @@ public abstract class KeepInfo<B extends Builder<B, K>, K extends KeepInfo<B, K>
 
     B makeBottom() {
       allowAccessModification();
+      allowAccessModificationForTesting();
       allowAnnotationRemoval();
       allowMinification();
       allowOptimization();
@@ -297,6 +316,8 @@ public abstract class KeepInfo<B extends Builder<B, K>, K extends KeepInfo<B, K>
 
     boolean internalIsEqualTo(K other) {
       return isAccessModificationAllowed() == other.internalIsAccessModificationAllowed()
+          && isAccessModificationAllowedForTesting()
+              == other.internalIsAccessModificationAllowedForTesting()
           && isAnnotationRemovalAllowed() == other.internalIsAnnotationRemovalAllowed()
           && isMinificationAllowed() == other.internalIsMinificationAllowed()
           && isOptimizationAllowed() == other.internalIsOptimizationAllowed()
@@ -307,6 +328,10 @@ public abstract class KeepInfo<B extends Builder<B, K>, K extends KeepInfo<B, K>
 
     public boolean isAccessModificationAllowed() {
       return allowAccessModification;
+    }
+
+    public boolean isAccessModificationAllowedForTesting() {
+      return allowAccessModificationForTesting;
     }
 
     public boolean isAnnotationRemovalAllowed() {
@@ -396,6 +421,19 @@ public abstract class KeepInfo<B extends Builder<B, K>, K extends KeepInfo<B, K>
 
     public B disallowAccessModification() {
       return setAllowAccessModification(false);
+    }
+
+    public B setAllowAccessModificationForTesting(boolean allowAccessModificationForTesting) {
+      this.allowAccessModificationForTesting = allowAccessModificationForTesting;
+      return self();
+    }
+
+    public B allowAccessModificationForTesting() {
+      return setAllowAccessModificationForTesting(true);
+    }
+
+    public B disallowAccessModificationForTesting() {
+      return setAllowAccessModificationForTesting(false);
     }
 
     public B setAllowAnnotationRemoval(boolean allowAnnotationRemoval) {
@@ -524,6 +562,11 @@ public abstract class KeepInfo<B extends Builder<B, K>, K extends KeepInfo<B, K>
       return self();
     }
 
+    public J disallowAccessModificationForTesting() {
+      builder.disallowAccessModificationForTesting();
+      return self();
+    }
+
     public J disallowAnnotationRemoval() {
       builder.disallowAnnotationRemoval();
       return self();
@@ -557,6 +600,9 @@ public abstract class KeepInfo<B extends Builder<B, K>, K extends KeepInfo<B, K>
     public J merge(J joiner) {
       Builder<B, K> builder = joiner.builder;
       applyIf(!builder.isAccessModificationAllowed(), Joiner::disallowAccessModification);
+      applyIf(
+          !builder.isAccessModificationAllowedForTesting(),
+          Joiner::disallowAccessModificationForTesting);
       applyIf(!builder.isAnnotationRemovalAllowed(), Joiner::disallowAnnotationRemoval);
       applyIf(!builder.isMinificationAllowed(), Joiner::disallowMinification);
       applyIf(!builder.isOptimizationAllowed(), Joiner::disallowOptimization);

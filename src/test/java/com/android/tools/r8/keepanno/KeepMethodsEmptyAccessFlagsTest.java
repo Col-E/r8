@@ -29,6 +29,7 @@ import org.junit.runners.Parameterized;
 public class KeepMethodsEmptyAccessFlagsTest extends TestBase {
 
   static final String EXPECTED = StringUtils.lines("hello", "world");
+  static final String EXPECTED_ACCESS_MODIFICATION = StringUtils.lines("hello", "old", "world");
 
   private final TestParameters parameters;
 
@@ -57,7 +58,11 @@ public class KeepMethodsEmptyAccessFlagsTest extends TestBase {
         .addKeepMainRule(TestClass.class)
         .setMinApi(parameters)
         .run(parameters.getRuntime(), TestClass.class)
-        .assertSuccessWithOutput(EXPECTED)
+        // TODO(b/131130038): Should not publicize kept method old().
+        .assertSuccessWithOutput(
+            parameters.isAccessModificationEnabledByDefault() && parameters.isDexRuntime()
+                ? EXPECTED_ACCESS_MODIFICATION
+                : EXPECTED)
         .inspect(this::checkOutput);
   }
 
@@ -111,7 +116,7 @@ public class KeepMethodsEmptyAccessFlagsTest extends TestBase {
 
   static class TestClass {
 
-    public static void main(String[] args) throws Exception {
+    public static void main(String[] args) {
       new A().foo();
     }
   }

@@ -740,7 +740,8 @@ public class DescriptorUtils {
    * @param innerDescriptor the inner descriptor, such as Lfoo/bar/Baz$Qux;
    * @return the inner name or null, i.e. Qux in the example above
    */
-  public static String getInnerClassName(String outerDescriptor, String innerDescriptor) {
+  public static String getInnerClassNameFromDescriptor(
+      String outerDescriptor, String innerDescriptor) {
     if (innerDescriptor.length() <= outerDescriptor.length()) {
       return null;
     }
@@ -748,6 +749,18 @@ public class DescriptorUtils {
         outerDescriptor.substring(0, outerDescriptor.length() - 1) + INNER_CLASS_SEPARATOR;
     if (innerDescriptor.startsWith(prefix)) {
       return innerDescriptor.substring(prefix.length(), innerDescriptor.length() - 1);
+    }
+    return null;
+  }
+
+  public static String getInnerClassNameFromSimpleName(
+      String outerSimpleName, String innerSimpleName) {
+    if (innerSimpleName.length() <= outerSimpleName.length()) {
+      return null;
+    }
+    String prefix = outerSimpleName + INNER_CLASS_SEPARATOR;
+    if (innerSimpleName.startsWith(prefix)) {
+      return innerSimpleName.substring(prefix.length());
     }
     return null;
   }

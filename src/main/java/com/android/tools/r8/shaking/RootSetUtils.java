@@ -1238,7 +1238,7 @@ public class RootSetUtils {
         assert item.isProgramDefinition();
         dependentMinimumKeepInfo
             .getOrCreateUnconditionalMinimumKeepInfoFor(item.getReference())
-            .disallowAccessModification();
+            .disallowAccessModificationForTesting();
         context.markAsUsed();
       } else if (context instanceof NoFieldTypeStrengtheningRule) {
         assert item.isProgramField();

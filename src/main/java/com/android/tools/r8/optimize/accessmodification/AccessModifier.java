@@ -63,9 +63,11 @@ public class AccessModifier {
       AppView<AppInfoWithLiveness> appView, ExecutorService executorService, Timing timing)
       throws ExecutionException {
     timing.begin("Access modification");
-    new AccessModifier(appView)
-        .processStronglyConnectedComponents(executorService)
-        .installLens(executorService, timing);
+    if (appView.options().getAccessModifierOptions().isAccessModificationEnabled()) {
+      new AccessModifier(appView)
+          .processStronglyConnectedComponents(executorService)
+          .installLens(executorService, timing);
+    }
     timing.end();
   }
 
@@ -254,8 +256,17 @@ public class AccessModifier {
 
   private boolean isAccessModificationAllowed(
       ProgramDefinition definition, BottomUpTraversalState traversalState) {
-    if (!appView.getKeepInfo(definition).isAccessModificationAllowed(options)
-        || isFailedResolutionTarget(definition)) {
+    if (!appView.getKeepInfo(definition).isAccessModificationAllowed(options)) {
+      if (!options.getAccessModifierOptions().isForceModifyingPackagePrivateAndProtectedMethods()
+          || !definition.isMethod()
+          || definition.getAccessFlags().isPrivate()) {
+        return false;
+      }
+    }
+    if (!appView.getKeepInfo(definition).isAccessModificationAllowedForTesting(options)) {
+      return false;
+    }
+    if (isFailedResolutionTarget(definition)) {
       return false;
     }
     return definition.isClass()

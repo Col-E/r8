@@ -233,8 +233,8 @@ public abstract class TreeFixerBase {
           && outerClassType != null
           && innerClassAttribute.getInnerName() != null) {
         String innerClassName =
-            DescriptorUtils.getInnerClassName(
-                newOuterClassType.toDescriptorString(), newInnerClassType.toDescriptorString());
+            DescriptorUtils.getInnerClassNameFromSimpleName(
+                newOuterClassType.getSimpleName(), newInnerClassType.getSimpleName());
         if (innerClassName != null) {
           newInnerName = dexItemFactory.createString(innerClassName);
         } else {

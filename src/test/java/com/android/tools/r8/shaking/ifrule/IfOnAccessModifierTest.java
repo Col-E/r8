@@ -176,7 +176,11 @@ public class IfOnAccessModifierTest extends ProguardCompatibilityTestBase {
               assertThat(methodSubject, not(isPresent()));
               methodSubject = classSubject.uniqueMethodWithOriginalName("nonPublicMethod");
               assertThat(methodSubject, isPresent());
-              assertThat(methodSubject, isPackagePrivate());
+              assertThat(
+                  methodSubject,
+                  shrinker.isR8() && isForceAccessModifyingPackagePrivateAndProtectedMethods()
+                      ? isPublic()
+                      : isPackagePrivate());
             });
   }
 
@@ -255,7 +259,11 @@ public class IfOnAccessModifierTest extends ProguardCompatibilityTestBase {
               assertThat(methodSubject, not(isPresent()));
               methodSubject = classSubject.uniqueMethodWithOriginalName("nonPublicMethod");
               assertThat(methodSubject, isPresent());
-              assertThat(methodSubject, isPackagePrivate());
+              assertThat(
+                  methodSubject,
+                  shrinker.isR8() && isForceAccessModifyingPackagePrivateAndProtectedMethods()
+                      ? isPublic()
+                      : isPackagePrivate());
             });
   }
 }

@@ -6,6 +6,7 @@ package com.android.tools.r8.repackage;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 
+import com.android.tools.r8.NoAccessModification;
 import com.android.tools.r8.TestParameters;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -30,6 +31,7 @@ public class RepackageAllowRepackagingTest extends RepackageTestBase {
             "-keep,allowrepackage class " + typeName(ShouldStayInPackage.class) + " { *; }")
         .addKeepRules(
             "-keep,allowrepackage class " + typeName(ShouldBeRepackaged.class) + " { *; }")
+        .enableNoAccessModificationAnnotationsForMembers()
         .compile()
         .inspect(
             inspector -> {
@@ -42,6 +44,7 @@ public class RepackageAllowRepackagingTest extends RepackageTestBase {
 
   public static class ShouldStayInPackage {
 
+    @NoAccessModification
     static void foo() {
       System.out.println("ShouldStayInPackage::foo");
     }

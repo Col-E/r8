@@ -1757,6 +1757,11 @@ public class TestBase {
         && parameters.getApiLevel().isGreaterThanOrEqualTo(AndroidApiLevel.N);
   }
 
+  // TODO(b/131130038): Do not allow accessmodification when kept.
+  public boolean isForceAccessModifyingPackagePrivateAndProtectedMethods() {
+    return true;
+  }
+
   public Path compileToZip(
       TestParameters parameters, Collection<Class<?>> classPath, Class<?>... compilationUnit)
       throws Exception {
