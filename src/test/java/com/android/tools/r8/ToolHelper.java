@@ -138,8 +138,7 @@ public class ToolHelper {
   public static final String EXAMPLES_JAVA11_BUILD_DIR = BUILD_DIR + "classes/java/examplesJava11/";
   public static final String EXAMPLES_PROTO_BUILD_DIR = TESTS_BUILD_DIR + "examplesProto/";
   public static final String GENERATED_PROTO_BUILD_DIR = GENERATED_TEST_BUILD_DIR + "proto/";
-  public static final String SMALI_DIR = TESTS_DIR + "smali/";
-  public static final String SMALI_BUILD_DIR = TESTS_BUILD_DIR + "smali/";
+  public static final String SMALI_BUILD_DIR = THIRD_PARTY_DIR + "smali/";
   public static final String JAVA_CLASSES_DIR = BUILD_DIR + "classes/java/";
   public static final String JDK_11_TESTS_CLASSES_DIR = JAVA_CLASSES_DIR + "jdk11Tests/";
 

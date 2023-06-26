@@ -7,7 +7,6 @@
 import desugaredlibrary.CustomConversionAsmRewriterTask
 import net.ltgt.gradle.errorprone.CheckSeverity
 import org.gradle.internal.os.OperatingSystem
-import smali.SmaliTask
 import tasks.DownloadDependency
 import tasks.GetJarsFromConfiguration
 
@@ -372,6 +371,7 @@ def cloudDependencies = [
                 "r8-releases/2.0.74",
                 "r8-releases/3.2.54",
                 "r8mappings",
+                "smali",
                 "tachiyomi"
         ],
         // All dex-vms have a fixed OS of Linux, as they are only supported on Linux, and will be run in a Docker
@@ -1632,53 +1632,6 @@ task buildExamples {
     }
 }
 
-task buildSmali {
-    def smaliDir = file("src/test/smali")
-    smaliDir.eachDirRecurse() { dir ->
-        def name = dir.getName();
-        def relativeDir = smaliDir.toPath().relativize(dir.toPath());
-        def smaliOutputDir = file("build/test/smali/" + relativeDir);
-        smaliOutputDir.mkdirs()
-        outputs.dir smaliOutputDir
-        def taskName = "smali_build_${relativeDir.toString().replace('/', '_').replace('\\', '_')}"
-        def smaliFiles = fileTree(dir: dir, include: '*.smali')
-        def javaFiles = fileTree(dir: dir, include: '*.java')
-        def destDir = smaliOutputDir;
-        def destFile = destDir.toPath().resolve("${name}.dex").toFile()
-        def intermediateFileName = "${name}-intermediate.dex";
-        def intermediateFile = destDir.toPath().resolve(intermediateFileName).toFile()
-        if (javaFiles.empty) {
-            if (!smaliFiles.empty) {
-                dependsOn "${taskName}_smali"
-                task "${taskName}_smali"(type: SmaliTask) {
-                    source = smaliFiles
-                    destination = destFile
-                }
-            }
-        } else {
-            dependsOn "${taskName}_smali"
-            dependsOn "${taskName}_jar"
-            task "${taskName}_smali"(type: SmaliTask) {
-                source = smaliFiles
-                destination = destFile
-            }
-            task "${taskName}_java"(type: JavaCompile) {
-                source = javaFiles
-                destinationDir destDir
-                classpath = sourceSets.main.compileClasspath
-                sourceCompatibility = JavaVersion.VERSION_1_7
-                targetCompatibility = JavaVersion.VERSION_1_7
-                options.compilerArgs += ["-Xlint:-options"]
-            }
-            task "${taskName}_jar"(type: Jar, dependsOn: "${taskName}_java") {
-                archiveName = "Test.jar"
-                destinationDir = destDir
-                from fileTree(dir: destDir, include: 'Test.class')
-            }
-        }
-    }
-}
-
 tasks.withType(Test) {
     println("NOTE: Number of processors " + Runtime.runtime.availableProcessors())
     def userDefinedCoresPerFork = System.getenv('R8_GRADLE_CORES_PER_FORK')
@@ -2282,7 +2235,6 @@ test { task ->
         dependsOn downloadDeps
         dependsOn buildExamples
         dependsOn buildKotlinR8TestResources
-        dependsOn buildSmali
         dependsOn buildPreNJdwpTestsJar
         dependsOn compileTestNGRunner
         dependsOn provideArtFrameworksDependencies

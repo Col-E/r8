@@ -30,14 +30,11 @@ import com.android.tools.r8.naming.MemberNaming.MethodSignature;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.smali.SmaliTestBase;
 import com.android.tools.r8.utils.AndroidApp;
-import com.android.tools.r8.utils.Smali;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
-import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -64,32 +61,34 @@ public class TypeAnalysisTest extends SmaliTestBase {
 
   public TypeAnalysisTest(String test, BiConsumer<AppView<?>, CodeInspector> inspection) {
     dirName = test.substring(0, test.lastIndexOf('/'));
-    smaliFileName = test.substring(test.lastIndexOf('/') + 1) + ".smali";
+    smaliFileName = test.substring(test.lastIndexOf('/') + 1) + ".dex";
     this.inspection = inspection;
   }
 
   @Parameters(name = "{0}")
   public static Collection<Object[]> data() {
-    List<String> tests = Arrays.asList(
-        "arithmetic/Arithmetic",
-        "fibonacci/Fibonacci",
-        "fill-array-data/FillArrayData",
-        "filled-new-array/FilledNewArray",
-        "infinite-loop/InfiniteLoop1",
-        "try-catch/TryCatch",
-        "type-confusion-regression/TestObject",
-        "type-confusion-regression5/TestObject"
-    );
+    List<String> tests =
+        Arrays.asList(
+            "arithmetic/arithmetic",
+            "fibonacci/fibonacci",
+            "fill-array-data/fill-array-data",
+            "filled-new-array/filled-new-array",
+            "infinite-loop/infinite-loop",
+            "try-catch/try-catch",
+            "type-confusion-regression/type-confusion-regression",
+            "type-confusion-regression5/type-confusion-regression5");
 
     Map<String, BiConsumer<AppView<?>, CodeInspector>> inspections = new HashMap<>();
-    inspections.put("arithmetic/Arithmetic", TypeAnalysisTest::arithmetic);
-    inspections.put("fibonacci/Fibonacci", TypeAnalysisTest::fibonacci);
-    inspections.put("fill-array-data/FillArrayData", TypeAnalysisTest::fillArrayData);
-    inspections.put("filled-new-array/FilledNewArray", TypeAnalysisTest::filledNewArray);
-    inspections.put("infinite-loop/InfiniteLoop1", TypeAnalysisTest::infiniteLoop);
-    inspections.put("try-catch/TryCatch", TypeAnalysisTest::tryCatch);
-    inspections.put("type-confusion-regression/TestObject", TypeAnalysisTest::typeConfusion);
-    inspections.put("type-confusion-regression5/TestObject", TypeAnalysisTest::typeConfusion5);
+    inspections.put("arithmetic/arithmetic", TypeAnalysisTest::arithmetic);
+    inspections.put("fibonacci/fibonacci", TypeAnalysisTest::fibonacci);
+    inspections.put("fill-array-data/fill-array-data", TypeAnalysisTest::fillArrayData);
+    inspections.put("filled-new-array/filled-new-array", TypeAnalysisTest::filledNewArray);
+    inspections.put("infinite-loop/infinite-loop", TypeAnalysisTest::infiniteLoop);
+    inspections.put("try-catch/try-catch", TypeAnalysisTest::tryCatch);
+    inspections.put(
+        "type-confusion-regression/type-confusion-regression", TypeAnalysisTest::typeConfusion);
+    inspections.put(
+        "type-confusion-regression5/type-confusion-regression5", TypeAnalysisTest::typeConfusion5);
 
     List<Object[]> testCases = new ArrayList<>();
     for (String test : tests) {
@@ -101,11 +100,8 @@ public class TypeAnalysisTest extends SmaliTestBase {
 
   @Test
   public void typeAnalysisTest() throws Exception {
-    Path smaliPath = Paths.get(ToolHelper.SMALI_DIR, dirName, smaliFileName);
-    StringBuilder smaliStringBuilder = new StringBuilder();
-    Files.lines(smaliPath, StandardCharsets.UTF_8)
-        .forEach(s -> smaliStringBuilder.append(s).append(System.lineSeparator()));
-    byte[] content = Smali.compile(smaliStringBuilder.toString());
+    byte[] content =
+        Files.readAllBytes(Paths.get(ToolHelper.SMALI_BUILD_DIR, dirName, smaliFileName));
     AndroidApp app = AndroidApp.builder().addDexProgramData(content, Origin.unknown()).build();
     AppView<AppInfo> appView = computeAppView(app);
     inspection.accept(appView, new CodeInspector(appView.appInfo().app()));
