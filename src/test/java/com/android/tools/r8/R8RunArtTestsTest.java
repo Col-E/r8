@@ -463,37 +463,38 @@ public abstract class R8RunArtTestsTest extends TestBase {
       "1337-gc-coverage"
   );
 
-  private static List<String> expectedToFailRunWithArtNonDefault = ImmutableList.of(
-      // Fails due to missing symbol, jni tests, fails on non-R8/D8 run.
-      "004-JniTest",
-      "004-SignalTest",
-      "004-ThreadStress",
-      "004-UnsafeTest",
-      "044-proxy",
-      "051-thread",
-      "136-daemon-jni-shutdown",
-      "139-register-natives",
-      "148-multithread-gc-annotations",
-      "149-suspend-all-stress",
-      "154-gc-loop",
-      "155-java-set-resolved-type",
-      "157-void-class",
-      "158-app-image-class-table",
-      "466-get-live-vreg",
-      "497-inlining-and-class-loader",
-      "566-polymorphic-inlining",
-      "596-app-images",
-      "616-cha",
-      "616-cha-abstract",
-      "616-cha-regression-proxy-method",
-      "616-cha-native",
-      "626-set-resolved-string",
-      "629-vdex-speed",
-      "1337-gc-coverage",
+  private static List<String> expectedToFailRunWithArtNonDefault =
+      ImmutableList.of(
+          // Fails due to missing symbol, jni tests, fails on non-R8/D8 run.
+          "004-JniTest",
+          "004-SignalTest",
+          "004-ThreadStress",
+          "004-UnsafeTest",
+          "044-proxy",
+          "051-thread",
+          "136-daemon-jni-shutdown",
+          "139-register-natives",
+          "148-multithread-gc-annotations",
+          "149-suspend-all-stress",
+          "154-gc-loop",
+          "155-java-set-resolved-type",
+          "157-void-class",
+          "158-app-image-class-table",
+          "466-get-live-vreg",
+          "497-inlining-and-class-loader",
+          "566-polymorphic-inlining",
+          "537-checker-inline-and-unverified",
+          "596-app-images",
+          "616-cha",
+          "616-cha-abstract",
+          "616-cha-regression-proxy-method",
+          "616-cha-native",
+          "626-set-resolved-string",
+          "629-vdex-speed",
+          "1337-gc-coverage",
 
-      // Fails on non-R8/D8 run
-      "031-class-attributes"
-  );
+          // Fails on non-R8/D8 run
+          "031-class-attributes");
 
   private static Map<DexVm.Version, List<String>> expectedToFailRunWithArtVersion;
 
