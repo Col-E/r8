@@ -65,6 +65,7 @@ public class StatefulSingletonClassesMergingTest extends TestBase {
     // TODO(b/198758663): With argument propagation the constructors end up not being equivalent,
     //  which prevents merging in the final round of horizontal class merging.
     @KeepConstantArguments
+    @NeverInline
     A(String data) {
       this.data = data;
     }
@@ -85,6 +86,7 @@ public class StatefulSingletonClassesMergingTest extends TestBase {
     // TODO(b/198758663): With argument propagation the constructors end up not being equivalent,
     //  which prevents merging in the final round of horizontal class merging.
     @KeepConstantArguments
+    @NeverInline
     B(String data) {
       this.data = data;
     }

@@ -15,8 +15,6 @@ import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexMethodSignature;
 import com.android.tools.r8.graph.DexProgramClass;
-import com.android.tools.r8.graph.FieldAccessFlags;
-import com.android.tools.r8.graph.FieldAccessInfo;
 import com.android.tools.r8.graph.ImmediateProgramSubtypingInfo;
 import com.android.tools.r8.graph.InnerClassAttribute;
 import com.android.tools.r8.graph.MethodAccessFlags;
@@ -109,8 +107,6 @@ public class AccessModifier {
     publicizeClass(clazz, traversalState);
     publicizeFields(clazz, traversalState);
     publicizeMethods(clazz, namingState, traversalState);
-    // TODO(b/278736230): Also finalize classes and methods here.
-    finalizeFields(clazz);
   }
 
   private void publicizeClass(DexProgramClass clazz, BottomUpTraversalState traversalState) {
@@ -312,29 +308,5 @@ public class AccessModifier {
       method.getDefinition().setLibraryMethodOverride(OptionalBool.FALSE);
     }
     return method.getDefinition();
-  }
-
-  // Finalization of classes and members.
-
-  private void finalizeFields(DexProgramClass clazz) {
-    clazz.forEachProgramField(this::finalizeField);
-  }
-
-  private void finalizeField(ProgramField field) {
-    FieldAccessFlags flags = field.getAccessFlags();
-    FieldAccessInfo accessInfo =
-        appView.appInfo().getFieldAccessInfoCollection().get(field.getReference());
-    if (!appView.getKeepInfo(field).isPinned(options)
-        && !accessInfo.hasReflectiveWrite()
-        && !accessInfo.isWrittenFromMethodHandle()
-        && accessInfo.isWrittenOnlyInMethodSatisfying(
-            method ->
-                method.getDefinition().isInitializer()
-                    && method.getAccessFlags().isStatic() == flags.isStatic()
-                    && method.getHolder() == field.getHolder())
-        && !flags.isFinal()
-        && !flags.isVolatile()) {
-      flags.promoteToFinal();
-    }
   }
 }
