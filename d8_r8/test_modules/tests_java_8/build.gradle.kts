@@ -58,7 +58,8 @@ val thirdPartyRuntimeDependenciesTask = ensureThirdPartyDependencies(
   listOf(ThirdPartyDeps.jacoco, ThirdPartyDeps.java8Runtime)
     + ThirdPartyDeps.androidJars
     + ThirdPartyDeps.androidVMs
-    + ThirdPartyDeps.jdks)
+    + ThirdPartyDeps.jdks
+    + ThirdPartyDeps.proguards)
 
 val sourceSetDependenciesTasks = arrayOf(
   projectTask("tests_java_examples", getExamplesJarsTaskName("")),

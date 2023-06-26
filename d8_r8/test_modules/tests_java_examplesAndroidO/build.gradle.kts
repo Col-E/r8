@@ -32,6 +32,8 @@ val buildExampleJars = buildJavaExamplesJars("AndroidO")
 tasks {
   withType<JavaCompile> {
     options.setFork(true)
+    options.compilerArgs.add("-Xlint:-options")
+    options.compilerArgs.add("-parameters")
     options.forkOptions.memoryMaximumSize = "3g"
     options.forkOptions.jvmArgs = listOf(
       "-Xss256m",

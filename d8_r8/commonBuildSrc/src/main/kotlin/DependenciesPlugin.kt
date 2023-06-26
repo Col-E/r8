@@ -11,6 +11,7 @@ import org.gradle.api.Project
 import org.gradle.api.Task
 import org.gradle.api.file.ConfigurableFileCollection
 import org.gradle.api.plugins.JavaPluginExtension
+import org.gradle.api.tasks.JavaExec
 import org.gradle.api.tasks.SourceSet
 import org.gradle.jvm.tasks.Jar
 import org.gradle.kotlin.dsl.register
@@ -108,29 +109,53 @@ fun Project.ensureThirdPartyDependencies(name : String, deps : List<ThirdPartyDe
 fun Project.buildJavaExamplesJars(examplesName : String) : Task {
   val outputFiles : MutableList<File> = mutableListOf()
   val jarTasks : MutableList<Task> = mutableListOf()
-  var testSourceSet = extensions
+  val testGenerationTasks : MutableList<Task> = mutableListOf()
+  val testSourceSet = extensions
     .getByType(JavaPluginExtension::class.java)
     .sourceSets
     // The TEST_SOURCE_SET_NAME is the source set defined by writing java { sourcesets.test { ... }}
     .getByName(SourceSet.TEST_SOURCE_SET_NAME)
+  val destinationDir = getRoot().resolveAll("build", "test", "examples$examplesName")
+  val classesOutput = destinationDir.resolve("classes")
+  testSourceSet.java.destinationDirectory.set(classesOutput)
+  testSourceSet.resources.destinationDirectory.set(destinationDir)
   testSourceSet
     .java
     .sourceDirectories
     .files
     .forEach { srcDir ->
       srcDir.listFiles(File::isDirectory)?.forEach { exampleDir ->
-        jarTasks.add(tasks.register<Jar>("jar-examples$examplesName-${exampleDir.name}") {
+        var generationTask : Task? = null
+        if (exampleDir.resolve("TestGenerator.java").isFile) {
+          generationTask = tasks.register<JavaExec>(
+            "generate-examples$examplesName-${exampleDir.name}") {
+            dependsOn("compileTestJava")
+            mainClass.set("${exampleDir.name}.TestGenerator")
+            classpath = files(
+              classesOutput,
+              testSourceSet.compileClasspath)
+            args(classesOutput.toString())
+          }.get()
+          testGenerationTasks.add(generationTask)
+        }
+        jarTasks.add(tasks.register<Jar>(
+          "jar-examples$examplesName-${exampleDir.name}") {
           dependsOn("compileTestJava")
+          if (generationTask != null) {
+            dependsOn(generationTask)
+          }
           archiveFileName.set("${exampleDir.name}.jar")
-          destinationDirectory.set(getRoot().resolveAll("build", "test", "examples$examplesName"))
-          from(testSourceSet.output.classesDirs.files.map{ it.resolve(exampleDir.name) }) {
-            include("**/*.class")
+          destinationDirectory.set(destinationDir)
+          from(classesOutput) {
+            include("${exampleDir.name}/*.class")
+            exclude("**/TestGenerator*")
           }
         }.get())
       }
     }
   return tasks.register(getExamplesJarsTaskName(examplesName)) {
-    dependsOn(jarTasks)
+    dependsOn(jarTasks.toTypedArray())
+    dependsOn(testGenerationTasks.toTypedArray())
     outputs.files(outputFiles)
   }.get()
 }
@@ -309,6 +334,7 @@ object ThirdPartyDeps {
   )
   val androidVMs : List<ThirdPartyDependency> = getThirdPartyAndroidVms()
   val jdks : List<ThirdPartyDependency> = getJdks()
+  val proguards : List<ThirdPartyDependency> = getThirdPartyProguards()
 }
 
 fun getThirdPartyAndroidJars() : List<ThirdPartyDependency> {
@@ -378,4 +404,20 @@ fun getJdks() : List<ThirdPartyDependency> {
   } else {
     return Jdk.values().filter{ !it.isJdk8() }.map{ it.getThirdPartyDependency()}
   }
+}
+
+fun getThirdPartyProguards() : List<ThirdPartyDependency> {
+  val os: OperatingSystem = DefaultNativePlatform.getCurrentOperatingSystem()
+  return listOf("proguard5.2.1", "proguard6.0.1", "proguard-7.0.0")
+    .map { ThirdPartyDependency(
+        it,
+        Paths.get(
+          "third_party",
+          "proguard",
+          it,
+          "bin",
+          if (os.isWindows) "proguard.bat" else "proguard.sh").toFile(),
+        Paths.get("third_party", "proguard", "${it}.tar.gz.sha1").toFile()
+      )
+    }
 }

@@ -40,7 +40,7 @@ abstract class DownloadDependencyTask : DefaultTask() {
     option = "dependency",
     description = "Sets the dependency information for a cloud stored file")
   fun setDependency(
-    dependencyName : String, sha1File: File, outputDir : File, dependencyType: DependencyType) {
+    dependencyName: String, sha1File: File, outputDir: File, dependencyType: DependencyType) {
     _outputDir = outputDir
     _sha1File = sha1File
     _tarGzFile = sha1File.resolveSibling(sha1File.name.replace(".sha1", ""))
@@ -70,11 +70,10 @@ abstract class DownloadDependencyTask : DefaultTask() {
     getWorkerExecutor()!!
       .noIsolation()
       .submit(RunDownload::class.java) {
-        this.type.set(dependencyType)
+        type.set(dependencyType)
         this.sha1File.set(sha1File)
       }
   }
-
 
   interface RunDownloadParameters : WorkParameters {
     val type : Property<DependencyType>
