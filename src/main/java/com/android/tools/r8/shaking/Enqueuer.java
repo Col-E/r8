@@ -23,7 +23,6 @@ import com.android.tools.r8.contexts.CompilationContext.MethodProcessingContext;
 import com.android.tools.r8.contexts.CompilationContext.ProcessorContext;
 import com.android.tools.r8.dex.IndexedItemCollection;
 import com.android.tools.r8.dex.code.CfOrDexInstruction;
-import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.errors.InterfaceDesugarMissingTypeDiagnostic;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.experimental.graphinfo.GraphConsumer;
@@ -2052,11 +2051,6 @@ public class Enqueuer {
     assert !appView.unboxedEnums().isUnboxedEnum(clazz)
         : "Enum " + clazz.toSourceString() + " has been unboxed but is still in the program.";
 
-    if (options.isGeneratingClassFiles() && clazz.hasPermittedSubclassAttributes()) {
-      throw new CompilationError(
-          "Sealed classes are not supported as program classes when generating class files",
-          clazz.getOrigin());
-    }
     // Mark types in inner-class attributes referenced.
     {
       BiConsumer<DexType, ProgramDerivedContext> missingClassConsumer =

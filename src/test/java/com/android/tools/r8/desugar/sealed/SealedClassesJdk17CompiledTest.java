@@ -67,6 +67,8 @@ public class SealedClassesJdk17CompiledTest extends TestBase {
         testForR8(parameters.getBackend())
             .addProgramFiles(Sealed.jar())
             .setMinApi(parameters)
+            // Keep the sealed class to ensure the PermittedSubclasses attribute stays live.
+            .addKeepPermittedSubclasses(Sealed.Compiler.typeName())
             .addKeepMainRule(Sealed.Main.typeName());
     if (parameters.isCfRuntime()) {
       assertThrows(

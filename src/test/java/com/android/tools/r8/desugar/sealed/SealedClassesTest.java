@@ -73,6 +73,8 @@ public class SealedClassesTest extends TestBase {
         testForR8(parameters.getBackend())
             .apply(this::addTestClasses)
             .setMinApi(parameters)
+            // Keep the sealed class to ensure the PermittedSubclasses attribute stays live.
+            .addKeepPermittedSubclasses(C.class)
             .addKeepMainRule(TestClass.class);
     if (parameters.isCfRuntime()) {
       // TODO(b/227160052): Support sealed classes for R8 class file output.

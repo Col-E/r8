@@ -13,6 +13,7 @@ import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.OptionalBool;
 import com.android.tools.r8.utils.StringUtils;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Sets;
 import java.io.IOException;
 import java.lang.annotation.Annotation;
@@ -239,6 +240,24 @@ public abstract class TestShrinkerBuilder<
   public T addKeepClassRulesWithAllowObfuscation(String... classes) {
     for (String clazz : classes) {
       addKeepRules("-keep,allowobfuscation class " + clazz);
+    }
+    return self();
+  }
+
+  private final List<String> keepModifiers =
+      ImmutableList.of(
+          // TODO: Add allowannotationremoval (currently requires options.isTestingOptionsEnabled())
+          // TODO: Add (optional) allowshrinking as well?
+          "allowobfuscation", "allowoptimization", "allowrepackage");
+
+  public T addKeepPermittedSubclasses(Class<?>... classes) {
+    return addKeepPermittedSubclasses(
+        Arrays.stream(classes).map(Class::getTypeName).toArray(String[]::new));
+  }
+
+  public T addKeepPermittedSubclasses(String... classes) {
+    for (String clazz : classes) {
+      addKeepRules("-keep," + String.join(",", keepModifiers) + " class " + clazz);
     }
     return self();
   }
