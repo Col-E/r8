@@ -373,6 +373,8 @@ public class EnumUnboxingRewriter {
       InstructionListIterator iterator,
       InvokeMethodWithReceiver invoke) {
     ProgramMethod context = code.context();
+    // If the receiver is null, then the invoke is not rewritten even if the receiver is an
+    // unboxed enum, but we end up with null.ordinal() or similar which has the correct behavior.
     DexType enumType = getEnumClassTypeOrNull(invoke.getReceiver(), convertedEnums);
     DexMethod invokedMethod = invoke.getInvokedMethod();
     if (enumType != null) {
