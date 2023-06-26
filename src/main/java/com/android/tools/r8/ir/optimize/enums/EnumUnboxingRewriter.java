@@ -151,7 +151,6 @@ public class EnumUnboxingRewriter {
       return Sets.newIdentityHashSet();
     }
     assert code.isConsistentSSABeforeTypesAreCorrect(appView);
-    ProgramMethod context = code.context();
     EnumUnboxerMethodProcessorEventConsumer eventConsumer = methodProcessor.getEventConsumer();
     Set<Phi> affectedPhis = Sets.newIdentityHashSet();
     Map<Instruction, DexType> convertedEnums =
@@ -178,256 +177,42 @@ public class EnumUnboxingRewriter {
           if (enumType != null) {
             iterator.removeOrReplaceByDebugLocalRead();
           }
-          continue;
-        }
-
-        if (instruction.isIf()) {
-          If ifInstruction = instruction.asIf();
-          if (!ifInstruction.isZeroTest()) {
-            for (int operandIndex = 0; operandIndex < 2; operandIndex++) {
-              Value operand = ifInstruction.getOperand(operandIndex);
-              DexType enumType = getEnumClassTypeOrNull(operand, convertedEnums);
-              if (enumType != null) {
-                int otherOperandIndex = 1 - operandIndex;
-                Value otherOperand = ifInstruction.getOperand(otherOperandIndex);
-                if (otherOperand.getType().isNullType()) {
-                  iterator.previous();
-                  ifInstruction.replaceValue(
-                      otherOperandIndex, iterator.insertConstIntInstruction(code, options, 0));
-                  iterator.next();
-                  break;
-                }
-              }
-            }
-          }
-        }
-
-        // Rewrites specific enum methods, such as ordinal, into their corresponding enum unboxed
-        // counterpart. The rewriting (== or match) is based on the following:
-        // - name, ordinal and compareTo are final and implemented only on java.lang.Enum,
-        // - equals, hashCode are final and implemented in java.lang.Enum and java.lang.Object,
-        // - getClass is final and implemented only in java.lang.Object,
-        // - toString is non-final, implemented in java.lang.Object, java.lang.Enum and possibly
-        //   also in the unboxed enum class.
-        if (instruction.isInvokeMethodWithReceiver()) {
-          InvokeMethodWithReceiver invoke = instruction.asInvokeMethodWithReceiver();
-          DexType enumType = getEnumClassTypeOrNull(invoke.getReceiver(), convertedEnums);
-          DexMethod invokedMethod = invoke.getInvokedMethod();
-          if (enumType != null) {
-            if (invokedMethod == factory.enumMembers.ordinalMethod
-                || invokedMethod.match(factory.enumMembers.hashCode)) {
-              replaceEnumInvoke(
-                  iterator,
-                  invoke,
-                  getSharedUtilityClass().ensureOrdinalMethod(appView, context, eventConsumer));
-              continue;
-            } else if (invokedMethod.match(factory.enumMembers.equals)) {
-              replaceEnumInvoke(
-                  iterator,
-                  invoke,
-                  getSharedUtilityClass().ensureEqualsMethod(appView, context, eventConsumer));
-              continue;
-            } else if (invokedMethod == factory.enumMembers.compareTo
-                || invokedMethod == factory.enumMembers.compareToWithObject) {
-              replaceEnumInvoke(
-                  iterator,
-                  invoke,
-                  getSharedUtilityClass().ensureCompareToMethod(appView, context, eventConsumer));
-              continue;
-            } else if (invokedMethod == factory.enumMembers.nameMethod) {
-              rewriteNameMethod(iterator, invoke, enumType, context, eventConsumer);
-              continue;
-            } else if (invokedMethod.match(factory.enumMembers.toString)) {
-              DexMethod reboundMethod =
-                  invokedMethod.withHolder(unboxedEnumsData.representativeType(enumType), factory);
-              DexMethod lookupMethod =
-                  enumUnboxingLens
-                      .lookupMethod(
-                          reboundMethod,
-                          context.getReference(),
-                          invoke.getType(),
-                          enumUnboxingLens.getPrevious())
-                      .getReference();
-              // If the SuperEnum had declared a toString() override, then the unboxer moves it to
-              // the local utility class method corresponding to that override.
-              // If a SubEnum had declared a toString() override, then the unboxer records a
-              // synthetic move from SuperEnum.toString() to the dispatch method on the local
-              // utility class.
-              // When they are the same, then there are no overrides of toString().
-              if (lookupMethod == reboundMethod) {
-                rewriteNameMethod(iterator, invoke, enumType, context, eventConsumer);
-              } else {
-                DexClassAndMethod dexClassAndMethod = appView.definitionFor(lookupMethod);
-                assert dexClassAndMethod != null;
-                assert dexClassAndMethod.isProgramMethod();
-                replaceEnumInvoke(iterator, invoke, dexClassAndMethod.asProgramMethod());
-              }
-              continue;
-            } else if (invokedMethod == factory.objectMembers.getClass) {
-              rewriteNullCheck(iterator, invoke, context, eventConsumer);
-              continue;
-            } else if (invoke.isInvokeVirtual() || invoke.isInvokeInterface()) {
-              DexMethod refinedDispatchMethodReference =
-                  enumUnboxingLens.lookupRefinedDispatchMethod(
-                      invokedMethod,
-                      context.getReference(),
-                      invoke.getType(),
-                      enumUnboxingLens.getPrevious(),
-                      invoke.getArgument(0).getAbstractValue(appView, context),
-                      enumType);
-              if (refinedDispatchMethodReference != null) {
-                DexClassAndMethod refinedDispatchMethod =
-                    appView.definitionFor(refinedDispatchMethodReference);
-                assert refinedDispatchMethod != null;
-                assert refinedDispatchMethod.isProgramMethod();
-                replaceEnumInvoke(iterator, invoke, refinedDispatchMethod.asProgramMethod());
-              }
-              continue;
-            }
-          } else if (invokedMethod == factory.stringBuilderMethods.appendObject
-              || invokedMethod == factory.stringBufferMethods.appendObject) {
-            // Rewrites stringBuilder.append(enumInstance) as if it was
-            // stringBuilder.append(String.valueOf(unboxedEnumInstance));
-            Value enumArg = invoke.getArgument(1);
-            DexType enumArgType = getEnumClassTypeOrNull(enumArg, convertedEnums);
-            if (enumArgType != null) {
-              ProgramMethod stringValueOfMethod =
-                  getLocalUtilityClass(enumArgType)
-                      .ensureStringValueOfMethod(appView, context, eventConsumer);
-              InvokeStatic toStringInvoke =
-                  InvokeStatic.builder()
-                      .setMethod(stringValueOfMethod)
-                      .setSingleArgument(enumArg)
-                      .setFreshOutValue(appView, code)
-                      .setPosition(invoke)
-                      .build();
-              DexMethod newAppendMethod =
-                  invokedMethod == factory.stringBuilderMethods.appendObject
-                      ? factory.stringBuilderMethods.appendString
-                      : factory.stringBufferMethods.appendString;
-              List<Value> arguments =
-                  ImmutableList.of(invoke.getReceiver(), toStringInvoke.outValue());
-              InvokeVirtual invokeAppendString =
-                  new InvokeVirtual(newAppendMethod, invoke.clearOutValue(), arguments);
-              invokeAppendString.setPosition(invoke.getPosition());
-              iterator.replaceCurrentInstruction(toStringInvoke);
-              if (block.hasCatchHandlers()) {
-                iterator
-                    .splitCopyCatchHandlers(code, blocks, appView.options())
-                    .listIterator(code)
-                    .add(invokeAppendString);
-              } else {
-                iterator.add(invokeAppendString);
-              }
-              continue;
-            }
-          }
+        } else if (instruction.isIf()) {
+          rewriteIf(code, convertedEnums, iterator, instruction.asIf());
+        } else if (instruction.isInvokeMethodWithReceiver()) {
+          rewriteInvokeMethodWithReceiver(
+              code,
+              eventConsumer,
+              convertedEnums,
+              blocks,
+              block,
+              iterator,
+              instruction.asInvokeMethodWithReceiver());
         } else if (instruction.isInvokeStatic()) {
           rewriteInvokeStatic(
               instruction.asInvokeStatic(),
               code,
-              context,
               convertedEnums,
               iterator,
               affectedPhis,
               eventConsumer);
-        }
-        if (instruction.isStaticGet()) {
-          StaticGet staticGet = instruction.asStaticGet();
-          DexField field = staticGet.getField();
-          DexType holder = field.holder;
-          if (!unboxedEnumsData.isUnboxedEnum(holder)) {
-            continue;
-          }
-          if (staticGet.hasUnusedOutValue()) {
-            iterator.removeOrReplaceByDebugLocalRead();
-            continue;
-          }
-          affectedPhis.addAll(staticGet.outValue().uniquePhiUsers());
-          if (unboxedEnumsData.matchesValuesField(field)) {
-            // Load the size of this enum's $VALUES array before the current instruction.
-            iterator.previous();
-            Value sizeValue =
-                iterator.insertConstIntInstruction(
-                    code, options, unboxedEnumsData.getValuesSize(holder));
-            iterator.next();
-
-            // Replace Enum.$VALUES by a call to: int[] SharedUtilityClass.values(int size).
-            InvokeStatic invoke =
-                InvokeStatic.builder()
-                    .setMethod(getSharedUtilityClass().getValuesMethod(context, eventConsumer))
-                    .setFreshOutValue(appView, code)
-                    .setSingleArgument(sizeValue)
-                    .build();
-            iterator.replaceCurrentInstruction(invoke);
-
-            convertedEnums.put(invoke, holder);
-
-            // Check if the call to SharedUtilityClass.values(size) is followed by a call to
-            // clone(). If so, remove it, since SharedUtilityClass.values(size) returns a fresh
-            // array. This is needed because the javac generated implementation of MyEnum.values()
-            // is implemented as `return $VALUES.clone()`.
-            removeRedundantValuesArrayCloning(invoke, instructionsToRemove, seenBlocks);
-          } else if (unboxedEnumsData.hasUnboxedValueFor(field)) {
-            // Replace by ordinal + 1 for null check (null is 0).
-            ConstNumber intConstant =
-                code.createIntConstant(unboxedEnumsData.getUnboxedValue(field));
-            iterator.replaceCurrentInstruction(intConstant);
-            convertedEnums.put(intConstant, holder);
-          } else {
-            // Nothing to do, handled by lens code rewriting.
-          }
-        }
-
-        if (instruction.isInstanceGet()) {
-          InstanceGet instanceGet = instruction.asInstanceGet();
-          DexType holder = instanceGet.getField().holder;
-          if (unboxedEnumsData.isUnboxedEnum(holder)) {
-            ProgramMethod fieldMethod =
-                ensureInstanceFieldMethod(instanceGet.getField(), context, eventConsumer);
-            Value rewrittenOutValue =
-                code.createValue(
-                    TypeElement.fromDexType(fieldMethod.getReturnType(), maybeNull(), appView));
-            Value in = instanceGet.object();
-            if (in.getType().isNullType()) {
-              iterator.previous();
-              in = iterator.insertConstIntInstruction(code, options, 0);
-              iterator.next();
-            }
-            InvokeStatic invoke =
-                new InvokeStatic(
-                    fieldMethod.getReference(), rewrittenOutValue, ImmutableList.of(in));
-            iterator.replaceCurrentInstruction(invoke);
-            if (unboxedEnumsData.isUnboxedEnum(instanceGet.getField().type)) {
-              convertedEnums.put(invoke, instanceGet.getField().type);
-            }
-          }
-        }
-
-        // Rewrite array accesses from MyEnum[] (OBJECT) to int[] (INT).
-        if (instruction.isArrayAccess()) {
-          ArrayAccess arrayAccess = instruction.asArrayAccess();
-          DexType enumType = getEnumArrayTypeOrNull(arrayAccess, convertedEnums);
-          if (enumType != null) {
-            if (arrayAccess.hasOutValue()) {
-              affectedPhis.addAll(arrayAccess.outValue().uniquePhiUsers());
-            }
-            arrayAccess = arrayAccess.withMemberType(MemberType.INT);
-            iterator.replaceCurrentInstruction(arrayAccess);
-            convertedEnums.put(arrayAccess, enumType);
-            if (arrayAccess.isArrayPut()) {
-              ArrayPut arrayPut = arrayAccess.asArrayPut();
-              if (arrayPut.value().getType().isNullType()) {
-                iterator.previous();
-                arrayPut.replacePutValue(iterator.insertConstIntInstruction(code, options, 0));
-                iterator.next();
-              }
-            }
-          }
-          assert validateArrayAccess(arrayAccess);
-        }
-
-        if (instruction.isNewUnboxedEnumInstance()) {
+        } else if (instruction.isStaticGet()) {
+          rewriteStaticGet(
+              code,
+              eventConsumer,
+              affectedPhis,
+              convertedEnums,
+              seenBlocks,
+              instructionsToRemove,
+              iterator,
+              instruction.asStaticGet());
+        } else if (instruction.isInstanceGet()) {
+          rewriteInstanceGet(
+              code, eventConsumer, convertedEnums, iterator, instruction.asInstanceGet());
+        } else if (instruction.isArrayAccess()) {
+          rewriteArrayAccess(
+              code, affectedPhis, convertedEnums, iterator, instruction.asArrayAccess());
+        } else if (instruction.isNewUnboxedEnumInstance()) {
           NewUnboxedEnumInstance newUnboxedEnumInstance = instruction.asNewUnboxedEnumInstance();
           assert unboxedEnumsData.isUnboxedEnum(newUnboxedEnumInstance.getType());
           iterator.replaceCurrentInstruction(
@@ -441,14 +226,265 @@ public class EnumUnboxingRewriter {
     return affectedPhis;
   }
 
+  private void rewriteArrayAccess(
+      IRCode code,
+      Set<Phi> affectedPhis,
+      Map<Instruction, DexType> convertedEnums,
+      InstructionListIterator iterator,
+      ArrayAccess arrayAccess) {
+    // Rewrite array accesses from MyEnum[] (OBJECT) to int[] (INT).
+    DexType enumType = getEnumArrayTypeOrNull(arrayAccess, convertedEnums);
+    if (enumType != null) {
+      if (arrayAccess.hasOutValue()) {
+        affectedPhis.addAll(arrayAccess.outValue().uniquePhiUsers());
+      }
+      arrayAccess = arrayAccess.withMemberType(MemberType.INT);
+      iterator.replaceCurrentInstruction(arrayAccess);
+      convertedEnums.put(arrayAccess, enumType);
+      if (arrayAccess.isArrayPut()) {
+        ArrayPut arrayPut = arrayAccess.asArrayPut();
+        if (arrayPut.value().getType().isNullType()) {
+          iterator.previous();
+          arrayPut.replacePutValue(iterator.insertConstIntInstruction(code, options, 0));
+          iterator.next();
+        }
+      }
+    }
+    assert validateArrayAccess(arrayAccess);
+  }
+
+  private void rewriteIf(
+      IRCode code,
+      Map<Instruction, DexType> convertedEnums,
+      InstructionListIterator iterator,
+      If ifInstruction) {
+    if (!ifInstruction.isZeroTest()) {
+      for (int operandIndex = 0; operandIndex < 2; operandIndex++) {
+        Value operand = ifInstruction.getOperand(operandIndex);
+        DexType enumType = getEnumClassTypeOrNull(operand, convertedEnums);
+        if (enumType != null) {
+          int otherOperandIndex = 1 - operandIndex;
+          Value otherOperand = ifInstruction.getOperand(otherOperandIndex);
+          if (otherOperand.getType().isNullType()) {
+            iterator.previous();
+            ifInstruction.replaceValue(
+                otherOperandIndex, iterator.insertConstIntInstruction(code, options, 0));
+            iterator.next();
+            break;
+          }
+        }
+      }
+    }
+  }
+
+  private void rewriteInstanceGet(
+      IRCode code,
+      EnumUnboxerMethodProcessorEventConsumer eventConsumer,
+      Map<Instruction, DexType> convertedEnums,
+      InstructionListIterator iterator,
+      InstanceGet instanceGet) {
+    DexType holder = instanceGet.getField().holder;
+    if (unboxedEnumsData.isUnboxedEnum(holder)) {
+      ProgramMethod fieldMethod =
+          ensureInstanceFieldMethod(instanceGet.getField(), code.context(), eventConsumer);
+      Value rewrittenOutValue =
+          code.createValue(
+              TypeElement.fromDexType(fieldMethod.getReturnType(), maybeNull(), appView));
+      Value in = instanceGet.object();
+      if (in.getType().isNullType()) {
+        iterator.previous();
+        in = iterator.insertConstIntInstruction(code, options, 0);
+        iterator.next();
+      }
+      InvokeStatic invoke =
+          new InvokeStatic(fieldMethod.getReference(), rewrittenOutValue, ImmutableList.of(in));
+      iterator.replaceCurrentInstruction(invoke);
+      if (unboxedEnumsData.isUnboxedEnum(instanceGet.getField().type)) {
+        convertedEnums.put(invoke, instanceGet.getField().type);
+      }
+    }
+  }
+
+  private void rewriteStaticGet(
+      IRCode code,
+      EnumUnboxerMethodProcessorEventConsumer eventConsumer,
+      Set<Phi> affectedPhis,
+      Map<Instruction, DexType> convertedEnums,
+      Set<BasicBlock> seenBlocks,
+      Set<Instruction> instructionsToRemove,
+      InstructionListIterator iterator,
+      StaticGet staticGet) {
+    DexField field = staticGet.getField();
+    DexType holder = field.holder;
+    if (!unboxedEnumsData.isUnboxedEnum(holder)) {
+      return;
+    }
+    if (staticGet.hasUnusedOutValue()) {
+      iterator.removeOrReplaceByDebugLocalRead();
+      return;
+    }
+    affectedPhis.addAll(staticGet.outValue().uniquePhiUsers());
+    if (unboxedEnumsData.matchesValuesField(field)) {
+      // Load the size of this enum's $VALUES array before the current instruction.
+      iterator.previous();
+      Value sizeValue =
+          iterator.insertConstIntInstruction(code, options, unboxedEnumsData.getValuesSize(holder));
+      iterator.next();
+
+      // Replace Enum.$VALUES by a call to: int[] SharedUtilityClass.values(int size).
+      InvokeStatic invoke =
+          InvokeStatic.builder()
+              .setMethod(getSharedUtilityClass().getValuesMethod(code.context(), eventConsumer))
+              .setFreshOutValue(appView, code)
+              .setSingleArgument(sizeValue)
+              .build();
+      iterator.replaceCurrentInstruction(invoke);
+
+      convertedEnums.put(invoke, holder);
+
+      // Check if the call to SharedUtilityClass.values(size) is followed by a call to
+      // clone(). If so, remove it, since SharedUtilityClass.values(size) returns a fresh
+      // array. This is needed because the javac generated implementation of MyEnum.values()
+      // is implemented as `return $VALUES.clone()`.
+      removeRedundantValuesArrayCloning(invoke, instructionsToRemove, seenBlocks);
+    } else if (unboxedEnumsData.hasUnboxedValueFor(field)) {
+      // Replace by ordinal + 1 for null check (null is 0).
+      ConstNumber intConstant = code.createIntConstant(unboxedEnumsData.getUnboxedValue(field));
+      iterator.replaceCurrentInstruction(intConstant);
+      convertedEnums.put(intConstant, holder);
+    } else {
+      // Nothing to do, handled by lens code rewriting.
+    }
+  }
+
+  // Rewrites specific enum methods, such as ordinal, into their corresponding enum unboxed
+  // counterpart. The rewriting (== or match) is based on the following:
+  // - name, ordinal and compareTo are final and implemented only on java.lang.Enum,
+  // - equals, hashCode are final and implemented in java.lang.Enum and java.lang.Object,
+  // - getClass is final and implemented only in java.lang.Object,
+  // - toString is non-final, implemented in java.lang.Object, java.lang.Enum and possibly
+  //   also in the unboxed enum class.
+  private void rewriteInvokeMethodWithReceiver(
+      IRCode code,
+      EnumUnboxerMethodProcessorEventConsumer eventConsumer,
+      Map<Instruction, DexType> convertedEnums,
+      BasicBlockIterator blocks,
+      BasicBlock block,
+      InstructionListIterator iterator,
+      InvokeMethodWithReceiver invoke) {
+    ProgramMethod context = code.context();
+    DexType enumType = getEnumClassTypeOrNull(invoke.getReceiver(), convertedEnums);
+    DexMethod invokedMethod = invoke.getInvokedMethod();
+    if (enumType != null) {
+      if (invokedMethod == factory.enumMembers.ordinalMethod
+          || invokedMethod.match(factory.enumMembers.hashCode)) {
+        replaceEnumInvoke(
+            iterator,
+            invoke,
+            getSharedUtilityClass().ensureOrdinalMethod(appView, context, eventConsumer));
+      } else if (invokedMethod.match(factory.enumMembers.equals)) {
+        replaceEnumInvoke(
+            iterator,
+            invoke,
+            getSharedUtilityClass().ensureEqualsMethod(appView, context, eventConsumer));
+      } else if (invokedMethod == factory.enumMembers.compareTo
+          || invokedMethod == factory.enumMembers.compareToWithObject) {
+        replaceEnumInvoke(
+            iterator,
+            invoke,
+            getSharedUtilityClass().ensureCompareToMethod(appView, context, eventConsumer));
+      } else if (invokedMethod == factory.enumMembers.nameMethod) {
+        rewriteNameMethod(iterator, invoke, enumType, context, eventConsumer);
+      } else if (invokedMethod.match(factory.enumMembers.toString)) {
+        DexMethod reboundMethod =
+            invokedMethod.withHolder(unboxedEnumsData.representativeType(enumType), factory);
+        DexMethod lookupMethod =
+            enumUnboxingLens
+                .lookupMethod(
+                    reboundMethod,
+                    context.getReference(),
+                    invoke.getType(),
+                    enumUnboxingLens.getPrevious())
+                .getReference();
+        // If the SuperEnum had declared a toString() override, then the unboxer moves it to
+        // the local utility class method corresponding to that override.
+        // If a SubEnum had declared a toString() override, then the unboxer records a
+        // synthetic move from SuperEnum.toString() to the dispatch method on the local
+        // utility class.
+        // When they are the same, then there are no overrides of toString().
+        if (lookupMethod == reboundMethod) {
+          rewriteNameMethod(iterator, invoke, enumType, context, eventConsumer);
+        } else {
+          DexClassAndMethod dexClassAndMethod = appView.definitionFor(lookupMethod);
+          assert dexClassAndMethod != null;
+          assert dexClassAndMethod.isProgramMethod();
+          replaceEnumInvoke(iterator, invoke, dexClassAndMethod.asProgramMethod());
+        }
+      } else if (invokedMethod == factory.objectMembers.getClass) {
+        rewriteNullCheck(iterator, invoke, context, eventConsumer);
+      } else if (invoke.isInvokeVirtual() || invoke.isInvokeInterface()) {
+        DexMethod refinedDispatchMethodReference =
+            enumUnboxingLens.lookupRefinedDispatchMethod(
+                invokedMethod,
+                context.getReference(),
+                invoke.getType(),
+                enumUnboxingLens.getPrevious(),
+                invoke.getArgument(0).getAbstractValue(appView, context),
+                enumType);
+        if (refinedDispatchMethodReference != null) {
+          DexClassAndMethod refinedDispatchMethod =
+              appView.definitionFor(refinedDispatchMethodReference);
+          assert refinedDispatchMethod != null;
+          assert refinedDispatchMethod.isProgramMethod();
+          replaceEnumInvoke(iterator, invoke, refinedDispatchMethod.asProgramMethod());
+        }
+      }
+    } else if (invokedMethod == factory.stringBuilderMethods.appendObject
+        || invokedMethod == factory.stringBufferMethods.appendObject) {
+      // Rewrites stringBuilder.append(enumInstance) as if it was
+      // stringBuilder.append(String.valueOf(unboxedEnumInstance));
+      Value enumArg = invoke.getArgument(1);
+      DexType enumArgType = getEnumClassTypeOrNull(enumArg, convertedEnums);
+      if (enumArgType != null) {
+        ProgramMethod stringValueOfMethod =
+            getLocalUtilityClass(enumArgType)
+                .ensureStringValueOfMethod(appView, context, eventConsumer);
+        InvokeStatic toStringInvoke =
+            InvokeStatic.builder()
+                .setMethod(stringValueOfMethod)
+                .setSingleArgument(enumArg)
+                .setFreshOutValue(appView, code)
+                .setPosition(invoke)
+                .build();
+        DexMethod newAppendMethod =
+            invokedMethod == factory.stringBuilderMethods.appendObject
+                ? factory.stringBuilderMethods.appendString
+                : factory.stringBufferMethods.appendString;
+        List<Value> arguments = ImmutableList.of(invoke.getReceiver(), toStringInvoke.outValue());
+        InvokeVirtual invokeAppendString =
+            new InvokeVirtual(newAppendMethod, invoke.clearOutValue(), arguments);
+        invokeAppendString.setPosition(invoke.getPosition());
+        iterator.replaceCurrentInstruction(toStringInvoke);
+        if (block.hasCatchHandlers()) {
+          iterator
+              .splitCopyCatchHandlers(code, blocks, appView.options())
+              .listIterator(code)
+              .add(invokeAppendString);
+        } else {
+          iterator.add(invokeAppendString);
+        }
+      }
+    }
+  }
+
   private void rewriteInvokeStatic(
       InvokeStatic invoke,
       IRCode code,
-      ProgramMethod context,
       Map<Instruction, DexType> convertedEnums,
       InstructionListIterator instructionIterator,
       Set<Phi> affectedPhis,
       EnumUnboxerMethodProcessorEventConsumer eventConsumer) {
+    ProgramMethod context = code.context();
     DexClassAndMethod singleTarget = invoke.lookupSingleTarget(appView, context);
     if (singleTarget == null) {
       return;
