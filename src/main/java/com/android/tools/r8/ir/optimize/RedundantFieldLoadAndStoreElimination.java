@@ -8,6 +8,7 @@ import static com.android.tools.r8.utils.MapUtils.ignoreKey;
 import static com.android.tools.r8.utils.PredicateUtils.not;
 
 import com.android.tools.r8.errors.Unreachable;
+import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClassAndField;
 import com.android.tools.r8.graph.DexClassAndMethod;
@@ -41,6 +42,8 @@ import com.android.tools.r8.ir.code.Phi;
 import com.android.tools.r8.ir.code.StaticGet;
 import com.android.tools.r8.ir.code.StaticPut;
 import com.android.tools.r8.ir.code.Value;
+import com.android.tools.r8.ir.conversion.passes.CodeRewriterPass;
+import com.android.tools.r8.ir.conversion.passes.result.CodeRewriterResult;
 import com.android.tools.r8.ir.optimize.info.field.InstanceFieldInitializationInfoCollection;
 import com.android.tools.r8.ir.optimize.info.initializer.InstanceInitializerInfo;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
@@ -63,12 +66,11 @@ import java.util.Set;
  * <p>Simple algorithm that goes through all blocks in one pass in topological order and propagates
  * active field sets across control-flow edges where the target has only one predecessor.
  */
-public class RedundantFieldLoadAndStoreElimination {
+public class RedundantFieldLoadAndStoreElimination extends CodeRewriterPass<AppInfo> {
 
   private static final int MAX_CAPACITY = 10000;
   private static final int MIN_CAPACITY_PER_BLOCK = 50;
 
-  private final AppView<?> appView;
   private final ProgramMethod method;
   private final IRCode code;
   private final int maxCapacityPerBlock;
@@ -87,18 +89,30 @@ public class RedundantFieldLoadAndStoreElimination {
   private final Map<BasicBlock, Set<Instruction>> instructionsToRemove = new IdentityHashMap<>();
 
   public RedundantFieldLoadAndStoreElimination(AppView<?> appView, IRCode code) {
-    this.appView = appView;
+    super(appView);
     this.method = code.context();
     this.code = code;
     this.maxCapacityPerBlock = Math.max(MIN_CAPACITY_PER_BLOCK, MAX_CAPACITY / code.blocks.size());
     this.release = !appView.options().debug;
   }
 
-  public static boolean shouldRun(AppView<?> appView, IRCode code) {
+  @Override
+  protected String getTimingId() {
+    return "RedundantFieldLoadAndStoreElimination";
+  }
+
+  @Override
+  protected boolean shouldRewriteCode(IRCode code) {
     return appView.options().enableRedundantFieldLoadElimination
         && (code.metadata().mayHaveArrayGet()
             || code.metadata().mayHaveFieldInstruction()
             || code.metadata().mayHaveInitClass());
+  }
+
+  @Override
+  protected CodeRewriterResult rewriteCode(IRCode code) {
+    run();
+    return CodeRewriterResult.NONE;
   }
 
   private interface FieldValue {

@@ -767,11 +767,7 @@ public class IRConverter {
     }
     new SplitBranch(appView).run(code, timing);
     new RedundantConstNumberRemover(appView).run(code, timing);
-    if (RedundantFieldLoadAndStoreElimination.shouldRun(appView, code)) {
-      timing.begin("Remove field loads");
-      new RedundantFieldLoadAndStoreElimination(appView, code).run();
-      timing.end();
-    }
+    new RedundantFieldLoadAndStoreElimination(appView, code).run(code, timing);
     new BinopRewriter(appView).run(code, timing);
 
     timing.begin("Optimize class initializers");
