@@ -58,7 +58,8 @@ public class NaturalIntLoopRemover extends CodeRewriterPass<AppInfo> {
 
   @Override
   protected boolean shouldRewriteCode(IRCode code) {
-    return appView.options().enableLoopUnrolling;
+    // This is relevant only if a loop may be present, which implies at least 4 blocks.
+    return appView.options().enableLoopUnrolling && code.getBlocks().size() >= 4;
   }
 
   private boolean isComparisonBlock(BasicBlock comparisonBlockCandidate) {

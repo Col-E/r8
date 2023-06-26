@@ -40,7 +40,8 @@ public class SplitBranch extends CodeRewriterPass<AppInfo> {
 
   @Override
   protected boolean shouldRewriteCode(IRCode code) {
-    return true;
+    // This is relevant only if there is a diamond followed by an if which is a minimum of 6 blocks.
+    return code.getBlocks().size() >= 6;
   }
 
   /**

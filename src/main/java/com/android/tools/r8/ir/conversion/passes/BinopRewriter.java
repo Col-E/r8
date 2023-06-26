@@ -245,7 +245,9 @@ public class BinopRewriter extends CodeRewriterPass<AppInfo> {
 
   @Override
   protected boolean shouldRewriteCode(IRCode code) {
-    return options.testing.enableBinopOptimization && !isDebugMode(code.context());
+    return options.testing.enableBinopOptimization
+        && !isDebugMode(code.context())
+        && code.metadata().mayHaveArithmeticOrLogicalBinop();
   }
 
   @Override
