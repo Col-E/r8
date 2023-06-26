@@ -4,20 +4,22 @@
 
 package com.android.tools.r8.desugar.sealed;
 
-import static com.android.tools.r8.DiagnosticsMatcher.diagnosticMessage;
-import static org.hamcrest.CoreMatchers.containsString;
-import static org.junit.Assert.assertThrows;
+import static junit.framework.Assert.assertEquals;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assume.assumeTrue;
 
-import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.DesugarTestConfiguration;
-import com.android.tools.r8.R8FullTestBuilder;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.TestRuntime.CfVm;
+import com.android.tools.r8.TestShrinkerBuilder;
 import com.android.tools.r8.examples.jdk17.Sealed;
+import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.StringUtils;
+import com.android.tools.r8.utils.codeinspector.ClassSubject;
+import com.android.tools.r8.utils.codeinspector.CodeInspector;
+import com.android.tools.r8.utils.codeinspector.Matchers;
+import java.util.List;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -30,16 +32,22 @@ public class SealedClassesJdk17CompiledTest extends TestBase {
   @Parameter(0)
   public TestParameters parameters;
 
+  @Parameter(1)
+  public boolean keepPermittedSubclassesAttribute;
+
   static final String EXPECTED = StringUtils.lines("R8 compiler", "D8 compiler");
 
-  @Parameters(name = "{0}")
-  public static TestParametersCollection data() {
-    return getTestParameters().withAllRuntimes().withAllApiLevelsAlsoForCf().build();
+  @Parameters(name = "{0}, keepPermittedSubclasses = {1}")
+  public static List<Object[]> data() {
+    return buildParameters(
+        getTestParameters().withAllRuntimes().withAllApiLevelsAlsoForCf().build(),
+        BooleanUtils.values());
   }
 
   @Test
   public void testJvm() throws Exception {
     parameters.assumeJvmTestParameters();
+    assumeTrue(keepPermittedSubclassesAttribute);
     assumeTrue(parameters.asCfRuntime().isNewerThanOrEqual(CfVm.JDK17));
     testForJvm(parameters)
         .addRunClasspathFiles(Sealed.jar())
@@ -49,6 +57,7 @@ public class SealedClassesJdk17CompiledTest extends TestBase {
 
   @Test
   public void testDesugaring() throws Exception {
+    assumeTrue(keepPermittedSubclassesAttribute);
     testForDesugaring(parameters)
         .addProgramFiles(Sealed.jar())
         .run(parameters.getRuntime(), Sealed.Main.typeName())
@@ -60,30 +69,35 @@ public class SealedClassesJdk17CompiledTest extends TestBase {
             r -> r.assertFailureWithErrorThatThrows(UnsupportedClassVersionError.class));
   }
 
+  private void inspect(CodeInspector inspector) {
+    ClassSubject clazz = inspector.clazz("sealed.Compiler");
+    assertThat(clazz, Matchers.isPresentAndRenamed());
+    if (!parameters.isCfRuntime()) {
+      return;
+    }
+    assertEquals(
+        keepPermittedSubclassesAttribute ? 2 : 0,
+        clazz.getFinalPermittedSubclassAttributes().size());
+  }
+
   @Test
   public void testR8() throws Exception {
     parameters.assumeR8TestParameters();
-    R8FullTestBuilder builder =
-        testForR8(parameters.getBackend())
-            .addProgramFiles(Sealed.jar())
-            .setMinApi(parameters)
-            // Keep the sealed class to ensure the PermittedSubclasses attribute stays live.
-            .addKeepPermittedSubclasses(Sealed.Compiler.typeName())
-            .addKeepMainRule(Sealed.Main.typeName());
-    if (parameters.isCfRuntime()) {
-      assertThrows(
-          CompilationFailedException.class,
-          () ->
-              builder.compileWithExpectedDiagnostics(
-                  diagnostics ->
-                      diagnostics.assertErrorThatMatches(
-                          diagnosticMessage(
-                              containsString(
-                                  "Sealed classes are not supported as program classes")))));
-    } else {
-      builder
-          .run(parameters.getRuntime(), Sealed.Main.typeName())
-          .assertSuccessWithOutput(EXPECTED);
-    }
+    testForR8(parameters.getBackend())
+        .addProgramFiles(Sealed.jar())
+        .setMinApi(parameters)
+        .applyIf(
+            keepPermittedSubclassesAttribute,
+            TestShrinkerBuilder::addKeepAttributePermittedSubclasses)
+        // Keep the sealed class to ensure the PermittedSubclasses attribute stays live.
+        .addKeepPermittedSubclasses(Sealed.Compiler.typeName())
+        .addKeepMainRule(Sealed.Main.typeName())
+        .compile()
+        .inspect(this::inspect)
+        .run(parameters.getRuntime(), Sealed.Main.typeName())
+        .applyIf(
+            parameters.isDexRuntime() || parameters.asCfRuntime().isNewerThanOrEqual(CfVm.JDK17),
+            r -> r.assertSuccessWithOutput(EXPECTED),
+            r -> r.assertFailureWithErrorThatThrows(UnsupportedClassVersionError.class));
   }
 }

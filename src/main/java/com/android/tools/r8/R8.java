@@ -13,7 +13,6 @@ import com.android.tools.r8.dex.ApplicationReader;
 import com.android.tools.r8.dex.ApplicationWriter;
 import com.android.tools.r8.dex.Marker;
 import com.android.tools.r8.errors.CheckDiscardDiagnostic;
-import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.experimental.graphinfo.GraphConsumer;
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppServices;
@@ -822,15 +821,6 @@ public class R8 {
       }
 
       // Generate the resulting application resources.
-      if (options.isGeneratingClassFiles()) {
-        for (DexProgramClass clazz : appView.appInfo().classes()) {
-          if (clazz.hasPermittedSubclassAttributes()) {
-            throw new CompilationError(
-                "Sealed classes are not supported as program classes when generating class files",
-                clazz.getOrigin());
-          }
-        }
-      }
       writeApplication(appView, inputApp, executorService);
 
       assert appView.getDontWarnConfiguration().validate(options);

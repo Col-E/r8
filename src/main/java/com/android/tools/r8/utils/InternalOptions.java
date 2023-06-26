@@ -828,6 +828,12 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
     return proguardConfiguration.getKeepAttributes().runtimeInvisibleTypeAnnotations;
   }
 
+  @Override
+  public boolean isKeepPermittedSubclassesEnabled() {
+    return proguardConfiguration == null
+        || proguardConfiguration.getKeepAttributes().permittedSubclasses;
+  }
+
   /**
    * If any non-static class merging is enabled, information about types referred to by instanceOf
    * and check cast instructions needs to be collected.

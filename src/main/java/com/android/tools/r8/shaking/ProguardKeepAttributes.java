@@ -31,6 +31,7 @@ public class ProguardKeepAttributes {
   public static final String RUNTIME_INVISIBLE_TYPE_ANNOTATIONS =
       "RuntimeInvisibleTypeAnnotations";
   public static final String ANNOTATION_DEFAULT = "AnnotationDefault";
+  public static final String PERMITTED_SUBCLASSES = "PermittedSubclasses";
   public static final String STACK_MAP_TABLE = "StackMapTable";
 
   public static final List<String> KEEP_ALL = ImmutableList.of("*");
@@ -54,6 +55,7 @@ public class ProguardKeepAttributes {
   public boolean runtimeInvisibleTypeAnnotations = false;
   public boolean annotationDefault = false;
   public boolean stackMapTable = false;
+  public boolean permittedSubclasses = false;
 
   private ProguardKeepAttributes() {
   }
@@ -138,6 +140,7 @@ public class ProguardKeepAttributes {
         RUNTIME_INVISIBLE_TYPE_ANNOTATIONS, patterns);
     annotationDefault = update(annotationDefault, ANNOTATION_DEFAULT, patterns);
     stackMapTable = update(stackMapTable, STACK_MAP_TABLE, patterns);
+    permittedSubclasses = update(permittedSubclasses, PERMITTED_SUBCLASSES, patterns);
   }
 
   public void ensureValid(boolean forceProguardCompatibility) {
@@ -189,7 +192,8 @@ public class ProguardKeepAttributes {
         && this.runtimeVisibleTypeAnnotations == other.runtimeVisibleTypeAnnotations
         && this.runtimeInvisibleTypeAnnotations == other.runtimeInvisibleTypeAnnotations
         && this.annotationDefault == other.annotationDefault
-        && this.stackMapTable == other.stackMapTable;
+        && this.stackMapTable == other.stackMapTable
+        && this.permittedSubclasses == other.permittedSubclasses;
   }
 
   @Override
@@ -209,7 +213,8 @@ public class ProguardKeepAttributes {
         + (this.runtimeInvisibleTypeAnnotations ? 1 << 12 : 0)
         + (this.annotationDefault ? 1 << 13 : 0)
         + (this.stackMapTable ? 1 << 14 : 0)
-        + (this.methodParameters ? 1 << 15 : 0);
+        + (this.methodParameters ? 1 << 15 : 0)
+        + (this.permittedSubclasses ? 1 << 16 : 0);
   }
 
   public boolean isEmpty() {
@@ -228,7 +233,8 @@ public class ProguardKeepAttributes {
         && !runtimeVisibleTypeAnnotations
         && !runtimeInvisibleTypeAnnotations
         && !annotationDefault
-        && !stackMapTable;
+        && !stackMapTable
+        && !permittedSubclasses;
   }
 
   public StringBuilder append(StringBuilder builder) {
@@ -280,6 +286,9 @@ public class ProguardKeepAttributes {
     }
     if (stackMapTable) {
       attributes.add(STACK_MAP_TABLE);
+    }
+    if (permittedSubclasses) {
+      attributes.add(PERMITTED_SUBCLASSES);
     }
 
     if (attributes.size() > 0) {

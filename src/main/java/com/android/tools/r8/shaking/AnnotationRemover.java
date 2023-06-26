@@ -360,6 +360,9 @@ public class AnnotationRemover {
     if (clazz.getClassSignature().isValid() && keepInfo.isSignatureRemovalAllowed(options)) {
       clazz.clearClassSignature();
     }
+    if (keepInfo.isPermittedSubclassesRemovalAllowed(options)) {
+      clazz.clearPermittedSubclasses();
+    }
   }
 
   private boolean canRemoveInnerClassAttribute(

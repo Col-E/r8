@@ -4,20 +4,25 @@
 
 package com.android.tools.r8.desugar.sealed;
 
-import static com.android.tools.r8.DiagnosticsMatcher.diagnosticMessage;
+import static junit.framework.Assert.assertEquals;
 import static org.hamcrest.CoreMatchers.containsString;
-import static org.junit.Assert.assertThrows;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.Assume.assumeFalse;
 import static org.junit.Assume.assumeTrue;
 
-import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.DesugarTestConfiguration;
-import com.android.tools.r8.R8FullTestBuilder;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestBuilder;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.TestRuntime.CfVm;
+import com.android.tools.r8.TestShrinkerBuilder;
+import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.StringUtils;
+import com.android.tools.r8.utils.codeinspector.ClassSubject;
+import com.android.tools.r8.utils.codeinspector.CodeInspector;
+import com.android.tools.r8.utils.codeinspector.Matchers;
+import java.util.List;
+import org.hamcrest.Matcher;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -30,11 +35,18 @@ public class SealedClassesIllegalSubclassTest extends TestBase {
   @Parameter(0)
   public TestParameters parameters;
 
-  static final String EXPECTED = StringUtils.lines("Success!");
+  @Parameter(1)
+  public boolean keepPermittedSubclassesAttribute;
 
-  @Parameters(name = "{0}")
-  public static TestParametersCollection data() {
-    return getTestParameters().withAllRuntimes().withAllApiLevelsAlsoForCf().build();
+  static final Matcher<String> EXPECTED = containsString("cannot inherit from sealed class");
+  static final String EXPECTED_WITHOUT_PERMITTED_SUBCLASSES_ATTRIBUTE =
+      StringUtils.lines("Success!");
+
+  @Parameters(name = "{0}, keepPermittedSubclasses = {1}")
+  public static List<Object[]> data() {
+    return buildParameters(
+        getTestParameters().withAllRuntimes().withAllApiLevelsAlsoForCf().build(),
+        BooleanUtils.values());
   }
 
   private void addTestClasses(TestBuilder<?, ?> builder) throws Exception {
@@ -46,54 +58,67 @@ public class SealedClassesIllegalSubclassTest extends TestBase {
   @Test
   public void testJvm() throws Exception {
     parameters.assumeJvmTestParameters();
+    assumeTrue(keepPermittedSubclassesAttribute);
     assumeTrue(parameters.asCfRuntime().isNewerThanOrEqual(CfVm.JDK17));
     testForJvm(parameters)
         .apply(this::addTestClasses)
         .run(parameters.getRuntime(), TestClass.class)
-        .assertFailureWithErrorThatMatches(containsString("cannot inherit from sealed class"));
+        .assertFailureWithErrorThatMatches(EXPECTED);
   }
 
   @Test
   public void testDesugaring() throws Exception {
+    assumeTrue(keepPermittedSubclassesAttribute);
     testForDesugaring(parameters)
         .apply(this::addTestClasses)
         .run(parameters.getRuntime(), TestClass.class)
         .applyIf(
             DesugarTestConfiguration::isNotJavac,
-            r -> r.assertSuccessWithOutput(EXPECTED),
+            r -> r.assertSuccessWithOutput(EXPECTED_WITHOUT_PERMITTED_SUBCLASSES_ATTRIBUTE),
             c -> parameters.getRuntime().asCf().isNewerThanOrEqual(CfVm.JDK17),
-            r ->
-                r.assertFailureWithErrorThatMatches(
-                    containsString("cannot inherit from sealed class")),
+            r -> r.assertFailureWithErrorThatMatches(EXPECTED),
             r -> r.assertFailureWithErrorThatThrows(UnsupportedClassVersionError.class));
+  }
+
+  private void inspect(CodeInspector inspector) {
+    ClassSubject clazz = inspector.clazz(C.class);
+    assertThat(clazz, Matchers.isPresentAndRenamed());
+    if (!parameters.isCfRuntime()) {
+      return;
+    }
+    assertEquals(
+        keepPermittedSubclassesAttribute ? 2 : 0,
+        clazz.getFinalPermittedSubclassAttributes().size());
   }
 
   @Test
   public void testR8() throws Exception {
     parameters.assumeR8TestParameters();
-    R8FullTestBuilder builder =
-        testForR8(parameters.getBackend())
-            .apply(this::addTestClasses)
-            .setMinApi(parameters)
-            // Keep the sealed class to ensure the PermittedSubclasses attribute stays live.
-            .addKeepPermittedSubclasses(C.class)
-            .addKeepMainRule(TestClass.class);
-    if (parameters.isCfRuntime()) {
-      // TODO(b/227160052): Support sealed classes for R8 class file output.
-      assertThrows(
-          CompilationFailedException.class,
-          () ->
-              builder.compileWithExpectedDiagnostics(
-                  diagnostics ->
-                      diagnostics.assertErrorThatMatches(
-                          diagnosticMessage(
-                              containsString(
-                                  "Sealed classes are not supported as program classes")))));
-    } else {
-      builder
-          .run(parameters.getRuntime(), TestClass.class)
-          .assertSuccessWithOutputLines("Success!");
-    }
+    assumeFalse(parameters.isDexRuntime() && keepPermittedSubclassesAttribute);
+    testForR8(parameters.getBackend())
+        .apply(this::addTestClasses)
+        .setMinApi(parameters)
+        .applyIf(
+            keepPermittedSubclassesAttribute,
+            TestShrinkerBuilder::addKeepAttributePermittedSubclasses)
+        // Keep the sealed class to ensure the PermittedSubclasses attribute stays live.
+        .addKeepPermittedSubclasses(C.class)
+        // Keep subclasses as the PermittedSubclasses attribute is not rewritten.
+        .addKeepRules("-keep class * extends " + C.class.getTypeName())
+        .addKeepMainRule(TestClass.class)
+        .compile()
+        .inspect(this::inspect)
+        .run(parameters.getRuntime(), TestClass.class)
+        .applyIf(
+            parameters.isDexRuntime()
+                || (!keepPermittedSubclassesAttribute
+                    && parameters.asCfRuntime().isNewerThanOrEqual(CfVm.JDK17)),
+            r -> r.assertSuccessWithOutput(EXPECTED_WITHOUT_PERMITTED_SUBCLASSES_ATTRIBUTE),
+            parameters.isCfRuntime()
+                && parameters.asCfRuntime().isNewerThanOrEqual(CfVm.JDK17)
+                && keepPermittedSubclassesAttribute,
+            r -> r.assertFailureWithErrorThatMatches(EXPECTED),
+            r -> r.assertFailureWithErrorThatThrows(UnsupportedClassVersionError.class));
   }
 
   public byte[] getTransformedClasses() throws Exception {

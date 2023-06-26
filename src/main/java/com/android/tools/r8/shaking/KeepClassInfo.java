@@ -14,10 +14,12 @@ import java.util.function.Function;
 public final class KeepClassInfo extends KeepInfo<KeepClassInfo.Builder, KeepClassInfo> {
 
   // Requires all aspects of a class to be kept.
-  private static final KeepClassInfo TOP = new Builder().makeTop().disallowRepackaging().build();
+  private static final KeepClassInfo TOP =
+      new Builder().makeTop().disallowRepackaging().disallowPermittedSubclassesRemoval().build();
 
   // Requires no aspects of a class to be kept.
-  private static final KeepClassInfo BOTTOM = new Builder().makeBottom().allowRepackaging().build();
+  private static final KeepClassInfo BOTTOM =
+      new Builder().makeBottom().allowRepackaging().allowPermittedSubclassesRemoval().build();
 
   public static KeepClassInfo top() {
     return TOP;
@@ -33,11 +35,13 @@ public final class KeepClassInfo extends KeepInfo<KeepClassInfo.Builder, KeepCla
 
   private final boolean allowRepackaging;
   private final boolean checkEnumUnboxed;
+  private final boolean allowPermittedSubclassesRemoval;
 
   private KeepClassInfo(Builder builder) {
     super(builder);
     this.allowRepackaging = builder.isRepackagingAllowed();
     this.checkEnumUnboxed = builder.isCheckEnumUnboxedEnabled();
+    this.allowPermittedSubclassesRemoval = builder.isPermittedSubclassesRemovalAllowed();
   }
 
   @Override
@@ -56,6 +60,11 @@ public final class KeepClassInfo extends KeepInfo<KeepClassInfo.Builder, KeepCla
   public Joiner joiner() {
     assert !isTop();
     return new Joiner(this);
+  }
+
+  public boolean isPermittedSubclassesRemovalAllowed(GlobalKeepInfoConfiguration configuration) {
+    return !configuration.isKeepPermittedSubclassesEnabled()
+        && internalIsPermittedSubclassesRemovalAllowed();
   }
 
   /**
@@ -92,6 +101,10 @@ public final class KeepClassInfo extends KeepInfo<KeepClassInfo.Builder, KeepCla
         || !getClassInfo.apply(kotlinMetadataClass.asProgramClass()).isShrinkingAllowed(options);
   }
 
+  boolean internalIsPermittedSubclassesRemovalAllowed() {
+    return allowPermittedSubclassesRemoval;
+  }
+
   @Override
   public boolean isTop() {
     return this.equals(top());
@@ -106,6 +119,7 @@ public final class KeepClassInfo extends KeepInfo<KeepClassInfo.Builder, KeepCla
 
     private boolean allowRepackaging;
     private boolean checkEnumUnboxed;
+    private boolean allowPermittedSubclassesRemoval;
 
     private Builder() {
       super();
@@ -115,6 +129,7 @@ public final class KeepClassInfo extends KeepInfo<KeepClassInfo.Builder, KeepCla
       super(original);
       allowRepackaging = original.internalIsRepackagingAllowed();
       checkEnumUnboxed = original.internalIsCheckEnumUnboxedEnabled();
+      allowPermittedSubclassesRemoval = original.internalIsPermittedSubclassesRemovalAllowed();
     }
 
     // Check enum unboxed.
@@ -153,6 +168,23 @@ public final class KeepClassInfo extends KeepInfo<KeepClassInfo.Builder, KeepCla
       return setCheckEnumUnboxed(false);
     }
 
+    public Builder allowPermittedSubclassesRemoval() {
+      return setAllowPermittedSubclassesRemoval(true);
+    }
+
+    public boolean isPermittedSubclassesRemovalAllowed() {
+      return allowPermittedSubclassesRemoval;
+    }
+
+    private Builder setAllowPermittedSubclassesRemoval(boolean allowPermittedSubclassesRemoval) {
+      this.allowPermittedSubclassesRemoval = allowPermittedSubclassesRemoval;
+      return self();
+    }
+
+    public Builder disallowPermittedSubclassesRemoval() {
+      return setAllowPermittedSubclassesRemoval(false);
+    }
+
     @Override
     public KeepClassInfo getTopInfo() {
       return TOP;
@@ -177,7 +209,9 @@ public final class KeepClassInfo extends KeepInfo<KeepClassInfo.Builder, KeepCla
     boolean internalIsEqualTo(KeepClassInfo other) {
       return super.internalIsEqualTo(other)
           && isRepackagingAllowed() == other.internalIsRepackagingAllowed()
-          && isCheckEnumUnboxedEnabled() == other.internalIsCheckEnumUnboxedEnabled();
+          && isCheckEnumUnboxedEnabled() == other.internalIsCheckEnumUnboxedEnabled()
+          && isPermittedSubclassesRemovalAllowed()
+              == other.internalIsPermittedSubclassesRemovalAllowed();
     }
 
     @Override
@@ -187,12 +221,18 @@ public final class KeepClassInfo extends KeepInfo<KeepClassInfo.Builder, KeepCla
 
     @Override
     public Builder makeTop() {
-      return super.makeTop().unsetCheckEnumUnboxed().disallowRepackaging();
+      return super.makeTop()
+          .unsetCheckEnumUnboxed()
+          .disallowRepackaging()
+          .disallowPermittedSubclassesRemoval();
     }
 
     @Override
     public Builder makeBottom() {
-      return super.makeBottom().unsetCheckEnumUnboxed().allowRepackaging();
+      return super.makeBottom()
+          .unsetCheckEnumUnboxed()
+          .allowRepackaging()
+          .allowPermittedSubclassesRemoval();
     }
   }
 
@@ -212,6 +252,11 @@ public final class KeepClassInfo extends KeepInfo<KeepClassInfo.Builder, KeepCla
       return self();
     }
 
+    public Joiner disallowPermittedSubclassesRemoval() {
+      builder.disallowPermittedSubclassesRemoval();
+      return self();
+    }
+
     @Override
     public Joiner asClassJoiner() {
       return this;
@@ -222,7 +267,10 @@ public final class KeepClassInfo extends KeepInfo<KeepClassInfo.Builder, KeepCla
       // Should be extended to merge the fields of this class in case any are added.
       return super.merge(joiner)
           .applyIf(joiner.builder.isCheckEnumUnboxedEnabled(), Joiner::setCheckEnumUnboxed)
-          .applyIf(!joiner.builder.isRepackagingAllowed(), Joiner::disallowRepackaging);
+          .applyIf(!joiner.builder.isRepackagingAllowed(), Joiner::disallowRepackaging)
+          .applyIf(
+              !joiner.builder.isPermittedSubclassesRemovalAllowed(),
+              Joiner::disallowPermittedSubclassesRemoval);
     }
 
     @Override
