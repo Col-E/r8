@@ -8,7 +8,6 @@ import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.Code;
 import com.android.tools.r8.graph.DexApplication;
-import com.android.tools.r8.graph.DexApplication.Builder;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.ProgramMethod;
@@ -205,10 +204,6 @@ public class PrimaryR8IRConverter extends IRConverter {
     // synthetics.)
     commitPendingSyntheticItems(appView);
 
-    // Build a new application with jumbo string info.
-    Builder<?> builder = appView.appInfo().app().builder();
-    builder.setHighestSortingString(highestSortingString);
-
     // Update optimization info for all synthesized methods at once.
     feedback.updateVisibleOptimizationInfo();
 
@@ -223,7 +218,7 @@ public class PrimaryR8IRConverter extends IRConverter {
     // Assure that no more optimization feedback left after post processing.
     assert feedback.noUpdatesLeft();
     finalizeLirToOutputFormat(timing, executorService);
-    return builder.build();
+    return appView.appInfo().app();
   }
 
   private void finalizeLirToOutputFormat(Timing timing, ExecutorService executorService)
@@ -270,7 +265,6 @@ public class PrimaryR8IRConverter extends IRConverter {
           new IRToDexFinalizer(appView, deadCodeRemover)
               .finalizeCode(irCode, bytecodeMetadataProvider, onThreadTiming),
           appView);
-      updateHighestSortingStrings(method.getDefinition());
     }
   }
 

@@ -76,7 +76,7 @@ public class DexCode extends Code
   public final TryHandler[] handlers;
   public final DexInstruction[] instructions;
 
-  public DexString highestSortingString;
+  private DexString highestSortingString;
   private DexDebugInfo debugInfo;
   private DexDebugInfoForWriting debugInfoForWriting;
 
@@ -208,6 +208,13 @@ public class DexCode extends Code
   @Override
   public StructuralMapping<DexCode> getStructuralMapping() {
     return DexCode::specify;
+  }
+
+  public void setHighestSortingStringForJumboProcessedCode(DexString nonJumboString) {
+    // The call of this method marks this code object as properly jumbo-string processed.
+    // In principle, it should be possible to mark as such and assert that we do not reattempt
+    // processing in rewriteCodeWithJumboStrings.
+    highestSortingString = nonJumboString;
   }
 
   @Override

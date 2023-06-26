@@ -932,11 +932,6 @@ public class ApplicationWriter {
       if (!mapping.hasJumboStrings()) {
         return;
       }
-      // If the globally highest sorting string is not a jumbo string this is also a no-op.
-      if (application.highestSortingString != null
-          && application.highestSortingString.compareTo(mapping.getFirstJumboString()) < 0) {
-        return;
-      }
     }
     for (DexProgramClass clazz : classes) {
       clazz.forEachProgramMethodMatching(

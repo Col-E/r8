@@ -85,7 +85,7 @@ public class PrimaryD8L8IRConverter extends IRConverter {
     application = commitPendingSyntheticItems(appView, application);
 
     // Build a new application with jumbo string info,
-    Builder<?> builder = application.builder().setHighestSortingString(highestSortingString);
+    Builder<?> builder = application.builder();
 
     if (appView.options().isDesugaredLibraryCompilation()) {
       new EmulatedInterfaceApplicationRewriter(appView).rewriteApplication(builder);
@@ -168,9 +168,6 @@ public class PrimaryD8L8IRConverter extends IRConverter {
           methodProcessingContext);
     } else {
       assert definition.getCode().isDexCode();
-    }
-    if (!options.isGeneratingClassFiles()) {
-      updateHighestSortingStrings(definition);
     }
   }
 

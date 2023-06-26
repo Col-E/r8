@@ -53,7 +53,8 @@ public class JumboStringTestRunner extends ExamplesTestBase {
 
   @Test
   public void testR8() throws Exception {
-    runTestR8();
+    // Disable shrinking and obfuscation so that the fields and their names are retained.
+    runTestR8(b -> b.addDontShrink().addDontObfuscate());
   }
 
   @Test

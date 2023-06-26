@@ -1157,7 +1157,6 @@ public class IRConverter {
             .finalizeCode(code, bytecodeMetadataProvider, timing),
         appView);
     markProcessed(code, feedback);
-    updateHighestSortingStrings(definition);
   }
 
   public void markProcessed(IRCode code, OptimizationFeedback feedback) {
@@ -1183,18 +1182,6 @@ public class IRConverter {
       return false;
     }
     return true;
-  }
-
-  protected synchronized void updateHighestSortingStrings(DexEncodedMethod method) {
-    Code code = method.getCode();
-    assert code.isDexWritableCode();
-    DexString highestSortingReferencedString = code.asDexWritableCode().getHighestSortingString();
-    if (highestSortingReferencedString != null) {
-      if (highestSortingString == null
-          || highestSortingReferencedString.compareTo(highestSortingString) > 0) {
-        highestSortingString = highestSortingReferencedString;
-      }
-    }
   }
 
   public void printPhase(String phase) {
