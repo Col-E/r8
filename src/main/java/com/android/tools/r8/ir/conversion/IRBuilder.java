@@ -439,13 +439,14 @@ public class IRBuilder {
 
   public static IRBuilder create(
       ProgramMethod method, AppView<?> appView, SourceCode source, Origin origin) {
+    GraphLens codeLens = method.getDefinition().getCode().getCodeLens(appView);
     return new IRBuilder(
         method,
         appView,
-        method.getDefinition().getCode().getCodeLens(appView),
+        codeLens,
         source,
         origin,
-        lookupPrototypeChanges(appView, method),
+        lookupPrototypeChanges(appView, method, codeLens),
         new NumberGenerator());
   }
 
@@ -462,8 +463,10 @@ public class IRBuilder {
   }
 
   public static RewrittenPrototypeDescription lookupPrototypeChanges(
-      AppView<?> appView, ProgramMethod method) {
-    return appView.graphLens().lookupPrototypeChangesForMethodDefinition(method.getReference());
+      AppView<?> appView, ProgramMethod method, GraphLens codeLens) {
+    return appView
+        .graphLens()
+        .lookupPrototypeChangesForMethodDefinition(method.getReference(), codeLens);
   }
 
   private IRBuilder(
