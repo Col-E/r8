@@ -25,7 +25,6 @@ import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.ConstNumber;
 import com.android.tools.r8.ir.code.ConstString;
 import com.android.tools.r8.ir.code.IRCode;
-import com.android.tools.r8.ir.code.IRMetadata;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.ir.code.IntSwitch;
@@ -63,25 +62,7 @@ public class EnumValueOptimizer extends CodeRewriterPass<AppInfoWithLiveness> {
   @Override
   protected CodeRewriterResult rewriteCode(IRCode code) {
     assert appView.enableWholeProgramOptimizations();
-    rewriteConstantEnumMethodCalls(code);
-    return CodeRewriterResult.NONE;
-  }
-
-  @Override
-  protected boolean shouldRewriteCode(IRCode code) {
-    if (!options.enableEnumValueOptimization || !appView.hasLiveness()) {
-      return false;
-    }
-    return code.metadata().mayHaveInvokeMethodWithReceiver();
-  }
-
-  @SuppressWarnings("ConstantConditions")
-  private void rewriteConstantEnumMethodCalls(IRCode code) {
-    IRMetadata metadata = code.metadata();
-    if (!metadata.mayHaveInvokeMethodWithReceiver()) {
-      return;
-    }
-
+    boolean hasChanged = false;
     Set<Value> affectedValues = Sets.newIdentityHashSet();
     InstructionListIterator iterator = code.instructionListIterator();
     while (iterator.hasNext()) {
@@ -132,6 +113,7 @@ public class EnumValueOptimizer extends CodeRewriterPass<AppInfoWithLiveness> {
               && !isToStringInvoke) {
             assert isNameInvoke || isOrdinalInvoke;
             iterator.removeOrReplaceByDebugLocalRead();
+            hasChanged = true;
           }
           continue;
         }
@@ -142,6 +124,7 @@ public class EnumValueOptimizer extends CodeRewriterPass<AppInfoWithLiveness> {
               getOrdinalValue(code, abstractValue, methodWithReceiver.getReceiver().isNeverNull());
           if (ordinalValue != null) {
             iterator.replaceCurrentInstruction(new ConstNumber(outValue, ordinalValue.getValue()));
+            hasChanged = true;
           }
           continue;
         }
@@ -153,10 +136,8 @@ public class EnumValueOptimizer extends CodeRewriterPass<AppInfoWithLiveness> {
         }
 
         if (isNameInvoke) {
-          Value newValue =
-              code.createValue(TypeElement.stringClassType(appView, definitelyNotNull()));
-          iterator.replaceCurrentInstruction(new ConstString(newValue, nameValue.getDexString()));
-          newValue.addAffectedValuesTo(affectedValues);
+          replaceByName(code, affectedValues, iterator, nameValue);
+          hasChanged = true;
           continue;
         }
 
@@ -186,16 +167,33 @@ public class EnumValueOptimizer extends CodeRewriterPass<AppInfoWithLiveness> {
           continue;
         }
 
-        Value newValue =
-            code.createValue(TypeElement.stringClassType(appView, definitelyNotNull()));
-        iterator.replaceCurrentInstruction(new ConstString(newValue, nameValue.getDexString()));
-        newValue.addAffectedValuesTo(affectedValues);
+        replaceByName(code, affectedValues, iterator, nameValue);
+        hasChanged = true;
       }
     }
     if (!affectedValues.isEmpty()) {
       new TypeAnalysis(appView).narrowing(affectedValues);
     }
     assert code.isConsistentSSA(appView);
+    return CodeRewriterResult.hasChanged(hasChanged);
+  }
+
+  private void replaceByName(
+      IRCode code,
+      Set<Value> affectedValues,
+      InstructionListIterator iterator,
+      SingleStringValue nameValue) {
+    Value newValue = code.createValue(TypeElement.stringClassType(appView, definitelyNotNull()));
+    iterator.replaceCurrentInstruction(new ConstString(newValue, nameValue.getDexString()));
+    newValue.addAffectedValuesTo(affectedValues);
+  }
+
+  @Override
+  protected boolean shouldRewriteCode(IRCode code) {
+    if (!options.enableEnumValueOptimization || !appView.hasLiveness()) {
+      return false;
+    }
+    return code.metadata().mayHaveInvokeMethodWithReceiver();
   }
 
   /**
