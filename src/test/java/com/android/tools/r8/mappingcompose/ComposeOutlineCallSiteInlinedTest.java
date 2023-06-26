@@ -4,13 +4,13 @@
 
 package com.android.tools.r8.mappingcompose;
 
-import static org.junit.Assert.assertThrows;
+import static com.android.tools.r8.mappingcompose.ComposeTestHelpers.doubleToSingleQuote;
+import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.naming.ClassNameMapper;
-import com.android.tools.r8.naming.MappingComposeException;
 import com.android.tools.r8.naming.MappingComposer;
 import com.android.tools.r8.utils.StringUtils;
 import org.junit.Test;
@@ -60,13 +60,53 @@ public class ComposeOutlineCallSiteInlinedTest extends TestBase {
               + " lambda$bar$0$com-android-tools-r8-D8Command(foo.StringConsumer):0"
               + " -> lambda$bar$0$com-android-tools-r8-D8Command",
           "      # {'id':'com.android.tools.r8.synthesized'}");
+  private static final String mappingResult =
+      StringUtils.unixLines(
+          "# {'id':'com.android.tools.r8.mapping','version':'2.2'}",
+          "com.android.tools.r8.D8Command -> com.android.tools.r8.D8Command:",
+          "# {'id':'sourceFile','fileName':'D8Command.java'}",
+          // TODO(b/288117378): This 1:1 range corresponds to position 0 in the residual of R8. This
+          //  should probably not have the `getParseFlagsInformation` inline frame.
+          "    1:1:java.util.List getParseFlagsInformation():592:592 -> getParseFlagsInformation",
+          "    1:1:foo.internal.MapConsumer lambda$bar$0(foo.StringConsumer):0:0 ->"
+              + " lambda$bar$0$com-android-tools-r8-D8Command",
+          "    1:1:foo.internal.MapConsumer"
+              + " lambda$bar$0$com-android-tools-r8-D8Command(foo.StringConsumer):0:0 ->"
+              + " lambda$bar$0$com-android-tools-r8-D8Command",
+          "    # {'id':'com.android.tools.r8.synthesized'}",
+          "    2:2:foo.MapConsumer lambda$bar$0(foo.StringConsumer):0:0 ->"
+              + " lambda$bar$0$com-android-tools-r8-D8Command",
+          "    # {'id':'com.android.tools.r8.residualsignature',"
+              + "'signature':'(Lfoo/StringConsumer;)Lfoo/internal/MapConsumer;'}",
+          "    # {'id':'com.android.tools.r8.outlineCallsite',"
+              + "'positions':{'23':725,'24':726,'25':727},"
+              + "'outline':'Lfoo/SomeClass;outline(JJJ)V'}",
+          "    2:2:foo.internal.MapConsumer"
+              + " lambda$bar$0$com-android-tools-r8-D8Command(foo.StringConsumer):0:0 ->"
+              + " lambda$bar$0$com-android-tools-r8-D8Command",
+          "    3:724:foo.internal.MapConsumer lambda$bar$0(foo.StringConsumer) ->"
+              + " lambda$bar$0$com-android-tools-r8-D8Command",
+          "    3:724:foo.internal.MapConsumer"
+              + " lambda$bar$0$com-android-tools-r8-D8Command(foo.StringConsumer):0:0 ->"
+              + " lambda$bar$0$com-android-tools-r8-D8Command",
+          "    725:725:foo.internal.MapConsumer"
+              + " lambda$bar$0$com-android-tools-r8-D8Command(foo.StringConsumer):720:720 ->"
+              + " lambda$bar$0$com-android-tools-r8-D8Command",
+          "    726:726:foo.PGMapConsumer foo.PGMapConsumer.builder():52:52 -> lambda$bar$0",
+          "    726:726:foo.internal.MapConsumer"
+              + " lambda$bar$0$com-android-tools-r8-D8Command(foo.StringConsumer):720 ->"
+              + " lambda$bar$0$com-android-tools-r8-D8Command",
+          "    727:727:void foo.PGMapConsumer.<init>():55:55 -> lambda$bar$0",
+          "    727:727:foo.PGMapConsumer foo.PGMapConsumer.builder():52 -> lambda$bar$0",
+          "    727:727:foo.internal.MapConsumer"
+              + " lambda$bar$0$com-android-tools-r8-D8Command(foo.StringConsumer):720 ->"
+              + " lambda$bar$0$com-android-tools-r8-D8Command");
 
   @Test
   public void testCompose() throws Exception {
     ClassNameMapper mappingForFoo = ClassNameMapper.mapperFromString(mappingFoo);
     ClassNameMapper mappingForBar = ClassNameMapper.mapperFromString(mappingBar);
-    // TODO(b/288117378): We should not fail for inlining of call sites.
-    assertThrows(
-        MappingComposeException.class, () -> MappingComposer.compose(mappingForFoo, mappingForBar));
+    String composed = MappingComposer.compose(mappingForFoo, mappingForBar);
+    assertEquals(mappingResult, doubleToSingleQuote(composed));
   }
 }
