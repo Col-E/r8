@@ -49,6 +49,7 @@ public class RepackageWithStringIdentifier extends RepackageTestBase {
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
         .enableNoAccessModificationAnnotationsForClasses()
+        .enableNoAccessModificationAnnotationsForMembers()
         .setMinApi(parameters)
         .compile()
         .inspect(inspector -> assertThat(A.class, isRepackaged(inspector)))
@@ -59,6 +60,9 @@ public class RepackageWithStringIdentifier extends RepackageTestBase {
   @NeverClassInline
   @NoAccessModification
   static class A {
+
+    @NoAccessModification
+    A() {}
 
     @NeverInline
     public void foo() {
