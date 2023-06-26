@@ -34,6 +34,7 @@ public class KnownArrayLengthRewriter extends CodeRewriterPass<AppInfo> {
 
   @Override
   protected CodeRewriterResult rewriteCode(IRCode code) {
+    boolean hasChanged = false;
     InstructionListIterator iterator = code.instructionListIterator();
     while (iterator.hasNext()) {
       Instruction current = iterator.next();
@@ -63,22 +64,27 @@ public class KnownArrayLengthRewriter extends CodeRewriterPass<AppInfo> {
         Value size = arrayDefinition.asNewArrayEmpty().size();
         arrayLength.outValue().replaceUsers(size);
         iterator.removeOrReplaceByDebugLocalRead();
+        hasChanged = true;
       } else if (arrayDefinition.isNewArrayFilledData()) {
         long size = arrayDefinition.asNewArrayFilledData().size;
         if (size > Integer.MAX_VALUE) {
           continue;
         }
         iterator.replaceCurrentInstructionWithConstInt(code, (int) size);
+        hasChanged = true;
       } else if (abstractValue.hasKnownArrayLength()) {
         iterator.replaceCurrentInstructionWithConstInt(code, abstractValue.getKnownArrayLength());
+        hasChanged = true;
       } else {
         continue;
       }
 
       phiUsers.forEach(Phi::removeTrivialPhi);
     }
-    code.removeRedundantBlocks();
+    if (hasChanged) {
+      code.removeRedundantBlocks();
+    }
     assert code.isConsistentSSA(appView);
-    return CodeRewriterResult.NONE;
+    return CodeRewriterResult.hasChanged(hasChanged);
   }
 }
