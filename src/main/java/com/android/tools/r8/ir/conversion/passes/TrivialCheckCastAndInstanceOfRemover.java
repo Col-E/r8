@@ -8,7 +8,6 @@ import static com.android.tools.r8.graph.DexProgramClass.asProgramClassOrNull;
 
 import com.android.tools.r8.contexts.CompilationContext.MethodProcessingContext;
 import com.android.tools.r8.graph.AccessControl;
-import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexProgramClass;
@@ -36,7 +35,7 @@ import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.google.common.collect.Sets;
 import java.util.Set;
 
-public class TrivialCheckCastAndInstanceOfRemover extends CodeRewriterPass<AppInfo> {
+public class TrivialCheckCastAndInstanceOfRemover extends CodeRewriterPass<AppInfoWithLiveness> {
 
   public TrivialCheckCastAndInstanceOfRemover(AppView<?> appView) {
     super(appView);
@@ -61,6 +60,7 @@ public class TrivialCheckCastAndInstanceOfRemover extends CodeRewriterPass<AppIn
       MethodProcessingContext methodProcessingContext) {
     assert appView.appInfo().hasLiveness();
     AppView<AppInfoWithLiveness> appViewWithLiveness = appView.withLiveness();
+    boolean hasChanged = false;
 
     // If we can remove a CheckCast it is due to us having at least as much information about the
     // type as the CheckCast gives. We then need to propagate that information to the users of
@@ -99,6 +99,7 @@ public class TrivialCheckCastAndInstanceOfRemover extends CodeRewriterPass<AppIn
                 methodProcessingContext);
         if (removeResult != RemoveCheckCastInstructionIfTrivialResult.NO_REMOVALS) {
           assert removeResult == RemoveCheckCastInstructionIfTrivialResult.REMOVED_CAST_DO_NARROW;
+          hasChanged = true;
           needToRemoveTrivialPhis |= hasPhiUsers;
           typeAnalysis.narrowing(affectedValues);
           affectedValues.clear();
@@ -107,6 +108,7 @@ public class TrivialCheckCastAndInstanceOfRemover extends CodeRewriterPass<AppIn
         boolean hasPhiUsers = current.outValue().hasPhiUsers();
         if (removeInstanceOfInstructionIfTrivial(
             appViewWithLiveness, current.asInstanceOf(), it, code)) {
+          hasChanged = true;
           needToRemoveTrivialPhis |= hasPhiUsers;
         }
       }
@@ -123,9 +125,11 @@ public class TrivialCheckCastAndInstanceOfRemover extends CodeRewriterPass<AppIn
         typeAnalysis.narrowing(affectedValues);
       }
     }
-    code.removeRedundantBlocks();
+    if (hasChanged) {
+      code.removeRedundantBlocks();
+    }
     assert code.isConsistentSSA(appView);
-    return CodeRewriterResult.NONE;
+    return CodeRewriterResult.hasChanged(hasChanged);
   }
 
   enum RemoveCheckCastInstructionIfTrivialResult {
