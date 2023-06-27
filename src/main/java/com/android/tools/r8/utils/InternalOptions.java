@@ -876,6 +876,7 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
   public boolean ignoreMissingClasses = false;
   public boolean reportMissingClassesInEnclosingMethodAttribute = false;
   public boolean reportMissingClassesInInnerClassAttributes = false;
+  public boolean reportMissingClassesInPermittedSubclassesAttributes = false;
   public boolean disableGenericSignatureValidation = false;
   public boolean disableInnerClassSeparatorValidationWhenRepackaging = false;
 

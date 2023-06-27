@@ -80,6 +80,7 @@ import com.android.tools.r8.graph.MethodResolutionResult.FailedResolutionResult;
 import com.android.tools.r8.graph.MethodResolutionResult.SingleResolutionResult;
 import com.android.tools.r8.graph.NestMemberClassAttribute;
 import com.android.tools.r8.graph.ObjectAllocationInfoCollectionImpl;
+import com.android.tools.r8.graph.PermittedSubclassAttribute;
 import com.android.tools.r8.graph.ProgramDefinition;
 import com.android.tools.r8.graph.ProgramDerivedContext;
 import com.android.tools.r8.graph.ProgramField;
@@ -2095,6 +2096,23 @@ public class Enqueuer {
         DexType enclosingClass = enclosingMethodAttribute.getEnclosingClass();
         recordTypeReference(
             enclosingClass, clazz, this::recordNonProgramClass, missingClassConsumer);
+      }
+    }
+
+    // Mark types in permitted-subclasses attributes referenced.
+    List<PermittedSubclassAttribute> permittedSubclassAttributes =
+        clazz.getPermittedSubclassAttributes();
+    if (!permittedSubclassAttributes.isEmpty()) {
+      BiConsumer<DexType, ProgramDerivedContext> missingClassConsumer =
+          options.reportMissingClassesInPermittedSubclassesAttributes
+              ? this::reportMissingClass
+              : this::ignoreMissingClass;
+      for (PermittedSubclassAttribute permittedSubclassAttribute : permittedSubclassAttributes) {
+        recordTypeReference(
+            permittedSubclassAttribute.getPermittedSubclass(),
+            clazz,
+            this::recordNonProgramClass,
+            missingClassConsumer);
       }
     }
 

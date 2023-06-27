@@ -37,7 +37,6 @@ public class SealedClassesIllegalSubclassTest extends TestBase {
 
   @Parameter(1)
   public boolean keepPermittedSubclassesAttribute;
-
   static final Matcher<String> EXPECTED = containsString("cannot inherit from sealed class");
   static final String EXPECTED_WITHOUT_PERMITTED_SUBCLASSES_ATTRIBUTE =
       StringUtils.lines("Success!");

@@ -8,6 +8,7 @@ import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.R8FullTestBuilder;
+import com.android.tools.r8.R8TestCompileResult;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestCompilerBuilder.DiagnosticsConsumer;
 import com.android.tools.r8.TestDiagnosticMessages;
@@ -75,27 +76,27 @@ public abstract class MissingClassesTestBase extends TestBase {
     compileWithExpectedDiagnostics(mainClass, diagnosticsConsumer, null);
   }
 
-  public void compileWithExpectedDiagnostics(
+  public R8TestCompileResult compileWithExpectedDiagnostics(
       Class<?> mainClass,
       DiagnosticsConsumer diagnosticsConsumer,
       ThrowableConsumer<R8FullTestBuilder> configuration)
       throws CompilationFailedException {
-    internalCompileWithExpectedDiagnostics(
+    return internalCompileWithExpectedDiagnostics(
         diagnosticsConsumer,
         builder ->
             builder.addProgramClasses(mainClass).addKeepMainRule(mainClass).apply(configuration));
   }
 
-  public void compileWithExpectedDiagnostics(
+  public R8TestCompileResult compileWithExpectedDiagnostics(
       ThrowableConsumer<R8FullTestBuilder> configuration, DiagnosticsConsumer diagnosticsConsumer)
       throws CompilationFailedException {
-    internalCompileWithExpectedDiagnostics(diagnosticsConsumer, configuration);
+    return internalCompileWithExpectedDiagnostics(diagnosticsConsumer, configuration);
   }
 
-  private void internalCompileWithExpectedDiagnostics(
+  private R8TestCompileResult internalCompileWithExpectedDiagnostics(
       DiagnosticsConsumer diagnosticsConsumer, ThrowableConsumer<R8FullTestBuilder> configuration)
       throws CompilationFailedException {
-    testForR8(parameters.getBackend())
+    return testForR8(parameters.getBackend())
         .apply(configuration)
         .setMinApi(parameters)
         .compileWithExpectedDiagnostics(diagnosticsConsumer);
