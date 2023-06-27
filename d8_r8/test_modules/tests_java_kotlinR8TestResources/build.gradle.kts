@@ -16,7 +16,7 @@ val root = getRoot()
 java {
   sourceSets.test.configure {
     java.srcDirs.clear()
-    java.srcDir(root.resolveAll("src", "test", "examplesAndroidP"))
+    java.srcDir(root.resolveAll("src", "test", "kotlinR8TestResources"))
   }
   sourceCompatibility = JavaVersion.VERSION_1_8
   targetCompatibility = JavaVersion.VERSION_1_8
@@ -27,7 +27,7 @@ dependencies {
 }
 
 // We just need to register the examples jars for it to be referenced by other modules.
-val buildExampleJars = buildExampleJars("examplesAndroidP")
+val buildExampleJars = buildExampleJars("kotlinR8TestResources")
 
 tasks {
   withType<JavaCompile> {
@@ -37,5 +37,10 @@ tasks {
       "-Xss256m",
       // Set the bootclass path so compilation is consistent with 1.8 target compatibility.
       "-Xbootclasspath/a:third_party/openjdk/openjdk-rt-1.8/rt.jar")
+  }
+  withType<KotlinCompile> {
+    kotlinOptions {
+      jvmTarget = "1.8"
+    }
   }
 }

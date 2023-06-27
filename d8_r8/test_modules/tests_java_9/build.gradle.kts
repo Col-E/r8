@@ -24,7 +24,7 @@ java {
 dependencies { }
 
 // We just need to register the examples jars for it to be referenced by other modules.
-val buildExampleJars = buildJavaExamplesJars("Java9")
+val buildExampleJars = buildExampleJars("examplesJava9")
 
 tasks {
   withType<JavaCompile> {

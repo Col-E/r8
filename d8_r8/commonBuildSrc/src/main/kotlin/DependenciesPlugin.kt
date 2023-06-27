@@ -97,7 +97,7 @@ fun Project.ensureThirdPartyDependencies(name : String, deps : List<ThirdPartyDe
 }
 
 /**
- * Builds a jar for each subfolder in an examples test source set.
+ * Builds a jar for each subfolder in an test source set.
  *
  * <p> As an example, src/test/examplesJava9 contains subfolders: backport, collectionof, ..., .
  * These are compiled to individual jars and placed in <repo-root>/build/test/examplesJava9/ as:
@@ -106,7 +106,7 @@ fun Project.ensureThirdPartyDependencies(name : String, deps : List<ThirdPartyDe
  * Calling this from a project will amend the task graph with the task named
  * getExamplesJarsTaskName(examplesName) such that it can be referenced from the test runners.
  */
-fun Project.buildJavaExamplesJars(examplesName : String) : Task {
+fun Project.buildExampleJars(name : String) : Task {
   val outputFiles : MutableList<File> = mutableListOf()
   val jarTasks : MutableList<Task> = mutableListOf()
   val testSourceSet = extensions
@@ -114,7 +114,7 @@ fun Project.buildJavaExamplesJars(examplesName : String) : Task {
     .sourceSets
     // The TEST_SOURCE_SET_NAME is the source set defined by writing java { sourcesets.test { ... }}
     .getByName(SourceSet.TEST_SOURCE_SET_NAME)
-  val destinationDir = getRoot().resolveAll("build", "test", "examples$examplesName")
+  val destinationDir = getRoot().resolveAll("build", "test", name)
   val classesOutput = destinationDir.resolve("classes")
   testSourceSet.java.destinationDirectory.set(classesOutput)
   testSourceSet.resources.destinationDirectory.set(destinationDir)
@@ -127,7 +127,7 @@ fun Project.buildJavaExamplesJars(examplesName : String) : Task {
         var generationTask : Task? = null
         if (exampleDir.resolve("TestGenerator.java").isFile) {
           generationTask = tasks.register<JavaExec>(
-            "generate-examples$examplesName-${exampleDir.name}") {
+            "generate-$name-${exampleDir.name}") {
             dependsOn("compileTestJava")
             mainClass.set("${exampleDir.name}.TestGenerator")
             classpath = files(
@@ -137,7 +137,7 @@ fun Project.buildJavaExamplesJars(examplesName : String) : Task {
           }.get()
         }
         jarTasks.add(tasks.register<Jar>(
-          "jar-examples$examplesName-${exampleDir.name}") {
+          "jar-$name-${exampleDir.name}") {
           dependsOn("compileTestJava")
           if (generationTask != null) {
             dependsOn(generationTask)
@@ -151,13 +151,13 @@ fun Project.buildJavaExamplesJars(examplesName : String) : Task {
         }.get())
       }
     }
-  return tasks.register(getExamplesJarsTaskName(examplesName)) {
+  return tasks.register(getExampleJarsTaskName(name)) {
     dependsOn(jarTasks.toTypedArray())
     outputs.files(outputFiles)
   }.get()
 }
 
-fun Project.getExamplesJarsTaskName(name: String) : String {
+fun Project.getExampleJarsTaskName(name: String) : String {
   return "build-example-jars-$name"
 }
 

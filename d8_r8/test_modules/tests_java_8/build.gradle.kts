@@ -63,15 +63,17 @@ val thirdPartyRuntimeDependenciesTask = ensureThirdPartyDependencies(
     + ThirdPartyDeps.proguards)
 
 val sourceSetDependenciesTasks = arrayOf(
-  projectTask("tests_java_examples", getExamplesJarsTaskName("")),
-  projectTask("tests_java_examplesAndroidN", getExamplesJarsTaskName("AndroidN")),
-  projectTask("tests_java_examplesAndroidO", getExamplesJarsTaskName("AndroidO")),
-  projectTask("tests_java_examplesAndroidP", getExamplesJarsTaskName("AndroidP")),
-  projectTask("tests_java_9", getExamplesJarsTaskName("Java9")),
-  projectTask("tests_java_10", getExamplesJarsTaskName("Java10")),
-  projectTask("tests_java_11", getExamplesJarsTaskName("Java11")),
-  projectTask("tests_java_17", getExamplesJarsTaskName("Java17")),
-  projectTask("tests_java_20", getExamplesJarsTaskName("Java20")))
+  projectTask("tests_java_examples", getExampleJarsTaskName("examples")),
+  projectTask("tests_java_9", getExampleJarsTaskName("examplesJava9")),
+  projectTask("tests_java_10", getExampleJarsTaskName("examplesJava10")),
+  projectTask("tests_java_11", getExampleJarsTaskName("examplesJava11")),
+  projectTask("tests_java_17", getExampleJarsTaskName("examplesJava17")),
+  projectTask("tests_java_20", getExampleJarsTaskName("examplesJava20")),
+  projectTask("tests_java_examplesAndroidN", getExampleJarsTaskName("examplesAndroidN")),
+  projectTask("tests_java_examplesAndroidO", getExampleJarsTaskName("examplesAndroidO")),
+  projectTask("tests_java_examplesAndroidP", getExampleJarsTaskName("examplesAndroidP")),
+  projectTask("tests_java_kotlinR8TestResources", getExampleJarsTaskName("kotlinR8TestResources")),
+)
 
 fun testDependencies() : FileCollection {
   return sourceSets
