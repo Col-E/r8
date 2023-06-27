@@ -32,6 +32,11 @@ public class DefiniteBitsNumberValue extends NonConstantNumberValue {
   }
 
   @Override
+  public boolean hasDefinitelySetAndUnsetBitsInformation() {
+    return true;
+  }
+
+  @Override
   public boolean isDefiniteBitsNumberValue() {
     return true;
   }
@@ -49,6 +54,34 @@ public class DefiniteBitsNumberValue extends NonConstantNumberValue {
   @Override
   public OptionalBool isSubsetOf(int[] values) {
     return OptionalBool.unknown();
+  }
+
+  public AbstractValue join(
+      AbstractValueFactory abstractValueFactory, DefiniteBitsNumberValue definiteBitsNumberValue) {
+    return join(
+        abstractValueFactory,
+        definiteBitsNumberValue.definitelySetBits,
+        definiteBitsNumberValue.definitelyUnsetBits);
+  }
+
+  public AbstractValue join(
+      AbstractValueFactory abstractValueFactory, SingleNumberValue singleNumberValue) {
+    return join(
+        abstractValueFactory,
+        singleNumberValue.getDefinitelySetIntBits(),
+        singleNumberValue.getDefinitelyUnsetIntBits());
+  }
+
+  public AbstractValue join(
+      AbstractValueFactory abstractValueFactory,
+      int otherDefinitelySetBits,
+      int otherDefinitelyUnsetBits) {
+    if (definitelySetBits == otherDefinitelySetBits
+        && definitelyUnsetBits == otherDefinitelyUnsetBits) {
+      return this;
+    }
+    return abstractValueFactory.createDefiniteBitsNumberValue(
+        definitelySetBits & otherDefinitelySetBits, definitelyUnsetBits & otherDefinitelyUnsetBits);
   }
 
   @Override

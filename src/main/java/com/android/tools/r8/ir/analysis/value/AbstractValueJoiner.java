@@ -20,6 +20,10 @@ public abstract class AbstractValueJoiner {
     this.appView = appView;
   }
 
+  private AbstractValueFactory factory() {
+    return appView.abstractValueFactory();
+  }
+
   final AbstractValue internalJoin(
       AbstractValue abstractValue,
       AbstractValue otherAbstractValue,
@@ -35,21 +39,16 @@ public abstract class AbstractValueJoiner {
     }
     return type.isReferenceType()
         ? joinReference(abstractValue, otherAbstractValue)
-        : joinPrimitive(abstractValue, otherAbstractValue, config);
+        : joinPrimitive(abstractValue, otherAbstractValue, config, type);
   }
 
   private AbstractValue joinPrimitive(
       AbstractValue abstractValue,
       AbstractValue otherAbstractValue,
-      AbstractValueJoinerConfig config) {
+      AbstractValueJoinerConfig config,
+      DexType type) {
     assert !abstractValue.isNullOrAbstractValue();
     assert !otherAbstractValue.isNullOrAbstractValue();
-
-    if (config.canUseDefiniteBitsAbstraction()
-        && abstractValue.isConstantOrNonConstantNumberValue()
-        && otherAbstractValue.isConstantOrNonConstantNumberValue()) {
-      // TODO(b/196017578): Implement join.
-    }
 
     if (config.canUseNumberIntervalAndNumberSetAbstraction()
         && abstractValue.isConstantOrNonConstantNumberValue()
@@ -67,10 +66,54 @@ public abstract class AbstractValueJoiner {
         assert otherAbstractValue.isNumberFromSetValue();
         numberFromSetValueBuilder.addInts(otherAbstractValue.asNumberFromSetValue());
       }
-      return numberFromSetValueBuilder.build(appView.abstractValueFactory());
+      return numberFromSetValueBuilder.build(factory());
+    }
+
+    if (config.canUseDefiniteBitsAbstraction()) {
+      return joinPrimitiveToDefiniteBitsNumberValue(abstractValue, otherAbstractValue, type);
     }
 
     return unknown();
+  }
+
+  private AbstractValue joinPrimitiveToDefiniteBitsNumberValue(
+      AbstractValue abstractValue, AbstractValue otherAbstractValue, DexType type) {
+    assert type.isIntType();
+    if (!abstractValue.hasDefinitelySetAndUnsetBitsInformation()
+        || !otherAbstractValue.hasDefinitelySetAndUnsetBitsInformation()) {
+      return unknown();
+    }
+    // Normalize order.
+    if (!abstractValue.isSingleNumberValue() && otherAbstractValue.isSingleNumberValue()) {
+      AbstractValue tmp = abstractValue;
+      abstractValue = otherAbstractValue;
+      otherAbstractValue = tmp;
+    }
+    if (abstractValue.isSingleNumberValue()) {
+      SingleNumberValue singleNumberValue = abstractValue.asSingleNumberValue();
+      if (otherAbstractValue.isSingleNumberValue()) {
+        SingleNumberValue otherSingleNumberValue = otherAbstractValue.asSingleNumberValue();
+        return factory()
+            .createDefiniteBitsNumberValue(
+                singleNumberValue.getDefinitelySetIntBits()
+                    & otherSingleNumberValue.getDefinitelySetIntBits(),
+                singleNumberValue.getDefinitelyUnsetIntBits()
+                    & otherSingleNumberValue.getDefinitelyUnsetIntBits());
+      } else {
+        assert otherAbstractValue.isDefiniteBitsNumberValue();
+        DefiniteBitsNumberValue otherDefiniteBitsNumberValue =
+            otherAbstractValue.asDefiniteBitsNumberValue();
+        return otherDefiniteBitsNumberValue.join(factory(), singleNumberValue);
+      }
+    } else {
+      // Both are guaranteed to be non-const due to normalization.
+      assert abstractValue.isDefiniteBitsNumberValue();
+      assert otherAbstractValue.isDefiniteBitsNumberValue();
+      DefiniteBitsNumberValue definiteBitsNumberValue = abstractValue.asDefiniteBitsNumberValue();
+      DefiniteBitsNumberValue otherDefiniteBitsNumberValue =
+          otherAbstractValue.asDefiniteBitsNumberValue();
+      return definiteBitsNumberValue.join(factory(), otherDefiniteBitsNumberValue);
+    }
   }
 
   private AbstractValue joinReference(

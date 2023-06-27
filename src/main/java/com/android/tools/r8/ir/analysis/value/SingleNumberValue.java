@@ -37,6 +37,11 @@ public class SingleNumberValue extends SingleConstValue
   }
 
   @Override
+  public boolean hasDefinitelySetAndUnsetBitsInformation() {
+    return true;
+  }
+
+  @Override
   public OptionalBool isSubsetOf(int[] values) {
     return OptionalBool.of(ArrayUtils.containsInt(values, getIntValue()));
   }
@@ -79,6 +84,14 @@ public class SingleNumberValue extends SingleConstValue
   public boolean getBooleanValue() {
     assert value == 0 || value == 1;
     return value != 0;
+  }
+
+  public int getDefinitelySetIntBits() {
+    return getIntValue();
+  }
+
+  public int getDefinitelyUnsetIntBits() {
+    return ~getDefinitelySetIntBits();
   }
 
   public double getDoubleValue() {

@@ -74,6 +74,10 @@ public abstract class AbstractValue {
     return null;
   }
 
+  public boolean hasDefinitelySetAndUnsetBitsInformation() {
+    return false;
+  }
+
   public boolean hasKnownArrayLength() {
     return false;
   }
