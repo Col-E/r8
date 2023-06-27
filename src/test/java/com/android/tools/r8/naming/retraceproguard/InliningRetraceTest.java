@@ -56,7 +56,6 @@ public class InliningRetraceTest extends RetraceTestBase {
 
   @Test
   public void testSourceFileAndLineNumberTable() throws Exception {
-    assumeTrue("b/288405478", mode.isRelease());
     runTest(
         ImmutableList.of("-keepattributes SourceFile,LineNumberTable"),
         (StackTrace actualStackTrace, StackTrace retracedStackTrace) -> {
@@ -68,7 +67,6 @@ public class InliningRetraceTest extends RetraceTestBase {
 
   @Test
   public void testLineNumberTableOnly() throws Exception {
-    assumeTrue("b/288405478", mode.isRelease());
     assumeTrue(compat);
     assumeTrue(parameters.isDexRuntime());
     runTest(
@@ -81,7 +79,6 @@ public class InliningRetraceTest extends RetraceTestBase {
 
   @Test
   public void testNoLineNumberTable() throws Exception {
-    assumeTrue("b/288405478", mode.isRelease());
     assumeTrue(compat);
     assumeTrue(parameters.isDexRuntime());
     runTest(
