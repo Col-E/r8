@@ -505,6 +505,9 @@ public class R8 {
           .appInfo()
           .notifyHorizontalClassMergerFinished(HorizontalClassMerger.Mode.INITIAL);
 
+      // TODO(b/225838009): Horizontal merging currently assumes pre-phase CF conversion.
+      appView.testing().enterLirSupportedPhase();
+
       new ProtoNormalizer(appViewWithLiveness).run(executorService, timing);
 
       // Clear traced methods roots to not hold on to the main dex live method set.
