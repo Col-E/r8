@@ -257,6 +257,11 @@ public final class KeepClassInfo extends KeepInfo<KeepClassInfo.Builder, KeepCla
       return self();
     }
 
+    public Joiner allowPermittedSubclassesRemoval() {
+      builder.allowPermittedSubclassesRemoval();
+      return self();
+    }
+
     @Override
     public Joiner asClassJoiner() {
       return this;

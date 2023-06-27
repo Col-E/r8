@@ -15,6 +15,7 @@ public class ProguardKeepRuleModifiers {
     private boolean allowsOptimization = false;
     private boolean allowsObfuscation = false;
     private boolean includeDescriptorClasses = false;
+    private boolean allowsPermittedSubclassesRemoval = false;
 
     private Builder() {}
 
@@ -61,6 +62,11 @@ public class ProguardKeepRuleModifiers {
       return this;
     }
 
+    public Builder setAllowsPermittedSubclassesRemoval(boolean allowsPermittedSubclassesRemoval) {
+      this.allowsPermittedSubclassesRemoval = allowsPermittedSubclassesRemoval;
+      return this;
+    }
+
     public void setIncludeDescriptorClasses(boolean includeDescriptorClasses) {
       this.includeDescriptorClasses = includeDescriptorClasses;
     }
@@ -73,7 +79,8 @@ public class ProguardKeepRuleModifiers {
           allowsShrinking,
           allowsOptimization,
           allowsObfuscation,
-          includeDescriptorClasses);
+          includeDescriptorClasses,
+          allowsPermittedSubclassesRemoval);
     }
   }
 
@@ -84,6 +91,7 @@ public class ProguardKeepRuleModifiers {
   public final boolean allowsOptimization;
   public final boolean allowsObfuscation;
   public final boolean includeDescriptorClasses;
+  public final boolean allowsPermittedSubclassesRemoval;
 
   private ProguardKeepRuleModifiers(
       boolean allowsAccessModification,
@@ -92,7 +100,8 @@ public class ProguardKeepRuleModifiers {
       boolean allowsShrinking,
       boolean allowsOptimization,
       boolean allowsObfuscation,
-      boolean includeDescriptorClasses) {
+      boolean includeDescriptorClasses,
+      boolean allowsPermittedSubclassesRemoval) {
     this.allowsAccessModification = allowsAccessModification;
     this.allowsAnnotationRemoval = allowsAnnotationRemoval;
     this.allowsRepackaging = allowsRepackaging;
@@ -100,6 +109,7 @@ public class ProguardKeepRuleModifiers {
     this.allowsOptimization = allowsOptimization;
     this.allowsObfuscation = allowsObfuscation;
     this.includeDescriptorClasses = includeDescriptorClasses;
+    this.allowsPermittedSubclassesRemoval = allowsPermittedSubclassesRemoval;
   }
 
   /**
@@ -116,7 +126,8 @@ public class ProguardKeepRuleModifiers {
         && allowsObfuscation
         && allowsOptimization
         && allowsShrinking
-        && !includeDescriptorClasses;
+        && !includeDescriptorClasses
+        && allowsPermittedSubclassesRemoval;
   }
 
   @Override
@@ -131,7 +142,8 @@ public class ProguardKeepRuleModifiers {
         && allowsShrinking == that.allowsShrinking
         && allowsOptimization == that.allowsOptimization
         && allowsObfuscation == that.allowsObfuscation
-        && includeDescriptorClasses == that.includeDescriptorClasses;
+        && includeDescriptorClasses == that.includeDescriptorClasses
+        && allowsPermittedSubclassesRemoval == that.allowsPermittedSubclassesRemoval;
   }
 
   @Override
@@ -143,7 +155,8 @@ public class ProguardKeepRuleModifiers {
         allowsShrinking,
         allowsOptimization,
         allowsObfuscation,
-        includeDescriptorClasses);
+        includeDescriptorClasses,
+        allowsPermittedSubclassesRemoval);
   }
 
   @Override
@@ -156,6 +169,7 @@ public class ProguardKeepRuleModifiers {
     appendWithComma(builder, allowsShrinking, "allowshrinking");
     appendWithComma(builder, allowsOptimization, "allowoptimization");
     appendWithComma(builder, includeDescriptorClasses, "includedescriptorclasses");
+    appendWithComma(builder, allowsPermittedSubclassesRemoval, "allowpermittedsubclassesremoval");
     return builder.toString();
   }
 

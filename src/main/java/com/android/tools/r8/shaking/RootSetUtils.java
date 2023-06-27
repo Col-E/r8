@@ -1665,6 +1665,16 @@ public class RootSetUtils {
         includeDescriptorClasses(item, keepRule, preconditionEvent);
         context.markAsUsed();
       }
+
+      if (item.isProgramClass()
+          && appView.options().isKeepPermittedSubclassesEnabled()
+          && !modifiers.allowsPermittedSubclassesRemoval) {
+        dependentMinimumKeepInfo
+            .getOrCreateMinimumKeepInfoFor(preconditionEvent, item.getReference())
+            .asClassJoiner()
+            .disallowPermittedSubclassesRemoval();
+        context.markAsUsed();
+      }
     }
 
     private boolean isRepackagingDisallowed(
