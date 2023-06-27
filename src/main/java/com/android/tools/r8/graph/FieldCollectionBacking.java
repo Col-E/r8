@@ -34,6 +34,22 @@ public abstract class FieldCollectionBacking {
       BiFunction<? super DexClassAndField, ? super CT, TraversalContinuation<BT, CT>> fn,
       CT initialValue);
 
+  abstract <BT, CT> TraversalContinuation<BT, CT> traverseInstanceFields(
+      DexClass holder, Function<? super DexClassAndField, TraversalContinuation<BT, CT>> fn);
+
+  abstract <BT, CT> TraversalContinuation<BT, CT> traverseInstanceFields(
+      DexClass holder,
+      BiFunction<? super DexClassAndField, ? super CT, TraversalContinuation<BT, CT>> fn,
+      CT initialValue);
+
+  abstract <BT, CT> TraversalContinuation<BT, CT> traverseStaticFields(
+      DexClass holder, Function<? super DexClassAndField, TraversalContinuation<BT, CT>> fn);
+
+  abstract <BT, CT> TraversalContinuation<BT, CT> traverseStaticFields(
+      DexClass holder,
+      BiFunction<? super DexClassAndField, ? super CT, TraversalContinuation<BT, CT>> fn,
+      CT initialValue);
+
   // Collection methods.
 
   abstract int size();

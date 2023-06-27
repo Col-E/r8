@@ -73,6 +73,28 @@ public class FieldCollection {
     return backing.traverse(holder, fn, initialValue);
   }
 
+  public <BT, CT> TraversalContinuation<BT, CT> traverseInstanceFields(
+      Function<? super DexClassAndField, TraversalContinuation<BT, CT>> fn) {
+    return backing.traverseInstanceFields(holder, fn);
+  }
+
+  public <BT, CT> TraversalContinuation<BT, CT> traverseInstanceFields(
+      BiFunction<? super DexClassAndField, ? super CT, TraversalContinuation<BT, CT>> fn,
+      CT initialValue) {
+    return backing.traverseInstanceFields(holder, fn, initialValue);
+  }
+
+  public <BT, CT> TraversalContinuation<BT, CT> traverseStaticFields(
+      Function<? super DexClassAndField, TraversalContinuation<BT, CT>> fn) {
+    return backing.traverseStaticFields(holder, fn);
+  }
+
+  public <BT, CT> TraversalContinuation<BT, CT> traverseStaticFields(
+      BiFunction<? super DexClassAndField, ? super CT, TraversalContinuation<BT, CT>> fn,
+      CT initialValue) {
+    return backing.traverseStaticFields(holder, fn, initialValue);
+  }
+
   public boolean verify() {
     forEachField(
         field -> {

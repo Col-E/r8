@@ -3,6 +3,8 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.graph;
 
+import static com.google.common.base.Predicates.alwaysTrue;
+
 import com.android.tools.r8.utils.IterableUtils;
 import com.android.tools.r8.utils.TraversalContinuation;
 import it.unimi.dsi.fastutil.objects.Object2ReferenceLinkedOpenHashMap;
@@ -49,15 +51,7 @@ public class FieldMapBacking extends FieldCollectionBacking {
   @Override
   <BT, CT> TraversalContinuation<BT, CT> traverse(
       DexClass holder, Function<? super DexClassAndField, TraversalContinuation<BT, CT>> fn) {
-    TraversalContinuation<BT, CT> traversalContinuation = TraversalContinuation.doContinue();
-    for (DexEncodedField definition : fieldMap.values()) {
-      DexClassAndField field = DexClassAndField.create(holder, definition);
-      traversalContinuation = fn.apply(field);
-      if (traversalContinuation.shouldBreak()) {
-        return traversalContinuation;
-      }
-    }
-    return traversalContinuation;
+    return traverseFieldsThatMatches(holder, fn, alwaysTrue());
   }
 
   @Override
@@ -65,13 +59,68 @@ public class FieldMapBacking extends FieldCollectionBacking {
       DexClass holder,
       BiFunction<? super DexClassAndField, ? super CT, TraversalContinuation<BT, CT>> fn,
       CT initialValue) {
+    return traverseFieldsThatMatches(holder, fn, alwaysTrue(), initialValue);
+  }
+
+  @Override
+  <BT, CT> TraversalContinuation<BT, CT> traverseInstanceFields(
+      DexClass holder, Function<? super DexClassAndField, TraversalContinuation<BT, CT>> fn) {
+    return traverseFieldsThatMatches(holder, fn, DexEncodedField::isInstance);
+  }
+
+  @Override
+  <BT, CT> TraversalContinuation<BT, CT> traverseInstanceFields(
+      DexClass holder,
+      BiFunction<? super DexClassAndField, ? super CT, TraversalContinuation<BT, CT>> fn,
+      CT initialValue) {
+    return traverseFieldsThatMatches(holder, fn, DexEncodedField::isInstance, initialValue);
+  }
+
+  @Override
+  <BT, CT> TraversalContinuation<BT, CT> traverseStaticFields(
+      DexClass holder, Function<? super DexClassAndField, TraversalContinuation<BT, CT>> fn) {
+    return traverseFieldsThatMatches(holder, fn, DexEncodedField::isStatic);
+  }
+
+  @Override
+  <BT, CT> TraversalContinuation<BT, CT> traverseStaticFields(
+      DexClass holder,
+      BiFunction<? super DexClassAndField, ? super CT, TraversalContinuation<BT, CT>> fn,
+      CT initialValue) {
+    return traverseFieldsThatMatches(holder, fn, DexEncodedField::isStatic, initialValue);
+  }
+
+  private <BT, CT> TraversalContinuation<BT, CT> traverseFieldsThatMatches(
+      DexClass holder,
+      Function<? super DexClassAndField, TraversalContinuation<BT, CT>> fn,
+      Predicate<? super DexEncodedField> predicate) {
+    TraversalContinuation<BT, CT> traversalContinuation = TraversalContinuation.doContinue();
+    for (DexEncodedField definition : fieldMap.values()) {
+      if (predicate.test(definition)) {
+        DexClassAndField field = DexClassAndField.create(holder, definition);
+        traversalContinuation = fn.apply(field);
+        if (traversalContinuation.shouldBreak()) {
+          return traversalContinuation;
+        }
+      }
+    }
+    return traversalContinuation;
+  }
+
+  private <BT, CT> TraversalContinuation<BT, CT> traverseFieldsThatMatches(
+      DexClass holder,
+      BiFunction<? super DexClassAndField, ? super CT, TraversalContinuation<BT, CT>> fn,
+      Predicate<? super DexEncodedField> predicate,
+      CT initialValue) {
     TraversalContinuation<BT, CT> traversalContinuation =
         TraversalContinuation.doContinue(initialValue);
     for (DexEncodedField definition : fieldMap.values()) {
-      DexClassAndField field = DexClassAndField.create(holder, definition);
-      traversalContinuation = fn.apply(field, traversalContinuation.asContinue().getValue());
-      if (traversalContinuation.shouldBreak()) {
-        return traversalContinuation;
+      if (predicate.test(definition)) {
+        DexClassAndField field = DexClassAndField.create(holder, definition);
+        traversalContinuation = fn.apply(field, traversalContinuation.asContinue().getValue());
+        if (traversalContinuation.shouldBreak()) {
+          return traversalContinuation;
+        }
       }
     }
     return traversalContinuation;

@@ -5,7 +5,6 @@
 package com.android.tools.r8.ir.analysis.value;
 
 import com.android.tools.r8.graph.AppView;
-import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.lens.GraphLens;
 import com.android.tools.r8.ir.analysis.value.objectstate.ObjectState;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
@@ -176,71 +175,12 @@ public abstract class AbstractValue {
     return null;
   }
 
-  public AbstractValue join(AbstractValue other, AbstractValueFactory factory, DexType type) {
-    return join(other, factory, type.isReferenceType(), false);
+  public boolean isDefiniteBitsNumberValue() {
+    return false;
   }
 
-  public AbstractValue joinPrimitive(AbstractValue other, AbstractValueFactory factory) {
-    return join(other, factory, false, false);
-  }
-
-  public AbstractValue joinReference(AbstractValue other, AbstractValueFactory factory) {
-    return join(other, factory, true, false);
-  }
-
-  // TODO(b/196321452): Clean this up, in particular, replace the "allow" parameters by a
-  //  configuration object.
-  public AbstractValue join(
-      AbstractValue other,
-      AbstractValueFactory factory,
-      boolean allowNullOrAbstractValue,
-      boolean allowNonConstantNumbers) {
-    if (isBottom() || other.isUnknown()) {
-      return other;
-    }
-    if (isUnknown() || other.isBottom()) {
-      return this;
-    }
-    if (equals(other)) {
-      return this;
-    }
-    if (allowNullOrAbstractValue) {
-      if (isNull()) {
-        return NullOrAbstractValue.create(other);
-      }
-      if (other.isNull()) {
-        return NullOrAbstractValue.create(this);
-      }
-      if (isNullOrAbstractValue() && asNullOrAbstractValue().getNonNullValue().equals(other)) {
-        return this;
-      }
-      if (other.isNullOrAbstractValue()
-          && other.asNullOrAbstractValue().getNonNullValue().equals(this)) {
-        return other;
-      }
-      return unknown();
-    }
-    assert !isNullOrAbstractValue();
-    assert !other.isNullOrAbstractValue();
-    if (allowNonConstantNumbers
-        && isConstantOrNonConstantNumberValue()
-        && other.isConstantOrNonConstantNumberValue()) {
-      NumberFromSetValue.Builder numberFromSetValueBuilder;
-      if (isSingleNumberValue()) {
-        numberFromSetValueBuilder = NumberFromSetValue.builder(asSingleNumberValue());
-      } else {
-        assert isNumberFromSetValue();
-        numberFromSetValueBuilder = asNumberFromSetValue().instanceBuilder();
-      }
-      if (other.isSingleNumberValue()) {
-        numberFromSetValueBuilder.addInt(other.asSingleNumberValue().getIntValue());
-      } else {
-        assert other.isNumberFromSetValue();
-        numberFromSetValueBuilder.addInts(other.asNumberFromSetValue());
-      }
-      return numberFromSetValueBuilder.build(factory);
-    }
-    return unknown();
+  public DefiniteBitsNumberValue asDefiniteBitsNumberValue() {
+    return null;
   }
 
   public abstract AbstractValue rewrittenWithLens(

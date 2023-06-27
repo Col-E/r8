@@ -48,7 +48,7 @@ public class ConcreteClassTypeFieldState extends ConcreteReferenceTypeFieldState
       ProgramField field) {
     assert field.getType().isClassType();
     this.abstractValue =
-        this.abstractValue.joinReference(abstractValue, appView.abstractValueFactory());
+        appView.getAbstractValueFieldJoiner().join(this.abstractValue, abstractValue, field);
     this.dynamicType =
         WideningUtils.widenDynamicNonReceiverType(
             appView, this.dynamicType.join(appView, dynamicType), field.getType());

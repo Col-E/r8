@@ -4,8 +4,11 @@
 
 package com.android.tools.r8.ir.analysis.fieldaccess.state;
 
+import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.ProgramField;
 import com.android.tools.r8.ir.analysis.value.AbstractValue;
 import com.android.tools.r8.ir.analysis.value.AbstractValueFactory;
+import com.android.tools.r8.shaking.AppInfoWithLiveness;
 
 /** The information that we track for fields whose type is a primitive type. */
 public class ConcretePrimitiveTypeFieldState extends ConcreteFieldState {
@@ -38,11 +41,12 @@ public class ConcretePrimitiveTypeFieldState extends ConcreteFieldState {
   }
 
   public FieldState mutableJoin(
-      AbstractValue abstractValue, AbstractValueFactory abstractValueFactory) {
+      AppView<AppInfoWithLiveness> appView, ProgramField field, AbstractValue abstractValue) {
     if (abstractValue.isUnknown()) {
       return FieldState.unknown();
     }
-    this.abstractValue = this.abstractValue.joinPrimitive(abstractValue, abstractValueFactory);
+    this.abstractValue =
+        appView.getAbstractValueFieldJoiner().join(this.abstractValue, abstractValue, field);
     return isEffectivelyUnknown() ? unknown() : this;
   }
 
