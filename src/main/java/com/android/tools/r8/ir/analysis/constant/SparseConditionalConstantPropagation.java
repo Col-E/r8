@@ -19,6 +19,7 @@ import com.android.tools.r8.ir.code.StringSwitch;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.conversion.passes.CodeRewriterPass;
 import com.android.tools.r8.ir.conversion.passes.result.CodeRewriterResult;
+import com.android.tools.r8.utils.BooleanBox;
 import com.google.common.collect.Sets;
 import java.util.ArrayList;
 import java.util.BitSet;
@@ -94,14 +95,15 @@ public class SparseConditionalConstantPropagation extends CodeRewriterPass<AppIn
         }
       }
     }
-    rewriteConstants();
+    boolean hasChanged = rewriteConstants();
     assert code.isConsistentSSA(appView);
-    return CodeRewriterResult.NONE;
+    return CodeRewriterResult.hasChanged(hasChanged);
   }
 
-  private void rewriteConstants() {
+  private boolean rewriteConstants() {
     Set<Value> affectedValues = Sets.newIdentityHashSet();
     List<BasicBlock> blockToAnalyze = new ArrayList<>();
+    BooleanBox hasChanged = new BooleanBox(false);
     mapping.entrySet().stream()
         .filter(entry -> entry.getValue().isConst())
         .forEach(
@@ -127,12 +129,14 @@ public class SparseConditionalConstantPropagation extends CodeRewriterPass<AppIn
                     }
                     iterator.add(newConst);
                     value.replaceUsers(newConst.outValue());
+                    hasChanged.set();
                   }
                 } else {
                   BasicBlock block = value.definition.getBlock();
                   InstructionListIterator iterator = block.listIterator(code);
                   iterator.nextUntil(i -> i == value.definition);
                   iterator.replaceCurrentInstruction(evaluatedConst);
+                  hasChanged.set();
                 }
               }
             });
@@ -142,8 +146,12 @@ public class SparseConditionalConstantPropagation extends CodeRewriterPass<AppIn
     if (!affectedValues.isEmpty()) {
       new TypeAnalysis(appView).narrowing(affectedValues);
     }
-    code.removeAllDeadAndTrivialPhis();
-    code.removeRedundantBlocks();
+    boolean changed = hasChanged.get();
+    if (changed) {
+      code.removeAllDeadAndTrivialPhis();
+      code.removeRedundantBlocks();
+    }
+    return changed;
   }
 
   private LatticeElement getLatticeElement(Value value) {

@@ -94,14 +94,16 @@ public class ArrayConstructionSimplifier extends CodeRewriterPass<AppInfo> {
 
   @Override
   protected CodeRewriterResult rewriteCode(IRCode code) {
+    boolean hasChanged = false;
     WorkList<BasicBlock> worklist = WorkList.newIdentityWorkList(code.blocks);
     while (worklist.hasNext()) {
       BasicBlock block = worklist.next();
-      simplifyArrayConstructionBlock(block, worklist, code, appView.options());
+      hasChanged |= simplifyArrayConstructionBlock(block, worklist, code, appView.options());
     }
-    // Do only when the rewriter pass has changed something.
-    code.removeRedundantBlocks();
-    return CodeRewriterResult.NONE;
+    if (hasChanged) {
+      code.removeRedundantBlocks();
+    }
+    return CodeRewriterResult.hasChanged(hasChanged);
   }
 
   @Override
@@ -109,8 +111,9 @@ public class ArrayConstructionSimplifier extends CodeRewriterPass<AppInfo> {
     return appView.options().isGeneratingDex();
   }
 
-  private void simplifyArrayConstructionBlock(
+  private boolean simplifyArrayConstructionBlock(
       BasicBlock block, WorkList<BasicBlock> worklist, IRCode code, InternalOptions options) {
+    boolean hasChanged = false;
     RewriteArrayOptions rewriteOptions = options.rewriteArrayOptions();
     InstructionListIterator it = block.listIterator(code);
     while (it.hasNext()) {
@@ -199,7 +202,9 @@ public class ArrayConstructionSimplifier extends CodeRewriterPass<AppInfo> {
 
       // The above has invalidated the block iterator so reset it and continue.
       it = block.listIterator(code, instructionAfterCandidate);
+      hasChanged = true;
     }
+    return hasChanged;
   }
 
   private short[] computeArrayFilledData(Value[] values, int size, int elementSize) {
