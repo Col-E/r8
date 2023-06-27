@@ -53,7 +53,7 @@ public class NaturalIntLoopRemover extends CodeRewriterPass<AppInfo> {
       code.removeRedundantBlocks();
       assert code.isConsistentSSA(appView);
     }
-    return CodeRewriterResult.NONE;
+    return CodeRewriterResult.hasChanged(loopRemoved);
   }
 
   @Override
