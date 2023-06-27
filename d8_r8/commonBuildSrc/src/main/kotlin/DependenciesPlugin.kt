@@ -109,7 +109,6 @@ fun Project.ensureThirdPartyDependencies(name : String, deps : List<ThirdPartyDe
 fun Project.buildJavaExamplesJars(examplesName : String) : Task {
   val outputFiles : MutableList<File> = mutableListOf()
   val jarTasks : MutableList<Task> = mutableListOf()
-  val testGenerationTasks : MutableList<Task> = mutableListOf()
   val testSourceSet = extensions
     .getByType(JavaPluginExtension::class.java)
     .sourceSets
@@ -136,7 +135,6 @@ fun Project.buildJavaExamplesJars(examplesName : String) : Task {
               testSourceSet.compileClasspath)
             args(classesOutput.toString())
           }.get()
-          testGenerationTasks.add(generationTask)
         }
         jarTasks.add(tasks.register<Jar>(
           "jar-examples$examplesName-${exampleDir.name}") {
@@ -155,7 +153,6 @@ fun Project.buildJavaExamplesJars(examplesName : String) : Task {
     }
   return tasks.register(getExamplesJarsTaskName(examplesName)) {
     dependsOn(jarTasks.toTypedArray())
-    dependsOn(testGenerationTasks.toTypedArray())
     outputs.files(outputFiles)
   }.get()
 }
