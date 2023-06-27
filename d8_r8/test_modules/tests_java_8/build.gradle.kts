@@ -59,6 +59,7 @@ val thirdPartyRuntimeDependenciesTask = ensureThirdPartyDependencies(
     + ThirdPartyDeps.androidJars
     + ThirdPartyDeps.androidVMs
     + ThirdPartyDeps.jdks
+    + ThirdPartyDeps.kotlinCompilers
     + ThirdPartyDeps.proguards)
 
 val sourceSetDependenciesTasks = arrayOf(

@@ -297,6 +297,8 @@ object Deps {
 }
 
 object ThirdPartyDeps {
+  val androidJars : List<ThirdPartyDependency> = getThirdPartyAndroidJars()
+  val androidVMs = getThirdPartyAndroidVms()
   val apiDatabase = ThirdPartyDependency(
     "apiDatabase",
     Paths.get(
@@ -310,28 +312,27 @@ object ThirdPartyDeps {
     "ddmlib",
     Paths.get("third_party", "ddmlib", "ddmlib.jar").toFile(),
     Paths.get("third_party", "ddmlib.tar.gz.sha1").toFile())
-  val jasmin = ThirdPartyDependency(
-    "jasmin",
-    Paths.get("third_party", "jasmin", "jasmin-2.4.jar").toFile(),
-    Paths.get("third_party", "jasmin.tar.gz.sha1").toFile())
-  val jdwpTests = ThirdPartyDependency(
-    "jdwp-tests",
-    Paths.get("third_party", "jdwp-tests", "apache-harmony-jdwp-tests-host.jar").toFile(),
-    Paths.get("third_party", "jdwp-tests.tar.gz.sha1").toFile())
-  val androidJars : List<ThirdPartyDependency> = getThirdPartyAndroidJars()
   val jacoco = ThirdPartyDependency(
     "jacoco",
     Paths.get("third_party", "jacoco", "0.8.6", "lib", "jacocoagent.jar").toFile(),
     Paths.get("third_party", "jacoco", "0.8.6.tar.gz.sha1").toFile()
   )
+  val jasmin = ThirdPartyDependency(
+    "jasmin",
+    Paths.get("third_party", "jasmin", "jasmin-2.4.jar").toFile(),
+    Paths.get("third_party", "jasmin.tar.gz.sha1").toFile())
   val java8Runtime = ThirdPartyDependency(
     "openjdk-rt-1.8",
     Paths.get("third_party", "openjdk", "openjdk-rt-1.8", "rt.jar").toFile(),
     Paths.get("third_party", "openjdk", "openjdk-rt-1.8.tar.gz.sha1").toFile()
   )
-  val androidVMs : List<ThirdPartyDependency> = getThirdPartyAndroidVms()
-  val jdks : List<ThirdPartyDependency> = getJdks()
-  val proguards : List<ThirdPartyDependency> = getThirdPartyProguards()
+  val jdks = getJdks()
+  val jdwpTests = ThirdPartyDependency(
+    "jdwp-tests",
+    Paths.get("third_party", "jdwp-tests", "apache-harmony-jdwp-tests-host.jar").toFile(),
+    Paths.get("third_party", "jdwp-tests.tar.gz.sha1").toFile())
+  val kotlinCompilers = getThirdPartyKotlinCompilers()
+  val proguards = getThirdPartyProguards()
 }
 
 fun getThirdPartyAndroidJars() : List<ThirdPartyDependency> {
@@ -414,7 +415,26 @@ fun getThirdPartyProguards() : List<ThirdPartyDependency> {
           it,
           "bin",
           if (os.isWindows) "proguard.bat" else "proguard.sh").toFile(),
-        Paths.get("third_party", "proguard", "${it}.tar.gz.sha1").toFile()
-      )
-    }
+        Paths.get("third_party", "proguard", "${it}.tar.gz.sha1").toFile())}
+}
+
+fun getThirdPartyKotlinCompilers() : List<ThirdPartyDependency> {
+  return listOf(
+    "kotlin-compiler-1.3.72",
+    "kotlin-compiler-1.4.20",
+    "kotlin-compiler-1.5.0",
+    "kotlin-compiler-1.6.0",
+    "kotlin-compiler-1.7.0",
+    "kotlin-compiler-1.8.0",
+    "kotlin-compiler-dev")
+    .map { ThirdPartyDependency(
+      it,
+      Paths.get(
+        "third_party",
+        "kotlin",
+        it,
+        "kotlinc",
+        "lib",
+        "kotlin-stdlib.jar").toFile(),
+      Paths.get("third_party", "kotlin", "${it}.tar.gz.sha1").toFile())}
 }
