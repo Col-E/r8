@@ -5,6 +5,10 @@
 from os import path
 import datetime
 from subprocess import check_output, Popen, PIPE, STDOUT
+import sys
+import inspect
+sys.path.append(path.dirname(inspect.getfile(lambda: None)))
+from tools.utils import EnsureDepFromGoogleCloudStorage
 
 FMT_CMD = path.join(
     'third_party',
@@ -16,7 +20,10 @@ FMT_CMD = path.join(
     'google-java-format-diff.py')
 
 FMT_CMD_JDK17 = path.join('tools','google-java-format-diff.py')
-
+FMT_SHA1 = path.join(
+    'third_party', 'google', 'google-java-format', '1.14.0.tar.gz.sha1')
+FMT_TGZ = path.join(
+    'third_party', 'google', 'google-java-format', '1.14.0.tar.gz')
 
 def CheckDoNotMerge(input_api, output_api):
   for l in input_api.change.FullDescriptionText().splitlines():
@@ -26,6 +33,7 @@ def CheckDoNotMerge(input_api, output_api):
   return []
 
 def CheckFormatting(input_api, output_api, branch):
+  EnsureDepFromGoogleCloudStorage(FMT_CMD, FMT_TGZ, FMT_SHA1, 'google-format')
   results = []
   for f in input_api.AffectedFiles():
     path = f.LocalPath()
