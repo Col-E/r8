@@ -52,22 +52,16 @@ public class RedundantConstNumberRemover extends CodeRewriterPass<AppInfo> {
 
   @Override
   protected boolean shouldRewriteCode(IRCode code) {
+    if (appView.options().canHaveDalvikIntUsedAsNonIntPrimitiveTypeBug()
+        && !appView.options().testing.forceRedundantConstNumberRemoval) {
+      // See also b/124152497.
+      return false;
+    }
     return options.enableRedundantConstNumberOptimization && code.metadata().mayHaveConstNumber();
   }
 
   @Override
   protected CodeRewriterResult rewriteCode(IRCode code) {
-    redundantConstNumberRemoval(code);
-    return CodeRewriterResult.NONE;
-  }
-
-  public void redundantConstNumberRemoval(IRCode code) {
-    if (appView.options().canHaveDalvikIntUsedAsNonIntPrimitiveTypeBug()
-        && !appView.options().testing.forceRedundantConstNumberRemoval) {
-      // See also b/124152497.
-      return;
-    }
-
     LazyBox<Long2ReferenceMap<List<ConstNumber>>> constantsByValue =
         new LazyBox<>(() -> getConstantsByValue(code));
     LazyBox<DominatorTree> dominatorTree = new LazyBox<>(() -> new DominatorTree(code));
@@ -169,6 +163,7 @@ public class RedundantConstNumberRemover extends CodeRewriterPass<AppInfo> {
       code.removeAllDeadAndTrivialPhis();
     }
     assert code.isConsistentSSA(appView);
+    return CodeRewriterResult.hasChanged(changed);
   }
 
   private static Long2ReferenceMap<List<ConstNumber>> getConstantsByValue(IRCode code) {

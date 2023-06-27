@@ -252,6 +252,7 @@ public class BinopRewriter extends CodeRewriterPass<AppInfo> {
 
   @Override
   public CodeRewriterResult rewriteCode(IRCode code) {
+    boolean hasChanged = false;
     InstructionListIterator iterator = code.instructionListIterator();
     while (iterator.hasNext()) {
       Instruction next = iterator.next();
@@ -262,39 +263,42 @@ public class BinopRewriter extends CodeRewriterPass<AppInfo> {
           BinopDescriptor binopDescriptor = descriptors.get(binop.getClass());
           assert binopDescriptor != null;
           if (identityAbsorbingSimplification(iterator, binop, binopDescriptor)) {
+            hasChanged = true;
             continue;
           }
-          successiveSimplification(iterator, binop, binopDescriptor, code);
+          hasChanged |= successiveSimplification(iterator, binop, binopDescriptor, code);
         }
       }
     }
-    code.removeAllDeadAndTrivialPhis();
-    code.removeRedundantBlocks();
+    if (hasChanged) {
+      code.removeAllDeadAndTrivialPhis();
+      code.removeRedundantBlocks();
+    }
     assert code.isConsistentSSA(appView);
-    return CodeRewriterResult.NONE;
+    return CodeRewriterResult.hasChanged(hasChanged);
   }
 
-  private void successiveSimplification(
+  private boolean successiveSimplification(
       InstructionListIterator iterator, Binop binop, BinopDescriptor binopDescriptor, IRCode code) {
     if (binop.outValue().hasDebugUsers()) {
-      return;
+      return false;
     }
     ConstNumber constBLeft = getConstNumber(binop.leftValue());
     ConstNumber constBRight = getConstNumber(binop.rightValue());
     if ((constBLeft != null && constBRight != null)
         || (constBLeft == null && constBRight == null)) {
-      return;
+      return false;
     }
     Value otherValue = constBLeft == null ? binop.leftValue() : binop.rightValue();
     if (otherValue.isPhi() || !otherValue.getDefinition().isBinop()) {
-      return;
+      return false;
     }
     Binop prevBinop = otherValue.getDefinition().asBinop();
     ConstNumber constALeft = getConstNumber(prevBinop.leftValue());
     ConstNumber constARight = getConstNumber(prevBinop.rightValue());
     if ((constALeft != null && constARight != null)
         || (constALeft == null && constARight == null)) {
-      return;
+      return false;
     }
     ConstNumber constB = constBLeft == null ? constBRight : constBLeft;
     ConstNumber constA = constALeft == null ? constARight : constALeft;
@@ -306,11 +310,13 @@ public class BinopRewriter extends CodeRewriterPass<AppInfo> {
         assert binop.isCommutative();
         Value newConst = addNewConstNumber(code, iterator, constB, constA, binopDescriptor);
         replaceBinop(iterator, code, input, newConst, binopDescriptor);
+        return true;
       } else if (binopDescriptor.isShift()) {
         // x shift: a shift: b => x shift: (a + b) where a + b is a constant.
         if (constBRight != null && constARight != null) {
           Value newConst = addNewConstNumber(code, iterator, constB, constA, BinopDescriptor.ADD);
           replaceBinop(iterator, code, input, newConst, binopDescriptor);
+          return true;
         }
       } else if (binop.isSub() && constBRight != null) {
         // a - x - b => (a - b) - x where (a - b) is a constant.
@@ -319,9 +325,11 @@ public class BinopRewriter extends CodeRewriterPass<AppInfo> {
         if (constARight == null) {
           Value newConst = addNewConstNumber(code, iterator, constA, constB, BinopDescriptor.SUB);
           replaceBinop(iterator, code, newConst, input, BinopDescriptor.SUB);
+          return true;
         } else {
           Value newConst = addNewConstNumber(code, iterator, constB, constA, BinopDescriptor.ADD);
           replaceBinop(iterator, code, input, newConst, BinopDescriptor.SUB);
+          return true;
         }
       }
     } else {
@@ -331,18 +339,22 @@ public class BinopRewriter extends CodeRewriterPass<AppInfo> {
         // We ignore b - (x + a) and b - (a + x) with constBRight != null.
         Value newConst = addNewConstNumber(code, iterator, constA, constB, BinopDescriptor.SUB);
         replaceBinop(iterator, code, newConst, input, BinopDescriptor.ADD);
+        return true;
       } else if (binop.isAdd() && prevBinop.isSub()) {
         // x - a + b => x - (a - b) where (a - b) is a constant.
         // a - x + b => (a + b) - x where (a + b) is a constant.
         if (constALeft == null) {
           Value newConst = addNewConstNumber(code, iterator, constA, constB, BinopDescriptor.SUB);
           replaceBinop(iterator, code, input, newConst, BinopDescriptor.SUB);
+          return true;
         } else {
           Value newConst = addNewConstNumber(code, iterator, constB, constA, BinopDescriptor.ADD);
           replaceBinop(iterator, code, newConst, input, BinopDescriptor.SUB);
+          return true;
         }
       }
     }
+    return false;
   }
 
   private void replaceBinop(
