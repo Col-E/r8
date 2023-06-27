@@ -59,15 +59,15 @@ public class ThrowCatchOptimizer extends CodeRewriterPass<AppInfo> {
 
   @Override
   protected CodeRewriterResult rewriteCode(IRCode code) {
-    optimizeAlwaysThrowingInstructions(code);
+    boolean hasChanged = optimizeAlwaysThrowingInstructions(code);
     if (!isDebugMode(code.context())) {
-      rewriteThrowNullPointerException(code);
+      hasChanged |= rewriteThrowNullPointerException(code);
     }
-    return CodeRewriterResult.NONE;
+    return CodeRewriterResult.hasChanged(hasChanged);
   }
 
   // Rewrite 'throw new NullPointerException()' to 'throw null'.
-  private void rewriteThrowNullPointerException(IRCode code) {
+  private boolean rewriteThrowNullPointerException(IRCode code) {
     boolean hasChanged = false;
     boolean shouldRemoveUnreachableBlocks = false;
     for (BasicBlock block : code.blocks) {
@@ -209,17 +209,19 @@ public class ThrowCatchOptimizer extends CodeRewriterPass<AppInfo> {
       code.removeRedundantBlocks();
     }
     assert code.isConsistentSSA(appView);
+    return hasChanged;
   }
 
   // Find all instructions that always throw, split the block after each such instruction and follow
   // it with a block throwing a null value (which should result in NPE). Note that this throw is not
   // expected to be ever reached, but is intended to satisfy verifier.
-  private void optimizeAlwaysThrowingInstructions(IRCode code) {
+  private boolean optimizeAlwaysThrowingInstructions(IRCode code) {
     Set<Value> affectedValues = Sets.newIdentityHashSet();
     Set<BasicBlock> blocksToRemove = Sets.newIdentityHashSet();
     ListIterator<BasicBlock> blockIterator = code.listIterator();
     ProgramMethod context = code.context();
     boolean hasUnlinkedCatchHandlers = false;
+    boolean hasChanged = false;
     // For cyclic phis we sometimes do not propagate the dynamic upper type after rewritings.
     // The inValue.isAlwaysNull(appView) check below will not recompute the dynamic type of phi's
     // so we recompute all phis here if they are always null.
@@ -287,6 +289,7 @@ public class ThrowCatchOptimizer extends CodeRewriterPass<AppInfo> {
             }
             instructionIterator.replaceCurrentInstructionWithThrowNull(
                 appView, code, blockIterator, blocksToRemove, affectedValues);
+            hasChanged = true;
             continue;
           }
         }
@@ -324,6 +327,7 @@ public class ThrowCatchOptimizer extends CodeRewriterPass<AppInfo> {
           instructionIterator.replaceCurrentInstructionWithThrowNull(
               appView, code, blockIterator, blocksToRemove, affectedValues);
           instructionIterator.unsetInsertionPosition();
+          hasChanged = true;
         }
       }
     }
@@ -335,8 +339,11 @@ public class ThrowCatchOptimizer extends CodeRewriterPass<AppInfo> {
     if (!affectedValues.isEmpty()) {
       new TypeAnalysis(appView).narrowing(affectedValues);
     }
-    code.removeRedundantBlocks();
+    if (hasChanged) {
+      code.removeRedundantBlocks();
+    }
     assert code.isConsistentSSA(appView);
+    return hasChanged;
   }
 
   // Find any case where we have a catch followed immediately and only by a rethrow. This is extra
