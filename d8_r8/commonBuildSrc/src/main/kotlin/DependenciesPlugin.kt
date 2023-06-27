@@ -297,7 +297,7 @@ object Deps {
 }
 
 object ThirdPartyDeps {
-  val androidJars : List<ThirdPartyDependency> = getThirdPartyAndroidJars()
+  val androidJars = getThirdPartyAndroidJars()
   val androidVMs = getThirdPartyAndroidVms()
   val apiDatabase = ThirdPartyDependency(
     "apiDatabase",
@@ -308,6 +308,17 @@ object ThirdPartyDeps {
       "resources",
       "new_api_database.ser").toFile(),
     Paths.get("third_party", "api_database", "api_database.tar.gz.sha1").toFile())
+  val compilerApi = ThirdPartyDependency(
+    "compiler-api",
+    Paths.get(
+      "third_party",
+      "binary_compatibility_tests",
+      "compiler_api_tests",
+      "tests.jar").toFile(),
+    Paths.get(
+      "third_party",
+      "binary_compatibility_tests",
+      "compiler_api_tests.tar.gz.sha1").toFile())
   val ddmLib = ThirdPartyDependency(
     "ddmlib",
     Paths.get("third_party", "ddmlib", "ddmlib.jar").toFile(),
