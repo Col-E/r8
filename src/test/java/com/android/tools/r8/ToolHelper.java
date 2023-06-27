@@ -178,7 +178,7 @@ public class ToolHelper {
   private static final String PROGUARD6_0_1 =
       THIRD_PARTY_DIR + "proguard/proguard6.0.1/bin/proguard";
   private static final String PROGUARD = PROGUARD5_2_1;
-  public static final Path JACOCO_ROOT = Paths.get("third_party", "jacoco", "0.8.6");
+  public static final Path JACOCO_ROOT = Paths.get(THIRD_PARTY_DIR, "jacoco", "0.8.6");
   public static final Path JACOCO_AGENT = JACOCO_ROOT.resolve(Paths.get("lib", "jacocoagent.jar"));
   public static final Path JACOCO_CLI = JACOCO_ROOT.resolve(Paths.get("lib", "jacococli.jar"));
   public static final String PROGUARD_SETTINGS_FOR_INTERNAL_APPS =

@@ -297,6 +297,11 @@ object ThirdPartyDeps {
     Paths.get("third_party", "jdwp-tests", "apache-harmony-jdwp-tests-host.jar").toFile(),
     Paths.get("third_party", "jdwp-tests.tar.gz.sha1").toFile())
   val androidJars : List<ThirdPartyDependency> = getThirdPartyAndroidJars()
+  val jacoco = ThirdPartyDependency(
+    "jacoco",
+    Paths.get("third_party", "jacoco", "0.8.6", "lib", "jacocoagent.jar").toFile(),
+    Paths.get("third_party", "jacoco", "0.8.6.tar.gz.sha1").toFile()
+  )
   val java8Runtime = ThirdPartyDependency(
     "openjdk-rt-1.8",
     Paths.get("third_party", "openjdk", "openjdk-rt-1.8", "rt.jar").toFile(),
