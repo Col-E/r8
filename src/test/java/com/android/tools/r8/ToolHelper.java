@@ -119,8 +119,8 @@ public class ToolHelper {
   public static final String LIBS_DIR = BUILD_DIR + "libs/";
   public static final String THIRD_PARTY_DIR = getProjectRoot() + "third_party/";
   public static final String TOOLS_DIR = getProjectRoot() + "tools/";
-  public static final String TESTS_DIR = "src/test/";
-  public static final String TESTS_SOURCE_DIR = "src/test/java";
+  public static final String TESTS_DIR = getProjectRoot() + "src/test/";
+  public static final String TESTS_SOURCE_DIR = TESTS_DIR + "java/";
   public static final String EXAMPLES_DIR = TESTS_DIR + "examples/";
   public static final String EXAMPLES_ANDROID_N_DIR = TESTS_DIR + "examplesAndroidN/";
   public static final String EXAMPLES_ANDROID_O_DIR = TESTS_DIR + "examplesAndroidO/";
@@ -140,7 +140,6 @@ public class ToolHelper {
   public static final String GENERATED_PROTO_BUILD_DIR = GENERATED_TEST_BUILD_DIR + "proto/";
   public static final String SMALI_BUILD_DIR = THIRD_PARTY_DIR + "smali/";
   public static final String JAVA_CLASSES_DIR = BUILD_DIR + "classes/java/";
-  public static final String JDK_11_TESTS_CLASSES_DIR = JAVA_CLASSES_DIR + "jdk11Tests/";
 
   public static final String R8_TEST_BUCKET = "r8-test-results";
 
@@ -1320,11 +1319,6 @@ public class ToolHelper {
   public static Path getPackageDirectoryForTestPackage(Package pkg) {
     List<String> parts = getNamePartsForTestPackage(pkg);
     return getClassPathForTests().resolve(Paths.get("", parts.toArray(StringUtils.EMPTY_ARRAY)));
-  }
-
-  public static String getJarEntryForTestPackage(Package pkg) {
-    List<String> parts = getNamePartsForTestPackage(pkg);
-    return String.join("/", parts);
   }
 
   private static List<String> getNamePartsForTestClass(Class<?> clazz) {
