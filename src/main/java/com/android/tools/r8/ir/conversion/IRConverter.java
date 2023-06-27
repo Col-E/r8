@@ -756,7 +756,7 @@ public class IRConverter {
     new ArrayConstructionSimplifier(appView).run(code, timing);
     new MoveResultRewriter(appView).run(code, timing);
     new StringBuilderAppendOptimizer(appView).run(code, timing);
-    new SparseConditionalConstantPropagation(appView, code).run(code, timing);
+    new SparseConditionalConstantPropagation(appView).run(code, timing);
     new ThrowCatchOptimizer(appView).run(code, timing);
     if (new BranchSimplifier(appView)
         .run(code, timing)
