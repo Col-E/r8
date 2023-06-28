@@ -544,6 +544,9 @@ public class R8 {
       appView.setGraphLens(new AppliedGraphLens(appView));
       timing.end();
 
+      // TODO(b/225838009): Support tracing and building LIR in Enqueuer.
+      PrimaryR8IRConverter.finalizeLirToOutputFormat(appView, timing, executorService);
+
       if (options.shouldRerunEnqueuer()) {
         timing.begin("Post optimization code stripping");
         try {

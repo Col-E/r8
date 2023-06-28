@@ -45,11 +45,6 @@ public class PrimaryR8IRConverter extends IRConverter {
     try {
       DexApplication application =
           internalOptimize(appView.withLiveness(), executorService).asDirect();
-
-      // TODO(b/225838009): Support rebuilding app info with LIR code.
-      //  (R8KotlinDataClassTest changes status if moved below app rebuild.)
-      PrimaryR8IRConverter.finalizeLirToOutputFormat(appView, timing, executorService);
-
       AppInfoWithClassHierarchy newAppInfo =
           appView.appInfo().rebuildWithClassHierarchy(previous -> application);
       appView.withClassHierarchy().setAppInfo(newAppInfo);
