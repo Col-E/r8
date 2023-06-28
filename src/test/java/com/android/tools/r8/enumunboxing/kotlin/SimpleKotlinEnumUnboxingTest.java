@@ -72,9 +72,7 @@ public class SimpleKotlinEnumUnboxingTest extends EnumUnboxingTestBase {
         .addKeepRules(enumKeepRules.getKeepRules())
         .addKeepRuntimeVisibleAnnotations()
         .addOptionsModification(opt -> enableEnumOptions(opt, enumValueOptimization))
-        // TODO(b/268005228): We should be able to unbox.
-        .addEnumUnboxingInspector(
-            inspector -> inspector.assertUnboxedIf(!kotlinParameters.isKotlinDev(), PKG + ".Color"))
+        .addEnumUnboxingInspector(inspector -> inspector.assertUnboxed(PKG + ".Color"))
         .allowDiagnosticMessages()
         .setMinApi(parameters)
         .compile()

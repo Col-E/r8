@@ -588,6 +588,11 @@ public class DexItemFactory {
   public final DexType kotlinMetadataType = createStaticallyKnownType(kotlinMetadataDescriptor);
   public final DexType kotlinJvmNameType = createStaticallyKnownType(kotlinJvmNameDescriptor);
 
+  public final DexType kotlinEnumEntriesList =
+      createStaticallyKnownType("Lkotlin/enums/EnumEntriesList;");
+  public final DexMethod kotlinEnumEntriesListInit =
+      createInstanceInitializer(kotlinEnumEntriesList, createArrayType(1, enumType));
+
   public final DexType javaIoFileType = createStaticallyKnownType("Ljava/io/File;");
   public final DexType javaMathBigIntegerType = createStaticallyKnownType("Ljava/math/BigInteger;");
   public final DexType javaNioByteOrderType = createStaticallyKnownType("Ljava/nio/ByteOrder;");
