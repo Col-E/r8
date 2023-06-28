@@ -10,8 +10,6 @@ import com.android.tools.r8.references.ClassReference;
 import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.ListUtils;
-import com.android.tools.r8.utils.ReflectiveBuildPathUtils;
-import com.android.tools.r8.utils.ReflectiveBuildPathUtils.ExamplesRootPackage;
 import com.google.common.collect.ImmutableMap;
 import java.nio.file.Path;
 import java.util.Arrays;
@@ -54,12 +52,6 @@ public abstract class TestBaseBuilder<
   public T addProgramFiles(Collection<Path> files) {
     builder.addProgramFiles(files);
     return self();
-  }
-
-  public T addExamplesProgramFiles(Class<? extends ExamplesRootPackage> rootPackage)
-      throws Exception {
-    Collection<Path> files = ReflectiveBuildPathUtils.allClassFiles(rootPackage);
-    return addProgramFiles(files);
   }
 
   public T addLibraryProvider(ClassFileResourceProvider provider) {
