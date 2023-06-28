@@ -68,6 +68,7 @@ import java.util.concurrent.ExecutorService;
  * The GlobalSyntheticsGenerator, a tool for generating a dex file for all possible global
  * synthetics.
  */
+@Keep
 public class GlobalSyntheticsGenerator {
 
   private static boolean ensureAllGlobalSyntheticsModeled(SyntheticNaming naming) {

@@ -18,6 +18,7 @@ import com.android.tools.r8.compilerapi.diagnostics.ProguardKeepRuleDiagnosticsA
 import com.android.tools.r8.compilerapi.diagnostics.UnsupportedFeaturesDiagnosticApiTest;
 import com.android.tools.r8.compilerapi.extractmarker.ExtractMarkerApiTest;
 import com.android.tools.r8.compilerapi.globalsynthetics.GlobalSyntheticsTest;
+import com.android.tools.r8.compilerapi.globalsyntheticsgenerator.GlobalSyntheticsGeneratorTest;
 import com.android.tools.r8.compilerapi.inputdependencies.InputDependenciesTest;
 import com.android.tools.r8.compilerapi.mapid.CustomMapIdTest;
 import com.android.tools.r8.compilerapi.mockdata.MockClass;
@@ -63,7 +64,8 @@ public class CompilerApiTestCollection extends BinaryCompatibilityTestCollection
           SyntheticContextsConsumerTest.ApiTest.class,
           ExtractMarkerApiTest.ApiTest.class,
           PartitionMapCommandTest.ApiTest.class,
-          CancelCompilationCheckerTest.ApiTest.class);
+          CancelCompilationCheckerTest.ApiTest.class,
+          GlobalSyntheticsGeneratorTest.ApiTest.class);
 
   private static final List<Class<? extends CompilerApiTest>> CLASSES_PENDING_BINARY_COMPATIBILITY =
       ImmutableList.of();

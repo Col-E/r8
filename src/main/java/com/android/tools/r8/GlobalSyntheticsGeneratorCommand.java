@@ -25,6 +25,7 @@ import java.util.Collection;
 /**
  * Immutable command structure for an invocation of the {@link GlobalSyntheticsGenerator} compiler.
  */
+@Keep
 public final class GlobalSyntheticsGeneratorCommand {
 
   private final ProgramConsumer programConsumer;

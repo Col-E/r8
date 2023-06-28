@@ -93,6 +93,11 @@ public abstract class CompilerApiTest {
         .resolve(Paths.get("third_party", "openjdk", "openjdk-rt-1.8", "rt.jar"));
   }
 
+  public Path getAndroidJar() {
+    return getProjectRoot()
+        .resolve(Paths.get("third_party", "android_jar", "lib-v33", "android.jar"));
+  }
+
   public List<String> getKeepMainRules(Class<?> clazz) {
     return Collections.singletonList(
         "-keep class " + clazz.getName() + " { public static void main(java.lang.String[]); }");
