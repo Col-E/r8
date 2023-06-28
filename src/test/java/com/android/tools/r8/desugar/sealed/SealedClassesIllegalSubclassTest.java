@@ -4,6 +4,8 @@
 
 package com.android.tools.r8.desugar.sealed;
 
+import static com.android.tools.r8.utils.codeinspector.Matchers.isPresentAndNotRenamed;
+import static com.android.tools.r8.utils.codeinspector.Matchers.isPresentAndRenamed;
 import static junit.framework.Assert.assertEquals;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -20,7 +22,7 @@ import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
-import com.android.tools.r8.utils.codeinspector.Matchers;
+import com.google.common.collect.ImmutableList;
 import java.util.List;
 import org.hamcrest.Matcher;
 import org.junit.Test;
@@ -37,6 +39,7 @@ public class SealedClassesIllegalSubclassTest extends TestBase {
 
   @Parameter(1)
   public boolean keepPermittedSubclassesAttribute;
+
   static final Matcher<String> EXPECTED = containsString("cannot inherit from sealed class");
   static final String EXPECTED_WITHOUT_PERMITTED_SUBCLASSES_ATTRIBUTE =
       StringUtils.lines("Success!");
@@ -80,14 +83,19 @@ public class SealedClassesIllegalSubclassTest extends TestBase {
   }
 
   private void inspect(CodeInspector inspector) {
-    ClassSubject clazz = inspector.clazz(C.class);
-    assertThat(clazz, Matchers.isPresentAndRenamed());
-    if (!parameters.isCfRuntime()) {
-      return;
-    }
+    ClassSubject clazz = inspector.clazz(Super.class);
+    assertThat(clazz, isPresentAndRenamed());
+    ClassSubject sub1 = inspector.clazz(Sub1.class);
+    ClassSubject sub2 = inspector.clazz(Sub2.class);
+    ClassSubject sub3 = inspector.clazz(Sub3.class);
+    assertThat(sub1, isPresentAndNotRenamed());
+    assertThat(sub2, isPresentAndNotRenamed());
+    assertThat(sub3, isPresentAndNotRenamed());
     assertEquals(
-        keepPermittedSubclassesAttribute ? 2 : 0,
-        clazz.getFinalPermittedSubclassAttributes().size());
+        parameters.isCfRuntime() && keepPermittedSubclassesAttribute
+            ? ImmutableList.of(sub1.asTypeSubject(), sub2.asTypeSubject())
+            : ImmutableList.of(),
+        clazz.getFinalPermittedSubclassAttributes());
   }
 
   @Test
@@ -100,10 +108,8 @@ public class SealedClassesIllegalSubclassTest extends TestBase {
         .applyIf(
             keepPermittedSubclassesAttribute,
             TestShrinkerBuilder::addKeepAttributePermittedSubclasses)
-        // Keep the sealed class to ensure the PermittedSubclasses attribute stays live.
-        .addKeepPermittedSubclasses(C.class)
-        // Keep subclasses as the PermittedSubclasses attribute is not rewritten.
-        .addKeepRules("-keep class * extends " + C.class.getTypeName())
+        .addKeepPermittedSubclasses(Super.class)
+        .addKeepRules("-keep class * extends " + Super.class.getTypeName())
         .addKeepMainRule(TestClass.class)
         .compile()
         .inspect(this::inspect)
@@ -121,7 +127,9 @@ public class SealedClassesIllegalSubclassTest extends TestBase {
   }
 
   public byte[] getTransformedClasses() throws Exception {
-    return transformer(C.class).setPermittedSubclasses(C.class, Sub1.class, Sub2.class).transform();
+    return transformer(Super.class)
+        .setPermittedSubclasses(Super.class, Sub1.class, Sub2.class)
+        .transform();
   }
 
   static class TestClass {
@@ -134,11 +142,11 @@ public class SealedClassesIllegalSubclassTest extends TestBase {
     }
   }
 
-  abstract static class C /* permits Sub1, Sub2 */ {}
+  abstract static class Super /* permits Sub1, Sub2 */ {}
 
-  static class Sub1 extends C {}
+  static class Sub1 extends Super {}
 
-  static class Sub2 extends C {}
+  static class Sub2 extends Super {}
 
-  static class Sub3 extends C {}
+  static class Sub3 extends Super {}
 }

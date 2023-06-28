@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.desugar.sealed;
 
+import static com.android.tools.r8.utils.codeinspector.Matchers.isPresentAndRenamed;
 import static junit.framework.Assert.assertEquals;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assume.assumeTrue;
@@ -18,7 +19,7 @@ import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
-import com.android.tools.r8.utils.codeinspector.Matchers;
+import com.google.common.collect.ImmutableList;
 import java.util.List;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -70,14 +71,17 @@ public class SealedClassesJdk17CompiledTest extends TestBase {
   }
 
   private void inspect(CodeInspector inspector) {
-    ClassSubject clazz = inspector.clazz("sealed.Compiler");
-    assertThat(clazz, Matchers.isPresentAndRenamed());
-    if (!parameters.isCfRuntime()) {
-      return;
-    }
+    ClassSubject clazz = inspector.clazz(Sealed.Compiler.typeName());
+    assertThat(clazz, isPresentAndRenamed());
+    ClassSubject sub1 = inspector.clazz(Sealed.R8Compiler.typeName());
+    ClassSubject sub2 = inspector.clazz(Sealed.D8Compiler.typeName());
+    assertThat(sub1, isPresentAndRenamed());
+    assertThat(sub2, isPresentAndRenamed());
     assertEquals(
-        keepPermittedSubclassesAttribute ? 2 : 0,
-        clazz.getFinalPermittedSubclassAttributes().size());
+        parameters.isCfRuntime() && keepPermittedSubclassesAttribute
+            ? ImmutableList.of(sub1.asTypeSubject(), sub2.asTypeSubject())
+            : ImmutableList.of(),
+        clazz.getFinalPermittedSubclassAttributes());
   }
 
   @Test
@@ -89,8 +93,8 @@ public class SealedClassesJdk17CompiledTest extends TestBase {
         .applyIf(
             keepPermittedSubclassesAttribute,
             TestShrinkerBuilder::addKeepAttributePermittedSubclasses)
-        // Keep the sealed class to ensure the PermittedSubclasses attribute stays live.
         .addKeepPermittedSubclasses(Sealed.Compiler.typeName())
+        .addKeepRules("-keep,allowobfuscation class * extends " + Sealed.Compiler.typeName())
         .addKeepMainRule(Sealed.Main.typeName())
         .compile()
         .inspect(this::inspect)

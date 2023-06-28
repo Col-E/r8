@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.desugar.sealed;
 
+import static com.android.tools.r8.utils.codeinspector.Matchers.isPresentAndRenamed;
 import static junit.framework.Assert.assertEquals;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assume.assumeTrue;
@@ -18,7 +19,7 @@ import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
-import com.android.tools.r8.utils.codeinspector.Matchers;
+import com.google.common.collect.ImmutableList;
 import java.util.List;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -70,14 +71,15 @@ public class SealedClassesEnumJdk17CompiledTest extends TestBase {
   }
 
   private void inspect(CodeInspector inspector) {
-    ClassSubject clazz = inspector.clazz("enum_sealed.Enum");
-    assertThat(clazz, Matchers.isPresentAndRenamed());
-    if (!parameters.isCfRuntime()) {
-      return;
-    }
+    ClassSubject clazz = inspector.clazz(EnumSealed.Enum.typeName());
+    assertThat(clazz, isPresentAndRenamed());
+    ClassSubject sub1 = inspector.clazz(EnumSealed.EnumB.typeName());
+    assertThat(sub1, isPresentAndRenamed());
     assertEquals(
-        keepPermittedSubclassesAttribute ? 1 : 0,
-        clazz.getFinalPermittedSubclassAttributes().size());
+        parameters.isCfRuntime() && keepPermittedSubclassesAttribute
+            ? ImmutableList.of(sub1.asTypeSubject())
+            : ImmutableList.of(),
+        clazz.getFinalPermittedSubclassAttributes());
   }
 
   @Test
@@ -90,6 +92,7 @@ public class SealedClassesEnumJdk17CompiledTest extends TestBase {
             keepPermittedSubclassesAttribute,
             TestShrinkerBuilder::addKeepAttributePermittedSubclasses)
         .addKeepMainRule(EnumSealed.Main.typeName())
+        .addKeepClassRulesWithAllowObfuscation(EnumSealed.Enum.typeName())
         .compile()
         .inspect(this::inspect)
         .run(parameters.getRuntime(), EnumSealed.Main.typeName())

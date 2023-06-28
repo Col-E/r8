@@ -157,6 +157,8 @@ class TreeFixer extends TreeFixerBase {
     clazz.setInnerClasses(fixupInnerClassAttributes(clazz.getInnerClasses()));
     clazz.setNestHostAttribute(fixupNestHost(clazz.getNestHostClassAttribute()));
     clazz.setNestMemberAttributes(fixupNestMemberAttributes(clazz.getNestMembersClassAttributes()));
+    clazz.setPermittedSubclassAttributes(
+        fixupPermittedSubclassAttribute(clazz.getPermittedSubclassAttributes()));
   }
 
   private void fixupProgramClassSuperTypes(DexProgramClass clazz) {
