@@ -69,6 +69,7 @@ public class EnqueuerDeferredTracingRewriter {
     // Rewrite field instructions that reference a pruned field.
     Set<Value> affectedValues = Sets.newIdentityHashSet();
     BasicBlockIterator blockIterator = code.listIterator();
+    boolean hasChanged = false;
     while (blockIterator.hasNext()) {
       BasicBlock block = blockIterator.next();
       InstructionListIterator instructionIterator = block.listIterator(code);
@@ -76,34 +77,38 @@ public class EnqueuerDeferredTracingRewriter {
         Instruction instruction = instructionIterator.next();
         switch (instruction.opcode()) {
           case INSTANCE_GET:
-            rewriteInstanceGet(
-                code,
-                instructionIterator,
-                instruction.asInstanceGet(),
-                affectedValues,
-                prunedFields);
+            hasChanged |=
+                rewriteInstanceGet(
+                    code,
+                    instructionIterator,
+                    instruction.asInstanceGet(),
+                    affectedValues,
+                    prunedFields);
             break;
           case INSTANCE_PUT:
-            rewriteInstancePut(instructionIterator, instruction.asInstancePut(), prunedFields);
+            hasChanged |=
+                rewriteInstancePut(instructionIterator, instruction.asInstancePut(), prunedFields);
             break;
           case STATIC_GET:
-            rewriteStaticGet(
-                code,
-                instructionIterator,
-                instruction.asStaticGet(),
-                affectedValues,
-                context,
-                initializedClassesWithContexts,
-                prunedFields);
+            hasChanged |=
+                rewriteStaticGet(
+                    code,
+                    instructionIterator,
+                    instruction.asStaticGet(),
+                    affectedValues,
+                    context,
+                    initializedClassesWithContexts,
+                    prunedFields);
             break;
           case STATIC_PUT:
-            rewriteStaticPut(
-                code,
-                instructionIterator,
-                instruction.asStaticPut(),
-                context,
-                initializedClassesWithContexts,
-                prunedFields);
+            hasChanged |=
+                rewriteStaticPut(
+                    code,
+                    instructionIterator,
+                    instruction.asStaticPut(),
+                    context,
+                    initializedClassesWithContexts,
+                    prunedFields);
             break;
           default:
             break;
@@ -113,9 +118,12 @@ public class EnqueuerDeferredTracingRewriter {
     if (!affectedValues.isEmpty()) {
       new TypeAnalysis(appView).narrowing(affectedValues);
     }
+    if (hasChanged) {
+      code.removeRedundantBlocks();
+    }
   }
 
-  private void rewriteInstanceGet(
+  private boolean rewriteInstanceGet(
       IRCode code,
       InstructionListIterator instructionIterator,
       InstanceGet instanceGet,
@@ -123,27 +131,29 @@ public class EnqueuerDeferredTracingRewriter {
       Map<DexField, ProgramField> prunedFields) {
     ProgramField prunedField = prunedFields.get(instanceGet.getField());
     if (prunedField == null) {
-      return;
+      return false;
     }
 
     insertDefaultValueForFieldGet(
         code, instructionIterator, instanceGet, affectedValues, prunedField);
     removeOrReplaceInstanceFieldInstructionWithNullCheck(instructionIterator, instanceGet);
+    return true;
   }
 
-  private void rewriteInstancePut(
+  private boolean rewriteInstancePut(
       InstructionListIterator instructionIterator,
       InstancePut instancePut,
       Map<DexField, ProgramField> prunedFields) {
     ProgramField prunedField = prunedFields.get(instancePut.getField());
     if (prunedField == null) {
-      return;
+      return false;
     }
 
     removeOrReplaceInstanceFieldInstructionWithNullCheck(instructionIterator, instancePut);
+    return true;
   }
 
-  private void rewriteStaticGet(
+  private boolean rewriteStaticGet(
       IRCode code,
       InstructionListIterator instructionIterator,
       StaticGet staticGet,
@@ -153,16 +163,17 @@ public class EnqueuerDeferredTracingRewriter {
       Map<DexField, ProgramField> prunedFields) {
     ProgramField prunedField = prunedFields.get(staticGet.getField());
     if (prunedField == null) {
-      return;
+      return false;
     }
 
     insertDefaultValueForFieldGet(
         code, instructionIterator, staticGet, affectedValues, prunedField);
     removeOrReplaceStaticFieldInstructionByInitClass(
         code, instructionIterator, context, initializedClassesWithContexts, prunedField);
+    return true;
   }
 
-  private void rewriteStaticPut(
+  private boolean rewriteStaticPut(
       IRCode code,
       InstructionListIterator instructionIterator,
       StaticPut staticPut,
@@ -171,11 +182,12 @@ public class EnqueuerDeferredTracingRewriter {
       Map<DexField, ProgramField> prunedFields) {
     ProgramField prunedField = prunedFields.get(staticPut.getField());
     if (prunedField == null) {
-      return;
+      return false;
     }
 
     removeOrReplaceStaticFieldInstructionByInitClass(
         code, instructionIterator, context, initializedClassesWithContexts, prunedField);
+    return true;
   }
 
   private void insertDefaultValueForFieldGet(
