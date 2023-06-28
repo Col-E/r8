@@ -145,7 +145,7 @@ fun Project.buildExampleJars(name : String) : Task {
           archiveFileName.set("${exampleDir.name}.jar")
           destinationDirectory.set(destinationDir)
           from(classesOutput) {
-            include("${exampleDir.name}/*.class")
+            include("${exampleDir.name}/**/*.class")
             exclude("**/TestGenerator*")
           }
         }.get())
