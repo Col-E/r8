@@ -38,6 +38,7 @@ import com.google.common.base.Charsets;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
@@ -180,6 +181,10 @@ public class DesugaredLibraryTestBuilder<T extends DesugaredLibraryTestBase> {
   public DesugaredLibraryTestBuilder<T> ignoreL8FinalPrefixVerification() {
     l8FinalPrefixVerification = false;
     return this;
+  }
+
+  public DesugaredLibraryTestBuilder<T> addProgramClassFileData(byte[]... classes) {
+    return addProgramClassFileData(Arrays.asList(classes));
   }
 
   public DesugaredLibraryTestBuilder<T> addProgramClassFileData(

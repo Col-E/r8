@@ -139,11 +139,6 @@ sourceSets {
             srcDirs = ['src/test/examplesJava20']
         }
     }
-    examplesTestNGRunner {
-        java {
-            srcDirs = ['src/test/testngrunner']
-        }
-    }
     examplesAndroidN {
         java {
             srcDirs = ['src/test/examplesAndroidN']
@@ -244,8 +239,6 @@ dependencies {
     main17Implementation group: 'org.ow2.asm', name: 'asm-tree', version: asmVersion
     main17Implementation group: 'org.ow2.asm', name: 'asm-analysis', version: asmVersion
     main17Implementation group: 'org.ow2.asm', name: 'asm-util', version: asmVersion
-
-    examplesTestNGRunnerCompile group: 'org.testng', name: 'testng', version: testngVersion
 
     testCompile sourceSets.examples.output
     testCompile "junit:junit:$junitVersion"
@@ -624,11 +617,6 @@ setJdkCompilationWithCompatibility(
         JavaVersion.VERSION_11,
         false)
 setJdkCompilationWithCompatibility(
-        sourceSets.examplesTestNGRunner.compileJavaTaskName,
-        'jdk-11',
-        JavaVersion.VERSION_11,
-        false)
-setJdkCompilationWithCompatibility(
         sourceSets.examplesJava17.compileJavaTaskName,
         'jdk-17',
         JavaVersion.VERSION_17,
@@ -639,19 +627,6 @@ setJdkCompilationWithCompatibility(
         // TODO(b/218293990): Update Gradle to get JavaVersion.VERSION_18.
         JavaVersion.VERSION_17,
         false)
-
-task provideJdk11TestsDependencies(type: org.gradle.api.tasks.Copy) {
-    from sourceSets.examplesTestNGRunner.compileClasspath
-    include "**/**.jar"
-    into file("$buildDir/test/jdk11Tests")
-}
-
-task compileTestNGRunner (type: JavaCompile) {
-    dependsOn provideJdk11TestsDependencies
-    destinationDir = file("$buildDir/classes/java/examplesTestNGRunner")
-    source = sourceSets.examplesTestNGRunner.allSource
-    classpath = sourceSets.examplesTestNGRunner.compileClasspath
-}
 
 if (!project.hasProperty('without_error_prone') &&
         // Don't enable error prone on Java 8 as the plugin setup does not support it.
@@ -2232,7 +2207,6 @@ test { task ->
         dependsOn buildExamples
         dependsOn buildKotlinR8TestResources
         dependsOn buildPreNJdwpTestsJar
-        dependsOn compileTestNGRunner
         dependsOn provideArtFrameworksDependencies
     } else {
         logger.lifecycle("WARNING: Testing in not supported on your platform. Testing is only fully supported on " +

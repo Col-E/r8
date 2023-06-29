@@ -4,7 +4,8 @@
 
 package com.android.tools.r8.desugar.desugaredlibrary.jdktests;
 
-import static com.android.tools.r8.ToolHelper.JDK_TESTS_BUILD_DIR;
+import static com.android.tools.r8.desugar.desugaredlibrary.jdktests.Jdk11SupportFiles.getTestNGMainRunner;
+import static com.android.tools.r8.desugar.desugaredlibrary.jdktests.Jdk11SupportFiles.testNGPath;
 import static com.android.tools.r8.desugar.desugaredlibrary.jdktests.Jdk11SupportFiles.testNGSupportProgramFiles;
 import static com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification.D8_L8DEBUG;
 import static com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification.D8_L8SHRINK;
@@ -40,7 +41,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Collections;
 import java.util.List;
 import org.junit.BeforeClass;
 import org.junit.Ignore;
@@ -92,8 +92,7 @@ public class Jdk11ConcurrentLinkedQueueTests extends DesugaredLibraryTestBase {
     Path jdk11ConcurrentLinkedQueueTestsDir =
         getStaticTemp().newFolder("ConcurrentLinkedQueue").toPath();
     javac(TestRuntime.getCheckedInJdk11(), getStaticTemp())
-        .addClasspathFiles(
-            Collections.singletonList(Paths.get(JDK_TESTS_BUILD_DIR + "testng-6.10.jar")))
+        .addClasspathFiles(testNGPath())
         .addSourceFiles(JDK_11_CONCURRENT_LINKED_QUEUE_JAVA_FILES)
         .setOutputPath(jdk11ConcurrentLinkedQueueTestsDir)
         .compile();
@@ -182,6 +181,7 @@ public class Jdk11ConcurrentLinkedQueueTests extends DesugaredLibraryTestBase {
                 parameters, libraryDesugaringSpecification, compilationSpecification)
             .addProgramFiles(JDK_11_CONCURRENT_LINKED_QUEUE_TEST_CLASS_FILES)
             .addProgramFiles(testNGSupportProgramFiles())
+            .addProgramClassFileData(getTestNGMainRunner())
             // The WhiteBox test is using VarHandle and MethodHandles.privateLookupIn to inspect the
             // internal state of the implementation, so desugaring is needed for the program here.
             .addOptionsModification(options -> options.enableVarHandleDesugaring = true)

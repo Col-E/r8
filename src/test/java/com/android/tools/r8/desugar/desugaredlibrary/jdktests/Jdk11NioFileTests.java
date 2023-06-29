@@ -4,7 +4,8 @@
 
 package com.android.tools.r8.desugar.desugaredlibrary.jdktests;
 
-import static com.android.tools.r8.ToolHelper.JDK_TESTS_BUILD_DIR;
+import static com.android.tools.r8.desugar.desugaredlibrary.jdktests.Jdk11SupportFiles.getTestNGMainRunner;
+import static com.android.tools.r8.desugar.desugaredlibrary.jdktests.Jdk11SupportFiles.testNGPath;
 import static com.android.tools.r8.desugar.desugaredlibrary.jdktests.Jdk11SupportFiles.testNGSupportProgramFiles;
 import static com.android.tools.r8.desugar.desugaredlibrary.jdktests.Jdk11TestLibraryDesugaringSpecification.EXTENSION_PATH;
 import static com.android.tools.r8.desugar.desugaredlibrary.jdktests.Jdk11TestLibraryDesugaringSpecification.JDK11_PATH_JAVA_BASE_EXT;
@@ -262,7 +263,7 @@ public class Jdk11NioFileTests extends DesugaredLibraryTestBase {
     Path tmpDirectory = getStaticTemp().newFolder(name).toPath();
     List<Path> classpath = new ArrayList<>();
     classpath.add(EXTENSION_PATH);
-    classpath.add(Paths.get(JDK_TESTS_BUILD_DIR + "testng-6.10.jar"));
+    classpath.add(testNGPath());
     if (cp != null) {
       classpath.add(cp);
     }
@@ -284,6 +285,7 @@ public class Jdk11NioFileTests extends DesugaredLibraryTestBase {
             .addProgramFiles(TEST_UTIL_JAR)
             .addProgramClassFileData(TEST_PROGRAM_CLASS_DATA)
             .addProgramFiles(testNGSupportProgramFiles())
+            .addProgramClassFileData(getTestNGMainRunner())
             .compile()
             .withArt6Plus64BitsLib();
     int success = 0;
@@ -341,6 +343,7 @@ public class Jdk11NioFileTests extends DesugaredLibraryTestBase {
             .addProgramFiles(TEST_UTIL_JAR)
             .addProgramClassFileData(TEST_PROGRAM_CLASS_DATA)
             .addProgramFiles(testNGSupportProgramFiles())
+            .addProgramClassFileData(getTestNGMainRunner())
             .addLibraryFiles(libraryDesugaringSpecification.getLibraryFiles())
             .compile()
             .withArt6Plus64BitsLib();

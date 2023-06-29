@@ -4,8 +4,8 @@
 
 package com.android.tools.r8.desugar.desugaredlibrary.jdktests;
 
-import static com.android.tools.r8.ToolHelper.JDK_TESTS_BUILD_DIR;
 import static com.android.tools.r8.desugar.desugaredlibrary.DesugaredLibraryTestBase.getAllFilesWithSuffixInDirectory;
+import static com.android.tools.r8.desugar.desugaredlibrary.jdktests.Jdk11SupportFiles.testNGPath;
 import static com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification.JDK11;
 import static com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification.JDK11_PATH;
 import static com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification.JDK8;
@@ -98,8 +98,7 @@ public class Jdk11TestLibraryDesugaringSpecification {
             "java.base=" + JDK_11_JAVA_BASE_EXTENSION_FILES_DIR);
     JavaCompilerTool.create(TestRuntime.getCheckedInJdk11(), folder)
         .addOptions(options)
-        .addClasspathFiles(
-            Collections.singletonList(Paths.get(JDK_TESTS_BUILD_DIR + "testng-6.10.jar")))
+        .addClasspathFiles(testNGPath())
         .addSourceFiles(getExtensionsFiles())
         .setOutputPath(output)
         .compile();
