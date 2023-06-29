@@ -134,7 +134,8 @@ public class R8KotlinDataClassTest extends AbstractR8KotlinTestBase {
         .inspect(
             inspector -> {
               // This changes depending on when we dead-code eliminate.
-              if (kotlinParameters.is(KotlinCompilerVersion.KOTLINC_1_6_0)
+              if (kotlinParameters.is(KotlinCompilerVersion.KOTLINC_1_5_0)
+                  || kotlinParameters.is(KotlinCompilerVersion.KOTLINC_1_6_0)
                   || testParameters.isDexRuntime()) {
                 checkClassIsRemoved(inspector, TEST_DATA_CLASS.getClassName());
               } else {
