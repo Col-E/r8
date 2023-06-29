@@ -112,23 +112,12 @@ public abstract class LirParsedInstructionCallback<EV> implements LirInstruction
   }
 
   private void onArrayGetInternal(MemberType type, LirInstructionView view) {
-    if (type.isObject()) {
-      DexType destType = (DexType) getConstantItem(view.getNextConstantOperand());
-      EV array = getNextValueOperand(view);
-      EV index = getNextValueOperand(view);
-      onArrayGetObject(destType, array, index);
-    } else {
-      EV array = getNextValueOperand(view);
-      EV index = getNextValueOperand(view);
-      onArrayGetPrimitive(type, array, index);
-    }
+    EV array = getNextValueOperand(view);
+    EV index = getNextValueOperand(view);
+    onArrayGet(type, array, index);
   }
 
-  public void onArrayGetPrimitive(MemberType type, EV array, EV index) {
-    onInstruction();
-  }
-
-  public void onArrayGetObject(DexType type, EV array, EV index) {
+  public void onArrayGet(MemberType type, EV array, EV index) {
     onInstruction();
   }
 
@@ -492,7 +481,7 @@ public abstract class LirParsedInstructionCallback<EV> implements LirInstruction
     onInstruction();
   }
 
-  public void onPhi(DexType type, List<EV> operands) {
+  public void onPhi(List<EV> operands) {
     onInstruction();
   }
 
@@ -1168,7 +1157,7 @@ public abstract class LirParsedInstructionCallback<EV> implements LirInstruction
           while (view.hasMoreOperands()) {
             operands.add(getNextValueOperand(view));
           }
-          onPhi(type, operands);
+          onPhi(operands);
           return;
         }
       case LirOpcodes.FALLTHROUGH:

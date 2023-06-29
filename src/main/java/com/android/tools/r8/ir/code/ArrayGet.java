@@ -290,11 +290,6 @@ public class ArrayGet extends ArrayAccess {
 
   @Override
   public void buildLir(LirBuilder<Value, ?> builder) {
-    if (getMemberType().isObject()) {
-      DexType destType = dest().getType().asReferenceType().toDexType(builder.factory());
-      builder.addArrayGetObject(destType, array(), index());
-    } else {
-      builder.addArrayGetPrimitive(getMemberType(), array(), index());
-    }
+    builder.addArrayGet(getMemberType(), array(), index());
   }
 }
