@@ -63,6 +63,7 @@ public class GuavaMultiSetSpliteratorTest extends DesugaredLibraryTestBase {
       Assume.assumeTrue(parameters.getApiLevel().isGreaterThanOrEqualTo(AndroidApiLevel.L));
     }
     testForDesugaredLibrary(parameters, libraryDesugaringSpecification, compilationSpecification)
+        // TODO(b/289363570): Guava should not rely on dagger.
         .addProgramFiles(DaggerUtils.getGuavaFromDagger())
         .addInnerClasses(getClass())
         .addOptionsModification(opt -> opt.ignoreMissingClasses = true)

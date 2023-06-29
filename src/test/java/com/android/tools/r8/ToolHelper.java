@@ -111,9 +111,8 @@ public class ToolHelper {
     return Paths.get(current).getParent().toString() + "/";
   }
 
-  public static final String SOURCE_DIR = "src/main/java/";
+  public static final String SOURCE_DIR = getProjectRoot() + "src/main/java/";
   public static final String LIBRARY_DESUGAR_SOURCE_DIR = getProjectRoot() + "src/library_desugar/";
-  public static final String RESOURCES_DIR = "src/main/resources/";
   public static final String BUILD_DIR = getProjectRoot() + "build/";
   public static final String TEST_MODULE_DIR = getProjectRoot() + "d8_r8/test_modules/";
   public static final String GENERATED_TEST_BUILD_DIR = BUILD_DIR + "generated/test/";

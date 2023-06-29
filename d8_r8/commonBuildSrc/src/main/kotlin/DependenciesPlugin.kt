@@ -319,6 +319,10 @@ object ThirdPartyDeps {
       "third_party",
       "binary_compatibility_tests",
       "compiler_api_tests.tar.gz.sha1").toFile())
+  val dagger = ThirdPartyDependency(
+    "dagger",
+    Paths.get("third_party", "dagger", "2.41", "dagger-2.41.jar").toFile(),
+    Paths.get("third_party", "dagger", "2.41.tar.gz.sha1").toFile())
   val ddmLib = ThirdPartyDependency(
     "ddmlib",
     Paths.get("third_party", "ddmlib", "ddmlib.jar").toFile(),

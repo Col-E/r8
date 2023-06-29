@@ -19,21 +19,17 @@ import com.android.sdklib.AndroidVersion;
 import com.android.tools.r8.AssertionsConfiguration.AssertionTransformationScope;
 import com.android.tools.r8.D8CommandParser.OrderedClassFileResourceProvider;
 import com.android.tools.r8.ToolHelper.ProcessResult;
+import com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification;
 import com.android.tools.r8.dex.Marker;
 import com.android.tools.r8.dex.Marker.Tool;
 import com.android.tools.r8.origin.EmbeddedOrigin;
 import com.android.tools.r8.origin.Origin;
-import com.android.tools.r8.profile.startup.profile.StartupProfile;
-import com.android.tools.r8.profile.startup.profile.StartupProfileRule;
 import com.android.tools.r8.references.Reference;
-import com.android.tools.r8.startup.StartupProfileProvider;
-import com.android.tools.r8.startup.diagnostic.MissingStartupProfileItemsDiagnostic;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.ExtractMarkerUtils;
 import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.InternalOptions;
-import com.android.tools.r8.utils.ListUtils;
 import com.android.tools.r8.utils.ThreadUtils;
 import com.android.tools.r8.utils.ZipUtils;
 import com.google.common.collect.ImmutableList;
@@ -699,7 +695,7 @@ public class D8CommandTest extends CommandTestBase<D8Command> {
     D8Command d8Command =
         parse(
             "--desugared-lib",
-            "src/library_desugar/desugar_jdk_libs.json",
+            LibraryDesugaringSpecification.JDK11.getSpecification().toString(),
             "--lib",
             ToolHelper.getAndroidJar(AndroidApiLevel.R).toString());
     InternalOptions options = getOptionsWithLoadedDesugaredLibraryConfiguration(d8Command, false);
@@ -712,7 +708,7 @@ public class D8CommandTest extends CommandTestBase<D8Command> {
     D8Command d8Command =
         parse(
             "--desugared-lib",
-            "src/library_desugar/desugar_jdk_libs.json",
+            LibraryDesugaringSpecification.JDK11.getSpecification().toString(),
             "--lib",
             ToolHelper.getAndroidJar(AndroidApiLevel.R).toString(),
             "--desugared-lib-pg-conf-output",
@@ -728,7 +724,7 @@ public class D8CommandTest extends CommandTestBase<D8Command> {
       parse(
           diagnostics,
           "--desugared-lib",
-          "src/library_desugar/desugar_jdk_libs.json",
+          LibraryDesugaringSpecification.JDK11.getSpecification().toString(),
           "--desugared-lib-pg-conf-output");
       fail("Expected parse error");
     } catch (CompilationFailedException e) {

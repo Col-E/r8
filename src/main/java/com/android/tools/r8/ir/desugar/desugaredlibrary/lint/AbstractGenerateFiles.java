@@ -99,6 +99,7 @@ public abstract class AbstractGenerateFiles {
 
   abstract AndroidApiLevel run() throws Exception;
 
+  // TODO(b/289365156): Move this out.
   private static String getFallBackAndroidJarPath(AndroidApiLevel apiLevel) {
     String jar =
         apiLevel == AndroidApiLevel.MASTER
