@@ -152,6 +152,7 @@ public final class GlobalSyntheticsGeneratorCommand {
    *
    * <p>A builder is obtained by calling {@link GlobalSyntheticsGeneratorCommand#builder}.
    */
+  @Keep
   public static class Builder {
 
     private ProgramConsumer programConsumer = null;
