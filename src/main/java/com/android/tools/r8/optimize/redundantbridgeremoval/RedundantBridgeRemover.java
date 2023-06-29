@@ -135,31 +135,27 @@ public class RedundantBridgeRemover {
 
     // Collect all redundant bridges to remove.
     ProgramMethodSet bridgesToRemove = removeRedundantBridgesConcurrently(executorService);
-    if (bridgesToRemove.isEmpty()) {
-      timing.end();
-      return;
-    }
+    if (!bridgesToRemove.isEmpty()) {
+      pruneApp(bridgesToRemove, executorService, timing);
 
-    pruneApp(bridgesToRemove, executorService, timing);
+      if (!lensBuilder.isEmpty()) {
+        appView.setGraphLens(lensBuilder.build(appView));
+      }
 
-    if (!lensBuilder.isEmpty()) {
-      appView.setGraphLens(lensBuilder.build(appView));
-    }
-
-    if (memberRebindingIdentityLens != null) {
-      for (ProgramMethod bridgeToRemove : bridgesToRemove) {
-        DexClassAndMethod resolvedMethod =
-            appView
-                .appInfo()
-                .resolveMethodOn(bridgeToRemove.getHolder(), bridgeToRemove.getReference())
-                .getResolutionPair();
-        memberRebindingIdentityLens.addNonReboundMethodReference(
-            bridgeToRemove.getReference(), resolvedMethod.getReference());
+      if (memberRebindingIdentityLens != null) {
+        for (ProgramMethod bridgeToRemove : bridgesToRemove) {
+          DexClassAndMethod resolvedMethod =
+              appView
+                  .appInfo()
+                  .resolveMethodOn(bridgeToRemove.getHolder(), bridgeToRemove.getReference())
+                  .getResolutionPair();
+          memberRebindingIdentityLens.addNonReboundMethodReference(
+              bridgeToRemove.getReference(), resolvedMethod.getReference());
+        }
       }
     }
-
     appView.notifyOptimizationFinishedForTesting();
-    appView.appInfo().notifyRedundantBridgeRemoverFinished(true);
+    appView.appInfo().notifyRedundantBridgeRemoverFinished(memberRebindingIdentityLens == null);
     timing.end();
   }
 
