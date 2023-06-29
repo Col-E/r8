@@ -42,7 +42,18 @@ public class RecordMergeTest extends TestBase {
   private static final byte[][] PROGRAM_DATA_2 = RecordTestUtils.getProgramData(RECORD_NAME_2);
   private static final String MAIN_TYPE_2 = RecordTestUtils.getMainType(RECORD_NAME_2);
   private static final String EXPECTED_RESULT_2 =
-      StringUtils.lines("Jane Doe", "42", "Jane Doe", "42");
+      StringUtils.lines(
+          "Jane Doe",
+          "42",
+          "Jane Doe",
+          "42",
+          "true",
+          "true",
+          "true",
+          "false",
+          "false",
+          "false",
+          "false");
 
   private final TestParameters parameters;
 

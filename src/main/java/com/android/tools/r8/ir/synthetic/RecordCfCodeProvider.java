@@ -8,6 +8,7 @@ import com.android.tools.r8.cf.code.CfArrayStore;
 import com.android.tools.r8.cf.code.CfCheckCast;
 import com.android.tools.r8.cf.code.CfConstNumber;
 import com.android.tools.r8.cf.code.CfFrame;
+import com.android.tools.r8.cf.code.CfIf;
 import com.android.tools.r8.cf.code.CfIfCmp;
 import com.android.tools.r8.cf.code.CfInstanceFieldRead;
 import com.android.tools.r8.cf.code.CfInstruction;
@@ -153,6 +154,9 @@ public abstract class RecordCfCodeProvider {
     @Override
     public CfCode generateCfCode() {
       // This generates something along the lines of:
+      // if (other == null) {
+      //   return false;
+      // }
       // if (this.getClass() != other.getClass()) {
       //     return false;
       // }
@@ -160,10 +164,22 @@ public abstract class RecordCfCodeProvider {
       //     recordInstance.getFieldsAsObjects(),
       //     ((RecordClass) other).getFieldsAsObjects());
       DexItemFactory factory = appView.dexItemFactory();
-      List<CfInstruction> instructions = new ArrayList<>();
+      int numberOfInstructions = 22;
+      List<CfInstruction> instructions = new ArrayList<>(numberOfInstructions);
+      CfLabel notNullLabel = new CfLabel();
       CfLabel fieldCmp = new CfLabel();
       ValueType recordType = ValueType.fromDexType(getHolder());
       ValueType objectType = ValueType.fromDexType(factory.objectType);
+      instructions.add(new CfLoad(objectType, 1));
+      instructions.add(new CfIf(IfType.NE, ValueType.OBJECT, notNullLabel));
+      instructions.add(new CfConstNumber(0, ValueType.INT));
+      instructions.add(new CfReturn(ValueType.INT));
+      instructions.add(notNullLabel);
+      instructions.add(
+          CfFrame.builder()
+              .appendLocal(FrameType.initialized(getHolder()))
+              .appendLocal(FrameType.initialized(appView.dexItemFactory().objectType))
+              .build());
       instructions.add(new CfLoad(recordType, 0));
       instructions.add(new CfInvoke(Opcodes.INVOKEVIRTUAL, factory.objectMembers.getClass, false));
       instructions.add(new CfLoad(objectType, 1));
@@ -186,6 +202,7 @@ public abstract class RecordCfCodeProvider {
           new CfInvoke(
               Opcodes.INVOKESTATIC, factory.javaUtilArraysMethods.equalsObjectArray, false));
       instructions.add(new CfReturn(ValueType.INT));
+      assert instructions.size() == numberOfInstructions;
       return standardCfCodeFromInstructions(instructions);
     }
   }
