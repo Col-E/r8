@@ -112,6 +112,7 @@ public class ToolHelper {
   }
 
   public static final String SOURCE_DIR = "src/main/java/";
+  public static final String LIBRARY_DESUGAR_SOURCE_DIR = getProjectRoot() + "src/library_desugar/";
   public static final String RESOURCES_DIR = "src/main/resources/";
   public static final String BUILD_DIR = getProjectRoot() + "build/";
   public static final String TEST_MODULE_DIR = getProjectRoot() + "d8_r8/test_modules/";

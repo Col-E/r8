@@ -54,6 +54,7 @@ includeBuild(root.resolve("keepanno"))
 // We need to include src/main as a composite-build otherwise our test-modules
 // will compete with the test to compile the source files.
 includeBuild(root.resolve("main"))
+includeBuild(root.resolve("library_desugar"))
 includeBuild(root.resolve("test"))
 
 // Include r8lib as standalone to have a nice separation between source artifacts and r8 compiled
