@@ -1047,6 +1047,16 @@ public abstract class DexClass extends DexDefinition
     permittedSubclasses.removeIf(predicate);
   }
 
+  public void replacePermittedSubclass(
+      DexType currentPermittedSubclass, DexType newPermittedSubclass) {
+    for (int i = 0; i < permittedSubclasses.size(); i++) {
+      if (permittedSubclasses.get(i).getPermittedSubclass() == currentPermittedSubclass) {
+        permittedSubclasses.set(i, new PermittedSubclassAttribute(newPermittedSubclass));
+        return;
+      }
+    }
+  }
+
   public boolean isLocalClass() {
     InnerClassAttribute innerClass = getInnerClassAttributeForThisClass();
     // The corresponding enclosing-method attribute might be not available, e.g., CF version 50.

@@ -6,7 +6,6 @@ package com.android.tools.r8.desugar.sealed;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresentAndRenamed;
 import static junit.framework.Assert.assertEquals;
-import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.android.tools.r8.NoUnusedInterfaceRemoval;
@@ -52,14 +51,17 @@ public class SealedClassesImplementsVerticalMergeTest extends TestBase {
     assertThat(iface1, isPresentAndRenamed());
     ClassSubject iface2 = inspector.clazz(Iface2.class);
     assertThat(iface2, isPresentAndRenamed());
+    ClassSubject ifaceUnrelated = inspector.clazz(IfaceUnrelated.class);
+    assertThat(ifaceUnrelated, isPresentAndRenamed());
     ClassSubject sub2 = inspector.clazz(Sub2.class);
     assertThat(sub2, isPresentAndRenamed());
     ClassSubject subSub = inspector.clazz(SubSub.class);
     assertThat(subSub, Matchers.isPresentAndRenamed());
-    for (ClassSubject clazz : ImmutableList.of(iface1, iface2)) {
+    for (ClassSubject clazz : ImmutableList.of(iface1, iface2, ifaceUnrelated)) {
       assertEquals(
-          // TODO(b/227160052): Should be both subSub.asTypeSubject() and sub2.asTypeSubject().
-          parameters.isCfRuntime() ? ImmutableList.of(sub2.asTypeSubject()) : ImmutableList.of(),
+          parameters.isCfRuntime()
+              ? ImmutableList.of(subSub.asTypeSubject(), sub2.asTypeSubject())
+              : ImmutableList.of(),
           clazz.getFinalPermittedSubclassAttributes());
     }
   }
@@ -71,7 +73,8 @@ public class SealedClassesImplementsVerticalMergeTest extends TestBase {
         .apply(this::addTestClasses)
         .setMinApi(parameters)
         .addKeepAttributePermittedSubclasses()
-        .addKeepPermittedSubclasses(Super.class, Iface1.class, Iface2.class, Sub2.class)
+        .addKeepPermittedSubclasses(
+            Super.class, Iface1.class, Iface2.class, Sub2.class, IfaceUnrelated.class)
         .addKeepMainRule(TestClass.class)
         .addVerticallyMergedClassesInspector(
             inspector -> {
@@ -84,12 +87,8 @@ public class SealedClassesImplementsVerticalMergeTest extends TestBase {
         .inspect(this::inspect)
         .run(parameters.getRuntime(), TestClass.class)
         .applyIf(
-            parameters.isDexRuntime(),
+            parameters.isDexRuntime() || parameters.asCfRuntime().isNewerThanOrEqual(CfVm.JDK17),
             r -> r.assertSuccessWithOutput(EXPECTED),
-            parameters.isCfRuntime() && parameters.asCfRuntime().isNewerThanOrEqual(CfVm.JDK17),
-            r ->
-                r.assertFailureWithErrorThatMatches(
-                    containsString("cannot implement sealed interface")),
             r -> r.assertFailureWithErrorThatThrows(UnsupportedClassVersionError.class));
   }
 
@@ -100,6 +99,9 @@ public class SealedClassesImplementsVerticalMergeTest extends TestBase {
             .transform(),
         transformer(Iface2.class)
             .setPermittedSubclasses(Iface2.class, Sub1.class, Sub2.class)
+            .transform(),
+        transformer(IfaceUnrelated.class)
+            .setPermittedSubclasses(IfaceUnrelated.class, Sub1.class, Sub2.class)
             .transform());
   }
 
@@ -116,6 +118,9 @@ public class SealedClassesImplementsVerticalMergeTest extends TestBase {
 
   @NoUnusedInterfaceRemoval
   interface Iface2 /* permits Sub1, Sub2 */ {}
+
+  @NoUnusedInterfaceRemoval
+  interface IfaceUnrelated /* permits Sub1, Sub2 */ {}
 
   abstract static class Super {}
 

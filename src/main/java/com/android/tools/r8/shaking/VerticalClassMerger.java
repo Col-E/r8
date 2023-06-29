@@ -1683,6 +1683,8 @@ public class VerticalClassMerger {
         clazz.getMethodCollection().replaceMethods(this::fixupMethod);
         clazz.setStaticFields(fixupFields(clazz.staticFields()));
         clazz.setInstanceFields(fixupFields(clazz.instanceFields()));
+        clazz.setPermittedSubclassAttributes(
+            fixupPermittedSubclassAttribute(clazz.getPermittedSubclassAttributes()));
       }
       for (SynthesizedBridgeCode synthesizedBridge : synthesizedBridges) {
         synthesizedBridge.updateMethodSignatures(this::fixupMethodReference);
