@@ -55,7 +55,11 @@ val thirdPartyCompileDependenciesTask = ensureThirdPartyDependencies(
 
 val thirdPartyRuntimeDependenciesTask = ensureThirdPartyDependencies(
   "runtimeDeps",
-  listOf(ThirdPartyDeps.compilerApi, ThirdPartyDeps.jacoco, ThirdPartyDeps.java8Runtime)
+  listOf(
+    ThirdPartyDeps.compilerApi,
+    ThirdPartyDeps.jacoco,
+    ThirdPartyDeps.java8Runtime,
+    ThirdPartyDeps.jdk11Test)
     + ThirdPartyDeps.androidJars
     + ThirdPartyDeps.androidVMs
     + ThirdPartyDeps.jdks
