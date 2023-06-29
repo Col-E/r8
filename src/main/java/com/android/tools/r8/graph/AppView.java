@@ -619,8 +619,14 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
     return false;
   }
 
+  private boolean disallowFurtherInitClassUses = false;
+
+  public void dissallowFurtherInitClassUses() {
+    disallowFurtherInitClassUses = true;
+  }
+
   public boolean canUseInitClass() {
-    return options().isShrinking() && !initClassLens.isFinal();
+    return !disallowFurtherInitClassUses && options().isShrinking();
   }
 
   public InitClassLens initClassLens() {

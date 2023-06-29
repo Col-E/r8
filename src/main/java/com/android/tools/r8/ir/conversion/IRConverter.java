@@ -1040,29 +1040,17 @@ public class IRConverter {
       BytecodeMetadataProvider bytecodeMetadataProvider,
       Timing timing) {
     if (options.testing.roundtripThroughLir) {
-      code = roundtripThroughLir(code, feedback, bytecodeMetadataProvider, timing);
+      code = roundtripThroughLir(code, bytecodeMetadataProvider, timing);
     }
-    MethodConversionOptions conversionOptions = code.getConversionOptions();
-    if (conversionOptions.isGeneratingLir()) {
-      timing.begin("IR->LIR");
-      finalizeToLir(code, feedback, bytecodeMetadataProvider, timing);
-      timing.end();
-    } else if (conversionOptions.isGeneratingClassFiles()) {
-      timing.begin("IR->CF");
-      finalizeToCf(code, feedback, bytecodeMetadataProvider, timing);
-      timing.end();
-    } else {
-      assert conversionOptions.isGeneratingDex();
-      timing.begin("IR->DEX");
-      finalizeToDex(code, feedback, bytecodeMetadataProvider, timing);
-      timing.end();
-    }
+    ProgramMethod method = code.context();
+    IRFinalizer<?> finalizer = code.getConversionOptions().getFinalizer(deadCodeRemover, appView);
+    method.setCode(finalizer.finalizeCode(code, bytecodeMetadataProvider, timing), appView);
+    markProcessed(code, feedback);
     printMethod(code.context(), "After finalization");
   }
 
   private IRCode roundtripThroughLir(
       IRCode code,
-      OptimizationFeedback feedback,
       BytecodeMetadataProvider bytecodeMetadataProvider,
       Timing timing) {
     IRCode round1 =
@@ -1109,50 +1097,6 @@ public class IRConverter {
             (MutableMethodConversionOptions) code.getConversionOptions());
     timing.end();
     return irCode;
-  }
-
-  private void finalizeToLir(
-      IRCode code,
-      OptimizationFeedback feedback,
-      BytecodeMetadataProvider bytecodeMetadataProvider,
-      Timing timing) {
-    assert deadCodeRemover.verifyNoDeadCode(code);
-    LirCode<Integer> lirCode =
-        IR2LirConverter.translate(
-            code,
-            bytecodeMetadataProvider,
-            LirStrategy.getDefaultStrategy().getEncodingStrategy(),
-            appView.options());
-    ProgramMethod method = code.context();
-    method.setCode(lirCode, appView);
-    markProcessed(code, feedback);
-  }
-
-  private void finalizeToCf(
-      IRCode code,
-      OptimizationFeedback feedback,
-      BytecodeMetadataProvider bytecodeMetadataProvider,
-      Timing timing) {
-    ProgramMethod method = code.context();
-    method.setCode(
-        new IRToCfFinalizer(appView, deadCodeRemover)
-            .finalizeCode(code, bytecodeMetadataProvider, timing),
-        appView);
-    markProcessed(code, feedback);
-  }
-
-  private void finalizeToDex(
-      IRCode code,
-      OptimizationFeedback feedback,
-      BytecodeMetadataProvider bytecodeMetadataProvider,
-      Timing timing) {
-    ProgramMethod method = code.context();
-    DexEncodedMethod definition = method.getDefinition();
-    method.setCode(
-        new IRToDexFinalizer(appView, deadCodeRemover)
-            .finalizeCode(code, bytecodeMetadataProvider, timing),
-        appView);
-    markProcessed(code, feedback);
   }
 
   public void markProcessed(IRCode code, OptimizationFeedback feedback) {

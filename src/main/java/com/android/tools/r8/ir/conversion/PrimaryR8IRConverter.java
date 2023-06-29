@@ -255,24 +255,15 @@ public class PrimaryR8IRConverter extends IRConverter {
     Timing onThreadTiming = Timing.empty();
     IRCode irCode = method.buildIR(appView, MethodConversionOptions.forPostLirPhase(appView));
     // Processing is done and no further uses of the meta-data should arise.
-    BytecodeMetadataProvider bytecodeMetadataProvider = BytecodeMetadataProvider.empty();
+    BytecodeMetadataProvider noMetadata = BytecodeMetadataProvider.empty();
     // During processing optimization info may cause previously live code to become dead.
     // E.g., we may now have knowledge that an invoke does not have side effects.
     // Thus, we re-run the dead-code remover now as it is assumed complete by CF/DEX finalization.
     deadCodeRemover.run(irCode, onThreadTiming);
     MethodConversionOptions conversionOptions = irCode.getConversionOptions();
-    if (conversionOptions.isGeneratingClassFiles()) {
-      method.setCode(
-          new IRToCfFinalizer(appView, deadCodeRemover)
-              .finalizeCode(irCode, bytecodeMetadataProvider, onThreadTiming),
-          appView);
-    } else {
-      assert conversionOptions.isGeneratingDex();
-      method.setCode(
-          new IRToDexFinalizer(appView, deadCodeRemover)
-              .finalizeCode(irCode, bytecodeMetadataProvider, onThreadTiming),
-          appView);
-    }
+    assert !conversionOptions.isGeneratingLir();
+    IRFinalizer<?> finalizer = conversionOptions.getFinalizer(deadCodeRemover, appView);
+    method.setCode(finalizer.finalizeCode(irCode, noMetadata, onThreadTiming), appView);
   }
 
   private void clearDexMethodCompilationState() {

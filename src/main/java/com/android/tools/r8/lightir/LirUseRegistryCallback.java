@@ -4,16 +4,20 @@
 
 package com.android.tools.r8.lightir;
 
+import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.graph.DexCallSite;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexMethodHandle;
 import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexReference;
+import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.UseRegistry;
 import com.android.tools.r8.graph.UseRegistry.MethodHandleUse;
 import com.android.tools.r8.graph.bytecodemetadata.BytecodeInstructionMetadata;
+import com.android.tools.r8.ir.code.IfType;
+import com.android.tools.r8.ir.code.NumericType;
 import com.android.tools.r8.naming.dexitembasedstring.NameComputationInfo;
 import java.util.List;
 
@@ -35,6 +39,71 @@ public class LirUseRegistryCallback<EV> extends LirParsedInstructionCallback<EV>
   public int getCurrentValueIndex() {
     // The registry of instructions does not require knowledge of value indexes.
     return 0;
+  }
+
+  @Override
+  public void onInstruction() {
+    // TODO(b/225838009): Consider defining an abstract base class for the parsed exception so that
+    //  missing a callback is a compile-time error.
+    boolean debug = false;
+    if (debug) {
+      throw new Unimplemented();
+    }
+  }
+
+  @Override
+  public void onFallthrough() {
+    // Nothing to register.
+  }
+
+  @Override
+  public void onConstString(DexString string) {
+    // Nothing to register.
+  }
+
+  @Override
+  public void onThrow(EV exception) {
+    // Nothing to register.
+  }
+
+  @Override
+  public void onMoveException(DexType exceptionType) {
+    // Nothing to register.
+  }
+
+  @Override
+  public void onReturnVoid() {
+    // Nothing to register.
+  }
+
+  @Override
+  public void onReturn(EV value) {
+    // Nothing to register.
+  }
+
+  @Override
+  public void onGoto(int blockIndex) {
+    // Nothing to register.
+  }
+
+  @Override
+  public void onPhi(DexType type, List<EV> operands) {
+    // Nothing to register.
+  }
+
+  @Override
+  public void onConstNumber(NumericType type, long value) {
+    // Nothing to register.
+  }
+
+  @Override
+  public void onCmpInstruction(int opcode, EV leftValue, EV rightValue) {
+    // Nothing to register.
+  }
+
+  @Override
+  public void onIf(IfType ifKind, int blockIndex, EV valueIndex) {
+    // Nothing to register.
   }
 
   @Override
@@ -155,5 +224,10 @@ public class LirUseRegistryCallback<EV> extends LirParsedInstructionCallback<EV>
   @Override
   public void onNewUnboxedEnumInstance(DexType type, int ordinal) {
     registry.registerNewUnboxedEnumInstance(type);
+  }
+
+  @Override
+  public void onRecordFieldValues(DexField[] fields, List<EV> values) {
+    registry.registerRecordFieldValues(fields);
   }
 }

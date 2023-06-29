@@ -6,6 +6,7 @@ package com.android.tools.r8.ir.conversion;
 
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.ir.optimize.DeadCodeRemover;
 import com.android.tools.r8.utils.InternalOptions;
 
 public abstract class MethodConversionOptions {
@@ -42,6 +43,17 @@ public abstract class MethodConversionOptions {
 
   public static MutableMethodConversionOptions nonConverting() {
     return new ThrowingMethodConversionOptions();
+  }
+
+  public IRFinalizer<?> getFinalizer(DeadCodeRemover deadCodeRemover, AppView<?> appView) {
+    if (isGeneratingLir()) {
+      return new IRToLirFinalizer(appView, deadCodeRemover);
+    }
+    if (isGeneratingClassFiles()) {
+      return new IRToCfFinalizer(appView, deadCodeRemover);
+    }
+    assert isGeneratingDex();
+    return new IRToDexFinalizer(appView, deadCodeRemover);
   }
 
   private enum Target {

@@ -298,6 +298,7 @@ public class ClassStaticizerTest extends TestBase {
             .allowAccessModification()
             .addDontObfuscate()
             .addOptionsModification(this::configure)
+            .addOptionsModification(o -> o.testing.enableLir())
             .setMinApi(parameters)
             .run(parameters.getRuntime(), main)
             .assertSuccessWithOutput(javaOutput);
@@ -340,11 +341,6 @@ public class ClassStaticizerTest extends TestBase {
     assertThat(inspector.clazz(CandidateConflictMethod.class), isPresent());
 
     List<String> expectedReferencesInTestConflictField = new ArrayList<>();
-    if (!parameters.canHaveNonReboundConstructorInvoke()) {
-      Collections.addAll(
-          expectedReferencesInTestConflictField,
-          "DIRECT: void movetohost.HostConflictField.<init>()");
-    }
     Collections.addAll(
         expectedReferencesInTestConflictField,
         "STATIC: String movetohost.CandidateConflictField.bar(String)",

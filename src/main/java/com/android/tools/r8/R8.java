@@ -544,10 +544,10 @@ public class R8 {
       appView.setGraphLens(new AppliedGraphLens(appView));
       timing.end();
 
-      // TODO(b/225838009): Support tracing and building LIR in Enqueuer.
-      PrimaryR8IRConverter.finalizeLirToOutputFormat(appView, timing, executorService);
-
-      if (options.shouldRerunEnqueuer()) {
+      if (!options.shouldRerunEnqueuer()) {
+        // TODO(b/225838009): Support tracing and building LIR in Enqueuer.
+        PrimaryR8IRConverter.finalizeLirToOutputFormat(appView, timing, executorService);
+      } else {
         timing.begin("Post optimization code stripping");
         try {
           GraphConsumer keptGraphConsumer = null;
@@ -574,15 +574,20 @@ public class R8 {
           EnqueuerResult enqueuerResult =
               enqueuer.traceApplication(appView.rootSet(), executorService, timing);
           appView.setAppInfo(enqueuerResult.getAppInfo());
+          appView.dissallowFurtherInitClassUses();
+
           // Rerunning the enqueuer should not give rise to any method rewritings.
           MutableMethodConversionOptions conversionOptions =
-              MethodConversionOptions.forPostLirPhase(appView);
+              MethodConversionOptions.forLirPhase(appView);
           appView.withGeneratedMessageLiteBuilderShrinker(
               shrinker ->
                   shrinker.rewriteDeadBuilderReferencesFromDynamicMethods(
                       conversionOptions, appViewWithLiveness, executorService, timing));
 
-          if (options.isShrinking()) {
+          if (!options.isShrinking()) {
+            // TODO(b/225838009): Support tracing and building LIR in Enqueuer.
+            PrimaryR8IRConverter.finalizeLirToOutputFormat(appView, timing, executorService);
+          } else {
             // Mark dead proto extensions fields as neither being read nor written. This step must
             // run prior to the tree pruner.
             TreePrunerConfiguration treePrunerConfiguration =
@@ -606,6 +611,8 @@ public class R8 {
                   options.reporter, options.usageInformationConsumer);
             }
 
+            // TODO(b/225838009): Support bridge hoisting from LIR code.
+            PrimaryR8IRConverter.finalizeLirToOutputFormat(appView, timing, executorService);
             new BridgeHoisting(appViewWithLiveness).run(executorService, timing);
 
             assert Inliner.verifyAllSingleCallerMethodsHaveBeenPruned(appViewWithLiveness);
