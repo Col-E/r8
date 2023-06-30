@@ -168,6 +168,7 @@ public class Lir2IRConverter {
     private BasicBlock currentBlock = null;
     private int nextInstructionIndex = 0;
 
+    private final Position entryPosition;
     private Position currentPosition;
     private PositionEntry nextPositionEntry = null;
     private int nextIndexInPositionsTable = 0;
@@ -225,6 +226,11 @@ public class Lir2IRConverter {
                                   inlineePosition.getCallerPosition()))
                           .build()));
         }
+      }
+      if (positionTable.length > 0 && positionTable[0].getFromInstructionIndex() == 0) {
+        entryPosition = positionTable[0].getPosition(originalMethod);
+      } else {
+        entryPosition = currentPosition;
       }
     }
 
@@ -360,7 +366,7 @@ public class Lir2IRConverter {
       return new IRCode(
           appView.options(),
           method,
-          Position.syntheticNone(),
+          entryPosition,
           blockList,
           strategy.getValueNumberGenerator(),
           basicBlockNumberGenerator,
