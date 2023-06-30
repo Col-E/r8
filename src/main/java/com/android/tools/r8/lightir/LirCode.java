@@ -31,6 +31,7 @@ import com.android.tools.r8.ir.code.Position.SourcePosition;
 import com.android.tools.r8.ir.conversion.MethodConversionOptions;
 import com.android.tools.r8.ir.conversion.MethodConversionOptions.MutableMethodConversionOptions;
 import com.android.tools.r8.origin.Origin;
+import com.android.tools.r8.utils.ArrayUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.RetracerForCodePrinting;
 import com.google.common.collect.ImmutableMap;
@@ -39,6 +40,7 @@ import it.unimi.dsi.fastutil.ints.Int2ReferenceOpenHashMap;
 import java.util.Map;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
+import java.util.function.Function;
 
 public class LirCode<EV> extends Code implements Iterable<LirInstructionView> {
 
@@ -90,7 +92,7 @@ public class LirCode<EV> extends Code implements Iterable<LirInstructionView> {
   }
 
   public static class TryCatchTable {
-    final Int2ReferenceMap<CatchHandlers<Integer>> tryCatchHandlers;
+    private final Int2ReferenceMap<CatchHandlers<Integer>> tryCatchHandlers;
 
     public TryCatchTable(Int2ReferenceMap<CatchHandlers<Integer>> tryCatchHandlers) {
       assert !tryCatchHandlers.isEmpty();
@@ -100,6 +102,10 @@ public class LirCode<EV> extends Code implements Iterable<LirInstructionView> {
 
     public CatchHandlers<Integer> getHandlersForBlock(int blockIndex) {
       return tryCatchHandlers.get(blockIndex);
+    }
+
+    public void forEachHandler(BiConsumer<Integer, CatchHandlers<Integer>> fn) {
+      tryCatchHandlers.forEach(fn);
     }
   }
 
@@ -450,5 +456,24 @@ public class LirCode<EV> extends Code implements Iterable<LirInstructionView> {
     for (PositionEntry entry : positionTable) {
       positionConsumer.accept(entry.getPosition(method));
     }
+  }
+
+  public LirCode<EV> newCodeWithRewrittenConstantPool(Function<DexItem, DexItem> rewriter) {
+    DexItem[] rewrittenConstants = ArrayUtils.map(constants, rewriter, new DexItem[0]);
+    if (constants == rewrittenConstants) {
+      return this;
+    }
+    return new LirCode<>(
+        irMetadata,
+        rewrittenConstants,
+        positionTable,
+        argumentCount,
+        instructions,
+        instructionCount,
+        tryCatchTable,
+        debugLocalInfoTable,
+        strategyInfo,
+        useDexEstimationStrategy,
+        metadataMap);
   }
 }

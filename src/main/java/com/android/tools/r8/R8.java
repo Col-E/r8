@@ -584,10 +584,7 @@ public class R8 {
                   shrinker.rewriteDeadBuilderReferencesFromDynamicMethods(
                       conversionOptions, appViewWithLiveness, executorService, timing));
 
-          if (!options.isShrinking()) {
-            // TODO(b/225838009): Support tracing and building LIR in Enqueuer.
-            PrimaryR8IRConverter.finalizeLirToOutputFormat(appView, timing, executorService);
-          } else {
+          if (options.isShrinking()) {
             // Mark dead proto extensions fields as neither being read nor written. This step must
             // run prior to the tree pruner.
             TreePrunerConfiguration treePrunerConfiguration =
@@ -611,8 +608,6 @@ public class R8 {
                   options.reporter, options.usageInformationConsumer);
             }
 
-            // TODO(b/225838009): Support bridge hoisting from LIR code.
-            PrimaryR8IRConverter.finalizeLirToOutputFormat(appView, timing, executorService);
             new BridgeHoisting(appViewWithLiveness).run(executorService, timing);
 
             assert Inliner.verifyAllSingleCallerMethodsHaveBeenPruned(appViewWithLiveness);
@@ -656,6 +651,9 @@ public class R8 {
         } finally {
           timing.end();
         }
+
+        // TODO(b/225838009): Support LIR in proto shrinking.
+        PrimaryR8IRConverter.finalizeLirToOutputFormat(appView, timing, executorService);
 
         if (appView.options().protoShrinking().isProtoShrinkingEnabled()) {
           if (appView.options().protoShrinking().isEnumLiteProtoShrinkingEnabled()) {
