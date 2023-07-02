@@ -9,6 +9,7 @@ import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexItemFactory;
+import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.conversion.MethodProcessor;
 import com.android.tools.r8.ir.conversion.passes.result.CodeRewriterResult;
@@ -56,6 +57,10 @@ public abstract class CodeRewriterPass<T extends AppInfo> {
 
   protected CodeRewriterResult noChange() {
     return CodeRewriterResult.NO_CHANGE;
+  }
+
+  protected boolean isDebugMode(ProgramMethod context) {
+    return options.debug || context.getOrComputeReachabilitySensitive(appView);
   }
 
   protected abstract String getTimingId();

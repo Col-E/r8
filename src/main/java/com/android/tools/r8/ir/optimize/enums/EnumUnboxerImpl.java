@@ -319,9 +319,12 @@ public class EnumUnboxerImpl extends EnumUnboxer {
         enumUnboxingCandidatesInfo.addMethodDependency(eligibleEnum, code.context());
       }
     }
-    if (methodsDependingOnLibraryModelisation.contains(code.context(), appView.graphLens())) {
-      code.mutateConversionOptions(
-          conversionOptions -> conversionOptions.disablePeepholeOptimizations(methodProcessor));
+    // TODO(b/225838009): Remove this when always using LIR.
+    if (!appView.testing().canUseLir(appView)) {
+      if (methodsDependingOnLibraryModelisation.contains(code.context(), appView.graphLens())) {
+        code.mutateConversionOptions(
+            conversionOptions -> conversionOptions.disablePeepholeOptimizations(methodProcessor));
+      }
     }
   }
 

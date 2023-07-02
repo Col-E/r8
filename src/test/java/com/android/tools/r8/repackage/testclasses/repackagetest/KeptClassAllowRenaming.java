@@ -5,10 +5,12 @@
 package com.android.tools.r8.repackage.testclasses.repackagetest;
 
 import com.android.tools.r8.NeverInline;
+import com.android.tools.r8.NoAccessModification;
 
 public class KeptClassAllowRenaming {
 
   @NeverInline
+  @NoAccessModification
   static void packagePrivateMethod() {
     System.out.println("KeptClassAllowRenaming.packagePrivateMethod()");
   }

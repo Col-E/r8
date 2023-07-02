@@ -1050,6 +1050,8 @@ public class ProguardConfigurationParser {
             builder.getModifiersBuilder().setAllowsAccessModification(true);
           } else if (acceptString("repackage")) {
             builder.getModifiersBuilder().setAllowsRepackaging(true);
+          } else if (acceptString("permittedsubclassesremoval")) {
+            builder.getModifiersBuilder().setAllowsPermittedSubclassesRemoval(true);
           } else if (options.isTestingOptionsEnabled()) {
             if (acceptString("annotationremoval")) {
               builder.getModifiersBuilder().setAllowsAnnotationRemoval(true);

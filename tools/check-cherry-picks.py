@@ -139,7 +139,7 @@ def main():
           is_cherry_pick = True
           # If the change is in the release mappings check for holes.
           if missing_from:
-            found_errors = change_error(
+            found_errors |= change_error(
                 change,
                 'Error: missing Change-Id %s on branch %s. '
                 'Is present on %s and again on %s.' % (
@@ -150,7 +150,7 @@ def main():
           # The change is not in the non-dev part of the branch, so we need to
           # check that the fork from main included the change.
           if not is_commit_in(commit_on_main, newer_branch):
-            found_errors = change_error(
+            found_errors |= change_error(
                 change,
                 'Error: missing Change-Id %s on branch %s. '
                 'Is present on %s and on main as commit %s.' % (

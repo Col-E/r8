@@ -6,6 +6,7 @@ package com.android.tools.r8.naming.b72391662;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPackagePrivate;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
+import static com.android.tools.r8.utils.codeinspector.Matchers.isPublic;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
@@ -112,7 +113,7 @@ public class B72391662 extends ProguardCompatibilityTestBase {
   @Test
   public void test_keepAll() throws Exception {
     Assume.assumeFalse(shrinker.generatesDex() && vmVersionIgnored());
-    Class mainClass = TestMain.class;
+    Class<?> mainClass = TestMain.class;
     String keep = !minify ? "-keep" : "-keep,allowobfuscation";
     List<String> config = ImmutableList.of(
         "-printmapping",
@@ -144,7 +145,11 @@ public class B72391662 extends ProguardCompatibilityTestBase {
     // Test the totally unused method.
     MethodSubject staticMethod = testClass.uniqueMethodWithOriginalName("unused");
     assertThat(staticMethod, isPresent());
-    assertThat(staticMethod, isPackagePrivate());
+    assertThat(
+        staticMethod,
+        isForceAccessModifyingPackagePrivateAndProtectedMethods()
+            ? isPublic()
+            : isPackagePrivate());
     assertEquals(minify, staticMethod.isRenamed());
 
     // Test an indirectly referred method.
@@ -152,8 +157,21 @@ public class B72391662 extends ProguardCompatibilityTestBase {
     assertThat(staticMethod, isPresent());
     assertEquals(minify, staticMethod.isRenamed());
     boolean publicizeCondition =
-        shrinker.isProguard() && minify && repackagePrefix != null && allowAccessModification;
+        isForceAccessModifyingPackagePrivateAndProtectedMethods()
+            || (shrinker.isProguard()
+                && minify
+                && repackagePrefix != null
+                && allowAccessModification);
     assertEquals(publicizeCondition, staticMethod.getMethod().isPublic());
+  }
+
+  @Override
+  public boolean isForceAccessModifyingPackagePrivateAndProtectedMethods() {
+    if (!super.isForceAccessModifyingPackagePrivateAndProtectedMethods()) {
+      return false;
+    }
+    return (shrinker.isCompatR8() && allowAccessModification)
+        || (shrinker.isFullModeR8() && (shrinker.isR8Dex() || allowAccessModification || minify));
   }
 
   @Test
@@ -191,7 +209,11 @@ public class B72391662 extends ProguardCompatibilityTestBase {
     // Test the totally unused method.
     MethodSubject staticMethod = testClass.uniqueMethodWithOriginalName("unused");
     assertThat(staticMethod, isPresent());
-    assertThat(staticMethod, isPackagePrivate());
+    assertThat(
+        staticMethod,
+        isForceAccessModifyingPackagePrivateAndProtectedMethods()
+            ? isPublic()
+            : isPackagePrivate());
     assertEquals(minify, staticMethod.isRenamed());
 
     // Test an indirectly referred method.
@@ -199,7 +221,11 @@ public class B72391662 extends ProguardCompatibilityTestBase {
     assertThat(staticMethod, isPresent());
     assertEquals(minify, staticMethod.isRenamed());
     boolean publicizeCondition =
-        shrinker.isProguard() && minify && repackagePrefix != null && allowAccessModification;
+        isForceAccessModifyingPackagePrivateAndProtectedMethods()
+            || (shrinker.isProguard()
+                && minify
+                && repackagePrefix != null
+                && allowAccessModification);
     assertEquals(publicizeCondition, staticMethod.getMethod().isPublic());
   }
 
@@ -258,8 +284,14 @@ public class B72391662 extends ProguardCompatibilityTestBase {
     staticMethod = testClass.uniqueMethodWithOriginalName("staticMethod");
     assertThat(staticMethod, isPresent());
     assertEquals(minify, staticMethod.isRenamed());
-    boolean publicizeCondition = shrinker.isR8() ? allowAccessModification
-        : minify && repackagePrefix != null && allowAccessModification;
+    boolean publicizeCondition =
+        (shrinker.isCompatR8() && allowAccessModification)
+            || (shrinker.isFullModeR8()
+                && (shrinker.isR8Dex() || allowAccessModification || minify))
+            || (shrinker.isProguard()
+                && minify
+                && repackagePrefix != null
+                && allowAccessModification);
     assertEquals(publicizeCondition, staticMethod.getMethod().accessFlags.isPublic());
   }
 }

@@ -53,12 +53,13 @@ public class NaturalIntLoopRemover extends CodeRewriterPass<AppInfo> {
       code.removeRedundantBlocks();
       assert code.isConsistentSSA(appView);
     }
-    return CodeRewriterResult.NONE;
+    return CodeRewriterResult.hasChanged(loopRemoved);
   }
 
   @Override
   protected boolean shouldRewriteCode(IRCode code) {
-    return appView.options().enableLoopUnrolling;
+    // This is relevant only if a loop may be present, which implies at least 4 blocks.
+    return appView.options().enableLoopUnrolling && code.getBlocks().size() >= 4;
   }
 
   private boolean isComparisonBlock(BasicBlock comparisonBlockCandidate) {

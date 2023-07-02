@@ -22,8 +22,7 @@ import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.bytecodemetadata.BytecodeMetadataProvider;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.conversion.IRFinalizer;
-import com.android.tools.r8.ir.conversion.IRToCfFinalizer;
-import com.android.tools.r8.ir.conversion.IRToDexFinalizer;
+import com.android.tools.r8.ir.conversion.MethodConversionOptions;
 import com.android.tools.r8.ir.conversion.MethodConversionOptions.MutableMethodConversionOptions;
 import com.android.tools.r8.ir.conversion.passes.ThrowCatchOptimizer;
 import com.android.tools.r8.ir.optimize.membervaluepropagation.assume.AssumeInfo;
@@ -264,8 +263,8 @@ public class EnqueuerDeferredTracingImpl extends EnqueuerDeferredTracing {
     // Build IR.
     MutableMethodConversionOptions conversionOptions =
         mode.isInitialTreeShaking()
-            ? new MutableMethodConversionOptions(options).setIsGeneratingClassFiles(true)
-            : new MutableMethodConversionOptions(options);
+            ? MethodConversionOptions.forPreLirPhase(appView)
+            : MethodConversionOptions.forLirPhase(appView);
     conversionOptions.disableStringSwitchConversion();
 
     IRCode ir = method.buildIR(appView, conversionOptions);
@@ -274,14 +273,12 @@ public class EnqueuerDeferredTracingImpl extends EnqueuerDeferredTracing {
     rewriter.rewriteCode(ir, initializedClassesWithContexts, prunedFields);
 
     // Run dead code elimination.
-    new ThrowCatchOptimizer(appView).optimizeAlwaysThrowingInstructions(ir);
+    new ThrowCatchOptimizer(appView).run(ir, Timing.empty());
     rewriter.getDeadCodeRemover().run(ir, Timing.empty());
 
-    // Finalize to class files or dex.
+    // Finalize out of IR.
     IRFinalizer<?> finalizer =
-        conversionOptions.isGeneratingClassFiles()
-            ? new IRToCfFinalizer(appView, rewriter.getDeadCodeRemover())
-            : new IRToDexFinalizer(appView, rewriter.getDeadCodeRemover());
+        conversionOptions.getFinalizer(rewriter.getDeadCodeRemover(), appView);
     Code newCode = finalizer.finalizeCode(ir, BytecodeMetadataProvider.empty(), Timing.empty());
     method.setCode(newCode, appView);
   }

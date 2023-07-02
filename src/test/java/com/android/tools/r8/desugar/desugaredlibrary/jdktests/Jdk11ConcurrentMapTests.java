@@ -4,8 +4,9 @@
 
 package com.android.tools.r8.desugar.desugaredlibrary.jdktests;
 
-import static com.android.tools.r8.ToolHelper.JDK_TESTS_BUILD_DIR;
 import static com.android.tools.r8.desugar.desugaredlibrary.jdktests.Jdk11SupportFiles.getPathsFiles;
+import static com.android.tools.r8.desugar.desugaredlibrary.jdktests.Jdk11SupportFiles.getTestNGMainRunner;
+import static com.android.tools.r8.desugar.desugaredlibrary.jdktests.Jdk11SupportFiles.testNGPath;
 import static com.android.tools.r8.desugar.desugaredlibrary.jdktests.Jdk11SupportFiles.testNGSupportProgramFiles;
 import static com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification.D8_L8DEBUG;
 import static com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification.D8_L8SHRINK;
@@ -82,8 +83,7 @@ public class Jdk11ConcurrentMapTests extends DesugaredLibraryTestBase {
   public static void compileConcurrentClasses() throws Exception {
     Path concurrentCompiledTestsFolder = getStaticTemp().newFolder("concurrentmap").toPath();
     javac(TestRuntime.getCheckedInJdk11(), getStaticTemp())
-        .addClasspathFiles(
-            Collections.singletonList(Paths.get(JDK_TESTS_BUILD_DIR + "testng-6.10.jar")))
+        .addClasspathFiles(testNGPath())
         .addSourceFiles(getAllFilesWithSuffixInDirectory(CONCURRENT_TESTS_FOLDER, JAVA_EXTENSION))
         .setOutputPath(concurrentCompiledTestsFolder)
         .compile();
@@ -100,8 +100,7 @@ public class Jdk11ConcurrentMapTests extends DesugaredLibraryTestBase {
     Path concurrentHashCompiledTestsFolder =
         getStaticTemp().newFolder("concurrenthashmap").toPath();
     javac(TestRuntime.getCheckedInJdk11(), getStaticTemp())
-        .addClasspathFiles(
-            Collections.singletonList(Paths.get(JDK_TESTS_BUILD_DIR + "testng-6.10.jar")))
+        .addClasspathFiles(testNGPath())
         .addSourceFiles(classesToCompile)
         .setOutputPath(concurrentHashCompiledTestsFolder)
         .compile();
@@ -118,6 +117,7 @@ public class Jdk11ConcurrentMapTests extends DesugaredLibraryTestBase {
     testForDesugaredLibrary(parameters, libraryDesugaringSpecification, compilationSpecification)
         .addProgramFiles(CONCURRENT_COMPILED_TESTS_FILES)
         .addProgramFiles(testNGSupportProgramFiles())
+        .addProgramClassFileData(getTestNGMainRunner())
         .applyIf(
             !libraryDesugaringSpecification.hasNioFileDesugaring(parameters),
             b -> b.addProgramFiles(getPathsFiles()))
@@ -168,6 +168,7 @@ public class Jdk11ConcurrentMapTests extends DesugaredLibraryTestBase {
                 parameters, libraryDesugaringSpecification, compilationSpecification)
             .addProgramFiles(concurrentHashTestToCompile())
             .addProgramFiles(testNGSupportProgramFiles())
+            .addProgramClassFileData(getTestNGMainRunner())
             .applyIf(
                 !libraryDesugaringSpecification.hasNioFileDesugaring(parameters),
                 b -> b.addProgramFiles(getPathsFiles()))

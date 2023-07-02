@@ -4,10 +4,6 @@
 
 package com.android.tools.r8.enumunboxing;
 
-import static org.hamcrest.CoreMatchers.containsString;
-import static org.junit.Assert.assertThrows;
-
-import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
@@ -29,24 +25,14 @@ public class EnumUnboxNullArgumentTest extends TestBase {
   }
 
   @Test
-  public void testR8() {
-    // TODO(b/287193321): We should not fail compilation.
-    assertThrows(
-        CompilationFailedException.class,
-        () ->
-            testForR8(parameters.getBackend())
-                .addInnerClasses(getClass())
-                .setMinApi(parameters)
-                .addKeepMainRule(Main.class)
-                // TODO(b/287193321): Using LIR avoids the issue, is it fixed or just hidden?
-                .addOptionsModification(options -> options.testing.disableLir())
-                .compileWithExpectedDiagnostics(
-                    diagnostics -> {
-                      if (parameters.isDexRuntime()) {
-                        diagnostics.assertErrorMessageThatMatches(
-                            containsString("Cannot constrain type"));
-                      }
-                    }));
+  public void testR8() throws Exception {
+    testForR8(parameters.getBackend())
+        .addInnerClasses(getClass())
+        .setMinApi(parameters)
+        .addKeepMainRule(Main.class)
+        .addOptionsModification(options -> options.testing.disableLir())
+        .run(parameters.getRuntime(), Main.class)
+        .assertFailureWithErrorThatThrows(NullPointerException.class);
   }
 
   public enum MyEnum {

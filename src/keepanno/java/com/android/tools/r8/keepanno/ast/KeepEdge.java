@@ -85,7 +85,7 @@ import java.util.Objects;
  *     ::= public | protected | package-private | private | static | final | synthetic
  * </pre>
  */
-public final class KeepEdge {
+public final class KeepEdge extends KeepDeclaration {
 
   public static class Builder {
     private KeepEdgeMetaInfo metaInfo = KeepEdgeMetaInfo.none();
@@ -145,6 +145,11 @@ public final class KeepEdge {
     this.bindings = bindings;
     this.preconditions = preconditions;
     this.consequences = consequences;
+  }
+
+  @Override
+  public KeepEdge asKeepEdge() {
+    return this;
   }
 
   public KeepEdgeMetaInfo getMetaInfo() {

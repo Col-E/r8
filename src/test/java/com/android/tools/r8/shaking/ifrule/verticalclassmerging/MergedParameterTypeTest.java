@@ -10,6 +10,7 @@ import static org.hamcrest.core.IsNot.not;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 
+import com.android.tools.r8.NoAccessModification;
 import com.android.tools.r8.NoHorizontalClassMerging;
 import com.android.tools.r8.R8FullTestBuilder;
 import com.android.tools.r8.TestParameters;
@@ -54,6 +55,7 @@ public class MergedParameterTypeTest extends MergedTypeBaseTest {
 
   public static class MergedParameterTypeWithCollisionTest extends MergedTypeBaseTest {
 
+    @NoAccessModification
     @NoHorizontalClassMerging
     static class SuperTestClass {
 

@@ -72,15 +72,61 @@ public class FieldArrayBacking extends FieldCollectionBacking {
   @Override
   <BT, CT> TraversalContinuation<BT, CT> traverse(
       DexClass holder, Function<? super DexClassAndField, TraversalContinuation<BT, CT>> fn) {
-    TraversalContinuation<BT, CT> traversalContinuation = TraversalContinuation.doContinue();
-    for (DexEncodedField definition : staticFields) {
-      DexClassAndField field = DexClassAndField.create(holder, definition);
-      traversalContinuation = fn.apply(field);
-      if (traversalContinuation.shouldBreak()) {
-        return traversalContinuation;
-      }
+    TraversalContinuation<BT, CT> traversalContinuation = traverseStaticFields(holder, fn);
+    if (traversalContinuation.shouldBreak()) {
+      return traversalContinuation;
     }
-    for (DexEncodedField definition : instanceFields) {
+    return traverseInstanceFields(holder, fn);
+  }
+
+  @Override
+  <BT, CT> TraversalContinuation<BT, CT> traverse(
+      DexClass holder,
+      BiFunction<? super DexClassAndField, ? super CT, TraversalContinuation<BT, CT>> fn,
+      CT initialValue) {
+    TraversalContinuation<BT, CT> traversalContinuation =
+        traverseStaticFields(holder, fn, initialValue);
+    if (traversalContinuation.shouldBreak()) {
+      return traversalContinuation;
+    }
+    return traverseInstanceFields(
+        holder, fn, traversalContinuation.asContinue().getValueOrDefault(null));
+  }
+
+  @Override
+  <BT, CT> TraversalContinuation<BT, CT> traverseInstanceFields(
+      DexClass holder, Function<? super DexClassAndField, TraversalContinuation<BT, CT>> fn) {
+    return traverseInstanceOrStaticFields(holder, instanceFields, fn);
+  }
+
+  @Override
+  <BT, CT> TraversalContinuation<BT, CT> traverseInstanceFields(
+      DexClass holder,
+      BiFunction<? super DexClassAndField, ? super CT, TraversalContinuation<BT, CT>> fn,
+      CT initialValue) {
+    return traverseInstanceOrStaticFields(holder, instanceFields, fn, initialValue);
+  }
+
+  @Override
+  <BT, CT> TraversalContinuation<BT, CT> traverseStaticFields(
+      DexClass holder, Function<? super DexClassAndField, TraversalContinuation<BT, CT>> fn) {
+    return traverseInstanceOrStaticFields(holder, staticFields, fn);
+  }
+
+  @Override
+  <BT, CT> TraversalContinuation<BT, CT> traverseStaticFields(
+      DexClass holder,
+      BiFunction<? super DexClassAndField, ? super CT, TraversalContinuation<BT, CT>> fn,
+      CT initialValue) {
+    return traverseInstanceOrStaticFields(holder, staticFields, fn, initialValue);
+  }
+
+  private static <BT, CT> TraversalContinuation<BT, CT> traverseInstanceOrStaticFields(
+      DexClass holder,
+      DexEncodedField[] fields,
+      Function<? super DexClassAndField, TraversalContinuation<BT, CT>> fn) {
+    TraversalContinuation<BT, CT> traversalContinuation = TraversalContinuation.doContinue();
+    for (DexEncodedField definition : fields) {
       DexClassAndField field = DexClassAndField.create(holder, definition);
       traversalContinuation = fn.apply(field);
       if (traversalContinuation.shouldBreak()) {
@@ -90,21 +136,14 @@ public class FieldArrayBacking extends FieldCollectionBacking {
     return traversalContinuation;
   }
 
-  @Override
-  <BT, CT> TraversalContinuation<BT, CT> traverse(
+  private static <BT, CT> TraversalContinuation<BT, CT> traverseInstanceOrStaticFields(
       DexClass holder,
+      DexEncodedField[] fields,
       BiFunction<? super DexClassAndField, ? super CT, TraversalContinuation<BT, CT>> fn,
       CT initialValue) {
     TraversalContinuation<BT, CT> traversalContinuation =
         TraversalContinuation.doContinue(initialValue);
-    for (DexEncodedField definition : staticFields) {
-      DexClassAndField field = DexClassAndField.create(holder, definition);
-      traversalContinuation = fn.apply(field, traversalContinuation.asContinue().getValue());
-      if (traversalContinuation.shouldBreak()) {
-        return traversalContinuation;
-      }
-    }
-    for (DexEncodedField definition : instanceFields) {
+    for (DexEncodedField definition : fields) {
       DexClassAndField field = DexClassAndField.create(holder, definition);
       traversalContinuation = fn.apply(field, traversalContinuation.asContinue().getValue());
       if (traversalContinuation.shouldBreak()) {

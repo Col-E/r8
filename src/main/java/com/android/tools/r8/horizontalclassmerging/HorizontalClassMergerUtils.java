@@ -7,8 +7,13 @@ package com.android.tools.r8.horizontalclassmerging;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexField;
+import com.android.tools.r8.graph.ProgramField;
 
 public class HorizontalClassMergerUtils {
+
+  public static boolean isClassIdField(AppView<?> appView, ProgramField field) {
+    return isClassIdField(appView, field.getDefinition());
+  }
 
   public static boolean isClassIdField(AppView<?> appView, DexEncodedField field) {
     DexField classIdField = appView.dexItemFactory().objectMembers.classIdField;

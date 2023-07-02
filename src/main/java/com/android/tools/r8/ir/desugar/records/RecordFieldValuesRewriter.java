@@ -21,6 +21,7 @@ import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.code.RecordFieldValues;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.conversion.IRConverter;
+import com.android.tools.r8.ir.conversion.MethodConversionOptions;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackIgnore;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.Timing;
@@ -67,7 +68,11 @@ public class RecordFieldValuesRewriter {
         programMethod
             .getDefinition()
             .getCode()
-            .buildIR(programMethod, appView, programMethod.getOrigin());
+            .buildIR(
+                programMethod,
+                appView,
+                programMethod.getOrigin(),
+                MethodConversionOptions.forPostLirPhase(appView));
     boolean done = false;
     ListIterator<BasicBlock> blockIterator = irCode.listIterator();
     while (blockIterator.hasNext()) {
@@ -85,7 +90,6 @@ public class RecordFieldValuesRewriter {
     assert done;
     irConverter.removeDeadCodeAndFinalizeIR(
         irCode, OptimizationFeedbackIgnore.getInstance(), Timing.empty());
-    irConverter.finalizeLirMethodToOutputFormat(programMethod);
   }
 
   public void rewriteRecordFieldArray(

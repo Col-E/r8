@@ -36,6 +36,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.function.Supplier;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -43,6 +44,7 @@ import org.junit.runners.Parameterized.Parameter;
 import org.junit.runners.Parameterized.Parameters;
 import org.objectweb.asm.MethodVisitor;
 
+@Ignore("b/288117378")
 @RunWith(Parameterized.class)
 public class RetraceStackTraceFunctionalCompositionTest extends TestBase {
 

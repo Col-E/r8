@@ -5,10 +5,10 @@
 package com.android.tools.r8.ir.conversion.passes;
 
 import com.android.tools.r8.errors.Unreachable;
+import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClassAndMethod;
-import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.analysis.type.TypeAnalysis;
@@ -32,6 +32,7 @@ import com.android.tools.r8.ir.code.Phi;
 import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.code.Throw;
 import com.android.tools.r8.ir.code.Value;
+import com.android.tools.r8.ir.conversion.passes.result.CodeRewriterResult;
 import com.android.tools.r8.ir.optimize.info.MethodOptimizationInfo;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Sets;
@@ -40,18 +41,34 @@ import java.util.List;
 import java.util.ListIterator;
 import java.util.Set;
 
-public class ThrowCatchOptimizer {
-
-  private final AppView<?> appView;
-  private final DexItemFactory dexItemFactory;
+public class ThrowCatchOptimizer extends CodeRewriterPass<AppInfo> {
 
   public ThrowCatchOptimizer(AppView<?> appView) {
-    this.appView = appView;
-    this.dexItemFactory = appView.dexItemFactory();
+    super(appView);
+  }
+
+  @Override
+  protected String getTimingId() {
+    return "ThrowCatchOptimizer";
+  }
+
+  @Override
+  protected boolean shouldRewriteCode(IRCode code) {
+    return true;
+  }
+
+  @Override
+  protected CodeRewriterResult rewriteCode(IRCode code) {
+    boolean hasChanged = optimizeAlwaysThrowingInstructions(code);
+    if (!isDebugMode(code.context())) {
+      hasChanged |= rewriteThrowNullPointerException(code);
+    }
+    return CodeRewriterResult.hasChanged(hasChanged);
   }
 
   // Rewrite 'throw new NullPointerException()' to 'throw null'.
-  public void rewriteThrowNullPointerException(IRCode code) {
+  private boolean rewriteThrowNullPointerException(IRCode code) {
+    boolean hasChanged = false;
     boolean shouldRemoveUnreachableBlocks = false;
     for (BasicBlock block : code.blocks) {
       InstructionListIterator it = block.listIterator(code);
@@ -64,7 +81,7 @@ public class ThrowCatchOptimizer {
           if (appView
               .dexItemFactory()
               .objectsMethods
-              .isRequireNonNullMethod(code.method().getReference())) {
+              .isRequireNonNullMethod(code.context().getReference())) {
             continue;
           }
 
@@ -126,6 +143,7 @@ public class ThrowCatchOptimizer {
               valueIsNullTarget,
               throwInstruction.getPosition());
           shouldRemoveUnreachableBlocks = true;
+          hasChanged = true;
         }
 
         // Check for 'new-instance NullPointerException' with 2 users, not declaring a local and
@@ -172,6 +190,7 @@ public class ThrowCatchOptimizer {
                     // Replace them with 'const 0' and 'throw'.
                     it.add(nullPointer);
                     it.add(throwInstruction);
+                    hasChanged = true;
                   }
                 }
               }
@@ -186,18 +205,23 @@ public class ThrowCatchOptimizer {
         new TypeAnalysis(appView).narrowing(affectedValues);
       }
     }
+    if (hasChanged) {
+      code.removeRedundantBlocks();
+    }
     assert code.isConsistentSSA(appView);
+    return hasChanged;
   }
 
   // Find all instructions that always throw, split the block after each such instruction and follow
   // it with a block throwing a null value (which should result in NPE). Note that this throw is not
   // expected to be ever reached, but is intended to satisfy verifier.
-  public void optimizeAlwaysThrowingInstructions(IRCode code) {
+  private boolean optimizeAlwaysThrowingInstructions(IRCode code) {
     Set<Value> affectedValues = Sets.newIdentityHashSet();
     Set<BasicBlock> blocksToRemove = Sets.newIdentityHashSet();
     ListIterator<BasicBlock> blockIterator = code.listIterator();
     ProgramMethod context = code.context();
     boolean hasUnlinkedCatchHandlers = false;
+    boolean hasChanged = false;
     // For cyclic phis we sometimes do not propagate the dynamic upper type after rewritings.
     // The inValue.isAlwaysNull(appView) check below will not recompute the dynamic type of phi's
     // so we recompute all phis here if they are always null.
@@ -265,6 +289,7 @@ public class ThrowCatchOptimizer {
             }
             instructionIterator.replaceCurrentInstructionWithThrowNull(
                 appView, code, blockIterator, blocksToRemove, affectedValues);
+            hasChanged = true;
             continue;
           }
         }
@@ -302,6 +327,7 @@ public class ThrowCatchOptimizer {
           instructionIterator.replaceCurrentInstructionWithThrowNull(
               appView, code, blockIterator, blocksToRemove, affectedValues);
           instructionIterator.unsetInsertionPosition();
+          hasChanged = true;
         }
       }
     }
@@ -313,8 +339,11 @@ public class ThrowCatchOptimizer {
     if (!affectedValues.isEmpty()) {
       new TypeAnalysis(appView).narrowing(affectedValues);
     }
-    code.removeRedundantBlocks();
+    if (hasChanged) {
+      code.removeRedundantBlocks();
+    }
     assert code.isConsistentSSA(appView);
+    return hasChanged;
   }
 
   // Find any case where we have a catch followed immediately and only by a rethrow. This is extra

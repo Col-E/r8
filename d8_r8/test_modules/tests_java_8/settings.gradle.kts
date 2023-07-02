@@ -10,3 +10,15 @@ includeBuild(root.resolve("keepanno"))
 // We need to include src/main as a composite-build otherwise our test-modules
 // will compete with the test to compile the source files.
 includeBuild(root.resolve("main"))
+
+includeBuild(root.resolve("test_modules").resolve("tests_java_9"))
+includeBuild(root.resolve("test_modules").resolve("tests_java_10"))
+includeBuild(root.resolve("test_modules").resolve("tests_java_11"))
+includeBuild(root.resolve("test_modules").resolve("tests_java_17"))
+includeBuild(root.resolve("test_modules").resolve("tests_java_20"))
+includeBuild(root.resolve("test_modules").resolve("tests_java_examples"))
+includeBuild(root.resolve("test_modules").resolve("tests_java_examplesAndroidN"))
+includeBuild(root.resolve("test_modules").resolve("tests_java_examplesAndroidO"))
+includeBuild(root.resolve("test_modules").resolve("tests_java_examplesAndroidP"))
+includeBuild(root.resolve("test_modules").resolve("tests_java_kotlinR8TestResources"))
+

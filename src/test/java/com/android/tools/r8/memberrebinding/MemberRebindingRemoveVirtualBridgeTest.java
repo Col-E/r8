@@ -11,6 +11,7 @@ import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
+import com.android.tools.r8.NoAccessModification;
 import com.android.tools.r8.NoInliningOfDefaultInitializer;
 import com.android.tools.r8.NoVerticalClassMerging;
 import com.android.tools.r8.TestBase;
@@ -49,6 +50,7 @@ public class MemberRebindingRemoveVirtualBridgeTest extends TestBase {
         .setMinApi(parameters)
         .addKeepMainRule(newMainTypeName)
         .enableInliningAnnotations()
+        .enableNoAccessModificationAnnotationsForClasses()
         .enableNoInliningOfDefaultInitializerAnnotations()
         .enableNoVerticalClassMergingAnnotations()
         .enableNeverClassInliningAnnotations()
@@ -69,6 +71,7 @@ public class MemberRebindingRemoveVirtualBridgeTest extends TestBase {
             });
   }
 
+  @NoAccessModification
   @NoVerticalClassMerging
   static class A {
 

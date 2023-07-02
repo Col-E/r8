@@ -463,37 +463,38 @@ public abstract class R8RunArtTestsTest extends TestBase {
       "1337-gc-coverage"
   );
 
-  private static List<String> expectedToFailRunWithArtNonDefault = ImmutableList.of(
-      // Fails due to missing symbol, jni tests, fails on non-R8/D8 run.
-      "004-JniTest",
-      "004-SignalTest",
-      "004-ThreadStress",
-      "004-UnsafeTest",
-      "044-proxy",
-      "051-thread",
-      "136-daemon-jni-shutdown",
-      "139-register-natives",
-      "148-multithread-gc-annotations",
-      "149-suspend-all-stress",
-      "154-gc-loop",
-      "155-java-set-resolved-type",
-      "157-void-class",
-      "158-app-image-class-table",
-      "466-get-live-vreg",
-      "497-inlining-and-class-loader",
-      "566-polymorphic-inlining",
-      "596-app-images",
-      "616-cha",
-      "616-cha-abstract",
-      "616-cha-regression-proxy-method",
-      "616-cha-native",
-      "626-set-resolved-string",
-      "629-vdex-speed",
-      "1337-gc-coverage",
+  private static List<String> expectedToFailRunWithArtNonDefault =
+      ImmutableList.of(
+          // Fails due to missing symbol, jni tests, fails on non-R8/D8 run.
+          "004-JniTest",
+          "004-SignalTest",
+          "004-ThreadStress",
+          "004-UnsafeTest",
+          "044-proxy",
+          "051-thread",
+          "136-daemon-jni-shutdown",
+          "139-register-natives",
+          "148-multithread-gc-annotations",
+          "149-suspend-all-stress",
+          "154-gc-loop",
+          "155-java-set-resolved-type",
+          "157-void-class",
+          "158-app-image-class-table",
+          "466-get-live-vreg",
+          "497-inlining-and-class-loader",
+          "566-polymorphic-inlining",
+          "537-checker-inline-and-unverified",
+          "596-app-images",
+          "616-cha",
+          "616-cha-abstract",
+          "616-cha-regression-proxy-method",
+          "616-cha-native",
+          "626-set-resolved-string",
+          "629-vdex-speed",
+          "1337-gc-coverage",
 
-      // Fails on non-R8/D8 run
-      "031-class-attributes"
-  );
+          // Fails on non-R8/D8 run
+          "031-class-attributes");
 
   private static Map<DexVm.Version, List<String>> expectedToFailRunWithArtVersion;
 
@@ -764,11 +765,12 @@ public abstract class R8RunArtTestsTest extends TestBase {
           // by the program at runtime.
           .put("005-annotations", TestCondition.match(TestCondition.D8_COMPILER))
           // On Art 4.4.4 we have fewer refs than expected (except for d8 when compiled with dx).
-          .put("072-precise-gc",
+          .put(
+              "072-precise-gc",
               TestCondition.match(
-                  TestCondition.R8_COMPILER,
-                  TestCondition.runtimesUpTo(DexVm.Version.V4_4_4)))
-          .put("072-precise-gc",
+                  TestCondition.R8_COMPILER, TestCondition.runtimesUpTo(DexVm.Version.V4_4_4)))
+          .put(
+              "072-precise-gc",
               TestCondition.match(
                   TestCondition.tools(DexTool.NONE),
                   TestCondition.D8_COMPILER,
@@ -779,16 +781,23 @@ public abstract class R8RunArtTestsTest extends TestBase {
           .put("099-vmdebug", TestCondition.any())
           // This test relies on output on stderr, which we currently do not collect.
           .put("143-string-value", TestCondition.any())
-          .put("800-smali",
+          .put(
+              "800-smali",
               TestCondition.match(
                   TestCondition.D8_COMPILER,
                   TestCondition.runtimes(DexVm.Version.V5_1_1, DexVm.Version.V6_0_1)))
           // Triggers regression test in 6.0.1 when using R8/D8 in debug mode.
-          .put("474-fp-sub-neg",
+          .put(
+              "474-fp-sub-neg",
               TestCondition.match(
                   TestCondition.tools(DexTool.NONE),
                   TestCondition.D8_NOT_AFTER_R8CF_COMPILER,
                   TestCondition.runtimes(DexVm.Version.V6_0_1)))
+          .put(
+              "536-checker-needs-access-check",
+              // DEX VMs incorrectly check access before checking null-value in instanceof.
+              // See IllegalAccessDeadInstanceOfTest and b/288376353.
+              TestCondition.anyDexVm())
           .build();
 
   private static final TestCondition beforeAndroidN =
@@ -1168,12 +1177,34 @@ public abstract class R8RunArtTestsTest extends TestBase {
           "958-methodhandle-stackframe",
           "1338-gc-no-los");
 
+  private static final String NO_CLASS_ACCESS_MODIFICATION_RULE =
+      "-keep,allowobfuscation,allowoptimization,allowshrinking class *";
+  private static final String NO_MEMBER_ACCESS_MODIFICATION_RULE =
+      "-keepclassmembers,allowobfuscation,allowoptimization,allowshrinking class * { *; }";
+
   private static Map<String, List<String>> keepRules =
       ImmutableMap.of(
+          "005-annotations",
+          ImmutableList.of(NO_MEMBER_ACCESS_MODIFICATION_RULE),
           "021-string2",
           ImmutableList.of("-dontwarn junit.framework.**"),
+          "042-new-instance",
+          ImmutableList.of(NO_MEMBER_ACCESS_MODIFICATION_RULE),
+          "046-reflect",
+          ImmutableList.of(NO_MEMBER_ACCESS_MODIFICATION_RULE),
+          "064-field-access",
+          ImmutableList.of(NO_MEMBER_ACCESS_MODIFICATION_RULE),
           "082-inline-execute",
           ImmutableList.of("-dontwarn junit.framework.**"),
+          "100-reflect2",
+          ImmutableList.of(NO_CLASS_ACCESS_MODIFICATION_RULE),
+          "301-abstract-protected",
+          ImmutableList.of(
+              "-keepclassmembers,allowobfuscation,allowoptimization,allowshrinking class Abstract {"
+                  + "  protected abstract java.lang.String m();"
+                  + "}"),
+          "435-new-instance",
+          ImmutableList.of(NO_CLASS_ACCESS_MODIFICATION_RULE),
           // Constructor MakeBoundType.<init>(int) is called using reflection.
           "476-checker-ctor-fence-redun-elim",
           ImmutableList.of(
@@ -1566,6 +1597,7 @@ public abstract class R8RunArtTestsTest extends TestBase {
       if (configuration != null) {
         configuration.accept(options);
       }
+      options.getAccessModifierOptions().setForceModifyPackagePrivateAndProtectedMethods(false);
     }
 
     @Override

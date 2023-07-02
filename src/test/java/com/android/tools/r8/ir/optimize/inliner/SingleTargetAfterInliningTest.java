@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.ir.optimize.inliner;
 
+import static com.android.tools.r8.utils.codeinspector.Matchers.isAbsent;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static com.android.tools.r8.utils.codeinspector.Matchers.notIf;
 import static org.hamcrest.CoreMatchers.not;
@@ -83,7 +84,9 @@ public class SingleTargetAfterInliningTest extends TestBase {
     ClassSubject bClassSubject = inspector.clazz(B.class);
     assertThat(bClassSubject, isPresent());
     // TODO(b/286058449): We could inline this.
-    assertThat(bClassSubject.uniqueMethodWithOriginalName("foo"), isPresent());
+    assertThat(
+        bClassSubject.uniqueMethodWithOriginalName("foo"),
+        (parameters.isCfRuntime() && maxInliningDepth == 1) ? isAbsent() : isPresent());
 
     // B.bar() should always be inlined because it is marked as @AlwaysInline.
     assertThat(

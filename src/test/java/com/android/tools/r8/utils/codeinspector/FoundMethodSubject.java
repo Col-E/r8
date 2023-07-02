@@ -30,6 +30,7 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.code.IRCode;
+import com.android.tools.r8.ir.conversion.MethodConversionOptions;
 import com.android.tools.r8.naming.MemberNaming;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
 import com.android.tools.r8.naming.signature.GenericSignatureParser;
@@ -74,7 +75,12 @@ public class FoundMethodSubject extends MethodSubject {
   @Override
   public IRCode buildIR(AppView<?> appView) {
     assert codeInspector.application.options.programConsumer != null;
-    return getProgramMethod().buildIR(appView);
+    return getProgramMethod()
+        .buildIR(
+            appView,
+            appView.enableWholeProgramOptimizations()
+                ? MethodConversionOptions.nonConverting()
+                : MethodConversionOptions.forD8(appView));
   }
 
   @Override

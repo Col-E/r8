@@ -4,8 +4,9 @@
 
 package com.android.tools.r8.desugar.desugaredlibrary.jdktests;
 
-import static com.android.tools.r8.ToolHelper.JDK_TESTS_BUILD_DIR;
 import static com.android.tools.r8.desugar.desugaredlibrary.jdktests.Jdk11SupportFiles.getPathsFiles;
+import static com.android.tools.r8.desugar.desugaredlibrary.jdktests.Jdk11SupportFiles.getTestNGMainRunner;
+import static com.android.tools.r8.desugar.desugaredlibrary.jdktests.Jdk11SupportFiles.testNGPath;
 import static com.android.tools.r8.desugar.desugaredlibrary.jdktests.Jdk11SupportFiles.testNGSupportProgramFiles;
 import static com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification.D8_L8DEBUG;
 import static com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification.D8_L8SHRINK;
@@ -27,7 +28,6 @@ import com.android.tools.r8.utils.StringUtils;
 import com.google.common.collect.ImmutableList;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Collections;
 import java.util.List;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -79,8 +79,7 @@ public class Jdk11AtomicTests extends DesugaredLibraryTestBase {
   public static void compileAtomicClasses() throws Exception {
     ATOMIC_COMPILED_TESTS_FOLDER = getStaticTemp().newFolder("atomic").toPath();
     javac(TestRuntime.getCheckedInJdk11(), getStaticTemp())
-        .addClasspathFiles(
-            Collections.singletonList(Paths.get(JDK_TESTS_BUILD_DIR + "testng-6.10.jar")))
+        .addClasspathFiles(testNGPath())
         .addSourceFiles(ATOMIC_TESTS_FILES)
         .setOutputPath(ATOMIC_COMPILED_TESTS_FOLDER)
         .compile();
@@ -93,6 +92,7 @@ public class Jdk11AtomicTests extends DesugaredLibraryTestBase {
         .addProgramFiles(
             ATOMIC_COMPILED_TESTS_FOLDER.resolve(ATOMIC_REFERENCE_TEST + CLASS_EXTENSION))
         .addProgramFiles(testNGSupportProgramFiles())
+        .addProgramClassFileData(getTestNGMainRunner())
         .applyIf(
             !libraryDesugaringSpecification.hasNioFileDesugaring(parameters),
             b -> b.addProgramFiles(getPathsFiles()))
@@ -110,6 +110,7 @@ public class Jdk11AtomicTests extends DesugaredLibraryTestBase {
         .addProgramFiles(
             getAllFilesWithSuffixInDirectory(ATOMIC_COMPILED_TESTS_FOLDER, CLASS_EXTENSION))
         .addProgramFiles(testNGSupportProgramFiles())
+        .addProgramClassFileData(getTestNGMainRunner())
         .applyIf(
             !libraryDesugaringSpecification.hasNioFileDesugaring(parameters),
             b -> b.addProgramFiles(getPathsFiles()))

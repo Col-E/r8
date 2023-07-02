@@ -239,7 +239,7 @@ public class SyntheticLambdaClassProfileRewritingTest extends TestBase {
         inspector,
         parameters.canHaveNonReboundConstructorInvoke(),
         parameters.isCfRuntime(),
-        false);
+        parameters.isAccessModificationEnabledByDefault());
   }
 
   static class Main {

@@ -45,6 +45,7 @@ public class SimpleInterfaceAccessTest {
     void bar();
   }
 
+  @NoAccessModification
   private static class OtherSimpleInterfaceImpl implements OtherSimpleInterface {
 
     @Override

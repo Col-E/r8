@@ -8,7 +8,6 @@ import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.R8Command;
 import com.android.tools.r8.TestBase;
-import com.android.tools.r8.TestBase.Backend;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
@@ -48,6 +47,7 @@ public class MemberRebindingTest extends TestBase {
   private final String name;
 
   private final Backend backend;
+  private final String keepRuleFile;
   private final Path programFile;
   private final Consumer<CodeInspector> inspection;
   private final int minApiLevel;
@@ -58,6 +58,7 @@ public class MemberRebindingTest extends TestBase {
   public MemberRebindingTest(TestConfiguration configuration) {
     this.name = configuration.name;
     this.backend = configuration.backend;
+    this.keepRuleFile = configuration.keepRuleFile;
     this.programFile = configuration.getJarPath();
     this.inspection = configuration.processedInspection;
     this.minApiLevel = configuration.getMinApiLevel();
@@ -77,6 +78,10 @@ public class MemberRebindingTest extends TestBase {
             .setDisableMinification(true);
     if (backend == Backend.DEX) {
       builder.setMinApiLevel(minApiLevel);
+    }
+    if (keepRuleFile != null) {
+      builder.addProguardConfigurationFiles(Paths.get(ToolHelper.EXAMPLES_DIR, name, keepRuleFile));
+      ToolHelper.allowTestProguardOptions(builder);
     }
     ToolHelper.getAppBuilder(builder).addProgramFiles(programFile);
     ToolHelper.runR8(
@@ -178,16 +183,19 @@ public class MemberRebindingTest extends TestBase {
 
     final String name;
     final Backend backend;
+    final String keepRuleFile;
     final AndroidVersion version;
     final Consumer<CodeInspector> processedInspection;
 
     private TestConfiguration(
         String name,
         Backend backend,
+        String keepRuleFile,
         AndroidVersion version,
         Consumer<CodeInspector> processedInspection) {
       this.name = name;
       this.backend = backend;
+      this.keepRuleFile = keepRuleFile;
       this.version = version;
       this.processedInspection = processedInspection;
     }
@@ -196,9 +204,10 @@ public class MemberRebindingTest extends TestBase {
         ImmutableList.Builder<TestConfiguration> builder,
         String name,
         Backend backend,
+        String keepRuleFile,
         AndroidVersion version,
         Consumer<CodeInspector> processedInspection) {
-      builder.add(new TestConfiguration(name, backend, version, processedInspection));
+      builder.add(new TestConfiguration(name, backend, keepRuleFile, version, processedInspection));
     }
 
     public Path getDexPath() {
@@ -244,24 +253,28 @@ public class MemberRebindingTest extends TestBase {
           builder,
           "memberrebinding",
           backend,
+          null,
           TestConfiguration.AndroidVersion.PRE_N,
           MemberRebindingTest::inspectMain);
       TestConfiguration.add(
           builder,
           "memberrebinding2",
           backend,
+          "keep-rules.txt",
           TestConfiguration.AndroidVersion.PRE_N,
           MemberRebindingTest::inspectMain2);
       TestConfiguration.add(
           builder,
           "memberrebinding3",
           backend,
+          null,
           TestConfiguration.AndroidVersion.PRE_N,
           MemberRebindingTest::inspect3);
       TestConfiguration.add(
           builder,
           "memberrebinding4",
           backend,
+          null,
           TestConfiguration.AndroidVersion.N,
           MemberRebindingTest::inspect4);
     }

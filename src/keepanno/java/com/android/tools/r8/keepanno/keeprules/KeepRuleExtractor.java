@@ -4,7 +4,10 @@
 package com.android.tools.r8.keepanno.keeprules;
 
 import com.android.tools.r8.keepanno.ast.KeepBindings;
+import com.android.tools.r8.keepanno.ast.KeepCheck;
+import com.android.tools.r8.keepanno.ast.KeepCheck.KeepCheckKind;
 import com.android.tools.r8.keepanno.ast.KeepCondition;
+import com.android.tools.r8.keepanno.ast.KeepDeclaration;
 import com.android.tools.r8.keepanno.ast.KeepEdge;
 import com.android.tools.r8.keepanno.ast.KeepEdgeException;
 import com.android.tools.r8.keepanno.ast.KeepEdgeMetaInfo;
@@ -16,6 +19,7 @@ import com.android.tools.r8.keepanno.ast.KeepMemberPattern;
 import com.android.tools.r8.keepanno.ast.KeepMethodAccessPattern;
 import com.android.tools.r8.keepanno.ast.KeepMethodPattern;
 import com.android.tools.r8.keepanno.ast.KeepOptions;
+import com.android.tools.r8.keepanno.ast.KeepOptions.KeepOption;
 import com.android.tools.r8.keepanno.ast.KeepQualifiedClassNamePattern;
 import com.android.tools.r8.keepanno.ast.KeepTarget;
 import com.android.tools.r8.keepanno.keeprules.PgRule.PgConditionalRule;
@@ -43,8 +47,8 @@ public class KeepRuleExtractor {
     this.ruleConsumer = ruleConsumer;
   }
 
-  public void extract(KeepEdge edge) {
-    Collection<PgRule> rules = split(edge);
+  public void extract(KeepDeclaration declaration) {
+    Collection<PgRule> rules = split(declaration);
     StringBuilder builder = new StringBuilder();
     for (PgRule rule : rules) {
       rule.printRule(builder);
@@ -53,8 +57,74 @@ public class KeepRuleExtractor {
     ruleConsumer.accept(builder.toString());
   }
 
-  private static Collection<PgRule> split(KeepEdge edge) {
-    return doSplit(KeepEdgeNormalizer.normalize(edge));
+  private static Collection<PgRule> split(KeepDeclaration declaration) {
+    if (declaration.isKeepCheck()) {
+      return generateCheckRules(declaration.asKeepCheck());
+    }
+    return doSplit(KeepEdgeNormalizer.normalize(declaration.asKeepEdge()));
+  }
+
+  private static Collection<PgRule> generateCheckRules(KeepCheck check) {
+    KeepItemPattern itemPattern = check.getItemPattern();
+    boolean isRemovedPattern = check.getKind() == KeepCheckKind.REMOVED;
+    List<PgRule> rules = new ArrayList<>(isRemovedPattern ? 2 : 1);
+    Holder holder;
+    Map<String, KeepMemberPattern> memberPatterns;
+    List<String> targetMembers;
+    if (itemPattern.isClassItemPattern()) {
+      KeepBindings bindings =
+          KeepBindings.builder().addBinding("CLASS", check.getItemPattern()).build();
+      holder = Holder.create("CLASS", bindings);
+      memberPatterns = Collections.emptyMap();
+      targetMembers = Collections.emptyList();
+    } else {
+      KeepBindings bindings =
+          KeepBindings.builder()
+              .addBinding("CLASS", KeepEdgeNormalizer.getClassItemPattern(check.getItemPattern()))
+              .build();
+      holder = Holder.create("CLASS", bindings);
+      KeepMemberPattern memberPattern = itemPattern.getMemberPattern();
+      memberPatterns = Collections.singletonMap("MEMBER", memberPattern);
+      targetMembers = Collections.singletonList("MEMBER");
+    }
+    // Add a -checkdiscard rule for the class or members.
+    rules.add(
+        new PgUnconditionalRule(
+            check.getMetaInfo(),
+            holder,
+            KeepOptions.keepAll(),
+            memberPatterns,
+            targetMembers,
+            TargetKeepKind.CHECK_DISCARD));
+    // If the check declaration is to ensure full removal we generate a soft-pin rule to disallow
+    // moving/inlining the items.
+    if (isRemovedPattern) {
+      KeepOptions allowShrinking = KeepOptions.allow(KeepOption.SHRINKING);
+      if (itemPattern.isClassItemPattern()) {
+        // A check removal on a class means that the entire class is removed, thus soft-pin the
+        // class and *all* of its members.
+        rules.add(
+            new PgUnconditionalRule(
+                check.getMetaInfo(),
+                holder,
+                allowShrinking,
+                Collections.singletonMap("MEMBERS", KeepMemberPattern.allMembers()),
+                Collections.singletonList("MEMBERS"),
+                TargetKeepKind.CLASS_OR_MEMBERS));
+      } else {
+        // A check removal on members just soft-pins the members.
+        rules.add(
+            new PgDependentMembersRule(
+                check.getMetaInfo(),
+                holder,
+                allowShrinking,
+                memberPatterns,
+                Collections.emptyList(),
+                targetMembers,
+                TargetKeepKind.JUST_MEMBERS));
+      }
+    }
+    return rules;
   }
 
   /**

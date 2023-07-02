@@ -48,23 +48,18 @@ public abstract class DexApplication implements DexDefinitionSupplier, Copyable<
   public final DexItemFactory dexItemFactory;
   private final DexApplicationReadFlags flags;
 
-  // Information on the lexicographically largest string referenced from code.
-  public final DexString highestSortingString;
-
   /** Constructor should only be invoked by the DexApplication.Builder. */
   DexApplication(
       ClassNameMapper proguardMap,
       DexApplicationReadFlags flags,
       ImmutableList<DataResourceProvider> dataResourceProviders,
       InternalOptions options,
-      DexString highestSortingString,
       Timing timing) {
     this.proguardMap = proguardMap;
     this.flags = flags;
     this.dataResourceProviders = dataResourceProviders;
     this.options = options;
     this.dexItemFactory = options.itemFactory;
-    this.highestSortingString = highestSortingString;
     this.timing = timing;
     readOptions = options;
   }
@@ -192,7 +187,6 @@ public abstract class DexApplication implements DexDefinitionSupplier, Copyable<
     final Timing timing;
     DexApplicationReadFlags flags;
 
-    DexString highestSortingString;
     private final Collection<DexProgramClass> synthesizedClasses;
 
     public Builder(InternalOptions options, Timing timing) {
@@ -210,7 +204,6 @@ public abstract class DexApplication implements DexDefinitionSupplier, Copyable<
       dataResourceProviders.addAll(application.dataResourceProviders);
       proguardMap = application.getProguardMap();
       timing = application.timing;
-      highestSortingString = application.highestSortingString;
       options = application.options;
       dexItemFactory = application.dexItemFactory;
       synthesizedClasses = new ArrayList<>();
@@ -273,11 +266,6 @@ public abstract class DexApplication implements DexDefinitionSupplier, Copyable<
 
     public synchronized T addDataResourceProvider(DataResourceProvider provider) {
       dataResourceProviders.add(provider);
-      return self();
-    }
-
-    public synchronized T setHighestSortingString(DexString value) {
-      highestSortingString = value;
       return self();
     }
 

@@ -3,6 +3,8 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.shaking.ifrule;
 
+import com.android.tools.r8.NoAccessModification;
+
 class EmptyMainClassForIfOnClassTests {
   public static void main(String[] args) {
   }
@@ -11,8 +13,10 @@ class EmptyMainClassForIfOnClassTests {
 // Precondition -> DependentUser -> Dependent
 // That is, this class and members will be kept only if Precondition and DependentUser are kept.
 class Dependent {
-  private int intField;
-  private String strField;
+
+  @NoAccessModification private int intField;
+
+  @NoAccessModification private String strField;
 
   Dependent(int i, String s) {
     intField = i;

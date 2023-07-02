@@ -23,20 +23,20 @@ fun downloadFromGoogleStorage(sha1File : File) {
     "download_from_google_storage.py",
     "--extract",
     "--bucket",
-    "${dependencies_bucket}",
+    dependencies_bucket,
     "--sha1_file",
     "${sha1File}"
   )
   println("Executing command: ${cmd.joinToString(" ")}")
-  var process = ProcessBuilder().command(cmd).start()
-  process.waitFor(5, java.util.concurrent.TimeUnit.SECONDS)
+  val process = ProcessBuilder().command(cmd).start()
+  process.waitFor()
   if (process.exitValue() != 0) {
     throw GradleException(
       "Bootstrapping dependencies_new download failed:\n"
         + "${String(process.getErrorStream().readAllBytes(),
                     java.nio.charset.StandardCharsets.UTF_8)}\n"
-        + "${String(process.getInputStream().readAllBytes(),
-                    java.nio.charset.StandardCharsets.UTF_8)}")
+        + String(process.getInputStream().readAllBytes(),
+                 java.nio.charset.StandardCharsets.UTF_8))
   }
 }
 
@@ -44,9 +44,11 @@ val thirdParty = getRepoRoot().resolve("third_party")
 downloadFromGoogleStorage(thirdParty.resolve("dependencies.tar.gz.sha1"))
 downloadFromGoogleStorage(thirdParty.resolve("dependencies_new.tar.gz.sha1"))
 
+pluginManagement {
+  includeBuild(rootProject.projectDir.resolve("commonBuildSrc"))
+}
 // This project is temporarily located in d8_r8. When moved to root, the parent
 // folder should just be removed.
-includeBuild(root.resolve("commonBuildSrc"))
 includeBuild(root.resolve("keepanno"))
 
 // We need to include src/main as a composite-build otherwise our test-modules

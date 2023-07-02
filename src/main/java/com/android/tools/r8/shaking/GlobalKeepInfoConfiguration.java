@@ -39,4 +39,6 @@ public interface GlobalKeepInfoConfiguration {
   boolean isKeepRuntimeVisibleTypeAnnotationsEnabled();
 
   boolean isKeepRuntimeInvisibleTypeAnnotationsEnabled();
+
+  boolean isKeepPermittedSubclassesEnabled();
 }

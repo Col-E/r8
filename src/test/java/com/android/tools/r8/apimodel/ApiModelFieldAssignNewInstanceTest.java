@@ -13,6 +13,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.CompilationMode;
+import com.android.tools.r8.NoAccessModification;
 import com.android.tools.r8.SingleTestRunResult;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestCompileResult;
@@ -29,7 +30,7 @@ import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameter;
 import org.junit.runners.Parameterized.Parameters;
 
-/** This i a regression test for b/269097876. */
+/** This is a regression test for b/269097876. */
 @RunWith(Parameterized.class)
 public class ApiModelFieldAssignNewInstanceTest extends TestBase {
 
@@ -134,6 +135,7 @@ public class ApiModelFieldAssignNewInstanceTest extends TestBase {
     testForR8(parameters.getBackend())
         .apply(this::setupTestBuilder)
         .addKeepMainRule(Main.class)
+        .enableNoAccessModificationAnnotationsForMembers()
         .compile()
         .inspect(this::inspect)
         .apply(this::setupRuntime)
@@ -178,7 +180,7 @@ public class ApiModelFieldAssignNewInstanceTest extends TestBase {
 
   public static class Helper {
 
-    private LibraryClass libraryClass;
+    @NoAccessModification private LibraryClass libraryClass;
 
     public void setLibraryClass() {
       if (AndroidBuildVersion.VERSION >= 30) {

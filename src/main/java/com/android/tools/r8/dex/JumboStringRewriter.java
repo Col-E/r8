@@ -146,7 +146,7 @@ public class JumboStringRewriter {
             newDebugInfo);
     // As we have rewritten the code, we now know that its highest string index that is not
     // a jumbo-string is firstJumboString (actually the previous string, but we do not have that).
-    newCode.highestSortingString = firstJumboString;
+    newCode.setHighestSortingStringForJumboProcessedCode(firstJumboString);
     return newCode;
   }
 

@@ -101,23 +101,27 @@ public class ToolHelper {
   }
 
   public static String getProjectRoot() {
-    String userDirProperty = System.getProperty("user.dir");
-    if (userDirProperty.endsWith("d8_r8/test")) {
-      return Paths.get(userDirProperty).getParent().getParent().toString() + "/";
+    String current = System.getProperty("user.dir");
+    if (!current.contains("test_modules")) {
+      return "";
     }
-    return "";
+    while (current.contains("test_modules")) {
+      current = Paths.get(current).getParent().toString();
+    }
+    return Paths.get(current).getParent().toString() + "/";
   }
 
   public static final String SOURCE_DIR = "src/main/java/";
   public static final String RESOURCES_DIR = "src/main/resources/";
-  public static final String BUILD_DIR = "build/";
+  public static final String BUILD_DIR = getProjectRoot() + "build/";
   public static final String TEST_MODULE_DIR = getProjectRoot() + "d8_r8/test_modules/";
   public static final String GENERATED_TEST_BUILD_DIR = BUILD_DIR + "generated/test/";
   public static final String LIBS_DIR = BUILD_DIR + "libs/";
   public static final String THIRD_PARTY_DIR = getProjectRoot() + "third_party/";
+  public static final String DEPENDENCIES = THIRD_PARTY_DIR + "dependencies/";
   public static final String TOOLS_DIR = getProjectRoot() + "tools/";
-  public static final String TESTS_DIR = "src/test/";
-  public static final String TESTS_SOURCE_DIR = "src/test/java";
+  public static final String TESTS_DIR = getProjectRoot() + "src/test/";
+  public static final String TESTS_SOURCE_DIR = TESTS_DIR + "java/";
   public static final String EXAMPLES_DIR = TESTS_DIR + "examples/";
   public static final String EXAMPLES_ANDROID_N_DIR = TESTS_DIR + "examplesAndroidN/";
   public static final String EXAMPLES_ANDROID_O_DIR = TESTS_DIR + "examplesAndroidO/";
@@ -135,10 +139,8 @@ public class ToolHelper {
   public static final String EXAMPLES_JAVA11_BUILD_DIR = BUILD_DIR + "classes/java/examplesJava11/";
   public static final String EXAMPLES_PROTO_BUILD_DIR = TESTS_BUILD_DIR + "examplesProto/";
   public static final String GENERATED_PROTO_BUILD_DIR = GENERATED_TEST_BUILD_DIR + "proto/";
-  public static final String SMALI_DIR = TESTS_DIR + "smali/";
-  public static final String SMALI_BUILD_DIR = TESTS_BUILD_DIR + "smali/";
+  public static final String SMALI_BUILD_DIR = THIRD_PARTY_DIR + "smali/";
   public static final String JAVA_CLASSES_DIR = BUILD_DIR + "classes/java/";
-  public static final String JDK_11_TESTS_CLASSES_DIR = JAVA_CLASSES_DIR + "jdk11Tests/";
 
   public static final String R8_TEST_BUCKET = "r8-test-results";
 
@@ -176,7 +178,7 @@ public class ToolHelper {
   private static final String PROGUARD6_0_1 =
       THIRD_PARTY_DIR + "proguard/proguard6.0.1/bin/proguard";
   private static final String PROGUARD = PROGUARD5_2_1;
-  public static final Path JACOCO_ROOT = Paths.get("third_party", "jacoco", "0.8.6");
+  public static final Path JACOCO_ROOT = Paths.get(THIRD_PARTY_DIR, "jacoco", "0.8.6");
   public static final Path JACOCO_AGENT = JACOCO_ROOT.resolve(Paths.get("lib", "jacocoagent.jar"));
   public static final Path JACOCO_CLI = JACOCO_ROOT.resolve(Paths.get("lib", "jacococli.jar"));
   public static final String PROGUARD_SETTINGS_FOR_INTERNAL_APPS =
@@ -972,7 +974,7 @@ public class ToolHelper {
     }
     if (isLinux() || isMac()) {
       // The Linux version is used on Mac, where it is run in a Docker container.
-      return TOOLS_DIR + "/linux/" + dir;
+      return TOOLS_DIR + "linux/" + dir;
     }
     fail("Unsupported platform, we currently only support mac and linux: " + getPlatform());
     return ""; //never here
@@ -1305,7 +1307,7 @@ public class ToolHelper {
 
   public static Path getClassPathForTests() {
     if (isNewGradleSetup()) {
-      return Paths.get(TEST_MODULE_DIR, "tests_java_8", "build", "classes", "java", "main");
+      return Paths.get(TEST_MODULE_DIR, "tests_java_8", "build", "classes", "java", "test");
     } else {
       return Paths.get(BUILD_DIR, "classes", "java", "test");
     }
@@ -1318,11 +1320,6 @@ public class ToolHelper {
   public static Path getPackageDirectoryForTestPackage(Package pkg) {
     List<String> parts = getNamePartsForTestPackage(pkg);
     return getClassPathForTests().resolve(Paths.get("", parts.toArray(StringUtils.EMPTY_ARRAY)));
-  }
-
-  public static String getJarEntryForTestPackage(Package pkg) {
-    List<String> parts = getNamePartsForTestPackage(pkg);
-    return String.join("/", parts);
   }
 
   private static List<String> getNamePartsForTestClass(Class<?> clazz) {

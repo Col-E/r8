@@ -5,8 +5,10 @@
 package com.android.tools.r8.classmerging.horizontal.testclasses;
 
 import com.android.tools.r8.NeverClassInline;
+import com.android.tools.r8.NoAccessModification;
 
 @NeverClassInline
+@NoAccessModification
 class PackagePrivateClass {
   public PackagePrivateClass() {
     System.out.println("package private");

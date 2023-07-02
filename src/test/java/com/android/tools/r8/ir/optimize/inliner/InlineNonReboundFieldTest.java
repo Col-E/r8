@@ -10,26 +10,44 @@ import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.TestBase;
+import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.ir.optimize.inliner.testclasses.Greeting;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameter;
+import org.junit.runners.Parameterized.Parameters;
 
 /** Regression test for b/128604123. */
+@RunWith(Parameterized.class)
 public class InlineNonReboundFieldTest extends TestBase {
+
+  @Parameter(0)
+  public TestParameters parameters;
+
+  @Parameters(name = "{0}")
+  public static TestParametersCollection data() {
+    return getTestParameters().withAllRuntimesAndApiLevels().build();
+  }
 
   @Test
   public void test() throws Exception {
     String expectedOutput = StringUtils.lines("Greeter: Hello world!");
     CodeInspector inspector =
-        testForR8(Backend.DEX)
+        testForR8(parameters.getBackend())
             .addProgramClasses(
                 TestClass.class, Greeter.class, Greeting.class, Greeting.getGreetingBase())
             .addKeepMainRule(TestClass.class)
             .enableNeverClassInliningAnnotations()
+            .enableNoAccessModificationAnnotationsForClasses()
+            .enableNoAccessModificationAnnotationsForMembers()
             .enableNoVerticalClassMergingAnnotations()
-            .run(TestClass.class)
+            .setMinApi(parameters)
+            .run(parameters.getRuntime(), TestClass.class)
             .assertSuccessWithOutput(expectedOutput)
             .inspector();
 

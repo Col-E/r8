@@ -41,6 +41,7 @@ import com.android.tools.r8.ir.code.NewArrayEmpty;
 import com.android.tools.r8.ir.code.NewInstance;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.conversion.IRConverter;
+import com.android.tools.r8.ir.conversion.MethodConversionOptions;
 import com.android.tools.r8.ir.conversion.MethodProcessorEventConsumer;
 import com.android.tools.r8.ir.conversion.OneTimeMethodProcessor;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackIgnore;
@@ -258,7 +259,8 @@ public class GeneratedMessageLiteShrinker {
                 method,
                 OptimizationFeedbackIgnore.getInstance(),
                 methodProcessor,
-                methodProcessingContext),
+                methodProcessingContext,
+                MethodConversionOptions.forPostLirPhase(appView)),
         executorService);
     timing.end();
   }

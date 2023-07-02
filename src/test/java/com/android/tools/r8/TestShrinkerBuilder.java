@@ -6,6 +6,7 @@ package com.android.tools.r8;
 
 import com.android.tools.r8.TestBase.Backend;
 import com.android.tools.r8.dexsplitter.SplitterTestBase.RunInterface;
+import com.android.tools.r8.references.ClassReference;
 import com.android.tools.r8.references.MethodReference;
 import com.android.tools.r8.references.TypeReference;
 import com.android.tools.r8.shaking.ProguardKeepAttributes;
@@ -13,6 +14,7 @@ import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.OptionalBool;
 import com.android.tools.r8.utils.StringUtils;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Sets;
 import java.io.IOException;
 import java.lang.annotation.Annotation;
@@ -243,6 +245,24 @@ public abstract class TestShrinkerBuilder<
     return self();
   }
 
+  private final List<String> keepModifiers =
+      ImmutableList.of(
+          // TODO: Add allowannotationremoval (currently requires options.isTestingOptionsEnabled())
+          // TODO: Add (optional) allowshrinking as well?
+          "allowobfuscation", "allowoptimization", "allowrepackage");
+
+  public T addKeepPermittedSubclasses(Class<?>... classes) {
+    return addKeepPermittedSubclasses(
+        Arrays.stream(classes).map(Class::getTypeName).toArray(String[]::new));
+  }
+
+  public T addKeepPermittedSubclasses(String... classes) {
+    for (String clazz : classes) {
+      addKeepRules("-keep," + String.join(",", keepModifiers) + " class " + clazz);
+    }
+    return self();
+  }
+
   public T addKeepClassAndMembersRules(Class<?>... classes) {
     return addKeepClassAndMembersRules(
         Arrays.stream(classes).map(Class::getTypeName).toArray(String[]::new));
@@ -292,6 +312,10 @@ public abstract class TestShrinkerBuilder<
   }
 
   public T addKeepMainRule(Class<?> mainClass) {
+    return addKeepMainRule(mainClass.getTypeName());
+  }
+
+  public T addKeepMainRule(ClassReference mainClass) {
     return addKeepMainRule(mainClass.getTypeName());
   }
 
@@ -444,6 +468,10 @@ public abstract class TestShrinkerBuilder<
 
   public T addKeepRuntimeInvisibleTypeAnnotations() {
     return addKeepAttributes(ProguardKeepAttributes.RUNTIME_INVISIBLE_TYPE_ANNOTATIONS);
+  }
+
+  public T addKeepAttributePermittedSubclasses() {
+    return addKeepAttributes(ProguardKeepAttributes.PERMITTED_SUBCLASSES);
   }
 
   public T addKeepAllAttributes() {

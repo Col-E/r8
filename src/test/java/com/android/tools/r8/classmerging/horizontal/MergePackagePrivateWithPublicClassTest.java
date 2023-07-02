@@ -27,6 +27,7 @@ public class MergePackagePrivateWithPublicClassTest extends HorizontalClassMergi
         .addKeepMainRule(Main.class)
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
+        .enableNoAccessModificationAnnotationsForClasses()
         .setMinApi(parameters)
         .compile()
         .run(parameters.getRuntime(), Main.class)

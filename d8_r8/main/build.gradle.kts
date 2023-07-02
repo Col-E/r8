@@ -23,14 +23,18 @@ java {
 dependencies {
   implementation(":keepanno")
   compileOnly(Deps.asm)
-  compileOnly(Deps.asmUtil)
   compileOnly(Deps.asmCommons)
+  compileOnly(Deps.asmUtil)
   compileOnly(Deps.fastUtil)
   compileOnly(Deps.gson)
   compileOnly(Deps.guava)
   compileOnly(Deps.kotlinMetadata)
   errorprone(Deps.errorprone)
 }
+
+val thirdPartyResourceDependenciesTask = ensureThirdPartyDependencies(
+  "resourceDeps",
+  listOf(ThirdPartyDeps.apiDatabase))
 
 val keepAnnoJarTask = projectTask("keepanno", "jar")
 
@@ -52,6 +56,10 @@ tasks {
     }
   }
 
+  withType<ProcessResources> {
+    dependsOn(thirdPartyResourceDependenciesTask)
+  }
+
   val swissArmyKnife by registering(Jar::class) {
     from(sourceSets.main.get().output)
     manifest {
@@ -64,7 +72,9 @@ tasks {
 
   val depsJar by registering(Jar::class) {
     dependsOn(keepAnnoJarTask)
-    println(header("R8 full dependencies"))
+    doFirst {
+      println(header("R8 full dependencies"))
+    }
     mainJarDependencies().forEach({ println(it) })
     from(mainJarDependencies().map(::zipTree))
     from(keepAnnoJarTask.outputs.files.map(::zipTree))

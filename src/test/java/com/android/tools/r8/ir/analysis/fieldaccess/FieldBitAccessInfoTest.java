@@ -27,6 +27,7 @@ import com.android.tools.r8.graph.DirectMappedDexApplication;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.bytecodemetadata.BytecodeMetadataProvider;
 import com.android.tools.r8.ir.code.IRCode;
+import com.android.tools.r8.ir.conversion.MethodConversionOptions;
 import com.android.tools.r8.ir.conversion.MethodProcessorEventConsumer;
 import com.android.tools.r8.ir.conversion.MethodProcessorWithWave;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackIgnore;
@@ -94,7 +95,7 @@ public class FieldBitAccessInfoTest extends TestBase {
 
     clazz.forEachProgramMethod(
         method -> {
-          IRCode code = method.buildIR(appView);
+          IRCode code = method.buildIR(appView, MethodConversionOptions.nonConverting());
           fieldAccessAnalysis.recordFieldAccesses(
               code, BytecodeMetadataProvider.builder(), feedback, new PrimaryMethodProcessorMock());
         });

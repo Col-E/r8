@@ -43,9 +43,8 @@ public class LazyLoadedDexApplication extends DexApplication {
       ClasspathClassCollection classpathClasses,
       LibraryClassCollection libraryClasses,
       InternalOptions options,
-      DexString highestSortingString,
       Timing timing) {
-    super(proguardMap, flags, dataResourceProviders, options, highestSortingString, timing);
+    super(proguardMap, flags, dataResourceProviders, options, timing);
     this.programClasses = programClasses;
     this.classpathClasses = classpathClasses;
     this.libraryClasses = libraryClasses;
@@ -366,7 +365,6 @@ public class LazyLoadedDexApplication extends DexApplication {
           classpathClasses,
           libraryClasses,
           options,
-          highestSortingString,
           timing);
     }
   }

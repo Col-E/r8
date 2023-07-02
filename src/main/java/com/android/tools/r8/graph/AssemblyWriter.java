@@ -9,6 +9,7 @@ import com.android.tools.r8.ClassFileConsumer;
 import com.android.tools.r8.contexts.CompilationContext;
 import com.android.tools.r8.graph.GenericSignature.ClassSignature;
 import com.android.tools.r8.ir.conversion.IRConverter;
+import com.android.tools.r8.ir.conversion.MethodConversionOptions;
 import com.android.tools.r8.ir.conversion.MethodProcessorEventConsumer;
 import com.android.tools.r8.ir.conversion.OneTimeMethodProcessor;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackIgnore;
@@ -190,7 +191,8 @@ public class AssemblyWriter extends DexByteCodeWriter {
                 method,
                 OptimizationFeedbackIgnore.getInstance(),
                 methodProcessor,
-                methodProcessingContext));
+                methodProcessingContext,
+                MethodConversionOptions.forD8(converter.appView)));
   }
 
   private void writeAnnotations(

@@ -4,6 +4,14 @@
 
 package com.android.tools.r8.classmerging.horizontal;
 
+import static com.android.tools.r8.classmerging.horizontal.NestClassMergingTestRunner.HorizontalClassMergingTestSources.jar;
+import static com.android.tools.r8.classmerging.horizontal.NestClassMergingTestRunner.HorizontalClassMergingTestSources.nestClassMergingTest;
+import static com.android.tools.r8.classmerging.horizontal.NestClassMergingTestRunner.HorizontalClassMergingTestSources.nestHostA;
+import static com.android.tools.r8.classmerging.horizontal.NestClassMergingTestRunner.HorizontalClassMergingTestSources.nestHostA$NestMemberA;
+import static com.android.tools.r8.classmerging.horizontal.NestClassMergingTestRunner.HorizontalClassMergingTestSources.nestHostA$NestMemberB;
+import static com.android.tools.r8.classmerging.horizontal.NestClassMergingTestRunner.HorizontalClassMergingTestSources.nestHostB;
+import static com.android.tools.r8.classmerging.horizontal.NestClassMergingTestRunner.HorizontalClassMergingTestSources.nestHostB$NestMemberA;
+import static com.android.tools.r8.classmerging.horizontal.NestClassMergingTestRunner.HorizontalClassMergingTestSources.nestHostB$NestMemberB;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assume.assumeTrue;
 
@@ -12,17 +20,13 @@ import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.TestRuntime.CfVm;
 import com.android.tools.r8.ThrowableConsumer;
-import com.android.tools.r8.classmerging.horizontal.NestClassMergingTestRunner.R.horizontalclassmerging.NestClassMergingTest;
-import com.android.tools.r8.classmerging.horizontal.NestClassMergingTestRunner.R.horizontalclassmerging.NestHostA;
-import com.android.tools.r8.classmerging.horizontal.NestClassMergingTestRunner.R.horizontalclassmerging.NestHostB;
+import com.android.tools.r8.examples.JavaExampleClassProxy;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.references.ClassReference;
-import com.android.tools.r8.utils.ReflectiveBuildPathUtils.ExamplesClass;
-import com.android.tools.r8.utils.ReflectiveBuildPathUtils.ExamplesJava11RootPackage;
-import com.android.tools.r8.utils.ReflectiveBuildPathUtils.ExamplesPackage;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Streams;
+import java.nio.file.Path;
 import java.util.Set;
 import java.util.stream.Collectors;
 import org.junit.Test;
@@ -30,21 +34,27 @@ import org.junit.runners.Parameterized;
 
 public class NestClassMergingTestRunner extends HorizontalClassMergingTestBase {
 
-  public static class R extends ExamplesJava11RootPackage {
-    public static class horizontalclassmerging extends ExamplesPackage {
-      public static class NestClassMergingTest extends ExamplesClass {}
+  public static class HorizontalClassMergingTestSources {
 
-      public static class NestHostA extends ExamplesClass {
-        public static class NestMemberA extends ExamplesClass {}
+    private static final String EXAMPLE_FILE = "examplesJava11";
 
-        public static class NestMemberB extends ExamplesClass {}
-      }
+    public static final JavaExampleClassProxy nestClassMergingTest =
+        new JavaExampleClassProxy(EXAMPLE_FILE, "horizontalclassmerging/NestClassMergingTest");
+    public static final JavaExampleClassProxy nestHostA =
+        new JavaExampleClassProxy(EXAMPLE_FILE, "horizontalclassmerging/NestHostA");
+    public static final JavaExampleClassProxy nestHostA$NestMemberA =
+        new JavaExampleClassProxy(EXAMPLE_FILE, "horizontalclassmerging/NestHostA$NestMemberA");
+    public static final JavaExampleClassProxy nestHostA$NestMemberB =
+        new JavaExampleClassProxy(EXAMPLE_FILE, "horizontalclassmerging/NestHostA$NestMemberB");
+    public static final JavaExampleClassProxy nestHostB =
+        new JavaExampleClassProxy(EXAMPLE_FILE, "horizontalclassmerging/NestHostB");
+    public static final JavaExampleClassProxy nestHostB$NestMemberA =
+        new JavaExampleClassProxy(EXAMPLE_FILE, "horizontalclassmerging/NestHostB$NestMemberA");
+    public static final JavaExampleClassProxy nestHostB$NestMemberB =
+        new JavaExampleClassProxy(EXAMPLE_FILE, "horizontalclassmerging/NestHostB$NestMemberB");
 
-      public static class NestHostB extends ExamplesClass {
-        public static class NestMemberA extends ExamplesClass {}
-
-        public static class NestMemberB extends ExamplesClass {}
-      }
+    public static Path jar() {
+      return JavaExampleClassProxy.examplesJar(EXAMPLE_FILE + "/horizontalclassmerging");
     }
   }
 
@@ -70,21 +80,21 @@ public class NestClassMergingTestRunner extends HorizontalClassMergingTestBase {
                   if (parameters.canUseNestBasedAccesses()) {
                     inspector
                         .assertIsCompleteMergeGroup(
-                            classRef(NestHostA.class),
-                            classRef(NestHostA.NestMemberA.class),
-                            classRef(NestHostA.NestMemberB.class))
+                            nestHostA.getClassReference(),
+                            nestHostA$NestMemberA.getClassReference(),
+                            nestHostA$NestMemberB.getClassReference())
                         .assertIsCompleteMergeGroup(
-                            classRef(NestHostB.class),
-                            classRef(NestHostB.NestMemberA.class),
-                            classRef(NestHostB.NestMemberB.class));
+                            nestHostB.getClassReference(),
+                            nestHostB$NestMemberA.getClassReference(),
+                            nestHostB$NestMemberB.getClassReference());
                   } else {
                     inspector.assertIsCompleteMergeGroup(
-                        classRef(NestHostA.class),
-                        classRef(NestHostA.NestMemberA.class),
-                        classRef(NestHostA.NestMemberB.class),
-                        classRef(NestHostB.class),
-                        classRef(NestHostB.NestMemberA.class),
-                        classRef(NestHostB.NestMemberB.class));
+                        nestHostA.getClassReference(),
+                        nestHostA$NestMemberA.getClassReference(),
+                        nestHostA$NestMemberB.getClassReference(),
+                        nestHostB.getClassReference(),
+                        nestHostB$NestMemberA.getClassReference(),
+                        nestHostB$NestMemberB.getClassReference());
                   }
                 }));
   }
@@ -99,15 +109,17 @@ public class NestClassMergingTestRunner extends HorizontalClassMergingTestBase {
                     inspector ->
                         inspector
                             .assertIsCompleteMergeGroup(
-                                classRef(NestHostA.class), classRef(NestHostA.NestMemberA.class))
+                                nestHostA.getClassReference(),
+                                nestHostA$NestMemberA.getClassReference())
                             .assertIsCompleteMergeGroup(
-                                classRef(NestHostB.class), classRef(NestHostB.NestMemberA.class))
+                                nestHostB.getClassReference(),
+                                nestHostB$NestMemberA.getClassReference())
                             .assertClassReferencesNotMerged(
-                                classRef(NestHostA.NestMemberB.class),
-                                classRef(NestHostB.NestMemberB.class)))
+                                nestHostA$NestMemberB.getClassReference(),
+                                nestHostB$NestMemberB.getClassReference()))
                 .addNoHorizontalClassMergingRule(
-                    examplesTypeName(NestHostA.NestMemberB.class),
-                    examplesTypeName(NestHostB.NestMemberB.class))
+                    nestHostA$NestMemberB.getClassReference().getTypeName(),
+                    nestHostB$NestMemberB.getClassReference().getTypeName())
                 .addOptionsModification(
                     options -> {
                       options.testing.horizontalClassMergingTarget =
@@ -116,17 +128,17 @@ public class NestClassMergingTestRunner extends HorizontalClassMergingTestBase {
                                 Streams.stream(canditates)
                                     .map(DexClass::getClassReference)
                                     .collect(Collectors.toSet());
-                            if (candidateClassReferences.contains(classRef(NestHostA.class))) {
+                            if (candidateClassReferences.contains(nestHostA.getClassReference())) {
                               assertEquals(
                                   ImmutableSet.of(
-                                      classRef(NestHostA.class),
-                                      classRef(NestHostA.NestMemberA.class)),
+                                      nestHostA.getClassReference(),
+                                      nestHostA$NestMemberA.getClassReference()),
                                   candidateClassReferences);
                             } else {
                               assertEquals(
                                   ImmutableSet.of(
-                                      classRef(NestHostB.class),
-                                      classRef(NestHostB.NestMemberA.class)),
+                                      nestHostB.getClassReference(),
+                                      nestHostB$NestMemberA.getClassReference()),
                                   candidateClassReferences);
                             }
                             return Iterables.find(
@@ -134,9 +146,9 @@ public class NestClassMergingTestRunner extends HorizontalClassMergingTestBase {
                                 candidate -> {
                                   ClassReference classReference = candidate.getClassReference();
                                   return classReference.equals(
-                                          classRef(NestHostA.NestMemberA.class))
+                                          nestHostA$NestMemberA.getClassReference())
                                       || classReference.equals(
-                                          classRef(NestHostB.NestMemberA.class));
+                                          nestHostB$NestMemberA.getClassReference());
                                 });
                           };
                     }));
@@ -152,15 +164,17 @@ public class NestClassMergingTestRunner extends HorizontalClassMergingTestBase {
                     inspector ->
                         inspector
                             .assertIsCompleteMergeGroup(
-                                classRef(NestHostA.class), classRef(NestHostA.NestMemberB.class))
+                                nestHostA.getClassReference(),
+                                nestHostA$NestMemberB.getClassReference())
                             .assertIsCompleteMergeGroup(
-                                classRef(NestHostB.class), classRef(NestHostB.NestMemberB.class))
+                                nestHostB.getClassReference(),
+                                nestHostB$NestMemberB.getClassReference())
                             .assertClassReferencesNotMerged(
-                                classRef(NestHostA.NestMemberA.class),
-                                classRef(NestHostB.NestMemberA.class)))
+                                nestHostA$NestMemberA.getClassReference(),
+                                nestHostB$NestMemberA.getClassReference()))
                 .addNoHorizontalClassMergingRule(
-                    examplesTypeName(NestHostA.NestMemberA.class),
-                    examplesTypeName(NestHostB.NestMemberA.class))
+                    nestHostA$NestMemberA.getClassReference().getTypeName(),
+                    nestHostB$NestMemberA.getClassReference().getTypeName())
                 .addOptionsModification(
                     options -> {
                       options.testing.horizontalClassMergingTarget =
@@ -169,17 +183,17 @@ public class NestClassMergingTestRunner extends HorizontalClassMergingTestBase {
                                 Streams.stream(canditates)
                                     .map(DexClass::getClassReference)
                                     .collect(Collectors.toSet());
-                            if (candidateClassReferences.contains(classRef(NestHostA.class))) {
+                            if (candidateClassReferences.contains(nestHostA.getClassReference())) {
                               assertEquals(
                                   ImmutableSet.of(
-                                      classRef(NestHostA.class),
-                                      classRef(NestHostA.NestMemberB.class)),
+                                      nestHostA.getClassReference(),
+                                      nestHostA$NestMemberB.getClassReference()),
                                   candidateClassReferences);
                             } else {
                               assertEquals(
                                   ImmutableSet.of(
-                                      classRef(NestHostB.class),
-                                      classRef(NestHostB.NestMemberB.class)),
+                                      nestHostB.getClassReference(),
+                                      nestHostB$NestMemberB.getClassReference()),
                                   candidateClassReferences);
                             }
                             return Iterables.find(
@@ -187,9 +201,9 @@ public class NestClassMergingTestRunner extends HorizontalClassMergingTestBase {
                                 candidate -> {
                                   ClassReference classReference = candidate.getClassReference();
                                   return classReference.equals(
-                                          classRef(NestHostA.NestMemberB.class))
+                                          nestHostA$NestMemberB.getClassReference())
                                       || classReference.equals(
-                                          classRef(NestHostB.NestMemberB.class));
+                                          nestHostB$NestMemberB.getClassReference());
                                 });
                           };
                     }));
@@ -205,15 +219,17 @@ public class NestClassMergingTestRunner extends HorizontalClassMergingTestBase {
                     inspector ->
                         inspector
                             .assertIsCompleteMergeGroup(
-                                classRef(NestHostA.class), classRef(NestHostA.NestMemberA.class))
+                                nestHostA.getClassReference(),
+                                nestHostA$NestMemberA.getClassReference())
                             .assertIsCompleteMergeGroup(
-                                classRef(NestHostB.class), classRef(NestHostB.NestMemberA.class))
+                                nestHostB.getClassReference(),
+                                nestHostB$NestMemberA.getClassReference())
                             .assertClassReferencesNotMerged(
-                                classRef(NestHostA.NestMemberB.class),
-                                classRef(NestHostB.NestMemberB.class)))
+                                nestHostA$NestMemberB.getClassReference(),
+                                nestHostB$NestMemberB.getClassReference()))
                 .addNoHorizontalClassMergingRule(
-                    examplesTypeName(NestHostA.NestMemberB.class),
-                    examplesTypeName(NestHostB.NestMemberB.class))
+                    nestHostA$NestMemberB.getClassReference().getTypeName(),
+                    nestHostB$NestMemberB.getClassReference().getTypeName())
                 .addOptionsModification(
                     options -> {
                       options.testing.horizontalClassMergingTarget =
@@ -222,25 +238,25 @@ public class NestClassMergingTestRunner extends HorizontalClassMergingTestBase {
                                 Streams.stream(canditates)
                                     .map(DexClass::getClassReference)
                                     .collect(Collectors.toSet());
-                            if (candidateClassReferences.contains(classRef(NestHostA.class))) {
+                            if (candidateClassReferences.contains(nestHostA.getClassReference())) {
                               assertEquals(
                                   ImmutableSet.of(
-                                      classRef(NestHostA.class),
-                                      classRef(NestHostA.NestMemberA.class)),
+                                      nestHostA.getClassReference(),
+                                      nestHostA$NestMemberA.getClassReference()),
                                   candidateClassReferences);
                             } else {
                               assertEquals(
                                   ImmutableSet.of(
-                                      classRef(NestHostB.class),
-                                      classRef(NestHostB.NestMemberA.class)),
+                                      nestHostB.getClassReference(),
+                                      nestHostB$NestMemberA.getClassReference()),
                                   candidateClassReferences);
                             }
                             return Iterables.find(
                                 canditates,
                                 candidate -> {
                                   ClassReference classReference = candidate.getClassReference();
-                                  return classReference.equals(classRef(NestHostA.class))
-                                      || classReference.equals(classRef(NestHostB.class));
+                                  return classReference.equals(nestHostA.getClassReference())
+                                      || classReference.equals(nestHostB.getClassReference());
                                 });
                           };
                     }));
@@ -248,22 +264,18 @@ public class NestClassMergingTestRunner extends HorizontalClassMergingTestBase {
 
   private void runTest(ThrowableConsumer<R8FullTestBuilder> configuration) throws Exception {
     testForR8(parameters.getBackend())
-        .addKeepMainRule(examplesTypeName(NestClassMergingTest.class))
-        .addExamplesProgramFiles(R.class)
+        .addKeepMainRule(nestClassMergingTest.getClassReference())
+        .addProgramFiles(jar())
         .apply(configuration)
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
         .setMinApi(parameters)
         .compile()
-        .run(parameters.getRuntime(), examplesTypeName(NestClassMergingTest.class))
+        .run(parameters.getRuntime(), nestClassMergingTest.getClassReference().getTypeName())
         .assertSuccessWithOutputLines(
             "NestHostA$NestMemberA",
             "NestHostA$NestMemberB",
             "NestHostB$NestMemberA",
             "NestHostB$NestMemberB");
-  }
-
-  private static ClassReference classRef(Class<? extends ExamplesClass> clazz) {
-    return examplesClassReference(clazz);
   }
 }

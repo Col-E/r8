@@ -40,7 +40,8 @@ public class SplitBranch extends CodeRewriterPass<AppInfo> {
 
   @Override
   protected boolean shouldRewriteCode(IRCode code) {
-    return true;
+    // This is relevant only if there is a diamond followed by an if which is a minimum of 6 blocks.
+    return code.getBlocks().size() >= 6;
   }
 
   /**
@@ -55,11 +56,11 @@ public class SplitBranch extends CodeRewriterPass<AppInfo> {
   protected CodeRewriterResult rewriteCode(IRCode code) {
     List<BasicBlock> candidates = computeCandidates(code);
     if (candidates.isEmpty()) {
-      return CodeRewriterResult.NONE;
+      return CodeRewriterResult.NO_CHANGE;
     }
     Map<Goto, BasicBlock> newTargets = findGotosToRetarget(candidates);
     if (newTargets.isEmpty()) {
-      return CodeRewriterResult.NONE;
+      return CodeRewriterResult.NO_CHANGE;
     }
     retargetGotos(newTargets);
     Set<Value> affectedValues = Sets.newIdentityHashSet();
@@ -73,7 +74,7 @@ public class SplitBranch extends CodeRewriterPass<AppInfo> {
     }
     code.removeRedundantBlocks();
     assert code.isConsistentSSA(appView);
-    return CodeRewriterResult.NONE;
+    return CodeRewriterResult.HAS_CHANGED;
   }
 
   private void retargetGotos(Map<Goto, BasicBlock> newTargets) {

@@ -38,6 +38,8 @@ import com.android.tools.r8.graph.lens.AppliedGraphLens;
 import com.android.tools.r8.horizontalclassmerging.HorizontalClassMerger;
 import com.android.tools.r8.inspector.internal.InspectorImpl;
 import com.android.tools.r8.ir.conversion.IRConverter;
+import com.android.tools.r8.ir.conversion.MethodConversionOptions;
+import com.android.tools.r8.ir.conversion.MethodConversionOptions.MutableMethodConversionOptions;
 import com.android.tools.r8.ir.conversion.PrimaryR8IRConverter;
 import com.android.tools.r8.ir.desugar.BackportedMethodRewriter;
 import com.android.tools.r8.ir.desugar.CfClassSynthesizerDesugaringCollection;
@@ -461,6 +463,10 @@ public class R8 {
 
       AccessModifier.run(appViewWithLiveness, executorService, timing);
 
+      new RedundantBridgeRemover(appViewWithLiveness)
+          .setMustRetargetInvokesToTargetMethod()
+          .run(executorService, timing);
+
       boolean isKotlinLibraryCompilationWithInlinePassThrough =
           options.enableCfByteCodePassThrough && appView.hasCfByteCodePassThroughMethods();
 
@@ -499,6 +505,9 @@ public class R8 {
           .appInfo()
           .notifyHorizontalClassMergerFinished(HorizontalClassMerger.Mode.INITIAL);
 
+      // TODO(b/225838009): Horizontal merging currently assumes pre-phase CF conversion.
+      appView.testing().enterLirSupportedPhase();
+
       new ProtoNormalizer(appViewWithLiveness).run(executorService, timing);
 
       // Clear traced methods roots to not hold on to the main dex live method set.
@@ -535,7 +544,10 @@ public class R8 {
       appView.setGraphLens(new AppliedGraphLens(appView));
       timing.end();
 
-      if (options.shouldRerunEnqueuer()) {
+      if (!options.shouldRerunEnqueuer()) {
+        // TODO(b/225838009): Support tracing and building LIR in Enqueuer.
+        PrimaryR8IRConverter.finalizeLirToOutputFormat(appView, timing, executorService);
+      } else {
         timing.begin("Post optimization code stripping");
         try {
           GraphConsumer keptGraphConsumer = null;
@@ -562,11 +574,15 @@ public class R8 {
           EnqueuerResult enqueuerResult =
               enqueuer.traceApplication(appView.rootSet(), executorService, timing);
           appView.setAppInfo(enqueuerResult.getAppInfo());
+          appView.dissallowFurtherInitClassUses();
+
           // Rerunning the enqueuer should not give rise to any method rewritings.
+          MutableMethodConversionOptions conversionOptions =
+              MethodConversionOptions.forLirPhase(appView);
           appView.withGeneratedMessageLiteBuilderShrinker(
               shrinker ->
                   shrinker.rewriteDeadBuilderReferencesFromDynamicMethods(
-                      appViewWithLiveness, executorService, timing));
+                      conversionOptions, appViewWithLiveness, executorService, timing));
 
           if (options.isShrinking()) {
             // Mark dead proto extensions fields as neither being read nor written. This step must
@@ -636,6 +652,9 @@ public class R8 {
           timing.end();
         }
 
+        // TODO(b/225838009): Support LIR in proto shrinking.
+        PrimaryR8IRConverter.finalizeLirToOutputFormat(appView, timing, executorService);
+
         if (appView.options().protoShrinking().isProtoShrinkingEnabled()) {
           if (appView.options().protoShrinking().isEnumLiteProtoShrinkingEnabled()) {
             appView.protoShrinker().enumLiteProtoShrinker.verifyDeadEnumLiteMapsAreDead();
@@ -679,7 +698,7 @@ public class R8 {
       // This can only be done if we have AppInfoWithLiveness.
       if (appView.appInfo().hasLiveness()) {
         new RedundantBridgeRemover(appView.withLiveness())
-            .run(memberRebindingIdentityLens, executorService, timing);
+            .run(executorService, timing, memberRebindingIdentityLens);
       } else {
         // If we don't have AppInfoWithLiveness here, it must be because we are not shrinking. When
         // we are not shrinking, we can't move visibility bridges. In principle, though, it would be
@@ -1038,10 +1057,12 @@ public class R8 {
           shrinker ->
               shrinker.setDeadProtoTypes(appViewWithLiveness.appInfo().getDeadProtoTypes()));
     }
+    MutableMethodConversionOptions conversionOptions =
+        MethodConversionOptions.forPreLirPhase(appView);
     appView.withGeneratedMessageLiteBuilderShrinker(
         shrinker ->
             shrinker.rewriteDeadBuilderReferencesFromDynamicMethods(
-                appViewWithLiveness, executorService, timing));
+                conversionOptions, appViewWithLiveness, executorService, timing));
     timing.end();
     return appViewWithLiveness;
   }
@@ -1063,12 +1084,13 @@ public class R8 {
             enqueuer.getGraphReporter().getGraphNode(reference), System.out);
       }
     }
-    if (appView.options().testing.dontReportFailingCheckDiscarded) {
-      return;
-    }
     DiscardedChecker discardedChecker =
         forMainDex ? DiscardedChecker.createForMainDex(appView) : DiscardedChecker.create(appView);
     List<ProgramDefinition> failed = discardedChecker.run(classes.get(), executorService);
+    if (appView.options().testing.dontReportFailingCheckDiscarded) {
+      assert !failed.isEmpty();
+      return;
+    }
     if (failed.isEmpty()) {
       return;
     }

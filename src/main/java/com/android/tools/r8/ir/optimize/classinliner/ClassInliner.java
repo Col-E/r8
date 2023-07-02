@@ -25,7 +25,6 @@ import com.android.tools.r8.ir.optimize.AssumeRemover;
 import com.android.tools.r8.ir.optimize.Inliner;
 import com.android.tools.r8.ir.optimize.InliningOracle;
 import com.android.tools.r8.ir.optimize.classinliner.InlineCandidateProcessor.IllegalClassInlinerStateException;
-import com.android.tools.r8.ir.optimize.enums.EnumValueOptimizer;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedback;
 import com.android.tools.r8.ir.optimize.inliner.InliningIRProvider;
 import com.android.tools.r8.ir.optimize.string.StringOptimizer;
@@ -129,7 +128,6 @@ public final class ClassInliner {
   public final void processMethodCode(
       AppView<AppInfoWithLiveness> appView,
       StringOptimizer stringOptimizer,
-      EnumValueOptimizer enumValueOptimizer,
       ProgramMethod method,
       IRCode code,
       OptimizationFeedback feedback,
@@ -242,7 +240,7 @@ public final class ClassInliner {
       appView.withGeneratedMessageLiteBuilderShrinker(
           shrinker ->
               shrinker.inlineCallsToDynamicMethod(
-                  method, code, enumValueOptimizer, feedback, methodProcessor, inliner));
+                  method, code, feedback, methodProcessor, inliner));
     }
 
     if (anyInlinedMethods) {
@@ -252,7 +250,7 @@ public final class ClassInliner {
       new TrivialCheckCastAndInstanceOfRemover(appView)
           .run(code, methodProcessor, methodProcessingContext, Timing.empty());
       // If a method was inlined we may be able to prune additional branches.
-      new BranchSimplifier(appView).simplifyBranches(code);
+      new BranchSimplifier(appView).run(code, Timing.empty());
       // If a method was inlined we may see more trivial computation/conversion of String.
       boolean isDebugMode =
           appView.options().debug || method.getOrComputeReachabilitySensitive(appView);

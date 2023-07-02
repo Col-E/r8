@@ -90,8 +90,7 @@ public class LirPrinter<EV> extends LirParsedInstructionCallback<EV> {
     if (code.getTryCatchTable() != null) {
       builder.append("try-catch-handlers:\n");
       code.getTryCatchTable()
-          .tryCatchHandlers
-          .forEach(
+          .forEachHandler(
               (index, handlers) -> {
                 builder.append(index).append(":\n");
                 for (CatchHandler<Integer> handler : handlers) {

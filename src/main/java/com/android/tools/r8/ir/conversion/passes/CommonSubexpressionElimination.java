@@ -41,6 +41,7 @@ public class CommonSubexpressionElimination extends CodeRewriterPass<AppInfo> {
 
   @Override
   protected CodeRewriterResult rewriteCode(IRCode code) {
+    boolean hasChanged = false;
     int noCandidate = code.reserveMarkingColor();
     if (hasCSECandidate(code, noCandidate)) {
       final ListMultimap<Wrapper<Instruction>, Value> instructionToValue =
@@ -65,6 +66,7 @@ public class CommonSubexpressionElimination extends CodeRewriterPass<AppInfo> {
                   instruction.outValue().replaceUsers(candidate);
                   candidate.uniquePhiUsers().forEach(Phi::removeTrivialPhi);
                   eliminated = true;
+                  hasChanged = true;
                   iterator.removeOrReplaceByDebugLocalRead();
                   break; // Don't try any more candidates.
                 }
@@ -78,9 +80,11 @@ public class CommonSubexpressionElimination extends CodeRewriterPass<AppInfo> {
       }
     }
     code.returnMarkingColor(noCandidate);
-    code.removeRedundantBlocks();
+    if (hasChanged) {
+      code.removeRedundantBlocks();
+    }
     assert code.isConsistentSSA(appView);
-    return CodeRewriterResult.NONE;
+    return CodeRewriterResult.hasChanged(hasChanged);
   }
 
   private static class CSEExpressionEquivalence extends Equivalence<Instruction> {

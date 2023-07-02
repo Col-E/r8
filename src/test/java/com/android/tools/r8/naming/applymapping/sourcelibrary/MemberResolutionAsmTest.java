@@ -75,7 +75,7 @@ public class MemberResolutionAsmTest extends TestBase {
   private final String noMappingMain = "NoMappingMain";
   private final String noMappingExpected = StringUtils.lines("HasMapping#foo", "NoMapping#foo");
 
-  private List<byte[]> noMappingInputs() throws Exception {
+  private List<byte[]> noMappingInputs() {
     return ImmutableList.of(HasMappingDump.dump(), NoMappingDump.dump(), NoMappingMainDump.dump());
   }
 
@@ -103,7 +103,9 @@ public class MemberResolutionAsmTest extends TestBase {
             .addProgramClassFileData(noMappingInputs())
             .setMinApi(parameters)
             .addKeepMainRule(noMappingMain)
+            .addKeepRules("-noaccessmodification class NoMapping { private void foo(); }")
             .addApplyMapping(pgMap)
+            .enableNoAccessModificationAnnotationsForMembers()
             .addOptionsModification(
                 options -> {
                   options.inlinerOptions().enableInlining = false;
@@ -113,19 +115,24 @@ public class MemberResolutionAsmTest extends TestBase {
             .assertSuccessWithOutput(noMappingExpected)
             .inspector();
 
-    ClassSubject base = codeInspector.clazz("HasMapping");
-    assertThat(base, isPresentAndRenamed());
-    assertEquals("X", base.getFinalName());
-    MethodSubject x = base.method("void", "foo", ImmutableList.of());
-    assertThat(x, isPresentAndRenamed());
-    assertEquals("a", x.getFinalName());
+    ClassSubject hasMappingClassSubject = codeInspector.clazz("HasMapping");
+    assertThat(hasMappingClassSubject, isPresentAndRenamed());
+    assertEquals("X", hasMappingClassSubject.getFinalName());
+
+    MethodSubject virtualFooMethodSubject =
+        hasMappingClassSubject.uniqueMethodWithOriginalName("foo");
+    assertThat(virtualFooMethodSubject, isPresentAndRenamed());
+    assertEquals("a", virtualFooMethodSubject.getFinalName());
 
     // To ensure still getting illegal-access error we need to rename consistently.
-    ClassSubject sub = codeInspector.clazz("NoMapping");
-    assertThat(sub, isPresentAndRenamed());
-    assertEquals("Y", sub.getFinalName());
-    MethodSubject y = sub.method("void", "a", ImmutableList.of());
-    assertThat(y, isPresent());
+    ClassSubject noMappingClassSubject = codeInspector.clazz("NoMapping");
+    assertThat(noMappingClassSubject, isPresentAndRenamed());
+    assertEquals("Y", noMappingClassSubject.getFinalName());
+
+    MethodSubject privateFooMethodSubject =
+        noMappingClassSubject.uniqueMethodWithOriginalName("foo");
+    assertThat(privateFooMethodSubject, isPresent());
+    assertEquals("a", privateFooMethodSubject.getFinalName());
   }
 
   //  class A { // : X

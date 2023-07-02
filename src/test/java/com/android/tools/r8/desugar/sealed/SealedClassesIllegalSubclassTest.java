@@ -4,20 +4,27 @@
 
 package com.android.tools.r8.desugar.sealed;
 
-import static com.android.tools.r8.DiagnosticsMatcher.diagnosticMessage;
+import static com.android.tools.r8.utils.codeinspector.Matchers.isPresentAndNotRenamed;
+import static com.android.tools.r8.utils.codeinspector.Matchers.isPresentAndRenamed;
+import static junit.framework.Assert.assertEquals;
 import static org.hamcrest.CoreMatchers.containsString;
-import static org.junit.Assert.assertThrows;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.Assume.assumeFalse;
 import static org.junit.Assume.assumeTrue;
 
-import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.DesugarTestConfiguration;
-import com.android.tools.r8.R8FullTestBuilder;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestBuilder;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.TestRuntime.CfVm;
+import com.android.tools.r8.TestShrinkerBuilder;
+import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.StringUtils;
+import com.android.tools.r8.utils.codeinspector.ClassSubject;
+import com.android.tools.r8.utils.codeinspector.CodeInspector;
+import com.google.common.collect.ImmutableList;
+import java.util.List;
+import org.hamcrest.Matcher;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -30,11 +37,18 @@ public class SealedClassesIllegalSubclassTest extends TestBase {
   @Parameter(0)
   public TestParameters parameters;
 
-  static final String EXPECTED = StringUtils.lines("Success!");
+  @Parameter(1)
+  public boolean keepPermittedSubclassesAttribute;
 
-  @Parameters(name = "{0}")
-  public static TestParametersCollection data() {
-    return getTestParameters().withAllRuntimes().withAllApiLevelsAlsoForCf().build();
+  static final Matcher<String> EXPECTED = containsString("cannot inherit from sealed class");
+  static final String EXPECTED_WITHOUT_PERMITTED_SUBCLASSES_ATTRIBUTE =
+      StringUtils.lines("Success!");
+
+  @Parameters(name = "{0}, keepPermittedSubclasses = {1}")
+  public static List<Object[]> data() {
+    return buildParameters(
+        getTestParameters().withAllRuntimes().withAllApiLevelsAlsoForCf().build(),
+        BooleanUtils.values());
   }
 
   private void addTestClasses(TestBuilder<?, ?> builder) throws Exception {
@@ -46,56 +60,76 @@ public class SealedClassesIllegalSubclassTest extends TestBase {
   @Test
   public void testJvm() throws Exception {
     parameters.assumeJvmTestParameters();
+    assumeTrue(keepPermittedSubclassesAttribute);
     assumeTrue(parameters.asCfRuntime().isNewerThanOrEqual(CfVm.JDK17));
     testForJvm(parameters)
         .apply(this::addTestClasses)
         .run(parameters.getRuntime(), TestClass.class)
-        .assertFailureWithErrorThatMatches(containsString("cannot inherit from sealed class"));
+        .assertFailureWithErrorThatMatches(EXPECTED);
   }
 
   @Test
   public void testDesugaring() throws Exception {
+    assumeTrue(keepPermittedSubclassesAttribute);
     testForDesugaring(parameters)
         .apply(this::addTestClasses)
         .run(parameters.getRuntime(), TestClass.class)
         .applyIf(
             DesugarTestConfiguration::isNotJavac,
-            r -> r.assertSuccessWithOutput(EXPECTED),
+            r -> r.assertSuccessWithOutput(EXPECTED_WITHOUT_PERMITTED_SUBCLASSES_ATTRIBUTE),
             c -> parameters.getRuntime().asCf().isNewerThanOrEqual(CfVm.JDK17),
-            r ->
-                r.assertFailureWithErrorThatMatches(
-                    containsString("cannot inherit from sealed class")),
+            r -> r.assertFailureWithErrorThatMatches(EXPECTED),
             r -> r.assertFailureWithErrorThatThrows(UnsupportedClassVersionError.class));
+  }
+
+  private void inspect(CodeInspector inspector) {
+    ClassSubject clazz = inspector.clazz(Super.class);
+    assertThat(clazz, isPresentAndRenamed());
+    ClassSubject sub1 = inspector.clazz(Sub1.class);
+    ClassSubject sub2 = inspector.clazz(Sub2.class);
+    ClassSubject sub3 = inspector.clazz(Sub3.class);
+    assertThat(sub1, isPresentAndNotRenamed());
+    assertThat(sub2, isPresentAndNotRenamed());
+    assertThat(sub3, isPresentAndNotRenamed());
+    assertEquals(
+        parameters.isCfRuntime() && keepPermittedSubclassesAttribute
+            ? ImmutableList.of(sub1.asTypeSubject(), sub2.asTypeSubject())
+            : ImmutableList.of(),
+        clazz.getFinalPermittedSubclassAttributes());
   }
 
   @Test
   public void testR8() throws Exception {
     parameters.assumeR8TestParameters();
-    R8FullTestBuilder builder =
-        testForR8(parameters.getBackend())
-            .apply(this::addTestClasses)
-            .setMinApi(parameters)
-            .addKeepMainRule(TestClass.class);
-    if (parameters.isCfRuntime()) {
-      // TODO(b/227160052): Support sealed classes for R8 class file output.
-      assertThrows(
-          CompilationFailedException.class,
-          () ->
-              builder.compileWithExpectedDiagnostics(
-                  diagnostics ->
-                      diagnostics.assertErrorThatMatches(
-                          diagnosticMessage(
-                              containsString(
-                                  "Sealed classes are not supported as program classes")))));
-    } else {
-      builder
-          .run(parameters.getRuntime(), TestClass.class)
-          .assertSuccessWithOutputLines("Success!");
-    }
+    assumeFalse(parameters.isDexRuntime() && keepPermittedSubclassesAttribute);
+    testForR8(parameters.getBackend())
+        .apply(this::addTestClasses)
+        .setMinApi(parameters)
+        .applyIf(
+            keepPermittedSubclassesAttribute,
+            TestShrinkerBuilder::addKeepAttributePermittedSubclasses)
+        .addKeepPermittedSubclasses(Super.class)
+        .addKeepRules("-keep class * extends " + Super.class.getTypeName())
+        .addKeepMainRule(TestClass.class)
+        .compile()
+        .inspect(this::inspect)
+        .run(parameters.getRuntime(), TestClass.class)
+        .applyIf(
+            parameters.isDexRuntime()
+                || (!keepPermittedSubclassesAttribute
+                    && parameters.asCfRuntime().isNewerThanOrEqual(CfVm.JDK17)),
+            r -> r.assertSuccessWithOutput(EXPECTED_WITHOUT_PERMITTED_SUBCLASSES_ATTRIBUTE),
+            parameters.isCfRuntime()
+                && parameters.asCfRuntime().isNewerThanOrEqual(CfVm.JDK17)
+                && keepPermittedSubclassesAttribute,
+            r -> r.assertFailureWithErrorThatMatches(EXPECTED),
+            r -> r.assertFailureWithErrorThatThrows(UnsupportedClassVersionError.class));
   }
 
   public byte[] getTransformedClasses() throws Exception {
-    return transformer(C.class).setPermittedSubclasses(C.class, Sub1.class, Sub2.class).transform();
+    return transformer(Super.class)
+        .setPermittedSubclasses(Super.class, Sub1.class, Sub2.class)
+        .transform();
   }
 
   static class TestClass {
@@ -108,11 +142,11 @@ public class SealedClassesIllegalSubclassTest extends TestBase {
     }
   }
 
-  abstract static class C /* permits Sub1, Sub2 */ {}
+  abstract static class Super /* permits Sub1, Sub2 */ {}
 
-  static class Sub1 extends C {}
+  static class Sub1 extends Super {}
 
-  static class Sub2 extends C {}
+  static class Sub2 extends Super {}
 
-  static class Sub3 extends C {}
+  static class Sub3 extends Super {}
 }

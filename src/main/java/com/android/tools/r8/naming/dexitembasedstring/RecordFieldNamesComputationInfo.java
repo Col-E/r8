@@ -16,7 +16,6 @@ import com.android.tools.r8.graph.lens.GraphLens;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.utils.StringUtils;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.function.IntFunction;
 
@@ -119,7 +118,6 @@ public abstract class RecordFieldNamesComputationInfo extends NameComputationInf
       DexDefinitionSupplier definitions,
       GraphLens graphLens,
       IntFunction<String> nameSupplier) {
-    assert Arrays.stream(fields).allMatch(f -> f.holder == type);
     DexClass recordClass = definitions.contextIndependentDefinitionFor(type);
     assert recordClass != null;
     List<String> names = new ArrayList<>(fields.length);

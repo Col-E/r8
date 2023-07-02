@@ -56,15 +56,11 @@ public class ConcretePrimitiveTypeParameterState extends ConcreteParameterState 
       DexType parameterType,
       Action onChangedAction) {
     assert parameterType.isPrimitiveType();
-    boolean allowNullOrAbstractValue = false;
-    boolean allowNonConstantNumbers = false;
     AbstractValue oldAbstractValue = abstractValue;
     abstractValue =
-        abstractValue.join(
-            parameterState.abstractValue,
-            appView.abstractValueFactory(),
-            allowNullOrAbstractValue,
-            allowNonConstantNumbers);
+        appView
+            .getAbstractValueParameterJoiner()
+            .join(abstractValue, parameterState.abstractValue, parameterType);
     if (abstractValue.isUnknown()) {
       return unknown();
     }

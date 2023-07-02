@@ -439,6 +439,18 @@ public class DexProgramClass extends DexClass
         .traverse((field, value) -> fn.apply(field.asProgramField(), value), initialValue);
   }
 
+  public TraversalContinuation<?, ?> traverseProgramInstanceFields(
+      Function<? super ProgramField, TraversalContinuation<?, ?>> fn) {
+    return getFieldCollection().traverseInstanceFields(field -> fn.apply(field.asProgramField()));
+  }
+
+  public <BT, CT> TraversalContinuation<BT, CT> traverseProgramInstanceFields(
+      BiFunction<? super ProgramField, CT, TraversalContinuation<BT, CT>> fn, CT initialValue) {
+    return getFieldCollection()
+        .traverseInstanceFields(
+            (field, value) -> fn.apply(field.asProgramField(), value), initialValue);
+  }
+
   public TraversalContinuation<?, ?> traverseProgramMethods(
       Function<? super ProgramMethod, TraversalContinuation<?, ?>> fn) {
     return getMethodCollection().traverse(method -> fn.apply(new ProgramMethod(this, method)));

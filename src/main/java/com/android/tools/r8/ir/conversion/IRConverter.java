@@ -29,6 +29,7 @@ import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.InstructionIterator;
 import com.android.tools.r8.ir.code.NumberGenerator;
 import com.android.tools.r8.ir.code.Value;
+import com.android.tools.r8.ir.conversion.MethodConversionOptions.MutableMethodConversionOptions;
 import com.android.tools.r8.ir.conversion.passes.ArrayConstructionSimplifier;
 import com.android.tools.r8.ir.conversion.passes.BinopRewriter;
 import com.android.tools.r8.ir.conversion.passes.BranchSimplifier;
@@ -38,6 +39,7 @@ import com.android.tools.r8.ir.conversion.passes.KnownArrayLengthRewriter;
 import com.android.tools.r8.ir.conversion.passes.MoveResultRewriter;
 import com.android.tools.r8.ir.conversion.passes.NaturalIntLoopRemover;
 import com.android.tools.r8.ir.conversion.passes.ParentConstructorHoistingCodeRewriter;
+import com.android.tools.r8.ir.conversion.passes.RedundantConstNumberRemover;
 import com.android.tools.r8.ir.conversion.passes.SplitBranch;
 import com.android.tools.r8.ir.conversion.passes.ThrowCatchOptimizer;
 import com.android.tools.r8.ir.conversion.passes.TrivialCheckCastAndInstanceOfRemover;
@@ -124,8 +126,6 @@ public class IRConverter {
   private final ClassInliner classInliner;
   protected final InternalOptions options;
   public final CodeRewriter codeRewriter;
-  public final CommonSubexpressionElimination commonSubexpressionElimination;
-  private final SplitBranch splitBranch;
   public AssertionErrorTwoArgsConstructorRewriter assertionErrorTwoArgsConstructorRewriter;
   public final MemberValuePropagation<?> memberValuePropagation;
   private final LensCodeRewriter lensCodeRewriter;
@@ -136,8 +136,6 @@ public class IRConverter {
   private final StringSwitchRemover stringSwitchRemover;
   private final TypeChecker typeChecker;
   protected ServiceLoaderRewriter serviceLoaderRewriter;
-  private final EnumValueOptimizer enumValueOptimizer;
-  private final BinopRewriter binopRewriter;
   protected final EnumUnboxer enumUnboxer;
   protected InstanceInitializerOutliner instanceInitializerOutliner;
   protected final RemoveVerificationErrorForUnknownReturnedValues
@@ -176,8 +174,6 @@ public class IRConverter {
     this.appView = appView;
     this.options = appView.options();
     this.codeRewriter = new CodeRewriter(appView);
-    this.commonSubexpressionElimination = new CommonSubexpressionElimination(appView);
-    this.splitBranch = new SplitBranch(appView);
     this.assertionErrorTwoArgsConstructorRewriter =
         appView.options().desugarState.isOn()
             ? new AssertionErrorTwoArgsConstructorRewriter(appView)
@@ -227,8 +223,6 @@ public class IRConverter {
       this.stringSwitchRemover = null;
       this.serviceLoaderRewriter = null;
       this.methodOptimizationInfoCollector = null;
-      this.enumValueOptimizer = null;
-      this.binopRewriter = null;
       this.enumUnboxer = EnumUnboxer.empty();
       this.assumeInserter = null;
       this.instanceInitializerOutliner = null;
@@ -289,12 +283,6 @@ public class IRConverter {
           options.enableServiceLoaderRewriting
               ? new ServiceLoaderRewriter(appViewWithLiveness, appView.apiLevelCompute())
               : null;
-      this.enumValueOptimizer =
-          options.enableEnumValueOptimization ? new EnumValueOptimizer(appViewWithLiveness) : null;
-      this.binopRewriter =
-          options.testing.enableBinopOptimization && !options.debug
-              ? new BinopRewriter(appView)
-              : null;
     } else {
       AppView<AppInfo> appViewWithoutClassHierarchy = appView.withoutClassHierarchy();
       this.assumeInserter = null;
@@ -314,8 +302,6 @@ public class IRConverter {
       this.typeChecker = null;
       this.serviceLoaderRewriter = null;
       this.methodOptimizationInfoCollector = null;
-      this.enumValueOptimizer = null;
-      this.binopRewriter = null;
       this.enumUnboxer = EnumUnboxer.empty();
     }
     this.stringSwitchRemover =
@@ -413,15 +399,18 @@ public class IRConverter {
   public void optimizeSynthesizedMethods(
       List<ProgramMethod> programMethods,
       MethodProcessorEventConsumer eventConsumer,
+      MutableMethodConversionOptions conversionOptions,
       ExecutorService executorService)
       throws ExecutionException {
     // Process the generated class, but don't apply any outlining.
     ProgramMethodSet methods = ProgramMethodSet.create(programMethods::forEach);
-    processMethodsConcurrently(methods, eventConsumer, executorService);
+    processMethodsConcurrently(methods, eventConsumer, conversionOptions, executorService);
   }
 
   public void optimizeSynthesizedMethod(
-      ProgramMethod synthesizedMethod, MethodProcessorEventConsumer eventConsumer) {
+      ProgramMethod synthesizedMethod,
+      MethodProcessorEventConsumer eventConsumer,
+      MutableMethodConversionOptions conversionOptions) {
     if (!synthesizedMethod.getDefinition().isProcessed()) {
       // Process the generated method, but don't apply any outlining.
       OneTimeMethodProcessor methodProcessor =
@@ -429,25 +418,31 @@ public class IRConverter {
       methodProcessor.forEachWaveWithExtension(
           (method, methodProcessingContext) ->
               processDesugaredMethod(
-                  method, delayedOptimizationFeedback, methodProcessor, methodProcessingContext));
+                  method,
+                  delayedOptimizationFeedback,
+                  methodProcessor,
+                  methodProcessingContext,
+                  conversionOptions));
     }
   }
 
   public void processClassesConcurrently(
       Collection<DexProgramClass> classes,
       MethodProcessorEventConsumer eventConsumer,
+      MutableMethodConversionOptions conversionOptions,
       ExecutorService executorService)
       throws ExecutionException {
     ProgramMethodSet wave = ProgramMethodSet.create();
     for (DexProgramClass clazz : classes) {
       clazz.forEachProgramMethod(wave::add);
     }
-    processMethodsConcurrently(wave, eventConsumer, executorService);
+    processMethodsConcurrently(wave, eventConsumer, conversionOptions, executorService);
   }
 
   public void processMethodsConcurrently(
       ProgramMethodSet wave,
       MethodProcessorEventConsumer eventConsumer,
+      MutableMethodConversionOptions conversionOptions,
       ExecutorService executorService)
       throws ExecutionException {
     if (!wave.isEmpty()) {
@@ -456,7 +451,11 @@ public class IRConverter {
       methodProcessor.forEachWaveWithExtension(
           (method, methodProcessingContext) ->
               processDesugaredMethod(
-                  method, delayedOptimizationFeedback, methodProcessor, methodProcessingContext),
+                  method,
+                  delayedOptimizationFeedback,
+                  methodProcessor,
+                  methodProcessingContext,
+                  conversionOptions),
           executorService);
     }
   }
@@ -466,12 +465,14 @@ public class IRConverter {
       ProgramMethod method,
       OptimizationFeedback feedback,
       MethodProcessor methodProcessor,
-      MethodProcessingContext methodProcessingContext) {
+      MethodProcessingContext methodProcessingContext,
+      MutableMethodConversionOptions conversionOptions) {
     DexEncodedMethod definition = method.getDefinition();
     Code code = definition.getCode();
     boolean matchesMethodFilter = options.methodMatchesFilter(definition);
     if (code != null && matchesMethodFilter) {
-      return rewriteDesugaredCode(method, feedback, methodProcessor, methodProcessingContext);
+      return rewriteDesugaredCode(
+          method, feedback, methodProcessor, methodProcessingContext, conversionOptions);
     } else {
       // Mark abstract methods as processed as well.
       definition.markProcessed(ConstraintWithTarget.NEVER);
@@ -491,20 +492,22 @@ public class IRConverter {
       ProgramMethod method,
       OptimizationFeedback feedback,
       MethodProcessor methodProcessor,
-      MethodProcessingContext methodProcessingContext) {
+      MethodProcessingContext methodProcessingContext,
+      MutableMethodConversionOptions conversionOptions) {
     return ExceptionUtils.withOriginAndPositionAttachmentHandler(
         method.getOrigin(),
         new MethodPosition(method.getReference().asMethodReference()),
         () ->
             rewriteDesugaredCodeInternal(
-                method, feedback, methodProcessor, methodProcessingContext));
+                method, feedback, methodProcessor, methodProcessingContext, conversionOptions));
   }
 
   protected Timing rewriteDesugaredCodeInternal(
       ProgramMethod method,
       OptimizationFeedback feedback,
       MethodProcessor methodProcessor,
-      MethodProcessingContext methodProcessingContext) {
+      MethodProcessingContext methodProcessingContext,
+      MutableMethodConversionOptions conversionOptions) {
     if (options.verbose) {
       options.reporter.info(
           new StringDiagnostic("Processing: " + method.toSourceString()));
@@ -518,7 +521,7 @@ public class IRConverter {
       return Timing.empty();
     }
 
-    IRCode code = method.buildIR(appView);
+    IRCode code = method.buildIR(appView, conversionOptions);
     if (code == null) {
       feedback.markProcessed(method.getDefinition(), ConstraintWithTarget.NEVER);
       return Timing.empty();
@@ -644,13 +647,10 @@ public class IRConverter {
       previous = printMethod(code, "IR after member-value propagation (SSA)", previous);
     }
 
-    if (enumValueOptimizer != null) {
-      assert appView.enableWholeProgramOptimizations();
-      timing.begin("Remove switch maps");
-      enumValueOptimizer.removeSwitchMaps(code);
-      timing.end();
-      previous = printMethod(code, "IR after enum-value optimization (SSA)", previous);
-    }
+    timing.begin("Remove switch maps");
+    new EnumValueOptimizer(appView).removeSwitchMaps(code);
+    timing.end();
+    previous = printMethod(code, "IR after enum-switch optimization (SSA)", previous);
 
     if (instanceInitializerOutliner != null) {
       instanceInitializerOutliner.rewriteInstanceInitializers(
@@ -740,63 +740,35 @@ public class IRConverter {
 
     assert code.verifyTypes(appView);
 
-    new TrivialCheckCastAndInstanceOfRemover(appView)
-        .run(code, methodProcessor, methodProcessingContext, timing);
-
-    if (enumValueOptimizer != null) {
-      assert appView.enableWholeProgramOptimizations();
-      enumValueOptimizer.run(code, timing);
-    }
-
-    new KnownArrayLengthRewriter(appView).run(code, timing);
-    new NaturalIntLoopRemover(appView).run(code, timing);
     if (assertionErrorTwoArgsConstructorRewriter != null) {
       timing.begin("Rewrite AssertionError");
       assertionErrorTwoArgsConstructorRewriter.rewrite(
           code, methodProcessor, methodProcessingContext);
       timing.end();
     }
-    commonSubexpressionElimination.run(code, timing);
+
+    new TrivialCheckCastAndInstanceOfRemover(appView)
+        .run(code, methodProcessor, methodProcessingContext, timing);
+    new EnumValueOptimizer(appView).run(code, timing);
+    new KnownArrayLengthRewriter(appView).run(code, timing);
+    new NaturalIntLoopRemover(appView).run(code, timing);
+    new CommonSubexpressionElimination(appView).run(code, timing);
     new ArrayConstructionSimplifier(appView).run(code, timing);
     new MoveResultRewriter(appView).run(code, timing);
-    if (options.enableStringConcatenationOptimization && !isDebugMode) {
-      new StringBuilderAppendOptimizer(appView).run(code, timing);
-    }
-    new SparseConditionalConstantPropagation(appView, code).run(code, timing);
-    timing.begin("Rewrite always throwing instructions");
-    new ThrowCatchOptimizer(appView).optimizeAlwaysThrowingInstructions(code);
-    timing.end();
-    timing.begin("Simplify control flow");
-    if (new BranchSimplifier(appView).simplifyBranches(code)) {
+    new StringBuilderAppendOptimizer(appView).run(code, timing);
+    new SparseConditionalConstantPropagation(appView).run(code, timing);
+    new ThrowCatchOptimizer(appView).run(code, timing);
+    if (new BranchSimplifier(appView)
+        .run(code, timing)
+        .asControlFlowSimplificationResult()
+        .anyAffectedValues()) {
       new TrivialCheckCastAndInstanceOfRemover(appView)
           .run(code, methodProcessor, methodProcessingContext, timing);
     }
-    timing.end();
-    splitBranch.run(code, timing);
-    if (options.enableRedundantConstNumberOptimization) {
-      timing.begin("Remove const numbers");
-      codeRewriter.redundantConstNumberRemoval(code);
-      timing.end();
-    }
-    if (RedundantFieldLoadAndStoreElimination.shouldRun(appView, code)) {
-      timing.begin("Remove field loads");
-      new RedundantFieldLoadAndStoreElimination(appView, code).run();
-      timing.end();
-    }
-    if (binopRewriter != null) {
-      binopRewriter.run(code, timing);
-    }
-
-    if (options.testing.invertConditionals) {
-      invertConditionalsForTesting(code);
-    }
-
-    if (!isDebugMode) {
-      timing.begin("Rewrite throw NPE");
-      new ThrowCatchOptimizer(appView).rewriteThrowNullPointerException(code);
-      timing.end();
-      previous = printMethod(code, "IR after rewrite throw null (SSA)", previous);
-    }
+    new SplitBranch(appView).run(code, timing);
+    new RedundantConstNumberRemover(appView).run(code, timing);
+    new RedundantFieldLoadAndStoreElimination(appView).run(code, timing);
+    new BinopRewriter(appView).run(code, timing);
 
     timing.begin("Optimize class initializers");
     ClassInitializerDefaultsResult classInitializerDefaultsResult =
@@ -809,6 +781,10 @@ public class IRConverter {
     // dead code which is removed right before register allocation in performRegisterAllocation.
     deadCodeRemover.run(code, timing);
     assert code.isConsistentSSA(appView);
+
+    if (options.testing.invertConditionals) {
+      invertConditionalsForTesting(code);
+    }
 
     previous = printMethod(code, "IR after dead code removal (SSA)", previous);
 
@@ -824,7 +800,6 @@ public class IRConverter {
       classInliner.processMethodCode(
           appView.withLiveness(),
           stringOptimizer,
-          enumValueOptimizer,
           code.context(),
           code,
           feedback,
@@ -937,7 +912,6 @@ public class IRConverter {
 
     // Assert that we do not have unremoved non-sense code in the output, e.g., v <- non-null NULL.
     assert code.verifyNoNullabilityBottomTypes();
-
     assert code.verifyTypes(appView);
 
     previous =
@@ -1066,28 +1040,17 @@ public class IRConverter {
       BytecodeMetadataProvider bytecodeMetadataProvider,
       Timing timing) {
     if (options.testing.roundtripThroughLir) {
-      code = roundtripThroughLir(code, feedback, bytecodeMetadataProvider, timing);
+      code = roundtripThroughLir(code, bytecodeMetadataProvider, timing);
     }
-    if (options.testing.canUseLir(appView)) {
-      timing.begin("IR->LIR");
-      finalizeToLir(code, feedback, bytecodeMetadataProvider, timing);
-      timing.end();
-    } else if (options.isGeneratingClassFiles()) {
-      timing.begin("IR->CF");
-      finalizeToCf(code, feedback, bytecodeMetadataProvider, timing);
-      timing.end();
-    } else {
-      assert options.isGeneratingDex();
-      timing.begin("IR->DEX");
-      finalizeToDex(code, feedback, bytecodeMetadataProvider, timing);
-      timing.end();
-    }
+    ProgramMethod method = code.context();
+    IRFinalizer<?> finalizer = code.getConversionOptions().getFinalizer(deadCodeRemover, appView);
+    method.setCode(finalizer.finalizeCode(code, bytecodeMetadataProvider, timing), appView);
+    markProcessed(code, feedback);
     printMethod(code.context(), "After finalization");
   }
 
   private IRCode roundtripThroughLir(
       IRCode code,
-      OptimizationFeedback feedback,
       BytecodeMetadataProvider bytecodeMetadataProvider,
       Timing timing) {
     IRCode round1 =
@@ -1130,54 +1093,10 @@ public class IRConverter {
             appView,
             null,
             RewrittenPrototypeDescription.none(),
-            appView.graphLens().getOriginalMethodSignature(code.context().getReference()));
+            appView.graphLens().getOriginalMethodSignature(code.context().getReference()),
+            (MutableMethodConversionOptions) code.getConversionOptions());
     timing.end();
     return irCode;
-  }
-
-  private void finalizeToLir(
-      IRCode code,
-      OptimizationFeedback feedback,
-      BytecodeMetadataProvider bytecodeMetadataProvider,
-      Timing timing) {
-    assert deadCodeRemover.verifyNoDeadCode(code);
-    LirCode<Integer> lirCode =
-        IR2LirConverter.translate(
-            code,
-            bytecodeMetadataProvider,
-            LirStrategy.getDefaultStrategy().getEncodingStrategy(),
-            appView.options());
-    ProgramMethod method = code.context();
-    method.setCode(lirCode, appView);
-    markProcessed(code, feedback);
-  }
-
-  private void finalizeToCf(
-      IRCode code,
-      OptimizationFeedback feedback,
-      BytecodeMetadataProvider bytecodeMetadataProvider,
-      Timing timing) {
-    ProgramMethod method = code.context();
-    method.setCode(
-        new IRToCfFinalizer(appView, deadCodeRemover)
-            .finalizeCode(code, bytecodeMetadataProvider, timing),
-        appView);
-    markProcessed(code, feedback);
-  }
-
-  private void finalizeToDex(
-      IRCode code,
-      OptimizationFeedback feedback,
-      BytecodeMetadataProvider bytecodeMetadataProvider,
-      Timing timing) {
-    ProgramMethod method = code.context();
-    DexEncodedMethod definition = method.getDefinition();
-    method.setCode(
-        new IRToDexFinalizer(appView, deadCodeRemover)
-            .finalizeCode(code, bytecodeMetadataProvider, timing),
-        appView);
-    markProcessed(code, feedback);
-    updateHighestSortingStrings(definition);
   }
 
   public void markProcessed(IRCode code, OptimizationFeedback feedback) {
@@ -1203,18 +1122,6 @@ public class IRConverter {
       return false;
     }
     return true;
-  }
-
-  protected synchronized void updateHighestSortingStrings(DexEncodedMethod method) {
-    Code code = method.getCode();
-    assert code.isDexWritableCode();
-    DexString highestSortingReferencedString = code.asDexWritableCode().getHighestSortingString();
-    if (highestSortingReferencedString != null) {
-      if (highestSortingString == null
-          || highestSortingReferencedString.compareTo(highestSortingString) > 0) {
-        highestSortingString = highestSortingReferencedString;
-      }
-    }
   }
 
   public void printPhase(String phase) {
@@ -1287,34 +1194,6 @@ public class IRConverter {
     outliner.onMethodCodePruned(method);
     if (inliner != null) {
       inliner.onMethodCodePruned(method);
-    }
-  }
-
-  public void finalizeLirMethodToOutputFormat(ProgramMethod method) {
-    Code code = method.getDefinition().getCode();
-    if (!(code instanceof LirCode)) {
-      return;
-    }
-    Timing onThreadTiming = Timing.empty();
-    IRCode irCode = method.buildIR(appView);
-    // Processing is done and no further uses of the meta-data should arise.
-    BytecodeMetadataProvider bytecodeMetadataProvider = BytecodeMetadataProvider.empty();
-    // During processing optimization info may cause previously live code to become dead.
-    // E.g., we may now have knowledge that an invoke does not have side effects.
-    // Thus, we re-run the dead-code remover now as it is assumed complete by CF/DEX finalization.
-    deadCodeRemover.run(irCode, onThreadTiming);
-    if (options.isGeneratingClassFiles()) {
-      method.setCode(
-          new IRToCfFinalizer(appView, deadCodeRemover)
-              .finalizeCode(irCode, bytecodeMetadataProvider, onThreadTiming),
-          appView);
-    } else {
-      assert options.isGeneratingDex();
-      method.setCode(
-          new IRToDexFinalizer(appView, deadCodeRemover)
-              .finalizeCode(irCode, bytecodeMetadataProvider, onThreadTiming),
-          appView);
-      updateHighestSortingStrings(method.getDefinition());
     }
   }
 }

@@ -10,6 +10,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.NeverInline;
+import com.android.tools.r8.NoAccessModification;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
@@ -41,34 +42,35 @@ public class StaticClassMergerVisibilityTest extends TestBase {
         .addHorizontallyMergedClassesInspector(
             inspector ->
                 inspector
-                    .assertMergedInto(A.class, D.class)
-                    .assertMergedInto(B.class, D.class)
-                    .assertMergedInto(C.class, D.class))
+                    .assertIsCompleteMergeGroup(A.class, B.class, C.class, D.class)
+                    .assertNoOtherClassesMerged())
         .enableInliningAnnotations()
+        .enableNoAccessModificationAnnotationsForMembers()
         .setMinApi(parameters)
-        .addDontObfuscate()
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines("A.print()", "B.print()", "C.print()", "D.print()")
         .inspect(
             inspector -> {
-              // All classes are merged into D.
-              ClassSubject clazzD = inspector.clazz(D.class);
-              assertThat(clazzD, isPresent());
-              assertThat(clazzD, isPublic());
-              // D now has 5 methods (there is a synthetic access bridge for the private A.print()).
-              assertEquals(5, clazzD.allMethods().size());
+              // All classes are merged into C.
+              ClassSubject classSubject = inspector.clazz(C.class);
+              assertThat(classSubject, isPresent());
+              assertThat(classSubject, isPublic());
+              // A now has 5 methods (there is a synthetic access bridge for the private A.print()).
+              assertEquals(5, classSubject.allMethods().size());
             });
   }
 
-  // Will be merged into D.
+  // Will be merged into C.
   private static class A {
+
     @NeverInline
+    @NoAccessModification
     private static void print() {
       System.out.println("A.print()");
     }
   }
 
-  // Will be merged into D.
+  // Will be merged into C.
   static class B {
     @NeverInline
     static void print() {
@@ -76,7 +78,6 @@ public class StaticClassMergerVisibilityTest extends TestBase {
     }
   }
 
-  // Will be merged into D
   public static class C {
     @NeverInline
     public static void print() {
@@ -84,6 +85,7 @@ public class StaticClassMergerVisibilityTest extends TestBase {
     }
   }
 
+  // Will be merged into C.
   protected static class D {
     @NeverInline
     protected static void print() {

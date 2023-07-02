@@ -6,14 +6,19 @@ package com.android.tools.r8.ir.conversion;
 
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.Code;
 import com.android.tools.r8.graph.DexApplication;
-import com.android.tools.r8.graph.DexApplication.Builder;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexProgramClass;
+import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.PrunedItems;
+import com.android.tools.r8.graph.bytecodemetadata.BytecodeMetadataProvider;
 import com.android.tools.r8.graph.lens.GraphLens;
 import com.android.tools.r8.ir.analysis.fieldaccess.TrivialFieldAccessReprocessor;
+import com.android.tools.r8.ir.code.IRCode;
+import com.android.tools.r8.ir.optimize.DeadCodeRemover;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackDelayed;
+import com.android.tools.r8.lightir.LirCode;
 import com.android.tools.r8.optimize.argumentpropagation.ArgumentPropagator;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.ThreadUtils;
@@ -95,7 +100,11 @@ public class PrimaryR8IRConverter extends IRConverter {
       primaryMethodProcessor.forEachMethod(
           (method, methodProcessingContext) ->
               processDesugaredMethod(
-                  method, feedback, primaryMethodProcessor, methodProcessingContext),
+                  method,
+                  feedback,
+                  primaryMethodProcessor,
+                  methodProcessingContext,
+                  MethodConversionOptions.forLirPhase(appView)),
           this::waveStart,
           this::waveDone,
           timing,
@@ -170,7 +179,11 @@ public class PrimaryR8IRConverter extends IRConverter {
         postMethodProcessor.forEachMethod(
             (method, methodProcessingContext) ->
                 processDesugaredMethod(
-                    method, feedback, postMethodProcessor, methodProcessingContext),
+                    method,
+                    feedback,
+                    postMethodProcessor,
+                    methodProcessingContext,
+                    MethodConversionOptions.forLirPhase(appView)),
             feedback,
             executorService,
             timing);
@@ -193,10 +206,6 @@ public class PrimaryR8IRConverter extends IRConverter {
     // synthetics.)
     commitPendingSyntheticItems(appView);
 
-    // Build a new application with jumbo string info.
-    Builder<?> builder = appView.appInfo().app().builder();
-    builder.setHighestSortingString(highestSortingString);
-
     // Update optimization info for all synthesized methods at once.
     feedback.updateVisibleOptimizationInfo();
 
@@ -210,26 +219,53 @@ public class PrimaryR8IRConverter extends IRConverter {
 
     // Assure that no more optimization feedback left after post processing.
     assert feedback.noUpdatesLeft();
-    finalizeLirToOutputFormat(timing, executorService);
-    return builder.build();
+    return appView.appInfo().app();
   }
 
-  private void finalizeLirToOutputFormat(Timing timing, ExecutorService executorService)
+  public static void finalizeLirToOutputFormat(
+      AppView<?> appView, Timing timing, ExecutorService executorService)
       throws ExecutionException {
-    if (!options.testing.canUseLir(appView)) {
+    appView.testing().exitLirSupportedPhase();
+    if (!appView.testing().canUseLir(appView)) {
       return;
     }
-    String output = options.isGeneratingClassFiles() ? "CF" : "DEX";
+    DeadCodeRemover deadCodeRemover = new DeadCodeRemover(appView);
+    String output = appView.options().isGeneratingClassFiles() ? "CF" : "DEX";
     timing.begin("LIR->IR->" + output);
     ThreadUtils.processItems(
         appView.appInfo().classes(),
-        clazz -> clazz.forEachProgramMethod(this::finalizeLirMethodToOutputFormat),
+        clazz ->
+            clazz.forEachProgramMethod(
+                m -> finalizeLirMethodToOutputFormat(m, deadCodeRemover, appView)),
         executorService);
     appView
         .getSyntheticItems()
         .getPendingSyntheticClasses()
-        .forEach(clazz -> clazz.forEachProgramMethod(this::finalizeLirMethodToOutputFormat));
+        .forEach(
+            clazz ->
+                clazz.forEachProgramMethod(
+                    m -> finalizeLirMethodToOutputFormat(m, deadCodeRemover, appView)));
     timing.end();
+  }
+
+  private static void finalizeLirMethodToOutputFormat(
+      ProgramMethod method, DeadCodeRemover deadCodeRemover, AppView<?> appView) {
+    Code code = method.getDefinition().getCode();
+    if (!(code instanceof LirCode)) {
+      return;
+    }
+    Timing onThreadTiming = Timing.empty();
+    IRCode irCode = method.buildIR(appView, MethodConversionOptions.forPostLirPhase(appView));
+    // Processing is done and no further uses of the meta-data should arise.
+    BytecodeMetadataProvider noMetadata = BytecodeMetadataProvider.empty();
+    // During processing optimization info may cause previously live code to become dead.
+    // E.g., we may now have knowledge that an invoke does not have side effects.
+    // Thus, we re-run the dead-code remover now as it is assumed complete by CF/DEX finalization.
+    deadCodeRemover.run(irCode, onThreadTiming);
+    MethodConversionOptions conversionOptions = irCode.getConversionOptions();
+    assert !conversionOptions.isGeneratingLir();
+    IRFinalizer<?> finalizer = conversionOptions.getFinalizer(deadCodeRemover, appView);
+    method.setCode(finalizer.finalizeCode(irCode, noMetadata, onThreadTiming), appView);
   }
 
   private void clearDexMethodCompilationState() {

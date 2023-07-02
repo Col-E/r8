@@ -10,7 +10,9 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.lens.GraphLens;
 import com.android.tools.r8.ir.code.IRCode;
+import com.android.tools.r8.ir.conversion.MethodConversionOptions.MutableMethodConversionOptions;
 import com.android.tools.r8.synthesis.SyntheticItems.GlobalSyntheticsStrategy;
+import java.util.function.Supplier;
 
 public interface IRCodeProvider {
 
@@ -18,8 +20,10 @@ public interface IRCodeProvider {
 
   void setGraphLens(GraphLens graphLens);
 
-  static IRCodeProvider create(AppView<? extends AppInfoWithClassHierarchy> appView) {
-    return new IRCodeProviderImpl(appView);
+  static IRCodeProvider create(
+      AppView<? extends AppInfoWithClassHierarchy> appView,
+      Supplier<MutableMethodConversionOptions> getConversionOptions) {
+    return new IRCodeProviderImpl(appView, getConversionOptions);
   }
 
   static IRCodeProvider createThrowing() {
@@ -37,8 +41,11 @@ public interface IRCodeProvider {
   class IRCodeProviderImpl implements IRCodeProvider {
 
     private final AppView<AppInfo> appViewForConversion;
+    private Supplier<MutableMethodConversionOptions> getConversionOptions;
 
-    private IRCodeProviderImpl(AppView<? extends AppInfoWithClassHierarchy> appView) {
+    private IRCodeProviderImpl(
+        AppView<? extends AppInfoWithClassHierarchy> appView,
+        Supplier<MutableMethodConversionOptions> getConversionOptions) {
       // At this point the code rewritings described by repackaging and synthetic finalization have
       // not been applied to the code objects. These code rewritings will be applied in the
       // application writer. We therefore simulate that we are in D8, to allow building IR for each
@@ -51,6 +58,7 @@ public interface IRCodeProvider {
       appViewForConversion.setGraphLens(appView.graphLens());
       appViewForConversion.setCodeLens(appView.codeLens());
       this.appViewForConversion = appViewForConversion;
+      this.getConversionOptions = getConversionOptions;
     }
 
     @Override
@@ -58,7 +66,7 @@ public interface IRCodeProvider {
       return method
           .getDefinition()
           .getCode()
-          .buildIR(method, appViewForConversion, method.getOrigin());
+          .buildIR(method, appViewForConversion, method.getOrigin(), getConversionOptions.get());
     }
 
     @Override

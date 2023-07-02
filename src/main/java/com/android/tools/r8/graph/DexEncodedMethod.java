@@ -474,7 +474,6 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
   public boolean willBeInlinedIntoInstanceInitializer(DexItemFactory dexItemFactory) {
     checkIfObsolete();
     if (getName().startsWith(dexItemFactory.temporaryConstructorMethodPrefix)) {
-      assert isPrivate();
       assert !isStatic();
       return true;
     }

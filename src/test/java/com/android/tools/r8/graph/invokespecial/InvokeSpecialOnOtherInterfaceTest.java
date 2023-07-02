@@ -8,11 +8,13 @@ import static com.android.tools.r8.utils.DescriptorUtils.getBinaryNameFromJavaTy
 import static org.junit.Assert.assertEquals;
 import static org.objectweb.asm.Opcodes.INVOKESPECIAL;
 
+import com.android.tools.r8.NoHorizontalClassMerging;
 import com.android.tools.r8.NoMethodStaticizing;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.ToolHelper.DexVm.Version;
+import com.android.tools.r8.utils.codeinspector.HorizontallyMergedClassesInspector;
 import java.io.IOException;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -57,6 +59,9 @@ public class InvokeSpecialOnOtherInterfaceTest extends TestBase {
         .addProgramClasses(I.class)
         .addProgramClassFileData(getClassWithTransformedInvoked())
         .addKeepMainRule(Main.class)
+        .addHorizontallyMergedClassesInspector(
+            HorizontallyMergedClassesInspector::assertNoClassesMerged)
+        .enableNoHorizontalClassMergingAnnotations()
         .enableNoMethodStaticizingAnnotations()
         .setMinApi(parameters)
         .run(parameters.getRuntime(), Main.class)
@@ -92,6 +97,7 @@ public class InvokeSpecialOnOtherInterfaceTest extends TestBase {
     }
   }
 
+  @NoHorizontalClassMerging
   public static class A {
 
     public void bar(I i) {

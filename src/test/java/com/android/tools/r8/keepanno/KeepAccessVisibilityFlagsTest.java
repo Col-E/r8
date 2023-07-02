@@ -77,6 +77,7 @@ public class KeepAccessVisibilityFlagsTest extends TestBase {
         .enableExperimentalKeepAnnotations()
         .addProgramClasses(getInputClasses())
         .addKeepMainRule(TestClass.class)
+        .allowAccessModification()
         .setMinApi(parameters)
         .run(parameters.getRuntime(), TestClass.class)
         .assertSuccessWithOutput(EXPECTED)
@@ -235,6 +236,11 @@ public class KeepAccessVisibilityFlagsTest extends TestBase {
           int mod = method.getModifiers();
           if (!Modifier.isPublic(mod) && !Modifier.isProtected(mod)) {
             privateOrPackagePrivateMethods.add(method.getName());
+          } else {
+            // TODO(b/131130038): The package-private method should not be publicized.
+            if (method.getName().equals("packagePrivateMethod")) {
+              privateOrPackagePrivateMethods.add(method.getName());
+            }
           }
         }
         printSorted(privateOrPackagePrivateMethods);

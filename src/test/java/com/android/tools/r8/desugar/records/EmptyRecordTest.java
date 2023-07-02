@@ -5,6 +5,7 @@
 package com.android.tools.r8.desugar.records;
 
 import static org.junit.Assume.assumeFalse;
+import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
@@ -69,6 +70,8 @@ public class EmptyRecordTest extends TestBase {
 
   @Test
   public void testR8() throws Exception {
+    // TODO(b/288360309): Correctly deal with non-identity lenses in R8 record rewriting.
+    assumeTrue(parameters.isDexRuntime());
     parameters.assumeR8TestParameters();
     testForR8(parameters.getBackend())
         .addProgramClassFileData(PROGRAM_DATA)

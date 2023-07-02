@@ -79,6 +79,7 @@ public class AssumenosideeffectsPropagationTest extends TestBase {
               : StringUtils.lines(
                   // Itf#info has side effects due to the missing Base2.
                   "[Sub1, info]: message00",
+                  "[Sub1, info]: message1",
                   "[Base2, info]: message08",
                   // Base2#info also has side effects.
                   "[Base2, info]: message4",
@@ -89,6 +90,7 @@ public class AssumenosideeffectsPropagationTest extends TestBase {
                   "[AnotherSub2, debug]: message08", "[AnotherSub2, debug]: message5", "The end")
               : StringUtils.lines(
                   "[Base1, debug]: message00",
+                  "[Base1, debug]: message2",
                   "[AnotherSub2, debug]: message08",
                   "[AnotherSub2, debug]: message5",
                   "The end");

@@ -10,6 +10,7 @@ import static org.junit.Assert.assertNotEquals;
 
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
+import com.android.tools.r8.NoAccessModification;
 import com.android.tools.r8.NoHorizontalClassMerging;
 import com.android.tools.r8.NoMethodStaticizing;
 import com.android.tools.r8.TestBase;
@@ -68,6 +69,10 @@ public class PrivateInstanceMethodCollisionTest extends TestBase {
         .enableNoMethodStaticizingAnnotations()
         .minification(minification)
         .allowAccessModification(allowAccessModification)
+        .applyIf(
+            allowAccessModification,
+            testBuilder -> testBuilder.addNoAccessModificationAnnotation(),
+            testBuilder -> testBuilder.enableNoAccessModificationAnnotationsForMembers())
         .setMinApi(parameters)
         .compile()
         .inspect(this::verifyUninstantiatedArgumentsRemovedAndNoCollisions)
@@ -115,6 +120,7 @@ public class PrivateInstanceMethodCollisionTest extends TestBase {
   @NeverClassInline
   static class A {
     @NeverInline
+    @NoAccessModification
     @NoMethodStaticizing
     private void foo(B instantiated) {
       System.out.println("A#foo(" + instantiated + ")");

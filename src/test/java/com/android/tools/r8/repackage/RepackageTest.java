@@ -110,9 +110,12 @@ public class RepackageTest extends RepackageTestBase {
             "  <methods>;",
             "}")
         .allowAccessModification(allowAccessModification)
+        .applyIf(
+            allowAccessModification,
+            testBuilder -> testBuilder.addNoAccessModificationAnnotation(),
+            testBuilder -> testBuilder.enableNoAccessModificationAnnotationsForMembers())
         .apply(this::configureRepackaging)
         .enableInliningAnnotations()
-        .enableNoHorizontalClassMergingAnnotations()
         .enableNoHorizontalClassMergingAnnotations()
         .setMinApi(parameters)
         .compile()

@@ -73,5 +73,7 @@
   @classmerging.NeverInline <methods>;
 }
 -neverpropagatevalue class * { @classmerging.NeverPropagateValue *; }
+-noaccessmodification @classmerging.NoAccessModification class *
+-noaccessmodification class * { @classmerging.NoAccessModification *; }
 -nohorizontalclassmerging @classmerging.NoHorizontalClassMerging class *
 -noredundantfieldloadelimination class * { @classmerging.NoRedundantFieldLoadElimination *; }

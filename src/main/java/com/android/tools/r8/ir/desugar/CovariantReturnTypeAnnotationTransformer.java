@@ -24,6 +24,7 @@ import com.android.tools.r8.graph.DexValue.DexValueType;
 import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.conversion.IRConverter;
+import com.android.tools.r8.ir.conversion.MethodConversionOptions;
 import com.android.tools.r8.ir.conversion.MethodProcessorEventConsumer;
 import com.android.tools.r8.ir.synthetic.ForwardMethodBuilder;
 import com.google.common.base.Predicates;
@@ -198,7 +199,10 @@ public final class CovariantReturnTypeAnnotationTransformer {
             .build();
     // Optimize to generate DexCode instead of CfCode.
     ProgramMethod programMethod = new ProgramMethod(methodHolder, newVirtualMethod);
-    converter.optimizeSynthesizedMethod(programMethod, methodProcessorEventConsumer);
+    converter.optimizeSynthesizedMethod(
+        programMethod,
+        methodProcessorEventConsumer,
+        MethodConversionOptions.forD8(converter.appView));
     eventConsumer.acceptCovariantReturnTypeBridgeMethod(programMethod, method);
     return newVirtualMethod;
   }

@@ -36,8 +36,8 @@ import com.android.tools.r8.ir.code.Position.SyntheticPosition;
 import com.android.tools.r8.ir.conversion.CfSourceCode;
 import com.android.tools.r8.ir.conversion.IRBuilder;
 import com.android.tools.r8.ir.conversion.LensCodeRewriterUtils;
+import com.android.tools.r8.ir.conversion.MethodConversionOptions;
 import com.android.tools.r8.ir.conversion.MethodConversionOptions.MutableMethodConversionOptions;
-import com.android.tools.r8.ir.conversion.MethodConversionOptions.ThrowingMethodConversionOptions;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.InliningConstraints;
 import com.android.tools.r8.naming.NamingLens;
@@ -636,7 +636,7 @@ public class CfCode extends Code implements CfWritableCode, StructuralItem<CfCod
         callerPosition,
         origin,
         protoChanges,
-        new ThrowingMethodConversionOptions(appView.options()));
+        MethodConversionOptions.nonConverting());
   }
 
   private void verifyFramesOrRemove(ProgramMethod method, AppView<?> appView, GraphLens codeLens) {

@@ -80,8 +80,6 @@ import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.ListUtils;
 import com.android.tools.r8.utils.Pair;
 import com.android.tools.r8.utils.PreloadedClassFileProvider;
-import com.android.tools.r8.utils.ReflectiveBuildPathUtils;
-import com.android.tools.r8.utils.ReflectiveBuildPathUtils.ExamplesClass;
 import com.android.tools.r8.utils.Reporter;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.TestDescriptionWatcher;
@@ -1688,18 +1686,6 @@ public class TestBase {
     return clazz.getTypeName();
   }
 
-  public static ClassReference examplesClassReference(Class<? extends ExamplesClass> clazz) {
-    return Reference.classFromTypeName(examplesTypeName(clazz));
-  }
-
-  public static String examplesTypeName(Class<? extends ExamplesClass> clazz) {
-    try {
-      return ReflectiveBuildPathUtils.resolveClassName(clazz);
-    } catch (Exception e) {
-      throw new RuntimeException(e);
-    }
-  }
-
   public static AndroidApiLevel apiLevelWithDefaultInterfaceMethodsSupport() {
     return AndroidApiLevel.N;
   }
@@ -1755,6 +1741,11 @@ public class TestBase {
   public static boolean canUseJavaUtilObjectsIsNull(TestParameters parameters) {
     return parameters.isDexRuntime()
         && parameters.getApiLevel().isGreaterThanOrEqualTo(AndroidApiLevel.N);
+  }
+
+  // TODO(b/131130038): Do not allow accessmodification when kept.
+  public boolean isForceAccessModifyingPackagePrivateAndProtectedMethods() {
+    return true;
   }
 
   public Path compileToZip(

@@ -82,8 +82,9 @@ public class MissingOuterClassTest extends TestBase {
     assertEquals(outerClassSubject.getDexProgramClass().getType(), innerClassAttribute.getOuter());
     if (parameters.isCfRuntime() || hostClassSubject == innerClassSubject) {
       assertEquals(
-          DescriptorUtils.getInnerClassName(
-              outerClassSubject.getFinalDescriptor(), innerClassSubject.getFinalDescriptor()),
+          DescriptorUtils.getInnerClassNameFromSimpleName(
+              outerClassSubject.getDexProgramClass().getSimpleName(),
+              innerClassSubject.getDexProgramClass().getSimpleName()),
           innerClassAttribute.getInnerName().toSourceString());
     } else {
       assertEquals(DexItemFactory.unknownTypeName, innerClassAttribute.getInnerName());

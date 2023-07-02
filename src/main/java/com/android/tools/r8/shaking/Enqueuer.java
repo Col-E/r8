@@ -23,7 +23,6 @@ import com.android.tools.r8.contexts.CompilationContext.MethodProcessingContext;
 import com.android.tools.r8.contexts.CompilationContext.ProcessorContext;
 import com.android.tools.r8.dex.IndexedItemCollection;
 import com.android.tools.r8.dex.code.CfOrDexInstruction;
-import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.errors.InterfaceDesugarMissingTypeDiagnostic;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.experimental.graphinfo.GraphConsumer;
@@ -81,6 +80,7 @@ import com.android.tools.r8.graph.MethodResolutionResult.FailedResolutionResult;
 import com.android.tools.r8.graph.MethodResolutionResult.SingleResolutionResult;
 import com.android.tools.r8.graph.NestMemberClassAttribute;
 import com.android.tools.r8.graph.ObjectAllocationInfoCollectionImpl;
+import com.android.tools.r8.graph.PermittedSubclassAttribute;
 import com.android.tools.r8.graph.ProgramDefinition;
 import com.android.tools.r8.graph.ProgramDerivedContext;
 import com.android.tools.r8.graph.ProgramField;
@@ -108,6 +108,7 @@ import com.android.tools.r8.ir.code.InvokeNewArray;
 import com.android.tools.r8.ir.code.InvokeVirtual;
 import com.android.tools.r8.ir.code.NewArrayEmpty;
 import com.android.tools.r8.ir.code.Value;
+import com.android.tools.r8.ir.conversion.MethodConversionOptions;
 import com.android.tools.r8.ir.desugar.CfInstructionDesugaringCollection;
 import com.android.tools.r8.ir.desugar.CfInstructionDesugaringEventConsumer;
 import com.android.tools.r8.ir.desugar.CfPostProcessingDesugaringCollection;
@@ -2051,11 +2052,6 @@ public class Enqueuer {
     assert !appView.unboxedEnums().isUnboxedEnum(clazz)
         : "Enum " + clazz.toSourceString() + " has been unboxed but is still in the program.";
 
-    if (options.isGeneratingClassFiles() && clazz.hasPermittedSubclassAttributes()) {
-      throw new CompilationError(
-          "Sealed classes are not supported as program classes when generating class files",
-          clazz.getOrigin());
-    }
     // Mark types in inner-class attributes referenced.
     {
       BiConsumer<DexType, ProgramDerivedContext> missingClassConsumer =
@@ -2100,6 +2096,23 @@ public class Enqueuer {
         DexType enclosingClass = enclosingMethodAttribute.getEnclosingClass();
         recordTypeReference(
             enclosingClass, clazz, this::recordNonProgramClass, missingClassConsumer);
+      }
+    }
+
+    // Mark types in permitted-subclasses attributes referenced.
+    List<PermittedSubclassAttribute> permittedSubclassAttributes =
+        clazz.getPermittedSubclassAttributes();
+    if (!permittedSubclassAttributes.isEmpty()) {
+      BiConsumer<DexType, ProgramDerivedContext> missingClassConsumer =
+          options.reportMissingClassesInPermittedSubclassesAttributes
+              ? this::reportMissingClass
+              : this::ignoreMissingClass;
+      for (PermittedSubclassAttribute permittedSubclassAttribute : permittedSubclassAttributes) {
+        recordTypeReference(
+            permittedSubclassAttribute.getPermittedSubclass(),
+            clazz,
+            this::recordNonProgramClass,
+            missingClassConsumer);
       }
     }
 
@@ -3495,7 +3508,11 @@ public class Enqueuer {
         DexProgramClass clazz = asProgramClassOrNull(definitionFor(referencedType, context));
         if (clazz != null) {
           applyMinimumKeepInfoWhenLive(
-              clazz, KeepClassInfo.newEmptyJoiner().disallowMinification().disallowOptimization());
+              clazz,
+              KeepClassInfo.newEmptyJoiner()
+                  .disallowMinification()
+                  .disallowOptimization()
+                  .disallowRepackaging());
         }
       }
     }
@@ -4917,7 +4934,7 @@ public class Enqueuer {
   }
 
   private void handleReflectiveBehavior(ProgramMethod method) {
-    IRCode code = method.buildIR(appView);
+    IRCode code = method.buildIR(appView, MethodConversionOptions.nonConverting());
     InstructionIterator iterator = code.instructionIterator();
     while (iterator.hasNext()) {
       Instruction instruction = iterator.next();

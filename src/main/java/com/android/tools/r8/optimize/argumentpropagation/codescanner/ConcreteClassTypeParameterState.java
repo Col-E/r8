@@ -105,15 +105,11 @@ public class ConcreteClassTypeParameterState extends ConcreteReferenceTypeParame
       DexType parameterType,
       Action onChangedAction) {
     assert parameterType.isClassType();
-    boolean allowNullOrAbstractValue = true;
-    boolean allowNonConstantNumbers = false;
     AbstractValue oldAbstractValue = abstractValue;
     abstractValue =
-        abstractValue.join(
-            parameterState.getAbstractValue(appView),
-            appView.abstractValueFactory(),
-            allowNullOrAbstractValue,
-            allowNonConstantNumbers);
+        appView
+            .getAbstractValueParameterJoiner()
+            .join(abstractValue, parameterState.getAbstractValue(appView), parameterType);
     DynamicType oldDynamicType = dynamicType;
     DynamicType joinedDynamicType = dynamicType.join(appView, parameterState.getDynamicType());
     DynamicType widenedDynamicType =

@@ -7,7 +7,6 @@ package com.android.tools.r8.accessrelaxation;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isFinal;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static com.android.tools.r8.utils.codeinspector.Matchers.onlyIf;
-import static org.hamcrest.CoreMatchers.allOf;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.android.tools.r8.NoRedundantFieldLoadElimination;
@@ -51,11 +50,18 @@ public class EffectiveFinalFieldMarkedFinalTest extends TestBase {
               ClassSubject mainClassSubject = inspector.clazz(Main.class);
               assertThat(mainClassSubject, isPresent());
               assertThat(
+                  mainClassSubject.uniqueFieldWithOriginalName("instanceField"), isPresent());
+              assertThat(
                   mainClassSubject.uniqueFieldWithOriginalName("instanceField"),
-                  allOf(isPresent(), onlyIf(allowAccessModification, isFinal())));
+                  onlyIf(
+                      parameters.isAccessModificationEnabled(allowAccessModification)
+                          && !parameters.canInitNewInstanceUsingSuperclassConstructor(),
+                      isFinal()));
+              assertThat(mainClassSubject.uniqueFieldWithOriginalName("staticField"), isPresent());
               assertThat(
                   mainClassSubject.uniqueFieldWithOriginalName("staticField"),
-                  allOf(isPresent(), onlyIf(allowAccessModification, isFinal())));
+                  onlyIf(
+                      parameters.isAccessModificationEnabled(allowAccessModification), isFinal()));
             })
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines("Hello, world!");

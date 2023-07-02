@@ -15,6 +15,7 @@ import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InvokeVirtual;
 import com.android.tools.r8.ir.code.Value;
+import com.android.tools.r8.ir.conversion.MethodConversionOptions;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceArrayMap;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceMap;
@@ -94,7 +95,10 @@ public class SwitchMapCollector {
     List<DexEncodedField> switchMapFields = clazz.staticFields().stream()
         .filter(this::maybeIsSwitchMap).collect(Collectors.toList());
     if (!switchMapFields.isEmpty()) {
-      IRCode initializer = clazz.getProgramClassInitializer().buildIR(appView);
+      IRCode initializer =
+          clazz
+              .getProgramClassInitializer()
+              .buildIR(appView, MethodConversionOptions.nonConverting());
       switchMapFields.forEach(field -> extractSwitchMap(field, initializer));
     }
   }

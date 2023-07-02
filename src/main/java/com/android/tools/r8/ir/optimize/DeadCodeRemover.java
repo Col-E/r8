@@ -60,11 +60,15 @@ public class DeadCodeRemover {
         removeDeadInstructions(worklist, code, block, valueIsDeadAnalysis);
         removeDeadPhis(worklist, block, valueIsDeadAnalysis);
       }
-    } while (branchSimplifier.simplifyIf(code).anySimplifications()
+    } while (branchSimplifier
+            .simplifyIf(code)
+            .asControlFlowSimplificationResult()
+            .anySimplifications()
         || removeUnneededCatchHandlers(code));
 
     code.removeRedundantBlocks();
     assert code.isConsistentSSA(appView);
+    assert verifyNoDeadCode(code);
 
     timing.end();
   }
@@ -140,6 +144,7 @@ public class DeadCodeRemover {
           CheckCast checkCast = current.asCheckCast();
           if (!checkCast.isRefiningStaticType(appView.options())
               && checkCast.outValue().getLocalInfo() == checkCast.object().getLocalInfo()) {
+            updateWorklistWithNonDebugUses(worklist, checkCast);
             checkCast.outValue().replaceUsers(checkCast.object());
             checkCast.object().uniquePhiUsers().forEach(Phi::removeTrivialPhi);
           }
@@ -193,6 +198,16 @@ public class DeadCodeRemover {
         outValue.clearUsers();
       }
       iterator.removeOrReplaceByDebugLocalRead();
+    }
+  }
+
+  private static void updateWorklistWithNonDebugUses(
+      Queue<BasicBlock> worklist, CheckCast checkCast) {
+    for (Instruction user : checkCast.outValue().uniqueUsers()) {
+      worklist.add(user.getBlock());
+    }
+    for (Phi user : checkCast.outValue().uniquePhiUsers()) {
+      worklist.add(user.getBlock());
     }
   }
 

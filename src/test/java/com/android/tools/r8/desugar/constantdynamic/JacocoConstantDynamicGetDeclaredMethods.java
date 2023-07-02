@@ -3,7 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.desugar.constantdynamic;
 
-import static com.android.tools.r8.utils.codeinspector.Matchers.isAbsent;
+import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -20,6 +20,7 @@ import com.android.tools.r8.cf.CfVersion;
 import com.android.tools.r8.jacoco.JacocoClasses;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.StringUtils;
+import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import java.io.IOException;
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Method;
@@ -56,6 +57,8 @@ public class JacocoConstantDynamicGetDeclaredMethods extends TestBase {
           "java.lang.invoke.MethodHandles$Lookup",
           "java.lang.String",
           "java.lang.Class");
+  private static final String EXPECTED_OUTPUT_WITHOUT_PARAMETERS =
+      StringUtils.lines(jacocoBootstrapMethodName, "0");
   private static final String EXPECTED_OUTPUT_WITHOUT_METHOD_HANDLES =
       StringUtils.lines(
           jacocoBootstrapMethodName,
@@ -130,6 +133,10 @@ public class JacocoConstantDynamicGetDeclaredMethods extends TestBase {
         .addProgramFiles(ToolHelper.JACOCO_AGENT)
         .setMinApi(parameters)
         .addKeepMainRules(TestRunner.class)
+        .addKeepRules(
+            "-keepclassmembers,allowoptimization,allowshrinking class " + MAIN_CLASS + " {",
+            "  boolean[] " + jacocoBootstrapMethodName + "(...);",
+            "}")
         .applyIf(
             parameters.getApiLevel().isLessThan(AndroidApiLevel.O),
             b -> b.addDontWarn(MethodHandles.Lookup.class))
@@ -138,13 +145,14 @@ public class JacocoConstantDynamicGetDeclaredMethods extends TestBase {
         .runWithJaCoCo(agentOutput, parameters.getRuntime(), MAIN_CLASS)
         .inspect(
             inspector -> {
-              assertThat(
+              MethodSubject jacocoBootstrapMethodSubject =
                   inspector
                       .clazz(TestRunner.class)
-                      .uniqueMethodWithOriginalName(jacocoBootstrapMethodName),
-                  isAbsent());
+                      .uniqueMethodWithOriginalName(jacocoBootstrapMethodName);
+              assertThat(jacocoBootstrapMethodSubject, isPresent());
+              assertEquals(0, jacocoBootstrapMethodSubject.getParameters().size());
             })
-        .assertSuccessWithOutputLines("No " + jacocoBootstrapMethodName + " method");
+        .assertSuccessWithOutput(EXPECTED_OUTPUT_WITHOUT_PARAMETERS);
     checkJacocoReport(agentOutput);
   }
 

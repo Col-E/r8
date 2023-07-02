@@ -5,6 +5,7 @@
 package com.android.tools.r8.ir.analysis.fieldaccess.state;
 
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.ProgramField;
 import com.android.tools.r8.ir.analysis.value.AbstractValue;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 
@@ -36,9 +37,10 @@ public class ConcreteArrayTypeFieldState extends ConcreteReferenceTypeFieldState
     return this;
   }
 
-  public FieldState mutableJoin(AppView<AppInfoWithLiveness> appView, AbstractValue abstractValue) {
+  public FieldState mutableJoin(
+      AppView<AppInfoWithLiveness> appView, ProgramField field, AbstractValue abstractValue) {
     this.abstractValue =
-        this.abstractValue.joinReference(abstractValue, appView.abstractValueFactory());
+        appView.getAbstractValueFieldJoiner().join(this.abstractValue, abstractValue, field);
     return isEffectivelyUnknown() ? unknown() : this;
   }
 

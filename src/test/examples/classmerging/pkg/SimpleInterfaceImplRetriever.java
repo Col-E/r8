@@ -4,6 +4,7 @@
 
 package classmerging.pkg;
 
+import classmerging.NoAccessModification;
 import classmerging.SimpleInterfaceAccessTest.SimpleInterface;
 
 public class SimpleInterfaceImplRetriever {
@@ -15,6 +16,7 @@ public class SimpleInterfaceImplRetriever {
   // This class is intentionally marked private. It is not possible to merge the interface
   // SimpleInterface into SimpleInterfaceImpl, since this would lead to an illegal class access
   // in SimpleInterfaceAccessTest.
+  @NoAccessModification
   private static class SimpleInterfaceImpl implements SimpleInterface {
 
     @Override

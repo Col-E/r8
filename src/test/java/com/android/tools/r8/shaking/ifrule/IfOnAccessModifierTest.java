@@ -5,9 +5,9 @@ package com.android.tools.r8.shaking.ifrule;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPackagePrivate;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
+import static com.android.tools.r8.utils.codeinspector.Matchers.isPublic;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assume.assumeFalse;
 
@@ -93,7 +93,7 @@ public class IfOnAccessModifierTest extends ProguardCompatibilityTestBase {
               assertThat(methodSubject, not(isPresent()));
               methodSubject = classSubject.uniqueMethodWithOriginalName("nonPublicMethod");
               assertThat(methodSubject, isPresent());
-              assertFalse(methodSubject.getMethod().accessFlags.isPublic());
+              assertThat(methodSubject, shrinker.isR8() ? isPublic() : isPackagePrivate());
               classSubject = inspector.clazz(ClassForSubsequent.class);
               assertThat(classSubject, not(isPresent()));
             });
@@ -176,7 +176,11 @@ public class IfOnAccessModifierTest extends ProguardCompatibilityTestBase {
               assertThat(methodSubject, not(isPresent()));
               methodSubject = classSubject.uniqueMethodWithOriginalName("nonPublicMethod");
               assertThat(methodSubject, isPresent());
-              assertThat(methodSubject, isPackagePrivate());
+              assertThat(
+                  methodSubject,
+                  shrinker.isR8() && isForceAccessModifyingPackagePrivateAndProtectedMethods()
+                      ? isPublic()
+                      : isPackagePrivate());
             });
   }
 
@@ -255,7 +259,11 @@ public class IfOnAccessModifierTest extends ProguardCompatibilityTestBase {
               assertThat(methodSubject, not(isPresent()));
               methodSubject = classSubject.uniqueMethodWithOriginalName("nonPublicMethod");
               assertThat(methodSubject, isPresent());
-              assertThat(methodSubject, isPackagePrivate());
+              assertThat(
+                  methodSubject,
+                  shrinker.isR8() && isForceAccessModifyingPackagePrivateAndProtectedMethods()
+                      ? isPublic()
+                      : isPackagePrivate());
             });
   }
 }

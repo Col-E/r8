@@ -33,6 +33,7 @@ import com.android.tools.r8.ir.code.SafeCheckCast;
 import com.android.tools.r8.ir.code.StaticGet;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.conversion.IRConverter;
+import com.android.tools.r8.ir.conversion.MethodConversionOptions.MutableMethodConversionOptions;
 import com.android.tools.r8.ir.conversion.MethodProcessor;
 import com.android.tools.r8.ir.conversion.callgraph.Node;
 import com.android.tools.r8.ir.optimize.Inliner;
@@ -42,6 +43,7 @@ import com.android.tools.r8.ir.optimize.info.OptimizationFeedback;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackSimple;
 import com.android.tools.r8.ir.optimize.inliner.FixedInliningReasonStrategy;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
+import com.android.tools.r8.shaking.DependentMinimumKeepInfoCollection;
 import com.android.tools.r8.shaking.Enqueuer;
 import com.android.tools.r8.shaking.EnqueuerWorklist;
 import com.android.tools.r8.utils.Box;
@@ -202,7 +204,10 @@ public class GeneratedMessageLiteBuilderShrinker {
    * references.
    */
   public void rewriteDeadBuilderReferencesFromDynamicMethods(
-      AppView<AppInfoWithLiveness> appView, ExecutorService executorService, Timing timing)
+      MutableMethodConversionOptions conversionOptions,
+      AppView<AppInfoWithLiveness> appView,
+      ExecutorService executorService,
+      Timing timing)
       throws ExecutionException {
     if (builders.isEmpty()) {
       return;
@@ -215,7 +220,7 @@ public class GeneratedMessageLiteBuilderShrinker {
         (builder, dynamicMethod) -> {
           if (!appInfo.isLiveProgramClass(builder)) {
             rewriteDeadBuilderReferencesFromDynamicMethod(
-                appView, builder, dynamicMethod, converter);
+                appView, builder, dynamicMethod, converter, conversionOptions);
           }
         },
         executorService);
@@ -227,8 +232,9 @@ public class GeneratedMessageLiteBuilderShrinker {
       AppView<AppInfoWithLiveness> appView,
       DexProgramClass builder,
       ProgramMethod dynamicMethod,
-      IRConverter converter) {
-    IRCode code = dynamicMethod.buildIR(appView);
+      IRConverter converter,
+      MutableMethodConversionOptions conversionOptions) {
+    IRCode code = dynamicMethod.buildIR(appView, conversionOptions);
     InstructionListIterator instructionIterator = code.instructionListIterator();
 
     assert builder.superType == references.generatedMessageLiteBuilderType
@@ -314,6 +320,14 @@ public class GeneratedMessageLiteBuilderShrinker {
         .extend(subtypingInfo);
   }
 
+  public void extendRootSet(DependentMinimumKeepInfoCollection dependentMinimumKeepInfo) {
+    dependentMinimumKeepInfo
+        .getOrCreateUnconditionalMinimumKeepInfoFor(
+            references.generatedMessageLiteBuilderMethods.constructorMethod)
+        .asMethodJoiner()
+        .disallowInlining();
+  }
+
   public void preprocessCallGraphBeforeCycleElimination(Map<DexMethod, Node> nodes) {
     Node node = nodes.get(references.generatedMessageLiteBuilderMethods.constructorMethod);
     if (node != null) {
@@ -332,7 +346,6 @@ public class GeneratedMessageLiteBuilderShrinker {
   public void inlineCallsToDynamicMethod(
       ProgramMethod method,
       IRCode code,
-      EnumValueOptimizer enumValueOptimizer,
       OptimizationFeedback feedback,
       MethodProcessor methodProcessor,
       Inliner inliner) {
@@ -345,9 +358,7 @@ public class GeneratedMessageLiteBuilderShrinker {
 
     // Run the enum optimization to optimize all Enum.ordinal() invocations. This is required to
     // get rid of the enum switch in dynamicMethod().
-    if (enumValueOptimizer != null) {
-      enumValueOptimizer.run(code, Timing.empty());
-    }
+    new EnumValueOptimizer(appView).run(code, Timing.empty());
   }
 
   /**

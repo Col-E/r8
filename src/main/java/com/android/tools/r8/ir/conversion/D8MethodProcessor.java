@@ -128,7 +128,8 @@ public class D8MethodProcessor extends MethodProcessor {
                     method,
                     OptimizationFeedbackIgnore.getInstance(),
                     this,
-                    processorContext.createMethodProcessingContext(method)),
+                    processorContext.createMethodProcessingContext(method),
+                    MethodConversionOptions.forD8(converter.appView)),
             executorService));
   }
 

@@ -256,6 +256,7 @@ public class VerticalClassMergerTest extends TestBase {
     Path[] programFiles =
         new Path[] {
           CF_DIR.resolve("NeverPropagateValue.class"),
+          CF_DIR.resolve("NoAccessModification.class"),
           CF_DIR.resolve("NoRedundantFieldLoadElimination.class"),
           CF_DIR.resolve("ConflictInGeneratedNameTest.class"),
           CF_DIR.resolve("ConflictInGeneratedNameTest$A.class"),
@@ -1081,6 +1082,7 @@ public class VerticalClassMergerTest extends TestBase {
           CF_DIR.resolve("pkg/SimpleInterfaceImplRetriever$SimpleInterfaceImpl.class"),
           CF_DIR.resolve("pkg/SimpleInterfaceImplRetriever$1.class"),
           CF_DIR.resolve("NeverInline.class"),
+          CF_DIR.resolve("NoAccessModification.class"),
           CF_DIR.resolve("NoHorizontalClassMerging.class")
         };
     // SimpleInterface cannot be merged into SimpleInterfaceImpl because SimpleInterfaceImpl

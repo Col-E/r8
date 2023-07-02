@@ -10,3 +10,5 @@
 
 # Remove once b/62048823 is fixed.
 -allowaccessmodification
+
+-noaccessmodification @memberrebinding2.NoAccessModification class *

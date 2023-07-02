@@ -9,12 +9,14 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.NeverClassInline;
+import com.android.tools.r8.NoAccessModification;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.FieldSubject;
+import com.android.tools.r8.utils.codeinspector.HorizontallyMergedClassesInspector;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -50,7 +52,10 @@ public class B141942381 extends TestBase {
         .addKeepMainRule(TestClass.class)
         .setMinApi(parameters)
         .addKeepAttributes("Signatures")
+        .addHorizontallyMergedClassesInspector(
+            HorizontallyMergedClassesInspector::assertNoClassesMerged)
         .enableNeverClassInliningAnnotations()
+        .enableNoAccessModificationAnnotationsForMembers()
         .addDontObfuscate()
         .compile()
         .inspect(this::inspect)
@@ -90,6 +95,7 @@ public class B141942381 extends TestBase {
   }
 
   static abstract class Box<T extends BoxValue> {
+    @NoAccessModification
     @SuppressWarnings("unchecked")
     private T[] _storage = (T[]) (new BoxValue[1]);
 

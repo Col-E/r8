@@ -9,6 +9,7 @@ import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.conversion.IRConverter;
+import com.android.tools.r8.ir.conversion.MethodConversionOptions;
 import com.android.tools.r8.ir.conversion.MethodProcessorEventConsumer;
 import com.android.tools.r8.ir.conversion.OneTimeMethodProcessor;
 import com.android.tools.r8.ir.optimize.enums.EnumDataMap.EnumData;
@@ -111,7 +112,8 @@ public class EnumUnboxingUtilityClasses {
                   method,
                   OptimizationFeedbackSimple.getInstance(),
                   methodProcessor,
-                  methodProcessingContext),
+                  methodProcessingContext,
+                  MethodConversionOptions.forLirPhase(appView)),
           executorService);
       return utilityClasses;
     }

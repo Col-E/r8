@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.ir.optimize.classinliner.testclasses;
 
+import com.android.tools.r8.NoAccessModification;
 import com.android.tools.r8.NoHorizontalClassMerging;
 
 public class ClassInlineInstanceInitializerWithInaccessibleStaticGetTestClasses {
@@ -24,7 +25,7 @@ public class ClassInlineInstanceInitializerWithInaccessibleStaticGetTestClasses 
 
   public static class Environment {
 
-    /*package-private*/ static boolean VALUE;
+    @NoAccessModification /*package-private*/ static boolean VALUE;
 
     public static void setValue(boolean value) {
       VALUE = value;

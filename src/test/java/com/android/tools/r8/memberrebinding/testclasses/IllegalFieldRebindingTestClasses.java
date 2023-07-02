@@ -4,10 +4,12 @@
 
 package com.android.tools.r8.memberrebinding.testclasses;
 
+import com.android.tools.r8.NoAccessModification;
 import com.android.tools.r8.NoVerticalClassMerging;
 
 public class IllegalFieldRebindingTestClasses {
 
+  @NoAccessModification
   @NoVerticalClassMerging
   static class A {
     public static int f;

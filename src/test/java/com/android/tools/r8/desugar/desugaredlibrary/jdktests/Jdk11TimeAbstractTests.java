@@ -4,8 +4,10 @@
 
 package com.android.tools.r8.desugar.desugaredlibrary.jdktests;
 
-import static com.android.tools.r8.ToolHelper.JDK_TESTS_BUILD_DIR;
 import static com.android.tools.r8.desugar.desugaredlibrary.jdktests.Jdk11SupportFiles.getPathsFiles;
+import static com.android.tools.r8.desugar.desugaredlibrary.jdktests.Jdk11SupportFiles.getTestNGMainRunner;
+import static com.android.tools.r8.desugar.desugaredlibrary.jdktests.Jdk11SupportFiles.jcommanderPath;
+import static com.android.tools.r8.desugar.desugaredlibrary.jdktests.Jdk11SupportFiles.testNGPath;
 import static com.android.tools.r8.desugar.desugaredlibrary.jdktests.Jdk11SupportFiles.testNGSupportProgramFiles;
 import static com.android.tools.r8.desugar.desugaredlibrary.jdktests.Jdk11TestLibraryDesugaringSpecification.EXTENSION_PATH;
 import static com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification.D8_L8DEBUG;
@@ -108,10 +110,7 @@ public abstract class Jdk11TimeAbstractTests extends DesugaredLibraryTestBase {
             "java.base=" + EXTENSION_PATH);
     javac(TestRuntime.getCheckedInJdk11(), getStaticTemp())
         .addOptions(options)
-        .addClasspathFiles(
-            ImmutableList.of(
-                Paths.get(JDK_TESTS_BUILD_DIR + "testng-6.10.jar"),
-                Paths.get(JDK_TESTS_BUILD_DIR + "jcommander-1.48.jar")))
+        .addClasspathFiles(testNGPath(), jcommanderPath())
         .addSourceFiles(getJdk11TimeTestFiles())
         .setOutputPath(tmpDirectory)
         .compile();
@@ -261,6 +260,7 @@ public abstract class Jdk11TimeAbstractTests extends DesugaredLibraryTestBase {
                 parameters, libraryDesugaringSpecification, compilationSpecification)
             .addProgramFiles(JDK_11_TIME_TEST_COMPILED_FILES)
             .addProgramFiles(testNGSupportProgramFiles())
+            .addProgramClassFileData(getTestNGMainRunner())
             .applyIf(
                 !libraryDesugaringSpecification.hasNioFileDesugaring(parameters),
                 b -> b.addProgramFiles(getPathsFiles()))

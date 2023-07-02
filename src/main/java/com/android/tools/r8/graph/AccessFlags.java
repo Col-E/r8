@@ -149,6 +149,10 @@ public abstract class AccessFlags<T extends AccessFlags<T>> implements Structura
     return !isPublic() && !isPrivate();
   }
 
+  public boolean isPackagePrivateOrPublic() {
+    return !isPrivate() && !isProtected();
+  }
+
   public boolean isPublic() {
     return isSet(Constants.ACC_PUBLIC);
   }

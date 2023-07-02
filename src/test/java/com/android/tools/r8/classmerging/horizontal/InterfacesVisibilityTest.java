@@ -33,6 +33,7 @@ public class InterfacesVisibilityTest extends HorizontalClassMergingTestBase {
         .addKeepMainRule(Main.class)
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
+        .enableNoAccessModificationAnnotationsForClasses()
         .enableNoMethodStaticizingAnnotations()
         .enableNoParameterTypeStrengtheningAnnotations()
         .enableNoVerticalClassMergingAnnotations()

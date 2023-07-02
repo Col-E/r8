@@ -50,6 +50,7 @@ import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.conversion.ExtraParameter;
 import com.android.tools.r8.ir.conversion.ExtraUnusedNullParameter;
 import com.android.tools.r8.ir.conversion.IRConverter;
+import com.android.tools.r8.ir.conversion.MethodConversionOptions;
 import com.android.tools.r8.ir.conversion.MethodProcessorEventConsumer;
 import com.android.tools.r8.ir.conversion.OneTimeMethodProcessor;
 import com.android.tools.r8.ir.optimize.enums.EnumDataMap.EnumData;
@@ -283,7 +284,11 @@ class EnumUnboxingTreeFixer implements ProgramClassFixer {
     methodProcessor.forEachWaveWithExtension(
         (method, methodProcessingContext) ->
             converter.processDesugaredMethod(
-                method, OptimizationFeedback.getSimple(), methodProcessor, methodProcessingContext),
+                method,
+                OptimizationFeedback.getSimple(),
+                methodProcessor,
+                methodProcessingContext,
+                MethodConversionOptions.forLirPhase(appView)),
         executorService);
 
     return checkNotNullToCheckNotZeroMapping;

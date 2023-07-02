@@ -85,7 +85,7 @@ public class FieldAccessAnalysis {
             appView.appInfo().resolveField(fieldInstruction.getField()).getProgramField();
         if (field != null) {
           if (fieldAssignmentTracker != null) {
-            fieldAssignmentTracker.recordFieldAccess(fieldInstruction, field, code.context());
+            fieldAssignmentTracker.recordFieldAccess(fieldInstruction, field);
           }
           if (fieldBitAccessAnalysis != null) {
             fieldBitAccessAnalysis.recordFieldAccess(

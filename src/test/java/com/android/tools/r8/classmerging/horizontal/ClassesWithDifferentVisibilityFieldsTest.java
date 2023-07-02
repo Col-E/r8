@@ -11,6 +11,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
+import com.android.tools.r8.NoAccessModification;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.FieldSubject;
@@ -29,6 +30,7 @@ public class ClassesWithDifferentVisibilityFieldsTest extends HorizontalClassMer
         .addKeepMainRule(Main.class)
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
+        .enableNoAccessModificationAnnotationsForMembers()
         .setMinApi(parameters)
         .addHorizontallyMergedClassesInspector(
             inspector -> inspector.assertMergedInto(B.class, A.class))
@@ -66,7 +68,9 @@ public class ClassesWithDifferentVisibilityFieldsTest extends HorizontalClassMer
 
   @NeverClassInline
   public static class A {
-    private int v1;
+
+    @NoAccessModification private int v1;
+
     public int v2;
 
     public A(int v) {
@@ -92,8 +96,10 @@ public class ClassesWithDifferentVisibilityFieldsTest extends HorizontalClassMer
 
   @NeverClassInline
   public static class B {
+
     public int v1;
-    private int v2;
+
+    @NoAccessModification private int v2;
 
     public B(int v) {
       v1 = 3 * v;

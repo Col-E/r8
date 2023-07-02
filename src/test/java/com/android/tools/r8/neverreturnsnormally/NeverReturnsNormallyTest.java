@@ -86,12 +86,7 @@ public class NeverReturnsNormallyTest extends TestBase {
     }
     ToolHelper.allowTestProguardOptions(builder);
     AndroidApp app =
-        ToolHelper.runR8(
-            builder.build(),
-            opts -> {
-              opts.enableClassInlining = enableClassInliner;
-              opts.testing.dontReportFailingCheckDiscarded = true;
-            });
+        ToolHelper.runR8(builder.build(), opts -> opts.enableClassInlining = enableClassInliner);
     inspection.accept(new CodeInspector(app));
 
     if (parameters.isDexRuntime()) {

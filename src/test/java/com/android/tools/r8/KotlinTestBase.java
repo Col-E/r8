@@ -91,8 +91,7 @@ public abstract class KotlinTestBase extends TestBase {
   }
 
   protected Path getJavaJarFile(String folder) {
-    return Paths.get(ToolHelper.TESTS_BUILD_DIR, RSRC,
-        targetVersion.getFolderName(), folder + ".java" + FileUtils.JAR_EXTENSION);
+    return Paths.get(ToolHelper.TESTS_BUILD_DIR, RSRC, folder + FileUtils.JAR_EXTENSION);
   }
 
   protected Path getMappingfile(String folder, String mappingFileName) {

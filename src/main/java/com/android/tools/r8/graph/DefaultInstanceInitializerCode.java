@@ -26,8 +26,8 @@ import com.android.tools.r8.ir.code.Position.SyntheticPosition;
 import com.android.tools.r8.ir.code.ValueType;
 import com.android.tools.r8.ir.conversion.IRBuilder;
 import com.android.tools.r8.ir.conversion.LensCodeRewriterUtils;
+import com.android.tools.r8.ir.conversion.MethodConversionOptions;
 import com.android.tools.r8.ir.conversion.MethodConversionOptions.MutableMethodConversionOptions;
-import com.android.tools.r8.ir.conversion.MethodConversionOptions.ThrowingMethodConversionOptions;
 import com.android.tools.r8.ir.conversion.SyntheticStraightLineSourceCode;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.origin.Origin;
@@ -168,7 +168,7 @@ public class DefaultInstanceInitializerCode extends Code
         new DefaultInstanceInitializerSourceCode(originalMethod, callerPosition);
     return IRBuilder.createForInlining(
             method, appView, codeLens, source, origin, valueNumberGenerator, protoChanges)
-        .build(context, new ThrowingMethodConversionOptions(appView.options()));
+        .build(context, MethodConversionOptions.nonConverting());
   }
 
   @Override

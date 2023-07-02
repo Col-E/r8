@@ -43,6 +43,7 @@ public class NonReboundBridgeHoistingTest extends TestBase {
             transformer(C.class).setBridge(C.class.getDeclaredMethod("bridge")).transform())
         .addKeepMainRule(TestClass.class)
         .enableInliningAnnotations()
+        .enableNoAccessModificationAnnotationsForClasses()
         .enableNoVerticalClassMergingAnnotations()
         .enableNeverClassInliningAnnotations()
         .setMinApi(parameters)

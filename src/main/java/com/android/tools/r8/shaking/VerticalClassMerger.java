@@ -395,11 +395,7 @@ public class VerticalClassMerger {
   // before merging [clazz] into its subtype.
   private boolean isStillMergeCandidate(DexProgramClass sourceClass, DexProgramClass targetClass) {
     assert isMergeCandidate(sourceClass, targetClass, pinnedTypes);
-    if (mergedClasses.containsValue(sourceClass.getType())) {
-      // Do not allow merging the resulting class into its subclass.
-      // TODO(christofferqa): Get rid of this limitation.
-      return false;
-    }
+    assert !mergedClasses.containsValue(sourceClass.getType());
     // For interface types, this is more complicated, see:
     // https://docs.oracle.com/javase/specs/jvms/se9/html/jvms-5.html#jvms-5.5
     // We basically can't move the clinit, since it is not called when implementing classes have
@@ -449,13 +445,14 @@ public class VerticalClassMerger {
   }
 
   private boolean mergeMayLeadToIllegalAccesses(DexProgramClass source, DexProgramClass target) {
-    if (source.type.isSamePackage(target.type)) {
+    if (source.isSamePackage(target)) {
       // When merging two classes from the same package, we only need to make sure that [source]
       // does not get less visible, since that could make a valid access to [source] from another
       // package illegal after [source] has been merged into [target].
-      int accessLevel = source.isPrivate() ? 0 : (source.isPublic() ? 2 : 1);
-      int otherAccessLevel = target.isPrivate() ? 0 : (target.isPublic() ? 2 : 1);
-      return accessLevel > otherAccessLevel;
+      assert source.getAccessFlags().isPackagePrivateOrPublic();
+      assert target.getAccessFlags().isPackagePrivateOrPublic();
+      // TODO(b/287891322): Allow merging if `source` is only accessed from inside its own package.
+      return source.getAccessFlags().isPublic() && target.getAccessFlags().isPackagePrivate();
     }
 
     // Check that all accesses to [source] and its members from inside the current package of
@@ -803,12 +800,12 @@ public class VerticalClassMerger {
 
     DexType singleSubtype = subtypingInfo.getSingleDirectSubtype(clazz.type);
     DexProgramClass targetClass = appView.definitionFor(singleSubtype).asProgramClass();
-    assert isMergeCandidate(clazz, targetClass, pinnedTypes);
     assert !mergedClasses.containsKey(targetClass.type);
-
-    boolean clazzOrTargetClassHasBeenMerged =
-        mergedClasses.containsValue(clazz.type) || mergedClasses.containsValue(targetClass.type);
-    if (clazzOrTargetClassHasBeenMerged) {
+    if (mergedClasses.containsValue(clazz.type)) {
+      return;
+    }
+    assert isMergeCandidate(clazz, targetClass, pinnedTypes);
+    if (mergedClasses.containsValue(targetClass.type)) {
       if (!isStillMergeCandidate(clazz, targetClass)) {
         return;
       }
@@ -909,7 +906,11 @@ public class VerticalClassMerger {
             DexEncodedMethod definition = directMethod.getDefinition();
             if (definition.isInstanceInitializer()) {
               DexEncodedMethod resultingConstructor =
-                  renameConstructor(definition, availableMethodSignatures);
+                  renameConstructor(
+                      definition,
+                      candidate ->
+                          availableMethodSignatures.test(candidate)
+                              && source.lookupVirtualMethod(candidate) == null);
               add(directMethods, resultingConstructor, MethodSignatureEquivalence.get());
               blockRedirectionOfSuperCalls(resultingConstructor.getReference());
             } else {
@@ -1684,6 +1685,8 @@ public class VerticalClassMerger {
         clazz.getMethodCollection().replaceMethods(this::fixupMethod);
         clazz.setStaticFields(fixupFields(clazz.staticFields()));
         clazz.setInstanceFields(fixupFields(clazz.instanceFields()));
+        clazz.setPermittedSubclassAttributes(
+            fixupPermittedSubclassAttribute(clazz.getPermittedSubclassAttributes()));
       }
       for (SynthesizedBridgeCode synthesizedBridge : synthesizedBridges) {
         synthesizedBridge.updateMethodSignatures(this::fixupMethodReference);

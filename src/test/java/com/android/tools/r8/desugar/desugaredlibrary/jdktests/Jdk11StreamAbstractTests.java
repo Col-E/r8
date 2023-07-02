@@ -4,9 +4,10 @@
 
 package com.android.tools.r8.desugar.desugaredlibrary.jdktests;
 
-import static com.android.tools.r8.ToolHelper.JDK_TESTS_BUILD_DIR;
 import static com.android.tools.r8.desugar.desugaredlibrary.jdktests.Jdk11SupportFiles.getPathsFiles;
 import static com.android.tools.r8.desugar.desugaredlibrary.jdktests.Jdk11SupportFiles.getSafeVarArgsFile;
+import static com.android.tools.r8.desugar.desugaredlibrary.jdktests.Jdk11SupportFiles.getTestNGMainRunner;
+import static com.android.tools.r8.desugar.desugaredlibrary.jdktests.Jdk11SupportFiles.testNGPath;
 import static com.android.tools.r8.desugar.desugaredlibrary.jdktests.Jdk11SupportFiles.testNGSupportProgramFiles;
 import static com.android.tools.r8.desugar.desugaredlibrary.jdktests.Jdk11TestLibraryDesugaringSpecification.EXTENSION_PATH;
 import static com.android.tools.r8.desugar.desugaredlibrary.jdktests.Jdk11TestLibraryDesugaringSpecification.JDK11_PATH_JAVA_BASE_EXT;
@@ -256,8 +257,7 @@ public abstract class Jdk11StreamAbstractTests extends DesugaredLibraryTestBase 
             "java.base=" + EXTENSION_PATH);
     javac(TestRuntime.getCheckedInJdk11(), getStaticTemp())
         .addOptions(options)
-        .addClasspathFiles(
-            ImmutableList.of(EXTENSION_PATH, Paths.get(JDK_TESTS_BUILD_DIR + "testng-6.10.jar")))
+        .addClasspathFiles(testNGPath())
         .addSourceFiles(getJdk11StreamTestFiles())
         .setOutputPath(JDK_11_STREAM_TEST_CLASSES_DIR)
         .compile();
@@ -297,6 +297,7 @@ public abstract class Jdk11StreamAbstractTests extends DesugaredLibraryTestBase 
             b -> b.addProgramFiles(getPathsFiles()))
         .addProgramFiles(getSafeVarArgsFile())
         .addProgramFiles(testNGSupportProgramFiles())
+        .addProgramClassFileData(getTestNGMainRunner())
         .addOptionsModification(opt -> opt.testing.trackDesugaredAPIConversions = true)
         .disableL8AnnotationRemoval()
         .compile()

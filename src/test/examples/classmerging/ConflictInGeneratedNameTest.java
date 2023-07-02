@@ -51,6 +51,7 @@ public class ConflictInGeneratedNameTest {
     }
 
     // There is a private method in B with the same name as this one.
+    @NoAccessModification
     private String getName() {
       return name;
     }
@@ -101,10 +102,12 @@ public class ConflictInGeneratedNameTest {
       super.boo();
     }
 
+    @NoAccessModification
     private void boo$classmerging$ConflictInGeneratedNameTest$A() {
       print("In B.boo$classmerging$ConflictInGeneratedNameTest$A()");
     }
 
+    @NoAccessModification
     private String getName() {
       return name;
     }

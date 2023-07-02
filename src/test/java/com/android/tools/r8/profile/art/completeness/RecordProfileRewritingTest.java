@@ -45,7 +45,18 @@ public class RecordProfileRewritingTest extends TestBase {
   private static final String RECORD_NAME = "SimpleRecord";
   private static final byte[][] PROGRAM_DATA = RecordTestUtils.getProgramData(RECORD_NAME);
   private static final String EXPECTED_RESULT =
-      StringUtils.lines("Jane Doe", "42", "Jane Doe", "42");
+      StringUtils.lines(
+          "Jane Doe",
+          "42",
+          "Jane Doe",
+          "42",
+          "true",
+          "true",
+          "true",
+          "false",
+          "false",
+          "false",
+          "false");
 
   private static final ClassReference MAIN_REFERENCE =
       Reference.classFromTypeName(RecordTestUtils.getMainType(RECORD_NAME));

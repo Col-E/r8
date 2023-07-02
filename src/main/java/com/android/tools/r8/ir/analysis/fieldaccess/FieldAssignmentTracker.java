@@ -45,12 +45,13 @@ import com.android.tools.r8.ir.optimize.info.field.InstanceFieldInitializationIn
 import com.android.tools.r8.optimize.argumentpropagation.utils.WideningUtils;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.KeepFieldInfo;
+import com.android.tools.r8.utils.TraversalContinuation;
+import com.android.tools.r8.utils.collections.ProgramFieldMap;
 import com.android.tools.r8.utils.collections.ProgramMethodSet;
 import it.unimi.dsi.fastutil.objects.Reference2IntMap;
 import it.unimi.dsi.fastutil.objects.Reference2IntOpenHashMap;
 import java.util.ArrayList;
 import java.util.IdentityHashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -76,7 +77,7 @@ public class FieldAssignmentTracker {
   // has been seen to the field.
   private final Map<DexEncodedField, FieldState> fieldStates = new ConcurrentHashMap<>();
 
-  private final Map<DexProgramClass, Map<DexEncodedField, AbstractValue>>
+  private final Map<DexProgramClass, ProgramFieldMap<AbstractValue>>
       abstractFinalInstanceFieldValues = new ConcurrentHashMap<>();
 
   FieldAssignmentTracker(AppView<AppInfoWithLiveness> appView) {
@@ -116,15 +117,14 @@ public class FieldAssignmentTracker {
             // No instance fields to track.
             return;
           }
-          Map<DexEncodedField, AbstractValue> abstractFinalInstanceFieldValuesForClass =
-              new IdentityHashMap<>();
+          ProgramFieldMap<AbstractValue> abstractFinalInstanceFieldValuesForClass =
+              ProgramFieldMap.create();
           clazz.forEachProgramInstanceField(
               field -> {
                 if (field.isFinalOrEffectivelyFinal(appView)) {
                   FieldAccessInfo fieldAccessInfo = fieldAccessInfos.get(field.getReference());
                   if (fieldAccessInfo != null && !fieldAccessInfo.hasReflectiveAccess()) {
-                    abstractFinalInstanceFieldValuesForClass.put(
-                        field.getDefinition(), BottomValue.getInstance());
+                    abstractFinalInstanceFieldValuesForClass.put(field, BottomValue.getInstance());
                   }
                 }
               });
@@ -185,13 +185,13 @@ public class FieldAssignmentTracker {
         });
   }
 
-  void recordFieldAccess(FieldInstruction instruction, ProgramField field, ProgramMethod context) {
+  void recordFieldAccess(FieldInstruction instruction, ProgramField field) {
     if (instruction.isFieldPut()) {
-      recordFieldPut(field, instruction.value(), context);
+      recordFieldPut(field, instruction.value());
     }
   }
 
-  private void recordFieldPut(ProgramField field, Value value, ProgramMethod context) {
+  private void recordFieldPut(ProgramField field, Value value) {
     // For now only attempt to prove that fields are definitely null. In order to prove a single
     // value for fields that are not definitely null, we need to prove that the given field is never
     // read before it is written.
@@ -225,12 +225,12 @@ public class FieldAssignmentTracker {
 
           if (fieldState.isArray()) {
             ConcreteArrayTypeFieldState arrayFieldState = fieldState.asArray();
-            return arrayFieldState.mutableJoin(appView, abstractValue);
+            return arrayFieldState.mutableJoin(appView, field, abstractValue);
           }
 
           if (fieldState.isPrimitive()) {
             ConcretePrimitiveTypeFieldState primitiveFieldState = fieldState.asPrimitive();
-            return primitiveFieldState.mutableJoin(abstractValue, abstractValueFactory);
+            return primitiveFieldState.mutableJoin(appView, field, abstractValue);
           }
 
           assert fieldState.isClass();
@@ -242,7 +242,7 @@ public class FieldAssignmentTracker {
   }
 
   void recordAllocationSite(NewInstance instruction, DexProgramClass clazz, ProgramMethod context) {
-    Map<DexEncodedField, AbstractValue> abstractInstanceFieldValuesForClass =
+    ProgramFieldMap<AbstractValue> abstractInstanceFieldValuesForClass =
         abstractFinalInstanceFieldValues.get(clazz);
     if (abstractInstanceFieldValuesForClass == null) {
       // We are not tracking the value of any of clazz' instance fields.
@@ -273,75 +273,59 @@ public class FieldAssignmentTracker {
     // Synchronize on the lattice element (abstractInstanceFieldValuesForClass) in case we process
     // another allocation site of `clazz` concurrently.
     synchronized (abstractInstanceFieldValuesForClass) {
-      Iterator<Map.Entry<DexEncodedField, AbstractValue>> iterator =
-          abstractInstanceFieldValuesForClass.entrySet().iterator();
-      while (iterator.hasNext()) {
-        Map.Entry<DexEncodedField, AbstractValue> entry = iterator.next();
-        DexEncodedField field = entry.getKey();
-        AbstractValue abstractValue = entry.getValue();
-
-        // The power set lattice is an expensive abstraction, so use it with caution.
-        boolean isClassIdField = HorizontalClassMergerUtils.isClassIdField(appView, field);
-
-        InstanceFieldInitializationInfo initializationInfo =
-            initializationInfoCollection.get(field);
-        if (initializationInfo.isArgumentInitializationInfo()) {
-          InstanceFieldArgumentInitializationInfo argumentInitializationInfo =
-              initializationInfo.asArgumentInitializationInfo();
-          Value argument = invoke.arguments().get(argumentInitializationInfo.getArgumentIndex());
-          AbstractValue argumentAbstractValue = argument.getAbstractValue(appView, context);
-          abstractValue =
-              abstractValue.join(
-                  argumentAbstractValue,
-                  appView.abstractValueFactory(),
-                  field.getType().isReferenceType(),
-                  isClassIdField);
-          assert !abstractValue.isBottom();
-        } else if (initializationInfo.isSingleValue()) {
-          SingleValue singleValueInitializationInfo = initializationInfo.asSingleValue();
-          abstractValue =
-              abstractValue.join(
-                  singleValueInitializationInfo,
-                  appView.abstractValueFactory(),
-                  field.getType().isReferenceType(),
-                  isClassIdField);
-        } else if (initializationInfo.isTypeInitializationInfo()) {
-          // TODO(b/149732532): Not handled, for now.
-          abstractValue = UnknownValue.getInstance();
-        } else {
-          assert initializationInfo.isUnknown();
-          abstractValue = UnknownValue.getInstance();
-        }
-
-        assert !abstractValue.isBottom();
-
-        // When approximating the possible values for the $r8$classId fields from horizontal class
-        // merging, give up if the set of possible values equals the size of the merge group. In
-        // this case, the information is useless.
-        if (isClassIdField && abstractValue.isNonConstantNumberValue()) {
-          NonConstantNumberValue initialAbstractValue =
-              field.getOptimizationInfo().getAbstractValue().asNonConstantNumberValue();
-          if (initialAbstractValue != null) {
-            if (abstractValue.asNonConstantNumberValue().getAbstractionSize()
-                >= initialAbstractValue.getAbstractionSize()) {
+      abstractInstanceFieldValuesForClass.removeIf(
+          (field, abstractValue, entry) -> {
+            InstanceFieldInitializationInfo initializationInfo =
+                initializationInfoCollection.get(field);
+            if (initializationInfo.isArgumentInitializationInfo()) {
+              InstanceFieldArgumentInitializationInfo argumentInitializationInfo =
+                  initializationInfo.asArgumentInitializationInfo();
+              Value argument =
+                  invoke.arguments().get(argumentInitializationInfo.getArgumentIndex());
+              AbstractValue argumentAbstractValue = argument.getAbstractValue(appView, context);
+              abstractValue =
+                  appView
+                      .getAbstractValueFieldJoiner()
+                      .join(abstractValue, argumentAbstractValue, field);
+            } else if (initializationInfo.isSingleValue()) {
+              SingleValue singleValueInitializationInfo = initializationInfo.asSingleValue();
+              abstractValue =
+                  appView
+                      .getAbstractValueFieldJoiner()
+                      .join(abstractValue, singleValueInitializationInfo, field);
+            } else if (initializationInfo.isTypeInitializationInfo()) {
+              // TODO(b/149732532): Not handled, for now.
+              abstractValue = UnknownValue.getInstance();
+            } else {
+              assert initializationInfo.isUnknown();
               abstractValue = UnknownValue.getInstance();
             }
-          }
-        }
 
-        if (!abstractValue.isUnknown()) {
-          entry.setValue(abstractValue);
-          continue;
-        }
+            assert !abstractValue.isBottom();
 
-        // We just lost track for this field.
-        iterator.remove();
-      }
+            // When approximating the possible values for the $r8$classId fields from horizontal
+            // class
+            // merging, give up if the set of possible values equals the size of the merge group. In
+            // this case, the information is useless.
+            if (abstractValue.isNonConstantNumberValue()) {
+              assert HorizontalClassMergerUtils.isClassIdField(appView, field);
+              NonConstantNumberValue initialAbstractValue =
+                  field.getOptimizationInfo().getAbstractValue().asNonConstantNumberValue();
+              if (initialAbstractValue != null
+                  && abstractValue.asNonConstantNumberValue().getAbstractionSize()
+                      >= initialAbstractValue.getAbstractionSize()) {
+                abstractValue = UnknownValue.getInstance();
+              }
+            }
+
+            entry.setValue(abstractValue);
+            return abstractValue.isUnknown();
+          });
     }
   }
 
   private void recordAllFieldPutsProcessed(
-      ProgramField field, ProgramMethod context, OptimizationFeedbackDelayed feedback) {
+      ProgramField field, OptimizationFeedbackDelayed feedback) {
     FieldState fieldState = fieldStates.getOrDefault(field.getDefinition(), FieldState.bottom());
     AbstractValue abstractValue = fieldState.getAbstractValue(appView.abstractValueFactory());
     if (abstractValue.isNonTrivial()) {
@@ -384,10 +368,9 @@ public class FieldAssignmentTracker {
                 .get(field);
         if (fieldInitializationInfo.isSingleValue()) {
           abstractValue =
-              abstractValue.join(
-                  fieldInitializationInfo.asSingleValue(),
-                  appView.abstractValueFactory(),
-                  field.getType());
+              appView
+                  .getAbstractValueFieldJoiner()
+                  .join(abstractValue, fieldInitializationInfo.asSingleValue(), field);
           if (abstractValue.isUnknown()) {
             break;
           }
@@ -413,24 +396,25 @@ public class FieldAssignmentTracker {
 
   private void recordAllAllocationsSitesProcessed(
       DexProgramClass clazz, OptimizationFeedbackDelayed feedback) {
-    Map<DexEncodedField, AbstractValue> abstractInstanceFieldValuesForClass =
+    ProgramFieldMap<AbstractValue> abstractInstanceFieldValuesForClass =
         abstractFinalInstanceFieldValues.get(clazz);
     if (abstractInstanceFieldValuesForClass == null) {
       return;
     }
 
-    for (DexEncodedField field : clazz.instanceFields()) {
-      AbstractValue abstractValue =
-          abstractInstanceFieldValuesForClass.getOrDefault(field, UnknownValue.getInstance());
-      if (abstractValue.isBottom()) {
-        feedback.modifyAppInfoWithLiveness(modifier -> modifier.removeInstantiatedType(clazz));
-        break;
-      }
-      if (abstractValue.isUnknown()) {
-        continue;
-      }
-      feedback.recordFieldHasAbstractValue(field, appView, abstractValue);
-    }
+    clazz.traverseProgramInstanceFields(
+        field -> {
+          AbstractValue abstractValue =
+              abstractInstanceFieldValuesForClass.getOrDefault(field, UnknownValue.getInstance());
+          if (abstractValue.isBottom()) {
+            feedback.modifyAppInfoWithLiveness(modifier -> modifier.removeInstantiatedType(clazz));
+            return TraversalContinuation.doBreak();
+          }
+          if (abstractValue.isNonTrivial()) {
+            feedback.recordFieldHasAbstractValue(field, appView, abstractValue);
+          }
+          return TraversalContinuation.doContinue();
+        });
   }
 
   public void waveDone(ProgramMethodSet wave, OptimizationFeedbackDelayed feedback) {
@@ -438,8 +422,7 @@ public class FieldAssignmentTracker {
     // therefore important that the optimization info has been flushed in advance.
     assert feedback.noUpdatesLeft();
     for (ProgramMethod method : wave) {
-      fieldAccessGraph.markProcessed(
-          method, field -> recordAllFieldPutsProcessed(field, method, feedback));
+      fieldAccessGraph.markProcessed(method, field -> recordAllFieldPutsProcessed(field, feedback));
       objectAllocationGraph.markProcessed(
           method, clazz -> recordAllAllocationsSitesProcessed(clazz, feedback));
     }

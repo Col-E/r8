@@ -25,6 +25,7 @@ import java.util.Collection;
 /**
  * Immutable command structure for an invocation of the {@link GlobalSyntheticsGenerator} compiler.
  */
+@Keep
 public final class GlobalSyntheticsGeneratorCommand {
 
   private final ProgramConsumer programConsumer;
@@ -151,6 +152,7 @@ public final class GlobalSyntheticsGeneratorCommand {
    *
    * <p>A builder is obtained by calling {@link GlobalSyntheticsGeneratorCommand#builder}.
    */
+  @Keep
   public static class Builder {
 
     private ProgramConsumer programConsumer = null;

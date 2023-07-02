@@ -15,7 +15,7 @@ import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.keepanno.annotations.KeepForApi;
 import com.android.tools.r8.keepanno.annotations.MemberAccessFlags;
 import com.android.tools.r8.keepanno.asm.KeepEdgeReader;
-import com.android.tools.r8.keepanno.ast.KeepEdge;
+import com.android.tools.r8.keepanno.ast.KeepDeclaration;
 import com.android.tools.r8.keepanno.ast.KeepEdgeException;
 import com.android.tools.r8.keepanno.keeprules.KeepRuleExtractor;
 import java.io.IOException;
@@ -41,7 +41,8 @@ public class KeepInvalidForApiTest extends TestBase {
   }
 
   private static List<String> extractRuleForClass(Class<?> clazz) throws IOException {
-    Set<KeepEdge> keepEdges = KeepEdgeReader.readKeepEdges(ToolHelper.getClassAsBytes(clazz));
+    Set<KeepDeclaration> keepEdges =
+        KeepEdgeReader.readKeepEdges(ToolHelper.getClassAsBytes(clazz));
     List<String> rules = new ArrayList<>();
     KeepRuleExtractor extractor = new KeepRuleExtractor(rules::add);
     keepEdges.forEach(extractor::extract);

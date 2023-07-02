@@ -254,6 +254,9 @@ public abstract class UseRegistry<T extends Definition> {
               || arg.isDexValueDouble()
               || arg.isDexValueString();
       }
+      if (continuation.shouldBreak()) {
+        break;
+      }
     }
   }
 

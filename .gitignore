@@ -12,10 +12,12 @@
 *~
 .#*
 .gradle/
+**/.gradle/
 .gradle_user_home
 .idea/
 android-data*/
 build/
+**/build/
 buildSrc/out/
 src/*/out
 d8_r8/*/out
@@ -266,6 +268,8 @@ third_party/rhino-android-1.1.1
 third_party/rhino-android-1.1.1.tar.gz
 third_party/sample_libraries
 third_party/sample_libraries.tar.gz
+third_party/smali
+third_party/smali.tar.gz
 third_party/tachiyomi
 third_party/tachiyomi.tar.gz
 third_party/youtube/*

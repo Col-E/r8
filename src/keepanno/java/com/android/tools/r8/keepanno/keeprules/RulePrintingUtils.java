@@ -37,6 +37,7 @@ public abstract class RulePrintingUtils {
   public static final String KEEP = "-keep";
   public static final String KEEP_CLASS_MEMBERS = "-keepclassmembers";
   public static final String KEEP_CLASSES_WITH_MEMBERS = "-keepclasseswithmembers";
+  public static final String CHECK_DISCARD = "-checkdiscard";
 
   public static void printHeader(StringBuilder builder, KeepEdgeMetaInfo metaInfo) {
     if (metaInfo.hasContext()) {

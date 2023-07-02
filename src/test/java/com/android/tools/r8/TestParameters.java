@@ -120,6 +120,14 @@ public class TestParameters {
     return isDexRuntime() && getApiLevel().isGreaterThanOrEqualTo(AndroidApiLevel.U);
   }
 
+  public boolean isAccessModificationEnabled(boolean allowAccessModification) {
+    return allowAccessModification || isAccessModificationEnabledByDefault();
+  }
+
+  public boolean isAccessModificationEnabledByDefault() {
+    return true;
+  }
+
   public boolean runtimeWithClassValue() {
     assert isCfRuntime() || isDexRuntime();
     return isCfRuntime() || getDexRuntimeVersion().isNewerThanOrEqual(DexVm.Version.V14_0_0);

@@ -203,7 +203,11 @@ public class B149971007 extends SplitterTestBase {
 
   public static class FeatureAPI {
     private static String featureClassName() {
-      return FeatureAPI.class.getPackage().getName() + ".B149971007$FeatureClass";
+      String packageName =
+          System.currentTimeMillis() > 0
+              ? "com.android.tools.r8.ir.optimize.outliner.b149971007"
+              : null;
+      return packageName + ".B149971007$FeatureClass";
     }
 
     public static boolean hasFeature() {

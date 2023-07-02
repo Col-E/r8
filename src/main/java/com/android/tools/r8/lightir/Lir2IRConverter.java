@@ -128,7 +128,8 @@ public class Lir2IRConverter {
       AppView<?> appView,
       Position callerPosition,
       RewrittenPrototypeDescription protoChanges,
-      DexMethod originalMethod) {
+      DexMethod originalMethod,
+      MutableMethodConversionOptions conversionOptions) {
     Parser<EV> parser =
         new Parser<>(
             lirCode,
@@ -141,7 +142,7 @@ public class Lir2IRConverter {
     parser.parseArguments(method);
     parser.ensureDebugInfo();
     lirCode.forEach(view -> view.accept(parser));
-    IRCode irCode = parser.getIRCode(method);
+    IRCode irCode = parser.getIRCode(method, conversionOptions);
     // Some instructions have bottom types (e.g., phis). Compute their actual types by widening.
     new TypeAnalysis(appView).widening(irCode);
     return irCode;
@@ -167,6 +168,7 @@ public class Lir2IRConverter {
     private BasicBlock currentBlock = null;
     private int nextInstructionIndex = 0;
 
+    private final Position entryPosition;
     private Position currentPosition;
     private PositionEntry nextPositionEntry = null;
     private int nextIndexInPositionsTable = 0;
@@ -224,6 +226,11 @@ public class Lir2IRConverter {
                                   inlineePosition.getCallerPosition()))
                           .build()));
         }
+      }
+      if (positionTable.length > 0 && positionTable[0].getFromInstructionIndex() == 0) {
+        entryPosition = positionTable[0].getPosition(originalMethod);
+      } else {
+        entryPosition = currentPosition;
       }
     }
 
@@ -338,7 +345,8 @@ public class Lir2IRConverter {
 
     // TODO(b/270398965): Replace LinkedList.
     @SuppressWarnings("JdkObsolete")
-    public IRCode getIRCode(ProgramMethod method) {
+    public IRCode getIRCode(
+        ProgramMethod method, MutableMethodConversionOptions conversionOptions) {
       LinkedList<BasicBlock> blockList = new LinkedList<>();
       IntList blockIndices = new IntArrayList(blocks.keySet());
       blockIndices.sort(Integer::compare);
@@ -358,13 +366,13 @@ public class Lir2IRConverter {
       return new IRCode(
           appView.options(),
           method,
-          Position.syntheticNone(),
+          entryPosition,
           blockList,
           strategy.getValueNumberGenerator(),
           basicBlockNumberGenerator,
           code.getMetadataForIR(),
           method.getOrigin(),
-          new MutableMethodConversionOptions(appView.options()));
+          conversionOptions);
     }
 
     public BasicBlock getBasicBlock(int instructionIndex) {

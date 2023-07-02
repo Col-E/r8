@@ -28,6 +28,7 @@ import com.android.tools.r8.utils.DescriptorUtils;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.IdentityHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
@@ -233,8 +234,8 @@ public abstract class TreeFixerBase {
           && outerClassType != null
           && innerClassAttribute.getInnerName() != null) {
         String innerClassName =
-            DescriptorUtils.getInnerClassName(
-                newOuterClassType.toDescriptorString(), newInnerClassType.toDescriptorString());
+            DescriptorUtils.getInnerClassNameFromSimpleName(
+                newOuterClassType.getSimpleName(), newInnerClassType.getSimpleName());
         if (innerClassName != null) {
           newInnerName = dexItemFactory.createString(innerClassName);
         } else {
@@ -297,15 +298,23 @@ public abstract class TreeFixerBase {
       return permittedSubclassAttributes;
     }
     boolean changed = false;
-    List<PermittedSubclassAttribute> newPermittedSubclassAttributes =
-        new ArrayList<>(permittedSubclassAttributes.size());
+    LinkedHashSet<DexType> newPermittedSubclassTypes =
+        new LinkedHashSet<>(permittedSubclassAttributes.size());
     for (PermittedSubclassAttribute permittedSubclassAttribute : permittedSubclassAttributes) {
-      DexType permittedSubclassType = permittedSubclassAttribute.getPermittedSubclass();
-      DexType newPermittedSubclassType = fixupType(permittedSubclassType);
-      newPermittedSubclassAttributes.add(new PermittedSubclassAttribute(newPermittedSubclassType));
-      changed |= newPermittedSubclassType != permittedSubclassType;
+      DexType permittedSubClassType = permittedSubclassAttribute.getPermittedSubclass();
+      DexType newPermittedSubClassType = fixupType(permittedSubClassType);
+      newPermittedSubclassTypes.add(newPermittedSubClassType);
+      changed |= newPermittedSubClassType != permittedSubClassType;
     }
-    return changed ? newPermittedSubclassAttributes : permittedSubclassAttributes;
+    if (!changed) {
+      return permittedSubclassAttributes;
+    }
+    List<PermittedSubclassAttribute> newPermittedSubclassAttributes =
+        new ArrayList<>(newPermittedSubclassTypes.size());
+    for (DexType newPermittedSubclassType : newPermittedSubclassTypes) {
+      newPermittedSubclassAttributes.add(new PermittedSubclassAttribute(newPermittedSubclassType));
+    }
+    return newPermittedSubclassAttributes;
   }
 
   protected List<RecordComponentInfo> fixupRecordComponents(

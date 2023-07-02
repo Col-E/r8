@@ -23,6 +23,14 @@ public class AbstractValueFactory {
   private ConcurrentHashMap<Integer, KnownLengthArrayState> knownArrayLengthStates =
       new ConcurrentHashMap<>();
 
+  public AbstractValue createDefiniteBitsNumberValue(
+      int definitelySetBits, int definitelyUnsetBits) {
+    if (definitelySetBits != 0 && definitelyUnsetBits != 0) {
+      return new DefiniteBitsNumberValue(definitelySetBits, definitelyUnsetBits);
+    }
+    return AbstractValue.unknown();
+  }
+
   public SingleConstClassValue createSingleConstClassValue(DexType type) {
     return singleConstClassValues.computeIfAbsent(type, SingleConstClassValue::new);
   }

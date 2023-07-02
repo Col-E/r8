@@ -21,6 +21,7 @@ import com.android.tools.r8.graph.DirectMappedDexApplication;
 import com.android.tools.r8.graph.EnclosingMethodAttribute;
 import com.android.tools.r8.graph.InnerClassAttribute;
 import com.android.tools.r8.graph.NestMemberClassAttribute;
+import com.android.tools.r8.graph.PermittedSubclassAttribute;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.PrunedItems;
 import com.android.tools.r8.graph.RecordComponentInfo;
@@ -226,6 +227,7 @@ public class TreePruner {
             PredicateUtils.not(isReachableInstanceField(reachableInstanceFields)));
       }
     }
+    clazz.removePermittedSubclassAttribute(this::isAttributeReferencingPrunedType);
     unusedItemsPrinter.visited();
     assert verifyNoDeadFields(clazz);
   }
@@ -317,6 +319,10 @@ public class TreePruner {
     }
     DexType context = attr.getLiveContext(appView);
     return context == null || isTypeMissing(context) || !isTypeLive(context);
+  }
+
+  private boolean isAttributeReferencingPrunedType(PermittedSubclassAttribute attr) {
+    return !isTypeLive(attr.getPermittedSubclass());
   }
 
   private <D extends DexEncodedMember<D, R>, R extends DexMember<D, R>> int firstUnreachableIndex(

@@ -10,6 +10,7 @@ import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 
+import com.android.tools.r8.NoAccessModification;
 import com.android.tools.r8.shaking.forceproguardcompatibility.ProguardCompatibilityTestBase;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
@@ -33,7 +34,8 @@ public class IfOnClassTest extends ProguardCompatibilityTestBase {
           EmptyMainClassForIfOnClassTests.class,
           Precondition.class,
           DependentUser.class,
-          Dependent.class);
+          Dependent.class,
+          NoAccessModification.class);
 
   private final Shrinker shrinker;
   private final boolean keepPrecondition;
@@ -164,12 +166,15 @@ public class IfOnClassTest extends ProguardCompatibilityTestBase {
 
   @Test
   public void ifThenKeepClassesWithMembers() throws Exception {
-    List<String> config = ImmutableList.of(
-        "-if class **.Precondition",
-        "-keepclasseswithmembers,allowobfuscation class **.*User {",
-        "  static void callFoo(...);",
-        "}"
-    );
+    List<String> config =
+        ImmutableList.of(
+            "-if class **.Precondition",
+            "-keepclasseswithmembers,allowobfuscation class **.*User {",
+            "  static void callFoo(...);",
+            "}",
+            shrinker.isR8()
+                ? "-noaccessmodification class * { @com.android.tools.r8.NoAccessModification *; }"
+                : "");
 
     CodeInspector codeInspector = inspectAfterShrinking(shrinker, CLASSES, config);
     if (!keepPrecondition) {
@@ -293,15 +298,18 @@ public class IfOnClassTest extends ProguardCompatibilityTestBase {
 
   @Test
   public void ifThenKeepNames() throws Exception {
-    List<String> config = ImmutableList.of(
-        // To keep DependentUser#callFoo, which in turn kept Dependent#<init> as well.
-        // We're testing renaming of Dependent itself and members.
-        "-keepclasseswithmembers,allowobfuscation class **.*User {",
-        "  static void callFoo(...);",
-        "}",
-        "-if class **.Precondition",
-        "-keepnames class **.Dependent"
-    );
+    List<String> config =
+        ImmutableList.of(
+            // To keep DependentUser#callFoo, which in turn kept Dependent#<init> as well.
+            // We're testing renaming of Dependent itself and members.
+            "-keepclasseswithmembers,allowobfuscation class **.*User {",
+            "  static void callFoo(...);",
+            "}",
+            "-if class **.Precondition",
+            "-keepnames class **.Dependent",
+            shrinker.isR8()
+                ? "-noaccessmodification class * { @com.android.tools.r8.NoAccessModification *; }"
+                : "");
 
     CodeInspector codeInspector = inspectAfterShrinking(shrinker, CLASSES, config);
 
@@ -316,17 +324,20 @@ public class IfOnClassTest extends ProguardCompatibilityTestBase {
 
   @Test
   public void ifThenKeepClassesWithMemberNames() throws Exception {
-    List<String> config = ImmutableList.of(
-        // To keep DependentUser#callFoo, which in turn kept Dependent#<init> as well.
-        // We're testing renaming of Dependent itself and members.
-        "-keepclasseswithmembers,allowobfuscation class **.*User {",
-        "  static void callFoo(...);",
-        "}",
-        "-if class **.Precondition",
-        "-keepclasseswithmembernames class **.Dependent {",
-        "  <methods>;",
-        "}"
-    );
+    List<String> config =
+        ImmutableList.of(
+            // To keep DependentUser#callFoo, which in turn kept Dependent#<init> as well.
+            // We're testing renaming of Dependent itself and members.
+            "-keepclasseswithmembers,allowobfuscation class **.*User {",
+            "  static void callFoo(...);",
+            "}",
+            "-if class **.Precondition",
+            "-keepclasseswithmembernames class **.Dependent {",
+            "  <methods>;",
+            "}",
+            shrinker.isR8()
+                ? "-noaccessmodification class * { @com.android.tools.r8.NoAccessModification *; }"
+                : "");
 
     CodeInspector codeInspector = inspectAfterShrinking(shrinker, CLASSES, config);
 
@@ -342,17 +353,20 @@ public class IfOnClassTest extends ProguardCompatibilityTestBase {
 
   @Test
   public void ifThenKeepClassMemberNames() throws Exception {
-    List<String> config = ImmutableList.of(
-        // To keep DependentUser#callFoo, which in turn kept Dependent#<init> as well.
-        // We're testing renaming of Dependent itself and members.
-        "-keepclasseswithmembers,allowobfuscation class **.*User {",
-        "  static void callFoo(...);",
-        "}",
-        "-if class **.Precondition",
-        "-keepclassmembernames class **.Dependent {",
-        "  <methods>;",
-        "}"
-    );
+    List<String> config =
+        ImmutableList.of(
+            // To keep DependentUser#callFoo, which in turn kept Dependent#<init> as well.
+            // We're testing renaming of Dependent itself and members.
+            "-keepclasseswithmembers,allowobfuscation class **.*User {",
+            "  static void callFoo(...);",
+            "}",
+            "-if class **.Precondition",
+            "-keepclassmembernames class **.Dependent {",
+            "  <methods>;",
+            "}",
+            shrinker.isR8()
+                ? "-noaccessmodification class * { @com.android.tools.r8.NoAccessModification *; }"
+                : "");
 
     CodeInspector codeInspector = inspectAfterShrinking(shrinker, CLASSES, config);
 

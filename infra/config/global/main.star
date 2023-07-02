@@ -307,7 +307,7 @@ r8_builder(
   dimensions = get_dimensions(),
   triggering_policy = scheduler.policy(
       kind = scheduler.GREEDY_BATCHING_KIND,
-      max_batch_size = 1,
+      max_batch_size = 42,
       max_concurrent_invocations = 1
   ),
   priority = 25,

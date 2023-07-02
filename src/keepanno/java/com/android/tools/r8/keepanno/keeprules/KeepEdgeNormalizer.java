@@ -148,7 +148,7 @@ public class KeepEdgeNormalizer {
     return bindingReference;
   }
 
-  private KeepItemPattern getClassItemPattern(KeepItemPattern fromPattern) {
+  public static KeepItemPattern getClassItemPattern(KeepItemPattern fromPattern) {
     return KeepItemPattern.builder()
         .setClassReference(fromPattern.getClassReference())
         .setExtendsPattern(fromPattern.getExtendsPattern())

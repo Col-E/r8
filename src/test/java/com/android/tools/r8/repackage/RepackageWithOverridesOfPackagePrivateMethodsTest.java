@@ -8,6 +8,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
+import com.android.tools.r8.NoAccessModification;
 import com.android.tools.r8.NoParameterTypeStrengthening;
 import com.android.tools.r8.NoVerticalClassMerging;
 import com.android.tools.r8.TestParameters;
@@ -32,6 +33,7 @@ public class RepackageWithOverridesOfPackagePrivateMethodsTest extends Repackage
         .apply(this::configureRepackaging)
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
+        .enableNoAccessModificationAnnotationsForMembers()
         .enableNoParameterTypeStrengtheningAnnotations()
         .enableNoVerticalClassMergingAnnotations()
         .setMinApi(parameters)
@@ -69,6 +71,7 @@ public class RepackageWithOverridesOfPackagePrivateMethodsTest extends Repackage
   @NoVerticalClassMerging
   public abstract static class HelloGreeterBase {
 
+    @NoAccessModification
     abstract void greet();
   }
 
@@ -85,6 +88,7 @@ public class RepackageWithOverridesOfPackagePrivateMethodsTest extends Repackage
   @NoVerticalClassMerging
   public abstract static class WorldGreeterBase {
 
+    @NoAccessModification
     abstract void greet();
   }
 

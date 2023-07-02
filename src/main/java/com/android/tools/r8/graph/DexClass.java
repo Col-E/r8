@@ -1045,6 +1045,20 @@ public abstract class DexClass extends DexDefinition
     permittedSubclasses.clear();
   }
 
+  public void removePermittedSubclassAttribute(Predicate<PermittedSubclassAttribute> predicate) {
+    permittedSubclasses.removeIf(predicate);
+  }
+
+  public void replacePermittedSubclass(
+      DexType currentPermittedSubclass, DexType newPermittedSubclass) {
+    for (int i = 0; i < permittedSubclasses.size(); i++) {
+      if (permittedSubclasses.get(i).getPermittedSubclass() == currentPermittedSubclass) {
+        permittedSubclasses.set(i, new PermittedSubclassAttribute(newPermittedSubclass));
+        return;
+      }
+    }
+  }
+
   public boolean isLocalClass() {
     InnerClassAttribute innerClass = getInnerClassAttributeForThisClass();
     // The corresponding enclosing-method attribute might be not available, e.g., CF version 50.
@@ -1139,6 +1153,10 @@ public abstract class DexClass extends DexDefinition
 
   public List<PermittedSubclassAttribute> getPermittedSubclassAttributes() {
     return permittedSubclasses;
+  }
+
+  public void setPermittedSubclassAttributes(List<PermittedSubclassAttribute> permittedSubclasses) {
+    this.permittedSubclasses = permittedSubclasses;
   }
 
   public List<RecordComponentInfo> getRecordComponents() {

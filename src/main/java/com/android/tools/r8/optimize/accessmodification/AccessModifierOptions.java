@@ -8,14 +8,42 @@ import com.android.tools.r8.utils.InternalOptions;
 
 public class AccessModifierOptions {
 
+  // TODO(b/131130038): Do not allow accessmodification when kept.
+  private boolean forceModifyPackagePrivateAndProtectedMethods = true;
+
   private InternalOptions options;
 
   public AccessModifierOptions(InternalOptions options) {
     this.options = options;
   }
 
+  public boolean canPollutePublicApi() {
+    return isAccessModificationRulePresent() || options.isGeneratingDex();
+  }
+
   public boolean isAccessModificationEnabled() {
+    // TODO(b/288062771): Enable access modification for L8.
+    if (!options.synthesizedClassPrefix.isEmpty()) {
+      return false;
+    }
+    if (options.forceProguardCompatibility) {
+      return isAccessModificationRulePresent();
+    }
+    return true;
+  }
+
+  private boolean isAccessModificationRulePresent() {
     return options.hasProguardConfiguration()
         && options.getProguardConfiguration().isAccessModificationAllowed();
+  }
+
+  public boolean isForceModifyingPackagePrivateAndProtectedMethods() {
+    return forceModifyPackagePrivateAndProtectedMethods;
+  }
+
+  public void setForceModifyPackagePrivateAndProtectedMethods(
+      boolean forceModifyPackagePrivateAndProtectedMethods) {
+    this.forceModifyPackagePrivateAndProtectedMethods =
+        forceModifyPackagePrivateAndProtectedMethods;
   }
 }

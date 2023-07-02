@@ -26,6 +26,8 @@ import com.android.tools.r8.ir.analysis.proto.GeneratedMessageLiteBuilderShrinke
 import com.android.tools.r8.ir.analysis.proto.GeneratedMessageLiteShrinker;
 import com.android.tools.r8.ir.analysis.proto.ProtoShrinker;
 import com.android.tools.r8.ir.analysis.value.AbstractValueFactory;
+import com.android.tools.r8.ir.analysis.value.AbstractValueJoiner.AbstractValueFieldJoiner;
+import com.android.tools.r8.ir.analysis.value.AbstractValueJoiner.AbstractValueParameterJoiner;
 import com.android.tools.r8.ir.desugar.TypeRewriter;
 import com.android.tools.r8.ir.optimize.enums.EnumDataMap;
 import com.android.tools.r8.ir.optimize.info.field.InstanceFieldInitializationInfoFactory;
@@ -100,6 +102,8 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
   private KeepInfoCollection keepInfo = null;
 
   private final AbstractValueFactory abstractValueFactory = new AbstractValueFactory();
+  private final AbstractValueFieldJoiner abstractValueFieldJoiner;
+  private final AbstractValueParameterJoiner abstractValueParameterJoiner;
   private final InstanceFieldInitializationInfoFactory instanceFieldInitializationInfoFactory =
       new InstanceFieldInitializationInfoFactory();
   private final SimpleInliningConstraintFactory simpleInliningConstraintFactory =
@@ -170,13 +174,20 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
     this.context =
         timing.time(
             "Compilation context", () -> CompilationContext.createInitialContext(options()));
+    this.wholeProgramOptimizations = wholeProgramOptimizations;
+    if (enableWholeProgramOptimizations()) {
+      abstractValueFieldJoiner = new AbstractValueFieldJoiner(withClassHierarchy());
+      abstractValueParameterJoiner = new AbstractValueParameterJoiner(withClassHierarchy());
+    } else {
+      abstractValueFieldJoiner = null;
+      abstractValueParameterJoiner = null;
+    }
     this.artProfileCollection = artProfileCollection;
     this.startupProfile = startupProfile;
     this.dontWarnConfiguration =
         timing.time(
             "Dont warn config",
             () -> DontWarnConfiguration.create(options().getProguardConfiguration()));
-    this.wholeProgramOptimizations = wholeProgramOptimizations;
     this.initClassLens = timing.time("Init class lens", InitClassLens::getThrowingInstance);
     this.typeRewriter = mapper;
     timing.begin("Create argument propagator");
@@ -312,6 +323,14 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
 
   public AbstractValueFactory abstractValueFactory() {
     return abstractValueFactory;
+  }
+
+  public AbstractValueFieldJoiner getAbstractValueFieldJoiner() {
+    return abstractValueFieldJoiner;
+  }
+
+  public AbstractValueParameterJoiner getAbstractValueParameterJoiner() {
+    return abstractValueParameterJoiner;
   }
 
   public InstanceFieldInitializationInfoFactory instanceFieldInitializationInfoFactory() {
@@ -600,8 +619,14 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
     return false;
   }
 
+  private boolean disallowFurtherInitClassUses = false;
+
+  public void dissallowFurtherInitClassUses() {
+    disallowFurtherInitClassUses = true;
+  }
+
   public boolean canUseInitClass() {
-    return options().isShrinking() && !initClassLens.isFinal();
+    return !disallowFurtherInitClassUses && options().isShrinking();
   }
 
   public InitClassLens initClassLens() {

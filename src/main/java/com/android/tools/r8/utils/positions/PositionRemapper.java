@@ -20,7 +20,6 @@ import com.android.tools.r8.kotlin.KotlinSourceDebugExtensionParser.Result;
 import com.android.tools.r8.utils.CfLineToMethodMapper;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.InternalOptions;
-import com.android.tools.r8.utils.InternalOptions.LineNumberOptimization;
 import com.android.tools.r8.utils.Pair;
 import java.util.IdentityHashMap;
 import java.util.Map;
@@ -34,8 +33,7 @@ public interface PositionRemapper {
 
   static PositionRemapper getPositionRemapper(
       AppView<?> appView, CfLineToMethodMapper cfLineToMethodMapper) {
-    boolean identityMapping =
-        appView.options().lineNumberOptimization == LineNumberOptimization.OFF;
+    boolean identityMapping = appView.options().lineNumberOptimization.isOff();
     PositionRemapper positionRemapper =
         identityMapping
             ? new IdentityPositionRemapper()

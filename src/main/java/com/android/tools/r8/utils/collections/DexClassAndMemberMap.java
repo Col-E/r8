@@ -5,8 +5,10 @@
 package com.android.tools.r8.utils.collections;
 
 import com.android.tools.r8.graph.DexClassAndMember;
+import com.android.tools.r8.utils.TriPredicate;
 import com.google.common.base.Equivalence.Wrapper;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
 import java.util.function.BiPredicate;
@@ -75,6 +77,12 @@ public abstract class DexClassAndMemberMap<K extends DexClassAndMember<?, ?>, V>
     return backing
         .entrySet()
         .removeIf(entry -> predicate.test(entry.getKey().get(), entry.getValue()));
+  }
+
+  public boolean removeIf(TriPredicate<K, V, Entry<?, V>> predicate) {
+    return backing
+        .entrySet()
+        .removeIf(entry -> predicate.test(entry.getKey().get(), entry.getValue(), entry));
   }
 
   public int size() {

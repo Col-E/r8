@@ -29,6 +29,7 @@ import com.android.tools.r8.graph.SubtypingInfo;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackSimple;
 import com.android.tools.r8.ir.optimize.info.bridge.BridgeInfo;
 import com.android.tools.r8.ir.optimize.info.bridge.VirtualBridgeInfo;
+import com.android.tools.r8.lightir.LirCode;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.MethodSignatureEquivalence;
 import com.android.tools.r8.utils.Timing;
@@ -326,6 +327,9 @@ public class BridgeHoisting {
 
   private Code createCodeForVirtualBridge(ProgramMethod representative, DexMethod methodToInvoke) {
     Code code = representative.getDefinition().getCode();
+    if (code.isLirCode()) {
+      return createLirCodeForVirtualBridge(code.asLirCode(), methodToInvoke);
+    }
     if (code.isCfCode()) {
       return createCfCodeForVirtualBridge(code.asCfCode(), methodToInvoke);
     }
@@ -333,6 +337,18 @@ public class BridgeHoisting {
       return createDexCodeForVirtualBridge(code.asDexCode(), methodToInvoke);
     }
     throw new Unreachable("Unexpected code object of type " + code.getClass().getTypeName());
+  }
+
+  private LirCode<Integer> createLirCodeForVirtualBridge(
+      LirCode<Integer> code, DexMethod methodToInvoke) {
+    return code.newCodeWithRewrittenConstantPool(
+        item -> {
+          if (item instanceof DexMethod) {
+           assert methodToInvoke.match((DexMethod) item);
+           return methodToInvoke;
+          }
+          return item;
+        });
   }
 
   private CfCode createCfCodeForVirtualBridge(CfCode code, DexMethod methodToInvoke) {

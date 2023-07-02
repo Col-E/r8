@@ -14,8 +14,10 @@ import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
+import com.android.tools.r8.utils.codeinspector.TypeSubject;
 import com.android.tools.r8.utils.codeinspector.VerticallyMergedClassesInspector;
-import java.util.stream.IntStream;
+import java.util.Set;
+import java.util.stream.Collectors;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -42,6 +44,7 @@ public class ExceptionTablesTest extends VerticalClassMergerTestBase {
         .addKeepMainRule(TestClass.class)
         .addVerticallyMergedClassesInspector(this::inspectVerticallyMergedClasses)
         .setMinApi(parameters)
+        .addOptionsModification(o -> o.testing.enableLir())
         .compile()
         .inspect(this::inspect)
         .run(parameters.getRuntime(), TestClass.class)
@@ -59,15 +62,15 @@ public class ExceptionTablesTest extends VerticalClassMergerTestBase {
     assertThat(inspector.clazz(ExceptionA.class), not(isPresent()));
     assertThat(inspector.clazz(Exception1.class), not(isPresent()));
 
-    // Check that the second catch handler has been removed.
+    // Check that only two exception guard types remain.
     MethodSubject mainMethodSubject = inspector.clazz(TestClass.class).mainMethod();
     assertThat(mainMethodSubject, isPresent());
-    assertEquals(
-        2,
+    Set<TypeSubject> guards =
         mainMethodSubject
             .streamTryCatches()
-            .flatMapToInt(x -> IntStream.of(x.getNumberOfHandlers()))
-            .sum());
+            .flatMap(tryCatch -> tryCatch.guards().stream())
+            .collect(Collectors.toSet());
+    assertEquals(2, guards.size());
   }
 
   public static class TestClass {
@@ -89,11 +92,15 @@ public class ExceptionTablesTest extends VerticalClassMergerTestBase {
     }
 
     private static void doSomethingThatMightThrowExceptionB() throws ExceptionB {
-      throw new ExceptionB("Ouch!");
+      if (System.nanoTime() > 0) {
+        throw new ExceptionB("Ouch!");
+      }
     }
 
     private static void doSomethingThatMightThrowException2() throws Exception2 {
-      throw new Exception2("Ouch!");
+      if (System.nanoTime() > 0) {
+        throw new Exception2("Ouch!");
+      }
     }
   }
 

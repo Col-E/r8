@@ -147,7 +147,7 @@ public class AssumeInserter {
       // Case (1), instructions that implicitly indicate receiver/array is not null.
       if (current.throwsOnNullInput()) {
         Value inValue = current.getNonNullInput();
-        if (assumedValuesBuilder.isMaybeNull(inValue)
+        if (assumedValuesBuilder.isMaybeNullAndNotNullType(inValue)
             && isNullableReferenceTypeWithOtherNonDebugUsers(inValue, current)) {
           assumedValuesBuilder.addNonNullValueWithUnknownDominance(current, inValue);
           needsAssumeInstruction = true;
@@ -189,7 +189,7 @@ public class AssumeInserter {
     If ifInstruction = block.exit().asIf();
     if (ifInstruction != null && ifInstruction.isNonTrivialNullTest()) {
       Value lhs = ifInstruction.lhs();
-      if (assumedValuesBuilder.isMaybeNull(lhs)
+      if (assumedValuesBuilder.isMaybeNullAndNotNullType(lhs)
           && isNullableReferenceTypeWithOtherNonDebugUsers(lhs, ifInstruction)
           && ifInstruction.targetFromNonNullObject().getPredecessors().size() == 1) {
         assumedValuesBuilder.addNonNullValueWithUnknownDominance(ifInstruction, lhs);
@@ -266,7 +266,7 @@ public class AssumeInserter {
       for (int i = start; i < invoke.arguments().size(); i++) {
         if (nonNullParamOnNormalExits.get(i)) {
           Value argument = invoke.getArgument(i);
-          if (assumedValuesBuilder.isMaybeNull(argument)
+          if (assumedValuesBuilder.isMaybeNullAndNotNullType(argument)
               && isNullableReferenceTypeWithOtherNonDebugUsers(argument, invoke)) {
             assumedValuesBuilder.addNonNullValueWithUnknownDominance(invoke, argument);
             needsAssumeInstruction = true;
@@ -885,8 +885,9 @@ public class AssumeInserter {
             instruction, nonNullValue, AssumedDominance.unknown(), AssumedValueInfo::setNotNull);
       }
 
-      public boolean isMaybeNull(Value value) {
-        return !nonNullValuesKnownToDominateAllUsers.contains(value);
+      public boolean isMaybeNullAndNotNullType(Value value) {
+        return !nonNullValuesKnownToDominateAllUsers.contains(value)
+            && !value.getType().isNullType();
       }
 
       public AssumedValues build() {

@@ -18,8 +18,8 @@ import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.NumberGenerator;
 import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.conversion.IRBuilder;
+import com.android.tools.r8.ir.conversion.MethodConversionOptions;
 import com.android.tools.r8.ir.conversion.MethodConversionOptions.MutableMethodConversionOptions;
-import com.android.tools.r8.ir.conversion.MethodConversionOptions.ThrowingMethodConversionOptions;
 import com.android.tools.r8.ir.conversion.SourceCode;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.RetracerForCodePrinting;
@@ -76,7 +76,7 @@ public abstract class AbstractSynthesizedCode extends Code {
             origin,
             valueNumberGenerator,
             protoChanges)
-        .build(context, new ThrowingMethodConversionOptions(appView.options()));
+        .build(context, MethodConversionOptions.nonConverting());
   }
 
   @Override

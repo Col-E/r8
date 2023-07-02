@@ -5,10 +5,12 @@
 package com.android.tools.r8.memberrebinding.testclasses;
 
 import com.android.tools.r8.NeverInline;
+import com.android.tools.r8.NoAccessModification;
 import com.android.tools.r8.NoVerticalClassMerging;
 
 public class MemberRebindingBridgeRemovalTestClasses {
 
+  @NoAccessModification
   @NoVerticalClassMerging
   static class A {
 

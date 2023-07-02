@@ -86,7 +86,7 @@ public class PrimaryD8L8IRConverter extends IRConverter {
     application = commitPendingSyntheticItems(appView, application);
 
     // Build a new application with jumbo string info,
-    Builder<?> builder = application.builder().setHighestSortingString(highestSortingString);
+    Builder<?> builder = application.builder();
 
     if (appView.options().isDesugaredLibraryCompilation()) {
       new EmulatedInterfaceApplicationRewriter(appView).rewriteApplication(builder);
@@ -169,9 +169,6 @@ public class PrimaryD8L8IRConverter extends IRConverter {
           methodProcessingContext);
     } else {
       assert definition.getCode().isDexCode();
-    }
-    if (!options.isGeneratingClassFiles()) {
-      updateHighestSortingStrings(definition);
     }
   }
 
@@ -383,7 +380,12 @@ public class PrimaryD8L8IRConverter extends IRConverter {
       MethodProcessor methodProcessor,
       MethodProcessingContext methodProcessingContext) {
     boolean didDesugar = desugar(method, desugaringEventConsumer, methodProcessingContext);
-    return rewriteDesugaredCodeInternal(method, feedback, methodProcessor, methodProcessingContext);
+    return rewriteDesugaredCodeInternal(
+        method,
+        feedback,
+        methodProcessor,
+        methodProcessingContext,
+        MethodConversionOptions.forD8(appView));
   }
 
   private boolean desugar(
