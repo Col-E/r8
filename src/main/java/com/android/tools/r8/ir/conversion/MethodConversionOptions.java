@@ -56,13 +56,13 @@ public abstract class MethodConversionOptions {
     return new IRToDexFinalizer(appView, deadCodeRemover);
   }
 
-  private enum Target {
+  public enum Target {
     CF,
     DEX,
     LIR
   }
 
-  private static Target determineTarget(AppView<?> appView) {
+  public static Target determineTarget(AppView<?> appView) {
     if (appView.testing().canUseLir(appView)) {
       return Target.LIR;
     }
@@ -89,12 +89,12 @@ public abstract class MethodConversionOptions {
     private boolean enablePeepholeOptimizations = true;
     private boolean enableStringSwitchConversion;
 
-    private MutableMethodConversionOptions(Target target, boolean enableStringSwitchConversion) {
+    public MutableMethodConversionOptions(Target target, boolean enableStringSwitchConversion) {
       this.target = target;
       this.enableStringSwitchConversion = enableStringSwitchConversion;
     }
 
-    private MutableMethodConversionOptions(Target target, InternalOptions options) {
+    public MutableMethodConversionOptions(Target target, InternalOptions options) {
       this(target, options.isStringSwitchConversionEnabled());
     }
 
