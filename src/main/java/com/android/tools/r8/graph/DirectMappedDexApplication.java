@@ -75,7 +75,7 @@ public class DirectMappedDexApplication extends DexApplication {
             .map(DexClasspathClass::copy).collect(Collectors.toList()));
     return new DirectMappedDexApplication(getProguardMap(), getFlags(),
             programOrClasspathClassesCopy, libraryClassesCopy, programClassesCopy, classpathClassesCopy,
-            dataResourceProviders, options, highestSortingString, timing);
+            dataResourceProviders, options, timing);
   }
 
   public Collection<DexClasspathClass> classpathClasses() {

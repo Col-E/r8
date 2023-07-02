@@ -62,7 +62,7 @@ public class LazyLoadedDexApplication extends DexApplication {
             .collect(Collectors.toList()), resolver);
     return new LazyLoadedDexApplication(getProguardMap(), getFlags(),
             programClassesCopy, dataResourceProviders, classpathClasses, libraryClasses,
-            options, highestSortingString, timing);
+            options, timing);
   }
 
   @Override
