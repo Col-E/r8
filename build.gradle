@@ -45,7 +45,6 @@ ext {
 }
 
 dependencies {
-    implementation "net.sf.jopt-simple:jopt-simple:$joptSimpleVersion"
     implementation "com.google.code.gson:gson:$gsonVersion"
     // Include all of guava when compiling the code, but exclude annotations that we don't
     // need from the packaging.
