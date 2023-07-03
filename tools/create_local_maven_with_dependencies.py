@@ -32,7 +32,10 @@ SMALI_VERSION = '3.0.3'
 ERROR_PRONE_VERSION = '2.18.0'
 TESTNG_VERSION = '6.10'
 
-
+# Resource shrinker dependency versions
+AAPT2_PROTO_VERSION = '8.2.0-alpha10-10154469'
+PROTOBUF_VERSION = '3.19.3'
+STUDIO_SDK_VERSION = '31.2.0-alpha10'
 
 BUILD_DEPENDENCIES = [
   'com.google.code.gson:gson:{version}'.format(version = GSON_VERSION),
@@ -65,7 +68,14 @@ NEW_DEPENDENCIES = [
   'org.jetbrains.kotlin:kotlin-reflect:1.8.10',
   'org.jetbrains.kotlin:kotlin-script-runtime:1.8.10',
   'org.jetbrains.kotlin:kotlin-tooling-core:1.8.10',
-  'net.ltgt.errorprone:net.ltgt.errorprone.gradle.plugin:3.0.1'
+  'net.ltgt.errorprone:net.ltgt.errorprone.gradle.plugin:3.0.1',
+
+  # Resource shrinker
+  'com.android.tools.build:aapt2-proto:{version}'.format(version = AAPT2_PROTO_VERSION),
+  'com.android.tools.layoutlib:layoutlib-api:{version}'.format(version = STUDIO_SDK_VERSION),
+  'com.android.tools:common:{version}'.format(version = STUDIO_SDK_VERSION),
+  'com.android.tools:sdk-common:{version}'.format(version = STUDIO_SDK_VERSION),
+  'com.google.protobuf:protobuf-java:{version}'.format(version = PROTOBUF_VERSION),
 ]
 
 def dependencies_tar(dependencies_path):
