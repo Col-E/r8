@@ -1247,7 +1247,7 @@ public class IRCode implements IRControlFlowGraph, ValueFactory {
   }
 
   public ConstClass createConstClass(AppView<?> appView, DexType type) {
-    Value out = createValue(TypeElement.fromDexType(type, definitelyNotNull(), appView));
+    Value out = createValue(TypeElement.classClassType(appView, definitelyNotNull()));
     return new ConstClass(out, type);
   }
 
