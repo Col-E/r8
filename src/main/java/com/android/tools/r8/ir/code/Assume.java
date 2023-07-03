@@ -249,8 +249,9 @@ public class Assume extends Instruction {
   }
 
   @Override
-  public boolean verifyTypes(AppView<?> appView, VerifyTypesHelper verifyTypesHelper) {
-    assert super.verifyTypes(appView, verifyTypesHelper);
+  public boolean verifyTypes(
+      AppView<?> appView, ProgramMethod context, VerifyTypesHelper verifyTypesHelper) {
+    assert super.verifyTypes(appView, context, verifyTypesHelper);
 
     TypeElement inType = src().getType();
     assert inType.isReferenceType() : inType;

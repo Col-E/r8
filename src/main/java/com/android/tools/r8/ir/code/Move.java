@@ -131,8 +131,9 @@ public class Move extends Instruction {
   }
 
   @Override
-  public boolean verifyTypes(AppView<?> appView, VerifyTypesHelper verifyTypesHelper) {
-    super.verifyTypes(appView, verifyTypesHelper);
+  public boolean verifyTypes(
+      AppView<?> appView, ProgramMethod context, VerifyTypesHelper verifyTypesHelper) {
+    super.verifyTypes(appView, context, verifyTypesHelper);
     // DebugLocalWrite defines it's own verification of types but should be allowed to call super.
     if (!this.isDebugLocalWrite()) {
       assert src().getType().equals(getOutType());

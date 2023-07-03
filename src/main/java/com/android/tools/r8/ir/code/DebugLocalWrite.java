@@ -8,6 +8,7 @@ import com.android.tools.r8.cf.TypeVerificationHelper;
 import com.android.tools.r8.cf.code.CfStore;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.analysis.VerifyTypesHelper;
 import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.lightir.LirBuilder;
@@ -83,8 +84,9 @@ public class DebugLocalWrite extends Move {
   }
 
   @Override
-  public boolean verifyTypes(AppView<?> appView, VerifyTypesHelper verifyTypesHelper) {
-    super.verifyTypes(appView, verifyTypesHelper);
+  public boolean verifyTypes(
+      AppView<?> appView, ProgramMethod context, VerifyTypesHelper verifyTypesHelper) {
+    super.verifyTypes(appView, context, verifyTypesHelper);
     assert verifyTypesHelper.isAssignable(src().getType(), getOutType());
     return true;
   }

@@ -103,9 +103,10 @@ public class BasicBlock {
     return true;
   }
 
-  public boolean verifyTypes(AppView<?> appView, VerifyTypesHelper verifyTypesHelper) {
+  public boolean verifyTypes(
+      AppView<?> appView, ProgramMethod context, VerifyTypesHelper verifyTypesHelper) {
     assert instructions.stream()
-        .allMatch(instruction -> instruction.verifyTypes(appView, verifyTypesHelper));
+        .allMatch(instruction -> instruction.verifyTypes(appView, context, verifyTypesHelper));
     return true;
   }
 

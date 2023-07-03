@@ -662,7 +662,8 @@ public class IRCode implements IRControlFlowGraph, ValueFactory {
       assert validAssumeInstructions(appView);
       assert new TypeChecker(appView.withLiveness(), verifyTypesHelper).check(this);
     }
-    assert blocks.stream().allMatch(block -> block.verifyTypes(appView, verifyTypesHelper));
+    assert blocks.stream()
+        .allMatch(block -> block.verifyTypes(appView, context(), verifyTypesHelper));
     return true;
   }
 

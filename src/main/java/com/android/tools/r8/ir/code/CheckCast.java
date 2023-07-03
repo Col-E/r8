@@ -216,8 +216,9 @@ public class CheckCast extends Instruction {
   }
 
   @Override
-  public boolean verifyTypes(AppView<?> appView, VerifyTypesHelper verifyTypesHelper) {
-    assert super.verifyTypes(appView, verifyTypesHelper);
+  public boolean verifyTypes(
+      AppView<?> appView, ProgramMethod context, VerifyTypesHelper verifyTypesHelper) {
+    assert super.verifyTypes(appView, context, verifyTypesHelper);
 
     TypeElement inType = object().getType();
 

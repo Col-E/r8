@@ -1459,7 +1459,8 @@ public abstract class Instruction
         "Implement type lattice evaluation for: " + getInstructionName());
   }
 
-  public boolean verifyTypes(AppView<?> appView, VerifyTypesHelper verifyTypesHelper) {
+  public boolean verifyTypes(
+      AppView<?> appView, ProgramMethod context, VerifyTypesHelper verifyTypesHelper) {
     return true;
   }
 

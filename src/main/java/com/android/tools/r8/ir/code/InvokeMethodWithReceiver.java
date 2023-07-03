@@ -146,8 +146,9 @@ public abstract class InvokeMethodWithReceiver extends InvokeMethod {
   }
 
   @Override
-  public boolean verifyTypes(AppView<?> appView, VerifyTypesHelper verifyTypesHelper) {
-    assert super.verifyTypes(appView, verifyTypesHelper);
+  public boolean verifyTypes(
+      AppView<?> appView, ProgramMethod context, VerifyTypesHelper verifyTypesHelper) {
+    assert super.verifyTypes(appView, context, verifyTypesHelper);
 
     Value receiver = getReceiver();
     TypeElement receiverType = receiver.getType();

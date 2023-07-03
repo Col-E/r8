@@ -178,8 +178,9 @@ public class ConstString extends ConstInstruction {
   }
 
   @Override
-  public boolean verifyTypes(AppView<?> appView, VerifyTypesHelper verifyTypesHelper) {
-    assert super.verifyTypes(appView, verifyTypesHelper);
+  public boolean verifyTypes(
+      AppView<?> appView, ProgramMethod context, VerifyTypesHelper verifyTypesHelper) {
+    assert super.verifyTypes(appView, context, verifyTypesHelper);
     TypeElement expectedType = TypeElement.stringClassType(appView, definitelyNotNull());
     assert getOutType().equals(expectedType);
     return true;

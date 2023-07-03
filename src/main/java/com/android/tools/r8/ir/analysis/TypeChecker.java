@@ -8,6 +8,7 @@ import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedMethod;
+import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.analysis.type.Nullability;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.code.FieldInstruction;
@@ -26,7 +27,7 @@ import com.android.tools.r8.ir.code.Throw;
  * that it is dead.
  *
  * <p>Pruning code that does not verify is necessary in order to be able to assert that the types
- * are sound using {@link Instruction#verifyTypes(AppView, VerifyTypesHelper)}.
+ * are sound using {@link Instruction#verifyTypes(AppView, ProgramMethod, VerifyTypesHelper)}.
  */
 public class TypeChecker {
 
