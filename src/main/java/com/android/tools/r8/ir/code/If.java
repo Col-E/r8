@@ -125,15 +125,22 @@ public class If extends JumpInstruction {
 
   @Override
   public String toString() {
-    return super.toString()
-        + " "
-        + type
-        + (isZeroTest() ? "Z" : " ")
-        + " block "
-        + getTrueTarget().getNumberAsString()
-        + " (fallthrough "
-        + fallthroughBlock().getNumberAsString()
-        + ")";
+    StringBuilder builder =
+        new StringBuilder(super.toString())
+            .append(' ')
+            .append(type)
+            .append(isZeroTest() ? 'Z' : ' ');
+    // If this instruction is in a block that has been marked for removal, but not yet removed from
+    // the IR, make sure we can still print the code.
+    if (getBlock().exit() == this && getBlock().getSuccessors().size() >= 2) {
+      builder
+          .append(" block ")
+          .append(getTrueTarget().getNumberAsString())
+          .append(" (fallthrough ")
+          .append(fallthroughBlock().getNumberAsString())
+          .append(')');
+    }
+    return builder.toString();
   }
 
   @Override
