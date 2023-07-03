@@ -858,8 +858,13 @@ public class ComposingBuilder {
               Comparator.comparing(mapping -> mapping.getOutline().toString()));
       IntBox firstAvailableRange = new IntBox(lastComposedRange.minifiedRange.to + 1);
       for (OutlineCallsiteMappingInformation outlineCallSite : outlineCallSites) {
-        for (ComputedMappedRangeForOutline computedMappedRangeForOutline :
-            outlineCallsitesToPatchUp.get(outlineCallSite)) {
+        // It should be sufficient to patch any call-site because they are referencing the same
+        // outline call-site information due to using an identity hashmap.
+        List<ComputedMappedRangeForOutline> computedMappedRangeForOutlines =
+            outlineCallsitesToPatchUp.get(outlineCallSite);
+        assert verifyAllOutlineCallSitesAreEqualTo(outlineCallSite, computedMappedRangeForOutlines);
+        ComputedMappedRangeForOutline computedMappedRangeForOutline =
+            ListUtils.first(computedMappedRangeForOutlines);
           Int2IntSortedMap newPositionMap =
               new Int2IntLinkedOpenHashMap(outlineCallSite.getPositions().size());
           visitOutlineMappedPositions(
@@ -892,7 +897,19 @@ public class ComposingBuilder {
                 outlineCallSite.setPositionsInternal(newPositionMap);
               });
         }
+    }
+
+    private boolean verifyAllOutlineCallSitesAreEqualTo(
+        OutlineCallsiteMappingInformation outlineCallSite,
+        List<ComputedMappedRangeForOutline> computedMappedRangeForOutlines) {
+      for (ComputedMappedRangeForOutline computedMappedRangeForOutline :
+          computedMappedRangeForOutlines) {
+        for (OutlineCallsiteMappingInformation outlineCallsiteMappingInformation :
+            computedMappedRangeForOutline.composed.getOutlineCallsiteInformation()) {
+          assert outlineCallSite == outlineCallsiteMappingInformation;
+        }
       }
+      return true;
     }
 
     /**
