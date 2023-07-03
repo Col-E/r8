@@ -2411,10 +2411,10 @@ public class IRBuilder {
   }
 
   private boolean verifyOutValueType(Instruction ir) {
-    assert ir.outValue() == null || ir.isArrayGet() || ir.evaluate(appView) == ir.getOutType();
+    assert ir.outValue() == null || ir.isArrayGet() || ir.evaluate(appView).equals(ir.getOutType());
     assert ir.outValue() == null
         || !ir.isArrayGet()
-        || ir.evaluate(appView) == ir.getOutType()
+        || ir.evaluate(appView).equals(ir.getOutType())
         || (ir.getOutType().isBottom() && ir.evaluate(appView).isReferenceType());
     return true;
   }

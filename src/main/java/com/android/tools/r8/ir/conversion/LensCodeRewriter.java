@@ -461,8 +461,9 @@ public class LensCodeRewriter {
                     invoke
                         .outValue()
                         .replaceUsers(constantReturnMaterializingInstruction.outValue());
-                    if (invoke.getOutType()
-                        != constantReturnMaterializingInstruction.getOutType()) {
+                    if (!invoke
+                        .getOutType()
+                        .equals(constantReturnMaterializingInstruction.getOutType())) {
                       affectedPhis.addAll(
                           constantReturnMaterializingInstruction.outValue().uniquePhiUsers());
                     }
@@ -1333,7 +1334,7 @@ public class LensCodeRewriter {
         Instruction newInstruction = constructor.apply(newType, newOutValue);
         iterator.replaceCurrentInstruction(newInstruction);
         if (newOutValue != null) {
-          if (newOutValue.getType() != current.getOutType()) {
+          if (!newOutValue.getType().equals(current.getOutType())) {
             affectedPhis.addAll(newOutValue.uniquePhiUsers());
           } else {
             assert current.hasInvariantOutType();
