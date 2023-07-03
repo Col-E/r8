@@ -386,7 +386,6 @@ public class IRConverter {
    */
   public void replaceCodeForTesting(IRCode code) {
     ProgramMethod method = code.context();
-    DexEncodedMethod definition = method.getDefinition();
     assert code.isConsistentSSA(appView);
     Timing timing = Timing.empty();
     deadCodeRemover.run(code, timing);
@@ -548,24 +547,6 @@ public class IRConverter {
       options.testing.irModifier.accept(code, appView);
     }
 
-    if (options.canHaveArtStringNewInitBug()) {
-      timing.begin("Check for new-init issue");
-      TrivialPhiSimplifier.ensureDirectStringNewToInit(code, appView.dexItemFactory());
-      timing.end();
-    }
-
-    if (options.canHaveInvokeInterfaceToObjectMethodBug()) {
-      timing.begin("JDK-8272564 fix rewrite");
-      CodeRewriter.rewriteJdk8272564Fix(code, context, appView);
-      timing.end();
-    }
-
-    boolean isDebugMode = options.debug || context.getOrComputeReachabilitySensitive(appView);
-
-    if (isDebugMode) {
-      codeRewriter.simplifyDebugLocals(code);
-    }
-
     if (lensCodeRewriter != null) {
       timing.begin("Lens rewrite");
       lensCodeRewriter.rewrite(code, context, methodProcessor);
@@ -573,6 +554,7 @@ public class IRConverter {
       previous = printMethod(code, "IR after disable assertions (SSA)", previous);
     }
 
+    boolean isDebugMode = options.debug || context.getOrComputeReachabilitySensitive(appView);
     assert !method.isProcessed() || !isDebugMode
         : "Method already processed: "
             + context.toSourceString()
@@ -618,6 +600,22 @@ public class IRConverter {
       timing.end();
       markProcessed(code, feedback);
       return timing;
+    }
+
+    if (options.canHaveArtStringNewInitBug()) {
+      timing.begin("Check for new-init issue");
+      TrivialPhiSimplifier.ensureDirectStringNewToInit(code, appView.dexItemFactory());
+      timing.end();
+    }
+
+    if (options.canHaveInvokeInterfaceToObjectMethodBug()) {
+      timing.begin("JDK-8272564 fix rewrite");
+      CodeRewriter.rewriteJdk8272564Fix(code, context, appView);
+      timing.end();
+    }
+
+    if (isDebugMode) {
+      codeRewriter.simplifyDebugLocals(code);
     }
 
     assertionsRewriter.run(method, code, deadCodeRemover, timing);
