@@ -5,9 +5,14 @@
 from os import path
 import datetime
 from subprocess import check_output, Popen, PIPE, STDOUT
-import sys
 import inspect
+import os
+import sys
+# Add both current path to allow us to package import utils and the tools
+# dir to allow transitive (for utils) dependendies to be loaded.
 sys.path.append(path.dirname(inspect.getfile(lambda: None)))
+sys.path.append(os.path.join(
+    path.dirname(inspect.getfile(lambda: None)), 'tools'))
 from tools.utils import EnsureDepFromGoogleCloudStorage
 
 FMT_CMD = path.join(
