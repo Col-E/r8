@@ -28,6 +28,7 @@ import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.ir.code.InvokeDirect;
 import com.android.tools.r8.ir.code.InvokeVirtual;
+import com.android.tools.r8.ir.code.LinearFlowInstructionListIterator;
 import com.android.tools.r8.ir.code.NewInstance;
 import com.android.tools.r8.ir.code.SafeCheckCast;
 import com.android.tools.r8.ir.code.StaticGet;
@@ -250,6 +251,10 @@ public class GeneratedMessageLiteBuilderShrinker {
             instruction ->
                 instruction.isNewInstance() && instruction.asNewInstance().clazz == builder.type);
     assert newInstance != null;
+    // Once the new instance is found, create a new linear iterator to allow subsequent instructions
+    // to be in trivially split blocks.
+    instructionIterator = new LinearFlowInstructionListIterator(code, newInstance.getBlock());
+    instructionIterator.nextUntil(i -> i == newInstance);
     instructionIterator.replaceCurrentInstruction(new NewInstance(builder.superType, builderValue));
 
     // Replace `builder.<init>()` by `builder.<init>(Message.DEFAULT_INSTANCE)`.

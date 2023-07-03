@@ -54,6 +54,11 @@ public class LinearFlowInstructionListIterator implements InstructionListIterato
   }
 
   @Override
+  public void setInsertionPosition(Position position) {
+    currentBlockIterator.setInsertionPosition(position);
+  }
+
+  @Override
   public void replaceCurrentInstruction(Instruction newInstruction, Set<Value> affectedValues) {
     currentBlockIterator.replaceCurrentInstruction(newInstruction, affectedValues);
   }

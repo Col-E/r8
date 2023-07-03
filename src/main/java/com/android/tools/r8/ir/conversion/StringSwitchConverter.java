@@ -105,9 +105,10 @@ import java.util.Set;
  *   }
  * </pre>
  */
-class StringSwitchConverter {
+public class StringSwitchConverter {
 
-  static void convertToStringSwitchInstructions(IRCode code, DexItemFactory dexItemFactory) {
+  public static boolean convertToStringSwitchInstructions(
+      IRCode code, DexItemFactory dexItemFactory) {
     List<BasicBlock> rewritingCandidates = getRewritingCandidates(code, dexItemFactory);
     if (rewritingCandidates != null) {
       boolean changed = false;
@@ -120,7 +121,9 @@ class StringSwitchConverter {
         code.removeAllDeadAndTrivialPhis();
         code.removeUnreachableBlocks();
       }
+      return changed;
     }
+    return false;
   }
 
   private static List<BasicBlock> getRewritingCandidates(

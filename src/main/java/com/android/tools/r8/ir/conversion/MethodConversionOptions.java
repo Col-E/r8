@@ -25,7 +25,8 @@ public abstract class MethodConversionOptions {
     }
     assert appView.testing().isPostLirPhase();
     Target target = appView.options().isGeneratingClassFiles() ? Target.CF : Target.DEX;
-    return new MutableMethodConversionOptions(target, appView.options());
+    return new MutableMethodConversionOptions(target, appView.options())
+        .disableStringSwitchConversion();
   }
 
   public static MutableMethodConversionOptions forLirPhase(AppView<?> appView) {

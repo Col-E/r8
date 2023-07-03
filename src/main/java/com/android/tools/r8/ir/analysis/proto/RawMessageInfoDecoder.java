@@ -25,6 +25,7 @@ import com.android.tools.r8.ir.analysis.proto.schema.ProtoObjectFromInvokeStatic
 import com.android.tools.r8.ir.analysis.proto.schema.ProtoObjectFromStaticGet;
 import com.android.tools.r8.ir.analysis.proto.schema.ProtoTypeObject;
 import com.android.tools.r8.ir.code.ArrayPut;
+import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.ConstClass;
 import com.android.tools.r8.ir.code.ConstString;
 import com.android.tools.r8.ir.code.DexItemBasedConstString;
@@ -333,50 +334,67 @@ public class RawMessageInfoDecoder {
     // Create an iterator for the block of interest.
     InstructionIterator instructionIterator = newArrayEmpty.getBlock().iterator();
     instructionIterator.nextUntil(instruction -> instruction == newArrayEmpty);
+    return new ArrayPutIterator(instructionIterator, objectsValue);
+  }
 
-    return new ThrowingIterator<Value, InvalidRawMessageInfoException>() {
+  private static class ArrayPutIterator
+      extends ThrowingIterator<Value, InvalidRawMessageInfoException> {
 
-      private int expectedNextIndex = 0;
+    private InstructionIterator instructionIterator;
+    private final Value objectsValue;
+    private int expectedNextIndex;
 
-      @Override
-      public boolean hasNext() {
-        while (instructionIterator.hasNext()) {
-          Instruction next = instructionIterator.peekNext();
-          if (isArrayPutOfInterest(next)) {
-            return true;
-          }
-          if (next.isJumpInstruction()) {
-            return false;
-          }
-          instructionIterator.next();
+    public ArrayPutIterator(InstructionIterator instructionIterator, Value objectsValue) {
+      this.instructionIterator = instructionIterator;
+      this.objectsValue = objectsValue;
+      expectedNextIndex = 0;
+    }
+
+    @Override
+    public boolean hasNext() {
+      while (instructionIterator.hasNext()) {
+        Instruction next = instructionIterator.peekNext();
+        if (isArrayPutOfInterest(next)) {
+          return true;
         }
-        return false;
+        if (next.isGoto()) {
+          // We may have split the block so allow continuing in linear jumps.
+          BasicBlock target = next.asGoto().getTarget();
+          assert target.hasUniquePredecessor();
+          instructionIterator = target.iterator();
+          continue;
+        }
+        if (next.isJumpInstruction()) {
+          return false;
+        }
+        instructionIterator.next();
+      }
+      return false;
+    }
+
+    @Override
+    public Value next() throws InvalidRawMessageInfoException {
+      if (!hasNext()) {
+        throw new NoSuchElementException();
+      }
+      ArrayPut arrayPut = instructionIterator.next().asArrayPut();
+
+      // Verify that the index correct.
+      Value indexValue = arrayPut.index().getAliasedValue();
+      if (indexValue.isPhi()
+          || !indexValue.definition.isConstNumber()
+          || indexValue.definition.asConstNumber().getIntValue() != expectedNextIndex) {
+        throw new InvalidRawMessageInfoException();
       }
 
-      @Override
-      public Value next() throws InvalidRawMessageInfoException {
-        if (!hasNext()) {
-          throw new NoSuchElementException();
-        }
-        ArrayPut arrayPut = instructionIterator.next().asArrayPut();
+      expectedNextIndex++;
+      return arrayPut.value().getAliasedValue();
+    }
 
-        // Verify that the index correct.
-        Value indexValue = arrayPut.index().getAliasedValue();
-        if (indexValue.isPhi()
-            || !indexValue.definition.isConstNumber()
-            || indexValue.definition.asConstNumber().getIntValue() != expectedNextIndex) {
-          throw new InvalidRawMessageInfoException();
-        }
-
-        expectedNextIndex++;
-        return arrayPut.value().getAliasedValue();
-      }
-
-      private boolean isArrayPutOfInterest(Instruction instruction) {
-        return instruction.isArrayPut()
-            && instruction.asArrayPut().array().getAliasedValue() == objectsValue;
-      }
-    };
+    private boolean isArrayPutOfInterest(Instruction instruction) {
+      return instruction.isArrayPut()
+          && instruction.asArrayPut().array().getAliasedValue() == objectsValue;
+    }
   }
 
   private static class InvalidRawMessageInfoException extends Exception {}
