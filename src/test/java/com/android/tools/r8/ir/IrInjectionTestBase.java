@@ -15,17 +15,21 @@ import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.ir.code.NumberGenerator;
 import com.android.tools.r8.ir.code.Phi;
 import com.android.tools.r8.ir.conversion.IRConverter;
+import com.android.tools.r8.ir.conversion.MethodConversionOptions;
 import com.android.tools.r8.smali.SmaliBuilder.MethodSignature;
 import com.android.tools.r8.smali.SmaliTestBase;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.AndroidAppConsumers;
 import com.android.tools.r8.utils.InternalOptions;
+import com.android.tools.r8.utils.ListUtils;
 import com.android.tools.r8.utils.Timing;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
+import com.google.common.collect.ImmutableList;
 import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
+import java.util.function.Function;
 
 public class IrInjectionTestBase extends SmaliTestBase {
 
@@ -61,16 +65,24 @@ public class IrInjectionTestBase extends SmaliTestBase {
     public final NumberGenerator valueNumberGenerator = new NumberGenerator();
 
     public TestApplication(AppView<?> appView, MethodSubject method) {
-      this(appView, method, null);
+      this(appView, method, ImmutableList.of());
     }
 
-    public TestApplication(AppView<?> appView, MethodSubject method, List<IRCode> additionalCode) {
+    public TestApplication(
+        AppView<?> appView,
+        MethodSubject method,
+        List<Function<AppView<?>, IRCode>> additionalCode) {
       this.application = appView.appInfo().app();
       this.appView = appView;
       this.method = method.getMethod();
-      this.code = method.buildIR();
+      appView.testing().enterLirSupportedPhase();
+      appView.testing().exitLirSupportedPhase();
+      this.code =
+          method
+              .getProgramMethod()
+              .buildIR(appView, MethodConversionOptions.forPostLirPhase(appView));
       code.removeRedundantBlocks();
-      this.additionalCode = additionalCode;
+      this.additionalCode = ListUtils.map(additionalCode, fn -> fn.apply(appView));
       this.consumers = new AndroidAppConsumers(appView.options());
       int largestValueNumber = -1;
       for (BasicBlock block : code.blocks) {
