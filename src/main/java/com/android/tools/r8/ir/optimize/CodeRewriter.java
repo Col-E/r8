@@ -5,6 +5,7 @@
 package com.android.tools.r8.ir.optimize;
 
 import static com.android.tools.r8.ir.analysis.type.Nullability.definitelyNotNull;
+import static com.android.tools.r8.ir.analysis.type.Nullability.maybeNull;
 
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppView;
@@ -361,8 +362,7 @@ public class CodeRewriter {
     DexType javaLangSystemType = dexItemFactory.javaLangSystemType;
     DexType javaIoPrintStreamType = dexItemFactory.javaIoPrintStreamType;
     Value out =
-        code.createValue(
-            TypeElement.fromDexType(javaIoPrintStreamType, definitelyNotNull(), appView));
+        code.createValue(TypeElement.fromDexType(javaIoPrintStreamType, maybeNull(), appView));
 
     DexProto proto = dexItemFactory.createProto(dexItemFactory.voidType, dexItemFactory.objectType);
     DexMethod print = dexItemFactory.createMethod(javaIoPrintStreamType, proto, "print");
@@ -431,7 +431,7 @@ public class CodeRewriter {
         iterator.add(new InvokeVirtual(print, null, ImmutableList.of(out, nul)));
         iterator = isNotNullBlock.listIterator(code);
         iterator.setInsertionPosition(position);
-        value = code.createValue(TypeElement.classClassType(appView, definitelyNotNull()));
+        value = code.createValue(TypeElement.classClassType(appView, maybeNull()));
         iterator.add(
             new InvokeVirtual(
                 dexItemFactory.objectMembers.getClass, value, ImmutableList.of(arguments.get(i))));
