@@ -1460,20 +1460,6 @@ public abstract class Instruction
   }
 
   public boolean verifyTypes(AppView<?> appView, VerifyTypesHelper verifyTypesHelper) {
-    if (outValue != null) {
-      TypeElement outTypeElement = outValue.getType();
-      if (outTypeElement.isArrayType()) {
-        DexType outBaseType =
-            outTypeElement
-                .asArrayType()
-                .toDexType(appView.dexItemFactory())
-                .toBaseType(appView.dexItemFactory());
-        assert appView.graphLens().lookupType(outBaseType) == outBaseType;
-      } else if (outTypeElement.isClassType()) {
-        DexType outType = outTypeElement.asClassType().getClassType();
-        assert appView.graphLens().lookupType(outType) == outType;
-      }
-    }
     return true;
   }
 
