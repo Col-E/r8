@@ -133,7 +133,7 @@ public class IR2LirConverter<EV> {
       Value[] operands = new Value[block.getPredecessors().size()];
       for (Phi phi : block.getPhis()) {
         permuteOperands(phi.getOperands(), permutation, operands);
-        builder.addPhi(Arrays.asList(operands));
+        builder.addPhi(phi.getType(), Arrays.asList(operands));
         valuesOffset++;
       }
     }
