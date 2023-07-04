@@ -352,9 +352,15 @@ public class StringSwitchConverter {
             intermediateIdValue = operand.asPhi();
           }
         }
-        assert intermediateIdValue == null
-            || intermediateIdValue.getOperands().stream().noneMatch(Value::isPhi);
-        return intermediateIdValue != null ? intermediateIdValue : defaultValue;
+        if (intermediateIdValue == null) {
+          return defaultValue;
+        }
+        for (Value operand : intermediateIdValue.getOperands()) {
+          if (operand.isPhi()) {
+            return defaultValue;
+          }
+        }
+        return intermediateIdValue;
       }
 
       // Attempts to build a mapping from strings to their ids starting from the given block. The
@@ -735,7 +741,9 @@ public class StringSwitchConverter {
           }
         }
 
-        if (idValue == null || (toBeExtended != null && idValue != toBeExtended.idValue)) {
+        if (idValue == null
+            || !idValue.isConstNumber()
+            || (toBeExtended != null && idValue != toBeExtended.idValue)) {
           // Not an extension of `toBeExtended`.
           return setFallthroughBlock(toBeExtended, fallthroughBlock);
         }
