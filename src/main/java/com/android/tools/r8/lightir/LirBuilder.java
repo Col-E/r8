@@ -773,9 +773,8 @@ public class LirBuilder<V, EV> {
     return addOneItemInstruction(LirOpcodes.MOVEEXCEPTION, exceptionType);
   }
 
-  public LirBuilder<V, EV> addPhi(TypeElement type, List<V> operands) {
-    DexType dexType = toDexType(type);
-    return addInstructionTemplate(LirOpcodes.PHI, Collections.singletonList(dexType), operands);
+  public LirBuilder<V, EV> addPhi(List<V> operands) {
+    return addInstructionTemplate(LirOpcodes.PHI, Collections.emptyList(), operands);
   }
 
   public LirBuilder<V, EV> addDebugLocalWrite(V src) {
@@ -881,14 +880,12 @@ public class LirBuilder<V, EV> {
     return addOneValueInstruction(opcode, value);
   }
 
-  public LirBuilder<V, EV> addArrayGetObject(DexType destType, V array, V index) {
-    return addInstructionTemplate(
-        LirOpcodes.AALOAD, Collections.singletonList(destType), ImmutableList.of(array, index));
-  }
-
-  public LirBuilder<V, EV> addArrayGetPrimitive(MemberType memberType, V array, V index) {
+  public LirBuilder<V, EV> addArrayGet(MemberType memberType, V array, V index) {
     int opcode;
     switch (memberType) {
+      case OBJECT:
+        opcode = LirOpcodes.AALOAD;
+        break;
       case BOOLEAN_OR_BYTE:
         opcode = LirOpcodes.BALOAD;
         break;

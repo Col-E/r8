@@ -87,7 +87,7 @@ public class LirUseRegistryCallback<EV> extends LirParsedInstructionCallback<EV>
   }
 
   @Override
-  public void onPhi(DexType type, List<EV> operands) {
+  public void onPhi(List<EV> operands) {
     // Nothing to register.
   }
 
