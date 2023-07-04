@@ -75,8 +75,7 @@ public class IrInjectionTestBase extends SmaliTestBase {
       this.application = appView.appInfo().app();
       this.appView = appView;
       this.method = method.getMethod();
-      appView.testing().enterLirSupportedPhase();
-      appView.testing().exitLirSupportedPhase();
+      appView.testing().skipLirPhasesForTestingFinalOutput();
       this.code =
           method
               .getProgramMethod()

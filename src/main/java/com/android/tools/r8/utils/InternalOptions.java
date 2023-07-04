@@ -57,6 +57,7 @@ import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ProgramMethod;
+import com.android.tools.r8.graph.bytecodemetadata.BytecodeMetadataProvider;
 import com.android.tools.r8.graph.classmerging.VerticallyMergedClasses;
 import com.android.tools.r8.horizontalclassmerging.HorizontalClassMerger;
 import com.android.tools.r8.horizontalclassmerging.HorizontallyMergedClasses;
@@ -65,6 +66,7 @@ import com.android.tools.r8.inspector.internal.InspectorImpl;
 import com.android.tools.r8.ir.analysis.proto.ProtoReferences;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.code.IRCode;
+import com.android.tools.r8.ir.conversion.MethodConversionOptions;
 import com.android.tools.r8.ir.desugar.TypeRewriter;
 import com.android.tools.r8.ir.desugar.TypeRewriter.MachineTypeRewriter;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibrarySpecification;
@@ -73,6 +75,9 @@ import com.android.tools.r8.ir.desugar.nest.Nest;
 import com.android.tools.r8.ir.optimize.Inliner;
 import com.android.tools.r8.ir.optimize.Inliner.Reason;
 import com.android.tools.r8.ir.optimize.enums.EnumDataMap;
+import com.android.tools.r8.lightir.IR2LirConverter;
+import com.android.tools.r8.lightir.LirCode;
+import com.android.tools.r8.lightir.LirStrategy;
 import com.android.tools.r8.naming.ClassNameMapper;
 import com.android.tools.r8.naming.MapConsumer;
 import com.android.tools.r8.naming.MapVersion;
@@ -119,6 +124,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
@@ -2104,6 +2111,7 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
 
     public boolean roundtripThroughLir = false;
     private boolean useLir = System.getProperty("com.android.tools.r8.nolir") == null;
+    private boolean convertLir = System.getProperty("com.android.tools.r8.convertlir") == null;
 
     public void enableLir() {
       useLir = true;
@@ -2127,13 +2135,51 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
 
     private LirPhase currentPhase = LirPhase.PRE;
 
-    public void enterLirSupportedPhase() {
+    public void enterLirSupportedPhase(AppView<?> appView, ExecutorService executorService)
+        throws ExecutionException {
       assert isPreLirPhase();
       currentPhase = LirPhase.SUPPORTED;
+      if (!canUseLir(appView) || !convertLir) {
+        return;
+      }
+      // Convert code objects to LIR.
+      ThreadUtils.processItems(
+          appView.appInfo().classes(),
+          clazz -> {
+            // TODO(b/225838009): Also convert instance initializers to LIR, by adding support for
+            //  computing the inlining constraint for LIR and using that in the class mergers, and
+            //  class initializers, by updating the concatenation of clinits in horizontal class
+            //  merging.
+            clazz.forEachProgramMethodMatching(
+                method ->
+                    method.hasCode()
+                        && !method.isInitializer()
+                        && !appView.isCfByteCodePassThrough(method),
+                method -> {
+                  IRCode code =
+                      method.buildIR(appView, MethodConversionOptions.forLirPhase(appView));
+                  LirCode<Integer> lirCode =
+                      IR2LirConverter.translate(
+                          code,
+                          BytecodeMetadataProvider.empty(),
+                          LirStrategy.getDefaultStrategy().getEncodingStrategy(),
+                          appView.options());
+                  method.setCode(lirCode, appView);
+                });
+          },
+          executorService);
+      // Conversion to LIR via IR will allocate type elements.
+      // They are not needed after construction so remove them again.
+      appView.dexItemFactory().clearTypeElementsCache();
     }
 
     public void exitLirSupportedPhase() {
       assert isSupportedLirPhase();
+      currentPhase = LirPhase.POST;
+    }
+
+    public void skipLirPhasesForTestingFinalOutput() {
+      assert currentPhase == LirPhase.PRE;
       currentPhase = LirPhase.POST;
     }
 

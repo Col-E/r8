@@ -506,7 +506,7 @@ public class R8 {
           .notifyHorizontalClassMergerFinished(HorizontalClassMerger.Mode.INITIAL);
 
       // TODO(b/225838009): Horizontal merging currently assumes pre-phase CF conversion.
-      appView.testing().enterLirSupportedPhase();
+      appView.testing().enterLirSupportedPhase(appView, executorService);
 
       new ProtoNormalizer(appViewWithLiveness).run(executorService, timing);
 
