@@ -17,6 +17,7 @@ import com.android.tools.r8.ir.code.IfType;
 import com.android.tools.r8.ir.code.MemberType;
 import com.android.tools.r8.ir.code.NumericType;
 import com.android.tools.r8.lightir.LirBuilder.IntSwitchPayload;
+import com.android.tools.r8.lightir.LirBuilder.StringSwitchPayload;
 import com.android.tools.r8.naming.dexitembasedstring.NameComputationInfo;
 import com.android.tools.r8.utils.StringUtils;
 import java.util.Arrays;
@@ -235,6 +236,12 @@ public class LirPrinter<EV> extends LirParsedInstructionCallback<EV> {
 
   @Override
   public void onIntSwitch(EV value, IntSwitchPayload payload) {
+    appendValueArguments(value);
+    // TODO(b/225838009): Consider printing the switch payload info.
+  }
+
+  @Override
+  public void onStringSwitch(EV value, StringSwitchPayload payload) {
     appendValueArguments(value);
     // TODO(b/225838009): Consider printing the switch payload info.
   }

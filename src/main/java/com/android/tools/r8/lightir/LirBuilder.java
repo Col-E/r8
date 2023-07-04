@@ -132,6 +132,17 @@ public class LirBuilder<V, EV> {
     }
   }
 
+  public static class StringSwitchPayload extends InstructionPayload {
+    public final int[] keys;
+    public final int[] targets;
+
+    public StringSwitchPayload(int[] keys, int[] targets) {
+      assert keys.length == targets.length;
+      this.keys = keys;
+      this.targets = targets;
+    }
+  }
+
   public static class NameComputationPayload extends InstructionPayload {
     public final NameComputationInfo<?> nameComputationInfo;
 
@@ -662,6 +673,23 @@ public class LirBuilder<V, EV> {
     IntSwitchPayload payload = new IntSwitchPayload(keys, targets);
     return addInstructionTemplate(
         LirOpcodes.TABLESWITCH,
+        Collections.singletonList(payload),
+        Collections.singletonList(value));
+  }
+
+  public LirBuilder<V, EV> addStringSwitch(
+      V value, DexString[] keys, BasicBlock[] targetsBlocks, BasicBlock fallthroughBlock) {
+    int size = keys.length;
+    assert targetsBlocks.length == size;
+    int[] keyIndices = new int[size];
+    int[] targetsIndices = new int[size];
+    for (int i = 0; i < size; i++) {
+      keyIndices[i] = getConstantIndex(keys[i]);
+      targetsIndices[i] = getBlockIndex(targetsBlocks[i]);
+    }
+    StringSwitchPayload payload = new StringSwitchPayload(keyIndices, targetsIndices);
+    return addInstructionTemplate(
+        LirOpcodes.STRINGSWITCH,
         Collections.singletonList(payload),
         Collections.singletonList(value));
   }
