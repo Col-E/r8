@@ -69,6 +69,8 @@ public class AssumeInserter {
 
   public void insertAssumeInstructions(IRCode code, Timing timing) {
     insertAssumeInstructionsInBlocks(code, code.listIterator(), alwaysTrue(), timing);
+    code.removeRedundantBlocks();
+    assert code.isConsistentSSA(appView);
   }
 
   public void insertAssumeInstructionsInBlocks(

@@ -217,6 +217,7 @@ public class GeneratedMessageLiteShrinker {
     if (!affectedValues.isEmpty()) {
       new TypeAnalysis(appView).narrowing(affectedValues);
     }
+    assert code.isConsistentSSA(appView);
   }
 
   private DexType getNewMutableInstanceType(
@@ -314,6 +315,7 @@ public class GeneratedMessageLiteShrinker {
         assert false;
       }
     }
+    assert code.isConsistentSSA(appView);
   }
 
   private void rewriteArgumentsToNewMessageInfo(

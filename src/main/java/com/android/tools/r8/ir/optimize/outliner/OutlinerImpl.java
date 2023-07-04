@@ -1613,6 +1613,8 @@ public class OutlinerImpl extends Outliner {
             });
       }
     }
+    code.removeRedundantBlocks();
+    assert code.isConsistentSSA(appView);
   }
 
   public boolean checkAllOutlineSitesFoundAgain() {

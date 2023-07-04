@@ -174,7 +174,6 @@ public class EnumValueOptimizer extends CodeRewriterPass<AppInfoWithLiveness> {
     if (!affectedValues.isEmpty()) {
       new TypeAnalysis(appView).narrowing(affectedValues);
     }
-    assert code.isConsistentSSA(appView);
     return CodeRewriterResult.hasChanged(hasChanged);
   }
 

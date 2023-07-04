@@ -231,6 +231,7 @@ public class StringOptimizer {
     if (!affectedValues.isEmpty()) {
       new TypeAnalysis(appView).narrowing(affectedValues);
     }
+    assert code.isConsistentSSA(appView);
   }
 
   // Find Class#get*Name() with a constant-class and replace it with a const-string if possible.
@@ -382,6 +383,7 @@ public class StringOptimizer {
     if (!affectedValues.isEmpty()) {
       new TypeAnalysis(appView).narrowing(affectedValues);
     }
+    assert code.isConsistentSSA(appView);
   }
 
   // String#valueOf(null) -> "null"
@@ -448,6 +450,8 @@ public class StringOptimizer {
     if (!affectedValues.isEmpty()) {
       new TypeAnalysis(appView).narrowing(affectedValues);
     }
+    code.removeRedundantBlocks();
+    assert code.isConsistentSSA(appView);
   }
 
   static class StringOptimizerEscapeAnalysisConfiguration

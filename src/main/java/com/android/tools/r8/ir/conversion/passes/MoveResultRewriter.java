@@ -121,7 +121,6 @@ public class MoveResultRewriter extends CodeRewriterPass<AppInfo> {
     if (changed) {
       code.removeRedundantBlocks();
     }
-    assert code.isConsistentSSA(appView);
     return CodeRewriterResult.hasChanged(changed);
   }
 

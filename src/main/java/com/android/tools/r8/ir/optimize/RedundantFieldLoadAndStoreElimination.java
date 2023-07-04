@@ -472,7 +472,6 @@ public class RedundantFieldLoadAndStoreElimination extends CodeRewriterPass<AppI
       if (hasChanged) {
         code.removeRedundantBlocks();
       }
-      assert code.isConsistentSSA(appView);
       return CodeRewriterResult.hasChanged(hasChanged);
     }
 

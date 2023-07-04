@@ -50,7 +50,14 @@ public abstract class CodeRewriterPass<T extends AppInfo> {
       MethodProcessor methodProcessor,
       MethodProcessingContext methodProcessingContext) {
     if (shouldRewriteCode(code)) {
-      return rewriteCode(code, methodProcessor, methodProcessingContext);
+      assert isAcceptingSSA()
+          ? code.isConsistentSSA(appView)
+          : code.isConsistentGraph(appView, false);
+      CodeRewriterResult result = rewriteCode(code, methodProcessor, methodProcessingContext);
+      assert isProducingSSA()
+          ? code.isConsistentSSA(appView)
+          : code.isConsistentGraph(appView, false);
+      return result;
     }
     return noChange();
   }
@@ -64,6 +71,14 @@ public abstract class CodeRewriterPass<T extends AppInfo> {
   }
 
   protected abstract String getTimingId();
+
+  protected boolean isAcceptingSSA() {
+    return true;
+  }
+
+  protected boolean isProducingSSA() {
+    return true;
+  }
 
   protected CodeRewriterResult rewriteCode(IRCode code) {
     throw new Unreachable("Should Override or use overload");

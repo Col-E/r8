@@ -84,7 +84,6 @@ public class KnownArrayLengthRewriter extends CodeRewriterPass<AppInfo> {
     if (hasChanged) {
       code.removeRedundantBlocks();
     }
-    assert code.isConsistentSSA(appView);
     return CodeRewriterResult.hasChanged(hasChanged);
   }
 }

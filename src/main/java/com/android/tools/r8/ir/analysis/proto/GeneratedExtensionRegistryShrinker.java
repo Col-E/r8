@@ -156,6 +156,7 @@ public class GeneratedExtensionRegistryShrinker {
       }
       IRCodeUtils.removeInstructionAndTransitiveInputsIfNotUsed(code, instruction);
     }
+    assert code.isConsistentSSA(appView);
   }
 
   public boolean wasRemoved(DexField field) {

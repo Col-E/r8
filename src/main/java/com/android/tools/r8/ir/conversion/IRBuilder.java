@@ -750,7 +750,7 @@ public class IRBuilder {
     }
 
     ir.removeRedundantBlocks();
-    assert ir.isConsistentSSA(appView);
+    assert ir.isConsistentSSABeforeTypesAreCorrect(appView);
 
     // Clear the code so we don't build multiple times.
     source.clear();

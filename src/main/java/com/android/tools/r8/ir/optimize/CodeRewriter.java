@@ -117,7 +117,10 @@ public class CodeRewriter {
       new TypeAnalysis(appView).widening(valuesThatRequireWidening);
     }
 
+    code.removeRedundantBlocks();
+
     assert Streams.stream(code.instructions()).noneMatch(Instruction::isAssume);
+    assert code.isConsistentSSA(appView);
   }
 
   public static void removeOrReplaceByDebugLocalWrite(
@@ -201,6 +204,7 @@ public class CodeRewriter {
         }
       }
     }
+    assert code.isConsistentSSA(appView);
   }
 
   /**
@@ -449,6 +453,7 @@ public class CodeRewriter {
     }
     // When we fall out of the loop the iterator is in the last eol block.
     iterator.add(new InvokeVirtual(printLn, null, ImmutableList.of(out, empty)));
+    assert code.isConsistentSSA(appView);
   }
 
   // The javac fix for JDK-8272564 has to be rewritten back to invoke-virtual on Object if the

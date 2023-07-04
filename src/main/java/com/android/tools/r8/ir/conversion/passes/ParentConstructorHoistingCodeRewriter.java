@@ -53,6 +53,7 @@ public class ParentConstructorHoistingCodeRewriter
     for (InvokeDirect invoke : getOrComputeSideEffectFreeConstructorCalls(code)) {
       hoistSideEffectFreeConstructorCall(code, invoke);
     }
+    code.removeRedundantBlocks();
     return CodeRewriterResult.NONE;
   }
 

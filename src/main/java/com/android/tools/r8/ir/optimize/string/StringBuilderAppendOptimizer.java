@@ -118,7 +118,6 @@ public class StringBuilderAppendOptimizer extends CodeRewriterPass<AppInfo> {
     }
     code.removeAllDeadAndTrivialPhis();
     code.removeRedundantBlocks();
-    assert code.isConsistentSSA(appView);
     return CodeRewriterResult.HAS_CHANGED;
   }
 

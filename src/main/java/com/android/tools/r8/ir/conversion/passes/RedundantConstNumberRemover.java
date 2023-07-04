@@ -162,7 +162,6 @@ public class RedundantConstNumberRemover extends CodeRewriterPass<AppInfo> {
     if (changed) {
       code.removeAllDeadAndTrivialPhis();
     }
-    assert code.isConsistentSSA(appView);
     return CodeRewriterResult.hasChanged(changed);
   }
 

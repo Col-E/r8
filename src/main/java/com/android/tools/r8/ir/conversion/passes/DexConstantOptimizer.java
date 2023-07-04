@@ -150,8 +150,6 @@ public class DexConstantOptimizer extends CodeRewriterPass<AppInfo> {
         }
       }
     }
-
-    assert code.isConsistentSSA(appView);
   }
 
   // Check if a binop can be represented in the binop/lit8 or binop/lit16 form.

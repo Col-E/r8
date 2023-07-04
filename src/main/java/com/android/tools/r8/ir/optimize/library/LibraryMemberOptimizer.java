@@ -174,5 +174,7 @@ public class LibraryMemberOptimizer implements CodeOptimization {
     if (!affectedValues.isEmpty()) {
       new TypeAnalysis(appView).narrowing(affectedValues);
     }
+    code.removeRedundantBlocks();
+    assert code.isConsistentSSA(appView);
   }
 }

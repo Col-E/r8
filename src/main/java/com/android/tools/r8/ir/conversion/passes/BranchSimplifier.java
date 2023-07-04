@@ -141,7 +141,6 @@ public class BranchSimplifier extends CodeRewriterPass<AppInfo> {
       new TypeAnalysis(appView).narrowing(affectedValues);
     }
     code.removeRedundantBlocks();
-    assert code.isConsistentSSA(appView);
     return create(!affectedValues.isEmpty(), simplified);
   }
 

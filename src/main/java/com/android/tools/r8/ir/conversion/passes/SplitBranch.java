@@ -73,7 +73,6 @@ public class SplitBranch extends CodeRewriterPass<AppInfo> {
       code.splitCriticalEdges();
     }
     code.removeRedundantBlocks();
-    assert code.isConsistentSSA(appView);
     return CodeRewriterResult.HAS_CHANGED;
   }
 

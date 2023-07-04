@@ -128,7 +128,6 @@ public class TrivialCheckCastAndInstanceOfRemover extends CodeRewriterPass<AppIn
     if (hasChanged) {
       code.removeRedundantBlocks();
     }
-    assert code.isConsistentSSA(appView);
     return CodeRewriterResult.hasChanged(hasChanged);
   }
 

@@ -170,7 +170,7 @@ public class CfBuilder {
       timing.end();
     }
     code.removeRedundantBlocks();
-    assert code.isConsistentSSA(appView);
+    assert code.isConsistentGraph(appView, false);
     // Insert reads for uninitialized read blocks to ensure correct stack maps.
     timing.begin("Insert uninitialized local reads");
     Set<UninitializedThisLocalRead> uninitializedThisLocalReads =

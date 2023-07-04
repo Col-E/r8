@@ -107,7 +107,6 @@ public class SparseConditionalConstantPropagation extends CodeRewriterPass<AppIn
         }
       }
       boolean hasChanged = rewriteConstants();
-      assert code.isConsistentSSA(appView);
       return CodeRewriterResult.hasChanged(hasChanged);
     }
 
