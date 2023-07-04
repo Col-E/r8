@@ -22,14 +22,13 @@ public class AccessModifierOptions {
   }
 
   public boolean isAccessModificationEnabled() {
-    // TODO(b/288062771): Enable access modification for L8.
-    if (!options.synthesizedClassPrefix.isEmpty()) {
-      return false;
+    if (isAccessModificationRulePresent()) {
+      return true;
     }
-    if (options.forceProguardCompatibility) {
-      return isAccessModificationRulePresent();
-    }
-    return true;
+    // TODO(b/288062771): Enable access modification by default for L8.
+    return options.synthesizedClassPrefix.isEmpty()
+        && !options.forceProguardCompatibility
+        && options.isOptimizing();
   }
 
   private boolean isAccessModificationRulePresent() {
