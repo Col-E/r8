@@ -742,7 +742,7 @@ public class StringSwitchConverter {
         }
 
         if (idValue == null
-            || !idValue.isConstNumber()
+            || !idValue.getType().isInt()
             || (toBeExtended != null && idValue != toBeExtended.idValue)) {
           // Not an extension of `toBeExtended`.
           return setFallthroughBlock(toBeExtended, fallthroughBlock);
