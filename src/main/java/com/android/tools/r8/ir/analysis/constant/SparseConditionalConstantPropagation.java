@@ -5,7 +5,6 @@ package com.android.tools.r8.ir.analysis.constant;
 
 import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppView;
-import com.android.tools.r8.ir.analysis.type.TypeAnalysis;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.ConstNumber;
 import com.android.tools.r8.ir.code.IRCode;
@@ -19,8 +18,8 @@ import com.android.tools.r8.ir.code.StringSwitch;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.conversion.passes.CodeRewriterPass;
 import com.android.tools.r8.ir.conversion.passes.result.CodeRewriterResult;
+import com.android.tools.r8.ir.optimize.AffectedValues;
 import com.android.tools.r8.utils.BooleanBox;
-import com.google.common.collect.Sets;
 import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.Deque;
@@ -28,7 +27,6 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 /**
  * Implementation of Sparse Conditional Constant Propagation from the paper of Wegman and Zadeck
@@ -111,7 +109,7 @@ public class SparseConditionalConstantPropagation extends CodeRewriterPass<AppIn
     }
 
     private boolean rewriteConstants() {
-      Set<Value> affectedValues = Sets.newIdentityHashSet();
+      AffectedValues affectedValues = new AffectedValues();
       List<BasicBlock> blockToAnalyze = new ArrayList<>();
       BooleanBox hasChanged = new BooleanBox(false);
       mapping.entrySet().stream()
@@ -121,7 +119,6 @@ public class SparseConditionalConstantPropagation extends CodeRewriterPass<AppIn
                 Value value = entry.getKey();
                 ConstNumber evaluatedConst = entry.getValue().asConst().getConstNumber();
                 if (value.definition != evaluatedConst) {
-                  value.addAffectedValuesTo(affectedValues);
                   if (value.isPhi()) {
                     // D8 relies on dead code removal to get rid of the dead phi itself.
                     if (value.hasAnyUsers()) {
@@ -138,14 +135,14 @@ public class SparseConditionalConstantPropagation extends CodeRewriterPass<AppIn
                         iterator.previous();
                       }
                       iterator.add(newConst);
-                      value.replaceUsers(newConst.outValue());
+                      value.replaceUsers(newConst.outValue(), affectedValues);
                       hasChanged.set();
                     }
                   } else {
                     BasicBlock block = value.definition.getBlock();
                     InstructionListIterator iterator = block.listIterator(code);
                     iterator.nextUntil(i -> i == value.definition);
-                    iterator.replaceCurrentInstruction(evaluatedConst);
+                    iterator.replaceCurrentInstruction(evaluatedConst, affectedValues);
                     hasChanged.set();
                   }
                 }
@@ -153,9 +150,7 @@ public class SparseConditionalConstantPropagation extends CodeRewriterPass<AppIn
       for (BasicBlock block : blockToAnalyze) {
         block.deduplicatePhis();
       }
-      if (!affectedValues.isEmpty()) {
-        new TypeAnalysis(appView).narrowing(affectedValues);
-      }
+      affectedValues.narrowingWithAssumeRemoval(appView, code);
       boolean changed = hasChanged.get();
       if (changed) {
         code.removeAllDeadAndTrivialPhis();

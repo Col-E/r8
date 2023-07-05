@@ -61,11 +61,13 @@ import com.android.tools.r8.graph.proto.RemovedArgumentInfo;
 import com.android.tools.r8.graph.proto.RewrittenPrototypeDescription;
 import com.android.tools.r8.graph.proto.RewrittenTypeInfo;
 import com.android.tools.r8.ir.analysis.type.DestructivePhiTypeUpdater;
+import com.android.tools.r8.ir.analysis.type.DynamicType;
 import com.android.tools.r8.ir.analysis.type.Nullability;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.analysis.value.SingleNumberValue;
 import com.android.tools.r8.ir.analysis.value.SingleValue;
 import com.android.tools.r8.ir.code.Argument;
+import com.android.tools.r8.ir.code.Assume;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.BasicBlockIterator;
 import com.android.tools.r8.ir.code.CatchHandlers;
@@ -105,6 +107,7 @@ import com.android.tools.r8.ir.code.UnusedArgument;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.code.ValueType;
 import com.android.tools.r8.ir.conversion.passes.TrivialPhiSimplifier;
+import com.android.tools.r8.ir.optimize.AffectedValues;
 import com.android.tools.r8.ir.optimize.enums.EnumUnboxer;
 import com.android.tools.r8.optimize.MemberRebindingAnalysis;
 import com.android.tools.r8.optimize.argumentpropagation.lenscoderewriter.NullCheckInserter;
@@ -218,6 +221,7 @@ public class LensCodeRewriter {
     // Rewriting types that affects phi can cause us to compute TOP for cyclic phi's. To solve this
     // we track all phi's that needs to be re-computed.
     Set<Phi> affectedPhis = Sets.newIdentityHashSet();
+    AffectedValues affectedValues = new AffectedValues();
     Set<UnusedArgument> unusedArguments = Sets.newIdentityHashSet();
     rewriteArguments(
         code, originalMethodReference, prototypeChanges, affectedPhis, unusedArguments);
@@ -236,7 +240,14 @@ public class LensCodeRewriter {
       }
     }
     rewritePartialDefault(
-        code, method, graphLens, codeLens, prototypeChanges, affectedPhis, unusedArguments);
+        code,
+        method,
+        graphLens,
+        codeLens,
+        prototypeChanges,
+        affectedPhis,
+        affectedValues,
+        unusedArguments);
   }
 
   private void rewritePartialDefault(
@@ -246,6 +257,7 @@ public class LensCodeRewriter {
       GraphLens codeLens,
       RewrittenPrototypeDescription prototypeChangesForMethod,
       Set<Phi> affectedPhis,
+      AffectedValues affectedValues,
       Set<UnusedArgument> unusedArguments) {
     BasicBlockIterator blocks = code.listIterator();
     LazyBox<LensCodeRewriterUtils> helper =
@@ -460,7 +472,8 @@ public class LensCodeRewriter {
                     }
                     invoke
                         .outValue()
-                        .replaceUsers(constantReturnMaterializingInstruction.outValue());
+                        .replaceUsers(
+                            constantReturnMaterializingInstruction.outValue(), affectedValues);
                     if (!invoke
                         .getOutType()
                         .equals(constantReturnMaterializingInstruction.getOutType())) {
@@ -704,21 +717,43 @@ public class LensCodeRewriter {
           case CONST_CLASS:
             {
               ConstClass constClass = current.asConstClass();
-              new InstructionReplacer(code, current, iterator, affectedPhis)
-                  .replaceInstructionIfTypeChanged(
-                      constClass.getValue(),
-                      (t, v) ->
-                          t.isPrimitiveType() || t.isVoidType()
-                              ? StaticGet.builder()
-                                  .setField(
-                                      factory
-                                          .getBoxedMembersForPrimitiveOrVoidType(t)
-                                          .getTypeField())
-                                  .setOutValue(v)
-                                  .build()
-                              : new ConstClass(v, t),
-                      graphLens,
-                      codeLens);
+              Instruction replacement =
+                  new InstructionReplacer(code, current, iterator, affectedPhis)
+                      .replaceInstructionIfTypeChanged(
+                          constClass.getValue(),
+                          (t, v) ->
+                              t.isPrimitiveType() || t.isVoidType()
+                                  ? StaticGet.builder()
+                                      .setField(
+                                          factory
+                                              .getBoxedMembersForPrimitiveOrVoidType(t)
+                                              .getTypeField())
+                                      .setOutValue(v)
+                                      .build()
+                                  : new ConstClass(v, t),
+                          graphLens,
+                          codeLens);
+              if (replacement != null && replacement.isStaticGet()) {
+                Value nonNullableValue = replacement.outValue();
+                Value nullableValue =
+                    code.createValue(
+                        nonNullableValue
+                            .getType()
+                            .asReferenceType()
+                            .getOrCreateVariant(Nullability.maybeNull()),
+                        nonNullableValue.getLocalInfo());
+                replacement.setOutValue(nullableValue);
+                Assume assume =
+                    Assume.create(
+                        DynamicType.definitelyNotNull(),
+                        nonNullableValue,
+                        nullableValue,
+                        replacement,
+                        appView,
+                        method);
+                assume.setPosition(replacement.getPosition(), options);
+                iterator.add(assume);
+              }
             }
             break;
 
@@ -849,6 +884,7 @@ public class LensCodeRewriter {
     if (mayHaveUnreachableBlocks) {
       code.removeUnreachableBlocks();
     }
+    affectedValues.narrowingWithAssumeRemoval(appView, code);
     if (!affectedPhis.isEmpty()) {
       new DestructivePhiTypeUpdater(appView, graphLens, codeLens)
           .recomputeAndPropagateTypes(code, affectedPhis);
@@ -877,6 +913,7 @@ public class LensCodeRewriter {
       RewrittenPrototypeDescription prototypeChanges,
       Set<Phi> affectedPhis,
       Set<UnusedArgument> unusedArguments) {
+    AffectedValues affectedValues = new AffectedValues();
     ArgumentInfoCollection argumentInfoCollection = prototypeChanges.getArgumentInfoCollection();
     List<Instruction> argumentPostlude = new LinkedList<>();
     int oldArgumentIndex = 0;
@@ -899,6 +936,7 @@ public class LensCodeRewriter {
             argument,
             argumentInfo.asRemovedArgumentInfo(),
             affectedPhis,
+            affectedValues,
             argumentPostlude,
             unusedArguments);
         numberOfRemovedArguments++;
@@ -958,6 +996,8 @@ public class LensCodeRewriter {
         instructionIterator.add(instruction);
       }
     }
+
+    affectedValues.narrowingWithAssumeRemoval(appView, code);
   }
 
   private void rewriteRemovedArgument(
@@ -967,6 +1007,7 @@ public class LensCodeRewriter {
       Argument argument,
       RemovedArgumentInfo removedArgumentInfo,
       Set<Phi> affectedPhis,
+      AffectedValues affectedValues,
       List<Instruction> argumentPostlude,
       Set<UnusedArgument> unusedArguments) {
     Instruction replacement;
@@ -987,7 +1028,7 @@ public class LensCodeRewriter {
       replacement.setPosition(Position.none());
       unusedArguments.add(replacement.asUnusedArgument());
     }
-    argument.outValue().replaceUsers(replacement.outValue());
+    argument.outValue().replaceUsers(replacement.outValue(), affectedValues);
     affectedPhis.addAll(replacement.outValue().uniquePhiUsers());
     argumentPostlude.add(replacement);
     instructionIterator.removeOrReplaceByDebugLocalRead();
@@ -1062,7 +1103,11 @@ public class LensCodeRewriter {
       CheckCast checkCast =
           SafeCheckCast.builder()
               .setObject(fieldPut.value())
-              .setFreshOutValue(code, lookup.getWriteCastType().toTypeElement(appView))
+              .setFreshOutValue(
+                  code,
+                  lookup
+                      .getWriteCastType()
+                      .toTypeElement(appView, fieldPut.value().getType().nullability()))
               .setCastType(lookup.getWriteCastType())
               .setPosition(fieldPut.getPosition())
               .build();
@@ -1323,7 +1368,7 @@ public class LensCodeRewriter {
       this.affectedPhis = affectedPhis;
     }
 
-    void replaceInstructionIfTypeChanged(
+    Instruction replaceInstructionIfTypeChanged(
         DexType type,
         BiFunction<DexType, Value, Instruction> constructor,
         NonIdentityGraphLens graphLens,
@@ -1345,7 +1390,9 @@ public class LensCodeRewriter {
                     && current.asInvokeVirtual().getInvokedMethod().holder.isArrayType());
           }
         }
+        return newInstruction;
       }
+      return null;
     }
   }
 }

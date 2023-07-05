@@ -26,7 +26,6 @@ import com.android.tools.r8.ir.analysis.value.objectstate.ObjectState;
 import com.android.tools.r8.ir.code.ArrayGet;
 import com.android.tools.r8.ir.code.ArrayPut;
 import com.android.tools.r8.ir.code.BasicBlock;
-import com.android.tools.r8.ir.code.FieldGet;
 import com.android.tools.r8.ir.code.FieldInstruction;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.InitClass;
@@ -232,7 +231,7 @@ public class RedundantFieldLoadAndStoreElimination extends CodeRewriterPass<AppI
     private final boolean release;
 
     // Values that may require type propagation.
-    private final Set<Value> affectedValues = Sets.newIdentityHashSet();
+    private final AffectedValues affectedValues = new AffectedValues();
 
     // Maps keeping track of fields that have an already loaded value at basic block entry.
     private final BlockStates activeStates = new BlockStates();
@@ -268,8 +267,7 @@ public class RedundantFieldLoadAndStoreElimination extends CodeRewriterPass<AppI
 
       @Override
       public void eliminateRedundantRead(InstructionListIterator it, Instruction redundant) {
-        affectedValues.addAll(redundant.outValue().affectedValues());
-        redundant.outValue().replaceUsers(value);
+        redundant.outValue().replaceUsers(value, affectedValues);
         it.removeOrReplaceByDebugLocalRead();
         value.uniquePhiUsers().forEach(Phi::removeTrivialPhi);
         hasChanged = true;
@@ -359,7 +357,6 @@ public class RedundantFieldLoadAndStoreElimination extends CodeRewriterPass<AppI
         }
       }
 
-      AssumeRemover assumeRemover = new AssumeRemover(appView, code, affectedValues);
       for (BasicBlock head : code.topologicallySortedBlocks()) {
         if (head.hasUniquePredecessor() && head.getUniquePredecessor().hasUniqueNormalSuccessor()) {
           // Already visited.
@@ -389,16 +386,14 @@ public class RedundantFieldLoadAndStoreElimination extends CodeRewriterPass<AppI
               }
 
               if (instruction.isInstanceGet()) {
-                handleInstanceGet(it, instruction.asInstanceGet(), field, assumeRemover);
+                handleInstanceGet(it, instruction.asInstanceGet(), field);
               } else if (instruction.isInstancePut()) {
                 handleInstancePut(instruction.asInstancePut(), field);
               } else if (instruction.isStaticGet()) {
-                handleStaticGet(it, instruction.asStaticGet(), field, assumeRemover);
+                handleStaticGet(it, instruction.asStaticGet(), field);
               } else if (instruction.isStaticPut()) {
                 handleStaticPut(instruction.asStaticPut(), field);
               }
-            } else if (instruction.isAssume()) {
-              assumeRemover.removeIfMarked(instruction.asAssume(), it);
             } else if (instruction.isInitClass()) {
               handleInitClass(it, instruction.asInitClass());
             } else if (instruction.isMonitor()) {
@@ -468,7 +463,7 @@ public class RedundantFieldLoadAndStoreElimination extends CodeRewriterPass<AppI
         activeStates.recordActiveStateOnBlockExit(end, activeState);
       }
       processInstructionsToRemove();
-      assumeRemover.removeMarkedInstructions().finish();
+      affectedValues.narrowingWithAssumeRemoval(appView, code);
       if (hasChanged) {
         code.removeRedundantBlocks();
       }
@@ -668,10 +663,7 @@ public class RedundantFieldLoadAndStoreElimination extends CodeRewriterPass<AppI
     }
 
     private void handleInstanceGet(
-        InstructionListIterator it,
-        InstanceGet instanceGet,
-        DexClassAndField field,
-        AssumeRemover assumeRemover) {
+        InstructionListIterator it, InstanceGet instanceGet, DexClassAndField field) {
       if (instanceGet.outValue().hasLocalInfo()) {
         clearMostRecentInstanceFieldWrite(instanceGet, field);
         return;
@@ -682,7 +674,6 @@ public class RedundantFieldLoadAndStoreElimination extends CodeRewriterPass<AppI
       FieldValue replacement = activeState.getInstanceFieldValue(fieldAndObject);
       if (replacement != null) {
         if (isRedundantFieldLoadEliminationAllowed(field)) {
-          markAssumeDynamicTypeUsersForRemoval(instanceGet, replacement, assumeRemover);
           replacement.eliminateRedundantRead(it, instanceGet);
         }
         return;
@@ -719,21 +710,6 @@ public class RedundantFieldLoadAndStoreElimination extends CodeRewriterPass<AppI
         activeState.clearMostRecentFieldWrites();
       } else {
         activeState.clearMostRecentInstanceFieldWrite(field.getReference());
-      }
-    }
-
-    private void markAssumeDynamicTypeUsersForRemoval(
-        FieldGet fieldGet, FieldValue replacement, AssumeRemover assumeRemover) {
-      ExistingValue existingValue = replacement.asExistingValue();
-      if (existingValue == null
-          || !existingValue
-              .getValue()
-              .isDefinedByInstructionSatisfying(
-                  definition ->
-                      definition.isFieldGet()
-                          && definition.asFieldGet().getField().getType()
-                              == fieldGet.getField().getType())) {
-        assumeRemover.markAssumeDynamicTypeUsersForRemoval(fieldGet.outValue());
       }
     }
 
@@ -777,10 +753,7 @@ public class RedundantFieldLoadAndStoreElimination extends CodeRewriterPass<AppI
     }
 
     private void handleStaticGet(
-        InstructionListIterator instructionIterator,
-        StaticGet staticGet,
-        DexClassAndField field,
-        AssumeRemover assumeRemover) {
+        InstructionListIterator instructionIterator, StaticGet staticGet, DexClassAndField field) {
       markClassAsInitialized(field.getHolderType());
 
       if (staticGet.outValue().hasLocalInfo()) {
@@ -791,7 +764,6 @@ public class RedundantFieldLoadAndStoreElimination extends CodeRewriterPass<AppI
 
       FieldValue replacement = activeState.getStaticFieldValue(field.getReference());
       if (replacement != null) {
-        markAssumeDynamicTypeUsersForRemoval(staticGet, replacement, assumeRemover);
         replacement.eliminateRedundantRead(instructionIterator, staticGet);
         return;
       }

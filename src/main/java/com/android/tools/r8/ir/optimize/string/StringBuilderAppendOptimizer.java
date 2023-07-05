@@ -33,6 +33,7 @@ import com.android.tools.r8.ir.code.Phi;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.conversion.passes.CodeRewriterPass;
 import com.android.tools.r8.ir.conversion.passes.result.CodeRewriterResult;
+import com.android.tools.r8.ir.optimize.AffectedValues;
 import com.android.tools.r8.ir.optimize.string.StringBuilderNode.AppendNode;
 import com.android.tools.r8.ir.optimize.string.StringBuilderNode.ImplicitToStringNode;
 import com.android.tools.r8.ir.optimize.string.StringBuilderNode.InitNode;
@@ -108,14 +109,16 @@ public class StringBuilderAppendOptimizer extends CodeRewriterPass<AppInfo> {
     if (actions.isEmpty()) {
       return CodeRewriterResult.NO_CHANGE;
     }
+    AffectedValues affectedValues = new AffectedValues();
     InstructionListIterator it = code.instructionListIterator();
     while (it.hasNext()) {
       Instruction instruction = it.next();
       StringBuilderAction stringBuilderAction = actions.get(instruction);
       if (stringBuilderAction != null) {
-        stringBuilderAction.perform(appView, code, it, instruction, oracle);
+        stringBuilderAction.perform(appView, code, it, instruction, affectedValues, oracle);
       }
     }
+    affectedValues.narrowingWithAssumeRemoval(appView, code);
     code.removeAllDeadAndTrivialPhis();
     code.removeRedundantBlocks();
     return CodeRewriterResult.HAS_CHANGED;

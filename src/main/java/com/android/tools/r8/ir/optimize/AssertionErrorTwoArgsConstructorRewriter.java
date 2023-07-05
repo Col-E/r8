@@ -90,7 +90,7 @@ public class AssertionErrorTwoArgsConstructorRewriter {
           newInstance -> newInstance.removeOrReplaceByDebugLocalRead(code));
     }
     if (!newOutValues.isEmpty()) {
-      new TypeAnalysis(appView).widening(newOutValues);
+      new TypeAnalysis(appView, code).widening(newOutValues);
     }
     assert code.isConsistentSSA(appView);
   }

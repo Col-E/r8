@@ -6,6 +6,7 @@ package com.android.tools.r8.ir.conversion.passes;
 
 import com.android.tools.r8.algorithms.scc.SCC;
 import com.android.tools.r8.errors.CompilationError;
+import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.ir.code.IRCode;
@@ -29,7 +30,8 @@ public class TrivialPhiSimplifier {
     assert !unusedArgument.outValue().hasPhiUsers();
   }
 
-  public static void ensureDirectStringNewToInit(IRCode code, DexItemFactory dexItemFactory) {
+  public static void ensureDirectStringNewToInit(AppView<?> appView, IRCode code) {
+    DexItemFactory dexItemFactory = appView.dexItemFactory();
     for (Instruction instruction : code.instructions()) {
       if (instruction.isInvokeDirect()) {
         InvokeDirect invoke = instruction.asInvokeDirect();
@@ -47,6 +49,7 @@ public class TrivialPhiSimplifier {
         }
       }
     }
+    assert code.isConsistentSSA(appView);
   }
 
   private static NewInstance findNewInstance(Phi phi) {

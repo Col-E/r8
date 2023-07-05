@@ -208,18 +208,32 @@ public class Phi extends Value implements InstructionOrPhi {
   }
 
   public void replaceOperandAt(int predIndex, Value newValue) {
+    replaceOperandAt(predIndex, newValue, null);
+  }
+
+  public void replaceOperandAt(int predIndex, Value newValue, Set<Value> affectedValues) {
     Value current = operands.get(predIndex);
     operands.set(predIndex, newValue);
     newValue.addPhiUser(this);
     current.removePhiUser(this);
+    if (affectedValues != null) {
+      affectedValues.add(this);
+    }
   }
 
   public void replaceOperand(Value current, Value newValue) {
+    replaceOperand(current, newValue, null);
+  }
+
+  public void replaceOperand(Value current, Value newValue, Set<Value> affectedValues) {
     for (int i = 0; i < operands.size(); i++) {
       if (operands.get(i) == current) {
         operands.set(i, newValue);
         newValue.addPhiUser(this);
       }
+    }
+    if (affectedValues != null) {
+      affectedValues.add(this);
     }
   }
 

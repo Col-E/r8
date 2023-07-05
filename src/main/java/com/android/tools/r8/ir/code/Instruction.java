@@ -95,6 +95,14 @@ public abstract class Instruction
     this.position = position;
   }
 
+  public void setPosition(Position position, InternalOptions options) {
+    if (instructionTypeCanThrow() || options.debug) {
+      setPosition(position);
+    } else {
+      setPosition(Position.none());
+    }
+  }
+
   public void forceOverwritePosition(Position position) {
     assert position != null;
     assert this.position != null;
@@ -228,6 +236,10 @@ public abstract class Instruction
   public abstract void buildLir(LirBuilder<Value, ?> builder);
 
   public void replaceValue(Value oldValue, Value newValue) {
+    replaceValue(oldValue, newValue, null);
+  }
+
+  public void replaceValue(Value oldValue, Value newValue, Set<Value> affectedValues) {
     for (int i = 0; i < inValues.size(); i++) {
       if (oldValue == inValues.get(i)) {
         inValues.set(i, newValue);
@@ -235,6 +247,9 @@ public abstract class Instruction
       }
     }
     oldValue.removeUser(this);
+    if (affectedValues != null && hasOutValue()) {
+      affectedValues.add(outValue());
+    }
   }
 
   public void replaceValue(int index, Value newValue) {
@@ -757,7 +772,7 @@ public abstract class Instruction
   }
 
   public final boolean isAssumeWithDynamicTypeAssumption() {
-    return isAssume() && asAssume().hasDynamicTypeAssumption();
+    return isAssume() && asAssume().hasDynamicTypeIgnoringNullability();
   }
 
   public final boolean isAssumeWithNonNullAssumption() {

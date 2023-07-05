@@ -15,6 +15,7 @@ import com.android.tools.r8.ir.code.InvokeDirect;
 import com.android.tools.r8.ir.code.InvokeMethodWithReceiver;
 import com.android.tools.r8.ir.code.InvokeVirtual;
 import com.android.tools.r8.ir.code.Value;
+import com.android.tools.r8.ir.optimize.AffectedValues;
 import com.google.common.collect.ImmutableList;
 
 /** StringBuilderAction defines an interface for updating the IR code based on optimizations. */
@@ -25,6 +26,7 @@ public interface StringBuilderAction {
       IRCode code,
       InstructionListIterator iterator,
       Instruction instruction,
+      AffectedValues affectedValues,
       StringBuilderOracle oracle);
 
   default boolean isAllowedToBeOverwrittenByRemoveStringBuilderAction() {
@@ -50,8 +52,9 @@ public interface StringBuilderAction {
         IRCode code,
         InstructionListIterator iterator,
         Instruction instruction,
+        AffectedValues affectedValues,
         StringBuilderOracle oracle) {
-      removeStringBuilderInstruction(iterator, instruction, oracle);
+      removeStringBuilderInstruction(iterator, instruction, affectedValues, oracle);
     }
 
     static RemoveStringBuilderAction getInstance() {
@@ -81,8 +84,12 @@ public interface StringBuilderAction {
         IRCode code,
         InstructionListIterator iterator,
         Instruction instruction,
+        AffectedValues affectedValues,
         StringBuilderOracle oracle) {
       assert oracle.isToString(instruction, instruction.getFirstOperand());
+      if (instruction.hasOutValue()) {
+        instruction.outValue().addAffectedValuesTo(affectedValues);
+      }
       iterator.replaceCurrentInstructionWithConstString(appView, code, replacement);
     }
   }
@@ -106,6 +113,7 @@ public interface StringBuilderAction {
         IRCode code,
         InstructionListIterator iterator,
         Instruction instruction,
+        AffectedValues affectedValues,
         StringBuilderOracle oracle) {
       Instruction previous = iterator.previous();
       InvokeMethodWithReceiver invoke = previous.asInvokeMethodWithReceiver();
@@ -168,6 +176,7 @@ public interface StringBuilderAction {
         IRCode code,
         InstructionListIterator iterator,
         Instruction instruction,
+        AffectedValues affectedValues,
         StringBuilderOracle oracle) {
       instruction.outValue().replaceUsers(existingString);
       iterator.removeOrReplaceByDebugLocalRead();
@@ -214,6 +223,7 @@ public interface StringBuilderAction {
         IRCode code,
         InstructionListIterator iterator,
         Instruction instruction,
+        AffectedValues affectedValues,
         StringBuilderOracle oracle) {
       Value constString = null;
       if (newConstant != null) {
@@ -252,6 +262,7 @@ public interface StringBuilderAction {
         IRCode code,
         InstructionListIterator iterator,
         Instruction instruction,
+        AffectedValues affectedValues,
         StringBuilderOracle oracle) {
       instruction.replaceValue(1, string);
     }
@@ -305,6 +316,7 @@ public interface StringBuilderAction {
         IRCode code,
         InstructionListIterator iterator,
         Instruction instruction,
+        AffectedValues affectedValues,
         StringBuilderOracle oracle) {
       assert instruction.isInvokeMethod();
       assert instruction.inValues().size() == 2;
@@ -330,7 +342,7 @@ public interface StringBuilderAction {
       Instruction next = iterator.next();
       assert next == instruction;
       if (removeInstruction) {
-        removeStringBuilderInstruction(iterator, instruction, oracle);
+        removeStringBuilderInstruction(iterator, instruction, affectedValues, oracle);
       } else {
         instruction.replaceValue(1, outValue);
       }
@@ -389,16 +401,19 @@ public interface StringBuilderAction {
   }
 
   static void removeStringBuilderInstruction(
-      InstructionListIterator iterator, Instruction instruction, StringBuilderOracle oracle) {
+      InstructionListIterator iterator,
+      Instruction instruction,
+      AffectedValues affectedValues,
+      StringBuilderOracle oracle) {
     assert oracle.isModeledStringBuilderInstruction(
         instruction,
         value ->
             value.getType().isClassType()
                 && oracle.isStringBuilderType(value.getType().asClassType().getClassType()));
-    if (oracle.isAppend(instruction) && instruction.outValue() != null) {
+    if (oracle.isAppend(instruction) && instruction.hasOutValue()) {
       // Append will return the string builder instance. Before removing, ensure that
       // all users of the output values uses the receiver.
-      instruction.outValue().replaceUsers(instruction.getFirstOperand());
+      instruction.outValue().replaceUsers(instruction.getFirstOperand(), affectedValues);
     }
     iterator.removeOrReplaceByDebugLocalRead();
   }

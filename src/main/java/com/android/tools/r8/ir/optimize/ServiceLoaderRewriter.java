@@ -239,6 +239,7 @@ public class ServiceLoaderRewriter {
       new Rewriter(code, instructionIterator, serviceLoaderLoad)
           .perform(classLoaderInvoke, synthesizedMethod.getReference());
     }
+    assert code.isConsistentSSA(appView);
   }
 
   public void onLastWaveDone(PostMethodProcessor.Builder postMethodProcessorBuilder) {

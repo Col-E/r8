@@ -18,8 +18,6 @@ import com.android.tools.r8.ir.analysis.type.Nullability;
 import com.android.tools.r8.ir.analysis.type.TypeAnalysis;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.code.Assume;
-import com.android.tools.r8.ir.code.Assume.DynamicTypeAssumption;
-import com.android.tools.r8.ir.code.Assume.NonNullAssumption;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.BasicBlockIterator;
 import com.android.tools.r8.ir.code.ConstNumber;
@@ -40,7 +38,6 @@ import com.android.tools.r8.ir.optimize.membervaluepropagation.assume.AssumeInfo
 import com.android.tools.r8.ir.optimize.membervaluepropagation.assume.AssumeInfoLookup;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.Timing;
-import com.android.tools.r8.utils.TriConsumer;
 import com.android.tools.r8.utils.TriFunction;
 import com.android.tools.r8.utils.TriPredicate;
 import com.google.common.collect.Sets;
@@ -62,9 +59,15 @@ import java.util.function.Predicate;
 public class AssumeInserter {
 
   private final AppView<AppInfoWithLiveness> appView;
+  private final boolean keepRedundantBlocks;
 
   public AssumeInserter(AppView<AppInfoWithLiveness> appView) {
+    this(appView, false);
+  }
+
+  public AssumeInserter(AppView<AppInfoWithLiveness> appView, boolean keepRedundantBlocks) {
     this.appView = appView;
+    this.keepRedundantBlocks = keepRedundantBlocks;
   }
 
   public void insertAssumeInstructions(IRCode code, Timing timing) {
@@ -285,7 +288,7 @@ public class AssumeInserter {
       return false;
     }
 
-    SingleFieldResolutionResult resolutionResult =
+    SingleFieldResolutionResult<?> resolutionResult =
         appView.appInfo().resolveField(fieldGet.getField()).asSingleFieldResolutionResult();
     if (resolutionResult == null) {
       return false;
@@ -342,7 +345,7 @@ public class AssumeInserter {
     assumedValues.removeIf(
         (instruction, assumedValue, assumedValueInfo) -> {
           // Assumed values with dynamic type information are never redundant.
-          if (assumedValueInfo.hasDynamicTypeInfo()) {
+          if (assumedValueInfo.hasDynamicTypeInfoIgnoringNullability()) {
             return false;
           }
 
@@ -354,7 +357,7 @@ public class AssumeInserter {
             return false;
           }
 
-          Instruction definition = assumedValue.definition;
+          Instruction definition = assumedValue.getDefinition();
           if (definition == instruction) {
             return false;
           }
@@ -366,10 +369,12 @@ public class AssumeInserter {
           }
 
           if (!otherAssumedValueInfo.isNonNull()) {
-            // This is not redundant, but we can strenghten it with the dynamic type information
+            // This is not redundant, but we can strengthen it with the dynamic type information
             // from the other assume instruction.
-            assumedValueInfo.setDynamicTypeAssumption(
-                otherAssumedValueInfo.getDynamicTypeAssumption());
+            assumedValueInfo.setDynamicType(
+                otherAssumedValueInfo
+                    .getDynamicType()
+                    .withNullability(Nullability.definitelyNotNull()));
             return false;
           }
 
@@ -539,7 +544,9 @@ public class AssumeInserter {
           }
         });
     if (!affectedValues.isEmpty()) {
-      new TypeAnalysis(appView).narrowing(affectedValues);
+      new TypeAnalysis(appView, code)
+          .setKeepRedundantBlocksAfterAssumeRemoval(keepRedundantBlocks)
+          .narrowingWithAssumeRemoval(affectedValues);
     }
   }
 
@@ -599,13 +606,13 @@ public class AssumeInserter {
             assumeInstruction = new ConstNumber(newValue, 0);
           } else {
             assumeInstruction =
-                new Assume(
-                    assumedValueInfo.dynamicTypeAssumption,
-                    assumedValueInfo.nonNullAssumption,
+                Assume.create(
+                    assumedValueInfo.dynamicType,
                     newValue,
                     assumedValue,
                     instruction,
-                    appView);
+                    appView,
+                    code.context());
           }
           assumeInstruction.setPosition(instruction.getPosition());
           if (insertionBlock != block) {
@@ -658,7 +665,9 @@ public class AssumeInserter {
 
   private static boolean isNullableReferenceType(Value value) {
     TypeElement type = value.getType();
-    return type.isReferenceType() && type.asReferenceType().isNullable();
+    return type.isReferenceType()
+        && type.asReferenceType().isNullable()
+        && !type.nullability().isDefinitelyNull();
   }
 
   private static boolean isNullableReferenceTypeWithOtherNonDebugUsers(
@@ -679,8 +688,7 @@ public class AssumeInserter {
   static class AssumedValueInfo {
 
     AssumedDominance dominance;
-    DynamicTypeAssumption dynamicTypeAssumption;
-    NonNullAssumption nonNullAssumption;
+    DynamicType dynamicType = DynamicType.unknown();
 
     AssumedValueInfo(AssumedDominance dominance) {
       this.dominance = dominance;
@@ -694,49 +702,53 @@ public class AssumeInserter {
       this.dominance = dominance;
     }
 
-    boolean hasDynamicTypeInfo() {
-      return dynamicTypeAssumption != null;
+    boolean hasDynamicTypeInfoIgnoringNullability() {
+      return dynamicType.isDynamicTypeWithUpperBound() && !dynamicType.isUnknown();
     }
 
-    DynamicTypeAssumption getDynamicTypeAssumption() {
-      return dynamicTypeAssumption;
+    DynamicType getDynamicType() {
+      return dynamicType;
     }
 
-    void setDynamicTypeAssumption(DynamicTypeAssumption dynamicTypeAssumption) {
-      this.dynamicTypeAssumption = dynamicTypeAssumption;
-    }
-
-    void setDynamicTypeAssumption(DynamicTypeWithUpperBound dynamicType) {
+    void setDynamicType(DynamicType dynamicType) {
       assert dynamicType != null;
-      dynamicTypeAssumption = new DynamicTypeAssumption(dynamicType);
-      if (dynamicType.getDynamicUpperBoundType().isDefinitelyNotNull()) {
-        setNotNull();
-      }
+      assert this.dynamicType.isNotNullType()
+          ? dynamicType.getNullability().isDefinitelyNotNull()
+          : this.dynamicType.isUnknown();
+      this.dynamicType = dynamicType;
+    }
+
+    Nullability getNullability() {
+      return dynamicType.getNullability();
     }
 
     boolean isNull() {
-      return dynamicTypeAssumption != null
-          && dynamicTypeAssumption.getDynamicType().getNullability().isDefinitelyNull();
+      return getNullability().isDefinitelyNull();
     }
 
     boolean isNonNull() {
-      return nonNullAssumption != null;
+      return getNullability().isDefinitelyNotNull();
     }
 
     void setNotNull() {
-      nonNullAssumption = NonNullAssumption.get();
+      if (dynamicType.isUnknown()) {
+        dynamicType = DynamicType.definitelyNotNull();
+      } else {
+        dynamicType = dynamicType.withNullability(Nullability.definitelyNotNull());
+      }
     }
 
     boolean isSubsumedBy(AssumedValueInfo other) {
-      return !hasDynamicTypeInfo() && other.isNonNull();
+      return !hasDynamicTypeInfoIgnoringNullability() && other.isNonNull();
     }
 
     void strengthenWith(AssumedValueInfo info) {
       if (info.isNonNull()) {
         setNotNull();
       }
-      if (!hasDynamicTypeInfo() && info.hasDynamicTypeInfo()) {
-        setDynamicTypeAssumption(info.getDynamicTypeAssumption());
+      if (!hasDynamicTypeInfoIgnoringNullability()
+          && info.hasDynamicTypeInfoIgnoringNullability()) {
+        setDynamicType(info.getDynamicType().withNullability(getNullability()));
       }
     }
   }
@@ -799,14 +811,6 @@ public class AssumeInserter {
 
     boolean isEmpty() {
       return assumedValues.isEmpty();
-    }
-
-    void forEach(TriConsumer<Instruction, Value, AssumedValueInfo> consumer) {
-      assumedValues.forEach(
-          (instruction, dominancePerValue) ->
-              dominancePerValue.forEach(
-                  (assumedValue, assumedValueInfo) ->
-                      consumer.accept(instruction, assumedValue, assumedValueInfo)));
     }
 
     void removeAll(Map<Instruction, Map<Value, AssumedValueInfo>> keys) {
@@ -874,7 +878,7 @@ public class AssumeInserter {
             instruction,
             assumedValue,
             AssumedDominance.everything(),
-            assumedValueInfo -> assumedValueInfo.setDynamicTypeAssumption(dynamicType));
+            assumedValueInfo -> assumedValueInfo.setDynamicType(dynamicType));
       }
 
       void addNonNullValueKnownToDominateAllUsers(Instruction instruction, Value nonNullValue) {

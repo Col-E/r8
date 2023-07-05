@@ -285,7 +285,7 @@ public class GetNameTest extends GetNameTestBase {
             .run(parameters.getRuntime(), MAIN)
             // TODO(b/154813140): Invalidly assumes that getClass on kept classes can be optimized.
             .assertSuccessWithOutputThatMatches(not(equalTo(JAVA_OUTPUT)));
-    test(result, 8);
+    test(result, 6);
   }
 
   @Test
@@ -316,6 +316,6 @@ public class GetNameTest extends GetNameTestBase {
     } else {
       result.assertSuccessWithOutputThatMatches(not(equalTo(JAVA_OUTPUT)));
     }
-    test(result, 8);
+    test(result, 6);
   }
 }

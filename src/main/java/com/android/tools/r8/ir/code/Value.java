@@ -29,6 +29,7 @@ import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.analysis.value.AbstractValue;
 import com.android.tools.r8.ir.analysis.value.NumberFromIntervalValue;
 import com.android.tools.r8.ir.analysis.value.UnknownValue;
+import com.android.tools.r8.ir.optimize.AffectedValues;
 import com.android.tools.r8.ir.regalloc.LiveIntervals;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.position.MethodPosition;
@@ -582,10 +583,10 @@ public class Value implements Comparable<Value> {
   }
 
   // Returns the set of Value that are affected if the current value's type lattice is updated.
-  public Set<Value> affectedValues() {
-    ImmutableSet.Builder<Value> affectedValues = ImmutableSet.builder();
+  public AffectedValues affectedValues() {
+    AffectedValues affectedValues = new AffectedValues();
     forEachAffectedValue(affectedValues::add);
-    return affectedValues.build();
+    return affectedValues;
   }
 
   public void addAffectedValuesTo(Set<Value> affectedValues) {
@@ -610,16 +611,10 @@ public class Value implements Comparable<Value> {
       return;
     }
     for (Instruction user : uniqueUsers()) {
-      user.replaceValue(this, newValue);
-      if (affectedValues != null && user.hasOutValue()) {
-        affectedValues.add(user.outValue);
-      }
+      user.replaceValue(this, newValue, affectedValues);
     }
     for (Phi user : uniquePhiUsers()) {
-      user.replaceOperand(this, newValue);
-      if (affectedValues != null) {
-        affectedValues.add(user);
-      }
+      user.replaceOperand(this, newValue, affectedValues);
     }
     if (debugData != null) {
       for (Instruction user : debugData.users) {
@@ -656,6 +651,14 @@ public class Value implements Comparable<Value> {
       Value newValue,
       Set<Instruction> selectedInstructions,
       Map<Phi, IntList> selectedPhisWithPredecessorIndexes) {
+    replaceSelectiveUsers(newValue, selectedInstructions, selectedPhisWithPredecessorIndexes, null);
+  }
+
+  public void replaceSelectiveUsers(
+      Value newValue,
+      Set<Instruction> selectedInstructions,
+      Map<Phi, IntList> selectedPhisWithPredecessorIndexes,
+      Set<Value> affectedValues) {
     if (this == newValue) {
       return;
     }
@@ -665,7 +668,7 @@ public class Value implements Comparable<Value> {
     for (Instruction user : uniqueUsers()) {
       if (selectedInstructions.contains(user)) {
         fullyRemoveUser(user);
-        user.replaceValue(this, newValue);
+        user.replaceValue(this, newValue, affectedValues);
       }
     }
     Set<Phi> selectedPhis = selectedPhisWithPredecessorIndexes.keySet();
@@ -679,7 +682,7 @@ public class Value implements Comparable<Value> {
         }
         for (int position : positionsToUpdate) {
           assert user.getOperand(position) == this;
-          user.replaceOperandAt(position, newValue);
+          user.replaceOperandAt(position, newValue, affectedValues);
         }
       }
     }
@@ -1017,7 +1020,7 @@ public class Value implements Comparable<Value> {
     setType(newType);
   }
 
-  public void narrowing(AppView<?> appView, TypeElement newType) {
+  public void narrowing(AppView<?> appView, ProgramMethod context, TypeElement newType) {
     // During NARROWING (e.g., after inlining), type update is monotonically downwards,
     //   i.e., towards something narrower, with more specific type info.
     assert skipWideningOrNarrowingCheck(appView) || !this.type.strictlyLessThan(newType, appView)
@@ -1026,7 +1029,10 @@ public class Value implements Comparable<Value> {
             + " < "
             + newType
             + " at "
-            + (isPhi() ? asPhi().printPhi() : definition.toString());
+            + (isPhi() ? asPhi().printPhi() : definition.toString())
+            + " (context: "
+            + context
+            + ")";
     setType(newType);
   }
 
@@ -1050,54 +1056,39 @@ public class Value implements Comparable<Value> {
 
   public TypeElement getDynamicUpperBoundType(
       AppView<? extends AppInfoWithClassHierarchy> appView) {
-    Value root = getAliasedValue();
-    if (root.isPhi()) {
-      assert getSpecificAliasedValue(
-              value ->
-                  value.isDefinedByInstructionSatisfying(
-                      Instruction::isAssumeWithDynamicTypeAssumption))
-          == null;
-      TypeElement result = root.getDynamicUpperBoundType(appView);
-      if (getType().isReferenceType() && getType().isDefinitelyNotNull()) {
-        return result.asReferenceType().asMeetWithNotNull();
-      }
-      return result;
-    }
-
     // Try to find an alias of the receiver, which is defined by an instruction of the type Assume.
     Value aliasedValue =
         getSpecificAliasedValue(
             value ->
                 value.isDefinedByInstructionSatisfying(
                     Instruction::isAssumeWithDynamicTypeAssumption));
-    TypeElement lattice;
+    Value root = getAliasedValue();
+    TypeElement upperBoundType;
     if (aliasedValue != null) {
       // If there is an alias of the receiver, which is defined by an Assume instruction that
       // carries a dynamic type, then use the dynamic type as the refined receiver type.
-      lattice =
+      upperBoundType =
           aliasedValue
-              .definition
+              .getDefinition()
               .asAssume()
               .getDynamicTypeAssumption()
-              .getDynamicType()
               .getDynamicUpperBoundType();
-
-      // For precision, verify that the dynamic type is at least as precise as the static type.
-      assert lattice.lessThanOrEqualUpToNullability(type, appView) : type + " < " + lattice;
+    } else if (root.isPhi()) {
+      upperBoundType = root.getDynamicUpperBoundType(appView);
     } else {
       // Otherwise, simply use the static type.
-      lattice = type;
+      upperBoundType = type;
     }
 
     // Account for nullability, which could be flown from non-null assumption in between dynamic
     // type assumption or simply from array/object creation.
-    if (type.isDefinitelyNotNull() && lattice.isNullable()) {
+    if (type.isDefinitelyNotNull() && upperBoundType.isNullable()) {
       // Having non-null assumption means it is a reference type.
-      assert lattice.isReferenceType();
+      assert upperBoundType.isReferenceType();
       // Then, we can return the non-null variant of dynamic type if both assumptions are aliased.
-      return lattice.asReferenceType().asMeetWithNotNull();
+      return upperBoundType.asReferenceType().asMeetWithNotNull();
     }
-    return lattice;
+    return upperBoundType;
   }
 
   public ClassTypeElement getDynamicLowerBoundType(AppView<AppInfoWithLiveness> appView) {
@@ -1146,7 +1137,6 @@ public class Value implements Comparable<Value> {
               .getDefinition()
               .asAssume()
               .getDynamicTypeAssumption()
-              .getDynamicType()
               .getDynamicLowerBoundType();
       if (aliasedValueType != null) {
         aliasedValueType = aliasedValueType.meetNullability(getType().nullability());

@@ -242,7 +242,7 @@ public class BasicBlockInstructionListIterator implements InstructionListIterato
     }
     if (current.hasUsedOutValue()) {
       assert newInstruction.outValue() != null;
-      if (affectedValues != null && newInstruction.getOutType() != current.getOutType()) {
+      if (affectedValues != null && !newInstruction.getOutType().equals(current.getOutType())) {
         current.outValue().addAffectedValuesTo(affectedValues);
       }
       current.outValue().replaceUsers(newInstruction.outValue());
@@ -881,7 +881,7 @@ public class BasicBlockInstructionListIterator implements InstructionListIterato
     assert entryBlock.getInstructions().stream().noneMatch(Instruction::isArgument);
 
     // Actual arguments are flown to the inlinee.
-    new TypeAnalysis(appView).narrowing(argumentUsers);
+    new TypeAnalysis(appView, code).narrowing(argumentUsers);
 
     // The inline entry is the first block now the argument instructions are gone.
     BasicBlock inlineEntry = inlinee.entryBlock();
@@ -900,8 +900,9 @@ public class BasicBlockInstructionListIterator implements InstructionListIterato
         Return returnInstruction = inlineeIterator.peekNext().asReturn();
         invoke.outValue().replaceUsers(returnInstruction.returnValue());
         // The return type is flown to the original context.
-        new TypeAnalysis(appView)
-            .narrowing(
+        new TypeAnalysis(appView, code)
+            .setKeepRedundantBlocksAfterAssumeRemoval(true)
+            .narrowingWithAssumeRemoval(
                 Iterables.concat(
                     ImmutableList.of(returnInstruction.returnValue()), affectedValues));
       }
@@ -962,7 +963,9 @@ public class BasicBlockInstructionListIterator implements InstructionListIterato
       DominatorTree dominatorTree = new DominatorTree(code, MAY_HAVE_UNREACHABLE_BLOCKS);
       Set<Value> affectedValues = Sets.newIdentityHashSet();
       blocksToRemove.addAll(invokePredecessor.unlink(invokeBlock, dominatorTree, affectedValues));
-      new TypeAnalysis(appView).narrowing(affectedValues);
+      new TypeAnalysis(appView, code)
+          .setKeepRedundantBlocksAfterAssumeRemoval(true)
+          .narrowingWithAssumeRemoval(affectedValues);
     }
 
     // Position the iterator after the invoke block.
@@ -1013,7 +1016,7 @@ public class BasicBlockInstructionListIterator implements InstructionListIterato
                 null,
                 RegisterReadType.NORMAL);
         phi.addOperands(operands);
-        new TypeAnalysis(appView).widening(ImmutableSet.of(phi));
+        new TypeAnalysis(appView, code).widening(ImmutableSet.of(phi));
         value = phi;
       }
       newReturn = new Return(value);

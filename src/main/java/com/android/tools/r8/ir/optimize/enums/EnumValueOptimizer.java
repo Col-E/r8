@@ -15,7 +15,6 @@ import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.analysis.type.ClassTypeElement;
-import com.android.tools.r8.ir.analysis.type.TypeAnalysis;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.analysis.value.AbstractValue;
 import com.android.tools.r8.ir.analysis.value.SingleNumberValue;
@@ -34,10 +33,10 @@ import com.android.tools.r8.ir.code.StaticGet;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.conversion.passes.CodeRewriterPass;
 import com.android.tools.r8.ir.conversion.passes.result.CodeRewriterResult;
+import com.android.tools.r8.ir.optimize.AffectedValues;
 import com.android.tools.r8.ir.optimize.info.FieldOptimizationInfo;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.ArrayUtils;
-import com.google.common.collect.Sets;
 import it.unimi.dsi.fastutil.ints.Int2IntArrayMap;
 import it.unimi.dsi.fastutil.ints.Int2IntMap;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceMap;
@@ -63,7 +62,7 @@ public class EnumValueOptimizer extends CodeRewriterPass<AppInfoWithLiveness> {
   protected CodeRewriterResult rewriteCode(IRCode code) {
     assert appView.enableWholeProgramOptimizations();
     boolean hasChanged = false;
-    Set<Value> affectedValues = Sets.newIdentityHashSet();
+    AffectedValues affectedValues = new AffectedValues();
     InstructionListIterator iterator = code.instructionListIterator();
     while (iterator.hasNext()) {
       Instruction current = iterator.next();
@@ -171,9 +170,7 @@ public class EnumValueOptimizer extends CodeRewriterPass<AppInfoWithLiveness> {
         hasChanged = true;
       }
     }
-    if (!affectedValues.isEmpty()) {
-      new TypeAnalysis(appView).narrowing(affectedValues);
-    }
+    affectedValues.narrowingWithAssumeRemoval(appView, code);
     return CodeRewriterResult.hasChanged(hasChanged);
   }
 
@@ -220,7 +217,7 @@ public class EnumValueOptimizer extends CodeRewriterPass<AppInfoWithLiveness> {
       return;
     }
     assert appView.enableWholeProgramOptimizations();
-    Set<Value> affectedValues = Sets.newIdentityHashSet();
+    AffectedValues affectedValues = new AffectedValues();
     boolean mayHaveIntroducedUnreachableBlocks = false;
     for (BasicBlock block : code.blocks) {
       IntSwitch switchInsn = block.exit().asIntSwitch();
@@ -322,9 +319,8 @@ public class EnumValueOptimizer extends CodeRewriterPass<AppInfoWithLiveness> {
     if (mayHaveIntroducedUnreachableBlocks) {
       affectedValues.addAll(code.removeUnreachableBlocks());
     }
-    if (!affectedValues.isEmpty()) {
-      new TypeAnalysis(appView).narrowing(affectedValues);
-    }
+    affectedValues.narrowingWithAssumeRemoval(appView, code);
+    assert code.isConsistentSSA(appView);
   }
 
   private Int2IntArrayMap computeOrdinalToTargetMap(

@@ -11,7 +11,6 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.ProgramMethod;
-import com.android.tools.r8.ir.analysis.type.TypeAnalysis;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.CatchHandlers;
@@ -33,6 +32,7 @@ import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.code.Throw;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.conversion.passes.result.CodeRewriterResult;
+import com.android.tools.r8.ir.optimize.AffectedValues;
 import com.android.tools.r8.ir.optimize.info.MethodOptimizationInfo;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Sets;
@@ -200,10 +200,8 @@ public class ThrowCatchOptimizer extends CodeRewriterPass<AppInfo> {
       }
     }
     if (shouldRemoveUnreachableBlocks) {
-      Set<Value> affectedValues = code.removeUnreachableBlocks();
-      if (!affectedValues.isEmpty()) {
-        new TypeAnalysis(appView).narrowing(affectedValues);
-      }
+      AffectedValues affectedValues = code.removeUnreachableBlocks();
+      affectedValues.narrowingWithAssumeRemoval(appView, code);
     }
     if (hasChanged) {
       code.removeRedundantBlocks();
@@ -215,7 +213,7 @@ public class ThrowCatchOptimizer extends CodeRewriterPass<AppInfo> {
   // it with a block throwing a null value (which should result in NPE). Note that this throw is not
   // expected to be ever reached, but is intended to satisfy verifier.
   private boolean optimizeAlwaysThrowingInstructions(IRCode code) {
-    Set<Value> affectedValues = Sets.newIdentityHashSet();
+    AffectedValues affectedValues = new AffectedValues();
     Set<BasicBlock> blocksToRemove = Sets.newIdentityHashSet();
     ListIterator<BasicBlock> blockIterator = code.listIterator();
     ProgramMethod context = code.context();
@@ -335,9 +333,7 @@ public class ThrowCatchOptimizer extends CodeRewriterPass<AppInfo> {
       affectedValues.addAll(code.removeUnreachableBlocks());
     }
     assert code.getUnreachableBlocks().isEmpty();
-    if (!affectedValues.isEmpty()) {
-      new TypeAnalysis(appView).narrowing(affectedValues);
-    }
+    affectedValues.narrowingWithAssumeRemoval(appView, code);
     if (hasChanged) {
       code.removeRedundantBlocks();
     }

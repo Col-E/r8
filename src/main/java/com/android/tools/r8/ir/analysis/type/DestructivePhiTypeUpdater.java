@@ -12,7 +12,7 @@ import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Phi;
 import com.android.tools.r8.ir.code.Value;
-import com.google.common.collect.Sets;
+import com.android.tools.r8.ir.optimize.AffectedValues;
 import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.ListIterator;
@@ -56,7 +56,7 @@ public class DestructivePhiTypeUpdater {
     // replaced with correct types and all other phi operands are BOTTOM.
     assert verifyAllPhiOperandsAreBottom(affectedPhis);
 
-    Set<Value> affectedValues = Sets.newIdentityHashSet();
+    AffectedValues affectedValues = new AffectedValues();
     worklist.addAll(affectedPhis);
     while (!worklist.isEmpty()) {
       Phi phi = worklist.poll();
@@ -69,13 +69,11 @@ public class DestructivePhiTypeUpdater {
       }
     }
 
-    assert new TypeAnalysis(appView).verifyValuesUpToDate(affectedPhis);
+    assert TypeAnalysis.verifyValuesUpToDate(appView, code, affectedPhis);
 
     // Now that the types of all transitively type affected phis have been reset, we can
     // perform a narrowing, starting from the values that are affected by those phis.
-    if (!affectedValues.isEmpty()) {
-      new TypeAnalysis(appView).narrowing(affectedValues);
-    }
+    affectedValues.narrowingWithAssumeRemoval(appView, code);
   }
 
   private boolean verifyAllPhiOperandsAreBottom(Set<Phi> affectedPhis) {

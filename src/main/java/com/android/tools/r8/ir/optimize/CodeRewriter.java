@@ -114,7 +114,7 @@ public class CodeRewriter {
     }
 
     if (!valuesThatRequireWidening.isEmpty()) {
-      new TypeAnalysis(appView).widening(valuesThatRequireWidening);
+      new TypeAnalysis(appView, code).widening(valuesThatRequireWidening);
     }
 
     code.removeRedundantBlocks();
@@ -479,5 +479,6 @@ public class CodeRewriter {
         }
       }
     }
+    assert code.isConsistentSSA(appView);
   }
 }

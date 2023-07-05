@@ -92,6 +92,7 @@ public class IdentifierNameStringMarker {
 
   public void decoupleIdentifierNameStringsInMethod(IRCode code) {
     decoupleIdentifierNameStringsInBlocks(code, null);
+    assert code.isConsistentSSA(appView);
   }
 
   public void decoupleIdentifierNameStringsInBlocks(IRCode code, Set<BasicBlock> blocks) {

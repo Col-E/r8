@@ -13,13 +13,12 @@ import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ProgramMethod;
-import com.android.tools.r8.ir.analysis.type.DynamicTypeWithUpperBound;
-import com.android.tools.r8.ir.analysis.type.Nullability;
+import com.android.tools.r8.ir.analysis.type.DynamicType;
 import com.android.tools.r8.ir.analysis.type.TypeAnalysis;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.analysis.type.TypeUtils;
+import com.android.tools.r8.ir.code.Assume;
 import com.android.tools.r8.ir.code.CheckCast;
-import com.android.tools.r8.ir.code.ConstNumber;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.InstanceOf;
 import com.android.tools.r8.ir.code.Instruction;
@@ -79,7 +78,8 @@ public class TrivialCheckCastAndInstanceOfRemover extends CodeRewriterPass<AppIn
     // CheckCast at line 4 unless we update v7 with the most precise information by narrowing the
     // affected values of v5. We therefore have to run the type analysis after each CheckCast
     // removal.
-    TypeAnalysis typeAnalysis = new TypeAnalysis(appView);
+    TypeAnalysis typeAnalysis =
+        new TypeAnalysis(appView, code).setKeepRedundantBlocksAfterAssumeRemoval(true);
     Set<Value> affectedValues = Sets.newIdentityHashSet();
     InstructionListIterator it = code.instructionListIterator();
     boolean needToRemoveTrivialPhis = false;
@@ -121,10 +121,8 @@ public class TrivialCheckCastAndInstanceOfRemover extends CodeRewriterPass<AppIn
     // v3 <- phi(v1, v1)
     if (needToRemoveTrivialPhis) {
       code.removeAllDeadAndTrivialPhis(affectedValues);
-      if (!affectedValues.isEmpty()) {
-        typeAnalysis.narrowing(affectedValues);
-      }
     }
+    typeAnalysis.narrowingWithAssumeRemoval(affectedValues);
     if (hasChanged) {
       code.removeRedundantBlocks();
     }
@@ -139,7 +137,11 @@ public class TrivialCheckCastAndInstanceOfRemover extends CodeRewriterPass<AppIn
   private enum InstanceOfResult {
     UNKNOWN,
     TRUE,
-    FALSE
+    FALSE;
+
+    boolean isTrue() {
+      return this == TRUE;
+    }
   }
 
   // Returns true if the given check-cast instruction was removed.
@@ -345,27 +347,23 @@ public class TrivialCheckCastAndInstanceOfRemover extends CodeRewriterPass<AppIn
                     value.isDefinedByInstructionSatisfying(
                         Instruction::isAssumeWithDynamicTypeAssumption));
         if (aliasedValue != null) {
-          DynamicTypeWithUpperBound dynamicType =
-              aliasedValue.getDefinition().asAssume().getDynamicTypeAssumption().getDynamicType();
-          Nullability nullability = dynamicType.getNullability();
-          if (nullability.isDefinitelyNull()) {
+          Assume assumeInstruction = aliasedValue.getDefinition().asAssume();
+          DynamicType dynamicType = assumeInstruction.getDynamicType();
+          if (dynamicType.getNullability().isDefinitelyNull()) {
             result = InstanceOfResult.FALSE;
-          } else if (dynamicType.getDynamicUpperBoundType().lessThanOrEqual(instanceOfType, appView)
-              && (!inType.isNullable() || !nullability.isNullable())) {
+          } else if (dynamicType.isDynamicTypeWithUpperBound()
+              && dynamicType
+                  .asDynamicTypeWithUpperBound()
+                  .getDynamicUpperBoundType()
+                  .lessThanOrEqual(instanceOfType, appView)
+              && (!inType.isNullable() || dynamicType.getNullability().isDefinitelyNotNull())) {
             result = InstanceOfResult.TRUE;
           }
         }
       }
     }
     if (result != InstanceOfResult.UNKNOWN) {
-      ConstNumber newInstruction =
-          new ConstNumber(
-              new Value(
-                  code.valueNumberGenerator.next(),
-                  TypeElement.getInt(),
-                  instanceOf.outValue().getLocalInfo()),
-              result == InstanceOfResult.TRUE ? 1 : 0);
-      it.replaceCurrentInstruction(newInstruction);
+      it.replaceCurrentInstructionWithConstBoolean(code, result.isTrue());
       return true;
     }
     return false;

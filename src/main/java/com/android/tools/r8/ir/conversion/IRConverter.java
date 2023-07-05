@@ -582,7 +582,6 @@ public class IRConverter {
     // assert fails, then the types that we have inferred are unsound, or the method does not type
     // check. In the latter case, the type checker should be extended to detect the issue such that
     // we will return with a throw-null method above.
-    assert code.verifyTypes(appView);
     assert code.isConsistentSSA(appView);
 
     if (shouldPassThrough(context)) {
@@ -604,7 +603,7 @@ public class IRConverter {
 
     if (options.canHaveArtStringNewInitBug()) {
       timing.begin("Check for new-init issue");
-      TrivialPhiSimplifier.ensureDirectStringNewToInit(code, appView.dexItemFactory());
+      TrivialPhiSimplifier.ensureDirectStringNewToInit(appView, code);
       timing.end();
     }
 
@@ -634,7 +633,6 @@ public class IRConverter {
       timing.begin("Decouple identifier-name strings");
       identifierNameStringMarker.decoupleIdentifierNameStringsInMethod(code);
       timing.end();
-      assert code.isConsistentSSA(appView);
       previous = printMethod(code, "IR after identifier-name strings (SSA)", previous);
     }
 

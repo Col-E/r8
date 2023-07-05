@@ -7,7 +7,8 @@ package com.android.tools.r8.optimize.argumentpropagation;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.ir.analysis.type.DynamicType;
 import com.android.tools.r8.ir.analysis.type.DynamicTypeWithUpperBound;
-import com.android.tools.r8.ir.analysis.type.TypeAnalysis;
+import com.android.tools.r8.ir.analysis.type.Nullability;
+import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.analysis.value.AbstractValue;
 import com.android.tools.r8.ir.analysis.value.SingleValue;
 import com.android.tools.r8.ir.code.Argument;
@@ -17,12 +18,11 @@ import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.ir.code.Value;
+import com.android.tools.r8.ir.optimize.AffectedValues;
 import com.android.tools.r8.ir.optimize.info.ConcreteCallSiteOptimizationInfo;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
-import com.google.common.collect.Sets;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Set;
 
 public class ArgumentPropagatorIROptimizer {
 
@@ -39,7 +39,7 @@ public class ArgumentPropagatorIROptimizer {
       AppView<AppInfoWithLiveness> appView,
       IRCode code,
       ConcreteCallSiteOptimizationInfo optimizationInfo) {
-    Set<Value> affectedValues = Sets.newIdentityHashSet();
+    AffectedValues affectedValues = new AffectedValues();
     List<Assume> assumeInstructions = new LinkedList<>();
     List<Instruction> instructionsToAdd = new LinkedList<>();
     InstructionListIterator iterator = code.entryBlock().listIterator(code);
@@ -66,8 +66,7 @@ public class ArgumentPropagatorIROptimizer {
           Instruction replacement =
               singleValue.createMaterializingInstruction(appView, code, argument);
           replacement.setPosition(argument.getPosition());
-          affectedValues.addAll(argumentValue.affectedValues());
-          argumentValue.replaceUsers(replacement.outValue());
+          argumentValue.replaceUsers(replacement.outValue(), affectedValues);
           instructionsToAdd.add(replacement);
           continue;
         }
@@ -89,8 +88,7 @@ public class ArgumentPropagatorIROptimizer {
         if (dynamicType.getNullability().isDefinitelyNull()) {
           ConstNumber nullInstruction = code.createConstNull();
           nullInstruction.setPosition(argument.getPosition());
-          affectedValues.addAll(argumentValue.affectedValues());
-          argumentValue.replaceUsers(nullInstruction.outValue());
+          argumentValue.replaceUsers(nullInstruction.outValue(), affectedValues);
           instructionsToAdd.add(nullInstruction);
           continue;
         }
@@ -100,8 +98,13 @@ public class ArgumentPropagatorIROptimizer {
                 code.createValue(argumentValue.getType().asReferenceType().asMeetWithNotNull());
             argumentValue.replaceUsers(nonNullValue, affectedValues);
             Assume assumeNotNull =
-                Assume.createAssumeNonNullInstruction(
-                    nonNullValue, argumentValue, argument, appView);
+                Assume.create(
+                    DynamicType.definitelyNotNull(),
+                    nonNullValue,
+                    argumentValue,
+                    argument,
+                    appView,
+                    code.context());
             assumeNotNull.setPosition(argument.getPosition());
             assumeInstructions.add(assumeNotNull);
           }
@@ -109,33 +112,44 @@ public class ArgumentPropagatorIROptimizer {
         }
         DynamicTypeWithUpperBound dynamicTypeWithUpperBound =
             dynamicType.asDynamicTypeWithUpperBound();
-        Value specializedArg;
         if (dynamicTypeWithUpperBound.strictlyLessThan(argumentValue.getType(), appView)) {
-          specializedArg = code.createValue(argumentValue.getType());
-          affectedValues.addAll(argumentValue.affectedValues());
-          argumentValue.replaceUsers(specializedArg);
+          TypeElement specializedArgumentType =
+              argumentValue
+                  .getType()
+                  .asReferenceType()
+                  .getOrCreateVariant(
+                      dynamicType.getNullability().isDefinitelyNotNull()
+                          ? Nullability.definitelyNotNull()
+                          : argumentValue.getType().nullability());
+          Value specializedArg = code.createValue(specializedArgumentType);
+          argumentValue.replaceUsers(specializedArg, affectedValues);
           Assume assumeType =
-              Assume.createAssumeDynamicTypeInstruction(
-                  dynamicTypeWithUpperBound, specializedArg, argumentValue, argument, appView);
+              Assume.create(
+                  dynamicTypeWithUpperBound,
+                  specializedArg,
+                  argumentValue,
+                  argument,
+                  appView,
+                  code.context());
           assumeType.setPosition(argument.getPosition());
           assumeInstructions.add(assumeType);
-        } else {
-          specializedArg = argumentValue;
+          continue;
         }
-        assert specializedArg != null && specializedArg.getType().isReferenceType();
-        if (dynamicType.getNullability().isDefinitelyNotNull()) {
-          // If we already knew `arg` is never null, e.g., receiver, skip adding non-null.
-          if (!specializedArg.getType().isDefinitelyNotNull()) {
-            Value nonNullArg =
-                code.createValue(specializedArg.getType().asReferenceType().asMeetWithNotNull());
-            affectedValues.addAll(specializedArg.affectedValues());
-            specializedArg.replaceUsers(nonNullArg);
-            Assume assumeNotNull =
-                Assume.createAssumeNonNullInstruction(
-                    nonNullArg, specializedArg, argument, appView);
-            assumeNotNull.setPosition(argument.getPosition());
-            assumeInstructions.add(assumeNotNull);
-          }
+        if (dynamicType.getNullability().isDefinitelyNotNull()
+            && argumentValue.getType().isNullable()) {
+          Value nonNullArg =
+              code.createValue(argumentValue.getType().asReferenceType().asMeetWithNotNull());
+          argumentValue.replaceUsers(nonNullArg, affectedValues);
+          Assume assumeNotNull =
+              Assume.create(
+                  DynamicType.definitelyNotNull(),
+                  nonNullArg,
+                  argumentValue,
+                  argument,
+                  appView,
+                  code.context());
+          assumeNotNull.setPosition(argument.getPosition());
+          assumeInstructions.add(assumeNotNull);
         }
       }
     }
@@ -145,12 +159,9 @@ public class ArgumentPropagatorIROptimizer {
     iterator.previous();
     assert iterator.peekPrevious().isArgument();
     assumeInstructions.forEach(iterator::add);
-
-    // TODO(b/190154391): Can update method signature and save more on call sites.
     instructionsToAdd.forEach(iterator::add);
 
-    if (!affectedValues.isEmpty()) {
-      new TypeAnalysis(appView).narrowing(affectedValues);
-    }
+    affectedValues.narrowingWithAssumeRemoval(appView, code);
+    assert code.isConsistentSSA(appView);
   }
 }

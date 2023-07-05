@@ -15,7 +15,6 @@ import com.android.tools.r8.graph.FieldResolutionResult.SingleProgramFieldResolu
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.horizontalclassmerging.HorizontalClassMergerUtils;
 import com.android.tools.r8.ir.analysis.equivalence.BasicBlockBehavioralSubsumption;
-import com.android.tools.r8.ir.analysis.type.TypeAnalysis;
 import com.android.tools.r8.ir.analysis.value.AbstractValue;
 import com.android.tools.r8.ir.analysis.value.ConstantOrNonConstantNumberValue;
 import com.android.tools.r8.ir.analysis.value.SingleConstClassValue;
@@ -40,13 +39,13 @@ import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.code.ValueType;
 import com.android.tools.r8.ir.code.Xor;
 import com.android.tools.r8.ir.conversion.passes.result.CodeRewriterResult;
+import com.android.tools.r8.ir.optimize.AffectedValues;
 import com.android.tools.r8.ir.optimize.controlflow.SwitchCaseAnalyzer;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.InternalOutputMode;
 import com.android.tools.r8.utils.LongInterval;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceAVLTreeMap;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceSortedMap;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
@@ -136,11 +135,10 @@ public class BranchSimplifier extends CodeRewriterPass<AppInfo> {
         }
       }
     }
-    Set<Value> affectedValues = code.removeUnreachableBlocks();
-    if (!affectedValues.isEmpty()) {
-      new TypeAnalysis(appView).narrowing(affectedValues);
-    }
+    AffectedValues affectedValues = code.removeUnreachableBlocks();
+    affectedValues.narrowingWithAssumeRemoval(appView, code);
     code.removeRedundantBlocks();
+    assert code.isConsistentSSA(appView);
     return create(!affectedValues.isEmpty(), simplified);
   }
 
@@ -672,15 +670,12 @@ public class BranchSimplifier extends CodeRewriterPass<AppInfo> {
     // critical edges at exit.
     code.splitCriticalEdges();
 
-    Set<Value> affectedValues =
-        needToRemoveUnreachableBlocks ? code.removeUnreachableBlocks() : ImmutableSet.of();
-    boolean anyAffectedValues = !affectedValues.isEmpty();
-    if (anyAffectedValues) {
-      new TypeAnalysis(appView).narrowing(affectedValues);
-    }
+    AffectedValues affectedValues =
+        needToRemoveUnreachableBlocks ? code.removeUnreachableBlocks() : AffectedValues.empty();
+    affectedValues.narrowingWithAssumeRemoval(appView, code);
     code.removeRedundantBlocks();
     assert code.isConsistentSSA(appView);
-    return create(anyAffectedValues, anySimplifications);
+    return create(affectedValues.hasNext(), anySimplifications);
   }
 
   public void rewriteSingleKeySwitchToIf(

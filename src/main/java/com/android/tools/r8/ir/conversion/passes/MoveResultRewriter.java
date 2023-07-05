@@ -18,10 +18,10 @@ import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.ir.code.InvokeMethod;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.conversion.passes.result.CodeRewriterResult;
-import com.android.tools.r8.ir.optimize.AssumeRemover;
+import com.android.tools.r8.ir.optimize.AffectedValues;
 import com.android.tools.r8.ir.optimize.info.MethodOptimizationInfo;
+import com.android.tools.r8.utils.BooleanBox;
 import com.google.common.collect.Sets;
-import java.util.Collections;
 import java.util.ListIterator;
 import java.util.Set;
 
@@ -44,11 +44,12 @@ public class MoveResultRewriter extends CodeRewriterPass<AppInfo> {
   // Replace result uses for methods where something is known about what is returned.
   @Override
   protected CodeRewriterResult rewriteCode(IRCode code) {
-    AssumeRemover assumeRemover = new AssumeRemover(appView, code);
     boolean changed = false;
     boolean mayHaveRemovedTrivialPhi = false;
     Set<BasicBlock> blocksToBeRemoved = Sets.newIdentityHashSet();
     ListIterator<BasicBlock> blockIterator = code.listIterator();
+    TypeAnalysis typeAnalysis =
+        new TypeAnalysis(appView, code).setKeepRedundantBlocksAfterAssumeRemoval(true);
     while (blockIterator.hasNext()) {
       BasicBlock block = blockIterator.next();
       if (blocksToBeRemoved.contains(block)) {
@@ -90,34 +91,39 @@ public class MoveResultRewriter extends CodeRewriterPass<AppInfo> {
           continue;
         }
 
-        Set<Value> affectedValues =
+        AffectedValues affectedValues =
             argument.getType().equals(outValue.getType())
-                ? Collections.emptySet()
+                ? AffectedValues.empty()
                 : outValue.affectedValues();
 
-        assumeRemover.markAssumeDynamicTypeUsersForRemoval(outValue);
         mayHaveRemovedTrivialPhi |= outValue.numberOfPhiUsers() > 0;
         outValue.replaceUsers(argument);
-        invoke.setOutValue(null);
+        invoke.clearOutValue();
         changed = true;
 
         if (!affectedValues.isEmpty()) {
-          new TypeAnalysis(appView).narrowing(affectedValues);
+          BooleanBox removedAssumeInstructionInCurrentBlock = new BooleanBox();
+          typeAnalysis
+              .setKeepRedundantBlocksAfterAssumeRemoval(true)
+              .narrowingWithAssumeRemoval(
+                  affectedValues,
+                  assume -> removedAssumeInstructionInCurrentBlock.or(assume.getBlock() == block));
+          if (removedAssumeInstructionInCurrentBlock.isTrue()) {
+            // Workaround ConcurrentModificationException.
+            iterator = block.listIterator(code);
+          }
         }
       }
     }
-    assumeRemover.removeMarkedInstructions(blocksToBeRemoved).finish();
-    Set<Value> affectedValues = Sets.newIdentityHashSet();
+    AffectedValues affectedValues = new AffectedValues();
     if (!blocksToBeRemoved.isEmpty()) {
       code.removeBlocks(blocksToBeRemoved);
       code.removeAllDeadAndTrivialPhis(affectedValues);
       assert code.getUnreachableBlocks().isEmpty();
-    } else if (mayHaveRemovedTrivialPhi || assumeRemover.mayHaveIntroducedTrivialPhi()) {
+    } else if (mayHaveRemovedTrivialPhi) {
       code.removeAllDeadAndTrivialPhis(affectedValues);
     }
-    if (!affectedValues.isEmpty()) {
-      new TypeAnalysis(appView).narrowing(affectedValues);
-    }
+    typeAnalysis.narrowingWithAssumeRemoval(affectedValues);
     if (changed) {
       code.removeRedundantBlocks();
     }

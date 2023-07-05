@@ -527,7 +527,6 @@ public class EnumUnboxerImpl extends EnumUnboxer {
               Assume assume = enumUser.asAssume();
               if (assume
                   .getDynamicTypeAssumption()
-                  .getDynamicType()
                   .getDynamicUpperBoundType()
                   .equalUpToNullability(enumClass.getType().toTypeElement(appView))) {
                 // OK.

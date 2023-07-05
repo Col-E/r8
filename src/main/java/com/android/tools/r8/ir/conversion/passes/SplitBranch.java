@@ -6,7 +6,6 @@ package com.android.tools.r8.ir.conversion.passes;
 
 import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppView;
-import com.android.tools.r8.ir.analysis.type.TypeAnalysis;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.ConstNumber;
 import com.android.tools.r8.ir.code.Goto;
@@ -15,9 +14,9 @@ import com.android.tools.r8.ir.code.If;
 import com.android.tools.r8.ir.code.Phi;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.conversion.passes.result.CodeRewriterResult;
+import com.android.tools.r8.ir.optimize.AffectedValues;
 import com.android.tools.r8.utils.ListUtils;
 import com.android.tools.r8.utils.WorkList;
-import com.google.common.collect.Sets;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -63,12 +62,9 @@ public class SplitBranch extends CodeRewriterPass<AppInfo> {
       return CodeRewriterResult.NO_CHANGE;
     }
     retargetGotos(newTargets);
-    Set<Value> affectedValues = Sets.newIdentityHashSet();
-    affectedValues.addAll(code.removeUnreachableBlocks());
+    AffectedValues affectedValues = code.removeUnreachableBlocks();
     code.removeAllDeadAndTrivialPhis(affectedValues);
-    if (!affectedValues.isEmpty()) {
-      new TypeAnalysis(appView).narrowing(affectedValues);
-    }
+    affectedValues.narrowingWithAssumeRemoval(appView, code);
     if (ALLOW_PARTIAL_REWRITE) {
       code.splitCriticalEdges();
     }

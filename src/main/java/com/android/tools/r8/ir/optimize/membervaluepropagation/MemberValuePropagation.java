@@ -19,7 +19,6 @@ import static com.google.common.base.Predicates.alwaysTrue;
 import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.ProgramMethod;
-import com.android.tools.r8.ir.analysis.type.TypeAnalysis;
 import com.android.tools.r8.ir.analysis.value.AbstractValue;
 import com.android.tools.r8.ir.analysis.value.SingleValue;
 import com.android.tools.r8.ir.code.ArrayGet;
@@ -36,9 +35,9 @@ import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.code.StaticGet;
 import com.android.tools.r8.ir.code.StaticPut;
 import com.android.tools.r8.ir.code.Value;
+import com.android.tools.r8.ir.optimize.AffectedValues;
 import com.android.tools.r8.ir.optimize.membervaluepropagation.assume.AssumeInfo;
 import com.android.tools.r8.utils.IteratorUtils;
-import com.google.common.collect.Sets;
 import java.util.Set;
 import java.util.function.Predicate;
 
@@ -60,14 +59,11 @@ public abstract class MemberValuePropagation<T extends AppInfo> {
     if (!metadata.mayHaveFieldInstruction() && !metadata.mayHaveInvokeMethod()) {
       return;
     }
-    Set<Value> affectedValues = Sets.newIdentityHashSet();
+    AffectedValues affectedValues = new AffectedValues();
     run(code, code.listIterator(), affectedValues, alwaysTrue());
-    if (!affectedValues.isEmpty()) {
-      new TypeAnalysis(appView).narrowing(affectedValues);
-    }
+    affectedValues.narrowingWithAssumeRemoval(appView, code);
     code.removeRedundantBlocks();
     assert code.isConsistentSSA(appView);
-    assert code.verifyTypes(appView);
   }
 
   public void run(

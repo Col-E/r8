@@ -148,7 +148,7 @@ public class Lir2IRConverter {
     lirCode.forEach(view -> view.accept(parser));
     IRCode irCode = parser.getIRCode(method, conversionOptions);
     // Some instructions have bottom types (e.g., phis). Compute their actual types by widening.
-    new TypeAnalysis(appView).widening(irCode);
+    new TypeAnalysis(appView, irCode).widening();
 
     if (conversionOptions.isStringSwitchConversionEnabled()) {
       if (StringSwitchConverter.convertToStringSwitchInstructions(

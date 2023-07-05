@@ -25,7 +25,6 @@ import com.android.tools.r8.graph.lens.GraphLens;
 import com.android.tools.r8.ir.analysis.ClassInitializationAnalysis;
 import com.android.tools.r8.ir.analysis.proto.ProtoInliningReasonStrategy;
 import com.android.tools.r8.ir.analysis.type.Nullability;
-import com.android.tools.r8.ir.analysis.type.TypeAnalysis;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.BasicBlockIterator;
@@ -667,9 +666,7 @@ public class Inliner {
         // using a const-class instruction.
         Value lockValue;
         if (target.getDefinition().isStatic()) {
-          lockValue =
-              code.createValue(
-                  TypeElement.fromDexType(dexItemFactory.objectType, definitelyNotNull(), appView));
+          lockValue = code.createValue(TypeElement.classClassType(appView, definitelyNotNull()));
           monitorEnterBlockIterator.add(new ConstClass(lockValue, target.getHolderType()));
         } else {
           lockValue = entryBlock.getInstructions().getFirst().asArgument().outValue();
@@ -940,7 +937,7 @@ public class Inliner {
       InliningIRProvider inliningIRProvider,
       MethodProcessor methodProcessor,
       Timing timing) {
-    AssumeRemover assumeRemover = new AssumeRemover(appView, code);
+    AffectedValues affectedValues = new AffectedValues();
     Set<BasicBlock> blocksToRemove = Sets.newIdentityHashSet();
     BasicBlockIterator blockIterator = code.listIterator();
     ClassInitializationAnalysis classInitializationAnalysis =
@@ -973,7 +970,7 @@ public class Inliner {
           }
 
           if (tryInlineMethodWithoutSideEffects(
-              code, iterator, invoke, resolutionResult.getResolutionPair(), assumeRemover)) {
+              code, iterator, invoke, resolutionResult.getResolutionPair())) {
             continue;
           }
 
@@ -1032,12 +1029,6 @@ public class Inliner {
           // Verify this code went through the full pipeline.
           assert singleTarget.getDefinition().isProcessed();
 
-          // Mark AssumeDynamicType instruction for the out-value for removal, if any.
-          Value outValue = invoke.outValue();
-          if (outValue != null) {
-            assumeRemover.markAssumeDynamicTypeUsersForRemoval(outValue);
-          }
-
           boolean inlineeMayHaveInvokeMethod = inlinee.code.metadata().mayHaveInvokeMethod();
 
           // Inline the inlinee code in place of the invoke instruction
@@ -1065,7 +1056,8 @@ public class Inliner {
           }
 
           classInitializationAnalysis.notifyCodeHasChanged();
-          postProcessInlineeBlocks(code, blockIterator, block, blocksToRemove, timing);
+          postProcessInlineeBlocks(
+              code, blockIterator, block, affectedValues, blocksToRemove, timing);
 
           // The synthetic and bridge flags are maintained only if the inlinee has also these flags.
           if (context.getDefinition().isBridge() && !inlinee.code.method().isBridge()) {
@@ -1089,15 +1081,13 @@ public class Inliner {
               blockIterator.next();
             }
           }
-        } else if (current.isAssume()) {
-          assumeRemover.removeIfMarked(current.asAssume(), iterator);
         }
       }
     }
     assert inlineeStack.isEmpty();
-    assumeRemover.removeMarkedInstructions(blocksToRemove).finish();
-    classInitializationAnalysis.finish();
     code.removeBlocks(blocksToRemove);
+    affectedValues.narrowingWithAssumeRemoval(appView, code);
+    classInitializationAnalysis.finish();
     code.removeAllDeadAndTrivialPhis();
     code.removeRedundantBlocks();
     assert code.isConsistentSSA(appView);
@@ -1107,8 +1097,7 @@ public class Inliner {
       IRCode code,
       InstructionListIterator iterator,
       InvokeMethod invoke,
-      DexClassAndMethod resolvedMethod,
-      AssumeRemover assumeRemover) {
+      DexClassAndMethod resolvedMethod) {
     if (invoke.isInvokeMethodWithReceiver()) {
       if (!iterator.replaceCurrentInstructionByNullCheckIfPossible(appView, code.context())) {
         return false;
@@ -1123,7 +1112,6 @@ public class Inliner {
     }
 
     // Succeeded.
-    assumeRemover.markUnusedAssumeValuesForRemoval(invoke.arguments());
     return true;
   }
 
@@ -1149,6 +1137,7 @@ public class Inliner {
       IRCode code,
       BasicBlockIterator blockIterator,
       BasicBlock block,
+      AffectedValues affectedValues,
       Set<BasicBlock> blocksToRemove,
       Timing timing) {
     BasicBlock state = IteratorUtils.peekNext(blockIterator);
@@ -1164,7 +1153,7 @@ public class Inliner {
             inlineeBlocks.add(inlineeBlock);
           }
         });
-    applyMemberValuePropagationToInlinee(code, blockIterator, inlineeBlocks);
+    applyMemberValuePropagationToInlinee(code, blockIterator, affectedValues, inlineeBlocks);
 
     // Add non-null IRs only to the inlinee blocks.
     rewindBlockIterator(blockIterator, block);
@@ -1179,19 +1168,19 @@ public class Inliner {
       BasicBlockIterator blockIterator,
       Set<BasicBlock> inlineeBlocks,
       Timing timing) {
-    new AssumeInserter(appView)
+    boolean keepRedundantBlocks = true; // since we have a live block iterator
+    new AssumeInserter(appView, keepRedundantBlocks)
         .insertAssumeInstructionsInBlocks(code, blockIterator, inlineeBlocks::contains, timing);
     assert !blockIterator.hasNext();
   }
 
   private void applyMemberValuePropagationToInlinee(
-      IRCode code, BasicBlockIterator blockIterator, Set<BasicBlock> inlineeBlocks) {
-    Set<Value> affectedValues = Sets.newIdentityHashSet();
+      IRCode code,
+      BasicBlockIterator blockIterator,
+      AffectedValues affectedValues,
+      Set<BasicBlock> inlineeBlocks) {
     new R8MemberValuePropagation(appView)
         .run(code, blockIterator, affectedValues, inlineeBlocks::contains);
-    if (!affectedValues.isEmpty()) {
-      new TypeAnalysis(appView).narrowing(affectedValues);
-    }
     assert !blockIterator.hasNext();
   }
 

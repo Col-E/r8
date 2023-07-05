@@ -53,13 +53,15 @@ public class DeadCodeRemover {
     // more dead instructions.
     Deque<BasicBlock> worklist = new ArrayDeque<>();
     do {
+      AffectedValues affectedValues = new AffectedValues();
       ValueIsDeadAnalysis valueIsDeadAnalysis = new ValueIsDeadAnalysis(appView, code);
       worklist.addAll(code.topologicallySortedBlocks());
       while (!worklist.isEmpty()) {
         BasicBlock block = worklist.removeLast();
-        removeDeadInstructions(worklist, code, block, valueIsDeadAnalysis);
+        removeDeadInstructions(worklist, code, block, affectedValues, valueIsDeadAnalysis);
         removeDeadPhis(worklist, block, valueIsDeadAnalysis);
       }
+      affectedValues.narrowingWithAssumeRemoval(appView, code);
     } while (branchSimplifier
             .simplifyIf(code)
             .asControlFlowSimplificationResult()
@@ -134,6 +136,7 @@ public class DeadCodeRemover {
       Queue<BasicBlock> worklist,
       IRCode code,
       BasicBlock block,
+      AffectedValues affectedValues,
       ValueIsDeadAnalysis valueIsDeadAnalysis) {
     InstructionListIterator iterator = block.listIterator(code, block.getInstructions().size());
     while (iterator.hasPrevious()) {
@@ -145,7 +148,7 @@ public class DeadCodeRemover {
           if (!checkCast.isRefiningStaticType(appView.options())
               && checkCast.outValue().getLocalInfo() == checkCast.object().getLocalInfo()) {
             updateWorklistWithNonDebugUses(worklist, checkCast);
-            checkCast.outValue().replaceUsers(checkCast.object());
+            checkCast.outValue().replaceUsers(checkCast.object(), affectedValues);
             checkCast.object().uniquePhiUsers().forEach(Phi::removeTrivialPhi);
           }
         }
@@ -235,7 +238,8 @@ public class DeadCodeRemover {
       }
     }
     if (mayHaveIntroducedUnreachableBlocks) {
-      code.removeUnreachableBlocks();
+      AffectedValues affectedValues = code.removeUnreachableBlocks();
+      affectedValues.narrowingWithAssumeRemoval(appView, code);
     }
     assert code.isConsistentGraph(appView);
     return mayHaveIntroducedUnreachableBlocks;
