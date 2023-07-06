@@ -64,6 +64,7 @@ import com.android.tools.r8.naming.PrefixRewritingNamingLens;
 import com.android.tools.r8.naming.ProguardMapMinifier;
 import com.android.tools.r8.naming.RecordRewritingNamingLens;
 import com.android.tools.r8.naming.signature.GenericSignatureRewriter;
+import com.android.tools.r8.optimize.LegacyAccessModifier;
 import com.android.tools.r8.optimize.MemberRebindingAnalysis;
 import com.android.tools.r8.optimize.MemberRebindingIdentityLens;
 import com.android.tools.r8.optimize.MemberRebindingIdentityLensFactory;
@@ -451,6 +452,9 @@ public class R8 {
       // implements. This information can change as a result of vertical class merging, so we need
       // to clear the cache, so that we will recompute the type lattice elements.
       appView.dexItemFactory().clearTypeElementsCache();
+
+      // TODO(b/132677331): Remove legacy access modifier.
+      LegacyAccessModifier.run(appViewWithLiveness, executorService, timing);
 
       // This pass attempts to reduce the number of nests and nest size to allow further passes, and
       // should therefore be run after the publicizer.
