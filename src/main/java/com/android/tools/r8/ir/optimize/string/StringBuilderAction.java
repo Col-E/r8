@@ -178,7 +178,7 @@ public interface StringBuilderAction {
         Instruction instruction,
         AffectedValues affectedValues,
         StringBuilderOracle oracle) {
-      instruction.outValue().replaceUsers(existingString);
+      instruction.outValue().replaceUsers(existingString, affectedValues);
       iterator.removeOrReplaceByDebugLocalRead();
     }
 
