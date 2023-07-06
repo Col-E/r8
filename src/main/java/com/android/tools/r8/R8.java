@@ -676,9 +676,6 @@ public class R8 {
         }
       }
 
-      // TODO(b/225838009): Support LIR in main dex tracing.
-      PrimaryR8IRConverter.finalizeLirToOutputFormat(appView, timing, executorService);
-
       performFinalMainDexTracing(appView, executorService);
 
       if (appView.appInfo().hasLiveness()) {
@@ -688,6 +685,9 @@ public class R8 {
           recordFieldArrayRemover.rewriteRecordFieldValues();
         }
       }
+
+      // TODO(b/225838009): Check support LIR in bridge remover.
+      PrimaryR8IRConverter.finalizeLirToOutputFormat(appView, timing, executorService);
 
       // Insert a member rebinding oracle in the graph to ensure that all subsequent rewritings of
       // the application has an applied oracle for looking up non-rebound references.
