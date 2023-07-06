@@ -10,6 +10,7 @@ import com.android.tools.r8.utils.structural.StructuralSpecification;
 import com.google.common.collect.ImmutableList;
 import java.util.List;
 import java.util.function.BooleanSupplier;
+import java.util.function.Consumer;
 
 /** Access flags common to classes, methods and fields. */
 public abstract class AccessFlags<T extends AccessFlags<T>> implements StructuralItem<T> {
@@ -63,6 +64,13 @@ public abstract class AccessFlags<T extends AccessFlags<T>> implements Structura
   @Override
   public StructuralMapping<T> getStructuralMapping() {
     return AccessFlags::specify;
+  }
+
+  public T applyIf(boolean condition, Consumer<T> fn) {
+    if (condition) {
+      fn.accept(self());
+    }
+    return self();
   }
 
   public abstract T copy();
@@ -231,8 +239,9 @@ public abstract class AccessFlags<T extends AccessFlags<T>> implements Structura
     demote(Constants.ACC_SYNTHETIC);
   }
 
-  public void promoteToFinal() {
+  public T promoteToFinal() {
     promote(Constants.ACC_FINAL);
+    return self();
   }
 
   public T demoteFromFinal() {
@@ -248,9 +257,10 @@ public abstract class AccessFlags<T extends AccessFlags<T>> implements Structura
     return isPromoted(Constants.ACC_PUBLIC);
   }
 
-  public void promoteToPublic() {
+  public T promoteToPublic() {
     demote(Constants.ACC_PRIVATE | Constants.ACC_PROTECTED);
     promote(Constants.ACC_PUBLIC);
+    return self();
   }
 
   public T withPublic() {
