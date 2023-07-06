@@ -93,23 +93,17 @@ public class KotlinLambdaMergingTrivialKotlinStyleTest extends KotlinTestBase {
     assertEquals(0, lambdasInInput.getNumberOfJStyleLambdas());
     assertEquals(28, lambdasInInput.getNumberOfKStyleLambdas());
 
-    if (!parameters.isAccessModificationEnabled(allowAccessModification)) {
-      // Only a subset of all K-style Kotlin lambdas are merged without -allowaccessmodification.
-      Set<ClassReference> unmergedLambdas =
-          ImmutableSet.of(
-              lambdasInInput.getKStyleLambdaReferenceFromTypeName(
-                  getTestName(), "inner.InnerKt$testInnerStateless$7"));
-      inspector
-          .assertClassReferencesMerged(
-              lambdasInInput.getKStyleLambdas().stream()
-                  .filter(not(unmergedLambdas::contains))
-                  .collect(Collectors.toList()))
-          .assertClassReferencesNotMerged(unmergedLambdas);
-      return;
-    }
-
-    // All K-style Kotlin lambdas are merged with -allowaccessmodification.
-    inspector.assertClassReferencesMerged(lambdasInInput.getKStyleLambdas());
+    // Only a subset of all K-style Kotlin lambdas are merged.
+    Set<ClassReference> unmergedLambdas =
+        ImmutableSet.of(
+            lambdasInInput.getKStyleLambdaReferenceFromTypeName(
+                getTestName(), "inner.InnerKt$testInnerStateless$7"));
+    inspector
+        .assertClassReferencesMerged(
+            lambdasInInput.getKStyleLambdas().stream()
+                .filter(not(unmergedLambdas::contains))
+                .collect(Collectors.toList()))
+        .assertClassReferencesNotMerged(unmergedLambdas);
   }
 
   private String getExpectedOutput() {
