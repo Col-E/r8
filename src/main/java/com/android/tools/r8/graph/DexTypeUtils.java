@@ -7,6 +7,7 @@ package com.android.tools.r8.graph;
 import com.android.tools.r8.ir.analysis.type.ArrayTypeElement;
 import com.android.tools.r8.ir.analysis.type.ClassTypeElement;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
+import com.android.tools.r8.utils.AndroidApiLevelUtils;
 import com.google.common.collect.Iterables;
 
 public class DexTypeUtils {
@@ -15,7 +16,7 @@ public class DexTypeUtils {
       AppView<? extends AppInfoWithClassHierarchy> appView, Iterable<DexType> types) {
     TypeElement join =
         TypeElement.join(Iterables.transform(types, type -> type.toTypeElement(appView)), appView);
-    return toDexType(appView, join);
+    return findApiSafeUpperBound(appView, toDexType(appView, join));
   }
 
   public static DexType toDexType(
@@ -38,5 +39,24 @@ public class DexTypeUtils {
       return classType.getInterfaces().getSingleKnownInterface();
     }
     return dexItemFactory.objectType;
+  }
+
+  public static DexType findApiSafeUpperBound(
+      AppView<? extends AppInfoWithClassHierarchy> appView, DexType type) {
+    DexItemFactory factory = appView.dexItemFactory();
+    if (type.toBaseType(factory).isPrimitiveType()) {
+      return type;
+    }
+    DexClass clazz = appView.definitionFor(type.isArrayType() ? type.toBaseType(factory) : type);
+    if (clazz == null) {
+      assert false : "We should not have found an upper bound if the hierarchy is missing";
+      return type;
+    }
+    if (!clazz.isLibraryClass()
+        || AndroidApiLevelUtils.isApiSafeForReference(clazz.asLibraryClass(), appView)) {
+      return type;
+    }
+    // Always just return the object type since this is safe for all api versions.
+    return factory.objectType;
   }
 }

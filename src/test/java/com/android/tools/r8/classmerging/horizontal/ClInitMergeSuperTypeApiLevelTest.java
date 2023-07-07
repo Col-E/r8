@@ -16,6 +16,7 @@ import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.references.TypeReference;
+import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import java.lang.reflect.Constructor;
@@ -38,11 +39,18 @@ public class ClInitMergeSuperTypeApiLevelTest extends TestBase {
     return getTestParameters().withAllRuntimesAndApiLevels().build();
   }
 
+  private TypeReference getMergeReferenceForApiLevel() {
+    boolean canUseExecutable =
+        parameters.isDexRuntime()
+            && parameters.getApiLevel().isGreaterThanOrEqualTo(AndroidApiLevel.O);
+    return Reference.typeFromTypeName(typeName(canUseExecutable ? Executable.class : Object.class));
+  }
+
   @Test
   public void testR8() throws Exception {
     testForR8(parameters.getBackend())
         // Emulate a standard AGP setup where we compile with a new android jar on boot classpath.
-        .addLibraryFiles(ToolHelper.getMostRecentAndroidJar())
+        .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.LATEST))
         .addInnerClasses(getClass())
         .setMinApi(parameters)
         .addKeepClassAndMembersRules(Main.class)
@@ -56,17 +64,11 @@ public class ClInitMergeSuperTypeApiLevelTest extends TestBase {
               assertThat(clazz, isPresent());
               MethodSubject init = clazz.uniqueInstanceInitializer();
               assertThat(init, isPresent());
-              TypeReference executableTypeRef =
-                  Reference.typeFromTypeName(typeName(Executable.class));
-              // TODO(b/289361079): This should not be of type Executable since this was introduced
-              //  at api 26.
-              assertEquals(executableTypeRef, init.getParameter(0).getTypeReference());
-              // TODO(b/289361079): This should not be of type Executable since this was introduced
-              //  at api 26.
+              TypeReference mergeTypeRef = getMergeReferenceForApiLevel();
+              assertEquals(mergeTypeRef, init.getParameter(0).getTypeReference());
               assertTrue(
                   clazz.allFields().stream()
-                      .anyMatch(
-                          f -> executableTypeRef.equals(f.getFinalReference().getFieldType())));
+                      .anyMatch(f -> mergeTypeRef.equals(f.getFinalReference().getFieldType())));
             })
         .run(parameters.getRuntime(), Main.class)
         // The test succeeds for some unknown reason.
