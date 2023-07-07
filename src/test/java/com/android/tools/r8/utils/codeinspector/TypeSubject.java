@@ -6,6 +6,7 @@ package com.android.tools.r8.utils.codeinspector;
 
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.references.TypeReference;
 
 public class TypeSubject extends Subject {
 
@@ -19,6 +20,10 @@ public class TypeSubject extends Subject {
 
   public String getTypeName() {
     return dexType.getTypeName();
+  }
+
+  public TypeReference getTypeReference() {
+    return dexType.asTypeReference();
   }
 
   @Override
