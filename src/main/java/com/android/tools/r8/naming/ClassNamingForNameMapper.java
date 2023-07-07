@@ -517,11 +517,19 @@ public class ClassNamingForNameMapper implements ClassNaming {
   void write(ChainableStringConsumer consumer) {
     consumer.accept(originalName).accept(" -> ").accept(renamedName).accept(":\n");
 
+    String spacing = "    ";
+
     // Print all additional mapping information.
     additionalMappingInfo.forEach(info -> consumer.accept("# " + info.serialize()).accept("\n"));
 
     // Print field member namings.
-    forAllFieldNamingSorted(m -> consumer.accept("    ").accept(m.toString()).accept("\n"));
+    forAllFieldNamingSorted(
+        fieldMember -> {
+          consumer.accept(spacing).accept(fieldMember.toString()).accept("\n");
+          for (MappingInformation info : fieldMember.getAdditionalMappingInformation()) {
+            consumer.accept(spacing + "  # ").accept(info.serialize()).accept("\n");
+          }
+        });
 
     // Sort MappedRanges by sequence number to restore construction order (original Proguard-map
     // input).
@@ -531,9 +539,9 @@ public class ClassNamingForNameMapper implements ClassNaming {
     }
     mappedRangesSorted.sort(Comparator.comparingInt(range -> range.sequenceNumber));
     for (MappedRange range : mappedRangesSorted) {
-      consumer.accept("    ").accept(range.toString()).accept("\n");
+      consumer.accept(spacing).accept(range.toString()).accept("\n");
       for (MappingInformation info : range.getAdditionalMappingInformation()) {
-        consumer.accept("      # ").accept(info.serialize()).accept("\n");
+        consumer.accept(spacing + "  # ").accept(info.serialize()).accept("\n");
       }
     }
   }

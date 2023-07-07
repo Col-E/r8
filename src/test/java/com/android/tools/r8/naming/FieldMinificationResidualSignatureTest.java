@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.naming;
 
+import static com.android.tools.r8.CollectorsUtils.toSingle;
 import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.TestBase;
@@ -11,6 +12,7 @@ import com.android.tools.r8.TestDiagnosticMessagesImpl;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.references.FieldReference;
+import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.retrace.ProguardMapProducer;
 import com.android.tools.r8.retrace.Retracer;
 import com.android.tools.r8.utils.AndroidApiLevel;
@@ -55,17 +57,16 @@ public class FieldMinificationResidualSignatureTest extends TestBase {
     Retracer retracer =
         Retracer.createDefault(
             ProguardMapProducer.fromString(proguardMap), new TestDiagnosticMessagesImpl());
-    // TODO(b/280802465): We should emit the residual signature to allow us looking up the original.
     assertEquals(
-        0,
-        retracer.retraceField(minifiedBField.get()).stream()
-            .filter(rfe -> rfe.getField().isKnown())
-            .count());
-    assertEquals(
-        0,
+        Reference.fieldFromField(Main.class.getDeclaredField("a")),
         retracer.retraceField(minifiedMainField.get()).stream()
-            .filter(rfe -> rfe.getField().isKnown())
-            .count());
+            .map(rfe -> rfe.getField().asKnown().getFieldReference())
+            .collect(toSingle()));
+    assertEquals(
+        Reference.fieldFromField(B.class.getDeclaredField("worldContainer")),
+        retracer.retraceField(minifiedBField.get()).stream()
+            .map(rfe -> rfe.getField().asKnown().getFieldReference())
+            .collect(toSingle()));
   }
 
   public static class Main {
