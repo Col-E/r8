@@ -927,7 +927,7 @@ public class Lir2IRConverter {
     }
 
     @Override
-    public void onPhi(List<EV> operands) {
+    public void onPhi(DexType type, List<EV> operands) {
       // The type of the phi is determined by its operands during type widening.
       Phi phi = getPhiForNextInstructionAndAdvanceState(TypeElement.getBottom());
       List<Value> values = new ArrayList<>(operands.size());
@@ -1023,18 +1023,19 @@ public class Lir2IRConverter {
     }
 
     @Override
-    public void onArrayGet(MemberType type, EV array, EV index) {
-      TypeElement typeElement;
-      if (type.isObject()) {
-        // The actual object type must be computed from its array value.
-        typeElement = TypeElement.getBottom();
-      } else {
-        // Convert the member type to a "stack value type", e.g., byte, char etc to int.
-        ValueType valueType = ValueType.fromMemberType(type);
-        DexType dexType = valueType.toDexType(appView.dexItemFactory());
-        typeElement = dexType.toTypeElement(appView);
-      }
-      Value dest = getOutValueForNextInstruction(typeElement);
+    public void onArrayGetObject(DexType unusedType, EV array, EV index) {
+      // TODO(b/225838009): Remove type and unify object/primitive methods now that it is computed.
+      // The output type depends on its input array member type, so it is computed by widening.
+      Value dest = getOutValueForNextInstruction(TypeElement.getBottom());
+      addInstruction(new ArrayGet(MemberType.OBJECT, dest, getValue(array), getValue(index)));
+    }
+
+    @Override
+    public void onArrayGetPrimitive(MemberType type, EV array, EV index) {
+      // Convert the member type to a "stack value type", e.g., byte, char etc to int.
+      ValueType valueType = ValueType.fromMemberType(type);
+      DexType dexType = valueType.toDexType(appView.dexItemFactory());
+      Value dest = getOutValueForNextInstruction(dexType.toTypeElement(appView));
       addInstruction(new ArrayGet(type, dest, getValue(array), getValue(index)));
     }
 

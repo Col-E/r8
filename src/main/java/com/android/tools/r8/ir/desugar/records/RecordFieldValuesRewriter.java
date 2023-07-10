@@ -72,7 +72,7 @@ public class RecordFieldValuesRewriter {
                 programMethod,
                 appView,
                 programMethod.getOrigin(),
-                MethodConversionOptions.forLirPhase(appView));
+                MethodConversionOptions.forPostLirPhase(appView));
     boolean done = false;
     ListIterator<BasicBlock> blockIterator = irCode.listIterator();
     while (blockIterator.hasNext()) {

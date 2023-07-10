@@ -548,7 +548,10 @@ public class R8 {
       appView.setGraphLens(new AppliedGraphLens(appView));
       timing.end();
 
-      if (options.shouldRerunEnqueuer()) {
+      if (!options.shouldRerunEnqueuer()) {
+        // TODO(b/225838009): Support tracing and building LIR in Enqueuer.
+        PrimaryR8IRConverter.finalizeLirToOutputFormat(appView, timing, executorService);
+      } else {
         timing.begin("Post optimization code stripping");
         try {
           GraphConsumer keptGraphConsumer = null;
@@ -653,6 +656,9 @@ public class R8 {
           timing.end();
         }
 
+        // TODO(b/225838009): Support LIR in proto shrinking.
+        PrimaryR8IRConverter.finalizeLirToOutputFormat(appView, timing, executorService);
+
         if (appView.options().protoShrinking().isProtoShrinkingEnabled()) {
           if (appView.options().protoShrinking().isEnumLiteProtoShrinkingEnabled()) {
             appView.protoShrinker().enumLiteProtoShrinker.verifyDeadEnumLiteMapsAreDead();
@@ -685,9 +691,6 @@ public class R8 {
           recordFieldArrayRemover.rewriteRecordFieldValues();
         }
       }
-
-      // TODO(b/225838009): Check support LIR in bridge remover.
-      PrimaryR8IRConverter.finalizeLirToOutputFormat(appView, timing, executorService);
 
       // Insert a member rebinding oracle in the graph to ensure that all subsequent rewritings of
       // the application has an applied oracle for looking up non-rebound references.

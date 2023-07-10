@@ -181,7 +181,7 @@ public class GeneratedExtensionRegistryShrinker {
                 OptimizationFeedbackIgnore.getInstance(),
                 methodProcessor,
                 methodProcessingContext,
-                MethodConversionOptions.forLirPhase(appView)),
+                MethodConversionOptions.forPostLirPhase(appView)),
         executorService);
     timing.end();
   }
