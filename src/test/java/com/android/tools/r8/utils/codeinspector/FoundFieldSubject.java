@@ -77,7 +77,7 @@ public class FoundFieldSubject extends FieldSubject {
     String fieldType = originalType != null ? originalType : obfuscatedType;
     FieldSignature lookupSignature = new FieldSignature(signature.name, fieldType);
 
-    memberNaming = clazz.getNaming().lookupByOriginalSignature(lookupSignature);
+    memberNaming = clazz.getNaming().lookup(lookupSignature);
     return memberNaming != null
         ? memberNaming.getOriginalSignature().asFieldSignature()
         : lookupSignature;
@@ -155,7 +155,7 @@ public class FoundFieldSubject extends FieldSubject {
   public FieldReference getFinalReference() {
     return Reference.field(
         Reference.classFromDescriptor(getField().getHolderType().toDescriptorString()),
-        getOriginalName(),
+        getFinalName(),
         Reference.typeFromDescriptor(getField().getType().toDescriptorString()));
   }
 
