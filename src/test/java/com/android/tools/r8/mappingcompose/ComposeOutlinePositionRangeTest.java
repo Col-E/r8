@@ -42,7 +42,7 @@ public class ComposeOutlinePositionRangeTest extends TestBase {
               + "'positions': { '1': 10, '2': 11 },"
               + "'outline':'La;a()I' }",
           "    10:11:int some.inlinee(int):23:24 -> s",
-          "    10:11:int outlineCaller(int):42 -> s");
+          "    10:11:int outlineCaller(int):1337 -> s");
   private static final String mappingBar =
       StringUtils.unixLines(
           "# {'id':'com.android.tools.r8.mapping','version':'2.2'}",
@@ -58,11 +58,10 @@ public class ComposeOutlinePositionRangeTest extends TestBase {
           "    # {'id':'com.android.tools.r8.outlineCallsite',"
               + "'positions':{'4':43,'5':44},"
               + "'outline':'Lb;m()I'}",
-          // TODO(b/280564959): We should not introduce ambiguity here.
-          "    43:43:int some.inlinee(int):23:24 -> s",
-          "    43:43:int outlineCaller(int):42 -> o",
-          "    44:44:int some.inlinee(int):23:24 -> s",
-          "    44:44:int outlineCaller(int):42 -> o",
+          "    43:43:int some.inlinee(int):23:23 -> o",
+          "    43:43:int outlineCaller(int):1337 -> o",
+          "    44:44:int some.inlinee(int):24:24 -> o",
+          "    44:44:int outlineCaller(int):1337 -> o",
           "outline.Class -> b:",
           "    4:5:int outline():11:12 -> m",
           "    # {'id':'com.android.tools.r8.outline'}");

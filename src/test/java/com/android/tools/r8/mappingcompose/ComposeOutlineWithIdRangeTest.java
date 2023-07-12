@@ -66,7 +66,7 @@ public class ComposeOutlineWithIdRangeTest extends TestBase {
               + "'positions':{'1':9,'2':10},"
               + "'outline':'Lpackage/new_internal/X;b(JJJ)J'}",
           "    8:8:void foo():38:38 -> b",
-          "    9:9:void inlineeInOutline():1337:1337 -> a",
+          "    9:9:void inlineeInOutline():1337:1337 -> b",
           "    9:9:void foo():42 -> b",
           "    10:10:void foo():44:44 -> b",
           "package.Class$$ExternalSyntheticOutline0 -> package.new_internal.X:",
