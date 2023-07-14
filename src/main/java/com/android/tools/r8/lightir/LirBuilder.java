@@ -174,6 +174,24 @@ public class LirBuilder<V, EV> {
       this.keys = keys;
       this.targets = targets;
     }
+
+    @Override
+    public boolean equals(Object o) {
+      if (this == o) return true;
+      if (o == null || getClass() != o.getClass()) return false;
+
+      StringSwitchPayload that = (StringSwitchPayload) o;
+
+      if (!Arrays.equals(keys, that.keys)) return false;
+      return Arrays.equals(targets, that.targets);
+    }
+
+    @Override
+    public int hashCode() {
+      int result = Arrays.hashCode(keys);
+      result = 31 * result + Arrays.hashCode(targets);
+      return result;
+    }
   }
 
   public static class NameComputationPayload extends InstructionPayload {
