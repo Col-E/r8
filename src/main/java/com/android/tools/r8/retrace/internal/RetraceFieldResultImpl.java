@@ -95,7 +95,9 @@ public class RetraceFieldResultImpl implements RetraceFieldResult {
 
   @Override
   public boolean isEmpty() {
-    return memberNamings == null || memberNamings.isEmpty();
+    return memberNamings == null
+        || memberNamings.isEmpty()
+        || (memberNamings.size() == 1 && memberNamings.get(0).getSecond() == null);
   }
 
   public static class ElementImpl implements RetraceFieldElement {

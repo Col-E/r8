@@ -21,13 +21,13 @@ import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.SubtypingInfo;
 import com.android.tools.r8.graph.analysis.EnqueuerAnalysis;
 import com.android.tools.r8.ir.analysis.type.ClassTypeElement;
-import com.android.tools.r8.ir.analysis.type.TypeAnalysis;
 import com.android.tools.r8.ir.code.CheckCast;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.ir.code.InvokeDirect;
 import com.android.tools.r8.ir.code.InvokeVirtual;
+import com.android.tools.r8.ir.code.LinearFlowInstructionListIterator;
 import com.android.tools.r8.ir.code.NewInstance;
 import com.android.tools.r8.ir.code.SafeCheckCast;
 import com.android.tools.r8.ir.code.StaticGet;
@@ -36,6 +36,7 @@ import com.android.tools.r8.ir.conversion.IRConverter;
 import com.android.tools.r8.ir.conversion.MethodConversionOptions.MutableMethodConversionOptions;
 import com.android.tools.r8.ir.conversion.MethodProcessor;
 import com.android.tools.r8.ir.conversion.callgraph.Node;
+import com.android.tools.r8.ir.optimize.AffectedValues;
 import com.android.tools.r8.ir.optimize.Inliner;
 import com.android.tools.r8.ir.optimize.Inliner.Reason;
 import com.android.tools.r8.ir.optimize.enums.EnumValueOptimizer;
@@ -250,6 +251,10 @@ public class GeneratedMessageLiteBuilderShrinker {
             instruction ->
                 instruction.isNewInstance() && instruction.asNewInstance().clazz == builder.type);
     assert newInstance != null;
+    // Once the new instance is found, create a new linear iterator to allow subsequent instructions
+    // to be in trivially split blocks.
+    instructionIterator = new LinearFlowInstructionListIterator(code, newInstance.getBlock());
+    instructionIterator.nextUntil(i -> i == newInstance);
     instructionIterator.replaceCurrentInstruction(new NewInstance(builder.superType, builderValue));
 
     // Replace `builder.<init>()` by `builder.<init>(Message.DEFAULT_INSTANCE)`.
@@ -391,7 +396,7 @@ public class GeneratedMessageLiteBuilderShrinker {
    * MethodToInvoke.NEW_MUTABLE_INSTANCE will create an instance of the enclosing class.
    */
   private void strengthenCheckCastInstructions(IRCode code) {
-    Set<Value> affectedValues = Sets.newIdentityHashSet();
+    AffectedValues affectedValues = new AffectedValues();
     InstructionListIterator instructionIterator = code.instructionListIterator();
     CheckCast checkCast;
     while ((checkCast = instructionIterator.nextUntil(Instruction::isCheckCast)) != null) {
@@ -425,9 +430,7 @@ public class GeneratedMessageLiteBuilderShrinker {
         }
       }
     }
-    if (!affectedValues.isEmpty()) {
-      new TypeAnalysis(appView).narrowing(affectedValues);
-    }
+    affectedValues.narrowingWithAssumeRemoval(appView, code);
   }
 
   private static class RootSetExtension {

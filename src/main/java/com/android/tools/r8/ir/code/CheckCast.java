@@ -216,8 +216,9 @@ public class CheckCast extends Instruction {
   }
 
   @Override
-  public boolean verifyTypes(AppView<?> appView, VerifyTypesHelper verifyTypesHelper) {
-    assert super.verifyTypes(appView, verifyTypesHelper);
+  public boolean verifyTypes(
+      AppView<?> appView, ProgramMethod context, VerifyTypesHelper verifyTypesHelper) {
+    assert super.verifyTypes(appView, context, verifyTypesHelper);
 
     TypeElement inType = object().getType();
 
@@ -226,31 +227,24 @@ public class CheckCast extends Instruction {
     TypeElement outType = getOutType();
     TypeElement castType = TypeElement.fromDexType(getType(), inType.nullability(), appView);
 
-    if (inType.lessThanOrEqual(castType, appView)) {
-      // Cast can be removed. Check that it is sound to replace all users of the out-value by the
-      // in-value.
-      assert inType.lessThanOrEqual(outType, appView);
+    // We don't have enough information to remove the cast. Check that the out-value does not
+    // have a more precise type than the cast-type.
+    assert outType.equalUpToNullability(castType);
 
-      // TODO(b/72693244): Consider checking equivalence. This requires that the types are always
-      // as precise as possible, though, meaning that almost all changes to the IR must be followed
-      // by a fix-point analysis.
-      // assert outType.equals(inType);
-    } else {
-      // We don't have enough information to remove the cast. Check that the out-value does not
-      // have a more precise type than the cast-type.
-      assert outType.equalUpToNullability(castType);
+    // Check soundness of null information.
+    assert inType.nullability() == outType.nullability() || inType.isNullType()
+        : "Expected nullability of value "
+            + outValue()
+            + " defined by "
+            + this
+            + " to be "
+            + inType.nullability()
+            + ", but was "
+            + outType.nullability()
+            + "(context: "
+            + context.toSourceString()
+            + ")";
 
-      // Check soundness of null information.
-      assert inType.nullability() == outType.nullability();
-
-      // Since we cannot remove the cast the in-value must be different from null.
-      assert !inType.isNullType();
-
-      // TODO(b/72693244): Consider checking equivalence. This requires that the types are always
-      // as precise as possible, though, meaning that almost all changes to the IR must be followed
-      // by a fix-point analysis.
-      // assert outType.equals(castType);
-    }
     return true;
   }
 

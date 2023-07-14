@@ -204,8 +204,8 @@ public class ClassStaticizerTest extends TestBase {
 
     assertEquals(
         Lists.newArrayList(
-            "STATIC: String SimpleWithLazyInit.bar$1(String)",
-            "STATIC: String SimpleWithLazyInit.foo$1()",
+            "STATIC: String SimpleWithLazyInit.bar(String)",
+            "STATIC: String SimpleWithLazyInit.foo()",
             "STATIC: String TrivialTestClass.next()"),
         references(clazz, "testSimpleWithThrowingGetter", "void"));
 
@@ -222,8 +222,8 @@ public class ClassStaticizerTest extends TestBase {
     }
     Collections.addAll(
         expectedReferencesInTestSimpleWithLazyInit,
-        "STATIC: String SimpleWithLazyInit.bar(String)",
-        "STATIC: String SimpleWithLazyInit.foo()",
+        "STATIC: String SimpleWithLazyInit.bar$1(String)",
+        "STATIC: String SimpleWithLazyInit.foo$1()",
         "STATIC: String TrivialTestClass.next()",
         "SimpleWithLazyInit SimpleWithLazyInit.INSTANCE",
         "SimpleWithLazyInit SimpleWithLazyInit.INSTANCE",

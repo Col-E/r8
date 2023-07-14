@@ -48,6 +48,7 @@ import java.util.ListIterator;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
+import java.util.function.Function;
 import org.antlr.runtime.RecognitionException;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -70,7 +71,7 @@ public class InlineTest extends IrInjectionTestBase {
       DexApplication application,
       InternalOptions options,
       MethodSubject method,
-      List<IRCode> additionalCode)
+      List<Function<AppView<?>, IRCode>> additionalCode)
       throws ExecutionException {
     // Some tests play fast and loose with IR and the SSA value numbers are not generally unique.
     if (additionalCode != null && !additionalCode.isEmpty()) {
@@ -161,10 +162,10 @@ public class InlineTest extends IrInjectionTestBase {
     MethodSubject methodSubject = getMethodSubject(application, signature);
 
     MethodSubject methodASubject = getMethodSubject(application, signatureA);
-    IRCode codeA = methodASubject.buildIR();
+    Function<AppView<?>, IRCode> codeA = appView -> methodASubject.buildIR(appView);
 
     MethodSubject methodBSubject = getMethodSubject(application, signatureB);
-    IRCode codeB = methodBSubject.buildIR();
+    Function<AppView<?>, IRCode> codeB = appView -> methodBSubject.buildIR(appView);
 
     return buildTestApplication(
         application, options, methodSubject, ImmutableList.of(codeA, codeB));
@@ -243,7 +244,7 @@ public class InlineTest extends IrInjectionTestBase {
     MethodSubject methodSubject = getMethodSubject(application, signature);
 
     MethodSubject methodASubject = getMethodSubject(application, signatureA);
-    IRCode codeA = methodASubject.buildIR();
+    Function<AppView<?>, IRCode> codeA = appView -> methodASubject.buildIR(appView);
 
     return buildTestApplication(application, options, methodSubject, ImmutableList.of(codeA));
   }
@@ -320,16 +321,16 @@ public class InlineTest extends IrInjectionTestBase {
     MethodSubject methodSubject = getMethodSubject(application, signature);
 
     // Build three copies of a and b for inlining three times.
-    List<IRCode> additionalCode = new ArrayList<>();
+    List<Function<AppView<?>, IRCode>> additionalCode = new ArrayList<>();
     for (int i = 0; i < 3; i++) {
       MethodSubject methodASubject = getMethodSubject(application, signatureA);
-      IRCode codeA = methodASubject.buildIR();
+      Function<AppView<?>, IRCode> codeA = appView -> methodASubject.buildIR(appView);
       additionalCode.add(codeA);
     }
 
     for (int i = 0; i < 3; i++) {
       MethodSubject methodBSubject = getMethodSubject(application, signatureB);
-      IRCode codeB = methodBSubject.buildIR();
+      Function<AppView<?>, IRCode> codeB = appView -> methodBSubject.buildIR(appView);
       additionalCode.add(codeB);
     }
 
@@ -453,10 +454,10 @@ public class InlineTest extends IrInjectionTestBase {
     MethodSubject methodSubject = getMethodSubject(application, signature);
 
     MethodSubject methodASubject = getMethodSubject(application, signatureA);
-    IRCode codeA = methodASubject.buildIR();
+    Function<AppView<?>, IRCode> codeA = appView -> methodASubject.buildIR(appView);
 
     MethodSubject methodBSubject = getMethodSubject(application, signatureB);
-    IRCode codeB = methodBSubject.buildIR();
+    Function<AppView<?>, IRCode> codeB = appView -> methodBSubject.buildIR(appView);
 
     return buildTestApplication(
         application, options, methodSubject, ImmutableList.of(codeA, codeB));
@@ -579,10 +580,10 @@ public class InlineTest extends IrInjectionTestBase {
     MethodSubject methodSubject = getMethodSubject(application, signature);
 
     MethodSubject methodASubject = getMethodSubject(application, signatureA);
-    IRCode codeA = methodASubject.buildIR();
+    Function<AppView<?>, IRCode> codeA = appView -> methodASubject.buildIR(appView);
 
     MethodSubject methodBSubject = getMethodSubject(application, signatureB);
-    IRCode codeB = methodBSubject.buildIR();
+    Function<AppView<?>, IRCode> codeB = appView -> methodBSubject.buildIR(appView);
 
     return buildTestApplication(
         application, options, methodSubject, ImmutableList.of(codeA, codeB));
@@ -690,10 +691,10 @@ public class InlineTest extends IrInjectionTestBase {
     MethodSubject methodSubject = getMethodSubject(application, signature);
 
     MethodSubject methodASubject = getMethodSubject(application, signatureA);
-    IRCode codeA = methodASubject.buildIR();
+    Function<AppView<?>, IRCode> codeA = appView -> methodASubject.buildIR(appView);
 
     MethodSubject methodBSubject = getMethodSubject(application, signatureB);
-    IRCode codeB = methodBSubject.buildIR();
+    Function<AppView<?>, IRCode> codeB = appView -> methodBSubject.buildIR(appView);
 
     return buildTestApplication(
         application, options, methodSubject, ImmutableList.of(codeA, codeB));
@@ -803,16 +804,16 @@ public class InlineTest extends IrInjectionTestBase {
     MethodSubject methodSubject = getMethodSubject(application, signature);
 
     // Build three copies of a and b for inlining three times.
-    List<IRCode> additionalCode = new ArrayList<>();
+    List<Function<AppView<?>, IRCode>> additionalCode = new ArrayList<>();
     for (int i = 0; i < 3; i++) {
       MethodSubject methodASubject = getMethodSubject(application, signatureA);
-      IRCode codeA = methodASubject.buildIR();
+      Function<AppView<?>, IRCode> codeA = appView -> methodASubject.buildIR(appView);
       additionalCode.add(codeA);
     }
 
     for (int i = 0; i < 3; i++) {
       MethodSubject methodBSubject = getMethodSubject(application, signatureB);
-      IRCode codeB = methodBSubject.buildIR();
+      Function<AppView<?>, IRCode> codeB = appView -> methodBSubject.buildIR(appView);
       additionalCode.add(codeB);
     }
 
@@ -959,16 +960,16 @@ public class InlineTest extends IrInjectionTestBase {
     MethodSubject methodSubject = getMethodSubject(application, signature);
 
     // Build three copies of a and b for inlining three times.
-    List<IRCode> additionalCode = new ArrayList<>();
+    List<Function<AppView<?>, IRCode>> additionalCode = new ArrayList<>();
     for (int i = 0; i < 3; i++) {
       MethodSubject methodASubject = getMethodSubject(application, signatureA);
-      IRCode codeA = methodASubject.buildIR();
+      Function<AppView<?>, IRCode> codeA = appView -> methodASubject.buildIR(appView);
       additionalCode.add(codeA);
     }
 
     for (int i = 0; i < 3; i++) {
       MethodSubject methodBSubject = getMethodSubject(application, signatureB);
-      IRCode codeB = methodBSubject.buildIR();
+      Function<AppView<?>, IRCode> codeB = appView -> methodBSubject.buildIR(appView);
       additionalCode.add(codeB);
     }
 
@@ -1205,10 +1206,10 @@ public class InlineTest extends IrInjectionTestBase {
     MethodSubject methodSubject = getMethodSubject(application, signature);
 
     MethodSubject methodASubject = getMethodSubject(application, signatureA);
-    IRCode codeA = methodASubject.buildIR();
+    Function<AppView<?>, IRCode> codeA = appView -> methodASubject.buildIR(appView);
 
     MethodSubject methodBSubject = getMethodSubject(application, signatureB);
-    IRCode codeB = methodBSubject.buildIR();
+    Function<AppView<?>, IRCode> codeB = appView -> methodBSubject.buildIR(appView);
 
     return buildTestApplication(
         application, options, methodSubject, ImmutableList.of(codeA, codeB));

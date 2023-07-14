@@ -59,7 +59,7 @@ public class NonNullTrackerTest extends TestBase {
             buildClasses(classes).addLibraryFile(getMostRecentAndroidJar()).build());
     CodeInspector codeInspector = new CodeInspector(appView.appInfo().app());
     MethodSubject fooSubject = codeInspector.clazz(testClass.getName()).method(signature);
-    IRCode code = fooSubject.buildIR();
+    IRCode code = fooSubject.buildIR(appView);
     checkCountOfNonNull(code, 0);
 
     AssumeInserter assumeInserter = new AssumeInserter(appView);

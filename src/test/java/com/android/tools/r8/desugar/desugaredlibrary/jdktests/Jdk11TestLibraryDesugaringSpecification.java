@@ -33,9 +33,10 @@ public class Jdk11TestLibraryDesugaringSpecification {
   private static final String EXTENSION_STRING = "build/libs/java_base_extension.jar";
 
   private static final Path JDK_11_JAVA_BASE_EXTENSION_FILES_DIR =
-      Paths.get("third_party/openjdk/jdk-11-test/lib/testlibrary/bootlib/java.base");
+      Paths.get(
+          ToolHelper.THIRD_PARTY_DIR, "openjdk/jdk-11-test/lib/testlibrary/bootlib/java.base");
   private static final Path JDK_11_TESTLIBRARY_FILES_DIR =
-      Paths.get("third_party/openjdk/jdk-11-test/lib/testlibrary/jdk");
+      Paths.get(ToolHelper.THIRD_PARTY_DIR, "openjdk/jdk-11-test/lib/testlibrary/jdk");
 
   public static Path EXTENSION_PATH;
 

@@ -5,6 +5,7 @@ package com.android.tools.r8.benchmarks.desugaredlib;
 
 import com.android.tools.r8.StringResource;
 import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.benchmarks.BenchmarkBase;
 import com.android.tools.r8.benchmarks.BenchmarkConfig;
 import com.android.tools.r8.benchmarks.BenchmarkDependency;
@@ -26,7 +27,9 @@ public class LegacyDesugaredLibraryBenchmark extends BenchmarkBase {
   private static final BenchmarkDependency androidJar = BenchmarkDependency.getAndroidJar30();
   private static final BenchmarkDependency legacyConf =
       new BenchmarkDependency(
-          "legacyConf", "desugar_jdk_libs_legacy", Paths.get("third_party", "openjdk"));
+          "legacyConf",
+          "desugar_jdk_libs_legacy",
+          Paths.get(ToolHelper.THIRD_PARTY_DIR, "openjdk"));
 
   public LegacyDesugaredLibraryBenchmark(BenchmarkConfig config, TestParameters parameters) {
     super(config, parameters);

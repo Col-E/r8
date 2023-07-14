@@ -47,7 +47,8 @@ public class EnumMethodOptimizer extends StatelessLibraryMethodModelCollection {
     if (appView.hasLiveness()
         && singleTarget.getReference() == appView.dexItemFactory().enumMembers.valueOf
         && invoke.inValues().get(0).isConstClass()) {
-      insertAssumeDynamicType(appView.withLiveness(), code, instructionIterator, invoke);
+      insertAssumeDynamicType(
+          appView.withLiveness(), code, instructionIterator, invoke, affectedValues);
     }
   }
 
@@ -55,7 +56,8 @@ public class EnumMethodOptimizer extends StatelessLibraryMethodModelCollection {
       AppView<AppInfoWithLiveness> appView,
       IRCode code,
       InstructionListIterator instructionIterator,
-      InvokeMethod invoke) {
+      InvokeMethod invoke,
+      Set<Value> affectedValues) {
     // TODO(b/152516470): Support unboxing enums with Enum#valueOf in try-catch.
     if (invoke.getBlock().hasCatchHandlers()) {
       return;
@@ -72,14 +74,15 @@ public class EnumMethodOptimizer extends StatelessLibraryMethodModelCollection {
       return;
     }
     // Replace usages of out-value by the out-value of the AssumeDynamicType instruction.
-    Value specializedOutValue = code.createValue(outValue.getType(), outValue.getLocalInfo());
-    outValue.replaceUsers(specializedOutValue);
+    Value specializedOutValue =
+        code.createValue(
+            outValue.getType().asReferenceType().asMeetWithNotNull(), outValue.getLocalInfo());
+    outValue.replaceUsers(specializedOutValue, affectedValues);
 
     // Insert AssumeDynamicType instruction.
     DynamicTypeWithUpperBound dynamicType = enumType.toDynamicType(appView, definitelyNotNull());
     Assume assumeInstruction =
-        Assume.createAssumeDynamicTypeInstruction(
-            dynamicType, specializedOutValue, outValue, invoke, appView);
+        Assume.create(dynamicType, specializedOutValue, outValue, invoke, appView, code.context());
     assumeInstruction.setPosition(appView.options().debug ? invoke.getPosition() : Position.none());
     instructionIterator.add(assumeInstruction);
   }

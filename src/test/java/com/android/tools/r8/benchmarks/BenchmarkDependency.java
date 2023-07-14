@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.benchmarks;
 
+import com.android.tools.r8.ToolHelper;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Locale;
@@ -11,12 +12,12 @@ public class BenchmarkDependency {
 
   public static BenchmarkDependency getRuntimeJarJava8() {
     return new BenchmarkDependency(
-        "java8rtjar", "openjdk-rt-1.8", Paths.get("third_party", "openjdk"));
+        "java8rtjar", "openjdk-rt-1.8", Paths.get(ToolHelper.THIRD_PARTY_DIR, "openjdk"));
   }
 
   public static BenchmarkDependency getAndroidJar30() {
     return new BenchmarkDependency(
-        "android30jar", "lib-v30", Paths.get("third_party", "android_jar"));
+        "android30jar", "lib-v30", Paths.get(ToolHelper.THIRD_PARTY_DIR, "android_jar"));
   }
 
   // Nice name of the dependency. Must be a valid dart identifier.

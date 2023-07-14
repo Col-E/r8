@@ -95,6 +95,14 @@ public abstract class Instruction
     this.position = position;
   }
 
+  public void setPosition(Position position, InternalOptions options) {
+    if (instructionTypeCanThrow() || options.debug) {
+      setPosition(position);
+    } else {
+      setPosition(Position.none());
+    }
+  }
+
   public void forceOverwritePosition(Position position) {
     assert position != null;
     assert this.position != null;
@@ -228,6 +236,10 @@ public abstract class Instruction
   public abstract void buildLir(LirBuilder<Value, ?> builder);
 
   public void replaceValue(Value oldValue, Value newValue) {
+    replaceValue(oldValue, newValue, null);
+  }
+
+  public void replaceValue(Value oldValue, Value newValue, Set<Value> affectedValues) {
     for (int i = 0; i < inValues.size(); i++) {
       if (oldValue == inValues.get(i)) {
         inValues.set(i, newValue);
@@ -235,6 +247,9 @@ public abstract class Instruction
       }
     }
     oldValue.removeUser(this);
+    if (affectedValues != null && hasOutValue()) {
+      affectedValues.add(outValue());
+    }
   }
 
   public void replaceValue(int index, Value newValue) {
@@ -757,7 +772,7 @@ public abstract class Instruction
   }
 
   public final boolean isAssumeWithDynamicTypeAssumption() {
-    return isAssume() && asAssume().hasDynamicTypeAssumption();
+    return isAssume() && asAssume().hasDynamicTypeIgnoringNullability();
   }
 
   public final boolean isAssumeWithNonNullAssumption() {
@@ -1459,21 +1474,8 @@ public abstract class Instruction
         "Implement type lattice evaluation for: " + getInstructionName());
   }
 
-  public boolean verifyTypes(AppView<?> appView, VerifyTypesHelper verifyTypesHelper) {
-    if (outValue != null) {
-      TypeElement outTypeElement = outValue.getType();
-      if (outTypeElement.isArrayType()) {
-        DexType outBaseType =
-            outTypeElement
-                .asArrayType()
-                .toDexType(appView.dexItemFactory())
-                .toBaseType(appView.dexItemFactory());
-        assert appView.graphLens().lookupType(outBaseType) == outBaseType;
-      } else if (outTypeElement.isClassType()) {
-        DexType outType = outTypeElement.asClassType().getClassType();
-        assert appView.graphLens().lookupType(outType) == outType;
-      }
-    }
+  public boolean verifyTypes(
+      AppView<?> appView, ProgramMethod context, VerifyTypesHelper verifyTypesHelper) {
     return true;
   }
 

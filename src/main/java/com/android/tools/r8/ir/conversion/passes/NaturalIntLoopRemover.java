@@ -16,6 +16,7 @@ import com.android.tools.r8.ir.code.Phi;
 import com.android.tools.r8.ir.code.Sub;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.conversion.passes.result.CodeRewriterResult;
+import com.android.tools.r8.ir.optimize.AffectedValues;
 import com.android.tools.r8.utils.WorkList;
 import com.google.common.collect.Sets;
 import java.util.Set;
@@ -43,15 +44,16 @@ public class NaturalIntLoopRemover extends CodeRewriterPass<AppInfo> {
   @Override
   protected CodeRewriterResult rewriteCode(IRCode code) {
     boolean loopRemoved = false;
+    AffectedValues affectedValues = new AffectedValues();
     for (BasicBlock comparisonBlockCandidate : code.blocks) {
       if (isComparisonBlock(comparisonBlockCandidate)) {
-        loopRemoved |= tryRemoveLoop(code, comparisonBlockCandidate.exit().asIf());
+        loopRemoved |= tryRemoveLoop(code, comparisonBlockCandidate.exit().asIf(), affectedValues);
       }
     }
     if (loopRemoved) {
-      code.removeAllDeadAndTrivialPhis();
+      code.removeAllDeadAndTrivialPhis(affectedValues);
+      affectedValues.narrowingWithAssumeRemoval(appView, code);
       code.removeRedundantBlocks();
-      assert code.isConsistentSSA(appView);
     }
     return CodeRewriterResult.hasChanged(loopRemoved);
   }
@@ -78,7 +80,7 @@ public class NaturalIntLoopRemover extends CodeRewriterPass<AppInfo> {
     throw new Unreachable();
   }
 
-  private boolean tryRemoveLoop(IRCode code, If comparison) {
+  private boolean tryRemoveLoop(IRCode code, If comparison, AffectedValues affectedValues) {
     Phi loopPhi = computeLoopPhi(comparison);
     if (loopPhi == null) {
       return false;
@@ -111,7 +113,7 @@ public class NaturalIntLoopRemover extends CodeRewriterPass<AppInfo> {
     NaturalIntLoopWithKnowIterations loop = builder.build();
 
     if (loop.has1Iteration()) {
-      loop.remove1IterationLoop(code);
+      loop.remove1IterationLoop(code, affectedValues);
       return true;
     }
     return false;
@@ -399,9 +401,9 @@ public class NaturalIntLoopRemover extends CodeRewriterPass<AppInfo> {
           && target(initCounter + counterIncrement) == loopExit;
     }
 
-    private void remove1IterationLoop(IRCode code) {
+    private void remove1IterationLoop(IRCode code, AffectedValues affectedValues) {
       BasicBlock comparisonBlock = comparison.getBlock();
-      updatePhis(comparisonBlock);
+      updatePhis(comparisonBlock, affectedValues);
       patchControlFlow(code, comparisonBlock);
     }
 
@@ -416,23 +418,23 @@ public class NaturalIntLoopRemover extends CodeRewriterPass<AppInfo> {
       loopExit.replacePredecessor(comparisonBlock, backPredecessor);
     }
 
-    private void updatePhis(BasicBlock comparisonBlock) {
+    private void updatePhis(BasicBlock comparisonBlock, AffectedValues affectedValues) {
       int backIndex = comparisonBlock.getPredecessors().indexOf(backPredecessor);
       for (Phi phi : comparisonBlock.getPhis()) {
         Value loopEntryValue = phi.getOperand(1 - backIndex);
         Value loopExitValue = phi.getOperand(backIndex);
         for (Instruction uniqueUser : phi.uniqueUsers()) {
           if (loopBody.contains(uniqueUser.getBlock())) {
-            uniqueUser.replaceValue(phi, loopEntryValue);
+            uniqueUser.replaceValue(phi, loopEntryValue, affectedValues);
           } else {
-            uniqueUser.replaceValue(phi, loopExitValue);
+            uniqueUser.replaceValue(phi, loopExitValue, affectedValues);
           }
         }
         for (Phi phiUser : phi.uniquePhiUsers()) {
           if (loopBody.contains(phiUser.getBlock())) {
-            phiUser.replaceOperand(phi, loopEntryValue);
+            phiUser.replaceOperand(phi, loopEntryValue, affectedValues);
           } else {
-            phiUser.replaceOperand(phi, loopExitValue);
+            phiUser.replaceOperand(phi, loopExitValue, affectedValues);
           }
         }
       }

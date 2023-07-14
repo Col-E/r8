@@ -11,8 +11,10 @@ import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.IndexedDexItem;
 import com.android.tools.r8.naming.ClassNameMapper;
+import com.android.tools.r8.references.FieldReference;
 import com.android.tools.r8.retrace.RetraceClassElement;
 import com.android.tools.r8.retrace.RetraceElement;
+import com.android.tools.r8.retrace.RetraceFieldResult;
 import com.android.tools.r8.retrace.RetraceMethodResult;
 import com.android.tools.r8.retrace.RetraceResult;
 import com.android.tools.r8.retrace.RetracedFieldReference;
@@ -117,8 +119,16 @@ public class RetracerForCodePrinting {
     if (retracer == null) {
       return noRetraceString.apply(field);
     }
+    FieldReference fieldReference = field.asFieldReference();
+    RetraceFieldResult retraceFieldResult = retracer.retraceField(fieldReference);
+    if (retraceFieldResult.isEmpty()) {
+      retraceFieldResult =
+          retracer
+              .retraceClass(fieldReference.getHolderClass())
+              .lookupField(fieldReference.getFieldName());
+    }
     return joinAmbiguousResults(
-        retracer.retraceField(field.asFieldReference()),
+        retraceFieldResult,
         element -> {
           if (element.isUnknown()) {
             return unknownToString.apply(element.getField());

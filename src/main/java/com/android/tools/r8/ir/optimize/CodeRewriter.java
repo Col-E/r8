@@ -5,6 +5,7 @@
 package com.android.tools.r8.ir.optimize;
 
 import static com.android.tools.r8.ir.analysis.type.Nullability.definitelyNotNull;
+import static com.android.tools.r8.ir.analysis.type.Nullability.maybeNull;
 
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppView;
@@ -113,10 +114,13 @@ public class CodeRewriter {
     }
 
     if (!valuesThatRequireWidening.isEmpty()) {
-      new TypeAnalysis(appView).widening(valuesThatRequireWidening);
+      new TypeAnalysis(appView, code).widening(valuesThatRequireWidening);
     }
 
+    code.removeRedundantBlocks();
+
     assert Streams.stream(code.instructions()).noneMatch(Instruction::isAssume);
+    assert code.isConsistentSSA(appView);
   }
 
   public static void removeOrReplaceByDebugLocalWrite(
@@ -200,6 +204,7 @@ public class CodeRewriter {
         }
       }
     }
+    assert code.isConsistentSSA(appView);
   }
 
   /**
@@ -361,8 +366,7 @@ public class CodeRewriter {
     DexType javaLangSystemType = dexItemFactory.javaLangSystemType;
     DexType javaIoPrintStreamType = dexItemFactory.javaIoPrintStreamType;
     Value out =
-        code.createValue(
-            TypeElement.fromDexType(javaIoPrintStreamType, definitelyNotNull(), appView));
+        code.createValue(TypeElement.fromDexType(javaIoPrintStreamType, maybeNull(), appView));
 
     DexProto proto = dexItemFactory.createProto(dexItemFactory.voidType, dexItemFactory.objectType);
     DexMethod print = dexItemFactory.createMethod(javaIoPrintStreamType, proto, "print");
@@ -431,7 +435,7 @@ public class CodeRewriter {
         iterator.add(new InvokeVirtual(print, null, ImmutableList.of(out, nul)));
         iterator = isNotNullBlock.listIterator(code);
         iterator.setInsertionPosition(position);
-        value = code.createValue(TypeElement.classClassType(appView, definitelyNotNull()));
+        value = code.createValue(TypeElement.classClassType(appView, maybeNull()));
         iterator.add(
             new InvokeVirtual(
                 dexItemFactory.objectMembers.getClass, value, ImmutableList.of(arguments.get(i))));
@@ -449,6 +453,7 @@ public class CodeRewriter {
     }
     // When we fall out of the loop the iterator is in the last eol block.
     iterator.add(new InvokeVirtual(printLn, null, ImmutableList.of(out, empty)));
+    assert code.isConsistentSSA(appView);
   }
 
   // The javac fix for JDK-8272564 has to be rewritten back to invoke-virtual on Object if the
@@ -474,5 +479,6 @@ public class CodeRewriter {
         }
       }
     }
+    assert code.isConsistentSSA(appView);
   }
 }

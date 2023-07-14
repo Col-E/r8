@@ -62,7 +62,7 @@ public class ComposeOutlineTest extends TestBase {
               + "'positions':{'4':43,'5':44},"
               + "'outline':'Lc;m()I'}",
           "    43:43:int outlineCaller(int):23:23 -> o",
-          "    44:44:int foo.bar.baz.outlineCaller(int):98:98 -> s",
+          "    44:44:int foo.bar.baz.outlineCaller(int):98:98 -> o",
           "    44:44:int outlineCaller(int):24 -> o",
           "outline.Class -> c:",
           "    4:5:int some.inlinee():75:76 -> m",

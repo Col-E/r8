@@ -14,7 +14,6 @@ import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ProgramMethod;
-import com.android.tools.r8.ir.analysis.type.TypeAnalysis;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.BasicBlockIterator;
@@ -28,7 +27,6 @@ import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.DescriptorUtils;
-import com.google.common.collect.Sets;
 import java.util.Set;
 import java.util.function.BiConsumer;
 
@@ -41,7 +39,7 @@ public class ReflectionOptimizer {
     if (!appView.appInfo().canUseConstClassInstructions(appView.options())) {
       return;
     }
-    Set<Value> affectedValues = Sets.newIdentityHashSet();
+    AffectedValues affectedValues = new AffectedValues();
     ProgramMethod context = code.context();
     BasicBlockIterator blockIterator = code.listIterator();
     while (blockIterator.hasNext()) {
@@ -71,9 +69,7 @@ public class ReflectionOptimizer {
       }
     }
     // Newly introduced const-class is not null, and thus propagate that information.
-    if (!affectedValues.isEmpty()) {
-      new TypeAnalysis(appView).narrowing(affectedValues);
-    }
+    affectedValues.narrowingWithAssumeRemoval(appView, code);
     code.removeRedundantBlocks();
     assert code.isConsistentSSA(appView);
   }

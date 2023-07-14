@@ -91,6 +91,7 @@ import com.android.tools.r8.ir.code.Shl;
 import com.android.tools.r8.ir.code.Shr;
 import com.android.tools.r8.ir.code.StaticGet;
 import com.android.tools.r8.ir.code.StaticPut;
+import com.android.tools.r8.ir.code.StringSwitch;
 import com.android.tools.r8.ir.code.Sub;
 import com.android.tools.r8.ir.code.Throw;
 import com.android.tools.r8.ir.code.Ushr;
@@ -100,7 +101,9 @@ import com.android.tools.r8.ir.code.Xor;
 import com.android.tools.r8.ir.conversion.ExtraParameter;
 import com.android.tools.r8.ir.conversion.ExtraUnusedNullParameter;
 import com.android.tools.r8.ir.conversion.MethodConversionOptions.MutableMethodConversionOptions;
+import com.android.tools.r8.ir.conversion.StringSwitchConverter;
 import com.android.tools.r8.lightir.LirBuilder.IntSwitchPayload;
+import com.android.tools.r8.lightir.LirBuilder.StringSwitchPayload;
 import com.android.tools.r8.lightir.LirCode.PositionEntry;
 import com.android.tools.r8.lightir.LirCode.StructuredPositionEntry;
 import com.android.tools.r8.lightir.LirCode.TryCatchTable;
@@ -116,6 +119,7 @@ import it.unimi.dsi.fastutil.ints.IntList;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.function.BiFunction;
 
 public class Lir2IRConverter {
 
@@ -144,7 +148,14 @@ public class Lir2IRConverter {
     lirCode.forEach(view -> view.accept(parser));
     IRCode irCode = parser.getIRCode(method, conversionOptions);
     // Some instructions have bottom types (e.g., phis). Compute their actual types by widening.
-    new TypeAnalysis(appView).widening(irCode);
+    new TypeAnalysis(appView, irCode).widening();
+
+    if (conversionOptions.isStringSwitchConversionEnabled()) {
+      if (StringSwitchConverter.convertToStringSwitchInstructions(
+          irCode, appView.dexItemFactory())) {
+        irCode.removeRedundantBlocks();
+      }
+    }
     return irCode;
   }
 
@@ -708,27 +719,47 @@ public class Lir2IRConverter {
     public void onIntSwitch(EV value, IntSwitchPayload payload) {
       // keys is the 'value' -> 'target index' mapping.
       int[] keys = payload.keys;
+      addSwitchInstruction(
+          payload.targets,
+          (successors, fallthrough) ->
+              new IntSwitch(getValue(value), keys, successors, fallthrough));
+    }
+
+    @Override
+    public void onStringSwitch(EV value, StringSwitchPayload payload) {
+      int size = payload.keys.length;
+      DexString[] keys = new DexString[size];
+      for (int i = 0; i < size; i++) {
+        keys[i] = (DexString) code.getConstantItem(payload.keys[i]);
+      }
+      addSwitchInstruction(
+          payload.targets,
+          (successors, fallthrough) ->
+              new StringSwitch(getValue(value), keys, successors, fallthrough));
+    }
+
+    private void addSwitchInstruction(
+        int[] targets, BiFunction<int[], Integer, Instruction> createSwitchInstruction) {
+      int size = targets.length;
       // successorIndices is the 'target index' to 'IR successor index'.
-      int[] successorIndices = new int[keys.length];
-      List<BasicBlock> successorBlocks = new ArrayList<>();
-      {
-        // The mapping from instruction to successor is a temp mapping to track if any targets
-        // point to the same block.
-        Int2IntMap instructionToSuccessor = new Int2IntOpenHashMap();
-        for (int i = 0; i < successorIndices.length; i++) {
-          int instructionIndex = payload.targets[i];
-          if (instructionToSuccessor.containsKey(instructionIndex)) {
-            successorIndices[i] = instructionToSuccessor.get(instructionIndex);
-          } else {
-            int successorIndex = successorBlocks.size();
-            successorIndices[i] = successorIndex;
-            instructionToSuccessor.put(instructionIndex, successorIndex);
-            successorBlocks.add(getBasicBlock(instructionIndex));
-          }
+      int[] successorIndices = new int[size];
+      List<BasicBlock> successorBlocks = new ArrayList<>(size);
+      // The mapping from instruction to successor is a temp mapping to track if any targets
+      // point to the same block.
+      Int2IntMap instructionToSuccessor = new Int2IntOpenHashMap(size);
+      for (int i = 0; i < targets.length; i++) {
+        int instructionIndex = targets[i];
+        if (instructionToSuccessor.containsKey(instructionIndex)) {
+          successorIndices[i] = instructionToSuccessor.get(instructionIndex);
+        } else {
+          int successorIndex = successorBlocks.size();
+          successorIndices[i] = successorIndex;
+          instructionToSuccessor.put(instructionIndex, successorIndex);
+          successorBlocks.add(getBasicBlock(instructionIndex));
         }
       }
       int fallthrough = successorBlocks.size();
-      addInstruction(new IntSwitch(getValue(value), keys, successorIndices, fallthrough));
+      addInstruction(createSwitchInstruction.apply(successorIndices, fallthrough));
       // The call to addInstruction will ensure the current block so don't amend to it before here.
       // If the block has successors then the index mappings are not valid / need to be offset.
       assert currentBlock.getSuccessors().isEmpty();

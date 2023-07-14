@@ -61,7 +61,9 @@ public class AccessModifier {
       AppView<AppInfoWithLiveness> appView, ExecutorService executorService, Timing timing)
       throws ExecutionException {
     timing.begin("Access modification");
-    if (appView.options().getAccessModifierOptions().isAccessModificationEnabled()) {
+    AccessModifierOptions accessModifierOptions = appView.options().getAccessModifierOptions();
+    if (accessModifierOptions.isAccessModificationEnabled()
+        && !accessModifierOptions.isLegacyAccessModifierEnabled()) {
       new AccessModifier(appView)
           .processStronglyConnectedComponents(executorService)
           .installLens(executorService, timing);
@@ -165,23 +167,35 @@ public class AccessModifier {
       return commitMethod(method, localNamingState, namingState);
     }
 
+    if (method.getDefinition().isClassInitializer()) {
+      return commitMethod(method, localNamingState, namingState);
+    }
+
     if (method.getDefinition().isInstanceInitializer()
         || (accessFlags.isPackagePrivate()
             && !traversalState.hasIllegalOverrideOfPackagePrivateMethod(method))
         || accessFlags.isProtected()) {
-      method.getAccessFlags().promoteToPublic();
+      accessFlags.promoteToPublic();
       return commitMethod(method, localNamingState, namingState);
     }
 
     if (accessFlags.isPrivate()) {
       if (isRenamingAllowed(method)) {
-        method.getAccessFlags().promoteToPublic();
+        accessFlags
+            .promoteToPublic()
+            .applyIf(
+                !method.getHolder().isInterface() && accessFlags.belongsToVirtualPool(),
+                MethodAccessFlags::promoteToFinal);
         return commitMethod(method, localNamingState, namingState);
       }
       assert localNamingState.containsKey(method.getReference());
       assert localNamingState.get(method.getReference()) == method.getReference();
       if (namingState.isFree(method.getMethodSignature())) {
-        method.getAccessFlags().promoteToPublic();
+        accessFlags
+            .promoteToPublic()
+            .applyIf(
+                !method.getHolder().isInterface() && accessFlags.belongsToVirtualPool(),
+                MethodAccessFlags::promoteToFinal);
         namingState.addBlockedMethodSignature(method.getMethodSignature());
       }
       return commitMethod(method, method.getReference());

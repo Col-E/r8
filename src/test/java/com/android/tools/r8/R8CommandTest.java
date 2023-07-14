@@ -17,6 +17,7 @@ import static org.junit.Assert.fail;
 import com.android.tools.r8.AssertionsConfiguration.AssertionTransformationScope;
 import com.android.tools.r8.ProgramResource.Kind;
 import com.android.tools.r8.ToolHelper.ProcessResult;
+import com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification;
 import com.android.tools.r8.dex.Marker;
 import com.android.tools.r8.dex.Marker.Tool;
 import com.android.tools.r8.origin.EmbeddedOrigin;
@@ -860,7 +861,7 @@ public class R8CommandTest extends CommandTestBase<R8Command> {
     R8Command r8Command =
         parse(
             "--desugared-lib",
-            "src/library_desugar/desugar_jdk_libs.json",
+            LibraryDesugaringSpecification.JDK11.getSpecification().toString(),
             "--lib",
             ToolHelper.getAndroidJar(AndroidApiLevel.R).toString());
     InternalOptions options = getOptionsWithLoadedDesugaredLibraryConfiguration(r8Command, false);
@@ -873,7 +874,7 @@ public class R8CommandTest extends CommandTestBase<R8Command> {
     R8Command r8Command =
         parse(
             "--desugared-lib",
-            "src/library_desugar/desugar_jdk_libs.json",
+            LibraryDesugaringSpecification.JDK11.getSpecification().toString(),
             "--lib",
             ToolHelper.getAndroidJar(AndroidApiLevel.R).toString(),
             "--desugared-lib-pg-conf-output",
@@ -889,7 +890,7 @@ public class R8CommandTest extends CommandTestBase<R8Command> {
       parse(
           diagnostics,
           "--desugared-lib",
-          "src/library_desugar/desugar_jdk_libs.json",
+          LibraryDesugaringSpecification.JDK11.getSpecification().toString(),
           "--desugared-lib-pg-conf-output");
       fail("Expected parse error");
     } catch (CompilationFailedException e) {

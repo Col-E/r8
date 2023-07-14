@@ -181,7 +181,7 @@ public class LibraryDesugaringSpecification {
     this(
         name,
         ImmutableSet.of(desugarJdkLibs, ToolHelper.getDesugarLibConversions(legacy)),
-        Paths.get("src/library_desugar/" + specificationPath),
+        Paths.get(ToolHelper.LIBRARY_DESUGAR_SOURCE_DIR + specificationPath),
         ImmutableSet.of(ToolHelper.getAndroidJar(androidJarLevel)),
         descriptor,
         "");

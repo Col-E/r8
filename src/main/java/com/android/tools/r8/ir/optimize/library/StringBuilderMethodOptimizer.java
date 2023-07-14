@@ -86,6 +86,7 @@ public class StringBuilderMethodOptimizer implements LibraryMethodModelCollectio
             instructionIterator,
             invokeWithReceiver,
             singleTarget,
+            affectedValues,
             state,
             methodProcessor,
             methodProcessingContext);
@@ -99,12 +100,13 @@ public class StringBuilderMethodOptimizer implements LibraryMethodModelCollectio
       InstructionListIterator instructionIterator,
       InvokeMethodWithReceiver invoke,
       DexClassAndMethod singleTarget,
+      Set<Value> affectedValues,
       State state,
       MethodProcessor methodProcessor,
       MethodProcessingContext methodProcessingContext) {
     boolean isStringBuilderUnused = state.isUnusedBuilder(invoke.getReceiver());
     if (invoke.hasOutValue() && (options.isGeneratingDex() || isStringBuilderUnused)) {
-      invoke.outValue().replaceUsers(invoke.getReceiver());
+      invoke.outValue().replaceUsers(invoke.getReceiver(), affectedValues);
       invoke.getReceiver().uniquePhiUsers().forEach(Phi::removeTrivialPhi);
       invoke.clearOutValue();
     }

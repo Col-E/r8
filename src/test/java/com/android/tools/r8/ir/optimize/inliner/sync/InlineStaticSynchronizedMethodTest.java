@@ -7,6 +7,7 @@ package com.android.tools.r8.ir.optimize.inliner.sync;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
@@ -58,9 +59,10 @@ public class InlineStaticSynchronizedMethodTest extends TestBase {
     // vms. See issue b/238399429 for details.
     if (parameters.isCfRuntime()
         || parameters.getApiLevel().isLessThanOrEqualTo(AndroidApiLevel.M)) {
-      assertThat(classSubject.uniqueMethodWithOriginalName("m1"), isPresent());
-      assertThat(classSubject.uniqueMethodWithOriginalName("m2"), not(isPresent()));
-
+      int remaining = 0;
+      remaining += classSubject.uniqueMethodWithOriginalName("m1").isPresent() ? 1 : 0;
+      remaining += classSubject.uniqueMethodWithOriginalName("m2").isPresent() ? 1 : 0;
+      assertEquals("Expected only one of m1 and m2 to be inlined", 1, remaining);
     } else {
       assertThat(classSubject.uniqueMethodWithOriginalName("m1"), not(isPresent()));
       assertThat(classSubject.uniqueMethodWithOriginalName("m2"), not(isPresent()));

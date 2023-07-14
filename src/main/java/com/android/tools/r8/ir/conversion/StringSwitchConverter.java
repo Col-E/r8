@@ -105,9 +105,10 @@ import java.util.Set;
  *   }
  * </pre>
  */
-class StringSwitchConverter {
+public class StringSwitchConverter {
 
-  static void convertToStringSwitchInstructions(IRCode code, DexItemFactory dexItemFactory) {
+  public static boolean convertToStringSwitchInstructions(
+      IRCode code, DexItemFactory dexItemFactory) {
     List<BasicBlock> rewritingCandidates = getRewritingCandidates(code, dexItemFactory);
     if (rewritingCandidates != null) {
       boolean changed = false;
@@ -120,7 +121,9 @@ class StringSwitchConverter {
         code.removeAllDeadAndTrivialPhis();
         code.removeUnreachableBlocks();
       }
+      return changed;
     }
+    return false;
   }
 
   private static List<BasicBlock> getRewritingCandidates(
@@ -349,9 +352,15 @@ class StringSwitchConverter {
             intermediateIdValue = operand.asPhi();
           }
         }
-        assert intermediateIdValue == null
-            || intermediateIdValue.getOperands().stream().noneMatch(Value::isPhi);
-        return intermediateIdValue != null ? intermediateIdValue : defaultValue;
+        if (intermediateIdValue == null) {
+          return defaultValue;
+        }
+        for (Value operand : intermediateIdValue.getOperands()) {
+          if (operand.isPhi()) {
+            return defaultValue;
+          }
+        }
+        return intermediateIdValue;
       }
 
       // Attempts to build a mapping from strings to their ids starting from the given block. The
@@ -732,7 +741,9 @@ class StringSwitchConverter {
           }
         }
 
-        if (idValue == null || (toBeExtended != null && idValue != toBeExtended.idValue)) {
+        if (idValue == null
+            || !idValue.getType().isInt()
+            || (toBeExtended != null && idValue != toBeExtended.idValue)) {
           // Not an extension of `toBeExtended`.
           return setFallthroughBlock(toBeExtended, fallthroughBlock);
         }

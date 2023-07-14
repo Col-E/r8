@@ -56,13 +56,7 @@ public abstract class ReferenceTypeElement extends TypeElement {
 
     @Override
     public boolean equals(Object o) {
-      if (this == o) {
-        return true;
-      }
-      if (!(o instanceof NullElement)) {
-        return false;
-      }
-      return true;
+      return this == o;
     }
   }
 

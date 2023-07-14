@@ -166,7 +166,7 @@ public class InstanceInitializerOutliner {
     }
     // We are changing a NewInstance to a method call where we loose that the type is not null.
     assert !newOutValues.isEmpty();
-    new TypeAnalysis(appView).widening(newOutValues);
+    new TypeAnalysis(appView, code).widening(newOutValues);
 
     // Outlining of instance initializers will in most cases change the api level of the context
     // since all other soft verification issues has been outlined. To ensure that we do not inline
@@ -175,6 +175,8 @@ public class InstanceInitializerOutliner {
     if (appView.enableWholeProgramOptimizations()) {
       recomputeApiLevel(context, code);
     }
+
+    assert code.isConsistentSSA(appView);
   }
 
   public void onLastWaveDone(PostMethodProcessor.Builder postMethodProcessorBuilder) {

@@ -155,7 +155,8 @@ public class NewUnboxedEnumInstance extends Instruction {
   }
 
   @Override
-  public boolean verifyTypes(AppView<?> appView, VerifyTypesHelper verifyTypesHelper) {
+  public boolean verifyTypes(
+      AppView<?> appView, ProgramMethod context, VerifyTypesHelper verifyTypesHelper) {
     TypeElement type = getOutType();
     assert type.isClassType();
     assert type.asClassType().getClassType() == clazz || appView.options().testing.allowTypeErrors;

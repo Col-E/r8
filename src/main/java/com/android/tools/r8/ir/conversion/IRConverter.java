@@ -386,7 +386,6 @@ public class IRConverter {
    */
   public void replaceCodeForTesting(IRCode code) {
     ProgramMethod method = code.context();
-    DexEncodedMethod definition = method.getDefinition();
     assert code.isConsistentSSA(appView);
     Timing timing = Timing.empty();
     deadCodeRemover.run(code, timing);
@@ -548,24 +547,6 @@ public class IRConverter {
       options.testing.irModifier.accept(code, appView);
     }
 
-    if (options.canHaveArtStringNewInitBug()) {
-      timing.begin("Check for new-init issue");
-      TrivialPhiSimplifier.ensureDirectStringNewToInit(code, appView.dexItemFactory());
-      timing.end();
-    }
-
-    if (options.canHaveInvokeInterfaceToObjectMethodBug()) {
-      timing.begin("JDK-8272564 fix rewrite");
-      CodeRewriter.rewriteJdk8272564Fix(code, context, appView);
-      timing.end();
-    }
-
-    boolean isDebugMode = options.debug || context.getOrComputeReachabilitySensitive(appView);
-
-    if (isDebugMode) {
-      codeRewriter.simplifyDebugLocals(code);
-    }
-
     if (lensCodeRewriter != null) {
       timing.begin("Lens rewrite");
       lensCodeRewriter.rewrite(code, context, methodProcessor);
@@ -573,6 +554,7 @@ public class IRConverter {
       previous = printMethod(code, "IR after disable assertions (SSA)", previous);
     }
 
+    boolean isDebugMode = options.debug || context.getOrComputeReachabilitySensitive(appView);
     assert !method.isProcessed() || !isDebugMode
         : "Method already processed: "
             + context.toSourceString()
@@ -600,7 +582,6 @@ public class IRConverter {
     // assert fails, then the types that we have inferred are unsound, or the method does not type
     // check. In the latter case, the type checker should be extended to detect the issue such that
     // we will return with a throw-null method above.
-    assert code.verifyTypes(appView);
     assert code.isConsistentSSA(appView);
 
     if (shouldPassThrough(context)) {
@@ -620,6 +601,22 @@ public class IRConverter {
       return timing;
     }
 
+    if (options.canHaveArtStringNewInitBug()) {
+      timing.begin("Check for new-init issue");
+      TrivialPhiSimplifier.ensureDirectStringNewToInit(appView, code);
+      timing.end();
+    }
+
+    if (options.canHaveInvokeInterfaceToObjectMethodBug()) {
+      timing.begin("JDK-8272564 fix rewrite");
+      CodeRewriter.rewriteJdk8272564Fix(code, context, appView);
+      timing.end();
+    }
+
+    if (isDebugMode) {
+      codeRewriter.simplifyDebugLocals(code);
+    }
+
     assertionsRewriter.run(method, code, deadCodeRemover, timing);
     CheckNotNullConverter.runIfNecessary(appView, code);
     previous = printMethod(code, "IR after disable assertions (SSA)", previous);
@@ -636,7 +633,6 @@ public class IRConverter {
       timing.begin("Decouple identifier-name strings");
       identifierNameStringMarker.decoupleIdentifierNameStringsInMethod(code);
       timing.end();
-      assert code.isConsistentSSA(appView);
       previous = printMethod(code, "IR after identifier-name strings (SSA)", previous);
     }
 
@@ -868,7 +864,6 @@ public class IRConverter {
     // Insert code to log arguments if requested.
     if (options.methodMatchesLogArgumentsFilter(method) && !method.isProcessed()) {
       codeRewriter.logArgumentTypes(method, code);
-      assert code.isConsistentSSA(appView);
     }
 
     previous = printMethod(code, "IR after argument type logging (SSA)", previous);

@@ -28,6 +28,7 @@ import com.android.tools.r8.graph.UseRegistry;
 import com.android.tools.r8.graph.lens.GraphLens;
 import com.android.tools.r8.ir.analysis.type.ArrayTypeElement;
 import com.android.tools.r8.ir.analysis.type.ClassTypeElement;
+import com.android.tools.r8.ir.analysis.type.Nullability;
 import com.android.tools.r8.ir.analysis.type.PrimitiveTypeElement;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.code.Add;
@@ -64,6 +65,7 @@ import com.android.tools.r8.ir.conversion.MethodConversionOptions.MutableMethodC
 import com.android.tools.r8.ir.conversion.MethodProcessorEventConsumer;
 import com.android.tools.r8.ir.conversion.SourceCode;
 import com.android.tools.r8.ir.conversion.passes.MoveResultRewriter;
+import com.android.tools.r8.ir.optimize.AffectedValues;
 import com.android.tools.r8.ir.optimize.CodeRewriter;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.InliningConstraints;
@@ -1235,6 +1237,7 @@ public class OutlinerImpl extends Outliner {
     @Override
     protected void handle(int start, int end, Outline outline) {
       DexMethod outlineMethod = generatedOutlines.get(outline);
+      AffectedValues affectedValues = new AffectedValues();
       if (outlineMethod != null) {
         assert removeMethodFromOutlineList(outline);
         List<Value> in = new ArrayList<>();
@@ -1297,9 +1300,23 @@ public class OutlinerImpl extends Outliner {
             lastInstruction.getBlock().listIterator(code, lastInstruction);
         Instruction instructionBeforeEnd = endIterator.previous();
         assert instructionBeforeEnd == lastInstruction;
-        endIterator.set(outlineInvoke); // Replaces instructionBeforeEnd.
+        endIterator.set(outlineInvoke);
+        if (outlineInvoke.hasOutValue()
+            && returnValue.getType().isReferenceType()
+            && returnValue.getType().nullability().isDefinitelyNotNull()) {
+          Value nullableReturnValue =
+              code.createValue(
+                  returnValue
+                      .getType()
+                      .asReferenceType()
+                      .getOrCreateVariant(Nullability.maybeNull()),
+                  returnValue.getLocalInfo());
+          outlineInvoke.outValue().replaceUsers(nullableReturnValue, affectedValues);
+          outlineInvoke.setOutValue(nullableReturnValue);
+        }
         invokesToOutlineMethods.add(outlineInvoke);
       }
+      affectedValues.widening(appView, code);
     }
 
     /** When assertions are enabled, remove method from the outline's list. */
@@ -1614,7 +1631,10 @@ public class OutlinerImpl extends Outliner {
               }
             });
       }
+      code.removeRedundantBlocks();
     }
+    code.removeRedundantBlocks();
+    assert code.isConsistentSSA(appView);
   }
 
   public boolean checkAllOutlineSitesFoundAgain() {

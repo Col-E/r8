@@ -97,7 +97,7 @@ public class TypeConstraintResolver {
     List<Value> remainingImpreciseValues = resolveRoundOne(code);
     // Round two will resolve any remaining single and wide types. These can depend on the types
     // of array instructions, thus we need to complete the type fixed point prior to resolving.
-    new TypeAnalysis(appView, true).widening(code);
+    new TypeAnalysis(appView, code, true).widening();
     // Round two resolves any remaining imprecision and finally selects a final precise type for
     // any unconstrained imprecise type.
     resolveRoundTwo(code, impreciseInstructions, remainingImpreciseValues);

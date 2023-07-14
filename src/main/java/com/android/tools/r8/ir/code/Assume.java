@@ -10,14 +10,15 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.analysis.VerifyTypesHelper;
+import com.android.tools.r8.ir.analysis.type.DynamicType;
 import com.android.tools.r8.ir.analysis.type.DynamicTypeWithUpperBound;
+import com.android.tools.r8.ir.analysis.type.Nullability;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.InliningConstraints;
 import com.android.tools.r8.lightir.LirBuilder;
-import java.util.Objects;
 import java.util.Set;
 
 public class Assume extends Instruction {
@@ -25,41 +26,32 @@ public class Assume extends Instruction {
   private static final String ERROR_MESSAGE =
       "Expected Assume instructions to be removed after IR processing.";
 
-  private DynamicTypeAssumption dynamicTypeAssumption;
-  private final NonNullAssumption nonNullAssumption;
+  private DynamicType dynamicType;
   private final Instruction origin;
 
-  public Assume(
-      DynamicTypeAssumption dynamicTypeAssumption,
-      NonNullAssumption nonNullAssumption,
-      Value dest,
-      Value src,
-      Instruction origin,
-      AppView<?> appView) {
+  public Assume(DynamicType dynamicType, Value dest, Value src, Instruction origin) {
     super(dest, src);
-    assert dynamicTypeAssumption != null || nonNullAssumption != null;
-    assert dynamicTypeAssumption == null
-        || dynamicTypeAssumption.verifyCorrectnessOfValues(dest, src, appView);
-    assert nonNullAssumption == null
-        || nonNullAssumption.verifyCorrectnessOfValues(dest, src, appView);
-    assert dest != null;
-    this.dynamicTypeAssumption = dynamicTypeAssumption;
-    this.nonNullAssumption = nonNullAssumption;
+    assert dynamicType != null;
+    assert !dynamicType.isUnknown();
+    this.dynamicType = dynamicType;
     this.origin = origin;
   }
 
-  public static Assume createAssumeNonNullInstruction(
-      Value dest, Value src, Instruction origin, AppView<?> appView) {
-    return new Assume(null, NonNullAssumption.get(), dest, src, origin, appView);
-  }
-
-  public static Assume createAssumeDynamicTypeInstruction(
-      DynamicTypeWithUpperBound dynamicType,
+  public static Assume create(
+      DynamicType dynamicType,
       Value dest,
       Value src,
       Instruction origin,
-      AppView<?> appView) {
-    return new Assume(new DynamicTypeAssumption(dynamicType), null, dest, src, origin, appView);
+      AppView<?> appView,
+      ProgramMethod context) {
+    Assume assume = new Assume(dynamicType, dest, src, origin);
+    assert assume.verifyInstruction(appView, context);
+    return assume;
+  }
+
+  public void clearDynamicTypeAssumption() {
+    assert dynamicType.getNullability().isDefinitelyNotNull();
+    dynamicType = DynamicType.definitelyNotNull();
   }
 
   @Override
@@ -67,24 +59,17 @@ public class Assume extends Instruction {
     return Opcodes.ASSUME;
   }
 
-  public boolean verifyInstructionIsNeeded(AppView<?> appView) {
-    if (hasDynamicTypeAssumption()) {
-      assert dynamicTypeAssumption.verifyCorrectnessOfValues(outValue(), src(), appView);
-    }
-    return true;
-  }
-
   @Override
   public <T> T accept(InstructionVisitor<T> visitor) {
     return visitor.visit(this);
   }
 
-  public DynamicTypeAssumption getDynamicTypeAssumption() {
-    return dynamicTypeAssumption;
+  public DynamicType getDynamicType() {
+    return dynamicType;
   }
 
-  public NonNullAssumption getNonNullAssumption() {
-    return nonNullAssumption;
+  public DynamicTypeWithUpperBound getDynamicTypeAssumption() {
+    return dynamicType.asDynamicTypeWithUpperBound();
   }
 
   public Value src() {
@@ -115,16 +100,17 @@ public class Assume extends Instruction {
     return this;
   }
 
-  public boolean hasDynamicTypeAssumption() {
-    return dynamicTypeAssumption != null;
-  }
-
-  public void unsetDynamicTypeAssumption() {
-    dynamicTypeAssumption = null;
+  public boolean hasDynamicTypeIgnoringNullability() {
+    if (dynamicType.isNotNullType()) {
+      return false;
+    }
+    assert !dynamicType.isUnknown();
+    assert dynamicType.isDynamicTypeWithUpperBound();
+    return true;
   }
 
   public boolean hasNonNullAssumption() {
-    return nonNullAssumption != null;
+    return dynamicType.getNullability().isDefinitelyNotNull();
   }
 
   @Override
@@ -135,8 +121,8 @@ public class Assume extends Instruction {
     if (outType.isPrimitiveType()) {
       return false;
     }
-    if (hasDynamicTypeAssumption()) {
-      outType = dynamicTypeAssumption.getDynamicType().getDynamicUpperBoundType();
+    if (hasDynamicTypeIgnoringNullability()) {
+      outType = dynamicType.asDynamicTypeWithUpperBound().getDynamicUpperBoundType();
     }
     if (appView.appInfo().hasLiveness()) {
       if (outType.isClassType()
@@ -199,8 +185,7 @@ public class Assume extends Instruction {
       return false;
     }
     Assume assumeInstruction = other.asAssume();
-    return Objects.equals(dynamicTypeAssumption, assumeInstruction.dynamicTypeAssumption)
-        && Objects.equals(nonNullAssumption, assumeInstruction.nonNullAssumption);
+    return dynamicType.equals(assumeInstruction.dynamicType);
   }
 
   @Override
@@ -249,22 +234,9 @@ public class Assume extends Instruction {
   }
 
   @Override
-  public boolean verifyTypes(AppView<?> appView, VerifyTypesHelper verifyTypesHelper) {
-    assert super.verifyTypes(appView, verifyTypesHelper);
-
-    TypeElement inType = src().getType();
-    assert inType.isReferenceType() : inType;
-
-    TypeElement outType = getOutType();
-    if (hasNonNullAssumption()) {
-      assert inType.isNullType() || outType.equals(inType.asReferenceType().asMeetWithNotNull())
-          : "At " + this + System.lineSeparator() + outType + " != " + inType;
-    } else {
-      assert hasDynamicTypeAssumption();
-      assert !src().isConstNumber();
-      assert outType.equals(inType)
-          : "At " + this + System.lineSeparator() + outType + " != " + inType;
-    }
+  public boolean verifyTypes(
+      AppView<?> appView, ProgramMethod context, VerifyTypesHelper verifyTypesHelper) {
+    verifyInstruction(appView, context);
     return true;
   }
 
@@ -279,8 +251,8 @@ public class Assume extends Instruction {
     if (hasNonNullAssumption()) {
       builder.append("; not null");
     }
-    if (hasDynamicTypeAssumption()) {
-      DynamicTypeWithUpperBound dynamicType = dynamicTypeAssumption.getDynamicType();
+    if (hasDynamicTypeIgnoringNullability()) {
+      DynamicTypeWithUpperBound dynamicType = getDynamicType().asDynamicTypeWithUpperBound();
       if (hasOutValue()) {
         if (!dynamicType.getDynamicUpperBoundType().equalUpToNullability(outValue.getType())) {
           builder.append("; upper bound: ").append(dynamicType.getDynamicUpperBoundType());
@@ -293,59 +265,58 @@ public class Assume extends Instruction {
     return builder.toString();
   }
 
-  public static class DynamicTypeAssumption {
-
-    private final DynamicTypeWithUpperBound dynamicType;
-
-    public DynamicTypeAssumption(DynamicTypeWithUpperBound dynamicType) {
-      assert dynamicType != null;
-      this.dynamicType = dynamicType;
-    }
-
-    public DynamicTypeWithUpperBound getDynamicType() {
-      return dynamicType;
-    }
-
-    public boolean verifyCorrectnessOfValues(Value dest, Value src, AppView<?> appView) {
+  public boolean verifyInstruction(AppView<?> appView, ProgramMethod context) {
+    assert !src().isConstant()
+        : "Unexpected Assume value "
+            + outValue()
+            + " for constant value "
+            + src()
+            + " defined by "
+            + src().getDefinition()
+            + " (context: "
+            + context.toSourceString()
+            + ", type: "
+            + src().getType()
+            + ")";
+    assert !src().getType().isDefinitelyNull();
+    assert !src().getType().isNullType();
+    assert hasOutValue();
+    if (hasDynamicTypeIgnoringNullability()) {
       assert !dynamicType.isBottom();
+      assert !dynamicType.isNotNullType();
+      assert !dynamicType.isNullType();
       assert !dynamicType.isUnknown();
-      assert dynamicType
+      DynamicTypeWithUpperBound dynamicTypeWithUpperBound =
+          dynamicType.asDynamicTypeWithUpperBound();
+      assert dynamicTypeWithUpperBound
           .getDynamicUpperBoundType()
-          .lessThanOrEqualUpToNullability(src.getType(), appView);
-      return true;
+          .lessThanOrEqualUpToNullability(src().getType(), appView);
+    } else {
+      assert dynamicType.isNotNullType();
+      assert hasNonNullAssumption();
+      assert !src().getType().isDefinitelyNotNull()
+          : "Unexpected AssumeNotNull instruction for non-null value "
+              + src()
+              + " defined by "
+              + (src().isPhi() ? "phi" : src().getDefinition())
+              + " (context: "
+              + context.toSourceString()
+              + ", type: "
+              + src().getType()
+              + ")";
     }
-
-    @Override
-    public boolean equals(Object other) {
-      if (other == null) {
-        return false;
-      }
-      if (getClass() != other.getClass()) {
-        return false;
-      }
-      DynamicTypeAssumption assumption = (DynamicTypeAssumption) other;
-      return dynamicType.equals(assumption.dynamicType);
-    }
-
-    @Override
-    public int hashCode() {
-      return dynamicType.hashCode();
-    }
-  }
-
-  public static class NonNullAssumption {
-
-    private static final NonNullAssumption instance = new NonNullAssumption();
-
-    private NonNullAssumption() {}
-
-    public static NonNullAssumption get() {
-      return instance;
-    }
-
-    public boolean verifyCorrectnessOfValues(Value dest, Value src, AppView<?> appView) {
-      assert !src.isNeverNull();
-      return true;
-    }
+    assert !hasNonNullAssumption() || outValue().getType().isDefinitelyNotNull()
+        : "Unexpected nullability for value "
+            + outValue()
+            + " defined by "
+            + this
+            + ": "
+            + outValue().getType().nullability()
+            + ", but expected: "
+            + Nullability.definitelyNotNull()
+            + " (context: "
+            + context.toSourceString()
+            + ")";
+    return true;
   }
 }

@@ -20,7 +20,6 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.analysis.escape.EscapeAnalysis;
 import com.android.tools.r8.ir.analysis.escape.EscapeAnalysisConfiguration;
-import com.android.tools.r8.ir.analysis.type.TypeAnalysis;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.code.ConstClass;
 import com.android.tools.r8.ir.code.ConstNumber;
@@ -32,10 +31,9 @@ import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.ir.code.InvokeStatic;
 import com.android.tools.r8.ir.code.InvokeVirtual;
 import com.android.tools.r8.ir.code.Value;
+import com.android.tools.r8.ir.optimize.AffectedValues;
 import com.android.tools.r8.naming.dexitembasedstring.ClassNameComputationInfo;
-import com.google.common.collect.Sets;
 import java.io.UTFDataFormatException;
-import java.util.Set;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 
@@ -71,7 +69,7 @@ public class StringOptimizer {
     if (!code.metadata().mayHaveConstString()) {
       return;
     }
-    Set<Value> affectedValues = Sets.newIdentityHashSet();
+    AffectedValues affectedValues = new AffectedValues();
     InstructionListIterator it = code.instructionListIterator();
     while (it.hasNext()) {
       Instruction instr = it.next();
@@ -125,8 +123,8 @@ public class StringOptimizer {
         Value stringValue =
             code.createValue(
                 TypeElement.stringClassType(appView, definitelyNotNull()), invoke.getLocalInfo());
-        affectedValues.addAll(invoke.outValue().affectedValues());
-        it.replaceCurrentInstruction(new ConstString(stringValue, factory.createString(sub)));
+        it.replaceCurrentInstruction(
+            new ConstString(stringValue, factory.createString(sub)), affectedValues);
         continue;
       }
 
@@ -140,8 +138,7 @@ public class StringOptimizer {
         Value newOutValue =
             code.createValue(
                 TypeElement.stringClassType(appView, definitelyNotNull()), invoke.getLocalInfo());
-        affectedValues.addAll(invoke.outValue().affectedValues());
-        it.replaceCurrentInstruction(new ConstString(newOutValue, resultString));
+        it.replaceCurrentInstruction(new ConstString(newOutValue, resultString), affectedValues);
         continue;
       }
 
@@ -228,14 +225,13 @@ public class StringOptimizer {
       it.replaceCurrentInstruction(constNumber);
     }
     // Computed substring is not null, and thus propagate that information.
-    if (!affectedValues.isEmpty()) {
-      new TypeAnalysis(appView).narrowing(affectedValues);
-    }
+    affectedValues.narrowingWithAssumeRemoval(appView, code);
+    assert code.isConsistentSSA(appView);
   }
 
   // Find Class#get*Name() with a constant-class and replace it with a const-string if possible.
   public void rewriteClassGetName(AppView<?> appView, IRCode code) {
-    Set<Value> affectedValues = Sets.newIdentityHashSet();
+    AffectedValues affectedValues = new AffectedValues();
     InstructionListIterator it = code.instructionListIterator();
     while (it.hasNext()) {
       Instruction instr = it.next();
@@ -313,9 +309,12 @@ public class StringOptimizer {
       DexString name = null;
       if (invokedMethod == factory.classMethods.getName) {
         if (mayBeRenamed) {
+          Value stringValue =
+              code.createValue(
+                  TypeElement.stringClassType(appView, definitelyNotNull()), invoke.getLocalInfo());
           deferred =
               new DexItemBasedConstString(
-                  invoke.outValue(), baseType, ClassNameComputationInfo.create(NAME, arrayDepth));
+                  stringValue, baseType, ClassNameComputationInfo.create(NAME, arrayDepth));
         } else {
           name = NAME.map(descriptor, holder, factory, arrayDepth);
         }
@@ -325,9 +324,8 @@ public class StringOptimizer {
       } else if (invokedMethod == factory.classMethods.getCanonicalName) {
         // Always returns null if the target type is local or anonymous class.
         if (holder.isLocalClass() || holder.isAnonymousClass()) {
-          affectedValues.addAll(invoke.outValue().affectedValues());
           ConstNumber constNull = code.createConstNull();
-          it.replaceCurrentInstruction(constNull);
+          it.replaceCurrentInstruction(constNull, affectedValues);
         } else {
           // b/119471127: If an outer class is shrunk, we may compute a wrong canonical name.
           // Leave it as-is so that the class's canonical name is consistent across the app.
@@ -335,9 +333,13 @@ public class StringOptimizer {
             continue;
           }
           if (mayBeRenamed) {
+            Value stringValue =
+                code.createValue(
+                    TypeElement.stringClassType(appView, definitelyNotNull()),
+                    invoke.getLocalInfo());
             deferred =
                 new DexItemBasedConstString(
-                    invoke.outValue(),
+                    stringValue,
                     baseType,
                     ClassNameComputationInfo.create(CANONICAL_NAME, arrayDepth));
           } else {
@@ -355,9 +357,13 @@ public class StringOptimizer {
             continue;
           }
           if (mayBeRenamed) {
+            Value stringValue =
+                code.createValue(
+                    TypeElement.stringClassType(appView, definitelyNotNull()),
+                    invoke.getLocalInfo());
             deferred =
                 new DexItemBasedConstString(
-                    invoke.outValue(),
+                    stringValue,
                     baseType,
                     ClassNameComputationInfo.create(SIMPLE_NAME, arrayDepth));
           } else {
@@ -366,29 +372,26 @@ public class StringOptimizer {
         }
       }
       if (name != null) {
-        affectedValues.addAll(invoke.outValue().affectedValues());
         Value stringValue =
             code.createValue(
                 TypeElement.stringClassType(appView, definitelyNotNull()), invoke.getLocalInfo());
         ConstString constString = new ConstString(stringValue, name);
-        it.replaceCurrentInstruction(constString);
+        it.replaceCurrentInstruction(constString, affectedValues);
       } else if (deferred != null) {
-        affectedValues.addAll(invoke.outValue().affectedValues());
-        it.replaceCurrentInstruction(deferred);
+        it.replaceCurrentInstruction(deferred, affectedValues);
       }
     }
     // Computed name is not null or literally null (for canonical name of local/anonymous class).
     // In either way, that is narrower information, and thus propagate that.
-    if (!affectedValues.isEmpty()) {
-      new TypeAnalysis(appView).narrowing(affectedValues);
-    }
+    affectedValues.narrowingWithAssumeRemoval(appView, code);
+    assert code.isConsistentSSA(appView);
   }
 
   // String#valueOf(null) -> "null"
   // String#valueOf(String s) -> s
   // str.toString() -> str
   public void removeTrivialConversions(IRCode code) {
-    Set<Value> affectedValues = Sets.newIdentityHashSet();
+    AffectedValues affectedValues = new AffectedValues();
     InstructionListIterator it = code.instructionListIterator();
     while (it.hasNext()) {
       Instruction instr = it.next();
@@ -407,11 +410,7 @@ public class StringOptimizer {
         TypeElement inType = in.getType();
         if (out != null && in.isAlwaysNull(appView)) {
           affectedValues.addAll(out.affectedValues());
-          Value nullStringValue =
-              code.createValue(
-                  TypeElement.stringClassType(appView, definitelyNotNull()), invoke.getLocalInfo());
-          ConstString nullString = new ConstString(nullStringValue, factory.createString("null"));
-          it.replaceCurrentInstruction(nullString);
+          it.replaceCurrentInstructionWithConstString(appView, code, factory.createString("null"));
         } else if (inType.nullability().isDefinitelyNotNull()
             && inType.isClassType()
             && inType.asClassType().getClassType().equals(factory.stringType)) {
@@ -445,9 +444,9 @@ public class StringOptimizer {
       }
     }
     // Newly added "null" string is not null, and thus propagate that information.
-    if (!affectedValues.isEmpty()) {
-      new TypeAnalysis(appView).narrowing(affectedValues);
-    }
+    affectedValues.narrowingWithAssumeRemoval(appView, code);
+    code.removeRedundantBlocks();
+    assert code.isConsistentSSA(appView);
   }
 
   static class StringOptimizerEscapeAnalysisConfiguration

@@ -9,6 +9,7 @@ import com.android.tools.r8.dex.code.DexConst16;
 import com.android.tools.r8.dex.code.DexConst4;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
 import com.android.tools.r8.ir.optimize.DeadCodeRemover.DeadInstructionResult;
@@ -52,6 +53,12 @@ public class AlwaysMaterializingDefinition extends ConstInstruction {
   @Override
   public void buildLir(LirBuilder<Value, ?> builder) {
     throw new Unreachable();
+  }
+
+  @Override
+  public TypeElement evaluate(AppView<?> appView) {
+    assert outValue.getType().isInt();
+    return TypeElement.getInt();
   }
 
   @Override

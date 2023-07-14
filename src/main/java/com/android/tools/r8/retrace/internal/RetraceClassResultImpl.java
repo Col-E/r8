@@ -85,7 +85,7 @@ public class RetraceClassResultImpl implements RetraceClassResult {
               memberNamings,
               memberNaming -> memberNaming.getResidualSignature().equals(fieldSignature));
     }
-    return memberNamings;
+    return memberNamings.isEmpty() ? null : memberNamings;
   }
 
   @Override

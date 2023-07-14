@@ -97,7 +97,11 @@ public class StringSwitch extends Switch {
 
   @Override
   public void buildLir(LirBuilder<Value, ?> builder) {
-    throw new Unreachable();
+    BasicBlock[] targetBlocks = new BasicBlock[keys.length];
+    for (int i = 0; i < keys.length; i++) {
+      targetBlocks[i] = targetBlock(i);
+    }
+    builder.addStringSwitch(value(), keys, targetBlocks, fallthroughBlock());
   }
 
   @Override

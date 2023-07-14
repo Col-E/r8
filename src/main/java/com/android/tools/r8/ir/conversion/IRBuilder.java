@@ -738,11 +738,11 @@ public class IRBuilder {
     } else if (!canUseStackMapTypes() || hasIncorrectStackMapTypes) {
       // TODO(b/169137397): We may have ended up generating StackMapPhi's before concluding
       //  having incorrect stack map types. Figure out a way to clean that up.
-      new TypeAnalysis(appView).widening(ir);
+      new TypeAnalysis(appView, ir).widening();
     } else {
       assert canUseStackMapTypes() && !hasIncorrectStackMapTypes;
       assert allPhisAreStackMapPhis(ir);
-      new TypeAnalysis(appView).narrowing(ir);
+      new TypeAnalysis(appView, ir).narrowing();
     }
 
     if (conversionOptions.isStringSwitchConversionEnabled()) {
@@ -750,7 +750,7 @@ public class IRBuilder {
     }
 
     ir.removeRedundantBlocks();
-    assert ir.isConsistentSSA(appView);
+    assert ir.isConsistentSSABeforeTypesAreCorrect(appView);
 
     // Clear the code so we don't build multiple times.
     source.clear();
@@ -2410,10 +2410,10 @@ public class IRBuilder {
   }
 
   private boolean verifyOutValueType(Instruction ir) {
-    assert ir.outValue() == null || ir.isArrayGet() || ir.evaluate(appView) == ir.getOutType();
+    assert ir.outValue() == null || ir.isArrayGet() || ir.evaluate(appView).equals(ir.getOutType());
     assert ir.outValue() == null
         || !ir.isArrayGet()
-        || ir.evaluate(appView) == ir.getOutType()
+        || ir.evaluate(appView).equals(ir.getOutType())
         || (ir.getOutType().isBottom() && ir.evaluate(appView).isReferenceType());
     return true;
   }

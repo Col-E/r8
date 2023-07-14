@@ -7,15 +7,20 @@ import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.ir.code.Assume;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InvokeMethodWithReceiver;
 import com.android.tools.r8.ir.code.Phi;
 import com.android.tools.r8.ir.code.Value;
+import com.android.tools.r8.ir.optimize.AssumeRemover;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
-import java.util.ArrayDeque;
-import java.util.Deque;
+import com.android.tools.r8.utils.ConsumerUtils;
+import com.android.tools.r8.utils.WorkList;
+import com.google.common.collect.Sets;
+import java.util.Set;
+import java.util.function.Consumer;
 
 public class TypeAnalysis {
 
@@ -29,30 +34,42 @@ public class TypeAnalysis {
 
   private final boolean mayHaveImpreciseTypes;
 
+  private boolean keepRedundantBlocksAfterAssumeRemoval = false;
   private Mode mode = Mode.UNSET;
 
   private final AppView<?> appView;
+  private final AssumeRemover assumeRemover;
+  private final IRCode code;
 
-  private final Deque<Value> worklist = new ArrayDeque<>();
+  private final WorkList<Value> worklist = WorkList.newIdentityWorkList();
 
-  public TypeAnalysis(AppView<?> appView) {
-    this(appView, false);
+  public TypeAnalysis(AppView<?> appView, IRCode code) {
+    this(appView, code, false);
   }
 
-  public TypeAnalysis(AppView<?> appView, boolean mayHaveImpreciseTypes) {
+  public TypeAnalysis(AppView<?> appView, IRCode code, boolean mayHaveImpreciseTypes) {
     this.appView = appView;
+    this.assumeRemover = new AssumeRemover(appView, code);
+    this.code = code;
     this.mayHaveImpreciseTypes = mayHaveImpreciseTypes;
   }
 
+  // Allows disabling the removal of redundant blocks after assume removal.
+  public TypeAnalysis setKeepRedundantBlocksAfterAssumeRemoval(
+      boolean keepRedundantBlocksAfterAssumeRemoval) {
+    this.keepRedundantBlocksAfterAssumeRemoval = keepRedundantBlocksAfterAssumeRemoval;
+    return this;
+  }
+
   private void analyze() {
-    while (!worklist.isEmpty()) {
-      analyzeValue(worklist.poll());
+    while (worklist.hasNext()) {
+      analyzeValue(worklist.removeSeen());
     }
   }
 
-  public void widening(IRCode code) {
+  public void widening() {
     mode = Mode.WIDENING;
-    assert worklist.isEmpty();
+    assert verifyIsEmpty();
     code.topologicallySortedBlocks().forEach(this::analyzeBasicBlock);
     analyze();
   }
@@ -61,9 +78,9 @@ public class TypeAnalysis {
     analyzeValues(values, Mode.WIDENING);
   }
 
-  public void narrowing(IRCode code) {
+  public void narrowing() {
     mode = Mode.NARROWING;
-    assert worklist.isEmpty();
+    assert verifyIsEmpty();
     code.topologicallySortedBlocks().forEach(this::analyzeBasicBlock);
     analyze();
   }
@@ -72,8 +89,47 @@ public class TypeAnalysis {
     analyzeValues(values, Mode.NARROWING);
   }
 
-  public boolean verifyValuesUpToDate(Iterable<? extends Value> values) {
-    analyzeValues(values, Mode.NO_CHANGE);
+  public void narrowingWithAssumeRemoval(Iterable<? extends Value> values) {
+    narrowingWithAssumeRemoval(values, ConsumerUtils.emptyConsumer());
+  }
+
+  public void narrowingWithAssumeRemoval(
+      Iterable<? extends Value> values, Consumer<Assume> redundantAssumeConsumer) {
+    narrowing(values);
+    removeRedundantAssumeInstructions(redundantAssumeConsumer);
+  }
+
+  private void removeRedundantAssumeInstructions(Consumer<Assume> redundantAssumeConsumer) {
+    Set<Value> affectedValuesFromAssumeRemoval = Sets.newIdentityHashSet();
+    while (assumeRemover.removeRedundantAssumeInstructions(
+        affectedValuesFromAssumeRemoval, redundantAssumeConsumer)) {
+      widening(affectedValuesFromAssumeRemoval);
+      Set<Value> affectedValuesFromPhiRemoval = Sets.newIdentityHashSet();
+      code.removeAllDeadAndTrivialPhis(affectedValuesFromPhiRemoval);
+      narrowing(affectedValuesFromPhiRemoval);
+      affectedValuesFromAssumeRemoval.clear();
+    }
+    if (!keepRedundantBlocksAfterAssumeRemoval) {
+      code.removeRedundantBlocks();
+    }
+  }
+
+  public boolean verifyIsEmpty() {
+    assert !assumeRemover.hasAffectedAssumeInstructions();
+    assert worklist.isEmpty();
+    return true;
+  }
+
+  public static void verifyValuesUpToDate(AppView<?> appView, IRCode code) {
+    TypeAnalysis typeAnalysis = new TypeAnalysis(appView, code);
+    typeAnalysis.mode = Mode.NO_CHANGE;
+    code.topologicallySortedBlocks().forEach(typeAnalysis::analyzeBasicBlock);
+    typeAnalysis.analyze();
+  }
+
+  public static boolean verifyValuesUpToDate(
+      AppView<?> appView, IRCode code, Iterable<? extends Value> values) {
+    new TypeAnalysis(appView, code).analyzeValues(values, Mode.NO_CHANGE);
     return true;
   }
 
@@ -85,10 +141,7 @@ public class TypeAnalysis {
   }
 
   private void enqueue(Value v) {
-    assert v != null;
-    if (!worklist.contains(v)) {
-      worklist.add(v);
-    }
+    worklist.addFirstIfNotSeen(v);
   }
 
   private void analyzeBasicBlock(BasicBlock block) {
@@ -124,12 +177,27 @@ public class TypeAnalysis {
   private void updateTypeOfValue(Value value, TypeElement type) {
     assert mode != Mode.UNSET;
 
+    if (value.isDefinedByInstructionSatisfying(Instruction::isAssume)) {
+      assumeRemover.addAffectedAssumeInstruction(value.getDefinition().asAssume());
+    }
+
     TypeElement current = value.getType();
     if (current.equals(type)) {
       return;
     }
 
-    assert mode != Mode.NO_CHANGE;
+    assert mode != Mode.NO_CHANGE
+        : "Unexpected type change for value "
+            + value
+            + " defined by "
+            + (value.isPhi() ? "phi" : value.getDefinition())
+            + ": was "
+            + type
+            + ", but expected "
+            + current
+            + " (context: "
+            + code.context()
+            + ")";
 
     if (type.isBottom()) {
       return;
@@ -139,7 +207,7 @@ public class TypeAnalysis {
       value.widening(appView, type);
     } else {
       assert mode == Mode.NARROWING;
-      value.narrowing(appView, type);
+      value.narrowing(appView, code.context(), type);
     }
 
     // propagate the type change to (instruction) users if any.

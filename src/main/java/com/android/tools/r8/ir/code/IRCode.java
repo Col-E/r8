@@ -20,11 +20,13 @@ import com.android.tools.r8.ir.analysis.VerifyTypesHelper;
 import com.android.tools.r8.ir.analysis.framework.intraprocedural.IRControlFlowGraph;
 import com.android.tools.r8.ir.analysis.type.ClassTypeElement;
 import com.android.tools.r8.ir.analysis.type.Nullability;
+import com.android.tools.r8.ir.analysis.type.TypeAnalysis;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.code.Phi.RegisterReadType;
 import com.android.tools.r8.ir.conversion.IRBuilder;
 import com.android.tools.r8.ir.conversion.MethodConversionOptions;
 import com.android.tools.r8.ir.conversion.MethodConversionOptions.MutableMethodConversionOptions;
+import com.android.tools.r8.ir.optimize.AffectedValues;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.DequeUtils;
@@ -38,7 +40,6 @@ import com.android.tools.r8.utils.TraversalContinuation;
 import com.android.tools.r8.utils.TriFunction;
 import com.android.tools.r8.utils.WorkList;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 import com.google.common.collect.Streams;
@@ -589,12 +590,14 @@ public class IRCode implements IRControlFlowGraph, ValueFactory {
   public boolean isConsistentSSA(AppView<?> appView) {
     isConsistentSSABeforeTypesAreCorrect(appView);
     assert verifyNoImpreciseOrBottomTypes();
+    assert verifyTypes(appView);
     return true;
   }
 
   public boolean isConsistentSSAAllowingRedundantBlocks(AppView<?> appView) {
     isConsistentSSABeforeTypesAreCorrectAllowingRedundantBlocks(appView);
     assert verifyNoImpreciseOrBottomTypes();
+    assert verifyTypes(appView);
     return true;
   }
 
@@ -658,22 +661,11 @@ public class IRCode implements IRControlFlowGraph, ValueFactory {
     // We can only type check the program if we have subtyping information. Therefore, we do not
     // require that the program type checks in D8.
     VerifyTypesHelper verifyTypesHelper = VerifyTypesHelper.create(appView);
-    if (appView.enableWholeProgramOptimizations()) {
-      assert validAssumeInstructions(appView);
-      assert new TypeChecker(appView.withLiveness(), verifyTypesHelper).check(this);
-    }
-    assert blocks.stream().allMatch(block -> block.verifyTypes(appView, verifyTypesHelper));
-    return true;
-  }
-
-  private boolean validAssumeInstructions(AppView<?> appView) {
-    for (BasicBlock block : blocks) {
-      for (Instruction instruction : block.getInstructions()) {
-        if (instruction.isAssume()) {
-          assert instruction.asAssume().verifyInstructionIsNeeded(appView);
-        }
-      }
-    }
+    assert !appView.enableWholeProgramOptimizations()
+        || new TypeChecker(appView.withLiveness(), verifyTypesHelper).check(this);
+    TypeAnalysis.verifyValuesUpToDate(appView, this);
+    assert blocks.stream()
+        .allMatch(block -> block.verifyTypes(appView, context(), verifyTypesHelper));
     return true;
   }
 
@@ -723,7 +715,7 @@ public class IRCode implements IRControlFlowGraph, ValueFactory {
       int predecessorCount = block.getPredecessors().size();
       // Check that all phi uses are consistent.
       for (Phi phi : block.getPhis()) {
-        assert !phi.isTrivialPhi();
+        assert !phi.isTrivialPhi() : "Unexpected trivial phi in " + context().toSourceString();
         assert phi.getOperands().size() == predecessorCount;
         addValueAndCheckUniqueNumber(values, phi);
         for (Value value : phi.getOperands()) {
@@ -1247,7 +1239,7 @@ public class IRCode implements IRControlFlowGraph, ValueFactory {
   }
 
   public ConstClass createConstClass(AppView<?> appView, DexType type) {
-    Value out = createValue(TypeElement.fromDexType(type, definitelyNotNull(), appView));
+    Value out = createValue(TypeElement.classClassType(appView, definitelyNotNull()));
     return new ConstClass(out, type);
   }
 
@@ -1507,20 +1499,20 @@ public class IRCode implements IRControlFlowGraph, ValueFactory {
     return unreachableBlocks;
   }
 
-  public Set<Value> removeUnreachableBlocks() {
-    ImmutableSet.Builder<Value> affectedValueBuilder = ImmutableSet.builder();
+  public AffectedValues removeUnreachableBlocks() {
+    AffectedValues affectedValues = new AffectedValues();
     int color = reserveMarkingColor();
     markTransitiveSuccessors(entryBlock(), color);
     ListIterator<BasicBlock> blockIterator = listIterator();
     while (blockIterator.hasNext()) {
       BasicBlock current = blockIterator.next();
       if (!current.isMarked(color)) {
-        affectedValueBuilder.addAll(current.cleanForRemoval());
+        affectedValues.addAll(current.cleanForRemoval());
         blockIterator.remove();
       }
     }
     returnMarkingColor(color);
-    return affectedValueBuilder.build();
+    return affectedValues;
   }
 
   // Note: It is the responsibility of the caller to return the marking color.

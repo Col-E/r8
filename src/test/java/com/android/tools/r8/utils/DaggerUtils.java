@@ -8,6 +8,7 @@ import static org.junit.Assert.assertEquals;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestRuntime;
 import com.android.tools.r8.TestRuntime.CfRuntime;
+import com.android.tools.r8.ToolHelper;
 import com.google.common.collect.ImmutableList;
 import com.google.common.io.ByteStreams;
 import java.nio.file.Path;
@@ -20,7 +21,7 @@ import java.util.stream.Collectors;
 
 public class DaggerUtils {
 
-  private static final Path DAGGER_ROOT = Paths.get("third_party", "dagger", "2.41");
+  private static final Path DAGGER_ROOT = Paths.get(ToolHelper.THIRD_PARTY_DIR, "dagger", "2.41");
 
   private static final String GUAVA = "guava-31.0.1-jre.jar";
   private static final List<Path> DAGGER_COMPILER =

@@ -332,8 +332,9 @@ public class ConstNumber extends ConstInstruction {
   }
 
   @Override
-  public boolean verifyTypes(AppView<?> appView, VerifyTypesHelper verifyTypesHelper) {
-    assert super.verifyTypes(appView, verifyTypesHelper);
+  public boolean verifyTypes(
+      AppView<?> appView, ProgramMethod context, VerifyTypesHelper verifyTypesHelper) {
+    assert super.verifyTypes(appView, context, verifyTypesHelper);
     assert !isZero() || getOutType().isPrimitiveType() || getOutType().isNullType();
     return true;
   }

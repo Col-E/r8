@@ -12,16 +12,15 @@ import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItemFactory.LibraryMembers;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ProgramMethod;
-import com.android.tools.r8.ir.analysis.type.TypeAnalysis;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.BasicBlockIterator;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.ir.code.InvokeMethod;
-import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.conversion.CodeOptimization;
 import com.android.tools.r8.ir.conversion.MethodProcessor;
+import com.android.tools.r8.ir.optimize.AffectedValues;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedback;
 import com.android.tools.r8.utils.Timing;
 import com.google.common.collect.Sets;
@@ -115,7 +114,7 @@ public class LibraryMemberOptimizer implements CodeOptimization {
       OptimizationFeedback feedback,
       MethodProcessor methodProcessor,
       MethodProcessingContext methodProcessingContext) {
-    Set<Value> affectedValues = Sets.newIdentityHashSet();
+    AffectedValues affectedValues = new AffectedValues();
     BasicBlockIterator blockIterator = code.listIterator();
     Set<BasicBlock> blocksToRemove = Sets.newIdentityHashSet();
     while (blockIterator.hasNext()) {
@@ -170,9 +169,8 @@ public class LibraryMemberOptimizer implements CodeOptimization {
     }
 
     code.removeBlocks(blocksToRemove);
-
-    if (!affectedValues.isEmpty()) {
-      new TypeAnalysis(appView).narrowing(affectedValues);
-    }
+    affectedValues.narrowingWithAssumeRemoval(appView, code);
+    code.removeRedundantBlocks();
+    assert code.isConsistentSSA(appView);
   }
 }

@@ -20,8 +20,10 @@ import com.android.tools.r8.dex.code.DexFillArrayData;
 import com.android.tools.r8.dex.code.DexFillArrayDataPayload;
 import com.android.tools.r8.dex.code.DexFilledNewArray;
 import com.android.tools.r8.dex.code.DexGoto;
+import com.android.tools.r8.dex.code.DexIfEq;
 import com.android.tools.r8.dex.code.DexInstanceOf;
 import com.android.tools.r8.dex.code.DexInvokeCustom;
+import com.android.tools.r8.dex.code.DexInvokeVirtual;
 import com.android.tools.r8.dex.code.DexMonitorEnter;
 import com.android.tools.r8.dex.code.DexMonitorExit;
 import com.android.tools.r8.dex.code.DexMove;
@@ -36,6 +38,7 @@ import com.android.tools.r8.dex.code.DexSget;
 import com.android.tools.r8.dex.code.DexThrow;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.lightir.LirBuilder.IntSwitchPayload;
+import com.android.tools.r8.lightir.LirBuilder.StringSwitchPayload;
 
 public class LirSizeEstimation<EV> extends LirParsedInstructionCallback<EV> implements LirOpcodes {
 
@@ -66,13 +69,29 @@ public class LirSizeEstimation<EV> extends LirParsedInstructionCallback<EV> impl
     sizeEstimate += instructionSize(view.getOpcode(), view);
   }
 
+  private static int baseSwitchSize(int cases) {
+    return DexPackedSwitch.SIZE + DexPackedSwitchPayload.SIZE + ((2 + 2) * cases);
+  }
+
   @Override
   public void onIntSwitch(EV unusedValue, IntSwitchPayload payload) {
+    sizeEstimate += baseSwitchSize(payload.keys.length);
+  }
+
+  @Override
+  public void onStringSwitch(EV value, StringSwitchPayload payload) {
+    // Invoke hashcode and switch on it.
+    sizeEstimate += DexInvokeVirtual.SIZE + baseSwitchSize(payload.keys.length);
+    // Each case has an additional const-string, invoke equals, if check, cont-number and goto.
     sizeEstimate +=
-        DexPackedSwitch.SIZE
-            + DexPackedSwitchPayload.SIZE
-            + (2 * payload.keys.length)
-            + (2 * payload.targets.length);
+        payload.keys.length
+            * (DexConstString.SIZE
+                + DexInvokeVirtual.SIZE
+                + DexIfEq.SIZE
+                + DexConst4.SIZE
+                + DexGoto.SIZE);
+    // Finally the id is then the subject of another switch.
+    sizeEstimate += baseSwitchSize(payload.keys.length);
   }
 
   @Override
@@ -83,6 +102,7 @@ public class LirSizeEstimation<EV> extends LirParsedInstructionCallback<EV> impl
   private int instructionSize(int opcode, LirInstructionView view) {
     switch (opcode) {
       case TABLESWITCH:
+      case STRINGSWITCH:
       case NEWARRAYFILLEDDATA:
         // The payload instructions use the "parsed callback" to compute the payloads.
         super.onInstructionView(view);

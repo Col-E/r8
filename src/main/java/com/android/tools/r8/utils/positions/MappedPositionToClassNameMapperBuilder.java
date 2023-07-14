@@ -193,7 +193,9 @@ public class MappedPositionToClassNameMapperBuilder {
             DexField originalField = appView.graphLens().getOriginalFieldSignature(dexField);
             DexField residualField =
                 appView.getNamingLens().lookupField(dexField, appView.dexItemFactory());
-            if (residualField.name != originalField.name || originalField.holder != originalType) {
+            if (residualField.name != originalField.name
+                || residualField.getType() != originalField.getType()
+                || originalField.holder != originalType) {
               FieldSignature originalSignature =
                   FieldSignature.fromDexField(originalField, originalField.holder != originalType);
               FieldSignature residualSignature = FieldSignature.fromDexField(residualField);

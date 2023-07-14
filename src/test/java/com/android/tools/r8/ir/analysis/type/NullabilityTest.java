@@ -72,7 +72,7 @@ public class NullabilityTest extends TestBase {
             buildClasses(classes).addLibraryFile(getMostRecentAndroidJar()).build());
     CodeInspector codeInspector = new CodeInspector(appView.appInfo().app());
     MethodSubject fooSubject = codeInspector.clazz(mainClass.getName()).method(signature);
-    IRCode irCode = fooSubject.buildIR();
+    IRCode irCode = fooSubject.buildIR(appView);
     new AssumeInserter(appView).insertAssumeInstructions(irCode, Timing.empty());
     inspector.accept(appView, irCode);
     verifyLastInvoke(irCode, npeCaught);

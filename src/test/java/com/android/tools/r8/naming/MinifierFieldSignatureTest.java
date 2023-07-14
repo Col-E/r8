@@ -204,7 +204,7 @@ public class MinifierFieldSignatureTest extends TestBase {
 
     FieldSubject anX = lookupAnX(inspector);
     FieldSubject anArrayOfX = lookupAnArrayOfX(inspector);
-    FieldSubject aFieldsOfX =lookupAFieldsOfX(inspector);
+    FieldSubject aFieldsOfX = lookupAFieldsOfX(inspector);
     FieldSubject aFieldsOfXInner = clazz.field("Fields$Inner", "aFieldsOfXInner");
 
     // Check that all fields have been renamed

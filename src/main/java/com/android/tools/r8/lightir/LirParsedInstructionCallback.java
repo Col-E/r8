@@ -22,6 +22,7 @@ import com.android.tools.r8.lightir.LirBuilder.FillArrayPayload;
 import com.android.tools.r8.lightir.LirBuilder.IntSwitchPayload;
 import com.android.tools.r8.lightir.LirBuilder.NameComputationPayload;
 import com.android.tools.r8.lightir.LirBuilder.RecordFieldValuesPayload;
+import com.android.tools.r8.lightir.LirBuilder.StringSwitchPayload;
 import com.android.tools.r8.naming.dexitembasedstring.NameComputationInfo;
 import java.util.ArrayList;
 import java.util.List;
@@ -369,6 +370,10 @@ public abstract class LirParsedInstructionCallback<EV> implements LirInstruction
   }
 
   public void onIntSwitch(EV value, IntSwitchPayload payload) {
+    onInstruction();
+  }
+
+  public void onStringSwitch(EV value, StringSwitchPayload payload) {
     onInstruction();
   }
 
@@ -1007,6 +1012,14 @@ public abstract class LirParsedInstructionCallback<EV> implements LirInstruction
               (IntSwitchPayload) getConstantItem(view.getNextConstantOperand());
           EV value = getNextValueOperand(view);
           onIntSwitch(value, payload);
+          return;
+        }
+      case LirOpcodes.STRINGSWITCH:
+        {
+          StringSwitchPayload payload =
+              (StringSwitchPayload) getConstantItem(view.getNextConstantOperand());
+          EV value = getNextValueOperand(view);
+          onStringSwitch(value, payload);
           return;
         }
       case LirOpcodes.INVOKEDIRECT:

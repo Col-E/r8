@@ -34,8 +34,17 @@ public class TrivialGotosCollapser extends CodeRewriterPass<AppInfo> {
   }
 
   @Override
+  protected boolean isAcceptingSSA() {
+    return false;
+  }
+
+  @Override
+  protected boolean isProducingSSA() {
+    return false;
+  }
+
+  @Override
   protected CodeRewriterResult rewriteCode(IRCode code) {
-    assert code.isConsistentGraph(appView);
     List<BasicBlock> blocksToRemove = new ArrayList<>();
     // Rewrite all non-fallthrough targets to the end of trivial goto chains and remove
     // first round of trivial goto blocks.

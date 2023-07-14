@@ -21,6 +21,7 @@ public class CheckNotNullConverter {
   public static void runIfNecessary(AppView<?> appView, IRCode code) {
     if (appView.enableWholeProgramOptimizations()) {
       run(appView.withClassHierarchy(), code);
+      assert code.isConsistentSSA(appView);
     }
   }
 

@@ -5,8 +5,13 @@
 package com.android.tools.r8.optimize.accessmodification;
 
 import com.android.tools.r8.utils.InternalOptions;
+import com.android.tools.r8.utils.SystemPropertyUtils;
 
 public class AccessModifierOptions {
+
+  private boolean enableLegacyAccessModifier =
+      SystemPropertyUtils.parseSystemPropertyOrDefault(
+          "com.android.tools.r8.accessmodification.legacy", false);
 
   // TODO(b/131130038): Do not allow accessmodification when kept.
   private boolean forceModifyPackagePrivateAndProtectedMethods = true;
@@ -22,14 +27,16 @@ public class AccessModifierOptions {
   }
 
   public boolean isAccessModificationEnabled() {
-    // TODO(b/288062771): Enable access modification for L8.
-    if (!options.synthesizedClassPrefix.isEmpty()) {
+    if (isAccessModificationRulePresent()) {
+      return true;
+    }
+    if (isLegacyAccessModifierEnabled()) {
       return false;
     }
-    if (options.forceProguardCompatibility) {
-      return isAccessModificationRulePresent();
-    }
-    return true;
+    // TODO(b/288062771): Enable access modification by default for L8.
+    return options.synthesizedClassPrefix.isEmpty()
+        && !options.forceProguardCompatibility
+        && options.isOptimizing();
   }
 
   private boolean isAccessModificationRulePresent() {
@@ -45,5 +52,9 @@ public class AccessModifierOptions {
       boolean forceModifyPackagePrivateAndProtectedMethods) {
     this.forceModifyPackagePrivateAndProtectedMethods =
         forceModifyPackagePrivateAndProtectedMethods;
+  }
+
+  public boolean isLegacyAccessModifierEnabled() {
+    return enableLegacyAccessModifier;
   }
 }

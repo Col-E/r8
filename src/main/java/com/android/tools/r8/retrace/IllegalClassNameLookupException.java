@@ -4,6 +4,9 @@
 
 package com.android.tools.r8.retrace;
 
+import com.android.tools.r8.Keep;
+
+@Keep
 public class IllegalClassNameLookupException extends RuntimeException {
 
   private final String typeName;

@@ -22,7 +22,6 @@ import com.android.tools.r8.graph.ProgramMember;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.analysis.proto.schema.ProtoMessageInfo;
 import com.android.tools.r8.ir.analysis.proto.schema.ProtoObject;
-import com.android.tools.r8.ir.analysis.type.TypeAnalysis;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.code.ArrayPut;
 import com.android.tools.r8.ir.code.BasicBlock;
@@ -44,16 +43,15 @@ import com.android.tools.r8.ir.conversion.IRConverter;
 import com.android.tools.r8.ir.conversion.MethodConversionOptions;
 import com.android.tools.r8.ir.conversion.MethodProcessorEventConsumer;
 import com.android.tools.r8.ir.conversion.OneTimeMethodProcessor;
+import com.android.tools.r8.ir.optimize.AffectedValues;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackIgnore;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.DependentMinimumKeepInfoCollection;
 import com.android.tools.r8.shaking.KeepMethodInfo;
 import com.android.tools.r8.utils.Timing;
 import com.android.tools.r8.utils.collections.ProgramMethodSet;
-import com.google.common.collect.Sets;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.function.Consumer;
@@ -159,7 +157,7 @@ public class GeneratedMessageLiteShrinker {
   }
 
   private void optimizeNewMutableInstance(AppView<AppInfoWithLiveness> appView, IRCode code) {
-    Set<Value> affectedValues = Sets.newIdentityHashSet();
+    AffectedValues affectedValues = new AffectedValues();
     BasicBlockIterator blockIterator = code.listIterator();
     while (blockIterator.hasNext()) {
       BasicBlock block = blockIterator.next();
@@ -214,9 +212,8 @@ public class GeneratedMessageLiteShrinker {
         }
       }
     }
-    if (!affectedValues.isEmpty()) {
-      new TypeAnalysis(appView).narrowing(affectedValues);
-    }
+    affectedValues.narrowingWithAssumeRemoval(appView, code);
+    assert code.isConsistentSSA(appView);
   }
 
   private DexType getNewMutableInstanceType(
@@ -314,6 +311,7 @@ public class GeneratedMessageLiteShrinker {
         assert false;
       }
     }
+    assert code.isConsistentSSA(appView);
   }
 
   private void rewriteArgumentsToNewMessageInfo(

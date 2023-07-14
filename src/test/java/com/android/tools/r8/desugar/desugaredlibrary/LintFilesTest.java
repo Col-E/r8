@@ -41,7 +41,8 @@ import org.junit.runners.Parameterized.Parameters;
 @RunWith(Parameterized.class)
 public class LintFilesTest extends DesugaredLibraryTestBase {
 
-  private static final String ANDROID_JAR_34 = "third_party/android_jar/lib-v34/android.jar";
+  private static final String ANDROID_JAR_34 =
+      ToolHelper.THIRD_PARTY_DIR + "android_jar/lib-v34/android.jar";
 
   private final LibraryDesugaringSpecification libraryDesugaringSpecification;
 
@@ -170,7 +171,12 @@ public class LintFilesTest extends DesugaredLibraryTestBase {
         new String[] {
           libraryDesugaringSpecification.getSpecification().toString(),
           jdkLibJar.toString(),
-          directory.toString()
+          directory.toString(),
+          // TODO(b/289365156): Should probably not be hardcoded on U.
+          ToolHelper.THIRD_PARTY_DIR
+              + "android_jar/lib-v"
+              + AndroidApiLevel.U.getLevel()
+              + "/android.jar"
         });
     InternalOptions options = new InternalOptions(new DexItemFactory(), new Reporter());
     DesugaredLibrarySpecification desugaredLibrarySpecification =
@@ -213,7 +219,12 @@ public class LintFilesTest extends DesugaredLibraryTestBase {
           "--generate-api-docs",
           libraryDesugaringSpecification.getSpecification().toString(),
           jdkLibJar.toString(),
-          directory2.toString()
+          directory2.toString(),
+          // TODO(b/289365156): Should probably not be hardcoded on U.
+          ToolHelper.THIRD_PARTY_DIR
+              + "android_jar/lib-v"
+              + AndroidApiLevel.U.getLevel()
+              + "/android.jar"
         });
     List<String> html = Files.readAllLines(directory2.resolve("apis.html"));
     // The doc has the same content than the lint data that is tested above, this is just a sanity

@@ -13,7 +13,6 @@ import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.MethodResolutionResult.SingleResolutionResult;
 import com.android.tools.r8.graph.ProgramMethod;
-import com.android.tools.r8.ir.analysis.type.TypeAnalysis;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.code.Assume;
 import com.android.tools.r8.ir.code.BasicBlock;
@@ -57,8 +56,7 @@ public class Devirtualizer {
   }
 
   public void devirtualizeInvokeInterface(IRCode code) {
-    Set<Value> affectedValues = Sets.newIdentityHashSet();
-    AssumeRemover assumeRemover = new AssumeRemover(appView, code);
+    AffectedValues affectedValues = new AffectedValues();
     ProgramMethod context = code.context();
     Map<InvokeInterface, InvokeVirtual> devirtualizedCall = new IdentityHashMap<>();
     DominatorTree dominatorTree = new DominatorTree(code);
@@ -115,7 +113,7 @@ public class Devirtualizer {
                 assert nonNull.src() == oldReceiver;
                 assert !oldReceiver.hasLocalInfo();
                 oldReceiver.replaceSelectiveUsers(
-                    newReceiver, ImmutableSet.of(nonNull), ImmutableMap.of());
+                    newReceiver, ImmutableSet.of(nonNull), ImmutableMap.of(), affectedValues);
               }
             }
           }
@@ -297,24 +295,20 @@ public class Devirtualizer {
                 it.next();
               }
             }
-            affectedValues.addAll(receiver.affectedValues());
-            assumeRemover.markAssumeDynamicTypeUsersForRemoval(receiver);
             if (!receiver.hasLocalInfo()) {
               receiver.replaceSelectiveUsers(
-                  newReceiver, ImmutableSet.of(devirtualizedInvoke), ImmutableMap.of());
+                  newReceiver,
+                  ImmutableSet.of(devirtualizedInvoke),
+                  ImmutableMap.of(),
+                  affectedValues);
             } else {
-              receiver.removeUser(devirtualizedInvoke);
-              devirtualizedInvoke.replaceValue(receiver, newReceiver);
+              devirtualizedInvoke.replaceValue(receiver, newReceiver, affectedValues);
             }
           }
         }
       }
     }
-    assumeRemover.removeMarkedInstructions();
-    affectedValues.addAll(assumeRemover.getAffectedValues());
-    if (!affectedValues.isEmpty()) {
-      new TypeAnalysis(appView).narrowing(affectedValues);
-    }
+    affectedValues.narrowingWithAssumeRemoval(appView, code);
     code.removeRedundantBlocks();
     assert code.isConsistentSSA(appView);
   }

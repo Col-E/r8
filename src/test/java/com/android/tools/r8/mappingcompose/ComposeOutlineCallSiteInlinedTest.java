@@ -55,52 +55,48 @@ public class ComposeOutlineCallSiteInlinedTest extends TestBase {
           "com.android.tools.r8.D8Command -> com.android.tools.r8.D8Command:",
           "# {'id':'sourceFile','fileName':'SourceFile'}",
           "    1:724:foo.internal.MapConsumer lambda$bar$0(foo.StringConsumer):0:723"
-              + " -> lambda$bar$0$com-android-tools-r8-D8Command",
+              + " -> lambda$bar$0$new",
           "    1:724:foo.internal.MapConsumer"
-              + " lambda$bar$0$com-android-tools-r8-D8Command(foo.StringConsumer):0"
-              + " -> lambda$bar$0$com-android-tools-r8-D8Command",
+              + " lambda$bar$0$new(foo.StringConsumer):0"
+              + " -> lambda$bar$0$new",
           "      # {'id':'com.android.tools.r8.synthesized'}");
   private static final String mappingResult =
       StringUtils.unixLines(
           "# {'id':'com.android.tools.r8.mapping','version':'2.2'}",
           "com.android.tools.r8.D8Command -> com.android.tools.r8.D8Command:",
           "# {'id':'sourceFile','fileName':'D8Command.java'}",
-          // TODO(b/288117378): This 1:1 range corresponds to position 0 in the residual of R8. This
-          //  should probably not have the `getParseFlagsInformation` inline frame.
           "    1:1:java.util.List getParseFlagsInformation():592:592 -> getParseFlagsInformation",
+          // The following two frames is the preamble it is mapping to position 0. There is no
+          // positional information in mappingFoo, so the right thing here is to use the original
+          // signature from mappingBar/residual signature from mappingFoo.
           "    1:1:foo.internal.MapConsumer lambda$bar$0(foo.StringConsumer):0:0 ->"
-              + " lambda$bar$0$com-android-tools-r8-D8Command",
+              + " lambda$bar$0$new",
           "    1:1:foo.internal.MapConsumer"
-              + " lambda$bar$0$com-android-tools-r8-D8Command(foo.StringConsumer):0:0 ->"
-              + " lambda$bar$0$com-android-tools-r8-D8Command",
+              + " lambda$bar$0$new(foo.StringConsumer):0:0 -> lambda$bar$0$new",
           "    # {'id':'com.android.tools.r8.synthesized'}",
-          "    2:2:foo.MapConsumer lambda$bar$0(foo.StringConsumer):0:0 ->"
-              + " lambda$bar$0$com-android-tools-r8-D8Command",
+          // This frame is the outline position in mappingFoo.
+          "    2:2:foo.MapConsumer lambda$bar$0(foo.StringConsumer):0:0 -> lambda$bar$0$new",
           "    # {'id':'com.android.tools.r8.residualsignature',"
               + "'signature':'(Lfoo/StringConsumer;)Lfoo/internal/MapConsumer;'}",
           "    # {'id':'com.android.tools.r8.outlineCallsite',"
               + "'positions':{'23':725,'24':726,'25':727},"
               + "'outline':'Lfoo/SomeClass;outline(JJJ)V'}",
           "    2:2:foo.internal.MapConsumer"
-              + " lambda$bar$0$com-android-tools-r8-D8Command(foo.StringConsumer):0:0 ->"
-              + " lambda$bar$0$com-android-tools-r8-D8Command",
-          "    3:724:foo.internal.MapConsumer lambda$bar$0(foo.StringConsumer) ->"
-              + " lambda$bar$0$com-android-tools-r8-D8Command",
-          "    3:724:foo.internal.MapConsumer"
-              + " lambda$bar$0$com-android-tools-r8-D8Command(foo.StringConsumer):0:0 ->"
-              + " lambda$bar$0$com-android-tools-r8-D8Command",
-          "    725:725:foo.internal.MapConsumer"
-              + " lambda$bar$0$com-android-tools-r8-D8Command(foo.StringConsumer):720:720 ->"
-              + " lambda$bar$0$com-android-tools-r8-D8Command",
-          "    726:726:foo.PGMapConsumer foo.PGMapConsumer.builder():52:52 -> lambda$bar$0",
-          "    726:726:foo.internal.MapConsumer"
-              + " lambda$bar$0$com-android-tools-r8-D8Command(foo.StringConsumer):720 ->"
-              + " lambda$bar$0$com-android-tools-r8-D8Command",
-          "    727:727:void foo.PGMapConsumer.<init>():55:55 -> lambda$bar$0",
-          "    727:727:foo.PGMapConsumer foo.PGMapConsumer.builder():52 -> lambda$bar$0",
-          "    727:727:foo.internal.MapConsumer"
-              + " lambda$bar$0$com-android-tools-r8-D8Command(foo.StringConsumer):720 ->"
-              + " lambda$bar$0$com-android-tools-r8-D8Command");
+              + " lambda$bar$0$new(foo.StringConsumer):0:0 -> lambda$bar$0$new",
+          // This is the tail before any synthetic outline positions where the only information
+          // is in mappingBar.
+          "    3:724:foo.internal.MapConsumer lambda$bar$0(foo.StringConsumer) -> lambda$bar$0$new",
+          "    3:724:foo.internal.MapConsumer lambda$bar$0$new(foo.StringConsumer):0:0 "
+              + "-> lambda$bar$0$new",
+          // The remaining positions are the synthetic outline positions needed for correct
+          // retracing.
+          "    725:725:foo.MapConsumer lambda$bar$0(foo.StringConsumer):720:720 "
+              + "-> lambda$bar$0$new",
+          "    726:726:foo.PGMapConsumer foo.PGMapConsumer.builder():52:52 -> lambda$bar$0$new",
+          "    726:726:foo.MapConsumer lambda$bar$0(foo.StringConsumer):720 -> lambda$bar$0$new",
+          "    727:727:void foo.PGMapConsumer.<init>():55:55 -> lambda$bar$0$new",
+          "    727:727:foo.PGMapConsumer foo.PGMapConsumer.builder():52 -> lambda$bar$0$new",
+          "    727:727:foo.MapConsumer lambda$bar$0(foo.StringConsumer):720 -> lambda$bar$0$new");
 
   @Test
   public void testCompose() throws Exception {

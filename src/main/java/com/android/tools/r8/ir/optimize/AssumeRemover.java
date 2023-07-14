@@ -5,7 +5,6 @@
 package com.android.tools.r8.ir.optimize;
 
 import com.android.tools.r8.graph.AppView;
-import com.android.tools.r8.ir.analysis.type.TypeAnalysis;
 import com.android.tools.r8.ir.code.Assume;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.IRCode;
@@ -13,8 +12,8 @@ import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.ir.code.Value;
 import com.google.common.collect.Sets;
-import java.util.Collection;
 import java.util.Set;
+import java.util.function.Consumer;
 
 /**
  * When we have Assume instructions we generally verify that the Assume instructions contribute with
@@ -33,98 +32,101 @@ public class AssumeRemover {
   private final AppView<?> appView;
   private final IRCode code;
 
-  private final Set<Value> affectedValues;
-  private final Set<Assume> assumeInstructionsToRemove = Sets.newIdentityHashSet();
-
-  private boolean mayHaveIntroducedTrivialPhi = false;
+  private final Set<Assume> affectedAssumeInstructions = Sets.newIdentityHashSet();
 
   public AssumeRemover(AppView<?> appView, IRCode code) {
-    this(appView, code, Sets.newIdentityHashSet());
-  }
-
-  public AssumeRemover(AppView<?> appView, IRCode code, Set<Value> affectedValues) {
     this.appView = appView;
     this.code = code;
-    this.affectedValues = affectedValues;
   }
 
-  public Set<Value> getAffectedValues() {
-    return affectedValues;
+  public void addAffectedAssumeInstruction(Assume assumeInstruction) {
+    affectedAssumeInstructions.add(assumeInstruction);
   }
 
-  public boolean mayHaveIntroducedTrivialPhi() {
-    return mayHaveIntroducedTrivialPhi;
+  public boolean hasAffectedAssumeInstructions() {
+    return !affectedAssumeInstructions.isEmpty();
   }
 
-  public void markAssumeDynamicTypeUsersForRemoval(Value value) {
-    for (Instruction user : value.aliasedUsers()) {
-      if (user.isAssume()) {
-        Assume assumeInstruction = user.asAssume();
-        assumeInstruction.unsetDynamicTypeAssumption();
-        if (!assumeInstruction.hasNonNullAssumption()) {
-          markForRemoval(assumeInstruction);
+  private boolean removeAssumeInstructionIfRedundant(
+      Assume assumeInstruction,
+      InstructionListIterator instructionIterator,
+      Set<Value> newAffectedValues,
+      Consumer<Assume> redundantAssumeConsumer) {
+    if (!affectedAssumeInstructions.remove(assumeInstruction)) {
+      return false;
+    }
+    if (assumeInstruction.src().isConstant()) {
+      removeRedundantAssumeInstruction(
+          assumeInstruction, instructionIterator, newAffectedValues, redundantAssumeConsumer);
+      return true;
+    }
+    if (assumeInstruction.hasDynamicTypeIgnoringNullability()
+        && assumeInstruction
+            .getDynamicType()
+            .asDynamicTypeWithUpperBound()
+            .getDynamicUpperBoundType()
+            .strictlyLessThan(assumeInstruction.src().getType(), appView)) {
+      assert assumeInstruction
+          .getDynamicType()
+          .getNullability()
+          .lessThanOrEqual(assumeInstruction.src().getType().nullability());
+      return false;
+    }
+    if (assumeInstruction.hasNonNullAssumption()
+        && !assumeInstruction.src().isConstant()
+        && assumeInstruction.src().getType().isNullable()
+        && !assumeInstruction.src().getType().isDefinitelyNull()) {
+      assumeInstruction.clearDynamicTypeAssumption();
+      return false;
+    }
+    removeRedundantAssumeInstruction(
+        assumeInstruction, instructionIterator, newAffectedValues, redundantAssumeConsumer);
+    return true;
+  }
+
+  private void removeRedundantAssumeInstruction(
+      Assume assumeInstruction,
+      InstructionListIterator instructionIterator,
+      Set<Value> newAffectedValues,
+      Consumer<Assume> redundantAssumeConsumer) {
+    Value inValue = assumeInstruction.src();
+    Value outValue = assumeInstruction.outValue();
+    if (outValue == null) {
+      // Already removed.
+      return;
+    }
+
+    // Check if we need to run the type analysis for the affected values of the out-value.
+    if (!outValue.getType().equals(inValue.getType())) {
+      newAffectedValues.addAll(outValue.affectedValues());
+    }
+
+    outValue.replaceUsers(inValue);
+    redundantAssumeConsumer.accept(assumeInstruction);
+    instructionIterator.removeOrReplaceByDebugLocalRead();
+  }
+
+  public boolean removeRedundantAssumeInstructions(
+      Set<Value> newAffectedValues, Consumer<Assume> redundantAssumeConsumer) {
+    if (affectedAssumeInstructions.isEmpty()) {
+      return false;
+    }
+    boolean changed = false;
+    for (BasicBlock block : code.getBlocks()) {
+      InstructionListIterator instructionIterator = block.listIterator(code);
+      while (instructionIterator.hasNext()) {
+        Instruction instruction = instructionIterator.next();
+        if (instruction.isAssume()) {
+          changed |=
+              removeAssumeInstructionIfRedundant(
+                  instruction.asAssume(),
+                  instructionIterator,
+                  newAffectedValues,
+                  redundantAssumeConsumer);
         }
       }
     }
-  }
-
-  public void markUnusedAssumeValuesForRemoval(Collection<Value> values) {
-    for (Value value : values) {
-      if (value.isDefinedByInstructionSatisfying(Instruction::isAssume) && !value.hasAnyUsers()) {
-        markForRemoval(value.getDefinition().asAssume());
-      }
-    }
-  }
-
-  private void markForRemoval(Assume assumeInstruction) {
-    assumeInstructionsToRemove.add(assumeInstruction);
-  }
-
-  public void removeIfMarked(
-      Assume assumeInstruction, InstructionListIterator instructionIterator) {
-    if (assumeInstructionsToRemove.remove(assumeInstruction)) {
-      Value inValue = assumeInstruction.src();
-      Value outValue = assumeInstruction.outValue();
-
-      // Check if we need to run the type analysis for the affected values of the out-value.
-      if (!outValue.getType().equals(inValue.getType())) {
-        affectedValues.addAll(outValue.affectedValues());
-      }
-
-      if (outValue.hasPhiUsers()) {
-        mayHaveIntroducedTrivialPhi = true;
-      }
-
-      outValue.replaceUsers(inValue);
-      instructionIterator.removeOrReplaceByDebugLocalRead();
-    }
-  }
-
-  public AssumeRemover removeMarkedInstructions() {
-    return removeMarkedInstructions(null);
-  }
-
-  public AssumeRemover removeMarkedInstructions(Set<BasicBlock> blocksToBeRemoved) {
-    if (!assumeInstructionsToRemove.isEmpty()) {
-      for (BasicBlock block : code.blocks) {
-        if (blocksToBeRemoved != null && blocksToBeRemoved.contains(block)) {
-          continue;
-        }
-        InstructionListIterator instructionIterator = block.listIterator(code);
-        while (instructionIterator.hasNext()) {
-          Instruction instruction = instructionIterator.next();
-          if (instruction.isAssume()) {
-            removeIfMarked(instruction.asAssume(), instructionIterator);
-          }
-        }
-      }
-    }
-    return this;
-  }
-
-  public void finish() {
-    if (!affectedValues.isEmpty()) {
-      new TypeAnalysis(appView).narrowing(affectedValues);
-    }
+    affectedAssumeInstructions.clear();
+    return changed;
   }
 }

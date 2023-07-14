@@ -62,6 +62,8 @@ TIMED_OUT = 'timed_out'
 
 BENCHMARK_APPS = [chrome_data, iosched_data, r8_data, youtube_data]
 
+DEPENDENT_PYTHON_FILES = [gradle, utils, run_on_app]
+
 def find_min_xmx_command(app_data):
   record = app_data.GetMemoryData(app_data.GetLatestVersion())
   assert record['find-xmx-min'] < record['find-xmx-max']
@@ -150,8 +152,8 @@ def get_file_contents():
   contents = []
   with open(sys.argv[0], 'r') as us:
     contents.append(us.read())
-  for app_data in BENCHMARK_APPS:
-    with open(app_data.__file__, 'r') as us:
+  for deps in BENCHMARK_APPS + DEPENDENT_PYTHON_FILES:
+    with open(deps.__file__, 'r') as us:
       contents.append(us.read())
   return contents
 

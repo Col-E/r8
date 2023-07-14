@@ -17,11 +17,10 @@ import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionOrPhi;
-import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.conversion.MethodProcessor;
 import com.android.tools.r8.ir.conversion.passes.BranchSimplifier;
 import com.android.tools.r8.ir.conversion.passes.TrivialCheckCastAndInstanceOfRemover;
-import com.android.tools.r8.ir.optimize.AssumeRemover;
+import com.android.tools.r8.ir.optimize.AffectedValues;
 import com.android.tools.r8.ir.optimize.Inliner;
 import com.android.tools.r8.ir.optimize.InliningOracle;
 import com.android.tools.r8.ir.optimize.classinliner.InlineCandidateProcessor.IllegalClassInlinerStateException;
@@ -32,10 +31,8 @@ import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.LazyBox;
 import com.android.tools.r8.utils.Timing;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 public final class ClassInliner {
@@ -207,11 +204,9 @@ public final class ClassInliner {
         }
 
         // Inline the class instance.
-        Set<Value> affectedValues = Sets.newIdentityHashSet();
-        AssumeRemover assumeRemover = new AssumeRemover(appView, code, affectedValues);
+        AffectedValues affectedValues = new AffectedValues();
         try {
-          anyInlinedMethods |=
-              processor.processInlining(code, affectedValues, assumeRemover, inliningIRProvider);
+          anyInlinedMethods |= processor.processInlining(code, affectedValues, inliningIRProvider);
         } catch (IllegalClassInlinerStateException e) {
           // We introduced a user that we cannot handle in the class inliner as a result of force
           // inlining. Abort gracefully from class inlining without removing the instance.
@@ -225,10 +220,9 @@ public final class ClassInliner {
         }
 
         // Restore normality.
-        assumeRemover.removeMarkedInstructions();
         code.removeAllDeadAndTrivialPhis(affectedValues);
+        affectedValues.narrowingWithAssumeRemoval(appView, code);
         code.removeRedundantBlocks();
-        assumeRemover.finish();
         assert code.isConsistentSSA(appView);
         rootsIterator.remove();
         repeat = true;
