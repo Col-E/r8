@@ -75,7 +75,7 @@ public class BranchSimplifier extends CodeRewriterPass<AppInfo> {
 
   @Override
   protected boolean shouldRewriteCode(IRCode code) {
-    return true;
+    return code.metadata().mayHaveIf() || code.metadata().mayHaveSwitch();
   }
 
   @Override

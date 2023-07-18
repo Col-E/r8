@@ -120,6 +120,10 @@ public class IRMetadata {
     return result;
   }
 
+  public boolean mayHaveIf() {
+    return get(Opcodes.IF);
+  }
+
   public boolean mayHaveInitClass() {
     return get(Opcodes.INIT_CLASS);
   }
