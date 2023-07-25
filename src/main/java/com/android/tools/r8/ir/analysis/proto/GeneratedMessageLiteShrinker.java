@@ -257,7 +257,7 @@ public class GeneratedMessageLiteShrinker {
                 OptimizationFeedbackIgnore.getInstance(),
                 methodProcessor,
                 methodProcessingContext,
-                MethodConversionOptions.forPostLirPhase(appView)),
+                MethodConversionOptions.forLirPhase(appView)),
         executorService);
     timing.end();
   }
@@ -311,6 +311,7 @@ public class GeneratedMessageLiteShrinker {
         assert false;
       }
     }
+    code.removeRedundantBlocks();
     assert code.isConsistentSSA(appView);
   }
 

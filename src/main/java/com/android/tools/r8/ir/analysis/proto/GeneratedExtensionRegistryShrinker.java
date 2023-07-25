@@ -156,6 +156,7 @@ public class GeneratedExtensionRegistryShrinker {
       }
       IRCodeUtils.removeInstructionAndTransitiveInputsIfNotUsed(code, instruction);
     }
+    code.removeRedundantBlocks();
     assert code.isConsistentSSA(appView);
   }
 
@@ -181,7 +182,7 @@ public class GeneratedExtensionRegistryShrinker {
                 OptimizationFeedbackIgnore.getInstance(),
                 methodProcessor,
                 methodProcessingContext,
-                MethodConversionOptions.forPostLirPhase(appView)),
+                MethodConversionOptions.forLirPhase(appView)),
         executorService);
     timing.end();
   }

@@ -385,14 +385,7 @@ public class LirPrinter<EV> extends LirParsedInstructionCallback<EV> {
   }
 
   @Override
-  public void onArrayGetPrimitive(MemberType type, EV array, EV index) {
-    appendOutValue();
-    appendValueArguments(array, index);
-    builder.append(type);
-  }
-
-  @Override
-  public void onArrayGetObject(DexType type, EV array, EV index) {
+  public void onArrayGet(MemberType type, EV array, EV index) {
     appendOutValue();
     appendValueArguments(array, index);
     builder.append(type);
@@ -410,10 +403,9 @@ public class LirPrinter<EV> extends LirParsedInstructionCallback<EV> {
   }
 
   @Override
-  public void onPhi(DexType type, List<EV> operands) {
+  public void onPhi(List<EV> operands) {
     appendOutValue();
     appendValueArguments(operands);
-    builder.append(type);
   }
 
   @Override
