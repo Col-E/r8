@@ -347,6 +347,10 @@
     },
     {
       "api_level_below_or_equal": 25,
+      "rewrite_prefix": {
+        "sun.nio.cs.": "j$.sun.nio.cs.",
+        "sun.util.PreHashedMap": "j$.sun.util.PreHashedMap"
+      },
       "retarget_method": {
         "boolean java.util.Arrays#deepEquals0(java.lang.Object, java.lang.Object)": "java.util.DesugarArrays"
       },
