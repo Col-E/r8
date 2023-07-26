@@ -140,6 +140,7 @@
       "api_level_below_or_equal": 25,
       "rewrite_prefix": {
         "java.time.": "j$.time.",
+        "java.util.Base64": "j$.util.Base64",
         "java.util.Desugar": "j$.util.Desugar"
       },
       "dont_rewrite_prefix": [
