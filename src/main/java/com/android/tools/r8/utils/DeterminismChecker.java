@@ -120,6 +120,12 @@ public class DeterminismChecker {
     if (!callback.onLine(header)) {
       return;
     }
+    // TODO(b/293388944): The comparison is not valid for Strings containing some non
+    //  ASCII characters such as taiwanese characters.
+    if (method.getHolderType().toString().equals("sun.nio.cs.EUC_TWMapping")
+        || method.getHolderType().toString().equals("sun.nio.cs.GB18030")) {
+      return;
+    }
     if (method.hasCode()) {
       List<String> lines = StringUtils.splitLines(method.getCode().toString());
       for (String line : lines) {
