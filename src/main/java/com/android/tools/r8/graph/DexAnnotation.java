@@ -573,25 +573,38 @@ public class DexAnnotation extends DexItem implements StructuralItem<DexAnnotati
       }
     }
 
-    return new DexAnnotation(
-        VISIBILITY_SYSTEM,
-        new DexEncodedAnnotation(
-            factory.annotationRecord,
-            new DexAnnotationElement[] {
-              new DexAnnotationElement(
-                  factory.annotationRecordComponentNames, new DexValueArray(componentNames)),
-              new DexAnnotationElement(
-                  factory.annotationRecordComponentTypes, new DexValueArray(componentTypes)),
-              new DexAnnotationElement(
-                  factory.annotationRecordComponentSignatures,
-                  new DexValueArray(componentSignatures)),
-              new DexAnnotationElement(
-                  factory.annotationRecordComponentAnnotationVisibilities,
-                  new DexValueArray(componentAnnotationVisibilities)),
-              new DexAnnotationElement(
-                  factory.annotationRecordComponentAnnotations,
-                  new DexValueArray(componentAnnotations))
-            }));
+    if (appView.options().emitRecordAnnotationsExInDex) {
+      return new DexAnnotation(
+          VISIBILITY_SYSTEM,
+          new DexEncodedAnnotation(
+              factory.annotationRecord,
+              new DexAnnotationElement[] {
+                new DexAnnotationElement(
+                    factory.annotationRecordComponentNames, new DexValueArray(componentNames)),
+                new DexAnnotationElement(
+                    factory.annotationRecordComponentTypes, new DexValueArray(componentTypes)),
+                new DexAnnotationElement(
+                    factory.annotationRecordComponentSignatures,
+                    new DexValueArray(componentSignatures)),
+                new DexAnnotationElement(
+                    factory.annotationRecordComponentAnnotationVisibilities,
+                    new DexValueArray(componentAnnotationVisibilities)),
+                new DexAnnotationElement(
+                    factory.annotationRecordComponentAnnotations,
+                    new DexValueArray(componentAnnotations))
+              }));
+    } else {
+      return new DexAnnotation(
+          VISIBILITY_SYSTEM,
+          new DexEncodedAnnotation(
+              factory.annotationRecord,
+              new DexAnnotationElement[] {
+                new DexAnnotationElement(
+                    factory.annotationRecordComponentNames, new DexValueArray(componentNames)),
+                new DexAnnotationElement(
+                    factory.annotationRecordComponentTypes, new DexValueArray(componentTypes))
+              }));
+    }
   }
 
   public static String getSignature(DexAnnotation signatureAnnotation) {

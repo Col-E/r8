@@ -39,7 +39,6 @@ public class PermittedSubclassesAttributeInDexTest extends TestBase {
     return getTestParameters().withAllRuntimes().withAllApiLevelsAlsoForCf().build();
   }
 
-  private static final String EXPECTED_OUTPUT_PRE_34 = StringUtils.lines("false");
   private static final String EXPECTED_OUTPUT = StringUtils.lines("true", "true");
 
   @Test
@@ -57,12 +56,9 @@ public class PermittedSubclassesAttributeInDexTest extends TestBase {
 
   private void inspect(CodeInspector inspector) {
     assertEquals(
-        parameters.getBackend().isDex()
-                && parameters.getApiLevel().isGreaterThanOrEqualTo(AndroidApiLevel.U)
-            ? ImmutableList.of(
-                inspector.clazz(Sub1.class).asTypeSubject(),
-                inspector.clazz(Sub2.class).asTypeSubject())
-            : ImmutableList.of(),
+        ImmutableList.of(
+            inspector.clazz(Sub1.class).asTypeSubject(),
+            inspector.clazz(Sub2.class).asTypeSubject()),
         inspector.clazz(C.class).getFinalPermittedSubclassAttributes());
   }
 
@@ -73,17 +69,14 @@ public class PermittedSubclassesAttributeInDexTest extends TestBase {
         .addProgramClassFileData(getTransformedClasses())
         .addProgramClasses(Sub1.class, Sub2.class)
         .setMinApi(parameters)
+        .addOptionsModification(options -> options.emitPermittedSubclassesAnnotationsInDex = true)
         .compile()
         .inspect(this::inspect)
         .run(parameters.getRuntime(), TestClass.class)
         .applyIf(
             // TODO(b/270941147): Partial DEX support in Android U DP1 (reflective APIs).
             parameters.isDexRuntimeVersionNewerThanOrEqual(Version.V14_0_0),
-            r ->
-                r.assertSuccessWithOutput(
-                    parameters.getApiLevel().isGreaterThanOrEqualTo(AndroidApiLevel.U)
-                        ? EXPECTED_OUTPUT
-                        : EXPECTED_OUTPUT_PRE_34),
+            r -> r.assertSuccessWithOutput(EXPECTED_OUTPUT),
             r -> r.assertFailureWithErrorThatThrows(NoSuchMethodError.class));
   }
 
@@ -142,12 +135,10 @@ public class PermittedSubclassesAttributeInDexTest extends TestBase {
 
     public static void main(String[] args) {
       System.out.println(AdditionalClassAPIs.isSealed(C.class));
-      if (AdditionalClassAPIs.isSealed(C.class)) {
-        System.out.println(
-            sameArrayContent(
-                new Class<?>[] {Sub1.class, Sub2.class},
-                AdditionalClassAPIs.getPermittedSubclasses(C.class)));
-      }
+      System.out.println(
+          sameArrayContent(
+              new Class<?>[] {Sub1.class, Sub2.class},
+              AdditionalClassAPIs.getPermittedSubclasses(C.class)));
     }
   }
 

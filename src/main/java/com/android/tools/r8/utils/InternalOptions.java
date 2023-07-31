@@ -468,18 +468,18 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
   public boolean createSingletonsForStatelessLambdas =
       System.getProperty("com.android.tools.r8.createSingletonsForStatelessLambdas") != null;
 
-  // TODO(b/293591931): Remove this flag.
-  //  Flag to allow record annotations in DEX. See b/231930852 for context.
-  private final boolean emitRecordAnnotationsInDex =
+  // Flag to allow record annotations in DEX. See b/231930852 for context.
+  public boolean emitRecordAnnotationsInDex =
       System.getProperty("com.android.tools.r8.emitRecordAnnotationsInDex") != null;
+  public boolean emitRecordAnnotationsExInDex =
+      System.getProperty("com.android.tools.r8.emitRecordAnnotationsExInDex") != null;
 
   // Flag to allow nest annotations in DEX. See b/231930852 for context.
   public boolean emitNestAnnotationsInDex =
       System.getProperty("com.android.tools.r8.emitNestAnnotationsInDex") != null;
 
-  // TODO(b/293591931): Remove this flag.
   // Flag to allow permitted subclasses annotations in DEX. See b/231930852 for context.
-  private final boolean emitPermittedSubclassesAnnotationsInDex =
+  public boolean emitPermittedSubclassesAnnotationsInDex =
       System.getProperty("com.android.tools.r8.emitPermittedSubclassesAnnotationsInDex") != null;
 
   private DumpInputFlags dumpInputFlags = DumpInputFlags.getDefault();
@@ -2606,11 +2606,11 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
   }
 
   public boolean canUseRecords() {
-    return hasFeaturePresentFrom(AndroidApiLevel.U) || emitRecordAnnotationsInDex;
+    return hasFeaturePresentFrom(null) || emitRecordAnnotationsInDex;
   }
 
   public boolean canUseSealedClasses() {
-    return hasFeaturePresentFrom(AndroidApiLevel.U) || emitPermittedSubclassesAnnotationsInDex;
+    return hasFeaturePresentFrom(null) || emitPermittedSubclassesAnnotationsInDex;
   }
 
   public boolean canLeaveStaticInterfaceMethodInvokes() {
