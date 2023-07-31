@@ -20,11 +20,10 @@ import com.android.tools.r8.ir.conversion.passes.CodeRewriterPass;
 import com.android.tools.r8.ir.conversion.passes.result.CodeRewriterResult;
 import com.android.tools.r8.ir.optimize.AffectedValues;
 import com.android.tools.r8.utils.BooleanBox;
+import com.android.tools.r8.utils.WorkList;
 import java.util.ArrayList;
 import java.util.BitSet;
-import java.util.Deque;
 import java.util.HashMap;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
@@ -59,13 +58,9 @@ public class SparseConditionalConstantPropagation extends CodeRewriterPass<AppIn
     private final IRCode code;
     private final Map<Value, LatticeElement> mapping = new HashMap<>();
 
-    // TODO(b/270398965): Replace LinkedList.
-    @SuppressWarnings("JdkObsolete")
-    private final Deque<Value> ssaEdges = new LinkedList<>();
+    private final WorkList<Value> ssaEdges = WorkList.newIdentityWorkList();
 
-    // TODO(b/270398965): Replace LinkedList.
-    @SuppressWarnings("JdkObsolete")
-    private final Deque<BasicBlock> flowEdges = new LinkedList<>();
+    private final WorkList<BasicBlock> flowEdges = WorkList.newIdentityWorkList();
 
     private final BitSet[] executableFlowEdges;
     private final BitSet visitedBlocks;
@@ -81,9 +76,9 @@ public class SparseConditionalConstantPropagation extends CodeRewriterPass<AppIn
       BasicBlock firstBlock = code.entryBlock();
       visitInstructions(firstBlock);
 
-      while (!flowEdges.isEmpty() || !ssaEdges.isEmpty()) {
-        while (!flowEdges.isEmpty()) {
-          BasicBlock block = flowEdges.poll();
+      while (flowEdges.hasNext() || ssaEdges.hasNext()) {
+        while (flowEdges.hasNext()) {
+          BasicBlock block = flowEdges.removeSeen();
           for (Phi phi : block.getPhis()) {
             visitPhi(phi);
           }
@@ -91,8 +86,8 @@ public class SparseConditionalConstantPropagation extends CodeRewriterPass<AppIn
             visitInstructions(block);
           }
         }
-        while (!ssaEdges.isEmpty()) {
-          Value value = ssaEdges.poll();
+        while (ssaEdges.hasNext()) {
+          Value value = ssaEdges.removeSeen();
           for (Phi phi : value.uniquePhiUsers()) {
             visitPhi(phi);
           }
@@ -186,7 +181,7 @@ public class SparseConditionalConstantPropagation extends CodeRewriterPass<AppIn
       if (!element.isTop()) {
         LatticeElement currentPhiElement = getLatticeElement(phi);
         if (currentPhiElement.meet(element) != currentPhiElement) {
-          ssaEdges.add(phi);
+          ssaEdges.addIfNotSeen(phi);
           setLatticeElement(phi, element);
         }
       }
@@ -200,12 +195,12 @@ public class SparseConditionalConstantPropagation extends CodeRewriterPass<AppIn
     }
 
     private void visitInstruction(Instruction instruction) {
-      if (instruction.outValue() != null && !instruction.isDebugLocalUninitialized()) {
+      if (instruction.hasOutValue() && !instruction.isDebugLocalUninitialized()) {
         LatticeElement element = instruction.evaluate(code, this::getLatticeElement);
         LatticeElement currentLattice = getLatticeElement(instruction.outValue());
         if (currentLattice.meet(element) != currentLattice) {
           setLatticeElement(instruction.outValue(), element);
-          ssaEdges.add(instruction.outValue());
+          ssaEdges.addIfNotSeen(instruction.outValue());
         }
       }
       if (instruction.isJumpInstruction()) {
@@ -224,7 +219,7 @@ public class SparseConditionalConstantPropagation extends CodeRewriterPass<AppIn
             BasicBlock target = theIf.targetFromCondition(element.asConst().getConstNumber());
             if (!isExecutableEdge(jumpInstBlockNumber, target.getNumber())) {
               setExecutableEdge(jumpInstBlockNumber, target.getNumber());
-              flowEdges.add(target);
+              flowEdges.addIfNotSeen(target);
             }
             return;
           }
@@ -237,7 +232,7 @@ public class SparseConditionalConstantPropagation extends CodeRewriterPass<AppIn
             BasicBlock target = theIf.targetFromCondition(leftNumber, rightNumber);
             if (!isExecutableEdge(jumpInstBlockNumber, target.getNumber())) {
               setExecutableEdge(jumpInstBlockNumber, target.getNumber());
-              flowEdges.add(target);
+              flowEdges.addIfNotSeen(target);
             }
             return;
           }
@@ -255,7 +250,7 @@ public class SparseConditionalConstantPropagation extends CodeRewriterPass<AppIn
           }
           assert target != null;
           setExecutableEdge(jumpInstBlockNumber, target.getNumber());
-          flowEdges.add(target);
+          flowEdges.addIfNotSeen(target);
           return;
         }
       } else if (jumpInstruction.isStringSwitch()) {
@@ -266,7 +261,7 @@ public class SparseConditionalConstantPropagation extends CodeRewriterPass<AppIn
           assert switchElement.asConst().getConstNumber().isZero();
           BasicBlock target = switchInst.fallthroughBlock();
           setExecutableEdge(jumpInstBlockNumber, target.getNumber());
-          flowEdges.add(target);
+          flowEdges.addIfNotSeen(target);
           return;
         }
       } else {
@@ -276,7 +271,7 @@ public class SparseConditionalConstantPropagation extends CodeRewriterPass<AppIn
       for (BasicBlock dst : jumpInstBlock.getSuccessors()) {
         if (!isExecutableEdge(jumpInstBlockNumber, dst.getNumber())) {
           setExecutableEdge(jumpInstBlockNumber, dst.getNumber());
-          flowEdges.add(dst);
+          flowEdges.addIfNotSeen(dst);
         }
       }
     }
