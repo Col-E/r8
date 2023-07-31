@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.desugar.records;
 
+import static com.android.tools.r8.utils.codeinspector.Matchers.isAbsent;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresentAndRenamed;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
@@ -185,8 +186,8 @@ public class RecordComponentSignatureTest extends TestBase {
             inspector -> {
               ClassSubject person = inspector.clazz("records.RecordWithSignature$Person");
               FieldSubject age = person.uniqueFieldWithOriginalName("age");
-              assertThat(age, isPresentAndRenamed());
               if (compilingForNativeRecordSupport) {
+                assertThat(age, isPresentAndRenamed());
                 assertEquals(1, person.getFinalRecordComponents().size());
                 assertEquals(
                     age.getFinalName(), person.getFinalRecordComponents().get(0).getName());
@@ -199,6 +200,7 @@ public class RecordComponentSignatureTest extends TestBase {
                 }
                 assertEquals(0, person.getFinalRecordComponents().get(0).getAnnotations().size());
               } else {
+                assertThat(age, isAbsent());
                 assertEquals(0, person.getFinalRecordComponents().size());
               }
             })
