@@ -4,9 +4,13 @@
 
 package com.android.tools.r8.desugar.records;
 
+import static com.android.tools.r8.DiagnosticsMatcher.diagnosticMessage;
+import static org.hamcrest.CoreMatchers.containsString;
+
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
+import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.StringUtils;
 import java.nio.file.Path;
 import org.junit.Test;
@@ -77,7 +81,20 @@ public class RecordInvokeCustomSplitDesugaringTest extends TestBase {
         .addProgramFiles(desugared)
         .setMinApi(parameters)
         .addKeepMainRule(MAIN_TYPE)
-        .compile()
+        .applyIf(
+            parameters.getApiLevel().isGreaterThanOrEqualTo(AndroidApiLevel.U),
+            b -> b.allowDiagnosticWarningMessages())
+        .compileWithExpectedDiagnostics(
+            // Type com.android.tools.r8.RecordTag from desugared code will be converted to
+            // java.lang.Record during reading causing duplicate java.lang.Record class.
+            parameters.getApiLevel().isGreaterThanOrEqualTo(AndroidApiLevel.U)
+                ? diagnostics ->
+                    diagnostics.assertWarningsMatch(
+                        diagnosticMessage(
+                            containsString(
+                                "The following library types, prefixed by java., are present both"
+                                    + " as library and non library classes: java.lang.Record.")))
+                : diagnostics -> diagnostics.assertNoMessages())
         .run(parameters.getRuntime(), MAIN_TYPE)
         .assertSuccessWithOutput(EXPECTED_RESULT_R8);
   }

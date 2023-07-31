@@ -377,7 +377,7 @@ def cloudDependencies = [
                 "linux/art-10.0.0",
                 "linux/host/art-12.0.0-beta4",
                 "linux/host/art-13.0.0",
-                "linux/host/art-14.0.0-dp1",
+                "linux/host/art-14.0.0-beta3",
                 "linux/host/art-master",
                 "linux/dalvik",
                 "linux/dalvik-4.0.4",

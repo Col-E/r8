@@ -10,6 +10,9 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 import java.lang.reflect.Field;
 import java.lang.reflect.RecordComponent;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
 
 public class RecordWithAnnotations {
 
@@ -56,16 +59,39 @@ public class RecordWithAnnotations {
         System.out.println(c.getType().getName());
         System.out.println(c.getGenericSignature() == null);
         System.out.println(c.getAnnotations().length);
+        // Collect and sort the annotations, as the order is not deterministic on Art (tested
+        // on Art 14 Beta 3).
+        List<String> annotations = new ArrayList<>();
         for (int j = 0; j < c.getAnnotations().length; j++) {
-          System.out.println(c.getAnnotations()[j]);
+          annotations.add(c.getAnnotations()[j].toString());
+        }
+        annotations.sort(Comparator.naturalOrder());
+        for (int j = 0; j < annotations.size(); j++) {
+          System.out.println(annotations.get(j));
         }
       }
       System.out.println(Person.class.getDeclaredFields().length);
+      List<Field> fields = new ArrayList<>();
       for (int i = 0; i < Person.class.getDeclaredFields().length; i++) {
-        Field f = Person.class.getDeclaredFields()[i];
+        fields.add(Person.class.getDeclaredFields()[i]);
+      }
+      fields.sort(
+          new Comparator<Field>() {
+            @Override
+            public int compare(Field o1, Field o2) {
+              return o1.getName().compareTo(o2.getName());
+            }
+          });
+      for (int i = 0; i < fields.size(); i++) {
+        Field f = fields.get(i);
         System.out.println(f.getDeclaredAnnotations().length);
+        List<String> annotations = new ArrayList<>();
         for (int j = 0; j < f.getDeclaredAnnotations().length; j++) {
-          System.out.println(f.getAnnotations()[j]);
+          annotations.add(f.getAnnotations()[j].toString());
+        }
+        annotations.sort(Comparator.naturalOrder());
+        for (int j = 0; j < annotations.size(); j++) {
+          System.out.println(annotations.get(j));
         }
       }
     }

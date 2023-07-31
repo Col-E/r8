@@ -130,7 +130,12 @@ public class InvokeSpecialMethodHandleTest extends TestBase {
       } else if (parameters.isDexRuntime()
           && parameters.asDexRuntime().getVersion().isNewerThan(Version.V9_0_0)) {
         // VMs between 9 and 13 segfault.
-        result.assertFailureWithErrorThatMatches(containsString("HandleUnexpectedSignal"));
+        if (parameters.asDexRuntime().getVersion().isEqualTo(Version.V14_0_0)) {
+          result.assertFailureWithOutputThatMatches(
+              containsString("reverting to SIG_DFL handler for signal 11"));
+        } else {
+          result.assertFailureWithErrorThatMatches(containsString("HandleUnexpectedSignal"));
+        }
       } else {
         result.assertSuccessWithOutput(getExpected());
       }

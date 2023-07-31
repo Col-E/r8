@@ -12,6 +12,7 @@ import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification;
 import com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification;
+import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.StringUtils;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -69,11 +70,13 @@ public class DateTimeFormatterTest extends DesugaredLibraryTestBase {
     if (libraryDesugaringSpecification.hasTimeDesugaring(parameters)) {
       run.assertSuccessWithOutput(
           parameters.isDexRuntimeVersionNewerThanOrEqual(Version.V14_0_0)
+                  && parameters.getApiLevel().isGreaterThanOrEqualTo(AndroidApiLevel.U)
               ? expectedOutputDesugaredLibNNBSP
               : expectedOutputDesugaredLib);
     } else {
       run.assertSuccessWithOutput(
           parameters.isDexRuntimeVersionNewerThanOrEqual(Version.V14_0_0)
+                  && parameters.getApiLevel().isGreaterThanOrEqualTo(AndroidApiLevel.U)
               ? expectedOutputNNBSP
               : expectedOutput);
     }

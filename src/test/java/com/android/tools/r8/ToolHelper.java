@@ -789,7 +789,7 @@ public class ToolHelper {
       ImmutableMap.<DexVm, String>builder()
           .put(DexVm.ART_DEFAULT, "art")
           .put(DexVm.ART_MASTER_HOST, "host/art-master")
-          .put(DexVm.ART_14_0_0_HOST, "host/art-14.0.0-dp1")
+          .put(DexVm.ART_14_0_0_HOST, "host/art-14.0.0-beta3")
           .put(DexVm.ART_13_0_0_HOST, "host/art-13.0.0")
           .put(DexVm.ART_12_0_0_HOST, "host/art-12.0.0-beta4")
           .put(DexVm.ART_10_0_0_HOST, "art-10.0.0")
