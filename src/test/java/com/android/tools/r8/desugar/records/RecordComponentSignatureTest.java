@@ -98,16 +98,7 @@ public class RecordComponentSignatureTest extends TestBase {
     boolean runningWithNativeRecordSupport =
         parameters.getRuntime().isDex()
             && parameters.getRuntime().asDex().getVersion().isNewerThanOrEqual(Version.V14_0_0);
-    testForDesugaring(
-            parameters,
-            options -> {
-              if (compilingForNativeRecordSupport) {
-                // TODO(b/231930852): When Art 14 support records this will be controlled by API
-                // level.
-                options.emitRecordAnnotationsInDex = true;
-                options.emitRecordAnnotationsExInDex = true;
-              }
-            })
+    testForDesugaring(parameters)
         .addProgramClassFileData(PROGRAM_DATA)
         .run(parameters.getRuntime(), MAIN_TYPE)
         .applyIf(
@@ -175,12 +166,6 @@ public class RecordComponentSignatureTest extends TestBase {
         .addKeepMainRule(MAIN_TYPE)
         .applyIf(keepSignatures, TestShrinkerBuilder::addKeepAttributeSignature)
         .setMinApi(parameters)
-        .applyIf(
-            compilingForNativeRecordSupport,
-            // TODO(b/231930852): When Art 14 support records this will be controlled by API level.
-            b ->
-                b.addOptionsModification(options -> options.emitRecordAnnotationsInDex = true)
-                    .addOptionsModification(options -> options.emitRecordAnnotationsExInDex = true))
         .compile()
         .inspect(
             inspector -> {
