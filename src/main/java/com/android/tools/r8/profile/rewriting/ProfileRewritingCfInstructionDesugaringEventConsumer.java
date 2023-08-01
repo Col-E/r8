@@ -427,4 +427,10 @@ public class ProfileRewritingCfInstructionDesugaringEventConsumer
     assert parent.verifyNothingToFinalize();
     return true;
   }
+
+  @Override
+  public void acceptDesugaredLibraryBridge(ProgramMethod method, ProgramMethod context) {
+    additionsCollection.addMethodAndHolderIfContextIsInProfile(method, context);
+    parent.acceptDesugaredLibraryBridge(method, context);
+  }
 }

@@ -21,6 +21,7 @@ import com.android.tools.r8.ir.desugar.backports.BackportedMethodDesugaringEvent
 import com.android.tools.r8.ir.desugar.constantdynamic.ConstantDynamicClass;
 import com.android.tools.r8.ir.desugar.constantdynamic.ConstantDynamicDesugaringEventConsumer;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.apiconversion.DesugaredLibraryWrapperSynthesizerEventConsumer.DesugaredLibraryAPIConverterEventConsumer;
+import com.android.tools.r8.ir.desugar.desugaredlibrary.retargeter.DesugaredLibRewriterEventConsumer;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.retargeter.DesugaredLibraryRetargeterSynthesizerEventConsumer.DesugaredLibraryRetargeterInstructionEventConsumer;
 import com.android.tools.r8.ir.desugar.invokespecial.InvokeSpecialBridgeInfo;
 import com.android.tools.r8.ir.desugar.invokespecial.InvokeSpecialToSelfDesugaringEventConsumer;
@@ -66,7 +67,8 @@ public abstract class CfInstructionDesugaringEventConsumer
         DesugaredLibraryAPIConverterEventConsumer,
         ClasspathEmulatedInterfaceSynthesizerEventConsumer,
         ApiInvokeOutlinerDesugaringEventConsumer,
-        VarHandleDesugaringEventConsumer {
+        VarHandleDesugaringEventConsumer,
+        DesugaredLibRewriterEventConsumer {
 
   public static CfInstructionDesugaringEventConsumer createForD8(
       AppView<?> appView,
@@ -184,6 +186,11 @@ public abstract class CfInstructionDesugaringEventConsumer
           .forEach(
               method ->
                   methodProcessor.scheduleMethodForProcessing(method, outermostEventConsumer));
+    }
+
+    @Override
+    public void acceptDesugaredLibraryBridge(ProgramMethod method, ProgramMethod context) {
+      methodProcessor.scheduleMethodForProcessing(method, outermostEventConsumer);
     }
 
     @Override
@@ -523,6 +530,11 @@ public abstract class CfInstructionDesugaringEventConsumer
 
     @Override
     public void acceptCollectionConversion(ProgramMethod arrayConversion, ProgramMethod context) {
+      // Intentionally empty. The method will be hit by tracing if required.
+    }
+
+    @Override
+    public void acceptDesugaredLibraryBridge(ProgramMethod method, ProgramMethod context) {
       // Intentionally empty. The method will be hit by tracing if required.
     }
 

@@ -18,6 +18,7 @@ import com.android.tools.r8.ir.desugar.apimodel.ApiInvokeOutlinerDesugaring;
 import com.android.tools.r8.ir.desugar.constantdynamic.ConstantDynamicInstructionDesugaring;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.apiconversion.DesugaredLibraryAPIConverter;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.disabledesugarer.DesugaredLibraryDisableDesugarer;
+import com.android.tools.r8.ir.desugar.desugaredlibrary.retargeter.DesugaredLibraryLibRewriter;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.retargeter.DesugaredLibraryRetargeter;
 import com.android.tools.r8.ir.desugar.icce.AlwaysThrowingInstructionDesugaring;
 import com.android.tools.r8.ir.desugar.invokespecial.InvokeSpecialToSelfDesugaring;
@@ -84,6 +85,10 @@ public class NonEmptyCfInstructionDesugaringCollection extends CfInstructionDesu
     }
     this.nestBasedAccessDesugaring = NestBasedAccessDesugaring.create(appView);
     BackportedMethodRewriter backportedMethodRewriter = new BackportedMethodRewriter(appView);
+    DesugaredLibraryLibRewriter desugaredLibRewriter = DesugaredLibraryLibRewriter.create(appView);
+    if (desugaredLibRewriter != null) {
+      desugarings.add(desugaredLibRewriter);
+    }
     desugaredLibraryRetargeter =
         appView.options().machineDesugaredLibrarySpecification.hasRetargeting()
             ? new DesugaredLibraryRetargeter(appView)
