@@ -29,6 +29,7 @@ import java.nio.file.Paths;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
+import java.util.function.Supplier;
 import org.junit.rules.TemporaryFolder;
 
 public class LibraryDesugaringSpecification {
@@ -91,22 +92,27 @@ public class LibraryDesugaringSpecification {
     LATEST
   }
 
-  private static final Path tempLibraryJDK11Undesugar = createUndesugaredJdk11LibJarForTesting();
+  private static Path tempLibraryJdk11UndesugarCache;
 
-  private static Path createUndesugaredJdk11LibJarForTesting() {
+  private static synchronized Path ensureUndesugaredJdk11LibJarForTesting() {
+    if (tempLibraryJdk11UndesugarCache != null) {
+      return tempLibraryJdk11UndesugarCache;
+    }
     try {
       TemporaryFolder staticTemp = ToolHelper.getTemporaryFolderForTest();
       staticTemp.create();
       Path jdklib_desugaring = staticTemp.newFolder("jdklib_desugaring").toPath();
-      return DesugaredLibraryJDK11Undesugarer.undesugaredJarJDK11(
-          jdklib_desugaring, DESUGARED_JDK_11_LIB_JAR);
+      tempLibraryJdk11UndesugarCache =
+          DesugaredLibraryJDK11Undesugarer.undesugaredJarJDK11(
+              jdklib_desugaring, DESUGARED_JDK_11_LIB_JAR);
+      return tempLibraryJdk11UndesugarCache;
     } catch (IOException e) {
       throw new RuntimeException(e);
     }
   }
 
   public static Path getTempLibraryJDK11Undesugar() {
-    return tempLibraryJDK11Undesugar;
+    return ensureUndesugaredJdk11LibJarForTesting();
   }
 
   // Main head specifications.
@@ -121,7 +127,7 @@ public class LibraryDesugaringSpecification {
   public static LibraryDesugaringSpecification JDK11 =
       new LibraryDesugaringSpecification(
           "JDK11",
-          tempLibraryJDK11Undesugar,
+          LibraryDesugaringSpecification::ensureUndesugaredJdk11LibJarForTesting,
           "jdk11/desugar_jdk_libs.json",
           AndroidApiLevel.R,
           JDK11_DESCRIPTOR,
@@ -129,7 +135,7 @@ public class LibraryDesugaringSpecification {
   public static LibraryDesugaringSpecification JDK11_MINIMAL =
       new LibraryDesugaringSpecification(
           "JDK11_MINIMAL",
-          tempLibraryJDK11Undesugar,
+          LibraryDesugaringSpecification::ensureUndesugaredJdk11LibJarForTesting,
           "jdk11/desugar_jdk_libs_minimal.json",
           AndroidApiLevel.R,
           EMPTY_DESCRIPTOR_24,
@@ -137,7 +143,7 @@ public class LibraryDesugaringSpecification {
   public static LibraryDesugaringSpecification JDK11_PATH =
       new LibraryDesugaringSpecification(
           "JDK11_PATH",
-          tempLibraryJDK11Undesugar,
+          LibraryDesugaringSpecification::ensureUndesugaredJdk11LibJarForTesting,
           "jdk11/desugar_jdk_libs_nio.json",
           AndroidApiLevel.R,
           JDK11_PATH_DESCRIPTOR,
@@ -165,7 +171,8 @@ public class LibraryDesugaringSpecification {
       new LibraryDesugaringSpecification("1.1.5", AndroidApiLevel.P);
 
   private final String name;
-  private final Set<Path> desugarJdkLibs;
+  private final Set<Supplier<Path>> desugarJdkLibsProvider;
+  private Set<Path> desugarJdkLibs;
   private final Path specification;
   private final Set<Path> libraryFiles;
   private final Descriptor descriptor;
@@ -195,7 +202,36 @@ public class LibraryDesugaringSpecification {
       Set<Path> libraryFiles,
       Descriptor descriptor,
       String extraKeepRules) {
+    this(name, null, desugarJdkLibs, specification, libraryFiles, descriptor, extraKeepRules);
+  }
+
+  private LibraryDesugaringSpecification(
+      String name,
+      Supplier<Path> desugarJdkLibsSupplier,
+      String specificationPath,
+      AndroidApiLevel androidJarLevel,
+      Descriptor descriptor,
+      CustomConversionVersion legacy) {
+    this(
+        name,
+        ImmutableSet.of(desugarJdkLibsSupplier, () -> ToolHelper.getDesugarLibConversions(legacy)),
+        null,
+        Paths.get(ToolHelper.LIBRARY_DESUGAR_SOURCE_DIR + specificationPath),
+        ImmutableSet.of(ToolHelper.getAndroidJar(androidJarLevel)),
+        descriptor,
+        "");
+  }
+
+  private LibraryDesugaringSpecification(
+      String name,
+      Set<Supplier<Path>> desugarJdkLibsSuppliers,
+      Set<Path> desugarJdkLibs,
+      Path specification,
+      Set<Path> libraryFiles,
+      Descriptor descriptor,
+      String extraKeepRules) {
     this.name = name;
+    this.desugarJdkLibsProvider = desugarJdkLibsSuppliers;
     this.desugarJdkLibs = desugarJdkLibs;
     this.specification = specification;
     this.libraryFiles = libraryFiles;
@@ -220,7 +256,14 @@ public class LibraryDesugaringSpecification {
     return name;
   }
 
-  public Set<Path> getDesugarJdkLibs() {
+  public synchronized Set<Path> getDesugarJdkLibs() {
+    if (desugarJdkLibs == null) {
+      ImmutableSet.Builder<Path> builder = ImmutableSet.builder();
+      for (Supplier<Path> pathSupplier : desugarJdkLibsProvider) {
+        builder.add(pathSupplier.get());
+      }
+      desugarJdkLibs = builder.build();
+    }
     return desugarJdkLibs;
   }
 
