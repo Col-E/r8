@@ -133,7 +133,7 @@ public class NewArrayFilledData extends Instruction {
   public AbstractValue getAbstractValue(
       AppView<? extends AppInfoWithClassHierarchy> appView, ProgramMethod context) {
     if (!instructionMayHaveSideEffects(appView, context) && size <= Integer.MAX_VALUE) {
-      assert !instructionInstanceCanThrow();
+      assert !instructionInstanceCanThrow(appView, context);
       return StatefulObjectValue.create(
           appView.abstractValueFactory().createKnownLengthArrayState((int) size));
     }

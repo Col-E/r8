@@ -139,15 +139,9 @@ public class ArrayPut extends ArrayAccess {
 
   @Override
   public boolean instructionInstanceCanThrow(AppView<?> appView, ProgramMethod context) {
-    // In debug mode, ArrayPut has a side-effect on the locals.
-    if (appView.options().debug) {
-      return true;
-    }
-
-    // In release mode, ArrayPut has side-effects on the input array, unless the index is in bounds
-    // and the array is never used.
+    // Check that the array is guaranteed to be non-null and that the index is within bounds.
     Value array = array().getAliasedValue();
-    if (array.isPhi() || !array.definition.isNewArrayEmpty()) {
+    if (!array.isDefinedByInstructionSatisfying(Instruction::isNewArrayEmpty)) {
       return true;
     }
 
@@ -168,6 +162,10 @@ public class ArrayPut extends ArrayAccess {
       return true;
     }
 
+    if (array.hasLocalInfo() || indexValue.hasLocalInfo() || sizeValue.hasLocalInfo()) {
+      return true;
+    }
+
     // Check for type errors.
     TypeElement arrayType = array.getType();
     TypeElement valueType = value().getType();
@@ -175,10 +173,7 @@ public class ArrayPut extends ArrayAccess {
       return true;
     }
     TypeElement memberType = arrayType.asArrayType().getMemberTypeAsValueType();
-    if (!valueType.lessThanOrEqualUpToNullability(memberType, appView)) {
-      return true;
-    }
-    return false;
+    return !valueType.lessThanOrEqualUpToNullability(memberType, appView);
   }
 
   @Override

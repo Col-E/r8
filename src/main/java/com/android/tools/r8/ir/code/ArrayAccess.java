@@ -4,6 +4,8 @@
 
 package com.android.tools.r8.ir.code;
 
+import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.ProgramMethod;
 import java.util.List;
 
 public abstract class ArrayAccess extends Instruction implements ImpreciseMemberTypeInstruction {
@@ -48,7 +50,7 @@ public abstract class ArrayAccess extends Instruction implements ImpreciseMember
   }
 
   @Override
-  public boolean instructionInstanceCanThrow() {
+  public boolean instructionInstanceCanThrow(AppView<?> appView, ProgramMethod context) {
     // TODO(b/203731608): Add parameters to the method and use abstract value in R8.
     if (index().isConstant() && !array().isPhi() && array().definition.isNewArrayEmpty()) {
       Value newArraySizeValue = array().definition.asNewArrayEmpty().size();

@@ -188,7 +188,7 @@ public class StringOptimizer {
       Value rcv = invoke.getReceiver().getAliasedValue();
       if (rcv.definition == null
           || !rcv.definition.isConstString()
-          || rcv.definition.asConstString().instructionInstanceCanThrow()
+          || rcv.definition.asConstString().instructionInstanceCanThrow(appView, code.context())
           || rcv.hasLocalInfo()) {
         continue;
       }

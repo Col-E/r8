@@ -128,7 +128,7 @@ public class DexItemBasedConstString extends ConstInstruction {
   }
 
   @Override
-  public boolean instructionInstanceCanThrow() {
+  public boolean instructionInstanceCanThrow(AppView<?> appView, ProgramMethod context) {
     // A const-string instruction can usually throw an exception if the decoding of the string
     // fails. Since this string corresponds to a type or member name, though, decoding cannot fail.
     return false;

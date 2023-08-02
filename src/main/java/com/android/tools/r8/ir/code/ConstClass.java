@@ -118,11 +118,6 @@ public class ConstClass extends ConstInstruction {
   }
 
   @Override
-  public boolean instructionInstanceCanThrow() {
-    return true;
-  }
-
-  @Override
   public boolean instructionInstanceCanThrow(AppView<?> appView, ProgramMethod context) {
     DexType baseType = getValue().toBaseType(appView.dexItemFactory());
     if (baseType.isPrimitiveType()) {

@@ -646,7 +646,8 @@ public class MethodOptimizationInfoCollector {
           } else if (instr.instructionMayHaveSideEffects(appView, code.context())) {
             // If the current instruction is const-string, this could load the parameter name.
             // Just make sure it is indeed not throwing.
-            if (instr.isConstString() && !instr.instructionInstanceCanThrow()) {
+            if (instr.isConstString()
+                && !instr.instructionInstanceCanThrow(appView, code.context())) {
               return InstructionEffect.NO_EFFECT;
             }
             // We found a side effect before a NPE check.

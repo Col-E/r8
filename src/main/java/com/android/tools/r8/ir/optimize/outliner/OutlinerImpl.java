@@ -1259,7 +1259,8 @@ public class OutlinerImpl extends Outliner {
               continue;
             }
             int currentPositionIndex = outlinePositionIndex++;
-            if (current.getPosition() != null && current.instructionInstanceCanThrow()) {
+            if (current.getPosition() != null
+                && current.instructionInstanceCanThrow(appView, method)) {
               positionBuilder.addOutlinePosition(currentPositionIndex, current.getPosition());
             }
 

@@ -79,7 +79,7 @@ public class SingleStringValue extends SingleConstValue {
             stringClassType(appView, definitelyNotNull()),
             debugLocalInfo);
     ConstString instruction = new ConstString(returnedValue, string);
-    assert !instruction.instructionInstanceCanThrow();
+    assert !instruction.instructionInstanceCanThrow(appView, context);
     return instruction;
   }
 

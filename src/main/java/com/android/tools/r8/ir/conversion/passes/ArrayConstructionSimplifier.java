@@ -123,7 +123,7 @@ public class ArrayConstructionSimplifier extends CodeRewriterPass<AppInfo> {
       }
       FilledArrayConversionInfo info =
           computeConversionInfo(
-              candidate, new LinearFlowInstructionListIterator(code, block, it.nextIndex()));
+              code, candidate, new LinearFlowInstructionListIterator(code, block, it.nextIndex()));
       if (info == null) {
         continue;
       }
@@ -252,7 +252,7 @@ public class ArrayConstructionSimplifier extends CodeRewriterPass<AppInfo> {
   }
 
   private FilledArrayConversionInfo computeConversionInfo(
-      FilledArrayCandidate candidate, LinearFlowInstructionListIterator it) {
+      IRCode code, FilledArrayCandidate candidate, LinearFlowInstructionListIterator it) {
     NewArrayEmpty newArrayEmpty = candidate.newArrayEmpty;
     assert it.peekPrevious() == newArrayEmpty;
     Value arrayValue = newArrayEmpty.outValue();
@@ -279,7 +279,8 @@ public class ArrayConstructionSimplifier extends CodeRewriterPass<AppInfo> {
       // optimization so that we do not transform half-initialized arrays into fully initialized
       // arrays on exceptional edges. If the block has no handlers it is not observable so
       // we perform the rewriting.
-      if (block.hasCatchHandlers() && instruction.instructionInstanceCanThrow()) {
+      if (block.hasCatchHandlers()
+          && instruction.instructionInstanceCanThrow(appView, code.context())) {
         return null;
       }
       if (!users.contains(instruction)) {
@@ -299,7 +300,7 @@ public class ArrayConstructionSimplifier extends CodeRewriterPass<AppInfo> {
       if (!arrayPut.index().isConstNumber()) {
         return null;
       }
-      if (arrayPut.instructionInstanceCanThrow()) {
+      if (arrayPut.instructionInstanceCanThrow(appView, code.context())) {
         assert false;
         return null;
       }

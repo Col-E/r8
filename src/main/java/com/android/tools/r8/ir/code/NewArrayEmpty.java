@@ -78,7 +78,7 @@ public class NewArrayEmpty extends Instruction {
   }
 
   @Override
-  public boolean instructionInstanceCanThrow() {
+  public boolean instructionInstanceCanThrow(AppView<?> appView, ProgramMethod context) {
     return !(size().definition != null
         && size().definition.isConstNumber()
         && size().definition.asConstNumber().getRawValue() >= 0
@@ -89,7 +89,7 @@ public class NewArrayEmpty extends Instruction {
   public AbstractValue getAbstractValue(
       AppView<? extends AppInfoWithClassHierarchy> appView, ProgramMethod context) {
     if (!instructionMayHaveSideEffects(appView, context) && size().getType().isInt()) {
-      assert !instructionInstanceCanThrow();
+      assert !instructionInstanceCanThrow(appView, context);
       return StatefulObjectValue.create(
           appView
               .abstractValueFactory()
@@ -100,7 +100,7 @@ public class NewArrayEmpty extends Instruction {
 
   @Override
   public DeadInstructionResult canBeDeadCode(AppView<?> appView, IRCode code) {
-    if (instructionInstanceCanThrow()) {
+    if (instructionInstanceCanThrow(appView, code.context())) {
       return DeadInstructionResult.notDead();
     }
     // This would belong better in instructionInstanceCanThrow, but that is not passed an appInfo.

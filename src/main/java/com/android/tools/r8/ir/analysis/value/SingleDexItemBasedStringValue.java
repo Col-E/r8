@@ -92,7 +92,7 @@ public class SingleDexItemBasedStringValue extends SingleConstValue {
             debugLocalInfo);
     DexItemBasedConstString instruction =
         new DexItemBasedConstString(returnedValue, item, nameComputationInfo);
-    assert !instruction.instructionInstanceCanThrow();
+    assert !instruction.instructionInstanceCanThrow(appView, context);
     return instruction;
   }
 

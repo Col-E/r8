@@ -604,17 +604,13 @@ public abstract class Instruction
     return false;
   }
 
-  public boolean instructionInstanceCanThrow() {
-    return instructionTypeCanThrow();
-  }
-
   public boolean instructionMayHaveSideEffects(AppView<?> appView, ProgramMethod context) {
     return instructionMayHaveSideEffects(appView, context, SideEffectAssumption.NONE);
   }
 
   public boolean instructionMayHaveSideEffects(
       AppView<?> appView, ProgramMethod context, SideEffectAssumption assumption) {
-    return instructionInstanceCanThrow();
+    return instructionInstanceCanThrow(appView, context);
   }
 
   /**
@@ -625,7 +621,7 @@ public abstract class Instruction
       AppView<?> appView, ProgramMethod context);
 
   public boolean instructionInstanceCanThrow(AppView<?> appView, ProgramMethod context) {
-    return instructionInstanceCanThrow();
+    return instructionTypeCanThrow();
   }
 
   /** Returns true is this instruction can be treated as dead code if its outputs are not used. */

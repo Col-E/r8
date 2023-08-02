@@ -119,7 +119,6 @@ public class ConstString extends ConstInstruction {
     return this;
   }
 
-  @Override
   public boolean instructionInstanceCanThrow() {
     // The const-string instruction can be a throwing instruction in DEX, if decode() fails.
     try {
@@ -135,9 +134,15 @@ public class ConstString extends ConstInstruction {
   }
 
   @Override
+  public boolean instructionInstanceCanThrow(AppView<?> appView, ProgramMethod context) {
+    return instructionInstanceCanThrow();
+  }
+
+  @Override
   public DeadInstructionResult canBeDeadCode(AppView<?> appView, IRCode code) {
     // No side-effect, such as throwing an exception, in CF.
-    if (appView.options().isGeneratingClassFiles() || !instructionInstanceCanThrow()) {
+    if (appView.options().isGeneratingClassFiles()
+        || !instructionInstanceCanThrow(appView, code.context())) {
       return DeadInstructionResult.deadIfOutValueIsDead();
     }
     return DeadInstructionResult.notDead();
@@ -171,7 +176,7 @@ public class ConstString extends ConstInstruction {
   @Override
   public AbstractValue getAbstractValue(
       AppView<? extends AppInfoWithClassHierarchy> appView, ProgramMethod context) {
-    if (!instructionInstanceCanThrow()) {
+    if (!instructionInstanceCanThrow(appView, context)) {
       return appView.abstractValueFactory().createSingleStringValue(value);
     }
     return UnknownValue.getInstance();

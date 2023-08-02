@@ -223,7 +223,7 @@ public class BasicBlockBehavioralSubsumption {
   private boolean definesValueWithNonLocalUsages(Instruction instruction) {
     if (instruction.hasOutValue()) {
       Value outValue = instruction.outValue();
-      if (outValue.numberOfPhiUsers() > 0) {
+      if (outValue.hasPhiUsers()) {
         return true;
       }
       for (Instruction user : outValue.uniqueUsers()) {
