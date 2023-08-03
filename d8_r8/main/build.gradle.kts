@@ -22,6 +22,7 @@ java {
 
 dependencies {
   implementation(":keepanno")
+  implementation(":resourceshrinker")
   compileOnly(Deps.asm)
   compileOnly(Deps.asmCommons)
   compileOnly(Deps.asmUtil)
@@ -37,6 +38,8 @@ val thirdPartyResourceDependenciesTask = ensureThirdPartyDependencies(
   listOf(ThirdPartyDeps.apiDatabase))
 
 val keepAnnoJarTask = projectTask("keepanno", "jar")
+val resourceShrinkerJarTask = projectTask("resourceshrinker", "jar")
+val resourceShrinkerDepsTask = projectTask("resourceshrinker", "depsJar")
 
 fun mainJarDependencies() : FileCollection {
   return sourceSets
@@ -75,9 +78,13 @@ tasks {
     doFirst {
       println(header("R8 full dependencies"))
     }
+    dependsOn(resourceShrinkerJarTask)
+    dependsOn(resourceShrinkerDepsTask)
     mainJarDependencies().forEach({ println(it) })
     from(mainJarDependencies().map(::zipTree))
     from(keepAnnoJarTask.outputs.files.map(::zipTree))
+    from(resourceShrinkerJarTask.outputs.files.map(::zipTree))
+    from(resourceShrinkerDepsTask.outputs.files.map(::zipTree))
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE
     archiveFileName.set("deps.jar")
   }
