@@ -50,6 +50,7 @@ pluginManagement {
 // This project is temporarily located in d8_r8. When moved to root, the parent
 // folder should just be removed.
 includeBuild(root.resolve("keepanno"))
+includeBuild(root.resolve("resourceshrinker"))
 
 // We need to include src/main as a composite-build otherwise our test-modules
 // will compete with the test to compile the source files.
