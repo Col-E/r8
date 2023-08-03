@@ -66,14 +66,15 @@ tasks {
     dependsOn(r8WithRelocatedDepsTask)
     val r8 = r8WithRelocatedDepsTask.outputs.files.getSingleFile()
     val generatedKeepRules = generateKeepRules.get().outputs.files.getSingleFile()
-    inputs.files(listOf(r8, generatedKeepRules))
+    val keepTxt = getRoot().resolveAll("src", "main", "keep.txt")
+    inputs.files(listOf(r8, generatedKeepRules, keepTxt))
     val output = file(Paths.get("build", "libs", "r8lib-deps-relocated.jar"))
     outputs.file(output)
     commandLine = createR8LibCommandLine(
       r8,
       r8,
       output,
-      listOf(getRoot().resolveAll("src", "main", "keep.txt"), generatedKeepRules),
+      listOf(keepTxt, generatedKeepRules),
       false)
   }
 
