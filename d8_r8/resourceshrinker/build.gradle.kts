@@ -41,6 +41,8 @@ tasks {
     println(header("Resource shrinker dependencies"))
     jarDependencies().forEach({ println(it) })
     from(jarDependencies().map(::zipTree))
+    exclude("**/*.proto")
+    exclude("versions-offline/**")
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE
     archiveFileName.set("resourceshrinker_deps.jar")
   }
