@@ -400,30 +400,28 @@ def app_dump():
 app_dump()
 
 def desugared_library():
-  for name in ["head", "jdk11_head"]:
-    test_options = [
-        "--one_line_per_test",
-        "--archive_failures",
-        "--no_internal",
-        "--no_arttests",
-        "--desugared-library",
-        "HEAD"
-    ]
-    if "jdk11" in name:
-      test_options = test_options + ["--desugared-library-configuration", "jdk11"]
-    properties = {
-       "builder_group" : "internal.client.r8",
-       "test_options" : test_options,
-    }
-    name = "desugared_library-" + name
-    r8_builder(
-        name,
-        category = "library_desugar",
-        dimensions = get_dimensions(),
-        execution_timeout = time.hour * 12,
-        expiration_timeout = time.hour * 35,
-        properties = properties,
-    )
+  test_options = [
+      "--one_line_per_test",
+      "--archive_failures",
+      "--no_internal",
+      "--no_arttests",
+      "--desugared-library",
+      "HEAD",
+      "--desugared-library-configuration",
+      "jdk11"
+  ]
+  properties = {
+     "builder_group" : "internal.client.r8",
+     "test_options" : test_options,
+  }
+  r8_builder(
+      "desugared_library-jdk11_head",
+      category = "library_desugar",
+      dimensions = get_dimensions(),
+      execution_timeout = time.hour * 12,
+      expiration_timeout = time.hour * 35,
+      properties = properties,
+  )
 desugared_library()
 
 r8_builder(
