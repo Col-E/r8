@@ -26,9 +26,9 @@ import java.io.IOException;
  */
 public interface ResourcesGraphBuilder {
 
-  /**
-   * Finds references between resources and connects them. May introduce and contribute new
-   * resources to ResourceShrinkerModel.
-   */
-  void buildGraph(@NonNull ResourceShrinkerModel model) throws IOException;
+    /**
+     * Finds references between resources and connects them. May introduce and contribute new
+     * resources to ResourceShrinkerModel.
+     */
+    void buildGraph(@NonNull ResourceShrinkerModel model) throws IOException;
 }

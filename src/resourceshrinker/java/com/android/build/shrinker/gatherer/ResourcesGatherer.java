@@ -26,9 +26,9 @@ import java.io.IOException;
  */
 public interface ResourcesGatherer {
 
-  /**
-   * Gathers application resources and contribute them to ResourceShrinkerModel via
-   * ResourceShrinkerModel.addResource
-   */
-  void gatherResourceValues(@NonNull ResourceShrinkerModel model) throws IOException;
+    /**
+     * Gathers application resources and contribute them to ResourceShrinkerModel via
+     * ResourceShrinkerModel.addResource
+     */
+    void gatherResourceValues(@NonNull ResourceShrinkerModel model) throws IOException;
 }

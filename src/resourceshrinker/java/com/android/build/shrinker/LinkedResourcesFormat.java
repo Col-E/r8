@@ -17,6 +17,6 @@
 package com.android.build.shrinker;
 
 public enum LinkedResourcesFormat {
-  BINARY,
-  PROTO,
+    BINARY,
+    PROTO,
 }

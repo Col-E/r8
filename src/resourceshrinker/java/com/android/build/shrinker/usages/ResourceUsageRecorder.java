@@ -26,6 +26,6 @@ import java.io.IOException;
  */
 public interface ResourceUsageRecorder {
 
-  /** Records resource usages. */
-  void recordUsages(@NonNull ResourceShrinkerModel model) throws IOException;
+    /** Records resource usages. */
+    void recordUsages(@NonNull ResourceShrinkerModel model) throws IOException;
 }
