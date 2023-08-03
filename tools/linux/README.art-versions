@@ -69,9 +69,9 @@ repo init -b udc-preview1-release
 
 art-14 (Android U)
 ------------------
-Build branch udc-preview1-release.
+Build branch udc-beta3-release. Art at 1f3514c28caf4537fe0fdf14559991ca23cf9e30.
 
-export BRANCH=udc-preview1-release
+export BRANCH=udc-beta3-release
 mkdir ${BRANCH}
 cd ${BRANCH}
 export ANDROID_CHECKOUT=$(pwd)
@@ -90,10 +90,10 @@ by the script for running Art.
   cd <r8 checkout>
   scripts/update-host-art.sh \
      --android-checkout $ANDROID_CHECKOUT \
-     --art-dir host/art-14.0.0-dp1 \
+     --art-dir host/art-14.0.0-beta3 \
      --android-product redfin
 
-  (cd tools/linux/host; upload_to_google_storage.py -a --bucket r8-deps art-14.0.0-dp1)
+  (cd tools/linux/host; upload_to_google_storage.py -a --bucket r8-deps art-14.0.0-beta3)
 
 
 art-13 (Android T)
