@@ -334,6 +334,7 @@ APPS = [
     'url': 'https://github.com/chrisbanes/tivi',
     'revision': '5c6d9ed338885c59b1fc64050d92d056417bb4de',
     'folder': 'tivi',
+    'golem_duration': 300
   }),
   App({
     'id': 'com.keylesspalace.tusky',
