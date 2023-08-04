@@ -2,7 +2,5 @@
 # for details. All rights reserved. Use of this source code is governed by a
 # BSD-style license that can be found in the LICENSE file.
 
-# TODO(b/294351878): Remove once enum issue is fixed.
--keep class com.android.resources.ResourceType { *; }
-
--keep class com.android.resources.ResourceFolderType { *; }
+-keepclassmembers enum com.android.resources.ResourceType { public static **[] values(); }
+-keepclassmembers enum com.android.resources.ResourceFolderType { public static **[] values(); }
