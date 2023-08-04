@@ -301,7 +301,6 @@ public class ArrayConstructionSimplifier extends CodeRewriterPass<AppInfo> {
         return null;
       }
       if (arrayPut.instructionInstanceCanThrow(appView, code.context())) {
-        assert false;
         return null;
       }
       int index = arrayPut.index().getConstInstruction().asConstNumber().getIntValue();
