@@ -67,14 +67,16 @@ tasks {
     val r8 = r8WithRelocatedDepsTask.outputs.files.getSingleFile()
     val generatedKeepRules = generateKeepRules.get().outputs.files.getSingleFile()
     val keepTxt = getRoot().resolveAll("src", "main", "keep.txt")
-    inputs.files(listOf(r8, generatedKeepRules, keepTxt))
+    // TODO(b/294351878): Remove once enum issue is fixed
+    val keepResourceShrinkerTxt = getRoot().resolveAll("src", "main", "keep_r8resourceshrinker.txt")
+    inputs.files(listOf(r8, generatedKeepRules, keepTxt, keepResourceShrinkerTxt))
     val output = file(Paths.get("build", "libs", "r8lib-deps-relocated.jar"))
     outputs.file(output)
     commandLine = createR8LibCommandLine(
       r8,
       r8,
       output,
-      listOf(keepTxt, generatedKeepRules),
+      listOf(keepTxt, generatedKeepRules, keepResourceShrinkerTxt),
       false)
   }
 
