@@ -82,7 +82,8 @@ public class R8CompiledThroughDexTest extends DesugaredLibraryTestBase {
     return path.toAbsolutePath().toString();
   }
 
-  private static final String R8_KEEP = Paths.get("src/main/keep.txt").toAbsolutePath().toString();
+  private static final String R8_KEEP =
+      Paths.get(ToolHelper.SOURCE_DIR + "main/keep.txt").toAbsolutePath().toString();
 
   private Pair<List<String>, Consumer<Builder>> buildArguments() {
     ImmutableList.Builder<String> arguments = ImmutableList.builder();

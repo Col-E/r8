@@ -154,6 +154,12 @@ fun Project.buildExampleJars(name : String) : Task {
             include("${exampleDir.name}/**/*.class")
             exclude("**/TestGenerator*")
           }
+          // Copy additional resources into the jar.
+          from (exampleDir) {
+            exclude("**/*.java")
+            exclude("**/keep-rules*.txt")
+            into(exampleDir.name)
+          }
         }.get())
       }
     }
@@ -310,6 +316,19 @@ object ThirdPartyDeps {
     "apiDatabase",
     Paths.get("third_party", "api_database", "api_database").toFile(),
     Paths.get("third_party", "api_database", "api_database.tar.gz.sha1").toFile())
+  val artTests = ThirdPartyDependency(
+    "art-tests",
+    Paths.get("tests", "2017-10-04", "art").toFile(),
+    Paths.get("tests", "2017-10-04", "art.tar.gz.sha1").toFile())
+  val artTestsLegacy = ThirdPartyDependency(
+    "art-tests-legacy",
+    Paths.get("tests", "2016-12-19", "art").toFile(),
+    Paths.get("tests", "2016-12-19", "art.tar.gz.sha1").toFile())
+  val clank = ThirdPartyDependency(
+    "clank",
+    Paths.get("third_party", "chrome", "clank_google3_prebuilt").toFile(),
+    Paths.get("third_party", "chrome", "clank_google3_prebuilt.tar.gz.sha1").toFile(),
+    DependencyType.X20)
   val compilerApi = ThirdPartyDependency(
     "compiler-api",
     Paths.get(
@@ -333,9 +352,18 @@ object ThirdPartyDeps {
   val desugarJdkLibs = ThirdPartyDependency(
     "desugar-jdk-libs",
     Paths.get("third_party", "openjdk", "desugar_jdk_libs").toFile(),
-    Paths.get("third_party", "openjdk", "desugar_jdk_libs.tar.gz.sha1").toFile()
-  )
+    Paths.get("third_party", "openjdk", "desugar_jdk_libs.tar.gz.sha1").toFile())
+  val desugarJdkLibsLegacy = ThirdPartyDependency(
+    "desugar-jdk-libs-legacy",
+    Paths.get("third_party", "openjdk", "desugar_jdk_libs_legacy").toFile(),
+    Paths.get("third_party", "openjdk", "desugar_jdk_libs_legacy.tar.gz.sha1").toFile())
+  val desugarLibraryReleases = getThirdPartyDesugarLibraryReleases()
   // TODO(b/289363570): This could probably be removed.
+  val framework = ThirdPartyDependency(
+    "framework",
+    Paths.get("third_party", "framework").toFile(),
+    Paths.get("third_party", "framework.tar.gz.sha1").toFile(),
+    DependencyType.X20)
   val iosched2019 = ThirdPartyDependency(
     "iosched-2019",
     Paths.get("third_party", "iosched_2019").toFile(),
@@ -343,13 +371,13 @@ object ThirdPartyDeps {
   val desugarJdkLibs11 = ThirdPartyDependency(
     "desugar-jdk-libs-11",
     Paths.get("third_party", "openjdk", "desugar_jdk_libs_11").toFile(),
-    Paths.get("third_party", "openjdk", "desugar_jdk_libs_11.tar.gz.sha1").toFile()
-  )
+    Paths.get("third_party", "openjdk", "desugar_jdk_libs_11.tar.gz.sha1").toFile())
+  val gmscoreVersions = getGmsCoreVersions()
+  val internalIssues = getInternalIssues()
   val jacoco = ThirdPartyDependency(
     "jacoco",
     Paths.get("third_party", "jacoco", "0.8.6").toFile(),
-    Paths.get("third_party", "jacoco", "0.8.6.tar.gz.sha1").toFile()
-  )
+    Paths.get("third_party", "jacoco", "0.8.6.tar.gz.sha1").toFile())
   val jasmin = ThirdPartyDependency(
     "jasmin",
     Paths.get("third_party", "jasmin").toFile(),
@@ -361,14 +389,12 @@ object ThirdPartyDeps {
   val java8Runtime = ThirdPartyDependency(
     "openjdk-rt-1.8",
     Paths.get("third_party", "openjdk", "openjdk-rt-1.8").toFile(),
-    Paths.get("third_party", "openjdk", "openjdk-rt-1.8.tar.gz.sha1").toFile()
-  )
+    Paths.get("third_party", "openjdk", "openjdk-rt-1.8.tar.gz.sha1").toFile())
   val jdks = getJdks()
   val jdk11Test = ThirdPartyDependency(
     "jdk-11-test",
     Paths.get("third_party", "openjdk", "jdk-11-test").toFile(),
-    Paths.get("third_party", "openjdk", "jdk-11-test.tar.gz.sha1").toFile()
-  )
+    Paths.get("third_party", "openjdk", "jdk-11-test.tar.gz.sha1").toFile())
   val jdwpTests = ThirdPartyDependency(
     "jdwp-tests",
     Paths.get("third_party", "jdwp-tests").toFile(),
@@ -378,6 +404,11 @@ object ThirdPartyDeps {
     "multidex",
     Paths.get("third_party", "multidex").toFile(),
     Paths.get("third_party", "multidex.tar.gz.sha1").toFile())
+  val nest = ThirdPartyDependency(
+    "nest",
+    Paths.get("third_party", "nest", "nest_20180926_7c6cfb").toFile(),
+    Paths.get("third_party", "nest", "nest_20180926_7c6cfb.tar.gz.sha1").toFile(),
+    DependencyType.X20)
   val proguards = getThirdPartyProguards()
   val protobufLite = ThirdPartyDependency(
     "protobuf-lite",
@@ -388,6 +419,31 @@ object ThirdPartyDeps {
     "r8",
     Paths.get("third_party", "r8").toFile(),
     Paths.get("third_party", "r8.tar.gz.sha1").toFile())
+  val r8Mappings = ThirdPartyDependency(
+    "r8-mappings",
+    Paths.get("third_party", "r8mappings").toFile(),
+    Paths.get("third_party", "r8mappings.tar.gz.sha1").toFile())
+  val r8v2_0_74 = ThirdPartyDependency(
+    "r8-v2-0-74",
+    Paths.get("third_party", "r8-releases","2.0.74").toFile(),
+    Paths.get("third_party", "r8-releases", "2.0.74.tar.gz.sha1").toFile())
+  val r8v3_2_54 = ThirdPartyDependency(
+    "r8-v3-2-54",
+    Paths.get("third_party", "r8-releases","3.2.54").toFile(),
+    Paths.get("third_party", "r8-releases", "3.2.54.tar.gz.sha1").toFile())
+  val retraceBenchmark = ThirdPartyDependency(
+    "retrace-benchmark",
+    Paths.get("third_party", "retrace_benchmark").toFile(),
+    Paths.get("third_party", "retrace_benchmark.tar.gz.sha1").toFile())
+  val retraceBinaryCompatibility = ThirdPartyDependency(
+    "retrace-binary-compatibility",
+    Paths.get("third_party", "retrace", "binary_compatibility").toFile(),
+    Paths.get("third_party", "retrace", "binary_compatibility.tar.gz.sha1").toFile())
+  val retraceInternal = ThirdPartyDependency(
+    "retrace-internal",
+    Paths.get("third_party", "retrace_internal").toFile(),
+    Paths.get("third_party", "retrace_internal.tar.gz.sha1").toFile(),
+    DependencyType.X20)
   val rhino = ThirdPartyDependency(
     "rhino",
     Paths.get("third_party", "rhino-1.7.10").toFile(),
@@ -400,6 +456,10 @@ object ThirdPartyDeps {
     "smali",
     Paths.get("third_party", "smali").toFile(),
     Paths.get("third_party", "smali.tar.gz.sha1").toFile())
+  val tivi = ThirdPartyDependency(
+    "tivi",
+    Paths.get("third_party", "opensource-apps", "tivi").toFile(),
+    Paths.get("third_party", "opensource-apps", "tivi.tar.gz.sha1").toFile())
 }
 
 fun getThirdPartyAndroidJars() : List<ThirdPartyDependency> {
@@ -496,4 +556,37 @@ fun getThirdPartyKotlinCompilers() : List<ThirdPartyDependency> {
       it,
       Paths.get("third_party", "kotlin", it).toFile(),
       Paths.get("third_party", "kotlin", "${it}.tar.gz.sha1").toFile())}
+}
+
+fun getThirdPartyDesugarLibraryReleases() : List<ThirdPartyDependency> {
+  return listOf(
+    "1.0.9",
+    "1.0.10",
+    "1.1.0",
+    "1.1.1",
+    "1.1.5")
+    .map { ThirdPartyDependency(
+      "desugar-library-release-$it",
+      Paths.get("third_party", "openjdk", "desugar_jdk_libs_releases", it).toFile(),
+      Paths.get("third_party", "openjdk", "desugar_jdk_libs_releases", "${it}.tar.gz.sha1").toFile())}
+}
+
+fun getInternalIssues() : List<ThirdPartyDependency> {
+  return listOf("issue-127524985")
+    .map { ThirdPartyDependency(
+      "internal-$it",
+      Paths.get("third_party", "internal", it).toFile(),
+      Paths.get("third_party", "internal", "${it}.tar.gz.sha1").toFile(),
+      DependencyType.X20)}
+}
+
+fun getGmsCoreVersions() : List<ThirdPartyDependency> {
+  return listOf(
+    "gmscore_v10",
+    "latest")
+    .map { ThirdPartyDependency(
+      "gmscore-version-$it",
+      Paths.get("third_party", "gmscore", it).toFile(),
+      Paths.get("third_party", "gmscore", "${it}.tar.gz.sha1").toFile(),
+      DependencyType.X20)}
 }

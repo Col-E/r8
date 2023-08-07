@@ -39,8 +39,12 @@ public class B72312389 extends TestBase {
     builder
         .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.O))
         .addProgramFiles(
-            Paths.get("build", "test", "examplesAndroidApi",
-                "classes", "instrumentationtest", "InstrumentationTest.class"))
+            Paths.get(
+                ToolHelper.TESTS_BUILD_DIR,
+                "examplesAndroidApi",
+                "classes",
+                "instrumentationtest",
+                "InstrumentationTest.class"))
         .addProgramFiles(ToolHelper.getFrameworkJunitJarPath(DexVm.ART_7_0_0_HOST));
   }
 

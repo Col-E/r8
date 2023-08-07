@@ -5,6 +5,7 @@ package com.android.tools.r8.internal;
 
 import com.android.tools.r8.CompilationMode;
 import com.android.tools.r8.D8Command;
+import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.VmTestRunner;
 import com.android.tools.r8.VmTestRunner.IgnoreIfVmOlderThan;
@@ -16,7 +17,8 @@ import org.junit.runner.RunWith;
 @RunWith(VmTestRunner.class)
 public class D8Framework14082017DesugaredVerificationTest extends CompilationTestBase {
   private static final int MIN_SDK = AndroidApiLevel.N.getLevel();
-  private static final String JAR = "third_party/framework/framework_14082017_desugared.jar";
+  private static final String JAR =
+      ToolHelper.THIRD_PARTY_DIR + "framework/framework_14082017_desugared.jar";
 
   @Test
   @IgnoreIfVmOlderThan(Version.V7_0_0)

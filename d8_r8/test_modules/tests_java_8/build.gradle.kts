@@ -56,10 +56,13 @@ val thirdPartyCompileDependenciesTask = ensureThirdPartyDependencies(
 val thirdPartyRuntimeDependenciesTask = ensureThirdPartyDependencies(
   "runtimeDeps",
   listOf(
+    ThirdPartyDeps.artTests,
+    ThirdPartyDeps.artTestsLegacy,
     ThirdPartyDeps.compilerApi,
     ThirdPartyDeps.coreLambdaStubs,
     ThirdPartyDeps.dagger,
     ThirdPartyDeps.desugarJdkLibs,
+    ThirdPartyDeps.desugarJdkLibsLegacy,
     ThirdPartyDeps.desugarJdkLibs11,
     ThirdPartyDeps.iosched2019,
     ThirdPartyDeps.jacoco,
@@ -68,11 +71,18 @@ val thirdPartyRuntimeDependenciesTask = ensureThirdPartyDependencies(
     ThirdPartyDeps.jsr223,
     ThirdPartyDeps.multidex,
     ThirdPartyDeps.r8,
+    ThirdPartyDeps.r8Mappings,
+    ThirdPartyDeps.r8v2_0_74,
+    ThirdPartyDeps.r8v3_2_54,
+    ThirdPartyDeps.retraceBenchmark,
+    ThirdPartyDeps.retraceBinaryCompatibility,
     ThirdPartyDeps.rhino,
     ThirdPartyDeps.rhinoAndroid,
-    ThirdPartyDeps.smali)
+    ThirdPartyDeps.smali,
+    ThirdPartyDeps.tivi)
     + ThirdPartyDeps.androidJars
     + ThirdPartyDeps.androidVMs
+    + ThirdPartyDeps.desugarLibraryReleases
     + ThirdPartyDeps.jdks
     + ThirdPartyDeps.kotlinCompilers
     + ThirdPartyDeps.proguards)
@@ -80,8 +90,13 @@ val thirdPartyRuntimeDependenciesTask = ensureThirdPartyDependencies(
 val thirdPartyRuntimeInternalDependenciesTask = ensureThirdPartyDependencies(
   "runtimeInternalDeps",
   listOf(
+    ThirdPartyDeps.clank,
+    ThirdPartyDeps.framework,
+    ThirdPartyDeps.nest,
     ThirdPartyDeps.protobufLite,
-  )
+    ThirdPartyDeps.retraceInternal)
+    + ThirdPartyDeps.internalIssues
+    + ThirdPartyDeps.gmscoreVersions
 )
 
 val sourceSetDependenciesTasks = arrayOf(

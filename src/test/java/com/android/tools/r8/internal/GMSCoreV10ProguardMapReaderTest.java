@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.internal;
 
+import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.naming.ClassNameMapper;
 import java.io.IOException;
 import java.nio.file.Path;
@@ -12,7 +13,7 @@ import org.junit.Test;
 
 public class GMSCoreV10ProguardMapReaderTest extends GMSCoreCompilationTestBase {
 
-  private static final String APP_DIR = "third_party/gmscore/gmscore_v10/";
+  private static final String APP_DIR = ToolHelper.THIRD_PARTY_DIR + "gmscore/gmscore_v10/";
 
   @Test
   public void roundTripTestGmsCoreV10() throws IOException {

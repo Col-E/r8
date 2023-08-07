@@ -17,6 +17,7 @@ import static org.junit.Assert.assertTrue;
 import com.android.tools.r8.SingleTestRunResult;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestRuntime;
+import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.desugar.desugaredlibrary.DesugaredLibraryTestBase;
 import com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification;
@@ -65,7 +66,7 @@ public class Jdk11Jsr166Tests extends DesugaredLibraryTestBase {
   public static List<Object[]> data() {
     return buildParameters(
         // TODO(134732760): Support Dalvik VMs, currently fails because libjavacrypto is required
-        // and present only in ART runtimes.
+        //   and present only in ART runtimes.
         getTestParameters()
             .withDexRuntimesStartingFromIncluding(Version.V5_1_1)
             .withAllApiLevels()
@@ -81,9 +82,12 @@ public class Jdk11Jsr166Tests extends DesugaredLibraryTestBase {
     Path jsr166SuiteClasses = getStaticTemp().newFolder("jsr166SuiteClasses").toPath();
 
     javac(TestRuntime.getCheckedInJdk11(), getStaticTemp())
-        .addClasspathFiles(Paths.get("third_party/junit/junit-4.13-beta-2.jar"))
+        .addClasspathFiles(Paths.get(ToolHelper.THIRD_PARTY_DIR + "junit/junit-4.13-beta-2.jar"))
         .addSourceFiles(
-            Files.walk(Paths.get("third_party/openjdk/jdk-11-test/java/util/concurrent/tck"))
+            Files.walk(
+                    Paths.get(
+                        ToolHelper.THIRD_PARTY_DIR
+                            + "openjdk/jdk-11-test/java/util/concurrent/tck"))
                 .filter(path -> path.getFileName().toString().endsWith(".java"))
                 .collect(Collectors.toList()))
         .setOutputPath(jsr166SuiteClasses)

@@ -7,6 +7,7 @@ package com.android.tools.r8.desugar.b72538146;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
+import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.google.common.collect.ImmutableList;
 import java.nio.file.Path;
@@ -58,7 +59,11 @@ public class B72538146 extends TestBase {
     // Run the classloader test loading the two dex applications.
     testForD8()
         .addProgramFiles(
-            Paths.get("build/test/examplesAndroidApi/classes/classloader/Runner.class"))
+            Paths.get(ToolHelper.TESTS_BUILD_DIR)
+                .resolve("examplesAndroidApi")
+                .resolve("classes")
+                .resolve("classloader")
+                .resolve("Runner.class"))
         .setMinApi(parameters)
         .compile()
         .run(

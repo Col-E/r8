@@ -65,7 +65,7 @@ public class GenerateCovariantReturnTypeMethodsTest extends TestBase {
   private static final Path PATH_TO_CORE_JAR =
       Paths.get(ToolHelper.THIRD_PARTY_DIR, "android_jar", "libcore_latest", "core-oj.jar");
   private static final Path DESTINATION_FILE =
-      Paths.get(ToolHelper.SOURCE_DIR)
+      Paths.get(ToolHelper.MAIN_SOURCE_DIR)
           .resolve(PACKAGE_NAME.replace('.', '/'))
           .resolve(CLASS_NAME + ".java");
   private static final AndroidApiLevel GENERATED_FOR_API_LEVEL = AndroidApiLevel.U;

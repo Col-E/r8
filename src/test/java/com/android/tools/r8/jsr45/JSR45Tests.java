@@ -34,15 +34,15 @@ public class JSR45Tests {
 
   private static final String DEFAULT_MAP_FILENAME = "proguard.map";
   private static final Path INPUT_PATH =
-      Paths.get("src/test/java/com/android/tools/r8/jsr45/HelloKt.class");
+      Paths.get(ToolHelper.TESTS_SOURCE_DIR + "com/android/tools/r8/jsr45/HelloKt.class");
   private static final Path DONT_SHRINK_DONT_OBFUSCATE_CONFIG =
-      Paths.get("src/test/java/com/android/tools/r8/jsr45/keep-rules-1.txt");
+      Paths.get(ToolHelper.TESTS_SOURCE_DIR + "com/android/tools/r8/jsr45/keep-rules-1.txt");
   private static final Path DONT_SHRINK_CONFIG =
-      Paths.get("src/test/java/com/android/tools/r8/jsr45/keep-rules-2.txt");
+      Paths.get(ToolHelper.TESTS_SOURCE_DIR + "com/android/tools/r8/jsr45/keep-rules-2.txt");
   private static final Path SHRINK_KEEP_CONFIG =
-      Paths.get("src/test/java/com/android/tools/r8/jsr45/keep-rules-3.txt");
+      Paths.get(ToolHelper.TESTS_SOURCE_DIR + "com/android/tools/r8/jsr45/keep-rules-3.txt");
   private static final Path SHRINK_NO_KEEP_CONFIG =
-      Paths.get("src/test/java/com/android/tools/r8/jsr45/keep-rules-4.txt");
+      Paths.get(ToolHelper.TESTS_SOURCE_DIR + "com/android/tools/r8/jsr45/keep-rules-4.txt");
 
   @Rule
   public TemporaryFolder tmpOutputDir = ToolHelper.getTemporaryFolderForTest();

@@ -16,6 +16,7 @@ import com.android.tools.r8.TestCompilerBuilder;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.ThrowableConsumer;
+import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.google.common.collect.Sets;
 import java.nio.file.Path;
@@ -29,7 +30,7 @@ import org.junit.runners.Parameterized;
 @RunWith(Parameterized.class)
 public class GMSCoreV10Test extends GMSCoreCompilationTestBase {
 
-  private static final Path base = Paths.get("third_party/gmscore/gmscore_v10/");
+  private static final Path base = Paths.get(ToolHelper.THIRD_PARTY_DIR + "gmscore/gmscore_v10/");
 
   private static Path sanitizedLibrary;
   private static Path sanitizedProguardConfiguration;

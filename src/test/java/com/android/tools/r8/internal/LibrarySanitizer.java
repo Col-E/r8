@@ -72,7 +72,7 @@ public class LibrarySanitizer {
   public LibrarySanitizer sanitize() throws IOException {
     ImmutableList.Builder<String> command =
         new ImmutableList.Builder<String>()
-            .add("tools/sanitize_libraries.py")
+            .add(ToolHelper.TOOLS_DIR + "sanitize_libraries.py")
             .add(sanitizedLibrary.toString())
             .add(sanitizedPgConf.toString());
     for (Path programFile : programFiles) {

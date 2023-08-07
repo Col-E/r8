@@ -85,10 +85,12 @@ public abstract class R8RunArtTestsTest extends TestBase {
     R8CF
   }
 
-  public static final String ART_TESTS_DIR = "tests/2017-10-04/art";
-  private static final String ART_LEGACY_TESTS_DIR = "tests/2016-12-19/art/";
-  private static final String ART_TESTS_NATIVE_LIBRARY_DIR = "tests/2017-10-04/art/lib64";
-  private static final String ART_LEGACY_TESTS_NATIVE_LIBRARY_DIR = "tests/2016-12-19/art/lib64";
+  public static final String ART_TESTS_DIR = ToolHelper.ART_TESTS_ROOT + "2017-10-04/art";
+  private static final String ART_LEGACY_TESTS_DIR = ToolHelper.ART_TESTS_ROOT + "2016-12-19/art/";
+  private static final String ART_TESTS_NATIVE_LIBRARY_DIR =
+      ToolHelper.ART_TESTS_ROOT + "2017-10-04/art/lib64";
+  private static final String ART_LEGACY_TESTS_NATIVE_LIBRARY_DIR =
+      ToolHelper.ART_TESTS_ROOT + "2016-12-19/art/lib64";
 
   private static final RuntimeSet LEGACY_RUNTIME =
       TestCondition.runtimes(
@@ -103,11 +105,6 @@ public abstract class R8RunArtTestsTest extends TestBase {
           DexVm.Version.V12_0_0,
           DexVm.Version.V13_0_0,
           DexVm.Version.V14_0_0);
-
-  private static final String JUNIT_TEST_RUNNER = "org.junit.runner.JUnitCore";
-  private static final String JUNIT_JAR = "third_party/junit/junit-4.13-beta-2.jar";
-  private static final String HAMCREST_JAR =
-      "third_party/gradle/gradle/lib/plugins/hamcrest-core-1.3.jar";
 
   // Test that required to set min-api to a specific value.
   private static Map<String, AndroidApiLevel> needMinSdkVersion =

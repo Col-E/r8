@@ -26,7 +26,7 @@ import org.junit.runners.Parameterized.Parameters;
 @RunWith(Parameterized.class)
 public class WhyAreYouKeepingAllTest extends TestBase {
 
-  private static final Path MAIN_KEEP = Paths.get("src/main/keep.txt");
+  private static final Path MAIN_KEEP = Paths.get(ToolHelper.SOURCE_DIR + "/main/keep.txt");
 
   private static final String WHY_ARE_YOU_KEEPING_ALL = StringUtils.lines(
       "-whyareyoukeeping class ** { *; }",
