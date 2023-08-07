@@ -117,11 +117,10 @@ fun testDependencies() : FileCollection {
     .test
     .get()
     .compileClasspath
-    .filter({ "$it".contains("keepanno") ||
-      ("$it".contains("third_party")
-      && !"$it".contains("errorprone")
-      && !"$it".contains("gradle"))
-            })
+    .filter({"$it".contains("keepanno") ||
+            ("$it".contains("third_party")
+              && !"$it".contains("errorprone")
+              && !"$it".contains("gradle"))})
 }
 
 tasks {

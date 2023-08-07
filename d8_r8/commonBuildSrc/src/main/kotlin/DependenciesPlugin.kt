@@ -4,10 +4,8 @@
 
 import DependenciesPlugin.Companion.computeRoot
 import java.io.File
-import java.lang.Thread.sleep
 import java.net.URI
 import java.nio.file.Paths
-import java.util.concurrent.ConcurrentHashMap
 import org.gradle.api.JavaVersion
 import org.gradle.api.Plugin
 import org.gradle.api.Project
@@ -113,7 +111,6 @@ fun Project.ensureThirdPartyDependencies(name : String, deps : List<ThirdPartyDe
  * getExamplesJarsTaskName(examplesName) such that it can be referenced from the test runners.
  */
 fun Project.buildExampleJars(name : String) : Task {
-  val outputFiles : MutableList<File> = mutableListOf()
   val jarTasks : MutableList<Task> = mutableListOf()
   val testSourceSet = extensions
     .getByType(JavaPluginExtension::class.java)
@@ -130,43 +127,51 @@ fun Project.buildExampleJars(name : String) : Task {
     .files
     .forEach { srcDir ->
       srcDir.listFiles(File::isDirectory)?.forEach { exampleDir ->
-        var generationTask : Task? = null
-        if (exampleDir.resolve("TestGenerator.java").isFile) {
-          generationTask = tasks.register<JavaExec>(
-            "generate-$name-${exampleDir.name}") {
-            dependsOn("compileTestJava")
-            mainClass.set("${exampleDir.name}.TestGenerator")
-            classpath = files(
-              classesOutput,
-              testSourceSet.compileClasspath)
-            args(classesOutput.toString())
-          }.get()
+        arrayOf("compileTestJava", "debuginfo-all", "debuginfo-none").forEach { taskName ->
+          if (!project.getTasksByName(taskName, false).isEmpty()) {
+            var generationTask : Task? = null
+            val taskSpecificClassesOutput = getOutputName(classesOutput.toString(), taskName)
+            if (exampleDir.resolve("TestGenerator.java").isFile) {
+              generationTask = tasks.register<JavaExec>(
+                "generate-$name-${exampleDir.name}-$taskName") {
+                dependsOn(taskName)
+                mainClass.set("${exampleDir.name}.TestGenerator")
+                classpath = files(taskSpecificClassesOutput, testSourceSet.compileClasspath)
+                args(taskSpecificClassesOutput)
+              }.get()
+            }
+            jarTasks.add(tasks.register<Jar>("jar-$name-${exampleDir.name}-$taskName") {
+              dependsOn(taskName)
+              if (generationTask != null) {
+                dependsOn(generationTask)
+              }
+              archiveFileName.set("${getOutputName(exampleDir.name, taskName)}.jar")
+              destinationDirectory.set(destinationDir)
+              from(taskSpecificClassesOutput) {
+                include("${exampleDir.name}/**/*.class")
+                exclude("**/TestGenerator*")
+              }
+              // Copy additional resources into the jar.
+              from(exampleDir) {
+                exclude("**/*.java")
+                exclude("**/keep-rules*.txt")
+                into(exampleDir.name)
+              }
+            }.get())
+          }
         }
-        jarTasks.add(tasks.register<Jar>(
-          "jar-$name-${exampleDir.name}") {
-          dependsOn("compileTestJava")
-          if (generationTask != null) {
-            dependsOn(generationTask)
-          }
-          archiveFileName.set("${exampleDir.name}.jar")
-          destinationDirectory.set(destinationDir)
-          from(classesOutput) {
-            include("${exampleDir.name}/**/*.class")
-            exclude("**/TestGenerator*")
-          }
-          // Copy additional resources into the jar.
-          from (exampleDir) {
-            exclude("**/*.java")
-            exclude("**/keep-rules*.txt")
-            into(exampleDir.name)
-          }
-        }.get())
       }
     }
   return tasks.register(getExampleJarsTaskName(name)) {
     dependsOn(jarTasks.toTypedArray())
-    outputs.files(outputFiles)
   }.get()
+}
+
+fun getOutputName(dest: String, taskName: String) : String {
+  if (taskName.equals("compileTestJava")) {
+    return dest
+  }
+  return "${dest}_${taskName.replace('-', '_')}"
 }
 
 fun Project.getExampleJarsTaskName(name: String) : String {

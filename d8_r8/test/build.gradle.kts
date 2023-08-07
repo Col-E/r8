@@ -69,4 +69,9 @@ tasks {
              "--map",
              "kotlinx.metadata->com.android.tools.r8.jetbrains.kotlinx.metadata"))
   }
+
+  withType<Test> {
+    environment.put("USE_NEW_GRADLE_SETUP", "true")
+    dependsOn(gradle.includedBuild("tests_java_8").task(":test"))
+  }
 }

@@ -26,21 +26,32 @@ dependencies {
   testCompileOnly(Deps.mockito)
 }
 
-// We just need to register the examples jars for it to be referenced by other modules.
-val buildExampleJars = buildExampleJars("examples")
-
 val thirdPartyCompileDependenciesTask = ensureThirdPartyDependencies(
   "compileDeps",
   listOf(Jdk.JDK_11.getThirdPartyDependency()))
 
 tasks {
-  withType<JavaCompile> {
-    dependsOn(thirdPartyCompileDependenciesTask)
-    options.setFork(true)
-    options.forkOptions.memoryMaximumSize = "3g"
-    options.forkOptions.jvmArgs = listOf(
-      "-Xss256m",
-      // Set the bootclass path so compilation is consistent with 1.8 target compatibility.
-      "-Xbootclasspath/a:third_party/openjdk/openjdk-rt-1.8/rt.jar")
+  compileTestJava {
+    options.compilerArgs = listOf("-g:source,lines")
+  }
+
+  register<JavaCompile>("debuginfo-all") {
+    source = sourceSets.test.get().allSource
+    include("**/*.java")
+    classpath = sourceSets.test.get().compileClasspath
+    destinationDirectory.set(getRoot().resolveAll("build","test","examples","classes_debuginfo_all"))
+    options.compilerArgs = listOf("-g")
+  }
+
+  register<JavaCompile>("debuginfo-none") {
+    source = sourceSets.test.get().allSource
+    include("**/*.java")
+    classpath = sourceSets.test.get().compileClasspath
+    destinationDirectory.set(getRoot().resolveAll("build","test","examples","classes_debuginfo_none"))
+    options.compilerArgs = listOf("-g:none")
   }
 }
+
+// We just need to register the examples jars for it to be referenced by other modules. This should
+// be placed after all task registrations.
+val buildExampleJars = buildExampleJars("examples")
