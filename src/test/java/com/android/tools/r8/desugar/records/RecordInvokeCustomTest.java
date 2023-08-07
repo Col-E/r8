@@ -9,6 +9,7 @@ import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.TestRuntime.CfVm;
+import com.android.tools.r8.desugar.LibraryFilesHelper;
 import com.android.tools.r8.utils.StringUtils;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -83,7 +84,7 @@ public class RecordInvokeCustomTest extends TestBase {
             .addKeepMainRule(MAIN_TYPE);
     if (parameters.isCfRuntime()) {
       builder
-          .addLibraryFiles(RecordTestUtils.getJdk15LibraryFiles(temp))
+          .addLibraryFiles(LibraryFilesHelper.getJdk15LibraryFiles(temp))
           .compile()
           .inspect(RecordTestUtils::assertRecordsAreRecords)
           .run(parameters.getRuntime(), MAIN_TYPE)

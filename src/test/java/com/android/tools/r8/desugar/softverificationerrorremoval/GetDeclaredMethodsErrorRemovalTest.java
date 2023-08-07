@@ -4,7 +4,6 @@
 
 package com.android.tools.r8.desugar.softverificationerrorremoval;
 
-import static com.android.tools.r8.TestRuntime.CfRuntime.getCheckedInJdk8;
 import static org.hamcrest.CoreMatchers.containsString;
 
 import com.android.tools.r8.D8TestRunResult;
@@ -12,8 +11,7 @@ import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.ToolHelper;
-import java.nio.file.Path;
-import java.nio.file.Paths;
+import com.android.tools.r8.desugar.LibraryFilesHelper;
 import java.util.Arrays;
 import java.util.function.Supplier;
 import org.junit.Test;
@@ -63,13 +61,9 @@ public class GetDeclaredMethodsErrorRemovalTest extends TestBase {
 
   @Test
   public void testWithJavaStub() throws Exception {
-    Path stubs =
-        javac(getCheckedInJdk8())
-            .addSourceFiles(Paths.get("src/test/javaStubs/Supplier.java"))
-            .compile();
     testForD8()
         .addInnerClasses(GetDeclaredMethodsErrorRemovalTest.class)
-        .addProgramFiles(stubs)
+        .addProgramClassFileData(LibraryFilesHelper.getSupplier())
         .setMinApi(parameters)
         .compile()
         .run(parameters.getRuntime(), TestClass.class)

@@ -4,13 +4,12 @@
 
 package com.android.tools.r8.desugar.records;
 
-import static com.android.tools.r8.TestRuntime.getCheckedInJdk8;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isAbsent;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertTrue;
 
-import com.android.tools.r8.JavaCompilerTool;
 import com.android.tools.r8.ToolHelper;
+import com.android.tools.r8.desugar.LibraryFilesHelper;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.FoundClassSubject;
@@ -24,7 +23,6 @@ import java.util.Enumeration;
 import java.util.List;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
-import org.junit.Assume;
 import org.junit.rules.TemporaryFolder;
 
 /**
@@ -40,22 +38,8 @@ public class RecordTestUtils {
     return Paths.get(ToolHelper.TESTS_BUILD_DIR, EXAMPLE_FOLDER, RECORD_FOLDER + ".jar");
   }
 
-
-  public static Path[] getJdk15LibraryFiles(TemporaryFolder temp) throws IOException {
-    Assume.assumeFalse(ToolHelper.isWindows());
-    // TODO(b/169645628): Add JDK-15 runtime jar instead. As a temporary solution we use the jdk 8
-    // runtime with additional stubs.
-    // We use jdk-8 for compilation because in jdk-9 and higher we would need to deal with the
-    // module patching logic.
-    Path recordStubs =
-        JavaCompilerTool.create(getCheckedInJdk8(), temp)
-            .addSourceFiles(Paths.get("src", "test", "javaStubs", "Record.java"))
-            .addSourceFiles(Paths.get("src", "test", "javaStubs", "ObjectMethods.java"))
-            .addSourceFiles(Paths.get("src", "test", "javaStubs", "StringConcatFactory.java"))
-            .addSourceFiles(Paths.get("src", "test", "javaStubs", "TypeDescriptor.java"))
-            .addSourceFiles(Paths.get("src", "test", "javaStubs", "RecordComponent.java"))
-            .compile();
-    return new Path[] {recordStubs, ToolHelper.getJava8RuntimeJar()};
+  public static Path[] getJdk15LibraryFiles(TemporaryFolder temp) throws Exception {
+    return LibraryFilesHelper.getJdk15LibraryFiles(temp);
   }
 
   public static byte[][] getProgramData(String mainClassSimpleName) {

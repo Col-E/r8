@@ -49,9 +49,11 @@ public class RunJdwpTests extends TestBase {
   // Print test output for passing tests (failing tests output is always printed).
   static final boolean PRINT_STREAMS = true;
 
-  static final String RUN_SCRIPT = "tools/run-jdwp-tests.py";
-  static final String DEX_LIB = "third_party/jdwp-tests/apache-harmony-jdwp-tests-hostdex.jar";
-  static final String JAR_LIB = "third_party/jdwp-tests/apache-harmony-jdwp-tests-host.jar";
+  static final String RUN_SCRIPT = ToolHelper.TOOLS_DIR + "run-jdwp-tests.py";
+  static final String DEX_LIB =
+      ToolHelper.THIRD_PARTY_DIR + "jdwp-tests/apache-harmony-jdwp-tests-hostdex.jar";
+  static final String JAR_LIB =
+      ToolHelper.THIRD_PARTY_DIR + "jdwp-tests/apache-harmony-jdwp-tests-host.jar";
 
   interface TestPredicate {
     boolean test(DexVm dexVm, Tool tool);

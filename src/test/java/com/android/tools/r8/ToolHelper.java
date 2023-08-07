@@ -1123,7 +1123,8 @@ public class ToolHelper {
 
   public static Path getJdwpTestsCfJarPath(AndroidApiLevel minSdk) {
     if (minSdk.getLevel() >= AndroidApiLevel.N.getLevel()) {
-      return Paths.get("third_party", "jdwp-tests", "apache-harmony-jdwp-tests-host.jar");
+      return Paths.get(
+          ToolHelper.THIRD_PARTY_DIR, "jdwp-tests", "apache-harmony-jdwp-tests-host.jar");
     } else {
       return Paths.get(ToolHelper.BUILD_DIR, "libs", "jdwp-tests-preN.jar");
     }
