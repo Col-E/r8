@@ -35,6 +35,7 @@ tests/2016-12-19/art
 tests/2016-12-19/art.tar.gz
 tests/2017-10-04/art
 tests/2017-10-04/art.tar.gz
+*.download_deps_lock
 third_party/aapt2/
 third_party/aapt2.tar.gz
 third_party/api_database/api_database

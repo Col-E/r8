@@ -29,8 +29,13 @@ dependencies {
 // We just need to register the examples jars for it to be referenced by other modules.
 val buildExampleJars = buildExampleJars("examplesAndroidO")
 
+val thirdPartyCompileDependenciesTask = ensureThirdPartyDependencies(
+  "compileDeps",
+  listOf(Jdk.JDK_11.getThirdPartyDependency()))
+
 tasks {
   withType<JavaCompile> {
+    dependsOn(thirdPartyCompileDependenciesTask)
     options.setFork(true)
     options.compilerArgs.add("-Xlint:-options")
     options.compilerArgs.add("-parameters")

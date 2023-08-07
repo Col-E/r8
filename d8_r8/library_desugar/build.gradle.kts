@@ -2,9 +2,6 @@
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
-// import java.nio.file.Paths
-// import net.ltgt.gradle.errorprone.errorprone
-
 plugins {
   `kotlin-dsl`
   id("dependencies-plugin")
@@ -22,8 +19,13 @@ java {
 dependencies {
 }
 
+val thirdPartyCompileDependenciesTask = ensureThirdPartyDependencies(
+  "compileDeps",
+  listOf(Jdk.JDK_11.getThirdPartyDependency()))
+
 tasks {
   withType<JavaCompile> {
+    dependsOn(thirdPartyCompileDependenciesTask)
     options.setFork(true)
     options.forkOptions.memoryMaximumSize = "3g"
     options.forkOptions.jvmArgs = listOf(

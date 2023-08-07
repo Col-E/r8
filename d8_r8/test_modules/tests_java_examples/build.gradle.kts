@@ -29,8 +29,13 @@ dependencies {
 // We just need to register the examples jars for it to be referenced by other modules.
 val buildExampleJars = buildExampleJars("examples")
 
+val thirdPartyCompileDependenciesTask = ensureThirdPartyDependencies(
+  "compileDeps",
+  listOf(Jdk.JDK_11.getThirdPartyDependency()))
+
 tasks {
   withType<JavaCompile> {
+    dependsOn(thirdPartyCompileDependenciesTask)
     options.setFork(true)
     options.forkOptions.memoryMaximumSize = "3g"
     options.forkOptions.jvmArgs = listOf(

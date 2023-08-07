@@ -38,9 +38,9 @@ dependencies {
   implementation(Deps.kotlinStdLib)
   implementation(Deps.kotlinReflect)
   implementation(Deps.kotlinMetadata)
-  implementation(resolve(ThirdPartyDeps.ddmLib))
-  implementation(resolve(ThirdPartyDeps.jasmin))
-  implementation(resolve(ThirdPartyDeps.jdwpTests))
+  implementation(resolve(ThirdPartyDeps.ddmLib,"ddmlib.jar"))
+  implementation(resolve(ThirdPartyDeps.jasmin,"jasmin-2.4.jar"))
+  implementation(resolve(ThirdPartyDeps.jdwpTests,"apache-harmony-jdwp-tests-host.jar"))
   implementation(Deps.fastUtil)
   implementation(Deps.smali)
 }
@@ -58,6 +58,9 @@ val thirdPartyRuntimeDependenciesTask = ensureThirdPartyDependencies(
   listOf(
     ThirdPartyDeps.compilerApi,
     ThirdPartyDeps.dagger,
+    ThirdPartyDeps.desugarJdkLibs,
+    ThirdPartyDeps.desugarJdkLibs11,
+    ThirdPartyDeps.iosched2019,
     ThirdPartyDeps.jacoco,
     ThirdPartyDeps.java8Runtime,
     ThirdPartyDeps.jdk11Test)
@@ -93,6 +96,9 @@ fun testDependencies() : FileCollection {
 }
 
 tasks {
+  "compileTestJava" {
+    dependsOn(thirdPartyCompileDependenciesTask)
+  }
   withType<JavaCompile> {
     dependsOn(gradle.includedBuild("keepanno").task(":jar"))
     dependsOn(gradle.includedBuild("main").task(":jar"))

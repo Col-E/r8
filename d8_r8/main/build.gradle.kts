@@ -33,6 +33,10 @@ dependencies {
   errorprone(Deps.errorprone)
 }
 
+val thirdPartyCompileDependenciesTask = ensureThirdPartyDependencies(
+  "compileDeps",
+  listOf(Jdk.JDK_11.getThirdPartyDependency()))
+
 val thirdPartyResourceDependenciesTask = ensureThirdPartyDependencies(
   "resourceDeps",
   listOf(ThirdPartyDeps.apiDatabase))
@@ -134,6 +138,7 @@ tasks {
 }
 
 tasks.withType<JavaCompile> {
+  dependsOn(thirdPartyCompileDependenciesTask)
   println("NOTE: Running with JDK: " + org.gradle.internal.jvm.Jvm.current().javaHome)
 
   // Enable error prone for D8/R8 main sources and make all warnings errors.
