@@ -196,7 +196,7 @@ public class R8CompiledThroughDexTest extends DesugaredLibraryTestBase {
               R8.class.getTypeName(),
               builder -> builder.appendArtOption("--64").appendArtOption("-Xmx512m"),
               parameters.getRuntime().asDex().getVm(),
-              true,
+              null,
               ImmutableList.builder()
                   .add("--output")
                   .add(commandLinePathFor(outputThroughDex))

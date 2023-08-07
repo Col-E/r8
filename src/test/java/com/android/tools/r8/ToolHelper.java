@@ -453,7 +453,7 @@ public class ToolHelper {
     protected String mainClass;
     protected List<String> programArguments = new ArrayList<>();
     protected List<String> bootClasspaths = new ArrayList<>();
-    protected String executionDirectory;
+    protected Path relativeExecutionDirectory;
 
     public CommandBuilder appendArtOption(String option) {
       options.add(option);
@@ -523,8 +523,8 @@ public class ToolHelper {
 
     public ProcessBuilder asProcessBuilder() {
       ProcessBuilder processBuilder = new ProcessBuilder(command());
-      if (executionDirectory != null) {
-        processBuilder.directory(new File(executionDirectory));
+      if (relativeExecutionDirectory != null) {
+        processBuilder.directory(relativeExecutionDirectory.toFile());
       }
       return processBuilder;
     }
@@ -541,7 +541,6 @@ public class ToolHelper {
   public static class ArtCommandBuilder extends CommandBuilder {
 
     private DexVm version;
-    private boolean withArtFrameworks;
     private ArtResultCacheLookupKey artResultCacheLookupKey;
 
     public ArtCommandBuilder() {
@@ -562,13 +561,17 @@ public class ToolHelper {
 
     @Override
     protected String getExecutable() {
-      if (withArtFrameworks && version.isNewerThan(DexVm.ART_4_4_4_HOST)) {
-        // Run directly Art in its repository, which has been patched by gradle to match expected
-        // path for the frameworks.
-        executionDirectory = getArtDir(version);
-        return getRawArtBinary(version);
+      String result = version != null ? getArtBinary(version) : getArtBinary();
+      if (relativeExecutionDirectory != null) {
+        // The execution directory has to be relative.
+        assert !relativeExecutionDirectory.isAbsolute();
+        Path toRoot = Paths.get("");
+        for (int i = 0; i < relativeExecutionDirectory.getNameCount(); i++) {
+          toRoot = toRoot.resolve("..");
+        }
+        return toRoot.resolve(result).toString();
       }
-      return version != null ? getArtBinary(version) : getArtBinary();
+      return result;
     }
 
     public boolean isForDevice() {
@@ -617,11 +620,10 @@ public class ToolHelper {
     private void hashParts(Hasher hasher) {
       // Call getExecutable first, this will set executionDirectory if needed.
       hasher.putString(this.getExecutable(), StandardCharsets.UTF_8);
-      if (this.executionDirectory != null) {
-        hasher.putString(this.executionDirectory, StandardCharsets.UTF_8);
+      if (this.relativeExecutionDirectory != null) {
+        hasher.putString(this.relativeExecutionDirectory.toString(), StandardCharsets.UTF_8);
       }
       hasher.putString(this.mainClass, StandardCharsets.UTF_8);
-      hasher.putBoolean(this.withArtFrameworks);
       hashFilesFromList(hasher, classpaths);
       hashFilesFromList(hasher, bootClasspaths);
       systemProperties.forEach(
@@ -1790,7 +1792,7 @@ public class ToolHelper {
   public static ProcessResult runArtRaw(List<String> files, String mainClass,
       Consumer<ArtCommandBuilder> extras)
       throws IOException {
-    return runArtRaw(files, mainClass, extras, null, false);
+    return runArtRaw(files, mainClass, extras, null, null);
   }
 
   // Index used to name directory aimed at storing dex files and process result
@@ -1803,12 +1805,12 @@ public class ToolHelper {
       String mainClass,
       Consumer<ArtCommandBuilder> extras,
       DexVm version,
-      boolean withArtFrameworks,
+      Path relativeExecutionDirectory,
       String... args)
       throws IOException {
     ArtCommandBuilder builder =
         version != null ? new ArtCommandBuilder(version) : new ArtCommandBuilder();
-    builder.withArtFrameworks = withArtFrameworks;
+    builder.relativeExecutionDirectory = relativeExecutionDirectory;
     files.forEach(builder::appendClasspath);
     builder.setMainClass(mainClass);
     if (extras != null) {
@@ -2041,7 +2043,7 @@ public class ToolHelper {
       Consumer<ArtCommandBuilder> extras,
       DexVm version)
       throws IOException {
-    ProcessResult result = runArtRaw(files, mainClass, extras, version, false);
+    ProcessResult result = runArtRaw(files, mainClass, extras, version, null);
     failOnProcessFailure(result);
     failOnVerificationErrors(result);
     return result;

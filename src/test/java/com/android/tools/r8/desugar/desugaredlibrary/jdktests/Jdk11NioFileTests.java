@@ -14,6 +14,7 @@ import static com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpec
 import static com.android.tools.r8.utils.FileUtils.CLASS_EXTENSION;
 import static com.android.tools.r8.utils.FileUtils.JAVA_EXTENSION;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.D8TestCompileResult;
@@ -39,12 +40,14 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import org.jetbrains.annotations.NotNull;
 import org.junit.Assume;
 import org.junit.BeforeClass;
@@ -279,6 +282,7 @@ public class Jdk11NioFileTests extends DesugaredLibraryTestBase {
   @Test
   public void testNioFileDesugaredLib() throws Exception {
     String verbosity = "2";
+    Path relativeExecutionDirectory = createRelativeExecutionDirectory();
     DesugaredLibraryTestCompileResult<?> compileResult =
         testForDesugaredLibrary(
                 parameters, libraryDesugaringSpecification, compilationSpecification)
@@ -287,6 +291,7 @@ public class Jdk11NioFileTests extends DesugaredLibraryTestBase {
             .addProgramFiles(testNGSupportProgramFiles())
             .addProgramClassFileData(getTestNGMainRunner())
             .compile()
+            .withRelativeExecutionDirectory(relativeExecutionDirectory)
             .withArt6Plus64BitsLib();
     int success = 0;
     List<String> failingClasses = new ArrayList<>();
@@ -330,6 +335,7 @@ public class Jdk11NioFileTests extends DesugaredLibraryTestBase {
       assertEquals(29, success);
       assertEquals(0, failingClasses.size());
     }
+    clearDirectory(relativeExecutionDirectory);
   }
 
   @Test
@@ -338,6 +344,7 @@ public class Jdk11NioFileTests extends DesugaredLibraryTestBase {
         "The package java.nio was not present on older devices, all tests fail.",
         parameters.getDexRuntimeVersion().isOlderThan(Version.V8_1_0));
     String verbosity = "2";
+    Path relativeExecutionDirectory = createRelativeExecutionDirectory();
     D8TestCompileResult compileResult =
         testForD8(parameters.getBackend())
             .addProgramFiles(TEST_UTIL_JAR)
@@ -346,6 +353,7 @@ public class Jdk11NioFileTests extends DesugaredLibraryTestBase {
             .addProgramClassFileData(getTestNGMainRunner())
             .addLibraryFiles(libraryDesugaringSpecification.getLibraryFiles())
             .compile()
+            .withRelativeExecutionDirectory(relativeExecutionDirectory)
             .withArt6Plus64BitsLib();
     for (String mainTestClass : SUCCESSFUL_MAIN_TESTS) {
       compileResult.run(parameters.getRuntime(), mainTestClass).assertSuccess();
@@ -358,5 +366,28 @@ public class Jdk11NioFileTests extends DesugaredLibraryTestBase {
           "Failure in " + testNGTestClass + "\n" + result,
           result.getStdOut().contains(StringUtils.lines(testNGTestClass + ": SUCCESS")));
     }
+    clearDirectory(relativeExecutionDirectory);
+  }
+
+  private static void clearDirectory(Path executionDirectory) throws IOException {
+    try (Stream<Path> pathStream = Files.walk(executionDirectory)) {
+      pathStream
+          .sorted(Comparator.reverseOrder())
+          .map(Path::toFile)
+          .forEach(f -> assertTrue(f.delete()));
+    }
+    assertFalse(Files.exists(executionDirectory));
+  }
+
+  private Path createRelativeExecutionDirectory() throws IOException {
+    // We need to create a relative directory (in r8) so it can be used as execution directory.
+    return Files.createDirectories(
+        Paths.get(
+            "jdknio_"
+                + compilationSpecification.toString()
+                + "_"
+                + parameters.getDexRuntimeVersion().toString()
+                + "_"
+                + parameters.getApiLevel().toString()));
   }
 }
