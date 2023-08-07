@@ -2,6 +2,7 @@
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
+import DependenciesPlugin.Companion.computeRoot
 import java.io.BufferedReader
 import java.io.File
 import java.io.IOException
@@ -18,6 +19,7 @@ import javax.inject.Inject
 import org.gradle.api.DefaultTask
 import org.gradle.api.file.RegularFileProperty
 import org.gradle.api.provider.Property
+import org.gradle.api.tasks.InputFile
 import org.gradle.api.tasks.OutputDirectory
 import org.gradle.api.tasks.TaskAction
 import org.gradle.api.tasks.options.Option
@@ -32,6 +34,11 @@ abstract class DownloadDependencyTask : DefaultTask() {
   private var _outputDir: File? = null
   private var _tarGzFile: File? = null
   private var _sha1File: File? = null
+
+  @InputFile
+  fun getInputFile(): File? {
+    return _sha1File
+  }
 
   @OutputDirectory
   fun getOutputDir(): File? {
@@ -75,6 +82,7 @@ abstract class DownloadDependencyTask : DefaultTask() {
         this.outputDir.set(outputDir)
         this.tarGzFile.set(tarGzFile)
         this.lockFile.set(lockFile)
+        this.root.set(computeRoot(project.projectDir))
       }
   }
 
@@ -84,6 +92,7 @@ abstract class DownloadDependencyTask : DefaultTask() {
     val outputDir : RegularFileProperty
     val tarGzFile : RegularFileProperty
     val lockFile : RegularFileProperty
+    val root : RegularFileProperty
   }
 
   abstract class RunDownload : WorkAction<RunDownloadParameters> {
@@ -159,6 +168,7 @@ abstract class DownloadDependencyTask : DefaultTask() {
 
     @Throws(IOException::class, InterruptedException::class)
     private fun runProcess(parameters: RunDownloadParameters, builder: ProcessBuilder) {
+      builder.directory(parameters.root.asFile.get())
       val command = java.lang.String.join(" ", builder.command())
       val p = builder.start()
       val exit = p.waitFor()

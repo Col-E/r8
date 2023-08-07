@@ -37,10 +37,10 @@ import java.util.Map;
 public abstract class ProtoShrinkingTestBase extends TestBase {
 
   public static final Path PROTOBUF_LITE_JAR =
-      Paths.get("third_party/protobuf-lite/libprotobuf_lite.jar");
+      Paths.get(ToolHelper.THIRD_PARTY_DIR, "protobuf-lite/libprotobuf_lite.jar");
 
   public static final Path PROTOBUF_LITE_PROGUARD_RULES =
-      Paths.get("third_party/protobuf-lite/lite_proguard.pgcfg");
+      Paths.get(ToolHelper.THIRD_PARTY_DIR, "protobuf-lite/lite_proguard.pgcfg");
 
   // Test classes for proto2.
   public static final Path PROTO2_EXAMPLES_JAR =

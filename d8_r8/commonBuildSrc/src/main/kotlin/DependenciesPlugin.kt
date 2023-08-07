@@ -2,6 +2,7 @@
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
+import DependenciesPlugin.Companion.computeRoot
 import java.io.File
 import java.lang.Thread.sleep
 import java.net.URI
@@ -30,6 +31,16 @@ class DependenciesPlugin: Plugin<Project> {
     val repositories = target.getRepositories()
     repositories.maven { name = "LOCAL_MAVEN_REPO";  url = URI(dependenciesPath) }
     repositories.maven { name = "LOCAL_MAVEN_REPO_NEW";  url = URI(dependenciesNewPath) }
+  }
+
+  companion object {
+    fun computeRoot(file: File) : File {
+      var parent = file
+      while (!parent.getName().equals("d8_r8")) {
+        parent = parent.getParentFile()
+      }
+      return parent.getParentFile()
+    }
   }
 }
 
@@ -66,11 +77,7 @@ enum class Jdk(val folder : String) {
 }
 
 fun Project.getRoot() : File {
-  var parent = this.projectDir
-  while (!parent.getName().equals("d8_r8")) {
-    parent = parent.getParentFile()
-  }
-  return parent.getParentFile()
+  return computeRoot(this.projectDir)
 }
 
 fun Project.header(title : String) : String {
@@ -83,7 +90,8 @@ fun Project.ensureThirdPartyDependencies(name : String, deps : List<ThirdPartyDe
     val projectAndTaskName = "${project.name}-$name"
     val downloadTaskName = "download-third-party-$projectAndTaskName-${tpd.packageName}"
     val downloadTask = tasks.register<DownloadDependencyTask>(downloadTaskName) {
-      setDependency(getRoot().resolve(tpd.sha1File), getRoot().resolve(tpd.path), tpd.type)
+      setDependency(
+        getRoot(), getRoot().resolve(tpd.sha1File), getRoot().resolve(tpd.path), tpd.type)
     }.get()
     outputFiles.add(tpd.path)
     downloadTask
@@ -95,7 +103,7 @@ fun Project.ensureThirdPartyDependencies(name : String, deps : List<ThirdPartyDe
 }
 
 /**
- * Builds a jar for each subfolder in an test source set.
+ * Builds a jar for each sub folder in a test source set.
  *
  * <p> As an example, src/test/examplesJava9 contains subfolders: backport, collectionof, ..., .
  * These are compiled to individual jars and placed in <repo-root>/build/test/examplesJava9/ as:
@@ -159,7 +167,8 @@ fun Project.getExampleJarsTaskName(name: String) : String {
   return "build-example-jars-$name"
 }
 
-fun Project.resolve(thirdPartyDependency: ThirdPartyDependency, vararg paths: String) : ConfigurableFileCollection {
+fun Project.resolve(
+    thirdPartyDependency: ThirdPartyDependency, vararg paths: String) : ConfigurableFileCollection {
   return files(project.getRoot().resolve(thirdPartyDependency.path).resolveAll(*paths))
 }
 
@@ -309,6 +318,10 @@ object ThirdPartyDeps {
       "third_party",
       "binary_compatibility_tests",
       "compiler_api_tests.tar.gz.sha1").toFile())
+  val coreLambdaStubs = ThirdPartyDependency(
+    "coreLambdaStubs",
+    Paths.get("third_party", "core-lambda-stubs").toFile(),
+    Paths.get("third_party", "core-lambda-stubs.tar.gz.sha1").toFile())
   val dagger = ThirdPartyDependency(
     "dagger",
     Paths.get("third_party", "dagger", "2.41").toFile(),
@@ -341,6 +354,10 @@ object ThirdPartyDeps {
     "jasmin",
     Paths.get("third_party", "jasmin").toFile(),
     Paths.get("third_party", "jasmin.tar.gz.sha1").toFile())
+  val jsr223 = ThirdPartyDependency(
+    "jsr223",
+    Paths.get("third_party", "jsr223-api-1.0").toFile(),
+    Paths.get("third_party", "jsr223-api-1.0.tar.gz.sha1").toFile())
   val java8Runtime = ThirdPartyDependency(
     "openjdk-rt-1.8",
     Paths.get("third_party", "openjdk", "openjdk-rt-1.8").toFile(),
@@ -357,7 +374,32 @@ object ThirdPartyDeps {
     Paths.get("third_party", "jdwp-tests").toFile(),
     Paths.get("third_party", "jdwp-tests.tar.gz.sha1").toFile())
   val kotlinCompilers = getThirdPartyKotlinCompilers()
+  val multidex = ThirdPartyDependency(
+    "multidex",
+    Paths.get("third_party", "multidex").toFile(),
+    Paths.get("third_party", "multidex.tar.gz.sha1").toFile())
   val proguards = getThirdPartyProguards()
+  val protobufLite = ThirdPartyDependency(
+    "protobuf-lite",
+    Paths.get("third_party", "protobuf-lite").toFile(),
+    Paths.get("third_party", "protobuf-lite.tar.gz.sha1").toFile(),
+    DependencyType.X20)
+  val r8 = ThirdPartyDependency(
+    "r8",
+    Paths.get("third_party", "r8").toFile(),
+    Paths.get("third_party", "r8.tar.gz.sha1").toFile())
+  val rhino = ThirdPartyDependency(
+    "rhino",
+    Paths.get("third_party", "rhino-1.7.10").toFile(),
+    Paths.get("third_party", "rhino-1.7.10.tar.gz.sha1").toFile())
+  val rhinoAndroid = ThirdPartyDependency(
+    "rhino-android",
+    Paths.get("third_party", "rhino-android-1.1.1").toFile(),
+    Paths.get("third_party", "rhino-android-1.1.1.tar.gz.sha1").toFile())
+  val smali = ThirdPartyDependency(
+    "smali",
+    Paths.get("third_party", "smali").toFile(),
+    Paths.get("third_party", "smali.tar.gz.sha1").toFile())
 }
 
 fun getThirdPartyAndroidJars() : List<ThirdPartyDependency> {
@@ -409,7 +451,6 @@ fun getThirdPartyAndroidVms() : List<ThirdPartyDependency> {
 }
 
 fun getThirdPartyAndroidVm(version : List<String>) : ThirdPartyDependency {
-  val output = Paths.get("tools", "linux", *version.toTypedArray(), "bin", "art").toFile()
   return ThirdPartyDependency(
     version.last(),
     Paths.get(

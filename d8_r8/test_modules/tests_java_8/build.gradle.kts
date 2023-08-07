@@ -57,18 +57,32 @@ val thirdPartyRuntimeDependenciesTask = ensureThirdPartyDependencies(
   "runtimeDeps",
   listOf(
     ThirdPartyDeps.compilerApi,
+    ThirdPartyDeps.coreLambdaStubs,
     ThirdPartyDeps.dagger,
     ThirdPartyDeps.desugarJdkLibs,
     ThirdPartyDeps.desugarJdkLibs11,
     ThirdPartyDeps.iosched2019,
     ThirdPartyDeps.jacoco,
     ThirdPartyDeps.java8Runtime,
-    ThirdPartyDeps.jdk11Test)
+    ThirdPartyDeps.jdk11Test,
+    ThirdPartyDeps.jsr223,
+    ThirdPartyDeps.multidex,
+    ThirdPartyDeps.r8,
+    ThirdPartyDeps.rhino,
+    ThirdPartyDeps.rhinoAndroid,
+    ThirdPartyDeps.smali)
     + ThirdPartyDeps.androidJars
     + ThirdPartyDeps.androidVMs
     + ThirdPartyDeps.jdks
     + ThirdPartyDeps.kotlinCompilers
     + ThirdPartyDeps.proguards)
+
+val thirdPartyRuntimeInternalDependenciesTask = ensureThirdPartyDependencies(
+  "runtimeInternalDeps",
+  listOf(
+    ThirdPartyDeps.protobufLite,
+  )
+)
 
 val sourceSetDependenciesTasks = arrayOf(
   projectTask("tests_java_examples", getExampleJarsTaskName("examples")),
@@ -125,6 +139,7 @@ tasks {
   withType<Test> {
     environment.put("USE_NEW_GRADLE_SETUP", "true")
     dependsOn(thirdPartyRuntimeDependenciesTask)
+    dependsOn(thirdPartyRuntimeInternalDependenciesTask)
     dependsOn(*sourceSetDependenciesTasks)
     println("NOTE: Number of processors " + Runtime.getRuntime().availableProcessors())
     val userDefinedCoresPerFork = System.getenv("R8_GRADLE_CORES_PER_FORK")
