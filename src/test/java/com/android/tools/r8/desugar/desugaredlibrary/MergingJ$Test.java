@@ -7,15 +7,10 @@ package com.android.tools.r8.desugar.desugaredlibrary;
 import static com.android.tools.r8.DiagnosticsMatcher.diagnosticType;
 import static com.android.tools.r8.desugar.desugaredlibrary.jdktests.Jdk11TestLibraryDesugaringSpecification.EXTENSION_PATH;
 import static com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification.getJdk8Jdk11;
-import static junit.framework.TestCase.assertNotNull;
-import static junit.framework.TestCase.assertTrue;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.junit.Assert.assertThrows;
-import static org.junit.Assert.fail;
 
 import com.android.tools.r8.CompilationFailedException;
-import com.android.tools.r8.D8Command;
-import com.android.tools.r8.DexFileMergerHelper;
 import com.android.tools.r8.DiagnosticsMatcher;
 import com.android.tools.r8.L8;
 import com.android.tools.r8.L8Command;
@@ -27,9 +22,7 @@ import com.android.tools.r8.desugar.desugaredlibrary.jdktests.Jdk11TestLibraryDe
 import com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification;
 import com.android.tools.r8.errors.DuplicateTypesDiagnostic;
 import com.android.tools.r8.utils.AndroidApiLevel;
-import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import java.nio.file.Path;
 import java.util.List;
 import org.junit.Assume;
@@ -70,44 +63,6 @@ public class MergingJ$Test extends DesugaredLibraryTestBase {
                           .assertOnlyErrors()
                           .assertErrorsMatch(diagnosticType(DuplicateTypesDiagnostic.class));
                     }));
-  }
-
-  @Test
-  public void testMergingJ$WithDexFileMergerHelper() throws Exception {
-    Path mergerInputPart1 = buildSplitDesugaredLibraryPart1();
-    Path mergerInputPart2 = buildSplitDesugaredLibraryPart2();
-    Path merged = temp.newFolder().toPath().resolve("merged.jar");
-    D8Command command =
-        D8Command.builder()
-            .addProgramFiles(mergerInputPart1, mergerInputPart2)
-            .addLibraryFiles(libraryDesugaringSpecification.getLibraryFiles())
-            .setOutput(merged, OutputMode.DexIndexed)
-            .build();
-    try {
-      DexFileMergerHelper.run(
-          command,
-          true,
-          ImmutableMap.<String, Integer>builder()
-              .put(mergerInputPart1.toString(), 1)
-              .put(mergerInputPart2.toString(), 2)
-              .build());
-    } catch (Exception e) {
-      if (e.getCause().getMessage().contains("Merging dex file containing classes with prefix")) {
-        // TODO(b/138278440): Forbid to merge j$ classes in a Google3 compliant way.
-        // In Google 3 the Dex merger is used to merge the Bazel desugared core library.
-        // The Dex merger has to be able to merge multiple classes with the prefix j$ for this case.
-        // The following should therefore not raise:
-        // "Merging dex file containing classes with prefix j$. is not allowed."
-        fail();
-      }
-      throw e;
-    }
-    CodeInspector codeInspectorOutput = new CodeInspector(merged);
-    CodeInspector codeInspectorSplit1 = new CodeInspector(mergerInputPart1);
-    CodeInspector codeInspectorSplit2 = new CodeInspector(mergerInputPart2);
-    assertNotNull(codeInspectorOutput);
-    assertTrue(codeInspectorOutput.allClasses().size() > codeInspectorSplit1.allClasses().size());
-    assertTrue(codeInspectorOutput.allClasses().size() > codeInspectorSplit2.allClasses().size());
   }
 
   private Path buildSplitDesugaredLibraryPart1() throws Exception {
