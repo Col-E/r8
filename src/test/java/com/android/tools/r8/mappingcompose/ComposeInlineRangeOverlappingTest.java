@@ -51,9 +51,8 @@ public class ComposeInlineRangeOverlappingTest extends TestBase {
           "    147:147:com.android.InternalViewOptions "
               + "com.android.InternalViewOptions.parseFromJson(org.json.JSONObject):45:45 -> e",
           "    147:147:com.android.ViewOptions parseFromJson(org.json.JSONObject):97 -> e",
-          // TODO(b/280564959): We should not introduce ambiguous mapping.
           "    148:148:com.android.InternalViewOptions "
-              + "com.android.InternalViewOptions.parseFromJson(org.json.JSONObject):47:48 -> e",
+              + "com.android.InternalViewOptions.parseFromJson(org.json.JSONObject):47:47 -> e",
           "    148:148:com.android.ViewOptions parseFromJson(org.json.JSONObject):97 -> e");
 
   @Test
