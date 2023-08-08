@@ -102,14 +102,15 @@ tasks {
     dependsOn(r8WithRelocatedDepsTask)
     val r8 = r8WithRelocatedDepsTask.outputs.files.getSingleFile()
     val keepTxt = getRoot().resolveAll("src", "main", "resourceshrinker_cli.txt")
-    inputs.file(keepTxt)
+    val cliKeep = getRoot().resolveAll("src", "main", "keep_r8resourceshrinker.txt")
+    inputs.files(listOf(keepTxt, cliKeep))
     val output = file(Paths.get("build", "libs", "resourceshrinkercli.jar"))
     outputs.file(output)
     commandLine = createR8LibCommandLine(
       r8,
       r8,
       output,
-      listOf(keepTxt),
+      listOf(keepTxt, cliKeep),
       false)
   }
 }
