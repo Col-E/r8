@@ -88,8 +88,7 @@ fun Project.ensureThirdPartyDependencies(name : String, deps : List<ThirdPartyDe
     val projectAndTaskName = "${project.name}-$name"
     val downloadTaskName = "download-third-party-$projectAndTaskName-${tpd.packageName}"
     val downloadTask = tasks.register<DownloadDependencyTask>(downloadTaskName) {
-      setDependency(
-        getRoot(), getRoot().resolve(tpd.sha1File), getRoot().resolve(tpd.path), tpd.type)
+      setDependency(getRoot().resolve(tpd.sha1File), getRoot().resolve(tpd.path), tpd.type)
     }.get()
     outputFiles.add(tpd.path)
     downloadTask
@@ -300,6 +299,7 @@ object Deps {
   val asm by lazy { "org.ow2.asm:asm:${Versions.asmVersion}" }
   val asmUtil by lazy { "org.ow2.asm:asm-util:${Versions.asmVersion}" }
   val asmCommons by lazy { "org.ow2.asm:asm-commons:${Versions.asmVersion}" }
+  val errorprone by lazy { "com.google.errorprone:error_prone_core:${Versions.errorproneVersion}" }
   val fastUtil by lazy { "it.unimi.dsi:fastutil:${Versions.fastUtilVersion}"}
   val gson by lazy { "com.google.code.gson:gson:${Versions.gsonVersion}"}
   val guava by lazy { "com.google.guava:guava:${Versions.guavaVersion}" }
@@ -311,7 +311,6 @@ object Deps {
   val kotlinReflect by lazy { "org.jetbrains.kotlin:kotlin-reflect:${Versions.kotlinVersion}" }
   val mockito by lazy { "org.mockito:mockito-core:${Versions.mockito}" }
   val smali by lazy { "com.android.tools.smali:smali:${Versions.smaliVersion}" }
-  val errorprone by lazy { "com.google.errorprone:error_prone_core:${Versions.errorproneVersion}" }
 }
 
 object ThirdPartyDeps {
@@ -501,7 +500,7 @@ fun getThirdPartyAndroidJar(version : String) : ThirdPartyDependency {
 fun getThirdPartyAndroidVms() : List<ThirdPartyDependency> {
   return listOf(
     listOf("host", "art-master"),
-    listOf("host", "art-14.0.0-dp1"),
+    listOf("host", "art-14.0.0-beta3"),
     listOf("host", "art-13.0.0"),
     listOf("host", "art-12.0.0-beta4"),
     listOf("art-10.0.0"),
