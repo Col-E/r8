@@ -15,6 +15,7 @@ import java.io.InputStream;
  */
 @Keep
 public interface AndroidResourceInput extends Resource {
+  @Keep
   enum Kind {
     // The AndroidManifest.xml file in proto format.
     MANIFEST,
