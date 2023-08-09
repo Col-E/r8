@@ -14,6 +14,7 @@ import org.gradle.api.file.ConfigurableFileCollection
 import org.gradle.api.plugins.JavaPluginExtension
 import org.gradle.api.tasks.JavaExec
 import org.gradle.api.tasks.SourceSet
+import org.gradle.api.tasks.testing.Test
 import org.gradle.jvm.tasks.Jar
 import org.gradle.kotlin.dsl.register
 import org.gradle.nativeplatform.platform.OperatingSystem
@@ -29,6 +30,12 @@ class DependenciesPlugin: Plugin<Project> {
     val repositories = target.getRepositories()
     repositories.maven { name = "LOCAL_MAVEN_REPO";  url = URI(dependenciesPath) }
     repositories.maven { name = "LOCAL_MAVEN_REPO_NEW";  url = URI(dependenciesNewPath) }
+
+    // Setup all test tasks to listen after system properties passed in by test.py.
+    val testTask = target.tasks.findByName("test")
+    if (testTask != null) {
+      TestConfigurationHelper.setupTestTask(testTask as Test)
+    }
   }
 
   companion object {
@@ -543,7 +550,6 @@ fun getJdks() : List<ThirdPartyDependency> {
 }
 
 fun getThirdPartyProguards() : List<ThirdPartyDependency> {
-  val os: OperatingSystem = DefaultNativePlatform.getCurrentOperatingSystem()
   return listOf("proguard5.2.1", "proguard6.0.1", "proguard-7.0.0")
     .map { ThirdPartyDependency(
       it,

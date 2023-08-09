@@ -157,7 +157,9 @@ tasks {
   withType<Test> {
     environment.put("USE_NEW_GRADLE_SETUP", "true")
     dependsOn(thirdPartyRuntimeDependenciesTask)
-    dependsOn(thirdPartyRuntimeInternalDependenciesTask)
+    if (!project.hasProperty("no_internal")) {
+      dependsOn(thirdPartyRuntimeInternalDependenciesTask)
+    }
     dependsOn(*sourceSetDependenciesTasks)
     println("NOTE: Number of processors " + Runtime.getRuntime().availableProcessors())
     val userDefinedCoresPerFork = System.getenv("R8_GRADLE_CORES_PER_FORK")
