@@ -28,6 +28,7 @@ dependencies {
   // incompatible java class file version. By depending on the jar we circumvent that.
   implementation(projectTask("keepanno", "jar").outputs.files)
   implementation(projectTask("main", "jar").outputs.files)
+  implementation(projectTask("resourceshrinker", "jar").outputs.files)
   implementation(Deps.asm)
   implementation(Deps.asmCommons)
   implementation(Deps.asmUtil)
@@ -119,6 +120,7 @@ fun testDependencies() : FileCollection {
     .get()
     .compileClasspath
     .filter({"$it".contains("keepanno") ||
+             "$it".contains("resoourceshrinker") ||
             ("$it".contains("third_party")
               && !"$it".contains("errorprone")
               && !"$it".contains("gradle"))})
@@ -130,6 +132,7 @@ tasks {
   }
   withType<JavaCompile> {
     dependsOn(gradle.includedBuild("keepanno").task(":jar"))
+    dependsOn(gradle.includedBuild("resourceshrinker").task(":jar"))
     dependsOn(gradle.includedBuild("main").task(":jar"))
     dependsOn(thirdPartyCompileDependenciesTask)
     options.setFork(true)

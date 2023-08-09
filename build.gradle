@@ -53,6 +53,8 @@ sourceSets {
     main {
         java {
             srcDirs = ['src/main/java', 'src/keepanno/java']
+            // Exclude in old setup, resource shrinker is only compiled into R8 with 8.0
+            exclude 'com/android/tools/r8/utils/resourceshrinker/*.java'
         }
         resources {
             srcDirs "third_party/api_database/api_database"
@@ -61,6 +63,8 @@ sourceSets {
     main17 {
         java {
             srcDirs = ['src/main/java', 'src/keepanno/java']
+            // Exclude in old setup, resource shrinker is only compiled into R8 with 8.0
+            exclude 'com/android/tools/r8/utils/resourceshrinker/*.java'
         }
         resources {
             srcDirs "third_party/api_database/api_database"

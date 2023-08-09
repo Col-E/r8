@@ -8,3 +8,8 @@
 -keepclassmembers enum com.android.tools.r8.com.android.resources.ResourceFolderType {
   public static **[] values();
 }
+
+# TODO(b/294924503): Used reflectively until the move to gradle 8 is done (b/270105162)
+-keep class com.android.tools.r8.utils.resourceshrinker.ResourceTracingImpl {
+  <init>();
+}

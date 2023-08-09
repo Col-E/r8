@@ -6,6 +6,7 @@ rootProject.name = "tests_java_8"
 
 val root = rootProject.projectDir.parentFile.parentFile
 includeBuild(root.resolve("keepanno"))
+includeBuild(root.resolve("resourceshrinker"))
 
 // We need to include src/main as a composite-build otherwise our test-modules
 // will compete with the test to compile the source files.

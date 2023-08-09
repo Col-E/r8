@@ -25,7 +25,9 @@ public interface AndroidResourceInput extends Resource {
     // in UTF-8 format.
     XML_FILE,
     // Any other binary file withing the res folder.
-    RES_FOLDER_FILE
+    RES_FOLDER_FILE,
+    // Other files are ignored, but copied through
+    UNKNOWN
   }
 
   // The path, within the app, of the resource.
