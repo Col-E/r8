@@ -111,7 +111,6 @@ public class IRConverter {
   protected final CfInstructionDesugaringCollection instructionDesugaring;
   protected final FieldAccessAnalysis fieldAccessAnalysis;
   protected final LibraryMethodOverrideAnalysis libraryMethodOverrideAnalysis;
-  protected final StringOptimizer stringOptimizer;
   protected final IdempotentFunctionCallCanonicalizer idempotentFunctionCallCanonicalizer;
   private final ClassInliner classInliner;
   protected final InternalOptions options;
@@ -171,7 +170,6 @@ public class IRConverter {
             : null;
     this.classInitializerDefaultsOptimization =
         new ClassInitializerDefaultsOptimization(appView, this);
-    this.stringOptimizer = new StringOptimizer(appView);
     this.deadCodeRemover = new DeadCodeRemover(appView);
     this.assertionsRewriter = new AssertionsRewriter(appView);
     this.idempotentFunctionCallCanonicalizer = new IdempotentFunctionCallCanonicalizer(appView);
@@ -693,18 +691,7 @@ public class IRConverter {
     }
 
     if (!isDebugMode) {
-      // Reflection optimization 2. get*Name() with const-class -> const-string
-      if (options.enableNameReflectionOptimization
-          || options.testing.forceNameReflectionOptimization) {
-        timing.begin("Rewrite Class.getName");
-        stringOptimizer.rewriteClassGetName(appView, code);
-        timing.end();
-      }
-      // Reflection/string optimization 3. trivial conversion/computation on const-string
-      timing.begin("Optimize const strings");
-      stringOptimizer.computeTrivialOperationsOnConstString(code);
-      stringOptimizer.removeTrivialConversions(code);
-      timing.end();
+      new StringOptimizer(appView).run(code, timing);
       timing.begin("Optimize library methods");
       appView
           .libraryMethodOptimizer()
@@ -765,7 +752,6 @@ public class IRConverter {
       assert options.inlinerOptions().enableInlining && inliner != null;
       classInliner.processMethodCode(
           appView.withLiveness(),
-          stringOptimizer,
           code.context(),
           code,
           feedback,
