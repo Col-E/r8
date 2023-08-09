@@ -562,6 +562,12 @@ public class ToolHelper {
     @Override
     protected String getExecutable() {
       String result = version != null ? getArtBinary(version) : getArtBinary();
+      if (version.isNewerThan(DexVm.ART_4_4_4_HOST) && relativeExecutionDirectory == null) {
+        // Run directly Art in its repository, which has been patched by gradle to match expected
+        // path for the frameworks.
+        relativeExecutionDirectory = Paths.get(getArtDir(version));
+        return getRawArtBinary(version);
+      }
       if (relativeExecutionDirectory != null) {
         // The execution directory has to be relative.
         assert !relativeExecutionDirectory.isAbsolute();
