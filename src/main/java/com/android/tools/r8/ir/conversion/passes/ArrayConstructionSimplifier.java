@@ -204,6 +204,11 @@ public class ArrayConstructionSimplifier extends CodeRewriterPass<AppInfo> {
       it = block.listIterator(code, instructionAfterCandidate);
       hasChanged = true;
     }
+    if (hasChanged) {
+      code.removeRedundantBlocks();
+    }
+
+    assert code.isConsistentSSA(appView);
     return hasChanged;
   }
 

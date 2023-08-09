@@ -45,6 +45,7 @@ import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.InternalOutputMode;
 import com.android.tools.r8.utils.LongInterval;
+import com.android.tools.r8.utils.Timing;
 import com.google.common.collect.ImmutableList;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceAVLTreeMap;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceSortedMap;
@@ -87,7 +88,11 @@ public class BranchSimplifier extends CodeRewriterPass<AppInfo> {
   protected CodeRewriterResult rewriteCode(IRCode code) {
     ControlFlowSimplificationResult switchResult = rewriteSwitch(code);
     ControlFlowSimplificationResult ifResult = simplifyIf(code);
-    return switchResult.combine(ifResult);
+    ControlFlowSimplificationResult result = switchResult.combine(ifResult);
+    if (result.anyAffectedValues) {
+      new TrivialCheckCastAndInstanceOfRemover(appView).run(code, Timing.empty());
+    }
+    return result;
   }
 
   public ControlFlowSimplificationResult simplifyIf(IRCode code) {

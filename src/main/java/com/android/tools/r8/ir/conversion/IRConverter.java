@@ -19,7 +19,6 @@ import com.android.tools.r8.graph.bytecodemetadata.BytecodeMetadataProvider;
 import com.android.tools.r8.graph.proto.RewrittenPrototypeDescription;
 import com.android.tools.r8.ir.analysis.TypeChecker;
 import com.android.tools.r8.ir.analysis.VerifyTypesHelper;
-import com.android.tools.r8.ir.analysis.constant.SparseConditionalConstantPropagation;
 import com.android.tools.r8.ir.analysis.fieldaccess.FieldAccessAnalysis;
 import com.android.tools.r8.ir.analysis.fieldvalueanalysis.InstanceFieldValueAnalysis;
 import com.android.tools.r8.ir.analysis.fieldvalueanalysis.StaticFieldValueAnalysis;
@@ -30,19 +29,11 @@ import com.android.tools.r8.ir.code.InstructionIterator;
 import com.android.tools.r8.ir.code.NumberGenerator;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.conversion.MethodConversionOptions.MutableMethodConversionOptions;
-import com.android.tools.r8.ir.conversion.passes.ArrayConstructionSimplifier;
-import com.android.tools.r8.ir.conversion.passes.BinopRewriter;
-import com.android.tools.r8.ir.conversion.passes.BranchSimplifier;
-import com.android.tools.r8.ir.conversion.passes.CommonSubexpressionElimination;
+import com.android.tools.r8.ir.conversion.passes.CodeRewriterPassCollection;
 import com.android.tools.r8.ir.conversion.passes.DexConstantOptimizer;
-import com.android.tools.r8.ir.conversion.passes.KnownArrayLengthRewriter;
 import com.android.tools.r8.ir.conversion.passes.MoveResultRewriter;
-import com.android.tools.r8.ir.conversion.passes.NaturalIntLoopRemover;
 import com.android.tools.r8.ir.conversion.passes.ParentConstructorHoistingCodeRewriter;
-import com.android.tools.r8.ir.conversion.passes.RedundantConstNumberRemover;
-import com.android.tools.r8.ir.conversion.passes.SplitBranch;
 import com.android.tools.r8.ir.conversion.passes.ThrowCatchOptimizer;
-import com.android.tools.r8.ir.conversion.passes.TrivialCheckCastAndInstanceOfRemover;
 import com.android.tools.r8.ir.conversion.passes.TrivialPhiSimplifier;
 import com.android.tools.r8.ir.desugar.CfInstructionDesugaringCollection;
 import com.android.tools.r8.ir.desugar.CovariantReturnTypeAnnotationTransformer;
@@ -60,7 +51,6 @@ import com.android.tools.r8.ir.optimize.DynamicTypeOptimization;
 import com.android.tools.r8.ir.optimize.IdempotentFunctionCallCanonicalizer;
 import com.android.tools.r8.ir.optimize.Inliner;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
-import com.android.tools.r8.ir.optimize.RedundantFieldLoadAndStoreElimination;
 import com.android.tools.r8.ir.optimize.ReflectionOptimizer;
 import com.android.tools.r8.ir.optimize.RemoveVerificationErrorForUnknownReturnedValues;
 import com.android.tools.r8.ir.optimize.ServiceLoaderRewriter;
@@ -79,7 +69,6 @@ import com.android.tools.r8.ir.optimize.membervaluepropagation.D8MemberValueProp
 import com.android.tools.r8.ir.optimize.membervaluepropagation.MemberValuePropagation;
 import com.android.tools.r8.ir.optimize.membervaluepropagation.R8MemberValuePropagation;
 import com.android.tools.r8.ir.optimize.outliner.Outliner;
-import com.android.tools.r8.ir.optimize.string.StringBuilderAppendOptimizer;
 import com.android.tools.r8.ir.optimize.string.StringOptimizer;
 import com.android.tools.r8.lightir.IR2LirConverter;
 import com.android.tools.r8.lightir.Lir2IRConverter;
@@ -117,6 +106,7 @@ public class IRConverter {
   public final AppView<?> appView;
 
   public final Outliner outliner;
+  private final CodeRewriterPassCollection rewriterPassCollection;
   private final ClassInitializerDefaultsOptimization classInitializerDefaultsOptimization;
   protected final CfInstructionDesugaringCollection instructionDesugaring;
   protected final FieldAccessAnalysis fieldAccessAnalysis;
@@ -174,6 +164,7 @@ public class IRConverter {
     this.appView = appView;
     this.options = appView.options();
     this.codeRewriter = new CodeRewriter(appView);
+    this.rewriterPassCollection = CodeRewriterPassCollection.create(appView);
     this.assertionErrorTwoArgsConstructorRewriter =
         appView.options().desugarState.isOn()
             ? new AssertionErrorTwoArgsConstructorRewriter(appView)
@@ -743,28 +734,7 @@ public class IRConverter {
       timing.end();
     }
 
-    new TrivialCheckCastAndInstanceOfRemover(appView)
-        .run(code, methodProcessor, methodProcessingContext, timing);
-    new EnumValueOptimizer(appView).run(code, timing);
-    new KnownArrayLengthRewriter(appView).run(code, timing);
-    new NaturalIntLoopRemover(appView).run(code, timing);
-    new CommonSubexpressionElimination(appView).run(code, timing);
-    new ArrayConstructionSimplifier(appView).run(code, timing);
-    new MoveResultRewriter(appView).run(code, timing);
-    new StringBuilderAppendOptimizer(appView).run(code, timing);
-    new SparseConditionalConstantPropagation(appView).run(code, timing);
-    new ThrowCatchOptimizer(appView).run(code, timing);
-    if (new BranchSimplifier(appView)
-        .run(code, timing)
-        .asControlFlowSimplificationResult()
-        .anyAffectedValues()) {
-      new TrivialCheckCastAndInstanceOfRemover(appView)
-          .run(code, methodProcessor, methodProcessingContext, timing);
-    }
-    new SplitBranch(appView).run(code, timing);
-    new RedundantConstNumberRemover(appView).run(code, timing);
-    new RedundantFieldLoadAndStoreElimination(appView).run(code, timing);
-    new BinopRewriter(appView).run(code, timing);
+    rewriterPassCollection.run(code, methodProcessor, methodProcessingContext, timing);
 
     timing.begin("Optimize class initializers");
     ClassInitializerDefaultsResult classInitializerDefaultsResult =
