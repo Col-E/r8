@@ -3,7 +3,9 @@
 // BSD-style license that can be found in the LICENSE file.
 
 import java.nio.file.Paths
+import org.gradle.api.logging.LogLevel.ERROR
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
+import org.gradle.nativeplatform.platform.internal.DefaultNativePlatform
 
 
 plugins {
@@ -71,7 +73,72 @@ tasks {
   }
 
   withType<Test> {
-    environment.put("USE_NEW_GRADLE_SETUP", "true")
+    systemProperty("USE_NEW_GRADLE_SETUP", "true")
     dependsOn(gradle.includedBuild("tests_java_8").task(":test"))
+
+    if (project.hasProperty("kotlin_compiler_dev")) {
+      systemProperty("com.android.tools.r8.kotlincompilerdev", "1")
+    }
+
+    if (project.hasProperty("kotlin_compiler_old")) {
+      systemProperty("com.android.tools.r8.kotlincompilerold", "1")
+    }
+
+    if (project.hasProperty("dex_vm") && project.property("dex_vm") != "default") {
+      println("NOTE: Running with non default vm: " + project.property("dex_vm"))
+      systemProperty("dex_vm", project.property("dex_vm")!!)
+    }
+
+    // Forward runtime configurations for test parameters.
+    if (project.hasProperty("runtimes")) {
+      println("NOTE: Running with runtimes: " + project.property("runtimes"))
+      systemProperty("runtimes", project.property("runtimes")!!)
+    }
+
+    if (project.hasProperty("art_profile_rewriting_completeness_check")) {
+      systemProperty(
+        "com.android.tools.r8.artprofilerewritingcompletenesscheck",
+        project.property("art_profile_rewriting_completeness_check")!!)
+    }
+
+    // Forward project properties into system properties.
+    listOf(
+      "slow_tests",
+      "desugar_jdk_json_dir",
+      "desugar_jdk_libs",
+      "test_dir",
+      "command_cache_dir").forEach {
+      if (project.hasProperty(it)) {
+        project.property(it)?.let { v -> systemProperty("slow_tests", v) }
+      }
+    }
+
+    if (project.hasProperty("no_internal")) {
+      exclude("com/android/tools/r8/internal/**")
+    }
+    if (project.hasProperty("only_internal")) {
+      include("com/android/tools/r8/internal/**")
+    }
+    if (project.hasProperty("no_arttests")) {
+      exclude("com/android/tools/r8/art/**")
+    }
+
+    val os = DefaultNativePlatform.getCurrentOperatingSystem()
+    if (os.isMacOsX) {
+      logger.lifecycle(
+        "WARNING: Testing in only partially supported on Mac OS. \n" +
+        "Art only runs on Linux and tests requiring Art runs in a Docker container, which must " +
+          "be present. See tools/docker/README.md for details.")
+    } else if (os.isWindows) {
+      logger.lifecycle(
+        "WARNING: Testing in only partially supported on Windows. Art only runs on Linux and " +
+          "tests requiring Art will be skipped")
+    } else if (!os.isLinux) {
+      logger.log(
+        ERROR,
+        "Testing in not supported on your platform. Testing is only fully supported on " +
+          "Linux and partially supported on Mac OS and Windows. Art does not run on other " +
+          "platforms.")
+    }
   }
 }
