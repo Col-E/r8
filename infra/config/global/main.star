@@ -301,60 +301,45 @@ r8_builder(
   expiration_timeout = time.hour * 35,
 )
 
-r8_builder(
-  "cached",
-  category = "R8",
-  dimensions = get_dimensions(),
-  triggering_policy = scheduler.policy(
-      kind = scheduler.GREEDY_BATCHING_KIND,
-      max_batch_size = 42,
-      max_concurrent_invocations = 1
-  ),
-  priority = 25,
-  properties = {
-      "test_options" : ["--runtimes=dex-default",
-      "--command_cache_dir=/tmp/ccache"] + common_test_options,
-      "builder_group" : "internal.client.r8"
-  },
-  execution_timeout = time.hour * 6,
-  expiration_timeout = time.hour * 35,
-)
-
-
-
-r8_tester_with_default("linux-dex_default", ["--runtimes=dex-default"])
-r8_tester_with_default("linux-none", ["--runtimes=none"])
-r8_tester_with_default("linux-jdk8", ["--runtimes=jdk8"])
-r8_tester_with_default("linux-jdk9", ["--runtimes=jdk9"])
-r8_tester_with_default("linux-jdk11", ["--runtimes=jdk11"])
-r8_tester_with_default("linux-jdk17", ["--runtimes=jdk17"],
-    release_trigger=["branch-gitiles-3.3-forward"])
+r8_tester_with_default("linux-dex_default",
+        ["--runtimes=dex-default", "--command_cache_dir=/tmp/ccache"])
+r8_tester_with_default("linux-none",
+        ["--runtimes=none", "--command_cache_dir=/tmp/ccache"])
+r8_tester_with_default("linux-jdk8",
+        ["--runtimes=jdk8", "--command_cache_dir=/tmp/ccache"])
+r8_tester_with_default("linux-jdk9",
+        ["--runtimes=jdk9", "--command_cache_dir=/tmp/ccache"])
+r8_tester_with_default("linux-jdk11",
+        ["--runtimes=jdk11", "--command_cache_dir=/tmp/ccache"])
+r8_tester_with_default("linux-jdk17",
+        ["--runtimes=jdk17", "--command_cache_dir=/tmp/ccache"],
+        release_trigger=["branch-gitiles-3.3-forward"])
 
 
 r8_tester_with_default("linux-android-4.0.4",
-    ["--dex_vm=4.0.4", "--all_tests"])
+    ["--dex_vm=4.0.4", "--all_tests", "--command_cache_dir=/tmp/ccache"])
 r8_tester_with_default("linux-android-4.4.4",
-    ["--dex_vm=4.4.4", "--all_tests"])
+    ["--dex_vm=4.4.4", "--all_tests", "--command_cache_dir=/tmp/ccache"])
 r8_tester_with_default("linux-android-5.1.1",
-    ["--dex_vm=5.1.1", "--all_tests"])
+    ["--dex_vm=5.1.1", "--all_tests", "--command_cache_dir=/tmp/ccache"])
 r8_tester_with_default("linux-android-6.0.1",
-    ["--dex_vm=6.0.1", "--all_tests"])
+    ["--dex_vm=6.0.1", "--all_tests", "--command_cache_dir=/tmp/ccache"])
 r8_tester_with_default("linux-android-7.0.0",
-    ["--dex_vm=7.0.0", "--all_tests"])
+    ["--dex_vm=7.0.0", "--all_tests", "--command_cache_dir=/tmp/ccache"])
 r8_tester_with_default("linux-android-8.1.0",
-    ["--dex_vm=8.1.0", "--all_tests"])
+    ["--dex_vm=8.1.0", "--all_tests", "--command_cache_dir=/tmp/ccache"])
 r8_tester_with_default("linux-android-9.0.0",
-    ["--dex_vm=9.0.0", "--all_tests"])
+    ["--dex_vm=9.0.0", "--all_tests", "--command_cache_dir=/tmp/ccache"])
 r8_tester_with_default("linux-android-10.0.0",
-    ["--dex_vm=10.0.0", "--all_tests"])
+    ["--dex_vm=10.0.0", "--all_tests", "--command_cache_dir=/tmp/ccache"])
 r8_tester_with_default("linux-android-12.0.0",
-    ["--dex_vm=12.0.0", "--all_tests"],
+    ["--dex_vm=12.0.0", "--all_tests", "--command_cache_dir=/tmp/ccache"],
     release_trigger=["branch-gitiles-3.2-forward"])
 r8_tester_with_default("linux-android-13.0.0",
-    ["--dex_vm=13.0.0", "--all_tests"],
+    ["--dex_vm=13.0.0", "--all_tests", "--command_cache_dir=/tmp/ccache"],
     release_trigger=["branch-gitiles-3.3-forward"])
 r8_tester_with_default("linux-android-14.0.0",
-    ["--dex_vm=14.0.0", "--all_tests"],
+    ["--dex_vm=14.0.0", "--all_tests", "--command_cache_dir=/tmp/ccache"],
     release_trigger=["branch-gitiles-8.1-forward"])
 
 
