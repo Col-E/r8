@@ -17,7 +17,6 @@ import com.android.tools.r8.utils.MapUtils;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
@@ -230,17 +229,17 @@ class SpillMoveSet {
   // to swap r1 and r0 on entry via a temporary register.
   private void pruneParallelMoveSets(
       Set<SpillMove> inMoves, Set<SpillMove> outMoves, Set<SpillMove> phiMoves) {
-    Iterator<SpillMove> it = inMoves.iterator();
-    while (it.hasNext()) {
-      SpillMove inMove = it.next();
-      SpillMove outMove = getMoveWithSource(inMove.to, outMoves);
-      SpillMove blockingInMove = getMoveWritingSourceRegister(inMove, inMoves);
-      SpillMove blockingPhiMove = getMoveWithSource(inMove.to, phiMoves);
-      if (outMove != null && blockingInMove == null && blockingPhiMove == null) {
-        it.remove();
-        outMove.from = inMove.from;
-      }
-    }
+    inMoves.removeIf(
+        inMove -> {
+          SpillMove outMove = getMoveWithSource(inMove.to, outMoves);
+          SpillMove blockingInMove = getMoveWritingSourceRegister(inMove, inMoves);
+          SpillMove blockingPhiMove = getMoveWithSource(inMove.to, phiMoves);
+          if (outMove != null && blockingInMove == null && blockingPhiMove == null) {
+            outMove.from = inMove.from;
+            return true;
+          }
+          return false;
+        });
   }
 
   private void scheduleMovesBeforeInstruction(
@@ -302,21 +301,20 @@ class SpillMoveSet {
   // we are still generating actual moves back to the original argument register.
   // We should get rid of this method and avoid generating the moves in the first place.
   private void removeArgumentRestores(Set<SpillMove> moves) {
-    Iterator<SpillMove> moveIterator = moves.iterator();
-    while (moveIterator.hasNext()) {
-      SpillMove move = moveIterator.next();
-      // The argument registers can be used for other values than the arguments in intervals where
-      // the arguments are not live, so it is insufficient to check that the destination register
-      // is in the argument register range.
-      if (move.to.getRegister() < allocator.numberOfArgumentRegisters
-          && move.to.isArgumentInterval()) {
-        moveIterator.remove();
-      }
-    }
+    // The argument registers can be used for other values than the arguments in intervals where
+    // the arguments are not live, so it is insufficient to check that the destination register
+    // is in the argument register range.
+    moves.removeIf(
+        move ->
+            move.to.getRegister() < allocator.numberOfArgumentRegisters
+                && move.to.isArgumentInterval());
   }
 
   private void scheduleMoves(
       int tempRegister, Set<SpillMove> moves, InstructionListIterator insertAt, Position position) {
+    if (moves.isEmpty()) {
+      return;
+    }
     RegisterMoveScheduler scheduler = new RegisterMoveScheduler(insertAt, tempRegister, position);
     for (SpillMove move : moves) {
       // Do not generate moves to spill a value that can be rematerialized.
