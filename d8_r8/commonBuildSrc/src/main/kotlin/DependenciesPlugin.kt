@@ -314,6 +314,10 @@ object Deps {
 }
 
 object ThirdPartyDeps {
+  val aapt2 = ThirdPartyDependency(
+    "aapt2",
+    Paths.get("third_party", "aapt2").toFile(),
+    Paths.get("third_party", "aapt2.tar.gz.sha1").toFile())
   val androidJars = getThirdPartyAndroidJars()
   val androidVMs = getThirdPartyAndroidVms()
   val apiDatabase = ThirdPartyDependency(

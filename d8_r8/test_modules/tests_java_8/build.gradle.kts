@@ -56,6 +56,7 @@ val thirdPartyCompileDependenciesTask = ensureThirdPartyDependencies(
 val thirdPartyRuntimeDependenciesTask = ensureThirdPartyDependencies(
   "runtimeDeps",
   listOf(
+    ThirdPartyDeps.aapt2,
     ThirdPartyDeps.artTests,
     ThirdPartyDeps.artTestsLegacy,
     ThirdPartyDeps.compilerApi,
