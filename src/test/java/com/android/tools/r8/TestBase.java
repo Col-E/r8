@@ -1213,7 +1213,7 @@ public class TestBase {
     Path out = File.createTempFile("junit", ".zip", temp.getRoot()).toPath();
     app.writeToZipForTesting(out, OutputMode.DexIndexed);
     return ToolHelper.runArtRaw(
-        ImmutableList.of(out.toString()), mainClass, cmdBuilder, version, null);
+        ImmutableList.of(out.toString()), mainClass, cmdBuilder, version, false);
   }
 
   /** Run application on Art with the specified main class. */

@@ -178,12 +178,6 @@ public class DesugaredLibraryTestCompileResult<T extends DesugaredLibraryTestBas
     return this;
   }
 
-  public DesugaredLibraryTestCompileResult<T> withRelativeExecutionDirectory(
-      Path executionDirectory) {
-    runnableCompiledResult.withRelativeExecutionDirectory(executionDirectory);
-    return this;
-  }
-
   public DesugaredLibraryTestCompileResult<T> withArt6Plus64BitsLib() {
     runnableCompiledResult.withArt6Plus64BitsLib();
     return this;

@@ -64,7 +64,7 @@ public abstract class TestCompileResult<
   final List<Path> additionalBootClasspath = new ArrayList<>();
   final List<String> vmArguments = new ArrayList<>();
   private boolean withArt6Plus64BitsLib = false;
-  private Path relativeExecutionDirectory = null;
+  private boolean withArtFrameworks = true;
   private LibraryDesugaringTestConfiguration libraryDesugaringTestConfiguration;
 
   TestCompileResult(TestState state, AndroidApp app, int minApiLevel, OutputMode outputMode) {
@@ -120,8 +120,8 @@ public abstract class TestCompileResult<
     return self();
   }
 
-  public final CR withRelativeExecutionDirectory(Path relativeExecutionDirectory) {
-    this.relativeExecutionDirectory = relativeExecutionDirectory;
+  public final CR withArtFrameworks() {
+    withArtFrameworks = true;
     return self();
   }
 
@@ -688,7 +688,7 @@ public abstract class TestCompileResult<
             });
     ProcessResult result =
         ToolHelper.runArtRaw(
-            classPath, mainClass, commandConsumer, vm, relativeExecutionDirectory, arguments);
+            classPath, mainClass, commandConsumer, vm, withArtFrameworks, arguments);
     return createRunResult(runtime, result);
   }
 

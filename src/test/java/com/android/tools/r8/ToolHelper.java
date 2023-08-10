@@ -453,7 +453,7 @@ public class ToolHelper {
     protected String mainClass;
     protected List<String> programArguments = new ArrayList<>();
     protected List<String> bootClasspaths = new ArrayList<>();
-    protected Path relativeExecutionDirectory;
+    protected String executionDirectory;
 
     public CommandBuilder appendArtOption(String option) {
       options.add(option);
@@ -523,8 +523,8 @@ public class ToolHelper {
 
     public ProcessBuilder asProcessBuilder() {
       ProcessBuilder processBuilder = new ProcessBuilder(command());
-      if (relativeExecutionDirectory != null) {
-        processBuilder.directory(relativeExecutionDirectory.toFile());
+      if (executionDirectory != null) {
+        processBuilder.directory(new File(executionDirectory));
       }
       return processBuilder;
     }
@@ -541,6 +541,7 @@ public class ToolHelper {
   public static class ArtCommandBuilder extends CommandBuilder {
 
     private DexVm version;
+    private boolean withArtFrameworks;
     private ArtResultCacheLookupKey artResultCacheLookupKey;
 
     public ArtCommandBuilder() {
@@ -561,23 +562,13 @@ public class ToolHelper {
 
     @Override
     protected String getExecutable() {
-      String result = version != null ? getArtBinary(version) : getArtBinary();
-      if (version.isNewerThan(DexVm.ART_4_4_4_HOST) && relativeExecutionDirectory == null) {
+      if (withArtFrameworks && version.isNewerThan(DexVm.ART_4_4_4_HOST)) {
         // Run directly Art in its repository, which has been patched by gradle to match expected
         // path for the frameworks.
-        relativeExecutionDirectory = Paths.get(getArtDir(version));
+        executionDirectory = getArtDir(version);
         return getRawArtBinary(version);
       }
-      if (relativeExecutionDirectory != null) {
-        // The execution directory has to be relative.
-        assert !relativeExecutionDirectory.isAbsolute();
-        Path toRoot = Paths.get("");
-        for (int i = 0; i < relativeExecutionDirectory.getNameCount(); i++) {
-          toRoot = toRoot.resolve("..");
-        }
-        return toRoot.resolve(result).toString();
-      }
-      return result;
+      return version != null ? getArtBinary(version) : getArtBinary();
     }
 
     public boolean isForDevice() {
@@ -626,10 +617,11 @@ public class ToolHelper {
     private void hashParts(Hasher hasher) {
       // Call getExecutable first, this will set executionDirectory if needed.
       hasher.putString(this.getExecutable(), StandardCharsets.UTF_8);
-      if (this.relativeExecutionDirectory != null) {
-        hasher.putString(this.relativeExecutionDirectory.toString(), StandardCharsets.UTF_8);
+      if (this.executionDirectory != null) {
+        hasher.putString(this.executionDirectory, StandardCharsets.UTF_8);
       }
       hasher.putString(this.mainClass, StandardCharsets.UTF_8);
+      hasher.putBoolean(this.withArtFrameworks);
       hashFilesFromList(hasher, classpaths);
       hashFilesFromList(hasher, bootClasspaths);
       systemProperties.forEach(
@@ -1798,7 +1790,7 @@ public class ToolHelper {
   public static ProcessResult runArtRaw(List<String> files, String mainClass,
       Consumer<ArtCommandBuilder> extras)
       throws IOException {
-    return runArtRaw(files, mainClass, extras, null, null);
+    return runArtRaw(files, mainClass, extras, null, false);
   }
 
   // Index used to name directory aimed at storing dex files and process result
@@ -1811,12 +1803,12 @@ public class ToolHelper {
       String mainClass,
       Consumer<ArtCommandBuilder> extras,
       DexVm version,
-      Path relativeExecutionDirectory,
+      boolean withArtFrameworks,
       String... args)
       throws IOException {
     ArtCommandBuilder builder =
         version != null ? new ArtCommandBuilder(version) : new ArtCommandBuilder();
-    builder.relativeExecutionDirectory = relativeExecutionDirectory;
+    builder.withArtFrameworks = withArtFrameworks;
     files.forEach(builder::appendClasspath);
     builder.setMainClass(mainClass);
     if (extras != null) {
@@ -2049,7 +2041,7 @@ public class ToolHelper {
       Consumer<ArtCommandBuilder> extras,
       DexVm version)
       throws IOException {
-    ProcessResult result = runArtRaw(files, mainClass, extras, version, null);
+    ProcessResult result = runArtRaw(files, mainClass, extras, version, false);
     failOnProcessFailure(result);
     failOnVerificationErrors(result);
     return result;
