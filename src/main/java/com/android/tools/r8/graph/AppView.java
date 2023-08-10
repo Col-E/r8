@@ -1167,10 +1167,9 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
     if (!firstUnappliedLens.isMemberRebindingLens()
         && !firstUnappliedLens.isMemberRebindingIdentityLens()) {
       NonIdentityGraphLens appliedMemberRebindingLens =
-          firstUnappliedLens.findPreviousUntil(
+          firstUnappliedLens.findPrevious(
               previous ->
-                  previous.isMemberRebindingLens() || previous.isMemberRebindingIdentityLens(),
-              previous -> previous == appView.codeLens());
+                  previous.isMemberRebindingLens() || previous.isMemberRebindingIdentityLens());
       if (appliedMemberRebindingLens != null) {
         newMemberRebindingLens =
             appliedMemberRebindingLens.isMemberRebindingLens()

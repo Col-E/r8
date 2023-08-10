@@ -6,6 +6,7 @@ package com.android.tools.r8.utils;
 import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -194,6 +195,21 @@ public class ArrayUtils {
   public static <T> T[] appendSingleElement(T[] ts, T element) {
     T[] newArray = Arrays.copyOf(ts, ts.length + 1);
     newArray[ts.length] = element;
+    return newArray;
+  }
+
+  public static <T> T[] appendElements(T[] ts, List<T> elements) {
+    if (elements.isEmpty()) {
+      return ts;
+    }
+    if (elements.size() == 1) {
+      return appendSingleElement(ts, elements.get(0));
+    }
+    int oldLength = ts.length;
+    T[] newArray = Arrays.copyOf(ts, oldLength + elements.size());
+    for (int i = 0; i < elements.size(); i++) {
+      newArray[oldLength + i] = elements.get(i);
+    }
     return newArray;
   }
 

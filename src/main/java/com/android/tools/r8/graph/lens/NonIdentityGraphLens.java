@@ -39,6 +39,10 @@ public abstract class NonIdentityGraphLens extends GraphLens {
     return previousLens;
   }
 
+  public final void setPrevious(GraphLens newPreviousLens) {
+    previousLens = newPreviousLens;
+  }
+
   @SuppressWarnings("unchecked")
   public final <T extends com.android.tools.r8.graph.lens.NonIdentityGraphLens> T find(
       Predicate<com.android.tools.r8.graph.lens.NonIdentityGraphLens> predicate) {

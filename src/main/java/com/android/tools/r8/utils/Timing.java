@@ -384,10 +384,17 @@ public class Timing {
     }
 
     public void end() {
-      assert !parent.children.containsKey(merged.title);
+      assert verifyUnambiguous(parent, merged.title);
       merged.end();
       parent.children.put(merged.title, merged);
     }
+  }
+
+  private static boolean verifyUnambiguous(Node node, String title) {
+    // If this assertion fails, then the merger is reusing the same name as a previous point.
+    // The point should likely be disambiguated by adding a timing.begin/end in the call chain.
+    assert !node.children.containsKey(title) : "Ambiguous timing chain. Insert a begin/end to fix";
+    return true;
   }
 
   public final TimingMerger beginMerger(String title, ExecutorService executorService) {
@@ -395,6 +402,8 @@ public class Timing {
   }
 
   public TimingMerger beginMerger(String title, int numberOfThreads) {
+    assert !stack.isEmpty();
+    assert verifyUnambiguous(stack.peekFirst(), title);
     return new TimingMerger(title, numberOfThreads, this);
   }
 

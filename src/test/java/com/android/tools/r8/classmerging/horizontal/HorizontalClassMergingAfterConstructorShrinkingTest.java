@@ -12,7 +12,6 @@ import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.BooleanUtils;
-import com.android.tools.r8.utils.codeinspector.HorizontallyMergedClassesInspector;
 import java.util.List;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -54,7 +53,13 @@ public class HorizontalClassMergingAfterConstructorShrinkingTest extends TestBas
         .addOptionsModification(
             options -> options.horizontalClassMergerOptions().disableInitialRoundOfClassMerging())
         .addHorizontallyMergedClassesInspector(
-            HorizontallyMergedClassesInspector::assertNoClassesMerged)
+            i -> {
+              if (enableRetargetingOfConstructorBridgeCalls) {
+                i.assertClassesMerged(A.class, B.class);
+              } else {
+                i.assertNoClassesMerged();
+              }
+            })
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
         .setMinApi(parameters)

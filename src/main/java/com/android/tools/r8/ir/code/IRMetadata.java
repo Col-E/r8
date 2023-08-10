@@ -49,7 +49,11 @@ public class IRMetadata {
   }
 
   public void record(Instruction instruction) {
-    set(instruction.opcode());
+    record(instruction.opcode());
+  }
+
+  public void record(int instructionOpcode) {
+    set(instructionOpcode);
   }
 
   public void merge(IRMetadata metadata) {

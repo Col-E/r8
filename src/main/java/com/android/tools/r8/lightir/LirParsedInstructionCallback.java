@@ -46,6 +46,10 @@ public abstract class LirParsedInstructionCallback<EV> implements LirInstruction
     this.code = code;
   }
 
+  public LirCode<EV> getCode() {
+    return code;
+  }
+
   /** Returns the index for the value associated with the current argument/instruction. */
   public abstract int getCurrentValueIndex();
 

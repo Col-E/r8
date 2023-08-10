@@ -36,7 +36,6 @@ public class MemberRebindingIdentityLens extends DefaultNonIdentityGraphLens {
       DexItemFactory dexItemFactory,
       GraphLens previousLens) {
     super(dexItemFactory, previousLens);
-    assert !previousLens.hasCodeRewritings();
     this.nonReboundFieldReferenceToDefinitionMap = nonReboundFieldReferenceToDefinitionMap;
     this.nonReboundMethodReferenceToDefinitionMap = nonReboundMethodReferenceToDefinitionMap;
   }
@@ -110,8 +109,17 @@ public class MemberRebindingIdentityLens extends DefaultNonIdentityGraphLens {
       AppView<? extends AppInfoWithClassHierarchy> appView,
       GraphLens lens,
       NonIdentityGraphLens appliedMemberRebindingLens) {
+    return toRewrittenMemberRebindingIdentityLens(
+        appView, lens, appliedMemberRebindingLens, getIdentityLens());
+  }
+
+  public MemberRebindingIdentityLens toRewrittenMemberRebindingIdentityLens(
+      AppView<? extends AppInfoWithClassHierarchy> appView,
+      GraphLens lens,
+      NonIdentityGraphLens appliedMemberRebindingLens,
+      GraphLens newPreviousLens) {
     DexItemFactory dexItemFactory = appView.dexItemFactory();
-    Builder builder = builder(appView, getIdentityLens());
+    Builder builder = builder(appView, newPreviousLens);
     nonReboundFieldReferenceToDefinitionMap.forEach(
         (nonReboundFieldReference, reboundFieldReference) -> {
           DexField rewrittenReboundFieldReference =

@@ -685,9 +685,6 @@ public class R8 {
         }
       }
 
-      // TODO(b/225838009): Check support LIR in bridge remover.
-      PrimaryR8IRConverter.finalizeLirToOutputFormat(appView, timing, executorService);
-
       // Insert a member rebinding oracle in the graph to ensure that all subsequent rewritings of
       // the application has an applied oracle for looking up non-rebound references.
       MemberRebindingIdentityLens memberRebindingIdentityLens =
@@ -697,8 +694,10 @@ public class R8 {
       // Remove redundant bridges that have been inserted for member rebinding.
       // This can only be done if we have AppInfoWithLiveness.
       if (appView.appInfo().hasLiveness()) {
+        timing.begin("Bridge remover");
         new RedundantBridgeRemover(appView.withLiveness())
             .run(executorService, timing, memberRebindingIdentityLens);
+        timing.end();
       } else {
         // If we don't have AppInfoWithLiveness here, it must be because we are not shrinking. When
         // we are not shrinking, we can't move visibility bridges. In principle, though, it would be
@@ -710,6 +709,9 @@ public class R8 {
       appView.setArtProfileCollection(
           appView.getArtProfileCollection().withoutMissingItems(appView));
       appView.setStartupProfile(appView.getStartupProfile().withoutMissingItems(appView));
+
+      // TODO(b/225838009): Support LIR in synthetic finalization (needs hashing and compareTo).
+      PrimaryR8IRConverter.finalizeLirToOutputFormat(appView, timing, executorService);
 
       if (appView.appInfo().hasLiveness()) {
         SyntheticFinalization.finalizeWithLiveness(appView.withLiveness(), executorService, timing);

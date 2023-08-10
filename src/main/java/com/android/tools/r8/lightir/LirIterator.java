@@ -112,6 +112,11 @@ public class LirIterator implements Iterator<LirInstructionView>, LirInstruction
     return getNextIntegerOperand();
   }
 
+  @Override
+  public int getNextU1() {
+    return u1();
+  }
+
   private void skip(int i) {
     currentByteIndex += i;
     iterator.skip(i);

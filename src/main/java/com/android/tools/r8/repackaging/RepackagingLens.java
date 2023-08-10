@@ -58,11 +58,6 @@ public class RepackagingLens extends NestedGraphLens {
         this::isSimpleTypeRenamingOrEqual);
   }
 
-  @Override
-  public boolean isSimpleRenamingLens() {
-    return true;
-  }
-
   private boolean isSimpleTypeRenamingOrEqual(DexType from, DexType to) {
     return from == to || newTypes.get(from) == to;
   }
