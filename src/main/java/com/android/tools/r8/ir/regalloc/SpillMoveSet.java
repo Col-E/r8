@@ -13,7 +13,9 @@ import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.code.Value;
+import com.android.tools.r8.utils.MapUtils;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
@@ -67,46 +69,7 @@ class SpillMoveSet {
     assert to.getSplitParent() == from.getSplitParent();
     BasicBlock atEntryToBlock = blockStartMap.get(i + 1);
     if (atEntryToBlock == null) {
-      Value value = from.getValue();
-      if (value.definition != null
-          && value.definition.isMoveException()
-          && to.getStart() == value.definition.asMoveException().getNumber() + 1) {
-        // Consider the following IR code.
-        //   40: ...
-        //   42: v0 <- move-exception
-        //   44: ...
-        //   ...
-        //   50: ... v0 ... // 4-bit constrained use of v0
-        //
-        // Initially, the liveness interval of v0 is [42; 50[. If the method has overlapping move-
-        // exception intervals (and the register allocator needs more than 16 registers), then the
-        // intervals of v0 will be split immediately after its definition. Therefore, v0 will have
-        // two liveness intervals: I1=[42; 43[ and I2=[43;50[.
-        //
-        // When allocating a register for the interval I2, we may need to spill an existing value v1
-        // that is currently active. As a result, we will split the liveness interval of v1 before
-        // the start of I2 (i.e., at position 43). The live intervals of v1 after the split
-        // therefore becomes J1=[x, y[, J2=[41, 43[, J3=[43, z[.
-        //
-        // If the registers assigned to J1 and J2 are different, we will create an in-move at
-        // position 43 in resolveControlFlow() (not position 41, since the first instruction of the
-        // target block is a move-exception instruction). If the the registers assigned to I1 and I2
-        // are also different, then an in-move will also be created at position 43 by the call to
-        // addSpillOrRestoreMove() in insertMoves().
-        //
-        // If the registers of I2 and J2 are the same (which is a valid assignment), then we will
-        // do parallel move scheduling for the following two in-moves:
-        //   move X, reg(I2)
-        //   move X, reg(J2)
-        //
-        // Therefore, there is a risk that we end up with the value that has been spilled instead of
-        // the exception object in register X at position 44. To avoid this situation, we schedule
-        // the move of the exception object (in this case, "move X, reg(I2)") as an out-move, such
-        // that it always gets inserted *after* the resolution moves of the current block.
-        addOutMove(i, to, from);
-      } else {
-        addInMove(i, to, from);
-      }
+      addInMove(i, to, from);
     }
   }
 
@@ -177,21 +140,21 @@ class SpillMoveSet {
             argumentValue != null;
             argumentValue = argumentValue.getNextConsecutive()) {
           Instruction instruction = argumentValue.definition;
-          int number = instruction.getNumber();
-          if (needsMovesBeforeInstruction(number)) {
+          if (needsMovesBeforeInstruction(instruction)) {
             scheduleMovesBeforeInstruction(tempRegister, instruction, insertAt);
           }
         }
       }
 
-      while (insertAt.hasNext()) {
-        Instruction instruction = insertAt.peekNext();
-        assert !instruction.isArgument();
-        int number = instruction.getNumber();
-        if (needsMovesBeforeInstruction(number)) {
-          scheduleMovesBeforeInstruction(tempRegister, instruction, insertAt);
+      while (true) {
+        Instruction instruction = insertAt.nextUntil(this::needsMovesBeforeInstruction);
+        if (instruction == null) {
+          break;
         }
-        insertAt.next();
+        if (!instruction.isMoveException()) {
+          insertAt.previous();
+        }
+        scheduleMovesBeforeInstruction(tempRegister, instruction, insertAt);
       }
     }
     return usedTempRegisters;
@@ -209,7 +172,8 @@ class SpillMoveSet {
     return toType;
   }
 
-  private boolean needsMovesBeforeInstruction(int i) {
+  private boolean needsMovesBeforeInstruction(Instruction instruction) {
+    int i = instruction.getNumber();
     return instructionToOutMoves.containsKey(i - 1)
         || instructionToInMoves.containsKey(i - 1)
         || instructionToPhiMoves.containsKey(i - 1);
@@ -281,6 +245,8 @@ class SpillMoveSet {
 
   private void scheduleMovesBeforeInstruction(
       int tempRegister, Instruction instruction, InstructionListIterator insertAt) {
+    assert needsMovesBeforeInstruction(instruction);
+
     int number = instruction.getNumber();
 
     Position position;
@@ -297,27 +263,34 @@ class SpillMoveSet {
 
     // Spill and restore moves for the incoming edge.
     Set<SpillMove> inMoves =
-        instructionToInMoves.computeIfAbsent(number - 1, (k) -> new LinkedHashSet<>());
+        MapUtils.removeOrDefault(instructionToInMoves, number - 1, Collections.emptySet());
     removeArgumentRestores(inMoves);
 
     // Spill and restore moves for the outgoing edge.
     Set<SpillMove> outMoves =
-        instructionToOutMoves.computeIfAbsent(number - 1, (k) -> new LinkedHashSet<>());
+        MapUtils.removeOrDefault(instructionToOutMoves, number - 1, Collections.emptySet());
     removeArgumentRestores(outMoves);
 
     // Get the phi moves for this instruction and schedule them with the out going spill moves.
     Set<SpillMove> phiMoves =
-        instructionToPhiMoves.computeIfAbsent(number - 1, (k) -> new LinkedHashSet<>());
+        MapUtils.removeOrDefault(instructionToPhiMoves, number - 1, Collections.emptySet());
 
     // Remove/rewrite moves that we can guarantee will not be needed.
     pruneParallelMoveSets(inMoves, outMoves, phiMoves);
 
     // Schedule out and phi moves together.
-    outMoves.addAll(phiMoves);
+    if (outMoves.isEmpty()) {
+      // Note outMoves can be an empty immutable set, so we can't addAll.
+      outMoves = phiMoves;
+    } else {
+      outMoves.addAll(phiMoves);
+    }
 
     // Perform parallel move scheduling independently for the in and out moves.
     scheduleMoves(tempRegister, inMoves, insertAt, position);
     scheduleMoves(tempRegister, outMoves, insertAt, position);
+
+    assert !needsMovesBeforeInstruction(instruction);
   }
 
   // Remove restore moves that restore arguments. Since argument register reuse is

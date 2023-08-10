@@ -2499,8 +2499,6 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
           if (fromIntervals != toIntervals) {
             if (block.exit().isGoto() && !isCatch) {
               spillMoves.addOutResolutionMove(fromInstruction - 1, toIntervals, fromIntervals);
-            } else if (successor.entry().isMoveException()) {
-              spillMoves.addInResolutionMove(toInstruction + 1, toIntervals, fromIntervals);
             } else {
               spillMoves.addInResolutionMove(toInstruction - 1, toIntervals, fromIntervals);
             }
