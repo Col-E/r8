@@ -94,8 +94,6 @@ import org.junit.rules.TemporaryFolder;
 
 public class ToolHelper {
 
-  static final Path[] EMPTY_PATH = {};
-
   public static boolean isNewGradleSetup() {
     return "true".equals(System.getenv("USE_NEW_GRADLE_SETUP"));
   }
@@ -125,7 +123,6 @@ public class ToolHelper {
   public static final String ART_TESTS_ROOT = getProjectRoot() + "tests/";
   public static final String TESTS_SOURCE_DIR = TESTS_DIR + "java/";
   public static final String EXAMPLES_DIR = TESTS_DIR + "examples/";
-  public static final String EXAMPLES_ANDROID_N_DIR = TESTS_DIR + "examplesAndroidN/";
   public static final String EXAMPLES_ANDROID_O_DIR = TESTS_DIR + "examplesAndroidO/";
   public static final String EXAMPLES_ANDROID_P_DIR = TESTS_DIR + "examplesAndroidP/";
   public static final String TESTS_BUILD_DIR = BUILD_DIR + "test/";
@@ -141,7 +138,6 @@ public class ToolHelper {
   public static final String EXAMPLES_PROTO_BUILD_DIR = TESTS_BUILD_DIR + "examplesProto/";
   public static final String GENERATED_PROTO_BUILD_DIR = GENERATED_TEST_BUILD_DIR + "proto/";
   public static final String SMALI_BUILD_DIR = THIRD_PARTY_DIR + "smali/";
-  public static final String JAVA_CLASSES_DIR = BUILD_DIR + "classes/java/";
 
   public static final String R8_TEST_BUCKET = "r8-test-results";
 
@@ -192,12 +188,8 @@ public class ToolHelper {
 
   public static final Path RETRACE_MAPS_DIR = Paths.get(THIRD_PARTY_DIR, "r8mappings");
 
-  public static final long BOT_MAX_HEAP_SIZE = 7908360192L;
-
   public static final Path R8_JAR = Paths.get(LIBS_DIR, "r8.jar");
   public static final Path R8_WITH_DEPS_JAR = Paths.get(LIBS_DIR, "r8_with_deps.jar");
-  public static final Path R8_WITHOUT_DEPS_JAR =
-      Paths.get(LIBS_DIR, "r8_no_manifest_without_deps.jar");
   public static final Path R8_WITH_RELOCATED_DEPS_JAR =
       Paths.get(LIBS_DIR, "r8_with_relocated_deps.jar");
   public static final Path R8_WITH_DEPS_17_JAR = Paths.get(LIBS_DIR, "r8_with_deps_17.jar");
