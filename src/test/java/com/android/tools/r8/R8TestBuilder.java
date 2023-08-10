@@ -749,7 +749,7 @@ public abstract class R8TestBuilder<T extends R8TestBuilder<T>>
 
   public T enableExperimentalKeepAnnotations() {
     builder.addClasspathResourceProvider(
-        DirectoryClassFileProvider.fromDirectory(KeepEdgeAnnotationsTest.KEEP_ANNO_PATH));
+        DirectoryClassFileProvider.fromDirectory(KeepEdgeAnnotationsTest.getKeepAnnoPath()));
     builder.setEnableExperimentalKeepAnnotations(true);
     return self();
   }

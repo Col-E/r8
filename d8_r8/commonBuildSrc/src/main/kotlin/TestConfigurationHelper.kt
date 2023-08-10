@@ -72,7 +72,7 @@ class TestConfigurationHelper {
       val userDefinedCoresPerFork = System.getenv("R8_GRADLE_CORES_PER_FORK")
       val processors = Runtime.getRuntime().availableProcessors()
       // See https://docs.gradle.org/current/dsl/org.gradle.api.tasks.testing.Test.html.
-      if (userDefinedCoresPerFork != null) {
+      if (!userDefinedCoresPerFork.isNullOrEmpty()) {
         test.maxParallelForks = processors.div(userDefinedCoresPerFork.toInt())
       } else {
         // On work machines this seems to give the best test execution time (without freezing).

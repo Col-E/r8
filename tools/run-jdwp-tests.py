@@ -71,12 +71,12 @@ def setup_environment(version):
   lib_dir = get_lib_dir(version)
   android_data = os.path.join(utils.REPO_ROOT, 'build', 'tmp', version)
   if not os.path.isdir(android_data):
-    os.mkdir(android_data)
+    os.makedirs(android_data)
   if version == '4.4.4':
     # Dalvik expects that the dalvik-cache dir already exists.
     dalvik_cache_dir = os.path.join(android_data, 'dalvik-cache')
     if not os.path.isdir(dalvik_cache_dir):
-      os.mkdir(dalvik_cache_dir)
+      os.makedirs(dalvik_cache_dir)
   os.environ['ANDROID_DATA'] = android_data
   os.environ['ANDROID_ROOT'] = art_dir
   os.environ['LD_LIBRARY_PATH'] = lib_dir

@@ -23,10 +23,13 @@ java {
   targetCompatibility = JavaVersion.VERSION_1_8
 }
 
+// If we depend on keepanno by referencing the project source outputs we get an error regarding
+// incompatible java class file version. By depending on the jar we circumvent that.
+val keepAnnoJarTask = projectTask("keepanno", "jar")
+val keepAnnoCompileTask = projectTask("keepanno", "compileJava")
+
 dependencies {
-  // If we depend on keepanno by referencing the project source outputs we get an error regarding
-  // incompatible java class file version. By depending on the jar we circumvent that.
-  implementation(projectTask("keepanno", "jar").outputs.files)
+  implementation(keepAnnoJarTask.outputs.files)
   implementation(projectTask("main", "jar").outputs.files)
   implementation(projectTask("resourceshrinker", "jar").outputs.files)
   implementation(Deps.asm)
@@ -161,21 +164,7 @@ tasks {
       dependsOn(thirdPartyRuntimeInternalDependenciesTask)
     }
     dependsOn(*sourceSetDependenciesTasks)
-    println("NOTE: Number of processors " + Runtime.getRuntime().availableProcessors())
-    val userDefinedCoresPerFork = System.getenv("R8_GRADLE_CORES_PER_FORK")
-    val processors = Runtime.getRuntime().availableProcessors()
-    // See https://docs.gradle.org/current/dsl/org.gradle.api.tasks.testing.Test.html.
-    if (!userDefinedCoresPerFork.isNullOrEmpty()) {
-      maxParallelForks = processors / userDefinedCoresPerFork.toInt()
-    } else {
-      // On normal work machines this seems to give the best test execution time (without freezing)
-      maxParallelForks = processors / 3
-      // On low cpu count machines (bots) we under subscribe, so increase the count.
-      if (processors == 8) {
-        maxParallelForks = 3
-      }
-    }
-    println("NOTE: Max parallel forks " + maxParallelForks)
+    environment.put("KEEP_ANNO_COMPILED_OUTPUT", keepAnnoCompileTask.outputs.files.getAsPath())
   }
 
   val testJar by registering(Jar::class) {

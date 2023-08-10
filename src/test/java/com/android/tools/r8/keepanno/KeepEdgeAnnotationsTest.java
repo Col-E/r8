@@ -68,8 +68,14 @@ public class KeepEdgeAnnotationsTest extends TestBase {
     }
   }
 
-  public static final Path KEEP_ANNO_PATH =
-      Paths.get(ToolHelper.BUILD_DIR, "classes", "java", "keepanno");
+  public static Path getKeepAnnoPath() {
+    // TODO(b/270105162): This changes when new gradle setup is default.
+    if (ToolHelper.isNewGradleSetup()) {
+      return Paths.get(System.getenv("KEEP_ANNO_COMPILED_OUTPUT").split(":")[0]);
+    } else {
+      return Paths.get(ToolHelper.BUILD_DIR, "classes", "java", "keepanno");
+    }
+  }
 
   private static List<Class<?>> getTestClasses() {
     return ImmutableList.of(
@@ -105,7 +111,7 @@ public class KeepEdgeAnnotationsTest extends TestBase {
     Path out =
         JavaCompilerTool.create(parameters.getRuntime().asCf(), temp)
             .addAnnotationProcessors(typeName(KeepEdgeProcessor.class))
-            .addClasspathFiles(KEEP_ANNO_PATH)
+            .addClasspathFiles(getKeepAnnoPath())
             .addClassNames(Collections.singletonList(typeName(source)))
             .addClasspathFiles(Paths.get(ToolHelper.BUILD_DIR, "classes", "java", "test"))
             .addClasspathFiles(ToolHelper.DEPS)
@@ -130,7 +136,7 @@ public class KeepEdgeAnnotationsTest extends TestBase {
         JavaCompilerTool.create(parameters.getRuntime().asCf(), temp)
             .addSourceFiles(ToolHelper.getSourceFileForTestClass(source))
             .addAnnotationProcessors(typeName(KeepEdgeProcessor.class))
-            .addClasspathFiles(KEEP_ANNO_PATH)
+            .addClasspathFiles(getKeepAnnoPath())
             .addClasspathFiles(ToolHelper.DEPS)
             .compile();
     testForJvm(parameters)

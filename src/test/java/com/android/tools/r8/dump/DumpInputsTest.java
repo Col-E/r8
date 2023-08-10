@@ -142,7 +142,7 @@ public class DumpInputsTest extends TestBase {
   public void testDumpToDirectorySystemProperty() throws Exception {
     Path dumpDir = temp.newFolder().toPath();
     testForExternalR8(parameters.getBackend(), parameters.getRuntime())
-        .addJvmFlag("-Dcom.android.tools.r8.dumpinputtodirectory=" + dumpDir.toString())
+        .addJvmFlag("-Dcom.android.tools.r8.dumpinputtodirectory=" + dumpDir)
         .addProgramClasses(TestClass.class)
         // Setting a directory will allow compilation to continue.
         // Ensure the compilation and run can actually succeed.
