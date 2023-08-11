@@ -19,6 +19,7 @@ import com.google.common.base.Equivalence;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
@@ -192,6 +193,8 @@ class StackTrace {
   private static List<StackTraceLine> internalExtractFromJvm(String stderr) {
     return StringUtils.splitLines(stderr).stream()
         .filter(s -> s.startsWith(TAB_AT_PREFIX))
+        .flatMap(s -> Arrays.stream(s.split("\t")))
+        .filter(s -> s.startsWith(AT_PREFIX))
         .map(StackTraceLine::parse)
         .collect(Collectors.toList());
   }
@@ -220,8 +223,7 @@ class StackTrace {
   }
 
   public StackTrace retrace(String map, Path tempFolder) throws IOException {
-    // TODO(b/295305981): Fails with 7.3.2 for some tests.
-    return retrace(ProguardVersion.V7_0_0, map, tempFolder);
+    return retrace(ProguardVersion.getLatest(), map, tempFolder);
   }
 
   public StackTrace retrace(ProguardVersion proguardVersion, String map, Path tempFolder)
