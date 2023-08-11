@@ -6,16 +6,13 @@ package com.android.tools.r8.workaround;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 
-import com.android.tools.r8.Dex2OatTestRunResult;
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.NoVerticalClassMerging;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
-import com.android.tools.r8.ToolHelper.DexVm.Version;
-import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.InstructionSubject;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
@@ -70,25 +67,15 @@ public class FilledNewArrayFromSubtypeWithMissingInterfaceWorkaroundTest extends
                 compileResult
                     .inspect(this::inspect)
                     .runDex2Oat(parameters.getRuntime())
-                    // TODO(b/293501981): Should not fail verification.
-                    .applyIf(
-                        parameters.getApiLevel().isGreaterThanOrEqualTo(AndroidApiLevel.N),
-                        Dex2OatTestRunResult::assertVerificationErrors,
-                        Dex2OatTestRunResult::assertNoVerificationErrors))
+                    .assertNoVerificationErrors())
         .run(parameters.getRuntime(), Main.class)
-        .applyIf(
-            parameters.isCfRuntime()
-                || !parameters.getDexRuntimeVersion().isEqualTo(Version.V13_0_0)
-                || parameters.getApiLevel() == AndroidApiLevel.B,
-            runResult -> runResult.assertFailureWithErrorThatThrows(NoClassDefFoundError.class),
-            runResult -> runResult.assertFailureWithErrorThatThrows(VerifyError.class));
+        .assertFailureWithErrorThatThrows(NoClassDefFoundError.class);
   }
 
   private void inspect(CodeInspector inspector) {
     MethodSubject mainMethodSubject = inspector.clazz(Main.class).mainMethod();
     assertThat(mainMethodSubject, isPresent());
-    assertEquals(
-        parameters.getApiLevel().isGreaterThanOrEqualTo(AndroidApiLevel.N),
+    assertFalse(
         mainMethodSubject.streamInstructions().anyMatch(InstructionSubject::isFilledNewArray));
   }
 

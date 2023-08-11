@@ -1555,7 +1555,7 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
     // issues. See b/283715197.
     public boolean canUseSubTypesInFilledNewArray() {
       assert isGeneratingDex();
-      return !canHaveBugPresentUntil(AndroidApiLevel.U);
+      return !canHaveBugPresentUntilInclusive(AndroidApiLevel.U);
     }
 
     // Dalvik doesn't handle new-filled-array with arrays as values. It fails with:
@@ -2481,6 +2481,14 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
   private boolean canHaveBugPresentUntil(AndroidApiLevel level) {
     if (desugarState.isOn() || isGeneratingDex()) {
       return level == null || !hasMinApi(level);
+    }
+    assert minApiLevel.equals(B);
+    return true;
+  }
+
+  private boolean canHaveBugPresentUntilInclusive(AndroidApiLevel level) {
+    if (desugarState.isOn() || isGeneratingDex()) {
+      return level == null || !getMinApiLevel().isGreaterThan(level);
     }
     assert minApiLevel.equals(B);
     return true;

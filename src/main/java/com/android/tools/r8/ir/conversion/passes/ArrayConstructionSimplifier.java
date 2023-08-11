@@ -4,12 +4,12 @@
 
 package com.android.tools.r8.ir.conversion.passes;
 
+import static com.android.tools.r8.graph.DexProgramClass.asProgramClassOrNull;
+
 import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppView;
-import com.android.tools.r8.graph.DexClass;
+import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
-import com.android.tools.r8.ir.analysis.type.ArrayTypeElement;
-import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.code.ArrayPut;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.IRCode;
@@ -117,7 +117,7 @@ public class ArrayConstructionSimplifier extends CodeRewriterPass<AppInfo> {
     RewriteArrayOptions rewriteOptions = options.rewriteArrayOptions();
     InstructionListIterator it = block.listIterator(code);
     while (it.hasNext()) {
-      FilledArrayCandidate candidate = computeFilledArrayCandidate(it.next(), rewriteOptions);
+      FilledArrayCandidate candidate = computeFilledArrayCandidate(code, it.next(), rewriteOptions);
       if (candidate == null) {
         continue;
       }
@@ -372,7 +372,7 @@ public class ArrayConstructionSimplifier extends CodeRewriterPass<AppInfo> {
   }
 
   private FilledArrayCandidate computeFilledArrayCandidate(
-      Instruction instruction, RewriteArrayOptions options) {
+      IRCode code, Instruction instruction, RewriteArrayOptions options) {
     NewArrayEmpty newArrayEmpty = instruction.asNewArrayEmpty();
     if (newArrayEmpty == null) {
       return null;
@@ -397,50 +397,20 @@ public class ArrayConstructionSimplifier extends CodeRewriterPass<AppInfo> {
         && arrayType != dexItemFactory.objectArrayType
         && !arrayType.isPrimitiveArrayType()) {
       DexType elementType = arrayType.toArrayElementType(dexItemFactory);
-      for (Instruction uniqueUser : newArrayEmpty.outValue().uniqueUsers()) {
-        if (uniqueUser.isArrayPut()
-            && uniqueUser.asArrayPut().array() == newArrayEmpty.outValue()
-            && !checkTypeOfArrayPut(uniqueUser.asArrayPut(), elementType)) {
-          return null;
-        }
+      if (!elementType.isClassType()) {
+        return null;
+      }
+      DexProgramClass clazz = null;
+      if (appView.enableWholeProgramOptimizations()) {
+        clazz = asProgramClassOrNull(appView.definitionFor(elementType, code.context()));
+      } else if (elementType == code.context().getHolderType()) {
+        clazz = code.context().getHolder();
+      }
+      if (clazz == null || !clazz.isFinal()) {
+        return null;
       }
     }
     return new FilledArrayCandidate(newArrayEmpty, size, encodeAsFilledNewArray);
-  }
-
-  private boolean checkTypeOfArrayPut(ArrayPut arrayPut, DexType elementType) {
-    TypeElement valueType = arrayPut.value().getType();
-    if (!valueType.isPrimitiveType() && elementType == dexItemFactory.objectType) {
-      return true;
-    }
-    if (valueType.isNullType() && !elementType.isPrimitiveType()) {
-      return true;
-    }
-    if (elementType.isArrayType()) {
-      if (valueType.isNullType()) {
-        return true;
-      }
-      ArrayTypeElement arrayTypeElement = valueType.asArrayType();
-      if (arrayTypeElement == null
-          || arrayTypeElement.getNesting() != elementType.getNumberOfLeadingSquareBrackets()) {
-        return false;
-      }
-      valueType = arrayTypeElement.getBaseType();
-      elementType = elementType.toBaseType(dexItemFactory);
-    }
-    assert !valueType.isArrayType();
-    assert !elementType.isArrayType();
-    if (valueType.isPrimitiveType() && !elementType.isPrimitiveType()) {
-      return false;
-    }
-    if (valueType.isPrimitiveType()) {
-      return true;
-    }
-    DexClass clazz = appView.definitionFor(elementType);
-    if (clazz == null) {
-      return false;
-    }
-    return valueType.isClassType(elementType);
   }
 
   private boolean canUseFilledNewArray(DexType arrayType, int size, RewriteArrayOptions options) {
