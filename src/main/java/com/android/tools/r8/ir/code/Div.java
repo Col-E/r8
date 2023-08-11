@@ -15,6 +15,8 @@ import com.android.tools.r8.dex.code.DexDivIntLit8;
 import com.android.tools.r8.dex.code.DexDivLong;
 import com.android.tools.r8.dex.code.DexDivLong2Addr;
 import com.android.tools.r8.dex.code.DexInstruction;
+import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.analysis.constant.Bottom;
 import com.android.tools.r8.ir.analysis.constant.LatticeElement;
 import com.android.tools.r8.lightir.LirBuilder;
@@ -134,6 +136,14 @@ public class Div extends ArithmeticBinop {
   @Override
   public boolean instructionTypeCanThrow() {
     return type != NumericType.DOUBLE && type != NumericType.FLOAT;
+  }
+
+  @Override
+  public boolean instructionInstanceCanThrow(AppView<?> appView, ProgramMethod context) {
+    if (instructionTypeCanThrow()) {
+      return !rightValue().isConstNumber() || rightValue().isConstZero();
+    }
+    return false;
   }
 
   @Override
