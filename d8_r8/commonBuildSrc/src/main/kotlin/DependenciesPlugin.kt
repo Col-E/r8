@@ -292,7 +292,7 @@ object Versions {
   const val asmVersion = "9.5"
   const val errorproneVersion = "2.18.0"
   const val fastUtilVersion = "7.2.1"
-  const val gsonVersion = "2.7"
+  const val gsonVersion = "2.10.1"
   const val guavaVersion = "31.1-jre"
   const val javassist = "3.29.2-GA"
   const val junitVersion = "4.13-beta-2"

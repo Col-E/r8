@@ -182,6 +182,8 @@ public class ToolHelper {
   public static final Path JACOCO_ROOT = Paths.get(THIRD_PARTY_DIR, "jacoco", "0.8.6");
   public static final Path JACOCO_AGENT = JACOCO_ROOT.resolve(Paths.get("lib", "jacocoagent.jar"));
   public static final Path JACOCO_CLI = JACOCO_ROOT.resolve(Paths.get("lib", "jacococli.jar"));
+  public static final Path GSON =
+      Paths.get(THIRD_PARTY_DIR, "gson", "gson-2.10.1", "gson-2.10.1.jar");
   public static final String PROGUARD_SETTINGS_FOR_INTERNAL_APPS =
       THIRD_PARTY_DIR + "proguardsettings/";
 
@@ -693,7 +695,7 @@ public class ToolHelper {
     }
 
     private String getStringContent(Path path) {
-      assert path.toFile().exists();
+      assert path.toFile().exists() : path + " does not exist";
       if (path.toFile().length() > 0) {
         try {
           return FileUtils.readTextFile(path, Charsets.UTF_8);

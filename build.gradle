@@ -26,7 +26,7 @@ ext {
     espressoVersion = '3.0.0'
     fastutilVersion = '7.2.1'
     guavaVersion = '31.1-jre'
-    gsonVersion = '2.7'
+    gsonVersion = '2.10.1'
     junitVersion = '4.13-beta-2'
     mockitoVersion = '2.10.0'
     // The kotlin version is only here to specify the kotlin language level,
@@ -329,6 +329,7 @@ def cloudDependencies = [
                 "gradle/gradle",
                 "google/google-java-format/1.14.0",
                 "google-java-format",
+                "gson/gson-2.10.1",
                 "iosched_2019",
                 "jacoco/0.8.2",
                 "jacoco/0.8.6",
