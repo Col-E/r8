@@ -43,4 +43,14 @@ public class Dex2OatTestRunResult extends SingleTestRunResult<Dex2OatTestRunResu
         matcher);
     return self();
   }
+
+  public Dex2OatTestRunResult assertVerificationErrors() {
+    assertSuccess();
+    Matcher<? super String> matcher = CoreMatchers.containsString("Verification error");
+    assertThat(
+        errorMessage("Run dex2oat did not produce verification errors.", matcher.toString()),
+        getStdErr(),
+        matcher);
+    return self();
+  }
 }
