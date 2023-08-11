@@ -4,8 +4,8 @@
 
 package com.android.tools.r8.graph;
 
+import static com.android.tools.r8.utils.InternalOptions.ASM_VERSION;
 import static org.junit.Assert.assertEquals;
-import static org.objectweb.asm.Opcodes.ASM7;
 
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestDiagnosticMessagesImpl;
@@ -42,7 +42,7 @@ public class GenericSignatureIdentityTest extends TestBase {
 
   @Test
   public void testAllClassSignature() throws Exception {
-    testParseSignaturesInJar(ToolHelper.R8_WITH_DEPS_JAR);
+    testParseSignaturesInJar(ToolHelper.CHECKED_IN_R8_17_WITH_DEPS);
   }
 
   public static void testParseSignaturesInJar(Path jar) throws Exception {
@@ -64,7 +64,7 @@ public class GenericSignatureIdentityTest extends TestBase {
     private final DexItemFactory factory = new DexItemFactory();
 
     private GenericSignatureReader() {
-      super(ASM7);
+      super(ASM_VERSION);
     }
 
     @Override
@@ -77,10 +77,6 @@ public class GenericSignatureIdentityTest extends TestBase {
         String[] interfaces) {
       if (signature == null) {
         return;
-      }
-      if (signature.equals(
-          "<R::Lcom/android/tools/r8/synthesis/Rewritable<TR;>;>Ljava/lang/Object;")) {
-        int xyz = 0;
       }
       TestDiagnosticMessagesImpl testDiagnosticMessages = new TestDiagnosticMessagesImpl();
       ClassSignature classSignature =

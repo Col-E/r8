@@ -139,6 +139,9 @@ public class ToolHelper {
   public static final String GENERATED_PROTO_BUILD_DIR = GENERATED_TEST_BUILD_DIR + "proto/";
   public static final String SMALI_BUILD_DIR = THIRD_PARTY_DIR + "smali/";
 
+  public static final Path CHECKED_IN_R8_17_WITH_DEPS =
+      Paths.get(THIRD_PARTY_DIR).resolve("r8").resolve("r8_with_deps_17.jar");
+
   public static final String R8_TEST_BUCKET = "r8-test-results";
 
   public static final String ASM_JAR = BUILD_DIR + "deps/asm-9.5.jar";
