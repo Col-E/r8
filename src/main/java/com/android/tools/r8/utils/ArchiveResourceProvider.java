@@ -44,7 +44,7 @@ public class ArchiveResourceProvider implements ProgramResourceProvider, DataRes
     return new ArchiveResourceProvider(FilteredClassPath.unfiltered(archive), ignoreDexInArchive);
   }
 
-  ArchiveResourceProvider(FilteredClassPath archive, boolean ignoreDexInArchive) {
+  public ArchiveResourceProvider(FilteredClassPath archive, boolean ignoreDexInArchive) {
     assert isArchive(archive.getPath());
     origin = new PathOrigin(archive.getPath());
     this.archive = archive;
