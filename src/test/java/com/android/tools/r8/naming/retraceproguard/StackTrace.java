@@ -220,7 +220,8 @@ class StackTrace {
   }
 
   public StackTrace retrace(String map, Path tempFolder) throws IOException {
-    return retrace(ProguardVersion.getLatest(), map, tempFolder);
+    // TODO(b/295305981): Fails with 7.3.2 for some tests.
+    return retrace(ProguardVersion.V7_0_0, map, tempFolder);
   }
 
   public StackTrace retrace(ProguardVersion proguardVersion, String map, Path tempFolder)

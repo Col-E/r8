@@ -57,7 +57,7 @@ public class KeepClassFieldsAllowShrinkingCompatibilityTest extends TestBase {
         // R8 will succeed in removing the field if allowoptimization is set.
         Boolean.toString((shrinker.isPG() || !allowOptimization) && !allowObfuscation),
         // R8 will always remove the unreferenced B.foo field.
-        Boolean.toString(shrinker.isPG() && !allowOptimization && !allowObfuscation));
+        Boolean.toString(shrinker.isPG() && !allowObfuscation));
   }
 
   @Test
@@ -98,9 +98,9 @@ public class KeepClassFieldsAllowShrinkingCompatibilityTest extends TestBase {
               if (allowOptimization) {
                 // PG fails to optimize out the referenced field.
                 assertThat(aFoo, notIf(isPresent(), shrinker.isR8()));
-                assertThat(aBar, not(isPresent()));
-                assertThat(bFoo, not(isPresent()));
-                assertThat(bBar, not(isPresent()));
+                assertThat(aBar, notIf(isPresent(), shrinker.isR8()));
+                assertThat(bFoo, notIf(isPresent(), shrinker.isR8()));
+                assertThat(bBar, notIf(isPresent(), shrinker.isR8()));
               } else {
                 assertThat(aFoo, isPresentAndRenamed(allowObfuscation));
                 assertThat(
