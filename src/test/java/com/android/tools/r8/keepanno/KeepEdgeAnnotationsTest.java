@@ -71,7 +71,7 @@ public class KeepEdgeAnnotationsTest extends TestBase {
   public static Path getKeepAnnoPath() {
     // TODO(b/270105162): This changes when new gradle setup is default.
     if (ToolHelper.isNewGradleSetup()) {
-      return Paths.get(System.getenv("KEEP_ANNO_COMPILED_OUTPUT").split(":")[0]);
+      return Paths.get(System.getenv("KEEP_ANNO_JAVAC_BUILD_DIR").split(":")[0]);
     } else {
       return Paths.get(ToolHelper.BUILD_DIR, "classes", "java", "keepanno");
     }

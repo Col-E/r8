@@ -36,7 +36,7 @@ import org.junit.runners.Parameterized.Parameters;
 public class NestMemberAccessibilityTest extends TestBase {
 
   private final Path TEST_DIRECTORY =
-      Paths.get(ToolHelper.EXAMPLES_JAVA11_BUILD_DIR)
+      Paths.get(ToolHelper.getExamplesJava11BuildDir())
           .resolve(
               DescriptorUtils.getBinaryNameFromJavaType(NestHost.class.getPackage().getName()));
 

@@ -134,10 +134,18 @@ public class ToolHelper {
   public static final String EXAMPLES_JAVA9_BUILD_DIR = TESTS_BUILD_DIR + "examplesJava9/";
   public static final String EXAMPLES_JAVA10_BUILD_DIR = TESTS_BUILD_DIR + "examplesJava10/";
   public static final String EXAMPLES_JAVA11_JAR_DIR = TESTS_BUILD_DIR + "examplesJava11/";
-  public static final String EXAMPLES_JAVA11_BUILD_DIR = BUILD_DIR + "classes/java/examplesJava11/";
   public static final String EXAMPLES_PROTO_BUILD_DIR = TESTS_BUILD_DIR + "examplesProto/";
   public static final String GENERATED_PROTO_BUILD_DIR = GENERATED_TEST_BUILD_DIR + "proto/";
   public static final String SMALI_BUILD_DIR = THIRD_PARTY_DIR + "smali/";
+
+  public static String getExamplesJava11BuildDir() {
+    // TODO(b/270105162): This changes when new gradle setup is default.
+    if (ToolHelper.isNewGradleSetup()) {
+      return System.getenv("EXAMPLES_JAVA_11_JAVAC_BUILD_DIR");
+    } else {
+      return BUILD_DIR + "classes/java/examplesJava11/";
+    }
+  }
 
   public static final Path CHECKED_IN_R8_17_WITH_DEPS =
       Paths.get(THIRD_PARTY_DIR).resolve("r8").resolve("r8_with_deps_17.jar");

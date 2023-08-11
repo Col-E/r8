@@ -164,7 +164,10 @@ tasks {
       dependsOn(thirdPartyRuntimeInternalDependenciesTask)
     }
     dependsOn(*sourceSetDependenciesTasks)
-    environment.put("KEEP_ANNO_COMPILED_OUTPUT", keepAnnoCompileTask.outputs.files.getAsPath())
+    environment.put("KEEP_ANNO_JAVAC_BUILD_DIR", keepAnnoCompileTask.outputs.files.getAsPath())
+    // This path is set when compiling examples jar task in DependenciesPlugin.
+    environment.put("EXAMPLES_JAVA_11_JAVAC_BUILD_DIR",
+                    getRoot().resolveAll("build", "test", "examplesJava11", "classes"))
   }
 
   val testJar by registering(Jar::class) {
