@@ -210,6 +210,8 @@ public class ToolHelper {
   public static final Path DESUGARED_JDK_11_LIB_JAR =
       Paths.get(OPEN_JDK_DIR + "desugar_jdk_libs_11/desugar_jdk_libs.jar");
 
+  public static final Path AAPT2 = Paths.get(THIRD_PARTY_DIR, "aapt2", "aapt2");
+
   public static Path getDesugarLibConversions(CustomConversionVersion legacy) {
     return legacy == CustomConversionVersion.LEGACY
         ? Paths.get(LIBS_DIR, "library_desugar_conversions_legacy.jar")
@@ -1676,6 +1678,13 @@ public class ToolHelper {
         getJavaExecutable(), "-cp", cp, "-noverify", mainClass);
     cmdline.addAll(args);
     ProcessBuilder builder = new ProcessBuilder(cmdline);
+    return runProcess(builder);
+  }
+
+  public static ProcessResult runAapt2(String... args) throws IOException {
+    ArrayList<String> cmd = Lists.newArrayList(AAPT2.toString());
+    cmd.addAll(Lists.newArrayList(args));
+    ProcessBuilder builder = new ProcessBuilder(cmd);
     return runProcess(builder);
   }
 
