@@ -54,7 +54,7 @@ public abstract class CodeRewriterPass<T extends AppInfo> {
           ? code.isConsistentSSA(appView)
           : code.isConsistentGraph(appView, false);
       CodeRewriterResult result = rewriteCode(code, methodProcessor, methodProcessingContext);
-      assert !result.hasChanged()
+      assert result.hasChanged().isFalse()
           || (isProducingSSA()
               ? code.isConsistentSSA(appView)
               : code.isConsistentGraph(appView, false));

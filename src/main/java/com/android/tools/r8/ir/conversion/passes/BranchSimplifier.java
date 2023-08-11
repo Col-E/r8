@@ -45,6 +45,7 @@ import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.InternalOutputMode;
 import com.android.tools.r8.utils.LongInterval;
+import com.android.tools.r8.utils.OptionalBool;
 import com.android.tools.r8.utils.Timing;
 import com.google.common.collect.ImmutableList;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceAVLTreeMap;
@@ -188,9 +189,9 @@ public class BranchSimplifier extends CodeRewriterPass<AppInfo> {
     }
 
     @Override
-    public boolean hasChanged() {
+    public OptionalBool hasChanged() {
       assert !anyAffectedValues || anySimplifications;
-      return anySimplifications();
+      return OptionalBool.of(anySimplifications());
     }
 
     public ControlFlowSimplificationResult combine(ControlFlowSimplificationResult ifResult) {

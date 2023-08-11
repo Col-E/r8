@@ -76,7 +76,7 @@ public class DeadCodeRemover {
   }
 
   public boolean verifyNoDeadCode(IRCode code) {
-    assert !new MoveResultRewriter(appView).run(code, Timing.empty()).hasChanged();
+    assert new MoveResultRewriter(appView).run(code, Timing.empty()).hasChanged().isFalse();
     assert !removeUnneededCatchHandlers(code);
     ValueIsDeadAnalysis valueIsDeadAnalysis = new ValueIsDeadAnalysis(appView, code);
     for (BasicBlock block : code.blocks) {
