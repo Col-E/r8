@@ -63,10 +63,6 @@ public class BasicBlockInstructionListIterator implements InstructionListIterato
     nextUntil(x -> x == instruction);
   }
 
-  public BasicBlock getBlock() {
-    return block;
-  }
-
   @Override
   public boolean hasNext() {
     return listIterator.hasNext();

@@ -443,7 +443,7 @@ public class VarHandleDesugaring implements CfInstructionDesugaring, CfClassSynt
     }
     DexType ct1ElementType = null;
     if (ct1Type.isArrayType()) {
-      ct1ElementType = ct1Type.toArrayElementType(factory);
+      ct1ElementType = ct1Type.toDimensionMinusOneType(factory);
       if (ct1ElementType != factory.intType
           && ct1ElementType != factory.longType
           && !ct1ElementType.isReferenceType()) {

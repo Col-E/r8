@@ -1702,27 +1702,27 @@ public class BasicBlock {
     return true;
   }
 
-  public BasicBlockInstructionIterator iterator() {
+  public InstructionIterator iterator() {
     return new BasicBlockInstructionIterator(this);
   }
 
-  public BasicBlockInstructionIterator iterator(int index) {
+  public InstructionIterator iterator(int index) {
     return new BasicBlockInstructionIterator(this, index);
   }
 
-  public BasicBlockInstructionIterator iterator(Instruction instruction) {
+  public InstructionIterator iterator(Instruction instruction) {
     return new BasicBlockInstructionIterator(this, instruction);
   }
 
-  public BasicBlockInstructionListIterator listIterator(IRCode code) {
+  public InstructionListIterator listIterator(IRCode code) {
     return listIterator(code.metadata());
   }
 
-  public BasicBlockInstructionListIterator listIterator(IRMetadata metadata) {
+  public InstructionListIterator listIterator(IRMetadata metadata) {
     return new BasicBlockInstructionListIterator(metadata, this);
   }
 
-  public BasicBlockInstructionListIterator listIterator(IRCode code, int index) {
+  public InstructionListIterator listIterator(IRCode code, int index) {
     return new BasicBlockInstructionListIterator(code.metadata(), this, index);
   }
 
@@ -1733,7 +1733,7 @@ public class BasicBlock {
    * the returned iterator will return the instruction after <code>instruction</code>. Calling
    * <code>previous</code> will return <code>instruction</code>.
    */
-  public BasicBlockInstructionListIterator listIterator(IRCode code, Instruction instruction) {
+  public InstructionListIterator listIterator(IRCode code, Instruction instruction) {
     return new BasicBlockInstructionListIterator(code.metadata(), this, instruction);
   }
 

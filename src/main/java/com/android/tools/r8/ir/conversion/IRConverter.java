@@ -31,7 +31,6 @@ import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.conversion.MethodConversionOptions.MutableMethodConversionOptions;
 import com.android.tools.r8.ir.conversion.passes.CodeRewriterPassCollection;
 import com.android.tools.r8.ir.conversion.passes.DexConstantOptimizer;
-import com.android.tools.r8.ir.conversion.passes.FilledNewArrayRewriter;
 import com.android.tools.r8.ir.conversion.passes.MoveResultRewriter;
 import com.android.tools.r8.ir.conversion.passes.ParentConstructorHoistingCodeRewriter;
 import com.android.tools.r8.ir.conversion.passes.ThrowCatchOptimizer;
@@ -787,11 +786,6 @@ public class IRConverter {
 
     previous = printMethod(code, "IR after outline handler (SSA)", previous);
 
-    if (!code.getConversionOptions().isGeneratingLir()) {
-      new FilledNewArrayRewriter(appView)
-          .run(code, methodProcessor, methodProcessingContext, timing);
-    }
-
     if (code.getConversionOptions().isStringSwitchConversionEnabled()) {
       // Remove string switches prior to canonicalization to ensure that the constants that are
       // being introduced will be canonicalized if possible.
@@ -979,9 +973,6 @@ public class IRConverter {
 
   public void removeDeadCodeAndFinalizeIR(
       IRCode code, OptimizationFeedback feedback, Timing timing) {
-    if (!code.getConversionOptions().isGeneratingLir()) {
-      new FilledNewArrayRewriter(appView).run(code, timing);
-    }
     if (stringSwitchRemover != null) {
       stringSwitchRemover.run(code);
     }

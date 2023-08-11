@@ -237,7 +237,7 @@ public class DesugaredLibraryWrapperSynthesizer implements CfClassSynthesizerDes
       Supplier<UniqueContext> contextSupplier) {
     DexMethod conversion =
         ensureConversionMethod(
-            type.toArrayElementType(factory),
+            type.toDimensionMinusOneType(factory),
             srcType == type,
             null,
             eventConsumer,
@@ -256,7 +256,7 @@ public class DesugaredLibraryWrapperSynthesizer implements CfClassSynthesizerDes
       Supplier<UniqueContext> contextSupplier) {
     DexMethod conversion =
         getExistingProgramConversionMethod(
-            type.toArrayElementType(factory),
+            type.toDimensionMinusOneType(factory),
             srcType == type,
             null,
             eventConsumer,

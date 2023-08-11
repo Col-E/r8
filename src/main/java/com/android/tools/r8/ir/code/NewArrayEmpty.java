@@ -35,10 +35,6 @@ public class NewArrayEmpty extends Instruction {
     this.type = type;
   }
 
-  public DexType getArrayType() {
-    return type;
-  }
-
   @Override
   public int opcode() {
     return Opcodes.NEW_ARRAY_EMPTY;

@@ -4,7 +4,6 @@
 
 package com.android.tools.r8.ir.optimize.enums;
 
-import static com.android.tools.r8.ir.analysis.type.Nullability.definitelyNotNull;
 import static com.android.tools.r8.ir.analysis.type.Nullability.maybeNull;
 
 import com.android.tools.r8.graph.AppView;
@@ -32,7 +31,6 @@ import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.ir.code.InvokeMethod;
 import com.android.tools.r8.ir.code.InvokeMethodWithReceiver;
-import com.android.tools.r8.ir.code.InvokeNewArray;
 import com.android.tools.r8.ir.code.InvokeStatic;
 import com.android.tools.r8.ir.code.InvokeVirtual;
 import com.android.tools.r8.ir.code.MemberType;
@@ -190,8 +188,6 @@ public class EnumUnboxingRewriter {
               block,
               iterator,
               instruction.asInvokeMethodWithReceiver());
-        } else if (instruction.isInvokeNewArray()) {
-          rewriteInvokeNewArray(instruction.asInvokeNewArray(), code, iterator);
         } else if (instruction.isInvokeStatic()) {
           rewriteInvokeStatic(
               instruction.asInvokeStatic(),
@@ -481,33 +477,6 @@ public class EnumUnboxingRewriter {
         }
       }
     }
-  }
-
-  private void rewriteInvokeNewArray(
-      InvokeNewArray invokeNewArray, IRCode code, InstructionListIterator instructionIterator) {
-    DexType arrayBaseType = invokeNewArray.getArrayType().toBaseType(factory);
-    if (!unboxedEnumsData.isUnboxedEnum(arrayBaseType)) {
-      return;
-    }
-    DexType rewrittenArrayType =
-        invokeNewArray.getArrayType().replaceBaseType(factory.intType, factory);
-    List<Value> elements = new ArrayList<>(invokeNewArray.inValues().size());
-    Value zeroValue = null;
-    for (Value element : invokeNewArray.inValues()) {
-      if (element.getType().isNullType()) {
-        if (zeroValue == null) {
-          zeroValue = instructionIterator.insertConstIntInstruction(code, options, 0);
-        }
-        elements.add(zeroValue);
-      } else {
-        elements.add(element);
-      }
-    }
-    instructionIterator.replaceCurrentInstruction(
-        new InvokeNewArray(
-            rewrittenArrayType,
-            code.createValue(factory.intArrayType.toTypeElement(appView, definitelyNotNull())),
-            elements));
   }
 
   private void rewriteInvokeStatic(

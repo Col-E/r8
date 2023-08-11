@@ -141,33 +141,28 @@ public class ArrayPut extends ArrayAccess {
   public boolean instructionInstanceCanThrow(AppView<?> appView, ProgramMethod context) {
     // Check that the array is guaranteed to be non-null and that the index is within bounds.
     Value array = array().getAliasedValue();
-    if (!array.isDefinedByInstructionSatisfying(Instruction::isNewArrayEmptyOrInvokeNewArray)
-        || array.hasLocalInfo()) {
+    if (!array.isDefinedByInstructionSatisfying(Instruction::isNewArrayEmpty)) {
       return true;
     }
 
-    Instruction arrayDefinition = array.getDefinition();
-    int size;
-    if (arrayDefinition.isNewArrayEmpty()) {
-      Value sizeValue = arrayDefinition.asNewArrayEmpty().size();
-      if (sizeValue.isConstant()) {
-        size = sizeValue.getConstInstruction().asConstNumber().getIntValue();
-      } else {
-        return true;
-      }
-    } else {
-      size = arrayDefinition.asInvokeNewArray().size();
+    NewArrayEmpty definition = array.definition.asNewArrayEmpty();
+    Value sizeValue = definition.size().getAliasedValue();
+    if (sizeValue.isPhi() || !sizeValue.definition.isConstNumber()) {
+      return true;
     }
 
-    int index;
     Value indexValue = index().getAliasedValue();
-    if (indexValue.isConstant()) {
-      index = indexValue.getConstInstruction().asConstNumber().getIntValue();
-    } else {
+    if (indexValue.isPhi() || !indexValue.definition.isConstNumber()) {
       return true;
     }
 
+    long index = indexValue.definition.asConstNumber().getRawValue();
+    long size = sizeValue.definition.asConstNumber().getRawValue();
     if (index < 0 || index >= size) {
+      return true;
+    }
+
+    if (array.hasLocalInfo() || indexValue.hasLocalInfo() || sizeValue.hasLocalInfo()) {
       return true;
     }
 
