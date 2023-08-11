@@ -401,15 +401,6 @@ public class DexType extends DexReference implements NamingLensComparable<DexTyp
     return leadingSquareBrackets;
   }
 
-  public DexType toDimensionMinusOneType(DexItemFactory dexItemFactory) {
-    DexType baseType = toBaseType(dexItemFactory);
-    int leadingSquareBrackets = getNumberOfLeadingSquareBrackets();
-    if (leadingSquareBrackets <= 1) {
-      return baseType;
-    }
-    return dexItemFactory.createArrayType(leadingSquareBrackets - 1, baseType);
-  }
-
   public DexType toBaseType(DexItemFactory dexItemFactory) {
     int leadingSquareBrackets = getNumberOfLeadingSquareBrackets();
     if (leadingSquareBrackets == 0) {

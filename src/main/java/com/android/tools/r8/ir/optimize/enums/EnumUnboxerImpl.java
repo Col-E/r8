@@ -595,6 +595,13 @@ public class EnumUnboxerImpl extends EnumUnboxer {
             markEnumAsUnboxable(Reason.ENUM_METHOD_CALLED_WITH_NULL_RECEIVER, enumClass);
           }
         }
+      } else if (use.isInvokeNewArray()) {
+        DexProgramClass enumClass =
+            getEnumUnboxingCandidateOrNull(
+                use.asInvokeNewArray().getArrayType().toBaseType(factory));
+        if (enumClass != null) {
+          eligibleEnums.add(enumClass.getType());
+        }
       } else if (use.isFieldPut()) {
         DexProgramClass enumClass =
             getEnumUnboxingCandidateOrNull(use.asFieldInstruction().getField().getType());

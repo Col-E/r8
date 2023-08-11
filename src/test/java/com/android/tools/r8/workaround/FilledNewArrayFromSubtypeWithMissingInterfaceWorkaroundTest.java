@@ -6,13 +6,14 @@ package com.android.tools.r8.workaround;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.NoVerticalClassMerging;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
+import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.InstructionSubject;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
@@ -43,7 +44,7 @@ public class FilledNewArrayFromSubtypeWithMissingInterfaceWorkaroundTest extends
         .release()
         .setMinApi(parameters)
         .compile()
-        .inspect(this::inspect)
+        .inspect(inspector -> inspect(inspector, true))
         .apply(
             compileResult ->
                 compileResult.runDex2Oat(parameters.getRuntime()).assertNoVerificationErrors())
@@ -65,17 +66,18 @@ public class FilledNewArrayFromSubtypeWithMissingInterfaceWorkaroundTest extends
             parameters.isDexRuntime(),
             compileResult ->
                 compileResult
-                    .inspect(this::inspect)
+                    .inspect(inspector -> inspect(inspector, false))
                     .runDex2Oat(parameters.getRuntime())
                     .assertNoVerificationErrors())
         .run(parameters.getRuntime(), Main.class)
         .assertFailureWithErrorThatThrows(NoClassDefFoundError.class);
   }
 
-  private void inspect(CodeInspector inspector) {
+  private void inspect(CodeInspector inspector, boolean isD8) {
     MethodSubject mainMethodSubject = inspector.clazz(Main.class).mainMethod();
     assertThat(mainMethodSubject, isPresent());
-    assertFalse(
+    assertEquals(
+        isD8 && parameters.getApiLevel().isGreaterThanOrEqualTo(AndroidApiLevel.N),
         mainMethodSubject.streamInstructions().anyMatch(InstructionSubject::isFilledNewArray));
   }
 
