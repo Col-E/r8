@@ -400,14 +400,16 @@ public class ArrayConstructionSimplifier extends CodeRewriterPass<AppInfo> {
       if (!elementType.isClassType()) {
         return null;
       }
-      DexProgramClass clazz = null;
-      if (appView.enableWholeProgramOptimizations()) {
-        clazz = asProgramClassOrNull(appView.definitionFor(elementType, code.context()));
-      } else if (elementType == code.context().getHolderType()) {
-        clazz = code.context().getHolder();
-      }
-      if (clazz == null || !clazz.isFinal()) {
-        return null;
+      if (elementType != dexItemFactory.stringType) {
+        DexProgramClass clazz = null;
+        if (appView.enableWholeProgramOptimizations()) {
+          clazz = asProgramClassOrNull(appView.definitionFor(elementType, code.context()));
+        } else if (elementType == code.context().getHolderType()) {
+          clazz = code.context().getHolder();
+        }
+        if (clazz == null || !clazz.isFinal()) {
+          return null;
+        }
       }
     }
     return new FilledArrayCandidate(newArrayEmpty, size, encodeAsFilledNewArray);
