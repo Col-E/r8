@@ -9,10 +9,10 @@ import static com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpec
 import static com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification.getJdk8Jdk11;
 
 import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification;
 import com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification;
 import com.android.tools.r8.utils.AndroidApiLevel;
-import com.android.tools.r8.utils.DaggerUtils;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMultiset;
 import com.google.common.collect.Multiset;
@@ -63,11 +63,13 @@ public class GuavaMultiSetSpliteratorTest extends DesugaredLibraryTestBase {
       Assume.assumeTrue(parameters.getApiLevel().isGreaterThanOrEqualTo(AndroidApiLevel.L));
     }
     testForDesugaredLibrary(parameters, libraryDesugaringSpecification, compilationSpecification)
-        // TODO(b/289363570): Guava should not rely on dagger.
-        .addProgramFiles(DaggerUtils.getGuavaFromDagger())
+        .addProgramFiles(ToolHelper.GUAVA_JRE)
         .addInnerClasses(getClass())
         .addOptionsModification(opt -> opt.ignoreMissingClasses = true)
-        .allowDiagnosticWarningMessages()
+        // The Guava embedded ProGuard rules include unused rules and unused -dontwarn patterns.
+        .allowDiagnosticMessages()
+        .allowUnusedProguardConfigurationRules()
+        .allowUnusedDontWarnPatterns()
         .addKeepMainRule(Main.class)
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines("17744", "NullPointerException");

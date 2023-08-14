@@ -57,10 +57,6 @@ public class DaggerUtils {
           .map(DAGGER_ROOT::resolve)
           .collect(ImmutableList.toImmutableList());
 
-  public static Path getGuavaFromDagger() {
-    return DAGGER_ROOT.resolve(GUAVA);
-  }
-
   public static List<Path> getDaggerRuntime() {
     return DAGGER_RUNTIME;
   }
