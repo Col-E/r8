@@ -24,6 +24,7 @@ FASTUTIL_VERSION = '7.2.1'
 KOTLIN_METADATA_VERSION = '0.6.2'
 KOTLIN_VERSION = '1.8.0'
 GUAVA_VERSION = '31.1-jre'
+GUAVA_VERSION_NEW = '32.1.2-jre'
 GSON_VERSION = '2.10.1'
 JAVASSIST_VERSION = '3.29.2-GA'
 JUNIT_VERSION = '4.13-beta-2'
@@ -61,6 +62,7 @@ TEST_DEPENDENCIES = [
 ]
 
 NEW_DEPENDENCIES = [
+  'com.google.guava:guava:{version}'.format(version = GUAVA_VERSION_NEW),
   'org.gradle.kotlin.kotlin-dsl:org.gradle.kotlin.kotlin-dsl.gradle.plugin:4.0.6',
   'org.jetbrains.kotlin:kotlin-gradle-plugin-api:1.8.10',
   'org.jetbrains.kotlin:kotlin-gradle-plugin-idea:1.8.10',
