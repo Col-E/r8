@@ -3,8 +3,10 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.optimize.outliner;
 
-import static org.junit.Assert.assertEquals;
+import static org.hamcrest.CoreMatchers.containsString;
+import static org.junit.Assert.assertThrows;
 
+import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
@@ -28,25 +30,26 @@ public class OutlineWithoutThrowingInstructionTest extends TestBase {
 
   @Test
   public void testR8() throws Exception {
-    testForR8(parameters.getBackend())
-        .addInnerClasses(getClass())
-        .setMinApi(parameters)
-        .addKeepMainRule(Main.class)
-        .enableInliningAnnotations()
-        .addOptionsModification(
-            options -> {
-              options.outline.threshold = 2;
-              options.outline.minSize = 2;
-            })
-        .addKeepAttributeLineNumberTable()
-        .addKeepAttributeSourceFile()
-        .compile()
-        .inspect(
-            inspector -> {
-              assertEquals(2, inspector.allClasses().size());
-            })
-        .run(parameters.getRuntime(), Main.class)
-        .assertSuccessWithOutputLines("5");
+    // TODO(b/295136314): Account for no positions in outline caller.
+    assertThrows(
+        CompilationFailedException.class,
+        () ->
+            testForR8(parameters.getBackend())
+                .addInnerClasses(getClass())
+                .setMinApi(parameters)
+                .addKeepMainRule(Main.class)
+                .enableInliningAnnotations()
+                .addOptionsModification(
+                    options -> {
+                      options.outline.threshold = 2;
+                      options.outline.minSize = 2;
+                    })
+                .addKeepAttributeLineNumberTable()
+                .addKeepAttributeSourceFile()
+                .compileWithExpectedDiagnostics(
+                    diagnostics ->
+                        diagnostics.assertErrorMessageThatMatches(
+                            containsString("Mapped outline positions is empty"))));
   }
 
   public static class Main {

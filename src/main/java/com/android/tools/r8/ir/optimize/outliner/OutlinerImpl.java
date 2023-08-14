@@ -1295,7 +1295,7 @@ public class OutlinerImpl extends Outliner {
         outlineInvoke.setPosition(
             positionBuilder.hasOutlinePositions()
                 ? positionBuilder.build()
-                : positionBuilder.setLine(1).build());
+                : Position.syntheticNone());
         InstructionListIterator endIterator =
             lastInstruction.getBlock().listIterator(code, lastInstruction);
         Instruction instructionBeforeEnd = endIterator.previous();
