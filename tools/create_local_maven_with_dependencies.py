@@ -140,14 +140,16 @@ def main():
   create_local_maven_repository(
       args, dependencies_new_path, REPOSITORIES, NEW_DEPENDENCIES)
 
-  print('Now run')
-  print('  (cd {third_party};'
-        ' upload_to_google_storage.py -a --bucket r8-deps {dependencies};'
-        ' upload_to_google_storage.py -a --bucket r8-deps {dependencies_new})'
-      .format(
-          third_party = utils.THIRD_PARTY,
-          dependencies = 'dependencies',
-          dependencies_new = 'dependencies_new'))
+  print("Uploading to Google Cloud Storage:")
+  with utils.ChangedWorkingDirectory(utils.THIRD_PARTY):
+    for dependency in ['dependencies', 'dependencies_new']:
+      cmd = [
+          'upload_to_google_storage.py',
+          '-a',
+          '--bucket',
+          'r8-deps',
+          dependency]
+      subprocess.check_call(cmd)
 
 if __name__ == '__main__':
   sys.exit(main())
