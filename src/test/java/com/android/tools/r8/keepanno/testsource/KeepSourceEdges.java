@@ -20,7 +20,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-import java.util.Set;
 
 /**
  * Utility to get the AST edges for the various annotation test sources.
@@ -32,9 +31,9 @@ public class KeepSourceEdges {
   private static class SourceData {
     final Class<?> clazz;
     final String expected;
-    final Set<KeepEdge> edges;
+    final List<KeepEdge> edges;
 
-    public SourceData(Class<?> clazz, String expected, Set<KeepEdge> edges) {
+    public SourceData(Class<?> clazz, String expected, List<KeepEdge> edges) {
       this.clazz = clazz;
       this.expected = expected;
       this.edges = edges;
@@ -59,7 +58,7 @@ public class KeepSourceEdges {
             getKeepDependentFieldSourceEdges()));
   }
 
-  public static Set<KeepEdge> getExpectedEdges(Class<?> clazz) {
+  public static List<KeepEdge> getExpectedEdges(Class<?> clazz) {
     for (SourceData source : SOURCES) {
       if (source.clazz == clazz) {
         return source.edges;
@@ -81,9 +80,9 @@ public class KeepSourceEdges {
     return StringUtils.lines("A is alive!");
   }
 
-  public static Set<KeepEdge> getKeepClassAndDefaultConstructorSourceEdges() {
+  public static List<KeepEdge> getKeepClassAndDefaultConstructorSourceEdges() {
     Class<?> clazz = KeepClassAndDefaultConstructorSource.A.class;
-    return Collections.singleton(
+    return Collections.singletonList(
         mkEdge(mkConsequences(mkTarget(mkClass(clazz)), mkTarget(mkMethod(clazz, "<init>")))));
   }
 
@@ -91,8 +90,8 @@ public class KeepSourceEdges {
     return StringUtils.lines("The values match!");
   }
 
-  public static Set<KeepEdge> getKeepFieldSourceEdges() {
-    return Collections.singleton(
+  public static List<KeepEdge> getKeepFieldSourceEdges() {
+    return Collections.singletonList(
         mkEdge(mkConsequences(mkTarget(mkField(KeepFieldSource.A.class, "f")))));
   }
 
@@ -100,8 +99,8 @@ public class KeepSourceEdges {
     return getKeepFieldSourceExpected();
   }
 
-  public static Set<KeepEdge> getKeepDependentFieldSourceEdges() {
-    return Collections.singleton(
+  public static List<KeepEdge> getKeepDependentFieldSourceEdges() {
+    return Collections.singletonList(
         mkDepEdge(
             mkPreconditions(mkCondition(mkMethod(KeepDependentFieldSource.class, "main"))),
             mkConsequences(mkTarget(mkField(KeepDependentFieldSource.A.class, "f")))));

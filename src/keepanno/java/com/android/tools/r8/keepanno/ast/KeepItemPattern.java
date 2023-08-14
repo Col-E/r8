@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.keepanno.ast;
 
+import com.android.tools.r8.keepanno.ast.KeepBindings.BindingSymbol;
 import java.util.Collection;
 import java.util.Objects;
 import java.util.function.Predicate;
@@ -128,7 +129,7 @@ public class KeepItemPattern {
     this.memberPattern = memberPattern;
   }
 
-  public boolean isAny(Predicate<String> onReference) {
+  public boolean isAny(Predicate<BindingSymbol> onReference) {
     return kind.equals(KeepItemKind.CLASS_AND_MEMBERS)
         && extendsPattern.isAny()
         && memberPattern.isAllMembers()
@@ -151,7 +152,7 @@ public class KeepItemPattern {
     return memberPattern;
   }
 
-  public Collection<String> getBindingReferences() {
+  public Collection<BindingSymbol> getBindingReferences() {
     return classReference.getBindingReferences();
   }
 

@@ -22,7 +22,6 @@ import com.android.tools.r8.keepanno.keeprules.KeepRuleExtractor;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
 import org.hamcrest.Matcher;
 import org.junit.Test;
 import org.junit.function.ThrowingRunnable;
@@ -42,7 +41,7 @@ public class KeepInvalidTargetTest extends TestBase {
   }
 
   private static List<String> extractRuleForClass(Class<?> clazz) throws IOException {
-    Set<KeepDeclaration> keepEdges =
+    List<KeepDeclaration> keepEdges =
         KeepEdgeReader.readKeepEdges(ToolHelper.getClassAsBytes(clazz));
     List<String> rules = new ArrayList<>();
     KeepRuleExtractor extractor = new KeepRuleExtractor(rules::add);

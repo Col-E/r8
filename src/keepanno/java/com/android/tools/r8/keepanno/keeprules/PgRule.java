@@ -3,9 +3,14 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.keepanno.keeprules;
 
+import static com.android.tools.r8.keepanno.keeprules.RulePrintingUtils.CHECK_DISCARD;
+import static com.android.tools.r8.keepanno.keeprules.RulePrintingUtils.KEEP;
+import static com.android.tools.r8.keepanno.keeprules.RulePrintingUtils.KEEP_CLASSES_WITH_MEMBERS;
+import static com.android.tools.r8.keepanno.keeprules.RulePrintingUtils.KEEP_CLASS_MEMBERS;
 import static com.android.tools.r8.keepanno.keeprules.RulePrintingUtils.printClassHeader;
 import static com.android.tools.r8.keepanno.keeprules.RulePrintingUtils.printMemberClause;
 
+import com.android.tools.r8.keepanno.ast.KeepBindings.BindingSymbol;
 import com.android.tools.r8.keepanno.ast.KeepClassReference;
 import com.android.tools.r8.keepanno.ast.KeepEdgeException;
 import com.android.tools.r8.keepanno.ast.KeepEdgeMetaInfo;
@@ -15,12 +20,43 @@ import com.android.tools.r8.keepanno.ast.KeepOptions;
 import com.android.tools.r8.keepanno.ast.KeepQualifiedClassNamePattern;
 import com.android.tools.r8.keepanno.keeprules.KeepRuleExtractor.Holder;
 import com.android.tools.r8.keepanno.keeprules.RulePrinter.BackReferencePrinter;
+import java.util.Comparator;
 import java.util.HashMap;
+import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.BiConsumer;
 
 public abstract class PgRule {
+
+  /**
+   * Group the rules such that unconditional rules appear first, followed by class rules and then
+   * member rules. The original order of the rules is retained within each of the groups.
+   */
+  public static void groupByKinds(List<PgRule> rules) {
+    IdentityHashMap<PgRule, Integer> order = new IdentityHashMap<>();
+    rules.forEach(r -> order.put(r, order.size()));
+    rules.sort(
+        Comparator.comparingInt((PgRule p) -> p.hasCondition() ? 1 : 0)
+            .thenComparingInt(
+                p -> {
+                  switch (p.getConsequenceKeepType()) {
+                    case KEEP:
+                      return 0;
+                    case KEEP_CLASSES_WITH_MEMBERS:
+                      return 1;
+                    case KEEP_CLASS_MEMBERS:
+                      return 2;
+                    case CHECK_DISCARD:
+                      return 3;
+                    default:
+                      throw new KeepEdgeException(
+                          "Unexpected consequence keep type: " + p.getConsequenceKeepType());
+                  }
+                })
+            .thenComparingInt(order::get));
+  }
+
   public enum TargetKeepKind {
     JUST_MEMBERS(RulePrintingUtils.KEEP_CLASS_MEMBERS),
     CLASS_OR_MEMBERS(RulePrintingUtils.KEEP),
@@ -87,10 +123,10 @@ public abstract class PgRule {
     if (hasCondition()) {
       builder.append(RulePrintingUtils.IF).append(' ');
       printConditionHolder(builder);
-      List<String> members = getConditionMembers();
+      List<BindingSymbol> members = getConditionMembers();
       if (!members.isEmpty()) {
         builder.append(" {");
-        for (String member : members) {
+        for (BindingSymbol member : members) {
           builder.append(' ');
           printConditionMember(builder, member);
         }
@@ -105,10 +141,10 @@ public abstract class PgRule {
     printKeepOptions(builder);
     builder.append(' ');
     printTargetHolder(builder);
-    List<String> members = getTargetMembers();
+    List<BindingSymbol> members = getTargetMembers();
     if (!members.isEmpty()) {
       builder.append(" {");
-      for (String member : members) {
+      for (BindingSymbol member : members) {
         builder.append(' ');
         printTargetMember(builder, member);
       }
@@ -120,25 +156,25 @@ public abstract class PgRule {
     return false;
   }
 
-  List<String> getConditionMembers() {
+  List<BindingSymbol> getConditionMembers() {
     throw new KeepEdgeException("Unreachable");
   }
 
   abstract String getConsequenceKeepType();
 
-  abstract List<String> getTargetMembers();
+  abstract List<BindingSymbol> getTargetMembers();
 
   void printConditionHolder(StringBuilder builder) {
     throw new KeepEdgeException("Unreachable");
   }
 
-  void printConditionMember(StringBuilder builder, String member) {
+  void printConditionMember(StringBuilder builder, BindingSymbol member) {
     throw new KeepEdgeException("Unreachable");
   }
 
   abstract void printTargetHolder(StringBuilder builder);
 
-  abstract void printTargetMember(StringBuilder builder, String member);
+  abstract void printTargetMember(StringBuilder builder, BindingSymbol member);
 
   /**
    * Representation of an unconditional rule to keep a class and methods.
@@ -153,15 +189,15 @@ public abstract class PgRule {
     private final KeepQualifiedClassNamePattern holderNamePattern;
     private final KeepItemPattern holderPattern;
     private final TargetKeepKind targetKeepKind;
-    private final List<String> targetMembers;
-    private final Map<String, KeepMemberPattern> memberPatterns;
+    private final List<BindingSymbol> targetMembers;
+    private final Map<BindingSymbol, KeepMemberPattern> memberPatterns;
 
     public PgUnconditionalRule(
         KeepEdgeMetaInfo metaInfo,
         Holder holder,
         KeepOptions options,
-        Map<String, KeepMemberPattern> memberPatterns,
-        List<String> targetMembers,
+        Map<BindingSymbol, KeepMemberPattern> memberPatterns,
+        List<BindingSymbol> targetMembers,
         TargetKeepKind targetKeepKind) {
       super(metaInfo, options);
       assert !targetKeepKind.equals(TargetKeepKind.JUST_MEMBERS);
@@ -178,7 +214,7 @@ public abstract class PgRule {
     }
 
     @Override
-    List<String> getTargetMembers() {
+    List<BindingSymbol> getTargetMembers() {
       return targetMembers;
     }
 
@@ -191,7 +227,7 @@ public abstract class PgRule {
     }
 
     @Override
-    void printTargetMember(StringBuilder builder, String memberReference) {
+    void printTargetMember(StringBuilder builder, BindingSymbol memberReference) {
       KeepMemberPattern memberPattern = memberPatterns.get(memberReference);
       printMemberClause(memberPattern, RulePrinter.withoutBackReferences(builder));
     }
@@ -211,9 +247,9 @@ public abstract class PgRule {
 
     final KeepItemPattern classCondition;
     final KeepItemPattern classTarget;
-    final Map<String, KeepMemberPattern> memberPatterns;
-    final List<String> memberConditions;
-    private final List<String> memberTargets;
+    final Map<BindingSymbol, KeepMemberPattern> memberPatterns;
+    final List<BindingSymbol> memberConditions;
+    private final List<BindingSymbol> memberTargets;
     private final TargetKeepKind keepKind;
 
     public PgConditionalRule(
@@ -221,9 +257,9 @@ public abstract class PgRule {
         KeepOptions options,
         Holder classCondition,
         Holder classTarget,
-        Map<String, KeepMemberPattern> memberPatterns,
-        List<String> memberConditions,
-        List<String> memberTargets,
+        Map<BindingSymbol, KeepMemberPattern> memberPatterns,
+        List<BindingSymbol> memberConditions,
+        List<BindingSymbol> memberTargets,
         TargetKeepKind keepKind) {
       super(metaInfo, options);
       this.classCondition = classCondition.itemPattern;
@@ -240,7 +276,7 @@ public abstract class PgRule {
     }
 
     @Override
-    List<String> getConditionMembers() {
+    List<BindingSymbol> getConditionMembers() {
       return memberConditions;
     }
 
@@ -250,7 +286,7 @@ public abstract class PgRule {
     }
 
     @Override
-    void printConditionMember(StringBuilder builder, String member) {
+    void printConditionMember(StringBuilder builder, BindingSymbol member) {
       KeepMemberPattern memberPattern = memberPatterns.get(member);
       printMemberClause(memberPattern, RulePrinter.withoutBackReferences(builder));
     }
@@ -269,12 +305,12 @@ public abstract class PgRule {
     }
 
     @Override
-    List<String> getTargetMembers() {
+    List<BindingSymbol> getTargetMembers() {
       return memberTargets;
     }
 
     @Override
-    void printTargetMember(StringBuilder builder, String member) {
+    void printTargetMember(StringBuilder builder, BindingSymbol member) {
       KeepMemberPattern memberPattern = memberPatterns.get(member);
       printMemberClause(memberPattern, RulePrinter.withoutBackReferences(builder));
     }
@@ -303,22 +339,22 @@ public abstract class PgRule {
 
     private final KeepQualifiedClassNamePattern holderNamePattern;
     private final KeepItemPattern holderPattern;
-    private final Map<String, KeepMemberPattern> memberPatterns;
-    private final List<String> memberConditions;
-    private final List<String> memberTargets;
+    private final Map<BindingSymbol, KeepMemberPattern> memberPatterns;
+    private final List<BindingSymbol> memberConditions;
+    private final List<BindingSymbol> memberTargets;
     private final TargetKeepKind keepKind;
 
     private int nextBackReferenceNumber = 1;
     private String holderBackReferencePattern = null;
-    private Map<String, String> membersBackReferencePatterns = new HashMap<>();
+    private final Map<BindingSymbol, String> membersBackReferencePatterns = new HashMap<>();
 
     public PgDependentMembersRule(
         KeepEdgeMetaInfo metaInfo,
         Holder holder,
         KeepOptions options,
-        Map<String, KeepMemberPattern> memberPatterns,
-        List<String> memberConditions,
-        List<String> memberTargets,
+        Map<BindingSymbol, KeepMemberPattern> memberPatterns,
+        List<BindingSymbol> memberConditions,
+        List<BindingSymbol> memberTargets,
         TargetKeepKind keepKind) {
       super(metaInfo, options);
       this.holderNamePattern = holder.namePattern;
@@ -348,12 +384,12 @@ public abstract class PgRule {
     }
 
     @Override
-    List<String> getConditionMembers() {
+    List<BindingSymbol> getConditionMembers() {
       return memberConditions;
     }
 
     @Override
-    List<String> getTargetMembers() {
+    List<BindingSymbol> getTargetMembers() {
       return memberTargets;
     }
 
@@ -371,7 +407,7 @@ public abstract class PgRule {
     }
 
     @Override
-    void printConditionMember(StringBuilder builder, String member) {
+    void printConditionMember(StringBuilder builder, BindingSymbol member) {
       KeepMemberPattern memberPattern = memberPatterns.get(member);
       BackReferencePrinter printer =
           RulePrinter.withBackReferences(builder, this::getNextBackReferenceNumber);
@@ -401,7 +437,7 @@ public abstract class PgRule {
     }
 
     @Override
-    void printTargetMember(StringBuilder builder, String member) {
+    void printTargetMember(StringBuilder builder, BindingSymbol member) {
       if (hasCondition()) {
         String backref = membersBackReferencePatterns.get(member);
         if (backref != null) {

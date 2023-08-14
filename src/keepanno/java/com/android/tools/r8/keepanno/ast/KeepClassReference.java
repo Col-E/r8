@@ -3,13 +3,14 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.keepanno.ast;
 
+import com.android.tools.r8.keepanno.ast.KeepBindings.BindingSymbol;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.function.Predicate;
 
 public abstract class KeepClassReference {
 
-  public static KeepClassReference fromBindingReference(String bindingReference) {
+  public static KeepClassReference fromBindingReference(BindingSymbol bindingReference) {
     return new BindingReference(bindingReference);
   }
 
@@ -26,7 +27,7 @@ public abstract class KeepClassReference {
     return asClassNamePattern() != null;
   }
 
-  public String asBindingReference() {
+  public BindingSymbol asBindingReference() {
     return null;
   }
 
@@ -34,29 +35,29 @@ public abstract class KeepClassReference {
     return null;
   }
 
-  public abstract Collection<String> getBindingReferences();
+  public abstract Collection<BindingSymbol> getBindingReferences();
 
-  public boolean isAny(Predicate<String> onReference) {
+  public boolean isAny(Predicate<BindingSymbol> onReference) {
     return isBindingReference()
         ? onReference.test(asBindingReference())
         : asClassNamePattern().isAny();
   }
 
   private static class BindingReference extends KeepClassReference {
-    private final String bindingReference;
+    private final BindingSymbol bindingReference;
 
-    private BindingReference(String bindingReference) {
+    private BindingReference(BindingSymbol bindingReference) {
       assert bindingReference != null;
       this.bindingReference = bindingReference;
     }
 
     @Override
-    public String asBindingReference() {
+    public BindingSymbol asBindingReference() {
       return bindingReference;
     }
 
     @Override
-    public Collection<String> getBindingReferences() {
+    public Collection<BindingSymbol> getBindingReferences() {
       return Collections.singletonList(bindingReference);
     }
 
@@ -79,7 +80,7 @@ public abstract class KeepClassReference {
 
     @Override
     public String toString() {
-      return bindingReference;
+      return bindingReference.toString();
     }
   }
 
@@ -97,7 +98,7 @@ public abstract class KeepClassReference {
     }
 
     @Override
-    public Collection<String> getBindingReferences() {
+    public Collection<BindingSymbol> getBindingReferences() {
       return Collections.emptyList();
     }
 

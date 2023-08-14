@@ -3,9 +3,11 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.keepanno.ast;
 
+import com.android.tools.r8.keepanno.ast.KeepBindings.BindingSymbol;
+
 public abstract class KeepItemReference {
 
-  public static KeepItemReference fromBindingReference(String bindingReference) {
+  public static KeepItemReference fromBindingReference(BindingSymbol bindingReference) {
     return new BindingReference(bindingReference);
   }
 
@@ -21,7 +23,7 @@ public abstract class KeepItemReference {
     return asItemPattern() != null;
   }
 
-  public String asBindingReference() {
+  public BindingSymbol asBindingReference() {
     return null;
   }
 
@@ -32,15 +34,15 @@ public abstract class KeepItemReference {
   public abstract KeepItemPattern lookupItemPattern(KeepBindings bindings);
 
   private static class BindingReference extends KeepItemReference {
-    private final String bindingReference;
+    private final BindingSymbol bindingReference;
 
-    private BindingReference(String bindingReference) {
+    private BindingReference(BindingSymbol bindingReference) {
       assert bindingReference != null;
       this.bindingReference = bindingReference;
     }
 
     @Override
-    public String asBindingReference() {
+    public BindingSymbol asBindingReference() {
       return bindingReference;
     }
 
