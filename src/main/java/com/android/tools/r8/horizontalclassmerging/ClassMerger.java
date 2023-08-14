@@ -390,10 +390,37 @@ public class ClassMerger {
       }
       List<VirtualMethodMerger> virtualMethodMergers =
           new ArrayList<>(virtualMethodMergerBuilders.size());
+      List<VirtualMethodMerger> nonNopOrTrivialVirtualMethodMergers =
+          new ArrayList<>(virtualMethodMergerBuilders.size());
       for (VirtualMethodMerger.Builder builder : virtualMethodMergerBuilders.values()) {
-        virtualMethodMergers.add(builder.build(appView.withClassHierarchy(), group));
+        VirtualMethodMerger virtualMethodMerger =
+            builder.build(appView.withClassHierarchy(), group);
+        if (virtualMethodMerger.isNopOrTrivial()) {
+          virtualMethodMergers.add(virtualMethodMerger);
+        } else {
+          nonNopOrTrivialVirtualMethodMergers.add(virtualMethodMerger);
+        }
       }
+      virtualMethodMergers.addAll(nonNopOrTrivialVirtualMethodMergers);
+      // The nopOrTrivial mergers do not deal with signature conflict resolution, we process them
+      // first, then the non trivial mergers are processed and correctly deal with conflicting
+      // signatures.
+      assert verifyNopOrTrivialAreFirst(virtualMethodMergers);
       return virtualMethodMergers;
+    }
+
+    private boolean verifyNopOrTrivialAreFirst(List<VirtualMethodMerger> virtualMethodMergers) {
+      boolean metNonNopOrTrivial = false;
+      for (VirtualMethodMerger virtualMethodMerger : virtualMethodMergers) {
+        if (metNonNopOrTrivial) {
+          assert !virtualMethodMerger.isNopOrTrivial();
+        } else {
+          if (!virtualMethodMerger.isNopOrTrivial()) {
+            metNonNopOrTrivial = true;
+          }
+        }
+      }
+      return true;
     }
 
     private Map<DexMethodSignature, VirtualMethodMerger.Builder> getVirtualMethodMergerBuilders() {
