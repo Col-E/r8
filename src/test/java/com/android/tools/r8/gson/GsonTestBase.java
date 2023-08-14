@@ -3,29 +3,15 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.gson;
 
-import com.android.tools.r8.DataResourceProvider;
+import com.android.tools.r8.ArchiveProgramResourceProvider;
 import com.android.tools.r8.ProguardTestBuilder;
 import com.android.tools.r8.R8FullTestBuilder;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestShrinkerBuilder;
 import com.android.tools.r8.ToolHelper;
-import com.android.tools.r8.shaking.FilteredClassPath;
-import com.android.tools.r8.utils.ArchiveResourceProvider;
-import java.nio.file.Path;
 
 public class GsonTestBase extends TestBase {
-
-  static class ArchiveResourceProviderWithoutResources extends ArchiveResourceProvider {
-    public ArchiveResourceProviderWithoutResources(Path archive) {
-      super(FilteredClassPath.unfiltered(archive), false);
-    }
-
-    @Override
-    public DataResourceProvider getDataResourceProvider() {
-      return null;
-    }
-  }
 
   static void addRuntimeLibrary(TestShrinkerBuilder builder, TestParameters parameters) {
     // Gson use java.lang.ReflectiveOperationException.
@@ -34,7 +20,7 @@ public class GsonTestBase extends TestBase {
 
   static void addGsonLibraryAndKeepRules(R8FullTestBuilder builder) {
     builder
-        .addProgramResourceProviders(new ArchiveResourceProviderWithoutResources(ToolHelper.GSON))
+        .addProgramResourceProviders(ArchiveProgramResourceProvider.fromArchive(ToolHelper.GSON))
         .addKeepRuleFiles(ToolHelper.GSON_KEEP_RULES)
         .allowUnusedProguardConfigurationRules();
   }
