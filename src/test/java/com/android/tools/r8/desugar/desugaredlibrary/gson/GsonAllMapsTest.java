@@ -9,6 +9,7 @@ import static com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugari
 
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.ToolHelper;
+import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.desugar.desugaredlibrary.DesugaredLibraryTestBase;
 import com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification;
 import com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification;
@@ -35,7 +36,11 @@ public class GsonAllMapsTest extends DesugaredLibraryTestBase {
   @Parameters(name = "{0}, spec: {1}, {2}")
   public static List<Object[]> data() {
     return buildParameters(
-        getTestParameters().withDexRuntimes().withAllApiLevels().build(),
+        getTestParameters()
+            // Gson use java.lang.ReflectiveOperationException causing VerifyError on Dalvik 4.0.4.
+            .withDexRuntimesStartingFromExcluding(Version.V4_0_4)
+            .withAllApiLevels()
+            .build(),
         getJdk8Jdk11(),
         DEFAULT_SPECIFICATIONS);
   }
