@@ -113,7 +113,7 @@ public class ArrayConstructionSimplifier extends CodeRewriterPass<AppInfo> {
     RewriteArrayOptions rewriteOptions = options.rewriteArrayOptions();
     InstructionListIterator it = block.listIterator(code);
     while (it.hasNext()) {
-      FilledArrayCandidate candidate = computeFilledArrayCandidate(code, it.next(), rewriteOptions);
+      FilledArrayCandidate candidate = computeFilledArrayCandidate(it.next(), rewriteOptions);
       if (candidate == null) {
         continue;
       }
@@ -306,7 +306,7 @@ public class ArrayConstructionSimplifier extends CodeRewriterPass<AppInfo> {
   }
 
   private FilledArrayCandidate computeFilledArrayCandidate(
-      IRCode code, Instruction instruction, RewriteArrayOptions options) {
+      Instruction instruction, RewriteArrayOptions options) {
     NewArrayEmpty newArrayEmpty = instruction.asNewArrayEmpty();
     if (newArrayEmpty == null) {
       return null;

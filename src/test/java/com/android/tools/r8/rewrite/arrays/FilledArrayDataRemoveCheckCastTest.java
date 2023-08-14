@@ -6,7 +6,7 @@ package com.android.tools.r8.rewrite.arrays;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
@@ -65,8 +65,13 @@ public class FilledArrayDataRemoveCheckCastTest extends TestBase {
                       .streamInstructions()
                       .filter(InstructionSubject::isFilledNewArray)
                       .findFirst();
-              assertFalse(filledNewArrayInIterateBaseClasses.isPresent());
-              assertFalse(filledNewArrayInIterateSubClasses.isPresent());
+              assertEquals(
+                  parameters.canUseFilledNewArrayOnNonStringObjects(),
+                  filledNewArrayInIterateBaseClasses.isPresent());
+              assertEquals(
+                  parameters.canUseFilledNewArrayOnNonStringObjects()
+                      && parameters.canUseSubTypesInFilledNewArray(),
+                  filledNewArrayInIterateSubClasses.isPresent());
             });
   }
 

@@ -248,7 +248,7 @@ public class SimplifyArrayConstructionTest extends TestBase {
           objectArraysFilledNewArrayRange, DexFilledNewArrayRange.class, DexNewArray.class);
 
       if (parameters.getApiLevel().isGreaterThanOrEqualTo(AndroidApiLevel.L)) {
-        assertArrayPuts(twoDimensionalArrays);
+        assertArrayTypes(twoDimensionalArrays, DexFilledNewArray.class);
       } else {
         // No need to assert this case. If it's wrong, Dalvik verify errors cause test failures.
       }
@@ -299,15 +299,6 @@ public class SimplifyArrayConstructionTest extends TestBase {
     long numFillArray =
         method.streamInstructions().filter(isInstruction(DexFillArrayData.class)).count();
     assertEquals(numNewArray, numFillArray);
-  }
-
-  public static void assertArrayPuts(MethodSubject method) {
-    assertTrue(method.isPresent());
-    List<Class<?>> disallowedClasses = Lists.newArrayList(DEX_ARRAY_INSTRUCTIONS);
-    disallowedClasses.remove(DexNewArray.class);
-    assertTrue(method.streamInstructions().noneMatch(isInstruction(disallowedClasses)));
-    assertTrue(method.streamInstructions().anyMatch(InstructionSubject::isNewArray));
-    assertTrue(method.streamInstructions().anyMatch(InstructionSubject::isArrayPut));
   }
 
   public static final class Main {
