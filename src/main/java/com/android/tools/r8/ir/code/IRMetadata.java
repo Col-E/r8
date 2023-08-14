@@ -202,10 +202,6 @@ public class IRMetadata {
     return result;
   }
 
-  public boolean mayHaveInvokeNewArray() {
-    return get(Opcodes.INVOKE_NEW_ARRAY);
-  }
-
   public boolean mayHaveInvokePolymorphic() {
     return get(Opcodes.INVOKE_POLYMORPHIC);
   }
@@ -228,6 +224,10 @@ public class IRMetadata {
 
   public boolean mayHaveMul() {
     return get(Opcodes.MUL);
+  }
+
+  public boolean mayHaveNewArrayFilled() {
+    return get(Opcodes.NEW_ARRAY_FILLED);
   }
 
   public boolean mayHaveNewInstance() {

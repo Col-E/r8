@@ -17,9 +17,9 @@ import com.android.tools.r8.ir.code.BasicBlockIterator;
 import com.android.tools.r8.ir.code.ConstNumber;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
-import com.android.tools.r8.ir.code.InvokeNewArray;
 import com.android.tools.r8.ir.code.MemberType;
 import com.android.tools.r8.ir.code.NewArrayEmpty;
+import com.android.tools.r8.ir.code.NewArrayFilled;
 import com.android.tools.r8.ir.code.NewArrayFilledData;
 import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.code.Value;
@@ -52,10 +52,10 @@ public class FilledNewArrayRewriter extends CodeRewriterPass<AppInfo> {
       BasicBlockInstructionListIterator instructionIterator = block.listIterator(code);
       while (instructionIterator.hasNext()) {
         Instruction instruction = instructionIterator.next();
-        if (instruction.isInvokeNewArray()) {
+        if (instruction.isNewArrayFilled()) {
           result =
               processInstruction(
-                  code, blockIterator, instructionIterator, instruction.asInvokeNewArray(), result);
+                  code, blockIterator, instructionIterator, instruction.asNewArrayFilled(), result);
         }
       }
     }
@@ -67,45 +67,45 @@ public class FilledNewArrayRewriter extends CodeRewriterPass<AppInfo> {
 
   @Override
   protected boolean shouldRewriteCode(IRCode code) {
-    return code.metadata().mayHaveInvokeNewArray();
+    return code.metadata().mayHaveNewArrayFilled();
   }
 
   private CodeRewriterResult processInstruction(
       IRCode code,
       BasicBlockIterator blockIterator,
       BasicBlockInstructionListIterator instructionIterator,
-      InvokeNewArray invokeNewArray,
+      NewArrayFilled newArrayFilled,
       CodeRewriterResult result) {
-    if (canUseInvokeNewArray(invokeNewArray)) {
+    if (canUseNewArrayFilled(newArrayFilled)) {
       return result;
     }
-    if (invokeNewArray.hasUnusedOutValue()) {
+    if (newArrayFilled.hasUnusedOutValue()) {
       instructionIterator.removeOrReplaceByDebugLocalRead();
-    } else if (canUseNewArrayFilledData(invokeNewArray)) {
-      rewriteToNewArrayFilledData(code, blockIterator, instructionIterator, invokeNewArray);
+    } else if (canUseNewArrayFilledData(newArrayFilled)) {
+      rewriteToNewArrayFilledData(code, blockIterator, instructionIterator, newArrayFilled);
     } else {
-      rewriteToArrayPuts(code, blockIterator, instructionIterator, invokeNewArray);
+      rewriteToArrayPuts(code, blockIterator, instructionIterator, newArrayFilled);
     }
     return CodeRewriterResult.HAS_CHANGED;
   }
 
-  private boolean canUseInvokeNewArray(InvokeNewArray invokeNewArray) {
+  private boolean canUseNewArrayFilled(NewArrayFilled newArrayFilled) {
     if (!options.isGeneratingDex()) {
       return false;
     }
-    int size = invokeNewArray.size();
+    int size = newArrayFilled.size();
     if (size < rewriteArrayOptions.minSizeForFilledNewArray) {
       return false;
     }
     // filled-new-array is implemented only for int[] and Object[].
-    DexType arrayType = invokeNewArray.getArrayType();
+    DexType arrayType = newArrayFilled.getArrayType();
     if (arrayType == dexItemFactory.intArrayType) {
       // For int[], using filled-new-array is usually smaller than filled-array-data.
       // filled-new-array supports up to 5 registers before it's filled-new-array/range.
       if (size > rewriteArrayOptions.maxSizeForFilledNewArrayOfInts) {
         return false;
       }
-      if (canUseNewArrayFilledData(invokeNewArray)
+      if (canUseNewArrayFilledData(newArrayFilled)
           && size
               > rewriteArrayOptions
                   .maxSizeForFilledNewArrayOfIntsWhenNewArrayFilledDataApplicable) {
@@ -132,8 +132,8 @@ public class FilledNewArrayRewriter extends CodeRewriterPass<AppInfo> {
           && arrayType != dexItemFactory.objectArrayType
           && !arrayType.isPrimitiveArrayType()) {
         DexType arrayElementType = arrayType.toArrayElementType(dexItemFactory);
-        for (Value elementValue : invokeNewArray.inValues()) {
-          if (!canStoreElementInInvokeNewArray(elementValue.getType(), arrayElementType)) {
+        for (Value elementValue : newArrayFilled.inValues()) {
+          if (!canStoreElementInNewArrayFilled(elementValue.getType(), arrayElementType)) {
             return false;
           }
         }
@@ -143,7 +143,7 @@ public class FilledNewArrayRewriter extends CodeRewriterPass<AppInfo> {
     return false;
   }
 
-  private boolean canStoreElementInInvokeNewArray(TypeElement valueType, DexType elementType) {
+  private boolean canStoreElementInNewArrayFilled(TypeElement valueType, DexType elementType) {
     if (elementType == dexItemFactory.objectType) {
       return true;
     }
@@ -177,44 +177,44 @@ public class FilledNewArrayRewriter extends CodeRewriterPass<AppInfo> {
     return valueType.isClassType(elementType);
   }
 
-  private boolean canUseNewArrayFilledData(InvokeNewArray invokeNewArray) {
+  private boolean canUseNewArrayFilledData(NewArrayFilled newArrayFilled) {
     // Only convert into NewArrayFilledData when compiling to DEX.
     if (!appView.options().isGeneratingDex()) {
       return false;
     }
     // If there is only one element it is typically smaller to generate the array put instruction
     // instead of fill array data.
-    int size = invokeNewArray.size();
+    int size = newArrayFilled.size();
     if (size < rewriteArrayOptions.minSizeForFilledArrayData
         || size > rewriteArrayOptions.maxSizeForFilledArrayData) {
       return false;
     }
-    if (!invokeNewArray.getArrayType().isPrimitiveArrayType()) {
+    if (!newArrayFilled.getArrayType().isPrimitiveArrayType()) {
       return false;
     }
-    return Iterables.all(invokeNewArray.inValues(), Value::isConstant);
+    return Iterables.all(newArrayFilled.inValues(), Value::isConstant);
   }
 
   private NewArrayEmpty rewriteToNewArrayEmpty(
       IRCode code,
       BasicBlockInstructionListIterator instructionIterator,
-      InvokeNewArray invokeNewArray) {
-    // Load the size before the InvokeNewArray instruction.
+      NewArrayFilled newArrayFilled) {
+    // Load the size before the NewArrayEmpty instruction.
     ConstNumber constNumber =
         ConstNumber.builder()
             .setFreshOutValue(code, TypeElement.getInt())
-            .setValue(invokeNewArray.size())
-            .setPosition(options.debug ? invokeNewArray.getPosition() : Position.none())
+            .setValue(newArrayFilled.size())
+            .setPosition(options.debug ? newArrayFilled.getPosition() : Position.none())
             .build();
     instructionIterator.previous();
     instructionIterator.add(constNumber);
     Instruction next = instructionIterator.next();
-    assert next == invokeNewArray;
+    assert next == newArrayFilled;
 
     // Replace the InvokeNewArray instruction by a NewArrayEmpty instruction.
     NewArrayEmpty newArrayEmpty =
         new NewArrayEmpty(
-            invokeNewArray.outValue(), constNumber.outValue(), invokeNewArray.getArrayType());
+            newArrayFilled.outValue(), constNumber.outValue(), newArrayFilled.getArrayType());
     instructionIterator.replaceCurrentInstruction(newArrayEmpty);
     return newArrayEmpty;
   }
@@ -223,18 +223,18 @@ public class FilledNewArrayRewriter extends CodeRewriterPass<AppInfo> {
       IRCode code,
       BasicBlockIterator blockIterator,
       BasicBlockInstructionListIterator instructionIterator,
-      InvokeNewArray invokeNewArray) {
-    NewArrayEmpty newArrayEmpty = rewriteToNewArrayEmpty(code, instructionIterator, invokeNewArray);
+      NewArrayFilled newArrayFilled) {
+    NewArrayEmpty newArrayEmpty = rewriteToNewArrayEmpty(code, instructionIterator, newArrayFilled);
 
     // Insert a new NewArrayFilledData instruction after the NewArrayEmpty instruction.
-    short[] contents = computeArrayFilledData(invokeNewArray);
+    short[] contents = computeArrayFilledData(newArrayFilled);
     NewArrayFilledData newArrayFilledData =
         new NewArrayFilledData(
-            invokeNewArray.outValue(),
-            invokeNewArray.getArrayType().elementSizeForPrimitiveArrayType(),
-            invokeNewArray.size(),
+            newArrayFilled.outValue(),
+            newArrayFilled.getArrayType().elementSizeForPrimitiveArrayType(),
+            newArrayFilled.size(),
             contents);
-    newArrayFilledData.setPosition(invokeNewArray.getPosition());
+    newArrayFilledData.setPosition(newArrayFilled.getPosition());
     if (newArrayEmpty.getBlock().hasCatchHandlers()) {
       BasicBlock splitBlock =
           instructionIterator.splitCopyCatchHandlers(code, blockIterator, options);
@@ -244,18 +244,18 @@ public class FilledNewArrayRewriter extends CodeRewriterPass<AppInfo> {
     }
   }
 
-  private short[] computeArrayFilledData(InvokeNewArray invokeNewArray) {
-    int elementSize = invokeNewArray.getArrayType().elementSizeForPrimitiveArrayType();
-    int size = invokeNewArray.size();
+  private short[] computeArrayFilledData(NewArrayFilled newArrayFilled) {
+    int elementSize = newArrayFilled.getArrayType().elementSizeForPrimitiveArrayType();
+    int size = newArrayFilled.size();
     if (elementSize == 1) {
       short[] result = new short[(size + 1) / 2];
       for (int i = 0; i < size; i += 2) {
         ConstNumber constNumber =
-            invokeNewArray.getOperand(i).getConstInstruction().asConstNumber();
+            newArrayFilled.getOperand(i).getConstInstruction().asConstNumber();
         short value = (short) (constNumber.getIntValue() & 0xFF);
         if (i + 1 < size) {
           ConstNumber nextConstNumber =
-              invokeNewArray.getOperand(i + 1).getConstInstruction().asConstNumber();
+              newArrayFilled.getOperand(i + 1).getConstInstruction().asConstNumber();
           value |= (short) ((nextConstNumber.getIntValue() & 0xFF) << 8);
         }
         result[i / 2] = value;
@@ -266,7 +266,7 @@ public class FilledNewArrayRewriter extends CodeRewriterPass<AppInfo> {
     int shortsPerConstant = elementSize / 2;
     short[] result = new short[size * shortsPerConstant];
     for (int i = 0; i < size; i++) {
-      ConstNumber constNumber = invokeNewArray.getOperand(i).getConstInstruction().asConstNumber();
+      ConstNumber constNumber = newArrayFilled.getOperand(i).getConstInstruction().asConstNumber();
       for (int part = 0; part < shortsPerConstant; part++) {
         result[i * shortsPerConstant + part] =
             (short) ((constNumber.getRawValue() >> (16 * part)) & 0xFFFFL);
@@ -279,10 +279,10 @@ public class FilledNewArrayRewriter extends CodeRewriterPass<AppInfo> {
       IRCode code,
       BasicBlockIterator blockIterator,
       BasicBlockInstructionListIterator instructionIterator,
-      InvokeNewArray invokeNewArray) {
-    NewArrayEmpty newArrayEmpty = rewriteToNewArrayEmpty(code, instructionIterator, invokeNewArray);
+      NewArrayFilled newArrayFilled) {
+    NewArrayEmpty newArrayEmpty = rewriteToNewArrayEmpty(code, instructionIterator, newArrayFilled);
     int index = 0;
-    for (Value elementValue : invokeNewArray.inValues()) {
+    for (Value elementValue : newArrayFilled.inValues()) {
       if (instructionIterator.getBlock().hasCatchHandlers()) {
         BasicBlock splitBlock =
             instructionIterator.splitCopyCatchHandlers(code, blockIterator, options);

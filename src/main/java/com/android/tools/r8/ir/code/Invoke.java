@@ -55,7 +55,7 @@ public abstract class Invoke extends Instruction {
       case VIRTUAL:
         return new InvokeVirtual((DexMethod) target, result, arguments);
       case NEW_ARRAY:
-        return new InvokeNewArray((DexType) target, result, arguments);
+        return new NewArrayFilled((DexType) target, result, arguments);
       case MULTI_NEW_ARRAY:
         return new InvokeMultiNewArray((DexType) target, result, arguments);
       case CUSTOM:

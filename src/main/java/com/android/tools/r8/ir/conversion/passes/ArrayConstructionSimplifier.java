@@ -12,9 +12,9 @@ import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionListIterator;
-import com.android.tools.r8.ir.code.InvokeNewArray;
 import com.android.tools.r8.ir.code.LinearFlowInstructionListIterator;
 import com.android.tools.r8.ir.code.NewArrayEmpty;
+import com.android.tools.r8.ir.code.NewArrayFilled;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.conversion.passes.result.CodeRewriterResult;
 import com.android.tools.r8.utils.InternalOptions;
@@ -132,8 +132,8 @@ public class ArrayConstructionSimplifier extends CodeRewriterPass<AppInfo> {
       assert newArrayEmpty.getLocalInfo() == null;
       Instruction lastArrayPut = info.lastArrayPutIterator.peekPrevious();
       Value invokeValue = code.createValue(newArrayEmpty.getOutType(), null);
-      InvokeNewArray invoke =
-          new InvokeNewArray(arrayType, invokeValue, Arrays.asList(info.values));
+      NewArrayFilled invoke =
+          new NewArrayFilled(arrayType, invokeValue, Arrays.asList(info.values));
       invoke.setPosition(lastArrayPut.getPosition());
       for (Value value : newArrayEmpty.inValues()) {
         value.removeUser(newArrayEmpty);

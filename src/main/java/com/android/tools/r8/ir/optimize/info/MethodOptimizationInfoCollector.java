@@ -26,11 +26,11 @@ import static com.android.tools.r8.ir.code.Opcodes.INSTANCE_PUT;
 import static com.android.tools.r8.ir.code.Opcodes.INT_SWITCH;
 import static com.android.tools.r8.ir.code.Opcodes.INVOKE_DIRECT;
 import static com.android.tools.r8.ir.code.Opcodes.INVOKE_INTERFACE;
-import static com.android.tools.r8.ir.code.Opcodes.INVOKE_NEW_ARRAY;
 import static com.android.tools.r8.ir.code.Opcodes.INVOKE_STATIC;
 import static com.android.tools.r8.ir.code.Opcodes.INVOKE_VIRTUAL;
 import static com.android.tools.r8.ir.code.Opcodes.MUL;
 import static com.android.tools.r8.ir.code.Opcodes.NEW_ARRAY_EMPTY;
+import static com.android.tools.r8.ir.code.Opcodes.NEW_ARRAY_FILLED;
 import static com.android.tools.r8.ir.code.Opcodes.NEW_INSTANCE;
 import static com.android.tools.r8.ir.code.Opcodes.OR;
 import static com.android.tools.r8.ir.code.Opcodes.REM;
@@ -80,8 +80,8 @@ import com.android.tools.r8.ir.code.Instruction.SideEffectAssumption;
 import com.android.tools.r8.ir.code.InstructionIterator;
 import com.android.tools.r8.ir.code.InvokeDirect;
 import com.android.tools.r8.ir.code.InvokeMethod;
-import com.android.tools.r8.ir.code.InvokeNewArray;
 import com.android.tools.r8.ir.code.InvokeStatic;
+import com.android.tools.r8.ir.code.NewArrayFilled;
 import com.android.tools.r8.ir.code.NewInstance;
 import com.android.tools.r8.ir.code.Return;
 import com.android.tools.r8.ir.code.Value;
@@ -436,9 +436,9 @@ public class MethodOptimizationInfoCollector {
             }
             break;
 
-          case INVOKE_NEW_ARRAY:
+          case NEW_ARRAY_FILLED:
             {
-              InvokeNewArray invoke = instruction.asInvokeNewArray();
+              NewArrayFilled invoke = instruction.asNewArrayFilled();
               if (invoke.instructionMayHaveSideEffects(appView, context)) {
                 builder.setMayHaveOtherSideEffectsThanInstanceFieldAssignments();
               }

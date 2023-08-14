@@ -34,9 +34,9 @@ import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.ir.code.InvokeDirect;
 import com.android.tools.r8.ir.code.InvokeMethod;
 import com.android.tools.r8.ir.code.InvokeMethodWithReceiver;
-import com.android.tools.r8.ir.code.InvokeNewArray;
 import com.android.tools.r8.ir.code.MemberType;
 import com.android.tools.r8.ir.code.NewArrayEmpty;
+import com.android.tools.r8.ir.code.NewArrayFilled;
 import com.android.tools.r8.ir.code.NewInstance;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.conversion.IRConverter;
@@ -358,7 +358,7 @@ public class GeneratedMessageLiteShrinker {
         arrayValues.add(materializingInstruction.outValue());
       }
       instructionIterator.add(
-          new InvokeNewArray(
+          new NewArrayFilled(
               appView.dexItemFactory().objectArrayType, newObjectsValue, arrayValues));
     } else {
       instructionIterator.add(

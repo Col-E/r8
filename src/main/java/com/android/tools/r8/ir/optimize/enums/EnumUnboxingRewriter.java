@@ -32,10 +32,10 @@ import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.ir.code.InvokeMethod;
 import com.android.tools.r8.ir.code.InvokeMethodWithReceiver;
-import com.android.tools.r8.ir.code.InvokeNewArray;
 import com.android.tools.r8.ir.code.InvokeStatic;
 import com.android.tools.r8.ir.code.InvokeVirtual;
 import com.android.tools.r8.ir.code.MemberType;
+import com.android.tools.r8.ir.code.NewArrayFilled;
 import com.android.tools.r8.ir.code.NewUnboxedEnumInstance;
 import com.android.tools.r8.ir.code.Phi;
 import com.android.tools.r8.ir.code.StaticGet;
@@ -190,8 +190,8 @@ public class EnumUnboxingRewriter {
               block,
               iterator,
               instruction.asInvokeMethodWithReceiver());
-        } else if (instruction.isInvokeNewArray()) {
-          rewriteInvokeNewArray(instruction.asInvokeNewArray(), code, iterator);
+        } else if (instruction.isNewArrayFilled()) {
+          rewriteNewArrayFilled(instruction.asNewArrayFilled(), code, iterator);
         } else if (instruction.isInvokeStatic()) {
           rewriteInvokeStatic(
               instruction.asInvokeStatic(),
@@ -483,23 +483,23 @@ public class EnumUnboxingRewriter {
     }
   }
 
-  private void rewriteInvokeNewArray(
-      InvokeNewArray invokeNewArray, IRCode code, InstructionListIterator instructionIterator) {
-    DexType arrayBaseType = invokeNewArray.getArrayType().toBaseType(factory);
+  private void rewriteNewArrayFilled(
+      NewArrayFilled newArrayFilled, IRCode code, InstructionListIterator instructionIterator) {
+    DexType arrayBaseType = newArrayFilled.getArrayType().toBaseType(factory);
     if (!unboxedEnumsData.isUnboxedEnum(arrayBaseType)) {
       return;
     }
     DexType rewrittenArrayType =
-        invokeNewArray.getArrayType().replaceBaseType(factory.intType, factory);
-    List<Value> elements = new ArrayList<>(invokeNewArray.inValues().size());
+        newArrayFilled.getArrayType().replaceBaseType(factory.intType, factory);
+    List<Value> elements = new ArrayList<>(newArrayFilled.inValues().size());
     Value zeroValue = null;
-    for (Value element : invokeNewArray.inValues()) {
+    for (Value element : newArrayFilled.inValues()) {
       if (element.getType().isNullType()) {
         if (zeroValue == null) {
           instructionIterator.previous();
           zeroValue = instructionIterator.insertConstIntInstruction(code, options, 0);
           Instruction next = instructionIterator.next();
-          assert next == invokeNewArray;
+          assert next == newArrayFilled;
         }
         elements.add(zeroValue);
       } else {
@@ -507,7 +507,7 @@ public class EnumUnboxingRewriter {
       }
     }
     instructionIterator.replaceCurrentInstruction(
-        new InvokeNewArray(
+        new NewArrayFilled(
             rewrittenArrayType,
             code.createValue(factory.intArrayType.toTypeElement(appView, definitelyNotNull())),
             elements));

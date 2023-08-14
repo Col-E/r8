@@ -29,18 +29,18 @@ import com.android.tools.r8.ir.optimize.InliningConstraints;
 import com.android.tools.r8.lightir.LirBuilder;
 import java.util.List;
 
-public class InvokeNewArray extends Invoke {
+public class NewArrayFilled extends Invoke {
 
   private final DexType type;
 
-  public InvokeNewArray(DexType type, Value result, List<Value> arguments) {
+  public NewArrayFilled(DexType type, Value result, List<Value> arguments) {
     super(result, arguments);
     this.type = type;
   }
 
   @Override
   public int opcode() {
-    return Opcodes.INVOKE_NEW_ARRAY;
+    return Opcodes.NEW_ARRAY_FILLED;
   }
 
   @Override
@@ -99,23 +99,23 @@ public class InvokeNewArray extends Invoke {
 
   @Override
   public boolean identicalNonValueNonPositionParts(Instruction other) {
-    return other.isInvokeNewArray() && type == other.asInvokeNewArray().type;
+    return other.isNewArrayFilled() && type == other.asNewArrayFilled().type;
   }
 
   @Override
-  public boolean isInvokeNewArray() {
+  public boolean isNewArrayFilled() {
     return true;
   }
 
   @Override
-  public InvokeNewArray asInvokeNewArray() {
+  public NewArrayFilled asNewArrayFilled() {
     return this;
   }
 
   @Override
   public ConstraintWithTarget inliningConstraint(
       InliningConstraints inliningConstraints, ProgramMethod context) {
-    return inliningConstraints.forInvokeNewArray(type, context);
+    return inliningConstraints.forNewArrayFilled(type, context);
   }
 
   @Override
@@ -230,6 +230,6 @@ public class InvokeNewArray extends Invoke {
 
   @Override
   public void buildLir(LirBuilder<Value, ?> builder) {
-    builder.addInvokeNewArray(getArrayType(), arguments());
+    builder.addNewArrayFilled(getArrayType(), arguments());
   }
 }

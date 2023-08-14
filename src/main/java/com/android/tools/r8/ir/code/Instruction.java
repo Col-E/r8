@@ -1023,8 +1023,8 @@ public abstract class Instruction
     return false;
   }
 
-  public boolean isNewArrayEmptyOrInvokeNewArray() {
-    return isNewArrayEmpty() || isInvokeNewArray();
+  public boolean isNewArrayEmptyOrNewArrayFilled() {
+    return isNewArrayEmpty() || isNewArrayFilled();
   }
 
   public NewArrayEmpty asNewArrayEmpty() {
@@ -1287,11 +1287,11 @@ public abstract class Instruction
     return null;
   }
 
-  public boolean isInvokeNewArray() {
+  public boolean isNewArrayFilled() {
     return false;
   }
 
-  public InvokeNewArray asInvokeNewArray() {
+  public NewArrayFilled asNewArrayFilled() {
     return null;
   }
 
@@ -1430,7 +1430,7 @@ public abstract class Instruction
   public boolean isCreatingArray() {
     return isNewArrayEmpty()
         || isNewArrayFilledData()
-        || isInvokeNewArray()
+        || isNewArrayFilled()
         || isInvokeMultiNewArray()
         || isRecordFieldValues();
   }

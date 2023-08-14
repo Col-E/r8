@@ -80,7 +80,7 @@ public interface InstructionVisitor<T> {
 
   T visit(InvokeMultiNewArray instruction);
 
-  T visit(InvokeNewArray instruction);
+  T visit(NewArrayFilled instruction);
 
   T visit(InvokePolymorphic instruction);
 

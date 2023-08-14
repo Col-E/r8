@@ -54,7 +54,7 @@ public abstract class ArrayAccess extends Instruction implements ImpreciseMember
     // TODO(b/203731608): Add parameters to the method and use abstract value in R8.
     int arraySize;
     Value arrayRoot = array().getAliasedValue();
-    if (arrayRoot.isDefinedByInstructionSatisfying(Instruction::isNewArrayEmptyOrInvokeNewArray)) {
+    if (arrayRoot.isDefinedByInstructionSatisfying(Instruction::isNewArrayEmptyOrNewArrayFilled)) {
       Instruction definition = arrayRoot.getDefinition();
       if (definition.isNewArrayEmpty()) {
         Value newArraySizeValue = definition.asNewArrayEmpty().size();
@@ -64,7 +64,7 @@ public abstract class ArrayAccess extends Instruction implements ImpreciseMember
           return true;
         }
       } else {
-        arraySize = definition.asInvokeNewArray().size();
+        arraySize = definition.asNewArrayFilled().size();
       }
     } else {
       return true;

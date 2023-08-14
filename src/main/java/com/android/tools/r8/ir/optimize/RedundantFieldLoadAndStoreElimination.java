@@ -440,7 +440,7 @@ public class RedundantFieldLoadAndStoreElimination extends CodeRewriterPass<AppI
                       || instruction.isIf()
                       || instruction.isInstanceOf()
                       || instruction.isInvokeMultiNewArray()
-                      || instruction.isInvokeNewArray()
+                      || instruction.isNewArrayFilled()
                       || instruction.isMoveException()
                       || instruction.isNewArrayEmpty()
                       || instruction.isNewArrayFilledData()

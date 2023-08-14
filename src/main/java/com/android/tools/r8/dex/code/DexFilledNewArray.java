@@ -59,7 +59,7 @@ public class DexFilledNewArray extends DexFormat35c<DexType> {
 
   @Override
   public void buildIR(IRBuilder builder) {
-    builder.addInvokeNewArray(getType(), A, new int[] {C, D, E, F, G});
+    builder.addNewArrayFilled(getType(), A, new int[] {C, D, E, F, G});
   }
 
   @Override

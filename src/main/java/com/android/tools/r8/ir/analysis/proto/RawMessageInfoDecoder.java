@@ -32,9 +32,9 @@ import com.android.tools.r8.ir.code.DexItemBasedConstString;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionIterator;
 import com.android.tools.r8.ir.code.InvokeMethod;
-import com.android.tools.r8.ir.code.InvokeNewArray;
 import com.android.tools.r8.ir.code.InvokeStatic;
 import com.android.tools.r8.ir.code.NewArrayEmpty;
+import com.android.tools.r8.ir.code.NewArrayFilled;
 import com.android.tools.r8.ir.code.StaticGet;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.naming.dexitembasedstring.NameComputationInfo;
@@ -309,17 +309,17 @@ public class RawMessageInfoDecoder {
     }
 
     NewArrayEmpty newArrayEmpty = objectsValue.definition.asNewArrayEmpty();
-    InvokeNewArray invokeNewArray = objectsValue.definition.asInvokeNewArray();
+    NewArrayFilled newArrayFilled = objectsValue.definition.asNewArrayFilled();
 
-    if (newArrayEmpty == null && invokeNewArray == null) {
+    if (newArrayEmpty == null && newArrayFilled == null) {
       throw new InvalidRawMessageInfoException();
     }
     // Verify that the array is used in only one spot.
-    if (invokeNewArray != null) {
+    if (newArrayFilled != null) {
       if (!objectsValue.hasSingleUniqueUser()) {
         throw new InvalidRawMessageInfoException();
       }
-      return ThrowingIterator.fromIterator(invokeNewArray.inValues().iterator());
+      return ThrowingIterator.fromIterator(newArrayFilled.inValues().iterator());
     }
 
     Value sizeValue = newArrayEmpty.size().getAliasedValue();

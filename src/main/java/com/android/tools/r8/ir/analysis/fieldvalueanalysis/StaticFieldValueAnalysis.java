@@ -31,8 +31,8 @@ import com.android.tools.r8.ir.code.FieldInstruction;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InvokeDirect;
-import com.android.tools.r8.ir.code.InvokeNewArray;
 import com.android.tools.r8.ir.code.NewArrayEmpty;
+import com.android.tools.r8.ir.code.NewArrayFilled;
 import com.android.tools.r8.ir.code.NewInstance;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.optimize.ClassInitializerDefaultsOptimization.ClassInitializerDefaultsResult;
@@ -216,7 +216,7 @@ public class StaticFieldValueAnalysis extends FieldValueAnalysis {
     if (value.isPhi()) {
       return null;
     }
-    if (value.definition.isNewArrayEmptyOrInvokeNewArray()) {
+    if (value.definition.isNewArrayEmptyOrNewArrayFilled()) {
       return computeSingleEnumFieldValueForValuesArray(value);
     }
     if (value.definition.isNewInstance()) {
@@ -226,7 +226,7 @@ public class StaticFieldValueAnalysis extends FieldValueAnalysis {
   }
 
   private SingleFieldValue computeSingleEnumFieldValueForValuesArray(Value value) {
-    if (!value.definition.isNewArrayEmptyOrInvokeNewArray()) {
+    if (!value.definition.isNewArrayEmptyOrNewArrayFilled()) {
       return null;
     }
     AbstractValue valuesValue = computedValues.get(value);
@@ -248,10 +248,10 @@ public class StaticFieldValueAnalysis extends FieldValueAnalysis {
 
   private SingleFieldValue internalComputeSingleEnumFieldValueForValuesArray(Value value) {
     NewArrayEmpty newArrayEmpty = value.definition.asNewArrayEmpty();
-    InvokeNewArray invokeNewArray = value.definition.asInvokeNewArray();
-    assert newArrayEmpty != null || invokeNewArray != null;
+    NewArrayFilled newArrayFilled = value.definition.asNewArrayFilled();
+    assert newArrayEmpty != null || newArrayFilled != null;
 
-    DexType arrayType = newArrayEmpty != null ? newArrayEmpty.type : invokeNewArray.getArrayType();
+    DexType arrayType = newArrayEmpty != null ? newArrayEmpty.type : newArrayFilled.getArrayType();
     if (arrayType.toBaseType(appView.dexItemFactory()) != context.getHolder().type) {
       return null;
     }
@@ -259,7 +259,7 @@ public class StaticFieldValueAnalysis extends FieldValueAnalysis {
       return null;
     }
 
-    int valuesSize = newArrayEmpty != null ? newArrayEmpty.sizeIfConst() : invokeNewArray.size();
+    int valuesSize = newArrayEmpty != null ? newArrayEmpty.sizeIfConst() : newArrayFilled.size();
     if (valuesSize < 1) {
       // Array is empty or non-const size.
       return null;
@@ -268,9 +268,9 @@ public class StaticFieldValueAnalysis extends FieldValueAnalysis {
     DexType[] valuesTypes = new DexType[valuesSize];
     ObjectState[] valuesState = new ObjectState[valuesSize];
 
-    if (invokeNewArray != null) {
+    if (newArrayFilled != null) {
       // Populate array values from filled-new-array values.
-      List<Value> inValues = invokeNewArray.inValues();
+      List<Value> inValues = newArrayFilled.inValues();
       for (int i = 0; i < valuesSize; ++i) {
         if (!updateEnumValueState(valuesState, valuesTypes, i, inValues.get(i))) {
           return null;

@@ -1635,7 +1635,7 @@ public class IRBuilder {
     addInvoke(type, method, callSiteProto, arguments, false /* isInterface */);
   }
 
-  public void addInvokeNewArray(DexType type, int argumentCount, int[] argumentRegisters) {
+  public void addNewArrayFilled(DexType type, int argumentCount, int[] argumentRegisters) {
     String descriptor = type.descriptor.toString();
     assert descriptor.charAt(0) == '[';
     assert descriptor.length() >= 2;
@@ -1753,7 +1753,7 @@ public class IRBuilder {
     assert invoke.instructionTypeCanThrow();
     DexType outType = invoke.getReturnType();
     Nullability nullability =
-        invoke.isInvokeNewArray() || invoke.isInvokeMultiNewArray()
+        invoke.isNewArrayFilled() || invoke.isInvokeMultiNewArray()
             ? definitelyNotNull()
             : maybeNull();
     // InvokeCustom.evaluate will look into the metadata of the callsite which will provide more

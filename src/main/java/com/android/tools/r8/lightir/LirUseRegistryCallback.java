@@ -207,7 +207,7 @@ public class LirUseRegistryCallback<EV> extends LirParsedInstructionCallback<EV>
   }
 
   @Override
-  public void onInvokeNewArray(DexType type, List<EV> arguments) {
+  public void onNewArrayFilled(DexType type, List<EV> arguments) {
     registry.registerTypeReference(type);
   }
 

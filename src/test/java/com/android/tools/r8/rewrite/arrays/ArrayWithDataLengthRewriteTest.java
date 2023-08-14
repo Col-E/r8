@@ -72,7 +72,7 @@ public class ArrayWithDataLengthRewriteTest extends TestBase {
     if (name.contains("filledArrayData")) {
       assertTrue(irCode.streamInstructions().anyMatch(Instruction::isNewArrayFilledData));
     } else if (name.contains("filledNewArray")) {
-      assertTrue(irCode.streamInstructions().anyMatch(Instruction::isInvokeNewArray));
+      assertTrue(irCode.streamInstructions().anyMatch(Instruction::isNewArrayFilled));
     }
   }
 

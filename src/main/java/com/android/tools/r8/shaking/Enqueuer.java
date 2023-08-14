@@ -104,9 +104,9 @@ import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionIterator;
 import com.android.tools.r8.ir.code.InvokeMethod;
-import com.android.tools.r8.ir.code.InvokeNewArray;
 import com.android.tools.r8.ir.code.InvokeVirtual;
 import com.android.tools.r8.ir.code.NewArrayEmpty;
+import com.android.tools.r8.ir.code.NewArrayFilled;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.conversion.MethodConversionOptions;
 import com.android.tools.r8.ir.desugar.CfInstructionDesugaringCollection;
@@ -5122,11 +5122,11 @@ public class Enqueuer {
       return;
     }
     NewArrayEmpty newArrayEmpty = parametersValue.definition.asNewArrayEmpty();
-    InvokeNewArray invokeNewArray = parametersValue.definition.asInvokeNewArray();
+    NewArrayFilled newArrayFilled = parametersValue.definition.asNewArrayFilled();
     int parametersSize =
         newArrayEmpty != null
             ? newArrayEmpty.sizeIfConst()
-            : invokeNewArray != null ? invokeNewArray.size() : -1;
+            : newArrayFilled != null ? newArrayFilled.size() : -1;
     if (parametersSize < 0) {
       return;
     }
@@ -5143,7 +5143,7 @@ public class Enqueuer {
         missingIndices = parametersSize;
       } else {
         missingIndices = 0;
-        List<Value> values = invokeNewArray.inValues();
+        List<Value> values = newArrayFilled.inValues();
         for (int i = 0; i < parametersSize; ++i) {
           DexType type =
               ConstantValueUtils.getDexTypeRepresentedByValueForTracing(values.get(i), appView);
@@ -5220,11 +5220,11 @@ public class Enqueuer {
       return;
     }
 
-    InvokeNewArray invokeNewArray = interfacesValue.definition.asInvokeNewArray();
+    NewArrayFilled newArrayFilled = interfacesValue.definition.asNewArrayFilled();
     NewArrayEmpty newArrayEmpty = interfacesValue.definition.asNewArrayEmpty();
     List<Value> values;
-    if (invokeNewArray != null) {
-      values = invokeNewArray.inValues();
+    if (newArrayFilled != null) {
+      values = newArrayFilled.inValues();
     } else if (newArrayEmpty != null) {
       values = new ArrayList<>(interfacesValue.uniqueUsers().size());
       for (Instruction user : interfacesValue.uniqueUsers()) {

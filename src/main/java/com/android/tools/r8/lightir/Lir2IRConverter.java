@@ -60,7 +60,6 @@ import com.android.tools.r8.ir.code.InvokeCustom;
 import com.android.tools.r8.ir.code.InvokeDirect;
 import com.android.tools.r8.ir.code.InvokeInterface;
 import com.android.tools.r8.ir.code.InvokeMultiNewArray;
-import com.android.tools.r8.ir.code.InvokeNewArray;
 import com.android.tools.r8.ir.code.InvokePolymorphic;
 import com.android.tools.r8.ir.code.InvokeStatic;
 import com.android.tools.r8.ir.code.InvokeSuper;
@@ -72,6 +71,7 @@ import com.android.tools.r8.ir.code.MoveException;
 import com.android.tools.r8.ir.code.Mul;
 import com.android.tools.r8.ir.code.Neg;
 import com.android.tools.r8.ir.code.NewArrayEmpty;
+import com.android.tools.r8.ir.code.NewArrayFilled;
 import com.android.tools.r8.ir.code.NewArrayFilledData;
 import com.android.tools.r8.ir.code.NewInstance;
 import com.android.tools.r8.ir.code.NewUnboxedEnumInstance;
@@ -966,11 +966,11 @@ public class Lir2IRConverter {
     }
 
     @Override
-    public void onInvokeNewArray(DexType type, List<EV> arguments) {
+    public void onNewArrayFilled(DexType type, List<EV> arguments) {
       Value dest =
           getOutValueForNextInstruction(
               type.toTypeElement(appView, Nullability.definitelyNotNull()));
-      addInstruction(new InvokeNewArray(type, dest, getValues(arguments)));
+      addInstruction(new NewArrayFilled(type, dest, getValues(arguments)));
     }
 
     @Override

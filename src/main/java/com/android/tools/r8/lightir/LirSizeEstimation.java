@@ -317,7 +317,7 @@ public class LirSizeEstimation<EV> extends LirParsedInstructionCallback<EV> impl
       case DEBUGLOCALWRITE:
         return DexMove.SIZE;
 
-      case INVOKENEWARRAY:
+      case NEWARRAYFILLED:
         return DexFilledNewArray.SIZE;
 
       case ITEMBASEDCONSTSTRING:

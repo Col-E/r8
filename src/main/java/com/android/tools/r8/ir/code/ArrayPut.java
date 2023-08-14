@@ -141,7 +141,7 @@ public class ArrayPut extends ArrayAccess {
   public boolean instructionInstanceCanThrow(AppView<?> appView, ProgramMethod context) {
     // Check that the array is guaranteed to be non-null and that the index is within bounds.
     Value array = array().getAliasedValue();
-    if (!array.isDefinedByInstructionSatisfying(Instruction::isNewArrayEmptyOrInvokeNewArray)
+    if (!array.isDefinedByInstructionSatisfying(Instruction::isNewArrayEmptyOrNewArrayFilled)
         || array.hasLocalInfo()) {
       return true;
     }
@@ -156,7 +156,7 @@ public class ArrayPut extends ArrayAccess {
         return true;
       }
     } else {
-      size = arrayDefinition.asInvokeNewArray().size();
+      size = arrayDefinition.asNewArrayFilled().size();
     }
 
     int index;
