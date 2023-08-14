@@ -24,6 +24,7 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.analysis.framework.intraprocedural.AbstractTransferFunction;
 import com.android.tools.r8.ir.analysis.framework.intraprocedural.DataflowAnalysisResult;
+import com.android.tools.r8.ir.analysis.framework.intraprocedural.DataflowAnalysisResult.FailedDataflowAnalysisResult;
 import com.android.tools.r8.ir.analysis.framework.intraprocedural.TransferFunctionResult;
 import com.android.tools.r8.ir.analysis.framework.intraprocedural.cf.CfBlock;
 import com.android.tools.r8.ir.analysis.framework.intraprocedural.cf.CfControlFlowGraph;
@@ -174,6 +175,15 @@ public class CfOpenClosedInterfacesAnalysis {
     CfIntraproceduralDataflowAnalysis<CfFrameState> analysis =
         new CfIntraproceduralDataflowAnalysis<>(appView, CfFrameState.bottom(), cfg, transfer);
     DataflowAnalysisResult result = analysis.run(cfg.getEntryBlock());
+    if (result.isFailedAnalysisResult()) {
+      FailedCfAnalysisResult failedResult = (FailedCfAnalysisResult) result;
+      int index =
+          failedResult.instruction == null
+              ? 0
+              : code.getInstructions().indexOf(failedResult.instruction);
+      helper.registerUnverifiableCode(method, index, failedResult.errorState);
+      return;
+    }
     assert result.isSuccessfulAnalysisResult();
     for (CfBlock block : cfg.getBlocks()) {
       if (analysis.isIntermediateBlock(block)) {
@@ -181,6 +191,8 @@ public class CfOpenClosedInterfacesAnalysis {
       }
       CfFrameState state = analysis.computeBlockEntryState(block);
       if (state.isError()) {
+        // Any error should terminate with a "FailedAnalysisResult" above.
+        assert false;
         helper.registerUnverifiableCode(method, 0, state.asError());
         return;
       }
@@ -192,6 +204,8 @@ public class CfOpenClosedInterfacesAnalysis {
           helper.processInstruction(instruction, state);
           state = transfer.apply(instruction, state).asAbstractState();
           if (state.isError()) {
+            // Any error should terminate with a "FailedAnalysisResult" above.
+            assert false;
             helper.registerUnverifiableCode(method, instructionIndex, state.asError());
             return;
           }
@@ -250,6 +264,17 @@ public class CfOpenClosedInterfacesAnalysis {
     methods.forEach(method -> reporter.warning(unverifiableCodeDiagnostics.get(method)));
   }
 
+  private static class FailedCfAnalysisResult extends FailedDataflowAnalysisResult {
+
+    private final CfInstruction instruction;
+    private final ErroneousCfFrameState errorState;
+
+    public FailedCfAnalysisResult(CfInstruction instruction, ErroneousCfFrameState errorState) {
+      this.instruction = instruction;
+      this.errorState = errorState;
+    }
+  }
+
   private class TransferFunction
       implements AbstractTransferFunction<CfBlock, CfInstruction, CfFrameState> {
 
@@ -259,6 +284,13 @@ public class CfOpenClosedInterfacesAnalysis {
     TransferFunction(CfAnalysisConfig config, ProgramMethod context) {
       this.config = config;
       this.context = context;
+    }
+
+    @Override
+    public FailedDataflowAnalysisResult createFailedAnalysisResult(
+        CfInstruction instruction, TransferFunctionResult<CfFrameState> transferResult) {
+      ErroneousCfFrameState errorState = (ErroneousCfFrameState) transferResult;
+      return new FailedCfAnalysisResult(instruction, errorState);
     }
 
     @Override

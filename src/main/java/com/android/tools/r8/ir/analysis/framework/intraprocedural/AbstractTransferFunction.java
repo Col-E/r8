@@ -5,6 +5,7 @@
 package com.android.tools.r8.ir.analysis.framework.intraprocedural;
 
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.ir.analysis.framework.intraprocedural.DataflowAnalysisResult.FailedDataflowAnalysisResult;
 
 /**
  * A transfer function that defines the abstract semantics of the instructions in the program
@@ -56,5 +57,10 @@ public interface AbstractTransferFunction<
       Instruction throwInstruction,
       StateType throwState) {
     return throwState;
+  }
+
+  default FailedDataflowAnalysisResult createFailedAnalysisResult(
+      Instruction instruction, TransferFunctionResult<StateType> transferResult) {
+    return new FailedDataflowAnalysisResult();
   }
 }
