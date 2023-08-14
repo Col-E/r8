@@ -4,6 +4,7 @@
 package com.android.tools.r8.graph;
 
 import com.android.tools.r8.dex.IndexedItemCollection;
+import com.android.tools.r8.lightir.LirConstant;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.utils.structural.StructuralMapping;
 import com.android.tools.r8.utils.structural.StructuralSpecification;
@@ -11,7 +12,8 @@ import com.google.common.collect.Iterables;
 import java.util.Collections;
 import java.util.function.Consumer;
 
-public class DexProto extends IndexedDexItem implements NamingLensComparable<DexProto> {
+public class DexProto extends IndexedDexItem
+    implements NamingLensComparable<DexProto>, LirConstant {
 
   public static final DexProto SENTINEL = new DexProto(null, null, null);
 

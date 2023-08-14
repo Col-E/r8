@@ -7,12 +7,10 @@ import com.android.tools.r8.cf.code.CfArithmeticBinop;
 import com.android.tools.r8.cf.code.CfArithmeticBinop.Opcode;
 import com.android.tools.r8.cf.code.CfLogicalBinop;
 import com.android.tools.r8.cf.code.CfNumberConversion;
-import com.android.tools.r8.dex.MixedSectionCollection;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.DebugLocalInfo;
 import com.android.tools.r8.graph.DexCallSite;
 import com.android.tools.r8.graph.DexField;
-import com.android.tools.r8.graph.DexItem;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexMethodHandle;
@@ -68,7 +66,7 @@ public class LirBuilder<V, EV> {
   private final DexItemFactory factory;
   private final ByteArrayWriter byteWriter = new ByteArrayWriter();
   private final LirWriter writer = new LirWriter(byteWriter);
-  private final Reference2IntMap<DexItem> constants;
+  private final Reference2IntMap<LirConstant> constants;
   private final List<PositionEntry> positionTable;
   private int argumentCount = 0;
   private int instructionCount = 0;
@@ -91,17 +89,12 @@ public class LirBuilder<V, EV> {
   private final Int2ReferenceMap<int[]> debugLocalEnds = new Int2ReferenceOpenHashMap<>();
 
   /**
-   * Internal "DexItem" for the instruction payloads such that they can be put in the pool.
+   * Internal "LirConstant" for the instruction payloads such that they can be put in the pool.
    *
-   * <p>The instruction encoding assumes the instruction operand payload size is u1, so this allows
-   * the data payload to be stored in the constant pool instead.
+   * <p>The instruction encoding is optimized for an instruction operand payload size of u1, so this
+   * allows potentially large data payloads to be stored in the constant pool instead.
    */
-  public abstract static class InstructionPayload extends DexItem {
-    @Override
-    protected final void collectMixedSectionItems(MixedSectionCollection collection) {
-      throw new Unreachable();
-    }
-  }
+  public abstract static class InstructionPayload implements LirConstant {}
 
   /**
    * Internal "DexItem" for the fill-array payloads such that they can be put in the pool.
@@ -246,17 +239,17 @@ public class LirBuilder<V, EV> {
     return true;
   }
 
-  private int getConstantIndex(DexItem item) {
+  private int getConstantIndex(LirConstant item) {
     int nextIndex = constants.size();
     Integer oldIndex = constants.putIfAbsent(item, nextIndex);
     return oldIndex != null ? oldIndex : nextIndex;
   }
 
-  private int constantIndexSize(DexItem item) {
+  private int constantIndexSize(LirConstant item) {
     return 4;
   }
 
-  private void writeConstantIndex(DexItem item) {
+  private void writeConstantIndex(LirConstant item) {
     int index = getConstantIndex(item);
     assert constantIndexSize(item) == ByteUtils.intEncodingSize(index);
     ByteUtils.writeEncodedInt(index, writer::writeOperand);
@@ -341,7 +334,7 @@ public class LirBuilder<V, EV> {
     return this;
   }
 
-  private LirBuilder<V, EV> addOneItemInstruction(int opcode, DexItem item) {
+  private LirBuilder<V, EV> addOneItemInstruction(int opcode, LirConstant item) {
     return addInstructionTemplate(opcode, Collections.singletonList(item), Collections.emptyList());
   }
 
@@ -356,10 +349,10 @@ public class LirBuilder<V, EV> {
   }
 
   private LirBuilder<V, EV> addInstructionTemplate(
-      int opcode, List<DexItem> items, List<V> values) {
+      int opcode, List<LirConstant> items, List<V> values) {
     int instructionIndex = advanceInstructionState();
     int operandSize = 0;
-    for (DexItem item : items) {
+    for (LirConstant item : items) {
       operandSize += constantIndexSize(item);
     }
     for (int i = 0; i < values.size(); i++) {
@@ -368,7 +361,7 @@ public class LirBuilder<V, EV> {
       operandSize += encodedValueIndexSize(encodedValueIndex);
     }
     writer.writeInstruction(opcode, operandSize);
-    for (DexItem item : items) {
+    for (LirConstant item : items) {
       writeConstantIndex(item);
     }
     for (int i = 0; i < values.size(); i++) {
@@ -587,8 +580,13 @@ public class LirBuilder<V, EV> {
         LirOpcodes.PUTFIELD, Collections.singletonList(field), ImmutableList.of(object, value));
   }
 
-  public LirBuilder<V, EV> addInvokeInstruction(int opcode, DexItem method, List<V> arguments) {
+  public LirBuilder<V, EV> addInvokeInstruction(int opcode, DexMethod method, List<V> arguments) {
     return addInstructionTemplate(opcode, Collections.singletonList(method), arguments);
+  }
+
+  public LirBuilder<V, EV> addInvokeInstruction(
+      int opcode, DexCallSite callSite, List<V> arguments) {
+    return addInstructionTemplate(opcode, Collections.singletonList(callSite), arguments);
   }
 
   public LirBuilder<V, EV> addInvokeDirect(
@@ -788,7 +786,7 @@ public class LirBuilder<V, EV> {
   public LirCode<EV> build() {
     assert metadata != null;
     int constantsCount = constants.size();
-    DexItem[] constantTable = new DexItem[constantsCount];
+    LirConstant[] constantTable = new LirConstant[constantsCount];
     constants.forEach((item, index) -> constantTable[index] = item);
     DebugLocalInfoTable<EV> debugTable =
         debugLocals.isEmpty() ? null : new DebugLocalInfoTable<>(debugLocals, debugLocalEnds);

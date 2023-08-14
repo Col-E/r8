@@ -7,7 +7,6 @@ package com.android.tools.r8.lightir;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.DexCallSite;
 import com.android.tools.r8.graph.DexField;
-import com.android.tools.r8.graph.DexItem;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexType;
@@ -35,7 +34,7 @@ public class SimpleLensLirRewriter<EV> extends LirParsedInstructionCallback<EV> 
   private final LensCodeRewriterUtils helper;
 
   private int numberOfInvokeTypeChanges = 0;
-  private Map<DexItem, DexItem> constantPoolMapping = null;
+  private Map<LirConstant, LirConstant> constantPoolMapping = null;
 
   public SimpleLensLirRewriter(
       LirCode<EV> code,
@@ -85,7 +84,7 @@ public class SimpleLensLirRewriter<EV> extends LirParsedInstructionCallback<EV> 
     }
   }
 
-  private void addRewrittenMapping(DexItem item, DexItem rewrittenItem) {
+  private void addRewrittenMapping(LirConstant item, LirConstant rewrittenItem) {
     if (item == rewrittenItem) {
       return;
     }
@@ -95,7 +94,7 @@ public class SimpleLensLirRewriter<EV> extends LirParsedInstructionCallback<EV> 
               // Avoid using initial capacity larger than the number of actual constants.
               Math.min(getCode().getConstantPool().length, 32));
     }
-    DexItem old = constantPoolMapping.put(item, rewrittenItem);
+    LirConstant old = constantPoolMapping.put(item, rewrittenItem);
     if (old != null && old != rewrittenItem) {
       throw new Unreachable(
           "Unexpected rewriting of item: "
@@ -152,7 +151,7 @@ public class SimpleLensLirRewriter<EV> extends LirParsedInstructionCallback<EV> 
     // First pass scans just the constant pool to see if any types change or if there are any
     // fields/methods that need to be examined.
     boolean hasPotentialRewrittenMethod = false;
-    for (DexItem constant : code.getConstantPool()) {
+    for (LirConstant constant : code.getConstantPool()) {
       if (constant instanceof DexType) {
         onTypeReference((DexType) constant);
       } else if (constant instanceof DexField) {
@@ -191,9 +190,9 @@ public class SimpleLensLirRewriter<EV> extends LirParsedInstructionCallback<EV> 
     // Build a small map from method refs to index in case the type-dependent methods are already
     // in the constant pool.
     Reference2IntMap<DexMethod> methodIndices = new Reference2IntOpenHashMap<>();
-    DexItem[] rewrittenConstants = code.getConstantPool();
-    for (int i = 0, dexItemsLength = rewrittenConstants.length; i < dexItemsLength; i++) {
-      DexItem constant = rewrittenConstants[i];
+    LirConstant[] rewrittenConstants = code.getConstantPool();
+    for (int i = 0, length = rewrittenConstants.length; i < length; i++) {
+      LirConstant constant = rewrittenConstants[i];
       if (constant instanceof DexMethod) {
         methodIndices.put((DexMethod) constant, i);
       }
@@ -202,7 +201,7 @@ public class SimpleLensLirRewriter<EV> extends LirParsedInstructionCallback<EV> 
     IRMetadata irMetadata = code.getMetadataForIR();
     ByteArrayWriter byteWriter = new ByteArrayWriter();
     LirWriter lirWriter = new LirWriter(byteWriter);
-    List<DexItem> methodsToAppend = new ArrayList<>(numberOfInvokeTypeChanges);
+    List<LirConstant> methodsToAppend = new ArrayList<>(numberOfInvokeTypeChanges);
     for (LirInstructionView view : code) {
       int opcode = view.getOpcode();
       // Instructions that do not have an invoke-type change are just mapped via identity.

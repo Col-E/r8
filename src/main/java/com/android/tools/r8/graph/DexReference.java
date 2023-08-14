@@ -5,13 +5,14 @@ package com.android.tools.r8.graph;
 
 import com.android.tools.r8.dex.IndexedItemCollection;
 import com.android.tools.r8.errors.Unreachable;
+import com.android.tools.r8.lightir.LirConstant;
 import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
 /** A common interface for {@link DexType}, {@link DexField}, and {@link DexMethod}. */
-public abstract class DexReference extends IndexedDexItem {
+public abstract class DexReference extends IndexedDexItem implements LirConstant {
 
   public abstract <T> T apply(
       Function<DexType, T> classConsumer,
