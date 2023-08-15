@@ -191,7 +191,7 @@ public class EnumUnboxingRewriter {
               iterator,
               instruction.asInvokeMethodWithReceiver());
         } else if (instruction.isNewArrayFilled()) {
-          rewriteNewArrayFilled(instruction.asNewArrayFilled(), code, iterator);
+          rewriteNewArrayFilled(instruction.asNewArrayFilled(), code, convertedEnums, iterator);
         } else if (instruction.isInvokeStatic()) {
           rewriteInvokeStatic(
               instruction.asInvokeStatic(),
@@ -484,7 +484,10 @@ public class EnumUnboxingRewriter {
   }
 
   private void rewriteNewArrayFilled(
-      NewArrayFilled newArrayFilled, IRCode code, InstructionListIterator instructionIterator) {
+      NewArrayFilled newArrayFilled,
+      IRCode code,
+      Map<Instruction, DexType> convertedEnums,
+      InstructionListIterator instructionIterator) {
     DexType arrayBaseType = newArrayFilled.getArrayType().toBaseType(factory);
     if (!unboxedEnumsData.isUnboxedEnum(arrayBaseType)) {
       return;
@@ -506,11 +509,13 @@ public class EnumUnboxingRewriter {
         elements.add(element);
       }
     }
-    instructionIterator.replaceCurrentInstruction(
+    NewArrayFilled newArray =
         new NewArrayFilled(
             rewrittenArrayType,
             code.createValue(factory.intArrayType.toTypeElement(appView, definitelyNotNull())),
-            elements));
+            elements);
+    instructionIterator.replaceCurrentInstruction(newArray);
+    convertedEnums.put(newArray, newArrayFilled.getArrayType());
   }
 
   private void rewriteInvokeStatic(
