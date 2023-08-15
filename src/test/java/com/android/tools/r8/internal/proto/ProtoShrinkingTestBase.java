@@ -42,21 +42,21 @@ public abstract class ProtoShrinkingTestBase extends TestBase {
   public static final Path PROTOBUF_LITE_PROGUARD_RULES =
       Paths.get(ToolHelper.THIRD_PARTY_DIR, "protobuf-lite/lite_proguard.pgcfg");
 
-  // Test classes for proto2.
+  // Test classes for proto2. Use a checked in version of the built examples.
   public static final Path PROTO2_EXAMPLES_JAR =
-      Paths.get(ToolHelper.EXAMPLES_PROTO_BUILD_DIR).resolve("proto2.jar");
+      Paths.get(ToolHelper.THIRD_PARTY_DIR, "proto", "examplesProto2.jar");
 
   // Proto definitions used by test classes for proto2.
   public static final Path PROTO2_PROTO_JAR =
-      Paths.get(ToolHelper.GENERATED_PROTO_BUILD_DIR).resolve("proto2.jar");
+      Paths.get(ToolHelper.THIRD_PARTY_DIR, "proto", "examplesGeneratedProto2.jar");
 
   // Test classes for proto3.
   public static final Path PROTO3_EXAMPLES_JAR =
-      Paths.get(ToolHelper.EXAMPLES_PROTO_BUILD_DIR).resolve("proto3.jar");
+      Paths.get(ToolHelper.THIRD_PARTY_DIR, "proto", "examplesProto3.jar");
 
   // Proto definitions used by test classes for proto3.
   public static final Path PROTO3_PROTO_JAR =
-      Paths.get(ToolHelper.GENERATED_PROTO_BUILD_DIR).resolve("proto3.jar");
+      Paths.get(ToolHelper.THIRD_PARTY_DIR, "proto", "examplesGeneratedProto3.jar");
 
   public static void assertRewrittenProtoSchemasMatch(
       CodeInspector expectedInspector, CodeInspector actualInspector) throws Exception {
