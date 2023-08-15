@@ -667,10 +667,10 @@ public class IdentifierNameStringMarkerTest extends SmaliTestBase {
           code,
           ImmutableList.of(
               DexInvokeDirect.class,
+              DexConstClass.class,
               DexConst4.class,
               DexNewArray.class,
               DexConst4.class,
-              DexConstClass.class,
               DexAputObject.class,
               DexConstString.class,
               DexInvokeStatic.class,
@@ -743,10 +743,10 @@ public class IdentifierNameStringMarkerTest extends SmaliTestBase {
           code,
           ImmutableList.of(
               DexInvokeDirect.class,
+              DexConstClass.class,
               DexConst4.class,
               DexNewArray.class,
               DexConst4.class,
-              DexConstClass.class,
               DexAputObject.class,
               DexConstString.class,
               DexInvokeStatic.class,

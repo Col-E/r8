@@ -107,10 +107,10 @@ public class GetMembersTest extends CompatProguardSmaliTestBase {
       assertTrue(code.instructions[5] instanceof DexInvokeVirtual);
       assertTrue(code.instructions[6] instanceof DexReturnVoid);
     } else {
-      assertTrue(code.instructions[0] instanceof DexConst4);
-      assertTrue(code.instructions[1] instanceof DexNewArray);
-      assertTrue(code.instructions[2] instanceof DexConst4);
-      assertTrue(code.instructions[3] instanceof DexConstClass);
+      assertTrue(code.instructions[0] instanceof DexConstClass);
+      assertTrue(code.instructions[1] instanceof DexConst4);
+      assertTrue(code.instructions[2] instanceof DexNewArray);
+      assertTrue(code.instructions[3] instanceof DexConst4);
       assertTrue(code.instructions[4] instanceof DexAputObject);
       assertTrue(code.instructions[5] instanceof DexConstClass);
       assertTrue(code.instructions[6] instanceof DexConstString);
