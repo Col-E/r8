@@ -64,7 +64,6 @@ public abstract class TestCompileResult<
   final List<Path> additionalBootClasspath = new ArrayList<>();
   final List<String> vmArguments = new ArrayList<>();
   private boolean withArt6Plus64BitsLib = false;
-  private boolean withArtFrameworks = true;
   private LibraryDesugaringTestConfiguration libraryDesugaringTestConfiguration;
 
   TestCompileResult(TestState state, AndroidApp app, int minApiLevel, OutputMode outputMode) {
@@ -117,11 +116,6 @@ public abstract class TestCompileResult<
 
   public final CR withArt6Plus64BitsLib() {
     withArt6Plus64BitsLib = true;
-    return self();
-  }
-
-  public final CR withArtFrameworks() {
-    withArtFrameworks = true;
     return self();
   }
 
@@ -687,8 +681,7 @@ public abstract class TestCompileResult<
               }
             });
     ProcessResult result =
-        ToolHelper.runArtRaw(
-            classPath, mainClass, commandConsumer, vm, withArtFrameworks, arguments);
+        ToolHelper.runArtRaw(classPath, mainClass, commandConsumer, vm, true, arguments);
     return createRunResult(runtime, result);
   }
 

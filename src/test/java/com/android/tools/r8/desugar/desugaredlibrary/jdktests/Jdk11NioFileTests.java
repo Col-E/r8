@@ -279,6 +279,7 @@ public class Jdk11NioFileTests extends DesugaredLibraryTestBase {
   @Test
   public void testNioFileDesugaredLib() throws Exception {
     String verbosity = "2";
+    Path testDir = temp.newFolder("jdknio").toPath();
     DesugaredLibraryTestCompileResult<?> compileResult =
         testForDesugaredLibrary(
                 parameters, libraryDesugaringSpecification, compilationSpecification)
@@ -287,6 +288,7 @@ public class Jdk11NioFileTests extends DesugaredLibraryTestBase {
             .addProgramFiles(testNGSupportProgramFiles())
             .addProgramClassFileData(getTestNGMainRunner())
             .compile()
+            .setSystemProperty("test.dir", testDir.toString())
             .withArt6Plus64BitsLib();
     int success = 0;
     List<String> failingClasses = new ArrayList<>();
@@ -338,6 +340,7 @@ public class Jdk11NioFileTests extends DesugaredLibraryTestBase {
         "The package java.nio was not present on older devices, all tests fail.",
         parameters.getDexRuntimeVersion().isOlderThan(Version.V8_1_0));
     String verbosity = "2";
+    Path testDir = temp.newFolder("jdknio").toPath();
     D8TestCompileResult compileResult =
         testForD8(parameters.getBackend())
             .addProgramFiles(TEST_UTIL_JAR)
@@ -346,6 +349,7 @@ public class Jdk11NioFileTests extends DesugaredLibraryTestBase {
             .addProgramClassFileData(getTestNGMainRunner())
             .addLibraryFiles(libraryDesugaringSpecification.getLibraryFiles())
             .compile()
+            .setSystemProperty("test.dir", testDir.toString())
             .withArt6Plus64BitsLib();
     for (String mainTestClass : SUCCESSFUL_MAIN_TESTS) {
       compileResult.run(parameters.getRuntime(), mainTestClass).assertSuccess();
