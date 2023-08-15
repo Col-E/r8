@@ -254,6 +254,8 @@ dependencies {
     testCompile group: 'org.javassist', name: 'javassist', version: javassistVersion
 
     examplesAndroidOCompile group: 'org.ow2.asm', name: 'asm', version: asmVersion
+    examplesAndroidOCompile files("third_party/android_jar/lib-v26/android.jar")
+
     examplesAndroidPCompile group: 'org.ow2.asm', name: 'asm', version: asmVersion
     // Import Guava for @Nullable annotation
     examplesCompile "com.google.guava:guava:$guavaVersion"
@@ -1195,15 +1197,6 @@ task buildApiSampleJars {
     dependsOn buildR8ApiUsageSample
 }
 
-// Examples used by tests, where Android specific APIs are used.
-task buildExampleAndroidApi(type: JavaCompile) {
-    source = fileTree(dir: file("src/test/examplesAndroidApi"), include: "**/*.java")
-    destinationDir = file("build/test/examplesAndroidApi/classes")
-    classpath = files("third_party/android_jar/lib-v26/android.jar")
-    sourceCompatibility = JavaVersion.VERSION_1_8
-    targetCompatibility = JavaVersion.VERSION_1_8
-}
-
 // Proto lite generated code yields warnings when compiling with javac.
 // We change the options passed to javac to ignore it.
 compileExamplesJava.options.compilerArgs = ["-Xlint:none"]
@@ -1341,6 +1334,7 @@ task buildExampleAndroidOJars {
         destinationDir = file("build/test/examplesAndroidO/classes")
         classpath = sourceSets.main.compileClasspath
         classpath += files("build/test/examplesAndroidOLegacy/classes")
+	classpath += files("third_party/android_jar/lib-v26/android.jar")
         sourceCompatibility = JavaVersion.VERSION_1_8
         targetCompatibility = JavaVersion.VERSION_1_8
         options.compilerArgs += ["-Xlint:-options", "-parameters"]
@@ -1505,7 +1499,6 @@ task buildExamples {
     dependsOn buildExampleJava11Jars
     dependsOn buildExampleJava17Jars
     dependsOn buildExampleJava20Jars
-    dependsOn buildExampleAndroidApi
     def examplesDir = file("src/test/examples")
     examplesDir.eachDir { dir ->
         def exampleOutputDir = file("build/test/examples/" + dir.getName());

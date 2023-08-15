@@ -41,7 +41,7 @@ public class B72312389 extends TestBase {
         .addProgramFiles(
             Paths.get(
                 ToolHelper.TESTS_BUILD_DIR,
-                "examplesAndroidApi",
+                "examplesAndroidO",
                 "classes",
                 "instrumentationtest",
                 "InstrumentationTest.class"))
