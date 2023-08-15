@@ -182,9 +182,4 @@ public class DesugaredLibraryTestCompileResult<T extends DesugaredLibraryTestBas
     runnableCompiledResult.withArt6Plus64BitsLib();
     return this;
   }
-
-  public DesugaredLibraryTestCompileResult<T> setSystemProperty(String key, String value) {
-    runnableCompiledResult.setSystemProperty(key, value);
-    return this;
-  }
 }
