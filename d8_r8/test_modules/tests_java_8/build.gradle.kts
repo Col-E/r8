@@ -32,6 +32,7 @@ dependencies {
   implementation(keepAnnoJarTask.outputs.files)
   implementation(projectTask("main", "jar").outputs.files)
   implementation(projectTask("resourceshrinker", "jar").outputs.files)
+  implementation(projectTask("resourceshrinker", "depsJar").outputs.files)
   implementation(Deps.asm)
   implementation(Deps.asmCommons)
   implementation(Deps.asmUtil)
@@ -149,6 +150,7 @@ tasks {
 
   withType<KotlinCompile> {
     dependsOn(gradle.includedBuild("keepanno").task(":jar"))
+    dependsOn(gradle.includedBuild("resourceshrinker").task(":jar"))
     dependsOn(gradle.includedBuild("main").task(":jar"))
     dependsOn(thirdPartyCompileDependenciesTask)
     kotlinOptions {
@@ -177,6 +179,7 @@ tasks {
 
   val depsJar by registering(Jar::class) {
     dependsOn(gradle.includedBuild("keepanno").task(":jar"))
+    dependsOn(gradle.includedBuild("resourceshrinker").task(":jar"))
     dependsOn(thirdPartyCompileDependenciesTask)
     doFirst {
       println(header("Test Java 8 dependencies"))
