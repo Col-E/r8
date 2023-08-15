@@ -114,6 +114,10 @@ third_party/gradle/gradle-8.0
 third_party/gradle/gradle-8.0.tar.gz
 third_party/gson/gson-2.10.1
 third_party/gson/gson-2.10.1.tar.gz
+third_party/guava/guava-32.1.2-android
+third_party/guava/guava-32.1.2-android.tar.gz
+third_party/guava/guava-32.1.2-jre
+third_party/guava/guava-32.1.2-jre.tar.gz
 third_party/internal/*
 third_party/iosched_2019
 third_party/iosched_2019.tar.gz

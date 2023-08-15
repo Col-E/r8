@@ -330,6 +330,8 @@ def cloudDependencies = [
                 "google/google-java-format/1.14.0",
                 "google-java-format",
                 "gson/gson-2.10.1",
+                "guava/guava-32.1.2-android",
+                "guava/guava-32.1.2-jre",
                 "iosched_2019",
                 "jacoco/0.8.2",
                 "jacoco/0.8.6",
