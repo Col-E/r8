@@ -12,6 +12,7 @@ import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexDefinition;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
+import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexMethodSignature;
@@ -52,7 +53,7 @@ import java.util.function.Consumer;
  */
 public class ClassMerger {
 
-  public static final String CLASS_ID_FIELD_NAME = "$r8$classId";
+  public static final String CLASS_ID_FIELD_PREFIX = "$r8$classId";
 
   private static final OptimizationFeedback feedback = OptimizationFeedbackSimple.getInstance();
 
@@ -439,11 +440,18 @@ public class ClassMerger {
     }
 
     private void createClassIdField() {
-      // TODO(b/165498187): ensure the name for the field is fresh
-      DexItemFactory dexItemFactory = appView.dexItemFactory();
-      group.setClassIdField(
-          dexItemFactory.createField(
-              group.getTarget().getType(), dexItemFactory.intType, CLASS_ID_FIELD_NAME));
+      DexField field =
+          appView
+              .dexItemFactory()
+              .createFreshFieldNameWithoutHolder(
+                  group.getTarget().getType(),
+                  appView.dexItemFactory().intType,
+                  CLASS_ID_FIELD_PREFIX,
+                  f ->
+                      Iterables.all(
+                          group.getClasses(),
+                          clazz -> clazz.getFieldCollection().lookupField(f) == null));
+      group.setClassIdField(field);
     }
 
     public ClassMerger build(

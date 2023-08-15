@@ -16,12 +16,11 @@ public class HorizontalClassMergerUtils {
   }
 
   public static boolean isClassIdField(AppView<?> appView, DexEncodedField field) {
-    DexField classIdField = appView.dexItemFactory().objectMembers.classIdField;
-    if (field.isD8R8Synthesized() && field.getType().isIntType()) {
+    if (field.getType().isIntType()) {
       DexField originalField = appView.graphLens().getOriginalFieldSignature(field.getReference());
-      return originalField.match(classIdField);
+      return originalField.getType().isIntType()
+          && originalField.getName().startsWith(ClassMerger.CLASS_ID_FIELD_PREFIX);
     }
-    assert !appView.graphLens().getOriginalFieldSignature(field.getReference()).match(classIdField);
     return false;
   }
 }

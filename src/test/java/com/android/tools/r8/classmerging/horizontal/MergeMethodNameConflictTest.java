@@ -21,7 +21,7 @@ import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
-public class MergeNameConflictTest extends TestBase {
+public class MergeMethodNameConflictTest extends TestBase {
 
   private static final String CONFLICTING_NAME =
       "bar$com$android$tools$r8$classmerging$horizontal$MergeNameConflictTest$A";
@@ -29,7 +29,7 @@ public class MergeNameConflictTest extends TestBase {
   protected final TestParameters parameters;
   private final boolean toPrivate;
 
-  public MergeNameConflictTest(TestParameters parameters, boolean toPrivate) {
+  public MergeMethodNameConflictTest(TestParameters parameters, boolean toPrivate) {
     this.parameters = parameters;
     this.toPrivate = toPrivate;
   }

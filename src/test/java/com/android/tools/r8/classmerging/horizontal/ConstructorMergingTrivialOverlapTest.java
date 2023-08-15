@@ -13,7 +13,6 @@ import static org.hamcrest.core.IsNot.not;
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.horizontalclassmerging.ClassMerger;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.FieldSubject;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
@@ -39,8 +38,7 @@ public class ConstructorMergingTrivialOverlapTest extends HorizontalClassMerging
             codeInspector -> {
               ClassSubject aClassSubject = codeInspector.clazz(A.class);
               assertThat(aClassSubject, isPresent());
-              FieldSubject classIdFieldSubject =
-                  aClassSubject.uniqueFieldWithOriginalName(ClassMerger.CLASS_ID_FIELD_NAME);
+              FieldSubject classIdFieldSubject = classMergerClassIdField(aClassSubject);
               assertThat(classIdFieldSubject, isPresent());
 
               MethodSubject firstInitSubject = aClassSubject.init("int");
