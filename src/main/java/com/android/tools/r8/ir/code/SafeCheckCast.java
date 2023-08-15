@@ -39,7 +39,11 @@ public class SafeCheckCast extends CheckCast {
   }
 
   @Override
-  public boolean instructionInstanceCanThrow(AppView<?> appView, ProgramMethod context) {
+  public boolean instructionInstanceCanThrow(
+      AppView<?> appView,
+      ProgramMethod context,
+      AbstractValueSupplier abstractValueSupplier,
+      SideEffectAssumption assumption) {
     return false;
   }
 

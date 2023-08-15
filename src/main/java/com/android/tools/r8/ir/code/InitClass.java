@@ -104,7 +104,11 @@ public class InitClass extends Instruction {
   }
 
   @Override
-  public boolean instructionInstanceCanThrow(AppView<?> appView, ProgramMethod context) {
+  public boolean instructionInstanceCanThrow(
+      AppView<?> appView,
+      ProgramMethod context,
+      AbstractValueSupplier abstractValueSupplier,
+      SideEffectAssumption assumption) {
     // We only use InitClass instructions in R8.
     assert appView.enableWholeProgramOptimizations();
     AppView<AppInfoWithLiveness> appViewWithLiveness = appView.withLiveness();
@@ -122,12 +126,6 @@ public class InitClass extends Instruction {
       return true;
     }
     return false;
-  }
-
-  @Override
-  public boolean instructionMayHaveSideEffects(
-      AppView<?> appView, ProgramMethod context, SideEffectAssumption assumption) {
-    return instructionInstanceCanThrow(appView, context);
   }
 
   @Override

@@ -141,13 +141,11 @@ public class CheckCast extends Instruction {
   }
 
   @Override
-  public boolean instructionMayHaveSideEffects(
-      AppView<?> appView, ProgramMethod context, SideEffectAssumption assumption) {
-    return instructionInstanceCanThrow(appView, context);
-  }
-
-  @Override
-  public boolean instructionInstanceCanThrow(AppView<?> appView, ProgramMethod context) {
+  public boolean instructionInstanceCanThrow(
+      AppView<?> appView,
+      ProgramMethod context,
+      AbstractValueSupplier abstractValueSupplier,
+      SideEffectAssumption assumption) {
     if (appView.options().debug || !appView.appInfo().hasLiveness()) {
       return true;
     }

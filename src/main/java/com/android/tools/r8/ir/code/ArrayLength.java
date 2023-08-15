@@ -76,14 +76,12 @@ public class ArrayLength extends Instruction {
   }
 
   @Override
-  public boolean instructionInstanceCanThrow(AppView<?> appView, ProgramMethod context) {
+  public boolean instructionInstanceCanThrow(
+      AppView<?> appView,
+      ProgramMethod context,
+      AbstractValueSupplier abstractValueSupplier,
+      SideEffectAssumption assumption) {
     return array().type.isNullable();
-  }
-
-  @Override
-  public boolean instructionMayHaveSideEffects(
-      AppView<?> appView, ProgramMethod context, SideEffectAssumption assumption) {
-    return instructionInstanceCanThrow(appView, context);
   }
 
   @Override

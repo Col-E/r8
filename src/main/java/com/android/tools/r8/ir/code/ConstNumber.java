@@ -16,7 +16,6 @@ import com.android.tools.r8.dex.code.DexConstWide;
 import com.android.tools.r8.dex.code.DexConstWide16;
 import com.android.tools.r8.dex.code.DexConstWide32;
 import com.android.tools.r8.dex.code.DexConstWideHigh16;
-import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ProgramMethod;
@@ -346,7 +345,7 @@ public class ConstNumber extends ConstInstruction {
 
   @Override
   public AbstractValue getAbstractValue(
-      AppView<? extends AppInfoWithClassHierarchy> appView, ProgramMethod context) {
+      AppView<?> appView, ProgramMethod context, AbstractValueSupplier abstractValueSupplier) {
     return appView.abstractValueFactory().createSingleNumberValue(value);
   }
 

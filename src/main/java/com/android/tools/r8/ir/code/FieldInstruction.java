@@ -63,12 +63,11 @@ public abstract class FieldInstruction extends Instruction {
   }
 
   @Override
-  public boolean instructionInstanceCanThrow(AppView<?> appView, ProgramMethod context) {
-    return instructionInstanceCanThrow(appView, context, SideEffectAssumption.NONE);
-  }
-
   public boolean instructionInstanceCanThrow(
-      AppView<?> appView, ProgramMethod context, SideEffectAssumption assumption) {
+      AppView<?> appView,
+      ProgramMethod context,
+      AbstractValueSupplier abstractValueSupplier,
+      SideEffectAssumption assumption) {
     return internalInstructionInstanceCanThrow(
         appView, context, assumption, appView.appInfo().resolveField(field, context));
   }
@@ -210,9 +209,15 @@ public abstract class FieldInstruction extends Instruction {
 
   @Override
   public AbstractValue getAbstractValue(
-      AppView<? extends AppInfoWithClassHierarchy> appView, ProgramMethod context) {
+      AppView<?> appView, ProgramMethod context, AbstractValueSupplier abstractValueSupplier) {
     assert isFieldGet();
-    DexEncodedField field = appView.appInfo().resolveField(getField()).getResolvedField();
+    if (outValue.hasLocalInfo() || !appView.hasClassHierarchy()) {
+      return AbstractValue.unknown();
+    }
+    AppView<? extends AppInfoWithClassHierarchy> appViewWithClassHierarchy =
+        appView.withClassHierarchy();
+    DexEncodedField field =
+        appViewWithClassHierarchy.appInfo().resolveField(getField()).getResolvedField();
     if (field != null) {
       return field.getOptimizationInfo().getAbstractValue();
     }

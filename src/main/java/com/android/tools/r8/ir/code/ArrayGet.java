@@ -274,7 +274,10 @@ public class ArrayGet extends ArrayAccess {
 
   @Override
   public boolean instructionMayHaveSideEffects(
-      AppView<?> appView, ProgramMethod context, SideEffectAssumption assumption) {
+      AppView<?> appView,
+      ProgramMethod context,
+      AbstractValueSupplier abstractValueSupplier,
+      SideEffectAssumption assumption) {
     // TODO(b/203731608): Move to instructionInstanceCanThrow and remove the method.
     if (array().isPhi() || !index().isConstant()) {
       return true;

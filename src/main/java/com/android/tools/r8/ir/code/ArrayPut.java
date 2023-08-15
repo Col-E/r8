@@ -138,7 +138,11 @@ public class ArrayPut extends ArrayAccess {
   }
 
   @Override
-  public boolean instructionInstanceCanThrow(AppView<?> appView, ProgramMethod context) {
+  public boolean instructionInstanceCanThrow(
+      AppView<?> appView,
+      ProgramMethod context,
+      AbstractValueSupplier abstractValueSupplier,
+      SideEffectAssumption assumption) {
     // Check that the array is guaranteed to be non-null and that the index is within bounds.
     Value array = array().getAliasedValue();
     if (!array.isDefinedByInstructionSatisfying(Instruction::isNewArrayEmptyOrNewArrayFilled)
@@ -183,7 +187,10 @@ public class ArrayPut extends ArrayAccess {
 
   @Override
   public boolean instructionMayHaveSideEffects(
-      AppView<?> appView, ProgramMethod context, SideEffectAssumption assumption) {
+      AppView<?> appView,
+      ProgramMethod context,
+      AbstractValueSupplier abstractValueSupplier,
+      SideEffectAssumption assumption) {
     // This modifies the array (or throws).
     return true;
   }

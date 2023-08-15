@@ -50,7 +50,11 @@ public abstract class ArrayAccess extends Instruction implements ImpreciseMember
   }
 
   @Override
-  public boolean instructionInstanceCanThrow(AppView<?> appView, ProgramMethod context) {
+  public boolean instructionInstanceCanThrow(
+      AppView<?> appView,
+      ProgramMethod context,
+      AbstractValueSupplier abstractValueSupplier,
+      SideEffectAssumption assumption) {
     // TODO(b/203731608): Add parameters to the method and use abstract value in R8.
     int arraySize;
     Value arrayRoot = array().getAliasedValue();

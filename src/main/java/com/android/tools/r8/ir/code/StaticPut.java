@@ -110,7 +110,10 @@ public class StaticPut extends FieldInstruction implements FieldPut, StaticField
 
   @Override
   public boolean instructionMayHaveSideEffects(
-      AppView<?> appView, ProgramMethod context, SideEffectAssumption assumption) {
+      AppView<?> appView,
+      ProgramMethod context,
+      AbstractValueSupplier abstractValueSupplier,
+      SideEffectAssumption assumption) {
     if (appView.appInfo().hasLiveness()) {
       AppView<AppInfoWithLiveness> appViewWithLiveness = appView.withLiveness();
       AppInfoWithLiveness appInfoWithLiveness = appViewWithLiveness.appInfo();

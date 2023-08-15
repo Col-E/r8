@@ -10,7 +10,6 @@ import com.android.tools.r8.cf.TypeVerificationHelper;
 import com.android.tools.r8.cf.code.CfConstString;
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.dex.code.DexConstString;
-import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
@@ -134,7 +133,11 @@ public class ConstString extends ConstInstruction {
   }
 
   @Override
-  public boolean instructionInstanceCanThrow(AppView<?> appView, ProgramMethod context) {
+  public boolean instructionInstanceCanThrow(
+      AppView<?> appView,
+      ProgramMethod context,
+      AbstractValueSupplier abstractValueSupplier,
+      SideEffectAssumption assumption) {
     return instructionInstanceCanThrow();
   }
 
@@ -175,8 +178,8 @@ public class ConstString extends ConstInstruction {
 
   @Override
   public AbstractValue getAbstractValue(
-      AppView<? extends AppInfoWithClassHierarchy> appView, ProgramMethod context) {
-    if (!instructionInstanceCanThrow(appView, context)) {
+      AppView<?> appView, ProgramMethod context, AbstractValueSupplier abstractValueSupplier) {
+    if (!instructionInstanceCanThrow(appView, context, abstractValueSupplier)) {
       return appView.abstractValueFactory().createSingleStringValue(value);
     }
     return UnknownValue.getInstance();

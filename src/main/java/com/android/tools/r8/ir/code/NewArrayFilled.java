@@ -149,8 +149,8 @@ public class NewArrayFilled extends Invoke {
 
   @Override
   public AbstractValue getAbstractValue(
-      AppView<? extends AppInfoWithClassHierarchy> appView, ProgramMethod context) {
-    if (!instructionMayHaveSideEffects(appView, context)) {
+      AppView<?> appView, ProgramMethod context, AbstractValueSupplier abstractValueSupplier) {
+    if (!instructionMayHaveSideEffects(appView, context, abstractValueSupplier)) {
       int size = inValues.size();
       return StatefulObjectValue.create(
           appView.abstractValueFactory().createKnownLengthArrayState(size));
@@ -159,7 +159,11 @@ public class NewArrayFilled extends Invoke {
   }
 
   @Override
-  public boolean instructionInstanceCanThrow(AppView<?> appView, ProgramMethod context) {
+  public boolean instructionInstanceCanThrow(
+      AppView<?> appView,
+      ProgramMethod context,
+      AbstractValueSupplier abstractValueSupplier,
+      SideEffectAssumption assumption) {
     DexType baseType = type.isArrayType() ? type.toBaseType(appView.dexItemFactory()) : type;
     if (baseType.isPrimitiveType()) {
       // Primitives types are known to be present and accessible.
@@ -203,14 +207,17 @@ public class NewArrayFilled extends Invoke {
 
   @Override
   public boolean instructionMayHaveSideEffects(
-      AppView<?> appView, ProgramMethod context, SideEffectAssumption assumption) {
+      AppView<?> appView,
+      ProgramMethod context,
+      AbstractValueSupplier abstractValueSupplier,
+      SideEffectAssumption assumption) {
     // Check if the instruction has a side effect on the locals environment.
     if (hasOutValue() && outValue().hasLocalInfo()) {
       assert appView.options().debug;
       return true;
     }
 
-    return instructionInstanceCanThrow(appView, context);
+    return instructionInstanceCanThrow(appView, context, abstractValueSupplier, assumption);
   }
 
   @Override

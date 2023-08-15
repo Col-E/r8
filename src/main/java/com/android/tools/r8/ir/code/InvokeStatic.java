@@ -178,7 +178,10 @@ public class InvokeStatic extends InvokeMethod {
 
   @Override
   public boolean instructionMayHaveSideEffects(
-      AppView<?> appView, ProgramMethod context, SideEffectAssumption assumption) {
+      AppView<?> appView,
+      ProgramMethod context,
+      AbstractValueSupplier abstractValueSupplier,
+      SideEffectAssumption assumption) {
     if (!appView.enableWholeProgramOptimizations()) {
       return true;
     }
@@ -200,8 +203,6 @@ public class InvokeStatic extends InvokeMethod {
     }
 
     AppView<AppInfoWithLiveness> appViewWithLiveness = appView.withLiveness();
-    AppInfoWithLiveness appInfoWithLiveness = appViewWithLiveness.appInfo();
-
     SingleResolutionResult<?> resolutionResult =
         appViewWithLiveness
             .appInfo()
