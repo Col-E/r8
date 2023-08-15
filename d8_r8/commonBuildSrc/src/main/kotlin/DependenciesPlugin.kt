@@ -425,6 +425,11 @@ object ThirdPartyDeps {
     Paths.get("third_party", "nest", "nest_20180926_7c6cfb.tar.gz.sha1").toFile(),
     DependencyType.X20)
   val proguards = getThirdPartyProguards()
+  val proto = ThirdPartyDependency(
+    "proto",
+    Paths.get("third_party", "proto").toFile(),
+    Paths.get("third_party", "proto.tar.gz.sha1").toFile(),
+    DependencyType.X20)
   val protobufLite = ThirdPartyDependency(
     "protobuf-lite",
     Paths.get("third_party", "protobuf-lite").toFile(),

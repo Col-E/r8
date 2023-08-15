@@ -98,6 +98,7 @@ val thirdPartyRuntimeInternalDependenciesTask = ensureThirdPartyDependencies(
     ThirdPartyDeps.clank,
     ThirdPartyDeps.framework,
     ThirdPartyDeps.nest,
+    ThirdPartyDeps.proto,
     ThirdPartyDeps.protobufLite,
     ThirdPartyDeps.retraceInternal)
     + ThirdPartyDeps.internalIssues
