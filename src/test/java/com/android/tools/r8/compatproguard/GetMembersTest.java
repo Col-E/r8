@@ -3,9 +3,14 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.compatproguard;
 
+import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertTrue;
 
+import com.android.tools.r8.TestBase;
+import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.dex.code.DexAputObject;
 import com.android.tools.r8.dex.code.DexConst4;
 import com.android.tools.r8.dex.code.DexConstClass;
@@ -16,44 +21,48 @@ import com.android.tools.r8.dex.code.DexMoveResultObject;
 import com.android.tools.r8.dex.code.DexNewArray;
 import com.android.tools.r8.dex.code.DexReturnVoid;
 import com.android.tools.r8.graph.DexCode;
-import com.android.tools.r8.smali.SmaliBuilder;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
-import com.google.common.collect.ImmutableList;
-import java.util.List;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameter;
+import org.junit.runners.Parameterized.Parameters;
 
-public class GetMembersTest extends CompatProguardSmaliTestBase {
+@RunWith(Parameterized.class)
+public class GetMembersTest extends TestBase {
 
-  private final String CLASS_NAME = "Example";
-  private final static String BOO = "Boo";
+  @Parameter(0)
+  public TestParameters parameters;
+
+  @Parameters(name = "{0}")
+  public static TestParametersCollection data() {
+    return getTestParameters().withDexRuntimesAndAllApiLevels().build();
+  }
 
   @Test
-  public void getField_renamed() throws Exception {
-    SmaliBuilder builder = new SmaliBuilder(CLASS_NAME);
-    builder.addMainMethod(
-        2,
-        "const-class v0, LBoo;",
-        "const-string v1, \"foo\"",
-        "invoke-virtual {v0, v1}, "
-            + "Ljava/lang/Class;->getField(Ljava/lang/String;)Ljava/lang/reflect/Field;",
-        "return-void");
+  public void test() throws Exception {
+    testForR8(parameters.getBackend())
+        .addInnerClasses(getClass())
+        .addKeepMainRule(Main.class)
+        .addDontOptimize()
+        .addDontShrink()
+        .setMinApi(parameters)
+        .compile()
+        .inspect(this::inspect)
+        .run(parameters.getRuntime(), Main.class)
+        .assertSuccessWithEmptyOutput();
+  }
 
-    builder.addClass(BOO);
-    builder.addStaticField("foo", "Ljava/lang/String;");
+  private void inspect(CodeInspector inspector) {
+    ClassSubject classSubject = inspector.clazz(Main.class);
+    assertThat(classSubject, isPresent());
+    inspectGetFieldTest(classSubject.uniqueMethodWithOriginalName("getFieldTest"));
+    inspectGetMethodTest(classSubject.uniqueMethodWithOriginalName("getMethodTest"));
+  }
 
-    List<String> pgConfigs = ImmutableList.of(
-        keepMainProguardConfiguration(CLASS_NAME),
-        "-dontshrink",
-        "-dontoptimize");
-    CodeInspector inspector = runCompatProguard(builder, pgConfigs);
-
-    ClassSubject clazz = inspector.clazz(CLASS_NAME);
-    assertTrue(clazz.isPresent());
-    MethodSubject method = clazz.method(CodeInspector.MAIN);
-    assertTrue(method.isPresent());
-
+  private void inspectGetFieldTest(MethodSubject method) {
     DexCode code = method.getMethod().getCode().asDexCode();
     assertTrue(code.instructions[0] instanceof DexConstClass);
     assertTrue(code.instructions[1] instanceof DexConstString);
@@ -63,40 +72,9 @@ public class GetMembersTest extends CompatProguardSmaliTestBase {
     assertTrue(code.instructions[3] instanceof DexReturnVoid);
   }
 
-  @Test
-  public void getMethod_renamed() throws Exception {
-    SmaliBuilder builder = new SmaliBuilder(CLASS_NAME);
-    builder.addMainMethod(
-        3,
-        "const-class v0, Ljava/lang/String;",
-        "const/4 v2, 0x1",
-        "new-array v2, v2, [Ljava/lang/Class;",
-        "const/4 v1, 0x0",
-        "aput-object v0, v2, v1",
-        "const-class v0, LBoo;",
-        "const-string v1, \"foo\"",
-        "invoke-virtual {v0, v1, v2}, "
-            + "Ljava/lang/Class;->getMethod(Ljava/lang/String;[Ljava/lang/Class;)"
-            + "Ljava/lang/reflect/Method;",
-        "return-void");
-
-    builder.addClass(BOO);
-    builder.addStaticMethod("void", "foo", ImmutableList.of("java.lang.String"), 0, "return-void");
-
-    List<String> pgConfigs = ImmutableList.of(
-        keepMainProguardConfiguration(CLASS_NAME),
-        "-dontshrink",
-        "-dontoptimize");
-    CodeInspector inspector = runCompatProguard(builder, pgConfigs);
-
-    ClassSubject clazz = inspector.clazz(CLASS_NAME);
-    assertTrue(clazz.isPresent());
-    MethodSubject method = clazz.method(CodeInspector.MAIN);
-    assertTrue(method.isPresent());
-
-    DexCode code = method.getMethod().getCode().asDexCode();
-
+  private void inspectGetMethodTest(MethodSubject method) {
     // Accept either array construction style (differs based on minSdkVersion).
+    DexCode code = method.getMethod().getCode().asDexCode();
     if (code.instructions[1] instanceof DexFilledNewArray) {
       assertTrue(code.instructions[0] instanceof DexConstClass);
       assertTrue(code.instructions[1] instanceof DexFilledNewArray);
@@ -120,4 +98,26 @@ public class GetMembersTest extends CompatProguardSmaliTestBase {
     }
   }
 
+  static class Main {
+
+    public static void main(String[] args) throws NoSuchFieldException, NoSuchMethodException {
+      getFieldTest();
+      getMethodTest();
+    }
+
+    static void getFieldTest() throws NoSuchFieldException {
+      Boo.class.getField("foo");
+    }
+
+    static void getMethodTest() throws NoSuchMethodException {
+      Boo.class.getMethod("foo", String.class);
+    }
+  }
+
+  static class Boo {
+
+    public static String foo;
+
+    public static void foo(String s) {}
+  }
 }
