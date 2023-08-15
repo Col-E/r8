@@ -50,8 +50,6 @@ public class ContinuousSteppingTest extends DebugTestBase {
   // A list of self-contained jars to process (which do not depend on other jar files).
   private static List<Pair<Path, Predicate<Version>>> listOfJars() {
     return new ConfigListBuilder()
-        .add(DebugTestBase.DEBUGGEE_JAR, ContinuousSteppingTest::allVersions)
-        .add(DebugTestBase.DEBUGGEE_JAVA8_JAR, ContinuousSteppingTest::allVersions)
         .addAll(
             findAllJarsIn(Paths.get(ToolHelper.EXAMPLES_ANDROID_N_BUILD_DIR)),
             ContinuousSteppingTest::fromAndroidN)

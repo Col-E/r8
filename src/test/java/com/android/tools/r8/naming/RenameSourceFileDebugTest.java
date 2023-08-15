@@ -13,6 +13,8 @@ import com.android.tools.r8.debug.CfDebugTestConfig;
 import com.android.tools.r8.debug.DebugTestBase;
 import com.android.tools.r8.debug.DebugTestConfig;
 import com.android.tools.r8.debug.DexDebugTestConfig;
+import com.android.tools.r8.debug.classes.Locals;
+import com.android.tools.r8.debug.classes.MultipleReturns;
 import com.android.tools.r8.debug.classinit.ClassInitializationTest;
 import com.android.tools.r8.debug.classinit.ClassInitializerEmpty;
 import com.android.tools.r8.shaking.ProguardKeepRule;
@@ -34,7 +36,7 @@ public class RenameSourceFileDebugTest extends DebugTestBase {
 
   private static final String TEST_FILE = "TestFile.java";
 
-  private static Map<Backend, DebugTestConfig> configs = new HashMap<>();
+  private static final Map<Backend, DebugTestConfig> configs = new HashMap<>();
 
   @BeforeClass
   public static void initDebuggeePath() throws Exception {
@@ -51,8 +53,10 @@ public class RenameSourceFileDebugTest extends DebugTestBase {
                     pgConfig.addKeepAttributePatterns(
                         ImmutableList.of("SourceFile", "LineNumberTable"));
                   })
-              .addProgramFiles(DEBUGGEE_JAR)
-              .addProgramFiles(ToolHelper.getClassFileForTestClass(ClassInitializerEmpty.class))
+              .addProgramFiles(
+                  ToolHelper.getClassFileForTestClass(ClassInitializerEmpty.class),
+                  ToolHelper.getClassFileForTestClass(Locals.class),
+                  ToolHelper.getClassFileForTestClass(MultipleReturns.class))
               .setMode(CompilationMode.DEBUG)
               .setProguardMapOutputPath(proguardMapPath);
       DebugTestConfig config;
@@ -103,7 +107,7 @@ public class RenameSourceFileDebugTest extends DebugTestBase {
    */
   @Test
   public void testNoLocal() throws Throwable {
-    final String className = "Locals";
+    final String className = typeName(Locals.class);
     final String methodName = "noLocals";
     runDebugTest(
         configs.get(backend),
@@ -111,11 +115,11 @@ public class RenameSourceFileDebugTest extends DebugTestBase {
         breakpoint(className, methodName),
         run(),
         checkMethod(className, methodName),
-        checkLine(TEST_FILE, 8),
+        checkLine(TEST_FILE, 10),
         checkNoLocal(),
         stepOver(),
         checkMethod(className, methodName),
-        checkLine(TEST_FILE, 9),
+        checkLine(TEST_FILE, 11),
         checkNoLocal(),
         run());
   }
@@ -123,16 +127,17 @@ public class RenameSourceFileDebugTest extends DebugTestBase {
   /** replica of {@link com.android.tools.r8.debug.MultipleReturnsTest#testMultipleReturns} */
   @Test
   public void testMultipleReturns() throws Throwable {
+    final String className = typeName(MultipleReturns.class);
     runDebugTest(
         configs.get(backend),
-        "MultipleReturns",
-        breakpoint("MultipleReturns", "multipleReturns"),
+        className,
+        breakpoint(className, "multipleReturns"),
         run(),
         stepOver(),
-        checkLine(TEST_FILE, 16), // this should be the 1st return statement
+        checkLine(TEST_FILE, 18), // this should be the 1st return statement
         run(),
         stepOver(),
-        checkLine(TEST_FILE, 18), // this should be the 2nd return statement
+        checkLine(TEST_FILE, 20), // this should be the 2nd return statement
         run());
   }
 }

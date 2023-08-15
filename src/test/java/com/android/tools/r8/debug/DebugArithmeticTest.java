@@ -3,23 +3,36 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.debug;
 
+import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.TestParametersCollection;
+import com.android.tools.r8.debug.classes.Arithmetic;
+import com.android.tools.r8.utils.AndroidApiLevel;
 import org.apache.harmony.jpda.tests.framework.jdwp.Value;
-import org.junit.BeforeClass;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameter;
+import org.junit.runners.Parameterized.Parameters;
 
-/**
- * Examples of debug test features.
- */
-public class DebugTestExamples extends DebugTestBase {
+/** Examples of debug test features. */
+@RunWith(Parameterized.class)
+public class DebugArithmeticTest extends DebugTestBase {
 
   public static final String SOURCE_FILE = "Arithmetic.java";
-  public static final String DEBUGGEE_CLASS = "Arithmetic";
+  public static final String DEBUGGEE_CLASS = typeName(Arithmetic.class);
 
-  private static DebugTestConfig config;
+  @Parameter() public TestParameters parameters;
 
-  @BeforeClass
-  public static void setup() {
-    config = new D8DebugTestResourcesConfig(getStaticTemp());
+  @Parameters(name = "{0}")
+  public static TestParametersCollection data() {
+    return getTestParameters().withDexRuntimes().withApiLevel(AndroidApiLevel.B).build();
+  }
+
+  public DebugTestConfig getConfig() throws Exception {
+    return testForD8(parameters.getBackend())
+        .setMinApi(parameters)
+        .addProgramClasses(Arithmetic.class)
+        .debugConfig(parameters.getRuntime());
   }
 
   /**
@@ -27,7 +40,7 @@ public class DebugTestExamples extends DebugTestBase {
    */
   @Test
   public void testRun() throws Throwable {
-    runDebugTest(config, DEBUGGEE_CLASS, run());
+    runDebugTest(getConfig(), DEBUGGEE_CLASS, run());
   }
 
   /**
@@ -36,11 +49,11 @@ public class DebugTestExamples extends DebugTestBase {
   @Test
   public void testBreakpoint_Hit() throws Throwable {
     runDebugTest(
-        config,
+        getConfig(),
         DEBUGGEE_CLASS,
         breakpoint(DEBUGGEE_CLASS, "bitwiseInts"),
         run(),
-        checkLine(SOURCE_FILE, 12),
+        checkLine(SOURCE_FILE, 14),
         run());
   }
 
@@ -50,11 +63,11 @@ public class DebugTestExamples extends DebugTestBase {
   @Test
   public void testLocalsOnBreakpoint() throws Throwable {
     runDebugTest(
-        config,
+        getConfig(),
         DEBUGGEE_CLASS,
         breakpoint(DEBUGGEE_CLASS, "bitwiseInts"),
         run(),
-        checkLine(SOURCE_FILE, 12),
+        checkLine(SOURCE_FILE, 14),
         checkLocal("x", Value.createInt(12345)),
         checkLocal("y", Value.createInt(54321)),
         run());
@@ -66,11 +79,11 @@ public class DebugTestExamples extends DebugTestBase {
   @Test
   public void testLocalsOnBreakpointThenStep() throws Throwable {
     runDebugTest(
-        config,
+        getConfig(),
         DEBUGGEE_CLASS,
         breakpoint(DEBUGGEE_CLASS, "bitwiseInts"),
         run(),
-        checkLine(SOURCE_FILE, 12),
+        checkLine(SOURCE_FILE, 14),
         checkLocal("x", Value.createInt(12345)),
         checkLocal("y", Value.createInt(54321)),
         stepOver(),

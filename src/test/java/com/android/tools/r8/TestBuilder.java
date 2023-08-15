@@ -5,6 +5,7 @@ package com.android.tools.r8;
 
 import com.android.tools.r8.ClassFileConsumer.ArchiveConsumer;
 import com.android.tools.r8.TestBase.Backend;
+import com.android.tools.r8.debug.DebugTestConfig;
 import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.ListUtils;
@@ -263,5 +264,9 @@ public abstract class TestBuilder<RR extends TestRunResult<RR>, T extends TestBu
   public T allowStdoutMessages() {
     // Default ignored.
     return self();
+  }
+
+  public DebugTestConfig debugConfig(TestRuntime runtime) throws Exception {
+    throw new Unimplemented("Not implemented for this test builder");
   }
 }

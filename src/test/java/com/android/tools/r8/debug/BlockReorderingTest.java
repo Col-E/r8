@@ -7,6 +7,7 @@ import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.ToolHelper.DexVm.Version;
+import com.android.tools.r8.debug.classes.BlockReordering;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import org.junit.Assume;
 import org.junit.Test;
@@ -19,7 +20,7 @@ import org.junit.runners.Parameterized.Parameters;
 @RunWith(Parameterized.class)
 public class BlockReorderingTest extends DebugTestBase {
 
-  public static final String CLASS = "BlockReordering";
+  public static final String CLASS = typeName(BlockReordering.class);
   public static final String FILE = "BlockReordering.java";
 
   @Parameters(name = "{0}")
@@ -31,7 +32,7 @@ public class BlockReorderingTest extends DebugTestBase {
 
   public DebugTestConfig getDebugConfig() throws CompilationFailedException {
     return testForD8()
-        .addProgramFiles(DEBUGGEE_JAR)
+        .addProgramClasses(BlockReordering.class)
         .setMinApi(parameters)
         .addOptionsModification(options -> options.testing.invertConditionals = true)
         .compile()
@@ -53,15 +54,15 @@ public class BlockReorderingTest extends DebugTestBase {
         CLASS,
         breakpoint(CLASS, method),
         run(),
-        checkLine(FILE, 8),
+        checkLine(FILE, 10),
         stepOver(),
-        checkLine(FILE, 13),
+        checkLine(FILE, 15),
         run(),
-        checkLine(FILE, 8),
+        checkLine(FILE, 10),
         stepOver(),
-        checkLine(FILE, 9),
+        checkLine(FILE, 11),
         stepOver(),
-        checkLine(FILE, 13),
+        checkLine(FILE, 15),
         run());
   }
 
@@ -74,15 +75,15 @@ public class BlockReorderingTest extends DebugTestBase {
         CLASS,
         breakpoint(CLASS, method),
         run(),
-        checkLine(FILE, 17),
+        checkLine(FILE, 19),
         stepOver(),
-        checkLine(FILE, 18),
+        checkLine(FILE, 20),
         stepOver(),
-        checkLine(FILE, 22),
+        checkLine(FILE, 24),
         run(),
-        checkLine(FILE, 17),
+        checkLine(FILE, 19),
         stepOver(),
-        checkLine(FILE, 22),
+        checkLine(FILE, 24),
         run());
   }
 
@@ -95,21 +96,21 @@ public class BlockReorderingTest extends DebugTestBase {
         CLASS,
         breakpoint(CLASS, method),
         run(),
-        checkLine(FILE, 26),
+        checkLine(FILE, 28),
         stepOver(),
-        checkLine(FILE, 35),
+        checkLine(FILE, 37),
         run(),
-        checkLine(FILE, 26),
+        checkLine(FILE, 28),
         stepOver(),
-        checkLine(FILE, 30),
+        checkLine(FILE, 32),
         stepOver(),
-        checkLine(FILE, 35),
+        checkLine(FILE, 37),
         run(),
-        checkLine(FILE, 26),
+        checkLine(FILE, 28),
         stepOver(),
-        checkLine(FILE, 31),
+        checkLine(FILE, 33),
         stepOver(),
-        checkLine(FILE, 35),
+        checkLine(FILE, 37),
         run());
   }
 }

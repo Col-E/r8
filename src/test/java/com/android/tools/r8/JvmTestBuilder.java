@@ -66,7 +66,8 @@ public class JvmTestBuilder extends TestBuilder<JvmTestRunResult, JvmTestBuilder
     return new JvmTestRunResult(builder.build(), runtime, result, getState());
   }
 
-  public CfDebugTestConfig debugConfig(TestRuntime runtime) {
+  @Override
+  public CfDebugTestConfig debugConfig(TestRuntime runtime) throws Exception {
     assert runtime.isCf();
     return new CfDebugTestConfig(runtime.asCf(), classpath);
   }
