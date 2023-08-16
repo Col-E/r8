@@ -58,9 +58,9 @@ public final class DesugaredLibraryCfMethods {
         4,
         ImmutableList.of(
             label0,
-            new CfLoad(ValueType.OBJECT, 1),
+            CfLoad.ALOAD_1,
             new CfIf(IfType.EQ, ValueType.OBJECT, label1),
-            new CfLoad(ValueType.OBJECT, 1),
+            CfLoad.ALOAD_1,
             new CfConstString(factory.createString("java")),
             new CfInvoke(
                 182,
@@ -80,9 +80,9 @@ public final class DesugaredLibraryCfMethods {
                       FrameType.initializedNonNullReference(factory.stringType),
                       FrameType.initializedNonNullReference(factory.stringType)
                     })),
-            new CfLoad(ValueType.OBJECT, 0),
-            new CfLoad(ValueType.OBJECT, 1),
-            new CfLoad(ValueType.OBJECT, 2),
+            CfLoad.ALOAD_0,
+            CfLoad.ALOAD_1,
+            CfLoad.ALOAD_2,
             new CfInvoke(
                 182,
                 factory.createMethod(
@@ -104,9 +104,9 @@ public final class DesugaredLibraryCfMethods {
                       FrameType.initializedNonNullReference(factory.stringType),
                       FrameType.initializedNonNullReference(factory.stringType)
                     })),
-            new CfLoad(ValueType.OBJECT, 0),
+            CfLoad.ALOAD_0,
             new CfNew(factory.stringBuilderType),
-            new CfStackInstruction(CfStackInstruction.Opcode.Dup),
+            CfStackInstruction.DUP,
             new CfInvoke(
                 183,
                 factory.createMethod(
@@ -122,7 +122,7 @@ public final class DesugaredLibraryCfMethods {
                     factory.createProto(factory.stringBuilderType, factory.stringType),
                     factory.createString("append")),
                 false),
-            new CfLoad(ValueType.OBJECT, 1),
+            CfLoad.ALOAD_1,
             new CfConstString(factory.createString("java")),
             new CfInvoke(
                 182,
@@ -152,7 +152,7 @@ public final class DesugaredLibraryCfMethods {
                     factory.createProto(factory.stringType),
                     factory.createString("toString")),
                 false),
-            new CfLoad(ValueType.OBJECT, 2),
+            CfLoad.ALOAD_2,
             new CfInvoke(
                 182,
                 factory.createMethod(
@@ -179,9 +179,9 @@ public final class DesugaredLibraryCfMethods {
                     Arrays.asList(
                         FrameType.initializedNonNullReference(
                             factory.createType("Ljava/lang/RuntimeException;"))))),
-            new CfStore(ValueType.OBJECT, 3),
+            CfStore.ASTORE_2,
             label5,
-            new CfLoad(ValueType.OBJECT, 3),
+            CfLoad.ALOAD_3,
             new CfInvoke(
                 182,
                 factory.createMethod(
@@ -192,9 +192,9 @@ public final class DesugaredLibraryCfMethods {
             new CfInstanceOf(factory.createType("Ljava/lang/ClassNotFoundException;")),
             new CfIf(IfType.EQ, ValueType.INT, label7),
             label6,
-            new CfLoad(ValueType.OBJECT, 0),
-            new CfLoad(ValueType.OBJECT, 1),
-            new CfLoad(ValueType.OBJECT, 2),
+            CfLoad.ALOAD_0,
+            CfLoad.ALOAD_1,
+            CfLoad.ALOAD_2,
             new CfInvoke(
                 182,
                 factory.createMethod(
@@ -218,8 +218,8 @@ public final class DesugaredLibraryCfMethods {
                       FrameType.initializedNonNullReference(
                           factory.createType("Ljava/lang/RuntimeException;"))
                     })),
-            new CfLoad(ValueType.OBJECT, 3),
-            new CfThrow(),
+            CfLoad.ALOAD_3,
+            CfThrow.INSTANCE,
             label8),
         ImmutableList.of(
             new CfTryCatch(
