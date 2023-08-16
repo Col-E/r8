@@ -4,7 +4,6 @@
 
 package com.android.tools.r8.utils.resourceshrinker;
 
-import com.android.build.shrinker.r8integration.R8ResourceShrinkerState;
 import com.android.tools.r8.AndroidResourceConsumer;
 import com.android.tools.r8.AndroidResourceProvider;
 import com.android.tools.r8.DiagnosticsHandler;
@@ -30,7 +29,7 @@ public class ResourceTracingImpl implements ResourceTracing {
   @Override
   public void setProvider(AndroidResourceProvider provider) {
     this.provider = provider;
-    new R8ResourceShrinkerState();
+    // new R8ResourceShrinkerState();
     // TODO(b/287398085): Instantiate with resource table, currently the resource table in the tests
     // is not valid. This just ensures that we can access the class from r8 with the new gradle
     // setup.
