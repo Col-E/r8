@@ -12,6 +12,7 @@
 *~
 .#*
 .gradle/
+tools/**
 **/.gradle/
 .gradle_user_home
 .idea/
